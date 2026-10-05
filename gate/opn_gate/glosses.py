@@ -26,14 +26,13 @@ from __future__ import annotations
 
 import logging
 import re
-from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 from typing import Any
 
 import yaml
 
-from opn_gate import paths, records, schemas, signed
+from opn_gate import paths, records, schemas, sections, signed
 from opn_gate.diagnostic import Diagnostic
 from opn_gate.paths import Located
 from opn_gate.signer import Signer
@@ -41,6 +40,9 @@ from opn_gate.signer import Signer
 log = logging.getLogger(__name__)
 
 SCHEMA = "gloss/v1"
+#: Every gloss record version the gate reads, each validated against its own ``schema`` (D-34):
+#: v2 adds ``drafted_with`` (F21-R6; D-3 v3.31, D-23).
+SCHEMAS: frozenset[str] = frozenset({"gloss/v1", "gloss/v2"})
 GLOSS_DIR = "gloss"
 #: The Lean file a node-level gloss of each kind describes (R1).
 KIND_FILES: dict[str, str] = {
@@ -102,8 +104,9 @@ def _invalid(located: Located, why: str, **details: Any) -> Diagnostic:
 
 
 def document(located: Located, data: bytes) -> dict[str, Any] | Diagnostic:  # noqa: PLR0911
-    """The gloss's front matter, validated against ``gloss/v1`` with exactly one of author and
-    drafter set; or the reason it is not a gloss, as ``gloss-invalid``."""
+    """The gloss's front matter, validated against the version it declares (``gloss/v1`` or
+    ``gloss/v2``) with exactly one of author and drafter set; or the reason it is not a gloss, as
+    ``gloss-invalid``."""
     try:
         text = data.decode("utf-8")
     except UnicodeDecodeError:
@@ -118,9 +121,13 @@ def document(located: Located, data: bytes) -> dict[str, Any] | Diagnostic:  # n
             "a gloss opens with YAML front matter naming its target, its subject and the hash of "
             "the Lean it describes",
         )
-    if doc.get("schema") != SCHEMA:
-        return _invalid(located, f"the front matter declares {doc.get('schema')!r}, not {SCHEMA}")
-    violations = schemas.violations(doc, SCHEMA)
+    if doc.get("schema") not in SCHEMAS:
+        return _invalid(
+            located,
+            f"the front matter declares {doc.get('schema')!r}, not one of "
+            f"{', '.join(sorted(SCHEMAS))}",
+        )
+    violations = schemas.violations(doc, str(doc["schema"]))
     if violations:
         v = violations[0]
         return _invalid(located, f"{v.path}: {v.message}", field=v.path)
@@ -240,8 +247,17 @@ class Version:
     author: str | None
     drafter: dict[str, Any] | None
     date: str | None
-    schema: str | None  # gloss/v1, explainer/v1, or None for an explainer filed before F20
+    schema: str | None  # gloss/v1 or v2, explainer/v1 or v2, or None for one filed before F20
     lean_hash: str | None = None  # a gloss's: the text it describes
+    #: F21-R6 (D-23): the model a contributor's agent drafted with, in their words; ``None`` for
+    #: a person's own writing and for every v1 record.
+    drafted_with: str | None = None
+
+    @property
+    def by_model(self) -> bool:
+        """F21-R11: whether a model wrote this version's words — it names one in ``drafted_with``,
+        or it is one of F20's drafts (a ``drafter`` block)."""
+        return self.drafted_with is not None or self.drafter is not None
 
 
 @dataclass(frozen=True)
@@ -324,8 +340,9 @@ def gloss_version(path: Path, doc: dict[str, Any]) -> Version:
         author=doc["author"],
         drafter=doc["drafter"],
         date=str(doc["date"]),
-        schema=SCHEMA,
+        schema=str(doc["schema"]),
         lean_hash=str(subject["lean_hash"]),
+        drafted_with=doc.get("drafted_with"),
     )
 
 
@@ -345,26 +362,25 @@ def load_versions(parent_dir: Path) -> list[Version]:
         except (OSError, UnicodeDecodeError, ValueError) as exc:
             log.warning("%s is not a gloss and is passed over: %s", path, exc)
             continue
-        if doc is None or doc.get("schema") != SCHEMA or schemas.violations(doc, SCHEMA):
-            log.warning("%s does not validate as %s and is passed over", path, SCHEMA)
+        schema = doc.get("schema") if doc is not None else None
+        if doc is None or schema not in SCHEMAS or schemas.violations(doc, str(schema)):
+            log.warning("%s does not validate as a gloss record and is passed over", path)
             continue
         out.append(gloss_version(path, doc))
     return out
 
 
-def head_problems(  # noqa: PLR0913 — the version, its siblings and the host's facts
+def head_problems(
     path: str,
     version: Version,
     siblings: list[Version],
     withdrawn: frozenset[str],
-    *,
-    signed_versions: frozenset[str],
-    author: str | None,
-    may_supersede_signed: Callable[[str | None], bool],
 ) -> list[Diagnostic]:
     """R6: a version that supersedes another names the current head of a chain of its own
-    subject (``record-not-head``, naming the head), and supersedes a validly signed version only
-    in a pull request an active steward or a listed curator opened (``signed-supersede``)."""
+    subject (``record-not-head``, naming the head). Anyone may supersede a signed version: F20's
+    rule that only a steward or curator might (``signed-supersede``) is withdrawn (F21-R13; D-3
+    v3.31), and a person's change to verified words is pending until a steward or curator signs
+    it (``opn_gate.sections``)."""
     named = version.supersedes
     if named is None:
         return []
@@ -372,53 +388,45 @@ def head_problems(  # noqa: PLR0913 — the version, its siblings and the host's
     found = chains(same, withdrawn)
     chain = chain_of(found, named)
     head = chain.current if chain is not None else None
-    if chain is None or head is None or head.hash != named:
-        heads = (
-            [c.current.hash for c in found if c.current is not None]
-            if chain is None
-            else [head.hash]
-            if head is not None
-            else []
+    if chain is not None and head is not None and head.hash == named:
+        return []
+    heads = (
+        [c.current.hash for c in found if c.current is not None]
+        if chain is None
+        else [head.hash]
+        if head is not None
+        else []
+    )
+    why = (
+        "no merged version of the same subject has that hash (a version still in an open pull "
+        "request cannot be superseded until it merges)"
+        if chain is None
+        else "it has been withdrawn"
+        if named in withdrawn
+        else "it has already been superseded"
+    )
+    return [
+        Diagnostic(
+            "record-not-head",
+            f"{path} supersedes {named}, and {why}; a version supersedes the current head of "
+            f"its chain ({', '.join(heads) or 'none'}) or starts a chain of its own "
+            "(F20-R6, D-3 v3.30)",
+            {
+                "path": path,
+                "supersedes": named,
+                "head": heads[0] if len(heads) == 1 else None,
+                "heads": heads,
+            },
         )
-        why = (
-            "no merged version of the same subject has that hash (a version still in an open pull "
-            "request cannot be superseded until it merges)"
-            if chain is None
-            else "it has been withdrawn"
-            if named in withdrawn
-            else "it has already been superseded"
-        )
-        return [
-            Diagnostic(
-                "record-not-head",
-                f"{path} supersedes {named}, and {why}; a version supersedes the current head of "
-                f"its chain ({', '.join(heads) or 'none'}) or starts a chain of its own "
-                "(F20-R6, D-3 v3.30)",
-                {
-                    "path": path,
-                    "supersedes": named,
-                    "head": heads[0] if len(heads) == 1 else None,
-                    "heads": heads,
-                },
-            )
-        ]
-    if named in signed_versions and not may_supersede_signed(author):
-        return [
-            Diagnostic(
-                "signed-supersede",
-                f"{path} supersedes {named}, which a steward or curator has signed; only an "
-                f"active steward of the target or a listed curator supersedes a signed version, "
-                f"and this pull request acts for {author or 'an unknown login'}. Start a "
-                "chain of your own instead (F20-R6)",
-                {"path": path, "supersedes": named, "author": author},
-            )
-        ]
-    return []
+    ]
 
 
 # --- gloss signatures (F20-R8) ------------------------------------------------------------------
 
 SIGNATURE_SCHEMA = "gloss-signature/v1"
+#: v2 adds ``sections``: the section keys the signature approves (F21-R13; D-3 v3.31).
+SIGNATURE_SCHEMA_V2 = "gloss-signature/v2"
+SIGNATURE_SCHEMAS: frozenset[str] = frozenset({SIGNATURE_SCHEMA, SIGNATURE_SCHEMA_V2})
 SIGNED_DIR = "signed"
 AFFIRMATION = "I have read this against the Lean it names, and it says what the Lean says."
 _HASH_RE = re.compile(r"^[0-9a-f]{64}$")
@@ -433,8 +441,15 @@ class Signature:
     path: Path
     doc: dict[str, Any]
 
+    @property
+    def sections(self) -> list[str] | None:
+        """The section keys this signature approves; ``None`` for every section (a v1 signature,
+        or a v2 one naming none) (F21-R13)."""
+        named = self.doc.get("sections")
+        return [str(k) for k in named] if isinstance(named, list) else None
+
     def as_dict(self) -> dict[str, Any]:
-        return {"signer": self.signer, "date": self.date}
+        return {"signer": self.signer, "date": self.date, "sections": self.sections}
 
 
 def signed_dir(parent_dir: Path) -> Path:
@@ -485,6 +500,17 @@ def signature_problems(
                 details,
             )
         )
+    unknown = [k for k in doc.get("sections") or [] if k != sections.WHOLE]
+    if unknown:
+        found.append(
+            Diagnostic(
+                "signature-section-unknown",
+                f"{path} approves section {', '.join(map(str, unknown))}, which gloss "
+                f"{gloss[:12]}… does not have: a gloss is one section, {sections.WHOLE} "
+                "(F21-R11, R13)",
+                {**details, "sections": unknown, "known": [sections.WHOLE]},
+            )
+        )
     m = _SIGNATURE_RE.match(PurePosixPath(path).name)
     if m is None or m.group("hash") != gloss:
         found.append(
@@ -507,12 +533,22 @@ def load_signatures(parent_dir: Path) -> list[Signature]:
     out: list[Signature] = []
     for path in sorted(p for p in directory.iterdir() if p.is_file()):
         try:
-            doc = schemas.load_yaml(path, SIGNATURE_SCHEMA)
+            doc = load_signature_doc(path, SIGNATURE_SCHEMAS)
         except schemas.SchemaError as exc:
             log.warning("%s counts for nothing: %s", path, exc)
             continue
         out.append(Signature(str(doc["gloss"]), str(doc["signer"]), str(doc["date"]), path, doc))
     return out
+
+
+def load_signature_doc(path: Path, accepted: frozenset[str]) -> dict[str, Any]:
+    """A signature file validated against the version it declares, which must be one of
+    ``accepted`` (D-34: several versions live at once); ``SchemaError`` otherwise."""
+    doc = schemas.load_yaml(path)
+    if doc.get("schema") not in accepted:
+        msg = f"{path} declares {doc.get('schema')!r}, not one of {', '.join(sorted(accepted))}"
+        raise schemas.SchemaError(msg)
+    return doc
 
 
 def valid_signatures(parent_dir: Path, signer: Signer) -> dict[str, list[Signature]]:
@@ -548,18 +584,23 @@ def sign(  # noqa: PLR0913 — one argument per fact the record carries
     date: str,
     key_path: Path,
     signer: Signer,
+    approves: list[str] | None = None,
 ) -> Path:
     """R8: write one gloss signature with the signer's own key, or refuse by name with nothing
     written when the gloss is not there (C7). ``parent_dir`` is the node directory, or the target
-    directory for a definition module's gloss."""
+    directory for a definition module's gloss. ``approves`` names the sections approved
+    (``gloss-signature/v2``, F21-R13); ``None`` writes a v1 signature, which approves all."""
     if not _HASH_RE.match(gloss):
         msg = f"{gloss!r} is not a gloss hash (64 lowercase hex characters, D-3)"
         raise GlossError(msg)
     if gloss not in gloss_hashes(parent_dir):
         msg = f"no gloss {gloss[:12]}… is under {parent_dir.name}/{GLOSS_DIR}/; nothing to sign"
         raise GlossError(msg)
-    doc = {
-        "schema": SIGNATURE_SCHEMA,
+    if approves is not None and set(approves) - {sections.WHOLE}:
+        msg = f"a gloss is one section, {sections.WHOLE}; nothing to sign by {approves}"
+        raise GlossError(msg)
+    doc: dict[str, Any] = {
+        "schema": SIGNATURE_SCHEMA if approves is None else SIGNATURE_SCHEMA_V2,
         "target": target_id,
         "node": node_id,
         "gloss": gloss,
@@ -567,7 +608,9 @@ def sign(  # noqa: PLR0913 — one argument per fact the record carries
         "signer": signer_login,
         "date": date[:10],
     }
-    doc = schemas.validate(signed.sign(doc, key_path, signer), SIGNATURE_SCHEMA)
+    if approves is not None:
+        doc["sections"] = list(dict.fromkeys(approves))
+    doc = schemas.validate(signed.sign(doc, key_path, signer), str(doc["schema"]))
     path = next_signature_path(parent_dir, gloss)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(yaml.safe_dump(doc, sort_keys=False, allow_unicode=True), encoding="utf-8")

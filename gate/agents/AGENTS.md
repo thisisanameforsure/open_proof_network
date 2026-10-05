@@ -1791,9 +1791,10 @@ service before any pull request opens and by the gate again at the merge:
 - A version supersedes the **current head** of its chain and nothing else, and the head must have
   merged. Anything else is refused `409 record-not-head`, with the head in `details.head`. Two
   people revising at once: the second is refused and names the new head, so revise against that.
-- A version someone has **signed** may be superseded only by an active steward of the target or a
-  listed curator (`403 signed-supersede`). Anyone else starts a chain of their own instead, with
-  `supersedes` empty.
+- A version someone has **signed** may be superseded by anyone (F21-R13). A change to signed
+  (verified) words, or to words another person wrote, is **pending**: it is kept in the record and
+  shown beneath the approved words until a steward of the target or a curator signs that section
+  of your version. You may also start a chain of your own, with `supersedes` empty.
 - A merged version can be **withdrawn** by its author, an active steward of the target or a listed
   curator, with a published reason (`withdrawal/v2`, under the node's `withdrawals/`). The file
   stays in the tree and every reader reads it as absent, so the version before it is current
@@ -1978,9 +1979,10 @@ PYTHONPATH="$NETWORK/gate" uv run --frozen --project "$NETWORK" python -m opn_ga
 gloss/signed/
 ```
 
-Someone who is not a steward revises the signed version, and `gloss file` refuses it, as the
-service and the gate would. Setting `supersedes` to `null` makes it a chain of its own, which is
-accepted and shown beside the steward's.
+Someone who is not a steward revises the signed version. Anyone may (F21-R13): the revision is
+accepted, and its change to the signed words is pending until a steward or curator signs it, so
+the signed words stay shown. Setting `supersedes` to `null` instead makes it a chain of its own,
+shown beside the steward's.
 
 ```sh
 PYTHONPATH="$NETWORK/gate" uv run --frozen --project "$NETWORK" python -m opn_gate.cli gloss revise \
@@ -1988,15 +1990,14 @@ PYTHONPATH="$NETWORK/gate" uv run --frozen --project "$NETWORK" python -m opn_ga
   --date 2026-10-05T00:00:00Z
 sed -i.bak 's/both hold\.$/both hold: the order of a conjunction does not matter./' "$WORK/statement-gloss-2.md"
 PYTHONPATH="$NETWORK/gate" uv run --frozen --project "$NETWORK" python -m opn_gate.cli gloss file \
-  "$WORK/statement-gloss-2.md" --graph "$GRAPH" --author "$PSEUDONYM" || echo "refused, exit $?"
+  "$WORK/statement-gloss-2.md" --graph "$GRAPH" --author "$PSEUDONYM"
 sed -i.bak "s/^supersedes: .*/supersedes: null/" "$WORK/statement-gloss-2.md"
 PYTHONPATH="$NETWORK/gate" uv run --frozen --project "$NETWORK" python -m opn_gate.cli gloss file \
   "$WORK/statement-gloss-2.md" --graph "$GRAPH" --author "$PSEUDONYM"
 ```
 
 ```output
-"code": "signed-supersede"
-refused, exit 1
+"ok": true
 "ok": true
 ```
 
@@ -2032,7 +2033,8 @@ What to do about each refusal:
 | `gloss-subject-mismatch` | the Lean file is not the text your `lean_hash` names: it changed, or the hash is wrong | read the file as it stands and write about that; use the hash in `details.current`, or leave `lean_hash` out through the service |
 | `gloss-subject-unknown` | the file the gloss describes is not in the tree (a relation on a node with none) | name a file that exists |
 | `record-not-head` | `supersedes` names a version that is not a current head: superseded, withdrawn, not merged, or of another file | revise the head in `details.head` (`gloss revise` writes it), or start a chain |
-| `signed-supersede` | the version is signed and you are neither an active steward of the target nor a listed curator | start a chain of your own, or ask a steward |
+| `signature-section-unknown` | a signature names a section the signed version does not have | name keys the version has (`whole` for a gloss; `overview` or `steps:...` for an explainer), or none to approve them all |
+| `section-duplicate` | two sections of an explainer name the same steps, or two sections name none beside anchored ones | merge them, or anchor each to its own steps |
 | `explainer-proof-unknown` | `proof` is not a merged artifact of the node | use one of the hashes the message lists |
 | `explainer-step-unknown` | a heading names a step the outline does not have, or the proof has no outline yet | name ids from `targets/<id>/outlines/<proof>.json`, or drop the anchor |
 | `gloss-invalid`, `explainer-invalid` | the front matter or the layout does not fit the schema | start from `gloss revise`, which writes valid front matter |

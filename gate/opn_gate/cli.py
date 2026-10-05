@@ -2667,18 +2667,18 @@ def _gloss_destination(graph: Path, doc: dict[str, Any]) -> Path:
         msg = "the front matter names no target"
         raise glosses.GlossError(msg)
     target_dir = graph / "targets" / target
-    if doc.get("schema") == glosses.SCHEMA:
+    if doc.get("schema") in glosses.SCHEMAS:
         subject = doc.get("subject") if isinstance(doc.get("subject"), dict) else {}
         assert isinstance(subject, dict)
         if subject.get("kind") == glosses.DEFINITION:
             return target_dir / glosses.GLOSS_DIR
         node = subject.get("node")
         directory = glosses.GLOSS_DIR
-    elif doc.get("schema") == "explainer/v1":
+    elif doc.get("schema") in explainers.RECORD_SCHEMAS:
         node = doc.get("node")
         directory = "explainer"
     else:
-        msg = f"the front matter declares {doc.get('schema')!r}, not gloss/v1 or explainer/v1"
+        msg = f"the front matter declares {doc.get('schema')!r}, not a gloss or explainer record"
         raise glosses.GlossError(msg)
     if not isinstance(node, str) or not _ID_RE.match(node):
         msg = "the front matter names no node"

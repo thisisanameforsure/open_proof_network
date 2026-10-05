@@ -40,6 +40,7 @@ from opn_gate import (
     qa,
     records,
     schemas,
+    sections,
     signed,
     steward,
     watch,
@@ -547,7 +548,7 @@ def proof_closure(
     return sorted(seen), sorted(unmeasured)
 
 
-GLOSSES_SCHEMA = "glosses/v1"
+GLOSSES_SCHEMA = "glosses/v2"  # v2: drafted_with, sections, shown, pending (F21-R6, R14)
 GLOSSES_FILE = "glosses.json"
 
 
@@ -704,7 +705,9 @@ def _explainer_chains(
     withdrawn = glosses.withdrawn_versions(parent, explainers.EXPLAINER_DIR)
     sigs: dict[str, list[dict[str, Any]]] = {}
     for sig in explainers.valid(parent, signer):
-        sigs.setdefault(sig.explainer, []).append({"signer": sig.signer, "date": sig.date})
+        sigs.setdefault(sig.explainer, []).append(
+            {"signer": sig.signer, "date": sig.date, "sections": sig.sections}
+        )
     by_proof: dict[str | None, list[glosses.Version]] = {}
     for v in explainers.versions(parent):
         by_proof.setdefault(v.subject[2], []).append(v)
@@ -732,14 +735,23 @@ def _chains_doc(
     sigs: Mapping[str, list[dict[str, Any]]],
     current_text: str | None,
 ) -> list[dict[str, Any]]:
-    """One subject's chains as ``glosses/v1`` publishes them. ``current_text`` is the subject
-    file's hash for a gloss (``describes_current``), ``None`` for an explainer."""
+    """One subject's chains as ``glosses/v2`` publishes them. ``current_text`` is the subject
+    file's hash for a gloss (``describes_current``), ``None`` for an explainer. Each version
+    carries its sections with their states and each chain the words it shows, section by
+    section, and the pending sections (F21-R11, R14; ``opn_gate.sections``)."""
+    approvals = {
+        h: [None if s["sections"] is None else frozenset(s["sections"]) for s in found]
+        for h, found in sigs.items()
+    }
     out: list[dict[str, Any]] = []
     for chain in glosses.chains(found, withdrawn):
         current = chain.current
+        derived = sections.of_chain(chain, approvals, withdrawn)
         out.append(
             {
                 "current": current.hash if current is not None else None,
+                "shown": [p.as_dict() for p in derived.shown],
+                "pending": [p.as_dict() for p in derived.pending],
                 "versions": [
                     {
                         "hash": v.hash,
@@ -751,10 +763,14 @@ def _chains_doc(
                         "date": v.date,
                         "lean_hash": v.lean_hash,
                         "describes_current": (
-                            None if v.schema != glosses.SCHEMA else v.lean_hash == current_text
+                            None if v.schema not in glosses.SCHEMAS else v.lean_hash == current_text
                         ),
                         "withdrawn": v.hash in withdrawn,
                         "signatures": list(sigs.get(v.hash, [])),
+                        "drafted_with": v.drafted_with,
+                        "sections": [
+                            {"key": key, "state": state} for key, state in derived.states[v.hash]
+                        ],
                     }
                     for v in chain.versions
                 ],

@@ -2,14 +2,15 @@
 
 A gloss or an explainer is corrected by a new version that supersedes the head of its chain, never
 by an edit: the chain is linear, so the current version needs no clock (F20-Q3). Superseding
-anything but the head is ``record-not-head``, naming the head; superseding a version a steward or
-curator has signed is the steward's or curator's act alone (``signed-supersede``); anyone may
-start a new chain instead. A version is withdrawn by a ``withdrawal/v2`` record from its author,
-an active steward or a listed curator, and every reader reads it as absent while the file stays.
+anything but the head is ``record-not-head``, naming the head. Anyone may supersede a signed
+version: F20's ``signed-supersede`` is withdrawn (F21-R13), and a person's change to verified
+words is pending until a steward or curator signs it (``opn_gate.sections``). A version is
+withdrawn by a ``withdrawal/v2`` record from its author, an active steward or a listed curator,
+and every reader reads it as absent while the file stays.
 A gloss signature is a steward's or curator's affirmation that the words say what the Lean says;
-it changes nothing else. Digestion counts a node only while the *current* version of an explainer
-chain on its first proof is signed (D-33 v3.30). The products publish every chain per subject in
-``targets/<id>/glosses.json`` (``glosses/v1``), ranked by nothing.
+it changes nothing else. Digestion counts a node while every section an explainer chain on its
+first proof shows is verified (D-33 v3.31, F21-R15). The products publish every chain per subject
+in ``targets/<id>/glosses.json`` (``glosses/v2`` since F21), ranked by nothing.
 """
 
 from __future__ import annotations
@@ -195,7 +196,7 @@ def withdraw(root: Path, record: str, author: str, *, n: int, node: str | None =
 
 def chains_of(root: Path, kind: str, node: str = NODE) -> list[dict[str, Any]]:
     doc = loads(generate(root), f"targets/{TARGET}/glosses.json")
-    assert schemas.violations(doc, "glosses/v1") == []
+    assert doc["schema"] == "glosses/v2" and schemas.violations(doc) == []
     [subject] = [s for s in doc["subjects"] if s["kind"] == kind and s["node"] == node]
     return list(subject["chains"])
 
@@ -226,9 +227,11 @@ def test_a_gloss_of_changed_text_is_marked(root: Path) -> None:
 
 @pytest.mark.parametrize("record", ["gloss", "explainer"])
 def test_linear_chains_and_signed_supersede(root: Path, keys: dict[str, Path], record: str) -> None:
-    """AC5: a chain A<-B; C superseding A is refused ``record-not-head`` naming B and D
-    superseding B passes. With B signed, E superseding it from a third party is refused
-    ``signed-supersede``, from a steward or a curator it passes. The same for explainers."""
+    """AC5, restated by F21-R13: a chain A<-B; C superseding A is refused ``record-not-head``
+    naming B and D superseding B passes. With B signed, E superseding it is accepted from anyone
+    — a third party, a steward or a curator — since F20's ``signed-supersede`` is withdrawn; E's
+    change to B's verified words is pending, and the chain goes on showing B's. The same for
+    explainers."""
     make = gloss if record == "gloss" else explainer
     sign = sign_gloss if record == "gloss" else sign_explainer
     a, _ = make(root, "First reading.")
@@ -243,10 +246,16 @@ def test_linear_chains_and_signed_supersede(root: Path, keys: dict[str, Path], r
     (root / d_change.path).unlink()  # D was a probe; B stays the head
 
     sign(root, b, STEWARD, keys[STEWARD])
-    _, e_change = make(root, "A correction of the signed text.", supersedes=b)
-    assert codes(root, e_change, author=STRANGER) == ["signed-supersede"]
+    e, e_change = make(root, "A correction of the signed text.", supersedes=b)
+    assert codes(root, e_change, author=STRANGER) == []
     assert codes(root, e_change, author=STEWARD) == []
     assert codes(root, e_change, author=CURATOR) == []
+    kind = "statement" if record == "gloss" else "proof"
+    [chain] = [c for c in chains_of(root, kind) if c["current"] == e]
+    key = "whole" if record == "gloss" else "overview"
+    assert chain["shown"] == [{"key": key, "version": b, "state": "verified"}]
+    assert chain["pending"] == [{"key": key, "version": e, "state": "pending"}]
+    (root / e_change.path).unlink()
     # Anyone may start a chain of their own instead.
     _, fresh = make(root, "My own account.")
     assert codes(root, fresh, author=STRANGER) == []
@@ -382,9 +391,11 @@ def test_a_gloss_signature_is_a_stewards_or_curators(root: Path, keys: dict[str,
 
 
 def test_digestion_counts_explainers_only(root: Path, keys: dict[str, Path]) -> None:
-    """AC7: a resolved target whose closure nodes all carry signed current explainer versions is
-    ``explained``; one superseded by an unsigned version makes it ``undigested``, and signing
-    that version makes it ``explained`` again. Signing every gloss changes no status, grade or
+    """AC7, restated by F21-R15 (per section): a resolved target whose closure nodes all carry
+    signed explainers is ``explained``. A person's newer version leaves it ``explained`` — the
+    change to verified words is pending and the verified words stay shown. Withdrawing the signed
+    version shows the newer words as written, which makes it ``undigested``; signing the newer
+    version makes it ``explained`` again. Signing every gloss changes no status, grade or
     digestion state."""
     for n, node in enumerate(("tutorial-and-swap", "and-reassoc", ROOT_NODE), start=1):
         attest(root, node, n=n)
@@ -399,6 +410,8 @@ def test_digestion_counts_explainers_only(root: Path, keys: dict[str, Path]) -> 
     assert row()["status"] == "resolved"
     assert row()["digestion"]["state"] == "explained"
     newer, _ = explainer(root, "A clearer account.", supersedes=heads[NODE], node=NODE)
+    assert row()["digestion"]["state"] == "explained"  # the edit is pending (F21-R11)
+    withdraw(root, f"explainer/{heads[NODE]}.md", STEWARD, n=1, node=NODE)
     assert row()["digestion"]["state"] == "undigested"
     assert row()["digestion"]["closure_explained"] == 2
     sign_explainer(root, newer, CURATOR, keys[CURATOR], node=NODE)
@@ -426,7 +439,8 @@ def test_digestion_counts_explainers_only(root: Path, keys: dict[str, Path]) -> 
 
 def test_a_pre_f20_explainer_is_a_chain_of_one(root: Path, keys: dict[str, Path]) -> None:
     """Q: an explainer filed before F20 names no proof; it is read as a one-version chain on the
-    node's Proof.lean, so a signed one still counts, and a v1 version may supersede it."""
+    node's Proof.lean, so a signed one still counts, and a v1 version may supersede it — since
+    F21-R13 from anyone, its change to the signed words pending."""
     text = "---\nauthor: someone\ndate: 2026-09-16\n---\nWhy it holds.\n"
     legacy = put(node_dir(root) / "explainer", text).stem
     sign_explainer(root, legacy, STEWARD, keys[STEWARD])
@@ -435,14 +449,14 @@ def test_a_pre_f20_explainer_is_a_chain_of_one(root: Path, keys: dict[str, Path]
     assert chain["versions"][0]["schema"] is None and chain["versions"][0]["author"] == "someone"
     _, change = explainer(root, "Anchored now.", supersedes=legacy)
     assert codes(root, change, author=STEWARD) == []
-    assert codes(root, change, author=STRANGER) == ["signed-supersede"]
+    assert codes(root, change, author=STRANGER) == []
 
 
 def test_the_product_lists_every_lean_file(root: Path) -> None:
     """R9: every statement, witness and relation of every node, and every merged proof artifact,
     is a subject, with or without chains, in the target's structural order."""
     doc = loads(generate(root), f"targets/{TARGET}/glosses.json")
-    assert doc["schema"] == "glosses/v1" and doc["target"] == TARGET
+    assert doc["schema"] == "glosses/v2" and doc["target"] == TARGET
     seen = {(s["kind"], s["node"]) for s in doc["subjects"]}
     for node in ("tutorial-and-swap", "and-reassoc", ROOT_NODE):
         assert {("statement", node), ("witness", node), ("proof", node)} <= seen
@@ -502,22 +516,22 @@ def test_a_hand_opened_withdrawal_is_judged_by_its_opener(root: Path, record: st
 def test_a_service_supersede_of_a_signed_version_acts_for_its_author(
     root: Path, keys: dict[str, Path], record: str
 ) -> None:
-    """R6 through the service: a steward's or a curator's version superseding a signed one
-    passes, a stranger's is ``signed-supersede``; a hand-opened one naming the steward as its
-    author is judged by its opener."""
+    """R6 through the service, restated by F21-R13: a version superseding a signed one passes
+    whoever acts for it — a steward, a curator, a stranger, through the service or by hand — since
+    F20's ``signed-supersede`` is withdrawn; a person's change to the signed words is pending."""
     make = gloss if record == "gloss" else explainer
     sign = sign_gloss if record == "gloss" else sign_explainer
     b, _ = make(root, "Signed reading.")
     sign(root, b, CURATOR, keys[CURATOR])
     _, by_steward = make(root, "The steward's correction.", supersedes=b, author=STEWARD)
     assert codes_by(root, by_steward, SERVICE) == []
-    assert codes_by(root, by_steward, STRANGER) == ["signed-supersede"]
+    assert codes_by(root, by_steward, STRANGER) == []
     (root / by_steward.path).unlink()
     _, by_curator = make(root, "The curator's.", supersedes=b, author=f"{CURATOR}-pseudonym")
     assert codes_by(root, by_curator, SERVICE) == []
     (root / by_curator.path).unlink()
     _, by_stranger = make(root, "A stranger's correction.", supersedes=b, author=STRANGER)
-    assert codes_by(root, by_stranger, SERVICE) == ["signed-supersede"]
+    assert codes_by(root, by_stranger, SERVICE) == []
 
 
 def test_the_service_login_is_configuration(root: Path) -> None:

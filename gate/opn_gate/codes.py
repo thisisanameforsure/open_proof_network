@@ -961,8 +961,9 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
     "glosses-invalid": (
         "api",
         None,
-        "The graph's committed targets/<id>/glosses.json does not validate against glosses/v1, "
-        "so get_node cannot serve its gloss and explainer chains (F20-R11).",
+        "The graph's committed targets/<id>/glosses.json does not validate against the glosses "
+        "version the service reads, so get_node cannot serve its gloss and explainer chains "
+        "(F20-R11).",
         "Report it to the curator: the products need re-rendering by the pinned gate. The raw "
         "files under the node's gloss/ and explainer/ are still readable through the plain path.",
     ),
@@ -1864,6 +1865,14 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "Curators: fix the row the message names.",
     ),
     # --- s ------------------------------------------------------------------------------------
+    "section-duplicate": (
+        "gate",
+        None,
+        "An explainer has two sections with the same key: the same set of outline steps named in "
+        "two headings, or two unanchored sections beside anchored ones (F21-R11, Q8).",
+        "Give each set of steps one section: merge the two, or name different steps; keep one "
+        "unanchored overview section.",
+    ),
     "service-error": (
         "api",
         None,
@@ -1876,6 +1885,14 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "An explainer signature does not verify under the record's key.",
         "Sign again with the key the record names.",
     ),
+    "signature-section-unknown": (
+        "gate",
+        None,
+        "A gloss or explainer signature approves a section the signed version does not have "
+        "(F21-R13): a gloss is one section, whole; an explainer's are overview and steps: keys.",
+        "Name only sections the version has (its keys are in glosses.json), or omit sections to "
+        "approve them all.",
+    ),
     "signature-name": (
         "gate",
         None,
@@ -1887,15 +1904,6 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         None,
         "An explainer signature names a different node from the one it sits under.",
         "File the signature under the node it signs.",
-    ),
-    "signed-supersede": (
-        "gate",
-        None,
-        "A gloss or explainer supersedes a version a steward or curator has signed, in a pull "
-        "request opened by neither an active steward of the target nor a listed curator "
-        "(F20-R6).",
-        "Start a chain of your own (supersedes: null), or ask a steward of the target or a "
-        "curator to file the revision.",
     ),
     "signer-unlisted": (
         "gate",

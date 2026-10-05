@@ -1096,7 +1096,7 @@ def check(  # noqa: PLR0912 — one branch per role with a check of its own
             problems.extend(
                 found
                 or check_draft_provenance(graph_root, located, classification)
-                or check_version_head(graph_root, located, classification, signer=signer)
+                or check_version_head(graph_root, located)
             )
         elif located.role == "explainer-signature":
             problems.extend(
@@ -1107,7 +1107,7 @@ def check(  # noqa: PLR0912 — one branch per role with a check of its own
             problems.extend(
                 found
                 or check_draft_provenance(graph_root, located, classification)
-                or check_version_head(graph_root, located, classification, signer=signer)
+                or check_version_head(graph_root, located)
             )
         elif located.role == "gloss-signature":
             problems.extend(
@@ -2380,18 +2380,6 @@ def _versions_of(parent: Path, role: str) -> list[glosses.Version]:
     return glosses.load_versions(parent) if role == "gloss" else explainers.versions(parent)
 
 
-def _signed_versions(parent: Path, role: str, signer: Signer) -> frozenset[str]:
-    from opn_gate import explainers  # noqa: PLC0415
-
-    if role == "gloss":
-        return frozenset(glosses.valid_signatures(parent, signer))
-    try:
-        return explainers.signed_hashes(parent, signer)
-    except schemas.SchemaError as exc:  # a malformed signature file: a graph defect, logged
-        log.warning("the explainer signatures under %s do not read: %s", parent, exc)
-        return frozenset()
-
-
 def check_draft_provenance(
     graph_root: Path, located: Located, classification: Classification
 ) -> list[Diagnostic]:
@@ -2418,37 +2406,20 @@ def check_draft_provenance(
     ]
 
 
-def check_version_head(
-    graph_root: Path,
-    located: Located,
-    classification: Classification,
-    *,
-    signer: Signer | None = None,
-) -> list[Diagnostic]:
+def check_version_head(graph_root: Path, located: Located) -> list[Diagnostic]:
     """F20-R6: a gloss or explainer that supersedes names the current head of a chain of its own
-    subject, and supersedes a validly signed version only in a pull request that acts for an
-    active steward of the target or a listed curator: its opener's, or for a pull request the
-    service opened, the version's own ``author`` (``acting_names``, F20-T6)."""
+    subject. Who may supersede a signed version is no longer asked: anyone may, and a person's
+    change to verified words is pending until a steward or curator signs it (F21-R13, withdrawing
+    F20-R6's ``signed-supersede``; ``opn_gate.sections``)."""
     parent = _record_parent(graph_root, located)
     siblings = _versions_of(parent, located.role)
     stem = PurePosixPath(located.path).stem
     version = next((v for v in siblings if v.hash == stem), None)
     if version is None or version.supersedes is None:
         return []  # nothing superseded; a file that did not load was refused by its own check
-    verifier = signer or signed.default_signer()
     directory = glosses.GLOSS_DIR if located.role == "gloss" else "explainer"
-    names = acting_names(graph_root, classification, version.author)
-    acting = version.author if classification.by_service else classification.author
     return glosses.head_problems(
-        located.path,
-        version,
-        siblings,
-        glosses.withdrawn_versions(parent, directory),
-        signed_versions=_signed_versions(parent, located.role, verifier),
-        author=acting,
-        may_supersede_signed=lambda _who: bool(
-            names & real_identities(graph_root, located.target_id, signer=verifier)
-        ),
+        located.path, version, siblings, glosses.withdrawn_versions(parent, directory)
     )
 
 
