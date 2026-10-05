@@ -1,0 +1,445 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openproof.network/schemas/glosses/v2.json",
+  "title": "glosses/v2",
+  "description": "targets/<id>/glosses.json (F20-R9; D-3 v3.30, D-35): a product listing, for every Lean file of the target that takes a gloss (each node's statement, witness and relation, each definition module) and every merged proof artifact that takes an explainer, the chains of versions filed on it. Chains are in record order and versions in chain order, ranked by nothing (D-25). Derived from the tree: the records are the gloss and explainer files, their signatures and withdrawals; nothing here is model text. v2 (F21-R14; D-3 v3.31): every version carries drafted_with and its sections with their states; every chain carries the words it shows, section by section, and the pending sections awaiting approval. Versioned, never edited (D-34).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "target",
+    "rendered_from",
+    "subjects"
+  ],
+  "properties": {
+    "schema": {
+      "const": "glosses/v2"
+    },
+    "target": {
+      "$ref": "#/$defs/identifier"
+    },
+    "rendered_from": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        }
+      ]
+    },
+    "subjects": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/subject"
+      }
+    }
+  },
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]*$"
+    },
+    "h64": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "subject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "record",
+        "node",
+        "module",
+        "file",
+        "lean_hash",
+        "chains"
+      ],
+      "properties": {
+        "kind": {
+          "description": "statement, witness, relation or definition for a gloss's subject; proof, alternate or partial for a merged proof artifact; absent for an artifact the explainers name that is not in the tree.",
+          "enum": [
+            "statement",
+            "witness",
+            "relation",
+            "definition",
+            "proof",
+            "alternate",
+            "partial",
+            "absent"
+          ]
+        },
+        "record": {
+          "description": "Which record describes this subject: a gloss (D-3 v3.30) or an explainer.",
+          "enum": [
+            "gloss",
+            "explainer"
+          ]
+        },
+        "node": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/identifier"
+            }
+          ]
+        },
+        "module": {
+          "description": "The definition module's path under defs/, for a definition; null otherwise.",
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "maxLength": 300
+            }
+          ]
+        },
+        "file": {
+          "description": "The Lean file, relative to the target directory; null when the artifact the explainers name is not in the tree.",
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "maxLength": 500
+            }
+          ]
+        },
+        "lean_hash": {
+          "description": "SHA-256 of the file as the tree holds it now; null when a gloss names a file not in the tree; for kind absent, the artifact hash its explainers name (null for an explainer filed before F20 on a node with no Proof.lean).",
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/h64"
+            }
+          ]
+        },
+        "chains": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/chain"
+          }
+        }
+      }
+    },
+    "chain": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "current",
+        "versions",
+        "shown",
+        "pending"
+      ],
+      "properties": {
+        "current": {
+          "description": "The chain's current version: its latest that is not withdrawn (D-3 v3.30); null when every version is withdrawn.",
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/h64"
+            }
+          ]
+        },
+        "versions": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/version"
+          }
+        },
+        "shown": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "key",
+              "version",
+              "state"
+            ],
+            "properties": {
+              "key": {
+                "$ref": "#/$defs/key"
+              },
+              "version": {
+                "$ref": "#/$defs/h64"
+              },
+              "state": {
+                "enum": [
+                  "drafted",
+                  "written",
+                  "verified",
+                  "pending"
+                ]
+              }
+            }
+          },
+          "description": "The words the chain shows, section by section, in the current version's order (F21-R14): each section's version and its state (drafted, written or verified)."
+        },
+        "pending": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "key",
+              "version",
+              "state"
+            ],
+            "properties": {
+              "key": {
+                "$ref": "#/$defs/key"
+              },
+              "version": {
+                "$ref": "#/$defs/h64"
+              },
+              "state": {
+                "enum": [
+                  "drafted",
+                  "written",
+                  "verified",
+                  "pending"
+                ]
+              }
+            }
+          },
+          "description": "Sections awaiting approval: a person's change to written or verified words, kept in the record and not shown as the section's words (F21-R11). State is always pending."
+        }
+      }
+    },
+    "version": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "hash",
+        "path",
+        "schema",
+        "supersedes",
+        "author",
+        "drafter",
+        "date",
+        "lean_hash",
+        "describes_current",
+        "withdrawn",
+        "signatures",
+        "drafted_with",
+        "sections"
+      ],
+      "properties": {
+        "hash": {
+          "$ref": "#/$defs/h64"
+        },
+        "path": {
+          "description": "The version's file, relative to the target directory.",
+          "type": "string",
+          "maxLength": 500
+        },
+        "schema": {
+          "description": "gloss/v1 or explainer/v1; null for an explainer filed before F20, which names no proof and no step.",
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "enum": [
+                "gloss/v1",
+                "explainer/v1",
+                "gloss/v2",
+                "explainer/v2"
+              ]
+            }
+          ]
+        },
+        "supersedes": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/h64"
+            }
+          ]
+        },
+        "author": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "maxLength": 100
+            }
+          ]
+        },
+        "drafter": {
+          "description": "The drafter that wrote a draft, as its record names it; null for a person's version.",
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "name",
+                "model",
+                "model_version",
+                "input_commit"
+              ],
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "maxLength": 100
+                },
+                "model": {
+                  "type": "string",
+                  "maxLength": 200
+                },
+                "model_version": {
+                  "type": "string",
+                  "maxLength": 200
+                },
+                "input_commit": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{40}$"
+                }
+              }
+            }
+          ]
+        },
+        "date": {
+          "description": "The date the record states, as written: its author's claim, which orders nothing but the chains' listing.",
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "maxLength": 40
+            }
+          ]
+        },
+        "lean_hash": {
+          "description": "For a gloss, the hash of the Lean text it describes; null for an explainer.",
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/h64"
+            }
+          ]
+        },
+        "describes_current": {
+          "description": "For a gloss, whether it describes the file as it stands (F20-R3); null for an explainer.",
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "boolean"
+            }
+          ]
+        },
+        "withdrawn": {
+          "description": "A withdrawal record names this version (D-3 v3.30, D-18 v3.27): it is absent from its chain and stays listed.",
+          "type": "boolean"
+        },
+        "signatures": {
+          "description": "The valid signatures on this version: gloss signatures for a gloss, explainer signatures for an explainer.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "signer",
+              "date",
+              "sections"
+            ],
+            "properties": {
+              "signer": {
+                "type": "string",
+                "maxLength": 100
+              },
+              "date": {
+                "type": "string",
+                "maxLength": 40
+              },
+              "sections": {
+                "description": "The sections the signature approves; null for every section of the version (a v1 signature).",
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/$defs/key"
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "drafted_with": {
+          "description": "The model and tooling that drafted this version, in the contributor's words (D-23, D-3 v3.31): null or absent for a person's own writing. Contributor text, untrusted downstream.",
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            }
+          ]
+        },
+        "sections": {
+          "description": "The version's sections in order, each with its state in this chain (F21-R11): drafted, written or verified when it is what the chain shows or was before a later version changed it; pending when a person's change to approved words awaits approval; unchanged when it repeats the text the chain showed.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "key",
+              "state"
+            ],
+            "properties": {
+              "key": {
+                "$ref": "#/$defs/key"
+              },
+              "state": {
+                "enum": [
+                  "drafted",
+                  "written",
+                  "verified",
+                  "pending",
+                  "unchanged"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "key": {
+      "description": "A section's key (F21-R11): overview for an explainer's unanchored first section, whole for a gloss, else steps: and the section's step ids, sorted, comma-separated.",
+      "type": "string",
+      "pattern": "^(overview|whole|steps:[A-Za-z_][A-Za-z0-9_'.]*(,[A-Za-z_][A-Za-z0-9_'.]*)*)$",
+      "maxLength": 2000
+    }
+  }
+}

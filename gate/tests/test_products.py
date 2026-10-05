@@ -1240,7 +1240,8 @@ def test_index_v6_fields(tmp_path: Path) -> None:
     }
     info = loads(prod, "info.json")
     for name in ("steward", "explainer-signature", "writeup", "policy"):
-        assert info["schemas"][name] == [1], name
+        # F21 publishes explainer-signature/v2 beside v1; what this pins is that F15's are named
+        assert 1 in info["schemas"][name], name
     assert info["schemas"]["target"] == [1, 2] and info["schemas"]["targets-index"][-1] == 7
 
     # R3: the policy file, present and enforced, is published at the top; a malformed one is a

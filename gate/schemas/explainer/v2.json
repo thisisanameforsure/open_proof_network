@@ -1,0 +1,125 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openproof.network/schemas/explainer/v2.json",
+  "title": "explainer/v2",
+  "description": "The YAML front matter of nodes/<id>/explainer/<hash>.md (F20-R2; D-3 v3.17, v3.30): prose about one merged proof artifact of the node. Sections are level-2 headings and may name outline steps as {steps: s3 s4.1} at the end of the heading (F20-Q2). An explainer filed before this schema carries no such front matter and stays valid, unanchored. Exactly one of author and drafter is set. v2 adds drafted_with (F21-R6; D-3 v3.31, D-23): the model a contributor's agent drafted with. No new version may carry a drafter block (F21-R2). Versioned, never edited (D-34).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "target",
+    "supersedes",
+    "author",
+    "drafter",
+    "date",
+    "licence",
+    "node",
+    "proof"
+  ],
+  "properties": {
+    "schema": {
+      "const": "explainer/v2"
+    },
+    "target": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]*$"
+    },
+    "node": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]*$"
+    },
+    "proof": {
+      "description": "SHA-256 of the merged artifact described: the node's Proof.lean, an alternate, or a merged partial assembly.",
+      "$ref": "#/$defs/h64"
+    },
+    "supersedes": {
+      "description": "The hash of the version this one replaces — the head of its chain, never one already superseded or withdrawn (D-3 v3.30); null to start a chain.",
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      ]
+    },
+    "author": {
+      "description": "The login or pseudonym that wrote this version; null for a draft (then drafter is set).",
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        }
+      ]
+    },
+    "drafter": {
+      "description": "Set for a draft by the network's drafter (D-3 v3.30), with no human author: its name, the model and version that wrote the text, and the commit of the graph its input was read at.",
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "name",
+            "model",
+            "model_version",
+            "input_commit"
+          ],
+          "properties": {
+            "name": {
+              "type": "string",
+              "maxLength": 100
+            },
+            "model": {
+              "type": "string",
+              "maxLength": 200
+            },
+            "model_version": {
+              "type": "string",
+              "maxLength": 200
+            },
+            "input_commit": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{40}$"
+            }
+          }
+        }
+      ]
+    },
+    "date": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+    },
+    "licence": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100
+    },
+    "drafted_with": {
+      "description": "The model and tooling that drafted this version, in the contributor's words (D-23, D-3 v3.31): null or absent for a person's own writing. Contributor text, untrusted downstream.",
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        }
+      ]
+    }
+  },
+  "$defs": {
+    "h64": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    }
+  }
+}
