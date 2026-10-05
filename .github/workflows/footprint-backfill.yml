@@ -109,7 +109,13 @@ jobs:
               failures=$((failures + 1))
               continue
             fi
-            docker pull --quiet "$image"
+            if [ "$image" != "${previous:-}" ]; then
+              # One image on disk at a time: the runner holds one Mathlib image, and 26 of the 27
+              # targets share one, so it is pulled once and kept while the pin is the same.
+              if [ -n "${previous:-}" ]; then docker image rm --force "$previous" > /dev/null 2>&1 || true; fi
+              docker pull --quiet "$image"
+              previous="$image"
+            fi
             echo "::group::footprints $tid"
             set +e
             uv run --frozen --project network python -m opn_gate.cli footprints \
@@ -129,8 +135,6 @@ jobs:
           print("| `%s` | %d | %d |" % (sys.argv[2], d["measured"], len(d["failed"])))' "summary-$tid.json" "$tid")"
             echo "$row" >> "$GITHUB_STEP_SUMMARY"
             if [ "$code" -ne 0 ]; then failures=$((failures + 1)); fi
-            # One target's image at a time: the runner's disk holds one Mathlib image.
-            docker image rm --force "$image" > /dev/null 2>&1 || true
           done
           if [ "$failures" -gt 0 ]; then
             echo "::error::$failures target(s) had a proof that could not be measured; the caches hold every one that was"

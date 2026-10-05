@@ -1253,3 +1253,26 @@ The law of the project:
   someone else's authorship passed on main. F18-Q7's precedent fixed both: a service pull request
   acts for the record's author, which the service writes from the token; a hand-opened one is judged
   by its opener.
+
+- 2026-10-04 — F18 (proof structure on the record), from the owner's reading of erdos-1050's page:
+  which branches are the proof, which nodes it does not need, how the specs relate, where the
+  outlines are. **The fact was in the gate all along**: step 8 reads every constant of the proof
+  term and threw the set away (F08-Q38 had named it and deferred it); `attestation/v6` keeps it,
+  a one-time backfill measured the 74 older merges (none failed), and erdos-1050's proof is now
+  drawn as what its term uses — root, `h1-v2`, `h3` — not the seven nodes it declared. When a
+  reader cannot tell what something rests on, look first for what the gate already computes.
+  **Measured beats read**: my hand simulation said `h2` uses `h2--h1`; the kernel term says it
+  uses nothing. **Three worktree agents, one boring merge rule**: none of them touched
+  `graph/v4.json` or `graph_doc`; each exposed an accessor and the lead wired the fields, so the
+  only conflict was two fields added to one dataclass. **A curator branch is the curator's to
+  merge**: the merge actor takes only the service's `propose/`, `append/`, `submit/` branches, so
+  six green pointer PRs sat unmerged until read in its log ("nothing to do"); my first merge loop
+  also read each PR's state before the previous merge made it BEHIND — update, then wait, then
+  merge. **A render must come from the pin**: run from the main checkout it picked up another
+  session's unpushed gate and refused with `schema-unpublished`; the pin's worktree rendered
+  clean. **A stack parameter is not deployed by api-deploy** (it updates code): T26's `UsesFrom`
+  was in the template and never on the stack; a change set showed two Dynamic re-evaluations of
+  `Function.Arn` beside the env change — read `Evaluation` before executing. `check_products.py`
+  regenerates over a tree without `.git`, so a stale record lifted by ancestry (F08-T10) always
+  reads as a difference there; the bot's own commit shows the same four. And zsh's `$b:t` ate a
+  path a third time: brace every variable followed by a colon, in `git show` arguments too.
