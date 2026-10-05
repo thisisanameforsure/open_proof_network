@@ -1,0 +1,41 @@
+F21-T2 verification: the paid drafter is removed (R1, AC1)
+(run from a worktree through the shared venv: UV_PROJECT_ENVIRONMENT=<repo>/.venv uv run --frozen ...)
+
+Red run (seam at today's behaviour, before the fix):
+E       AssertionError: the paid drafter is still in the tree: ['gate/opn_gate/drafter.py', 'gate/opn_gate/draft_run.py', '.github/workflows/gloss-draft.yml']
+E       assert ['gate/opn_ga...ss-draft.yml'] == []
+E         
+E         Left contains 3 more items, first extra item: 'gate/opn_gate/drafter.py'
+E         Use -v to get more diff
+E       AssertionError: `opn-gate gloss draft` still exists
+E       assert 'draft' not in {'revise': ArgumentParser(prog='opn-gate gloss revise', usage=None, description=None, formatter_class=<class 'argparse...one, description=None, formatter_class=<class 'argparse.HelpFormatter'>, conflict_handler='error', add_help=True), ...}
+E        +  where {'revise': ArgumentParser(prog='opn-gate gloss revise', usage=None, description=None, formatter_class=<class 'argparse...one, description=None, formatter_class=<class 'argparse.HelpFormatter'>, conflict_handler='error', add_help=True), ...} = _subcommands(ArgumentParser(prog='opn-gate gloss', usage=None, description=None, formatter_class=<class 'argparse.HelpFormatter'>, conflict_handler='error', add_help=True))
+E       AssertionError: the gate still reads OPN_DRAFTER_* settings: ['drafter_max_subjects', 'drafter_token_budget', 'drafter_name', 'drafter_licence', 'drafter_token']
+E       assert ['drafter_max...rafter_token'] == []
+E         
+E         Left contains 5 more items, first extra item: 'drafter_max_subjects'
+E         Use -v to get more diff
+E       AssertionError: assert 'drafter' not in ('subject', 'text', 'supersedes', 'licence', 'drafter')
+E        +  where ('subject', 'text', 'supersedes', 'licence', 'drafter') = api_glosses.GLOSS_FIELDS
+FAILED gate/tests/test_no_paid_drafter.py::test_no_drafting_module_or_workflow
+FAILED gate/tests/test_no_paid_drafter.py::test_no_gloss_draft_command - Asse...
+FAILED gate/tests/test_no_paid_drafter.py::test_no_drafter_setting - Assertio...
+FAILED gate/tests/test_no_paid_drafter.py::test_the_service_takes_no_drafter_field
+4 failed in 0.14s
+
+Green run: uv run pytest gate/tests/test_no_paid_drafter.py
+gate/tests/test_no_paid_drafter.py::test_no_drafting_module_or_workflow PASSED [ 25%]
+gate/tests/test_no_paid_drafter.py::test_no_gloss_draft_command PASSED   [ 50%]
+gate/tests/test_no_paid_drafter.py::test_no_drafter_setting PASSED       [ 75%]
+gate/tests/test_no_paid_drafter.py::test_the_service_takes_no_drafter_field PASSED [100%]
+============================== 4 passed in 0.11s ===============================
+
+ruff check / ruff format --check / mypy gate, api, site:
+All checks passed!
+637 files already formatted
+Success: no issues found in 315 source files
+Success: no issues found in 199 source files
+Success: no issues found in 63 source files
+
+Fast tier: uv run pytest gate/tests api/tests site/tests -m 'not lean and not docker and not network'
+4110 passed, 254 skipped, 185 deselected, 2 warnings in 287.99s (0:04:47)

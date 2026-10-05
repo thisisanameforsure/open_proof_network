@@ -177,6 +177,33 @@ def check_proposal(ctx: Context, node_id: str) -> None:
         )
 
 
+#: F21-R5: the record kinds that write the words for a subject.
+WORDS_KINDS = frozenset({"gloss", "explainer"})
+
+
+def words_key(target_id: str, subject: str) -> str:
+    """F21-Q5: the subject of a gloss or explainer as a fingerprint — ``subject`` is a gloss's
+    Lean file relative to its target, or an explainer's proof hash. The store's submission records
+    carry no subject, so the key rides in the fingerprints every gloss or explainer records."""
+    return f"words:{target_id}:{subject}"
+
+
+def check_words(ctx: Context, key: str) -> None:
+    """F21-R5: one writer per file. A new chain on a subject that an open pull request, still able
+    to merge, already adds a version of is refused, naming that pull request. Keyed by ``key``
+    rather than by node, since a definition module's gloss has none; a rival whose gate failed or
+    that conflicts blocks nothing (``blocks``)."""
+    for found in ctx.store.list_open_submissions():
+        if found.kind in WORDS_KINDS and key in found.fingerprints and blocks(ctx, found):
+            raise refused(
+                f"someone is already writing the words for this subject in pull request "
+                f"#{found.pr_number}; one writer at a time (F21-R5). Wait for it: once it merges, "
+                "improve it with supersedes; if its gate fails or it is closed, start a chain",
+                found,
+                subject=key,
+            )
+
+
 def merged_texts(ctx: Context, target_id: str, node_id: str) -> dict[str, str]:
     """The node's merged proof and attempts, by path; a host that cannot answer refuses nothing
     here (C7), and the gate's byte-identical alternate check still stands behind it."""

@@ -42,7 +42,7 @@ import yaml
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 
-from opn_api import appends, pending, sshsig
+from opn_api import appends, duplicates, pending, sshsig
 from opn_api import identity as identitymod
 from opn_api.app import ApiError
 from opn_api.githost import GitHostError
@@ -58,7 +58,7 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 
 #: F05-T8: the fields each route reads; any other top-level key is refused.
-GLOSS_FIELDS: tuple[str, ...] = ("subject", "text", "supersedes", "licence", "drafter")
+GLOSS_FIELDS: tuple[str, ...] = ("subject", "text", "supersedes", "licence")
 WITHDRAWAL_FIELDS: tuple[str, ...] = ("record", "reason")
 #: What ``subject`` may hold. ``kind`` is a gloss's (statement, witness, relation, definition)
 #: or ``proof`` for an explainer; ``node_id`` names the node, ``target_id`` and ``module`` a
@@ -209,8 +209,7 @@ def refuse(problems: list[Diagnostic]) -> NoReturn:
 
 def preflight(root: Path, path: str, content: bytes, verifier: HostVerifier) -> None:
     """R1 to R7 over the scratch tree with ``path`` added, as the merge would run them on a pull
-    request the service opened: refused by the gate's code, or nothing. The drafter's own check
-    of each draft is the same gate function over its checkout (F20-T10)."""
+    request the service opened: refused by the gate's code, or nothing."""
     problems = modes.check_as_service(root, path, content, service_login=OPENER, signer=verifier)
     if problems:
         refuse(problems)
@@ -331,14 +330,14 @@ def front_matter(  # noqa: PLR0913 — one argument per fact the record carries
     target_id: str,
     node_id: str | None,
     supersedes: Any,
-    author: str | None,
+    author: str,
     date: str,
     licence: str,
-    drafter: dict[str, Any] | None = None,
 ) -> tuple[dict[str, Any], str]:
-    """``(front matter, schema)`` of the record: ``gloss/v1`` or ``explainer/v1``; a draft has
-    no ``author`` and the drafter's block (F20-T10)."""
-    common = {"supersedes": supersedes, "author": author, "drafter": drafter}
+    """``(front matter, schema)`` of the record: ``gloss/v1`` or ``explainer/v1``. The author is
+    always a person, the token's identity; the service files no draft (F21-R1), so ``drafter``
+    is always null."""
+    common = {"supersedes": supersedes, "author": author, "drafter": None}
     if subject["kind"] == PROOF_KIND:
         doc = {
             "schema": explainers.RECORD_SCHEMA,
@@ -383,58 +382,17 @@ def record_file(front: dict[str, Any], text: str) -> str:
     return f"---\n{head}---\n{body}"
 
 
-DRAFTER_KEYS: tuple[str, ...] = ("name", "model", "model_version", "input_commit")
-COMMIT_RE = re.compile(r"^[0-9a-f]{40}$")
-DRAFTER_TEXT_MAX = 200  # gloss/v1 and explainer/v1: model and model_version
-
-
-def drafter_of(configured: str, identity: Identity, raw: Any) -> dict[str, Any] | None:
-    """F20-T10 (R2, R18, Q6): the ``drafter`` block of a draft, or ``None`` for a person's
-    version. Only the identity whose pseudonym is the configured drafter (``OPN_API_DRAFTER_
-    PSEUDONYM``; nobody when unset) files a draft, and it must: the block says which model and
-    version wrote the text and the graph commit its input was read at, and its ``name`` is the
-    identity's own pseudonym, never the request's. Anyone else sending a block is refused by name
-    before anything opens, as the gate refuses a hand-opened draft (``drafter-not-service``)."""
-    if not configured or identity.pseudonym != configured:
-        if raw is not None:
-            raise ApiError(
-                403,
-                "drafter-unauthorized",
-                "drafter is the network's drafter's field: only that identity files a draft "
-                "(F20-Q6). Leave it out; your version is filed with you as its author",
-                details={"pseudonym": identity.pseudonym},
-            )
-        return None
-    shape = (
-        "the drafter files a draft with drafter: {model, model_version, input_commit} — the "
-        "model and version that wrote the text and the 40-character graph commit its input was "
-        "read at; name, if sent, is the drafter's own pseudonym (F20-R18)"
+def words_key(target_id: str, node_id: str | None, subject: dict[str, Any]) -> str:
+    """F21-Q5: the subject's key, ``words:<target>:<file-or-proof-hash>`` — an explainer's proof
+    hash, or a gloss's Lean file relative to its target (``nodes/<id>/Statement.lean``,
+    ``defs/<module>``)."""
+    if subject["kind"] == PROOF_KIND:
+        return duplicates.words_key(target_id, str(subject["proof"]))
+    module = subject.get("module") if node_id is None else None
+    file = glosses.subject_file(
+        Path(), {"kind": subject["kind"], "node": node_id, "module": module}
     )
-    if not isinstance(raw, dict):
-        raise ApiError(400, "drafter-invalid", shape)
-    unknown = sorted(str(k) for k in raw if k not in DRAFTER_KEYS)
-    block: dict[str, Any] = {
-        "name": identity.pseudonym,
-        "model": raw.get("model"),
-        "model_version": raw.get("model_version"),
-        "input_commit": raw.get("input_commit"),
-    }
-    texts_ok = all(
-        isinstance(v, str) and 0 < len(v) <= DRAFTER_TEXT_MAX
-        for v in (block["model"], block["model_version"])
-    )
-    commit = block["input_commit"]
-    if (
-        unknown
-        or raw.get("name", identity.pseudonym) != identity.pseudonym
-        or not texts_ok
-        or not isinstance(commit, str)
-        or not COMMIT_RE.match(commit)
-    ):
-        raise ApiError(
-            400, "drafter-invalid", shape, details={"unknown": unknown, "accepted": DRAFTER_KEYS}
-        )
-    return block
+    return duplicates.words_key(target_id, file.as_posix() if file is not None else "")
 
 
 async def post_glosses(ctx: Context, request: Request) -> Response:
@@ -449,7 +407,6 @@ async def post_glosses(ctx: Context, request: Request) -> Response:
         fields.get("licence"), licensed="a gloss or explainer is licensed"
     )
     supersedes = fields.get("supersedes")
-    drafter = drafter_of(ctx.settings.drafter_pseudonym, identity, fields.get("drafter"))
     record = "explainer" if subject["kind"] == PROOF_KIND else "gloss"
     with tempfile.TemporaryDirectory(prefix="opn-gloss-") as tmp:
         root = Path(tmp)
@@ -462,10 +419,9 @@ async def post_glosses(ctx: Context, request: Request) -> Response:
             target_id=target_id,
             node_id=node_id,
             supersedes=supersedes,
-            author=None if drafter is not None else identity.pseudonym,
+            author=identity.pseudonym,
             date=ctx.clock.now().strftime("%Y-%m-%d"),
             licence=licence,
-            drafter=drafter,
         )
         appends.validated(front, schema)
         content = record_file(front, text)
@@ -474,6 +430,11 @@ async def post_glosses(ctx: Context, request: Request) -> Response:
         directory = explainers.EXPLAINER_DIR if record == "explainer" else glosses.GLOSS_DIR
         path = f"{parent}{directory}/{digest}.md"
         preflight(root, path, content.encode(), verifier)
+    # F21-R5: after the gate's own refusals, as the copy rule is (appends.append_pr): a new chain
+    # waits for the writer already at work on its subject; a superseding version does not.
+    words = words_key(target_id, node_id, subject)
+    if supersedes is None:
+        duplicates.check_words(ctx, words)
     owner = node_id or subject.get("module") or target_id
     written = yaml.safe_dump(
         {"subject": front.get("subject") or front.get("proof"), "supersedes": supersedes},
@@ -490,6 +451,8 @@ async def post_glosses(ctx: Context, request: Request) -> Response:
         target_id=target_id,
         node_id=node_id,
         written=written + text,
+        subject_prints=(words,),
+        subject_slots=(words,) if supersedes is None else (),
     )
     body |= {"hash": digest, "record": record}
     if record == "gloss":

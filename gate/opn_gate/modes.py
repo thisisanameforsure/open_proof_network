@@ -2395,12 +2395,13 @@ def _signed_versions(parent: Path, role: str, signer: Signer) -> frozenset[str]:
 def check_draft_provenance(
     graph_root: Path, located: Located, classification: Classification
 ) -> list[Diagnostic]:
-    """F20-T10: a draft — a version with a ``drafter`` block and no ``author`` — arrives only in a
-    pull request the service opened, which writes that block for the configured drafter identity
-    alone (``api/opn_api/glosses.py``). Opened by anyone else, it would let any words be shown as
-    "machine-drafted by" any model, so it is refused by name (``drafter-not-service``)."""
-    if classification.by_service:
-        return []
+    """F21-R2 (Q2; D-3 v3.31): no new drafts. The network drafts nothing (F21-R1), so an added
+    gloss or explainer version carrying a ``drafter`` block is refused ``draft-not-accepted``
+    whoever opened the pull request — the service, a curator or anyone else. The block stays in
+    the schemas only for the versions already merged, which still validate, render and can be
+    superseded by a person; refusing it here keeps anyone from filing words as "machine-drafted
+    by" a model. ``classification`` names the opener in the refusal and decides nothing.
+    (F20-T10's ``drafter-not-service`` let the service's own pull request through.)"""
     parent = _record_parent(graph_root, located)
     stem = PurePosixPath(located.path).stem
     version = next((v for v in _versions_of(parent, located.role) if v.hash == stem), None)
@@ -2408,11 +2409,10 @@ def check_draft_provenance(
         return []
     return [
         Diagnostic(
-            "drafter-not-service",
-            f"{located.path} is a draft (a drafter block and no author), and this pull request "
-            f"was opened by {classification.author or 'an unknown login'}, not the service: a "
-            "draft is filed by the network's drafter through POST /glosses (F20-T10, Q6). File "
-            "your own version with yourself as its author instead",
+            "draft-not-accepted",
+            f"{located.path} carries a drafter block: the network accepts no new drafts "
+            "(F21-R2, D-3 v3.31). Words are a contributor's work; file the version with yourself "
+            "as its author (drafter: null) and name any model that helped in drafted_with",
             {"path": located.path, "author": classification.author},
         )
     ]

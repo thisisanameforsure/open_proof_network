@@ -1806,9 +1806,8 @@ and optionally `supersedes`. `subject` is `{kind, node_id}` for a `statement`, `
 `{kind: "proof", node_id, proof}` for an explainer, `proof` being the artifact's hash as the
 chains and outlines list it. `licence` is required: `CC-BY-4.0`, `CDLA-Permissive-2.0` or
 `Apache-2.0`. The service writes the front matter: the author is your token's pseudonym and
-nothing the request says, the date is today, and the file is named by its hash. The body's one
-other field, `drafter`, belongs to the network's drafter alone; anyone else sending it is refused
-`403 drafter-unauthorized`. It opens an
+nothing the request says, the date is today, and the file is named by its hash. The network
+files no drafts (F21-R1), so a body carrying `drafter` is refused `400 unknown-field`. It opens an
 `append/` pull request the merge actor merges like an annex. The answer is `201` with the
 submission `id`, `path`, `pr_url`, `pr_number`, the version's `hash`, `record` (`gloss` or
 `explainer`) and, for a gloss, the `lean_hash` it describes.
@@ -2042,7 +2041,6 @@ What to do about each refusal:
 | `signer-unlisted` | the signer is not an active steward of the target or a listed curator | only they sign |
 | `author-names-another` | your pseudonym is spelled like a steward's or curator's login you did not prove | file under another pseudonym, or prove that login |
 | `licence-required` | the request names no licence | add `licence` |
-| `drafter-unauthorized` | the request carries a `drafter` block and you are not the network's drafter | leave it out: your version is filed as yours |
 | `explainer-name-unanchored` (a warning) | a cited Lean name is in none of the section's steps | check the section; the pull request merges as it is |
 
 ## Rate limits

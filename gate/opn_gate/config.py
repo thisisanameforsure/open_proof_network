@@ -67,32 +67,15 @@ Variables (prefix ``OPN_``):
     closing block is on this list (F19-Q5). Default ``omega,simp,norm_num,ring,linarith,
     nlinarith,positivity,decide,field_simp,aesop``.
 ``OPN_MODEL``
-    The model the QA brief, the back-translation (F12-R6, R7, Q5) and the drafter (F20) ask:
+    The model the QA brief and the back-translation (F12-R6, R7, Q5) ask; it serves F12's QA
+    commands only, since the network drafts no words (F21-R1):
     a model id, as OpenRouter names it, whose leading letters after any provider prefix name its
     family for R7's independence rule. Default ``anthropic/claude-opus-5.5``.
-``OPN_DRAFTER_MAX_SUBJECTS``
-    How many subjects one drafter run may draft before it stops and reports the rest as left
-    (F20-R17, §6). Default ``20``.
-``OPN_DRAFTER_TOKEN_BUDGET``
-    How many model tokens (input plus output, as the provider reports them) one drafter run may
-    spend before it stops and reports the rest as left (F20-R17, §6). Default ``500000``.
-``OPN_DRAFTER_NAME``
-    The drafter's name, recorded in every draft's ``drafter`` block (F20-R2, Q6). Default
-    ``opn-drafter``.
-``OPN_DRAFTER_LICENCE``
-    The licence every draft is filed under (D-23): the licence the graph's prose records already
-    carry. Default ``CC-BY-4.0``.
 ``OPENROUTER_API_KEY``
-    **Secret.** The OpenRouter API key (F12 §7, F20-T10; C8: the curator's ``.env`` and the
-    network repository's Actions secret, never in the graph, a log or a record). Default
-    ``None`` — meaning "no model: the brief, the back-translation and the drafter refuse before
-    they start".
-``OPN_DRAFTER_TOKEN``
-    **Secret.** The drafter identity's service write token (F20-Q6, Q7, T10; C8): what
-    ``opn-gate gloss draft`` posts each draft to ``POST /glosses`` with. An Actions secret on the
-    network repository, read by the one step of ``gloss-draft.yml`` that drafts. Default
-    ``None`` — meaning "no token: a live run refuses before it starts; ``--dry-run`` posts
-    nothing and needs none".
+    **Secret.** The OpenRouter API key for F12's QA commands only (F12 §7; C8: the curator's
+    ``.env``, never in the graph, a log or a record; the network repository's Actions secret of
+    the same name stays, unread by any code, F21-Q9). Default ``None`` — meaning "no model: the
+    brief and the back-translation refuse before they start".
 ``OPN_GATE_SIGNING_KEY``
     **Secret.** The gate's ed25519 private key (C8 item 1), present only in the post-merge job's
     environment. Default ``None`` — meaning "no key: emit an unsigned attestation".
@@ -143,10 +126,6 @@ DEFAULT_OUTLINE_AUTOMATION: tuple[str, ...] = (
     "field_simp",
     "aesop",
 )
-DEFAULT_DRAFTER_MAX_SUBJECTS = 20  # F20 §6
-DEFAULT_DRAFTER_TOKEN_BUDGET = 500_000  # F20 §6
-DEFAULT_DRAFTER_NAME = "opn-drafter"  # F20-Q6
-DEFAULT_DRAFTER_LICENCE = "CC-BY-4.0"  # the licence the graph's prose records carry (D-23)
 #: F20-T6: the login the service's GitHub App opens pull requests as (``<app-slug>[bot]``).
 DEFAULT_SERVICE_LOGIN = "open-proof-network[bot]"
 
@@ -154,7 +133,6 @@ SECRET_NAMES: tuple[str, ...] = (
     "gate_signing_key",
     "precheck_signing_key",
     "model_api_key",
-    "drafter_token",
 )
 
 
@@ -182,17 +160,12 @@ class Settings:
     outline_text_cap: int = DEFAULT_OUTLINE_TEXT_CAP
     outline_doc_cap: int = DEFAULT_OUTLINE_DOC_CAP
     outline_automation: tuple[str, ...] = DEFAULT_OUTLINE_AUTOMATION
-    drafter_max_subjects: int = DEFAULT_DRAFTER_MAX_SUBJECTS
-    drafter_token_budget: int = DEFAULT_DRAFTER_TOKEN_BUDGET
-    drafter_name: str = DEFAULT_DRAFTER_NAME
-    drafter_licence: str = DEFAULT_DRAFTER_LICENCE
     pr_author: str | None = None
     service_login: str = DEFAULT_SERVICE_LOGIN
     #: F07-T65: the network commit the job checked out at the pin (``OPN_NETWORK_COMMIT``),
     #: when the job says.
     network_commit: str | None = None
     model_api_key: str | None = field(default=None, repr=False)
-    drafter_token: str | None = field(default=None, repr=False)
     gate_signing_key: str | None = field(default=None, repr=False)
     precheck_signing_key: str | None = field(default=None, repr=False)
 
@@ -209,10 +182,6 @@ class Settings:
             f"outline_doc_cap={self.outline_doc_cap}, "
             f"outline_automation={self.outline_automation!r}, "
             f"model_api_key={'<set>' if self.model_api_key else None}, "
-            f"drafter_token={'<set>' if self.drafter_token else None}, "
-            f"drafter_max_subjects={self.drafter_max_subjects}, "
-            f"drafter_token_budget={self.drafter_token_budget}, "
-            f"drafter_name={self.drafter_name!r}, drafter_licence={self.drafter_licence!r}, "
             f"lean_pkg_bin={str(self.lean_pkg_bin)!r}, "
             f"mathlib_home={str(self.mathlib_home)!r}, pr_author={self.pr_author!r}, "
             f"service_login={self.service_login!r}, "
@@ -250,7 +219,7 @@ def _outline_settings(env: Mapping[str, str]) -> tuple[int, int, tuple[str, ...]
     return caps["OPN_OUTLINE_TEXT_CAP"], caps["OPN_OUTLINE_DOC_CAP"], automation
 
 
-def load(environ: dict[str, str] | None = None) -> Settings:  # noqa: PLR0912, PLR0915 — one per setting
+def load(environ: dict[str, str] | None = None) -> Settings:  # noqa: PLR0915 — one per setting
     """Build ``Settings`` from ``environ`` (default: the real process environment).
 
     Tests pass an explicit mapping; production code calls ``load()`` with no argument. This is the
@@ -312,21 +281,6 @@ def load(environ: dict[str, str] | None = None) -> Settings:  # noqa: PLR0912, P
             raise ConfigError(msg)
 
     outline_text_cap, outline_doc_cap, outline_automation = _outline_settings(env)
-    drafter_caps: dict[str, int] = {}
-    for name, cap_default in (
-        ("OPN_DRAFTER_MAX_SUBJECTS", DEFAULT_DRAFTER_MAX_SUBJECTS),
-        ("OPN_DRAFTER_TOKEN_BUDGET", DEFAULT_DRAFTER_TOKEN_BUDGET),
-    ):
-        raw_cap = env.get(name, str(cap_default))
-        try:
-            drafter_caps[name] = int(raw_cap)
-        except ValueError as exc:
-            msg = f"{name} must be an integer, got {raw_cap!r}"
-            raise ConfigError(msg) from exc
-        if drafter_caps[name] <= 0:
-            msg = f"{name} must be positive, got {drafter_caps[name]}"
-            raise ConfigError(msg)
-
     raw_level = env.get("OPN_LOG_LEVEL", DEFAULT_LOG_LEVEL)
     log_level = raw_level.upper()
     if log_level not in logging.getLevelNamesMapping():
@@ -349,12 +303,7 @@ def load(environ: dict[str, str] | None = None) -> Settings:  # noqa: PLR0912, P
         outline_text_cap=outline_text_cap,
         outline_doc_cap=outline_doc_cap,
         outline_automation=outline_automation,
-        drafter_max_subjects=drafter_caps["OPN_DRAFTER_MAX_SUBJECTS"],
-        drafter_token_budget=drafter_caps["OPN_DRAFTER_TOKEN_BUDGET"],
-        drafter_name=env.get("OPN_DRAFTER_NAME", "").strip() or DEFAULT_DRAFTER_NAME,
-        drafter_licence=env.get("OPN_DRAFTER_LICENCE", "").strip() or DEFAULT_DRAFTER_LICENCE,
         model_api_key=env.get("OPENROUTER_API_KEY") or None,
-        drafter_token=env.get("OPN_DRAFTER_TOKEN") or None,
         lean_pkg_bin=Path(env.get("OPN_LEAN_PKG_BIN", str(DEFAULT_LEAN_PKG_BIN))).expanduser(),
         mathlib_home=Path(env.get("OPN_MATHLIB_HOME", str(DEFAULT_MATHLIB_HOME))).expanduser(),
         pr_author=env.get("OPN_PR_AUTHOR") or None,
