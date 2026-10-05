@@ -163,22 +163,27 @@ def test_an_import_that_changes_the_statements_meaning_is_refused(
     lean_pkg: Path,
     trap: str,
 ) -> None:
-    """R17: the artifact builds, and step 4 refuses it before any replay."""
+    """R17: the artifact builds, and step 4 refuses it before any replay. A statement that carries
+    a local definition is refused earlier since F08-T37 (D-3 v3.28: a statement holds declarations
+    only), at step 2, so that trap never reaches the meaning check; first seen in CI run
+    37273045578, restated rather than deleted."""
     del pinned, lean_pkg
     node_id, use, body = TRAPS[trap]
     ctx = context(tmp_path, node_id, real_toolchain)
     submit(ctx, use, body)
     verdict = pipeline.run_submission(ctx)
     assert verdict.verdict == "fail", verdict.as_dict()
+    if trap == "local-definition":
+        assert verdict.first_failing_step == 2, verdict.as_dict()
+        assert verdict.diagnostic is not None
+        assert verdict.diagnostic.code == layout.STATEMENT_COMMAND_CODE, verdict.diagnostic
+        return
     assert verdict.first_failing_step == 4
     assert verdict.diagnostic is not None
     assert verdict.diagnostic.code == "statement-meaning-changed", verdict.diagnostic
     assert verdict.diagnostic.details["uses"] == [use]
-    if trap == "local-definition":
-        assert verdict.diagnostic.details["local_mismatch"] == ["OpnProp.sz"]
-    else:
-        assert verdict.diagnostic.details["local_mismatch"] == []
-        assert verdict.diagnostic.details["expected"] != verdict.diagnostic.details["declared"]
+    assert verdict.diagnostic.details["local_mismatch"] == []
+    assert verdict.diagnostic.details["expected"] != verdict.diagnostic.details["declared"]
 
 
 @pytest.mark.parametrize("trap", sorted(TRAPS))
@@ -187,12 +192,17 @@ def test_without_the_guard_the_same_proof_passes_every_step(
     tmp_path: Path, real_toolchain: LocalToolchain, trap: str, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Why the guard is not optional: with it switched off, a false statement is "proved".
-    Build, kernel replay, axioms, witness and the dependency check all agree with the trap."""
+    Build, kernel replay, axioms, witness and the dependency check all agree with the trap. The
+    local-definition trap is the exception since F08-T37: step 2 refuses its statement whatever
+    the guard does, so for it the guard is a second line, not the only one."""
     node_id, use, body = TRAPS[trap]
     ctx = context(tmp_path, node_id, real_toolchain)
     submit(ctx, use, body)
     monkeypatch.setattr(meaning, "guard", lambda *_a, **_k: None)
     verdict = pipeline.run_submission(ctx)
+    if trap == "local-definition":
+        assert verdict.first_failing_step == 2, verdict.as_dict()
+        return
     assert verdict.verdict == "pass", verdict.as_dict()
 
 
