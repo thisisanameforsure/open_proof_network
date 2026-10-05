@@ -51,7 +51,7 @@ from typing import Any, Literal
 import yaml
 
 from opn_gate import config, demarcate, schemas
-from opn_gate.models import ModelClient, ModelError
+from opn_gate.models import ModelClient, ModelError, ModelTruncatedError
 
 log = logging.getLogger(__name__)
 
@@ -63,7 +63,7 @@ DATA_CLOSE = "OPN-DATA>>>"
 DEFAULT_DRAFTER_NAME = config.DEFAULT_DRAFTER_NAME
 DEFAULT_LICENCE = config.DEFAULT_DRAFTER_LICENCE
 GLOSS_MAX_TOKENS = 4000
-EXPLAINER_MAX_TOKENS = 16000
+EXPLAINER_MAX_TOKENS = 64000  # 16000 cut erdos-1050's 845-line hole off (2026-10-05)
 ATTEMPTS = 2  # R16: the draft and one regeneration
 SOURCE_CHECKS = "drafter-checks"
 
@@ -791,6 +791,12 @@ def _draft_one(  # noqa: PLR0913 — the run's state, passed explicitly
             completion = model.complete(
                 system=prompt.system, prompt=prompt.user, max_tokens=prompt.max_tokens
             )
+        except ModelTruncatedError as exc:
+            # The subject's failure, not the provider's: the tokens were spent, and a retry at the
+            # same limit would be cut off again, so the subject is not drafted and the run goes on.
+            report.input_tokens += exc.input_tokens
+            report.output_tokens += exc.output_tokens
+            return None, f"{exc}; not retried at the same limit"
         except ModelError as exc:
             msg = f"the model provider stopped the run: {exc}"
             raise _Stop(msg, "provider") from exc

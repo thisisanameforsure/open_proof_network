@@ -559,6 +559,28 @@ def test_a_refusal_or_outage_stops_the_run(error: ModelError) -> None:
     assert str(error) in report.left[0].reason
 
 
+def test_a_cut_off_answer_fails_that_subject_and_the_run_goes_on() -> None:
+    """A truncated answer is the subject's failure, not the provider's: the subject is recorded
+    as not drafted with the reason, its spent tokens count against the budget, it is not retried
+    at the same limit, and the next subject is drafted (found 2026-10-05, erdos-1050's 845-line
+    hole cut off at 16000 tokens)."""
+    cut = models.ModelTruncatedError("the answer was cut off at the output limit", input_tokens=500,
+                                output_tokens=64000)  # fmt: skip
+    model = ScriptedModel([cut, GOOD_GLOSS])
+    report = run([statement("a"), statement("b")], model)
+    assert [d.subject.key for d in report.drafted] == ["gloss euclid-primes/b statement"]
+    assert [e.key for e in report.not_drafted] == ["gloss euclid-primes/a statement"]
+    assert "cut off" in report.not_drafted[0].reason
+    assert report.stopped is None and len(model.prompts) == 2
+    assert report.input_tokens >= 500 and report.output_tokens >= 64000
+
+
+def test_an_explainer_may_be_long() -> None:
+    """The output limit for an explainer leaves room for a long proof's: 16000 was too few for
+    erdos-1050's 845-line hole; the model allows 128000 (OpenRouter's model list, 2026-10-05)."""
+    assert drafter.EXPLAINER_MAX_TOKENS >= 64000
+
+
 def test_the_token_budget_stops_the_run() -> None:
     """R17: the budget is read from the tokens the seam reports; once spent, no further call is
     made and what is left is named with the budget as its reason."""

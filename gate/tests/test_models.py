@@ -75,6 +75,7 @@ def test_the_default_model_is_opus_5_5_through_openrouter() -> None:
         (200, message(finish_reason="content_filter"), "declined (content_filter)"),
         (200, message(None), "no text"),
         (200, message("   "), "no text"),
+        (200, message("Half an answ", finish_reason="length"), "cut off at the output limit"),
     ],
 )
 def test_anything_but_a_completion_is_a_model_error(status: int, body: str, expected: str) -> None:
@@ -135,3 +136,11 @@ def test_family_and_formalizer_lookups() -> None:
     assert models.formalizer_family("T. Tao") == models.FORMALIZER_UNKNOWN
     assert models.formalizer_family(None) == models.FORMALIZER_UNKNOWN
     assert models.formalizer_family("") == models.FORMALIZER_UNKNOWN
+
+
+def test_a_cut_off_answer_is_truncated_with_its_tokens() -> None:
+    """A ``length`` finish is never a completion: an explainer cut off mid-formula at the output
+    limit merged on 2026-10-05. The tokens it spent are carried, because they were billed."""
+    with pytest.raises(models.ModelTruncatedError) as cut:
+        models.parse_completion(200, message("Half an answ", finish_reason="length"), model=MODEL)
+    assert (cut.value.input_tokens, cut.value.output_tokens) == (12, 3)

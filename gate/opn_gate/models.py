@@ -57,6 +57,17 @@ class ModelError(RuntimeError):
     """The provider did not answer with a completion; the message carries no credential."""
 
 
+class ModelTruncatedError(ModelError):
+    """The answer stopped at the output limit (``finish_reason: length``): text was returned,
+    but not a whole answer, so it is never taken for one. It carries the tokens it spent, which
+    were billed (found 2026-10-05: an explainer cut off mid-formula at 16000 tokens merged)."""
+
+    def __init__(self, message: str, *, input_tokens: int = 0, output_tokens: int = 0) -> None:
+        super().__init__(message)
+        self.input_tokens = input_tokens
+        self.output_tokens = output_tokens
+
+
 @dataclass(frozen=True)
 class Completion:
     text: str
@@ -164,6 +175,13 @@ def parse_completion(status: int, text: str, *, model: str) -> Completion:
         msg = "the model provider's answer is not a completion"
         raise ModelError(msg)
     choice = choices[0]
+    raw_usage = doc.get("usage")
+    usage: dict[str, Any] = raw_usage if isinstance(raw_usage, dict) else {}
+    spent_in = int(usage.get("prompt_tokens") or 0)
+    spent_out = int(usage.get("completion_tokens") or 0)
+    if choice.get("finish_reason") == "length":
+        msg = f"the answer was cut off at the output limit ({spent_out} tokens)"
+        raise ModelTruncatedError(msg, input_tokens=spent_in, output_tokens=spent_out)
     if choice.get("finish_reason") == "content_filter":
         msg = "the model declined (content_filter)"
         raise ModelError(msg)
@@ -173,12 +191,10 @@ def parse_completion(status: int, text: str, *, model: str) -> Completion:
     if not answer:
         msg = "the model answered with no text"
         raise ModelError(msg)
-    raw_usage = doc.get("usage")
-    usage: dict[str, Any] = raw_usage if isinstance(raw_usage, dict) else {}
     return Completion(
         text=answer,
         model=model,
         version=str(doc.get("model") or model),
-        input_tokens=int(usage.get("prompt_tokens") or 0),
-        output_tokens=int(usage.get("completion_tokens") or 0),
+        input_tokens=spent_in,
+        output_tokens=spent_out,
     )
