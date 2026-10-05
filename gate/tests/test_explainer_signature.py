@@ -3,7 +3,8 @@
 A signature on an explainer is a comprehension claim by a real-identity contributor — at Stage 0
 an active steward of the target or a listed curator (F15-Q4) — affirming one fixed sentence. It
 merges in the explainer mode on the path and signature checks alone, claims nothing about the
-mathematics, and earns nothing; only its validity matters, and each way it can be invalid is
+mathematics, and earns the signer nothing (it earns the version's author a write-up line,
+F21-R3); only its validity matters, and each way it can be invalid is
 refused by name before it merges. Every signature here is a real ``ssh-keygen`` one.
 """
 
@@ -98,7 +99,9 @@ def test_a_curator_signs_and_the_pull_request_merges_on_the_path_check(
 ) -> None:
     """AC7: a curator's signature on a proved node's explainer is the explainer mode, needs no
     build, no admission and no review, and passes every check; a steward's does too; a
-    signature arriving with the explainer it signs is accepted in one pull request."""
+    signature arriving with the explainer it signs is accepted in one pull request. Restated
+    for F21-R3: the explainer mode's merge line is now ``write-up``, which a signature earns the
+    signed version's author (never the signer)."""
     root, node, digest = graph
     change = sign(node, digest, CURATOR, keys[CURATOR])
     assert change.path.endswith(f"/explainer/signed/{digest}-1.yaml")
@@ -107,7 +110,9 @@ def test_a_curator_signs_and_the_pull_request_merges_on_the_path_check(
     assert not classification.needs_gate and not classification.needs_review
     assert not classification.needs_admission
     assert modes.check(root, classification) == []
-    assert ledger.MERGE_LINES["explainer"] is None  # earns nothing at merge (R8)
+    # F21-R3 (D-19 v3.31) restates F15-R8's "earns nothing at merge": the signature earns the
+    # signed version's author a write-up line, never the signer (test_writeup_credit.py).
+    assert ledger.MERGE_LINES["explainer"] == "write-up"
     [valid] = explainers.valid(node, SIGNER)
     assert valid.signer == CURATOR and valid.explainer == digest
 

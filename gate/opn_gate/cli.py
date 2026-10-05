@@ -3059,13 +3059,18 @@ def run_ledger(  # noqa: PLR0911 — one return per kind of merge
     postmortem of each route class, the statement line for an admitted proposal (never a hole,
     D-31; never a revision, D-19). Nothing for an alternate proof (credited at write-up, D-25),
     the tutorial node (D-27), a curator's proof on their own target (D-21) or any other mode, and
-    every refusal says which decision refused it.
+    every refusal says which decision refused it. A merged gloss or explainer signature credits
+    the signed version's author with the write-up line (F21-R3, D-19 v3.31); the version itself
+    earns nothing (R4).
     """
     graph, commit = _checkout_and_commit(args.graph, args.commit)
     changes = commit_changes(graph, commit)
     corrections = _credit_corrections(changes)
     if corrections:
         return _apply_credit_corrections(graph, commit, corrections)
+    signatures = _added_signatures(changes)
+    if signatures:
+        return _credit_signed_versions(graph, commit, signatures)
     classification = modes.classify(changes, author=settings.pr_author)
     mode = classification.mode
     nothing: dict[str, Any] = {"earned": False, "commit": commit}
@@ -3120,6 +3125,138 @@ def _credit_corrections(changes: list[Change]) -> list[paths.Located]:
     handed, and the merge has already passed that rule at its gate run."""
     found = (paths.locate(c.path) for c in changes if c.status == "A")
     return [loc for loc in found if loc is not None and loc.role == "credit-correction"]
+
+
+#: F21-R3: the signature records a write-up credit is read from, every version of each.
+_SIGNATURE_SCHEMAS: dict[str, tuple[str, ...]] = {
+    "explainer-signature": ("explainer-signature/v1", "explainer-signature/v2"),
+    "gloss-signature": ("gloss-signature/v1", "gloss-signature/v2"),
+}
+
+
+def _added_signatures(changes: list[Change]) -> list[paths.Located]:
+    """F21-R3: the gloss and explainer signatures a merge added, read from the paths."""
+    found = (paths.locate(c.path) for c in changes if c.status == "A")
+    return [loc for loc in found if loc is not None and loc.role in _SIGNATURE_SCHEMAS]
+
+
+def _signer_names(graph: Path, login: str) -> frozenset[str]:
+    """The names a signer is known by: the login, and the pseudonym ``curators.json`` pairs it
+    with, read in the direction ``modes.acting_names`` allows for a host login (login to its
+    pseudonym, never a login to a login). A steward has no pairing on the record (Stage 0), so
+    a steward is known by the login alone."""
+    try:
+        paired = modes.load_curators(graph).pseudonym_of(login)
+    except modes.CuratorsError:
+        paired = None
+    return frozenset({login, paired} if paired else {login})
+
+
+def _signed_version(
+    graph: Path, loc: paths.Located
+) -> tuple[dict[str, Any], glosses.Version | None, Path]:
+    """The signature record, the version it signs (``glosses.Version`` or ``None`` when absent)
+    and the directory holding the version's ``gloss/`` or ``explainer/``."""
+    doc = schemas.load_yaml(graph / loc.path)
+    if doc.get("schema") not in _SIGNATURE_SCHEMAS[loc.role]:
+        msg = f"{loc.path} is not one of {', '.join(_SIGNATURE_SCHEMAS[loc.role])}"
+        raise schemas.SchemaError(msg)
+    if loc.node_id is not None:
+        parent = layout.graph_nodes_dir(graph, loc.target_id) / loc.node_id
+    else:
+        parent = graph / "targets" / loc.target_id
+    if loc.role == "gloss-signature":
+        digest, versions = str(doc["gloss"]), glosses.load_versions(parent)
+    else:
+        digest, versions = str(doc["explainer"]), explainers.versions(parent)
+    return doc, next((v for v in versions if v.hash == digest), None), parent
+
+
+def _version_tooling(path: Path) -> str:
+    """The model and tooling a version's author declared (``drafted_with``, gloss/v2 and
+    explainer/v2, F21-R6), or ``undeclared``."""
+    try:
+        front, _ = glosses.split_front_matter(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, ValueError):
+        return ledger.UNDECLARED
+    declared = (front or {}).get("drafted_with")
+    return declared if isinstance(declared, str) and declared.strip() else ledger.UNDECLARED
+
+
+def _credit_signed_versions(graph: Path, commit: str, signatures: list[paths.Located]) -> int:
+    """F21-R3 (D-19 v3.31): each added signature credits the author of the version it signs with
+    one write-up line — not ``proposer_of``, who is the signer — unless the version is a draft,
+    the signer wrote it, or it is already credited (Q3). Signatures are taken one at a time and
+    each written before the next is read, so two signatures on one version in one merge credit
+    once, and a replay of the merge (F07-T33) writes nothing. Every signature not credited says
+    why."""
+    date = graphmod.commit_timestamp(graph, commit)
+    credited: list[dict[str, Any]] = []
+    skipped: list[str] = []
+    written: set[str] = set()
+    for loc in signatures:
+        try:
+            doc, version, parent = _signed_version(graph, loc)
+        except (schemas.SchemaError, KeyError) as exc:
+            skipped.append(f"{loc.path} cannot be read as a signature: {exc}")
+            continue
+        if version is None:
+            skipped.append(f"{loc.path} signs a version that is not on the record beside it")
+            continue
+        artifact = version.path.relative_to(parent).as_posix()
+        # ledger/v1's node is required: a definition module's gloss sits under its target, so
+        # its entry carries the target's id there (F21-T4).
+        node = loc.node_id or loc.target_id
+        try:
+            entry, why = ledger.writeup_entry(
+                author=version.author,
+                signer_names=_signer_names(graph, str(doc["signer"])),
+                target=loc.target_id,
+                node=node,
+                artifact=artifact,
+                merge_commit=commit,
+                date=date,
+                tooling=_version_tooling(version.path),
+                held_by=ledger.writeup_holder(
+                    graph, target=loc.target_id, node=node, artifact=artifact
+                ),
+            )
+            if entry is None:
+                skipped.append(why)
+                continue
+            assert version.author is not None  # writeup_entry credits only an authored version
+            path = ledger.record(graph, version.author, entry)
+        except schemas.SchemaError as exc:
+            skipped.append(f"identity {version.author!r} cannot hold a ledger: {exc}")
+            continue
+        assert path is not None
+        written.add(path.resolve().relative_to(graph.resolve()).as_posix())
+        credited.append(
+            {"identity": version.author, "line": entry.line, "node": node, "artifact": artifact,
+             "signature": loc.path, "why": why}
+        )  # fmt: skip
+    if not credited:
+        return _say(
+            {
+                "earned": False,
+                "commit": commit,
+                "reason": skipped[0] if skipped else "the merge added no signature (R3)",
+                "skipped": skipped,
+            }
+        )
+    first = credited[0]
+    return _say(
+        {
+            "earned": True,
+            "commit": commit,
+            "identity": first["identity"],
+            "node": first["node"],
+            "line": "write-up",
+            "entries": credited,
+            "skipped": skipped,
+            "written": sorted(written),
+        }
+    )
 
 
 def _apply_credit_corrections(graph: Path, commit: str, corrections: list[paths.Located]) -> int:

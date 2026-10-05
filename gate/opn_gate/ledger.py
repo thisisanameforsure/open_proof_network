@@ -17,6 +17,10 @@ paid retroactively on demonstrated reuse, which is not a thing this module can s
 tutorial node is off-ledger entirely (D-27): it is the proof-of-work that mints an identity, and
 paying for it would make identity creation itself a credit farm.
 
+F21 adds a third line, ``write-up``: a gloss or explainer version earns it for its author when a
+steward or curator's signature on it merges (D-19 v3.31) — once per version, never for the signer,
+never for a draft or a signature on one's own version. The version itself earns nothing (R4).
+
 The ledger is derived from merges that already happened, so it is rebuildable from the graph and
 is never a second source of truth (D-35). Every function here is pure: the post-merge job hands
 in what merged, and gets back the entry to append.
@@ -39,13 +43,16 @@ Line = Literal["statement", "proof", "review", "attempts", "upstreaming", "write
 PROOF_ARTIFACTS: tuple[str, ...] = ("proof", "counterexample", "vacuity", "partial", "reduction")
 #: F07-R12, T15: the one line each classified mode's merge can earn, ``None`` for nothing at
 #: merge. ``append`` earns only for a postmortem (D-13; an annex earns nothing, D-31), and an
-#: alternate proof is credited at write-up, not when it merges (D-25 v3.13).
+#: alternate proof is credited at write-up, not when it merges (D-25 v3.13). ``explainer`` earns
+#: only on a *signature* (F21-R3, D-19 v3.31): the version's author, never the signer, once per
+#: version; the gloss or explainer itself, a draft and a signature on one's own version earn
+#: nothing (R4).
 MERGE_LINES: dict[str, Line | None] = {
     "proof": "proof",
     "partial": "proof",
     "alternate": None,
     "append": "attempts",
-    "explainer": None,
+    "explainer": "write-up",
     "proposal": "statement",
     "curator": None,
     "intake": None,
@@ -263,6 +270,65 @@ def statement_entry(  # noqa: PLR0913 — one argument per fact the entry record
         date=date,
         tooling=tooling,
     )
+
+
+def writeup_holder(graph_root: Path, *, target: str, node: str, artifact: str) -> str | None:
+    """F21-R3, Q3: the identity holding an active write-up entry for ``artifact``, or ``None``.
+
+    Asked of every ledger, not only the author's: a credit correction (F07-T66) may have moved
+    the line to someone else, and the version is still credited once. A revoked entry does not
+    count (D-18 keeps it, and the line is no longer held)."""
+    for identity, entries in contributions(graph_root).items():
+        for e in entries:
+            if (
+                e.get("line") == "write-up"
+                and e.get("target") == target
+                and e.get("node") == node
+                and e.get("artifact") == artifact
+                and e.get("status") == "active"
+            ):
+                return identity
+    return None
+
+
+def writeup_entry(  # noqa: PLR0913 — one argument per fact the entry records
+    *,
+    author: str | None,
+    signer_names: frozenset[str],
+    target: str,
+    node: str,
+    artifact: str,
+    merge_commit: str,
+    date: str,
+    tooling: str = UNDECLARED,
+    held_by: str | None = None,
+) -> tuple[Entry | None, str]:
+    """F21-R3 (D-19 v3.31): the write-up line a signature on a gloss or explainer version earns
+    its author, with the reason; ``(None, why)`` when it earns nothing.
+
+    Nothing for a draft (no author), for a signature on one's own version (``signer_names`` is the
+    signer's login with any pseudonym ``curators.json`` pairs it with), or when the version is
+    already credited (``held_by``, from ``writeup_holder``): credit is per version, once (Q3). The
+    signer is never the one credited: D-19 credits work, not review."""
+    if author is None:
+        return None, f"{artifact} is a draft with no author, so its signature credits nobody (R3)"
+    if author in signer_names:
+        return None, (
+            f"{artifact} is {author}'s own version, and a signature on one's own version earns "
+            "nothing (R3, D-19 v3.31)"
+        )
+    if held_by is not None:
+        return None, f"{artifact} is already credited to {held_by}: once per version (Q3)"
+    entry = Entry(
+        line="write-up",
+        target=target,
+        node=node,
+        artifact=artifact,
+        merge_commit=merge_commit,
+        date=date,
+        tooling=tooling,
+    )
+    return entry, f"{author} wrote {artifact}, and a signature approved it (R3, D-19 v3.31)"
 
 
 def statement_tooling(meta: dict[str, Any]) -> str:

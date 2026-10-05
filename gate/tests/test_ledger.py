@@ -332,7 +332,9 @@ def test_a_target_with_no_curator_on_record_bars_nobody() -> None:
 
 def test_merge_line_table() -> None:
     """Every classified mode, and the one line its merge can earn (``None``: nothing, ever, at
-    merge). An alternate is credited at write-up (D-25 v3.13), not when it merges."""
+    merge). An alternate is credited at write-up (D-25 v3.13), not when it merges. The explainer
+    mode earns the write-up line, but only when it merges a signature, and then for the signed
+    version's author, never the signer (F21-R3); a gloss or explainer itself earns nothing (R4)."""
     import typing  # noqa: PLC0415
 
     from opn_gate import modes  # noqa: PLC0415
@@ -342,7 +344,7 @@ def test_merge_line_table() -> None:
         "partial": "proof",
         "alternate": None,
         "append": "attempts",
-        "explainer": None,
+        "explainer": "write-up",  # F21-R3: on a signature, to the version's author (D-19 v3.31)
         "proposal": "statement",
         "curator": None,
         "intake": None,
