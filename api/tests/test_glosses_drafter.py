@@ -35,7 +35,9 @@ from test_glosses_route import (
 from opn_api.githost import GitHubUser
 from opn_gate import glosses
 
-DRAFTER = "opn-drafter"
+#: The configured drafter in these tests. Not the live name: ``opn-drafter`` is reserved now that
+#: its identity exists (F20-T10, 2026-10-05), and a reserved name cannot be minted here.
+DRAFTER = "test-drafter"
 COMMIT = "c" * 40
 BLOCK = {
     "model": "claude-opus-5",

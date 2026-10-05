@@ -518,15 +518,25 @@ def test_one_commit_credits_the_batch_and_a_moved_main_is_caught_up(
 
 
 def test_every_secret_is_still_named_by_one_step_only(gate_doc: dict[Any, Any]) -> None:
-    """C8: the batch added no secret, and each one stays in the step that needs it."""
+    """C8: the batch added no secret, and each one stays in the steps that need it. Since
+    2026-10-05 the deploy key and the site dispatch token each have a second reader, in the outline
+    job (F19-T4's push, F20-T10's dispatch of the drafter), and C8 names both; the steps are pinned
+    by name rather than counted."""
     named: dict[str, list[str]] = {}
     for job in gate_doc["jobs"].values():
         for step in job["steps"]:
             for secret in re.findall(r"secrets\.([A-Z_]+)", str(step)):
                 named.setdefault(secret, []).append(str(step.get("name")))
     assert set(named) == {"OPN_GATE_SIGNING_KEY", "OPN_GRAPH_DEPLOY_KEY", "OPN_SITE_DEPLOY_TOKEN"}
-    assert all(len(steps_) == 1 for steps_ in named.values()), named
-    assert named["OPN_GRAPH_DEPLOY_KEY"][0].startswith("Commit the attestation")
+    assert len(named["OPN_GATE_SIGNING_KEY"]) == 1, named
+    deploy = named["OPN_GRAPH_DEPLOY_KEY"]
+    assert len(deploy) == 2, named
+    assert deploy[0].startswith("Commit the attestation"), named
+    assert deploy[1].startswith("Commit the outlines and push them"), named
+    assert named["OPN_SITE_DEPLOY_TOKEN"] == [
+        "Ask the site to deploy this commit",
+        "Ask the network's drafter for this merge's words",
+    ], named
 
 
 # --- the commit step, rehearsed against a local bare repository -------------------------------

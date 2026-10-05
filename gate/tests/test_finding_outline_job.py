@@ -45,7 +45,12 @@ SHA_PINNED = re.compile(r"^[\w.-]+/[\w./-]+@[0-9a-f]{40}$")
 
 
 def _env() -> dict[str, str]:
-    return config.child_environment(drop=config.GIT_REPO_VARIABLES)
+    # A git hook exports the committing user's identity (GIT_AUTHOR_*, GIT_COMMITTER_*), which
+    # overrides the helper's own user.name: run from a pre-commit hook during a merge, the outline
+    # commit was authored by the owner instead of opn-gate (2026-10-05). Drop those too.
+    identity = ("GIT_AUTHOR_NAME", "GIT_AUTHOR_EMAIL", "GIT_AUTHOR_DATE",
+                "GIT_COMMITTER_NAME", "GIT_COMMITTER_EMAIL", "GIT_COMMITTER_DATE")  # fmt: skip
+    return config.child_environment(drop=(*config.GIT_REPO_VARIABLES, *identity))
 
 
 @pytest.fixture(scope="module")
