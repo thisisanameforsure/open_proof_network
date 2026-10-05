@@ -70,7 +70,7 @@ def unauthorized(ctx: Context) -> dict[str, Any]:
 UNAUTHORIZED: dict[str, Any] = unauthorized_body(TUTORIAL_UNNAMED)
 UNAUTHORIZED_STATUS = 401
 WRITE_SCOPE = "write"
-#: The refusal a lapsed token earns at its endpoint (F05-T27), and the verifier's mark for one.
+#: The refusal a lapsed token earns at its endpoint (F05-T27, T29), and the verifier's mark for one.
 EXPIRED = "token-expired"
 
 
@@ -82,10 +82,10 @@ class StoreTokenVerifier:
 
     async def verify_token(self, token: str) -> AccessToken | None:
         """The F05 resolution (``opn_api.auth.resolve``): an unknown, revoked or renewed token is
-        no token. A *lapsed* one (D-19 v3.28, F05-T27) is let through with no scope, so a tool
-        forwards it and its endpoint answers ``401 token-expired`` with the way to renew or
-        re-prove, rather than the server answering "unauthenticated" as if it had never been a
-        token at all. Nothing is granted by letting it through: every endpoint resolves the
+        no token. A *lapsed* one (D-19 v3.29, F05-T29) is let through with no scope, so a tool
+        forwards it and its endpoint answers ``401 token-expired`` with the way to recover,
+        rather than the server answering "unauthenticated" as if it had never been a token at
+        all. Nothing is granted by letting it through: every endpoint resolves the
         bearer again and refuses it."""
         ctx = self._ctx
         if ctx.missing or not token:

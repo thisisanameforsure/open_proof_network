@@ -1,0 +1,107 @@
+F05-T29 (decisions v3.29, D-19): a write token lapses only after long disuse
+============================================================================
+
+D-19 v3.29 (approved 2026-10-04): "An agent keeps no memory between sessions, so no part of this
+policy depends on an agent remembering anything. v3.28's ninety-day lapse is replaced: a write
+token lapses only after a long stretch in which it is not used (a published number of days, 180
+at the pilot), so a token in use never lapses and none has to be renewed [...] Rotation stays
+available and is never required." This REPLACES F05-T27's fixed window (09f317a, never pushed:
+origin/main does not contain it, so no deployed token carries `expires`).
+
+What changed
+  config: OPN_API_TOKEN_IDLE_DAYS (default 180, positive, refused at load if not) replaces
+    OPN_API_TOKEN_DAYS, which is no longer read. OPN_API_TOKEN_CUTOVER keeps its meaning for
+    tokens with no recorded use.
+  store.TokenRecord: `expires` removed (never deployed); `last_used` added. New Store method on
+    both stores, touch_token(hash, at, before) -> bool: a conditional write that sets last_used
+    only if it is absent or <= before. DynamoDB: one UpdateItem, ConditionExpression
+    "attribute_exists(#k) AND (attribute_not_exists(last_used) OR last_used <= :before)";
+    clock.render's fixed-width UTC strings order as times. ConditionalCheckFailed -> False.
+  auth: idle_since(record) = last_used, or (no recorded use: a legacy token) max(created,
+    cutover). A token lapses at idle_since + idle_days -> 401 token-expired, message: "lapsed
+    after 180 days without use (unused since ...); a token in use never lapses", the recovery
+    route POST /tokens/recover {pseudonym, recovery_code} (recover_token; built by F05-T30) and
+    the GitHub re-proof. resolve() calls touch() after every successful resolution, which writes
+    only if last_used is a day or more old (TOUCH_EVERY), and then conditionally, so racing
+    requests write once. Issue sets last_used = created (issue counts as a use), so only a
+    legacy token has none.
+  identity: issue() writes no expiry; the token answer drops `expires` and carries
+    `idle_days`; the HTML page says a token in use never lapses. Re-proof of a lapsed GitHub
+    identity is unchanged (lapsed now means idle). POST /tokens/renew is optional rotation:
+    route purpose, docstrings, MCP renew_token description reworded ("you never have to call
+    this"); behaviour unchanged.
+  codes.py: token-expired row reworded (idle lapse, recovery code first, then GitHub re-proof).
+  MCP: verifier docstring only (a lapsed bearer is still let through to hear token-expired).
+
+Restated tests (api/tests/test_finding_token_lapse.py, every test kept, docstrings say why):
+  test_a_token_lapses_ninety_days_after_issue  -> works at day 90, lapses 180 days after its last use
+  test_the_issue_answer_says_when_the_token_lapses -> no `expires`, idle_days == 180
+  test_a_token_from_before_the_field_..._cutover   -> cutover + 180, and a use restarts the window
+  test_the_window_and_the_cutover_are_configuration -> OPN_API_TOKEN_IDLE_DAYS
+  test_a_shorter_window_lapses_sooner               -> OPN_API_TOKEN_IDLE_DAYS=7
+  test_the_mcp_answers_token_expired_not_unauthenticated, the three re-proof tests -> 181 days
+  test_renewal_rotates_the_token_and_resets_the_window -> no `expires`, idle window after rotation
+  test_a_lapsed_token_cannot_renew -> 180 days
+  test_a_lapsed_identity_with_a_reserved_name_keeps_it -> lapses by disuse past cutover + 180
+  test_store_seam FakeTable learns the guarded SET last_used.
+
+Seam first (today's behaviour): TokenRecord.last_used and Settings.token_idle_days added unread.
+
+Red (api/tests/test_finding_token_idle.py, seam in place): 16 failed, 1 passed
+  ______ test_a_token_used_every_day_for_a_year_still_authenticates[memory] ______
+  E           AssertionError: (90, '{"error":"token-expired","message":"this token lapsed at 2026-12-08T12:00:00Z: a token is valid 90 days from its... same pseudonym by proving the same login again (
+  E           assert 401 == 200
+  _____ test_a_token_used_every_day_for_a_year_still_authenticates[dynamodb] _____
+  E           AssertionError: (90, '{"error":"token-expired","message":"this token lapsed at 2026-12-08T12:00:00Z: a token is valid 90 days from its... same pseudonym by proving the same login again (
+  E           assert 401 == 200
+  __________ test_a_token_used_every_hundred_days_never_lapses[memory] ___________
+  E           AssertionError: assert 401 == 200
+  _________ test_a_token_used_every_hundred_days_never_lapses[dynamodb] __________
+  E           AssertionError: assert 401 == 200
+  _____________ test_a_token_unused_for_181_days_is_refused[memory] ______________
+  E       AssertionError: assert '180 days' in 'this token lapsed at 2026-12-08T12:00:00Z: a token is valid 90 days from its issue or its last renewal, and is renewe...the same pseudonym by proving th
+  ____________ test_a_token_unused_for_181_days_is_refused[dynamodb] _____________
+  E       AssertionError: assert '180 days' in 'this token lapsed at 2026-12-08T12:00:00Z: a token is valid 90 days from its issue or its last renewal, and is renewe...the same pseudonym by proving th
+  _____________ test_a_token_unused_for_179_days_still_works[memory] _____________
+  E       AssertionError: assert 401 == 200
+  ____________ test_a_token_unused_for_179_days_still_works[dynamodb] ____________
+  E       AssertionError: assert 401 == 200
+  ____________________ test_the_idle_window_is_configuration _____________________
+  E       KeyError: 'error'
+  _____________ test_last_use_is_written_at_most_once_a_day[memory] ______________
+  E       AssertionError: assert (0 - 0) == 3
+  ____________ test_last_use_is_written_at_most_once_a_day[dynamodb] _____________
+  E       AssertionError: assert (1 - 1) == 3
+  ____________________ test_the_last_use_is_recorded[memory] _____________________
+  E       AssertionError: assert None == '2026-09-12T12:00:00Z'
+  ___________________ test_the_last_use_is_recorded[dynamodb] ____________________
+  E       AssertionError: assert None == '2026-09-12T12:00:00Z'
+  __________ test_a_token_with_no_recorded_use_counts_from_the_cutover ___________
+  E       AssertionError: assert 401 == 200
+  ______________ test_rotation_is_optional_and_still_works[memory] _______________
+  E       AssertionError: assert 'expires' not in {'token': 'CVYZ-bIMVMOsqIkD_U5hJKUyfOzrtoZhTktxwZnncqw', 'identity': {'id': '01N28ZKJG0NYP58K1HZ7TQAC5F', 'pseudonym': 'bob', 'proof_kind': 'github', 
+  _____________ test_rotation_is_optional_and_still_works[dynamodb] ______________
+  E       AssertionError: assert 'expires' not in {'token': 'yTLRdXhmQ4FywnWY51juxUm-zBuwPPQ3QQq45hdmI_w', 'identity': {'id': '01N28ZKJG0R22M0KHFTJ7MWJ77', 'pseudonym': 'bob', 'proof_kind': 'github', 
+  (passing before and after: test_an_unused_legacy_token_lapses_180_days_after_the_cutover, which
+  pins that the cutover still bounds a legacy token.)
+
+Green:
+  test_finding_token_idle + test_finding_token_lapse: 48 passed, 2 warnings in 1.28s
+  All of api/tests plus gate/tests/test_error_codes.py: 1465 passed.
+  ruff check / ruff format / mypy --strict clean on every touched file.
+
+Proposed Q entry (F05-Q29):
+  Q29 (F05-T29, 2026-10-04). D-19 v3.29: a write token lapses only after OPN_API_TOKEN_IDLE_DAYS
+  (180) without use, replacing T27's ninety days from issue (Q27's window and `expires` are gone;
+  rotation, the MCP's token-expired pass-through and the GitHub re-proof of a lapsed identity
+  stay). Every authenticated use refreshes the token's last_used, written at most once a day by a
+  conditional update (set only if absent or a day old), so a busy agent costs one store write a
+  day however many requests race; issue counts as a use. A token with no recorded use (issued
+  before this change) counts from the later of its issue and OPN_API_TOKEN_CUTOVER, so the deploy
+  lapses nothing; set the cutover to the deploy day. A lapsed token is 401 token-expired with a
+  message naming the recovery route (T30). POST /tokens/renew and renew_token are optional
+  rotation, never required; the token answer carries idle_days instead of expires.
+
+Proposed ledger line: T29 ✓ 2026-10-04 (Q29; tokens lapse only after 180 days unused, last use
+  written at most once a day; rotation optional; red 16 failed on the defect, green 48 in the two
+  token files, api suite 1465; engineering/evidence/F05/task-29-audit-2026-10-04.txt)

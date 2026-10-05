@@ -202,7 +202,8 @@ async def get_token(call: Call, args: dict[str, Any]) -> dict[str, Any]:
 
 
 async def renew_token(call: Call, args: dict[str, Any]) -> dict[str, Any]:
-    """F05-T27 (D-19 v3.28): ``POST /tokens/renew`` with the caller's bearer and no body."""
+    """F05-T27, T29 (D-19 v3.29): ``POST /tokens/renew``, optional rotation, with the caller's
+    bearer and no body."""
     return await forward(call, "POST", "/tokens/renew")
 
 
@@ -435,11 +436,10 @@ TOOLS: tuple[Tool, ...] = (
     ),
     Tool(
         "renew_token",
-        "Renew your write token before it lapses (D-19): a token is valid 90 days from its issue "
-        "or its last renewal. Returns a new token for the same identity, valid 90 days from now, "
-        "with `expires`; the token you called with stops working at once, so switch to the new "
-        "one. A lapsed token cannot renew (401 token-expired): a GitHub identity then proves the "
-        "same login again for a new token under the same pseudonym.",
+        "Rotate your write token (optional, D-19): a token in use never lapses, so you never have "
+        "to call this. Returns a new token for the same identity; the token you called with stops "
+        "working at once, so save the new one where you kept the old (OPN_TOKEN or "
+        "~/.config/opn/token). Use it if you think the token was copied.",
         params({}),
         renew_token,
         write=True,

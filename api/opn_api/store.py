@@ -72,8 +72,10 @@ class TokenRecord:
     identity_id: str
     created: str
     revoked: bool = False
-    expires: str | None = None
+    #: F05-T27: when a rotation (``POST /tokens/renew``) retired this token.
     renewed: str | None = None
+    #: F05-T29 (D-19 v3.29): the last authenticated use, refreshed at most once a day.
+    last_used: str | None = None
 
 
 @dataclass(frozen=True)
@@ -178,6 +180,12 @@ class Store(Protocol):
         """F05-T27: store ``new`` and retire ``old_hash`` (revoked, ``renewed`` = ``at``), but
         only if the old token is still unrevoked; ``False``, with nothing stored, if it is not,
         so one token renews once even when two renewals race."""
+        ...
+
+    def touch_token(self, token_hash: str, at: str, before: str) -> bool:
+        """F05-T29: set the token's ``last_used`` to ``at``, but only if it has none or one no
+        later than ``before`` — a conditional write, so a busy token costs one write a day
+        however many requests race. ``True`` if it wrote."""
         ...
 
     def get_identity_by_proof(self, proof_kind: str, reference: str) -> Identity | None:
@@ -308,6 +316,13 @@ class MemoryStore:
             return False
         self.tokens[new.token_hash] = new
         self.tokens[old_hash] = replace(old, revoked=True, renewed=at)
+        return True
+
+    def touch_token(self, token_hash: str, at: str, before: str) -> bool:
+        record = self.tokens.get(token_hash)
+        if record is None or (record.last_used is not None and record.last_used > before):
+            return False
+        self.tokens[token_hash] = replace(record, last_used=at)
         return True
 
     def get_identity_by_proof(self, proof_kind: str, reference: str) -> Identity | None:
@@ -553,8 +568,8 @@ class DynamoStore:
             identity_id=str(item["identity_id"]),
             created=str(item["created"]),
             revoked=bool(item.get("revoked", False)),
-            expires=_optional(item.get("expires")),
             renewed=_optional(item.get("renewed")),
+            last_used=_optional(item.get("last_used")),
         )
 
     def renew_token(self, old_hash: str, new: TokenRecord, at: str) -> bool:
@@ -578,6 +593,27 @@ class DynamoStore:
             if code != "ConditionalCheckFailedException":
                 raise
             self._tokens.delete_item(Key={"key": KEY_TOKEN + new.token_hash})
+            return False
+        return True
+
+    def touch_token(self, token_hash: str, at: str, before: str) -> bool:
+        """One conditional ``UpdateItem``: timestamps are ``clock.render``'s fixed-width UTC form,
+        so DynamoDB's string comparison orders them as times."""
+        try:
+            self._tokens.update_item(
+                Key={"key": KEY_TOKEN + token_hash},
+                UpdateExpression="SET last_used = :at",
+                ConditionExpression=(
+                    "attribute_exists(#k) AND "
+                    "(attribute_not_exists(last_used) OR last_used <= :before)"
+                ),
+                ExpressionAttributeNames={"#k": "key"},
+                ExpressionAttributeValues={":at": at, ":before": before},
+            )
+        except Exception as exc:
+            code = getattr(exc, "response", {}).get("Error", {}).get("Code")
+            if code != "ConditionalCheckFailedException":
+                raise
             return False
         return True
 
