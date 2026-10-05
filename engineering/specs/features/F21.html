@@ -100,9 +100,10 @@ pending changes, with per-section signatures (<code>explainer-signature/v2</code
 <h2>4. Requirements</h2>
 <table>
   <tr><th>ID</th><th>Requirement (EARS)</th></tr>
-  <tr><td>F21-R1</td><td>The system shall contain no code, workflow, setting, service field,
-    template parameter or secret whose purpose is to draft words at the network's expense. The
-    graph's outline job shall start no drafter.</td></tr>
+  <tr><td>F21-R1</td><td>The network repository shall contain no code, workflow or service field
+    that drafts words at the network's expense. The secrets, the drafter's saved token, the stack
+    parameter and the graph's dispatch step stay in place, unused, on the owner's word (Q9): the step
+    finds no workflow to start and logs a warning, so nothing is spent.</td></tr>
   <tr><td>F21-R2</td><td>If an added gloss or explainer file carries a <code>drafter</code> block,
     then the gate shall refuse it (<code>draft-not-accepted</code>), whoever opened the pull request.
     Merged files with a <code>drafter</code> block shall still validate, display and be
@@ -172,11 +173,10 @@ pending changes, with per-section signatures (<code>explainer-signature/v2</code
 <h2>5. Acceptance criteria</h2>
 <table>
   <tr><th>ID</th><th>Given / When / Then</th><th>Test case</th></tr>
-  <tr><td>F21-AC1</td><td>Given the network tree, then no module, workflow, setting or CFN parameter
-    named for the drafter remains (grep guard), and the graph's outline job has no step after its
-    push.</td><td><code>gate/tests/test_no_paid_drafter.py</code>,
-    <code>gate/tests/test_finding_outline_job.py::test_no_secret_until_the_push_and_no_credential_in_the_checkouts</code>
-    (restated)</td></tr>
+  <tr><td>F21-AC1</td><td>Given the network tree, then no drafting module, workflow, CLI command or
+    service field remains (grep guard), and no network workflow is named
+    <code>gloss-draft.yml</code>, so the graph's dispatch finds nothing to start.</td>
+    <td><code>gate/tests/test_no_paid_drafter.py</code></td></tr>
   <tr><td>F21-AC2</td><td>Given a new gloss with a <code>drafter</code> block opened by the service,
     by a curator and by a stranger, then all three are refused <code>draft-not-accepted</code>; given
     a merged draft, it validates, renders and can be superseded by a person.</td>
@@ -240,12 +240,12 @@ pending changes, with per-section signatures (<code>explainer-signature/v2</code
 
 <h2>7. Security &amp; privacy notes</h2>
 <ul>
-  <li>Two secrets go: <code>OPENROUTER_API_KEY</code> and <code>OPN_DRAFTER_TOKEN</code> as network
-    Actions secrets. C8 loses both entries, and the site dispatch token goes back to one reader. The
-    curator's <code>.env</code> keeps <code>OPENROUTER_API_KEY</code> for F12's QA commands.</li>
+  <li>The <code>OPENROUTER_API_KEY</code> and <code>OPN_DRAFTER_TOKEN</code> network secrets, the
+    saved drafter token and the <code>DrafterPseudonym</code> stack parameter stay, unread by any code
+    (Q9); C8 says so. The curator's <code>.env</code> keeps <code>OPENROUTER_API_KEY</code> for F12's
+    QA commands.</li>
   <li>The <code>opn-drafter</code> identity stays, reserved, so nobody can take the name the
-    existing drafts carry. Its saved token copy (<code>~/.config/opn/drafter-token</code>) is
-    deleted.</li>
+    existing drafts carry.</li>
   <li><code>drafted_with</code> is contributor text: demarcated wherever served (C9).</li>
   <li>Credit on signature cannot be self-awarded: a signer's own version earns nothing (R3).</li>
 </ul>
@@ -312,6 +312,11 @@ pending changes, with per-section signatures (<code>explainer-signature/v2</code
     new section. Text equality is exact after trimming trailing whitespace. A gloss is one section,
     because its file has no steps. A pre-F20 explainer without anchors is one section,
     <code>overview</code>.</td></tr>
+  <tr><td>F21-Q9</td><td><strong>Nothing outside the code is removed (the owner, 2026-10-05).</strong>
+    The secrets, the saved token, the stack parameter and the graph's dispatch step stay. What stops
+    the spending is the code: with the drafter modules and <code>gloss-draft.yml</code> gone, the
+    graph's step has no workflow to start. That step's warning on each merge is the visible trace of
+    the choice; removing the step later is one graph pull request.</td></tr>
   <tr><td>F21-Q6</td><td><strong>Words needed is computed, not published.</strong> A new pure
     function reads <code>glosses.json</code> plus each target's curated words, so no new product
     schema is needed. Its parity with the coverage report is a test, because two builders of one
@@ -319,8 +324,8 @@ pending changes, with per-section signatures (<code>explainer-signature/v2</code
 </table>
 
 <h2>10. Status</h2>
-<div class="rule"><strong>status:</strong> planned (2026-10-05; the owner approved the plan; Q1's
-  wording awaits him) · <strong>Tasks:</strong> T1&ndash;T12 todo (build order: T1, T2, T3, T4, T5, T6, T10, T11, T12, T7, T8, T9)</div>
+<div class="rule"><strong>status:</strong> building (2026-10-05; the owner approved the plan and
+  Q1's wording, and ruled that nothing outside the code is removed, Q9) · <strong>Tasks:</strong> T1&ndash;T12 todo (build order: T1, T2, T3, T4, T5, T6, T10, T11, T12, T7, T8, T9)</div>
 
 <h2>Tasks</h2>
 <p class="status-note">Dependency-ordered. Red before green: each new test fails on the defect with
@@ -337,8 +342,9 @@ the seam in at today's behaviour; each restated test says which rule changed it.
         <code>cli.py</code>; the <code>OPN_DRAFTER_*</code> settings and fields in
         <code>config.py</code>; <code>drafter_of</code>, <code>DRAFTER_KEYS</code> and the
         <code>drafter</code> request field in <code>api/opn_api/glosses.py</code>; the api's
-        <code>drafter_pseudonym</code> setting; the <code>DrafterPseudonym</code> CFN parameter and
-        env entry; the codes <code>drafter-invalid</code> and <code>drafter-unauthorized</code>.</li>
+        <code>drafter_pseudonym</code> setting; the codes <code>drafter-invalid</code> and
+        <code>drafter-unauthorized</code>. The CFN parameter stays (Q9); its environment entry is
+        simply no longer read.</li>
       <li><strong>Delete tests:</strong> <code>test_drafter.py</code>,
         <code>test_gloss_draft_cli.py</code>, <code>test_gloss_draft_workflow.py</code>,
         <code>api/tests/test_glosses_drafter.py</code>.</li>
@@ -472,17 +478,13 @@ the seam in at today's behaviour; each restated test says which rule changed it.
     <td><code>uv run pytest gate/tests/test_walkthrough.py site/tests</code></td></tr>
   <tr><td>F21-T9</td><td><strong>Live.</strong>
     <ul>
-      <li>Graph PR removing the drafter step from the outline job.</li>
       <li>Tag, images, re-pin, seeding <code>gloss/v2</code>, <code>explainer/v2</code>,
         <code>glosses/v2</code>, <code>explainer-signature/v2</code> and
         <code>gloss-signature/v2</code>; render; site deploy.</li>
-      <li>Delete the <code>OPENROUTER_API_KEY</code> and <code>OPN_DRAFTER_TOKEN</code> network
-        secrets and the saved token copy.</li>
-      <li>A stack change set removing <code>DrafterPseudonym</code>.</li>
       <li>An end-to-end gloss by a test identity through the MCP, signed by the curator: shown with
         its model, credited in the ledger (AC9). Screenshots.</li>
     </ul></td>
-    <td>graph workflow, pins, products, secrets, stack</td><td>T1&ndash;T8, T10&ndash;T12</td>
+    <td>pins, products</td><td>T1&ndash;T8, T10&ndash;T12</td>
     <td><code>engineering/evidence/F21/task-9-live.txt</code></td></tr>
 </table>
 
