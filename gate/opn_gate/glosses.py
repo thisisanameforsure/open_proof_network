@@ -410,7 +410,7 @@ def head_problems(
             "record-not-head",
             f"{path} supersedes {named}, and {why}; a version supersedes the current head of "
             f"its chain ({', '.join(heads) or 'none'}) or starts a chain of its own "
-            "(F20-R6, D-3 v3.30)",
+            "(F20-R6, F21-R13, D-3 v3.31)",
             {
                 "path": path,
                 "supersedes": named,

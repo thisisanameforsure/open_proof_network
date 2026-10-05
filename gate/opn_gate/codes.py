@@ -750,9 +750,12 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "api",
         None,
         "The same submission (comments and whitespace aside) is already merged or open for this "
-        "node; a node keeps every different proof and never a copy.",
-        "Nothing to submit: details names the existing pull request. Send only something that "
-        "differs.",
+        "node, a node keeping every different proof and never a copy (D-25 v3.21); or, for "
+        "words, another open pull request is already writing a new chain on this file (one "
+        "writer per file, F21-R5).",
+        "Nothing to submit: details names the existing pull request. For a proof, send only "
+        "something that differs; for words, pick another file (list_words_needed) or wait for "
+        "that pull request, then supersede what it shows.",
     ),
     # --- e ------------------------------------------------------------------------------------
     "elaboration-failed": (
@@ -1771,7 +1774,7 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         None,
         "A gloss or explainer supersedes a version that is not the current head of a chain of "
         "its own subject: one already superseded, withdrawn, of another file or proof, or not "
-        "on the record (F20-R6, D-3 v3.30).",
+        "on the record (F20-R6, F21-R13, D-3 v3.31).",
         "Supersede the head the message names (opn-gate gloss revise writes it), or set "
         "supersedes to null to start a chain of your own.",
     ),
