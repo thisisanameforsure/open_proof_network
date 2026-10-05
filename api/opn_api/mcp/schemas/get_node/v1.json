@@ -281,7 +281,7 @@
   "$defs": {
     "chained_subject": {
       "type": "object",
-      "description": "A glosses/v1 subject (F20-R9) as the product publishes it, each version with its prose added",
+      "description": "A glosses/v1 or glosses/v2 subject (F20-R9; F21-R14) as the product publishes it, each version with its prose added. v2 adds, per chain, the words shown section by section and the pending sections; per version, its sections with their states and drafted_with; per signature, the sections it approves. All optional here: the live graph holds v1 until its re-pin.",
       "required": [
         "kind",
         "record",
@@ -322,6 +322,130 @@
                         {
                           "$ref": "#/$defs/untrusted"
                         }
+                      ]
+                    },
+                    "drafted_with": {
+                      "description": "glosses/v2 (F21-R6, D-23): the model and tooling that drafted this version, in its author's words; null for a person's own writing. Contributor text, untrusted.",
+                      "oneOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "sections": {
+                      "type": "array",
+                      "description": "glosses/v2 (F21-R11): this version's sections in its own order, each with its state over the chain.",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "key",
+                          "state"
+                        ],
+                        "properties": {
+                          "key": {
+                            "type": "string"
+                          },
+                          "state": {
+                            "enum": [
+                              "drafted",
+                              "written",
+                              "verified",
+                              "pending",
+                              "unchanged"
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    "signatures": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "signer",
+                          "date"
+                        ],
+                        "properties": {
+                          "signer": {
+                            "type": "string"
+                          },
+                          "date": {
+                            "type": "string"
+                          },
+                          "sections": {
+                            "description": "glosses/v2 (F21-R13): the section keys this signature approves; null for every section.",
+                            "oneOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "shown": {
+                "type": "array",
+                "description": "glosses/v2 (F21-R14): the words the chain shows, one entry per section key: the version they come from and their state (drafted, written or verified).",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "key",
+                    "version",
+                    "state"
+                  ],
+                  "properties": {
+                    "key": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "string"
+                    },
+                    "state": {
+                      "enum": [
+                        "drafted",
+                        "written",
+                        "verified",
+                        "pending"
+                      ]
+                    }
+                  }
+                }
+              },
+              "pending": {
+                "type": "array",
+                "description": "glosses/v2 (F21-R14): each person's change to written or verified words awaiting a steward's or curator's signature, with the version proposing it; never shown as the section's words.",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "key",
+                    "version",
+                    "state"
+                  ],
+                  "properties": {
+                    "key": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "string"
+                    },
+                    "state": {
+                      "enum": [
+                        "drafted",
+                        "written",
+                        "verified",
+                        "pending"
                       ]
                     }
                   }

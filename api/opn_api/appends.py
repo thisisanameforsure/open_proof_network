@@ -360,7 +360,7 @@ async def post_annexes(ctx: Context, request: Request) -> Response:
         "contributor": identity.pseudonym,
         "licence": check_licence(fields.get("licence")),
         "date": clockmod.render(ctx.clock.now()),
-        "model_and_tooling": _declared(fields.get("model_and_tooling")),
+        "model_and_tooling": declared(fields.get("model_and_tooling")),
     }
     written = text
     if "steps" in fields:
@@ -387,11 +387,23 @@ async def post_annexes(ctx: Context, request: Request) -> Response:
     return JSONResponse(body, status_code=201)
 
 
-def _declared(raw: Any) -> str | None:
+def declared(raw: Any, field: str = "model_and_tooling", *, cap: int | None = None) -> str | None:
+    """A declared model and tooling (D-23): ``None`` for null or empty, else the string; one that
+    is not a string, or is longer than ``cap`` characters, is ``tooling-invalid`` naming
+    ``field``. An annex's cap is its schema's, checked with every capped field (``check_caps``);
+    a gloss's ``drafted_with`` sits under a ``oneOf`` that check cannot read, so it passes its cap
+    here (F21-R6)."""
     if raw is None or raw == "":
         return None
     if not isinstance(raw, str):
-        raise ApiError(400, "tooling-invalid", "model_and_tooling must be a string")
+        raise ApiError(400, "tooling-invalid", f"{field} must be a string")
+    if cap is not None and len(raw) > cap:
+        raise ApiError(
+            400,
+            "tooling-invalid",
+            f"{field} is {len(raw)} characters; the cap is {cap}",
+            details={"field": field, "length": len(raw), "cap": cap},
+        )
     return raw
 
 

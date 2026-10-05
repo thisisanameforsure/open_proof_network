@@ -25,7 +25,8 @@ from test_explainer_schema import step
 
 from opn_api.githost import GitHubUser
 from opn_gate import config as gate_config
-from opn_gate import glosses, modes, schemas, steward
+from opn_gate import glosses, modes, products, schemas, steward
+from opn_gate import graph as graphmod
 from opn_gate.paths import Change
 from opn_gate.signer import SshKeygenSigner
 
@@ -278,8 +279,10 @@ def test_a_definition_module_gloss_sits_under_its_target(
 def test_a_steward_supersedes_a_signed_version_through_the_service(
     h: Harness, tree: Path, keys: dict[str, Path], tmp_path: Path
 ) -> None:
-    """R6 through the service: the pull request is the App's, the record's author the
-    steward's pseudonym, which the gate reads as the person acting (F20-T6)."""
+    """R6 through the service, restated by F21-R13 (which withdrew F20-R6's
+    ``signed-supersede``): anyone may supersede a signed version — a stranger as well as a
+    steward — and the change to verified words is pending, so the chain still shows the signed
+    words until a steward or curator signs the new ones."""
     head = put_version(tree, "gloss", "Signed words.")
     glosses.sign(
         tree / NODE_DIR, head, target_id=TARGET, node_id=NODE, signer_login=CURATOR,
@@ -287,14 +290,91 @@ def test_a_steward_supersedes_a_signed_version_through_the_service(
     )  # fmt: skip
     serve(h, tree)
     stranger = post(h, h.token_for("code_bob", "bob"), statement_gloss() | {"supersedes": head})
-    assert stranger.status_code == 403, stranger.text
-    assert stranger.json()["error"] == "signed-supersede"
-    nothing_opened(h)
-    by_steward = post(
-        h, h.token_for("code_alice", STEWARD), statement_gloss() | {"supersedes": head}
-    )
-    assert by_steward.status_code == 201, by_steward.text
+    assert stranger.status_code == 201, stranger.text
     assert landed(h, tree, tmp_path) == []
+    # The landed tree's chain: the signed words shown and verified, bob's pending beneath them.
+    out = tmp_path / "landed"
+    doc = products.glosses_doc(graphmod.load_target(out, TARGET), None, signer=SIGNER)
+    [subject] = [s for s in doc["subjects"] if s["kind"] == "statement" and s["node"] == NODE]
+    [chain] = subject["chains"]
+    assert chain["current"] == stranger.json()["hash"]
+    assert chain["shown"] == [{"key": "whole", "version": head, "state": "verified"}]
+    assert chain["pending"] == [
+        {"key": "whole", "version": stranger.json()["hash"], "state": "pending"}
+    ]
+    steward_words = statement_gloss() | {"supersedes": head, "text": "The steward's rewording."}
+    by_steward = post(h, h.token_for("code_alice", STEWARD), steward_words)
+    assert by_steward.status_code == 201, by_steward.text
+
+
+# --- drafted_with (F21-R6, AC5) ------------------------------------------------------------------
+
+MODEL = "anthropic/claude-opus-5.5 via Claude Code"
+
+
+@pytest.mark.parametrize("record", ["gloss", "explainer"])
+def test_drafted_with_is_written_as_v2(h: Harness, tree: Path, record: str, tmp_path: Path) -> None:
+    """AC5: the service writes ``gloss/v2`` or ``explainer/v2``, with the request's
+    ``drafted_with``, or null when the request names none; the shape that lands passes."""
+    body = statement_gloss() if record == "gloss" else explainer_body(proof_hash(tree))
+    token = h.token_for("code_bob", "bob")
+    r = post(h, token, body | {"drafted_with": MODEL})
+    assert r.status_code == 201, r.text
+    doc, _ = glosses.split_front_matter(next(iter(h.githost.pushes[-1].files.values())))
+    assert doc is not None
+    assert doc["schema"] == f"{record}/v2"
+    assert doc["drafted_with"] == MODEL and doc["author"] == "bob" and doc["drafter"] is None
+    assert landed(h, tree, tmp_path) == []
+
+
+@pytest.mark.parametrize("record", ["gloss", "explainer"])
+def test_absent_drafted_with_is_null(h: Harness, tree: Path, record: str) -> None:
+    body = statement_gloss() if record == "gloss" else explainer_body(proof_hash(tree))
+    r = post(h, h.token_for("code_bob", "bob"), body)
+    assert r.status_code == 201, r.text
+    doc, _ = glosses.split_front_matter(next(iter(h.githost.pushes[-1].files.values())))
+    assert doc is not None and doc["schema"] == f"{record}/v2" and doc["drafted_with"] is None
+
+
+@pytest.mark.parametrize("bad", ["x" * 201, 123, ["a model"]])
+def test_a_bad_drafted_with_is_refused_tooling_invalid(h: Harness, bad: Any) -> None:
+    """AC5: an over-long or non-string ``drafted_with`` is ``tooling-invalid``, as an annex's
+    ``model_and_tooling`` is, before anything opens."""
+    r = post(h, h.token_for("code_bob", "bob"), statement_gloss() | {"drafted_with": bad})
+    assert r.status_code == 400, r.text
+    assert r.json()["error"] == "tooling-invalid"
+    nothing_opened(h)
+
+
+def test_a_model_over_a_persons_words_is_refused_before_anything_opens(
+    h: Harness, tree: Path
+) -> None:
+    """F21-R12 (T11) through the service: the pre-flight runs the gate's own checks, so a version
+    with ``drafted_with`` that changes a section a person wrote is refused 409
+    ``locked-by-a-person`` naming the section and its Lean lines, and nothing opens; over a
+    model's words it opens, and a person's own words over a person's open too (pending)."""
+    write_outline(tree, [step("s1")])  # s1 spans lines 1-2
+    proof = proof_hash(tree)
+    anchored = "Regroup.\n\n## The bound {steps: s1}\nIt holds."
+    carol = put_version(tree, "explainer", anchored)
+    drafted = put_version(
+        tree, "explainer", anchored + "\n", schema="explainer/v2", drafted_with=MODEL,
+        author="dave",
+    )  # fmt: skip
+    serve(h, tree)
+    token = h.token_for("code_bob", "bob")
+    changed = "## The idea\nRegroup.\n\n## The bound {steps: s1}\nA model's bound.\n"
+    body = explainer_body(proof, changed) | {"drafted_with": MODEL}
+    r = post(h, token, body | {"supersedes": carol})
+    assert r.status_code == 409, r.text
+    assert r.json()["error"] == "locked-by-a-person"
+    assert r.json()["details"]["section"] == "steps:s1"
+    assert r.json()["details"]["lines"] == [1, 2]
+    assert r.json()["details"]["file"] == f"nodes/{NODE}/Proof.lean"
+    nothing_opened(h)
+    assert post(h, token, body | {"supersedes": drafted}).status_code == 201
+    mine = explainer_body(proof, changed) | {"supersedes": carol}
+    assert post(h, token, mine).status_code == 201
 
 
 # --- refused before anything opens ---------------------------------------------------------------

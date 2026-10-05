@@ -89,6 +89,17 @@ def test_submit_gloss_is_the_route(h: Harness, tree: Path) -> None:
     assert client.failed("submit_gloss", statement_gloss())["status"] == 401  # writes need one
 
 
+def test_submit_gloss_carries_drafted_with(h: Harness) -> None:
+    """F21-R6 through the tool, body for body: ``drafted_with`` reaches the route, which writes
+    it into the v2 record."""
+    model = "anthropic/claude-opus-5.5 via Claude Code"
+    args = statement_gloss() | {"drafted_with": model}
+    out = McpClient(h).ok("submit_gloss", args, token=h.token_for("code_bob", "bob"))
+    assert out["status"] == 201, out
+    doc, _ = glosses.split_front_matter(next(iter(h.githost.pushes[-1].files.values())))
+    assert doc is not None and doc["schema"] == "gloss/v2" and doc["drafted_with"] == model
+
+
 def test_withdraw_gloss_is_the_route(h: Harness, tree: Path) -> None:
     digest = put_version(tree, "gloss", "Mine.", author="bob")
     serve(h, tree)
@@ -138,7 +149,13 @@ def test_get_node_serves_outlines_and_chains_demarcated(
     [chain] = statement["chains"]
     assert chain["current"] == made["b"]
     assert [v["hash"] for v in chain["versions"]] == [made["a"], made["b"]]
-    assert chain["versions"][1]["signatures"] == [{"signer": CURATOR, "date": "2026-10-04"}]
+    # F21-R13, R14 (glosses/v2): a signature names the sections it approves (None: all of them,
+    # as this v1 signature does), and the chain says what it shows, section by section.
+    assert chain["versions"][1]["signatures"] == [
+        {"signer": CURATOR, "date": "2026-10-04", "sections": None}
+    ]
+    assert chain["shown"] == [{"key": "whole", "version": made["b"], "state": "verified"}]
+    assert chain["pending"] == []
     assert {s["kind"] for s in gloss_chains} == {"statement", "witness"}  # every file listed
     [proof] = [s for s in explainer_chains if s["kind"] == "proof"]
     assert proof["chains"][0]["current"] == made["e"]
@@ -176,6 +193,44 @@ def test_the_derived_chains_equal_the_committed_product(
             for version in chain["versions"]:
                 assert demarcate.is_wrapped(version.pop("text"))
     assert sorted(served, key=json.dumps) == sorted(mine, key=json.dumps)
+
+
+def as_v1(doc: dict[str, Any]) -> dict[str, Any]:
+    """A ``glosses/v2`` product as the gate before F21 wrote it: no sections, no shown or pending
+    words, no ``drafted_with``, signatures without ``sections``."""
+    old: dict[str, Any] = json.loads(json.dumps(doc))
+    old["schema"] = "glosses/v1"
+    for subject in old["subjects"]:
+        for chain in subject["chains"]:
+            chain.pop("shown"), chain.pop("pending")
+            for version in chain["versions"]:
+                version.pop("sections"), version.pop("drafted_with")
+                for sig in version["signatures"]:
+                    sig.pop("sections")
+    assert schemas.violations(old, "glosses/v1") == []
+    return old
+
+
+def test_a_committed_v1_product_is_still_served(
+    h: Harness, tree: Path, keys: dict[str, Path]
+) -> None:
+    """The changeover (F21-R6): until the re-pin the live graph holds ``glosses/v1``; get_node
+    validates the committed product against the version it declares, and serves either."""
+    seeded(tree, keys)
+    doc = products.glosses_doc(graphmod.load_target(tree, TARGET), "5" * 40, signer=SIGNER)
+    product = tree / "targets" / TARGET / products.GLOSSES_FILE
+    client = McpClient(h)
+    for written in (as_v1(doc), doc):
+        product.write_bytes(schemas.canonical_json(written))
+        serve(h, tree)
+        bundle = client.ok("get_node", {"node_id": NODE})
+        assert bundle["chains_source"] == "file", written["schema"]
+        [statement] = [s for s in bundle["gloss_chains"] if s["kind"] == "statement"]
+        assert len(statement["chains"][0]["versions"]) == 2
+        assert results.violations("get_node", bundle) == []
+    product.write_bytes(schemas.canonical_json(as_v1(doc) | {"schema": "glosses/v9"}))
+    serve(h, tree)
+    assert client.failed("get_node", {"node_id": NODE})["error"] == "glosses-invalid"
 
 
 def test_a_node_with_no_words_has_empty_chains(h: Harness) -> None:

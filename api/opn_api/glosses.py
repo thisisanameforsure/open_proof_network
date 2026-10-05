@@ -7,7 +7,9 @@ claim nothing a kernel checks, so the service opens them as ``append/`` pull req
 actor merges, as it does an annex. Two rules hold every one:
 
 * **The caller supplies the words, the service supplies the identity** (F07-R11; F18-Q7(a)). The
-  record's ``author`` is the token's pseudonym and nothing the body says; its ``date`` is today;
+  record (``gloss/v2`` or ``explainer/v2`` since F21-R6, with the caller's ``drafted_with`` naming
+  any model that drafted the words, null otherwise) has as its ``author`` the token's pseudonym
+  and nothing the body says; its ``date`` is today;
   a gloss or explainer is named by the hash of the file as it lands (D-3), and placed where its
   subject puts it — ``nodes/<id>/gloss/``, ``targets/<id>/gloss/`` for a definition module,
   ``nodes/<id>/explainer/`` for a proof. Every such pull request is authored by the service's
@@ -17,7 +19,9 @@ actor merges, as it does an annex. Two rules hold every one:
   the subject, the node's versions, signatures and withdrawals, the outlines, the stewards and
   the curators, fetched from the graph at ``main`` — with the new file added, and the first
   problem is the refusal, by the gate's code, with no branch pushed and no pull request opened.
-  The gate checks it again at the merge.
+  The gate checks it again at the merge. That includes F21-R12's model lock: a version naming
+  ``drafted_with`` that changes a section a person wrote or a steward verified is refused 409
+  ``locked-by-a-person`` here, naming the section and its Lean lines (``STATUS``).
 
 The service has no OpenSSH (F06-Q6), so the signed records the checks read (steward commitments,
 signatures) are verified by ``HostVerifier``, the service's own SSHSIG reader. A pseudonym spelled
@@ -57,8 +61,17 @@ if TYPE_CHECKING:
 
 log = logging.getLogger(__name__)
 
-#: F05-T8: the fields each route reads; any other top-level key is refused.
-GLOSS_FIELDS: tuple[str, ...] = ("subject", "text", "supersedes", "licence")
+#: F05-T8: the fields each route reads; any other top-level key is refused. ``drafted_with``
+#: (F21-R6, D-23) names the model and tooling that drafted the words, in the caller's words.
+GLOSS_FIELDS: tuple[str, ...] = ("subject", "text", "supersedes", "licence", "drafted_with")
+#: F21-R6: the record versions the service writes — v1 plus ``drafted_with`` — always, with the
+#: field null when the request names no model. The gate keeps reading v1 (D-34), and its own
+#: ``glosses.SCHEMA`` and ``explainers.RECORD_SCHEMA`` stay the v1 strings its readers compare
+#: against; these two are what lands.
+GLOSS_SCHEMA = "gloss/v2"
+EXPLAINER_SCHEMA = "explainer/v2"
+#: D-23's cap on a declared model and tooling, as ``gloss/v2`` and ``explainer/v2`` publish it.
+DRAFTED_WITH_MAX_CHARS = 200
 WITHDRAWAL_FIELDS: tuple[str, ...] = ("record", "reason")
 #: What ``subject`` may hold. ``kind`` is a gloss's (statement, witness, relation, definition)
 #: or ``proof`` for an explainer; ``node_id`` names the node, ``target_id`` and ``module`` a
@@ -73,9 +86,16 @@ WITHDRAWAL_SCHEMA = "withdrawal/v2"
 #: service's: the same value, so the pre-flight judges the record as the merge will (F20-T6).
 OPENER = gate_config.DEFAULT_SERVICE_LOGIN
 #: The status a gate refusal answers with; any other code is the request's fault, 400.
+#: F21-R13 withdrew ``signed-supersede`` (anyone may supersede; a change to verified words is
+#: pending). ``locked-by-a-person`` (F21-R12) is 409, a conflict with the chain's present state
+#: as ``record-not-head`` is: the caller is allowed to file, but these words conflict with what a
+#: person wrote, and the same request with that section kept (or as one's own words) succeeds.
+#: The section rules are the request's fault, 400, named so the table reads whole.
 STATUS: dict[str, int] = {
     "record-not-head": 409,  # a race the second loses, naming the head (F20-Q3)
-    "signed-supersede": 403,
+    "locked-by-a-person": 409,
+    "section-duplicate": 400,
+    "signature-section-unknown": 400,
     "withdrawal-unauthorized": 403,
 }
 #: A version a withdrawal names, by its graph path.
@@ -333,22 +353,24 @@ def front_matter(  # noqa: PLR0913 — one argument per fact the record carries
     author: str,
     date: str,
     licence: str,
+    drafted_with: str | None = None,
 ) -> tuple[dict[str, Any], str]:
-    """``(front matter, schema)`` of the record: ``gloss/v1`` or ``explainer/v1``. The author is
-    always a person, the token's identity; the service files no draft (F21-R1), so ``drafter``
-    is always null."""
+    """``(front matter, schema)`` of the record: ``gloss/v2`` or ``explainer/v2`` (F21-R6). The
+    author is always a person, the token's identity; the service files no draft (F21-R1), so
+    ``drafter`` is always null, and a model that helped is named in ``drafted_with``."""
     common = {"supersedes": supersedes, "author": author, "drafter": None}
     if subject["kind"] == PROOF_KIND:
         doc = {
-            "schema": explainers.RECORD_SCHEMA,
+            "schema": EXPLAINER_SCHEMA,
             "target": target_id,
             "node": node_id,
             "proof": subject["proof"],
             **common,
             "date": date,
             "licence": licence,
+            "drafted_with": drafted_with,
         }
-        return doc, explainers.RECORD_SCHEMA
+        return doc, EXPLAINER_SCHEMA
     module = subject.get("module") if node_id is None else None
     file = glosses.subject_file(
         target_dir, {"kind": subject["kind"], "node": node_id, "module": module}
@@ -360,7 +382,7 @@ def front_matter(  # noqa: PLR0913 — one argument per fact the record carries
         found = file.read_bytes() if file is not None and file.is_file() else b""
         lean_hash = schemas.content_hash(found)
     doc = {
-        "schema": glosses.SCHEMA,
+        "schema": GLOSS_SCHEMA,
         "target": target_id,
         "subject": {
             "kind": subject["kind"],
@@ -371,8 +393,9 @@ def front_matter(  # noqa: PLR0913 — one argument per fact the record carries
         **common,
         "date": date,
         "licence": licence,
+        "drafted_with": drafted_with,
     }
-    return doc, glosses.SCHEMA
+    return doc, GLOSS_SCHEMA
 
 
 def record_file(front: dict[str, Any], text: str) -> str:
@@ -407,6 +430,9 @@ async def post_glosses(ctx: Context, request: Request) -> Response:
         fields.get("licence"), licensed="a gloss or explainer is licensed"
     )
     supersedes = fields.get("supersedes")
+    drafted_with = appends.declared(
+        fields.get("drafted_with"), "drafted_with", cap=DRAFTED_WITH_MAX_CHARS
+    )
     record = "explainer" if subject["kind"] == PROOF_KIND else "gloss"
     with tempfile.TemporaryDirectory(prefix="opn-gloss-") as tmp:
         root = Path(tmp)
@@ -422,6 +448,7 @@ async def post_glosses(ctx: Context, request: Request) -> Response:
             author=identity.pseudonym,
             date=ctx.clock.now().strftime("%Y-%m-%d"),
             licence=licence,
+            drafted_with=drafted_with,
         )
         appends.validated(front, schema)
         content = record_file(front, text)
@@ -529,7 +556,7 @@ async def post_withdrawals(ctx: Context, request: Request) -> Response:
 def node_glosses(
     ctx: Context, target_id: str, node_id: str, lister: Callable[[str], list[str]]
 ) -> list[dict[str, Any]]:
-    """The ``glosses/v1`` subjects of one node, derived from its files at ``main`` by the gate's
+    """The ``glosses/v2`` subjects of one node, derived from its files at ``main`` by the gate's
     own function (``products.glosses_doc``), as the committed product would carry them. The
     read tool lists through its own cache (``lister``), so a read costs the App's budget once
     per head (F07-T68)."""
