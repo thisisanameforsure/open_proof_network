@@ -21,7 +21,7 @@ import pytest
 import yaml
 
 WORKFLOW = Path(__file__).resolve().parents[2] / ".github" / "workflows" / "gloss-draft.yml"
-SECRETS = {"OPN_MODEL_API_KEY", "OPN_DRAFTER_TOKEN"}
+SECRETS = {"OPENROUTER_API_KEY", "OPN_DRAFTER_TOKEN"}
 
 
 def doc() -> dict[Any, Any]:
@@ -133,7 +133,7 @@ def decide(tmp_path: Path, env: dict[str, str]) -> tuple[int, dict[str, str], li
         "TARGET": "",
         "MAX_SUBJECTS": "",
         "DRY_RUN": "false",
-        "OPN_MODEL_API_KEY": "",
+        "OPENROUTER_API_KEY": "",
         "OPN_DRAFTER_TOKEN": "",
         "SUBMIT_URL": "",
         **env,
@@ -150,7 +150,7 @@ def decide(tmp_path: Path, env: dict[str, str]) -> tuple[int, dict[str, str], li
 def test_without_the_credentials_it_dry_runs_and_names_what_is_missing(tmp_path: Path) -> None:
     code, outputs, argv = decide(tmp_path, {})
     assert code == 0
-    assert outputs["missing"] == "OPN_MODEL_API_KEY OPN_DRAFTER_TOKEN OPN_API_URL"
+    assert outputs["missing"] == "OPENROUTER_API_KEY OPN_DRAFTER_TOKEN OPN_API_URL"
     assert outputs["mode"].startswith("dry-run (missing")
     assert "--dry-run" in argv and "--submit-url" not in argv
     assert argv[:4] == ["run", "--frozen", "python", "-m"]
@@ -158,7 +158,7 @@ def test_without_the_credentials_it_dry_runs_and_names_what_is_missing(tmp_path:
 
 def test_with_one_credential_missing_it_still_dry_runs(tmp_path: Path) -> None:
     code, outputs, argv = decide(
-        tmp_path, {"OPN_MODEL_API_KEY": "k", "SUBMIT_URL": "https://api.example"}
+        tmp_path, {"OPENROUTER_API_KEY": "k", "SUBMIT_URL": "https://api.example"}
     )
     assert code == 0 and outputs["missing"] == "OPN_DRAFTER_TOKEN" and "--dry-run" in argv
 
@@ -167,7 +167,7 @@ def test_with_every_credential_it_runs_live(tmp_path: Path) -> None:
     code, outputs, argv = decide(
         tmp_path,
         {
-            "OPN_MODEL_API_KEY": "k",
+            "OPENROUTER_API_KEY": "k",
             "OPN_DRAFTER_TOKEN": "t",
             "SUBMIT_URL": "https://api.example",
             "TARGET": "erdos-69",
@@ -186,7 +186,7 @@ def test_a_dry_run_asked_for_is_one_even_with_the_credentials(tmp_path: Path) ->
     code, outputs, argv = decide(
         tmp_path,
         {
-            "OPN_MODEL_API_KEY": "k",
+            "OPENROUTER_API_KEY": "k",
             "OPN_DRAFTER_TOKEN": "t",
             "SUBMIT_URL": "https://api.example",
             "DRY_RUN": "true",

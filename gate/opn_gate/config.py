@@ -67,8 +67,9 @@ Variables (prefix ``OPN_``):
     closing block is on this list (F19-Q5). Default ``omega,simp,norm_num,ring,linarith,
     nlinarith,positivity,decide,field_simp,aesop``.
 ``OPN_MODEL``
-    The model the QA brief and back-translation ask (F12-R6, R7, Q5): a Messages API model id
-    whose leading letters name its family for R7's independence rule. Default ``claude-opus-5``.
+    The model the QA brief, the back-translation (F12-R6, R7, Q5) and the drafter (F20) ask:
+    a model id, as OpenRouter names it, whose leading letters after any provider prefix name its
+    family for R7's independence rule. Default ``anthropic/claude-opus-5.5``.
 ``OPN_DRAFTER_MAX_SUBJECTS``
     How many subjects one drafter run may draft before it stops and reports the rest as left
     (F20-R17, §6). Default ``20``.
@@ -81,10 +82,11 @@ Variables (prefix ``OPN_``):
 ``OPN_DRAFTER_LICENCE``
     The licence every draft is filed under (D-23): the licence the graph's prose records already
     carry. Default ``CC-BY-4.0``.
-``OPN_MODEL_API_KEY``
-    **Secret.** The model provider's API key (F12 §7; C8: the curator's ``.env``, never in
-    the graph, a log or a record). Default ``None`` — meaning "no model: the brief and
-    back-translation refuse before they start".
+``OPENROUTER_API_KEY``
+    **Secret.** The OpenRouter API key (F12 §7, F20-T10; C8: the curator's ``.env`` and the
+    network repository's Actions secret, never in the graph, a log or a record). Default
+    ``None`` — meaning "no model: the brief, the back-translation and the drafter refuse before
+    they start".
 ``OPN_DRAFTER_TOKEN``
     **Secret.** The drafter identity's service write token (F20-Q6, Q7, T10; C8): what
     ``opn-gate gloss draft`` posts each draft to ``POST /glosses`` with. An Actions secret on the
@@ -120,7 +122,9 @@ DEFAULT_LEAN_PKG_BIN = Path(__file__).resolve().parents[1] / "lean" / ".lake" / 
 DEFAULT_MATHLIB_HOME = Path.home() / ".opn" / "mathlib"  # F11-R6: one checkout per pinned sha
 DEFAULT_QA_ATTEMPT_BUDGET_S = 60.0  # F12 §6: per screen attempt, provisional (F12-Q4)
 DEFAULT_QA_SUBJECT_BUDGET_S = 300.0  # F12 §6: per subject per run
-DEFAULT_MODEL = "claude-opus-5"  # F12-Q5: recorded on every brief row, swapped by config
+DEFAULT_MODEL = (
+    "anthropic/claude-opus-5.5"  # F12-Q5; OpenRouter's id, the owner's choice 2026-10-05
+)
 #: F14-R5, Q4: the catalog score at which a root's recorded evidence stands in for step 9 ("B+").
 DEFAULT_STEP9_MIN_SCORE = 5
 DEFAULT_OUTLINE_TIMEOUT_S = 300.0  # F19 §6, provisional until the Mathlib measurement (F19-Q2)
@@ -349,7 +353,7 @@ def load(environ: dict[str, str] | None = None) -> Settings:  # noqa: PLR0912, P
         drafter_token_budget=drafter_caps["OPN_DRAFTER_TOKEN_BUDGET"],
         drafter_name=env.get("OPN_DRAFTER_NAME", "").strip() or DEFAULT_DRAFTER_NAME,
         drafter_licence=env.get("OPN_DRAFTER_LICENCE", "").strip() or DEFAULT_DRAFTER_LICENCE,
-        model_api_key=env.get("OPN_MODEL_API_KEY") or None,
+        model_api_key=env.get("OPENROUTER_API_KEY") or None,
         drafter_token=env.get("OPN_DRAFTER_TOKEN") or None,
         lean_pkg_bin=Path(env.get("OPN_LEAN_PKG_BIN", str(DEFAULT_LEAN_PKG_BIN))).expanduser(),
         mathlib_home=Path(env.get("OPN_MATHLIB_HOME", str(DEFAULT_MATHLIB_HOME))).expanduser(),

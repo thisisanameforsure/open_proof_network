@@ -160,12 +160,12 @@ def test_mathlib_home_is_config_with_a_documented_default(tmp_path: Path) -> Non
 
 
 def test_model_is_config_and_its_key_is_a_secret() -> None:
-    assert config.load({}).model == config.DEFAULT_MODEL == "claude-opus-5"
+    assert config.load({}).model == config.DEFAULT_MODEL == "anthropic/claude-opus-5.5"
     assert config.load({}).model_api_key is None
-    s = config.load({"OPN_MODEL": "claude-sonnet-5", "OPN_MODEL_API_KEY": "sk-ant-SECRET"})
+    s = config.load({"OPN_MODEL": "claude-sonnet-5", "OPENROUTER_API_KEY": "sk-ant-SECRET"})
     assert s.model == "claude-sonnet-5" and s.model_api_key == "sk-ant-SECRET"
     assert "sk-ant-SECRET" not in repr(s) and "model_api_key=<set>" in repr(s)
-    assert config.load({"OPN_MODEL_API_KEY": ""}).model_api_key is None
+    assert config.load({"OPENROUTER_API_KEY": ""}).model_api_key is None
     assert "model_api_key" in config.SECRET_NAMES
 
 

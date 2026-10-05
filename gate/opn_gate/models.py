@@ -8,16 +8,16 @@ returns the text with the model and version that produced it, which the QA recor
 every ``brief`` row (R6, R7: the model and version are recorded; R7's independence rule is
 decided by family, ``family_of``).
 
-The provider is the Anthropic Messages API over the repository's already-locked ``httpx``
-(F12-Q14): the official SDK's current line is built on ``httpx2`` while ``mcp`` 1.x pins
-``httpx`` 0.28, and a second HTTP stack for one endpoint is the supply-chain cost C5 exists to
-refuse. The request shape is the documented one — ``POST /v1/messages`` with the model, a
-system prompt, one user turn and ``max_tokens``; Claude Opus 5 runs adaptive thinking by
-default, so the request names no thinking configuration. A ``refusal`` stop reason, a non-2xx
-status, a network error or a malformed body is a ``ModelError`` the caller records as
-``inconclusive`` (AC19, C7).
+The provider is OpenRouter's chat completions API (the owner's choice, 2026-10-05, replacing
+Anthropic's Messages API), over the repository's already-locked ``httpx`` (F12-Q14): a second
+HTTP stack for one endpoint is the supply-chain cost C5 exists to refuse. The request shape is
+the documented one (openrouter.ai/docs/api-reference/chat-completion) — ``POST
+/api/v1/chat/completions`` with the model, a system turn, one user turn and ``max_tokens``, the
+key as a bearer token. A non-2xx status (402 is a spent credit balance, 429 a rate limit), an
+error object in a 200 body, a ``content_filter`` finish, a network error or a malformed body is a
+``ModelError`` the caller records as ``inconclusive`` (AC19, C7).
 
-The key is a C8 secret read by ``opn_gate.config`` (``OPN_MODEL_API_KEY``) and never logged.
+The key is a C8 secret read by ``opn_gate.config`` (``OPENROUTER_API_KEY``) and never logged.
 """
 
 from __future__ import annotations
@@ -31,9 +31,9 @@ import httpx
 
 log = logging.getLogger(__name__)
 
-MESSAGES_URL = "https://api.anthropic.com/v1/messages"
-API_VERSION = "2023-06-01"
-DEFAULT_MODEL = "claude-opus-5"
+COMPLETIONS_URL = "https://openrouter.ai/api/v1/chat/completions"
+#: Claude Opus 5.5 as OpenRouter lists it (GET /api/v1/models, 2026-10-05): the owner's choice.
+DEFAULT_MODEL = "anthropic/claude-opus-5.5"
 DEFAULT_MAX_TOKENS = 16000
 TIMEOUT_S = 600.0  # a brief over a long statement can take minutes; the SDK's own default
 
@@ -79,9 +79,12 @@ class ModelClient(Protocol):
 
 
 def family_of(model: str) -> str:
-    """``claude-opus-5`` -> ``claude``: the leading letters of a model id name its family."""
-    m = _FAMILY_RE.match(model.strip().lower())
-    return m.group(0) if m else model.strip().lower()
+    """``claude-opus-5`` -> ``claude``: the leading letters of a model id name its family, after
+    any provider prefix — OpenRouter's ``anthropic/claude-opus-5.5`` is a claude, not an
+    anthropic, or R7's independence rule would compare a provider with a family."""
+    name = model.strip().lower().rsplit("/", 1)[-1]
+    m = _FAMILY_RE.match(name)
+    return m.group(0) if m else name
 
 
 def formalizer_family(author: str | None) -> str:
@@ -95,14 +98,14 @@ def formalizer_family(author: str | None) -> str:
 
 
 class HttpxModelClient:
-    """The real seam: the Messages API over the locked ``httpx``."""
+    """The real seam: OpenRouter's chat completions over the locked ``httpx``."""
 
     def __init__(
         self,
         api_key: str,
         model: str = DEFAULT_MODEL,
         *,
-        url: str = MESSAGES_URL,
+        url: str = COMPLETIONS_URL,
         timeout_s: float = TIMEOUT_S,
         transport: httpx.BaseTransport | None = None,
     ) -> None:
@@ -122,12 +125,13 @@ class HttpxModelClient:
         body = {
             "model": self._model,
             "max_tokens": max_tokens,
-            "system": system,
-            "messages": [{"role": "user", "content": prompt}],
+            "messages": [
+                {"role": "system", "content": system},
+                {"role": "user", "content": prompt},
+            ],
         }
         headers = {
-            "x-api-key": self._api_key,
-            "anthropic-version": API_VERSION,
+            "authorization": f"Bearer {self._api_key}",
             "content-type": "application/json",
         }
         try:
@@ -140,8 +144,8 @@ class HttpxModelClient:
 
 
 def parse_completion(status: int, text: str, *, model: str) -> Completion:
-    """The completion in a Messages API response, or why there is none — every refusal named,
-    because a brief that quietly recorded an error body as its judgement would be the C7
+    """The completion in a chat completions response, or why there is none — every refusal
+    named, because a brief that quietly recorded an error body as its judgement would be the C7
     failure this seam exists to prevent."""
     if status < 200 or status >= 300:
         msg = f"the model provider answered {status}"
@@ -151,20 +155,21 @@ def parse_completion(status: int, text: str, *, model: str) -> Completion:
     except ValueError as exc:
         msg = "the model provider's answer is not JSON"
         raise ModelError(msg) from exc
-    if not isinstance(doc, dict) or doc.get("type") != "message":
-        msg = "the model provider's answer is not a message"
+    if isinstance(doc, dict) and isinstance(doc.get("error"), dict):
+        # OpenRouter can answer 200 and carry an upstream failure in the body.
+        msg = f"the model provider answered an error ({doc['error'].get('code', 'no code')})"
         raise ModelError(msg)
-    if doc.get("stop_reason") == "refusal":
-        details = doc.get("stop_details") or {}
-        category = details.get("category") if isinstance(details, dict) else None
-        msg = f"the model declined ({category or 'no category'})"
+    choices = doc.get("choices") if isinstance(doc, dict) else None
+    if not isinstance(choices, list) or not choices or not isinstance(choices[0], dict):
+        msg = "the model provider's answer is not a completion"
         raise ModelError(msg)
-    parts = [
-        str(block.get("text", ""))
-        for block in doc.get("content") or []
-        if isinstance(block, dict) and block.get("type") == "text"
-    ]
-    answer = "".join(parts).strip()
+    choice = choices[0]
+    if choice.get("finish_reason") == "content_filter":
+        msg = "the model declined (content_filter)"
+        raise ModelError(msg)
+    message = choice.get("message")
+    content = message.get("content") if isinstance(message, dict) else None
+    answer = content.strip() if isinstance(content, str) else ""
     if not answer:
         msg = "the model answered with no text"
         raise ModelError(msg)
@@ -174,6 +179,6 @@ def parse_completion(status: int, text: str, *, model: str) -> Completion:
         text=answer,
         model=model,
         version=str(doc.get("model") or model),
-        input_tokens=int(usage.get("input_tokens") or 0),
-        output_tokens=int(usage.get("output_tokens") or 0),
+        input_tokens=int(usage.get("prompt_tokens") or 0),
+        output_tokens=int(usage.get("completion_tokens") or 0),
     )

@@ -14,7 +14,7 @@
 # the backfill (`uncovered`, R21) or a named target. A cron on Actions is a hope, not a schedule
 # (engineering log, 2026-09-13).
 #
-# Two credentials the owner creates (F20-Q7, C8): the model key OPN_MODEL_API_KEY and the drafter
+# Two credentials the owner creates (F20-Q7, C8): the model key OPENROUTER_API_KEY and the drafter
 # identity's service token OPN_DRAFTER_TOKEN, both Actions secrets here, read by the one step that
 # drafts and by no other. With either missing — or the service URL, the OPN_API_URL variable —
 # the run is a dry run: it lists what would be drafted and why, calls no model, posts nothing,
@@ -103,7 +103,7 @@ jobs:
         id: draft
         working-directory: network
         env:
-          OPN_MODEL_API_KEY: ${{ secrets.OPN_MODEL_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           OPN_DRAFTER_TOKEN: ${{ secrets.OPN_DRAFTER_TOKEN }}
           SUBMIT_URL: ${{ vars.OPN_API_URL }}
           TARGET: ${{ inputs.target }}
@@ -114,7 +114,7 @@ jobs:
         run: |
           set -euo pipefail
           missing=()
-          [ -n "${OPN_MODEL_API_KEY:-}" ] || missing+=("OPN_MODEL_API_KEY")
+          [ -n "${OPENROUTER_API_KEY:-}" ] || missing+=("OPENROUTER_API_KEY")
           [ -n "${OPN_DRAFTER_TOKEN:-}" ] || missing+=("OPN_DRAFTER_TOKEN")
           [ -n "${SUBMIT_URL:-}" ] || missing+=("OPN_API_URL")
           args=(gloss draft --graph ../graph --subjects "$SUBJECTS" --report ../gloss-draft-report.json)

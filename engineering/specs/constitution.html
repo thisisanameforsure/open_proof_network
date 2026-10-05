@@ -96,14 +96,15 @@ with its single home:
   would restore GitHub as the enforcer and is the better home when a second identity exists. The
   job's own <code>GITHUB_TOKEN</code> cannot stand in, since what it merges starts no
   workflow.</li>
-  <li><strong>Drafter's model key</strong> (<code>OPN_MODEL_API_KEY</code>): the model provider's
-    API key, an Actions secret on the <em>network</em> repository and nowhere else, read by the one
+  <li><strong>Model key</strong> (<code>OPENROUTER_API_KEY</code>): the OpenRouter API key (the
+    owner's choice of provider, 2026-10-05, replacing Anthropic's API; the model is Claude Opus 5.5,
+    <code>anthropic/claude-opus-5.5</code>), an Actions secret on the <em>network</em> repository and nowhere else, read by the one
     drafting step of <code>gloss-draft.yml</code> through <code>opn_gate.config</code> (F20-T10, F20-Q7;
     added 2026-10-05). The workflow is dispatch-only, holds <code>contents: read</code>, checks the
     graph out read-only and runs no Lean. F12's model commands read the same name from the founder's
     <code>.env</code>, a separate copy with its own home. It reaches no repository, record or service; it
     can spend the provider account's money, so the account carries a spend limit, which is the ceiling a
-    leak costs. Without it the workflow dry-runs, keeps its report and fails naming the missing key;
+    leak costs; OpenRouter answers 402 once the account's credit is spent, which stops a run. Without it the workflow dry-runs, keeps its report and fails naming the missing key;
     losing it costs drafts until it is replaced.</li>
   <li><strong>Drafter token</strong> (<code>OPN_DRAFTER_TOKEN</code>): the write token of the drafter
     identity (<code>opn-drafter</code>, F20-Q6), an ordinary D-19 contributor token issued by the service,

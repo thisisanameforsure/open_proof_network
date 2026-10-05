@@ -1,4 +1,4 @@
-"""F12-T3: the Model seam (R6, R7, Q5, Q14; C5, C7, C8).
+"""F12-T3: the Model seam (R6, R7, Q5, Q14; C5, C7, C8), through OpenRouter since 2026-10-05.
 
 The seam is a thin one — one request shape, one answer — so what is tested is every way the
 provider's answer is not a completion (a non-2xx, a refusal, a body with no text, not JSON, a
@@ -17,24 +17,41 @@ import pytest
 from opn_gate import models
 from opn_gate.models import ModelError
 
+MODEL = "anthropic/claude-opus-5.5"
 
-def message(text: str = "Rendered.", **overrides: object) -> str:
+
+def message(
+    text: str | None = "Rendered.", finish_reason: str = "stop", **overrides: object
+) -> str:
+    """A chat completion as OpenRouter documents it (openrouter.ai/docs/api-reference)."""
     doc: dict[str, object] = {
-        "type": "message",
-        "model": "claude-opus-5-20260401",
-        "stop_reason": "end_turn",
-        "content": [{"type": "text", "text": text}],
-        "usage": {"input_tokens": 12, "output_tokens": 3},
+        "id": "gen-1",
+        "object": "chat.completion",
+        "model": "anthropic/claude-opus-5.5-20260901",
+        "choices": [
+            {
+                "index": 0,
+                "message": {"role": "assistant", "content": text},
+                "finish_reason": finish_reason,
+            }
+        ],
+        "usage": {"prompt_tokens": 12, "completion_tokens": 3, "total_tokens": 15},
     }
     doc.update(overrides)
     return json.dumps(doc)
 
 
 def test_a_completion_is_the_text_with_the_model_and_version() -> None:
-    done = models.parse_completion(200, message("A thing."), model="claude-opus-5")
-    assert done.text == "A thing." and done.model == "claude-opus-5"
-    assert done.version == "claude-opus-5-20260401"
+    done = models.parse_completion(200, message("A thing."), model=MODEL)
+    assert done.text == "A thing." and done.model == MODEL
+    assert done.version == "anthropic/claude-opus-5.5-20260901"
     assert (done.input_tokens, done.output_tokens) == (12, 3)
+
+
+def test_the_default_model_is_opus_5_5_through_openrouter() -> None:
+    """The owner's choice, 2026-10-05: Claude Opus 5.5, named as OpenRouter lists it."""
+    assert models.DEFAULT_MODEL == MODEL
+    assert models.COMPLETIONS_URL == "https://openrouter.ai/api/v1/chat/completions"
 
 
 @pytest.mark.parametrize(
@@ -42,22 +59,33 @@ def test_a_completion_is_the_text_with_the_model_and_version() -> None:
     [
         (500, "{}", "answered 500"),
         (401, "{}", "answered 401"),
+        (
+            402,
+            json.dumps({"error": {"code": 402, "message": "Insufficient credits"}}),
+            "answered 402",
+        ),
+        (429, "{}", "answered 429"),
         (200, "not json", "not JSON"),
-        (200, json.dumps({"type": "error"}), "not a message"),
-        (200, message(stop_reason="refusal", stop_details={"category": "bio"}), "declined (bio)"),
-        (200, message(stop_reason="refusal", stop_details=None), "declined (no category)"),
-        (200, message(content=[{"type": "thinking", "thinking": ""}]), "no text"),
+        (
+            200,
+            json.dumps({"error": {"code": 502, "message": "upstream"}}),
+            "answered an error (502)",
+        ),
+        (200, json.dumps({"object": "chat.completion", "choices": []}), "not a completion"),
+        (200, message(finish_reason="content_filter"), "declined (content_filter)"),
+        (200, message(None), "no text"),
+        (200, message("   "), "no text"),
     ],
 )
 def test_anything_but_a_completion_is_a_model_error(status: int, body: str, expected: str) -> None:
     """AC19, C7: an error body is never recorded as a judgement."""
     with pytest.raises(ModelError, match=re.escape(expected)):
-        models.parse_completion(status, body, model="claude-opus-5")
+        models.parse_completion(status, body, model=MODEL)
 
 
 def test_the_real_client_sends_the_documented_shape() -> None:
-    """The Messages API request: the model, one user turn, the system prompt, the key in the
-    header and never in the body, no thinking configuration (Claude Opus 5 runs adaptive)."""
+    """OpenRouter's chat completions request: the model, a system turn then one user turn, the
+    key as a bearer header and never in the body."""
     seen: dict[str, object] = {}
 
     def handler(request: httpx.Request) -> httpx.Response:
@@ -66,21 +94,21 @@ def test_the_real_client_sends_the_documented_shape() -> None:
         seen["body"] = json.loads(request.content)
         return httpx.Response(200, text=message("English."))
 
-    client = models.HttpxModelClient(
-        "sk-test-key", "claude-opus-5", transport=httpx.MockTransport(handler)
-    )
-    done = client.complete(system="Be brief.", prompt="theorem t : True := trivial")
-    assert done.text == "English." and client.model == "claude-opus-5"
-    assert seen["url"] == models.MESSAGES_URL
+    client = models.HttpxModelClient("sk-or-test", MODEL, transport=httpx.MockTransport(handler))
+    done = client.complete(system="Be brief.", prompt="theorem t : True := trivial", max_tokens=99)
+    assert done.text == "English." and client.model == MODEL
+    assert seen["url"] == models.COMPLETIONS_URL
     headers = seen["headers"]
     assert isinstance(headers, dict)
-    assert headers["x-api-key"] == "sk-test-key"
-    assert headers["anthropic-version"] == models.API_VERSION
+    assert headers["authorization"] == "Bearer sk-or-test"
     body = seen["body"]
     assert isinstance(body, dict)
-    assert body["model"] == "claude-opus-5" and body["system"] == "Be brief."
-    assert body["messages"] == [{"role": "user", "content": "theorem t : True := trivial"}]
-    assert "thinking" not in body and "sk-test-key" not in json.dumps(body)
+    assert body["model"] == MODEL and body["max_tokens"] == 99
+    assert body["messages"] == [
+        {"role": "system", "content": "Be brief."},
+        {"role": "user", "content": "theorem t : True := trivial"},
+    ]
+    assert "sk-or-test" not in json.dumps(body)
 
 
 def test_a_network_failure_is_a_model_error_without_the_key() -> None:
@@ -94,9 +122,12 @@ def test_a_network_failure_is_a_model_error_without_the_key() -> None:
 
 
 def test_family_and_formalizer_lookups() -> None:
-    """R7: the family is a model id's leading letters; provenance names an AI formalizer by
-    substring, or names none and is `unknown`."""
+    """R7: the family is a model id's leading letters, after any provider prefix (OpenRouter
+    names ``anthropic/claude-opus-5.5``, whose family is claude, not anthropic); provenance names
+    an AI formalizer by substring, or names none and is `unknown`."""
     assert models.family_of("claude-opus-5") == "claude"
+    assert models.family_of("anthropic/claude-opus-5.5") == "claude"
+    assert models.family_of("google/gemini-3-pro") == "gemini"
     assert models.family_of("Gemini-3-pro") == "gemini"
     assert models.formalizer_family("Claude Opus 4.5 via the lean-genius pipeline") == "claude"
     assert models.formalizer_family("AlphaProof (Google DeepMind)") == "gemini"

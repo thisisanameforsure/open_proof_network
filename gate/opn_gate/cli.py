@@ -3005,7 +3005,7 @@ def _model_client(settings: config.Settings) -> models.ModelClient:
     """The model seam, or a usage error before any work when no key is configured (C8)."""
     if not settings.model_api_key:
         msg = (
-            "OPN_MODEL_API_KEY is not set; the brief and the back-translation ask a model "
+            "OPENROUTER_API_KEY is not set; the brief and the back-translation ask a model "
             "(F12-R6, R7) and the key lives in the curator's .env (C8)"
         )
         raise CliError(msg)

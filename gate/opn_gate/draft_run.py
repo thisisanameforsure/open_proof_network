@@ -119,7 +119,7 @@ class HttpPoster:
 def make_model(settings: config.Settings) -> ModelClient:
     """The model seam (R18): the one module that talks to a provider. Tests replace this."""
     if not settings.model_api_key:  # checked by ``run`` first; kept for a direct caller
-        msg = "OPN_MODEL_API_KEY is not set"
+        msg = "OPENROUTER_API_KEY is not set"
         raise DraftRunError(msg)
     return models.HttpxModelClient(settings.model_api_key, settings.model)
 
@@ -435,7 +435,7 @@ def run(  # noqa: PLR0913 — one keyword per choice the command takes
         missing = [
             name
             for name, value in (
-                ("OPN_MODEL_API_KEY", settings.model_api_key),
+                ("OPENROUTER_API_KEY", settings.model_api_key),
                 ("OPN_DRAFTER_TOKEN", settings.drafter_token),
                 ("--submit-url", submit_url),
             )

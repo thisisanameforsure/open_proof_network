@@ -1032,9 +1032,9 @@ def test_qa_brief_and_backtranslate_commands(
         "--date",
         WHEN,
     ]
-    monkeypatch.delenv("OPN_MODEL_API_KEY", raising=False)
+    monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
     assert cli.main(argv) == cli.EXIT_ERROR
-    assert "OPN_MODEL_API_KEY" in capsys.readouterr().err
+    assert "OPENROUTER_API_KEY" in capsys.readouterr().err
 
     model = FakeModelClient(answer="Fine.")
     monkeypatch.setattr(cli, "_model_client", lambda _settings: model)

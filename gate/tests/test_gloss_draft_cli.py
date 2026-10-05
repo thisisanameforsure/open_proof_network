@@ -130,7 +130,7 @@ class FakeService:
 
 @pytest.fixture
 def live(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("OPN_MODEL_API_KEY", "sk-test-not-a-key")
+    monkeypatch.setenv("OPENROUTER_API_KEY", "sk-test-not-a-key")
     monkeypatch.setenv("OPN_DRAFTER_TOKEN", TOKEN)
 
 
@@ -429,7 +429,7 @@ def test_a_dry_run_calls_no_model_and_posts_nothing(
 
     monkeypatch.setattr(draft_run, "make_model", forbidden)
     monkeypatch.setattr(draft_run, "make_poster", forbidden)
-    monkeypatch.delenv("OPN_MODEL_API_KEY", raising=False)
+    monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
     monkeypatch.delenv("OPN_DRAFTER_TOKEN", raising=False)
     report = tmp_path / "dry.json"
     code, out = draft(root, report, capsys, "--dry-run")
@@ -543,12 +543,12 @@ def test_a_live_run_without_credentials_refuses_by_name(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     root, _ = graph
-    monkeypatch.delenv("OPN_MODEL_API_KEY", raising=False)
+    monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
     monkeypatch.delenv("OPN_DRAFTER_TOKEN", raising=False)
     code = cli.main(["gloss", "draft", "--graph", str(root), "--report", str(tmp_path / "r.json")])
     err = capsys.readouterr().err
     assert code == 2
-    assert "OPN_MODEL_API_KEY" in err and "OPN_DRAFTER_TOKEN" in err and "--submit-url" in err
+    assert "OPENROUTER_API_KEY" in err and "OPN_DRAFTER_TOKEN" in err and "--submit-url" in err
     assert not (tmp_path / "r.json").exists()
 
 
