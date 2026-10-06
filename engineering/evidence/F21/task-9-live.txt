@@ -24,6 +24,25 @@ AC9 end to end (not including the curator's signature, which is the owner's key)
   written by f21-words-check, drafted with anthropic/claude-opus-5.5 via Claude Code".
 - Pending: a curator's signature on it (approval and the write-up credit), the owner's act.
 
+AC9 completed 2026-10-06 (the owner asked the lead to sign with the owner's curator key, F21-Q16(3)):
+- `opn-gate gloss sign euclid-primes df65addf… --by thisisanameforsure --key ~/.ssh/id_ed25519
+  --sections whole` wrote gloss/signed/df65addf…-1.yaml (gloss-signature/v2, sections [whole]).
+- classify against graph origin/main 97f4c7890: mode explainer, ok, needs_gate false, no problems.
+  (A first classify against the stale base a99b6ae4e listed every product as path-forbidden; the
+  branch itself added one file. Classify against the base you will merge onto.)
+- Graph PR #435 (curator/sign-words-check), gate success on head 588406157; merged by hand as
+  9336d602e (the merge actor takes only service branches); bot commit `gate: #435 pass` 090fdeea0.
+- ledger/f21-words-check.json (new): one entry, line "write-up", artifact gloss/df65addf….md,
+  node infinitude-of-primes--h1, tooling "anthropic/claude-opus-5.5 via Claude Code", status active.
+- targets/euclid-primes/glosses.json: shown [{key whole, state verified}], pending [], signatures
+  [{signer thisisanameforsure, sections [whole], date 2026-10-06}].
+- site-deploy success; live page reads "written by f21-words-check, drafted with
+  anthropic/claude-opus-5.5 via Claude Code, 2026-10-05; read against the Lean by thisisanameforsure
+  (2026-10-06)" and the section badge "verified by thisisanameforsure".
+- Observed: the block's fixed heading still says "In words, unverified" (D-3: prose is labelled
+  unverified wherever it appears) beside the section badge "verified by …" (F21's person-read
+  state). Correct to the rules as written; raised with the owner as a wording question.
+
 Nothing outside the code was removed (F21-Q9): OPENROUTER_API_KEY and OPN_DRAFTER_TOKEN secrets,
 the DrafterPseudonym stack parameter and the graph's dispatch step stand, unread; the step finds no
 gloss-draft workflow and logs a warning.
