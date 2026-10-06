@@ -826,6 +826,12 @@ _DECL_RE = re.compile(
 )
 
 
+def more_statements_words(n: int, n_open: int) -> str:
+    """F04-T34: a problem card's fold, in words ("14 more statements, 3 open")."""
+    words = f"{n} more statement{'' if n == 1 else 's'}"
+    return f"{words}, {n_open} open" if n_open else words
+
+
 def esc(value: object) -> str:
     """The one escaping function: everything from the graph goes through it (R3)."""
     return escape(str(value), quote=True)
@@ -1501,7 +1507,7 @@ class Renderer:
     def problem_card(self, tv: TargetView) -> str:
         tid = tv.target_id
         status = self.problem_status(tv)
-        rows = "".join(self.statement_row(tv, nv) for nv in self.ordered_nodes(tv))
+        rows = self.statement_rows(tv)
         resolved = str(tv.index_entry["status"]) == "resolved"
         action = "View the graph →" if resolved else "View problem →"
         return _template("problem-card.html").substitute(
@@ -1531,6 +1537,22 @@ class Renderer:
             return ""
         noun = "file needs" if n == 1 else "files need"
         return f'<span class="words wanted">{n} {noun} words</span>'
+
+    def statement_rows(self, tv: TargetView) -> str:
+        """F04-T34 (Q35): the problem's own statement, then every other statement folded into a
+        closed ``<details>`` whose summary counts them and the open ones among them, so each
+        card takes about the same height until a reader asks for more. One statement, no fold."""
+        root, *rest = self.ordered_nodes(tv)
+        head = self.statement_row(tv, root)
+        if not rest:
+            return head
+        n_open = sum(1 for nv in rest if self.node_state(nv) in WORKABLE_STATES)
+        folded = "".join(self.statement_row(tv, nv) for nv in rest)
+        return (
+            f'{head}<details class="more"><summary><span class="show">Show</span>'
+            f'<span class="hide">Hide</span> {esc(more_statements_words(len(rest), n_open))}'
+            f'<span class="caret" aria-hidden="true">▾</span></summary>{folded}</details>'
+        )
 
     @staticmethod
     def ordered_nodes(tv: TargetView) -> list[NodeView]:

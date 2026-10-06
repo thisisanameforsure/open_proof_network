@@ -207,6 +207,16 @@ main > .crumbs, main > h1:first-child { margin-top: calc(var(--s8) * 1.6); }
 .stmt .role, .stmt .state { color: var(--n400); }
 .stmt .attempts { color: var(--n500); font-variant-numeric: tabular-nums; }
 .stmt .act { justify-self: end; font-size: 12.5px; white-space: nowrap; }
+/* F04-T34 (Q35): a card shows its own statement; the rest fold under one summary row. */
+.statements details.more > summary { display: flex; align-items: center; gap: var(--s2); min-height: 44px; padding: var(--s2) 0; font-size: 13px; color: var(--accent-300); cursor: pointer; list-style: none; }
+.statements details.more > summary::-webkit-details-marker { display: none; }
+.statements details.more > summary:hover { color: var(--text); }
+.statements details.more > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.statements details.more > summary .caret { transition: transform 120ms ease; }
+.statements details.more[open] > summary .caret { transform: rotate(180deg); }
+.statements details.more[open] > summary { box-shadow: inset 0 -1px 0 var(--divider); }
+.statements details.more:not([open]) > summary .hide,
+.statements details.more[open] > summary .show { display: none; }
 .act-open { color: var(--accent-300); }
 .act-proved { color: var(--n300); }
 .act-blocked { color: var(--n500); }
