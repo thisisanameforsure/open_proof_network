@@ -1079,8 +1079,65 @@ def snapshot(ctx: Context) -> dict[str, Any]:
     }
 
 
+#: F22-T8: the filters ``GET /submissions.json`` takes, equality only; ``kind=words`` is a gloss
+#: or an explainer, the words of a subject (F21-R5).
+SUBMISSION_FILTERS: tuple[str, ...] = ("target", "node", "kind")
+WORDS_FILTER = "words"
+_FILTER_ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
+_FILTER_KIND_RE = re.compile(r"^[a-z][a-z-]*$")
+
+
+def submission_filters(request: Request) -> dict[str, str]:
+    """F22-T8: the request's filters, each checked; a filter the route does not take, or a
+    value that cannot name anything, is refused by the catalogued code that names it."""
+    query = request.query_params
+    unknown_filters = sorted(k for k in query if k not in SUBMISSION_FILTERS)
+    if unknown_filters:
+        raise ApiError(
+            400,
+            "filter-unknown",
+            f"no such filter: {', '.join(unknown_filters)}; GET /submissions.json takes "
+            + ", ".join(SUBMISSION_FILTERS),
+            details={"unknown": unknown_filters, "accepted": list(SUBMISSION_FILTERS)},
+        )
+    out = {k: query[k] for k in SUBMISSION_FILTERS if k in query}
+    if "target" in out and not _FILTER_ID_RE.match(out["target"]):
+        raise ApiError(400, "target-id-invalid", "target must match ^[a-z0-9][a-z0-9-]*$")
+    if "node" in out and not _FILTER_ID_RE.match(out["node"]):
+        raise ApiError(400, "node-id-invalid", "node must match ^[a-z0-9][a-z0-9-]*$")
+    if "kind" in out and not _FILTER_KIND_RE.match(out["kind"]):
+        raise ApiError(
+            400,
+            "filter-unknown",
+            f"kind is {WORDS_FILTER} (a gloss or an explainer) or one submission kind, "
+            "as GET /submissions.json spells it",
+        )
+    return out
+
+
+def matches(entry: dict[str, Any], filters: dict[str, str]) -> bool:
+    kind = filters.get("kind")
+    kinds = {"gloss", "explainer"} if kind == WORDS_FILTER else {kind}
+    return (
+        ("target" not in filters or entry.get("target_id") == filters["target"])
+        and ("node" not in filters or entry.get("node_id") == filters["node"])
+        and (kind is None or entry.get("kind") in kinds)
+    )
+
+
+def site_headers(ctx: Context) -> dict[str, str]:
+    """F22-T8: the site's origin may read this listing from a page (a node's words in review);
+    one configured origin, on this route only (``OPN_API_SITE_ORIGIN``)."""
+    origin = ctx.settings.site_origin
+    return {"Access-Control-Allow-Origin": origin, "Vary": "Origin"} if origin else {}
+
+
 async def get_submissions(ctx: Context, request: Request) -> Response:
-    return JSONResponse(snapshot(ctx), headers=retry_after(ctx))
+    filters = submission_filters(request)
+    doc = snapshot(ctx)
+    if filters:
+        doc["open"] = [e for e in doc["open"] if matches(e, filters)]
+    return JSONResponse(doc, headers=retry_after(ctx) | site_headers(ctx))
 
 
 # --- GET /submissions/mine (F07-T70) --------------------------------------------------------------

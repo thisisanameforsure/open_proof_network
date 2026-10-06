@@ -534,8 +534,12 @@ async def get_submission(call: Call, args: dict[str, Any]) -> dict[str, Any]:
 
 
 async def list_submissions(call: Call, args: dict[str, Any]) -> dict[str, Any]:
-    """``GET /submissions.json`` body for body (F09-T7; D-28's notation note of 2026-09-14)."""
-    return service_answer(await call.endpoint("GET", "/submissions.json"), "/submissions.json")
+    """``GET /submissions.json`` body for body (F09-T7; D-28's notation note of 2026-09-14), its
+    filters as the route's (F22-T8): ``target_id``, ``node_id`` and ``kind``."""
+    names = {"target_id": "target", "node_id": "node", "kind": "kind"}
+    query = {names[k]: str(v) for k, v in args.items() if k in names and v is not None}
+    path = "/submissions.json" + (f"?{urlencode(query)}" if query else "")
+    return service_answer(await call.endpoint("GET", path), "/submissions.json")
 
 
 async def get_schema(call: Call, args: dict[str, Any]) -> dict[str, Any]:
@@ -869,8 +873,19 @@ TOOLS: tuple[Tool, ...] = (
         "own target's lane (the actor runs one lane per target in parallel) and "
         "the `waiting_on` the service last read for it (null: not read, ask get_submission); "
         "the top-level `queue.order` is the queue's pull-request numbers across every lane. "
-        "get_submission gives one with its checks and reviews; get_node lists a node's own.",
-        params({}),
+        "get_submission gives one with its checks and reviews; get_node lists a node's own. "
+        "`target_id`, `node_id` and `kind` filter by equality; `kind: words` keeps glosses and "
+        "explainers (F22-T8).",
+        params(
+            {
+                "target_id": ID_PARAM,
+                "node_id": ID_PARAM,
+                "kind": {
+                    "type": "string",
+                    "description": "words (a gloss or explainer), or one submission kind",
+                },
+            }
+        ),
         list_submissions,
     ),
     Tool(
