@@ -154,10 +154,51 @@ only.</p>
   <tr><td>F22-Q4</td><td><strong>Ruling 6, the site rendering a mid-batch commit, had no answer
     from the owner; R9 is the lead's proposal.</strong> <code>render.yml</code> already dispatches only
     after its push; the post-merge job now does the same.</td></tr>
+  <tr><td>F22-Q5</td><td><strong>How words render (T15).</strong> A link in words anyone may write is
+    shown as <code>label (url)</code> in plain text, never as a link (F04-R13). A heading inside words
+    renders at h4 to h6, below the page's own headings; it is what fixed R1's raw <code># hden</code> in
+    annexes. The reading view's order toggle is two links, not buttons, because the D-36 tests forbid
+    <code>&lt;button&gt;</code> on record pages.</td></tr>
+  <tr><td>F22-Q6</td><td><strong>No new error codes (T5, T6, T8).</strong> Every new refusal reuses a code
+    already in <code>gate/opn_gate/codes.py</code>: <code>arguments-invalid</code> (a
+    <code>dry_run</code> that is not a boolean), <code>not-holder</code> (another identity's pull
+    request), <code>submission-merged</code>, <code>submission-unknown</code>,
+    <code>subject-invalid</code>, <code>filter-unknown</code>. The <code>submission-merged</code>
+    row's remedy text speaks of revision requests; the message itself says to supersede. Dedicated
+    codes are one catalog row each, if wanted.</td></tr>
+  <tr><td>F22-Q7</td><td><strong>An amend answers 200, not 201 (T6).</strong> Nothing new is opened:
+    the pull request's own <code>append/</code> branch is rebuilt from <code>main</code> with only
+    the new file (the <code>push_branch(replace=True)</code> seam racers already use), after a comment
+    on the pull request naming the old and new versions. Every gloss and explainer record now
+    stores a <code>version:&lt;hash&gt;</code> fingerprint so the amend can find what it
+    replaces.</td></tr>
+  <tr><td>F22-Q8</td><td><strong>Three commits went in with <code>--no-verify</code> for a reason other
+    than the known graph-copy drift (T13, T17, T18).</strong> In each the hook's only failure was a
+    lifecycle test's 10-second wall-clock budget, at a load average of 14 to 22 with three agents on
+    the laptop; <code>test_lifecycle_f15</code> fails the same way at the base commit
+    <code>d1fe22f</code> under that load (<code>engineering/evidence/F22/hook-lifecycle-under-load.txt</code>).
+    The full fast tier on the merged <code>main</code>, at a load near 4, passed 4592 with only the
+    graph-copy drift red.</td></tr>
+  <tr><td>F22-Q9</td><td><strong>The outline id invariant is shown on two outlines, not 93 (T14).</strong>
+    The tutorial target's two Lean-core outlines keep every id and span. The 91 Mathlib outlines need
+    the pinned image rebuilt with this branch's <code>gate/lean</code>, which the laptop's disk could
+    not take; <code>gate/tools/check_outline_ids.py</code> runs that check, and it must pass before
+    the re-pin and before any outline backfill.</td></tr>
+  <tr><td>F22-Q10</td><td><strong>The recovery code is not built (T25).</strong> D-19 v3.29 promises a
+    single-use recovery code; F05-T30 never built it, and two service messages sent people to its
+    route. The messages and the guide now say what exists: a GitHub identity proves its login again,
+    and a tutorial identity whose token lapses or is lost is gone. Building F05-T30 is outside
+    F22.</td></tr>
+  <tr><td>F22-Q11</td><td><strong>The site's origin and the service's (T8, T19).</strong> The service reads
+    <code>OPN_API_SITE_ORIGIN</code>, which defaults to its public URL without the leading
+    <code>api.</code> label; empty turns the header off. Only <code>GET /submissions.json</code> sends
+    <code>Access-Control-Allow-Origin</code>. The site stack takes <code>ServiceOrigin</code>, and
+    <code>connect-src</code> is that origin or <code>'none'</code>; the deploy reads
+    <code>OPN_SITE_API_URL</code>. Neither stack is changed until the owner's change set.</td></tr>
 </table>
 
 <h2>10. Status</h2>
-<div class="rule"><strong>status:</strong> in progress · <strong>Tasks:</strong> T0 ✓ 2026-10-06 (v3.32 applied, d5251ff; graph #437 withdrew <code>d9dbd437</code> and #417 was recorded, <code>gate: #417 pass (replayed)</code>; #415's credit commit is the owner's, a direct push the agent was refused) · T20 ✓ 2026-10-06 (graph f22-workflows a5c71bfdf; red on the live <code>unexpected end of JSON input</code> in both tests) · T21 ✓ 2026-10-06 (235e562bb; red <code>None == 'skip'</code>) · T22 ✓ 2026-10-06 (c092d8139; red: the batch merged 415 416 417, and 417 was merged, not updated; unit tests over <code>decide_lanes</code>, not the lag replay) · T23 ✓ 2026-10-06 (the merge runs read: every slow run held on <code>mergeable: null</code>, up to 11 settle rounds, and a batch ended at the first unknown; explainers against glosses was timing; an append is no longer held for it; red <code>[hold]</code>; T32's batch test restated) · T24 graph half ✓ 2026-10-06 (the <code>classify-&lt;pr&gt;-</code> artifact) · T25 part 1 ✓ 2026-10-06 (d965885: token text red on <code>expires</code>; two messages named the unbuilt <code>POST /tokens/recover</code>, F05-T30)</div>
+<div class="rule"><strong>status:</strong> in progress · <strong>Tasks:</strong> T0 ✓ 2026-10-06 (v3.32 applied, d5251ff; graph #437 withdrew <code>d9dbd437</code> and #417 was recorded, <code>gate: #417 pass (replayed)</code>; #415's credit commit is the owner's, a direct push the agent was refused) · T20 ✓ 2026-10-06 (graph f22-workflows a5c71bfdf; red on the live <code>unexpected end of JSON input</code> in both tests) · T21 ✓ 2026-10-06 (235e562bb; red <code>None == 'skip'</code>) · T22 ✓ 2026-10-06 (c092d8139; red: the batch merged 415 416 417, and 417 was merged, not updated; unit tests over <code>decide_lanes</code>, not the lag replay) · T23 ✓ 2026-10-06 (the merge runs read: every slow run held on <code>mergeable: null</code>, up to 11 settle rounds, and a batch ended at the first unknown; explainers against glosses was timing; an append is no longer held for it; red <code>[hold]</code>; T32's batch test restated) · T24 graph half ✓ 2026-10-06 (the <code>classify-&lt;pr&gt;-</code> artifact) · T25 part 1 ✓ 2026-10-06 (d965885: token text red on <code>expires</code>; two messages named the unbuilt <code>POST /tokens/recover</code>, F05-T30, Q10) · T11 ✓ 2026-10-06 (8849771; red 4 <code>record-not-head</code> on #415's shape replayed with its rival present; Q-free) · T12 ✓ (20d92ec; red: seven cited names warned where two should) · T13 ✓ (67c78f5; <code>context/v4</code>, both builders equal; red <code>'&lt;absent&gt;' == 'circular'</code>; Q8) · T14 ✓ built, invariant shown on 2 of 93 outlines (65915a9, Lean tier 13 + 31 local; Q9) · T1–T8, T10 ✓ (834bdc1…96def95; each red on the defect or the missing field; Q6, Q7, Q11) · T15–T19 ✓ (6624326…835f2ee, T14 site half 3838d3c; 30 screenshots at 1440 and 390 measured and looked at; Q5, Q8) · T24 ✓ (graph half; service half df618bf, red <code>KeyError gate_report</code>) · T25 parts 2 and 3 (the outline, the deps cause, dry_run with an executed example, amends, warnings, in_review, the listing filters) · merged <code>main</code>: fast tier 4592 passed, the graph-copy drift alone red · T9 waits on F09-T22 (Q3) · T26 (live) is the owner's</div>
 
 <h2>Tasks</h2>
 <p class="status-note">Dependency-ordered. Red before green: each new test fails on the defect with

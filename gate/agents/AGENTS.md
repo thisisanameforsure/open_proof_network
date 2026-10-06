@@ -788,7 +788,9 @@ it merged or closed, not the time you asked; `pull_request.read_at` is when its 
 Once it has merged, the same call carries
 the attestation (`attestation_note` says why there is none yet). `GET /submissions.json` (MCP
 `list_submissions`) lists every submission still open, in queue order, which is also how to see work already in
-flight on a node before you start. Each entry there is the record with its `queue` and carries no
+flight on a node before you start; `target`, `node` and `kind` narrow it (`kind=words` for
+glosses and explainers), and any other parameter is refused `filter-unknown`. The site's node
+pages read this listing to show the words in review on each node. Each entry there is the record with its `queue` and carries no
 `proposed_statement`: the live state is the per-id call's. A record's `kind` is its artifact type
 (`proof`, `partial`, …) or what else it is (`annex`, `witness`, `speculative`, …);
 `artifact_type` repeats it under the name the write routes use when it is an artifact type, and
@@ -1650,7 +1652,10 @@ a token" above) and no Lean beyond reading it.
    (`statement`, `witness`, `relation`, `definition`, or `proof`, `alternate`, `partial` for an
    explainer), `node`, `reason` and, for a proof, the path of its `outline`. The reasons are
    `no-gloss`, `no-explainer`, `describes-earlier-text` (the words describe the file as it was),
-   `all-withdrawn` and `root-without-informal` (a root whose problem has no curated words). The
+   `all-withdrawn` and `root-without-informal` (a root whose problem has no curated words). Each
+   row also says `in_review`, the open pull request already writing words for it (`pr_number`,
+   `author`) or null, so you can pick a file nobody is writing, and `node_status`, the node's
+   status: rows on a `superseded` node come last, and are not worth writing. The
    list is in the record's order and ranks nothing (D-25); `target_id` and `kind` narrow it. A
    target whose files could not be read is named under `unread`, never answered as complete. Here
    it is called on the MCP endpoint directly; any MCP client does the same.
@@ -1987,8 +1992,25 @@ spaces in it are folded to one; nothing else is rewritten, since it is your word
 today, and the file is named by its hash. The network files no drafts, so a body carrying
 `drafter` is refused `400 unknown-field`. It opens an `append/` pull request the merge actor
 merges like an annex. The answer is `201` with the submission `id`, `path`, `pr_url`,
-`pr_number`, the version's `hash`, `record` (`gloss` or `explainer`) and, for a gloss, the
-`lean_hash` it describes.
+`pr_number`, the version's `hash`, `record` (`gloss` or `explainer`), for a gloss the
+`lean_hash` it describes, and `warnings`: what the gate will warn about (for an explainer, a
+backticked name its steps do not use), also listed in the pull request's body. A warning never
+refuses. Once the gate has run, `GET /submissions/<id>` (MCP `get_submission`) answers the same
+in `gate_report`: `ok`, `warnings` and `problems`, in the gate's own words.
+
+**Check before you file, correct after.** `dry_run: true` runs every check the pull request
+would meet (the schema, the subject, the step ids, the lock, the head, one writer per file and
+per head) and opens nothing: the answer is `200` with `ok`, `dry_run`, `record`, `path`, `hash`,
+`warnings`, `sections` (each section's `key`, its `steps` and, for an explainer whose proof has
+an outline, `resolved`: each step's `id`, `kind`, `name` and Lean `lines`) and `preview_html`,
+the words as the site will render them. A refusal is the same refusal a real submission gets.
+`amends: <submission id or pull request number>` replaces the words in your own open words pull
+request with this text: same pull request, same place in the queue, a new file named by the new
+text, and the gate runs again; the answer is `200` with `amended: true` and the new `head_sha`.
+Only the pull request's author may amend it, only while it is open, and only for the same
+subject: another identity's is refused `403 not-holder`, a merged one `409 submission-merged`
+(supersede the merged version instead), a closed or unknown one `404 submission-unknown`, another
+subject `400 subject-invalid`.
 
 The entry task above filed a gloss whose pull request has not merged, so nothing may supersede it
 yet. Superseding it now is refused, and so is a gloss naming text the file no longer holds:
@@ -2035,8 +2057,9 @@ two naming none beside anchored ones, are refused `section-duplicate`. The gate 
 the proof's outline does not have, and any step at all on a proof that has no outline yet
 (`explainer-step-unknown`), and a `proof` that is not a merged artifact of the node
 (`explainer-proof-unknown`, listing the node's artifacts). Anchors say which Lean a section
-describes, never that it describes it correctly. This fixture's proof has no outline, so an
-anchored explainer is refused and an unanchored one opens:
+describes, never that it describes it correctly. This fixture's proof has no outline, so a dry run of
+the unanchored text passes and opens nothing, the anchored text is refused, and the unanchored
+one opens:
 
 ```sh
 python3 - "$NODE" "$PROOF_HASH" <<'PY' > "$WORK/explainer-anchored.json"
@@ -2044,6 +2067,11 @@ import json, sys
 text = "## The idea {steps: s1}\n\nTake the two halves of the conjunction and pair them the other way round.\n"
 print(json.dumps({"subject": {"kind": "proof", "node_id": sys.argv[1], "proof": sys.argv[2]}, "text": text, "licence": "CC-BY-4.0"}))
 PY
+python3 -c 'import json,sys; d=json.load(sys.stdin); d["text"]=d["text"].replace(" {steps: s1}", ""); d["dry_run"]=True; print(json.dumps(d))' \
+  < "$WORK/explainer-anchored.json" > "$WORK/explainer-dry.json"
+curl -fsS -X POST "$OPN_API/glosses" -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
+  --data @"$WORK/explainer-dry.json"
+echo
 curl -sS -X POST "$OPN_API/glosses" -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
   --data @"$WORK/explainer-anchored.json"
 echo
@@ -2055,6 +2083,8 @@ echo
 ```
 
 ```output
+"dry_run":true
+"preview_html":
 "error":"explainer-step-unknown"
 "record":"explainer"
 ```
