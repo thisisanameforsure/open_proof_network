@@ -157,7 +157,7 @@ only.</p>
 </table>
 
 <h2>10. Status</h2>
-<div class="rule"><strong>status:</strong> in progress · <strong>Tasks:</strong> T0 (v3.32 applied; graph #437 merged, the fork withdrawn)</div>
+<div class="rule"><strong>status:</strong> in progress · <strong>Tasks:</strong> T0 ✓ 2026-10-06 (v3.32 applied, d5251ff; graph #437 withdrew <code>d9dbd437</code> and #417 was recorded, <code>gate: #417 pass (replayed)</code>; #415's credit commit is the owner's, a direct push the agent was refused) · T20 ✓ 2026-10-06 (graph f22-workflows a5c71bfdf; red on the live <code>unexpected end of JSON input</code> in both tests) · T21 ✓ 2026-10-06 (235e562bb; red <code>None == 'skip'</code>) · T22 ✓ 2026-10-06 (c092d8139; red: the batch merged 415 416 417, and 417 was merged, not updated; unit tests over <code>decide_lanes</code>, not the lag replay) · T23 ✓ 2026-10-06 (the merge runs read: every slow run held on <code>mergeable: null</code>, up to 11 settle rounds, and a batch ended at the first unknown; explainers against glosses was timing; an append is no longer held for it; red <code>[hold]</code>; T32's batch test restated) · T24 graph half ✓ 2026-10-06 (the <code>classify-&lt;pr&gt;-</code> artifact) · T25 part 1 ✓ 2026-10-06 (d965885: token text red on <code>expires</code>; two messages named the unbuilt <code>POST /tokens/recover</code>, F05-T30)</div>
 
 <h2>Tasks</h2>
 <p class="status-note">Dependency-ordered. Red before green: each new test fails on the defect with
