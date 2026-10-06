@@ -3217,7 +3217,9 @@ class Renderer:
         )
         single = (
             '<p class="cue">The proof is a single term: its outline is that one step.</p>'
-            if len(steps) == 1 and steps[0]["kind"] == "term"
+            # F22-T14: ``close`` is a tactic proof's closing tactics, a term step of its own;
+            # an outline of that step alone is not a proof that is one term.
+            if len(steps) == 1 and steps[0]["kind"] == "term" and steps[0]["id"] != "close"
             else ""
         )
         gate = esc(str(doc["gate"])[:12])

@@ -82,7 +82,9 @@ tactic's name, and folded away, so the page shows where the work is; the label n
 says nothing about difficulty. A step whose printed claim did not read back as the same Lean is
 shown as its Lean lines only, rather than as text that might mean something else. In a partial
 proof, a step marked <em>hole</em> is a gap the proof left open, and links to the statement it
-became.</p>
+became. A step whose id is <code>close</code> is the proof's closing tactics, the ones after its
+named steps that finish the goal; a <em>case</em> step lists the hypotheses its split
+introduced.</p>
 <p><strong>The words.</strong> Beside each piece of Lean are words saying what it says (a gloss),
 and beside each proof an account of how it works (an explainer). Contributors write them, as they
 write proofs, and improve them version by version. Words a contributor's model helped draft say so
