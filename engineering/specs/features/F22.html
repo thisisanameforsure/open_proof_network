@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>F22 — Words, second pass: what the first writers found</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="crumbs"><a href="../index.html">specs</a> / F22</nav>
+<h1>F22 — Words, second pass: what the first writers found</h1>
+<p class="subtitle">On 2026-10-06 four agents wrote the words for every Lean file of erdos-1050 and a
+fifth read the result as a mathematician who does not read Lean. F22 is what they found: a fork in
+the record, prose that rendered wrong, warnings that cried wolf, a stale guide, and the tools a writer
+and a reader were missing.</p>
+
+<h2>1. Summary</h2>
+<p>The run (graph PRs #390–#436) and its verified findings are in
+<code>engineering/evidence/testers-2026-10-06/bugs.md</code>: one P1, six P2, nine P3 and feature
+requests A–S. The owner's rulings of 2026-10-06: keep the latest version of the forked chain and
+prevent the fork; fix Markdown and make sure math renders; drop the false warnings; fix the guide;
+make the "withdrawn" sentence clear; make the post-merge lookup retry; fix every P3; build every
+feature request, with words in review shown on the page by a live fetch. Decisions v3.32 (one writer
+per chain head, D-3) and two D-28 notation notes carry the protocol side.</p>
+
+<h2>2. User stories</h2>
+<ul>
+  <li>As a writer, I learn before anything opens whether my explainer's step ids resolve, what the
+    gate will warn about and how the page will look; and I can correct an open pull request without
+    losing my place in the queue.</li>
+  <li>As a writer, I can see which files someone is already writing, and which nodes are
+    superseded.</li>
+  <li>As a reader who does not read Lean, I see lists, emphasis and formulas rendered, one clear
+    sentence about withdrawn words, the proof's summary on the problem page, and a way through the
+    reading view.</li>
+  <li>As the record, a chain of words never forks, and a run that merges words never goes red for a
+    reason that is not about the words.</li>
+</ul>
+
+<h2>3. Scope</h2>
+<p>In: the service (<code>POST /glosses</code>, <code>submit_gloss</code>,
+<code>list_words_needed</code>, <code>GET /submissions.json</code>, the PR body), the gate (the head
+check, the unanchored-name warning, CONTEXT deps, outlines), the site (prose, explainer chains, the P3
+items, reader features, words in review), the graph's <code>gate.yml</code> and
+<code>merge.yml</code>, the guide, and the repair of the forked chain on the record. Out:
+<code>get_node</code>'s size, which F09-T22's session holds (T9 waits for it).</p>
+
+<h2>4. Requirements</h2>
+<table>
+  <tr><th>ID</th><th>Requirement (EARS)</th></tr>
+  <tr><td>F22-R1</td><td>While an open pull request supersedes a version, the service shall refuse
+    another version superseding the same version (<code>409 duplicate-submission</code>, naming the
+    pull request) (D-3 v3.32).</td></tr>
+  <tr><td>F22-R2</td><td>The merge actor shall merge at most one append per words directory in a
+    batch, and shall update rather than merge an append whose words directory changed on
+    <code>main</code> since its merge base.</td></tr>
+  <tr><td>F22-R3</td><td>The gate shall judge a version's head against the merge's parent tree, so a
+    replay of a version later superseded passes and a fork fails.</td></tr>
+  <tr><td>F22-R4</td><td>The site shall render paragraphs, lists, emphasis and inline code in every
+    gloss, explainer, annex, doc and curated statement, with math inside any of them rendered by
+    KaTeX, and shall link nothing off-site from untrusted prose (F04-R13).</td></tr>
+  <tr><td>F22-R5</td><td>The gate shall not warn <code>explainer-name-unanchored</code> about an
+    outline step id, a name rooted in a step's or hypothesis's name, or a file name.</td></tr>
+  <tr><td>F22-R6</td><td>The guide shall describe the token answer and lifetime the service
+    implements, and every route a service message names shall exist.</td></tr>
+  <tr><td>F22-R7</td><td>A node page shall show live words before any withdrawn chain, and a
+    withdrawn chain as one line pointing to the history.</td></tr>
+  <tr><td>F22-R8</td><td>The post-merge job shall retry a failed or empty host answer, and shall
+    read the pull request from the merge subject when the host never answers.</td></tr>
+  <tr><td>F22-R9</td><td>The post-merge job shall ask the site to deploy only a commit whose products
+    are complete: one carrying its gate commit, or one that touched no target.</td></tr>
+  <tr><td>F22-R10</td><td>When a writer submits words, the service shall return the gate's warnings;
+    when asked for a dry run, it shall run every check and open nothing; when the author of an open
+    words pull request amends it, the pull request and its queue position shall be kept.</td></tr>
+  <tr><td>F22-R11</td><td><code>list_words_needed</code> shall name the open pull request already
+    writing a file and the status of its node; a node page shall show words in review, fetched live
+    from the service, and be unchanged when the fetch fails (F04-R10, Q2).</td></tr>
+  <tr><td>F22-R12</td><td>CONTEXT.json shall carry each dependency's cause.</td></tr>
+  <tr><td>F22-R13</td><td>An outline shall print the hypotheses a case split introduces and give a
+    top-level closing term the step id <code>close</code>, changing no existing id.</td></tr>
+  <tr><td>F22-R14</td><td>The site shall fix bugs.md items 8, 9, 10, 14 and 15 and provide the
+    reader features M–S, I, J and L of bugs.md.</td></tr>
+</table>
+
+<h2>5. Acceptance criteria</h2>
+<table>
+  <tr><th>ID</th><th>Given / When / Then</th><th>Test case</th></tr>
+  <tr><td>F22-AC1</td><td>Given a merged head and an open supersession of it, when a second
+    supersession arrives, then 409 naming the first; given the first merged a moment ago, then
+    201.</td><td><code>api/tests/test_glosses_one_writer.py</code></td></tr>
+  <tr><td>F22-AC2</td><td>Given #415/#417's shape in the lag-modelling replay, then one merges and the
+    other is updated and refused.</td><td><code>gate/tests/test_finding_merge_actor_batch.py</code></td></tr>
+  <tr><td>F22-AC3</td><td>Given a version later superseded, its replay classifies ok; given a fork,
+    it does not.</td><td><code>gate/tests/test_gloss_head_at_base.py</code></td></tr>
+  <tr><td>F22-AC4</td><td>Given a list, bold around math, and math in a list item, then
+    <code>&lt;ul&gt;&lt;li&gt;</code>, <code>&lt;strong&gt;</code> and <code>span.math</code>; the
+    live page shows KaTeX output and no <code>.katex-error</code>.</td>
+    <td><code>site/tests/test_prose_markdown.py</code>, <code>engineering/evidence/F22/shoot.py</code></td></tr>
+  <tr><td>F22-AC5</td><td>Given #396's, #429's and #430's explainers, then no warning; given
+    <code>Finset.prod</code> unanchored, then one.</td><td><code>gate/tests/test_explainer_schema.py</code></td></tr>
+  <tr><td>F22-AC6</td><td>The guide's token body equals <code>token_doc</code>'s keys; every route a
+    message names is in <code>routes.py</code>.</td><td><code>api/tests/test_finding_guide_token_body.py</code></td></tr>
+  <tr><td>F22-AC7</td><td>Given one withdrawn and one live chain, the live words come first and the
+    withdrawn one is one line.</td><td><code>site/tests/test_explainer_versions.py</code></td></tr>
+  <tr><td>F22-AC8</td><td>Given a host that answers empty twice, the step finds the pull request;
+    given one that never answers, the subject does.</td><td><code>gate/tests/test_finding_postmerge_batch.py</code></td></tr>
+  <tr><td>F22-AC9</td><td>Given a <code>later-merge</code> exit, no deploy is asked; given a pushed
+    gate commit, that commit is.</td><td><code>gate/tests/test_finding_site_deploy_dispatch.py</code></td></tr>
+  <tr><td>F22-AC10</td><td>A dry run with a mistyped step id is refused and opens nothing; a submit
+    answers its warnings; an amend keeps the PR number and moves its head; each wrong amend is
+    refused.</td><td><code>api/tests/test_glosses_dry_run.py</code>, <code>api/tests/test_glosses_amend.py</code></td></tr>
+  <tr><td>F22-AC11</td><td>Rows carry <code>in_review</code> and <code>node_status</code>; the
+    filtered listing and its CORS header; the page script and the CSP.</td>
+    <td><code>api/tests/test_mcp_words_needed.py</code>, <code>site/tests/test_words_in_review.py</code></td></tr>
+  <tr><td>F22-AC12</td><td>Both builders of CONTEXT.json give equal bytes with deps' causes.</td>
+    <td>the F10 AC4 equality test</td></tr>
+  <tr><td>F22-AC13</td><td>Every step id of every merged outline survives the new extractor with
+    its span.</td><td>lean tier, <code>gate/tests/test_outline_ids_stable.py</code></td></tr>
+  <tr><td>F22-AC14</td><td>Each P3 item and reader feature has a site test and a screenshot at 1440
+    and 390.</td><td><code>site/tests/</code>, <code>engineering/evidence/F22/</code></td></tr>
+</table>
+
+<h2>6. Budgets / limits</h2>
+<p>The post-merge retry adds at most about 30 s to a run that meets an empty answer. A dry run costs
+what a pre-flight costs. The page's live fetch is one GET per node page view, cached by the service as
+<code>submissions.json</code> is.</p>
+
+<h2>7. Security &amp; privacy notes</h2>
+<p>Untrusted prose stays escaped before any tag; no link leaves the site from it. The CSP gains one
+<code>connect-src</code>, to the service's own origin, read from configuration. An amend is accepted
+only from the pull request's author, checked by token, never by name. CORS is sent on one read route
+only.</p>
+
+<h2>8. Dependencies</h2>
+<p>F21 (words), F20 (chains, outlines), F07 (merge actor, post-merge), F09 (MCP), F04 (site), F19
+(outlines), F10 (CONTEXT). T9 waits for F09-T22's session.</p>
+
+<h2>9. Open questions / judgment calls</h2>
+<table>
+  <tr><th>ID</th><th>Call made — for review</th></tr>
+  <tr><td>F22-Q1</td><td><strong>The fork's repair (the owner's ruling: keep the latest).</strong>
+    #417's <code>30a6d33d</code> merged 5 s after #415's <code>d9dbd437</code>; the texts differ in one
+    word. A curator withdrawal of <code>d9dbd437</code> (graph #437) makes <code>30a6</code> the head,
+    and its post-merge run records #417. #415 can pass no replay, since its own version is superseded
+    and a replay classifies with the pin in the merge's tree, so it is credited by one owner commit,
+    <code>gate: #415 withdrawn in #437, not attested</code>, naming the withdrawal.</td></tr>
+  <tr><td>F22-Q2</td><td><strong>Words in review fetched live (the owner's choice).</strong> F04-R10
+    forbids external resources; the service is the network's own origin, so the CSP gains a
+    <code>connect-src</code> to it and nothing else, and a page whose fetch fails is the page as it
+    was.</td></tr>
+  <tr><td>F22-Q3</td><td><strong>T9 deferred.</strong> <code>get_node</code>'s size belongs to
+    F09-T22's session, live in another worktree on 2026-10-06; <code>proposed_for</code>,
+    <code>in_closure</code> and <code>fields</code> follow its merge rather than conflict with it.</td></tr>
+  <tr><td>F22-Q4</td><td><strong>Ruling 6, the site rendering a mid-batch commit, had no answer
+    from the owner; R9 is the lead's proposal.</strong> <code>render.yml</code> already dispatches only
+    after its push; the post-merge job now does the same.</td></tr>
+</table>
+
+<h2>10. Status</h2>
+<div class="rule"><strong>status:</strong> in progress · <strong>Tasks:</strong> T0 (v3.32 applied; graph #437 merged, the fork withdrawn)</div>
+
+<h2>Tasks</h2>
+<p class="status-note">Dependency-ordered. Red before green: each new test fails on the defect with
+the seam in at today's behaviour.</p>
+<table>
+  <tr><th>ID</th><th>Task</th><th>Files</th><th>Deps</th><th>Verification</th></tr>
+  <tr><td>F22-T0</td><td>Decisions v3.32 and the D-28 notation notes; repair the fork (Q1).</td>
+    <td><code>docs/architecture_decisions.html</code>, <code>../open_proof_network_graph/targets/erdos-1050/…/withdrawals/</code></td><td>—</td>
+    <td>tests that read the decisions doc; the graph's <code>glosses.json</code> head is <code>30a6</code></td></tr>
+  <tr><td>F22-T1</td><td>One writer per chain head (R1).</td><td><code>api/opn_api/glosses.py</code>, <code>duplicates.py</code></td><td>T0</td><td>AC1</td></tr>
+  <tr><td>F22-T2</td><td>The one-writer check reads fresh state.</td><td><code>api/opn_api/duplicates.py</code></td><td>—</td><td>AC1</td></tr>
+  <tr><td>F22-T3</td><td>The PR body's article and checks.</td><td><code>api/opn_api/appends.py</code></td><td>—</td><td>api tests</td></tr>
+  <tr><td>F22-T4</td><td>Warnings in the submit answer and PR body (R10).</td><td><code>api/opn_api/glosses.py</code></td><td>—</td><td>AC10</td></tr>
+  <tr><td>F22-T5</td><td><code>dry_run</code> with a preview (R10).</td><td><code>api/</code>, the Lambda package</td><td>T15</td><td>AC10</td></tr>
+  <tr><td>F22-T6</td><td><code>amends</code> (R10).</td><td><code>api/</code></td><td>—</td><td>AC10</td></tr>
+  <tr><td>F22-T7</td><td><code>list_words_needed</code>: <code>in_review</code>, <code>node_status</code> (R11).</td><td><code>api/opn_api/mcp/reads.py</code></td><td>—</td><td>AC11</td></tr>
+  <tr><td>F22-T8</td><td><code>submissions.json</code> filters and CORS (R11).</td><td><code>api/</code></td><td>—</td><td>AC11</td></tr>
+  <tr><td>F22-T9</td><td><code>get_node</code>: <code>proposed_for</code>, <code>in_closure</code>, <code>fields</code> (Q3).</td><td><code>api/opn_api/mcp/</code></td><td>F09-T22</td><td>api tests</td></tr>
+  <tr><td>F22-T10</td><td><code>drafted_with</code> whitespace and its stated format.</td><td><code>api/</code></td><td>—</td><td>api tests</td></tr>
+  <tr><td>F22-T11</td><td>The head check against the base (R3).</td><td><code>gate/opn_gate/modes.py</code>, <code>glosses.py</code></td><td>—</td><td>AC3</td></tr>
+  <tr><td>F22-T12</td><td>No false unanchored warnings (R5).</td><td><code>gate/opn_gate/explainers.py</code></td><td>—</td><td>AC5</td></tr>
+  <tr><td>F22-T13</td><td>Deps' cause in CONTEXT (R12).</td><td><code>gate/opn_gate/context.py</code>, <code>gate/schemas/context/</code></td><td>—</td><td>AC12</td></tr>
+  <tr><td>F22-T14</td><td>Outline case hypotheses and <code>close</code> (R13).</td><td><code>gate/lean/OpnGate/Outline.lean</code>, <code>gate/opn_gate/outline.py</code></td><td>—</td><td>AC13</td></tr>
+  <tr><td>F22-T15</td><td>Markdown and math (R4).</td><td><code>site/opn_site/prose.py</code></td><td>—</td><td>AC4</td></tr>
+  <tr><td>F22-T16</td><td>The withdrawn sentence (R7).</td><td><code>site/opn_site/render.py</code></td><td>—</td><td>AC7</td></tr>
+  <tr><td>F22-T17</td><td>The P3 site items (R14).</td><td><code>site/</code></td><td>—</td><td>AC14</td></tr>
+  <tr><td>F22-T18</td><td>Reader features (R14).</td><td><code>site/</code></td><td>—</td><td>AC14</td></tr>
+  <tr><td>F22-T19</td><td>Words in review on the page (R11, Q2).</td><td><code>site/</code>, <code>site/infra/site.cfn.yaml</code></td><td>T8</td><td>AC11</td></tr>
+  <tr><td>F22-T20</td><td>The post-merge lookup retries (R8).</td><td><code>../open_proof_network_graph/.github/workflows/gate.yml</code></td><td>—</td><td>AC8</td></tr>
+  <tr><td>F22-T21</td><td>The site deploys only complete products (R9, Q4).</td><td><code>../open_proof_network_graph/.github/workflows/gate.yml</code></td><td>—</td><td>AC9</td></tr>
+  <tr><td>F22-T22</td><td>The merge actor's two layers (R2).</td><td><code>../open_proof_network_graph/.github/workflows/merge.yml</code></td><td>—</td><td>AC2</td></tr>
+  <tr><td>F22-T23</td><td>Why explainers merged one at a time (feature request G): read the logs, then fix.</td><td><code>../open_proof_network_graph/.github/workflows/merge.yml</code></td><td>T22</td><td>replay</td></tr>
+  <tr><td>F22-T24</td><td>Warnings in <code>GET /submissions</code> (feature request A).</td><td><code>../open_proof_network_graph/.github/workflows/gate.yml</code>, <code>api/opn_api/pending.py</code></td><td>T4</td><td>api tests</td></tr>
+  <tr><td>F22-T25</td><td>The guide and the Docs (R6).</td><td><code>gate/agents/AGENTS.md</code>, <code>api/opn_api/identity.py</code></td><td>T1–T19</td><td>AC6, the walkthrough</td></tr>
+  <tr><td>F22-T26</td><td>Live: push, deploy the api and the site, change the CSP, re-pin, re-render, backfill the outlines, the graph workflows PR.</td><td>—</td><td>all</td><td>the live checks in the plan</td></tr>
+</table>
+</body>
+</html>

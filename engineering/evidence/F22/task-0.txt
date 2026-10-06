@@ -1,0 +1,46 @@
+F22-T0 — the forked chain repaired (Q1), 2026-10-06
+
+Pinned gate (network 629f916) classify of the withdrawal branch:
+{
+  "mode": "explainer",
+  "target": "erdos-1050",
+  "node": "erdos-1050--h1-v2--h3",
+  "needs_gate": false,
+  "needs_admission": false,
+  "admit": null,
+  "needs_review": false,
+  "reviewers": null,
+  "review_waived": null,
+  "review_kind": null,
+  "review_reference": null,
+  "problems": [],
+  "ok": true,
+  "warnings": [],
+  "exhibits": [],
+  "definitions": [],
+  "needs_exhibits": false,
+  "qa_records": [],
+  "needs_qa_rerun": false
+}
+
+Graph after #437:
+3257eb5c0 opn-gate 2026-10-06T08:13:56Z gate: #417 pass (replayed)
+67d79fb1c opn-gate 2026-10-06T08:12:56Z gate: #437 pass
+10e3c494e thisisanameforsure 2026-10-06T11:11:47+03:00 Merge pull request #437 from thisisanameforsure/curator/withdraw-forked-gloss
+955e891f2 thisisanameforsure 2026-10-06T11:09:51+03:00 withdrawal: erdos-1050--h1-v2--h3's forked statement gloss d9dbd437 (#415); #417's 30a6d33d is kept
+
+Gate runs:
+2026-10-06T08:14:00Z	push	success	gate: #417 pass (replayed)
+2026-10-06T08:13:02Z	workflow_dispatch	success	gate: replay of #417
+2026-10-06T08:13:01Z	workflow_dispatch	failure	gate: replay of #415
+2026-10-06T08:13:00Z	push	success	gate: #437 pass
+2026-10-06T08:11:50Z	push	success	Merge pull request #437 from thisisanameforsure/curator/withdraw-fork…
+2026-10-06T08:10:31Z	pull_request	success	withdrawal: erdos-1050--h1-v2--h3's forked statement gloss d9dbd437 (#415)
+
+glosses.json chain for erdos-1050--h1-v2--h3 statement:
+current 30a6d33d96aaa2908db73ef4fdb27aef41d4312e86c9fd2d187b6d3f41efda56
+  b4cf9137 supersedes - withdrawn False
+  d9dbd437 supersedes b4cf9137 withdrawn True
+  30a6d33d supersedes b4cf9137 withdrawn False
+
+Left for the owner: the commit 'gate: #415 withdrawn in #437, not attested' on graph main (a direct push, declined to the agent).
