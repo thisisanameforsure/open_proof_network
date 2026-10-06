@@ -18,6 +18,7 @@ on:
       - "gate/lean/OpnGate/Hazards.lean"  # F13-T20: mode hazards sends step 6's own checkers
       - "gate/lean/OpnGate/Hazards/**"
       - "gate/lean/OpnGate/HazardsMain.lean"  # F13-T20: its registry of checkers
+      - "site/opn_site/*.py"  # F22-T5: a dry run's preview_html is the site's prose renderer
       - "pyproject.toml"
       - "uv.lock"
       - ".github/workflows/api-deploy.yml"
@@ -60,6 +61,11 @@ jobs:
             -r build/requirements.txt
           cp -R api/opn_api build/package/
           cp -R gate/opn_gate build/package/
+          # F22-T5: POST /glosses's dry run renders preview_html with the site's own prose
+          # renderer; opn_site's Python modules only (it imports nothing outside the standard
+          # library and itself, test_finding_gloss_dry_run), never its templates or static tree.
+          mkdir -p build/package/opn_site
+          cp site/opn_site/*.py build/package/opn_site/
           # opn_gate.schemas resolves gate/schemas relative to the package's parent, so the
           # schema files must travel with it or every validating route answers 500 (D-34).
           cp -R gate/schemas build/package/
@@ -85,7 +91,9 @@ jobs:
 
       - name: Check the package carries the handler and every schema
         env:
-          PYTHONPATH: gate:api  # opn_gate for the schema pins, opn_api for the MCP tool list (F09)
+          # opn_gate for the schema pins, opn_api for the MCP tool list (F09), and opn_site,
+          # which opn_api imports for a dry run's preview (F22-T5)
+          PYTHONPATH: gate:api:site
         run: |
           set -euo pipefail
           # The package is cross-built for the function's architecture, so it cannot be imported
@@ -116,7 +124,9 @@ jobs:
                         # F05-T26: POST /tokens reads the reserved names at runtime
                         "opn_api/reserved_pseudonyms.txt",
                         "opn_gate/schemas.py", "mangum/__init__.py", "starlette/applications.py",
-                        "opn_api/mcp/server.py", "mcp/server/lowlevel/server.py"):
+                        "opn_api/mcp/server.py", "mcp/server/lowlevel/server.py",
+                        # F22-T5: a dry run's preview_html
+                        "opn_site/__init__.py", "opn_site/prose.py"):
               assert (pkg / entry).is_file(), f"missing from the package: {entry}"
 
           # The MCP result schemas travel inside the adapter package (F09-R9, Q5): one per tool.

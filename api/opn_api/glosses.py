@@ -52,9 +52,11 @@ from opn_api.app import ApiError
 from opn_api.githost import GitHostError
 from opn_gate import config as gate_config
 from opn_gate import explainers, glosses, modes, products, schemas
+from opn_gate import sections as sectionsmod
 from opn_gate.diagnostic import Diagnostic
 from opn_gate.paths import Change
 from opn_gate.signer import NAMESPACE, Signature, SignatureKind, SignerError
+from opn_site import prose
 
 if TYPE_CHECKING:
     from opn_api.app import Context
@@ -64,7 +66,15 @@ log = logging.getLogger(__name__)
 
 #: F05-T8: the fields each route reads; any other top-level key is refused. ``drafted_with``
 #: (F21-R6, D-23) names the model and tooling that drafted the words, in the caller's words.
-GLOSS_FIELDS: tuple[str, ...] = ("subject", "text", "supersedes", "licence", "drafted_with")
+#: F22-T5: ``dry_run`` runs the whole pre-flight and opens nothing.
+GLOSS_FIELDS: tuple[str, ...] = (
+    "subject",
+    "text",
+    "supersedes",
+    "licence",
+    "drafted_with",
+    "dry_run",
+)
 #: F21-R6: the record versions the service writes — v1 plus ``drafted_with`` — always, with the
 #: field null when the request names no model. The gate keeps reading v1 (D-34), and its own
 #: ``glosses.SCHEMA`` and ``explainers.RECORD_SCHEMA`` stay the v1 strings its readers compare
@@ -444,6 +454,69 @@ def words_key(target_id: str, node_id: str | None, subject: dict[str, Any]) -> s
     return duplicates.words_key(target_id, file.as_posix() if file is not None else "")
 
 
+def dry_run_of(raw: Any) -> bool:
+    """F22-T5: ``dry_run`` is a boolean, absent meaning false. Anything else is the catalogued
+    ``arguments-invalid``, naming the field (a code of its own would need a catalog row)."""
+    if raw is None:
+        return False
+    if not isinstance(raw, bool):
+        raise ApiError(
+            400,
+            "arguments-invalid",
+            "dry_run is true or false",
+            details={"field": "dry_run"},
+        )
+    return raw
+
+
+def dry_sections(target_dir: Path, subject: dict[str, Any], text: str) -> list[dict[str, Any]]:
+    """F22-T5: each section of the words as the gate keys it (``opn_gate.sections``): a gloss is
+    one ``whole``; an explainer's sections are ``overview`` and ``steps:<ids>``, each with the
+    steps its heading names and what they resolve to in the proof's outline (``id``, ``kind``,
+    ``name`` and the Lean ``lines`` they span). ``resolved`` is null where nothing can resolve: a
+    gloss, or a proof with no outline yet. The text has passed the pre-flight, so every named
+    step is in the outline when there is one."""
+    if subject["kind"] != PROOF_KIND:
+        return [{"key": sectionsmod.WHOLE, "steps": [], "resolved": None}]
+    outline = explainers.outline_of(target_dir, str(subject["proof"]))
+    steps = explainers.outline_steps(outline) if outline is not None else None
+    found = explainers.sections(text)
+    if not any(s.steps for s in found):
+        found = [explainers.Section("", (), text)]  # the gate reads it as one overview
+    out: list[dict[str, Any]] = []
+    for section in found:
+        resolved: list[dict[str, Any]] | None = None
+        if steps is not None:
+            resolved = []
+            for step_id in section.steps:
+                step = steps.get(step_id)
+                if step is None:
+                    continue
+                span = step.get("span") or {}
+                resolved.append(
+                    {
+                        "id": step_id,
+                        "kind": step.get("kind"),
+                        "name": step.get("name"),
+                        "lines": [span.get("start_line"), span.get("end_line")],
+                    }
+                )
+        out.append(
+            {
+                "key": sectionsmod.key_of(section.steps),
+                "steps": list(section.steps),
+                "resolved": resolved,
+            }
+        )
+    return out
+
+
+def preview_html(text: str) -> str:
+    """F22-T5: the words as the site renders prose, by the site's own renderer (``opn_site.prose``,
+    packaged with the function): escaped, math marked for the page's renderer."""
+    return prose.render(text, math=True)
+
+
 async def post_glosses(ctx: Context, request: Request) -> Response:
     """R10: a gloss of a statement, witness, relation or definition module, or an explainer of a
     merged proof artifact; new, or superseding the head of its chain."""
@@ -459,6 +532,7 @@ async def post_glosses(ctx: Context, request: Request) -> Response:
     drafted_with = appends.declared(
         fields.get("drafted_with"), "drafted_with", cap=DRAFTED_WITH_MAX_CHARS
     )
+    dry_run = dry_run_of(fields.get("dry_run"))
     record = "explainer" if subject["kind"] == PROOF_KIND else "gloss"
     with tempfile.TemporaryDirectory(prefix="opn-gloss-") as tmp:
         root = Path(tmp)
@@ -483,6 +557,7 @@ async def post_glosses(ctx: Context, request: Request) -> Response:
         directory = explainers.EXPLAINER_DIR if record == "explainer" else glosses.GLOSS_DIR
         path = f"{parent}{directory}/{digest}.md"
         warned = preflight(root, path, content.encode(), verifier)
+        sections = dry_sections(target_dir, subject, text) if dry_run else []
     # F21-R5: after the gate's own refusals, as the copy rule is (appends.append_pr): a new chain
     # waits for the writer already at work on its subject; a superseding version does not.
     words = words_key(target_id, node_id, subject)
@@ -500,6 +575,22 @@ async def post_glosses(ctx: Context, request: Request) -> Response:
         {"subject": front.get("subject") or front.get("proof"), "supersedes": supersedes},
         sort_keys=True,
     )
+    if dry_run:
+        # F22-T5: every check a real request meets, the copy rule included, and nothing taken:
+        # no slot, no branch, no pull request, no record
+        duplicates.check_append(ctx, record, owner, written + text)
+        return JSONResponse(
+            {
+                "ok": True,
+                "dry_run": True,
+                "record": record,
+                "path": path,
+                "hash": digest,
+                "warnings": [w.as_dict() for w in warned],
+                "sections": sections,
+                "preview_html": preview_html(text),
+            }
+        )
     body = appends.append_pr(
         ctx,
         identity,

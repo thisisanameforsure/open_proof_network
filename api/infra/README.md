@@ -114,7 +114,7 @@ the whole service runs from a laptop against the real graph:
 
 ```sh
 set -a; . ./.env; set +a
-PYTHONPATH=api:gate uv run python -m opn_api.local --port 8000
+PYTHONPATH=api:gate:site uv run python -m opn_api.local --port 8000
 curl -s localhost:8000/health          # {"ok": true, "store": "memory"}
 ```
 

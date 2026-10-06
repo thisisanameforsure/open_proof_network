@@ -214,7 +214,16 @@ async def propose_witness(call: Call, args: dict[str, Any]) -> dict[str, Any]:
 
 async def submit_gloss(call: Call, args: dict[str, Any]) -> dict[str, Any]:
     """F20-R11: ``POST /glosses``, body for body."""
-    body = present("submit_gloss", args, "subject", "text", "supersedes", "licence", "drafted_with")
+    body = present(
+        "submit_gloss",
+        args,
+        "subject",
+        "text",
+        "supersedes",
+        "licence",
+        "drafted_with",
+        "dry_run",
+    )
     return await forward(call, "POST", "/glosses", body)
 
 
@@ -548,7 +557,8 @@ TOOLS: tuple[Tool, ...] = (
         "(F21-R5): a new chain on a file another open pull request is already writing words for "
         "is refused duplicate-submission (409, naming that pull request); list_words_needed "
         "finds the files that still have none. The receipt's `warnings` are the gate's "
-        "warnings, which refuse nothing (F22-T4).",
+        "warnings, which refuse nothing (F22-T4). `dry_run: true` runs every check, opens "
+        "nothing and answers 200 with warnings, sections and preview_html (F22-T5).",
         params(
             {
                 "subject": {
@@ -575,6 +585,11 @@ TOOLS: tuple[Tool, ...] = (
                     "type": "string",
                     "description": "the model and tooling that drafted the words (D-23), "
                     "1-200 characters; the route refuses anything else tooling-invalid",
+                },
+                "dry_run": {
+                    "type": "boolean",
+                    "description": "true: check only; the answer is {ok, warnings, sections "
+                    "[{key, steps, resolved}], preview_html} and nothing opens",
                 },
             },
             ("subject", "text", "licence"),
