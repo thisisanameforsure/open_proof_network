@@ -223,6 +223,7 @@ async def submit_gloss(call: Call, args: dict[str, Any]) -> dict[str, Any]:
         "licence",
         "drafted_with",
         "dry_run",
+        "amends",
     )
     return await forward(call, "POST", "/glosses", body)
 
@@ -558,7 +559,9 @@ TOOLS: tuple[Tool, ...] = (
         "is refused duplicate-submission (409, naming that pull request); list_words_needed "
         "finds the files that still have none. The receipt's `warnings` are the gate's "
         "warnings, which refuse nothing (F22-T4). `dry_run: true` runs every check, opens "
-        "nothing and answers 200 with warnings, sections and preview_html (F22-T5).",
+        "nothing and answers 200 with warnings, sections and preview_html (F22-T5). "
+        "`amends` (your open words submission's id) replaces its version in place, keeping the "
+        "pull request and its queue place (F22-T6).",
         params(
             {
                 "subject": {
@@ -585,6 +588,11 @@ TOOLS: tuple[Tool, ...] = (
                     "type": "string",
                     "description": "the model and tooling that drafted the words (D-23), "
                     "1-200 characters; the route refuses anything else tooling-invalid",
+                },
+                "amends": {
+                    "type": "string",
+                    "description": "the id (or pull-request number) of your own open gloss or "
+                    "explainer submission for the same subject, whose version this replaces",
                 },
                 "dry_run": {
                     "type": "boolean",

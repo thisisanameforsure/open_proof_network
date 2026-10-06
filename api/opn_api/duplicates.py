@@ -195,26 +195,29 @@ def supersedes_key(words: str, head: str) -> str:
     return "supersedes:" + words.removeprefix("words:") + ":" + head
 
 
-def words_rival(ctx: Context, key: str) -> Submission | None:
+def words_rival(ctx: Context, key: str, *, exclude: int | None = None) -> Submission | None:
     """The open gloss or explainer pull request, still able to merge, that carries ``key`` among
     its fingerprints. F22-T2: where ``main`` is and which pull requests the host still lists as
     open are read first, once per window for every caller, as ``GET /submissions/{id}`` does
     (``pending.answer``), so a pull request that merged a moment ago is not named as a rival
-    from a cached state (``pending.superseded`` sets such a state aside)."""
+    from a cached state (``pending.superseded`` sets such a state aside). ``exclude`` is a
+    pull request being amended (F22-T6): it is the writer, never its own rival."""
     frontier.pin_head(ctx)
     pending.open_listing(ctx)
     for found in ctx.store.list_open_submissions():
+        if found.pr_number == exclude:
+            continue
         if found.kind in WORDS_KINDS and key in found.fingerprints and blocks(ctx, found):
             return found
     return None
 
 
-def check_words(ctx: Context, key: str) -> None:
+def check_words(ctx: Context, key: str, *, exclude: int | None = None) -> None:
     """F21-R5: one writer per file. A new chain on a subject that an open pull request, still able
     to merge, already adds a version of is refused, naming that pull request. Keyed by ``key``
     rather than by node, since a definition module's gloss has none; a rival whose gate failed or
     that conflicts blocks nothing (``blocks``)."""
-    found = words_rival(ctx, key)
+    found = words_rival(ctx, key, exclude=exclude)
     if found is not None:
         raise refused(
             f"someone is already writing the words for this subject in pull request "
@@ -225,11 +228,11 @@ def check_words(ctx: Context, key: str) -> None:
         )
 
 
-def check_supersession(ctx: Context, key: str, head: str) -> None:
+def check_supersession(ctx: Context, key: str, head: str, *, exclude: int | None = None) -> None:
     """F22-T1: one writer per chain head. A version superseding ``head`` while an open pull
     request, still able to merge, already supersedes it is refused, naming that pull request:
     both would pass their gates against their own base and the chain would fork on merge."""
-    found = words_rival(ctx, key)
+    found = words_rival(ctx, key, exclude=exclude)
     if found is not None:
         raise refused(
             f"pull request #{found.pr_number} already supersedes {head[:12]}…; a chain head has "

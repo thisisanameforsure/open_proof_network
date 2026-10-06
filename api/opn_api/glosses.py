@@ -39,6 +39,7 @@ import logging
 import re
 import tempfile
 from collections.abc import Callable
+from dataclasses import replace
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, NoReturn
 
@@ -46,7 +47,8 @@ import yaml
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 
-from opn_api import appends, duplicates, pending, sshsig
+from opn_api import appends, duplicates, frontier, pending, sshsig, submissions
+from opn_api import clock as clockmod
 from opn_api import identity as identitymod
 from opn_api.app import ApiError
 from opn_api.githost import GitHostError
@@ -60,13 +62,14 @@ from opn_site import prose
 
 if TYPE_CHECKING:
     from opn_api.app import Context
-    from opn_api.store import Identity
+    from opn_api.store import Identity, Submission
 
 log = logging.getLogger(__name__)
 
 #: F05-T8: the fields each route reads; any other top-level key is refused. ``drafted_with``
 #: (F21-R6, D-23) names the model and tooling that drafted the words, in the caller's words.
-#: F22-T5: ``dry_run`` runs the whole pre-flight and opens nothing.
+#: F22-T5: ``dry_run`` runs the whole pre-flight and opens nothing. F22-T6: ``amends`` names an
+#: open words submission of the caller's whose version this one replaces, in place.
 GLOSS_FIELDS: tuple[str, ...] = (
     "subject",
     "text",
@@ -74,6 +77,7 @@ GLOSS_FIELDS: tuple[str, ...] = (
     "licence",
     "drafted_with",
     "dry_run",
+    "amends",
 )
 #: F21-R6: the record versions the service writes — v1 plus ``drafted_with`` — always, with the
 #: field null when the request names no model. The gate keeps reading v1 (D-34), and its own
@@ -118,6 +122,9 @@ HASH_RE = re.compile(r"^[0-9a-f]{64}$")
 #: A definition module's path under ``defs/``: gloss/v1's characters, relative, no empty segment.
 MODULE_RE = re.compile(r"^[A-Za-z0-9_]+(?:/[A-Za-z0-9_]+)*\.lean$")
 YAML_SUFFIXES = (".yaml", ".yml")
+#: F22-T6: the version a words submission carries, recorded beside its subject keys so an
+#: amendment can say which version it replaced.
+VERSION_PRINT = "version:"
 
 
 class HostVerifier:
@@ -517,6 +524,163 @@ def preview_html(text: str) -> str:
     return prose.render(text, math=True)
 
 
+def amended_submission(ctx: Context, identity: Identity, raw: Any) -> Submission:
+    """F22-T6: the open words submission ``amends`` names, which must be the caller's own. Every
+    refusal is a catalogued code: an id that is not one (``submission-id-invalid``), not the
+    service's (``submission-unknown``), not a gloss or explainer (``subject-invalid``), another
+    identity's (``not-holder``), merged (``submission-merged``) or closed
+    (``submission-unknown``). Open-ness is read fresh, as ``GET /submissions/{id}`` reads it."""
+    if not isinstance(raw, str | int) or isinstance(raw, bool):
+        raise ApiError(
+            400,
+            "submission-id-invalid",
+            "amends is the id POST /glosses answered (a ULID) or the pull-request number",
+        )
+    submission_id, number = pending.parse_id(str(raw))
+    found = (
+        ctx.store.get_submission(submission_id)
+        if submission_id is not None
+        else ctx.store.get_submission_by_pr(number or 0)
+    )
+    if found is None:
+        raise pending.unknown(str(raw))
+    if found.kind not in duplicates.WORDS_KINDS:
+        raise ApiError(
+            400,
+            "subject-invalid",
+            f"amends names a {found.kind} pull request (#{found.pr_number}); only a gloss's or "
+            "an explainer's words are amended",
+            details={"amends": found.id, "kind": found.kind},
+        )
+    if found.pseudonym.casefold() != identity.pseudonym.casefold():
+        raise ApiError(
+            403,
+            "not-holder",
+            f"pull request #{found.pr_number} is {found.pseudonym}'s; only its author amends it",
+            details={"amends": found.id, "pr_number": found.pr_number},
+        )
+    frontier.pin_head(ctx)
+    pending.open_listing(ctx)
+    found, pull, _error = pending.reconcile(ctx, found)
+    if found.closed is not None:
+        merged = bool((pull or {}).get("merged"))
+        raise ApiError(
+            409 if merged else 404,
+            "submission-merged" if merged else "submission-unknown",
+            f"pull request #{found.pr_number} has "
+            + (
+                "merged: supersede the version it added instead"
+                if merged
+                else "closed: file the words anew"
+            ),
+            details={"amends": found.id, "pr_number": found.pr_number},
+        )
+    return found
+
+
+def check_amended_subject(found: Submission, words: str) -> None:
+    """F22-T6: an amendment writes the same subject as the pull request it amends."""
+    if words not in found.fingerprints:
+        raise ApiError(
+            400,
+            "subject-invalid",
+            f"pull request #{found.pr_number} writes the words for another subject; an "
+            "amendment replaces words for the same file or proof",
+            details={"amends": found.id, "pr_number": found.pr_number, "subject": words},
+        )
+
+
+def amend(  # noqa: PLR0913 — one amended pull request, described
+    ctx: Context,
+    identity: Identity,
+    found: Submission,
+    *,
+    path: str,
+    content: str,
+    subject_line: str,
+    prints: list[str],
+) -> dict[str, Any]:
+    """F22-T6: move the amended pull request's own branch to one commit from ``main`` adding the
+    new version, so the old one is gone from it, and keep the pull request (its number and its
+    place in the queue); the gate runs again on the new head. The pull request says first which
+    version is replaced by which (trackable; a comment that fails is logged and moves nothing
+    less). The record keeps its id and takes the new fingerprints."""
+    settings = ctx.settings
+    now = clockmod.render(ctx.clock.now())
+    old = next(
+        (p.removeprefix(VERSION_PRINT) for p in found.fingerprints if p.startswith(VERSION_PRINT)),
+        None,
+    )
+    new = path.rsplit("/", 1)[-1].removesuffix(".md")
+    note = (
+        f"Amended by its author `{identity.pseudonym}` (F22-T6): this branch now carries "
+        f"`{path}` (`{new}`), one commit from `{settings.graph_branch}`"
+        + (f", in place of `{old}`." if old else ".")
+    )
+    try:
+        ctx.githost.comment_on_pull_request(settings.graph_repo, found.pr_number, note)
+    except GitHostError as exc:
+        log.warning("amend #%d: no comment posted: %s", found.pr_number, exc)
+    try:
+        head = ctx.githost.push_branch(
+            settings.graph_repo,
+            submissions.APPEND_BRANCH_PREFIX + found.id,
+            {path: content},
+            base=settings.graph_branch,
+            message=f"{subject_line}\n\n{submissions.sign_off(identity)}\n",
+            author=submissions.author_for(identity, now),
+            committer=submissions.committer_for(ctx, now),
+            replace=True,
+        )
+    except GitHostError as exc:
+        log.warning("amend #%d: branch not moved: %s", found.pr_number, exc)
+        raise ApiError(
+            502,
+            "pull-request-failed",
+            f"pull request #{found.pr_number} could not be amended; it is as it was: {exc}",
+        ) from exc
+    ctx.pulls.pop(found.pr_number, None)  # its head moved: read it afresh next time
+    try:
+        ctx.store.put_submission(replace(found, fingerprints=tuple(prints)))
+    except Exception as exc:  # any store failure: the branch moved regardless (C7)
+        log.error("amend #%d: record not updated: %s", found.pr_number, type(exc).__name__)
+    return {
+        "id": found.id,
+        "path": path,
+        "pr_url": found.pr_url,
+        "pr_number": found.pr_number,
+        "head_sha": head,
+        "amended": True,
+    }
+
+
+def one_writer(
+    ctx: Context, words: str, supersedes: Any, *, exclude: int | None
+) -> tuple[tuple[str, ...], tuple[str, ...]]:
+    """F21-R5, F22-T1: the one-writer rule for the request, and ``(slots, prints)``: the keys it
+    holds while its pull request opens and records with it. A new chain waits for the writer at
+    work on its subject; a superseding version for the writer at work on its head. ``exclude``
+    is the pull request being amended (F22-T6)."""
+    if supersedes is None:
+        duplicates.check_words(ctx, words, exclude=exclude)
+        return (words,), (words,)
+    head_key = duplicates.supersedes_key(words, str(supersedes))
+    duplicates.check_supersession(ctx, head_key, str(supersedes), exclude=exclude)
+    return (head_key,), (words, head_key)
+
+
+def receipt(
+    body: dict[str, Any], digest: str, front: dict[str, Any], warned: list[Diagnostic]
+) -> dict[str, Any]:
+    """The answer to a filed version: the pull request, the file's hash, the record kind, the
+    gate's warnings (F22-T4) and, for a gloss, the hash of the Lean text it describes."""
+    record = "explainer" if front["schema"] == EXPLAINER_SCHEMA else "gloss"
+    body |= {"hash": digest, "record": record, "warnings": [w.as_dict() for w in warned]}
+    if record == "gloss":
+        body["lean_hash"] = front["subject"]["lean_hash"]
+    return body
+
+
 async def post_glosses(ctx: Context, request: Request) -> Response:
     """R10: a gloss of a statement, witness, relation or definition module, or an explainer of a
     merged proof artifact; new, or superseding the head of its chain."""
@@ -533,6 +697,12 @@ async def post_glosses(ctx: Context, request: Request) -> Response:
         fields.get("drafted_with"), "drafted_with", cap=DRAFTED_WITH_MAX_CHARS
     )
     dry_run = dry_run_of(fields.get("dry_run"))
+    amended = (
+        amended_submission(ctx, identity, fields["amends"])
+        if fields.get("amends") is not None
+        else None
+    )
+    exclude = amended.pr_number if amended is not None else None
     record = "explainer" if subject["kind"] == PROOF_KIND else "gloss"
     with tempfile.TemporaryDirectory(prefix="opn-gloss-") as tmp:
         root = Path(tmp)
@@ -561,15 +731,9 @@ async def post_glosses(ctx: Context, request: Request) -> Response:
     # F21-R5: after the gate's own refusals, as the copy rule is (appends.append_pr): a new chain
     # waits for the writer already at work on its subject; a superseding version does not.
     words = words_key(target_id, node_id, subject)
-    if supersedes is None:
-        duplicates.check_words(ctx, words)
-        slots: tuple[str, ...] = (words,)
-        prints: tuple[str, ...] = (words,)
-    else:
-        # F22-T1: one writer per chain head, recorded and held as new chains hold their subject
-        head_key = duplicates.supersedes_key(words, str(supersedes))
-        duplicates.check_supersession(ctx, head_key, str(supersedes))
-        slots, prints = (head_key,), (words, head_key)
+    if amended is not None:
+        check_amended_subject(amended, words)
+    slots, prints = one_writer(ctx, words, supersedes, exclude=exclude)
     owner = node_id or subject.get("module") or target_id
     written = yaml.safe_dump(
         {"subject": front.get("subject") or front.get("proof"), "supersedes": supersedes},
@@ -591,6 +755,18 @@ async def post_glosses(ctx: Context, request: Request) -> Response:
                 "preview_html": preview_html(text),
             }
         )
+    if amended is not None:
+        fingerprint = duplicates.fingerprint(written + text)
+        body = amend(
+            ctx,
+            identity,
+            amended,
+            path=path,
+            content=content,
+            subject_line=f"{record}: {owner} {subject['kind']} (amended)",
+            prints=[fingerprint, *prints, VERSION_PRINT + digest],
+        )
+        return JSONResponse(receipt(body, digest, front, warned))
     body = appends.append_pr(
         ctx,
         identity,
@@ -602,14 +778,11 @@ async def post_glosses(ctx: Context, request: Request) -> Response:
         target_id=target_id,
         node_id=node_id,
         written=written + text,
-        subject_prints=prints,
+        subject_prints=(*prints, VERSION_PRINT + digest),
         subject_slots=slots,
         extra_body=warnings_note(warned),
     )
-    body |= {"hash": digest, "record": record, "warnings": [w.as_dict() for w in warned]}
-    if record == "gloss":
-        body["lean_hash"] = front["subject"]["lean_hash"]
-    return JSONResponse(body, status_code=201)
+    return JSONResponse(receipt(body, digest, front, warned), status_code=201)
 
 
 # --- POST /glosses/withdrawals -------------------------------------------------------------------
