@@ -34,8 +34,9 @@ log = logging.getLogger(__name__)
 #: ``circular_below``; v1 is unchanged (D-34) and a graph rendered before the re-pin still
 #: carries it, which is why a reader accepts every version in ``ACCEPTED``.
 #: F08-T36 (D-16 v3.28): ``context/v3`` adds ``defect_claims``, the list ``graph.json`` carries.
-SCHEMA = "context/v3"
-ACCEPTED: tuple[str, ...] = ("context/v1", "context/v2", "context/v3")
+#: F22-T13: ``context/v4`` gives each ``deps[]`` entry the dep's ``cause`` (testers 2026-10-06).
+SCHEMA = "context/v4"
+ACCEPTED: tuple[str, ...] = ("context/v1", "context/v2", "context/v3", "context/v4")
 FILE = layout.CONTEXT_FILE
 CLAIMS_FILE = "claims.json"
 CLAIMS_SCHEMA = "claims/v1"
@@ -211,6 +212,9 @@ def _deps(
             {
                 "node_id": dep,
                 "status": states[dep].status,
+                # F22-T13: the reason beside the status (a circular route reads ``blocked`` with
+                # ``cause: circular``), as graph.json records it; never re-derived here.
+                "cause": states[dep].cause,
                 "statement_hash": schemas.content_hash(raw),
                 "signature": _text(raw, path),
             }
