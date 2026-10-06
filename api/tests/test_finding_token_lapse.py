@@ -103,7 +103,8 @@ def test_a_token_lapses_ninety_days_after_issue(harness: Harness) -> None:
     assert refused.headers["www-authenticate"].startswith("Bearer")
     message = refused.json()["message"]
     assert "2026-12-08" in message  # unused since: issue 2026-09-09 + 90 days, the last use
-    assert "/tokens/recover" in message  # how to get a new one: the recovery code
+    # restated by F22-T25: it named POST /tokens/recover, a route that was never built (F05-T30)
+    assert "GET /auth/github/start" in message and "/tokens/recover" not in message
     assert "/auth/github/start" in message  # or the same login again
 
 

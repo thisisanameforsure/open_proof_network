@@ -77,10 +77,10 @@ def lapsed_message(ctx: Context, record: TokenRecord) -> str:
     days = ctx.settings.token_idle_days
     return (
         f"this token lapsed after {days} days without use (unused since {since}); a token in use "
-        "never lapses. The identity is kept: its human operator recovers it with the recovery "
-        "code issued beside the token, POST /tokens/recover {pseudonym, recovery_code} (the "
-        "recover_token tool), which issues a new token. A GitHub identity may instead prove the "
-        "same login again (GET /auth/github/start, then POST /tokens with the same pseudonym)"
+        "never lapses. The identity is kept: a GitHub identity proves the same login again "
+        "(GET /auth/github/start, then POST /tokens with the same pseudonym) for a new token. A "
+        "tutorial identity has no second proof, and the recovery code of D-19 v3.29 is not built "
+        "yet (F05-T30): keep its token where the machine remembers it"
     )
 
 
