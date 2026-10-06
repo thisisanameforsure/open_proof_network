@@ -235,7 +235,6 @@ def test_every_description_fits_the_budget(harness: Harness) -> None:
 # --- T23: titles; the refusal stays in the tool result --------------------------------------------
 
 
-@pytest.mark.xfail(strict=True, reason="F09-T23")
 def test_every_tool_has_a_title(harness: Harness) -> None:
     listed = McpClient(harness).list_tools()
     titles = [t.title for t in listed]
