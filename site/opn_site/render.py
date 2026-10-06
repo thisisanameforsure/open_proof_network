@@ -3919,19 +3919,41 @@ class Renderer:
                     f'<p class="explainer-of">On {esc(ARTIFACT_WORDS.get(s.kind, s.kind))}'
                     f"{' ' + where if where else ''}:</p>"
                 )
-            for chain in s.chains:
+            # F22-T16: the live chains first; a chain whose every version is withdrawn is one
+            # line beneath them, so no sentence about one chain reads as about the explainer.
+            live = [c for c in s.chains if c.current_version is not None or c.shown]
+            for chain in live:
                 current = chain.current_version
                 if chain.sectioned and chain.shown:
                     parts.append(self.explainer_shown(tv, s, chain, anchors=anchors))
-                elif current is None:
-                    parts.append(
-                        '<p class="cue">Every version of this explainer is withdrawn; they are '
-                        "listed in its history below (D-3 v3.30).</p>"
-                    )
-                else:
+                elif current is not None:
                     parts.append(self.explainer_version(tv, s, current, anchors=anchors))
+            parts.extend(
+                self.withdrawn_chain(chain, earlier=bool(live))
+                for chain in s.chains
+                if chain not in live
+            )
             parts.append(self.history(s))
         return "".join(parts), listed
+
+    @staticmethod
+    def withdrawn_chain(chain: ChainView, *, earlier: bool) -> str:
+        """F22-T16: an explainer chain whose every version is withdrawn, as one line: how many
+        versions it had and who wrote them, and where they are (D-3 v3.30: listed, never
+        hidden)."""
+        n = len(chain.versions)
+        authors = list(
+            dict.fromkeys(
+                v.author or str((v.drafter or {}).get("name") or "") for v in chain.versions
+            )
+        )
+        named = ", ".join(esc(a) for a in authors if a)
+        what = f"{n} version{'s' if n != 1 else ''}" + (f", by {named}" if named else "")
+        lead = "An earlier explainer" if earlier else "An explainer"
+        return (
+            f'<p class="cue withdrawn-chain">{lead} ({what}) was withdrawn; it is in the '
+            "history below (D-3 v3.30).</p>"
+        )
 
     def explainer_version(
         self,
