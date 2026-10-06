@@ -365,3 +365,82 @@ def test_the_pick_output_carries_a_batch_through_number_and_sha(doc: dict[Any, A
     for name in ("number", "sha", "action"):
         assert f'out.write(f"{name}=' in step["run"], name
     assert 'read -r -a actions <<< "$ACTION"' in act_step(doc)
+
+
+# --- F22-T22: one writer per chain head, in the merge actor ---------------------------------------
+
+
+def words(*keys: str) -> Any:
+    return lambda number: frozenset(keys)
+
+
+def test_a_batch_takes_one_append_per_words_directory(pick: dict[str, Any]) -> None:
+    """F22-T22 (R2): #415 and #417 each superseded the same gloss, each gated green against a
+    base without the other, and one batch merged both (2026-10-06): a fork. An append that
+    writes words where another in the batch already does is left for the next run, which
+    finds the first merged and updates it, so the gate meets the conflict."""
+    pulls = [pull(415, "append/a"), pull(416, "append/b"), pull(417, "append/c")]
+    of = {415: {"targets/t/nodes/n/gloss"}, 416: {"targets/t/nodes/m/gloss"}}
+    of[417] = {"targets/t/nodes/n/gloss"}
+    got = decide_words(pick, pulls, {n: green() for n in (415, 416, 417)}, of)
+    assert got == [(415, f"{415:040d}", "merge"), (416, f"{416:040d}", "merge")], got
+
+
+def test_an_append_whose_words_moved_on_main_is_updated_not_merged(pick: dict[str, Any]) -> None:
+    """F22-T22 (R2): across runs too. Merged behind main, an append's gate never saw what main
+    gained since its base; when that touched its words, it is updated, and the gate re-runs."""
+    pulls = [pull(417, "append/c"), pull(418, "append/d")]
+    of = {417: {"targets/t/nodes/n/gloss"}, 418: {"targets/t/nodes/m/gloss"}}
+    got = decide_words(pick, pulls, {417: green(), 418: green()}, of, moved={417})
+    assert got == [(417, f"{417:040d}", "update")], got
+
+
+def decide_words(
+    pick: dict[str, Any],
+    pulls: list[dict[str, Any]],
+    checks: dict[int, list[dict[str, Any]]],
+    of: dict[int, set[str]],
+    moved: set[int] | None = None,
+) -> list[tuple[int, str, str]]:
+    """The lane decisions as the acting step reads them (``decide_lanes``, F07-T56)."""
+    by_sha = {p["head"]["sha"]: p["number"] for p in pulls}
+    got: list[tuple[int, str, str]] = pick["decide_lanes"](
+        pulls,
+        RULES,
+        lambda sha: checks[by_sha[sha]],
+        lambda sha: 1,
+        lambda number: False,
+        now=NOW,
+        words_of=lambda number: frozenset(of.get(number, ())),
+        words_moved=lambda number: number in (moved or set()),
+    )
+    return got
+
+
+def test_words_keys_name_the_words_directories_of_a_pull_request(pick: dict[str, Any]) -> None:
+    keys = pick["words_keys"]
+    paths = [
+        "targets/t/nodes/n/gloss/abc.md",
+        "targets/t/nodes/n/explainer/def.md",
+        "targets/t/nodes/n/withdrawals/x.yaml",
+        "targets/t/nodes/n/gloss/signed/abc-1.yaml",
+        "targets/t/defs/gloss/g.md",
+        "targets/t/nodes/n/attempts/a.lean",
+    ]
+    assert keys(paths) == frozenset(
+        {
+            "targets/t/nodes/n/gloss",
+            "targets/t/nodes/n/explainer",
+            "targets/t/defs/gloss",
+        }
+    )
+    assert keys(None) is None
+
+
+def test_words_touched_reads_main_since_the_base(pick: dict[str, Any]) -> None:
+    touched = pick["words_touched"]
+    walk = [["targets/t/nodes/n/gloss/new.md"], ["targets/t/glosses.json"]]
+    assert touched(walk, frozenset({"targets/t/nodes/n/gloss"}))
+    assert not touched(walk, frozenset({"targets/t/nodes/m/gloss"}))
+    assert touched(None, frozenset({"targets/t/nodes/m/gloss"}))  # unreadable: update (C7)
+    assert not touched(None, frozenset())
