@@ -1089,6 +1089,7 @@ def check(  # noqa: PLR0912 — one branch per role with a check of its own
     has no OpenSSH (F06-Q6, F20-T6).
     """
     problems: list[Diagnostic] = []
+    added = frozenset(loc.path for loc in classification.located)
     for located in classification.located:
         if located.role in paths.APPEND_ROLES:
             problems.extend(check_append_file(graph_root, located, mode=classification.mode))
@@ -1097,7 +1098,7 @@ def check(  # noqa: PLR0912 — one branch per role with a check of its own
             problems.extend(
                 found
                 or check_draft_provenance(graph_root, located, classification)
-                or check_version_head(graph_root, located)
+                or check_version_head(graph_root, located, base=base, added=added)
                 or check_model_lock(graph_root, located, signer=signer)
                 or check_own_edit_opener(graph_root, located, classification, signer=signer)
             )
@@ -1110,7 +1111,7 @@ def check(  # noqa: PLR0912 — one branch per role with a check of its own
             problems.extend(
                 found
                 or check_draft_provenance(graph_root, located, classification)
-                or check_version_head(graph_root, located)
+                or check_version_head(graph_root, located, base=base, added=added)
                 or check_model_lock(graph_root, located, signer=signer)
                 or check_own_edit_opener(graph_root, located, classification, signer=signer)
             )
@@ -2444,20 +2445,47 @@ def check_draft_provenance(
     ]
 
 
-def check_version_head(graph_root: Path, located: Located) -> list[Diagnostic]:
+def _on_base(graph_root: Path, base: BaseReader, added: frozenset[str]) -> Callable[[Path], bool]:
+    """Whether a file of the checkout stood on the pull request's base or is one of its own."""
+
+    def present(path: Path) -> bool:
+        rel = path.relative_to(graph_root).as_posix()
+        return rel in added or base(rel) is not None
+
+    return present
+
+
+def check_version_head(
+    graph_root: Path,
+    located: Located,
+    *,
+    base: BaseReader | None = None,
+    added: frozenset[str] = frozenset(),
+) -> list[Diagnostic]:
     """F20-R6: a gloss or explainer that supersedes names the current head of a chain of its own
     subject. Who may supersede a signed version is no longer asked: anyone may, and a person's
     change to verified words is pending until a steward or curator signs it (F21-R13, withdrawing
-    F20-R6's ``signed-supersede``; ``opn_gate.sections``)."""
+    F20-R6's ``signed-supersede``; ``opn_gate.sections``).
+
+    F22-T11: what the version superseded is a fact about the pull request's base. With ``base``,
+    the siblings and withdrawals read are those that stood on the base, plus the pull request's
+    own files (``added``); the files are read from the checkout, since a version is named for its
+    content and never changes. A replay runs on ``main``'s tip, where a rival merged later sits
+    beside the version (#415, #417), so reading the checkout refused the version that had
+    superseded the head legitimately; a true fork (a rival on the base) is still refused. Without
+    ``base`` (``gloss file``, the service's composer) the checkout is the base plus the file."""
     parent = _record_parent(graph_root, located)
     siblings = _versions_of(parent, located.role)
     stem = PurePosixPath(located.path).stem
     version = next((v for v in siblings if v.hash == stem), None)
     if version is None or version.supersedes is None:
         return []  # nothing superseded; a file that did not load was refused by its own check
+    present = None if base is None else _on_base(graph_root, base, added)
+    if present is not None:
+        siblings = [v for v in siblings if v.hash == stem or present(v.path)]
     directory = glosses.GLOSS_DIR if located.role == "gloss" else "explainer"
     return glosses.head_problems(
-        located.path, version, siblings, glosses.withdrawn_versions(parent, directory)
+        located.path, version, siblings, glosses.withdrawn_versions(parent, directory, present)
     )
 
 
