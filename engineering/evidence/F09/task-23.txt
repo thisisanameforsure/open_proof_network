@@ -14,5 +14,6 @@ FAILED gate/tests/test_walkthrough.py::test_graph_copy_is_identical - Asserti...
 # The review's effect, measured (characters of compact JSON; ~3.6 characters a token)
 tools/list, declare() over all 37 tools, from detached worktrees:
   d1fe22f: 103,714 (descriptions 25,776; input schemas 11,044; output schemas 61,158)
-  ac8e80e: 73,679 (descriptions 17,608; input schemas 15,102; output schemas 35,233), titles add ~0.9k
+  ac8e80e: 73,679 (descriptions 17,608; input schemas 15,102; output schemas 35,233)
+  cea056d: 74,737 (the same three parts; the titles are the 1,058 difference)
 erdos-1050 get_node, the live answer of 2026-10-06 recomputed: text 120,561 (indent=2); compact 68,760; with include: [] 12,106
