@@ -461,6 +461,14 @@ def words_key(target_id: str, node_id: str | None, subject: dict[str, Any]) -> s
     return duplicates.words_key(target_id, file.as_posix() if file is not None else "")
 
 
+def spaced(raw: Any) -> Any:
+    """F22-T10 (testers 2026-10-06, request L): a declared model's whitespace normalised — each
+    run one space, none at either end — and nothing else: the words are the contributor's
+    (D-23), so the name is never respelled. Only whitespace is no model at all (null). Anything
+    that is not a string is left for ``appends.declared`` to refuse."""
+    return " ".join(raw.split()) if isinstance(raw, str) else raw
+
+
 def dry_run_of(raw: Any) -> bool:
     """F22-T5: ``dry_run`` is a boolean, absent meaning false. Anything else is the catalogued
     ``arguments-invalid``, naming the field (a code of its own would need a catalog row)."""
@@ -694,7 +702,7 @@ async def post_glosses(ctx: Context, request: Request) -> Response:
     )
     supersedes = fields.get("supersedes")
     drafted_with = appends.declared(
-        fields.get("drafted_with"), "drafted_with", cap=DRAFTED_WITH_MAX_CHARS
+        spaced(fields.get("drafted_with")), "drafted_with", cap=DRAFTED_WITH_MAX_CHARS
     )
     dry_run = dry_run_of(fields.get("dry_run"))
     amended = (

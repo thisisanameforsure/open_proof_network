@@ -586,8 +586,9 @@ TOOLS: tuple[Tool, ...] = (
                 "licence": {"enum": ["CC-BY-4.0", "CDLA-Permissive-2.0", "Apache-2.0"]},
                 "drafted_with": {
                     "type": "string",
-                    "description": "the model and tooling that drafted the words (D-23), "
-                    "1-200 characters; the route refuses anything else tooling-invalid",
+                    "description": "the model that drafted the words (D-23), as "
+                    "<model name> (<model id>), e.g. Claude Opus 5.5 (claude-opus-5-5); 1-200 "
+                    "characters, whitespace normalised; anything else is tooling-invalid",
                 },
                 "amends": {
                     "type": "string",
