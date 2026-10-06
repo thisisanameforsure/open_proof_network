@@ -397,6 +397,16 @@ with open(os.environ["GH_LOG"], "a") as log:
 prs = json.loads(os.environ["GH_PRS"])
 path = next((a for a in args if a.startswith("repos/")), "")
 found = re.match(r"repos/[^/]+/[^/]+/commits/([0-9a-f]+)/pulls$", path)
+# F22-T20: the host's empty answer, as on 2026-10-06 (gh exits 1 on an empty body); the first
+# GH_EMPTY lookups of a commit's pull requests fail, and GH_EMPTY=-1 fails them all.
+empty = int(os.environ.get("GH_EMPTY", "0"))
+if found and empty:
+    counter = os.environ["GH_LOG"] + ".empty"
+    seen = int(open(counter).read()) if os.path.exists(counter) else 0
+    open(counter, "w").write(str(seen + 1))
+    if empty < 0 or seen < empty:
+        print("unexpected end of JSON input", file=sys.stderr)
+        sys.exit(1)
 if found:
     number = prs.get(found.group(1))
     merged = [{"number": number, "merged_at": "x", "user": {"login": "bot"}}]
@@ -408,7 +418,13 @@ sys.exit(0)
 
 
 def run_find_step(
-    gate_doc: dict[Any, Any], graph: Graph, tmp_path: Path, sha: str, prs: dict[str, int]
+    gate_doc: dict[Any, Any],
+    graph: Graph,
+    tmp_path: Path,
+    sha: str,
+    prs: dict[str, int],
+    *,
+    empty: int = 0,
 ) -> tuple[int, dict[str, str], str, list[str]]:
     """The ``pr`` step on a push event, from a clone of ``graph`` checked out at ``sha``."""
     clone = tmp_path / f"clone-{sha[:7]}"
@@ -431,6 +447,7 @@ def run_find_step(
         PATH=f"{bin_dir}{os.pathsep}{env['PATH']}", GH_LOG=str(gh_log), GH_PRS=json.dumps(prs),
         GH_TOKEN=FAKE, GITHUB_EVENT_NAME="push", GITHUB_SHA=sha, GITHUB_REPOSITORY=REPO,
         GITHUB_OUTPUT=str(output), RUNNER_TEMP=str(runner_temp), REPLAY_PR="",
+        GH_EMPTY=str(empty), OPN_GH_RETRY_SLEEP="0",
     )  # fmt: skip
     proc = subprocess.run(
         ["bash", "-c", step_run(gate_doc, id_="pr")],
@@ -472,6 +489,31 @@ def test_a_merge_with_no_later_merge_is_recorded_as_before(
     assert code == 0, said
     assert out["run"] == "true" and out.get("batch", "false") == "false", (out, said)
     assert (out["number"], out["target"], out["merge"]) == ("2", "t1", two)
+
+
+def test_an_empty_answer_from_the_host_is_retried(gate_doc: dict[Any, Any], tmp_path: Path) -> None:
+    """F22-T20 (R8): runs 37414192547 and 37414195303 died on ``unexpected end of JSON input``
+    when three merges landed within five seconds; the next run recorded them, but the runs went
+    red. Two empty answers, then the host answers: the merge is recorded."""
+    graph = Graph(tmp_path / "g")
+    two = graph.append(2)
+    code, out, said, calls = run_find_step(gate_doc, graph, tmp_path, two, {two: 2}, empty=2)
+    assert code == 0, said
+    assert out["run"] == "true" and out["number"] == "2", (out, said)
+    assert sum("/pulls" in c and "commits/" in c for c in calls) == 3, calls
+
+
+def test_a_host_that_never_answers_leaves_the_merge_subject(
+    gate_doc: dict[Any, Any], tmp_path: Path
+) -> None:
+    """F22-T20 (R8): the merge commit's own subject names the pull request; a host that never
+    answers the lookup costs the retries, not the record."""
+    graph = Graph(tmp_path / "g")
+    two = graph.append(2)
+    code, out, said, _calls = run_find_step(gate_doc, graph, tmp_path, two, {two: 2}, empty=-1)
+    assert code == 0, said
+    assert out["run"] == "true" and out["number"] == "2" and out["merge"] == two, (out, said)
+    assert "from the merge subject" in said, said
 
 
 # --- static: the rest of the job ------------------------------------------------------------------
