@@ -1276,3 +1276,21 @@ The law of the project:
   regenerates over a tree without `.git`, so a stale record lifted by ancestry (F08-T10) always
   reads as a difference there; the bot's own commit shows the same four. And zsh's `$b:t` ate a
   path a third time: brace every variable followed by a colon, in `git show` arguments too.
+
+- 2026-10-06 — Four agents wrote the words for every file of erdos-1050 (graph #390–#436) and a
+  fifth read it as a mathematician; the findings became F22 (decisions v3.32), built test first by
+  three worktree agents and the lead, on local `main`. Four things worth keeping. **An exemption in
+  a rule is a door in it**: the service's one-writer check skipped any superseding version
+  (`if supersedes is None`), each of #415 and #417 was green against a base without the other, and
+  one append batch merged both: a fork, and two red replays after every later merge on the target.
+  Every layer that admits a record needed the rule (service, merge actor, gate), and the repair
+  was a curator withdrawal plus a credit commit naming it, which is a direct push to graph `main`
+  and was the owner's. **Read the actor's own log before guessing a cause**: explainers merging one
+  at a time looked like a rule about explainers; every slow run had held on GitHub's
+  `mergeable: null` for up to fifteen minutes, and an append (one content-named file) can act
+  through it. **Never `pkill -f` a pattern on a shared machine**: an agent's `pkill -f "make
+  verify"` matches every session's pre-commit run. **A heredoc delimiter inside the text it
+  carries ends it early**: a Python edit script fed by `<<'PY'` that quoted the guide's own `PY`
+  lines failed in the shell; write such a script to a file. And a marker filter can deselect the
+  test you meant to run: `-m "not lean and not docker"` dropped the walkthrough's executing test,
+  so "4 passed" said nothing about the new example.
