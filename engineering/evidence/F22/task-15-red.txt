@@ -1,0 +1,212 @@
+warning: `VIRTUAL_ENV=/Users/mikehiggins/Desktop/repos/open_proof_network/.venv` does not match the project environment path `.venv` and will be ignored; use `--active` to target the active environment instead
+FFFFF.FFFFFF.FFF.                                                        [100%]
+=================================== FAILURES ===================================
+_________________________ test_a_bullet_list_is_a_list _________________________
+
+    def test_a_bullet_list_is_a_list() -> None:
+        html = words("The terms:\n- $W(n)$ first;\n- then $A_k$.\n\nAfter.")
+>       assert html == (
+            "<p>The terms:</p>\n"
+            '<ul><li><span class="math">$W(n)$</span> first;</li>'
+            '<li>then <span class="math">$A_k$</span>.</li></ul>\n'
+            "<p>After.</p>"
+        )
+E       assert '<p>The terms...<p>After.</p>' == '<p>The terms...<p>After.</p>'
+E         
+E         - <p>The terms:</p>
+E         - <ul><li><span class="math">$W(n)$</span> first;</li><li>then <span class="math">$A_k$</span>.</li></ul>
+E         ?  ^^ ^^^^                                       ^^^^^^^^^                                       ^^^^^^^
+E         + <p>The terms: - <span class="math">$W(n)$</span> first; - then <span class="math">$A_k$</span>.</p>
+E         ?  ^ ^^^^^^^^^^^^^                                       ^^^                                       ^
+E           <p>After.</p>
+
+site/tests/test_f22_markdown.py:35: AssertionError
+_________________________ test_star_and_numbered_lists _________________________
+
+    def test_star_and_numbered_lists() -> None:
+>       assert words("* a\n* b") == "<ul><li>a</li><li>b</li></ul>"
+E       AssertionError: assert '<p>* a * b</p>' == '<ul><li>a</l...i>b</li></ul>'
+E         
+E         - <ul><li>a</li><li>b</li></ul>
+E         + <p>* a * b</p>
+
+site/tests/test_f22_markdown.py:44: AssertionError
+________________________ test_lists_nest_by_indentation ________________________
+
+    def test_lists_nest_by_indentation() -> None:
+        html = words("1. outer\n   - inner one\n   - inner two\n2. next")
+>       assert html == (
+            "<ol><li>outer<ul><li>inner one</li><li>inner two</li></ul></li><li>next</li></ol>"
+        )
+E       AssertionError: assert '<p>1. outer ...o 2. next</p>' == '<ol><li>oute...ext</li></ol>'
+E         
+E         - <ol><li>outer<ul><li>inner one</li><li>inner two</li></ul></li><li>next</li></ol>
+E         + <p>1. outer - inner one - inner two 2. next</p>
+
+site/tests/test_f22_markdown.py:50: AssertionError
+_ test_an_indented_line_continues_an_item_and_an_unindented_one_ends_the_list __
+
+    def test_an_indented_line_continues_an_item_and_an_unindented_one_ends_the_list() -> None:
+>       assert words("- one\n  more\n- two\nafter") == (
+            "<ul><li>one more</li><li>two</li></ul>\n<p>after</p>"
+        )
+E       AssertionError: assert '<p>- one mor...two after</p>' == '<ul><li>one ...n<p>after</p>'
+E         
+E         + <p>- one more - two after</p>
+E         - <ul><li>one more</li><li>two</li></ul>
+E         - <p>after</p>
+
+site/tests/test_f22_markdown.py:56: AssertionError
+________________ test_a_blank_line_between_items_keeps_one_list ________________
+
+    def test_a_blank_line_between_items_keeps_one_list() -> None:
+>       assert words("- a\n\n- b") == "<ul><li>a</li><li>b</li></ul>"
+E       AssertionError: assert '<p>- a</p>\n<p>- b</p>' == '<ul><li>a</l...i>b</li></ul>'
+E         
+E         - <ul><li>a</li><li>b</li></ul>
+E         + <p>- a</p>
+E         + <p>- b</p>
+
+site/tests/test_f22_markdown.py:62: AssertionError
+____________ test_display_math_on_its_own_lines_inside_a_list_item _____________
+
+    def test_display_math_on_its_own_lines_inside_a_list_item() -> None:
+        html = words("- the bound\n  $$\n  - x \\le y\n  $$\n- next")
+>       assert html == (
+            '<ul><li>the bound <span class="math">$$ - x \\le y $$</span></li><li>next</li></ul>'
+        )
+E       assert '<p>- the bou...n> - next</p>' == '<ul><li>the ...ext</li></ul>'
+E         
+E         - <ul><li>the bound <span class="math">$$ - x \le y $$</span></li><li>next</li></ul>
+E         ?  ^^ ^^^^                                                   ^^^^^^^^^      ^^ -----
+E         + <p>- the bound <span class="math">$$ - x \le y $$</span> - next</p>
+E         ?  ^ ^^                                                   ^^^      ^
+
+site/tests/test_f22_markdown.py:73: AssertionError
+__________________________ test_bold_italic_and_code ___________________________
+
+    def test_bold_italic_and_code() -> None:
+>       assert words("**Base case.** Use *induction* on `n`.") == (
+            "<p><strong>Base case.</strong> Use <em>induction</em> on <code>n</code>.</p>"
+        )
+E       AssertionError: assert '<p>**Base ca...n</code>.</p>' == '<p><strong>B...n</code>.</p>'
+E         
+E         - <p><strong>Base case.</strong> Use <em>induction</em> on <code>n</code>.</p>
+E         ?    ^^^^^^^^          ^^^^^^^^^     ^^^^         ^^^^^
+E         + <p>**Base case.** Use *induction* on <code>n</code>.</p>
+E         ?    ^^          ^^     ^         ^
+
+site/tests/test_f22_markdown.py:82: AssertionError
+_________________ test_math_inside_a_list_item_and_inside_bold _________________
+
+    def test_math_inside_a_list_item_and_inside_bold() -> None:
+        html = words("1. **Integrality of $d_n Q$.** It holds.\n2. *for $n \\ge 1$* too")
+>       assert html == (
+            '<ol><li><strong>Integrality of <span class="math">$d_n Q$</span>.</strong> It holds.</li>'
+            '<li><em>for <span class="math">$n \\ge 1$</span></em> too</li></ol>'
+        )
+E       assert '<p>1. **Inte...pan>* too</p>' == '<ol><li><str...too</li></ol>'
+E         
+E         - <ol><li><strong>Integrality of <span class="math">$d_n Q$</span>.</strong> It holds.</li><li><em>for <span class="math">$n \ge 1$</span></em> too</li></ol>
+E         ?  ^^ ^^^^^^^^^^^^                                                 ^^^^^^^^^          ^^^^^^^^^^^^^                                       ^^^^^      ^^ -----
+E         + <p>1. **Integrality of <span class="math">$d_n Q$</span>.** It holds. 2. *for <span class="math">$n \ge 1$</span>* too</p>
+E         ?  ^ ^^^^^                                                 ^^          ^^^^^                                       ^      ^
+
+site/tests/test_f22_markdown.py:89: AssertionError
+______________ test_stars_inside_math_or_code_are_never_emphasis _______________
+
+    def test_stars_inside_math_or_code_are_never_emphasis() -> None:
+        html = words("Here $a*b*c$ and `x * y * z` and **real**.")
+>       assert html == (
+            '<p>Here <span class="math">$a*b*c$</span> and <code>x * y * z</code> and '
+            "<strong>real</strong>.</p>"
+        )
+E       AssertionError: assert '<p>Here <spa...**real**.</p>' == '<p>Here <spa.../strong>.</p>'
+E         
+E         Skipping 63 identical leading characters in diff, use -v to show
+E         - code> and <strong>real</strong>.</p>
+E         + code> and **real**.</p>
+
+site/tests/test_f22_markdown.py:97: AssertionError
+_________________ test_a_link_is_its_text_and_its_url_as_text __________________
+
+    def test_a_link_is_its_text_and_its_url_as_text() -> None:
+        html = words("See [the paper](https://example.org/p?a=1&b=2).")
+>       assert html == "<p>See the paper (https://example.org/p?a=1&amp;b=2).</p>"
+E       AssertionError: assert '<p>See [the ...amp;b=2).</p>' == '<p>See the p...amp;b=2).</p>'
+E         
+E         - <p>See the paper (https://example.org/p?a=1&amp;b=2).</p>
+E         ?                 ^
+E         + <p>See [the paper](https://example.org/p?a=1&amp;b=2).</p>
+E         ?        +         ^
+
+site/tests/test_f22_markdown.py:105: AssertionError
+______________ test_headings_in_words_sit_below_the_page_headings ______________
+
+    def test_headings_in_words_sit_below_the_page_headings() -> None:
+        html = words("# hden\n\n## Candidate d for h3\n\nText.")
+>       assert html == "<h4>hden</h4>\n<h5>Candidate d for h3</h5>\n<p>Text.</p>"
+E       AssertionError: assert '<p># hden</p...n<p>Text.</p>' == '<h4>hden</h4...n<p>Text.</p>'
+E         
+E         - <h4>hden</h4>
+E         + <p># hden</p>
+E         - <h5>Candidate d for h3</h5>
+E         ?  ^^                     ^^
+E         + <p>## Candidate d for h3</p>
+E         ?  ^ +++                    ^
+E           <p>Text.</p>
+
+site/tests/test_f22_markdown.py:111: AssertionError
+______________ test_a_nul_in_the_words_cannot_forge_a_placeholder ______________
+
+    def test_a_nul_in_the_words_cannot_forge_a_placeholder() -> None:
+        html = words("`<b>` then \x000\x00 and **x**")
+>       assert "<b>" not in html and "\x00" not in html
+E       AssertionError: assert ('<b>' not in '<p><code>&l...nd **x**</p>'
+E         
+E         '<b>' is contained here:
+E           d **x**</p> and '\x00' not in '<p><code>&l...nd **x**</p>'
+E         
+E         '\x00' is contained here:
+E           <p><code>&lt;b&gt;</code> then  0  and **x**</p>
+E         ?                                +)
+
+site/tests/test_f22_markdown.py:133: AssertionError
+______________ test_emphasis_spans_math_in_an_informal_statement _______________
+
+    def test_emphasis_spans_math_in_an_informal_statement() -> None:
+        html = prose.inline_statement("**$p$ is prime** and *$q$ odd*", allowed_urls=frozenset())
+>       assert html == "<strong>$p$ is prime</strong> and <em>$q$ odd</em>"
+E       AssertionError: assert '**$p$ is pri...and *$q$ odd*' == '<strong>$p$ ...>$q$ odd</em>'
+E         
+E         - <strong>$p$ is prime</strong> and <em>$q$ odd</em>
+E         + **$p$ is prime** and *$q$ odd*
+
+site/tests/test_f22_markdown.py:141: AssertionError
+__________________ test_the_docs_carry_math_and_nested_lists ___________________
+
+    def test_the_docs_carry_math_and_nested_lists() -> None:
+        html = prose.render_document("For $n \\ge 1$:\n\n- a\n  - b `$HOME`\n")
+>       assert math_spans(html) == ["$n \\ge 1$"]
+E       AssertionError: assert [] == ['$n \\ge 1$']
+E         
+E         Right contains one more item: '$n \\ge 1$'
+E         Use -v to get more diff
+
+site/tests/test_f22_markdown.py:146: AssertionError
+=========================== short test summary info ============================
+FAILED site/tests/test_f22_markdown.py::test_a_bullet_list_is_a_list - assert...
+FAILED site/tests/test_f22_markdown.py::test_star_and_numbered_lists - Assert...
+FAILED site/tests/test_f22_markdown.py::test_lists_nest_by_indentation - Asse...
+FAILED site/tests/test_f22_markdown.py::test_an_indented_line_continues_an_item_and_an_unindented_one_ends_the_list
+FAILED site/tests/test_f22_markdown.py::test_a_blank_line_between_items_keeps_one_list
+FAILED site/tests/test_f22_markdown.py::test_display_math_on_its_own_lines_inside_a_list_item
+FAILED site/tests/test_f22_markdown.py::test_bold_italic_and_code - Assertion...
+FAILED site/tests/test_f22_markdown.py::test_math_inside_a_list_item_and_inside_bold
+FAILED site/tests/test_f22_markdown.py::test_stars_inside_math_or_code_are_never_emphasis
+FAILED site/tests/test_f22_markdown.py::test_a_link_is_its_text_and_its_url_as_text
+FAILED site/tests/test_f22_markdown.py::test_headings_in_words_sit_below_the_page_headings
+FAILED site/tests/test_f22_markdown.py::test_a_nul_in_the_words_cannot_forge_a_placeholder
+FAILED site/tests/test_f22_markdown.py::test_emphasis_spans_math_in_an_informal_statement
+FAILED site/tests/test_f22_markdown.py::test_the_docs_carry_math_and_nested_lists
+14 failed, 3 passed in 0.21s

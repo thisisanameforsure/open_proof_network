@@ -980,6 +980,14 @@ class Renderer:
             live=live,
         )
 
+    @staticmethod
+    def math_frame(body: str) -> dict[str, str]:
+        """F22-T15: the page frame's KaTeX, only for a body that carries math (F19-T6's rule), so
+        a page with none stays script-free."""
+        if 'class="math"' not in body:
+            return {}
+        return {"head": MATH_HEAD, "script": MATH_SCRIPTS}
+
     def redirect(self, to: str) -> str:
         """A page at an old path that sends the reader to the new one (Q14): a meta refresh and
         a link, inside the frame so it names the commit like every page (R2)."""
@@ -2725,9 +2733,8 @@ class Renderer:
         for path in sorted(FUNNEL_DOCS.glob("*.md")):
             title, summary = document_head(path.read_text(encoding="utf-8"))
             rel = f"docs/{path.stem}.html"
-            extra[rel] = self.page(
-                title, prose.render_document(path.read_text(encoding="utf-8")), renders=[]
-            )
+            doc = prose.render_document(path.read_text(encoding="utf-8"))
+            extra[rel] = self.page(title, doc, renders=[], **self.math_frame(doc))
             funnel_items.append(
                 f'<li><a href="/{esc(rel)}">{esc(title)}</a> — {prose.inline(summary)}</li>'
             )
@@ -2796,7 +2803,9 @@ class Renderer:
             gloss_guide_href=esc(GLOSS_GUIDE_HREF),
         )
         renders = [n for n in ("AGENTS.md", "LICENSE", "DCO") if (self.site.root / n).is_file()]
-        return self.page("Docs", body, renders=renders, path="/docs/"), extra
+        return self.page(
+            "Docs", body, renders=renders, path="/docs/", **self.math_frame(body)
+        ), extra
 
     def states(self) -> str:
         """F04-T21 (Q23): the Docs section that draws how a statement and a problem change state

@@ -1,8 +1,10 @@
-"""The deliberately tiny prose renderer (F04-T3; R3, R4; Q2).
+"""The deliberately small prose renderer (F04-T3; R3, R4; Q2; F22-T15).
 
-Contributor text becomes paragraphs and fenced code blocks; nothing else is interpreted. Every
-character is escaped, so no markup a contributor writes survives as markup. Correct and safe
-beats pretty at Stage 0 (Q2).
+Notes and acknowledgments become paragraphs and fenced code blocks, nothing else interpreted
+(Q2). Contributor words (glosses, explainers, annexes) and documents get a small Markdown subset —
+headings, nested lists, `code`, math, strong and emphasis — through one block renderer and one
+inline renderer. Every character is escaped before any tag is written, so no markup a contributor
+writes survives as markup, and no link a contributor writes leaves the site (F04-R13).
 """
 
 from __future__ import annotations
@@ -12,28 +14,31 @@ from html import escape
 
 FENCE = "```"
 _HEADING_RE = re.compile(r"^(?P<level>#{1,3})\s+(?P<text>.+?)\s*$")
-_BULLET_RE = re.compile(r"^-\s+(?P<text>.*)$")
-_NUMBERED_RE = re.compile(r"^\d+\.\s+(?P<text>.*)$")
-_CONTINUATION_RE = re.compile(r"^\s{2,}(?P<text>\S.*)$")
 _CODE_SPAN_RE = re.compile(r"`([^`\n]+)`")
 _STRONG_RE = re.compile(r"\*\*([^*\n]+)\*\*")
 
 
 def render(text: str, *, math: bool = False) -> str:
-    """Paragraphs separated by blank lines; ``` fences become <pre><code>; all text escaped.
+    """Contributor text as HTML.
 
-    With ``math`` (F19-T6, R12: explainer and annex prose), a paragraph's `code` spans become
-    ``<code>`` and its ``$…$`` and ``$$…$$`` outside them are wrapped in ``.math``, escaped, for
-    the same-origin renderer (math.js) to read back. A fence is never scanned."""
+    Without ``math`` (acknowledgments, justifications, notes; Q2): paragraphs separated by blank
+    lines and ``` fences as <pre><code>, every character escaped and nothing else interpreted.
+
+    With ``math`` (glosses, explainers and annexes: F19-T6, F22-T15), the words' Markdown subset
+    as well: headings (shown as ``h4`` to ``h6``, beneath the page's own), ``-``, ``*`` and ``1.``
+    lists nested by indentation, and the inline forms of ``words_inline`` — `code`, ``$…$`` and
+    ``$$…$$`` marked ``.math`` for the same-origin renderer (math.js), ``**strong**`` and
+    ``*emphasis*``, and a link as its text. A fence is never scanned, and every character is
+    escaped before any tag is written."""
+    if math:
+        return _blocks(text, document=False)
     out: list[str] = []
     paragraph: list[str] = []
     code: list[str] | None = None
 
     def flush() -> None:
         if paragraph:
-            joined = " ".join(paragraph)
-            body = _with_math(joined) if math else escape(joined, quote=True)
-            out.append("<p>" + body + "</p>")
+            out.append("<p>" + escape(" ".join(paragraph), quote=True) + "</p>")
             paragraph.clear()
 
     for raw in text.splitlines():
@@ -58,24 +63,10 @@ def render(text: str, *, math: bool = False) -> str:
     return "\n".join(out)
 
 
-def _with_math(text: str) -> str:
-    """One paragraph of prose: code spans set aside first, then the math outside them marked;
-    every piece escaped before it is wrapped, so nothing a contributor writes becomes markup."""
-    out: list[str] = []
-    for i, piece in enumerate(_CODE_SPAN_RE.split(text)):
-        if i % 2:  # the inside of a code span: text, never math
-            out.append(f"<code>{escape(piece, quote=True)}</code>")
-            continue
-        for j, part in enumerate(_PROSE_MATH_RE.split(piece)):
-            escaped = escape(part, quote=True)
-            out.append(f'<span class="math">{escaped}</span>' if j % 2 else escaped)
-    return "".join(out)
-
-
 def inline_math(text: str) -> str:
-    """One line of prose as ``render(..., math=True)`` renders a paragraph's inside: escaped, its
-    `code` spans as ``<code>``, its math in ``.math`` spans (F20-T8: a gloss's first sentence)."""
-    return _with_math(" ".join(text.split()))
+    """One line of words as ``render(..., math=True)`` renders a paragraph's inside (F20-T8: a
+    gloss's first sentence; an explainer section's heading)."""
+    return words_inline(" ".join(text.split()))
 
 
 def first_sentence(text: str) -> str:
@@ -111,16 +102,8 @@ def first_sentence(text: str) -> str:
     return joined
 
 
-def inline(text: str) -> str:
-    """Escaped text with two inline forms: `code` and **strong**. Nothing else is markup."""
-    escaped = escape(text, quote=True)
-    escaped = _CODE_SPAN_RE.sub(lambda m: f"<code>{m.group(1)}</code>", escaped)
-    return _STRONG_RE.sub(lambda m: f"<strong>{m.group(1)}</strong>", escaped)
-
-
-#: F04-T19 (Q21): the inline forms a curated record's informal statement may carry, copied from
-#: a registry's docstrings. Code is set aside first and math second, so neither is ever read as
-#: emphasis; what is left is escaped and then given three forms. A link needs an http(s) url.
+#: F04-T19 (Q21): a curated record's dollar rule — any text between two dollar signs on a line,
+#: or between ``$$`` pairs — kept as it was when the record's informal statement was first rendered.
 _MATH_RE = re.compile(r"(\$\$.+?\$\$|\$[^$\n]+?\$)", re.DOTALL)
 #: F19-T6: prose's dollar rule is Pandoc's — an opening ``$`` has a non-space after it, a closing
 #: one a non-space before it and no digit after it — so "costs $5 and $6" stays text (the escaping
@@ -128,42 +111,88 @@ _MATH_RE = re.compile(r"(\$\$.+?\$\$|\$[^$\n]+?\$)", re.DOTALL)
 _PROSE_MATH_RE = re.compile(r"(\$\$.+?\$\$|\$(?=[^\s$])[^$\n]*?(?<=[^\s$])\$(?!\d))", re.DOTALL)
 _EM_RE = re.compile(r"(?<![\w*])\*([^*\s](?:[^*\n]*[^*\s])?)\*(?![\w*])")
 _LINK_RE = re.compile(r"\[([^\]\n]+)\]\((https?://[^\s)]+)\)")
+#: F22-T15: a held piece (code, math, a link's url) is a NUL-delimited index while emphasis is
+#: read over the rest; a NUL the writer typed is replaced first, so no text can forge one.
+_HOLD_RE = re.compile("\x00(\\d+)\x00")
 
 
-def _emphasis(text: str) -> str:
-    escaped = escape(text, quote=True)
+def _inline(
+    text: str,
+    *,
+    math_re: re.Pattern[str],
+    math_span: bool,
+    allowed_urls: frozenset[str] | None,
+) -> str:
+    """The one inline renderer (F22-T15), for words, documents and record statements alike.
+
+    Code spans are held first, then math (``math_re``), then links; what is left is escaped, then
+    ``**strong**`` and ``*emphasis*`` are read over it, so a pair may span a held piece
+    (``**$x$ is prime**``) and nothing inside code or math is ever emphasis. Held pieces are
+    escaped when held. Math is wrapped in ``.math`` when ``math_span`` (the caller's text is not
+    already inside one). A link is an anchor only when ``allowed_urls`` names its url (a
+    validated record's citation, F04-R13); with ``allowed_urls`` None it is its text and its url
+    as text, and otherwise its text alone."""
+    held: list[str] = []
+
+    def hold(html: str) -> str:
+        held.append(html)
+        return f"\x00{len(held) - 1}\x00"
+
+    def link(m: re.Match[str]) -> str:
+        label, url = m.group(1), m.group(2)
+        if "\x00" in url:  # a held piece inside a url: not a link form at all
+            return m.group(0)
+        if allowed_urls is None:
+            return f"{label} ({hold(escape(url, quote=True))})"
+        if url in allowed_urls:
+            return hold(
+                f'<a href="{escape(url, quote=True)}">{_emphasis(escape(label, quote=True))}</a>'
+            )
+        return label
+
+    text = text.replace("\x00", "\ufffd")
+    pieces: list[str] = []
+    for i, piece in enumerate(_CODE_SPAN_RE.split(text)):
+        if i % 2:  # the inside of a code span: text, never math or emphasis
+            pieces.append(hold(f"<code>{escape(piece, quote=True)}</code>"))
+            continue
+        for j, part in enumerate(math_re.split(piece)):
+            if j % 2:
+                escaped = escape(part, quote=True)
+                pieces.append(
+                    hold(f'<span class="math">{escaped}</span>' if math_span else escaped)
+                )
+            else:
+                pieces.append(part)
+    body = _emphasis(escape(_LINK_RE.sub(link, "".join(pieces)), quote=True))
+    for _ in range(2):  # a link's label may itself hold a code span or math
+        body = _HOLD_RE.sub(lambda m: held[int(m.group(1))], body)
+    return body
+
+
+def _emphasis(escaped: str) -> str:
+    """``**strong**`` then ``*emphasis*``, over text already escaped."""
     escaped = _STRONG_RE.sub(lambda m: f"<strong>{m.group(1)}</strong>", escaped)
     return _EM_RE.sub(lambda m: f"<em>{m.group(1)}</em>", escaped)
 
 
-def _links(text: str, allowed_urls: frozenset[str]) -> str:
-    out: list[str] = []
-    at = 0
-    for m in _LINK_RE.finditer(text):
-        out.append(_emphasis(text[at : m.start()]))
-        label, url = _emphasis(m.group(1)), m.group(2)
-        # R13: only a url a validated record already cites may leave the site; any other link
-        # keeps its words and loses its target, so record prose cannot mint an outbound link.
-        out.append(
-            f'<a href="{escape(url, quote=True)}">{label}</a>' if url in allowed_urls else label
-        )
-        at = m.end()
-    out.append(_emphasis(text[at:]))
-    return "".join(out)
+def words_inline(text: str) -> str:
+    """A contributor's inline Markdown (F22-T15): `code`, math marked ``.math``, strong and
+    emphasis, a link as its text and url; everything escaped first."""
+    return _inline(text, math_re=_PROSE_MATH_RE, math_span=True, allowed_urls=None)
+
+
+def inline(text: str) -> str:
+    """A document's inline forms (tables, summaries): the same as ``words_inline``."""
+    return words_inline(text)
 
 
 def inline_statement(text: str, *, allowed_urls: frozenset[str]) -> str:
     """A record's informal statement as HTML: escaped, with `code`, **strong**, *emphasis* and
     [cited links](url). Text between dollar signs is passed through escaped and untouched, for
-    the same-origin math renderer to read back (T13)."""
-    out: list[str] = []
-    for i, piece in enumerate(_CODE_SPAN_RE.split(text)):
-        if i % 2:  # the inside of a code span
-            out.append(f"<code>{escape(piece, quote=True)}</code>")
-            continue
-        for j, part in enumerate(_MATH_RE.split(piece)):
-            out.append(escape(part, quote=True) if j % 2 else _links(part, allowed_urls))
-    return "".join(out)
+    the same-origin math renderer to read back from the ``.math`` element the caller wraps the
+    whole statement in (T13)."""
+    return _inline(text, math_re=_MATH_RE, math_span=False, allowed_urls=allowed_urls)
 
 
 #: F04-T10: the label an ``output`` fence carries. The guide's output blocks are fragments a
@@ -248,66 +277,114 @@ def heading_slug(text: str) -> str:
     return _SLUG_DROP_RE.sub("-", words.lower()).strip("-")
 
 
-def render_document(  # noqa: PLR0912, PLR0915 — one branch per line shape
-    text: str, *, anchors: str | None = None
-) -> str:
-    """The site's own documents (F10-R9) and the graph's AGENTS.md (F04-R9, T10): ``render``'s
-    rules plus headings (``#`` to ``###``), bullet and numbered lists with indented continuation
-    lines, the two inline forms of ``inline``, fence info strings (``_code_block``) and pipe
-    tables (a ``|`` row followed by a ``|---|`` rule). Every character is still escaped; the
-    renderer trusts nothing (F04-R3).
+def render_document(text: str, *, anchors: str | None = None) -> str:
+    """The site's own documents (F10-R9) and the graph's AGENTS.md (F04-R9, T10): the words'
+    Markdown subset (``render(..., math=True)``, math included since F22-T15) with headings at
+    their own levels (``#`` to ``###``), fence info strings (``_code_block``) and pipe tables (a
+    ``|`` row followed by a ``|---|`` rule). Every character is still escaped; the renderer trusts
+    nothing (F04-R3).
 
     With ``anchors`` (a prefix), each level-2 heading carries ``id="<prefix><heading_slug>"``,
     the first of any two that would share one, so a page can link a section of the guide
     (F20-Q16(a)); the prefix keeps the guide's ids apart from the page's own."""
+    return _blocks(text, document=True, anchors=anchors)
+
+
+#: F22-T15: a list item — ``-``, ``*`` or ``1.`` and a space, after any indentation, which nests.
+_ITEM_RE = re.compile(r"^(?P<indent>[ \t]*)(?:(?P<bullet>[-*])|\d{1,9}\.)\s+(?P<text>\S.*)$")
+#: An opening ``$`` that has not closed yet: a non-space, non-digit after it (so "$5" opens
+#: nothing), and no backslash or dollar before it.
+_OPEN_DOLLAR_RE = re.compile(r"(?<![\\$])\$(?=[^\s$\d])")
+
+
+def _math_open(text: str) -> bool:
+    """Whether a block's text so far leaves math open, so its next line belongs to the math and
+    is never read as a list item or a heading (``- `` inside ``$$…$$`` is not a list)."""
+    rest = _PROSE_MATH_RE.sub("", _CODE_SPAN_RE.sub("", text))
+    return "$$" in rest or bool(_OPEN_DOLLAR_RE.search(rest))
+
+
+def _indent(spaces: str) -> int:
+    return len(spaces.replace("\t", "    "))
+
+
+def _blocks(  # noqa: PLR0912, PLR0915 — one branch per line shape
+    text: str, *, document: bool, anchors: str | None = None
+) -> str:
+    """Block structure shared by words and documents (F22-T15): fences, paragraphs, headings,
+    lists nested by indentation (an indented line continues the deepest item, an unindented one
+    ends the list, a blank line between items keeps it), and, in a document, pipe tables and
+    anchored headings. A line inside open math continues its block whatever it starts with.
+    Inline text goes through ``words_inline``; every block is joined by a newline."""
     out: list[str] = []
     seen_ids: set[str] = set()
     paragraph: list[str] = []
-    items: list[str] = []
-    list_tag: str | None = None
+    item: list[str] = []  # the deepest open item's text not yet written
+    stack: list[tuple[int, str]] = []  # the open lists: indentation and tag
+    current: list[str] = []  # the fragments of the outermost open list
     code: list[str] | None = None
     info = ""
     lines = text.splitlines()
 
     def flush_paragraph() -> None:
         if paragraph:
-            out.append("<p>" + inline(" ".join(paragraph)) + "</p>")
+            out.append("<p>" + words_inline(" ".join(paragraph)) + "</p>")
             paragraph.clear()
 
-    def flush_list() -> None:
-        nonlocal list_tag
-        if items and list_tag:
-            out.append(
-                f"<{list_tag}>" + "".join(f"<li>{inline(i)}</li>" for i in items) + f"</{list_tag}>"
-            )
-        items.clear()
-        list_tag = None
+    def flush_item() -> None:
+        if item:
+            current.append(words_inline(" ".join(item)))
+            item.clear()
+
+    def close_top() -> None:
+        flush_item()
+        tag = stack.pop()[1]
+        current.append(f"</li></{tag}>")
+        if not stack:
+            out.append("".join(current))
+            current.clear()
+
+    def close_lists() -> None:
+        while stack:
+            close_top()
+
+    def fence(body: list[str], info_: str) -> str:
+        if document:
+            return _code_block(body, info_)
+        return "<pre><code>" + escape("\n".join(body), quote=True) + "</code></pre>"
 
     index = 0
     while index < len(lines):
         raw = lines[index]
         index += 1
         line = raw.rstrip()
+        stripped = line.strip()
         if code is not None:
-            if _CLOSING_FENCE_RE.match(line.strip()):
-                out.append(_code_block(code, info))
+            closing = _CLOSING_FENCE_RE.match(stripped) if document else stripped.startswith(FENCE)
+            if closing:
+                out.append(fence(code, info))
                 code = None
             else:
                 code.append(raw)
             continue
-        if line.strip().startswith(FENCE):
+        block = item if stack else paragraph
+        if stripped and block and _math_open(" ".join(block)):
+            block.append(stripped)
+            continue
+        if stripped.startswith(FENCE):
             flush_paragraph()
-            flush_list()
+            close_lists()
             code = []
-            info = line.strip().lstrip("`").strip()
+            info = stripped.lstrip("`").strip()
             continue
         if (
-            line.lstrip().startswith("|")
+            document
+            and line.lstrip().startswith("|")
             and index < len(lines)
             and _TABLE_RULE_RE.match(lines[index].strip())
         ):
             flush_paragraph()
-            flush_list()
+            close_lists()
             index += 1  # the rule row
             rows: list[str] = []
             while index < len(lines) and lines[index].lstrip().startswith("|"):
@@ -315,43 +392,48 @@ def render_document(  # noqa: PLR0912, PLR0915 — one branch per line shape
                 index += 1
             out.append(_table(line, rows))
             continue
-        if not line.strip():
+        if not stripped:
             flush_paragraph()
-            flush_list()
-            continue
+            continue  # a list stays open until a line that is not part of it
         heading = _HEADING_RE.match(line)
         if heading:
             flush_paragraph()
-            flush_list()
+            close_lists()
             level = len(heading.group("level"))
             attr = ""
-            if anchors is not None and level == 2:  # a section of the document
+            if document and anchors is not None and level == 2:  # a section of the document
                 slug = heading_slug(heading.group("text"))
                 if slug and anchors + slug not in seen_ids:
                     seen_ids.add(anchors + slug)
                     attr = f' id="{escape(anchors + slug, quote=True)}"'
-            out.append(f"<h{level}{attr}>{inline(heading.group('text'))}</h{level}>")
+            if not document:
+                level += 3  # words sit beneath the page's own headings
+            out.append(f"<h{level}{attr}>{words_inline(heading.group('text'))}</h{level}>")
             continue
-        bullet = _BULLET_RE.match(line)
-        numbered = _NUMBERED_RE.match(line)
-        if bullet or numbered:
+        marker = _ITEM_RE.match(line)
+        if marker:
             flush_paragraph()
-            tag = "ul" if bullet else "ol"
-            if list_tag != tag:
-                flush_list()
-                list_tag = tag
-            match = bullet or numbered
-            assert match is not None
-            items.append(match.group("text"))
+            flush_item()
+            depth = _indent(marker.group("indent"))
+            tag = "ul" if marker.group("bullet") else "ol"
+            while stack and stack[-1][0] > depth:
+                close_top()
+            if stack and stack[-1][0] == depth and stack[-1][1] != tag:
+                close_top()
+            if stack and stack[-1][0] == depth:
+                current.append("</li><li>")
+            else:  # a new list, at the top level or nested in the open item
+                current.append(f"<{tag}><li>")
+                stack.append((depth, tag))
+            item.append(marker.group("text").strip())
             continue
-        continuation = _CONTINUATION_RE.match(raw)
-        if continuation and items:
-            items[-1] += " " + continuation.group("text")
+        if stack and _indent(raw[: len(raw) - len(raw.lstrip())]) >= 2:
+            item.append(stripped)  # an indented line continues the deepest item
             continue
-        flush_list()
-        paragraph.append(line.strip())
+        close_lists()
+        paragraph.append(stripped)
     flush_paragraph()
-    flush_list()
+    close_lists()
     if code is not None:  # an unclosed fence is still just text, kept with its info string
-        out.append(_code_block(code, info))
+        out.append(fence(code, info))
     return "\n".join(out)
