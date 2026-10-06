@@ -27,7 +27,7 @@
           "items": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["target", "file", "kind", "node", "module", "reason", "outline"],
+            "required": ["target", "file", "kind", "node", "module", "reason", "outline", "in_review", "node_status"],
             "properties": {
               "target": {"type": "string"},
               "file": {
@@ -48,6 +48,22 @@
               },
               "outline": {
                 "description": "For a proof, alternate or partial: the path of its outline (F19), targets/<id>/outlines/<artifact-hash>.json; null otherwise.",
+                "type": ["string", "null"]
+              },
+              "in_review": {
+                "description": "F22-T7: the open words pull request, still able to merge, already writing this subject (the one the one-writer rule would name), or null.",
+                "oneOf": [
+                  {"type": "null"},
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": ["pr_number", "author"],
+                    "properties": {"pr_number": {"type": "integer"}, "author": {"type": "string"}}
+                  }
+                ]
+              },
+              "node_status": {
+                "description": "F22-T7: the node's status in the target's graph.json (superseded rows come last; skip them); null for a definition module, or when graph.json could not be read.",
                 "type": ["string", "null"]
               }
             }

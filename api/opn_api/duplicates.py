@@ -212,6 +212,23 @@ def words_rival(ctx: Context, key: str, *, exclude: int | None = None) -> Submis
     return None
 
 
+def in_review(ctx: Context, keys: set[str]) -> dict[str, Submission]:
+    """F22-T7: for each of ``keys`` (subject keys, ``words_key``), the open gloss or explainer
+    pull request, still able to merge, that writes it — what the one-writer rule would name —
+    read as fresh as ``words_rival`` reads it. The oldest wins where two do (a supersession
+    beside a new chain); a key nobody writes is absent."""
+    frontier.pin_head(ctx)
+    pending.open_listing(ctx)
+    out: dict[str, Submission] = {}
+    for found in ctx.store.list_open_submissions():  # by id: oldest first
+        if found.kind not in WORDS_KINDS:
+            continue
+        wanted = [k for k in found.fingerprints if k in keys and k not in out]
+        if wanted and blocks(ctx, found):
+            out |= dict.fromkeys(wanted, found)
+    return out
+
+
 def check_words(ctx: Context, key: str, *, exclude: int | None = None) -> None:
     """F21-R5: one writer per file. A new chain on a subject that an open pull request, still able
     to merge, already adds a version of is refused, naming that pull request. Keyed by ``key``
