@@ -33,11 +33,10 @@ PATH = ".github/workflows/merge.yml"
 #: ``origin/main`` first. A change to the actor lives on a graph branch until the owner pushes it;
 #: put that branch first while it does (T31 did), and take it out again once it is on main.
 #: ``audit-b-workflows`` is the audit of 2026-10-04 (F07-T58, T60-T63), first while it is a graph
-#: branch; F07-T46 and T55-T57 merged 2026-10-03. ``f22-workflows`` is F22-T20 to T24, first
-#: until the owner pushes it.
+#: branch; F07-T46 and T55-T57 merged 2026-10-03. F22-T20 to T24 (graph branch
+#: ``f22-workflows``) merged 2026-10-06 as graph #438; ``repin-readable`` came out then too, a
+#: merged branch 155 commits behind that shadowed ``origin/main`` once main's workflows moved.
 REFS = (
-    "f22-workflows",
-    "repin-readable",
     "audit-b-workflows",
     "origin/main",
     "f07-t25-merge-actor",
