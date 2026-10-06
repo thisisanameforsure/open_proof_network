@@ -54,6 +54,41 @@ def load(tool: str) -> dict[str, Any]:
     return doc
 
 
+#: JSON Schema's annotation keywords (2020-12 meta-data vocabulary): they never constrain.
+ANNOTATIONS = frozenset({"description", "title", "$comment", "examples"})
+#: Keywords whose value maps names to subschemas; a name there is never a keyword.
+SCHEMA_MAPS = frozenset(
+    {"properties", "patternProperties", "$defs", "definitions", "dependentSchemas"}
+)
+
+
+def without_annotations(schema: Any) -> Any:
+    """``schema`` with every annotation keyword removed, walking a map of names as names, so a
+    property called ``description`` is kept. It accepts exactly what ``schema`` accepts."""
+    if isinstance(schema, list):
+        return [without_annotations(item) for item in schema]
+    if not isinstance(schema, dict):
+        return schema
+    out: dict[str, Any] = {}
+    for key, value in schema.items():
+        if key in ANNOTATIONS:
+            continue
+        if key in SCHEMA_MAPS and isinstance(value, dict):
+            out[key] = {name: without_annotations(sub) for name, sub in value.items()}
+        else:
+            out[key] = without_annotations(value)
+    return out
+
+
+@cache
+def declared(tool: str) -> dict[str, Any]:
+    """The schema ``tools/list`` declares (F09-T20, Q19): the file without its annotations,
+    which were 43% of the declared bytes and mostly build history. ``get_schema`` and the
+    error-result check read the file itself."""
+    doc: dict[str, Any] = without_annotations(load(tool))
+    return doc
+
+
 @cache
 def _validator(tool: str) -> jsonschema.Draft202012Validator:
     return jsonschema.Draft202012Validator(load(tool))

@@ -177,14 +177,12 @@ def test_an_unknown_section_is_refused_by_name(harness: Harness) -> None:
 # --- T20: output schemas declared without prose ---------------------------------------------------
 
 
-@pytest.mark.xfail(strict=True, reason="F09-T20")
 def test_a_declared_output_schema_carries_no_prose(harness: Harness) -> None:
     for tool in McpClient(harness).list_tools():
         assert tool.outputSchema is not None, tool.name
         assert prose_at(tool.outputSchema) == [], tool.name
 
 
-@pytest.mark.xfail(strict=True, reason="F09-T20")
 def test_a_declared_output_schema_is_its_file_without_the_prose(harness: Harness) -> None:
     """Annotations never constrain (JSON Schema 2020-12), so the declared schema accepts what
     the file accepts; and a property named ``description`` is a name, kept."""

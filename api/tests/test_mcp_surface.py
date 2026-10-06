@@ -84,7 +84,8 @@ def test_tool_surface_frozen(harness: Harness) -> None:
     declared = {t.name: t for t in TOOLS}
     assert set(declared) == READS | WRITES
     for tool in listed:
-        assert tool.outputSchema == results.load(tool.name)
+        # F09-T20 (Q19): the file without its annotations, which never constrain
+        assert tool.outputSchema == results.declared(tool.name)
         assert tool.inputSchema["additionalProperties"] is False
         assert tool.annotations is not None
         assert tool.annotations.readOnlyHint is (tool.name in READS)

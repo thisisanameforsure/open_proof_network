@@ -156,7 +156,7 @@ def declare(tool: Tool) -> types.Tool:
         name=tool.name,
         description=f"{tool.description} Plain path: {row.d28}.",
         inputSchema=tool.input_schema,
-        outputSchema=results.load(tool.name),
+        outputSchema=results.declared(tool.name),
         annotations=types.ToolAnnotations(
             readOnlyHint=not tool.write, destructiveHint=False, idempotentHint=not tool.write
         ),
