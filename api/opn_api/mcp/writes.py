@@ -257,12 +257,9 @@ TOOLING = {
 }
 #: F08-T26 (R21): one sentence on use lines, shared by the tools that take a proof's text.
 USES_NOTE = (
-    " Use lines: a proof, an alternate or an assembly may add `import Defs.<Name>` (a definition "
-    "of the same target on the graph) or `import Nodes.«<id>».Proof` (another node's merged "
-    "proof) directly after the statement's imports; on a target whose pinned gate reads them, a "
-    "use it would refuse is refused by the gate's code (use-duplicate, use-unknown-defs, "
-    "use-self, use-unknown-node, use-superseded, use-unproved, use-redundant, use-ancestor) "
-    "before anything opens, and on an older pin the line is imports-differ."
+    " A proof may add use lines (`import Defs.<Name>`, `import Nodes.«<id>».Proof`) after the "
+    "statement's imports; a use the gate would refuse is refused by its use-* code before "
+    'anything opens. The guide\'s "Iterating fast" says more.'
 )
 DEPS = {"type": "array", "items": ID_PARAM, "description": "node ids the statement depends on"}
 MODEL = {"type": "string", "description": "the model or tooling that produced the statement"}
@@ -332,18 +329,17 @@ TOOLS: tuple[Tool, ...] = (
     ),
     Tool(
         "precheck_submission",
-        "Run the gate's steps 1-2 and 4-8 on a bundle server-side, structurally identical to "
-        "pregate.sh, and get back a job id to poll; a passing precheck yields the signed "
-        "attestation submit_proof needs. On the tutorial node no token is needed: the job is "
-        "answered with a single-use nonce, and its passing {id, nonce} is the proof get_token "
-        "takes. Every other node needs a token. A node that exists only in an open proposal can "
-        "be prechecked once that proposal's gate is green (waiting_on merge or branch-update): "
-        "the job runs at the proposal's head commit and names it in `proposal`; submit with it "
-        "after the proposal merges. A partial's bundle may carry the witness of any of its "
-        "holes as attempts/<assembly name without .lean>.<n>.witness, the text of that hole's "
-        "Witness.lean with a line `-- hole: <name>` naming the hole; each is checked as step 7 "
-        "checks a node's witness, and the result names it on its hole (`holes[].witness`)."
-        + USES_NOTE,
+        (
+            "Run the gate's steps 1-2 and 4-8 on a bundle server-side, as pregate.sh "
+            "does, and get a job id to poll with get_precheck; a passing precheck yields "
+            "the signed attestation submit_proof needs. On the tutorial node no token is "
+            "needed, and the passing job's {id, nonce} is the proof get_token takes. A "
+            "node that exists only in an open proposal whose gate is green can be "
+            "prechecked at the proposal's head (`proposal`). A partial's bundle may "
+            "carry a hole's witness as attempts/<assembly name without "
+            ".lean>.<n>.witness, with a line `-- hole: <name>`; the result names it on "
+            "its hole (`holes[].witness`)." + USES_NOTE
+        ),
         params(
             {
                 "node_id": ID_PARAM,
@@ -362,51 +358,19 @@ TOOLS: tuple[Tool, ...] = (
     ),
     Tool(
         "check_lean",
-        "Check Lean text within 20 s on the hosted checker matched to the target's pinned "
-        "Mathlib (AXLE, a third party) and get its errors, goal states and, with mode verify and "
-        "a node_id, its comparison against the node's statement, plus warnings wherever the gate "
-        "would refuse what the checker accepted. The body's `okay` is true, false, or null when "
-        "the checker gave no verdict (then `user_error` says why, e.g. the node's statement did "
-        "not compile); `result` is the checker's body verbatim, except that Mathlib's "
-        "naming-linter warning on a hole's gate-generated theorem name is left out and listed "
-        "in `dropped_warnings`. The target's Defs modules and, "
-        "with a node_id, the node's own Context (its dependencies' and holes' theorems) are "
-        "inlined for you (`inlined_defs`); without a node_id you can check a statement that is "
-        "not a node yet. A proof that uses a dependency is checked with mode check, not verify. "
-        "Mode witness, with a node_id, answers `witness`: the `expected` type step 7 will hold a "
-        "witness of that node to (paste it as your witness's type), and with your witness as "
-        "content its `given` type and whether it `matches`; without content, the expected type "
-        "alone. Mode witness with `statement` instead of a node_id (the text of a statement that "
-        "is not a node yet, as propose_variant or propose_speculative_node would send it, and "
-        "the `deps` it would declare) answers the same for that statement, before you propose "
-        "it; those two tools run this check themselves and refuse a mismatch. "
-        "Mode hazards, with a node_id or a `statement` (and its `deps`), runs step 6's own "
-        "hazard checkers over the statement, those the target's gate-spec.json names; send no "
-        "content (a content is refused 400 content-not-used). It answers `hazards`: {checkers, "
-        "findings: [{checker, location, message}], capped}; on a node, a finding its META.yaml "
-        "already acknowledges also carries `acknowledged: true` and the `justification`, by "
-        "step 6's own matching. A finding you mean is acknowledged in acknowledged_hazards with "
-        "its checker, its location exactly as printed and a justification. "
-        "`hazards_status` says how the run went: ran; statement-failed (the statement does not "
-        "compile: `okay` false, Lean's errors in `result`); or unavailable (the network's own "
-        "checker program failed on a statement that compiled: `okay` null, `service_fault` "
-        "true, `hazards_error` its errors; not your statement's fault, report it). "
-        "`target_id` may be omitted when a node_id is given: it is derived from the node, and "
-        "one the node does not belong to is refused 400 node-target-mismatch; with neither, the "
-        "answer is 400 target-id-required. "
-        "With `heartbeats: true` (modes check and verify) the answer also carries `heartbeats`: "
-        "for each top-level theorem and lemma of your content, the `heartbeats` it used against "
-        "the `cap` (200000 unless the text sets another) and `over_cap`, measured by placing "
-        "`#count_heartbeats in` before each one in a copy of your text and sending that copy as "
-        "a second check beside yours. The hosted checker reports no such figure itself. The "
-        "command runs its declaration without the cap, so a count above the cap is reported "
-        "where your own text stops with a heartbeat timeout; one that needs more than the 20 s "
-        "budget is not measured (`error`: check-timeout). A measurement of the fast checker, "
-        "never the gate's verdict; `okay` and `result` are still those of your text as sent. "
-        "Never authoritative: a precheck is the verdict. "
-        "No token needed; a token raises the limit. Every call is logged without its text; "
-        "GET /hosted-checkers.json says which targets have a checker. A used node's statement "
-        "is inlined with a sorry body, as a Context carries a dependency's." + USES_NOTE,
+        (
+            "Check Lean text within 20 s on the hosted checker (AXLE) matched to the "
+            "target's pinned Mathlib: errors, goals, `okay` (null with `user_error` when "
+            "no verdict) and `lint` where the gate would refuse what the checker "
+            "accepts. Defs and the node's Context are inlined; `target_id` is derived "
+            "from the node if omitted. Modes: check (default, and for a proof using a "
+            "dependency); verify, against the node's statement; witness, with a node_id "
+            "or a `statement` and `deps`: the `expected` type step 7 holds a witness to "
+            "and, with content, whether it `matches`. Mode hazards, with a node_id or a "
+            "`statement`, runs step 6's checkers: send no content (400 "
+            "content-not-used); a finding META.yaml acknowledges has `acknowledged: "
+            "true`. Never authoritative." + USES_NOTE
+        ),
         params(
             {
                 "target_id": {
@@ -475,18 +439,18 @@ TOOLS: tuple[Tool, ...] = (
     ),
     Tool(
         "submit_proof",
-        "Open the submission pull request on the graph: the ledger identity as author and "
-        "sign-off, the service as committer. Name the passing precheck of this bundle with "
-        "exactly one of `attestation` (the get_precheck result) or `precheck_job_id` (its id). "
-        "On a node whose Proof.lean has already merged, a later proof is an alternate: put it "
-        "at attempts/<timestamp>-<pseudonym>-alternate.lean with artifact_type proof (D-25). "
-        "A partial's bundle may carry its holes' witnesses, each as attempts/<assembly name "
-        "without .lean>.<n>.witness with a line `-- hole: <name>`: a hole whose witness the "
-        "precheck checked is created with it and needs no propose_witness; one the precheck "
-        "did not check is refused 400 hole-witness-unchecked and nothing opens. "
-        "A partial citing a stepped annex names each hole after one of its steps; a hole the "
-        "precheck named that is no step is refused 400 annex-step-missing and nothing opens."
-        + USES_NOTE,
+        (
+            "Open the submission pull request on the graph: your identity as author, the "
+            "service as committer. Name the passing precheck of this bundle with exactly "
+            "one of `attestation` (the get_precheck result) or `precheck_job_id`. A "
+            "later proof of a proved node is an alternate at "
+            "attempts/<timestamp>-<pseudonym>-alternate.lean (D-25). A partial's bundle "
+            "may carry its holes' witnesses as attempts/<assembly name without "
+            ".lean>.<n>.witness, each with a line `-- hole: <name>`; one the precheck "
+            "did not check is refused 400 hole-witness-unchecked, and a hole that is no "
+            "step of a cited stepped annex 400 annex-step-missing. Follow it with "
+            "get_submission." + USES_NOTE
+        ),
         params(
             {
                 "node_id": ID_PARAM,
@@ -568,32 +532,21 @@ TOOLS: tuple[Tool, ...] = (
     ),
     Tool(
         "submit_gloss",
-        "Say in words what one Lean file says (a gloss: subject.kind statement, witness or "
-        "relation with node_id, or definition with target_id and module), or explain one merged "
-        "proof artifact of a node (an explainer: kind proof, node_id, and proof, the artifact's "
-        "SHA-256 as get_node's outlines list it). New, or superseding the current version of its "
-        "chain: `supersedes` is that version's hash, as get_node's gloss_chains and "
-        "explainer_chains give it. Unverified prose that asserts nothing (D-3 v3.30): the "
-        "author is your identity, the file is named by its hash, and `licence` is required "
-        "(D-23); `drafted_with` names the model and tooling that drafted the words, if any "
-        "(1-200 characters; leave it out for your own writing). A gloss names the text it "
-        "describes (subject.lean_hash, the file as it stands when omitted). An explainer's text "
-        "is sections under level-2 headings; a heading may end `{steps: s3 s4.1}` naming the "
-        "outline's steps it describes. Anyone may supersede any version: a change to words a "
-        "person wrote or a steward verified waits, pending, until a steward or curator signs "
-        "it, except your own edit of your own unverified words, which shows at once. The gate's "
-        "own checks run first and refuse with their code before anything opens: "
-        "gloss-subject-mismatch (naming the current hash), explainer-proof-unknown, "
-        "explainer-step-unknown, section-duplicate, tooling-invalid, record-not-head (409, "
-        "naming the head), locked-by-a-person (409: a version with drafted_with may change only "
-        "drafted sections; it names the section and its Lean lines). Then one writer per file "
-        "(F21-R5): a new chain on a file another open pull request is already writing words for "
-        "is refused duplicate-submission (409, naming that pull request); list_words_needed "
-        "finds the files that still have none. The receipt's `warnings` are the gate's "
-        "warnings, which refuse nothing (F22-T4). `dry_run: true` runs every check, opens "
-        "nothing and answers 200 with warnings, sections and preview_html (F22-T5). "
-        "`amends` (your open words submission's id) replaces its version in place, keeping the "
-        "pull request and its queue place (F22-T6).",
+        (
+            "Write the words for one Lean file (a gloss: subject.kind statement, witness "
+            "or relation with node_id, or definition with target_id and module) or "
+            "explain one merged proof (an explainer: kind proof, node_id, and proof, the "
+            "hash get_node's outlines give). `supersedes` replaces a chain's current "
+            "version. `licence` is required; `drafted_with` names the model that drafted "
+            "the words, if one did. A change to words a person wrote or verified waits "
+            "for a steward's or curator's signature. Refused by code before anything "
+            "opens: gloss-subject-mismatch, explainer-proof-unknown, "
+            "explainer-step-unknown, section-duplicate, tooling-invalid, record-not-head "
+            "(409), locked-by-a-person (409), duplicate-submission (409: one writer per "
+            "file). The receipt's `warnings` refuse nothing; `dry_run: true` checks and "
+            "opens nothing; `amends` replaces your open submission's version in place. "
+            'The guide\'s "Glosses, explainers and outlines" says more.'
+        ),
         params(
             {
                 "subject": {
@@ -691,21 +644,18 @@ TOOLS: tuple[Tool, ...] = (
     ),
     Tool(
         "file_defect_claim",
-        "File a statement-defect claim (D-16): a class from the taxonomy, a line of the "
-        "referenced file, and a Lean exhibit; malformed claims bounce here with the rule named. "
-        f"Written as `{requests.DEFECT_SCHEMA}`. Class `{requests.CIRCULAR_CLASS}` also names "
-        "`ancestor`, a node above `stmt_ref`, and is written as "
-        f"`{requests.CIRCULAR_SCHEMA}`; its exhibit is one theorem proving "
-        "`<stmt_ref's statement> → <ancestor's statement>` (the hole implies what it was cut "
-        "from, so the route leads straight back; the reverse is refused circular-direction). "
-        "The exhibit is compiled on the hosted fast checker first, with the node's statement, "
-        "Context and definitions inlined where it imports them: one the checker says does not "
-        "compile is refused 422 exhibit-elaboration with Lean's `errors`, and nothing opens; "
-        "`exhibit_preflight` in the receipt says elaborates, inconclusive, unavailable or "
-        "skipped (a circularity claim's exhibit, which the gate checks as an implication). "
-        "A second record from you in the same second would share its file name "
-        "(<timestamp>-<pseudonym>), so it is refused 409 record-name-taken with "
-        "Retry-After: 1 and nothing opens.",
+        (
+            "File a statement-defect claim (D-16): a `class`, a `line` of the referenced "
+            f"file and a Lean `exhibit`, written as `{requests.DEFECT_SCHEMA}`. Class "
+            f"`{requests.CIRCULAR_CLASS}` also names `ancestor`, a node above `stmt_ref`, "
+            f"is written as `{requests.CIRCULAR_SCHEMA}`, and its exhibit is one theorem "
+            "proving `<stmt_ref's statement> → <ancestor's statement>` (the reverse is "
+            "refused circular-direction). The exhibit is compiled first: one that does "
+            "not compile is refused 422 exhibit-elaboration with Lean's `errors`, and "
+            "nothing opens; `exhibit_preflight` in the receipt says elaborates, "
+            "inconclusive, unavailable or skipped. A second record from you in the same "
+            "second is refused 409 record-name-taken with Retry-After: 1."
+        ),
         params(
             {
                 "stmt_ref": {
@@ -764,27 +714,20 @@ TOOLS: tuple[Tool, ...] = (
     ),
     Tool(
         "propose_speculative_node",
-        "Enter a crux statement as a speculative node (D-14): `stmt` and `witness` are Lean "
-        "files; admission is mechanical (D-29). "
-        "The witness is checked on the hosted fast checker first: a witness of the wrong type is "
-        "refused 422 witness-type-mismatch with `expected` and `given`, one of the right type "
-        "that does not compile 422 witness-fails with the checker's `errors`, and nothing "
-        "opens; `witness_preflight` in the receipt says matched, inconclusive or unavailable. "
-        "A statement the checker says does not compile is refused 422 statement-fails with "
-        "Lean's `errors` on its own lines, and a witness resting on sorryAx (a Context "
-        "declaration it uses is restated with sorry) or on an axiom outside the target's "
-        "allowlist 422 witness-sorry or 422 witness-axiom, as step 7 would. "
-        "The statement is run through the target's hazard checkers first as well: a finding "
-        "not in `acknowledged_hazards` is refused 422 hazard-unacknowledged with step 6's "
-        "`findings`, and nothing opens; `hazards_preflight` says clear, acknowledged, "
-        "inconclusive or unavailable (clear: no findings; acknowledged: every finding was "
-        "in `acknowledged_hazards`). With `require_hazards_preflight: true`, an inconclusive "
-        "or unavailable hazard pre-flight is refused 503 hazards-preflight-inconclusive and "
-        "nothing opens; without it the pull request opens and step 6 decides. "
-        "`for` names the node of the same target the crux is proposed for, written as the new "
-        "node's proposed-for record (D-14 v3.26): a pointer, not a dependency; an unknown, "
-        "superseded or self-naming `for` is refused 400 proposed-for-unknown-node, "
-        "proposed-for-superseded (naming the successor) or proposed-for-self, and nothing opens.",
+        (
+            "Enter a crux statement as a speculative node (D-14): `stmt` and `witness` "
+            "are Lean files; admission is mechanical (D-29). Pre-flights run first, and "
+            "each refusal opens nothing: 422 statement-fails; 422 witness-type-mismatch, "
+            "422 witness-fails, 422 witness-sorry or 422 witness-axiom; 422 "
+            "hazard-unacknowledged for a finding not in `acknowledged_hazards`. The "
+            "receipt's `witness_preflight` says matched, inconclusive or unavailable, "
+            "and `hazards_preflight` says clear, acknowledged, inconclusive or "
+            "unavailable; `require_hazards_preflight: true` refuses an inconclusive one "
+            "(503 hazards-preflight-inconclusive). `for` names the node it is proposed "
+            "for, a proposed-for pointer, not a dependency: refused 400 "
+            "proposed-for-unknown-node, proposed-for-superseded or proposed-for-self. "
+            'The guide\'s "Proposals" says more.'
+        ),
         params(
             {
                 "target_id": ID_PARAM,
@@ -803,31 +746,20 @@ TOOLS: tuple[Tool, ...] = (
     ),
     Tool(
         "propose_variant",
-        "Enter a labeled variant of the root (D-30): relation is resolves, partial or related "
-        "(default); a label above related needs `relation_proof`, gate-checked. "
-        "The relation proof is checked on the hosted fast checker first with admission's own "
-        "relation program, beside the variant's and the root's statements: one that does not "
-        "compile is refused 422 relation-elaboration with its `errors`, one resting on sorry "
-        "422 relation-sorry, on an axiom outside the allowlist 422 relation-axiom, and one "
-        "proving the other implication 422 relation-direction with `expected` and `declared`; "
-        "a file declaring anything but `theorem relation` is 400 relation-decl before any "
-        "check, and nothing opens; `relation_preflight` says matched, inconclusive, "
-        "unavailable or skipped (a related variant claims nothing). "
-        "The witness is checked on the hosted fast checker first: a witness of the wrong type is "
-        "refused 422 witness-type-mismatch with `expected` and `given`, one of the right type "
-        "that does not compile 422 witness-fails with the checker's `errors`, and nothing "
-        "opens; `witness_preflight` in the receipt says matched, inconclusive or unavailable. "
-        "A statement the checker says does not compile is refused 422 statement-fails with "
-        "Lean's `errors` on its own lines, and a witness resting on sorryAx (a Context "
-        "declaration it uses is restated with sorry) or on an axiom outside the target's "
-        "allowlist 422 witness-sorry or 422 witness-axiom, as step 7 would. "
-        "The statement is run through the target's hazard checkers first as well: a finding "
-        "not in `acknowledged_hazards` is refused 422 hazard-unacknowledged with step 6's "
-        "`findings`, and nothing opens; `hazards_preflight` says clear, acknowledged, "
-        "inconclusive or unavailable (clear: no findings; acknowledged: every finding was "
-        "in `acknowledged_hazards`). With `require_hazards_preflight: true`, an inconclusive "
-        "or unavailable hazard pre-flight is refused 503 hazards-preflight-inconclusive and "
-        "nothing opens; without it the pull request opens and step 6 decides.",
+        (
+            "Enter a labeled variant of the root (D-30): `relation` is resolves, partial "
+            "or related (default); above related needs `relation_proof`, a file "
+            "declaring `theorem relation` alone (else 400 relation-decl). Pre-flights "
+            "run first, and each refusal opens nothing: 422 relation-elaboration, 422 "
+            "relation-sorry, 422 relation-axiom, 422 relation-direction; 422 "
+            "statement-fails; 422 witness-type-mismatch, 422 witness-fails, 422 "
+            "witness-sorry or 422 witness-axiom; 422 hazard-unacknowledged. The "
+            "receipt's `relation_preflight` says matched, inconclusive, unavailable or "
+            "skipped, `witness_preflight` matched, inconclusive or unavailable, and "
+            "`hazards_preflight` says clear, acknowledged, inconclusive or unavailable; "
+            "`require_hazards_preflight: true` refuses an inconclusive one (503 "
+            'hazards-preflight-inconclusive). The guide\'s "Proposals" says more.'
+        ),
         params(
             {
                 "target_id": ID_PARAM,

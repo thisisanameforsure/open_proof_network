@@ -223,7 +223,6 @@ def test_the_frontier_filters_name_their_fields() -> None:
 # --- T22: descriptions fit a budget ---------------------------------------------------------------
 
 
-@pytest.mark.xfail(strict=True, reason="F09-T22")
 def test_every_description_fits_the_budget(harness: Harness) -> None:
     over = {
         t.name: len(t.description or "")

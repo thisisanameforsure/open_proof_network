@@ -280,7 +280,8 @@ hourly check budget `POST /check` spends. When your budget is spent, the pre-fli
 `429 rate-limited` with `Retry-After` and nothing opens; a checker that is down or gives no
 verdict is not your budget, and then the pull request still opens with `unavailable` or
 `inconclusive` in the receipt. With a `node_id`
-you may leave out `target_id`: the node's own target is used. A proposal whose theorem name a merged node or an open
+you may leave out `target_id`: the node's own target is used (one the node does not belong to
+is refused `400 node-target-mismatch`, and with neither the answer is `400 target-id-required`). A proposal whose theorem name a merged node or an open
 proposal already declares is refused `409 declaration-clash`, naming that node and its pull
 request: give yours a name of its own.
 The answer is never authoritative: only a precheck and then the gate decide (D-4). No token is

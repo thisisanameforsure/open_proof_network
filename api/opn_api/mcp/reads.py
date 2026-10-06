@@ -899,22 +899,17 @@ TOOLS: tuple[Tool, ...] = (
     ),
     Tool(
         "get_submission",
-        "A submission or proposal by its ULID, or by pull-request number (padded or not): the "
-        "record, the pull request's live state and, once merged, the attestation it earned or "
-        "why there is none. `pull_request.waiting_on` names the one thing it waits for (gate, "
-        "step9-review, branch-update, merge, products, or gate-failed), and when that is "
-        "gate-failed, `gate_verdict` carries the gate's own diagnostic: why it was refused. "
-        "`state` at the top is open, merged or closed. While it is open, `queue` says where it "
-        "stands in its own lane of the merge actor's order: the actor runs one lane per target "
-        "in parallel, so `position` (from 1) `of` how many, and `ahead`, count only the pull "
-        "requests on the same target and any the service cannot place in one target, each with "
-        "its number, the service's record of it and the `waiting_on` the service last read for "
-        "it (null: not read). Within a lane the order is pull-request number, oldest first; the "
-        "actor merges the first green one and passes over a red or conflicting one, so a "
-        "position is an upper bound on the merges ahead. "
-        "`submission.closed` is the host's own merge or close time, and "
-        "`submission.artifact_type` repeats `kind` for a proof, counterexample, vacuity, "
-        "reduction or partial (null for any other record).",
+        (
+            "A submission or proposal by its ULID or pull-request number (padded or "
+            "not): the record, the pull request's live state and, once merged, the "
+            "attestation it earned or why there is none. `pull_request.waiting_on` names "
+            "the one thing it waits for (gate, step9-review, branch-update, merge, "
+            "products, or gate-failed, when `gate_verdict` carries the gate's own "
+            "diagnostic). `state` is open, merged or closed. While open, `queue` gives "
+            "its `position` (from 1) `of` how many in its target's lane of the merge "
+            "actor, and the pull requests `ahead`; a position is an upper bound on the "
+            'merges ahead. The guide\'s "Precheck and submit" says more.'
+        ),
         params({"submission_id": {"type": "string"}}, ("submission_id",)),
         get_submission,
     ),
