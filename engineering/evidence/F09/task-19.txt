@@ -1,0 +1,9 @@
+# F09-T19 (R6, Q18; D-28 notation note 2026-10-06): get_node takes include, full by default. 2026-10-06
+$ uv run --frozen pytest api/tests/test_finding_mcp_context_budget.py -k "include or full_bundle or section"
+5 passed, 11 deselected, 2 warnings in 0.68s
+$ uv run --frozen pytest api/tests -k "mcp or node"
+257 passed, 1266 deselected, 6 xfailed, 2 warnings in 9.45s
+$ (fast tier) every gate/api test that reads gate/agents/AGENTS.md
+230 passed, 12 deselected
+$ uv run --frozen pytest api/tests/test_mcp_surface.py gate/tests/test_walkthrough.py -k "not graph_copy"
+11 passed, 1 deselected in 520.62s

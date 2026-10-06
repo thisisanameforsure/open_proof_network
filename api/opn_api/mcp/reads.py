@@ -449,8 +449,23 @@ def node_outlines(
     return out
 
 
+#: The prose sections of a node's bundle a caller may leave out (F09-T19, Q18), in answer order.
+PROSE_SECTIONS: tuple[str, ...] = (
+    "annexes",
+    "explainers",
+    "outlines",
+    "gloss_chains",
+    "explainer_chains",
+)
+#: The sections read from the node's chains of words, and so answered with ``chains_source``.
+CHAIN_SECTIONS = frozenset({"outlines", "gloss_chains", "explainer_chains"})
+
+
 async def get_node(call: Call, args: dict[str, Any]) -> dict[str, Any]:
     node_id = check_id(args.get("node_id"), "node_id")
+    # T19: every prose section unless the caller names the ones it wants (the owner's ruling:
+    # full by default). The input schema has already refused an unknown name.
+    wanted = set(PROSE_SECTIONS if args.get("include") is None else args["include"])
     try:
         facts = precheck.node_facts(call.ctx, node_id)
         bundle, source = node_context(call.ctx, str(facts["target_id"]), node_id)
@@ -470,8 +485,7 @@ async def get_node(call: Call, args: dict[str, Any]) -> dict[str, Any]:
         # Owner, 2026-09-14: get_node returns the latest node, so the bundle's committed claims
         # snapshot is replaced by the live overlay and the two blocks can never disagree.
         bundle = {**bundle, "claims": dict(claims)}
-    subjects, chains_source = node_chains(call.ctx, target_id, node_id)
-    return {
+    out: dict[str, Any] = {
         "node_id": node_id,
         "target_id": target_id,
         "context": bundle,
@@ -479,20 +493,29 @@ async def get_node(call: Call, args: dict[str, Any]) -> dict[str, Any]:
         "closing": closing_route(node_id, files.get("Statement.lean")),
         "files": files,
         "claims": dict(entry["claims"]) if entry is not None else None,
-        "annexes": _prose(call.ctx, f"{node_dir}/annex"),
-        "explainers": _prose(call.ctx, f"{node_dir}/explainer"),
+    }
+    # A section not asked for is not read from the host either (T19).
+    if "annexes" in wanted:
+        out["annexes"] = _prose(call.ctx, f"{node_dir}/annex")
+    if "explainers" in wanted:
+        out["explainers"] = _prose(call.ctx, f"{node_dir}/explainer")
+    if wanted & CHAIN_SECTIONS:
         # F20-R11: the outlines an explainer's sections name steps of, and every chain of words
         # on the node's Lean files and merged proofs, from the product or derived (F10-Q7).
-        "outlines": node_outlines(call.ctx, target_id, subjects),
-        "gloss_chains": [s for s in subjects if s["record"] == "gloss"],
-        "explainer_chains": [s for s in subjects if s["record"] == "explainer"],
-        "chains_source": chains_source,
-        # F09-T7: the pull requests already open on this node, as GET /submissions.json lists them.
-        "submissions": {
-            "open": [s for s in pending.get("open", []) if s.get("node_id") == node_id]
-        },
-        "untrusted_note": demarcate.UNTRUSTED_NOTE,
+        subjects, chains_source = node_chains(call.ctx, target_id, node_id)
+        if "outlines" in wanted:
+            out["outlines"] = node_outlines(call.ctx, target_id, subjects)
+        if "gloss_chains" in wanted:
+            out["gloss_chains"] = [s for s in subjects if s["record"] == "gloss"]
+        if "explainer_chains" in wanted:
+            out["explainer_chains"] = [s for s in subjects if s["record"] == "explainer"]
+        out["chains_source"] = chains_source
+    # F09-T7: the pull requests already open on this node, as GET /submissions.json lists them.
+    out["submissions"] = {
+        "open": [s for s in pending.get("open", []) if s.get("node_id") == node_id]
     }
+    out["untrusted_note"] = demarcate.UNTRUSTED_NOTE
+    return out
 
 
 async def get_defs(call: Call, args: dict[str, Any]) -> dict[str, Any]:
@@ -827,8 +850,20 @@ TOOLS: tuple[Tool, ...] = (
         "get_node",
         "A node's context bundle (nodes/<id>/CONTEXT.json: statement, deps' signatures, witness, "
         "status, gate-spec reference, attempt log, annex hashes) plus the raw Lean files, live "
-        "claim status, annexes, explainers and the submissions open on it.",
-        params({"node_id": ID_PARAM}, ("node_id",)),
+        "claim status, annexes, explainers and the submissions open on it. `include` names the "
+        "prose sections to answer (all of them when omitted); `include: []` answers the Lean, the "
+        "context, the claims and the open submissions alone.",
+        params(
+            {
+                "node_id": ID_PARAM,
+                "include": {
+                    "type": "array",
+                    "items": {"enum": list(PROSE_SECTIONS)},
+                    "uniqueItems": True,
+                },
+            },
+            ("node_id",),
+        ),
         get_node,
     ),
     Tool(

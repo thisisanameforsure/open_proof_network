@@ -2424,7 +2424,7 @@ field an argument becomes.
 | `list_targets` | `targets/index.json` | |
 | `get_target(target_id)` | `targets/<id>/graph.json` + `targets/<id>/approaches/` | |
 | `list_frontier(filters?)` | `GET /frontier.json` | |
-| `get_node(node_id)` | `nodes/<id>/CONTEXT.json` + the raw files under `nodes/<id>/` + the node's chains in `targets/<id>/glosses.json` + its proofs' `targets/<id>/outlines/<hash>.json` | |
+| `get_node(node_id, include?)` | `nodes/<id>/CONTEXT.json` + the raw files under `nodes/<id>/` + the node's chains in `targets/<id>/glosses.json` + its proofs' `targets/<id>/outlines/<hash>.json` | `include` names the prose sections to answer (`annexes`, `explainers`, `outlines`, `gloss_chains`, `explainer_chains`), all of them when omitted; `include: []` is the Lean, the context, the claims and the open submissions alone |
 | `get_defs(target_id)` | `targets/<id>/defs/` | |
 | `get_gate_spec(target_id)` | `targets/<id>/gate-spec.json` | |
 | `get_submission(submission_id)` | `GET /submissions/<id>` + `attestations/<id>.json` | |

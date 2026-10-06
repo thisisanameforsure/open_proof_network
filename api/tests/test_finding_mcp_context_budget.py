@@ -124,7 +124,6 @@ def test_the_text_keeps_lean_symbols_as_they_are(harness: Harness) -> None:
 # --- T19: get_node's include ----------------------------------------------------------------------
 
 
-@pytest.mark.xfail(strict=True, reason="F09-T19")
 def test_get_node_declares_include() -> None:
     [tool] = [t for t in TOOLS if t.name == "get_node"]
     include = tool.input_schema["properties"].get("include")
@@ -134,7 +133,6 @@ def test_get_node_declares_include() -> None:
     assert tool.input_schema["required"] == ["node_id"]
 
 
-@pytest.mark.xfail(strict=True, reason="F09-T19")
 def test_without_include_get_node_is_the_full_bundle(harness: Harness) -> None:
     """The owner's ruling of 2026-10-06: full by default, so no client changes."""
     seed_node(harness)
@@ -144,7 +142,6 @@ def test_without_include_get_node_is_the_full_bundle(harness: Harness) -> None:
     assert client.ok("get_node", {"node_id": NODE, "include": list(PROSE)}) == full
 
 
-@pytest.mark.xfail(strict=True, reason="F09-T19")
 def test_include_nothing_leaves_every_prose_section_out(harness: Harness) -> None:
     seed_node(harness)
     client = McpClient(harness)
@@ -159,7 +156,6 @@ def test_include_nothing_leaves_every_prose_section_out(harness: Harness) -> Non
     assert INJECTION in compact(full)
 
 
-@pytest.mark.xfail(strict=True, reason="F09-T19")
 def test_include_names_the_sections_it_answers(harness: Harness) -> None:
     seed_node(harness)
     client = McpClient(harness)
