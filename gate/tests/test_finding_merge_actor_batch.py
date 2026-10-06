@@ -242,11 +242,15 @@ def test_red_behind_pending_and_conflicting_appends_are_passed_over(pick: dict[s
     assert got == batch(pulls, 1, 5)
 
 
-def test_a_batch_ends_where_the_host_is_still_computing_mergeability(pick: dict[str, Any]) -> None:
-    """T32's rule inside the batch: an unknown answer is never acted on; what is before it goes."""
+def test_a_batch_goes_on_where_the_host_is_still_computing_mergeability(
+    pick: dict[str, Any],
+) -> None:
+    """Restated by F22-T23: T32's rule ended a batch at an unknown answer, and on 2026-10-06 that
+    kept explainers merging one at a time. An append can conflict only with its own content-named
+    file, so the batch takes it; a refused merge is updated by the acting step."""
     pulls = [pull(1, "append/a"), pull(2, "append/b"), pull(3, "append/c")]
     got = decide(pick, pulls, {n: green() for n in (1, 2, 3)}, 1, {2: None})
-    assert got == batch(pulls, 1)
+    assert got == batch(pulls, 1, 2, 3)
 
 
 def test_one_up_to_date_append_is_merged_as_before(pick: dict[str, Any]) -> None:
@@ -444,3 +448,27 @@ def test_words_touched_reads_main_since_the_base(pick: dict[str, Any]) -> None:
     assert not touched(walk, frozenset({"targets/t/nodes/m/gloss"}))
     assert touched(None, frozenset({"targets/t/nodes/m/gloss"}))  # unreadable: update (C7)
     assert not touched(None, frozenset())
+
+
+# --- F22-T23: an append is not held for the host's mergeability ----------------------------------
+
+
+def test_an_append_at_the_head_merges_while_the_host_computes_mergeability(
+    pick: dict[str, Any],
+) -> None:
+    """F22-T23 (feature request G): on 2026-10-06 every slow run held its lane on "the host is still
+    computing whether it conflicts" for up to fifteen minutes (runs 37412507990, 37412955458,
+    37413784079, 37414241372, 37414681803), and a batch ended at the first unknown answer, so
+    explainers queued behind the bot's commits merged one at a time. An append adds one file
+    named for its own content: it can conflict only with that same file, and a refused merge is
+    updated by the acting step. Building pull requests keep T32's hold."""
+    pulls = [pull(1, "append/a"), pull(2, "append/b")]
+    got = pick["decide_lanes"](
+        pulls, RULES, lambda _s: green(), lambda _s: 1, lambda _n: None, now=NOW
+    )
+    assert got == [(1, f"{1:040d}", "merge"), (2, f"{2:040d}", "merge")], got
+    pulls = [pull(1, "submit/a")]
+    got = pick["decide_lanes"](
+        pulls, RULES, lambda _s: green(), lambda _s: 1, lambda _n: None, now=NOW
+    )
+    assert got == [(1, f"{1:040d}", "hold")], got
