@@ -214,7 +214,17 @@ async def propose_witness(call: Call, args: dict[str, Any]) -> dict[str, Any]:
 
 async def submit_gloss(call: Call, args: dict[str, Any]) -> dict[str, Any]:
     """F20-R11: ``POST /glosses``, body for body."""
-    body = present("submit_gloss", args, "subject", "text", "supersedes", "licence", "drafted_with")
+    body = present(
+        "submit_gloss",
+        args,
+        "subject",
+        "text",
+        "supersedes",
+        "licence",
+        "drafted_with",
+        "dry_run",
+        "amends",
+    )
     return await forward(call, "POST", "/glosses", body)
 
 
@@ -547,7 +557,11 @@ TOOLS: tuple[Tool, ...] = (
         "drafted sections; it names the section and its Lean lines). Then one writer per file "
         "(F21-R5): a new chain on a file another open pull request is already writing words for "
         "is refused duplicate-submission (409, naming that pull request); list_words_needed "
-        "finds the files that still have none.",
+        "finds the files that still have none. The receipt's `warnings` are the gate's "
+        "warnings, which refuse nothing (F22-T4). `dry_run: true` runs every check, opens "
+        "nothing and answers 200 with warnings, sections and preview_html (F22-T5). "
+        "`amends` (your open words submission's id) replaces its version in place, keeping the "
+        "pull request and its queue place (F22-T6).",
         params(
             {
                 "subject": {
@@ -572,8 +586,19 @@ TOOLS: tuple[Tool, ...] = (
                 "licence": {"enum": ["CC-BY-4.0", "CDLA-Permissive-2.0", "Apache-2.0"]},
                 "drafted_with": {
                     "type": "string",
-                    "description": "the model and tooling that drafted the words (D-23), "
-                    "1-200 characters; the route refuses anything else tooling-invalid",
+                    "description": "the model that drafted the words (D-23), as "
+                    "<model name> (<model id>), e.g. Claude Opus 5.5 (claude-opus-5-5); 1-200 "
+                    "characters, whitespace normalised; anything else is tooling-invalid",
+                },
+                "amends": {
+                    "type": "string",
+                    "description": "the id (or pull-request number) of your own open gloss or "
+                    "explainer submission for the same subject, whose version this replaces",
+                },
+                "dry_run": {
+                    "type": "boolean",
+                    "description": "true: check only; the answer is {ok, warnings, sections "
+                    "[{key, steps, resolved}], preview_html} and nothing opens",
                 },
             },
             ("subject", "text", "licence"),

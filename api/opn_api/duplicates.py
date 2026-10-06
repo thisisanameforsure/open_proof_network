@@ -30,7 +30,7 @@ from contextlib import contextmanager
 from datetime import timedelta
 from typing import TYPE_CHECKING, Any
 
-from opn_api import pending, precheck
+from opn_api import frontier, pending, precheck
 from opn_api.app import ApiError
 
 if TYPE_CHECKING:
@@ -188,20 +188,77 @@ def words_key(target_id: str, subject: str) -> str:
     return f"words:{target_id}:{subject}"
 
 
-def check_words(ctx: Context, key: str) -> None:
+def supersedes_key(words: str, head: str) -> str:
+    """F22-T1: the slot of one chain head, ``supersedes:<target>:<subject>:<head>`` — ``words`` is
+    the subject's ``words_key``. A superseding version records and holds it, so a second open
+    supersession of the same head is refused (the fork of #415 and #417, testers 2026-10-06)."""
+    return "supersedes:" + words.removeprefix("words:") + ":" + head
+
+
+def words_rival(ctx: Context, key: str, *, exclude: int | None = None) -> Submission | None:
+    """The open gloss or explainer pull request, still able to merge, that carries ``key`` among
+    its fingerprints. F22-T2: where ``main`` is and which pull requests the host still lists as
+    open are read first, once per window for every caller, as ``GET /submissions/{id}`` does
+    (``pending.answer``), so a pull request that merged a moment ago is not named as a rival
+    from a cached state (``pending.superseded`` sets such a state aside). ``exclude`` is a
+    pull request being amended (F22-T6): it is the writer, never its own rival."""
+    frontier.pin_head(ctx)
+    pending.open_listing(ctx)
+    for found in ctx.store.list_open_submissions():
+        if found.pr_number == exclude:
+            continue
+        if found.kind in WORDS_KINDS and key in found.fingerprints and blocks(ctx, found):
+            return found
+    return None
+
+
+def in_review(ctx: Context, keys: set[str]) -> dict[str, Submission]:
+    """F22-T7: for each of ``keys`` (subject keys, ``words_key``), the open gloss or explainer
+    pull request, still able to merge, that writes it — what the one-writer rule would name —
+    read as fresh as ``words_rival`` reads it. The oldest wins where two do (a supersession
+    beside a new chain); a key nobody writes is absent."""
+    frontier.pin_head(ctx)
+    pending.open_listing(ctx)
+    out: dict[str, Submission] = {}
+    for found in ctx.store.list_open_submissions():  # by id: oldest first
+        if found.kind not in WORDS_KINDS:
+            continue
+        wanted = [k for k in found.fingerprints if k in keys and k not in out]
+        if wanted and blocks(ctx, found):
+            out |= dict.fromkeys(wanted, found)
+    return out
+
+
+def check_words(ctx: Context, key: str, *, exclude: int | None = None) -> None:
     """F21-R5: one writer per file. A new chain on a subject that an open pull request, still able
     to merge, already adds a version of is refused, naming that pull request. Keyed by ``key``
     rather than by node, since a definition module's gloss has none; a rival whose gate failed or
     that conflicts blocks nothing (``blocks``)."""
-    for found in ctx.store.list_open_submissions():
-        if found.kind in WORDS_KINDS and key in found.fingerprints and blocks(ctx, found):
-            raise refused(
-                f"someone is already writing the words for this subject in pull request "
-                f"#{found.pr_number}; one writer at a time (F21-R5). Wait for it: once it merges, "
-                "improve it with supersedes; if its gate fails or it is closed, start a chain",
-                found,
-                subject=key,
-            )
+    found = words_rival(ctx, key, exclude=exclude)
+    if found is not None:
+        raise refused(
+            f"someone is already writing the words for this subject in pull request "
+            f"#{found.pr_number}; one writer at a time (F21-R5). Wait for it: once it merges, "
+            "improve it with supersedes; if its gate fails or it is closed, start a chain",
+            found,
+            subject=key,
+        )
+
+
+def check_supersession(ctx: Context, key: str, head: str, *, exclude: int | None = None) -> None:
+    """F22-T1: one writer per chain head. A version superseding ``head`` while an open pull
+    request, still able to merge, already supersedes it is refused, naming that pull request:
+    both would pass their gates against their own base and the chain would fork on merge."""
+    found = words_rival(ctx, key, exclude=exclude)
+    if found is not None:
+        raise refused(
+            f"pull request #{found.pr_number} already supersedes {head[:12]}…; a chain head has "
+            "one writer at a time, or the chain forks (F22-T1). Wait for it: once it merges, "
+            "supersede the new head; if its gate fails or it is closed, supersede this one again",
+            found,
+            subject=key,
+            supersedes=head,
+        )
 
 
 def merged_texts(ctx: Context, target_id: str, node_id: str) -> dict[str, str]:

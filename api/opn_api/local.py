@@ -1,7 +1,7 @@
 """The local runner (F05-T1)::
 
     set -a; . ./.env; set +a          # the local door of C8
-    PYTHONPATH=api:gate uv run python -m opn_api.local [--port 8000]
+    PYTHONPATH=api:gate:site uv run python -m opn_api.local [--port 8000]
 
 Both packages must be on the path: ``opn_api`` for the service and ``opn_gate`` for the
 protocol schemas it validates against (D-34), which is how the deployed package is laid out

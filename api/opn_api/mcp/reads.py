@@ -24,7 +24,7 @@ from urllib.parse import urlencode
 
 import yaml
 
-from opn_api import frontier, pending, precheck, requests
+from opn_api import duplicates, frontier, pending, precheck, requests
 from opn_api import glosses as glossroutes
 from opn_api.app import ApiError, CachedDir, CachedFile
 from opn_api.githost import GitHostError
@@ -534,8 +534,12 @@ async def get_submission(call: Call, args: dict[str, Any]) -> dict[str, Any]:
 
 
 async def list_submissions(call: Call, args: dict[str, Any]) -> dict[str, Any]:
-    """``GET /submissions.json`` body for body (F09-T7; D-28's notation note of 2026-09-14)."""
-    return service_answer(await call.endpoint("GET", "/submissions.json"), "/submissions.json")
+    """``GET /submissions.json`` body for body (F09-T7; D-28's notation note of 2026-09-14), its
+    filters as the route's (F22-T8): ``target_id``, ``node_id`` and ``kind``."""
+    names = {"target_id": "target", "node_id": "node", "kind": "kind"}
+    query = {names[k]: str(v) for k, v in args.items() if k in names and v is not None}
+    path = "/submissions.json" + (f"?{urlencode(query)}" if query else "")
+    return service_answer(await call.endpoint("GET", path), "/submissions.json")
 
 
 async def get_schema(call: Call, args: dict[str, Any]) -> dict[str, Any]:
@@ -693,6 +697,49 @@ def _target_words(ctx: Context, entry: dict[str, Any]) -> list[dict[str, Any]]:
     return glosses.needed(doc, root=str(root) if root else None, curated=curated)
 
 
+def _node_statuses(ctx: Context, target_id: str) -> dict[str, str]:
+    """F22-T7: each node's status in the target's committed ``graph.json`` at main's head; none
+    when it cannot be read (the rows still answer, with ``node_status`` null)."""
+    try:
+        doc = _at_head(ctx, f"targets/{target_id}/graph.json")
+    except _UnreadError:
+        return {}
+    return {
+        str(n["node_id"]): str(n["status"])
+        for n in doc.get("nodes") or []
+        if isinstance(n, dict) and "node_id" in n and "status" in n
+    }
+
+
+def _subject_key(row: dict[str, Any]) -> str:
+    """The row's subject as the one-writer rule keys it (``duplicates.words_key``): a merged
+    artifact by its hash (the outline's name), a Lean file by its path under the target."""
+    target = str(row["target"])
+    if row.get("outline"):
+        return duplicates.words_key(target, str(row["outline"]).rsplit("/", 1)[-1][: -len(".json")])
+    return duplicates.words_key(target, str(row["file"]).removeprefix(f"targets/{target}/"))
+
+
+def _review_and_status(ctx: Context, subjects: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """F22-T7 (testers 2026-10-06, request D, P3-13): each row's ``in_review`` — the open words
+    pull request, still able to merge, writing its subject (``{pr_number, author}``), or null —
+    and ``node_status`` from the target's ``graph.json`` (null for a definition module); rows of
+    superseded nodes last, the record's order otherwise kept (nothing is ranked, D-25)."""
+    writing = duplicates.in_review(ctx, {_subject_key(r) for r in subjects}) if subjects else {}
+    statuses: dict[str, dict[str, str]] = {}
+    for row in subjects:
+        target = str(row["target"])
+        if target not in statuses:
+            statuses[target] = _node_statuses(ctx, target)
+        found = writing.get(_subject_key(row))
+        row["in_review"] = (
+            {"pr_number": found.pr_number, "author": found.pseudonym} if found is not None else None
+        )
+        node = row.get("node")
+        row["node_status"] = statuses[target].get(str(node)) if node is not None else None
+    return sorted(subjects, key=lambda r: r["node_status"] == "superseded")
+
+
 async def list_words_needed(call: Call, args: dict[str, Any]) -> dict[str, Any]:
     """Every Lean file and merged proof that still lacks words (F21-R8), computed from the
     committed products by ``glosses.needed`` (Q6), in the index's target order and each
@@ -737,6 +784,7 @@ async def list_words_needed(call: Call, args: dict[str, Any]) -> dict[str, Any]:
             )
             continue
         subjects.extend(r for r in rows if kind is None or r["kind"] == kind)
+    subjects = _review_and_status(ctx, subjects)
     return {
         "read_at": ctx.head or ctx.settings.graph_branch,
         "target_id": target_id,
@@ -825,8 +873,19 @@ TOOLS: tuple[Tool, ...] = (
         "own target's lane (the actor runs one lane per target in parallel) and "
         "the `waiting_on` the service last read for it (null: not read, ask get_submission); "
         "the top-level `queue.order` is the queue's pull-request numbers across every lane. "
-        "get_submission gives one with its checks and reviews; get_node lists a node's own.",
-        params({}),
+        "get_submission gives one with its checks and reviews; get_node lists a node's own. "
+        "`target_id`, `node_id` and `kind` filter by equality; `kind: words` keeps glosses and "
+        "explainers (F22-T8).",
+        params(
+            {
+                "target_id": ID_PARAM,
+                "node_id": ID_PARAM,
+                "kind": {
+                    "type": "string",
+                    "description": "words (a gloss or explainer), or one submission kind",
+                },
+            }
+        ),
         list_submissions,
     ),
     Tool(
@@ -918,7 +977,9 @@ TOOLS: tuple[Tool, ...] = (
         "Every Lean file and merged proof that still lacks words (a gloss for a statement, "
         "witness, relation or definition; an explainer for a proof, alternate or partial), with "
         "its target, file, kind, node, the reason none covers it and, for a proof, the path of "
-        "its outline. `target_id` keeps one target; `kind` keeps one kind. Read from each "
+        "its outline, `in_review` (the open pull request already writing it, {pr_number, "
+        "author}, or null) and `node_status` (superseded nodes come last: skip them). "
+        "`target_id` keeps one target; `kind` keeps one kind. Read from each "
         "target's glosses.json and target.yaml at main's head; in the record's order, ranked by "
         "nothing. A target whose files could not be read is named under `unread`. Plain path: "
         "targets/<id>/glosses.json and targets/<id>/target.yaml.",

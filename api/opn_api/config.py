@@ -19,6 +19,12 @@ Variables (prefix ``OPN_API_``):
 ``OPN_API_PUBLIC_URL``
     The service's own origin, used for the OAuth redirect URI (R3).
     Default ``http://127.0.0.1:8000`` (the local runner).
+``OPN_API_SITE_ORIGIN``
+    The public site's origin, the one origin ``GET /submissions.json`` answers with
+    ``Access-Control-Allow-Origin`` so a node page can show the words in review (F22-T8).
+    Default: the public URL without its leading ``api.`` label (``https://api.<domain>`` gives
+    ``https://<domain>``), and none for a public URL without one (the local runner); set it to
+    the empty string to send no header at all.
 ``OPN_API_GRAPH_REPO`` / ``OPN_API_GRAPH_BRANCH``
     Where the committed ``frontier.json`` is read from (R7, R9). Defaults: the Stage 0 graph
     under the founder's account, ``main``.
@@ -121,6 +127,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass, field, fields
 from datetime import date
 from typing import Any, Literal
+from urllib.parse import urlsplit
 
 StoreKind = Literal["memory", "dynamodb"]
 
@@ -132,6 +139,18 @@ DEFAULT_GRAPH_BRANCH = "main"
 #: deployment's own hostname, which only configuration names).
 GRAPH_HOST_WEB = "https://github.com"
 GUIDE_FILE = "AGENTS.md"
+
+
+def default_site_origin(public_url: str) -> str | None:
+    """F22-T8: the site's origin as the domain configuration implies it — the service answers on
+    ``api.<domain>`` and the site on ``<domain>`` — so no hostname is written here (log
+    2026-09-09). ``None`` when the public URL's host has no ``api.`` label."""
+    parts = urlsplit(public_url)
+    host = parts.hostname or ""
+    if not parts.scheme or not host.startswith("api.") or len(host) <= len("api."):
+        return None
+    port = f":{parts.port}" if parts.port else ""
+    return f"{parts.scheme}://{host.removeprefix('api.')}{port}"
 
 
 def default_guide_url(graph_repo: str, graph_branch: str) -> str:
@@ -273,6 +292,8 @@ class Settings:
     # --- audit 2026-10-04 (F05-T27) ---
     token_idle_days: int = DEFAULT_TOKEN_IDLE_DAYS
     token_cutover: str = DEFAULT_TOKEN_CUTOVER
+    # --- F22-T8 ---
+    site_origin: str | None = None
 
     def __repr__(self) -> str:  # secrets never appear in a repr or a log (C8)
         parts = []
@@ -387,13 +408,19 @@ def load(environ: Mapping[str, str] | None = None) -> Settings:
     if ttl_min > ttl_max:
         msg = f"OPN_API_CLAIM_TTL_MIN_H ({ttl_min}) exceeds OPN_API_CLAIM_TTL_MAX_H ({ttl_max})"
         raise ConfigError(msg)
+    public_url = env.get("OPN_API_PUBLIC_URL", DEFAULT_PUBLIC_URL).rstrip("/")
     return Settings(
         store=store,
         table_identities=env.get("OPN_API_TABLE_IDENTITIES") or None,
         table_tokens=env.get("OPN_API_TABLE_TOKENS") or None,
         table_claims=env.get("OPN_API_TABLE_CLAIMS") or None,
         parameter_prefix=env.get("OPN_API_PARAMETER_PREFIX", DEFAULT_PARAMETER_PREFIX),
-        public_url=env.get("OPN_API_PUBLIC_URL", DEFAULT_PUBLIC_URL).rstrip("/"),
+        public_url=public_url,
+        site_origin=(
+            (env["OPN_API_SITE_ORIGIN"].rstrip("/") or None)
+            if "OPN_API_SITE_ORIGIN" in env
+            else default_site_origin(public_url)
+        ),
         graph_repo=env.get("OPN_API_GRAPH_REPO", DEFAULT_GRAPH_REPO),
         graph_branch=env.get("OPN_API_GRAPH_BRANCH", DEFAULT_GRAPH_BRANCH),
         network_repo=env.get("OPN_API_NETWORK_REPO", DEFAULT_NETWORK_REPO),
