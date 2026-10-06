@@ -28,6 +28,9 @@ from pathlib import Path
 from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "gate"))
+sys.path.insert(
+    0, str(Path(__file__).resolve().parents[2] / "site")
+)  # opn_api.glosses reads opn_site.prose (F22-T5)
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "api"))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
