@@ -53,6 +53,10 @@ OUTLINES_DIR = "outlines"
 
 ARTIFACT_KINDS: tuple[str, ...] = ("proof", "alternate", "partial")
 
+#: F22-T14: the reserved id of a proof's trailing closing tactics, which no step encloses; the
+#: program marks that step with it (``"id"``), and it takes no ``s<n>`` position.
+CLOSE_ID = "close"
+
 #: The named reasons an artifact can be left without an outline (F19-R5).
 TIMEOUT = "timeout"
 MEMORY = "memory-exceeded"
@@ -192,6 +196,50 @@ def sibling_ids(names: Sequence[str | None]) -> list[str]:
     return [f"s{i + 1}" if i in fallback or c is None else c for i, c in enumerate(candidates)]
 
 
+def step_ids(names: Sequence[str | None], closing: Sequence[bool]) -> list[str]:
+    """F22-T14: the ids of one list of siblings, where ``closing`` marks the top level's trailing
+    closing step. Every other step is numbered by ``sibling_ids`` as if the closing step were not
+    there, so adding it moves no id an outline already published; it is ``close``, or, should a
+    sibling's name already give that id, ``close`` with underscores before it until free."""
+    kept = [i for i, c in enumerate(closing) if not c]
+    numbered = sibling_ids([names[i] for i in kept])
+    out: list[str] = [""] * len(names)
+    for i, sid in zip(kept, numbered, strict=True):
+        out[i] = sid
+    for i, c in enumerate(closing):
+        if c:
+            sid = CLOSE_ID
+            while sid in out:
+                sid = "_" + sid
+            out[i] = sid
+    return out
+
+
+def spans_by_id(steps: Sequence[Mapping[str, Any]]) -> dict[str, tuple[int, int]]:
+    """Every step of an outline, children included, by id: its line span."""
+    out: dict[str, tuple[int, int]] = {}
+    stack = list(steps)
+    while stack:
+        step = stack.pop()
+        out[str(step["id"])] = (int(step["span"]["start_line"]), int(step["span"]["end_line"]))
+        stack.extend(step.get("children") or [])
+    return out
+
+
+def lost_ids(old: Mapping[str, Any], new: Mapping[str, Any]) -> list[str]:
+    """F22-T14's invariant between an outline already published and the same artifact outlined
+    again: every id of ``old`` is in ``new`` with the same span, since explainers anchor on them
+    (F20-R3). One line per id that is missing or moved; empty when the invariant holds."""
+    before, after = spans_by_id(old.get("steps") or []), spans_by_id(new.get("steps") or [])
+    out = []
+    for sid, span in sorted(before.items()):
+        if sid not in after:
+            out.append(f"{sid}: missing (was lines {span[0]}-{span[1]})")
+        elif after[sid] != span:
+            out.append(f"{sid}: lines {span[0]}-{span[1]} became {after[sid][0]}-{after[sid][1]}")
+    return out
+
+
 def first_sentence(doc: str | None, cap: int) -> str | None:
     """A docstring's first sentence: up to the first ``.``, ``!`` or ``?`` followed by space or
     the end, or the first blank line, whitespace collapsed, cut at ``cap``. ``None`` for none."""
@@ -286,7 +334,7 @@ def _steps(  # noqa: PLR0913 — one argument per fact a step's fields are read 
     if not isinstance(raws, list) or not all(isinstance(r, dict) for r in raws):
         raise OutlineError(CONTRACT, "steps is not a list of objects")
     names = [r.get("name") if isinstance(r.get("name"), str) else None for r in raws]
-    ids = sibling_ids(names)
+    ids = step_ids(names, [r.get("id") == CLOSE_ID and not prefix for r in raws])
     out = []
     for raw, local, name in zip(raws, ids, names, strict=True):
         sid = f"{prefix}.{local}" if prefix else local

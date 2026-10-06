@@ -453,10 +453,11 @@ def test_outline_cli_real(
     ]
     # Each was elaborated against the interior nodes' merged proofs: the `have h2` step of the
     # proof and of the alternate uses and-reassoc's theorem, read back as a use of that node (a
-    # use in the closing `exact` belongs to no step, F19-Q11 (7)).
+    # use in the closing `exact` belonged to no step, F19-Q11 (7), until F22-T14 made the trailing
+    # closing tactics the `close` step).
     for path in ("Proof.lean", ALTERNATE):
         steps = docs[(ROOT_NODE, path)]["steps"]
-        assert [s["name"] for s in steps] == ["h2"], steps
+        assert [(s["id"], s["name"]) for s in steps] == [("h2", "h2"), ("close", None)], steps
         assert steps[0]["uses"]["nodes"] == [B], steps[0]["uses"]
     assert (
         docs[(ROOT_NODE, "Proof.lean")]["artifact"]["hash"]

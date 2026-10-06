@@ -416,3 +416,44 @@ def test_outline_defaults_and_refusals_in_config() -> None:
 )
 def test_first_sentence(doc: str | None, cap: int, expected: str | None) -> None:
     assert outline.first_sentence(doc, cap) == expected
+
+
+def closing_step(lines: tuple[int, int]) -> dict[str, Any]:
+    """The trailing closing step as the program prints it since F22-T14: marked ``id: close``."""
+    return {"id": outline.CLOSE_ID, **step("term", None, lines, uses=["Nat.add_zero"])}
+
+
+def test_the_close_step_moves_no_published_id() -> None:
+    """F22-T14: a proof's trailing closing tactics are one step with the reserved id ``close``,
+    outside the ``s<n>`` numbering, so every id and span the same artifact had without it is
+    kept (``lost_ids`` is empty); a sibling whose name already gives ``close`` keeps it and the
+    closing step yields; a marked step below the top level is numbered like any other."""
+    before = outline.build(answer(), job(), gate=GATE, caps=CAPS)
+    raw = answer()
+    raw["steps"].append(closing_step((9, 10)))
+    after = outline.build(raw, job(), gate=GATE, caps=CAPS)
+    assert ids(after["steps"]) == [*ids(before["steps"]), "close"]
+    assert outline.lost_ids(before, after) == []
+    last = after["steps"][-1]
+    assert last["kind"] == "term" and last["span"] == {"start_line": 9, "end_line": 10}
+    named = answer()
+    named["steps"][0]["name"] = "close"
+    named["steps"].append(closing_step((9, 10)))
+    doc = outline.build(named, job(), gate=GATE, caps=CAPS)
+    assert [s["id"] for s in doc["steps"]] == ["close", "key", "s3", "this", "_close"]
+    nested = answer()
+    nested["steps"][1]["children"].append(closing_step((6, 6)))
+    assert ids(outline.build(nested, job(), gate=GATE, caps=CAPS)["steps"])[:5] == [
+        "h1", "key", "key.s1", "key.s2", "key.s3",
+    ]  # fmt: skip
+
+
+def test_lost_ids_names_every_missing_or_moved_step() -> None:
+    """The invariant's check: an id gone or whose span changed is one line each."""
+    before = outline.build(answer(), job(), gate=GATE, caps=CAPS)
+    assert outline.lost_ids(before, copy.deepcopy(before)) == []
+    moved = outline.build(answer(shift=1), job(), gate=GATE, caps=CAPS)
+    assert outline.lost_ids(before, moved)[0] == "h1: lines 2-2 became 3-3"
+    gone = copy.deepcopy(before)
+    gone["steps"][1]["children"].pop()
+    assert outline.lost_ids(before, gone) == ["key.s2: missing (was lines 5-5)"]
