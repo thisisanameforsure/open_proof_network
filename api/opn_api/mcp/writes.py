@@ -547,7 +547,8 @@ TOOLS: tuple[Tool, ...] = (
         "drafted sections; it names the section and its Lean lines). Then one writer per file "
         "(F21-R5): a new chain on a file another open pull request is already writing words for "
         "is refused duplicate-submission (409, naming that pull request); list_words_needed "
-        "finds the files that still have none.",
+        "finds the files that still have none. The receipt's `warnings` are the gate's "
+        "warnings, which refuse nothing (F22-T4).",
         params(
             {
                 "subject": {

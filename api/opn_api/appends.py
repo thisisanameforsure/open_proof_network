@@ -237,13 +237,15 @@ def append_pr(  # noqa: PLR0913 — one pull request, described
     defect_class: str | None = None,
     subject_prints: tuple[str, ...] = (),
     subject_slots: tuple[str, ...] = (),
+    extra_body: str = "",
 ) -> dict[str, Any]:
     """One appended file, one branch, one pull request (R11, R2), recorded as ``kind`` so its
     state can be watched through ``GET /submissions/{id}`` (F07-T16). F07-T35: an append
     identical to one open for the same node (or target) is refused before anything is pushed.
     F21-Q5: ``subject_prints`` are recorded beside the content fingerprints (a gloss's or
     explainer's subject key), and ``subject_slots`` are held with them, so two requests for one
-    slot arriving together cannot both open (F21-R5)."""
+    slot arriving together cannot both open (F21-R5). ``extra_body`` follows the body's own lines
+    (F22-T4: the gate's warnings to a gloss or explainer)."""
     owner = node_id or target_id
     prints = duplicates.check_append(ctx, kind, owner, written or content)
     append_id = identitymod.new_ulid(ctx.clock.now())
@@ -259,7 +261,7 @@ def append_pr(  # noqa: PLR0913 — one pull request, described
             files={path: content},
             subject=subject,
             title=subject,
-            body=pr_body(what, identity.pseudonym, path),
+            body=pr_body(what, identity.pseudonym, path) + extra_body,
         )
     log.info("%s %s opened %s for %s", what, append_id, pr.url, identity.id)
     pending.record(

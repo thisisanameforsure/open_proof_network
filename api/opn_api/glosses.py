@@ -53,6 +53,7 @@ from opn_api.githost import GitHostError
 from opn_gate import config as gate_config
 from opn_gate import explainers, glosses, modes, products, schemas
 from opn_gate.diagnostic import Diagnostic
+from opn_gate.paths import Change
 from opn_gate.signer import NAMESPACE, Signature, SignatureKind, SignerError
 
 if TYPE_CHECKING:
@@ -227,12 +228,37 @@ def refuse(problems: list[Diagnostic]) -> NoReturn:
     )
 
 
-def preflight(root: Path, path: str, content: bytes, verifier: HostVerifier) -> None:
+def preflight(root: Path, path: str, content: bytes, verifier: HostVerifier) -> list[Diagnostic]:
     """R1 to R7 over the scratch tree with ``path`` added, as the merge would run them on a pull
-    request the service opened: refused by the gate's code, or nothing."""
+    request the service opened: refused by the gate's code, or the gate's warnings (F22-T4).
+
+    The warnings are ``modes.warnings`` over the same tree and the same classification the gate
+    makes at the merge (F20-R5: never a refusal), so the writer reads in the answer what only
+    the Actions log said before (testers 2026-10-06, request A)."""
     problems = modes.check_as_service(root, path, content, service_login=OPENER, signer=verifier)
     if problems:
         refuse(problems)
+    try:
+        curators = modes.load_curators(root)
+    except modes.CuratorsError:
+        curators = modes.Curators()
+    # the classification check_as_service made, made again: it does not hand it back
+    classification = modes.classify(
+        [Change("A", path)],
+        author=OPENER,
+        curators=curators,
+        graph_root=root,
+        service_login=OPENER,
+    )
+    return modes.warnings(root, classification)
+
+
+def warnings_note(found: list[Diagnostic]) -> str:
+    """The pull request's lines for the gate's warnings (F22-T4): none when there are none."""
+    if not found:
+        return ""
+    lines = "".join(f"- `{w.code}`: {w.message}\n" for w in found)
+    return f"\nThe gate warns, without refusing (F20-R5):\n\n{lines}"
 
 
 def check_own_name(identity: Identity, root: Path, target_id: str, verifier: HostVerifier) -> None:
@@ -456,7 +482,7 @@ async def post_glosses(ctx: Context, request: Request) -> Response:
         parent = f"targets/{target_id}/" + (f"nodes/{node_id}/" if node_id else "")
         directory = explainers.EXPLAINER_DIR if record == "explainer" else glosses.GLOSS_DIR
         path = f"{parent}{directory}/{digest}.md"
-        preflight(root, path, content.encode(), verifier)
+        warned = preflight(root, path, content.encode(), verifier)
     # F21-R5: after the gate's own refusals, as the copy rule is (appends.append_pr): a new chain
     # waits for the writer already at work on its subject; a superseding version does not.
     words = words_key(target_id, node_id, subject)
@@ -487,8 +513,9 @@ async def post_glosses(ctx: Context, request: Request) -> Response:
         written=written + text,
         subject_prints=prints,
         subject_slots=slots,
+        extra_body=warnings_note(warned),
     )
-    body |= {"hash": digest, "record": record}
+    body |= {"hash": digest, "record": record, "warnings": [w.as_dict() for w in warned]}
     if record == "gloss":
         body["lean_hash"] = front["subject"]["lean_hash"]
     return JSONResponse(body, status_code=201)
