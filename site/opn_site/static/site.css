@@ -486,7 +486,7 @@ main > h2 { padding-top: var(--s4); border-top: 1px solid var(--divider); }
   .two-cards { grid-template-columns: 1fr; }
   .page-head { flex-direction: column; align-items: flex-start; gap: var(--s4); padding-top: var(--s8); padding-bottom: var(--s5); }
   .controls { align-items: flex-start; }
-  .seg-opt[data-filter="unstewarded"], .search, .seg-opt .long, .problems-head .lead, .problem-id-row .tag-outline { display: none; }
+  .seg-opt[data-filter="unstewarded"], .search, .seg-opt .long, .problems-head .lead { display: none; }
   .legend { display: none; }
   .legend-mobile { display: block; }
   .card.problem { padding: var(--s5); gap: var(--s3); }

@@ -557,7 +557,9 @@ FIDELITY_KEYS: dict[str, str] = {
 ORIGIN_ROLES: dict[str, str] = {
     "skeleton-hole": "left open by a proof skeleton",
     "compiler-derived": "derived by the compiler",
-    "authored": "a statement the proof needs",
+    # F22-T17 (8): a statement's origin says who proposed it; whether a proof uses it is the proof
+    # row's to say, from the term (F18), and a contributor's proposal may be used by none.
+    "authored": "proposed by a contributor",
 }
 RELATION_ROLES: dict[str, str] = {
     "resolves": "a variant that resolves the problem",
@@ -1112,8 +1114,8 @@ class Renderer:
                 )
             hidden = "" if k == 0 else " hidden"
             read = (
-                f' <a href="{esc(self.reading_path(tv.target_id, p))}">Read proof {k + 1} '
-                "top-down, every step beside its Lean →</a>"
+                f' <a href="{esc(self.reading_path(tv.target_id, p))}">Read proof {k + 1}, '
+                "dependencies first, every step beside its Lean →</a>"
             )
             notes.append(f'<p class="proof-note" data-proof="{k}"{hidden}>{esc(words)}{read}</p>')
         lead = f"Proved {len(proofs)} way{'' if len(proofs) == 1 else 's'}:"
@@ -2987,9 +2989,8 @@ class Renderer:
 
     def explainer_label(self, nv: NodeView, explainer: Prose) -> str:
         """R11 (D-3): an explainer's author, drafting model and signer, as text."""
+        # F22-T17 (14): the drafting model is named once, on the block's own label line.
         parts = [f"by {esc(explainer.author)}" if explainer.author else "author not recorded"]
-        if explainer.model:
-            parts.append(f"drafted with {esc(explainer.model)}")
         stem = Path(explainer.path).stem  # an explainer's file name is its hash (F15-R8)
         signed = [v for v in nv.signatures if v.explainer == stem]
         parts.append(
@@ -3182,7 +3183,9 @@ class Renderer:
         consts = []
         for c in uses["mathlib"]:
             name = f"<code>{esc(c['name'])}</code>"
-            shown = self.hover(name, esc(c["doc"]), classes="const") if c.get("doc") else name
+            # F22-T17 (15): a docstring is Markdown; its code spans and emphasis render.
+            doc = prose.words_inline(str(c["doc"])) if c.get("doc") else ""
+            shown = self.hover(name, doc, classes="const") if doc else name
             tags = "".join(
                 f' <span class="po-tag">{esc(str(t["database"]).capitalize())} {esc(t["tag"])}'
                 "</span>"
@@ -3588,8 +3591,9 @@ class Renderer:
 
     @staticmethod
     def words_state(placed: Placed, v: VersionView) -> str:
-        """F21-R14: a shown section's state, in text — "drafted with <model>", "written by
-        <author>" or "read against the Lean by <signer>" — never by colour alone. A verified
+        """F21-R14: a shown section's state, in text — "drafted" (the model is named once, on the
+        provenance line above: F22-T17), "written by <author>" or "read against the Lean by
+        <signer>" — never by colour alone. A verified
         section is not called "verified" on the page, where it sits under the fixed "unverified"
         label of D-3: the signer read the words against the Lean, which is what the label leaves
         open (F21-Q17)."""
@@ -3601,7 +3605,8 @@ class Renderer:
                 else "read against the Lean"
             )
         elif placed.state == "drafted":
-            words = f"drafted with {esc(v.drafted_with or v.model or 'an unnamed model')}"
+            # F22-T17 (14): the model is named once per version, on its provenance line.
+            words = "drafted, by the model named above"
         elif placed.state == "written":
             words = f"written by {esc(v.author or 'an author not recorded')}"
         else:
@@ -3981,9 +3986,7 @@ class Renderer:
         by = []
         if v.author:
             by.append(f"by {esc(v.author)}")
-        if v.model:
-            by.append(f"drafted with {esc(v.model)}")
-        if v.date:
+        if v.date:  # F22-T17 (14): the model is on the provenance line (who_wrote), once
             by.append(esc(v.date))
         who = ", ".join(by) or "author not recorded"
         if v.sections:

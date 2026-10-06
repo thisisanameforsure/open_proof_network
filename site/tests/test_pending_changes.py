@@ -5,11 +5,12 @@ sections; Alice rewrote the one on step ``hq`` (written); a curator signed the o
 in Alice's version (verified); Bob then edited that verified section, which is pending. Its
 statement's gloss is Alice's, signed by the curator, with Bob's edit of it pending.
 
-Before review the page shows each section's words with a text label for its state — "drafted with
-<model>", "written by <author>", "read against the Lean by <signer>" — each still beside the outline
-steps it names; beneath the verified section, Bob's edit with its author, "awaiting review" and a
-diff against the words shown. Bob's words are never shown as the section's. Once the curator signs
-that section of Bob's version, his words are shown, labelled verified, and nothing awaits review.
+Before review the page shows each section's words with a text label for its state — "drafted"
+(the model named once above, F22-T17), "written by <author>", "read against the Lean by
+<signer>" — each still beside the outline steps it names; beneath the verified section, Bob's
+edit with its author, "awaiting review" and a diff against the words shown. Bob's words are
+never shown as the section's. Once the curator signs that section of Bob's version, his words are
+shown, labelled verified, and nothing awaits review.
 """
 
 from __future__ import annotations
@@ -79,10 +80,13 @@ def test_each_section_shows_its_words_and_state_and_the_edit_awaits_review(
     assert list(sections) == [gf.KEY_OVERVIEW, gf.KEY_Q, gf.KEY_P]
 
     # Each section's words, with its state in text.
+    # F22-T17 (14): the chip says the state; the model is named once, on the provenance line
+    # above (contributor text, escaped, C9).
     assert state_of(sections[gf.KEY_OVERVIEW][1]) == (
         "drafted",
-        f"drafted with {escape(gf.DRAFTED_WITH)}",  # contributor text, escaped (C9)
+        "drafted, by the model named above",
     )
+    assert f"drafted with {escape(gf.DRAFTED_WITH)}" in shown
     assert state_of(sections[gf.KEY_Q][1]) == ("written", "written by alice")
     assert "keep its right half" in sections[gf.KEY_Q][1]
     assert state_of(sections[gf.KEY_P][1]) == ("verified", f"read against the Lean by {gf.CURATOR}")

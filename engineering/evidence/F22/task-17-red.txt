@@ -1,0 +1,93 @@
+warning: `VIRTUAL_ENV=/Users/mikehiggins/Desktop/repos/open_proof_network/.venv` does not match the project environment path `.venv` and will be ignored; use `--active` to target the active environment instead
+FFFFF                                                                    [100%]
+=================================== FAILURES ===================================
+_________ test_an_authored_statement_does_not_claim_the_proof_needs_it _________
+
+    def test_an_authored_statement_does_not_claim_the_proof_needs_it() -> None:
+>       assert "need" not in render.ORIGIN_ROLES["authored"]
+E       AssertionError: assert 'need' not in 'a statement... proof needs'
+E         
+E         'need' is contained here:
+E           a statement the proof needs
+E         ?                       ++++
+
+site/tests/test_f22_small_items.py:32: AssertionError
+_____________ test_the_reading_link_names_the_order_the_page_uses ______________
+
+chain_pages = {'index.html': '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="widt...6666666666666666666666666666666666666/frontier.json">frontier.json ↗</a></span>\n</footer>\n\n</body>\n</html>\n', ...}
+
+    def test_the_reading_link_names_the_order_the_page_uses(chain_pages: dict[str, str]) -> None:
+        problem = chain_pages[f"problems/{TARGET}/index.html"]
+        links = re.findall(r'<a href="(/problems/[^"]+/proofs/[^"]+)">(Read proof[^<]*)</a>', problem)
+        assert links, "no reading link"
+        for href, text in links:
+>           assert "top-down" not in text
+E           AssertionError: assert 'top-down' not in 'Read proof ...e its Lean →'
+E             
+E             'top-down' is contained here:
+E               Read proof 1 top-down, every step beside its Lean →
+E             ?              ++++++++
+
+site/tests/test_f22_small_items.py:52: AssertionError
+_______________ test_the_fidelity_badge_is_not_hidden_on_phones ________________
+
+    def test_the_fidelity_badge_is_not_hidden_on_phones() -> None:
+        css = (render.STATIC / "site.css").read_text(encoding="utf-8")
+        for rule in re.findall(r"([^{}]+)\{\s*display:\s*none;?\s*\}", css):
+>           assert ".tag-outline" not in rule, rule.strip()
+E           AssertionError: .seg-opt[data-filter="unstewarded"], .search, .seg-opt .long, .problems-head .lead, .problem-id-row .tag-outline
+E           assert '.tag-outline' not in '\n  .seg-op...tag-outline '
+E             
+E             '.tag-outline' is contained here:
+E               em-id-row .tag-outline
+
+site/tests/test_f22_small_items.py:64: AssertionError
+__________________ test_drafted_with_is_said_once_per_version __________________
+
+sectioned = {'index.html': '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="widt...6666666666666666666666666666666666666/frontier.json">frontier.json ↗</a></span>\n</footer>\n\n</body>\n</html>\n', ...}
+
+    def test_drafted_with_is_said_once_per_version(sectioned: dict[str, str]) -> None:
+        page = sectioned[f"nodes/{TARGET}/{gf.TUTORIAL}/index.html"]
+        model_words = f"drafted with {escape(gf.DRAFTED_WITH)}"
+        blocks = re.findall(
+            r'<div class="prose-block unverified explainer-version".*?<p class="gloss-foot">',
+            page,
+            re.S,
+        )
+        assert blocks
+        for block in blocks:
+>           assert block.count(model_words) <= 1, block[:400]
+E           AssertionError: <div class="prose-block unverified explainer-version" data-block="explainer" data-explainer="117dfc5f833ad757b43f2dab9ff138add3b37235331acf802323e1e5211bae21"><p class="block-label" data-provenance="unverified"><strong>Informal account, unverified</strong> — unverified prose about a kernel-checked proof; shown section by section, each labelled with who drafted, wrote or verified it (D-3 v3.31).</p
+E           assert 2 <= 1
+E            +  where 2 = <built-in method count of str object at 0xb39b6b800>('drafted with anthropic/claude-opus-5.5 via &quot;Claude Code&quot; &lt;cli&gt; &amp; tools')
+E            +    where <built-in method count of str object at 0xb39b6b800> = '<div class="prose-block unverified explainer-version" data-block="explainer" data-explainer="117dfc5f833ad757b43f2dab... read off the hypothesis; the anonymous constructor then builds $q \\land p$.</span></pre></div><p class="gloss-foot">'.count
+
+site/tests/test_f22_small_items.py:86: AssertionError
+_________________ test_a_docstring_card_renders_its_code_spans _________________
+
+    def test_a_docstring_card_renders_its_code_spans() -> None:
+        r = render.Renderer.__new__(render.Renderer)
+        step = {
+            "uses": {
+                "nodes": [],
+                "defs": [],
+                "mathlib": [{"name": "one_pos", "doc": "**Alias** of `zero_lt_one`.", "tags": []}],
+            }
+        }
+        html = r.step_uses(None, step)  # type: ignore[arg-type]
+        card = re.search(r'<span class="term-card" role="tooltip">(.*?)</span>', html, re.S)
+        assert card is not None
+>       assert card.group(1) == "<strong>Alias</strong> of <code>zero_lt_one</code>."
+E       AssertionError: assert '**Alias** of `zero_lt_one`.' == '<strong>Alia...t_one</code>.'
+E         
+E         - <strong>Alias</strong> of <code>zero_lt_one</code>.
+E         + **Alias** of `zero_lt_one`.
+
+site/tests/test_f22_small_items.py:108: AssertionError
+=========================== short test summary info ============================
+FAILED site/tests/test_f22_small_items.py::test_an_authored_statement_does_not_claim_the_proof_needs_it
+FAILED site/tests/test_f22_small_items.py::test_the_reading_link_names_the_order_the_page_uses
+FAILED site/tests/test_f22_small_items.py::test_the_fidelity_badge_is_not_hidden_on_phones
+FAILED site/tests/test_f22_small_items.py::test_drafted_with_is_said_once_per_version
+FAILED site/tests/test_f22_small_items.py::test_a_docstring_card_renders_its_code_spans
+5 failed in 2.69s
