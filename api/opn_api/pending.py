@@ -777,6 +777,85 @@ def gate_verdict(ctx: Context, number: int, pull: dict[str, Any] | None) -> dict
     return out
 
 
+CLASSIFY_ARTIFACT_PREFIX = "classify-"  # the graph's gate.yml (F22-T24): classify-<pr>-<attempt>
+#: The cache key of a head commit's report beside its verdict, in the same per-app table.
+REPORT_KEY = "report:"
+
+
+def _classification_document(zipped: bytes) -> dict[str, Any] | None:
+    """``classification.json`` from the artifact; anything unreadable is none, never an error."""
+    import io  # noqa: PLC0415
+    import zipfile  # noqa: PLC0415
+
+    try:
+        with zipfile.ZipFile(io.BytesIO(zipped)) as archive:
+            info = archive.getinfo("classification.json")
+            if info.file_size > MAX_VERDICT_BYTES:
+                return None
+            doc = json.loads(archive.read("classification.json"))
+            return doc if isinstance(doc, dict) else None
+    except (zipfile.BadZipFile, ValueError, KeyError) as exc:
+        log.warning("classification artifact unreadable: %s", exc)
+    return None
+
+
+def _finished_gate_run(pull: dict[str, Any] | None) -> int | None:
+    """The id of the pull request's finished gate run, or ``None`` while none has finished."""
+    gate = next((r for r in (pull or {}).get("runs") or [] if r.get("name") == GATE_WORKFLOW), None)
+    found = RUN_ID_RE.search(str((gate or {}).get("url") or ""))
+    if gate is None or gate.get("status") != "completed" or found is None:
+        return None
+    return int(found.group(1))
+
+
+def _read_report(ctx: Context, number: int, run_id: int, key: str) -> dict[str, Any] | None:
+    """The classification artifact of ``run_id`` as a report. A failed read is remembered under
+    ``key`` for the retry window and raised, so the caller caches nothing for it."""
+    try:
+        zipped = ctx.githost.latest_artifact(
+            ctx.settings.graph_repo, run_id, f"{CLASSIFY_ARTIFACT_PREFIX}{number}-"
+        )
+    except GitHostError as exc:
+        log.warning("pull request #%d: the classification could not be read: %s", number, exc)
+        forget_old(ctx.verdict_failures, ctx.settings.verdict_retry_s)
+        ctx.verdict_failures[key] = time.monotonic()
+        raise
+    ctx.verdict_failures.pop(key, None)
+    doc = _classification_document(zipped) if zipped is not None else None
+    if doc is None:
+        return None
+    ok = doc.get("ok")
+    return {
+        "ok": ok if isinstance(ok, bool) else None,
+        "warnings": [w for w in doc.get("warnings") or [] if isinstance(w, dict)],
+        "problems": [p for p in doc.get("problems") or [] if isinstance(p, dict)],
+    }
+
+
+def gate_report(ctx: Context, number: int, pull: dict[str, Any] | None) -> dict[str, Any] | None:
+    """F22-T24: the gate's classification of the head, read once per head commit from the gate
+    run's ``classify-<pr>-`` artifact, for any pull request whose gate run has finished: a green
+    words pull request's warnings were in the run log only. Quoted as data (D-28), and held to the
+    same budget and retry window as ``gate_verdict``."""
+    run_id = _finished_gate_run(pull)
+    sha = str((pull or {}).get("head_sha") or "")
+    key = REPORT_KEY + sha
+    if run_id is None or not sha:
+        return None
+    if key in ctx.verdicts:
+        return ctx.verdicts[key]
+    failed_at = ctx.verdict_failures.get(key)
+    recent = failed_at is not None and time.monotonic() - failed_at < ctx.settings.verdict_retry_s
+    if recent or budget_hold(ctx) is not None:
+        return None  # not cached: the window passes and the budget refills
+    try:
+        out = _read_report(ctx, number, run_id, key)
+    except GitHostError:
+        return None
+    ctx.verdicts[key] = out
+    return out
+
+
 def waiting_on_products(
     ctx: Context, found: Submission, pull: dict[str, Any] | None
 ) -> dict[str, Any] | None:
@@ -901,6 +980,7 @@ def answer(ctx: Context, raw: str) -> dict[str, Any]:
         "pull_request": pull,
         "pull_request_error": error,
         "gate_verdict": gate_verdict(ctx, found.pr_number, pull),
+        "gate_report": gate_report(ctx, found.pr_number, pull),
         "attestation_path": path,
         "attestation": attestation,
         "attestation_note": note,

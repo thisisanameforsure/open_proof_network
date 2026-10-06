@@ -121,6 +121,7 @@ class FakeGitHost:
     runs: dict[str, WorkflowRun] = field(default_factory=dict)  # branch -> run
     artifacts: dict[tuple[int, str], bytes] = field(default_factory=dict)  # (run, name) -> zip
     artifact_reads: int = 0  # latest_artifact calls (F07-T26: one per head commit)
+    artifact_prefixes: list[str] = field(default_factory=list)  # F22-T24: which artifact each read
     # F05-T13: where ``main`` is, per the API. Empty means the API cannot say, so the service
     # reads by branch name, which is what every test written before it expects.
     head: str = ""
@@ -349,6 +350,7 @@ class FakeGitHost:
     def latest_artifact(self, repo: str, run_id: int, prefix: str) -> bytes | None:
         self._app_call()
         self.artifact_reads += 1
+        self.artifact_prefixes.append(prefix)
         if self.artifact_failure:
             raise GitHostError(self.artifact_failure)
         names = sorted(n for (r, n) in self.artifacts if r == run_id and n.startswith(prefix))

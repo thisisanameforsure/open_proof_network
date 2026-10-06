@@ -78,6 +78,24 @@
             "pull-request-unavailable"
           ]
         },
+        "gate_report": {
+          "description": "F22-T24: the gate's classification of the pull request's head (whether it passed, its warnings and its problems, in the gate's own words), for a green pull request as for a red one; null before the gate has run or when the run kept none",
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["ok", "warnings", "problems"],
+              "properties": {
+                "ok": {"type": ["boolean", "null"]},
+                "warnings": {"type": "array", "items": {"type": "object"}},
+                "problems": {"type": "array", "items": {"type": "object"}}
+              }
+            }
+          ]
+        },
         "gate_verdict": {
           "description": "Why the gate refused an open pull request (waiting_on: gate-failed), in the gate's own words; null otherwise, and when the run kept no verdict",
           "oneOf": [
