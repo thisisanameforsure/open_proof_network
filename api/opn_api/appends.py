@@ -183,6 +183,45 @@ def node_dir(target_id: str, node_id: str) -> str:
     return f"targets/{target_id}/nodes/{node_id}/"
 
 
+#: F22-T3 (testers 2026-10-06, P3-16): what the gate checks for each kind of append, as the
+#: pull-request body says it. A kind not listed gets its path and its schema (F07-R9).
+APPEND_CHECKS: dict[str, str] = {
+    "gloss": (
+        "its path, its schema, the Lean file it describes (at that file's hash), that it "
+        "supersedes its chain's head, and that a model's draft changes no section a person "
+        "wrote (F20-R1 to R7, F21-R12)"
+    ),
+    "explainer": (
+        "its path, its schema, the merged proof it describes, its sections' steps against that "
+        "proof's outline, that it supersedes its chain's head, and that a model's draft changes "
+        "no section a person wrote (F20-R1 to R7, F21-R12)"
+    ),
+    "withdrawal": "its path, its schema, and that its author may withdraw that version (F20-R7)",
+    "defect claim": (
+        "its path, its schema, D-16's pre-triage, and its exhibit, elaborated in the sandbox"
+    ),
+    "revision request": "its path, its schema, and any exhibit, elaborated in the sandbox",
+}
+DEFAULT_CHECKS = "its path and its schema (F07-R9)"
+
+
+def article(word: str) -> str:
+    """``a`` or ``an`` for ``word``, by its first letter: every kind named here is spelt so that
+    its vowel letter is its sound (an annex, an explainer, an approach record)."""
+    return "an" if word[:1].lower() in "aeiou" else "a"
+
+
+def pr_body(what: str, pseudonym: str, path: str) -> str:
+    """An append's pull-request body: the kind with its article, who filed it, and what the gate
+    checks for that kind; it claims nothing a kernel checks."""
+    checks = APPEND_CHECKS.get(what, DEFAULT_CHECKS)
+    return (
+        f"{article(what).capitalize()} {what} appended through the Open Proof Network service by "
+        f"`{pseudonym}`. It claims nothing a kernel checks: the gate checks {checks}.\n\n"
+        f"`{path}`\n"
+    )
+
+
 def append_pr(  # noqa: PLR0913 — one pull request, described
     ctx: Context,
     identity: Identity,
@@ -220,11 +259,7 @@ def append_pr(  # noqa: PLR0913 — one pull request, described
             files={path: content},
             subject=subject,
             title=subject,
-            body=(
-                f"A {what} appended through the Open Proof Network service by "
-                f"`{identity.pseudonym}`. It claims nothing: the gate checks its path and its "
-                f"schema (F07-R9).\n\n`{path}`\n"
-            ),
+            body=pr_body(what, identity.pseudonym, path),
         )
     log.info("%s %s opened %s for %s", what, append_id, pr.url, identity.id)
     pending.record(
