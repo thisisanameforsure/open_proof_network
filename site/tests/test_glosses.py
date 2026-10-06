@@ -46,8 +46,11 @@ def slot_after(page: str, start: int) -> tuple[str, str]:
     m = SLOT.search(page, end)
     assert m is not None, f"no gloss slot after the Lean block at {start}"
     between = page[end + len("</pre>") : m.start()]
-    # Only the block's own closing tags and its caption may sit between the Lean and its slot.
-    assert re.fullmatch(r"\s*(</figure>)?\s*", between), between[:200]
+    # Only the block's own closing tags and its caption may sit between the Lean and its slot;
+    # F22-T18 (P): a statement's caption is the one line saying what its ``sorry`` is.
+    assert re.fullmatch(r'\s*(</figure>)?\s*(<p class="sorry-note">.*?</p>)?\s*', between), between[
+        :200
+    ]
     close = page.find('<div class="gloss-slot"', m.end())
     return m.group(1), page[m.start() : close if close != -1 else len(page)]
 

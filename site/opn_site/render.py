@@ -112,6 +112,22 @@ MCP_PATH = "/mcp"
 #: The contributor guide's place on the Docs page, and the licences annex prose may carry
 #: (``annex/v1`` takes any SPDX id; these are the three the service accepts, D-23).
 GUIDE_HREF = "/docs/#agents"
+#: F22-T18 (Q): the Docs section a reader of a proof page needs, linked from every reader page.
+READING_HREF = "/docs/#reading"
+#: F22-T18 (P): the one line beside a statement's Lean that says what its ``sorry`` is.
+SORRY_NOTE = (
+    '<p class="sorry-note">A statement is written <code>:= by sorry</code>: the '
+    "<code>sorry</code> holds the place of a proof, because a statement file only says what is "
+    "claimed. A proof the gate checked is its own file, <code>Proof.lean</code>. "
+    f'<a href="{READING_HREF}">How to read a proof page →</a></p>'
+)
+#: F22-T18 (I): a section naming more steps than this folds its steps column.
+STEPS_FOLD_AT = 6
+#: F22-T18 (J): an outline id escapes a character Lean names allow and ids do not (``hΩdiv`` is
+#: ``h_x3a9div``); such an id shows its Lean name beside it.
+_ESCAPED_ID_RE = re.compile(r"_x[0-9a-f]+")
+#: F22-T18 (S): a statement's declared name.
+_THEOREM_RE = re.compile(r"^\s*(?:theorem|lemma)\s+(\S+)", re.M)
 #: The file-name tail of a merged partial proof under ``attempts/`` (F07).
 PARTIAL_SUFFIX = "-partial.lean"
 ANNEX_LICENCES = ("CC-BY-4.0", "CDLA-Permissive-2.0", "Apache-2.0")
@@ -124,6 +140,7 @@ SCRIPTS: tuple[str, ...] = (
     "/vendor/katex/katex.min.js",
     "/vendor/katex/auto-render.min.js",
     "/math.js",
+    "/reading.js",
 )
 MATH_HEAD = '<link rel="stylesheet" href="/vendor/katex/katex.min.css">'
 MATH_SCRIPTS = (
@@ -854,6 +871,26 @@ def static_files() -> tuple[dict[str, str], dict[str, bytes]]:
     return text, binary
 
 
+def sorry_note(statement: str) -> str:
+    """F22-T18 (P, Q): the note a statement's Lean carries when it is written with ``sorry``."""
+    return SORRY_NOTE if "sorry" in statement else ""
+
+
+def theorem_name(statement: str) -> str | None:
+    """F22-T18 (S): the name a statement declares, or None."""
+    m = _THEOREM_RE.search(statement)
+    return m.group(1) if m else None
+
+
+def lean_name(sid: str, step: dict[str, Any] | None) -> str:
+    """F22-T18 (J): beside an escaped outline id, the step's own Lean name; "" otherwise."""
+    last = sid.rsplit(".", 1)[-1]
+    name = (step or {}).get("name")
+    if not name or name == last or not _ESCAPED_ID_RE.search(last):
+        return ""
+    return f' <span class="po-name">(<code>{esc(name)}</code>)</span>'
+
+
 def declaration_only(statement: str) -> str:
     """A statement's Lean without its header: the panel shows the declaration and its doc
     comment; the whole file, imports included, is on the statement's own page."""
@@ -918,7 +955,18 @@ class Renderer:
         return f"/nodes/{target_id}/{node_id}/"
 
     def node_link(self, target_id: str, node_id: str) -> str:
-        return f'<a href="{esc(self.node_path(target_id, node_id))}">{esc(node_id)}</a>'
+        link = f'<a href="{esc(self.node_path(target_id, node_id))}">{esc(node_id)}</a>'
+        return link + self.thm_label(target_id, node_id)
+
+    def thm_label(self, target_id: str, node_id: str) -> str:
+        """F22-T18 (S): a spec-* id names nothing, so its statement's theorem name rides beside
+        it wherever the node is labelled."""
+        if not node_id.startswith("spec-"):
+            return ""
+        tv = self.site.targets.get(target_id)
+        nv = tv.nodes.get(node_id) if tv is not None else None
+        name = theorem_name(nv.statement) if nv is not None else None
+        return f' <code class="thm-name">{esc(name)}</code>' if name else ""
 
     @staticmethod
     def status_mark(status: str, cause: str | None = None) -> str:
@@ -1732,6 +1780,11 @@ class Renderer:
             outlines=outlines,
             root=tv.root,
             prefix=tid,
+            names={
+                nid: name
+                for nid, nv in tv.nodes.items()
+                if nid.startswith("spec-") and (name := theorem_name(nv.statement))
+            },
         )
         panels = "".join(self.statement_panel(tv, nv) for nv in self.ordered_nodes(tv))
         n = len(tv.nodes)
@@ -1776,6 +1829,7 @@ class Renderer:
             dag=svg,
             panels=panels,
             digestion=self.digestion_section(tv),
+            proved_in_words=self.proved_in_words(tv),
             stewards=self.stewards_section(tv),
             sources=self.sources_block(tv),
             qa_block=self.qa_block(tv),
@@ -1804,6 +1858,84 @@ class Renderer:
             head=MATH_HEAD,
             script=MATH_SCRIPTS + '<script src="/problem.js"></script>',
         )
+
+    def proved_in_words(self, tv: TargetView) -> str:
+        """F22-T18 (M): for a proved problem, the opening section of the explainer of its first
+        proof — the overview, or the first section when none names no step — under its provenance
+        and D-36's label, with a link to the rest; and the record's cited sources, when it has
+        any. Nothing for a problem with no proof."""
+        proofs = target_proofs(tv)
+        if not proofs:
+            return ""
+        entry = proofs[0]
+        nid = str(entry["node_id"])
+        picked: tuple[Any, VersionView] | None = None
+        for subject in tv.explainer_subjects(nid):
+            if subject.kind != "proof" or subject.lean_hash not in (None, entry["artifact_hash"]):
+                continue
+            for chain in subject.chains:
+                picked = picked or self.opening_section(chain)
+        href = esc(self.node_path(tv.target_id, nid))
+        parts = [
+            '<section class="proved-in-words"><h2>How it was proved (in words, unverified)</h2>'
+        ]
+        if picked is None:
+            parts.append(
+                '<p class="cue">No explainer of this proof yet: its Lean and outline are on '
+                f'<a href="{href}">its page</a>, and a plain-language account of it is the next '
+                f'thing a writer could add (D-3; <a href="{GLOSS_GUIDE_HREF}">how</a>).</p>'
+            )
+        else:
+            sec, v = picked
+            when = f", {esc(v.date)}" if v.date else ""
+            detail = (
+                f"{EXPLAINER_LABEL}; the opening of the explainer of proof 1, "
+                f"{self.who_wrote(v)}{when}."
+            )
+            heading = (
+                f"<h3>{prose.inline_math(sec.heading)}</h3>"
+                if sec is not None and sec.heading
+                else ""
+            )
+            text = prose.render(sec.text if sec is not None else v.body, math=True)
+            parts.append(
+                '<div class="prose-block unverified" data-block="explainer">'
+                f"{self.provenance('unverified', detail)}{heading}"
+                f'<div class="prose">{text}</div>'
+                f'<p class="gloss-foot"><a href="{href}#explainer">Read the whole explainer, each '
+                "section beside the steps it explains →</a> · "
+                f'<a href="{READING_HREF}">How to read a proof page →</a></p></div>'
+            )
+        sources = (tv.record or {}).get("sources") or []
+        if sources:
+            items = "".join(
+                f"<li>{esc(str(src.get('attribution') or ''))} &mdash; "
+                f'<a href="{esc(str(src["url"]))}">{esc(str(src["url"]))}</a></li>'
+                for src in sources
+            )
+            parts.append(
+                f'<p>The result in its sources (D-10):</p><ul class="sources">{items}</ul>'
+            )
+        parts.append("</section>")
+        return "".join(parts)
+
+    @staticmethod
+    def opening_section(chain: ChainView) -> tuple[Any, VersionView] | None:
+        """F22-T18 (M): a chain's opening words as shown — its first section naming no step, else
+        its first section — and the version they come from; None for a withdrawn chain."""
+        found: list[tuple[Any, VersionView]] = []
+        if chain.sectioned and chain.shown:
+            for placed in chain.shown:
+                shown = chain.version(placed.version)
+                part = shown.part(placed.key) if shown is not None else None
+                if shown is not None and part is not None:
+                    found.append((part, shown))
+        elif chain.current_version is not None:
+            v = chain.current_version
+            found = [(sec, v) for sec in v.sections] or [(None, v)]
+        if not found:
+            return None
+        return next(((sec, v) for sec, v in found if sec is not None and not sec.steps), found[0])
 
     def definitions_section(self, tv: TargetView) -> str:
         """F20-T8 (R13): each definition module of the problem, its Lean and its gloss beside it.
@@ -2037,6 +2169,8 @@ class Renderer:
             closing=self.closing_note(tv, nv),
             outlines=self.outlines_block(tv, nv),
             statement=esc(declaration_only(nv.statement)),
+            sorry_note=sorry_note(nv.statement),
+            thm=self.thm_label(tid, nid),
             glosses=self.gloss_slot(
                 tv, "statement", f"nodes/{nid}/Statement.lean", node=nid, ids=f"p-{nid}-"
             ),
@@ -2491,6 +2625,8 @@ class Renderer:
                 else ""
             ),
             statement=esc(nv.statement.rstrip("\n")),
+            sorry_note=sorry_note(nv.statement),
+            thm=self.thm_label(tid, nid),
             statement_label=self.statement_label(tv, nv),
             statement_glosses=self.gloss_slot(
                 tv, "statement", f"nodes/{nid}/Statement.lean", node=nid
@@ -3087,7 +3223,10 @@ class Renderer:
             for c in step["children"]
         )
         nested = f'<ol class="po-steps">{children}</ol>' if children else ""
-        head = f'<code class="po-id">{esc(sid)}</code> <span class="po-kind">{esc(kind)}</span>'
+        head = (
+            f'<code class="po-id">{esc(sid)}</code>{lean_name(sid, step)} '
+            f'<span class="po-kind">{esc(kind)}</span>'
+        )
         source = self.step_source(step["span"], lines, path, commit)
         if unreliable:
             summary = (
@@ -3357,7 +3496,7 @@ class Renderer:
             f"{esc(self.state_label(state))}</span></h3>"
             f'<div class="statement-block" data-block="statement">{self.statement_label(tv, nv)}'
             f'<pre class="lean statement st-{esc(nv.status)}">'
-            f"{esc(declaration_only(nv.statement))}</pre>{slot}</div>"
+            f"{esc(declaration_only(nv.statement))}</pre>{sorry_note(nv.statement)}{slot}</div>"
             # D-36: the proof and its attestation sit above the explainer, never below.
             f'{outline}{lines}<div class="rv-explainer">'
             f"{self.explainer_block(nv, anchors=anchors or frozenset())}</div></li>"
@@ -3426,6 +3565,13 @@ class Renderer:
             ),
             root_status=esc(root.status),
             root_lean=esc(declaration_only(root.statement)),
+            sorry_note=sorry_note(root.statement),
+            reading_href=READING_HREF,
+            toc="".join(
+                f'<li><a href="#rv-{esc(nid)}">{esc(nid)}</a>{self.thm_label(tv.target_id, nid)}'
+                "</li>"
+                for nid in order
+            ),
             fidelity=self.fidelity_tag(tv),
             root_link=self.file_link(root.statement_path),
             variant=variant,
@@ -3448,7 +3594,7 @@ class Renderer:
             renders=renders,
             path=PROBLEMS_PATH,
             head=MATH_HEAD,
-            script=MATH_SCRIPTS,
+            script=MATH_SCRIPTS + '<script src="/reading.js"></script>',
         )
 
     def witness_block(self, nv: NodeView) -> str:
@@ -3763,6 +3909,9 @@ class Renderer:
         its gloss, the curated statement for the root, or the cue."""
         if not nv.deps:
             return '<p class="deps">Depends on: none.</p>'
+        # F22-T18 (O): which declared dependencies the proof's term uses (F18), when measured.
+        record = self.proof_record(tv, nv.node_id, None) if tv is not None else None
+        used = record.get("used") if record is not None and nv.status == "proved" else None
         items = []
         for dep in nv.deps:
             link = self.node_link(nv.target_id, dep)
@@ -3772,6 +3921,13 @@ class Renderer:
                 words = f'<span class="gloss-line">{math(str(text))}</span>' if text else ""
             if not words:
                 words = '<span class="cue">no gloss of it yet</span>'
+            if used is not None:
+                words += (
+                    ' <span class="dep-use">· used by the proof</span>'
+                    if dep in used
+                    else ' <span class="dep-use dep-unused">· declared; the proof does not use '
+                    "it</span>"
+                )
             items.append(f"<li>{link}: {words}</li>")
         return (
             '<div class="deps"><p>Depends on, each in words where someone has written them:</p>'
@@ -4041,7 +4197,10 @@ class Renderer:
             f"{EXPLAINER_LABEL}; shown section by section, each labelled with who drafted, wrote "
             "or verified it (D-3 v3.31)."
         )
-        sources = "; ".join(f"{self.version_link(v)}, {self.who_wrote(v)}" for v in versions)
+        sources = "; ".join(
+            f"{self.version_link(v)}, {self.who_wrote(v)}" + (f", {esc(v.date)}" if v.date else "")
+            for v in versions
+        )
         outline = (
             tv.outlines.get(subject.lean_hash) if tv is not None and subject.lean_hash else None
         )
@@ -4097,6 +4256,7 @@ class Renderer:
             ident = f"<code>{esc(sid)}</code>"
             if linked and step is not None:
                 ident = f'<a href="#po-{esc(key)}-{esc(sid)}">{ident}</a>'
+            ident += lean_name(sid, step)
             if step is None:
                 named.append(f'<li>{ident} <span class="po-note">not in the outline</span></li>')
                 continue
@@ -4109,9 +4269,15 @@ class Renderer:
             named.append(
                 f'<li>{ident} <span class="po-kind">{esc(str(step["kind"]))}</span>{shown}</li>'
             )
+        listed = f"<ul>{''.join(named)}</ul>"
+        if len(named) > STEPS_FOLD_AT:  # F22-T18 (I): a long column folds; the words come first
+            listed = (
+                f'<details class="ex-steps-fold"><summary>{len(named)} steps</summary>'
+                f"{listed}</details>"
+            )
         aside = (
             '<aside class="ex-steps" aria-label="Outline steps this section describes">'
-            f'<span class="kicker">Steps</span><ul>{"".join(named)}</ul></aside>'
+            f'<span class="kicker">Steps</span>{listed}</aside>'
             if named
             else ""
         )

@@ -52,6 +52,19 @@ words first, with its formal statement and whether that statement has been audit
 statement the proof rests on, lemmas before the results that use them. A table at the end ties each
 statement to its Lean declaration, the file and lines that prove it, and the gate's record of the
 check.</p>
+<p><strong>Finding your way.</strong> A problem that has been proved says how, in words, under
+<em>How it was proved (in words, unverified)</em>: the opening of its proof's explainer, with who
+wrote it, and the sources the record cites. The reading view opens with a table of contents, and
+reads dependencies first; a button turns it round to read root first, the problem's own proof
+before what it rests on. A statement's Lean is always written <code>:= by sorry</code>: the
+<code>sorry</code> holds the place of a proof, because a statement file only says what is claimed,
+and a proof the gate checked is its own file, <code>Proof.lean</code>. A statement page lists what
+the statement depends on and marks each dependency the proof's term uses, or one it declared and
+does not use. Nodes named <code>spec-</code> and a hash carry their theorem's name beside the id.
+An outline step whose id had to escape a character (<code>h_x3a9div</code>) shows its Lean name
+beside it (<code>hΩdiv</code>), and a section of an explainer that covers more than six steps folds
+its list of steps. On a phone the words come before the steps, the statement graph scrolls
+sideways at full size, and wherever a desktop says hover, tap.</p>
 <p><strong>Every block says what it is.</strong> Each block on a statement page or a reading view
 opens with one of these labels, in words, so that commentary is never mistaken for proof:</p>
 <div class="table-wrap"><table class="reading-labels">

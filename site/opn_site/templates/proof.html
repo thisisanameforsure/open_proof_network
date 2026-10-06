@@ -4,12 +4,14 @@
 <section class="rv-statement">
 <h2>The statement</h2>
 <div class="statement-block" data-block="statement">$statement_label
-<pre class="lean statement st-$root_status">$root_lean</pre>$root_slot
+<pre class="lean statement st-$root_status">$root_lean</pre>$sorry_note$root_slot
 <p>Fidelity: $fidelity. Rendered from $root_link.$variant</p>
 </div>
 </section>
-<h2>The proof, dependencies first</h2>
-<p class="cue">$order_words Each statement comes before the statements whose proofs use it. A step&rsquo;s outline is folded; open it for its goal, what it uses and its Lean lines.</p>
+<h2 data-order-heading>The proof, dependencies first</h2>
+<p class="cue">$order_words <span data-order-cue>Each statement comes before the statements whose proofs use it.</span> A step&rsquo;s outline is folded; open it for its goal, what it uses and its Lean lines. <a href="$reading_href">How to read a proof page &rarr;</a></p>
+<nav class="rv-toc" id="rv-toc" aria-label="The statements on this proof, in page order"><span class="kicker">Contents</span><ol>$toc</ol></nav>
+<div class="rv-order" hidden role="group" aria-label="Order of the statements"><span>Read</span><a class="chip" href="#rv-toc" data-order="deps" aria-current="true">dependencies first</a><a class="chip" href="#rv-toc" data-order="root">root first</a></div>
 <ol class="rv-nodes">
 $nodes
 </ol>

@@ -30,7 +30,7 @@ def pages(tmp_path_factory: pytest.TempPathFactory) -> dict[str, str]:
 
 
 def explainer_section(page: str) -> str:
-    start = page.index("<h2>Explainer</h2>")
+    start = page.index('<h2 id="explainer">Explainer</h2>')
     return page[start : page.index("<h2>Annex</h2>", start)]
 
 

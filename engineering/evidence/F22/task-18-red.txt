@@ -1,0 +1,250 @@
+warning: `VIRTUAL_ENV=/Users/mikehiggins/Desktop/repos/open_proof_network/.venv` does not match the project environment path `.venv` and will be ignored; use `--active` to target the active environment instead
+FFFFFFFF.FFFFFFFF                                                        [100%]
+=================================== FAILURES ===================================
+________ test_the_problem_page_shows_the_root_proofs_overview_in_words _________
+
+pages = {'index.html': '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="widt...6666666666666666666666666666666666666/frontier.json">frontier.json ↗</a></span>\n</footer>\n\n</body>\n</html>\n', ...}
+
+    def test_the_problem_page_shows_the_root_proofs_overview_in_words(pages: dict[str, str]) -> None:
+        page = pages[f"problems/{TARGET}/index.html"]
+        head = "<h2>How it was proved (in words, unverified)</h2>"
+>       assert head in page
+E       assert '<h2>How it was proved (in words, unverified)</h2>' in '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,...x/auto-render.min.js"></script><script src="/math.js"></script><script src="/problem.js"></script>\n</body>\n</html>\n'
+
+site/tests/test_f22_reader.py:66: AssertionError
+__________ test_the_section_cites_the_records_sources_when_it_has_any __________
+
+site = Site(root=PosixPath('/private/tmp/claude-501/-Users-mikehiggins-Desktop-repos-open-proof-network/2ffdfe54-d576-4a00-88... 'outline': 'targets/propositional/outlines/383eefa75bb36b0d5e1239040c19b44bb7023a77e784130a964905dc4090d9b5.json'}))})
+
+    def test_the_section_cites_the_records_sources_when_it_has_any(site: model.Site) -> None:
+        tv = site.targets[TARGET]
+        source = {
+            "url": "https://doi.org/10.1016/0022-314X(91)90118-A",
+            "attribution": "P. B. Borwein, J. Number Theory 37 (1991)",
+            "licence": "citation",
+            "quote_policy": "cite",
+        }
+        cited = dataclasses.replace(tv, record={**(tv.record or {}), "sources": [source]})
+>       html = render.Renderer(site, repo_url=REPO).proved_in_words(cited)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: 'Renderer' object has no attribute 'proved_in_words'
+
+site/tests/test_f22_reader.py:85: AttributeError
+_________ test_the_reading_view_has_a_table_of_contents_in_page_order __________
+
+pages = {'index.html': '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="widt...6666666666666666666666666666666666666/frontier.json">frontier.json ↗</a></span>\n</footer>\n\n</body>\n</html>\n', ...}
+
+    def test_the_reading_view_has_a_table_of_contents_in_page_order(pages: dict[str, str]) -> None:
+        page = reading_page(pages)
+        nav = re.search(r'<nav class="rv-toc"[^>]*>(.*?)</nav>', page, re.S)
+>       assert nav is not None
+E       assert None is not None
+
+site/tests/test_f22_reader.py:95: AssertionError
+_____ test_the_reading_view_offers_root_first_without_changing_the_default _____
+
+pages = {'index.html': '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="widt...6666666666666666666666666666666666666/frontier.json">frontier.json ↗</a></span>\n</footer>\n\n</body>\n</html>\n', ...}
+
+    def test_the_reading_view_offers_root_first_without_changing_the_default(
+        pages: dict[str, str],
+    ) -> None:
+        page = reading_page(pages)
+>       assert "<h2 data-order-heading>The proof, dependencies first</h2>" in page
+E       assert '<h2 data-order-heading>The proof, dependencies first</h2>' in '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,...></script><script src="/vendor/katex/auto-render.min.js"></script><script src="/math.js"></script>\n</body>\n</html>\n'
+
+site/tests/test_f22_reader.py:105: AssertionError
+__________ test_the_node_page_marks_which_dependencies_the_term_uses ___________
+
+pages = {'index.html': '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="widt...6666666666666666666666666666666666666/frontier.json">frontier.json ↗</a></span>\n</footer>\n\n</body>\n</html>\n', ...}
+
+    def test_the_node_page_marks_which_dependencies_the_term_uses(pages: dict[str, str]) -> None:
+        page = pages[f"nodes/{TARGET}/{rf.ROOT}/index.html"]
+        deps = page[page.index('<div class="deps">') :]
+        deps = deps[: deps.index("</div>")]
+        items = dict(
+            re.findall(r'<li><a href="/nodes/[^/]+/([^/]+)/">[^<]*</a>(.*?)</li>', deps, re.S)
+        )
+>       assert "used by the proof" in items[rf.MIDDLE]
+E       assert 'used by the proof' in ': <span class="cue">no gloss of it yet</span>'
+
+site/tests/test_f22_reader.py:125: AssertionError
+_ test_every_statement_block_explains_its_sorry[problems/propositional/index.html] _
+
+pages = {'index.html': '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="widt...6666666666666666666666666666666666666/frontier.json">frontier.json ↗</a></span>\n</footer>\n\n</body>\n</html>\n', ...}
+rel = 'problems/propositional/index.html'
+
+    @pytest.mark.parametrize(
+        "rel",
+        [f"problems/{TARGET}/index.html", f"nodes/{TARGET}/{rf.ROOT}/index.html", "reading"],
+    )
+    def test_every_statement_block_explains_its_sorry(pages: dict[str, str], rel: str) -> None:
+        page = reading_page(pages) if rel == "reading" else pages[rel]
+        blocks = re.findall(r'<pre class="lean statement[^"]*">.*?</pre>(.{0,400})', page, re.S)
+        assert blocks
+        for after in blocks:
+>           assert after.startswith('<p class="sorry-note">'), after[:120]
+E           AssertionError: <div class="gloss-slot" data-gloss-slot="propositional/nodes/and-swap-reassoc/Statement.lean"><p class="cue">No informal
+E           assert False
+E            +  where False = <built-in method startswith of str object at 0xc83924a80>('<p class="sorry-note">')
+E            +    where <built-in method startswith of str object at 0xc83924a80> = '<div class="gloss-slot" data-gloss-slot="propositional/nodes/and-swap-reassoc/Statement.lean"><p class="cue">No infor...he Lean above is the statement. <a href="/docs/#guide-glosses-explainers-and-outlines">How to write one →</a></p></div'.startswith
+
+site/tests/test_f22_reader.py:141: AssertionError
+_ test_every_statement_block_explains_its_sorry[nodes/propositional/and-swap-reassoc/index.html] _
+
+pages = {'index.html': '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="widt...6666666666666666666666666666666666666/frontier.json">frontier.json ↗</a></span>\n</footer>\n\n</body>\n</html>\n', ...}
+rel = 'nodes/propositional/and-swap-reassoc/index.html'
+
+    @pytest.mark.parametrize(
+        "rel",
+        [f"problems/{TARGET}/index.html", f"nodes/{TARGET}/{rf.ROOT}/index.html", "reading"],
+    )
+    def test_every_statement_block_explains_its_sorry(pages: dict[str, str], rel: str) -> None:
+        page = reading_page(pages) if rel == "reading" else pages[rel]
+        blocks = re.findall(r'<pre class="lean statement[^"]*">.*?</pre>(.{0,400})', page, re.S)
+        assert blocks
+        for after in blocks:
+>           assert after.startswith('<p class="sorry-note">'), after[:120]
+E           AssertionError: <div class="gloss-slot" data-gloss-slot="propositional/nodes/and-swap-reassoc/Statement.lean"><p class="cue">No informal
+E           assert False
+E            +  where False = <built-in method startswith of str object at 0xc83925500>('<p class="sorry-note">')
+E            +    where <built-in method startswith of str object at 0xc83925500> = '<div class="gloss-slot" data-gloss-slot="propositional/nodes/and-swap-reassoc/Statement.lean"><p class="cue">No infor...he Lean above is the statement. <a href="/docs/#guide-glosses-explainers-and-outlines">How to write one →</a></p></div'.startswith
+
+site/tests/test_f22_reader.py:141: AssertionError
+____________ test_every_statement_block_explains_its_sorry[reading] ____________
+
+pages = {'index.html': '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="widt...6666666666666666666666666666666666666/frontier.json">frontier.json ↗</a></span>\n</footer>\n\n</body>\n</html>\n', ...}
+rel = 'reading'
+
+    @pytest.mark.parametrize(
+        "rel",
+        [f"problems/{TARGET}/index.html", f"nodes/{TARGET}/{rf.ROOT}/index.html", "reading"],
+    )
+    def test_every_statement_block_explains_its_sorry(pages: dict[str, str], rel: str) -> None:
+        page = reading_page(pages) if rel == "reading" else pages[rel]
+        blocks = re.findall(r'<pre class="lean statement[^"]*">.*?</pre>(.{0,400})', page, re.S)
+        assert blocks
+        for after in blocks:
+>           assert after.startswith('<p class="sorry-note">'), after[:120]
+E           AssertionError: <div class="gloss-slot" data-gloss-slot="propositional/nodes/and-swap-reassoc/Statement.lean"><p class="cue">No informal
+E           assert False
+E            +  where False = <built-in method startswith of str object at 0xc83925880>('<p class="sorry-note">')
+E            +    where <built-in method startswith of str object at 0xc83925880> = '<div class="gloss-slot" data-gloss-slot="propositional/nodes/and-swap-reassoc/Statement.lean"><p class="cue">No infor...he Lean above is the statement. <a href="/docs/#guide-glosses-explainers-and-outlines">How to write one →</a></p></div'.startswith
+
+site/tests/test_f22_reader.py:141: AssertionError
+_______________ test_on_a_phone_the_words_come_before_the_steps ________________
+
+    def test_on_a_phone_the_words_come_before_the_steps() -> None:
+>       assert re.search(r"\.ex-prose\s*\{[^}]*order:\s*-1", media(700))
+E       AssertionError: assert None
+E        +  where None = <function search at 0x102b00180>('\\.ex-prose\\s*\\{[^}]*order:\\s*-1', '\n  table.correspondence thead { display: none; }\n  table.correspondence tr { display: block; padding: var(--s3) 0; ...mplate-columns: minmax(0, 1fr); }\n  .gloss, .informal-block { padding-left: var(--s4); padding-right: var(--s4); }\n}')
+E        +    where <function search at 0x102b00180> = re.search
+E        +    and   '\n  table.correspondence thead { display: none; }\n  table.correspondence tr { display: block; padding: var(--s3) 0; ...mplate-columns: minmax(0, 1fr); }\n  .gloss, .informal-block { padding-left: var(--s4); padding-right: var(--s4); }\n}' = media(700)
+
+site/tests/test_f22_reader.py:171: AssertionError
+_____________ test_on_a_phone_the_graph_keeps_its_size_and_scrolls _____________
+
+    def test_on_a_phone_the_graph_keeps_its_size_and_scrolls() -> None:
+>       assert re.search(r"\.dag\s*\{[^}]*max-width:\s*none", media(700))
+E       AssertionError: assert None
+E        +  where None = <function search at 0x102b00180>('\\.dag\\s*\\{[^}]*max-width:\\s*none', '\n  table.correspondence thead { display: none; }\n  table.correspondence tr { display: block; padding: var(--s3) 0; ...mplate-columns: minmax(0, 1fr); }\n  .gloss, .informal-block { padding-left: var(--s4); padding-right: var(--s4); }\n}')
+E        +    where <function search at 0x102b00180> = re.search
+E        +    and   '\n  table.correspondence thead { display: none; }\n  table.correspondence tr { display: block; padding: var(--s3) 0; ...mplate-columns: minmax(0, 1fr); }\n  .gloss, .informal-block { padding-left: var(--s4); padding-right: var(--s4); }\n}' = media(700)
+
+site/tests/test_f22_reader.py:175: AssertionError
+____________________ test_touch_screens_read_tap_not_hover _____________________
+
+pages = {'index.html': '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="widt...6666666666666666666666666666666666666/frontier.json">frontier.json ↗</a></span>\n</footer>\n\n</body>\n</html>\n', ...}
+
+    def test_touch_screens_read_tap_not_hover(pages: dict[str, str]) -> None:
+        page = pages[f"problems/{TARGET}/index.html"]
+        caption = re.search(r'<span class="dag-caption">(.*?)</span></div>', page, re.S)
+        assert caption is not None
+>       assert '<span class="on-hover">hover</span><span class="on-touch">tap</span>' in caption.group(1)
+E       assert '<span class="on-hover">hover</span><span class="on-touch">tap</span>' in 'labels drop the problem&rsquo;s own name (a pill&rsquo;s title has its full id); hover a statement to light its lines'
+E        +  where 'labels drop the problem&rsquo;s own name (a pill&rsquo;s title has its full id); hover a statement to light its lines' = <built-in method group of re.Match object at 0x109ca7f40>(1)
+E        +    where <built-in method group of re.Match object at 0x109ca7f40> = <re.Match object; span=(7020, 7176), match='<span class="dag-caption">labels drop the problem>.group
+
+site/tests/test_f22_reader.py:182: AssertionError
+______________ test_a_spec_node_is_labelled_with_its_theorem_name ______________
+
+site = Site(root=PosixPath('/private/tmp/claude-501/-Users-mikehiggins-Desktop-repos-open-proof-network/2ffdfe54-d576-4a00-88... 'outline': 'targets/propositional/outlines/383eefa75bb36b0d5e1239040c19b44bb7023a77e784130a964905dc4090d9b5.json'}))})
+
+    def test_a_spec_node_is_labelled_with_its_theorem_name(site: model.Site) -> None:
+        tv = site.targets[TARGET]
+        spec = "spec-0123abcd"
+        nv = dataclasses.replace(tv.nodes[rf.MIDDLE], node_id=spec)
+        tv.nodes[spec] = nv
+        try:
+            r = render.Renderer(site, repo_url=REPO)
+            link = r.node_link(TARGET, spec)
+            assert ">spec-0123abcd</a>" in link
+>           assert '<code class="thm-name">OpnProp.and_reassoc</code>' in link
+E           assert '<code class="thm-name">OpnProp.and_reassoc</code>' in '<a href="/nodes/propositional/spec-0123abcd/">spec-0123abcd</a>'
+
+site/tests/test_f22_reader.py:198: AssertionError
+________________________ test_more_than_six_steps_fold _________________________
+
+    def test_more_than_six_steps_fold() -> None:
+        many = section_html({f"s{i}": step(f"s{i}") for i in range(7)})
+>       assert '<details class="ex-steps-fold"><summary>7 steps</summary>' in many
+E       assert '<details class="ex-steps-fold"><summary>7 steps</summary>' in '<section class="ex-section" data-steps="s0 s1 s2 s3 s4 s5 s6"><aside class="ex-steps" aria-label="Outline steps this ...pan class="po-kind">have</span></li></ul></aside><div class="ex-prose"><h3>A section</h3><p>Words.</p></div></section>'
+
+site/tests/test_f22_reader.py:219: AssertionError
+_________________ test_an_escaped_step_id_shows_its_lean_name __________________
+
+    def test_an_escaped_step_id_shows_its_lean_name() -> None:
+        html = section_html({"hcore.h_x3a9div": step("hcore.h_x3a9div", "hΩdiv")})
+>       assert '<code>hcore.h_x3a9div</code> <span class="po-name">(<code>hΩdiv</code>)</span>' in html
+E       assert '<code>hcore.h_x3a9div</code> <span class="po-name">(<code>hΩdiv</code>)</span>' in '<section class="ex-section" data-steps="hcore.h_x3a9div"><aside class="ex-steps" aria-label="Outline steps this secti...pan class="po-kind">have</span></li></ul></aside><div class="ex-prose"><h3>A section</h3><p>Words.</p></div></section>'
+
+site/tests/test_f22_reader.py:226: AssertionError
+_________________ test_each_explainer_version_carries_its_date _________________
+
+tmp_path = PosixPath('/private/tmp/claude-501/-Users-mikehiggins-Desktop-repos-open-proof-network/2ffdfe54-d576-4a00-8850-e68de830c701/scratchpad/site-tmp/test_each_explainer_version_ca0')
+
+    def test_each_explainer_version_carries_its_date(tmp_path: Path) -> None:
+        root, _ = gf.sectioned_tree(tmp_path)
+        pages = render.render_site(model.load_site(root, gf.COMMIT), repo_url=REPO)
+        page = pages[f"nodes/{TARGET}/{gf.TUTORIAL}/index.html"]
+        labels = re.findall(r'<p class="label">Unverified: explainer, its words from (.*?)</p>', page)
+        assert labels
+        for label in labels:
+            for part in label.split("; "):
+>               assert re.search(r"\b20\d\d-\d\d-\d\d\b", part), part
+E               AssertionError: <a class="file" href="https://github.com/example/graph/blob/6666666666666666666666666666666666666666/targets/propositional/nodes/tutorial-and-swap/explainer/71ab158ea86f9a84dba1941dd6dba85f4d710237c832ad2863973af4e72b3eac.md">explainer/71ab158ea86f….md</a>, written by dana, drafted with anthropic/claude-opus-5.5 via &quot;Claude Code&quot
+E               assert None
+E                +  where None = <function search at 0x102b00180>('\\b20\\d\\d-\\d\\d-\\d\\d\\b', '<a class="file" href="https://github.com/example/graph/blob/6666666666666666666666666666666666666666/targets/proposit...md">explainer/71ab158ea86f….md</a>, written by dana, drafted with anthropic/claude-opus-5.5 via &quot;Claude Code&quot')
+E                +    where <function search at 0x102b00180> = re.search
+
+site/tests/test_f22_reader.py:242: AssertionError
+____________ test_the_docs_reading_section_explains_the_new_things _____________
+
+pages = {'index.html': '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="widt...6666666666666666666666666666666666666/frontier.json">frontier.json ↗</a></span>\n</footer>\n\n</body>\n</html>\n', ...}
+
+    def test_the_docs_reading_section_explains_the_new_things(pages: dict[str, str]) -> None:
+        docs = pages["docs/index.html"]
+        section = docs[docs.index('id="reading"') : docs.index('id="glossary"')]
+        for words in ("contents", "root first", "by sorry", "does not use", "tap"):
+>           assert words in section, words
+E           AssertionError: contents
+E           assert 'contents' in 'id="reading">How to read a proof page</h2>\n<p>Every proof on the network is written in Lean, a language in which a p... naming the paper or note</td><td>resolved: explained → written up</td></tr>\n</tbody>\n</table></div>\n</div>\n\n<h2 '
+
+site/tests/test_f22_reader.py:252: AssertionError
+=========================== short test summary info ============================
+FAILED site/tests/test_f22_reader.py::test_the_problem_page_shows_the_root_proofs_overview_in_words
+FAILED site/tests/test_f22_reader.py::test_the_section_cites_the_records_sources_when_it_has_any
+FAILED site/tests/test_f22_reader.py::test_the_reading_view_has_a_table_of_contents_in_page_order
+FAILED site/tests/test_f22_reader.py::test_the_reading_view_offers_root_first_without_changing_the_default
+FAILED site/tests/test_f22_reader.py::test_the_node_page_marks_which_dependencies_the_term_uses
+FAILED site/tests/test_f22_reader.py::test_every_statement_block_explains_its_sorry[problems/propositional/index.html]
+FAILED site/tests/test_f22_reader.py::test_every_statement_block_explains_its_sorry[nodes/propositional/and-swap-reassoc/index.html]
+FAILED site/tests/test_f22_reader.py::test_every_statement_block_explains_its_sorry[reading]
+FAILED site/tests/test_f22_reader.py::test_on_a_phone_the_words_come_before_the_steps
+FAILED site/tests/test_f22_reader.py::test_on_a_phone_the_graph_keeps_its_size_and_scrolls
+FAILED site/tests/test_f22_reader.py::test_touch_screens_read_tap_not_hover
+FAILED site/tests/test_f22_reader.py::test_a_spec_node_is_labelled_with_its_theorem_name
+FAILED site/tests/test_f22_reader.py::test_more_than_six_steps_fold - assert ...
+FAILED site/tests/test_f22_reader.py::test_an_escaped_step_id_shows_its_lean_name
+FAILED site/tests/test_f22_reader.py::test_each_explainer_version_carries_its_date
+FAILED site/tests/test_f22_reader.py::test_the_docs_reading_section_explains_the_new_things
+16 failed, 1 passed in 5.06s

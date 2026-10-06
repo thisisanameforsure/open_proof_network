@@ -679,10 +679,12 @@ def svg(  # noqa: PLR0913 — the target's own names beside what the drawing mar
     outlines: dict[str, int] | None = None,
     root: str | None = None,
     prefix: str | None = None,
+    names: dict[str, str] | None = None,
 ) -> str:
     """The SVG markup; ``href`` maps node ids to page paths (every id must be present). With
     ``proofs`` (F18-T2) every node and edge says which proofs of the target it is on; ``root``
-    keeps the root in the tree and ``prefix`` (the target id) is dropped from labels (T33)."""
+    keeps the root in the tree and ``prefix`` (the target id) is dropped from labels (T33).
+    ``names`` (F22-T18, S) gives a pill's title the theorem name of an id that names nothing."""
     lay = layout(nodes, root=root, prefix=prefix)
     status = {p.node_id: p.status for p in lay.placed}
     parts = [
@@ -704,8 +706,13 @@ def svg(  # noqa: PLR0913 — the target's own names beside what the drawing mar
             f'<text class="dag-group" x="{lay.width // 2}" y="{lay.group_y}">'
             f"{escape(GROUP_LABEL)}</text>"
         )
+
     # F04-T12: each node is a pill — a status dot and the monospace label — with a halo dot the
     # page's script shows on the selected one; the colours come from the stylesheet.
+    def named(node_id: str) -> str:
+        name = (names or {}).get(node_id)
+        return f" ({escape(name)})" if name else ""
+
     for p in lay.placed:
         label = label_of(p.node_id, (prefix, root) if prefix and root else prefix)
         cls, data = proof_attrs(proofs, [p.node_id in m.nodes for m in proofs])
@@ -717,7 +724,7 @@ def svg(  # noqa: PLR0913 — the target's own names beside what the drawing mar
             f'<text x="28" y="{NODE_H // 2 + 5}">{escape(label)}</text>'
             f'<circle class="halo" cx="{p.w - 14}" cy="{NODE_H // 2}" r="3"/>'
             + outline_mark((outlines or {}).get(p.node_id, 0), p.w)
-            + f"<title>{escape(p.node_id)}: {escape(p.status)}</title></g></a>"
+            + f"<title>{escape(p.node_id)}{named(p.node_id)}: {escape(p.status)}</title></g></a>"
         )
     parts.append("</svg>")
     return "\n".join(parts)

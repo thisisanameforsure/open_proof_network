@@ -605,6 +605,10 @@ pre.diff .diff-hunk { color: var(--n500); }
 .stmt .gloss-line { grid-column: 2 / -1; margin-top: calc(var(--s3) * -1); color: var(--n400); font-size: 13px; line-height: 1.5; overflow-wrap: anywhere; }
 @media (max-width: 700px) {
   .ex-section { grid-template-columns: minmax(0, 1fr); }
+  /* F22-T18 (R): on a phone a section's words come before its steps column. */
+  .ex-prose { order: -1; }
+  /* The statement graph keeps its drawn size and scrolls sideways, so its labels stay legible. */
+  .dag { max-width: none; flex: none; }
   .gloss, .informal-block { padding-left: var(--s4); padding-right: var(--s4); }
 }
 @media (max-width: 900px) {
@@ -624,3 +628,16 @@ details.diff pre.diff { white-space: pre-wrap; overflow-wrap: anywhere; }
 .pending-head { margin: 0 0 var(--s2); overflow-wrap: anywhere; }
 .pending-head strong { color: var(--warn); }
 .pending-edit pre.diff { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+/* — F22-T18: what a reader of a proof page needed (feature requests I, J, M-S). — */
+.on-touch { display: none; }
+@media (hover: none) { .on-hover { display: none; } .on-touch { display: inline; } }
+.sorry-note { margin: var(--s1) 0 var(--s3); font-size: 12.5px; color: var(--n400); overflow-wrap: anywhere; }
+.thm-name, .po-name { font-size: .9em; color: var(--n400); overflow-wrap: anywhere; }
+.dep-unused { color: var(--n500); }
+.ex-steps-fold summary { cursor: pointer; color: var(--n300); }
+.rv-toc { margin: var(--s4) 0; padding: var(--s3) var(--s4); border: 1px solid var(--divider); border-radius: var(--radius-sm); font-size: 13.5px; }
+.rv-toc ol { margin: var(--s1) 0 0; padding-left: var(--s6); }
+.rv-toc li { overflow-wrap: anywhere; }
+.rv-order { display: flex; flex-wrap: wrap; gap: var(--s2); align-items: center; margin: 0 0 var(--s4); font-size: 12.5px; color: var(--n400); }
+.proved-in-words { padding-bottom: calc(var(--s8) * 2); max-width: 80ch; }
+.rv-order .chip[aria-current="true"] { color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }

@@ -52,7 +52,7 @@ def after(tmp_path_factory: pytest.TempPathFactory) -> dict[str, str]:
 
 def explainer_part(page: str) -> tuple[str, str]:
     """The node page's explainer section, split into what it shows and its history."""
-    start = page.index("<h2>Explainer</h2>")
+    start = page.index('<h2 id="explainer">Explainer</h2>')
     section = page[start : page.index("<h2>Annex</h2>", start)]
     cut = section.index('<details class="history"')
     return section[:cut], section[cut:]

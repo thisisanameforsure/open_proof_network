@@ -1,10 +1,10 @@
 <p class="crumbs"><a href="/problems/">Problems</a> / <a href="$target_href">$target_id</a> / $node_id</p>
-<h1 class="mono">$node_id</h1>
+<h1 class="mono">$node_id$thm</h1>
 <p class="lead">$status</p>$revision
 <p class="wayfinding">$wayfinding</p>
 $claimable$tutorial$defects
 <div class="statement-block" data-block="statement">$statement_label
-<pre class="lean statement st-$status_class">$statement</pre>$statement_glosses
+<pre class="lean statement st-$status_class">$statement</pre>$sorry_note$statement_glosses
 <p>Rendered from $statement_link. Origin: $origin.</p>
 $deps
 </div>
@@ -18,7 +18,7 @@ $attestation$alternates
 <h2>Attempts</h2>
 <p>$attempt_count recorded. Routes refuted: $refuted. Failure classes: $histogram.</p>
 $partials
-<h2>Explainer</h2>
+<h2 id="explainer">Explainer</h2>
 $explainer
 <h2>Annex</h2>
 $annexes
