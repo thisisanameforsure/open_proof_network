@@ -302,9 +302,13 @@ def test_a_steward_supersedes_a_signed_version_through_the_service(
     assert chain["pending"] == [
         {"key": "whole", "version": stranger.json()["hash"], "state": "pending"}
     ]
+    # F22-T1: one writer per chain head, a steward included. The steward's own supersession of
+    # the same head waits for the stranger's (this used to open beside it, and the two would
+    # have forked the chain on merge, as #415 and #417 did).
     steward_words = statement_gloss() | {"supersedes": head, "text": "The steward's rewording."}
     by_steward = post(h, h.token_for("code_alice", STEWARD), steward_words)
-    assert by_steward.status_code == 201, by_steward.text
+    assert by_steward.status_code == 409, by_steward.text
+    assert by_steward.json()["details"]["pr_number"] == stranger.json()["pr_number"]
 
 
 # --- drafted_with (F21-R6, AC5) ------------------------------------------------------------------

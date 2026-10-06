@@ -116,13 +116,59 @@ def test_another_file_is_another_writer(h: Harness) -> None:
     assert other.status_code == 201, other.text
 
 
-def test_a_superseding_request_is_not_refused_by_this_rule(h: Harness, tree: Path) -> None:
+def test_a_second_supersession_of_one_head_is_refused_naming_the_first(
+    h: Harness, tree: Path
+) -> None:
+    """F22-T1 (testers 2026-10-06, P1): one writer per chain head. #415 and #417 both superseded
+    the merged ``b4cf…``, both passed their gates against their own base, and both merged, so
+    the chain forked on the record. The second open supersession of one head is refused, naming
+    the first; this test used to assert that it opened (F21-R5 had ruled only on new chains)."""
     head = put_version(tree, "gloss", "Merged words.")
     serve(h, tree)
     bob, dave = tokens(h)
     first = post(h, bob, gloss("Bob's correction of the merged words.", supersedes=head))
     assert first.status_code == 201, first.text
+    pushes = len(h.githost.pushes)
     second = post(h, dave, gloss("Carol's correction of the merged words.", supersedes=head))
+    refused_naming(h, second, first, pushes)
+    assert second.json()["details"]["subject"].startswith("supersedes:")
+
+
+def test_one_writer_superseding_twice_is_refused_too(h: Harness, tree: Path) -> None:
+    """W3 filed #415 and #417 under one pseudonym: the rule is per head, not per person."""
+    head = put_version(tree, "gloss", "Merged words.")
+    serve(h, tree)
+    bob, _ = tokens(h)
+    first = post(h, bob, gloss("So the conjuncts regroup.", supersedes=head))
+    assert first.status_code == 201, first.text
+    pushes = len(h.githost.pushes)
+    second = post(h, bob, gloss("Thus the conjuncts regroup.", supersedes=head))
+    refused_naming(h, second, first, pushes)
+
+
+def test_after_the_first_supersessions_gate_failed_another_passes(h: Harness, tree: Path) -> None:
+    head = put_version(tree, "gloss", "Merged words.")
+    serve(h, tree)
+    bob, dave = tokens(h)
+    first = post(h, bob, gloss("Bob's correction of the merged words.", supersedes=head))
+    assert first.status_code == 201, first.text
+    h.githost.set_pull_request_state(first.json()["pr_number"], runs=GATE_FAILED)
+    h.clock.advance(minutes=5)
+    second = post(h, dave, gloss("Carol's correction of the merged words.", supersedes=head))
+    assert second.status_code == 201, second.text
+
+
+def test_a_supersession_of_another_head_is_another_slot(h: Harness, tree: Path) -> None:
+    """Explainers of one proof may stand in two chains (h3 has two); each head has its writer.
+    The explainer route keys the head, so superseding another chain's head opens."""
+    proof = proof_hash(tree)
+    one = put_version(tree, "explainer", "Regroup the conjuncts.")
+    two = put_version(tree, "explainer", "Take them apart.", date="2026-10-05")
+    serve(h, tree)
+    bob, dave = tokens(h)
+    first = post(h, bob, {**explainer(proof, "Regroup, then read."), "supersedes": one})
+    assert first.status_code == 201, first.text
+    second = post(h, dave, {**explainer(proof, "Apart, then together."), "supersedes": two})
     assert second.status_code == 201, second.text
 
 

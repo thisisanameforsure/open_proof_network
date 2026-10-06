@@ -188,20 +188,52 @@ def words_key(target_id: str, subject: str) -> str:
     return f"words:{target_id}:{subject}"
 
 
+def supersedes_key(words: str, head: str) -> str:
+    """F22-T1: the slot of one chain head, ``supersedes:<target>:<subject>:<head>`` — ``words`` is
+    the subject's ``words_key``. A superseding version records and holds it, so a second open
+    supersession of the same head is refused (the fork of #415 and #417, testers 2026-10-06)."""
+    return "supersedes:" + words.removeprefix("words:") + ":" + head
+
+
+def words_rival(ctx: Context, key: str) -> Submission | None:
+    """The open gloss or explainer pull request, still able to merge, that carries ``key`` among
+    its fingerprints."""
+    for found in ctx.store.list_open_submissions():
+        if found.kind in WORDS_KINDS and key in found.fingerprints and blocks(ctx, found):
+            return found
+    return None
+
+
 def check_words(ctx: Context, key: str) -> None:
     """F21-R5: one writer per file. A new chain on a subject that an open pull request, still able
     to merge, already adds a version of is refused, naming that pull request. Keyed by ``key``
     rather than by node, since a definition module's gloss has none; a rival whose gate failed or
     that conflicts blocks nothing (``blocks``)."""
-    for found in ctx.store.list_open_submissions():
-        if found.kind in WORDS_KINDS and key in found.fingerprints and blocks(ctx, found):
-            raise refused(
-                f"someone is already writing the words for this subject in pull request "
-                f"#{found.pr_number}; one writer at a time (F21-R5). Wait for it: once it merges, "
-                "improve it with supersedes; if its gate fails or it is closed, start a chain",
-                found,
-                subject=key,
-            )
+    found = words_rival(ctx, key)
+    if found is not None:
+        raise refused(
+            f"someone is already writing the words for this subject in pull request "
+            f"#{found.pr_number}; one writer at a time (F21-R5). Wait for it: once it merges, "
+            "improve it with supersedes; if its gate fails or it is closed, start a chain",
+            found,
+            subject=key,
+        )
+
+
+def check_supersession(ctx: Context, key: str, head: str) -> None:
+    """F22-T1: one writer per chain head. A version superseding ``head`` while an open pull
+    request, still able to merge, already supersedes it is refused, naming that pull request:
+    both would pass their gates against their own base and the chain would fork on merge."""
+    found = words_rival(ctx, key)
+    if found is not None:
+        raise refused(
+            f"pull request #{found.pr_number} already supersedes {head[:12]}…; a chain head has "
+            "one writer at a time, or the chain forks (F22-T1). Wait for it: once it merges, "
+            "supersede the new head; if its gate fails or it is closed, supersede this one again",
+            found,
+            subject=key,
+            supersedes=head,
+        )
 
 
 def merged_texts(ctx: Context, target_id: str, node_id: str) -> dict[str, str]:

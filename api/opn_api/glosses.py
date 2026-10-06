@@ -462,6 +462,13 @@ async def post_glosses(ctx: Context, request: Request) -> Response:
     words = words_key(target_id, node_id, subject)
     if supersedes is None:
         duplicates.check_words(ctx, words)
+        slots: tuple[str, ...] = (words,)
+        prints: tuple[str, ...] = (words,)
+    else:
+        # F22-T1: one writer per chain head, recorded and held as new chains hold their subject
+        head_key = duplicates.supersedes_key(words, str(supersedes))
+        duplicates.check_supersession(ctx, head_key, str(supersedes))
+        slots, prints = (head_key,), (words, head_key)
     owner = node_id or subject.get("module") or target_id
     written = yaml.safe_dump(
         {"subject": front.get("subject") or front.get("proof"), "supersedes": supersedes},
@@ -478,8 +485,8 @@ async def post_glosses(ctx: Context, request: Request) -> Response:
         target_id=target_id,
         node_id=node_id,
         written=written + text,
-        subject_prints=(words,),
-        subject_slots=(words,) if supersedes is None else (),
+        subject_prints=prints,
+        subject_slots=slots,
     )
     body |= {"hash": digest, "record": record}
     if record == "gloss":
