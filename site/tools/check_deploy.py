@@ -13,16 +13,29 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import subprocess
 import sys
+import urllib.parse
 import urllib.request
 from pathlib import Path
 
 CSP = (
-    "default-src 'none'; style-src 'self'; script-src 'self'; img-src 'self'; font-src 'self'; "
-    "base-uri 'none'; form-action 'none'"
+    "default-src 'none'; connect-src {connect}; style-src 'self'; script-src 'self'; "
+    "img-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'"
 )
+
+
+def csp(api_url: str | None) -> str:
+    """The policy the template serves (F04 §7): ``connect-src`` names the service's origin, the
+    scheme and host of the site's configured service address (F22-T19), or ``'none'``."""
+    if not api_url:
+        return CSP.format(connect="'none'")
+    parts = urllib.parse.urlsplit(api_url)
+    return CSP.format(connect=f"{parts.scheme}://{parts.netloc}")
+
+
 FONT = "/vendor/katex/fonts/KaTeX_Main-Regular.woff2"
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -55,13 +68,18 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("hostname")
     parser.add_argument("--graph", type=Path, default=ROOT.parent / "open_proof_network_graph")
+    parser.add_argument(
+        "--api-url",
+        default=os.environ.get("OPN_SITE_API_URL", "").strip() or None,
+        help="the service address the site was rendered with (default: OPN_SITE_API_URL)",
+    )
     args = parser.parse_args(argv)
     base = f"https://{args.hostname}"
     problems: list[str] = []
 
     status, headers, home = fetch(f"{base}/")
     print(f"GET / -> {status}")
-    if headers.get("content-security-policy") != CSP:
+    if headers.get("content-security-policy") != csp(args.api_url):
         problems.append(f"CSP header is {headers.get('content-security-policy')!r}")
     _s, _h, live = fetch(f"{base}/rendered-from.txt")
     live = live.strip()

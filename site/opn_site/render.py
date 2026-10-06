@@ -141,6 +141,7 @@ SCRIPTS: tuple[str, ...] = (
     "/vendor/katex/auto-render.min.js",
     "/math.js",
     "/reading.js",
+    "/in-review.js",
 )
 MATH_HEAD = '<link rel="stylesheet" href="/vendor/katex/katex.min.css">'
 MATH_SCRIPTS = (
@@ -2630,7 +2631,9 @@ class Renderer:
             statement_label=self.statement_label(tv, nv),
             statement_glosses=self.gloss_slot(
                 tv, "statement", f"nodes/{nid}/Statement.lean", node=nid
-            ),
+            )
+            + self.in_review_slot("gloss"),
+            in_review_explainer=self.in_review_slot("explainer"),
             statement_link=self.file_link(nv.statement_path),
             deps=self.deps_list(tv, nv),
             origin=esc(e["origin"]) + (f" ({esc(e['relation'])})" if e["relation"] else ""),
@@ -2657,7 +2660,27 @@ class Renderer:
             renders=list(dict.fromkeys(renders)),  # F20-T8: an explainer is listed once
             path=PROBLEMS_PATH,
             head=MATH_HEAD if has_math else "",
-            script=MATH_SCRIPTS if has_math else "",
+            script=(MATH_SCRIPTS if has_math else "") + self.in_review_script(tid, nid),
+        )
+
+    def in_review_slot(self, kind: str) -> str:
+        """F22-T19 (request E): an empty, hidden slot the words-in-review script fills with the
+        open pull requests carrying ``kind`` (``gloss`` or ``explainer``) for this node; nothing
+        when the site has no service address to ask."""
+        if not self.api_url:
+            return ""
+        return f'<div class="in-review" data-in-review="{esc(kind)}" hidden></div>'
+
+    def in_review_script(self, target_id: str, node_id: str) -> str:
+        """F22-T19: the script that reads the service's open listing for this node. The address
+        is the site's configured one (``config.Settings.api_url``), never a template's; the
+        graph repository is passed so a pull request is linked only when it is on it."""
+        if not self.api_url:
+            return ""
+        return (
+            f'<script src="/in-review.js" data-api="{esc(self.api_url)}" '
+            f'data-target="{esc(target_id)}" data-node="{esc(node_id)}" '
+            f'data-repo="{esc(self.repo_url)}"></script>'
         )
 
     def proof_text(self, tv: TargetView | None, nv: NodeView, lean: LeanFile) -> str:

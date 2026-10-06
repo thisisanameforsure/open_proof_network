@@ -607,6 +607,7 @@ pre.diff .diff-hunk { color: var(--n500); }
   .ex-section { grid-template-columns: minmax(0, 1fr); }
   /* F22-T18 (R): on a phone a section's words come before its steps column. */
   .ex-prose { order: -1; }
+  .graph-grid { grid-template-columns: minmax(0, 1fr); }
   /* The statement graph keeps its drawn size and scrolls sideways, so its labels stay legible. */
   .dag { max-width: none; flex: none; }
   .gloss, .informal-block { padding-left: var(--s4); padding-right: var(--s4); }
@@ -641,3 +642,15 @@ details.diff pre.diff { white-space: pre-wrap; overflow-wrap: anywhere; }
 .rv-order { display: flex; flex-wrap: wrap; gap: var(--s2); align-items: center; margin: 0 0 var(--s4); font-size: 12.5px; color: var(--n400); }
 .proved-in-words { padding-bottom: calc(var(--s8) * 2); max-width: 80ch; }
 .rv-order .chip[aria-current="true"] { color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+/* F22-T19: words in review, written by in-review.js under the words they would change. */
+.in-review { margin: var(--s2) 0; padding: var(--s1) var(--s3); border: 1px dashed var(--warn); border-radius: var(--radius-sm); font-size: 13px; color: var(--n300); }
+.in-review p { margin: var(--s1) 0; overflow-wrap: anywhere; }
+/* F22-T15: words now carry lists and headings; they wrap like the paragraphs (a long code span
+   in a list item pushed a 390px page to 398px). */
+.prose li, .prose h4, .prose h5, .prose h6, .ex-prose li { overflow-wrap: anywhere; }
+/* F22-T15: a gloss's first sentence can carry display math; it scrolls inside the row rather than
+   widening the page (measured: /problems/ at 390px was 671px wide before this rule). */
+.gloss-line { min-width: 0; max-width: 100%; }
+.gloss-line .math:has(.katex-display), .gloss-line .katex-display { display: block; max-width: 100%; overflow-x: auto; overflow-y: hidden; }
+.rv-order .chip { padding: 2px var(--s3); border: 1px solid var(--divider); border-radius: 999px; color: var(--n300); text-decoration: none; }
+h1 .thm-name { font-size: .55em; }

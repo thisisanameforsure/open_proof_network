@@ -41,13 +41,18 @@ def check_deploy() -> ModuleType:
 CACHE_POLICY = "default-src 'none'; sandbox"
 
 
-def served_policy() -> str:
-    """The pages' policy: the template's one CSP besides the cache behaviour's (F04-T28)."""
-    found = re.findall(r'ContentSecurityPolicy: "([^"]+)"', TEMPLATE.read_text(encoding="utf-8"))
-    assert sorted(found).count(CACHE_POLICY) == 1, found
-    pages = [p for p in found if p != CACHE_POLICY]
-    assert len(pages) == 1, found
-    return str(pages[0])
+def served_policy(service_origin: str = "") -> str:
+    """The pages' policy: the template's one CSP besides the cache behaviour's (F04-T28), with
+    its ``connect-src`` resolved as the stack resolves it for ``service_origin`` (F22-T19:
+    the service's origin, or ``'none'`` when the parameter is empty)."""
+    text = TEMPLATE.read_text(encoding="utf-8")
+    found = re.findall(r'ContentSecurityPolicy: "([^"]+)"', text)
+    assert found == [CACHE_POLICY], found
+    pages = re.findall(r'ContentSecurityPolicy: !Sub\n\s+- "([^"]+)"\n\s+- Connect: (.+)', text)
+    assert len(pages) == 1, pages
+    policy, connect = pages[0]
+    assert connect.strip() == """!If [HasService, !Ref ServiceOrigin, "'none'"]""", connect
+    return str(policy).replace("${Connect}", service_origin or "'none'")
 
 
 def directives(policy: str) -> dict[str, list[str]]:
@@ -70,13 +75,17 @@ def test_the_policy_allows_the_fonts_the_static_tree_ships() -> None:
 
 
 def test_every_directive_names_only_the_sites_own_origin() -> None:
-    """R10: whatever is allowed is allowed from here and nowhere else."""
-    for name, sources in directives(served_policy()).items():
-        assert sources in (["'none'"], ["'self'"]), name
+    """R10: whatever is loaded is loaded from here and nowhere else. F22-T19: the one exception
+    is ``connect-src``, the service's origin and nothing else, for node pages' words in review."""
+    for name, sources in directives(served_policy("https://api.example.org")).items():
+        if name == "connect-src":
+            assert sources == ["https://api.example.org"], sources
+        else:
+            assert sources in (["'none'"], ["'self'"]), name
 
 
 def test_the_deploy_check_expects_the_policy_the_template_serves() -> None:
-    assert served_policy() == check_deploy().CSP
+    assert served_policy() == check_deploy().csp(None)
 
 
 def test_the_site_ships_an_icon_and_every_page_names_it(pages: dict[str, str]) -> None:

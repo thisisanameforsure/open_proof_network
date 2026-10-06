@@ -90,8 +90,10 @@ def test_the_cache_policy_forbids_everything_and_sniffs_nothing() -> None:
 
 def test_the_site_policy_closes_base_uri_and_form_action() -> None:
     main = headers_of(distribution()["DefaultCacheBehavior"]["ResponseHeadersPolicyId"])
-    policy = directives(
-        main["SecurityHeadersConfig"]["ContentSecurityPolicy"]["ContentSecurityPolicy"]
-    )
+    served = main["SecurityHeadersConfig"]["ContentSecurityPolicy"]["ContentSecurityPolicy"]
+    # F22-T19: the pages' policy is a !Sub whose connect-src is the service origin parameter.
+    if isinstance(served, dict):
+        served = served["!Sub"][0]
+    policy = directives(served)
     assert policy.get("base-uri") == ["'none'"]
     assert policy.get("form-action") == ["'none'"]
