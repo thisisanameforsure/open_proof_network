@@ -516,6 +516,25 @@ def test_a_host_that_never_answers_leaves_the_merge_subject(
     assert "from the merge subject" in said, said
 
 
+def test_a_run_that_leaves_its_merge_to_a_later_one_asks_no_deploy(
+    gate_doc: dict[Any, Any], tmp_path: Path
+) -> None:
+    """F22-T21 (R9): on 2026-10-06 the runs of a batch's earlier merges each asked the site to
+    deploy their own merge commit, whose products the batch's last run had not yet committed, so
+    the site showed an explainer as one raw block for a minute. Only a run that records, or one
+    with nothing to record, has products worth deploying."""
+    graph = Graph(tmp_path / "g")
+    two, three = graph.append(2), graph.append(3)
+    prs = {two: 2, three: 3}
+    code, out, said, _calls = run_find_step(gate_doc, graph, tmp_path, two, prs)
+    assert code == 0 and out.get("run") == "false", said
+    assert out.get("site") == "skip", (out, said)
+    code, out, said, _calls = run_find_step(gate_doc, graph, tmp_path, three, prs)
+    assert out.get("run") == "true" and out.get("site", "") != "skip", (out, said)
+    (deploy,) = [s for s in steps(gate_doc) if str(s.get("name", "")).startswith("Ask the site")]
+    assert "steps.pr.outputs.site != 'skip'" in str(deploy["if"]), deploy["if"]
+
+
 # --- static: the rest of the job ------------------------------------------------------------------
 
 
