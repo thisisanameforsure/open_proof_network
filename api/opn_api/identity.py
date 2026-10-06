@@ -330,7 +330,7 @@ async def github_callback(ctx: Context, request: Request) -> Response:
 
 def reprovable(ctx: Context, held: Identity) -> bool:
     """Whether the proof that made ``held`` may give it a new token: none of its tokens is live
-    (a lost live token is replaced by the recovery code, F05-T30, or waits out its idle window),
+    (a lost live token waits out its idle window; the recovery code, F05-T30, is not built),
     and none was revoked by the operator (F05-T21) — a lapse after a revocation must not undo it.
     A token retired by a rotation is neither."""
     for record in ctx.store.list_tokens(held.id):
@@ -348,8 +348,8 @@ def check_reprovable(ctx: Context, held: Identity, reference: str) -> None:
             "github-login-taken",
             f"an identity already exists for GitHub login {reference} ({held.pseudonym}); a new "
             "token for it is issued by this proof only once its tokens have lapsed from disuse, "
-            "and never after the operator revoked them. A lost live token is replaced with the "
-            "identity's recovery code: POST /tokens/recover {pseudonym, recovery_code}",
+            "and never after the operator revoked them. A lost live token cannot be replaced "
+            "until it lapses: the recovery code of D-19 v3.29 is not built yet (F05-T30)",
         )
 
 

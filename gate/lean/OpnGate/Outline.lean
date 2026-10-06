@@ -12,12 +12,16 @@ expansions: every `have`, `obtain`, `suffices`, `show`, each step of a `calc`, a
 branch (`case`, `next`, a `·` focus, an alternative of `cases`/`induction … with`), at any depth.
 Every other tactic folds into the step that contains it. A step's children are the steps written
 inside it. A proof that is not a `by` block is one `term` step. A `have` whose value is `sorry`
-(or `by sorry`) is a `hole` step: a partial's named hole (D-12).
+(or `by sorry`) is a `hole` step: a partial's named hole (D-12). The top-level tactics after a
+`by` block's last step, which no step encloses, are one `term` step marked with the reserved id
+`close` (F22-T14): its claim is the goal they close, and it takes no `s<n>` position, so no id
+an outline already published moves.
 
 **Goals and claims** come from the info tree: the `TacticInfo` the elaborator recorded for the
 step's own syntax (same kind, same source range), its goals before and after. A goal carries its
 target and the hypotheses the step introduced (locals of the goal after that the goal before did
-not have), never the whole context. Each text is printed with the hole writer's options
+not have), never the whole context; a case branch's, the locals it has that the goal before
+its split had not (F22-T14). Each text is printed with the hole writer's options
 (`ppRoundTrippable`) and read back in the goal's own local context (`reElaboratesTo`: parse,
 elaborate, definitional equality); one that does not read back is `unreliable` (F19-R3).
 
@@ -79,10 +83,12 @@ structure StepOut where
   closedKind : String
   tactics : Array String := #[]
   children : Array StepOut := #[]
+  /-- An id the step is given outright rather than by position (F22-T14: `close`). -/
+  reserved : Option String := none
 deriving Inhabited
 
 partial def StepOut.toJson (s : StepOut) : Json :=
-  Json.mkObj [
+  Json.mkObj <| (match s.reserved with | some r => [("id", Json.str r)] | none => []) ++ [
     ("kind", Json.str s.kind),
     ("name", match s.name with | some n => Json.str n | none => Json.null),
     ("claim", match s.claim with | some c => ToJson.toJson c | none => Json.null),
@@ -202,6 +208,36 @@ def goalOut (env : Env) (ci : ContextInfo) (mctx : MetavarContext) (after : MVar
 /-- The lctx of a goal, read from a metavariable context. -/
 def lctxOf (mctx : MetavarContext) (g : MVarId) : Option LocalContext :=
   (mctx.findDecl? g).map (·.lctx)
+
+/-- The context of the goal before the split a branch's goal `g` came from (F22-T14): the
+innermost written tactic that has `g` among its goals after and not before (a `rcases`, a
+`constructor`, a `refine`), read in that tactic's own metavariable context. A goal another was
+renamed into (`case inl a =>` assigns the goal it names to a fresh one carrying the new names)
+is followed back to that goal first, at most `fuel` links; the renamed variable keeps its
+`FVarId`, which is why the goal the branch starts on can never show it. `none` when no tactic
+made `g`: an alternative of `cases … with` introduces its variables inside the tactic, and the
+caller then reads against the goal before the enclosing tactic. -/
+partial def splitBase (env : Env) (mctx : MetavarContext) (g : MVarId) (fuel : Nat := 4) :
+    Option LocalContext := Id.run do
+  let mut best : Option (Syntax.Range × TacticInfo) := none
+  for (_, info) in env.infos do
+    if let .ofTacticInfo ti := info then
+      if ti.goalsAfter.contains g && !ti.goalsBefore.contains g then
+        if let some r := rangeOf ti.stx then
+          match best with
+          | some (br, _) => if within r br then best := some (r, ti)
+          | none => best := some (r, ti)
+  if let some (_, ti) := best then
+    return ti.goalsBefore.head?.bind (lctxOf ti.mctxBefore)
+  if fuel == 0 then return none
+  for (_, info) in env.infos do
+    if let .ofTacticInfo ti := info then
+      for g0 in ti.goalsBefore do
+        if g0 != g then
+          if let some e := mctx.getExprAssignmentCore? g0 then
+            if e.consumeMData == .mvar g then
+              return splitBase env mctx g0 (fuel - 1)
+  return none
 
 /-- The type of the local `after` has that `before` had not, the last such: what a `have`
 binds. With its name. -/
@@ -347,13 +383,17 @@ partial def mkStep (env : Env) (kind : String) (stx : Syntax) (rest : Array Synt
       | none => ("term", #[])
     return { base with claim, closedKind := ck, tactics, children }
   | _ =>
-    -- A case branch binds nothing; its goal is the one its body starts on.
+    -- A case branch binds nothing; its goal is the one its body starts on, with the hypotheses
+    -- the split gave it: read against the goal before the split (F22-T14), never against `here`,
+    -- the goal the branch starts on, which already holds them.
     let body := branchBody stx
     let (ck, tactics) := closing env #[body]
     let bodySeq := (body.getArgs.find? (fun a => kindIs a ``Lean.Parser.Tactic.tacticSeq)).getD body
     let goal ← match tacticInfoFor env bodySeq with
       | some (ci, ti) => match ti.goalsBefore.head? with
-        | some g => pure (some (← goalOut env ci ti.mctxBefore g here))
+        | some g =>
+          let base := (splitBase env ti.mctxBefore g).orElse fun _ => outer
+          pure (some (← goalOut env ci ti.mctxBefore g base))
         | none => pure none
       | none => pure none
     return { base with goal, closedKind := ck, tactics, children }
@@ -367,6 +407,42 @@ partial def walkArgs (env : Env) (stx : Syntax) (outer : Option LocalContext) :
   return out
 
 end
+
+/-! ### The closing step (F22-T14) -/
+
+/-- The id the trailing closing tactics are given, outside the `s<n>` numbering. -/
+def closeId : String := "close"
+
+/-- A `by` block's top-level tactics, in source order. -/
+def topTactics (proof : Syntax) : Array Syntax :=
+  let inner := proof[1][0]
+  if kindIs inner ``Lean.Parser.Tactic.tacticSeq1Indented then inner[0].getSepArgs
+  else if kindIs inner ``Lean.Parser.Tactic.tacticSeqBracketed then inner[1].getSepArgs
+  else #[]
+
+/-- The tactics after the proof's last step, which no step encloses: one `close` step, its claim
+the goal they close and its closing what they are. `none` when the last step ends the proof. -/
+def closeStep (env : Env) (proof : Syntax) (steps : Array StepOut) :
+    IO (Option StepOut) := do
+  let last := steps.foldl (fun acc s => if acc < s.stopPos then s.stopPos else acc) ⟨0⟩
+  let trailing := (topTactics proof).filter fun t => match rangeOf t with
+    | some r => last ≤ r.start
+    | none => false
+  let some first := trailing[0]? | return none
+  let some r0 := rangeOf first | return none
+  let some r1 := rangeOf trailing.back! | return none
+  let (ck, tactics) := closing env trailing
+  let claim ← match tacticInfoFor env first with
+    | some (ci, ti) => match ti.goalsBefore.head? with
+      | some g =>
+        let before : ContextInfo := { ci with mctx := ti.mctxBefore }
+        before.runMetaM {} do
+          g.withContext do return some (← render env (← g.getDecl).type)
+      | none => pure none
+    | none => pure none
+  return some { kind := "term", reserved := some closeId, claim, startPos := r0.start,
+                stopPos := r1.stop, startLine := lineOf env r0.start,
+                endLine := lineOf env r1.stop, closedKind := ck, tactics }
 
 /-- Give each written constant to the innermost step whose source contains it. -/
 partial def assignUses (steps : Array StepOut) (consts : Array (String.Pos.Raw × Name)) :
@@ -466,8 +542,9 @@ unsafe def outline (path : String) (moduleName declName : Name) (automation : Ar
   let some proof := proofOf cmd | return .error s!"{declName} has no `:=` proof"
   let some proofRange := rangeOf proof | return .error "the proof has no source position"
   let env : Env := { fileMap, infos, automation, roundTrip }
-  let steps ← if kindIs proof ``Lean.Parser.Term.byTactic then
-      walk env proof #[] none
+  let steps ← if kindIs proof ``Lean.Parser.Term.byTactic then do
+      let steps ← walk env proof #[] none
+      pure (steps ++ (← closeStep env proof steps).toArray)
     else do
       -- F19-AC6: a term-mode proof is one step, the statement its claim.
       let some (ci, _) := infos[0]? | return .error "no elaboration record of the command"

@@ -689,18 +689,21 @@ The body of `POST /tokens` (JSON, `Content-Type: application/json`), in full:
 
 `dco` is an object, not a string: `accepted` must be the JSON `true` and `version` the current
 DCO text hash from `GET /dco.json` (a stale one is refused `dco-version-stale`). Any other
-top-level field is refused. The answer is `201` with `token`, `identity` and `expires`; MCP
+top-level field is refused. The answer is `201` with `token`, `identity` and `idle_days`; MCP
 `get_token` takes the same three arguments. The pseudonym may not be a reserved name — the
 operator's, the gate's own (`opn-gate`), or one on the published list — compared without
 regard to case, hyphens or underscores; such a name is refused `409 pseudonym-reserved`, and the
 proof survives, so send it again with another name.
 
-A token is valid 90 days from its issue or its last renewal; the answer's `expires` says when.
-Before then, `POST /tokens/renew` with the token as bearer and no body (MCP `renew_token`) returns
-a new token for the same identity and retires the old one at once — switch to the new one. A
-lapsed token is refused `401 token-expired`, and the identity is kept: a GitHub identity proves the
-same login again (`GET /auth/github/start`, then `POST /tokens` with the same pseudonym) for a new
-token. A tutorial identity cannot be re-proved, so renew it in time.
+A token has no fixed end: it lapses only after `idle_days` days (180) without use, and every
+authenticated call counts as a use, so a token an agent keeps using never lapses. Keep it where the
+machine remembers it between sessions (an environment file, a keychain), not in the agent's memory.
+`POST /tokens/renew` with the token as bearer and no body (MCP `renew_token`) returns a new token for
+the same identity and retires the old one at once; it is never required. A lapsed token is refused
+`401 token-expired`, and the identity is kept: a GitHub identity proves the same login again
+(`GET /auth/github/start`, then `POST /tokens` with the same pseudonym) for a new token. A tutorial
+identity has no second proof, and the recovery code D-19 v3.29 describes is not built yet, so a
+tutorial identity whose token lapses or is lost is gone: earn a new one.
 
 The alternative proof is a GitHub account, which raises rate limits and lets an identity whose
 token has lapsed or been lost get a new one: `GET /auth/github/start` redirects to GitHub, the callback answers with a `proof`
@@ -1148,7 +1151,9 @@ Three rules the gate enforces mechanically:
   circularity claim on it is refused naming the merged one, and a proof of the hole is still
   accepted, since it proves the ancestor too. A node's `CONTEXT.json` (`get_node`, the precheck
   bundle) lists under `circular_below` every merged claim that circles back to it, so you can see
-  which routes beneath it were tried and shown circular before choosing one.
+  which routes beneath it were tried and shown circular before choosing one; each of its `deps`
+  carries its own `cause` too (`context/v4`), so a dependency that reads `ready` but is
+  `circular` says so in the node that depends on it.
 
 **An annex may name its steps, and a skeleton that cites it follows them.** Send `steps` with
 the annex: a list of 1 to 50 `{"id", "summary"}`, where `id` is the name the skeleton's `have`
@@ -1740,11 +1745,16 @@ entry of `steps` has:
 
 - `id`: the name the step binds where that name is unique among its siblings, else `s<n>` in
   source order, dotted for a step inside another (`key.s1`). It depends on the artifact's bytes
-  alone, so a merged proof's ids never change. An explainer names steps by these ids.
+  alone, so a merged proof's ids never change. An explainer names steps by these ids. The
+  top-level tactics after the last step, which no step encloses (a closing `refine … ring`, an
+  `exact`), form one step with the reserved id `close`: its claim is the goal they close, and it
+  never shifts the `s<n>` numbering of the others. An id that escapes a character Lean allows
+  (`h_x3a9div`) has the original in the step's `name` (`hΩdiv`).
 - `kind`: `have`, `obtain`, `suffices`, `show`, `calc`, `case`, `term` (a proof written as one
   term is one `term` step) or `hole`.
 - `claim`: what the step establishes. `goal`: what is left to prove after it, with the hypotheses
-  the step introduced (never the whole context). Each text is printed so that every coercion and
+  the step introduced (never the whole context); a `case` branch lists the hypotheses its split
+  introduced, such as `a` for the first branch of `rcases h with a | b`. Each text is printed so that every coercion and
   numeral type is explicit, which is why `1` reads `(1 : Nat)`, and the gate reads it back:
   `printed: unreliable` means the printed form did not elaborate to the same term, so the site shows
   that step as its Lean lines only: read those lines, not the text.
@@ -1949,8 +1959,13 @@ several chains, all shown in record order and ranked by nothing (D-25). The rule
 service before any pull request opens and by the gate again at the merge:
 
 - A version supersedes the **current head** of its chain and nothing else, and the head must have
-  merged. Anything else is refused `409 record-not-head`, with the head in `details.head`. Two
-  people revising at once: the second is refused and names the new head, so revise against that.
+  merged. Anything else is refused `409 record-not-head`, with the head in `details.head`.
+- **One writer per head** (D-3 v3.32). While an open pull request supersedes a version, a second
+  version superseding the same one is refused `409 duplicate-submission`, naming that pull
+  request: wait for it to merge, then supersede the version it merged. A chain has one head; two
+  versions superseding it would be a fork no reader could resolve. The merge actor holds to the
+  same rule: it merges one words pull request per `gloss/` or `explainer/` directory at a time,
+  and re-runs the gate on one whose directory changed on `main` since it was opened.
 - What a new version may change, and when it is shown, follows the section states above. You may
   also start a chain of your own, with `supersedes` empty, subject to one writer per file.
 - A merged version can be **withdrawn** by its author, an active steward of the target or a listed
@@ -1965,7 +1980,9 @@ otherwise), `{kind: "definition", target_id, module}` for a definition module (i
 `defs/`), or `{kind: "proof", node_id, proof}` for an explainer, `proof` being the artifact's hash
 as the chains and outlines list it. `licence` is required: `CC-BY-4.0`, `CDLA-Permissive-2.0` or
 `Apache-2.0`. `drafted_with`, when given, is a string of at most 200 characters
-(`tooling-invalid` otherwise). The service writes the front matter (`gloss/v2` or
+(`tooling-invalid` otherwise); write it as `<model name> (<model id>)`, for example
+`Claude Opus 5.5 (claude-opus-5-5)`, so every version one model drafted reads the same. Runs of
+spaces in it are folded to one; nothing else is rewritten, since it is your words. The service writes the front matter (`gloss/v2` or
 `explainer/v2`): the author is your token's pseudonym and nothing the request says, the date is
 today, and the file is named by its hash. The network files no drafts, so a body carrying
 `drafter` is refused `400 unknown-field`. It opens an `append/` pull request the merge actor
@@ -2004,6 +2021,13 @@ echo
 "current":"
 ```
 
+**How the words are shown.** Prose is a small Markdown: paragraphs (a blank line between them),
+lists (`-`, `*` or `1.` at the start of a line, nested by indenting two spaces), `**bold**`,
+`*italic*`, `` `code` `` and fenced code blocks. Math is TeX between `$…$` (inline) or `$$…$$`
+(displayed, on its own lines if you like), and works inside a list item or bold text; an opening
+`$` is not followed by a space, a closing one not preceded by one. Links are shown as text: the
+site links nowhere off itself from words anyone may write.
+
 An explainer's text is sections under level-2 headings, with no text before the first. A heading
 may end with the outline steps its section describes, `{steps: s3 s4.1}`, ids separated by spaces
 or commas; one section may name none, and is the overview. Two sections naming the same steps, or
@@ -2035,9 +2059,12 @@ echo
 "record":"explainer"
 ```
 
-When a section cites a dotted Lean name in backticks that none of the constants its steps use
-contains (sub-steps included), the gate warns `explainer-name-unanchored` and does not refuse:
-check that the prose describes the Lean it names. An explainer filed before these rules, with no
+Anchoring a step covers its sub-steps: a section anchored on `key` describes `key.s1` and
+`key.hb` too, and may cite them by id. When a section cites, in backticks, a dotted Lean name
+that none of the constants its steps use contains (sub-steps included), the gate warns
+`explainer-name-unanchored` and does not refuse: check that the prose describes the Lean it names.
+An outline step id, a name that starts with a step's or a hypothesis's own name (`hroot.hs`,
+`r.num`) and a file name (`Context.lean`) are never warned about. An explainer filed before these rules, with no
 `schema` in its front matter, stays valid and is shown as one `overview` section; it counts as a
 one-version chain on the node's `Proof.lean`, which a new version may supersede.
 
@@ -2070,7 +2097,9 @@ pseudonym equal to your login; a pseudonym spelled like a steward's or curator's
 identity that did not prove that login is refused `403 author-names-another`. A listed curator is
 recognised through the pseudonym paired with their login in `curators.json`. If your pseudonym
 and login differ, withdraw other people's versions by hand, below, where the pull request's
-opener is who acts. Signatures are always made by hand, with the signer's own key.
+opener is who acts. Signatures are always made by hand, with the signer's own key. A
+calibration target needs no steward and usually has none, so there only a listed curator can
+sign words, and words there earn their author credit when a curator signs them.
 
 **By hand.** `opn-gate gloss revise <target> <subject>` writes the current version of a chain to
 an editable file (`gloss/v2` or `explainer/v2`), with `supersedes` set to its head, `lean_hash`

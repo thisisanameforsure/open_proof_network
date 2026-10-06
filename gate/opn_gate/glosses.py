@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import logging
 import re
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 from typing import Any
@@ -323,10 +324,13 @@ def chain_of(found: list[Chain], digest: str) -> Chain | None:
     return next((c for c in found if digest in c.hashes), None)
 
 
-def withdrawn_versions(parent_dir: Path, directory: str) -> frozenset[str]:
+def withdrawn_versions(
+    parent_dir: Path, directory: str, present: Callable[[Path], bool] | None = None
+) -> frozenset[str]:
     """The hashes of the ``<directory>/<hash>.md`` files a merged withdrawal under
-    ``parent_dir/withdrawals/`` names (R7): read as absent by every reader, still in the tree."""
-    names = records.withdrawn_names(parent_dir, directory)
+    ``parent_dir/withdrawals/`` names (R7): read as absent by every reader, still in the tree.
+    ``present`` keeps only the withdrawal files it accepts (``records.withdrawn``, F22-T11)."""
+    names = records.withdrawn_names(parent_dir, directory, present)
     return frozenset(name[: -len(".md")] for name in names if name.endswith(".md"))
 
 

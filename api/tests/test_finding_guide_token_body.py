@@ -16,6 +16,7 @@ from __future__ import annotations
 import json
 import re
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 from api_fakes import Harness, PrecheckKey, make_precheck_key
@@ -65,3 +66,21 @@ def test_the_documented_body_is_what_the_route_takes(harness: Harness, key: Prec
     }
     r = harness.client.post("/tokens", json=filled)
     assert r.status_code == 201, r.text
+
+
+def test_the_documented_answer_is_what_the_route_answers() -> None:
+    """F22-T25 (R6): the guide said the answer carries ``expires`` and a token lasts 90 days; since
+    D-19 v3.29 it carries ``idle_days`` and lapses only after that long unused. Four writers on
+    2026-10-06 read the old text, and one script died on ``d["expires"]``."""
+    section = token_section()
+    sentence = section[section.index("The answer is `201` with") :].split(";", 1)[0]
+    named = set(re.findall(r"`([a-z_]+)`", sentence))
+    assert named == {"token", "identity", "idle_days"}, sentence
+    assert "90 days" not in section and "`expires`" not in section, "v3.28's fixed lifetime"
+
+
+def test_the_documented_answer_keys_are_the_routes() -> None:
+    ctx: object = SimpleNamespace(settings=SimpleNamespace(token_idle_days=180))
+    held = SimpleNamespace(id="i", pseudonym="p", proof_kind="tutorial", created="c")
+    doc = identity.token_doc(ctx, "t", held)  # type: ignore[arg-type]
+    assert set(doc) == {"token", "identity", "idle_days"}

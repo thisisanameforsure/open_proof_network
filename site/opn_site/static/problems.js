@@ -45,6 +45,25 @@
         }
         row.hidden = !keep;
       });
+      // F04-T34 (Q35): the card's fold. Hidden when the filter or search leaves nothing in it;
+      // opened when a search match sits inside it, and closed again once the search no longer
+      // needs it — but only a fold the search opened, never one the reader opened.
+      var fold = card.querySelector("details.more");
+      if (fold) {
+        var inner = Array.prototype.filter.call(fold.querySelectorAll(".stmt"), function (r) { return !r.hidden; });
+        var anyLeft = inner.length > 0;
+        fold.hidden = !anyLeft;
+        var matchInside = Boolean(query) && inner.some(function (r) {
+          return r.textContent.toLowerCase().indexOf(query) !== -1;
+        });
+        if (matchInside && !fold.open) {
+          fold.open = true;
+          fold.setAttribute("data-auto-open", "1");
+        } else if (!matchInside && fold.hasAttribute("data-auto-open")) {
+          fold.open = false;
+          fold.removeAttribute("data-auto-open");
+        }
+      }
     });
     opts.forEach(function (o) {
       if (o.getAttribute("data-filter") === filter) { o.setAttribute("aria-current", "true"); }

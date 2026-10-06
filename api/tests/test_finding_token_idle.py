@@ -106,7 +106,10 @@ def test_a_token_unused_for_181_days_is_refused(harness: Harness) -> None:
     assert body["error"] == "token-expired"
     assert refused.headers["www-authenticate"].startswith("Bearer")
     assert "180 days" in body["message"]
-    assert "/tokens/recover" in body["message"]  # the way back names the recovery route
+    # restated by F22-T25: the way back names a route that exists (the recovery code, F05-T30,
+    # is not built, and its route answered 404)
+    assert "GET /auth/github/start" in body["message"]
+    assert "/tokens/recover" not in body["message"]
     assert "2026-10-09" in body["message"]  # when it was last used
 
 
