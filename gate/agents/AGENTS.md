@@ -1151,7 +1151,9 @@ Three rules the gate enforces mechanically:
   circularity claim on it is refused naming the merged one, and a proof of the hole is still
   accepted, since it proves the ancestor too. A node's `CONTEXT.json` (`get_node`, the precheck
   bundle) lists under `circular_below` every merged claim that circles back to it, so you can see
-  which routes beneath it were tried and shown circular before choosing one.
+  which routes beneath it were tried and shown circular before choosing one; each of its `deps`
+  carries its own `cause` too (`context/v4`), so a dependency that reads `ready` but is
+  `circular` says so in the node that depends on it.
 
 **An annex may name its steps, and a skeleton that cites it follows them.** Send `steps` with
 the annex: a list of 1 to 50 `{"id", "summary"}`, where `id` is the name the skeleton's `have`
@@ -1743,11 +1745,16 @@ entry of `steps` has:
 
 - `id`: the name the step binds where that name is unique among its siblings, else `s<n>` in
   source order, dotted for a step inside another (`key.s1`). It depends on the artifact's bytes
-  alone, so a merged proof's ids never change. An explainer names steps by these ids.
+  alone, so a merged proof's ids never change. An explainer names steps by these ids. The
+  top-level tactics after the last step, which no step encloses (a closing `refine … ring`, an
+  `exact`), form one step with the reserved id `close`: its claim is the goal they close, and it
+  never shifts the `s<n>` numbering of the others. An id that escapes a character Lean allows
+  (`h_x3a9div`) has the original in the step's `name` (`hΩdiv`).
 - `kind`: `have`, `obtain`, `suffices`, `show`, `calc`, `case`, `term` (a proof written as one
   term is one `term` step) or `hole`.
 - `claim`: what the step establishes. `goal`: what is left to prove after it, with the hypotheses
-  the step introduced (never the whole context). Each text is printed so that every coercion and
+  the step introduced (never the whole context); a `case` branch lists the hypotheses its split
+  introduced, such as `a` for the first branch of `rcases h with a | b`. Each text is printed so that every coercion and
   numeral type is explicit, which is why `1` reads `(1 : Nat)`, and the gate reads it back:
   `printed: unreliable` means the printed form did not elaborate to the same term, so the site shows
   that step as its Lean lines only: read those lines, not the text.
