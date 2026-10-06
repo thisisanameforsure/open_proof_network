@@ -1,0 +1,28 @@
+F22-T12: no explainer-name-unanchored for a name that cannot be a library constant
+(gate/opn_gate/explainers.py name_warnings, _locals, _not_a_constant).
+
+Exempt: any step id of the artifact's outline; a dotted name whose first component is a name an
+anchored step (or one of its sub-steps) binds, or a hypothesis its goal lists; a file name
+ending .lean. Still warned: a real constant the steps' constants do not contain (Finset.prod),
+and a field of a local bound only by a step the section does not anchor.
+
+== RED before the fix: pytest gate/tests/test_explainer_schema.py -k binds
+E       AssertionError: assert ['tail_coeff....et.prod', ...] == ['Finset.prod', 'hidden.val']
+E         At index 0 diff: 'tail_coeff.hNdeg' != 'Finset.prod'
+E         Left contains 5 more items, first extra item: 'r.num'
+1 failed, 8 deselected in 0.32s
+(The left side was the seven names cited: tail_coeff.hNdeg, hroot.hs, r.num, Context.lean,
+aside.inner, Finset.prod, hidden.val; the four live cases are #396's tail_coeff.hNdeg, #429's
+hroot.hs, #430's Context.lean and r.num.)
+
+== GREEN after: pytest gate/tests/test_explainer_schema.py -v
+gate/tests/test_explainer_schema.py::test_anchors_are_checked_against_the_outline PASSED [ 11%]
+gate/tests/test_explainer_schema.py::test_an_alternate_without_anchors_and_a_partial_assembly_take_explainers PASSED [ 22%]
+gate/tests/test_explainer_schema.py::test_the_body_is_sections[Text before any section.\n\n## Intro\nx\n] PASSED [ 33%]
+gate/tests/test_explainer_schema.py::test_the_body_is_sections[] PASSED  [ 44%]
+gate/tests/test_explainer_schema.py::test_the_body_is_sections[# A level-one heading\nx\n] PASSED [ 55%]
+gate/tests/test_explainer_schema.py::test_front_matter_is_held_to_the_schema PASSED [ 66%]
+gate/tests/test_explainer_schema.py::test_unanchored_name_warns_and_passes PASSED [ 77%]
+gate/tests/test_explainer_schema.py::test_the_name_warning_reads_names_not_code PASSED [ 88%]
+gate/tests/test_explainer_schema.py::test_names_the_outline_binds_do_not_warn PASSED [100%]
+============================== 9 passed in 0.51s ===============================
