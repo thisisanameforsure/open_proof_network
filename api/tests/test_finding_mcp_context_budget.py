@@ -203,7 +203,6 @@ def test_get_schema_still_serves_the_file(harness: Harness) -> None:
 # --- T21: every parameter says what it is ---------------------------------------------------------
 
 
-@pytest.mark.xfail(strict=True, reason="F09-T21")
 def test_every_input_parameter_is_described() -> None:
     missing = [
         f"{tool.name}.{name}"
@@ -214,7 +213,6 @@ def test_every_input_parameter_is_described() -> None:
     assert missing == []
 
 
-@pytest.mark.xfail(strict=True, reason="F09-T21")
 def test_the_frontier_filters_name_their_fields() -> None:
     [tool] = [t for t in TOOLS if t.name == "list_frontier"]
     text = tool.input_schema["properties"]["filters"].get("description", "")

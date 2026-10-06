@@ -133,16 +133,37 @@ class Tool:
         return self.access != "anyone"
 
 
+#: F09-T21 (Q20): what a parameter that recurs across tools is, given to every property of that
+#: name that does not say for itself.
+PARAM_DOCS: Mapping[str, str] = {
+    "node_id": "A node's id, as list_frontier and get_target name it.",
+    "target_id": "A target's id, as list_targets names it.",
+    "submission_id": "A submission's ULID, or its pull request's number.",
+    "job_id": "The precheck job's id, as precheck_submission returned it.",
+    "check_id": "The check's id, as check_lean returned it.",
+    "claim_id": "The claim's id, from claim_node's receipt or list_my_claims.",
+    "licence": "The licence your text is offered under (D-23).",
+}
+
+
 def params(
     properties: Mapping[str, Mapping[str, Any]], required: tuple[str, ...] = ()
 ) -> dict[str, Any]:
-    """An input schema: named parameters, nothing else accepted."""
+    """An input schema: named parameters, nothing else accepted; a recurring name without a
+    description of its own takes ``PARAM_DOCS``'s."""
     return {
         "type": "object",
-        "properties": {k: dict(v) for k, v in properties.items()},
+        "properties": {k: described(k, v) for k, v in properties.items()},
         "required": list(required),
         "additionalProperties": False,
     }
+
+
+def described(name: str, prop: Mapping[str, Any]) -> dict[str, Any]:
+    out = dict(prop)
+    if "description" not in out and name in PARAM_DOCS:
+        out["description"] = PARAM_DOCS[name]
+    return out
 
 
 ID_PARAM: dict[str, Any] = {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$"}

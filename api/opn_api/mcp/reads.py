@@ -238,6 +238,18 @@ def _entry_fields() -> dict[str, Any]:
     return props
 
 
+def filters_param() -> dict[str, Any]:
+    """F09-T21 (Q20): the filters parameter, its fields named from the frontier schema the
+    filters are checked against, so the description cannot drift from what is accepted."""
+    fields = ", ".join(f"`{f}`" for f in sorted(_entry_fields()))
+    return {
+        "type": "object",
+        "description": "Field: value pairs, all of which an entry must match: equality on a "
+        "scalar field, containment on a list field, a dotted path into an object field "
+        f"(`tags.library`). The fields: {fields}.",
+    }
+
+
 def _resolve(entry: dict[str, Any], field: str) -> tuple[bool, Any]:
     node: Any = entry
     for step in field.split("."):
@@ -642,7 +654,11 @@ async def get_check(call: Call, args: dict[str, Any]) -> dict[str, Any]:
 # --- F09-T15 (audit 2026-10-04, owner-approved): the error-code catalog -------------------------
 
 #: A code prefix as the catalog spells codes: lower case, digits, ``-`` and ``_`` (F13-T29).
-PREFIX_PARAM: dict[str, Any] = {"type": "string", "pattern": "^[a-z0-9_-]{0,64}$"}
+PREFIX_PARAM: dict[str, Any] = {
+    "type": "string",
+    "pattern": "^[a-z0-9_-]{0,64}$",
+    "description": "Only the codes that start with this.",
+}
 
 
 async def list_error_codes(call: Call, args: dict[str, Any]) -> dict[str, Any]:
@@ -843,7 +859,7 @@ TOOLS: tuple[Tool, ...] = (
         "object of frontier field to value (dotted for nested, e.g. `tags.library`): equality "
         "on a scalar field, containment on a list field; results keep the file's order and "
         "carry no ranking.",
-        params({"filters": {"type": "object"}}),
+        params({"filters": filters_param()}),
         list_frontier,
     ),
     Tool(
@@ -860,6 +876,8 @@ TOOLS: tuple[Tool, ...] = (
                     "type": "array",
                     "items": {"enum": list(PROSE_SECTIONS)},
                     "uniqueItems": True,
+                    "description": "The prose sections to answer; every one when omitted, "
+                    "none with [].",
                 },
             },
             ("node_id",),
@@ -929,7 +947,16 @@ TOOLS: tuple[Tool, ...] = (
         "or a tool result's (`mcp/<tool>/v1`). A defect claim of class "
         f"`{requests.CIRCULAR_CLASS}` is written as `{requests.CIRCULAR_SCHEMA}`, every other "
         f"class as `{requests.DEFECT_SCHEMA}`.",
-        params({"name": {"type": "string"}}, ("name",)),
+        params(
+            {
+                "name": {
+                    "type": "string",
+                    "description": "A record schema as a record's `schema` field spells it, "
+                    "<name>/v<n>, or a tool's result schema, mcp/<tool>/v1.",
+                }
+            },
+            ("name",),
+        ),
         get_schema,
     ),
     Tool(
@@ -1018,7 +1045,16 @@ TOOLS: tuple[Tool, ...] = (
         "target's glosses.json and target.yaml at main's head; in the record's order, ranked by "
         "nothing. A target whose files could not be read is named under `unread`. Plain path: "
         "targets/<id>/glosses.json and targets/<id>/target.yaml.",
-        params({"target_id": ID_PARAM, "kind": {"type": "string"}}),
+        params(
+            {
+                "target_id": {**ID_PARAM, "description": "Only this target's files."},
+                "kind": {
+                    "type": "string",
+                    "description": "Only this kind: statement, witness, relation, definition, "
+                    "proof, alternate or partial.",
+                },
+            }
+        ),
         list_words_needed,
     ),
 )

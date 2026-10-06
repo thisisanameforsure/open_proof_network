@@ -42,6 +42,9 @@ BUNDLE = {
 }
 POLL = "poll get_precheck with job_id until state is done or error; a precheck takes minutes"
 
+#: D-16's taxonomy as the class parameters describe it (F09-T21), from the list the routes check.
+DEFECT_CLASS_TEXT = ", ".join(requests.DEFECT_CLASSES[:-1]) + " or " + requests.DEFECT_CLASSES[-1]
+
 
 def unauthorized(ctx: Context) -> ToolError:
     return ToolError(Answer(auth.UNAUTHORIZED_STATUS, auth.unauthorized(ctx)).envelope())
@@ -301,7 +304,20 @@ TOOLS: tuple[Tool, ...] = (
         "claimed or not: read both before starting, since racing is allowed and a claim "
         "reserves nothing. list_my_claims finds your claim ids again.",
         params(
-            {"node_id": ID_PARAM, "ttl": {"type": "integer", "minimum": 1}, "target_id": ID_PARAM},
+            {
+                "node_id": ID_PARAM,
+                "ttl": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "Hours to hold the claim, within the published caps; the "
+                    "minimum when omitted (D-25).",
+                },
+                "target_id": {
+                    **ID_PARAM,
+                    "description": "The node's target; needed only when the node id is not "
+                    "unique across targets.",
+                },
+            },
             ("node_id",),
         ),
         claim_node,
@@ -435,7 +451,10 @@ TOOLS: tuple[Tool, ...] = (
         params(
             {
                 "proof": {"type": "object", "description": "{kind: tutorial, job_id, nonce}"},
-                "pseudonym": {"type": "string"},
+                "pseudonym": {
+                    "type": "string",
+                    "description": "The public name your work is credited under (D-19).",
+                },
                 "dco": {"type": "object", "description": "{version, accepted: true}"},
             },
             ("proof", "pseudonym", "dco"),
@@ -472,7 +491,8 @@ TOOLS: tuple[Tool, ...] = (
             {
                 "node_id": ID_PARAM,
                 "artifact_type": {
-                    "enum": ["proof", "counterexample", "vacuity", "reduction", "partial"]
+                    "enum": ["proof", "counterexample", "vacuity", "reduction", "partial"],
+                    "description": "What the bundle is (D-12); it must be what was prechecked.",
                 },
                 "bundle": BUNDLE,
                 "attestation": {
@@ -500,7 +520,16 @@ TOOLS: tuple[Tool, ...] = (
         "A second record from you in the same second would share its file name "
         "(<timestamp>-<pseudonym>), so it is refused 409 record-name-taken with "
         "Retry-After: 1 and nothing opens.",
-        params({"node_id": ID_PARAM, "yaml": RECORD_PARAM}, ("node_id", "yaml")),
+        params(
+            {
+                "node_id": ID_PARAM,
+                "yaml": {
+                    **RECORD_PARAM,
+                    "description": "The postmortem record, as an object or its YAML text.",
+                },
+            },
+            ("node_id", "yaml"),
+        ),
         submit_postmortem,
         write=True,
     ),
@@ -514,9 +543,12 @@ TOOLS: tuple[Tool, ...] = (
         params(
             {
                 "node_id": ID_PARAM,
-                "text": {"type": "string"},
+                "text": {"type": "string", "description": "The informal argument, as Markdown."},
                 "licence": {"enum": ["CC-BY-4.0", "CDLA-Permissive-2.0", "Apache-2.0"]},
-                "model_and_tooling": {"type": "string"},
+                "model_and_tooling": {
+                    "type": "string",
+                    "description": "The model and tooling that drafted it, if any.",
+                },
                 "steps": {
                     "type": "array",
                     "description": "1 to 50 steps, each {id, summary}: id is the `have` name a "
@@ -582,7 +614,12 @@ TOOLS: tuple[Tool, ...] = (
                     "required": ["kind"],
                 },
                 "text": {"type": "string", "description": "the prose, as Markdown"},
-                "supersedes": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+                "supersedes": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{64}$",
+                    "description": "The hash of the version this replaces, from get_node's "
+                    "chains; omitted for a new chain.",
+                },
                 "licence": {"enum": ["CC-BY-4.0", "CDLA-Permissive-2.0", "Apache-2.0"]},
                 "drafted_with": {
                     "type": "string",
@@ -616,8 +653,16 @@ TOOLS: tuple[Tool, ...] = (
         "curator may; anyone else is refused 403 withdrawal-unauthorized before anything opens.",
         params(
             {
-                "record": {"type": "string"},
-                "reason": {"type": "string", "maxLength": 1000},
+                "record": {
+                    "type": "string",
+                    "description": "The graph path of the version: targets/<id>/nodes/<node>/"
+                    "gloss/<hash>.md, .../explainer/<hash>.md, or targets/<id>/gloss/<hash>.md.",
+                },
+                "reason": {
+                    "type": "string",
+                    "maxLength": 1000,
+                    "description": "Why it is withdrawn, in a sentence or two.",
+                },
             },
             ("record", "reason"),
         ),
@@ -631,7 +676,16 @@ TOOLS: tuple[Tool, ...] = (
         "A second record from you in the same second would share its file name "
         "(<timestamp>-<pseudonym>), so it is refused 409 record-name-taken with "
         "Retry-After: 1 and nothing opens.",
-        params({"target_id": ID_PARAM, "record": RECORD_PARAM}, ("target_id", "record")),
+        params(
+            {
+                "target_id": ID_PARAM,
+                "record": {
+                    **RECORD_PARAM,
+                    "description": "The approach record, as an object or its YAML text.",
+                },
+            },
+            ("target_id", "record"),
+        ),
         submit_approach_record,
         write=True,
     ),
@@ -654,11 +708,25 @@ TOOLS: tuple[Tool, ...] = (
         "Retry-After: 1 and nothing opens.",
         params(
             {
-                "stmt_ref": {"type": "string"},
-                "class": {"type": "string"},
-                "line": {"type": "integer", "minimum": 1},
+                "stmt_ref": {
+                    "type": "string",
+                    "description": "The node id, or <target>/defs/<file>.lean.",
+                },
+                "class": {
+                    "type": "string",
+                    "description": f"D-16's class: {DEFECT_CLASS_TEXT}; or "
+                    f"{requests.CIRCULAR_CLASS}.",
+                },
+                "line": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "The line of the referenced file the defect is on, from 1.",
+                },
                 "exhibit": LEAN,
-                "ancestor": {"type": "string"},
+                "ancestor": {
+                    "type": "string",
+                    "description": "circular-decomposition only: the node above stmt_ref.",
+                },
             },
             ("stmt_ref", "class", "line", "exhibit"),
         ),
@@ -677,9 +745,14 @@ TOOLS: tuple[Tool, ...] = (
         params(
             {
                 "node_id": ID_PARAM,
-                "defect_class": {"type": "string"},
+                "defect_class": {
+                    "type": "string",
+                    "description": f"D-16's class: {DEFECT_CLASS_TEXT}.",
+                },
                 "evidence": {
                     "type": "object",
+                    "description": "Why the statement is defective (text), and a Lean "
+                    "exhibit if there is one.",
                     "properties": {"text": {"type": "string"}, "exhibit": LEAN},
                     "required": ["text"],
                 },
@@ -760,7 +833,11 @@ TOOLS: tuple[Tool, ...] = (
                 "target_id": ID_PARAM,
                 "stmt": LEAN,
                 "witness": LEAN,
-                "relation": {"enum": ["resolves", "partial", "related"]},
+                "relation": {
+                    "enum": ["resolves", "partial", "related"],
+                    "description": "How the variant relates to the root (D-30); related when "
+                    "omitted.",
+                },
                 "relation_proof": LEAN,
                 "deps": DEPS,
                 "model": MODEL,
