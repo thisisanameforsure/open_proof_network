@@ -30,7 +30,7 @@ from contextlib import contextmanager
 from datetime import timedelta
 from typing import TYPE_CHECKING, Any
 
-from opn_api import pending, precheck
+from opn_api import frontier, pending, precheck
 from opn_api.app import ApiError
 
 if TYPE_CHECKING:
@@ -197,7 +197,12 @@ def supersedes_key(words: str, head: str) -> str:
 
 def words_rival(ctx: Context, key: str) -> Submission | None:
     """The open gloss or explainer pull request, still able to merge, that carries ``key`` among
-    its fingerprints."""
+    its fingerprints. F22-T2: where ``main`` is and which pull requests the host still lists as
+    open are read first, once per window for every caller, as ``GET /submissions/{id}`` does
+    (``pending.answer``), so a pull request that merged a moment ago is not named as a rival
+    from a cached state (``pending.superseded`` sets such a state aside)."""
+    frontier.pin_head(ctx)
+    pending.open_listing(ctx)
     for found in ctx.store.list_open_submissions():
         if found.kind in WORDS_KINDS and key in found.fingerprints and blocks(ctx, found):
             return found

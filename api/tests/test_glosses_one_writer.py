@@ -215,3 +215,42 @@ def test_an_explainer_of_another_proof_passes(h: Harness, tree: Path) -> None:
         explainer(schemas.content_hash(other_proof), "Swap, then regroup.", node=OTHER_NODE),
     )
     assert other.status_code == 201, other.text
+
+
+# --- F22-T2: the rule reads a fresh state ---------------------------------------------------------
+
+
+def test_a_rival_that_merged_a_moment_ago_no_longer_blocks(h: Harness) -> None:
+    """F22-T2 (testers 2026-10-06, P3-11): W2 was refused naming #400 about 25 s after #400 merged.
+    The refusal read #400's state from the service's per-pull-request cache (three minutes),
+    while the host's open listing (one minute) already no longer carried it. The rule now reads
+    where ``main`` is and the open listing first, as ``GET /submissions/{id}`` does, so the
+    cached "open" is set aside on that evidence and the merged pull request blocks nothing."""
+    bob, dave = tokens(h)
+    first = post(h, bob, gloss("Conjunction reassociates, read left to right."))
+    assert first.status_code == 201, first.text
+    number = first.json()["pr_number"]
+    refused = post(h, dave, gloss("Grouping the conjuncts either way gives the same claim."))
+    assert refused.status_code == 409, refused.text  # the service has now cached #1 as open
+    h.githost.set_pull_request_state(number, state="closed", merged=True)
+    h.context.open_pulls = None  # the listing's window (pull_listing_max_stale_s) has passed
+    h.clock.advance(minutes=5)
+    again = post(h, dave, gloss("Grouping the conjuncts either way gives the same claim."))
+    assert again.status_code == 201, again.text
+
+
+def test_a_supersession_rival_that_merged_a_moment_ago_no_longer_blocks(
+    h: Harness, tree: Path
+) -> None:
+    head = put_version(tree, "gloss", "Merged words.")
+    serve(h, tree)
+    bob, dave = tokens(h)
+    first = post(h, bob, gloss("Bob's correction of the merged words.", supersedes=head))
+    assert first.status_code == 201, first.text
+    refused = post(h, dave, gloss("Carol's correction of the merged words.", supersedes=head))
+    assert refused.status_code == 409, refused.text
+    h.githost.set_pull_request_state(first.json()["pr_number"], state="closed", merged=False)
+    h.context.open_pulls = None
+    h.clock.advance(minutes=5)
+    again = post(h, dave, gloss("Carol's correction of the merged words.", supersedes=head))
+    assert again.status_code == 201, again.text
