@@ -1294,3 +1294,13 @@ The law of the project:
   lines failed in the shell; write such a script to a file. And a marker filter can deselect the
   test you meant to run: `-m "not lean and not docker"` dropped the walkthrough's executing test,
   so "4 passed" said nothing about the new example.
+- 2026-10-06 — The MCP's context cost (F09-T18–T23, the owner's review). Two things worth keeping.
+  **Price a token saving by measuring it, not by summing the parts you plan to cut**: I promised
+  `tools/list` would roughly halve; stripping the output schemas' prose left 35k characters of
+  structure, and describing every parameter added 4k back, so it fell 28% (103,714 → 74,737) and
+  only 11% for a client that drops output schemas. The large win was one tool: `get_node` on
+  erdos-1050 went from 120k characters of text to 12k with `include: []`. Measure the before from
+  a detached worktree (`git worktree add --detach`), never from memory, and twice I had to replace
+  a number I had typed into evidence before measuring it. **`pytest -k` matches file names too**:
+  `-k budget` in `test_finding_mcp_context_budget.py` selected all sixteen tests, so a task's
+  verification command must name its tests by something only they carry.
