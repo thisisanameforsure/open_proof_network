@@ -173,11 +173,19 @@ def error_result(tool: str, doc: dict[str, Any]) -> types.CallToolResult:
             "message": "the adapter produced an unschematic error result",
             "source": "adapter",
         }
-    return types.CallToolResult(
-        content=[types.TextContent(type="text", text=json.dumps(doc, indent=2))],
-        structuredContent=doc,
-        isError=True,
-    )
+    return types.CallToolResult(content=text_block(doc), structuredContent=doc, isError=True)
+
+
+def text_block(doc: dict[str, Any]) -> list[types.ContentBlock]:
+    """The text a client without structured output reads: the structured content as compact
+    JSON with its characters as they are (F09-T18, Q17). The SDK's own default is ``indent=2``
+    with ASCII escapes, which cost about two fifths of a large result in whitespace and six
+    characters for every Lean symbol."""
+    return [
+        types.TextContent(
+            type="text", text=json.dumps(doc, separators=(",", ":"), ensure_ascii=False)
+        )
+    ]
 
 
 def build_server(ctx: Context, host: Callable[[], ASGIApp]) -> Server[Any, Any]:
@@ -192,7 +200,7 @@ def build_server(ctx: Context, host: Callable[[], ASGIApp]) -> Server[Any, Any]:
     @server.call_tool(validate_input=False)  # type: ignore[untyped-decorator]
     async def call_tool(
         name: str, arguments: dict[str, Any]
-    ) -> dict[str, Any] | types.CallToolResult:
+    ) -> tuple[list[types.ContentBlock], dict[str, Any]] | types.CallToolResult:
         tool = BY_NAME.get(name)
         if tool is None:
             return error_result(
@@ -233,7 +241,7 @@ def build_server(ctx: Context, host: Callable[[], ASGIApp]) -> Server[Any, Any]:
         ) as http:
             call = Call(ctx, http, token=token)
             try:
-                return await tool.handler(call, arguments)
+                doc = await tool.handler(call, arguments)
             except ToolError as failure:
                 return error_result(name, failure.doc)
             except Exception as exc:  # C7: named, logged, never a partial answer
@@ -241,6 +249,9 @@ def build_server(ctx: Context, host: Callable[[], ASGIApp]) -> Server[Any, Any]:
                 return error_result(
                     name, error("internal", f"{name} failed: {type(exc).__name__}", "adapter").doc
                 )
+            # Both halves, so the SDK still validates the structured half against the output
+            # schema and leaves the text as written (T18).
+            return text_block(doc), doc
 
     return server
 
