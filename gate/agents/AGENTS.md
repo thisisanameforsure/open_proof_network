@@ -1569,8 +1569,9 @@ mathematics and earns the signer nothing; it earns the explainer's author a writ
 in the next section). Only signed explainers count toward a resolved target's digestion state
 (`undigested`, `explained`, `written-up`), and only while every section of the explainer words
 shown for the proof is verified (next section). At Stage 0 a signer is an active steward of the
-target or a listed curator. The site shows "explained and vouched for by *name*" above the
-unverified label.
+target or a listed curator, and opens the pull request that carries the signature, unless it is
+signed with the key they committed with as a steward. The site shows "explained and vouched for
+by *name*" above the unverified label.
 
 ```sh
 python3 - "$NODE_DIR" <<'PY' > "$WORK/explainer-hash"
@@ -2109,8 +2110,10 @@ STEWARD_GLOSS="$(python3 -c 'import json,sys; print(json.load(sys.stdin)["hash"]
 
 `opn-gate gloss sign <target> <gloss hash>` writes a gloss signature with the signer's own key,
 as `opn-gate explainer sign` does for an explainer (previous section). Without `--sections` it
-approves every section of the version; the signature binds the record, not the pull request, so
-anyone may open the pull request that carries it.
+approves every section of the version. Open the pull request that carries it yourself: a
+signature verifies under the key inside it, which proves the record unchanged but not whose key it
+is, so the gate refuses one whose signer did not open the pull request (`signer-not-opener`). The
+one exception is a steward's signature under the key they committed with, which anyone may carry.
 
 ```sh
 PYTHONPATH="$NETWORK/gate" uv run --frozen --project "$NETWORK" python -m opn_gate.cli gloss sign \

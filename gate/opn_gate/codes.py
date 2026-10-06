@@ -261,6 +261,14 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "the pull request as the author; to change another person's words, file under your own "
         "name and a steward or curator will review it.",
     ),
+    "signer-not-opener": (
+        "gate",
+        None,
+        "A gloss or explainer signature names a signer who did not open the pull request. A "
+        "signature verifies under the key it carries, so only the opener says who signed "
+        "(F21-Q18).",
+        "Open the pull request yourself, as the steward or curator the signature names.",
+    ),
     "author-names-another": (
         "api",
         None,

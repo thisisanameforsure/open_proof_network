@@ -5,10 +5,10 @@ sections; Alice rewrote the one on step ``hq`` (written); a curator signed the o
 in Alice's version (verified); Bob then edited that verified section, which is pending. Its
 statement's gloss is Alice's, signed by the curator, with Bob's edit of it pending.
 
-Before review the page shows each section's words with a text label for its state — "drafted
-with <model>", "written by <author>", "verified by <signer>" — each still beside the outline steps
-it names; beneath the verified section, Bob's edit with its author, "awaiting review" and a diff
-against the words shown. Bob's words are never shown as the section's. Once the curator signs
+Before review the page shows each section's words with a text label for its state — "drafted with
+<model>", "written by <author>", "read against the Lean by <signer>" — each still beside the outline
+steps it names; beneath the verified section, Bob's edit with its author, "awaiting review" and a
+diff against the words shown. Bob's words are never shown as the section's. Once the curator signs
 that section of Bob's version, his words are shown, labelled verified, and nothing awaits review.
 """
 
@@ -85,7 +85,7 @@ def test_each_section_shows_its_words_and_state_and_the_edit_awaits_review(
     )
     assert state_of(sections[gf.KEY_Q][1]) == ("written", "written by alice")
     assert "keep its right half" in sections[gf.KEY_Q][1]
-    assert state_of(sections[gf.KEY_P][1]) == ("verified", f"verified by {gf.CURATOR}")
+    assert state_of(sections[gf.KEY_P][1]) == ("verified", f"read against the Lean by {gf.CURATOR}")
     assert SHOWN_P in sections[gf.KEY_P][1]
 
     # Still beside the outline steps they name, linked into the outline on the page.
@@ -120,7 +120,7 @@ def test_each_section_shows_its_words_and_state_and_the_edit_awaits_review(
     # The statement's gloss: Alice's verified words, Bob's edit beneath them, awaiting review.
     now = slot_now(page)
     assert escape(gf.GLOSS_VERIFIED) in now
-    assert state_of(now) == ("verified", f"verified by {gf.CURATOR}")
+    assert state_of(now) == ("verified", f"read against the Lean by {gf.CURATOR}")
     gloss_words = now[: now.find('<div class="pending-edit"')]
     assert escape(gf.GLOSS_EDIT) not in gloss_words
     gp = PENDING.findall(now)
@@ -138,7 +138,7 @@ def test_a_signed_edit_is_shown_and_verified(after: dict[str, str]) -> None:
     shown, history = explainer_part(page)
     sections = {key: body for key, _steps, body in SECTION.findall(shown)}
     assert list(sections) == [gf.KEY_OVERVIEW, gf.KEY_Q, gf.KEY_P]
-    assert state_of(sections[gf.KEY_P]) == ("verified", f"verified by {gf.CURATOR}")
+    assert state_of(sections[gf.KEY_P]) == ("verified", f"read against the Lean by {gf.CURATOR}")
     assert EDIT_P in sections[gf.KEY_P] and SHOWN_P not in sections[gf.KEY_P]
     assert state_of(sections[gf.KEY_Q]) == ("written", "written by alice")
     assert not PENDING.findall(shown)
@@ -147,5 +147,5 @@ def test_a_signed_edit_is_shown_and_verified(after: dict[str, str]) -> None:
 
     now = slot_now(page)
     assert escape(gf.GLOSS_EDIT) in now and escape(gf.GLOSS_VERIFIED) not in now
-    assert state_of(now) == ("verified", f"verified by {gf.CURATOR}")
+    assert state_of(now) == ("verified", f"read against the Lean by {gf.CURATOR}")
     assert not PENDING.findall(now)

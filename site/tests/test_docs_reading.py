@@ -44,7 +44,13 @@ def test_the_reading_section_sits_before_the_state_map_and_is_linked(docs: str) 
     for words in ("routine", "hole", "read back", "machine-drafted by", "read against"):
         assert words in section, words
     # F21-T8 (R14, D-3 v3.31): the section states and pending edits, in the renderer's own words.
-    for words in ("drafted with", "written by", "verified by", "awaiting review", "a diff"):
+    for words in (
+        "drafted with",
+        "written by",
+        "read against the Lean by",
+        "awaiting review",
+        "a diff",
+    ):
         assert words in section, words
     assert "<script" not in section and 'href="http' not in section
 

@@ -88,8 +88,8 @@ def sign(node_dir: Path, digest: str, by: str, key: Path, **overrides: Any) -> C
     return Change("A", path.relative_to(node_dir.parents[3]).as_posix())
 
 
-def codes(root: Path, *changes: Change) -> list[str]:
-    classification = modes.classify(list(changes), author="anyone")
+def codes(root: Path, *changes: Change, opened_by: str = "anyone") -> list[str]:
+    classification = modes.classify(list(changes), author=opened_by)
     assert classification.mode == "explainer", classification.as_dict()
     return [d.code for d in modes.check(root, classification)]
 
@@ -101,11 +101,12 @@ def test_a_curator_signs_and_the_pull_request_merges_on_the_path_check(
     build, no admission and no review, and passes every check; a steward's does too; a
     signature arriving with the explainer it signs is accepted in one pull request. Restated
     for F21-R3: the explainer mode's merge line is now ``write-up``, which a signature earns the
-    signed version's author (never the signer)."""
+    signed version's author (never the signer). Restated for F21-Q18: each signature is opened by
+    its signer, since a signature opened by anyone else is ``signer-not-opener``."""
     root, node, digest = graph
     change = sign(node, digest, CURATOR, keys[CURATOR])
     assert change.path.endswith(f"/explainer/signed/{digest}-1.yaml")
-    classification = modes.classify([change], author="anyone")
+    classification = modes.classify([change], author=CURATOR)
     assert classification.mode == "explainer" and classification.node_id == NODE
     assert not classification.needs_gate and not classification.needs_review
     assert not classification.needs_admission
@@ -118,14 +119,17 @@ def test_a_curator_signs_and_the_pull_request_merges_on_the_path_check(
 
     by_steward = sign(node, digest, STEWARD, keys[STEWARD])
     assert by_steward.path.endswith("-2.yaml")
-    assert codes(root, by_steward) == []
+    assert codes(root, by_steward, opened_by=STEWARD) == []
 
     # Explainer and signature together.
     second = "---\nauthor: other\ndate: 2026-09-16\n---\nAnother account.\n"
     other = schemas.content_hash(second.encode("utf-8"))
     (node / "explainer" / f"{other}.md").write_text(second, encoding="utf-8")
     explainer_change = Change("A", f"targets/{TARGET}/nodes/{NODE}/explainer/{other}.md")
-    assert codes(root, explainer_change, sign(node, other, CURATOR, keys[CURATOR])) == []
+    assert (
+        codes(root, explainer_change, sign(node, other, CURATOR, keys[CURATOR]), opened_by=CURATOR)
+        == []
+    )
 
 
 def test_each_defect_is_refused_by_name(

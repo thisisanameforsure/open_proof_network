@@ -369,10 +369,11 @@ def test_a_definition_gloss_chain_lives_at_the_target(root: Path, keys: dict[str
 def test_a_gloss_signature_is_a_stewards_or_curators(root: Path, keys: dict[str, Path]) -> None:
     """R8: a steward's or a curator's signature on a gloss passes; a stranger's is
     ``signer-unlisted``; one on a gloss not there is ``gloss-absent``; an altered sentence is
-    ``affirmation-differs``."""
+    ``affirmation-differs``. Restated for F21-Q18: the steward and the curator each open their
+    own signature, since one opened by anyone else is ``signer-not-opener``."""
     digest, _ = gloss(root, "Words.")
-    assert codes(root, sign_gloss(root, digest, STEWARD, keys[STEWARD])) == []
-    assert codes(root, sign_gloss(root, digest, CURATOR, keys[CURATOR])) == []
+    assert codes(root, sign_gloss(root, digest, STEWARD, keys[STEWARD]), author=STEWARD) == []
+    assert codes(root, sign_gloss(root, digest, CURATOR, keys[CURATOR]), author=CURATOR) == []
     assert codes(root, sign_gloss(root, digest, STRANGER, keys[STRANGER])) == ["signer-unlisted"]
     with pytest.raises(glosses.GlossError):
         glosses.sign(
@@ -575,3 +576,35 @@ def test_the_classify_command_reads_what_a_withdrawal_withdraws(
     out = json.loads(capsys.readouterr().out)
     assert [p["code"] for p in out["problems"]] == []
     assert out["mode"] == "explainer" and code == 0
+
+
+@pytest.mark.parametrize("record", ["gloss", "explainer"])
+def test_a_signature_is_filed_by_its_signer(root: Path, keys: dict[str, Path], record: str) -> None:
+    """F21-Q18: a signature verifies under the key it carries, so the key says nothing about who
+    the signer is; the opener does. A stranger who signs with their own key under a curator's
+    name is ``signer-not-opener``, as is a curator's genuine signature opened by someone else
+    (a curator has no key on record), while the curator opening their own passes. A steward's
+    signature under the key they committed with may be carried by anyone (F15-Q8); under any
+    other key it may not. The service opens no signature, so one in a service pull request acts
+    for no one."""
+    make = gloss if record == "gloss" else explainer
+    digest, _ = make(root, "Words.")
+
+    def sign(root: Path, digest: str, by: str, key: Path) -> Change:
+        if record == "gloss":
+            return sign_gloss(root, digest, by, key)
+        return sign_explainer(root, digest, by, key)
+
+    forged = sign(root, digest, CURATOR, keys[STRANGER])
+    assert codes_by(root, forged, STRANGER) == ["signer-not-opener"]
+    assert codes_by(root, forged, SERVICE) == ["signer-not-opener"]
+    (root / forged.path).unlink()
+    genuine = sign(root, digest, CURATOR, keys[CURATOR])
+    assert codes_by(root, genuine, STRANGER) == ["signer-not-opener"]
+    assert codes_by(root, genuine, CURATOR) == []
+    (root / genuine.path).unlink()
+    carried = sign(root, digest, STEWARD, keys[STEWARD])
+    assert codes_by(root, carried, STRANGER) == []  # F15-Q8: the steward's committed key
+    (root / carried.path).unlink()
+    other_key = sign(root, digest, STEWARD, keys[STRANGER])
+    assert codes_by(root, other_key, STRANGER) == ["signer-not-opener"]

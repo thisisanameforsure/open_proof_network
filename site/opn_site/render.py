@@ -3580,10 +3580,17 @@ class Renderer:
     @staticmethod
     def words_state(placed: Placed, v: VersionView) -> str:
         """F21-R14: a shown section's state, in text — "drafted with <model>", "written by
-        <author>" or "verified by <signer>" — never by colour alone."""
+        <author>" or "read against the Lean by <signer>" — never by colour alone. A verified
+        section is not called "verified" on the page, where it sits under the fixed "unverified"
+        label of D-3: the signer read the words against the Lean, which is what the label leaves
+        open (F21-Q17)."""
         if placed.state == "verified":
             names = v.verified_by(placed.key)
-            words = "verified by " + ", ".join(esc(n) for n in names) if names else "verified"
+            words = (
+                "read against the Lean by " + ", ".join(esc(n) for n in names)
+                if names
+                else "read against the Lean"
+            )
         elif placed.state == "drafted":
             words = f"drafted with {esc(v.drafted_with or v.model or 'an unnamed model')}"
         elif placed.state == "written":

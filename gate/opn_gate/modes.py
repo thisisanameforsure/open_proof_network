@@ -2314,6 +2314,37 @@ def acting_names(
     return frozenset({who, *paired})
 
 
+def check_signer_opener(  # noqa: PLR0913 — the record, its signer, its key and who opened it
+    graph_root: Path,
+    located: Located,
+    classification: Classification,
+    *,
+    signer_name: str,
+    key: str,
+    verifier: Signer,
+) -> list[Diagnostic]:
+    """F21-Q18: a gloss or explainer signature is the person's it names. The signature verifies
+    under the key the record carries, which proves the record unchanged and says nothing about
+    who holds the key. So it passes when that key is the one the signer committed with as a
+    steward of the target (F15-R1), which keeps F15-Q8's carried record, or when the signer
+    opened the pull request (``acting_names``; a curator has no key on record). The service
+    opens no signature, so one in a service pull request acts for no one."""
+    target_dir = graph_root / "targets" / located.target_id
+    if key and steward.commit_key_of(target_dir, signer_name, verifier) == key:
+        return []
+    names = acting_names(graph_root, classification, None)
+    if signer_name in names:
+        return []
+    return [
+        Diagnostic(
+            "signer-not-opener",
+            f"{located.path}: the signature names {signer_name!r}, under a key that is not their "
+            "steward key, and they did not open this pull request (F21-Q18)",
+            {"path": located.path, "signer": signer_name, "opened_by": sorted(names)},
+        )
+    ]
+
+
 def check_explainer_signature(
     graph_root: Path,
     located: Located,
@@ -2368,7 +2399,9 @@ def check_explainer_signature(
                 {"path": located.path, "signer": sig.signer},
             )
         )
-    return found
+    return found or check_signer_opener(
+        graph_root, located, classification, signer_name=sig.signer, key=sig.key, verifier=verifier
+    )
 
 
 def _record_parent(graph_root: Path, located: Located) -> Path:
@@ -2598,7 +2631,6 @@ def check_gloss_signature(
     target) it names, is valid (``glosses.signature_problems``) and is a real-identity
     contributor's: an active steward of the target or a listed curator. It changes no status,
     grade or digestion state (F20-Q12), so nothing else is asked of it."""
-    del classification
     data = _read(graph_root, located)
     if isinstance(data, Diagnostic):
         return [data]
@@ -2631,7 +2663,14 @@ def check_gloss_signature(
                 {"path": located.path, "signer": who},
             )
         )
-    return found
+    return found or check_signer_opener(
+        graph_root,
+        located,
+        classification,
+        signer_name=who,
+        key=str(doc.get("key") or ""),
+        verifier=verifier,
+    )
 
 
 def _has_proof(graph_root: Path, located: Located) -> bool:
