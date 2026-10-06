@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import logging
 from collections import Counter
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath
 from typing import Any
@@ -166,19 +166,25 @@ WITHDRAWAL_SCHEMAS: tuple[str, ...] = (WITHDRAWAL_SCHEMA, "withdrawal/v2")
 WITHDRAWALS_DIR = "withdrawals"
 
 
-def withdrawn(node_dir: Path) -> frozenset[str]:
+def withdrawn(node_dir: Path, present: Callable[[Path], bool] | None = None) -> frozenset[str]:
     """The node's records a merged withdrawal names, as ``status/<file>`` or ``defects/<file>``.
 
     Derive, never rewrite (F08-T10): the withdrawal is the fact, and the record it names stays in
     the tree. No date is compared — a withdrawal applies because it is on the record, never
     because it is newer than what it names. A file that does not validate as ``withdrawal/v1``
     is logged and passed over, so the record it meant to withdraw stands: the gate refused it at
-    merge, and one bad file must never decide what the graph says (2026-09-17)."""
+    merge, and one bad file must never decide what the graph says (2026-09-17).
+
+    ``present``, when given, keeps only the withdrawal files it accepts: the gate's head check
+    reads the withdrawals that stood on a pull request's base, not those merged after it
+    (F22-T11)."""
     directory = node_dir / WITHDRAWALS_DIR
     if not directory.is_dir():
         return frozenset()
     named: set[str] = set()
     for path in sorted(p for p in directory.iterdir() if p.suffix in ATTEMPT_SUFFIXES):
+        if present is not None and not present(path):
+            continue
         try:
             doc = schemas.load_yaml(path)  # against the version it declares (D-34)
             if doc.get("schema") not in WITHDRAWAL_SCHEMAS:
@@ -191,10 +197,13 @@ def withdrawn(node_dir: Path) -> frozenset[str]:
     return frozenset(named)
 
 
-def withdrawn_names(node_dir: Path, directory: str) -> frozenset[str]:
-    """The file names under ``<node>/<directory>/`` a withdrawal names (F08-T31)."""
+def withdrawn_names(
+    node_dir: Path, directory: str, present: Callable[[Path], bool] | None = None
+) -> frozenset[str]:
+    """The file names under ``<node>/<directory>/`` a withdrawal names (F08-T31); ``present`` as
+    in :func:`withdrawn`."""
     prefix = f"{directory}/"
-    return frozenset(w[len(prefix) :] for w in withdrawn(node_dir) if w.startswith(prefix))
+    return frozenset(w[len(prefix) :] for w in withdrawn(node_dir, present) if w.startswith(prefix))
 
 
 def load_target_status(

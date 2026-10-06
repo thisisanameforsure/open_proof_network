@@ -1,0 +1,91 @@
+F22-T11: the head check reads a version's siblings and withdrawals from the pull request's base
+(gate/opn_gate/modes.py check_version_head + _on_base; records.withdrawn and
+glosses.withdrawn_versions take a `present` filter). Without a base (gloss file, the service's
+composer) the checkout is read as before.
+
+Red cases: #415's shape (the first of two rivals, replayed on main's tip with the second rival in
+the working tree) and a withdrawal of the superseded version merged later. Guard cases, green
+before and after: a version superseded legitimately later (the version under check is left out
+of its own siblings, so this shape never failed), and a true fork, still refused, now naming the
+head that stood on its base.
+
+== RED before the fix: pytest gate/tests/test_finding_version_head_base.py -rA
+E       AssertionError: [{'code': 'record-not-head', 'message': 'targets/propositional/nodes/and-reassoc/gloss/956cf3a6f18b693858fff8c923506a2...afaa5efdb27bd0453f3b472e685f892e95f0', 'heads': ['b9086f07f39ca0986efd87e9c3afafaa5efdb27bd0453f3b472e685f892e95f0']}}]
+E       assert ['record-not-head'] == []
+E       AssertionError: [{'code': 'record-not-head', 'message': 'targets/propositional/nodes/and-reassoc/explainer/20aa2e23547821922dcfc4b1990...fcee7b8547ac64df1ac567ad085ed8500471', 'heads': ['d71e3643b5f5b8ea33506372dc4bfcee7b8547ac64df1ac567ad085ed8500471']}}]
+E       assert ['record-not-head'] == []
+E       AssertionError: [{'code': 'record-not-head', 'message': 'targets/propositional/nodes/and-reassoc/gloss/54da90da46660f6c1b65acca3d77121...dfb.md', 'supersedes': '6ecd5037f4f09fc59b272f9b79f119b2de0b9949ee08391cff27e7cd084b569f', 'head': None, 'heads': []}}]
+E       assert ['record-not-head'] == []
+E       AssertionError: [{'code': 'record-not-head', 'message': 'targets/propositional/nodes/and-reassoc/explainer/ed7460c2a1edb733f7b66ef9485...a13.md', 'supersedes': 'ef44595ab52380d330db268195cc08d242c12108aba80cb4e570d1133f629f4b', 'head': None, 'heads': []}}]
+E       assert ['record-not-head'] == []
+E       AssertionError: assert '3184ac5b5c16...1b07afa7b10fb' == '956cf3a6f18b...3c716bfbe17bf'
+E       AssertionError: assert '18b959ee4a6e...1e718e6823a96' == '20aa2e235478...a4adc1bd06d8e'
+PASSED gate/tests/test_finding_version_head_base.py::test_a_replay_of_a_version_later_superseded_passes[gloss]
+PASSED gate/tests/test_finding_version_head_base.py::test_a_replay_of_a_version_later_superseded_passes[explainer]
+FAILED gate/tests/test_finding_version_head_base.py::test_the_first_of_two_rivals_replays_clean[gloss]
+FAILED gate/tests/test_finding_version_head_base.py::test_the_first_of_two_rivals_replays_clean[explainer]
+FAILED gate/tests/test_finding_version_head_base.py::test_a_replay_passes_when_the_superseded_version_was_withdrawn_later[gloss]
+FAILED gate/tests/test_finding_version_head_base.py::test_a_replay_passes_when_the_superseded_version_was_withdrawn_later[explainer]
+FAILED gate/tests/test_finding_version_head_base.py::test_a_fork_is_still_refused[gloss]
+FAILED gate/tests/test_finding_version_head_base.py::test_a_fork_is_still_refused[explainer]
+
+== GREEN after: the new file, test_gloss_chains.py, test_gloss_cli.py (-v)
+gate/tests/test_finding_version_head_base.py::test_a_replay_of_a_version_later_superseded_passes[gloss] PASSED [  1%]
+gate/tests/test_finding_version_head_base.py::test_a_replay_of_a_version_later_superseded_passes[explainer] PASSED [  3%]
+gate/tests/test_finding_version_head_base.py::test_the_first_of_two_rivals_replays_clean[gloss] PASSED [  5%]
+gate/tests/test_finding_version_head_base.py::test_the_first_of_two_rivals_replays_clean[explainer] PASSED [  7%]
+gate/tests/test_finding_version_head_base.py::test_a_replay_passes_when_the_superseded_version_was_withdrawn_later[gloss] PASSED [  9%]
+gate/tests/test_finding_version_head_base.py::test_a_replay_passes_when_the_superseded_version_was_withdrawn_later[explainer] PASSED [ 11%]
+gate/tests/test_finding_version_head_base.py::test_a_fork_is_still_refused[gloss] PASSED [ 13%]
+gate/tests/test_finding_version_head_base.py::test_a_fork_is_still_refused[explainer] PASSED [ 15%]
+gate/tests/test_gloss_chains.py::test_a_gloss_of_changed_text_is_marked PASSED [ 16%]
+gate/tests/test_gloss_chains.py::test_linear_chains_and_signed_supersede[gloss] PASSED [ 18%]
+gate/tests/test_gloss_chains.py::test_linear_chains_and_signed_supersede[explainer] PASSED [ 20%]
+gate/tests/test_gloss_chains.py::test_a_version_supersedes_its_own_subject_only PASSED [ 22%]
+gate/tests/test_gloss_chains.py::test_withdrawal_and_current_version[gloss-carol-carol-expected0] PASSED [ 24%]
+gate/tests/test_gloss_chains.py::test_withdrawal_and_current_version[gloss-alice-steward-alice-steward-expected1] PASSED [ 26%]
+gate/tests/test_gloss_chains.py::test_withdrawal_and_current_version[gloss-thisisanameforsure-thisisanameforsure-expected2] PASSED [ 28%]
+gate/tests/test_gloss_chains.py::test_withdrawal_and_current_version[gloss-mallory-mallory-expected3] PASSED [ 30%]
+gate/tests/test_gloss_chains.py::test_withdrawal_and_current_version[explainer-carol-carol-expected4] PASSED [ 32%]
+gate/tests/test_gloss_chains.py::test_withdrawal_and_current_version[explainer-mallory-mallory-expected5] PASSED [ 33%]
+gate/tests/test_gloss_chains.py::test_a_withdrawal_names_a_version_on_the_record PASSED [ 35%]
+gate/tests/test_gloss_chains.py::test_a_status_withdrawal_stays_a_curator_record PASSED [ 37%]
+gate/tests/test_gloss_chains.py::test_a_definition_gloss_chain_lives_at_the_target PASSED [ 39%]
+gate/tests/test_gloss_chains.py::test_a_gloss_signature_is_a_stewards_or_curators PASSED [ 41%]
+gate/tests/test_gloss_chains.py::test_digestion_counts_explainers_only PASSED [ 43%]
+gate/tests/test_gloss_chains.py::test_a_pre_f20_explainer_is_a_chain_of_one PASSED [ 45%]
+gate/tests/test_gloss_chains.py::test_the_product_lists_every_lean_file PASSED [ 47%]
+gate/tests/test_gloss_chains.py::test_a_service_withdrawal_acts_for_its_records_author[carol-expected0-gloss] PASSED [ 49%]
+gate/tests/test_gloss_chains.py::test_a_service_withdrawal_acts_for_its_records_author[carol-expected0-explainer] PASSED [ 50%]
+gate/tests/test_gloss_chains.py::test_a_service_withdrawal_acts_for_its_records_author[alice-steward-expected1-gloss] PASSED [ 52%]
+gate/tests/test_gloss_chains.py::test_a_service_withdrawal_acts_for_its_records_author[alice-steward-expected1-explainer] PASSED [ 54%]
+gate/tests/test_gloss_chains.py::test_a_service_withdrawal_acts_for_its_records_author[thisisanameforsure-pseudonym-expected2-gloss] PASSED [ 56%]
+gate/tests/test_gloss_chains.py::test_a_service_withdrawal_acts_for_its_records_author[thisisanameforsure-pseudonym-expected2-explainer] PASSED [ 58%]
+gate/tests/test_gloss_chains.py::test_a_service_withdrawal_acts_for_its_records_author[mallory-expected3-gloss] PASSED [ 60%]
+gate/tests/test_gloss_chains.py::test_a_service_withdrawal_acts_for_its_records_author[mallory-expected3-explainer] PASSED [ 62%]
+gate/tests/test_gloss_chains.py::test_a_hand_opened_withdrawal_is_judged_by_its_opener[gloss] PASSED [ 64%]
+gate/tests/test_gloss_chains.py::test_a_hand_opened_withdrawal_is_judged_by_its_opener[explainer] PASSED [ 66%]
+gate/tests/test_gloss_chains.py::test_a_service_supersede_of_a_signed_version_acts_for_its_author[gloss] PASSED [ 67%]
+gate/tests/test_gloss_chains.py::test_a_service_supersede_of_a_signed_version_acts_for_its_author[explainer] PASSED [ 69%]
+gate/tests/test_gloss_chains.py::test_the_service_login_is_configuration PASSED [ 71%]
+gate/tests/test_gloss_chains.py::test_the_classify_command_reads_what_a_withdrawal_withdraws PASSED [ 73%]
+gate/tests/test_gloss_chains.py::test_a_signature_is_filed_by_its_signer[gloss] PASSED [ 75%]
+gate/tests/test_gloss_chains.py::test_a_signature_is_filed_by_its_signer[explainer] PASSED [ 77%]
+gate/tests/test_gloss_cli.py::test_revise_then_file_supersedes_the_head PASSED [ 79%]
+gate/tests/test_gloss_cli.py::test_file_refuses_a_new_draft PASSED       [ 81%]
+gate/tests/test_gloss_cli.py::test_file_refuses_what_the_gate_refuses_and_leaves_nothing PASSED [ 83%]
+gate/tests/test_gloss_cli.py::test_revise_an_explainer_and_start_a_chain PASSED [ 84%]
+gate/tests/test_gloss_cli.py::test_sign_writes_a_valid_gloss_signature PASSED [ 86%]
+gate/tests/test_gloss_cli.py::test_sign_sections_writes_a_v2_signature_approving_them PASSED [ 88%]
+gate/tests/test_gloss_cli.py::test_section_keys_keep_a_steps_keys_own_commas PASSED [ 90%]
+gate/tests/test_gloss_cli.py::test_revise_refuses_a_subject_that_is_not_there[statement:no-such-node] PASSED [ 92%]
+gate/tests/test_gloss_cli.py::test_revise_refuses_a_subject_that_is_not_there[nonsense] PASSED [ 94%]
+gate/tests/test_gloss_cli.py::test_revise_refuses_a_subject_that_is_not_there[relation:and-reassoc] PASSED [ 96%]
+gate/tests/test_gloss_cli.py::test_revise_refuses_a_subject_that_is_not_there[explainer:and-reassoc:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff] PASSED [ 98%]
+gate/tests/test_gloss_cli.py::test_errors_never_escape_main PASSED       [100%]
+============================= 53 passed in 34.98s ==============================
+
+== Fast tier over a snapshot of this commit's tree (no .git there, so test_the_seam_reads_this_checkout in test_finding_reproduce_pin.py fails; in the worktree it passes, 9 passed)
+FAILED gate/tests/test_finding_reproduce_pin.py::test_the_seam_reads_this_checkout
+1 failed, 4225 passed, 254 skipped, 185 deselected, 2 warnings in 470.62s (0:07:50)
+exit=1

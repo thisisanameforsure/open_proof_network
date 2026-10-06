@@ -29,6 +29,7 @@ def test_known_schemas_are_the_published_set() -> None:
         "context/v1",
         "context/v2",
         "context/v3",
+        "context/v4",  # F22-T13 (a cause on each dep)
         "credit-correction/v1",
         "defect-claim/v1",
         "defect-claim/v2",

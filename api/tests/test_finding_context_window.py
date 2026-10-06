@@ -26,12 +26,15 @@ def test_a_committed_v1_bundle_is_served_through_the_window(
     seed_graph(harness)
     client = McpClient(harness)
     derived = derived_bundle(harness, tmp_path / "tree")
-    # F08-T36: the bundle is now context/v3 (defect_claims); v1 is still served from a file.
-    assert derived["schema"] == "context/v3" and derived["circular_below"] == []
+    # F08-T36: the bundle is context/v3 (defect_claims), and since F22-T13 context/v4 (a cause
+    # on each dep); v1 is still served from a file.
+    assert derived["schema"] == "context/v4" and derived["circular_below"] == []
     assert derived["defect_claims"] == []
-    assert context.SCHEMA == "context/v3" and "context/v1" in context.ACCEPTED
-    assert "context/v2" in context.ACCEPTED
+    assert all("cause" in d for d in derived["deps"])
+    assert context.SCHEMA == "context/v4" and "context/v1" in context.ACCEPTED
+    assert {"context/v2", "context/v3"} <= set(context.ACCEPTED)
     v1 = {k: v for k, v in derived.items() if k not in ("circular_below", "defect_claims")}
+    v1["deps"] = [{k: v for k, v in d.items() if k != "cause"} for d in derived["deps"]]
     v1["schema"] = "context/v1"
     assert schemas.violations(v1, "context/v1") == []
     harness.githost.files[NODE_DIR + "CONTEXT.json"] = schemas.canonical_json(v1)

@@ -287,3 +287,56 @@ def test_the_name_warning_reads_names_not_code(graph: tuple[Path, dict[str, str]
     assert check(root, change) == []
     assert [w.details["name"] for w in warnings(root, change)] == ["Nat.Prime.one_lt"]
     assert json.dumps([w.as_dict() for w in warnings(root, change)])  # plain data
+
+
+def bound(
+    step_id: str,
+    name: str | None,
+    *,
+    hypotheses: tuple[str, ...] = (),
+    children: tuple[dict[str, Any], ...] = (),
+) -> dict[str, Any]:
+    """A step binding ``name`` and leaving a goal with ``hypotheses``, as the extractor writes an
+    ``obtain`` or a ``case`` (F19-Q4)."""
+    out = step(step_id, children=children)
+    out["name"] = name
+    if hypotheses:
+        out["goal"] = {
+            "target": text_of("False"),
+            "hypotheses": [{"name": h, "type": text_of("True")} for h in hypotheses],
+        }
+    return out
+
+
+def test_names_the_outline_binds_do_not_warn(graph: tuple[Path, dict[str, str]]) -> None:
+    """F22-T12 (testers 2026-10-06, #396, #429, #430): a backticked dotted name is held to the
+    steps' constants only when it could be a library constant. Not warned: any step id of the
+    outline (``tail_coeff.hNdeg``, a sub-step id the guide tells writers to cite, and
+    ``aside.inner``, outside the section's steps); a name whose first component is a name an
+    anchored step, or one of its sub-steps, binds, or a hypothesis its goal lists (``r.num``,
+    ``hroot.hs``); a file name (``Context.lean``). Still warned: ``Finset.prod``, which no step's
+    constants contain, and ``hidden.val``, a field of a local bound only by a step the section
+    does not anchor."""
+    root, _ = graph
+    proof = write_outline(
+        root,
+        NODE,
+        "Proof.lean",
+        [
+            bound("tail_coeff", "tail_coeff", children=(bound("tail_coeff.hNdeg", "hNdeg"),)),
+            bound("s2", None, hypotheses=("hroot",)),
+            bound("s3", "r"),
+            bound("aside", "aside", children=(bound("aside.inner", "inner"),)),
+            bound("s5", "hidden"),
+        ],
+    )
+    body = (
+        "## Intro\nThe outline.\n\n"
+        "## The tail {steps: tail_coeff s2 s3}\n"
+        "`tail_coeff.hNdeg` bounds the degree; `hroot.hs` and `r.num` are fields; see "
+        "`Context.lean`; `aside.inner` is elsewhere; `Finset.prod` multiplies; `hidden.val` "
+        "is bound elsewhere.\n"
+    )
+    change = file_explainer(root, explainer_text(proof, body))
+    assert check(root, change) == []
+    assert [w.details["name"] for w in warnings(root, change)] == ["Finset.prod", "hidden.val"]

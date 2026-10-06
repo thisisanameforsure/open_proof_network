@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import logging
 import re
+from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -43,6 +44,8 @@ SCHEMA_V2 = "explainer-signature/v2"
 SCHEMAS: frozenset[str] = frozenset({SCHEMA, SCHEMA_V2})
 EXPLAINER_DIR = "explainer"
 SIGNED_DIR = "signed"
+#: A cited name ending so is a file of the graph, never a constant (F22-T12).
+LEAN_FILE_SUFFIX = ".lean"
 AFFIRMATION = "I can explain this proof without the tool that produced it."
 _HASH_RE = re.compile(r"^[0-9a-f]{64}$")
 _FILE_RE = re.compile(r"^(?P<hash>[0-9a-f]{64})-(?P<n>[1-9][0-9]*)\.ya?ml$")
@@ -552,7 +555,8 @@ def name_warnings(graph_root: Path, located: Located) -> list[Diagnostic]:
     """R5 (F20-T5): ``explainer-name-unanchored`` for each qualified Lean name in backticks in an
     anchored section that occurs in none of the constants its steps (and their sub-steps) use, by
     the outline. A warning, never a refusal: untested as a detector, so it informs. Names occur
-    in a constant as a run of its dotted components (``Prime.two_le`` in ``Nat.Prime.two_le``)."""
+    in a constant as a run of its dotted components (``Prime.two_le`` in ``Nat.Prime.two_le``).
+    A name that cannot be a constant is not held to them (F22-T12, ``_not_a_constant``)."""
     try:
         data = (graph_root / located.path).read_bytes()
     except OSError:
@@ -571,10 +575,13 @@ def name_warnings(graph_root: Path, located: Located) -> list[Diagnostic]:
         if not section.steps or any(s not in steps for s in section.steps):
             continue
         constants = _constants(steps[s] for s in section.steps)
+        locals_ = _locals(steps[s] for s in section.steps)
         seen: set[str] = set()
         for m in _CITED_RE.finditer(section.text):
             name = m.group("name")
             if name in seen or any(_occurs(name, c) for c in constants):
+                continue
+            if _not_a_constant(name, steps, locals_):
                 continue
             seen.add(name)
             out.append(
@@ -599,6 +606,29 @@ def _constants(steps: Any) -> set[str]:
         out.update(str(m["name"]) for m in uses.get("mathlib") or [])
         stack.extend(step.get("children") or [])
     return out
+
+
+def _locals(steps: Any) -> set[str]:
+    """The names the steps, and their sub-steps, bind or list as hypotheses their goals
+    introduce: locals of the proof, whose fields a writer may cite (``r.num``, ``hroot.hs``)."""
+    out: set[str] = set()
+    stack = list(steps)
+    while stack:
+        step = stack.pop()
+        if step.get("name"):
+            out.add(str(step["name"]))
+        goal = step.get("goal") or {}
+        out.update(str(h["name"]) for h in goal.get("hypotheses") or [])
+        stack.extend(step.get("children") or [])
+    return out
+
+
+def _not_a_constant(name: str, steps: Mapping[str, Any], locals_: set[str]) -> bool:
+    """F22-T12 (testers 2026-10-06): a cited name that cannot be a library constant, so is not
+    held to the steps' constants: a step id of the outline (a sub-step id is what the guide tells
+    writers to cite), a field of a local the section's steps bind (its first component), or a
+    file name (``Context.lean``)."""
+    return name in steps or name.split(".", 1)[0] in locals_ or name.endswith(LEAN_FILE_SUFFIX)
 
 
 def _occurs(name: str, constant: str) -> bool:
