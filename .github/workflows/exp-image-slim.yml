@@ -59,7 +59,7 @@ jobs:
           set -euo pipefail
           creds="${{ github.actor }}:${{ github.token }}"
           skopeo copy --dest-creds "$creds" "docker://$BASE" "docker://$EXP:full-gzip"
-          skopeo copy --dest-creds "$creds" --format oci --dest-compress-format zstd --dest-force-compress-format \
+          skopeo copy --dest-creds "$creds" --format oci --dest-compress --dest-compress-format zstd \
             "docker://$BASE" "docker://$EXP:full-zstd"
 
       - name: Patch the Mathlib step to delete the archives and the C files in the same layer
@@ -95,10 +95,10 @@ jobs:
           set -euo pipefail
           creds="${{ github.actor }}:${{ github.token }}"
           {
-            echo "| variant | compressed MiB | layers |"; echo "|---|---|---|"
+            echo "| variant | compressed MiB | layers | layer types |"; echo "|---|---|---|---|"
             for v in full-gzip full-zstd slim-gzip slim-zstd; do
               skopeo inspect --raw --creds "$creds" "docker://$EXP:$v" \
-                | python3 -c "import json,sys; m=json.load(sys.stdin); l=m['layers']; print('| $v | %d | %d |' % (sum(x['size'] for x in l)//2**20, len(l)))"
+                | python3 -c "import json,sys; m=json.load(sys.stdin); l=m['layers']; print('| $v | %d | %d | %s |' % (sum(x['size'] for x in l)//2**20, len(l), sorted({x['mediaType'].rsplit('.',1)[-1] for x in l})))"
             done
           } | tee -a "$GITHUB_STEP_SUMMARY"
 
