@@ -664,3 +664,30 @@ details.diff pre.diff { white-space: pre-wrap; overflow-wrap: anywhere; }
 .gloss-line .math:has(.katex-display), .gloss-line .katex-display { display: block; max-width: 100%; overflow-x: auto; overflow-y: hidden; }
 .rv-order .chip { padding: 2px var(--s3); border: 1px solid var(--divider); border-radius: 999px; color: var(--n300); text-decoration: none; }
 h1 .thm-name { font-size: .55em; }
+/* F23-T8: the header's session slot, filled by session.js once the service answers (R1, R15). */
+.session-slot { display: inline-flex; align-items: center; gap: var(--s3); font-size: 14px; }
+.session-slot .session-login { color: var(--text); font-family: var(--mono); font-size: 13px; }
+/* F23-R14: how a steward came in, beside their name. */
+.admitted { font-size: 12px; color: var(--n500); white-space: nowrap; }
+/* F23-T8: /steward/ and /steward/<target>/. */
+.steward-list { list-style: none; margin: var(--s6) 0; padding: 0; display: flex; flex-direction: column; gap: var(--s3); }
+.steward-row { display: flex; align-items: center; gap: var(--s6); padding: var(--s4) var(--s5); background: var(--surface); border-radius: var(--radius-md); }
+.steward-row .id { font-family: var(--mono); font-size: 14px; flex: none; }
+.steward-row .informal { flex: 1; min-width: 0; color: var(--n300); overflow-wrap: anywhere; }
+.steward-head h1 { margin: var(--s2) 0 var(--s3); }
+.steward-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: var(--s6); margin-top: var(--s6); }
+.steward-asks ul { margin: 0; padding-left: var(--s6); line-height: 1.6; }
+.steward-form { display: flex; flex-direction: column; gap: var(--s3); }
+.steward-form-card:has(.steward-form:empty) { display: none; }
+.steward-fields { display: flex; flex-direction: column; gap: var(--s2); }
+.steward-fields label { font-size: 13.5px; color: var(--n400); }
+.steward-fields .input { width: 100%; max-width: 100%; box-sizing: border-box; }
+.steward-fields .tick { display: flex; gap: var(--s3); align-items: flex-start; margin: var(--s3) 0; color: var(--text); font-size: 14.5px; line-height: 1.5; }
+.tick input { margin-top: 4px; flex: none; }
+.form-error { color: var(--warn); margin: 0; overflow-wrap: anywhere; }
+.form-error:empty { display: none; }
+.receipt { margin: 0; overflow-wrap: anywhere; }
+@media (max-width: 760px) {
+  .steward-grid { grid-template-columns: minmax(0, 1fr); }
+  .steward-row { flex-wrap: wrap; gap: var(--s3); }
+}

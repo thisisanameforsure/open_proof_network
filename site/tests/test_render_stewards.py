@@ -61,7 +61,8 @@ def test_the_stewardless_target_says_so_in_words(pages: dict[str, str]) -> None:
     """R10: the cue saying what a steward commits to and receives, linked to the Docs section,
     and the no-steward reason in the Targets page's words."""
     page = target_page(pages, STEWARDLESS_TARGET)
-    assert "No steward yet." in page and 'href="/docs/#stewards"' in page
+    # F23-R6: the cue's link goes to the problem's steward form, not the Docs page.
+    assert "No steward yet." in page and f'href="/steward/{STEWARDLESS_TARGET}/"' in page
     assert "commits to understand and write up" in page
     assert escape(intake.explain("no-steward")) in page
     assert "Not claimable" in page

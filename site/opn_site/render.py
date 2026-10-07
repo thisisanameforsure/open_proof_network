@@ -23,6 +23,7 @@ from opn_gate import graph as graphmod
 from opn_gate import ledger as ledgermod
 from opn_site import dag, links, prose
 from opn_site.model import (
+    ADMITTED_BY_CURATOR,
     ChainView,
     LeanFile,
     NodeView,
@@ -142,6 +143,8 @@ SCRIPTS: tuple[str, ...] = (
     "/math.js",
     "/reading.js",
     "/in-review.js",
+    "/session.js",
+    "/steward.js",
 )
 MATH_HEAD = '<link rel="stylesheet" href="/vendor/katex/katex.min.css">'
 MATH_SCRIPTS = (
@@ -837,6 +840,7 @@ NAV = (
 NAV_ACTION = ("/problems/?filter=open", "Work on a statement")
 #: Where the merged Problems page lives, and the old paths that now redirect to it (Q14).
 PROBLEMS_PATH = "/problems/"
+STEWARD_PATH = "/steward/"
 REDIRECTS = (("targets/index.html", PROBLEMS_PATH), ("frontier/index.html", PROBLEMS_PATH))
 #: A definition's Lean, for the statement row's role word (the mock's "definition" rows).
 _DECL_RE = re.compile(
@@ -1019,6 +1023,14 @@ class Renderer:
             if self.api_url
             else ""
         )
+        # F23-R1, R15: the header's sign-in slot is empty in the static file; session.js fills it
+        # only once the service answers GET /session, and loads before the page's own scripts,
+        # which read the same answer. No service configured: the slot stays empty (C7).
+        session = (
+            f'<script src="/session.js" data-api="{esc(self.api_url)}"></script>'
+            if self.api_url
+            else ""
+        )
         return self.base.substitute(
             title=esc(title),
             site=esc(SITE_NAME),
@@ -1027,7 +1039,7 @@ class Renderer:
             action_label=esc(NAV_ACTION[1]),
             head=head,
             body=body,
-            script=script,
+            script=session + script,
             commit=esc(commit),
             commit_short=esc(commit[:12]),
             commit_url=esc(f"{self.repo_url}/tree/{commit}"),
@@ -1376,7 +1388,7 @@ class Renderer:
         """ "Steward · name" (linked), or the cue for a problem that has none."""
         stewards = tv.stewards
         if stewards:
-            names = ", ".join(self.steward_link(s) for s in stewards)
+            names = ", ".join(self.steward_named(tv, s) for s in stewards)
             return f'<span class="steward has">Steward · {names}</span>'
         if tv.calibration:
             return '<span class="steward">Calibration target, no steward needed</span>'
@@ -1506,6 +1518,7 @@ class Renderer:
             statement_term=self.term("statement", label="statement"),
             steward_term=self.term("steward", label="steward"),
             proposal_url=esc(self.proposal_url),
+            needs_steward=self.needs_steward_link(classes="btn btn-secondary"),
         )
         return self.page(
             SITE_NAME,
@@ -1553,6 +1566,8 @@ class Renderer:
             proved=proved,
             needs_words=needs_words,
             claims_note=self.claims_note(),
+            needs_steward=self.needs_steward_link(),
+            needs_steward_n=len(self.needs_steward()),
         )
         return self.page(
             "Problems",
@@ -1581,6 +1596,7 @@ class Renderer:
             stages=self.stage_marks(tv),
             steward=self.steward_words(tv),
             words="" if tv.words_needed is None else str(len(tv.words_needed)),
+            needs_steward="1" if self.takes_steward(tv) and not tv.stewards else "0",
             words_line=self.words_line(tv),
             action=esc(action),
             rows=rows,
@@ -1649,6 +1665,126 @@ class Renderer:
             proposal_url=esc(self.proposal_url),
         )
         return self.page("Why this exists", body, renders=[], path="/about/")
+
+    # -- F23-T8: the steward pages (R5, R7; D-32 v3.33, D-36 v3.33) ----------------------------
+
+    def takes_steward(self, tv: TargetView) -> bool:
+        """A problem a steward can take: an open problem, or a resolved one waiting for its
+        write-up; never the tutorial (D-27) or a calibration target (Stages v3.17)."""
+        if self.is_tutorial(tv) or tv.calibration:
+            return False
+        if str(tv.index_entry["status"]) == "resolved":
+            return True
+        return tv.record is not None and tv.record.get("track") == "open"
+
+    def needs_steward(self) -> list[TargetView]:
+        """R5: the problems with no active steward that can take one — the lines /steward/
+        lists, and the count Home and Problems link to it with."""
+        return [
+            tv
+            for _tid, tv in sorted(self.site.targets.items())
+            if self.takes_steward(tv) and not tv.stewards
+        ]
+
+    def needs_steward_link(self, *, classes: str = "") -> str:
+        n = len(self.needs_steward())
+        cls = f"needs-steward {classes}".strip()
+        return (
+            f'<a class="{esc(cls)}" href="{STEWARD_PATH}">Needs a steward '
+            f'<span class="n">{n}</span></a>'
+        )
+
+    def steward_index(self) -> str:
+        """R5: one line per problem waiting for a steward, each with Steward this to its form."""
+        rows = "".join(
+            f'<li class="steward-row" data-target="{esc(tv.target_id)}">'
+            f'<a class="id" href="{esc(self.target_path(tv.target_id))}">{esc(tv.target_id)}</a>'
+            f'<span class="informal">{self.informal_words(tv)}</span>'
+            f'<a class="btn btn-secondary" href="{esc(self.steward_path(tv.target_id))}">'
+            "Steward this</a></li>"
+            for tv in self.needs_steward()
+        )
+        listing = (
+            f'<ul class="steward-list">{rows}</ul>'
+            if rows
+            else '<p class="cue">Every problem that can have a steward has one.</p>'
+        )
+        body = (
+            '<section class="page-head"><div><h1>Problems that need a steward</h1>'
+            '<p class="lead">A steward is a mathematician who commits to understand and write up '
+            "whatever the network proves on a problem. Sign in with GitHub, tick one box, and "
+            "your name goes on the problem. "
+            f'<a href="{esc(self.proposal_url)}">Have a problem of your own? Propose it →</a>'
+            f"</p></div></section>{listing}"
+        )
+        return self.page(
+            "Needs a steward",
+            body,
+            renders=["targets/index.json"],
+            path=PROBLEMS_PATH,
+            **self.math_frame(body),
+        )
+
+    def steward_page(self, tv: TargetView) -> str:
+        """R7: one screen — the problem in prose, what the role asks in three lines, Read more,
+        and an empty slot steward.js draws the form into once the service answers (R15). The
+        commitment sentence rides as data, from its one home (``opn_gate.steward``)."""
+        tid = tv.target_id
+        current = (
+            "<p>Its steward"
+            + ("s" if len(tv.stewards) > 1 else "")
+            + ": "
+            + ", ".join(self.steward_named(tv, s) for s in tv.stewards)
+            + ". A problem may have several, who hold the role jointly.</p>"
+            if tv.stewards
+            else ""
+        )
+        if self.takes_steward(tv):
+            form = (
+                f'<div class="card steward-form-card"><div class="steward-form" '
+                f'data-target="{esc(tid)}" data-return="{esc(self.steward_path(tid))}" '
+                f'data-commitment="{esc(steward.COMMITMENT)}"></div></div>'
+            )
+            script = (
+                f'<script src="/steward.js" data-api="{esc(self.api_url)}"></script>'
+                if self.api_url
+                else ""
+            )
+        else:
+            why = (
+                "the tutorial, off the ledger (D-27)"
+                if self.is_tutorial(tv)
+                else "a calibration target, a known result"
+                if tv.calibration
+                else "not an open problem"
+            )
+            form = f'<p class="cue">This problem takes no steward: it is {esc(why)}.</p>'
+            script = ""
+        body = (
+            '<section class="page-head steward-head"><div>'
+            f'<p class="crumbs"><a href="{STEWARD_PATH}">Needs a steward</a> / {esc(tid)}</p>'
+            f'<h1>Steward <span class="mono">{esc(tid)}</span></h1>'
+            f'<p class="informal-big">{self.informal_words(tv)}</p>'
+            f'<p><a href="{esc(self.target_path(tid))}">The problem&rsquo;s page →</a></p>'
+            f"{current}</div></section>"
+            '<section class="steward-grid">'
+            '<div class="card steward-asks"><span class="kicker">What the role asks</span><ul>'
+            '<li class="asks">Understand what the network proves on this problem.</li>'
+            '<li class="asks">Write it up, and sign the explainer of the proof that closes it.'
+            "</li>"
+            '<li class="asks">Best efforts, no deadline: step down at any time.</li></ul>'
+            '<a href="/docs/#stewards">Read more about stewards →</a></div>'
+            f"{form}</section>"
+        )
+        frame = self.math_frame(body)
+        return self.page(
+            f"Steward {tid}",
+            body,
+            renders=["targets/index.json"],
+            path=PROBLEMS_PATH,
+            head=frame.get("head", ""),
+            script=frame.get("script", "") + script,
+        )
 
     # --- F11-R10: why a listed target cannot be claimed, and under what licence it is quoted ---
 
@@ -2004,7 +2140,7 @@ class Renderer:
                 "",
             )
         elif stewards:
-            names = ", ".join(self.steward_link(s) for s in stewards)
+            names = ", ".join(self.steward_named(tv, s) for s in stewards)
             since = ", ".join(
                 f"{esc(str(s['login']))} since {esc(str(s['since']))}" for s in stewards
             )
@@ -2026,7 +2162,7 @@ class Renderer:
                 f"This problem is {self.resolution(tv)} but not explained. It waits for a "
                 "mathematician to commit to writing it up and to sign the explainer.",
             )
-            button = '<a class="btn btn-secondary" href="/docs/#stewards">Become its steward</a>'
+            button = self.become_button(tv)
         elif tv.record is None or tv.record.get("track") != "open":
             names, words, button = "None", "Not an open problem, so it has no steward.", ""
         else:
@@ -2036,7 +2172,7 @@ class Renderer:
                 "the network produces on this problem, with no deadline. Their name goes here, "
                 "and the write-up is theirs.",
             )
-            button = '<a class="btn btn-secondary" href="/docs/#stewards">Become its steward</a>'
+            button = self.become_button(tv)
         return (
             '<aside class="card steward-card"><span class="kicker">Steward</span>'
             f'<span class="names">{names}</span><p>{words}</p>{button}</aside>'
@@ -2235,11 +2371,45 @@ class Renderer:
         on the allowlist because the record validated (F15 §7, F11-Q11)."""
         return f'<a href="{esc(str(s["link"]))}">{esc(str(s["name"]))}</a>'
 
+    @staticmethod
+    def steward_path(target_id: str) -> str:
+        """F23-R6: a problem's steward form."""
+        return f"{STEWARD_PATH}{target_id}/"
+
+    @staticmethod
+    def become_button(tv: TargetView) -> str:
+        """F23-R6: a known problem's call to steward it goes to its form."""
+        return (
+            f'<a class="btn btn-secondary" href="{esc(Renderer.steward_path(tv.target_id))}">'
+            "Become its steward</a>"
+        )
+
+    @staticmethod
+    def admitted(tv: TargetView, s: dict[str, Any]) -> str:
+        """F23-R14: how a steward was admitted, read from the record they are active under:
+        ``self-admitted``, ``admitted by <curator>``, or for a ``steward/v1`` record, which a
+        curator merged before the switch existed, ``admitted by curator``."""
+        how = tv.admissions.get(str(s["login"]))
+        if not how:
+            return ""
+        if how == "self":
+            key, words = "self", "self-admitted"
+        elif how == ADMITTED_BY_CURATOR:
+            key, words = "curator", "admitted by curator"
+        else:
+            key, words = "reviewed", f"admitted by {how}"
+        return f' <span class="admitted" data-admitted="{key}">{esc(words)}</span>'
+
+    def steward_named(self, tv: TargetView, s: dict[str, Any]) -> str:
+        return self.steward_link(s) + self.admitted(tv, s)
+
     def stewards_line(self, tv: TargetView) -> str:
         stewards = tv.stewards
         if not stewards:
-            return '<a href="/docs/#stewards">none yet</a>'
-        return ", ".join(f"{self.steward_link(s)} (since {esc(str(s['since']))})" for s in stewards)
+            return f'<a href="{esc(self.steward_path(tv.target_id))}">none yet</a>'
+        return ", ".join(
+            f"{self.steward_named(tv, s)} (since {esc(str(s['since']))})" for s in stewards
+        )
 
     def stewards_section(self, tv: TargetView) -> str:
         """The target page's stewards: each by name and link with the date they committed, or
@@ -2247,7 +2417,7 @@ class Renderer:
         stewards = tv.stewards
         if stewards:
             items = "".join(
-                f"<li>{self.steward_link(s)} (<code>{esc(str(s['login']))}</code>), committed "
+                f"<li>{self.steward_named(tv, s)} (<code>{esc(str(s['login']))}</code>), committed "
                 f"{esc(str(s['since']))}</li>"
                 for s in stewards
             )
@@ -2259,8 +2429,8 @@ class Renderer:
             "understand and write up whatever the network produces on this problem, with no "
             "deadline, and receives their name here, the write-up role and a mention on the "
             "graph whenever anything merges on it; once the steward rule is enforced the problem "
-            'refuses claims until one commits. <a href="/docs/#stewards">What a steward commits '
-            "to and receives.</a></p>"
+            "refuses claims until one commits. "
+            f'<a href="{esc(self.steward_path(tv.target_id))}">Become its steward</a></p>'
         )
 
     def digestion_section(self, tv: TargetView) -> str:
@@ -4473,6 +4643,7 @@ def render_site(
         "about/index.html": r.about(),
         "contributors/index.html": r.contributors(),
         "docs/index.html": docs_page,
+        "steward/index.html": r.steward_index(),  # F23-R5
         **static_files()[0],
         **extra,
         "llms.txt": llms_txt(r),  # F04-T30
@@ -4483,6 +4654,7 @@ def render_site(
     for tid, tv in site.targets.items():
         files[f"problems/{tid}/index.html"] = r.target(tv)
         files[f"targets/{tid}/index.html"] = r.redirect(r.target_path(tid))
+        files[f"steward/{tid}/index.html"] = r.steward_page(tv)  # F23-R7
         for nid, nv in tv.nodes.items():
             files[f"nodes/{tid}/{nid}/index.html"] = r.node(nv)
         for k, entry in enumerate(target_proofs(tv)):  # F19-T8: one reading view per proof
