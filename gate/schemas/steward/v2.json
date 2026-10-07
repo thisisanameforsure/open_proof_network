@@ -70,7 +70,7 @@
     },
     "admitted_by": {
       "description": "Who admitted the steward (D-32 v3.33): `self` under policy.json's `open` admission; under `reviewed`, the login of the curator who merges the record.",
-      "oneOf": [
+      "anyOf": [
         {
           "const": "self"
         },
