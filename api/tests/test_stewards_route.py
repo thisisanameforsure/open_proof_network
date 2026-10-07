@@ -34,10 +34,6 @@ STEWARDS = f"targets/{TARGET}/stewards"
 #: ``self`` matches both, so every self-admitted record (all of them under ``open``) fails
 #: validation and the route refuses it 400 ``record-invalid``. With ``anyOf`` there every test
 #: here passes (engineering/evidence/F23/task-5.txt).
-SELF_ADMITTED = pytest.mark.xfail(
-    strict=True,
-    reason="steward/v2 admitted_by: oneOf matches 'self' twice; the schema wants anyOf (T1)",
-)
 FORM = {"target": TARGET, "action": "commit", "name": "Carol C.", "link": None, "accept": True}
 
 
@@ -101,7 +97,6 @@ def merge(h: Harness, tree: Path, response: Any) -> None:
     serve(h, tree)
 
 
-@SELF_ADMITTED
 def test_commit_under_open_is_a_signed_self_admitted_append(
     h: Harness, tree: Path, approval: tuple[str, str]
 ) -> None:
@@ -124,7 +119,6 @@ def test_commit_under_open_is_a_signed_self_admitted_append(
     assert h.githost.pulls[-1].head == body["branch"]
 
 
-@SELF_ADMITTED
 def test_a_second_commit_is_409_and_so_is_an_active_v1_steward(h: Harness, tree: Path) -> None:
     carol = sign_in(h, "code_carol")
     merge(h, tree, post(h, carol))
@@ -134,7 +128,6 @@ def test_a_second_commit_is_409_and_so_is_an_active_v1_steward(h: Harness, tree:
     assert alice.status_code == 409 and alice.json()["error"] == "steward-already-active"
 
 
-@SELF_ADMITTED
 def test_step_down_needs_an_active_commitment(h: Harness, tree: Path) -> None:
     """R8: a step-down from a login that is not active is 409; alice's v1 commit can be ended
     by a v2 step-down (R9)."""
@@ -162,7 +155,6 @@ def test_reviewed_admission_opens_a_curate_branch_naming_the_curator(
         assert landed(h, tree, r)["admitted_by"] == CURATOR
 
 
-@SELF_ADMITTED
 def test_a_policy_v1_file_means_open(tree: Path, approval: tuple[str, str]) -> None:
     policy = {
         "schema": "policy/v1",
@@ -175,7 +167,6 @@ def test_a_policy_v1_file_means_open(tree: Path, approval: tuple[str, str]) -> N
         assert landed(h, tree, r)["admitted_by"] == "self"
 
 
-@SELF_ADMITTED
 def test_a_bearer_token_works_too(h: Harness, tree: Path) -> None:
     token = h.token_for("code_carol", "carol")
     r = h.client.post("/stewards", json=FORM, headers=h.auth(token))
@@ -241,7 +232,6 @@ def test_five_a_day_per_login(h: Harness) -> None:
     assert r.status_code == 429 and "retry-after" in r.headers
 
 
-@SELF_ADMITTED
 def test_the_record_number_follows_the_highest(h: Harness, tree: Path) -> None:
     (tree / STEWARDS / "7.yaml").write_text(
         (tree / STEWARDS / "1.yaml").read_text(encoding="utf-8"), encoding="utf-8"
