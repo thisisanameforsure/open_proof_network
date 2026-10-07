@@ -1,0 +1,8 @@
+# F09-T18 (R9, Q17): a result's text is compact JSON. 2026-10-06
+$ uv run --frozen pytest api/tests/test_finding_mcp_context_budget.py -k "compact or lean_symbols"
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+================= 2 passed, 14 deselected, 2 warnings in 0.40s =================
+
+$ uv run --frozen pytest api/tests -k "mcp and not context_budget"
+146 passed, 1383 deselected, 2 warnings in 8.44s

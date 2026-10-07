@@ -99,7 +99,7 @@ def bare(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
 def test_the_tool_is_a_read_with_its_plain_paths(h: Harness) -> None:
     listed = {t.name: t for t in McpClient(h).list_tools()}
     tool = listed["list_words_needed"]
-    assert tool.outputSchema == results.load("list_words_needed")
+    assert tool.outputSchema == results.declared("list_words_needed")  # F09-T20
     assert tool.annotations is not None and tool.annotations.readOnlyHint is True
     row = bijection.BY_TOOL["list_words_needed"]
     assert row.kind == "read" and row.routes == ()

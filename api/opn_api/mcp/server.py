@@ -150,13 +150,56 @@ class Outer:
 OUTER: contextvars.ContextVar[Outer | None] = contextvars.ContextVar("opn_mcp_outer", default=None)
 
 
+#: F09-T23 (Q22): what a client shows a person for each tool, beside its name.
+TITLES: dict[str, str] = {
+    "server_info": "Server info",
+    "list_targets": "List targets",
+    "get_target": "Read a target",
+    "list_frontier": "List open nodes",
+    "get_node": "Read a node",
+    "get_defs": "Read shared definitions",
+    "get_gate_spec": "Read a gate spec",
+    "get_submission": "Follow a submission",
+    "list_submissions": "List open submissions",
+    "get_schema": "Read a schema",
+    "get_precheck": "Poll a precheck",
+    "get_dco": "Read the DCO",
+    "list_routes": "List HTTP routes",
+    "get_hosted_checkers": "List hosted checkers",
+    "list_my_claims": "List my claims",
+    "get_my_submissions": "List my submissions",
+    "get_check": "Read a fast check",
+    "list_error_codes": "List error codes",
+    "list_words_needed": "List files needing words",
+    "claim_node": "Claim a node",
+    "release_claim": "Release a claim",
+    "precheck_submission": "Precheck a submission",
+    "check_lean": "Fast-check Lean",
+    "get_token": "Get a write token",
+    "renew_token": "Renew a write token",
+    "propose_witness": "Propose a hole witness",
+    "submit_proof": "Submit a proof",
+    "submit_postmortem": "Submit a postmortem",
+    "submit_informal_annex": "Submit an informal annex",
+    "submit_approach_record": "Submit an approach record",
+    "file_defect_claim": "File a defect claim",
+    "file_revision_request": "File a revision request",
+    "propose_speculative_node": "Propose a crux statement",
+    "propose_variant": "Propose a variant",
+    "withdraw_submission": "Withdraw a submission",
+    "submit_gloss": "Submit words for a file",
+    "withdraw_gloss": "Withdraw words",
+}
+
+
 def declare(tool: Tool) -> types.Tool:
     row = bijection.BY_TOOL[tool.name]
     return types.Tool(
         name=tool.name,
+        title=TITLES[tool.name],
         description=f"{tool.description} Plain path: {row.d28}.",
         inputSchema=tool.input_schema,
-        outputSchema=results.load(tool.name),
+        outputSchema=results.declared(tool.name),
         annotations=types.ToolAnnotations(
             readOnlyHint=not tool.write, destructiveHint=False, idempotentHint=not tool.write
         ),
@@ -173,11 +216,19 @@ def error_result(tool: str, doc: dict[str, Any]) -> types.CallToolResult:
             "message": "the adapter produced an unschematic error result",
             "source": "adapter",
         }
-    return types.CallToolResult(
-        content=[types.TextContent(type="text", text=json.dumps(doc, indent=2))],
-        structuredContent=doc,
-        isError=True,
-    )
+    return types.CallToolResult(content=text_block(doc), structuredContent=doc, isError=True)
+
+
+def text_block(doc: dict[str, Any]) -> list[types.ContentBlock]:
+    """The text a client without structured output reads: the structured content as compact
+    JSON with its characters as they are (F09-T18, Q17). The SDK's own default is ``indent=2``
+    with ASCII escapes, which cost about two fifths of a large result in whitespace and six
+    characters for every Lean symbol."""
+    return [
+        types.TextContent(
+            type="text", text=json.dumps(doc, separators=(",", ":"), ensure_ascii=False)
+        )
+    ]
 
 
 def build_server(ctx: Context, host: Callable[[], ASGIApp]) -> Server[Any, Any]:
@@ -192,7 +243,7 @@ def build_server(ctx: Context, host: Callable[[], ASGIApp]) -> Server[Any, Any]:
     @server.call_tool(validate_input=False)  # type: ignore[untyped-decorator]
     async def call_tool(
         name: str, arguments: dict[str, Any]
-    ) -> dict[str, Any] | types.CallToolResult:
+    ) -> tuple[list[types.ContentBlock], dict[str, Any]] | types.CallToolResult:
         tool = BY_NAME.get(name)
         if tool is None:
             return error_result(
@@ -233,7 +284,7 @@ def build_server(ctx: Context, host: Callable[[], ASGIApp]) -> Server[Any, Any]:
         ) as http:
             call = Call(ctx, http, token=token)
             try:
-                return await tool.handler(call, arguments)
+                doc = await tool.handler(call, arguments)
             except ToolError as failure:
                 return error_result(name, failure.doc)
             except Exception as exc:  # C7: named, logged, never a partial answer
@@ -241,6 +292,9 @@ def build_server(ctx: Context, host: Callable[[], ASGIApp]) -> Server[Any, Any]:
                 return error_result(
                     name, error("internal", f"{name} failed: {type(exc).__name__}", "adapter").doc
                 )
+            # Both halves, so the SDK still validates the structured half against the output
+            # schema and leaves the text as written (T18).
+            return text_block(doc), doc
 
     return server
 

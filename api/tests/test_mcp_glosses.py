@@ -65,7 +65,7 @@ def test_the_tools_are_listed_and_paired_with_their_routes(h: Harness) -> None:
     labels = {r.label for r in routes.ROUTES}
     for tool, route in TOOLS.items():
         assert tool in listed, sorted(listed)
-        assert listed[tool].outputSchema == results.load(tool)
+        assert listed[tool].outputSchema == results.declared(tool)  # F09-T20
         row = bijection.BY_TOOL[tool]
         assert row.kind == "write" and row.plain == (route,)
         assert route in labels

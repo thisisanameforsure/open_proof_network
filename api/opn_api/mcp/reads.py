@@ -238,6 +238,18 @@ def _entry_fields() -> dict[str, Any]:
     return props
 
 
+def filters_param() -> dict[str, Any]:
+    """F09-T21 (Q20): the filters parameter, its fields named from the frontier schema the
+    filters are checked against, so the description cannot drift from what is accepted."""
+    fields = ", ".join(f"`{f}`" for f in sorted(_entry_fields()))
+    return {
+        "type": "object",
+        "description": "Field: value pairs, all of which an entry must match: equality on a "
+        "scalar field, containment on a list field, a dotted path into an object field "
+        f"(`tags.library`). The fields: {fields}.",
+    }
+
+
 def _resolve(entry: dict[str, Any], field: str) -> tuple[bool, Any]:
     node: Any = entry
     for step in field.split("."):
@@ -449,8 +461,23 @@ def node_outlines(
     return out
 
 
+#: The prose sections of a node's bundle a caller may leave out (F09-T19, Q18), in answer order.
+PROSE_SECTIONS: tuple[str, ...] = (
+    "annexes",
+    "explainers",
+    "outlines",
+    "gloss_chains",
+    "explainer_chains",
+)
+#: The sections read from the node's chains of words, and so answered with ``chains_source``.
+CHAIN_SECTIONS = frozenset({"outlines", "gloss_chains", "explainer_chains"})
+
+
 async def get_node(call: Call, args: dict[str, Any]) -> dict[str, Any]:
     node_id = check_id(args.get("node_id"), "node_id")
+    # T19: every prose section unless the caller names the ones it wants (the owner's ruling:
+    # full by default). The input schema has already refused an unknown name.
+    wanted = set(PROSE_SECTIONS if args.get("include") is None else args["include"])
     try:
         facts = precheck.node_facts(call.ctx, node_id)
         bundle, source = node_context(call.ctx, str(facts["target_id"]), node_id)
@@ -470,8 +497,7 @@ async def get_node(call: Call, args: dict[str, Any]) -> dict[str, Any]:
         # Owner, 2026-09-14: get_node returns the latest node, so the bundle's committed claims
         # snapshot is replaced by the live overlay and the two blocks can never disagree.
         bundle = {**bundle, "claims": dict(claims)}
-    subjects, chains_source = node_chains(call.ctx, target_id, node_id)
-    return {
+    out: dict[str, Any] = {
         "node_id": node_id,
         "target_id": target_id,
         "context": bundle,
@@ -479,20 +505,29 @@ async def get_node(call: Call, args: dict[str, Any]) -> dict[str, Any]:
         "closing": closing_route(node_id, files.get("Statement.lean")),
         "files": files,
         "claims": dict(entry["claims"]) if entry is not None else None,
-        "annexes": _prose(call.ctx, f"{node_dir}/annex"),
-        "explainers": _prose(call.ctx, f"{node_dir}/explainer"),
+    }
+    # A section not asked for is not read from the host either (T19).
+    if "annexes" in wanted:
+        out["annexes"] = _prose(call.ctx, f"{node_dir}/annex")
+    if "explainers" in wanted:
+        out["explainers"] = _prose(call.ctx, f"{node_dir}/explainer")
+    if wanted & CHAIN_SECTIONS:
         # F20-R11: the outlines an explainer's sections name steps of, and every chain of words
         # on the node's Lean files and merged proofs, from the product or derived (F10-Q7).
-        "outlines": node_outlines(call.ctx, target_id, subjects),
-        "gloss_chains": [s for s in subjects if s["record"] == "gloss"],
-        "explainer_chains": [s for s in subjects if s["record"] == "explainer"],
-        "chains_source": chains_source,
-        # F09-T7: the pull requests already open on this node, as GET /submissions.json lists them.
-        "submissions": {
-            "open": [s for s in pending.get("open", []) if s.get("node_id") == node_id]
-        },
-        "untrusted_note": demarcate.UNTRUSTED_NOTE,
+        subjects, chains_source = node_chains(call.ctx, target_id, node_id)
+        if "outlines" in wanted:
+            out["outlines"] = node_outlines(call.ctx, target_id, subjects)
+        if "gloss_chains" in wanted:
+            out["gloss_chains"] = [s for s in subjects if s["record"] == "gloss"]
+        if "explainer_chains" in wanted:
+            out["explainer_chains"] = [s for s in subjects if s["record"] == "explainer"]
+        out["chains_source"] = chains_source
+    # F09-T7: the pull requests already open on this node, as GET /submissions.json lists them.
+    out["submissions"] = {
+        "open": [s for s in pending.get("open", []) if s.get("node_id") == node_id]
     }
+    out["untrusted_note"] = demarcate.UNTRUSTED_NOTE
+    return out
 
 
 async def get_defs(call: Call, args: dict[str, Any]) -> dict[str, Any]:
@@ -619,7 +654,11 @@ async def get_check(call: Call, args: dict[str, Any]) -> dict[str, Any]:
 # --- F09-T15 (audit 2026-10-04, owner-approved): the error-code catalog -------------------------
 
 #: A code prefix as the catalog spells codes: lower case, digits, ``-`` and ``_`` (F13-T29).
-PREFIX_PARAM: dict[str, Any] = {"type": "string", "pattern": "^[a-z0-9_-]{0,64}$"}
+PREFIX_PARAM: dict[str, Any] = {
+    "type": "string",
+    "pattern": "^[a-z0-9_-]{0,64}$",
+    "description": "Only the codes that start with this.",
+}
 
 
 async def list_error_codes(call: Call, args: dict[str, Any]) -> dict[str, Any]:
@@ -820,15 +859,29 @@ TOOLS: tuple[Tool, ...] = (
         "object of frontier field to value (dotted for nested, e.g. `tags.library`): equality "
         "on a scalar field, containment on a list field; results keep the file's order and "
         "carry no ranking.",
-        params({"filters": {"type": "object"}}),
+        params({"filters": filters_param()}),
         list_frontier,
     ),
     Tool(
         "get_node",
         "A node's context bundle (nodes/<id>/CONTEXT.json: statement, deps' signatures, witness, "
         "status, gate-spec reference, attempt log, annex hashes) plus the raw Lean files, live "
-        "claim status, annexes, explainers and the submissions open on it.",
-        params({"node_id": ID_PARAM}, ("node_id",)),
+        "claim status, annexes, explainers and the submissions open on it. `include` names the "
+        "prose sections to answer (all of them when omitted); `include: []` answers the Lean, the "
+        "context, the claims and the open submissions alone.",
+        params(
+            {
+                "node_id": ID_PARAM,
+                "include": {
+                    "type": "array",
+                    "items": {"enum": list(PROSE_SECTIONS)},
+                    "uniqueItems": True,
+                    "description": "The prose sections to answer; every one when omitted, "
+                    "none with [].",
+                },
+            },
+            ("node_id",),
+        ),
         get_node,
     ),
     Tool(
@@ -846,22 +899,17 @@ TOOLS: tuple[Tool, ...] = (
     ),
     Tool(
         "get_submission",
-        "A submission or proposal by its ULID, or by pull-request number (padded or not): the "
-        "record, the pull request's live state and, once merged, the attestation it earned or "
-        "why there is none. `pull_request.waiting_on` names the one thing it waits for (gate, "
-        "step9-review, branch-update, merge, products, or gate-failed), and when that is "
-        "gate-failed, `gate_verdict` carries the gate's own diagnostic: why it was refused. "
-        "`state` at the top is open, merged or closed. While it is open, `queue` says where it "
-        "stands in its own lane of the merge actor's order: the actor runs one lane per target "
-        "in parallel, so `position` (from 1) `of` how many, and `ahead`, count only the pull "
-        "requests on the same target and any the service cannot place in one target, each with "
-        "its number, the service's record of it and the `waiting_on` the service last read for "
-        "it (null: not read). Within a lane the order is pull-request number, oldest first; the "
-        "actor merges the first green one and passes over a red or conflicting one, so a "
-        "position is an upper bound on the merges ahead. "
-        "`submission.closed` is the host's own merge or close time, and "
-        "`submission.artifact_type` repeats `kind` for a proof, counterexample, vacuity, "
-        "reduction or partial (null for any other record).",
+        (
+            "A submission or proposal by its ULID or pull-request number (padded or "
+            "not): the record, the pull request's live state and, once merged, the "
+            "attestation it earned or why there is none. `pull_request.waiting_on` names "
+            "the one thing it waits for (gate, step9-review, branch-update, merge, "
+            "products, or gate-failed, when `gate_verdict` carries the gate's own "
+            "diagnostic). `state` is open, merged or closed. While open, `queue` gives "
+            "its `position` (from 1) `of` how many in its target's lane of the merge "
+            "actor, and the pull requests `ahead`; a position is an upper bound on the "
+            'merges ahead. The guide\'s "Precheck and submit" says more.'
+        ),
         params({"submission_id": {"type": "string"}}, ("submission_id",)),
         get_submission,
     ),
@@ -894,7 +942,16 @@ TOOLS: tuple[Tool, ...] = (
         "or a tool result's (`mcp/<tool>/v1`). A defect claim of class "
         f"`{requests.CIRCULAR_CLASS}` is written as `{requests.CIRCULAR_SCHEMA}`, every other "
         f"class as `{requests.DEFECT_SCHEMA}`.",
-        params({"name": {"type": "string"}}, ("name",)),
+        params(
+            {
+                "name": {
+                    "type": "string",
+                    "description": "A record schema as a record's `schema` field spells it, "
+                    "<name>/v<n>, or a tool's result schema, mcp/<tool>/v1.",
+                }
+            },
+            ("name",),
+        ),
         get_schema,
     ),
     Tool(
@@ -983,7 +1040,16 @@ TOOLS: tuple[Tool, ...] = (
         "target's glosses.json and target.yaml at main's head; in the record's order, ranked by "
         "nothing. A target whose files could not be read is named under `unread`. Plain path: "
         "targets/<id>/glosses.json and targets/<id>/target.yaml.",
-        params({"target_id": ID_PARAM, "kind": {"type": "string"}}),
+        params(
+            {
+                "target_id": {**ID_PARAM, "description": "Only this target's files."},
+                "kind": {
+                    "type": "string",
+                    "description": "Only this kind: statement, witness, relation, definition, "
+                    "proof, alternate or partial.",
+                },
+            }
+        ),
         list_words_needed,
     ),
 )
