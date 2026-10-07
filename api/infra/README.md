@@ -123,7 +123,7 @@ salt is a different value from the deployed one — a token minted locally does 
 `api.openproofnetwork.org`, and the deployed salt never leaves Parameter Store. Because the App
 values exist in both places, **a rotation has to change both**.
 
-## The five secrets (C8 item 3)
+## The secrets (C8 item 3)
 
 The function reads these from Parameter Store at startup and from nowhere else. Put them there
 once, as `SecureString`, under `/opn/api/`:
@@ -135,6 +135,7 @@ once, as `SecureString`, under `/opn/api/`:
 | `github-client-secret` | the same page, "Generate a new client secret" (shown once) |
 | `github-private-key` | the same page, "Generate a private key" (a `.pem` download) |
 | `token-secret` | generate locally: `openssl rand -base64 32` |
+| `approval-signing-key` | optional (F23, C8): generate locally with `ssh-keygen -t ed25519 -N "" -f approval`, store the private file, commit the `.pub` to the graph as `keys/approval.pub`, and delete the local private file; without it `POST /stewards` and `POST /approvals` answer 503 |
 
 ```sh
 aws ssm put-parameter --name /opn/api/token-secret --type SecureString \
