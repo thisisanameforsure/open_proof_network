@@ -18,7 +18,7 @@ import hashlib
 import hmac
 import secrets
 from datetime import UTC, datetime, timedelta
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from starlette.requests import Request
 
@@ -149,3 +149,111 @@ def authenticated(ctx: Context, request: Request) -> tuple[TokenRecord, Identity
             headers={"WWW-Authenticate": "Bearer"},
         )
     return resolve(ctx, token)
+
+
+# --- web sessions (F23-R3; D-35 v3.33) -----------------------------------------------------------
+
+#: The cookie a web session rides in, on the service's own host.
+SESSION_COOKIE = "opn_session"
+#: The header the site's script adds to every credentialed call: a form on another site cannot
+#: set it, and a cross-origin script cannot either without a preflight only the site passes.
+WEB_HEADER = "x-opn-web"
+KEY_WEB_SESSION = "websession#"
+
+
+def session_key(settings: Settings, raw: str) -> str:
+    """Where a session is kept: its id is hashed as a token is (R4), so a copied table names no
+    live session."""
+    return KEY_WEB_SESSION + token_hash(settings.token_secret or "", raw)
+
+
+def new_session(ctx: Context, identity_id: str) -> tuple[str, datetime]:
+    """A fresh web session for ``identity_id``: the raw id (for the cookie, shown nowhere else)
+    and when it ends (``web_session_ttl_s``, eight hours by default)."""
+    raw = new_token()
+    now = ctx.clock.now()
+    ends = now + timedelta(seconds=ctx.settings.web_session_ttl_s)
+    ctx.store.put_ephemeral(
+        session_key(ctx.settings, raw),
+        {"identity_id": identity_id, "created": clock.render(now), "expires": clock.render(ends)},
+        ends,
+    )
+    return raw, ends
+
+
+def session_cookie(raw: str, max_age: int) -> str:
+    """The ``Set-Cookie`` value: HttpOnly so no script on the site can read it, Secure, and
+    SameSite=Strict so no other site's page can send it (F23 §7)."""
+    return f"{SESSION_COOKIE}={raw}; Max-Age={max_age}; Path=/; HttpOnly; Secure; SameSite=Strict"
+
+
+def session_id(request: Request) -> str | None:
+    return request.cookies.get(SESSION_COOKIE) or None
+
+
+def web_request(ctx: Context, request: Request) -> bool:
+    """R3: the request comes from the site's own page — its ``Origin`` is exactly the configured
+    site origin and it carries ``X-OPN-Web: 1``. Anything else never reads the cookie."""
+    origin = ctx.settings.site_origin
+    return (
+        bool(origin)
+        and request.headers.get("origin") == origin
+        and request.headers.get(WEB_HEADER) == "1"
+    )
+
+
+def web_session(ctx: Context, request: Request) -> tuple[dict[str, Any], Identity] | None:
+    """The live session record and its identity behind the cookie, on a web request only;
+    ``None`` for no cookie, an unknown or ended session, or a request that is not the site's."""
+    raw = session_id(request)
+    if raw is None or not web_request(ctx, request):
+        return None
+    record = ctx.store.get_ephemeral(session_key(ctx.settings, raw), ctx.clock.now())
+    if record is None:
+        return None
+    identity = ctx.store.get_identity(str(record.get("identity_id", "")))
+    if identity is None:
+        return None
+    return record, identity
+
+
+def end_session(ctx: Context, request: Request) -> None:
+    raw = session_id(request)
+    if raw is not None:
+        ctx.store.drop_ephemeral(session_key(ctx.settings, raw))
+
+
+def authenticate_web(ctx: Context, request: Request) -> Identity:
+    """F23-R3: the one resolver of the routes that accept a web session. A bearer, when
+    presented, is authenticated exactly as everywhere else; without one, the web session is the
+    identity; with neither, the 401 every authenticated route gives."""
+    from opn_api.app import ApiError  # noqa: PLC0415 — app imports this module
+
+    if bearer(request) is not None:
+        return authenticate(ctx, request)
+    found = web_session(ctx, request)
+    if found is None:
+        raise ApiError(
+            401,
+            "unauthenticated",
+            "this route needs `Authorization: Bearer <token>`, or a web session from the site",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    return found[1]
+
+
+def cors_headers(ctx: Context) -> dict[str, str]:
+    """F23-Q2: the credentialed CORS answer, for the site's one origin and nobody else's."""
+    origin = ctx.settings.site_origin
+    if not origin:
+        return {}
+    return {
+        "Access-Control-Allow-Origin": origin,
+        "Access-Control-Allow-Credentials": "true",
+        "Vary": "Origin",
+    }
+
+
+#: What a preflight allows (F23-R3): the site's script sends JSON and the marker header.
+PREFLIGHT_HEADERS = "Content-Type, X-OPN-Web"
+PREFLIGHT_MAX_AGE_S = 600

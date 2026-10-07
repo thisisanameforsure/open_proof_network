@@ -197,6 +197,16 @@ def check(h: Harness, key: PrecheckKey) -> Prepared:
     return {"target_id": TARGET, "content": "theorem x : True := trivial\n"}, {}
 
 
+def web_accept(h: Harness, key: PrecheckKey) -> Prepared:
+    """F23-T3: the first web sign-in's DCO tick; refused before the proof is read."""
+    body = {
+        "proof": "x",
+        "return": "/",
+        "dco": {"version": identity.DCO_VERSION, "accepted": True},
+    }
+    return body, {}
+
+
 #: Every POST route of ``routes.ROUTES`` that reads a JSON body (``DELETE /claims/<id>`` has none);
 #: ``/tokens/renew`` reads an empty one, refusing any key (F05-T27).
 WRITE_ROUTES: dict[str, Prepare] = {
@@ -216,6 +226,7 @@ WRITE_ROUTES: dict[str, Prepare] = {
     "/check": check,
     "/glosses": glosses_,
     "/glosses/withdrawals": gloss_withdrawals,
+    "/auth/web/accept": web_accept,  # F23-T3
 }
 
 

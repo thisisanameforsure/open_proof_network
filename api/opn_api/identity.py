@@ -268,13 +268,56 @@ def expiry(ctx: Context) -> datetime:
     return ctx.clock.now() + timedelta(seconds=ctx.settings.state_ttl_s)
 
 
+#: F23-R2: the longest ``return`` path a sign-in carries back to the site.
+RETURN_MAX = 512
+#: A plain path on the site: printable ASCII after one ``/``, no whitespace or control character.
+_RETURN_RE = re.compile(r"^/[!-~]*$")
+
+
+def check_return(raw: Any) -> str:
+    """F23-R2, AC1: ``return`` is a path on the site's own origin and nothing else — it starts
+    with one ``/``, never ``//`` (a scheme-relative URL), has no backslash (which browsers read
+    as ``/``), so no scheme or host can ride in it, no whitespace or control character, and is
+    at most ``RETURN_MAX`` characters. Anything else is a 400: the service never redirects off
+    the site."""
+    if (
+        not isinstance(raw, str)
+        or len(raw) > RETURN_MAX
+        or not _RETURN_RE.match(raw)
+        or raw.startswith("//")
+        or "\\" in raw
+    ):
+        raise ApiError(
+            400,
+            "return-invalid",
+            "return must be a path on the site: one leading /, never //, no backslash or "
+            f"scheme, at most {RETURN_MAX} characters",
+        )
+    return raw
+
+
+def site_origin(ctx: Context) -> str:
+    """Where a web sign-in returns to (F22-T8's ``OPN_API_SITE_ORIGIN``); a service with none
+    cannot hold a web session, and says so (C7)."""
+    origin = ctx.settings.site_origin
+    if not origin:
+        raise ApiError(503, "site-origin-unset", "OPN_API_SITE_ORIGIN is unset: web sign-in is off")
+    return origin
+
+
 async def github_start(ctx: Context, request: Request) -> Response:
-    """R3: a state nonce, then GitHub's authorization page. Per-source limited (R6)."""
+    """R3: a state nonce, then GitHub's authorization page. Per-source limited (R6).
+
+    F23-R2: with ``return``, the flow is a web sign-in: the path is checked here, kept with the
+    nonce, and the callback sends the browser back to it with a web session instead of a token.
+    """
+    state_doc: dict[str, Any] = {"created": clockmod.render(ctx.clock.now())}
+    if "return" in request.query_params:
+        state_doc["return"] = check_return(request.query_params["return"])
+        site_origin(ctx)
     ratelimit.check_token_start(ctx, ratelimit.client_address(request))
     state = secrets.token_urlsafe(24)
-    ctx.store.put_ephemeral(
-        KEY_STATE + state, {"created": clockmod.render(ctx.clock.now())}, expiry(ctx)
-    )
+    ctx.store.put_ephemeral(KEY_STATE + state, state_doc, expiry(ctx))
     url = githostmod.authorize_url(
         client_id=ctx.settings.github_client_id or "", redirect_uri=redirect_uri(ctx), state=state
     )
@@ -287,12 +330,15 @@ async def github_callback(ctx: Context, request: Request) -> Response:
     state = request.query_params.get("state", "")
     if not code or not state:
         raise ApiError(400, "callback-incomplete", "GitHub's callback needs code and state")
-    if ctx.store.take_ephemeral(KEY_STATE + state, ctx.clock.now()) is None:
+    started = ctx.store.take_ephemeral(KEY_STATE + state, ctx.clock.now())
+    if started is None:
         raise ApiError(400, "state-invalid", "unknown, used or expired state; start again")
     try:
         user = ctx.githost.exchange_code(code, redirect_uri=redirect_uri(ctx))
     except GitHostError as exc:
         raise ApiError(502, "github-exchange-failed", str(exc)) from exc
+    if "return" in started:  # F23-R2: a web sign-in
+        return web_callback(ctx, user.login, user.id, user.created_at, str(started["return"]))
     existing = ctx.store.get_identity_by_proof(PROOF_GITHUB, user.login)
     if existing is not None:
         check_reprovable(ctx, existing, user.login)  # F05-T27: a lapsed identity re-proves
@@ -510,6 +556,116 @@ async def post_tokens(ctx: Context, request: Request) -> Response:
     return JSONResponse(doc, status_code=201)
 
 
+# --- web sign-in (F23-R2, R3; D-35 v3.33) --------------------------------------------------------
+
+#: F23-Q3: the suffix of the fallback pseudonym, for a login that cannot be its own.
+FALLBACK_SUFFIX = "-gh"
+
+
+def web_pseudonym(ctx: Context, login: str) -> str:
+    """F23-Q3: a first web sign-in takes the GitHub login as its pseudonym, with no screen to
+    choose one. A login that cannot be (reserved, or held by another identity) takes the
+    deterministic fallback ``<login>-gh``, trimmed to fit 39 characters; when that cannot be
+    either, the sign-in is refused by name rather than a third name being invented."""
+    fallback = login[: 39 - len(FALLBACK_SUFFIX)] + FALLBACK_SUFFIX
+    for name in (login, fallback):
+        if not PSEUDONYM_RE.match(name) or is_reserved(ctx.settings, name):
+            continue
+        if ctx.store.get_identity_by_pseudonym(name) is None:
+            return name
+    raise ApiError(
+        409,
+        "pseudonym-taken",
+        f"neither {login!r} nor {fallback!r} is free as a pseudonym; sign in for a token "
+        "instead (GET /auth/github/start without return) and choose one",
+    )
+
+
+def check_web_identity(ctx: Context, held: Identity) -> None:
+    """A web session acts as the identity, so one the operator revoked (F05-T21) does not get
+    one: a revocation must not be undone by signing in on the site."""
+    for record in ctx.store.list_tokens(held.id):
+        if record.revoked and not record.renewed:
+            raise ApiError(
+                403,
+                "identity-revoked",
+                "this identity's tokens were revoked by the operator; it cannot sign in",
+            )
+
+
+def session_redirect(ctx: Context, identity_id: str, path: str) -> Response:
+    """R2: a new web session for ``identity_id`` and a 303 back to ``path`` on the site."""
+    raw, _ = auth.new_session(ctx, identity_id)
+    response = RedirectResponse(site_origin(ctx) + path, status_code=303)
+    response.headers["set-cookie"] = auth.session_cookie(raw, ctx.settings.web_session_ttl_s)
+    response.headers["cache-control"] = "no-store"
+    return response
+
+
+def web_callback(ctx: Context, login: str, github_id: int, created_at: str, path: str) -> Response:
+    """R2: an existing identity for the login gets a session and goes back to the page (AC3:
+    never a second identity); a new login is asked for the DCO once, on one small page."""
+    existing = ctx.store.get_identity_by_proof(PROOF_GITHUB, login)
+    if existing is not None:
+        check_web_identity(ctx, existing)
+        return session_redirect(ctx, existing.id, path)
+    if ctx.store.count_identities_by_proof(PROOF_GITHUB, login) >= ctx.settings.tokens_per_login:
+        raise ApiError(
+            409, "github-login-taken", f"an identity already exists for GitHub login {login}"
+        )
+    proof_id = secrets.token_urlsafe(24)
+    ctx.store.put_ephemeral(
+        KEY_PROOF + proof_id,
+        {"login": login, "github_id": github_id, "created_at": created_at, "return": path},
+        expiry(ctx),
+    )
+    return HTMLResponse(
+        accept_form(login=login, proof_id=proof_id, path=path),
+        headers={"cache-control": "no-store"},
+    )
+
+
+#: The fields ``POST /auth/web/accept`` reads, as the accept page's form sends them.
+WEB_ACCEPT_FIELDS: tuple[str, ...] = ("proof", "dco", "return")
+
+
+async def post_web_accept(ctx: Context, request: Request) -> Response:
+    """R2: the one DCO tick of a first web sign-in. Creates the identity (pseudonym: the login,
+    Q3), starts a session and goes back to the page. No token is issued or shown."""
+    fields, _ = await body_fields(request, WEB_ACCEPT_FIELDS)
+    path = check_return(fields.get("return"))
+    check_dco(fields.get("dco"))
+    proof = fields.get("proof")
+    proof_id = proof.get("id") if isinstance(proof, dict) else proof
+    record = (
+        ctx.store.take_ephemeral(KEY_PROOF + proof_id, ctx.clock.now())
+        if isinstance(proof_id, str) and proof_id
+        else None
+    )
+    if record is None or record.get("return") != path:
+        raise ApiError(400, "proof-invalid", "unknown, used or expired proof; sign in again")
+    login = str(record["login"])
+    held = ctx.store.get_identity_by_proof(PROOF_GITHUB, login)
+    if held is None:
+        now = ctx.clock.now()
+        held = Identity(
+            id=new_ulid(now),
+            pseudonym=web_pseudonym(ctx, login),
+            proof_kind=PROOF_GITHUB,
+            proof_reference=login,
+            created=clockmod.render(now),
+        )
+        try:
+            ctx.store.put_identity(held)
+        except ConflictError as exc:
+            raise ApiError(
+                409, "github-login-taken", f"an identity already exists for {login}"
+            ) from exc
+    else:  # created meanwhile (a second tab): the same identity, never a second (AC3)
+        check_web_identity(ctx, held)
+    return session_redirect(ctx, held.id, path)
+
+
 # --- POST /tokens/renew: optional rotation (F05-T27, T29; D-19 v3.29, Q27, Q29) ----------------
 
 
@@ -561,6 +717,26 @@ def token_form(*, login: str, proof_id: str, pseudonym: str | None = None) -> st
         "<label><input type='checkbox' name='dco.accepted' value='true' required> "
         "I certify the above for every contribution made under this pseudonym.</label>"
         "<button type='submit'>Issue my token</button></form>"
+    )
+
+
+def accept_form(*, login: str, proof_id: str, path: str) -> str:
+    """F23-R2: a first web sign-in's one screen — the DCO and a tick box. No pseudonym field
+    (Q3) and no token: Continue goes back to the page the sign-in started from."""
+    return (
+        "<!doctype html><meta charset='utf-8'><title>Open Proof Network — sign in</title>"
+        f"<style>{_STYLE}</style>"
+        f"<h1>Welcome, {html.escape(login)}</h1><p>GitHub login <code>{html.escape(login)}"
+        "</code> is proven, and the network will name you by it. Before your first "
+        "contribution, accept the Developer Certificate of Origin.</p>"
+        "<form method='post' action='/auth/web/accept'>"
+        f"<input type='hidden' name='proof' value='{html.escape(proof_id, quote=True)}'>"
+        f"<input type='hidden' name='return' value='{html.escape(path, quote=True)}'>"
+        f"<input type='hidden' name='dco.version' value='{DCO_VERSION}'>"
+        f"<pre>{html.escape(DCO_TEXT)}</pre>"
+        "<label><input type='checkbox' name='dco.accepted' value='true' required> "
+        "I certify the above for every contribution I make.</label>"
+        "<button type='submit'>Continue</button></form>"
     )
 
 

@@ -18,6 +18,10 @@ class RouteSpec:
     d35: str | None  # the D-35 plain-path row, verbatim as the document writes it
     authenticated: bool = False  # R5: bearer required
     feature: str = "F05"
+    #: F23-R3: the route also accepts a web session from the site (the cookie, the site's exact
+    #: Origin and ``X-OPN-Web: 1``) and answers the site's credentialed CORS. Every other route
+    #: ignores the cookie.
+    web: bool = False
 
     @property
     def write(self) -> bool:
@@ -71,6 +75,12 @@ ROUTES: tuple[RouteSpec, ...] = (
     RouteSpec("GET", "/auth/github/start", "identity:github_start", D35_POST_TOKENS),
     RouteSpec("GET", "/auth/github/callback", "identity:github_callback", D35_POST_TOKENS),
     RouteSpec("POST", "/tokens", "identity:post_tokens", D35_POST_TOKENS),
+    # F23-R2 (D-35 v3.33): a first web sign-in's DCO tick. Sign-in under the D-19 identity rules,
+    # so D-35's token row, as the two auth routes above are; it makes the identity and a web
+    # session, never a token.
+    RouteSpec(
+        "POST", "/auth/web/accept", "identity:post_web_accept", D35_POST_TOKENS, feature="F23"
+    ),
     # F05-T27, T29 (D-19 v3.29): optional rotation of a live token. Token issuance under the D-19
     # identity rules, so D-35's token row (Q27, Q29).
     RouteSpec("POST", "/tokens/renew", "identity:post_renew", D35_POST_TOKENS, authenticated=True),
@@ -188,6 +198,7 @@ ROUTES: tuple[RouteSpec, ...] = (
         D35_POST_GLOSSES,
         authenticated=True,
         feature="F20",
+        web=True,  # F23-R3
     ),
     RouteSpec(
         "POST",
@@ -196,6 +207,7 @@ ROUTES: tuple[RouteSpec, ...] = (
         D35_POST_GLOSS_WITHDRAWALS,
         authenticated=True,
         feature="F20",
+        web=True,  # F23-R3
     ),
     # F13-R8, Q2: open like the tutorial precheck; a presented token is authenticated and charged
     # per identity, and an anonymous caller is charged per address, by the handler.
@@ -229,6 +241,8 @@ PURPOSES: dict[str, str] = {
     "GET /auth/github/start": "Begin the GitHub proof of identity for a token (browser).",
     "GET /auth/github/callback": "Finish the GitHub proof of identity and issue the token.",
     "POST /tokens": "Issue a token: from a passing tutorial precheck (no account) or GitHub.",
+    "POST /auth/web/accept": "Finish a first sign-in on the site: accept the DCO, then return "
+    "to the page with a web session (browser).",
     "POST /tokens/renew": (
         "Rotate a token (optional; one in use never lapses): a new token, the old one retired."
     ),

@@ -55,7 +55,15 @@ def test_routes_match_d35() -> None:
     pr_rows = {routes.D35_APPEND_PR, routes.D35_PROPOSAL_PR, routes.D35_CLAIM_PR}
     for r in routes.ROUTES:
         assert r.d35 is None or r.d35 in rows or r.d35 in pr_rows, r
-        assert r.feature in ("F05", "F06", "F07", "F08", "F13", "F20"), r
+        assert r.feature in ("F05", "F06", "F07", "F08", "F13", "F20", "F23"), r
+
+
+def test_web_sign_in_falls_under_the_token_row() -> None:
+    """F23-T3: ``POST /auth/web/accept`` finishes a GitHub sign-in under the D-19 identity rules,
+    as ``GET /auth/github/start`` and the callback do, so it is D-35's token row; the v3.33 row
+    names the session's own routes, and sign-in is not among them."""
+    accept = {r.label: r for r in routes.ROUTES}["POST /auth/web/accept"]
+    assert accept.d35 == routes.D35_POST_TOKENS and not accept.authenticated
 
 
 def test_f07_routes_are_authenticated_writes() -> None:

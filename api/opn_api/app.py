@@ -201,12 +201,47 @@ def bind(ctx: Context, spec: RouteSpec) -> Callable[[Request], Awaitable[Respons
         request.state.route = spec.label
         if ctx.missing and spec.path != "/health":
             raise ApiError(503, "not-configured", "missing: " + ", ".join(ctx.missing))
-        if spec.authenticated:
-            identity = auth.authenticate(ctx, request)
-            request.state.identity_id = identity.id
-            request.state.identity = identity
-            ratelimit.check_write(ctx, identity.id)
-        return await fn(ctx, request)
+        if not spec.web:
+            return await _call(fn, ctx, spec, request)
+        # F23-R3: a route the site calls with credentials answers its CORS on every response,
+        # a refusal included, so the page can read why it was refused.
+        cors = auth.cors_headers(ctx)
+        try:
+            response = await _call(fn, ctx, spec, request)
+        except ApiError as exc:
+            exc.headers.update(cors)
+            raise
+        response.headers.update(cors)
+        return response
+
+    return endpoint
+
+
+async def _call(fn: Handler, ctx: Context, spec: RouteSpec, request: Request) -> Response:
+    if spec.authenticated:
+        identity = (
+            auth.authenticate_web(ctx, request) if spec.web else auth.authenticate(ctx, request)
+        )
+        request.state.identity_id = identity.id
+        request.state.identity = identity
+        ratelimit.check_write(ctx, identity.id)
+    return await fn(ctx, request)
+
+
+def preflight(ctx: Context, methods: str) -> Callable[[Request], Awaitable[Response]]:
+    """F23-R3: the ``OPTIONS`` answer for a route the site calls with credentials. It allows the
+    site's origin, its two headers and the route's methods; the browser then refuses anything
+    else before the request is sent."""
+
+    async def endpoint(request: Request) -> Response:
+        headers = auth.cors_headers(ctx)
+        if headers:
+            headers |= {
+                "Access-Control-Allow-Methods": methods,
+                "Access-Control-Allow-Headers": auth.PREFLIGHT_HEADERS,
+                "Access-Control-Max-Age": str(auth.PREFLIGHT_MAX_AGE_S),
+            }
+        return Response(status_code=204, headers=headers)
 
     return endpoint
 
@@ -381,6 +416,14 @@ def create_app(
 
     mcp = mcpmod.Mount(ctx, lambda: app)
     routes = [Route(r.path, bind(ctx, r), methods=[r.method], name=r.label) for r in ROUTES]
+    web_methods: dict[str, list[str]] = {}
+    for r in ROUTES:
+        if r.web:
+            web_methods.setdefault(r.path, []).append(r.method)
+    routes.extend(
+        Route(path, preflight(ctx, ", ".join(methods)), methods=["OPTIONS"])
+        for path, methods in web_methods.items()
+    )
     routes.append(Route(mcpmod.MCP_PATH, mcp, methods=["GET", "POST", "DELETE"], name="mcp"))
 
     @contextlib.asynccontextmanager
