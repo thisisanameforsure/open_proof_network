@@ -1,0 +1,32 @@
+F23-T11 — deploy and re-pin, 2026-10-07
+
+1. Approval key: ed25519 generated locally, stored as SecureString /opn/api/approval-signing-key (version 1),
+   read back and its public half compared (MATCH), local private file deleted. Public key:
+   ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKHDEGJlALYV4+SkVajmPDtD/Pu6CMzBMnH36leBU0mr opn-approval-key
+   SHA256:hxFrOpyfVgkmqTPSKccngwkiJ7Qv7y021wnym0NCuHc
+2. Network: origin/main (F09-T18..T23 from another session) merged; lint and types clean; fast tier 4752 passed,
+   the known graph-copy drift alone red. Pushed 2bc5605; api-deploy run 37610305154 success.
+3. Tag gate-2bc5605; image-publish run 37610345287 success:
+     gate-2bc5605                        sha256:cb7db123fed779e8e0dd51d7a3aac0f07fbff85130bb17cfd7b24f88d42b798a
+     gate-2bc5605-mathlib-0df444a360ea   sha256:61fd863c0cd31566330c6b2a913d2d24cb59cd83b828d56df9e180a5d83029de
+4. Graph worktree at origin/main fa61210a0: schemas.unpublished was [context/v4, explainer-signature/v3,
+   gloss-signature/v3, policy/v2, steward/v2, targets-index/v8], [] after publish; keys/approval.pub added; no
+   policy.json (absent = admission open, steward rule not enforced); guide copied; pin_image.py over 27 targets
+   (tutorial plain, 26 Mathlib, riemann-hypothesis last with --api-url); 27/27 name 2bc5605; devcontainer diff is
+   the image line only. Committed e9c96365e BEFORE the pregate.
+5. pregate.sh --target tutorial --node tutorial-and-swap on the committed re-pin: verdict pass, steps 1,2,4-8 pass
+   (repin-2bc5605-pregate.txt, whole output).
+6. No gate run in flight; one open PR (#322, stale, unrelated). Pushed fa61210a0 -> e9c96365e.
+7. render.yml dispatched by the push (F07-T60): gate: render 2bc5605b33c5 = a17a426bf; frontier.json rendered_from
+   e9c96365e, frontier/v4, 35 entries / 32 claimable before and after; targets/index.json is targets-index/v8.
+8. site-deploy success (11:15Z). Live probes:
+   GET  https://openproofnetwork.org/steward/                      -> "Needs a steward" page
+   GET  https://openproofnetwork.org/steward/erdos-1094/           -> 200
+   GET  api /session (site Origin, X-OPN-Web)                      -> 200 {"signed_in":false}, credentialed CORS
+   GET  api /auth/github/start?return=/steward/erdos-1094/         -> 302 to github.com/login/oauth/authorize
+   GET  api /auth/github/start?return=https://evil.example/        -> 400
+   POST api /stewards without a session                            -> 401 unauthenticated
+   home page carries session-slot and session.js
+9. AC13 (the owner signs in and stewards a problem; the record merges unattended; the page names them within
+   ten minutes) is the owner's live check. Note: calibration targets show no form (the site excludes them,
+   F23-Q12), so use an open-track problem such as erdos-1094.
