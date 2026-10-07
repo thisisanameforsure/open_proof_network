@@ -102,12 +102,21 @@ class Steward:
     name: str
     link: str | None
     since: str
-    #: v2 (D-32 v3.33): ``self`` or the admitting curator; ``None`` for a v1 commitment. Not in
-    #: ``as_dict``: ``targets-index/v7`` has no field for it.
+    #: v2 (D-32 v3.33): ``self`` or the admitting curator; ``None`` for a v1 commitment.
     admitted_by: str | None = None
+    #: How the commitment was signed: ``ssh`` or ``approval-key``.
+    via: str = signed.VIA_SSH
 
     def as_dict(self) -> dict[str, Any]:
-        return {"login": self.login, "name": self.name, "link": self.link, "since": self.since}
+        """The shape ``targets-index/v8`` publishes (F23-R14)."""
+        return {
+            "login": self.login,
+            "name": self.name,
+            "link": self.link,
+            "since": self.since,
+            "admitted_by": self.admitted_by,
+            "via": self.via,
+        }
 
 
 # --- reading -------------------------------------------------------------------------------------
@@ -238,7 +247,7 @@ def active(target_dir: Path, signer: Signer) -> list[Steward]:
         r = checked.record
         if r.action == COMMIT:
             if r.login not in current:
-                current[r.login] = Steward(r.login, r.name, r.link, r.date, r.admitted_by)
+                current[r.login] = Steward(r.login, r.name, r.link, r.date, r.admitted_by, r.via)
         else:
             current.pop(r.login, None)
     return list(current.values())

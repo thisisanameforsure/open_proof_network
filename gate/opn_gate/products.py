@@ -65,7 +65,7 @@ FRONTIER_SCHEMA = "frontier/v4"  # T16: status, cause, needs (v3, T7: partials; 
 #: formalizations: v5.
 #: F15-R9: the policy state at the top; per target the active stewards, the digestion state with
 #: its counts, the calibration flag, and `no-steward` among the reasons: v6.
-INDEX_SCHEMA = "targets-index/v7"  # v7 (F07-T24): step9 gains `calibration`
+INDEX_SCHEMA = "targets-index/v8"  # v8 (F23-R14): stewards carry admitted_by, via; link nullable
 INFO_SCHEMA = "info/v2"  # F05-T25: guide_url, errors_url (null here; the service fills them)
 CLAIMS_SCHEMA = "claims/v1"
 CLAIMS_FILE = "claims.json"
