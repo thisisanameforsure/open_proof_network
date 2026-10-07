@@ -66,3 +66,13 @@ gate/tests/test_steward.py::test_commands PASSED                         [100%]
 Full fast tier (gate api site, test_walkthrough::test_graph_copy_is_identical deselected, pre-existing):
 1644 passed, 6 xfailed, 2 warnings in 179.13s (0:02:59)
 make lint: All checks passed; make types: Success (gate 327, api 211, site 72 files)
+
+== Follow-up 1 (Q-d): an SSH step-down ends only an SSH commitment under the same key; an approval-key step-down ends any commitment of its login ==
+RED (before the fix):
+E       AssertionError: assert 'steward-key' in []
+E       AssertionError: assert 'steward-key' in []
+FAILED gate/tests/test_steward_v2.py::test_an_ssh_step_down_cannot_end_a_site_made_commitment[stranger]
+FAILED gate/tests/test_steward_v2.py::test_an_ssh_step_down_cannot_end_a_site_made_commitment[alice-steward]
+2 failed, 17 passed in 37.95s
+GREEN:
+49 passed, 2 warnings in 29.04s
