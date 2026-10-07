@@ -1,0 +1,8 @@
+F23-T0 — decisions v3.33 and C8 approval key, 2026-10-07
+
+Tests that read the decisions doc and the site:
+FAILED gate/tests/test_walkthrough.py::test_graph_copy_is_identical - Asserti...
+1 failed, 501 passed, 1 deselected, 2 warnings in 65.13s (0:01:05)
+
+test_graph_copy_is_identical without the T0 change (known drift, sibling graph checkout):
+1 failed, 2 warnings in 0.21s

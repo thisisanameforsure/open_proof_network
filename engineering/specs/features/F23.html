@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>F23 — Stewards and curators on the site</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="crumbs"><a href="../index.html">specs</a> / F23</nav>
+<h1>F23 — Stewards and curators on the site</h1>
+<p class="subtitle">Sign in with GitHub. Become a problem's steward in one short form. Edit and
+approve the words on the page you are reading. No SSH key, no curl, no long document to read
+first.</p>
+
+<h2>1. Summary</h2>
+<p>On 2026-10-06 the owner found four problems on the site:</p>
+<ul>
+  <li>Nobody can sign in.</li>
+  <li>"Needs a steward" is only a filter.</li>
+  <li>"Become its steward" and "How stewardship works" land on the long Docs page.</li>
+  <li>The only way to edit or approve words is the service's routes, through curl or an MCP client.
+    A steward record and every signature also need the steward's own SSH key.</li>
+</ul>
+<p>F23 builds the flow the owner approved on 2026-10-07:</p>
+<ul>
+  <li>a Sign in link on every page;</li>
+  <li>a one-screen steward form that does on GitHub what a filled-in form would lead to (it opens
+    the record's pull request);</li>
+  <li>buttons that depend on the reader's role on the pages that show words.</li>
+</ul>
+<p>The protocol side is decisions v3.33 (D-3, D-22, D-28, D-32, D-35) and one C8 entry, drafted in
+<code>engineering/session-notes/2026-10-07-amendment-v3.33-stewards-on-the-site.md</code>. Nothing
+here is built until v3.33 is applied (T0).</p>
+
+<h2>2. User stories</h2>
+<ul>
+  <li>As a mathematician who sees "Needs a steward", I click it, sign in with GitHub, tick one box
+    and become the steward. I see my name on the problem a few minutes later, and I never read the
+    Docs page unless I want to.</li>
+  <li>As a steward, the words on my problem's pages show me <em>Approve</em> and <em>Edit</em>.
+    A page lists the drafts waiting for me, and I can step down from the same place.</li>
+  <li>As anyone signed in, I can draft words for any Lean file. The page shows my draft as a draft
+    until a steward or curator approves it or rewrites it.</li>
+  <li>As the owner, I see who admitted themselves as a steward. I can switch admission to
+    <em>reviewed</em> later without changing any record.</li>
+  <li>As a reader, I can tell final words from drafts, and a self-admitted steward from a reviewed
+    one.</li>
+</ul>
+
+<h2>3. Scope</h2>
+<p><strong>In:</strong></p>
+<ul>
+  <li><strong>The service:</strong> web sign-in and sessions, <code>GET /session</code>,
+    <code>POST /session/end</code>, <code>POST /stewards</code>, <code>POST /approvals</code>, and
+    the words routes accepting a web session.</li>
+  <li><strong>The gate:</strong> the new record versions and the approval key, and the policy
+    switch.</li>
+  <li><strong>The site:</strong>
+    <ul>
+      <li>the header sign-in;</li>
+      <li><code>/steward/</code> and <code>/steward/&lt;target&gt;/</code>;</li>
+      <li><code>/me/</code>;</li>
+      <li>edit and approve controls on node and proof pages;</li>
+      <li>the draft, final and self-admitted labels.</li>
+    </ul></li>
+  <li><strong>The graph:</strong> <code>keys/approval.pub</code>, <code>policy.json</code>'s new
+    field, and <code>curators.json</code> unchanged with the owner in it.</li>
+  <li><strong>The merge actor:</strong> under <em>reviewed</em>, it leaves steward records to a
+    curator.</li>
+  <li><strong>The guide:</strong> the stewards section, shortened.</li>
+</ul>
+<p><strong>Out:</strong></p>
+<ul>
+  <li>MCP tools for either role;</li>
+  <li>a curator self-service route;</li>
+  <li>any vetting of stewards beyond the switch;</li>
+  <li>sign-in without GitHub;</li>
+  <li>email of any kind;</li>
+  <li>proposing a new problem from the site (the graph's issue form stays).</li>
+</ul>
+
+<h2>4. Requirements</h2>
+<table>
+  <tr><th>ID</th><th>Requirement (EARS)</th></tr>
+  <tr><td>F23-R1</td><td>Every site page shall show a <em>Sign in</em> link in its header. When a
+    web session exists, the link shall be replaced by the login and a menu: My problems
+    (<code>/me/</code>), Sign out.</td></tr>
+  <tr><td>F23-R2</td><td>When <code>GET /auth/github/start</code> is called with <code>return</code>,
+    the service shall accept only a path on the site's own origin. After GitHub, it shall send the
+    browser to that path with a web session set, and show no token and no pseudonym screen.
+    On a first sign-in, the service shall ask once for the DCO acceptance (one tick box) and shall
+    make the pseudonym the GitHub login. A login that already has an identity shall get that
+    identity.</td></tr>
+  <tr><td>F23-R3</td><td>A web session shall be an HttpOnly, Secure, SameSite=Strict cookie on
+    the service's host, valid for eight hours (config). The service shall accept it only on a
+    request whose <code>Origin</code> is the site's origin and which carries the
+    <code>X-OPN-Web: 1</code> header, and only on <code>GET /session</code>,
+    <code>POST /session/end</code>, <code>POST /stewards</code>, <code>POST /approvals</code> and the
+    words routes (<code>POST /glosses</code>, <code>POST /glosses/withdrawals</code>). Every other
+    route shall ignore it.</td></tr>
+  <tr><td>F23-R4</td><td><code>GET /session</code> shall answer the login, whether they are a
+    curator (<code>curators.json</code>), and the targets on which they are an active steward, all
+    read from the graph at the service's current commit. With no session it shall answer
+    <code>{"signed_in": false}</code>.</td></tr>
+  <tr><td>F23-R5</td><td>On Home and Problems, "Needs a steward" shall be a link with its count to
+    <code>/steward/</code>. That page shall list the targets that have no active steward, one line
+    each, every line with a <em>Steward this</em> button to <code>/steward/&lt;target&gt;/</code>.
+    The Problems filter shall stay.</td></tr>
+  <tr><td>F23-R6</td><td>Every "Become its steward" and "Propose or steward" link to a known target
+    shall go to <code>/steward/&lt;target&gt;/</code>, never to the Docs page.</td></tr>
+  <tr><td>F23-R7</td><td><code>/steward/&lt;target&gt;/</code> shall fit on one screen at 1440
+    and show:
+    <ul>
+      <li>the problem's statement in prose;</li>
+      <li>what the role asks, in three lines;</li>
+      <li>a "Read more" link to the Docs anchor;</li>
+      <li>display name (prefilled from GitHub) and identity link (optional while admission is
+        <em>open</em>);</li>
+      <li>the commitment sentence verbatim with a tick box;</li>
+      <li>one <em>Become steward</em> button.</li>
+    </ul>
+    Signed out, the button shall be <em>Sign in with GitHub to continue</em> and return to the same
+    page.</td></tr>
+  <tr><td>F23-R8</td><td><code>POST /stewards</code> shall write <code>steward/v2</code> as the
+    session's login, sign it with the approval key and open its pull request with the identity as
+    author (D-23).
+    <ul>
+      <li>Under <em>open</em>, it shall use an <code>append/</code> branch and carry
+        <code>admitted_by: self</code>.</li>
+      <li>Under <em>reviewed</em>, it shall use a <code>curate/</code> branch, which the merge actor
+        does not take.</li>
+    </ul>
+    It shall answer the pull request's URL. A login already active on the target shall get
+    <code>409</code>. A step-down from a login that is not active shall get
+    <code>409</code>.</td></tr>
+  <tr><td>F23-R9</td><td>The gate shall admit a <code>steward/v2</code> record only when:
+    <ul>
+      <li>its signature verifies under the <code>keys/approval.pub</code> in the merge's parent
+        tree;</li>
+      <li>its <code>admitted_by</code> agrees with the policy in that tree: <code>self</code> only
+        under <em>open</em>; under <em>reviewed</em>, a login in <code>curators.json</code>, and
+        the pull request is merged by that curator.</li>
+    </ul>
+    <code>steward/v1</code> records stay valid. A step-down of either version may end a
+    commitment of either version for the same login.</td></tr>
+  <tr><td>F23-R10</td><td><code>POST /approvals</code> shall take a gloss or explainer version and
+    the sections to approve, from a session whose login is a steward of the version's target or a
+    curator. It shall write <code>gloss-signature/v3</code> or
+    <code>explainer-signature/v3</code> (signer login, <code>via: approval-key</code>), sign it
+    with the approval key, and open its pull request on an <code>append/</code> branch. Any other
+    login shall get <code>403</code>.</td></tr>
+  <tr><td>F23-R11</td><td>The gate and the products shall treat a v3 signature like an SSH-signed
+    one in every rule that reads signatures (verified sections, write-up credit, digestion).
+    Following D-3 v3.33, a version signed by its own author, who is a steward of the target or a
+    curator, shall be verified and shall earn once, as written work.</td></tr>
+  <tr><td>F23-R12</td><td>On node and proof pages, every gloss and explainer section shall show
+    its state: <em>Draft</em> (with its author), <em>Pending</em> (with whose change), or
+    <em>Final</em> (with the approver and date). With a session:
+    <ul>
+      <li>anyone shall see <em>Edit</em>, which opens a text box holding the current words and a
+        live preview through the words route's <code>dry_run</code>;</li>
+      <li>a steward of the target or a curator shall also see <em>Approve</em> on each section
+        that is not final;</li>
+      <li>a curator shall also see <em>Withdraw</em>.</li>
+    </ul>
+    Submitting shall show the receipt: the pull request, the gate's result, and merged.</td></tr>
+  <tr><td>F23-R13</td><td><code>/me/</code> shall show:
+    <ul>
+      <li>the signed-in login's roles;</li>
+      <li>per stewarded target, the sections waiting for approval, each linked to its page;</li>
+      <li>their own open pull requests;</li>
+      <li><em>Step down</em> per target.</li>
+    </ul></td></tr>
+  <tr><td>F23-R14</td><td>Every steward shown on the site shall carry <em>self-admitted</em> or
+    <em>admitted by &lt;curator&gt;</em>, read from the record.</td></tr>
+  <tr><td>F23-R15</td><td>Every control that needs a session shall be added by script after
+    <code>GET /session</code> answers. A page whose fetch fails shall be the read-only page as it
+    is today (C7). No control shall be rendered into the static HTML.</td></tr>
+</table>
+
+<h2>5. Acceptance criteria</h2>
+<table>
+  <tr><th>ID</th><th>Given / When / Then</th><th>Test case</th></tr>
+  <tr><td>F23-AC1</td><td>Given a fake GitHub host and <code>return=/problems/erdos-1094/</code>,
+    when the callback completes, then a 303 to that path on the site's origin with an HttpOnly
+    Secure SameSite=Strict cookie, and no token in the body. Given
+    <code>return=https://evil.example/</code> or <code>//evil.example</code>, then 400.</td>
+    <td><code>api/tests/test_web_session.py</code></td></tr>
+  <tr><td>F23-AC2</td><td>Given a valid session cookie, when it is sent to <code>POST /glosses</code>
+    without <code>X-OPN-Web</code>, with a foreign <code>Origin</code>, or to
+    <code>POST /proposals/witness</code>, then 401 each time. With both, on
+    <code>POST /glosses</code>, it is accepted as the login's identity.</td>
+    <td><code>api/tests/test_web_session.py</code></td></tr>
+  <tr><td>F23-AC3</td><td>Given a login that already has a bearer identity, when it signs in on
+    the web, then the same pseudonym and identity, and no second identity in the store.</td>
+    <td><code>api/tests/test_web_session.py</code></td></tr>
+  <tr><td>F23-AC4</td><td>Given a fixture graph with one steward and the owner as curator, then
+    <code>GET /session</code> answers each role exactly. Signed out, it answers
+    <code>signed_in: false</code>.</td><td><code>api/tests/test_session_roles.py</code></td></tr>
+  <tr><td>F23-AC5</td><td>Given policy <em>open</em>, when <code>POST /stewards</code> commits, then
+    an <code>append/</code> pull request whose one file is a <code>steward/v2</code> record that
+    verifies under the fixture's approval key with <code>admitted_by: self</code>. Again, then 409.
+    Given <em>reviewed</em>, then a <code>curate/</code> branch.</td>
+    <td><code>api/tests/test_stewards_route.py</code></td></tr>
+  <tr><td>F23-AC6</td><td>Given a v2 record:
+    <ul>
+      <li>signed by another key, then refused <code>steward-signature</code>;</li>
+      <li><code>self</code> under <em>reviewed</em>, then refused;</li>
+      <li>an SSH v1 commit followed by a v2 step-down for the same login, then the login is not
+        active.</li>
+    </ul></td><td><code>gate/tests/test_steward_v2.py</code></td></tr>
+  <tr><td>F23-AC7</td><td>Given a non-steward session, when it calls <code>POST /approvals</code>,
+    then 403. Given a steward session, then a v3 signature pull request. After its merge, the
+    products show the sections <em>verified</em> and credit the author, never the signer.</td>
+    <td><code>api/tests/test_approvals_route.py</code>,
+    <code>gate/tests/test_signature_v3.py</code></td></tr>
+  <tr><td>F23-AC8</td><td>Given a steward's own version signed by them, then its sections are
+    verified and the write-up line carries one entry for them.</td>
+    <td><code>gate/tests/test_signature_v3.py</code></td></tr>
+  <tr><td>F23-AC9</td><td>Given policy <em>reviewed</em>, then the merge-actor replay never merges a
+    <code>curate/</code> branch. Given <em>open</em>, then a steward append merges like any
+    append.</td><td><code>gate/tests/test_merge_actor_steward.py</code></td></tr>
+  <tr><td>F23-AC10</td><td>Given the rendered fixture site:
+    <ul>
+      <li>every page's header has the sign-in link;</li>
+      <li>Home and Problems link "Needs a steward" to <code>/steward/</code>;</li>
+      <li>no link to the Docs anchor remains on a steward call to action;</li>
+      <li>no static page contains an Edit, Approve or Withdraw control (R15).</li>
+    </ul></td><td><code>site/tests/test_steward_links.py</code></td></tr>
+  <tr><td>F23-AC11</td><td>Given Playwright against the fixture site and the fake service:
+    <ul>
+      <li>sign in, steward a target, see the receipt;</li>
+      <li>open a node page as that steward, see Approve;</li>
+      <li>as a stranger, see Edit and no Approve;</li>
+      <li>with the service down, see the read-only page.</li>
+    </ul>
+    Screenshots at 1440 and 390, with no horizontal scroll.</td>
+    <td><code>site/tests/test_web_flows.py</code> (+ <code>engineering/evidence/F23/</code>
+    shots)</td></tr>
+  <tr><td>F23-AC12</td><td>Given a self-admitted steward and a reviewed one, then each target page
+    labels both correctly.</td><td><code>site/tests/test_steward_labels.py</code></td></tr>
+  <tr><td>F23-AC13 (live)</td><td>Given the deployed site, when the owner signs in and stewards a
+    calibration target, then the record merges unattended and the problem page names them within
+    ten minutes.</td><td>owner's live check, captured to <code>engineering/evidence/F23/live.txt</code></td></tr>
+</table>
+
+<h2>6. Budgets / limits</h2>
+<ul>
+  <li>A session lasts eight hours (config).</li>
+  <li><code>POST /stewards</code> is rate limited at 5 per login per day, and
+    <code>POST /approvals</code> at 60 per login per hour (config).</li>
+  <li>Steward pages are one per target, rendered statically. Every role-dependent element costs one
+    <code>GET /session</code> per page view.</li>
+</ul>
+
+<h2>7. Security &amp; privacy notes</h2>
+<ul>
+  <li><strong>The approval key</strong> is a new C8 secret (v3.33 §5). It lives in the service's
+    secret store and signs two record kinds and nothing else. No gate step reads an approval, so
+    the key cannot change a verdict.</li>
+  <li><strong>The session cookie</strong> is HttpOnly, so no script on the site can read it. That
+    closes the cross-site scripting (XSS) route raised on 2026-10-07: a page that holds a token can
+    leak it. Cross-site request forgery is refused three ways: SameSite=Strict, an exact
+    <code>Origin</code> match, and the custom header.</li>
+  <li><strong>Return paths</strong> are paths only, never URLs (AC1).</li>
+  <li><strong>No data beyond what exists today:</strong> the GitHub login, the display name and the
+    optional identity link the steward types. No email is read or kept (D-32).</li>
+</ul>
+
+<h2>8. Dependencies</h2>
+<p>F05 (identity, tokens), F15 (steward records, policy), F20 and F21 (words, signatures), F22
+(one writer per head, <code>dry_run</code>, words in review), F07 (merge actor), F04 (site). Decisions
+v3.33 must be applied first (T0).</p>
+
+<h2>9. Open questions / judgment calls</h2>
+<table>
+  <tr><th>ID</th><th>Call made — for review</th></tr>
+  <tr><td>F23-Q1</td><td><strong>A pull request, not a GitHub issue (the owner's ruling of
+    2026-10-07).</strong> The form does on GitHub what a filled-in form would lead to. It opens the
+    record's own pull request, because an issue would still need a curator to turn it into a record
+    by hand.</td></tr>
+  <tr><td>F23-Q2</td><td><strong>A cookie on the service host, not a token in the page.</strong>
+    The site already calls the service cross-origin for words in review (F22-Q2). A credentialed
+    request needs the CORS credentials flag for the site's origin only.
+    <ul>
+      <li>Putting the service under the site's own origin (a CloudFront <code>/api/*</code>
+        behaviour) would avoid CORS. It is a hostname change that two stacks and the guide would
+        feel.</li>
+      <li>A token in <code>sessionStorage</code> is simpler, and is exactly the XSS risk the owner
+        was shown.</li>
+    </ul>
+    For review.</td></tr>
+  <tr><td>F23-Q3</td><td><strong>The pseudonym is the GitHub login on a first web sign-in.</strong>
+    The owner asked for no pseudonym screen. The display name on a steward record is separate and
+    editable on the form.</td></tr>
+  <tr><td>F23-Q4</td><td><strong>A self-signed version by a steward is final (D-3 v3.33 §3).</strong>
+    Without it, a single-steward problem could never finalise the steward's own rewrite.</td></tr>
+  <tr><td>F23-Q5</td><td><strong>No MCP tools for these routes.</strong> Both roles are people who
+    sign in with GitHub, and an agent cannot.</td></tr>
+  <tr><td>F23-Q6</td><td><strong>The live graph has no stewards yet</strong> (no
+    <code>targets/*/stewards/</code>). There is nothing to migrate, and v1 support stays for
+    records made by <code>opn-gate steward commit</code>.</td></tr>
+</table>
+
+<h2>10. Status</h2>
+<div class="rule"><strong>status:</strong> in progress (approved by the owner 2026-10-07) ·
+  <strong>Tasks:</strong> T0 ✓ 2026-10-07 (v3.33 and the C8 entry applied)</div>
+
+<h2>Tasks</h2>
+<p class="status-note">Dependency-ordered. Red before green: each new test fails on the missing
+behaviour with the seam in at today's behaviour.</p>
+<table>
+  <tr><th>ID</th><th>Task</th><th>Files</th><th>Deps</th><th>Verification</th></tr>
+  <tr><td>F23-T0</td><td>Apply decisions v3.33 and the C8 entry, as approved.</td>
+    <td><code>docs/architecture_decisions.html</code>, <code>engineering/specs/constitution.html</code></td><td>—</td>
+    <td>the tests that read the decisions doc</td></tr>
+  <tr><td>F23-T1</td><td>Schemas: <code>steward/v2</code>, <code>gloss-signature/v3</code>,
+    <code>explainer-signature/v3</code>, <code>policy/v2</code> (<code>steward_admission</code>),
+    with the golden regeneration in the same commit.</td><td><code>gate/schemas/</code>, goldens</td><td>T0</td>
+    <td><code>make verify</code></td></tr>
+  <tr><td>F23-T2</td><td>The approval key seam: sign in the service, verify in the gate against
+    <code>keys/approval.pub</code> in the parent tree; the gate rules R9 and R11.</td>
+    <td><code>gate/opn_gate/signed.py</code>, <code>steward.py</code>, the words signature readers</td><td>T1</td>
+    <td>AC6, AC8, AC7 (gate half)</td></tr>
+  <tr><td>F23-T3</td><td>Web sign-in and sessions (R2, R3).</td><td><code>api/opn_api/identity.py</code>, <code>auth.py</code>, <code>config.py</code></td><td>T0</td>
+    <td>AC1–AC3</td></tr>
+  <tr><td>F23-T4</td><td><code>GET /session</code>, <code>POST /session/end</code> (R4).</td><td><code>api/opn_api/session.py</code>, <code>routes.py</code></td><td>T3</td><td>AC4</td></tr>
+  <tr><td>F23-T5</td><td><code>POST /stewards</code> (R8).</td><td><code>api/opn_api/stewards.py</code>, <code>routes.py</code></td><td>T2, T4</td><td>AC5</td></tr>
+  <tr><td>F23-T6</td><td><code>POST /approvals</code> (R10).</td><td><code>api/opn_api/approvals.py</code>, <code>routes.py</code></td><td>T2, T4</td><td>AC7 (service half)</td></tr>
+  <tr><td>F23-T7</td><td>Merge actor: <code>curate/</code> left to a curator under <em>reviewed</em>.</td>
+    <td><code>../open_proof_network_graph/.github/workflows/merge.yml</code>, <code>gate/opn_gate/merge_actor.py</code></td><td>T1</td><td>AC9</td></tr>
+  <tr><td>F23-T8</td><td>Site: header sign-in, <code>/steward/</code>, <code>/steward/&lt;target&gt;/</code>, the relinked calls to action, the labels (R1, R5–R7, R14, R15).</td>
+    <td><code>site/opn_site/templates/</code>, <code>site/opn_site/static/</code>, the generator</td><td>T4, T5</td><td>AC10, AC12</td></tr>
+  <tr><td>F23-T9</td><td>Site: the words controls and <code>/me/</code> (R12, R13).</td><td><code>site/opn_site/</code></td><td>T6, T8</td><td>AC11</td></tr>
+  <tr><td>F23-T10</td><td>Guide: the stewards section in under a screen, pointing at the form.</td><td><code>site/opn_site/templates/docs.html</code>, the graph's <code>AGENTS.md</code> copy</td><td>T8</td><td>the docs-as-tests runner</td></tr>
+  <tr><td>F23-T11</td><td>Deploy: the approval key into the secret store, <code>keys/approval.pub</code> and <code>policy.json</code> (<em>open</em>) on the graph, re-pin, stack parameters, site deploy.</td>
+    <td>stack templates, <code>../open_proof_network_graph/keys/approval.pub</code>, <code>../open_proof_network_graph/policy.json</code></td><td>T1–T10</td><td>AC13 (the owner's)</td></tr>
+</table>
+</body>
+</html>

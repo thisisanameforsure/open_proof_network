@@ -96,6 +96,13 @@ with its single home:
   would restore GitHub as the enforcer and is the better home when a second identity exists. The
   job's own <code>GITHUB_TOKEN</code> cannot stand in, since what it merges starts no
   workflow.</li>
+  <li><strong>Approval signing key</strong> (ed25519, <code>OPN_APPROVAL_SIGNING_KEY</code>): held by
+  the service in its own secret store and nowhere else; its public half is committed to the graph as
+  <code>keys/approval.pub</code>. It signs steward records and words approvals made through the site
+  (D-32 v3.33, D-3 v3.33, F23) and nothing else (added 2026-10-07). Losing it costs approvals until it is
+  rotated; leaking it lets its holder forge a steward or an approval, which is visible on the record and
+  undone by withdrawal and rotation. It cannot change a verdict, because no gate step reads an
+  approval (D-5).</li>
   <li><strong>Model key</strong> (<code>OPENROUTER_API_KEY</code>): the OpenRouter API key (the
     owner's choice of provider, 2026-10-05, replacing Anthropic's API; the model is Claude Opus 5.5,
     <code>anthropic/claude-opus-5.5</code>), an Actions secret on the <em>network</em> repository and nowhere else, read by the one
