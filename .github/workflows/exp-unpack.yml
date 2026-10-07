@@ -1,0 +1,136 @@
+# EXPERIMENT (2026-10-07), not part of the build. Two questions about the gate image's 150 s pull:
+#   split:   how much of it is download, and how much is decompressing and writing 11 GB to disk?
+#   readset: which of the image's files does a check of an `import Mathlib` statement actually open?
+#            (what a lazy-loading image would still have to fetch on every run)
+# Uses the variants exp-image-slim.yml published; writes nothing anywhere but this run's artifacts.
+name: exp-unpack
+
+on:
+  push:
+    branches: [exp/image-slim]
+
+permissions:
+  contents: read
+  packages: read
+
+env:
+  EXP: ghcr.io/${{ github.repository_owner }}/opn-gate-exp
+  MATHLIB_SHA: 0df444a360eaa60ab8c11dca51a86af692955474
+  TOOLCHAIN: leanprover/lean4:v4.33.1
+
+jobs:
+  split:
+    name: download vs unpack (${{ matrix.variant }}, run ${{ matrix.run }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        variant: [full-gzip, full-zstd]
+        run: [1, 2]
+    steps:
+      - name: Measure
+        run: |
+          set -euo pipefail
+          sudo apt-get install -yq skopeo zstd >/dev/null 2>&1 || true
+          creds="${{ github.actor }}:${{ github.token }}"
+          ref="$EXP:${{ matrix.variant }}"
+          nproc; df -h / /mnt | tail -2
+          t() { python3 -c "import time; print(time.time())"; }
+
+          # 1. download only: the compressed blobs to disk, nothing unpacked
+          s=$(t); sudo skopeo copy -q --src-creds "$creds" "docker://$ref" dir:/mnt/blobs; e=$(t)
+          dl=$(python3 -c "print(round($e-$s,1))")
+          mib=$(sudo du -sm /mnt/blobs | cut -f1)
+
+          # 2. decompress only: every layer to /dev/null (CPU, no disk writes)
+          layers=$(sudo python3 -c "import json; print(' '.join(l['digest'].split(':')[1] for l in json.load(open('/mnt/blobs/manifest.json'))['layers']))")
+          case "${{ matrix.variant }}" in *zstd) dec="zstd -dc";; *) dec="gzip -dc";; esac
+          s=$(t); for l in $layers; do sudo sh -c "$dec /mnt/blobs/$l > /dev/null"; done; e=$(t)
+          decomp=$(python3 -c "print(round($e-$s,1))")
+
+          # 3. decompress and write the files (what an unpack is), into a fresh directory
+          sudo mkdir -p /mnt/root
+          s=$(t); for l in $layers; do sudo sh -c "$dec /mnt/blobs/$l | tar -x -C /mnt/root"; done; sync; e=$(t)
+          unpack=$(python3 -c "print(round($e-$s,1))")
+          files=$(sudo find /mnt/root -type f | wc -l)
+          sudo rm -rf /mnt/root /mnt/blobs
+
+          # 4. the real thing for comparison: a cold docker pull
+          echo "${{ github.token }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin >/dev/null
+          s=$(t); docker pull -q "$ref" >/dev/null; e=$(t)
+          pull=$(python3 -c "print(round($e-$s,1))")
+
+          line="{\"variant\": \"${{ matrix.variant }}\", \"run\": ${{ matrix.run }}, \"download_s\": $dl, \"compressed_mib\": $mib, \"decompress_only_s\": $decomp, \"decompress_and_write_s\": $unpack, \"files\": $files, \"docker_pull_s\": $pull}"
+          echo "$line" | tee split.json
+          echo "$line" >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: split-${{ matrix.variant }}-${{ matrix.run }}
+          path: split.json
+
+  readset:
+    name: files an import-Mathlib check opens (${{ matrix.case }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        case: [mathlib, mathlib-tactic]
+    steps:
+      - name: Trace one elaboration
+        run: |
+          set -euo pipefail
+          echo "${{ github.token }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin >/dev/null
+          docker pull -q "$EXP:full-gzip" >/dev/null
+          case "${{ matrix.case }}" in mathlib) imp="import Mathlib";; *) imp="import Mathlib.Tactic";; esac
+          # root, with the network, only to install strace; the traced run itself is offline-shaped:
+          # LEAN_PATH as the gate sets it (the Mathlib checkout's lib, then every package's)
+          docker run --rm --user 0 -e IMP="$imp" -e MATHLIB_SHA -e TOOLCHAIN -v "$PWD:/out" "$EXP:full-gzip" bash -c '
+            set -euo pipefail
+            apt-get update -qq >/dev/null && apt-get install -yqq strace >/dev/null
+            m=/opt/opn/mathlib/$MATHLIB_SHA
+            lp=$m/.lake/build/lib/lean
+            for d in $m/.lake/packages/*/.lake/build/lib/lean; do lp="$lp:$d"; done
+            mkdir -p /tmp/w && cd /tmp/w
+            printf "%s\n\ntheorem t1 (a b : Nat) (h : a <= b) : a < b + 1 := by omega\n\nexample (x : Int) (h : 0 < x) : 0 < x ^ 2 := by positivity\n\nexample (a b : Nat) : a + b = b + a := by simp [Nat.add_comm]\n" "$IMP" > T.lean
+            cat T.lean
+            s=$(date +%s%N)
+            LEAN_PATH="$lp" strace -f -qq -e trace=openat -e status=successful -o /out/trace.txt elan run $TOOLCHAIN lean T.lean
+            e=$(date +%s%N)
+            echo "elaboration: $(( (e - s) / 1000000 )) ms (under strace)"
+            # sizes of every file opened, and of everything that could have been
+            grep -oE "openat\([^\"]*\"[^\"]+\"" /out/trace.txt | sed -E "s/.*\"([^\"]+)\"/\1/" | sort -u > /out/opened.txt
+            xargs -a /out/opened.txt -d "\n" stat -c "%s %n" 2>/dev/null > /out/opened-sizes.txt || true
+            find / -xdev -type f -printf "%s %p\n" 2>/dev/null > /out/all-sizes.txt
+          '
+          python3 - <<'PY' | tee -a "$GITHUB_STEP_SUMMARY"
+          import collections, re
+          def load(p):
+              out = {}
+              for line in open(p):
+                  size, _, path = line.rstrip("\n").partition(" ")
+                  if size.isdigit():
+                      out[path] = int(size)
+              return out
+          opened, every = load("opened-sizes.txt"), load("all-sizes.txt")
+          def kind(p):
+              m = re.search(r"(\.olean(\.private|\.server)?|\.ilean|\.ir|\.c|\.ltar|\.lean|\.so)$", p)
+              return m.group(1) if m else "other"
+          o, a = collections.Counter(), collections.Counter()
+          for p, s in opened.items(): o[kind(p)] += s
+          for p, s in every.items(): a[kind(p)] += s
+          M = 2 ** 20
+          print(f"### ${{ matrix.case }}: {len(opened)} files opened, {sum(opened.values()) // M} MiB of {sum(every.values()) // M} MiB in the image")
+          print("| kind | opened MiB | in image MiB |")
+          print("|---|---|---|")
+          for k in sorted(a, key=lambda k: -a[k]):
+              print(f"| {k} | {o[k] // M} | {a[k] // M} |")
+          PY
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: readset-${{ matrix.case }}
+          path: |
+            opened.txt
+            opened-sizes.txt

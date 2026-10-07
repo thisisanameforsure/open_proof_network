@@ -18,8 +18,7 @@
 name: exp-image-slim
 
 on:
-  push:
-    branches: [exp/image-slim]
+  workflow_dispatch: {}
 
 permissions:
   contents: read
