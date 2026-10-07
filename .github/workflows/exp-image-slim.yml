@@ -1,0 +1,214 @@
+# EXPERIMENT (2026-10-07), not part of the build: does a slimmer gate image, or zstd layers,
+# download faster without changing a single verdict? Runs only on pushes to exp/image-slim; it
+# writes nothing to main, the graph or the live pin, and publishes only to the throwaway package
+# opn-gate-exp.
+#
+# Variants of the image network 3422bb4 pinned (sha256:b8cae9f3...), the gate 48 attestations ran on:
+#   full-gzip  the published image, copied as-is            (the control)
+#   full-zstd  the same layers, recompressed to zstd        (compression alone)
+#   slim-gzip  rebuilt from 3422bb4's Dockerfile, the Mathlib step also deleting
+#              /root/.cache/mathlib/*.ltar (the cache tool's downloaded archives, already
+#              unpacked) and the Mathlib tree's *.c files (native-compile input, never read
+#              by the gate, which hands Mathlib to Lean on LEAN_PATH)
+#   slim-zstd  the same, zstd
+#
+# Safety: gate/reproduce.sh --compare, from a checkout at the pin, on five merged proofs; each
+# must be identical to its committed attestation, on the control and on the slim image. Plus
+# `lake build` inside the slim Mathlib checkout must stay a no-op (the devcontainer's case).
+name: exp-image-slim
+
+on:
+  push:
+    branches: [exp/image-slim]
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  BASE: ghcr.io/thisisanameforsure/opn-gate@sha256:b8cae9f342dcf3d92177d6eb91316e6318508b5bc7b1c6a045546141d45a7880
+  EXP: ghcr.io/${{ github.repository_owner }}/opn-gate-exp
+  PIN: 3422bb401108f24a3006877a2af929894564a1c1
+  MATHLIB_SHA: 0df444a360eaa60ab8c11dca51a86af692955474
+  TOOLCHAIN: leanprover/lean4:v4.33.1
+
+jobs:
+  build:
+    name: build and publish the four variants
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
+        with:
+          ref: ${{ env.PIN }}
+
+      - name: Make room
+        run: |
+          set -euo pipefail
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+          docker system prune -af >/dev/null
+          df -h / | tail -1
+
+      - name: Log in
+        run: |
+          echo "${{ github.token }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+          command -v skopeo || { sudo apt-get update -q && sudo apt-get install -yq skopeo; }
+
+      - name: Copy the control and recompress it to zstd (layers' contents unchanged)
+        run: |
+          set -euo pipefail
+          creds="${{ github.actor }}:${{ github.token }}"
+          skopeo copy --dest-creds "$creds" "docker://$BASE" "docker://$EXP:full-gzip"
+          skopeo copy --dest-creds "$creds" --format oci --dest-compress-format zstd --dest-force-compress-format \
+            "docker://$BASE" "docker://$EXP:full-zstd"
+
+      - name: Patch the Mathlib step to delete the archives and the C files in the same layer
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("gate/Dockerfile")
+          old = '      rm -rf "/opt/opn/mathlib/${MATHLIB_SHA}/.git"; \\\n'
+          new = old + (
+              '      rm -rf /root/.cache/mathlib; \\\n'
+              '      find "/opt/opn/mathlib/${MATHLIB_SHA}" -type f \\( -name "*.c" -o -name "*.c.hash" \\) -delete; \\\n'
+          )
+          text = p.read_text()
+          assert text.count(old) == 1, "the Mathlib step moved; the patch matched nothing"
+          p.write_text(text.replace(old, new))
+          PY
+          git diff --stat; git diff gate/Dockerfile
+
+      - name: Build slim once, export it gzip and zstd
+        run: |
+          set -euo pipefail
+          docker buildx create --use --driver docker-container --name exp >/dev/null
+          for c in gzip zstd; do
+            docker buildx build -f gate/Dockerfile \
+              --build-arg "LEAN_TOOLCHAIN=$TOOLCHAIN" --build-arg "MATHLIB_SHA=$MATHLIB_SHA" \
+              --output "type=image,name=$EXP:slim-$c,push=true,compression=$c,force-compression=true,oci-mediatypes=true" .
+            df -h / | tail -1
+          done
+
+      - name: Sizes (compressed, from the registry)
+        run: |
+          set -euo pipefail
+          creds="${{ github.actor }}:${{ github.token }}"
+          {
+            echo "| variant | compressed MiB | layers |"; echo "|---|---|---|"
+            for v in full-gzip full-zstd slim-gzip slim-zstd; do
+              skopeo inspect --raw --creds "$creds" "docker://$EXP:$v" \
+                | python3 -c "import json,sys; m=json.load(sys.stdin); l=m['layers']; print('| $v | %d | %d |' % (sum(x['size'] for x in l)//2**20, len(l)))"
+            done
+          } | tee -a "$GITHUB_STEP_SUMMARY"
+
+  pull:
+    name: pull ${{ matrix.variant }} (run ${{ matrix.run }})
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        variant: [full-gzip, full-zstd, slim-gzip, slim-zstd]
+        run: [1, 2, 3]
+    steps:
+      - name: Time a cold pull
+        run: |
+          set -euo pipefail
+          echo "${{ github.token }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+          docker version --format 'docker {{.Server.Version}}'
+          nproc
+          ref="$EXP:${{ matrix.variant }}"
+          start=$(date +%s.%N)
+          docker pull -q "$ref"
+          end=$(date +%s.%N)
+          secs=$(python3 -c "print(round($end - $start, 1))")
+          size=$(docker image inspect --format '{{.Size}}' "$ref")
+          echo "{\"variant\": \"${{ matrix.variant }}\", \"run\": ${{ matrix.run }}, \"pull_s\": $secs, \"unpacked_bytes\": $size}" | tee pull.json
+          echo "| ${{ matrix.variant }} | ${{ matrix.run }} | $secs s | $((size / 1048576)) MiB unpacked |" >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: pull-${{ matrix.variant }}-${{ matrix.run }}
+          path: pull.json
+
+  safety:
+    name: replay five merges on ${{ matrix.variant }}
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 150
+    strategy:
+      fail-fast: false
+      matrix:
+        variant: [full-gzip, slim-gzip]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
+        with:
+          ref: ${{ env.PIN }}
+          path: pin
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
+        with:
+          repository: thisisanameforsure/open_proof_network_graph
+          path: graph
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d  # v10.0.1
+        with:
+          version: "0.12.10"
+      - name: Make room and pull
+        run: |
+          set -euo pipefail
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+          echo "${{ github.token }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+          docker pull -q "$EXP:${{ matrix.variant }}"
+
+      - name: Replay with reproduce.sh --compare
+        env:
+          IMAGE: ${{ env.EXP }}:${{ matrix.variant }}
+        run: |
+          set -uo pipefail
+          mkdir -p out
+          echo "| attestation | node | identical | seconds |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|---|---|---|---|" >> "$GITHUB_STEP_SUMMARY"
+          fails=0
+          # attestation file, target, node (the merge commit is read from the attestation itself)
+          while read -r att target node; do
+            merge="$(python3 -c "import json; print(json.load(open('graph/attestations/$att'))['merge_commit'])")"
+            start=$(date +%s)
+            pin/gate/reproduce.sh --graph graph --commit "$merge" --node "$node" --target "$target" \
+              --compare "graph/attestations/$att" --image "$IMAGE" --no-build --out "out/${att%.json}" \
+              > "out/${att%.json}.json" 2> "out/${att%.json}.err"
+            code=$?
+            secs=$(( $(date +%s) - start ))
+            identical="$(python3 -c "import json; print(json.load(open('out/${att%.json}.json')).get('identical'))" 2>/dev/null || echo error)"
+            echo "$att $node exit=$code identical=$identical ${secs}s"
+            [ "$identical" = "True" ] || { fails=$((fails + 1)); tail -n 30 "out/${att%.json}.err"; cat "out/${att%.json}.json"; }
+            echo "| $att | $node | $identical | $secs |" >> "$GITHUB_STEP_SUMMARY"
+          done <<'CASES'
+          000326.json erdos-1050 erdos-1050
+          000319.json erdos-1050 erdos-1050--h1-v2
+          000290.json erdos-1050 erdos-1050--h1-v2--h2
+          000331.json erdos-402 erdos-402--h3-v2--h1
+          000300.json erdos-69 variant-f592e3ab
+          CASES
+          echo "replays not identical: $fails"
+          exit "$fails"
+
+      - name: lake build in the Mathlib checkout stays a no-op (the devcontainer's case)
+        if: always()
+        run: |
+          set -euo pipefail
+          start=$(date +%s)
+          docker run --rm --network none --user 0 "$EXP:${{ matrix.variant }}" bash -c \
+            "cd /opt/opn/mathlib/$MATHLIB_SHA && timeout 600 elan run $TOOLCHAIN lake build 2>&1 | tail -n 5" | tee lake.txt
+          echo "lake build: $(( $(date +%s) - start )) s" | tee -a lake.txt
+          grep -q "Build completed successfully" lake.txt
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: safety-${{ matrix.variant }}
+          path: |
+            out/*.json
+            out/*.err
+            lake.txt
