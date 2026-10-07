@@ -207,6 +207,11 @@ def web_accept(h: Harness, key: PrecheckKey) -> Prepared:
     return body, {}
 
 
+def session_end(h: Harness, key: PrecheckKey) -> Prepared:
+    """F23-T4: signing out reads no field at all, so any key is a stray one."""
+    return {}, {}
+
+
 #: Every POST route of ``routes.ROUTES`` that reads a JSON body (``DELETE /claims/<id>`` has none);
 #: ``/tokens/renew`` reads an empty one, refusing any key (F05-T27).
 WRITE_ROUTES: dict[str, Prepare] = {
@@ -227,6 +232,7 @@ WRITE_ROUTES: dict[str, Prepare] = {
     "/glosses": glosses_,
     "/glosses/withdrawals": gloss_withdrawals,
     "/auth/web/accept": web_accept,  # F23-T3
+    "/session/end": session_end,  # F23-T4
 }
 
 

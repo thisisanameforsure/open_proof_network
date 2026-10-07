@@ -44,7 +44,7 @@ def callback(h: Harness, code: str, state: str) -> Any:
 
 def cookie_of(response: Any) -> str:
     header = str(response.headers["set-cookie"])
-    first = header.split(";")[0]
+    first = header.split(";", maxsplit=1)[0]
     name, _, value = first.partition("=")
     assert name == COOKIE, header
     return value

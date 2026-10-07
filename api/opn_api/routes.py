@@ -63,6 +63,15 @@ D35_OWNED_BY_F13: frozenset[str] = frozenset({D35_POST_CHECK})
 D35_POST_GLOSSES = "POST /glosses"
 D35_POST_GLOSS_WITHDRAWALS = "POST /glosses/withdrawals"
 D35_OWNED_BY_F20: frozenset[str] = frozenset({D35_POST_GLOSSES, D35_POST_GLOSS_WITHDRAWALS})
+# F23's row (D-35 v3.33): the web session's own routes, the steward form and approvals. No MCP
+# tool (v3.33: only a person may hold either role, and an agent cannot sign in with GitHub).
+D35_GET_SESSION = "GET /session"
+D35_POST_SESSION_END = "POST /session/end"
+D35_POST_STEWARDS = "POST /stewards"
+D35_POST_APPROVALS = "POST /approvals"
+D35_OWNED_BY_F23: frozenset[str] = frozenset(
+    {D35_GET_SESSION, D35_POST_SESSION_END, D35_POST_STEWARDS, D35_POST_APPROVALS}
+)
 
 ROUTES: tuple[RouteSpec, ...] = (
     # F05-T13, Q13: the index of this table, served at the root. Open, no D-35 row.
@@ -209,6 +218,17 @@ ROUTES: tuple[RouteSpec, ...] = (
         feature="F20",
         web=True,  # F23-R3
     ),
+    # F23-R4 (D-35 v3.33): who is signed in on the site and their roles, and signing out. Both
+    # read the web session alone, so the table asks no bearer of either.
+    RouteSpec("GET", "/session", "session:get_session", D35_GET_SESSION, feature="F23", web=True),
+    RouteSpec(
+        "POST",
+        "/session/end",
+        "session:post_session_end",
+        D35_POST_SESSION_END,
+        feature="F23",
+        web=True,
+    ),
     # F13-R8, Q2: open like the tutorial precheck; a presented token is authenticated and charged
     # per identity, and an anonymous caller is charged per address, by the handler.
     RouteSpec("POST", "/check", "checks:post_check", D35_POST_CHECK, feature="F13"),
@@ -271,6 +291,9 @@ PURPOSES: dict[str, str] = {
     "words, by pull request; refused first by the gate's own checks.",
     "POST /glosses/withdrawals": "Withdraw one version of a gloss or explainer, by pull "
     "request; the file stays and is read as absent.",
+    "GET /session": "Who is signed in on the site (web session), and their roles: curator, and "
+    "the problems they steward.",
+    "POST /session/end": "Sign out of the site: end the web session and clear its cookie.",
     "POST /check": "Check Lean text within 20 s on a hosted checker, or preview a witness's "
     "expected type for a node or a statement's text (mode witness); never authoritative.",
     "GET /checks/{check_id}": "The record of one of your own fast-check calls.",
