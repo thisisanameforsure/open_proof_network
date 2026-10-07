@@ -1,0 +1,120 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openproof.network/schemas/steward/v2.json",
+  "title": "steward/v2",
+  "description": "targets/<id>/stewards/<n>.yaml (F23-R8, R9; D-32 v3.33, D-22 v3.33): one signed act by a steward, as steward/v1, made either with the steward's own SSH key or through the service with the network's approval key (`via`). v2 adds `via` and `admitted_by`, and makes `link` optional while admission is open. A record whose signature does not verify, whose `via: approval-key` key differs from keys/approval.pub in the merge's parent tree, or whose `admitted_by` disagrees with policy.json's steward_admission is refused at the gate by name. A step-down of either version may end a commitment of either version for the same login. Versioned, never edited (D-34).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "target",
+    "action",
+    "login",
+    "name",
+    "commitment",
+    "date",
+    "via",
+    "admitted_by",
+    "key",
+    "signature"
+  ],
+  "properties": {
+    "schema": {
+      "const": "steward/v2"
+    },
+    "target": {
+      "$ref": "#/$defs/identifier"
+    },
+    "action": {
+      "enum": [
+        "commit",
+        "step-down"
+      ]
+    },
+    "login": {
+      "description": "The steward's GitHub login (the login grammar: alphanumerics and single hyphens, at most 39 characters). Validated before it enters any message or page (F15 §7).",
+      "$ref": "#/$defs/login"
+    },
+    "name": {
+      "description": "The steward's display name, as they wish to be named on the target page (D-32 v3.17). Free text, escaped wherever it is shown.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "link": {
+      "description": "One identity link (an institutional page or an ORCID record), which a curator reads before merging under `reviewed` admission (D-22 v3.33). Optional under `open`. Rendered as a link only after the record validates, through the site's allowlist (F11-Q11).",
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/url"
+        }
+      ]
+    },
+    "commitment": {
+      "description": "The fixed sentence for the action, verbatim (opn_gate.steward.COMMITMENT for a commit, STEP_DOWN for a step-down). A record with any other text counts for nothing.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1000
+    },
+    "date": {
+      "$ref": "#/$defs/day"
+    },
+    "via": {
+      "description": "How the signature was made (D-3, D-32 v3.33): `ssh`, by the signer's own SSH key; `approval-key`, by the network's approval key through the service, for a login signed in with GitHub on the site, in which case `key` must equal the graph's keys/approval.pub in the merge's parent tree.",
+      "enum": [
+        "ssh",
+        "approval-key"
+      ]
+    },
+    "admitted_by": {
+      "description": "Who admitted the steward (D-32 v3.33): `self` under policy.json's `open` admission; under `reviewed`, the login of the curator who merges the record.",
+      "oneOf": [
+        {
+          "const": "self"
+        },
+        {
+          "$ref": "#/$defs/login"
+        }
+      ]
+    },
+    "key": {
+      "description": "The SSH public key the signature verifies under: the steward's own (`via: ssh`) or the network's approval key (`via: approval-key`).",
+      "$ref": "#/$defs/public_key"
+    },
+    "signature": {
+      "description": "An OpenSSH SSHSIG armored signature over the record's canonical body, made with the private half of `key`.",
+      "$ref": "#/$defs/sshsig"
+    }
+  },
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]*$"
+    },
+    "login": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9](?:-?[A-Za-z0-9]){0,38}$"
+    },
+    "day": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+    },
+    "url": {
+      "type": "string",
+      "pattern": "^https://",
+      "maxLength": 500
+    },
+    "public_key": {
+      "type": "string",
+      "pattern": "^ssh-ed25519 [A-Za-z0-9+/=]+( [^\\n]*)?$",
+      "maxLength": 1000
+    },
+    "sshsig": {
+      "type": "string",
+      "pattern": "^-----BEGIN SSH SIGNATURE-----\\n[A-Za-z0-9+/=\\n]+-----END SSH SIGNATURE-----\\n?$",
+      "maxLength": 4000
+    }
+  }
+}

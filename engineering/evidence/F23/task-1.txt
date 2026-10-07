@@ -1,0 +1,11 @@
+F23-T1 — schemas steward/v2, gloss-signature/v3, explainer-signature/v3, policy/v2; goldens regenerated
+
+FAILED gate/tests/test_products.py::test_golden[curated] - AssertionError: cu...
+FAILED gate/tests/test_schemas.py::test_known_schemas_are_the_published_set
+FAILED gate/tests/test_walkthrough.py::test_graph_copy_is_identical - Asserti...
+5 failed, 4598 passed, 1 skipped, 191 deselected, 2 warnings in 782.63s (0:13:02)
+
+[exited with code 0]
+
+After the schema-set test and golden regeneration:
+152 passed in 67.01s (0:01:07)

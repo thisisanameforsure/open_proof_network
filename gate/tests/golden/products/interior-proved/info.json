@@ -50,7 +50,8 @@
     ],
     "explainer-signature": [
       1,
-      2
+      2,
+      3
     ],
     "fidelity": [
       1,
@@ -74,7 +75,8 @@
     ],
     "gloss-signature": [
       1,
-      2
+      2,
+      3
     ],
     "glosses": [
       1,
@@ -108,7 +110,8 @@
       1
     ],
     "policy": [
-      1
+      1,
+      2
     ],
     "postmortem": [
       1
@@ -134,7 +137,8 @@
       1
     ],
     "steward": [
-      1
+      1,
+      2
     ],
     "submission-meta": [
       1

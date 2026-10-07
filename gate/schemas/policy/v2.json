@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openproof.network/schemas/policy/v2.json",
+  "title": "policy/v2",
+  "description": "policy.json at the graph root (F15-R3; F23-R9; D-32 v3.33, D-35): as policy/v1, the visible switch for the steward rule, plus `steward_admission`, the switch for how a steward is admitted: `open`, a record merges unattended and is marked self-admitted; `reviewed`, a curator merges it and is named in it. An absent file, or a policy/v1 file, means `open`. Curator-owned (path role `policy`); flipped by one pull request. Versioned, never edited (D-34).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "steward_rule",
+    "steward_admission"
+  ],
+  "properties": {
+    "schema": {
+      "const": "policy/v2"
+    },
+    "steward_rule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "enforced",
+        "since",
+        "evidence"
+      ],
+      "properties": {
+        "enforced": {
+          "description": "Whether an open-track target with no active steward refuses claims (F15-R4; D-6 v3.17).",
+          "type": "boolean"
+        },
+        "since": {
+          "description": "The day the current state was set.",
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/day"
+            }
+          ]
+        },
+        "evidence": {
+          "description": "What justified the current state: for enforcement, the calibration record (Stages v3.17).",
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 500
+            }
+          ]
+        }
+      }
+    },
+    "steward_admission": {
+      "description": "How a steward record is admitted (D-32 v3.33).",
+      "enum": [
+        "open",
+        "reviewed"
+      ]
+    }
+  },
+  "$defs": {
+    "day": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+    }
+  }
+}

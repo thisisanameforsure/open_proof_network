@@ -37,6 +37,7 @@ def test_known_schemas_are_the_published_set() -> None:
         "drift/v1",
         "explainer-signature/v1",
         "explainer-signature/v2",
+        "explainer-signature/v3",  # F23-T1 (via: the approval key)
         "explainer/v1",
         "explainer/v2",
         "fidelity/v1",
@@ -49,6 +50,7 @@ def test_known_schemas_are_the_published_set() -> None:
         "gate-spec/v1",
         "gloss-signature/v1",
         "gloss-signature/v2",
+        "gloss-signature/v3",  # F23-T1
         "gloss/v1",
         "gloss/v2",
         "glosses/v1",
@@ -69,6 +71,7 @@ def test_known_schemas_are_the_published_set() -> None:
         "node-status/v1",
         "outline/v1",
         "policy/v1",
+        "policy/v2",  # F23-T1 (steward_admission)
         "postmortem/v1",
         "precheck-record/v1",
         "proposed-for/v1",
@@ -79,6 +82,7 @@ def test_known_schemas_are_the_published_set() -> None:
         "revision-request/v2",
         "statement-evidence/v1",
         "steward/v1",
+        "steward/v2",  # F23-T1 (via, admitted_by)
         "submission-meta/v1",
         "target-status/v1",
         "target-status/v2",

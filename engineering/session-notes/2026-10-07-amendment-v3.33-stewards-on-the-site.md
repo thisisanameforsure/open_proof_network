@@ -99,3 +99,17 @@ version could never become final.
 > Losing it costs approvals until it is rotated. Leaking it lets its holder forge a steward or an
 > approval: visible on the record, and undone by withdrawal and rotation. It cannot change a
 > verdict, because no gate step reads an approval (D-5).
+
+## 6. D-36: the site as a client of the service (added while applying, 2026-10-07)
+
+D-36 says the site accepts nothing: "No accounts, comments, forms, or submission path". It says so
+because a site that accepted input would be a fourth channel. The draft above missed this. The
+clause added while applying keeps D-36's reason:
+
+> **v3.33 — the site as a client of the service.** A page may carry a script that lets a person
+> signed in with GitHub call the service's own routes (D-35). The static files still accept
+> nothing, store nothing and read nothing but `graph`. Every control is drawn only after the
+> service answers, and a page whose script fails is the read-only page.
+>
+> No fourth channel opens: each write is a D-35 route that opens a pull request, judged by the
+> gate, so the bijection is D-28's.
