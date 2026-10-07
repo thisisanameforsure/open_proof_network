@@ -1,0 +1,24 @@
+F23-T7 (AC9): the merge actor leaves curate/ branches to a curator.
+merge.yml read from the sibling graph's origin/main (4edc51a25). No graph change: curate/ is
+not in SERVICE_PREFIXES = ("propose/", "append/", "submit/"), and the actor reads no policy.json.
+
+$ OPN_GRAPH_CHECKOUT=../open_proof_network_graph uv run --frozen pytest -m "not lean and not docker and not network" gate/tests/test_merge_actor_steward.py -v
+============================= test session starts ==============================
+platform darwin -- Python 3.13.15, pytest-9.1.1, pluggy-1.6.0 -- /Users/mikehiggins/Desktop/repos/open_proof_network/.claude/worktrees/agent-adf04e66ebe685e5c/.venv/bin/python
+rootdir: /Users/mikehiggins/Desktop/repos/open_proof_network/.claude/worktrees/agent-adf04e66ebe685e5c
+configfile: pyproject.toml
+plugins: anyio-4.15.1
+collecting ... collected 4 items
+
+gate/tests/test_merge_actor_steward.py::test_a_curate_branch_is_never_a_candidate PASSED [ 25%]
+gate/tests/test_merge_actor_steward.py::test_a_green_curate_branch_is_never_merged PASSED [ 50%]
+gate/tests/test_merge_actor_steward.py::test_a_steward_append_merges_like_any_append PASSED [ 75%]
+gate/tests/test_merge_actor_steward.py::test_the_lane_of_a_steward_record_is_its_target PASSED [100%]
+
+============================== 4 passed in 0.22s ===============================
+
+Red check: a mutant plugin that adds curate/ to SERVICE_PREFIXES (pytest -p mutant_curate):
+FAILED gate/tests/test_merge_actor_steward.py::test_a_curate_branch_is_never_a_candidate
+FAILED gate/tests/test_merge_actor_steward.py::test_a_green_curate_branch_is_never_merged
+FAILED gate/tests/test_merge_actor_steward.py::test_a_steward_append_merges_like_any_append
+3 failed, 1 passed in 0.15s
