@@ -50,7 +50,7 @@ def test_routes_match_d35() -> None:
         | routes.D35_OWNED_BY_F08
         | routes.D35_OWNED_BY_F13
         | routes.D35_OWNED_BY_F20
-        | {routes.D35_POST_SESSION_END}
+        | {routes.D35_POST_SESSION_END, routes.D35_POST_STEWARDS}
     )
     assert routes.D35_PROPOSAL_PR in d35_text()  # F08's rows, verbatim like the append row
     assert routes.D35_CLAIM_PR in d35_text()

@@ -201,6 +201,14 @@ APPEND_CHECKS: dict[str, str] = {
         "its path, its schema, D-16's pre-triage, and its exhibit, elaborated in the sandbox"
     ),
     "revision request": "its path, its schema, and any exhibit, elaborated in the sandbox",
+    "steward record": (
+        "its path, its schema, its signature under the graph's approval key, and that its "
+        "admission agrees with policy.json (F23-R9)"
+    ),
+    "approval": (
+        "its path, its schema, its signature under the graph's approval key, and that the version "
+        "and sections it approves exist (F23-R10, R11)"
+    ),
 }
 DEFAULT_CHECKS = "its path and its schema (F07-R9)"
 
@@ -238,6 +246,7 @@ def append_pr(  # noqa: PLR0913 — one pull request, described
     subject_prints: tuple[str, ...] = (),
     subject_slots: tuple[str, ...] = (),
     extra_body: str = "",
+    branch_prefix: str = submissions.APPEND_BRANCH_PREFIX,
 ) -> dict[str, Any]:
     """One appended file, one branch, one pull request (R11, R2), recorded as ``kind`` so its
     state can be watched through ``GET /submissions/{id}`` (F07-T16). F07-T35: an append
@@ -245,7 +254,9 @@ def append_pr(  # noqa: PLR0913 — one pull request, described
     F21-Q5: ``subject_prints`` are recorded beside the content fingerprints (a gloss's or
     explainer's subject key), and ``subject_slots`` are held with them, so two requests for one
     slot arriving together cannot both open (F21-R5). ``extra_body`` follows the body's own lines
-    (F22-T4: the gate's warnings to a gloss or explainer)."""
+    (F22-T4: the gate's warnings to a gloss or explainer). ``branch_prefix`` is ``append/``, which
+    the merge actor takes, except for a steward record under reviewed admission (F23-R8:
+    ``curate/``, left to a curator)."""
     owner = node_id or target_id
     prints = duplicates.check_append(ctx, kind, owner, written or content)
     append_id = identitymod.new_ulid(ctx.clock.now())
@@ -257,7 +268,7 @@ def append_pr(  # noqa: PLR0913 — one pull request, described
         pr = submissions.open_pr(
             ctx,
             identity,
-            branch=submissions.APPEND_BRANCH_PREFIX + append_id,
+            branch=branch_prefix + append_id,
             files={path: content},
             subject=subject,
             title=subject,

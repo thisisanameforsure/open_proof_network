@@ -1,0 +1,162 @@
+F23-T5 — POST /stewards and the Python SSHSIG writer (R8; AC5) — 2026-10-07T09:24:59Z
+
+Verification: uv run --frozen pytest -m 'not lean and not docker and not network' api/tests/test_stewards_route.py api/tests/test_sshsig_sign.py; make lint (exit 0); make types (exit 0)
+
+== RED (seam at today's behaviour; each test fails on the defect) ==
+E       NotImplementedError
+E       NotImplementedError
+E       NotImplementedError
+E       NotImplementedError
+E       NotImplementedError
+E       NotImplementedError
+E       AssertionError: assert {'error', 'message'} == {'branch', 'p...er', 'pr_url'}
+E         
+E         Extra items in the left set:
+E         'error'
+E         'message'
+E         Extra items in the right set:
+E         'pr_number'
+E         'path'...
+E         
+E         ...Full output truncated (3 lines hidden), use '-vv' to show
+E       KeyError: 'path'
+E       assert (404 == 409)
+E        +  where 404 = <Response [404 Not Found]>.status_code
+E           KeyError: 'branch'
+E           KeyError: 'branch'
+E       AssertionError: {"error":"not-found","message":"no such route"}
+E       assert 404 == 201
+E        +  where 404 = <Response [404 Not Found]>.status_code
+E       assert 404 == 401
+E        +  where 404 = <Response [404 Not Found]>.status_code
+E       assert (404 == 403)
+E        +  where 404 = <Response [404 Not Found]>.status_code
+E       AssertionError: {"error":"not-found","message":"no such route"}
+E       assert 404 == 400
+E        +  where 404 = <Response [404 Not Found]>.status_code
+E       AssertionError: {"error":"not-found","message":"no such route"}
+E       assert 404 == 400
+E        +  where 404 = <Response [404 Not Found]>.status_code
+E       AssertionError: {"error":"not-found","message":"no such route"}
+E       assert 404 == 400
+E        +  where 404 = <Response [404 Not Found]>.status_code
+E       AssertionError: {"error":"not-found","message":"no such route"}
+E       assert 404 == 400
+E        +  where 404 = <Response [404 Not Found]>.status_code
+E       AssertionError: {"error":"not-found","message":"no such route"}
+E       assert 404 == 400
+E        +  where 404 = <Response [404 Not Found]>.status_code
+E       AssertionError: {"error":"not-found","message":"no such route"}
+E       assert 404 == 400
+E        +  where 404 = <Response [404 Not Found]>.status_code
+E       AssertionError: {"error":"not-found","message":"no such route"}
+E       assert 404 == 400
+E        +  where 404 = <Response [404 Not Found]>.status_code
+E       AssertionError: {"error":"not-found","message":"no such route"}
+E       assert 404 == 400
+E        +  where 404 = <Response [404 Not Found]>.status_code
+E       AssertionError: assert (404 == 404 and 'not-found' == 'target-unknown'
+E        +  where 404 = <Response [404 Not Found]>.status_code
+E         
+E         - target-unknown
+E         + not-found)
+E           assert (404 == 503)
+E            +  where 404 = <Response [404 Not Found]>.status_code
+E           AssertionError: assert 404 == 409
+E            +  where 404 = <Response [404 Not Found]>.status_code
+E            +    where <Response [404 Not Found]> = post(Harness(settings=Settings(store='memory', table_identities=None, table_tokens=None, table_claims=None, parameter_prefi...=<starlette.applications.Starlette object
+E       KeyError: 'path'
+FAILED api/tests/test_sshsig_sign.py::test_ssh_keygen_verifies_a_python_signature
+FAILED api/tests/test_sshsig_sign.py::test_the_reader_verifies_it_too - NotIm...
+FAILED api/tests/test_sshsig_sign.py::test_the_armor_is_the_one_the_schemas_accept
+FAILED api/tests/test_sshsig_sign.py::test_the_public_half_is_derived_from_the_private_key
+FAILED api/tests/test_sshsig_sign.py::test_a_key_that_is_not_ed25519_is_refused
+FAILED api/tests/test_sshsig_sign.py::test_a_passphrase_key_or_garbage_is_refused
+FAILED api/tests/test_stewards_route.py::test_commit_under_open_is_a_signed_self_admitted_append
+FAILED api/tests/test_stewards_route.py::test_a_second_commit_is_409_and_so_is_an_active_v1_steward
+FAILED api/tests/test_stewards_route.py::test_step_down_needs_an_active_commitment
+FAILED api/tests/test_stewards_route.py::test_reviewed_admission_opens_a_curate_branch_naming_the_curator
+FAILED api/tests/test_stewards_route.py::test_a_policy_v1_file_means_open - K...
+FAILED api/tests/test_stewards_route.py::test_a_bearer_token_works_too - Asse...
+FAILED api/tests/test_stewards_route.py::test_no_session_is_401 - assert 404 ...
+FAILED api/tests/test_stewards_route.py::test_a_tutorial_identity_has_no_login_to_steward_with
+FAILED api/tests/test_stewards_route.py::test_bad_arguments_are_400[over0] - ...
+FAILED api/tests/test_stewards_route.py::test_bad_arguments_are_400[over1] - ...
+FAILED api/tests/test_stewards_route.py::test_bad_arguments_are_400[over2] - ...
+
+== GREEN ==
+api/tests/test_stewards_route.py::test_commit_under_open_is_a_signed_self_admitted_append XFAIL
+api/tests/test_stewards_route.py::test_a_second_commit_is_409_and_so_is_an_active_v1_steward XFAIL
+api/tests/test_stewards_route.py::test_step_down_needs_an_active_commitment XFAIL
+api/tests/test_stewards_route.py::test_reviewed_admission_opens_a_curate_branch_naming_the_curator PASSED
+api/tests/test_stewards_route.py::test_a_policy_v1_file_means_open XFAIL
+api/tests/test_stewards_route.py::test_a_bearer_token_works_too XFAIL
+api/tests/test_stewards_route.py::test_no_session_is_401 PASSED
+api/tests/test_stewards_route.py::test_a_tutorial_identity_has_no_login_to_steward_with PASSED
+api/tests/test_stewards_route.py::test_bad_arguments_are_400[over0] PASSED
+api/tests/test_stewards_route.py::test_bad_arguments_are_400[over1] PASSED
+api/tests/test_stewards_route.py::test_bad_arguments_are_400[over2] PASSED
+api/tests/test_stewards_route.py::test_bad_arguments_are_400[over3] PASSED
+api/tests/test_stewards_route.py::test_bad_arguments_are_400[over4] PASSED
+api/tests/test_stewards_route.py::test_bad_arguments_are_400[over5] PASSED
+api/tests/test_stewards_route.py::test_bad_arguments_are_400[over6] PASSED
+api/tests/test_stewards_route.py::test_bad_arguments_are_400[over7] PASSED
+api/tests/test_stewards_route.py::test_an_unknown_target_is_404 PASSED
+api/tests/test_stewards_route.py::test_without_the_approval_key_the_route_is_503 PASSED
+api/tests/test_stewards_route.py::test_five_a_day_per_login PASSED
+api/tests/test_stewards_route.py::test_the_record_number_follows_the_highest XFAIL
+api/tests/test_sshsig_sign.py::test_ssh_keygen_verifies_a_python_signature PASSED
+api/tests/test_sshsig_sign.py::test_it_is_byte_for_byte_what_ssh_keygen_makes PASSED
+api/tests/test_sshsig_sign.py::test_the_reader_verifies_it_too PASSED
+api/tests/test_sshsig_sign.py::test_the_armor_is_the_one_the_schemas_accept PASSED
+api/tests/test_sshsig_sign.py::test_the_public_half_is_derived_from_the_private_key PASSED
+api/tests/test_sshsig_sign.py::test_a_key_that_is_not_ed25519_is_refused PASSED
+api/tests/test_sshsig_sign.py::test_a_passphrase_key_or_garbage_is_refused PASSED
+XFAIL api/tests/test_stewards_route.py::test_commit_under_open_is_a_signed_self_admitted_append - steward/v2 admitted_by: oneOf matches 'self' twice; the schema wants anyOf (T1)
+XFAIL api/tests/test_stewards_route.py::test_a_second_commit_is_409_and_so_is_an_active_v1_steward - steward/v2 admitted_by: oneOf matches 'self' twice; the schema wants anyOf (T1)
+XFAIL api/tests/test_stewards_route.py::test_step_down_needs_an_active_commitment - steward/v2 admitted_by: oneOf matches 'self' twice; the schema wants anyOf (T1)
+XFAIL api/tests/test_stewards_route.py::test_a_policy_v1_file_means_open - steward/v2 admitted_by: oneOf matches 'self' twice; the schema wants anyOf (T1)
+XFAIL api/tests/test_stewards_route.py::test_a_bearer_token_works_too - steward/v2 admitted_by: oneOf matches 'self' twice; the schema wants anyOf (T1)
+XFAIL api/tests/test_stewards_route.py::test_the_record_number_follows_the_highest - steward/v2 admitted_by: oneOf matches 'self' twice; the schema wants anyOf (T1)
+================== 21 passed, 6 xfailed, 2 warnings in 3.19s ===================
+
+== DEFECT FOUND IN T1's SCHEMA (not edited here: gate/schemas is not this task's) ==
+steward/v2.json `admitted_by` is a oneOf of {"const": "self"} and {"$ref": "#/$defs/login"}; the
+login pattern ^[A-Za-z0-9](?:-?[A-Za-z0-9]){0,38}$ also matches "self", so "self" is valid under
+both branches and oneOf refuses it. Every self-admitted record — every record under `open`, the
+graph's starting policy — fails validation:
+  {"error":"record-invalid","message":"$['admitted_by']: 'self' is valid under each of
+   {'$ref': '#/$defs/login'}, {'const': 'self'}"}
+Fix: "oneOf" -> "anyOf" on admitted_by (one word; HASHES re-pinned, the golden info.json index
+regenerated). The six self-admitted tests are held as strict xfails (SELF_ADMITTED) so the fix
+flips them red until the mark comes off.
+
+== RUN WITH THE ONE-WORD SCHEMA FIX APPLIED LOCALLY (then reverted; not committed) ==
+api/tests/test_stewards_route.py::test_commit_under_open_is_a_signed_self_admitted_append PASSED
+api/tests/test_stewards_route.py::test_a_second_commit_is_409_and_so_is_an_active_v1_steward PASSED
+api/tests/test_stewards_route.py::test_step_down_needs_an_active_commitment PASSED
+api/tests/test_stewards_route.py::test_reviewed_admission_opens_a_curate_branch_naming_the_curator PASSED
+api/tests/test_stewards_route.py::test_a_policy_v1_file_means_open PASSED
+api/tests/test_stewards_route.py::test_a_bearer_token_works_too PASSED
+api/tests/test_stewards_route.py::test_no_session_is_401 PASSED
+api/tests/test_stewards_route.py::test_a_tutorial_identity_has_no_login_to_steward_with PASSED
+api/tests/test_stewards_route.py::test_bad_arguments_are_400[over0] PASSED
+api/tests/test_stewards_route.py::test_bad_arguments_are_400[over1] PASSED
+api/tests/test_stewards_route.py::test_bad_arguments_are_400[over2] PASSED
+api/tests/test_stewards_route.py::test_bad_arguments_are_400[over3] PASSED
+api/tests/test_stewards_route.py::test_bad_arguments_are_400[over4] PASSED
+api/tests/test_stewards_route.py::test_bad_arguments_are_400[over5] PASSED
+api/tests/test_stewards_route.py::test_bad_arguments_are_400[over6] PASSED
+api/tests/test_stewards_route.py::test_bad_arguments_are_400[over7] PASSED
+api/tests/test_stewards_route.py::test_an_unknown_target_is_404 PASSED
+api/tests/test_stewards_route.py::test_without_the_approval_key_the_route_is_503 PASSED
+api/tests/test_stewards_route.py::test_five_a_day_per_login PASSED
+api/tests/test_stewards_route.py::test_the_record_number_follows_the_highest PASSED
+api/tests/test_sshsig_sign.py::test_ssh_keygen_verifies_a_python_signature PASSED
+api/tests/test_sshsig_sign.py::test_it_is_byte_for_byte_what_ssh_keygen_makes PASSED
+api/tests/test_sshsig_sign.py::test_the_reader_verifies_it_too PASSED
+api/tests/test_sshsig_sign.py::test_the_armor_is_the_one_the_schemas_accept PASSED
+api/tests/test_sshsig_sign.py::test_the_public_half_is_derived_from_the_private_key PASSED
+api/tests/test_sshsig_sign.py::test_a_key_that_is_not_ed25519_is_refused PASSED
+api/tests/test_sshsig_sign.py::test_a_passphrase_key_or_garbage_is_refused PASSED
+======================== 27 passed, 2 warnings in 2.90s ========================
