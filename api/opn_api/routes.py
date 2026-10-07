@@ -239,6 +239,16 @@ ROUTES: tuple[RouteSpec, ...] = (
         feature="F23",
         web=True,
     ),
+    # F23-R10: a steward or curator approves sections of words; signed by the approval key.
+    RouteSpec(
+        "POST",
+        "/approvals",
+        "approvals:post_approvals",
+        D35_POST_APPROVALS,
+        authenticated=True,
+        feature="F23",
+        web=True,
+    ),
     # F13-R8, Q2: open like the tutorial precheck; a presented token is authenticated and charged
     # per identity, and an anonymous caller is charged per address, by the handler.
     RouteSpec("POST", "/check", "checks:post_check", D35_POST_CHECK, feature="F13"),
@@ -306,6 +316,8 @@ PURPOSES: dict[str, str] = {
     "POST /session/end": "Sign out of the site: end the web session and clear its cookie.",
     "POST /stewards": "Become a problem's steward, or step down, as your GitHub login: the "
     "record is signed with the network's approval key and opened by pull request.",
+    "POST /approvals": "Approve sections of a gloss or explainer version as a steward of its "
+    "problem or a curator, signed with the network's approval key, by pull request.",
     "POST /check": "Check Lean text within 20 s on a hosted checker, or preview a witness's "
     "expected type for a node or a statement's text (mode witness); never authoritative.",
     "GET /checks/{check_id}": "The record of one of your own fast-check calls.",

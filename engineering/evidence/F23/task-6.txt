@@ -1,0 +1,141 @@
+F23-T6 — POST /approvals (R10; AC7 service half) — 2026-10-07T09:32:24Z
+
+Verification: uv run --frozen pytest -m 'not lean and not docker and not network' api/tests/test_approvals_route.py api/tests/test_routes.py api/tests/test_finding_unknown_fields.py; full api/tests; make lint; make types
+
+== RED (seam at today's behaviour; each test fails on the defect) ==
+E       AssertionError: assert {'error', 'message'} == {'branch', 'p...er', 'pr_url'}
+E         
+E         Extra items in the left set:
+E         'error'
+E         'message'
+E         Extra items in the right set:
+E         'pr_number'
+E         'path'...
+E         
+E         ...Full output truncated (3 lines hidden), use '-vv' to show
+E       KeyError: 'path'
+E       AssertionError: {"error":"not-found","message":"no such route"}
+E       assert 404 == 201
+E        +  where 404 = <Response [404 Not Found]>.status_code
+E       KeyError: 'path'
+E       assert (404 == 403)
+E        +  where 404 = <Response [404 Not Found]>.status_code
+E       AssertionError: assert 404 == 401
+E        +  where 404 = <Response [404 Not Found]>.status_code
+E        +    where <Response [404 Not Found]> = post('/approvals', json={'target': 'propositional', 'node': 'and-reassoc', 'kind': 'gloss', 'version': 'c3b30b1e24cd8b1995999fc98fc7fbdafa56a804f7e2d4d7b499aa1093ba6090', 
+E        +      where post = <starlette.testclient.TestClient object at 0x10d3dcef0>.post
+E        +        where <starlette.testclient.TestClient object at 0x10d3dcef0> = Harness(settings=Settings(store='memory', table_identities=None, table_tokens=None, table_claims=None, parameter_prefi...=<starlette.appli
+E        +      and   {'target': 'propositional', 'node': 'and-reassoc', 'kind': 'gloss', 'version': 'c3b30b1e24cd8b1995999fc98fc7fbdafa56a804f7e2d4d7b499aa1093ba6090', ...} = body('gloss', 'c3b30b1e24cd8b1995999fc98fc7f
+E       AssertionError: assert (404 == 404 and 'not-found' == 'version-unknown'
+E        +  where 404 = <Response [404 Not Found]>.status_code
+E         
+E         - version-unknown
+E         + not-found)
+E       TypeError: body() got multiple values for argument 'kind'
+E       TypeError: body() got multiple values for argument 'version'
+E       AssertionError: {"error":"not-found","message":"no such route"}
+E       assert 404 == 400
+E        +  where 404 = <Response [404 Not Found]>.status_code
+E       AssertionError: {"error":"not-found","message":"no such route"}
+E       assert 404 == 400
+E        +  where 404 = <Response [404 Not Found]>.status_code
+E       AssertionError: {"error":"not-found","message":"no such route"}
+E       assert 404 == 400
+E        +  where 404 = <Response [404 Not Found]>.status_code
+E       AssertionError: {"error":"not-found","message":"no such route"}
+E       assert 404 == 400
+E        +  where 404 = <Response [404 Not Found]>.status_code
+E       AssertionError: {"error":"not-found","message":"no such route"}
+E       assert 404 == 400
+E        +  where 404 = <Response [404 Not Found]>.status_code
+E       AssertionError: {"error":"not-found","message":"no such route"}
+E       assert 404 == 400
+E        +  where 404 = <Response [404 Not Found]>.status_code
+E       assert (404 == 400)
+E        +  where 404 = <Response [404 Not Found]>.status_code
+E       assert (404 == 400)
+E        +  where 404 = <Response [404 Not Found]>.status_code
+E           assert (404 == 503)
+E            +  where 404 = <Response [404 Not Found]>.status_code
+E           AssertionError: assert 404 == 403
+E            +  where 404 = <Response [404 Not Found]>.status_code
+E            +    where <Response [404 Not Found]> = post(Harness(settings=Settings(store='memory', table_identities=None, table_tokens=None, table_claims=None, parameter_prefi...=<starlette.applications.Starlette object
+E            +      where {'target': 'propositional', 'node': 'and-reassoc', 'kind': 'gloss', 'version': 'c3b30b1e24cd8b1995999fc98fc7fbdafa56a804f7e2d4d7b499aa1093ba6090', ...} = body('gloss', 'c3b30b1e24cd8b1995999fc98
+FAILED api/tests/test_approvals_route.py::test_a_steward_approves_a_gloss - A...
+FAILED api/tests/test_approvals_route.py::test_a_curator_approves_an_explainers_sections
+FAILED api/tests/test_approvals_route.py::test_no_sections_approves_the_whole_version
+FAILED api/tests/test_approvals_route.py::test_the_next_signature_of_a_version_is_numbered_after_the_last
+FAILED api/tests/test_approvals_route.py::test_a_login_that_is_neither_steward_nor_curator_is_403
+FAILED api/tests/test_approvals_route.py::test_no_session_is_401 - AssertionE...
+FAILED api/tests/test_approvals_route.py::test_an_unknown_version_is_404 - As...
+FAILED api/tests/test_approvals_route.py::test_bad_arguments_are_400[over0]
+FAILED api/tests/test_approvals_route.py::test_bad_arguments_are_400[over1]
+FAILED api/tests/test_approvals_route.py::test_bad_arguments_are_400[over2]
+FAILED api/tests/test_approvals_route.py::test_bad_arguments_are_400[over3]
+FAILED api/tests/test_approvals_route.py::test_bad_arguments_are_400[over4]
+FAILED api/tests/test_approvals_route.py::test_bad_arguments_are_400[over5]
+FAILED api/tests/test_approvals_route.py::test_bad_arguments_are_400[over6]
+FAILED api/tests/test_approvals_route.py::test_bad_arguments_are_400[over7]
+FAILED api/tests/test_approvals_route.py::test_an_explainer_section_it_does_not_have_is_400
+FAILED api/tests/test_approvals_route.py::test_an_explainer_needs_its_node - ...
+FAILED api/tests/test_approvals_route.py::test_without_the_approval_key_the_route_is_503
+FAILED api/tests/test_approvals_route.py::test_sixty_an_hour_per_login - Asse...
+19 failed, 1 passed, 2 warnings in 2.95s
+
+== GREEN ==
+api/tests/test_approvals_route.py::test_a_steward_approves_a_gloss PASSED
+api/tests/test_approvals_route.py::test_a_curator_approves_an_explainers_sections PASSED
+api/tests/test_approvals_route.py::test_no_sections_approves_the_whole_version PASSED
+api/tests/test_approvals_route.py::test_the_next_signature_of_a_version_is_numbered_after_the_last PASSED
+api/tests/test_approvals_route.py::test_a_login_that_is_neither_steward_nor_curator_is_403 PASSED
+api/tests/test_approvals_route.py::test_no_session_is_401 PASSED
+api/tests/test_approvals_route.py::test_an_unknown_version_is_404 PASSED
+api/tests/test_approvals_route.py::test_bad_arguments_are_400[over0] PASSED
+api/tests/test_approvals_route.py::test_bad_arguments_are_400[over1] PASSED
+api/tests/test_approvals_route.py::test_bad_arguments_are_400[over2] PASSED
+api/tests/test_approvals_route.py::test_bad_arguments_are_400[over3] PASSED
+api/tests/test_approvals_route.py::test_bad_arguments_are_400[over4] PASSED
+api/tests/test_approvals_route.py::test_bad_arguments_are_400[over5] PASSED
+api/tests/test_approvals_route.py::test_bad_arguments_are_400[over6] PASSED
+api/tests/test_approvals_route.py::test_bad_arguments_are_400[over7] PASSED
+api/tests/test_approvals_route.py::test_an_explainer_section_it_does_not_have_is_400 PASSED
+api/tests/test_approvals_route.py::test_an_explainer_needs_its_node PASSED
+api/tests/test_approvals_route.py::test_an_unknown_target_is_404 PASSED
+api/tests/test_approvals_route.py::test_without_the_approval_key_the_route_is_503 PASSED
+api/tests/test_approvals_route.py::test_sixty_an_hour_per_login PASSED
+api/tests/test_routes.py::test_routes_match_d35 PASSED
+api/tests/test_routes.py::test_web_sign_in_falls_under_the_token_row PASSED
+api/tests/test_routes.py::test_f07_routes_are_authenticated_writes PASSED
+api/tests/test_routes.py::test_precheck_routes_match_d35 PASSED
+api/tests/test_routes.py::test_every_handler_resolves PASSED
+api/tests/test_routes.py::test_read_routes_ignore_bearer PASSED
+api/tests/test_finding_unknown_fields.py::test_the_table_covers_every_body_taking_write_route PASSED
+api/tests/test_finding_unknown_fields.py::test_precheck_refuses_the_testers_stray_key PASSED
+api/tests/test_finding_unknown_fields.py::test_every_write_route_refuses_one_unknown_key[/annexes] PASSED
+api/tests/test_finding_unknown_fields.py::test_every_write_route_refuses_one_unknown_key[/approach-records] PASSED
+api/tests/test_finding_unknown_fields.py::test_every_write_route_refuses_one_unknown_key[/approvals] PASSED
+api/tests/test_finding_unknown_fields.py::test_every_write_route_refuses_one_unknown_key[/auth/web/accept] PASSED
+api/tests/test_finding_unknown_fields.py::test_every_write_route_refuses_one_unknown_key[/check] PASSED
+api/tests/test_finding_unknown_fields.py::test_every_write_route_refuses_one_unknown_key[/claims] PASSED
+api/tests/test_finding_unknown_fields.py::test_every_write_route_refuses_one_unknown_key[/defect-claims] PASSED
+api/tests/test_finding_unknown_fields.py::test_every_write_route_refuses_one_unknown_key[/glosses] PASSED
+api/tests/test_finding_unknown_fields.py::test_every_write_route_refuses_one_unknown_key[/glosses/withdrawals] PASSED
+api/tests/test_finding_unknown_fields.py::test_every_write_route_refuses_one_unknown_key[/postmortems] PASSED
+api/tests/test_finding_unknown_fields.py::test_every_write_route_refuses_one_unknown_key[/precheck] PASSED
+api/tests/test_finding_unknown_fields.py::test_every_write_route_refuses_one_unknown_key[/proposals/speculative] PASSED
+api/tests/test_finding_unknown_fields.py::test_every_write_route_refuses_one_unknown_key[/proposals/variant] PASSED
+api/tests/test_finding_unknown_fields.py::test_every_write_route_refuses_one_unknown_key[/proposals/witness] PASSED
+api/tests/test_finding_unknown_fields.py::test_every_write_route_refuses_one_unknown_key[/revision-requests] PASSED
+api/tests/test_finding_unknown_fields.py::test_every_write_route_refuses_one_unknown_key[/session/end] PASSED
+api/tests/test_finding_unknown_fields.py::test_every_write_route_refuses_one_unknown_key[/stewards] PASSED
+api/tests/test_finding_unknown_fields.py::test_every_write_route_refuses_one_unknown_key[/submissions] PASSED
+api/tests/test_finding_unknown_fields.py::test_every_write_route_refuses_one_unknown_key[/tokens] PASSED
+api/tests/test_finding_unknown_fields.py::test_every_write_route_refuses_one_unknown_key[/tokens/renew] PASSED
+api/tests/test_finding_unknown_fields.py::test_a_known_field_body_still_works PASSED
+api/tests/test_finding_unknown_fields.py::test_the_refusal_names_every_stray_key_and_lists_the_accepted_ones PASSED
+api/tests/test_finding_unknown_fields.py::test_only_top_level_keys_are_refused PASSED
+api/tests/test_finding_unknown_fields.py::test_an_empty_body_is_not_an_unknown_field PASSED
+api/tests/test_finding_unknown_fields.py::test_a_form_body_with_an_unknown_field_is_refused PASSED
+======================= 53 passed, 2 warnings in 19.30s ========================
+
+Full api/tests at this commit: 1644 passed, 6 xfailed (the T5 SELF_ADMITTED holds) in 179 s. make lint exit 0; make types exit 0.

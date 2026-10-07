@@ -218,6 +218,12 @@ def stewards(h: Harness, key: PrecheckKey) -> Prepared:
     return body, h.auth(h.token_for("code_alice", "alice"))
 
 
+def approvals(h: Harness, key: PrecheckKey) -> Prepared:
+    """F23-T6: an approval, refused before the approval key or the graph is read."""
+    body = {"target": TARGET, "node": NODE, "kind": "gloss", "version": "0" * 64, "sections": None}
+    return body, h.auth(h.token_for("code_alice", "alice"))
+
+
 #: Every POST route of ``routes.ROUTES`` that reads a JSON body (``DELETE /claims/<id>`` has none);
 #: ``/tokens/renew`` reads an empty one, refusing any key (F05-T27).
 WRITE_ROUTES: dict[str, Prepare] = {
@@ -240,6 +246,7 @@ WRITE_ROUTES: dict[str, Prepare] = {
     "/auth/web/accept": web_accept,  # F23-T3
     "/session/end": session_end,  # F23-T4
     "/stewards": stewards,  # F23-T5
+    "/approvals": approvals,  # F23-T6
 }
 
 
