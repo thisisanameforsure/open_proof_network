@@ -1,0 +1,38 @@
+F23-T9 verification (AC11; R12, R13), 2026-10-07T09:33:19Z, branch worktree-agent-afb11a32eb578b2ae, base 0f88cfe + the working tree committed with this file
+
+## site/tests/test_words_controls.py site/tests/test_pending_changes.py site/tests/test_steward_links.py
+site/tests/test_words_controls.py::test_every_shown_version_has_an_edit_slot PASSED [  6%]
+site/tests/test_words_controls.py::test_each_section_that_is_not_final_has_an_approve_slot PASSED [ 12%]
+site/tests/test_words_controls.py::test_the_states_read_draft_pending_final PASSED [ 18%]
+site/tests/test_words_controls.py::test_no_service_no_slot PASSED        [ 25%]
+site/tests/test_words_controls.py::test_the_me_page_is_a_shell_with_the_waiting_sections PASSED [ 31%]
+site/tests/test_pending_changes.py::test_each_section_shows_its_words_and_state_and_the_edit_awaits_review PASSED [ 37%]
+site/tests/test_pending_changes.py::test_a_signed_edit_is_shown_and_verified PASSED [ 43%]
+site/tests/test_steward_links.py::test_every_page_has_the_session_slot_and_script PASSED [ 50%]
+site/tests/test_steward_links.py::test_without_a_service_the_slot_stays_and_no_script_loads PASSED [ 56%]
+site/tests/test_steward_links.py::test_home_and_problems_link_needs_a_steward_with_its_count PASSED [ 62%]
+site/tests/test_steward_links.py::test_the_steward_index_lists_the_problems_without_one PASSED [ 68%]
+site/tests/test_steward_links.py::test_every_target_has_a_steward_page PASSED [ 75%]
+site/tests/test_steward_links.py::test_the_steward_page_carries_what_the_form_needs_and_no_control PASSED [ 81%]
+site/tests/test_steward_links.py::test_a_problem_that_takes_no_steward_says_so_and_draws_no_form PASSED [ 87%]
+site/tests/test_steward_links.py::test_steward_calls_to_action_go_to_the_form_never_the_docs PASSED [ 93%]
+site/tests/test_steward_links.py::test_no_static_page_has_a_session_control PASSED [100%]
+============================= 16 passed in 14.52s ==============================
+
+## full site fast tier
+503 passed, 1 skipped in 170.14s (0:02:50)
+
+## ruff check site / ruff format --check site / mypy site
+All checks passed!
+76 files already formatted
+Success: no issues found in 76 source files
+## AC11 in Chromium: uv run --frozen --with playwright pytest site/tests/test_web_flows.py, screenshots to engineering/evidence/F23 (the skip above is this module in the plain run)
+site/tests/test_web_flows.py::test_sign_in_then_steward_a_problem PASSED [ 12%]
+site/tests/test_web_flows.py::test_a_second_commit_says_already PASSED   [ 25%]
+site/tests/test_web_flows.py::test_a_steward_sees_approve_on_each_section_not_final PASSED [ 37%]
+site/tests/test_web_flows.py::test_a_stranger_sees_edit_and_no_approve PASSED [ 50%]
+site/tests/test_web_flows.py::test_a_curator_sees_withdraw PASSED        [ 62%]
+site/tests/test_web_flows.py::test_signed_out_the_node_page_draws_no_control PASSED [ 75%]
+site/tests/test_web_flows.py::test_with_the_service_down_the_page_is_read_only PASSED [ 87%]
+site/tests/test_web_flows.py::test_me_shows_roles_waiting_sections_prs_and_step_down PASSED [100%]
+========================= 8 passed in 67.36s (0:01:07) =========================
