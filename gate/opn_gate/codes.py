@@ -2048,6 +2048,14 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "real one.",
         "Read the first failing step in the verdict and fix that.",
     ),
+    "steward-admission": (
+        "gate",
+        None,
+        "A steward record's admitted_by disagrees with policy.json's steward_admission: under "
+        "open it must be self; under reviewed, a curator listed in curators.json.",
+        "Under open, file the record as self-admitted; under reviewed, a listed curator names "
+        "themselves in admitted_by and merges it.",
+    ),
     "steward-key": (
         "gate",
         None,
@@ -2081,8 +2089,9 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
     "steward-signature": (
         "gate",
         None,
-        "The steward record's signature does not verify under its key.",
-        "Sign again with the key the record names.",
+        "The steward record's signature does not verify under its key, or a record made "
+        "through the site carries a key other than the graph's keys/approval.pub.",
+        "Sign again with the key the record names; a site record is made by the service.",
     ),
     "steward-target": (
         "gate",

@@ -35,6 +35,11 @@ from opn_gate.signer import Signer
 log = logging.getLogger(__name__)
 
 SCHEMA = "steward/v1"
+#: v2 (F23-R8, R9; D-32 v3.33): adds ``via`` and ``admitted_by``; ``link`` may be null.
+SCHEMA_V2 = "steward/v2"
+SCHEMAS: frozenset[str] = frozenset({SCHEMA, SCHEMA_V2})
+#: ``admitted_by`` under ``open`` admission (D-32 v3.33).
+SELF = "self"
 DIR = "stewards"
 SUFFIX = ".yaml"
 Action = Literal["commit", "step-down"]
@@ -65,12 +70,16 @@ class Record:
     action: str
     login: str
     name: str
-    link: str
+    link: str | None
     commitment: str
     date: str
     key: str
     path: Path
     doc: dict[str, Any]
+    #: v2 (D-32 v3.33): ``ssh`` or ``approval-key``; a v1 record is ``ssh``.
+    via: str = signed.VIA_SSH
+    #: v2: ``self`` or the admitting curator's login; ``None`` for a v1 record.
+    admitted_by: str | None = None
 
 
 @dataclass(frozen=True)
@@ -91,8 +100,11 @@ class Steward:
 
     login: str
     name: str
-    link: str
+    link: str | None
     since: str
+    #: v2 (D-32 v3.33): ``self`` or the admitting curator; ``None`` for a v1 commitment. Not in
+    #: ``as_dict``: ``targets-index/v7`` has no field for it.
+    admitted_by: str | None = None
 
     def as_dict(self) -> dict[str, Any]:
         return {"login": self.login, "name": self.name, "link": self.link, "since": self.since}
@@ -106,18 +118,32 @@ def stewards_dir(target_dir: Path) -> Path:
 
 
 def record_of(doc: dict[str, Any], path: Path, n: int) -> Record:
+    link = doc.get("link")
+    admitted = doc.get("admitted_by")
     return Record(
         n=n,
         action=str(doc["action"]),
         login=str(doc["login"]),
         name=str(doc["name"]),
-        link=str(doc["link"]),
+        link=str(link) if link is not None else None,
         commitment=str(doc["commitment"]),
         date=str(doc["date"]),
         key=str(doc["key"]),
         path=path,
         doc=doc,
+        via=str(doc.get(signed.VIA_FIELD) or signed.VIA_SSH),
+        admitted_by=str(admitted) if admitted is not None else None,
     )
+
+
+def load_doc(path: Path) -> dict[str, Any]:
+    """A steward record validated against the version it declares (v1 or v2, D-34)."""
+    doc = schemas.load_yaml(path)
+    declared = doc.get("schema") if isinstance(doc, dict) else None
+    if declared not in SCHEMAS:
+        msg = f"{path} declares {declared!r}, not one of {', '.join(sorted(SCHEMAS))}"
+        raise schemas.SchemaError(msg)
+    return schemas.validate(doc, str(declared))
 
 
 def load(target_dir: Path) -> list[Record]:
@@ -132,15 +158,24 @@ def load(target_dir: Path) -> list[Record]:
         if m is None:
             msg = f"{path}: a steward record is stewards/<n>.yaml (F15-R1)"
             raise schemas.SchemaError(msg)
-        doc = schemas.load_yaml(path, SCHEMA)
-        out.append(record_of(doc, path, int(m.group("n"))))
+        out.append(record_of(load_doc(path), path, int(m.group("n"))))
     out.sort(key=lambda r: r.n)
     return out
 
 
-def problems_of(record: Record, signer: Signer, *, commit_key: str | None) -> tuple[str, ...]:
+def problems_of(
+    record: Record, signer: Signer, *, commit_key: str | None, commit_via: str = signed.VIA_SSH
+) -> tuple[str, ...]:
     """Why ``record`` counts for nothing, by name (R1), given the key the login is active under
-    (``commit_key``; ``None`` when they are not). Empty when it counts."""
+    (``commit_key``; ``None`` when they are not) and how that commitment was signed
+    (``commit_via``). Empty when it counts.
+
+    D-32 v3.33: a step-down of either kind ends a commitment of either kind for the same login,
+    so the step-down's key is held to the commitment's only when both were signed with the
+    steward's own SSH key (F15-R1). Whether an approval-key record's key is the graph's approval
+    key is a fact about the merge's parent tree, which the gate checks before it merges
+    (``opn_gate.modes.check_steward_record``); read here, after any later rotation, it would
+    unmake records that were admitted under the key of their day."""
     problems: list[str] = []
     if not LOGIN_RE.match(record.login):
         problems.append(f"steward-login: {record.login!r} is not a GitHub login")
@@ -155,7 +190,11 @@ def problems_of(record: Record, signer: Signer, *, commit_key: str | None) -> tu
             problems.append(
                 f"steward-not-active: {record.login} has no counting commit to step down from"
             )
-        elif record.key != commit_key:
+        elif (
+            record.via == signed.VIA_SSH
+            and commit_via == signed.VIA_SSH
+            and record.key != commit_key
+        ):
             problems.append(
                 f"steward-key: the step-down is signed under a key other than the one "
                 f"{record.login} committed with (F15-R1)"
@@ -166,18 +205,24 @@ def problems_of(record: Record, signer: Signer, *, commit_key: str | None) -> tu
 def check(records: list[Record], signer: Signer) -> list[Checked]:
     """Every record with its verdict, in order — each judged against the counting records
     before it, so a step-down is checked against the commit it undoes."""
-    active_key: dict[str, str] = {}
+    active_commit: dict[str, Record] = {}
     out: list[Checked] = []
     for record in records:
-        problems = problems_of(record, signer, commit_key=active_key.get(record.login))
+        current = active_commit.get(record.login)
+        problems = problems_of(
+            record,
+            signer,
+            commit_key=current.key if current is not None else None,
+            commit_via=current.via if current is not None else signed.VIA_SSH,
+        )
         checked = Checked(record, problems)
         out.append(checked)
         if not checked.counts:
             continue
         if record.action == COMMIT:
-            active_key[record.login] = record.key
+            active_commit[record.login] = record
         else:
-            active_key.pop(record.login, None)
+            active_commit.pop(record.login, None)
     return out
 
 
@@ -194,7 +239,7 @@ def active(target_dir: Path, signer: Signer) -> list[Steward]:
         r = checked.record
         if r.action == COMMIT:
             if r.login not in current:
-                current[r.login] = Steward(r.login, r.name, r.link, r.date)
+                current[r.login] = Steward(r.login, r.name, r.link, r.date, r.admitted_by)
         else:
             current.pop(r.login, None)
     return list(current.values())
@@ -295,18 +340,28 @@ def write(  # noqa: PLR0913 — one argument per fact the record carries
                 f"{login} is not an active steward of {target_dir.name}; nothing to step down from"
             )
             raise StewardError(msg)
-        name, link = current.name, current.link
-    doc = document(
-        target_id=target_dir.name, action=action, login=login, name=name, link=link, date=date
-    )
+    if current is not None and current.link is None:
+        # D-32 v3.33: a commitment made through the site may carry no link, which a v1 record
+        # cannot; its SSH step-down is written as v2, admitted as the commitment it ends was.
+        doc = document_v2(
+            target_id=target_dir.name, action=action, login=login, name=current.name, link=None,
+            date=date, admitted_by=current.admitted_by or SELF, via=signed.VIA_SSH,
+        )  # fmt: skip
+    else:
+        if current is not None:
+            name, link = current.name, current.link or ""
+        doc = document(
+            target_id=target_dir.name, action=action, login=login, name=name, link=link,
+            date=date,
+        )  # fmt: skip
     doc = signed.sign(doc, key_path, signer)
-    if current is not None and current.key != doc["key"]:
+    if current is not None and current.via == signed.VIA_SSH and current.key != doc["key"]:
         msg = (
             f"the step-down key is not the key {login} committed with; a step-down is signed "
             "with the same key as the commitment (F15-R1)"
         )
         raise StewardError(msg)
-    schemas.validate(doc, SCHEMA)
+    schemas.validate(doc, str(doc["schema"]))
     path = next_path(target_dir)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(yaml.safe_dump(doc, sort_keys=False, allow_unicode=True), encoding="utf-8")
@@ -318,4 +373,50 @@ def read_record(path: Path) -> Record:
     """One record file, validated — for ``steward check`` and the gate's per-file checks."""
     m = _FILE_RE.match(path.name)
     n = int(m.group("n")) if m else 0
-    return record_of(schemas.load_yaml(path, SCHEMA), path, n)
+    return record_of(load_doc(path), path, n)
+
+
+def document_v2(  # noqa: PLR0913 — one argument per fact the record carries
+    *,
+    target_id: str,
+    action: str,
+    login: str,
+    name: str,
+    link: str | None,
+    date: str,
+    admitted_by: str,
+    via: str = signed.VIA_APPROVAL_KEY,
+) -> dict[str, Any]:
+    """F23-R8: the unsigned ``steward/v2`` record, which the service signs with the approval key
+    (it adds ``key``, then ``signature`` over ``signed.body``). Refused before signing when its
+    inputs are not what R1 and D-32 v3.33 ask."""
+    if action not in SENTENCE_FOR:
+        msg = f"a steward record is a {COMMIT} or a {STEP_DOWN}, not {action!r}"
+        raise StewardError(msg)
+    if not LOGIN_RE.match(login):
+        msg = f"{login!r} is not a GitHub login (F15-R1: the login grammar)"
+        raise StewardError(msg)
+    if link is not None and not link.startswith("https://"):
+        msg = "the identity link is an https URL to an institutional page or an ORCID record"
+        raise StewardError(msg)
+    if not name.strip():
+        msg = "the steward's display name is empty"
+        raise StewardError(msg)
+    if via not in (signed.VIA_SSH, signed.VIA_APPROVAL_KEY):
+        msg = f"a steward record is signed via ssh or approval-key, not {via!r}"
+        raise StewardError(msg)
+    if admitted_by != SELF and not LOGIN_RE.match(admitted_by):
+        msg = f"admitted_by is {SELF!r} or a curator's login, not {admitted_by!r}"
+        raise StewardError(msg)
+    return {
+        "schema": SCHEMA_V2,
+        "target": target_id,
+        "action": action,
+        "login": login,
+        "name": name,
+        "link": link,
+        "commitment": SENTENCE_FOR[action],
+        "date": date[:10],
+        "via": via,
+        "admitted_by": admitted_by,
+    }
