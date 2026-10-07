@@ -53,8 +53,8 @@ def v2_record(login: str, admitted_by: str, *, action: str = "commit") -> dict[s
 
 def add_v2_stewards(root: Path) -> None:
     """Two v2 commits on the stewardless target — one self-admitted, one admitted by a curator
-    (an earlier self commit by the same login stepped down first) — and the index rows the
-    products would publish for them."""
+    (an earlier self commit by the same login stepped down first) — and the targets-index/v8 rows
+    the products would publish for them."""
     directory = root / "targets" / STEWARDLESS_TARGET / "stewards"
     directory.mkdir(exist_ok=True)
     docs = [
@@ -75,12 +75,16 @@ def add_v2_stewards(root: Path) -> None:
                     "name": "Self Steward",
                     "link": "https://orcid.org/0000-0001-0000-0001",
                     "since": "2026-10-07",
+                    "admitted_by": "self",
+                    "via": "approval-key",
                 },
                 {
                     "login": REVIEWED_LOGIN,
                     "name": "Reviewed Steward",
                     "link": "https://orcid.org/0000-0001-0000-0002",
                     "since": "2026-10-07",
+                    "admitted_by": CURATOR,
+                    "via": "approval-key",
                 },
             ]
     index_path.write_text(json.dumps(index))

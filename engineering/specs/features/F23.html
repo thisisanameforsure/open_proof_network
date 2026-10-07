@@ -301,11 +301,52 @@ v3.33 must be applied first (T0).</p>
   <tr><td>F23-Q6</td><td><strong>The live graph has no stewards yet</strong> (no
     <code>targets/*/stewards/</code>). There is nothing to migrate, and v1 support stays for
     records made by <code>opn-gate steward commit</code>.</td></tr>
+  <tr><td>F23-Q7</td><td><strong><code>steward/v2</code> revised before publication.</strong> T1 wrote
+    <code>admitted_by</code> as <code>oneOf [self, login]</code>; "self" matches the login pattern too, so every
+    self-admitted record was refused. Found by T5's tests and T2's independently; changed to <code>anyOf</code>
+    and re-pinned (f0fee5c). Nothing had left the laptop, so D-34's never-edited applies from the push.</td></tr>
+  <tr><td>F23-Q8</td><td><strong>Web sign-in names.</strong> The pseudonym is the GitHub login; a login that
+    is reserved or taken becomes <code>&lt;login&gt;-gh</code>, else 409 <code>pseudonym-taken</code>. The
+    owner's login is reserved, so he signs in as <code>thisisanameforsure-gh</code>, while
+    <code>GET /session</code> reports his login and <code>curator: true</code>. A revoked identity cannot sign
+    in (403 <code>identity-revoked</code>). <code>GET /session</code> reads the cookie only.</td></tr>
+  <tr><td>F23-Q9</td><td><strong>What the service checks before opening.</strong> <code>POST /stewards</code>
+    and <code>POST /approvals</code> check the target, the version and its sections, and the role read
+    unsigned from the graph (latest record per login); the gate does the signature work after. Under
+    <em>reviewed</em> the service writes the first listed curator into <code>admitted_by</code>; the gate
+    enforces only that it is a listed curator, since it runs before any merge (T2's Q-a). Rate limits
+    count refused attempts.</td></tr>
+  <tr><td>F23-Q10</td><td><strong>Who may end a commitment (closes a hole in R9 as written).</strong> "A
+    step-down of either version ends either" let a stranger's SSH key end a site-made commitment, since
+    nothing ties an SSH key to a login. An SSH step-down now ends only a commitment SSH-signed with the
+    same key; an approval-key step-down, made by the service for the signed-in login, ends any of that
+    login's. Admission rules apply to commitments only. Merged records are not re-checked after a key
+    rotation.</td></tr>
+  <tr><td>F23-Q11</td><td><strong><code>targets-index/v8</code>.</strong> Not in the task list: v7 refused a
+    null <code>link</code>, so the first self-admitted steward without one would have stopped every
+    product. v8 adds <code>admitted_by</code> (null for v1) and <code>via</code> and lets
+    <code>link</code> be null; goldens, the api's golden copies (F05-Q5 recipe) and the site's accepted set
+    moved with it. The re-pin must carry it.</td></tr>
+  <tr><td>F23-Q12</td><td><strong>The site's calls.</strong> "Needs a steward" counts problems that can
+    take one and have none (open or resolved, never tutorial or calibration); the old filter keyed on
+    <code>no-steward</code>, which appears only while the rule is enforced. A failed session fetch leaves
+    the header empty (R15). Edit supersedes a whole version; Approve is per section; the licence is never
+    defaulted. The preview inserts the service's own escaping renderer's HTML. <code>/me/</code> lists open
+    pull requests from the public <code>/submissions.json</code> filtered by pseudonym, since
+    <code>/submissions/mine</code> takes a bearer token only.</td></tr>
 </table>
 
 <h2>10. Status</h2>
-<div class="rule"><strong>status:</strong> in progress (approved by the owner 2026-10-07) ·
-  <strong>Tasks:</strong> T0 ✓ 2026-10-07 (v3.33 and the C8 entry applied) · T1 ✓ 2026-10-07 (four schemas; info.json goldens regenerated; D-36 clause added to v3.33 while applying)</div>
+<div class="rule"><strong>status:</strong> built on local <code>main</code>, unpushed; T11 is the owner's ·
+  <strong>Tasks:</strong> T0 ✓ 2026-10-07 (769adb1; v3.33 and the C8 entry) · T1 ✓ (769bd44, f0fee5c: four
+  schemas; <code>admitted_by</code> revised to <code>anyOf</code> in place before publication, Q7) · T2 ✓
+  (2e54d74, b2bbaf4, cb887bf: approval key from the base tree, admission per policy, own-version signing;
+  red 10/17 and 3/5; Q-d closed, Q10; <code>targets-index/v8</code>, Q11) · T3–T6 ✓ (68f41a4, 2ee53b0,
+  8b23005, b649341; red on 302/405/401 and 404s; Q8, Q9) · T7 ✓ (6e0ecfc; no change needed, three of four
+  tests red under a mutant that adds <code>curate/</code>) · T8–T10 ✓ (0f88cfe, 5b37c3c, 7934422, db9d955;
+  red 13, 4+1, 2; 16 screenshots at 1440 and 390, looked at; Q12) · merged <code>main</code>: lint and types
+  clean, fast tier 4737 passed, the graph-copy drift alone red; <code>test_web_flows.py</code> 8 passed with
+  Playwright · T11 (deploy, AC13) waits on the owner</div>
 
 <h2>Tasks</h2>
 <p class="status-note">Dependency-ordered. Red before green: each new test fails on the missing
