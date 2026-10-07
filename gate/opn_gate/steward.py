@@ -102,12 +102,21 @@ class Steward:
     name: str
     link: str | None
     since: str
-    #: v2 (D-32 v3.33): ``self`` or the admitting curator; ``None`` for a v1 commitment. Not in
-    #: ``as_dict``: ``targets-index/v7`` has no field for it.
+    #: v2 (D-32 v3.33): ``self`` or the admitting curator; ``None`` for a v1 commitment.
     admitted_by: str | None = None
+    #: How the commitment was signed: ``ssh`` or ``approval-key``.
+    via: str = signed.VIA_SSH
 
     def as_dict(self) -> dict[str, Any]:
-        return {"login": self.login, "name": self.name, "link": self.link, "since": self.since}
+        """The shape ``targets-index/v8`` publishes (F23-R14)."""
+        return {
+            "login": self.login,
+            "name": self.name,
+            "link": self.link,
+            "since": self.since,
+            "admitted_by": self.admitted_by,
+            "via": self.via,
+        }
 
 
 # --- reading -------------------------------------------------------------------------------------
@@ -170,12 +179,13 @@ def problems_of(
     (``commit_key``; ``None`` when they are not) and how that commitment was signed
     (``commit_via``). Empty when it counts.
 
-    D-32 v3.33: a step-down of either kind ends a commitment of either kind for the same login,
-    so the step-down's key is held to the commitment's only when both were signed with the
-    steward's own SSH key (F15-R1). Whether an approval-key record's key is the graph's approval
-    key is a fact about the merge's parent tree, which the gate checks before it merges
-    (``opn_gate.modes.check_steward_record``); read here, after any later rotation, it would
-    unmake records that were admitted under the key of their day."""
+    D-32 v3.33 with F23 Q-d: an approval-key step-down (the service, which authenticated the
+    login through GitHub) ends any commitment of that login; an SSH-signed step-down ends only a
+    commitment SSH-signed with the same key (F15-R1), since nothing binds an SSH key to a
+    login whose commitment was made through the site. Whether an approval-key record's key is
+    the graph's approval key is a fact about the merge's parent tree, which the gate checks
+    before it merges (``opn_gate.modes.check_steward_record``); read here, after any later
+    rotation, it would unmake records that were admitted under the key of their day."""
     problems: list[str] = []
     if not LOGIN_RE.match(record.login):
         problems.append(f"steward-login: {record.login!r} is not a GitHub login")
@@ -190,10 +200,8 @@ def problems_of(
             problems.append(
                 f"steward-not-active: {record.login} has no counting commit to step down from"
             )
-        elif (
-            record.via == signed.VIA_SSH
-            and commit_via == signed.VIA_SSH
-            and record.key != commit_key
+        elif record.via == signed.VIA_SSH and (
+            commit_via != signed.VIA_SSH or record.key != commit_key
         ):
             problems.append(
                 f"steward-key: the step-down is signed under a key other than the one "
@@ -239,7 +247,7 @@ def active(target_dir: Path, signer: Signer) -> list[Steward]:
         r = checked.record
         if r.action == COMMIT:
             if r.login not in current:
-                current[r.login] = Steward(r.login, r.name, r.link, r.date, r.admitted_by)
+                current[r.login] = Steward(r.login, r.name, r.link, r.date, r.admitted_by, r.via)
         else:
             current.pop(r.login, None)
     return list(current.values())
@@ -355,7 +363,7 @@ def write(  # noqa: PLR0913 — one argument per fact the record carries
             date=date,
         )  # fmt: skip
     doc = signed.sign(doc, key_path, signer)
-    if current is not None and current.via == signed.VIA_SSH and current.key != doc["key"]:
+    if current is not None and (current.via != signed.VIA_SSH or current.key != doc["key"]):
         msg = (
             f"the step-down key is not the key {login} committed with; a step-down is signed "
             "with the same key as the commitment (F15-R1)"

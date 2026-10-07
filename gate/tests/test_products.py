@@ -1207,7 +1207,7 @@ def test_index_carries_the_qa_state_attempts_and_drift(tmp_path: Path) -> None:
     assert row["claimable"] is False and "upstream-drift" in row["not_claimable"]
     assert (
         schemas.violations(
-            json.loads(generate(root).files[Path("targets/index.json")]), "targets-index/v7"
+            json.loads(generate(root).files[Path("targets/index.json")]), "targets-index/v8"
         )
         == []
     )
@@ -1226,8 +1226,8 @@ def test_index_v6_fields(tmp_path: Path) -> None:
     harness.take_in(root)
     prod = generate(root)
     index = loads(prod, "targets/index.json")
-    assert schemas.violations(index, "targets-index/v7") == []  # v7 adds a step9 value only
-    assert index["schema"] == "targets-index/v7"
+    assert schemas.violations(index, "targets-index/v8") == []  # v8 (F23-R14): steward fields
+    assert index["schema"] == "targets-index/v8"
     assert index["policy"] == {"steward_rule": {"enforced": False, "since": None, "evidence": None}}
     row = f11_row(root, prod)
     assert row["stewards"] == [] and row["calibration"] is False
@@ -1242,7 +1242,7 @@ def test_index_v6_fields(tmp_path: Path) -> None:
     for name in ("steward", "explainer-signature", "writeup", "policy"):
         # F21 publishes explainer-signature/v2 beside v1; what this pins is that F15's are named
         assert 1 in info["schemas"][name], name
-    assert info["schemas"]["target"] == [1, 2] and info["schemas"]["targets-index"][-1] == 7
+    assert info["schemas"]["target"] == [1, 2] and info["schemas"]["targets-index"][-1] == 8
 
     # R3: the policy file, present and enforced, is published at the top; a malformed one is a
     # graph defect that stops the products (C7).

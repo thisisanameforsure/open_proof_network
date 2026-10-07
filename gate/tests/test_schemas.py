@@ -95,6 +95,7 @@ def test_known_schemas_are_the_published_set() -> None:
         "targets-index/v5",
         "targets-index/v6",
         "targets-index/v7",
+        "targets-index/v8",
         "waiver/v1",
         "withdrawal/v1",
         "withdrawal/v2",

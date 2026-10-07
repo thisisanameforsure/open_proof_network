@@ -66,3 +66,33 @@ gate/tests/test_steward.py::test_commands PASSED                         [100%]
 Full fast tier (gate api site, test_walkthrough::test_graph_copy_is_identical deselected, pre-existing):
 1644 passed, 6 xfailed, 2 warnings in 179.13s (0:02:59)
 make lint: All checks passed; make types: Success (gate 327, api 211, site 72 files)
+
+== Follow-up 1 (Q-d): an SSH step-down ends only an SSH commitment under the same key; an approval-key step-down ends any commitment of its login ==
+RED (before the fix):
+E       AssertionError: assert 'steward-key' in []
+E       AssertionError: assert 'steward-key' in []
+FAILED gate/tests/test_steward_v2.py::test_an_ssh_step_down_cannot_end_a_site_made_commitment[stranger]
+FAILED gate/tests/test_steward_v2.py::test_an_ssh_step_down_cannot_end_a_site_made_commitment[alice-steward]
+2 failed, 17 passed in 37.95s
+GREEN:
+49 passed, 2 warnings in 29.04s
+
+== Follow-up 2: targets-index/v8 (stewards carry admitted_by and via; link may be null) ==
+RED (before v8; a site-made steward with no link broke the products):
+E           opn_gate.schemas.SchemaError: document does not satisfy 'targets-index/v7': $['targets'][0]['stewards'][1]['link']: None is not of type 'string'
+FAILED gate/tests/test_targets_index_v8.py::test_index_v8_names_how_each_steward_was_admitted
+1 failed in 1.05s
+Regeneration: gate goldens by test_products.write_goldens(); the api's golden-copy fixtures
+(targets-index-{listed,frozen,stewardless}.json, F05-Q5) by test_fixture_is_golden.write_fixtures().
+GREEN:
+156 passed, 2 warnings in 12.00s
+Full fast tier (gate api site):
+FAILED gate/tests/test_error_codes.py::test_every_code_site_is_resolved - ass...
+FAILED gate/tests/test_error_codes.py::test_catalog_keys_equal_the_emitted_codes
+FAILED gate/tests/test_error_codes.py::test_source_matches_where_the_code_is_emitted
+FAILED gate/tests/test_walkthrough.py::test_agents_md_executes - AssertionErr...
+4 failed, 4711 passed, 1 skipped, 192 deselected, 2 warnings in 1187.80s (0:19:47)
+  test_error_codes x3: codes emitted by the merged F23-T3..T6 service (approval-key-missing and 8 others,
+  api/opn_api/session.py:81) with no catalog row; not this task's. test_agents_md_executes: uv not on the
+  test's PATH in this shell (exit 127), environmental.
+make lint: All checks passed; make types: Success (gate 328, api 219, site 72)

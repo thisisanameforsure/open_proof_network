@@ -234,11 +234,24 @@ def test_an_ssh_commit_is_ended_by_an_approval_key_step_down(graph: Graph) -> No
     assert graph.active() == []
 
 
-def test_an_approval_key_commit_is_ended_by_an_ssh_step_down(graph: Graph) -> None:
+@pytest.mark.parametrize("key", ["stranger", ALICE])
+def test_an_ssh_step_down_cannot_end_a_site_made_commitment(graph: Graph, key: str) -> None:
+    """F23 Q-d (the lead's rule, 2026-10-07): an SSH-signed step-down ends only a commitment
+    SSH-signed with the same key. A site-made commitment carries the approval key, which binds
+    no SSH key to the login, so a stranger's key — or any key — cannot step it down; only the
+    service, which authenticated the login, can (``via: approval-key``). Restates the first T2
+    test, which let any SSH step-down end it."""
     graph.v2()
+    change = graph.v2(action=steward.STEP_DOWN, key=key, via=signed.VIA_SSH)
+    assert "steward-key" in graph.codes(change)
     assert [s.login for s in graph.active()] == [ALICE]
-    path = graph.v1(steward.STEP_DOWN)
-    assert graph.codes(Change("A", path.relative_to(graph.root).as_posix())) == []
+    with pytest.raises(steward.StewardError, match="not the key"):
+        graph.v1(steward.STEP_DOWN, key=key)
+
+
+def test_an_approval_key_step_down_ends_an_approval_key_commit(graph: Graph) -> None:
+    graph.v2()
+    assert graph.codes(graph.v2(action=steward.STEP_DOWN)) == []
     assert graph.active() == []
 
 
