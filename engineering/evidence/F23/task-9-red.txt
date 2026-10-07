@@ -1,0 +1,92 @@
+warning: `VIRTUAL_ENV=/Users/mikehiggins/Desktop/repos/open_proof_network/.venv` does not match the project environment path `.venv` and will be ignored; use `--active` to target the active environment instead
+FFFFF                                                                    [100%]
+=================================== FAILURES ===================================
+__________________ test_every_shown_version_has_an_edit_slot ___________________
+
+pages = {'index.html': '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="widt...span>\n</footer>\n<script src="/session.js" data-api="https://api.example.invalid"></script>\n</body>\n</html>\n', ...}
+
+    def test_every_shown_version_has_an_edit_slot(pages: dict[str, str]) -> None:
+        """R12: the statement's gloss and the explainer each carry one slot with the subject, the
+        head a new version supersedes, the path a withdrawal names and the words to start from."""
+        page = pages[NODE_PAGE]
+        slots = [attrs(m) for m in CTL.findall(page)]
+        kinds = sorted(s["data-kind"] for s in slots)
+>       assert kinds == ["explainer", "gloss"], kinds
+E       AssertionError: []
+E       assert [] == ['explainer', 'gloss']
+E         
+E         Right contains 2 more items, first extra item: 'explainer'
+E         Use -v to get more diff
+
+site/tests/test_words_controls.py:46: AssertionError
+___________ test_each_section_that_is_not_final_has_an_approve_slot ____________
+
+pages = {'index.html': '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="widt...span>\n</footer>\n<script src="/session.js" data-api="https://api.example.invalid"></script>\n</body>\n</html>\n', ...}
+
+    def test_each_section_that_is_not_final_has_an_approve_slot(pages: dict[str, str]) -> None:
+        """R12: one Approve slot per shown section and per edit awaiting review, each naming its
+        section and version; a final section's slot says so, and the script draws nothing there."""
+        page = pages[NODE_PAGE]
+        slots = [attrs(m) for m in APPROVE.findall(page)]
+        explainer = {(s["data-section"], s["data-state"]) for s in slots if s["data-kind"] == "explainer"}
+>       assert explainer == {
+            (gf.KEY_OVERVIEW, "drafted"),
+            (gf.KEY_Q, "written"),
+            (gf.KEY_P, "verified"),
+            (gf.KEY_P, "pending"),
+        }
+E       AssertionError: assert set() == {('overview',...', 'written')}
+E         
+E         Extra items in the right set:
+E         ('steps:hq', 'written')
+E         ('steps:hp,s3', 'pending')
+E         ('steps:hp,s3', 'verified')
+E         ('overview', 'drafted')
+E         Use -v to get more diff
+
+site/tests/test_words_controls.py:67: AssertionError
+___________________ test_the_states_read_draft_pending_final ___________________
+
+pages = {'index.html': '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="widt...span>\n</footer>\n<script src="/session.js" data-api="https://api.example.invalid"></script>\n</body>\n</html>\n', ...}
+
+    def test_the_states_read_draft_pending_final(pages: dict[str, str]) -> None:
+        page = pages[NODE_PAGE]
+>       assert '<span class="words-word">Draft</span> · written by alice' in page
+E       assert '<span class="words-word">Draft</span> · written by alice' in '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,...ropositional" data-node="tutorial-and-swap" data-repo="https://github.com/example/graph"></script>\n</body>\n</html>\n'
+
+site/tests/test_words_controls.py:81: AssertionError
+___________________________ test_no_service_no_slot ____________________________
+
+tmp_path_factory = TempPathFactory(_given_basetemp=None, _trace=<pluggy._tracing.TagTracerSub object at 0x108623360>, _basetemp=PosixPath...ers/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-28'), _retention_count=3, _retention_policy='all')
+
+    def test_no_service_no_slot(tmp_path_factory: pytest.TempPathFactory) -> None:
+        """C7: without a service address the page is the read-only page, with no slot and no
+        script."""
+        root, _ = gf.sectioned_tree(tmp_path_factory.mktemp("words-controls-off"))
+        files = render.render_site(model.load_site(root, gf.COMMIT), repo_url=REPO)
+        page = files[NODE_PAGE]
+        assert "words-ctl" not in page and "words-approve" not in page and "/words.js" not in page
+>       assert "/me.js" not in files["me/index.html"]
+                               ^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'me/index.html'
+
+site/tests/test_words_controls.py:98: KeyError
+____________ test_the_me_page_is_a_shell_with_the_waiting_sections _____________
+
+pages = {'index.html': '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="widt...span>\n</footer>\n<script src="/session.js" data-api="https://api.example.invalid"></script>\n</body>\n</html>\n', ...}
+
+    def test_the_me_page_is_a_shell_with_the_waiting_sections(pages: dict[str, str]) -> None:
+        """R13: /me/ holds, hidden, each problem's sections waiting for approval, linked to their
+        page; its script draws the rest once the service answers."""
+>       page = pages["me/index.html"]
+               ^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'me/index.html'
+
+site/tests/test_words_controls.py:104: KeyError
+=========================== short test summary info ============================
+FAILED site/tests/test_words_controls.py::test_every_shown_version_has_an_edit_slot
+FAILED site/tests/test_words_controls.py::test_each_section_that_is_not_final_has_an_approve_slot
+FAILED site/tests/test_words_controls.py::test_the_states_read_draft_pending_final
+FAILED site/tests/test_words_controls.py::test_no_service_no_slot - KeyError:...
+FAILED site/tests/test_words_controls.py::test_the_me_page_is_a_shell_with_the_waiting_sections
+5 failed in 7.21s

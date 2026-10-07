@@ -65,7 +65,9 @@ Parameters:
     Default: ""
     Description: >-
       the network service's origin (scheme and host, no path), the one place a page may connect
-      to: node pages read its open words listing (F22-T19). Empty keeps connect-src 'none'
+      to: node pages read its open words listing (F22-T19), and every page asks it who is
+      signed in and sends it steward records and words with credentials (F23-T8, T9; the
+      service's CORS names the site's origin). Empty keeps connect-src 'none'
 
 Conditions:
   MakeProvider: !Equals [!Ref CreateOidcProvider, "true"]

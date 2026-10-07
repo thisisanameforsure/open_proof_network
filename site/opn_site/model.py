@@ -14,6 +14,8 @@ from dataclasses import dataclass, field, replace
 from pathlib import Path, PurePosixPath
 from typing import Any
 
+import yaml
+
 from opn_gate import (
     evidence,
     explainers,
@@ -362,6 +364,8 @@ class TargetView:
     #: ``glosses.json`` and ``target.yaml`` (the rows ``list_words_needed`` serves); ``None``
     #: when the product is absent or unreadable, so the page claims no count it cannot know.
     words_needed: tuple[dict[str, Any], ...] | None = None
+    #: F23-R14: login -> how its steward was admitted (``_steward_admissions``).
+    admissions: dict[str, str] = field(default_factory=dict)
 
     @property
     def root(self) -> str:
@@ -760,6 +764,44 @@ def _signatures_for(root: Path, node_dir: Path) -> tuple[SignatureView, ...]:
     )
 
 
+#: F23-R14: what a v1 steward record says of how its steward came in — a curator merged it, and
+#: the record does not say which.
+ADMITTED_BY_CURATOR = "curator"
+_STEWARD_FILE_RE = re.compile(r"^(?P<n>[1-9][0-9]*)\.ya?ml$")
+
+
+def _steward_admissions(target_dir: Path) -> dict[str, str]:
+    """F23-R14 (D-32 v3.33): for each login, how the commit it is active under was admitted —
+    ``self``, a curator's login, or ``curator`` for a ``steward/v1`` record — read from the
+    latest ``commit`` record with that login. Who is *active* is the index's (the gate's rule,
+    signatures checked); this only labels them, so an unreadable record is skipped, never
+    raised on, and a login with no record found gets no label."""
+    directory = target_dir / "stewards"
+    if not directory.is_dir():
+        return {}
+    numbered = []
+    for p in directory.iterdir():
+        m = _STEWARD_FILE_RE.match(p.name)
+        if m and p.is_file():
+            numbered.append((int(m.group("n")), p))
+    found: dict[str, str] = {}
+    for _n, path in sorted(numbered):
+        try:
+            doc = yaml.safe_load(path.read_text(encoding="utf-8"))
+        except (OSError, yaml.YAMLError):
+            continue
+        if not isinstance(doc, dict) or doc.get("action") != "commit":
+            continue
+        login = str(doc.get("login") or "")
+        if doc.get("schema") == "steward/v2":
+            admitted = str(doc.get("admitted_by") or "")
+            if admitted:
+                found[login] = admitted
+        elif doc.get("schema") == "steward/v1":
+            found[login] = ADMITTED_BY_CURATOR
+    return found
+
+
 def _writeups_for(target_dir: Path) -> tuple[dict[str, Any], ...]:
     """F15-R10: the target's valid write-up records (R6), verified through the gate's seam."""
     try:
@@ -1096,6 +1138,7 @@ def load_site(root: Path, commit: str) -> Site:
             drift=_load_drift(target_dir),
             evidence=_load_evidence(target_dir),
             writeups=_writeups_for(target_dir),
+            admissions=_steward_admissions(target_dir),
             outlines=_load_outlines(target_dir),
             subjects=_load_glosses(target_dir),
             definitions=_load_definitions(root, target_dir),

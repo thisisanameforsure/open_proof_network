@@ -61,7 +61,14 @@ def explainer_part(page: str) -> tuple[str, str]:
 def state_of(html: str) -> tuple[str, str]:
     m = re.search(r'<p class="words-state" data-state="([a-z]+)">(.*?)</p>', html, re.S)
     assert m is not None, html[:300]
-    return m.group(1), re.sub(r"<[^>]+>", "", m.group(2))
+    text = re.sub(r"<[^>]+>", "", m.group(2))
+    # F23-R12: the state's one word leads — Final once approved, Draft until then — and a final
+    # section names its approver with the date they signed.
+    word, _, rest = text.partition(" · ")
+    assert word == {"verified": "Final", "written": "Draft", "drafted": "Draft"}[m.group(1)], text
+    if m.group(1) == "verified":
+        assert re.search(r" \(\d{4}-\d{2}-\d{2}\)$", rest), rest
+    return m.group(1), re.sub(r" \(\d{4}-\d{2}-\d{2}\)", "", rest)
 
 
 def slot_now(page: str) -> str:
