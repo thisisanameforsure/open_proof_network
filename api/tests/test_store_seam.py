@@ -869,3 +869,19 @@ def test_an_identity_is_found_by_its_pseudonym_in_both_stores(both: Store) -> No
     found = both.get_identity_by_pseudonym("ALICE")
     assert found is not None and found.id == "01H"
     assert both.get_identity_by_pseudonym("nobody") is None
+
+
+# --- F23-T3: a web session is read without being spent, and dropped by its holder ---------------
+
+
+def test_get_ephemeral_reads_without_spending_and_drop_deletes_in_both_stores(both: Store) -> None:
+    now = datetime(2026, 10, 7, 12, 0, tzinfo=UTC)
+    later = now + timedelta(hours=8)
+    both.put_ephemeral("websession#x", {"identity_id": "01H", "expires": "e"}, later)
+    assert both.get_ephemeral("websession#x", now) == {"identity_id": "01H", "expires": "e"}
+    assert both.get_ephemeral("websession#x", now) is not None  # still there
+    assert both.get_ephemeral("websession#x", later) is None  # expired
+    assert both.get_ephemeral("websession#absent", now) is None
+    both.drop_ephemeral("websession#x")
+    both.drop_ephemeral("websession#x")  # dropping an absent key is not an error
+    assert both.get_ephemeral("websession#x", now) is None

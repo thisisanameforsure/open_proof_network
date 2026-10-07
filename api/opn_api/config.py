@@ -118,6 +118,17 @@ Variables (prefix ``OPN_API_``):
     **Secret.** The App's OAuth client secret and private key (C8 item 3).
 ``OPN_API_TOKEN_SECRET``
     **Secret.** The salt every stored token hash uses (R4).
+``OPN_API_WEB_SESSION_TTL_S``
+    How long a web session lasts, in seconds (F23-R3, §6). Default ``28800`` (eight hours).
+``OPN_API_STEWARDS_PER_DAY`` / ``OPN_API_APPROVALS_PER_HOUR``
+    ``POST /stewards`` per GitHub login per day and ``POST /approvals`` per login per hour
+    (F23 §6). Defaults ``5`` / ``60``.
+``OPN_API_APPROVAL_SIGNING_KEY``
+    **Secret.** The network's approval key (C8; D-32 v3.33): the OpenSSH ed25519 private key
+    text that signs a steward record or a words approval made through the site, and nothing
+    else. Optional: without it the service runs, and ``POST /stewards`` and ``POST /approvals``
+    answer ``503 approval-key-missing`` (C7). Its public half is derived from it, never
+    configured separately; the graph publishes it as ``keys/approval.pub``.
 """
 
 from __future__ import annotations
@@ -223,8 +234,15 @@ PARAMETERS: dict[str, str] = {
     "github-client-secret": "OPN_API_GITHUB_CLIENT_SECRET",
     "github-private-key": "OPN_API_GITHUB_PRIVATE_KEY",
     "token-secret": "OPN_API_TOKEN_SECRET",
+    "approval-signing-key": "OPN_API_APPROVAL_SIGNING_KEY",  # F23 (C8): optional
 }
 SECRET_FIELDS: tuple[str, ...] = ("github_client_secret", "github_private_key", "token_secret")
+#: Secrets the service runs without (F23): never shown, but not in ``missing()`` — a route that
+#: needs one refuses by name instead (C7).
+OPTIONAL_SECRET_FIELDS: tuple[str, ...] = ("approval_signing_key",)
+DEFAULT_WEB_SESSION_TTL_S = 8 * 3600  # F23-R3
+DEFAULT_STEWARDS_PER_DAY = 5  # F23 §6
+DEFAULT_APPROVALS_PER_HOUR = 60  # F23 §6
 TABLE_FIELDS: tuple[str, ...] = ("table_identities", "table_tokens", "table_claims")
 
 
@@ -294,12 +312,18 @@ class Settings:
     token_cutover: str = DEFAULT_TOKEN_CUTOVER
     # --- F22-T8 ---
     site_origin: str | None = None
+    # --- F23 ---
+    web_session_ttl_s: int = DEFAULT_WEB_SESSION_TTL_S
+    stewards_per_day: int = DEFAULT_STEWARDS_PER_DAY
+    approvals_per_hour: int = DEFAULT_APPROVALS_PER_HOUR
+    approval_signing_key: str | None = field(default=None, repr=False)
 
     def __repr__(self) -> str:  # secrets never appear in a repr or a log (C8)
         parts = []
         for f in fields(self):
             value = getattr(self, f.name)
-            shown = ("<set>" if value else None) if f.name in SECRET_FIELDS else repr(value)
+            hidden = f.name in SECRET_FIELDS or f.name in OPTIONAL_SECRET_FIELDS
+            shown = ("<set>" if value else None) if hidden else repr(value)
             parts.append(f"{f.name}={shown}")
         return "Settings(" + ", ".join(parts) + ")"
 
@@ -476,6 +500,11 @@ def load(environ: Mapping[str, str] | None = None) -> Settings:
         github_client_secret=env.get("OPN_API_GITHUB_CLIENT_SECRET") or None,
         github_private_key=env.get("OPN_API_GITHUB_PRIVATE_KEY") or None,
         token_secret=env.get("OPN_API_TOKEN_SECRET") or None,
+        # --- F23 ---
+        web_session_ttl_s=_int(env, "OPN_API_WEB_SESSION_TTL_S", DEFAULT_WEB_SESSION_TTL_S),
+        stewards_per_day=_int(env, "OPN_API_STEWARDS_PER_DAY", DEFAULT_STEWARDS_PER_DAY),
+        approvals_per_hour=_int(env, "OPN_API_APPROVALS_PER_HOUR", DEFAULT_APPROVALS_PER_HOUR),
+        approval_signing_key=env.get("OPN_API_APPROVAL_SIGNING_KEY") or None,
         # --- audit 2026-10-04 (F07-T68, F05-T20) ---
         precheck_poll_min_s=_count(env, "OPN_API_PRECHECK_POLL_MIN_S", DEFAULT_PRECHECK_POLL_MIN_S),
         verdict_retry_s=_count(env, "OPN_API_VERDICT_RETRY_S", DEFAULT_VERDICT_RETRY_S),

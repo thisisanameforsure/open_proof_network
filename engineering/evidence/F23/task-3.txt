@@ -1,0 +1,223 @@
+F23-T3 — web sign-in and sessions (R2, R3; AC1-AC3) — 2026-10-07T09:17:26Z
+
+Verification: uv run --frozen pytest -m 'not lean and not docker and not network' api/tests/test_web_session.py api/tests/test_store_seam.py api/tests/test_routes.py api/tests/test_finding_unknown_fields.py; make lint; make types
+
+== RED (seam at today's behaviour; each test fails on the defect) ==
+E       AssertionError: {"error":"github-login-taken","message":"an identity already exists for GitHub login alice (alice); a new token for it is issued by this proof only once its tokens have lapsed from disuse, and nev
+E       assert 409 == 303
+E        +  where 409 = <Response [409 Conflict]>.status_code
+E       assert "name='pseudonym'" not in '<!doctype h...tton></form>'
+E         
+E         "name='pseudonym'" is contained here:
+E           ym <input name='pseudonym' required pattern='[A-Za-z0-9-]{1,39}'></label><pre>Developer Certificate of Origin
+E         ?           ++++++++++++++++
+E           Version 1.1
+E           
+E           Copyright (C) 2004, 2006 The Linux Foundation and its contributors....
+E         
+E         ...Full output truncated (31 lines hidden), use '-vv' to show
+E       IndexError: list index out of range
+E       AssertionError: 
+E       assert 302 == 400
+E        +  where 302 = <Response [302 Found]>.status_code
+E       AssertionError: 
+E       assert 302 == 400
+E        +  where 302 = <Response [302 Found]>.status_code
+E       AssertionError: 
+E       assert 302 == 400
+E        +  where 302 = <Response [302 Found]>.status_code
+E       AssertionError: 
+E       assert 302 == 400
+E        +  where 302 = <Response [302 Found]>.status_code
+E       AssertionError: 
+E       assert 302 == 400
+E        +  where 302 = <Response [302 Found]>.status_code
+E       AssertionError: 
+E       assert 302 == 400
+E        +  where 302 = <Response [302 Found]>.status_code
+E       AssertionError: 
+E       assert 302 == 400
+E        +  where 302 = <Response [302 Found]>.status_code
+E       IndexError: list index out of range
+E       IndexError: list index out of range
+E       IndexError: list index out of range
+E       IndexError: list index out of range
+E       IndexError: list index out of range
+E       IndexError: list index out of range
+E       assert 405 == 204
+E        +  where 405 = <Response [405 Method Not Allowed]>.status_code
+E       AssertionError: {"error":"github-login-taken","message":"an identity already exists for GitHub login alice (alice-proves); a new token for it is issued by this proof only once its tokens have lapsed from disuse, 
+E       assert 409 == 303
+E        +  where 409 = <Response [409 Conflict]>.status_code
+FAILED api/tests/test_web_session.py::test_existing_login_returns_to_the_site_with_a_strict_cookie_and_no_token
+FAILED api/tests/test_web_session.py::test_first_sign_in_asks_the_dco_once_and_takes_the_login_as_pseudonym
+FAILED api/tests/test_web_session.py::test_accept_without_the_tick_is_refused_and_creates_nothing
+FAILED api/tests/test_web_session.py::test_return_must_be_a_path_on_the_site[https://evil.example/]
+FAILED api/tests/test_web_session.py::test_return_must_be_a_path_on_the_site[//evil.example]
+FAILED api/tests/test_web_session.py::test_return_must_be_a_path_on_the_site[/\\evil.example]
+FAILED api/tests/test_web_session.py::test_return_must_be_a_path_on_the_site[javascript:alert(1)]
+FAILED api/tests/test_web_session.py::test_return_must_be_a_path_on_the_site[problems/x]
+FAILED api/tests/test_web_session.py::test_return_must_be_a_path_on_the_site[/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+FAILED api/tests/test_web_session.py::test_return_must_be_a_path_on_the_site[/ok\nSet-Cookie: x=y]
+FAILED api/tests/test_web_session.py::test_a_login_whose_pseudonym_is_reserved_gets_the_fallback
+FAILED api/tests/test_web_session.py::test_cookie_without_the_header_or_from_another_origin_is_refused
+FAILED api/tests/test_web_session.py::test_cookie_is_ignored_by_every_other_route
+FAILED api/tests/test_web_session.py::test_cookie_with_origin_and_header_is_the_logins_identity
+FAILED api/tests/test_web_session.py::test_a_session_ends_after_its_lifetime
+FAILED api/tests/test_web_session.py::test_a_forged_session_is_refused - Inde...
+FAILED api/tests/test_web_session.py::test_preflight_allows_the_site_with_credentials
+FAILED api/tests/test_web_session.py::test_a_bearer_identity_signs_in_as_itself
+18 failed, 2 passed, 2 warnings in 1.22s
+
+== GREEN ==
+api/tests/test_web_session.py::test_existing_login_returns_to_the_site_with_a_strict_cookie_and_no_token PASSED
+api/tests/test_web_session.py::test_first_sign_in_asks_the_dco_once_and_takes_the_login_as_pseudonym PASSED
+api/tests/test_web_session.py::test_accept_without_the_tick_is_refused_and_creates_nothing PASSED
+api/tests/test_web_session.py::test_return_must_be_a_path_on_the_site[https://evil.example/] PASSED
+api/tests/test_web_session.py::test_return_must_be_a_path_on_the_site[//evil.example] PASSED
+api/tests/test_web_session.py::test_return_must_be_a_path_on_the_site[/\\evil.example] PASSED
+api/tests/test_web_session.py::test_return_must_be_a_path_on_the_site[javascript:alert(1)] PASSED
+api/tests/test_web_session.py::test_return_must_be_a_path_on_the_site[problems/x] PASSED
+api/tests/test_web_session.py::test_return_must_be_a_path_on_the_site[/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+api/tests/test_web_session.py::test_return_must_be_a_path_on_the_site[/ok\nSet-Cookie: x=y] PASSED
+api/tests/test_web_session.py::test_without_return_the_flow_is_unchanged PASSED
+api/tests/test_web_session.py::test_a_login_whose_pseudonym_is_reserved_gets_the_fallback PASSED
+api/tests/test_web_session.py::test_cookie_without_the_header_or_from_another_origin_is_refused PASSED
+api/tests/test_web_session.py::test_cookie_is_ignored_by_every_other_route PASSED
+api/tests/test_web_session.py::test_cookie_with_origin_and_header_is_the_logins_identity PASSED
+api/tests/test_web_session.py::test_a_session_ends_after_its_lifetime PASSED
+api/tests/test_web_session.py::test_a_forged_session_is_refused PASSED
+api/tests/test_web_session.py::test_bearer_still_works_on_a_web_route PASSED
+api/tests/test_web_session.py::test_preflight_allows_the_site_with_credentials PASSED
+api/tests/test_web_session.py::test_a_bearer_identity_signs_in_as_itself PASSED
+api/tests/test_store_seam.py::test_check_names_the_missing_table_by_role_and_name PASSED
+api/tests/test_store_seam.py::test_check_names_every_missing_table_in_role_order PASSED
+api/tests/test_store_seam.py::test_check_reports_an_unreachable_endpoint_as_missing PASSED
+api/tests/test_store_seam.py::test_check_healthy_is_empty_for_both_stores[memory] PASSED
+api/tests/test_store_seam.py::test_check_healthy_is_empty_for_both_stores[dynamodb] PASSED
+api/tests/test_store_seam.py::test_identity_transaction_writes_the_row_and_two_conditional_markers PASSED
+api/tests/test_store_seam.py::test_pseudonym_conflict_is_case_insensitive_in_both_stores[memory] PASSED
+api/tests/test_store_seam.py::test_pseudonym_conflict_is_case_insensitive_in_both_stores[dynamodb] PASSED
+api/tests/test_store_seam.py::test_proof_reference_conflict_names_the_rule_in_both_stores[memory] PASSED
+api/tests/test_store_seam.py::test_proof_reference_conflict_names_the_rule_in_both_stores[dynamodb] PASSED
+api/tests/test_store_seam.py::test_both_rules_violated_names_the_pseudonym_first_in_both_stores[memory] PASSED
+api/tests/test_store_seam.py::test_both_rules_violated_names_the_pseudonym_first_in_both_stores[dynamodb] PASSED
+api/tests/test_store_seam.py::test_conflict_on_the_identity_row_itself_is_not_a_uniqueness_conflict PASSED
+api/tests/test_store_seam.py::test_cancellation_for_another_reason_is_re_raised_not_swallowed[transaction-conflict] PASSED
+api/tests/test_store_seam.py::test_cancellation_for_another_reason_is_re_raised_not_swallowed[throughput] PASSED
+api/tests/test_store_seam.py::test_cancellation_for_another_reason_is_re_raised_not_swallowed[validation] PASSED
+api/tests/test_store_seam.py::test_cancellation_for_another_reason_is_re_raised_not_swallowed[no-reasons] PASSED
+api/tests/test_store_seam.py::test_a_client_error_that_is_not_a_cancellation_propagates PASSED
+api/tests/test_store_seam.py::test_get_identity_absent_is_none_in_both_stores[memory] PASSED
+api/tests/test_store_seam.py::test_get_identity_absent_is_none_in_both_stores[dynamodb] PASSED
+api/tests/test_store_seam.py::test_get_identity_of_a_marker_row_is_none PASSED
+api/tests/test_store_seam.py::test_count_identities_by_proof_in_both_stores[memory] PASSED
+api/tests/test_store_seam.py::test_count_identities_by_proof_in_both_stores[dynamodb] PASSED
+api/tests/test_store_seam.py::test_get_token_absent_is_none_in_both_stores[memory] PASSED
+api/tests/test_store_seam.py::test_get_token_absent_is_none_in_both_stores[dynamodb] PASSED
+api/tests/test_store_seam.py::test_token_row_carries_the_hash_only_under_the_token_prefix PASSED
+api/tests/test_store_seam.py::test_revoked_token_round_trips_in_both_stores[memory] PASSED
+api/tests/test_store_seam.py::test_revoked_token_round_trips_in_both_stores[dynamodb] PASSED
+api/tests/test_store_seam.py::test_token_row_without_the_revoked_field_reads_as_live PASSED
+api/tests/test_store_seam.py::test_job_record_reads_back_with_plain_ints_not_decimals_in_both_stores[memory] PASSED
+api/tests/test_store_seam.py::test_job_record_reads_back_with_plain_ints_not_decimals_in_both_stores[dynamodb] PASSED
+api/tests/test_store_seam.py::test_job_item_stores_dynamo_decimals_and_a_ttl_epoch PASSED
+api/tests/test_store_seam.py::test_get_job_absent_is_none_in_both_stores[memory] PASSED
+api/tests/test_store_seam.py::test_get_job_absent_is_none_in_both_stores[dynamodb] PASSED
+api/tests/test_store_seam.py::test_get_job_returns_a_copy_in_both_stores[memory] PASSED
+api/tests/test_store_seam.py::test_get_job_returns_a_copy_in_both_stores[dynamodb] PASSED
+api/tests/test_store_seam.py::test_job_item_whose_record_is_not_an_object_is_none PASSED
+api/tests/test_store_seam.py::test_a_float_in_a_job_record_is_stored_by_dynamodb_like_memory[memory] PASSED
+api/tests/test_store_seam.py::test_a_float_in_a_job_record_is_stored_by_dynamodb_like_memory[dynamodb] PASSED
+api/tests/test_store_seam.py::test_floats_survive_nesting_and_keep_their_value_in_both_stores[memory] PASSED
+api/tests/test_store_seam.py::test_floats_survive_nesting_and_keep_their_value_in_both_stores[dynamodb] PASSED
+api/tests/test_store_seam.py::test_a_non_finite_float_is_refused_by_name PASSED
+api/tests/test_store_seam.py::test_an_ephemeral_record_carrying_a_float_round_trips_in_both_stores[memory] PASSED
+api/tests/test_store_seam.py::test_an_ephemeral_record_carrying_a_float_round_trips_in_both_stores[dynamodb] PASSED
+api/tests/test_store_seam.py::test_plain_converts_decimals_by_integrality PASSED
+api/tests/test_store_seam.py::test_get_claim_absent_is_none_in_both_stores[memory] PASSED
+api/tests/test_store_seam.py::test_get_claim_absent_is_none_in_both_stores[dynamodb] PASSED
+api/tests/test_store_seam.py::test_claim_round_trips_with_and_without_release_in_both_stores[memory] PASSED
+api/tests/test_store_seam.py::test_claim_round_trips_with_and_without_release_in_both_stores[dynamodb] PASSED
+api/tests/test_store_seam.py::test_claim_row_with_an_empty_released_string_reads_as_unreleased PASSED
+api/tests/test_store_seam.py::test_list_claims_pages_through_last_evaluated_key_and_sorts_by_id PASSED
+api/tests/test_store_seam.py::test_list_claims_empty_in_both_stores[memory] PASSED
+api/tests/test_store_seam.py::test_list_claims_empty_in_both_stores[dynamodb] PASSED
+api/tests/test_store_seam.py::test_list_claims_sorted_by_id_in_both_stores[memory] PASSED
+api/tests/test_store_seam.py::test_list_claims_sorted_by_id_in_both_stores[dynamodb] PASSED
+api/tests/test_store_seam.py::test_take_ephemeral_is_single_use_in_both_stores[memory] PASSED
+api/tests/test_store_seam.py::test_take_ephemeral_is_single_use_in_both_stores[dynamodb] PASSED
+api/tests/test_store_seam.py::test_take_ephemeral_absent_is_none_in_both_stores[memory] PASSED
+api/tests/test_store_seam.py::test_take_ephemeral_absent_is_none_in_both_stores[dynamodb] PASSED
+api/tests/test_store_seam.py::test_expired_ephemeral_is_none_and_consumed_in_both_stores[memory-late_by0] PASSED
+api/tests/test_store_seam.py::test_expired_ephemeral_is_none_and_consumed_in_both_stores[memory-late_by1] PASSED
+api/tests/test_store_seam.py::test_expired_ephemeral_is_none_and_consumed_in_both_stores[memory-late_by2] PASSED
+api/tests/test_store_seam.py::test_expired_ephemeral_is_none_and_consumed_in_both_stores[dynamodb-late_by0] PASSED
+api/tests/test_store_seam.py::test_expired_ephemeral_is_none_and_consumed_in_both_stores[dynamodb-late_by1] PASSED
+api/tests/test_store_seam.py::test_expired_ephemeral_is_none_and_consumed_in_both_stores[dynamodb-late_by2] PASSED
+api/tests/test_store_seam.py::test_ephemeral_item_carries_the_ttl_attribute_as_an_epoch PASSED
+api/tests/test_store_seam.py::test_take_ephemeral_returns_plain_ints_like_memory[memory] PASSED
+api/tests/test_store_seam.py::test_take_ephemeral_returns_plain_ints_like_memory[dynamodb] PASSED
+api/tests/test_store_seam.py::test_take_ephemeral_returns_exact_ints_on_dynamodb PASSED
+api/tests/test_store_seam.py::test_take_ephemeral_deletes_with_return_all_old_in_one_call PASSED
+api/tests/test_store_seam.py::test_ephemeral_data_that_is_not_an_object_is_none PASSED
+api/tests/test_store_seam.py::test_ephemeral_row_without_a_ttl_reads_as_expired PASSED
+api/tests/test_store_seam.py::test_take_ephemeral_propagates_a_store_outage PASSED
+api/tests/test_store_seam.py::test_take_ephemeral_does_not_swallow_a_programming_error PASSED
+api/tests/test_store_seam.py::test_bump_counter_counts_from_one_in_both_stores[memory] PASSED
+api/tests/test_store_seam.py::test_bump_counter_counts_from_one_in_both_stores[dynamodb] PASSED
+api/tests/test_store_seam.py::test_bump_counter_returns_an_int_not_a_decimal PASSED
+api/tests/test_store_seam.py::test_bump_counter_sets_the_ttl_once_and_adds_atomically PASSED
+api/tests/test_store_seam.py::test_bump_counter_adds_by_any_amount_in_both_stores[memory] PASSED
+api/tests/test_store_seam.py::test_bump_counter_adds_by_any_amount_in_both_stores[dynamodb] PASSED
+api/tests/test_store_seam.py::test_bump_counter_failure_propagates PASSED
+api/tests/test_store_seam.py::test_build_dynamodb_names_the_three_tables_from_settings PASSED
+api/tests/test_store_seam.py::test_build_memory_ignores_table_names PASSED
+api/tests/test_store_seam.py::test_release_renders_the_time[memory] PASSED
+api/tests/test_store_seam.py::test_release_renders_the_time[dynamodb] PASSED
+api/tests/test_store_seam.py::test_check_log_round_trips[memory] PASSED
+api/tests/test_store_seam.py::test_check_log_round_trips[dynamodb] PASSED
+api/tests/test_store_seam.py::test_check_log_item_carries_no_content PASSED
+api/tests/test_store_seam.py::test_revoke_tokens_reaches_every_page_in_both_stores[memory] PASSED
+api/tests/test_store_seam.py::test_revoke_tokens_reaches_every_page_in_both_stores[dynamodb] PASSED
+api/tests/test_store_seam.py::test_an_identity_is_found_by_its_pseudonym_in_both_stores[memory] PASSED
+api/tests/test_store_seam.py::test_an_identity_is_found_by_its_pseudonym_in_both_stores[dynamodb] PASSED
+api/tests/test_store_seam.py::test_get_ephemeral_reads_without_spending_and_drop_deletes_in_both_stores[memory] PASSED
+api/tests/test_store_seam.py::test_get_ephemeral_reads_without_spending_and_drop_deletes_in_both_stores[dynamodb] PASSED
+api/tests/test_routes.py::test_routes_match_d35 PASSED
+api/tests/test_routes.py::test_web_sign_in_falls_under_the_token_row PASSED
+api/tests/test_routes.py::test_f07_routes_are_authenticated_writes PASSED
+api/tests/test_routes.py::test_precheck_routes_match_d35 PASSED
+api/tests/test_routes.py::test_every_handler_resolves PASSED
+api/tests/test_routes.py::test_read_routes_ignore_bearer PASSED
+api/tests/test_finding_unknown_fields.py::test_the_table_covers_every_body_taking_write_route PASSED
+api/tests/test_finding_unknown_fields.py::test_precheck_refuses_the_testers_stray_key PASSED
+api/tests/test_finding_unknown_fields.py::test_every_write_route_refuses_one_unknown_key[/annexes] PASSED
+api/tests/test_finding_unknown_fields.py::test_every_write_route_refuses_one_unknown_key[/approach-records] PASSED
+api/tests/test_finding_unknown_fields.py::test_every_write_route_refuses_one_unknown_key[/auth/web/accept] PASSED
+api/tests/test_finding_unknown_fields.py::test_every_write_route_refuses_one_unknown_key[/check] PASSED
+api/tests/test_finding_unknown_fields.py::test_every_write_route_refuses_one_unknown_key[/claims] PASSED
+api/tests/test_finding_unknown_fields.py::test_every_write_route_refuses_one_unknown_key[/defect-claims] PASSED
+api/tests/test_finding_unknown_fields.py::test_every_write_route_refuses_one_unknown_key[/glosses] PASSED
+api/tests/test_finding_unknown_fields.py::test_every_write_route_refuses_one_unknown_key[/glosses/withdrawals] PASSED
+api/tests/test_finding_unknown_fields.py::test_every_write_route_refuses_one_unknown_key[/postmortems] PASSED
+api/tests/test_finding_unknown_fields.py::test_every_write_route_refuses_one_unknown_key[/precheck] PASSED
+api/tests/test_finding_unknown_fields.py::test_every_write_route_refuses_one_unknown_key[/proposals/speculative] PASSED
+api/tests/test_finding_unknown_fields.py::test_every_write_route_refuses_one_unknown_key[/proposals/variant] PASSED
+api/tests/test_finding_unknown_fields.py::test_every_write_route_refuses_one_unknown_key[/proposals/witness] PASSED
+api/tests/test_finding_unknown_fields.py::test_every_write_route_refuses_one_unknown_key[/revision-requests] PASSED
+api/tests/test_finding_unknown_fields.py::test_every_write_route_refuses_one_unknown_key[/submissions] PASSED
+api/tests/test_finding_unknown_fields.py::test_every_write_route_refuses_one_unknown_key[/tokens] PASSED
+api/tests/test_finding_unknown_fields.py::test_every_write_route_refuses_one_unknown_key[/tokens/renew] PASSED
+api/tests/test_finding_unknown_fields.py::test_a_known_field_body_still_works PASSED
+api/tests/test_finding_unknown_fields.py::test_the_refusal_names_every_stray_key_and_lists_the_accepted_ones PASSED
+api/tests/test_finding_unknown_fields.py::test_only_top_level_keys_are_refused PASSED
+api/tests/test_finding_unknown_fields.py::test_an_empty_body_is_not_an_unknown_field PASSED
+api/tests/test_finding_unknown_fields.py::test_a_form_body_with_an_unknown_field_is_refused PASSED
+======================= 144 passed, 2 warnings in 2.18s ========================
+
+make lint: All checks passed! / 671 files already formatted (exit 0)
+make types: mypy gate — no issues in 324 files; mypy api — no issues (exit 0)
+Full api/tests before the route-table updates: 3 failed (route-table guards that a new route must
+be registered in: test_routes, test_finding_unknown_fields, test_finding_messages_name_real_routes),
+1585 passed; the first two are updated in this commit, the third names routes T4-T6 add.

@@ -27,8 +27,9 @@ import binascii
 import hashlib
 import struct
 
-from cryptography.exceptions import InvalidSignature
-from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+from cryptography.exceptions import InvalidSignature, UnsupportedAlgorithm
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey, Ed25519PublicKey
 
 MAGIC = b"SSHSIG"
 SIG_VERSION = 1
@@ -115,6 +116,68 @@ def unarmor(armored: str) -> bytes:
     except (binascii.Error, ValueError) as exc:
         msg = "the signature body is not valid base64"
         raise SshsigError(msg) from exc
+
+
+# --- signing (F23: the network's approval key; D-32 v3.33, C8) -----------------------------------
+
+#: The hash ``ssh-keygen -Y sign`` uses by default, and so the one this writer uses.
+SIGN_HASH = b"sha512"
+#: ``ssh-keygen``'s armor line width.
+ARMOR_WIDTH = 70
+
+
+def _private_key(private_key: str) -> Ed25519PrivateKey:
+    """An unencrypted OpenSSH ed25519 private key, or ``SshsigError``: the approval key is the only
+    key the service signs with, and it is never anything else (C7)."""
+    try:
+        key = serialization.load_ssh_private_key(private_key.encode(), password=None)
+    except (ValueError, TypeError, UnsupportedAlgorithm) as exc:
+        msg = "not an unencrypted OpenSSH private key"
+        raise SshsigError(msg) from exc
+    if not isinstance(key, Ed25519PrivateKey):
+        msg = "the approval key must be ssh-ed25519"
+        raise SshsigError(msg)
+    return key
+
+
+def _public_blob(key: Ed25519PrivateKey) -> bytes:
+    raw = key.public_key().public_bytes(serialization.Encoding.Raw, serialization.PublicFormat.Raw)
+    return _string(KEY_TYPE) + _string(raw)
+
+
+def public_key_of(private_key: str) -> str:
+    """F23: the ``ssh-ed25519 AAAA…`` line of an OpenSSH private key's public half — what the
+    graph publishes as ``keys/approval.pub`` and what a signed record carries as ``key``."""
+    blob = _public_blob(_private_key(private_key))
+    return f"{KEY_TYPE.decode()} {base64.b64encode(blob).decode()}"
+
+
+def sign(payload: bytes, private_key: str, *, namespace: str) -> str:
+    """F23: an armored SSHSIG signature over ``payload``, byte for byte what ``ssh-keygen -Y sign
+    -n <namespace>`` makes with the same key (ed25519 signatures are deterministic), so the
+    gate's ``ssh-keygen -Y verify`` accepts it. ``verify`` above is its reading half."""
+    key = _private_key(private_key)
+    ns = namespace.encode()
+    signed = (
+        MAGIC
+        + _string(ns)
+        + _string(b"")
+        + _string(SIGN_HASH)
+        + _string(HASHES[SIGN_HASH](payload).digest())
+    )
+    inner = _string(KEY_TYPE) + _string(key.sign(signed))
+    blob = (
+        MAGIC
+        + struct.pack(">I", SIG_VERSION)
+        + _string(_public_blob(key))
+        + _string(ns)
+        + _string(b"")
+        + _string(SIGN_HASH)
+        + _string(inner)
+    )
+    text = base64.b64encode(blob).decode()
+    lines = [text[i : i + ARMOR_WIDTH] for i in range(0, len(text), ARMOR_WIDTH)]
+    return "\n".join([ARMOR_BEGIN, *lines, ARMOR_END]) + "\n"
 
 
 def verify(payload: bytes, armored: str, authorized_key: str, *, namespace: str) -> bool:
