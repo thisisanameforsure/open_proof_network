@@ -151,7 +151,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         who = self.login()
         web = self.headers.get("X-OPN-Web") == "1"
         if not web or self.headers.get("Origin") not in self.fake.origins or who is None:
-            self.answer(401, {"error": "session-required", "message": "sign in on the site"})
+            self.answer(401, {"error": "unauthenticated", "message": "sign in on the site"})
             return
         if url.path == "/session/end":
             self.answer(204, headers={"Set-Cookie": f"{COOKIE}=; Path=/; Max-Age=0"})
@@ -160,7 +160,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
             held = self.fake.stewards.setdefault(who, set())
             target = body["target"]
             if body["action"] == "commit" and (target in held or who in self.fake.conflict):
-                self.answer(409, {"error": "steward-already", "message": "already a steward"})
+                self.answer(
+                    409, {"error": "steward-already-active", "message": "already a steward"}
+                )
                 return
             if body["action"] == "commit":
                 held.add(target)
@@ -173,7 +175,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 who, set()
             )
             if not allowed:
-                self.answer(403, {"error": "not-steward", "message": "not a steward or curator"})
+                self.answer(
+                    403, {"error": "not-steward-or-curator", "message": "not a steward or curator"}
+                )
                 return
             self.answer(201, self.receipt("approvals"))
             return

@@ -12,6 +12,8 @@ from __future__ import annotations
 import json
 import re
 from pathlib import Path
+from types import SimpleNamespace
+from typing import Any
 
 import pytest
 import yaml
@@ -130,3 +132,18 @@ def test_every_shown_steward_is_labelled(pages: dict[str, str]) -> None:
             for m in re.finditer(re.escape(name) + "</a>", text):
                 after = text[m.end() : m.end() + 40]
                 assert after.startswith(' <span class="admitted"'), (rel, after)
+
+
+def test_an_index_row_that_carries_admitted_by_is_read_first() -> None:
+    """targets-index/v8 puts ``admitted_by`` on the row (null for a v1 record); the row wins over
+    the record, and a row with no link shows the name unlinked."""
+    tv: Any = SimpleNamespace(admissions={"a": "self"})
+    adm = render.Renderer.admitted
+    assert ">self-admitted<" in adm(tv, {"login": "a", "admitted_by": "self"})
+    assert f">admitted by {CURATOR}<" in adm(tv, {"login": "a", "admitted_by": CURATOR})
+    assert ">admitted by curator<" in adm(tv, {"login": "a", "admitted_by": None})
+    assert ">self-admitted<" in adm(tv, {"login": "a"})  # an older index: from the record
+    r = render.Renderer.__new__(render.Renderer)
+    assert r.steward_link({"name": "<b>N</b>", "link": None}) == (
+        '<span class="steward-name">&lt;b&gt;N&lt;/b&gt;</span>'
+    )

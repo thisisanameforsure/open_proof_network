@@ -2433,6 +2433,8 @@ class Renderer:
     def steward_link(self, s: dict[str, Any]) -> str:
         """A steward's name linked to the identity link the validated record carries; the url is
         on the allowlist because the record validated (F15 §7, F11-Q11)."""
+        if not s.get("link"):  # steward/v2: the link is optional under open admission
+            return f'<span class="steward-name">{esc(str(s["name"]))}</span>'
         return f'<a href="{esc(str(s["link"]))}">{esc(str(s["name"]))}</a>'
 
     @staticmethod
@@ -2453,7 +2455,12 @@ class Renderer:
         """F23-R14: how a steward was admitted, read from the record they are active under:
         ``self-admitted``, ``admitted by <curator>``, or for a ``steward/v1`` record, which a
         curator merged before the switch existed, ``admitted by curator``."""
-        how = tv.admissions.get(str(s["login"]))
+        # targets-index/v8 carries it on the row (null: a v1 record, curator-merged); an older
+        # index leaves the site to read it from the record itself.
+        if "admitted_by" in s:
+            how = str(s["admitted_by"]) if s["admitted_by"] else ADMITTED_BY_CURATOR
+        else:
+            how = tv.admissions.get(str(s["login"]), "")
         if not how:
             return ""
         if how == "self":
@@ -4717,7 +4724,7 @@ def cited_urls(site: Site) -> frozenset[str]:
     both from records the gate checked. Nothing else on the site may point off-origin (R13)."""
     urls: set[str] = set()
     for tv in site.targets.values():
-        urls.update(str(s["link"]) for s in tv.stewards)
+        urls.update(str(s["link"]) for s in tv.stewards if s.get("link"))
         urls.update(str(w["url"]) for w in tv.writeups)
         if tv.record is None:
             continue
