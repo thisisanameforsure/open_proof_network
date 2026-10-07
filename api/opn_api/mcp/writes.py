@@ -538,12 +538,11 @@ TOOLS: tuple[Tool, ...] = (
             "explain one merged proof (an explainer: kind proof, node_id, and proof, the "
             "hash get_node's outlines give). `supersedes` replaces a chain's current "
             "version. `licence` is required; `drafted_with` names the model that drafted "
-            "the words, if one did. A change to words a person wrote or verified waits "
-            "for a steward's or curator's signature. Refused by code before anything "
+            "the words, if one did. Refused by code before anything "
             "opens: gloss-subject-mismatch, explainer-proof-unknown, "
             "explainer-step-unknown, section-duplicate, tooling-invalid, record-not-head "
             "(409), locked-by-a-person (409), duplicate-submission (409: one writer per "
-            "file). The receipt's `warnings` refuse nothing; `dry_run: true` checks and "
+            "file). The receipt's `warnings` refuse nothing; `dry_run: true` checks, "
             "opens nothing; `amends` replaces your open submission's version in place. "
             'The guide\'s "Glosses, explainers and outlines" says more.'
         ),
