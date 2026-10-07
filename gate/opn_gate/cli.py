@@ -3108,8 +3108,8 @@ def _credit_corrections(changes: list[Change]) -> list[paths.Located]:
 
 #: F21-R3: the signature records a write-up credit is read from, every version of each.
 _SIGNATURE_SCHEMAS: dict[str, tuple[str, ...]] = {
-    "explainer-signature": ("explainer-signature/v1", "explainer-signature/v2"),
-    "gloss-signature": ("gloss-signature/v1", "gloss-signature/v2"),
+    "explainer-signature": tuple(sorted(explainers.SCHEMAS)),
+    "gloss-signature": tuple(sorted(glosses.SIGNATURE_SCHEMAS)),
 }
 
 

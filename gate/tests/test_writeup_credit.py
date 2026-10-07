@@ -249,23 +249,32 @@ def test_a_signature_on_a_draft_credits_nobody(
     assert repo.ledger_files() == {}
 
 
-def test_a_steward_signing_their_own_version_earns_nothing(
+def test_a_steward_signing_their_own_version_earns_once_as_written_work(
     repo: Repo, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    """AC3: credit on signature cannot be self-awarded (R3), whether the author is spelled as the
-    signer's login or, for a listed curator, as the pseudonym ``curators.json`` pairs it with."""
+    """D-3 v3.33 (F23-R11, AC8), restating F21-AC3's rule of 2026-10-04 ("a signature on one's
+    own version earns nothing"), which v3.33 keeps for the *signature*: a steward's or curator's
+    own version signed by them earns once, on the write-up line, as their written work, and a
+    second signature adds nothing. The author is recognised whether spelled as the signer's login
+    or, for a listed curator, as the pseudonym ``curators.json`` pairs it with."""
     own = repo.explainer(STEWARD)
     repo.merge("the steward's explainer", by=STEWARD)
     repo.sign_explainer(own, STEWARD)
     out = repo.ledger(capsys, repo.merge("steward signs own", by=STEWARD))
-    assert out["earned"] is False and "own" in out["reason"], out
+    assert out["earned"] is True, out
+    [entry] = repo.entries(STEWARD)
+    assert entry["line"] == "write-up" and entry["artifact"] == f"explainer/{own}.md"
+    repo.sign_explainer(own, CURATOR)
+    out = repo.ledger(capsys, repo.merge("the curator signs it too", by=CURATOR))
+    assert out["earned"] is False and "already" in out["reason"], out
 
     by_pseudonym = repo.gloss(CURATOR_PSEUDONYM)
     repo.merge("the curator's gloss, through the service", by="opn-service")
     repo.sign_gloss(by_pseudonym, CURATOR)
     out = repo.ledger(capsys, repo.merge("curator signs own", by=CURATOR))
-    assert out["earned"] is False and "own" in out["reason"], out
-    assert repo.ledger_files() == {}
+    assert out["earned"] is True, out
+    assert len(repo.entries(CURATOR_PSEUDONYM)) == 1
+    assert set(repo.ledger_files()) == {f"{STEWARD}.json", f"{CURATOR_PSEUDONYM}.json"}
 
 
 def test_an_unsigned_explainer_or_gloss_merge_earns_nothing(
