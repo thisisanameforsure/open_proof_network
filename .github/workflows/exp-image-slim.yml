@@ -59,8 +59,11 @@ jobs:
           set -euo pipefail
           creds="${{ github.actor }}:${{ github.token }}"
           skopeo copy --dest-creds "$creds" "docker://$BASE" "docker://$EXP:full-gzip"
-          skopeo copy --dest-creds "$creds" --format oci --dest-compress --dest-compress-format zstd \
-            "docker://$BASE" "docker://$EXP:full-zstd"
+          # the runner's skopeo ignores a zstd request (it pushed gzip); buildx re-compresses every
+          # layer of the pinned image, contents untouched, when compression is forced
+          docker buildx create --use --driver docker-container --name exp >/dev/null
+          printf 'FROM %s\n' "$BASE" | docker buildx build --provenance=false --sbom=false \
+            --output "type=image,name=$EXP:full-zstd,push=true,compression=zstd,force-compression=true,oci-mediatypes=true" -
 
       - name: Patch the Mathlib step to delete the archives and the C files in the same layer
         run: |
@@ -82,9 +85,8 @@ jobs:
       - name: Build slim once, export it gzip and zstd
         run: |
           set -euo pipefail
-          docker buildx create --use --driver docker-container --name exp >/dev/null
           for c in gzip zstd; do
-            docker buildx build -f gate/Dockerfile \
+            docker buildx build --provenance=false --sbom=false -f gate/Dockerfile \
               --build-arg "LEAN_TOOLCHAIN=$TOOLCHAIN" --build-arg "MATHLIB_SHA=$MATHLIB_SHA" \
               --output "type=image,name=$EXP:slim-$c,push=true,compression=$c,force-compression=true,oci-mediatypes=true" .
             df -h / | tail -1
