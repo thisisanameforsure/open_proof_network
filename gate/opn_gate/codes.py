@@ -2494,14 +2494,26 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
     "approval-key-missing": (
         "api",
         None,
-        "The service holds no approval signing key, so it cannot sign a steward record or an approval (F23).",
-        "Report it to the operator; nothing you send will change it. A steward with an SSH key can use opn-gate steward meanwhile.",
+        (
+            "The service holds no approval signing key, so it cannot sign a steward record or an "
+            "approval (F23)."
+        ),
+        (
+            "Report it to the operator; nothing you send will change it. A steward with an SSH key"
+            " can use opn-gate steward meanwhile."
+        ),
     ),
     "github-login-required": (
         "api",
         None,
-        "Steward records and approvals are made as a GitHub login, and this identity was proved without one (F23-R8; D-32 v3.33).",
-        "Sign in with GitHub on the site, or prove a GitHub identity for a token (GET /auth/github/start).",
+        (
+            "Steward records and approvals are made as a GitHub login, and this identity was "
+            "proved without one (F23-R8; D-32 v3.33)."
+        ),
+        (
+            "Sign in with GitHub on the site, or prove a GitHub identity for a token (GET "
+            "/auth/github/start)."
+        ),
     ),
     "identity-revoked": (
         "api",
@@ -2519,7 +2531,10 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "api",
         None,
         "Only an active steward of the target or a listed curator may approve words (D-3 v3.33).",
-        "Become the problem's steward at /steward/<target>/, or ask one of its stewards to approve.",
+        (
+            "Become the problem's steward at /steward/<target>/, or ask one of its stewards to "
+            "approve."
+        ),
     ),
     "return-invalid": (
         "api",
@@ -2530,7 +2545,10 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
     "site-origin-unset": (
         "api",
         None,
-        "The service does not know the site's origin, so it cannot return a browser to the site after sign-in.",
+        (
+            "The service does not know the site's origin, so it cannot return a browser to the "
+            "site after sign-in."
+        ),
         "Report it to the operator (OPN_API_SITE_ORIGIN).",
     ),
     "steward-already-active": (
