@@ -77,9 +77,7 @@ def listing(ctx: Context, directory: str) -> list[str]:
     try:
         return reads.listing(ctx, directory)
     except ToolError as exc:
-        raise ApiError(
-            503, str(exc.doc.get("error", "graph-unreachable")), str(exc.doc.get("message", ""))
-        ) from exc
+        raise ApiError(503, "graph-unreachable", str(exc.doc.get("message", ""))) from exc
 
 
 def steward_records(ctx: Context, target_id: str) -> list[tuple[int, dict[str, Any]]]:

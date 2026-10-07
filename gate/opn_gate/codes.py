@@ -995,7 +995,7 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "Retry shortly; the graph host may be down or rate-limited.",
     ),
     "graph-unreadable": (
-        "gate",
+        "both",
         8,
         "The target's dependency graph could not be read.",
         "Report it to the curators; a META.yaml in the target is malformed.",
@@ -2075,7 +2075,7 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "Name it with the next number.",
     ),
     "steward-not-active": (
-        "gate",
+        "both",
         None,
         "A step-down names someone with no counting commitment to step down from.",
         "Only an active steward steps down.",
@@ -2490,6 +2490,60 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         None,
         "The yaml field is not parseable YAML, or not a mapping.",
         "Send the record as a YAML mapping (or a JSON object).",
+    ),
+    "approval-key-missing": (
+        "api",
+        None,
+        "The service holds no approval signing key, so it cannot sign a steward record or an approval (F23).",
+        "Report it to the operator; nothing you send will change it. A steward with an SSH key can use opn-gate steward meanwhile.",
+    ),
+    "github-login-required": (
+        "api",
+        None,
+        "Steward records and approvals are made as a GitHub login, and this identity was proved without one (F23-R8; D-32 v3.33).",
+        "Sign in with GitHub on the site, or prove a GitHub identity for a token (GET /auth/github/start).",
+    ),
+    "identity-revoked": (
+        "api",
+        None,
+        "The operator revoked this identity's tokens, so it cannot sign in on the site.",
+        "Ask the curators why; a revoked identity is not restored by signing in again.",
+    ),
+    "no-curator": (
+        "api",
+        None,
+        "Steward admission is reviewed and curators.json lists no curator to name in admitted_by.",
+        "Report it to the owner; a reviewed graph needs at least one curator.",
+    ),
+    "not-steward-or-curator": (
+        "api",
+        None,
+        "Only an active steward of the target or a listed curator may approve words (D-3 v3.33).",
+        "Become the problem's steward at /steward/<target>/, or ask one of its stewards to approve.",
+    ),
+    "return-invalid": (
+        "api",
+        None,
+        "The sign-in return address must be a path on the site itself, not a URL.",
+        "Start sign-in from a page on the site, or pass return=/a/path/.",
+    ),
+    "site-origin-unset": (
+        "api",
+        None,
+        "The service does not know the site's origin, so it cannot return a browser to the site after sign-in.",
+        "Report it to the operator (OPN_API_SITE_ORIGIN).",
+    ),
+    "steward-already-active": (
+        "api",
+        None,
+        "This login is already an active steward of the target.",
+        "Nothing to do; to leave the role, step down instead.",
+    ),
+    "version-unknown": (
+        "api",
+        None,
+        "No gloss or explainer version with that hash exists on the node or target.",
+        "Read the version hash from the page or get_node, and approve a version that has merged.",
     ),
 }
 
