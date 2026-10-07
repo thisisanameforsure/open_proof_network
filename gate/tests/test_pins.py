@@ -174,6 +174,23 @@ def test_publish_workflow_tag_is_derived_by_the_shell_alone() -> None:
         assert DOCKER_TAG.fullmatch(proc.stdout), f"{proc.stdout!r} is not a docker tag"
 
 
+def test_publish_workflow_pushes_zstd_layers() -> None:
+    """F10-T17: the image is published with zstd layers, because a pull is mostly decompressing
+    and writing 11 GB: on hosted runners a cold pull of the same files took a median 150 s as
+    gzip and 121 s as zstd, and ten replays of merged proofs were identical on both
+    (engineering/evidence/F10/task-17.txt). zstd is only what was asked for if compression is
+    *forced*: a recompression request without it was silently pushed as gzip in that experiment,
+    so the workflow reads the pushed manifest back and refuses any layer that is not zstd.
+    A zstd image needs Docker Engine 23 or newer to pull (F10-Q23)."""
+    text = (ROOT / ".github" / "workflows" / "image-publish.yml").read_text(encoding="utf-8")
+    assert "docker buildx build" in text
+    assert "compression=zstd" in text and "force-compression=true" in text
+    assert "push=true" in text and "--metadata-file" in text
+    assert "--provenance=false" in text, "one manifest per image, not an index with an attestation"
+    readback = "imagetools inspect --raw"
+    assert readback in text and "zstd" in text.split(readback)[1]
+
+
 def test_publish_workflow_shape() -> None:
     """R5: the publish workflow runs on every tag, holds packages:write and nothing else it
     could write with, builds from the repo root for the pinned toolchain, pushes, and prints the
@@ -182,8 +199,9 @@ def test_publish_workflow_shape() -> None:
     assert 'tags: ["*"]' in text
     assert "packages: write" in text and "contents: read" in text
     assert "secrets." not in text and "github.token" in text
-    assert "docker build -f gate/Dockerfile" in text and " ." in text
-    assert "lean-toolchain" in text and "RepoDigests" in text
+    assert "docker buildx build -f gate/Dockerfile" in text and " ." in text
+    # the digest a graph pins is the one buildx pushed (F10-T17), read from its metadata
+    assert "lean-toolchain" in text and "containerimage.digest" in text
     assert "pin_image.py" in text
     dockerignore = (ROOT / ".dockerignore").read_text(encoding="utf-8")
     assert "!gate/" in dockerignore and "!uv.lock" in dockerignore and "gate/tests/" in dockerignore

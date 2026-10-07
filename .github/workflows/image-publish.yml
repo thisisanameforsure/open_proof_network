@@ -83,7 +83,15 @@ jobs:
           if [ -n "$MATHLIB_SHA" ]; then tag="$tag-mathlib-${MATHLIB_SHA::12}"; fi
           echo "toolchain=$toolchain" >> "$GITHUB_OUTPUT"
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
-          docker build -f gate/Dockerfile \
+          # F10-T17: zstd layers, pushed by buildx. A pull is mostly decompressing and writing
+          # 11 GB, and zstd cut a cold hosted pull from a median 150 s to 121 s with identical
+          # verdicts (evidence/F10/task-17.txt). Compression must be *forced*: unforced, a
+          # recompression request went out as gzip in that experiment. Provenance off, so each
+          # tag is one manifest a graph pins, not an index. Pulling needs Docker 23+ (F10-Q23).
+          docker buildx create --use --driver docker-container --name opn-publish >/dev/null
+          docker buildx build -f gate/Dockerfile --provenance=false --sbom=false \
+            --metadata-file "$RUNNER_TEMP/build-metadata.json" \
+            --output "type=image,\"name=$IMAGE:$tag,$IMAGE:sha-${GITHUB_SHA::12}${MATHLIB_SHA:+-mathlib-${MATHLIB_SHA::12}}\",push=true,compression=zstd,force-compression=true,oci-mediatypes=true" \
             --build-arg "LEAN_TOOLCHAIN=$toolchain" \
             --build-arg "MATHLIB_SHA=$MATHLIB_SHA" \
             --label "org.opencontainers.image.revision=${GITHUB_SHA}" \
@@ -91,17 +99,22 @@ jobs:
             --label "org.opencontainers.image.version=$tag" \
             --label "network.openproof.lean_toolchain=$toolchain" \
             --label "network.openproof.mathlib_sha=$MATHLIB_SHA" \
-            -t "$IMAGE:$tag" -t "$IMAGE:sha-${GITHUB_SHA::12}${MATHLIB_SHA:+-mathlib-${MATHLIB_SHA::12}}" .
+            .
 
-      - name: Push and record the digest
+      - name: Record the digest (buildx pushed both tags) and check every layer is zstd
         id: push
         env:
           MATHLIB_SHA: ${{ matrix.mathlib }}
         run: |
           set -euo pipefail
-          docker push "$IMAGE:${{ steps.build.outputs.tag }}"
-          docker push "$IMAGE:sha-${GITHUB_SHA::12}${MATHLIB_SHA:+-mathlib-${MATHLIB_SHA::12}}"
-          digest="$(docker inspect --format '{{index .RepoDigests 0}}' "$IMAGE:${{ steps.build.outputs.tag }}")"
+          digest="$IMAGE@$(python3 -c "import json,sys; print(json.load(open(sys.argv[1]))['containerimage.digest'])" "$RUNNER_TEMP/build-metadata.json")"
+          docker buildx imagetools inspect --raw "$digest" | python3 -c "
+          import json, sys
+          m = json.load(sys.stdin)
+          kinds = sorted({l['mediaType'] for l in m['layers']})
+          print('layer media types:', kinds)
+          bad = [k for k in kinds if not k.endswith('zstd')]
+          sys.exit(f'not zstd: {bad} (F10-T17)' if bad else 0)"
           echo "digest=$digest" >> "$GITHUB_OUTPUT"
           {
             echo "## Gate image published (mathlib ${MATHLIB_SHA:-none})"

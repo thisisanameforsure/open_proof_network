@@ -16,7 +16,8 @@
 # `network-mismatch` before anything is exported or built (exit 2; F07-T65). To replay with
 # another gate anyway, pass --allow-network-mismatch: the mismatch is reported and a --compare
 # result is never identical.
-# Needs docker and either uv or a python3 with jsonschema+pyyaml.
+# Needs Docker Engine 23 or newer (the pinned image has zstd layers, F10-Q23) and either uv or a
+# python3 with jsonschema+pyyaml.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"

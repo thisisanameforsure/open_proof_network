@@ -1304,3 +1304,13 @@ The law of the project:
   a number I had typed into evidence before measuring it. **`pytest -k` matches file names too**:
   `-k budget` in `test_finding_mcp_context_budget.py` selected all sixteen tests, so a task's
   verification command must name its tests by something only they carry.
+
+- 2026-10-07 — The gate image's 150 s pull is mostly *unpacking*, not downloading: decompress and
+  write 11 GB as 177,000 files took 71 s on every fresh runner, the download 16–64 s. So a smaller
+  image buys nothing (13% fewer bytes, same time), and deleting Mathlib's `.c` files to get there
+  makes `lake build` rebuild Mathlib in a devcontainer; a lazy image fetches 7 GiB anyway, because
+  an `import Mathlib` check opens 52,504 files. zstd took the median pull to 121 s with identical
+  replays (F10-T17, Q23). Two traps: my "half the image can go" was said before any `du`, and
+  a zstd request is silently pushed as gzip unless compression is forced, so read the pushed
+  manifest's layer types back. And zstd needs Docker 23 to *pull*: price the client before a
+  format change to a pinned artifact.
