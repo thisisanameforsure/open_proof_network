@@ -38,6 +38,7 @@ def test_routes_match_d35() -> None:
     owned = routes.D35_OWNED_BY_F05 | routes.D35_OWNED_BY_F06 | {routes.D35_POST_SUBMISSIONS}
     owned |= routes.D35_OWNED_BY_F13  # F13-T3: D-35 v3.14's check_lean row
     owned |= routes.D35_OWNED_BY_F20  # F20-T6: D-35 v3.30's submit_gloss, withdraw_gloss row
+    owned |= routes.D35_OWNED_BY_F23  # F23: D-35 v3.33's web session, stewards, approvals row
     assert rows >= owned, rows
     # The append row names no endpoint: D-35's plain path for the three append tools is the
     # pull request itself, quoted here verbatim so a reworded decision fails this test.
@@ -49,13 +50,22 @@ def test_routes_match_d35() -> None:
         | routes.D35_OWNED_BY_F08
         | routes.D35_OWNED_BY_F13
         | routes.D35_OWNED_BY_F20
+        | (routes.D35_OWNED_BY_F23 - {routes.D35_GET_SESSION})  # GET /session is a read
     )
     assert routes.D35_PROPOSAL_PR in d35_text()  # F08's rows, verbatim like the append row
     assert routes.D35_CLAIM_PR in d35_text()
     pr_rows = {routes.D35_APPEND_PR, routes.D35_PROPOSAL_PR, routes.D35_CLAIM_PR}
     for r in routes.ROUTES:
         assert r.d35 is None or r.d35 in rows or r.d35 in pr_rows, r
-        assert r.feature in ("F05", "F06", "F07", "F08", "F13", "F20"), r
+        assert r.feature in ("F05", "F06", "F07", "F08", "F13", "F20", "F23"), r
+
+
+def test_web_sign_in_falls_under_the_token_row() -> None:
+    """F23-T3: ``POST /auth/web/accept`` finishes a GitHub sign-in under the D-19 identity rules,
+    as ``GET /auth/github/start`` and the callback do, so it is D-35's token row; the v3.33 row
+    names the session's own routes, and sign-in is not among them."""
+    accept = {r.label: r for r in routes.ROUTES}["POST /auth/web/accept"]
+    assert accept.d35 == routes.D35_POST_TOKENS and not accept.authenticated
 
 
 def test_f07_routes_are_authenticated_writes() -> None:
