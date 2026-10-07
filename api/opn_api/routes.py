@@ -18,6 +18,10 @@ class RouteSpec:
     d35: str | None  # the D-35 plain-path row, verbatim as the document writes it
     authenticated: bool = False  # R5: bearer required
     feature: str = "F05"
+    #: F23-R3: the route also accepts a web session from the site (the cookie, the site's exact
+    #: Origin and ``X-OPN-Web: 1``) and answers the site's credentialed CORS. Every other route
+    #: ignores the cookie.
+    web: bool = False
 
     @property
     def write(self) -> bool:
@@ -59,6 +63,15 @@ D35_OWNED_BY_F13: frozenset[str] = frozenset({D35_POST_CHECK})
 D35_POST_GLOSSES = "POST /glosses"
 D35_POST_GLOSS_WITHDRAWALS = "POST /glosses/withdrawals"
 D35_OWNED_BY_F20: frozenset[str] = frozenset({D35_POST_GLOSSES, D35_POST_GLOSS_WITHDRAWALS})
+# F23's row (D-35 v3.33): the web session's own routes, the steward form and approvals. No MCP
+# tool (v3.33: only a person may hold either role, and an agent cannot sign in with GitHub).
+D35_GET_SESSION = "GET /session"
+D35_POST_SESSION_END = "POST /session/end"
+D35_POST_STEWARDS = "POST /stewards"
+D35_POST_APPROVALS = "POST /approvals"
+D35_OWNED_BY_F23: frozenset[str] = frozenset(
+    {D35_GET_SESSION, D35_POST_SESSION_END, D35_POST_STEWARDS, D35_POST_APPROVALS}
+)
 
 ROUTES: tuple[RouteSpec, ...] = (
     # F05-T13, Q13: the index of this table, served at the root. Open, no D-35 row.
@@ -71,6 +84,12 @@ ROUTES: tuple[RouteSpec, ...] = (
     RouteSpec("GET", "/auth/github/start", "identity:github_start", D35_POST_TOKENS),
     RouteSpec("GET", "/auth/github/callback", "identity:github_callback", D35_POST_TOKENS),
     RouteSpec("POST", "/tokens", "identity:post_tokens", D35_POST_TOKENS),
+    # F23-R2 (D-35 v3.33): a first web sign-in's DCO tick. Sign-in under the D-19 identity rules,
+    # so D-35's token row, as the two auth routes above are; it makes the identity and a web
+    # session, never a token.
+    RouteSpec(
+        "POST", "/auth/web/accept", "identity:post_web_accept", D35_POST_TOKENS, feature="F23"
+    ),
     # F05-T27, T29 (D-19 v3.29): optional rotation of a live token. Token issuance under the D-19
     # identity rules, so D-35's token row (Q27, Q29).
     RouteSpec("POST", "/tokens/renew", "identity:post_renew", D35_POST_TOKENS, authenticated=True),
@@ -188,6 +207,7 @@ ROUTES: tuple[RouteSpec, ...] = (
         D35_POST_GLOSSES,
         authenticated=True,
         feature="F20",
+        web=True,  # F23-R3
     ),
     RouteSpec(
         "POST",
@@ -196,6 +216,38 @@ ROUTES: tuple[RouteSpec, ...] = (
         D35_POST_GLOSS_WITHDRAWALS,
         authenticated=True,
         feature="F20",
+        web=True,  # F23-R3
+    ),
+    # F23-R4 (D-35 v3.33): who is signed in on the site and their roles, and signing out. Both
+    # read the web session alone, so the table asks no bearer of either.
+    RouteSpec("GET", "/session", "session:get_session", D35_GET_SESSION, feature="F23", web=True),
+    RouteSpec(
+        "POST",
+        "/session/end",
+        "session:post_session_end",
+        D35_POST_SESSION_END,
+        feature="F23",
+        web=True,
+    ),
+    # F23-R8: become a problem's steward, or step down, from the site; signed by the approval key.
+    RouteSpec(
+        "POST",
+        "/stewards",
+        "stewards:post_stewards",
+        D35_POST_STEWARDS,
+        authenticated=True,
+        feature="F23",
+        web=True,
+    ),
+    # F23-R10: a steward or curator approves sections of words; signed by the approval key.
+    RouteSpec(
+        "POST",
+        "/approvals",
+        "approvals:post_approvals",
+        D35_POST_APPROVALS,
+        authenticated=True,
+        feature="F23",
+        web=True,
     ),
     # F13-R8, Q2: open like the tutorial precheck; a presented token is authenticated and charged
     # per identity, and an anonymous caller is charged per address, by the handler.
@@ -229,6 +281,8 @@ PURPOSES: dict[str, str] = {
     "GET /auth/github/start": "Begin the GitHub proof of identity for a token (browser).",
     "GET /auth/github/callback": "Finish the GitHub proof of identity and issue the token.",
     "POST /tokens": "Issue a token: from a passing tutorial precheck (no account) or GitHub.",
+    "POST /auth/web/accept": "Finish a first sign-in on the site: accept the DCO, then return "
+    "to the page with a web session (browser).",
     "POST /tokens/renew": (
         "Rotate a token (optional; one in use never lapses): a new token, the old one retired."
     ),
@@ -257,6 +311,13 @@ PURPOSES: dict[str, str] = {
     "words, by pull request; refused first by the gate's own checks.",
     "POST /glosses/withdrawals": "Withdraw one version of a gloss or explainer, by pull "
     "request; the file stays and is read as absent.",
+    "GET /session": "Who is signed in on the site (web session), and their roles: curator, and "
+    "the problems they steward.",
+    "POST /session/end": "Sign out of the site: end the web session and clear its cookie.",
+    "POST /stewards": "Become a problem's steward, or step down, as your GitHub login: the "
+    "record is signed with the network's approval key and opened by pull request.",
+    "POST /approvals": "Approve sections of a gloss or explainer version as a steward of its "
+    "problem or a curator, signed with the network's approval key, by pull request.",
     "POST /check": "Check Lean text within 20 s on a hosted checker, or preview a witness's "
     "expected type for a node or a statement's text (mode witness); never authoritative.",
     "GET /checks/{check_id}": "The record of one of your own fast-check calls.",

@@ -88,6 +88,7 @@ from opn_gate import (
     layout,
     ledger,
     paths,
+    policy,
     qa,
     records,
     schemas,
@@ -181,8 +182,21 @@ def load_curators(graph_root: Path) -> Curators:
     if not path.is_file():
         return Curators()
     try:
-        doc = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, ValueError) as exc:
+        data = path.read_bytes()
+    except OSError as exc:
+        msg = f"{CURATORS_FILE} is not readable JSON: {exc}"
+        raise CuratorsError(msg) from exc
+    return parse_curators(data)
+
+
+def parse_curators(data: bytes | None) -> Curators:
+    """``curators.json``'s bytes as the role file, or an empty list for ``None`` (no file) — for
+    the file as it stood on a pull request's base (F23-R9)."""
+    if data is None:
+        return Curators()
+    try:
+        doc = json.loads(data)
+    except ValueError as exc:
         msg = f"{CURATORS_FILE} is not readable JSON: {exc}"
         raise CuratorsError(msg) from exc
     identities = doc.get("identities") if isinstance(doc, dict) else None
@@ -1104,7 +1118,9 @@ def check(  # noqa: PLR0912 — one branch per role with a check of its own
             )
         elif located.role == "explainer-signature":
             problems.extend(
-                check_explainer_signature(graph_root, located, classification, signer=signer)
+                check_explainer_signature(
+                    graph_root, located, classification, signer=signer, base=base
+                )
             )
         elif located.role == "gloss":
             found = glosses.check_gloss(graph_root, located)
@@ -1117,14 +1133,14 @@ def check(  # noqa: PLR0912 — one branch per role with a check of its own
             )
         elif located.role == "gloss-signature":
             problems.extend(
-                check_gloss_signature(graph_root, located, classification, signer=signer)
+                check_gloss_signature(graph_root, located, classification, signer=signer, base=base)
             )
         elif located.role == "statement-evidence":
             problems.extend(check_evidence(graph_root, located))
         elif located.role in ("formalization", "formalization-statement"):
             problems.extend(check_formalization(graph_root, located))
         elif located.role == "steward":
-            problems.extend(check_steward_record(graph_root, located, classification))
+            problems.extend(check_steward_record(graph_root, located, classification, base=base))
         elif located.role == "writeup":
             problems.extend(check_writeup_record(graph_root, located, classification))
         elif located.role == "proposed-for":
@@ -1282,12 +1298,77 @@ def check_dispute_reference(graph_root: Path, located: Located, data: bytes) -> 
     return []
 
 
+def parent_file(graph_root: Path, base: BaseReader | None, rel: str) -> bytes | None:
+    """A file as it stood in the merge's parent tree (the pull request's base), or ``None`` when
+    it did not exist there. Without ``base`` (a local check, the service's composer) the
+    checkout stands in for it."""
+    if base is not None:
+        return base(rel)
+    path = graph_root / rel
+    return path.read_bytes() if path.is_file() else None
+
+
+def approval_key(graph_root: Path, base: BaseReader | None) -> str | None:
+    """D-3, D-32 v3.33: the network's approval key as the merge's parent tree publishes it."""
+    return signed.published_key(parent_file(graph_root, base, signed.APPROVAL_KEY_PATH))
+
+
+def check_steward_admission(
+    graph_root: Path, located: Located, record: steward.Record, base: BaseReader | None
+) -> list[Diagnostic]:
+    """F23-R9 (D-32 v3.33, D-22 v3.33): a ``steward/v2`` record is admitted only when an
+    approval-key record carries the approval key of the merge's parent tree, and a commitment's
+    ``admitted_by`` agrees with that tree's ``policy.json``: ``self`` under ``open`` (also with no
+    file, or a ``policy/v1`` one), a login its ``curators.json`` lists under ``reviewed``.
+
+    Which curator merges a pull request is not known until it has merged, so under ``reviewed``
+    the gate holds the record to a listed curator; that the merger is that curator is the merge
+    actor's to leave alone (``curate/`` is never one of its branches, F23-T7) and the curator's to
+    honour. A step-down needs no admission: anyone may stop being a steward."""
+    found: list[Diagnostic] = []
+    details = {"path": located.path, "login": record.login}
+    problem = signed.approval_key_problem(record.doc, approval_key(graph_root, base))
+    if problem is not None:
+        found.append(Diagnostic("steward-signature", f"{located.path}: {problem}", details))
+    if record.action != steward.COMMIT:
+        return found
+    try:
+        admission = policy.parse(parent_file(graph_root, base, policy.FILE)).admission
+    except schemas.SchemaError as exc:
+        return [*found, Diagnostic("steward-admission", f"{located.path}: {exc}", details)]
+    try:
+        curators = parse_curators(parent_file(graph_root, base, CURATORS_FILE)).logins
+    except CuratorsError:
+        curators = frozenset()
+    admitted = record.admitted_by
+    if admission == policy.OPEN and admitted != steward.SELF:
+        found.append(
+            Diagnostic(
+                "steward-admission",
+                f"{located.path}: steward admission is {policy.OPEN}, so the record is admitted "
+                f"by {steward.SELF!r}, not {admitted!r} (D-32 v3.33)",
+                {**details, "admission": admission, "admitted_by": admitted},
+            )
+        )
+    elif admission == policy.REVIEWED and (admitted == steward.SELF or admitted not in curators):
+        found.append(
+            Diagnostic(
+                "steward-admission",
+                f"{located.path}: steward admission is {policy.REVIEWED}, so the record names "
+                f"the listed curator who admits it, not {admitted!r} (D-32 v3.33)",
+                {**details, "admission": admission, "admitted_by": admitted},
+            )
+        )
+    return found
+
+
 def check_steward_record(  # noqa: PLR0911 — one return per rule
     graph_root: Path,
     located: Located,
     classification: Classification,
     *,
     signer: Signer | None = None,
+    base: BaseReader | None = None,
 ) -> list[Diagnostic]:
     """F15-R1, R2: a steward record validates, names the target it sits under, is numbered as
     R1 lays them out, and *counts* — its signature verifies under its own key, its sentence is
@@ -1350,7 +1431,7 @@ def check_steward_record(  # noqa: PLR0911 — one return per rule
                 {"path": located.path},
             )
         ]
-    return [
+    found = [
         Diagnostic(
             problem.split(":", 1)[0],
             f"{located.path}: {problem}",
@@ -1358,6 +1439,9 @@ def check_steward_record(  # noqa: PLR0911 — one return per rule
         )
         for problem in verdict.problems
     ]
+    if verdict.record.doc.get("schema") == steward.SCHEMA_V2:
+        found.extend(check_steward_admission(graph_root, located, verdict.record, base))
+    return found
 
 
 def check_writeup_record(
@@ -2346,12 +2430,36 @@ def check_signer_opener(  # noqa: PLR0913 — the record, its signer, its key an
     ]
 
 
+def check_approval_signature(
+    graph_root: Path, located: Located, doc: dict[str, Any], base: BaseReader | None
+) -> list[Diagnostic]:
+    """F23-R10, R11 (D-3 v3.33): a ``via: approval-key`` signature is the service's, made for the
+    signed-in login it names, so its key must be ``keys/approval.pub`` in the merge's parent tree
+    — a pull request cannot bring its own. ``signature-invalid`` otherwise; empty for an SSH
+    signature, which ``check_signer_opener`` ties to its signer instead."""
+    problem = signed.approval_key_problem(doc, approval_key(graph_root, base))
+    if problem is None:
+        return []
+    return [
+        Diagnostic(
+            "signature-invalid",
+            f"{located.path}: {problem}",
+            {"path": located.path, "signer": doc.get("signer")},
+        )
+    ]
+
+
+def _by_approval_key(doc: dict[str, Any]) -> bool:
+    return doc.get(signed.VIA_FIELD) == signed.VIA_APPROVAL_KEY
+
+
 def check_explainer_signature(
     graph_root: Path,
     located: Located,
     classification: Classification,
     *,
     signer: Signer | None = None,
+    base: BaseReader | None = None,
 ) -> list[Diagnostic]:
     """F15-R8: a signature validates, sits under the node and target it names, is named for
     the explainer it signs, and is valid — the explainer is on the node (at head, so one
@@ -2400,7 +2508,10 @@ def check_explainer_signature(
                 {"path": located.path, "signer": sig.signer},
             )
         )
-    return found or check_signer_opener(
+    found.extend(check_approval_signature(graph_root, located, doc, base))
+    if found or _by_approval_key(doc):
+        return found  # an approval-key signature is the service's act for the login it names
+    return check_signer_opener(
         graph_root, located, classification, signer_name=sig.signer, key=sig.key, verifier=verifier
     )
 
@@ -2654,6 +2765,7 @@ def check_gloss_signature(
     classification: Classification,
     *,
     signer: Signer | None = None,
+    base: BaseReader | None = None,
 ) -> list[Diagnostic]:
     """F20-R8: a gloss signature validates, sits beside the gloss it signs under the node (or
     target) it names, is valid (``glosses.signature_problems``) and is a real-identity
@@ -2691,7 +2803,10 @@ def check_gloss_signature(
                 {"path": located.path, "signer": who},
             )
         )
-    return found or check_signer_opener(
+    found.extend(check_approval_signature(graph_root, located, doc, base))
+    if found or _by_approval_key(doc):
+        return found  # an approval-key signature is the service's act for the login it names
+    return check_signer_opener(
         graph_root,
         located,
         classification,

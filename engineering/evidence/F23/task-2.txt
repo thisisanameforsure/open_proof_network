@@ -1,0 +1,68 @@
+F23-T2 (AC6, AC8, AC7 gate half): the approval key in the gate.
+
+RED, test_steward_v2.py with the seam in (document_v2, v2 accepted) and no rules yet:
+FAILED gate/tests/test_steward_v2.py::test_a_record_signed_by_another_key_is_refused
+FAILED gate/tests/test_steward_v2.py::test_the_approval_key_is_read_from_the_parent_tree
+FAILED gate/tests/test_steward_v2.py::test_without_a_published_approval_key_no_approval_record_is_admitted
+FAILED gate/tests/test_steward_v2.py::test_self_is_the_only_admission_under_open[None]
+FAILED gate/tests/test_steward_v2.py::test_self_is_the_only_admission_under_open[open]
+FAILED gate/tests/test_steward_v2.py::test_self_under_reviewed_is_refused - A...
+FAILED gate/tests/test_steward_v2.py::test_reviewed_admits_a_listed_curator_only
+FAILED gate/tests/test_steward_v2.py::test_the_curators_are_read_from_the_parent_tree
+FAILED gate/tests/test_steward_v2.py::test_an_ssh_commit_is_ended_by_an_approval_key_step_down
+FAILED gate/tests/test_steward_v2.py::test_an_approval_key_commit_is_ended_by_an_ssh_step_down
+10 failed, 7 passed in 4.68s
+(and, before the T1 schema fix, every self-admitted record failed validation:
+ $['admitted_by']: 'self' is valid under each of {'$ref': '#/$defs/login'}, {'const': 'self'})
+
+RED, test_signature_v3.py with the v3 helpers in and no rules yet:
+E       AssertionError: assert ['signer-not-opener'] == []
+E       AssertionError: assert 'signature-invalid' in ['signer-not-opener']
+E       AssertionError: assert ['signer-not-opener'] == []
+FAILED gate/tests/test_signature_v3.py::test_a_stewards_approval_through_the_service_is_admitted
+FAILED gate/tests/test_signature_v3.py::test_an_approval_signed_by_another_key_is_refused
+FAILED gate/tests/test_signature_v3.py::test_a_stewards_own_version_signed_by_them_is_verified_and_earns_once
+3 failed, 2 passed in 8.97s
+
+GREEN:
+$ uv run --frozen pytest -m "not lean and not docker and not network" gate/tests/test_steward_v2.py gate/tests/test_signature_v3.py gate/tests/test_writeup_credit.py gate/tests/test_steward.py -v
+gate/tests/test_steward_v2.py::test_an_approval_key_record_is_admitted_under_open PASSED [  2%]
+gate/tests/test_steward_v2.py::test_a_record_signed_by_another_key_is_refused PASSED [  5%]
+gate/tests/test_steward_v2.py::test_the_approval_key_is_read_from_the_parent_tree PASSED [  8%]
+gate/tests/test_steward_v2.py::test_without_a_published_approval_key_no_approval_record_is_admitted PASSED [ 11%]
+gate/tests/test_steward_v2.py::test_a_tampered_record_is_refused PASSED  [ 14%]
+gate/tests/test_steward_v2.py::test_an_ssh_v2_record_needs_no_approval_key PASSED [ 17%]
+gate/tests/test_steward_v2.py::test_self_is_the_only_admission_under_open[None] PASSED [ 20%]
+gate/tests/test_steward_v2.py::test_self_is_the_only_admission_under_open[open] PASSED [ 22%]
+gate/tests/test_steward_v2.py::test_self_under_reviewed_is_refused PASSED [ 25%]
+gate/tests/test_steward_v2.py::test_reviewed_admits_a_listed_curator_only PASSED [ 28%]
+gate/tests/test_steward_v2.py::test_the_curators_are_read_from_the_parent_tree PASSED [ 31%]
+gate/tests/test_steward_v2.py::test_policy_v2_loads PASSED               [ 34%]
+gate/tests/test_steward_v2.py::test_the_admission_of_a_policy PASSED     [ 37%]
+gate/tests/test_steward_v2.py::test_an_ssh_commit_is_ended_by_an_approval_key_step_down PASSED [ 40%]
+gate/tests/test_steward_v2.py::test_an_approval_key_commit_is_ended_by_an_ssh_step_down PASSED [ 42%]
+gate/tests/test_steward_v2.py::test_two_ssh_records_still_need_the_same_key PASSED [ 45%]
+gate/tests/test_steward_v2.py::test_a_step_down_from_nobody_is_refused PASSED [ 48%]
+gate/tests/test_signature_v3.py::test_a_stewards_approval_through_the_service_is_admitted PASSED [ 51%]
+gate/tests/test_signature_v3.py::test_an_approval_signed_by_another_key_is_refused PASSED [ 54%]
+gate/tests/test_signature_v3.py::test_an_approval_for_a_login_with_no_role_is_refused PASSED [ 57%]
+gate/tests/test_signature_v3.py::test_an_approval_verifies_the_sections_and_credits_the_author PASSED [ 60%]
+gate/tests/test_signature_v3.py::test_a_stewards_own_version_signed_by_them_is_verified_and_earns_once PASSED [ 62%]
+gate/tests/test_writeup_credit.py::test_a_curators_signature_credits_the_explainers_author_once PASSED [ 65%]
+gate/tests/test_writeup_credit.py::test_a_signature_on_a_draft_credits_nobody PASSED [ 68%]
+gate/tests/test_writeup_credit.py::test_a_steward_signing_their_own_version_earns_once_as_written_work PASSED [ 71%]
+gate/tests/test_writeup_credit.py::test_an_unsigned_explainer_or_gloss_merge_earns_nothing PASSED [ 74%]
+gate/tests/test_writeup_credit.py::test_a_v2_signature_naming_some_sections_credits_once PASSED [ 77%]
+gate/tests/test_writeup_credit.py::test_a_signed_node_gloss_credits_its_author PASSED [ 80%]
+gate/tests/test_writeup_credit.py::test_a_signed_definition_gloss_credits_its_author PASSED [ 82%]
+gate/tests/test_writeup_credit.py::test_a_signed_draft_gloss_credits_nobody PASSED [ 85%]
+gate/tests/test_steward.py::test_record_round_trip PASSED                [ 88%]
+gate/tests/test_steward.py::test_refusals_write_nothing PASSED           [ 91%]
+gate/tests/test_steward.py::test_step_down_leaves_the_other_steward PASSED [ 94%]
+gate/tests/test_steward.py::test_a_malformed_record_is_a_graph_defect PASSED [ 97%]
+gate/tests/test_steward.py::test_commands PASSED                         [100%]
+======================== 35 passed in 65.89s (0:01:05) =========================
+
+Full fast tier (gate api site, test_walkthrough::test_graph_copy_is_identical deselected, pre-existing):
+1644 passed, 6 xfailed, 2 warnings in 179.13s (0:02:59)
+make lint: All checks passed; make types: Success (gate 327, api 211, site 72 files)

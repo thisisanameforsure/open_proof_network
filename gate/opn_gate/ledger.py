@@ -19,7 +19,9 @@ paying for it would make identity creation itself a credit farm.
 
 F21 adds a third line, ``write-up``: a gloss or explainer version earns it for its author when a
 steward or curator's signature on it merges (D-19 v3.31) — once per version, never for the signer,
-never for a draft or a signature on one's own version. The version itself earns nothing (R4).
+never for a draft. A steward's or curator's own version signed by them earns once too, as their
+written work, and the signature nothing beyond it (D-3 v3.33). The version itself earns nothing
+(R4).
 
 The ledger is derived from merges that already happened, so it is rebuildable from the graph and
 is never a second source of truth (D-35). Every function here is pure: the post-merge job hands
@@ -45,8 +47,8 @@ PROOF_ARTIFACTS: tuple[str, ...] = ("proof", "counterexample", "vacuity", "parti
 #: merge. ``append`` earns only for a postmortem (D-13; an annex earns nothing, D-31), and an
 #: alternate proof is credited at write-up, not when it merges (D-25 v3.13). ``explainer`` earns
 #: only on a *signature* (F21-R3, D-19 v3.31): the version's author, never the signer, once per
-#: version; the gloss or explainer itself, a draft and a signature on one's own version earn
-#: nothing (R4).
+#: version (a self-signed version by a steward or curator earns once, as written work, D-3
+#: v3.33); the gloss or explainer itself and a draft earn nothing (R4).
 MERGE_LINES: dict[str, Line | None] = {
     "proof": "proof",
     "partial": "proof",
@@ -306,19 +308,23 @@ def writeup_entry(  # noqa: PLR0913 — one argument per fact the entry records
     """F21-R3 (D-19 v3.31): the write-up line a signature on a gloss or explainer version earns
     its author, with the reason; ``(None, why)`` when it earns nothing.
 
-    Nothing for a draft (no author), for a signature on one's own version (``signer_names`` is the
-    signer's login with any pseudonym ``curators.json`` pairs it with), or when the version is
-    already credited (``held_by``, from ``writeup_holder``): credit is per version, once (Q3). The
-    signer is never the one credited: D-19 credits work, not review."""
+    Nothing for a draft (no author), or when the version is already credited (``held_by``, from
+    ``writeup_holder``): credit is per version, once (Q3). The signer is never credited for
+    signing: D-19 credits work, not review. D-3 v3.33: a steward or curator may sign their own
+    version (``signer_names`` is the signer's login with any pseudonym ``curators.json`` pairs it
+    with), and it then earns once, as the author's written work — the signature itself earns
+    nothing beyond that, so v3.31's "a signature on one's own version earns nothing" stands."""
     if author is None:
         return None, f"{artifact} is a draft with no author, so its signature credits nobody (R3)"
-    if author in signer_names:
-        return None, (
-            f"{artifact} is {author}'s own version, and a signature on one's own version earns "
-            "nothing (R3, D-19 v3.31)"
-        )
     if held_by is not None:
         return None, f"{artifact} is already credited to {held_by}: once per version (Q3)"
+    if author in signer_names:
+        why = (
+            f"{author} wrote {artifact} and signed it as a steward or curator: it earns once, as "
+            "written work, and the signature nothing beyond that (D-3 v3.33, D-19)"
+        )
+    else:
+        why = f"{author} wrote {artifact}, and a signature approved it (R3, D-19 v3.31)"
     entry = Entry(
         line="write-up",
         target=target,
@@ -328,7 +334,7 @@ def writeup_entry(  # noqa: PLR0913 — one argument per fact the entry records
         date=date,
         tooling=tooling,
     )
-    return entry, f"{author} wrote {artifact}, and a signature approved it (R3, D-19 v3.31)"
+    return entry, why
 
 
 def statement_tooling(meta: dict[str, Any]) -> str:

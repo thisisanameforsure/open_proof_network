@@ -197,6 +197,33 @@ def check(h: Harness, key: PrecheckKey) -> Prepared:
     return {"target_id": TARGET, "content": "theorem x : True := trivial\n"}, {}
 
 
+def web_accept(h: Harness, key: PrecheckKey) -> Prepared:
+    """F23-T3: the first web sign-in's DCO tick; refused before the proof is read."""
+    body = {
+        "proof": "x",
+        "return": "/",
+        "dco": {"version": identity.DCO_VERSION, "accepted": True},
+    }
+    return body, {}
+
+
+def session_end(h: Harness, key: PrecheckKey) -> Prepared:
+    """F23-T4: signing out reads no field at all, so any key is a stray one."""
+    return {}, {}
+
+
+def stewards(h: Harness, key: PrecheckKey) -> Prepared:
+    """F23-T5: the steward form, refused before the approval key or the graph is read."""
+    body = {"target": TARGET, "action": "commit", "name": "A", "link": None, "accept": True}
+    return body, h.auth(h.token_for("code_alice", "alice"))
+
+
+def approvals(h: Harness, key: PrecheckKey) -> Prepared:
+    """F23-T6: an approval, refused before the approval key or the graph is read."""
+    body = {"target": TARGET, "node": NODE, "kind": "gloss", "version": "0" * 64, "sections": None}
+    return body, h.auth(h.token_for("code_alice", "alice"))
+
+
 #: Every POST route of ``routes.ROUTES`` that reads a JSON body (``DELETE /claims/<id>`` has none);
 #: ``/tokens/renew`` reads an empty one, refusing any key (F05-T27).
 WRITE_ROUTES: dict[str, Prepare] = {
@@ -216,6 +243,10 @@ WRITE_ROUTES: dict[str, Prepare] = {
     "/check": check,
     "/glosses": glosses_,
     "/glosses/withdrawals": gloss_withdrawals,
+    "/auth/web/accept": web_accept,  # F23-T3
+    "/session/end": session_end,  # F23-T4
+    "/stewards": stewards,  # F23-T5
+    "/approvals": approvals,  # F23-T6
 }
 
 

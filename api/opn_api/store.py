@@ -214,6 +214,15 @@ class Store(Protocol):
         """Read and delete in one step (single use); ``None`` when absent or expired."""
         ...
 
+    def get_ephemeral(self, key: str, now: datetime) -> dict[str, Any] | None:
+        """Read without deleting (F23-R3: a web session is read on every request); ``None`` when
+        absent or expired."""
+        ...
+
+    def drop_ephemeral(self, key: str) -> None:
+        """Delete at once, whether or not present (F23: a session ended by its holder)."""
+        ...
+
     def bump_counter(self, key: str, expires: datetime, *, by: int = 1) -> int:
         """Add ``by`` (one by default; negative to give back a reservation, F13-T28) to the
         counter at ``key`` atomically and return it; it disappears after ``expires``."""
@@ -366,6 +375,15 @@ class MemoryStore:
         if item is None or item[1] <= now:
             return None
         return item[0]
+
+    def get_ephemeral(self, key: str, now: datetime) -> dict[str, Any] | None:
+        item = self.ephemeral.get(key)
+        if item is None or item[1] <= now:
+            return None
+        return dict(item[0])
+
+    def drop_ephemeral(self, key: str) -> None:
+        self.ephemeral.pop(key, None)
 
     def bump_counter(self, key: str, expires: datetime, *, by: int = 1) -> int:
         count, _ = self.counters.get(key, (0, expires))
@@ -726,6 +744,16 @@ class DynamoStore:
         data = item.get("data")
         # `plain`, as in get_job: what went in comes back out, ints not Decimals.
         return plain(dict(data)) if isinstance(data, dict) else None
+
+    def get_ephemeral(self, key: str, now: datetime) -> dict[str, Any] | None:
+        item = self._tokens.get_item(Key={"key": key}).get("Item")
+        if not item or int(item.get("expires_at", 0)) <= _epoch(now):
+            return None
+        data = item.get("data")
+        return plain(dict(data)) if isinstance(data, dict) else None
+
+    def drop_ephemeral(self, key: str) -> None:
+        self._tokens.delete_item(Key={"key": key})
 
     def bump_counter(self, key: str, expires: datetime, *, by: int = 1) -> int:
         updated = self._tokens.update_item(

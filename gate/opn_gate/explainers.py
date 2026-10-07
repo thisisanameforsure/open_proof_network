@@ -41,7 +41,9 @@ log = logging.getLogger(__name__)
 SCHEMA = "explainer-signature/v1"
 #: v2 adds ``sections``: the section keys the signature approves (F21-R13; D-3 v3.31).
 SCHEMA_V2 = "explainer-signature/v2"
-SCHEMAS: frozenset[str] = frozenset({SCHEMA, SCHEMA_V2})
+#: v3 adds ``via`` (F23-R10, R11; D-3 v3.33): read exactly as v2 everywhere.
+SCHEMA_V3 = "explainer-signature/v3"
+SCHEMAS: frozenset[str] = frozenset({SCHEMA, SCHEMA_V2, SCHEMA_V3})
 EXPLAINER_DIR = "explainer"
 SIGNED_DIR = "signed"
 #: A cited name ending so is a file of the graph, never a constant (F22-T12).
@@ -219,6 +221,34 @@ def sign(  # noqa: PLR0913 — one argument per fact the record carries
     path.write_text(yaml.safe_dump(doc, sort_keys=False, allow_unicode=True), encoding="utf-8")
     log.info("explainer: %s signed %s on %s", signer_login, explainer_hash[:12], node_dir.name)
     return path
+
+
+def signature_document_v3(  # noqa: PLR0913 — one argument per fact the record carries
+    *,
+    target_id: str,
+    node_id: str,
+    explainer_hash: str,
+    signer_login: str,
+    date: str,
+    sections: list[str] | None,
+    via: str = signed.VIA_APPROVAL_KEY,
+) -> dict[str, Any]:
+    """F23-R10: the unsigned ``explainer-signature/v3`` record, which the service signs with the
+    approval key (``signed.body`` is what the signature is over, with ``key`` set first).
+    ``sections`` ``None`` approves every section."""
+    doc: dict[str, Any] = {
+        "schema": SCHEMA_V3,
+        "target": target_id,
+        "node": node_id,
+        "explainer": explainer_hash,
+        "affirmation": AFFIRMATION,
+        "signer": signer_login,
+        "date": date[:10],
+        signed.VIA_FIELD: via,
+    }
+    if sections is not None:
+        doc["sections"] = list(dict.fromkeys(sections))
+    return doc
 
 
 def read_signature(path: Path) -> Signature:

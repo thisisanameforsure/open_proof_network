@@ -430,7 +430,12 @@ def head_problems(
 SIGNATURE_SCHEMA = "gloss-signature/v1"
 #: v2 adds ``sections``: the section keys the signature approves (F21-R13; D-3 v3.31).
 SIGNATURE_SCHEMA_V2 = "gloss-signature/v2"
-SIGNATURE_SCHEMAS: frozenset[str] = frozenset({SIGNATURE_SCHEMA, SIGNATURE_SCHEMA_V2})
+#: v3 adds ``via`` (F23-R10, R11; D-3 v3.33): signed through the service with the approval key,
+#: or with the signer's own SSH key. Read exactly as v2 everywhere.
+SIGNATURE_SCHEMA_V3 = "gloss-signature/v3"
+SIGNATURE_SCHEMAS: frozenset[str] = frozenset(
+    {SIGNATURE_SCHEMA, SIGNATURE_SCHEMA_V2, SIGNATURE_SCHEMA_V3}
+)
 SIGNED_DIR = "signed"
 AFFIRMATION = "I have read this against the Lean it names, and it says what the Lean says."
 _HASH_RE = re.compile(r"^[0-9a-f]{64}$")
@@ -576,6 +581,34 @@ def next_signature_path(parent_dir: Path, gloss: str) -> Path:
         if (m := _SIGNATURE_RE.match(p.name)) is not None and m.group("hash") == gloss
     }
     return directory / f"{gloss}-{max(taken, default=0) + 1}.yaml"
+
+
+def signature_document_v3(  # noqa: PLR0913 — one argument per fact the record carries
+    *,
+    target_id: str,
+    node_id: str | None,
+    gloss: str,
+    signer_login: str,
+    date: str,
+    sections: list[str] | None = None,
+    via: str = signed.VIA_APPROVAL_KEY,
+) -> dict[str, Any]:
+    """F23-R10: the unsigned ``gloss-signature/v3`` record, which the service signs with the
+    approval key (``signed.body`` is what the signature is over, with ``key`` set first).
+    ``sections`` ``None`` approves the whole gloss."""
+    doc: dict[str, Any] = {
+        "schema": SIGNATURE_SCHEMA_V3,
+        "target": target_id,
+        "node": node_id,
+        "gloss": gloss,
+        "affirmation": AFFIRMATION,
+        "signer": signer_login,
+        "date": date[:10],
+        signed.VIA_FIELD: via,
+    }
+    if sections is not None:
+        doc["sections"] = list(dict.fromkeys(sections))
+    return doc
 
 
 def sign(  # noqa: PLR0913 — one argument per fact the record carries
