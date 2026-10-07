@@ -174,9 +174,9 @@ def problems_of(
     login through GitHub) ends any commitment of that login; an SSH-signed step-down ends only a
     commitment SSH-signed with the same key (F15-R1), since nothing binds an SSH key to a
     login whose commitment was made through the site. Whether an approval-key record's key is
-    the graph's approval key is a fact about the merge's parent tree, which the gate checks before it merges
-    (``opn_gate.modes.check_steward_record``); read here, after any later rotation, it would
-    unmake records that were admitted under the key of their day."""
+    the graph's approval key is a fact about the merge's parent tree, which the gate checks
+    before it merges (``opn_gate.modes.check_steward_record``); read here, after any later
+    rotation, it would unmake records that were admitted under the key of their day."""
     problems: list[str] = []
     if not LOGIN_RE.match(record.login):
         problems.append(f"steward-login: {record.login!r} is not a GitHub login")
