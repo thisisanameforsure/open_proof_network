@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>F24 — The steward panel</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="crumbs"><a href="../index.html">specs</a> / F24</nav>
+<h1>F24 — The steward panel</h1>
+<p class="subtitle">A problem's stewards decide together, by votes in which only those who vote
+count. They bring in experts after a proof appears. They publish together, and the problem's page
+shows its most official write-up.</p>
+
+<h2>1. Summary</h2>
+<p>On 2026-10-07 and 2026-10-08 the owner ruled that a complex proof is understood and written up
+by several people. Those people must work and publish together, and experts may be brought in after
+a proof appears. A significant share of the sitting stewards must agree before the panel acts.
+Decisions v3.34 (D-32) is the protocol. F24 builds it:</p>
+<ul>
+  <li><strong>Settings in one place.</strong> Every number the panel runs on lives in
+    <code>policy.json</code> (<code>policy/v3</code>). Each value carries its day, its reason and a
+    description. The site shows them on a rules page.</li>
+  <li><strong>Motions and votes.</strong> Two new signed records, <code>motion/v1</code> and
+    <code>vote/v1</code>, are tallied by derivation and never rewritten.</li>
+  <li><strong>Admission.</strong> A target's first steward is admitted under the existing switch.
+    Every later steward comes by a passed invitation or by a curator. A cap limits how many problems
+    one person stewards, and a steward who goes quiet lapses.</li>
+  <li><strong>Write-ups.</strong> The <code>writeup/v2</code> record carries a write-up's life from
+    drafted to accepted. The products name the official write-up and its coauthors.</li>
+</ul>
+
+<h2>2. User stories</h2>
+<ul>
+  <li>As a steward of a resolved problem, I invite an analyst for the analytic step. My co-stewards
+    vote yes over the next two weeks. The analyst accepts and is on the panel.</li>
+  <li>As one of five stewards, I vote on the write-up. Two of us vote and three stay silent, and
+    our two votes decide it.</li>
+  <li>As a steward who helped prove the result, I sign the paper as an author. My vote on its
+    verification is shown but not counted.</li>
+  <li>As a reader, I see the problem's paper at "submitted to <em>Annals</em>", with its arXiv
+    link, and I can open the earlier drafts.</li>
+  <li>As the owner, I change the voting window from 14 days to 21 by one pull request with a
+    reason. The rules page shows the new value and why.</li>
+</ul>
+
+<h2>3. Scope</h2>
+<p><strong>In:</strong> the five records and <code>targets-index/v9</code>; the gate's admission of
+each; the products' tallies, lapse, stages and coauthors; three service routes
+(<code>POST /motions</code>, <code>POST /votes</code>, <code>POST /writeups</code>) and the
+invitation path on <code>POST /stewards</code>; the site's panel, write-up and rules views and the
+<code>/me/</code> list of what waits.</p>
+<p><strong>Out:</strong> MCP tools (only a person holds these roles, as in F23); email; chat or
+discussion (the owner deferred Zulip on 2026-10-08); section claims (declined 2026-10-08);
+checking a journal's decision against the journal.</p>
+
+<h2>4. Requirements</h2>
+<table>
+  <tr><th>ID</th><th>Requirement (EARS)</th></tr>
+  <tr><td>F24-R1</td><td><code>policy.json</code> at <code>policy/v3</code> shall carry
+    <code>panel</code>: <code>vote_threshold</code>, <code>vote_window_days</code>,
+    <code>vote_minimum</code>, <code>vote_minimum_from</code>, <code>steward_cap</code> and
+    <code>steward_lapse_days</code>, each <code>{value, since, reason}</code>. When the file is
+    absent or older, each setting shall take its default (1/2, 14, 2, 3, 5, 183) with null
+    <code>since</code> and <code>reason</code>. A change shall apply only to motions opened after
+    the commit that made it.</td></tr>
+  <tr><td>F24-R2</td><td>A motion (<code>targets/&lt;id&gt;/motions/&lt;n&gt;.yaml</code>) shall be
+    opened only by a member of the target's panel or a listed curator. Its window closes
+    <code>vote_window_days</code> after its date. It shall be <code>passed</code> at once when it is
+    an invitation opened by a curator, or when its opener is the only counted member. Otherwise it
+    shall be <code>open</code> until the window closes, then <code>passed</code> when the counted
+    yes votes are at least the threshold share of counted votes, more than the no votes, and at
+    least <code>vote_minimum</code> when the panel had <code>vote_minimum_from</code> or more
+    members at opening. Otherwise it shall be <code>failed</code>.</td></tr>
+  <tr><td>F24-R3</td><td>A vote shall count only when it is cast by a member of the panel as it
+    stood on the motion's date, within the window. Only the voter's latest vote counts. On
+    <code>verify-writeup</code> and <code>authorship-threshold</code>, a member who holds proof
+    credit on the target (<code>ledger.holds_proof_line</code>) shall be listed as uncounted. When no
+    member remains counted, listed curators' votes shall count in the panel's place.</td></tr>
+  <tr><td>F24-R4</td><td>The panel shall be the target's active stewards who have not lapsed. A
+    steward lapses when their latest signed act on the target is more than
+    <code>steward_lapse_days</code> before the rendered commit's day. Signed acts are their steward
+    records, motions, votes, write-up records and words signatures on the target. A commitment shall
+    be admitted as follows:
+    <ul>
+      <li><code>self</code> only while the target has no panel member, under open admission;</li>
+      <li>a listed curator's login at any time;</li>
+      <li><code>motion:&lt;n&gt;</code> only when motion n is a passed invitation naming the
+        login.</li>
+    </ul>
+    The gate shall refuse any commitment that takes its login over <code>steward_cap</code> active,
+    unlapsed stewardships. Lapsed stewards shall not count for claimability.</td></tr>
+  <tr><td>F24-R5</td><td>A write-up (<code>writeup/v2</code>) shall start with a
+    <code>record</code> naming its authors, made by anyone signed in. Each later act shall be signed
+    by a listed author and name the record. The stage shall be the highest of the following that
+    holds:
+    <ul>
+      <li><code>drafted</code>: the record names a model;</li>
+      <li><code>written</code>: the record was made by a person;</li>
+      <li><code>steward-signed</code>: the record's signer or a signing author is a steward of the
+        target or a curator;</li>
+      <li><code>panel-verified</code>: a <code>verify-writeup</code> motion naming it passed;</li>
+      <li><code>released</code>: every author has signed;</li>
+      <li><code>on-arxiv</code>, <code>submitted</code>, <code>accepted</code>: the matching record
+        exists.</li>
+    </ul>
+    A <code>rejected</code> after the latest <code>submitted</code> shall return the stage to
+    <code>on-arxiv</code>, or to <code>released</code> when it has none. A <code>withdrawn</code>
+    shall be final. A <code>writeup/v1</code> record shall read as a <code>steward-signed</code>
+    record whose only author is its signer.</td></tr>
+  <tr><td>F24-R6</td><td><code>targets/index.json</code> at <code>targets-index/v9</code> shall
+    publish the panel settings in force and each steward's <code>last_act</code> and
+    <code>lapsed</code>. It shall publish each target's <code>panel</code>: members, and every
+    motion with its state, tallies and uncounted voters.</td></tr>
+  <tr><td>F24-R7</td><td>The index shall publish each target's <code>writeups</code>: every
+    write-up with its stage, authors, signers, coauthors and venue, and <code>official</code>. The
+    official write-up is the one at the highest stage, the newest within a stage, never a withdrawn
+    one. Coauthors are panel members who signed the write-up or signed a words section on the
+    target.</td></tr>
+  <tr><td>F24-R8</td><td>The service shall accept <code>POST /motions</code>,
+    <code>POST /votes</code> and <code>POST /writeups</code> from a web session, as
+    <code>POST /stewards</code> does. Each shall write the record from the signed-in login, sign it
+    with the approval key, and open an <code>append/</code> pull request. Before opening anything,
+    it shall refuse by name what the gate would refuse: not a member, window closed, unknown motion,
+    not an author, already signed. <code>POST /stewards</code> shall take a <code>motion</code>
+    number for an invited commitment and shall refuse <code>self</code> when the target has a panel.
+    <code>GET /session</code> shall list the motions awaiting the login's vote and the invitations
+    awaiting their acceptance.</td></tr>
+  <tr><td>F24-R9</td><td>The site shall show, on a target page:
+    <ul>
+      <li>the panel, with lapsed stewards apart;</li>
+      <li>open and decided motions with their tallies;</li>
+      <li>vote, invite and accept controls for those entitled;</li>
+      <li>the official write-up with its stage on the ladder, and links to the others.</li>
+    </ul>
+    A rules page shall list every panel setting with its value, description, day and reason.
+    <code>/me/</code> shall list what waits for the reader.</td></tr>
+  <tr><td>F24-R10</td><td>The gate shall refuse, by name, the following:
+    <ul>
+      <li>a motion, vote or write-up record dated more than one day from its own clock;</li>
+      <li>a vote outside its window, by a non-member, or on a motion that does not exist;</li>
+      <li>a second open invitation for the same login;</li>
+      <li>a write-up act by someone who is not an author, or a second signature by the same
+        author.</li>
+    </ul></td></tr>
+</table>
+
+<h2>5. Acceptance criteria</h2>
+<table>
+  <tr><th>ID</th><th>Criterion</th><th>Test</th></tr>
+  <tr><td>AC1</td><td>Every new schema accepts its examples and refuses its counter-examples.</td><td><code>gate/tests/test_schemas_f24.py</code></td></tr>
+  <tr><td>AC2</td><td>Tallies: abstentions count neither way; 2 of 5 voting yes passes; 1 of 5 fails on the minimum; 1 of 2 passes; a tie fails; 2/3 needs two of three; a vote after the window or a non-member's vote is ignored; the latest vote counts.</td><td><code>gate/tests/test_panel.py</code></td></tr>
+  <tr><td>AC3</td><td>Provers' votes are uncounted on the two write-up motions and counted on invitations; with only provers, curators' votes count.</td><td><code>gate/tests/test_panel.py</code></td></tr>
+  <tr><td>AC4</td><td>Lapse and cap: a steward with no act for the lapse period leaves the panel and comes back on a new act; a fifth stewardship is admitted and a sixth refused; lapsed ones do not count.</td><td><code>gate/tests/test_panel.py</code>, <code>gate/tests/test_modes_panel.py</code></td></tr>
+  <tr><td>AC5</td><td>Admission: a second steward's <code>self</code> commit is refused; a <code>motion:n</code> commit is admitted only for a passed invitation naming that login; a curator's admission is always accepted.</td><td><code>gate/tests/test_modes_panel.py</code></td></tr>
+  <tr><td>AC6</td><td>Write-up stages, the rejection step back, withdrawal, the official pick and the coauthors.</td><td><code>gate/tests/test_writeup_stages.py</code></td></tr>
+  <tr><td>AC7</td><td>Each refusal in R10 is a named diagnostic, and a valid record of each kind passes.</td><td><code>gate/tests/test_modes_panel.py</code></td></tr>
+  <tr><td>AC8</td><td>The index validates as v9 and carries the panel, lapse and write-ups; the goldens are regenerated.</td><td><code>gate/tests/test_targets_index_v9.py</code></td></tr>
+  <tr><td>AC9</td><td>The three routes and the invitation path write records the gate accepts. They refuse each R8 case with nothing opened.</td><td><code>api/tests/test_panel_routes.py</code></td></tr>
+  <tr><td>AC10</td><td>The site renders the panel, the motions, the write-up ladder and the rules page from a v9 index. Controls appear only for those entitled. Screenshots at 1440 and 390 pixels are checked by eye.</td><td><code>site/tests/test_panel_pages.py</code></td></tr>
+</table>
+
+<h2>6. Budgets / limits</h2>
+<p>The new routes have the same rate limits as <code>POST /stewards</code>. Records are under 4 KiB. Tallying is linear in the target's records.</p>
+
+<h2>7. Security &amp; privacy notes</h2>
+<ul>
+  <li><strong>Dates are bound to the gate's clock.</strong> The gate refuses a record dated more
+    than a day from its own day, so no one can write a vote into a closed window (R10). This
+    follows the 2026-09-19 rule: when a rule needs "newer", ask who wrote the clock.</li>
+  <li><strong>Every record is signed.</strong> The service signs with the approval key, or the
+    person signs with their own SSH key, and the gate verifies against the parent tree's
+    <code>keys/approval.pub</code>, as F23 does.</li>
+  <li><strong>Free text is escaped.</strong> A note or a journal name is escaped wherever it is
+    shown. URLs pass the site's allowlist built from validated records (F11-Q11). arXiv identifiers
+    and DOIs become links only through fixed templates.</li>
+</ul>
+
+<h2>8. Dependencies</h2>
+<p>F15 (stewards, write-ups, policy), F21 (words signatures), F23 (web session, approval key).</p>
+
+<h2>9. Open questions / judgment calls</h2>
+<table>
+  <tr><th>ID</th><th>Question / call</th></tr>
+  <tr><td>F24-Q1</td><td><strong>A curator adds a steward through an invitation that passes at once.</strong>
+    The commitment sentence is the steward's own. A curator therefore cannot write a record for
+    someone else, and the invitee still accepts. A curator's own login in <code>admitted_by</code>
+    also stays valid, which is the reviewed path. Ruled 2026-10-08: "a curator can add a steward
+    without any stall".</td></tr>
+  <tr><td>F24-Q2</td><td><strong>The threshold is a fraction.</strong> A motion passes when yes votes are
+    at least that share of counted votes and more than the no votes. This makes 1/2 a strict
+    majority and 2/3 an inclusive two-thirds, the owner's "change to 2/3 later" without a second
+    rule. A float would make 2 of 3 fail at 0.666.</td></tr>
+  <tr><td>F24-Q3</td><td><strong>Lapse is measured in days.</strong> The setting is
+    <code>steward_lapse_days</code> = 183, for the owner's six months, so no calendar arithmetic
+    enters the gate.</td></tr>
+  <tr><td>F24-Q4</td><td><strong>"Withdrawn" is a stage of its own.</strong> The owner did not
+    answer the question, so this follows the recommendation given on 2026-10-08 and can be reversed
+    in one commit.</td></tr>
+  <tr><td>F24-Q5</td><td><strong>A lapsed steward does not count for claimability.</strong> A
+    stewarded problem with no act for six months becomes stewardless, which matters only while
+    <code>steward_rule.enforced</code> is true. It is the literal reading of "drops off the panel"
+    and is flagged for the owner.</td></tr>
+  <tr><td>F24-Q6</td><td><strong>Where the drafted and written stages come from.</strong> They are
+    reached only through write-up records, which anyone signed in may now make. They are not
+    reached through a proof's explainer, which F20 and F21 already label. The index's stage is about
+    papers and notes.</td></tr>
+</table>
+
+<h2>10. Status</h2>
+<div class="rule"><strong>status:</strong> building ·
+  <strong>Tasks:</strong> T0 ✓ 2026-10-08 (dc18815, decisions v3.34) · T1 ✓ 2026-10-08 (six schemas, HASHES, info goldens; AC1 green, 51 cases) · T2 –  · T3 –  · T4 –  · T5 –  · T6 – </div>
+
+<h2>Tasks</h2>
+<p class="status-note">Dependency-ordered. Red before green: each new test fails on the missing
+behaviour, with the seam in at today's behaviour.</p>
+<table>
+  <tr><th>ID</th><th>Task</th><th>Files</th><th>Deps</th><th>Verification</th></tr>
+  <tr><td>F24-T0</td><td>Apply decisions v3.34.</td><td><code>docs/architecture_decisions.html</code></td><td>—</td><td>the tests that read the decisions doc</td></tr>
+  <tr><td>F24-T1</td><td>Schemas <code>policy/v3</code>, <code>steward/v3</code>, <code>motion/v1</code>, <code>vote/v1</code>, <code>writeup/v2</code> and <code>targets-index/v9</code>, with HASHES and the info goldens.</td><td><code>gate/schemas/</code>, goldens</td><td>T0</td><td>AC1; <code>make verify</code></td></tr>
+  <tr><td>F24-T2</td><td>The panel library: policy settings with defaults, motions, votes, tallies, lapse, cap, the admission rule, write-up stages, the official pick and coauthors.</td><td><code>gate/opn_gate/policy.py</code>, <code>panel.py</code>, <code>writeup.py</code>, <code>steward.py</code></td><td>T1</td><td>AC2–AC4, AC6</td></tr>
+  <tr><td>F24-T3</td><td>The gate admits motions, votes, steward v3 and write-up v2 records by those rules (R4, R10).</td><td><code>gate/opn_gate/modes.py</code>, <code>paths.py</code>, <code>codes.py</code></td><td>T2</td><td>AC4, AC5, AC7</td></tr>
+  <tr><td>F24-T4</td><td>The products: <code>targets-index/v9</code>, lapse in claimability, and goldens.</td><td><code>gate/opn_gate/products.py</code>, goldens, api fixtures</td><td>T2</td><td>AC8</td></tr>
+  <tr><td>F24-T5</td><td>The service routes and the invitation path (R8).</td><td><code>api/opn_api/panel.py</code>, <code>stewards.py</code>, <code>session.py</code>, <code>routes.py</code></td><td>T2</td><td>AC9</td></tr>
+  <tr><td>F24-T6</td><td>The site: the panel and write-up sections, the controls, the rules page, <code>/me/</code>, and the Docs stewards text (R9).</td><td><code>site/opn_site/</code></td><td>T4</td><td>AC10, screenshots</td></tr>
+</table>
+</body>
+</html>

@@ -1242,7 +1242,7 @@ def test_index_v6_fields(tmp_path: Path) -> None:
     for name in ("steward", "explainer-signature", "writeup", "policy"):
         # F21 publishes explainer-signature/v2 beside v1; what this pins is that F15's are named
         assert 1 in info["schemas"][name], name
-    assert info["schemas"]["target"] == [1, 2] and info["schemas"]["targets-index"][-1] == 8
+    assert info["schemas"]["target"] == [1, 2] and 8 in info["schemas"]["targets-index"]
 
     # R3: the policy file, present and enforced, is published at the top; a malformed one is a
     # graph defect that stops the products (C7).

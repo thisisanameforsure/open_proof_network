@@ -72,10 +72,12 @@ def test_known_schemas_are_the_published_set() -> None:
         "meta/v3",
         "meta/v4",
         "meta/v5",
+        "motion/v1",
         "node-status/v1",
         "outline/v1",
         "policy/v1",
-        "policy/v2",  # F23-T1 (steward_admission)
+        "policy/v2",
+        "policy/v3",  # F23-T1 (steward_admission)
         "postmortem/v1",
         "precheck-record/v1",
         "proposed-for/v1",
@@ -86,7 +88,8 @@ def test_known_schemas_are_the_published_set() -> None:
         "revision-request/v2",
         "statement-evidence/v1",
         "steward/v1",
-        "steward/v2",  # F23-T1 (via, admitted_by)
+        "steward/v2",
+        "steward/v3",  # F23-T1 (via, admitted_by)
         "submission-meta/v1",
         "target-status/v1",
         "target-status/v2",
@@ -100,10 +103,13 @@ def test_known_schemas_are_the_published_set() -> None:
         "targets-index/v6",
         "targets-index/v7",
         "targets-index/v8",
+        "targets-index/v9",
+        "vote/v1",
         "waiver/v1",
         "withdrawal/v1",
         "withdrawal/v2",
         "writeup/v1",
+        "writeup/v2",
     )
 
 

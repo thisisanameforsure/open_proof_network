@@ -1,0 +1,186 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openproof.network/schemas/motion/v1.json",
+  "title": "motion/v1",
+  "description": "targets/<id>/motions/<n>.yaml (F24-R2; D-32 v3.34): a question put to the target's steward panel, opened by a steward of the target or a listed curator. It is decided when its window closes (policy.json vote_window_days after `date`), on the votes cast. An invitation opened by a curator passes when it is opened, and so does any motion opened by the only counted member of the panel; the invitee still joins only by their own steward record naming it. Append-only; versioned, never edited (D-34).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "target",
+    "kind",
+    "subject",
+    "opened_by",
+    "date",
+    "via",
+    "key",
+    "signature"
+  ],
+  "properties": {
+    "schema": {
+      "const": "motion/v1"
+    },
+    "target": {
+      "$ref": "#/$defs/identifier"
+    },
+    "kind": {
+      "description": "`invite`: admit `subject.login` as a steward. `verify-writeup`: the panel verifies write-up `subject.writeup`. `authorship-threshold`: set the ledger threshold above which contributors are coauthors to `subject.threshold`.",
+      "enum": [
+        "invite",
+        "verify-writeup",
+        "authorship-threshold"
+      ]
+    },
+    "subject": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "maxProperties": 2,
+      "properties": {
+        "login": {
+          "$ref": "#/$defs/login"
+        },
+        "note": {
+          "description": "For an invitation: the part of the work the invitee is asked for, in a sentence (an area of the proof). Free text, escaped where shown.",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 300
+        },
+        "writeup": {
+          "description": "The write-up's number n in targets/<id>/writeup/<n>.yaml.",
+          "type": "integer",
+          "minimum": 1
+        },
+        "threshold": {
+          "description": "The ledger threshold (D-32): entries above it are coauthors.",
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "opened_by": {
+      "description": "The login of the steward or curator who opened the motion.",
+      "$ref": "#/$defs/login"
+    },
+    "date": {
+      "description": "The day the record was made (UTC). The gate refuses a record dated more than one day from its own clock, so a date cannot be written into an old window.",
+      "$ref": "#/$defs/day"
+    },
+    "via": {
+      "description": "How the signature was made (D-3, D-32 v3.33): `ssh`, by the signer's own SSH key; `approval-key`, by the network's approval key through the service, for a login signed in with GitHub on the site, in which case `key` must equal the graph's keys/approval.pub in the merge's parent tree.",
+      "enum": [
+        "ssh",
+        "approval-key"
+      ]
+    },
+    "key": {
+      "description": "The SSH public key the signature verifies under: the steward's own (`via: ssh`) or the network's approval key (`via: approval-key`).",
+      "$ref": "#/$defs/public_key"
+    },
+    "signature": {
+      "description": "An OpenSSH SSHSIG armored signature over the record's canonical body, made with the private half of `key`.",
+      "$ref": "#/$defs/sshsig"
+    }
+  },
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]*$"
+    },
+    "login": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9](?:-?[A-Za-z0-9]){0,38}$"
+    },
+    "day": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+    },
+    "url": {
+      "type": "string",
+      "pattern": "^https://",
+      "maxLength": 500
+    },
+    "public_key": {
+      "type": "string",
+      "pattern": "^ssh-ed25519 [A-Za-z0-9+/=]+( [^\\n]*)?$",
+      "maxLength": 1000
+    },
+    "sshsig": {
+      "type": "string",
+      "pattern": "^-----BEGIN SSH SIGNATURE-----\\n[A-Za-z0-9+/=\\n]+-----END SSH SIGNATURE-----\\n?$",
+      "maxLength": 4000
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "invite"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "subject": {
+            "required": [
+              "login"
+            ],
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "writeup"
+                  ]
+                },
+                {
+                  "required": [
+                    "threshold"
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "verify-writeup"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "subject": {
+            "required": [
+              "writeup"
+            ],
+            "maxProperties": 1
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "authorship-threshold"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "subject": {
+            "required": [
+              "threshold"
+            ],
+            "maxProperties": 1
+          }
+        }
+      }
+    }
+  ]
+}
