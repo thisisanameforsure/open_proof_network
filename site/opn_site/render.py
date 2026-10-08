@@ -867,6 +867,36 @@ def esc(value: object) -> str:
     return escape(str(value), quote=True)
 
 
+#: F04-T36: the longest outline title shown before it is cut (its first line; the whole text is
+#: on the statement's record page).
+TITLE_LIMIT = 140
+#: What may close a sentence, and what may follow its last mark ("(see below.)", a closing quote).
+SENTENCE_ENDS = (".", "?", "!", "…")
+SENTENCE_CLOSERS = ")]}\"'\u2019\u201d\u00bb"  # and the curly closing quotes, guillemet
+
+
+def clip(text: str, limit: int = TITLE_LIMIT) -> str:
+    """F04-T36: ``text`` whole when it fits, else cut at the last space within ``limit`` and
+    marked with "…" — never mid-word. A text with no space to cut at is cut at ``limit``."""
+    if len(text) <= limit:
+        return text
+    head = text[:limit]
+    if text[limit].isspace() or head[-1].isspace():  # the limit falls between words
+        cut = head
+    elif any(c.isspace() for c in head.strip()):
+        cut = head.rsplit(None, 1)[0]
+    else:
+        cut = head
+    return cut.rstrip(" ,;:-\u2013\u2014") + "…"  # no dangling comma or dash before the mark
+
+
+def sentence(text: str) -> str:
+    """F04-T36: ``text`` ended as a sentence — with a full stop added only when it does not
+    already end with one of ``SENTENCE_ENDS`` (before any closing bracket or quote)."""
+    stripped = text.rstrip()
+    return stripped if stripped.rstrip(SENTENCE_CLOSERS).endswith(SENTENCE_ENDS) else stripped + "."
+
+
 def math(text: str, *, allowed_urls: frozenset[str] = frozenset()) -> str:
     """Record prose that may carry TeX between dollar signs (F04-T13) and a registry
     docstring's inline Markdown (T19): escaped like everything from the graph, the four inline
@@ -1246,10 +1276,16 @@ class Renderer:
         items = []
         for a in nv.annexes:
             digest = Path(a.path).stem
-            title = next(
-                (line.strip().lstrip("#").strip() for line in a.text.splitlines() if line.strip()),
-                "untitled",
-            )[:140]
+            title = clip(
+                next(
+                    (
+                        line.strip().lstrip("#").strip()
+                        for line in a.text.splitlines()
+                        if line.strip()
+                    ),
+                    "untitled",
+                )
+            )
             by = f" by {esc(a.author)}" if a.author else ""
             following = [d for d in decomps if d.get("annex") == digest]
             node_dir = Path(nv.statement_path).parent.as_posix()
@@ -2041,7 +2077,7 @@ class Renderer:
             status_tag=self.status_tag(tv),
             fidelity_tag=self.fidelity_tag(tv),
             informal=self.informal_words(tv),
-            provenance=(f"{esc(title)}. " if title else "") + self.source_line(tv),
+            provenance=(f"{esc(sentence(title))} " if title else "") + self.source_line(tv),
             stages=self.stage_marks(tv),
             claimable=self.target_claimable(tv),
             calibration=self.calibration_label(tv),

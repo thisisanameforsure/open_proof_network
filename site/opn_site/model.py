@@ -507,6 +507,30 @@ def _load_drift(target_dir: Path) -> tuple[watch.DriftRecord, ...]:
         raise SiteError(msg) from exc
 
 
+def _front_matter_strings(head: str) -> dict[str, str]:
+    """The front matter's top-level string values, each as the text it is written as.
+
+    F04-T36: the head is YAML (``annex/v2`` folds a long ``model_and_tooling`` over several
+    lines), so it is read as YAML — with ``BaseLoader``, which builds only strings, lists and
+    mappings, so a timestamp stays the text the contributor wrote rather than a datetime printed
+    back differently, and ``null`` stays the word (``_YAML_NULLS`` reads it as nothing). A head
+    that is not YAML (``model: tool: v2``) is read line by line as before, so one contributor's
+    malformed head neither takes a page down nor loses the fields it does state.
+    """
+    try:
+        doc = yaml.load(head, Loader=yaml.BaseLoader)  # noqa: S506 — BaseLoader builds strings only
+    except yaml.YAMLError:
+        doc = None
+    if isinstance(doc, dict):
+        return {str(k): v.strip() for k, v in doc.items() if isinstance(v, str)}
+    raw: dict[str, str] = {}
+    for line in head.splitlines():
+        key, sep, value = line.partition(":")
+        if sep:
+            raw[key.strip()] = value.strip().strip("\"'")
+    return raw
+
+
 def parse_prose(path: Path, root: Path) -> Prose:
     """A text file with optional YAML-style front matter naming author, model, date and licence
     (``PROSE_KEYS``: an explainer's names and an annex's)."""
@@ -514,10 +538,7 @@ def parse_prose(path: Path, root: Path) -> Prose:
     raw: dict[str, str] = {}
     m = _FRONT_MATTER_RE.match(text)
     if m:
-        for line in m.group("head").splitlines():
-            key, sep, value = line.partition(":")
-            if sep:
-                raw[key.strip()] = value.strip().strip("\"'")
+        raw = _front_matter_strings(m.group("head"))
         text = m.group("body")
     meta = {
         field: next((raw[k] for k in keys if raw.get(k, "") not in _YAML_NULLS), None)
