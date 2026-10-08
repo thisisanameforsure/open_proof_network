@@ -29,7 +29,20 @@ def ok(doc: dict[str, Any], schema: str) -> bool:
     return True
 
 
-MOTION = {"schema": "motion/v1", **SIGNED, "opened_by": "alice"}
+SETTINGS = {
+    "vote_threshold": {"numerator": 1, "denominator": 2},
+    "vote_window_days": 14,
+    "vote_minimum": 2,
+    "vote_minimum_from": 3,
+}
+MOTION = {"schema": "motion/v1", **SIGNED, "opened_by": "alice", "settings": SETTINGS}
+
+
+def test_a_motion_carries_the_settings_it_was_opened_under() -> None:
+    doc = {**MOTION, "kind": "invite", "subject": {"login": "bob"}}
+    assert ok(doc, "motion/v1")
+    assert not ok({k: v for k, v in doc.items() if k != "settings"}, "motion/v1")
+    assert not ok({**doc, "settings": {**SETTINGS, "vote_window_days": 0}}, "motion/v1")
 
 
 @pytest.mark.parametrize(
