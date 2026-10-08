@@ -117,11 +117,15 @@ class LeanFile:
 
 @dataclass(frozen=True)
 class PartialView:
-    """One ``attempts/*.lean`` partial assembly (D-3, D-12 #5) and the postmortem naming it.
+    """One ``attempts/*.lean`` partial assembly (D-3, D-12 #5) and the records naming it.
 
-    A partial is contributor text no attestation covers, so it renders untrusted (R4). The
-    record is optional: the live graph carries partials that no ``postmortem/v1`` file names,
-    and ``records.count_attempts`` already counts those as attempts in their own right.
+    A partial is contributor text no hash in the record binds, so it renders untrusted (R4).
+    Two records can name it, both optional: a ``postmortem/v1`` file (``record_path``, its
+    ``contributor`` and typed fields), and — for a partial that merged — the passing attestation
+    whose step 2 took the file (``graph.partials_of``; F04-T35). That attestation is a pass
+    against the parent's statement hash and proves nothing (F03-Q7); what it records is who
+    submitted the file and the merge that filed it. The live graph carries partials neither
+    names, and ``records.count_attempts`` already counts those as attempts in their own right.
     """
 
     file: LeanFile
@@ -131,6 +135,10 @@ class PartialView:
     outcome: str | None = None
     failure_class: str | None = None
     record_path: str | None = None
+    #: F04-T35: from the merged attestation that took this file as a partial, when one did.
+    attestation_path: str | None = None
+    merge_commit: str | None = None
+    submitter: str | None = None
 
 
 @dataclass(frozen=True)
@@ -624,8 +632,28 @@ def _lean_file(root: Path, path: Path, *, attested_hash: str | None = None) -> L
     )
 
 
-def _partials_for(root: Path, node_dir: Path) -> tuple[PartialView, ...]:
-    """Every partial assembly under ``attempts/``, with the record naming it when one does.
+def _merged_partials(
+    root: Path, node_id: str, statement_hash: str
+) -> dict[str, tuple[dict[str, Any], str]]:
+    """F04-T35: each partial of the node that merged, by its path under the node directory, with
+    the attestation that took it — the gate's own reading (``graph.partials_of``: passing,
+    merged, this node and its current statement, step 2's ``partial-submission`` path). The
+    first attestation naming a path is the one that filed it."""
+    try:
+        attestations = graphmod.load_attestations(root)
+    except graphmod.GraphError as exc:
+        raise SiteError(str(exc)) from exc
+    docs = dict(attestations)
+    out: dict[str, tuple[dict[str, Any], str]] = {}
+    for rec in graphmod.partials_of(node_id, statement_hash, attestations):
+        out.setdefault(rec.path, (docs[rec.attestation], f"attestations/{rec.attestation}"))
+    return out
+
+
+def _partials_for(
+    root: Path, node_dir: Path, node_id: str, statement_hash: str
+) -> tuple[PartialView, ...]:
+    """Every partial assembly under ``attempts/``, with the records naming it when any do.
 
     An alternate is a proof, not an attempt (D-25 v3.13), and has its own view. A postmortem
     that does not validate is skipped rather than refused: ``records.load_attempts`` already
@@ -635,6 +663,12 @@ def _partials_for(root: Path, node_dir: Path) -> tuple[PartialView, ...]:
     attempts = node_dir / "attempts"
     if not attempts.is_dir():
         return ()
+    lean_files = [
+        p for p in sorted(attempts.glob("*.lean")) if not p.name.endswith(paths.ALTERNATE_SUFFIX)
+    ]
+    if not lean_files:
+        return ()
+    merged = _merged_partials(root, node_id, statement_hash)
     named: dict[str, tuple[dict[str, Any], str]] = {}
     for path in sorted(p for p in attempts.iterdir() if p.suffix in records.ATTEMPT_SUFFIXES):
         try:
@@ -645,13 +679,12 @@ def _partials_for(root: Path, node_dir: Path) -> tuple[PartialView, ...]:
         if isinstance(partial, str):
             named[PurePosixPath(partial).name] = (doc, path.relative_to(root).as_posix())
     views: list[PartialView] = []
-    for path in sorted(attempts.glob("*.lean")):
-        if path.name.endswith(paths.ALTERNATE_SUFFIX):
-            continue
+    for path in lean_files:
         lean = _lean_file(root, path)
         if lean is None:  # pragma: no cover — glob yields only files
             continue
         doc, record_path = named.get(path.name, ({}, ""))
+        att, att_path = merged.get(f"attempts/{path.name}", ({}, ""))
 
         def field(key: str, doc: dict[str, Any] = doc) -> str | None:
             value = doc.get(key)
@@ -666,6 +699,9 @@ def _partials_for(root: Path, node_dir: Path) -> tuple[PartialView, ...]:
                 outcome=field("outcome"),
                 failure_class=field("failure_class"),
                 record_path=record_path or None,
+                attestation_path=att_path or None,
+                merge_commit=field("merge_commit", att),
+                submitter=field("submitter", att),
             )
         )
     return tuple(views)
@@ -732,7 +768,7 @@ def load_node(root: Path, target_id: str, entry: dict[str, Any]) -> NodeView:
         witness=_lean_file(root, node_dir / paths.WITNESS_FILE),
         witness_open=graphmod.witness_is_stub(node_dir),
         relation=_lean_file(root, node_dir / paths.RELATION_FILE),
-        partials=_partials_for(root, node_dir),
+        partials=_partials_for(root, node_dir, node_id, loaded.statement.statement_hash),
         superseded_by=str(successor) if successor else None,
         superseded_cause=str(why) if why else None,
         superseded_record=replaced.path.relative_to(root).as_posix() if replaced else None,

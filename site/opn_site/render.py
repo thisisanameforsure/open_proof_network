@@ -3281,7 +3281,10 @@ class Renderer:
         reviewer = review.get("reviewer") or (
             f"none needed ({review.get('kind')})" if review.get("kind") else "not recorded"
         )
+        # F04-T35: who submitted the proof is the attestation's own fact; an older one says none.
+        who = doc.get("submitter")
         return _template("attestation.html").substitute(
+            submitter=f"<code>{esc(who)}</code>" if who else "not recorded",
             link=self.file_link(nv.attestation_path),
             verdict=esc(doc["verdict"]),
             mathlib=esc(doc["mathlib_sha"] or "none (Lean core only)"),
@@ -3959,14 +3962,21 @@ class Renderer:
     def partials_block(self, nv: NodeView) -> str:
         """Each partial assembly filed under ``attempts/`` (D-3, D-12 #5), as text.
 
-        No attestation covers a partial, so each is untrusted contributor content (R4), beside
-        the record naming it — or beside the fact that no record does, which the live graph
-        carries and ``records.count_attempts`` already counts as an attempt in its own right.
+        No hash in the record binds a partial's bytes, so each is untrusted contributor content
+        (R4), beside the records naming it — a postmortem, and for a partial that merged, the
+        attestation whose step 2 took it, which names its submitter and merge (F04-T35) — or
+        beside the fact that none does, which the live graph carries and
+        ``records.count_attempts`` already counts as an attempt in its own right. A merged
+        partial's attestation is a pass against the parent's statement and proves nothing
+        (F03-Q7), so the block says so in words either way.
         """
         blocks = []
         tv = self.site.targets.get(nv.target_id)
         for p in nv.partials:
-            facts = [f"by {esc(p.contributor)}" if p.contributor else "author not recorded"]
+            who = p.submitter or p.contributor
+            facts = [f"by {esc(who)}" if who else "author not recorded"]
+            if p.submitter and p.contributor and p.contributor != p.submitter:
+                facts.append(f"the postmortem names {esc(p.contributor)}")
             if p.outcome:
                 facts.append(f"outcome <strong>{esc(p.outcome)}</strong>")
             if p.route_class:
@@ -3975,24 +3985,44 @@ class Renderer:
                 facts.append(f"failure class {esc(p.failure_class)}")
             if p.route:
                 facts.append(f"route &ldquo;{esc(p.route)}&rdquo;")
-            named = (
-                f"recorded in {self.file_link(p.record_path)}"
-                if p.record_path
-                else "no postmortem record names this file"
-            )
+            records = []
+            if p.record_path:
+                records.append(f"recorded in {self.file_link(p.record_path)}")
+            if p.attestation_path:
+                merged = f" in <code>{esc(p.merge_commit[:12])}</code>" if p.merge_commit else ""
+                records.append(
+                    f"merged{merged} under {self.file_link(p.attestation_path)}, whose step 2 "
+                    "took this file as a partial"
+                )
+            named = "; ".join(records) or "no postmortem record names this file"
+            if p.attestation_path:
+                words = (
+                    "a partial assembly: it records an attempt, not a proof; its attestation "
+                    "names the file, and no hash in the record binds these bytes."
+                )
+                closing = (
+                    "A partial records an attempt, not a proof: the gate replayed it with its "
+                    "holes left as <code>sorry</code>."
+                )
+                outline_words = (
+                    "an outline the gate extracted from this partial assembly; its holes are "
+                    "<code>sorry</code> steps, and it records an attempt, not a proof."
+                )
+            else:
+                words = "a partial assembly: it records an attempt, and no attestation covers it."
+                closing = "No attestation covers a partial — it records an attempt, not a proof."
+                outline_words = (
+                    "an outline the gate extracted from this partial assembly; its holes are "
+                    "<code>sorry</code> steps, and no attestation covers it."
+                )
             text = esc(p.file.text.rstrip("\n"))
-            words = "a partial assembly: it records an attempt, and no attestation covers it."
             doc = self.outline_of(tv, nv.node_id, p.file) if tv is not None else None
             outline = (
                 self.outline_section(
                     tv,
                     doc,
                     p.file,
-                    label=self.provenance(
-                        "untrusted",
-                        "an outline the gate extracted from this partial assembly; its holes are "
-                        "<code>sorry</code> steps, and no attestation covers it.",
-                    ),
+                    label=self.provenance("untrusted", outline_words),
                     commit=None,
                 )
                 if tv is not None and doc is not None
@@ -4002,8 +4032,7 @@ class Renderer:
                 '<div class="prose-block untrusted" data-block="partial">'
                 f'{self.provenance("untrusted", words)}<p class="label">'
                 f"Untrusted: partial assembly (D-12 #5), {', '.join(facts)}; {named}. "
-                "No attestation covers a partial — it records an attempt, not a proof. "
-                f"Rendered from {self.file_link(p.file.path)}.</p>"
+                f"{closing} Rendered from {self.file_link(p.file.path)}.</p>"
                 f'{outline}<pre class="lean">{text}</pre></div>'
             )
         return "".join(blocks) or '<p class="cue">No partial assembly filed.</p>'
