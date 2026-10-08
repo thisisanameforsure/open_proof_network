@@ -475,6 +475,20 @@ class TargetView:
         return [dict(s) for s in raw] if isinstance(raw, list) else []
 
     @property
+    def panel(self) -> dict[str, Any] | None:
+        """F24-R2, R3: the panel's members and every motion put to it (``targets-index/v9``), or
+        ``None`` on an older index, which did not publish them."""
+        raw = self.index_entry.get("panel")
+        return dict(raw) if isinstance(raw, dict) else None
+
+    @property
+    def index_writeups(self) -> dict[str, Any] | None:
+        """F24-R5, R7: every write-up with its derived stage, and the official one's number
+        (``targets-index/v9``); ``None`` on an older index."""
+        raw = self.index_entry.get("writeups")
+        return dict(raw) if isinstance(raw, dict) else None
+
+    @property
     def digestion(self) -> dict[str, Any] | None:
         """The digestion state and its counts (v6), or ``None`` on an older index."""
         raw = self.index_entry.get("digestion")
@@ -505,6 +519,14 @@ class Site:
         policy = self.index.get("policy") or {}
         rule = policy.get("steward_rule") or {} if isinstance(policy, dict) else {}
         return bool(rule.get("enforced", False)) if isinstance(rule, dict) else False
+
+    @property
+    def panel_settings(self) -> dict[str, Any] | None:
+        """F24-R1, R9: the panel settings in force as the index publishes them (v9), each
+        ``{value, since, reason}``; ``None`` on an older index."""
+        policy = self.index.get("policy")
+        raw = policy.get("panel") if isinstance(policy, dict) else None
+        return dict(raw) if isinstance(raw, dict) else None
 
 
 def _load_product(root: Path, rel: str, accepted: tuple[str, ...]) -> dict[str, Any]:

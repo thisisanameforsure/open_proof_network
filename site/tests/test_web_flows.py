@@ -34,6 +34,7 @@ from typing import Any
 from urllib.parse import parse_qs, urlparse
 
 import gloss_fixture as gf
+import panel_fixture as pf
 import pytest
 from fixture import COMMIT, STEWARDLESS_TARGET, build_with_stewards
 from harness import TARGET
@@ -58,6 +59,9 @@ class Fake:
     stewards: dict[str, set[str]] = field(default_factory=dict)
     conflict: set[str] = field(default_factory=set)  # logins POST /stewards answers 409 for
     open_prs: list[dict[str, Any]] = field(default_factory=list)
+    #: F24-T6: login -> GET /session's ``awaiting``; path -> a refusal the next POST answers.
+    awaiting: dict[str, dict[str, Any]] = field(default_factory=dict)
+    refuse: dict[str, tuple[int, dict[str, str]]] = field(default_factory=dict)
     log: list[tuple[str, str, dict[str, str], Any]] = field(default_factory=list)
     pr: int = 500
 
@@ -134,6 +138,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
                     "curator": who in self.fake.curators,
                     "stewards": sorted(self.fake.stewards.get(who, set())),
                     "expires": "2026-10-07T20:00:00Z",
+                    "awaiting": self.fake.awaiting.get(who, {"votes": [], "invitations": []}),
                 },
             )
             return
@@ -142,7 +147,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             return
         self.answer(404, {"error": "not-found", "message": "no such route"})
 
-    def do_POST(self) -> None:  # noqa: PLR0911 — one branch per route
+    def do_POST(self) -> None:  # noqa: PLR0911, PLR0912 — one branch per route
         url = urlparse(self.path)
         length = int(self.headers.get("Content-Length") or 0)
         raw = self.rfile.read(length) if length else b""
@@ -152,6 +157,13 @@ class Handler(http.server.BaseHTTPRequestHandler):
         web = self.headers.get("X-OPN-Web") == "1"
         if not web or self.headers.get("Origin") not in self.fake.origins or who is None:
             self.answer(401, {"error": "unauthenticated", "message": "sign in on the site"})
+            return
+        if url.path in self.fake.refuse:
+            status, refusal = self.fake.refuse.pop(url.path)
+            self.answer(status, refusal)
+            return
+        if url.path in ("/motions", "/votes", "/writeups"):  # F24-T6: the panel's routes
+            self.answer(201, self.receipt(url.path.strip("/")))
             return
         if url.path == "/session/end":
             self.answer(204, headers={"Set-Cookie": f"{COOKIE}=; Path=/; Max-Age=0"})
@@ -511,4 +523,205 @@ def test_me_shows_roles_waiting_sections_prs_and_step_down(bench: Bench, browser
     page.wait_for_selector(".me .receipt")
     body = bench.fake.posted("/stewards")[-1][1]
     assert body["action"] == "step-down" and body["target"] == TARGET
+    page.context.close()
+
+
+# --- F24-T6 / AC10: the panel and write-up controls, by role ------------------------------------
+
+PANEL_PAGE = f"/problems/{pf.STEWARDED_TARGET}/"
+
+
+@pytest.fixture(scope="module")
+def panel_site(bench: Bench, tmp_path_factory: pytest.TempPathFactory) -> Iterator[str]:
+    root = pf.build(tmp_path_factory.mktemp("flows-panel"))
+    site_dir = tmp_path_factory.mktemp("site-panel")
+    render.write(
+        render.render_site(model.load_site(root, COMMIT), repo_url=REPO, api_url=bench.api),
+        site_dir,
+    )
+    server, origin = site_server(site_dir)
+    bench.fake.origins.add(origin)
+    yield origin
+    server.shutdown()
+
+
+def panel_shots() -> Path:
+    shots = Path(os.environ.get("OPN_F24_SHOTS") or os.environ.get("OPN_F23_SHOTS") or "")
+    if not str(shots) or str(shots) == ".":
+        import tempfile  # noqa: PLC0415
+
+        shots = Path(tempfile.mkdtemp(prefix="f24-shots-"))
+    shots.mkdir(parents=True, exist_ok=True)
+    return shots
+
+
+def shoot_part(page: Any, selector: str, name: str) -> None:
+    """Both widths, each measured for horizontal overflow; the part itself, and the page."""
+    shots = panel_shots()
+    for label, width in WIDTHS.items():
+        page.set_viewport_size({"width": width, "height": 900})
+        page.wait_for_timeout(150)
+        scroll = page.evaluate("document.documentElement.scrollWidth")
+        assert scroll <= width, (name, label, scroll)
+        page.locator(selector).first.screenshot(path=str(shots / f"{name}-{label}.png"))
+    page.set_viewport_size({"width": 1440, "height": 900})
+
+
+def panel_page(bench: Bench, browser: Any, origin: str, login: str, path: str = PANEL_PAGE) -> Any:
+    page = new_page(browser)
+    _set_home(bench, origin)
+    bench.fake.next_login = login
+    page.goto(origin + path)
+    page.click(".session-slot a.session-in")
+    page.wait_for_url(origin + path)
+    page.wait_for_selector(".session-slot .session-login")
+    page.wait_for_selector(".writeup-ctl .record-ctl")
+    return page
+
+
+def test_signed_out_the_panel_draws_no_control(bench: Bench, browser: Any, panel_site: str) -> None:
+    page = new_page(browser)
+    page.goto(panel_site + PANEL_PAGE)
+    page.wait_for_selector(".writeup-ctl a.btn")
+    assert page.locator(".panel-writeup button, .panel-writeup input").count() == 0
+    assert page.inner_text(".writeup-ctl a.btn").startswith("Sign in with GitHub")
+    shoot_part(page, ".panel-writeup", "panel-signed-out")
+    page.context.close()
+
+
+def test_a_member_votes_invites_and_acts_on_the_writeups(
+    bench: Bench, browser: Any, panel_site: str
+) -> None:
+    page = panel_page(bench, browser, panel_site, pf.STEWARD_LOGIN)
+    # Yes / No on the one open motion; Invite; Sign on the note only (the paper is signed);
+    # Ask the panel to verify on the note only (the paper is already past verification).
+    assert page.locator('.motions.open li[data-motion="1"] button').all_inner_texts() == [
+        "Yes",
+        "No",
+    ]
+    assert page.locator(".invite-ctl").count() == 1
+    acts = page.locator('.writeup-acts[data-writeup="2"]')
+    assert acts.locator("button", has_text="Sign").count() == 1
+    assert acts.locator("button", has_text="Ask the panel to verify").count() == 1
+    paper = page.locator('.writeup-acts[data-writeup="1"]')
+    assert paper.locator("button", has_text="Ask the panel").count() == 0
+    assert paper.locator("button:text-is('Sign')").count() == 0
+    assert page.locator('.writeup-acts[data-writeup="3"]').count() == 0  # withdrawn
+    shoot_part(page, ".panel-writeup", "panel-member")
+
+    page.locator('.motions.open li[data-motion="1"] button', has_text="Yes").click()
+    page.wait_for_selector('.motions.open li[data-motion="1"] .receipt')
+    assert bench.fake.posted("/votes")[-1][1] == {
+        "target": pf.STEWARDED_TARGET, "motion": 1, "vote": "yes"
+    }  # fmt: skip
+
+    page.fill("#invite-login", "expert-e")
+    page.fill("#invite-note", "the <b>sieve</b> step")
+    page.click(".invite-ctl button")
+    page.wait_for_selector(".panel-ctl .receipt")
+    assert bench.fake.posted("/motions")[-1][1] == {
+        "target": pf.STEWARDED_TARGET, "kind": "invite",
+        "subject": {"login": "expert-e", "note": "the <b>sieve</b> step"},
+    }  # fmt: skip
+
+    acts.locator("summary").click()
+    acts.locator("button", has_text="Ask the panel to verify").click()
+    page.wait_for_selector('.writeup-acts[data-writeup="2"] .receipt')
+    assert bench.fake.posted("/motions")[-1][1]["subject"] == {"writeup": 2}
+
+    paper.locator("summary").click()
+    paper.locator("input[id^='wr-arxiv']").fill("2610.01234")
+    paper.locator("button", has_text="Add arXiv id").click()
+    page.wait_for_selector('.writeup-acts[data-writeup="1"] .receipt')
+    assert bench.fake.posted("/writeups")[-1][1] == {
+        "target": pf.STEWARDED_TARGET, "action": "arxiv", "writeup": 1, "arxiv": "2610.01234"
+    }  # fmt: skip
+    page.context.close()
+
+
+def test_a_refusal_is_shown_in_the_services_words(
+    bench: Bench, browser: Any, panel_site: str
+) -> None:
+    page = panel_page(bench, browser, panel_site, pf.SECOND_MEMBER)
+    message = "The motion's window has closed."
+    bench.fake.refuse["/votes"] = (409, {"error": "window-closed", "message": message})
+    page.locator('.motions.open li[data-motion="1"] button', has_text="No").click()
+    page.wait_for_selector(f'.motions.open .form-error:has-text("{message}")')
+    page.context.close()
+
+
+def test_an_invited_login_accepts(bench: Bench, browser: Any, panel_site: str) -> None:
+    bench.fake.awaiting[pf.INVITEE] = {
+        "votes": [],
+        "invitations": [{"target": pf.STEWARDED_TARGET, "motion": 1, "note": pf.NOTE}],
+    }
+    page = panel_page(bench, browser, panel_site, pf.INVITEE)
+    page.wait_for_selector(".accept-ctl")
+    assert page.locator(".invite-ctl").count() == 0  # not a member
+    assert page.locator(".motions.open button").count() == 0
+    note = page.inner_text(".accept-ctl .invite-note")
+    assert pf.NOTE in note  # set as text, so the markup is shown, never run
+    accept = page.locator("button", has_text="Accept the invitation")
+    assert accept.is_disabled()
+    page.check("#accept-commitment")
+    page.locator(".accept-ctl").scroll_into_view_if_needed()
+    shoot_part(page, ".panel-writeup", "panel-invited")
+    accept.click()
+    page.wait_for_selector(".panel-ctl .receipt")
+    body = bench.fake.posted("/stewards")[-1][1]
+    assert body["motion"] == 1 and body["accept"] is True and body["action"] == "commit"
+    assert body["target"] == pf.STEWARDED_TARGET and body["name"] == pf.INVITEE
+    page.context.close()
+
+
+def test_anyone_signed_in_records_a_writeup(bench: Bench, browser: Any, panel_site: str) -> None:
+    page = panel_page(bench, browser, panel_site, "stranger2")
+    assert page.locator(".invite-ctl, .writeup-acts, .motions.open button").count() == 0
+    page.click(".record-ctl summary")
+    page.select_option("#wr-kind", "note")
+    page.fill("#wr-title", "Notes on the lemma")
+    page.fill("#wr-url", "https://example.org/notes.pdf")
+    page.fill("#wr-authors", "stranger2, alice-steward")
+    page.locator(".record-ctl").scroll_into_view_if_needed()
+    shoot_part(page, ".panel-writeup", "panel-record")
+    page.click(".record-ctl button")
+    page.wait_for_selector(".writeup-ctl .receipt")
+    assert bench.fake.posted("/writeups")[-1][1] == {
+        "target": pf.STEWARDED_TARGET, "action": "record", "kind": "note",
+        "title": "Notes on the lemma", "url": "https://example.org/notes.pdf",
+        "authors": ["stranger2", "alice-steward"],
+    }  # fmt: skip
+    page.context.close()
+
+
+def test_rules_page_fits_both_widths(bench: Bench, browser: Any, panel_site: str) -> None:
+    page = new_page(browser)
+    page.goto(panel_site + "/rules/")
+    page.wait_for_selector('tr[data-setting="steward_admission"]')
+    shoot_part(page, "main", "rules")
+    page.context.close()
+
+
+def test_me_lists_votes_and_invitations(bench: Bench, browser: Any, panel_site: str) -> None:
+    bench.fake.awaiting["waiter"] = {
+        "votes": [{"target": pf.STEWARDED_TARGET, "motion": 1, "kind": "invite",
+                   "subject": {"login": pf.INVITEE}, "closes": "2026-10-19"}],
+        "invitations": [{"target": pf.STEWARDED_TARGET, "motion": 4, "note": pf.NOTE}],
+    }  # fmt: skip
+    bench.fake.open_prs = []
+    page = new_page(browser)
+    _set_home(bench, panel_site)
+    bench.fake.next_login = "waiter"
+    page.goto(panel_site + "/me/")
+    page.click(".me a.btn")
+    page.wait_for_url(panel_site + "/me/")
+    page.wait_for_selector(".me-votes li")
+    assert page.inner_text(".me-votes li") == (
+        f"{pf.STEWARDED_TARGET} · motion #1: invite {pf.INVITEE} · closes 2026-10-19"
+    )
+    assert pf.NOTE in page.inner_text(".me-invitations li")
+    href = page.get_attribute(".me-invitations li a", "href")
+    assert href == f"/problems/{pf.STEWARDED_TARGET}/#panel"
+    page.wait_for_selector(".me-prs, .me-section .cue")
+    shoot_part(page, "main", "me")
     page.context.close()

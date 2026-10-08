@@ -18,8 +18,9 @@ from html import escape
 from pathlib import Path
 from string import Template
 from typing import Any
+from urllib.parse import quote
 
-from opn_gate import explainers, hosted, intake, layout, products, steward
+from opn_gate import explainers, hosted, intake, layout, policy, products, schemas, steward
 from opn_gate import graph as graphmod
 from opn_gate import ledger as ledgermod
 from opn_site import dag, links, prose
@@ -169,6 +170,7 @@ SCRIPTS: tuple[str, ...] = (
     "/steward.js",
     "/words.js",
     "/me.js",
+    "/panel.js",
 )
 MATH_HEAD = '<link rel="stylesheet" href="/vendor/katex/katex.min.css">'
 MATH_SCRIPTS = (
@@ -866,6 +868,33 @@ NAV_ACTION = ("/problems/?filter=open", "Work on a statement")
 PROBLEMS_PATH = "/problems/"
 STEWARD_PATH = "/steward/"
 REDIRECTS = (("targets/index.html", PROBLEMS_PATH), ("frontier/index.html", PROBLEMS_PATH))
+#: F24-R9 (D-32 v3.34): the rules page, every panel setting with its value, day and reason.
+RULES_PATH = "/rules/"
+#: The write-up ladder, lowest first (D-32 v3.34); ``withdrawn`` is outside it.
+WRITEUP_LADDER = (
+    "drafted",
+    "written",
+    "steward-signed",
+    "panel-verified",
+    "released",
+    "on-arxiv",
+    "submitted",
+    "accepted",
+)
+#: writeup/v2's patterns: an identifier the site builds a link from must match them, so a link is
+#: only ever ``https://arxiv.org/abs/<id>`` or ``https://doi.org/<doi>`` (F11-Q11).
+ARXIV_RE = re.compile(r"^[0-9]{4}\.[0-9]{4,5}(v[0-9]+)?$")
+DOI_RE = re.compile(r"^10\.[0-9]{4,9}/[!-~]+$")
+#: Each panel setting's name in words; a setting this map does not know is named from its key,
+#: so a new one in the schema still reaches the rules page.
+SETTING_WORDS = {
+    "vote_threshold": "Share of counted votes a motion needs",
+    "vote_window_days": "How long a motion stays open",
+    "vote_minimum": "Fewest counted votes on a larger panel",
+    "vote_minimum_from": "Panel size from which that minimum applies",
+    "steward_cap": "Most stewardships one person may hold",
+    "steward_lapse_days": "Quiet time before a steward lapses",
+}
 #: A definition's Lean, for the statement row's role word (the mock's "definition" rows).
 _DECL_RE = re.compile(
     r"^\s*(?:@\[[^\]]*\]\s*)?(?:noncomputable\s+|private\s+|protected\s+)*"
@@ -2145,6 +2174,8 @@ class Renderer:
             digestion=self.digestion_section(tv),
             proved_in_words=self.proved_in_words(tv),
             stewards=self.stewards_section(tv),
+            panel=self.panel_section(tv),
+            writeup=self.writeup_section(tv),
             sources=self.sources_block(tv),
             qa_block=self.qa_block(tv),
             informal_full=self.informal_line(tv),
@@ -2170,7 +2201,9 @@ class Renderer:
             renders=list(dict.fromkeys(renders)),
             path=PROBLEMS_PATH,
             head=MATH_HEAD,
-            script=MATH_SCRIPTS + '<script src="/problem.js"></script>',
+            script=MATH_SCRIPTS
+            + '<script src="/problem.js"></script>'
+            + ('<script src="/panel.js"></script>' if self.api_url else ""),
         )
 
     def proved_in_words(self, tv: TargetView) -> str:
@@ -2708,6 +2741,312 @@ class Renderer:
             "refuses claims until one commits. "
             f'<a href="{esc(self.steward_path(tv.target_id))}">Become its steward</a></p>'
         )
+
+    # -- F24-T6: the panel, its motions and the write-up ladder (R9; D-32 v3.34) ---------------
+
+    def lapse_days(self) -> int | None:
+        settings = self.site.panel_settings or {}
+        lapse = settings.get("steward_lapse_days")
+        return int(lapse["value"]) if isinstance(lapse, dict) else None
+
+    @staticmethod
+    def writeup_items(tv: TargetView) -> list[dict[str, Any]]:
+        w = tv.index_writeups
+        return [dict(i) for i in w.get("items") or []] if w else []
+
+    @staticmethod
+    def motion_words(m: dict[str, Any], items: list[dict[str, Any]]) -> str:
+        """A motion in plain words, every free text escaped."""
+        subject = m.get("subject") or {}
+        kind = str(m["kind"])
+        if kind == "invite":
+            note = subject.get("note")
+            return f"Invite <code>{esc(subject.get('login', ''))}</code>" + (
+                f" — {esc(note)}" if note else ""
+            )
+        if kind == "verify-writeup":
+            n = subject.get("writeup")
+            title = next((str(i["title"]) for i in items if i.get("n") == n), None)
+            named = f"\u2018{esc(title)}\u2019" if title else f"number {esc(n)}"
+            return f"Verify the write-up {named}"
+        if kind == "authorship-threshold":
+            return f"Set the authorship threshold to {esc(f'{float(subject["threshold"]):g}')}"
+        return esc(kind)
+
+    @staticmethod
+    def logins(names: list[str]) -> str:
+        return ", ".join(f"<code>{esc(n)}</code>" for n in names)
+
+    def motion_line(self, m: dict[str, Any], items: list[dict[str, Any]]) -> str:
+        state = str(m["state"])
+        tally = f"{esc(m['yes'])} yes · {esc(m['no'])} no"
+        head = (
+            f'<li data-motion="{esc(m["n"])}"><span class="motion-n">#{esc(m["n"])}</span> '
+            f"{self.motion_words(m, items)} "
+            f'<span class="motion-meta">· opened by <code>{esc(m["opened_by"])}</code> '
+            f"{esc(m['opened'])} · "
+        )
+        if state == "open":
+            line = head + f"closes {esc(m['closes'])} · {tally} so far"
+        else:
+            line = (
+                head + f"closed {esc(m['closes'])}</span> · "
+                f'<span class="outcome {esc(state)}">{esc(state)}</span>, {tally}'
+            )
+        uncounted = [str(u) for u in m.get("uncounted") or []]
+        if uncounted:
+            line += f" · voted, not counted (helped prove it): {self.logins(uncounted)}"
+        return line + ("</span></li>" if state == "open" else "</li>")
+
+    def panel_section(self, tv: TargetView) -> str:
+        """R9: the members, the lapsed stewards apart with their last act, the open motions with
+        their running tally and the decided ones with their outcome, and the slot panel.js
+        draws the controls into once the service answers (F23-R15)."""
+        rules = f'<a href="{RULES_PATH}">the panel&rsquo;s rules</a>'
+        panel = tv.panel
+        if panel is None:
+            return f"<p>This index predates the panel (targets-index/v9); see {rules}.</p>"
+        by_login = {str(s["login"]): s for s in tv.stewards}
+        members = [str(m) for m in panel.get("members") or []]
+        lapsed = [s for s in tv.stewards if s.get("lapsed")]
+        motions = [dict(m) for m in panel.get("motions") or []]
+        items = self.writeup_items(tv)
+        parts: list[str] = []
+        if not members and not lapsed and not motions:
+            parts.append(
+                "<p>No panel yet: the problem&rsquo;s stewards are its panel, and it has none. "
+                f"How a panel votes, invites and lapses is in {rules}.</p>"
+            )
+        else:
+            parts.append(
+                '<p class="cue">The problem&rsquo;s stewards who have not lapsed. They decide '
+                f"together by motions, under {rules}.</p>"
+            )
+            rows = "".join(
+                "<li>"
+                + (self.steward_link(by_login[m]) + " " if m in by_login else "")
+                + f"<code>{esc(m)}</code>"
+                + (
+                    f" · last act {esc(by_login[m]['last_act'])}"
+                    if m in by_login and by_login[m].get("last_act")
+                    else ""
+                )
+                + "</li>"
+                for m in members
+            )
+            parts.append(
+                f'<ul class="panel-members">{rows}</ul>'
+                if rows
+                else '<ul class="panel-members"><li>No member: every steward has lapsed.</li></ul>'
+            )
+        if lapsed:
+            days = self.lapse_days()
+            quiet = f"for {days} days" if days else "for the lapse period"
+            names = "; ".join(
+                f"<code>{esc(s['login'])}</code>, last act {esc(s.get('last_act') or 'unknown')}"
+                for s in lapsed
+            )
+            parts.append(
+                f'<p class="panel-lapsed">Lapsed (no signed act on this problem {quiet}; '
+                f"they may rejoin by invitation): {names}</p>"
+            )
+        open_ = [m for m in motions if m.get("state") == "open"]
+        decided = [m for m in motions if m.get("state") != "open"]
+        if open_:
+            parts.append("<h3>Open motions</h3>")
+            parts.append(
+                '<ul class="motions open">'
+                + "".join(self.motion_line(m, items) for m in open_)
+                + "</ul>"
+            )
+        if decided:
+            parts.append("<h3>Decided motions</h3>")
+            parts.append(
+                '<ul class="motions decided">'
+                + "".join(self.motion_line(m, items) for m in reversed(decided))
+                + "</ul>"
+            )
+        if self.api_url and (members or lapsed or tv.stewards):
+            data = json.dumps(
+                {
+                    "members": members,
+                    "open": [{"n": m["n"], "kind": m["kind"]} for m in open_],
+                },
+                ensure_ascii=False,
+            )
+            parts.append(
+                f'<div class="panel-ctl" data-target="{esc(tv.target_id)}" '
+                f'data-panel="{esc(data)}" data-commitment="{esc(steward.COMMITMENT)}"></div>'
+            )
+        return "".join(parts)
+
+    @staticmethod
+    def arxiv_url(arxiv: object) -> str | None:
+        return (
+            f"https://arxiv.org/abs/{arxiv}"
+            if isinstance(arxiv, str) and ARXIV_RE.match(arxiv)
+            else None
+        )
+
+    @staticmethod
+    def doi_url(doi: object) -> str | None:
+        if not isinstance(doi, str) or not DOI_RE.match(doi):
+            return None
+        return "https://doi.org/" + quote(doi, safe="/:;()._-~")
+
+    def authors_line(self, item: dict[str, Any]) -> str:
+        signed = {str(a) for a in item.get("signed") or []}
+        return ", ".join(
+            f"<code>{esc(a)}</code> ({'signed' if a in signed else 'not yet signed'})"
+            for a in (str(a) for a in item.get("authors") or [])
+        )
+
+    def ladder(self, stage: str) -> str:
+        reached = WRITEUP_LADDER.index(stage) if stage in WRITEUP_LADDER else -1
+        rungs = []
+        for k, rung in enumerate(WRITEUP_LADDER):
+            cls = "reached" if k == reached else ("passed" if k < reached else "ahead")
+            current = ' aria-current="step"' if k == reached else ""
+            rungs.append(f'<li class="rung {cls}"{current}>{esc(rung)}</li>')
+        return f'<ol class="ladder" aria-label="Stages of a write-up">{"".join(rungs)}</ol>'
+
+    def publication(self, item: dict[str, Any]) -> str:
+        bits = []
+        if (url := self.arxiv_url(item.get("arxiv"))) is not None:
+            bits.append(f'arXiv <a href="{esc(url)}">{esc(item["arxiv"])}</a>')
+        if item.get("journal"):
+            bits.append(f"journal: {esc(item['journal'])}")
+        if (url := self.doi_url(item.get("doi"))) is not None:
+            bits.append(f'DOI <a href="{esc(url)}">{esc(item["doi"])}</a>')
+        return " · ".join(bits)
+
+    def writeup_section(self, tv: TargetView) -> str:
+        """R9: the official write-up (D-32 v3.34: the highest stage, newest within it), its
+        stage on the whole ladder so a reader sees what comes next, its authors and who has
+        signed, its coauthors and where it is published; the other write-ups beneath with
+        their stages. Every url is a validated record's or built from a fixed template."""
+        w = tv.index_writeups
+        items = self.writeup_items(tv)
+        ctl = (
+            f'<div class="writeup-ctl" data-target="{esc(tv.target_id)}" data-writeups="'
+            + esc(
+                json.dumps(
+                    [
+                        {"n": i["n"], "title": i["title"], "stage": i["stage"],
+                         "authors": i["authors"], "signed": i["signed"]}
+                        for i in items
+                    ],
+                    ensure_ascii=False,
+                )
+            )
+            + '"></div>'
+            if self.api_url and w is not None
+            else ""
+        )  # fmt: skip
+        if w is None:
+            return "<p>This index predates write-up stages (targets-index/v9).</p>"
+        if not items:
+            return (
+                "<p>No write-up has been recorded for this problem yet. Anyone signed in may "
+                "record one; it then climbs the ladder: "
+                + ", ".join(WRITEUP_LADDER)
+                + ".</p>"
+                + ctl
+            )
+        official = next((i for i in items if i["n"] == w.get("official")), None)
+        parts = []
+        if official is None:
+            parts.append("<p>No official write-up: every one recorded has been withdrawn.</p>")
+        else:
+            model_ = official.get("model")
+            pub = self.publication(official)
+            coauthors = [str(c) for c in official.get("coauthors") or []]
+            parts.append(
+                '<div class="writeup-official card">'
+                '<p class="writeup-title">'
+                f'<span class="writeup-kind">{esc(official["kind"])}</span> '
+                f'<a href="{esc(official["url"])}">{esc(official["title"])}</a></p>'
+                f"{self.ladder(str(official['stage']))}"
+                f"<p>Authors: {self.authors_line(official)}</p>"
+                f"<p>Coauthors: {self.logins(coauthors) if coauthors else 'none yet'}</p>"
+                + (f"<p>Drafted with <code>{esc(model_)}</code>.</p>" if model_ else "")
+                + (f"<p>{pub}</p>" if pub else "")
+                + "</div>"
+            )
+        others = [i for i in items if official is None or i["n"] != official["n"]]
+        if others:
+            rows = "".join(
+                f'<li><a href="{esc(i["url"])}">{esc(i["title"])}</a> · {esc(i["kind"])} · '
+                f'<span class="stage stage-{esc(i["stage"])}">{esc(i["stage"])}</span>'
+                f" · {self.authors_line(i)}"
+                + (f" · drafted with <code>{esc(i['model'])}</code>" if i.get("model") else "")
+                + (f" · {pub}" if (pub := self.publication(i)) else "")
+                + "</li>"
+                for i in others
+            )
+            parts.append(f'<h3>Other write-ups</h3><ul class="writeups-other">{rows}</ul>')
+        return "".join(parts) + ctl
+
+    def rules(self) -> str:
+        """R9: every panel setting, its name in words, value, description (read from the policy
+        schema at build time, never copied), the day it was set and why; and the steward-
+        admission switch."""
+        schema = schemas.load_schema(policy.SCHEMA_V3)
+        described = schema["properties"]["panel"]["properties"]
+        settings = self.site.panel_settings or {}
+        rows = []
+        for key, spec in described.items():
+            entry = settings.get(key)
+            value = entry.get("value") if isinstance(entry, dict) else None
+            if isinstance(value, dict) and {"numerator", "denominator"} <= set(value):
+                shown = f"{value['numerator']}/{value['denominator']}"
+            elif value is None:
+                shown = "not published"
+            elif key.endswith("_days"):
+                shown = f"{value} days"
+            else:
+                shown = str(value)
+            since = entry.get("since") if isinstance(entry, dict) else None
+            reason = entry.get("reason") if isinstance(entry, dict) else None
+            set_ = f"{esc(since)}: {esc(reason or '')}" if since else "the default (never changed)"
+            name = SETTING_WORDS.get(key) or key.replace("_", " ").capitalize()
+            rows.append(
+                f'<tr data-setting="{esc(key)}"><td data-label="Setting"><strong>{esc(name)}'
+                f'</strong><br><code>{esc(key)}</code></td><td data-label="Value">{esc(shown)}</td>'
+                f'<td data-label="What it does">{esc(spec.get("description", ""))}</td>'
+                f'<td data-label="Set">{set_}</td></tr>'
+            )
+        try:
+            admission = policy.load(self.site.root).admission
+        except schemas.SchemaError:
+            admission = ""
+        admission_words = {
+            "open": "open: a problem&rsquo;s first steward admits themself by signing the "
+            "commitment; later stewards join by the panel&rsquo;s invitation or a curator.",
+            "reviewed": "reviewed: a curator merges each first steward&rsquo;s record.",
+        }.get(admission, "unknown: the graph&rsquo;s policy.json could not be read.")
+        note = (
+            ""
+            if settings
+            else "<p>This index predates the panel settings; the values are not published.</p>"
+        )
+        body = (
+            '<section class="page-head"><div><h1>Rules</h1><p class="lead">Every number a '
+            "problem&rsquo;s steward panel runs on, as the graph&rsquo;s "
+            f"{self.file_link('policy.json')} sets it. A change is one curator pull request "
+            "naming its reason, and applies from the next motion opened (D-32 v3.34).</p>"
+            f"</div></section>{note}"
+            '<div class="table-wrap"><table class="rules"><thead><tr><th>Setting</th>'
+            "<th>Value</th><th>What it does</th><th>Set</th></tr></thead><tbody>"
+            + "".join(rows)
+            + '<tr data-setting="steward_admission"><td data-label="Setting"><strong>How a '
+            "first steward is admitted</strong><br><code>steward_admission</code></td>"
+            f'<td data-label="Value">{esc(admission)}</td>'
+            f'<td data-label="What it does">{admission_words}</td><td data-label="Set">'
+            f"{self.file_link('policy.json')}</td></tr>"
+            "</tbody></table></div>"
+        )
+        return self.page("Rules", body, renders=["policy.json", "targets/index.json"])
 
     def digestion_section(self, tv: TargetView) -> str:
         """For a resolved target: the digestion state, the report-back sentence D-10 carries,
@@ -4964,6 +5303,13 @@ def cited_urls(site: Site) -> frozenset[str]:
     for tv in site.targets.values():
         urls.update(str(s["link"]) for s in tv.stewards if s.get("link"))
         urls.update(str(w["url"]) for w in tv.writeups)
+        # F24-R9: the v9 index's write-ups (validated records) and the links built from their
+        # arXiv ids and DOIs by fixed templates.
+        for item in Renderer.writeup_items(tv):
+            urls.add(str(item["url"]))
+            for built in (Renderer.arxiv_url(item.get("arxiv")), Renderer.doi_url(item.get("doi"))):
+                if built:
+                    urls.add(built)
         # F04-T38: a reference a validated literature record names (literature/v1, D-25 v3.35).
         for nv in tv.nodes.values():
             for lit in (nv.literature, nv.literature_proposed):
@@ -5055,6 +5401,7 @@ def render_site(
         "docs/index.html": docs_page,
         "steward/index.html": r.steward_index(),  # F23-R5
         "me/index.html": r.me(),  # F23-R13
+        "rules/index.html": r.rules(),  # F24-R9
         **static_files()[0],
         **extra,
         "llms.txt": llms_txt(r),  # F04-T30
