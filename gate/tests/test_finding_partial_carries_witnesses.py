@@ -227,7 +227,8 @@ def test_every_carried_witness_is_held_to_step_7_and_recorded(tmp_path: Path) ->
         assert req.statement == staged / "Statement.lean" and req.witness == staged / "Witness.lean"
         assert req.statement_module == f"Nodes.«{child}».Statement"
         proposal = postmerge.child_proposal(node_dir(ctx), child, h, author="x", origin="x")
-        assert fake.seen[req.decl] == (proposal.statement, text)
+        # F07-T75: staged as the child is born, without its `-- hole:` line.
+        assert fake.seen[req.decl] == (proposal.statement, carried.as_witness(text))
         assert CLOSED[h.name] in proposal.statement
         # The child's own Context is compiled beside it. F02-T12: the program reads the child's
         # statement as the gate built it from those files in the judging directory, and nothing
@@ -431,8 +432,9 @@ def test_children_are_born_with_the_carried_witnesses_and_ready(tmp_path: Path) 
     root, merged = decomposed(tmp_path, {"right": W_RIGHT, "left": W_LEFT})
     nodes = root / "targets" / TARGET / "nodes"
     h1, h2 = merged.children
-    assert (nodes / h1 / "Witness.lean").read_text(encoding="utf-8") == W_RIGHT
-    assert (nodes / h2 / "Witness.lean").read_text(encoding="utf-8") == W_LEFT
+    # F07-T75: the carried text byte for byte, less its `-- hole:` line.
+    assert (nodes / h1 / "Witness.lean").read_text(encoding="utf-8") == carried.as_witness(W_RIGHT)
+    assert (nodes / h2 / "Witness.lean").read_text(encoding="utf-8") == carried.as_witness(W_LEFT)
     assert not graph.witness_is_stub(nodes / h1) and not graph.witness_is_stub(nodes / h2)
     tg = graph.load_target(root, TARGET)
     assert tg.statuses[h1] == "ready" and tg.statuses[h2] == "ready"
@@ -454,7 +456,7 @@ def test_only_the_holes_that_carried_one_are_ready(tmp_path: Path) -> None:
     nodes = root / "targets" / TARGET / "nodes"
     h1, h2 = merged.children
     assert graph.witness_is_stub(nodes / h1)
-    assert (nodes / h2 / "Witness.lean").read_text(encoding="utf-8") == W_LEFT
+    assert (nodes / h2 / "Witness.lean").read_text(encoding="utf-8") == carried.as_witness(W_LEFT)
     tg = graph.load_target(root, TARGET)
     assert tg.statuses[h1] == "blocked" and tg.statuses[h2] == "ready"
     assert graph.derive_causes(tg.nodes, tg.statuses)[h1] == graph.CAUSE_WITNESS_MISSING
@@ -505,7 +507,8 @@ def test_a_hole_that_is_an_existing_node_is_not_touched(tmp_path: Path) -> None:
     )
     assert second.children == (f"{PARENT}--h4",)
     assert (nodes / first.children[0] / "Witness.lean").read_bytes() == slot
-    assert (nodes / f"{PARENT}--h4" / "Witness.lean").read_text() == witness_text("third")
+    born = (nodes / f"{PARENT}--h4" / "Witness.lean").read_text()
+    assert born == carried.as_witness(witness_text("third"))
     assert second.as_dict()["witnessed"] == [f"{PARENT}--h4"]
 
 
@@ -555,7 +558,8 @@ def test_the_post_merge_command_writes_the_witnesses_its_run_checked(
     assert out["partial"]["children"] == [f"{ROOT}--h1", f"{ROOT}--h2"]
     assert out["partial"]["witnessed"] == [f"{ROOT}--h2"]
     nodes = root / NODES
-    assert (nodes / f"{ROOT}--h2" / "Witness.lean").read_text() == witness_text("left")
+    born = (nodes / f"{ROOT}--h2" / "Witness.lean").read_text()
+    assert born == carried.as_witness(witness_text("left"))
     assert graph.witness_is_stub(nodes / f"{ROOT}--h1")
     # The carried file stays where it was submitted: the record of what was carried (D-3).
     assert (nodes / ROOT / "attempts" / f"{STEM}.1.witness").read_text() == witness_text("left")
@@ -606,7 +610,7 @@ def test_a_carried_witness_is_hashed_and_written_as_its_bytes(tmp_path: Path) ->
     (checked,) = ctx.data[carried.DATA_KEY]
     assert checked["sha256"] == schemas.content_hash(text.encode("utf-8"))
     staged = ctx.workdir / "holes" / "src" / "Nodes" / f"{ROOT}--h1" / "Witness.lean"
-    assert staged.read_bytes() == text.encode("utf-8")
+    assert staged.read_bytes() == carried.as_witness(text).encode("utf-8")  # F07-T75
     held = replace(verdict, data=ctx.data)
     assert cli.checked_witnesses(held, node_dir(ctx)) == {"right": text}
     nodes = node_dir(ctx).parent
@@ -619,4 +623,5 @@ def test_a_carried_witness_is_hashed_and_written_as_its_bytes(tmp_path: Path) ->
         assembly_path=f"attempts/{STAMP_FILE}",
         witnesses={"right": text},
     )
-    assert (nodes / f"{ROOT}--h1" / "Witness.lean").read_bytes() == text.encode("utf-8")
+    born = (nodes / f"{ROOT}--h1" / "Witness.lean").read_bytes()
+    assert born == carried.as_witness(text).encode("utf-8")

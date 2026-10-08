@@ -200,7 +200,9 @@ def test_a_skeleton_carrying_every_witness_leaves_every_hole_ready(
         # What was checked is what was written, statement and witness, byte for byte.
         for file in ("Statement.lean", "Witness.lean", "Context.lean"):
             assert (nodes / child / file).read_bytes() == (staged / child / file).read_bytes()
-        assert (nodes / child / "Witness.lean").read_text(encoding="utf-8") == witnesses[name]
+        # F07-T75: the carried text less its `-- hole:` line, which the real toolchain admits.
+        born = (nodes / child / "Witness.lean").read_text(encoding="utf-8")
+        assert born == carried.as_witness(witnesses[name]) and "-- hole:" not in born
         assert not graph.witness_is_stub(nodes / child)
         admitted = admit_as_written(tc, tmp_path / f"admit-{name}", ctx.graph_root, child)
         assert witness_check(admitted) == ("pass", None), admitted.as_dict()
@@ -413,7 +415,8 @@ def test_a_carried_witness_on_a_target_with_defs_finds_them(
     assert merged.witnessed == (born,)
     statement = (node.parent / born / "Statement.lean").read_text(encoding="utf-8")
     assert statement.startswith(f"import Defs.Two\nimport Nodes.«{born}».Context\n"), statement
-    assert (node.parent / born / "Witness.lean").read_text(encoding="utf-8") == witnesses["four"]
+    written = (node.parent / born / "Witness.lean").read_text(encoding="utf-8")
+    assert written == carried.as_witness(witnesses["four"])  # F07-T75
     admitted = admit_as_written(tc, tmp_path / "admit", ctx.graph_root, born)
     assert witness_check(admitted) == ("pass", None), admitted.as_dict()
     # The derived statuses are the test above's; this fixture has two sinks and no declared root.

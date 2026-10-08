@@ -19,7 +19,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal
 
-from opn_gate import attestation, schemas
+from opn_gate import attestation, carried, schemas
 from opn_gate import graph as graphmod
 from opn_gate.diagnostic import Diagnostic
 from opn_gate.signer import Signer
@@ -707,7 +707,9 @@ def child_proposal(  # noqa: PLR0913 — the node's facts, each named
     """The node a hole becomes, as the scaffold's proposal: its statement under the parent's
     imports and ``open`` lines and the ``Defs.*`` modules the assembly (``partial_text``)
     declared as uses (F08-R16), and ``witness`` — the text a partial carried for it and step 7
-    checked (R23) — or, with none, the slot (R6, R21)."""
+    checked (R23), less its ``-- hole:`` line (F07-T75) — or, with none, the slot (R6, R21).
+    Step 7 stages a carried witness through this function, so the text it checks is the text
+    the writer writes."""
     from opn_gate import scaffold  # noqa: PLC0415 — scaffold imports layout, which imports schemas
 
     parent_statement = node_dir / "Statement.lean"
@@ -721,7 +723,7 @@ def child_proposal(  # noqa: PLR0913 — the node's facts, each named
         node_id=child,
         target_id=node_dir.parent.parent.name,
         statement=statement,
-        witness=witness
+        witness=carried.as_witness(witness)
         if witness is not None
         else witness_slot(getattr(hole, "expected_witness", None), statement),
         author=author,

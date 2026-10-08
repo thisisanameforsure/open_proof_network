@@ -102,7 +102,8 @@ def test_a_carried_witness_for_a_hole_over_a_declared_definition(
     ]
     staged = ctx.workdir / "holes" / "src" / "Nodes" / CHILD / "Statement.lean"
     assert staged.read_text(encoding="utf-8") == statement
-    assert (child / "Witness.lean").read_text(encoding="utf-8") == witness
+    # F07-T75: the carried witness less its `-- hole:` line.
+    assert (child / "Witness.lean").read_text(encoding="utf-8") == carried.as_witness(witness)
     admitted = admit_as_written(real_toolchain, tmp_path / "admit", ctx.graph_root, CHILD)
     assert witness_check(admitted) == ("pass", None), admitted.as_dict()
     assert not graph.witness_is_stub(child)

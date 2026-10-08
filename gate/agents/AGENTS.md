@@ -1218,7 +1218,8 @@ targets/<target>/nodes/<node>/attempts/<ts>-<pseudonym>-partial.2.witness   anot
 ```
 
 Each file is the hole's future `Witness.lean`, written out in full, with one line that names the
-hole by its `have` name, the `name` the precheck lists for it:
+hole by its `have` name, the `name` the precheck lists for it. That line tells the gate which hole
+the file is for; the hole's node is born with the file less its `-- hole:` line:
 
 ```lean
 -- hole: h₁
@@ -1256,9 +1257,10 @@ theorem witness : ∃ n : Nat, 0 < n ∧ n ∣ 12 := ⟨1, by decide, by decide�
 - **Each carried witness is its own step-7 check**, so a skeleton that carries many takes longer
   to precheck and to gate than one that carries none.
 
-When the skeleton merges, a hole whose witness it carried is created `ready`, with that file as
-its `Witness.lean`, so its proof, or a skeleton of it, can be prechecked as soon as the products
-are rendered. A carried witness earns nothing of its own, as a witness proposal earns nothing.
+When the skeleton merges, a hole whose witness it carried is created `ready`, with that file,
+less its `-- hole:` line, as its `Witness.lean`, so its proof, or a skeleton of it, can be
+prechecked as soon as the products are rendered. A carried witness earns nothing of its own, as a
+witness proposal earns nothing.
 
 ### After the skeleton merges: the holes are yours
 
