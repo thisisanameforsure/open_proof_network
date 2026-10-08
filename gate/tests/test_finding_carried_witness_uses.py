@@ -68,7 +68,9 @@ def test_step_7_judges_a_carried_witness_against_the_statement_the_writer_writes
         "Defs.Extra",
         layout.node_module(CHILD, "Context"),
     ]
-    assert staged_witness == WITNESS
+    # F07-T75: the child is born with the witness less its `-- hole:` line, and that is the
+    # text step 7 staged.
+    assert staged_witness == carried.as_witness(WITNESS)
 
     here = node_dir(ctx)
     merged = postmerge.apply_partial(
@@ -83,7 +85,7 @@ def test_step_7_judges_a_carried_witness_against_the_statement_the_writer_writes
     assert merged.children == (CHILD,) and merged.witnessed == (CHILD,)
     child = here.parent / CHILD
     assert (child / "Statement.lean").read_text(encoding="utf-8") == staged_statement
-    assert (child / "Witness.lean").read_text(encoding="utf-8") == WITNESS
+    assert (child / "Witness.lean").read_text(encoding="utf-8") == carried.as_witness(WITNESS)
     assert layout.validate_node(child) == []
 
 

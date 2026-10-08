@@ -101,6 +101,34 @@ def hole_named(text: str) -> str | None:
     return m.group("name") if m else None
 
 
+_MARKER_LINE_RE = re.compile(r"\s*--\s*hole:\s*(?P<name>\S+)\s*")
+
+
+def as_witness(text: str) -> str:
+    """The ``Witness.lean`` a carried witness becomes: its text less the ``-- hole:`` line
+    ``hole_named`` read the hole from (F07-T75). The line says which hole the file is for while
+    the node has no id; once the node exists its directory says so, and the line names a
+    ``have`` of the parent's assembly that the child's statement never mentions. When the marker
+    heads the file, the blank lines around it go with it, so the witness starts the file;
+    anywhere else the line alone goes. Every other byte is kept, line ends included (F07-T53),
+    and a text with no marker is returned as it is."""
+    name = hole_named(text)
+    if name is None:
+        return text
+    lines = text.splitlines(keepends=True)
+    for i, line in enumerate(lines):
+        m = _MARKER_LINE_RE.fullmatch(line.rstrip("\r\n"))
+        if m is None or m.group("name") != name:
+            continue
+        before, after = lines[:i], lines[i + 1 :]
+        if all(not ln.strip() for ln in before):
+            before = []
+            while after and not after[0].strip():
+                after = after[1:]
+        return "".join(before + after)
+    return text
+
+
 def attached_to(assembly_rel: str, names: Mapping[str, str]) -> dict[str, str]:
     """Of ``names`` (path under the node -> text), the carried witnesses attached to the
     assembly at ``assembly_rel`` — what a bare tree, which has no diff, takes as the

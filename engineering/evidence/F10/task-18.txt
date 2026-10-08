@@ -1,0 +1,79 @@
+F10-T18 (proposed): the guide says what the gate does, from the 2026-10-08 erdos-1094 tester run.
+Findings 3 (annex citation) and 4 (approach-record caps), plus three sentences handed over by the
+lead (closing block without MCP, F04-Q27/F09-Q13; queue.waiting_on is a last read, F05-Q19; a new
+hole may be products-pending with details.graph_commit, F06-T14 -- that branch's behaviour, not
+on this branch).
+
+Finding 3, the record (graph clone at /Users/mikehiggins/Desktop/repos/open_proof_network_graph):
+  erdos-1094 origin: authored
+  erdos-1094--h1 origin: compiler-derived
+  erdos-1094--h2 origin: compiler-derived
+  erdos-1094--h3 origin: compiler-derived
+  erdos-1094--h3--h1 origin: compiler-derived
+  assemblies under erdos-1094 citing an annex: none
+  postmerge.child_origin: skeleton-hole iff annex_citation(text) is not None, else
+  compiler-derived (D-12 #5; D-28's submit_proof row: "partial holes enter the frontier as
+  compiler-derived children on gate pass (D-29), or as skeleton-hole children where the file
+  cites an annex (v3.12, D-31)"). The gate is right; the guide said every skeleton must cite.
+
+Finding 4, the caps: gate/schemas/approach-record/v1.json maxLength route 500, blocked_on 200,
+model_and_tooling 200 (inside its oneOf). Service probe, api appends.validated (probe_caps.py):
+  route 500 accepted
+  route 501 refused {'status': 400, 'code': 'field-too-long', 'message': 'route is 501 characters; the cap is 500', 'headers': {}, 'details': None}
+  blocked_on 200 accepted
+  blocked_on 201 refused {'status': 400, 'code': 'field-too-long', 'message': 'blocked_on is 201 characters; the cap is 200', 'headers': {}, 'details': None}
+  model_and_tooling 200 accepted
+  model_and_tooling 201 refused {'status': 400, 'code': 'record-invalid', 'message': "$['model_and_tooling']: 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx' is not valid under any of the given schemas", 'headers': {}, 'details': None}
+  Note: check_caps reads top-level maxLength only, so model_and_tooling over its cap is
+  record-invalid with the text echoed back, not field-too-long. Out of scope (C4); the guide
+  names neither code.
+
+== RED: uv run --frozen pytest gate/tests/test_finding_guide_tester_1008.py -q (before the guide edit)
+_______________ test_the_guide_names_the_refusal_of_a_long_field _______________
+
+    def test_the_guide_names_the_refusal_of_a_long_field() -> None:
+>       assert "`400 field-too-long`" in APPROACH
+E       assert '`400 field-too-long`' in " (D-14), filed against the target rather than a node. `POST /approach-records` (MCP `submit_approach_record`) takes `...with `Retry-After: 1`, naming the first's pull request, and nothing opens. Send it again a second later. For example: "
+
+gate/tests/test_finding_guide_tester_1008.py:117: AssertionError
+=========================== short test summary info ============================
+FAILED gate/tests/test_finding_guide_tester_1008.py::test_the_guide_does_not_say_every_skeleton_must_cite
+FAILED gate/tests/test_finding_guide_tester_1008.py::test_the_guide_says_what_a_citation_changes[a cited partial is a skeleton-A partial that cites an annex is a skeleton]
+FAILED gate/tests/test_finding_guide_tester_1008.py::test_the_guide_says_what_a_citation_changes[its holes-its holes are created with origin `skeleton-hole`]
+FAILED gate/tests/test_finding_guide_tester_1008.py::test_the_guide_says_what_a_citation_changes[an uncited partial passes-A partial that cites no annex is accepted]
+FAILED gate/tests/test_finding_guide_tester_1008.py::test_the_guide_says_what_a_citation_changes[its holes-its holes are created with origin `compiler-derived`]
+FAILED gate/tests/test_finding_guide_tester_1008.py::test_the_guide_says_what_a_citation_changes[nothing checks an absence-nothing checks for a citation that is not there]
+FAILED gate/tests/test_finding_guide_tester_1008.py::test_the_citation_refusals_the_guide_names_are_the_gates[annex-uncited]
+FAILED gate/tests/test_finding_guide_tester_1008.py::test_the_citation_refusals_the_guide_names_are_the_gates[annex-malformed]
+FAILED gate/tests/test_finding_guide_tester_1008.py::test_the_citation_refusals_the_guide_names_are_the_gates[annex-step-missing]
+FAILED gate/tests/test_finding_guide_tester_1008.py::test_the_guide_states_each_cap[blocked_on]
+FAILED gate/tests/test_finding_guide_tester_1008.py::test_the_guide_states_each_cap[model_and_tooling]
+FAILED gate/tests/test_finding_guide_tester_1008.py::test_the_guide_states_each_cap[route]
+FAILED gate/tests/test_finding_guide_tester_1008.py::test_the_guide_names_the_refusal_of_a_long_field
+13 failed, 2 passed in 11.20s
+
+== GREEN: uv run --frozen pytest gate/tests/test_finding_guide_tester_1008.py -v (after; 18 incl. the lead's three sentences)
+gate/tests/test_finding_guide_tester_1008.py::test_the_guide_does_not_say_every_skeleton_must_cite PASSED [  5%]
+gate/tests/test_finding_guide_tester_1008.py::test_the_guide_says_what_a_citation_changes[a cited partial is a skeleton-A partial that cites an annex is a skeleton] PASSED [ 11%]
+gate/tests/test_finding_guide_tester_1008.py::test_the_guide_says_what_a_citation_changes[its holes-its holes are created with origin `skeleton-hole`] PASSED [ 16%]
+gate/tests/test_finding_guide_tester_1008.py::test_the_guide_says_what_a_citation_changes[an uncited partial passes-A partial that cites no annex is accepted] PASSED [ 22%]
+gate/tests/test_finding_guide_tester_1008.py::test_the_guide_says_what_a_citation_changes[its holes-its holes are created with origin `compiler-derived`] PASSED [ 27%]
+gate/tests/test_finding_guide_tester_1008.py::test_the_guide_says_what_a_citation_changes[nothing checks an absence-nothing checks for a citation that is not there] PASSED [ 33%]
+gate/tests/test_finding_guide_tester_1008.py::test_the_citation_refusals_the_guide_names_are_the_gates[annex-uncited] PASSED [ 38%]
+gate/tests/test_finding_guide_tester_1008.py::test_the_citation_refusals_the_guide_names_are_the_gates[annex-malformed] PASSED [ 44%]
+gate/tests/test_finding_guide_tester_1008.py::test_the_citation_refusals_the_guide_names_are_the_gates[annex-step-missing] PASSED [ 50%]
+gate/tests/test_finding_guide_tester_1008.py::test_the_origin_rule_is_the_writers PASSED [ 55%]
+gate/tests/test_finding_guide_tester_1008.py::test_the_schema_has_the_caps_this_test_reads PASSED [ 61%]
+gate/tests/test_finding_guide_tester_1008.py::test_the_guide_states_each_cap[blocked_on] PASSED [ 66%]
+gate/tests/test_finding_guide_tester_1008.py::test_the_guide_states_each_cap[model_and_tooling] PASSED [ 72%]
+gate/tests/test_finding_guide_tester_1008.py::test_the_guide_states_each_cap[route] PASSED [ 77%]
+gate/tests/test_finding_guide_tester_1008.py::test_the_guide_says_a_long_field_is_refused PASSED [ 83%]
+gate/tests/test_finding_guide_tester_1008.py::test_the_closing_case_can_be_read_without_mcp PASSED [ 88%]
+gate/tests/test_finding_guide_tester_1008.py::test_the_listing_says_its_waiting_on_is_a_last_read PASSED [ 94%]
+gate/tests/test_finding_guide_tester_1008.py::test_the_guide_says_a_new_hole_may_be_products_pending PASSED [100%]
+============================== 18 passed in 0.52s ==============================
+
+== Full fast tier: uv run --frozen pytest gate -m "not lean and not docker" -q
+SKIPPED [1] gate/tests/test_proposal_form.py:69: /Users/mikehiggins/Desktop/repos/open_proof_network/.claude/worktrees/open_proof_network_graph/.github/ISSUE_TEMPLATE/problem-proposal.yml is not checked out beside this repo
+SKIPPED [1] gate/tests/test_walkthrough.py:235: /Users/mikehiggins/Desktop/repos/open_proof_network/.claude/worktrees/open_proof_network_graph/AGENTS.md is not checked out beside this repo
+2350 passed, 268 skipped, 190 deselected, 2 warnings in 388.87s (0:06:28)

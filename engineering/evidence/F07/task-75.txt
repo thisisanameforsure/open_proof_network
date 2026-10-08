@@ -1,0 +1,137 @@
+F07-T75 (proposed): a hole's node is born without its carried witness's `-- hole:` line (R23).
+
+The finding (testers 2026-10-08, erdos-1094), on the record, first four lines of
+targets/erdos-1094/nodes/erdos-1094--h1/Witness.lean:
+-- hole: h_fixed_k
+
+import Mathlib
+
+
+Cause: postmerge.child_proposal wrote the carried text verbatim (R23/AC44 said "byte for byte"),
+so the transport line `-- hole: <name>` (F07-Q57 (3): the handle while the node has no id) became
+part of the child's Witness.lean.
+
+Readers checked before stripping:
+* step 7 stages a carried witness through the same postmerge.child_proposal, so stripping there
+  means the checked text is the written text (tested; the lean tier admits the stripped file).
+* the verdict's `hole_witnesses` / step 7's `hole-witnesses` diagnostic record the sha256 of the
+  carried *file* (attempts/<name>.<n>.witness), which stays in the parent's attempts/ with its
+  marker; cli.checked_witnesses holds the file to that hash before anything is stripped, and the
+  service binds a submission to that hash (F07-T53). Unchanged.
+* nothing hash-pins a merged Witness.lean: statement_hash covers Statement.lean; a gloss's
+  lean_hash is of the file as the tree holds it when the gloss is written, so it is computed after
+  the strip (existing glosses on already-merged files are not touched: the record is not rewritten).
+* no other reader parses `-- hole:` from a node's Witness.lean (grep of gate/opn_gate, api, site);
+  graph.witness_is_stub and layout.mentions_sorry do not care about a comment line.
+
+Fix: carried.as_witness(text) drops the first line that carries the name hole_named() read, and,
+when that line heads the file, the blank lines around it; every other byte (CRLF included) kept.
+postmerge.child_proposal applies it to a carried witness. Reaches the live graph only at a re-pin
+(it changes what the post-merge job writes); erdos-1094--h1's file stays as merged.
+
+Existing tests that pinned the defect, restated to the rule (carried text less its marker):
+test_finding_partial_carries_witnesses.py (6 asserts), test_finding_carried_witness_uses.py (2),
+and the lean tier's test_finding_partial_carries_witnesses_lean.py (2), test_finding_carried_witness_uses_lean.py (1).
+
+== RED (seam carried.as_witness extracted at today's behaviour, the identity, first):
+uv run --frozen pytest gate/tests/test_finding_carried_witness_marker.py -q
+_______________ test_the_strip_is_idempotent_and_keeps_line_ends _______________
+
+    def test_the_strip_is_idempotent_and_keeps_line_ends() -> None:
+        crlf = ("-- hole: h\n\n" + LEAN).replace("\n", "\r\n")
+        once = carried.as_witness(crlf)
+>       assert once == LEAN.replace("\n", "\r\n")
+E       AssertionError: assert '-- hole: h\r...  trivial\r\n' == 'import Mathl...  trivial\r\n'
+E         
+E         + -- hole: h
+E         + 
+E           import Mathlib
+E           
+E           theorem witness : True :=
+E             trivial
+
+gate/tests/test_finding_carried_witness_marker.py:168: AssertionError
+=========================== short test summary info ============================
+FAILED gate/tests/test_finding_carried_witness_marker.py::test_a_child_is_born_without_the_marker
+FAILED gate/tests/test_finding_carried_witness_marker.py::test_step_7_checks_the_text_the_child_is_born_with
+FAILED gate/tests/test_finding_carried_witness_marker.py::test_the_post_merge_command_writes_the_witness_and_keeps_the_carried_file
+FAILED gate/tests/test_finding_carried_witness_marker.py::test_windows_line_ends_survive_the_strip
+FAILED gate/tests/test_finding_carried_witness_marker.py::test_the_marker_line_is_what_is_stripped[-- hole: h_fixed_k\n\nimport Mathlib\n\ntheorem witness : True :=\n  trivial\n-import Mathlib\n\ntheorem witness : True :=\n  trivial\n]
+FAILED gate/tests/test_finding_carried_witness_marker.py::test_the_marker_line_is_what_is_stripped[\n\n-- hole: h\n\n\nimport Mathlib\n\ntheorem witness : True :=\n  trivial\n-import Mathlib\n\ntheorem witness : True :=\n  trivial\n]
+FAILED gate/tests/test_finding_carried_witness_marker.py::test_the_marker_line_is_what_is_stripped[-- hole: h\nimport Mathlib\n\ntheorem witness : True :=\n  trivial\n-import Mathlib\n\ntheorem witness : True :=\n  trivial\n]
+FAILED gate/tests/test_finding_carried_witness_marker.py::test_the_marker_line_is_what_is_stripped[  --   hole:   h  \n\nimport Mathlib\n\ntheorem witness : True :=\n  trivial\n-import Mathlib\n\ntheorem witness : True :=\n  trivial\n]
+FAILED gate/tests/test_finding_carried_witness_marker.py::test_the_marker_line_is_what_is_stripped[import Mathlib\n\n-- hole: h\ntheorem witness : True :=\n  trivial\n-import Mathlib\n\ntheorem witness : True :=\n  trivial\n]
+FAILED gate/tests/test_finding_carried_witness_marker.py::test_the_marker_line_is_what_is_stripped[theorem witness : True :=\n  trivial\n-- hole: h-theorem witness : True :=\n  trivial\n]
+FAILED gate/tests/test_finding_carried_witness_marker.py::test_the_marker_line_is_what_is_stripped[-- hole: a\n\n-- hole: b\nimport Mathlib\n\ntheorem witness : True :=\n  trivial\n--- hole: b\nimport Mathlib\n\ntheorem witness : True :=\n  trivial\n]
+FAILED gate/tests/test_finding_carried_witness_marker.py::test_the_strip_is_idempotent_and_keeps_line_ends
+12 failed, 3 passed in 4.79s
+
+First failures were assertions on the marker, e.g.
+  AssertionError: assert '-- hole:' not in '-- hole: ri..., trivial⟩\n'
+
+== GREEN (fast): marker + carried-witness tests, -v
+gate/tests/test_finding_carried_witness_marker.py::test_a_child_is_born_without_the_marker PASSED [  2%]
+gate/tests/test_finding_carried_witness_marker.py::test_step_7_checks_the_text_the_child_is_born_with PASSED [  4%]
+gate/tests/test_finding_carried_witness_marker.py::test_the_post_merge_command_writes_the_witness_and_keeps_the_carried_file PASSED [  6%]
+gate/tests/test_finding_carried_witness_marker.py::test_windows_line_ends_survive_the_strip PASSED [  8%]
+gate/tests/test_finding_carried_witness_marker.py::test_the_marker_line_is_what_is_stripped[-- hole: h_fixed_k\n\nimport Mathlib\n\ntheorem witness : True :=\n  trivial\n-import Mathlib\n\ntheorem witness : True :=\n  trivial\n] PASSED [ 10%]
+gate/tests/test_finding_carried_witness_marker.py::test_the_marker_line_is_what_is_stripped[\n\n-- hole: h\n\n\nimport Mathlib\n\ntheorem witness : True :=\n  trivial\n-import Mathlib\n\ntheorem witness : True :=\n  trivial\n] PASSED [ 12%]
+gate/tests/test_finding_carried_witness_marker.py::test_the_marker_line_is_what_is_stripped[-- hole: h\nimport Mathlib\n\ntheorem witness : True :=\n  trivial\n-import Mathlib\n\ntheorem witness : True :=\n  trivial\n] PASSED [ 14%]
+gate/tests/test_finding_carried_witness_marker.py::test_the_marker_line_is_what_is_stripped[  --   hole:   h  \n\nimport Mathlib\n\ntheorem witness : True :=\n  trivial\n-import Mathlib\n\ntheorem witness : True :=\n  trivial\n] PASSED [ 16%]
+gate/tests/test_finding_carried_witness_marker.py::test_the_marker_line_is_what_is_stripped[import Mathlib\n\n-- hole: h\ntheorem witness : True :=\n  trivial\n-import Mathlib\n\ntheorem witness : True :=\n  trivial\n] PASSED [ 18%]
+gate/tests/test_finding_carried_witness_marker.py::test_the_marker_line_is_what_is_stripped[theorem witness : True :=\n  trivial\n-- hole: h-theorem witness : True :=\n  trivial\n] PASSED [ 20%]
+gate/tests/test_finding_carried_witness_marker.py::test_the_marker_line_is_what_is_stripped[-- hole: a\n\n-- hole: b\nimport Mathlib\n\ntheorem witness : True :=\n  trivial\n--- hole: b\nimport Mathlib\n\ntheorem witness : True :=\n  trivial\n] PASSED [ 22%]
+gate/tests/test_finding_carried_witness_marker.py::test_the_marker_line_is_what_is_stripped[-- the hole: see below\nimport Mathlib\n\ntheorem witness : True :=\n  trivial\n--- the hole: see below\nimport Mathlib\n\ntheorem witness : True :=\n  trivial\n] PASSED [ 25%]
+gate/tests/test_finding_carried_witness_marker.py::test_the_marker_line_is_what_is_stripped[import Mathlib\n\ntheorem witness : True :=\n  trivial\n-import Mathlib\n\ntheorem witness : True :=\n  trivial\n] PASSED [ 27%]
+gate/tests/test_finding_carried_witness_marker.py::test_the_marker_line_is_what_is_stripped[-] PASSED [ 29%]
+gate/tests/test_finding_carried_witness_marker.py::test_the_strip_is_idempotent_and_keeps_line_ends PASSED [ 31%]
+gate/tests/test_finding_carried_witness_marker.py::test_the_guide_says_the_marker_is_not_written PASSED [ 33%]
+gate/tests/test_finding_partial_carries_witnesses.py::test_a_carried_witness_has_a_role_and_rides_in_partial_mode PASSED [ 35%]
+gate/tests/test_finding_partial_carries_witnesses.py::test_the_readers_of_assemblies_do_not_see_a_carried_witness PASSED [ 37%]
+gate/tests/test_finding_partial_carries_witnesses.py::test_a_malformed_carried_witness_is_refused_at_step_2[files0-hole-witness-unnamed] PASSED [ 39%]
+gate/tests/test_finding_partial_carries_witnesses.py::test_a_malformed_carried_witness_is_refused_at_step_2[files1-hole-witness-duplicate] PASSED [ 41%]
+gate/tests/test_finding_partial_carries_witnesses.py::test_a_malformed_carried_witness_is_refused_at_step_2[files2-hole-witness-sorry] PASSED [ 43%]
+gate/tests/test_finding_partial_carries_witnesses.py::test_a_malformed_carried_witness_is_refused_at_step_2[files3-hole-witness-unattached] PASSED [ 45%]
+gate/tests/test_finding_partial_carries_witnesses.py::test_a_malformed_carried_witness_is_refused_at_step_2[files4-hole-witness-unattached] PASSED [ 47%]
+gate/tests/test_finding_partial_carries_witnesses.py::test_a_malformed_carried_witness_is_refused_at_step_2[files5-hole-witness-unattached] PASSED [ 50%]
+gate/tests/test_finding_partial_carries_witnesses.py::test_a_witness_file_beside_a_proof_is_refused PASSED [ 52%]
+gate/tests/test_finding_partial_carries_witnesses.py::test_every_carried_witness_is_held_to_step_7_and_recorded PASSED [ 54%]
+gate/tests/test_finding_partial_carries_witnesses.py::test_a_carried_witness_is_narrowed_as_the_node_will_be PASSED [ 56%]
+gate/tests/test_finding_partial_carries_witnesses.py::test_a_carried_witness_that_fails_refuses_the_partial[answer0-witness-type-mismatch] PASSED [ 58%]
+gate/tests/test_finding_partial_carries_witnesses.py::test_a_carried_witness_that_fails_refuses_the_partial[answer1-witness-sorry] PASSED [ 60%]
+gate/tests/test_finding_partial_carries_witnesses.py::test_a_carried_witness_that_fails_refuses_the_partial[answer2-witness-axiom] PASSED [ 62%]
+gate/tests/test_finding_partial_carries_witnesses.py::test_a_carried_witness_that_fails_refuses_the_partial[answer3-witness-elaboration] PASSED [ 64%]
+gate/tests/test_finding_partial_carries_witnesses.py::test_a_carried_witness_that_fails_refuses_the_partial[answer4-metaprogram-failed] PASSED [ 66%]
+gate/tests/test_finding_partial_carries_witnesses.py::test_a_witness_for_a_hole_that_does_not_exist_is_refused PASSED [ 68%]
+gate/tests/test_finding_partial_carries_witnesses.py::test_a_name_two_holes_share_is_refused PASSED [ 70%]
+gate/tests/test_finding_partial_carries_witnesses.py::test_the_nodes_own_witness_is_judged_first PASSED [ 72%]
+gate/tests/test_finding_partial_carries_witnesses.py::test_a_partial_that_carries_nothing_is_what_it_was PASSED [ 75%]
+gate/tests/test_finding_partial_carries_witnesses.py::test_the_writer_without_witnesses_writes_the_slots_it_wrote PASSED [ 77%]
+gate/tests/test_finding_partial_carries_witnesses.py::test_children_are_born_with_the_carried_witnesses_and_ready PASSED [ 79%]
+gate/tests/test_finding_partial_carries_witnesses.py::test_only_the_holes_that_carried_one_are_ready PASSED [ 81%]
+gate/tests/test_finding_partial_carries_witnesses.py::test_the_writer_run_twice_writes_nothing_the_second_time PASSED [ 83%]
+gate/tests/test_finding_partial_carries_witnesses.py::test_a_hole_that_is_an_existing_node_is_not_touched PASSED [ 85%]
+gate/tests/test_finding_partial_carries_witnesses.py::test_the_post_merge_command_writes_the_witnesses_its_run_checked PASSED [ 87%]
+gate/tests/test_finding_partial_carries_witnesses.py::test_the_post_merge_command_writes_nothing_when_a_carried_witness_fails PASSED [ 89%]
+gate/tests/test_finding_partial_carries_witnesses.py::test_the_assembly_text_is_the_one_test_partial_builds PASSED [ 91%]
+gate/tests/test_finding_partial_carries_witnesses.py::test_a_carried_witness_is_hashed_and_written_as_its_bytes PASSED [ 93%]
+gate/tests/test_finding_carried_witness_uses.py::test_step_7_judges_a_carried_witness_against_the_statement_the_writer_writes PASSED [ 95%]
+gate/tests/test_finding_carried_witness_uses.py::test_a_node_use_is_the_assemblys_and_not_the_holes PASSED [ 97%]
+gate/tests/test_finding_carried_witness_uses.py::test_a_partial_with_no_use_lines_stages_what_it_staged PASSED [100%]
+============================== 48 passed in 8.87s ==============================
+
+== GREEN (lean tier, real toolchain 4.33.1, the stripped witness elaborates, passes step 7 and admission):
+uv run --frozen pytest gate/tests/test_finding_partial_carries_witnesses_lean.py \
+  gate/tests/test_finding_carried_witness_uses_lean.py -m lean -q \
+  -k "carrying_every_witness or target_with_defs or over_a_declared_definition"
+...                                                                      [100%]
+3 passed, 10 deselected in 1993.61s (0:33:13)
+uv run --frozen pytest  gate/tests/test_finding_carried_witness_uses_lean.py   621.29s user 377.01s system 50% cpu 33:15.60 total
+(run with the fix in place, before the import moved to postmerge's module header, a no-op)
+
+== Full fast tier: uv run --frozen pytest gate -m "not lean and not docker" -q
+SKIPPED [1] gate/tests/test_proposal_form.py:69: /Users/mikehiggins/Desktop/repos/open_proof_network/.claude/worktrees/open_proof_network_graph/.github/ISSUE_TEMPLATE/problem-proposal.yml is not checked out beside this repo
+SKIPPED [1] gate/tests/test_walkthrough.py:235: /Users/mikehiggins/Desktop/repos/open_proof_network/.claude/worktrees/open_proof_network_graph/AGENTS.md is not checked out beside this repo
+2350 passed, 268 skipped, 190 deselected, 2 warnings in 388.87s (0:06:28)
+
+make lint: All checks passed; 688 files already formatted. make types: gate 330, api 220, site 77, no issues.

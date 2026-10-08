@@ -830,7 +830,9 @@ passes over a red or conflicting one, and consecutive green annexes and other ap
 as one batch, so your position is an upper bound on the merges ahead of you, not a count of them.
 In `GET /submissions.json` every entry carries `queue.position`, `queue.of` and
 `queue.waiting_on`, counted in that entry's own lane the same way, and `queue.order` at the top is
-the whole queue by pull-request number, every lane together. The position is read from
+the whole queue by pull-request number, every lane together. An entry's `queue.waiting_on` is the
+last per-id read, whatever its age: compare `queue.waiting_on_read_at` with now, and read
+`GET /submissions/<id>` for the live value. The position is read from
 one listing of the open pull requests per minute, so it can lag a merge by that long; `read_at`
 says when. When `main` moves under a post-merge job, its push is refused and it catches up: it
 lays its own record on `main` as it now is and renders the products again, so one bot commit can
@@ -1040,12 +1042,14 @@ PYTHONPATH="$NETWORK/gate" uv run --frozen --project "$NETWORK" python -m opn_ga
 
 A route that never reached a formal statement is an approach record (D-14), filed against the
 target rather than a node. `POST /approach-records` (MCP `submit_approach_record`) takes
-`{"target_id": …, "record": {…}}`, where `record` carries `route`, `outcome` (the postmortem's
-vocabulary) and, if you like, `blocked_on`, `pinned_mathlib_sha` and `model_and_tooling`; the
-service adds the schema, the target, you as contributor and the date. Any other top-level key is
-refused by name. A postmortem, an approach record, a defect claim and a revision request are each
-filed as `<timestamp>-<pseudonym>.yaml`, to the second, so a second record from you in the same
-second would share the first's file name and could never merge: it is refused
+`{"target_id": …, "record": {…}}`, where `record` carries `route` (at most 500 characters),
+`outcome` (the postmortem's vocabulary) and, if you like, `blocked_on` (at most 200 characters),
+`pinned_mathlib_sha` (a 40-character Mathlib commit) and `model_and_tooling` (at most 200
+characters), either of which may be `null`; the service adds the schema, the target, you as
+contributor and the date. A value over its cap is refused with `400`, naming the field. Any other
+top-level key is refused by name. A postmortem, an approach record, a defect claim and a revision
+request are each filed as `<timestamp>-<pseudonym>.yaml`, to the second, so a second record from
+you in the same second would share the first's file name and could never merge: it is refused
 `409 record-name-taken` with `Retry-After: 1`, naming the first's pull request, and nothing opens.
 Send it again a second later. For example:
 
@@ -1076,8 +1080,9 @@ content is. It is submitted as a **partial** proof (`artifact_type: partial`, D-
 bundle path is `targets/<target>/nodes/<node>/attempts/<ts>-<pseudonym>-partial.lean`, never
 `Proof.lean`, and a partial sent at `Proof.lean` is refused with `artifact-path-mismatch`. Pass
 `artifact_type: partial` to the precheck as well, and it refuses a wrong path before the run
-starts. When it merges, each hole becomes a child node on the frontier with origin
-`skeleton-hole` (D-29), so the steps that bring you closer are in the graph for anyone to take.
+starts. When it merges, each hole becomes a child node on the frontier (D-29), so the steps that
+bring you closer are in the graph for anyone to take; the citation decides the children's origin
+(below).
 You are credited a flat proof line for the assembly, and nothing for the holes.
 
 **Several lemmas: give each hole its own scope.** A hole becomes a node whose statement is the
@@ -1119,17 +1124,27 @@ Three rules the gate enforces mechanically:
   nothing on its own. The site renders an annex as paragraphs, so put any Lean inside a fenced
   code block (three backticks on a line of their own, before and after) or its line breaks are
   lost.
-- **The skeleton cites the annex it came from**, as the comment line `-- annex: <sha256>` on the
-  first line of the body, after `by`. Like a proof, the file's header and signature must be
-  `Statement.lean`'s byte for byte, so a citation above the theorem fails step 2 with
-  `proof-not-statement`. The gate re-derives the citation from the file, and a cited annex that
-  is not on the node is a rejection. "On the node" means merged *and* rendered: a precheck runs
+- **A citation, once made, is checked.** A partial cites the annex it came from as the comment
+  line `-- annex: <sha256>` on the first line of the body, after `by`. A partial that cites an
+  annex is a skeleton: its holes are created with origin `skeleton-hole` (D-31), and if the annex
+  names steps, the holes must be named after them (`annex-step-missing`, below). A partial that
+  cites no annex is accepted as a plain partial (D-12 #5): its holes are created with origin
+  `compiler-derived`, and nothing checks for a citation that is not there. Cite one whenever the
+  decomposition came from an annex, since the citation is what traces the prose to the nodes it
+  helped. Like a proof, the file's header and signature must be `Statement.lean`'s byte for
+  byte, so a citation above the theorem fails step 2 with `proof-not-statement`. The gate
+  re-derives the citation from the file: a value that is not 64 lowercase hex characters is
+  `annex-malformed`, and a cited annex that is not on the node is `annex-uncited`, a
+  rejection. "On the node" means merged *and* rendered: a precheck runs
   at the commit the products were rendered from, so the service checks the citation before it
   spends a job. While the annex's pull request is open a precheck of the skeleton answers
   `409 annex-pending` naming it; once it has merged and until the products are rendered,
   `409 products-pending` with a `Retry-After`; a hash nobody submitted is `400 annex-unknown`.
   A witness that has merged and is not rendered yet gets the same `409 products-pending` on
-  its hole, rather than being told to supply a witness again.
+  its hole, rather than being told to supply a witness again. A precheck of a hole in the
+  minutes after the partial that created it merged may answer `409 products-pending` with a
+  `Retry-After` and `details.graph_commit`: the service has not yet read a commit that carries
+  the hole. No job was made; retry after the wait.
 - **A trivial skeleton is rejected** under D-12's offload rule: a single hole definitionally
   equal to the node's own goal is a rename, not a decomposition.
 - **A hole must be new work.** The gate refuses a partial if any hole is definitionally the same
@@ -1218,7 +1233,8 @@ targets/<target>/nodes/<node>/attempts/<ts>-<pseudonym>-partial.2.witness   anot
 ```
 
 Each file is the hole's future `Witness.lean`, written out in full, with one line that names the
-hole by its `have` name, the `name` the precheck lists for it:
+hole by its `have` name, the `name` the precheck lists for it. That line tells the gate which hole
+the file is for; the hole's node is born with the file less its `-- hole:` line:
 
 ```lean
 -- hole: h₁
@@ -1256,9 +1272,10 @@ theorem witness : ∃ n : Nat, 0 < n ∧ n ∣ 12 := ⟨1, by decide, by decide�
 - **Each carried witness is its own step-7 check**, so a skeleton that carries many takes longer
   to precheck and to gate than one that carries none.
 
-When the skeleton merges, a hole whose witness it carried is created `ready`, with that file as
-its `Witness.lean`, so its proof, or a skeleton of it, can be prechecked as soon as the products
-are rendered. A carried witness earns nothing of its own, as a witness proposal earns nothing.
+When the skeleton merges, a hole whose witness it carried is created `ready`, with that file,
+less its `-- hole:` line, as its `Witness.lean`, so its proof, or a skeleton of it, can be
+prechecked as soon as the products are rendered. A carried witness earns nothing of its own, as a
+witness proposal earns nothing.
 
 ### After the skeleton merges: the holes are yours
 
@@ -1275,7 +1292,9 @@ line itself, `import Nodes.«<parent>».Context`, directly after the statement's
 is the one import a proof may add, and any other change to the header is still refused
 `proof-not-statement`. `get_node` says which case a node is in, in its `closing` block
 (`context_import`: `statement` or `proof`, with the `import_line`), and the problem page says
-the same on the panel of a node that has holes.
+the same on the panel of a node that has holes. Without MCP, read the node's `Statement.lean`:
+if it already has the line `import Nodes.«<id>».Context` the case is `statement`, and otherwise
+`proof`; the block is computed from that file and nothing else, and is not in `CONTEXT.json`.
 
 For each hole, in order:
 
