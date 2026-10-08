@@ -1,0 +1,54 @@
+Testers 2026-10-08, finding C7: "/submissions.json queue.waiting_on is stale" — not reproduced;
+by design (F05-Q19). No code changed; no F07-T74.
+2026-10-08, worktree agent-aca5df7a57d8a8870
+
+== What was reported (engineering/evidence/testers-2026-10-08/C.md, line 57) ==
+
+  C7 NETWORK (low): /submissions.json queue.waiting_on is stale in a misleading way: #451 shown
+  waiting_on "gate" (read 13:43:56) when its gate had completed SUCCESS; the doc does say it is
+  "what the service last read", so borderline DOC.
+
+== What the host says about #451 (read-only: gh pr view 451 --json ...) ==
+
+  createdAt  2026-10-08T13:43:31Z
+  gate (steps 1, 2 and 4-8 in the sandbox)   startedAt 13:43:38Z  completedAt 13:44:03Z  SUCCESS
+  step 9 (a non-author approving review)      startedAt 13:44:04Z  completedAt 13:44:03Z  SKIPPED
+  mergedAt   2026-10-08T13:55:25Z
+
+The tester's read was at 13:43:56Z, seven seconds before the gate job completed (13:44:03Z) and
+eight before the run's last job started. At that read #451's gate *was* running: "gate" was the
+actual state, not a stale one. C's own timeline says the same ("#451 (green 13:44:04)", C.md
+line 80). The report compared a 13:43:56 read with a completion that came after it.
+
+== What the field is documented to be (not a defect even when it is old) ==
+
+api/opn_api/pending.py:
+  last_read(): "``waiting_on`` for a pull request as the service last read it, and when: from the
+    cache of per-id reads, whatever its age, and never a read of its own."
+  entry_queue() publishes it beside "waiting_on_read_at", so its age is in the answer.
+  QUEUE_NOTE (served in the answer): "each entry's queue.waiting_on is what the service last read
+    for that pull request, with when; null means not read (GET /submissions/<id> reads it), never
+    that it waits on nothing."
+
+engineering/specs/features/F05.html, F05-Q19 (T18, 2026-10-01): "No route reads a pull request it
+was not asked about, which is why a list entry's waiting_on is the last per-id read the service
+holds, with its time ... Not built, for the owner: a waiting_on for every list entry would take
+one more host call per window (the gate runs of all open heads in one listing), which is a new
+read and was outside 'facts the service already reads'."
+
+The guide (gate/agents/AGENTS.md, the queue paragraph) says the same: each ahead entry carries
+"the `waiting_on` the service last read for it".
+
+Tested already: api/tests/test_finding_queue_position.py
+  test_a_submission_says_where_it_stands_and_what_is_ahead (waiting_on with waiting_on_read_at,
+  null where unread) and test_the_listing_gives_every_entry_its_position_in_queue_order
+  (queue.waiting_on_read_at present in the list).
+
+Published state is actual state "as of waiting_on_read_at", which the answer carries, so a list
+entry's waiting_on cannot be mistaken for a live read. A live waiting_on for every entry is the
+owner's open option in F05-Q19, not a defect.
+
+== Possible guide sentence (for the lead; not edited here) ==
+
+None needed for this read. If any, in the GET /submissions.json sentence: "compare
+`queue.waiting_on_read_at` with now; for the live value, read `GET /submissions/<id>`".

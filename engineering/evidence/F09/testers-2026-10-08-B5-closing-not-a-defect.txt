@@ -1,0 +1,70 @@
+Testers 2026-10-08, finding B5: "the `closing` block is reachable only over MCP" — no MCP-only
+capability (D-28 holds; F04-Q27, F09-Q13); a guide gap for HTTP contributors. No code changed.
+2026-10-08, worktree agent-aca5df7a57d8a8870
+
+== What was reported (engineering/evidence/testers-2026-10-08/B.md, B5) ==
+
+  The guide says "`get_node` says which case a node is in, in its `closing` block
+  (`context_import`: `statement` or `proof`, with the `import_line`)". B, on plain HTTP, found no
+  `closing` key in targets/erdos-1094/nodes/erdos-1094/CONTEXT.json and no node route in GET /.
+
+Both observations are correct: CONTEXT.json has no `closing`, and the service has no node route
+(GET / at 2026-10-08 lists 41 routes, none under /nodes).
+
+== Why it is not an MCP-only capability ==
+
+D-28's bijection rule: "Every MCP operation is exactly reproducible with plain git and HTTP." The
+D-28 table's row for get_node names its plain equivalent as "raw files under nodes/<id>/", and the
+guide's MCP table says `nodes/<id>/CONTEXT.json` + the raw files under `nodes/<id>/`.
+
+`closing` is a pure function of one of those raw files. api/opn_api/mcp/reads.py closing_route():
+
+    in_statement = statement is not None and layout.imports_own_context(node_id, statement)
+    return {"through_holes": True,
+            "context_import": "statement" if in_statement else "proof",
+            "import_line": f"import {layout.node_module(node_id, 'Context')}"}
+
+called as closing_route(node_id, files.get("Statement.lean")). F04-Q27 chose this on purpose:
+"No schema bump: the fact is a pure function of Statement.lean, which the site already reads, so
+layout.imports_own_context decides here and on the MCP's get_node (F09-Q13) and the fact has one
+home." F09-Q13: "One function decides (layout.imports_own_context), the same one the site's panel
+line uses (F04-Q27), so the two cannot disagree."
+
+Derived from nothing but the graph clone's raw Statement.lean files (graph 835f12390), through
+the same function:
+
+  $ PYTHONPATH=api:gate:site uv run --frozen python closing_from_files.py <clone>/targets/erdos-1094/nodes \
+        erdos-1094 erdos-1094--h3 erdos-1094--h1
+  erdos-1094 {'through_holes': True, 'context_import': 'proof', 'import_line': 'import Nodes.«erdos-1094».Context'}
+  erdos-1094--h3 {'through_holes': True, 'context_import': 'statement', 'import_line': 'import Nodes.«erdos-1094--h3».Context'}
+  erdos-1094--h1 {'through_holes': True, 'context_import': 'statement', 'import_line': 'import Nodes.«erdos-1094--h1».Context'}
+
+These equal what tester A read over MCP get_node (A.md: 12:58Z root "proof", 13:28Z --h3
+"statement"). In plain words: the root's Statement.lean has no `import Nodes.«erdos-1094».Context`
+line, so its case is `proof`; --h3's has it, so `statement`. That is what B inferred.
+
+And over HTTP the live problem page says it in words (curl https://openproofnetwork.org/problems/erdos-1094/,
+the selected statement's panel):
+
+  "Closable through its holes: once they are proved, a proof of this statement may name their
+   theorems. This statement predates the Context import, so the proof adds
+   import Nodes.«erdos-1094».Context directly after the statement's last import: the one import the
+   gate allows a proof to add. A direct proof is accepted at any time."
+
+So an HTTP-only contributor has two routes to the fact today: the node's raw Statement.lean (git,
+or raw.githubusercontent.com) and the problem page. Nothing the MCP says is unavailable to them.
+
+== The real gap, and the smallest fix (guide; the lead edits it) ==
+
+The guide names only get_node and the problem page, and does not say how a plain-git reader
+tells the two cases apart, so B looked for a `closing` key in CONTEXT.json. Proposed rewording
+of the sentence at gate/agents/AGENTS.md line ~1276:
+
+  "`get_node` says which case a node is in, in its `closing` block (`context_import`: `statement`
+   or `proof`, with the `import_line`), and the problem page says the same on the panel of a node
+   that has holes. Without MCP, read the node's `Statement.lean`: if it already has the line
+   `import Nodes.«<id>».Context` the case is `statement`, and otherwise `proof`; the block is
+   computed from that file and nothing else, and is not in `CONTEXT.json`."
+
+Not proposed: adding `closing` to CONTEXT.json (the hash-pinned context schema, a protocol
+surface, and a second home F04-Q27 chose against) or a new public node route (D-35).
