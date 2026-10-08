@@ -36,7 +36,13 @@ from opn_gate import writeup as writeupmod
 #: snapshots keep rendering (D-34), so this is a set per product, not a pin: `targets-index/v2`
 #: and `graph/v2` add F07-R8's two statuses, which the site shows without needing to know them.
 PRODUCT_SCHEMAS: dict[str, tuple[str, ...]] = {
-    "frontier.json": ("frontier/v1", "frontier/v2", "frontier/v3", "frontier/v4"),  # v4: F03-T16
+    "frontier.json": (
+        "frontier/v1",
+        "frontier/v2",
+        "frontier/v3",
+        "frontier/v4",  # F03-T16
+        "frontier/v5",  # D-12, D-25 v3.35: circular labels, literature status
+    ),
     "info.json": ("info/v1", "info/v2"),  # v2: F05-T25
     "targets/index.json": (
         "targets-index/v1",
@@ -48,7 +54,14 @@ PRODUCT_SCHEMAS: dict[str, tuple[str, ...]] = {
         "targets-index/v7",  # F07-T24: step9 may be `calibration`
         "targets-index/v8",  # F23-R14: stewards carry admitted_by and via; link may be null
     ),
-    "graph.json": ("graph/v1", "graph/v2", "graph/v3", "graph/v4", "graph/v5"),  # v5: F08-T36
+    "graph.json": (
+        "graph/v1",
+        "graph/v2",
+        "graph/v3",
+        "graph/v4",
+        "graph/v5",  # F08-T36
+        "graph/v6",  # D-12, D-25 v3.35: circular labels, literature status
+    ),
 }
 log = logging.getLogger(__name__)
 KEEP_FILE = ".gitkeep"
@@ -280,6 +293,16 @@ class SubjectView:
 
 
 @dataclass(frozen=True)
+class CircularLabel:
+    """F04-T37 (D-12 v3.35): one entry of a row's ``circular``: a merged circularity claim says
+    a proof of this node is a proof of ``ancestor``. A label, never a removal; ``claim`` is the
+    claim file relative to the graph root, so the page links it at the rendered commit."""
+
+    ancestor: str
+    claim: str
+
+
+@dataclass(frozen=True)
 class NodeView:
     target_id: str
     node_id: str
@@ -314,9 +337,11 @@ class NodeView:
     superseded_cause: str | None = None
     superseded_record: str | None = None
     supersedes: str | None = None
-    #: F08-T17: the merged circularity claim (graph-root relative) that ``graph.json``'s cause
-    #: ``circular`` rests on, read by the gate's own reader so the two cannot name different files.
-    circular_claim: str | None = None
+    #: F04-T37 (D-12 v3.35): the circularity labels the row carries (``graph/v6`` ``circular``),
+    #: each the claim that says a proof of this node proves its ancestor. On an older graph
+    #: (D-34) they are read from the merged claim files through the gate's own reader, as
+    #: F08-T17 and F08-T20 read them, so the two cannot name different files.
+    circular: tuple[CircularLabel, ...] = ()
     #: F08-T20 (D-12 v3.22): the merged circularity claims whose ancestor is this node
     #: (graph-root relative). The node stays open; its page names them.
     circular_below: tuple[str, ...] = ()
@@ -336,6 +361,11 @@ class NodeView:
         """Why a blocked node is blocked (``graph/v2`` on; absent before, read as ``None``)."""
         cause = self.graph_entry.get("cause")
         return None if cause is None else str(cause)
+
+    @property
+    def circular_claim(self) -> str | None:
+        """The first label's claim, graph-root relative, for a page that links one."""
+        return self.circular[0].claim if self.circular else None
 
     @property
     def open_claims(self) -> list[dict[str, Any]]:
@@ -794,11 +824,29 @@ def load_node(root: Path, target_id: str, entry: dict[str, Any]) -> NodeView:
         superseded_cause=str(why) if why else None,
         superseded_record=replaced.path.relative_to(root).as_posix() if replaced else None,
         supersedes=str(predecessor) if predecessor else None,
-        circular_claim=(
-            (node_dir / claim).relative_to(root).as_posix()
-            if (claim := records.circular_claim(node_dir))
-            else None
-        ),
+        circular=_circular_labels(root, target_id, node_dir, entry),
+    )
+
+
+def _circular_labels(
+    root: Path, target_id: str, node_dir: Path, entry: dict[str, Any]
+) -> tuple[CircularLabel, ...]:
+    """F04-T37 (D-12 v3.35): the row's ``circular`` labels, each claim made graph-root relative.
+    A ``graph/v6`` row carries them; an older row has no such key and the node's own merged
+    claims are read from the tree (``graph.resolved_circular_claims``, the ancestor read through
+    its revision chain), the path labels being added by ``_with_circular_paths``."""
+    nodes_dir = layout.graph_nodes_dir(root, target_id)
+    prefix = nodes_dir.relative_to(root).as_posix()
+    if "circular" in entry:
+        raw = entry.get("circular")
+        return tuple(
+            CircularLabel(ancestor=str(c["ancestor"]), claim=f"{prefix}/{c['claim']}")
+            for c in (raw if isinstance(raw, list) else [])
+            if isinstance(c, dict)
+        )
+    return tuple(
+        CircularLabel(ancestor=ancestor, claim=f"{prefix}/{node_dir.name}/{ref}")
+        for ref, ancestor in graphmod.resolved_circular_claims(nodes_dir, node_dir)
     )
 
 
@@ -1125,11 +1173,12 @@ def _load_definitions(root: Path, target_dir: Path) -> tuple[LeanFile, ...]:
 def _with_circular_paths(
     root: Path, target_id: str, graph: dict[str, Any], nodes: dict[str, NodeView]
 ) -> dict[str, NodeView]:
-    """F08-T20 (D-12 v3.22): which claim each circular node on a path rests on, and which claims
-    circle back to each ancestor — the gate's own ``graph.circular_marks`` over ``graph.json``'s
-    deps, origins and statuses and the claim files in the tree, so the site cannot reach a
-    different set of nodes than the products did. A path node's claim sits under the hole, not
-    under the node, which is why the node's own ``defects/`` cannot name it."""
+    """F08-T20 (D-12 v3.22): which claims circle back to each ancestor (``circular_below``) —
+    the gate's own ``graph.circular_marks`` over ``graph.json``'s deps, origins and statuses and
+    the claim files in the tree, so the site cannot reach a different set of nodes than the
+    products did. On a graph older than ``graph/v6`` (D-34) the same marks give each node on a
+    path its label: a path node's claim sits under the hole, not under the node, which is why
+    the node's own ``defects/`` cannot name it. A v6 row carries its labels itself (F04-T37)."""
     nodes_dir = layout.graph_nodes_dir(root, target_id)
     rows = {str(e["node_id"]): e for e in graph["nodes"]}
     deps = {n: [str(d) for d in e["deps"]] for n, e in rows.items()}
@@ -1145,11 +1194,14 @@ def _with_circular_paths(
     statuses = {n: str(e["status"]) for n, e in rows.items()}
     on_path, below = graphmod.circular_marks(holes, deps, claims, statuses)
     prefix = nodes_dir.relative_to(root).as_posix()
+    ancestor_of = {ref: ancestor for found in claims.values() for ref, ancestor in found}
     out = dict(nodes)
     for node_id, nv in nodes.items():
         view = nv
-        if view.circular_claim is None and node_id in on_path:
-            view = replace(view, circular_claim=f"{prefix}/{on_path[node_id]}")
+        if "circular" not in rows[node_id] and not view.circular and node_id in on_path:
+            ref = on_path[node_id]
+            label = CircularLabel(ancestor=ancestor_of.get(ref, ""), claim=f"{prefix}/{ref}")
+            view = replace(view, circular=(label,))
         if node_id in below:
             view = replace(view, circular_below=tuple(f"{prefix}/{r}" for r in below[node_id]))
         out[node_id] = view

@@ -2,7 +2,8 @@
 
 The owner, on erdos-1050's page (2026-10-03): it is not clear which branches constitute the
 proof and which nodes the proof does not need. The page drew every *declared* dependency, so a
-proof that used one hole of four looked like it rested on all four, and an open circular hole sat
+proof that used one hole of four looked like it rested on all four, and an open hole under a
+merged circularity claim (a label since D-12 v3.35, F04-T37; it was then drawn as a state) sat
 under a proved root with nothing to say it was not needed. ``graph.json``'s ``target_proofs``
 (F18-T1) names each proof with the nodes its term rests on; the page offers one entry per proof,
 draws the selected proof's nodes and edges as the proof and every other node as not needed by

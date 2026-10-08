@@ -1,0 +1,221 @@
+F04-T37: the circularity label (D-12 v3.35) — evidence, 2026-10-08
+worktree branch worktree-agent-ac4d01386c9b917c0, from main 77e0acc
+
+== red (the restated tests run against the renderer as merged at 77e0acc) ==
+$ uv run --frozen pytest site/tests/test_finding_circular_label.py site/tests/test_finding_circular_key.py site/tests/test_finding_circular_path_note.py -q
+  8 failed, 1 passed, 9 errors in 21.67s
+  the errors: SiteError: product frontier.json is frontier/v5, which this generator does not render
+  the failures: status_mark says "circular: ... so no progress"; "circular" in LEGEND_EXTRA; no dag.circular_mark;
+                the glossary word is "circular", not the label's; NodeView has no "circular" (the seam)
+
+== green ==
+$ uv run --frozen pytest site -m "not lean and not docker" -q
+  533 passed, 1 skipped in 118.02s (0:01:58)
+$ uv run --frozen pytest site/tests/test_finding_circular_label.py site/tests/test_finding_circular_key.py site/tests/test_finding_circular_path_note.py -q
+  18 passed in 5.33s
+$ make lint
+  exit 0
+$ uv run --frozen mypy site
+  Success: no issues found in 79 source files
+
+== goldens ==
+site/tests/golden/docs/index.html and site/tests/golden/problems/index.html regenerated (test_render.write_goldens):
+the Docs state map's key loses "circular" (not a state), the glossary row is restated as "proves an ancestor",
+every listing row gains data-circular="0". Nothing else moved (git diff --stat: 2 files, 5 lines each way).
+
+== local render of the live graph (sibling clone at 9589f0d4195b01039a6adc4bd613c108ef672142) ==
+A scratch copy of the clone's tree with its products rewritten as the v3.35 gate writes them (patch_live.py):
+erdos-69 and erdos-1050 graph.json -> graph/v6 with circular labels on the four live nodes under merged claims
+(erdos-1050--h1-v2--h1, erdos-69--h2-v2, erdos-69--h2-v2--h1-v2, erdos-69--h2-v2--h1-v2--h4), cause circular cleared;
+frontier.json -> frontier/v5 with the four nodes added claimable: entries 38 -> 42, claimable 35 -> 39.
+Both documents validated against gate/schemas before writing.
+$ PYTHONPATH=site:gate OPN_SITE_API_URL=https://api.openproofnetwork.org uv run --frozen python -m opn_site.cli render \
+    --graph <copy> --commit 9589f0d4195b01039a6adc4bd613c108ef672142 --out <dir>
+  {"ok": true, "pages": 258}
+
+== screenshots and measurements (engineering/evidence/F04/task-37-shoot.py; Playwright, Chromium) ==
+{
+ "node@1440": {
+  "lead": "open",
+  "label": "A proof of this statement is a proof of erdos-69--h2-v2--h1-v2 (claim targets/erdos-69/nodes/erdos-69--h2-v2--h1-v2--h4/defects/20260924T123205Z-t0924-69m-8709.yaml; D-12, D-16). A proof of this statement is a proof of erdos-69--h2-v2 (claim targets/erdos-69/nodes/erdos-69--h2-v2--h1-v2--h4/defects/20260924T123647Z-agent-e69h-0d8d.yaml; D-12, D-16).",
+  "not_claimable_on_page": false,
+  "scrollWidth": 1440
+ },
+ "problem@1440": {
+  "key": "proved open blocked superseded proves an ancestor depends on has an outline proposed for Hide superseded (3)",
+  "marks": [
+   {
+    "node": "erdos-69--h2-v2--h1-v2--h4",
+    "status": "status-ready",
+    "inside": true,
+    "rect": [
+     15,
+     14
+    ],
+    "text": [
+     8.6,
+     12
+    ]
+   },
+   {
+    "node": "erdos-69--h2-v2--h1-v2",
+    "status": "status-ready",
+    "inside": true,
+    "rect": [
+     15,
+     14
+    ],
+    "text": [
+     8.6,
+     12
+    ]
+   },
+   {
+    "node": "erdos-69--h2-v2",
+    "status": "status-ready",
+    "inside": true,
+    "rect": [
+     15,
+     14
+    ],
+    "text": [
+     8.6,
+     12
+    ]
+   }
+  ],
+  "key_swatch": [
+   15,
+   14
+  ],
+  "scrollWidth": 1440
+ },
+ "panel@1440": "SELECTED STATEMENT erdos-69--h2-v2--h1-v2--h4 status open attempts 1 attempt Left open by a proof skeleton; open. A proof of this statement is a proof of erdos-69--h2-v2--h1-v2 (claim targets/erdos-69/nodes/erdos-69--h2-v2--h1-v2--h4/defects/20260924T123205Z-t0924-69m-8709.yaml; D-12, D-16). A proof of this statement is a proof of erdos-69--h2-v2 (claim targets/erdos-69/nodes/erdos-69--h2-v2--h1-v",
+ "listing@1440": {
+  "labelled_rows": 3,
+  "row": "erdos-69--h2-v2 left open by a proof skeleton open proves erdos-69 1 attempt Work on this →",
+  "workable": [
+   "1",
+   "1",
+   "1"
+  ],
+  "scrollWidth": 1440
+ },
+ "node@390": {
+  "lead": "open",
+  "label": "A proof of this statement is a proof of erdos-69--h2-v2--h1-v2 (claim targets/erdos-69/nodes/erdos-69--h2-v2--h1-v2--h4/defects/20260924T123205Z-t0924-69m-8709.yaml; D-12, D-16). A proof of this statement is a proof of erdos-69--h2-v2 (claim targets/erdos-69/nodes/erdos-69--h2-v2--h1-v2--h4/defects/20260924T123647Z-agent-e69h-0d8d.yaml; D-12, D-16).",
+  "not_claimable_on_page": false,
+  "scrollWidth": 390
+ },
+ "problem@390": {
+  "key": "proved open blocked superseded proves an ancestor depends on has an outline proposed for Hide superseded (3)",
+  "marks": [
+   {
+    "node": "erdos-69--h2-v2--h1-v2--h4",
+    "status": "status-ready",
+    "inside": true,
+    "rect": [
+     15,
+     14
+    ],
+    "text": [
+     8.6,
+     12
+    ]
+   },
+   {
+    "node": "erdos-69--h2-v2--h1-v2",
+    "status": "status-ready",
+    "inside": true,
+    "rect": [
+     15,
+     14
+    ],
+    "text": [
+     8.6,
+     12
+    ]
+   },
+   {
+    "node": "erdos-69--h2-v2",
+    "status": "status-ready",
+    "inside": true,
+    "rect": [
+     15,
+     14
+    ],
+    "text": [
+     8.6,
+     12
+    ]
+   }
+  ],
+  "key_swatch": [
+   15,
+   14
+  ],
+  "scrollWidth": 390
+ },
+ "panel@390": "SELECTED STATEMENT erdos-69--h2-v2--h1-v2--h4 status open attempts 1 attempt Left open by a proof skeleton; open. A proof of this statement is a proof of erdos-69--h2-v2--h1-v2 (claim targets/erdos-69/nodes/erdos-69--h2-v2--h1-v2--h4/defects/20260924T123205Z-t0924-69m-8709.yaml; D-12, D-16). A proof of this statement is a proof of erdos-69--h2-v2 (claim targets/erdos-69/nodes/erdos-69--h2-v2--h1-v",
+ "listing@390": {
+  "labelled_rows": 3,
+  "row": "erdos-69--h2-v2 Work on this →",
+  "workable": [
+   "1",
+   "1",
+   "1"
+  ],
+  "scrollWidth": 390
+ }
+}
+127.0.0.1 - - [08/Oct/2026 21:41:59] "GET /nodes/erdos-69/erdos-69--h2-v2--h1-v2--h4/ HTTP/1.1" 200 -
+127.0.0.1 - - [08/Oct/2026 21:41:59] "GET /site.css HTTP/1.1" 200 -
+127.0.0.1 - - [08/Oct/2026 21:41:59] "GET /session.js HTTP/1.1" 200 -
+127.0.0.1 - - [08/Oct/2026 21:41:59] "GET /in-review.js HTTP/1.1" 200 -
+127.0.0.1 - - [08/Oct/2026 21:42:02] "GET /problems/erdos-69/ HTTP/1.1" 200 -
+127.0.0.1 - - [08/Oct/2026 21:42:02] "GET /vendor/katex/katex.min.css HTTP/1.1" 200 -
+127.0.0.1 - - [08/Oct/2026 21:42:02] "GET /vendor/katex/katex.min.js HTTP/1.1" 200 -
+127.0.0.1 - - [08/Oct/2026 21:42:02] "GET /vendor/katex/auto-render.min.js HTTP/1.1" 200 -
+127.0.0.1 - - [08/Oct/2026 21:42:02] "GET /math.js HTTP/1.1" 200 -
+127.0.0.1 - - [08/Oct/2026 21:42:02] "GET /problem.js HTTP/1.1" 200 -
+127.0.0.1 - - [08/Oct/2026 21:42:02] "GET /vendor/katex/fonts/KaTeX_Math-Italic.woff2 HTTP/1.1" 200 -
+127.0.0.1 - - [08/Oct/2026 21:42:02] "GET /vendor/katex/fonts/KaTeX_Main-Regular.woff2 HTTP/1.1" 200 -
+127.0.0.1 - - [08/Oct/2026 21:42:02] "GET /vendor/katex/fonts/KaTeX_Size2-Regular.woff2 HTTP/1.1" 200 -
+127.0.0.1 - - [08/Oct/2026 21:42:04] "GET /problems/ HTTP/1.1" 200 -
+127.0.0.1 - - [08/Oct/2026 21:42:04] "GET /vendor/katex/fonts/KaTeX_Size1-Regular.woff2 HTTP/1.1" 200 -
+127.0.0.1 - - [08/Oct/2026 21:42:04] "GET /vendor/katex/fonts/KaTeX_AMS-Regular.woff2 HTTP/1.1" 200 -
+127.0.0.1 - - [08/Oct/2026 21:42:04] "GET /problems.js HTTP/1.1" 200 -
+127.0.0.1 - - [08/Oct/2026 21:42:05] "GET /nodes/erdos-69/erdos-69--h2-v2--h1-v2--h4/ HTTP/1.1" 200 -
+127.0.0.1 - - [08/Oct/2026 21:42:05] "GET /site.css HTTP/1.1" 200 -
+127.0.0.1 - - [08/Oct/2026 21:42:05] "GET /session.js HTTP/1.1" 200 -
+127.0.0.1 - - [08/Oct/2026 21:42:05] "GET /in-review.js HTTP/1.1" 200 -
+127.0.0.1 - - [08/Oct/2026 21:42:07] "GET /problems/erdos-69/ HTTP/1.1" 200 -
+127.0.0.1 - - [08/Oct/2026 21:42:07] "GET /vendor/katex/katex.min.css HTTP/1.1" 200 -
+127.0.0.1 - - [08/Oct/2026 21:42:07] "GET /vendor/katex/katex.min.js HTTP/1.1" 200 -
+127.0.0.1 - - [08/Oct/2026 21:42:07] "GET /vendor/katex/auto-render.min.js HTTP/1.1" 200 -
+127.0.0.1 - - [08/Oct/2026 21:42:07] "GET /math.js HTTP/1.1" 200 -
+127.0.0.1 - - [08/Oct/2026 21:42:07] "GET /problem.js HTTP/1.1" 200 -
+127.0.0.1 - - [08/Oct/2026 21:42:07] "GET /vendor/katex/fonts/KaTeX_Math-Italic.woff2 HTTP/1.1" 200 -
+127.0.0.1 - - [08/Oct/2026 21:42:07] "GET /vendor/katex/fonts/KaTeX_Main-Regular.woff2 HTTP/1.1" 200 -
+127.0.0.1 - - [08/Oct/2026 21:42:07] "GET /vendor/katex/fonts/KaTeX_Size2-Regular.woff2 HTTP/1.1" 200 -
+127.0.0.1 - - [08/Oct/2026 21:42:08] "GET /problems/ HTTP/1.1" 200 -
+127.0.0.1 - - [08/Oct/2026 21:42:08] "GET /problems.js HTTP/1.1" 200 -
+127.0.0.1 - - [08/Oct/2026 21:42:08] "GET /vendor/katex/fonts/KaTeX_Size1-Regular.woff2 HTTP/1.1" 200 -
+127.0.0.1 - - [08/Oct/2026 21:42:08] "GET /vendor/katex/fonts/KaTeX_AMS-Regular.woff2 HTTP/1.1" 200 -
+
+What each shot shows (looked at, not only measured):
+  task-37-node-label-1440.png / -390.png: erdos-69--h2-v2--h1-v2--h4's page. Lead "open" (was "circular: ... so no
+    progress"); the label block, one line per entry of circular[]: "A proof of this statement is a proof of <ancestor>
+    (claim <file at the commit>; D-12, D-16)". "Not claimable" is absent from the page.
+  task-37-problem-key-1440.png / -390.png: erdos-69's key: proved · open · blocked · superseded · [⇒] proves an ancestor ·
+    depends on · has an outline · proposed for. "circular" is gone as a state; the mark is in the key because three
+    statements of this problem carry the label (Q16: the key names every mark the drawing shows).
+  task-37-problem-graph-1440.png / -390.png: the three labelled pills keep the open ring (class status-ready) and carry
+    the ⇒ tab at the top-left corner; the outline tab stays top-right. Measured: every tab's glyph bbox lies inside its
+    15x14 rect; the key swatch is 15x14. At 390 the drawing scrolls inside its own wrapper (Q16's design); the page's
+    scrollWidth is 390.
+  task-37-problem-panel-1440.png / -390.png: the hole's panel: status open, 1 attempt, then the two label lines with the
+    ancestors linked to their own panels (#node=...).
+  task-37-listing-row-1440.png / -390.png: the Problems listing's row for erdos-69--h2-v2: "open" then the chip
+    "[⇒] proves erdos-69" with the glossary card on hover; data-circular="1", data-workable="1". Three labelled rows,
+    all workable. At 390 the row collapses to id and action as every row does.

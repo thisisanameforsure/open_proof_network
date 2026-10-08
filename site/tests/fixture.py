@@ -7,7 +7,9 @@ escaping tests (T3) and the goldens cover the same tree.
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
+from typing import Any
 
 import samples
 import yaml
@@ -531,3 +533,107 @@ def build_with_resolutions(tmp_path: Path) -> Path:
         settle(root, graph.load_target(root, tid).root, suffix, n, tid)
     products.generate(root, rendered_from=COMMIT, commit_time=NOW).write(root)
     return root
+
+
+# --- Decisions v3.35 (F04-T37, T38): the products as the gate writes them since graph/v6 ----------
+
+#: A literature record as the products publish it (``graph/v6`` ``literature`` /
+#: ``literature_proposed``), by what a test needs to say; the record file itself is written by
+#: ``write_literature``.
+LITERATURE_WORDS = {
+    "open": "Open problem: no proof is known",
+    "known": "Known: a proof is published and not formalised",
+    "elementary": "Elementary: a routine formalisation of a known fact",
+}
+
+
+def write_literature(
+    root: Path,
+    node_id: str,
+    *,
+    status: str,
+    contributor: str,
+    date: str,
+    references: list[dict[str, Any]] | None = None,
+    summary: str = "What the literature says, in the contributor's words.",
+    confirms: str | None = None,
+    signed: bool = False,
+    target: str = TARGET,
+) -> str:
+    """One ``literature/v1`` record under the node, as the service files it: unsigned for a
+    proposal; for a confirmation (``signed``) the signature fields are filled with the shape
+    the schema wants (the site reads the *products* for who confirmed, never the signature).
+    Returns the record's path relative to the node (``literature/<file>``)."""
+    stamp = date.replace("-", "").replace(":", "")
+    rel = f"literature/{stamp}-{contributor}.yaml"
+    doc: dict[str, Any] = {
+        "schema": "literature/v1",
+        "node": node_id,
+        "contributor": contributor,
+        "date": date,
+        "status": status,
+        "references": references
+        if references is not None
+        else [{"title": "Where the problem is listed", "url": None, "note": None}],
+        "summary": summary,
+        "model_and_tooling": None,
+        "confirms": confirms,
+        "via": "approval-key" if signed else None,
+        "key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFakeKeyForTheFixtureOnly0000000000000000000"
+        if signed
+        else None,
+        "signature": "-----BEGIN SSH SIGNATURE-----\nAAAA\n-----END SSH SIGNATURE-----\n"
+        if signed
+        else None,
+    }
+    path = root / "targets" / target / "nodes" / node_id / rel
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(yaml.safe_dump(doc, sort_keys=True, allow_unicode=True), encoding="utf-8")
+    return rel
+
+
+def publish_v335(
+    root: Path,
+    *,
+    circular: dict[str, list[dict[str, str]]] | None = None,
+    literature: dict[str, dict[str, Any]] | None = None,
+    literature_proposed: dict[str, dict[str, Any]] | None = None,
+    target: str = TARGET,
+) -> None:
+    """Rewrite the rendered products as the v3.35 gate writes them: ``graph/v6`` and
+    ``frontier/v5``, every row carrying ``circular`` (``[{ancestor, claim}]``, the claim relative
+    to the target's ``nodes/``), ``literature`` and ``literature_proposed``. A circularity claim
+    is a label and removes nothing (D-12 v3.35), so the products are generated *before* any
+    claim is filed and only the three fields are added here; the retired cause ``circular`` is
+    cleared should a row carry it. The documents are validated against the new schemas, so a
+    test feeds the site exactly the shape the gate's contract names."""
+    circular = circular or {}
+    literature = literature or {}
+    literature_proposed = literature_proposed or {}
+
+    def extend(row: dict[str, Any]) -> None:
+        nid = str(row["node_id"])
+        row["circular"] = list(circular.get(nid, []))
+        row["literature"] = literature.get(nid)
+        row["literature_proposed"] = literature_proposed.get(nid)
+        if row.get("cause") == "circular":
+            row["cause"] = None
+
+    graph_path = root / "targets" / target / "graph.json"
+    graph = json.loads(graph_path.read_text(encoding="utf-8"))
+    graph["schema"] = "graph/v6"
+    for row in graph["nodes"]:
+        extend(row)
+    graph_path.write_text(json.dumps(schemas.validate(graph, "graph/v6"), indent=1) + "\n")
+
+    frontier_path = root / "frontier.json"
+    frontier = json.loads(frontier_path.read_text(encoding="utf-8"))
+    frontier["schema"] = "frontier/v5"
+    for entry in frontier["entries"]:
+        if entry["target_id"] == target:
+            extend(entry)
+        else:
+            entry.setdefault("circular", [])
+            entry.setdefault("literature", None)
+            entry.setdefault("literature_proposed", None)
+    frontier_path.write_text(json.dumps(schemas.validate(frontier, "frontier/v5"), indent=1) + "\n")

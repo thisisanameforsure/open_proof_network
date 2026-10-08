@@ -63,19 +63,23 @@ CAUSE_WORDS = {
         "(propose it through /proposals/witness)"
     ),
     "dep-refuted": "blocked: a dependency was refuted",
-    "circular": "circular: it implies a statement it was meant to reduce, so no progress",
 }
-#: F08-T17 (D-16): the one cause that speaks of a node whatever its status — a merged
-#: circularity claim takes a ready node off the frontier as surely as a blocked one.
-CIRCULAR_CAUSE = "circular"
+#: F04-T37 (D-12 v3.35): the cause F08-T17 wrote under a merged circularity claim, retired with
+#: ``graph/v6``: the claim is a label on the row (``circular``), never a state. An older snapshot
+#: (D-34) still carries the word; it changes no words and no state here.
+RETIRED_CIRCULAR_CAUSE = "circular"
 
 
 def status_words(status: str, cause: str | None) -> str:
-    """A status's words, or its cause's where ``graph.json`` records one: a blocked node's cause
-    always, and ``circular`` on any status it is published with (F08-T17)."""
-    if cause and (status == "blocked" or cause == CIRCULAR_CAUSE):
+    """A status's words, or its cause's where ``graph.json`` records one for a blocked node. The
+    retired cause ``circular`` is not a reason (D-12 v3.35)."""
+    if cause and status == "blocked" and cause != RETIRED_CIRCULAR_CAUSE:
         return CAUSE_WORDS.get(cause, f"blocked: {cause}")
     return STATUS_WORDS.get(status, status)
+
+
+#: F04-T37 (D-12 v3.35): the label's words, for the key, the panel and the row.
+CIRCULAR_LABEL_WORD = "proves an ancestor"
 
 
 #: F04-T15 (Q17): the statuses that owe nobody a witness. A node with an unfilled slot is
@@ -345,15 +349,16 @@ GLOSSARY: tuple[tuple[str, str, str, str], ...] = (
         "repairs it with a new version; nobody edits a statement.",
         "defective (D-12, D-8)",
     ),
-    # F04-T26 (Q28): the one key a cause, not a status, puts on a statement (F08-T17).
+    # F04-T26 (Q28), restated by F04-T37 (D-12 v3.35): a label a merged claim puts on a
+    # statement, never a state; the pill carries a small mark and keeps its status.
     (
         "circular",
-        "circular",
-        "A merged defect claim proves, in Lean, that this statement implies a statement it was "
-        "meant to reduce, so any proof of it is a proof of that one and the route leads straight "
-        "back where it started. Not accepting work; a proof of it is still accepted, since it "
-        "would prove the statement above.",
-        "ready · cause circular · circular-decomposition claim (D-16, D-12)",
+        CIRCULAR_LABEL_WORD,
+        "A merged circularity claim proves, in Lean, that this statement implies a statement it "
+        "was cut from, so a proof of this one is also a proof of that ancestor. A fact about the "
+        "route, shown so a reader can choose: the statement keeps its status and stays open to "
+        "work, and nothing ranks it.",
+        "circular[] on the row · circular-decomposition claim (D-16, D-12 v3.35)",
     ),
     # F04-T33 (Q34): the solid line, which every drawing with a dependency shows.
     (
@@ -513,7 +518,7 @@ LEGEND_KEYS = (
 LEGEND_BASE = ("proved", "open", "blocked")
 #: The keys that wear a status dot wherever a legend shows them.
 DOTTED_KEYS = (*LEGEND_BASE, NEEDS_WITNESS)
-LEGEND_EXTRA = ("stale", "disputed", "superseded", "abandoned", "refuted", "defective", "circular")
+LEGEND_EXTRA = ("stale", "disputed", "superseded", "abandoned", "refuted", "defective")
 #: F04-T21 (Q23): the Docs state map's keys. Every status ``graph.json`` can publish, as the
 #: site's word (F03-Q8: ``speculative`` reads open, so nine words for ten statuses), and the seven
 #: words a problem's status tag can wear; each key item is the hover card those pages use.
@@ -528,7 +533,6 @@ STATE_MAP_STATEMENT_KEYS = (
     "disputed",
     "superseded",
     "abandoned",
-    "circular",
 )
 #: F04-T31 (F03-T17, D-33 as written): a resolved problem's word follows its root's status in
 #: ``graph.json`` — a counterexample or a vacuity certificate resolves a problem as a proof does,
@@ -1135,8 +1139,6 @@ class Renderer:
         """The row's word: proved, open (a claim could take it, F03-Q8) or the status itself."""
         if nv.status == "proved":
             return "proved"
-        if nv.cause == CIRCULAR_CAUSE:
-            return CIRCULAR_CAUSE  # F08-T17: off the frontier by a merged claim, whatever status
         if nv.status in CLAIMABLE_STATUSES:
             return "open"
         if nv.status == "blocked" and nv.cause == WITNESS_CAUSE:
@@ -1157,8 +1159,10 @@ class Renderer:
         status a statement in this graph has, each a glossary hover card with its dot."""
         present = {self.node_state(nv) for nv in tv.nodes.values()}
         keys = (*LEGEND_BASE, *(k for k in (NEEDS_WITNESS, *LEGEND_EXTRA) if k in present))
+        # F04-T37 (D-12 v3.35): the label's mark, when a statement of this problem carries one.
+        marks = ("circular",) if any(nv.circular for nv in tv.nodes.values()) else ()
         return "".join(
-            self.term(k, dot=True) for k in (*keys, *self.proof_legend(tv))
+            self.term(k, dot=True) for k in (*keys, *marks, *self.proof_legend(tv))
         ) + self.superseded_toggle(tv)
 
     @staticmethod
@@ -1686,6 +1690,8 @@ class Renderer:
         return _template("problem-row.html").substitute(
             state=esc(state),
             workable="1" if state in WORKABLE_STATES else "0",
+            circular="1" if nv.circular else "0",  # F04-T37: the label, for a filter
+            label=self.circular_chip(nv),
             dot=self.state_hover(nv),
             node=self.node_link(tv.target_id, nv.node_id),
             role=esc(self.node_role(tv, nv)),
@@ -2021,13 +2027,11 @@ class Renderer:
         per statement, then the record's detail sections as before."""
         tid = tv.target_id
         href = {nid: self.node_path(tid, nid) for nid in tv.nodes}
-        # T17: the pill wears the state the key and the rows name, not the bare graph status;
-        # T26: so a circular statement is drawn circular, never with the open ring of its status.
+        # T17: the pill wears the state the key and the rows name, not the bare graph status.
+        # T37 (D-12 v3.35): a circularity label is a mark on the pill, never its state.
         drawn = [
             {**n, "status": NEEDS_WITNESS}
             if n.get("status") == "blocked" and n.get("cause") == WITNESS_CAUSE
-            else {**n, "status": CIRCULAR_CAUSE}
-            if n.get("status") != "proved" and n.get("cause") == CIRCULAR_CAUSE
             else n
             for n in tv.graph["nodes"]
         ]
@@ -2037,6 +2041,7 @@ class Renderer:
             href=href,
             proofs=self.proof_marks(tv),
             outlines=outlines,
+            labelled={nid for nid, nv in tv.nodes.items() if nv.circular},
             root=tv.root,
             prefix=tid,
             names={
@@ -2306,7 +2311,42 @@ class Renderer:
         if nv.supersedes:
             parts.append(f"Revises {link(nv.supersedes)}, which it replaced (D-8).")
         note = f'<p class="revision-note">{" ".join(parts)}</p>' if parts else ""
-        return note + self.circular_below_note(nv)
+        label = self.circular_label_note(tid, nv, in_page=in_page)
+        return note + label + self.circular_below_note(nv)
+
+    def circular_label_note(self, tid: str, nv: NodeView, *, in_page: bool) -> str:
+        """F04-T37 (D-12 v3.35): the circularity labels the row carries, one neutral line per
+        entry: *a proof of this statement is a proof of <ancestor>*, the claim linked at the
+        commit. A fact, not a state: it says nothing of claimability or progress. The ancestor
+        links to its panel on the problem page and to its page on the node's own."""
+        if not nv.circular:
+            return ""
+        target = self.site.targets.get(tid)
+        known = target.nodes if target is not None else {}
+        lines = []
+        for label in nv.circular:
+            if label.ancestor in known:
+                href = f"#node={label.ancestor}" if in_page else self.node_path(tid, label.ancestor)
+                ancestor = f'<a href="{esc(href)}">{esc(label.ancestor)}</a>'
+            else:
+                ancestor = f"<code>{esc(label.ancestor)}</code>"
+            lines.append(
+                f"A proof of this statement is a proof of {ancestor} (claim "
+                f"{self.file_link(label.claim)}; D-12, D-16)."
+            )
+        return f'<p class="circular-label">{" ".join(lines)}</p>'
+
+    def circular_chip(self, nv: NodeView) -> str:
+        """F04-T37: the row's form of the label — the key's mark and "proves <ancestor>", with
+        the glossary card on hover — so the listing says it and a filter can key on
+        ``data-circular``."""
+        if not nv.circular:
+            return ""
+        ancestors = ", ".join(esc(label.ancestor) for label in nv.circular)
+        _word, meaning, proto = self.words["by_key"]["circular"]
+        body = f'{esc(meaning)}<span class="proto">protocol: {esc(proto)}</span>'
+        chip = self.hover(f"{self.dot('circular')}proves <code>{ancestors}</code>", body)
+        return f' <span class="proves">{chip}</span>'
 
     def defect_claims_note(self, nv: NodeView) -> str:
         """F08-T36 (D-16 v3.28): every open defect claim against the statement — its class, its
@@ -2351,10 +2391,9 @@ class Renderer:
         return (
             '<p class="circular-note">'
             f"{'A merged circularity claim shows' if one else 'Merged circularity claims show'} "
-            "that a statement meant to reduce this one implies it, so a proof of it would be a "
-            f"proof of this one and that decomposition made no progress (D-12, D-16): {claims}. "
-            "This statement stays open: a direct proof, or a different decomposition, is "
-            "welcome.</p>"
+            "that a statement cut from this one implies it, so a proof of that one is a proof "
+            f"of this one too (D-12, D-16): {claims}. This statement stays open: a direct proof, "
+            "or a different decomposition, is welcome.</p>"
         )
 
     def closing_note(self, tv: TargetView, nv: NodeView) -> str:
@@ -2897,9 +2936,9 @@ class Renderer:
         renders.extend(f.path for f in (nv.witness, nv.relation) if f is not None)
         if nv.superseded_record is not None:
             renders.append(nv.superseded_record)
-        # F08-T17: the claim this node rests on; F08-T20: those its note names, circling back.
+        # F04-T37: the claims the node's labels link; F08-T20: those its note names, circling back.
         below = nv.circular_below if self.circular_below_note(nv) else ()
-        renders.extend(c for c in (nv.circular_claim, *below) if c is not None)
+        renders.extend((*(label.claim for label in nv.circular), *below))
         # F08-T36: the open claims the page links.
         renders.extend(
             f"targets/{tid}/nodes/{nid}/{c['file']}" for c in nv.open_claims if c.get("file")
@@ -3070,14 +3109,6 @@ class Renderer:
         """F04-T10: a node a claim could take (F03-Q8) under a target that is not claimable says
         so on its own page, in the target's reasons. A node whose target has no index row (never
         the case for a loaded site) says nothing, since there is no record to state."""
-        if nv.cause == CIRCULAR_CAUSE:
-            claim = self.file_link(nv.circular_claim) if nv.circular_claim else "its defects/"
-            return (
-                '<p class="why-not">Not claimable: a merged circularity claim proves that this '
-                "statement implies a statement it was meant to reduce, so any proof of it is a "
-                f"proof of that one and the route leads straight back (D-16). The claim and its "
-                f"Lean exhibit: {claim}. A proof of it is still a proof.</p>\n"
-            )
         tv = self.site.targets.get(nv.target_id)
         if tv is None or nv.status not in CLAIMABLE_STATUSES:
             return ""
