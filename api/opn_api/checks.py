@@ -735,19 +735,67 @@ NAME_CHECK = "linter.style.nameCheck"
 NAME_CHECK_RE = re.compile(r"The declaration '(?P<name>[^']+)' contains '__'")
 
 
+def flagged_names(body: dict[str, Any]) -> set[str]:
+    """The declarations Mathlib's naming linter flags in the checker's answer."""
+    return {
+        m.group("name")
+        for w in lean_warnings(body)
+        if NAME_CHECK in w and (m := NAME_CHECK_RE.search(w)) is not None
+    }
+
+
+def inlined_hole_names(
+    ctx: Context, target_id: str | None, defs: Sequence[tuple[str, str]], flagged: set[str]
+) -> frozenset[str]:
+    """F13-T32: the flagged names that are gate-generated holes the service inlined. A name
+    qualifies when a node module the service inlined declares it (the node's Context, a used
+    node's statement; never the caller's own text) and it is a hole of the target's graph with
+    ``-`` made ``_``, as ``postmerge.child_statement`` writes it (a D-8 revision of a hole keeps
+    the superseded hole's name, and that hole stays on the graph). The graph is read only when an
+    inlined declaration is flagged; a graph that cannot be read drops nothing (C7)."""
+    from opn_api.app import ApiError  # noqa: PLC0415 — app imports the routes that import this
+    from opn_gate import graph as graphmod  # noqa: PLC0415 — as in preflight_relation
+
+    declared = {
+        m.group("name")
+        for module, source in defs
+        if module == PROPOSED_CONTEXT or layout.module_origin(module)[0] == "node"
+        for m in DECLARATION_RE.finditer(layout.strip_comments(source))
+    }
+    candidates = flagged & declared
+    if target_id is None or not candidates:
+        return frozenset()
+    try:
+        doc = json.loads(frontier.committed(ctx, f"targets/{target_id}/graph.json"))
+    except (ApiError, ValueError):
+        return frozenset()
+    holes = {
+        str(node.get("node_id", "")).replace("-", "_")
+        for node in doc.get("nodes", [])
+        if isinstance(node, dict) and node.get("origin") in graphmod.HOLE_ORIGINS
+    }
+    return frozenset(candidates & holes)
+
+
 def without_generated_name_warning(
-    body: dict[str, Any], statement: layout.Statement | None, node_id: str | None
+    body: dict[str, Any],
+    statement: layout.Statement | None,
+    node_id: str | None,
+    inlined: frozenset[str] = frozenset(),
 ) -> tuple[dict[str, Any], list[dict[str, str]]]:
     """F13-T18 (D6): the checker's body with Mathlib's naming-linter warning dropped when, and
     only when, the name it flags is the node's own gate-generated declaration: its id with ``-``
     made ``_``, declared by its statement, as ``postmerge.child_statement`` writes every hole. A
     contributor cannot rename that theorem, so the warning was noise on every check of a hole.
-    Every other warning passes through verbatim. A copy: the body the log reads is the
-    checker's (R9)."""
-    if node_id is None or statement is None:
-        return body, []
-    generated = node_id.replace("-", "_")
-    if statement.decl_name != generated:
+    F13-T32: and when it is one of ``inlined``, the gate-generated hole names the service
+    inlined (``inlined_hole_names``), which the contributor cannot rename either. Every other
+    warning passes through verbatim. A copy: the body the log reads is the checker's (R9)."""
+    generated = set(inlined)
+    if node_id is not None and statement is not None:
+        own = node_id.replace("-", "_")
+        if statement.decl_name == own:
+            generated.add(own)
+    if not generated:
         return body, []
     messages = body.get("lean_messages")
     warnings = messages.get("warnings") if isinstance(messages, dict) else None
@@ -757,8 +805,8 @@ def without_generated_name_warning(
     dropped: list[dict[str, str]] = []
     for w in warnings:
         m = NAME_CHECK_RE.search(w) if isinstance(w, str) and NAME_CHECK in w else None
-        if m is not None and m.group("name") == generated:
-            dropped.append({"linter": NAME_CHECK, "declaration": generated})
+        if m is not None and m.group("name") in generated:
+            dropped.append({"linter": NAME_CHECK, "declaration": m.group("name")})
         else:
             kept.append(w)
     if not dropped:
@@ -2775,7 +2823,12 @@ async def post_check(ctx: Context, request: Request) -> Response:
         lint_codes=[w["code"] for w in warnings],
         answer=answer,
     )
-    shown, dropped = without_generated_name_warning(answer.body, statement, req.node_id)
+    shown, dropped = without_generated_name_warning(
+        answer.body,
+        statement,
+        req.node_id,
+        inlined_hole_names(ctx, req.target_id, defs, flagged_names(answer.body)),
+    )
     return JSONResponse(
         {
             "authoritative": False,

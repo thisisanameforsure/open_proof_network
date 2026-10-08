@@ -1,0 +1,98 @@
+F13-T32 — /check drops the naming-linter warning on every gate-generated hole name it inlines
+(testers 2026-10-08, erdos-1094; extends T18 / ruling D6 to the inlined Context)
+2026-10-08, worktree agent-aca5df7a57d8a8870, base de9b8a7
+
+== The finding, reproduced live first (anonymous POST /check, the only write-shaped call made) ==
+
+POST https://api.openproofnetwork.org/check
+  {"target_id": "erdos-1094", "node_id": "erdos-1094--h3", "mode": "check",
+   "content": <targets/erdos-1094/nodes/erdos-1094--h3/Statement.lean at graph 835f12390>}
+200 in 1.55 s, log_id 01M4E3R858YF6PXZVT9815THKM, environment lean-4.33.1
+  inlined_defs:     ["Nodes.«erdos-1094--h3».Context"]
+  dropped_warnings: [{"linter": "linter.style.nameCheck", "declaration": "erdos_1094__h3"}]
+  result.lean_messages.warnings (kept):
+    "-:11:8-11:26: warning: declaration uses `sorry`\n"
+    "-:11:8-11:26: warning: The declaration 'erdos_1094__h3__h1' contains '__', which does not
+     follow the mathlib naming conventions. Consider using single underscores instead.\n\nNote:
+     This linter can be disabled with `set_option linter.style.nameCheck false`\n"
+    "-:20:8-20:22: warning: declaration uses `sorry`\n"
+
+The node's own name is dropped (T18); the hole its Context declares, erdos_1094__h3__h1 (a
+compiler-derived node of the graph, written by the post-merge job), is kept. The guide promises
+the warning on "theorem names the gate generates for holes" is removed. (The root erdos-1094's
+statement predates the own-Context import, so a check of it inlines nothing unless the proof adds
+the import line; its Context declares erdos_1094__h1, __h2, __h3, the tester's case.)
+
+Cause: checks.without_generated_name_warning compared the flagged name with node_id made "_"
+only.
+
+== Red: api/tests/test_finding_check_inlined_hole_names.py, before the fix ==
+
+$ uv run --frozen pytest api/tests/test_finding_check_inlined_hole_names.py -q
+FAILED ...::test_the_holes_the_inlined_context_declares_are_dropped
+FAILED ...::test_in_verify_mode_too
+FAILED ...::test_a_revised_hole_keeps_its_superseded_holes_name
+FAILED ...::test_a_contributors_own_double_underscore_name_still_warns
+4 failed, 3 passed, 2 warnings in 3.91s
+
+Each fails on the defect, through the route (no missing name), e.g.:
+>       assert doc["result"]["lean_messages"]["warnings"] == []
+E       assert ['-:3:8-3:20:...Check false`'] == []
+E         Left contains 2 more items, first extra item: "-:3:8-3:20: warning: The declaration
+          'and_reassoc__h1' contains '__', which does not follow naming conventions. ..."
+(the first test's `inlined_defs == ["Nodes.«and-reassoc».Context"]` passed above it.)
+The 3 that passed are the guards: an authored dependency's `__` name, a hole-shaped name the
+graph does not carry, and a hole name the contributor wrote into their own text.
+
+== Fix (api/opn_api/checks.py) ==
+
+flagged_names(body): the names the linter flags. inlined_hole_names(ctx, target_id, defs,
+flagged): a flagged name qualifies when a *node* module the service inlined declares it (the
+node's Context, a used node's statement, a proposal's generated Context; never the caller's
+text) and it is a hole of the target's graph.json (origin in opn_gate.graph.HOLE_ORIGINS) with
+"-" made "_". The graph is read only when an inlined declaration is flagged; an unreadable graph
+drops nothing (C7). without_generated_name_warning gains `inlined` and drops those as well as
+the own name (T18 unchanged).
+
+== Green ==
+
+$ uv run --frozen pytest api/tests/test_finding_check_inlined_hole_names.py api/tests/test_finding_check_naming_noise.py -v
+... 7 + 5 PASSED
+12 passed, 2 warnings in 1.44s
+
+$ uv run --frozen pytest api/tests/test_finding_check_inlined_hole_names.py api/tests/test_finding_check_naming_noise.py api/tests/test_checks.py -q
+29 passed, 2 warnings in 26.03s
+
+$ uv run --frozen pytest api -m "not lean and not docker" -q -p no:cacheprovider
+1673 passed, 2 warnings in 135.94s (0:02:15)
+(run before a one-line wrap of the new test file for E501; the targeted run above is after it)
+
+$ make lint     -> All checks passed! / 687 files already formatted   (exit 0)
+$ make types    -> Success: no issues found in 328 / 221 / 77 source files (exit 0)
+
+== Mutants (each applied in place, run, restored; cmp against the saved copy: restored) ==
+
+1. candidates = flagged            (no "declared by an inlined node module" condition)
+   FAILED test_a_hole_name_the_contributor_wrote_rather_than_had_inlined_still_warns
+   1 failed, 6 passed
+2. return frozenset(candidates)    (no "is a hole of the graph" condition)
+   FAILED test_an_authored_dependencys_double_underscore_name_still_warns
+   FAILED test_a_hole_name_inlined_from_a_context_but_not_on_the_graph_still_warns
+   2 failed, 5 passed
+
+== Replay of the live answer through the fixed rule (real graph clone at 835f12390) ==
+
+$ PYTHONPATH=api:gate uv run --frozen python replay_t32.py <graph clone> live-check-h3-answer.json
+live dropped_warnings (before): [{'linter': 'linter.style.nameCheck', 'declaration': 'erdos_1094__h3'}]
+flagged: ['erdos_1094__h3__h1'] inlined holes: ['erdos_1094__h3__h1']
+dropped (after): [{'linter': 'linter.style.nameCheck', 'declaration': 'erdos_1094__h3__h1'}]
+kept warnings (after): ["-:11:8-11:26: warning: declaration uses `sorry`\n",
+                        "-:20:8-20:22: warning: declaration uses `sorry`\n"]
+(The replay starts from the live `result`, from which the own name was already removed, so it
+lists only the hole; the deployed route would list both.) Live after the next api deploy.
+
+Survey of the live graph (every target's graph.json against each node's Statement.lean): every
+declared name containing "__" belongs to a hole (compiler-derived 22, skeleton-hole 22); the 7 that
+are not their own id made "_" are D-8 revisions keeping the superseded hole's name
+(erdos-69--h2-v2 declares erdos_69__h2), which the rule covers because the superseded hole stays
+on the graph.
