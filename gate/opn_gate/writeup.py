@@ -356,15 +356,13 @@ def views(
 
     An act counts only when its signature verifies and, after the record, when its signer is a
     listed author; a second signature by the same author changes nothing."""
-    import datetime as dt  # noqa: PLC0415
-
-    from opn_gate import panel, steward  # noqa: PLC0415 — both read this module
+    from opn_gate import clock, panel, steward  # noqa: PLC0415 — panel and steward read this module
 
     target_dir = graph_root / "targets" / target_id
     acts = [a for a in load_any(target_dir) if signed.verifies(a.doc, signer)]
     if not acts:
         return []
-    on = today if today is not None else dt.datetime.now(dt.UTC).date()
+    on = today if today is not None else clock.today()
     stewards = frozenset(s.login for s in steward.active(target_dir, signer))
     verified_writeups = {
         int(t.subject["writeup"])

@@ -1364,6 +1364,68 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "The submission touches more than one target.",
         "Split it into one pull request per target.",
     ),
+    "motion-date": (
+        "gate",
+        None,
+        "A motion is dated more than one day from the gate's own day, so it could reach into a "
+        "window that is not its own (F24-R10).",
+        "Date the motion today (UTC); the service does this for you.",
+    ),
+    "motion-invite-member": (
+        "gate",
+        None,
+        "An invitation names someone already on the target's panel.",
+        "Nobody needs inviting twice; open a motion only for someone off the panel.",
+    ),
+    "motion-invite-open": (
+        "gate",
+        None,
+        "An invitation names a login another invitation on the target already names, and that one"
+        " is still open.",
+        "Wait for the open invitation to be decided, then invite again if it failed.",
+    ),
+    "motion-name": (
+        "gate",
+        None,
+        "A motion is not named motions/<n>.yaml, numbered.",
+        "Name it with the next number.",
+    ),
+    "motion-opener": (
+        "gate",
+        None,
+        "The motion's opener is neither on the target's panel on the motion's date nor a listed "
+        "curator.",
+        "Only a steward of the target on the panel, or a curator, opens a motion; a lapsed "
+        "steward returns by an act of their own first.",
+    ),
+    "motion-settings": (
+        "gate",
+        None,
+        "The motion's settings are not the panel settings policy.json carries in the merge's "
+        "parent tree.",
+        "Copy the settings from policy.json as it stands (or its defaults); the service does this"
+        " for you.",
+    ),
+    "motion-signature": (
+        "gate",
+        None,
+        "The motion's signature does not verify under its key, or a record made through the site "
+        "carries a key other than the graph's keys/approval.pub.",
+        "Sign again with the key the record names; a site record is made by the service.",
+    ),
+    "motion-target": (
+        "gate",
+        None,
+        "The motion names a different target from the directory it sits in.",
+        "File it under the target it names.",
+    ),
+    "motion-writeup-unknown": (
+        "gate",
+        None,
+        "A verify-writeup motion names a write-up number that is not a write-up record of the "
+        "target.",
+        "Name the number of the write-up's record (its writeup/<n>.yaml with action record).",
+    ),
     "model": (
         "gate",
         None,
@@ -2085,6 +2147,27 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "Under open, file the record as self-admitted; under reviewed, a listed curator names "
         "themselves in admitted_by and merges it.",
     ),
+    "steward-cap": (
+        "gate",
+        None,
+        "The commitment would take its login over steward_cap unlapsed stewardships of other "
+        "targets (policy.json).",
+        "Step down from another target first, or wait until one lapses.",
+    ),
+    "steward-invitation": (
+        "gate",
+        None,
+        "A commitment admitted by motion:<n> names a motion that does not exist, is not an "
+        "invitation of this login, or has not passed.",
+        "Wait until the invitation naming you has passed, then accept it with its number.",
+    ),
+    "steward-invitation-required": (
+        "gate",
+        None,
+        "A self-admitted commitment on a target that already has a panel: every later steward "
+        "comes by invitation or by a curator.",
+        "Ask a steward of the target to open an invitation for you, or a curator to admit you.",
+    ),
     "steward-key": (
         "gate",
         None,
@@ -2399,6 +2482,52 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "Ask the version's author, a steward of the target or a curator to withdraw it, or file a "
         "chain of your own.",
     ),
+    "vote-date": (
+        "gate",
+        None,
+        "A vote is dated more than one day from the gate's own day, so it could be written into a"
+        " closed window (F24-R10).",
+        "Date the vote today (UTC); the service does this for you.",
+    ),
+    "vote-motion-unknown": (
+        "gate",
+        None,
+        "The vote names a motion the target does not have.",
+        "Name the motion's number, from targets/<id>/motions/<n>.yaml.",
+    ),
+    "vote-name": (
+        "gate",
+        None,
+        "A vote is not named votes/<n>.yaml, numbered.",
+        "Name it with the next number.",
+    ),
+    "vote-not-member": (
+        "gate",
+        None,
+        "The voter was not on the target's panel on the motion's date, and is no curator whose "
+        "vote counts on it.",
+        "Only the panel as it stood when the motion opened votes on it.",
+    ),
+    "vote-signature": (
+        "gate",
+        None,
+        "The vote's signature does not verify under its key, or a record made through the site "
+        "carries a key other than the graph's keys/approval.pub.",
+        "Sign again with the key the record names; a site record is made by the service.",
+    ),
+    "vote-target": (
+        "gate",
+        None,
+        "The vote names a different target from the directory it sits in.",
+        "File it under the target it names.",
+    ),
+    "vote-window": (
+        "gate",
+        None,
+        "The vote is dated outside its motion's window: before the motion, or after it closed "
+        "under the motion's own settings.",
+        "Vote while the motion is open; a closed motion is decided.",
+    ),
     "witness-axiom": (
         "both",
         7,
@@ -2489,17 +2618,37 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "The witness's type is not the one the statement's hypotheses need.",
         "Make the witness's type exactly the expected type; POST /check mode witness prints it.",
     ),
+    "writeup-date": (
+        "gate",
+        None,
+        "A writeup/v2 act is dated more than one day from the gate's own day (F24-R10).",
+        "Date the act today (UTC); the service does this for you.",
+    ),
     "writeup-name": (
         "gate",
         None,
         "A write-up record is not named writeup/<n>.yaml, numbered.",
         "Name it with the next number.",
     ),
+    "writeup-not-author": (
+        "gate",
+        None,
+        "A write-up act after its record is signed by someone not among the record's authors.",
+        "Only a listed author signs, posts, submits or withdraws a write-up; record a new write-"
+        "up to change the authors.",
+    ),
     "writeup-signature": (
         "gate",
         None,
         "The write-up record's signature does not verify under its key.",
         "Sign again with the key the record names.",
+    ),
+    "writeup-signed-twice": (
+        "gate",
+        None,
+        "An author signs a write-up they have already signed (the record's own signer has signed "
+        "by making it).",
+        "Nothing to do: one signature per author is what counts.",
     ),
     "writeup-signer": (
         "gate",
@@ -2512,6 +2661,12 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         None,
         "The write-up record names a different target from the directory it sits in.",
         "File it under the target it names.",
+    ),
+    "writeup-unknown": (
+        "gate",
+        None,
+        "A writeup/v2 act names a write-up number that is not a write-up record of the target.",
+        "Name the number of the write-up's record (its writeup/<n>.yaml with action record).",
     ),
     # --- y ------------------------------------------------------------------------------------
     "yaml-invalid": (

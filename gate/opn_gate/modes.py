@@ -67,6 +67,7 @@ not evidentiary and the paths are.
 
 from __future__ import annotations
 
+import datetime
 import json
 import logging
 import re
@@ -79,6 +80,7 @@ import yaml
 
 from opn_gate import annex as annexmod
 from opn_gate import (
+    clock,
     config,
     defs,
     evidence,
@@ -87,6 +89,7 @@ from opn_gate import (
     intake,
     layout,
     ledger,
+    panel,
     paths,
     policy,
     qa,
@@ -115,6 +118,9 @@ Mode = Literal[
     "proposed-for",
 ]
 
+#: F15-R2, R6; F24-R2, R3: a steward's signed acts on a target, which merge as the steward mode
+#: alone or ride with a curator's records — one list, so a new act cannot fall through a mode.
+PANEL_ROLES: tuple[Role, ...] = ("steward", "writeup", "motion", "vote")
 #: The modes that run the Lean pipeline; the others never build a proof (R9, R10; F08-R2).
 BUILDING_MODES: tuple[Mode, ...] = ("proof", "partial", "alternate")
 #: F08-R8: the graph's role file — the founder's, and the only one at Stage 0 (F08 §7).
@@ -549,7 +555,7 @@ def classify(  # noqa: PLR0911, PLR0912 — one return and one branch per reject
     # F15-R2, R6: steward records and write-up records alone are the steward mode — both are a
     # steward's signed acts — whoever opened the pull request (Q8); brought by anything else
     # that is not an intake or a curator record, they are a mixture.
-    if all(loc.role in ("steward", "writeup") for loc in located):
+    if all(loc.role in PANEL_ROLES for loc in located):
         return Classification("steward", target_id, None, tuple(located), author=author)
 
     nodes = sorted({loc.node_id for loc in located if loc.node_id is not None})
@@ -631,7 +637,7 @@ def _classify_curator(  # noqa: PLR0913 — the diff, its located paths and the 
     roles = {loc.role for loc in located}
     # F15-R2, R6: a curator may carry a steward's signed record or a write-up record (Q8);
     # each is checked like any other.
-    allowed = set(paths.NODE_ROLES) | set(paths.CURATOR_ROLES) | {"steward", "writeup"}
+    allowed = set(paths.NODE_ROLES) | set(paths.CURATOR_ROLES) | set(PANEL_ROLES)
     if "qa-record" in roles:
         # F12-R4: the screen's own claim rides with the QA record that produced it; the claim is
         # then held to being a screen-finding (``check_defect_claim``), not a contributor's.
@@ -1086,7 +1092,7 @@ def check_as_service(
     return problems
 
 
-def check(  # noqa: PLR0912 — one branch per role with a check of its own
+def check(  # noqa: PLR0912, PLR0915 — one branch per role with a check of its own
     graph_root: Path,
     classification: Classification,
     *,
@@ -1152,7 +1158,11 @@ def check(  # noqa: PLR0912 — one branch per role with a check of its own
         elif located.role == "steward":
             problems.extend(check_steward_record(graph_root, located, classification, base=base))
         elif located.role == "writeup":
-            problems.extend(check_writeup_record(graph_root, located, classification))
+            problems.extend(check_writeup_record(graph_root, located, classification, base=base))
+        elif located.role == "motion":
+            problems.extend(check_motion_record(graph_root, located, classification, base=base))
+        elif located.role == "vote":
+            problems.extend(check_vote_record(graph_root, located, classification, base=base))
         elif located.role == "proposed-for":
             problems.extend(check_proposed_for(graph_root, located, classification))
         elif located.role == "policy":
@@ -1323,18 +1333,44 @@ def approval_key(graph_root: Path, base: BaseReader | None) -> str | None:
     return signed.published_key(parent_file(graph_root, base, signed.APPROVAL_KEY_PATH))
 
 
-def check_steward_admission(
-    graph_root: Path, located: Located, record: steward.Record, base: BaseReader | None
-) -> list[Diagnostic]:
-    """F23-R9 (D-32 v3.33, D-22 v3.33): a ``steward/v2`` record is admitted only when an
-    approval-key record carries the approval key of the merge's parent tree, and a commitment's
-    ``admitted_by`` agrees with that tree's ``policy.json``: ``self`` under ``open`` (also with no
-    file, or a ``policy/v1`` one), a login its ``curators.json`` lists under ``reviewed``.
+def _parent_policy(graph_root: Path, base: BaseReader | None) -> policy.Policy:
+    """``policy.json`` as the merge's parent tree has it; ``SchemaError`` when it does not read."""
+    return policy.parse(parent_file(graph_root, base, policy.FILE))
 
-    Which curator merges a pull request is not known until it has merged, so under ``reviewed``
-    the gate holds the record to a listed curator; that the merger is that curator is the merge
-    actor's to leave alone (``curate/`` is never one of its branches, F23-T7) and the curator's to
-    honour. A step-down needs no admission: anyone may stop being a steward."""
+
+def _parent_curators(graph_root: Path, base: BaseReader | None) -> frozenset[str]:
+    """The logins ``curators.json`` lists in the merge's parent tree (F23-R9)."""
+    try:
+        return parse_curators(parent_file(graph_root, base, CURATORS_FILE)).logins
+    except CuratorsError:
+        return frozenset()
+
+
+def check_steward_admission(
+    graph_root: Path,
+    located: Located,
+    record: steward.Record,
+    base: BaseReader | None,
+    *,
+    signer: Signer | None = None,
+) -> list[Diagnostic]:
+    """F23-R9, F24-R4 (D-32 v3.33, v3.34; D-22 v3.33): a ``steward/v2`` or ``v3`` record is
+    admitted only when an approval-key record carries the approval key of the merge's parent
+    tree, and a commitment's ``admitted_by`` is one the parent tree's rules allow:
+
+    * ``motion:<n>``, when motion n is a passed invitation naming the login, under either
+      admission;
+    * a login the parent's ``curators.json`` lists, at any time (the reviewed path, and a
+      curator adding a steward directly, F24-Q1);
+    * ``self``, under ``open`` only, and only while the target has no panel member on the gate's
+      day (``steward-invitation-required``): every later steward comes by invitation.
+
+    And no commitment takes its login over ``steward_cap`` unlapsed stewardships of *other*
+    targets (``steward-cap``). Which curator merges a pull request is not known until it has
+    merged, so under ``reviewed`` the gate holds the record to a listed curator; that the merger
+    is that curator is the merge actor's to leave alone (``curate/`` is never one of its
+    branches, F23-T7) and the curator's to honour. A step-down needs no admission: anyone may
+    stop being a steward."""
     found: list[Diagnostic] = []
     details = {"path": located.path, "login": record.login}
     problem = signed.approval_key_problem(record.doc, approval_key(graph_root, base))
@@ -1343,33 +1379,121 @@ def check_steward_admission(
     if record.action != steward.COMMIT:
         return found
     try:
-        admission = policy.parse(parent_file(graph_root, base, policy.FILE)).admission
+        rules = _parent_policy(graph_root, base)
     except schemas.SchemaError as exc:
         return [*found, Diagnostic("steward-admission", f"{located.path}: {exc}", details)]
+    curators = _parent_curators(graph_root, base)
+    verifier = signer or signed.default_signer()
+    today = clock.today()
+    target_id = str(located.target_id)
+    admitted = str(record.admitted_by)
     try:
-        curators = parse_curators(parent_file(graph_root, base, CURATORS_FILE)).logins
-    except CuratorsError:
-        curators = frozenset()
-    admitted = record.admitted_by
-    if admission == policy.OPEN and admitted != steward.SELF:
-        found.append(
-            Diagnostic(
-                "steward-admission",
-                f"{located.path}: steward admission is {policy.OPEN}, so the record is admitted "
-                f"by {steward.SELF!r}, not {admitted!r} (D-32 v3.33)",
-                {**details, "admission": admission, "admitted_by": admitted},
+        if admitted.startswith(steward.MOTION_PREFIX):
+            found.extend(
+                _invitation_problems(
+                    graph_root,
+                    located,
+                    record,
+                    admitted,
+                    today=today,
+                    signer=verifier,
+                    curators=curators,
+                )
             )
-        )
-    elif admission == policy.REVIEWED and (admitted == steward.SELF or admitted not in curators):
+        elif admitted in curators:
+            pass
+        elif admitted == steward.SELF and rules.admission == policy.OPEN:
+            others = set(
+                panel.members(graph_root, target_id, today, settings=rules.panel, signer=verifier)
+            ) - {record.login}
+            if others:
+                found.append(
+                    Diagnostic(
+                        "steward-invitation-required",
+                        f"{located.path}: {target_id} has a panel ({', '.join(sorted(others))}), "
+                        f"so a steward joins by a passed invitation (admitted_by "
+                        f"{steward.MOTION_PREFIX}<n>) or a curator, not {steward.SELF!r} "
+                        "(F24-R4, D-32 v3.34)",
+                        {**details, "panel": sorted(others)},
+                    )
+                )
+        elif rules.admission == policy.OPEN:
+            found.append(
+                Diagnostic(
+                    "steward-admission",
+                    f"{located.path}: steward admission is {policy.OPEN}, so the record is "
+                    f"admitted by {steward.SELF!r}, a passed invitation or a listed curator, not "
+                    f"{admitted!r} (D-32 v3.33, v3.34)",
+                    {**details, "admission": rules.admission, "admitted_by": admitted},
+                )
+            )
+        else:
+            found.append(
+                Diagnostic(
+                    "steward-admission",
+                    f"{located.path}: steward admission is {policy.REVIEWED}, so the record "
+                    f"names the listed curator who admits it or a passed invitation, not "
+                    f"{admitted!r} (D-32 v3.33, v3.34)",
+                    {**details, "admission": rules.admission, "admitted_by": admitted},
+                )
+            )
+        held = [
+            t
+            for t in panel.stewardships(
+                graph_root, record.login, today, settings=rules.panel, signer=verifier
+            )
+            if t != target_id
+        ]
+    except schemas.SchemaError as exc:  # a panel record in the tree no longer reads
+        return [*found, Diagnostic("record-invalid", str(exc), {"path": located.path})]
+    if len(held) >= rules.panel.cap:
         found.append(
             Diagnostic(
-                "steward-admission",
-                f"{located.path}: steward admission is {policy.REVIEWED}, so the record names "
-                f"the listed curator who admits it, not {admitted!r} (D-32 v3.33)",
-                {**details, "admission": admission, "admitted_by": admitted},
+                "steward-cap",
+                f"{located.path}: {record.login} already stewards {len(held)} other targets "
+                f"({', '.join(held)}), and steward_cap is {rules.panel.cap} (F24-R4)",
+                {**details, "stewardships": held, "cap": rules.panel.cap},
             )
         )
     return found
+
+
+def _invitation_problems(  # noqa: PLR0913 — the record, its tree, and how to read it
+    graph_root: Path,
+    located: Located,
+    record: steward.Record,
+    admitted: str,
+    *,
+    today: datetime.date,
+    signer: Signer,
+    curators: frozenset[str],
+) -> list[Diagnostic]:
+    """F24-R4: why ``admitted_by: motion:<n>`` does not admit the record's login, if it does
+    not."""
+    text = admitted[len(steward.MOTION_PREFIX) :]
+    why = (
+        panel.passed_invitation(
+            graph_root,
+            str(located.target_id),
+            int(text),
+            record.login,
+            today=today,
+            signer=signer,
+            curators=curators,
+        )
+        if text.isdigit()
+        else f"{admitted!r} names no motion"
+    )
+    if why is None:
+        return []
+    return [
+        Diagnostic(
+            "steward-invitation",
+            f"{located.path}: {why}; a commitment admitted by a motion needs a passed invitation "
+            "naming its login (F24-R4)",
+            {"path": located.path, "login": record.login, "admitted_by": admitted},
+        )
+    ]
 
 
 def check_steward_record(  # noqa: PLR0911 — one return per rule
@@ -1450,16 +1574,21 @@ def check_steward_record(  # noqa: PLR0911 — one return per rule
         for problem in verdict.problems
     ]
     if verdict.record.doc.get("schema") in steward.SIGNED_VIA:
-        found.extend(check_steward_admission(graph_root, located, verdict.record, base))
+        found.extend(
+            check_steward_admission(
+                graph_root, located, verdict.record, base, signer=signer or signed.default_signer()
+            )
+        )
     return found
 
 
-def check_writeup_record(
+def check_writeup_record(  # noqa: PLR0911 — one return per rule
     graph_root: Path,
     located: Located,
     classification: Classification,
     *,
     signer: Signer | None = None,
+    base: BaseReader | None = None,
 ) -> list[Diagnostic]:
     """F15-R6: a write-up record validates, names the target it sits under, is numbered, its
     signature verifies under its own key, and its signer is an active steward of the target or
@@ -1494,6 +1623,8 @@ def check_writeup_record(
             )
         ]
     verifier = signer or signed.default_signer()
+    if doc.get("schema") == writeup.SCHEMA_V2:
+        return check_writeup_v2(graph_root, located, doc, signer=verifier, base=base)
     found: list[Diagnostic] = []
     if not signed.verifies(doc, verifier):
         found.append(
@@ -1513,7 +1644,347 @@ def check_writeup_record(
                 {"path": located.path, "signer": who},
             )
         )
-    del writeup  # the record's shape is the schema's; nothing else is read here
+    return found
+
+
+def _panel_record(
+    graph_root: Path, located: Located, *, prefix: str, directory: str
+) -> dict[str, Any] | list[Diagnostic]:
+    """F24-R2, R3: a motion or vote record's document once it validates, names the target it
+    sits under and is numbered; otherwise the refusals, named ``<prefix>-…``."""
+    data = _read(graph_root, located)
+    if isinstance(data, Diagnostic):
+        return [data]
+    problems = _check_schema(located, data, code="record-invalid")
+    if problems:
+        return problems
+    doc = _document(located, data)
+    if isinstance(doc, Diagnostic):
+        return [doc]
+    if doc.get("target") != located.target_id:
+        return [
+            Diagnostic(
+                "motion-target" if prefix == "motion" else "vote-target",
+                f"{located.path} is a record for target {doc.get('target')!r}, and it sits under "
+                f"targets/{located.target_id}/ (F24-R2, R3)",
+                {"path": located.path, "target": doc.get("target")},
+            )
+        ]
+    if not re.match(r"^[1-9][0-9]*\.ya?ml$", PurePosixPath(located.path).name):
+        return [
+            Diagnostic(
+                "motion-name" if prefix == "motion" else "vote-name",
+                f"{located.path}: a {prefix} record is {directory}/<n>.yaml, numbered (F24-R2, R3)",
+                {"path": located.path},
+            )
+        ]
+    return doc
+
+
+def _signed_and_dated(  # noqa: PLR0913 — the record, its tree, and how to read it
+    graph_root: Path,
+    located: Located,
+    doc: dict[str, Any],
+    *,
+    prefix: str,
+    signer: Signer,
+    base: BaseReader | None,
+) -> list[Diagnostic]:
+    """F24-R10, §7: a panel record's signature verifies, an approval-key record carries the
+    parent tree's approval key (``<prefix>-signature``), and its date is within one day of the
+    gate's clock (``<prefix>-date``)."""
+    signature = (
+        "motion-signature"
+        if prefix == "motion"
+        else "vote-signature"
+        if prefix == "vote"
+        else "writeup-signature"
+    )
+    found: list[Diagnostic] = []
+    if not signed.verifies(doc, signer):
+        found.append(
+            Diagnostic(
+                signature,
+                f"{located.path}: the signature does not verify under the record's key",
+                {"path": located.path},
+            )
+        )
+    problem = signed.approval_key_problem(doc, approval_key(graph_root, base))
+    if problem is not None:
+        found.append(Diagnostic(signature, f"{located.path}: {problem}", {"path": located.path}))
+    on = panel.day_of(doc["date"])
+    if not clock.near(on):
+        found.append(
+            Diagnostic(
+                "motion-date"
+                if prefix == "motion"
+                else "vote-date"
+                if prefix == "vote"
+                else "writeup-date",
+                f"{located.path} is dated {on.isoformat()}, more than one day from the gate's "
+                f"day {clock.today().isoformat()} (F24-R10)",
+                {"path": located.path, "date": on.isoformat(), "today": clock.today().isoformat()},
+            )
+        )
+    return found
+
+
+def check_motion_record(
+    graph_root: Path,
+    located: Located,
+    classification: Classification,
+    *,
+    signer: Signer | None = None,
+    base: BaseReader | None = None,
+) -> list[Diagnostic]:
+    """F24-R2, R10: a motion validates, names its target, is numbered, is signed (with the
+    parent's approval key when made through the service) and dated within a day of the gate's
+    clock; it copies the parent's panel settings; its opener is on the panel on its date or a
+    listed curator; an invitation names someone not on the panel with no other open invitation
+    on the target; a ``verify-writeup`` names an existing write-up record. The tree read is the
+    pull request's own, so a motion may ride with the records it needs."""
+    from opn_gate import writeup  # noqa: PLC0415 — writeup reads the panel
+
+    doc = _panel_record(graph_root, located, prefix="motion", directory="motions")
+    if isinstance(doc, list):
+        return doc
+    del classification
+    verifier = signer or signed.default_signer()
+    found = _signed_and_dated(graph_root, located, doc, prefix="motion", signer=verifier, base=base)
+    details = {"path": located.path}
+    try:
+        settings = _parent_policy(graph_root, base).panel
+    except schemas.SchemaError as exc:
+        return [*found, Diagnostic("motion-settings", f"{located.path}: {exc}", details)]
+    if doc["settings"] != settings.motion_settings():
+        found.append(
+            Diagnostic(
+                "motion-settings",
+                f"{located.path}: the motion's settings are not policy.json's panel settings in "
+                "the merge's parent tree; a motion copies them as they stand (F24-R1)",
+                {**details, "expected": settings.motion_settings(), "found": doc["settings"]},
+            )
+        )
+    curators = _parent_curators(graph_root, base)
+    target_id = str(located.target_id)
+    n = int(PurePosixPath(located.path).name.split(".", 1)[0])
+    opened = panel.day_of(doc["date"])
+    opener = str(doc["opened_by"])
+    subject = doc["subject"]
+    try:
+        on_panel = panel.members(graph_root, target_id, opened, settings=settings, signer=verifier)
+        if opener not in on_panel and opener not in curators:
+            found.append(
+                Diagnostic(
+                    "motion-opener",
+                    f"{located.path}: {opener!r} is neither on {target_id}'s panel on "
+                    f"{opened.isoformat()} nor a listed curator (F24-R2)",
+                    {**details, "opened_by": opener, "panel": list(on_panel)},
+                )
+            )
+        if doc["kind"] == panel.INVITE:
+            found.extend(
+                _invitation_motion_problems(
+                    graph_root,
+                    located,
+                    n,
+                    str(subject["login"]),
+                    on_panel=on_panel,
+                    signer=verifier,
+                    curators=curators,
+                )
+            )
+        elif doc["kind"] == panel.VERIFY_WRITEUP:
+            target_dir = graph_root / "targets" / target_id
+            records = {a.n for a in writeup.load_any(target_dir) if a.is_record}
+            if int(subject["writeup"]) not in records:
+                found.append(
+                    Diagnostic(
+                        "motion-writeup-unknown",
+                        f"{located.path}: write-up {subject['writeup']} is not a write-up record "
+                        f"of {target_id} (F24-R2)",
+                        {**details, "writeup": subject["writeup"]},
+                    )
+                )
+    except schemas.SchemaError as exc:  # another panel record in the tree does not read
+        return [*found, Diagnostic("record-invalid", str(exc), details)]
+    return found
+
+
+def _invitation_motion_problems(  # noqa: PLR0913 — the invitation, its tree, and how to read it
+    graph_root: Path,
+    located: Located,
+    n: int,
+    login: str,
+    *,
+    on_panel: tuple[str, ...],
+    signer: Signer,
+    curators: frozenset[str],
+) -> list[Diagnostic]:
+    """F24-R10: an invitation of a member, or a second open one for the same login."""
+    details = {"path": located.path, "login": login}
+    if login in on_panel:
+        return [
+            Diagnostic(
+                "motion-invite-member",
+                f"{located.path}: {login} is already on {located.target_id}'s panel (F24-R2)",
+                details,
+            )
+        ]
+    others = [
+        t.n
+        for t in panel.tallies(
+            graph_root,
+            str(located.target_id),
+            today=clock.today(),
+            signer=signer,
+            curators=curators,
+        )
+        if t.n != n
+        and t.kind == panel.INVITE
+        and t.subject.get("login") == login
+        and t.state == panel.OPEN
+    ]
+    if others:
+        return [
+            Diagnostic(
+                "motion-invite-open",
+                f"{located.path}: motion {others[0]} already invites {login} and is still open; "
+                "one open invitation per login (F24-R10)",
+                {**details, "open": others},
+            )
+        ]
+    return []
+
+
+def check_vote_record(
+    graph_root: Path,
+    located: Located,
+    classification: Classification,
+    *,
+    signer: Signer | None = None,
+    base: BaseReader | None = None,
+) -> list[Diagnostic]:
+    """F24-R3, R10: a vote validates, names its target, is numbered, is signed and dated within
+    a day of the gate's clock, names a motion that exists (the pull request's own included), is
+    dated inside that motion's window under the motion's own settings, and is cast by someone
+    whose vote the motion reads: the panel on the motion's date, or the curators where curators
+    count (``panel.voters``)."""
+    doc = _panel_record(graph_root, located, prefix="vote", directory="votes")
+    if isinstance(doc, list):
+        return doc
+    del classification
+    verifier = signer or signed.default_signer()
+    found = _signed_and_dated(graph_root, located, doc, prefix="vote", signer=verifier, base=base)
+    target_id = str(located.target_id)
+    n = int(doc["motion"])
+    login = str(doc["login"])
+    details = {"path": located.path, "motion": n, "login": login}
+    try:
+        motion = next(
+            (m for m in panel.load_motions(graph_root / "targets" / target_id) if m.n == n), None
+        )
+        if motion is None:
+            return [
+                *found,
+                Diagnostic(
+                    "vote-motion-unknown",
+                    f"{located.path}: {target_id} has no motion {n} (F24-R10)",
+                    details,
+                ),
+            ]
+        base_settings = panel.current_settings(graph_root)
+        window = panel.voting_settings_of(motion.settings, base_settings).window_days
+        closes = motion.date + datetime.timedelta(days=window)
+        cast = panel.day_of(doc["date"])
+        if not motion.date <= cast <= closes:
+            found.append(
+                Diagnostic(
+                    "vote-window",
+                    f"{located.path}: motion {n} is open from {motion.date.isoformat()} to "
+                    f"{closes.isoformat()}, and the vote is dated {cast.isoformat()} (F24-R3)",
+                    {**details, "opened": motion.date.isoformat(), "closes": closes.isoformat()},
+                )
+            )
+        eligible = panel.voters(
+            graph_root, target_id, n, signer=verifier,
+            curators=_parent_curators(graph_root, base),
+        )  # fmt: skip
+        if login not in eligible:
+            found.append(
+                Diagnostic(
+                    "vote-not-member",
+                    f"{located.path}: {login} was not on {target_id}'s panel on "
+                    f"{motion.date.isoformat()}, when motion {n} was opened, and is no curator "
+                    "whose vote counts on it (F24-R3)",
+                    details,
+                )
+            )
+    except schemas.SchemaError as exc:
+        return [*found, Diagnostic("record-invalid", str(exc), {"path": located.path})]
+    return found
+
+
+def check_writeup_v2(
+    graph_root: Path,
+    located: Located,
+    doc: dict[str, Any],
+    *,
+    signer: Signer,
+    base: BaseReader | None,
+) -> list[Diagnostic]:
+    """F24-R5, R10: a ``writeup/v2`` act is signed (with the parent's approval key when made
+    through the service) and dated within a day of the gate's clock. Anyone may make a
+    ``record``; every later act names an existing record, is signed by one of its authors, and an
+    author signs once (the record's own signer has signed already)."""
+    from opn_gate import writeup  # noqa: PLC0415 — writeup reads the panel
+
+    found = _signed_and_dated(graph_root, located, doc, prefix="writeup", signer=signer, base=base)
+    if doc["action"] == writeup.RECORD:
+        return found
+    who = str(doc["signer"])
+    w = int(doc["writeup"])
+    n = int(PurePosixPath(located.path).name.split(".", 1)[0])
+    details = {"path": located.path, "writeup": w, "signer": who}
+    try:
+        acts = writeup.load_any(graph_root / "targets" / str(located.target_id))
+    except schemas.SchemaError as exc:
+        return [*found, Diagnostic("record-invalid", str(exc), {"path": located.path})]
+    record = next((a for a in acts if a.n == w and a.is_record), None)
+    if record is None:
+        return [
+            *found,
+            Diagnostic(
+                "writeup-unknown",
+                f"{located.path}: write-up {w} is not a write-up record of {located.target_id} "
+                "(F24-R5)",
+                details,
+            ),
+        ]
+    if who not in record.authors:
+        return [
+            *found,
+            Diagnostic(
+                "writeup-not-author",
+                f"{located.path}: {who} is not among write-up {w}'s authors "
+                f"({', '.join(record.authors)}); its later acts are theirs (F24-R5)",
+                details,
+            ),
+        ]
+    if doc["action"] == writeup.AUTHOR_SIGN and (
+        record.signer == who
+        or any(
+            a.n < n and a.action == writeup.AUTHOR_SIGN and a.writeup == w and a.signer == who
+            for a in acts
+        )
+    ):
+        found.append(
+            Diagnostic(
+                "writeup-signed-twice",
+                f"{located.path}: {who} has already signed write-up {w} (F24-R10)",
+                details,
+            )
+        )
     return found
 
 
