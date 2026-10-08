@@ -211,3 +211,47 @@ def test_an_attestation_with_no_submitter_says_it_records_none(tmp_path: Path) -
     """Older attestations carry ``submitter: null``; the page says so rather than inventing one."""
     facts = _attestation_facts(_page(_render(fixture.curated(tmp_path)), PROVED))
     assert "<dt>Submitter</dt><dd>not recorded</dd>" in facts, facts
+
+
+# --- (c) the live shape: a node whose only merge is a partial -----------------------------------
+
+
+def _live_shaped(tmp_path: Path) -> dict[str, str]:
+    """erdos-1094 on 2026-10-08: the node has no ``Proof.lean`` and one merged partial, so the
+    partial's attestation is the only attestation of the node and must not read as a proof."""
+    root = fixture.curated(tmp_path)
+    (fixture.nodes_dir(root) / PARENT / "Proof.lean").unlink()
+    _attest_partial(root, 900)
+    return _render(root)
+
+
+def _attestation_section(page: str) -> str:
+    m = re.search(r"<h2>Attestation</h2>(.*?)<h2>", page, re.S)
+    assert m is not None, "no Attestation section"
+    return m.group(1)
+
+
+def test_a_node_whose_only_merge_is_a_partial_does_not_say_nothing_merged(
+    tmp_path: Path,
+) -> None:
+    """Live 2026-10-08: the root of erdos-1094 said "No attestation: nothing has been merged for
+    this statement" beside the partial that merged under attestations/000441.json."""
+    page = _page(_live_shaped(tmp_path), PARENT)
+    section = _attestation_section(page)
+    assert "nothing has been merged" not in section, section
+    assert "No proof" in section, section
+    assert "attestations/000900.json" in section, section
+
+
+def test_a_node_whose_only_merge_is_a_partial_is_still_not_proved(tmp_path: Path) -> None:
+    """F03-Q7: the partial's passing attestation proves nothing."""
+    page = _page(_live_shaped(tmp_path), PARENT)
+    assert "status-proved" not in page
+    assert "Checked by the kernel" not in _attestation_section(page)
+
+
+def test_a_node_with_nothing_merged_still_says_so(tmp_path: Path) -> None:
+    root = fixture.curated(tmp_path)
+    (fixture.nodes_dir(root) / PARENT / "Proof.lean").unlink()
+    section = _attestation_section(_page(_render(root), PARENT))
+    assert "No attestation: nothing has been merged for this statement." in section, section

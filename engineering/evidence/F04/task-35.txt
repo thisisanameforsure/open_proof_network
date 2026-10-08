@@ -107,3 +107,33 @@ attestations/000019.json" — true of the record; and 1 (euclid-primes
 which still says so.
 
 Not verified here: the live site. It changes only after the lead's deploy (site-deploy).
+
+--- Lead's follow-up, 2026-10-08 (same task) ---
+Found while verifying the agent's fix on a full local render of the live graph clone: the
+Attestation section of erdos-1094 and erdos-1094--h3 still said "No attestation: nothing has
+been merged for this statement." beside the partial that merged under attestations/000441.json
+(000448.json for --h3). The agent's fixture could not show it: its parent has a Proof.lean, so
+there the partial's attestation renders as the proof's ("Checked by the kernel … proved"); the
+live nodes have no Proof.lean. Three tests added in the live shape (Proof.lean removed):
+
+Red (render.py unchanged):
+  uv run --frozen pytest site/tests/test_finding_partial_attribution.py -q -p no:cacheprovider -k "only_merge or nothing_merged"
+  FAILED ...::test_a_node_whose_only_merge_is_a_partial_does_not_say_nothing_merged
+  E   assert 'nothing has been merged' not in '\n<p>No att...ement.</p>\n'
+  1 failed, 2 passed, 9 deselected
+  (the two passing tests guard: the node is not proved; a node with nothing merged still says so)
+
+Fix: render.attestation_block names the merged partial's attestation and says no proof merged.
+
+Green:
+  uv run --frozen pytest site/tests/test_finding_partial_attribution.py -q -p no:cacheprovider
+  12 passed
+  uv run --frozen pytest site -m "not lean and not docker" -q -p no:cacheprovider
+  531 passed, 1 skipped
+
+Live-graph render (graph clone HEAD, 258 pages), text of the section after the Attestation heading:
+  root No proof of this statement has been merged. A partial assembly merged under attestations/000441.json: it records an attempt, not a proof (see Attempts below).
+  h3   No proof of this statement has been merged. A partial assembly merged under attestations/000448.json: it records an attempt, not a proof (see Attempts below).
+  h1   Checked by the kernel — … Submitter | t1008-b | …
+Screenshots: task-35-lead-after-root-attestation-1440.png, task-35-lead-after-h3-attestation-1440.png
+(script task-35-lead-shot.py). Read by the lead: the root page reads true top to bottom.

@@ -3307,7 +3307,17 @@ class Renderer:
     def attestation_block(self, nv: NodeView) -> str:
         doc = nv.attestation
         if doc is None or nv.attestation_path is None:
-            return "<p>No attestation: nothing has been merged for this statement.</p>"
+            # F04-T35: a merged partial has an attestation of this node that proves nothing
+            # (F03-Q7), so "nothing has been merged" would be false beside it.
+            merged = [p for p in nv.partials if p.attestation_path is not None]
+            if not merged:
+                return "<p>No attestation: nothing has been merged for this statement.</p>"
+            links = ", ".join(self.file_link(p.attestation_path or "") for p in merged)
+            return (
+                "<p>No proof of this statement has been merged. "
+                f"A partial assembly merged under {links}: it records an attempt, not a proof "
+                "(see Attempts below).</p>"
+            )
         steps = "".join(
             f"<tr><td>{esc(s['step'])}</td><td>{esc(s['name'])}</td>"
             f'<td class="result-{esc(s["result"])}">{esc(s["result"])}</td></tr>'
