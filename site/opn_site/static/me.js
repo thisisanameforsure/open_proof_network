@@ -117,6 +117,46 @@
       mine.appendChild(li);
     });
 
+    // F24-T6 (R8, R9; D-32 v3.34): what waits for the reader on the panels they sit on, from the
+    // service's GET /session `awaiting`: motions open for their vote, and invitations to accept.
+    // Each links to the problem's page, where the Yes / No and Accept controls are.
+    var awaiting = s.awaiting || {};
+    function problemLink(target) {
+      return el("a", { href: "/problems/" + encodeURIComponent(String(target)) + "/#panel" },
+        String(target));
+    }
+    var votes = section("Waiting for your vote");
+    var vs = Array.isArray(awaiting.votes) ? awaiting.votes : [];
+    if (!vs.length) { votes.appendChild(el("p", { "class": "cue" }, "No motion waits for your vote.")); }
+    var vlist = el("ul", { "class": "me-votes" });
+    vs.forEach(function (v) {
+      if (!v) { return; }
+      var item = el("li", {});
+      item.appendChild(problemLink(v.target));
+      var subject = v.subject || {};
+      var what = v.kind === "invite" ? "invite " + String(subject.login || "") :
+        v.kind === "verify-writeup" ? "verify write-up #" + String(subject.writeup) :
+        v.kind === "authorship-threshold" ? "set the authorship threshold to " + String(subject.threshold) :
+        String(v.kind || "");
+      item.appendChild(document.createTextNode(" · motion #" + String(v.motion) + ": " + what +
+        " · closes " + String(v.closes || "")));
+      vlist.appendChild(item);
+    });
+    if (vs.length) { votes.appendChild(vlist); }
+    var invites = section("Invitations to accept");
+    var is = Array.isArray(awaiting.invitations) ? awaiting.invitations : [];
+    if (!is.length) { invites.appendChild(el("p", { "class": "cue" }, "No invitation waits for you.")); }
+    var ilist = el("ul", { "class": "me-invitations" });
+    is.forEach(function (inv) {
+      if (!inv) { return; }
+      var item = el("li", {});
+      item.appendChild(problemLink(inv.target));
+      item.appendChild(document.createTextNode(" · motion #" + String(inv.motion) +
+        (inv.note ? " · asked for: " + String(inv.note) : "")));
+      ilist.appendChild(item);
+    });
+    if (is.length) { invites.appendChild(ilist); }
+
     // F04-T38: the literature records waiting for a steward's or curator's confirmation — the
     // steward's problems, or for a curator every problem the shell carries a list for.
     var lit = section("Literature statuses awaiting your confirmation");

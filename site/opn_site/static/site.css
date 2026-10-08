@@ -708,3 +708,47 @@ h1 .thm-name { font-size: .55em; }
   .steward-grid { grid-template-columns: minmax(0, 1fr); }
   .steward-row { flex-wrap: wrap; gap: var(--s3); }
 }
+/* F24-T6 (R9): the panel, its motions, the write-up ladder and their controls; the rules page. */
+.panel-writeup h3 { font-size: 16px; margin-top: var(--s5); color: var(--n300); }
+ul.panel-members, ul.motions, ul.writeups-other { padding-left: 1.2rem; }
+ul.motions li, ul.writeups-other li { margin-bottom: var(--s3); overflow-wrap: anywhere; }
+.panel-lapsed { color: var(--n400); font-size: 14px; }
+.motion-n { font-family: var(--mono); color: var(--n500); }
+.motion-meta { color: var(--n400); font-size: 13.5px; }
+.outcome { font-weight: 500; }
+.outcome.passed { color: var(--accent-300); }
+.outcome.failed { color: var(--bad); }
+.writeup-official { max-width: 900px; margin-bottom: var(--s5); }
+.writeup-official p { margin: 0; overflow-wrap: anywhere; }
+.writeup-title { font-size: 17px; }
+.writeup-kind, .stage { font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--n500); }
+/* The ladder: every rung, the reached one marked, so a reader sees what comes next. */
+ol.ladder { list-style: none; display: flex; flex-wrap: wrap; gap: var(--s2); padding: 0; margin: var(--s2) 0; counter-reset: rung; }
+ol.ladder .rung { counter-increment: rung; font-size: 12.5px; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--n700); color: var(--n500); }
+ol.ladder .rung::before { content: counter(rung) ". "; }
+ol.ladder .rung.passed { color: var(--n300); border-color: var(--n600); }
+ol.ladder .rung.reached { color: var(--bg); background: var(--accent); border-color: var(--accent); font-weight: 500; }
+.panel-ctl, .writeup-ctl { display: flex; flex-direction: column; gap: var(--s4); margin-top: var(--s4); max-width: 640px; }
+.ctl-box { display: flex; flex-direction: column; gap: var(--s2); padding: var(--s5); border-radius: var(--radius-md); background: var(--surface); box-shadow: var(--shadow-sm); }
+.ctl-box h3 { margin: 0; font-size: 16px; color: var(--text); overflow-wrap: anywhere; }
+.ctl-box summary { cursor: pointer; color: var(--accent-300); }
+.ctl-field { display: flex; flex-direction: column; gap: 4px; }
+.ctl-field label { font-size: 13.5px; color: var(--n400); }
+.ctl-field .input { width: 100%; max-width: 100%; }
+.ctl-act { display: flex; flex-direction: column; gap: var(--s2); padding-top: var(--s2); border-top: 1px solid var(--divider); }
+.ctl-box .btn, .ctl-act .btn { align-self: flex-start; white-space: normal; text-align: left; }
+.ctl-box .tick { display: flex; gap: var(--s3); align-items: flex-start; font-size: 14px; }
+.vote-ctl { display: inline-flex; gap: var(--s2); margin-left: var(--s3); vertical-align: middle; }
+.btn-small { padding: 3px 12px; font-size: 13px; }
+ul.me-votes, ul.me-invitations { padding-left: 1.2rem; }
+table.rules { font-size: 13.5px; }
+table.rules td { vertical-align: top; overflow-wrap: anywhere; }
+table.rules td:first-child { width: 22%; }
+table.rules code { color: var(--n500); font-size: 12px; }
+@media (max-width: 700px) {
+  table.rules thead { display: none; }
+  table.rules tr { display: block; padding: var(--s3) 0; border-bottom: 1px solid var(--divider); }
+  table.rules td { display: block; width: auto !important; border: 0; padding: var(--s1) 0; }
+  table.rules td::before { content: attr(data-label); display: block; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--n500); }
+  .vote-ctl { display: flex; margin: var(--s2) 0 0; }
+}
