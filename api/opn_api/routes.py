@@ -72,6 +72,13 @@ D35_POST_APPROVALS = "POST /approvals"
 D35_OWNED_BY_F23: frozenset[str] = frozenset(
     {D35_GET_SESSION, D35_POST_SESSION_END, D35_POST_STEWARDS, D35_POST_APPROVALS}
 )
+# The literature routes (D-25, D-32 v3.35; F05-T29, F23-T12). Each opens a pull request that
+# appends one schema-checked ``literature/v1`` file under the node, which is D-35's append row
+# verbatim; v3.35 added the record to D-3's layout and the duty to D-32 without a row of its own
+# in D-35's table, so the endpoints are named here and their ``d35`` is the append row. When
+# D-35 gains the endpoint rows, ``d35`` becomes these constants and nothing else moves.
+D35_POST_LITERATURE = "POST /literature"
+LITERATURE_ROUTES: frozenset[str] = frozenset({D35_POST_LITERATURE})
 
 ROUTES: tuple[RouteSpec, ...] = (
     # F05-T13, Q13: the index of this table, served at the root. Open, no D-35 row.
@@ -249,6 +256,16 @@ ROUTES: tuple[RouteSpec, ...] = (
         feature="F23",
         web=True,
     ),
+    # F05-T29 (D-25 v3.35): any contributor proposes what the literature says of a statement;
+    # an unsigned append under the node, so D-35's append row.
+    RouteSpec(
+        "POST",
+        "/literature",
+        "literature:post_literature",
+        D35_APPEND_PR,
+        authenticated=True,
+        feature="F05",
+    ),
     # F13-R8, Q2: open like the tutorial precheck; a presented token is authenticated and charged
     # per identity, and an anonymous caller is charged per address, by the handler.
     RouteSpec("POST", "/check", "checks:post_check", D35_POST_CHECK, feature="F13"),
@@ -318,6 +335,8 @@ PURPOSES: dict[str, str] = {
     "record is signed with the network's approval key and opened by pull request.",
     "POST /approvals": "Approve sections of a gloss or explainer version as a steward of its "
     "problem or a curator, signed with the network's approval key, by pull request.",
+    "POST /literature": "Propose what the literature says of a statement (open, known or "
+    "elementary) with references, by pull request; a steward or curator confirms it.",
     "POST /check": "Check Lean text within 20 s on a hosted checker, or preview a witness's "
     "expected type for a node or a statement's text (mode witness); never authoritative.",
     "GET /checks/{check_id}": "The record of one of your own fast-check calls.",

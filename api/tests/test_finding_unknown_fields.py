@@ -224,6 +224,17 @@ def approvals(h: Harness, key: PrecheckKey) -> Prepared:
     return body, h.auth(h.token_for("code_alice", "alice"))
 
 
+def literature(h: Harness, key: PrecheckKey) -> Prepared:
+    """F05-T29: a literature proposal, refused before the graph is read."""
+    body = {
+        "node_id": TUTORIAL_NODE,
+        "status": "known",
+        "references": [{"title": "A paper", "url": None, "note": None}],
+        "summary": "Proved in 1996.",
+    }
+    return body, h.auth(h.token_for("code_alice", "alice"))
+
+
 #: Every POST route of ``routes.ROUTES`` that reads a JSON body (``DELETE /claims/<id>`` has none);
 #: ``/tokens/renew`` reads an empty one, refusing any key (F05-T27).
 WRITE_ROUTES: dict[str, Prepare] = {
@@ -247,6 +258,7 @@ WRITE_ROUTES: dict[str, Prepare] = {
     "/session/end": session_end,  # F23-T4
     "/stewards": stewards,  # F23-T5
     "/approvals": approvals,  # F23-T6
+    "/literature": literature,  # F05-T29
 }
 
 

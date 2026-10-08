@@ -222,6 +222,15 @@ APPEND_CHECKS: dict[str, str] = {
         "its path, its schema, its signature under the graph's approval key, and that the version "
         "and sections it approves exist (F23-R10, R11)"
     ),
+    # D-25 v3.35 (F05-T29, F23-T12): a proposal is unsigned; a confirmation is signed.
+    "literature record": (
+        "its path and its schema (F07-R9); an unsigned literature record is a proposal and "
+        "counts for nothing until a steward of the target or a curator confirms it (D-25 v3.35)"
+    ),
+    "literature confirmation": (
+        "its path, its schema, its signature under the graph's approval key, and that its signer "
+        "is an active steward of the target or a listed curator (D-25, D-32 v3.35)"
+    ),
 }
 DEFAULT_CHECKS = "its path and its schema (F07-R9)"
 

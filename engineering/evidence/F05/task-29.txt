@@ -1,0 +1,119 @@
+F05-T29 — POST /literature (D-3, D-25, D-32 v3.35; amendment 2026-10-08 §2) — 2026-10-08T18:27:26Z
+
+Verification: uv run --frozen pytest -m 'not lean and not docker' api/tests/test_literature_route.py api/tests/test_routes.py api/tests/test_finding_unknown_fields.py api/tests/test_finding_error_catalog.py api/tests/test_finding_append_pr_body.py gate/tests/test_error_codes.py; the api fast tier (uv run --frozen pytest api -m 'not lean and not docker'); ruff check api; ruff format --check api; mypy api
+
+== RED (no route yet: all 17 fail on 404 not-found 'no such route' — the route is the behaviour under test) ==
+E       AssertionError: {"error":"not-found","message":"no such route"}
+E       assert 404 == 201
+E        +  where 404 = <Response [404 Not Found]>.status_code
+E       AssertionError: {"error":"not-found","message":"no such route"}
+E       assert 404 == 201
+E        +  where 404 = <Response [404 Not Found]>.status_code
+E       AssertionError: assert 404 == 201
+E        +  where 404 = <Response [404 Not Found]>.status_code
+E        +    where <Response [404 Not Found]> = post(Harness(settings=Settings(store='memory', table_identities=None, table_tokens=None, table_claims=None, parameter_prefi...=<starlette.applications.Starlette object at 0x1095cdd10>, axle=FakeAxle(calls=[], replies=[], hosted=['lean-4.33.0'])), 'qZPABpdW9q1d-cbpY9wE1QmGxZUKpRDIRqiTNDPK4pM', {'node_id': 'tutorial-and-swap', 'status': 'known', 'references': [{'title': 'Granville and Ramaré, Explicit bounds on...heorem 1 proves the statement for all n.'}], 'summary': 'A proof is published; nothing in Mathlib formalises it.', ...})
+E        +      where {'node_id': 'tutorial-and-swap', 'status': 'known', 'references': [{'title': 'Granville and Ramaré, Explicit bounds on...heorem 1 proves the statement for all n.'}], 'summary': 'A proof is published; nothing in Mathlib formalises it.', ...} = proposal()
+E       AssertionError: {"error":"not-found","message":"no such route"}
+E       assert 404 == 400
+E        +  where 404 = <Response [404 Not Found]>.status_code
+E       AssertionError: assert 404 == 201
+E        +  where 404 = <Response [404 Not Found]>.status_code
+E        +    where <Response [404 Not Found]> = post(Harness(settings=Settings(store='memory', table_identities=None, table_tokens=None, table_claims=None, parameter_prefi...=<starlette.applications.Starlette object at 0x109594fc0>, axle=FakeAxle(calls=[], replies=[], hosted=['lean-4.33.0'])), 'EcrTuKIQm5RE_itpC9k1XF5BtHoY-rv8HqpXFvEPWgM', {'node_id': 'tutorial-and-swap', 'status': 'known', 'references': [{'title': 'Granville and Ramaré, Explicit bounds on...': 'Theorem 1 proves the statement for all n.'}], 'summary': 'A proof is published; nothing in Mathlib formalises it.'})
+E       AssertionError: assert 404 == 201
+E        +  where 404 = <Response [404 Not Found]>.status_code
+E        +    where <Response [404 Not Found]> = post(Harness(settings=Settings(store='memory', table_identities=None, table_tokens=None, table_claims=None, parameter_prefi...=<starlette.applications.Starlette object at 0x109522d50>, axle=FakeAxle(calls=[], replies=[], hosted=['lean-4.33.0'])), '0BzC54tVdXd9d6jUY-LaOUdnTLl3aTvlf7Lg5W77qLI', {'node_id': 'tutorial-and-swap', 'status': 'known', 'references': [{'title': 'Granville and Ramaré, Explicit bounds on...heorem 1 proves the statement for all n.'}], 'summary': 'A proof is published; nothing in Mathlib formalises it.', ...})
+E        +      where {'node_id': 'tutorial-and-swap', 'status': 'known', 'references': [{'title': 'Granville and Ramaré, Explicit bounds on...heorem 1 proves the statement for all n.'}], 'summary': 'A proof is published; nothing in Mathlib formalises it.', ...} = proposal(model_and_tooling='claude, by hand')
+E       assert (404 == 401)
+E        +  where 404 = <Response [404 Not Found]>.status_code
+E       AssertionError: assert 'not-found' == 'node-unknown'
+E         
+E         - node-unknown
+E         + not-found
+E       AssertionError: {"error":"not-found","message":"no such route"}
+E       assert 404 == 400
+E        +  where 404 = <Response [404 Not Found]>.status_code
+E       AssertionError: {"error":"not-found","message":"no such route"}
+E       assert 404 == 400
+E        +  where 404 = <Response [404 Not Found]>.status_code
+E           AssertionError: ([], '{"error":"not-found","message":"no such route"}')
+E           assert 404 == 400
+E            +  where 404 = <Response [404 Not Found]>.status_code
+E       AssertionError: {"error":"not-found","message":"no such route"}
+E       assert 404 == 201
+E        +  where 404 = <Response [404 Not Found]>.status_code
+E       AssertionError: {"error":"not-found","message":"no such route"}
+E       assert 404 == 400
+E        +  where 404 = <Response [404 Not Found]>.status_code
+E       assert (404 == 400)
+E        +  where 404 = <Response [404 Not Found]>.status_code
+E       AssertionError: assert 404 == 201
+E        +  where 404 = <Response [404 Not Found]>.status_code
+E        +    where <Response [404 Not Found]> = post(Harness(settings=Settings(store='memory', table_identities=None, table_tokens=None, table_claims=None, parameter_prefi...=<starlette.applications.Starlette object at 0x10963fa00>, axle=FakeAxle(calls=[], replies=[], hosted=['lean-4.33.0'])), 'kXFX9b9v20iAZLWr7_0226-dpwE8mjCjZPGJlQmdB4Q', {'node_id': 'tutorial-and-swap', 'status': 'known', 'references': [{'title': 'Granville and Ramaré, Explicit bounds on...heorem 1 proves the statement for all n.'}], 'summary': 'A proof is published; nothing in Mathlib formalises it.', ...})
+E        +      where {'node_id': 'tutorial-and-swap', 'status': 'known', 'references': [{'title': 'Granville and Ramaré, Explicit bounds on...heorem 1 proves the statement for all n.'}], 'summary': 'A proof is published; nothing in Mathlib formalises it.', ...} = proposal()
+E       AssertionError: assert 404 == 201
+E        +  where 404 = <Response [404 Not Found]>.status_code
+E        +    where <Response [404 Not Found]> = post(Harness(settings=Settings(store='memory', table_identities=None, table_tokens=None, table_claims=None, parameter_prefi...=<starlette.applications.Starlette object at 0x10957b1d0>, axle=FakeAxle(calls=[], replies=[], hosted=['lean-4.33.0'])), 'FwxPpw8NV8uAInEde5u7tIHybTBXnDQ6II3gH26-cYA', {'node_id': 'tutorial-and-swap', 'status': 'known', 'references': [{'title': 'Granville and Ramaré, Explicit bounds on...heorem 1 proves the statement for all n.'}], 'summary': 'A proof is published; nothing in Mathlib formalises it.', ...})
+E        +      where {'node_id': 'tutorial-and-swap', 'status': 'known', 'references': [{'title': 'Granville and Ramaré, Explicit bounds on...heorem 1 proves the statement for all n.'}], 'summary': 'A proof is published; nothing in Mathlib formalises it.', ...} = proposal()
+E       KeyError: 'id'
+FAILED api/tests/test_literature_route.py::test_a_proposal_lands_as_an_unsigned_literature_record_by_the_caller
+FAILED api/tests/test_literature_route.py::test_the_pull_request_names_the_stewards_awaiting_confirmation
+FAILED api/tests/test_literature_route.py::test_without_a_steward_the_pull_request_says_so
+FAILED api/tests/test_literature_route.py::test_the_contributor_and_date_are_the_services_not_the_callers
+FAILED api/tests/test_literature_route.py::test_model_and_tooling_may_be_omitted_and_is_written_null
+FAILED api/tests/test_literature_route.py::test_model_and_tooling_is_recorded_as_declared
+FAILED api/tests/test_literature_route.py::test_a_missing_bearer_is_401 - ass...
+FAILED api/tests/test_literature_route.py::test_an_unknown_node_is_404 - Asse...
+FAILED api/tests/test_literature_route.py::test_a_bad_status_is_400_naming_the_field
+FAILED api/tests/test_literature_route.py::test_a_reference_without_https_is_400_naming_the_field
+FAILED api/tests/test_literature_route.py::test_references_are_required_and_shaped
+FAILED api/tests/test_literature_route.py::test_a_reference_may_carry_null_url_and_note
+FAILED api/tests/test_literature_route.py::test_an_over_long_summary_is_refused_by_the_schemas_own_cap
+FAILED api/tests/test_literature_route.py::test_a_missing_summary_is_400 - as...
+FAILED api/tests/test_literature_route.py::test_a_second_record_in_the_same_second_is_409_and_opens_nothing
+FAILED api/tests/test_literature_route.py::test_an_identical_open_proposal_is_a_duplicate
+FAILED api/tests/test_literature_route.py::test_the_submission_is_watchable_under_its_own_kind
+17 failed, 2 warnings in 2.17s
+
+== GREEN (the verification command) ==
+67 passed, 2 warnings in 5.83s
+
+== api fast tier ==
+1700 passed, 2 warnings in 120.97s (0:02:00)
+
+== lint / types ==
+ruff check api: All checks passed!
+ruff format --check api: 226 files already formatted
+mypy api: Success: no issues found in 225 source files
+
+== the record as it lands (fake host; clock 2026-09-09T12:00:00Z; no steward on the fixture target) ==
+the graph's head could not be read, serving the branch: no head configured
+201 {'id': '01M230M2G0T803XDM65GRYG2SJ', 'path': 'targets/propositional/nodes/tutorial-and-swap/literature/20260909T120000Z-alice.yaml', 'pr_url': 'https://github.com/thisisanameforsure/open_proof_network_graph/pull/1', 'pr_number': 1}
+targets/propositional/nodes/tutorial-and-swap/literature/20260909T120000Z-alice.yaml
+schema: literature/v1
+node: tutorial-and-swap
+contributor: alice
+date: '2026-09-09T12:00:00Z'
+status: known
+references:
+- title: Granville and Ramaré (1996)
+  url: https://doi.org/10.1112/S0025579300011608
+  note: Theorem 1.
+summary: Published; not formalised.
+model_and_tooling: null
+confirms: null
+via: null
+key: null
+signature: null
+
+--- pull request ---
+literature: tutorial-and-swap
+A literature record appended through the Open Proof Network service by `alice`. It claims nothing a kernel checks: the gate checks its path and its schema (F07-R9); an unsigned literature record is a proposal and counts for nothing until a steward of the target or a curator confirms it (D-25 v3.35).
+
+`targets/propositional/nodes/tutorial-and-swap/literature/20260909T120000Z-alice.yaml`
+
+This is a proposal: `propositional` has no steward, so only a curator can confirm it, by a signed record of their own (D-25 v3.35). Until then the products show it as proposed.
+
+
+== notes ==
+- D-35 v3.35 names no endpoint row for the route; its d35 is the append row ("a PR appending the schema-checked file under the node or target"), verbatim, as the three F07 appends. routes.D35_POST_LITERATURE names the endpoint for when the table gains the row.
+- Every refusal code is one the catalog (opn_gate.codes) already holds: node-unknown, arguments-invalid (details.field names status / references[i].url / summary), record-invalid, field-too-long, record-name-taken, duplicate-submission, unknown-field; gate/tests/test_error_codes.py holds the api to the catalog exactly and is green.
