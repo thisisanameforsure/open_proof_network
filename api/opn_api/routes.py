@@ -72,6 +72,12 @@ D35_POST_APPROVALS = "POST /approvals"
 D35_OWNED_BY_F23: frozenset[str] = frozenset(
     {D35_GET_SESSION, D35_POST_SESSION_END, D35_POST_STEWARDS, D35_POST_APPROVALS}
 )
+# F24's row (D-35 v3.34): the panel. No MCP tool (only a person sits on a panel); the invitation
+# path is POST /stewards taking a motion, already F23's row.
+D35_POST_MOTIONS = "POST /motions"
+D35_POST_VOTES = "POST /votes"
+D35_POST_WRITEUPS = "POST /writeups"
+D35_OWNED_BY_F24: frozenset[str] = frozenset({D35_POST_MOTIONS, D35_POST_VOTES, D35_POST_WRITEUPS})
 # The literature row (D-35 v3.35; F05-T29, F23-T12): each opens a pull request that appends one
 # schema-checked ``literature/v1`` file under the node, by the endpoint D-35 names.
 D35_POST_LITERATURE = "POST /literature"
@@ -254,6 +260,35 @@ ROUTES: tuple[RouteSpec, ...] = (
         feature="F23",
         web=True,
     ),
+    # F24-R8 (D-32, D-35 v3.34): the panel's motions, votes and write-up acts from the site,
+    # each signed by the approval key as the signed-in login and opened as an append.
+    RouteSpec(
+        "POST",
+        "/motions",
+        "panel:post_motions",
+        D35_POST_MOTIONS,
+        authenticated=True,
+        feature="F24",
+        web=True,
+    ),
+    RouteSpec(
+        "POST",
+        "/votes",
+        "panel:post_votes",
+        D35_POST_VOTES,
+        authenticated=True,
+        feature="F24",
+        web=True,
+    ),
+    RouteSpec(
+        "POST",
+        "/writeups",
+        "panel:post_writeups",
+        D35_POST_WRITEUPS,
+        authenticated=True,
+        feature="F24",
+        web=True,
+    ),
     # F05-T29 (D-25 v3.35): any contributor proposes what the literature says of a statement;
     # an unsigned append under the node, so D-35's append row.
     RouteSpec(
@@ -345,6 +380,13 @@ PURPOSES: dict[str, str] = {
     "record is signed with the network's approval key and opened by pull request.",
     "POST /approvals": "Approve sections of a gloss or explainer version as a steward of its "
     "problem or a curator, signed with the network's approval key, by pull request.",
+    "POST /motions": "Open a motion before a problem's steward panel (invite a steward, verify "
+    "a write-up, set the authorship threshold), signed with the network's approval key, by pull "
+    "request.",
+    "POST /votes": "Vote yes or no on an open motion as a member of the problem's panel, signed "
+    "with the network's approval key, by pull request.",
+    "POST /writeups": "Record a write-up of a problem, or act on one as its author (sign, arXiv, "
+    "journal, withdraw), signed with the network's approval key, by pull request.",
     "POST /literature": "Propose what the literature says of a statement (open, known or "
     "elementary) with references, by pull request; a steward or curator confirms it.",
     "POST /literature/confirm": "Confirm a proposed literature status, or state one, as a "

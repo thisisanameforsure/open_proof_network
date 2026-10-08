@@ -449,3 +449,34 @@ def test_an_instant_invitation_stays_passed_when_accepted_the_same_day(world: Wo
         )
         is None
     )
+
+
+# --- F24-T5: who may vote on a motion, for the service's refusals --------------------------------
+
+
+def test_voters_names_the_counted_and_the_uncounted_provers(world: World) -> None:
+    """``panel.voters``: on a write-up motion a prover is a voter but uncounted; on an
+    invitation the same prover counts; with every member a prover, the curators count; and an
+    unknown motion is ``PanelError``."""
+    world.commit("ann", 0)
+    world.commit("ben", 0, admitted_by="carol")
+    world.prover("ann")
+    world.curators = ["carol"]
+    curators = frozenset(world.curators)
+    verify = world.motion("ben", 1, kind="verify-writeup", subject={"writeup": 1})
+    invite = world.motion("ben", 1)
+    assert panel.voters(world.root, "t", verify, signer=SIGNER, curators=curators) == (
+        frozenset({"ben"}),
+        frozenset({"ann"}),
+    )
+    assert panel.voters(world.root, "t", invite, signer=SIGNER, curators=curators) == (
+        frozenset({"ann", "ben"}),
+        frozenset(),
+    )
+    world.prover("ben")
+    assert panel.voters(world.root, "t", verify, signer=SIGNER, curators=curators) == (
+        curators,
+        frozenset({"ann", "ben"}),
+    )
+    with pytest.raises(panel.PanelError):
+        panel.voters(world.root, "t", 99, signer=SIGNER, curators=curators)

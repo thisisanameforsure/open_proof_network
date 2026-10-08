@@ -2586,6 +2586,96 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "This login is already an active steward of the target.",
         "Nothing to do; to leave the role, step down instead.",
     ),
+    # --- F24-R8: the panel's routes refuse by name what the gate would refuse at the merge ---
+    "already-signed": (
+        "api",
+        None,
+        "This login has already signed the write-up; a second signature by the same author changes "
+        "nothing (D-32 v3.34).",
+        "Nothing to do: the write-up counts the signature already on the record.",
+    ),
+    "invitation-invalid": (
+        "api",
+        None,
+        "The motion named in the commitment is not a passed invitation of this login: it does not "
+        "exist, invites someone else, or is still open or failed (D-32 v3.34).",
+        "Accept the invitation from the problem's page once it has passed; GET /session lists "
+        "the invitations awaiting you.",
+    ),
+    "invitation-open": (
+        "api",
+        None,
+        "That login already has an open invitation on this problem; a second is refused "
+        "(D-32 v3.34).",
+        "Vote on the open invitation instead, or wait for it to be decided.",
+    ),
+    "invitation-required": (
+        "api",
+        None,
+        "The problem already has a steward panel, so a new steward joins only by an invitation "
+        "the panel passed, never by their own word (D-32 v3.34).",
+        "Ask a steward of the problem to open an invitation for you (POST /motions), then "
+        "accept it with its motion number.",
+    ),
+    "invitee-already-member": (
+        "api",
+        None,
+        "The login to be invited already sits on the problem's panel.",
+        "Nothing to do.",
+    ),
+    "motion-decided": (
+        "api",
+        None,
+        "The motion has already been decided (it passed at once, or its window closed), so no "
+        "vote on it would count.",
+        "Read the motion's state on the problem's row of targets/index.json.",
+    ),
+    "motion-unknown": (
+        "api",
+        None,
+        "The problem has no motion with that number.",
+        "Read the motions on the problem's page, or its row of targets/index.json.",
+    ),
+    "not-an-author": (
+        "api",
+        None,
+        "Only a listed author of a write-up may sign it or record its arXiv, journal or "
+        "withdrawal acts (D-32 v3.34).",
+        "Ask an author to act, or record a new write-up that lists you.",
+    ),
+    "not-panel-member": (
+        "api",
+        None,
+        "Only a member of the problem's steward panel (an active steward who has not lapsed) or "
+        "a listed curator may open a motion (D-32 v3.34).",
+        "Ask a steward of the problem to open it.",
+    ),
+    "steward-cap": (
+        "api",
+        None,
+        "The commitment would take this login over policy.json's steward_cap: the problems on "
+        "whose panel it already sits (D-32 v3.34).",
+        "Step down from one of your problems first, or wait for one to lapse.",
+    ),
+    "voter-not-eligible": (
+        "api",
+        None,
+        "The login was not on the problem's panel when the motion was opened (nor a curator "
+        "counted in its place), so the gate would not read the vote (D-32 v3.34).",
+        "Only the panel as it stood on the motion's date votes on it.",
+    ),
+    "window-closed": (
+        "api",
+        None,
+        "The motion's voting window has closed; a vote now would not count (D-32 v3.34).",
+        "Read the result on the problem's page.",
+    ),
+    "writeup-unknown": (
+        "api",
+        None,
+        "The problem has no write-up record with that number whose signature verifies.",
+        "Read the write-ups on the problem's row of targets/index.json, or record one first.",
+    ),
     "version-unknown": (
         "api",
         None,

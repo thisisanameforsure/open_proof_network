@@ -38,6 +38,8 @@ if TYPE_CHECKING:
     from opn_api.store import Identity
 
 SCHEMA = "steward/v2"
+#: F24-R8: an invited commitment names its motion, which only steward/v3 can say.
+SCHEMA_INVITED = "steward/v3"
 VIA = "approval-key"
 SELF = "self"
 OPEN = "open"
@@ -45,7 +47,7 @@ REVIEWED = "reviewed"
 #: F23-R8: a steward record under reviewed admission waits for a curator on this branch prefix.
 CURATE_BRANCH_PREFIX = "curate/"
 #: F05-T8: what the form sends.
-FIELDS: tuple[str, ...] = ("target", "action", "name", "link", "accept")
+FIELDS: tuple[str, ...] = ("target", "action", "name", "link", "accept", "motion")
 NAME_MAX = 200  # steward/v2's cap
 LINK_MAX = 500  # steward/v2's cap
 RECORD_RE = re.compile(r"^(?P<n>[1-9][0-9]*)\.ya?ml$")
@@ -141,6 +143,18 @@ def admitted_by(ctx: Context, mode: str) -> str:
 # --- the form ------------------------------------------------------------------------------------
 
 
+def motion_of(fields: dict[str, Any], action: str) -> int | None:
+    """F24-R8: the passed invitation a commitment is admitted by, or ``None``."""
+    motion = fields.get("motion")
+    if motion is None:
+        return None
+    if not isinstance(motion, int) or isinstance(motion, bool) or motion < 1:
+        raise bad("motion is the invitation's number, an integer", field="motion")
+    if action != steward.COMMIT:
+        raise bad("only a commitment is admitted by an invitation", field="motion")
+    return motion
+
+
 def checked(fields: dict[str, Any]) -> tuple[str, str, str, str | None]:
     """(target, action, name, link), or ``400 arguments-invalid`` naming the field."""
     target = fields.get("target")
@@ -181,6 +195,7 @@ async def post_stewards(ctx: Context, request: Request) -> Response:
     fields, _ = await identitymod.body_fields(request, FIELDS)
     login = github_login(held)
     target_id, action, name, link = checked(fields)
+    motion = motion_of(fields, action)
     private, public = approval_key(ctx)
     appends.known_target(ctx, target_id)
     ratelimit.enforce(
@@ -200,9 +215,18 @@ async def post_stewards(ctx: Context, request: Request) -> Response:
             409, "steward-not-active", f"{login} is not an active steward of {target_id}"
         )
     mode = admission(ctx)
+    if action == steward.COMMIT:
+        from opn_api import panel  # noqa: PLC0415 — panel imports this module
+
+        panel.admission_problem(
+            ctx, target_id, login, motion, self_admitted=motion is None and mode == OPEN
+        )
+    schema = SCHEMA if motion is None else SCHEMA_INVITED
+    if motion is not None:
+        mode = OPEN  # an invitation is admitted by the panel, on an append/ branch
     doc = sign_record(
         {
-            "schema": SCHEMA,
+            "schema": schema,
             "target": target_id,
             "action": action,
             "login": login,
@@ -211,12 +235,14 @@ async def post_stewards(ctx: Context, request: Request) -> Response:
             "commitment": steward.SENTENCE_FOR[action],
             "date": ctx.clock.now().strftime("%Y-%m-%d"),
             "via": VIA,
-            "admitted_by": admitted_by(ctx, mode),
+            "admitted_by": (
+                admitted_by(ctx, mode) if motion is None else f"{steward.MOTION_PREFIX}{motion}"
+            ),
         },
         private,
         public,
     )
-    appends.validated(doc, SCHEMA)
+    appends.validated(doc, schema)
     path = f"targets/{target_id}/{steward.DIR}/{next_number(ctx, target_id)}{steward.SUFFIX}"
     content = yaml.safe_dump(doc, sort_keys=False, allow_unicode=True)
     prefix = CURATE_BRANCH_PREFIX if mode == REVIEWED else submissions.APPEND_BRANCH_PREFIX
