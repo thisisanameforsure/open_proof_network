@@ -1333,3 +1333,18 @@ The law of the project:
   full render of the live graph, not on the fixture**. The fixture's parent has a `Proof.lean`,
   so a partial's attestation rendered there as the proof's, and the live root's "nothing has been
   merged" beside a merged partial only showed on the real render.
+
+- 2026-10-08 (evening) — Decisions v3.35 from the testers' two design findings, on the owner's
+  rulings: a merged circularity claim is a *label* ("a proof of this is a proof of X"), never a
+  removal, and a node carries a literature status that anyone proposes and a steward or curator
+  confirms, told through `/me/`. Three worktree agents (gate, service, site) built against four
+  schemas committed first; nine tasks, 4924 green. Three things worth keeping. **A rule met by
+  the artifact it was meant to protect is a rule about the wrong thing**: the circularity exhibit
+  is satisfied by every reduction and by the last open hole of every decomposition, because the
+  assembly *is* that proof; publishing the fact and leaving the choice to the operator's filter is
+  what D-25 already said. **"Fix some old data" was a re-render, not an edit**: the four nodes off
+  the live frontier under claims come back by derivation at the re-render after the re-pin, and no
+  record moves (F08-T10's principle, paid again). **Parallel agents meet at the version sweep**:
+  four conflicts, all the same two lines added by both sides, and five "older snapshot" tests
+  that assumed the fixture still emitted the old version — a test about an old shape must build
+  the old shape by hand, never trust the generator to still produce it.
