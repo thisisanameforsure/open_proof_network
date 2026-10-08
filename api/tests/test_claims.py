@@ -251,7 +251,7 @@ def test_listed_is_claimable(harness: Harness) -> None:
     work — its node carries claimable: true and POST /claims on it is a 201."""
     serve_listed(harness)
     served = harness.client.get("/frontier.json").json()
-    assert served["schema"] == "frontier/v4"  # the service serves the version the graph published
+    assert served["schema"] == "frontier/v5"  # the service serves the version the graph published
     entry = next(e for e in served["entries"] if e["node_id"] == LISTED_NODE)
     assert entry["claimable"] is True and entry["dormant"] is False
 

@@ -555,7 +555,7 @@ explainer/
 | `explainer/signed/`, `gloss/signed/` | an active steward or a listed curator | append a signature on one version, or on some of its sections, made with the signer's own key; it approves those sections and credits the version's author |
 | `withdrawals/<timestamp>-<you>.yaml` | a version's author, a steward or a curator | append a withdrawal of one gloss or explainer version, with a reason |
 | `waivers/native_decide.yaml` | the prover | add only when `Proof.lean` uses `native_decide` (F02) |
-| `revisions/`, `defects/` | anyone | append a revision request (D-8) or a defect claim (D-16); a defect claim's `exhibit` is Lean the gate elaborates, not prose, and the service compiles it on the hosted fast checker first: one that does not compile is refused `422 exhibit-elaboration` with Lean's `errors` and opens nothing (the receipt's `exhibit_preflight` says `elaborates`, `inconclusive`, `unavailable` or `skipped`, the last for a `circular-decomposition` exhibit, which only the gate checks); a `circular-decomposition` claim on a node already reading `cause: circular` is refused, and the receipt's `also_open` names any claim of the same class still open on the node |
+| `revisions/`, `defects/` | anyone | append a revision request (D-8) or a defect claim (D-16); a defect claim's `exhibit` is Lean the gate elaborates, not prose, and the service compiles it on the hosted fast checker first: one that does not compile is refused `422 exhibit-elaboration` with Lean's `errors` and opens nothing (the receipt's `exhibit_preflight` says `elaborates`, `inconclusive`, `unavailable` or `skipped`, the last for a `circular-decomposition` exhibit, which only the gate checks); a merged `circular-decomposition` claim labels the node under `circular` and takes nothing off the frontier (D-12 v3.35), and the receipt's `also_open` names any claim of the same class still open on the node |
 | `Statement.lean`, `META.yaml`, `Context.lean`, `Witness.lean` | intake or the gate | **never**: statements are immutable (D-8); a defect is a revision request |
 | `status/`, `CONTEXT.json`, `defs/`, `schemas/`, the products | curators and the gate | **never** |
 
@@ -592,8 +592,8 @@ names `status/<file>` or `defects/<file>` of that same node, with a `reason`, `a
 `date`. It is a curator record, reviewed by the other listed curators, and a file that names
 nothing on the node is refused `withdrawal-unknown-record`. The withdrawn file stays in the tree
 and every product reads it as absent: the latest remaining status record decides, a withdrawn
-circularity claim no longer takes its hole off the frontier, and a `disputed` record resting on
-a withdrawn claim lifts. Reverting the withdrawal restores everything.
+circularity claim no longer labels its hole, and a `disputed` record resting on a withdrawn claim
+lifts. Reverting the withdrawal restores everything.
 
 **For curators: correcting a ledger line (D-19 v3.27).** A listed curator moves credit by adding
 `targets/<id>/credit-corrections/<stamp>-<curator>.yaml` (`credit-correction/v1`) naming the
@@ -1163,15 +1163,15 @@ Four rules the gate enforces mechanically, and one it leaves to a claim:
   ancestor. (The reverse, `<ancestor> → <hole>`, says only that the hole is no harder, which every
   provable hole satisfies; the gate refuses it as `circular-direction`, naming what the exhibit
   proved.) The gate checks that type in the sandbox and refuses the reverse direction, any
-  other theorem and a proof resting on `sorry`. Once merged, the hole leaves the frontier and
-  reads `circular` on the site; in `graph.json` its `status` stays `ready` and its `cause` is
-  `circular`, so read `cause`, not `status`. Nothing else in the record changes, a further
-  circularity claim on it is refused naming the merged one, and a proof of the hole is still
-  accepted, since it proves the ancestor too. A node's `CONTEXT.json` (`get_node`, the precheck
-  bundle) lists under `circular_below` every merged claim that circles back to it, so you can see
-  which routes beneath it were tried and shown circular before choosing one; each of its `deps`
-  carries its own `cause` too (`context/v4`), so a dependency that reads `ready` but is
-  `circular` says so in the node that depends on it.
+  other theorem and a proof resting on `sorry`. Once merged, the claim is a **label, not a
+  removal** (D-12 v3.35): the hole stays on the frontier, claimable on its status alone, its
+  `status` and `cause` are what they would be without the claim, and `graph.json`, the frontier
+  entry and `CONTEXT.json` carry it under `circular` as `[{ancestor, claim}]` — *a proof of this
+  node is a proof of `ancestor`*. Nothing else in the record changes, and a proof of the hole is
+  still accepted, since it proves the ancestor too. A node's `CONTEXT.json` (`get_node`, the
+  precheck bundle) lists under `circular_below` every merged claim that circles back to it, so
+  you can see which routes beneath it were tried before choosing one. "The circular label" below
+  says what the fact means and how to filter on it.
 
 **An annex may name its steps, and a skeleton that cites it follows them.** Send `steps` with
 the annex: a list of 1 to 50 `{"id", "summary"}`, where `id` is the name the skeleton's `have`

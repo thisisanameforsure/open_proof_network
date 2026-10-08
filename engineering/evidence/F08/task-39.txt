@@ -1,0 +1,123 @@
+F08-T39 (with F03-T18, F10-T19) — a merged circularity claim is a label, not a removal (D-12 v3.35,
+D-16 v3.35; decisions amendment 2026-10-08). graph/v6, frontier/v5, context/v5; the version-string
+sweep; goldens and api fixtures regenerated; the live before/after measured.
+2026-10-08  worktree agent-a39f8bbe6be51e622 on main 77e0acc (the schema contracts commit)
+
+Cause, at code level. `graph.is_circular` (F08-T17) made a node under a merged claim answer
+`cause: circular` (`graph.cause_of`), and `products.workable`, `needs_of` and `in_frontier` each
+refused such a node; `graph.with_circular_paths` (F08-T20, v3.22) wrote the path claim into the same
+`NodeFacts.circular` slot so the path left too. The claim's exhibit (Hole → Ancestor) is met by every
+honest reduction (D-12 #4) and by the last open hole of any decomposition, so the removal hid work.
+
+Design. `NodeFacts.circular` is now a derived tuple of `CircularLabel(ancestor, claim)`: the node's own
+merged claims (`circular_claims`, ancestor read through revisions as before) named
+`<node>/defects/<file>`, then the claim `circular_marks` assigns a path node (`circular_path`, set by
+`with_circular_paths`; speaks while the claimed hole is open, v3.22) unless already named. `is_circular`
+is deleted; `cause_of` has no circular branch; the three membership functions ask nothing about claims;
+`CAUSE_CIRCULAR` stays defined (retired, documented) for readers of graphs an older pin rendered.
+`graph_doc` and `frontier_entry` emit `circular`, `literature: null`, `literature_proposed: null`;
+`context.NodeState` carries the three from graph.json and the bundle repeats them (F10-Q7); over an
+older (graph/v5) document the bundle derives `circular` from the tree so the service's derived bundle
+through the deploy window is the one the new gate writes (test_a_bundle_over_an_older_graph_document).
+
+Version sweep (grep for the strings graph/v5, frontier/v4, context/v4): gate/opn_gate/products.py,
+context.py; api/opn_api/frontier.py (accepted set), api/opn_api/mcp/reads.py (filter schema),
+api/opn_api/mcp/schemas/get_node/v1.json (context enum); .github/workflows/api-deploy.yml (package
+check); site/opn_site/model.py (PRODUCT_SCHEMAS); tests pinning versions in gate/ and api/.
+PROTOCOL_VERSION is "3.28" and no test pins it to the amendment; left alone (the lead's call).
+Goldens: gate/tests/test_products.py::write_goldens (21 files; only the three new fields, the three
+schema strings and info.json's schema index moved — reviewed by eye). Api fixtures:
+api/tests/test_fixture_is_golden.py::write_fixtures (frontier-*.json; targets-index-*.json unchanged).
+
+Tests restated to the new rule, not deleted (each docstring names D-12 v3.35 / F08-T39):
+gate/tests/test_finding_circular_decomposition.py (…labels_the_hole_and_removes_nothing),
+gate/tests/test_finding_circular_path.py (…labels_the_whole_chain, …labels_only_the_nodes_below_it,
+…is_not_labelled, …is_labelled_once_the_sibling_is_proved…, the ancestor and revision-chain tests,
+a_proof_of_a_path_node), gate/tests/test_finding_context_dep_cause.py, gate/tests/test_withdrawal.py,
+gate/tests/test_uses_nodes.py (docstring), plus the version pins in test_node_proofs.py,
+test_finding_frontier_needs.py, test_finding_guide_names_exist.py, api/tests/test_claims.py,
+test_finding_context_window.py, test_finding_frontier_v4.py.
+New: gate/tests/test_circular_label.py (9 tests).
+
+---- RED: gate/tests/test_circular_label.py against the pre-change gate (HEAD's graph.py,
+---- products.py, context.py copied aside; the three first failures are on the behaviour itself) ----
+E       AssertionError: the hole stays on the frontier (D-12 v3.35)
+E       assert 'and-reassoc' in ['tutorial-and-swap']
+E        +  where ['tutorial-and-swap'] = frontier_ids(Products(files={PosixPath('targets/propositional/graph.json'): b'{\n  "nodes": [\n    {\n      "cause": "circular",\n ...c': 'ready', 'and-swap-reassoc': 'blocked', 'tutorial-and-swap': 'ready'}, root='and-swap-reassoc', declaration=None)]))
+E       AssertionError: assert ('graph/v5', ... 'context/v4') == ('graph/v6', ... 'context/v5')
+E         
+E         At index 0 diff: 'graph/v5' != 'graph/v6'
+E         Use -v to get more diff
+E       AssertionError: no node leaves the frontier for the claim (D-12 v3.35)
+E       assert {'and-swap-reassoc'} == {'and-swap-re...--h2--h1--h2'}
+E         
+E         Extra items in the right set:
+E         'and-swap-reassoc--h2--h1'
+E         'and-swap-reassoc--h2--h1--h2'
+E         'and-swap-reassoc--h2'
+E         Use -v to get more diff
+E       TypeError: 'NoneType' object is not iterable
+E           KeyError: 'circular'
+E       KeyError: 'circular'
+E       KeyError: 'circular'
+E       AttributeError: 'NodeState' object has no attribute 'circular'
+E       KeyError: 'circular'
+FAILED gate/tests/test_circular_label.py::test_a_claimed_hole_stays_on_the_frontier_claimable_and_labelled
+FAILED gate/tests/test_circular_label.py::test_the_products_are_the_next_versions_and_literature_is_null
+FAILED gate/tests/test_circular_label.py::test_a_path_node_is_labelled_with_the_claim_that_takes_it
+FAILED gate/tests/test_circular_label.py::test_the_four_live_node_shape - Typ...
+FAILED gate/tests/test_circular_label.py::test_a_claim_speaks_along_the_path_only_while_its_hole_is_open
+FAILED gate/tests/test_circular_label.py::test_a_claim_whose_hole_has_no_proved_sibling_labels_the_hole_alone
+FAILED gate/tests/test_circular_label.py::test_the_bundle_carries_the_label_beside_circular_below
+FAILED gate/tests/test_circular_label.py::test_a_bundle_over_an_older_graph_document_derives_the_label
+FAILED gate/tests/test_circular_label.py::test_deleting_the_claim_removes_every_label
+9 failed in 13.61s
+
+---- GREEN: uv run --frozen pytest gate/tests/test_circular_label.py -q ----
+.........                                                                [100%]
+9 passed in 2.23s
+
+---- GREEN: uv run --frozen pytest gate -m "not lean and not docker" -q (full gate fast tier, run after the restatements and the goldens) ----
+2360 passed, 268 skipped, 190 deselected, 2 warnings in 594.82s (0:09:54)
+
+---- uv run --frozen pytest api site -m "not lean and not docker" -q ----
+FAILED site/tests/test_finding_circular_label.py::test_the_circular_hole_is_not_work_and_the_site_agrees_with_the_frontier
+FAILED site/tests/test_finding_circular_label.py::test_the_node_page_says_circular_and_links_the_claim
+FAILED site/tests/test_finding_circular_path_note.py::test_a_path_node_reads_circular_and_links_the_claim_under_the_hole[and-swap-reassoc--h2]
+FAILED site/tests/test_finding_circular_path_note.py::test_a_path_node_reads_circular_and_links_the_claim_under_the_hole[and-swap-reassoc--h2--h1]
+4 failed, 2209 passed, 1 skipped, 2 warnings in 272.86s (0:04:32)
+The four red site tests pin the site's own rendering of the removal ("Not claimable", the circular
+key, nv.cause == "circular"); the site pages are the F04 agent's (built in parallel) and these are
+theirs to restate. Every api test is green with the sweep.
+
+---- make lint ----
+All checks passed!
+695 files already formatted
+---- make types ----
+Success: no issues found in 331 source files (gate), 223 (api), 79 (site)
+
+---- LIVE MEASUREMENT: products rendered in process over a copy (rsync, no .git) of the sibling graph
+---- clone at 835f123907a010b19281ce17a874c07986ff43c9 (pins network 2bc5605), scanner=None (no
+---- docker, no Mathlib; tags from each target's committed .tags-cache.json), schemas published into
+---- the copy. "before" = HEAD 77e0acc's graph.py/products.py/context.py; "after" = this commit.
+---- The committed live frontier.json is frontier/v4 with 38 entries, 35 claimable: "before" reproduces it.
+[before] opn_gate from /private/tmp/claude-501/-Users-mikehiggins-Desktop-repos-open-proof-network/3dae4213-1939-40ec-bbb6-2ad316d59eb0/scratchpad/net-old/gate/opn_gate/products.py
+[before] gate: graph/v5 frontier/v4; schemas published: ['context/v5', 'frontier/v5', 'graph/v6', 'literature/v1']
+[before] frontier/v4: 38 entries, 35 claimable
+[before] erdos-1050--h1-v2--h1: status=ready cause=circular circular=<absent> NOT on the frontier
+[before] erdos-69--h2-v2: status=ready cause=circular circular=<absent> NOT on the frontier
+[before] erdos-69--h2-v2--h1-v2: status=ready cause=circular circular=<absent> NOT on the frontier
+[before] erdos-69--h2-v2--h1-v2--h4: status=ready cause=circular circular=<absent> NOT on the frontier
+[before] wrote /private/tmp/claude-501/-Users-mikehiggins-Desktop-repos-open-proof-network/3dae4213-1939-40ec-bbb6-2ad316d59eb0/scratchpad/measure-before.json
+[after] opn_gate from /Users/mikehiggins/Desktop/repos/open_proof_network/.claude/worktrees/agent-a39f8bbe6be51e622/gate/opn_gate/products.py
+[after] gate: graph/v6 frontier/v5; schemas published: ['context/v5', 'frontier/v5', 'graph/v6', 'literature/v1']
+[after] frontier/v5: 42 entries, 39 claimable
+[after] erdos-1050--h1-v2--h1: status=ready cause=None circular=[{'ancestor': 'erdos-1050', 'claim': 'erdos-1050--h1-v2--h1/defects/20260923T223809Z-lead-0923.yaml'}] ENTRY claimable=True needs=proof circular=[{'ancestor': 'erdos-1050', 'claim': 'erdos-1050--h1-v2--h1/defects/20260923T223809Z-lead-0923.yaml'}]
+[after] erdos-69--h2-v2: status=ready cause=None circular=[{'ancestor': 'erdos-69', 'claim': 'erdos-69--h2-v2/defects/20260924T123353Z-t0924-69m-8709.yaml'}, {'ancestor': 'erdos-69', 'claim': 'erdos-69--h2-v2--h1-v2/defects/20260924T124042Z-agent-e69h-0d8d.yaml'}] ENTRY claimable=True needs=proof circular=[{'ancestor': 'erdos-69', 'claim': 'erdos-69--h2-v2/defects/20260924T123353Z-t0924-69m-8709.yaml'}, {'ancestor': 'erdos-69', 'claim': 'erdos-69--h2-v2--h1-v2/defects/20260924T124042Z-agent-e69h-0d8d.yaml'}]
+[after] erdos-69--h2-v2--h1-v2: status=ready cause=None circular=[{'ancestor': 'erdos-69--h2-v2', 'claim': 'erdos-69--h2-v2--h1-v2/defects/20260924T123349Z-t0924-69m-8709.yaml'}, {'ancestor': 'erdos-69', 'claim': 'erdos-69--h2-v2--h1-v2/defects/20260924T124042Z-agent-e69h-0d8d.yaml'}, {'ancestor': 'erdos-69', 'claim': 'erdos-69--h2-v2--h1-v2--h4/defects/20260924T123647Z-agent-e69h-0d8d.yaml'}] ENTRY claimable=True needs=proof circular=[{'ancestor': 'erdos-69--h2-v2', 'claim': 'erdos-69--h2-v2--h1-v2/defects/20260924T123349Z-t0924-69m-8709.yaml'}, {'ancestor': 'erdos-69', 'claim': 'erdos-69--h2-v2--h1-v2/defects/20260924T124042Z-agent-e69h-0d8d.yaml'}, {'ancestor': 'erdos-69', 'claim': 'erdos-69--h2-v2--h1-v2--h4/defects/20260924T123647Z-agent-e69h-0d8d.yaml'}]
+[after] erdos-69--h2-v2--h1-v2--h4: status=ready cause=None circular=[{'ancestor': 'erdos-69--h2-v2--h1-v2', 'claim': 'erdos-69--h2-v2--h1-v2--h4/defects/20260924T123205Z-t0924-69m-8709.yaml'}, {'ancestor': 'erdos-69', 'claim': 'erdos-69--h2-v2--h1-v2--h4/defects/20260924T123647Z-agent-e69h-0d8d.yaml'}] ENTRY claimable=True needs=proof circular=[{'ancestor': 'erdos-69--h2-v2--h1-v2', 'claim': 'erdos-69--h2-v2--h1-v2--h4/defects/20260924T123205Z-t0924-69m-8709.yaml'}, {'ancestor': 'erdos-69', 'claim': 'erdos-69--h2-v2--h1-v2--h4/defects/20260924T123647Z-agent-e69h-0d8d.yaml'}]
+[after] wrote /private/tmp/claude-501/-Users-mikehiggins-Desktop-repos-open-proof-network/3dae4213-1939-40ec-bbb6-2ad316d59eb0/scratchpad/measure-after.json
+
+added   = exactly the four: erdos-1050--h1-v2--h1, erdos-69--h2-v2, erdos-69--h2-v2--h1-v2, erdos-69--h2-v2--h1-v2--h4
+removed = none. 38 -> 42 entries, 35 -> 39 claimable. Zero render warnings in either run.
+Nothing was committed to the graph; the live render is the owner's second commit after the re-pin.

@@ -41,6 +41,7 @@ FRONTIER_SCHEMAS: tuple[str, ...] = (
     "frontier/v2",
     "frontier/v3",
     "frontier/v4",  # F03-T16: status, cause, needs; the live graph serves v3 until its re-pin
+    "frontier/v5",  # F03-T18 (D-12 v3.35): circular, literature, literature_proposed
 )
 CLAIMS_SCHEMA = "claims/v1"
 EMPTY_CLAIMS: dict[str, Any] = {"active": [], "history_count": 0}

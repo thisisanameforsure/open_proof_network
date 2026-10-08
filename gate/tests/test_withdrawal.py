@@ -183,14 +183,17 @@ def test_a_withdrawal_of_a_withdrawal_is_refused(tmp_path: Path) -> None:
 # --- every reader reads a withdrawn record as absent ----------------------------------------------
 
 
-def test_a_withdrawn_circularity_claim_puts_the_hole_back_on_the_frontier(tmp_path: Path) -> None:
+def test_a_withdrawn_circularity_claim_removes_the_holes_label(tmp_path: Path) -> None:
+    """Restated for D-12 v3.35 (F08-T39): a merged claim no longer takes the hole off the
+    frontier, it labels it; a withdrawal reads the claim as absent, so the label goes."""
     root = copy_graph(tmp_path, publish=True)
     file_claim(root)
-    assert HOLE not in frontier_ids(root), "guard: the claim takes the hole off the frontier"
+    assert HOLE in frontier_ids(root), "the claim is a label, not a removal (D-12 v3.35)"
+    assert graph.load_target(root, TARGET).nodes[HOLE].circular != (), "guard: labelled"
     file_withdrawal(root)
     assert HOLE in frontier_ids(root)
     node = graph.load_target(root, TARGET).nodes[HOLE]
-    assert node.circular is None and node.circular_claims == ()
+    assert node.circular == () and node.circular_claims == ()
     assert (root / CLAIM).is_file(), "the withdrawn file stays in the tree"
 
 

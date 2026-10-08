@@ -35,8 +35,10 @@ log = logging.getLogger(__name__)
 #: carries it, which is why a reader accepts every version in ``ACCEPTED``.
 #: F08-T36 (D-16 v3.28): ``context/v3`` adds ``defect_claims``, the list ``graph.json`` carries.
 #: F22-T13: ``context/v4`` gives each ``deps[]`` entry the dep's ``cause`` (testers 2026-10-06).
-SCHEMA = "context/v4"
-ACCEPTED: tuple[str, ...] = ("context/v1", "context/v2", "context/v3", "context/v4")
+#: F10-T19 (D-12 v3.35, D-25 v3.35): ``context/v5`` carries ``circular``, ``literature`` and
+#: ``literature_proposed`` as ``graph/v6`` does, beside v4's ``circular_below``.
+SCHEMA = "context/v5"
+ACCEPTED: tuple[str, ...] = ("context/v1", "context/v2", "context/v3", "context/v4", "context/v5")
 FILE = layout.CONTEXT_FILE
 CLAIMS_FILE = "claims.json"
 CLAIMS_SCHEMA = "claims/v1"
@@ -96,10 +98,19 @@ class NodeState:
     #: F08-T22: the node's origin as ``graph.json`` publishes it, which is how a dep is known to
     #: be one of its parent's holes (``graph.is_hole_of``) for ``circular_below``.
     origin: str | None = None
+    #: F08-T39 (D-12 v3.35): the node's ``circular`` label as ``graph/v6`` publishes it, each
+    #: ``{ancestor, claim}``; ``None`` when the document predates v6, in which case the builder
+    #: derives it from the tree (``_circular``) as the gate would.
+    circular: tuple[dict[str, str], ...] | None = None
+    #: D-25 v3.35: the literature status ``graph/v6`` publishes (F08-T40), repeated, never
+    #: re-derived here: a signed record is verified by the gate's own signer, which a host reader
+    #: has no business repeating (F10-Q7). ``None`` when the document carries none or predates v6.
+    literature: dict[str, Any] | None = None
+    literature_proposed: dict[str, Any] | None = None
 
 
 def graph_states(doc: Mapping[str, Any]) -> dict[str, NodeState]:
-    """The states a ``graph.json`` document (``graph/v2``) records, keyed by node id."""
+    """The states a ``graph.json`` document (``graph/v2`` on) records, keyed by node id."""
     return {
         str(n["node_id"]): NodeState(
             status=str(n["status"]),
@@ -108,10 +119,28 @@ def graph_states(doc: Mapping[str, Any]) -> dict[str, NodeState]:
             trust_base=_optional(n.get("trust_base")),
             deps=(tuple(str(d) for d in n["deps"]) if isinstance(n.get("deps"), list) else None),
             origin=_optional(n.get("origin")),
+            circular=_labels(n.get("circular")),
+            literature=_mapping(n.get("literature")),
+            literature_proposed=_mapping(n.get("literature_proposed")),
         )
         for n in doc.get("nodes", [])
         if isinstance(n, dict)
     }
+
+
+def _labels(value: Any) -> tuple[dict[str, str], ...] | None:
+    """``graph/v6``'s ``circular`` list as the state carries it; ``None`` for an older document."""
+    if not isinstance(value, list):
+        return None
+    return tuple(
+        {"ancestor": str(item["ancestor"]), "claim": str(item["claim"])}
+        for item in value
+        if isinstance(item, dict)
+    )
+
+
+def _mapping(value: Any) -> dict[str, Any] | None:
+    return dict(value) if isinstance(value, dict) else None
 
 
 def _optional(value: object) -> str | None:
@@ -212,8 +241,9 @@ def _deps(
             {
                 "node_id": dep,
                 "status": states[dep].status,
-                # F22-T13: the reason beside the status (a circular route reads ``blocked`` with
-                # ``cause: circular``), as graph.json records it; never re-derived here.
+                # F22-T13: the reason beside the status, as graph.json records it; never
+                # re-derived here. (A circular route is a label on the dep's own row since
+                # D-12 v3.35, F08-T39, not a cause.)
                 "cause": states[dep].cause,
                 "statement_hash": schemas.content_hash(raw),
                 "signature": _text(raw, path),
@@ -357,21 +387,20 @@ def _explainer_present(reader: Reader, node_dir: str) -> bool:
     return any(n.endswith(PROSE_SUFFIX) for n in reader.listdir(f"{node_dir}/explainer"))
 
 
-def _circular_below(
-    reader: Reader, target_id: str, node_id: str, states: Mapping[str, NodeState]
-) -> list[dict[str, str]]:
-    """F08-T22 (D-12 v3.23): the merged circularity claims that circle back to this node — each
-    hole beneath it shown to imply this statement, with the claim that shows it — so an agent
-    reading the bundle sees which routes were tried and made no progress.
+def _circular_marks(
+    reader: Reader, target_id: str, states: Mapping[str, NodeState]
+) -> tuple[dict[str, str], dict[str, tuple[str, ...]], dict[str, list[tuple[str, str]]]]:
+    """The gate's own ``graph.circular_marks`` over what ``graph.json`` already says (deps,
+    origins, statuses) and each node's merged circularity claims, every ancestor read through
+    its revision chain: the same claims the site's ancestor note lists (F08-T20), by the same
+    rule, so the two cannot disagree. Returns ``(on_path, below, claims)``.
 
-    The gate's own ``graph.circular_marks`` over what ``graph.json`` already says (deps, origins,
-    statuses) and the claim files under the nodes it marks ``circular``, each claim's ancestor
-    read through its revision chain by ``graph.follow_revisions``: the same claims the site's
-    ancestor note lists (F08-T20), by the same rule, so the two cannot disagree. Only a node
-    ``graph.json`` marks circular can carry a claim that speaks (a claim speaks while its hole is
-    open, which is what the mark says), so a host reader lists ``defects/`` under those nodes
-    alone and never the whole target. Nothing is read from a toolchain, so the service derives
-    the same bytes over the host (F10-Q7).
+    The claims come from the document itself where it carries them (``graph/v6``'s ``circular``:
+    a node's *own* claims are the entries named under it, F08-T39), and from the tree for an older
+    document, under the nodes ``cause: circular`` marked (F08-T22) — a claim spoke only while its
+    hole was open, which is what that mark said, so a host reader lists ``defects/`` under those
+    nodes alone and never the whole target. Nothing is read from a toolchain, so the service
+    derives the same bytes over the host (F10-Q7).
     """
     statuses = {n: s.status for n, s in states.items()}
     deps = {n: tuple(s.deps or ()) for n, s in states.items()}
@@ -381,16 +410,60 @@ def _circular_below(
     }
     claims: dict[str, list[tuple[str, str]]] = {}
     for hole, state in states.items():
-        if state.cause != graphmod.CAUSE_CIRCULAR:
-            continue
-        found = _circular_claims(reader, target_id, hole)
-        if found:
-            claims[hole] = [(ref, _current_id(reader, target_id, states, a)) for ref, a in found]
-    _on_path, below = graphmod.circular_marks(holes, deps, claims, statuses)
+        if state.circular is not None:
+            own = [
+                (label["claim"][len(hole) + 1 :], label["ancestor"])
+                for label in state.circular
+                if label["claim"].startswith(f"{hole}/")
+            ]
+        elif state.cause == graphmod.CAUSE_CIRCULAR:
+            found = _circular_claims(reader, target_id, hole)
+            own = [(ref, _current_id(reader, target_id, states, a)) for ref, a in found]
+        else:
+            own = []
+        if own:
+            claims[hole] = own
+    on_path, below = graphmod.circular_marks(holes, deps, claims, statuses)
+    return on_path, below, claims
+
+
+def _circular_below(
+    reader: Reader, target_id: str, node_id: str, states: Mapping[str, NodeState]
+) -> list[dict[str, str]]:
+    """F08-T22 (D-12 v3.23): the merged circularity claims that circle back to this node — each
+    hole beneath it shown to imply this statement, with the claim that shows it — so an agent
+    reading the bundle sees which routes beneath it were tried (``_circular_marks``)."""
+    _on_path, below, _claims = _circular_marks(reader, target_id, states)
     return [
         {"node_id": named.partition("/")[0], "claim": f"{node_path(target_id, named)}"}
         for named in below.get(node_id, ())
     ]
+
+
+def _circular(
+    reader: Reader, target_id: str, node_id: str, states: Mapping[str, NodeState]
+) -> list[dict[str, str]]:
+    """F10-T19 (D-12 v3.35): the node's ``circular`` label as ``graph/v6`` carries it, repeated
+    from the document when it has one; derived as ``graph.NodeFacts.circular`` derives it — the
+    node's own claims, then the claim a circular path assigns it — for a document rendered by an
+    older pin, so the bundle the service derives through the deploy window is the one the new
+    gate writes (2026-09-11)."""
+    state = states[node_id]
+    if state.circular is not None:
+        return [dict(label) for label in state.circular]
+    on_path, _below, claims = _circular_marks(reader, target_id, states)
+    labels = [
+        {"ancestor": ancestor, "claim": f"{node_id}/{ref}"}
+        for ref, ancestor in claims.get(node_id, ())
+        if ancestor
+    ]
+    if node_id in on_path:
+        named = on_path[node_id]
+        hole, _, ref = named.partition("/")
+        ancestor = next(a for r, a in claims[hole] if r == ref)
+        if all(label["claim"] != named for label in labels):
+            labels.append({"ancestor": ancestor, "claim": named})
+    return labels
 
 
 def withdrawn_names(reader: Reader, target_id: str, node_id: str, directory: str) -> frozenset[str]:
@@ -612,6 +685,10 @@ def build(
         "untrusted_note": demarcate.UNTRUSTED_NOTE,
         "circular_below": _circular_below(reader, target_id, node_id, states),
         "defect_claims": defect_claims(reader, target_id, node_id, status=state.status),
+        # F10-T19 (D-12 v3.35, D-25 v3.35): graph/v6's three fields, repeated.
+        "circular": _circular(reader, target_id, node_id, states),
+        "literature": state.literature,
+        "literature_proposed": state.literature_proposed,
     }
     fit(doc)
     return schemas.validate(doc, SCHEMA)

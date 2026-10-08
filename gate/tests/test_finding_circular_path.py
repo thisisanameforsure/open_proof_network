@@ -20,6 +20,13 @@ restores every product byte for byte.
 The fixture mirrors erdos-69's live shape: the root decomposed into two holes, the second
 decomposed again, and again, the circular claim sitting on the deepest hole and every sibling on
 the way proved.
+
+Restated for D-12 v3.35 (F08-T39, 2026-10-08): the path rule is unchanged — which nodes a claim
+reaches, when a sibling's proof extends it, that the ancestor bounds it and is read through its
+revision chain — but what it does changed: a reached node is *labelled* (``graph.json``'s
+``circular``, ``NodeFacts.circular_path``) and stays on the frontier on its status alone, because
+the claim's exhibit is met by every honest reduction (D-12 #4). Every test below that said "off"
+now says "labelled"; the ones about the rule's reach say the same thing they always did.
 """
 
 from __future__ import annotations
@@ -120,66 +127,83 @@ def test_guard_the_chain_is_work_before_any_claim(tmp_path: Path) -> None:
 # --- one claim, the whole path -----------------------------------------------------------------
 
 
-def test_one_claim_on_the_deepest_hole_takes_the_whole_chain_off(tmp_path: Path) -> None:
+def labels(prod: products.Products, node_id: str) -> list[str]:
+    """The claims a node's ``circular`` label names (D-12 v3.35)."""
+    return [str(c["claim"]) for c in graph_row(prod, node_id)["circular"]]
+
+
+def test_one_claim_on_the_deepest_hole_labels_the_whole_chain(tmp_path: Path) -> None:
+    """Was "takes the whole chain off"; D-12 v3.35 (F08-T39) makes the same reach a label."""
     root = chain(tmp_path)
     before = graph.load_target(root, TARGET).statuses
+    listed = frontier_ids(generate(root))
     file_claim(root, CLAIM, stmt_ref=DEEP, ancestor=ROOT)
     prod = generate(root)
-    on = frontier_ids(prod)
+    assert frontier_ids(prod) == listed, "nothing leaves the frontier for the claim"
     for node_id in (*PATH, DEEP):
-        assert node_id not in on, node_id
         row = graph_row(prod, node_id)
-        assert row["cause"] == "circular", node_id
+        assert labels(prod, node_id) == [CLAIM_REF], node_id
+        assert row["cause"] != "circular", node_id  # never a cause since graph/v6
         assert row["status"] == before[node_id], "the status is untouched (D-3)"
     tg = graph.load_target(root, TARGET)
     assert tg.statuses == before
     for node_id in PATH:
-        assert tg.nodes[node_id].circular == CLAIM_REF, "a path node names the claim it rests on"
-    assert tg.nodes[DEEP].circular == f"defects/{CLAIM_FILE}"  # its own, as F08-T17 wrote it
+        assert tg.nodes[node_id].circular_path == (CLAIM_REF, ROOT), (
+            "a path node names the claim it rests on"
+        )
+    assert tg.nodes[DEEP].circular_claims == ((f"defects/{CLAIM_FILE}", ROOT),)  # its own
+    assert tg.nodes[DEEP].circular_path is None
     for sibling in SIBLINGS:
         assert graph_row(prod, sibling)["status"] == "proved"
         assert graph_row(prod, sibling).get("cause") is None
+        assert labels(prod, sibling) == []
 
 
-def test_a_nearer_ancestor_takes_only_the_nodes_below_it(tmp_path: Path) -> None:
-    """The ancestor bounds the path: a claim naming MID takes LOW off and leaves MID on."""
+def test_a_nearer_ancestor_labels_only_the_nodes_below_it(tmp_path: Path) -> None:
+    """The ancestor bounds the path: a claim naming MID labels LOW (and DEEP) and leaves MID and
+    ROOT unlabelled. Every one of the four is still a frontier entry (D-12 v3.35)."""
     root = chain(tmp_path)
     file_claim(root, CLAIM, stmt_ref=DEEP, ancestor=MID)
-    on = frontier_ids(generate(root))
-    assert LOW not in on and DEEP not in on
-    assert MID in on and ROOT in on
+    prod = generate(root)
+    assert {ROOT, MID, LOW, DEEP} <= set(frontier_ids(prod))
+    assert labels(prod, LOW) == [CLAIM_REF] and labels(prod, DEEP) == [CLAIM_REF]
+    assert labels(prod, MID) == [] and labels(prod, ROOT) == []
 
 
 @pytest.mark.parametrize("sibling", SIBLINGS)
-def test_a_node_whose_sibling_is_unproved_stays_on(tmp_path: Path, sibling: str) -> None:
+def test_a_node_whose_sibling_is_unproved_is_not_labelled(tmp_path: Path, sibling: str) -> None:
     """The implication back up the chain needs every sibling proved: one unproved sibling on any
-    edge breaks the only path, so both nodes between stay work. The claimed hole leaves alone."""
+    edge breaks the only path, so neither node between carries the label. The claimed hole
+    carries its own claim alone. (Was "stays on"; on the frontier they all are, D-12 v3.35.)"""
     root = claimed(tmp_path, unproved=(sibling,))
     prod = generate(root)
     on = frontier_ids(prod)
-    assert DEEP not in on
+    assert DEEP in on and labels(prod, DEEP) == [CLAIM_REF]
     for node_id in PATH:
         assert node_id in on, (node_id, sibling)
-        assert graph_row(prod, node_id).get("cause") != "circular"
+        assert labels(prod, node_id) == [], (node_id, sibling)
 
 
-def test_it_leaves_once_the_sibling_is_proved_with_no_new_record(tmp_path: Path) -> None:
+def test_it_is_labelled_once_the_sibling_is_proved_with_no_new_record(tmp_path: Path) -> None:
     sibling = f"{MID}--h2"
     root = claimed(tmp_path, unproved=(sibling,))
-    assert set(PATH) <= set(frontier_ids(generate(root)))
+    prod = generate(root)
+    assert set(PATH) <= set(frontier_ids(prod))
+    assert all(labels(prod, n) == [] for n in PATH)
     prove(root, sibling, 9)  # a proof and its attestation: nothing names the claim
-    on = frontier_ids(generate(root))
-    assert not set(PATH) & set(on)
+    prod = generate(root)
+    assert set(PATH) <= set(frontier_ids(prod)), "still work (D-12 v3.35)"
+    assert all(labels(prod, n) == [CLAIM_REF] for n in PATH)
 
 
 def test_a_declared_dep_on_the_path_must_be_proved_too(tmp_path: Path) -> None:
     """Conservative: ROOT's declared deps are "other entries" of its deps like its holes. With
-    one of them unproved, ROOT → MID is no edge of the path, so nothing between is taken."""
+    one of them unproved, ROOT → MID is no edge of the path, so nothing between is labelled."""
     root = claimed(tmp_path)
     (root / "attestations" / "000002.json").unlink()  # and-reassoc no longer proved
     tg = graph.load_target(root, TARGET)
     assert tg.statuses["and-reassoc"] == "ready"
-    assert all(tg.nodes[n].circular is None for n in PATH)
+    assert all(tg.nodes[n].circular == () for n in PATH)
 
 
 # --- the ancestor ------------------------------------------------------------------------------
@@ -193,7 +217,7 @@ def test_the_ancestor_stays_claimable_and_carries_the_note(tmp_path: Path) -> No
     assert graph_row(prod, ROOT).get("cause") is None
     tg = graph.load_target(root, TARGET)
     assert tg.statuses[ROOT] == "ready"
-    assert tg.nodes[ROOT].circular is None
+    assert tg.nodes[ROOT].circular == ()  # the ancestor is never labelled: it is the problem
     assert tg.nodes[ROOT].circular_below == (CLAIM_REF,)
     assert all(tg.nodes[n].circular_below == () for n in (*PATH, DEEP))
 
@@ -216,7 +240,8 @@ def test_the_ancestor_is_read_through_its_revision_chain(tmp_path: Path) -> None
     tg = graph.load_target(root, TARGET)
     assert tg.nodes[MID].circular_below == (CLAIM_REF,)
     assert tg.nodes["old-mid"].circular_below == ()
-    assert tg.nodes[LOW].circular == CLAIM_REF and tg.nodes[MID].circular is None
+    assert tg.nodes[LOW].circular_path == (CLAIM_REF, MID) and tg.nodes[MID].circular == ()
+    assert [c.ancestor for c in tg.nodes[DEEP].circular] == [MID]  # the label names the successor
 
 
 # --- derive, never rewrite ---------------------------------------------------------------------
@@ -246,5 +271,5 @@ def test_a_proof_of_a_path_node_is_still_accepted(tmp_path: Path, node_id: str) 
     assert [d.code for d in modes.check(root, classification)] == []
     tg = graph.load_target(root, TARGET)
     assert tg.statuses[node_id] == "proved"
-    assert not graph.is_circular(tg.nodes[node_id], tg.statuses[node_id])
+    assert tg.nodes[node_id].circular == ()  # the path mark speaks of open nodes only (v3.22)
     assert graph_row(generate(root), node_id).get("cause") is None

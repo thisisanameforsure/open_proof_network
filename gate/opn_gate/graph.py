@@ -37,10 +37,14 @@ STATUS_FOR_ARTIFACT: dict[str, str] = {
 }
 CAUSE_DEP_REFUTED = "dep-refuted"  # R8: a dependent of a refuted node, for curator attention
 CAUSE_WITNESS_MISSING = "witness-missing"  # R6: a compiler-derived child with a stub witness
-#: F08-T17 (D-16): a merged circularity claim says the node is no easier than a node above it.
+#: F08-T17 (D-16) made a merged circularity claim the node's ``cause``; F08-T39 (D-12 v3.35)
+#: retired it: no derivation emits this value since ``graph/v6``, the claim being a label
+#: (``NodeFacts.circular``) and never a removal. The name stays for the readers of graphs rendered
+#: by an older pin (the api's claim refusal, the site's key), which may still meet the value.
 CAUSE_CIRCULAR = "circular"
-#: The statuses a circularity claim speaks of: an open node. A settled one is settled whatever it
-#: was no easier than, and a superseded or abandoned one is already off the frontier.
+#: The statuses a circularity claim's *path* mark speaks of (D-12 v3.22): an open node. Once the
+#: claimed hole is settled the route is no longer a route to warn about, and a superseded or
+#: abandoned one is already off the frontier.
 CIRCULAR_OPEN_STATUSES: tuple[str, ...] = ("ready", "blocked", "speculative")
 #: Origins whose nodes are created by the post-merge job with a witness slot, not a witness.
 HOLE_ORIGINS: tuple[str, ...] = ("compiler-derived", "skeleton-hole")
@@ -111,6 +115,20 @@ class PartialRecord:
 
 
 @dataclass(frozen=True)
+class CircularLabel:
+    """F08-T39 (D-12 v3.35): one merged ``circular-decomposition`` claim as a fact on a node — *a
+    proof of this node is a proof of* ``ancestor`` — naming the claim as ``<hole>/defects/<file>``
+    relative to the target's ``nodes/``, the shape ``graph/v6`` publishes. A label, never a
+    removal: nothing about the node's status, claimability or needs reads it."""
+
+    ancestor: str
+    claim: str
+
+    def as_dict(self) -> dict[str, str]:
+        return {"ancestor": self.ancestor, "claim": self.claim}
+
+
+@dataclass(frozen=True)
 class NodeFacts:
     node_id: str
     target_id: str
@@ -144,9 +162,6 @@ class NodeFacts:
     #: is written for a use. No status is derived from them (a used node was proved before its
     #: user could merge); they are what a revision marks stale and what a closure follows.
     uses: tuple[str, ...] = ()
-    #: F08-T17 (D-16): the merged ``circular-decomposition`` claim under this node, as
-    #: ``defects/<file>``; the node is no easier than a node above it, so it is not work (R13).
-    circular: str | None = None
     #: F08-T20 (D-12 v3.22): the merged circularity claims that circle back to this node — each
     #: claim's ancestor is this node — as ``<hole>/defects/<file>``, relative to the target's
     #: ``nodes/``. The node stays open and claimable; its page names them.
@@ -154,6 +169,10 @@ class NodeFacts:
     #: F08-T20: every merged circularity claim under this node as ``(defects/<file>, ancestor)``,
     #: the ancestor read through its revision chain (``resolved_circular_claims``).
     circular_claims: tuple[tuple[str, str], ...] = ()
+    #: F08-T20 (D-12 v3.22), F08-T39: the claim ``circular_marks`` assigns a node strictly between
+    #: a claimed hole and its ancestor on an established path, as ``(<hole>/defects/<file>,
+    #: ancestor)``; set by ``with_circular_paths``. ``None`` for every other node.
+    circular_path: tuple[str, str] | None = None
     #: F08-T27: the node's merged proofs, ``Proof.lean`` first and then its alternates in the
     #: order their files sort, each with what its term used. Empty for a node with no merged
     #: proof, and for one whose merged artifact is not a proof (a counterexample, a certificate).
@@ -165,6 +184,25 @@ class NodeFacts:
     #: pointer at a node later superseded points at its successor, and no record is rewritten.
     #: A pointer, not a dependency: no status, frontier entry or dep is derived from it.
     proposed_for: str | None = None
+
+    @property
+    def circular(self) -> tuple[CircularLabel, ...]:
+        """F08-T39 (D-12 v3.35): what ``graph/v6`` publishes as ``circular`` — the node's own
+        merged claims (each a fact about this statement, whatever its status), then the claim a
+        circular path assigns it (``circular_path``, which speaks while the claimed hole is open,
+        v3.22) unless that claim is already named. A claim that names no ancestor (a shape the
+        schema refuses) labels nothing. Empty for every other node."""
+        own = tuple(
+            CircularLabel(ancestor, f"{self.node_id}/{ref}")
+            for ref, ancestor in self.circular_claims
+            if ancestor
+        )
+        if self.circular_path is None:
+            return own
+        named, ancestor = self.circular_path
+        if any(label.claim == named for label in own):
+            return own
+        return (*own, CircularLabel(ancestor, named))
 
     @property
     def rests_on(self) -> tuple[str, ...]:
@@ -475,7 +513,6 @@ def load_nodes(
             supersedes=_optional_str(loaded.meta.get("supersedes")),
             uses=layout.merged_uses(node_dir),
             proposed_for=proposed_for_of(nodes_dir, node_dir),
-            circular=claims[0][0] if claims else None,
             circular_claims=claims,
             partials=partials_of(loaded.node_id, statement_hash, attestations),
             proofs=(
@@ -803,19 +840,11 @@ def derive_causes(nodes: dict[str, NodeFacts], statuses: dict[str, str]) -> dict
 
 def cause_of(node: NodeFacts, status: str, status_of: Callable[[str], str]) -> str | None:
     """One node's cause, as :func:`derive_causes` publishes it in ``graph.json`` and the frontier
-    entry repeats it (F03-T16): ``circular`` under a merged circularity claim, else the
-    mechanical reason a ``blocked`` node is blocked, else ``None``."""
-    if is_circular(node, status):
-        return CAUSE_CIRCULAR  # F08-T17: the one reason it is not work
+    entry repeats it (F03-T16): the mechanical reason a ``blocked`` node is blocked, else
+    ``None``. A merged circularity claim is not a cause (F08-T39, D-12 v3.35): it is the label
+    ``NodeFacts.circular`` carries, and F08-T17's ``circular`` is never emitted."""
     _, cause = blocked_because(node, status_of)
     return cause if status == "blocked" else None
-
-
-def is_circular(node: NodeFacts, status: str) -> bool:
-    """F08-T17 (D-16): an open node under a merged circularity claim. Its status is untouched —
-    the statement did not change (D-3) and a proof of it is still a proof — but it is no easier
-    than a node above it, so the products do not offer it as work."""
-    return node.circular is not None and status in CIRCULAR_OPEN_STATUSES
 
 
 def resolved_circular_claims(nodes_dir: Path, node_dir: Path) -> tuple[tuple[str, str], ...]:
@@ -859,8 +888,10 @@ def circular_marks(
     every sibling on the way proved, each node up the path implies its parent and so the ancestor
     too — so every open node *strictly between* the two, on a path of :func:`circular_path_edge`
     edges, is the ancestor restated by the claim's own measure: a proof of it would be a proof of
-    the ancestor, and no progress is made by working from it. The ancestor itself stays open: it
-    is the problem.
+    the ancestor. The ancestor itself is not marked: it is the problem.
+
+    F08-T39 (D-12 v3.35): a mark is a published fact and no longer a removal — the products carry
+    it as the node's ``circular`` label and the node stays on the frontier on its status alone.
 
     Returns ``(on_path, below)``: each such node mapped to the first claim (by hole, then file)
     that takes it, and each ancestor mapped to every claim that circles back to it. A claim is
@@ -913,20 +944,25 @@ def circular_marks(
 def with_circular_paths(
     nodes: dict[str, NodeFacts], statuses: Mapping[str, str]
 ) -> dict[str, NodeFacts]:
-    """``circular_marks`` over the loaded facts: a node on a circular path gets the claim as its
-    ``circular`` (unless a claim of its own already sits under it), an ancestor its
-    ``circular_below``. Statuses are not touched, and do not depend on either field."""
+    """``circular_marks`` over the loaded facts: a node on a circular path gets the claim that
+    takes it, with its ancestor, as ``circular_path``; an ancestor gets its ``circular_below``.
+    Statuses are not touched, and do not depend on either field (F08-T39: neither does the
+    frontier)."""
+    claims = {n: f.circular_claims for n, f in nodes.items() if f.circular_claims}
     on_path, below = circular_marks(
         {n: f.holes for n, f in nodes.items()},
         {n: f.deps for n, f in nodes.items()},
-        {n: f.circular_claims for n, f in nodes.items() if f.circular_claims},
+        claims,
         statuses,
     )
     out = dict(nodes)
     for node_id, node in nodes.items():
         changes: dict[str, Any] = {}
-        if node.circular is None and node_id in on_path:
-            changes["circular"] = on_path[node_id]
+        if node_id in on_path:
+            named = on_path[node_id]
+            hole, _, ref = named.partition("/")
+            ancestor = next(a for r, a in claims[hole] if r == ref)
+            changes["circular_path"] = (named, ancestor)
         if node_id in below:
             changes["circular_below"] = below[node_id]
         if changes:

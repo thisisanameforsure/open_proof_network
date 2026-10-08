@@ -36,7 +36,13 @@ from opn_gate import writeup as writeupmod
 #: snapshots keep rendering (D-34), so this is a set per product, not a pin: `targets-index/v2`
 #: and `graph/v2` add F07-R8's two statuses, which the site shows without needing to know them.
 PRODUCT_SCHEMAS: dict[str, tuple[str, ...]] = {
-    "frontier.json": ("frontier/v1", "frontier/v2", "frontier/v3", "frontier/v4"),  # v4: F03-T16
+    "frontier.json": (
+        "frontier/v1",
+        "frontier/v2",
+        "frontier/v3",
+        "frontier/v4",  # F03-T16: status, cause, needs
+        "frontier/v5",  # F03-T18 (D-12 v3.35): circular, literature, literature_proposed
+    ),
     "info.json": ("info/v1", "info/v2"),  # v2: F05-T25
     "targets/index.json": (
         "targets-index/v1",
@@ -48,7 +54,14 @@ PRODUCT_SCHEMAS: dict[str, tuple[str, ...]] = {
         "targets-index/v7",  # F07-T24: step9 may be `calibration`
         "targets-index/v8",  # F23-R14: stewards carry admitted_by and via; link may be null
     ),
-    "graph.json": ("graph/v1", "graph/v2", "graph/v3", "graph/v4", "graph/v5"),  # v5: F08-T36
+    "graph.json": (
+        "graph/v1",
+        "graph/v2",
+        "graph/v3",
+        "graph/v4",
+        "graph/v5",  # F08-T36: every defect claim
+        "graph/v6",  # F08-T39 (D-12 v3.35): circular is a label; literature (D-25 v3.35)
+    ),
 }
 log = logging.getLogger(__name__)
 KEEP_FILE = ".gitkeep"

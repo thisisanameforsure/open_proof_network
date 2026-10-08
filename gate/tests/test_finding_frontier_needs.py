@@ -51,7 +51,8 @@ def test_a_witness_missing_hole_needs_a_witness_and_is_not_claimable(tmp_path: P
         graph.CAUSE_WITNESS_MISSING,
         "witness",
     )
-    assert doc["schema"] == "frontier/v4" == products.FRONTIER_SCHEMA
+    # frontier/v4 brought these fields; v5 (F03-T18, D-12 v3.35) is the version written now.
+    assert doc["schema"] == "frontier/v5" == products.FRONTIER_SCHEMA
     schemas.validate(doc, products.FRONTIER_SCHEMA)
 
 

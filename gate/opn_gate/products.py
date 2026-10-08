@@ -56,8 +56,14 @@ from opn_gate.toolchain import ResolvedToolchain, Toolchain, UsedConstantsReques
 log = logging.getLogger(__name__)
 
 PROTOCOL_VERSION = "3.28"  # docs/architecture_decisions.html (v3.28: the 2026-10-04 audit)
-GRAPH_SCHEMA = "graph/v5"  # F08-T36: every defect claim (v4: F08-T27, F18; v3: F12-R13)
-FRONTIER_SCHEMA = "frontier/v4"  # T16: status, cause, needs (v3, T7: partials; v2: D-33 dormancy)
+#: F08-T39 (D-12 v3.35): graph/v6 carries ``circular`` (the label), ``literature`` and
+#: ``literature_proposed`` (F08-T40); v5: every defect claim (F08-T36); v4: F08-T27, F18; v3:
+#: F12-R13.
+GRAPH_SCHEMA = "graph/v6"
+#: F03-T18 (D-12 v3.35): frontier/v5 repeats graph/v6's three fields on every entry, and a node
+#: under a circularity claim is an entry on its status alone; v4 (T16): status, cause, needs;
+#: v3 (T7): partials; v2: D-33 dormancy.
+FRONTIER_SCHEMA = "frontier/v5"
 #: F11-R12 renames D-9's second rung and F11-R3/R4 add the derived fields. v2 was already spent
 #: on F07-R8's node counts and D-34 forbids editing it, so the rename lands at v3 (F11-Q9).
 #: F12-R14 adds the QA pass state per subject, the counted attempts and the drift flag: v4.
@@ -818,6 +824,12 @@ def graph_doc(tg: TargetGraph, rendered_from: str | None) -> dict[str, Any]:
                 "defect_claims": context.defect_claims(
                     reader, tg.target_id, node_id, status=tg.statuses[node_id]
                 ),
+                # F08-T39 (D-12 v3.35): the merged circularity claims as a label — the node's own
+                # and the one a circular path assigns it — never a removal and never a cause.
+                "circular": [label.as_dict() for label in n.circular],
+                # D-25 v3.35: the literature status; F08-T40 derives both, null until then.
+                "literature": None,
+                "literature_proposed": None,
             }
         )
     return {
@@ -839,24 +851,23 @@ def status_or_ready(statuses: Mapping[str, str], node_id: str) -> str:
 def workable(status: str, node: NodeFacts, status_of: Callable[[str], str]) -> bool:
     """R13: what a contributor could work on. A ready or speculative node, or a hole waiting only
     for its witness while ``blocked`` is still its status. (F03-T16: ``claimable`` is narrower —
-    a claim reserves a proof, so it keys off :func:`needs_of`; the superseded and circular
-    exclusions below hold there too, since ``needs_of`` answers ``None`` for both.) A record
-    status is the curator's word over the mechanical reason, the reading ``graph.derive_causes``
-    takes for ``cause`` and the api's witness route keys off; and a superseded node is refused on
-    the fact itself (D-8), whatever its slot says. Found live 2026-09-17: ``erdos-69--h2``,
-    replaced by a D-8 revision, was still ``claimable: true`` because the hole clause asked only
-    about the slot."""
+    a claim reserves a proof, so it keys off :func:`needs_of`; the superseded exclusion below
+    holds there too, since ``needs_of`` answers ``None`` for it.) A record status is the
+    curator's word over the mechanical reason, the reading ``graph.derive_causes`` takes for
+    ``cause`` and the api's witness route keys off; and a superseded node is refused on the fact
+    itself (D-8), whatever its slot says. Found live 2026-09-17: ``erdos-69--h2``, replaced by a
+    D-8 revision, was still ``claimable: true`` because the hole clause asked only about the
+    slot. A merged circularity claim excludes nothing here (F08-T39, D-12 v3.35): it is the
+    label the entry carries, and choosing to work past it is the operator's filter (D-25)."""
     if graphmod.is_superseded(node):
         return False
-    if graphmod.is_circular(node, status):
-        return False  # F08-T17: no easier than a node above it, by a merged claim (D-16)
     if status in graphmod.FRONTIER_STATUSES:
         return True
     return status == "blocked" and graphmod.awaiting_witness(node, status_of)
 
 
-#: F03-T16 (frontier/v4): what an entry's node needs. A claim reserves a proof, so ``claimable``
-#: is true only where ``needs`` is ``NEEDS_PROOF``.
+#: F03-T16 (frontier/v4 on): what an entry's node needs. A claim reserves a proof, so
+#: ``claimable`` is true only where ``needs`` is ``NEEDS_PROOF``.
 NEEDS_PROOF = "proof"
 NEEDS_WITNESS = "witness"
 NEEDS_DEPENDENCIES = "dependencies"
@@ -869,9 +880,10 @@ def needs_of(status: str, node: NodeFacts, status_of: Callable[[str], str]) -> s
     slot (``POST /proposals/witness`` takes it, D-29); ``dependencies`` for a node blocked on
     dependencies nobody has proved yet (an open variant, which R5 lists whatever it waits on);
     ``None`` when no contributor's submission moves it — a refuted dependency (a curator has to
-    act, D-12), a curator's ``stale`` or ``disputed`` record, a superseded or circular node.
+    act, D-12), a curator's ``stale`` or ``disputed`` record, a superseded node. A circularity
+    claim changes nothing here (F08-T39, D-12 v3.35).
     """
-    if graphmod.is_superseded(node) or graphmod.is_circular(node, status):
+    if graphmod.is_superseded(node):
         return None
     if status in graphmod.FRONTIER_STATUSES:
         return NEEDS_PROOF
@@ -904,11 +916,14 @@ def in_frontier(status: str, node: NodeFacts, status_of: Callable[[str], str]) -
     first hole on an open Erdős target took its whole target off the frontier). The witness is
     work anyone can do — ``POST /proposals/witness`` takes exactly this node — so it belongs
     here, while a node waiting on an unproved dependency does not.
+
+    F08-T17 and F08-T20 took a node under a merged circularity claim off here; F08-T39 (D-12
+    v3.35) stopped that, because the claim's exhibit is met by every honest reduction (D-12 #4)
+    and by the last open hole of any decomposition, so the removal hid genuine progress. The
+    claim is the entry's ``circular`` label now, and membership asks nothing about it.
     """
     if graphmod.is_superseded(node):
         return False  # R13: its successor carries the question, variant or not
-    if graphmod.is_circular(node, status):
-        return False  # F08-T17: graph.json says why, as the cause ``circular``
     if workable(status, node, status_of):
         return True
     # F03-T13: a curator's ``abandoned`` closes a variant as it closes any node (AC4, Q16); and
@@ -973,7 +988,7 @@ def frontier_entry(
         "bounty": False,
         # Q4 (T6): the target's claimability and the node's status. An open variant is listed
         # while it waits on its holes (R5), but a claim on it could not be worked. F03-T16
-        # (frontier/v4): a claim reserves a proof, so a hole waiting only for its witness is
+        # (frontier/v4 on): a claim reserves a proof, so a hole waiting only for its witness is
         # listed (D-29, Q11) with ``needs: witness`` and is not claimable — live, three such holes
         # read ``claimable: true`` and every claim on one was answered ``409 node-blocked``.
         "claimable": claimable and needs == NEEDS_PROOF,
@@ -987,6 +1002,11 @@ def frontier_entry(
         "status": status,
         "cause": graphmod.cause_of(node, status, status_of),
         "needs": needs,
+        # F03-T18 (D-12 v3.35, D-25 v3.35): graph/v6's label and literature status, repeated so
+        # an agent filtering the frontier needs no second fetch; F08-T40 fills the latter two.
+        "circular": [label.as_dict() for label in node.circular],
+        "literature": None,
+        "literature_proposed": None,
     }
 
 
