@@ -1,0 +1,151 @@
+F23-T12 — POST /literature/confirm (D-3, D-25, D-32 v3.35; amendment 2026-10-08 §2) — 2026-10-08
+
+Verification: uv run --frozen pytest -m 'not lean and not docker' api/tests/test_literature_confirm_route.py api/tests/test_routes.py api/tests/test_finding_unknown_fields.py api/tests/test_finding_route_index.py api/tests/test_finding_messages_name_real_routes.py gate/tests/test_error_codes.py; the api fast tier (uv run --frozen pytest api -m 'not lean and not docker'); ruff check api; ruff format --check api; mypy api
+
+== RED (no route yet: all 20 fail on 404 not-found 'no such route' — the route is the behaviour under test) ==
+E       AssertionError: assert {'error', 'message'} == {'branch', 'p...er', 'pr_url'}
+E         
+E         Extra items in the left set:
+E         'error'
+E         'message'
+E         Extra items in the right set:
+E         'branch'
+E         'pr_url'...
+E         
+E         ...Full output truncated (3 lines hidden), use '-vv' to show
+E       AssertionError: {"error":"not-found","message":"no such route"}
+E       assert 404 == 201
+E        +  where 404 = <Response [404 Not Found]>.status_code
+E       AssertionError: {"error":"not-found","message":"no such route"}
+E       assert 404 == 201
+E        +  where 404 = <Response [404 Not Found]>.status_code
+E       AssertionError: {"error":"not-found","message":"no such route"}
+E       assert 404 == 201
+E        +  where 404 = <Response [404 Not Found]>.status_code
+E       KeyError: 'pr_number'
+E       assert (404 == 403)
+E        +  where 404 = <Response [404 Not Found]>.status_code
+E       assert (404 == 403)
+E        +  where 404 = <Response [404 Not Found]>.status_code
+E       AssertionError: assert 404 == 401
+E        +  where 404 = <Response [404 Not Found]>.status_code
+E        +    where <Response [404 Not Found]> = post('/literature/confirm', json={'node_id': 'and-reassoc', 'record': 'literature/20261001T090000Z-bob.yaml', 'status': 'known', 'references': [{'title': 'A published proof', 'url': 'https://example.org/paper', 'note': 'Thm 2.'}], ...})
+E        +      where post = <starlette.testclient.TestClient object at 0x10d821590>.post
+E        +        where <starlette.testclient.TestClient object at 0x10d821590> = Harness(settings=Settings(store='memory', table_identities=None, table_tokens=None, table_claims=None, parameter_prefi...=<starlette.applications.Starlette object at 0x10d821370>, axle=FakeAxle(calls=[], replies=[], hosted=['lean-4.33.0'])).client
+E        +      and   {'node_id': 'and-reassoc', 'record': 'literature/20261001T090000Z-bob.yaml', 'status': 'known', 'references': [{'title': 'A published proof', 'url': 'https://example.org/paper', 'note': 'Thm 2.'}], ...} = body()
+E       KeyError: 'details'
+E       AssertionError: assert (404 == 404 and 'not-found' == 'node-unknown'
+E        +  where 404 = <Response [404 Not Found]>.status_code
+E         
+E         - node-unknown
+E         + not-found)
+E       AssertionError: ({'record': 'attempts/x.yaml'}, '{"error":"not-found","message":"no such route"}')
+E       assert 404 == 400
+E        +  where 404 = <Response [404 Not Found]>.status_code
+E       AssertionError: ({'record': 'literature/../x.yaml'}, '{"error":"not-found","message":"no such route"}')
+E       assert 404 == 400
+E        +  where 404 = <Response [404 Not Found]>.status_code
+E       AssertionError: ({'record': 7}, '{"error":"not-found","message":"no such route"}')
+E       assert 404 == 400
+E        +  where 404 = <Response [404 Not Found]>.status_code
+E       AssertionError: ({'status': 'hard'}, '{"error":"not-found","message":"no such route"}')
+E       assert 404 == 400
+E        +  where 404 = <Response [404 Not Found]>.status_code
+E       AssertionError: ({'references': []}, '{"error":"not-found","message":"no such route"}')
+E       assert 404 == 400
+E        +  where 404 = <Response [404 Not Found]>.status_code
+E       AssertionError: ({'references': [{'title': 'x', 'url': 'ftp://x', 'note': None}]}, '{"error":"not-found","message":"no such route"}')
+E       assert 404 == 400
+E        +  where 404 = <Response [404 Not Found]>.status_code
+E       AssertionError: ({'summary': ''}, '{"error":"not-found","message":"no such route"}')
+E       assert 404 == 400
+E        +  where 404 = <Response [404 Not Found]>.status_code
+E       assert (404 == 400)
+E        +  where 404 = <Response [404 Not Found]>.status_code
+E           assert (404 == 503)
+E            +  where 404 = <Response [404 Not Found]>.status_code
+E           AssertionError: assert 404 == 201
+E            +  where 404 = <Response [404 Not Found]>.status_code
+E            +    where <Response [404 Not Found]> = post(Harness(settings=Settings(store='memory', table_identities=None, table_tokens=None, table_claims=None, parameter_prefi...=<starlette.applications.Starlette object at 0x10d7e9450>, axle=FakeAxle(calls=[], replies=[], hosted=['lean-4.33.0'])), 'wtL7R05tZqfdlNn8INE7qgjw9lsQmMk4IcIRaCXm3wY', {'node_id': 'and-reassoc', 'record': 'literature/20261001T090000Z-bob.yaml', 'status': 'known', 'references': [{'title': 'A published proof', 'url': 'https://example.org/paper', 'note': 'Thm 2.'}], ...})
+E            +      where {'node_id': 'and-reassoc', 'record': 'literature/20261001T090000Z-bob.yaml', 'status': 'known', 'references': [{'title': 'A published proof', 'url': 'https://example.org/paper', 'note': 'Thm 2.'}], ...} = body()
+FAILED api/tests/test_literature_confirm_route.py::test_a_steward_session_confirms_a_proposal
+FAILED api/tests/test_literature_confirm_route.py::test_a_curator_states_the_status_without_a_proposal
+FAILED api/tests/test_literature_confirm_route.py::test_a_bearer_with_a_github_login_confirms_too
+FAILED api/tests/test_literature_confirm_route.py::test_a_confirmation_may_correct_the_proposed_status
+FAILED api/tests/test_literature_confirm_route.py::test_the_submission_is_watchable_under_its_own_kind
+FAILED api/tests/test_literature_confirm_route.py::test_a_login_that_is_neither_steward_nor_curator_is_403
+FAILED api/tests/test_literature_confirm_route.py::test_a_tutorial_identity_has_no_login_to_confirm_with
+FAILED api/tests/test_literature_confirm_route.py::test_no_session_and_no_bearer_is_401
+FAILED api/tests/test_literature_confirm_route.py::test_a_proposal_that_is_not_on_the_node_is_404
+FAILED api/tests/test_literature_confirm_route.py::test_an_unknown_node_is_404
+FAILED api/tests/test_literature_confirm_route.py::test_bad_arguments_are_400_naming_the_field[over0]
+FAILED api/tests/test_literature_confirm_route.py::test_bad_arguments_are_400_naming_the_field[over1]
+FAILED api/tests/test_literature_confirm_route.py::test_bad_arguments_are_400_naming_the_field[over2]
+FAILED api/tests/test_literature_confirm_route.py::test_bad_arguments_are_400_naming_the_field[over3]
+FAILED api/tests/test_literature_confirm_route.py::test_bad_arguments_are_400_naming_the_field[over4]
+FAILED api/tests/test_literature_confirm_route.py::test_bad_arguments_are_400_naming_the_field[over5]
+FAILED api/tests/test_literature_confirm_route.py::test_bad_arguments_are_400_naming_the_field[over6]
+FAILED api/tests/test_literature_confirm_route.py::test_a_record_that_is_not_a_literature_record_is_400
+FAILED api/tests/test_literature_confirm_route.py::test_without_the_approval_key_the_route_is_503
+FAILED api/tests/test_literature_confirm_route.py::test_the_hourly_limit_is_the_approvals_limit
+20 failed, 2 warnings in 12.01s
+
+== GREEN (the verification command) ==
+68 passed, 2 warnings in 29.41s
+
+== the record as it lands (fixture tree: alice a steward, a throwaway approval key; clock 2026-09-09T12:00:00Z) ==
+the graph's head could not be read, serving the branch: no head configured
+201 {'pr_number': 1, 'pr_url': 'https://github.com/thisisanameforsure/open_proof_network_graph/pull/1', 'branch': 'append/01M230M2G0M48VC09WCTC41YJK', 'path': 'targets/propositional/nodes/and-reassoc/literature/20260909T120000Z-alice.yaml'}
+targets/propositional/nodes/and-reassoc/literature/20260909T120000Z-alice.yaml
+schema: literature/v1
+node: and-reassoc
+contributor: alice
+date: '2026-09-09T12:00:00Z'
+status: known
+references:
+- title: A published proof
+  url: https://example.org/paper
+  note: Thm 2.
+summary: 'Checked the paper: the statement is its Theorem 2.'
+model_and_tooling: null
+confirms: literature/20261001T090000Z-bob.yaml
+via: approval-key
+key: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMVZju6NO4xeIR3MblxMjBvzaxyA8yKfE5k8771xyl5o
+signature: '-----BEGIN SSH SIGNATURE-----
+
+  U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgxVmO7o07jF4hHcxuXEyMG/NrHI
+
+  DzIp8TmTzvvXHKXmgAAAAPb3BuLWF0dGVzdGF0aW9uAAAAAAAAAAZzaGE1MTIAAABTAAAA
+
+  C3NzaC1lZDI1NTE5AAAAQOyLmBikoMievNAQ3PyKCWuR2TMw71L6xJRQObfbhM0XjUIWaA
+
+  GZYUZpdTataRfc3W4hlQwSrV4T4qlPldOrkwQ=
+
+  -----END SSH SIGNATURE-----
+
+  '
+
+ssh-keygen -Y verify: True
+key is the approval key: True
+--- pull request ---
+literature: and-reassoc confirmed by alice
+A literature confirmation appended through the Open Proof Network service by `alice`. It claims nothing a kernel checks: the gate checks its path, its schema, its signature under the graph's approval key, and that its signer is an active steward of the target or a listed curator (D-25, D-32 v3.35).
+
+`targets/propositional/nodes/and-reassoc/literature/20260909T120000Z-alice.yaml`
+
+
+== api fast tier ==
+1721 passed, 2 warnings in 186.39s (0:03:06)
+
+== lint / types ==
+ruff check api: All checks passed!
+ruff format --check api: 227 files already formatted
+mypy api: Success: no issues found in 226 source files
+
+== notes ==
+- The signer is the GitHub login (stewards.github_login: a tutorial identity is 403 github-login-required), the key is read where POST /stewards reads it (503 approval-key-missing without it), and the body is signed by stewards.sign_record over opn_gate.signed.body — the bytes the gate verifies. The landed record verifies by ssh-keygen -Y verify (the gate's verifier) and by the service's own sshsig.verify.
+- Who may confirm: an active steward of the node's target or a listed curator (session.is_steward / is_curator), else 403 not-steward-or-curator and nothing opens. Whether the role holds at the merge is the gate's (the gate agent's literature check).
+- record: null (the signer states the status) or literature/<file> that is on the node at the commit the service reads; a missing file is 404 not-found naming the path (the catalog has no literature-specific 404 and the catalog is the gate's, gate/tests/test_error_codes.py holds the api to it); a file that is not a literature/v1 record is 400 arguments-invalid naming record.
+- Rate limit: OPN_API_APPROVALS_PER_HOUR per login, the same window as POST /approvals (scope literature-confirm).
+- The file name is <ts>-<login>.yaml, the login being the contributor the schema names, not the bearer identity's pseudonym (test_a_bearer_with_a_github_login_confirms_too).
+- D-35 v3.35 names no endpoint row; d35 is the append row verbatim (routes.D35_POST_LITERATURE_CONFIRM names the endpoint for when the table gains it).
