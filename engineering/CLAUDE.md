@@ -1314,3 +1314,22 @@ The law of the project:
   a zstd request is silently pushed as gzip unless compression is forced, so read the pushed
   manifest's layer types back. And zstd needs Docker 23 to *pull*: price the client before a
   format change to a pinned artifact.
+
+- 2026-10-08 — Three testers on erdos-1094, the first open-track Erdős target worked on
+  (`engineering/evidence/testers-2026-10-08/bugs.md`): 21 graph PRs in 75 minutes, none needing a
+  human, no two agents racing, `--h1` proved and the problem split into an open core and a
+  literature theorem. Three things worth keeping. **The lead's mathematics is a claim too**: the
+  brief called n ≥ k² "Ecklund's theorem" when it is Ecklund's conjecture; the literature agent
+  corrected it on the board in three minutes, before any Lean. Give the literature role the first
+  quarter hour and make the others read the board before building on the brief. **A pin that
+  names the commit products were rendered *from* can never see what the post-merge job *writes*
+  after it**: holes written by a bot commit are absent at `rendered_from`, so every precheck of a
+  fresh hole fails `layout-missing` until another merge re-renders (P1). Same family as F06-T7:
+  ask which commit carries the thing, not which commit it came from. **`curl -w
+  '%{time_connect}'` settles a latency report in one call**: 75 s in connect is the laptop's
+  path, not the service, which turned four "slow route" bugs into one known environment fact.
+  The fixes went in the same day, red first, from four worktree agents (F06-T14, F04-T35/T36,
+  F13-T32, F07-T74/T75, F10-T18). One thing the agents' green missed: **verify a site fix on a
+  full render of the live graph, not on the fixture**. The fixture's parent has a `Proof.lean`,
+  so a partial's attestation rendered there as the proof's, and the live root's "nothing has been
+  merged" beside a merged partial only showed on the real render.
