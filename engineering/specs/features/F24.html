@@ -93,8 +93,9 @@ checking a journal's decision against the journal.</p>
     unlapsed stewardships. Lapsed stewards shall not count for claimability.</td></tr>
   <tr><td>F24-R5</td><td>A write-up (<code>writeup/v2</code>) shall start with a
     <code>record</code> naming its authors, made by anyone signed in. Each later act shall be signed
-    by a listed author and name the record. The stage shall be the highest of the following that
-    holds:
+    by a listed author and name the record. The stage shall be found by climbing the ladder in
+    order, each rung needing the one below it, so that an unreviewed note never outranks a verified
+    paper:
     <ul>
       <li><code>drafted</code>: the record names a model;</li>
       <li><code>written</code>: the record was made by a person;</li>
@@ -102,13 +103,15 @@ checking a journal's decision against the journal.</p>
         target or a curator;</li>
       <li><code>panel-verified</code>: a <code>verify-writeup</code> motion naming it passed;</li>
       <li><code>released</code>: every author has signed;</li>
-      <li><code>on-arxiv</code>, <code>submitted</code>, <code>accepted</code>: the matching record
-        exists.</li>
+      <li><code>on-arxiv</code>, <code>submitted</code>, <code>accepted</code>: once released, the
+        highest whose record exists.</li>
     </ul>
     A <code>rejected</code> after the latest <code>submitted</code> shall return the stage to
     <code>on-arxiv</code>, or to <code>released</code> when it has none. A <code>withdrawn</code>
-    shall be final. A <code>writeup/v1</code> record shall read as a <code>steward-signed</code>
-    record whose only author is its signer.</td></tr>
+    shall be final. A <code>writeup/v1</code> record shall read as a <code>steward-signed</code> record whose
+    only author is its signer, because v1 admitted only stewards and curators.
+    A target is <code>written-up</code> when a paper stands at <code>steward-signed</code> or
+    above.</td></tr>
   <tr><td>F24-R6</td><td><code>targets/index.json</code> at <code>targets-index/v9</code> shall
     publish the panel settings in force and each steward's <code>last_act</code> and
     <code>lapsed</code>. It shall publish each target's <code>panel</code>: members, and every
@@ -202,6 +205,11 @@ checking a journal's decision against the journal.</p>
     stewarded problem with no act for six months becomes stewardless, which matters only while
     <code>steward_rule.enforced</code> is true. It is the literal reading of "drops off the panel"
     and is flagged for the owner.</td></tr>
+  <tr><td>F24-Q7</td><td><strong>The ladder is climbed in order.</strong> The first draft took the
+    highest stage whose condition held. Its own tests showed a contributor's solo note reading as
+    "released", above a panel-verified paper, because a sole author who signs meets the release
+    condition. Each rung now needs the one below. The arXiv and journal stages need "released", and a
+    contributor's arXiv posting is still linked while the stage stays where it is.</td></tr>
   <tr><td>F24-Q6</td><td><strong>Where the drafted and written stages come from.</strong> They are
     reached only through write-up records, which anyone signed in may now make. They are not
     reached through a proof's explainer, which F20 and F21 already label. The index's stage is about
@@ -210,7 +218,7 @@ checking a journal's decision against the journal.</p>
 
 <h2>10. Status</h2>
 <div class="rule"><strong>status:</strong> building ·
-  <strong>Tasks:</strong> T0 ✓ 2026-10-08 (dc18815, decisions v3.34) · T1 ✓ 2026-10-08 (six schemas, HASHES, info goldens; AC1 green, 51 cases) · T2 –  · T3 –  · T4 –  · T5 –  · T6 – </div>
+  <strong>Tasks:</strong> T0 ✓ 2026-10-08 (dc18815, decisions v3.34) · T1 ✓ 2026-10-08 (six schemas, HASHES, info goldens; AC1 green, 51 cases) · T2 ✓ 2026-10-09 (panel.py, writeup v2 stages, policy v3; red 24/26 on behaviour; six mutants killed; Q7) · T3 –  · T4 –  · T5 –  · T6 – </div>
 
 <h2>Tasks</h2>
 <p class="status-note">Dependency-ordered. Red before green: each new test fails on the missing

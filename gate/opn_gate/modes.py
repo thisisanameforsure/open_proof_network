@@ -1449,7 +1449,7 @@ def check_steward_record(  # noqa: PLR0911 — one return per rule
         )
         for problem in verdict.problems
     ]
-    if verdict.record.doc.get("schema") == steward.SCHEMA_V2:
+    if verdict.record.doc.get("schema") in steward.SIGNED_VIA:
         found.extend(check_steward_admission(graph_root, located, verdict.record, base))
     return found
 

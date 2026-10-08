@@ -1,0 +1,14 @@
+F24-T2: the panel library (gate/opn_gate/panel.py, writeup.py, policy.py, steward.py)
+
+Red first (stub at today's behaviour): 24 failed, 2 passed in test_panel.py — every failure an assertion or schema refusal, none a missing name.
+
+Mutants (each restored after), all killed:
+  no tie rule -> 1 failed; no minimum -> 1 failed; no prover exclusion -> 1 failed;
+  no voting window -> 1 failed; no lapse -> 1 failed; no verify rung -> 1 failed
+
+Full fast tier before the last fix: 3 failed, 5016 passed:
+  test_writeup::test_a_stewards_record... and test_lifecycle_f15 -> writeup.load() lost the signed document; fixed
+  test_walkthrough::test_graph_copy_is_identical -> pre-existing on main 547ed02 (sibling graph's AGENTS.md), not this task
+
+$ pytest gate/tests/test_panel.py gate/tests/test_writeup_stages.py gate/tests/test_writeup.py gate/tests/test_lifecycle_f15.py gate/tests/test_steward.py gate/tests/test_steward_v2.py gate/tests/test_products.py gate/tests/test_schemas.py gate/tests/test_schemas_f24.py
+273 passed, 2 warnings in 48.20s

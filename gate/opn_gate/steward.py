@@ -37,7 +37,13 @@ log = logging.getLogger(__name__)
 SCHEMA = "steward/v1"
 #: v2 (F23-R8, R9; D-32 v3.33): adds ``via`` and ``admitted_by``; ``link`` may be null.
 SCHEMA_V2 = "steward/v2"
-SCHEMAS: frozenset[str] = frozenset({SCHEMA, SCHEMA_V2})
+#: v3 (F24-R4; D-32 v3.34): ``admitted_by`` may also be ``motion:<n>``, a passed invitation.
+SCHEMA_V3 = "steward/v3"
+SCHEMAS: frozenset[str] = frozenset({SCHEMA, SCHEMA_V2, SCHEMA_V3})
+#: Every version that carries ``via`` and ``admitted_by``.
+SIGNED_VIA: frozenset[str] = frozenset({SCHEMA_V2, SCHEMA_V3})
+#: ``admitted_by`` for a commitment admitted by invitation motion n (D-32 v3.34).
+MOTION_PREFIX = "motion:"
 #: ``admitted_by`` under ``open`` admission (D-32 v3.33).
 SELF = "self"
 DIR = "stewards"

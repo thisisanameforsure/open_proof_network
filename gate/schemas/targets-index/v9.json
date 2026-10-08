@@ -1233,7 +1233,7 @@
                       "maxLength": 500
                     },
                     "stage": {
-                      "description": "The write-up's stage, derived from its records (D-32 v3.34): the highest of drafted, written, steward-signed, panel-verified (a verify-writeup motion on it passed), released (every listed author signed), on-arxiv, submitted, accepted whose condition holds; a rejection after the latest submission returns it to on-arxiv (or released without one); a withdrawal is final.",
+                      "description": "The write-up's stage, derived from its records (D-32 v3.34): the ladder climbed in order, each rung needing the one below it: drafted or written (the record names a model or not), steward-signed (its signer or a signing author is a steward or curator), panel-verified (a verify-writeup motion on it passed), released (every listed author signed), then on-arxiv, submitted or accepted, the highest whose record exists; a rejection after the latest submission returns it to on-arxiv (or released without one); a withdrawal is final.",
                       "enum": [
                         "drafted",
                         "written",

@@ -24,6 +24,9 @@ from opn_gate.signer import Signer
 log = logging.getLogger(__name__)
 
 SCHEMA = "writeup/v1"
+#: v2 (F24-R5; D-32 v3.34): one act in a write-up's life, from its record to its acceptance.
+SCHEMA_V2 = "writeup/v2"
+SCHEMAS: frozenset[str] = frozenset({SCHEMA, SCHEMA_V2})
 DIR = "writeup"
 PAPER = "paper"
 NOTE = "note"
@@ -81,15 +84,7 @@ def load(target_dir: Path) -> list[Writeup]:
     directory = writeup_dir(target_dir)
     if not directory.is_dir():
         return []
-    out: list[Writeup] = []
-    for path in sorted(p for p in directory.iterdir() if p.is_file()):
-        m = _FILE_RE.match(path.name)
-        if m is None:
-            msg = f"{path}: a write-up record is writeup/<n>.yaml (F15-R6)"
-            raise schemas.SchemaError(msg)
-        out.append(record_of(schemas.load_yaml(path, SCHEMA), path, int(m.group("n"))))
-    out.sort(key=lambda r: r.n)
-    return out
+    return [record_of(a.doc, a.path, a.n) for a in load_any(target_dir) if a.is_record]
 
 
 def valid(target_dir: Path, signer: Signer) -> list[Writeup]:
@@ -102,9 +97,16 @@ def valid(target_dir: Path, signer: Signer) -> list[Writeup]:
     return out
 
 
-def has_paper(target_dir: Path, signer: Signer) -> bool:
-    """R7: whether a valid ``paper`` record exists — the ``written-up`` condition."""
-    return any(r.kind == PAPER for r in valid(target_dir, signer))
+def has_paper(target_dir: Path, signer: Signer, *, curators: frozenset[str] = frozenset()) -> bool:
+    """R7: whether a paper exists at ``steward-signed`` or above — the ``written-up`` condition
+    (F15-R7; F24-R5: anyone may now record a write-up, and only a steward's or curator's signature
+    makes it the problem's)."""
+    graph_root = target_dir.parent.parent
+    found = views(graph_root, target_dir.name, today=None, signer=signer, curators=curators)
+    floor = STAGES.index(STEWARD_SIGNED)
+    return any(
+        v.kind == PAPER and v.stage != WITHDRAWN and STAGES.index(v.stage) >= floor for v in found
+    )
 
 
 def next_path(target_dir: Path) -> Path:
@@ -158,3 +160,257 @@ def write(  # noqa: PLR0913 — one argument per fact the record carries
 def read_record(path: Path) -> Writeup:
     m = _FILE_RE.match(path.name)
     return record_of(schemas.load_yaml(path, SCHEMA), path, int(m.group("n")) if m else 0)
+
+
+# --- F24-R5, R7: a write-up's life, its stage and the official one (D-32 v3.34) -------------------
+
+RECORD = "record"
+AUTHOR_SIGN = "author-sign"
+ARXIV = "arxiv"
+SUBMITTED = "submitted"
+ACCEPTED = "accepted"
+REJECTED = "rejected"
+WITHDRAWN = "withdrawn"
+JOURNAL_ACTS: frozenset[str] = frozenset({SUBMITTED, ACCEPTED, REJECTED})
+DRAFTED = "drafted"
+WRITTEN = "written"
+STEWARD_SIGNED = "steward-signed"
+PANEL_VERIFIED = "panel-verified"
+RELEASED = "released"
+ON_ARXIV = "on-arxiv"
+#: The ladder, lowest first; ``withdrawn`` sits outside it and is final.
+STAGES: tuple[str, ...] = (
+    DRAFTED, WRITTEN, STEWARD_SIGNED, PANEL_VERIFIED, RELEASED, ON_ARXIV, SUBMITTED, ACCEPTED,
+    WITHDRAWN,
+)  # fmt: skip
+
+
+@dataclass(frozen=True)
+class Act:
+    """One write-up record of either version; a ``writeup/v1`` reads as a ``record`` whose only
+    author is its signer."""
+
+    n: int
+    action: str
+    signer: str
+    date: str
+    path: Path
+    doc: dict[str, Any]
+    writeup: int | None = None
+    kind: str | None = None
+    title: str | None = None
+    url: str | None = None
+    authors: tuple[str, ...] = ()
+    model: str | None = None
+    arxiv: str | None = None
+    journal: str | None = None
+    doi: str | None = None
+
+    @property
+    def is_record(self) -> bool:
+        return self.action == RECORD
+
+
+def act_of(doc: dict[str, Any], path: Path, n: int) -> Act:
+    if doc["schema"] == SCHEMA:
+        return Act(
+            n=n, action=RECORD, signer=str(doc["signer"]), date=str(doc["date"]), path=path,
+            doc=doc, kind=str(doc["kind"]), title=str(doc["title"]), url=str(doc["url"]),
+            authors=(str(doc["signer"]),),
+        )  # fmt: skip
+    return Act(
+        n=n,
+        action=str(doc["action"]),
+        signer=str(doc["signer"]),
+        date=str(doc["date"]),
+        path=path,
+        doc=doc,
+        writeup=int(doc["writeup"]) if "writeup" in doc else None,
+        kind=doc.get("kind"),
+        title=doc.get("title"),
+        url=doc.get("url"),
+        authors=tuple(str(a) for a in doc.get("authors", ())),
+        model=doc.get("model"),
+        arxiv=doc.get("arxiv"),
+        journal=doc.get("journal"),
+        doi=doc.get("doi"),
+    )
+
+
+def load_doc(path: Path) -> dict[str, Any]:
+    """A write-up record validated against the version it declares (v1 or v2, D-34)."""
+    doc = schemas.load_yaml(path)
+    declared = doc.get("schema") if isinstance(doc, dict) else None
+    if declared not in SCHEMAS:
+        msg = f"{path} declares {declared!r}, not one of {', '.join(sorted(SCHEMAS))}"
+        raise schemas.SchemaError(msg)
+    return schemas.validate(doc, str(declared))
+
+
+def load_any(target_dir: Path) -> list[Act]:
+    """Every write-up record of either version, in file order. A file under ``writeup/`` that is
+    not a numbered record, or does not validate, is a graph defect and raises."""
+    directory = writeup_dir(target_dir)
+    if not directory.is_dir():
+        return []
+    out: list[Act] = []
+    for path in sorted(p for p in directory.iterdir() if p.is_file()):
+        m = _FILE_RE.match(path.name)
+        if m is None:
+            msg = f"{path}: a write-up record is writeup/<n>.yaml (F15-R6)"
+            raise schemas.SchemaError(msg)
+        out.append(act_of(load_doc(path), path, int(m.group("n"))))
+    out.sort(key=lambda a: a.n)
+    return out
+
+
+@dataclass(frozen=True)
+class View:
+    """A write-up with its derived stage (``targets-index/v9``'s ``writeups.items``)."""
+
+    n: int
+    kind: str
+    title: str
+    url: str
+    stage: str
+    model: str | None
+    authors: tuple[str, ...]
+    signed: tuple[str, ...]
+    coauthors: tuple[str, ...]
+    arxiv: str | None
+    journal: str | None
+    doi: str | None
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "n": self.n,
+            "kind": self.kind,
+            "title": self.title,
+            "url": self.url,
+            "stage": self.stage,
+            "model": self.model,
+            "authors": list(self.authors),
+            "signed": list(self.signed),
+            "coauthors": list(self.coauthors),
+            "arxiv": self.arxiv,
+            "journal": self.journal,
+            "doi": self.doi,
+        }
+
+
+def _stage(  # noqa: PLR0913 — the record, what follows it, and who may sign for the problem
+    record: Act,
+    following: list[Act],
+    signed_by: tuple[str, ...],
+    *,
+    stewards: frozenset[str],
+    curators: frozenset[str],
+    verified: bool,
+) -> tuple[str, str | None, str | None, str | None]:
+    """(stage, arxiv, journal, doi) of one write-up."""
+    if any(a.action == WITHDRAWN for a in following):
+        arxiv = next((a.arxiv for a in reversed(following) if a.action == ARXIV), None)
+        return WITHDRAWN, arxiv, None, None
+    arxiv = next((a.arxiv for a in reversed(following) if a.action == ARXIV), None)
+    latest = next((a for a in reversed(following) if a.action in JOURNAL_ACTS), None)
+    journal, doi = (
+        (latest.journal, latest.doi) if latest and latest.action != REJECTED else (None, None)
+    )
+    # The ladder is climbed in order: each rung needs the one below it, so an unreviewed note
+    # cannot outrank a verified paper by having one author who signs it.
+    stage = DRAFTED if record.model else WRITTEN
+    deciders = stewards | curators
+    # A writeup/v1 record was admitted only from a steward or a curator (F15-R6), so it is
+    # steward-signed by the rule it merged under, whoever its signer is now.
+    legacy = record.doc.get("schema") == SCHEMA
+    if (
+        not legacy
+        and record.signer not in deciders
+        and not any(a.action == AUTHOR_SIGN and a.signer in deciders for a in following)
+    ):
+        return stage, arxiv, journal, doi
+    stage = STEWARD_SIGNED
+    if not verified:
+        return stage, arxiv, journal, doi
+    stage = PANEL_VERIFIED
+    if not set(record.authors) <= set(signed_by):
+        return stage, arxiv, journal, doi
+    reached = [RELEASED]
+    if arxiv is not None:
+        reached.append(ON_ARXIV)
+    if journal is not None and latest is not None:
+        reached.append(latest.action)
+    return max(reached, key=STAGES.index), arxiv, journal, doi
+
+
+def views(
+    graph_root: Path,
+    target_id: str,
+    *,
+    today: Any,
+    signer: Signer,
+    curators: frozenset[str] = frozenset(),
+) -> list[View]:
+    """Every write-up of the target with its stage on ``today`` (a ``datetime.date``; ``None``
+    reads the motions as of today's date), in record order (F24-R5, R7).
+
+    An act counts only when its signature verifies and, after the record, when its signer is a
+    listed author; a second signature by the same author changes nothing."""
+    import datetime as dt  # noqa: PLC0415
+
+    from opn_gate import panel, steward  # noqa: PLC0415 — both read this module
+
+    target_dir = graph_root / "targets" / target_id
+    acts = [a for a in load_any(target_dir) if signed.verifies(a.doc, signer)]
+    if not acts:
+        return []
+    on = today if today is not None else dt.datetime.now(dt.UTC).date()
+    stewards = frozenset(s.login for s in steward.active(target_dir, signer))
+    verified_writeups = {
+        int(t.subject["writeup"])
+        for t in panel.tallies(graph_root, target_id, today=on, signer=signer, curators=curators)
+        if t.kind == panel.VERIFY_WRITEUP and t.state == panel.PASSED
+    }
+    words = panel.words_signers(target_dir)
+    out: list[View] = []
+    for record in (a for a in acts if a.is_record):
+        following = [
+            a for a in acts
+            if not a.is_record and a.writeup == record.n and a.signer in record.authors
+        ]  # fmt: skip
+        signed_by = tuple(
+            dict.fromkeys(
+                [record.signer] * (record.signer in record.authors)
+                + [a.signer for a in following if a.action == AUTHOR_SIGN]
+            )
+        )
+        stage, arxiv, journal, doi = _stage(
+            record, following, signed_by, stewards=stewards, curators=curators,
+            verified=record.n in verified_writeups,
+        )  # fmt: skip
+        coauthors = tuple(sorted(stewards & (set(signed_by) | words)))
+        out.append(
+            View(
+                n=record.n,
+                kind=str(record.kind),
+                title=str(record.title),
+                url=str(record.url),
+                stage=stage,
+                model=record.model,
+                authors=record.authors,
+                signed=signed_by,
+                coauthors=coauthors,
+                arxiv=arxiv,
+                journal=journal,
+                doi=doi,
+            )
+        )
+    return out
+
+
+def official(found: list[View]) -> int | None:
+    """The write-up the page shows: the highest stage, then the newest; never a withdrawn one."""
+    live = [v for v in found if v.stage != WITHDRAWN]
+    if not live:
+        return None
+    return max(live, key=lambda v: (STAGES.index(v.stage), v.n)).n

@@ -11,17 +11,20 @@ changes it, which is why the switch is a file and not a gate commit (F15-Q2).
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
 from opn_gate import schemas
+from opn_gate.panel import Settings, settings_of
 
 FILE = "policy.json"
 SCHEMA = "policy/v1"
 #: v2 (F23-R9; D-32 v3.33) adds ``steward_admission``. Both are live (D-34).
 SCHEMA_V2 = "policy/v2"
-SCHEMAS: frozenset[str] = frozenset({SCHEMA, SCHEMA_V2})
+#: v3 (F24-R1; D-32 v3.34) adds ``panel``, the steward panel's settings.
+SCHEMA_V3 = "policy/v3"
+SCHEMAS: frozenset[str] = frozenset({SCHEMA, SCHEMA_V2, SCHEMA_V3})
 OPEN = "open"
 REVIEWED = "reviewed"
 
@@ -35,6 +38,8 @@ class Policy:
     evidence: str | None = None
     present: bool = False
     admission: str = OPEN
+    #: v3 (F24-R1; D-32 v3.34): the panel's settings, or their defaults.
+    panel: Settings = field(default_factory=Settings)
 
     def as_dict(self) -> dict[str, Any]:
         """The shape ``targets/index.json`` publishes (``targets-index/v6``)."""
@@ -89,6 +94,7 @@ def parse(data: bytes | None) -> Policy:
         evidence=rule.get("evidence"),
         present=True,
         admission=str(doc.get("steward_admission") or OPEN),
+        panel=settings_of(doc["panel"]) if "panel" in doc else Settings(),
     )
 
 
