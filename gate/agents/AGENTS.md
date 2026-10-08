@@ -1117,7 +1117,7 @@ hypotheses of a hole to be satisfied by some example, so the hole of a proof by 
 conclusion: not `have h : ¬ A → ¬ B → False := sorry` but `have h : A ∨ B ∨ R := sorry`, with
 `R` the remaining case as its own statement, and let the assembly do the case split.
 
-Three rules the gate enforces mechanically:
+Four rules the gate enforces mechanically, and one it leaves to a claim:
 
 - **Prose attaches as an annex, never as a claim.** Submit the informal argument first; it is
   content-hashed into `annex/<sha256>.md`, served only as demarcated untrusted data, and earns

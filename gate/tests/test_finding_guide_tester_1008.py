@@ -153,3 +153,24 @@ def test_the_guide_says_a_new_hole_may_be_products_pending() -> None:
     that carries it answers ``409 products-pending`` with ``details.graph_commit``."""
     assert "the service has not yet read a commit that carries the hole" in FLAT
     assert "`Retry-After` and `details.graph_commit`" in FLAT
+
+
+NUMBERS = {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6}
+
+
+def test_the_mechanical_rules_heading_counts_its_list() -> None:
+    """The heading said "Three rules the gate enforces mechanically" over five bullets, the last
+    of which is "a claim, not a refusal" (seen by the T18 agent; fixed by the lead)."""
+    head = re.search(r"^(\w+) rules the gate enforces mechanically([^:\n]*):\n", GUIDE, re.M)
+    assert head is not None
+    bullets: list[str] = []
+    for line in GUIDE[head.end() :].splitlines():
+        if line.startswith("- **"):
+            bullets.append(line[4:].split("**", 1)[0])
+        elif line and not line.startswith(" ") and bullets:
+            break  # the first paragraph after the list
+    assert bullets
+    claims = [b for b in bullets if "claim, not a refusal" in b]
+    assert NUMBERS[head.group(1).lower()] == len(bullets) - len(claims), (head.group(0), bullets)
+    if claims:
+        assert "claim" in head.group(2), head.group(0)

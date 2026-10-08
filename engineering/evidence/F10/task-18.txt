@@ -77,3 +77,11 @@ gate/tests/test_finding_guide_tester_1008.py::test_the_guide_says_a_new_hole_may
 SKIPPED [1] gate/tests/test_proposal_form.py:69: /Users/mikehiggins/Desktop/repos/open_proof_network/.claude/worktrees/open_proof_network_graph/.github/ISSUE_TEMPLATE/problem-proposal.yml is not checked out beside this repo
 SKIPPED [1] gate/tests/test_walkthrough.py:235: /Users/mikehiggins/Desktop/repos/open_proof_network/.claude/worktrees/open_proof_network_graph/AGENTS.md is not checked out beside this repo
 2350 passed, 268 skipped, 190 deselected, 2 warnings in 388.87s (0:06:28)
+
+--- Lead's follow-up, 2026-10-08 (same task) ---
+The T18 agent saw "Three rules the gate enforces mechanically" heading five bullets, the fifth
+"a claim, not a refusal". Test added: test_the_mechanical_rules_heading_counts_its_list.
+Red (first run failed on the test's own list parser, rewritten; second red on the defect):
+  E   assert 3 == (5 - 1)
+Fix: "Four rules the gate enforces mechanically, and one it leaves to a claim:".
+Green: uv run --frozen pytest gate/tests/test_finding_guide_tester_1008.py -> all passed.
