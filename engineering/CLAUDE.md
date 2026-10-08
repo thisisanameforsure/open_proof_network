@@ -1348,3 +1348,17 @@ The law of the project:
   four conflicts, all the same two lines added by both sides, and five "older snapshot" tests
   that assumed the fixture still emitted the old version — a test about an old shape must build
   the old shape by hand, never trust the generator to still produce it.
+
+- 2026-10-09 — F24 (the steward panel, decisions v3.34) built in one sitting from the owner's
+  rulings: the lead wrote the schemas and the panel library test first, then four worktree agents
+  built the gate, products, service and site in parallel, all on branch `f24-panel`, unpushed.
+  Three things worth keeping. **"The highest stage whose condition holds" is not a ladder**: its
+  own tests showed a contributor's solo note reading as released, above a panel-verified paper,
+  because a sole author who signs meets the release condition; a ladder is climbed in order (Q7).
+  **Every derivation over records needs to say what "before" means, and the agents found both
+  holes**: an invitation passing at once flipped back to open when the invitee accepted the same
+  day, and a lapsed steward could seat themselves by opening a motion. Both are the same fix: a
+  motion is put to the panel as it stood before it, keyed on record numbers, not days (Q8, Q9).
+  **Two agents will name the same helper differently**: both added `panel.voters` with different
+  return types, and both registered `steward-cap`; read the merged module for duplicate
+  definitions, which Python accepts silently and ruff only flags for dict keys.

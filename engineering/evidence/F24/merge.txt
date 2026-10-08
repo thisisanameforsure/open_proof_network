@@ -1,0 +1,9 @@
+F24 merged on f24-panel (0242cec), fast tier:
+SKIPPED [1] site/tests/test_web_flows.py:44: could not import 'playwright.sync_api': No module named 'playwright'
+SKIPPED [1] gate/tests/test_defs_after_intake.py:301: this filesystem folds case; the two files cannot coexist here
+SKIPPED [1] gate/tests/test_finding_step9_stale_run.py:262: gh is not installed
+FAILED gate/tests/test_walkthrough.py::test_graph_copy_is_identical - Asserti...
+1 failed, 5133 passed, 3 skipped, 190 deselected, 2 warnings in 906.92s (0:15:06)
+
+test_graph_copy_is_identical also fails on main 547ed02 (the sibling graph checkout's AGENTS.md); not F24.
+Browser tests: uv run --with playwright pytest site/tests/test_web_flows.py -> 15 passed.

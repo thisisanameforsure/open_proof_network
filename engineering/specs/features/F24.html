@@ -210,6 +210,19 @@ checking a journal's decision against the journal.</p>
     "released", above a panel-verified paper, because a sole author who signs meets the release
     condition. Each rung now needs the one below. The arXiv and journal stages need "released", and a
     contributor's arXiv posting is still linked while the stage stays where it is.</td></tr>
+  <tr><td>F24-Q8</td><td><strong>A motion's panel leaves out what the motion itself admits.</strong> The service agent found that an invitation passing at once read as open again when the invitee accepted the same day, because their commitment joined the panel of that day. The panel a motion is put to leaves out commitments admitted by that motion or a later one (<code>members(before_motion=n)</code>).</td></tr>
+  <tr><td>F24-Q9</td><td><strong>A lapsed steward does not rejoin through their own motion or vote.</strong> The gate agent read AC4's "comes back on a new act" as letting a lapsed steward open a motion, and its test pinned that. Decided the other way at merge: a motion is put to the panel as it stood before it, so its own opener's act and votes on it are left out. The usual route back is a new steward record, and the test was restated rather than deleted.</td></tr>
+  <tr><td>F24-Q10</td><td><strong>A curator's login is a valid admission under open as well as reviewed.</strong> This follows R4 literally ("a listed curator's login at any time"), which is the owner's ruling that a curator may add a steward without a stall. F23's open-admission test was restated to the new rule.</td></tr>
+  <tr><td>F24-Q11</td><td><strong>Where each gate rule reads its facts.</strong> "Already a member" is judged on the motion's date. "Another open invitation" is judged on the gate's day. The window and eligibility use the motion's own settings. The opener, cap and settings rules read the parent tree's <code>policy.json</code> and <code>curators.json</code>. The gate's day comes from one seam, <code>opn_gate.clock</code>.</td></tr>
+  <tr><td>F24-Q12</td><td><strong>The products read the panel on the render day.</strong> The render day is the later of the rendered commit's committer day and the target's latest signed act, and never the wall clock (D-5). A record dated ahead of its commit, such as one signed in a timezone ahead of UTC, would otherwise drop its own signer off the panel. <code>has_paper</code> reads the motions as of the first possible day, which cannot change its answer, because its floor sits below every rung a motion decides.</td></tr>
+  <tr><td>F24-Q13</td><td><strong>A self-commitment is judged without the committer.</strong> A sole steward committing again as <code>self</code> passes, because the rule asks whether anyone else sits on the panel.</td></tr>
+  <tr><td>F24-Q14</td><td><strong>Site gaps to look at.</strong>
+    <ul>
+      <li><code>/rules/</code> reads the admission switch from <code>policy.json</code>, because v9 does not publish it.</li>
+      <li>A member sees Yes and No after voting and can change the vote.</li>
+      <li>Withdrawing carries no reason, because <code>writeup/v2</code> has no field for one.</li>
+      <li>There is no control to open an authorship-threshold motion; the service route accepts one.</li>
+    </ul></td></tr>
   <tr><td>F24-Q6</td><td><strong>Where the drafted and written stages come from.</strong> They are
     reached only through write-up records, which anyone signed in may now make. They are not
     reached through a proof's explainer, which F20 and F21 already label. The index's stage is about
@@ -217,8 +230,8 @@ checking a journal's decision against the journal.</p>
 </table>
 
 <h2>10. Status</h2>
-<div class="rule"><strong>status:</strong> building ·
-  <strong>Tasks:</strong> T0 ✓ 2026-10-08 (dc18815, decisions v3.34) · T1 ✓ 2026-10-08 (six schemas, HASHES, info goldens; AC1 green, 51 cases) · T2 ✓ 2026-10-09 (panel.py, writeup v2 stages, policy v3; red 24/26 on behaviour; six mutants killed; Q7) · T3 –  · T4 –  · T5 –  · T6 – </div>
+<div class="rule"><strong>status:</strong> built on branch f24-panel, not pushed ·
+  <strong>Tasks:</strong> T0 ✓ 2026-10-08 (dc18815; D-35 row 5676c7b) · T1 ✓ (six schemas; AC1 51 cases) · T2 ✓ (red 24/26 on behaviour; six mutants killed; Q7; same-day invitation fix 02e99c8, Q8) · T3 ✓ (50496e5; red 29/45; 23 codes; four mutants killed; Q9–Q11) · T4 ✓ (b966cfd; targets-index/v9, render day, goldens and api fixtures; Q12, Q13) · T5 ✓ (8d247ca; three routes, the invitation path, <code>awaiting</code>; red 36/39) · T6 ✓ (e0bf58d; panel, write-up ladder, /rules/, /me/; 12 screenshots at 1440 and 390, looked at; Q14) · merged on branch <code>f24-panel</code> (0242cec): lint and types clean, fast tier 5133 passed, the one failure the graph-copy drift that also fails on main 547ed02; browser tests 15 passed; lean and docker tiers not run (no Lean or sandbox code changed). Not pushed, not deployed, graph not re-pinned.</div>
 
 <h2>Tasks</h2>
 <p class="status-note">Dependency-ordered. Red before green: each new test fails on the missing
