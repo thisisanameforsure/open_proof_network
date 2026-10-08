@@ -59,10 +59,13 @@ def test_index_v8_names_how_each_steward_was_admitted(
 
     prod = products.generate(root, rendered_from="5" * 40, commit_time="2026-10-07T12:00:00Z")
     index = json.loads(prod.files[Path("targets/index.json")])
-    assert index["schema"] == "targets-index/v8"
-    assert schemas.violations(index, "targets-index/v8") == []
+    # v8's steward fields ride in every later version (v9 adds last_act and lapsed beside them,
+    # F24-R4, test_targets_index_v9), so the rule is checked against the version the gate emits.
+    assert index["schema"] == products.INDEX_SCHEMA
+    assert schemas.violations(index, products.INDEX_SCHEMA) == []
     row = next(t for t in index["targets"] if t["target_id"] == TARGET)
-    assert row["stewards"] == [
+    v8_fields = ("login", "name", "link", "since", "admitted_by", "via")
+    assert [{k: s[k] for k in v8_fields} for s in row["stewards"]] == [
         {
             "login": "bob",
             "name": "Bob",

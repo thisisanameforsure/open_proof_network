@@ -53,6 +53,7 @@ PRODUCT_SCHEMAS: dict[str, tuple[str, ...]] = {
         "targets-index/v6",  # F15: policy, stewards, digestion, calibration
         "targets-index/v7",  # F07-T24: step9 may be `calibration`
         "targets-index/v8",  # F23-R14: stewards carry admitted_by and via; link may be null
+        "targets-index/v9",  # F24-R6, R7: panel settings, lapse, motions, write-ups
     ),
     "graph.json": (
         "graph/v1",

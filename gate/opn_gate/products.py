@@ -16,6 +16,7 @@ are ``[]`` without a scan.
 
 from __future__ import annotations
 
+import datetime as dt
 import functools
 import json
 import logging
@@ -35,6 +36,7 @@ from opn_gate import (
     glosses,
     intake,
     layout,
+    panel,
     paths,
     postmerge,
     qa,
@@ -72,7 +74,9 @@ FRONTIER_SCHEMA = "frontier/v5"
 #: formalizations: v5.
 #: F15-R9: the policy state at the top; per target the active stewards, the digestion state with
 #: its counts, the calibration flag, and `no-steward` among the reasons: v6.
-INDEX_SCHEMA = "targets-index/v8"  # v8 (F23-R14): stewards carry admitted_by, via; link nullable
+#: v8 (F23-R14): stewards carry admitted_by, via; link nullable. v9 (F24-R6, R7): the panel
+#: settings, each steward's last act and lapse, each target's panel and write-ups.
+INDEX_SCHEMA = "targets-index/v9"
 INFO_SCHEMA = "info/v2"  # F05-T25: guide_url, errors_url (null here; the service fills them)
 CLAIMS_SCHEMA = "claims/v1"
 CLAIMS_FILE = "claims.json"
@@ -227,6 +231,11 @@ class TargetFacts:
     stewards: tuple[steward.Steward, ...] = ()
     digestion: dict[str, Any] = field(default_factory=lambda: dict(NO_DIGESTION))
     calibration: bool = False
+    #: F24-R4, R6, R7 (targets-index/v9): the steward rows with ``last_act`` and ``lapsed``, the
+    #: panel (unlapsed stewards and every motion's tally), and the write-ups with the official one.
+    steward_rows: tuple[dict[str, Any], ...] = ()
+    panel: dict[str, Any] = field(default_factory=lambda: {"members": [], "motions": []})
+    writeups: dict[str, Any] = field(default_factory=lambda: {"official": None, "items": []})
 
     @property
     def dormant(self) -> bool:
@@ -244,6 +253,28 @@ NO_DIGESTION: dict[str, Any] = {
 UNDIGESTED = "undigested"
 EXPLAINED = "explained"
 WRITTEN_UP = "written-up"
+
+
+#: F24-T4 (D-5): the day a product is rendered on when nothing names the rendered commit and the
+#: target carries no signed act to date it by. Fixed, so two runs agree.
+EPOCH_DAY = dt.date(1970, 1, 1)
+
+
+def render_day(
+    commit_time: str | None, *, acts: Mapping[str, list[dt.date]] | None = None
+) -> dt.date:
+    """F24-T4 (D-5): "today" for a target's panel (lapse, a motion's window); never the clock.
+
+    The later of the rendered commit's committer day (UTC; ``generate`` always knows it, the CLI
+    passing ``graph.commit_timestamp``) and the target's latest signed act (``acts``, by login).
+    A tree cannot be read on a day before a record it holds: a record dated ahead of the commit
+    (a signer's timezone, a hand-made fixture) moves the day forward rather than dropping its
+    signer from the panel. With neither, ``EPOCH_DAY``. A pure function of the tree and the
+    commit, so two runs anywhere agree byte for byte."""
+    days = [d for found in (acts or {}).values() for d in found]
+    if commit_time is not None:
+        days.append(dt.datetime.fromisoformat(commit_time).astimezone(dt.UTC).date())
+    return max(days, default=EPOCH_DAY)
 
 
 def closing_node(tg: TargetGraph) -> str | None:
@@ -276,7 +307,9 @@ def dependency_closure(tg: TargetGraph, node_id: str) -> list[str]:
     return sorted(seen)
 
 
-def digestion(tg: TargetGraph, *, status: str, signer: Signer) -> dict[str, Any]:
+def digestion(
+    tg: TargetGraph, *, status: str, signer: Signer, curators: frozenset[str] = frozenset()
+) -> dict[str, Any]:
     """F15-R7 (D-33 v3.17): the digestion state of a resolved target and the counts behind it.
 
     ``written-up`` when a valid ``paper`` write-up record exists; else ``explained`` when every
@@ -309,7 +342,8 @@ def digestion(tg: TargetGraph, *, status: str, signer: Signer) -> dict[str, Any]
     ]
     out["closure"] = len(closure_proved)
     out["closure_explained"] = len(closure_explained)
-    if writeup.has_paper(tg.path, signer):
+    # F24-R5: a paper at steward-signed or above, a curator's signature counting (F24-T4).
+    if writeup.has_paper(tg.path, signer, curators=curators):
         out["state"] = WRITTEN_UP
     elif closure_proved and len(closure_explained) == len(closure_proved):
         out["state"] = EXPLAINED
@@ -318,8 +352,55 @@ def digestion(tg: TargetGraph, *, status: str, signer: Signer) -> dict[str, Any]
     return out
 
 
+@dataclass(frozen=True)
+class PanelFacts:
+    """F24-R4, R6, R7: a target's panel as the index publishes it, read on one day."""
+
+    steward_rows: tuple[dict[str, Any], ...]
+    members: tuple[str, ...]
+    panel: dict[str, Any]
+    writeups: dict[str, Any]
+
+
+def panel_facts(
+    tg: TargetGraph,
+    stewards: tuple[steward.Steward, ...],
+    *,
+    commit_time: str | None,
+    signer: Signer,
+    settings: panel.Settings,
+    curators: frozenset[str],
+) -> PanelFacts:
+    """The panel of ``tg`` read on ``render_day`` of ``commit_time`` and the target's acts."""
+    graph_root = tg.path.parents[1]
+    last = panel.last_acts(graph_root, tg.target_id, signer=signer)
+    on = render_day(commit_time, acts={k: [v] for k, v in last.items()})
+    rows = tuple(
+        {
+            **s.as_dict(),
+            # A counting commit is itself an act, so every active steward has a last act.
+            "last_act": last[s.login].isoformat(),
+            "lapsed": panel.lapsed(last.get(s.login), on, settings),
+        }
+        for s in stewards
+    )
+    members = panel.members(graph_root, tg.target_id, on, settings=settings, signer=signer)
+    tallies = panel.tallies(graph_root, tg.target_id, today=on, signer=signer, curators=curators)
+    found = writeup.views(graph_root, tg.target_id, today=on, signer=signer, curators=curators)
+    return PanelFacts(
+        steward_rows=rows,
+        members=members,
+        panel={"members": list(members), "motions": [t.as_dict() for t in tallies]},
+        writeups={"official": writeup.official(found), "items": [v.as_dict() for v in found]},
+    )
+
+
 def target_facts(
-    tg: TargetGraph, *, signer: Signer | None = None, policy: policymod.Policy | None = None
+    tg: TargetGraph,
+    *,
+    signer: Signer | None = None,
+    policy: policymod.Policy | None = None,
+    commit_time: str | None = None,
 ) -> TargetFacts:
     """(status, claimable, fidelity) and the rest, for the index (R9; Q4, Q5; F11-R3, R4).
 
@@ -333,6 +414,7 @@ def target_facts(
     ``signer`` verifies the F15 records (stewards, explainer signatures, write-ups); the default
     is the platform's ssh-keygen, which is where the products are generated (F15 §7). ``policy``
     is the graph's ``policy.json`` (F15-R3), read from the target's graph root when not given.
+    ``commit_time`` is the rendered commit's, which dates the panel (``render_day``; D-5).
     """
     verifier = signer if signer is not None else signed.default_signer()
     rule = policy if policy is not None else policymod.load(tg.path.parents[1])
@@ -356,7 +438,23 @@ def target_facts(
     else:
         status = "active" if legacy_claimable else "listed"
     stewards = tuple(steward.active(tg.path, verifier))
-    digested = digestion(tg, status=status, signer=verifier)
+    from opn_gate import modes  # noqa: PLC0415 — modes imports this module's neighbours
+
+    curators = modes.load_curators(tg.path.parents[1]).logins
+    seated = panel_facts(
+        tg,
+        stewards,
+        commit_time=commit_time,
+        signer=verifier,
+        settings=rule.panel,
+        curators=curators,
+    )
+    digested = digestion(tg, status=status, signer=verifier, curators=curators)
+    on_panel: dict[str, Any] = {
+        "steward_rows": seated.steward_rows,
+        "panel": seated.panel,
+        "writeups": seated.writeups,
+    }
     root_status = tg.statuses[tg.root]
     if doc is None:
         # F03-T14: a closed root closes a pre-F11 target too, whatever its declaration says. Only
@@ -374,6 +472,7 @@ def target_facts(
             fidelity=grade,
             stewards=stewards,
             digestion=digested,
+            **on_panel,
         )
     # F12-R11: an upstream edit that stands on the root as it is freezes proving compute.
     root_hash = tg.nodes[tg.root].statement_hash
@@ -384,7 +483,8 @@ def target_facts(
         grade=grade,
         drifted=drift.frozen,
         steward_rule=rule.enforced,  # F15-R4: only while the switch is on
-        stewards=tuple(s.login for s in stewards),
+        # F24-R4 (Q5): a lapsed steward is not on the panel and does not count as a steward.
+        stewards=seated.members,
         root_status=root_status,
     )
     # F12-R14: the pass state per subject, the counted attempts and the flag, all derived.
@@ -409,6 +509,7 @@ def target_facts(
         stewards=stewards,
         digestion=digested,
         calibration=intake.is_calibration(doc),
+        **on_panel,
     )
 
 
@@ -1095,10 +1196,12 @@ def index_doc(
     *,
     policy: policymod.Policy | None = None,
     signer: Signer | None = None,
+    commit_time: str | None = None,
 ) -> dict[str, Any]:
+    """``targets/index.json``. ``commit_time`` is the rendered commit's (``render_day``)."""
     out = []
     for tg in targets:
-        facts = target_facts(tg, signer=signer, policy=policy)
+        facts = target_facts(tg, signer=signer, policy=policy, commit_time=commit_time)
         counts = dict.fromkeys(graphmod.ALL_STATUSES, 0)
         for status in tg.statuses.values():
             counts[status] += 1
@@ -1126,9 +1229,12 @@ def index_doc(
                 "step9": step9_basis(tg),
                 "formalizations": formalizations.summary(tg.path),
                 # F15-R9: the active stewards, the digestion state and the calibration flag.
-                "stewards": [s.as_dict() for s in facts.stewards],
+                "stewards": list(facts.steward_rows),
                 "digestion": dict(facts.digestion),
                 "calibration": facts.calibration,
+                # F24-R6, R7: the panel and its motions; the write-ups and the official one.
+                "panel": facts.panel,
+                "writeups": facts.writeups,
             }
         )
     return {
@@ -1259,7 +1365,7 @@ def generate(
             products.files[Path(context.context_path(target_id, node_id))] = context.render(
                 reader, target_id, node_id, states=states, rendered_from=rendered_from
             )
-        facts = target_facts(tg, signer=verifier, policy=policy)
+        facts = target_facts(tg, signer=verifier, policy=policy, commit_time=commit_time)
         ready_since = graphmod.ready_since_map(previous, tg.statuses, commit_time)
         # R6: only a Mathlib-pinned graph has library tags to scan for and a cache to keep.
         cache = TagCache(tg.path / TAGS_CACHE) if tg.spec["mathlib_sha"] is not None else None
@@ -1307,7 +1413,13 @@ def generate(
     )
     products.files[Path("targets") / "index.json"] = schemas.canonical_json(
         schemas.validate(
-            index_doc(products.targets, rendered_from, policy=policy, signer=verifier),
+            index_doc(
+                products.targets,
+                rendered_from,
+                policy=policy,
+                signer=verifier,
+                commit_time=commit_time,
+            ),
             INDEX_SCHEMA,
         )
     )

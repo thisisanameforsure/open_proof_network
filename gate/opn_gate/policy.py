@@ -42,13 +42,15 @@ class Policy:
     panel: Settings = field(default_factory=Settings)
 
     def as_dict(self) -> dict[str, Any]:
-        """The shape ``targets/index.json`` publishes (``targets-index/v6``)."""
+        """The shape ``targets/index.json`` publishes (``targets-index/v9``: v6's rule and the
+        panel settings in force, F24-R6)."""
         return {
             "steward_rule": {
                 "enforced": self.enforced,
                 "since": self.since,
                 "evidence": self.evidence,
-            }
+            },
+            "panel": self.panel.as_dict(),
         }
 
 

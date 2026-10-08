@@ -1,5 +1,40 @@
 {
   "policy": {
+    "panel": {
+      "steward_cap": {
+        "reason": null,
+        "since": null,
+        "value": 5
+      },
+      "steward_lapse_days": {
+        "reason": null,
+        "since": null,
+        "value": 183
+      },
+      "vote_minimum": {
+        "reason": null,
+        "since": null,
+        "value": 2
+      },
+      "vote_minimum_from": {
+        "reason": null,
+        "since": null,
+        "value": 3
+      },
+      "vote_threshold": {
+        "reason": null,
+        "since": null,
+        "value": {
+          "denominator": 2,
+          "numerator": 1
+        }
+      },
+      "vote_window_days": {
+        "reason": null,
+        "since": null,
+        "value": 14
+      }
+    },
     "steward_rule": {
       "enforced": false,
       "evidence": null,
@@ -7,7 +42,7 @@
     }
   },
   "rendered_from": "5555555555555555555555555555555555555555",
-  "schema": "targets-index/v8",
+  "schema": "targets-index/v9",
   "targets": [
     {
       "attempts": {
@@ -54,6 +89,10 @@
       "not_claimable": [
         "upstream-drift"
       ],
+      "panel": {
+        "members": [],
+        "motions": []
+      },
       "posting": null,
       "root": "frozen-lemma",
       "root_statement_hash": "22d574bed0997f637bac7a12d70f61acadd44c2f2f65812f8e7d94915a4bf6e7",
@@ -108,7 +147,11 @@
         }
       ],
       "target_id": "frozen-target",
-      "track": "formalization"
+      "track": "formalization",
+      "writeups": {
+        "items": [],
+        "official": null
+      }
     },
     {
       "attempts": {
@@ -141,6 +184,10 @@
         "superseded": 0
       },
       "not_claimable": [],
+      "panel": {
+        "members": [],
+        "motions": []
+      },
       "posting": null,
       "root": "and-swap-reassoc",
       "root_statement_hash": "1fd9af9053c56877f4e7ec2ad69aa16602d39e826259da3878a8cc30a3b6791c",
@@ -150,7 +197,11 @@
       "stewards": [],
       "subjects": [],
       "target_id": "propositional",
-      "track": null
+      "track": null,
+      "writeups": {
+        "items": [],
+        "official": null
+      }
     }
   ]
 }
