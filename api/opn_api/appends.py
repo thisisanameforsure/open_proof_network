@@ -124,6 +124,19 @@ def holding_name(
         raise
 
 
+def string_cap(spec: Any) -> int | None:
+    """A property's string cap, stated on the property or on a ``oneOf``/``anyOf`` branch (a
+    nullable string, as ``approach-record/v1`` states ``model_and_tooling``; testers 2026-10-08)."""
+    if not isinstance(spec, dict):
+        return None
+    cap = spec.get("maxLength")
+    if isinstance(cap, int):
+        return cap
+    branches = [*spec.get("oneOf", []), *spec.get("anyOf", [])]
+    caps = [c for c in (string_cap(b) for b in branches) if c is not None]
+    return min(caps) if caps else None
+
+
 def check_caps(doc: dict[str, Any], schema_id: str) -> None:
     """R14, AC19: every capped string field, against the cap its own schema publishes.
 
@@ -132,7 +145,7 @@ def check_caps(doc: dict[str, Any], schema_id: str) -> None:
     """
     properties = schemas.load_schema(schema_id).get("properties", {})
     for field, spec in properties.items():
-        cap = spec.get("maxLength") if isinstance(spec, dict) else None
+        cap = string_cap(spec)
         value = doc.get(field)
         if isinstance(cap, int) and isinstance(value, str) and len(value) > cap:
             raise ApiError(

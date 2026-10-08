@@ -1,0 +1,18 @@
+F07-T74 — a cap stated inside oneOf/anyOf is checked by name (R14, AC19; Q80). 2026-10-08.
+
+Found by the F10-T18 agent while teaching the guide every approach-record cap: approach-record/v1
+states model_and_tooling as oneOf [null, string maxLength 200], and appends.check_caps read
+maxLength at the top of a property only, so an over-long declaration fell through to validation:
+400 record-invalid with the whole text in the message, the echo R14's check exists to prevent.
+
+Red (appends.py at HEAD; test api/tests/test_finding_nested_caps.py):
+  uv run --frozen pytest api/tests/test_finding_nested_caps.py -q -p no:cacheprovider
+E       assert 'record-invalid' == 'field-too-long'
+FAILED api/tests/test_finding_nested_caps.py::test_a_cap_inside_one_of_is_refused_by_name_without_echoing_the_text
+1 failed, 2 passed, 2 warnings in 0.40s
+
+Fix: appends.string_cap reads a cap on the property or on any oneOf/anyOf branch (the smallest).
+
+Green:
+  uv run --frozen pytest api/tests/test_finding_nested_caps.py api/tests/test_appends.py api/tests/test_rejections_appends.py -q -p no:cacheprovider
+  21 passed, 2 warnings in 0.73s
