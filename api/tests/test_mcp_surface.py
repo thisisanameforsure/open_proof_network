@@ -67,6 +67,8 @@ WRITES = {
     "withdraw_submission",  # F07-T43 (ruling D5), D-28's notation note of 2026-09-24
     "submit_gloss",  # F20-T6: D-28 v3.30
     "withdraw_gloss",  # F20-T6: idem
+    "propose_literature",  # F09-T24: D-25 v3.35, the append row
+    "confirm_literature",  # F09-T24: D-25, D-32 v3.35, idem
 }
 
 
@@ -167,6 +169,19 @@ def test_results_match_schemas(harness: Harness, tmp_path: Path) -> None:
         "propose_speculative_node": {"target_id": TARGET, "stmt": "s", "witness": "w"},
         "propose_variant": {"target_id": TARGET, "stmt": "s", "witness": "w"},
         "withdraw_submission": {"submission_id": "000001"},
+        "propose_literature": {
+            "node_id": NODE,
+            "status": "known",
+            "references": [{"title": "A paper"}],
+            "summary": "s",
+        },
+        "confirm_literature": {
+            "node_id": NODE,
+            "record": None,
+            "status": "known",
+            "references": [{"title": "A paper"}],
+            "summary": "s",
+        },
     }
     # renew_token retires the token it is called with (F05-T27), so it is given one of its own.
     own = {"renew_token": harness.token_for("code_bob", "bob")}

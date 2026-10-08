@@ -47,7 +47,13 @@ NODE_FILES: tuple[tuple[str, bool], ...] = (  # (file, required): the raw files 
 #: The frontier version whose entry fields the filters are drawn from. The newest known
 #: one: its field set is a superset of the older versions', and a filter naming a field
 #: an older document does not carry simply matches nothing (F11-R4).
-FRONTIER_SCHEMA = "frontier/v4"  # F03-T16: `needs`, `status`, `cause` are filterable
+FRONTIER_SCHEMA = "frontier/v5"  # F09-T24: `circular`, `literature`, `literature_proposed` too
+#: The ``CONTEXT.json`` versions get_node serves: the gate module's own set, plus the version the
+#: v3.35 re-pin first renders (F09-T24), so the service accepts it whichever side of that
+#: re-pin it is deployed on (the deploy-window lesson of 2026-09-11).
+CONTEXT_SCHEMAS: tuple[str, ...] = tuple(
+    dict.fromkeys((*context.ACCEPTED, "context/v5"))  # ordered, without a repeat
+)
 SCHEMA_NAME_RE = re.compile(r"^[a-z][a-z0-9-]*/v[1-9][0-9]*$")
 FRONT_MATTER_RE = re.compile(r"\A---[ \t]*\r?\n(?P<yaml>.*?)\r?\n---[ \t]*\r?\n", re.S)
 
@@ -259,12 +265,24 @@ def _resolve(entry: dict[str, Any], field: str) -> tuple[bool, Any]:
     return True, node
 
 
+def _properties_of(node: Any) -> dict[str, Any]:
+    """A schema node's object properties, read through a ``oneOf``/``anyOf`` as well (F09-T24:
+    ``literature`` and ``literature_proposed`` are nullable objects, and a dotted path into one
+    is a path into its object branch; on an entry where it is null the filter matches nothing)."""
+    if not isinstance(node, dict):
+        return {}
+    out: dict[str, Any] = dict(node.get("properties", {}))
+    for branch in [*node.get("oneOf", []), *node.get("anyOf", [])]:
+        out.update(_properties_of(branch))
+    return out
+
+
 def _known_field(field: str) -> bool:
     props = _entry_fields()
     steps = field.split(".")
     node: Any = {"properties": props}
     for step in steps:
-        inner = node.get("properties", {}) if isinstance(node, dict) else {}
+        inner = _properties_of(node)
         if step not in inner:
             return False
         node = inner[step]
@@ -346,10 +364,10 @@ def node_context(ctx: Context, target_id: str, node_id: str) -> tuple[dict[str, 
         # writes ``context/v2`` still carries v1, and the service deploys before that re-pin.
         doc = parse(raw, path)
         declared = str(doc.get("schema"))
-        if declared not in context.ACCEPTED:
+        if declared not in CONTEXT_SCHEMAS:
             raise error(
                 "context-invalid",
-                f"{path} declares {declared!r}; expected one of {', '.join(context.ACCEPTED)}",
+                f"{path} declares {declared!r}; expected one of {', '.join(CONTEXT_SCHEMAS)}",
                 "graph",
             )
         try:

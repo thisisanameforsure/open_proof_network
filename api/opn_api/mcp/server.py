@@ -189,6 +189,8 @@ TITLES: dict[str, str] = {
     "withdraw_submission": "Withdraw a submission",
     "submit_gloss": "Submit words for a file",
     "withdraw_gloss": "Withdraw words",
+    "propose_literature": "Propose a literature status",
+    "confirm_literature": "Confirm a literature status",
 }
 
 

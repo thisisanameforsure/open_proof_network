@@ -27,7 +27,7 @@ from collections.abc import Mapping
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Any
 
-from opn_api import requests, submissions
+from opn_api import literature, requests, submissions
 from opn_api.mcp import auth
 from opn_api.mcp.calls import ID_PARAM, RECORD_PARAM, Answer, Call, Tool, ToolError, error, params
 
@@ -242,6 +242,29 @@ async def withdraw_submission(call: Call, args: dict[str, Any]) -> dict[str, Any
     return await forward(call, "DELETE", f"/submissions/{args['submission_id']}")
 
 
+async def propose_literature(call: Call, args: dict[str, Any]) -> dict[str, Any]:
+    """F09-T24 (D-25 v3.35): ``POST /literature``, body for body."""
+    body = present(
+        "propose_literature",
+        args,
+        "node_id",
+        "status",
+        "references",
+        "summary",
+        "model_and_tooling",
+    )
+    return await forward(call, "POST", "/literature", body)
+
+
+async def confirm_literature(call: Call, args: dict[str, Any]) -> dict[str, Any]:
+    """F09-T24 (D-25, D-32 v3.35): ``POST /literature/confirm``, body for body; the route signs
+    as the bearer's GitHub login, so the identity must be one proved with GitHub."""
+    body = present(
+        "confirm_literature", args, "node_id", "record", "status", "references", "summary"
+    )
+    return await forward(call, "POST", "/literature/confirm", body)
+
+
 #: One declared tooling string as ``submissions.check_tooling`` reads it: a string of at most
 #: ``MAX_TOOLING_CHARS``, or ``null`` for undeclared (F09-T10: the guide's own example says
 #: ``"version": None``, and the adapter refused what the endpoint takes).
@@ -287,6 +310,35 @@ REQUIRE_HAZARDS = {
     "type": "boolean",
     "description": "true: open nothing unless the hazard pre-flight answered (clear or "
     "acknowledged); default false",
+}
+
+#: F09-T24: the literature record's parameters, as ``opn_api.literature`` checks them.
+LITERATURE_STATUS = {
+    "type": "string",
+    "enum": list(literature.STATUSES),
+    "description": "What the literature says: open, known or elementary (D-25 v3.35).",
+}
+LITERATURE_REFERENCES = {
+    "type": "array",
+    "minItems": 1,
+    "maxItems": literature.MAX_REFERENCES,
+    "description": "What supports the status: a paper, a registry entry, a forum page.",
+    "items": {
+        "type": "object",
+        "additionalProperties": False,
+        "required": ["title"],
+        "properties": {
+            "title": {"type": "string", "minLength": 1, "maxLength": 300},
+            "url": {"type": ["string", "null"], "pattern": "^https://", "maxLength": 500},
+            "note": {"type": ["string", "null"], "maxLength": 500},
+        },
+    },
+}
+LITERATURE_SUMMARY = {
+    "type": "string",
+    "minLength": 1,
+    "maxLength": 2000,
+    "description": "What is known, in your words; shown demarcated (D-31).",
 }
 
 TOOLS: tuple[Tool, ...] = (
@@ -808,6 +860,62 @@ TOOLS: tuple[Tool, ...] = (
             ("submission_id",),
         ),
         withdraw_submission,
+        write=True,
+    ),
+    # F09-T24 (D-25, D-32 v3.35): the literature status, proposed by anyone and confirmed by a
+    # steward of the target or a curator.
+    Tool(
+        "propose_literature",
+        "Propose what the literature says of a node's statement (D-25 v3.35), written as "
+        "literature/v1: `status` is open (no proof is known), known (a proof is published and "
+        "not formalised) or elementary (a routine formalisation of a known fact), a fact about "
+        "the literature, never about difficulty; `references` support it (at least one, even "
+        "for open); `summary` is what is known, in your words. Unsigned and attributed to you; "
+        "it counts for nothing until a steward of the target or a curator confirms it, and the "
+        "products show it as proposed meanwhile. Refused 400 arguments-invalid naming the "
+        "field, 404 node-unknown; a second record from you in the same second 409 "
+        "record-name-taken with Retry-After: 1.",
+        params(
+            {
+                "node_id": ID_PARAM,
+                "status": LITERATURE_STATUS,
+                "references": LITERATURE_REFERENCES,
+                "summary": LITERATURE_SUMMARY,
+                "model_and_tooling": {
+                    **DECLARED,
+                    "description": "The model and tooling behind the record, if any (D-23).",
+                },
+            },
+            ("node_id", "status", "references", "summary"),
+        ),
+        propose_literature,
+        write=True,
+    ),
+    Tool(
+        "confirm_literature",
+        "Confirm a node's proposed literature status, or state it yourself, as an active "
+        "steward of its target or a listed curator (D-25, D-32 v3.35): the service writes a "
+        "literature/v1 record as your GitHub login, signed with the network's approval key. "
+        "`record` names the proposal you confirm (literature/<timestamp>-<contributor>.yaml, "
+        "from get_node's literature_proposed), or null to state the status directly; the "
+        "status you give may correct the proposal's. Your token must be one proved with GitHub "
+        "(403 github-login-required otherwise); anyone else is 403 not-steward-or-curator; a "
+        "proposal not on the node is 404 not-found; nothing opens on a refusal.",
+        params(
+            {
+                "node_id": ID_PARAM,
+                "record": {
+                    "type": ["string", "null"],
+                    "pattern": "^literature/[^/]+\\.ya?ml$",
+                    "description": "The proposal confirmed, relative to the node, or null.",
+                },
+                "status": LITERATURE_STATUS,
+                "references": LITERATURE_REFERENCES,
+                "summary": LITERATURE_SUMMARY,
+            },
+            ("node_id", "record", "status", "references", "summary"),
+        ),
+        confirm_literature,
         write=True,
     ),
 )

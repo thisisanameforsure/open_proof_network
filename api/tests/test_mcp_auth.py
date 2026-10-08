@@ -45,6 +45,20 @@ MINIMAL: dict[str, dict[str, Any]] = {
     },
     "propose_speculative_node": {"target_id": "propositional", "stmt": "s", "witness": "w"},
     "propose_variant": {"target_id": "propositional", "stmt": "s", "witness": "w"},
+    # F09-T24: the literature pair, body for body with their routes.
+    "propose_literature": {
+        "node_id": NODE,
+        "status": "known",
+        "references": [{"title": "t"}],
+        "summary": "s",
+    },
+    "confirm_literature": {
+        "node_id": NODE,
+        "record": None,
+        "status": "known",
+        "references": [{"title": "t"}],
+        "summary": "s",
+    },
 }
 
 

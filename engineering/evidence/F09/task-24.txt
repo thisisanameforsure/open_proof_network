@@ -1,0 +1,51 @@
+F09-T24 — MCP tools propose_literature and confirm_literature; the api accepts graph/v6, frontier/v5, context/v5 (D-25, D-32 v3.35; amendment 2026-10-08 §2) — 2026-10-08
+
+Verification: uv run --frozen pytest -m 'not lean and not docker' api/tests/test_finding_literature_mcp_products.py api/tests/test_mcp_surface.py api/tests/test_mcp_auth.py api/tests/test_mcp_equivalence.py api/tests/test_mcp_frontier.py api/tests/test_finding_frontier_v4.py api/tests/test_finding_context_window.py api/tests/test_finding_mcp_context_budget.py api/tests/test_finding_mcp_schema_versions.py; the api fast tier plus gate/tests/test_error_codes.py; ruff check .; ruff format --check .; mypy api
+
+== RED (each test fails on the behaviour: tool-unknown for both tools; GET /frontier.json 500 on a frontier/v5 document; filter-unknown for the three new fields; context-invalid for a committed context/v5) ==
+E           KeyError: 'propose_literature'
+E       AssertionError: [TextContent(type='text', text='{"error":"tool-unknown","message":"no such tool propose_literature","source":"adapter"}', annotations=None, meta=None)]
+        doc = McpClient(harness).failed(PROPOSE, proposal())
+E       KeyError: 'status'
+E       AssertionError: [TextContent(type='text', text='{"error":"tool-unknown","message":"no such tool confirm_literature","source":"adapter"}', annotations=None, meta=None)]
+            doc = McpClient(h).failed(CONFIRM, confirm_args(), token=token)
+E           KeyError: 'status'
+E       AssertionError: {"error":"internal","message":"internal error"}
+E       assert 500 == 200
+E        +  where 500 = <Response [500 Internal Server Error]>.status_code
+E           AssertionError: circular
+E           assert 'circular' in {'node_id': {'type': 'string', 'pattern': '^[a-z0-9][a-z0-9-]*$'}, 'target_id': {'type': 'string', 'pattern': '^[a-z0-...tern': '^[0-9a-f]{64}$'}, 'relation': {'oneOf': [{'type': 'null'}, {'enum': ['resolves', 'partial', 'related']}]}, ...}
+E            +  where {'node_id': {'type': 'string', 'pattern': '^[a-z0-9][a-z0-9-]*$'}, 'target_id': {'type': 'string', 'pattern': '^[a-z0-...tern': '^[0-9a-f]{64}$'}, 'relation': {'oneOf': [{'type': 'null'}, {'enum': ['resolves', 'partial', 'related']}]}, ...} = <function _entry_fields at 0x10b72d800>()
+E            +    where <function _entry_fields at 0x10b72d800> = reads._entry_fields
+E       AssertionError: [TextContent(type='text', text='{"error":"context-invalid","message":"targets/propositional/nodes/and-reassoc/CONTEXT.json declares \'context/v5\'; expected one of context/v1, context/v2, context/v3, context/v4","source":"graph"}', annotations=None, meta=None)]
+FAILED api/tests/test_finding_literature_mcp_products.py::test_the_two_tools_are_bearer_writes_with_rows_titles_and_schemas
+FAILED api/tests/test_finding_literature_mcp_products.py::test_propose_literature_forwards_to_its_route
+FAILED api/tests/test_finding_literature_mcp_products.py::test_propose_literature_without_a_bearer_is_refused_before_the_route
+FAILED api/tests/test_finding_literature_mcp_products.py::test_confirm_literature_forwards_with_a_stewards_bearer
+FAILED api/tests/test_finding_literature_mcp_products.py::test_confirm_literature_passes_the_routes_refusal_through
+FAILED api/tests/test_finding_literature_mcp_products.py::test_a_v5_frontier_is_served
+FAILED api/tests/test_finding_literature_mcp_products.py::test_list_frontier_filters_on_the_new_fields
+FAILED api/tests/test_finding_literature_mcp_products.py::test_get_node_serves_a_committed_v5_context
+8 failed, 2 passed, 2 warnings in 1.43s
+
+== GREEN (the verification command) ==
+50 passed, 2 warnings in 31.01s
+
+== api fast tier + the error-code catalog guard ==
+1738 passed, 2 warnings in 147.01s (0:02:27)
+
+== lint / types ==
+ruff check .: All checks passed!
+ruff format --check .: 698 files already formatted
+mypy api: Success: no issues found in 227 source files
+
+== gate and site fast tiers (read-only check that nothing of theirs reads the api's tables) ==
+736 passed, 19 skipped, 1 failed: gate/tests/test_finding_guide_names_exist.py::test_the_appendix_has_a_row_for_every_tool
+  "MCP tools with no appendix row: ['confirm_literature', 'propose_literature']"
+  The guide (gate/agents/AGENTS.md, the gate agent's) holds its MCP appendix to server.BY_NAME; it goes green when the appendix gains the row proposed in the report. Not an api defect; recorded here so it is not read as one.
+
+== notes ==
+- Tools: propose_literature(node_id, status, references, summary, model_and_tooling?) -> POST /literature; confirm_literature(node_id, record, status, references, summary) -> POST /literature/confirm; both bearer writes, body for body (writes.present), rows in bijection.TABLE under D-35's append row, titles in server.TITLES, result schemas api/opn_api/mcp/schemas/{propose,confirm}_literature/v1.json (F09-Q5). Equivalence (test_mcp_equivalence) drives each against its route on a second harness: identical pushes; confirm_literature's two harnesses share one throwaway approval key so the two signatures are byte for byte equal.
+- Versions: frontier.FRONTIER_SCHEMAS gains frontier/v5 (v1-v4 still served); reads.FRONTIER_SCHEMA = frontier/v5, so list_frontier's filters are drawn from it and name circular, literature, literature_proposed; reads.CONTEXT_SCHEMAS = the gate's context.ACCEPTED plus context/v5, so get_node serves a committed v5 whichever side of the re-pin the service is deployed (the gate agent bumps context.ACCEPTED in parallel; the union is the same either way); mcp/get_node/v1.json's context.schema enum gains context/v5. graph/v6: the api reads graph.json without a version pin (precheck.graph_doc), so nothing to accept.
+- A filter through a nullable object (literature.status, literature_proposed.status): _known_field now reads properties through a oneOf/anyOf, and an entry where the object is null matches nothing (F11-R4's rule for an absent field).
+- The v5 documents in the tests are hand-written from the v4 golden fixture and checked against gate/schemas/frontier/v5.json and context/v5.json before they are served (schemas.violations == []); no fixture was regenerated.

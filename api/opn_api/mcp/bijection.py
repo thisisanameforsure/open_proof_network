@@ -186,6 +186,20 @@ TABLE: tuple[Row, ...] = (
         ("DELETE /submissions/{submission_id}",),
         "DELETE /submissions/<id>",
     ),
+    # F09-T24 (D-25, D-32 v3.35): a literature record under the node, unsigned by anyone and
+    # signed by a steward or curator — D-35's append row, as the F07 appends are.
+    Row(
+        "propose_literature",
+        "write",
+        ("POST /literature",),
+        "a PR appending the schema-checked file under the node or target",
+    ),
+    Row(
+        "confirm_literature",
+        "write",
+        ("POST /literature/confirm",),
+        "a PR appending the schema-checked file under the node or target",
+    ),
 )
 
 BY_TOOL: dict[str, Row] = {row.tool: row for row in TABLE}

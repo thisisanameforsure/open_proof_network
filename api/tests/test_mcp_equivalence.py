@@ -3,10 +3,13 @@ the same request, modulo the R6 demarcation; every write reaches exactly one end
 
 from __future__ import annotations
 
+import functools
 import hashlib
 import json
 import logging
 import re
+import subprocess
+import tempfile
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
@@ -25,10 +28,11 @@ from api_fakes import (
 )
 from mcp_client import NODE, NODE_DIR, TARGET, McpClient, materialize, plain, seed_node, unwrap
 from test_finding_mcp_bootstrap import HOLE, add_hole
+from test_literature_route import seed_stewards
 
 from opn_api.mcp import demarcate
 from opn_api.mcp.server import TOOLS
-from opn_gate import context, schemas
+from opn_gate import context, schemas, steward
 
 ULID_RE = re.compile(r"[0-9A-Z]{26}")
 STATEMENT = "theorem OpnProp.and_weaken : ∀ p q : Prop, p ∧ q → p ∨ q := by\n  sorry\n"  # noqa: RUF001
@@ -291,6 +295,29 @@ def with_gloss(h: Harness, token: str) -> dict[str, Any]:
     return {}
 
 
+#: F09-T24: a literature proposal, and the same words as a steward's own statement of it.
+LITERATURE = {
+    "node_id": TUTORIAL_NODE,
+    "status": "known",
+    "references": [{"title": "A published proof", "url": "https://example.org/p", "note": None}],
+    "summary": "Proved in the literature; never formalised.",
+}
+
+
+@functools.cache
+def approval_env() -> dict[str, str]:
+    """One throwaway approval key for the process, generated the way the route's tests do."""
+    key = Path(tempfile.mkdtemp(prefix="opn-equivalence-approval-")) / "approval"
+    subprocess.run(["ssh-keygen", "-q", "-t", "ed25519", "-N", "", "-f", str(key)], check=True)
+    return {"OPN_API_APPROVAL_SIGNING_KEY": key.read_text()}
+
+
+def with_steward(h: Harness, token: str) -> dict[str, Any]:
+    """F09-T24: alice an active steward of the target, so her login may confirm."""
+    seed_stewards(h, ("alice", steward.COMMIT))
+    return {}
+
+
 def with_pin(h: Harness, token: str) -> dict[str, Any]:
     """A target pinned to a Mathlib the mapping serves, so POST /check answers (FakeAxle)."""
     h.githost.files[f"targets/{TARGET}/gate-spec.json"] = schemas.canonical_json(
@@ -400,7 +427,25 @@ WRITES: dict[str, tuple[dict[str, Any], str, dict[str, Any], Setup]] = {
     "withdraw_submission": ({}, "DELETE /submissions/{submission_id}", {}, with_submission),
     # F05-T27: the caller's own token renewed; the new token is masked, the expiry is not.
     "renew_token": ({}, "POST /tokens/renew", {}, no_setup),
+    # F09-T24 (D-25, D-32 v3.35): the literature pair, each POST /literature* body for body.
+    "propose_literature": (
+        LITERATURE,
+        "POST /literature",
+        LITERATURE,
+        no_setup,
+    ),
+    "confirm_literature": (
+        {**LITERATURE, "record": None},
+        "POST /literature/confirm",
+        {**LITERATURE, "record": None},
+        with_steward,
+    ),
 }
+
+#: F09-T24: ``confirm_literature`` signs with the approval key, so its two harnesses need one
+#: (the same one, so the two signatures are byte for byte the same); every other row runs on
+#: the default settings.
+ENV_FOR: dict[str, Callable[[], dict[str, str]]] = {"confirm_literature": approval_env}
 
 
 def submit_proof_pair(key: PrecheckKey) -> tuple[Harness, dict[str, Any], Harness, dict[str, Any]]:
@@ -437,7 +482,8 @@ def test_write_tools_forward_once(
     caplog.set_level(logging.INFO, logger="opn_api.access")
     covered = set()
     for name, (given, route, body, setup) in WRITES.items():
-        a, b = make_harness(), make_harness()
+        env = ENV_FOR[name]() if name in ENV_FOR else None
+        a, b = make_harness(env), make_harness(env)
         token_a = a.token_for("code_alice", "alice")
         token_b = b.token_for("code_alice", "alice")
         args = {**given, **setup(a, token_a)}
