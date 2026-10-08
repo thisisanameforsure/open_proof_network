@@ -321,13 +321,27 @@ def last_acts(graph_root: Path, target_id: str, *, signer: Signer) -> dict[str, 
     return {login: max(days) for login, days in acts(graph_root, target_id, signer=signer).items()}
 
 
-def _active_on(target_dir: Path, on: dt.date, signer: Signer) -> list[str]:
+def _admitted_by_motion(record: steward.Record) -> int | None:
+    admitted = record.admitted_by or ""
+    if admitted.startswith(steward.MOTION_PREFIX):
+        return int(admitted[len(steward.MOTION_PREFIX) :])
+    return None
+
+
+def _active_on(
+    target_dir: Path, on: dt.date, signer: Signer, *, before_motion: int | None = None
+) -> list[str]:
     """The logins whose latest counting steward record dated on or before ``on`` is a commit,
-    in the order they became active."""
+    in the order they became active. With ``before_motion``, a commitment admitted by that motion
+    or a later one is left out: it cannot have been on the panel the motion was put to, whatever
+    day it was made (F24-T5 Q-a)."""
     current: dict[str, None] = {}
     for checked in steward.check(steward.load(target_dir), signer):
         record = checked.record
         if not checked.counts or day_of(record.date) > on:
+            continue
+        admitted = _admitted_by_motion(record)
+        if before_motion is not None and admitted is not None and admitted >= before_motion:
             continue
         if record.action == steward.COMMIT:
             current.setdefault(record.login, None)
@@ -348,11 +362,12 @@ def members(  # noqa: PLR0913 — the target, the day, and how to read it
     settings: Settings,
     signer: Signer,
     verified: _Verified | None = None,
+    before_motion: int | None = None,
 ) -> tuple[str, ...]:
     """The panel on day ``on``: active stewards whose latest act on or before ``on`` is within
     ``lapse_days`` of it."""
     target_dir = _target_dir(graph_root, target_id)
-    active = _active_on(target_dir, on, signer)
+    active = _active_on(target_dir, on, signer, before_motion=before_motion)
     if not active:
         return ()
     by_login = acts(graph_root, target_id, signer=signer, verified=verified)
@@ -442,7 +457,7 @@ def _who_counts(  # noqa: PLR0913 — the motion and its world
 ) -> _Counted:
     panel = members(
         graph_root, target_id, motion.date, settings=base, signer=verified.signer,
-        verified=verified,
+        verified=verified, before_motion=motion.n,
     )  # fmt: skip
     provers: frozenset[str] = frozenset()
     if motion.kind in PROVER_EXCLUDED:

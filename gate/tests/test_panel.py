@@ -434,3 +434,18 @@ def test_settings_read_from_a_v3_policy(tmp_path: Path) -> None:
         90,
     )
     assert s.as_dict()["steward_cap"] == setting(7)
+
+
+def test_an_instant_invitation_stays_passed_when_accepted_the_same_day(world: World) -> None:
+    """F24-T5's Q-a: the invitee's own commitment, admitted by the motion, must not join the
+    panel the motion was opened before."""
+    world.commit("ann", 0)
+    n = world.motion("ann", 1, subject={"login": "ben"})
+    world.commit("ben", 1, admitted_by=f"motion:{n}")
+    assert world.state(n, 1).state == "passed"
+    assert (
+        panel.passed_invitation(
+            world.root, "t", n, "ben", today=D0 + dt.timedelta(days=1), signer=SIGNER
+        )
+        is None
+    )
