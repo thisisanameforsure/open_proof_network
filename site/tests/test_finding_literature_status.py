@@ -150,7 +150,16 @@ def test_the_model_reads_both_fields_and_the_records_they_name(
 
 
 def test_an_older_graph_reads_no_literature(tmp_path: Path) -> None:
+    """A graph/v5 snapshot (rendered before the v3.35 re-pin) has no literature fields; the
+    gate writes graph/v6 since F08-T39, so the rendered document is lowered by hand."""
     root = fixture.build(tmp_path)
+    graph_path = root / "targets" / TARGET / "graph.json"
+    graph = json.loads(graph_path.read_text(encoding="utf-8"))
+    graph["schema"] = "graph/v5"
+    for row in graph["nodes"]:
+        for field in ("circular", "literature", "literature_proposed"):
+            row.pop(field, None)
+    graph_path.write_text(json.dumps(graph), encoding="utf-8")
     site = model.load_site(root, fixture.COMMIT)
     nv = site.targets[TARGET].nodes[ROOT]
     assert "literature" not in nv.graph_entry

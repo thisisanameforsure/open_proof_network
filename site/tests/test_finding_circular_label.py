@@ -174,8 +174,16 @@ def test_an_older_graph_derives_the_label_from_the_tree(tmp_path: object) -> Non
     root = fixture.build_with_revised_hole(tmp_path / "old")  # type: ignore[operator]
     file_claim(root)
     products.generate(root, rendered_from=fixture.COMMIT, commit_time=fixture.NOW).write(root)
+    # The gate writes graph/v6 since F08-T39 (merged after this test was written): lower the
+    # rendered document to the v5 shape by hand, which is what an older snapshot carries.
+    graph_path = root / "targets" / TARGET / "graph.json"
+    graph = json.loads(graph_path.read_text(encoding="utf-8"))
+    graph["schema"] = "graph/v5"
+    for row in graph["nodes"]:
+        for field in ("circular", "literature", "literature_proposed"):
+            row.pop(field, None)
+    graph_path.write_text(json.dumps(graph), encoding="utf-8")
     site = model.load_site(root, fixture.COMMIT)
-    graph = json.loads((root / "targets" / TARGET / "graph.json").read_text(encoding="utf-8"))
     assert graph["schema"] == "graph/v5" and "circular" not in graph["nodes"][0]
     nv = site.targets[TARGET].nodes[HOLE]
     assert nv.circular == (model.CircularLabel(ancestor=ANCESTOR, claim=CLAIM),)

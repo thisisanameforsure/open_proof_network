@@ -150,12 +150,15 @@ def frontier_v5() -> dict[str, Any]:
     """The v4 golden fixture lifted to v5 by hand: the three new fields on every entry, the
     listed node carrying a proposed status, checked against the committed schema."""
     doc: dict[str, Any] = json.loads((FIXTURES / "frontier-listed.json").read_text())
-    assert doc["schema"] == "frontier/v4"
-    doc["schema"] = "frontier/v5"
-    for entry in doc["entries"]:
-        entry["circular"] = []
-        entry["literature"] = None
-        entry["literature_proposed"] = None
+    # The golden copy is v5 since F08-T39 regenerated it (merged after this test was written);
+    # a v4 copy is lifted by hand so the test holds on either side of that commit.
+    if doc["schema"] == "frontier/v4":
+        doc["schema"] = "frontier/v5"
+        for entry in doc["entries"]:
+            entry["circular"] = []
+            entry["literature"] = None
+            entry["literature_proposed"] = None
+    assert doc["schema"] == "frontier/v5"
     listed = next(e for e in doc["entries"] if e["node_id"] == LISTED_NODE)
     listed["literature_proposed"] = {
         "status": "known",
@@ -187,7 +190,14 @@ def test_a_v5_frontier_is_served(harness: Harness) -> None:
 
 
 def test_a_v4_frontier_is_still_served(harness: Harness) -> None:
+    """A graph rendered before the v3.35 re-pin still carries frontier/v4 (the deploy window)."""
     doc = json.loads((FIXTURES / "frontier-listed.json").read_text())
+    if doc["schema"] == "frontier/v5":  # the golden copy is v5 since F08-T39: lower it by hand
+        doc["schema"] = "frontier/v4"
+        for entry in doc["entries"]:
+            for field in NEW_FIELDS:
+                entry.pop(field, None)
+    assert schemas.violations(doc, "frontier/v4") == [], "the hand-lowered v4 is not v4"
     serve_frontier(harness, doc)
     r = harness.client.get("/frontier.json")
     assert r.status_code == 200 and r.json()["schema"] == "frontier/v4"
