@@ -1,0 +1,109 @@
+F04-T35 — a merged partial, and a proved node, name who the record says submitted them
+=====================================================================================
+
+Found by the lead on the live site 2026-10-08 (graph at or after 6af6af057); reproduced here on
+a local render of the graph clone at 835f123907a010b19281ce17a874c07986ff43c9.
+
+Defect (a): /nodes/erdos-1094/erdos-1094/ and /nodes/erdos-1094/erdos-1094--h3/ said "author not
+recorded; no postmortem record names this file. No attestation covers a partial". The record:
+attestations/000441.json (erdos-1094) and 000448.json (erdos-1094--h3) are attestation/v6,
+verdict pass, merged (305fb84fc6d8, 68f75c7ed2f0), submitter t1008-a, artifact_hash null, and
+step 2's diagnostic is `partial-submission` with details.path = the attempts/ file on the page;
+ledger/t1008-a.json credits both.
+
+Cause: model._partials_for looked for an author in a postmortem/v1 record only
+(artifacts.partial_proof). Nothing on the site read the attestation that filed the partial. The
+attestation's artifact_hash is null by design (nothing in the protocol hashes a partial), so the
+alternates' by-hash lookup cannot find it either; what links file to attestation is step 2's
+`partial-submission` path, which the gate already reads in graph.partials_of (F18-T4).
+
+Fix: model._merged_partials calls graph.load_attestations + graph.partials_of (passing, merged,
+this node, its current statement hash, step 2's path), and PartialView carries the attestation's
+path, merge commit and submitter. render.partials_block names the submitter ("by t1008-a"; the
+postmortem's contributor when no attestation names one; both when they differ) and "merged in
+<commit> under attestations/NNNNNN.json, whose step 2 took this file as a partial". It still
+reads as an attempt, never a proof (F03-Q7): the provenance stays "Untrusted contributor text",
+and the words are "A partial records an attempt, not a proof: the gate replayed it with its holes
+left as sorry" and "no hash in the record binds these bytes". A partial no record names renders
+exactly as before (goldens unchanged for the partial blocks).
+
+Defect (b): /nodes/erdos-1094/erdos-1094--h1/'s Attestation block showed toolchain, Mathlib,
+reviewer and steps, never `submitter` (t1008-b in 000450.json).
+Cause: attestation.html had no row for it. Fix: a "Submitter" row, `<code>name</code>`, or "not
+recorded" for older attestations whose submitter is null.
+
+Red (before the fix; the test file is site/tests/test_finding_partial_attribution.py):
+
+  uv run --frozen pytest site/tests/test_finding_partial_attribution.py -q -p no:cacheprovider \
+      --basetemp=<scratchpad>
+
+E       assert 'by t1008-a' in 'Untrusted: partial assembly (D-12 #5), author not recorded; no postmortem record names this file. No attestation cove...tempts/2026-09-03-c-partial.lean">targets/propositional/nodes/and-swap-reassoc/attempts/2026-09-03-c-partial.lean</a>.'
+E       assert 'attestations/000900.json' in 'Untrusted: partial assembly (D-12 #5), author not recorded; no postmortem record names this file. No attestation cove...tempts/2026-09-03-c-partial.lean">targets/propositional/nodes/and-swap-reassoc/attempts/2026-09-03-c-partial.lean</a>.'
+E       assert '<dt>Submitter</dt><dd><code>t1008-b</code></dd>' in '\n<dt>Toolchain</dt><dd>leanprover/lean4:v4.33.1 (hash <code>bbbb…</code>)</dd>\n<dt>Mathlib</dt><dd>none (Lean core only)</dd>\n<dt>Reviewer</dt><dd>reviewer-one</dd>\n'
+E       assert '<dt>Submitter</dt><dd>not recorded</dd>' in '\n<dt>Toolchain</dt><dd>leanprover/lean4:v4.33.1 (hash <code>bbbb…</code>)</dd>\n<dt>Mathlib</dt><dd>none (Lean core only)</dd>\n<dt>Reviewer</dt><dd>reviewer-one</dd>\n'
+FAILED site/tests/test_finding_partial_attribution.py::test_a_merged_partial_names_the_submitter_its_attestation_records
+FAILED site/tests/test_finding_partial_attribution.py::test_a_merged_partial_links_the_attestation_that_took_it
+FAILED site/tests/test_finding_partial_attribution.py::test_a_proved_nodes_attestation_names_its_submitter
+FAILED site/tests/test_finding_partial_attribution.py::test_an_attestation_with_no_submitter_says_it_records_none
+4 failed, 5 passed in 3.66s
+
+Every red is an assertion on the defect itself (no missing name). The five green before the fix
+pin what the fix must not change:
+PASSED ...::test_a_merged_partial_still_reads_as_an_attempt_not_a_proof
+PASSED ...::test_the_other_partial_keeps_its_postmortem_author
+PASSED ...::test_a_failing_attestation_naming_the_file_credits_no_one
+PASSED ...::test_an_attestation_of_another_node_naming_the_same_path_credits_no_one
+PASSED ...::test_a_partial_without_any_record_still_says_so
+
+Green (after):
+PASSED site/tests/test_finding_partial_attribution.py::test_a_merged_partial_names_the_submitter_its_attestation_records
+PASSED site/tests/test_finding_partial_attribution.py::test_a_merged_partial_links_the_attestation_that_took_it
+PASSED site/tests/test_finding_partial_attribution.py::test_a_merged_partial_still_reads_as_an_attempt_not_a_proof
+PASSED site/tests/test_finding_partial_attribution.py::test_the_other_partial_keeps_its_postmortem_author
+PASSED site/tests/test_finding_partial_attribution.py::test_a_failing_attestation_naming_the_file_credits_no_one
+PASSED site/tests/test_finding_partial_attribution.py::test_an_attestation_of_another_node_naming_the_same_path_credits_no_one
+PASSED site/tests/test_finding_partial_attribution.py::test_a_partial_without_any_record_still_says_so
+PASSED site/tests/test_finding_partial_attribution.py::test_a_proved_nodes_attestation_names_its_submitter
+PASSED site/tests/test_finding_partial_attribution.py::test_an_attestation_with_no_submitter_says_it_records_none
+9 passed in 3.90s
+
+Goldens regenerated (site/tests/test_render.write_goldens): the only change is one line in each
+of the two proved fixture nodes, `<dt>Submitter</dt><dd>not recorded</dd>` (the fixture's
+attestations carry submitter null). No partial block in the goldens changed.
+
+Site suite: uv run --frozen pytest site -m "not lean and not docker" -q
+515 passed, 1 skipped in 148.11s (0:02:28)
+make lint: All checks passed! / 687 files already formatted (exit 0)
+make types: Success: no issues found in 328 / 220 / 78 source files (exit 0)
+
+Local render of the live graph, before and after (python -m opn_site.cli render --graph
+../open_proof_network_graph --commit 835f1239…, 258 pages both times), shot with
+task-35-shoot.py (Playwright, element screenshots at 1440; the element's text printed beside):
+
+before  task-35-before-root-partial-1440.png
+  "Untrusted: partial assembly (D-12 #5), author not recorded; no postmortem record names this
+  file. No attestation covers a partial — it records an attempt, not a proof. Rendered from
+  targets/erdos-1094/nodes/erdos-1094/attempts/20261008T130306Z-t1008-a-partial.lean."
+after   task-35-after-root-partial-1440.png
+  "Untrusted: partial assembly (D-12 #5), by t1008-a; merged in 305fb84fc6d8 under
+  attestations/000441.json, whose step 2 took this file as a partial. A partial records an
+  attempt, not a proof: the gate replayed it with its holes left as sorry. Rendered from
+  targets/erdos-1094/nodes/erdos-1094/attempts/20261008T130306Z-t1008-a-partial.lean."
+before  task-35-before-h3-partial-1440.png   (same "author not recorded" text)
+after   task-35-after-h3-partial-1440.png
+  "… by t1008-a; merged in 68f75c7ed2f0 under attestations/000448.json, whose step 2 took this
+  file as a partial. A partial records an attempt, not a proof: …"
+before  task-35-before-h1-attestation-1440.png  Verdict, Toolchain, Mathlib, Reviewer, steps.
+after   task-35-after-h1-attestation-1440.png   "Submitter t1008-b" first, then the rest.
+Phone width: root page scrollWidth 390 at a 390 viewport (no horizontal scroll).
+
+Whole-site diff before → after: 81 pages changed, each explained — 68 attestation blocks gained
+the Submitter row (63 name someone, 5 say "not recorded"), and 13 node pages' partial labels now
+name the attestation that merged them. Across the graph the partial labels now read: 14 partials
+attributed by attestation; 2 merged under attestation/v4 records with submitter null
+(000019.json, 000033.json), which say "author not recorded; merged in … under
+attestations/000019.json" — true of the record; and 1 (euclid-primes
+20260912T123001Z-thisisanameforsure-partial.lean) that no attestation and no postmortem names,
+which still says so.
+
+Not verified here: the live site. It changes only after the lead's deploy (site-deploy).

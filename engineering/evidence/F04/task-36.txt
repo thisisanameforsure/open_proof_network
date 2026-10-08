@@ -1,0 +1,114 @@
+F04-T36 — three places the site cut or doubled record text (erdos-1094, found 2026-10-08)
+==========================================================================================
+
+Reproduced on a local render of the graph clone at 835f123907a010b19281ce17a874c07986ff43c9.
+Test file: site/tests/test_finding_text_cuts.py.
+
+(c) Annex provenance cut: "sources read via erdosproblems.com,, 2026-10-08T13:06:59Z".
+    Cause: model.parse_prose split the front matter on newlines and partitioned each line on
+    ":", so a YAML plain scalar folded over three lines (annex/v2's model_and_tooling, written
+    by the service's YAML dump) kept its first physical line only — ending in the comma the
+    label then followed with its own ", ". Fix: model._front_matter_strings reads the head as
+    YAML with PyYAML's BaseLoader (already a dependency; C5: nothing new), which builds only
+    strings, lists and mappings — so a folded value is read whole, a timestamp stays the text
+    written (safe_load would make it a datetime and print it back differently), and "null"
+    stays the word _YAML_NULLS already reads as nothing. A head that is not YAML (a value with
+    a second colon) is read line by line as before, so a malformed head still takes no page
+    down and loses no field it states.
+(d) Outline title cut mid-word: "… a reading of the formal statement agai".
+    Cause: render.outlines_block sliced the first line with [:140]. Fix: render.clip cuts at
+    the last space within TITLE_LIMIT (140) and appends "…" (the convention dag.py and
+    gate/opn_gate/context.py use); a dangling comma or dash before the mark is dropped; a title
+    with no space is cut at 140 and still marked.
+(e) Double full stop: "… with only finitely many exceptions.. Imported from formal-conjectures".
+    Cause: not the informal statement but the record's *title*: target.html's provenance line
+    is f"{esc(title)}. " + source line, and 16 live titles already end a sentence ("…
+    exceptions.", "Let $k ≥ 2$.", "Is … irrational?"). Fix: render.sentence adds the full
+    stop only when the title does not already end in . ? ! … (looking past a closing bracket
+    or quote, so "(see below.)" counts).
+
+Red (before the fix):
+
+E       AssertionError: assert 'Claude Opus ...problems.com,' == 'Claude Opus ...-carry script'
+E       AssertionError: Untrusted: annex (D-31), by t1008-c, drafted with Claude Opus 5.5 as agent t1008-c; sources read via erdosproblems.com,, 2026-10-08T13:06:59Z, licence CC-BY-4.0. Rendered from …
+E       AssertionError: Prior art and the state of the problem (Erdős #1094, the Erdős–Lacampagne–Selfridge conjecture), with a reading of the formal statement agai
+E       AssertionError: xxxx…(140 x, no mark)
+E       assert 'xxxxxxxxxxxx...xxxxxxxxxxxxx' == 'xxxxxxxxxxxx...xxxxxxxxxxxx…'
+E       AssertionError: with only finitely many exceptions.. Imported from <a href="https://www.erdosproblems.com/42">erdos</a> (none-stated)
+E       AssertionError: Is the sum irrational?. Imported from <a href="https://www.erdosproblems.com/42">erdos</a> (none-stated)
+E       AssertionError: Surely not!. Imported from <a href="https://www.erdosproblems.com/42">erdos</a> (none-stated)
+E       AssertionError: A note (see below.). Imported from <a href="https://www.erdosproblems.com/42">erdos</a> (none-stated)
+PASSED site/tests/test_finding_text_cuts.py::test_an_unquoted_timestamp_stays_the_text_it_was_written_as
+PASSED site/tests/test_finding_text_cuts.py::test_front_matter_that_is_not_yaml_is_still_read_line_by_line
+PASSED site/tests/test_finding_text_cuts.py::test_a_null_model_is_still_no_model
+PASSED site/tests/test_finding_text_cuts.py::test_a_short_outline_title_is_left_whole
+PASSED site/tests/test_finding_text_cuts.py::test_a_title_that_ends_a_sentence_gets_no_second_full_stop[A listed open problem-A listed open problem. Imported]
+FAILED site/tests/test_finding_text_cuts.py::test_a_folded_front_matter_value_is_read_whole
+FAILED site/tests/test_finding_text_cuts.py::test_the_annex_label_shows_the_whole_model_and_no_double_comma
+FAILED site/tests/test_finding_text_cuts.py::test_a_long_outline_title_is_cut_at_a_word_and_says_so
+FAILED site/tests/test_finding_text_cuts.py::test_a_title_with_no_space_to_cut_at_is_cut_and_marked
+FAILED site/tests/test_finding_text_cuts.py::test_a_title_that_ends_a_sentence_gets_no_second_full_stop[with only finitely many exceptions.-with only finitely many exceptions. Imported]
+FAILED site/tests/test_finding_text_cuts.py::test_a_title_that_ends_a_sentence_gets_no_second_full_stop[Is the sum irrational?-Is the sum irrational? Imported]
+FAILED site/tests/test_finding_text_cuts.py::test_a_title_that_ends_a_sentence_gets_no_second_full_stop[Surely not!-Surely not! Imported]
+FAILED site/tests/test_finding_text_cuts.py::test_a_title_that_ends_a_sentence_gets_no_second_full_stop[A note (see below.)-A note (see below.) Imported]
+8 failed, 5 passed in 7.19s
+
+Every red is an assertion on the defect (no missing name). The five green before the fix pin
+what must not change: an unquoted timestamp's text, the line-by-line reading of a head that is
+not YAML, null as no model, a short title left whole, and the full stop a plain title still gets.
+
+Green (after):
+PASSED …::test_a_folded_front_matter_value_is_read_whole
+PASSED …::test_the_annex_label_shows_the_whole_model_and_no_double_comma
+PASSED …::test_an_unquoted_timestamp_stays_the_text_it_was_written_as
+PASSED …::test_front_matter_that_is_not_yaml_is_still_read_line_by_line
+PASSED …::test_a_null_model_is_still_no_model
+PASSED …::test_a_long_outline_title_is_cut_at_a_word_and_says_so
+PASSED …::test_a_short_outline_title_is_left_whole
+PASSED …::test_a_title_with_no_space_to_cut_at_is_cut_and_marked
+PASSED …::test_a_title_that_ends_a_sentence_gets_no_second_full_stop[×5]
+13 passed in 5.54s
+
+Edge cases of the two helpers, probed directly (render.clip, render.sentence):
+  clip('abc def ghi', 9) -> 'abc def…'   clip('abc def ghi', 7) -> 'abc def…'
+  clip('abc def ghi', 8) -> 'abc def…'   clip('x'*12, 5) -> 'xxxxx…'
+  clip('abc, def ghi', 6) -> 'abc…'      clip('abc def', 10) -> 'abc def'
+  sentence: 'a.'→'a.'  'a?'→'a?'  'a!'→'a!'  'a'→'a.'  'a (b.)'→'a (b.)'  'a “b.”'→'a “b.”'
+            'a…'→'a…'  'a. '→'a.'
+
+Site suite: uv run --frozen pytest site -m "not lean and not docker" -q
+528 passed, 1 skipped in 77.36s (0:01:17)   (no golden changed)
+make lint: All checks passed! / 688 files already formatted (exit 0)
+make types: Success: no issues found in 328 / 220 / 79 source files (exit 0)
+
+Local render of the live graph, before (pre-T35 render) and after (T35 + T36), shot with
+task-35-shoot.py --task 36 (element screenshots at 1440, text printed beside):
+
+before  task-36-before-annex-provenance-1440.png
+  "… drafted with Claude Opus 5.5 as agent t1008-c; sources read via erdosproblems.com,,
+  2026-10-08T13:06:59Z, licence CC-BY-4.0."
+after   task-36-after-annex-provenance-1440.png
+  "… drafted with Claude Opus 5.5 as agent t1008-c; sources read via erdosproblems.com,
+  MathOverflow API, publisher abstracts; exception box checked by a Python Kummer-carry
+  script, 2026-10-08T13:06:59Z, licence CC-BY-4.0."
+before  task-36-before-outline-titles-1440.png
+  "… with a reading of the formal statement agai" / "… A companion to the prior-art annex on thi"
+after   task-36-after-outline-titles-1440.png
+  "… with a reading of the formal statement…" / "… A companion to the prior-art annex on…"
+before  task-36-before-problem-provenance-1440.png  "… with only finitely many exceptions.. Imported"
+after   task-36-after-problem-provenance-1440.png   "… with only finitely many exceptions. Imported"
+Phone width: the root node page's scrollWidth is 390 at a 390 viewport.
+
+Whole-site measurements, T35 render → T36 render (258 pages each; 30 pages changed):
+  annex labels (task-36-annex-labels.py, paired by the annex file each was rendered from):
+    64 annexes, 17 labels changed, every one longer than before (a model cut at its first
+    line, now whole); double commas 3 → 0. Only 3 of the 17 showed the cut as ",,"; the other
+    14 were cut silently at a line end with no punctuation.
+  provenance lines with a doubled mark (". ." "?." "!."): 16 problem pages → 0.
+  outline titles (64 shown across the site): 19 were sliced at exactly 140 characters before;
+    all 19 now end at a word with "…" (the longest, mark included, is 140 characters).
+
+Seen and not changed (out of scope, C4): the provenance line shows the title's TeX source
+($n\ge 2k$…) because it is escaped as plain text, not marked .math like the informal statement.
+
+Not verified here: the live site, which changes only after the lead's deploy.

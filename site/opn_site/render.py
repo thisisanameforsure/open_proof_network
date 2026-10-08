@@ -867,6 +867,36 @@ def esc(value: object) -> str:
     return escape(str(value), quote=True)
 
 
+#: F04-T36: the longest outline title shown before it is cut (its first line; the whole text is
+#: on the statement's record page).
+TITLE_LIMIT = 140
+#: What may close a sentence, and what may follow its last mark ("(see below.)", a closing quote).
+SENTENCE_ENDS = (".", "?", "!", "…")
+SENTENCE_CLOSERS = ")]}\"'\u2019\u201d\u00bb"  # and the curly closing quotes, guillemet
+
+
+def clip(text: str, limit: int = TITLE_LIMIT) -> str:
+    """F04-T36: ``text`` whole when it fits, else cut at the last space within ``limit`` and
+    marked with "…" — never mid-word. A text with no space to cut at is cut at ``limit``."""
+    if len(text) <= limit:
+        return text
+    head = text[:limit]
+    if text[limit].isspace() or head[-1].isspace():  # the limit falls between words
+        cut = head
+    elif any(c.isspace() for c in head.strip()):
+        cut = head.rsplit(None, 1)[0]
+    else:
+        cut = head
+    return cut.rstrip(" ,;:-\u2013\u2014") + "…"  # no dangling comma or dash before the mark
+
+
+def sentence(text: str) -> str:
+    """F04-T36: ``text`` ended as a sentence — with a full stop added only when it does not
+    already end with one of ``SENTENCE_ENDS`` (before any closing bracket or quote)."""
+    stripped = text.rstrip()
+    return stripped if stripped.rstrip(SENTENCE_CLOSERS).endswith(SENTENCE_ENDS) else stripped + "."
+
+
 def math(text: str, *, allowed_urls: frozenset[str] = frozenset()) -> str:
     """Record prose that may carry TeX between dollar signs (F04-T13) and a registry
     docstring's inline Markdown (T19): escaped like everything from the graph, the four inline
@@ -1246,10 +1276,16 @@ class Renderer:
         items = []
         for a in nv.annexes:
             digest = Path(a.path).stem
-            title = next(
-                (line.strip().lstrip("#").strip() for line in a.text.splitlines() if line.strip()),
-                "untitled",
-            )[:140]
+            title = clip(
+                next(
+                    (
+                        line.strip().lstrip("#").strip()
+                        for line in a.text.splitlines()
+                        if line.strip()
+                    ),
+                    "untitled",
+                )
+            )
             by = f" by {esc(a.author)}" if a.author else ""
             following = [d for d in decomps if d.get("annex") == digest]
             node_dir = Path(nv.statement_path).parent.as_posix()
@@ -2041,7 +2077,7 @@ class Renderer:
             status_tag=self.status_tag(tv),
             fidelity_tag=self.fidelity_tag(tv),
             informal=self.informal_words(tv),
-            provenance=(f"{esc(title)}. " if title else "") + self.source_line(tv),
+            provenance=(f"{esc(sentence(title))} " if title else "") + self.source_line(tv),
             stages=self.stage_marks(tv),
             claimable=self.target_claimable(tv),
             calibration=self.calibration_label(tv),
@@ -3281,7 +3317,10 @@ class Renderer:
         reviewer = review.get("reviewer") or (
             f"none needed ({review.get('kind')})" if review.get("kind") else "not recorded"
         )
+        # F04-T35: who submitted the proof is the attestation's own fact; an older one says none.
+        who = doc.get("submitter")
         return _template("attestation.html").substitute(
+            submitter=f"<code>{esc(who)}</code>" if who else "not recorded",
             link=self.file_link(nv.attestation_path),
             verdict=esc(doc["verdict"]),
             mathlib=esc(doc["mathlib_sha"] or "none (Lean core only)"),
@@ -3959,14 +3998,21 @@ class Renderer:
     def partials_block(self, nv: NodeView) -> str:
         """Each partial assembly filed under ``attempts/`` (D-3, D-12 #5), as text.
 
-        No attestation covers a partial, so each is untrusted contributor content (R4), beside
-        the record naming it — or beside the fact that no record does, which the live graph
-        carries and ``records.count_attempts`` already counts as an attempt in its own right.
+        No hash in the record binds a partial's bytes, so each is untrusted contributor content
+        (R4), beside the records naming it — a postmortem, and for a partial that merged, the
+        attestation whose step 2 took it, which names its submitter and merge (F04-T35) — or
+        beside the fact that none does, which the live graph carries and
+        ``records.count_attempts`` already counts as an attempt in its own right. A merged
+        partial's attestation is a pass against the parent's statement and proves nothing
+        (F03-Q7), so the block says so in words either way.
         """
         blocks = []
         tv = self.site.targets.get(nv.target_id)
         for p in nv.partials:
-            facts = [f"by {esc(p.contributor)}" if p.contributor else "author not recorded"]
+            who = p.submitter or p.contributor
+            facts = [f"by {esc(who)}" if who else "author not recorded"]
+            if p.submitter and p.contributor and p.contributor != p.submitter:
+                facts.append(f"the postmortem names {esc(p.contributor)}")
             if p.outcome:
                 facts.append(f"outcome <strong>{esc(p.outcome)}</strong>")
             if p.route_class:
@@ -3975,24 +4021,44 @@ class Renderer:
                 facts.append(f"failure class {esc(p.failure_class)}")
             if p.route:
                 facts.append(f"route &ldquo;{esc(p.route)}&rdquo;")
-            named = (
-                f"recorded in {self.file_link(p.record_path)}"
-                if p.record_path
-                else "no postmortem record names this file"
-            )
+            records = []
+            if p.record_path:
+                records.append(f"recorded in {self.file_link(p.record_path)}")
+            if p.attestation_path:
+                merged = f" in <code>{esc(p.merge_commit[:12])}</code>" if p.merge_commit else ""
+                records.append(
+                    f"merged{merged} under {self.file_link(p.attestation_path)}, whose step 2 "
+                    "took this file as a partial"
+                )
+            named = "; ".join(records) or "no postmortem record names this file"
+            if p.attestation_path:
+                words = (
+                    "a partial assembly: it records an attempt, not a proof; its attestation "
+                    "names the file, and no hash in the record binds these bytes."
+                )
+                closing = (
+                    "A partial records an attempt, not a proof: the gate replayed it with its "
+                    "holes left as <code>sorry</code>."
+                )
+                outline_words = (
+                    "an outline the gate extracted from this partial assembly; its holes are "
+                    "<code>sorry</code> steps, and it records an attempt, not a proof."
+                )
+            else:
+                words = "a partial assembly: it records an attempt, and no attestation covers it."
+                closing = "No attestation covers a partial — it records an attempt, not a proof."
+                outline_words = (
+                    "an outline the gate extracted from this partial assembly; its holes are "
+                    "<code>sorry</code> steps, and no attestation covers it."
+                )
             text = esc(p.file.text.rstrip("\n"))
-            words = "a partial assembly: it records an attempt, and no attestation covers it."
             doc = self.outline_of(tv, nv.node_id, p.file) if tv is not None else None
             outline = (
                 self.outline_section(
                     tv,
                     doc,
                     p.file,
-                    label=self.provenance(
-                        "untrusted",
-                        "an outline the gate extracted from this partial assembly; its holes are "
-                        "<code>sorry</code> steps, and no attestation covers it.",
-                    ),
+                    label=self.provenance("untrusted", outline_words),
                     commit=None,
                 )
                 if tv is not None and doc is not None
@@ -4002,8 +4068,7 @@ class Renderer:
                 '<div class="prose-block untrusted" data-block="partial">'
                 f'{self.provenance("untrusted", words)}<p class="label">'
                 f"Untrusted: partial assembly (D-12 #5), {', '.join(facts)}; {named}. "
-                "No attestation covers a partial — it records an attempt, not a proof. "
-                f"Rendered from {self.file_link(p.file.path)}.</p>"
+                f"{closing} Rendered from {self.file_link(p.file.path)}.</p>"
                 f'{outline}<pre class="lean">{text}</pre></div>'
             )
         return "".join(blocks) or '<p class="cue">No partial assembly filed.</p>'
