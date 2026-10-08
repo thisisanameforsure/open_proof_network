@@ -10,6 +10,7 @@ still ``targets/<id>/note.md``: the record points at where the write-up lives, i
 
 from __future__ import annotations
 
+import datetime
 import logging
 import re
 from dataclasses import dataclass
@@ -351,7 +352,7 @@ def views(
     graph_root: Path,
     target_id: str,
     *,
-    today: dt.date,
+    today: datetime.date,
     signer: Signer,
     curators: frozenset[str] = frozenset(),
 ) -> list[View]:
@@ -360,9 +361,7 @@ def views(
 
     An act counts only when its signature verifies and, after the record, when its signer is a
     listed author; a second signature by the same author changes nothing."""
-    import datetime as dt  # noqa: PLC0415
-
-    from opn_gate import panel, steward  # noqa: PLC0415 — both read this module
+    from opn_gate import panel, steward  # noqa: PLC0415 — panel and steward read this module
 
     target_dir = graph_root / "targets" / target_id
     acts = [a for a in load_any(target_dir) if signed.verifies(a.doc, signer)]

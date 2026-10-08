@@ -1,0 +1,53 @@
+F24-T3 — the gate admits motions, votes, steward/v3 and writeup/v2 records (R4, R10; AC4, AC5, AC7)
+Run: 2026-10-09, branch f24-t3, laptop (fast tier, targeted files; lead runs make verify at merge)
+
+== RED: seam in at today's behaviour (roles motion/vote, schema versions, dispatch, clock.today), rules absent ==
+uv run pytest -q gate/tests/test_modes_panel.py
+29 failed, 16 passed in 11.84s
+Assertion messages, counted (copied from the console; every one fails on the missing rule):
+   1 assert 'motion-date' in []
+   1 assert 'motion-invite-member' in []
+   1 assert 'motion-invite-open' in []
+   1 assert 'motion-opener' in []
+   1 assert 'motion-settings' in []
+   2 assert 'motion-signature' in []
+   1 assert 'motion-writeup-unknown' in []
+   2 assert 'steward-cap' in []
+   2 assert 'steward-invitation' in ['steward-admission']
+   1 assert 'steward-invitation-required' in []
+   1 assert 'vote-date' in []
+   1 assert 'vote-motion-unknown' in []
+   2 assert 'vote-not-member' in []
+   1 assert 'vote-signature' in []
+   2 assert 'vote-window' in []
+   1 assert 'writeup-date' in ['writeup-signer']
+   1 assert 'writeup-not-author' in ['writeup-signer']
+   1 assert 'writeup-signature' in ['writeup-signer']
+   1 assert 'writeup-unknown' in ['writeup-signer']
+   3 assert ['steward-admission'] == []   (passed invitation x2, curator under open)
+   2 assert ['writeup-signer'] == []      (anyone records; an author signs)
+(The raw red log was written to a scratch path another session's agent then overwrote; these lines
+are the console output of the red run itself.)
+The 16 that passed on the seam: the valid-record tests whose rule today's code already allowed
+(members' motions, valid votes, v1 write-up rule, first self commit, fifth stewardship, ...).
+
+
+== GREEN ==
+uv run pytest -q -m 'not lean and not docker' gate/tests/test_modes_panel.py gate/tests/test_panel.py gate/tests/test_error_codes.py gate/tests/test_steward*.py gate/tests/test_writeup*.py gate/tests/test_modes.py gate/tests/test_lifecycle_f15.py gate/tests/test_merge_actor_steward.py
+233 passed, 2 warnings in 121.83s (0:02:01)  (exit 0)
+
+make lint: All checks passed! / 708 files already formatted (exit 0)
+make types: mypy gate, api, site — Success (exit 0)
+
+== MUTANTS (gate/opn_gate/modes.py, test_modes_panel.py) ==
+mutant: cap off by one (> for >=)
+2 failed, 43 passed in 30.93s
+mutant: open-invitation rule reads passed
+2 failed, 43 passed in 27.20s
+mutant: vote window without its start
+1 failed, 44 passed in 26.08s
+mutant: self rule ignores panel when a curator sits on it (control)
+45 passed in 29.51s
+mutant: record signer may author-sign again
+1 failed, 44 passed in 29.00s
+(the fourth is a control: no test seats a curator on a panel, so it is expected to survive)

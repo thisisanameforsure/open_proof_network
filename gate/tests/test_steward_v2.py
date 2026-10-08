@@ -182,11 +182,16 @@ def test_an_ssh_v2_record_needs_no_approval_key(graph: Graph) -> None:
 
 
 @pytest.mark.parametrize("admission", [None, "open"])
-def test_self_is_the_only_admission_under_open(graph: Graph, admission: str | None) -> None:
-    """A policy/v1 file, or policy/v2 ``open``: ``self`` is admitted, a curator is not."""
+def test_self_and_a_curator_are_the_admissions_under_open(
+    graph: Graph, admission: str | None
+) -> None:
+    """A policy/v1 file, or policy/v2 ``open``: ``self`` is admitted, and so is a listed
+    curator's login (F24-R4, D-32 v3.34: "a listed curator's login at any time"; under v3.33 a
+    curator was refused here); any other login is not."""
     graph.set_policy(admission)
     assert graph.codes(graph.v2()) == []
-    assert "steward-admission" in graph.codes(graph.v2(admitted_by=CURATOR))
+    assert graph.codes(graph.v2(admitted_by=CURATOR)) == []
+    assert "steward-admission" in graph.codes(graph.v2(admitted_by="not-a-curator"))
 
 
 def test_self_under_reviewed_is_refused(graph: Graph) -> None:

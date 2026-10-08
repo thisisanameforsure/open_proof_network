@@ -218,6 +218,8 @@ Role = Literal[
     "steward",  # targets/<id>/stewards/<n>.yaml: a signed commitment or step-down (F15-R1)
     "policy",  # policy.json at the graph root: the steward rule's switch (F15-R3, Q2)
     "writeup",  # targets/<id>/writeup/<n>.yaml: a signed paper or note record (F15-R6)
+    "motion",  # targets/<id>/motions/<n>.yaml: a question put to the panel (F24-R2)
+    "vote",  # targets/<id>/votes/<n>.yaml: a panel member's vote on a motion (F24-R3)
     "proposed-for",  # nodes/<id>/proposed-for/<ts>-<pseudonym>.yaml: a pointer (F18-R8, D-14)
     "withdrawal",  # nodes/<id>/withdrawals/<ts>-<curator>.yaml: a record withdrawn (F08-T31)
     "credit-correction",  # targets/<id>/credit-corrections/<ts>-<curator>.yaml (F07-T66)
@@ -298,8 +300,10 @@ SCHEMAS_FOR_ROLE: dict[Role, tuple[str, ...]] = {
     "relevance": ("relevance/v1",),
     "statement-evidence": ("statement-evidence/v1",),
     "formalization": ("formalization/v1",),
-    "steward": ("steward/v1", "steward/v2"),  # v2: via and admitted_by (F23-R9)
-    "policy": ("policy/v1", "policy/v2"),  # v2: steward_admission (F23-R9)
+    # v2: via and admitted_by (F23-R9); v3: admitted_by may be motion:<n> (F24-R4)
+    "steward": ("steward/v1", "steward/v2", "steward/v3"),
+    # v2: steward_admission (F23-R9); v3: the panel's settings (F24-R1)
+    "policy": ("policy/v1", "policy/v2", "policy/v3"),
     "explainer-signature": (
         "explainer-signature/v1",
         "explainer-signature/v2",
@@ -310,7 +314,9 @@ SCHEMAS_FOR_ROLE: dict[Role, tuple[str, ...]] = {
         "gloss-signature/v2",
         "gloss-signature/v3",
     ),  # v2: the sections approved (F21-R13); v3: via (F23-R11)
-    "writeup": ("writeup/v1",),
+    "writeup": ("writeup/v1", "writeup/v2"),  # v2: a write-up's life (F24-R5)
+    "motion": ("motion/v1",),
+    "vote": ("vote/v1",),
     "proposed-for": ("proposed-for/v1",),
     "withdrawal": ("withdrawal/v1", "withdrawal/v2"),  # v2: gloss and explainer versions (F20)
     "credit-correction": ("credit-correction/v1",),
@@ -442,6 +448,11 @@ def locate(path: str) -> Located | None:  # noqa: PLR0911, PLR0912 — one branc
         # F15-R6: a signed write-up record, append-only; the note's text stays note.md.
         if head == "writeup" and _is_flat(name, YAML_SUFFIXES):
             return Located("writeup", path, target_match.group("target"), None)
+        # F24-R2, R3: the panel's motions and votes, append-only and numbered.
+        if head == "motions" and _is_flat(name, YAML_SUFFIXES):
+            return Located("motion", path, target_match.group("target"), None)
+        if head == "votes" and _is_flat(name, YAML_SUFFIXES):
+            return Located("vote", path, target_match.group("target"), None)
         # F14-R7: a second formalization, outside nodes/, so never a node.
         if head == "formalizations":
             directory, _, leaf = name.partition("/")

@@ -617,3 +617,26 @@ def passed_invitation(  # noqa: PLR0913 — the invitation, the invitee, and how
     if found.state != PASSED:
         return f"motion {n} is {found.state}, not passed"
     return None
+
+
+def eligible_voters(
+    graph_root: Path,
+    target_id: str,
+    n: int,
+    *,
+    signer: Signer,
+    curators: frozenset[str] = frozenset(),
+) -> frozenset[str]:
+    """Whose vote on motion ``n`` is read at all (F24-R3): counted, or listed uncounted — the
+    panel as it stood on the motion's date, or the curators where curators count. The gate's
+    question for a vote (F24-R10); ``PanelError`` when there is no such motion."""
+    target_dir = _target_dir(graph_root, target_id)
+    motion = next((m for m in load_motions(target_dir) if m.n == n), None)
+    if motion is None:
+        msg = f"targets/{target_id}/{MOTIONS_DIR}/{n}.yaml does not exist"
+        raise PanelError(msg)
+    who = _who_counts(
+        graph_root, target_id, motion, base=current_settings(graph_root), curators=curators,
+        verified=_Verified(signer),
+    )  # fmt: skip
+    return who.counted | who.provers

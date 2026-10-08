@@ -480,3 +480,31 @@ def test_voters_names_the_counted_and_the_uncounted_provers(world: World) -> Non
     )
     with pytest.raises(panel.PanelError):
         panel.voters(world.root, "t", 99, signer=SIGNER, curators=curators)
+
+
+# --- eligible_voters (F24-T3): whose vote on a motion is read at all ------------------------------
+
+
+def test_eligible_voters_are_the_panel_on_the_motions_date(world: World) -> None:
+    world.commit("ann", 0)
+    world.commit("ben", 0, admitted_by="carol")
+    n = world.motion("ann", 1)
+    world.commit("cat", 2, admitted_by="carol")
+    assert panel.eligible_voters(world.root, "t", n, signer=SIGNER) == {"ann", "ben"}
+
+
+def test_eligible_voters_list_provers_and_curators_where_curators_count(world: World) -> None:
+    world.commit("ann", 0)
+    world.prover("ann")
+    n = world.motion("ann", 1, kind="verify-writeup", subject={"writeup": 1})
+    found = panel.eligible_voters(world.root, "t", n, signer=SIGNER, curators=frozenset({"carol"}))
+    assert found == {"ann", "carol"}
+    m = world.motion("ann", 1)
+    assert panel.eligible_voters(
+        world.root, "t", m, signer=SIGNER, curators=frozenset({"carol"})
+    ) == {"ann"}
+
+
+def test_eligible_voters_of_no_motion_is_an_error(world: World) -> None:
+    with pytest.raises(panel.PanelError):
+        panel.eligible_voters(world.root, "t", 3, signer=SIGNER)
