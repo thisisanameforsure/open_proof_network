@@ -1,0 +1,95 @@
+F06-T14 — a precheck job is pinned to a commit that carries its node; refused at once when none does
+=====================================================================================================
+2026-10-08. Branch worktree-agent-a2c101f34bb57ac14, built on network de9b8a7.
+
+The defect, on the live record (graph clone, read-only)
+-------------------------------------------------------
+$ git log -1 --format='%H %P %s' 28f5a569c
+28f5a569cd70373ff57687c66db8c53c51259001 d1833c0ed55a7760e8f9237de520a0f82429f6e6 gate: #441 pass · cc @thisisanameforsure
+$ git show 28f5a569c:targets/erdos-1094/graph.json   (rendered_from, then each row)
+d1833c0ed55a7760e8f9237de520a0f82429f6e6
+erdos-1094 ready None authored
+erdos-1094--h1 ready None compiler-derived
+erdos-1094--h2 ready None compiler-derived
+erdos-1094--h3 ready None compiler-derived
+$ git ls-tree --name-only d1833c0ed targets/erdos-1094/nodes/
+targets/erdos-1094/nodes/erdos-1094
+$ git ls-tree --name-only 28f5a569c targets/erdos-1094/nodes/
+targets/erdos-1094/nodes/erdos-1094--h1
+targets/erdos-1094/nodes/erdos-1094--h2
+targets/erdos-1094/nodes/erdos-1094--h3
+targets/erdos-1094/nodes/erdos-1094
+
+The bot commit lists three ready holes and names its parent, the merge, as rendered_from; the
+merge's tree carries none of them. precheck.rendered_from pinned every job for a hole there, and
+step 2 answered layout-missing about six and a half minutes later.
+
+Red first (code at de9b8a7, the new test file only)
+---------------------------------------------------
+$ uv run --frozen pytest api/tests/test_finding_precheck_hole_commit.py -q -p no:cacheprovider -rA
+E       AssertionError: pinned to a commit without the node
+E       assert 'dddddddddddd...ddddddddddddd' == 'eeeeeeeeeeee...eeeeeeeeeeeee'
+E       AssertionError: {"id":"01M230M2G04G4ST5AXNMCMG9NA","node_id":"and-reassoc--h1",...,"graph_commit":"dddddddddddddddddddddddddddddddddddddddd",...}
+E       assert (202, None) == (409, 'products-pending')
+E       AssertionError: {"id":"01M230M2G0NBGZG79CZNNM36AA","node_id":"and-reassoc--h1",...,"graph_commit":"dddddddddddddddddddddddddddddddddddddddd",...}
+E       assert (202, None) == (409, 'products-pending')
+E       AssertionError: {'status': 202, 'body': {... 'graph_commit': 'dddddddddddddddddddddddddddddddddddddddd', ...}, 'job_id': ..., 'poll': ...}
+PASSED api/tests/test_finding_precheck_hole_commit.py::test_a_node_present_at_rendered_from_keeps_that_commit
+PASSED api/tests/test_finding_precheck_hole_commit.py::test_an_unreadable_probe_keeps_rendered_from
+FAILED api/tests/test_finding_precheck_hole_commit.py::test_a_hole_written_by_the_bot_commit_is_pinned_where_it_exists
+FAILED api/tests/test_finding_precheck_hole_commit.py::test_a_node_no_commit_carries_is_refused_at_once
+FAILED api/tests/test_finding_precheck_hole_commit.py::test_a_node_absent_at_the_read_commit_too_is_refused
+FAILED api/tests/test_finding_precheck_hole_commit.py::test_the_mcp_tool_gives_the_same_answer
+4 failed, 2 passed, 2 warnings in 1.31s
+
+Every red is the defect itself: the job pinned to the merge (d…) instead of the bot commit (e…),
+or a 202 where a refusal belongs, through the route and through the MCP tool. No name was missing.
+The two passing tests are pins: Q12's case (a node present at rendered_from keeps it) and C7
+(an unreadable probe keeps rendered_from).
+
+The fix, first run of the api suite: 131 failed
+-----------------------------------------------
+The fake host carried the products and no node files, so every precheck probe answered 404. The
+fake now carries each fixture node's Statement.lean (api_fakes.FakeGitHost.with_fixtures), as the
+live tree does. One test had depended on the absence: test_rejections_proposals
+::test_a_dep_whose_statement_cannot_be_read_is_503 now removes its dep's statement explicitly.
+
+Green
+-----
+$ uv run --frozen pytest api/tests/test_finding_precheck_hole_commit.py -q -p no:cacheprovider -rA
+PASSED api/tests/test_finding_precheck_hole_commit.py::test_a_hole_written_by_the_bot_commit_is_pinned_where_it_exists
+PASSED api/tests/test_finding_precheck_hole_commit.py::test_a_node_no_commit_carries_is_refused_at_once
+PASSED api/tests/test_finding_precheck_hole_commit.py::test_a_node_absent_at_the_read_commit_too_is_refused
+PASSED api/tests/test_finding_precheck_hole_commit.py::test_a_node_present_at_rendered_from_keeps_that_commit
+PASSED api/tests/test_finding_precheck_hole_commit.py::test_an_unreadable_probe_keeps_rendered_from
+PASSED api/tests/test_finding_precheck_hole_commit.py::test_the_mcp_tool_gives_the_same_answer
+6 passed, 2 warnings in 1.13s
+
+$ uv run --frozen pytest api/tests/test_finding_precheck_hole_commit.py api/tests/test_finding_precheck_stale_commit.py api/tests/test_rejections_precheck.py api/tests/test_precheck.py api/tests/test_finding_precheck_not_yet.py api/tests/test_finding_precheck_blocked.py api/tests/test_finding_precheck_pending_proposal.py api/tests/test_rejections_proposals.py -q -p no:cacheprovider
+97 passed, 2 warnings in 16.81s
+(T7's, T8's and T10's verification suites, plus the restated proposals file.)
+
+$ uv run --frozen pytest api -m "not lean and not docker" -q -p no:cacheprovider
+1672 passed, 2 warnings in 172.14s (0:02:52)
+
+$ uv run --frozen pytest gate/tests/test_bench.py gate/tests/test_walkthrough.py gate/tests/test_lifecycle_f14.py gate/tests/test_rehearsal.py gate/tests/test_lifecycle_f15.py -m "not lean and not docker" -q -p no:cacheprovider
+15 passed, 1 skipped, 1 deselected, 2 warnings in 98.84s (0:01:38)
+(the gate tests that drive the api fakes; the skip is the graph-copy check, no graph beside the worktree)
+
+$ make lint    -> exit 0 (ruff check: All checks passed!; ruff format --check: 687 files already formatted)
+$ make types   -> exit 0 (Success: no issues found in 221 source files; site: 77 source files)
+
+Mutants (pytest plugins, nothing on disk changed; each kills at least one test)
+-------------------------------------------------------------------------------
+mutant_no_probe       job_commit returns rendered_from (today's behaviour)
+  -> 4 failed, 2 passed  (pinned-where-it-exists, refused-at-once, absent-at-read-commit, mcp)
+mutant_always_head    job_commit returns ctx.head whenever there is one (drops Q10/Q12)
+  -> 3 failed, 5 passed  (absent-at-read-commit, present-at-rendered-keeps-it, unreadable-probe)
+mutant_refuse_on_unknown  an unreadable probe is taken as absent (drops C7)
+  -> 1 failed, 5 passed  (unreadable-probe-keeps-rendered_from)
+
+Not verified here
+-----------------
+Live behaviour needs an api deploy: a precheck of a hole the moment its bot commit lands should
+answer 202 with graph_commit = the bot commit (or a later main), and the job should pass step 2.
+The docker and lean tiers were not run (no api change reaches them).

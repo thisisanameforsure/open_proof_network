@@ -6,7 +6,7 @@ import json
 from typing import Any
 
 import yaml
-from api_fakes import TUTORIAL_NODE, Harness
+from api_fakes import PROOF_PREFIX, TUTORIAL_NODE, Harness
 
 from opn_api import proposals
 
@@ -86,6 +86,8 @@ def test_duplicate_deps_are_collapsed_not_refused(harness: Harness) -> None:
 def test_a_dep_whose_statement_cannot_be_read_is_503(harness: Harness) -> None:
     """C7: a dep listed in graph.json whose Statement.lean the graph does not serve is an
     outage the caller is told about, not a Context.lean built from nothing."""
+    # F06-T14: the fake tree carries every fixture node's statement; this dep's is taken away.
+    harness.githost.files.pop(f"{PROOF_PREFIX}and-reassoc/Statement.lean")
     token = harness.token_for("code_alice", "alice")
     r = post(
         harness,
