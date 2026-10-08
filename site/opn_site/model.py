@@ -303,6 +303,41 @@ class CircularLabel:
 
 
 @dataclass(frozen=True)
+class Reference:
+    """One reference a literature record names: a title, a url the site links only through its
+    allowlist (F11-Q11; ``None`` when the record gives none) and a one-sentence note."""
+
+    title: str
+    url: str | None = None
+    note: str | None = None
+
+
+@dataclass(frozen=True)
+class LiteratureView:
+    """F04-T38 (D-25, D-32 v3.35): what the literature says of a statement, as the products
+    publish it (status, record, contributor; the confirming steward or curator and their record
+    when confirmed) plus what the record file itself carries (date, references, summary, the
+    model declared). ``readable`` is false when the row names a record the tree lacks or that
+    does not validate: the page then shows the products' facts and says the record could not be
+    read (C7), and the graph still has a site."""
+
+    status: str
+    record: str  # relative to the graph root
+    contributor: str
+    confirmed_by: str | None = None
+    confirmation: str | None = None  # relative to the graph root
+    date: str | None = None
+    references: tuple[Reference, ...] = ()
+    summary: str | None = None
+    model: str | None = None
+    readable: bool = True
+
+    @property
+    def confirmed(self) -> bool:
+        return self.confirmed_by is not None
+
+
+@dataclass(frozen=True)
 class NodeView:
     target_id: str
     node_id: str
@@ -342,6 +377,11 @@ class NodeView:
     #: (D-34) they are read from the merged claim files through the gate's own reader, as
     #: F08-T17 and F08-T20 read them, so the two cannot name different files.
     circular: tuple[CircularLabel, ...] = ()
+    #: F04-T38 (D-25 v3.35): the latest confirmed literature status and the latest proposal no
+    #: confirmed record covers (``graph/v6`` ``literature``, ``literature_proposed``); ``None``
+    #: on an older graph or when the row carries none.
+    literature: LiteratureView | None = None
+    literature_proposed: LiteratureView | None = None
     #: F08-T20 (D-12 v3.22): the merged circularity claims whose ancestor is this node
     #: (graph-root relative). The node stays open; its page names them.
     circular_below: tuple[str, ...] = ()
@@ -825,6 +865,49 @@ def load_node(root: Path, target_id: str, entry: dict[str, Any]) -> NodeView:
         superseded_record=replaced.path.relative_to(root).as_posix() if replaced else None,
         supersedes=str(predecessor) if predecessor else None,
         circular=_circular_labels(root, target_id, node_dir, entry),
+        literature=_literature_for(root, node_dir, entry.get("literature")),
+        literature_proposed=_literature_for(root, node_dir, entry.get("literature_proposed")),
+    )
+
+
+def _literature_for(root: Path, node_dir: Path, raw: object) -> LiteratureView | None:
+    """F04-T38: one of the row's literature fields as a view: the products' facts, then the
+    record file read by its own schema (``literature/v1``) for the date, references, summary
+    and model. A record that is missing or does not validate is logged and carried unreadable,
+    never raised on: one node's defect must not decide whether the graph has a site."""
+    if not isinstance(raw, dict):
+        return None
+    rel = str(raw.get("record") or "")
+    prefix = node_dir.relative_to(root).as_posix()
+    confirmation = raw.get("confirmation")
+    view = LiteratureView(
+        status=str(raw.get("status") or ""),
+        record=f"{prefix}/{rel}",
+        contributor=str(raw.get("contributor") or ""),
+        confirmed_by=str(raw["confirmed_by"]) if raw.get("confirmed_by") else None,
+        confirmation=f"{prefix}/{confirmation}" if confirmation else None,
+    )
+    try:
+        doc = schemas.load_yaml(node_dir / rel, "literature/v1")
+    except schemas.SchemaError as exc:
+        log.warning("%s: literature record %s could not be read: %s", node_dir.name, rel, exc)
+        return replace(view, readable=False)
+    references = tuple(
+        Reference(
+            title=str(r.get("title") or ""),
+            url=str(r["url"]) if r.get("url") else None,
+            note=str(r["note"]) if r.get("note") else None,
+        )
+        for r in doc.get("references") or []
+        if isinstance(r, dict)
+    )
+    model_ = doc.get("model_and_tooling")
+    return replace(
+        view,
+        date=str(doc.get("date") or "") or None,
+        references=references,
+        summary=str(doc.get("summary") or ""),
+        model=str(model_) if model_ else None,
     )
 
 

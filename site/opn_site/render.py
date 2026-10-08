@@ -27,6 +27,7 @@ from opn_site.model import (
     ADMITTED_BY_CURATOR,
     ChainView,
     LeanFile,
+    LiteratureView,
     NodeView,
     Placed,
     Prose,
@@ -80,6 +81,19 @@ def status_words(status: str, cause: str | None) -> str:
 
 #: F04-T37 (D-12 v3.35): the label's words, for the key, the panel and the row.
 CIRCULAR_LABEL_WORD = "proves an ancestor"
+#: F04-T38 (D-25 v3.35): a literature status's words — what is known, never how hard it is.
+LITERATURE_WORDS = {
+    "open": "Open problem: no proof is known",
+    "known": "Known: a proof is published and not formalised",
+    "elementary": "Elementary: a routine formalisation of a known fact",
+}
+#: The words a proposal awaits, and the service route the /me/ control confirms through (F23).
+LITERATURE_AWAITS = "awaiting a steward or curator"
+LITERATURE_CONFIRM_PATH = "/literature/confirm"
+
+
+def literature_words(status: str) -> str:
+    return LITERATURE_WORDS.get(status, status)
 
 
 #: F04-T15 (Q17): the statuses that owe nobody a witness. A node with an unfilled slot is
@@ -1868,10 +1882,45 @@ class Renderer:
                     found.append((href, what, "", "written"))
         return found
 
+    def literature_waiting(self, tv: TargetView) -> str:
+        """F04-T38 (D-25, D-32 v3.35): the target's unconfirmed literature records, one row per
+        node with what a confirmation needs as data (the node, the record relative to it, the
+        status, the references and the summary the proposal gave), hidden until me.js shows the
+        list to a steward of the target or a curator and adds the Confirm control (R15). Empty
+        when nothing waits, so the page carries no list for the target."""
+        rows = []
+        for nid, nv in sorted(tv.nodes.items()):
+            lit = nv.literature_proposed
+            if lit is None:
+                continue
+            node_dir = f"targets/{tv.target_id}/nodes/{nid}/"
+            rel = lit.record[len(node_dir) :] if lit.record.startswith(node_dir) else lit.record
+            refs = json.dumps(
+                [{"title": r.title, "url": r.url, "note": r.note} for r in lit.references],
+                ensure_ascii=False,
+            )
+            rows.append(
+                f'<li class="lit-row" data-node="{esc(nid)}" data-record="{esc(rel)}" '
+                f'data-status="{esc(lit.status)}" data-references="{esc(refs)}" '
+                f'data-summary="{esc(lit.summary or "")}">'
+                f'<a href="{esc(self.node_path(tv.target_id, nid))}">{esc(nid)}</a> · '
+                f"{esc(literature_words(lit.status))} · proposed by "
+                f"<code>{esc(lit.contributor)}</code>"
+                + (f" · {esc(lit.date)}" if lit.date else "")
+                + f" · {self.file_link(lit.record, label='record')}</li>"
+            )
+        if not rows:
+            return ""
+        return (
+            f'<ul class="literature-waiting" data-target="{esc(tv.target_id)}" hidden>'
+            f"{''.join(rows)}</ul>"
+        )
+
     def me(self) -> str:
         """R13: a static shell. Every problem's waiting sections are in it, hidden; me.js shows
         the signed-in login's roles, the waiting sections of the problems they steward, their
-        open pull requests and Step down, once the service answers (R15)."""
+        open pull requests and Step down, once the service answers (R15). F04-T38: each
+        problem's unconfirmed literature records are in it too, hidden the same way."""
         lists = []
         for tid, tv in sorted(self.site.targets.items()):
             rows = "".join(
@@ -1882,6 +1931,7 @@ class Renderer:
             )
             if rows:
                 lists.append(f'<ul class="waiting" data-target="{esc(tid)}" hidden>{rows}</ul>')
+            lists.append(self.literature_waiting(tv))
         body = (
             '<section class="page-head"><div><h1>My problems</h1>'
             '<p class="lead me-intro">Signed in with GitHub, this page lists your roles, the '
@@ -2336,6 +2386,83 @@ class Renderer:
             )
         return f'<p class="circular-label">{" ".join(lines)}</p>'
 
+    def literature_block(self, nv: NodeView) -> str:
+        """F04-T38 (D-25, D-32 v3.35): what the literature says of the statement. A confirmed
+        status is a fact: its words, who confirmed it, the records; then the references and the
+        summary, which is the contributor's text and is demarcated as such (D-31). A proposal
+        no confirmed record covers reads "Proposed by X, awaiting a steward or curator"; under a
+        confirmed status it is one line beneath. Nothing here colours or orders by the status."""
+        confirmed, proposed = nv.literature, nv.literature_proposed
+        if confirmed is None and proposed is None:
+            return ""
+        parts = []
+        if confirmed is not None:
+            lead = (
+                f"<strong>{esc(literature_words(confirmed.status))}</strong> &middot; confirmed by "
+                f"<code>{esc(confirmed.confirmed_by or '')}</code>"
+            )
+            parts.append(self.literature_entry(confirmed, lead))
+            if proposed is not None:
+                parts.append(
+                    '<p class="literature-later">A later proposal by '
+                    f"<code>{esc(proposed.contributor)}</code> "
+                    f"({esc(literature_words(proposed.status))}) awaits confirmation: "
+                    f"{self.file_link(proposed.record)}.</p>"
+                )
+        elif proposed is not None:
+            lead = (
+                f"Proposed by <code>{esc(proposed.contributor)}</code>, {LITERATURE_AWAITS}: "
+                f"<strong>{esc(literature_words(proposed.status))}</strong>"
+            )
+            parts.append(self.literature_entry(proposed, lead))
+        return (
+            '<div class="literature" data-block="literature"><span class="kicker">Literature '
+            f"status</span>{''.join(parts)}</div>"
+        )
+
+    def literature_entry(self, lit: LiteratureView, lead: str) -> str:
+        """One status's fact line, its references and its demarcated summary."""
+        records = [self.file_link(lit.record, label="record")]
+        if lit.confirmation and lit.confirmation != lit.record:
+            records.append(self.file_link(lit.confirmation, label="confirmation"))
+        when = f", {esc(lit.date)}" if lit.date else ""
+        head = f'<p class="literature-fact">{lead} ({" · ".join(records)}{when}).</p>'
+        if not lit.readable:
+            return head + (
+                '<p class="cue">Its record could not be read at this commit; only what the '
+                "products say of it is shown.</p>"
+            )
+        items = []
+        for ref in lit.references:
+            title = f'<a href="{esc(ref.url)}">{esc(ref.title)}</a>' if ref.url else esc(ref.title)
+            note = f" &mdash; {esc(ref.note)}" if ref.note else ""
+            items.append(f"<li>{title}{note}</li>")
+        refs = f'<ul class="literature-refs">{"".join(items)}</ul>' if items else ""
+        drafted = f", drafted with {esc(lit.model)}" if lit.model else ""
+        by = f"by {esc(lit.contributor)}{drafted}"
+        summary = (
+            '<div class="prose-block untrusted" data-block="literature-summary">'
+            + self.provenance(
+                "untrusted",
+                "a literature summary (D-25 v3.35): the contributor&rsquo;s reading, not a "
+                "verdict.",
+            )
+            + f'<p class="label">Untrusted: summary {by}. Rendered from '
+            f"{self.file_link(lit.record)}.</p>"
+            f'<div class="prose"><p>{esc(lit.summary or "")}</p></div></div>'
+        )
+        return head + refs + summary
+
+    def literature_renders(self, nv: NodeView) -> list[str]:
+        """The literature records a node's page links (R2)."""
+        found = []
+        for lit in (nv.literature, nv.literature_proposed):
+            if lit is not None:
+                found.append(lit.record)
+                if lit.confirmation:
+                    found.append(lit.confirmation)
+        return found
+
     def circular_chip(self, nv: NodeView) -> str:
         """F04-T37: the row's form of the label — the key's mark and "proves <ancestor>", with
         the glossary card on hover — so the listing says it and a filter can key on
@@ -2454,7 +2581,9 @@ class Renderer:
         else:
             action = f'<a class="btn btn-secondary btn-block" href="{href}">View the record →</a>'
         origin = str(e.get("origin", "")) + (f" ({e['relation']})" if e.get("relation") else "")
-        return _template("statement-panel.html").substitute(
+        return _template(
+            "statement-panel.html"
+        ).substitute(
             node_id=esc(nid),
             hidden="" if nid == tv.root else " hidden",
             state=esc(state),
@@ -2466,6 +2595,7 @@ class Renderer:
             revision=self.revision_note(tid, nv, in_page=True),
             closing=self.closing_note(tv, nv),
             outlines=self.outlines_block(tv, nv),
+            literature=self.literature_block(nv),  # F04-T38
             statement=esc(declaration_only(nv.statement)),
             sorry_note=sorry_note(nv.statement),
             thm=self.thm_label(tid, nid),
@@ -2939,6 +3069,7 @@ class Renderer:
         # F04-T37: the claims the node's labels link; F08-T20: those its note names, circling back.
         below = nv.circular_below if self.circular_below_note(nv) else ()
         renders.extend((*(label.claim for label in nv.circular), *below))
+        renders.extend(self.literature_renders(nv))  # F04-T38
         # F08-T36: the open claims the page links.
         renders.extend(
             f"targets/{tid}/nodes/{nid}/{c['file']}" for c in nv.open_claims if c.get("file")
@@ -2958,6 +3089,7 @@ class Renderer:
             wayfinding=self.wayfinding(),
             claimable=self.node_not_claimable(nv),
             defects=self.defect_claims_note(nv),
+            literature=self.literature_block(nv),  # F04-T38
             tutorial=(
                 '<p class="cue">The tutorial node: permanently open and off the ledger (D-27).</p>'
                 if nv.tutorial
@@ -4832,6 +4964,11 @@ def cited_urls(site: Site) -> frozenset[str]:
     for tv in site.targets.values():
         urls.update(str(s["link"]) for s in tv.stewards if s.get("link"))
         urls.update(str(w["url"]) for w in tv.writeups)
+        # F04-T38: a reference a validated literature record names (literature/v1, D-25 v3.35).
+        for nv in tv.nodes.values():
+            for lit in (nv.literature, nv.literature_proposed):
+                if lit is not None:
+                    urls.update(r.url for r in lit.references if r.url)
         if tv.record is None:
             continue
         urls.update(str(s["url"]) for s in tv.record.get("sources") or [])

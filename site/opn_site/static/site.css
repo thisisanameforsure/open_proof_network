@@ -527,6 +527,16 @@ main > h2 { padding-top: var(--s4); border-top: 1px solid var(--divider); }
 .circular-label a.file { overflow-wrap: anywhere; }
 .stmt .proves { display: inline-flex; align-items: center; gap: var(--s1); margin-left: var(--s2); color: var(--n400); white-space: nowrap; }
 .stmt .proves code { font-size: 12px; }
+/* F04-T38 (D-25 v3.35): a literature status — a fact in the neutral rule; no colour by status. */
+.literature { border-left: 2px solid var(--n600); padding-left: var(--s4); margin: var(--s4) 0; color: var(--n300); font-size: 14px; width: 100%; }
+.literature .kicker { color: var(--n500); }
+.literature-fact, .literature-later { margin: var(--s2) 0; overflow-wrap: anywhere; }
+.literature-fact strong { color: var(--n200); font-weight: 500; }
+.literature-refs { margin: var(--s2) 0; padding-left: 1.2em; line-height: 1.6; }
+.literature-refs li { overflow-wrap: anywhere; }
+.literature .prose-block { margin: var(--s3) 0 var(--s2); }
+.literature-waiting { padding-left: 1.2em; }
+.literature-waiting .lit-row { margin-bottom: var(--s2); overflow-wrap: anywhere; }
 .defect-claims { border-left: 2px dashed var(--bad); padding-left: var(--s4); color: var(--n300); font-size: 14px; }
 .defect-claims a.file { overflow-wrap: anywhere; }
 .revision-note .why { display: block; margin-top: var(--s2); color: var(--n500); font-size: 12.5px; overflow-wrap: anywhere; }
