@@ -667,6 +667,18 @@ def outline_mark(count: int, width: int) -> str:
     )
 
 
+def circular_mark(labelled: bool) -> str:
+    """F04-T37 (D-12 v3.35): a small tab on a pill's top left corner when the node carries a
+    circularity label — a merged claim proves that a proof of it is a proof of an ancestor. The
+    glyph is the implication's; the key defines it. The pill's status is untouched."""
+    if not labelled:
+        return ""
+    return (
+        '<g class="circular-mark" transform="translate(4,-7)">'
+        '<rect width="15" height="14" rx="3"/><text x="7.5" y="10.5">⇒</text></g>'
+    )
+
+
 #: F04-T33: the label over the statements no line joins.
 GROUP_LABEL = "Statements no line joins to the rest"
 
@@ -680,11 +692,13 @@ def svg(  # noqa: PLR0913 — the target's own names beside what the drawing mar
     root: str | None = None,
     prefix: str | None = None,
     names: dict[str, str] | None = None,
+    labelled: set[str] | None = None,
 ) -> str:
     """The SVG markup; ``href`` maps node ids to page paths (every id must be present). With
     ``proofs`` (F18-T2) every node and edge says which proofs of the target it is on; ``root``
     keeps the root in the tree and ``prefix`` (the target id) is dropped from labels (T33).
-    ``names`` (F22-T18, S) gives a pill's title the theorem name of an id that names nothing."""
+    ``names`` (F22-T18, S) gives a pill's title the theorem name of an id that names nothing;
+    ``labelled`` (F04-T37) are the nodes carrying a circularity label, drawn with its mark."""
     lay = layout(nodes, root=root, prefix=prefix)
     status = {p.node_id: p.status for p in lay.placed}
     parts = [
@@ -724,6 +738,7 @@ def svg(  # noqa: PLR0913 — the target's own names beside what the drawing mar
             f'<text x="28" y="{NODE_H // 2 + 5}">{escape(label)}</text>'
             f'<circle class="halo" cx="{p.w - 14}" cy="{NODE_H // 2}" r="3"/>'
             + outline_mark((outlines or {}).get(p.node_id, 0), p.w)
+            + circular_mark(p.node_id in (labelled or set()))
             + f"<title>{escape(p.node_id)}{named(p.node_id)}: {escape(p.status)}</title></g></a>"
         )
     parts.append("</svg>")

@@ -5,6 +5,10 @@
 // own open pull requests (the service's public GET /submissions.json, kept to their pseudonym) and
 // Step down per problem. Signed out it offers Sign in; with the service down it shows nothing more
 // than the shell (C7). Everything from the service is set as text.
+// F04-T38 (D-25, D-32 v3.35): each problem's unconfirmed literature records are in the shell too
+// (.literature-waiting, one .lit-row per record carrying what a confirmation needs as data); a
+// steward sees their problems' lists, a curator every problem's, each row with Confirm, which
+// calls POST /literature/confirm with the proposal's own fields.
 (function () {
   "use strict";
   var root = document.querySelector(".me[data-me]");
@@ -45,6 +49,39 @@
     li.appendChild(out);
   }
 
+  function parse(raw) { try { return JSON.parse(raw || "null"); } catch (e) { return null; } }
+
+  function confirmButton(li) {
+    var out = el("span", { "class": "form-error", role: "alert" });
+    var b = el("button", { type: "button", "class": "btn btn-ghost" }, "Confirm");
+    b.addEventListener("click", function () {
+      b.disabled = true;
+      var refs = parse(li.dataset.references);
+      O.call("POST", "/literature/confirm", {
+        node_id: li.dataset.node,
+        record: li.dataset.record,
+        status: li.dataset.status,
+        references: Array.isArray(refs) ? refs : [],
+        summary: li.dataset.summary || ""
+      }).then(function (r) {
+        if (r.status === 201) {
+          li.removeChild(b);
+          var p = el("span", { "class": "receipt" }, " Confirmation filed: ");
+          if (r.data && typeof r.data.pr_url === "string" && r.data.pr_url.indexOf(pulls) === 0) {
+            p.appendChild(el("a", { href: r.data.pr_url }, "#" + String(r.data.pr_number)));
+          }
+          li.appendChild(p);
+          return;
+        }
+        out.textContent = O.errorText(r);
+        b.disabled = false;
+      }, function () { out.textContent = O.errorText(null); b.disabled = false; });
+    });
+    li.appendChild(document.createTextNode(" "));
+    li.appendChild(b);
+    li.appendChild(out);
+  }
+
   O.session.then(function (s) {
     var intro = root.querySelector(".me-intro");
     if (!s.signed_in) {
@@ -78,6 +115,26 @@
       var li = el("p", { "class": "me-step-down" });
       stepDown(li, target, s.login);
       mine.appendChild(li);
+    });
+
+    // F04-T38: the literature records waiting for a steward's or curator's confirmation — the
+    // steward's problems, or for a curator every problem the shell carries a list for.
+    var lit = section("Literature statuses awaiting your confirmation");
+    var lists = Array.prototype.slice.call(root.querySelectorAll(".literature-waiting[data-target]"));
+    var confirmable = lists.filter(function (list) {
+      return s.curator || s.stewards.indexOf(list.dataset.target) >= 0;
+    });
+    if (!confirmable.length) {
+      lit.appendChild(el("p", { "class": "cue" }, "Nothing waits for your confirmation."));
+    }
+    confirmable.forEach(function (list) {
+      var head = el("h3", {});
+      head.appendChild(el("a", { href: "/problems/" + encodeURIComponent(list.dataset.target) + "/" },
+        list.dataset.target));
+      lit.appendChild(head);
+      list.hidden = false;
+      lit.appendChild(list);
+      Array.prototype.forEach.call(list.querySelectorAll(".lit-row"), confirmButton);
     });
 
     var prs = section("Your open pull requests");

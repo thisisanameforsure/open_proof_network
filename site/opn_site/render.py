@@ -27,6 +27,7 @@ from opn_site.model import (
     ADMITTED_BY_CURATOR,
     ChainView,
     LeanFile,
+    LiteratureView,
     NodeView,
     Placed,
     Prose,
@@ -63,19 +64,36 @@ CAUSE_WORDS = {
         "(propose it through /proposals/witness)"
     ),
     "dep-refuted": "blocked: a dependency was refuted",
-    "circular": "circular: it implies a statement it was meant to reduce, so no progress",
 }
-#: F08-T17 (D-16): the one cause that speaks of a node whatever its status — a merged
-#: circularity claim takes a ready node off the frontier as surely as a blocked one.
-CIRCULAR_CAUSE = "circular"
+#: F04-T37 (D-12 v3.35): the cause F08-T17 wrote under a merged circularity claim, retired with
+#: ``graph/v6``: the claim is a label on the row (``circular``), never a state. An older snapshot
+#: (D-34) still carries the word; it changes no words and no state here.
+RETIRED_CIRCULAR_CAUSE = "circular"
 
 
 def status_words(status: str, cause: str | None) -> str:
-    """A status's words, or its cause's where ``graph.json`` records one: a blocked node's cause
-    always, and ``circular`` on any status it is published with (F08-T17)."""
-    if cause and (status == "blocked" or cause == CIRCULAR_CAUSE):
+    """A status's words, or its cause's where ``graph.json`` records one for a blocked node. The
+    retired cause ``circular`` is not a reason (D-12 v3.35)."""
+    if cause and status == "blocked" and cause != RETIRED_CIRCULAR_CAUSE:
         return CAUSE_WORDS.get(cause, f"blocked: {cause}")
     return STATUS_WORDS.get(status, status)
+
+
+#: F04-T37 (D-12 v3.35): the label's words, for the key, the panel and the row.
+CIRCULAR_LABEL_WORD = "proves an ancestor"
+#: F04-T38 (D-25 v3.35): a literature status's words — what is known, never how hard it is.
+LITERATURE_WORDS = {
+    "open": "Open problem: no proof is known",
+    "known": "Known: a proof is published and not formalised",
+    "elementary": "Elementary: a routine formalisation of a known fact",
+}
+#: The words a proposal awaits, and the service route the /me/ control confirms through (F23).
+LITERATURE_AWAITS = "awaiting a steward or curator"
+LITERATURE_CONFIRM_PATH = "/literature/confirm"
+
+
+def literature_words(status: str) -> str:
+    return LITERATURE_WORDS.get(status, status)
 
 
 #: F04-T15 (Q17): the statuses that owe nobody a witness. A node with an unfilled slot is
@@ -345,15 +363,16 @@ GLOSSARY: tuple[tuple[str, str, str, str], ...] = (
         "repairs it with a new version; nobody edits a statement.",
         "defective (D-12, D-8)",
     ),
-    # F04-T26 (Q28): the one key a cause, not a status, puts on a statement (F08-T17).
+    # F04-T26 (Q28), restated by F04-T37 (D-12 v3.35): a label a merged claim puts on a
+    # statement, never a state; the pill carries a small mark and keeps its status.
     (
         "circular",
-        "circular",
-        "A merged defect claim proves, in Lean, that this statement implies a statement it was "
-        "meant to reduce, so any proof of it is a proof of that one and the route leads straight "
-        "back where it started. Not accepting work; a proof of it is still accepted, since it "
-        "would prove the statement above.",
-        "ready · cause circular · circular-decomposition claim (D-16, D-12)",
+        CIRCULAR_LABEL_WORD,
+        "A merged circularity claim proves, in Lean, that this statement implies a statement it "
+        "was cut from, so a proof of this one is also a proof of that ancestor. A fact about the "
+        "route, shown so a reader can choose: the statement keeps its status and stays open to "
+        "work, and nothing ranks it.",
+        "circular[] on the row · circular-decomposition claim (D-16, D-12 v3.35)",
     ),
     # F04-T33 (Q34): the solid line, which every drawing with a dependency shows.
     (
@@ -513,7 +532,7 @@ LEGEND_KEYS = (
 LEGEND_BASE = ("proved", "open", "blocked")
 #: The keys that wear a status dot wherever a legend shows them.
 DOTTED_KEYS = (*LEGEND_BASE, NEEDS_WITNESS)
-LEGEND_EXTRA = ("stale", "disputed", "superseded", "abandoned", "refuted", "defective", "circular")
+LEGEND_EXTRA = ("stale", "disputed", "superseded", "abandoned", "refuted", "defective")
 #: F04-T21 (Q23): the Docs state map's keys. Every status ``graph.json`` can publish, as the
 #: site's word (F03-Q8: ``speculative`` reads open, so nine words for ten statuses), and the seven
 #: words a problem's status tag can wear; each key item is the hover card those pages use.
@@ -528,7 +547,6 @@ STATE_MAP_STATEMENT_KEYS = (
     "disputed",
     "superseded",
     "abandoned",
-    "circular",
 )
 #: F04-T31 (F03-T17, D-33 as written): a resolved problem's word follows its root's status in
 #: ``graph.json`` — a counterexample or a vacuity certificate resolves a problem as a proof does,
@@ -1135,8 +1153,6 @@ class Renderer:
         """The row's word: proved, open (a claim could take it, F03-Q8) or the status itself."""
         if nv.status == "proved":
             return "proved"
-        if nv.cause == CIRCULAR_CAUSE:
-            return CIRCULAR_CAUSE  # F08-T17: off the frontier by a merged claim, whatever status
         if nv.status in CLAIMABLE_STATUSES:
             return "open"
         if nv.status == "blocked" and nv.cause == WITNESS_CAUSE:
@@ -1157,8 +1173,10 @@ class Renderer:
         status a statement in this graph has, each a glossary hover card with its dot."""
         present = {self.node_state(nv) for nv in tv.nodes.values()}
         keys = (*LEGEND_BASE, *(k for k in (NEEDS_WITNESS, *LEGEND_EXTRA) if k in present))
+        # F04-T37 (D-12 v3.35): the label's mark, when a statement of this problem carries one.
+        marks = ("circular",) if any(nv.circular for nv in tv.nodes.values()) else ()
         return "".join(
-            self.term(k, dot=True) for k in (*keys, *self.proof_legend(tv))
+            self.term(k, dot=True) for k in (*keys, *marks, *self.proof_legend(tv))
         ) + self.superseded_toggle(tv)
 
     @staticmethod
@@ -1686,6 +1704,8 @@ class Renderer:
         return _template("problem-row.html").substitute(
             state=esc(state),
             workable="1" if state in WORKABLE_STATES else "0",
+            circular="1" if nv.circular else "0",  # F04-T37: the label, for a filter
+            label=self.circular_chip(nv),
             dot=self.state_hover(nv),
             node=self.node_link(tv.target_id, nv.node_id),
             role=esc(self.node_role(tv, nv)),
@@ -1862,10 +1882,45 @@ class Renderer:
                     found.append((href, what, "", "written"))
         return found
 
+    def literature_waiting(self, tv: TargetView) -> str:
+        """F04-T38 (D-25, D-32 v3.35): the target's unconfirmed literature records, one row per
+        node with what a confirmation needs as data (the node, the record relative to it, the
+        status, the references and the summary the proposal gave), hidden until me.js shows the
+        list to a steward of the target or a curator and adds the Confirm control (R15). Empty
+        when nothing waits, so the page carries no list for the target."""
+        rows = []
+        for nid, nv in sorted(tv.nodes.items()):
+            lit = nv.literature_proposed
+            if lit is None:
+                continue
+            node_dir = f"targets/{tv.target_id}/nodes/{nid}/"
+            rel = lit.record[len(node_dir) :] if lit.record.startswith(node_dir) else lit.record
+            refs = json.dumps(
+                [{"title": r.title, "url": r.url, "note": r.note} for r in lit.references],
+                ensure_ascii=False,
+            )
+            rows.append(
+                f'<li class="lit-row" data-node="{esc(nid)}" data-record="{esc(rel)}" '
+                f'data-status="{esc(lit.status)}" data-references="{esc(refs)}" '
+                f'data-summary="{esc(lit.summary or "")}">'
+                f'<a href="{esc(self.node_path(tv.target_id, nid))}">{esc(nid)}</a> · '
+                f"{esc(literature_words(lit.status))} · proposed by "
+                f"<code>{esc(lit.contributor)}</code>"
+                + (f" · {esc(lit.date)}" if lit.date else "")
+                + f" · {self.file_link(lit.record, label='record')}</li>"
+            )
+        if not rows:
+            return ""
+        return (
+            f'<ul class="literature-waiting" data-target="{esc(tv.target_id)}" hidden>'
+            f"{''.join(rows)}</ul>"
+        )
+
     def me(self) -> str:
         """R13: a static shell. Every problem's waiting sections are in it, hidden; me.js shows
         the signed-in login's roles, the waiting sections of the problems they steward, their
-        open pull requests and Step down, once the service answers (R15)."""
+        open pull requests and Step down, once the service answers (R15). F04-T38: each
+        problem's unconfirmed literature records are in it too, hidden the same way."""
         lists = []
         for tid, tv in sorted(self.site.targets.items()):
             rows = "".join(
@@ -1876,6 +1931,7 @@ class Renderer:
             )
             if rows:
                 lists.append(f'<ul class="waiting" data-target="{esc(tid)}" hidden>{rows}</ul>')
+            lists.append(self.literature_waiting(tv))
         body = (
             '<section class="page-head"><div><h1>My problems</h1>'
             '<p class="lead me-intro">Signed in with GitHub, this page lists your roles, the '
@@ -2021,13 +2077,11 @@ class Renderer:
         per statement, then the record's detail sections as before."""
         tid = tv.target_id
         href = {nid: self.node_path(tid, nid) for nid in tv.nodes}
-        # T17: the pill wears the state the key and the rows name, not the bare graph status;
-        # T26: so a circular statement is drawn circular, never with the open ring of its status.
+        # T17: the pill wears the state the key and the rows name, not the bare graph status.
+        # T37 (D-12 v3.35): a circularity label is a mark on the pill, never its state.
         drawn = [
             {**n, "status": NEEDS_WITNESS}
             if n.get("status") == "blocked" and n.get("cause") == WITNESS_CAUSE
-            else {**n, "status": CIRCULAR_CAUSE}
-            if n.get("status") != "proved" and n.get("cause") == CIRCULAR_CAUSE
             else n
             for n in tv.graph["nodes"]
         ]
@@ -2037,6 +2091,7 @@ class Renderer:
             href=href,
             proofs=self.proof_marks(tv),
             outlines=outlines,
+            labelled={nid for nid, nv in tv.nodes.items() if nv.circular},
             root=tv.root,
             prefix=tid,
             names={
@@ -2306,7 +2361,119 @@ class Renderer:
         if nv.supersedes:
             parts.append(f"Revises {link(nv.supersedes)}, which it replaced (D-8).")
         note = f'<p class="revision-note">{" ".join(parts)}</p>' if parts else ""
-        return note + self.circular_below_note(nv)
+        label = self.circular_label_note(tid, nv, in_page=in_page)
+        return note + label + self.circular_below_note(nv)
+
+    def circular_label_note(self, tid: str, nv: NodeView, *, in_page: bool) -> str:
+        """F04-T37 (D-12 v3.35): the circularity labels the row carries, one neutral line per
+        entry: *a proof of this statement is a proof of <ancestor>*, the claim linked at the
+        commit. A fact, not a state: it says nothing of claimability or progress. The ancestor
+        links to its panel on the problem page and to its page on the node's own."""
+        if not nv.circular:
+            return ""
+        target = self.site.targets.get(tid)
+        known = target.nodes if target is not None else {}
+        lines = []
+        for label in nv.circular:
+            if label.ancestor in known:
+                href = f"#node={label.ancestor}" if in_page else self.node_path(tid, label.ancestor)
+                ancestor = f'<a href="{esc(href)}">{esc(label.ancestor)}</a>'
+            else:
+                ancestor = f"<code>{esc(label.ancestor)}</code>"
+            lines.append(
+                f"A proof of this statement is a proof of {ancestor} (claim "
+                f"{self.file_link(label.claim)}; D-12, D-16)."
+            )
+        return f'<p class="circular-label">{" ".join(lines)}</p>'
+
+    def literature_block(self, nv: NodeView) -> str:
+        """F04-T38 (D-25, D-32 v3.35): what the literature says of the statement. A confirmed
+        status is a fact: its words, who confirmed it, the records; then the references and the
+        summary, which is the contributor's text and is demarcated as such (D-31). A proposal
+        no confirmed record covers reads "Proposed by X, awaiting a steward or curator"; under a
+        confirmed status it is one line beneath. Nothing here colours or orders by the status."""
+        confirmed, proposed = nv.literature, nv.literature_proposed
+        if confirmed is None and proposed is None:
+            return ""
+        parts = []
+        if confirmed is not None:
+            lead = (
+                f"<strong>{esc(literature_words(confirmed.status))}</strong> &middot; confirmed by "
+                f"<code>{esc(confirmed.confirmed_by or '')}</code>"
+            )
+            parts.append(self.literature_entry(confirmed, lead))
+            if proposed is not None:
+                parts.append(
+                    '<p class="literature-later">A later proposal by '
+                    f"<code>{esc(proposed.contributor)}</code> "
+                    f"({esc(literature_words(proposed.status))}) awaits confirmation: "
+                    f"{self.file_link(proposed.record)}.</p>"
+                )
+        elif proposed is not None:
+            lead = (
+                f"Proposed by <code>{esc(proposed.contributor)}</code>, {LITERATURE_AWAITS}: "
+                f"<strong>{esc(literature_words(proposed.status))}</strong>"
+            )
+            parts.append(self.literature_entry(proposed, lead))
+        return (
+            '<div class="literature" data-block="literature"><span class="kicker">Literature '
+            f"status</span>{''.join(parts)}</div>"
+        )
+
+    def literature_entry(self, lit: LiteratureView, lead: str) -> str:
+        """One status's fact line, its references and its demarcated summary."""
+        records = [self.file_link(lit.record, label="record")]
+        if lit.confirmation and lit.confirmation != lit.record:
+            records.append(self.file_link(lit.confirmation, label="confirmation"))
+        when = f", {esc(lit.date)}" if lit.date else ""
+        head = f'<p class="literature-fact">{lead} ({" · ".join(records)}{when}).</p>'
+        if not lit.readable:
+            return head + (
+                '<p class="cue">Its record could not be read at this commit; only what the '
+                "products say of it is shown.</p>"
+            )
+        items = []
+        for ref in lit.references:
+            title = f'<a href="{esc(ref.url)}">{esc(ref.title)}</a>' if ref.url else esc(ref.title)
+            note = f" &mdash; {esc(ref.note)}" if ref.note else ""
+            items.append(f"<li>{title}{note}</li>")
+        refs = f'<ul class="literature-refs">{"".join(items)}</ul>' if items else ""
+        drafted = f", drafted with {esc(lit.model)}" if lit.model else ""
+        by = f"by {esc(lit.contributor)}{drafted}"
+        summary = (
+            '<div class="prose-block untrusted" data-block="literature-summary">'
+            + self.provenance(
+                "untrusted",
+                "a literature summary (D-25 v3.35): the contributor&rsquo;s reading, not a "
+                "verdict.",
+            )
+            + f'<p class="label">Untrusted: summary {by}. Rendered from '
+            f"{self.file_link(lit.record)}.</p>"
+            f'<div class="prose"><p>{esc(lit.summary or "")}</p></div></div>'
+        )
+        return head + refs + summary
+
+    def literature_renders(self, nv: NodeView) -> list[str]:
+        """The literature records a node's page links (R2)."""
+        found = []
+        for lit in (nv.literature, nv.literature_proposed):
+            if lit is not None:
+                found.append(lit.record)
+                if lit.confirmation:
+                    found.append(lit.confirmation)
+        return found
+
+    def circular_chip(self, nv: NodeView) -> str:
+        """F04-T37: the row's form of the label — the key's mark and "proves <ancestor>", with
+        the glossary card on hover — so the listing says it and a filter can key on
+        ``data-circular``."""
+        if not nv.circular:
+            return ""
+        ancestors = ", ".join(esc(label.ancestor) for label in nv.circular)
+        _word, meaning, proto = self.words["by_key"]["circular"]
+        body = f'{esc(meaning)}<span class="proto">protocol: {esc(proto)}</span>'
+        chip = self.hover(f"{self.dot('circular')}proves <code>{ancestors}</code>", body)
+        return f' <span class="proves">{chip}</span>'
 
     def defect_claims_note(self, nv: NodeView) -> str:
         """F08-T36 (D-16 v3.28): every open defect claim against the statement — its class, its
@@ -2351,10 +2518,9 @@ class Renderer:
         return (
             '<p class="circular-note">'
             f"{'A merged circularity claim shows' if one else 'Merged circularity claims show'} "
-            "that a statement meant to reduce this one implies it, so a proof of it would be a "
-            f"proof of this one and that decomposition made no progress (D-12, D-16): {claims}. "
-            "This statement stays open: a direct proof, or a different decomposition, is "
-            "welcome.</p>"
+            "that a statement cut from this one implies it, so a proof of that one is a proof "
+            f"of this one too (D-12, D-16): {claims}. This statement stays open: a direct proof, "
+            "or a different decomposition, is welcome.</p>"
         )
 
     def closing_note(self, tv: TargetView, nv: NodeView) -> str:
@@ -2415,7 +2581,9 @@ class Renderer:
         else:
             action = f'<a class="btn btn-secondary btn-block" href="{href}">View the record →</a>'
         origin = str(e.get("origin", "")) + (f" ({e['relation']})" if e.get("relation") else "")
-        return _template("statement-panel.html").substitute(
+        return _template(
+            "statement-panel.html"
+        ).substitute(
             node_id=esc(nid),
             hidden="" if nid == tv.root else " hidden",
             state=esc(state),
@@ -2427,6 +2595,7 @@ class Renderer:
             revision=self.revision_note(tid, nv, in_page=True),
             closing=self.closing_note(tv, nv),
             outlines=self.outlines_block(tv, nv),
+            literature=self.literature_block(nv),  # F04-T38
             statement=esc(declaration_only(nv.statement)),
             sorry_note=sorry_note(nv.statement),
             thm=self.thm_label(tid, nid),
@@ -2897,9 +3066,10 @@ class Renderer:
         renders.extend(f.path for f in (nv.witness, nv.relation) if f is not None)
         if nv.superseded_record is not None:
             renders.append(nv.superseded_record)
-        # F08-T17: the claim this node rests on; F08-T20: those its note names, circling back.
+        # F04-T37: the claims the node's labels link; F08-T20: those its note names, circling back.
         below = nv.circular_below if self.circular_below_note(nv) else ()
-        renders.extend(c for c in (nv.circular_claim, *below) if c is not None)
+        renders.extend((*(label.claim for label in nv.circular), *below))
+        renders.extend(self.literature_renders(nv))  # F04-T38
         # F08-T36: the open claims the page links.
         renders.extend(
             f"targets/{tid}/nodes/{nid}/{c['file']}" for c in nv.open_claims if c.get("file")
@@ -2919,6 +3089,7 @@ class Renderer:
             wayfinding=self.wayfinding(),
             claimable=self.node_not_claimable(nv),
             defects=self.defect_claims_note(nv),
+            literature=self.literature_block(nv),  # F04-T38
             tutorial=(
                 '<p class="cue">The tutorial node: permanently open and off the ledger (D-27).</p>'
                 if nv.tutorial
@@ -3070,14 +3241,6 @@ class Renderer:
         """F04-T10: a node a claim could take (F03-Q8) under a target that is not claimable says
         so on its own page, in the target's reasons. A node whose target has no index row (never
         the case for a loaded site) says nothing, since there is no record to state."""
-        if nv.cause == CIRCULAR_CAUSE:
-            claim = self.file_link(nv.circular_claim) if nv.circular_claim else "its defects/"
-            return (
-                '<p class="why-not">Not claimable: a merged circularity claim proves that this '
-                "statement implies a statement it was meant to reduce, so any proof of it is a "
-                f"proof of that one and the route leads straight back (D-16). The claim and its "
-                f"Lean exhibit: {claim}. A proof of it is still a proof.</p>\n"
-            )
         tv = self.site.targets.get(nv.target_id)
         if tv is None or nv.status not in CLAIMABLE_STATUSES:
             return ""
@@ -4801,6 +4964,11 @@ def cited_urls(site: Site) -> frozenset[str]:
     for tv in site.targets.values():
         urls.update(str(s["link"]) for s in tv.stewards if s.get("link"))
         urls.update(str(w["url"]) for w in tv.writeups)
+        # F04-T38: a reference a validated literature record names (literature/v1, D-25 v3.35).
+        for nv in tv.nodes.values():
+            for lit in (nv.literature, nv.literature_proposed):
+                if lit is not None:
+                    urls.update(r.url for r in lit.references if r.url)
         if tv.record is None:
             continue
         urls.update(str(s["url"]) for s in tv.record.get("sources") or [])

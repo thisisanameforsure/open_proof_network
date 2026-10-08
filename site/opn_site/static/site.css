@@ -103,8 +103,10 @@ main > .crumbs, main > h1:first-child { margin-top: calc(var(--s8) * 1.6); }
 /* F04-T14: the other statuses wear the node pages' colours — amber waits on a repair, red is off the route */
 .dot-stale, .dot-disputed { border-color: var(--warn); }
 .dot-superseded, .dot-abandoned, .dot-refuted, .dot-defective { border-color: var(--bad); }
-/* F04-T26: circular is off the route by a merged claim, not by a failure: a dotted red ring */
-.dot-circular { border-color: var(--bad); border-style: dotted; }
+/* F04-T37 (D-12 v3.35): the circularity label's mark — a small tab carrying the implication, the
+   same mark the pill wears; a fact about the route, so a neutral colour, never a state's ring. */
+.dot-circular { width: 15px; height: 14px; border-radius: 3px; border: 1px solid var(--n500); background: var(--bg); vertical-align: -3px; position: relative; }
+.dot-circular::after { content: "⇒"; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 10px; line-height: 1; color: var(--n300); }
 /* F18-T2: the proof drawing's key swatches: a filled square for on the proof, a faint ring for
    not needed, a dashed bar for a used lemma's line, a dotted ring for a reading not measured. */
 .dot-on-proof { background: var(--accent); border-color: var(--accent); border-radius: 2px; }
@@ -254,7 +256,8 @@ main > .crumbs, main > h1:first-child { margin-top: calc(var(--s8) * 1.6); }
 .dag .status-needs-witness circle { stroke: var(--accent); stroke-dasharray: 2 2; }
 .dag .status-stale circle, .dag .status-disputed circle { stroke: var(--warn); }
 .dag .status-superseded circle, .dag .status-abandoned circle, .dag .status-refuted circle, .dag .status-defective circle { stroke: var(--bad); }
-.dag .status-circular circle { stroke: var(--bad); stroke-dasharray: 1.5 2; }
+.dag .circular-mark rect { fill: var(--bg); stroke: var(--n500); stroke-width: 1; }
+.dag .circular-mark text { fill: var(--n300); font-family: var(--sans, inherit); font-size: 10px; text-anchor: middle; }
 .dag .status-superseded rect, .dag .status-abandoned rect { stroke-dasharray: 4 3; }
 .dag .status-superseded text, .dag .status-abandoned text { fill: var(--n500); }
 .dag a:hover rect, .dag a:focus-visible rect { stroke: var(--accent); }
@@ -357,7 +360,6 @@ pre.statement.st-superseded, pre.statement.st-abandoned { border-left-color: var
 .status-ready .mark, .status-speculative .mark { border-color: var(--accent); }
 .status-stale .mark, .status-disputed .mark { border-color: var(--warn); }
 .status-superseded .mark, .status-abandoned .mark, .status-refuted .mark { border-color: var(--bad); }
-.status-circular .mark { border-color: var(--bad); border-style: dotted; }
 .status-revoked { color: var(--bad); }
 .result-pass { color: var(--accent-300); }
 .result-fail { color: var(--bad); }
@@ -517,9 +519,24 @@ main > h2 { padding-top: var(--s4); border-top: 1px solid var(--divider); }
 .revision-note { border-left: 2px solid var(--bad); padding-left: var(--s4); color: var(--n300); font-size: 14px; }
 .closing-note { border-left: 2px solid var(--n600); padding-left: var(--s4); color: var(--n300); font-size: 14px; }
 .closing-note code { overflow-wrap: anywhere; }
-/* F08-T20: an ancestor a circularity claim circles back to: open, one route closed (dotted, as circular). */
-.circular-note { border-left: 2px dotted var(--bad); padding-left: var(--s4); color: var(--n300); font-size: 14px; }
+/* F08-T20: an ancestor a circularity claim circles back to: open, one route proves it too. */
+.circular-note { border-left: 2px dotted var(--n500); padding-left: var(--s4); color: var(--n300); font-size: 14px; }
 .circular-note a.file { overflow-wrap: anywhere; }
+/* F04-T37 (D-12 v3.35): the label on a node — a fact, in the closing note's neutral rule. */
+.circular-label { border-left: 2px solid var(--n600); padding-left: var(--s4); color: var(--n300); font-size: 14px; }
+.circular-label a.file { overflow-wrap: anywhere; }
+.stmt .proves { display: inline-flex; align-items: center; gap: var(--s1); margin-left: var(--s2); color: var(--n400); white-space: nowrap; }
+.stmt .proves code { font-size: 12px; }
+/* F04-T38 (D-25 v3.35): a literature status — a fact in the neutral rule; no colour by status. */
+.literature { border-left: 2px solid var(--n600); padding-left: var(--s4); margin: var(--s4) 0; color: var(--n300); font-size: 14px; width: 100%; }
+.literature .kicker { color: var(--n500); }
+.literature-fact, .literature-later { margin: var(--s2) 0; overflow-wrap: anywhere; }
+.literature-fact strong { color: var(--n200); font-weight: 500; }
+.literature-refs { margin: var(--s2) 0; padding-left: 1.2em; line-height: 1.6; }
+.literature-refs li { overflow-wrap: anywhere; }
+.literature .prose-block { margin: var(--s3) 0 var(--s2); }
+.literature-waiting { padding-left: 1.2em; }
+.literature-waiting .lit-row { margin-bottom: var(--s2); overflow-wrap: anywhere; }
 .defect-claims { border-left: 2px dashed var(--bad); padding-left: var(--s4); color: var(--n300); font-size: 14px; }
 .defect-claims a.file { overflow-wrap: anywhere; }
 .revision-note .why { display: block; margin-top: var(--s2); color: var(--n500); font-size: 12.5px; overflow-wrap: anywhere; }
