@@ -1012,6 +1012,8 @@ def test_signature_count(tmp_path: Path) -> None:
             "stewards",  # F15: v6
             "digestion",
             "calibration",
+            "panel",  # F24: v9
+            "writeups",
         ):
             entry.pop(key, None)
         for key in ("refuted", "defective"):
@@ -1207,7 +1209,7 @@ def test_index_carries_the_qa_state_attempts_and_drift(tmp_path: Path) -> None:
     assert row["claimable"] is False and "upstream-drift" in row["not_claimable"]
     assert (
         schemas.violations(
-            json.loads(generate(root).files[Path("targets/index.json")]), "targets-index/v8"
+            json.loads(generate(root).files[Path("targets/index.json")]), products.INDEX_SCHEMA
         )
         == []
     )
@@ -1226,9 +1228,12 @@ def test_index_v6_fields(tmp_path: Path) -> None:
     harness.take_in(root)
     prod = generate(root)
     index = loads(prod, "targets/index.json")
-    assert schemas.violations(index, "targets-index/v8") == []  # v8 (F23-R14): steward fields
-    assert index["schema"] == "targets-index/v8"
-    assert index["policy"] == {"steward_rule": {"enforced": False, "since": None, "evidence": None}}
+    # The index validates as the version the gate emits (v6's fields are in every later one;
+    # v8: F23-R14's steward fields; v9: F24-R6's panel, test_targets_index_v9).
+    assert index["schema"] == products.INDEX_SCHEMA == "targets-index/v9"
+    assert schemas.violations(index, products.INDEX_SCHEMA) == []
+    assert index["policy"]["steward_rule"] == {"enforced": False, "since": None, "evidence": None}
+    assert index["policy"]["panel"] == policymod.Policy().panel.as_dict()  # defaults, no file
     row = f11_row(root, prod)
     assert row["stewards"] == [] and row["calibration"] is False
     assert row["digestion"] == {

@@ -114,7 +114,8 @@ class Steward:
     via: str = signed.VIA_SSH
 
     def as_dict(self) -> dict[str, Any]:
-        """The shape ``targets-index/v8`` publishes (F23-R14)."""
+        """The shape ``targets-index/v8`` publishes (F23-R14); v9 adds ``last_act`` and
+        ``lapsed`` beside it in ``products.panel_facts`` (F24-R4)."""
         return {
             "login": self.login,
             "name": self.name,

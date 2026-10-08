@@ -1,0 +1,53 @@
+F24-T4 — targets-index/v9: panel settings, steward lapse, panel motions, write-ups (R4 claimability, R6, R7; AC8)
+Worktree /Users/mikehiggins/Desktop/repos/opn-f24-t4, branch f24-t4, 2026-10-08.
+
+== RED (seam products.render_day added at its rule; nothing plumbed) ==
+uv run pytest -q -p no:cacheprovider --basetemp=/private/tmp/claude-501/f24-pt/t4 gate/tests/test_targets_index_v9.py
+E           opn_gate.schemas.SchemaError: document does not satisfy 'targets-index/v8': $['targets'][0]['stewards'][3]['admitted_by']: 'motion:1' is not valid under any of the given schemas
+E       KeyError: 'panel'
+E       KeyError: 'lapsed'
+>       assert [t["state"] for t in row_of(later)["panel"]["motions"]] == ["failed"]
+E       KeyError: 'panel'
+FAILED gate/tests/test_targets_index_v9.py::test_the_index_publishes_the_panel_its_motions_and_write_ups
+FAILED gate/tests/test_targets_index_v9.py::test_a_target_with_no_panel_records_publishes_empty_ones
+FAILED gate/tests/test_targets_index_v9.py::test_a_lapsed_steward_does_not_make_a_target_claimable
+FAILED gate/tests/test_targets_index_v9.py::test_two_generations_are_byte_identical
+4 failed, 1 passed in 3.84s
+(the 1 pass is render_day's own rule test; each failure is a missing field or the v8 schema
+ refusing admitted_by motion:1, not a missing name)
+
+== GREEN ==
+targeted: gate test_products, test_targets_index_v8, test_targets_index_v9, test_panel,
+test_writeup_stages, test_schemas, test_curator, and every api/site test file that reads the
+index, the goldens or a generated graph (grep -rl 'golden/products|targets/index.json|
+build_with_stewards|generate(|targets-index' site/tests api/tests), -m 'not lean and not docker':
+624 passed, 1 skipped, 2 warnings in 239.44s (0:03:59)
+(the skip: test_web_flows, no playwright in this venv)
+after ruff format: v9 + v8 + test_products + test_fixture_is_golden: 58 passed
+make lint: exit 0 (All checks passed; 707 files already formatted)
+make types: exit 0 (gate, api, site: no issues)
+
+A first green run had one failure that changed the rule: site/tests/test_render_stewards
+renders at NOW=2026-09-09 a steward record dated 2026-09-16, so reading the panel on the
+commit day alone dropped a steward the tree holds and made the target no-steward. The rule
+became the later of the commit day and the target's latest signed act (below).
+
+== The 'today' rule (D-5) ==
+products.render_day(commit_time, acts=...): the later of the rendered commit's committer day
+(UTC; generate always has it, the CLI passes graph.commit_timestamp, which is git's %cI, not
+the clock) and the target's latest signed act; with neither, EPOCH_DAY = 1970-01-01.
+Tested: test_render_day_is_the_commit_day_and_never_the_clock.
+
+== D-5 check ==
+test_two_generations_are_byte_identical: two generate() runs over one tree and commit give
+identical targets/index.json bytes; a later commit_time, and only that, moves an open motion
+to failed.
+
+== Fixture recipe ==
+Gate goldens:   cd gate/tests && PYTHONPATH=..:. uv run python -c "import test_products; test_products.write_goldens()"
+API fixtures:   cd api/tests && PYTHONPATH=../../gate:../../gate/tests uv run python -c "import test_fixture_is_golden as t; t.write_fixtures()"
+(test_fixture_is_golden.py IS the recipe since F15; RECIPES = listed, frozen, stewardless;
+ rendered_from 5*40, commit_time 2026-09-09T12:00:00Z). Diff reviewed by eye: in all six files
+only schema v8->v9, policy.panel (the six defaults, since/reason null), and per target
+panel {members: [], motions: []} and writeups {official: null, items: []}; info.json and the
+frontier fixtures unchanged (v9 was already in the registry from F24-T1).

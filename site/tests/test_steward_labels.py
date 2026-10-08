@@ -53,8 +53,8 @@ def v2_record(login: str, admitted_by: str, *, action: str = "commit") -> dict[s
 
 def add_v2_stewards(root: Path) -> None:
     """Two v2 commits on the stewardless target — one self-admitted, one admitted by a curator
-    (an earlier self commit by the same login stepped down first) — and the targets-index/v8 rows
-    the products would publish for them."""
+    (an earlier self commit by the same login stepped down first) — and the targets-index rows
+    (v8's fields, with v9's last_act and lapsed) the products would publish for them."""
     directory = root / "targets" / STEWARDLESS_TARGET / "stewards"
     directory.mkdir(exist_ok=True)
     docs = [
@@ -77,6 +77,8 @@ def add_v2_stewards(root: Path) -> None:
                     "since": "2026-10-07",
                     "admitted_by": "self",
                     "via": "approval-key",
+                    "last_act": "2026-10-07",  # v9 (F24-R4): the latest signed act, and
+                    "lapsed": False,  # whether it is too old to sit on the panel
                 },
                 {
                     "login": REVIEWED_LOGIN,
@@ -85,6 +87,8 @@ def add_v2_stewards(root: Path) -> None:
                     "since": "2026-10-07",
                     "admitted_by": CURATOR,
                     "via": "approval-key",
+                    "last_act": "2026-10-07",  # v9 (F24-R4): the latest signed act, and
+                    "lapsed": False,  # whether it is too old to sit on the panel
                 },
             ]
     index_path.write_text(json.dumps(index))
