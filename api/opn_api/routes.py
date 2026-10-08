@@ -72,11 +72,8 @@ D35_POST_APPROVALS = "POST /approvals"
 D35_OWNED_BY_F23: frozenset[str] = frozenset(
     {D35_GET_SESSION, D35_POST_SESSION_END, D35_POST_STEWARDS, D35_POST_APPROVALS}
 )
-# The literature routes (D-25, D-32 v3.35; F05-T29, F23-T12). Each opens a pull request that
-# appends one schema-checked ``literature/v1`` file under the node, which is D-35's append row
-# verbatim; v3.35 added the record to D-3's layout and the duty to D-32 without a row of its own
-# in D-35's table, so the endpoints are named here and their ``d35`` is the append row. When
-# D-35 gains the endpoint rows, ``d35`` becomes these constants and nothing else moves.
+# The literature row (D-35 v3.35; F05-T29, F23-T12): each opens a pull request that appends one
+# schema-checked ``literature/v1`` file under the node, by the endpoint D-35 names.
 D35_POST_LITERATURE = "POST /literature"
 D35_POST_LITERATURE_CONFIRM = "POST /literature/confirm"
 LITERATURE_ROUTES: frozenset[str] = frozenset({D35_POST_LITERATURE, D35_POST_LITERATURE_CONFIRM})
@@ -263,7 +260,7 @@ ROUTES: tuple[RouteSpec, ...] = (
         "POST",
         "/literature",
         "literature:post_literature",
-        D35_APPEND_PR,
+        D35_POST_LITERATURE,
         authenticated=True,
         feature="F05",
     ),
@@ -274,7 +271,7 @@ ROUTES: tuple[RouteSpec, ...] = (
         "POST",
         "/literature/confirm",
         "literature:post_confirm",
-        D35_APPEND_PR,
+        D35_POST_LITERATURE_CONFIRM,
         authenticated=True,
         feature="F23",
         web=True,

@@ -98,9 +98,9 @@ with its single home:
   workflow.</li>
   <li><strong>Approval signing key</strong> (ed25519, <code>OPN_APPROVAL_SIGNING_KEY</code>): held by
   the service in its own secret store and nowhere else; its public half is committed to the graph as
-  <code>keys/approval.pub</code>. It signs steward records and words approvals made through the site
-  (D-32 v3.33, D-3 v3.33, F23) and nothing else (added 2026-10-07). Losing it costs approvals until it is
-  rotated; leaking it lets its holder forge a steward or an approval, which is visible on the record and
+  <code>keys/approval.pub</code>. It signs steward records, words approvals and literature confirmations made through the site
+  (D-32 v3.33, D-3 v3.33, D-25 v3.35, F23) and nothing else (added 2026-10-07; literature 2026-10-08). Losing it costs approvals until it is
+  rotated; leaking it lets its holder forge a steward, an approval or a literature confirmation, which is visible on the record and
   undone by withdrawal and rotation. It cannot change a verdict, because no gate step reads an
   approval (D-5).</li>
   <li><strong>Model key</strong> (<code>OPENROUTER_API_KEY</code>): the OpenRouter API key (the

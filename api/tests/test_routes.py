@@ -39,6 +39,7 @@ def test_routes_match_d35() -> None:
     owned |= routes.D35_OWNED_BY_F13  # F13-T3: D-35 v3.14's check_lean row
     owned |= routes.D35_OWNED_BY_F20  # F20-T6: D-35 v3.30's submit_gloss, withdraw_gloss row
     owned |= routes.D35_OWNED_BY_F23  # F23: D-35 v3.33's web session, stewards, approvals row
+    owned |= routes.LITERATURE_ROUTES  # F05-T29, F23-T12: D-35 v3.35's literature row
     assert rows >= owned, rows
     # The append row names no endpoint: D-35's plain path for the three append tools is the
     # pull request itself, quoted here verbatim so a reworded decision fails this test.
@@ -51,6 +52,7 @@ def test_routes_match_d35() -> None:
         | routes.D35_OWNED_BY_F13
         | routes.D35_OWNED_BY_F20
         | (routes.D35_OWNED_BY_F23 - {routes.D35_GET_SESSION})  # GET /session is a read
+        | routes.LITERATURE_ROUTES
     )
     assert routes.D35_PROPOSAL_PR in d35_text()  # F08's rows, verbatim like the append row
     assert routes.D35_CLAIM_PR in d35_text()

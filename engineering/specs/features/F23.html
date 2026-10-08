@@ -334,6 +334,7 @@ v3.33 must be applied first (T0).</p>
     defaulted. The preview inserts the service's own escaping renderer's HTML. <code>/me/</code> lists open
     pull requests from the public <code>/submissions.json</code> filtered by pseudonym, since
     <code>/submissions/mine</code> takes a bearer token only.</td></tr>
+  <tr><td>F23-Q13</td><td><strong><code>POST /literature/confirm</code> (T12, 2026-10-08; D-25, D-32 v3.35).</strong> The signed half of a literature status: a web session or a GitHub-proved bearer (as <code>POST /stewards</code>), an active steward of the target or a curator, else <code>403 not-steward-or-curator</code>. The record is written as the login, <code>via: approval-key</code>, signed by <code>stewards.sign_record</code> over the canonical body the gate verifies, so one signer serves three record kinds (steward, approval, literature). <code>confirms</code> names a proposal on the node at the service&rsquo;s commit, or is null for the signer&rsquo;s own statement; the given status may correct the proposal&rsquo;s, which is never edited. Rate-limited with approvals. Whether the signer&rsquo;s role holds at the merge is the gate&rsquo;s (F08-T40).</td></tr>
 </table>
 
 <h2>10. Status</h2>
@@ -346,7 +347,7 @@ v3.33 must be applied first (T0).</p>
   tests red under a mutant that adds <code>curate/</code>) · T8–T10 ✓ (0f88cfe, 5b37c3c, 7934422, db9d955;
   red 13, 4+1, 2; 16 screenshots at 1440 and 390, looked at; Q12) · merged <code>main</code>: lint and types
   clean, fast tier 4737 passed, the graph-copy drift alone red; <code>test_web_flows.py</code> 8 passed with
-  Playwright · T11 ✓ 2026-10-07 (approval key in Parameter Store; api-deploy 37610305154; images gate-2bc5605; graph re-pin e9c96365e with keys/approval.pub and six schemas, pregate pass; render a17a426bf, frontier 35/32 unchanged; site deployed; live probes in task-11.txt) · AC13 (the owner stewards a problem live) open</div>
+  Playwright · T11 ✓ 2026-10-07 (approval key in Parameter Store; api-deploy 37610305154; images gate-2bc5605; graph re-pin e9c96365e with keys/approval.pub and six schemas, pregate pass; render a17a426bf, frontier 35/32 unchanged; site deployed; live probes in task-11.txt) · AC13 (the owner stewards a problem live) open &middot; <strong>T12 &#10003; 2026-10-08</strong> (Q13; red first 20, green 20; api suite 1721; the landed record verifies by <code>ssh-keygen -Y verify</code>; <code>engineering/evidence/F23/task-12.txt</code>; live at the next api deploy)</div>
 
 <h2>Tasks</h2>
 <p class="status-note">Dependency-ordered. Red before green: each new test fails on the missing
@@ -377,6 +378,9 @@ behaviour with the seam in at today's behaviour.</p>
   <tr><td>F23-T10</td><td>Guide: the stewards section in under a screen, pointing at the form.</td><td><code>site/opn_site/templates/docs.html</code>, the graph's <code>AGENTS.md</code> copy</td><td>T8</td><td>the docs-as-tests runner</td></tr>
   <tr><td>F23-T11</td><td>Deploy: the approval key into the secret store, <code>keys/approval.pub</code> and <code>policy.json</code> (<em>open</em>) on the graph, re-pin, stack parameters, site deploy.</td>
     <td>stack templates, <code>../open_proof_network_graph/keys/approval.pub</code>, <code>../open_proof_network_graph/policy.json</code></td><td>T1–T10</td><td>AC13 (the owner's)</td></tr>
+  <tr><td>F23-T12</td><td><strong><code>POST /literature/confirm</code>: a steward or curator confirms a node&rsquo;s literature status, signed by the approval key (Q13).</strong> Decisions v3.35; red first.</td>
+    <td><code>api/opn_api/literature.py</code>, <code>api/opn_api/routes.py</code>, <code>api/tests/test_finding_literature_confirm.py</code>, <code>engineering/evidence/F23/task-12.txt</code></td>
+    <td>T6, F05-T29</td><td><code>uv run --frozen pytest api/tests -k literature</code></td></tr>
 </table>
 </body>
 </html>
