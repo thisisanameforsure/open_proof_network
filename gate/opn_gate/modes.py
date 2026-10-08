@@ -1772,7 +1772,9 @@ def check_motion_record(
     opener = str(doc["opened_by"])
     subject = doc["subject"]
     try:
-        on_panel = panel.members(graph_root, target_id, opened, settings=settings, signer=verifier)
+        on_panel = panel.members(
+            graph_root, target_id, opened, settings=settings, signer=verifier, before_motion=n
+        )
         if opener not in on_panel and opener not in curators:
             found.append(
                 Diagnostic(

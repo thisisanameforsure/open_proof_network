@@ -508,3 +508,20 @@ def test_eligible_voters_list_provers_and_curators_where_curators_count(world: W
 def test_eligible_voters_of_no_motion_is_an_error(world: World) -> None:
     with pytest.raises(panel.PanelError):
         panel.eligible_voters(world.root, "t", 3, signer=SIGNER)
+
+
+def test_a_lapsed_steward_does_not_rejoin_through_their_own_motion(world: World) -> None:
+    """F24-T3's Q-c, decided the other way: a motion is put to the panel as it stood before it,
+    so a lapsed steward's own motion (or their vote on one) does not seat them; they rejoin by a
+    new steward record (F24-R4)."""
+    world.commit("ann", 0)
+    world.commit("ben", 0, admitted_by="carol")
+    world.commit("cat", 0, admitted_by="carol")
+    settings = panel.Settings(lapse_days=30)
+    world.vote("ann", world.motion("ann", 35), "yes", 35)  # ann keeps herself active
+    world.vote("ben", world.motion("ann", 35), "yes", 35)  # ben's vote keeps him active too
+    n = world.motion("cat", 60)  # cat last acted on day 0: lapsed by day 60
+    on = D0 + dt.timedelta(days=60)
+    assert panel.members(
+        world.root, "t", on, settings=settings, signer=SIGNER, before_motion=n
+    ) == ("ann", "ben")

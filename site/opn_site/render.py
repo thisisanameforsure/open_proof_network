@@ -2806,9 +2806,9 @@ class Renderer:
         panel = tv.panel
         if panel is None:
             return f"<p>This index predates the panel (targets-index/v9); see {rules}.</p>"
-        by_login = {str(s["login"]): s for s in tv.stewards}
+        by_login = {str(s["login"]): s for s in tv.all_stewards}
         members = [str(m) for m in panel.get("members") or []]
-        lapsed = [s for s in tv.stewards if s.get("lapsed")]
+        lapsed = [s for s in tv.all_stewards if s.get("lapsed")]
         motions = [dict(m) for m in panel.get("motions") or []]
         items = self.writeup_items(tv)
         parts: list[str] = []

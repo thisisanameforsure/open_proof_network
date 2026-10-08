@@ -286,10 +286,18 @@ def words_signers(target_dir: Path) -> frozenset[str]:
 
 
 def acts(
-    graph_root: Path, target_id: str, *, signer: Signer, verified: _Verified | None = None
+    graph_root: Path,
+    target_id: str,
+    *,
+    signer: Signer,
+    verified: _Verified | None = None,
+    before_motion: int | None = None,
 ) -> dict[str, list[dt.date]]:
     """Every signed act on the target, by login: the days of their counting steward records,
-    motions opened, votes, write-up records and words signatures (F24-R4)."""
+    motions opened, votes, write-up records and words signatures (F24-R4). With
+    ``before_motion``, motion n and later ones, and votes on them, are left out: a motion is put
+    to the panel as it stood before it, so a lapsed steward cannot seat themselves by opening one
+    or voting on it (F24-T3 Q-c)."""
     from opn_gate import writeup  # noqa: PLC0415 — writeup reads the panel for its stages
 
     target_dir = _target_dir(graph_root, target_id)
@@ -302,11 +310,15 @@ def acts(
     for checked in steward.check(steward.load(target_dir), signer):
         if checked.counts:
             add(checked.record.login, checked.record.date)
+
+    def after(n: int) -> bool:
+        return before_motion is not None and n >= before_motion
+
     for motion in load_motions(target_dir):
-        if verified(motion.path, motion.doc):
+        if not after(motion.n) and verified(motion.path, motion.doc):
             add(motion.opened_by, motion.date)
     for vote in load_votes(target_dir):
-        if verified(vote.path, vote.doc):
+        if not after(vote.motion) and verified(vote.path, vote.doc):
             add(vote.login, vote.date)
     for record in writeup.load_any(target_dir):
         if verified(record.path, record.doc):
@@ -370,7 +382,9 @@ def members(  # noqa: PLR0913 — the target, the day, and how to read it
     active = _active_on(target_dir, on, signer, before_motion=before_motion)
     if not active:
         return ()
-    by_login = acts(graph_root, target_id, signer=signer, verified=verified)
+    by_login = acts(
+        graph_root, target_id, signer=signer, verified=verified, before_motion=before_motion
+    )
     out: list[str] = []
     for login in active:
         before = [d for d in by_login.get(login, []) if d <= on]

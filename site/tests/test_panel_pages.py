@@ -213,3 +213,15 @@ def test_docs_stewards_text_names_the_panel(pages: dict[str, str]) -> None:
     start = docs.index('<h2 id="stewards">')
     s = docs[start : docs.index("<h2", start + 1)]
     assert 'href="/rules/"' in s and "panel" in s and "lapse" in s
+
+
+def test_a_lapsed_steward_is_not_named_as_a_steward_outside_the_panel(
+    pages: dict[str, str], panel: str
+) -> None:
+    """F24-R4: a lapsed steward is not on the panel and is not a steward for claimability, so
+    the page's steward line and the home page's count leave them out; only the panel section
+    names them, as lapsed (T6's "not done", fixed at merge)."""
+    page = pages[f"problems/{STEWARDED_TARGET}/index.html"]
+    outside = page.replace(panel, "")
+    assert "Old Hand" not in outside
+    assert pf.LAPSED_LOGIN in panel

@@ -220,11 +220,12 @@ def test_a_motion_by_someone_off_the_panel_is_refused(graph: Graph) -> None:
     assert "motion-opener" in graph.codes(graph.motion("mallory"))
 
 
-def test_a_lapsed_stewards_motion_is_refused_unless_it_is_their_new_act(graph: Graph) -> None:
-    """A steward whose last act is past the lapse leaves the panel. A motion is itself an act on
-    its own date, so it brings them back (AC4: "comes back on a new act")."""
+def test_a_lapsed_stewards_motion_is_refused(graph: Graph) -> None:
+    """A steward whose last act is past the lapse has left the panel, and a motion is put to the
+    panel as it stood before it, so their own motion does not seat them (F24-T3 Q-c, decided
+    against the first reading: AC4's "new act" is a new steward record, the usual route)."""
     graph.commit("ann", on=-400)
-    assert graph.codes(graph.motion("ann")) == []
+    assert "motion-opener" in graph.codes(graph.motion("ann"))
 
 
 def test_a_motion_dated_two_days_off_the_gates_clock_is_refused(graph: Graph) -> None:

@@ -469,10 +469,16 @@ class TargetView:
         return [s for s in self.subjects if s.record == "explainer" and s.node == node and s.chains]
 
     @property
-    def stewards(self) -> list[dict[str, Any]]:
-        """The active stewards the index publishes (``targets-index/v6``); none before it."""
+    def all_stewards(self) -> list[dict[str, Any]]:
+        """Every steward row the index publishes (``targets-index/v6``), lapsed or not."""
         raw = self.index_entry.get("stewards")
         return [dict(s) for s in raw] if isinstance(raw, list) else []
+
+    @property
+    def stewards(self) -> list[dict[str, Any]]:
+        """The stewards who count: every row before v9, and from v9 those who have not lapsed
+        (F24-R4: a lapsed steward is off the panel and not a steward for claimability)."""
+        return [s for s in self.all_stewards if not s.get("lapsed")]
 
     @property
     def panel(self) -> dict[str, Any] | None:
