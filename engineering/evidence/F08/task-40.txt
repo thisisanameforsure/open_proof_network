@@ -1,0 +1,105 @@
+F08-T40 — the literature record (D-3, D-25, D-32 v3.35; decisions amendment 2026-10-08): the role,
+the classifier's rules, the products' derivation, the guide's two sections.
+2026-10-08  worktree agent-a39f8bbe6be51e622, on F08-T39 (4a1cca3)
+
+Design, at code level. `paths`: role `literature` at nodes/<id>/literature/<ts>-<contributor>.yaml
+(RECORD_DIRS), an APPEND role, schema literature/v1; `layout.OPTIONAL_DIRS` knows `literature/`
+(the site agent's point: a live tree carrying one must pass step 2). New module
+`gate/opn_gate/literature.py`: `load` (validated records, invalid ones logged and passed over),
+`signature_problem` (partial signature, a signature that does not verify, an approval-key record
+whose key is not keys/approval.pub, a signer outside the stewards-or-curators set) and `derive`
+(the latest counting confirmation as `literature` — the confirmed proposal's status, record and
+contributor, or the confirmation's own, with `confirmed_by` and `confirmation` — and the latest
+proposal no later confirmation covers as `literature_proposed`). `modes.check_literature_record`:
+schema, `node` names the directory (literature-node); unsigned = anyone's proposal, which may not
+`confirms` (literature-signature); signed = checked as a steward record (`opn_gate.signed`, the
+approval key read from the merge's parent tree through `base`, the signer in
+`modes.real_identities`), `confirms` must name a record on the node (literature-record-unknown),
+and an SSH signature is its signer's act (`check_signer_opener`, F21-Q18: the steward's committed
+key, or the signer opened the pull request) — for which `classify` now carries the opener on an
+append that holds a literature record. `products.literature_states` derives per target once (the
+signer set is read only when some record is signed, so a graph with no literature records costs no
+ssh-keygen); `graph_doc` and `frontier_entry` take it; CONTEXT.json repeats graph.json's fields
+(F10-Q7). Four catalogue rows in `opn_gate.codes`; `literature-record-unknown` is the name the lead
+offered for the service's 404 case. Hazard checkers and step 7 untouched.
+
+Guide: "### The circular label (D-12 v3.35)" under Skeletonization; "## Literature records (D-3,
+D-25, D-32 v3.35)" after the stewards section (POST /literature and POST /literature/confirm as
+the service agent built them, the three statuses, earns nothing, the "proposed, awaiting" form);
+the frontier-fields sentence and the permitted-paths row (the site agent's wording folded in);
+the MCP appendix row for `propose_literature`, `confirm_literature`.
+
+New: gate/tests/test_literature.py (22 tests, real ssh-keygen signatures).
+Restated: gate/tests/test_finding_guide_tester_0924.py (two guide sentences, D-12 v3.35).
+
+---- RED: uv run --frozen pytest gate/tests/test_literature.py -q (before any code; every failure on
+---- the behaviour: path-forbidden from the classifier, layout-extra from the layout check) ----
+E       AssertionError: {'mode': None, 'target': None, 'node': None, 'needs_gate': False, ...}
+E         Left contains one more item: Diagnostic(code='layout-extra', message='unexpected entry literature', details={})
+E       AssertionError: {'mode': None, 'target': None, 'node': None, 'needs_gate': False, ...}
+E               opn_gate.graph.GraphError: node and-reassoc: unexpected entry literature
+E               opn_gate.graph.GraphError: node and-reassoc: unexpected entry literature
+E       AssertionError: {'mode': None, 'target': None, 'node': None, 'needs_gate': False, ...}
+E       AssertionError: {'mode': None, 'target': None, 'node': None, 'needs_gate': False, ...}
+E       AssertionError: {'mode': None, 'target': None, 'node': None, 'needs_gate': False, ...}
+E       AssertionError: {'mode': None, 'target': None, 'node': None, 'needs_gate': False, ...}
+E               opn_gate.graph.GraphError: node and-reassoc: unexpected entry literature
+E               opn_gate.graph.GraphError: node and-reassoc: unexpected entry literature
+E               opn_gate.graph.GraphError: node and-reassoc: unexpected entry literature
+E       AssertionError: {'mode': None, 'target': None, 'node': None, 'needs_gate': False, ...}
+E       AssertionError: {'mode': None, 'target': None, 'node': None, 'needs_gate': False, ...}
+E       AssertionError: {'mode': None, 'target': None, 'node': None, 'needs_gate': False, ...}
+E       AssertionError: {'mode': None, 'target': None, 'node': None, 'needs_gate': False, ...}
+E       AssertionError: {'mode': None, 'target': None, 'node': None, 'needs_gate': False, ...}
+E       AssertionError: {'mode': None, 'target': None, 'node': None, 'needs_gate': False, ...}
+E       AssertionError: {'mode': None, 'target': None, 'node': None, 'needs_gate': False, ...}
+E       AssertionError: {'mode': None, 'target': None, 'node': None, 'needs_gate': False, ...}
+E       AssertionError: {'mode': None, 'target': None, 'node': None, 'needs_gate': False, ...}
+E               opn_gate.graph.GraphError: node and-reassoc: unexpected entry literature
+FAILED gate/tests/test_literature.py::test_the_role_is_registered_as_an_append
+FAILED gate/tests/test_literature.py::test_a_node_carrying_a_literature_directory_passes_layout
+FAILED gate/tests/test_literature.py::test_an_unsigned_record_is_accepted_from_anyone
+FAILED gate/tests/test_literature.py::test_a_proposal_is_published_as_proposed_and_confirms_nothing
+FAILED gate/tests/test_literature.py::test_a_proposal_changes_no_status_and_nothing_leaves_the_frontier
+FAILED gate/tests/test_literature.py::test_a_proposal_that_confirms_is_refused
+FAILED gate/tests/test_literature.py::test_a_record_filed_under_another_node_is_refused
+FAILED gate/tests/test_literature.py::test_a_steward_may_state_the_status_herself
+FAILED gate/tests/test_literature.py::test_a_steward_confirms_a_proposal_and_the_proposal_is_what_is_published
+FAILED gate/tests/test_literature.py::test_a_later_proposal_is_proposed_beside_the_confirmed_status
+FAILED gate/tests/test_literature.py::test_an_earlier_proposal_is_covered_by_a_later_confirmation
+FAILED gate/tests/test_literature.py::test_the_latest_confirmation_supersedes_an_earlier_one
+FAILED gate/tests/test_literature.py::test_a_curator_may_confirm_with_her_own_key_when_she_opens_the_pull_request
+FAILED gate/tests/test_literature.py::test_a_signer_who_is_neither_steward_nor_curator_is_refused
+FAILED gate/tests/test_literature.py::test_a_tampered_signature_is_refused - ...
+FAILED gate/tests/test_literature.py::test_a_half_signed_record_is_refused - ...
+FAILED gate/tests/test_literature.py::test_a_confirmation_must_name_a_record_on_the_node
+FAILED gate/tests/test_literature.py::test_an_approval_key_confirmation_by_a_curator_is_accepted
+FAILED gate/tests/test_literature.py::test_an_approval_key_record_under_another_key_is_refused
+FAILED gate/tests/test_literature.py::test_the_approval_key_is_read_from_the_parent_tree
+FAILED gate/tests/test_literature.py::test_an_approval_key_record_for_a_stranger_is_refused
+FAILED gate/tests/test_literature.py::test_removing_the_records_restores_every_product
+22 failed in 6.75s
+
+---- GREEN: uv run --frozen pytest gate/tests/test_literature.py -q ----
+22 passed in 5.90s
+
+---- uv run --frozen pytest gate -m "not lean and not docker" -q (full gate fast tier, before the 0924 guide test was restated) ----
+FAILED gate/tests/test_finding_guide_names_exist.py::test_every_route_the_guide_names_is_served
+FAILED gate/tests/test_finding_guide_names_exist.py::test_every_tool_the_guide_names_is_a_tool
+FAILED gate/tests/test_finding_guide_tester_0924.py::test_the_guide_says[a second circularity claim is refused]
+FAILED gate/tests/test_finding_guide_tester_0924.py::test_the_guide_says[circular is a cause, not a status]
+4 failed, 2378 passed, 268 skipped, 190 deselected, 2 warnings in 469.83s (0:07:49)
+The first two name POST /literature, /literature/confirm, propose_literature and confirm_literature,
+which the service agent built on branch worktree-agent-aa30549b4ef2df131; green at the merge. The
+last two pinned the pre-v3.35 sentences and are restated in this commit:
+32 passed, 1 skipped in 0.17s
+
+---- uv run --frozen pytest api site -m "not lean and not docker" -q ----
+4 failed, 2209 passed, 1 skipped, 2 warnings in 144.78s (0:02:24): the same four site tests as
+task-39 (the site's rendering of the old removal, the F04 agent's), every api test green.
+
+---- make lint ----
+All checks passed!
+697 files already formatted
+---- make types ----
+Success: no issues found (gate, api, site)

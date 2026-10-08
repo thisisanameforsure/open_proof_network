@@ -594,7 +594,10 @@ def classify(  # noqa: PLR0911, PLR0912 — one return and one branch per reject
     # F18-R8: who may write a proposed-for record is ``check_proposed_for``'s question, and the
     # curator half of it is the host's fact, so it rides on the classification. F20-R6, R7: so
     # is the steward-or-curator half of superseding a signed version and of a withdrawal.
-    who = author if pointers or mode == "explainer" else None
+    # F08-T40: and the opener of an SSH-signed literature confirmation (D-32 v3.35), which is
+    # the signer's act as a gloss signature is (``check_literature_record``).
+    literature = any(loc.role == "literature" for loc in located)
+    who = author if pointers or literature or mode == "explainer" else None
     return Classification(
         mode,
         target_id,
@@ -1105,7 +1108,14 @@ def check(  # noqa: PLR0912 — one branch per role with a check of its own
     problems: list[Diagnostic] = []
     added = frozenset(loc.path for loc in classification.located)
     for located in classification.located:
-        if located.role in paths.APPEND_ROLES:
+        if located.role == "literature":
+            # F08-T40 (D-25 v3.35): an append whose signed form is a steward's or curator's act.
+            problems.extend(
+                check_literature_record(
+                    graph_root, located, classification, signer=signer, base=base
+                )
+            )
+        elif located.role in paths.APPEND_ROLES:
             problems.extend(check_append_file(graph_root, located, mode=classification.mode))
         elif located.role == "explainer":
             found = check_explainer_file(graph_root, located, classification)
@@ -1505,6 +1515,94 @@ def check_writeup_record(
         )
     del writeup  # the record's shape is the schema's; nothing else is read here
     return found
+
+
+def check_literature_record(  # noqa: PLR0911 — one return per rule
+    graph_root: Path,
+    located: Located,
+    classification: Classification,
+    *,
+    signer: Signer | None = None,
+    base: BaseReader | None = None,
+) -> list[Diagnostic]:
+    """F08-T40 (D-3, D-25, D-32 v3.35): a literature record validates and names the node it sits
+    under. Unsigned (``via``, ``key``, ``signature`` all null, ``confirms`` null) it is anyone's
+    proposal and nothing more is asked. Signed, it is checked as a steward record is: the
+    signature verifies under its key; an ``approval-key`` record carries the approval key of the
+    merge's parent tree (``signed.approval_key_problem``); its contributor is an active steward of
+    the target or a listed curator (``real_identities``, the stewards read with the pull request's
+    own records in the tree); a ``confirms`` names a record on the node; and an SSH signature is
+    its signer's — the key they committed with as a steward, or they opened the pull request
+    (``check_signer_opener``, F21-Q18). The products apply the same rule (``literature.derive``)."""
+    from opn_gate import literature  # noqa: PLC0415 — only this check and the products read them
+
+    data = _read(graph_root, located)
+    if isinstance(data, Diagnostic):
+        return [data]
+    problems = _check_schema(located, data, code="record-invalid")
+    if problems:
+        return problems
+    doc = _document(located, data)
+    if isinstance(doc, Diagnostic):
+        return [doc]
+    if doc.get("node") != located.node_id:
+        return [
+            Diagnostic(
+                "literature-node",
+                f"{located.path} is a record for node {doc.get('node')!r}, and it sits under "
+                f"nodes/{located.node_id}/ (D-25 v3.35)",
+                {"path": located.path, "node": doc.get("node")},
+            )
+        ]
+    record = literature.Record(PurePosixPath(located.path).name, doc)
+    if not record.signed and not record.half_signed:
+        if record.confirms is not None:
+            return [
+                Diagnostic(
+                    "literature-signature",
+                    f"{located.path}: an unsigned record is a proposal and confirms nothing; a "
+                    "confirmation is signed by a steward of the target or a curator (D-32 v3.35)",
+                    {"path": located.path, "confirms": record.confirms},
+                )
+            ]
+        return []
+    verifier = signer or signed.default_signer()
+    assert located.target_id is not None
+    problem = literature.signature_problem(
+        record,
+        signers=real_identities(graph_root, located.target_id, signer=verifier),
+        approval_key=approval_key(graph_root, base),
+        verifier=verifier,
+    )
+    if problem is not None:
+        code, reason = problem
+        details = {"path": located.path, "signer": record.contributor}
+        message = f"{located.path}: {reason}"
+        if code == "literature-signer-unlisted":
+            return [Diagnostic("literature-signer-unlisted", message, details)]
+        return [Diagnostic("literature-signature", message, details)]
+    found: list[Diagnostic] = []
+    named = record.confirms
+    if named is not None:
+        node_dir = graph_root / "targets" / located.target_id / "nodes" / str(located.node_id)
+        if not (node_dir / named).is_file():
+            found.append(
+                Diagnostic(
+                    "literature-record-unknown",
+                    f"{located.path}: confirms {named!r}, which is not a record on the node",
+                    {"path": located.path, "confirms": named},
+                )
+            )
+    if found or _by_approval_key(doc):
+        return found  # an approval-key signature is the service's act for the login it names
+    return check_signer_opener(
+        graph_root,
+        located,
+        classification,
+        signer_name=record.contributor,
+        key=str(doc.get(signed.KEY_FIELD) or ""),
+        verifier=verifier,
+    )
 
 
 def check_formalization(graph_root: Path, located: Located) -> list[Diagnostic]:

@@ -1228,6 +1228,35 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "A node entry has the wrong kind (a file where a directory belongs, or the reverse).",
         "Make it the kind the message names.",
     ),
+    "literature-node": (
+        "gate",
+        None,
+        "The literature record names a different node from the directory it sits in.",
+        "File it under nodes/<id>/literature/ of the node its `node` field names (D-25 v3.35).",
+    ),
+    "literature-record-unknown": (
+        "gate",
+        None,
+        "The confirmation's `confirms` names no literature record on the node.",
+        "Name an existing literature/<file> of the node, or state the status yourself with "
+        "`confirms: null`.",
+    ),
+    "literature-signature": (
+        "gate",
+        None,
+        "The literature record's signature is partial, does not verify under its key, or claims "
+        "the approval key and carries another; or an unsigned proposal tried to confirm.",
+        "A proposal leaves via, key, signature and confirms null. A confirmation is signed with "
+        "the steward's or curator's own key (via: ssh) or made through the site (via: "
+        "approval-key).",
+    ),
+    "literature-signer-unlisted": (
+        "gate",
+        None,
+        "The signed literature record's contributor is neither an active steward of the target "
+        "nor a listed curator.",
+        "File it unsigned as a proposal; a steward or a curator confirms it (D-32 v3.35).",
+    ),
     "layout-missing": (
         "gate",
         2,

@@ -221,6 +221,7 @@ Role = Literal[
     "proposed-for",  # nodes/<id>/proposed-for/<ts>-<pseudonym>.yaml: a pointer (F18-R8, D-14)
     "withdrawal",  # nodes/<id>/withdrawals/<ts>-<curator>.yaml: a record withdrawn (F08-T31)
     "credit-correction",  # targets/<id>/credit-corrections/<ts>-<curator>.yaml (F07-T66)
+    "literature",  # nodes/<id>/literature/<ts>-<contributor>.yaml: a literature status (D-25 v3.35)
 ]
 
 #: Roles that claim nothing and merge on schema and path checks alone (F07-R9).
@@ -231,6 +232,9 @@ APPEND_ROLES: tuple[Role, ...] = (
     "approach-record",
     "revision-request",
     "defect-claim",
+    # F08-T40 (D-25 v3.35): unsigned, anyone's proposal; signed, a steward's or curator's
+    # confirmation, checked as a steward record is (``modes.check_literature_record``).
+    "literature",
 )
 
 #: Appends that may carry a Lean exhibit, which the gate elaborates in the sandbox (F08-R6, R7).
@@ -310,6 +314,7 @@ SCHEMAS_FOR_ROLE: dict[Role, tuple[str, ...]] = {
     "proposed-for": ("proposed-for/v1",),
     "withdrawal": ("withdrawal/v1", "withdrawal/v2"),  # v2: gloss and explainer versions (F20)
     "credit-correction": ("credit-correction/v1",),
+    "literature": ("literature/v1",),  # F08-T40 (D-25 v3.35)
 }
 
 #: Roles whose file name is the SHA-256 of the file (D-31 annexes; D-3 explainers and glosses).
@@ -344,6 +349,9 @@ RECORD_DIRS: dict[str, Role] = {
     # directory finds it beside what it withdraws, and a record of another node or target cannot
     # be named at all.
     "withdrawals/": "withdrawal",
+    # F08-T40 (D-3, D-25 v3.35): what the literature says of the statement, a proposal until a
+    # steward of the target or a curator confirms it by a signed record of their own.
+    "literature/": "literature",
 }
 
 _NODE_PATH_RE = re.compile(r"^targets/(?P<target>[^/]+)/nodes/(?P<node>[^/]+)/(?P<rest>.+)$")

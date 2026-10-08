@@ -48,6 +48,7 @@ from opn_gate import (
 )
 from opn_gate import fidelity as fidelitymod
 from opn_gate import graph as graphmod
+from opn_gate import literature as literaturemod
 from opn_gate import policy as policymod
 from opn_gate.graph import GraphError, NodeFacts, TargetGraph
 from opn_gate.signer import Signer
@@ -785,9 +786,47 @@ def _chains_doc(
     return out
 
 
-def graph_doc(tg: TargetGraph, rendered_from: str | None) -> dict[str, Any]:
+def literature_states(
+    tg: TargetGraph, *, signer: Signer | None = None
+) -> dict[str, literaturemod.Literature]:
+    """F08-T40 (D-25 v3.35): per node, the literature status the products publish — the latest
+    counting confirmation and the latest uncovered proposal (``literature.derive``). Who may
+    confirm is the target's active stewards and the graph's listed curators
+    (``modes.real_identities``), read only when some record is signed, so a graph with no
+    literature records costs no signature check."""
+    graph_root = tg.path.parents[1]
+    loaded = {node_id: literaturemod.load(node.path) for node_id, node in tg.nodes.items()}
+    signers: frozenset[str] | None = None
+    verifier = signer if signer is not None else signed.default_signer()
+    out: dict[str, literaturemod.Literature] = {}
+    for node_id, found in loaded.items():
+        if signers is None and any(r.signed or r.half_signed for r in found):
+            from opn_gate import modes  # noqa: PLC0415 — modes owns the role rule
+
+            signers = modes.real_identities(graph_root, tg.target_id, signer=verifier)
+        out[node_id] = literaturemod.derive(
+            found,
+            signers=signers or frozenset(),
+            approval_key=signed.published_key(
+                (graph_root / signed.APPROVAL_KEY_PATH).read_bytes()
+                if (graph_root / signed.APPROVAL_KEY_PATH).is_file()
+                else None
+            ),
+            verifier=verifier,
+        )
+    return out
+
+
+def graph_doc(
+    tg: TargetGraph,
+    rendered_from: str | None,
+    *,
+    signer: Signer | None = None,
+    literature: Mapping[str, literaturemod.Literature] | None = None,
+) -> dict[str, Any]:
     nodes = []
     causes = graphmod.derive_causes(tg.nodes, tg.statuses)
+    lit = literature_states(tg, signer=signer) if literature is None else literature
     # F08-T36: the reader CONTEXT.json's builders share, so the two lists cannot disagree.
     reader = context.DiskReader(tg.path.parents[1])
     for node_id in tg.order:
@@ -827,9 +866,10 @@ def graph_doc(tg: TargetGraph, rendered_from: str | None) -> dict[str, Any]:
                 # F08-T39 (D-12 v3.35): the merged circularity claims as a label — the node's own
                 # and the one a circular path assigns it — never a removal and never a cause.
                 "circular": [label.as_dict() for label in n.circular],
-                # D-25 v3.35: the literature status; F08-T40 derives both, null until then.
-                "literature": None,
-                "literature_proposed": None,
+                # F08-T40 (D-25 v3.35): the latest confirmed literature status and the latest
+                # proposal awaiting a steward or curator; null when none.
+                "literature": lit[node_id].confirmed,
+                "literature_proposed": lit[node_id].proposed,
             }
         )
     return {
@@ -962,10 +1002,13 @@ def frontier_entry(
     ready_since: str | None,
     tags: list[str],
     claims: dict[str, Any] | None = None,
+    literature: literaturemod.Literature | None = None,
 ) -> dict[str, Any]:
     status = tg.statuses[node.node_id]
     status_of = functools.partial(status_or_ready, tg.statuses)
     needs = needs_of(status, node, status_of)
+    # F08-T40: graph.json's literature fields, repeated; derived here when the caller did not.
+    lit = literature if literature is not None else literature_states(tg)[node.node_id]
     attempts = records.load_attempts(node.path)
     for name in attempts.invalid_files:
         log.warning(
@@ -1005,8 +1048,8 @@ def frontier_entry(
         # F03-T18 (D-12 v3.35, D-25 v3.35): graph/v6's label and literature status, repeated so
         # an agent filtering the frontier needs no second fetch; F08-T40 fills the latter two.
         "circular": [label.as_dict() for label in node.circular],
-        "literature": None,
-        "literature_proposed": None,
+        "literature": lit.confirmed,
+        "literature_proposed": lit.proposed,
     }
 
 
@@ -1203,7 +1246,8 @@ def generate(
     for target_id in target_ids(graph_root):
         tg = graphmod.load_target(graph_root, target_id)
         products.targets.append(tg)
-        gdoc = schemas.validate(graph_doc(tg, rendered_from), GRAPH_SCHEMA)
+        lit = literature_states(tg, signer=verifier)
+        gdoc = schemas.validate(graph_doc(tg, rendered_from, literature=lit), GRAPH_SCHEMA)
         products.files[Path("targets") / target_id / "graph.json"] = schemas.canonical_json(gdoc)
         # F20-R9: the gloss and explainer chains per subject, beside the graph they describe.
         products.files[Path("targets") / target_id / GLOSSES_FILE] = schemas.canonical_json(
@@ -1251,6 +1295,7 @@ def generate(
                     ready_since=ready_since[node_id],
                     tags=tags,
                     claims=registry.get(node_id),
+                    literature=lit[node_id],
                 )
             )
         if cache is not None and cache.dirty:
