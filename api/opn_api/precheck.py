@@ -521,6 +521,52 @@ def rendered_from(ctx: Context, target_id: str | None = None) -> str:
     return commit
 
 
+#: The file whose presence at a commit says the node exists there (F06-T14): what the node states.
+NODE_STATEMENT = "Statement.lean"
+
+
+def carries_node(ctx: Context, commit: str, target_id: str, node_id: str) -> bool | None:
+    """F06-T14: whether the graph's tree at ``commit`` holds the node, read as its
+    ``Statement.lean`` at that immutable commit; ``None`` when the host cannot say."""
+    path = f"targets/{target_id}/nodes/{node_id}/{NODE_STATEMENT}"
+    try:
+        got = ctx.githost.fetch_raw(ctx.settings.graph_repo, commit, path, etag=None)
+    except GitHostError as exc:
+        log.warning("%s at %s: not probed: %s", path, commit[:12], exc)
+        return None
+    if got.status == 404:
+        return False
+    return True if got.status == 200 else None
+
+
+def job_commit(ctx: Context, node_id: str, target_id: str, rendered: str) -> str:
+    """F06-T14: the commit a job runs at, which must carry the node.
+
+    ``rendered`` (Q10, Q12) when it does, or when the host cannot say (C7). The post-merge job
+    writes a merged partial's holes in the same bot commit as the products that list them, and
+    those products name the merge as ``rendered_from``, so a hole is never in the commit its
+    products were rendered from. The service read the products at ``ctx.head`` (F05-T13), the bot
+    commit or a descendant of it, which carries the hole and the network pin Q10 reads. When
+    neither commit is known to carry the node, nothing is dispatched: ``409 products-pending``
+    saying what it waits for, at once, rather than a job that fails step 2 minutes later."""
+    if carries_node(ctx, rendered, target_id, node_id) is not False:
+        return rendered
+    read_at = ctx.head
+    if read_at and read_at != rendered and carries_node(ctx, read_at, target_id, node_id):
+        return read_at
+    raise ApiError(
+        409,
+        "products-pending",
+        f"{node_id} is not in graph commit {rendered[:12]}…, the commit its products were "
+        "rendered from (a hole is written after the render, in the commit that carries the "
+        "products), and the service has not yet read a commit of main that carries it, so a "
+        "precheck job would fail step 2 layout-missing. It waits for the service's next read of "
+        "main. Retry shortly.",
+        details={"node_id": node_id, "graph_commit": rendered},
+        headers={"Retry-After": str(pending.PRODUCTS_RETRY_AFTER_S)},
+    )
+
+
 def existing_paths(ctx: Context, node_id: str, target_id: str) -> frozenset[str]:
     """Which of the node's files already exist at ``main``, so the bundle's additions and
     modifications are classified as the gate would classify them (R1)."""
@@ -648,6 +694,8 @@ async def post_precheck(ctx: Context, request: Request) -> Response:
         graph_commit = proposal.head_sha
     else:
         graph_commit = rendered_from(ctx, claim.target_id if facts["status"] is not None else None)
+        # F06-T14: and only where the node exists; a hole is not in the commit it was rendered at
+        graph_commit = job_commit(ctx, node_id, claim.target_id, graph_commit)
     check_cited_annex(ctx, claim, bundle, graph_commit)
     now = ctx.clock.now()
     job = Job(

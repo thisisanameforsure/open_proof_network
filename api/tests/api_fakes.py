@@ -16,6 +16,7 @@ or an ``AxleError`` — so a route test never reaches the hosted checker.
 from __future__ import annotations
 
 import io
+import json
 import subprocess
 import threading
 import time
@@ -55,6 +56,8 @@ PRECHECK_KEY_PATH = "keys/precheck.pub"
 TUTORIAL_NODE = "tutorial-and-swap"
 PROOF_PREFIX = "targets/propositional/nodes/"
 TUTORIAL_PROOF = "import Nodes.X.Context\n\ntheorem x : True := trivial\n"
+#: F06-T14: the ``Statement.lean`` every fixture node carries in the fake tree.
+FIXTURE_STATEMENT = "theorem OpnFixture.{name} : True := by\n  sorry\n"
 
 
 @dataclass
@@ -171,13 +174,22 @@ class FakeGitHost:
 
     @classmethod
     def with_fixtures(cls, **users: GitHubUser) -> FakeGitHost:
+        graph = (FIXTURES / "graph.json").read_bytes()
         return cls(
             users=dict(users),
             files={
                 "frontier.json": (FIXTURES / "frontier.json").read_bytes(),
                 "info.json": (FIXTURES / "info.json").read_bytes(),
                 "targets/index.json": (FIXTURES / "targets-index.json").read_bytes(),
-                "targets/propositional/graph.json": (FIXTURES / "graph.json").read_bytes(),
+                "targets/propositional/graph.json": graph,
+                # F06-T14: a node the products list is in the tree, as on the live graph, so a
+                # precheck job pinned to a commit can be checked to carry its node.
+                **{
+                    f"{PROOF_PREFIX}{node['node_id']}/Statement.lean": FIXTURE_STATEMENT.format(
+                        name=str(node["node_id"]).replace("-", "_")
+                    ).encode()
+                    for node in json.loads(graph)["nodes"]
+                },
             },
         )
 
