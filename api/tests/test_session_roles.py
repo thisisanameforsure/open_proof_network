@@ -89,7 +89,11 @@ def test_a_steward_session_answers_its_roles_exactly(h: Harness) -> None:
     r = session(h, cookie)
     assert r.status_code == 200, r.text
     doc = r.json()
-    assert set(doc) == {"signed_in", "login", "pseudonym", "curator", "stewards", "expires"}
+    assert set(doc) == {
+        "signed_in", "login", "pseudonym", "curator", "stewards", "expires",
+        "awaiting",  # F24-T5: what waits for the login's vote or acceptance
+    }  # fmt: skip
+    assert doc["awaiting"] == {"votes": [], "invitations": []}
     assert doc["signed_in"] is True
     assert doc["login"] == "alice" and doc["pseudonym"] == "alice"
     assert doc["curator"] is False

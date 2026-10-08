@@ -247,6 +247,24 @@ def literature_confirm(h: Harness, key: PrecheckKey) -> Prepared:
     return body, h.auth(h.token_for("code_alice", "alice"))
 
 
+def motions(h: Harness, key: PrecheckKey) -> Prepared:
+    """F24-T5: a motion, refused before the approval key or the graph is read."""
+    body = {"target": TARGET, "kind": "invite", "subject": {"login": "carol"}}
+    return body, h.auth(h.token_for("code_alice", "alice"))
+
+
+def votes(h: Harness, key: PrecheckKey) -> Prepared:
+    """F24-T5: a vote, refused before the approval key or the graph is read."""
+    body = {"target": TARGET, "motion": 1, "vote": "yes"}
+    return body, h.auth(h.token_for("code_alice", "alice"))
+
+
+def writeups(h: Harness, key: PrecheckKey) -> Prepared:
+    """F24-T5: a write-up act, refused before the approval key or the graph is read."""
+    body = {"target": TARGET, "action": "author-sign", "writeup": 1}
+    return body, h.auth(h.token_for("code_alice", "alice"))
+
+
 #: Every POST route of ``routes.ROUTES`` that reads a JSON body (``DELETE /claims/<id>`` has none);
 #: ``/tokens/renew`` reads an empty one, refusing any key (F05-T27).
 WRITE_ROUTES: dict[str, Prepare] = {
@@ -272,6 +290,9 @@ WRITE_ROUTES: dict[str, Prepare] = {
     "/approvals": approvals,  # F23-T6
     "/literature": literature,  # F05-T29
     "/literature/confirm": literature_confirm,  # F23-T12
+    "/motions": motions,  # F24-T5
+    "/votes": votes,  # F24-T5
+    "/writeups": writeups,  # F24-T5
 }
 
 

@@ -37,7 +37,7 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 
 #: The steward record versions this reader accepts (F15-R1, F23-R8).
-STEWARD_SCHEMAS: frozenset[str] = frozenset({"steward/v1", "steward/v2"})
+STEWARD_SCHEMAS: frozenset[str] = frozenset({"steward/v1", "steward/v2", "steward/v3"})
 RECORD_RE = re.compile(r"^(?P<n>[1-9][0-9]*)\.ya?ml$")
 
 
@@ -146,6 +146,8 @@ async def get_session(ctx: Context, request: Request) -> Response:
         return JSONResponse(SIGNED_OUT, headers={"cache-control": "no-store"})
     record, held = found
     login = login_of(held)
+    from opn_api import panel  # noqa: PLC0415 — panel reads the roles from this module
+
     doc = {
         "signed_in": True,
         "login": login,
@@ -153,6 +155,7 @@ async def get_session(ctx: Context, request: Request) -> Response:
         "curator": bool(login) and is_curator(ctx, login or ""),
         "stewards": stewarded(ctx, login) if login else [],
         "expires": record.get("expires"),
+        "awaiting": panel.awaiting(ctx, login),
     }
     return JSONResponse(doc, headers={"cache-control": "no-store"})
 

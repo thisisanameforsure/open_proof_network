@@ -558,6 +558,29 @@ def tally(  # noqa: PLR0913 — the motion, and how to read it
     raise PanelError(msg)
 
 
+def voters(
+    graph_root: Path,
+    target_id: str,
+    n: int,
+    *,
+    signer: Signer,
+    curators: frozenset[str] = frozenset(),
+) -> tuple[frozenset[str], frozenset[str]]:
+    """(counted, uncounted) for motion ``n``: whose votes count, and the provers whose votes are
+    recorded but not counted (F24-R3). A login in neither is not a voter on that motion, which is
+    what the service refuses before it opens a vote (F24-R8). ``PanelError`` for no such motion."""
+    target_dir = _target_dir(graph_root, target_id)
+    motion = next((m for m in load_motions(target_dir) if m.n == n), None)
+    if motion is None:
+        msg = f"targets/{target_id}/{MOTIONS_DIR}/{n}.yaml does not exist"
+        raise PanelError(msg)
+    who = _who_counts(
+        graph_root, target_id, motion, base=current_settings(graph_root), curators=curators,
+        verified=_Verified(signer),
+    )  # fmt: skip
+    return who.counted, who.provers
+
+
 def passed_invitation(  # noqa: PLR0913 — the invitation, the invitee, and how to read it
     graph_root: Path,
     target_id: str,
