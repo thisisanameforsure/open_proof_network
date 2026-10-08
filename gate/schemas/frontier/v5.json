@@ -1,0 +1,387 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openproof.network/schemas/frontier/v5.json",
+  "title": "frontier/v5",
+  "description": "frontier.json (D-25, D-35). v5 (2026-10-08, F03-T18; D-12 v3.35, D-25 v3.35): each entry carries `circular`, `literature` and `literature_proposed` as graph/v6 does; a node under a merged circularity claim is an entry like any other, claimable on its status alone. frontier.json (D-25; F03-R5): every ready or speculative node and every unproved variant, each carrying exactly the D-25 observed facts — no ranking, no score, no other field. Entries sorted lexically by node_id. Claims are the service's overlay (D-35); the committed file carries the snapshot at merge time. v2 (2026-09-11, F11-R4): each entry carries `dormant`, the D-33 status of the node's target. A dormancy declaration refuses no claim, so the node stays claimable — the fact is published so an agent choosing work sees it without a second fetch. v3 (2026-09-14, F03-T7): the same fields; `attempts` also counts the partial assemblies filed under the node's attempts/ (D-3, D-12 #5), a partial named by a postmortem's artifacts.partial_proof counting once with it. An alternate proof is not an attempt (D-25 v3.13). v4 (2026-10-04, F03-T16): each entry also says what its node needs — `status` and `cause`, the node's derived status and cause exactly as graph.json carries them, and `needs`, the next action derived from those two facts: `proof` for a ready or speculative node, `witness` for a hole blocked only by its unfilled witness slot (POST /proposals/witness takes it), `dependencies` for an open variant waiting on unproved dependencies, null when no contributor's submission moves the node (a refuted dependency or a curator's record; status and cause say which). `claimable` is true only where `needs` is `proof`, since a claim reserves a proof: a hole waiting for its witness stays listed (D-29) and is no longer published claimable.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "rendered_from",
+    "entries"
+  ],
+  "properties": {
+    "schema": {
+      "const": "frontier/v5"
+    },
+    "rendered_from": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        }
+      ]
+    },
+    "entries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "node_id",
+          "target_id",
+          "statement_hash",
+          "relation",
+          "origin",
+          "tags",
+          "attempts",
+          "refuted_route_classes",
+          "failure_class_histogram",
+          "ready_since",
+          "claims",
+          "annex_present",
+          "bounty",
+          "claimable",
+          "tutorial",
+          "dormant",
+          "status",
+          "cause",
+          "needs",
+          "circular",
+          "literature",
+          "literature_proposed"
+        ],
+        "properties": {
+          "node_id": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]*$"
+          },
+          "target_id": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]*$"
+          },
+          "statement_hash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "relation": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "enum": [
+                  "resolves",
+                  "partial",
+                  "related"
+                ]
+              }
+            ]
+          },
+          "origin": {
+            "enum": [
+              "authored",
+              "compiler-derived",
+              "variant",
+              "skeleton-hole"
+            ]
+          },
+          "tags": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "deps",
+              "library"
+            ],
+            "properties": {
+              "deps": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^[a-z0-9][a-z0-9-]*$"
+                },
+                "uniqueItems": true
+              },
+              "library": {
+                "type": "array",
+                "description": "top-level Mathlib namespaces the statement references (F03-R6); sorted",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "uniqueItems": true
+              }
+            }
+          },
+          "attempts": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "count of D-13 records, valid or not, plus the partial assemblies under attempts/ that no valid record names; alternates are not counted"
+          },
+          "refuted_route_classes": {
+            "type": "array",
+            "items": {
+              "enum": [
+                "induction",
+                "generating-function",
+                "probabilistic",
+                "direct-estimate",
+                "case-split",
+                "reduction-to-known",
+                "computational"
+              ]
+            },
+            "uniqueItems": true
+          },
+          "failure_class_histogram": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "missing-library": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "statement-suspect": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "timeout-blowup": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "needs-new-definition": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "route-dead-ends": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "budget-exhausted": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "informal-gap": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "invalid": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "attempt files that do not validate against postmortem/v1 (F03-R7)"
+              }
+            }
+          },
+          "ready_since": {
+            "description": "when the node entered ready (git committer time, carried forward, F03-R8); null for a speculative or variant entry that is not ready",
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "string",
+                "description": "UTC, second precision, Z suffix; a git committer time, never the clock (F03-Q2)",
+                "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+              }
+            ]
+          },
+          "claims": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "active",
+              "history_count"
+            ],
+            "properties": {
+              "active": {
+                "type": "array",
+                "description": "the claim snapshot at merge time; empty until F05",
+                "items": {
+                  "type": "object"
+                }
+              },
+              "history_count": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          },
+          "annex_present": {
+            "type": "boolean"
+          },
+          "bounty": {
+            "type": "boolean"
+          },
+          "claimable": {
+            "type": "boolean",
+            "description": "the target takes claims and needs is proof"
+          },
+          "tutorial": {
+            "type": "boolean"
+          },
+          "dormant": {
+            "description": "D-33: the target has been declared dormant. Claiming is unaffected (F11-R4).",
+            "type": "boolean"
+          },
+          "status": {
+            "description": "the node's derived status, as graph.json carries it (graph.derive_statuses)",
+            "enum": [
+              "ready",
+              "blocked",
+              "proved",
+              "refuted",
+              "defective",
+              "speculative",
+              "superseded",
+              "stale",
+              "disputed",
+              "abandoned"
+            ]
+          },
+          "cause": {
+            "description": "why this status where the reason is mechanical (graph.derive_causes), as graph.json carries it; null when it has none; never `circular` since v5 (D-12 v3.35)",
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9-]*$"
+              }
+            ]
+          },
+          "needs": {
+            "description": "what would move the node: proof (ready or speculative), witness (a hole blocked only by its unfilled witness slot), dependencies (waiting on unproved dependencies), or null when no contributor's submission moves it",
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "enum": [
+                  "proof",
+                  "witness",
+                  "dependencies"
+                ]
+              }
+            ]
+          },
+          "circular": {
+            "type": "array",
+            "description": "D-12 v3.35: the merged circularity claims that say a proof of this node is a proof of an ancestor — the node's own claims, and for a node strictly between a claimed hole and its ancestor on a path whose other holes are proved (v3.22), the claim that takes it. A label, never a removal: the node's status, claimability and needs are untouched. Each claim is named `<hole>/defects/<file>` relative to the target's nodes/, the ancestor read through its revision chain. Empty when none.",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "ancestor",
+                "claim"
+              ],
+              "properties": {
+                "ancestor": {
+                  "type": "string",
+                  "pattern": "^[a-z0-9][a-z0-9-]*$",
+                  "description": "the node a proof of this one would prove"
+                },
+                "claim": {
+                  "type": "string",
+                  "pattern": "^[a-z0-9][a-z0-9-]*/defects/[^/]+\\.ya?ml$",
+                  "description": "the merged circular-decomposition claim, relative to the target's nodes/"
+                }
+              }
+            }
+          },
+          "literature": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "status",
+                  "record",
+                  "contributor",
+                  "confirmed_by",
+                  "confirmation"
+                ],
+                "properties": {
+                  "status": {
+                    "enum": [
+                      "open",
+                      "known",
+                      "elementary"
+                    ],
+                    "description": "what the literature says of the statement (D-25 v3.35): `open`, no proof is known; `known`, a proof is published and not formalised; `elementary`, a routine formalisation of a known fact. A fact about the literature, never about difficulty."
+                  },
+                  "record": {
+                    "type": "string",
+                    "pattern": "^literature/[^/]+\\.ya?ml$",
+                    "description": "the literature record this reading rests on, relative to the node"
+                  },
+                  "contributor": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 39,
+                    "description": "who filed the record"
+                  },
+                  "confirmed_by": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9](?:-?[A-Za-z0-9]){0,38}$",
+                    "description": "the steward of the target or curator whose signed record confirms it (D-32 v3.35)"
+                  },
+                  "confirmation": {
+                    "type": "string",
+                    "pattern": "^literature/[^/]+\\.ya?ml$",
+                    "description": "that signed record, relative to the node; the same file as `record` when the steward or curator stated the status themselves"
+                  }
+                }
+              }
+            ],
+            "description": "D-25 v3.35: the latest literature status a steward of the target or a curator has confirmed, with its records; null when none."
+          },
+          "literature_proposed": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "status",
+                  "record",
+                  "contributor"
+                ],
+                "properties": {
+                  "status": {
+                    "enum": [
+                      "open",
+                      "known",
+                      "elementary"
+                    ],
+                    "description": "what the literature says of the statement (D-25 v3.35): `open`, no proof is known; `known`, a proof is published and not formalised; `elementary`, a routine formalisation of a known fact. A fact about the literature, never about difficulty."
+                  },
+                  "record": {
+                    "type": "string",
+                    "pattern": "^literature/[^/]+\\.ya?ml$",
+                    "description": "the literature record this reading rests on, relative to the node"
+                  },
+                  "contributor": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 39,
+                    "description": "who filed the record"
+                  }
+                }
+              }
+            ],
+            "description": "D-25 v3.35: the latest literature status a contributor has proposed that no later confirmed record covers, awaiting a steward or curator; null when none."
+          }
+        }
+      }
+    }
+  }
+}
