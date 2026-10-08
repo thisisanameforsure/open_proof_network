@@ -218,3 +218,13 @@ because prior art belongs in the literature review.
 Not done here: the live deploy (api push, site deploy) and the graph re-pin that carries the guide
 and F07-T75, both waiting on the owner because local `main` carries another session's unpushed
 commit (Decisions v3.34).
+
+## Third sitting (decisions v3.35)
+
+P2 item 3 and feature 3 were built on the owner's rulings: a merged circularity claim is a label
+(F08-T39, F03-T18, F10-T19, F04-T37), and a node carries a literature status proposed by anyone and
+confirmed by a steward or curator, who are told through `/me/` (F08-T40, F05-T29, F23-T12,
+F09-T24, F04-T38). Feature 2 is covered by the first; feature 4 was dropped.
+
+Found on the way, open: `/problems/erdos-1094/` measures `scrollWidth` 779 at 390 px — an
+unwrapped source URL and the statement-QA table's columns (the F04-T37 agent, pre-existing).
