@@ -40,8 +40,8 @@ PRODUCT_SCHEMAS: dict[str, tuple[str, ...]] = {
         "frontier/v1",
         "frontier/v2",
         "frontier/v3",
-        "frontier/v4",  # F03-T16
-        "frontier/v5",  # D-12, D-25 v3.35: circular labels, literature status
+        "frontier/v4",  # F03-T16: status, cause, needs
+        "frontier/v5",  # F03-T18 (D-12 v3.35): circular, literature, literature_proposed
     ),
     "info.json": ("info/v1", "info/v2"),  # v2: F05-T25
     "targets/index.json": (
@@ -59,8 +59,8 @@ PRODUCT_SCHEMAS: dict[str, tuple[str, ...]] = {
         "graph/v2",
         "graph/v3",
         "graph/v4",
-        "graph/v5",  # F08-T36
-        "graph/v6",  # D-12, D-25 v3.35: circular labels, literature status
+        "graph/v5",  # F08-T36: every defect claim
+        "graph/v6",  # F08-T39 (D-12 v3.35): circular is a label; literature (D-25 v3.35)
     ),
 }
 log = logging.getLogger(__name__)

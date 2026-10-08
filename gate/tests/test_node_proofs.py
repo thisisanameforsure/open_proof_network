@@ -128,5 +128,6 @@ def test_an_unmeasured_proof_is_closed_over_its_declared_deps(tmp_path: Path) ->
 
 
 def test_the_graph_product_is_the_next_version() -> None:
-    """T27 made it graph/v4; F08-T36 (D-16 v3.28, every defect claim) took the next one."""
-    assert products.GRAPH_SCHEMA == "graph/v5"
+    """T27 made it graph/v4; F08-T36 (D-16 v3.28, every defect claim) took the next one; F08-T39
+    (D-12 v3.35, the circular label and the literature status) the one after."""
+    assert products.GRAPH_SCHEMA == "graph/v6"

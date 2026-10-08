@@ -2,9 +2,12 @@
   "nodes": [
     {
       "cause": null,
+      "circular": [],
       "decompositions": [],
       "defect_claims": [],
       "deps": [],
+      "literature": null,
+      "literature_proposed": null,
       "node_id": "and-reassoc",
       "origin": "authored",
       "outline": null,
@@ -31,12 +34,15 @@
     },
     {
       "cause": null,
+      "circular": [],
       "decompositions": [],
       "defect_claims": [],
       "deps": [
         "tutorial-and-swap",
         "and-reassoc"
       ],
+      "literature": null,
+      "literature_proposed": null,
       "node_id": "and-swap-reassoc",
       "origin": "authored",
       "outline": null,
@@ -53,9 +59,12 @@
     },
     {
       "cause": null,
+      "circular": [],
       "decompositions": [],
       "defect_claims": [],
       "deps": [],
+      "literature": null,
+      "literature_proposed": null,
       "node_id": "tutorial-and-swap",
       "origin": "authored",
       "outline": null,
@@ -83,7 +92,7 @@
   ],
   "rendered_from": "5555555555555555555555555555555555555555",
   "root": "and-swap-reassoc",
-  "schema": "graph/v5",
+  "schema": "graph/v6",
   "target_id": "propositional",
   "target_proofs": []
 }

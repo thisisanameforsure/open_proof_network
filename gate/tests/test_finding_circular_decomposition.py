@@ -30,7 +30,13 @@ The shape: ``defect-claim/v3`` adds the class ``circular-decomposition`` and the
 ``ancestor``; the classifier checks the ancestor, ``exhibits.run`` asks ``opn-relation-type``
 (label ``resolves``, the hole as the variant and the ancestor as the root) whether the exhibit's
 one theorem is that implication, and ``graph.load_target`` reads the merged claim into
-``NodeFacts.circular``.
+``NodeFacts.circular_claims``.
+
+F08-T39 (D-12 v3.35, 2026-10-08) kept every check here and reversed the consequence: the exhibit
+is met by every honest reduction (D-12 #4) and by the last open hole of any decomposition, so a
+merged claim is published as the node's ``circular`` label and removes nothing — the hole stays on
+the frontier, claimable on its status alone, and ``cause`` is never ``circular``
+(``test_circular_label.py``).
 """
 
 from __future__ import annotations
@@ -231,16 +237,22 @@ def graph_row(prod: products.Products, node_id: str) -> dict[str, Any]:
     return rows[0]
 
 
-def test_a_merged_circularity_claim_takes_the_hole_off_the_frontier(tmp_path: Path) -> None:
+def test_a_merged_circularity_claim_labels_the_hole_and_removes_nothing(tmp_path: Path) -> None:
+    """F08-T17 took the hole off the frontier with ``cause: circular``; D-12 v3.35 (F08-T39)
+    makes the merged claim a label on the row instead, and the hole stays work."""
     root = copy_graph(tmp_path, publish=True)
     assert HOLE in frontier_ids(generate(root)), "guard: the hole is work before the claim"
     file_claim(root)
     prod = generate(root)
-    assert HOLE not in frontier_ids(prod)
+    assert HOLE in frontier_ids(prod)
     row = graph_row(prod, HOLE)
     assert row["status"] == "ready"  # nothing about the statement changed (D-3)
-    assert row["cause"] == "circular"
-    assert graph.load_target(root, TARGET).nodes[HOLE].circular == CLAIM.split(f"{HOLE}/")[1]
+    assert row["cause"] is None
+    own = CLAIM.split(f"{HOLE}/")[1]  # defects/<file>
+    assert row["circular"] == [{"ancestor": ANCESTOR, "claim": f"{HOLE}/{own}"}]
+    node = graph.load_target(root, TARGET).nodes[HOLE]
+    assert node.circular_claims == ((own, ANCESTOR),)
+    assert [c.as_dict() for c in node.circular] == row["circular"]
 
 
 def test_no_record_is_rewritten(tmp_path: Path) -> None:
@@ -262,3 +274,4 @@ def test_a_claim_of_another_class_leaves_the_hole_on_the_frontier(tmp_path: Path
     prod = generate(root)
     assert HOLE in frontier_ids(prod)
     assert graph_row(prod, HOLE)["cause"] is None
+    assert graph_row(prod, HOLE)["circular"] == []  # and labels nothing (F08-T39)

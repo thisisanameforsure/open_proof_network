@@ -51,9 +51,13 @@ PRESENT = {
     "withdrawing a pull request": "`DELETE /submissions/<id>`",
     "rivals in a proof's receipt": "`rivals`",
     "a proof on a proved node becomes an alternate": '`becomes: "alternate"`',
-    "a second circularity claim is refused": "`circular-decomposition` claim on a node already",
+    # F08-T39 (D-12 v3.35) restated the two circular sentences: a merged claim labels the node
+    # and takes nothing off the frontier, and `cause` is never `circular` since graph/v6.
+    "a merged circularity claim is a label": (
+        "`circular-decomposition` claim labels the node under `circular` and takes nothing off"
+    ),
     "an open claim of the same class is named": "`also_open`",
-    "circular is a cause, not a status": "read `cause`, not `status`",
+    "circular is a label, never a cause": "`cause` is never `circular` since `graph/v6`",
     "the service's rendered_from": "service's `rendered_from` is the commit it read the tree at",
     "the tutorial node without a clone": "`targets/tutorial/nodes/tutorial-and-swap/`",
     "the MCP list_my_claims row": "| `list_my_claims` | `GET /claims/mine`",

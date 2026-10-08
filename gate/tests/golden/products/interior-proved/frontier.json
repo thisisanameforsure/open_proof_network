@@ -5,6 +5,7 @@
       "attempts": 0,
       "bounty": false,
       "cause": null,
+      "circular": [],
       "claimable": false,
       "claims": {
         "active": [],
@@ -12,6 +13,8 @@
       },
       "dormant": false,
       "failure_class_histogram": {},
+      "literature": null,
+      "literature_proposed": null,
       "needs": "proof",
       "node_id": "and-swap-reassoc",
       "origin": "authored",
@@ -32,5 +35,5 @@
     }
   ],
   "rendered_from": "5555555555555555555555555555555555555555",
-  "schema": "frontier/v4"
+  "schema": "frontier/v5"
 }

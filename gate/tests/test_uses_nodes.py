@@ -500,8 +500,8 @@ def test_a_node_of_another_target_cannot_be_named(tmp_path: Path) -> None:
 
 def test_an_open_node_has_no_proof_to_use_whatever_else_is_said_of_it(tmp_path: Path) -> None:
     """Unproved covers every open state at once: ready, blocked, speculative, a hole waiting for
-    its witness, a hole a circularity claim took off the frontier (``graph.is_circular`` speaks
-    of open nodes only). None has a merged ``Proof.lean``, and a status is never consulted."""
+    its witness, a hole a circularity claim labels (D-12 v3.35: a label, never a removal). None
+    has a merged ``Proof.lean``, and a status is never consulted."""
     ctx = using(tmp_path, "open-lemma")
     add_node(ctx, "open-lemma")
     (nodes(ctx) / "open-lemma" / "attempts").mkdir(exist_ok=True)

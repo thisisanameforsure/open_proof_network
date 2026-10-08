@@ -5,6 +5,7 @@
       "attempts": 3,
       "bounty": false,
       "cause": null,
+      "circular": [],
       "claimable": true,
       "claims": {
         "active": [],
@@ -16,6 +17,8 @@
         "missing-library": 1,
         "route-dead-ends": 1
       },
+      "literature": null,
+      "literature_proposed": null,
       "needs": "proof",
       "node_id": "and-reassoc",
       "origin": "authored",
@@ -35,5 +38,5 @@
     }
   ],
   "rendered_from": "5555555555555555555555555555555555555555",
-  "schema": "frontier/v4"
+  "schema": "frontier/v5"
 }

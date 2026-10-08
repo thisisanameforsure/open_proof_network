@@ -186,9 +186,10 @@ def test_the_error_catalog_and_the_wayfinding_routes() -> None:
 
 
 def test_the_frontier_says_status_cause_and_needs() -> None:
-    """F03-T16: frontier/v4; a hole that needs a witness is listed and not claimable."""
-    entry = schema("frontier/v4")["properties"]["entries"]["items"]["properties"]  # type: ignore[index]
-    assert {"status", "cause", "needs"} <= set(entry)
+    """F03-T16: frontier/v4; a hole that needs a witness is listed and not claimable. F03-T18:
+    frontier/v5 keeps the three and adds the circular label and the literature status."""
+    entry = schema("frontier/v5")["properties"]["entries"]["items"]["properties"]  # type: ignore[index]
+    assert {"status", "cause", "needs", "circular", "literature"} <= set(entry)
     assert set(entry["needs"]["oneOf"][1]["enum"]) == {"proof", "witness", "dependencies"}
     claiming = section("## Claiming a node")
     assert "The frontier publishes no status" not in claiming

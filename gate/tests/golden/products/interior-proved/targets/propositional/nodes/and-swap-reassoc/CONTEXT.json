@@ -9,6 +9,7 @@
     "truncated": false
   },
   "cause": null,
+  "circular": [],
   "circular_below": [],
   "claims": {
     "active": [],
@@ -39,6 +40,8 @@
     "network_commit": "0000000000000000000000000000000000000000",
     "path": "targets/propositional/gate-spec.json"
   },
+  "literature": null,
+  "literature_proposed": null,
   "meta": {
     "acknowledged_hazards": [],
     "origin": "authored",
@@ -60,7 +63,7 @@
     "trust_base": null
   },
   "rendered_from": "5555555555555555555555555555555555555555",
-  "schema": "context/v4",
+  "schema": "context/v5",
   "statement": {
     "decl": "OpnProp.and_swap_reassoc",
     "hash": "1fd9af9053c56877f4e7ec2ad69aa16602d39e826259da3878a8cc30a3b6791c",
