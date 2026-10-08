@@ -1,0 +1,38 @@
+Finding 2 (2026-10-08 tester A, erdos-1094): `div-zero` flags `n % p` with `Nat.Prime p` in scope.
+Verdict: reproduced, and by design. No code changed.
+
+Spec: F02-R2 defines div-zero as "division or modulo whose divisor is not syntactically non-zero";
+gate/lean/OpnGate/Hazards/DivZero.lean says "A hypothesis `b ≠ 0` in scope does not count (Q3:
+conservative v1 contract)", and F02-Q3: "Checker precision is deliberately conservative ...
+false positives are cheap (one acknowledgment line) ... tightening is a checker version, recorded
+in gate-spec.json by id@version." `divisor?` treats HDiv/HMod, Div/Mod and Nat/Int div and mod
+alike, and `syntacticallyNonzero` reads the divisor term alone. And `%` by zero is a real junk
+value in Lean (`n % 0 = n`), so the flag is not wrong in general.
+
+Real checker: gate/lean/.lake/build/bin/opn-hazards (built at this worktree, Lean 4.33.1), over a
+Mathlib-free mock of the record's statement
+(targets/erdos-1094/nodes/erdos-1094--h3--h1/Statement.lean), `IsPrime` standing in for
+`Nat.Prime`, since the checker reads the divisor and never the hypothesis. Probe file and runner:
+/private/tmp/claude-501/-Users-mikehiggins-Desktop-repos-open-proof-network/3dae4213-1939-40ec-bbb6-2ad316d59eb0/scratchpad/divzero/Probe.lean, run.sh. Output, verbatim:
+
+== OpnProbe.hole (checkers div-zero,nat-div)
+{"capped":false,"checkers":["div-zero","nat-div"],"decl":"OpnProbe.hole","findings":[{"checker":"div-zero","location":"k % p","message":"modulo by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"},{"checker":"div-zero","location":"n % p","message":"modulo by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"}],"ok":true}
+exit 0
+== OpnProbe.div_prime (checkers div-zero,nat-div)
+{"capped":false,"checkers":["div-zero","nat-div"],"decl":"OpnProbe.div_prime","findings":[{"checker":"div-zero","location":"k / p","message":"division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"},{"checker":"div-zero","location":"n / p","message":"division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"},{"checker":"nat-div","location":"k / p","message":"natural-number division truncates: a / b is the floor of the quotient, so a / b * b = a fails unless b divides a; a quotient meant over ℚ or ℝ needs its ascription"},{"checker":"nat-div","location":"n / p","message":"natural-number division truncates: a / b is the floor of the quotient, so a / b * b = a fails unless b divides a; a quotient meant over ℚ or ℝ needs its ascription"}],"ok":true}
+exit 0
+== OpnProbe.mod_ne (checkers div-zero,nat-div)
+{"capped":false,"checkers":["div-zero","nat-div"],"decl":"OpnProbe.mod_ne","findings":[{"checker":"div-zero","location":"n % p","message":"modulo by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"}],"ok":true}
+exit 0
+== OpnProbe.div_ne (checkers div-zero,nat-div)
+{"capped":false,"checkers":["div-zero","nat-div"],"decl":"OpnProbe.div_ne","findings":[{"checker":"div-zero","location":"n / p","message":"division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"},{"checker":"nat-div","location":"n / p","message":"natural-number division truncates: a / b is the floor of the quotient, so a / b * b = a fails unless b divides a; a quotient meant over ℚ or ℝ needs its ascription"}],"ok":true}
+exit 0
+== OpnProbe.mod_clean (checkers div-zero,nat-div)
+{"capped":false,"checkers":["div-zero","nat-div"],"decl":"OpnProbe.mod_clean","findings":[],"ok":true}
+exit 0
+
+Reading: `%` and `/` are treated the same (hole, div_prime: both flagged); a prime hypothesis and a
+`p ≠ 0` hypothesis are both ignored, for both operators (mod_ne, div_ne); a literal and `p + 1`
+are not flagged (mod_clean). Consistent, and the hypothesis-blind contract of F02-Q3. The cure on
+the record is `acknowledged_hazards` (one line), or stating the divisor as `p + 1`. Making the
+checker read hypotheses would be a checker version (div-zero@v2) and the owner's call.
