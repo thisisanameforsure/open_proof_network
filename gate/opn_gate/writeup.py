@@ -101,8 +101,12 @@ def has_paper(target_dir: Path, signer: Signer, *, curators: frozenset[str] = fr
     """R7: whether a paper exists at ``steward-signed`` or above — the ``written-up`` condition
     (F15-R7; F24-R5: anyone may now record a write-up, and only a steward's or curator's signature
     makes it the problem's)."""
+    import datetime as dt  # noqa: PLC0415
+
+    # The floor sits below every rung a motion decides, so the motions are read as of the first
+    # day there is: none is decided, nothing reads the clock, and the answer is the same (D-5).
     graph_root = target_dir.parent.parent
-    found = views(graph_root, target_dir.name, today=None, signer=signer, curators=curators)
+    found = views(graph_root, target_dir.name, today=dt.date.min, signer=signer, curators=curators)
     floor = STAGES.index(STEWARD_SIGNED)
     return any(
         v.kind == PAPER and v.stage != WITHDRAWN and STAGES.index(v.stage) >= floor for v in found
@@ -347,7 +351,7 @@ def views(
     graph_root: Path,
     target_id: str,
     *,
-    today: Any,
+    today: dt.date,
     signer: Signer,
     curators: frozenset[str] = frozenset(),
 ) -> list[View]:
@@ -364,7 +368,7 @@ def views(
     acts = [a for a in load_any(target_dir) if signed.verifies(a.doc, signer)]
     if not acts:
         return []
-    on = today if today is not None else dt.datetime.now(dt.UTC).date()
+    on = today
     stewards = frozenset(s.login for s in steward.active(target_dir, signer))
     verified_writeups = {
         int(t.subject["writeup"])
