@@ -93,6 +93,7 @@ def record(  # noqa: PLR0913 — one opened pull request, described
     precheck_job_id: str | None = None,
     fingerprints: tuple[str, ...] | list[str] = (),
     defect_class: str | None = None,
+    expected_nodes: tuple[str, ...] | list[str] = (),
 ) -> Submission | None:
     """Remember a pull request the service just opened. The pull request exists whatever happens
     here, so a store failure is logged and the caller still answers 201 with its number: the
@@ -109,6 +110,7 @@ def record(  # noqa: PLR0913 — one opened pull request, described
         created=clockmod.render(ctx.clock.now()),
         fingerprints=tuple(fingerprints),
         defect_class=defect_class,
+        expected_nodes=tuple(expected_nodes),
     )
     try:
         ctx.store.put_submission(submission)
@@ -130,6 +132,7 @@ def document(submission: Submission) -> dict[str, Any]:
     doc.pop("final_state")
     doc.pop("fingerprints")  # the service's own index, not part of the answer (F07-T35)
     doc.pop("defect_class")  # likewise (F08-T18): the claim's own file says its class
+    doc.pop("expected_nodes")  # likewise (testers 2026-10-09b, C6): the receipt's holes say it
     # F05-T18: the name every write route uses (``POST /submissions``, ``/precheck``, the
     # receipt). ``kind`` stays, and is the only one that speaks for a record that is not an
     # artifact of ``POST /submissions`` (an annex, a witness, a proposal): there this is null.
@@ -161,16 +164,35 @@ def unknown_node(ctx: Context, node_id: str, where: str = "") -> ApiError:
         404, "node-unknown", f"{node_id} is not a node of this graph{where}; {NOT_RENDERED}"
     )
     found = ctx.store.get_submission_by_node(node_id)
+    hole: str | None = None
     if found is None:
-        return unknown
+        # Testers 2026-10-09b (C6): a hole child is proposed by nobody; the partial whose hole
+        # is expected to become it (F06-T15) answers for it as a proposal answers for its node.
+        found = ctx.store.get_submission_expecting(node_id)
+        if found is None:
+            return unknown
+        hole = expected_hole_name(ctx, found, node_id)
     details: dict[str, Any] = {"pr_number": found.pr_number, "pr_url": found.pr_url}
+    if hole is not None:
+        details["hole"] = hole
+    what_it_is = (
+        f"{node_id} is the hole `{hole}` of pull request #{found.pr_number}"
+        if hole is not None
+        else f"{node_id} is proposed in pull request #{found.pr_number}"
+    )
     state = None if found.closed is not None else live_state(ctx, found.pr_number)[0]
     merged = (found.final_state or {}).get("merged") if state is None else state.merged
     if merged:
+        became = (
+            f"{node_id} is the hole `{hole}` of pull request #{found.pr_number}, merged, which "
+            "the post-merge job writes as a node"
+            if hole is not None
+            else f"{node_id} merged as pull request #{found.pr_number}"
+        )
         return ApiError(
             409,
             "products-pending",
-            f"{node_id} merged as pull request #{found.pr_number}; {NOT_RENDERED}. Retry shortly.",
+            f"{became}; {NOT_RENDERED}. Retry shortly.",
             details=details,
             headers={"Retry-After": str(PRODUCTS_RETRY_AFTER_S)},
         )
@@ -192,9 +214,20 @@ def unknown_node(ctx: Context, node_id: str, where: str = "") -> ApiError:
     return ApiError(
         409,
         "node-pending",
-        f"{node_id} is proposed in pull request #{found.pr_number}{what}; {after}",
+        f"{what_it_is}{what}; {after}",
         details={**details, "waiting_on": waiting},
     )
+
+
+def expected_hole_name(ctx: Context, found: Submission, node_id: str) -> str | None:
+    """The name of the hole of ``found``'s precheck that is expected to become ``node_id``, from
+    the job's result; ``None`` when the job cannot be read (the id still names the partial)."""
+    job = ctx.store.get_job(found.precheck_job_id) if found.precheck_job_id else None
+    result = (job or {}).get("result") or {}
+    for h in result.get("holes") or []:
+        if isinstance(h, dict) and h.get("expected_node_id") == node_id:
+            return str(h.get("name"))
+    return None
 
 
 #: F06-T10: the ``waiting_on`` values that mean the proposal's gate concluded success, so its head
@@ -1233,6 +1266,19 @@ def mine(ctx: Context, pseudonym: str) -> dict[str, Any]:
     wanted = pseudonym.lower()
     listed = snapshot(ctx)
     open_now = [e for e in listed["open"] if str(e["pseudonym"]).lower() == wanted]
+    for entry in open_now:
+        # Testers 2026-10-09b (C4): the caller's own open submissions are few, so one the service
+        # has never read by id is read now (cached for the window, as the by-id route reads it)
+        # rather than answered ``waiting_on: null``; the listing of everyone's still reads
+        # nothing of its own.
+        if entry["queue"]["waiting_on_read_at"] is None:
+            live_state(ctx, int(entry["pr_number"]))
+            waiting, read_at = last_read(ctx, int(entry["pr_number"]))
+            entry["queue"] = {
+                **entry["queue"],
+                "waiting_on": waiting,
+                "waiting_on_read_at": read_at,
+            }
     finished = [s for s in ctx.store.list_submissions_by(pseudonym) if s.closed is not None]
     # newest first: by when it finished, then by number (ULIDs made in one millisecond do not
     # sort by time; the host numbers pull requests in the order they were opened)

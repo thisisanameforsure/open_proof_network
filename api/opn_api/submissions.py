@@ -590,6 +590,11 @@ async def post_submissions(ctx: Context, request: Request) -> Response:
         pr=pr,
         precheck_job_id=job.id,
         fingerprints=prints,
+        expected_nodes=[
+            str(h["expected_node_id"])
+            for h in expected_holes(job).get("holes", [])
+            if h.get("expected_new")
+        ],
     )
     return JSONResponse(
         {
