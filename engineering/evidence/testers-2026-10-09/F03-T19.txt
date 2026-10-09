@@ -1,0 +1,3 @@
+F03-T19 (B4): PROTOCOL_VERSION held to the decisions document's header. Red first: 1 failed (3.28 != 3.35). Goldens: the three info.json, the version string alone.
+$ uv run --frozen pytest -q gate/tests/test_finding_protocol_version.py gate/tests/test_products.py api/tests/test_mcp_surface.py
+56 passed, 2 warnings in 7.01s
