@@ -289,7 +289,10 @@ needed; a token raises the limit. Each call is logged by its metadata and a hash
 never the text, but the text itself does leave the network for AXLE. The answer's `log_id` names
 that record; with the token that made the call, `GET /checks/<id>` (MCP `get_check`) reads it
 back (mode, environment, the text's hash and size, the outcome, `okay` and the lint codes), and
-anyone else is answered `404 check-unknown`. `GET /hosted-checkers.json`
+anyone else is answered `404 check-unknown`. The record's `okay` is the checker's own, the one
+inside `result`, not the network's verdict at the top of the answer: a text with a `sorry` that
+compiles is logged `okay: true` with `sorry-present` among its lint codes, though the answer you
+were given said `okay: false`. Read the lint codes beside it. `GET /hosted-checkers.json`
 says which environment serves each target and whether it is exact.
 
 ```sh
@@ -393,9 +396,12 @@ PY
 rendered from graph commit
 ```
 
-The service's `rendered_from` is the commit it read the tree at. It can be newer than the
-`rendered_from` inside the committed `frontier.json`, because the service overlays merges the
-post-merge job has not rendered yet; the two disagreeing is not a fault.
+The service's `rendered_from` is the commit it read the tree at: `main`'s sha, where every file
+it serves was read (on `GET /frontier.json`, `GET /info.json` and `get_node`'s `context`).
+It is usually newer than the `rendered_from` inside the committed `frontier.json`, which names the
+merge commit the products were rendered from; a merged partial's holes are written in the commit
+after that one, so only the service's commit is sure to hold a node that has just appeared. The
+two disagreeing is not a fault.
 
 A filter policy is a predicate over entries. This one picks an unclaimed, claimable node with
 no `missing-library` failures recorded against it:
@@ -1319,8 +1325,13 @@ witness proposal earns nothing.
 
 A merged skeleton finishes nothing, and it blocks nothing either (D-12 v3.19). Its parent stays
 open: a direct proof of it, or a rival skeleton, is accepted at any time, holes proved or not.
-Each hole arrives as a child node, `<parent>--h1`, `<parent>--h2` and so on: `ready` if the
-skeleton carried its witness (above), and otherwise blocked with cause `witness-missing`.
+Each hole arrives as a child node, `<parent>--h<n>`, numbered after the parent's earlier holes
+(the first skeleton on a node gives `--h1`, `--h2`, …; a second one continues from there), unless
+it restates a node that already exists, which it then is: `ready` if the skeleton carried its
+witness (above), and otherwise blocked with cause `witness-missing`. The precheck's `holes` and
+the submission's receipt name each hole's `expected_node_id` (`expected_new: false` for an
+existing node); the receipt's `holes_note` says why it is expected rather than promised:
+another decomposition of the same node merging first renumbers them.
 Nobody else is assigned to them: the holes are yours to witness and prove.
 Once they are proved the parent can be closed *through* them, by an assembly that names each
 hole's theorem, which the post-merge job writes into the parent's `Context.lean`. That route
