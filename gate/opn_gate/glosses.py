@@ -898,6 +898,9 @@ def needed(doc: dict[str, Any], *, root: str | None, curated: str | None) -> lis
                 "module": subject["module"],
                 "reason": reason,
                 "outline": f"{base}/outlines/{lean_hash}.json" if kind in ARTIFACT_KINDS else None,
+                # Testers 2026-10-09b (C3): the hash the words' subject takes — an explainer's
+                # ``proof``, a gloss's optional ``lean_hash`` — was only inside the outline's path
+                "lean_hash": lean_hash,
             }
         )
     return out

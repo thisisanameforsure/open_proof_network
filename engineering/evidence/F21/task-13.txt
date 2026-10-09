@@ -1,0 +1,20 @@
+# F21-T13: every words-needed row carries lean_hash (testers 2026-10-09b, C3)
+
+## Red first (2026-10-09, before the fix; from the first run of the new tests)
+
+    file /Users/mikehiggins/Desktop/repos/opn-testers-1009b/api/tests/test_finding_words_needed_hash.py, line 25
+    E       fixture 'rendered' not found
+    file /Users/mikehiggins/Desktop/repos/opn-testers-1009b/api/tests/test_finding_words_needed_hash.py, line 37
+    E       fixture 'rendered' not found
+    >       assert "lean_hash" in subject["description"] and "list_words_needed" in subject["description"]
+    E       AssertionError: assert ('lean_hash' in 'what the words describe: {kind, node_id} for a statement, witness or relation (optional lean_hash); {kind: definition, target_id, module}; {kind: proof, node_id, proof} for an explainer' and 'list_words_needed' in 'what the words describe: {kind, node_id} for a statement, witness or relation (optional lean_hash); {kind: definition, target_id, module}; {kind: proof, node_id, proof} for an explainer')
+    api/tests/test_finding_words_needed_hash.py:59: AssertionError
+    ERROR api/tests/test_finding_words_needed_hash.py::test_every_row_carries_the_hash_of_the_lean_it_describes
+    ERROR api/tests/test_finding_words_needed_hash.py::test_the_hash_round_trips_into_an_explainer_subject
+    FAILED api/tests/test_finding_words_needed_hash.py::test_the_subject_description_says_proof_is_the_rows_hash
+
+## Green (2026-10-09T16:02Z)
+
+    uv run --frozen pytest -q api/tests/test_finding_words_needed_hash.py api/tests/test_mcp_words_needed.py gate/tests/test_gloss_coverage.py
+    -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+    15 passed, 2 warnings in 2.19s
