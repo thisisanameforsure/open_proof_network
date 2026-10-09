@@ -81,3 +81,12 @@ Fifteen graph pull requests merged, none needing a human: A: #462, #466, #468, #
 - `include: []` on `get_node` is mentioned only in the MCP appendix.
 - Collect postmortems' missing-lemma requests across nodes.
 - `skipped` pre-flights should carry a reason (B1).
+
+## Outcomes (same day, the owner's rulings)
+
+- B1: explained; the owner's call between a direction pre-flight and a description fix is pending.
+- B3: fixed as F05-T30, live (deploy.txt step 1).
+- B4: fixed as F03-T19, live at the re-pin (protocol 3.35).
+- A1: skipped (the owner).
+- B2: documented as F13-T33.
+- Feature, expected hole ids: F06-T15, live at the re-pin.

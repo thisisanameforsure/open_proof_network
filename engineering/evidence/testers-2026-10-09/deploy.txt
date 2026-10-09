@@ -1,0 +1,21 @@
+Testers 2026-10-09 fixes: push, re-pin, deploy (the owner: "2. ok fix it. 3. bump the version. repin")
+
+1. Network branch testers-1009-fixes pushed as main 1eaf7a9. api-deploy 37940650430 success.
+   Live check of F05-T30: GET /frontier.json and /info.json rendered_from = graph main baa3a7303;
+   MCP get_node erdos-1094--h2--h1 context.rendered_from = baa3a7303, and the hole's Statement.lean
+   on the raw host at that commit answers 200 (at the old label 93c88d5 it was 404, B3).
+2. ci 37940650722 success (fast tier and Lean tier). The earlier main run 37931135113 (6d9206d,
+   engineering/ only, a subset of this tree) was cancelled so this one could start.
+3. Tag gate-1eaf7a9; image-publish 37940900395 success:
+     gate-1eaf7a9                        sha256:bc7fbcf4a47cf44bfcb3e94ca0c9919bfe994162f10776ff8fe9b76aa18092eb
+     gate-1eaf7a9-mathlib-0df444a360ea   sha256:0c9fc23bbc66fcc32af60fb45e9af08948e8f7916b3c2d6a5217913d70b8cef1
+4. Graph worktree detached at origin/main; pin_image.py over 27 targets (tutorial plain, 26 Mathlib,
+   riemann-hypothesis last with --api-url); devcontainer diff is the image line only; AGENTS.md copied.
+   In-process render of the re-pinned tree with the new gate: 123 of 180 files differ, all of them
+   CONTEXT.json and info.json, by the gate-spec hash, network_commit and protocol_version 3.28 -> 3.35;
+   frontier, graph and targets index byte-identical.
+5. Rebased over graph main 65b92f2a1 (no pin file touched); no graph run in flight; pushed df7fff3c0
+   (owner's bypass). Graph gate 37956822602 success; render 37956840447 success -> 5ff173478
+   "gate: render 1eaf7a97227e": frontier 47 entries / 44 claimable before and after, the only entry
+   changes two expired claim snapshots; live GET /info.json protocol_version 3.35.
+6. site-deploy success 16:08Z.
