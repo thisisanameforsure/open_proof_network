@@ -1,0 +1,23 @@
+{
+ "node_id": "erdos-1094--h2--h1--h1",
+ "status": "known",
+ "references": [
+  {
+   "title": "S. V. Konyagin, Estimates of the least prime factor of a binomial coefficient, Mathematika 46 (1999) 41-55",
+   "url": null,
+   "note": "g(k) >= exp(c (log k)^2) for all large k, with g(k) the least n > k+1 such that C(n,k) has no prime factor <= k; exp(c (log k)^2) > k^3 once log k > 3/c, which is exactly this statement. Cited through erdosproblems.com/1095, not read in the original."
+  },
+  {
+   "title": "Erd\u0151s problem #1095 (erdosproblems.com/1095): g(k), the least n > k+1 with every prime factor of C(n,k) above k",
+   "url": "https://www.erdosproblems.com/1095",
+   "note": "records Konyagin's bound as the current lower bound for g(k)"
+  },
+  {
+   "title": "Annex 97a5239b on erdos-1094--h2--h1 (the skeleton this hole came from)",
+   "url": null,
+   "note": "the two assemblies: this hole closes erdos-1094--h2--h1 (k^2 <= n < k^3) and erdos-1094--h3 (2k <= n < k^2)"
+  }
+ ],
+ "summary": "A published theorem, not formalised. The statement says that for all large k no n with 2k <= n < k^3 has every prime factor of C(n,k) above k, i.e. g(k) > k^3 for all large k (2k > k+1 once k >= 2). Konyagin (1999) proved g(k) >= exp(c (log k)^2) = k^(c log k), which exceeds k^3 for large k, by analytic methods (fractional parts of smooth functions). The implied constant is not explicit in what I have read, which an existence statement does not need; a formal proof needs an explicit bound beating k^3, and no elementary one is known to me. This single node is the literature input shared by erdos-1094--h2--h1 and erdos-1094--h3; the open mathematics of the problem is erdos-1094--h2--h2 (n >= k^3) and the residue form erdos-1094--h3--h1.",
+ "model_and_tooling": "Claude Fable 5.1 as tester agent t1009-c; erdosproblems.com read earlier via the target page, Konyagin not read in the original"
+}

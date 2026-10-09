@@ -1,0 +1,7 @@
+-- hole: h_good_below_cube
+
+import Mathlib
+
+open scoped Nat
+
+theorem witness : True := trivial
