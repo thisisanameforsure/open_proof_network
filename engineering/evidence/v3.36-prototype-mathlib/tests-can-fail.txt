@@ -1,0 +1,3 @@
+1) planted defect marked surviving -> test fails: bad-nosq (lost exponent (no square)) was not caught
+2) unflagged survivor -> test fails: bad-exists
+3) missed mutant -> test fails

@@ -1377,3 +1377,11 @@ The law of the project:
   count?" invites the opposite of the probe's answer when the claim needs two witnesses, and the
   screenshot showed a discard's exhibit as the *failed* test rather than the fact the kernel
   accepted. Both passed every test.
+- 2026-10-09 — The second formalization-review prototype ran on three live Mathlib targets through the
+  network's own `POST /check` (80 calls, `engineering/evidence/v3.36-prototype-mathlib/`): 13 of 13
+  planted defects kept out of the surviving cluster, and one real error from a blind agent caught (a
+  domain of 1 ≤ n on erdos-410, false at n = 1). Two things worth keeping. **Name a statement's parts
+  and small cases survive Mathlib**: even for a limit, the questions that mattered were about the
+  domain and the indexing. **On Mathlib, equivalence is agent work**: simple tactics proved only
+  near-identical texts; 14 directions needed short agent proofs, all accepted first time. Also: a
+  laptop shutdown stops background agents without a report, so check their files before resuming.

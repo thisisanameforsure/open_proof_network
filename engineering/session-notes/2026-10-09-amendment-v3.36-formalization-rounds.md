@@ -1,4 +1,4 @@
-# Proposed decisions amendment v3.36: formalization rounds, intent tests and two signatures
+# Proposed decisions amendment v3.36: formalization reviews, intent tests and two signatures
 
 **Status (2026-10-09): drafted, not approved, not applied.** Items in §8 are open for the owner.
 
@@ -21,19 +21,28 @@ The owner's rulings:
 - a reading the signers do not choose stays as a variant, never the root, and agents may use it;
 - back-translation explained and understood; its removal is §6.
 
+Rulings of 2026-10-09, after the prototype (§9):
+- the process is called a **formalization review** (it was "round" in the first draft);
+- **existing targets stay claimable** and keep their grade; each gets a review in the background,
+  and step 9 asks that the review be complete before a proof that settles the root merges (§1);
+- **keep the grading ladder**, earned under the review as §4's table says;
+- the proposer answers **on the site**, and is **told through GitHub** (an @-mention by the App)
+  so the questions reach them without the network holding an email address (§7);
+- a **second prototype** on live Mathlib targets runs before this is applied (§10).
+
 The principle under all of it, from the research note §3: a machine can **refute** a formalization
 soundly (a kernel-checked exhibit), and can never **accept** one. So every discard is an exhibit, and
 every acceptance is a person's signature with the exhibits beside it.
 
-## 1. D-9: the pass becomes a formalization round
+## 1. D-9: the pass becomes a formalization review
 
 What D-9 has today: one Lean statement, written by a curator, put through an ordered pass (compile,
 soundness screens, grounded brief, equivalence once a second formalization exists, back-translation,
 a non-author sign-off). Nothing turns an English conjecture into Lean, and nothing asks the proposer
 what they meant.
 
-> **v3.36 — a formalization round.** A root statement that arrives in words (D-6) is formalized in a
-> **round**, and the round's surviving Lean becomes the root. A round has seven stages; stages 3, 4
+> **v3.36 — a formalization review.** A root statement that arrives in words (D-6) is formalized in a
+> **review**, and the review's surviving Lean becomes the root. A review has seven stages; stages 3, 4
 > and 6 are agent work and emit only kernel-checked exhibits.
 >
 > 1. **Propose.** The conjecture in words, with whatever the proposer can give that pins it down:
@@ -50,7 +59,7 @@ what they meant.
 > 4. **Reconcile.** Candidates are compared in pairs (§3). Candidates proved equivalent form a
 >    **cluster**. Between clusters, agents look for a case on which they disagree.
 > 5. **Ask.** Each proved disagreement becomes a question to the intent signer (§4), in mathematics,
->    never in Lean. The answer becomes an intent test, and stage 3 runs again. The round loops until
+>    never in Lean. The answer becomes an intent test, and stage 3 runs again. The review loops until
 >    one cluster survives, or the clusters left are readings the intent signer confirms are
 >    genuinely different (§5).
 > 6. **Mutate.** Agents perturb the surviving cluster's representative the ways statements are known
@@ -60,19 +69,38 @@ what they meant.
 >    catch; it is a measure of the tests, never of the statement.
 > 7. **Sign.** Two signatures (§4) on the evidence page (§7).
 >
-> **When work opens.** A target becomes claimable when the automated stages are complete: one
+> **When work opens.** A new target becomes claimable when the automated stages are complete: one
 > cluster survives stage 3, and stage 6 raises no open question. The signatures arrive while proving
-> goes on, and the grade rises as they do. D-4 step 9 is unchanged: a proof that would settle the
-> root still asks for the certificate or a non-author approval at that moment.
+> goes on, and the grade rises as they do.
+>
+> **Targets that exist already** stay claimable and keep their grade. Each is given a review in the
+> background: its statement becomes the first candidate (porting, below), agents run the automated
+> stages and submit their own candidates, and anything found goes the existing routes, a defect
+> claim (D-15) and a revision (D-8). Nothing is taken off the frontier to wait for people who have
+> not been found.
+>
+> **Step 9 reads the review.** A proof that would settle a target's root (D-4 v3.20) merges only
+> when that target's review is complete: automated stages done, no open question, and the grade at
+> least `screened-and-signed`. This is where the review binds: intermediate work never waits for
+> it, and the claim that a conjecture is settled always does.
+>
+> **Porting an existing formalization.** A statement imported from a registry (D-10, such as Formal
+> Conjectures) enters the review as **the first candidate**, credited to its registry's authors,
+> and is judged like any other. The words are the source's (for an Erdős problem, the
+> erdosproblems.com statement). Independence is weaker than for new intake, because the imported
+> Lean is public: each later candidate's author declares whether they read it first, and the page
+> shows the declaration as a claim, not as a fact the network checked. Where the imported statement
+> does not meet the format rule (§2), the review adds a wrapper that names its parts, proved equal
+> to the original by `rfl`, so the original's text and hash are untouched.
 
 Rationale: the 2026 evidence (research §1) is that a compiled statement means what was intended
 about three times in four, and that sampling more does not close the gap. The only sound checks are
-refutations and proved equivalences; the only judge of intent is a person. The round puts each where
+refutations and proved equivalences; the only judge of intent is a person. The review puts each where
 it is strong.
 
-Overturns if: rounds on real intake end with more than one surviving cluster most of the time while
-the intent signer cannot say which reading is meant. Then a round cannot settle intent, and intake
-returns to a curated statement with the round's exhibits attached as evidence only.
+Overturns if: reviews on real intake end with more than one surviving cluster most of the time while
+the intent signer cannot say which reading is meant. Then a review cannot settle intent, and intake
+returns to a curated statement with the review's exhibits attached as evidence only.
 
 ## 2. D-9: intent tests
 
@@ -97,7 +125,7 @@ returns to a curated statement with the round's exhibits attached as evidence on
 > a triviality flag.
 >
 > **Three probes, not one** (added after the prototype, §9). A test that asks only "does the claim
-> hold at n?" cannot see two kinds of error, so a round runs each test three ways:
+> hold at n?" cannot see two kinds of error, so a review runs each test three ways:
 > - **holds**: the claim at n against the proposer's answer;
 > - **covers**: the claim at n with every concept the words use (here, "prime") made empty. The
 >   claim then fails exactly where the conjecture says something, so this tells "holds at n" from
@@ -151,7 +179,7 @@ independent signature. "Author" is used of the conjecture's wording in one rule 
 the next (the non-author rule, v3.17).
 
 > **v3.36 — two roles.** A root's certificate names two signers, each by role:
-> - the **intent signer** answers the round's questions and signs that the surviving cluster says
+> - the **intent signer** answers the review's questions and signs that the surviving cluster says
 >   what the conjecture says. It is the proposer; for a conjecture inherited from a source (D-6,
 >   D-10), the target's steward (D-32), whose answers each cite a source, and an answer without one
 >   is flagged on the page;
@@ -169,10 +197,24 @@ the next (the non-author rule, v3.17).
 >
 > A signature is a decision written by a person. The page never computes one. Each signer chooses:
 > accept a cluster; split into variants (§5); or send back with a new question.
+>
+> **The ladder is kept, and earned this way:**
+>
+> | Rung | Earned under a review by |
+> |---|---|
+> | `mechanical-only` | the statement compiles (every live target today) |
+> | `screened-and-signed` | the automated stages complete (one cluster, screens and probes pass, no open question) and one signature from someone who wrote no surviving candidate |
+> | `author-attested` | the intent signer signs |
+> | `expert-attested` | both signatures, and a person-written candidate in the surviving cluster |
+> | `published-and-uncontested` | unchanged: N days public, M attempts, no confirmed defect |
+>
+> No grade already held is taken away by this amendment. Beside the grade, a target shows its
+> review's **state** ("6 candidates, 1 cluster, 2 questions waiting"): the grade says what was
+> signed, the state what is under way.
 
 ## 5. D-30: a reading not chosen becomes a variant
 
-> **v3.36.** Where a round ends with clusters the intent signer confirms are genuinely different
+> **v3.36.** Where a review ends with clusters the intent signer confirms are genuinely different
 > readings, the chosen one becomes the root and each other is published as a D-30 variant of it,
 > with its relation label proved where the pairs (§3) already prove a direction, and `related`
 > otherwise. A variant made this way is never the root and never carries the certificate; it is
@@ -200,7 +242,7 @@ than the new floor asks) and the `qa` schema keeps the value for old records.
 
 ## 7. D-9, D-36: the evidence page
 
-> **v3.36.** Each round has one page on the site, built from the record only:
+> **v3.36.** Each review has one page on the site, built from the record only:
 > 1. **Candidates:** each with its author, how it was made, its stage-3 result and, if discarded,
 >    the exhibit that discarded it;
 > 2. **Pairs and clusters:** each direction proved, refuted or open;
@@ -212,22 +254,33 @@ than the new floor asks) and the `qa` schema keeps the value for old records.
 >
 > Exhibits and judgements stay apart on the page as D-9 v3.12 requires: only exhibits are evidence
 > for a grade.
+>
+> **Where the proposer answers.** On this page, signed in with GitHub (v3.33). Each question is in
+> mathematics, beside the small case or probe that raised it. An answer is an append-only record on
+> the graph, signed by the network's approval key and naming the login (as a v3.33 approval is), so
+> the intent test built from it can always be traced to who said what. Agents read the questions
+> through the MCP; only the intent signer answers.
+>
+> **How the proposer hears.** When a review has questions waiting, the GitHub App posts a comment
+> that @-mentions the intent signer, on the review's tracking issue in the graph repository (or on
+> the pull request that proposed the conjecture), listing the questions and linking the page.
+> GitHub then notifies them by its own settings, which by default includes email, so the network
+> never collects or holds an email address. The same notice appears on the signer's `/me/` page
+> (v3.35). One comment per batch of new questions, never one per question.
 
 ## 8. Open for the owner
 
-1. **Existing targets.** v3.15 made every listed target claimable at once. §1's "claimable when the
-   automated stages are complete" applies to new intake; do the existing roots keep their status and
-   enter a round only when someone opens one?
-2. **Where the conversation happens.** The intent signer answers questions over days. The site
-   (v3.33 sign-in) is the natural home; it needs a write route for an answer (D-35, D-28 surface).
-3. **Who may open a round.** The proposer through D-6's issue form, a steward, a curator?
-4. **A second prototype on Mathlib statements.** §9 ran on core Lean with decidable instances. The
-   next one should take two or three Erdős targets already on the graph, where small cases are
-   expensive or absent, and measure how much of the round survives there.
+1. **Who may open a review.** The proposer through D-6's issue form, a steward, a curator? For
+   existing targets the background review is opened by the network itself.
+2. **Step 9 and catalog evidence.** v3.15 lets recorded catalog evidence scoring at least five
+   points stand in for step 9. §1 now asks for a completed review instead. Does catalog evidence
+   keep its waiver as a separate route, or does it become one input to the review?
+3. **New service surface.** Answers need a write route (D-35) and the notice needs the App to
+   comment on an issue; both are protocol surface and the owner's to approve when specced.
 
 ## 9. What the prototype showed (2026-10-09)
 
-Code: `engineering/prototypes/formalization-round/` (`round.py` runs the round, `test_round.py`
+Code: `engineering/prototypes/formalization-round/` (`round.py` runs the review, `test_round.py`
 checks it, `render.py` draws the evidence page). Evidence: `engineering/evidence/v3.36-prototype/`
 (results, page, screenshots, test output).
 
@@ -279,3 +332,57 @@ knew the answers; the proposer is simulated, so the cost of a question to a real
 unmeasured.
 
 Cites: D-4, D-6, D-8, D-9, D-10, D-11, D-15, D-19, D-28, D-30, D-32, D-35, D-36.
+
+## 10. The second prototype: three live Mathlib targets (2026-10-09)
+
+Code: `engineering/prototypes/formalization-review-mathlib/` (`review.py`, `test_review.py`,
+`render.py`). Evidence: `engineering/evidence/v3.36-prototype-mathlib/` (results, page, screenshots,
+48 passing tests, the run log).
+
+Set-up: erdos-1003 ("infinitely many n with φ(n) = φ(n+1)"), erdos-727 ("for every k ≥ 2,
+infinitely many n with ((n+k)!)² ∣ (2n)!") and erdos-410 (a limit of σ-iterates), chosen for three
+shapes the first prototype could not test. Every check went through the network's own
+`POST /check` (AXLE, Lean 4.33.1, the target's Mathlib): **80 calls**, inside the anonymous limit of
+200 a day, one of them a 20 s timeout recorded as "open". For each target: the **incumbent** (the
+live statement, ported by a wrapper proved equal by `Iff.rfl`), one or two human variants, three
+blind agents (Sonnet, Haiku, Opus) and 13 planted defects in all. The format named each statement's
+parts (`member`, `domain`, `iter`) so small cases had something to sample.
+
+Results:
+- **13 of 13 planted defects kept out of the surviving cluster**: 10 discarded with their Lean
+  (7 by a question, 3 by an agent proving the statement or its negation in a few lines) and 3
+  flagged for the signers.
+- **A real error from a blind agent was caught.** The Sonnet formalizer took erdos-410 over
+  1 ≤ n; the words name no domain, the source takes n ≥ 2, and at n = 1 the statement is false.
+  The question "is n = 1 one of the n the conjecture is about?" discarded it. Nothing about it
+  was planted.
+- **Questions to the proposer: 1, 3 and 2.**
+- **One cluster per target**, each holding the incumbent, at least one agent and a person's
+  variant (5, 5 and 3 versions). **The incumbent passed its own review on all three.**
+- **Every mutant of the named parts caught** (3, 10, 7).
+- **Haiku's files compiled for two targets and not the third** (it invented `divisorSigma`; its
+  session ended before it saw the error).
+
+What it changed or showed:
+1. **Small cases survive the move to Mathlib, through the named parts.** Even for a limit
+   statement, the questions that mattered (which n; what σ_1(2) is) were about the parts, and
+   the format made them sampleable. The limit itself has no small cases.
+2. **Equivalence on Mathlib is mostly agent work.** Simple matching proved only the directions
+   between near-identical texts (9 within the clusters); 14 needed an agent's proof ("for every N
+   a larger n" against `Set.Infinite`, σ as a sum over divisors, the ε-form of a limit). All 14
+   were short (85 lines together) and passed on the first check. So "open pairs are claimable
+   work" is the main road to a cluster here, not an exception.
+3. **The statement's shape is the signers' part.** "Finitely many" was shown to *contradict* the
+   cluster by proof, which is a structural question for the signers. "Some k" for "every k" and
+   "some n" for "every n" were left with no direction proved: even the easy direction needs a
+   witness the tactics did not supply. Neither can be settled by sampling, and mutation here
+   changed only the named parts. A reading of the shape ("every k ≥ 2, or some?") is therefore a
+   question the review must put in words, from the clusters' disagreement, not from a table.
+4. **Porting works as drafted**: a wrapper proved equal by `Iff.rfl` leaves the live statement's
+   text and hash untouched.
+5. **The 20 s budget of the hosted check shapes the work**: pair attempts went six to a call, and
+   one batch timed out. A review on the network would run these in the gate's sandbox, with its
+   full budget.
+
+Limits: three targets; the defects were planted by someone who knew the answers; the proposer is
+simulated, from the words and, for erdos-410's domain, the cited source.

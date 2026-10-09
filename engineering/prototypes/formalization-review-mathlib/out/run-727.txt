@@ -1,0 +1,94 @@
+== erdos-727
+  agent-a: live
+  agent-b: live
+  agent-c: live
+  alt-sum: live
+  bad-exists: live
+  bad-k1: live
+  bad-nosq: live
+  bad-prec: live
+  incumbent: live
+  pair agent-a→agent-b:implies: open
+  pair agent-a→agent-b:contradicts: open
+  pair agent-a→agent-c:implies: proved
+  pair agent-a→agent-c:contradicts: open
+  pair agent-a→alt-sum:implies: open
+  pair agent-a→alt-sum:contradicts: open
+  pair agent-a→bad-exists:implies: open
+  pair agent-a→bad-exists:contradicts: open
+  pair agent-a→incumbent:implies: proved
+  pair agent-a→incumbent:contradicts: open
+  pair agent-b→agent-a:implies: open
+  pair agent-b→agent-a:contradicts: open
+  pair agent-b→agent-c:implies: open
+  pair agent-b→agent-c:contradicts: open
+  pair agent-b→alt-sum:implies: open
+  pair agent-b→alt-sum:contradicts: open
+  pair agent-b→bad-exists:implies: open
+  pair agent-b→bad-exists:contradicts: open
+  pair agent-b→incumbent:implies: open
+  pair agent-b→incumbent:contradicts: open
+  pair agent-c→agent-a:implies: proved
+  pair agent-c→agent-a:contradicts: open
+  pair agent-c→agent-b:implies: open
+  pair agent-c→agent-b:contradicts: open
+  pair agent-c→alt-sum:implies: open
+  pair agent-c→alt-sum:contradicts: open
+  pair agent-c→bad-exists:implies: open
+  pair agent-c→bad-exists:contradicts: open
+  pair agent-c→incumbent:implies: proved
+  pair agent-c→incumbent:contradicts: open
+  pair alt-sum→agent-a:implies: open
+  pair alt-sum→agent-a:contradicts: open
+  pair alt-sum→agent-b:implies: open
+  pair alt-sum→agent-b:contradicts: open
+  pair alt-sum→agent-c:implies: open
+  pair alt-sum→agent-c:contradicts: open
+  pair alt-sum→bad-exists:implies: open
+  pair alt-sum→bad-exists:contradicts: open
+  pair alt-sum→incumbent:implies: open
+  pair alt-sum→incumbent:contradicts: open
+  pair bad-exists→agent-a:implies: open
+  pair bad-exists→agent-a:contradicts: open
+  pair bad-exists→agent-b:implies: open
+  pair bad-exists→agent-b:contradicts: open
+  pair bad-exists→agent-c:implies: open
+  pair bad-exists→agent-c:contradicts: open
+  pair bad-exists→alt-sum:implies: open
+  pair bad-exists→alt-sum:contradicts: open
+  pair bad-exists→incumbent:implies: open
+  pair bad-exists→incumbent:contradicts: open
+  pair incumbent→agent-a:implies: proved
+  pair incumbent→agent-a:contradicts: open
+  pair incumbent→agent-b:implies: open
+  pair incumbent→agent-b:contradicts: open
+  pair incumbent→agent-c:implies: proved
+  pair incumbent→agent-c:contradicts: open
+  pair incumbent→alt-sum:implies: open
+  pair incumbent→alt-sum:contradicts: open
+  pair incumbent→bad-exists:implies: open
+  pair incumbent→bad-exists:contradicts: open
+{
+ "erdos-1003": {
+  "agent-a": "live",
+  "agent-b": "live",
+  "agent-c": "live",
+  "alt-forall": "live",
+  "bad-finite": "live",
+  "bad-nonempty": "discarded@screen",
+  "bad-shift": "discarded@question (member)",
+  "bad-sigma": "discarded@question (member)",
+  "incumbent": "live"
+ },
+ "erdos-727": {
+  "agent-a": "live",
+  "agent-b": "live",
+  "agent-c": "live",
+  "alt-sum": "live",
+  "bad-exists": "live",
+  "bad-k1": "discarded@question (domain)",
+  "bad-nosq": "discarded@question (member)",
+  "bad-prec": "discarded@question (member)",
+  "incumbent": "live"
+ }
+}
