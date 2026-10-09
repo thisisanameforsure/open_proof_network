@@ -1,0 +1,255 @@
+{
+  "commit": "4edc51a25724ecc962b6dc18fb2759fbf5d3ce2c",
+  "image": "ghcr.io/thisisanameforsure/opn-gate@sha256:287bba8c2419afb98be974545310738b1abfe1649ce0a3c782f084c97ed5cde2",
+  "published": 14,
+  "outlined_again": 14,
+  "ids_lost_or_moved": 0,
+  "failed": [],
+  "artifacts": [
+    {
+      "target": "euclid-primes",
+      "artifact": "14e19f969509a03cbd7847338c57fabb6503afe32f6c4c5deb87e21019a3e763",
+      "node": "variant-2a7919a9--h1",
+      "outlined": true,
+      "lost": [],
+      "added": [
+        "close"
+      ],
+      "case_hypotheses": {}
+    },
+    {
+      "target": "euclid-primes",
+      "artifact": "508a7ba34845f082cff0d6338bf17f06a0783142652341e1e1e573a5ae11238d",
+      "node": "variant-aceabdc4",
+      "outlined": true,
+      "lost": [],
+      "added": [
+        "close"
+      ],
+      "case_hypotheses": {}
+    },
+    {
+      "target": "euclid-primes",
+      "artifact": "55a53a1c45b03db46f79e21b63a3da507e9aecca0c40ee7cb39cb9f47bfcee96",
+      "node": "infinitude-of-primes--h2",
+      "outlined": true,
+      "lost": [],
+      "added": [],
+      "case_hypotheses": {
+        "s1.s1": {
+          "was": [],
+          "now": [
+            "hp"
+          ]
+        },
+        "s1.s2": {
+          "was": [],
+          "now": [
+            "hp"
+          ]
+        }
+      }
+    },
+    {
+      "target": "euclid-primes",
+      "artifact": "570f0a5ab393cec24508c679f14887af65b52f4f2975b0625edfdabeba090b7a",
+      "node": "variant-2a7919a9",
+      "outlined": true,
+      "lost": [],
+      "added": [
+        "close"
+      ],
+      "case_hypotheses": {}
+    },
+    {
+      "target": "euclid-primes",
+      "artifact": "5fbf6a9866db982f42e7a2478c7068a4f7fc4a7e4f8d89d273701272a8946ce8",
+      "node": "variant-dea95969",
+      "outlined": true,
+      "lost": [],
+      "added": [],
+      "case_hypotheses": {
+        "key.s1.s1": {
+          "was": [],
+          "now": [
+            "hp"
+          ]
+        },
+        "key.s1.s2": {
+          "was": [],
+          "now": [
+            "hp"
+          ]
+        },
+        "key.s1.s2.hbpos.s1": {
+          "was": [],
+          "now": [
+            "h"
+          ]
+        },
+        "key.s1.s2.hbpos.s2": {
+          "was": [],
+          "now": [
+            "h"
+          ]
+        },
+        "key.s1.s2.s8": {
+          "was": [],
+          "now": [
+            "h"
+          ]
+        },
+        "key.s1.s2.s9": {
+          "was": [],
+          "now": [
+            "h"
+          ]
+        },
+        "s5": {
+          "was": [],
+          "now": [
+            "h"
+          ]
+        },
+        "s6": {
+          "was": [],
+          "now": [
+            "h"
+          ]
+        }
+      }
+    },
+    {
+      "target": "euclid-primes",
+      "artifact": "881da5c60117213c880d413ec08c0b58bcde100e078814789a6e2d18cb72d429",
+      "node": "variant-2a7919a9--h2",
+      "outlined": true,
+      "lost": [],
+      "added": [],
+      "case_hypotheses": {}
+    },
+    {
+      "target": "euclid-primes",
+      "artifact": "8e5e204d1864a61272e73202b67e8a3d576e6dc4802851bc4c81fb9798bbb5c8",
+      "node": "variant-2a7919a9",
+      "outlined": true,
+      "lost": [],
+      "added": [
+        "close"
+      ],
+      "case_hypotheses": {}
+    },
+    {
+      "target": "euclid-primes",
+      "artifact": "959cc47eecf3475c7bca8c4b32c1b8ab0dd8594266a52678dd638fc28d543bc2",
+      "node": "infinitude-of-primes",
+      "outlined": true,
+      "lost": [],
+      "added": [],
+      "case_hypotheses": {
+        "s7": {
+          "was": [],
+          "now": [
+            "h"
+          ]
+        },
+        "s8": {
+          "was": [],
+          "now": [
+            "h"
+          ]
+        }
+      }
+    },
+    {
+      "target": "euclid-primes",
+      "artifact": "abb52c9e9aa15b6edc4b57b7fe1763fa6ebc908107cdc03395de2d8fbacee852",
+      "node": "infinitude-of-primes--h1",
+      "outlined": true,
+      "lost": [],
+      "added": [
+        "close"
+      ],
+      "case_hypotheses": {}
+    },
+    {
+      "target": "euclid-primes",
+      "artifact": "cd3b591baea673c0210c6bf3da15dafd1565fe8c4e07c79f7502fa0ac4380ee0",
+      "node": "infinitude-of-primes--h4",
+      "outlined": true,
+      "lost": [],
+      "added": [
+        "close"
+      ],
+      "case_hypotheses": {}
+    },
+    {
+      "target": "euclid-primes",
+      "artifact": "f1ce6c782f7da184c21e6b24c7ec9d35613a4c67ca81c1558df7c8a371fb8f0b",
+      "node": "infinitude-of-primes",
+      "outlined": true,
+      "lost": [],
+      "added": [],
+      "case_hypotheses": {
+        "s7": {
+          "was": [],
+          "now": [
+            "h"
+          ]
+        },
+        "s8": {
+          "was": [],
+          "now": [
+            "h"
+          ]
+        }
+      }
+    },
+    {
+      "target": "euclid-primes",
+      "artifact": "f2f2f2613dbc4dd2222e5fd2be57dd11f72549622b24999160fe60311f90d5df",
+      "node": "infinitude-of-primes--h3",
+      "outlined": true,
+      "lost": [],
+      "added": [
+        "close"
+      ],
+      "case_hypotheses": {}
+    },
+    {
+      "target": "euclid-primes",
+      "artifact": "f9d7950a7d32d3d9fff2ad691204e2ea72bd27db749e5f0ecf9e0dde3a8662cf",
+      "node": "variant-f15ce396",
+      "outlined": true,
+      "lost": [],
+      "added": [
+        "close"
+      ],
+      "case_hypotheses": {}
+    },
+    {
+      "target": "euclid-primes",
+      "artifact": "fa323391271fdf2483776b16bd702ecd05d47142a7f8b79e5f424eaecccbffdc",
+      "node": "variant-4cb87a03",
+      "outlined": true,
+      "lost": [],
+      "added": [
+        "close"
+      ],
+      "case_hypotheses": {
+        "prime_divisor.s1.s1": {
+          "was": [],
+          "now": [
+            "hp"
+          ]
+        },
+        "prime_divisor.s1.s2": {
+          "was": [],
+          "now": [
+            "hp"
+          ]
+        }
+      }
+    }
+  ]
+}
