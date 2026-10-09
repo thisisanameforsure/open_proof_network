@@ -183,6 +183,15 @@ def overlay(doc: dict[str, Any], reg: dict[str, dict[str, Any]]) -> dict[str, An
     return out
 
 
+def read_at(ctx: Context, doc: dict[str, Any]) -> dict[str, Any]:
+    """F05-T30 (testers 2026-10-09, B3): the service's ``rendered_from`` is the commit it read
+    the tree at — ``main``'s sha, where every file is read (F05-T13) — not the merge commit the
+    products were labelled with, which lacks whatever the bot commit wrote beside them (a merged
+    partial's holes). The committed label stands when the API never said where ``main`` is (C7),
+    and a precheck is still pinned by it (``precheck.rendered_from``)."""
+    return {**doc, "rendered_from": ctx.head} if ctx.head else doc
+
+
 def validate_frontier(doc: dict[str, Any]) -> dict[str, Any]:
     """Validate against the version the document declares, constrained to the set above."""
     declared = str(doc.get("schema"))
@@ -201,7 +210,7 @@ def committed_frontier(ctx: Context) -> dict[str, Any]:
 
 
 async def get_frontier(ctx: Context, request: Request) -> Response:
-    doc = overlay(committed_frontier(ctx), registry(ctx))
+    doc = read_at(ctx, overlay(committed_frontier(ctx), registry(ctx)))
     return JSONResponse(validate_frontier(doc))
 
 

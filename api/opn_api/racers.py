@@ -83,8 +83,8 @@ def convert(ctx: Context, found: Submission, state: PullRequestState) -> bool:  
     repo = ctx.settings.graph_repo
     try:
         fetched = ctx.githost.fetch_raw(repo, state.head_sha, node_dir + "Proof.lean", etag=None)
-        winner = ctx.githost.fetch_raw(
-            repo, ctx.settings.graph_branch, node_dir + "Proof.lean", etag=None
+        winner = ctx.githost.fetch_raw(  # F05-T30: at main's sha, as every committed read
+            repo, ctx.head or ctx.settings.graph_branch, node_dir + "Proof.lean", etag=None
         )
     except GitHostError as exc:
         log.warning("racer #%d: proof not read: %s", found.pr_number, exc)

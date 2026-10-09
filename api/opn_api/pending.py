@@ -419,8 +419,8 @@ def optional_committed(ctx: Context, path: str) -> bytes | None:
     if cached.body is not None and now - cached.fetched_at < ctx.settings.frontier_max_stale_s:
         return cached.body
     try:
-        got = ctx.githost.fetch_raw(
-            ctx.settings.graph_repo, ctx.settings.graph_branch, path, etag=cached.etag
+        got = ctx.githost.fetch_raw(  # F05-T30: at main's sha, as frontier.committed reads
+            ctx.settings.graph_repo, ctx.head or ctx.settings.graph_branch, path, etag=cached.etag
         )
     except GitHostError as exc:
         log.warning("%s: %s", path, exc)

@@ -83,8 +83,8 @@ def exhibit_text(fields: dict[str, Any], *, required: bool) -> str | None:
 def fetch_optional(ctx: Context, path: str) -> bytes | None:
     """A committed file, or ``None`` when the graph has no such file; unreachable is a 503."""
     try:
-        got = ctx.githost.fetch_raw(
-            ctx.settings.graph_repo, ctx.settings.graph_branch, path, etag=None
+        got = ctx.githost.fetch_raw(  # F05-T30: at main's sha, as every committed read
+            ctx.settings.graph_repo, ctx.head or ctx.settings.graph_branch, path, etag=None
         )
     except GitHostError as exc:
         raise ApiError(503, "graph-unreachable", f"cannot read {path} from the graph") from exc

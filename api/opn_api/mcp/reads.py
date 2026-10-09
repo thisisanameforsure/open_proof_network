@@ -74,7 +74,7 @@ def committed(ctx: Context, path: str, *, optional: bool = False) -> bytes | Non
         return cached.body
     try:
         got = ctx.githost.fetch_raw(
-            ctx.settings.graph_repo, ctx.settings.graph_branch, path, etag=cached.etag
+            ctx.settings.graph_repo, ctx.head or ctx.settings.graph_branch, path, etag=cached.etag
         )
     except GitHostError as exc:
         if cached.body is not None:
@@ -120,7 +120,7 @@ def listing(ctx: Context, path: str) -> list[str]:
             return _names(cached.names)
         raise error("host-budget-exhausted", hold, "graph")
     try:
-        names = ctx.githost.list_dir(ctx.settings.graph_repo, ctx.settings.graph_branch, path)
+        names = ctx.githost.list_dir(ctx.settings.graph_repo, ref, path)
     except GitHostError as exc:
         raise error(
             "graph-unreachable", f"cannot list {path} in the graph: {exc}", "graph"
@@ -515,6 +515,7 @@ async def get_node(call: Call, args: dict[str, Any]) -> dict[str, Any]:
         # Owner, 2026-09-14: get_node returns the latest node, so the bundle's committed claims
         # snapshot is replaced by the live overlay and the two blocks can never disagree.
         bundle = {**bundle, "claims": dict(claims)}
+    bundle = frontier.read_at(call.ctx, bundle)  # F05-T30: the commit its files were read at
     out: dict[str, Any] = {
         "node_id": node_id,
         "target_id": target_id,
