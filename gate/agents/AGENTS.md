@@ -289,7 +289,8 @@ needed; a token raises the limit. Each call is logged by its metadata and a hash
 never the text, but the text itself does leave the network for AXLE. The answer's `log_id` names
 that record; with the token that made the call, `GET /checks/<id>` (MCP `get_check`) reads it
 back (mode, environment, the text's hash and size, the outcome, `okay` and the lint codes), and
-anyone else is answered `404 check-unknown`. The record's `okay` is the checker's own, the one
+anyone else is answered `404 check-unknown`. A call made without a token names no identity, so
+no token reads its record later: check with the token you will submit with. The record's `okay` is the checker's own, the one
 inside `result`, not the network's verdict at the top of the answer: a text with a `sorry` that
 compiles is logged `okay: true` with `sorry-present` among its lint codes, though the answer you
 were given said `okay: false`. Read the lint codes beside it. `GET /hosted-checkers.json`
