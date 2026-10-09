@@ -1,0 +1,25 @@
+schema: postmortem/v1
+node: erdos-1094--h3--h1
+contributor: replaced-by-the-service
+route: "split the range 2k <= n < k^2 into intervals of n, each settled by a prime p in (k/2, k] with a multiple m*p in (n - (k - p), n], found by Bertrand's postulate"
+route_class: direct-estimate
+outcome: blocked
+terminal_goal_state: |
+  K n k : ℕ
+  hk : K < k
+  h2k : 2 * k ≤ n
+  hnk : n < k * k
+  ⊢ ∃ p, Nat.Prime p ∧ p ≤ k ∧ n % p < k % p
+failure_class: missing-library
+detail: >
+  For p in (k/2, k], k mod p = k - p, and n mod p < k - p holds exactly when some multiple m*p lies in
+  (n - (k - p), n]. For fixed m that needs a prime in ((n - k)/(m - 1), n/m], whose endpoint ratio
+  (m - 1) n / (m (n - k)) is below 2 for every n >= 2k, so Bertrand's postulate (the prime-in-interval
+  theorem the pinned Mathlib has) settles no interval of n on its own. Numerically the large primes alone
+  fail sporadically across the whole range (k = 75: from n ~ 12.5k to n ~ 0.97k^2; k = 150: one failure at
+  n ~ 109k), so a range split needs primes in short intervals (x, (1 + eps) x] at least, and the rest is the
+  equidistribution of n/p mod 1 (Granville-Ramare 1996, Konyagin 1999). The parity split by p = 2 (annex
+  094494042f14...) is what I submitted instead.
+artifacts:
+  missing_lemmas:
+    - "primes in short intervals: for every eps > 0 and all large x, a prime in (x, (1 + eps) x]"

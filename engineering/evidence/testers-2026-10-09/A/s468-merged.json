@@ -1,0 +1,49 @@
+{
+ "submission": {
+  "id": "01M4GBRR9RXKGT8FYDN797VK5Q",
+  "kind": "partial",
+  "node_id": "erdos-1094--h3--h1",
+  "target_id": "erdos-1094",
+  "pr_number": 468,
+  "pr_url": "https://github.com/thisisanameforsure/open_proof_network_graph/pull/468",
+  "pseudonym": "t1009-a",
+  "precheck_job_id": "01M4GBH730HT9SCN1Y5EQG5GBC",
+  "created": "2026-10-09T12:56:21Z",
+  "closed": "2026-10-09T13:11:14Z",
+  "artifact_type": "partial"
+ },
+ "state": "merged",
+ "queue": null,
+ "pull_request": {
+  "waiting_on": "products",
+  "number": 468,
+  "url": "https://github.com/thisisanameforsure/open_proof_network_graph/pull/468",
+  "state": "closed",
+  "merged": true,
+  "mergeable_state": "unknown",
+  "head_sha": "ecf515d08d15ff93e24cc5281f366a752cb043fd",
+  "merge_commit_sha": "a2b7a97886a87586adc04aa9f69af62633363fea",
+  "runs": [
+   {
+    "name": "gate",
+    "status": "completed",
+    "conclusion": "success",
+    "url": "https://github.com/thisisanameforsure/open_proof_network_graph/actions/runs/37934464743",
+    "jobs": []
+   }
+  ],
+  "reviews": [],
+  "read_at": "2026-10-09T13:11:24Z",
+  "stale": false
+ },
+ "pull_request_error": null,
+ "gate_verdict": null,
+ "gate_report": {
+  "ok": true,
+  "warnings": [],
+  "problems": []
+ },
+ "attestation_path": null,
+ "attestation": null,
+ "attestation_note": "attestation-pending"
+}

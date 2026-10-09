@@ -1,0 +1,145 @@
+{
+ "id": "01M4GAWKX8YA8PFDMFM6RY6SQF",
+ "node_id": "tutorial-and-swap",
+ "target_id": "tutorial",
+ "state": "done",
+ "created": "2026-10-09T12:40:57Z",
+ "graph_commit": "76365d732cb294be0389f9e382f63b1c09540671",
+ "bundle_digest": "649bb5805accfb7f71eb2b7e4a9c15656184aa2731639a929414dae36a4e292e",
+ "authenticated": false,
+ "result": {
+  "attestation": {
+   "artifact_hash": "994692ab1ad9a492ac28a8eb2d88053c5fdf08354dedf3e87f50aafe98725f53",
+   "diagnostic": null,
+   "first_failing_step": null,
+   "footprint": {
+    "nodes": []
+   },
+   "gate_spec_hash": "5165257670b0b71775afa27b78b89cdb9147a3bbd7970258172e43d5533a769d",
+   "graph_commit": "76365d732cb294be0389f9e382f63b1c09540671",
+   "graph_id": "tutorial",
+   "lean_toolchain": "leanprover/lean4:v4.33.1",
+   "mathlib_sha": null,
+   "merge_commit": null,
+   "model_and_tooling": "undeclared",
+   "network_commit": "b4e4817959d52854966c4d1c23eaa4afaec782da",
+   "node_id": "tutorial-and-swap",
+   "precheck_attestation": {
+    "hash": null,
+    "signature_kind": null
+   },
+   "review": null,
+   "runner": "hosted",
+   "schema": "attestation/v6",
+   "signature": {
+    "key_id": "SHA256:bJR39nO37EkRaxo4CPqdhcHk+WL+sEnAJ9ujpkF7LXo",
+    "kind": "service",
+    "timestamp": "2026-10-09T12:43:07Z",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAg4NVeR5WlT1J5vaHpDOmXNTurS+\nKqTYJTovSCpPj5G/IAAAAPb3BuLWF0dGVzdGF0aW9uAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQLKSowNpm6AyrwqVlOsma8nd9ai+1rRD2sWBGwBykIGQLwmzaV\nlFRZeXIBjh5AGWxZAxmLCHiuU7b9usCPqELQM=\n-----END SSH SIGNATURE-----\n"
+   },
+   "statement_hash": "749fdf4930d9a6c812065b01c54741fc473083a1dd036656dce09ee34426f14e",
+   "steps": [
+    {
+     "diagnostic": null,
+     "name": "toolchain",
+     "result": "pass",
+     "step": 1
+    },
+    {
+     "diagnostic": null,
+     "name": "paths",
+     "result": "pass",
+     "step": 2
+    },
+    {
+     "diagnostic": null,
+     "name": "kernel-replay",
+     "result": "pass",
+     "step": 4
+    },
+    {
+     "diagnostic": null,
+     "name": "axioms",
+     "result": "pass",
+     "step": 5
+    },
+    {
+     "diagnostic": null,
+     "name": "hazards",
+     "result": "pass",
+     "step": 6
+    },
+    {
+     "diagnostic": null,
+     "name": "witness",
+     "result": "pass",
+     "step": 7
+    },
+    {
+     "diagnostic": null,
+     "name": "deps",
+     "result": "pass",
+     "step": 8
+    }
+   ],
+   "submitter": null,
+   "toolchain_hash": "f54d0bc916bf76a7fae460ce9d078ccd1f74aeb4fd12c4b6546bca28b6aa1c63",
+   "tooling": {
+    "harness": null,
+    "model": null
+   },
+   "trust_base": "kernel",
+   "verdict": "pass"
+  },
+  "bundle_digest": "649bb5805accfb7f71eb2b7e4a9c15656184aa2731639a929414dae36a4e292e",
+  "first_failing_step": null,
+  "job_id": "01M4GAWKX8YA8PFDMFM6RY6SQF",
+  "node_id": "tutorial-and-swap",
+  "steps": [
+   {
+    "diagnostic": null,
+    "name": "toolchain",
+    "result": "pass",
+    "step": 1
+   },
+   {
+    "diagnostic": null,
+    "name": "paths",
+    "result": "pass",
+    "step": 2
+   },
+   {
+    "diagnostic": null,
+    "name": "kernel-replay",
+    "result": "pass",
+    "step": 4
+   },
+   {
+    "diagnostic": null,
+    "name": "axioms",
+    "result": "pass",
+    "step": 5
+   },
+   {
+    "diagnostic": null,
+    "name": "hazards",
+    "result": "pass",
+    "step": 6
+   },
+   {
+    "diagnostic": null,
+    "name": "witness",
+    "result": "pass",
+    "step": 7
+   },
+   {
+    "diagnostic": null,
+    "name": "deps",
+    "result": "pass",
+    "step": 8
+   }
+  ],
+  "verdict": "pass"
+ },
+ "public": true
+}

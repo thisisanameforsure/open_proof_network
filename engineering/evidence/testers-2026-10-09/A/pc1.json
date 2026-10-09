@@ -1,0 +1,12 @@
+{
+ "status": 409,
+ "body": {
+  "error": "products-pending",
+  "message": "annex 094494042f14… has merged; a node merged in the last few minutes appears once the post-merge job has rendered the products, usually three to six minutes after the merge. Retry shortly.",
+  "details": {
+   "node_id": "erdos-1094--h3--h1",
+   "annex": "094494042f14ef24ecf8b5aa0d9b122ec0e066058d1cc7b4cef3be7b5e912a3c"
+  }
+ },
+ "retry_after": "240"
+}

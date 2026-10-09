@@ -1,0 +1,73 @@
+{
+ "submission": {
+  "id": "01M4GBRR9RXKGT8FYDN797VK5Q",
+  "kind": "partial",
+  "node_id": "erdos-1094--h3--h1",
+  "target_id": "erdos-1094",
+  "pr_number": 468,
+  "pr_url": "https://github.com/thisisanameforsure/open_proof_network_graph/pull/468",
+  "pseudonym": "t1009-a",
+  "precheck_job_id": "01M4GBH730HT9SCN1Y5EQG5GBC",
+  "created": "2026-10-09T12:56:21Z",
+  "closed": null,
+  "artifact_type": "partial"
+ },
+ "state": "open",
+ "queue": {
+  "position": null,
+  "of": 1,
+  "ahead": [],
+  "order": "pull-request number, oldest first, over the open pull requests the merge actor takes (non-draft, on a branch the service opened, against main), counted in the pull request's own lane: the merge actor runs one lane per target in parallel (F07-T56), so only the pull requests on the same target, and any whose target the service does not know (the actor holds every lane for one it cannot place), are ahead of it. Within a lane the actor merges the first one whose gate is green and passes over a red, conflicting or behind-and-still-running one, so a position is an upper bound on the merges ahead, not a count of them; consecutive green appends may merge as one batch",
+  "read_at": "2026-10-09T12:56:08Z",
+  "stale": false
+ },
+ "pull_request": {
+  "waiting_on": "gate",
+  "number": 468,
+  "url": "https://github.com/thisisanameforsure/open_proof_network_graph/pull/468",
+  "state": "open",
+  "merged": false,
+  "mergeable_state": "blocked",
+  "head_sha": "5f92a9076a3a996a4489c0b4e3f63736a52e77ad",
+  "merge_commit_sha": "3a24ec2fcc4c992f3c91e73505be9028b34f5a02",
+  "runs": [
+   {
+    "name": "gate",
+    "status": "in_progress",
+    "conclusion": null,
+    "url": "https://github.com/thisisanameforsure/open_proof_network_graph/actions/runs/37933361182",
+    "jobs": [
+     {
+      "name": "gate (steps 1, 2 and 4-8 in the sandbox)",
+      "status": "in_progress",
+      "conclusion": null
+     },
+     {
+      "name": "postmerge (step 9 record, gate signature, attestation commit)",
+      "status": "completed",
+      "conclusion": "skipped"
+     },
+     {
+      "name": "olean cache for a merge that built (F10-R7), after its record is pushed",
+      "status": "completed",
+      "conclusion": "skipped"
+     },
+     {
+      "name": "proof outlines for a merge that built (F19-R6), after its record is pushed",
+      "status": "completed",
+      "conclusion": "skipped"
+     }
+    ]
+   }
+  ],
+  "reviews": [],
+  "read_at": "2026-10-09T12:57:07Z",
+  "stale": false
+ },
+ "pull_request_error": null,
+ "gate_verdict": null,
+ "gate_report": null,
+ "attestation_path": null,
+ "attestation": null,
+ "attestation_note": "not-merged"
+}
