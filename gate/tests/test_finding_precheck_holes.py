@@ -13,6 +13,7 @@ beside ``steps``: like ``steps`` it is outside the signed attestation, which it 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any
 
 from precheck import job as precheck_job
@@ -41,6 +42,7 @@ class Settings:
 class Ctx:
     data: dict[str, Any] = field(default_factory=dict)
     settings: Settings = field(default_factory=Settings)
+    node: Any = None
 
 
 def verdict(ok: bool = True) -> pipeline.Verdict:
@@ -148,3 +150,36 @@ def test_a_hole_whose_witness_the_bundle_carried_says_so() -> None:
     }
     assert [{k: v for k, v in h.items() if k != "witness"} for h in out["holes"]] == plain["holes"]
     assert all("witness" not in h for h in plain["holes"])
+
+
+@dataclass
+class Node:
+    """The two facts ``plan_children`` reads: the node's id and its directory."""
+
+    node_id: str
+    path: Path
+
+
+def test_each_hole_names_the_node_it_is_expected_to_become(tmp_path: Path) -> None:
+    """Testers 2026-10-09 (A, feature): a partial's receipt did not say which node ids its holes
+    would get, so a contributor learned them by polling ``get_node`` after the merge. The result
+    now names each one, by the post-merge writer's own rule (``postmerge.plan_children``): a
+    later decomposition numbers its holes after the earlier ones' (R22), and a hole that
+    restates an existing node is that node, not a new one."""
+    nodes = tmp_path / "nodes"
+    (nodes / "erdos-1094--h2").mkdir(parents=True)
+    (nodes / "erdos-1094--h1").mkdir()
+    (nodes / "erdos-1094--h2--h1").mkdir()  # an earlier decomposition's hole
+    ctx = partial(HOLE, {**HOLE, "name": "hden"})
+    ctx.node = Node("erdos-1094--h2", nodes / "erdos-1094--h2")
+    out = result_of(ctx, verdict())
+    assert [(h["expected_node_id"], h["expected_new"]) for h in out["holes"]] == [
+        ("erdos-1094--h2--h2", True),
+        ("erdos-1094--h2--h3", True),
+    ]
+
+
+def test_without_the_node_no_hole_names_one() -> None:
+    """A result built where step 2 never found the node says nothing rather than guess."""
+    out = result_of(partial(HOLE), verdict())
+    assert "expected_node_id" not in out["holes"][0]

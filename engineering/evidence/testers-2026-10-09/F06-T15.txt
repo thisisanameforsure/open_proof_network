@@ -1,0 +1,3 @@
+F06-T15 (A, feature): a partial's precheck holes and submit receipt name each hole's expected node. Red first: KeyError expected_node_id (gate), KeyError holes (api).
+$ uv run --frozen pytest -q gate/tests/test_finding_precheck_holes.py api/tests/test_finding_partial_receipt_holes.py
+12 passed, 2 warnings in 0.32s
