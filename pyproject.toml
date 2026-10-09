@@ -54,7 +54,7 @@ markers = [
 [tool.ruff]
 target-version = "py313"
 line-length = 100
-extend-exclude = [".venv", ".claude", "docs", "engineering/evidence"]  # docs/ holds the protocol and research artefacts, engineering/evidence/ captured runs and the scripts that produced them; neither is build code
+extend-exclude = [".venv", ".claude", "docs", "engineering/evidence", "engineering/prototypes"]  # docs/ holds the protocol and research artefacts, engineering/evidence/ captured runs and the scripts that produced them, engineering/prototypes/ experiments run before a decision is amended; none is build code
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "UP", "B", "SIM", "N", "S", "PL", "RUF"]

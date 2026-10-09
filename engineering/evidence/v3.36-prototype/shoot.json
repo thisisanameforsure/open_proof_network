@@ -1,0 +1,17 @@
+{
+ "page_width": {
+  "desktop": {
+   "sw": 1360,
+   "cw": 1360
+  },
+  "desktop-dark": {
+   "sw": 1360,
+   "cw": 1360
+  },
+  "phone": {
+   "sw": 390,
+   "cw": 390
+  }
+ },
+ "sideways_scroll": {}
+}

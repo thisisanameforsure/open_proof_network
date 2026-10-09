@@ -1362,3 +1362,18 @@ The law of the project:
   **Two agents will name the same helper differently**: both added `panel.voters` with different
   return types, and both registered `steward-cap`; read the merged module for duplicate
   definitions, which Python accepts silently and ruff only flags for dict keys.
+- 2026-10-09 — The formalization round (draft v3.36) prototyped on core Lean before any protocol
+  change (`engineering/prototypes/formalization-round/`, evidence in `engineering/evidence/
+  v3.36-prototype/`): three conjectures, human, blind-agent and 14 planted candidates, all 14
+  caught, one cluster per conjecture, every meaning-changing mutant caught, 76 tests. Three things
+  worth keeping. **Testing truth values cannot see a weakening of a true conjecture**, because it is
+  true too: the planted defects that matter (lost conjunct, ∨ for ∧, a stronger "two primes")
+  passed every small case. What saw them was replacing the concept the words use: "prime" made
+  empty gives coverage (says something at n, or nothing), and "only 5 is prime" exposes the
+  formula's intervals and connectives. **A probe has an assumption, so test it**: a correct
+  candidate with primality written inline gave the probe nothing to replace and was discarded;
+  the fix was a format rule that returns it to its author, found only because a candidate was
+  written to break the design. **Read the questions, not just the counts**: "would a prime at 5
+  count?" invites the opposite of the probe's answer when the claim needs two witnesses, and the
+  screenshot showed a discard's exhibit as the *failed* test rather than the fact the kernel
+  accepted. Both passed every test.
