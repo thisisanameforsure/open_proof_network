@@ -1,0 +1,14 @@
+# F09-T71: the handshake names the tutorial node as the tools take it (testers 2026-10-09b, C2)
+
+## Red first (2026-10-09, before the fix; from the first run of the new tests)
+
+    api/tests/test_finding_tutorial_phrase_id.py:36: AttributeError
+    api/tests/test_finding_tutorial_phrase_id.py:48: AssertionError
+    FAILED api/tests/test_finding_tutorial_phrase_id.py::test_the_phrase_names_the_node_id_the_tools_take
+    FAILED api/tests/test_finding_tutorial_phrase_id.py::test_every_id_the_instructions_quote_is_one_get_node_answers
+
+## Green (2026-10-09T16:02Z)
+
+    uv run --frozen pytest -q api/tests/test_finding_tutorial_phrase_id.py api/tests/test_finding_mcp_tutorial_named.py
+    -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+    6 passed, 2 warnings in 0.35s

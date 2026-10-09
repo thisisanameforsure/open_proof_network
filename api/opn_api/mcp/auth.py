@@ -44,7 +44,13 @@ def tutorial_phrase(ctx: Context) -> str:
         return TUTORIAL_UNNAMED
     if not names:
         return TUTORIAL_UNNAMED
-    return "the tutorial node " + ", ".join(f"`{n}`" for n in names)
+    # Testers 2026-10-09b (C2): `<target>/<node>` named a form no tool's node_id accepts, so the
+    # first get_node made from the instructions was arguments-invalid. The id as the tools take
+    # it, with its target beside it.
+    return "the tutorial node " + ", ".join(
+        f"`{n.split('/', 1)[1]}` (target `{n.split('/', 1)[0]}`)" if "/" in n else f"`{n}`"
+        for n in names
+    )
 
 
 def unauthorized_body(tutorial: str) -> dict[str, Any]:
