@@ -129,6 +129,15 @@ class CircularLabel:
 
 
 @dataclass(frozen=True)
+class Lemma:
+    """D-12 v3.36: one entry of ``META.yaml``'s ``lemmas`` — the hole's name in the merged
+    partial, and the existing node it restated, as that node is *now* (``current_id``)."""
+
+    hole: str
+    node: str
+
+
+@dataclass(frozen=True)
 class NodeFacts:
     node_id: str
     target_id: str
@@ -157,6 +166,12 @@ class NodeFacts:
     #: one once it is proved; it never waits on one, so they are set aside when the node's
     #: status is derived (``blocked_because``).
     holes: tuple[str, ...] = ()
+    #: D-12 v3.36 (F07-R22 revised): ``META.yaml``'s ``lemmas`` — the nodes under other branches
+    #: of the target that a merged partial of this node restated as holes, each read through its
+    #: revision chain like a dep, with the hole's name. A hole's standing: the node may draw on
+    #: one once it is proved (its signature is in ``Context.lean``) and never waits on one, so
+    #: they are set aside with ``holes`` when the status is derived (``blocked_because``).
+    lemmas: tuple[Lemma, ...] = ()
     #: F08-R19: the nodes this node's merged ``Proof.lean`` uses beyond its deps — its use lines,
     #: which step 8 held to the kernel term when the proof merged. Read from the tree; no record
     #: is written for a use. No status is derived from them (a used node was proved before its
@@ -511,6 +526,7 @@ def load_nodes(
             artifact=artifact,
             witness_stub=witness_is_stub(node_dir),
             supersedes=_optional_str(loaded.meta.get("supersedes")),
+            lemmas=effective_lemmas(nodes_dir, loaded.meta.get("lemmas")),
             uses=layout.merged_uses(node_dir),
             proposed_for=proposed_for_of(nodes_dir, node_dir),
             circular_claims=claims,
@@ -1111,6 +1127,20 @@ def effective_deps(nodes_dir: Path, declared: object) -> tuple[str, ...]:
         current = current_id(nodes_dir, str(dep))
         if current not in out:
             out.append(current)
+    return tuple(out)
+
+
+def effective_lemmas(nodes_dir: Path, recorded: object) -> tuple[Lemma, ...]:
+    """D-12 v3.36: ``META.yaml``'s ``lemmas`` as the node has them *now* — each node read through
+    its revision chain as ``effective_deps`` reads a dep, in the record's order, a node two
+    entries reach kept once. Anything but a list of ``{hole, node}`` is no lemmas."""
+    out: list[Lemma] = []
+    for entry in recorded if isinstance(recorded, (list, tuple)) else ():
+        if not isinstance(entry, dict) or not entry.get("node"):
+            continue
+        current = current_id(nodes_dir, str(entry["node"]))
+        if all(known.node != current for known in out):
+            out.append(Lemma(hole=str(entry.get("hole") or ""), node=current))
     return tuple(out)
 
 

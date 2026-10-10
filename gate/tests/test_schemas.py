@@ -31,6 +31,7 @@ def test_known_schemas_are_the_published_set() -> None:
         "context/v3",
         "context/v4",  # F22-T13 (a cause on each dep)
         "context/v5",  # v3.35: circular, literature, literature_proposed
+        "context/v6",  # v3.36: lemmas
         "credit-correction/v1",
         "defect-claim/v1",
         "defect-claim/v2",
@@ -63,6 +64,7 @@ def test_known_schemas_are_the_published_set() -> None:
         "graph/v4",
         "graph/v5",
         "graph/v6",
+        "graph/v7",  # v3.36: lemmas
         "info/v1",
         "info/v2",
         "ledger/v1",
@@ -72,6 +74,7 @@ def test_known_schemas_are_the_published_set() -> None:
         "meta/v3",
         "meta/v4",
         "meta/v5",
+        "meta/v6",  # v3.36: lemmas
         "motion/v1",
         "node-status/v1",
         "outline/v1",

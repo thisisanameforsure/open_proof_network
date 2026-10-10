@@ -5,50 +5,124 @@
   "schema": "info/v1",
   "schemas": {
     "annex": [
-      1
+      1,
+      2
     ],
     "approach-record": [
+      1
+    ],
+    "attempts": [
       1
     ],
     "attestation": [
       1,
       2,
       3,
-      4
+      4,
+      5,
+      6
     ],
     "claims": [
       1
     ],
     "context": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6
+    ],
+    "credit-correction": [
       1
     ],
     "defect-claim": [
+      1,
+      2,
+      3
+    ],
+    "drift": [
+      1
+    ],
+    "explainer": [
+      1,
+      2
+    ],
+    "explainer-signature": [
+      1,
+      2,
+      3
+    ],
+    "fidelity": [
+      1,
+      2
+    ],
+    "formalization": [
       1
     ],
     "frontier": [
-      1
+      1,
+      2,
+      3,
+      4,
+      5
     ],
     "gate-spec": [
       1
     ],
-    "graph": [
+    "gloss": [
       1,
       2
     ],
+    "gloss-signature": [
+      1,
+      2,
+      3
+    ],
+    "glosses": [
+      1,
+      2
+    ],
+    "graph": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
     "info": [
-      1
+      1,
+      2
     ],
     "ledger": [
+      1
+    ],
+    "literature": [
       1
     ],
     "meta": [
       1,
       2,
       3,
-      4
+      4,
+      5,
+      6
+    ],
+    "motion": [
+      1
     ],
     "node-status": [
       1
+    ],
+    "outline": [
+      1
+    ],
+    "policy": [
+      1,
+      2,
+      3
     ],
     "postmortem": [
       1
@@ -56,21 +130,63 @@
     "precheck-record": [
       1
     ],
-    "revision-request": [
+    "proposed-for": [
       1
+    ],
+    "qa": [
+      1,
+      2
+    ],
+    "relevance": [
+      1
+    ],
+    "revision-request": [
+      1,
+      2
+    ],
+    "statement-evidence": [
+      1
+    ],
+    "steward": [
+      1,
+      2,
+      3
     ],
     "submission-meta": [
       1
     ],
-    "target-status": [
-      1
-    ],
-    "targets-index": [
+    "target": [
       1,
       2
     ],
+    "target-status": [
+      1,
+      2
+    ],
+    "targets-index": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9
+    ],
+    "vote": [
+      1
+    ],
     "waiver": [
       1
+    ],
+    "withdrawal": [
+      1,
+      2
+    ],
+    "writeup": [
+      1,
+      2
     ]
   },
   "targets": {

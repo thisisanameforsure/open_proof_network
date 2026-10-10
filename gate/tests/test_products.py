@@ -319,6 +319,7 @@ def test_products_of_the_fixture(tmp_path: Path) -> None:
         3,
         4,
         5,
+        6,  # v3.36: lemmas
     ]
     assert info["schemas"]["defect-claim"] == [1, 2, 3] and info["schemas"]["revision-request"] == [
         1,
