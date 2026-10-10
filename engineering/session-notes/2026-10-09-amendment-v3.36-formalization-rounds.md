@@ -31,8 +31,12 @@ Rulings of 2026-10-09, after the prototype (§9):
 - a **second prototype** on live Mathlib targets runs before this is applied (§10).
 
 Rulings of 2026-10-10, closing §8:
-- the **proposer, a steward of the target, or a curator** may open a review;
-- **catalog evidence keeps its waiver** of step 9 (v3.15), "for very trustworthy sources".
+- the **proposer, a steward of the target, and a curator** may each open a review, and **the set
+  is a setting**, easy to change: it lives in the graph's `policy.json`, beside the steward
+  switches, and changes by one visible curator pull request (§1);
+- **catalog evidence keeps its waiver** of step 9 (v3.15): "the point is to skip when it comes from
+  a reliable source";
+- the **new service routes** (an answer route, the App's notice) are approved.
 
 The principle under all of it, from the research note §3: a machine can **refute** a formalization
 soundly (a kernel-checked exhibit), and can never **accept** one. So every discard is an exhibit, and
@@ -88,13 +92,18 @@ what they meant.
 > least `screened-and-signed`. This is where the review binds: intermediate work never waits for
 > it, and the claim that a conjecture is settled always does. **v3.15's second basis stands
 > beside it**: recorded catalog evidence about the statement scoring at least five points still
-> satisfies step 9 without a completed review, because it records very trustworthy sources (an
-> established registry statement, public for months, attempted by named provers, with no
-> misformalization filed). The review then runs in the background as for any existing target,
-> and anything it finds goes to D-15 and D-8 as usual.
+> satisfies step 9 without a completed review: **a statement from a reliable source skips it.**
+> The evidence records why the source is reliable (an established registry statement, public for
+> months, attempted by named provers, with no misformalization filed). The automated stages still
+> run in the background, as for any existing target, because they cost no one's time; they never
+> hold the merge, and anything they find goes to D-15 and D-8 as usual.
 >
-> **Who opens a review.** The proposer (through D-6's proposal), a steward of the target (D-32),
-> or a curator (D-22). For targets that exist already, the network opens one in the background.
+> **Who opens a review is a setting.** The roles that may open one are listed in the graph's
+> `policy.json` (F24-R1's file: each setting carries the day it was set and why, and changes by
+> one visible curator pull request, applying to reviews opened after the merge). The first value
+> is all three: the **proposer** (through D-6's proposal), a **steward** of the target (D-32) and
+> a **curator** (D-22). Absent the setting, that is the default. For targets that exist already,
+> the network opens one in the background whatever the setting says.
 >
 > **Porting an existing formalization.** A statement imported from a registry (D-10, such as Formal
 > Conjectures) enters the review as **the first candidate**, credited to its registry's authors,
@@ -282,10 +291,11 @@ than the new floor asks) and the `qa` schema keeps the value for old records.
 
 ## 8. Settled (2026-10-10)
 
-Who opens a review and whether catalog evidence keeps its waiver were the owner's, and are
-answered above (§1). The new service surface (a write route for answers, the App's comment on an
-issue) is approved in principle with this amendment; its exact routes and tools are the spec's,
-and come back to the owner there as any D-35 or D-28 surface does.
+Who opens a review (a `policy.json` setting, all three roles to start), whether catalog evidence
+keeps its waiver (it does), and the new service surface (approved) were the owner's, and are
+answered above (§1, §7). The setting means a new `policy` schema version, budgeted into the spec
+with the golden regeneration every schema change brings. The exact routes and tools are the
+spec's.
 
 ## 9. What the prototype showed (2026-10-09)
 
