@@ -58,11 +58,12 @@ from opn_gate.toolchain import ResolvedToolchain, Toolchain, UsedConstantsReques
 
 log = logging.getLogger(__name__)
 
-PROTOCOL_VERSION = "3.35"  # docs/architecture_decisions.html (v3.35: the circular label)
-#: F08-T39 (D-12 v3.35): graph/v6 carries ``circular`` (the label), ``literature`` and
-#: ``literature_proposed`` (F08-T40); v5: every defect claim (F08-T36); v4: F08-T27, F18; v3:
-#: F12-R13.
-GRAPH_SCHEMA = "graph/v6"
+PROTOCOL_VERSION = "3.36"  # docs/architecture_decisions.html (v3.36: lemmas)
+#: F03-T20 (D-12 v3.36): graph/v7 carries ``lemmas``, the nodes under other branches a merged
+#: partial restated as holes, and a decomposition's hole may resolve to one. F08-T39 (D-12
+#: v3.35): v6 carries ``circular`` (the label), ``literature`` and ``literature_proposed``
+#: (F08-T40); v5: every defect claim (F08-T36); v4: F08-T27, F18; v3: F12-R13.
+GRAPH_SCHEMA = "graph/v7"
 #: F03-T18 (D-12 v3.35): frontier/v5 repeats graph/v6's three fields on every entry, and a node
 #: under a circularity claim is an entry on its status alone; v4 (T16): status, cause, needs;
 #: v3 (T7): partials; v2: D-33 dormancy.
@@ -520,8 +521,9 @@ def decompositions_of(tg: TargetGraph, node_id: str) -> list[dict[str, Any]]:
     step 4), the file names its annex (D-31 v3.12, ``postmerge.annex_citation``), and each hole
     child's header names its hole (``postmerge.hole_name``). A hole is matched to the first of
     the node's hole children (its holes, read through revisions, in the order the post-merge job
-    recorded them) that carries its name and no earlier hole took; one the tree does not hold is
-    named with no node (C7)."""
+    recorded them) that carries its name and no earlier hole took; failing that, to the node a
+    lemma of the same hole name restated (D-12 v3.36, ``NodeFacts.lemmas``, read through
+    revisions too); one the tree does not hold is named with no node (C7)."""
     node = tg.nodes[node_id]
     names: dict[str, str | None] = {}
     for child in node.holes:
@@ -544,6 +546,9 @@ def decompositions_of(tg: TargetGraph, node_id: str) -> list[dict[str, Any]]:
             found = next((c for c in node.holes if names.get(c) == hole and c not in taken), None)
             if found is not None:
                 taken.add(found)
+            else:
+                # A lemma is the same node whichever partial restated it, so it is never taken.
+                found = next((x.node for x in node.lemmas if x.hole == hole), None)
             holes.append({"name": hole, "node": found})
         out.append({"partial": partial.path, "annex": annex, "holes": holes})
     return out
@@ -971,6 +976,9 @@ def graph_doc(
                 # proposal awaiting a steward or curator; null when none.
                 "literature": lit[node_id].confirmed,
                 "literature_proposed": lit[node_id].proposed,
+                # F03-T20 (D-12 v3.36): META.yaml's lemmas in the record's order, each node as
+                # it is now — a hole's standing, drawn on once proved and never waited on.
+                "lemmas": [{"hole": x.hole, "node": x.node} for x in n.lemmas],
             }
         )
     return {
