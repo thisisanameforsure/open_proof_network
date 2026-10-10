@@ -369,7 +369,8 @@ def main() -> int:
     )
     for o in outcomes:
         print(
-            f"{o.probe:28} {o.variant:20} build={'ok' if o.build_ok else 'FAIL'} comparator={o.comparator_exit} {o.seconds}s"
+            f"{o.probe:28} {o.variant:20} build={'ok' if o.build_ok else 'FAIL'} "
+            f"comparator={o.comparator_exit} {o.seconds}s"
         )
     return 0
 

@@ -3,6 +3,12 @@
 # fails only when a probe could not be asked. Core Lean only: no Mathlib, minutes not hours.
 name: palomar-probe
 on:
+  # A workflow_dispatch is registered only once the file is on the default branch, so until the
+  # branch merges the probes run on the pull request that carries them.
+  pull_request:
+    paths:
+      - gate/tools/palomar_probe.py
+      - .github/workflows/palomar-probe.yml
   workflow_dispatch:
     inputs:
       toolchain:
@@ -26,13 +32,15 @@ jobs:
           echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
       - name: Install the toolchain under probe
         run: |
-          elan toolchain install "${{ inputs.toolchain }}"
-          elan default "${{ inputs.toolchain }}"
+          TC="${{ inputs.toolchain || 'leanprover/lean4:v4.35.0-rc2' }}"
+          elan toolchain install "$TC"
+          elan default "$TC"
           lean --version
           ls "$(lean --print-prefix)/bin"
       - name: Run the probes
         run: |
-          sed -i "s|^TOOLCHAIN = .*|TOOLCHAIN = \"${{ inputs.toolchain }}\"|" gate/tools/palomar_probe.py
+          TC="${{ inputs.toolchain || 'leanprover/lean4:v4.35.0-rc2' }}"
+          sed -i "s|^TOOLCHAIN = .*|TOOLCHAIN = \"$TC\"|" gate/tools/palomar_probe.py
           python3 gate/tools/palomar_probe.py --out probes
           cat probes/toolchain.txt
           cat probes/summary.json
