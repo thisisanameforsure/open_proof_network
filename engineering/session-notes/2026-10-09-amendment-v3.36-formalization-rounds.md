@@ -1,6 +1,6 @@
 # Proposed decisions amendment v3.36: formalization reviews, intent tests and two signatures
 
-**Status (2026-10-09): drafted, not approved, not applied.** Items in §8 are open for the owner.
+**Status (2026-10-10): every open item settled by the owner (§8); not yet applied to the decisions document.**
 
 Source: the owner's conversation of 2026-10-07 to 2026-10-09 on turning an incoming conjecture into
 Lean and checking that the Lean says what the conjecture says, read against
@@ -29,6 +29,10 @@ Rulings of 2026-10-09, after the prototype (§9):
 - the proposer answers **on the site**, and is **told through GitHub** (an @-mention by the App)
   so the questions reach them without the network holding an email address (§7);
 - a **second prototype** on live Mathlib targets runs before this is applied (§10).
+
+Rulings of 2026-10-10, closing §8:
+- the **proposer, a steward of the target, or a curator** may open a review;
+- **catalog evidence keeps its waiver** of step 9 (v3.15), "for very trustworthy sources".
 
 The principle under all of it, from the research note §3: a machine can **refute** a formalization
 soundly (a kernel-checked exhibit), and can never **accept** one. So every discard is an exhibit, and
@@ -82,7 +86,15 @@ what they meant.
 > **Step 9 reads the review.** A proof that would settle a target's root (D-4 v3.20) merges only
 > when that target's review is complete: automated stages done, no open question, and the grade at
 > least `screened-and-signed`. This is where the review binds: intermediate work never waits for
-> it, and the claim that a conjecture is settled always does.
+> it, and the claim that a conjecture is settled always does. **v3.15's second basis stands
+> beside it**: recorded catalog evidence about the statement scoring at least five points still
+> satisfies step 9 without a completed review, because it records very trustworthy sources (an
+> established registry statement, public for months, attempted by named provers, with no
+> misformalization filed). The review then runs in the background as for any existing target,
+> and anything it finds goes to D-15 and D-8 as usual.
+>
+> **Who opens a review.** The proposer (through D-6's proposal), a steward of the target (D-32),
+> or a curator (D-22). For targets that exist already, the network opens one in the background.
 >
 > **Porting an existing formalization.** A statement imported from a registry (D-10, such as Formal
 > Conjectures) enters the review as **the first candidate**, credited to its registry's authors,
@@ -268,15 +280,12 @@ than the new floor asks) and the `qa` schema keeps the value for old records.
 > never collects or holds an email address. The same notice appears on the signer's `/me/` page
 > (v3.35). One comment per batch of new questions, never one per question.
 
-## 8. Open for the owner
+## 8. Settled (2026-10-10)
 
-1. **Who may open a review.** The proposer through D-6's issue form, a steward, a curator? For
-   existing targets the background review is opened by the network itself.
-2. **Step 9 and catalog evidence.** v3.15 lets recorded catalog evidence scoring at least five
-   points stand in for step 9. §1 now asks for a completed review instead. Does catalog evidence
-   keep its waiver as a separate route, or does it become one input to the review?
-3. **New service surface.** Answers need a write route (D-35) and the notice needs the App to
-   comment on an issue; both are protocol surface and the owner's to approve when specced.
+Who opens a review and whether catalog evidence keeps its waiver were the owner's, and are
+answered above (§1). The new service surface (a write route for answers, the App's comment on an
+issue) is approved in principle with this amendment; its exact routes and tools are the spec's,
+and come back to the owner there as any D-35 or D-28 surface does.
 
 ## 9. What the prototype showed (2026-10-09)
 
