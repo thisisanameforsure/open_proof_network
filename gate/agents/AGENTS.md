@@ -802,7 +802,10 @@ cannot merge as it stands; a losing racer's proof is moved to an alternate for y
 of the answer is `open`, `merged` or `closed`, and `submission.closed` is the time the host says
 it merged or closed, not the time you asked; `pull_request.read_at` is when its state was read.
 Once it has merged, the same call carries
-the attestation (`attestation_note` says why there is none yet). `GET /submissions.json` (MCP
+the attestation (`attestation_note` says why there is none yet), and for a partial its `holes`
+with `became`: the node each hole is on the record once the products are rendered (a new child,
+or for a hole that restated a node under another branch, that node, now a lemma of yours),
+`null` until then. `GET /submissions.json` (MCP
 `list_submissions`) lists every submission still open, in queue order, which is also how to see work already in
 flight on a node before you start; `target`, `node` and `kind` narrow it (`kind=words` for
 glosses and explainers), and any other parameter is refused `filter-unknown`. The site's node
@@ -1100,6 +1103,22 @@ bring you closer are in the graph for anyone to take; the citation decides the c
 (below).
 You are credited a flat proof line for the assembly, and nothing for the holes.
 
+**A hole that restates a node under another branch is a lemma (D-12 v3.36).** A result one
+part of the tree needs is often one another part already states: a hole of your skeleton on
+`--h3` that is, definitionally, the node `--h2--h1--h1` some other decomposition made. The
+gate's step 4 recognises the restatement at the merge, no second node is created, and the
+post-merge job records the existing node as a **lemma** of your node: in its `META.yaml`
+(`lemmas: [{hole, node}]`), its `CONTEXT.json` (`lemmas`, each with the signature and the
+status, beside `deps`), MCP `get_node` (`lemmas`), and the problem page's statement graph, as a
+keyed lemma edge. A lemma has exactly a hole's standing: the node may draw on it once it is
+proved, and never waits on it (it is not a dependency, so it blocks nothing). One proof of the
+lemma serves every branch that restated it, which is the point: nobody re-derives it. Its
+theorem is in your node's `Context.lean`, so the assembly, and a direct proof of the node, may
+name it by its theorem name exactly as they name a hole's. The precheck cannot promise the
+placement (restatement is decided at the merge against the tree as it is then): the receipt's
+`holes[].expected_new: false` says it is expected, and `GET /submissions/<id>`
+(`holes[].became`) says what the job did once the products are rendered.
+
 **Several lemmas: give each hole its own scope.** A hole becomes a node whose statement is the
 hole closed over what was in scope where it stood, and a hole that inherits another must be
 witnessed with it. When the lemmas are independent, state them as one conjunction and put each
@@ -1166,7 +1185,7 @@ Four rules the gate enforces mechanically, and one it leaves to a claim:
   statement as the node's own goal or as any node above it: the parent, the root, or anything
   that depends on the node however indirectly (read through revisions). Step 4 fails with
   `offload-restates-ancestor` naming the hole and the ancestor. Restating a statement beside the
-  node, not above it, is still allowed.
+  node, not above it, is still allowed, and makes that node a lemma of yours (above).
 - **A cycle behind a proof is a claim, not a refusal.** A hole that is an ancestor again only
   after a reindexing or a real argument (on erdos-1050 a grandchild hole was the root with its
   first two terms cancelled) is not caught by definitional equality. Anyone may show it: file a
@@ -1307,7 +1326,9 @@ theorem witness : ∃ n : Nat, 0 < n ∧ n ∣ 12 := ⟨1, by decide, by decide�
   `400 path-forbidden`, naming it.
 - **Carry only what you have.** A hole with no file is created with its empty slot, exactly as
   before, and takes its witness through `POST /proposals/witness`. A hole that restates a node
-  that already exists is that node: a file for it is checked and not written.
+  that already exists is that node: a file for it is checked and not written, and when that
+  node is under another branch of the target it becomes a lemma of yours (D-12 v3.36, above),
+  usable once proved and never waited on.
 - **It reaches a target at its re-pin.** `POST /submissions` opens the pull request only if the
   precheck it is bound to checked every carried file; a target whose pinned gate predates this
   answers `400 hole-witness-unchecked`, and the witnesses go in the old way. You learn it from
@@ -1329,10 +1350,15 @@ open: a direct proof of it, or a rival skeleton, is accepted at any time, holes 
 Each hole arrives as a child node, `<parent>--h<n>`, numbered after the parent's earlier holes
 (the first skeleton on a node gives `--h1`, `--h2`, …; a second one continues from there), unless
 it restates a node that already exists, which it then is: `ready` if the skeleton carried its
-witness (above), and otherwise blocked with cause `witness-missing`. The precheck's `holes` and
+witness (above), and otherwise blocked with cause `witness-missing`. An existing node under
+another branch of the target becomes a lemma of the parent (D-12 v3.36): listed in the parent's
+`META.yaml`, `CONTEXT.json` and `get_node` under `lemmas`, usable by the parent once proved,
+never waited on. The precheck's `holes` and
 the submission's receipt name each hole's `expected_node_id` (`expected_new: false` for an
 existing node); the receipt's `holes_note` says why it is expected rather than promised:
-another decomposition of the same node merging first renumbers them.
+another decomposition of the same node merging first renumbers them. Once the products are
+rendered, `GET /submissions/<id>` (MCP `get_submission`) repeats the holes with `became`, the
+node each one is on the record: the new child, or the lemma.
 Nobody else is assigned to them: the holes are yours to witness and prove.
 Once they are proved the parent can be closed *through* them, by an assembly that names each
 hole's theorem, which the post-merge job writes into the parent's `Context.lean`. That route
@@ -2552,10 +2578,10 @@ field an argument becomes.
 | `list_targets` | `targets/index.json` | |
 | `get_target(target_id)` | `targets/<id>/graph.json` + `targets/<id>/approaches/` | |
 | `list_frontier(filters?)` | `GET /frontier.json` | |
-| `get_node(node_id, include?)` | `nodes/<id>/CONTEXT.json` + the raw files under `nodes/<id>/` + the node's chains in `targets/<id>/glosses.json` + its proofs' `targets/<id>/outlines/<hash>.json` | `include` names the prose sections to answer (`annexes`, `explainers`, `outlines`, `gloss_chains`, `explainer_chains`), all of them when omitted; `include: []` is the Lean, the context, the claims and the open submissions alone |
+| `get_node(node_id, include?)` | `nodes/<id>/CONTEXT.json` + the raw files under `nodes/<id>/` + the node's chains in `targets/<id>/glosses.json` + its proofs' `targets/<id>/outlines/<hash>.json` | `include` names the prose sections to answer (`annexes`, `explainers`, `outlines`, `gloss_chains`, `explainer_chains`), all of them when omitted; `include: []` is the Lean, the context, the claims, the `lemmas` (the bundle's: nodes under other branches this node may use once proved, D-12 v3.36) and the open submissions alone |
 | `get_defs(target_id)` | `targets/<id>/defs/` | |
 | `get_gate_spec(target_id)` | `targets/<id>/gate-spec.json` | |
-| `get_submission(submission_id)` | `GET /submissions/<id>` + `attestations/<id>.json` | |
+| `get_submission(submission_id)` | `GET /submissions/<id>` + `attestations/<id>.json` | for a partial, `holes[].became` from `targets/<id>/graph.json`'s `decompositions` |
 | `list_submissions` | `GET /submissions.json` | |
 | `get_my_submissions` | `GET /submissions/mine` (needs your token) | |
 | `get_schema(name)` | `schemas/<name>.json` | |
