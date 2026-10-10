@@ -62,6 +62,7 @@ PRODUCT_SCHEMAS: dict[str, tuple[str, ...]] = {
         "graph/v4",
         "graph/v5",  # F08-T36: every defect claim
         "graph/v6",  # F08-T39 (D-12 v3.35): circular is a label; literature (D-25 v3.35)
+        "graph/v7",  # F04-T39 (D-12 v3.36): each row's lemmas, restated nodes under other branches
     ),
 }
 log = logging.getLogger(__name__)
@@ -339,6 +340,15 @@ class LiteratureView:
 
 
 @dataclass(frozen=True)
+class LemmaRef:
+    """F04-T39 (D-12 v3.36): one entry of a row's ``lemmas`` — the hole's name in the merged
+    partial and the node under another branch it restated."""
+
+    hole: str
+    node: str
+
+
+@dataclass(frozen=True)
 class NodeView:
     target_id: str
     node_id: str
@@ -396,6 +406,21 @@ class NodeView:
     @property
     def deps(self) -> list[str]:
         return [str(d) for d in self.graph_entry["deps"]]
+
+    @property
+    def lemmas(self) -> list[LemmaRef]:
+        """F04-T39 (D-12 v3.36): the nodes under other branches a merged partial of this node
+        restated as holes (``graph/v7`` ``lemmas``), each with the hole's name — drawn on once
+        proved, never waited on, and never among ``deps``. A row older than ``graph/v7`` has no
+        such key and reads as none (D-34)."""
+        raw = self.graph_entry.get("lemmas")
+        if not isinstance(raw, list):
+            return []
+        return [
+            LemmaRef(hole=str(e.get("hole") or ""), node=str(e["node"]))
+            for e in raw
+            if isinstance(e, dict) and e.get("node")
+        ]
 
     @property
     def cause(self) -> str | None:

@@ -157,7 +157,7 @@ def test_an_older_graph_reads_no_literature(tmp_path: Path) -> None:
     graph = json.loads(graph_path.read_text(encoding="utf-8"))
     graph["schema"] = "graph/v5"
     for row in graph["nodes"]:
-        for field in ("circular", "literature", "literature_proposed"):
+        for field in ("circular", "literature", "literature_proposed", "lemmas"):  # lemmas: v7
             row.pop(field, None)
     graph_path.write_text(json.dumps(graph), encoding="utf-8")
     site = model.load_site(root, fixture.COMMIT)

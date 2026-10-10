@@ -114,6 +114,8 @@ main > .crumbs, main > h1:first-child { margin-top: calc(var(--s8) * 1.6); }
 .dot-use { width: 16px; height: 0; border: 0; border-top: 2px dashed var(--n500); border-radius: 0; vertical-align: 3px; }
 .dot-unmeasured { border-color: var(--n500); border-style: dotted; }
 .dot-proposed-for { width: 16px; height: 0; border: 0; border-top: 2px dotted var(--accent-300); border-radius: 0; vertical-align: 3px; }
+/* F04-T39: the dash-dot of a lemma's line, drawn as a gradient since a border cannot be one */
+.dot-lemma { width: 16px; height: 2px; border: 0; border-radius: 0; vertical-align: 3px; background: repeating-linear-gradient(to right, var(--n400) 0 7px, transparent 7px 11px, var(--n400) 11px 12.5px, transparent 12.5px 16px); }
 .stages { display: inline-flex; gap: var(--s3); flex-wrap: wrap; font-size: 12.5px; }
 .stage { display: inline-flex; align-items: center; white-space: nowrap; }
 .stage.on { color: var(--n100); }
@@ -284,6 +286,9 @@ main > .crumbs, main > h1:first-child { margin-top: calc(var(--s8) * 1.6); }
 .panel-outlines .untrusted-title { color: var(--n300); font-style: italic; }
 .dot-outline { border-radius: 3px; border-color: var(--accent-300); }
 .dag .edge.proposed { stroke: var(--accent-300); stroke-dasharray: 1.5 4; stroke-linecap: round; }
+/* F04-T39 (D-12 v3.36): a lemma's line is dash-dot — a dash, a gap, a dot, a gap — which neither the
+   dashed use (7 4) nor the dotted pointer (1.5 4) draws, in either theme; the key's swatch repeats it. */
+.dag .edge.lemma { stroke: var(--n500); stroke-dasharray: 7 4 1.5 4; stroke-linecap: round; }
 /* F04-T33 (Q34): superseded statements faded, and hidden on request; hovering a statement
    lights its lines and dims the rest; the group no line joins has a label and a rule. */
 .dag .node { transition: opacity .12s; }
@@ -616,6 +621,10 @@ pre.diff .diff-hunk { color: var(--n500); }
 .deps ul { margin: var(--s1) 0 var(--s3); padding-left: 1.2em; }
 .deps li { margin: var(--s1) 0; overflow-wrap: anywhere; }
 .deps .gloss-line { color: var(--n300); }
+.lemmas { font-size: 14px; color: var(--n300); }
+.lemmas ul { margin: var(--s1) 0 var(--s3); padding-left: 1.2em; }
+.lemmas li { margin: var(--s1) 0; overflow-wrap: anywhere; }
+.lemmas .lemma-state { color: var(--n400); }
 .explainer-of { margin: var(--s5) 0 var(--s1); color: var(--n400); font-size: 13.5px; overflow-wrap: anywhere; }
 /* An anchored section: the outline steps it names beside its words; on a phone the steps first,
    the words directly under them. */
