@@ -1385,3 +1385,17 @@ The law of the project:
   domain and the indexing. **On Mathlib, equivalence is agent work**: simple tactics proved only
   near-identical texts; 14 directions needed short agent proofs, all accepted first time. Also: a
   laptop shutdown stops background agents without a report, so check their files before resuming.
+
+- 2026-10-10 — Decisions v3.36 (lemmas) built in one sitting from the owner's call on tester C's
+  finding: a hole that restates a node under another branch now makes that node a *lemma* of the
+  parent (`META.yaml` `lemmas`, `meta/v6`), with exactly a hole's standing. Four worktree agents on
+  one committed contract (three schemas plus `NodeFacts.lemmas`), eight tasks, one merge conflict
+  (two agents each rewrote the same description sentence). Three things worth keeping. **A
+  deduplication rule must keep what the duplicate would have given**: the gate recognised the
+  restatement and dropped the only thing a second node would have carried, the edge, so the merged
+  assembly was dead and nothing was red. **The lean tier found the standing's real red**: the fast
+  tier's fake toolchain cannot see that an unstaged lemma makes a proof fail at step 4; the gate
+  agent's one real-toolchain test did, in five minutes. **A crashed agent's branch is its report**:
+  the gate agent died on a DNS error after its last commit; the evidence files and `git log` held
+  everything the merge needed, which is why "log as you go" is a rule for agents and not a courtesy.
+  Left for the owner: push, re-pin, run `lemmas-backfill.yml` on erdos-1094, commit the edge, re-render.

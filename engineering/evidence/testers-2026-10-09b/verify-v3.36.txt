@@ -1,0 +1,10 @@
+# make verify on branch testers-1009b-fixes after the v3.36 merge, 2026-10-10T15:55Z
+
+ruff check: All checks passed!  ·  ruff format --check: 733 files already formatted  ·  mypy gate: no issues (348 files)  ·  mypy api: no issues (237 files)  ·  mypy site: no issues (83 files)
+
+pytest -m "not lean and not docker and not network" on the merge of lemma-gate, lemma-products, lemma-site, lemma-service:
+2 failed, 5231 passed, 3 skipped, 193 deselected, 2 warnings in 464.32s (0:07:44)
+
+Two red. site/tests/test_finding_circular_label.py::test_an_older_graph_derives_the_label_from_the_tree relabelled a generated graph as graph/v5 without stripping the new lemmas field (the parallel-agents merge check the products agent predicted); fixed by stripping it, 24 passed with the lemma module afterwards. gate/tests/test_walkthrough.py::test_graph_copy_is_identical compares gate/agents/AGENTS.md to the sibling graph checkout's copy; red since the morning's guide edit (1eaf7a9) and clears at the re-pin.
+
+Lean tier: the gate agent ran its one real-toolchain test alone (Lean 4.33.1 core, elan): red before the fix at step 4 (unstaged lemma), green after; engineering/evidence/F08/task-41.txt. Docker tier not run on this laptop (7 GiB free); CI at the push.
