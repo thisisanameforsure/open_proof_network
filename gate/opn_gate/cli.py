@@ -475,6 +475,19 @@ def _add_intake_parsers(  # noqa: PLR0915 — one statement per flag
     new_t.add_argument("--author", required=True, help="the curator, on every record")
     new_t.add_argument("--date", help="UTC timestamp of the act (default: now)")
     new_t.add_argument("--branch", help="also commit what was written on this branch")
+    new_t.add_argument(
+        "--arxiv",
+        action="append",
+        metavar="CODE",
+        help="an arXiv category the mathematics belongs to, e.g. math.NT (one or two; with "
+        "--msc, writes the record's classification, F25-R4)",
+    )
+    new_t.add_argument(
+        "--msc",
+        action="append",
+        metavar="CODE",
+        help="an MSC 2020 code, e.g. 11A41 (one to eight; with --arxiv)",
+    )
     new_t.add_argument("--no-toolchain", action="store_true", help="skip admission (R2); testing")
     new_t.add_argument("--out", type=Path, help="work directory (default: a fresh temp dir)")
     new_t.add_argument("--install", action="store_true", help="let elan install the pin")
@@ -2262,7 +2275,11 @@ def run_intake(args: argparse.Namespace, settings: config.Settings) -> int:
         return _emit_curator(doc, graph, args.branch, f"intake: {args.target_id} active")
     if args.action == "import-fc":
         return run_import_fc(args, settings, graph)
-    record = intake.read_record(args.record.resolve())
+    record = intake.with_classification(
+        intake.read_record(args.record.resolve()),
+        arxiv=args.arxiv or (),
+        msc=args.msc or (),
+    )  # F25-R4: refused by name before anything is written
     checker: intake.Checker = (
         _fake_checker
         if args.no_toolchain

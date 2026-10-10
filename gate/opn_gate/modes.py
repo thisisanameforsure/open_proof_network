@@ -1179,6 +1179,8 @@ def check(  # noqa: PLR0912, PLR0915 — one branch per role with a check of its
             problems.extend(check_status_record(graph_root, located, classification))
         elif located.role == "target-record" and classification.mode == "curator":
             problems.extend(check_posting(graph_root, located, base))
+        elif located.role == "target-record" and classification.mode == "intake":
+            problems.extend(check_target_record(graph_root, located))
     if classification.mode == "curator":
         problems.extend(check_definitions(graph_root, classification))
     if classification.mode == "proposal":
@@ -2136,6 +2138,32 @@ def check_evidence(graph_root: Path, located: Located) -> list[Diagnostic]:
 
 
 _ABSENT = object()
+
+
+def check_target_record(graph_root: Path, located: Located) -> list[Diagnostic]:
+    """F11-R1, F25-R4 (D-34): an intake's ``target.yaml`` satisfies the version it declares.
+
+    Until F25-T5 nothing on the gate read the record an intake added: D-6's artifact rules are
+    ``intake new``'s and run where the curator ran it, and every record the tool wrote had been
+    validated by ``intake.write_doc``. A classification is the first field the registry reads
+    off the record, so a malformed one — a code that is not an arXiv category, nine MSC codes —
+    must be refused here too, by the schema and not by a second statement of it.
+    """
+    data = _read(graph_root, located)
+    if isinstance(data, Diagnostic):
+        return [data]
+    doc = _document(located, data)
+    if isinstance(doc, Diagnostic):
+        return [doc]
+    declared = intake.record_schema(doc)
+    return [
+        Diagnostic(
+            "record-invalid",
+            f"{located.path} does not satisfy {declared}: {v.path}: {v.message}",
+            {"path": located.path, "schema": declared, "field": v.path},
+        )
+        for v in schemas.violations(doc, declared)[:5]
+    ]
 
 
 def check_posting(  # noqa: PLR0911 — one return per rule

@@ -437,6 +437,15 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "The hosted checker already has as many checks in flight as the service allows.",
         "Retry after the Retry-After header's seconds.",
     ),
+    "classification-invalid": (
+        "gate",
+        None,
+        "A target record's classification does not fit target/v3: a code that is not an arXiv "
+        "category (math.NT) or an MSC 2020 code (11A41), too many or repeated codes, or one of "
+        "the two lists missing (F25-R4).",
+        "Curators: pass one or two --arxiv codes and one to eight --msc codes to intake new, "
+        "each once, in the registry's spelling; or pass neither and classify the target later.",
+    ),
     "circular-ancestor": (
         "both",
         None,
