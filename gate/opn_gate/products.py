@@ -58,7 +58,7 @@ from opn_gate.toolchain import ResolvedToolchain, Toolchain, UsedConstantsReques
 
 log = logging.getLogger(__name__)
 
-PROTOCOL_VERSION = "3.28"  # docs/architecture_decisions.html (v3.28: the 2026-10-04 audit)
+PROTOCOL_VERSION = "3.37"  # docs/architecture_decisions.html (v3.37: Palomar, 2026-10-10)
 #: F08-T39 (D-12 v3.35): graph/v6 carries ``circular`` (the label), ``literature`` and
 #: ``literature_proposed`` (F08-T40); v5: every defect claim (F08-T36); v4: F08-T27, F18; v3:
 #: F12-R13.

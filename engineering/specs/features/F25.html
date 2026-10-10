@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>F25 — Registration in Palomar</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="crumbs"><a href="../index.html">specs</a> / F25</nav>
+<h1>F25 — Registration in Palomar</h1>
+<p class="subtitle">A resolved problem can be registered in Palomar, the registry of Lean-verified
+mathematics, from a wrapper the pinned gate exports. The record learns what the registry needs:
+a structured disclosure of models and tooling, a classification, a display name a contributor may
+choose, and a registration record. Registered entries are re-checked with the network's own tools,
+and the registry's feed is read for prior art.</p>
+
+<h2>1. Summary</h2>
+<p>Palomar (<a href="https://palomar-registry.org/">palomar-registry.org</a>, opened 2026-08-18 by
+the Lean FRO and ICARM) indexes a public GitHub repository at one commit: a <code>Challenge.lean</code>
+stating the result with <code>sorry</code>, a <code>Solution.lean</code> proving it, a
+<code>comparator.json</code>, a <code>formalization.yaml</code> (v0.4) and one root licence file;
+every Lean file on Lean's module system; toolchain at least <code>leanprover/lean4:v4.35.0-rc2</code>;
+Comparator with two independent kernels; a model's editorial review with a notability floor;
+humans only as authors, with AI disclosed under <code>automation.methods</code>. Decisions v3.37
+(D-10, D-23, D-19, D-32, D-3, D-25, D-28, D-35) is the protocol; this feature builds it:</p>
+<ul>
+  <li><strong>The record says what the registry asks.</strong> <code>submission-meta/v2</code> adds an
+    <code>automation</code> block (method, models, framework required; cost optional) carried into
+    <code>attestation/v7</code> and <code>ledger/v2</code>; <code>target/v3</code> adds a
+    classification; <code>registration/v1</code> and <code>display-name/v1</code> are two append-only
+    records.</li>
+  <li><strong>The export.</strong> <code>opn-gate export-palomar</code> writes a wrapper repository
+    from one resolved target at the graph's pin and checks it there; a port stage moves it to the
+    registry's toolchain and the registry's own preflight workflow is the definition of done.</li>
+  <li><strong>The corpus.</strong> Seven registered entries are re-checked with the network's
+    tools, so a disagreement between the network's checkers and the registry's is found before any
+    registration depends on them.</li>
+  <li><strong>The feed.</strong> The registry's CC0 feed is matched against the network's problems
+    and proposes literature records; a steward confirms or not.</li>
+  <li><strong>The surfaces.</strong> Two routes and three tools, the site's target and Docs pages,
+    the guide, the error catalog and the DCO text.</li>
+</ul>
+
+<h2>2. User stories</h2>
+<ul>
+  <li>As a curator, I export the resolved target, port it to the registry's toolchain, run the
+    registry's preflight, read its review, and register it; the target page then names the
+    registration, and the ledger credits it on the upstreaming line.</li>
+  <li>As a contributor whose proof is in the closure, I am an author of the registration under my
+    pseudonym; if I record a display name, that is what the registry shows.</li>
+  <li>As an agent submitting a proof, I declare how I worked (agent, the models, the harness) in
+    one block the precheck validates before anything opens; I may add my token counts.</li>
+  <li>As a steward, I am shown that the registry's feed names my problem, with the evidence, and I
+    confirm or dismiss the literature proposal.</li>
+  <li>As the owner, I run the corpus job and see the network's own checkers agree with the
+    registry on seven entries at the registry's toolchain.</li>
+</ul>
+
+<h2>3. Scope</h2>
+<p><strong>In:</strong> decisions v3.37; the schemas above and <code>targets-index/v10</code>,
+<code>graph/v7</code>; the gate's admission of the two records; the export, check, port, verify and
+feed commands with a client seam; the service's two routes and the <code>automation</code>
+refusal; three MCP tools; the site's registration line, Docs and About copy; the guide; the
+conformance corpus and its workflow; the rerun of the three resolved targets.</p>
+<p><strong>Out:</strong> a newer toolchain pin for the graphs or for new intakes (the owner's later
+call); nanoda or con-ron inside the gate; a contributor tool that submits to the registry; any
+notability score in the network (D-25); importing registry entries as graph nodes; registering
+<code>euclid-primes</code> or <code>tutorial</code>; a human reading of the erdos-1050 port's
+review, which is the owner's (Q3).</p>
+
+<h2>4. Requirements</h2>
+<table>
+  <tr><th>ID</th><th>Requirement (EARS)</th></tr>
+  <tr><td>F25-R1</td><td>The opn-submission block (<code>submission-meta/v2</code>) shall carry
+    <code>automation</code>: <code>method</code> (one of manual, copilot, agent, autonomous, other),
+    <code>models</code> (one or more strings) and <code>framework</code> required;
+    <code>tool_setup</code>, <code>wall_time</code>, <code>tokens</code> (<code>input</code> and
+    <code>output</code> integers), <code>hardware</code> and <code>spend</code> (a string) optional.
+    A v1 block shall still parse, with <code>automation</code> read as absent.</td></tr>
+  <tr><td>F25-R2</td><td>When a proof, partial or alternate submission reaches the service without
+    the three required fields, the service shall refuse it as <code>automation-missing</code>, naming
+    the missing field, before any pull request opens. Witness, annex, gloss, postmortem and approach
+    writes shall not require the block.</td></tr>
+  <tr><td>F25-R3</td><td>The attestation (<code>attestation/v7</code>), the ledger entry
+    (<code>ledger/v2</code>) and the precheck result document shall carry the block as declared, or
+    null, beside the free <code>model_and_tooling</code> string, which is unchanged.</td></tr>
+  <tr><td>F25-R4</td><td><code>target.yaml</code> at <code>target/v3</code> may carry
+    <code>classification</code>: <code>arxiv</code> (one or two category codes) and
+    <code>msc2020</code> (one to eight codes). <code>intake new</code> shall take
+    <code>--arxiv</code> and <code>--msc</code>. The export shall refuse a target without one.</td></tr>
+  <tr><td>F25-R5</td><td>A registration record (<code>targets/&lt;id&gt;/registrations/&lt;date&gt;-&lt;n&gt;.yaml</code>,
+    <code>registration/v1</code>) shall name the registry, its id and version, the wrapper
+    repository and commit, the graph commit exported, the proof's node and attestation, the
+    challenge and solution hashes, a status (submitted, registered, revision_required, rejected,
+    withdrawn), who submitted it, a date and a url. The gate shall admit one only from a listed
+    curator or a steward of the target. The latest record per registry id shall be the one read; a
+    withdrawal record (D-18 v3.27) shall set one aside.</td></tr>
+  <tr><td>F25-R6</td><td>A display-name record (<code>names/&lt;pseudonym&gt;.yaml</code>,
+    <code>display-name/v1</code>) shall carry the pseudonym, a name of at most 200 characters or
+    null, an optional link, a date and an approval-key signature. The gate shall admit one only
+    when the pseudonym is the submitting identity's own. A later record with a null name shall
+    withdraw the earlier one.</td></tr>
+  <tr><td>F25-R7</td><td><code>targets/index.json</code> at <code>targets-index/v10</code> and
+    <code>targets/&lt;id&gt;/graph.json</code> at <code>graph/v7</code> shall publish each target's
+    <code>registrations</code>: registry, id, version, status and url, derived from R5.</td></tr>
+  <tr><td>F25-R8</td><td><code>opn-gate export-palomar &lt;target&gt;</code> shall write, from the
+    graph at one commit, a wrapper repository in the registry's shape: licence, lakefile with the
+    graph's Mathlib pin, synthesised manifest, toolchain, <code>Challenge.lean</code> (the root's
+    statement with the target's definitions inlined), <code>Solution.lean</code> (the root's proof),
+    one module per node of the proof's closure, <code>comparator.json</code>,
+    <code>formalization.yaml</code> validated against the registry's vendored schema, a README
+    giving the narrative production account, a preflight workflow, and <code>opn-export.json</code>
+    naming the graph commit, the closure, the pruned dependencies and the hash of every file in and
+    out. Every Lean file shall begin with <code>module</code> and use <code>public import</code> and
+    an exposed public section; bodies shall be byte-identical to the graph's.</td></tr>
+  <tr><td>F25-R9</td><td>The export shall refuse, by name: a root that is not proved; a proof record
+    that is not a proof; a closure node whose trust base is the compiler; a target with no
+    classification; a graph commit with no root licence file; an unproved dependency; a foreign
+    import; a private helper used across modules; a Challenge over 1,000 lines or 100 KiB, or any
+    file over 10,000 lines; a <code>sorry</code> outside the Challenge; and, when Comparator does not
+    compare definition bodies (Q1), a target with definitions.</td></tr>
+  <tr><td>F25-R10</td><td>The export's closure shall start from the proof's footprint and keep a
+    declared dependency outside it only when the importing proof's text names its declaration; the
+    README shall list what was pruned and why.</td></tr>
+  <tr><td>F25-R11</td><td>With <code>--check</code>, the export shall elaborate every module at the
+    graph's pin, replay each through the kernel, check the Solution's axioms against the allowlist,
+    check by the kernel that the Solution's theorem has the Challenge's type, and check that the
+    Challenge's theorem text equals the node's statement text; it shall write
+    <code>local-check.json</code> and exit non-zero on any failure.</td></tr>
+  <tr><td>F25-R12</td><td>With <code>--port</code>, the tool shall rewrite the toolchain and the
+    Mathlib revision, update the manifest, build, run <code>lake comparator</code>, classify
+    failures into <code>port-report.json</code>, and refuse when the Challenge's bytes have changed.
+    It shall parse the registry's preflight artifact into findings and remedies. The registry's
+    preflight at <code>status: pass</code> is the definition of a port's completion.</td></tr>
+  <tr><td>F25-R13</td><td><code>opn-gate palomar-verify &lt;repo&gt;@&lt;commit&gt;</code> shall clone
+    a registered entry, check its challenge and solution hashes against the registry's record,
+    build it, run <code>lake comparator</code>, and run the network's axioms and statement-meaning
+    checkers built at the entry's toolchain; it shall write <code>conformance-&lt;id&gt;.json</code>
+    and exit non-zero on any disagreement. A workflow shall run it over the corpus on dispatch and
+    weekly, and report drift in the registry's pins.</td></tr>
+  <tr><td>F25-R14</td><td><code>opn-gate palomar-feed</code> shall read the registry's feed through
+    the client seam, match entries to the network's targets by problem number as a token, report
+    candidates with evidence, write unsigned literature proposals only with <code>--propose</code>,
+    never confirm, and, for each registration record, compare the registry's hashes and status with
+    the record's. An unreachable feed shall write nothing and exit 1.</td></tr>
+  <tr><td>F25-R15</td><td>The service shall accept <code>POST /me/name</code> from a bearer, writing
+    R6's record for the bearer's own pseudonym and no other, and <code>POST /registrations</code>
+    from a signed-in curator or steward, writing R5's record; each shall refuse by name what the
+    gate would refuse, with nothing opened. The MCP shall expose <code>set_display_name</code>,
+    <code>register_target</code> and <code>list_registrations</code>; <code>get_target</code> shall
+    pass <code>registrations</code> through.</td></tr>
+  <tr><td>F25-R16</td><td><code>GET /dco.json</code> shall name Apache-2.0 for code and
+    CDLA-Permissive-2.0 for the record; its version shall change, and a token issued against the
+    older text shall be asked to accept again.</td></tr>
+  <tr><td>F25-R17</td><td>The site shall show a target's registration (registered, or submitted and
+    under review) on its page with a link to the registry entry, a Registries section and the two
+    licences on the Docs page, and the registry by name in the About page's report-back sentence.
+    Registry links shall pass the site's allowlist from validated records only.</td></tr>
+  <tr><td>F25-R18</td><td>The guide shall document the <code>automation</code> block with an
+    executing example, the DCO change, the registration section, the Palomar reference form in
+    literature records, every new code, and a row per new tool; every route, tool, code and field
+    the guide names shall exist, and every field R1 and R5 add shall be named in the guide and in
+    the tool's input schema.</td></tr>
+</table>
+
+<h2>5. Acceptance criteria</h2>
+<table>
+  <tr><th>ID</th><th>Criterion</th><th>Test</th></tr>
+  <tr><td>AC1</td><td>Every new schema accepts the examples its own descriptions cite and refuses its counter-examples; every version the products emit is accepted by the api and the site.</td><td><code>gate/tests/test_schemas_f25.py</code>, <code>gate/tests/test_versions_accepted.py</code></td></tr>
+  <tr><td>AC2</td><td>A v1 block parses; the trio is enforced; tokens are integers; attestation/v7 and ledger/v2 carry the block; old merges keep <code>undeclared</code>.</td><td><code>gate/tests/test_submission_meta_v2.py</code></td></tr>
+  <tr><td>AC3</td><td><code>/submit</code> and <code>/precheck</code> refuse <code>automation-missing</code> with no ref created; an accepted block is echoed in the precheck result and in <code>submissions.json</code>; the MCP error has the tool's shape.</td><td><code>api/tests/test_submission_automation.py</code></td></tr>
+  <tr><td>AC4</td><td>Registration derivation: latest per id wins, out of order, two ids, withdrawn absent, superseded version; the mode row refuses a non-curator non-steward and the fallthrough does not read it as append; v10 and graph/v7 carry it; each derivation test fails under a mutant.</td><td><code>gate/tests/test_registration.py</code></td></tr>
+  <tr><td>AC5</td><td>Names: only the owning pseudonym; null withdraws; root role beside <code>policy.json</code>; <code>palomar.authors</code> prefers the name.</td><td><code>gate/tests/test_names.py</code></td></tr>
+  <tr><td>AC6</td><td>Classification validates and is written by <code>intake new</code>.</td><td><code>gate/tests/test_intake.py</code> (<code>-k classification</code>)</td></tr>
+  <tr><td>AC7</td><td>Export: names injective; closure with and without a footprint cache; pruning keeps a named dep; each R9 refusal by name; transform goldens for three header shapes, idempotent on a module-system file, bodies round-trip; comparator.json; formalization.yaml validates with null gap fields and ledger authors; README declared gaps; manifest synthesis.</td><td><code>gate/tests/test_export_palomar.py</code></td></tr>
+  <tr><td>AC8</td><td>Port: toolchain and rev rewrite; canned build output classified; Challenge-frozen refusal; preflight artifact parsed, pass and fail.</td><td><code>gate/tests/test_export_palomar.py</code> (<code>-k port</code>)</td></tr>
+  <tr><td>AC9</td><td>Lean tier: the propositional fixture's export elaborates, replays, has only allowed axioms and the Challenge's type at 4.33.1; the <code>module</code> answer (Q2) is recorded either way.</td><td><code>gate/tests/test_export_palomar_lean.py</code></td></tr>
+  <tr><td>AC10</td><td>Docker tier: the onramp fixture's definitions export with <code>@[expose]</code> and build in the image.</td><td><code>gate/tests/test_export_palomar_docker.py</code></td></tr>
+  <tr><td>AC11</td><td>Corpus, fast: each of seven fixtures validates, round-trips through the reader and writer, is the identity under the transform, and matches the registry's recorded line and byte counts and hashes.</td><td><code>gate/tests/test_palomar_corpus.py</code></td></tr>
+  <tr><td>AC12</td><td>Client seam: fake and http hosts agree; retry-after honoured; 429 and 503 typed; <code>register</code> refuses without the human flag.</td><td><code>gate/tests/test_palomar_host.py</code></td></tr>
+  <tr><td>AC13</td><td>Feed: E257 is a candidate for erdos-257 with evidence and nothing else matches; proposals validate; an unreachable feed writes nothing; drift compares hashes and status.</td><td><code>gate/tests/test_palomar_feed.py</code></td></tr>
+  <tr><td>AC14</td><td>Corpus, network: the workflow verifies all seven entries at the registry's toolchain with the network's own checkers and reports pin drift.</td><td><code>.github/workflows/palomar-corpus.yml</code> (evidence)</td></tr>
+  <tr><td>AC15</td><td>Routes and tools: name and registration routes write records the gate accepts and refuse each R15 case with nothing opened; the frozen tool set, bijection rows, result schemas and route purposes hold; the tools/list cost is measured.</td><td><code>api/tests/test_me_name.py</code>, <code>api/tests/test_registrations.py</code>, <code>api/tests/test_mcp_surface.py</code>, <code>api/tests/test_finding_route_index.py</code></td></tr>
+  <tr><td>AC16</td><td>DCO: the new version; an old acceptance is refused; the text names both licences.</td><td><code>api/tests/test_dco.py</code></td></tr>
+  <tr><td>AC17</td><td>Site: the three target-page states, the Docs and About copy, the allowlist; goldens; screenshots at 1440 and 390 read by eye.</td><td><code>site/tests/test_registration_copy.py</code></td></tr>
+  <tr><td>AC18</td><td>Guide and catalog: every code has a remedy and the catalog equals the emitters; every name the guide uses exists; the new blocks execute; every R1 and R5 field is named in the guide and the tool schema.</td><td><code>gate/tests/test_error_codes.py</code>, <code>gate/tests/test_finding_guide_names_exist.py</code>, <code>gate/tests/test_walkthrough.py</code></td></tr>
+  <tr><td>AC19</td><td>Rerun: the three resolved targets export and check at the pin; erdos-1050 ports to v4.35.0-rc2 with Comparator green and the registry's preflight passing; the feed runs over the live snapshot.</td><td>evidence <code>engineering/evidence/F25/task-15*</code></td></tr>
+</table>
+
+<h2>6. Budgets / limits</h2>
+<p>An export runs in seconds without <code>--check</code>; the check costs one elaboration per
+module at the pin. The corpus job pays one Mathlib cache fetch per entry and runs weekly. The
+feed is one GET of about 500 KiB. The registry allows two verifying submissions per repository
+owner and one per submitter; registrations are sequential. New routes share <code>POST /stewards</code>'
+rate limits; records are under 4 KiB.</p>
+
+<h2>7. Security &amp; privacy notes</h2>
+<ul>
+  <li><strong>An agent never registers.</strong> The client seam's <code>register</code> refuses
+    without a flag only the CLI sets when a person says they have read the review; the registry's
+    own protocol says the same.</li>
+  <li><strong>A display name is a one-way publication.</strong> It is written only by the holder of
+    the pseudonym, withdrawal exists from the first version, the guide warns before the call, and
+    the site shows it nowhere in this version.</li>
+  <li><strong>Vendored material is licensed.</strong> Corpus fixtures carry a NOTICE; nothing off
+    <code>intake.LICENCE_ALLOWLIST</code> is vendored. The registry's schema and policy are CC0.</li>
+  <li><strong>Free text is escaped.</strong> Names, notes and urls pass the same allowlists as every
+    other record; registry urls become links only from validated records.</li>
+  <li><strong>No secret.</strong> Preflight needs <code>contents: read</code>; the submission
+    token the registry issues is the curator's, held outside the network.</li>
+</ul>
+
+<h2>8. Dependencies</h2>
+<p>F18 (proof closures by use), F14 (second formalizations, notices), F12 (QA and fidelity),
+F23 (web session, approval key), F13 (precheck refusals before a pull request), F09 (MCP surface).</p>
+
+<h2>9. Open questions / judgment calls</h2>
+<p>Each weighed against the project's goals: the mission (D-1); published state is actual state,
+trackable, reversible, hard to tamper with; the graph as the only truth (D-35); an inclusive
+pseudonymous ledger with no agent identities and no ranking (D-19, D-22, D-25); Leiden alignment and
+honest report-back (D-10, D-23); agent-friendliness; a statement published is a statement checked
+(D-9).</p>
+<table>
+  <tr><th>ID</th><th>Question / call</th></tr>
+  <tr><td>F25-Q1</td><td><strong>Definitions duplicated in Challenge and development.</strong> For:
+    the current candidate needs none and registered entries inline definitions. Against: if
+    Comparator compares only types, a Solution could redefine a definition and prove a weaker
+    thing, the failure D-9 exists to prevent. Decided: probe first (T2); if bodies are compared,
+    duplicate; if not, refuse exports with definitions.</td></tr>
+  <tr><td>F25-Q2</td><td><strong><code>module</code> at the 4.33.1 pin.</strong> For checking the exact
+    bytes at the pin: one artifact, one claim. Against: the pin may reject it. Decided: probe; if
+    rejected, check a plain-header twin and record "bodies identical, headers differ"; Comparator at
+    the registry's toolchain still checks the final bytes.</td></tr>
+  <tr><td>F25-Q3</td><td><strong>Submit erdos-1050 now?</strong> For: a live end-to-end run. Against:
+    it is a calibration target, a known result reproved by agents; the registry refuses duplicated
+    work, and the 2026-09-11 declaration the project answers to condemns mass production of
+    statements; a refusal would be the network's first public act there. Decided: export, port and
+    preflight, do not submit; the first submission is the first open-track resolution. The owner
+    may override.</td></tr>
+  <tr><td>F25-Q4</td><td><strong>Pseudonymous authors.</strong> For: D-19 and D-22 make the pseudonym
+    the identity and the ledger the credit; a human behind a pseudonym is a human. Against: the
+    registry may read "humans only" as "named humans". Decided: pseudonyms with opt-in names
+    (ruled 2026-10-10); the authors list is one function, so a refusal costs one change.</td></tr>
+  <tr><td>F25-Q5</td><td><strong>Where the wrapper repository lives.</strong> The network's account:
+    the curator is the maintainer the registry requires, one place to preserve, one preflight.
+    Contributors are the authors in the metadata and the ledger credits the registration.</td></tr>
+  <tr><td>F25-Q6</td><td><strong>Records on the graph, not in the service store.</strong> D-35: the
+    service may be lost without any fact changing; git history is the trail; a later record is the
+    reversal; signatures are the tamper evidence. A display name has a withdrawal from day one.</td></tr>
+  <tr><td>F25-Q7</td><td><strong>Mandatory disclosure against agent-friendliness.</strong> Leiden and the
+    registry both ask for it, and the free string has produced <code>undeclared</code> on 46
+    statement lines. Decided (ruled 2026-10-10): mandatory, refused at precheck before any pull
+    request, with a one-line example in the guide and the tool schema.</td></tr>
+  <tr><td>F25-Q8</td><td><strong>Prune declared dependencies to the footprint.</strong> The proof
+    term is the fact (F18) and the trusted surface is smaller; the wrapper's module list differs
+    from the graph's declared deps, so the README states the rule and lists what was pruned.</td></tr>
+  <tr><td>F25-Q9</td><td><strong>Old merges have no structured disclosure or cost.</strong> A value
+    nobody recorded is a fabrication on a permanent record. Decided: map the string to a method
+    only where the string says it, and write "not reconstructed" in the registry's own words.</td></tr>
+  <tr><td>F25-Q10</td><td><strong>The network's metaprograms at the registry's toolchain.</strong>
+    Built in the corpus job only, never in the gate image; the pin stays 4.33.1.</td></tr>
+  <tr><td>F25-Q11</td><td><strong>Feed proposals never confirm.</strong> D-25 v3.35 makes confirmation
+    a steward's or curator's act, and a number match is inference.</td></tr>
+  <tr><td>F25-Q12</td><td><strong>Policy drift and rate limits.</strong> The registry's pins, schemas
+    and minimum toolchain move; <code>PINS.json</code> is re-probed weekly by the corpus job;
+    registrations are sequential.</td></tr>
+  <tr><td>F25-Q13</td><td><strong>Numbering.</strong> v3.36 is reserved for the formalization review,
+    drafted 2026-10-09 and not applied; this amendment is v3.37 so the two stay distinct.
+    <code>PROTOCOL_VERSION</code> had lagged at 3.28 and is 3.37 now.</td></tr>
+</table>
+
+<h2>10. Status</h2>
+<div class="rule"><strong>status:</strong> building ·
+  <strong>Tasks:</strong> T0 ✓ 2026-10-10 (decisions v3.37 applied; PROTOCOL_VERSION 3.37; spec and index) · T1–T16 todo</div>
+
+<h2>Tasks</h2>
+<p class="status-note">Dependency-ordered. Red before green: each new test fails on the missing
+behaviour, with the seam in at today's behaviour.</p>
+<table>
+  <tr><th>ID</th><th>Task</th><th>Files</th><th>Deps</th><th>Verification</th></tr>
+  <tr><td>F25-T0</td><td>Draft and apply decisions v3.37; bump <code>PROTOCOL_VERSION</code>; this spec and the index row.</td><td><code>docs/architecture_decisions.html</code>, <code>gate/opn_gate/products.py</code>, <code>engineering/specs/</code></td><td>—</td><td>the tests that read the decisions doc</td></tr>
+  <tr><td>F25-T1</td><td>Schemas <code>submission-meta/v2</code>, <code>attestation/v7</code>, <code>ledger/v2</code>, <code>target/v3</code>, <code>registration/v1</code>, <code>display-name/v1</code>, <code>targets-index/v10</code>, <code>graph/v7</code>; HASHES; goldens and api fixtures; the versions-accepted test.</td><td><code>gate/schemas/</code>, goldens</td><td>T0</td><td>AC1; <code>make verify</code></td></tr>
+  <tr><td>F25-T2</td><td>Probes 1–7 on a Linux runner at the registry's toolchain; Q1 and Q2 settled.</td><td><code>.github/workflows/palomar-probe.yml</code>, evidence</td><td>—</td><td>probe outputs in <code>engineering/evidence/F25/probes.txt</code></td></tr>
+  <tr><td>F25-T3</td><td>The automation block end to end (R1–R3, R16): gate, attestation, ledger, api refusal, MCP parameters, DCO text, guide example.</td><td><code>gate/opn_gate/submission.py</code>, <code>attestation.py</code>, <code>ledger.py</code>, <code>api/opn_api/submissions.py</code>, <code>identity.py</code>, <code>mcp/</code></td><td>T1</td><td>AC2, AC3, AC16</td></tr>
+  <tr><td>F25-T4</td><td>Registration and display-name records (R5–R7, R15): paths, modes, derivation, products, routes, tools, merge-actor prefix.</td><td><code>gate/opn_gate/registrations.py</code>, <code>names.py</code>, <code>paths.py</code>, <code>modes.py</code>, <code>products.py</code>, <code>api/opn_api/</code></td><td>T1</td><td>AC4, AC5, AC15</td></tr>
+  <tr><td>F25-T5</td><td>Classification (R4).</td><td><code>gate/opn_gate/intake.py</code></td><td>T1</td><td>AC6</td></tr>
+  <tr><td>F25-T6</td><td>Client seam and fake; vendored registry schemas and pins; corpus fixtures with NOTICE; reader and writer round trip.</td><td><code>gate/opn_gate/palomar_host.py</code>, <code>gate/palomar/</code>, <code>gate/tests/fixtures/palomar/</code></td><td>T1</td><td>AC11, AC12</td></tr>
+  <tr><td>F25-T7</td><td>The export (R8–R10).</td><td><code>gate/opn_gate/palomar.py</code></td><td>T2, T5, T6</td><td>AC7</td></tr>
+  <tr><td>F25-T8</td><td>The local check and the CLI (R11); lean and docker tiers.</td><td><code>gate/opn_gate/palomar_check.py</code>, <code>cli.py</code></td><td>T7</td><td>AC9, AC10</td></tr>
+  <tr><td>F25-T9</td><td>The port and the preflight-report parser (R12).</td><td><code>gate/opn_gate/palomar_port.py</code></td><td>T8</td><td>AC8</td></tr>
+  <tr><td>F25-T10</td><td><code>palomar-verify</code> and the corpus workflow (R13); metaprograms at the registry's toolchain.</td><td><code>gate/opn_gate/palomar_verify.py</code>, <code>.github/workflows/palomar-corpus.yml</code></td><td>T6, T8</td><td>AC14</td></tr>
+  <tr><td>F25-T11</td><td>The API and MCP documentation and field audit (R18): every surface in the plan's list, each line backed by a test.</td><td><code>gate/agents/AGENTS.md</code>, <code>api/opn_api/routes.py</code>, <code>wayfinding.py</code>, <code>codes.py</code>, tests</td><td>T3, T4</td><td>AC18; <code>engineering/evidence/F25/task-11-audit.md</code></td></tr>
+  <tr><td>F25-T12</td><td>The site (R17).</td><td><code>site/opn_site/</code></td><td>T4</td><td>AC17, screenshots</td></tr>
+  <tr><td>F25-T13</td><td>The feed and the drift check (R14).</td><td><code>gate/opn_gate/palomar_feed.py</code>, <code>gate/tools/watch_palomar.py</code>, <code>.github/workflows/watch-palomar.yml</code></td><td>T4, T6</td><td>AC13</td></tr>
+  <tr><td>F25-T14</td><td>A registered entry as a second formalization (optional).</td><td><code>gate/opn_gate/palomar.py</code>, <code>formalizations.py</code></td><td>T6</td><td><code>gate/tests/test_palomar_formalization.py</code></td></tr>
+  <tr><td>F25-T15</td><td>Rerun: the three resolved targets at the pin; erdos-1050 ported and preflighted; the feed over the live snapshot.</td><td>evidence</td><td>T8, T9, T10, T13</td><td>AC19</td></tr>
+  <tr><td>F25-T16</td><td>Live: push, deploy, graph LICENSE and NOTICE, re-pin and re-render, wrapper repository; a registration only on the owner's word (Q3). The owner's sitting.</td><td>graph</td><td>T15</td><td><code>pregate.sh</code> on the live graph; <code>check_products.py</code> from the pin's worktree</td></tr>
+</table>
+</body>
+</html>
