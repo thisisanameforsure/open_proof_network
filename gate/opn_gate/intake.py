@@ -33,7 +33,7 @@ from __future__ import annotations
 import logging
 import re
 import shutil
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -41,6 +41,7 @@ from typing import Any
 import yaml
 
 from opn_gate import fidelity, layout, records, schemas
+from opn_gate.diagnostic import Diagnostic
 
 log = logging.getLogger(__name__)
 
@@ -168,6 +169,70 @@ def is_calibration(doc: dict[str, Any] | None) -> bool:
     return bool(doc.get("calibration", False)) if doc is not None else False
 
 
+def classification(doc: dict[str, Any] | None) -> dict[str, Any] | None:
+    """F25-R4: the record's ``classification`` block, or ``None`` for a target that has none."""
+    if doc is None:
+        return None
+    block = doc.get("classification")
+    return dict(block) if isinstance(block, dict) else None
+
+
+def check_classification(doc: dict[str, Any]) -> list[Diagnostic]:
+    """F25-R4: every way the record's classification fails the shape ``target/v3`` gives it.
+
+    The rule itself lives in the schema alone — the arXiv and MSC 2020 patterns, one or two and
+    one to eight codes, no duplicates, both lists or neither — so nothing here can drift from it.
+    What this adds is a *named* refusal: ``intake new`` and F25-T7's export get one
+    ``classification-invalid`` per violation with the field it sits on, instead of a schema
+    error over the whole record. A record with no block is fine: the block is optional at
+    intake, and refusing a target without one is the export's (R4).
+    """
+    if "classification" not in doc:
+        return []
+    found: list[Diagnostic] = []
+    for v in schemas.violations({**doc, "schema": SCHEMA}, SCHEMA):
+        if not v.path.startswith("$['classification']"):
+            continue
+        found.append(
+            Diagnostic(
+                "classification-invalid",
+                f"classification: {v.path}: {v.message} (F25-R4: one or two arXiv category "
+                "codes such as math.NT and one to eight MSC 2020 codes such as 11A41, none "
+                "repeated, both lists or neither)",
+                {"field": v.path, "schema": SCHEMA},
+            )
+        )
+    return found
+
+
+def with_classification(
+    doc: dict[str, Any], *, arxiv: Sequence[str], msc: Sequence[str]
+) -> dict[str, Any]:
+    """R4: the record as ``intake new`` writes it once ``--arxiv`` and ``--msc`` are read.
+
+    Neither flag leaves the record exactly as the curator wrote it, at the version it declares.
+    Both make it a ``target/v3`` record carrying the block — the earlier versions cannot hold
+    one (D-34) — and the block is checked before anything is written. One flag without the
+    other is refused by name: the schema requires both lists, and a half-classified target is
+    not one the registry could take.
+    """
+    if not arxiv and not msc:
+        return doc
+    if not arxiv or not msc:
+        missing = "--msc" if not msc else "--arxiv"
+        msg = (
+            f"a classification names both arXiv categories and MSC 2020 codes (F25-R4); pass "
+            f"{missing} too, or neither flag"
+        )
+        raise IntakeError(msg)
+    block = {"arxiv": list(arxiv), "msc2020": list(msc)}
+    classified = {**doc, "schema": SCHEMA, "classification": block}
+    problems = check_classification(classified)
+    if problems:
+        raise IntakeError("; ".join(p.message for p in problems))
+    return classified
+
+
 def proposer_of(doc: dict[str, Any] | None) -> str | None:
     """F15-R13: the login of the mathematician who proposed the problem, or ``None``."""
     value = doc.get("proposer") if doc is not None else None
@@ -290,6 +355,9 @@ def check(doc: dict[str, Any], root_dir: Path, *, repo_url: str | None = None) -
     check_quotation(doc)
     check_proposal(doc, repo_url=repo_url)
     check_calibration(doc)
+    problems = check_classification(doc)
+    if problems:
+        raise IntakeError("; ".join(p.message for p in problems))
     check_witness(root_dir)
 
 
