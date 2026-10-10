@@ -37,8 +37,17 @@ log = logging.getLogger(__name__)
 #: F22-T13: ``context/v4`` gives each ``deps[]`` entry the dep's ``cause`` (testers 2026-10-06).
 #: F10-T19 (D-12 v3.35, D-25 v3.35): ``context/v5`` carries ``circular``, ``literature`` and
 #: ``literature_proposed`` as ``graph/v6`` does, beside v4's ``circular_below``.
-SCHEMA = "context/v5"
-ACCEPTED: tuple[str, ...] = ("context/v1", "context/v2", "context/v3", "context/v4", "context/v5")
+#: F10-T49 (D-12 v3.36): ``context/v6`` carries ``lemmas`` beside ``deps`` — each with the hole
+#: name, the signature the proof may use once the node is proved, its status and cause.
+SCHEMA = "context/v6"
+ACCEPTED: tuple[str, ...] = (
+    "context/v1",
+    "context/v2",
+    "context/v3",
+    "context/v4",
+    "context/v5",
+    "context/v6",
+)
 FILE = layout.CONTEXT_FILE
 CLAIMS_FILE = "claims.json"
 CLAIMS_SCHEMA = "claims/v1"
@@ -107,6 +116,20 @@ class NodeState:
     #: has no business repeating (F10-Q7). ``None`` when the document carries none or predates v6.
     literature: dict[str, Any] | None = None
     literature_proposed: dict[str, Any] | None = None
+    #: F10-T49 (D-12 v3.36): the node's lemmas as ``graph/v7`` publishes them, each
+    #: ``(hole, node)`` with the node read through revisions; ``None`` when the document predates
+    #: v7, in which case the builder reads ``META.yaml``'s record through ``_current_id``.
+    lemmas: tuple[tuple[str, str], ...] | None = None
+
+
+def _lemma_pairs(value: Any) -> tuple[tuple[str, str], ...] | None:
+    if not isinstance(value, list):
+        return None
+    return tuple(
+        (str(x.get("hole") or ""), str(x["node"]))
+        for x in value
+        if isinstance(x, dict) and x.get("node")
+    )
 
 
 def graph_states(doc: Mapping[str, Any]) -> dict[str, NodeState]:
@@ -122,6 +145,7 @@ def graph_states(doc: Mapping[str, Any]) -> dict[str, NodeState]:
             circular=_labels(n.get("circular")),
             literature=_mapping(n.get("literature")),
             literature_proposed=_mapping(n.get("literature_proposed")),
+            lemmas=_lemma_pairs(n.get("lemmas")),
         )
         for n in doc.get("nodes", [])
         if isinstance(n, dict)
@@ -245,6 +269,48 @@ def _deps(
                 # re-derived here. (A circular route is a label on the dep's own row since
                 # D-12 v3.35, F08-T39, not a cause.)
                 "cause": states[dep].cause,
+                "statement_hash": schemas.content_hash(raw),
+                "signature": _text(raw, path),
+            }
+        )
+    return out
+
+
+def _lemmas(
+    reader: Reader,
+    target_id: str,
+    meta: Mapping[str, Any],
+    states: Mapping[str, NodeState],
+    effective: tuple[tuple[str, str], ...] | None,
+) -> list[dict[str, Any]]:
+    """F10-T49 (D-12 v3.36): the lemmas a prover may draw on once proved — ``_deps``'s shape plus
+    the hole's name. ``effective`` is what ``graph/v7`` published; given rows from before v7 the
+    record (``META.yaml``'s ``lemmas``, ``meta/v6``) is read through revisions here, as
+    ``graph.effective_lemmas`` reads it, a node two entries reach kept once."""
+    pairs: list[tuple[str, str]]
+    if effective is not None:
+        pairs = list(effective)
+    else:
+        pairs = []
+        for entry in meta.get("lemmas") or []:
+            if not isinstance(entry, dict) or not entry.get("node"):
+                continue
+            current = _current_id(reader, target_id, states, str(entry["node"]))
+            if all(known != current for _, known in pairs):
+                pairs.append((str(entry.get("hole") or ""), current))
+    out = []
+    for hole, node in pairs:
+        if node not in states:
+            msg = f"lemma {node!r} has no derived status; the graph products do not know it"
+            raise ContextError(msg)
+        path = f"{node_path(target_id, node)}/Statement.lean"
+        raw = _must(reader, path)
+        out.append(
+            {
+                "node_id": node,
+                "hole": hole,
+                "status": states[node].status,
+                "cause": states[node].cause,
                 "statement_hash": schemas.content_hash(raw),
                 "signature": _text(raw, path),
             }
@@ -689,6 +755,8 @@ def build(
         "circular": _circular(reader, target_id, node_id, states),
         "literature": state.literature,
         "literature_proposed": state.literature_proposed,
+        # F10-T49 (D-12 v3.36): graph/v7's lemmas, each with the signature a proof may use.
+        "lemmas": _lemmas(reader, target_id, meta, states, state.lemmas),
     }
     fit(doc)
     return schemas.validate(doc, SCHEMA)

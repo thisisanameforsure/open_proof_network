@@ -49,10 +49,10 @@ NODE_FILES: tuple[tuple[str, bool], ...] = (  # (file, required): the raw files 
 #: an older document does not carry simply matches nothing (F11-R4).
 FRONTIER_SCHEMA = "frontier/v5"  # F09-T24: `circular`, `literature`, `literature_proposed` too
 #: The ``CONTEXT.json`` versions get_node serves: the gate module's own set, plus the version the
-#: v3.35 re-pin first renders (F09-T24), so the service accepts it whichever side of that
+#: v3.36 re-pin first renders (F10-T49), so the service accepts it whichever side of that
 #: re-pin it is deployed on (the deploy-window lesson of 2026-09-11).
 CONTEXT_SCHEMAS: tuple[str, ...] = tuple(
-    dict.fromkeys((*context.ACCEPTED, "context/v5"))  # ordered, without a repeat
+    dict.fromkeys((*context.ACCEPTED, "context/v6"))  # ordered, without a repeat
 )
 SCHEMA_NAME_RE = re.compile(r"^[a-z][a-z0-9-]*/v[1-9][0-9]*$")
 FRONT_MATTER_RE = re.compile(r"\A---[ \t]*\r?\n(?P<yaml>.*?)\r?\n---[ \t]*\r?\n", re.S)
