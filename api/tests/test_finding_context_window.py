@@ -28,14 +28,23 @@ def test_a_committed_v1_bundle_is_served_through_the_window(
     derived = derived_bundle(harness, tmp_path / "tree")
     # F08-T36: the bundle is context/v3 (defect_claims), since F22-T13 context/v4 (a cause on
     # each dep) and since F10-T19 context/v5 (circular, literature, literature_proposed; D-12
-    # and D-25 v3.35); v1 is still served from a file.
-    assert derived["schema"] == "context/v5" and derived["circular_below"] == []
+    # and D-25 v3.35), since F10-T49 context/v6 (lemmas; D-12 v3.36); v1 is still served from
+    # a file.
+    assert derived["schema"] == "context/v6" and derived["circular_below"] == []
     assert derived["defect_claims"] == [] and derived["circular"] == []
     assert derived["literature"] is None and derived["literature_proposed"] is None
+    assert derived["lemmas"] == []
     assert all("cause" in d for d in derived["deps"])
-    assert context.SCHEMA == "context/v5" and "context/v1" in context.ACCEPTED
-    assert {"context/v2", "context/v3", "context/v4"} <= set(context.ACCEPTED)
-    later = ("circular_below", "defect_claims", "circular", "literature", "literature_proposed")
+    assert context.SCHEMA == "context/v6" and "context/v1" in context.ACCEPTED
+    assert {"context/v2", "context/v3", "context/v4", "context/v5"} <= set(context.ACCEPTED)
+    later = (
+        "circular_below",
+        "defect_claims",
+        "circular",
+        "literature",
+        "literature_proposed",
+        "lemmas",
+    )
     v1 = {k: v for k, v in derived.items() if k not in later}
     v1["deps"] = [{k: v for k, v in d.items() if k != "cause"} for d in derived["deps"]]
     v1["schema"] = "context/v1"
