@@ -1,0 +1,197 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openproof.network/schemas/registration/v1.json",
+  "title": "registration/v1",
+  "description": "targets/<id>/registrations/<date>-<n>.yaml (F25-R5; D-3, D-10 v3.37): a submission to, or a registration in, a public registry of Lean-verified mathematics — Palomar — made by a curator or a listed steward of the target from a wrapper repository the pinned gate exported. Append-only: the latest record per registry id is the one read (a record with no id yet is keyed by its wrapper commit), and a later record with status `withdrawn` sets the registration aside. Nothing here is a verdict: the proof is what the attestation it names says, and the registry's review is the registry's. Versioned, never edited (D-34).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "target",
+    "registry",
+    "registry_id",
+    "version",
+    "wrapper",
+    "graph_commit",
+    "proof",
+    "status",
+    "submitted_by",
+    "date",
+    "url",
+    "challenge_sha256",
+    "solution_sha256",
+    "note"
+  ],
+  "properties": {
+    "schema": {
+      "const": "registration/v1"
+    },
+    "target": {
+      "$ref": "#/$defs/identifier",
+      "description": "the target the record is filed under"
+    },
+    "registry": {
+      "enum": [
+        "palomar"
+      ],
+      "description": "which registry; one so far"
+    },
+    "registry_id": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string",
+          "pattern": "^PALOMAR-[0-9]{4}-[0-9]{2}-[0-9]{2}-[0-9]{6}$"
+        }
+      ],
+      "description": "the registry's id once it has issued one (e.g. `PALOMAR-2026-10-09-000016`); null while a submission has none"
+    },
+    "version": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "integer",
+          "minimum": 1
+        }
+      ],
+      "description": "the registry's version of the record (a correction or a dependency update is the next version of the same id); null before registration"
+    },
+    "wrapper": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "repository",
+        "commit"
+      ],
+      "properties": {
+        "repository": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9](?:-?[A-Za-z0-9]){0,38}/[A-Za-z0-9._-]{1,100}$",
+          "description": "`owner/name` on GitHub"
+        },
+        "commit": {
+          "$ref": "#/$defs/sha1",
+          "description": "the full commit submitted"
+        }
+      },
+      "description": "the wrapper repository the export wrote and the curator submitted"
+    },
+    "graph_commit": {
+      "$ref": "#/$defs/sha1",
+      "description": "the graph commit the wrapper was exported from (`opn-export.json`)"
+    },
+    "proof": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "node",
+        "attestation"
+      ],
+      "properties": {
+        "node": {
+          "$ref": "#/$defs/identifier"
+        },
+        "attestation": {
+          "type": "string",
+          "pattern": "^[0-9]{6}$",
+          "description": "the number of the attestation file for the registered proof's merge"
+        }
+      },
+      "description": "which proof: the node and the attestation its merge wrote"
+    },
+    "status": {
+      "enum": [
+        "submitted",
+        "registered",
+        "revision_required",
+        "rejected",
+        "withdrawn"
+      ],
+      "description": "as the registry last answered: `submitted` (in verification or review), `registered`, `revision_required`, `rejected`, or `withdrawn` by the submitter"
+    },
+    "submitted_by": {
+      "$ref": "#/$defs/login",
+      "description": "the curator's or steward's login (the pull request's author must be it)"
+    },
+    "date": {
+      "$ref": "#/$defs/day"
+    },
+    "url": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/url"
+        }
+      ],
+      "description": "the registry's page for the entry once registered; null before"
+    },
+    "challenge_sha256": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/sha256"
+        }
+      ],
+      "description": "the wrapper's Challenge.lean as the registry recorded it (its `verification.challenge_sha256`), null before registration"
+    },
+    "solution_sha256": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/sha256"
+        }
+      ],
+      "description": "likewise for Solution.lean"
+    },
+    "note": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        }
+      ],
+      "description": "the curator's words, if any; escaped wherever shown"
+    }
+  },
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]*$"
+    },
+    "login": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9](?:-?[A-Za-z0-9]){0,38}$"
+    },
+    "sha1": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "day": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+    },
+    "url": {
+      "type": "string",
+      "pattern": "^https://",
+      "maxLength": 500
+    }
+  }
+}

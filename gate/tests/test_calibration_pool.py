@@ -64,7 +64,9 @@ def test_the_drafts_are_calibration_intakes() -> None:
         directory = DRAFTS / choice.target_id
         assert directory.is_dir(), directory
         doc = yaml.safe_load((directory / "record.yaml").read_text(encoding="utf-8"))
-        schemas.validate(doc, intake.SCHEMA)
+        # A draft carries the version it was written at (D-34); every readable one is a record.
+        assert doc["schema"] in intake.READABLE_SCHEMAS
+        schemas.validate(doc, doc["schema"])
         assert doc["track"] == "formalization" and doc["calibration"] is True
         assert intake.is_calibration(doc)
         intake.check_calibration(doc)

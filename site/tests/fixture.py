@@ -622,6 +622,7 @@ def publish_v335(
     graph_path = root / "targets" / target / "graph.json"
     graph = json.loads(graph_path.read_text(encoding="utf-8"))
     graph["schema"] = "graph/v6"
+    graph.pop("registrations", None)  # F25-T1: v7 added it; a v6 snapshot has none
     for row in graph["nodes"]:
         extend(row)
     graph_path.write_text(json.dumps(schemas.validate(graph, "graph/v6"), indent=1) + "\n")

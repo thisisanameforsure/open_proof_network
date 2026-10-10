@@ -36,7 +36,9 @@ from typing import Any, Literal
 
 from opn_gate import schemas
 
-SCHEMA = "ledger/v1"
+SCHEMA = "ledger/v2"  # v2 (F25-R3, D-23 v3.37): automation on every entry
+#: Every ledger version read (D-34); a v1 file is lifted to v2 in memory (null automation).
+ACCEPTED_SCHEMAS: tuple[str, ...] = ("ledger/v1", "ledger/v2")
 LEDGER_DIR = "ledger"
 UNDECLARED = "undeclared"  # R13: what a hand-opened pull request's tooling is recorded as
 Line = Literal["statement", "proof", "review", "attempts", "upstreaming", "write-up"]
@@ -82,6 +84,8 @@ class Entry:
     tooling: str = UNDECLARED
     route_class: str | None = None
     status: str = "active"
+    #: F25-R3 (D-23 v3.37): the structured disclosure the attestation carried, or None.
+    automation: dict[str, Any] | None = None
 
     def as_dict(self) -> dict[str, Any]:
         doc: dict[str, Any] = {
@@ -93,6 +97,7 @@ class Entry:
             "date": self.date,
             "tooling": self.tooling or UNDECLARED,
             "status": self.status,
+            "automation": self.automation,
         }
         if self.route_class is not None:
             doc["route_class"] = self.route_class
@@ -109,7 +114,32 @@ def load(graph_root: Path, identity: str) -> dict[str, Any]:
     path = ledger_path(graph_root, identity)
     if not path.is_file():
         return {"schema": SCHEMA, "identity": identity, "entries": []}
-    return schemas.load_json(path, SCHEMA)
+    return read(path)
+
+
+def read(path: Path) -> dict[str, Any]:
+    """One ledger file of any accepted version, validated against the version it declares and
+    lifted to the current one (F25-R3). A file declaring no accepted version is refused with
+    the current schema's violations, so the message still names a ledger schema."""
+    doc = schemas.load_json(path)
+    declared = doc.get("schema") if isinstance(doc, dict) else None
+    if declared not in ACCEPTED_SCHEMAS:
+        schemas.validate(doc, SCHEMA)  # raises, naming the current version and every gap
+    assert isinstance(doc, dict)
+    schemas.validate(doc, str(declared))
+    return lift(doc)
+
+
+def lift(doc: dict[str, Any]) -> dict[str, Any]:
+    """A ledger of any accepted version as v2 (F25-R3): a v1 entry gains ``automation: null``
+    — nothing it recorded is changed, and the file is rewritten as v2 only when it next gains a
+    line (``write``)."""
+    if doc.get("schema") == SCHEMA:
+        return doc
+    out = dict(doc)
+    out["schema"] = SCHEMA
+    out["entries"] = [{**e, "automation": e.get("automation")} for e in entries_of(doc)]
+    return out
 
 
 def entries_of(doc: dict[str, Any]) -> list[dict[str, Any]]:
@@ -347,6 +377,23 @@ def statement_tooling(meta: dict[str, Any]) -> str:
     return str(model) if isinstance(model, str) and model.strip() else UNDECLARED
 
 
+def merge_automation(graph_root: Path, merge_commit: str) -> dict[str, Any] | None:
+    """F25-R3: the ``automation`` block the post-merge job attested for ``merge_commit``
+    (attestation/v7), or ``None`` for an older or undeclared one; read as ``merge_tooling`` is."""
+    directory = graph_root / "attestations"
+    if not directory.is_dir():
+        return None
+    for path in sorted(directory.glob("*.json")):
+        try:
+            doc = schemas.load_json(path)
+        except schemas.SchemaError:
+            continue
+        if isinstance(doc, dict) and doc.get("merge_commit") == merge_commit:
+            declared = doc.get("automation")
+            return dict(declared) if isinstance(declared, dict) else None
+    return None
+
+
 def merge_tooling(graph_root: Path, merge_commit: str) -> str:
     """The ``model_and_tooling`` the post-merge job attested for ``merge_commit`` (R13, T14), or
     ``undeclared``. Read from the committed attestations rather than passed as a flag, because the
@@ -450,7 +497,7 @@ def contributions(graph_root: Path) -> dict[str, list[dict[str, Any]]]:
     if not directory.is_dir():
         return out
     for path in sorted(p for p in directory.iterdir() if p.suffix == ".json"):
-        doc = schemas.load_json(path, SCHEMA)
+        doc = read(path)
         entries = entries_of(doc)
         if entries:
             out[str(doc["identity"])] = entries

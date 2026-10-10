@@ -133,7 +133,7 @@ def lift(index: dict[str, Any]) -> dict[str, Any]:
     """The fixture's v8 index as v9: the panel settings, each steward's last act, and per
     target its panel and write-ups (empty but for the stewarded target)."""
     out: dict[str, Any] = json.loads(json.dumps(index))
-    out["schema"] = "targets-index/v9"
+    out["schema"] = "targets-index/v10"  # F25-T1: v9 plus registrations
     out["policy"]["panel"] = PANEL_SETTINGS
     for row in out["targets"]:
         for s in row["stewards"]:
@@ -141,6 +141,7 @@ def lift(index: dict[str, Any]) -> dict[str, Any]:
             s["lapsed"] = False
         row["panel"] = {"members": [s["login"] for s in row["stewards"]], "motions": []}
         row["writeups"] = {"official": None, "items": []}
+        row["registrations"] = []
         if row["target_id"] != STEWARDED_TARGET:
             continue
         first = dict(row["stewards"][0])
@@ -163,6 +164,6 @@ def build(tmp_path: Path) -> Path:
     root = build_with_stewards(tmp_path)
     path = root / "targets" / "index.json"
     doc = lift(json.loads(path.read_text(encoding="utf-8")))
-    schemas.validate(doc, "targets-index/v9")
+    schemas.validate(doc, "targets-index/v10")
     path.write_bytes(schemas.canonical_json(doc))
     return root

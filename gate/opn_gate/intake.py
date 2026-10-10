@@ -46,10 +46,10 @@ log = logging.getLogger(__name__)
 
 #: New records are written at v2 (F15-R13): a proposal source, the proposer, the calibration flag
 #: and the upstream opt-out, each optional, so a v1 record carries over by its schema string.
-SCHEMA = "target/v2"
+SCHEMA = "target/v3"  # v3 (F25-R4): classification
 #: Every version the reader accepts (D-34: versioned, never edited). A record is validated
 #: against the version it declares; anything outside the set is a graph defect.
-READABLE_SCHEMAS: tuple[str, ...] = ("target/v1", "target/v2")
+READABLE_SCHEMAS: tuple[str, ...] = ("target/v1", "target/v2", "target/v3")
 TARGET_FILE = "target.yaml"
 TARGET_STATUS_SCHEMA = "target-status/v2"
 GATE_SPEC_SCHEMA = "gate-spec/v1"

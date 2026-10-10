@@ -42,7 +42,7 @@
     }
   },
   "rendered_from": "5555555555555555555555555555555555555555",
-  "schema": "targets-index/v9",
+  "schema": "targets-index/v10",
   "targets": [
     {
       "attempts": {
@@ -80,6 +80,7 @@
         "motions": []
       },
       "posting": null,
+      "registrations": [],
       "root": "and-swap-reassoc",
       "root_statement_hash": "1fd9af9053c56877f4e7ec2ad69aa16602d39e826259da3878a8cc30a3b6791c",
       "statement_evidence": null,

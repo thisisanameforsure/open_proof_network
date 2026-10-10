@@ -129,8 +129,8 @@ def test_the_index_publishes_the_panel_its_motions_and_write_ups(tmp_path: Path,
     w.vote("ann", m3, "yes", 18)
 
     index = index_of(w.root)
-    assert index["schema"] == "targets-index/v9"
-    assert schemas.violations(index, "targets-index/v9") == []
+    assert index["schema"] == products.INDEX_SCHEMA  # v9 lifted to v10 by F25-T1
+    assert schemas.violations(index, products.INDEX_SCHEMA) == []
     assert index["policy"]["panel"] == policy.load(w.root).panel.as_dict()
     row = row_of(index)
     seen = [(s["login"], s["last_act"], s["lapsed"], s["admitted_by"]) for s in row["stewards"]]

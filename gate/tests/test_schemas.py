@@ -25,6 +25,7 @@ def test_known_schemas_are_the_published_set() -> None:
         "attestation/v4",
         "attestation/v5",
         "attestation/v6",
+        "attestation/v7",  # F25-T1 (automation)
         "claims/v1",
         "context/v1",
         "context/v2",
@@ -35,6 +36,7 @@ def test_known_schemas_are_the_published_set() -> None:
         "defect-claim/v1",
         "defect-claim/v2",
         "defect-claim/v3",
+        "display-name/v1",  # F25-T1
         "drift/v1",
         "explainer-signature/v1",
         "explainer-signature/v2",
@@ -63,9 +65,11 @@ def test_known_schemas_are_the_published_set() -> None:
         "graph/v4",
         "graph/v5",
         "graph/v6",
+        "graph/v7",  # F25-T1 (registrations)
         "info/v1",
         "info/v2",
         "ledger/v1",
+        "ledger/v2",  # F25-T1 (automation)
         "literature/v1",
         "meta/v1",
         "meta/v2",
@@ -83,6 +87,7 @@ def test_known_schemas_are_the_published_set() -> None:
         "proposed-for/v1",
         "qa/v1",
         "qa/v2",
+        "registration/v1",  # F25-T1
         "relevance/v1",
         "revision-request/v1",
         "revision-request/v2",
@@ -91,11 +96,14 @@ def test_known_schemas_are_the_published_set() -> None:
         "steward/v2",
         "steward/v3",  # F23-T1 (via, admitted_by)
         "submission-meta/v1",
+        "submission-meta/v2",  # F25-T1 (automation)
         "target-status/v1",
         "target-status/v2",
         "target/v1",
         "target/v2",
+        "target/v3",  # F25-T1 (classification)
         "targets-index/v1",
+        "targets-index/v10",  # F25-T1 (registrations)
         "targets-index/v2",
         "targets-index/v3",
         "targets-index/v4",
@@ -318,7 +326,7 @@ def test_attestation_v3_trust_base() -> None:
     schemas.validate(doc)
     assert schemas.violations(samples.attestation(trust_base="hardware"))
     older = samples.attestation(schema="attestation/v2")
-    for gone in ("trust_base", "submitter", "model_and_tooling", "footprint"):
+    for gone in ("trust_base", "submitter", "model_and_tooling", "footprint", "automation"):
         older.pop(gone, None)
     schemas.validate(older)  # a v2 record still validates as v2
     assert schemas.violations(samples.attestation(schema="attestation/v2"))  # v2 has no v3/v4 keys

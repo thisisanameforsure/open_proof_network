@@ -1,0 +1,183 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openproof.network/schemas/submission-meta/v2.json",
+  "title": "submission-meta/v2",
+  "description": "v2 (2026-10-10, F25-R1; D-23 v3.37): adds `automation`, the structured disclosure the registry asks for (method, models, framework required; cost optional), beside v1's free `tooling` strings, which stay. Optional here because a hand-written block may omit it; the service requires it of every proof, partial and alternate (F25-R2). v1 could not be edited (D-34). The opn-submission block a service-opened pull request carries in its body (F07-R2), beside the opn-precheck-attestation block D-4's bounce rule reads. It declares who submitted, which of D-12's five artifacts this is, and the model and tooling D-23 requires disclosed; the authoritative attestation copies those forward. The block is not evidentiary — the gate re-derives every verdict — and a hand-opened pull request without one is gated exactly the same, with its tooling recorded undeclared (F07-R13).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "submission_id",
+    "identity",
+    "artifact_type",
+    "tooling"
+  ],
+  "properties": {
+    "schema": {
+      "const": "submission-meta/v2"
+    },
+    "submission_id": {
+      "type": "string",
+      "pattern": "^[0-9A-Z]{26}$",
+      "description": "The service's id for this submission (ULID, as precheck job ids are)"
+    },
+    "identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pseudonym",
+        "proof_kind"
+      ],
+      "properties": {
+        "pseudonym": {
+          "type": "string",
+          "description": "What the ledger shows (D-19); the network stores no other name",
+          "pattern": "^[A-Za-z0-9-]{1,39}$"
+        },
+        "proof_kind": {
+          "description": "How the identity was proven (D-19): a GitHub account, or a tutorial proof",
+          "enum": [
+            "github",
+            "tutorial"
+          ]
+        }
+      }
+    },
+    "artifact_type": {
+      "description": "D-12's five resolution artifacts; reduction is a partial with one hole (F07-Q1)",
+      "enum": [
+        "proof",
+        "counterexample",
+        "vacuity",
+        "reduction",
+        "partial"
+      ]
+    },
+    "tooling": {
+      "type": "object",
+      "description": "As declared by the submitter (D-23); never verified, never a gate input",
+      "additionalProperties": false,
+      "required": [
+        "model",
+        "version",
+        "harness"
+      ],
+      "properties": {
+        "model": {
+          "$ref": "#/$defs/declared"
+        },
+        "version": {
+          "$ref": "#/$defs/declared"
+        },
+        "harness": {
+          "$ref": "#/$defs/declared"
+        }
+      }
+    },
+    "precheck_job_id": {
+      "type": "string",
+      "pattern": "^[0-9A-Z]{26}$",
+      "description": "The precheck job whose passing attestation this submission is bound to (F07-R1)"
+    },
+    "automation": {
+      "$ref": "#/$defs/automation",
+      "description": "D-23 v3.37's structured disclosure (F25-R1)."
+    }
+  },
+  "$defs": {
+    "declared": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        }
+      ]
+    },
+    "automation": {
+      "type": "object",
+      "description": "D-23 v3.37: how the artifact was produced, declared by the submitter and never verified. `method`, `models` and `framework` are required of every proof, partial and alternate (the service refuses a submission without them before any pull request opens, F25-R2); the rest is optional, and cost is what an agent can count — wall time, tokens, hardware, a free spend string — never a dollar figure a subscription cannot give.",
+      "additionalProperties": false,
+      "required": [
+        "method",
+        "models",
+        "framework"
+      ],
+      "properties": {
+        "method": {
+          "enum": [
+            "manual",
+            "copilot",
+            "agent",
+            "autonomous",
+            "other"
+          ],
+          "description": "Palomar's vocabulary: `manual`, a person wrote it; `copilot`, a person wrote it with model suggestions; `agent`, an agent wrote it under a person's direction; `autonomous`, an agent ran unattended; `other`."
+        },
+        "models": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 20,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "description": "Every model that contributed, by the name its provider publishes (e.g. `claude-fable-5-1`)."
+        },
+        "framework": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "The harness or framework the models ran in, with its version where known (e.g. `Claude Code 2.1`)."
+        },
+        "tool_setup": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000,
+          "description": "Tools, plugins, orchestration, in prose."
+        },
+        "wall_time": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "How long the work took, in the submitter's words (e.g. `about 40 minutes`)."
+        },
+        "tokens": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "input",
+            "output"
+          ],
+          "properties": {
+            "input": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "output": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "description": "Total tokens the models consumed and produced, when the harness reports them."
+        },
+        "hardware": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "What it ran on (e.g. `one laptop; hosted models`)."
+        },
+        "spend": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "What it cost, in the submitter's words: `subscription`, `$12.40`, `unknown`."
+        }
+      }
+    }
+  }
+}

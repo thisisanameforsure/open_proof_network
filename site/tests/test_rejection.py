@@ -274,7 +274,7 @@ def test_invalid_ledger_file_is_refused(tmp_path: Path, capsys: pytest.CaptureFi
     (root / "ledger").mkdir()
     (root / "ledger" / "mallory.json").write_text('{"schema": "ledger/v1"}', encoding="utf-8")
     error = _refused(root, tmp_path, capsys)
-    assert "ledger/v1" in error and "'identity' is a required property" in error
+    assert "ledger/v" in error and "'identity' is a required property" in error
 
 
 def test_ledger_entry_for_a_node_that_does_not_exist_is_refused(

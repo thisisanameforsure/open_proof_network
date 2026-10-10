@@ -41,6 +41,7 @@ from opn_gate import (
     postmerge,
     qa,
     records,
+    registrations,
     schemas,
     sections,
     signed,
@@ -62,7 +63,7 @@ PROTOCOL_VERSION = "3.37"  # docs/architecture_decisions.html (v3.37: Palomar, 2
 #: F08-T39 (D-12 v3.35): graph/v6 carries ``circular`` (the label), ``literature`` and
 #: ``literature_proposed`` (F08-T40); v5: every defect claim (F08-T36); v4: F08-T27, F18; v3:
 #: F12-R13.
-GRAPH_SCHEMA = "graph/v6"
+GRAPH_SCHEMA = "graph/v7"  # v7 (F25-R7, D-10 v3.37): registrations
 #: F03-T18 (D-12 v3.35): frontier/v5 repeats graph/v6's three fields on every entry, and a node
 #: under a circularity claim is an entry on its status alone; v4 (T16): status, cause, needs;
 #: v3 (T7): partials; v2: D-33 dormancy.
@@ -76,7 +77,7 @@ FRONTIER_SCHEMA = "frontier/v5"
 #: its counts, the calibration flag, and `no-steward` among the reasons: v6.
 #: v8 (F23-R14): stewards carry admitted_by, via; link nullable. v9 (F24-R6, R7): the panel
 #: settings, each steward's last act and lapse, each target's panel and write-ups.
-INDEX_SCHEMA = "targets-index/v9"
+INDEX_SCHEMA = "targets-index/v10"  # v10 (F25-R7): registrations
 INFO_SCHEMA = "info/v2"  # F05-T25: guide_url, errors_url (null here; the service fills them)
 CLAIMS_SCHEMA = "claims/v1"
 CLAIMS_FILE = "claims.json"
@@ -236,6 +237,8 @@ class TargetFacts:
     steward_rows: tuple[dict[str, Any], ...] = ()
     panel: dict[str, Any] = field(default_factory=lambda: {"members": [], "motions": []})
     writeups: dict[str, Any] = field(default_factory=lambda: {"official": None, "items": []})
+    #: F25-R7 (D-10 v3.37, targets-index/v10): the target's registrations in public registries.
+    registrations: tuple[dict[str, Any], ...] = ()
 
     @property
     def dormant(self) -> bool:
@@ -454,6 +457,7 @@ def target_facts(
         "steward_rows": seated.steward_rows,
         "panel": seated.panel,
         "writeups": seated.writeups,
+        "registrations": tuple(registrations.derive(tg.path)),
     }
     root_status = tg.statuses[tg.root]
     if doc is None:
@@ -980,6 +984,8 @@ def graph_doc(
         "rendered_from": rendered_from,
         "nodes": nodes,
         "target_proofs": target_proofs(tg),
+        # F25-R7 (D-10 v3.37): the same derivation targets-index/v10 carries on the row.
+        "registrations": registrations.derive(tg.path),
     }
 
 
@@ -1235,6 +1241,8 @@ def index_doc(
                 # F24-R6, R7: the panel and its motions; the write-ups and the official one.
                 "panel": facts.panel,
                 "writeups": facts.writeups,
+                # F25-R7 (D-10 v3.37): the registrations, derived from the records.
+                "registrations": list(facts.registrations),
             }
         )
     return {

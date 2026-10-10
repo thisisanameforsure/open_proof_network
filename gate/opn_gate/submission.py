@@ -19,7 +19,9 @@ from typing import Any
 from opn_gate import bounce, schemas
 
 MARKER = "opn-submission"
-SCHEMA = "submission-meta/v1"
+SCHEMA = "submission-meta/v2"  # v2 (F25-R1, D-23 v3.37): the automation block
+#: Every block version the gate reads (D-34): a v1 block still parses, with no automation.
+ACCEPTED_SCHEMAS: tuple[str, ...] = ("submission-meta/v1", "submission-meta/v2")
 UNDECLARED = "undeclared"  # R13: what a hand-opened pull request's tooling is recorded as
 
 
@@ -41,7 +43,8 @@ def extract(pr_body: str) -> dict[str, Any] | None:
         doc = json.loads(raw)
     except json.JSONDecodeError:
         return None
-    if schemas.violations(doc, SCHEMA):
+    declared = doc.get("schema") if isinstance(doc, dict) else None
+    if declared not in ACCEPTED_SCHEMAS or schemas.violations(doc, str(declared)):
         return None
     assert isinstance(doc, dict)
     return doc
@@ -52,6 +55,14 @@ def model_and_tooling(doc: dict[str, Any] | None) -> str:
     tooling = (doc or {}).get("tooling") or {}
     parts = [str(tooling[k]) for k in ("model", "version", "harness") if tooling.get(k)]
     return " ".join(parts) if parts else UNDECLARED
+
+
+def automation(doc: dict[str, Any] | None) -> dict[str, Any] | None:
+    """F25-R1 (D-23 v3.37): the structured disclosure the block declared, or ``None`` when the
+    block is absent, is v1, or carries none. Copied as declared: the gate verifies nothing in
+    it (D-1); the service is what requires it of a proof (F25-R2)."""
+    declared = (doc or {}).get("automation")
+    return dict(declared) if isinstance(declared, dict) else None
 
 
 def tooling(doc: dict[str, Any] | None) -> dict[str, str | None]:

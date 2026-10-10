@@ -19,7 +19,7 @@ from opn_gate.pipeline import Verdict
 from opn_gate.steps.base import RunContext
 from opn_gate.toolchain import ResolvedToolchain
 
-SCHEMA = "attestation/v6"  # v6 (F08-T27, D-12 v3.25): the footprint step 8 read
+SCHEMA = "attestation/v7"  # v7 (F25-R3, D-23 v3.37): automation; v6 (F08-T27): the footprint
 #: One list, defined in ``bounce`` because this module imports that one (F07-T5).
 ACCEPTED_SCHEMAS: tuple[str, ...] = bounce.ACCEPTED_SCHEMAS
 MASKED_FIELDS: tuple[str, ...] = ("runner", "merge_commit", "signature")
@@ -90,6 +90,8 @@ def build(  # noqa: PLR0913 — one argument per fact the record carries
         # D-1 keeps the gate blind to tooling — and recorded so the corpus is labelled.
         "submitter": submitter_of(submission),
         "model_and_tooling": submissionmod.model_and_tooling(submission),
+        # F25-R3 (D-23 v3.37): the structured disclosure beside the string; null when none.
+        "automation": submissionmod.automation(submission),
         # F02-R9: a function of the checked tree (the waiver step 5 accepted), never of the run.
         "trust_base": TRUST_COMPILER if verdict.data.get("waiver") else TRUST_KERNEL,
         # F08-T27 (Q38): what the proof term rests on, as step 8 read it — the one record from
