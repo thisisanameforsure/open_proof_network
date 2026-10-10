@@ -204,6 +204,7 @@ def test_tutorial_node_has_no_deps_and_passes(tmp_path: Path) -> None:
         "declared": [],
         "used": [],
         "unused": [],
+        "lemmas": [],  # F08-T41: the proved lemmas step 8 read as declared (D-12 v3.36)
         "warnings": [],
     }
 

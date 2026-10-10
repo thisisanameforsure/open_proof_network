@@ -143,16 +143,26 @@ class DepsStep:
             if isinstance(declared_uses, dict)
             else []
         )
+        # F08-T41 (D-12 v3.36): a proved lemma was staged and imported as a proved hole is, so
+        # its constants are a proved lemma's and accepted; an unproved lemma was not staged, so
+        # a constant of its module is still undeclared — it could only have come from somewhere
+        # the record does not vouch for. A lemma the proof never touches is not an unused dep.
+        lemmas = [
+            lm
+            for lm in graphmod.proved_lemmas(node.path.parent, node.meta.get("lemmas"))
+            if lm not in declared
+        ]
         used_nodes, offences = classify(
             result.doc.get("constants") or [],
             own=node.node_id,
-            declared=[*declared, *node_uses],
+            declared=[*declared, *node_uses, *lemmas],
         )
         unused = [d for d in declared if d not in used_nodes]
         ctx.data["deps"] = {
             "declared": declared,
             "used": sorted(used_nodes),
             "unused": unused,
+            "lemmas": lemmas,
             "warnings": [
                 f"declared dep {d!r} contributes no constant to the proof" for d in unused
             ],

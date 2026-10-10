@@ -817,6 +817,11 @@ def blocked_because(node: NodeFacts, status_of: Callable[[str], str]) -> tuple[b
     that merged on it left them on the record as lemmas it may draw on once they are proved,
     and the node stays open — provable directly, open to another decomposition — until one of
     the three closing artifacts settles it. A refuted hole is a dead route, not a dead node.
+
+    A lemma (D-12 v3.36, F08-T41) has the same standing and needs no clause here: it is never
+    in ``deps`` — ``NodeFacts.lemmas`` is its own record — so an unproved or refuted lemma is
+    set aside by construction, exactly as a hole is set aside by name. A node that is both a
+    declared dep and a lemma blocks as a dep (D-3).
     """
     unproved = [dep for dep in node.deps if dep not in node.holes and status_of(dep) != "proved"]
     if unproved:
@@ -1142,6 +1147,19 @@ def effective_lemmas(nodes_dir: Path, recorded: object) -> tuple[Lemma, ...]:
         if all(known.node != current for known in out):
             out.append(Lemma(hole=str(entry.get("hole") or ""), node=current))
     return tuple(out)
+
+
+def proved_lemmas(nodes_dir: Path, recorded: object) -> tuple[str, ...]:
+    """F08-T41 (D-12 v3.36): the lemmas of a ``META.yaml`` that have a merged ``Proof.lean`` —
+    the ones with a hole's standing *as a proved hole*: staged and imported before the node
+    (``steps.stage``) and read by step 8 as declared. The predicate is the one staging applies
+    to a hole (the artifact file is in the tree); an unproved lemma is left out everywhere and
+    refuses nothing. Each node is read through its revision chain (``effective_lemmas``)."""
+    return tuple(
+        lm.node
+        for lm in effective_lemmas(nodes_dir, recorded)
+        if (nodes_dir / lm.node / "Proof.lean").is_file()
+    )
 
 
 def is_superseded(node: NodeFacts) -> bool:

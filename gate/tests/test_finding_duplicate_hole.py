@@ -22,6 +22,10 @@ so a restated sibling that is not one of the parent's own holes is still no chil
 edge either, because an edge the parent would wait on is exactly what a route must not add. The
 reuse is on the record in the job's ``holes`` block; the parent's deps and Context carry only
 its declared deps and its own holes.
+
+Revised 2026-10-10 (F07-T77, D-12 v3.36): the restated sibling is a *lemma* of the parent —
+``META.yaml``'s ``lemmas`` names it under the hole, the Context carries its signature, and the
+parent draws on it once it is proved without ever waiting on it. The deps are as v3.19 left them.
 """
 
 from __future__ import annotations
@@ -129,9 +133,13 @@ def sibling_reported(seam: Seam) -> None:
 def test_a_hole_that_restates_a_sibling_becomes_a_dep_not_a_child(
     tmp_path: Path, seam: Seam, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    """No ``--h1`` directory and, since T21, no edge to the sibling either; the other hole still
-    becomes ``--h2``; the postmerge JSON's ``partial`` block names the reuse per hole
-    (``holes[i]`` with ``child`` and ``reused_node``, one of them null)."""
+    """No ``--h1`` directory and, since T21, no *dependency* edge to the sibling either; since
+    F07-T77 (D-12 v3.36) the sibling is a *lemma* of the parent — in ``META.yaml``'s ``lemmas``
+    under the hole's name, its signature in the regenerated Context — so the merged assembly can
+    be used (v3.19's "no edge at all" gave way: graph #479 on erdos-1094 could never use its
+    assembly). The other hole still becomes ``--h2``; the postmerge JSON's ``partial`` block
+    names the reuse per hole (``holes[i]`` with ``child`` and ``reused_node``, one of them
+    null) and the lemma edges it wrote."""
     root = merged_partial_beside_sibling(tmp_path)
     sibling_reported(seam)
     code, out, err = run(capsys, *argv(root, tmp_path / "o", "--apply-partial", "--author", AUTHOR))
@@ -142,15 +150,18 @@ def test_a_hole_that_restates_a_sibling_becomes_a_dep_not_a_child(
     assert HOLES[1][1] in (nodes / CHILD_2 / "Statement.lean").read_text(encoding="utf-8")
     parent = yaml.safe_load((nodes / ROOT / "META.yaml").read_text())
     assert parent["deps"] == ["tutorial-and-swap", "and-reassoc", CHILD_2]
-    # The regenerated Context carries the surviving hole's signature and no twin of the sibling.
+    assert parent["lemmas"] == [{"hole": "right", "node": SIBLING}]
+    # The regenerated Context carries the surviving hole's signature, and the sibling's as a
+    # lemma (verbatim, for the F01-R6 byte check) — never a twin of it under a hole's name.
     context = (nodes / ROOT / "Context.lean").read_text(encoding="utf-8")
-    assert f"`{SIBLING}`" not in context and "theorem OpnProp.reassoc_right" not in context
+    assert f"`{SIBLING}`" in context and "theorem OpnProp.reassoc_right" in context
     assert CHILD_1 not in context and f"`{CHILD_2}`" in context
     assert out["partial"]["children"] == [CHILD_2]
     assert out["partial"]["holes"] == [
         {"name": "right", "child": None, "reused_node": SIBLING},
         {"name": "left", "child": CHILD_2, "reused_node": None},
     ]
+    assert out["partial"]["lemmas"] == [{"hole": "right", "node": SIBLING}]
 
 
 def test_the_state_a_reused_hole_leaves_behind(
