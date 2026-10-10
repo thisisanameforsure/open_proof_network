@@ -1,0 +1,54 @@
+F07-T77 — a restated cross-branch node becomes a lemma of its parent (D-12 v3.36)
+Date: 2026-10-10. Worktree: opn-lemma-gate (branch lemma-gate, from b2f5f63).
+
+== RED (seams added at today's behaviour first: PartialMerge.lemmas = (), add_lemmas a read-only no-op, required_signatures = deps; every failure is then on the defect) ==
+$ uv run --frozen pytest gate/tests/test_finding_lemma_edge.py -q -m 'not lean and not docker and not network'
+E       AssertionError: assert () == (('borrowed',...eassoc--h1'),)
+E         
+E         Right contains one more item: ('borrowed', 'and-reassoc--h1')
+E         Use -v to get more diff
+E       AssertionError: assert 'theorem and_reassoc__h1 : ∀ (p q r : Prop), (p ∧ q) ∧ r → q := by\n  sorry\n' in '/-! Declared dependencies (D-4 step 8): `tutorial-and-swap`, `and-reassoc`, `and-swap-reassoc--h1`, `and-swap-reassoc...mbly; immutable (D-3). -/\n\ntheorem and_swap_reassoc__h2 : ∀ (p q r : Prop), (p ∧ q) ∧ r → r → q ∧ p := by\n  sorry\n'
+E       assert (None is not None)
+E       KeyError: 'lemmas'
+E       KeyError: 'lemmas'
+E       AssertionError: assert () == (('borrowed',...eassoc--h1'),)
+E         
+E         Right contains one more item: ('borrowed', 'and-reassoc--h1')
+E         Use -v to get more diff
+E       AssertionError: assert [] == [{'hole': 'bo...reassoc--h1'}]
+E         
+E         Right contains one more item: {'hole': 'borrowed', 'node': 'and-reassoc--h1'}
+E         Use -v to get more diff
+E       KeyError: 'lemmas'
+FAILED gate/tests/test_finding_lemma_edge.py::test_a_restated_cross_branch_node_becomes_a_lemma_of_the_parent
+FAILED gate/tests/test_finding_lemma_edge.py::test_the_parents_context_carries_the_lemmas_signature_verbatim
+FAILED gate/tests/test_finding_lemma_edge.py::test_a_hand_edited_context_is_still_refused
+FAILED gate/tests/test_finding_lemma_edge.py::test_applying_the_same_partial_twice_adds_one_lemma
+FAILED gate/tests/test_finding_lemma_edge.py::test_two_partials_restating_the_same_node_add_one_lemma
+FAILED gate/tests/test_finding_lemma_edge.py::test_a_restated_own_hole_is_an_edge_and_a_fresh_hole_a_child_beside_a_lemma
+FAILED gate/tests/test_finding_lemma_edge.py::test_a_meta_already_at_v6_keeps_its_version_and_a_v5_one_is_bumped
+FAILED gate/tests/test_finding_lemma_edge.py::test_a_lemma_of_a_node_later_revised_reads_through_the_revision
+8 failed, 2 passed in 0.79s
+
+== RED, the two restated tests against HEAD's writer (production files checked out at HEAD, then restored) ==
+$ uv run --frozen pytest gate/tests/test_finding_parent_stays_open.py -k restated -q
+E       KeyError: 'lemmas'
+E       KeyError: 'lemmas'
+FAILED gate/tests/test_finding_parent_stays_open.py::test_a_restated_hole_is_an_edge_and_a_restated_sibling_is_not
+FAILED gate/tests/test_finding_parent_stays_open.py::test_a_restated_sibling_that_was_not_a_dep_stays_off_the_deps[and-reassoc]
+2 failed, 9 deselected in 0.52s
+
+== GREEN ==
+$ uv run --frozen pytest gate/tests/test_finding_lemma_edge.py gate/tests/test_finding_parent_stays_open.py gate/tests/test_postmerge.py gate/tests/test_scaffold.py gate/tests/test_deps.py gate/tests/test_admit.py gate/tests/test_finding_revised_hole_parent.py gate/tests/test_context.py gate/tests/test_decompositions.py -q -m 'not lean and not docker and not network'
+.........                                                                [100%]
+153 passed in 13.47s
+$ uv run --frozen pytest gate/tests/test_finding_parent_stays_open.py -q   (after restating the two tests)
+11 passed in 2.90s
+
+== lint / types ==
+$ uv run --frozen ruff check gate
+All checks passed!
+$ uv run --frozen ruff format --check gate
+355 files already formatted
+$ uv run --frozen mypy gate
+Success: no issues found in 342 source files

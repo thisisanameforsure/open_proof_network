@@ -103,7 +103,9 @@ class DepsStep:
         # F08-T10 (D-8 v3.18): the declared deps as they stand now, read through any revision.
         declared = list(graphmod.effective_deps(node.path.parent, node.meta.get("deps")))
 
-        context_problem = self._check_context(node, declared)
+        # F07-T77 (D-12 v3.36): the lemmas' signatures are owed too (R6 reaches every signature
+        # a proof may name), though a lemma is never a declared dep.
+        context_problem = self._check_context(node, required_signatures(node))
         if context_problem is not None:
             return context_problem
 
@@ -197,6 +199,21 @@ class DepsStep:
 
     def _check_context(self, node: layout.Node, declared: list[str]) -> StepResult | None:
         return check_context(node, declared)
+
+
+def required_signatures(node: layout.Node) -> list[str]:
+    """The nodes whose signatures ``Context.lean`` must carry, in the file's order: the declared
+    deps, then the lemmas (D-12 v3.36, F07-T77), each read through any revision (F08-T10). One
+    list, read by step 8, by admission's context check and by the post-merge pass that mends a
+    stale context, so the three cannot disagree about what a Context owes."""
+    nodes_dir = node.path.parent
+    deps = list(graphmod.effective_deps(nodes_dir, node.meta.get("deps")))
+    lemmas = [
+        lm.node
+        for lm in graphmod.effective_lemmas(nodes_dir, node.meta.get("lemmas"))
+        if lm.node not in deps
+    ]
+    return [*deps, *lemmas]
 
 
 def check_context(node: layout.Node, declared: list[str]) -> StepResult | None:
