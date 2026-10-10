@@ -176,6 +176,41 @@
           ],
           "description": "Why proposed_statement is null; null when it was read (F07-T41)"
         },
+        "holes": {
+          "type": "array",
+          "description": "F09-T72 (D-12 v3.36): a partial's holes as its receipt named them (F06-T15: name, the node each was expected to become, whether that node is new) and `became`, the node the post-merge job made of each hole as the products record it (graph.json's decompositions, read at main's sha): a new child, or for a hole that restated a node under another branch, that node, now a lemma of this one. Null until the products carry this partial's decomposition, and for every hole while the pull request is open. Only on a partial whose precheck named its holes.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "name",
+              "expected_node_id",
+              "expected_new",
+              "became"
+            ],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "expected_node_id": {
+                "type": "string"
+              },
+              "expected_new": {
+                "type": "boolean"
+              },
+              "became": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          }
+        },
+        "holes_note": {
+          "type": "string",
+          "description": "Why the holes are expected rather than promised, and what a restating hole is (F06-T15, F06-T17); beside holes only"
+        },
         "state": {
           "description": "One word for where the pull request is (F05-T18): open, merged or closed; null when the host could not say",
           "enum": [

@@ -39,6 +39,7 @@ ALWAYS = {
     "files",
     "claims",
     "submissions",
+    "lemmas",  # F09-T72 (D-12 v3.36): what a proof may draw on is never prose
     "untrusted_note",
 }
 #: The longest a declared description may be, plain path included (T22).

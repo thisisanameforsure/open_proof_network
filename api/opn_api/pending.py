@@ -1024,7 +1024,75 @@ def answer(ctx: Context, raw: str) -> dict[str, Any]:
         out["proposed_statement"], out["proposed_statement_error"] = proposed_statement(
             ctx, found, pull
         )
+    out.update(hole_outcomes(ctx, found, attestation))
     return out
+
+
+# --- F09-T72 (D-12 v3.36): what a partial's holes became -----------------------------------------
+
+
+def hole_outcomes(
+    ctx: Context, found: Submission, attestation: dict[str, Any] | None
+) -> dict[str, Any]:
+    """A partial's holes as its receipt named them (F06-T15), each with ``became``: the node the
+    post-merge job made of it as the products record it — a new child, or for a hole that
+    restated a node under another branch, that node, now a lemma of this one (D-12 v3.36).
+
+    Testers 2026-10-09b (C1): the agent read "merged, pass" six times and had to infer from an
+    unchanged ``deps`` that its hole had been recognised as another branch's node. The products
+    say it: ``graph.json``'s ``decompositions[].holes[].node`` resolves a restating hole to the
+    lemma's node (graph/v7). The decomposition is this submission's by the record's own facts —
+    the attestation's ``artifact_hash`` against the committed partial file, and the hole names —
+    never by a file name's pseudonym. ``became`` is null while the pull request is open
+    (restatement is decided at the merge, by step 4 against the tree as it is then), and until
+    the products carry the decomposition. Only a partial whose precheck named its holes carries
+    the key, as only such a receipt does."""
+    from opn_api import submissions  # noqa: PLC0415 — submissions imports this module
+
+    if found.kind != "partial" or found.node_id is None or not found.precheck_job_id:
+        return {}
+    job = ctx.store.get_job(found.precheck_job_id)
+    if job is None:
+        return {}
+    block = submissions.hole_rows(job.get("result"), str(job.get("graph_commit")))
+    if not block:
+        return {}
+    names = [str(h["name"]) for h in block["holes"]]
+    became: dict[str, str | None] = {}
+    if attestation is not None:
+        try:
+            became = _decomposition_nodes(ctx, found, names, attestation)
+        except (ApiError, GitHostError, ValueError, KeyError, TypeError) as exc:
+            log.warning(
+                "pull request #%d: holes not matched to the products: %s", found.pr_number, exc
+            )
+    block["holes"] = [{**h, "became": became.get(str(h["name"]))} for h in block["holes"]]
+    return block
+
+
+def _decomposition_nodes(
+    ctx: Context, found: Submission, names: list[str], attestation: dict[str, Any]
+) -> dict[str, str | None]:
+    """Hole name to node for the one decomposition of the node whose partial file hashes to the
+    attestation's artifact and whose holes are these, in this order; empty when the products
+    carry none such (graph/v7 ``decompositions``; an older product has no key and matches
+    nothing)."""
+    digest = attestation.get("artifact_hash")
+    raw = optional_committed(ctx, f"targets/{found.target_id}/graph.json")
+    if not isinstance(digest, str) or raw is None:
+        return {}
+    doc = json.loads(raw)
+    row = next((n for n in doc.get("nodes", []) if n.get("node_id") == found.node_id), None)
+    for decomposition in (row or {}).get("decompositions") or []:
+        holes = decomposition.get("holes") or []
+        if [h.get("name") for h in holes] != names:
+            continue
+        where = f"targets/{found.target_id}/nodes/{found.node_id}/{decomposition['partial']}"
+        file = optional_committed(ctx, where)
+        if file is None or schemas.content_hash(file) != digest:
+            continue
+        return {str(h["name"]): h.get("node") for h in holes}
+    return {}
 
 
 #: F07-T41: how much of a proposed ``Statement.lean`` an answer carries. A statement is a few
