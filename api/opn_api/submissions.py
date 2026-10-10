@@ -615,17 +615,31 @@ def expected_holes(job: precheck.Job) -> dict[str, Any]:
     """Testers 2026-10-09 (A, feature): the node each of a partial's holes is expected to
     become, as the precheck job planned it by the post-merge writer's rule. Empty when the
     result names none (a gate pinned before the job named them, or not a partial)."""
+    return hole_rows(job.result, job.graph_commit)
+
+
+def hole_rows(result: dict[str, Any] | None, graph_commit: str) -> dict[str, Any]:
+    """The receipt's ``holes`` and ``holes_note`` from a precheck result (F06-T15), shared with
+    ``GET /submissions/{id}`` (``pending.hole_outcomes``, F09-T72). F06-T17 (D-12 v3.36): the
+    note says what a hole that restates a node under another branch becomes — a lemma of this
+    node, usable once proved — because the receipt's ``expected_new: false`` alone read to the
+    agent of C1 as "nothing happens"."""
     holes = [
         {k: h[k] for k in ("name", "expected_node_id", "expected_new")}
-        for h in (job.result or {}).get("holes") or []
+        for h in (result or {}).get("holes") or []
         if isinstance(h, dict) and "expected_node_id" in h
     ]
     if not holes:
         return {}
     note = (
-        f"expected as planned at graph commit {job.graph_commit}: a hole restating an existing "
+        f"expected as planned at graph commit {graph_commit}: a hole restating an existing "
         "node is that node (expected_new false), the rest are new nodes numbered after the "
-        "node's earlier holes; another decomposition of this node merging first renumbers them"
+        "node's earlier holes; another decomposition of this node merging first renumbers them. "
+        "A hole that restates a node under another branch of the target (expected_new false "
+        "and the node not a hole child of this one) makes that node a lemma of this node, "
+        "listed in its META.yaml and CONTEXT.json: its theorem is in this node's Context.lean, "
+        "the assembly or a direct proof may use it once it is proved, and this node never "
+        "waits on it; one proof of the lemma serves every branch that restated it"
     )
     return {"holes": holes, "holes_note": note}
 

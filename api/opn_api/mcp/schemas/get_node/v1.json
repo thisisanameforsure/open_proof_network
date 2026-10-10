@@ -15,6 +15,7 @@
         "files",
         "claims",
         "submissions",
+        "lemmas",
         "untrusted_note"
       ],
       "additionalProperties": false,
@@ -41,6 +42,47 @@
                 "context/v5",
                 "context/v6"
               ]
+            }
+          }
+        },
+        "lemmas": {
+          "type": "array",
+          "description": "D-12 v3.36 (F09-T72): the node's lemmas, the nodes under other branches of the target a merged partial of this node restated as holes; each with the hole's name, the lemma's Statement.lean verbatim (its theorem is in this node's Context.lean, so a direct proof may name it) and its derived status. A hole's standing: drawn on once proved, never waited on. The committed context/v6 bundle's list; [] for a bundle older than v6, which carries none.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "node_id",
+              "hole",
+              "status",
+              "statement_hash",
+              "signature",
+              "cause"
+            ],
+            "properties": {
+              "node_id": {
+                "type": "string",
+                "pattern": "^[a-z0-9][a-z0-9-]*$"
+              },
+              "hole": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string"
+              },
+              "statement_hash": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "signature": {
+                "type": "string"
+              },
+              "cause": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
             }
           }
         },
