@@ -334,7 +334,8 @@
         "precheck_job_id",
         "created",
         "closed",
-        "artifact_type"
+        "artifact_type",
+        "automation"
       ],
       "additionalProperties": false,
       "properties": {
@@ -383,6 +384,13 @@
             "null"
           ],
           "description": "The record's kind under the name the write routes use, when it is an artifact type of POST /submissions (proof, counterexample, vacuity, reduction, partial); null otherwise (F05-T18)"
+        },
+        "automation": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "description": "The automation block POST /submissions accepted for an artifact (D-23 v3.37, F25-R2): method, models, framework and optional cost fields, as declared; null for every other kind and for a record made before the field existed."
         }
       }
     },

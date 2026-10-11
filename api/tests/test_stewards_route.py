@@ -22,7 +22,7 @@ from api_fakes import Harness, make_harness
 from test_glosses_route import CURATOR, TARGET, make_keys, make_tree, serve
 from test_web_session import ENV, sign_in, web_headers
 
-from opn_api import auth, sshsig
+from opn_api import auth, identity, sshsig
 from opn_api.githost import GitHubUser
 from opn_api.store import Identity
 from opn_gate import schemas, signed, steward
@@ -183,7 +183,9 @@ def test_no_session_is_401(h: Harness) -> None:
 
 
 def test_a_tutorial_identity_has_no_login_to_steward_with(h: Harness) -> None:
-    held = Identity("01TUTORIAL", "tutor", "tutorial", "job-1", "2026-09-09T12:00:00Z")
+    held = Identity(
+        "01TUTORIAL", "tutor", "tutorial", "job-1", "2026-09-09T12:00:00Z", identity.DCO_VERSION
+    )
     h.store.put_identity(held)
     raw, _ = auth.new_session(h.context, held.id)
     r = post(h, raw)

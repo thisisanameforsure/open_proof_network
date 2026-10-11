@@ -1,0 +1,60 @@
+# F25-T2: the Comparator and module-system probes, on a Linux runner at Palomar's toolchain.
+# Dispatch by hand; every answer is evidence (engineering/evidence/F25/probes.txt), so the job
+# fails only when a probe could not be asked. Core Lean only: no Mathlib, minutes not hours.
+name: palomar-probe
+on:
+  # A workflow_dispatch is registered only once the file is on the default branch, so until the
+  # branch merges the probes run on the pull request that carries them.
+  pull_request:
+    paths:
+      - gate/tools/palomar_probe.py
+      - .github/workflows/palomar-probe.yml
+  workflow_dispatch:
+    inputs:
+      toolchain:
+        description: "Lean toolchain to probe with (Palomar's minimum is v4.35.0-rc2)"
+        default: "leanprover/lean4:v4.35.0-rc2"
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
+        with:
+          persist-credentials: false
+      - name: Install bubblewrap (Comparator's sandbox) and elan
+        run: |
+          sudo apt-get update -q && sudo apt-get install -y -q bubblewrap
+          # Ubuntu 24.04 confines unprivileged user namespaces under AppArmor; bwrap then dies
+          # with "setting up uid map: Permission denied" (third run, 2026-10-11). Palomar's own
+          # verifier builds a pinned bwrap; for a probe the sysctl is enough.
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+          bwrap --ro-bind / / --dev /dev --unshare-all true && echo 'bwrap: user namespaces work'
+          curl -sSfL https://github.com/leanprover/elan/releases/latest/download/elan-x86_64-unknown-linux-gnu.tar.gz | tar xz
+          ./elan-init -y --no-modify-path --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - name: Install the toolchain under probe
+        run: |
+          TC="${{ inputs.toolchain || 'leanprover/lean4:v4.35.0-rc2' }}"
+          elan toolchain install "$TC"
+          elan default "$TC"
+          lean --version
+          ls "$(lean --print-prefix)/bin"
+      - name: Run the probes
+        run: |
+          TC="${{ inputs.toolchain || 'leanprover/lean4:v4.35.0-rc2' }}"
+          sed -i "s|^TOOLCHAIN = .*|TOOLCHAIN = \"$TC\"|" gate/tools/palomar_probe.py
+          python3 gate/tools/palomar_probe.py --out probes
+          cat probes/toolchain.txt
+          cat probes/summary.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
+        with:
+          name: palomar-probes
+          path: probes/*.txt
+          if-no-files-found: error
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
+        with:
+          name: palomar-probes-summary
+          path: probes/summary.json

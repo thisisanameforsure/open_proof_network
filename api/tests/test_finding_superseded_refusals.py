@@ -26,7 +26,7 @@ from typing import Any
 
 import samples
 import yaml
-from api_fakes import Harness
+from api_fakes import AUTOMATION, Harness
 from mcp_client import TARGET
 from test_finding_mcp_bootstrap import HOLE, add_hole
 from test_finding_precheck_blocked import bundle, nothing_started
@@ -135,6 +135,7 @@ def test_a_submission_against_a_superseded_node_is_refused_the_same_way(harness:
             "node_id": OLD,
             "artifact_type": "proof",
             "precheck_job_id": "01M2TC4VB0K7D04GWGP4GDMZ9T",
+            "automation": AUTOMATION,
         },
         headers=harness.auth(token),
     )

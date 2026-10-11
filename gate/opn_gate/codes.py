@@ -286,6 +286,27 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "Nothing for you to fix; report it to the graph's curators. Other submissions are "
         "unaffected.",
     ),
+    "automation-invalid": (
+        "api",
+        None,
+        "The automation block (D-23: how the artifact was made) does not fit submission-meta/v2: "
+        "a method outside manual, copilot, agent, autonomous, other; models not a non-empty list "
+        "of names; token counts that are not integers; or a field the block does not know. The "
+        "message names the path.",
+        "Send automation as {method, models, framework} plus any of tool_setup, wall_time, "
+        "tokens {input, output} (integers), hardware, spend; nothing else. POST /precheck "
+        "validates it when offered, POST /submissions requires it.",
+    ),
+    "automation-missing": (
+        "api",
+        None,
+        "A proof, partial or alternate submission came without the automation block, or without "
+        "one of its three required fields (method, models, framework); the message names what is "
+        "missing. Nothing was pushed and no pull request opened (D-23 v3.37, F25-R2).",
+        'Add automation to the body, for example {"method": "agent", "models": '
+        '["claude-fable-5-1"], "framework": "Claude Code 2.1"}, and send the same '
+        "submission again; the precheck job is not spent by the refusal.",
+    ),
     "axiom-not-allowed": (
         "gate",
         5,
@@ -437,6 +458,173 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "The hosted checker already has as many checks in flight as the service allows.",
         "Retry after the Retry-After header's seconds.",
     ),
+    "export-root-unproved": (
+        "gate",
+        None,
+        "The target's root is not proved, so there is no proof to register (F25-R9).",
+        "Nothing to do until a proof of the root merges; the export is for resolved targets "
+        "(D-10 v3.37).",
+    ),
+    "export-proof-kind": (
+        "gate",
+        None,
+        "The root has no merged Proof.lean of kind proof: its first record is a partial or "
+        "there is none (F25-R9).",
+        "Wait for the root's proof to merge; a partial resolves nothing the registry can take.",
+    ),
+    "export-attestation-missing": (
+        "gate",
+        None,
+        "The proof's attestation file is not on the graph commit exported (F25-R9).",
+        "Export from a commit that carries the post-merge job's attestation for the proof; "
+        "re-render if the bot commit was lost.",
+    ),
+    "export-classification-missing": (
+        "gate",
+        None,
+        "target.yaml carries no classification, which the registry requires (F25-R4).",
+        "Curators: write arxiv and msc2020 codes into the target record (intake new --arxiv "
+        "--msc for a new target) and export again.",
+    ),
+    "export-licence-missing": (
+        "gate",
+        None,
+        "The graph commit has no root LICENSE file; the registry reads one SPDX identifier from "
+        "it (D-23 v3.37).",
+        "Commit LICENSE (Apache-2.0) at the graph root; for a rehearsal before that commit, "
+        "pass --licence Apache-2.0 and the record says so.",
+    ),
+    "export-licence-unsupported": (
+        "gate",
+        None,
+        "The graph's licence reads as something other than Apache-2.0; the wrapper carries "
+        "Apache-2.0 alone (D-23 v3.37).",
+        "The code licence is Apache-2.0 by D-23; a different root LICENSE is a graph defect to "
+        "raise with the owner.",
+    ),
+    "export-trust-base-compiler": (
+        "gate",
+        None,
+        "A node of the proof's closure rests on the compiler (a native_decide waiver, "
+        "trust_base compiler); the registry replays by kernel only (F25-R9).",
+        "Replace the native_decide step with a kernel-checked proof before exporting; the "
+        "registry accepts nothing a kernel did not check.",
+    ),
+    "export-statement-shape": (
+        "gate",
+        None,
+        "The root's Statement.lean does not have F00-R19's shape (one sorry-bodied theorem), so "
+        "no Challenge can be written from it.",
+        "A statement the gate admitted has this shape; a graph where it does not is a defect to "
+        "raise.",
+    ),
+    "export-dep-unproved": (
+        "gate",
+        None,
+        "A node in the proof's closure has no merged Proof.lean (F25-R10).",
+        "Export after every node the proof rests on is proved; the footprint names which.",
+    ),
+    "export-dep-cycle": (
+        "gate",
+        None,
+        "The closure's declared dependencies form a cycle, which the gate never admits.",
+        "A graph defect: raise it; the DAG is acyclic by D-3.",
+    ),
+    "export-import-foreign": (
+        "gate",
+        None,
+        "A Lean file imports a module that is neither a library, a definition nor a node of the "
+        "graph (F25-R9).",
+        "The gate admits no such import; a file handed to the transform directly must import "
+        "library, Defs or Nodes modules only.",
+    ),
+    "export-private-helper": (
+        "gate",
+        None,
+        "A proof declares a private helper; under the module system another module cannot see "
+        "it (F25-R9).",
+        "Make the helper public (drop private) on the graph by a D-8 revision of the proof, or "
+        "accept that the node cannot be exported until it is.",
+    ),
+    "export-cap": (
+        "gate",
+        None,
+        "A file is over the registry's cap: the Challenge over 1,000 lines or 100 KiB, or any "
+        "file over 10,000 lines (F25-R9).",
+        "Split the proof across nodes on the graph, or shorten the inlined definitions; the "
+        "caps are the registry's.",
+    ),
+    "export-sorry": (
+        "gate",
+        None,
+        "A proof of the closure mentions sorry outside a comment (F25-R9, Q22).",
+        "The gate refuses a merged proof with sorry; a graph where one has merged is a defect "
+        "to raise before exporting.",
+    ),
+    "port-challenge-changed": (
+        "gate",
+        None,
+        "Challenge.lean is not the file the export wrote: only proof bodies may change in a port "
+        "(F25-R12).",
+        "Restore Challenge.lean from the export (opn-export.json carries its hash); repair proofs "
+        "in Solution.lean and the development modules only.",
+    ),
+    "port-repair-forbidden": (
+        "gate",
+        None,
+        "A repair names Challenge.lean, which is frozen through a port: only proof bodies may "
+        "change (F25-R12, Q34).",
+        "Repair Solution.lean or a development module; a statement that must change is a "
+        "revision on the graph (D-8), not a port repair.",
+    ),
+    "port-repair-stale": (
+        "gate",
+        None,
+        "A repair's sidecar names the hash of the file it was written against, and the export "
+        "wrote a different file (F25-R12, Q34).",
+        "Re-make the repair against this export's file and update the <file>.before.sha256 "
+        "sidecar, or drop the sidecar if the repair is meant for any export.",
+    ),
+    "port-repair-unknown": (
+        "gate",
+        None,
+        "A repair names a file the export did not write; a port may change proof bodies, never "
+        "add files (F25-R12, Q34).",
+        "Name a file from opn-export.json's hashes_out; a helper belongs in the node's proof on "
+        "the graph.",
+    ),
+    "port-record-missing": (
+        "gate",
+        None,
+        "The project carries no opn-export.json, so the port cannot tell what the export wrote "
+        "(F25-R12).",
+        "Port a directory written by export-palomar; the record travels with the wrapper.",
+    ),
+    "port-toolchain-below-minimum": (
+        "gate",
+        None,
+        "The toolchain asked for is below the registry's minimum (gate/palomar/toolchains.json) "
+        "(F25-R12).",
+        "Pass a toolchain at or above the minimum the corpus job last recorded; the registry "
+        "refuses older ones.",
+    ),
+    "port-comparator-kernels": (
+        "gate",
+        None,
+        "comparator.json names external_kernels, which the registry refuses; the port adds the "
+        "toolchain's kernels itself (F25-R12).",
+        "Remove external_kernels from comparator.json; Palomar's verifier and the port both "
+        "inject the bundled kernels.",
+    ),
+    "classification-invalid": (
+        "gate",
+        None,
+        "A target record's classification does not fit target/v3: a code that is not an arXiv "
+        "category (math.NT) or an MSC 2020 code (11A41), too many or repeated codes, or one of "
+        "the two lists missing (F25-R4).",
+        "Curators: pass one or two --arxiv codes and one to eight --msc codes to intake new, "
+        "each once, in the registry's spelling; or pass neither and classify the target later.",
+    ),
     "circular-ancestor": (
         "both",
         None,
@@ -587,6 +775,16 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "The token request did not accept the Developer Certificate of Origin.",
         "Send dco.accepted: true with the version from GET /dco.json (MCP get_dco).",
     ),
+    "dco-reaccept-required": (
+        "api",
+        None,
+        "The sign-off text changed after this identity accepted it (it now names the licences, "
+        "D-23 v3.37), so its writes are refused until it accepts the current text; reads are "
+        "unaffected.",
+        "Read GET /dco.json (MCP get_dco), then POST /dco/accept {dco: {version, accepted: true}} "
+        "with the same token, and retry the write. (A lapsed identity regaining a token through "
+        "POST /tokens accepts the text in that request.)",
+    ),
     "dco-version-stale": (
         "api",
         None,
@@ -735,6 +933,43 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         None,
         "The precheck job could not be started on the hosted runner.",
         "Retry shortly; if it persists, the service's runner is down.",
+    ),
+    "display-name-in-review": (
+        "api",
+        None,
+        "A pull request of yours that writes names/<pseudonym>.yaml is still open and may merge; "
+        "one writer at a time per file (D-3 v3.37).",
+        "Wait for it to merge, or withdraw it (DELETE /submissions/<id>, MCP withdraw_submission), "
+        "then send the name again.",
+    ),
+    "display-name-not-owner": (
+        "gate",
+        None,
+        "The display-name record is for a pseudonym this pull request does not act for: the "
+        "opener's GitHub login is not the one the graph pairs with that pseudonym.",
+        "A name is written only by the holder of its pseudonym (D-3 v3.37): set your own through "
+        "POST /me/name (MCP set_display_name) with your token.",
+    ),
+    "display-name-ssh-unpaired": (
+        "gate",
+        None,
+        "A hand-opened display-name record signed with an SSH key names a pseudonym the graph "
+        "pairs with no GitHub login (only curators.json pairs one), so the gate cannot tell that "
+        "the signer holds it.",
+        "Set the name through POST /me/name (MCP set_display_name) with the pseudonym's token; the "
+        "service signs it with the approval key.",
+    ),
+    "display-name-stem-mismatch": (
+        "gate",
+        None,
+        "The file under names/ is not named for the pseudonym its record carries.",
+        "File it at names/<pseudonym>.yaml; POST /me/name chooses the path for you.",
+    ),
+    "display-name-unsigned": (
+        "gate",
+        None,
+        "The display-name record's signature does not verify under the key it carries.",
+        "Send it again through POST /me/name; a record edited after it was signed stops verifying.",
     ),
     "dispute-claim-unnamed": (
         "gate",
@@ -1891,6 +2126,63 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "A variant's relation proof rests on axioms outside the allowlist.",
         "Prove the relation without them.",
     ),
+    "registration-attestation-mismatch": (
+        "both",
+        None,
+        "The registration's proof.attestation is not a passing attestation of proof.node: it "
+        "attests another node, its verdict is not pass, or the file does not read.",
+        "Name the attestation of the merge that proved the node (attestations/<n>.json, the "
+        "number get_submission shows for that merge) with verdict pass.",
+    ),
+    "registration-attestation-unknown": (
+        "both",
+        None,
+        "No attestations/<n>.json on the graph carries the number the registration names.",
+        "Name the attestation of the merge that proved the node (get_submission shows its number "
+        "once merged); a merge whose products are still rendering has none yet.",
+    ),
+    "registration-commit-unknown": (
+        "gate",
+        None,
+        "The registration's graph_commit is not in the graph's history.",
+        "Name the commit the wrapper was exported from, as its opn-export.json records it.",
+    ),
+    "registration-name": (
+        "gate",
+        None,
+        "A registration record is registrations/<date>-<n>.yaml: the date it was filed and a "
+        "number from 1.",
+        "Name the file YYYY-MM-DD-<n>.yaml; POST /registrations chooses the name for you.",
+    ),
+    "registration-not-curator": (
+        "gate",
+        None,
+        "The registration's submitted_by is neither a listed curator nor an active steward of the "
+        "target (F25-R5).",
+        "A registration is a curator's or steward's record (D-10 v3.37): ask one of them, or "
+        "become the problem's steward first.",
+    ),
+    "registration-not-opener": (
+        "gate",
+        None,
+        "A hand-opened registration's submitted_by is not the GitHub login that opened the pull "
+        "request.",
+        "Open it from the login submitted_by names, or send it through POST /registrations, which "
+        "writes submitted_by from your sign-in.",
+    ),
+    "registration-proof-unknown": (
+        "both",
+        None,
+        "The registration's proof.node is not a node of the target it is filed under.",
+        "Name the node whose merged proof was exported (get_target lists the target's nodes).",
+    ),
+    "registration-target-mismatch": (
+        "gate",
+        None,
+        "The registration record's target is not the target directory it sits under.",
+        "File it under targets/<target>/registrations/ of the target it names; POST /registrations "
+        "does.",
+    ),
     "relation-decl": (
         "both",
         9,
@@ -2714,10 +3006,12 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
     "not-steward-or-curator": (
         "api",
         None,
-        "Only an active steward of the target or a listed curator may approve words (D-3 v3.33).",
+        "Only an active steward of the target or a listed curator may do this: approve words "
+        "(D-3 v3.33), confirm a literature status (D-25 v3.35) or record a registration "
+        "(D-10 v3.37).",
         (
-            "Become the problem's steward at /steward/<target>/, or ask one of its stewards to "
-            "approve."
+            "Become the problem's steward at /steward/<target>/, or ask one of its stewards or a "
+            "curator to do it."
         ),
     ),
     "return-invalid": (

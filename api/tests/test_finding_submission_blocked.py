@@ -17,7 +17,7 @@ from __future__ import annotations
 from typing import Any
 
 import pytest
-from api_fakes import Harness, PrecheckKey, make_precheck_key
+from api_fakes import AUTOMATION, Harness, PrecheckKey, make_precheck_key
 from mcp_client import NODE
 from test_finding_mcp_bootstrap import HOLE, add_hole
 from test_finding_precheck_blocked import UNPROVED_DEP, block_node, bundle
@@ -30,6 +30,7 @@ def key(tmp_path_factory: pytest.TempPathFactory) -> PrecheckKey:
 
 def submit(h: Harness, token: str, node_id: str, job_id: str | None) -> Any:
     body: dict[str, Any] = {"node_id": node_id, "artifact_type": "proof", "bundle": bundle(node_id)}
+    body["automation"] = AUTOMATION
     if job_id is not None:
         body["precheck_job_id"] = job_id
     return h.client.post("/submissions", json=body, headers=h.auth(token))

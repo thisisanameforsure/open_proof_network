@@ -28,7 +28,7 @@ from typing import Any
 
 import pytest
 import samples
-from api_fakes import Harness, PrecheckKey, make_harness, make_precheck_key, result_zip
+from api_fakes import AUTOMATION, Harness, PrecheckKey, make_harness, make_precheck_key, result_zip
 from mcp_client import NODE, NODE_DIR, TARGET, seed_node
 
 from opn_gate import schemas
@@ -261,6 +261,7 @@ def submit(
     h: Harness, token: str, node: str, bundle: dict[str, str], job: str, *, kind: str = "proof"
 ) -> Any:
     body = {"node_id": node, "artifact_type": kind, "bundle": bundle, "precheck_job_id": job}
+    body["automation"] = AUTOMATION
     return h.client.post("/submissions", json=body, headers=h.auth(token))
 
 

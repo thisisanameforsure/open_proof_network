@@ -93,6 +93,7 @@ def record(  # noqa: PLR0913 — one opened pull request, described
     precheck_job_id: str | None = None,
     fingerprints: tuple[str, ...] | list[str] = (),
     defect_class: str | None = None,
+    automation: dict[str, Any] | None = None,
 ) -> Submission | None:
     """Remember a pull request the service just opened. The pull request exists whatever happens
     here, so a store failure is logged and the caller still answers 201 with its number: the
@@ -109,6 +110,7 @@ def record(  # noqa: PLR0913 — one opened pull request, described
         created=clockmod.render(ctx.clock.now()),
         fingerprints=tuple(fingerprints),
         defect_class=defect_class,
+        automation=automation,
     )
     try:
         ctx.store.put_submission(submission)

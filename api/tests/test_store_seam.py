@@ -140,6 +140,17 @@ class FakeTable:
                 raise client_error("ConditionalCheckFailedException", "UpdateItem")
             item["last_used"] = values[":at"]
             return {}
+        if expression == "SET dco_version = :v":  # F25-R16: set_dco_version, identities only
+            assert kwargs["ConditionExpression"] == "attribute_exists(pseudonym)"
+            item = self.items.get(str(kwargs["Key"][self.key]))
+            if item is None or "pseudonym" not in item:
+                raise client_error("ConditionalCheckFailedException", "UpdateItem")
+            value = kwargs["ExpressionAttributeValues"][":v"]
+            if value is None:
+                item.pop("dco_version", None)  # a NULL reads back as absent
+            else:
+                item["dco_version"] = value
+            return {}
         if expression == "SET revoked = :yes":  # F05-T21: revoke_tokens marks an existing row
             item = self.items[str(kwargs["Key"][self.key])]
             item["revoked"] = kwargs["ExpressionAttributeValues"][":yes"]

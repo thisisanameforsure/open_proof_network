@@ -34,7 +34,7 @@ from opn_api.app import ApiError, host_budget_refusal
 from opn_api.githost import Author, GitHostError, PullRequest, RateLimitError
 from opn_api.store import KEY_PRECHECK_USED
 from opn_gate import annex as annexmod
-from opn_gate import bounce, carried, postmerge, submission
+from opn_gate import bounce, carried, postmerge, schemas, submission
 from opn_gate import paths as gate_paths
 from opn_gate.paths import ALTERNATE_SUFFIX, Claim
 from opn_gate.postmerge import PARTIAL_SUFFIX
@@ -201,6 +201,60 @@ def check_open_caps(ctx: Context, identity: Identity) -> None:
 
 
 # --- POST /submissions ---------------------------------------------------------------------------
+
+#: F25-R1: the three fields every artifact submission must declare (D-23 v3.37).
+AUTOMATION_REQUIRED: tuple[str, ...] = ("method", "models", "framework")
+
+
+def check_automation(raw: Any, *, required: bool = True) -> dict[str, Any] | None:
+    """F25-R2 (D-23 v3.37, Q7): the structured disclosure, validated against the
+    ``submission-meta/v2`` block's own rule before anything is pushed or opened.
+
+    Absent, or lacking one of the trio, it is ``automation-missing`` naming the field; anything
+    the schema refuses is ``automation-invalid`` naming the path. ``required=False`` is the
+    precheck's reading (F25-Q14): required at submission, validated when offered."""
+    if raw is None:
+        if not required:
+            return None
+        raise ApiError(
+            400,
+            "automation-missing",
+            "automation is required: an object of method, models and framework (D-23); "
+            f"{', '.join(AUTOMATION_REQUIRED)} are the required fields",
+        )
+    if not isinstance(raw, dict):
+        raise ApiError(
+            400,
+            "automation-invalid",
+            "automation must be an object of method, models, framework (and optional cost "
+            "fields), as submission-meta/v2 defines it",
+        )
+    missing = [f for f in AUTOMATION_REQUIRED if f not in raw]
+    if missing:
+        raise ApiError(
+            400,
+            "automation-missing",
+            f"automation lacks {', '.join(missing)}; method, models and framework are required",
+            details={"missing": missing},
+        )
+    # Validated as the block the pull request will carry: the schema's own rule, nothing restated.
+    probe = {
+        "schema": submission.SCHEMA,
+        "submission_id": "0" * 26,
+        "identity": {"pseudonym": "probe", "proof_kind": "tutorial"},
+        "artifact_type": "proof",
+        "tooling": dict.fromkeys(TOOLING_FIELDS),
+        "automation": raw,
+    }
+    found = [v for v in schemas.violations(probe, submission.SCHEMA) if "automation" in v.path]
+    if found:
+        raise ApiError(
+            400,
+            "automation-invalid",
+            "; ".join(f"{v.path}: {v.message}" for v in found),
+            details={"violations": [{"path": v.path, "message": v.message} for v in found]},
+        )
+    return dict(raw)
 
 
 def check_artifact_type(raw: Any) -> str:
@@ -501,6 +555,7 @@ SUBMISSION_FIELDS: tuple[str, ...] = (
     "bundle",
     "tooling",
     "precheck_job_id",
+    "automation",
 )
 
 
@@ -510,6 +565,9 @@ async def post_submissions(ctx: Context, request: Request) -> Response:
     fields, _ = await identitymod.body_fields(request, SUBMISSION_FIELDS)
     artifact_type = check_artifact_type(fields.get("artifact_type"))
     tooling = check_tooling(fields.get("tooling"))
+    # F25-R2: every artifact on this route declares how it was made, before anything else is
+    # read — so a missing block costs no job, no push and no pull request (F13-T21's rule).
+    automation = check_automation(fields.get("automation"))
 
     node_id = fields.get("node_id")
     if not isinstance(node_id, str) or not node_id:
@@ -564,6 +622,7 @@ async def post_submissions(ctx: Context, request: Request) -> Response:
         "artifact_type": artifact_type,
         "tooling": tooling,
         "precheck_job_id": job.id,
+        "automation": automation,
     }
     subject = f"{artifact_type}: {node_id}"
     slots = [duplicates.slot("proof", node_id, fp) for fp in prints]
@@ -590,6 +649,7 @@ async def post_submissions(ctx: Context, request: Request) -> Response:
         pr=pr,
         precheck_job_id=job.id,
         fingerprints=prints,
+        automation=automation,
     )
     return JSONResponse(
         {

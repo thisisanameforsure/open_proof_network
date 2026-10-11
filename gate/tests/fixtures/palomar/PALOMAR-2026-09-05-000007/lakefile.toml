@@ -1,0 +1,25 @@
+name = "stafford38Formal"
+version = "0.1.0"
+defaultTargets = ["Stafford38", "Solution"]
+
+[[require]]
+name = "mathlib"
+git = "https://github.com/leanprover-community/mathlib4"
+rev = "db584cd6d46c92f209a44c0f1c829460d327499d"
+
+[[require]]
+name = "algebraicAnalysis"
+git = "https://github.com/itpplasma/algebraic-analysis.git"
+rev = "dfdd2da091a9d67e7a29cc7914f192d746a2400d"
+
+[[lean_lib]]
+name = "Stafford38"
+
+[[lean_lib]]
+name = "proofs"
+
+[[lean_lib]]
+name = "Challenge"
+
+[[lean_lib]]
+name = "Solution"

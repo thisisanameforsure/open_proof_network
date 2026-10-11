@@ -156,6 +156,7 @@ def test_an_older_graph_reads_no_literature(tmp_path: Path) -> None:
     graph_path = root / "targets" / TARGET / "graph.json"
     graph = json.loads(graph_path.read_text(encoding="utf-8"))
     graph["schema"] = "graph/v5"
+    graph.pop("registrations", None)  # graph/v7 (F25-T1)
     for row in graph["nodes"]:
         for field in ("circular", "literature", "literature_proposed"):
             row.pop(field, None)

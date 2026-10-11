@@ -36,7 +36,9 @@ from typing import Any, Literal
 
 from opn_gate import schemas
 
-SCHEMA = "ledger/v1"
+SCHEMA = "ledger/v2"  # v2 (F25-R3, D-23 v3.37): automation on every entry
+#: Every ledger version read (D-34); a v1 file is lifted to v2 in memory (null automation).
+ACCEPTED_SCHEMAS: tuple[str, ...] = ("ledger/v1", "ledger/v2")
 LEDGER_DIR = "ledger"
 UNDECLARED = "undeclared"  # R13: what a hand-opened pull request's tooling is recorded as
 Line = Literal["statement", "proof", "review", "attempts", "upstreaming", "write-up"]
@@ -61,6 +63,8 @@ MERGE_LINES: dict[str, Line | None] = {
     "fidelity": None,
     "steward": None,  # F15-R8's sibling rule: a commitment is a stake, not an artifact (D-32)
     "proposed-for": None,  # F18-R8: a pointer, not an artifact (D-14 v3.26)
+    "registration": "upstreaming",  # F25-T4 (D-19 v3.37): the registering curator's line
+    "display-name": None,  # F25-T4: a name is a label on an identity, not an artifact
 }
 #: D-21, F11 §7: the curator of a target earns no proof credit on it. They chose the statement,
 #: its decomposition and its difficulty, so a proof of one of its nodes is not a result they
@@ -82,6 +86,8 @@ class Entry:
     tooling: str = UNDECLARED
     route_class: str | None = None
     status: str = "active"
+    #: F25-R3 (D-23 v3.37): the structured disclosure the attestation carried, or None.
+    automation: dict[str, Any] | None = None
 
     def as_dict(self) -> dict[str, Any]:
         doc: dict[str, Any] = {
@@ -93,6 +99,7 @@ class Entry:
             "date": self.date,
             "tooling": self.tooling or UNDECLARED,
             "status": self.status,
+            "automation": self.automation,
         }
         if self.route_class is not None:
             doc["route_class"] = self.route_class
@@ -109,7 +116,32 @@ def load(graph_root: Path, identity: str) -> dict[str, Any]:
     path = ledger_path(graph_root, identity)
     if not path.is_file():
         return {"schema": SCHEMA, "identity": identity, "entries": []}
-    return schemas.load_json(path, SCHEMA)
+    return read(path)
+
+
+def read(path: Path) -> dict[str, Any]:
+    """One ledger file of any accepted version, validated against the version it declares and
+    lifted to the current one (F25-R3). A file declaring no accepted version is refused with
+    the current schema's violations, so the message still names a ledger schema."""
+    doc = schemas.load_json(path)
+    declared = doc.get("schema") if isinstance(doc, dict) else None
+    if declared not in ACCEPTED_SCHEMAS:
+        schemas.validate(doc, SCHEMA)  # raises, naming the current version and every gap
+    assert isinstance(doc, dict)
+    schemas.validate(doc, str(declared))
+    return lift(doc)
+
+
+def lift(doc: dict[str, Any]) -> dict[str, Any]:
+    """A ledger of any accepted version as v2 (F25-R3): a v1 entry gains ``automation: null``
+    — nothing it recorded is changed, and the file is rewritten as v2 only when it next gains a
+    line (``write``)."""
+    if doc.get("schema") == SCHEMA:
+        return doc
+    out = dict(doc)
+    out["schema"] = SCHEMA
+    out["entries"] = [{**e, "automation": e.get("automation")} for e in entries_of(doc)]
+    return out
 
 
 def entries_of(doc: dict[str, Any]) -> list[dict[str, Any]]:
@@ -188,8 +220,11 @@ def proof_entry(  # noqa: PLR0913 — one argument per fact the entry records
     tooling: str = UNDECLARED,
     tutorial: bool = False,
     curator: str | None = None,
+    automation: dict[str, Any] | None = None,
 ) -> Entry | None:
     """R12: the proof line for a merged D-12 artifact, or ``None`` when it earns nothing.
+    ``automation`` is F25-R3's structured disclosure as the merge's attestation carried it
+    (``merge_automation``), or ``None``.
 
     ``tutorial`` is the one exclusion that is not about the artifact: D-27's node is how an
     identity is minted, so paying for it would make minting an identity a way to be paid.
@@ -209,6 +244,7 @@ def proof_entry(  # noqa: PLR0913 — one argument per fact the entry records
         merge_commit=merge_commit,
         date=date,
         tooling=tooling,
+        automation=automation,
     )
 
 
@@ -224,8 +260,11 @@ def postmortem_entry(  # noqa: PLR0913 — the ledger, plus one argument per fac
     date: str,
     tooling: str = UNDECLARED,
     tutorial: bool = False,
+    automation: dict[str, Any] | None = None,
 ) -> Entry | None:
-    """R12, D-13: the attempts line, first per route class on that node, never for the tutorial."""
+    """R12, D-13: the attempts line, first per route class on that node, never for the tutorial.
+    ``automation`` as ``proof_entry`` takes it; an append has no attestation, so it is null
+    unless a later record supplies one (F25-R3)."""
     if tutorial or not earns_attempts(doc, node, route_class):
         return None
     return Entry(
@@ -237,6 +276,7 @@ def postmortem_entry(  # noqa: PLR0913 — the ledger, plus one argument per fac
         date=date,
         tooling=tooling,
         route_class=route_class,
+        automation=automation,
     )
 
 
@@ -337,6 +377,31 @@ def writeup_entry(  # noqa: PLR0913 — one argument per fact the entry records
     return entry, why
 
 
+def registration_entry(  # noqa: PLR0913 — one argument per fact the entry records
+    *,
+    identity: str,
+    target: str,
+    node: str,
+    artifact: str,
+    merge_commit: str,
+    date: str,
+) -> Entry:
+    """F25 (D-19 v3.37): the upstreaming line a merged registration record earns the curator or
+    steward who registered the target in a public registry; ``artifact`` is the record's path
+    under the target (``registrations/<date>-<n>.yaml``), ``node`` the registered proof's. A
+    curator's act, so D-21's bar on the proof line does not reach it, and no model took part."""
+    return Entry(
+        line="upstreaming",
+        target=target,
+        node=node,
+        artifact=artifact,
+        merge_commit=merge_commit,
+        date=date,
+        tooling=UNDECLARED,
+        automation=None,
+    )
+
+
 def statement_tooling(meta: dict[str, Any]) -> str:
     """The tooling a merged proposal's statement line records (D-23, R13; F07-T49): the model
     its proposer declared, which the scaffold wrote into ``META.yaml`` as ``provenance.model``.
@@ -345,6 +410,23 @@ def statement_tooling(meta: dict[str, Any]) -> str:
     provenance = meta.get("provenance") or {}
     model = provenance.get("model") if isinstance(provenance, dict) else None
     return str(model) if isinstance(model, str) and model.strip() else UNDECLARED
+
+
+def merge_automation(graph_root: Path, merge_commit: str) -> dict[str, Any] | None:
+    """F25-R3: the ``automation`` block the post-merge job attested for ``merge_commit``
+    (attestation/v7), or ``None`` for an older or undeclared one; read as ``merge_tooling`` is."""
+    directory = graph_root / "attestations"
+    if not directory.is_dir():
+        return None
+    for path in sorted(directory.glob("*.json")):
+        try:
+            doc = schemas.load_json(path)
+        except schemas.SchemaError:
+            continue
+        if isinstance(doc, dict) and doc.get("merge_commit") == merge_commit:
+            declared = doc.get("automation")
+            return dict(declared) if isinstance(declared, dict) else None
+    return None
 
 
 def merge_tooling(graph_root: Path, merge_commit: str) -> str:
@@ -450,7 +532,7 @@ def contributions(graph_root: Path) -> dict[str, list[dict[str, Any]]]:
     if not directory.is_dir():
         return out
     for path in sorted(p for p in directory.iterdir() if p.suffix == ".json"):
-        doc = schemas.load_json(path, SCHEMA)
+        doc = read(path)
         entries = entries_of(doc)
         if entries:
             out[str(doc["identity"])] = entries

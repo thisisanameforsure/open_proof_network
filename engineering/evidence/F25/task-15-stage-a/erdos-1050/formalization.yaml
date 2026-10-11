@@ -1,0 +1,116 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/mathlib-initiative/formalization.yaml/main/schema/v0.4.schema.json
+version: v0.4
+project:
+  name: 'Erdős problem 1050 (calibration): a known result'
+  description: '**Erdős Problem 1050.** The series $\sum_{n=1}^\infty \frac{1}{2^n - 3}$ is irrational.
+    The source sum runs over $n \ge 1$; as a `tsum` over `ℕ` (which starts at $0$) it is reindexed $n
+    \mapsto n + 1$, i.e. $\sum_{n=0}^\infty 1/(2^{n+1} - 3)$.'
+  authors:
+  - calib-1050-fable
+  - h0924-1050-http
+  - t0924-1050-mcp
+  - t0929-1
+  - t1001-1050a
+  - tester-1050-2045
+  license: Apache-2.0
+  responsible_maintainers:
+  - thisisanameforsure
+repository:
+  role: substantive-development
+classification:
+  arxiv:
+  - math.NT
+  msc2020:
+  - 11J72
+  - 11B25
+sources:
+- title: 'Erdős problem 1050 (calibration): a known result'
+  type: web discussion
+  id: https://www.erdosproblems.com/1050
+  note: 'A known result, on the calibration track (Stages v3.17, F15-R14): solved in the literature by
+    P. B. Borwein, On the irrationality of sum 1/(q^n + r), J. Number Theory 37 (1991), 253-259; a self-contained
+    proof in Math. Proc. Camb. Phil. Soc. 112 (1992), 141-146, with no Lean proof at registry commit c7f31d5fd3d2
+    (erdosproblems.com status PROVED, standing since 1948). Graded easy: One closed proposition over the
+    reals, the irrationality of the sum of 1/(2^(n+1) - 3), with no local definitions, no registry helpers
+    and no hazard flag. Borwein''s 1992 proof is a few pages of elementary analysis, and the registry
+    itself records that a complete Lean 4 proof of this statement exists in an external gallery at a comparable
+    Mathlib generation, so the mathematics is known to formalize; the calibration question is whether
+    a fresh agent produces one under the gate with no help. Drafted by docs/calibration_pool.py and read
+    by the curator before intake. The result is known; the network''s proof is an independent one, and
+    the published proof the catalog cites is not on the network''s record.'
+  relationship: independently-proves
+related_formalizations:
+- id: https://github.com/google-deepmind/formal-conjectures/blob/c7f31d5fd3d2ca3d69979f2d213eb9b58fe956ae/FormalConjectures/ErdosProblems/1050.lean
+  relationship: builds-on
+  note: The formal statement was inherited from Formal Conjectures at this commit (D-10); the network's
+    root statement is that file's affirmative reading.
+status:
+  scope: Opn.erdos_1050 is proved in full; the development holds the 2 merged proof(s) its term rests
+    on and nothing else (F18).
+  sorry_count: 0
+  sorry_in_definitions: 0
+  axioms:
+  - propext
+  - Classical.choice
+  - Quot.sound
+  main_results:
+  - declaration: Opn.erdos_1050
+    file: Solution.lean
+    sorry_count: 0
+    axioms:
+    - propext
+    - Classical.choice
+    - Quot.sound
+    comparator_config: comparator.json
+automation:
+  methods:
+  - method: agent
+    models:
+    - Claude Opus 5.5 (claude-opus-5-5) Claude Code agent, HTTP path, POST /check iteration
+    prompting_notes: not reconstructed (the merge predates the structured disclosure, D-23 v3.37)
+  - method: agent
+    models:
+    - claude-opus-5-5 Claude Code agent (wave-4 tester 1050-W4-1), HTTP path with curl/python; POST /check
+      (AXLE) for iteration, POST /precheck
+    prompting_notes: not reconstructed (the merge predates the structured disclosure, D-23 v3.37)
+  - method: agent
+    models:
+    - claude-fable-5-1 (proof text written by agent 1050-P1, 2026-09-29, same model family) Claude Code
+      agent 1050-R1-a; POST /check fast check, then precheck
+    prompting_notes: not reconstructed (the merge predates the structured disclosure, D-23 v3.37)
+  spend_usd: subscription-based usage where disclosed; not reconstructed (the merge predates the structured
+    disclosure, D-23 v3.37)
+  notes: Each method is one merged proof's disclosure as its submitter declared it to the Open Proof Network
+    (never verified, D-1); the ledger on the graph at the exported commit is the record. The registering
+    curator (thisisanameforsure) prepared this wrapper with the network's export tool and wrote no Lean.
+fidelity:
+  divergences: The network's fidelity grade of the root statement is `mechanical-only` (D-9); no human
+    has read the formal statement against the informal one on the network's record. Challenge.lean is
+    the graph's Statement.lean with its headers rewritten for the module system; the export checks the
+    theorem text is identical.
+review:
+  status: agent-reviewed
+  reviewers: []
+  notes: The gate checked the proof mechanically at leanprover/lean4:v4.33.1 (kernel replay per module,
+    the three standard axioms, the statement's type by the kernel); fidelity grade mechanical-only. No
+    independent human has reviewed the proof unless named above.
+alignment:
+  namespace: OpnErdos1050
+  statements:
+  - source: 'Erdős problem 1050 (calibration): a known result'
+    lean: Opn.erdos_1050
+    module: Solution
+    status: proved
+    note: the root statement; the node's Statement.lean on the graph
+  - source: node erdos-1050--h1-v2--h3 on the graph
+    lean: erdos_1050__h1_v2__h3
+    module: OpnErdos1050.Nodes.erdos_1050__h1_v2__h3
+    status: proved
+    note: a statement the root's proof term rests on
+  - source: node erdos-1050--h1-v2 on the graph
+    lean: erdos_1050__h1
+    module: OpnErdos1050.Nodes.erdos_1050__h1_v2
+    status: proved
+    note: a statement the root's proof term rests on
+acknowledgements: Mathlib and its authors; the Open Proof Network's contributors named above; the Formal
+  Conjectures authors where the statement was inherited.

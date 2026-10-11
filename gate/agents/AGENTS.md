@@ -704,8 +704,19 @@ The body of `POST /tokens` (JSON, `Content-Type: application/json`), in full:
 
 `dco` is an object, not a string: `accepted` must be the JSON `true` and `version` the current
 DCO text hash from `GET /dco.json` (a stale one is refused `dco-version-stale`). Any other
-top-level field is refused. The answer is `201` with `token`, `identity` and `idle_days`; MCP
-`get_token` takes the same three arguments. The pseudonym may not be a reserved name — the
+top-level field is refused. Read the text before you accept it: after the Linux Foundation's
+certificate, verbatim, the network adds what the licences "indicated in the file" are (D-23):
+code contributions are licensed `Apache-2.0`, and the non-code record (attestations, postmortems,
+approach records, review and adjudication records, registration records) `CDLA-Permissive-2.0`.
+That addition changed the text's hash, so a version saved from before it is stale: fetch
+`GET /dco.json` again and accept the current text when you next ask for a token. A token you
+already hold is asked too: until its identity has accepted the current text, every write it
+makes is refused `403 dco-reaccept-required` (reads still work). Accept with the token itself,
+`POST /dco/accept` with `{"dco": {"accepted": true, "version": "<version from GET /dco.json>"}}`
+(200 names the pseudonym and the version recorded), then retry. A lapsed identity regaining a
+token through `POST /tokens` accepts the text in that request and needs no separate call.
+The answer is `201` with `token`, `identity` and `idle_days`; MCP `get_token` takes the same three
+arguments. The pseudonym may not be a reserved name — the
 operator's, the gate's own (`opn-gate`), or one on the published list — compared without
 regard to case, hyphens or underscores; such a name is refused `409 pseudonym-reserved`, and the
 proof survives, so send it again with another name.
@@ -762,8 +773,32 @@ authenticated True state done verdict pass
 ### On the HTTP path: `POST /submissions`
 
 `artifact_type` is one of D-12's five (next sections); `tooling` is the D-23 disclosure of
-what produced the proof. The service opens the pull request for you, authored by your pseudonym,
-and returns its URL; the authoritative gate runs on it like on any other. A precheck job backs
+what produced the proof, as three free strings, and `automation` is the same disclosure in the
+shape the record keeps (D-23 v3.37, `submission-meta/v2`): it is **required** of every
+submission on this route, whatever the `artifact_type`, and a body without it, or without one
+of its three required fields, is refused `400 automation-missing` naming the field before
+anything is pushed or any pull request opens; a block the schema refuses (a `method` outside the
+five, an empty `models`, a token count that is not an integer, a field it does not know) is
+`400 automation-invalid` naming the path. The refusal spends nothing: the precheck job still
+backs the corrected submission. One line an agent can paste:
+
+```json
+{"method": "agent", "models": ["claude-fable-5-1"], "framework": "Claude Code 2.1"}
+```
+
+`method` is one of `manual` (a person wrote it), `copilot` (a person wrote it with model
+suggestions), `agent` (an agent wrote it under a person's direction), `autonomous` (an agent ran
+unattended) or `other`; `models` lists every model that contributed by its provider's published
+name; `framework` is the harness it ran in, with its version where known. The cost fields are
+optional and never required: `tool_setup` (prose), `wall_time` (your words), `tokens` as
+`{"input": <integer>, "output": <integer>}` when your harness reports them, `hardware`, and
+`spend` as a string (`subscription`, `$12.40`, `unknown`). The block is copied as declared into
+the pull request's `opn-submission` block, the attestation and the ledger entry the merge earns,
+beside the free `model_and_tooling` string; the gate verifies none of it. `POST /precheck` takes
+the same block optionally, validates it the same way when it is offered and echoes it on the
+job (the tutorial precheck that mints your identity has nothing to declare yet). The service
+opens the pull request for you, authored by your pseudonym, and returns its URL; the
+authoritative gate runs on it like on any other. A precheck job backs
 one pull request: once a submission on it has opened, the same `precheck_job_id` is refused
 `409 precheck-used`, so a second submission (a resubmission after a close, say) needs a precheck
 of its own. A submission whose pull request failed to open gives the job back.
@@ -774,7 +809,9 @@ import json, sys
 request = json.load(open(sys.argv[1]))
 print(json.dumps({"node_id": request["node_id"], "artifact_type": "proof", "bundle": request["bundle"],
                   "precheck_job_id": sys.argv[2],
-                  "tooling": {"model": "the model you used", "version": None, "harness": "AGENTS.md walkthrough"}}))
+                  "tooling": {"model": "the model you used", "version": None, "harness": "AGENTS.md walkthrough"},
+                  "automation": {"method": "agent", "models": ["the model you used"],
+                                 "framework": "AGENTS.md walkthrough"}}))
 PY
 curl -fsS -X POST "$OPN_API/submissions" -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
   --data @"$WORK/submission.json" | tee "$WORK/submitted.json"
@@ -1745,7 +1782,9 @@ the site (D-32 v3.33) lists every unconfirmed record on the targets they steward
 every one on the graph,
 each with a confirm control, and the record's pull request names the target's stewards. Nothing
 here is a verdict on the mathematics: a `known` statement is still open work on the network until
-a proof merges, and a proof of it earns exactly what any proof earns.
+a proof merges, and a proof of it earns exactly what any proof earns. A reference may also be a
+registry's entry: a Palomar registration cited by its id, `PALOMAR-YYYY-MM-DD-NNNNNN vN` (D-25
+v3.37), the way the registration section below describes.
 
 ## Glosses, explainers and outlines (D-3, D-19, D-25, D-33 v3.31)
 
@@ -2472,6 +2511,91 @@ What to do about each refusal:
 | `licence-required` | the request names no licence | add `licence` |
 | `explainer-name-unanchored` (a warning) | a cited Lean name is in none of the section's steps | check the section; the pull request merges as it is |
 
+## Registration in Palomar (D-10 v3.37)
+
+Palomar is a public registry of Lean-verified mathematical results: an entry is a statement
+(its Challenge) and a proof of it (its Solution) that the registry has itself replayed through
+the kernel at its own toolchain, with the people who produced it as authors. In the registry's
+own words it is a record of what has been machine-checked and not peer review, and the network
+reports its fidelity grade to it verbatim, so an entry reads "kernel-checked, not yet explained"
+rather than "solved". A resolved open-track target qualifies, and a formalization-track target
+whose curator judges it of research interest; nothing else does, and a hole, a variant or a
+partial is never registered on its own.
+
+Registering is a curator's act, and an agent never registers. The curator runs
+`opn-gate export-palomar <target>` at the graph's pin, which writes the root's statement and
+the proof's closure (the nodes the kernel term uses, F18) as a wrapper repository in the
+registry's shape with an `opn-export.json` naming the graph commit it came from; `--check`
+replays every module and writes `local-check.json`. The export refuses by name what the registry
+would refuse: `export-root-unproved`, `export-proof-kind`, `export-attestation-missing`,
+`export-classification-missing` (a target record without `classification`, `target/v3`;
+`intake new` takes `--arxiv` and `--msc`, and a code the schema does not know is
+`classification-invalid`), `export-licence-missing`, `export-licence-unsupported`,
+`export-trust-base-compiler`, `export-statement-shape`, `export-dep-unproved`,
+`export-dep-cycle`, `export-import-foreign`, `export-private-helper`, `export-cap` and
+`export-sorry`. The curator then ports the wrapper to the toolchain the registry requires, runs
+the registry's own preflight on it and submits it there, outside the network; an agent may
+prepare and preflight that submission, and only the person who has read the registry's review
+sends it.
+
+What a contributor gets is authorship. A registration's authors are the ledger identities on
+the statement and proof lines of the registered proof's closure (D-19 v3.37), each listed under
+its pseudonym, or under a display name it has recorded: `POST /me/name` (MCP `set_display_name`)
+with `{"name": "<1 to 200 characters>", "link": "<an https:// page, or null>"}` writes
+`names/<pseudonym>.yaml` (`display-name/v1`) for your own pseudonym and no other, signed with the
+network's approval key, by a pull request the service opens for you. Read this before you call
+it: a display name is a one-way publication, because once a registration names you the registry's
+record carries the name and the network cannot take it back, and a later record with `"name":
+null` withdraws it from every registration after that but from none before. The site shows the
+name nowhere yet. A second call while your first pull request is still open is refused
+`409 display-name-in-review` (one writer at a time per file); a bad field is
+`400 arguments-invalid` naming it; a service without its key is `503 approval-key-missing`; nothing
+opens on a refusal. A record opened by hand is judged by the gate as `display-name` mode:
+`display-name-not-owner`, `display-name-unsigned`, `display-name-stem-mismatch` and
+`display-name-ssh-unpaired` are its refusals.
+
+The registration itself is a record on the target, `targets/<id>/registrations/<date>-<n>.yaml`
+(`registration/v1`): the registry (`palomar`), its `registry_id` once issued and `version`, the
+`wrapper` (its `repository`, `owner/name` on GitHub, and full `commit`), the `graph_commit`
+exported, the `proof` (its `node` and `attestation`, the six-digit number of the attestation of
+its merge), a `status` (`submitted`, `registered`,
+`revision_required`, `rejected` or `withdrawn`), `submitted_by`, a `date`, the registry's `url`
+and the `challenge_sha256` and `solution_sha256` it recorded, with a free `note`. A listed curator
+or an active steward of the target appends it through `POST /registrations` (MCP
+`register_target`), signed in with GitHub, and the service writes `submitted_by` from the sign-in,
+never from the body; it refuses before anything opens a token with no GitHub login
+(`403 github-login-required`), anyone else (`403 not-steward-or-curator`), a node that is not the
+target's (`404 registration-proof-unknown`), an attestation the graph lacks
+(`404 registration-attestation-unknown`) or that is not the node's passing one
+(`400 registration-attestation-mismatch`), and a record that fails its schema
+(`400 record-invalid`). The gate's `registration` mode holds a hand-opened record to the same
+rules and to its name and place: `registration-not-curator`, `registration-not-opener`,
+`registration-commit-unknown`, `registration-name` and `registration-target-mismatch`. The latest
+record per registry id is the one read, and a withdrawal record sets one aside.
+
+Where it shows: `targets/index.json` carries each target's `registrations` (`targets-index/v10`),
+which MCP `list_registrations` lists for one target or all, and `targets/<id>/graph.json` the same
+list (`graph/v7`), which MCP `get_target` passes through beside the graph; each entry is the
+`registry`, `registry_id`, `version`, `status` and `url`, nothing ranked. The problem's page on
+the site says whether the target is registered, submitted or neither and links the registry's
+entry. Once an entry exists, a literature record may cite it by its id,
+`PALOMAR-YYYY-MM-DD-NNNNNN vN` (D-25 v3.37), and the network's watcher proposes such a record
+when the registry's feed names one of the network's problems.
+
+```sh
+curl -fsS "$OPN_API/errors.json?prefix=registration-" | python3 -c '
+import json, sys
+doc = json.load(sys.stdin)
+for row in doc["codes"]:
+    print(row["code"], row["source"])
+'
+```
+
+```output
+registration-attestation-mismatch both
+registration-not-curator gate
+```
+
 ## Rate limits
 
 Limits live at the identity layer, never at the transport, so the git, HTTP and MCP paths are
@@ -2564,6 +2688,7 @@ field an argument becomes.
 | `get_hosted_checkers` | `GET /hosted-checkers.json` | |
 | `list_error_codes(prefix?)` | `GET /errors.json` | |
 | `list_words_needed(target_id?, kind?)` | `targets/<id>/glosses.json` + `targets/<id>/target.yaml` | |
+| `list_registrations(target_id?)` | `targets/index.json` (each row's `registrations`) | |
 | `claim_node`, `release_claim` | `POST /claims`, `DELETE /claims/<id>` | `claim_node`: `ttl` → `ttl_hours` |
 | `list_my_claims` | `GET /claims/mine` (needs your token) | |
 | `precheck_submission` | `POST /precheck` | |
@@ -2575,6 +2700,8 @@ field an argument becomes.
 | `submit_postmortem`, `submit_informal_annex`, `submit_approach_record` | `POST /postmortems`, `/annexes`, `/approach-records` | |
 | `file_defect_claim`, `file_revision_request` | `POST /defect-claims`, `/revision-requests` | |
 | `propose_literature`, `confirm_literature` | `POST /literature`, `/literature/confirm` | |
+| `set_display_name(name, link?)` | `POST /me/name` (needs your token; your own pseudonym only) | |
+| `register_target` | `POST /registrations` (a curator or steward of the target, by GitHub login) | |
 | `propose_speculative_node`, `propose_variant` | `POST /proposals/speculative`, `/proposals/variant` | `stmt` → `statement` |
 | `propose_witness` | `POST /proposals/witness` | |
 | `submit_gloss`, `withdraw_gloss` | `POST /glosses`, `/glosses/withdrawals` | |

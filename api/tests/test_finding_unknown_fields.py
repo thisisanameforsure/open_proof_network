@@ -23,6 +23,7 @@ from typing import Any
 import pytest
 import samples
 from api_fakes import (
+    AUTOMATION,
     PROOF_PREFIX,
     TUTORIAL_NODE,
     TUTORIAL_PROOF,
@@ -101,6 +102,7 @@ def submissions(h: Harness, key: PrecheckKey) -> Prepared:
         "artifact_type": "proof",
         "bundle": BUNDLE,
         "precheck_job_id": job["id"],
+        "automation": AUTOMATION,
     }
     return body, h.auth(token)
 
@@ -192,6 +194,12 @@ def renew(h: Harness, key: PrecheckKey) -> Prepared:
     return {}, h.auth(h.token_for("code_alice", "alice"))
 
 
+def dco_accept(h: Harness, key: PrecheckKey) -> Prepared:
+    """F25-R16 (Q24): ``POST /dco/accept`` reads the ``dco`` object and nothing else."""
+    body = {"dco": {"version": identity.DCO_VERSION, "accepted": True}}
+    return body, h.auth(h.token_for("code_alice", "alice"))
+
+
 def check(h: Harness, key: PrecheckKey) -> Prepared:
     """F13-T3: anonymous; body_fields refuses before any graph read, so no pin need be seeded."""
     return {"target_id": TARGET, "content": "theorem x : True := trivial\n"}, {}
@@ -265,11 +273,30 @@ def writeups(h: Harness, key: PrecheckKey) -> Prepared:
     return body, h.auth(h.token_for("code_alice", "alice"))
 
 
+def me_name(h: Harness, key: PrecheckKey) -> Prepared:
+    """F25-T4: a display name, refused before the approval key is read."""
+    return {"name": "A", "link": None}, h.auth(h.token_for("code_alice", "alice"))
+
+
+def registrations(h: Harness, key: PrecheckKey) -> Prepared:
+    """F25-T4: a registration record, refused before the graph is read."""
+    body = {
+        "target_id": TARGET,
+        "registry": "palomar",
+        "wrapper": {"repository": "o/r", "commit": "a" * 40},
+        "graph_commit": "b" * 40,
+        "proof": {"node": TUTORIAL_NODE, "attestation": "000001"},
+        "status": "submitted",
+    }
+    return body, h.auth(h.token_for("code_alice", "alice"))
+
+
 #: Every POST route of ``routes.ROUTES`` that reads a JSON body (``DELETE /claims/<id>`` has none);
 #: ``/tokens/renew`` reads an empty one, refusing any key (F05-T27).
 WRITE_ROUTES: dict[str, Prepare] = {
     "/tokens": tokens,
     "/tokens/renew": renew,
+    "/dco/accept": dco_accept,
     "/claims": claims,
     "/precheck": precheck,
     "/submissions": submissions,
@@ -293,6 +320,8 @@ WRITE_ROUTES: dict[str, Prepare] = {
     "/motions": motions,  # F24-T5
     "/votes": votes,  # F24-T5
     "/writeups": writeups,  # F24-T5
+    "/me/name": me_name,  # F25-T4
+    "/registrations": registrations,  # F25-T4
 }
 
 

@@ -26,7 +26,14 @@ from pathlib import Path
 
 import pytest
 import samples
-from api_fakes import PROOF_PREFIX, TUTORIAL_NODE, TUTORIAL_PROOF, Harness, make_precheck_key
+from api_fakes import (
+    AUTOMATION,
+    PROOF_PREFIX,
+    TUTORIAL_NODE,
+    TUTORIAL_PROOF,
+    Harness,
+    make_precheck_key,
+)
 from mcp_client import McpClient, plain
 
 PADDED = "000033"
@@ -82,6 +89,7 @@ def test_get_submission_answers_pending_state_for_an_open_pull_request(
             "artifact_type": "proof",
             "bundle": {f"{PROOF_PREFIX}{TUTORIAL_NODE}/Proof.lean": TUTORIAL_PROOF},
             "precheck_job_id": job["id"],
+            "automation": AUTOMATION,
         },
         headers=harness.auth(token),
     )

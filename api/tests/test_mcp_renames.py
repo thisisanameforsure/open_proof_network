@@ -12,7 +12,7 @@ import asyncio
 from typing import Any
 
 import pytest
-from api_fakes import PROOF_PREFIX, TUTORIAL_NODE, TUTORIAL_PROOF
+from api_fakes import AUTOMATION, PROOF_PREFIX, TUTORIAL_NODE, TUTORIAL_PROOF
 from test_finding_argument_renames import JOB_ID, RecordingCall
 
 from opn_api.mcp import results, writes
@@ -23,6 +23,7 @@ COMMON = {
     "node_id": TUTORIAL_NODE,
     "artifact_type": "proof",
     "bundle": {f"{PROOF_PREFIX}{TUTORIAL_NODE}/Proof.lean": TUTORIAL_PROOF},
+    "automation": AUTOMATION,
 }
 
 

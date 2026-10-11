@@ -1,0 +1,10 @@
+Conformance corpus: seven entries registered in Palomar (F25-T6, H in the plan), vendored on
+2026-10-11 from each entry's repository at the commit the registry recorded
+(gate/palomar/corpus.json names each). Per entry: Challenge.lean, comparator.json,
+formalization.yaml, lakefile.toml and LICENSE at that commit, lean-toolchain as the project
+carries it (PALOMAR-2026-10-05-000005 and PALOMAR-2026-10-06-000007 keep theirs elsewhere; the
+file here is written from the entry record's formalization.lean_toolchain), and entry.json as
+data.palomar-registry.org served it (CC0). Solutions are not vendored (their sha256 is in
+entry.json). Every LICENSE is Apache-2.0 except PALOMAR-2026-10-05-000005 (linrock/math-proofs),
+MIT; both are on intake.LICENCE_ALLOWLIST. These files are test fixtures and are not part of the
+network's record; each keeps its author's licence, reproduced here beside it.

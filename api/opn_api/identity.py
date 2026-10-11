@@ -84,6 +84,17 @@ By making a contribution to this project, I certify that:
     personal information I submit with it, including my sign-off) is
     maintained indefinitely and may be redistributed consistent with
     this project or the open source license(s) involved.
+
+
+The Open Proof Network's addition (not part of the Developer's
+Certificate of Origin above; D-23 v3.37)
+
+The licences "indicated in the file" are these. Code contributions
+(Lean files and anything else that runs) are licensed under Apache-2.0.
+The non-code record -- attestations, postmortems, approach records,
+review and adjudication records, registration records and the other
+records the graph keeps -- is licensed under CDLA-Permissive-2.0. A
+record of a contribution names both by their SPDX identifiers.
 """
 DCO_VERSION = hashlib.sha256(DCO_TEXT.encode("utf-8")).hexdigest()[:16]
 
@@ -531,6 +542,8 @@ async def post_tokens(ctx: Context, request: Request) -> Response:
             raise
     if existing is not None:
         identity = existing
+        # F25-R16 (Q24): this request accepted the current text, so the record says so.
+        ctx.store.set_dco_version(identity.id, DCO_VERSION)
     else:
         identity = Identity(
             id=new_ulid(now),
@@ -538,6 +551,7 @@ async def post_tokens(ctx: Context, request: Request) -> Response:
             proof_kind=str(kind),
             proof_reference=reference,
             created=clockmod.render(now),
+            dco_version=DCO_VERSION,
         )
         try:
             ctx.store.put_identity(identity)
@@ -654,6 +668,7 @@ async def post_web_accept(ctx: Context, request: Request) -> Response:
             proof_kind=PROOF_GITHUB,
             proof_reference=login,
             created=clockmod.render(now),
+            dco_version=DCO_VERSION,
         )
         try:
             ctx.store.put_identity(held)
@@ -663,7 +678,48 @@ async def post_web_accept(ctx: Context, request: Request) -> Response:
             ) from exc
     else:  # created meanwhile (a second tab): the same identity, never a second (AC3)
         check_web_identity(ctx, held)
+        ctx.store.set_dco_version(held.id, DCO_VERSION)  # F25-R16: the tick was for this text
     return session_redirect(ctx, held.id, path)
+
+
+# --- POST /dco/accept: a live identity accepts the current text (F25-R16, Q24; D-23 v3.37) -------
+
+#: The one field ``POST /dco/accept`` reads: the same ``dco`` object a token request carries.
+DCO_ACCEPT_FIELDS: tuple[str, ...] = ("dco",)
+DCO_REACCEPT_CODE = "dco-reaccept-required"
+
+
+def check_dco_current(identity: Identity) -> None:
+    """F25-R16 (Q24): an identity whose recorded acceptance is not the current text is refused
+    every write until it accepts again — a token issued against the old text, or one whose
+    acceptance was never recorded (every identity older than this rule). Reads are untouched:
+    the bearer still says who is asking. Called by the app before any write handler runs."""
+    if identity.dco_version == DCO_VERSION:
+        return
+    raise ApiError(
+        403,
+        DCO_REACCEPT_CODE,
+        "the sign-off text this identity accepted has changed (it now names the licences, D-23); "
+        f"read GET /dco.json and POST /dco/accept {{dco: {{version: {DCO_VERSION!r}, "
+        "accepted: true}}} with this token, then retry",
+    )
+
+
+async def post_dco_accept(ctx: Context, request: Request) -> Response:
+    """The bearer's identity accepts the current DCO text. The body is the ``dco`` object a token
+    request carries; a stale version or an unticked box is refused exactly as there. 200 with the
+    identity and the version recorded. The web form's tick (``POST /auth/web/accept``) and a
+    GitHub re-proof through ``POST /tokens`` record the same thing."""
+    identity = request.state.identity
+    fields, _ = await body_fields(request, DCO_ACCEPT_FIELDS)
+    check_dco(fields.get("dco"))
+    ctx.store.set_dco_version(identity.id, DCO_VERSION)
+    return JSONResponse(
+        {
+            "identity": {"pseudonym": identity.pseudonym},
+            "dco": {"version": DCO_VERSION, "accepted": True},
+        }
+    )
 
 
 # --- POST /tokens/renew: optional rotation (F05-T27, T29; D-19 v3.29, Q27, Q29) ----------------

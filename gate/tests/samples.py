@@ -47,7 +47,7 @@ def meta(**overrides: Any) -> dict[str, Any]:
 
 def attestation(**overrides: Any) -> dict[str, Any]:
     doc: dict[str, Any] = {
-        "schema": "attestation/v6",
+        "schema": "attestation/v7",
         "graph_id": "propositional",
         "node_id": "tutorial-and-swap",
         "statement_hash": SHA256,
@@ -74,6 +74,7 @@ def attestation(**overrides: Any) -> dict[str, Any]:
         "review": None,
         "submitter": None,
         "model_and_tooling": "undeclared",
+        "automation": None,
         "trust_base": "kernel",
         "footprint": None,
         "signature": {
@@ -84,6 +85,10 @@ def attestation(**overrides: Any) -> dict[str, Any]:
         },
     }
     doc.update(overrides)
+    # F25-T1: `automation` arrived with v7; a sample of an older version has no such key.
+    schema = str(doc["schema"])
+    if schema.startswith("attestation/v") and int(schema.rsplit("v", 1)[1]) < 7:
+        doc.pop("automation", None)
     return doc
 
 
@@ -179,6 +184,74 @@ def submission_meta(**overrides: Any) -> dict[str, Any]:
         "identity": {"pseudonym": "thisisanameforsure", "proof_kind": "github"},
         "artifact_type": "proof",
         "tooling": {"model": None, "version": None, "harness": None},
+    }
+    doc.update(overrides)
+    return doc
+
+
+def automation(**overrides: Any) -> dict[str, Any]:
+    """A ``submission-meta/v2`` automation block with the three required fields and no cost
+    (F25-R1; D-23 v3.37)."""
+    doc: dict[str, Any] = {
+        "method": "agent",
+        "models": ["claude-fable-5-1"],
+        "framework": "Claude Code 2.1",
+    }
+    doc.update(overrides)
+    return doc
+
+
+def submission_meta_v2(**overrides: Any) -> dict[str, Any]:
+    """A v2 block: v1's fields plus ``automation`` (F25-R1)."""
+    doc = submission_meta(schema="submission-meta/v2", automation=automation())
+    doc.update(overrides)
+    return doc
+
+
+def classification(**overrides: Any) -> dict[str, Any]:
+    """A ``target/v3`` classification (F25-R4)."""
+    doc: dict[str, Any] = {"arxiv": ["math.NT"], "msc2020": ["11A41"]}
+    doc.update(overrides)
+    return doc
+
+
+def registration(**overrides: Any) -> dict[str, Any]:
+    """A ``registration/v1`` record as a curator files it once Palomar has registered the
+    wrapper (F25-R5)."""
+    doc: dict[str, Any] = {
+        "schema": "registration/v1",
+        "target": "euclid-primes",
+        "registry": "palomar",
+        "registry_id": "PALOMAR-2026-10-12-000003",
+        "version": 1,
+        "wrapper": {"repository": "open-proof-network/palomar-euclid-primes", "commit": "a" * 40},
+        "graph_commit": "b" * 40,
+        "proof": {"node": "infinitude-of-primes", "attestation": "000038"},
+        "status": "registered",
+        "submitted_by": "thisisanameforsure",
+        "date": "2026-10-12",
+        "url": "https://palomar-registry.org/entries/PALOMAR-2026-10-12-000003",
+        "challenge_sha256": "c" * 64,
+        "solution_sha256": "d" * 64,
+        "note": None,
+    }
+    doc.update(overrides)
+    return doc
+
+
+def display_name(**overrides: Any) -> dict[str, Any]:
+    """A ``display-name/v1`` record (F25-R6); the signature fields are shaped, not verified."""
+    doc: dict[str, Any] = {
+        "schema": "display-name/v1",
+        "pseudonym": "calib-1050-fable",
+        "name": "A. Contributor",
+        "link": "https://orcid.org/0000-0002-1825-0097",
+        "date": "2026-10-12",
+        "via": "approval-key",
+        "key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFakeFakeFakeFakeFakeFakeFakeFakeFakeFake",
+        "signature": (
+            "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQ==\n-----END SSH SIGNATURE-----\n"
+        ),
     }
     doc.update(overrides)
     return doc
