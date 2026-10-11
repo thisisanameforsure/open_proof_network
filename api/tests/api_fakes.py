@@ -232,6 +232,7 @@ class FakeGitHost:
         """The files directly under ``path`` (F09-R6); ``None`` when nothing lives there.
         A ``.gitkeep`` marks an empty directory the way the graph's layout does."""
         self.fetches.append((path + "/", None))
+        self.refs.append(ref)  # beside ``fetches``, so the two lists stay in step
         if self.unreachable:
             msg = f"listing {path} failed: ConnectError"
             raise GitHostError(msg)

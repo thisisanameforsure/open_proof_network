@@ -36,7 +36,7 @@ def validate_info(doc: dict[str, Any]) -> dict[str, Any]:
 
 
 async def get_info(ctx: Context, request: Request) -> Response:
-    doc = json.loads(frontier.committed(ctx, INFO_PATH))
+    doc = frontier.read_at(ctx, json.loads(frontier.committed(ctx, INFO_PATH)))
     doc["rate_limit_policy"] = ctx.settings.rate_limit_policy()
     if doc.get("schema") in URL_SCHEMAS:
         # Configuration, never a literal hostname: the guide's URL and this service's origin.

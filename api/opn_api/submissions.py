@@ -600,9 +600,29 @@ async def post_submissions(ctx: Context, request: Request) -> Response:
             "target_id": claim.target_id,
             "artifact_type": artifact_type,
             **neighbours,
+            **expected_holes(job),
         },
         status_code=201,
     )
+
+
+def expected_holes(job: precheck.Job) -> dict[str, Any]:
+    """Testers 2026-10-09 (A, feature): the node each of a partial's holes is expected to
+    become, as the precheck job planned it by the post-merge writer's rule. Empty when the
+    result names none (a gate pinned before the job named them, or not a partial)."""
+    holes = [
+        {k: h[k] for k in ("name", "expected_node_id", "expected_new")}
+        for h in (job.result or {}).get("holes") or []
+        if isinstance(h, dict) and "expected_node_id" in h
+    ]
+    if not holes:
+        return {}
+    note = (
+        f"expected as planned at graph commit {job.graph_commit}: a hole restating an existing "
+        "node is that node (expected_new false), the rest are new nodes numbered after the "
+        "node's earlier holes; another decomposition of this node merging first renumbers them"
+    )
+    return {"holes": holes, "holes_note": note}
 
 
 def on_the_node(

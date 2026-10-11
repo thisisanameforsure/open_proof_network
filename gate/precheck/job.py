@@ -146,6 +146,7 @@ def result_document(
             str(w.get("hole")): {"path": w.get("path"), "sha256": w.get("sha256"), "checked": True}
             for w in ctx.data.get(carried.DATA_KEY) or []
         }
+        expected = expected_nodes(ctx, artifact["holes"])
         result["holes"] = [
             {
                 "name": hole.get("name"),
@@ -156,9 +157,33 @@ def result_document(
                 "proved_binders": list(hole.get("proved_binders") or []),
             }
             | ({"witness": witnessed[hole["name"]]} if hole.get("name") in witnessed else {})
-            for hole in artifact["holes"]
+            | (
+                {"expected_node_id": expected[i][0], "expected_new": expected[i][1]}
+                if expected is not None
+                else {}
+            )
+            for i, hole in enumerate(artifact["holes"])
         ]
     return result
+
+
+def expected_nodes(ctx: Any, holes: list[dict[str, Any]]) -> list[tuple[str, bool]] | None:
+    """Testers 2026-10-09 (A, feature): the node each hole is expected to become, by the
+    post-merge writer's own rule (``postmerge.plan_children``, R22) over the tree this job ran
+    at — a new ``<parent>--h<n>`` (``True``), or the existing node it restates (``False``). An
+    expectation, not a promise: another decomposition of the node merging first renumbers them.
+    ``None`` when step 2 found no node or the plan cannot be made, so nothing is guessed."""
+    from opn_gate import postmerge  # noqa: PLC0415 — as step 7 imports it
+    from opn_gate.steps.artifact import Hole  # noqa: PLC0415
+
+    node = getattr(ctx, "node", None)
+    if node is None:
+        return None
+    try:
+        plan = postmerge.plan_children(node.path, [Hole.of(h) for h in holes])
+    except postmerge.GraphWriteError:
+        return None
+    return [(str(child or existing), child is not None) for _, child, existing in plan]
 
 
 def run(

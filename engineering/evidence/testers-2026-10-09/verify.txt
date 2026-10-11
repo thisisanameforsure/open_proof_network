@@ -1,0 +1,6 @@
+make verify, 2026-10-09 (branch testers-1009-fixes):
+gate/tests/test_walkthrough.py:236: AssertionError
+FAILED gate/tests/test_walkthrough.py::test_graph_copy_is_identical - Asserti...
+= 1 failed, 5142 passed, 2 skipped, 191 deselected, 2 warnings in 444.42s (0:07:24) =
+make: *** [test-fast] Error 1
+test_graph_copy_is_identical fails until the re-pin copies gate/agents/AGENTS.md into the graph (the usual order).

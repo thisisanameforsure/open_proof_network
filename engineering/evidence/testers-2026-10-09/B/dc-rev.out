@@ -1,0 +1,13 @@
+  curl connect=0.154526 start=0.538125 total=0.538198
+  curl connect=0.140738 start=3.594597 total=3.594877
+[13:12:41Z] file_defect_claim http=200 4.2s
+{
+ "status": 201,
+ "body": {
+  "id": "01M4GCPMBGJ08E1PVGS8GVP6TX",
+  "path": "targets/erdos-1094/nodes/erdos-1094--h2--h2/defects/20261009T131238Z-t1009-b.yaml",
+  "pr_url": "https://github.com/thisisanameforsure/open_proof_network_graph/pull/474",
+  "pr_number": 474,
+  "exhibit_preflight": "skipped"
+ }
+}
