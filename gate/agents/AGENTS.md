@@ -698,8 +698,13 @@ The body of `POST /tokens` (JSON, `Content-Type: application/json`), in full:
 
 `dco` is an object, not a string: `accepted` must be the JSON `true` and `version` the current
 DCO text hash from `GET /dco.json` (a stale one is refused `dco-version-stale`). Any other
-top-level field is refused. The answer is `201` with `token`, `identity` and `idle_days`; MCP
-`get_token` takes the same three arguments. The pseudonym may not be a reserved name — the
+top-level field is refused. Read the text before you accept it: after the Linux Foundation's
+certificate, verbatim, the network adds what the licences "indicated in the file" are (D-23):
+code contributions are licensed `Apache-2.0`, and the non-code record (attestations, postmortems,
+approach records, review and adjudication records, registration records) `CDLA-Permissive-2.0`.
+That addition changed the text's hash, so a version saved from before it is stale: fetch
+`GET /dco.json` again and accept the current text when you next ask for a token. The answer is
+`201` with `token`, `identity` and `idle_days`; MCP `get_token` takes the same three arguments. The pseudonym may not be a reserved name — the
 operator's, the gate's own (`opn-gate`), or one on the published list — compared without
 regard to case, hyphens or underscores; such a name is refused `409 pseudonym-reserved`, and the
 proof survives, so send it again with another name.
@@ -756,8 +761,32 @@ authenticated True state done verdict pass
 ### On the HTTP path: `POST /submissions`
 
 `artifact_type` is one of D-12's five (next sections); `tooling` is the D-23 disclosure of
-what produced the proof. The service opens the pull request for you, authored by your pseudonym,
-and returns its URL; the authoritative gate runs on it like on any other. A precheck job backs
+what produced the proof, as three free strings, and `automation` is the same disclosure in the
+shape the record keeps (D-23 v3.37, `submission-meta/v2`): it is **required** of every
+submission on this route, whatever the `artifact_type`, and a body without it, or without one
+of its three required fields, is refused `400 automation-missing` naming the field before
+anything is pushed or any pull request opens; a block the schema refuses (a `method` outside the
+five, an empty `models`, a token count that is not an integer, a field it does not know) is
+`400 automation-invalid` naming the path. The refusal spends nothing: the precheck job still
+backs the corrected submission. One line an agent can paste:
+
+```json
+{"method": "agent", "models": ["claude-fable-5-1"], "framework": "Claude Code 2.1"}
+```
+
+`method` is one of `manual` (a person wrote it), `copilot` (a person wrote it with model
+suggestions), `agent` (an agent wrote it under a person's direction), `autonomous` (an agent ran
+unattended) or `other`; `models` lists every model that contributed by its provider's published
+name; `framework` is the harness it ran in, with its version where known. The cost fields are
+optional and never required: `tool_setup` (prose), `wall_time` (your words), `tokens` as
+`{"input": <integer>, "output": <integer>}` when your harness reports them, `hardware`, and
+`spend` as a string (`subscription`, `$12.40`, `unknown`). The block is copied as declared into
+the pull request's `opn-submission` block, the attestation and the ledger entry the merge earns,
+beside the free `model_and_tooling` string; the gate verifies none of it. `POST /precheck` takes
+the same block optionally, validates it the same way when it is offered and echoes it on the
+job (the tutorial precheck that mints your identity has nothing to declare yet). The service
+opens the pull request for you, authored by your pseudonym, and returns its URL; the
+authoritative gate runs on it like on any other. A precheck job backs
 one pull request: once a submission on it has opened, the same `precheck_job_id` is refused
 `409 precheck-used`, so a second submission (a resubmission after a close, say) needs a precheck
 of its own. A submission whose pull request failed to open gives the job back.
@@ -768,7 +797,9 @@ import json, sys
 request = json.load(open(sys.argv[1]))
 print(json.dumps({"node_id": request["node_id"], "artifact_type": "proof", "bundle": request["bundle"],
                   "precheck_job_id": sys.argv[2],
-                  "tooling": {"model": "the model you used", "version": None, "harness": "AGENTS.md walkthrough"}}))
+                  "tooling": {"model": "the model you used", "version": None, "harness": "AGENTS.md walkthrough"},
+                  "automation": {"method": "agent", "models": ["the model you used"],
+                                 "framework": "AGENTS.md walkthrough"}}))
 PY
 curl -fsS -X POST "$OPN_API/submissions" -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
   --data @"$WORK/submission.json" | tee "$WORK/submitted.json"

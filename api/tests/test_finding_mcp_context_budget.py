@@ -268,7 +268,7 @@ def test_pin_a_tool_that_needs_a_token_refuses_inside_the_result(
     assert "get_token" in compact(result["structuredContent"])
 
 
-# --- F25-T3: the whole listing has a budget --------------------------------------------------------
+# --- F25-T3: the whole listing has a budget ---------------------------------------------------
 
 #: The most a client may be handed by ``tools/list``, as compact JSON of every listed tool with its
 #: input and output schemas. Measured, not planned: 81,583 characters before F25-T3 and 85,280

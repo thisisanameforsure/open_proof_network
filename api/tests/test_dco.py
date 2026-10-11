@@ -11,6 +11,7 @@ the real predecessor rather than a made-up string.
 from __future__ import annotations
 
 import hashlib
+from typing import Any
 
 from api_fakes import Harness
 
@@ -45,7 +46,8 @@ def test_the_linux_foundation_text_is_verbatim_and_the_addition_is_marked() -> N
 
 
 def test_the_version_is_the_hash_of_the_text_and_has_changed() -> None:
-    assert identity.DCO_VERSION == hashlib.sha256(identity.DCO_TEXT.encode()).hexdigest()[:16]
+    expected = hashlib.sha256(identity.DCO_TEXT.encode()).hexdigest()[:16]
+    assert expected == identity.DCO_VERSION
     assert identity.DCO_VERSION != PREVIOUS_VERSION
 
 
@@ -56,7 +58,7 @@ def test_dco_json_serves_the_new_version_and_text(harness: Harness) -> None:
     assert "CDLA-Permissive-2.0" in r.json()["text"]
 
 
-def issue(h: Harness, version: str) -> tuple[int, dict[str, object]]:
+def issue(h: Harness, version: str) -> tuple[int, dict[str, Any]]:
     start = h.client.get("/auth/github/start", follow_redirects=False)
     state = start.headers["location"].split("state=")[1].split("&")[0]
     cb = h.client.get(

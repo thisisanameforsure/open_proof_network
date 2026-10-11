@@ -147,7 +147,7 @@ def test_a_ledger_entry_carries_the_block_or_null() -> None:
 def test_a_v1_ledger_file_is_lifted_and_rewritten_as_v2_with_null_on_old_entries(
     tmp_path: Path,
 ) -> None:
-    old = {
+    old: dict[str, Any] = {
         "schema": "ledger/v1",
         "identity": "alice",
         "entries": [
@@ -174,7 +174,8 @@ def test_a_v1_ledger_file_is_lifted_and_rewritten_as_v2_with_null_on_old_entries
     assert entry["tooling"] == "claude-opus-5 2026-09 claude-code"
     ledger.write(tmp_path, loaded)
     rewritten = schemas.load_json(path, "ledger/v2")
-    assert ledger.entries_of(rewritten) == [{**old["entries"][0], "automation": None}]
+    first: dict[str, Any] = old["entries"][0]
+    assert ledger.entries_of(rewritten) == [{**first, "automation": None}]
 
 
 # --- the post-merge job: the entry carries what the attestation attested -------------------------
