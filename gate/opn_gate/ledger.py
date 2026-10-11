@@ -63,6 +63,8 @@ MERGE_LINES: dict[str, Line | None] = {
     "fidelity": None,
     "steward": None,  # F15-R8's sibling rule: a commitment is a stake, not an artifact (D-32)
     "proposed-for": None,  # F18-R8: a pointer, not an artifact (D-14 v3.26)
+    "registration": "upstreaming",  # F25-T4 (D-19 v3.37): the registering curator's line
+    "display-name": None,  # F25-T4: a name is a label on an identity, not an artifact
 }
 #: D-21, F11 §7: the curator of a target earns no proof credit on it. They chose the statement,
 #: its decomposition and its difficulty, so a proof of one of its nodes is not a result they
@@ -373,6 +375,31 @@ def writeup_entry(  # noqa: PLR0913 — one argument per fact the entry records
         tooling=tooling,
     )
     return entry, why
+
+
+def registration_entry(  # noqa: PLR0913 — one argument per fact the entry records
+    *,
+    identity: str,
+    target: str,
+    node: str,
+    artifact: str,
+    merge_commit: str,
+    date: str,
+) -> Entry:
+    """F25 (D-19 v3.37): the upstreaming line a merged registration record earns the curator or
+    steward who registered the target in a public registry; ``artifact`` is the record's path
+    under the target (``registrations/<date>-<n>.yaml``), ``node`` the registered proof's. A
+    curator's act, so D-21's bar on the proof line does not reach it, and no model took part."""
+    return Entry(
+        line="upstreaming",
+        target=target,
+        node=node,
+        artifact=artifact,
+        merge_commit=merge_commit,
+        date=date,
+        tooling=UNDECLARED,
+        automation=None,
+    )
 
 
 def statement_tooling(meta: dict[str, Any]) -> str:

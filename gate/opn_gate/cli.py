@@ -3146,7 +3146,7 @@ def run_ledger(  # noqa: PLR0911 — one return per kind of merge
     classification = modes.classify(changes, author=settings.pr_author)
     mode = classification.mode
     nothing: dict[str, Any] = {"earned": False, "commit": commit}
-    if mode in ("proof", "partial", "append"):
+    if mode in ("proof", "partial", "append", "registration"):
         return _write_merge_entries(graph, commit, classification, nothing)
     if mode == "alternate":
         nothing["reason"] = "an alternate proof is credited at write-up, not when it merges (D-25)"
@@ -3423,7 +3423,7 @@ def _write_merge_entries(
     )
 
 
-def _merge_entries(  # noqa: PLR0913 — one argument per fact every entry records
+def _merge_entries(  # noqa: PLR0912, PLR0913 — one argument per fact every entry records
     graph: Path,
     classification: modes.Classification,
     *,
@@ -3440,6 +3440,28 @@ def _merge_entries(  # noqa: PLR0913 — one argument per fact every entry recor
     merge's attestation declared (F25-R3), carried on every entry the merge earns."""
     earned: list[ledger.Entry] = []
     skipped: list[str] = []
+    if classification.mode == "registration":
+        # F25 (D-19 v3.37): a merged registration record earns the upstreaming line for the
+        # curator or steward it names, who the gate held to be the pull request's actor.
+        for loc in classification.located:
+            if loc.role != "registration":
+                continue
+            record = schemas.load_yaml(graph / loc.path, "registration/v1")
+            if str(record["submitted_by"]) != identity:
+                skipped.append(
+                    f"{loc.path} names {record['submitted_by']}, not {identity}: nothing earned"
+                )
+                continue
+            credited = ledger.registration_entry(
+                identity=identity, target=loc.target_id, node=str(record["proof"]["node"]),
+                artifact=loc.path.split(f"targets/{loc.target_id}/", 1)[1],
+                merge_commit=commit, date=date,
+            )  # fmt: skip
+            doc = ledger.append(doc, credited)
+            earned.append(credited)
+        if not earned and not skipped:
+            skipped.append("a registration merge with no registration record earns nothing")
+        return earned, skipped, doc
     wanted = {"proof": ("proof",), "partial": ("partial",), "append": ("postmortem",)}
     roles = wanted[str(classification.mode)]
     located = [loc for loc in classification.located if loc.role in roles and loc.node_id]

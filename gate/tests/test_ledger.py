@@ -351,6 +351,8 @@ def test_merge_line_table() -> None:
         "fidelity": None,
         "steward": None,  # F15: a commitment is a stake, not an artifact (D-32 v3.17)
         "proposed-for": None,  # F18-T6: a pointer, not an artifact (D-14 v3.26)
+        "registration": "upstreaming",  # F25-T4 (D-19 v3.37): the registering curator
+        "display-name": None,  # F25-T4: a name is not an artifact
     }
     assert set(expected) == set(typing.get_args(modes.Mode))
     assert getattr(ledger, "MERGE_LINES", None) == expected
@@ -388,6 +390,52 @@ def test_a_signer_earns_the_proof_line(tmp_path: Path) -> None:
         tooling=ledger.UNDECLARED, doc=empty() | {"identity": "curator"},
     )  # fmt: skip
     assert earned == [] and "D-21" in skipped[0]
+
+
+# --- F25-T4 (D-19 v3.37): a registration merge earns the curator the upstreaming line ---------
+
+
+def test_a_registration_merge_earns_the_upstreaming_line(tmp_path: Path) -> None:
+    """The curator who registered the target in Palomar is credited once, on the upstreaming
+    line, for the record's file; anyone else's identity on the merge earns nothing (the gate holds
+    the record to its actor, so the two coincide on a merged pull request)."""
+    import samples  # noqa: PLC0415
+    import yaml  # noqa: PLC0415
+    from harness import copy_graph, take_in  # noqa: PLC0415
+
+    from opn_gate import cli, modes  # noqa: PLC0415
+    from opn_gate.paths import Change  # noqa: PLC0415
+
+    root = copy_graph(tmp_path)
+    take_in(root, "euclid-primes")
+    rel = "targets/euclid-primes/registrations/2026-10-12-1.yaml"
+    (root / rel).parent.mkdir()
+    (root / rel).write_text(
+        yaml.safe_dump(
+            samples.registration(
+                target="euclid-primes",
+                submitted_by="curator",
+                proof={"node": "and-reassoc", "attestation": "000001"},
+            )
+        ),
+        encoding="utf-8",
+    )
+    classification = modes.classify([Change("A", rel)])
+    assert classification.mode == "registration"
+    earned, skipped, doc = cli._merge_entries(
+        root, classification, identity="curator", commit="a" * 40, date="2026-10-12T00:00:00Z",
+        tooling=ledger.UNDECLARED, doc=empty() | {"identity": "curator"},
+    )  # fmt: skip
+    assert [e.line for e in earned] == ["upstreaming"] and skipped == []
+    assert (
+        earned[0].artifact == "registrations/2026-10-12-1.yaml" and earned[0].node == "and-reassoc"
+    )
+    assert doc["entries"][0]["line"] == "upstreaming" and doc["entries"][0]["automation"] is None
+    earned, skipped, _ = cli._merge_entries(
+        root, classification, identity="someone-else", commit="a" * 40, date="2026-10-12T00:00:00Z",
+        tooling=ledger.UNDECLARED, doc=empty() | {"identity": "someone-else"},
+    )  # fmt: skip
+    assert earned == [] and "names curator" in skipped[0]
 
 
 # --- F07-T66 (D-18, D-19 v3.27): a curator's credit correction ----------------------------------

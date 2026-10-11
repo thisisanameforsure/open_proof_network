@@ -325,11 +325,37 @@ honest report-back (D-10, D-23); agent-friendliness; a statement published is a 
     <code>sorry</code> outside the Challenge all the same (<code>export-sorry</code>), because the registry's
     source scan and its reviewer read the whole repository and the network publishes nothing it would not
     merge.</td></tr>
+  <tr><td>F25-Q23</td><td><strong>One checker, the schema's rule.</strong> The service's
+    <code>check_automation</code> validates a probe <code>submission-meta/v2</code> document against the
+    schema itself rather than restating the block's shape, so the service can never accept a block the
+    gate's schema would refuse; <code>automation-invalid</code> carries the violation's path and text, and an
+    incomplete block offered at precheck is <code>automation-missing</code> naming the field (T3).</td></tr>
+  <tr><td>F25-Q24</td><td><strong>A stale DCO acceptance reaches token requests, not live tokens.</strong>
+    <code>DCO_VERSION</code> is the text's hash, so naming the licences changed it by itself and
+    <code>POST /tokens</code> and the web form refuse the previous version (<code>dco-version-stale</code>). A
+    token already issued keeps working: nothing re-reads the version it was issued against. Asking live
+    tokens to accept again is a protocol-surface choice for the owner (T3).</td></tr>
+  <tr><td>F25-Q25</td><td><strong>Result schemas moved because the result moved.</strong>
+    <code>list_submissions</code>, <code>get_submission</code>, <code>get_my_submissions</code> and
+    <code>get_node</code> close their submission definition, so the row's <code>automation</code> (object or
+    null) is declared and required there; the precheck results are open and needed nothing. The pinned
+    precheck runner echoes the block in its result document only after the re-pin; the served job carries it
+    from the deploy (T3).</td></tr>
+  <tr><td>F25-Q26</td><td><strong>The tools/list cost, measured.</strong> T3's block: 81,583 to 85,280
+    characters (+4.5%, two tools describing every field); T4's three tools and <code>get_target</code>'s
+    field: 81,593 to 89,428 (+9.6%, most of it <code>register_target</code>'s twelve described fields). A
+    pin (<code>TOOLS_LIST_BUDGET</code>) now holds the total; the combined figure after the merge is in the
+    budget test's record.</td></tr>
+  <tr><td>F25-Q27</td><td><strong>A registration merge credits the registrant.</strong> The post-merge
+    ledger step writes one <code>upstreaming</code> entry for the record's <code>submitted_by</code> when it is
+    the merge's actor (D-19 v3.37), with the record's path as the artifact and the registered proof's node;
+    a display-name merge earns nothing. Both modes are in the ledger's mode table and the Docs page's
+    actions table, which hold every mode the classifier knows.</td></tr>
 </table>
 
 <h2>10. Status</h2>
 <div class="rule"><strong>status:</strong> building (branch f25-palomar, pull request #30 as a draft for the Linux probes) ·
-  <strong>Tasks:</strong> T0 ✓ 2026-10-10 (decisions v3.37 applied; PROTOCOL_VERSION 3.37; spec and index) · T1 ✓ 2026-10-11 (eight schemas; registrations.derive with four mutants killed; goldens and api fixtures regenerated; 5203 fast-tier tests green) · T2 ✓ 2026-10-11 (four runs on the pull request; seven answers in probes.txt; Q1, Q2, Q22) · T4 ✓ 2026-10-11 (agent, branch f25-t4: paths, modes, names reader, 13 codes, two routes, three tools; 153 named tests, 2054 wider; Q16–Q19) · T5 ✓ 2026-10-11 (agent: intake new --arxiv --msc, check_target_record; 11 tests; Q20) · T6 ✓ 2026-10-11 (client seam, vendored schema and pins, seven corpus fixtures, readers and writers; 56 tests; Q21) · T7 ✓ 2026-10-11 (export; 22 tests) · T8 ✓ 2026-10-11 (local check; lean tier 2 passed, 145 s) · T3 building (agent) · T9–T16 todo</div>
+  <strong>Tasks:</strong> T0 ✓ 2026-10-10 (decisions v3.37 applied; PROTOCOL_VERSION 3.37; spec and index) · T1 ✓ 2026-10-11 (eight schemas; registrations.derive with four mutants killed; goldens and api fixtures regenerated; 5203 fast-tier tests green) · T2 ✓ 2026-10-11 (four runs on the pull request; seven answers in probes.txt; Q1, Q2, Q22) · T4 ✓ 2026-10-11 (agent, branch f25-t4: paths, modes, names reader, 13 codes, two routes, three tools; 153 named tests, 2054 wider; Q16–Q19) · T5 ✓ 2026-10-11 (agent: intake new --arxiv --msc, check_target_record; 11 tests; Q20) · T6 ✓ 2026-10-11 (client seam, vendored schema and pins, seven corpus fixtures, readers and writers; 56 tests; Q21) · T7 ✓ 2026-10-11 (export; 22 tests) · T8 ✓ 2026-10-11 (local check; lean tier 2 passed, 145 s) · T3 ✓ 2026-10-11 (agent, branch f25-t3: automation required at submission and validated at precheck, attestation and ledger carry it, DCO names both licences, MCP params, guide; 91 named tests, api 1792; Q14, Q23–Q26) · T9–T16 todo</div>
 
 <h2>Tasks</h2>
 <p class="status-note">Dependency-ordered. Red before green: each new test fails on the missing
