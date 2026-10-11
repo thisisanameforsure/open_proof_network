@@ -2553,6 +2553,7 @@ field an argument becomes.
 | `get_hosted_checkers` | `GET /hosted-checkers.json` | |
 | `list_error_codes(prefix?)` | `GET /errors.json` | |
 | `list_words_needed(target_id?, kind?)` | `targets/<id>/glosses.json` + `targets/<id>/target.yaml` | |
+| `list_registrations(target_id?)` | `targets/index.json` (each row's `registrations`) | |
 | `claim_node`, `release_claim` | `POST /claims`, `DELETE /claims/<id>` | `claim_node`: `ttl` → `ttl_hours` |
 | `list_my_claims` | `GET /claims/mine` (needs your token) | |
 | `precheck_submission` | `POST /precheck` | |
@@ -2564,6 +2565,8 @@ field an argument becomes.
 | `submit_postmortem`, `submit_informal_annex`, `submit_approach_record` | `POST /postmortems`, `/annexes`, `/approach-records` | |
 | `file_defect_claim`, `file_revision_request` | `POST /defect-claims`, `/revision-requests` | |
 | `propose_literature`, `confirm_literature` | `POST /literature`, `/literature/confirm` | |
+| `set_display_name(name, link?)` | `POST /me/name` (needs your token; your own pseudonym only) | |
+| `register_target` | `POST /registrations` (a curator or steward of the target, by GitHub login) | |
 | `propose_speculative_node`, `propose_variant` | `POST /proposals/speculative`, `/proposals/variant` | `stmt` → `statement` |
 | `propose_witness` | `POST /proposals/witness` | |
 | `submit_gloss`, `withdraw_gloss` | `POST /glosses`, `/glosses/withdrawals` | |

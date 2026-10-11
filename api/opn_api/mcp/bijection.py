@@ -104,6 +104,14 @@ TABLE: tuple[Row, ...] = (
         ("targets/<id>/glosses.json", "targets/<id>/target.yaml", "targets/index.json"),
         "targets/<id>/glosses.json and targets/<id>/target.yaml at main's head",
     ),
+    # F25-T4: D-28's read table, v3.37 — the registrations the products derive per target.
+    Row(
+        "list_registrations",
+        "read",
+        ("targets/index.json",),
+        "every registration of a target in a public registry: registry, id, version, status, url, "
+        "derived from the target's registration records (D-3 v3.37); nothing is ranked",
+    ),
     # --- writes (D-35's plain-path table) -----------------------------------------------------
     Row("claim_node", "write", ("POST /claims",), "POST /claims"),
     Row("release_claim", "write", ("DELETE /claims/{claim_id}",), "DELETE /claims/<id>"),
@@ -199,6 +207,19 @@ TABLE: tuple[Row, ...] = (
         "write",
         ("POST /literature/confirm",),
         "a PR appending the schema-checked file under the node or target",
+    ),
+    # F25-T4 (D-3, D-10, D-35 v3.37): D-35's row "names and registrations", one endpoint each.
+    Row(
+        "set_display_name",
+        "write",
+        ("POST /me/name",),
+        "names and registrations: set_display_name, register_target (v3.37)",
+    ),
+    Row(
+        "register_target",
+        "write",
+        ("POST /registrations",),
+        "names and registrations: set_display_name, register_target (v3.37)",
     ),
 )
 

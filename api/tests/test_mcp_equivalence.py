@@ -318,6 +318,17 @@ def with_steward(h: Harness, token: str) -> dict[str, Any]:
     return {}
 
 
+def with_registration(h: Harness, token: str) -> dict[str, Any]:
+    """F25-T4: alice an active steward of the target, and the passing attestation of the node's
+    merge on the graph, so her login may record a registration naming it."""
+    seed_stewards(h, ("alice", steward.COMMIT))
+    h.githost.files["attestations/000001.json"] = schemas.canonical_json(
+        samples.attestation(graph_id=TARGET, node_id=TUTORIAL_NODE)
+    )
+    h.context.files.clear()
+    return {}
+
+
 def with_pin(h: Harness, token: str) -> dict[str, Any]:
     """A target pinned to a Mathlib the mapping serves, so POST /check answers (FakeAxle)."""
     h.githost.files[f"targets/{TARGET}/gate-spec.json"] = schemas.canonical_json(
@@ -334,6 +345,15 @@ def postmortem() -> dict[str, Any]:
 
 
 BUNDLE = {f"{PROOF_PREFIX}{TUTORIAL_NODE}/Proof.lean": TUTORIAL_PROOF}
+#: F25-T4: a registration record as POST /registrations takes it, the optional fields left out.
+REGISTRATION: dict[str, Any] = {
+    "target_id": TARGET,
+    "registry": "palomar",
+    "wrapper": {"repository": "o/r", "commit": "a" * 40},
+    "graph_commit": "b" * 40,
+    "proof": {"node": TUTORIAL_NODE, "attestation": "000001"},
+    "status": "submitted",
+}
 # tool -> (tool arguments, route label, endpoint body, setup)
 WRITES: dict[str, tuple[dict[str, Any], str, dict[str, Any], Setup]] = {
     "claim_node": (
@@ -440,12 +460,28 @@ WRITES: dict[str, tuple[dict[str, Any], str, dict[str, Any], Setup]] = {
         {**LITERATURE, "record": None},
         with_steward,
     ),
+    # F25-T4 (D-3, D-10, D-35 v3.37): the names-and-registrations pair, body for body.
+    "set_display_name": (
+        {"name": "Alice Agent", "link": None},
+        "POST /me/name",
+        {"name": "Alice Agent", "link": None},
+        no_setup,
+    ),
+    "register_target": (
+        REGISTRATION,
+        "POST /registrations",
+        REGISTRATION,
+        with_registration,
+    ),
 }
 
 #: F09-T24: ``confirm_literature`` signs with the approval key, so its two harnesses need one
 #: (the same one, so the two signatures are byte for byte the same); every other row runs on
 #: the default settings.
-ENV_FOR: dict[str, Callable[[], dict[str, str]]] = {"confirm_literature": approval_env}
+ENV_FOR: dict[str, Callable[[], dict[str, str]]] = {
+    "confirm_literature": approval_env,
+    "set_display_name": approval_env,  # F25-T4: signed with the approval key as well
+}
 
 
 def submit_proof_pair(key: PrecheckKey) -> tuple[Harness, dict[str, Any], Harness, dict[str, Any]]:

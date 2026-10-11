@@ -1,0 +1,35 @@
+# F25-T4 verification — 2026-10-11T04:48:59Z — branch f25-t4 (from f25-palomar 99e5222a)
+
+$ uv run --frozen pytest -q -p no:cacheprovider gate/tests/test_modes_registration.py gate/tests/test_names.py gate/tests/test_registration.py api/tests/test_registrations.py api/tests/test_me_name.py api/tests/test_mcp_surface.py api/tests/test_finding_route_index.py api/tests/test_finding_mcp_context_budget.py gate/tests/test_error_codes.py gate/tests/test_finding_guide_names_exist.py
+........................................................................ [ 47%]
+........................................................................ [ 94%]
+.........                                                                [100%]
+=============================== warnings summary ===============================
+api/tests/api_fakes.py:32
+  /Users/mikehiggins/Desktop/repos/open_proof_network/.claude/worktrees/agent-ae9f100a85a76fe6f/api/tests/api_fakes.py:32: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient
+
+.venv/lib/python3.13/site-packages/starlette/testclient.py:53
+  /Users/mikehiggins/Desktop/repos/open_proof_network/.claude/worktrees/agent-ae9f100a85a76fe6f/.venv/lib/python3.13/site-packages/starlette/testclient.py:53: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.
+    _PortalFactoryType = Callable[[], AbstractContextManager[anyio.abc.BlockingPortal]]
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+153 passed, 2 warnings in 10.73s
+
+$ make lint
+uv run --frozen ruff check .
+All checks passed!
+uv run --frozen ruff format --check .
+726 files already formatted
+
+$ make types
+uv run --frozen mypy gate
+Success: no issues found in 347 source files
+uv run --frozen mypy api
+Success: no issues found in 233 source files
+uv run --frozen mypy site
+Success: no issues found in 82 source files
+
+# tools/list cost (characters of the declared tool list, compact JSON; same instrument before and after)
+before: 39 tools, 81593 characters
+after:  42 tools, 89428 characters

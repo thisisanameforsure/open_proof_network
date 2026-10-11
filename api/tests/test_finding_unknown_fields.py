@@ -265,6 +265,24 @@ def writeups(h: Harness, key: PrecheckKey) -> Prepared:
     return body, h.auth(h.token_for("code_alice", "alice"))
 
 
+def me_name(h: Harness, key: PrecheckKey) -> Prepared:
+    """F25-T4: a display name, refused before the approval key is read."""
+    return {"name": "A", "link": None}, h.auth(h.token_for("code_alice", "alice"))
+
+
+def registrations(h: Harness, key: PrecheckKey) -> Prepared:
+    """F25-T4: a registration record, refused before the graph is read."""
+    body = {
+        "target_id": TARGET,
+        "registry": "palomar",
+        "wrapper": {"repository": "o/r", "commit": "a" * 40},
+        "graph_commit": "b" * 40,
+        "proof": {"node": TUTORIAL_NODE, "attestation": "000001"},
+        "status": "submitted",
+    }
+    return body, h.auth(h.token_for("code_alice", "alice"))
+
+
 #: Every POST route of ``routes.ROUTES`` that reads a JSON body (``DELETE /claims/<id>`` has none);
 #: ``/tokens/renew`` reads an empty one, refusing any key (F05-T27).
 WRITE_ROUTES: dict[str, Prepare] = {
@@ -293,6 +311,8 @@ WRITE_ROUTES: dict[str, Prepare] = {
     "/motions": motions,  # F24-T5
     "/votes": votes,  # F24-T5
     "/writeups": writeups,  # F24-T5
+    "/me/name": me_name,  # F25-T4
+    "/registrations": registrations,  # F25-T4
 }
 
 

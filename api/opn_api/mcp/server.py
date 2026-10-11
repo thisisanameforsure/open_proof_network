@@ -191,6 +191,9 @@ TITLES: dict[str, str] = {
     "withdraw_gloss": "Withdraw words",
     "propose_literature": "Propose a literature status",
     "confirm_literature": "Confirm a literature status",
+    "list_registrations": "List registry registrations",
+    "set_display_name": "Set my display name",
+    "register_target": "Record a registration",
 }
 
 
