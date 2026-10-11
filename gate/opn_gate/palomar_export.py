@@ -21,7 +21,7 @@ from typing import Any
 from opn_gate import defs as defsmod
 from opn_gate import fidelity as fidelitymod
 from opn_gate import graph as graphmod
-from opn_gate import intake, layout, ledger, palomar, paths, schemas
+from opn_gate import intake, layout, ledger, names, palomar, paths
 from opn_gate.diagnostic import Diagnostic
 
 SITE_URL = "https://openproofnetwork.org/"
@@ -434,6 +434,7 @@ def export(  # noqa: PLR0912, PLR0915 — one refusal per rule, in the order the
         raise refuse(definitions.code, definitions.message)
     inline = [(d.module, strip_imports(d.source.read_text(encoding="utf-8"))) for d in definitions]
     definition_names = [name for _, src in inline for name in _definition_names(src)]
+    del definition_names  # kept out of comparator.json on purpose (Q1); the README names them
     files: dict[str, bytes] = {}
     hashes_in: dict[str, str] = {}
     # Challenge: the statement, definitions inlined, own Context dropped (the deps are theorems
@@ -491,7 +492,11 @@ def export(  # noqa: PLR0912, PLR0915 — one refusal per rule, in the order the
         challenge_module="Challenge",
         solution_module="Solution",
         theorem_names=(statement.decl_name,),
-        definition_names=tuple(definition_names),
+        # F25-Q1, answered by probe 1 (2026-10-11): a definition *listed* here is a hole the
+        # Solution may fill with any body (Comparator accepted a different body); an unlisted one
+        # is compared as a constant and a different body is refused. So the Challenge's
+        # definitions are duplicated byte for byte in the development and listed nowhere.
+        definition_names=(),
         permitted_axioms=tuple(spec.get("axiom_allowlist") or palomar.pins()["permitted_axioms"]),
     )
     files["comparator.json"] = palomar.write_comparator(comparator).encode("utf-8")
@@ -676,21 +681,7 @@ def authors(graph_root: Path, target_id: str, closure: Closure) -> list[str]:
                 if identity not in found:
                     found.append(identity)
                 break
-    return [display_name(graph_root, p) or p for p in found]
-
-
-def display_name(graph_root: Path, pseudonym: str) -> str | None:
-    """The latest ``names/<pseudonym>.yaml``'s name, or ``None`` (F25-R6; the T4 reader,
-    ``names.display_name``, is the same rule over the same file)."""
-    path = graph_root / "names" / f"{pseudonym}.yaml"
-    if not path.is_file():
-        return None
-    try:
-        doc = schemas.load_yaml(path, "display-name/v1")
-    except schemas.SchemaError:
-        return None
-    name = doc.get("name")
-    return str(name) if isinstance(name, str) and name.strip() else None
+    return [names.display_name(graph_root, p) or p for p in found]
 
 
 def method_from_string(declared: str) -> dict[str, Any]:

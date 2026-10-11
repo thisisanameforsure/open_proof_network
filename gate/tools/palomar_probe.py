@@ -192,6 +192,7 @@ def main() -> int:
     )
     for variant, defs, names in (
         ("same-body", same_def, ["Probe.f"]),
+        ("same-body-unlisted", same_def, []),
         ("other-body-listed", other_def, ["Probe.f"]),
         ("other-body-unlisted", other_def, []),
     ):

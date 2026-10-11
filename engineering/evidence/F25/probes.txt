@@ -1,0 +1,72 @@
+# F25-T2 — Comparator and module-system probes at leanprover/lean4:v4.35.0-rc2 on ubuntu-24.04 (run 38112824129, commit 93a40fcf, 2026-10-11). Four runs to get an answer: run 1 read the toolchain from the repository root (4.33.1) and passed Comparator a relative path; run 2 passed external_kernels as a list (object expected); run 3 died in bwrap (AppArmor confines unprivileged user namespaces on 24.04; sysctl kernel.apparmor_restrict_unprivileged_userns=0).
+
+Lean (version 4.35.0-rc2, x86_64-unknown-linux-gnu, commit 11acb17ec6b07a8f9e9173e6845197929540936b, Release)
+
+lake: present
+leanexport: present
+leanchecker: present
+nanoda_bin: present
+con-ron: present
+
+
+## summary (comparator exit 0 = accepted)
+p1-definition-bodies       same-body            build=True comparator=0 9.1s  does Comparator compare the definition's body (refuse other-body) or only its type (accept)?
+p1-definition-bodies       other-body-listed    build=True comparator=0 8.9s  does Comparator compare the definition's body (refuse other-body) or only its type (accept)?
+p1-definition-bodies       other-body-unlisted  build=True comparator=1 1.9s  does Comparator compare the definition's body (refuse other-body) or only its type (accept)?
+p2-structural-recursion    duplicated           build=True comparator=0 9.0s  auxiliary declarations of a recursive definition exist in two modules
+p3-theorem-location        in-solution          build=True comparator=0 8.9s  the theorem declared in Solution.lean itself
+p3-theorem-location        via-import           build=True comparator=0 9.2s  the theorem reached only through public import
+p4-decide                  range-100            build=True comparator=0 9.1s  nanoda and con-ron on a decide term (2000 hit maxRecDepth at elaboration, first run)
+p5-sorry-elsewhere         unused-sorry         build=True comparator=0 9.4s  a sorry in a development module the theorem never uses
+p7-expose                  exposed              build=True comparator=0 9.6s  @[expose] public section: rfl across modules
+p7-expose                  bare-public          build=False comparator=None 0.7s  bare public section: does rfl across modules still elaborate?
+
+## answers
+1. definition_names: a definition LISTED in comparator.json is a hole the Solution may fill with any body —
+   Challenge `def Probe.f n := n + 1`, development `def Probe.f n := 2`, Solution proves `Probe.f 1 = 2` by rfl:
+   ACCEPTED (other-body-listed, exit 0). The same with Probe.f UNLISTED: REFUSED, "Const does not match between
+   challenge and target 'Probe.f'" (other-body-unlisted, exit 1). So the sound export shape is: duplicate every
+   definition byte for byte in the development and list none in definition_names (F25-Q1 decided: duplicate,
+   unlisted; the export no longer writes definition_names). Confirming variant same-body-unlisted runs next.
+2. A structurally recursive definition duplicated in two modules: accepted (p2, exit 0).
+3. The theorem reached through `public import` of the development is as good as one declared in Solution.lean
+   (p3 both exit 0). The export declares it in Solution.lean anyway.
+4. A decide term (List.range 100 fold) replays through con-ron, nanoda and Lean's kernel in ~9 s (p4, exit 0);
+   at List.range 2000 the elaborator's maxRecDepth was hit before any kernel (run 2).
+5. A `sorry` in a development module the theorem does not use is ACCEPTED (p5, exit 0): Comparator judges the
+   named theorems' axioms, not every module. The export refuses any sorry outside the Challenge all the same
+   (export-sorry), because the registry's source scan and reviewer read the whole repository.
+6. Lean 4.33.1 accepts `module`, `public import` and `@[expose] public section` on a core-only file (laptop,
+   2026-10-10) and the propositional fixture's wrapper elaborates, replays and judges at the pin
+   (test_export_palomar_lean.py, 2 passed). The Mathlib half (oleans built without the module system) waits
+   for the docker tier.
+7. `@[expose] public section` is required: with a bare `public section` a `rfl` across modules fails to
+   elaborate ("Tactic `rfl` failed", p7 bare-public, build failed); exposed, Comparator accepts (exit 0).
+
+## one verdict in full (p1 same-body)
+$ lake comparator --config /home/runner/work/open_proof_network/open_proof_network/probes/work/p1-definition-bodies-same-body/comparator.generated.json
+Resolving dependencies
+Building Challenge
+⚠ [2/3] Replayed Challenge
+warning: Challenge.lean:9:8: declaration uses `sorry`
+Build completed successfully (3 jobs).
+Exporting #[Quot, Quot.mk, Quot.lift, Quot.ind, Probe.t, propext, Quot.sound, Classical.choice, Nat.add, Nat.sub, Nat.mul, Nat.pow, Nat.gcd, Nat.div, Nat.mod, Nat.beq, Nat.ble, Nat.land, Nat.lor, Nat.xor, Nat.shiftLeft, Nat.shiftRight, String.ofList, Char.ofNat, List, eagerReduce, Nat, String, String.mk, Char, optParam, autoParam, semiOutParam, outParam, Probe.f] from Challenge
+Building Solution
+Build completed successfully (4 jobs).
+Exporting #[Quot, Quot.mk, Quot.lift, Quot.ind, Probe.t, propext, Quot.sound, Classical.choice, Nat.add, Nat.sub, Nat.mul, Nat.pow, Nat.gcd, Nat.div, Nat.mod, Nat.beq, Nat.ble, Nat.land, Nat.lor, Nat.xor, Nat.shiftLeft, Nat.shiftRight, String.ofList, Char.ofNat, List, eagerReduce, Nat, String, String.mk, Char, optParam, autoParam, semiOutParam, outParam, Probe.f] from Solution
+Running con-ron kernel on solution
+con-ron: accepted 467 declarations (--verified)
+con-ron kernel accepts the solution
+Running nanoda kernel on solution
+nanoda kernel accepts the solution
+Running Lean default kernel on solution
+Lean default kernel accepts the solution
+Your solution is okay!
+
+con-ron: 1 inductive blocks modelled in-process: Lean.Syntax (30 generated records, checked by the fold as declarations and not counted as records of the file)
+
+(exit 0)
+## the refusal (p1 other-body-unlisted)
+(exit 0)
+error: Const does not match between challenge and target 'Probe.f'
+(exit 1)
