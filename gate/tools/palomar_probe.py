@@ -76,10 +76,12 @@ def comparator_config(prefix: Path, theorem_names: list[str], definition_names: 
             "theorem_names": theorem_names,
             "definition_names": definition_names,
             "permitted_axioms": AXIOMS,
-            "external_kernels": [
-                {"name": "nanoda", "argv": [str(prefix / "bin" / "nanoda_bin")]},
-                {"name": "con-ron", "argv": [str(prefix / "bin" / "con-ron")]},
-            ],
+            # Lake.Check.Config: an object, kernel name -> argv (the first run passed a list and
+            # was refused "object expected")
+            "external_kernels": {
+                "nanoda": [str(prefix / "bin" / "nanoda_bin")],
+                "con-ron": [str(prefix / "bin" / "con-ron")],
+            },
         },
         indent=2,
     )
