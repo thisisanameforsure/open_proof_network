@@ -1,0 +1,59 @@
+# F25-R13: the conformance corpus — registered Palomar entries re-checked with the network's own
+# tools at their toolchains, and the registry's pins re-probed (F25-Q12). Weekly and on dispatch
+# over every entry; on a pull request that changes the verifier, the two smallest. Fails on any
+# disagreement between the network's checkers and the registry's, or on a moved pin.
+name: palomar-corpus
+on:
+  schedule:
+    - cron: "17 5 * * 1"
+  workflow_dispatch:
+    inputs:
+      entries:
+        description: "comma-separated Palomar ids, or all"
+        default: "all"
+  pull_request:
+    paths:
+      - gate/opn_gate/palomar_verify.py
+      - gate/tools/palomar_corpus.py
+      - gate/palomar/corpus.json
+      - .github/workflows/palomar-corpus.yml
+permissions:
+  contents: read
+jobs:
+  corpus:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d  # v10.0.1
+        with:
+          version: "0.12.10"
+      - name: Make room (a Mathlib cache is ~7 GiB per toolchain)
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+          df -h / | tail -1
+      - name: Install bubblewrap and elan
+        run: |
+          sudo apt-get update -q && sudo apt-get install -y -q bubblewrap
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+          curl -sSfL https://github.com/leanprover/elan/releases/latest/download/elan-x86_64-unknown-linux-gnu.tar.gz | tar xz
+          ./elan-init -y --no-modify-path --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - name: Verify the corpus
+        run: |
+          uv sync --frozen --quiet
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            uv run --frozen python gate/tools/palomar_corpus.py --out conformance --entries PALOMAR-2026-10-03-000008,PALOMAR-2026-09-30-000004
+          else
+            uv run --frozen python gate/tools/palomar_corpus.py --out conformance --entries "${{ inputs.entries || 'all' }}"
+          fi
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
+        if: always()
+        with:
+          name: palomar-conformance
+          path: |
+            conformance/*.json
+            conformance/*.txt
+          if-no-files-found: error

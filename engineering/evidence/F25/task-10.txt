@@ -1,0 +1,5 @@
+# F25-T10 — the conformance verifier (R13): clone at the recorded commit, hashes held to the record, build, Comparator with the kernels, the network's checkers per theorem; the corpus tool and its weekly workflow. 2026-10-11T05:39:14Z
+
+9 passed in 0.20s
+
+## the network run: .github/workflows/palomar-corpus.yml on pull request #30 (two entries) and weekly over seven; results appended below when the first run completes
