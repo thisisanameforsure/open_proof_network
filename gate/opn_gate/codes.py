@@ -2941,10 +2941,12 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
     "not-steward-or-curator": (
         "api",
         None,
-        "Only an active steward of the target or a listed curator may approve words (D-3 v3.33).",
+        "Only an active steward of the target or a listed curator may do this: approve words "
+        "(D-3 v3.33), confirm a literature status (D-25 v3.35) or record a registration "
+        "(D-10 v3.37).",
         (
-            "Become the problem's steward at /steward/<target>/, or ask one of its stewards to "
-            "approve."
+            "Become the problem's steward at /steward/<target>/, or ask one of its stewards or a "
+            "curator to do it."
         ),
     ),
     "return-invalid": (
