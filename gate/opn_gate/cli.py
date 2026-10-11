@@ -185,6 +185,23 @@ def build_parser() -> argparse.ArgumentParser:  # noqa: PLR0915 — one statemen
     fpr.add_argument("--target", required=True)
     _add_sandbox_args(fpr)
 
+    pal = sub.add_parser(
+        "export-palomar",
+        help="write one resolved target as a wrapper repository in Palomar's shape (F25-R8); "
+        "--check elaborates, replays and judges it at the graph's pin (R11)",
+    )
+    pal.add_argument("--graph", required=True, type=Path, help="path to the graph checkout")
+    pal.add_argument("--commit", default="HEAD", help="the graph commit to export (default HEAD)")
+    pal.add_argument("--target", required=True)
+    pal.add_argument("--out", type=Path, help="output directory (default: a fresh temp dir)")
+    pal.add_argument(
+        "--licence",
+        help="the graph's licence as an SPDX id, for a graph commit with no root LICENSE yet "
+        "(F25-Q15; recorded in opn-export.json as supplied by flag)",
+    )
+    pal.add_argument("--check", action="store_true", help="run the local check at the pin (R11)")
+    pal.add_argument("--install", action="store_true", help="let elan install the pinned toolchain")
+
     otl = sub.add_parser(
         "outline",
         help="extract the outline of every merged proof artifact that has none (F19-R5, R6), "
@@ -823,6 +840,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         "pregate": run_pregate,
         "reproduce": run_reproduce,
         "footprints": run_footprints,
+        "export-palomar": run_export_palomar,
         "outline": run_outline,
         "gate": run_gate,
         "classify": run_classify,
@@ -1151,6 +1169,64 @@ def run_reproduce(args: argparse.Namespace, settings: config.Settings) -> int:
         sys.stdout.write(json.dumps(result) + "\n")
         return EXIT_PASS if result["identical"] else EXIT_FAIL
     return code
+
+
+def run_export_palomar(args: argparse.Namespace, settings: config.Settings) -> int:
+    """F25-R8, R11 (D-10 v3.37): export ``--target`` at ``--commit`` as a wrapper repository
+    under ``--out/<package>/``; with ``--check``, elaborate and judge it at the graph's pin and
+    write ``local-check.json`` beside it. Exit 1 on a refusal or a failed check, with the
+    diagnostic on stdout as JSON; nothing is written to the graph."""
+    from opn_gate import palomar, palomar_check, palomar_export  # noqa: PLC0415 — only here
+
+    graph, commit = _checkout_and_commit(args.graph, args.commit)
+    out_dir = _out_dir(args.out, "opn-palomar-")
+    tree = export_tree(graph, commit, out_dir / "tree")
+    try:
+        exported = palomar_export.export(
+            tree, args.target, graph_commit=commit, licence=args.licence
+        )
+    except palomar_export.ExportError as exc:
+        sys.stdout.write(json.dumps({"ok": False, "refused": exc.diagnostic.as_dict()}) + "\n")
+        return EXIT_FAIL
+    except graphmod.GraphError as exc:
+        raise CliError(str(exc)) from exc
+    project = out_dir / exported.package
+    exported.write(project)
+    summary: dict[str, Any] = {
+        "ok": True,
+        "target": args.target,
+        "commit": commit,
+        "package": exported.package,
+        "project": str(project),
+        "closure": list(exported.closure.order),
+        "pruned": exported.closure.pruned,
+        "check": None,
+    }
+    if args.check:
+        try:
+            tc_seam = toolchain.LocalToolchain.from_settings(settings)
+            spec = exported.record
+            tc = tc_seam.resolve(
+                str(spec["lean_toolchain"]),
+                install=bool(args.install),
+                mathlib_sha=spec.get("mathlib_sha"),
+            )
+        except (toolchain.ToolchainMissingError, toolchain.ToolchainError) as exc:
+            raise CliError(str(exc)) from exc
+        report = palomar_check.local_check(
+            tc_seam,
+            tc,
+            project,
+            package=exported.package,
+            decl=exported.decl,
+            allowlist=list(
+                exported.record.get("axiom_allowlist") or palomar.pins()["permitted_axioms"]
+            ),
+        )
+        summary["check"] = report.as_dict()
+        summary["ok"] = report.ok
+    sys.stdout.write(json.dumps(summary, ensure_ascii=False) + "\n")
+    return 0 if summary["ok"] else EXIT_FAIL
 
 
 def run_footprints(args: argparse.Namespace, settings: config.Settings) -> int:
