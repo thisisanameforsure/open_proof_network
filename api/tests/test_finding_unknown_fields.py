@@ -23,6 +23,7 @@ from typing import Any
 import pytest
 import samples
 from api_fakes import (
+    AUTOMATION,
     PROOF_PREFIX,
     TUTORIAL_NODE,
     TUTORIAL_PROOF,
@@ -101,6 +102,7 @@ def submissions(h: Harness, key: PrecheckKey) -> Prepared:
         "artifact_type": "proof",
         "bundle": BUNDLE,
         "precheck_job_id": job["id"],
+        "automation": AUTOMATION,
     }
     return body, h.auth(token)
 

@@ -626,6 +626,14 @@ class Harness:
         return doc
 
 
+#: F25-R2: the automation block POST /submissions requires of every artifact (D-23 v3.37), for
+#: every test whose subject is something else.
+AUTOMATION: dict[str, Any] = {
+    "method": "agent",
+    "models": ["claude-fable-5-1"],
+    "framework": "Claude Code 2.1",
+}
+
 #: What the fake checker answers when a test scripts nothing: a clean compile.
 AXLE_OKAY: dict[str, Any] = {
     "okay": True,

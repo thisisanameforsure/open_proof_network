@@ -18,6 +18,7 @@ import pytest
 import samples
 import yaml
 from api_fakes import (
+    AUTOMATION,
     PROOF_PREFIX,
     TUTORIAL_NODE,
     TUTORIAL_PROOF,
@@ -464,12 +465,14 @@ def submit_proof_pair(key: PrecheckKey) -> tuple[Harness, dict[str, Any], Harnes
         "artifact_type": "proof",
         "bundle": BUNDLE,
         "attestation": at_a,
+        "automation": AUTOMATION,
     }
     body = {
         "node_id": TUTORIAL_NODE,
         "artifact_type": "proof",
         "bundle": BUNDLE,
         "precheck_job_id": at_b["id"],
+        "automation": AUTOMATION,
     }
     return a, {"token": ta, "args": args}, b, {"token": tb, "body": body}
 

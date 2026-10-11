@@ -27,7 +27,7 @@ from typing import Any
 import pytest
 import samples
 import yaml
-from api_fakes import Harness, PrecheckKey, make_precheck_key, result_zip
+from api_fakes import AUTOMATION, Harness, PrecheckKey, make_precheck_key, result_zip
 from test_precheck import PROOF
 from test_proposals import (
     DEP_STATEMENT,
@@ -202,6 +202,7 @@ def test_a_submission_before_the_merge_says_the_precheck_is_open(
             "artifact_type": "proof",
             "bundle": {f"{NODES}{node_id}/Proof.lean": PROOF},
             "tooling": {"model": None, "harness": None},
+            "automation": AUTOMATION,
         },
         headers=harness.auth(token),
     )
@@ -272,6 +273,7 @@ def test_a_precheck_at_the_head_binds_a_submission_after_the_merge(
             "artifact_type": "proof",
             "bundle": {f"{NODES}{node_id}/Proof.lean": PROOF},
             "tooling": {"model": None, "harness": None},
+            "automation": AUTOMATION,
             "precheck_job_id": job["id"],
         },
         headers=harness.auth(token),
@@ -332,6 +334,7 @@ def test_a_statement_changed_after_the_precheck_is_refused_at_submission(
             "artifact_type": "proof",
             "bundle": {f"{NODES}{node_id}/Proof.lean": PROOF},
             "tooling": {"model": None, "harness": None},
+            "automation": AUTOMATION,
             "precheck_job_id": job["id"],
         },
         headers=harness.auth(token),

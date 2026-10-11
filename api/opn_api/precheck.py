@@ -83,6 +83,9 @@ class Job:
     #: (path under the node), so the served result can say which of them the pinned gate did
     #: not check; ``None`` for a bundle that carried none, and for a job stored before this.
     carried: list[dict[str, str]] | None = None
+    #: F25-R3 (D-23 v3.37): the ``automation`` block offered with the request, validated, or
+    #: ``None`` — not required here (F25-Q14), required of the submission (F25-R2).
+    automation: dict[str, Any] | None = None
 
     @property
     def anonymous(self) -> bool:
@@ -110,6 +113,7 @@ class Job:
             "graph_commit": self.graph_commit,
             "bundle_digest": self.bundle_digest,
             "authenticated": not self.anonymous,
+            "automation": self.automation,
         }
         if state == "done":
             out["result"] = self.result
@@ -638,7 +642,7 @@ def check_cited_annex(
 #: F05-T8: the fields ``POST /precheck`` reads; any other top-level key is refused.
 #: ``artifact_type`` is optional (F14 bench finding): when given, the bundle's paths are held to
 #: the submission route's type-to-path rule before any job exists. It is not recorded on the job.
-PRECHECK_FIELDS: tuple[str, ...] = ("node_id", "bundle", "artifact_type")
+PRECHECK_FIELDS: tuple[str, ...] = ("node_id", "bundle", "artifact_type", "automation")
 
 
 async def post_precheck(ctx: Context, request: Request) -> Response:
@@ -656,6 +660,8 @@ async def post_precheck(ctx: Context, request: Request) -> Response:
         if "artifact_type" in fields
         else None
     )
+    # F25-R3, Q14: validated when offered, before any token is read or any job exists.
+    automation = submissions.check_automation(fields.get("automation"), required=False)
     # F06-T10: a node that exists only in a proposal whose gate is green runs at its head
     facts, proposal = facts_or_proposal(ctx, node_id)
     # F06-T6: a blocked node can only fail at the dependency check, so it is refused before any
@@ -712,6 +718,7 @@ async def post_precheck(ctx: Context, request: Request) -> Response:
         nonce=nonce,
         proposal=proposal.reference() if proposal is not None else None,
         carried=[{"path": w.path, "sha256": w.sha256} for w in carried] or None,
+        automation=automation,
     )
     save(ctx, job)
     dispatch(ctx, job, bundle)
@@ -744,6 +751,8 @@ def branch_files(job: Job, bundle: Bundle) -> dict[str, str]:
     }
     if job.proposal:
         record["proposal"] = job.proposal  # F06-T10: read by nobody in the run; for a reader
+    if job.automation is not None:
+        record["automation"] = job.automation  # F25-R3: echoed by the runner's result document
     files = {JOB_FILE: json.dumps(record, indent=2, sort_keys=True) + "\n"}
     for path, content in bundle.files.items():
         files[f"{BUNDLE_DIR}/{path}"] = content

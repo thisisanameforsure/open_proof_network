@@ -119,6 +119,9 @@ class Submission:
     #: named in the next claim's receipt (ruling D2); ``None`` for every other kind, and for a
     #: claim recorded before the field existed.
     defect_class: str | None = None
+    #: F25-R2: the ``automation`` block ``POST /submissions`` accepted (D-23 v3.37), served on the
+    #: record's row; ``None`` for every other kind and for a record made before the field existed.
+    automation: dict[str, Any] | None = None
 
 
 def proposes(submission: Submission) -> bool:
@@ -908,6 +911,9 @@ def _submission(record: dict[str, Any]) -> Submission:
         final_state=dict(final) if isinstance(final, dict) else None,
         fingerprints=tuple(str(fp) for fp in record.get("fingerprints") or ()),
         defect_class=_optional_str(record.get("defect_class")),
+        automation=(
+            dict(record["automation"]) if isinstance(record.get("automation"), dict) else None
+        ),
     )
 
 

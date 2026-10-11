@@ -93,7 +93,7 @@ async def release_claim(call: Call, args: dict[str, Any]) -> dict[str, Any]:
 
 
 async def precheck_submission(call: Call, args: dict[str, Any]) -> dict[str, Any]:
-    body = present("precheck_submission", args, "node_id", "bundle", "artifact_type")
+    body = present("precheck_submission", args, "node_id", "bundle", "artifact_type", "automation")
     out = await forward(call, "POST", "/precheck", body)
     body = out["body"] if isinstance(out["body"], dict) else {}
     return {**out, "job_id": body.get("id"), "poll": POLL}
@@ -134,7 +134,14 @@ async def submit_proof(call: Call, args: dict[str, Any]) -> dict[str, Any]:
     if isinstance(attestation, dict):
         fields["attestation"] = attestation.get("id")  # the id is what binds (F09-Q2)
     body = present(
-        "submit_proof", fields, "node_id", "artifact_type", "bundle", "tooling", *PRECHECK_REFS
+        "submit_proof",
+        fields,
+        "node_id",
+        "artifact_type",
+        "bundle",
+        "tooling",
+        "automation",
+        *PRECHECK_REFS,
     )
     return await forward(call, "POST", "/submissions", body)
 
@@ -278,6 +285,59 @@ TOOLING = {
         "harness": DECLARED,
     },
 }
+#: F25-R1 (D-23 v3.37): the structured disclosure, as submission-meta/v2's block defines it. Every
+#: property described (F09-T21); the trio required, since POST /submissions requires it (F25-R2).
+_SHORT = {"type": "string", "minLength": 1, "maxLength": 200}
+AUTOMATION = {
+    "type": "object",
+    "description": "how the artifact was made (D-23): method, models and framework are required "
+    "of every submission (missing: 400 automation-missing; malformed: 400 automation-invalid, "
+    "nothing opens); the cost fields are optional. One line: "
+    '{"method": "agent", "models": ["claude-fable-5-1"], "framework": "Claude Code 2.1"}',
+    "additionalProperties": False,
+    "required": ["method", "models", "framework"],
+    "properties": {
+        "method": {
+            "enum": ["manual", "copilot", "agent", "autonomous", "other"],
+            "description": "manual: a person wrote it; copilot: a person with model suggestions; "
+            "agent: an agent under a person's direction; autonomous: unattended; other",
+        },
+        "models": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 20,
+            "items": _SHORT,
+            "description": "every model that contributed, by its provider's published name",
+        },
+        "framework": {
+            **_SHORT,
+            "description": "the harness the models ran in, with its version where known",
+        },
+        "tool_setup": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000,
+            "description": "tools, plugins, orchestration, in prose (optional)",
+        },
+        "wall_time": {**_SHORT, "description": "how long the work took, in your words (optional)"},
+        "tokens": {
+            "type": "object",
+            "additionalProperties": False,
+            "required": ["input", "output"],
+            "description": "total tokens consumed and produced, when the harness reports them "
+            "(optional)",
+            "properties": {
+                "input": {"type": "integer", "minimum": 0, "description": "input tokens"},
+                "output": {"type": "integer", "minimum": 0, "description": "output tokens"},
+            },
+        },
+        "hardware": {**_SHORT, "description": "what it ran on (optional)"},
+        "spend": {
+            **_SHORT,
+            "description": "what it cost, in your words: subscription, $12.40, unknown (optional)",
+        },
+    },
+}
 #: F08-T26 (R21): one sentence on use lines, shared by the tools that take a proof's text.
 USES_NOTE = (
     " A proof may add use lines (`import Defs.<Name>`, `import Nodes.«<id>».Proof`) after the "
@@ -401,6 +461,11 @@ TOOLS: tuple[Tool, ...] = (
                     "description": "optional: the type this bundle will be submitted as; a "
                     "bundle at the wrong path for it is refused before any job starts",
                 },
+                "automation": {
+                    **AUTOMATION,
+                    "description": "optional here, required by submit_proof: the same block, "
+                    "validated when offered (400 automation-invalid) and echoed on the job",
+                },
             },
             ("node_id", "bundle"),
         ),
@@ -522,8 +587,9 @@ TOOLS: tuple[Tool, ...] = (
                     "attestation, not both",
                 },
                 "tooling": TOOLING,
+                "automation": AUTOMATION,
             },
-            ("node_id", "artifact_type", "bundle"),
+            ("node_id", "artifact_type", "bundle", "automation"),
         ),
         submit_proof,
         write=True,

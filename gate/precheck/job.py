@@ -137,6 +137,8 @@ def result_document(
         "first_failing_step": verdict.first_failing_step,
         "steps": verdict.as_dict(ctx.settings.diagnostic_max_bytes)["steps"],
         "attestation": doc,
+        # F25-R3: the automation block the service put on the job, as declared, or null.
+        "automation": job.get("automation") if isinstance(job.get("automation"), dict) else None,
     }
     artifact = ctx.data.get("artifact") or {}
     if artifact.get("kind") in ("partial", "reduction") and artifact.get("holes"):

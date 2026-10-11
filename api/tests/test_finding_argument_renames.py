@@ -23,6 +23,7 @@ from typing import Any, cast
 
 import pytest
 from api_fakes import (
+    AUTOMATION,
     PROOF_PREFIX,
     TUTORIAL_NODE,
     TUTORIAL_PROOF,
@@ -126,7 +127,12 @@ def test_submit_proof_accepts_precheck_job_id_and_forwards_the_same_body(
     assert "precheck_job_id" in properties, sorted(properties)
 
     [tool] = [t for t in writes.TOOLS if t.name == "submit_proof"]
-    common = {"node_id": TUTORIAL_NODE, "artifact_type": "proof", "bundle": BUNDLE}
+    common = {
+        "node_id": TUTORIAL_NODE,
+        "artifact_type": "proof",
+        "bundle": BUNDLE,
+        "automation": AUTOMATION,
+    }
     by_id = sent_body(tool, {**common, "precheck_job_id": JOB_ID})
     by_attestation = sent_body(tool, {**common, "attestation": {"id": JOB_ID, "state": "done"}})
     assert by_id == by_attestation == {**common, "precheck_job_id": JOB_ID}

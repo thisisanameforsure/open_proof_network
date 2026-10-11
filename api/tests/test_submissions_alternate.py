@@ -13,6 +13,7 @@ from typing import Any
 
 import pytest
 from api_fakes import (
+    AUTOMATION,
     PROOF_PREFIX,
     TUTORIAL_PROOF,
     Harness,
@@ -64,6 +65,7 @@ def passing_job(h: Harness, key: PrecheckKey, token: str, node: str, bundle: dic
 
 def submit(h: Harness, token: str, node: str, bundle: dict[str, str], job: str) -> Any:
     body = {"node_id": node, "artifact_type": "proof", "bundle": bundle, "precheck_job_id": job}
+    body["automation"] = AUTOMATION
     return h.client.post("/submissions", json=body, headers=h.auth(token))
 
 

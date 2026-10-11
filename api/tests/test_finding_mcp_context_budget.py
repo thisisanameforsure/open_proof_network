@@ -266,3 +266,29 @@ def test_pin_a_tool_that_needs_a_token_refuses_inside_the_result(
     result = r.json()["result"]
     assert result["isError"] is True
     assert "get_token" in compact(result["structuredContent"])
+
+
+# --- F25-T3: the whole listing has a budget --------------------------------------------------------
+
+#: The most a client may be handed by ``tools/list``, as compact JSON of every listed tool with its
+#: input and output schemas. Measured, not planned: 81,583 characters before F25-T3 and 85,280
+#: after it (2026-10-11), when `submit_proof` gained the required `automation` block and
+#: `precheck_submission` the same block optional (D-23 v3.37; +3,697, 4.5%; the input schemas
+#: alone 44,024 → 47,509). A change that crosses the ceiling re-measures and says why.
+TOOLS_LIST_BUDGET = 86_000
+
+
+def test_the_whole_tools_list_fits_its_budget(harness: Harness) -> None:
+    listed = McpClient(harness).list_tools()
+    docs = [t.model_dump(mode="json", exclude_none=True) for t in listed]
+    size = len(compact(docs))
+    assert size <= TOOLS_LIST_BUDGET, (size, TOOLS_LIST_BUDGET)
+    # the two tools this task grew carry the block, every property of it described
+    by_name = {d["name"]: d for d in docs}
+    for tool in ("submit_proof", "precheck_submission"):
+        block = by_name[tool]["inputSchema"]["properties"]["automation"]
+        assert block["additionalProperties"] is False
+        assert sorted(block["required"]) == ["framework", "method", "models"]
+        assert all(p.get("description") for p in block["properties"].values()), tool
+    assert "automation" in by_name["submit_proof"]["inputSchema"]["required"]
+    assert "automation" not in by_name["precheck_submission"]["inputSchema"]["required"]
