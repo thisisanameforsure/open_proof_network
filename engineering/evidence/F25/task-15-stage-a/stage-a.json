@@ -1,0 +1,99 @@
+{
+  "graph_commit": "5ff1734785078226f8a808b954f10a64145bbd3b",
+  "rehearsal_inputs": {
+    "erdos-1050": {
+      "arxiv": [
+        "math.NT"
+      ],
+      "msc2020": [
+        "11J72",
+        "11B25"
+      ]
+    },
+    "euclid-primes": {
+      "arxiv": [
+        "math.NT"
+      ],
+      "msc2020": [
+        "11A41"
+      ]
+    }
+  },
+  "results": {
+    "erdos-1050": {
+      "ok": true,
+      "package": "OpnErdos1050",
+      "closure": [
+        "erdos-1050--h1-v2--h3",
+        "erdos-1050--h1-v2",
+        "erdos-1050"
+      ],
+      "pruned": {
+        "erdos-1050--h1-v2": {
+          "erdos-1050--h1-v2--h1": "declared, outside the proof term's footprint, and erdos_1050__h1_v2__h1 is not named in the proof's text (F18, F25-Q8)",
+          "erdos-1050--h1-v2--h2": "declared, outside the proof term's footprint, and erdos_1050__h1_v2__h2 is not named in the proof's text (F18, F25-Q8)",
+          "erdos-1050--h1-v2--h4": "declared, outside the proof term's footprint, and erdos_1050__h1_v2__h4 is not named in the proof's text (F18, F25-Q8)"
+        }
+      },
+      "unmeasured": [],
+      "sizes": {
+        "Challenge.lean": 1105,
+        "OpnErdos1050/Nodes/erdos_1050__h1_v2__h3.lean": 45951,
+        "OpnErdos1050/Nodes/erdos_1050__h1_v2.lean": 48322,
+        "Solution.lean": 3645,
+        "OpnErdos1050.lean": 114,
+        "lean-toolchain": 25,
+        "lakefile.toml": 371,
+        "lake-manifest.json": 538,
+        "LICENSE": 11357,
+        "comparator.json": 254,
+        "formalization.yaml": 5297,
+        ".github/workflows/palomar-preflight.yml": 1050,
+        "README.md": 5621,
+        "opn-export.json": 3151
+      }
+    },
+    "euclid-primes": {
+      "ok": true,
+      "package": "OpnEuclidPrimes",
+      "closure": [
+        "infinitude-of-primes--h1",
+        "infinitude-of-primes--h2",
+        "infinitude-of-primes--h3",
+        "infinitude-of-primes--h4",
+        "infinitude-of-primes"
+      ],
+      "pruned": {},
+      "unmeasured": [],
+      "sizes": {
+        "Challenge.lean": 1260,
+        "OpnEuclidPrimes/Defs/Divides.lean": 273,
+        "OpnEuclidPrimes/Defs/Fact.lean": 196,
+        "OpnEuclidPrimes/Defs/IsPrime.lean": 271,
+        "OpnEuclidPrimes/Nodes/infinitude_of_primes__h1.lean": 533,
+        "OpnEuclidPrimes/Nodes/infinitude_of_primes__h2.lean": 1165,
+        "OpnEuclidPrimes/Nodes/infinitude_of_primes__h3.lean": 760,
+        "OpnEuclidPrimes/Nodes/infinitude_of_primes__h4.lean": 616,
+        "Solution.lean": 1588,
+        "OpnEuclidPrimes.lean": 378,
+        "lean-toolchain": 25,
+        "lakefile.toml": 380,
+        "lake-manifest.json": 541,
+        "LICENSE": 11357,
+        "comparator.json": 264,
+        "formalization.yaml": 4275,
+        ".github/workflows/palomar-preflight.yml": 1053,
+        "README.md": 4115,
+        "opn-export.json": 3958
+      }
+    },
+    "tutorial": {
+      "ok": false,
+      "refused": {
+        "code": "export-classification-missing",
+        "message": "tutorial's target.yaml carries no classification (arxiv and msc2020); add one with intake new --arxiv --msc or a curator record (F25-R4)"
+      }
+    }
+  },
+  "note": "Stage A at the graph's pin, from a detached worktree of the graph's origin/main; --licence Apache-2.0 because the graph has no root LICENSE yet (Q15); classifications written into the scratch worktree (the live records carry none, T16)."
+}

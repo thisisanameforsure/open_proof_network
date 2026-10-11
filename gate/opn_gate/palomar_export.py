@@ -795,14 +795,19 @@ def sources_doc(
                     "reading.",
                 }
             )
-    if src.get("kind") == "formal-conjectures" and src.get("url") and not related:
-        related.append(
-            {
-                "id": str(src["url"]),
-                "relationship": "builds-on",
-                "note": "The formal statement was inherited from Formal Conjectures (D-10).",
-            }
-        )
+    prov = record.get("provenance") or {}
+    if not related and prov.get("statement_source") == "formal-conjectures":
+        commit, path = prov.get("upstream_commit"), prov.get("upstream_path")
+        if commit and path:
+            related.append(
+                {
+                    "id": f"https://github.com/google-deepmind/formal-conjectures/blob/{commit}/{path}",
+                    "relationship": "builds-on",
+                    "note": "The formal statement was inherited from Formal Conjectures at this "
+                    "commit (D-10); the network's root statement is that file's affirmative "
+                    "reading.",
+                }
+            )
     return sources, related
 
 

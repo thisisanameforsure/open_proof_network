@@ -1194,7 +1194,17 @@ def run_export_palomar(args: argparse.Namespace, settings: config.Settings) -> i
 
     graph, commit = _checkout_and_commit(args.graph, args.commit)
     out_dir = _out_dir(args.out, "opn-palomar-")
-    tree = export_tree(graph, commit, out_dir / "tree")
+    # A checkout, not a bare tree: a parent whose revised child superseded a hole reads as
+    # `stale` until F08-T10's lifting by commit ancestry says otherwise, and that needs the
+    # history (the 2026-10-04 log; erdos-1050 at the first rehearsal, 2026-10-11).
+    tree = out_dir / "tree"
+    if not (tree / ".git").exists():
+        subprocess.run(
+            ["git", "-C", str(graph), "worktree", "add", "-q", "--detach", str(tree), commit],
+            check=True,
+            capture_output=True,
+            env=git_environment(),
+        )
     try:
         exported = palomar_export.export(
             tree, args.target, graph_commit=commit, licence=args.licence

@@ -240,6 +240,33 @@ def test_formalization_yaml_validates_and_names_the_ledgers_authors(tmp_path: Pa
     assert doc.sections["repository"] == {"role": "substantive-development"}
     assert doc.review_status in ("agent-reviewed", "author-verified")
     assert "mechanical-only" in doc.sections["fidelity"]["divergences"]
+    text = run(root).files["formalization.yaml"].decode()
+    assert "&id" not in text and "*id" not in text  # no YAML anchors or aliases
+    # the inherited statement is a related formalization at the upstream file, not the problem page
+    root2 = ready(tmp_path / "fc")
+    rec = yaml.safe_load(intake.record_path(root2 / "targets" / TARGET).read_text())
+    rec["source"] = {
+        "kind": "formal-conjectures",
+        "ref": "FormalConjectures/ErdosProblems/1.lean",
+        "url": "https://www.erdosproblems.com/1",
+    }
+    rec["provenance"] = {
+        "statement_source": "formal-conjectures",
+        "author": "The Formal Conjectures Authors",
+        "adversarially_reviewed": False,
+        "upstream_commit": "c" * 40,
+        "upstream_path": "FormalConjectures/ErdosProblems/1.lean",
+    }
+    intake.record_path(root2 / "targets" / TARGET).write_text(yaml.safe_dump(rec, sort_keys=False))
+    fc = palomar.read_formalization(run(root2).files["formalization.yaml"].decode())
+    [related] = fc.sections["related_formalizations"]
+    assert (
+        related["id"]
+        == "https://github.com/google-deepmind/formal-conjectures/blob/"
+        + "c" * 40
+        + "/FormalConjectures/ErdosProblems/1.lean"
+    )
+    assert related["relationship"] == "builds-on"
     # a formalization-track record is a known result: independently-proves, never original-proof
     rels = [s.get("relationship") for s in doc.sections["sources"]]
     assert "independently-proves" in rels and "other" not in rels

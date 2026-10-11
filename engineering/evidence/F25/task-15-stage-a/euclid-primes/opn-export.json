@@ -1,0 +1,61 @@
+{
+  "schema": "opn-export/v1",
+  "target_id": "euclid-primes",
+  "package": "OpnEuclidPrimes",
+  "graph_commit": "5ff1734785078226f8a808b954f10a64145bbd3b",
+  "root": "infinitude-of-primes",
+  "declaration": "Opn.infinitude_of_primes",
+  "statement_hash": "5b109e7fcdb6efbec7644a28e98752abf8a0b84253a4c259dcb10f7a5968d451",
+  "attestation": "000038.json",
+  "merge_commit": "2c0d9798ae82f8547c886da890468406ce9218e7",
+  "lean_toolchain": "leanprover/lean4:v4.33.1",
+  "mathlib_sha": "0df444a360eaa60ab8c11dca51a86af692955474",
+  "closure": [
+    "infinitude-of-primes--h1",
+    "infinitude-of-primes--h2",
+    "infinitude-of-primes--h3",
+    "infinitude-of-primes--h4",
+    "infinitude-of-primes"
+  ],
+  "pruned": {},
+  "kept_by_text": {},
+  "unmeasured": [],
+  "licence": {
+    "spdx": "Apache-2.0",
+    "source": "flag"
+  },
+  "module_system": true,
+  "headers": "rewritten for the module system; every body byte-identical to the graph's (opn-export hashes_in are the graph's files, hashes_out the wrapper's)",
+  "hashes_in": {
+    "Challenge.lean": "5b109e7fcdb6efbec7644a28e98752abf8a0b84253a4c259dcb10f7a5968d451",
+    "OpnEuclidPrimes/Defs/Divides.lean": "9cab858f0289ab5fcd1f97ee6a0062221b7c769401a9abfc43302f41cd4609cd",
+    "OpnEuclidPrimes/Defs/Fact.lean": "bf462e99fe398ee55876ba7d610bd05a7590cb1c8c4f4de695efc82a17a96ced",
+    "OpnEuclidPrimes/Defs/IsPrime.lean": "09f815cbb352d912f8615acf627f100bc98b8ac1cb18dfcec383a028ae85cb3b",
+    "OpnEuclidPrimes/Nodes/infinitude_of_primes__h1.lean": "abb52c9e9aa15b6edc4b57b7fe1763fa6ebc908107cdc03395de2d8fbacee852",
+    "OpnEuclidPrimes/Nodes/infinitude_of_primes__h2.lean": "55a53a1c45b03db46f79e21b63a3da507e9aecca0c40ee7cb39cb9f47bfcee96",
+    "OpnEuclidPrimes/Nodes/infinitude_of_primes__h3.lean": "f2f2f2613dbc4dd2222e5fd2be57dd11f72549622b24999160fe60311f90d5df",
+    "OpnEuclidPrimes/Nodes/infinitude_of_primes__h4.lean": "cd3b591baea673c0210c6bf3da15dafd1565fe8c4e07c79f7502fa0ac4380ee0",
+    "Solution.lean": "959cc47eecf3475c7bca8c4b32c1b8ab0dd8594266a52678dd638fc28d543bc2"
+  },
+  "hashes_out": {
+    ".github/workflows/palomar-preflight.yml": "ba1e2735e9a76113548675aabdc1e474db1c4768328d52eaa23db1768800de2f",
+    "Challenge.lean": "eb93d3c54bb85d1c2aca3a11bde14ed6059cceb2ee604218509130f3c1fd3a9b",
+    "LICENSE": "b40930bbcf80744c86c46a12bc9da056641d722716c378f5659b9e555ef833e1",
+    "OpnEuclidPrimes.lean": "dab04a7edd9719fc4407ce5dcb1ecf222dcab6fb3ae4c21dfac2670edc7b1e78",
+    "OpnEuclidPrimes/Defs/Divides.lean": "6744cfbf0beffce82500afaa2e8baa41d1c9a5e7415e9d4f8ecf42d6c0d3cec7",
+    "OpnEuclidPrimes/Defs/Fact.lean": "652881d5de976b74965c8551097c65886024e419cbc444c7ed5041b69ee24aa7",
+    "OpnEuclidPrimes/Defs/IsPrime.lean": "72f4f97eecc9c3e513efdaa2f66336e2d10d8e7e0fca27a283f1a7be50fa9857",
+    "OpnEuclidPrimes/Nodes/infinitude_of_primes__h1.lean": "c5c99f022c423fded742ae69b95d6353a923aabef0183a7da182a90d325018af",
+    "OpnEuclidPrimes/Nodes/infinitude_of_primes__h2.lean": "1359e1ca516507d1f642a07c52f5e582e90bcc0810a994529cf43f0c0dd7f74b",
+    "OpnEuclidPrimes/Nodes/infinitude_of_primes__h3.lean": "1074903760a83830798ac0704af805a5a634ac51ef0484af238a39ecbfbe1776",
+    "OpnEuclidPrimes/Nodes/infinitude_of_primes__h4.lean": "06133786b76e44af780a6fbafc3a56a3d76c3f76e2ac5fad598ea3d0506f1830",
+    "README.md": "a266508c583dc5b25b657258c3af4ba6b3f193b60c72640a97a896f721b22f0a",
+    "Solution.lean": "c310b21f150f961131e6bfdbe29979476e4c3ab4bb5cc13241f1ba82a5c4ac1d",
+    "comparator.json": "bfb43d0b4def4fca964c4688f52b0947377564252e94740878332a4b8b43fbc4",
+    "formalization.yaml": "979c660bb00aa49e78173540808b7376ebb3ad28656163e206b5838f1e719153",
+    "lake-manifest.json": "3f8467246de6bc78d630e3e0b2b89ff0703349d0107611aeef30663ef5df4e5d",
+    "lakefile.toml": "a9cd34a178f084e4e1a5894fb29eb93fc43c71e65b730e1b5c77a8c59f2c17d2",
+    "lean-toolchain": "3aac669c7a910ec2389f4e4f921b605adf6ebf2d1e0c9b9cd0be4d33f3f5db71"
+  },
+  "registry_pins_observed": "2026-10-11"
+}

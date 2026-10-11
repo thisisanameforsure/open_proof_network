@@ -45,6 +45,14 @@ SECTION_ORDER: tuple[str, ...] = (
 METHODS: tuple[str, ...] = ("manual", "copilot", "agent", "autonomous", "other")
 
 
+class _PlainDumper(yaml.SafeDumper):  # type: ignore[misc]  # PyYAML ships no dumper types
+    """No anchors or aliases: a list the document repeats (the axioms under ``status`` and under
+    each main result) is written out each time, as a reader expects."""
+
+    def ignore_aliases(self, data: object) -> bool:
+        return True
+
+
 class PalomarDocumentError(Exception):
     """A document the registry would refuse, with every violation listed."""
 
@@ -159,7 +167,9 @@ def write_formalization(doc: Formalization) -> str:
         json.loads(FORMALIZATION_SCHEMA_FILE.read_text(encoding="utf-8")).get("$id", "")
     )
     head = "# yaml-language-server: $schema=" + schema_id
-    body: str = yaml.safe_dump(ordered, sort_keys=False, allow_unicode=True, width=100)
+    body: str = yaml.dump(
+        ordered, Dumper=_PlainDumper, sort_keys=False, allow_unicode=True, width=100
+    )
     return head + "\n" + body
 
 
