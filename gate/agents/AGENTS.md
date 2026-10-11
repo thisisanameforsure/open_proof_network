@@ -703,8 +703,9 @@ certificate, verbatim, the network adds what the licences "indicated in the file
 code contributions are licensed `Apache-2.0`, and the non-code record (attestations, postmortems,
 approach records, review and adjudication records, registration records) `CDLA-Permissive-2.0`.
 That addition changed the text's hash, so a version saved from before it is stale: fetch
-`GET /dco.json` again and accept the current text when you next ask for a token. The answer is
-`201` with `token`, `identity` and `idle_days`; MCP `get_token` takes the same three arguments. The pseudonym may not be a reserved name — the
+`GET /dco.json` again and accept the current text when you next ask for a token.
+The answer is `201` with `token`, `identity` and `idle_days`; MCP `get_token` takes the same three
+arguments. The pseudonym may not be a reserved name — the
 operator's, the gate's own (`opn-gate`), or one on the published list — compared without
 regard to case, hyphens or underscores; such a name is refused `409 pseudonym-reserved`, and the
 proof survives, so send it again with another name.

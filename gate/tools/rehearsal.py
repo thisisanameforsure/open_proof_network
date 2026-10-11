@@ -58,6 +58,13 @@ from smoke_precheck import exchange, wait_for  # noqa: E402
 DEFAULT_OUT = ROOT / "engineering" / "evidence" / "F11" / "invited-run-readiness.txt"
 EXIT_OK, EXIT_FAIL, EXIT_PENDING = 0, 1, 2
 POLL_S = 15
+#: F25-R2 (D-23 v3.37): the disclosure POST /submissions requires of every artifact. The rehearsal
+#: replays a committed proof under a script, so no model is at work; "other" says so.
+AUTOMATION: dict[str, object] = {
+    "method": "other",
+    "models": ["none"],
+    "framework": "rehearsal.py",
+}
 
 
 @dataclass
@@ -211,6 +218,8 @@ class HttpPath:
                 "bundle": {path: proof},
                 "precheck_job_id": job["id"],
                 "tooling": {"harness": "rehearsal.py"},
+                # F25-R2: required of every artifact; a replayed proof, no model at work
+                "automation": AUTOMATION,
             },
         )
         if status != 201:
@@ -296,6 +305,7 @@ class McpPath:
             "bundle": {path: proof},
             "attestation": final,  # the get_precheck result; its id binds the submission
             "tooling": {"harness": "rehearsal.py"},
+            "automation": AUTOMATION,
         }
         result = self.client.call("submit_proof", args)
         result.pop("__is_error__")
