@@ -1403,3 +1403,20 @@ The law of the project:
   checkers then agreed with Palomar on two entries at 4.35.0-rc2. **Agents' worktrees come up on `main`**,
   not on the branch the lead is on: say so in the brief (`git reset --hard origin/<branch>` first), and
   remove merged worktrees before the disk reaches 4 GiB, which it did.
+
+- 2026-10-11 — The erdos-1050 port's repair loop and Q24, in one sitting. Three things worth keeping.
+  **A hint attached to an error is not its cause**: Q33 had blamed the module system ("Real.instLT not
+  exposed") for one of three build errors; the fix was a rename — Mathlib (2026-09-01) gave the unprimed
+  `Finset.prod_le_one`/`prod_le_prod` to the ordered-monoid lemmas and the semiring ones became `₀` — so the
+  proof was passing two hypotheses to a lemma that takes one, and the note was Lean reporting what it did
+  not unfold while failing to unify. Grep the Mathlib checkout for the lemma before believing the note.
+  **A whole-file repair silently reverts an export**: a repair the port copies over the wrapper is the full
+  module, so one made against an older export would put that export's text back with nothing red; the
+  `.before.sha256` sidecar is what refuses it, and the report records both hashes so the wrapper's text
+  and the export's can always be told apart. **A step under `set +e` is green whatever happened**: the
+  port job reports success by design so the artifact uploads; the verdict is `port.json`'s `ok` and the
+  Comparator's own lines, and the first thing to do with a green run is download the artifact. Also: a
+  rule that refuses every write of an identity (Q24) breaks every test that fabricates an identity by
+  hand; restating those fixtures to carry the acceptance is the honest fix, since they describe live
+  identities, and the test that fabricates a pre-field identity is now the one that proves the
+  deploy-day behaviour.
