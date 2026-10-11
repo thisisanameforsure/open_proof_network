@@ -1420,3 +1420,14 @@ The law of the project:
   hand; restating those fixtures to carry the acceptance is the honest fix, since they describe live
   identities, and the test that fabricates a pre-field identity is now the one that proves the
   deploy-day behaviour.
+- 2026-10-11 — T16 on the owner's word, and where it stopped. **The gate re-renders on a re-pin now** (F07-T60):
+  the push's gate run dispatched render.yml itself, so my own dispatch was a duplicate; read the run list
+  before dispatching. **A re-pin that bumps a product version outruns the site on main**: the render landed
+  targets-index/v10 while the site code that reads it sat unmerged, and the automatic site-deploy went red
+  (wrote nothing, so the live site kept its last deploy). Merge the network first, re-pin second — the
+  classifier refusing the merge is what inverted the order here, and the api happened to be tolerant. **The
+  session's permission classifier refused three acts the owner had authorised**: the pull-request merge, the
+  public wrapper repository and (once) an opaque pin script; each was left to the owner with the exact command
+  and nothing was worked around. **Which image is which is a fact about layer sizes**, not job order: 1.3 GB
+  plain, 3.8 GB Mathlib, read with `docker buildx imagetools inspect --raw` before any pin was written.
+
