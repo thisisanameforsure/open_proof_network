@@ -564,13 +564,16 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
     "port-challenge-changed": (
         "gate",
         None,
-        "Challenge.lean is not the file the export wrote: only proof bodies may change in a port (F25-R12).",
-        "Restore Challenge.lean from the export (opn-export.json carries its hash); repair proofs in Solution.lean and the development modules only.",
+        "Challenge.lean is not the file the export wrote: only proof bodies may change in a port "
+        "(F25-R12).",
+        "Restore Challenge.lean from the export (opn-export.json carries its hash); repair proofs "
+        "in Solution.lean and the development modules only.",
     ),
     "port-record-missing": (
         "gate",
         None,
-        "The project carries no opn-export.json, so the port cannot tell what the export wrote (F25-R12).",
+        "The project carries no opn-export.json, so the port cannot tell what the export wrote "
+        "(F25-R12).",
         "Port a directory written by export-palomar; the record travels with the wrapper.",
     ),
     "port-toolchain-below-minimum": (
@@ -578,7 +581,8 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         None,
         "The toolchain asked for is below the registry's minimum (gate/palomar/toolchains.json) "
         "(F25-R12).",
-        "Pass a toolchain at or above the minimum the corpus job last recorded; the registry refuses older ones.",
+        "Pass a toolchain at or above the minimum the corpus job last recorded; the registry "
+        "refuses older ones.",
     ),
     "port-comparator-kernels": (
         "gate",
