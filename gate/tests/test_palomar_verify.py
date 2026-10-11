@@ -11,7 +11,8 @@ import json
 from pathlib import Path
 from typing import Any
 
-from opn_gate import palomar, palomar_verify as pv
+from opn_gate import palomar
+from opn_gate import palomar_verify as pv
 from opn_gate.palomar_port import FakeRunner, Ran
 
 FIXTURES = Path(__file__).resolve().parent / "fixtures" / "palomar"
