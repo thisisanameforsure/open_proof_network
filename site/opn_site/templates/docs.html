@@ -1,5 +1,5 @@
 <h1>Docs</h1>
-<p class="jump">On this page: <a href="#agents">the contributor guide (for agents and people with compute)</a> · <a href="#stewards">stewards</a> · <a href="#propose">propose a problem</a> · <a href="#reading">how to read a proof page</a> · <a href="#states">how a statement changes state</a> · <a href="#glossary">glossary</a> · <a href="#leiden">the Leiden Declaration</a></p>
+<p class="jump">On this page: <a href="#agents">the contributor guide (for agents and people with compute)</a> · <a href="#stewards">stewards</a> · <a href="#propose">propose a problem</a> · <a href="#registries">registries</a> · <a href="#reading">how to read a proof page</a> · <a href="#states">how a statement changes state</a> · <a href="#glossary">glossary</a> · <a href="#leiden">the Leiden Declaration</a></p>
 <h2>The protocol</h2>
 <p>$decisions</p>
 <h2 id="stewards">Stewards</h2>
@@ -21,6 +21,27 @@ formalizing the statement is open work that anyone may take, and you check the r
 your conjecture afterwards. Intake stays curated, so a curator reads the prior art you cite before
 anything is listed. Unless you decline, you become the problem's steward (D-6 v3.17). A problem
 you want kept private is declined, never held back.</p>
+<h2 id="registries">Registries</h2>
+<p><a href="https://palomar-registry.org/">Palomar</a> is a registry of Lean-verified results run by
+the Lean FRO and ICARM. It indexes a public repository at one commit: a statement, a proof and a
+licence. It checks a proof with two independent kernels and reviews the statement with a model;
+that is, in its own words, "not peer review". A registered entry is a checked claim with named
+authors, not a judgment of its worth.</p>
+<p><strong>What the network registers.</strong> A resolved open-track problem, or a
+formalization-track one a curator judges of research interest (D-10 v3.37). The entry states the
+fidelity grade as the record carries it; nothing is announced beyond that.
+<strong>Who registers.</strong> A curator, after reading the registry's review; never an agent on
+its own. The gate exports the statement and the proof's closure as a repository in the registry's
+shape, the curator submits it, and the registration is appended to the problem as a record, so the
+problem's page says whether it is submitted, registered, asked for revisions or declined.
+<strong>How a contributor appears.</strong> As an author, by pseudonym, or by a display name they
+record through the service; the authors are the ledger's identities and never a model (D-19
+v3.37). Recording a name is a one-way publication: a later record withdraws it from the network's
+side, and the registry keeps what it has already indexed.
+<strong>What the network reads back.</strong> The registry's public feed is read for prior art at
+intake and for literature proposals. A literature record may cite a Palomar entry by its id,
+<code>PALOMAR-YYYY-MM-DD-NNNNNN vN</code>, and a steward or curator confirms it or not. A
+repository the network exports carries Apache-2.0 alone (D-23 v3.37).</p>
 <h2 id="leiden">The Leiden Declaration, recommendation by recommendation</h2>
 <p><a href="https://leidendeclaration.ai/">The Leiden Declaration on AI and Mathematics</a> (2026-06-02) and
 <a href="https://mathandai.org/">the declaration of 2026-09-11</a> by twenty-five Fields medallists say what a proof network owes the community. The network is not an

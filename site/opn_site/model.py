@@ -506,6 +506,15 @@ class TargetView:
     def calibration(self) -> bool:
         return bool(self.index_entry.get("calibration", False))
 
+    @property
+    def registrations(self) -> list[dict[str, Any]]:
+        """F25-R17 (D-10 v3.37): the target's registrations in public registries as the row
+        publishes them (``targets-index/v10``: registry, id, version, status, url), derived by the
+        gate from the validated registration records; an older index, which has no key, reads as
+        none."""
+        raw = self.index_entry.get("registrations")
+        return [dict(r) for r in raw if isinstance(r, dict)] if isinstance(raw, list) else []
+
 
 @dataclass(frozen=True)
 class Site:
