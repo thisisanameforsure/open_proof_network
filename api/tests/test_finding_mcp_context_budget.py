@@ -275,7 +275,9 @@ def test_pin_a_tool_that_needs_a_token_refuses_inside_the_result(
 #: after it (2026-10-11), when `submit_proof` gained the required `automation` block and
 #: `precheck_submission` the same block optional (D-23 v3.37; +3,697, 4.5%; the input schemas
 #: alone 44,024 → 47,509). A change that crosses the ceiling re-measures and says why.
-TOOLS_LIST_BUDGET = 86_000
+# F25-T3 measured 85,280 and pinned 86,000; T4 added three tools and get_target's field, and the
+# merge of both measured 93,190 (F25-Q26). The pin follows the measurement, never the other way.
+TOOLS_LIST_BUDGET = 94_000
 
 
 def test_the_whole_tools_list_fits_its_budget(harness: Harness) -> None:

@@ -458,6 +458,109 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "The hosted checker already has as many checks in flight as the service allows.",
         "Retry after the Retry-After header's seconds.",
     ),
+    "export-root-unproved": (
+        "gate",
+        None,
+        "The target's root is not proved, so there is no proof to register (F25-R9).",
+        "Nothing to do until a proof of the root merges; the export is for resolved targets "
+        "(D-10 v3.37).",
+    ),
+    "export-proof-kind": (
+        "gate",
+        None,
+        "The root has no merged Proof.lean of kind proof: its first record is a partial or "
+        "there is none (F25-R9).",
+        "Wait for the root's proof to merge; a partial resolves nothing the registry can take.",
+    ),
+    "export-attestation-missing": (
+        "gate",
+        None,
+        "The proof's attestation file is not on the graph commit exported (F25-R9).",
+        "Export from a commit that carries the post-merge job's attestation for the proof; "
+        "re-render if the bot commit was lost.",
+    ),
+    "export-classification-missing": (
+        "gate",
+        None,
+        "target.yaml carries no classification, which the registry requires (F25-R4).",
+        "Curators: write arxiv and msc2020 codes into the target record (intake new --arxiv "
+        "--msc for a new target) and export again.",
+    ),
+    "export-licence-missing": (
+        "gate",
+        None,
+        "The graph commit has no root LICENSE file; the registry reads one SPDX identifier from "
+        "it (D-23 v3.37).",
+        "Commit LICENSE (Apache-2.0) at the graph root; for a rehearsal before that commit, "
+        "pass --licence Apache-2.0 and the record says so.",
+    ),
+    "export-licence-unsupported": (
+        "gate",
+        None,
+        "The graph's licence reads as something other than Apache-2.0; the wrapper carries "
+        "Apache-2.0 alone (D-23 v3.37).",
+        "The code licence is Apache-2.0 by D-23; a different root LICENSE is a graph defect to "
+        "raise with the owner.",
+    ),
+    "export-trust-base-compiler": (
+        "gate",
+        None,
+        "A node of the proof's closure rests on the compiler (a native_decide waiver, "
+        "trust_base compiler); the registry replays by kernel only (F25-R9).",
+        "Replace the native_decide step with a kernel-checked proof before exporting; the "
+        "registry accepts nothing a kernel did not check.",
+    ),
+    "export-statement-shape": (
+        "gate",
+        None,
+        "The root's Statement.lean does not have F00-R19's shape (one sorry-bodied theorem), so "
+        "no Challenge can be written from it.",
+        "A statement the gate admitted has this shape; a graph where it does not is a defect to "
+        "raise.",
+    ),
+    "export-dep-unproved": (
+        "gate",
+        None,
+        "A node in the proof's closure has no merged Proof.lean (F25-R10).",
+        "Export after every node the proof rests on is proved; the footprint names which.",
+    ),
+    "export-dep-cycle": (
+        "gate",
+        None,
+        "The closure's declared dependencies form a cycle, which the gate never admits.",
+        "A graph defect: raise it; the DAG is acyclic by D-3.",
+    ),
+    "export-import-foreign": (
+        "gate",
+        None,
+        "A Lean file imports a module that is neither a library, a definition nor a node of the "
+        "graph (F25-R9).",
+        "The gate admits no such import; a file handed to the transform directly must import "
+        "library, Defs or Nodes modules only.",
+    ),
+    "export-private-helper": (
+        "gate",
+        None,
+        "A proof declares a private helper; under the module system another module cannot see "
+        "it (F25-R9).",
+        "Make the helper public (drop private) on the graph by a D-8 revision of the proof, or "
+        "accept that the node cannot be exported until it is.",
+    ),
+    "export-cap": (
+        "gate",
+        None,
+        "A file is over the registry's cap: the Challenge over 1,000 lines or 100 KiB, or any "
+        "file over 10,000 lines (F25-R9).",
+        "Split the proof across nodes on the graph, or shorten the inlined definitions; the "
+        "caps are the registry's.",
+    ),
+    "export-sorry": (
+        "gate",
+        None,
+        "A proof of the closure mentions sorry outside a comment (F25-R9, Q22).",
+        "The gate refuses a merged proof with sorry; a graph where one has merged is a defect "
+        "to raise before exporting.",
+    ),
     "classification-invalid": (
         "gate",
         None,
