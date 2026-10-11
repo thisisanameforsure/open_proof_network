@@ -202,6 +202,19 @@ def build_parser() -> argparse.ArgumentParser:  # noqa: PLR0915 — one statemen
     pal.add_argument("--check", action="store_true", help="run the local check at the pin (R11)")
     pal.add_argument("--install", action="store_true", help="let elan install the pinned toolchain")
 
+    prt = sub.add_parser(
+        "palomar-port",
+        help="port an exported wrapper to the registry's toolchain and judge it with lake "
+        "comparator (F25-R12); the Challenge is frozen, proof bodies may be repaired between runs",
+    )
+    prt.add_argument(
+        "project", type=Path, help="the exported wrapper (export-palomar --out/<package>)"
+    )
+    prt.add_argument("--toolchain", default="leanprover/lean4:v4.35.0-rc2")
+    prt.add_argument("--mathlib-rev", default="v4.35.0-rc2")
+    prt.add_argument("--skip-update", action="store_true", help="keep the manifest as it is")
+    prt.add_argument("--timeout", type=float, default=3600.0, help="seconds per step")
+
     otl = sub.add_parser(
         "outline",
         help="extract the outline of every merged proof artifact that has none (F19-R5, R6), "
@@ -841,6 +854,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         "reproduce": run_reproduce,
         "footprints": run_footprints,
         "export-palomar": run_export_palomar,
+        "palomar-port": run_palomar_port,
         "outline": run_outline,
         "gate": run_gate,
         "classify": run_classify,
@@ -1227,6 +1241,44 @@ def run_export_palomar(args: argparse.Namespace, settings: config.Settings) -> i
         summary["ok"] = report.ok
     sys.stdout.write(json.dumps(summary, ensure_ascii=False) + "\n")
     return 0 if summary["ok"] else EXIT_FAIL
+
+
+def run_palomar_port(args: argparse.Namespace, settings: config.Settings) -> int:
+    """F25-R12: Stage B on a laptop or a runner with the registry's toolchain installed under
+    elan (``elan toolchain install <toolchain>`` first). Writes ``port-report.json`` beside the
+    project; exit 1 when a step failed, with the classified failures in the report."""
+    from opn_gate import palomar_port  # noqa: PLC0415 — only this command
+
+    project: Path = args.project.resolve()
+    if not (project / "lakefile.toml").is_file():
+        msg = f"{project} is not a Lake project"
+        raise CliError(msg)
+    try:
+        elan = toolchain.find_elan(path_env=None, elan_home=settings.elan_home)
+        prefix_proc = subprocess.run(
+            [str(elan), "run", args.toolchain, "lean", "--print-prefix"],
+            capture_output=True, text=True, check=False, timeout=600,
+        )  # fmt: skip
+    except toolchain.ToolchainMissingError as exc:
+        raise CliError(str(exc)) from exc
+    if prefix_proc.returncode != 0:
+        msg = f"lean under {args.toolchain} failed: {prefix_proc.stderr.strip()[:300]}"
+        raise CliError(msg)
+    try:
+        report = palomar_port.port(
+            project,
+            toolchain=args.toolchain,
+            mathlib_rev=args.mathlib_rev,
+            runner=palomar_port.ElanRunner(elan, args.toolchain),
+            prefix=Path(prefix_proc.stdout.strip()),
+            timeout_s=args.timeout,
+            skip_update=args.skip_update,
+        )
+    except palomar_port.PortError as exc:
+        sys.stdout.write(json.dumps({"ok": False, "refused": exc.diagnostic.as_dict()}) + "\n")
+        return EXIT_FAIL
+    sys.stdout.write(json.dumps(report.as_dict(), ensure_ascii=False) + "\n")
+    return 0 if report.ok else EXIT_FAIL
 
 
 def run_footprints(args: argparse.Namespace, settings: config.Settings) -> int:
