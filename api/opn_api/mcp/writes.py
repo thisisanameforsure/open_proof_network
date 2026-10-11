@@ -265,6 +265,40 @@ async def confirm_literature(call: Call, args: dict[str, Any]) -> dict[str, Any]
     return await forward(call, "POST", "/literature/confirm", body)
 
 
+async def set_display_name(call: Call, args: dict[str, Any]) -> dict[str, Any]:
+    """F25-T4 (D-3, D-19 v3.37): ``POST /me/name``, body for body; the route writes the record
+    for the bearer's own pseudonym, so there is no pseudonym to send."""
+    body = present("set_display_name", args, "name", "link")
+    return await forward(call, "POST", "/me/name", body)
+
+
+async def register_target(call: Call, args: dict[str, Any]) -> dict[str, Any]:
+    """F25-T4 (D-10 v3.37): ``POST /registrations``, body for body; the route writes
+    ``submitted_by`` from the bearer's GitHub login, so the identity must be one proved with
+    GitHub."""
+    body = present("register_target", args, *REGISTRATION_FIELDS)
+    return await forward(call, "POST", "/registrations", body)
+
+
+#: What ``POST /registrations`` reads (``opn_api.registrations.FIELDS``), sent under their names.
+REGISTRATION_FIELDS: tuple[str, ...] = (
+    "target_id",
+    "registry",
+    "registry_id",
+    "version",
+    "wrapper",
+    "graph_commit",
+    "proof",
+    "status",
+    "url",
+    "challenge_sha256",
+    "solution_sha256",
+    "note",
+)
+SHA1 = {"type": "string", "pattern": "^[0-9a-f]{40}$"}
+SHA256_OR_NULL = {"type": ["string", "null"], "pattern": "^[0-9a-f]{64}$"}
+
+
 #: One declared tooling string as ``submissions.check_tooling`` reads it: a string of at most
 #: ``MAX_TOOLING_CHARS``, or ``null`` for undeclared (F09-T10: the guide's own example says
 #: ``"version": None``, and the adapter refused what the endpoint takes).
@@ -916,6 +950,131 @@ TOOLS: tuple[Tool, ...] = (
             ("node_id", "record", "status", "references", "summary"),
         ),
         confirm_literature,
+        write=True,
+    ),
+    # F25-T4 (D-3, D-10, D-19, D-35 v3.37): a contributor's display name, and a curator's or
+    # steward's registration record.
+    Tool(
+        "set_display_name",
+        "Record the display name your pseudonym is shown by where the network names its "
+        "contributors outside itself — a Palomar registration's authors (D-19 v3.37) — or "
+        "withdraw it with `name: null`. Written as display-name/v1 at names/<your pseudonym>.yaml "
+        "for your own pseudonym and no other, signed with the network's approval key, by pull "
+        "request. A one-way publication: the name reaches the registry's public record once a "
+        "registration names you; nothing on the site shows it yet. Refused 400 "
+        "arguments-invalid naming the field; 409 display-name-in-review while a pull request of "
+        "yours still writes the file (one writer at a time); 503 approval-key-missing; nothing "
+        "opens on a refusal.",
+        params(
+            {
+                "name": {
+                    "type": ["string", "null"],
+                    "maxLength": 200,
+                    "description": "The name to be shown by, 1 to 200 characters; null withdraws "
+                    "an earlier one.",
+                },
+                "link": {
+                    "type": ["string", "null"],
+                    "maxLength": 500,
+                    "description": "An https:// link for the name (an ORCID record, an "
+                    "institutional page), or null; not with a withdrawal.",
+                },
+            },
+            ("name",),
+        ),
+        set_display_name,
+        write=True,
+    ),
+    Tool(
+        "register_target",
+        "Record a target's submission to, or registration in, Palomar (D-10 v3.37) as a listed "
+        "curator or an active steward of the target: written as registration/v1 under "
+        "targets/<id>/registrations/ with `submitted_by` your GitHub login, by pull request. The "
+        "registry itself is never called: the submission is your act outside the network, and "
+        "this records what it answered. Your token must be one proved with GitHub (403 "
+        "github-login-required otherwise); anyone else is 403 not-steward-or-curator; a node "
+        "that is not the target's is 404 registration-proof-unknown; an attestation the graph "
+        "lacks 404 registration-attestation-unknown, one that is not the node's passing one 400 "
+        "registration-attestation-mismatch; a record that fails its schema 400 record-invalid; "
+        "nothing opens on a refusal.",
+        params(
+            {
+                "target_id": ID_PARAM,
+                "registry": {
+                    "enum": ["palomar"],
+                    "description": "Which registry; palomar is the one so far.",
+                },
+                "registry_id": {
+                    "type": ["string", "null"],
+                    "description": "The registry's id once issued, PALOMAR-YYYY-MM-DD-NNNNNN; "
+                    "null while a submission has none.",
+                },
+                "version": {
+                    "type": ["integer", "null"],
+                    "minimum": 1,
+                    "description": "The registry's version of the record; null before "
+                    "registration.",
+                },
+                "wrapper": {
+                    "type": "object",
+                    "description": "The wrapper repository the export wrote and you submitted: "
+                    "`repository` (owner/name on GitHub) and `commit` (its full sha).",
+                    "properties": {"repository": {"type": "string"}, "commit": SHA1},
+                    "required": ["repository", "commit"],
+                    "additionalProperties": False,
+                },
+                "graph_commit": {
+                    **SHA1,
+                    "description": "The graph commit the wrapper was exported from "
+                    "(opn-export.json).",
+                },
+                "proof": {
+                    "type": "object",
+                    "description": "Which proof: `node` (a node of the target) and "
+                    "`attestation` (the six-digit number of the attestation of its merge, "
+                    "attestations/<n>.json, as get_submission shows it).",
+                    "properties": {
+                        "node": ID_PARAM,
+                        "attestation": {"type": "string", "pattern": "^[0-9]{6}$"},
+                    },
+                    "required": ["node", "attestation"],
+                    "additionalProperties": False,
+                },
+                "status": {
+                    "enum": [
+                        "submitted",
+                        "registered",
+                        "revision_required",
+                        "rejected",
+                        "withdrawn",
+                    ],
+                    "description": "As the registry last answered; withdrawn sets the "
+                    "registration aside.",
+                },
+                "url": {
+                    "type": ["string", "null"],
+                    "maxLength": 500,
+                    "description": "The registry's page for the entry once registered, https://; "
+                    "null before.",
+                },
+                "challenge_sha256": {
+                    **SHA256_OR_NULL,
+                    "description": "The wrapper's Challenge.lean as the registry recorded it, "
+                    "or null before registration.",
+                },
+                "solution_sha256": {
+                    **SHA256_OR_NULL,
+                    "description": "Likewise for Solution.lean.",
+                },
+                "note": {
+                    "type": ["string", "null"],
+                    "maxLength": 1000,
+                    "description": "Your words about the registration, if any.",
+                },
+            },
+            ("target_id", "registry", "wrapper", "graph_commit", "proof", "status"),
+        ),
+        register_target,
         write=True,
     ),
 )

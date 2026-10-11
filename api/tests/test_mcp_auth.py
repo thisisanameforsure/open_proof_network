@@ -59,6 +59,16 @@ MINIMAL: dict[str, dict[str, Any]] = {
         "references": [{"title": "t"}],
         "summary": "s",
     },
+    # F25-T4
+    "set_display_name": {"name": "A"},
+    "register_target": {
+        "target_id": "propositional",
+        "registry": "palomar",
+        "wrapper": {"repository": "o/r", "commit": "a" * 40},
+        "graph_commit": "b" * 40,
+        "proof": {"node": NODE, "attestation": "000001"},
+        "status": "submitted",
+    },
 }
 
 

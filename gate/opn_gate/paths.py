@@ -224,6 +224,8 @@ Role = Literal[
     "withdrawal",  # nodes/<id>/withdrawals/<ts>-<curator>.yaml: a record withdrawn (F08-T31)
     "credit-correction",  # targets/<id>/credit-corrections/<ts>-<curator>.yaml (F07-T66)
     "literature",  # nodes/<id>/literature/<ts>-<contributor>.yaml: a literature status (D-25 v3.35)
+    "registration",  # targets/<id>/registrations/<date>-<n>.yaml: a registry record (D-10 v3.37)
+    "display-name",  # names/<pseudonym>.yaml at the graph root: an opt-in display name (D-3 v3.37)
 ]
 
 #: Roles that claim nothing and merge on schema and path checks alone (F07-R9).
@@ -273,6 +275,8 @@ INTAKE_ROLES: tuple[Role, ...] = ("target-record", "gate-spec", "definition", "f
 #: The target record takes its D-10 posting in place (F11-R5): ``modes.check_posting`` holds the
 #: modification to that one field, null to a posting, and a target record is never deleted.
 #: The policy file is the one switch that flips both ways (F15-Q2), by a curator's pull request.
+#: A display name is one file per pseudonym (F25-R6): a later record replaces it, a null name
+#: withdraws it, and the history is the trail (F25-Q6).
 MODIFIABLE_ROLES: tuple[Role, ...] = (
     "proof",
     "waiver",
@@ -280,6 +284,7 @@ MODIFIABLE_ROLES: tuple[Role, ...] = (
     "attempts-ledger",
     "target-record",
     "policy",
+    "display-name",
 )
 
 #: The schema versions each record may declare; an annex validates its YAML front matter.
@@ -321,6 +326,8 @@ SCHEMAS_FOR_ROLE: dict[Role, tuple[str, ...]] = {
     "withdrawal": ("withdrawal/v1", "withdrawal/v2"),  # v2: gloss and explainer versions (F20)
     "credit-correction": ("credit-correction/v1",),
     "literature": ("literature/v1",),  # F08-T40 (D-25 v3.35)
+    "registration": ("registration/v1",),  # F25-R5 (D-10 v3.37)
+    "display-name": ("display-name/v1",),  # F25-R6 (D-3 v3.37)
 }
 
 #: Roles whose file name is the SHA-256 of the file (D-31 annexes; D-3 explainers and glosses).
@@ -390,12 +397,25 @@ class Located:
 #: and a pull request mixing it with any target's files is refused as touching two targets.
 GRAPH_SCOPE = ""
 POLICY_FILE = "policy.json"
+#: F25-R6 (D-3 v3.37): ``names/<pseudonym>.yaml``, the other graph-root file a pull request may
+#: touch, scoped like ``policy.json`` so it never rides with a target's files. The stem is the
+#: pseudonym, in the service's own grammar for one (``opn_api.identity.PSEUDONYM_RE``).
+NAMES_DIR = "names"
+PSEUDONYM_RE = re.compile(r"^[A-Za-z0-9-]{1,39}$")
+#: F25-R5 (D-10 v3.37): a target's registry records, target-scoped like its approach records.
+REGISTRATIONS_DIR = "registrations"
 
 
 def locate(path: str) -> Located | None:  # noqa: PLR0911, PLR0912 — one branch per D-3 entry
     """The role of ``path``, or ``None`` when no mode may touch it (F07-R3's rejection)."""
     if path == POLICY_FILE:
         return Located("policy", path, GRAPH_SCOPE, None)
+    head, _, leaf = path.partition("/")
+    if head == NAMES_DIR and _is_flat(leaf, YAML_SUFFIXES):
+        # F25-R6: one file per pseudonym, named for it; anything else under names/ is nobody's.
+        if PSEUDONYM_RE.match(PurePosixPath(leaf).stem):
+            return Located("display-name", path, GRAPH_SCOPE, None)
+        return None
     node_match = _NODE_PATH_RE.match(path)
     if node_match is not None:
         target, node = node_match.group("target"), node_match.group("node")
@@ -409,6 +429,9 @@ def locate(path: str) -> Located | None:  # noqa: PLR0911, PLR0912 — one branc
         head, _, name = rest.partition("/")
         if head == "approaches" and _is_flat(name, YAML_SUFFIXES):
             return Located("approach-record", path, target_match.group("target"), None)
+        # F25-R5 (D-10 v3.37): a registry record, by a curator or a steward of the target.
+        if head == REGISTRATIONS_DIR and _is_flat(name, YAML_SUFFIXES):
+            return Located("registration", path, target_match.group("target"), None)
         if head == "status" and _is_flat(name, YAML_SUFFIXES):
             return Located("target-status", path, target_match.group("target"), None)
         if head == "defs" and name.startswith("defects/") and _is_flat(name[8:], YAML_SUFFIXES):

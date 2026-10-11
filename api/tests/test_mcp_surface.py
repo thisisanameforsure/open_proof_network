@@ -47,6 +47,7 @@ READS = {
     "list_error_codes",
     # F21-T7, D-28's notation note of 2026-10-05: the files that lack words.
     "list_words_needed",
+    "list_registrations",  # F25-T4: D-28 v3.37, the registrations the products derive
 }
 WRITES = {
     "claim_node",
@@ -69,6 +70,8 @@ WRITES = {
     "withdraw_gloss",  # F20-T6: idem
     "propose_literature",  # F09-T24: D-25 v3.35, the append row
     "confirm_literature",  # F09-T24: D-25, D-32 v3.35, idem
+    "set_display_name",  # F25-T4: D-3, D-19, D-35 v3.37, the names-and-registrations row
+    "register_target",  # F25-T4: D-10, D-35 v3.37, idem
 }
 
 
@@ -181,6 +184,15 @@ def test_results_match_schemas(harness: Harness, tmp_path: Path) -> None:
             "status": "known",
             "references": [{"title": "A paper"}],
             "summary": "s",
+        },
+        "set_display_name": {"name": "Surface"},
+        "register_target": {
+            "target_id": TARGET,
+            "registry": "palomar",
+            "wrapper": {"repository": "o/r", "commit": "a" * 40},
+            "graph_commit": "b" * 40,
+            "proof": {"node": NODE, "attestation": "000001"},
+            "status": "submitted",
         },
     }
     # renew_token retires the token it is called with (F05-T27), so it is given one of its own.

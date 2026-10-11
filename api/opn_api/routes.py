@@ -83,6 +83,13 @@ D35_OWNED_BY_F24: frozenset[str] = frozenset({D35_POST_MOTIONS, D35_POST_VOTES, 
 D35_POST_LITERATURE = "POST /literature"
 D35_POST_LITERATURE_CONFIRM = "POST /literature/confirm"
 LITERATURE_ROUTES: frozenset[str] = frozenset({D35_POST_LITERATURE, D35_POST_LITERATURE_CONFIRM})
+# F25's row (D-35 v3.37): names and registrations. The first appends one ``display-name/v1`` file
+# at ``names/<pseudonym>.yaml`` for the bearer's own pseudonym, signed by the approval key; the
+# second, for a signed-in curator or a steward of the target, one ``registration/v1`` file under
+# the target. Neither talks to the registry.
+D35_POST_ME_NAME = "POST /me/name"
+D35_POST_REGISTRATIONS = "POST /registrations"
+D35_OWNED_BY_F25: frozenset[str] = frozenset({D35_POST_ME_NAME, D35_POST_REGISTRATIONS})
 
 ROUTES: tuple[RouteSpec, ...] = (
     # F05-T13, Q13: the index of this table, served at the root. Open, no D-35 row.
@@ -311,6 +318,27 @@ ROUTES: tuple[RouteSpec, ...] = (
         feature="F23",
         web=True,
     ),
+    # F25-R15 (D-3, D-19, D-35 v3.37): a bearer's display name for its own pseudonym and no other,
+    # signed by the approval key. A bearer alone: the pseudonym is the identity, however proved.
+    RouteSpec(
+        "POST",
+        "/me/name",
+        "names:post_me_name",
+        D35_POST_ME_NAME,
+        authenticated=True,
+        feature="F25",
+    ),
+    # F25-R15 (D-10, D-35 v3.37): a curator or a steward of the target records a registration;
+    # a web session or a bearer with a GitHub login, as POST /literature/confirm takes.
+    RouteSpec(
+        "POST",
+        "/registrations",
+        "registrations:post_registrations",
+        D35_POST_REGISTRATIONS,
+        authenticated=True,
+        feature="F25",
+        web=True,
+    ),
     # F13-R8, Q2: open like the tutorial precheck; a presented token is authenticated and charged
     # per identity, and an anonymous caller is charged per address, by the handler.
     RouteSpec("POST", "/check", "checks:post_check", D35_POST_CHECK, feature="F13"),
@@ -391,6 +419,12 @@ PURPOSES: dict[str, str] = {
     "elementary) with references, by pull request; a steward or curator confirms it.",
     "POST /literature/confirm": "Confirm a proposed literature status, or state one, as a "
     "steward of its problem or a curator: signed with the network's approval key, by pull request.",
+    "POST /me/name": "Record the display name your pseudonym is shown by where the network names "
+    "contributors outside itself (a registration's authors), or withdraw it with null; signed "
+    "with the network's approval key, by pull request.",
+    "POST /registrations": "Record a target's submission to, or registration in, Palomar as a "
+    "curator or a steward of the target: registry id, wrapper and graph commits, proof and "
+    "status, by pull request; the registry itself is never called.",
     "POST /check": "Check Lean text within 20 s on a hosted checker, or preview a witness's "
     "expected type for a node or a statement's text (mode witness); never authoritative.",
     "GET /checks/{check_id}": "The record of one of your own fast-check calls.",
