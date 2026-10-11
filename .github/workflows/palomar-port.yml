@@ -60,6 +60,7 @@ jobs:
       - name: Export at the graph's pin (Stage A)
         run: |
           uv sync --frozen --quiet
+          mkdir -p out
           PYTHONPATH=gate uv run --frozen python -m opn_gate.cli export-palomar --graph graph \
             --commit "${{ inputs.graph_commit || 'origin/main' }}" --target "${{ inputs.target || 'erdos-1050' }}" --out out \
             --licence "${{ inputs.licence || 'Apache-2.0' }}" --classification "${{ inputs.classification || 'math.NT:11J72,11B25' }}" | tee out/export.json
@@ -72,7 +73,8 @@ jobs:
           PYTHONPATH=gate uv run --frozen python -m opn_gate.cli palomar-port "out/$PKG" \
             --toolchain "${{ inputs.toolchain || 'leanprover/lean4:v4.35.0-rc2' }}" --mathlib-rev "${{ inputs.mathlib_rev || 'v4.35.0-rc2' }}" | tee out/port.json
           echo "port exit $?"
-          rm -rf "out/$PKG/.lake"
+          rm -rf "out/$PKG/.lake" out/tree
+          git -C graph worktree prune || true
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
         if: always()
         with:

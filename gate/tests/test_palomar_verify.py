@@ -95,6 +95,9 @@ def test_a_registered_entry_passes_every_check_on_the_plan(tmp_path: Path) -> No
     assert argvs[2][:5] == ("git", "fetch", "-q", "--depth", "1") and argvs[2][-1] == pin["commit"]
     assert ("lake", "exe", "cache", "get") in argvs and ("lake", "build") in argvs
     comparator = next(a for a in argvs if a[:2] == ("lake", "comparator"))
+    assert Path(comparator[3]).is_absolute(), (
+        "lake reads the config path from the project, not from the tool's cwd"
+    )
     config = json.loads(Path(comparator[3]).read_text())
     assert config["external_kernels"]["nanoda"] == [str(tmp_path / "prefix" / "bin" / "nanoda_bin")]
     assert "enable_nanoda" not in config and config["theorem_names"] == pin["theorem_names"]

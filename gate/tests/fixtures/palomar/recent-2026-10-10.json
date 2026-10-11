@@ -1,0 +1,1310 @@
+{
+ "_notice": "Trimmed from https://data.palomar-registry.org/recent.json as served on 2026-10-10 (CC0): every entry whose record names Erdős or Formal Conjectures, plus five others; the records are unchanged. A test fixture, not part of the network's record.",
+ "schema_version": 2,
+ "entries": [
+  {
+   "abstract": "For every fixed integer k >= 3, the minimum number of colors in an edge-coloring of an n-vertex simple graph with at least floor(n^2/4)+1 edges, in which every copy of C_(2k+1) is rainbow, is (1/8 + o(1))n^2. The minimum is attained. The development combines Asad Shahab's seven-cycle proof, using an exact rational five-vertex certificate, with a formalization of the Bucić-Chen-Ma argument for longer odd cycles.",
+   "authors": [
+    {
+     "name": "Asad Shahab"
+    }
+   ],
+   "classification": {
+    "arxiv": [
+     "math.CO"
+    ],
+    "msc2020": [
+     "05C35",
+     "05C15",
+     "05D10"
+    ]
+   },
+   "formalization": {
+    "theorem_names": [
+     "Erdos809Palomar.main_result"
+    ]
+   },
+   "id": "PALOMAR-2026-10-09-000006",
+   "path": "entries/PALOMAR-2026-10-09-000006-v1.json",
+   "preservation": {
+    "repositories": [
+     {
+      "commit": "15f8839e2a21f64fc5558714506ebba465926eda",
+      "fork_repository": "PalomarArchive/Asad-Shahab--erdos-809-lean--5163a53d73cf",
+      "source_repository": "Asad-Shahab/erdos-809-lean"
+     }
+    ]
+   },
+   "published_at": "2026-10-09T06:28:55Z",
+   "source": {
+    "commit": "15f8839e2a21f64fc5558714506ebba465926eda",
+    "project_path": null,
+    "repository": "Asad-Shahab/erdos-809-lean"
+   },
+   "status": "registered",
+   "title": "Erdős Problem 809: an independent proof of the seven-cycle threshold",
+   "trust": {
+    "level": "high"
+   },
+   "version": 1,
+   "versions": 1
+  },
+  {
+   "abstract": "The moving sofa problem asks for the largest area of a planar shape that can be moved around the right-angled corner of a hallway of unit width. Jineon Baek proved (arXiv:2411.19826) that Gerver's sofa G, of area 2.2195..., is optimal. His proof bounds the area of every large moving sofa by a concave functional Q of a triple (K, B, D) of convex bodies built from a cap K of the sofa, and shows that Q is largest at Gerver's triple, where it equals |G|.\n\nThis entry proves one estimate for Q, the coercive certificate, and derives three results from it. On an enlarged domain of triples, on which the cap need not satisfy Baek's injectivity condition, Q(K, B, D) <= |G|, and the cap K lies within Euclidean Hausdorff distance 2 sec(phi) sqrt(|G| - Q(K, B, D)) of the horizontal translate of Gerver's cap with the same leftmost point, where phi = 0.039... is Gerver's angle. The proof writes |G| - Q as a sum of nonnegative terms, and the energy terms among them also bound that distance. The bound is attained: Gerver's triple lies in the enlarged domain, and Q equals |G| there.\n\nFrom the certificate: optimality, Baek's theorem, proved without his Theorem 1.1.1 and without the balance argument of his Chapters 4 to 6; uniqueness, every moving sofa with the area of G is mapped onto G by a rotation and a translation (a translation suffices); and stability, after a translation a moving sofa of area |G| - epsilon lies within Euclidean Hausdorff distance C sqrt(epsilon) of G, their symmetric difference has area at most C' sqrt(epsilon), its rotation angle misses a right angle by at most C'' epsilon, and the exponent 1/2 cannot be improved. The Challenge also states the correspondence between Baek's definitions and those of Google DeepMind's formal-conjectures, and formal-conjectures' statements, among them the uniqueness, which it lists as open; here they are proved through the certificate.\n\nVersions 1 to 4 of this entry registered the formalization of Baek's paper with a first proof of uniqueness that uses his Theorem 1.1.1; they state the same optimality, uniqueness and formal-conjectures theorems, proved through Baek's argument, and the repository keeps their Challenge and Solution in baek/. This version proves those theorems through the certificate and adds the certificate and the stability. A script in the repository, scripts/AuditCoerciveRoute.lean, run by the continuous integration, checks that its proofs reach neither Baek's Theorem 1.1.1, nor the results of his balance argument, nor the main theorem and the equality analysis of the first proof of uniqueness.",
+   "authors": [
+    {
+     "name": "The-Anh Vu-Le"
+    }
+   ],
+   "classification": {
+    "arxiv": [
+     "math.MG",
+     "math.OC"
+    ],
+    "msc2020": [
+     "49Q10",
+     "52A10",
+     "52A38",
+     "52A40",
+     "68V20"
+    ]
+   },
+   "formalization": {
+    "theorem_names": [
+     "Baek.gerver_params_exists",
+     "Baek.gerver_params_unique",
+     "Baek.gerver_sofa_area",
+     "Baek.gerver_sofa_optimal",
+     "Baek.gerver_sofa_unique",
+     "Baek.gerver_sofa_stable",
+     "Baek.gerver_sofa_angle_stable",
+     "Baek.gerver_sofa_stability_exponent",
+     "Bridge.isMovingSofa_iff",
+     "Bridge.sofaConstant_eq",
+     "Bridge.gerversSofa_eq",
+     "FormalConjectures.MovingSofa.GerversSofa.ABφθSpec.existsUnique",
+     "FormalConjectures.MovingSofa.isMovingSofa_gerversSofa",
+     "FormalConjectures.MovingSofa.sofaConstant_eq_volume_gerversSofa",
+     "FormalConjectures.MovingSofa.volume_eq_sofaConstant_iff_congruent_gerversSofa",
+     "Certificate.coercive_certificate",
+     "Certificate.gerver_triple"
+    ]
+   },
+   "id": "PALOMAR-2026-10-02-000008",
+   "path": "entries/PALOMAR-2026-10-02-000008-v5.json",
+   "preservation": {
+    "repositories": [
+     {
+      "commit": "1174c5c25c1c66b807e368446d6682e8d0276759",
+      "fork_repository": "PalomarArchive/vltanh--lean4-moving-sofa--dfc797b6e6b6",
+      "source_repository": "vltanh/lean4-moving-sofa"
+     }
+    ]
+   },
+   "published_at": "2026-10-08T06:43:06Z",
+   "source": {
+    "commit": "1174c5c25c1c66b807e368446d6682e8d0276759",
+    "project_path": null,
+    "repository": "vltanh/lean4-moving-sofa"
+   },
+   "status": "registered",
+   "title": "Optimality, uniqueness and stability of Gerver's sofa from one coercive certificate, formalized in Lean 4",
+   "trust": {
+    "level": "high"
+   },
+   "version": 5,
+   "versions": 5
+  },
+  {
+   "abstract": "Formalization of classical factorial-square constructions, exclusion of prime endpoints, existence of minimum representation cardinalities for composite endpoints, and the cutoff D_k = empty for k greater than six. The density question from Erdős problem 374 is defined but not proved. No mathematical novelty or solution of the density problem is claimed.",
+   "authors": [
+    {
+     "name": "alexander"
+    }
+   ],
+   "classification": {
+    "arxiv": [
+     "math.NT"
+    ],
+    "msc2020": [
+     "11D57",
+     "11A41"
+    ]
+   },
+   "formalization": {
+    "theorem_names": [
+     "Erdos374.rep_two",
+     "Erdos374.square_inD_two",
+     "Erdos374.adjacent_identity",
+     "Erdos374.four_factor_identity",
+     "Erdos374.six_factor_identity",
+     "Erdos374.minimum_unique",
+     "Erdos374.prime_no_rep",
+     "Erdos374.product_separated_rep_six",
+     "Erdos374.product_adjacent_rep_four",
+     "Erdos374.product_equal_rep_two",
+     "Erdos374.product_has_rep_le_six",
+     "Erdos374.exists_minimum_le",
+     "Erdos374.product_minimum_le_six",
+     "Erdos374.rep_527_six",
+     "Erdos374.rep_card_le",
+     "Erdos374.composite_minimum_le_six",
+     "Erdos374.D_empty_above_six",
+     "Erdos374.countD_le"
+    ]
+   },
+   "id": "PALOMAR-2026-10-07-000010",
+   "path": "entries/PALOMAR-2026-10-07-000010-v1.json",
+   "preservation": {
+    "repositories": [
+     {
+      "commit": "40857297956c031d92b1bc30b007a46575c60c5d",
+      "fork_repository": "PalomarArchive/AItoBit--erdos374-palomar--3718c5153338",
+      "source_repository": "AItoBit/erdos374-palomar"
+     }
+    ]
+   },
+   "published_at": "2026-10-07T15:34:20Z",
+   "source": {
+    "commit": "40857297956c031d92b1bc30b007a46575c60c5d",
+    "project_path": null,
+    "repository": "AItoBit/erdos374-palomar"
+   },
+   "status": "registered",
+   "title": "Erdős 374: classical square products of factorials",
+   "trust": {
+    "level": "high"
+   },
+   "version": 1,
+   "versions": 1
+  },
+  {
+   "abstract": "A complete Lean 4 formalization of Catalan's conjecture, proved by Preda Mihăilescu: 8 and 9 are the only consecutive positive proper perfect powers. The formal proof follows the cyclotomic proof in Yuri Bilu's expositions. Cassels' relations, Stickelberger annihilation, and height and counting estimates exclude the case in which one exponent is congruent to 1 modulo the other. Thaine's theorem on circular units, together with a Runge-type approximation argument, settles the remaining case. The class-field-theoretic input comes from a fixed, vendored subset of the ClassFieldTheory library. The registered results are four theorems: Catalan's conjecture over the natural numbers, in the form stated in Google DeepMind's Formal Conjectures; the same equation for integer bases greater than one; the classification of solutions of x^p − y^q = 1 with nonzero integer bases of either sign; and Mihăilescu's theorem that x^p = y^q + 1 has no solution in nonzero integers when p and q are odd primes. All four depend only on the axioms propext, Classical.choice and Quot.sound.",
+   "authors": [
+    {
+     "name": "Yao Xu"
+    }
+   ],
+   "classification": {
+    "arxiv": [
+     "math.NT",
+     "cs.LO"
+    ],
+    "msc2020": [
+     "11D61",
+     "11R18",
+     "11R29",
+     "11R37",
+     "68V20"
+    ]
+   },
+   "formalization": {
+    "theorem_names": [
+     "PalomarCatalan.catalans_conjecture",
+     "PalomarCatalan.catalan_int",
+     "PalomarCatalan.catalan_int_signed",
+     "PalomarCatalan.mihailescu_odd_primes"
+    ]
+   },
+   "id": "PALOMAR-2026-10-06-000009",
+   "path": "entries/PALOMAR-2026-10-06-000009-v1.json",
+   "preservation": {
+    "repositories": [
+     {
+      "commit": "597469e8eba93909efc94892e6f7df5ea4951fe3",
+      "fork_repository": "PalomarArchive/cadamcat--catalan-lean4--fdc727faf3c1",
+      "source_repository": "cadamcat/catalan-lean4"
+     }
+    ]
+   },
+   "published_at": "2026-10-06T08:38:52Z",
+   "source": {
+    "commit": "597469e8eba93909efc94892e6f7df5ea4951fe3",
+    "project_path": null,
+    "repository": "cadamcat/catalan-lean4"
+   },
+   "status": "registered",
+   "title": "A Lean 4 formalization of Catalan's conjecture (Mihăilescu's theorem)",
+   "trust": {
+    "level": "high"
+   },
+   "version": 1,
+   "versions": 1
+  },
+  {
+   "abstract": "A complete Lean 4 disproof of Erdős problem 575 in both its unrestricted and cycle-containing formulations: a finite family F of forbidden graphs containing a bipartite member need not contain a bipartite H ∈ F with ex(n; H) = O(ex(n; F)). Proves the unrestricted case from scratch via the bipartite forest family F_0 = {K_{1,2}, 2K_2} (where ex(n; F_0) ≤ 1 while ex(n; K_{1,2}) ≥ ⌊n/2⌋ and ex(n; 2K_2) ≥ n - 1), and resolves the cycle-containing case by adapting OpenAI's all-bipartite cyclic counterexample family from Erdős problem 180 (where ex(n; F) = O(n^(21/16)) and ex(n; H) = Ω(n^(4/3)) for every H ∈ F).",
+   "authors": [
+    {
+     "name": "Linmiao Xu"
+    }
+   ],
+   "classification": {
+    "arxiv": [
+     "math.CO"
+    ],
+    "msc2020": [
+     "05C35"
+    ]
+   },
+   "formalization": {
+    "theorem_names": [
+     "Erdos575.not_erdos_575_corrected",
+     "Erdos575.not_erdos_575",
+     "Erdos575.not_erdos_575_all_bipartite",
+     "Erdos575.correctedCounterexample",
+     "Erdos575.quantitativeCounterexample",
+     "Erdos575.ForestCounterexample.forestCounterexample",
+     "Erdos575.ForestCounterexample.forestFamily_not_isBipartiteCompact",
+     "Erdos575.erdos_575",
+     "Erdos575.erdos_575_unrestricted"
+    ]
+   },
+   "id": "PALOMAR-2026-10-06-000004",
+   "path": "entries/PALOMAR-2026-10-06-000004-v1.json",
+   "preservation": {
+    "repositories": [
+     {
+      "commit": "b135fd8f6e5ee25129c4855e06c93739dd80651d",
+      "fork_repository": "PalomarArchive/linrock--math-proofs--14cf37780a40",
+      "source_repository": "linrock/math-proofs"
+     }
+    ]
+   },
+   "published_at": "2026-10-06T02:18:29Z",
+   "source": {
+    "commit": "b135fd8f6e5ee25129c4855e06c93739dd80651d",
+    "project_path": "erdos-575",
+    "repository": "linrock/math-proofs"
+   },
+   "status": "registered",
+   "title": "Erdős 575: bipartite extremal-graph compactness",
+   "trust": {
+    "level": "high"
+   },
+   "version": 1,
+   "versions": 1
+  },
+  {
+   "abstract": "A Lean 4 formalization of unconditional bounds and conditional reductions for Erdős problem 1139 on consecutive P_2 almost-primes (Ω(u_k) ≤ 2). Extending Chojecki's (2026) Erdős 689 double-covering construction via protected-reserve omission, it proves unconditionally that limsup (u_{k+1} - u_k) / log(k + 1) ≥ A > 1 and that every large height X contains an almost-prime-free interval of length ≥ c log X (c > 1), alongside the mixed prime/prime-square CRT bridge, PNT primorial asymptotics, and squared-core deficiency classification. Using a squared-prime core and scale-adaptive dyadic prime shells, it also derives the full infinite-limsup conjecture conditionally from the Green–Tao–Ziegler (2010–2012) linear-forms asymptotic and proves its reverse implication to arbitrary-length prime progressions.",
+   "authors": [
+    {
+     "name": "Linmiao Xu"
+    }
+   ],
+   "classification": {
+    "arxiv": [
+     "math.NT",
+     "math.CO"
+    ],
+    "msc2020": [
+     "11N05",
+     "11N36",
+     "11B25"
+    ]
+   },
+   "formalization": {
+    "theorem_names": [
+     "Erdos1139.Palomar.uniform_maximal_gap",
+     "Erdos1139.Palomar.limsup_strictly_gt_one",
+     "Erdos1139.Palomar.cover_crt_interval",
+     "Erdos1139.Palomar.seven_square_crt",
+     "Erdos1139.Palomar.primorial_log_limit",
+     "Erdos1139.Palomar.limsup_top_of_sparse",
+     "Erdos1139.Palomar.core_classification"
+    ]
+   },
+   "id": "PALOMAR-2026-10-06-000001",
+   "path": "entries/PALOMAR-2026-10-06-000001-v1.json",
+   "preservation": {
+    "repositories": [
+     {
+      "commit": "38ad7ea8de1efe526f665c2b5204465e5ed879fe",
+      "fork_repository": "PalomarArchive/linrock--math-proofs--14cf37780a40",
+      "source_repository": "linrock/math-proofs"
+     }
+    ]
+   },
+   "published_at": "2026-10-06T00:36:59Z",
+   "source": {
+    "commit": "38ad7ea8de1efe526f665c2b5204465e5ed879fe",
+    "project_path": "erdos-1139",
+    "repository": "linrock/math-proofs"
+   },
+   "status": "registered",
+   "title": "Erdős 1139: large gaps between almost-primes",
+   "trust": {
+    "level": "high"
+   },
+   "version": 1,
+   "versions": 1
+  },
+  {
+   "abstract": "A complete Lean 4 proof of all three parts of Erdős problem 1054. For the least integer f(n) whose k smallest divisors sum to n, we prove that f(n) is not o(n), is not o(n) on any density-one set, and satisfies limsup f(n)/n = ∞ on every density-one subtype. Building on the qualitative divisor-prefix sieve and almost-all binary Goldbach proof from Principia-Math-Solutions, this formalization proves the Formal Conjectures statements along with a sharp second-moment lower-density bound c / [A^3 (1 + log A)^4] for odd n with f(n) > A n, the Tao–Kovač small-ratio upper bound #{n ≤ X : 0 < f(n) ≤ δ n} ≤ C δ^3 X, liminf_{f(n)>0} f(n)/n = 0, and the asymptotic density equivalence between {s(2d)} and even aliquot values.",
+   "authors": [
+    {
+     "name": "Linmiao Xu"
+    }
+   ],
+   "classification": {
+    "arxiv": [
+     "math.NT"
+    ],
+    "msc2020": [
+     "11A25",
+     "11N36",
+     "11P32"
+    ]
+   },
+   "formalization": {
+    "theorem_names": [
+     "Erdos1054.Palomar.answer_i",
+     "Erdos1054.Palomar.answer_ii",
+     "Erdos1054.Palomar.answer_iii",
+     "Erdos1054.Palomar.official_answer_i",
+     "Erdos1054.Palomar.official_answer_ii",
+     "Erdos1054.Palomar.official_answer_iii",
+     "Erdos1054.Palomar.limsup_on_every_density_one",
+     "Erdos1054.Palomar.odd_subtype_limsup",
+     "Erdos1054.Palomar.f_undefined_at_2",
+     "Erdos1054.Palomar.f_undefined_at_5",
+     "Erdos1054.Palomar.quantitative_odd_sharp_second_moment_logarithmic_endpoint",
+     "Erdos1054.Palomar.quantitative_odd_sharp_second_moment_logarithmic_endpoint_eventual_count",
+     "Erdos1054.Palomar.quantitative_odd_almost_full_three_plus_epsilon",
+     "Erdos1054.Palomar.quantitative_odd_pure_power_six",
+     "Erdos1054.Palomar.small_ratio_count_le_cubic",
+     "Erdos1054.Palomar.small_ratio_upper_density_le_cubic",
+     "Erdos1054.Palomar.littleO_on_subtype_imp_represented_density_zero",
+     "Erdos1054.Palomar.f_sigma_le",
+     "Erdos1054.Palomar.frequently_represented_small_ratio",
+     "Erdos1054.Palomar.cofactor_two_lower_density_eq_even_aliquot",
+     "Erdos1054.Palomar.cofactor_two_upper_density_eq_even_aliquot"
+    ]
+   },
+   "id": "PALOMAR-2026-10-05-000005",
+   "path": "entries/PALOMAR-2026-10-05-000005-v1.json",
+   "preservation": {
+    "repositories": [
+     {
+      "commit": "0917cd01090b52088aa82b09c8c84689047b8171",
+      "fork_repository": "PalomarArchive/linrock--math-proofs--14cf37780a40",
+      "source_repository": "linrock/math-proofs"
+     }
+    ]
+   },
+   "published_at": "2026-10-05T07:51:18Z",
+   "source": {
+    "commit": "0917cd01090b52088aa82b09c8c84689047b8171",
+    "project_path": "erdos-1054",
+    "repository": "linrock/math-proofs"
+   },
+   "status": "registered",
+   "title": "Erdős 1054: sums of smallest divisors",
+   "trust": {
+    "level": "high"
+   },
+   "version": 1,
+   "versions": 1
+  },
+  {
+   "abstract": "A complete Lean 4 proof of the negative answer to Erdős problem 958: for every n ≥ 4, there exists an n-point configuration in the Euclidean plane determining n - 1 distinct interpoint distances with multiplicities {1, 2, ..., n - 1} that is neither equidistant on a line nor equidistant on a circle. Formalizing the May 2025 construction of Clemen, Dumitrescu, and Liu, the proof places n - 1 equally spaced points on a short arc of the unit circle together with the center (0, 0), uses strict monotonicity of chord lengths on [0, π/3) to compute the exact distance-multiplicity profile, and eliminates collinear and concyclic progressions algebraically. It also proves the positive baseline results that every equidistant collinear configuration of size n ≥ 2 has n - 1 distinct distances with multiplicities {1, ..., n - 1}, and that for every n ≥ 2 there exists an n-point circular equidistant configuration with that distance-multiplicity profile.",
+   "authors": [
+    {
+     "name": "Linmiao Xu"
+    }
+   ],
+   "classification": {
+    "arxiv": [
+     "math.CO",
+     "math.MG"
+    ],
+    "msc2020": [
+     "52C10",
+     "05D99"
+    ]
+   },
+   "formalization": {
+    "theorem_names": [
+     "Erdos958.Palomar.erdos_958",
+     "Erdos958.Palomar.not_erdos_958",
+     "Erdos958.Palomar.clemen_dumitrescu_liu",
+     "Erdos958.Palomar.equidistantOnLine_has_profile",
+     "Erdos958.Palomar.equidistantOnCircle_exists_has_profile"
+    ]
+   },
+   "id": "PALOMAR-2026-10-05-000004",
+   "path": "entries/PALOMAR-2026-10-05-000004-v1.json",
+   "preservation": {
+    "repositories": [
+     {
+      "commit": "08152671ab394392fd941b18654daba734c26518",
+      "fork_repository": "PalomarArchive/linrock--math-proofs--14cf37780a40",
+      "source_repository": "linrock/math-proofs"
+     }
+    ]
+   },
+   "published_at": "2026-10-05T07:11:27Z",
+   "source": {
+    "commit": "08152671ab394392fd941b18654daba734c26518",
+    "project_path": "erdos-958",
+    "repository": "linrock/math-proofs"
+   },
+   "status": "registered",
+   "title": "Erdős 958: planar point sets with distance multiplicities {1, ..., n - 1}",
+   "trust": {
+    "level": "high"
+   },
+   "version": 1,
+   "versions": 1
+  },
+  {
+   "abstract": "A complete Lean 4 proof of the negative answer to Erdős problem 2 (Hough 2015; Balister–Bollobás–Morris–Sahasrabudhe–Tiba 2022): there is an absolute constant B such that every finite covering of the integers by distinct moduli > 1 contains a modulus ≤ B. For any finite set D of moduli above B with N = lcm(D), the proof builds a probability measure on ZMod N prime by prime via the BBMST half-cap fiber update, preserving the progression bound w(z ≡ a mod d) ≤ 2^ω(d)/d while bounding each prime-p loss by C (log p)^6 / (p - 1)^2 via Euler factorization and Mertens' third theorem. Combining this summable tail with Euler's product bound on A-smooth reciprocals keeps the covered mass below 1/2, proving the Formal Conjectures ideal statement (erdos_2), its direct negation (not_arbitrarilyLarge_ideal_coverings), the uniform minimum-modulus bound (minimum_modulus_bound), and finite-set noncoverage (finite_noncoverage_bound).",
+   "authors": [
+    {
+     "name": "Linmiao Xu"
+    }
+   ],
+   "classification": {
+    "arxiv": [
+     "math.NT",
+     "math.CO"
+    ],
+    "msc2020": [
+     "11A07",
+     "11B25"
+    ]
+   },
+   "formalization": {
+    "theorem_names": [
+     "Erdos2.Standalone.erdos_2",
+     "Erdos2.Standalone.not_arbitrarilyLarge_ideal_coverings",
+     "Erdos2.Standalone.minimum_modulus_bound",
+     "Erdos2.Standalone.finite_noncoverage_bound"
+    ]
+   },
+   "id": "PALOMAR-2026-10-05-000002",
+   "path": "entries/PALOMAR-2026-10-05-000002-v1.json",
+   "preservation": {
+    "repositories": [
+     {
+      "commit": "7caa4144741e10f96cf79d6f7313a0efd9a18b67",
+      "fork_repository": "PalomarArchive/linrock--math-proofs--14cf37780a40",
+      "source_repository": "linrock/math-proofs"
+     }
+    ]
+   },
+   "published_at": "2026-10-05T05:09:05Z",
+   "source": {
+    "commit": "7caa4144741e10f96cf79d6f7313a0efd9a18b67",
+    "project_path": "erdos-2",
+    "repository": "linrock/math-proofs"
+   },
+   "status": "registered",
+   "title": "Erdős 2: minimum modulus of distinct covering systems",
+   "trust": {
+    "level": "high"
+   },
+   "version": 1,
+   "versions": 1
+  },
+  {
+   "abstract": "A complete Lean 4 proof of the affirmative answer to Erdős problem 546 (Sudakov's theorem): there exists an absolute constant C > 0 such that every finite simple graph G with m edges and no isolated vertices has diagonal Ramsey number R(G) ≤ 2^(C √m). Formalizing Sudakov's 2011 proof—including high-degree vertex deletion, greedy bounded-degree embedding and hereditary sparse cuts, low-density monochromatic-pair extraction, and iterative clique-reservoir amplification. This proves the uniform explicit bound R(G) ≤ 2^(4000 √m) across all finite simple graphs without isolated vertices (including m = 0), together with the exact Formal Conjectures statement.",
+   "authors": [
+    {
+     "name": "Linmiao Xu"
+    }
+   ],
+   "classification": {
+    "arxiv": [
+     "math.CO"
+    ],
+    "msc2020": [
+     "05C55",
+     "05C35",
+     "05D10"
+    ]
+   },
+   "formalization": {
+    "theorem_names": [
+     "erdos_546_original_statement",
+     "Erdos546.erdos_546",
+     "Erdos546.sudakov_sparse_bound",
+     "Erdos546.sparse_graph_ramsey_witness",
+     "Erdos546.boundedDegree_sparse_cut",
+     "Erdos546.exists_monoPair_of_low_edgeDensity",
+     "Erdos546.quantitative_monoPair_amplification"
+    ]
+   },
+   "id": "PALOMAR-2026-10-04-000010",
+   "path": "entries/PALOMAR-2026-10-04-000010-v1.json",
+   "preservation": {
+    "repositories": [
+     {
+      "commit": "7caa4144741e10f96cf79d6f7313a0efd9a18b67",
+      "fork_repository": "PalomarArchive/linrock--math-proofs--14cf37780a40",
+      "source_repository": "linrock/math-proofs"
+     }
+    ]
+   },
+   "published_at": "2026-10-04T20:31:23Z",
+   "source": {
+    "commit": "7caa4144741e10f96cf79d6f7313a0efd9a18b67",
+    "project_path": "erdos-546",
+    "repository": "linrock/math-proofs"
+   },
+   "status": "registered",
+   "title": "Erdős 546: sparse graph Ramsey numbers",
+   "trust": {
+    "level": "high"
+   },
+   "version": 1,
+   "versions": 1
+  },
+  {
+   "abstract": "A complete Lean 4 proof of the affirmative answer to Erdős problem 956: for all sufficiently large n, there exist n pairwise-disjoint translates of a compact convex planar set with more than n^(1+c) unordered pairs at Euclidean set-distance 1 (for c = 1/4). Adapting the parabolic construction announced by Valtr (2005) and detailed in Chojecki's April 2026 manuscript, the formalization proves the supporting-hyperplane theorem for a centrally symmetric signed parabolic cap and constructs a four-layer parabolic grid of disjoint translates. This establishes the explicit lower bound h(n) > (1/26) n^(4/3) for all n ≥ 80 and the sharper eventual bound h(n) > (2/5) n^(4/3).",
+   "authors": [
+    {
+     "name": "Linmiao Xu"
+    }
+   ],
+   "classification": {
+    "arxiv": [
+     "math.MG",
+     "math.CO"
+    ],
+    "msc2020": [
+     "52C10",
+     "52A10",
+     "05D99"
+    ]
+   },
+   "formalization": {
+    "theorem_names": [
+     "Erdos956.Palomar.erdos_956_superlinear",
+     "Erdos956.Palomar.erdos_956",
+     "Erdos956.Palomar.erdos_956_omega_four_thirds",
+     "Erdos956.Palomar.erdos_956_four_layer_polynomial",
+     "Erdos956.Palomar.erdos_956_eventual_two_fifths"
+    ]
+   },
+   "id": "PALOMAR-2026-10-04-000008",
+   "path": "entries/PALOMAR-2026-10-04-000008-v1.json",
+   "preservation": {
+    "repositories": [
+     {
+      "commit": "2afe25fe500b036dfabef8e00c369a434bfff763",
+      "fork_repository": "PalomarArchive/linrock--math-proofs--14cf37780a40",
+      "source_repository": "linrock/math-proofs"
+     }
+    ]
+   },
+   "published_at": "2026-10-04T16:32:39Z",
+   "source": {
+    "commit": "2afe25fe500b036dfabef8e00c369a434bfff763",
+    "project_path": "erdos-956",
+    "repository": "linrock/math-proofs"
+   },
+   "status": "registered",
+   "title": "Erdős 956: unit distances between disjoint convex translates",
+   "trust": {
+    "level": "high"
+   },
+   "version": 1,
+   "versions": 1
+  },
+  {
+   "abstract": "A Lean 4 formalization of the Herzog–Schönheim conjecture (the index form, which implies the cardinality form asked in Erdős problem 274) for every solvable group, finite or infinite: if a solvable group is partitioned into finitely many, and at least two, left cosets of subgroups, then two of the subgroups have the same index (hence, in the cardinality form, the same cardinality). The conjecture for arbitrary groups is open and is not claimed. The infinite case reduces to a finite solvable quotient by the common core of the parts; the finite case is proved for a least counterexample by considering its largest prime divisor p, using the subgroup generated by the p-prime-part elements, divisibility restrictions on local indices obtained from fixed-point counts in a primitive solvable quotient, and an extra closure argument at p = 7. The statements use the same exact covering structure as the formal-conjectures file for Erdős problem 274.",
+   "authors": [
+    {
+     "name": "Murali Menon"
+    }
+   ],
+   "classification": {
+    "arxiv": [
+     "math.GR",
+     "math.CO"
+    ],
+    "msc2020": [
+     "20D60",
+     "20D10",
+     "05B40"
+    ]
+   },
+   "formalization": {
+    "theorem_names": [
+     "Erdos274.Palomar.herzog_schonheim_solvable",
+     "Erdos274.Palomar.erdos_274_solvable"
+    ]
+   },
+   "id": "PALOMAR-2026-10-02-000004",
+   "path": "entries/PALOMAR-2026-10-02-000004-v1.json",
+   "preservation": {
+    "repositories": [
+     {
+      "commit": "d701decf37c225a3e5326fade4bd92121b1f93d4",
+      "fork_repository": "PalomarArchive/Jostamon--erdos274-hs-solvable--2a7a53287c1d",
+      "source_repository": "Jostamon/erdos274-hs-solvable"
+     }
+    ]
+   },
+   "published_at": "2026-10-02T07:53:20Z",
+   "source": {
+    "commit": "d701decf37c225a3e5326fade4bd92121b1f93d4",
+    "project_path": null,
+    "repository": "Jostamon/erdos274-hs-solvable"
+   },
+   "status": "registered",
+   "title": "The Herzog–Schönheim conjecture for solvable groups",
+   "trust": {
+    "level": "high"
+   },
+   "version": 1,
+   "versions": 1
+  },
+  {
+   "abstract": "A Lean proof resolving the Burr–Erdős–Graham–Sós conjecture (Erdős Problem 809): for every fixed odd cycle of length at least seven, the maximal anti-Ramsey threshold at floor(n²/4) + 1 edges is n²/8 + o(n²). The seven-cycle case is new to our knowledge. The development proves it and formalizes the stronger full-density result of Bucić, Chen, and Ma for odd cycles of length at least nine.",
+   "authors": [
+    {
+     "name": "Jacob Parish"
+    }
+   ],
+   "classification": {
+    "arxiv": [
+     "math.CO"
+    ],
+    "msc2020": [
+     "05C15",
+     "05C35"
+    ]
+   },
+   "formalization": {
+    "theorem_names": [
+     "Erdos809.main_result"
+    ]
+   },
+   "id": "PALOMAR-2026-09-30-000004",
+   "path": "entries/PALOMAR-2026-09-30-000004-v1.json",
+   "preservation": {
+    "repositories": [
+     {
+      "commit": "0f27743fabd97b262d2fce7946de9f0b3325a625",
+      "fork_repository": "PalomarArchive/plasma-ai--erdos-809--95e57efacaad",
+      "source_repository": "plasma-ai/erdos-809"
+     }
+    ]
+   },
+   "published_at": "2026-09-30T01:21:55Z",
+   "source": {
+    "commit": "0f27743fabd97b262d2fce7946de9f0b3325a625",
+    "project_path": null,
+    "repository": "plasma-ai/erdos-809"
+   },
+   "status": "registered",
+   "title": "Erdős Problem 809: rainbow odd cycles",
+   "trust": {
+    "level": "high"
+   },
+   "version": 1,
+   "versions": 1
+  },
+  {
+   "abstract": "Erdős problem #1219 (erdosproblems.com/1219; Erdős–Hajnal 1971, Problem 3, asked by Erdős, Hajnal and Rado): let (n_k) be an increasing sequence of integers such that 2^{ℵ_{n_k}} is strictly increasing and 2^{ℵ_{n_0}} > ℵ_ω; is it true that Σ_k 2^{ℵ_{n_k}} → (ℵ_ω)²?  Shelah (Notes on partition calculus, 1975, §1) proved that the answer is yes.  This project formalizes that proof in Lean 4 with Mathlib: the comparator target erdos_1219 states that for every strictly increasing n : ℕ → ℕ with k ↦ 2 ^ ℵ_(n k) strictly increasing and ℵ_ω < 2 ^ ℵ_(n 0), the binary partition relation PartitionArrow (Σ_k 2 ^ ℵ_(n k)) ℵ_ω holds, i.e. every 2-colouring of the 2-element subsets of a set of cardinality Σ_k 2 ^ ℵ_(n k) has a monochromatic subset of cardinality ℵ_ω (PartitionArrow is the binary case of formal-conjectures' Combinatorics.cardinalPartitionRel).  The proof follows Shelah's Canonization Lemma 1.1 and Theorem 1.2: the unbalanced Erdős–Rado theorem (2^μ)⁺ → ((2^μ)⁺, μ⁺)² (proved here with a critical-ordinal / closure-point argument), a canonization of the colouring across blocks of sizes (2^{ℵ_{n_k}})⁺ by means of guides generic over all small subsets of the earlier blocks, and Ramsey's theorem for pairs on ℕ.  The target is proved from propext, Classical.choice and Quot.sound only and passes the Lean comparator (landrun sandbox, NanoDa kernel).",
+   "authors": [
+    {
+     "name": "Ji Ho Bae (JRTI)"
+    }
+   ],
+   "classification": {
+    "arxiv": [
+     "math.LO",
+     "math.CO"
+    ],
+    "msc2020": [
+     "03E02",
+     "03E05",
+     "03E10",
+     "05D10"
+    ]
+   },
+   "formalization": {
+    "theorem_names": [
+     "erdos_1219"
+    ]
+   },
+   "id": "PALOMAR-2026-09-30-000003",
+   "path": "entries/PALOMAR-2026-09-30-000003-v1.json",
+   "preservation": {
+    "repositories": [
+     {
+      "commit": "00e696a9cd2bbd8cad33d2cdc90ad385058c1466",
+      "fork_repository": "PalomarArchive/jbaelaw--erdos1219-lean--9297707161f0",
+      "source_repository": "jbaelaw/erdos1219-lean"
+     }
+    ]
+   },
+   "published_at": "2026-09-30T01:10:42Z",
+   "source": {
+    "commit": "00e696a9cd2bbd8cad33d2cdc90ad385058c1466",
+    "project_path": null,
+    "repository": "jbaelaw/erdos1219-lean"
+   },
+   "status": "registered",
+   "title": "Erdős Problem #1219 in Lean 4: Σ_k 2^{ℵ_{n_k}} → (ℵ_ω)² (Shelah 1975)",
+   "trust": {
+    "level": "high"
+   },
+   "version": 1,
+   "versions": 1
+  },
+  {
+   "abstract": "A formalization in Lean 4 and Mathlib of the Erdős discrepancy theorem, proved by Terence Tao in 2015: for every sequence f(1), f(2), … of signs ±1 and every C there are d ≥ 1 and n with |f(d) + f(2d) + ⋯ + f(nd)| > C, so every ±1 sequence has unbounded discrepancy along homogeneous arithmetic progressions. This is the original ±1 formulation, Corollary 1.2 of Tao's paper; its Hilbert-space-valued Theorem 1.1 is not formalized. The proof follows the architecture of Tao's argument: a Fourier-analytic reduction from a sequence of bounded discrepancy to a stochastic completely multiplicative function with bounded mean-square partial sums; a van der Corput argument, driven by the logarithmically averaged two-point Elliott estimate, forcing such a function to pretend to be a twisted Dirichlet character; and a generalized Borwein–Choi–Coons argument excluding that case. The analytic number theory these steps use is proved in the same development rather than assumed: the entropy-decrement proof of the two-point Elliott estimate from Tao's companion paper, the Matomäki–Radziwiłł short-interval estimate on the major arcs via the Dirichlet-polynomial route of Matomäki, Radziwiłł and Tao, the Halász–Montgomery large-values inequality, a large-values bound for Dirichlet polynomials over primes from a zero-free region of the Riemann zeta function, that zero-free region from Weyl-sum bounds on zeta, and a form of Vinogradov's mean value theorem. Where a published route did not fit, the development adapts it; the adaptations are documented. The theorem depends only on Lean's three standard axioms. This is a formalization of a published result, not a new proof; it was produced by AI agents working through pull requests checked by continuous integration in the ProofFleet repository (formerly MoltResearch).",
+   "authors": [
+    {
+     "name": "Sean Huver"
+    }
+   ],
+   "classification": {
+    "arxiv": [
+     "math.NT",
+     "math.CO"
+    ],
+    "msc2020": [
+     "11K38",
+     "11N37",
+     "11M26",
+     "11L15"
+    ]
+   },
+   "formalization": {
+    "theorem_names": [
+     "EDP.erdos_discrepancy"
+    ]
+   },
+   "id": "PALOMAR-2026-09-29-000002",
+   "path": "entries/PALOMAR-2026-09-29-000002-v1.json",
+   "preservation": {
+    "repositories": [
+     {
+      "commit": "13853222d90d7cff0608c6380d0ee75b0e12473d",
+      "fork_repository": "PalomarArchive/ProofFleet--prooffleet--f3efc1a69e0c",
+      "source_repository": "ProofFleet/prooffleet"
+     }
+    ]
+   },
+   "published_at": "2026-09-29T01:01:26Z",
+   "source": {
+    "commit": "13853222d90d7cff0608c6380d0ee75b0e12473d",
+    "project_path": null,
+    "repository": "ProofFleet/prooffleet"
+   },
+   "status": "registered",
+   "title": "A Lean formalization of the Erdős discrepancy theorem",
+   "trust": {
+    "level": "high"
+   },
+   "version": 1,
+   "versions": 1
+  },
+  {
+   "abstract": "Erdős problem #1220 (erdosproblems.com/1220; Erdős–Hajnal 1971): let λ be a singular cardinal such that both λ and cf(λ) are ℵ₀-inaccessible (μ^ℵ₀ < κ for all μ < κ); does λ → (λ, ℵ₁)² hold?  This formalization settles the question as asked on erdosproblems.com in the negative sense \"not provable\": ZFC does not prove that every such λ satisfies λ → (λ, ℵ₁)² (erdos1220_not_provable : ¬ (ZFC ⊨ᵇ Erdos1220)), i.e. there is a model of ZFC with a singular λ, λ and cf(λ) ℵ₀-inaccessible, and λ ↛ (λ, ℵ₁)².  Shelah and Stanley (Sh:258, Ann. Pure Appl. Logic 36 (1987)) showed that a negative answer is consistent with ZFC.  This project formalizes that consistency result: the comparator target erdos1220_not_provable : ¬ (ZFC ⊨ᵇ Erdos1220) is stated for literally the same first-order theory ZFC, language and ZFSet interpretation as elliotglazer/erdos501's comparator challenge (imported from its statement module Erdos501.FOL.Statement), together with a faithfulness theorem erdos1220_sentence_faithful: in Mathlib's ZFSet the sentence Erdos1220 holds iff the Mathlib-level statement Erdos1220.Problem1220 holds.  The witness is the ground-model singular strong-limit cardinal λ = ℶ_{𝔠⁺} (cf λ = 𝔠⁺; λ and cf λ are ℵ₀-inaccessible without any deep cardinal-arithmetic input), not ℵ_{𝔠⁺}.  The forcing is the Shelah–Stanley §3 forcing, formalized as block-preserving, block-covering histories of basic conditions (weak extension order), with the μ⁺-strategic closure (hence μ-distributivity) and the (2^μ)⁺-chain condition proved in ZFC without GCH (Δ-system lemma for (2^μ)⁺ sets of size ≤ μ, blueprint counting (2^μ)^μ = 2^μ).  In the Boolean-valued model of its regular-open algebra (built with the Lean 4 port of Han–van Doorn's Flypitch vendored by erdos501) the hypotheses on λ are preserved, the generic colouring of [λ]² has neither a red homogeneous set of size λ nor a blue homogeneous set of size ℵ₁, and Flypitch's completeness theorem turns this into a two-valued model of ZFC satisfying ¬Erdos1220.  Both targets are proved from propext, Classical.choice and Quot.sound only and pass the Lean comparator.  Only the negative direction is claimed: independence (consistency of a positive answer) is NOT claimed.",
+   "authors": [
+    {
+     "name": "Ji Ho Bae (JRTI)"
+    }
+   ],
+   "classification": {
+    "arxiv": [
+     "math.LO"
+    ],
+    "msc2020": [
+     "03E35",
+     "03E02",
+     "03E05",
+     "03E40",
+     "03E55"
+    ]
+   },
+   "formalization": {
+    "theorem_names": [
+     "erdos1220_not_provable",
+     "erdos1220_sentence_faithful"
+    ]
+   },
+   "id": "PALOMAR-2026-09-26-000001",
+   "path": "entries/PALOMAR-2026-09-26-000001-v1.json",
+   "preservation": {
+    "repositories": [
+     {
+      "commit": "9cb81ffa48ffb766127c7e485ccef77bd4160868",
+      "fork_repository": "PalomarArchive/jbaelaw--erdos1220-lean--9ed9443659d9",
+      "source_repository": "jbaelaw/erdos1220-lean"
+     }
+    ]
+   },
+   "published_at": "2026-09-26T02:04:54Z",
+   "source": {
+    "commit": "9cb81ffa48ffb766127c7e485ccef77bd4160868",
+    "project_path": null,
+    "repository": "jbaelaw/erdos1220-lean"
+   },
+   "status": "registered",
+   "title": "Erdős Problem #1220 in Lean 4: the affirmative statement is not provable in ZFC",
+   "trust": {
+    "level": "high"
+   },
+   "version": 1,
+   "versions": 1
+  },
+  {
+   "abstract": "Lean proofs of the ALWZ and Rao–Bell–Chueluecha–Warnke sunflower bounds, robust-sunflower upper and lower bounds, the BCW spread and satisfying results, and the classical Erdős–Rado theorem. The submission compares ten explicit finite statements, including second-moment and Janson routes to the ALWZ bound.",
+   "authors": [
+    {
+     "name": "Troy Lee"
+    }
+   ],
+   "classification": {
+    "arxiv": [
+     "math.CO",
+     "cs.DM"
+    ],
+    "msc2020": [
+     "05D05"
+    ]
+   },
+   "formalization": {
+    "theorem_names": [
+     "PalomarSunflower.erdos_rado_bounded",
+     "PalomarSunflower.alwz_bounded",
+     "PalomarSunflower.alwz_bounded_janson",
+     "PalomarSunflower.rao_bcw_bounded",
+     "PalomarSunflower.exists_isRobustSunflower_pad",
+     "PalomarSunflower.exists_isRobustSunflower_rao",
+     "PalomarSunflower.exists_no_robustSunflower",
+     "PalomarSunflower.exists_pairwiseDisjoint_of_raoSpread",
+     "PalomarSunflower.bcw_theorem3",
+     "PalomarSunflower.bcw_lemma4"
+    ]
+   },
+   "id": "PALOMAR-2026-09-25-000014",
+   "path": "entries/PALOMAR-2026-09-25-000014-v1.json",
+   "preservation": {
+    "repositories": [
+     {
+      "commit": "55d7c9c11ee4240328a71b1ab43d66f27a976da6",
+      "fork_repository": "PalomarArchive/troyjlee--tcs-formalizations--200ed78cfc67",
+      "source_repository": "troyjlee/tcs-formalizations"
+     }
+    ]
+   },
+   "published_at": "2026-09-25T11:22:09Z",
+   "source": {
+    "commit": "55d7c9c11ee4240328a71b1ab43d66f27a976da6",
+    "project_path": null,
+    "repository": "troyjlee/tcs-formalizations"
+   },
+   "status": "registered",
+   "title": "Sunflower bounds",
+   "trust": {
+    "level": "high"
+   },
+   "version": 1,
+   "versions": 1
+  },
+  {
+   "abstract": "For an infinite set A of positive integers and an integer base b at least 2, consider the reciprocal Mersenne subseries X_A(b) = sum over a in A of 1/(b^a - 1). For a finite nonempty set P of primes, write h_P(a) for the P-part of a. The principal theorem proves irrationality when sum over a in A of h_P(a)/(a*(b^h_P(a) - 1)) converges. The base-two condition implies irrationality at every integer base at least 2 for every infinite subset of the host support. This is a sufficient support criterion, not a solution of the universal Erdős problem. It includes reciprocal-summable supports; the paper credits Erdős for that earlier stated all-base criterion and makes no identification with his suggested weakenings.\nThe five selected statements also give cofinally arbitrarily small positive weighted displacements, a strengthened positive divisor-cover criterion, and two common-average mixed-support extensions, one using an arbitrary positive weight budget. The proof averages displacements along multiples of a finite divisibility modulus, with another average controlling incomplete periods. Rationality would instead separate every positive displacement from zero. These extensions retain their explicit cover, summability, positivity and infinite-subset assumptions. Full support and all odd exponents are outside the weighted criterion; failure of the criterion is not a rationality assertion. The paper's achievement-set geometry, rational-membership tests and finite-denominator results are outside this registration. This entry supplies independently stated Challenge declarations and matching Lean proofs, with links to the complete paper and reasoning record; it makes no claim of independent human peer review or a novelty verdict.",
+   "authors": [
+    {
+     "name": "Will Cook"
+    }
+   ],
+   "classification": {
+    "arxiv": [
+     "math.NT"
+    ],
+    "msc2020": [
+     "11J72",
+     "11B83"
+    ]
+   },
+   "formalization": {
+    "theorem_names": [
+     "PalomarCorpus.E257.DivisibilityWeightedSupport.divisibilityWeightedClaim",
+     "PalomarCorpus.E257.MixedWeightedCover.mixedSupportClaim",
+     "PalomarCorpus.E257.PaperStructuresBO.arbitraryWeightMixedSupport_allBase_hereditary",
+     "PalomarCorpus.E257.VariableExponentCover.strengthenedPositiveCoverClaim",
+     "PalomarCorpus.E257.WeightedCloseReturn.weighted_displacement_cofinal_close_return"
+    ]
+   },
+   "id": "PALOMAR-2026-09-25-000009",
+   "path": "entries/PALOMAR-2026-09-25-000009-v1.json",
+   "preservation": {
+    "repositories": [
+     {
+      "commit": "b85ed30805188eb4390a686b111294b24363418e",
+      "fork_repository": "PalomarArchive/wcook04--plectis-erdos-lean--26c7e2ff36da",
+      "source_repository": "wcook04/plectis-erdos-lean"
+     }
+    ]
+   },
+   "published_at": "2026-09-25T07:59:15Z",
+   "source": {
+    "commit": "b85ed30805188eb4390a686b111294b24363418e",
+    "project_path": null,
+    "repository": "wcook04/plectis-erdos-lean"
+   },
+   "status": "registered",
+   "title": "Weighted support criteria for reciprocal Mersenne subseries",
+   "trust": {
+    "level": "high"
+   },
+   "version": 1,
+   "versions": 1
+  },
+  {
+   "abstract": "The least number of edges of a graph of Euclidean dimension five (Erdős–Harary–Tutte) is 15, and both K6 and K1,3,3 attain it (Chaffee and Noble 2016). These are formal-conjectures' erdos_1007.variants.dimension_five and dimension_five_extremal. A graph has dimension n when n is the least dimension in which its vertices can be placed injectively with every edge a unit segment. The lower bound is Chaffee and Noble's Theorem 10: every graph with at most fourteen edges has such a placement in ℝ⁴. Its proof removes a vertex of degree at most three, joins that vertex's neighbours to one another, places the smaller graph by induction, and returns the vertex to one of the infinitely many points at distance one from its neighbours. A graph whose degrees are all at least four has at most seven vertices, and those graphs are handled case by case. For attainment, K6 has dimension five because six points at pairwise distance one fit in ℝ⁵ but not in ℝ⁴. K1,3,3 has dimension five by Theorem 8: it has an explicit placement in ℝ⁵, and an orthogonal-complement count rules out ℝ⁴. The supporting results are in GraphDimension, a separate Lean library on the dimension of graphs, which this repository pins by revision. The question belongs to discrete geometry and extremal graph theory, specifically the study of unit-distance representations and the dimension of graphs.",
+   "authors": [
+    {
+     "name": "Dishant Shah"
+    }
+   ],
+   "classification": {
+    "arxiv": [
+     "math.CO",
+     "math.MG"
+    ],
+    "msc2020": [
+     "05C62",
+     "52C10"
+    ]
+   },
+   "formalization": {
+    "theorem_names": [
+     "Erdos1007Dim5.Palomar.target"
+    ]
+   },
+   "id": "PALOMAR-2026-09-25-000003",
+   "path": "entries/PALOMAR-2026-09-25-000003-v1.json",
+   "preservation": {
+    "repositories": [
+     {
+      "commit": "85032a43ca6db7d92b492efd05deeea0739c4570",
+      "fork_repository": "PalomarArchive/Dishah3241--Erdos1007Dim5--3b9128a98c60",
+      "source_repository": "Dishah3241/Erdos1007Dim5"
+     }
+    ]
+   },
+   "published_at": "2026-09-25T05:20:10Z",
+   "source": {
+    "commit": "85032a43ca6db7d92b492efd05deeea0739c4570",
+    "project_path": null,
+    "repository": "Dishah3241/Erdos1007Dim5"
+   },
+   "status": "registered",
+   "title": "Erdős 1007, dimension five: fifteen edges, attained by K6 and K1,3,3",
+   "trust": {
+    "level": "high"
+   },
+   "version": 1,
+   "versions": 1
+  },
+  {
+   "abstract": "A graph has dimension n when n is the least number such that its vertices can be placed injectively in ℝⁿ with every edge of length one (Erdős, Harary and Tutte). House proved that a graph of dimension four has at least nine edges, and that nine is attained only by K_{3,3}. This project proves the second half in Lean 4, in the form google-deepmind/formal-conjectures states it as erdos_1007.variants.dimension_four_extremal: a graph of dimension four with nine edges and no isolated vertex is isomorphic to K_{3,3}. The proof follows Chaffee and Noble's proof of House's theorem. On the way it proves that K_{3,3} has dimension exactly four and that every graph with at most eight edges has a unit-distance representation in ℝ³ (Chaffee–Noble, Theorem 6).",
+   "authors": [
+    {
+     "name": "Dishant Shah"
+    }
+   ],
+   "classification": {
+    "arxiv": [
+     "math.CO",
+     "math.MG"
+    ],
+    "msc2020": [
+     "05C62",
+     "52C10"
+    ]
+   },
+   "formalization": {
+    "theorem_names": [
+     "Erdos1007.Palomar.target"
+    ]
+   },
+   "id": "PALOMAR-2026-09-23-000003",
+   "path": "entries/PALOMAR-2026-09-23-000003-v1.json",
+   "preservation": {
+    "repositories": [
+     {
+      "commit": "43f89415a6663848a1445effbda8b3abe77b052b",
+      "fork_repository": "PalomarArchive/Dishah3241--Erdos1007--ce3b8697073a",
+      "source_repository": "Dishah3241/Erdos1007"
+     }
+    ]
+   },
+   "published_at": "2026-09-23T04:55:09Z",
+   "source": {
+    "commit": "43f89415a6663848a1445effbda8b3abe77b052b",
+    "project_path": null,
+    "repository": "Dishah3241/Erdos1007"
+   },
+   "status": "registered",
+   "title": "Unit-distance graphs of dimension four with nine edges",
+   "trust": {
+    "level": "high"
+   },
+   "version": 1,
+   "versions": 1
+  },
+  {
+   "abstract": "Lean formalization accompanying the paper An Exponent of 1.043 for the Unit Distance Problem by Eric Naslund (cited under sources), which proves the exponent 1.043171 unconditionally with a computer-assisted certificate. Conditional theorem on unit distances in the Euclidean plane. Let B = Q(sqrt 241) and let E be the number field of degree 512 generated over Q by sqrt 241 and square roots of the eight elements -1, -71011068 + 4574225 sqrt 241, (-6101 - 393 sqrt 241)/2, (6101 - 393 sqrt 241)/2, 31 - 2 sqrt 241, 31 + 2 sqrt 241, 326 - 21 sqrt 241 and 326 + 21 sqrt 241 of B (a basis of the {2,3,5}-units of B modulo squares). Let E_W be the field of degree 8192 obtained from E by adjoining square roots of four explicit elements beta_1, ..., beta_4 of E, each generating with two of the square roots a dihedral extension of B of degree 8 (the elements are written out in the Challenge). Hypothesis (H_W) is one displayed numerical inequality for the Dedekind zeta function of E_W: log(Re zeta_{E_W}(1 + 1/4411))/8192 + (1/4411)((L - gamma - log(4 pi))/4 - Re((zeta_{E_W}'/zeta_{E_W})(2))/8192) < 50969/1000000, where L = (9/4) log 2 + (1/2) log 3615 and gamma is Euler's constant. The compared theorem proves that (H_W) implies the existence of finite sets U_j in the plane with |U_j| -> infinity such that the number of unordered pairs of points of U_j at distance one, divided by |U_j|^(20863/20000), tends to infinity. The exponent is exactly 20863/20000 = 1.04315. The conclusion is a sequence statement only; no bound at every sufficiently large cardinality is asserted. The infinite pro-2 tower over B with Frobenius caps at both primes above 29 and at one prime above 41 (generators, relation bound, presentation, Golod-Shafarevich infinitude, local data), its fields, which are Galois over B and over a fixed base field but not over Q, their local types and signature, the root-discriminant bound, the field E_W with its degree, its embedding in the base field and its local data, the passage from (H_W) to the analytic ceiling, the numerical margin and the planar construction are proved in Lean over Mathlib; (H_W) itself is not proved. Outside Lean, a rigorous computation (certified values of the 576 L-functions of degrees 4 and 8 in the factorization of zeta_{E_W} and an Euler product with explicit tail) bounds the left side of (H_W) by 0.0509172; that computation is not part of the formal proof. The earlier formalization registered as PALOMAR-2026-10-01-000018 version 1 proved the exponent 10427/10000 from a different inequality, for the field E.",
+   "authors": [
+    {
+     "name": "Eric Naslund"
+    }
+   ],
+   "classification": {
+    "arxiv": [
+     "math.CO",
+     "math.NT"
+    ],
+    "msc2020": [
+     "52C10",
+     "11R37",
+     "20C05"
+    ]
+   },
+   "formalization": {
+    "theorem_names": [
+     "UnitDistanceSqrt241Submission.target_of_wide_zeta_bound"
+    ]
+   },
+   "id": "PALOMAR-2026-10-01-000018",
+   "path": "entries/PALOMAR-2026-10-01-000018-v2.json",
+   "preservation": {
+    "repositories": [
+     {
+      "commit": "edd88c0c175ab4d18cf6115e2f6ddf3865d36b12",
+      "fork_repository": "PalomarArchive/enaslund--unit-distance-bound-0.0427--b3a8b62d2e9c",
+      "source_repository": "enaslund/unit-distance-bound-0.0427"
+     }
+    ]
+   },
+   "published_at": "2026-10-10T20:31:53Z",
+   "source": {
+    "commit": "edd88c0c175ab4d18cf6115e2f6ddf3865d36b12",
+    "project_path": "lean",
+    "repository": "enaslund/unit-distance-bound-0.0427"
+   },
+   "status": "registered",
+   "title": "An Exponent of 1.043 for the Unit Distance Problem: Lean formalization at exponent 1.04315, conditional on one zeta inequality",
+   "trust": {
+    "level": "high"
+   },
+   "version": 2,
+   "versions": 2
+  },
+  {
+   "abstract": "Minimax root-mean-square bounds for estimating a constant conditional variance from independent random-design regression observations. The design density has fixed positive lower and upper bounds but no smoothness; covariate-dependent errors have uniformly bounded conditional fourth moments. For 1 < s < d/4, the proved bracket identifies the polynomial exponent 2(s+1)/(d+4) and the common explicit stretched-exponential factor, with a remaining logarithmic gap. It also proves the exponent corollary, the exact low-smoothness rate, and the parametric regime.",
+   "authors": [
+    {
+     "name": "P. M. Aronow"
+    },
+    {
+     "name": "Patrick Lopatto"
+    }
+   ],
+   "classification": {
+    "arxiv": [
+     "math.ST",
+     "stat.TH"
+    ],
+    "msc2020": [
+     "62G05",
+     "62G08",
+     "62G20",
+     "62C20"
+    ]
+   },
+   "formalization": {
+    "theorem_names": [
+     "NearlyMinimax.Submission.paper_main",
+     "NearlyMinimax.Submission.exponent_limit",
+     "NearlyMinimax.Submission.polynomial_bounds",
+     "NearlyMinimax.Submission.low_smoothness",
+     "NearlyMinimax.Submission.parametric"
+    ]
+   },
+   "id": "PALOMAR-2026-10-10-000002",
+   "path": "entries/PALOMAR-2026-10-10-000002-v1.json",
+   "preservation": {
+    "repositories": [
+     {
+      "commit": "f3ef2ef312d44bbc693c1d5bea9cee654a29b598",
+      "fork_repository": "PalomarArchive/pmaronow--ccv-palomar--47775cd59e5a",
+      "source_repository": "pmaronow/ccv-palomar"
+     }
+    ]
+   },
+   "published_at": "2026-10-10T04:35:14Z",
+   "source": {
+    "commit": "f3ef2ef312d44bbc693c1d5bea9cee654a29b598",
+    "project_path": null,
+    "repository": "pmaronow/ccv-palomar"
+   },
+   "status": "registered",
+   "title": "Nearly minimax variance estimation under rough random design",
+   "trust": {
+    "level": "high"
+   },
+   "version": 1,
+   "versions": 1
+  },
+  {
+   "abstract": "Lean formalization of Patrick Lopatto's zero-field Sherrington–Kirkpatrick results. The selected claims are full interval support, a nonnegative smooth density with a terminal atom for every inverse temperature beta > 1, and quantitative inequalities for that actual atom. The independent Challenge defines the Parisi functional through concrete bounded-gradient weak PDE solutions, with terminal log cosh and coefficient beta squared divided by two. Solution identifies that definition with the constructed Parisi potential. The repository retains the supporting PDE, diffusion, covariance, minimizer, and numbered-result development described in COVERAGE.md and results.json.",
+   "authors": [
+    {
+     "name": "P. M. Aronow"
+    },
+    {
+     "name": "Patrick Lopatto"
+    }
+   ],
+   "classification": {
+    "arxiv": [
+     "math.PR",
+     "math-ph"
+    ],
+    "msc2020": [
+     "82B44",
+     "60G15"
+    ]
+   },
+   "formalization": {
+    "theorem_names": [
+     "PalomarFRSB.fullRSB",
+     "PalomarFRSB.quantitativeAtom"
+    ]
+   },
+   "id": "PALOMAR-2026-10-10-000001",
+   "path": "entries/PALOMAR-2026-10-10-000001-v1.json",
+   "preservation": {
+    "repositories": [
+     {
+      "commit": "b3ff38e8bc8c057b8ee2addf0fa2428db32f106b",
+      "fork_repository": "PalomarArchive/pmaronow--frsb-palomar--66f552945dc4",
+      "source_repository": "pmaronow/frsb-palomar"
+     }
+    ]
+   },
+   "published_at": "2026-10-10T00:49:02Z",
+   "source": {
+    "commit": "b3ff38e8bc8c057b8ee2addf0fa2428db32f106b",
+    "project_path": null,
+    "repository": "pmaronow/frsb-palomar"
+   },
+   "status": "registered",
+   "title": "Full replica symmetry breaking in the Sherrington–Kirkpatrick model",
+   "trust": {
+    "level": "high"
+   },
+   "version": 1,
+   "versions": 1
+  },
+  {
+   "abstract": "A complete Lean proof of the dimension-two case of Nielsen–Okamura Conjecture 9.1. On any connected open planar Euclidean domain, complementarity of the actual canonical local affine-parameter midpoints of a smooth pair of dual torsion-free connections forces the symmetric cubic tensor to be constant. The proof constructs and identifies the short geodesic germs and derives the fourth-order obstruction, including the exceptional rank-deficient tensors. A second theorem needs only everywhere Frechet differentiability and vanishing of that obstruction; five fixed direction tests at every point suffice. Dimensions above two are outside the claim.",
+   "authors": [
+    {
+     "name": "JD Jones"
+    }
+   ],
+   "classification": {
+    "arxiv": [
+     "math.DG",
+     "math.CA"
+    ],
+    "msc2020": [
+     "53B12",
+     "39B22"
+    ]
+   },
+   "formalization": {
+    "theorem_names": [
+     "PlanarMidpoint.planar_dual_midpoint_rigidity",
+     "PlanarMidpoint.planar_obstruction_rigidity",
+     "PlanarMidpoint.planar_five_direction_rigidity"
+    ]
+   },
+   "id": "PALOMAR-2026-10-09-000016",
+   "path": "entries/PALOMAR-2026-10-09-000016-v1.json",
+   "preservation": {
+    "repositories": [
+     {
+      "commit": "148b39618710caf576189cbdb75551cec1735201",
+      "fork_repository": "PalomarArchive/JD-Jones-ASES--PlanarMidpoint--8b5260b291db",
+      "source_repository": "JD-Jones-ASES/PlanarMidpoint"
+     }
+    ]
+   },
+   "published_at": "2026-10-09T22:55:50Z",
+   "source": {
+    "commit": "148b39618710caf576189cbdb75551cec1735201",
+    "project_path": null,
+    "repository": "JD-Jones-ASES/PlanarMidpoint"
+   },
+   "status": "registered",
+   "title": "Planar Euclidean midpoint rigidity",
+   "trust": {
+    "level": "high"
+   },
+   "version": 1,
+   "versions": 1
+  },
+  {
+   "abstract": "Uniform permanence is established for finite endotactic reaction networks with arbitrary real complexes and measurable rate coefficients bounded above and away from zero almost everywhere. Each positive stoichiometric compatibility class contains a compact convex forward-invariant absorbing set, with entry times uniform over compact sets of initial conditions and all rate histories within a fixed rate box. Global positive Carathéodory solutions exist and are unique, and an exponential continuous-dependence estimate holds for initial data under a common rate history on a compact positive region. The result resolves the Endotactic Permanence Conjecture stated as Conjecture 1.3 by Johnston, Pantea and Donnell (https://arxiv.org/abs/1412.4662), using an ordinary-endotactic drift estimate together with the finite affine barrier construction from OpenAI’s work on weakly reversible networks.",
+   "authors": [
+    {
+     "name": "Michael Mislan"
+    }
+   ],
+   "classification": {
+    "arxiv": [
+     "math.DS",
+     "q-bio.MN"
+    ],
+    "msc2020": [
+     "34A12",
+     "34D23",
+     "92C42"
+    ]
+   },
+   "formalization": {
+    "theorem_names": [
+     "EndotacticSubmission.uniform_permanence",
+     "EndotacticSubmission.continuous_dependence"
+    ]
+   },
+   "id": "PALOMAR-2026-10-09-000015",
+   "path": "entries/PALOMAR-2026-10-09-000015-v1.json",
+   "preservation": {
+    "repositories": [
+     {
+      "commit": "c72c945264565397ecc3eee779e6bd5f3f3a061d",
+      "fork_repository": "PalomarArchive/mmislan--palomar-endotactic-permanence--fcc3441bc2f5",
+      "source_repository": "mmislan/palomar-endotactic-permanence"
+     }
+    ]
+   },
+   "published_at": "2026-10-09T19:55:24Z",
+   "source": {
+    "commit": "c72c945264565397ecc3eee779e6bd5f3f3a061d",
+    "project_path": null,
+    "repository": "mmislan/palomar-endotactic-permanence"
+   },
+   "status": "registered",
+   "title": "Uniform permanence of endotactic reaction networks with measurable rates",
+   "trust": {
+    "level": "high"
+   },
+   "version": 1,
+   "versions": 1
+  }
+ ]
+}

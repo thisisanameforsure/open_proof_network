@@ -157,6 +157,9 @@ def verify(  # noqa: PLR0913 — one argument per seam
     install prefix (its ``bin/`` holds the kernels), ``checkers`` the network's own, ``None`` when
     they cannot be built (recorded as not attempted, which counts against the verdict)."""
     result = Conformance(pin["id"], pin["repository"], pin["commit"], str(pin["lean_toolchain"]))
+    # absolute: lake runs with cwd=project and reads the config path as given (the first corpus
+    # run passed a path relative to the tool's cwd and Comparator could not read it, 2026-10-11)
+    work = work.resolve()
     repo, ran = clone(pin, work, runner, timeout_s=timeout_s)
     if any(r.exit_code != 0 for r in ran):
         result.record("clone", False, "\n".join(r.output[-500:] for r in ran if r.exit_code != 0))

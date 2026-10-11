@@ -3,3 +3,26 @@
 9 passed in 0.20s
 
 ## the network run: .github/workflows/palomar-corpus.yml on pull request #30 (two entries) and weekly over seven; results appended below when the first run completes
+
+## first corpus run on the pull request (38116057006, 2026-10-11, ubuntu-24.04, leanprover/lean4:v4.35.0-rc2), two entries
+Both entries: clone ok (exact commit), both hashes equal the registry's record, cache and build ok, the network's opn-axioms and opn-statement-meaning BUILT AND RAN AT 4.35.0-rc2 and agreed with the registry (axioms = the three standard ones; the Solution's declaration has the Challenge's type). Comparator alone failed, on the verifier's bug: the config path was relative to the tool's cwd, not the project's (fixed: paths resolved). pins_drift: [].
+PALOMAR-2026-09-30-000004 leanprover/lean4:v4.35.0-rc2 our_axioms {'Erdos809.main_result': ['Classical.choice', 'Quot.sound', 'propext']}
+   clone ok 0f27743fabd97b262d2fce7946de9f0b3325a625
+   hash challenge_path ok Challenge.lean: f45fc0b90c18 vs the record's f45fc0b90c18
+   hash solution_path ok Solution.lean: 067c492a3d1e vs the record's 067c492a3d1e
+   toolchain ok leanprover/lean4:v4.35.0-rc2 (record: leanprover/lean4:v4.35.0-rc2)
+   cache ok 10 KB/s], Decompressed: 860 | Downloaded: 4126 file(s) [attempted 4126/8915 = 46%, 148 KB/s], Decompressed: 860 | Downloaded: 4281 file(s) [attempted 4281/8915 = 48%, 108 KB/s], Decompressed: 860 | Download
+   build ok /2475] Built Erdos809.BucicChenMa.Case2DisjointCommonCycle (3.8s) | ✔ [2431/2475] Built Erdos809.SevenCycle.CleaningWalkCases (7.0s) | ✔ [2432/2475] Built Erdos809.SevenCycle.NearBipartiteBoundaryRight (1
+   comparator FAIL error: could not read the configuration: no such file or directory (error code: 2) |   file: conformance/work/PALOMAR-2026-09-30-000004/repo/.opn-verify/comparator.generated.json | 
+   opn-axioms Erdos809.main_result ok ['Classical.choice', 'Quot.sound', 'propext']; outside the permitted list: []
+   opn-statement-meaning Erdos809.main_result ok {"decl": "Erdos809.main_result", "declared": "Erdos809.Statement", "expected": "Erdos809.Statement", "identical": true, "local_mismatch": [], "locals": ["Erdos809.AdmissibleAtLeast", "Erdos809.EveryCo
+PALOMAR-2026-10-03-000008 leanprover/lean4:v4.35.0-rc2 our_axioms {'Falmagne.falmagne_blockMarschak': ['Classical.choice', 'Quot.sound', 'propext']}
+   clone ok e6078b9b11af9010386207890fb79b792617e65e
+   hash challenge_path ok Challenge.lean: 4ac34e136d44 vs the record's 4ac34e136d44
+   hash solution_path ok Solution.lean: 2c2f9f1ebd51 vs the record's 2c2f9f1ebd51
+   toolchain ok leanprover/lean4:v4.35.0-rc2 (record: leanprover/lean4:v4.35.0-rc2)
+   cache ok 47fb01960e2719' | info: importGraph: materializing new dependency | info: importGraph: fetching revision '10930f8138f0462dbd744a91fc03a16fae0e046f' from https://github.com/leanprover-community/import-grap
+   build ok r explicitly omit them: |   omit [Fintype X] [DecidableEq X] in theorem ... |  | Note: This linter can be disabled with `set_option linter.unusedSectionVars false` | warning: Solution.lean:387:0: automaticall
+   comparator FAIL error: could not read the configuration: no such file or directory (error code: 2) |   file: conformance/work/PALOMAR-2026-10-03-000008/repo/.opn-verify/comparator.generated.json | 
+   opn-axioms Falmagne.falmagne_blockMarschak ok ['Classical.choice', 'Quot.sound', 'propext']; outside the permitted list: []
+   opn-statement-meaning Falmagne.falmagne_blockMarschak ok {"decl": "Falmagne.falmagne_blockMarschak", "declared": "\u2200 {X : Type u_1} [inst : Fintype X] [inst_1 : DecidableEq X] [Nonempty X] {p : Finset X \u2192 X \u2192 Real},\n  Falmagne.IsChoiceRule p 
