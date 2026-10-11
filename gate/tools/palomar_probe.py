@@ -285,12 +285,12 @@ def main() -> int:
     ch4 = (
         HEAD
         + "public section\n\ntheorem Probe.t4 : (List.range "
-        + "2000).foldl (· + ·) 0 = 1999000 := by\n  sorry\n"
+        + "100).foldl (· + ·) 0 = 4950 := by\n  sorry\n"
     )
     sol4 = (
         HEAD
         + "public section\n\ntheorem Probe.t4 : (List.range "
-        + "2000).foldl (· + ·) 0 = 1999000 := by\n  decide\n"
+        + "100).foldl (· + ·) 0 = 4950 := by\n  decide\n"
     )
     outcomes.append(
         probe(
