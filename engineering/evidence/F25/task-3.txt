@@ -1,0 +1,39 @@
+# F25-T3 verification — 2026-10-11T05:00:22Z — branch f25-t3 (from f25-palomar 99e5222a)
+# head: 402a142e
+
+$ uv run --frozen pytest -q -p no:cacheprovider gate/tests/test_submission_meta_v2.py api/tests/test_submission_automation.py api/tests/test_dco.py api/tests/test_mcp_surface.py api/tests/test_finding_mcp_context_budget.py gate/tests/test_error_codes.py gate/tests/test_finding_guide_names_exist.py gate/tests/test_walkthrough.py
+........................................................................ [ 78%]
+...............s....                                                     [100%]
+=============================== warnings summary ===============================
+api/tests/api_fakes.py:32
+  /Users/mikehiggins/Desktop/repos/open_proof_network/.claude/worktrees/agent-af1c430a12ef24a41/api/tests/api_fakes.py:32: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient
+
+.venv/lib/python3.13/site-packages/starlette/testclient.py:53
+  /Users/mikehiggins/Desktop/repos/open_proof_network/.claude/worktrees/agent-af1c430a12ef24a41/.venv/lib/python3.13/site-packages/starlette/testclient.py:53: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.
+    _PortalFactoryType = Callable[[], AbstractContextManager[anyio.abc.BlockingPortal]]
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+SKIPPED [1] gate/tests/test_walkthrough.py:235: /Users/mikehiggins/Desktop/repos/open_proof_network/.claude/worktrees/open_proof_network_graph/AGENTS.md is not checked out beside this repo
+91 passed, 1 skipped, 2 warnings in 113.64s (0:01:53)
+pytest exit: 0
+
+$ make lint
+uv run --frozen ruff check .
+All checks passed!
+uv run --frozen ruff format --check .
+722 files already formatted
+lint exit: 0
+
+$ make types
+uv run --frozen mypy api
+Success: no issues found in 231 source files
+uv run --frozen mypy site
+Success: no issues found in 82 source files
+types exit: 0
+
+# tools/list size (compact JSON of every listed tool, measured with scratch measure_tools_list.py):
+#   before F25-T3 (99e5222a): total 81583, without output schemas 44024, submit_proof 2773, precheck_submission 2293
+#   after  F25-T3:            total 85280, without output schemas 47509, submit_proof 4617, precheck_submission 3934
+# DCO version: f7ac75b443f4ca16 before; 1b72bc16f46ab19b after
