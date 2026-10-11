@@ -125,7 +125,7 @@ def probe(  # noqa: PLR0913, PLR0917 — one argument per thing a probe varies
         config.write_text(
             comparator_config(prefix, theorem_names, definition_names), encoding="utf-8"
         )
-        comparator = run(["lake", "comparator", "--config", str(config)], root, log)
+        comparator = run(["lake", "comparator", "--config", str(config.resolve())], root, log)
     seconds = round(time.monotonic() - t0, 1)
     (out / f"{name}-{variant}.txt").write_text("\n".join(log), encoding="utf-8")
     return Outcome(name, variant, build == 0, comparator, seconds, note)
@@ -151,13 +151,19 @@ def main() -> int:
     if missing:
         print(f"missing on PATH: {missing}", file=sys.stderr)
         return 2
+    # The toolchain under probe, not the repository root's: elan resolves `lean` by the nearest
+    # lean-toolchain file, which in the checkout is the graph's 4.33.1 pin (first run, 2026-10-11).
+    tc = ["elan", "run", TOOLCHAIN]
     prefix = Path(
         subprocess.run(
-            ["lean", "--print-prefix"], capture_output=True, text=True, check=True
+            [*tc, "lean", "--print-prefix"], capture_output=True, text=True, check=True
         ).stdout.strip()
     )
+
     (out / "toolchain.txt").write_text(
-        subprocess.run(["lean", "--version"], capture_output=True, text=True, check=False).stdout
+        subprocess.run(
+            [*tc, "lean", "--version"], capture_output=True, text=True, check=False
+        ).stdout
         + "\n"
         + "\n".join(
             f"{b}: {'present' if (prefix / 'bin' / b).exists() else 'MISSING'}"
@@ -165,10 +171,10 @@ def main() -> int:
         )
         + "\n\n$ lake comparator --help\n"
         + subprocess.run(
-            ["lake", "comparator", "--help"], capture_output=True, text=True, check=False
+            [*tc, "lake", "comparator", "--help"], capture_output=True, text=True, check=False
         ).stdout
         + subprocess.run(
-            ["lake", "comparator", "--help"], capture_output=True, text=True, check=False
+            [*tc, "lake", "comparator", "--help"], capture_output=True, text=True, check=False
         ).stderr,
         encoding="utf-8",
     )
@@ -290,11 +296,11 @@ def main() -> int:
         probe(
             out,
             "p4-decide",
-            "range-2000",
+            "range-100",
             {"Challenge.lean": ch4, "Probe.lean": HEAD, "Solution.lean": sol4},
             ["Probe.t4"],
             [],
-            "nanoda and con-ron on a decide term",
+            "nanoda and con-ron on a decide term (2000 hit maxRecDepth at elaboration, first run)",
             prefix,
         )
     )

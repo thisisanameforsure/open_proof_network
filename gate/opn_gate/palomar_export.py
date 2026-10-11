@@ -296,8 +296,12 @@ def transform(  # noqa: PLR0912, PLR0913 — one branch per kind of import line
             ordered.append(m)
     out: list[str] = []
     leading = [ln for ln in header.leading if ln.strip() != "module"]
+    while leading and not leading[0].strip():
+        leading.pop(0)
+    while leading and not leading[-1].strip():
+        leading.pop()
     out.extend(leading)
-    if out and out[-1].strip():
+    if out:
         out.append("\n")
     out.append("module\n\n")
     for module in ordered:
