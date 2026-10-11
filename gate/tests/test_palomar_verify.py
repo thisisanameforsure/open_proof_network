@@ -16,7 +16,7 @@ from opn_gate import palomar_verify as pv
 from opn_gate.palomar_port import FakeRunner, Ran
 
 FIXTURES = Path(__file__).resolve().parent / "fixtures" / "palomar"
-ENTRY = "PALOMAR-2026-10-03-000008"  # Falmagne–Block–Marschak: one theorem, the smallest
+ENTRY = "PALOMAR-2026-10-03-000008"  # Falmagne, Block and Marschak: one theorem, the smallest
 
 
 class ClonedRunner(FakeRunner):
@@ -87,8 +87,9 @@ def test_a_registered_entry_passes_every_check_on_the_plan(tmp_path: Path) -> No
     assert result.ok, result.as_dict()
     names = [c.name for c in result.checks]
     assert names == [
-        "clone", "hash challenge_path", "hash solution_path", "toolchain", "cache", "build", "comparator",
-        "opn-axioms Falmagne.falmagne_blockMarschak", "opn-statement-meaning Falmagne.falmagne_blockMarschak",
+        "clone", "hash challenge_path", "hash solution_path", "toolchain", "cache", "build",
+        "comparator", "opn-axioms Falmagne.falmagne_blockMarschak",
+        "opn-statement-meaning Falmagne.falmagne_blockMarschak",
     ]  # fmt: skip
     argvs = [c[0] for c in runner.calls]
     assert argvs[2][:5] == ("git", "fetch", "-q", "--depth", "1") and argvs[2][-1] == pin["commit"]
