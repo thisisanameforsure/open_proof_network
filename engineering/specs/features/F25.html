@@ -268,11 +268,68 @@ honest report-back (D-10, D-23); agent-friendliness; a statement published is a 
   <tr><td>F25-Q13</td><td><strong>Numbering.</strong> v3.36 is reserved for the formalization review,
     drafted 2026-10-09 and not applied; this amendment is v3.37 so the two stay distinct.
     <code>PROTOCOL_VERSION</code> had lagged at 3.28 and is 3.37 now.</td></tr>
+  <tr><td>F25-Q1 (answered)</td><td><strong>Probe 1, 2026-10-11:</strong> a definition listed in
+    <code>comparator.json</code>'s <code>definition_names</code> is a <em>hole</em> the Solution may fill
+    with any body (Comparator accepted a development whose definition differed from the Challenge's);
+    an unlisted definition is compared as a constant and a different body is refused ("Const does not
+    match between challenge and target"). Decided: definitions are duplicated byte for byte in the
+    development and listed nowhere; the export writes an empty <code>definition_names</code>. Evidence
+    <code>engineering/evidence/F25/probes.txt</code>.</td></tr>
+  <tr><td>F25-Q2 (answered)</td><td><strong>Probe 6:</strong> Lean 4.33.1 accepts <code>module</code>,
+    <code>public import</code> and <code>@[expose] public section</code> on a core-only file, and the
+    fixture's wrapper elaborates, replays and is judged at the pin (<code>test_export_palomar_lean.py</code>).
+    Stage A checks the exact bytes for a core graph; the Mathlib half is the docker tier's.</td></tr>
+  <tr><td>F25-Q14</td><td><strong>The automation block is required at submission and validated when
+    offered at precheck.</strong> The tutorial token flow runs a precheck with no identity, so requiring the
+    block there would make minting an identity depend on it; <code>POST /submissions</code> refuses
+    without it, <code>POST /precheck</code> refuses only a malformed one and echoes a good one (T3).</td></tr>
+  <tr><td>F25-Q15</td><td><strong>A licence by flag for the rehearsal.</strong> The live graph has no root
+    LICENSE until the owner's commit (T16); <code>--licence Apache-2.0</code> lets the export run before it
+    and records <code>licence.source: flag</code> in <code>opn-export.json</code> and a declared gap in the
+    README, so the record says where the claim came from.</td></tr>
+  <tr><td>F25-Q16</td><td><strong>SSH display-name records are refused for unpaired pseudonyms.</strong>
+    Nothing on the graph pairs an ordinary contributor's pseudonym with a GitHub login (the pairing is the
+    service's identity table, kept off the graph by D-35; <code>curators.json</code> pairs curators only), so
+    the gate cannot tell that a hand-opened <code>via: ssh</code> record's signer holds the pseudonym, and a
+    login spelled like a pseudonym is not its holder. Refused by name
+    (<code>display-name-ssh-unpaired</code>); the holder sets the name through <code>POST /me/name</code>,
+    signed by the approval key for the bearer. Reversal: a pairing record on the graph, one check (T4).</td></tr>
+  <tr><td>F25-Q17</td><td><strong><code>graph_commit</code> ancestry is checked only where history
+    exists.</strong> <code>check_registration</code> asks <code>git merge-base --is-ancestor</code> when the
+    checkout is a full repository and nothing on a plain tree or a shallow clone; a check that cannot run
+    refuses nothing. Assumes the gate's workflow checkout is full (the 2026-10-02 log); confirm at the
+    re-pin (T4).</td></tr>
+  <tr><td>F25-Q18</td><td><strong>A display name is one file, replaced in place.</strong>
+    <code>names/&lt;pseudonym&gt;.yaml</code> carries no timestamp, so the role is modifiable and git history
+    is the trail; the one-writer rule is an open pull request on the file (<code>display-name-in-review</code>),
+    and the same-second hold that fixed-path appends would trip is turned off for it (T4).</td></tr>
+  <tr><td>F25-Q19</td><td><strong>Registration files are numbered, never reused.</strong>
+    <code>&lt;date&gt;-&lt;n&gt;</code> with <code>n</code> past every merged and open registration of the
+    target that day; a gap is harmless, the number only tells records apart (T4). A withdrawal is a later
+    record with status <code>withdrawn</code>, not a D-18 withdrawal file, so no withdrawal schema moved.</td></tr>
+  <tr><td>F25-Q20</td><td><strong>The gate now reads an intake's <code>target.yaml</code>.</strong> Before T5
+    nothing validated the record on an intake pull request (only the posting path did), so a malformed
+    classification written by hand would have merged; <code>check_target_record</code> validates it against
+    the version it declares. A target already on the graph cannot gain a classification through
+    <code>intake new</code>; a curator record path for it is the owner's call (T5).</td></tr>
+  <tr><td>F25-Q21</td><td><strong>The corpus found the registry's shapes differ from their description.</strong>
+    Entry records carry no <code>mathlib_revision</code> (Mathlib is one of
+    <code>formalization.project_dependencies</code>), <code>verification.kernels</code> are
+    <code>{name, argv}</code> objects absent on the oldest entry, <code>project_path</code> sits under
+    <code>source</code>, today's v0.4 schema refuses an entry the registry accepted on 2026-09-05 (authors as
+    objects), and the module system is used by every entry registered from 2026-10-02 and not by two
+    September ones. All recorded in <code>gate/palomar/corpus.json</code>; the reader stays strict to the
+    schema as vendored (T6).</td></tr>
+  <tr><td>F25-Q22</td><td><strong>Comparator judges the named theorems, not the repository.</strong> Probe 5:
+    a <code>sorry</code> in a development module the theorem never uses is accepted. The export refuses any
+    <code>sorry</code> outside the Challenge all the same (<code>export-sorry</code>), because the registry's
+    source scan and its reviewer read the whole repository and the network publishes nothing it would not
+    merge.</td></tr>
 </table>
 
 <h2>10. Status</h2>
-<div class="rule"><strong>status:</strong> building ·
-  <strong>Tasks:</strong> T0 ✓ 2026-10-10 (decisions v3.37 applied; PROTOCOL_VERSION 3.37; spec and index) · T1 ✓ 2026-10-11 (eight schemas; registrations.derive with four mutants killed; goldens and api fixtures regenerated; 5203 fast-tier tests green) · T2–T16 todo</div>
+<div class="rule"><strong>status:</strong> building (branch f25-palomar, pull request #30 as a draft for the Linux probes) ·
+  <strong>Tasks:</strong> T0 ✓ 2026-10-10 (decisions v3.37 applied; PROTOCOL_VERSION 3.37; spec and index) · T1 ✓ 2026-10-11 (eight schemas; registrations.derive with four mutants killed; goldens and api fixtures regenerated; 5203 fast-tier tests green) · T2 ✓ 2026-10-11 (four runs on the pull request; seven answers in probes.txt; Q1, Q2, Q22) · T4 ✓ 2026-10-11 (agent, branch f25-t4: paths, modes, names reader, 13 codes, two routes, three tools; 153 named tests, 2054 wider; Q16–Q19) · T5 ✓ 2026-10-11 (agent: intake new --arxiv --msc, check_target_record; 11 tests; Q20) · T6 ✓ 2026-10-11 (client seam, vendored schema and pins, seven corpus fixtures, readers and writers; 56 tests; Q21) · T7 ✓ 2026-10-11 (export; 22 tests) · T8 ✓ 2026-10-11 (local check; lean tier 2 passed, 145 s) · T3 building (agent) · T9–T16 todo</div>
 
 <h2>Tasks</h2>
 <p class="status-note">Dependency-ordered. Red before green: each new test fails on the missing
