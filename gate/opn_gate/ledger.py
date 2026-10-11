@@ -218,8 +218,11 @@ def proof_entry(  # noqa: PLR0913 — one argument per fact the entry records
     tooling: str = UNDECLARED,
     tutorial: bool = False,
     curator: str | None = None,
+    automation: dict[str, Any] | None = None,
 ) -> Entry | None:
     """R12: the proof line for a merged D-12 artifact, or ``None`` when it earns nothing.
+    ``automation`` is F25-R3's structured disclosure as the merge's attestation carried it
+    (``merge_automation``), or ``None``.
 
     ``tutorial`` is the one exclusion that is not about the artifact: D-27's node is how an
     identity is minted, so paying for it would make minting an identity a way to be paid.
@@ -239,6 +242,7 @@ def proof_entry(  # noqa: PLR0913 — one argument per fact the entry records
         merge_commit=merge_commit,
         date=date,
         tooling=tooling,
+        automation=automation,
     )
 
 
@@ -254,8 +258,11 @@ def postmortem_entry(  # noqa: PLR0913 — the ledger, plus one argument per fac
     date: str,
     tooling: str = UNDECLARED,
     tutorial: bool = False,
+    automation: dict[str, Any] | None = None,
 ) -> Entry | None:
-    """R12, D-13: the attempts line, first per route class on that node, never for the tutorial."""
+    """R12, D-13: the attempts line, first per route class on that node, never for the tutorial.
+    ``automation`` as ``proof_entry`` takes it; an append has no attestation, so it is null
+    unless a later record supplies one (F25-R3)."""
     if tutorial or not earns_attempts(doc, node, route_class):
         return None
     return Entry(
@@ -267,6 +274,7 @@ def postmortem_entry(  # noqa: PLR0913 — the ledger, plus one argument per fac
         date=date,
         tooling=tooling,
         route_class=route_class,
+        automation=automation,
     )
 
 

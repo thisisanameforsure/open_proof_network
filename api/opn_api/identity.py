@@ -84,6 +84,17 @@ By making a contribution to this project, I certify that:
     personal information I submit with it, including my sign-off) is
     maintained indefinitely and may be redistributed consistent with
     this project or the open source license(s) involved.
+
+
+The Open Proof Network's addition (not part of the Developer's
+Certificate of Origin above; D-23 v3.37)
+
+The licences "indicated in the file" are these. Code contributions
+(Lean files and anything else that runs) are licensed under Apache-2.0.
+The non-code record -- attestations, postmortems, approach records,
+review and adjudication records, registration records and the other
+records the graph keeps -- is licensed under CDLA-Permissive-2.0. A
+record of a contribution names both by their SPDX identifiers.
 """
 DCO_VERSION = hashlib.sha256(DCO_TEXT.encode("utf-8")).hexdigest()[:16]
 

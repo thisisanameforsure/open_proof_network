@@ -3381,6 +3381,7 @@ def _write_merge_entries(
     identity = proposer_of(graph, commit)
     date = graphmod.commit_timestamp(graph, commit)
     tooling = ledger.merge_tooling(graph, commit)
+    automation = ledger.merge_automation(graph, commit)  # F25-R3: the block, or None
     try:
         doc = ledger.load(graph, identity)
         earned, skipped, doc = _merge_entries(
@@ -3390,6 +3391,7 @@ def _write_merge_entries(
             commit=commit,
             date=date,
             tooling=tooling,
+            automation=automation,
             doc=doc,
         )
     except schemas.SchemaError as exc:
@@ -3430,10 +3432,12 @@ def _merge_entries(  # noqa: PLR0913 — one argument per fact every entry recor
     date: str,
     tooling: str,
     doc: dict[str, Any],
+    automation: dict[str, Any] | None = None,
 ) -> tuple[list[ledger.Entry], list[str], dict[str, Any]]:
     """The entries a proof, partial or append merge earns, the reasons for what it does not, and
     the ledger with the earned entries appended (validated as it grows, so a second postmortem of
-    a class in the same merge is refused against the first — D-13)."""
+    a class in the same merge is refused against the first — D-13). ``automation`` is what the
+    merge's attestation declared (F25-R3), carried on every entry the merge earns."""
     earned: list[ledger.Entry] = []
     skipped: list[str] = []
     wanted = {"proof": ("proof",), "partial": ("partial",), "append": ("postmortem",)}
@@ -3461,6 +3465,7 @@ def _merge_entries(  # noqa: PLR0913 — one argument per fact every entry recor
             entry = ledger.postmortem_entry(
                 doc, identity=identity, target=target_id, node=node_id, route_class=route_class,
                 artifact=artifact, merge_commit=commit, date=date, tooling=tooling,
+                automation=automation,
             )  # fmt: skip
             if entry is None:
                 skipped.append(
@@ -3480,7 +3485,7 @@ def _merge_entries(  # noqa: PLR0913 — one argument per fact every entry recor
                 identity=identity, target=target_id, node=node_id,
                 artifact_type="partial" if loc.role == "partial" else "proof",
                 artifact=artifact, merge_commit=commit, date=date, tooling=tooling,
-                curator=curator,
+                curator=curator, automation=automation,
             )  # fmt: skip
             if entry is None:
                 skipped.append(f"{node_id}'s {loc.role} earns no proof line (R12)")

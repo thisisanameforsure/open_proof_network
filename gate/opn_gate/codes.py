@@ -286,6 +286,27 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "Nothing for you to fix; report it to the graph's curators. Other submissions are "
         "unaffected.",
     ),
+    "automation-invalid": (
+        "api",
+        None,
+        "The automation block (D-23: how the artifact was made) does not fit submission-meta/v2: "
+        "a method outside manual, copilot, agent, autonomous, other; models not a non-empty list "
+        "of names; token counts that are not integers; or a field the block does not know. The "
+        "message names the path.",
+        "Send automation as {method, models, framework} plus any of tool_setup, wall_time, "
+        "tokens {input, output} (integers), hardware, spend; nothing else. POST /precheck "
+        "validates it when offered, POST /submissions requires it.",
+    ),
+    "automation-missing": (
+        "api",
+        None,
+        "A proof, partial or alternate submission came without the automation block, or without "
+        "one of its three required fields (method, models, framework); the message names what is "
+        "missing. Nothing was pushed and no pull request opened (D-23 v3.37, F25-R2).",
+        'Add automation to the body, for example {"method": "agent", "models": '
+        '["claude-fable-5-1"], "framework": "Claude Code 2.1"}, and send the same '
+        "submission again; the precheck job is not spent by the refusal.",
+    ),
     "axiom-not-allowed": (
         "gate",
         5,

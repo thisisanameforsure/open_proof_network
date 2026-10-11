@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any
 
 import httpx
-from api_fakes import TUTORIAL_NODE, Harness, make_harness, make_precheck_key
+from api_fakes import AUTOMATION, TUTORIAL_NODE, Harness, make_harness, make_precheck_key
 from mcp_client import NODE, TARGET, McpClient, seed_node
 
 from opn_api import routes
@@ -154,6 +154,7 @@ def test_results_match_schemas(harness: Harness, tmp_path: Path) -> None:
             "artifact_type": "proof",
             "bundle": {},
             "attestation": {"id": job["id"]},
+            "automation": AUTOMATION,
         },
         "submit_postmortem": {"node_id": NODE, "yaml": {}},
         "submit_informal_annex": {"node_id": NODE, "text": "prose", "licence": "CC-BY-4.0"},

@@ -19,7 +19,7 @@ from typing import Any
 import pytest
 import samples
 import yaml
-from api_fakes import Harness, PrecheckKey, make_harness, make_precheck_key, result_zip
+from api_fakes import AUTOMATION, Harness, PrecheckKey, make_harness, make_precheck_key, result_zip
 from mcp_client import NODE, NODE_DIR, TARGET, seed_node
 
 from opn_api import config
@@ -202,6 +202,7 @@ def passing_job(
 
 def submit(h: Harness, token: str, bundle: dict[str, str], job: str) -> Any:
     body = {"node_id": NODE, "artifact_type": "partial", "bundle": bundle, "precheck_job_id": job}
+    body["automation"] = AUTOMATION
     return h.client.post("/submissions", json=body, headers=h.auth(token))
 
 
