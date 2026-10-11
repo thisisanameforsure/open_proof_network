@@ -200,7 +200,8 @@ def classify(output: str) -> list[Failure]:
             continue
         out.append(
             Failure(
-                module=modules[0] if len(modules) == 1 else _module_of(m.group("file")),
+                # the file names the module; the failed-build line only when the file does not
+                module=_module_of(m.group("file")) or (modules[0] if len(modules) == 1 else None),
                 kind=kind,
                 file=m.group("file"),
                 line=int(m.group("line")),
@@ -342,8 +343,10 @@ def port(  # noqa: PLR0913 — one argument per thing the port is told
     steps.append(("comparator", ["lake", "comparator", "--config", str(config)]))
     for name, argv in steps:
         ran = runner.run(argv, cwd=project, timeout_s=timeout_s)
+        # the build's whole output is what a repair is read from; the other steps' tails suffice
+        keep = 200_000 if name == "build" else 4000
         report.steps.append(
-            {"step": name, "argv": list(argv), "exit": ran.exit_code, "tail": ran.output[-4000:]}
+            {"step": name, "argv": list(argv), "exit": ran.exit_code, "tail": ran.output[-keep:]}
         )
         if ran.exit_code != 0:
             if name == "build":

@@ -95,6 +95,7 @@ def test_build_failures_are_classified() -> None:
         ("tactic-failed", 7),
     ]
     assert failures[0].module == "OpnX.Nodes.b" and failures[0].file == "OpnX/Nodes/b.lean"
+    assert failures[-1].module == "Solution"  # the file names the module, not the failed-build line
     assert all(f.kind != "other" for f in failures)
     assert pp.classify("Build completed successfully (8 jobs).\n") == []
 
