@@ -1385,3 +1385,21 @@ The law of the project:
   domain and the indexing. **On Mathlib, equivalence is agent work**: simple tactics proved only
   near-identical texts; 14 directions needed short agent proofs, all accepted first time. Also: a
   laptop shutdown stops background agents without a report, so check their files before resuming.
+
+- 2026-10-11 — F25 (registration in Palomar, decisions v3.37) built in one sitting on branch
+  `f25-palomar` with five worktree agents, a draft pull request standing in for a dispatch (a new
+  workflow cannot be dispatched until it is on the default branch; `pull_request` with a paths filter
+  runs it). Five things worth keeping. **Ask the tool, not its README, what a field means**: Comparator's
+  `definition_names` is a *hole* — a Solution may fill a listed definition with any body and pass — so the
+  sound export duplicates definitions byte for byte and lists none; the README's "definition holes" sentence
+  said as much and three readers (me included) read it as a check. **A bare tree is not the record**: a
+  parent whose revised child superseded a hole reads as `stale` without git history (F08-T10 lifts by
+  ancestry), so the export runs on a detached worktree; found on erdos-1050 at the first rehearsal, after
+  the 2026-10-04 log had said it of `check_products.py`. **A path handed to a subprocess is relative to its
+  cwd, not yours** — Comparator could not read its config twice in one day, in the probe and in the corpus
+  verifier; resolve before passing. **The registry's shapes differ from their description**: no
+  `mathlib_revision`, kernels as objects, `project_path` under `source`, today's schema refusing an entry
+  it accepted a month ago — a seven-entry corpus found all four in its first hour, and the network's own
+  checkers then agreed with Palomar on two entries at 4.35.0-rc2. **Agents' worktrees come up on `main`**,
+  not on the branch the lead is on: say so in the brief (`git reset --hard origin/<branch>` first), and
+  remove merged worktrees before the disk reaches 4 GiB, which it did.
