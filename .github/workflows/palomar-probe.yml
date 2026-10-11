@@ -27,6 +27,11 @@ jobs:
       - name: Install bubblewrap (Comparator's sandbox) and elan
         run: |
           sudo apt-get update -q && sudo apt-get install -y -q bubblewrap
+          # Ubuntu 24.04 confines unprivileged user namespaces under AppArmor; bwrap then dies
+          # with "setting up uid map: Permission denied" (third run, 2026-10-11). Palomar's own
+          # verifier builds a pinned bwrap; for a probe the sysctl is enough.
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+          bwrap --ro-bind / / --dev /dev --unshare-all true && echo 'bwrap: user namespaces work'
           curl -sSfL https://github.com/leanprover/elan/releases/latest/download/elan-x86_64-unknown-linux-gnu.tar.gz | tar xz
           ./elan-init -y --no-modify-path --default-toolchain none
           echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
