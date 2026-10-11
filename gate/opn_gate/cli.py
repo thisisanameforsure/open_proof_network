@@ -200,6 +200,13 @@ def build_parser() -> argparse.ArgumentParser:  # noqa: PLR0915 — one statemen
         "(F25-Q15; recorded in opn-export.json as supplied by flag)",
     )
     pal.add_argument("--check", action="store_true", help="run the local check at the pin (R11)")
+    pal.add_argument(
+        "--classification",
+        help="arxiv codes and MSC codes as `math.NT:11J72,11B25`, for a rehearsal on a target "
+        "whose "
+        "record carries none (recorded in opn-export.json as supplied by flag; the record is the "
+        "curator's to classify, F25-R4)",
+    )
     pal.add_argument("--install", action="store_true", help="let elan install the pinned toolchain")
 
     prt = sub.add_parser(
@@ -1205,9 +1212,17 @@ def run_export_palomar(args: argparse.Namespace, settings: config.Settings) -> i
             capture_output=True,
             env=git_environment(),
         )
+    classification = None
+    if args.classification:
+        arxiv, _, msc = args.classification.partition(":")
+        classification = {"arxiv": arxiv.split(","), "msc2020": [c for c in msc.split(",") if c]}
     try:
         exported = palomar_export.export(
-            tree, args.target, graph_commit=commit, licence=args.licence
+            tree,
+            args.target,
+            graph_commit=commit,
+            licence=args.licence,
+            classification=classification,
         )
     except palomar_export.ExportError as exc:
         sys.stdout.write(json.dumps({"ok": False, "refused": exc.diagnostic.as_dict()}) + "\n")

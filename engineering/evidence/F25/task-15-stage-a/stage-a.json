@@ -47,10 +47,10 @@
         "lake-manifest.json": 538,
         "LICENSE": 11357,
         "comparator.json": 254,
-        "formalization.yaml": 5297,
+        "formalization.yaml": 5654,
         ".github/workflows/palomar-preflight.yml": 1050,
-        "README.md": 5621,
-        "opn-export.json": 3151
+        "README.md": 5800,
+        "opn-export.json": 3290
       }
     },
     "euclid-primes": {
@@ -84,7 +84,7 @@
         "formalization.yaml": 4275,
         ".github/workflows/palomar-preflight.yml": 1053,
         "README.md": 4115,
-        "opn-export.json": 3958
+        "opn-export.json": 4082
       }
     },
     "tutorial": {
@@ -95,5 +95,5 @@
       }
     }
   },
-  "note": "Stage A at the graph's pin, from a detached worktree of the graph's origin/main; --licence Apache-2.0 because the graph has no root LICENSE yet (Q15); classifications written into the scratch worktree (the live records carry none, T16)."
+  "note": "Stage A at the graph's pin from a detached worktree of origin/main; --licence Apache-2.0 (no root LICENSE yet, Q15); classifications supplied by flag (the live records carry none, T16); nothing written to the graph."
 }

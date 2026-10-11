@@ -24,6 +24,15 @@
     "spdx": "Apache-2.0",
     "source": "flag"
   },
+  "classification": {
+    "arxiv": [
+      "math.NT"
+    ],
+    "msc2020": [
+      "11A41"
+    ],
+    "source": "flag"
+  },
   "module_system": true,
   "headers": "rewritten for the module system; every body byte-identical to the graph's (opn-export hashes_in are the graph's files, hashes_out the wrapper's)",
   "hashes_in": {

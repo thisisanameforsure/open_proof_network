@@ -348,12 +348,13 @@ class Export:
             path.write_bytes(data)
 
 
-def export(  # noqa: PLR0912, PLR0915 — one refusal per rule, in the order the record is read
+def export(  # noqa: PLR0912, PLR0913, PLR0915 — one refusal per rule, in the order the record is read
     graph_root: Path,
     target_id: str,
     *,
     graph_commit: str,
     licence: str | None = None,
+    classification: dict[str, Any] | None = None,
     today: dt.date | None = None,
 ) -> Export:
     """Stage A (F25-R8): the wrapper repository's files, in memory, or a refusal (R9).
@@ -383,7 +384,11 @@ def export(  # noqa: PLR0912, PLR0915 — one refusal per rule, in the order the
         )
     target_dir = tg.path
     doc = intake.load_doc(target_dir)
-    classification = intake.classification(doc)
+    classification_source = "record"
+    recorded = intake.classification(doc)
+    if recorded is None and classification is not None:
+        recorded, classification_source = classification, "flag"
+    classification = recorded
     if classification is None:
         raise refuse(
             "export-classification-missing",
@@ -524,6 +529,7 @@ def export(  # noqa: PLR0912, PLR0915 — one refusal per rule, in the order the
         "kept_by_text": {k: list(v) for k, v in closure.kept_by_text.items()},
         "unmeasured": list(closure.unmeasured),
         "licence": {"spdx": spdx, "source": licence_source},
+        "classification": {**classification, "source": classification_source},
         "module_system": True,
         "headers": "rewritten for the module system; every body byte-identical to the graph's "
         "(opn-export hashes_in are the graph's files, hashes_out the wrapper's)",
@@ -797,7 +803,11 @@ def sources_doc(
             )
     prov = record.get("provenance") or {}
     if not related and prov.get("statement_source") == "formal-conjectures":
-        commit, path = prov.get("upstream_commit"), prov.get("upstream_path")
+        # target/v2 records carry the upstream path as source.ref (the live graph, 2026-10-11)
+        commit = prov.get("upstream_commit")
+        path = prov.get("upstream_path") or (
+            src.get("ref") if src.get("kind") == "formal-conjectures" else None
+        )
         if commit and path:
             related.append(
                 {

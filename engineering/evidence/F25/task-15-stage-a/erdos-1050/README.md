@@ -25,6 +25,7 @@ system. The graph is the record; this repository holds no fact the graph does no
 ## Sources and provenance
 
 - Erdős problem 1050 (calibration): a known result (independently-proves): https://www.erdosproblems.com/1050 — A known result, on the calibration track (Stages v3.17, F15-R14): solved in the literature by P. B. Borwein, On the irrationality of sum 1/(q^n + r), J. Number Theory 37 (1991), 253-259; a self-contained proof in Math. Proc. Camb. Phil. Soc. 112 (1992), 141-146, with no Lean proof at registry commit c7f31d5fd3d2 (erdosproblems.com status PROVED, standing since 1948). Graded easy: One closed proposition over the reals, the irrationality of the sum of 1/(2^(n+1) - 3), with no local definitions, no registry helpers and no hazard flag. Borwein's 1992 proof is a few pages of elementary analysis, and the registry itself records that a complete Lean 4 proof of this statement exists in an external gallery at a comparable Mathlib generation, so the mathematics is known to formalize; the calibration question is whether a fresh agent produces one under the gate with no help. Drafted by docs/calibration_pool.py and read by the curator before intake. The result is known; the network's proof is an independent one, and the published proof the catalog cites is not on the network's record.
+- related formalization (builds-on): https://github.com/google-deepmind/formal-conjectures/blob/c7f31d5fd3d2ca3d69979f2d213eb9b58fe956ae/FormalConjectures/ErdosProblems/1050.lean
 
 ## How it was produced
 

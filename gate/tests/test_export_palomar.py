@@ -250,12 +250,11 @@ def test_formalization_yaml_validates_and_names_the_ledgers_authors(tmp_path: Pa
         "ref": "FormalConjectures/ErdosProblems/1.lean",
         "url": "https://www.erdosproblems.com/1",
     }
-    rec["provenance"] = {
+    rec["provenance"] = {  # a target/v2 record: the path lives in source.ref, not here
         "statement_source": "formal-conjectures",
         "author": "The Formal Conjectures Authors",
         "adversarially_reviewed": False,
         "upstream_commit": "c" * 40,
-        "upstream_path": "FormalConjectures/ErdosProblems/1.lean",
     }
     intake.record_path(root2 / "targets" / TARGET).write_text(yaml.safe_dump(rec, sort_keys=False))
     fc = palomar.read_formalization(run(root2).files["formalization.yaml"].decode())

@@ -39,6 +39,11 @@ sources:
     by the curator before intake. The result is known; the network''s proof is an independent one, and
     the published proof the catalog cites is not on the network''s record.'
   relationship: independently-proves
+related_formalizations:
+- id: https://github.com/google-deepmind/formal-conjectures/blob/c7f31d5fd3d2ca3d69979f2d213eb9b58fe956ae/FormalConjectures/ErdosProblems/1050.lean
+  relationship: builds-on
+  note: The formal statement was inherited from Formal Conjectures at this commit (D-10); the network's
+    root statement is that file's affirmative reading.
 status:
   scope: Opn.erdos_1050 is proved in full; the development holds the 2 merged proof(s) its term rests
     on and nothing else (F18).
