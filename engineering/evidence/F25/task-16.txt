@@ -51,3 +51,36 @@ main), (b) `gh workflow run site-deploy.yml -R thisisanameforsure/open_proof_net
 ~/Desktop/repos/opn-erdos-1050: `gh repo create thisisanameforsure/opn-erdos-1050 --public --source=. --remote=origin --push`
 (the preflight workflow runs on that push; its mechanical-report artifact is the port's definition of done, F25-R12).
 No registration (J3).
+
+--- the owner's sitting, 2026-10-11 17:48Z-17:55Z ---
+10. PR #30 merged by the owner -> main; api-deploy 38161170144 success (17:48Z); site-deploy 38161584112 success
+    (17:54Z, dispatched by the owner). Live: /health ok; /dco.json version 1b72bc16f46ab19b and the text names
+    CDLA-Permissive-2.0; GET / lists POST /dco/accept, POST /me/name and POST /registrations; errors.json carries
+    dco-reaccept-required; POST /dco/accept and POST /me/name without a bearer -> 401. The site's Docs page shows
+    the Registries section, palomar-registry.org and CDLA-Permissive-2.0; the footer names graph 733ab776a.
+11. Wrapper repository thisisanameforsure/opn-erdos-1050 created and pushed by the owner (b051c4c). Palomar's
+    preflight 38161625155: profile job success; verify job's "Parse and fetch immutable source" ran (0.17 s,
+    silent) and set ready != true, so every build step was skipped and "Finalize interrupted mechanical report"
+    wrote status error, diagnostic palomar.reporting_failed ("The mechanical report was malformed or did not
+    match the workflow inputs", owner palomar, retryable, repairable: false, next_action "report the workflow URL
+    to Palomar"). Investigated below.
+12. Open pull requests reviewed with the owner's question: network #25 and graph #322 (F07-T46, 2026-09-30) were
+    superseded by F07-T46/T55-T57 on main and conflicting; closed with a note, branches kept. Network #22 (F16/F17
+    harness connectors, 9 commits, 96 files, 2026-09-25) is real unmerged work with 7 conflicting files against
+    main; left open for the owner's decision.
+13. The preflight refusal, run down (Q35): the pinned pipeline cloned at d4e41c1 and its `prepare` step run
+    locally against b051c4c with the workflow's own inputs:
+      request_id "opn-erdos-1050-local"        -> fail intake: "Submission id must be twelve lowercase alphanumeric characters"
+      request_id "b051c4cff9c6", relationship "maintainer" -> fail intake: "Relationship to the substantive formalization is not recognized"
+      relationship "I am a responsible author or maintainer" -> stage preflight; the only error the licence
+        detector (Ruby bundler 2.7.2 absent on the laptop), which the runner installs.
+    Fix: gate/palomar/preflight.workflow.template.yml computes the id in a `request` job (${GITHUB_SHA:0:12})
+    and sends the contract's sentence; palomar.REQUEST_ID_RE / AUTHORIZATION_RELATIONSHIP /
+    SUBMISSION_OPTION_KEYS hold the grammar; test_the_preflight_workflow_sends_what_palomars_contract_accepts
+    was red on the old template (jobs == {preflight}) and is green on the new one.
+14. Palomar's own preflight on the fixed wrapper (opn-erdos-1050 e750ff9, run 38162577931, 18:08Z-18:15Z): request,
+    profile and verify jobs success; the mechanical report (task-16-preflight-38162577931.json) says status pass,
+    stage complete, no errors, no warnings; licence declared and detected Apache-2.0 at LICENSE; submission id
+    e750ff9fa15f bound to the commit; kernels nanoda and con-ron at leanprover/lean4:v4.35.0-rc2. This is the
+    port's definition of done (F25-R12: "a local build or standalone Comparator run does not count"). Not
+    submitted (J3).

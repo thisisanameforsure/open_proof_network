@@ -188,8 +188,35 @@ def test_the_preflight_workflow_is_pinned(tmp_path: Path) -> None:
     text = run(ready(tmp_path)).files[ex.PREFLIGHT_PATH].decode()
     sha = palomar.pins()["repositories"]["PalomarRegistry/PalomarSubmission"]["commit"]
     assert f"submission.yml@{sha}" in text and f'pipeline_commit: "{sha}"' in text
-    assert not re.search(r"\{\{[A-Z_]+\}\}", text) and f"opn-{TARGET}-" in text
+    assert not re.search(r"\{\{[A-Z_]+\}\}", text)
     assert "mode: full" in text and "palomar-standard-v1" in text
+
+
+def test_the_preflight_workflow_sends_what_palomars_contract_accepts(tmp_path: Path) -> None:
+    """Q35: the first live preflight (opn-erdos-1050 run 38161625155) was refused at intake, and
+    the refusal was hidden behind "report malformed" because Palomar's early-exit report lacks the
+    fields its finalizer binds on. Run locally, `verify_submission.py prepare` said why: the
+    request id must be twelve lowercase alphanumerics (ours was `opn-erdos-1050-<run id>`), and
+    the relationship is the contract's sentence, not its short code. The id is the commit's first
+    twelve hex characters, computed by a job the preflight job needs, so it is deterministic."""
+    text = run(ready(tmp_path)).files[ex.PREFLIGHT_PATH].decode()
+    doc = yaml.safe_load(text)
+    jobs = doc["jobs"]
+    assert set(jobs) == {"request", "preflight"}
+    step = jobs["request"]["steps"][-1]
+    assert "${GITHUB_SHA:0:12}" in step["run"] and "request_id" in step["run"]
+    assert jobs["preflight"]["needs"] == "request"
+    with_ = jobs["preflight"]["with"]
+    assert with_["request_id"] == "${{ needs.request.outputs.request_id }}"
+    options = json.loads(with_["options"])
+    assert options["authorization_relationship"] == palomar.AUTHORIZATION_RELATIONSHIP
+    assert options["comparator_config_path"] == "comparator.json"
+    assert set(options) <= palomar.SUBMISSION_OPTION_KEYS
+    # the id grammar, held against Palomar's own regular expression
+    assert palomar.request_id("b051c4cff9c69baf78d6cc8565e59e3184fbd276") == "b051c4cff9c6"
+    assert palomar.REQUEST_ID_RE.fullmatch(palomar.request_id("0" * 40))
+    assert not palomar.REQUEST_ID_RE.fullmatch("opn-erdos-1050-38161625155")
+    assert palomar.AUTHORIZATION_RELATIONSHIP == "I am a responsible author or maintainer"
 
 
 # --- formalization.yaml and README from the record ------------------------------------------

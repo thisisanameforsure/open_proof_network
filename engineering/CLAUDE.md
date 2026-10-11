@@ -1430,4 +1430,15 @@ The law of the project:
   public wrapper repository and (once) an opaque pin script; each was left to the owner with the exact command
   and nothing was worked around. **Which image is which is a fact about layer sizes**, not job order: 1.3 GB
   plain, 3.8 GB Mathlib, read with `docker buildx imagetools inspect --raw` before any pin was written.
+- 2026-10-11 — The first live Palomar preflight was refused at intake and said only "report malformed"
+  (Q35). Palomar's finalizer binds a report to the inputs by its `source` and `submission` blocks, and
+  an early-exit report from `prepare` has neither, so every intake refusal reads as a malformed report
+  with "report the workflow URL to Palomar" as the remedy. Cloning the pinned pipeline and running its
+  first stage locally against the pushed commit took two minutes and named both defects: a request id of
+  exactly twelve lowercase alphanumerics, and a relationship given as the contract's sentence, not the
+  short code the data host serves. Read the contract's source (`submission_contract.py`), not its
+  README, for every input grammar; and when a verifier's own report says "malformed", run its first
+  stage locally before reporting anything upstream. Also: the ported wrapper's artifact had dropped
+  `.github/` (upload-artifact skips dotfiles), so the wrapper repository was assembled from the local
+  port, checked byte for byte against the runner's.
 
