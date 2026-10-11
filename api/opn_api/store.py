@@ -64,6 +64,10 @@ class Identity:
     proof_kind: str
     proof_reference: str
     created: str
+    #: F25-R16 (Q24): the ``DCO_VERSION`` this identity last accepted — at issuance, at a web
+    #: sign-in's tick, or through ``POST /dco/accept``. ``None`` is "never recorded", which every
+    #: identity created before the field existed reads as, and the service treats as stale.
+    dco_version: str | None = None
 
 
 @dataclass(frozen=True)
@@ -164,6 +168,11 @@ class Store(Protocol):
         ...
 
     def get_identity(self, identity_id: str) -> Identity | None: ...
+
+    def set_dco_version(self, identity_id: str, version: str | None) -> None:
+        """F25-R16 (Q24): record the sign-off version ``identity_id`` accepted; ``KeyError`` for an
+        identity that does not exist, never a row made up for it."""
+        ...
 
     def count_identities_by_proof(self, proof_kind: str, reference: str) -> int: ...
 
@@ -301,6 +310,9 @@ class MemoryStore:
 
     def get_identity(self, identity_id: str) -> Identity | None:
         return self.identities.get(identity_id)
+
+    def set_dco_version(self, identity_id: str, version: str | None) -> None:
+        self.identities[identity_id] = replace(self.identities[identity_id], dco_version=version)
 
     def count_identities_by_proof(self, proof_kind: str, reference: str) -> int:
         return sum(
@@ -548,7 +560,8 @@ class DynamoStore:
 
     def put_identity(self, identity: Identity) -> None:
         table = self._names["identities"]
-        items = [{"Put": {"TableName": table, "Item": asdict(identity)}}]
+        row = {k: v for k, v in asdict(identity).items() if v is not None}  # as put_token does
+        items = [{"Put": {"TableName": table, "Item": row}}]
         for key, what in _unique_keys(identity):
             items.append(
                 {
@@ -571,6 +584,22 @@ class DynamoStore:
     def get_identity(self, identity_id: str) -> Identity | None:
         item = self._identities.get_item(Key={"id": identity_id}).get("Item")
         return _identity(item) if item and "pseudonym" in item else None
+
+    def set_dco_version(self, identity_id: str, version: str | None) -> None:
+        """One attribute on the identity row, under the condition that the row is an identity's
+        (a uniqueness key shares the table and has no pseudonym), so nothing is made up."""
+        try:
+            self._identities.update_item(
+                Key={"id": identity_id},
+                UpdateExpression="SET dco_version = :v",
+                ConditionExpression="attribute_exists(pseudonym)",
+                ExpressionAttributeValues={":v": version},
+            )
+        except Exception as exc:
+            code = getattr(exc, "response", {}).get("Error", {}).get("Code")
+            if code != "ConditionalCheckFailedException":
+                raise
+            raise KeyError(identity_id) from exc
 
     def count_identities_by_proof(self, proof_kind: str, reference: str) -> int:
         key = KEY_PROOF_REF + proof_kind + "#" + reference
@@ -878,6 +907,7 @@ def _identity(item: dict[str, Any]) -> Identity:
         proof_kind=str(item["proof_kind"]),
         proof_reference=str(item["proof_reference"]),
         created=str(item["created"]),
+        dco_version=_optional(item.get("dco_version")),  # absent on rows older than F25-R16
     )
 
 

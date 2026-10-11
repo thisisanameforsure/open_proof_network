@@ -182,7 +182,7 @@ review, which is the owner's (Q3).</p>
   <tr><td>AC13</td><td>Feed: E257 is a candidate for erdos-257 with evidence and nothing else matches; proposals validate; an unreachable feed writes nothing; drift compares hashes and status.</td><td><code>gate/tests/test_palomar_feed.py</code></td></tr>
   <tr><td>AC14</td><td>Corpus, network: the workflow verifies all seven entries at the registry's toolchain with the network's own checkers and reports pin drift.</td><td><code>.github/workflows/palomar-corpus.yml</code> (evidence)</td></tr>
   <tr><td>AC15</td><td>Routes and tools: name and registration routes write records the gate accepts and refuse each R15 case with nothing opened; the frozen tool set, bijection rows, result schemas and route purposes hold; the tools/list cost is measured.</td><td><code>api/tests/test_me_name.py</code>, <code>api/tests/test_registrations.py</code>, <code>api/tests/test_mcp_surface.py</code>, <code>api/tests/test_finding_route_index.py</code></td></tr>
-  <tr><td>AC16</td><td>DCO: the new version; an old acceptance is refused; the text names both licences.</td><td><code>api/tests/test_dco.py</code></td></tr>
+  <tr><td>AC16</td><td>DCO: the new version; an old acceptance is refused; the text names both licences; a live token whose identity accepted an older text (or none) is refused on every write and on no read until <code>POST /dco/accept</code>, in both stores (Q24).</td><td><code>api/tests/test_dco.py</code></td></tr>
   <tr><td>AC17</td><td>Site: the three target-page states, the Docs and About copy, the allowlist; goldens; screenshots at 1440 and 390 read by eye.</td><td><code>site/tests/test_registration_copy.py</code></td></tr>
   <tr><td>AC18</td><td>Guide and catalog: every code has a remedy and the catalog equals the emitters; every name the guide uses exists; the new blocks execute; every R1 and R5 field is named in the guide and the tool schema.</td><td><code>gate/tests/test_error_codes.py</code>, <code>gate/tests/test_finding_guide_names_exist.py</code>, <code>gate/tests/test_walkthrough.py</code></td></tr>
   <tr><td>AC19</td><td>Rerun: the three resolved targets export and check at the pin; erdos-1050 ports to v4.35.0-rc2 with Comparator green and the registry's preflight passing; the feed runs over the live snapshot.</td><td>evidence <code>engineering/evidence/F25/task-15*</code></td></tr>
@@ -330,11 +330,20 @@ honest report-back (D-10, D-23); agent-friendliness; a statement published is a 
     schema itself rather than restating the block's shape, so the service can never accept a block the
     gate's schema would refuse; <code>automation-invalid</code> carries the violation's path and text, and an
     incomplete block offered at precheck is <code>automation-missing</code> naming the field (T3).</td></tr>
-  <tr><td>F25-Q24</td><td><strong>A stale DCO acceptance reaches token requests, not live tokens.</strong>
+  <tr><td>F25-Q24</td><td><strong>Live tokens accept the new text too (ruled 2026-10-11).</strong>
     <code>DCO_VERSION</code> is the text's hash, so naming the licences changed it by itself and
-    <code>POST /tokens</code> and the web form refuse the previous version (<code>dco-version-stale</code>). A
-    token already issued keeps working: nothing re-reads the version it was issued against. Asking live
-    tokens to accept again is a protocol-surface choice for the owner (T3).</td></tr>
+    <code>POST /tokens</code> and the web form refuse the previous version (<code>dco-version-stale</code>). As
+    first built, a token already issued kept working, because nothing re-read the version it was issued
+    against; the owner ruled that live tokens must accept again. So an identity records the version it
+    last accepted (<code>Identity.dco_version</code>: at issuance, at a web sign-in's tick, when a lapsed
+    identity regains a token), every authenticated write of an identity whose record is older &mdash; or
+    absent, as every identity created before this was &mdash; is refused <code>403 dco-reaccept-required</code>
+    before the body is read and before the hour's write limit is charged, and <code>POST /dco/accept</code>
+    (D-35 v3.37; a bearer or a web session; the token request's <code>dco</code> object) records the
+    acceptance. Reads are untouched: the bearer still names who is asking. The consequence on the day this
+    deploys: every live token is refused once on its next write and then accepts, which is the ruling's
+    intent; the guide says so. No MCP tool accepts (a D-28 row is the owner's): an MCP client calls the route,
+    and the refusal's message names it.</td></tr>
   <tr><td>F25-Q25</td><td><strong>Result schemas moved because the result moved.</strong>
     <code>list_submissions</code>, <code>get_submission</code>, <code>get_my_submissions</code> and
     <code>get_node</code> close their submission definition, so the row's <code>automation</code> (object or
@@ -379,17 +388,35 @@ honest report-back (D-10, D-23); agent-friendliness; a statement published is a 
     versions the feature bumped; <code>GET /targets/&lt;id&gt;</code> is a file on the graph, not a route.
     Each is recorded on its line of <code>task-11-audit.md</code> with the grep that showed it (T11).</td></tr>
   <tr><td>F25-Q33</td><td><strong>The port's first run on erdos-1050.</strong> Two minor versions of Mathlib
-    cost an 845-line analytic proof twenty-nine deprecations and three real edits, one of which Lean
-    attributes to the module system itself ("definitions were not unfolded because their definition is
-    not exposed: Real.instLT"): an instance a proof unfolded at 4.33.1 is opaque across modules at
-    4.35. The Challenge is frozen through the port and was untouched; the repair loop lives on the
-    runner (<code>palomar-port.yml</code>), a round at a time; Comparator runs once the build passes
-    (<code>engineering/evidence/F25/task-15-stage-b/</code>).</td></tr>
+    cost an 845-line analytic proof twenty-nine deprecations and three real edits. As first written this
+    entry attributed one of them to the module system ("definitions were not unfolded because their
+    definition is not exposed: Real.instLT"); the repair loop showed that note was a hint on a type
+    mismatch whose cause was a rename &mdash; Mathlib (2026-09-01) gave <code>Finset.prod_le_one</code> and
+    <code>Finset.prod_le_prod</code> to the ordered-monoid lemmas and moved the ordered-semiring ones to
+    <code>prod_le_one₀</code> and <code>prod_le_prod₀</code>, so the proof's two hypotheses were being passed to
+    a lemma that takes one. The third edit is a <code>ring</code> step that no longer closes
+    <code>2 * (1/2)^K * x^K = 2 * (x/2)^K</code> at this Mathlib and is now the three rewrites it needs. The
+    Challenge is frozen through the port and was untouched (<code>engineering/evidence/F25/task-15-stage-b/</code>).</td></tr>
+  <tr><td>F25-Q34</td><td><strong>Repairs are a directory the port applies, recorded, never the Challenge.</strong>
+    A port's repairs have to reach the runner, where the Comparator and a Mathlib cache are, and the
+    export is re-made there from the graph each run. So <code>palomar-port --repairs &lt;dir&gt;</code> copies a
+    directory mirroring the wrapper over the export before the build and writes each replacement into
+    <code>port-report.json</code> (<code>repairs[]</code>: path, hash the export wrote, hash built), keeping
+    <code>opn-export.json</code> as the export's own record, so the two texts can always be told apart. Three
+    refusals, all before any file is written: <code>Challenge.lean</code> (<code>port-repair-forbidden</code>; a
+    statement that must change is a D-8 revision on the graph), a file the export did not write
+    (<code>port-repair-unknown</code>; a port cannot add a helper), and a repair whose
+    <code>&lt;file&gt;.before.sha256</code> sidecar names another export's file (<code>port-repair-stale</code>; a
+    whole-file repair against an older export would otherwise put that export's text back silently). The
+    repairs live at <code>gate/palomar/repairs/&lt;target&gt;/</code> with a README naming the export and the
+    edits; they are evidence of the port, not of the record, whose proof and attestation are unchanged.
+    erdos-1050's repaired wrapper builds locally at v4.35.0-rc2 with no errors (32 warnings, every one a
+    deprecation alias or the name-check linter).</td></tr>
 </table>
 
 <h2>10. Status</h2>
 <div class="rule"><strong>status:</strong> building (branch f25-palomar, pull request #30 as a draft for the Linux probes) ·
-  <strong>Tasks:</strong> T0 ✓ 2026-10-10 (decisions v3.37 applied; PROTOCOL_VERSION 3.37; spec and index) · T1 ✓ 2026-10-11 (eight schemas; registrations.derive with four mutants killed; goldens and api fixtures regenerated; 5203 fast-tier tests green) · T2 ✓ 2026-10-11 (four runs on the pull request; seven answers in probes.txt; Q1, Q2, Q22) · T4 ✓ 2026-10-11 (agent, branch f25-t4: paths, modes, names reader, 13 codes, two routes, three tools; 153 named tests, 2054 wider; Q16–Q19) · T5 ✓ 2026-10-11 (agent: intake new --arxiv --msc, check_target_record; 11 tests; Q20) · T6 ✓ 2026-10-11 (client seam, vendored schema and pins, seven corpus fixtures, readers and writers; 56 tests; Q21) · T7 ✓ 2026-10-11 (export; 22 tests) · T8 ✓ 2026-10-11 (local check; lean tier 2 passed, 145 s) · T3 ✓ 2026-10-11 (agent, branch f25-t3: automation required at submission and validated at precheck, attestation and ledger carry it, DCO names both licences, MCP params, guide; 91 named tests, api 1792; Q14, Q23–Q26) · T9 ✓ 2026-10-11 (port: pins, frozen Challenge, failure kinds, preflight report; 8 tests) · T10 ✓ 2026-10-11 (verifier + corpus workflow; 9 tests; first run: the network's checkers agree with the registry on two entries at 4.35.0-rc2, Q31) · T11 ✓ 2026-10-11 (agent, f25-t11: guide section, catalog wording, 11 field tests, 25-row audit; Q32) · T12 ✓ 2026-10-11 (agent, f25-t12: target page, Docs Registries, About, allowlist; 13 tests; 16 screenshots read; Q28, Q29) · T13 ✓ 2026-10-11 (agent, f25-t13: feed watcher, drift check, workflow; 37 tests; the live snapshot's one candidate, Q30) · T15 Stage A ✓ 2026-10-11 (erdos-1050 and euclid-primes exported from a detached worktree of origin/main; tutorial refused for want of a classification) · T15 Stage B first run 2026-10-11 (erdos-1050 at v4.35.0-rc2: Mathlib resolved, h3 built, h1-v2 needs three proof edits, Q33; the repair loop and Comparator remain) · T14 optional, T16 owner's sitting todo</div>
+  <strong>Tasks:</strong> T0 ✓ 2026-10-10 (decisions v3.37 applied; PROTOCOL_VERSION 3.37; spec and index) · T1 ✓ 2026-10-11 (eight schemas; registrations.derive with four mutants killed; goldens and api fixtures regenerated; 5203 fast-tier tests green) · T2 ✓ 2026-10-11 (four runs on the pull request; seven answers in probes.txt; Q1, Q2, Q22) · T4 ✓ 2026-10-11 (agent, branch f25-t4: paths, modes, names reader, 13 codes, two routes, three tools; 153 named tests, 2054 wider; Q16–Q19) · T5 ✓ 2026-10-11 (agent: intake new --arxiv --msc, check_target_record; 11 tests; Q20) · T6 ✓ 2026-10-11 (client seam, vendored schema and pins, seven corpus fixtures, readers and writers; 56 tests; Q21) · T7 ✓ 2026-10-11 (export; 22 tests) · T8 ✓ 2026-10-11 (local check; lean tier 2 passed, 145 s) · T3 ✓ 2026-10-11 (agent, branch f25-t3: automation required at submission and validated at precheck, attestation and ledger carry it, DCO names both licences, MCP params, guide; 91 named tests, api 1792; Q14, Q23–Q26) · T9 ✓ 2026-10-11 (port: pins, frozen Challenge, failure kinds, preflight report; 8 tests) · T10 ✓ 2026-10-11 (verifier + corpus workflow; 9 tests; first run: the network's checkers agree with the registry on two entries at 4.35.0-rc2, Q31) · T11 ✓ 2026-10-11 (agent, f25-t11: guide section, catalog wording, 11 field tests, 25-row audit; Q32) · T12 ✓ 2026-10-11 (agent, f25-t12: target page, Docs Registries, About, allowlist; 13 tests; 16 screenshots read; Q28, Q29) · T13 ✓ 2026-10-11 (agent, f25-t13: feed watcher, drift check, workflow; 37 tests; the live snapshot's one candidate, Q30) · T15 Stage A ✓ 2026-10-11 (erdos-1050 and euclid-primes exported from a detached worktree of origin/main; tutorial refused for want of a classification) · T3 + Q24 ruled 2026-10-11 (live tokens re-accept: Identity.dco_version, POST /dco/accept, 403 dco-reaccept-required; 14 tests in test_dco.py, api suite green) · T15 Stage B first run 2026-10-11 (erdos-1050 at v4.35.0-rc2: Mathlib resolved, h3 built, h1-v2 needs three proof edits, Q33) · T15 Stage B repair loop 2026-10-11 (three edits in one file, --repairs seam with three refusals, Q34; the whole wrapper builds locally at v4.35.0-rc2; Comparator on the runner pending) · T14 optional, T16 owner's sitting todo</div>
 
 <h2>Tasks</h2>
 <p class="status-note">Dependency-ordered. Red before green: each new test fails on the missing

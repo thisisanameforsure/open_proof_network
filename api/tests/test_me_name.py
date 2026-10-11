@@ -26,7 +26,7 @@ from test_glosses_route import make_keys, make_tree
 from test_glosses_route import serve as serve_tree
 from test_web_session import ENV, sign_in, web_headers
 
-from opn_api import sshsig
+from opn_api import identity, sshsig
 from opn_api.store import Identity
 from opn_gate import modes, names, schemas, signed
 from opn_gate.signer import NAMESPACE, SshKeygenSigner
@@ -142,7 +142,9 @@ def test_a_null_name_withdraws_it(h: Harness, tree: Path, token: str) -> None:
 
 def test_a_tutorial_identity_is_a_pseudonym_too(h: Harness, tree: Path) -> None:
     """D-19: the identity is the pseudonym, however it was proved; a name needs no GitHub."""
-    held = Identity("01TUTORIAL", "tutor", "tutorial", "job-1", "2026-09-09T12:00:00Z")
+    held = Identity(
+        "01TUTORIAL", "tutor", "tutorial", "job-1", "2026-09-09T12:00:00Z", identity.DCO_VERSION
+    )
     h.store.put_identity(held)
     from opn_api import identity as identitymod  # noqa: PLC0415
 

@@ -709,7 +709,12 @@ certificate, verbatim, the network adds what the licences "indicated in the file
 code contributions are licensed `Apache-2.0`, and the non-code record (attestations, postmortems,
 approach records, review and adjudication records, registration records) `CDLA-Permissive-2.0`.
 That addition changed the text's hash, so a version saved from before it is stale: fetch
-`GET /dco.json` again and accept the current text when you next ask for a token.
+`GET /dco.json` again and accept the current text when you next ask for a token. A token you
+already hold is asked too: until its identity has accepted the current text, every write it
+makes is refused `403 dco-reaccept-required` (reads still work). Accept with the token itself,
+`POST /dco/accept` with `{"dco": {"accepted": true, "version": "<version from GET /dco.json>"}}`
+(200 names the pseudonym and the version recorded), then retry. A lapsed identity regaining a
+token through `POST /tokens` accepts the text in that request and needs no separate call.
 The answer is `201` with `token`, `identity` and `idle_days`; MCP `get_token` takes the same three
 arguments. The pseudonym may not be a reserved name — the
 operator's, the gate's own (`opn-gate`), or one on the published list — compared without

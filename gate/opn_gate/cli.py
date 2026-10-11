@@ -220,6 +220,14 @@ def build_parser() -> argparse.ArgumentParser:  # noqa: PLR0915 — one statemen
     prt.add_argument("--toolchain", default="leanprover/lean4:v4.35.0-rc2")
     prt.add_argument("--mathlib-rev", default="v4.35.0-rc2")
     prt.add_argument("--skip-update", action="store_true", help="keep the manifest as it is")
+    prt.add_argument(
+        "--repairs",
+        type=Path,
+        default=None,
+        help="a directory mirroring the wrapper: each file replaces the export's before the build "
+        "(proof bodies only; Challenge.lean is refused; an optional <file>.before.sha256 sidecar "
+        "names the exported file it was written against), recorded in port-report.json (Q34)",
+    )
     prt.add_argument("--timeout", type=float, default=3600.0, help="seconds per step")
 
     otl = sub.add_parser(
@@ -1319,6 +1327,7 @@ def run_palomar_port(args: argparse.Namespace, settings: config.Settings) -> int
             prefix=Path(prefix_proc.stdout.strip()),
             timeout_s=args.timeout,
             skip_update=args.skip_update,
+            repairs=args.repairs.resolve() if args.repairs is not None else None,
         )
     except palomar_port.PortError as exc:
         sys.stdout.write(json.dumps({"ok": False, "refused": exc.diagnostic.as_dict()}) + "\n")

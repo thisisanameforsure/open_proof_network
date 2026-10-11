@@ -283,6 +283,9 @@ class PortReport:
     steps: list[dict[str, Any]] = field(default_factory=list)
     failures: list[Failure] = field(default_factory=list)
     ok: bool = False
+    #: Q34: each proof body a repairs directory replaced, with the hash the export wrote and the
+    #: hash built — so a reader of the wrapper can tell the export's text from the port's.
+    repairs: list[dict[str, str]] = field(default_factory=list)
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -291,9 +294,62 @@ class PortReport:
             "toolchain": self.toolchain,
             "mathlib_rev": self.mathlib_rev,
             "pins_were": self.pins_were,
+            "repairs": self.repairs,
             "steps": self.steps,
             "failures": [asdict(f) for f in self.failures],
         }
+
+
+#: A repair's optional sidecar: the sha256 of the exported file it was written against.
+REPAIR_SIDECAR = ".before.sha256"
+
+
+def apply_repairs(project: Path, repairs: Path) -> list[dict[str, str]]:
+    """Q34: copy each file under ``repairs`` over the same path in ``project``. Every refusal is
+    raised before any file is written: ``Challenge.lean`` is frozen (``port-repair-forbidden``), a
+    path the export did not write cannot be added (``port-repair-unknown``), and a repair whose
+    sidecar names another export's hash is stale (``port-repair-stale``) — a whole-file repair
+    made against an older export would otherwise put that export's text back silently."""
+    record = json.loads((project / EXPORT_RECORD).read_text(encoding="utf-8"))
+    wrote: dict[str, str] = record.get("hashes_out", {})
+    planned: list[tuple[str, Path]] = []
+    for path in sorted(p for p in repairs.rglob("*") if p.is_file()):
+        rel = path.relative_to(repairs).as_posix()
+        if rel.endswith(REPAIR_SIDECAR):
+            continue
+        if rel == "Challenge.lean":
+            raise PortError(
+                Diagnostic("port-repair-forbidden", "Challenge.lean is frozen through a port")
+            )
+        if rel not in wrote:
+            raise PortError(
+                Diagnostic(
+                    "port-repair-unknown",
+                    f"{rel}: the export did not write this file; a port cannot add one",
+                )
+            )
+        have = hashlib.sha256((project / rel).read_bytes()).hexdigest()
+        sidecar = Path(str(path) + REPAIR_SIDECAR)
+        if sidecar.is_file():
+            want = sidecar.read_text(encoding="utf-8").strip()
+            if want != have:
+                raise PortError(
+                    Diagnostic(
+                        "port-repair-stale",
+                        f"{rel}: the repair was written against another export's file",
+                        {"sidecar": want, "found": have},
+                    )
+                )
+        planned.append((rel, path))
+    applied: list[dict[str, str]] = []
+    for rel, path in planned:
+        before = hashlib.sha256((project / rel).read_bytes()).hexdigest()
+        data = path.read_bytes()
+        (project / rel).write_bytes(data)
+        applied.append(
+            {"path": rel, "sha256_before": before, "sha256_after": hashlib.sha256(data).hexdigest()}
+        )
+    return applied
 
 
 def comparator_config_with_kernels(project: Path, prefix: Path) -> Path:
@@ -328,12 +384,17 @@ def port(  # noqa: PLR0913 — one argument per thing the port is told
     prefix: Path,
     timeout_s: float = 3600,
     skip_update: bool = False,
+    repairs: Path | None = None,
 ) -> PortReport:
     """Rewrite the pins, resolve Mathlib, fetch its cache, build, judge. Each step's exit and
-    tail are kept; the first failing step ends the port and its errors are classified."""
+    tail are kept; the first failing step ends the port and its errors are classified. With
+    ``repairs``, proof bodies are replaced first (``apply_repairs``, Q34); the Challenge check
+    runs after, so a repair can never move it."""
+    challenge_frozen(project)
+    applied = apply_repairs(project, repairs) if repairs is not None else []
     challenge_frozen(project)
     were = rewrite_pins(project, toolchain=toolchain, mathlib_rev=mathlib_rev)
-    report = PortReport(toolchain, mathlib_rev, were)
+    report = PortReport(toolchain, mathlib_rev, were, repairs=applied)
     steps: list[tuple[str, list[str]]] = []
     if not skip_update:
         steps.append(("update", ["lake", "update", "mathlib"]))

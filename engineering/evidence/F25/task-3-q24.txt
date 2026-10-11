@@ -1,0 +1,11 @@
+# F25-T3 / Q24 (ruled 2026-10-11): live tokens re-accept the DCO.
+# POST /dco/accept; Identity.dco_version; 403 dco-reaccept-required on every other authenticated write; reads untouched; both stores.
+
+## named tests
+25 passed, 2 warnings in 0.35s
+
+## full fast tier after the change (make test-fast, 2026-10-11)
+530:FAILED gate/tests/test_finding_guide_f25_fields.py::test_every_f25_route_is_named_in_the_guide_and_has_a_purpose
+531:FAILED gate/tests/test_walkthrough.py::test_graph_copy_is_identical - Asserti...
+532:= 2 failed, 5529 passed, 2 skipped, 193 deselected, 2 warnings in 471.47s (0:07:51) =
+# the one failure is the known external one: the sibling graph checkout carries another session's uncommitted AGENTS.md, and this branch's guide edits ride the re-pin (T16). test_finding_guide_f25_fields was red on the frozen route set and is restated above.

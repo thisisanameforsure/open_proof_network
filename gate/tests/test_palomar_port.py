@@ -182,3 +182,95 @@ def test_a_port_refuses_a_moved_challenge_before_running_anything(tmp_path: Path
     with pytest.raises(pp.PortError):
         pp.port(project, toolchain=TC, mathlib_rev=REV, runner=runner, prefix=tmp_path)
     assert runner.calls == []
+
+
+# --- repairs (F25-T15, Q34): proof bodies replaced from a directory, recorded, never the Challenge
+
+
+def sha(path: Path) -> str:
+    import hashlib  # noqa: PLC0415 — one test helper
+
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def test_repairs_replace_proof_bodies_and_the_report_says_which(tmp_path: Path) -> None:
+    project = exported(tmp_path)
+    solution = project / "Solution.lean"
+    before = sha(solution)
+    repairs = tmp_path / "repairs"
+    (repairs / "Solution.lean").parent.mkdir(parents=True)
+    (repairs / "Solution.lean").write_text(solution.read_text() + "\n-- repaired at 4.35\n")
+    runner = pp.FakeRunner()
+    report = pp.port(
+        project,
+        toolchain=TC,
+        mathlib_rev=REV,
+        runner=runner,
+        prefix=tmp_path / "tc",
+        skip_update=True,
+        repairs=repairs,
+    )
+    assert report.ok
+    assert solution.read_text().endswith("-- repaired at 4.35\n")
+    assert report.repairs == [
+        {"path": "Solution.lean", "sha256_before": before, "sha256_after": sha(solution)}
+    ]
+    written = json.loads((project / pp.PORT_REPORT).read_text())
+    assert written["repairs"] == report.repairs
+    # the export record still says what the export wrote: a reader can tell the two apart
+    record = json.loads((project / "opn-export.json").read_text())
+    assert record["hashes_out"]["Solution.lean"] == before
+
+
+def test_a_repair_may_not_touch_the_challenge_or_name_a_file_the_export_did_not_write(
+    tmp_path: Path,
+) -> None:
+    project = exported(tmp_path)
+    challenge_was = (project / "Challenge.lean").read_bytes()
+    repairs = tmp_path / "repairs"
+    repairs.mkdir()
+    (repairs / "Challenge.lean").write_text(
+        "module\n\ntheorem OpnProp.and_swap_reassoc : True := trivial\n"
+    )
+    runner = pp.FakeRunner()
+    with pytest.raises(pp.PortError) as refused:
+        pp.port(
+            project, toolchain=TC, mathlib_rev=REV, runner=runner, prefix=tmp_path, repairs=repairs
+        )
+    assert refused.value.diagnostic.code == "port-repair-forbidden"
+    assert (project / "Challenge.lean").read_bytes() == challenge_was  # refused before copying
+    assert runner.calls == []
+    (repairs / "Challenge.lean").unlink()
+    (repairs / "OpnPropositional" / "Nodes").mkdir(parents=True)
+    (repairs / "OpnPropositional" / "Nodes" / "helper.lean").write_text("module\n")
+    with pytest.raises(pp.PortError) as refused:
+        pp.port(
+            project, toolchain=TC, mathlib_rev=REV, runner=runner, prefix=tmp_path, repairs=repairs
+        )
+    assert refused.value.diagnostic.code == "port-repair-unknown"
+    assert not (project / "OpnPropositional" / "Nodes" / "helper.lean").exists()
+    assert runner.calls == []
+
+
+def test_a_repair_written_for_another_export_is_refused_as_stale(tmp_path: Path) -> None:
+    """A repair is a whole file, so one made against an older export would silently put that
+    export's text back; a sidecar naming the hash it was made against stops it."""
+    project = exported(tmp_path)
+    repairs = tmp_path / "repairs"
+    repairs.mkdir()
+    (repairs / "Solution.lean").write_text("module\n-- new body\n")
+    (repairs / "Solution.lean.before.sha256").write_text("0" * 64 + "\n")
+    runner = pp.FakeRunner()
+    with pytest.raises(pp.PortError) as refused:
+        pp.port(
+            project, toolchain=TC, mathlib_rev=REV, runner=runner, prefix=tmp_path, repairs=repairs
+        )
+    assert refused.value.diagnostic.code == "port-repair-stale"
+    assert runner.calls == []
+    # the right hash in the sidecar, and the repair applies
+    (repairs / "Solution.lean.before.sha256").write_text(sha(project / "Solution.lean") + "\n")
+    report = pp.port(
+        project, toolchain=TC, mathlib_rev=REV, runner=runner, prefix=tmp_path, skip_update=True,
+        repairs=repairs,
+    )  # fmt: skip
+    assert report.ok and [r["path"] for r in report.repairs] == ["Solution.lean"]

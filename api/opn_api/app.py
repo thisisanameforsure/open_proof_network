@@ -44,7 +44,7 @@ from opn_api import store as storemod
 from opn_api.axle import Axle
 from opn_api.clock import Clock
 from opn_api.githost import GitHost, OpenPullRequest, PullRequestState, RateLimitError
-from opn_api.routes import ROUTES, RouteSpec
+from opn_api.routes import DCO_ACCEPT_HANDLER, ROUTES, RouteSpec
 from opn_api.store import Claim, Store
 
 log = logging.getLogger("opn_api")
@@ -224,6 +224,13 @@ async def _call(fn: Handler, ctx: Context, spec: RouteSpec, request: Request) ->
         )
         request.state.identity_id = identity.id
         request.state.identity = identity
+        if spec.write and spec.handler != DCO_ACCEPT_HANDLER:
+            # F25-R16 (Q24): a write needs the current sign-off; the accept route is how it is
+            # given, so it is the one write judged without it. Before the limit: a refusal
+            # that asks for a sign-off must not spend the hour's writes.
+            from opn_api import identity as identity_module  # noqa: PLC0415 — identity imports app
+
+            identity_module.check_dco_current(identity)
         ratelimit.check_write(ctx, identity.id)
     return await fn(ctx, request)
 

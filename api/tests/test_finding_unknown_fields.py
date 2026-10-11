@@ -194,6 +194,12 @@ def renew(h: Harness, key: PrecheckKey) -> Prepared:
     return {}, h.auth(h.token_for("code_alice", "alice"))
 
 
+def dco_accept(h: Harness, key: PrecheckKey) -> Prepared:
+    """F25-R16 (Q24): ``POST /dco/accept`` reads the ``dco`` object and nothing else."""
+    body = {"dco": {"version": identity.DCO_VERSION, "accepted": True}}
+    return body, h.auth(h.token_for("code_alice", "alice"))
+
+
 def check(h: Harness, key: PrecheckKey) -> Prepared:
     """F13-T3: anonymous; body_fields refuses before any graph read, so no pin need be seeded."""
     return {"target_id": TARGET, "content": "theorem x : True := trivial\n"}, {}
@@ -290,6 +296,7 @@ def registrations(h: Harness, key: PrecheckKey) -> Prepared:
 WRITE_ROUTES: dict[str, Prepare] = {
     "/tokens": tokens,
     "/tokens/renew": renew,
+    "/dco/accept": dco_accept,
     "/claims": claims,
     "/precheck": precheck,
     "/submissions": submissions,

@@ -40,7 +40,7 @@ PROSE = re.sub(r"^```.*?^```[ \t]*$", "", GUIDE, flags=re.DOTALL | re.MULTILINE)
 SPANS = set(re.findall(r"`([^`\n]+)`", PROSE))
 SECTION = "## Registration in Palomar"
 F25_PREFIXES = ("export-", "registration-", "display-name-", "automation-")
-F25_SINGLETONS = ("classification-invalid",)
+F25_SINGLETONS = ("classification-invalid", "dco-reaccept-required")
 #: Fields of ``registration/v1`` the service writes itself, so no tool takes them (F25-R5:
 #: ``submitted_by`` is the sign-in, never a field of the body; ``date`` is the day; ``schema``
 #: and ``target`` are the file's place). The guide still names them.
@@ -161,7 +161,8 @@ def test_the_display_name_fields_are_named_and_described() -> None:
 
 def test_every_f25_route_is_named_in_the_guide_and_has_a_purpose() -> None:
     f25 = [r for r in routes.ROUTES if r.feature == "F25"]
-    assert {r.label for r in f25} == {"POST /me/name", "POST /registrations"}
+    # F25-R16 (Q24, ruled 2026-10-11): the sign-off re-acceptance route is F25's third
+    assert {r.label for r in f25} == {"POST /me/name", "POST /registrations", "POST /dco/accept"}
     for spec in f25:
         assert f"`{spec.label}`" in PROSE, spec.label
         assert spec.label in routes.PURPOSES and routes.PURPOSES[spec.label].endswith(".")

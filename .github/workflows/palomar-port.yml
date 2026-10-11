@@ -8,6 +8,7 @@ on:
   pull_request:
     paths:
       - .github/workflows/palomar-port.yml
+      - gate/palomar/repairs/**
   workflow_dispatch:
     inputs:
       target:
@@ -28,6 +29,9 @@ on:
       licence:
         description: "SPDX id when the graph has no root LICENSE yet (rehearsal; Q15)"
         default: "Apache-2.0"
+      repairs:
+        description: "directory of proof-body repairs applied before the build (Q34); empty for none"
+        default: "gate/palomar/repairs/erdos-1050"
 permissions:
   contents: read
 jobs:
@@ -69,8 +73,12 @@ jobs:
         run: |
           PKG=$(python3 -c "import json; print(json.load(open('out/export.json'))['package'])")
           echo "package=$PKG" >> "$GITHUB_ENV"
+          REPAIRS="${{ inputs.repairs || 'gate/palomar/repairs/erdos-1050' }}"
+          REPAIR_FLAG=()
+          if [ -n "$REPAIRS" ] && [ -d "$REPAIRS" ]; then REPAIR_FLAG=(--repairs "$REPAIRS"); fi
+          echo "repairs: ${REPAIR_FLAG[*]:-none}"
           set +e
-          PYTHONPATH=gate uv run --frozen python -m opn_gate.cli palomar-port "out/$PKG" \
+          PYTHONPATH=gate uv run --frozen python -m opn_gate.cli palomar-port "out/$PKG" "${REPAIR_FLAG[@]}" \
             --toolchain "${{ inputs.toolchain || 'leanprover/lean4:v4.35.0-rc2' }}" --mathlib-rev "${{ inputs.mathlib_rev || 'v4.35.0-rc2' }}" | tee out/port.json
           echo "port exit $?"
           rm -rf "out/$PKG/.lake" out/tree

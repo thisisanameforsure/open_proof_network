@@ -569,6 +569,30 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "Restore Challenge.lean from the export (opn-export.json carries its hash); repair proofs "
         "in Solution.lean and the development modules only.",
     ),
+    "port-repair-forbidden": (
+        "gate",
+        None,
+        "A repair names Challenge.lean, which is frozen through a port: only proof bodies may "
+        "change (F25-R12, Q34).",
+        "Repair Solution.lean or a development module; a statement that must change is a "
+        "revision on the graph (D-8), not a port repair.",
+    ),
+    "port-repair-stale": (
+        "gate",
+        None,
+        "A repair's sidecar names the hash of the file it was written against, and the export "
+        "wrote a different file (F25-R12, Q34).",
+        "Re-make the repair against this export's file and update the <file>.before.sha256 "
+        "sidecar, or drop the sidecar if the repair is meant for any export.",
+    ),
+    "port-repair-unknown": (
+        "gate",
+        None,
+        "A repair names a file the export did not write; a port may change proof bodies, never "
+        "add files (F25-R12, Q34).",
+        "Name a file from opn-export.json's hashes_out; a helper belongs in the node's proof on "
+        "the graph.",
+    ),
     "port-record-missing": (
         "gate",
         None,
@@ -750,6 +774,16 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         None,
         "The token request did not accept the Developer Certificate of Origin.",
         "Send dco.accepted: true with the version from GET /dco.json (MCP get_dco).",
+    ),
+    "dco-reaccept-required": (
+        "api",
+        None,
+        "The sign-off text changed after this identity accepted it (it now names the licences, "
+        "D-23 v3.37), so its writes are refused until it accepts the current text; reads are "
+        "unaffected.",
+        "Read GET /dco.json (MCP get_dco), then POST /dco/accept {dco: {version, accepted: true}} "
+        "with the same token, and retry the write. (A lapsed identity regaining a token through "
+        "POST /tokens accepts the text in that request.)",
     ),
     "dco-version-stale": (
         "api",
