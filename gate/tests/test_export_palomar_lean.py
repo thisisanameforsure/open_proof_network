@@ -67,9 +67,14 @@ def test_a_tampered_solution_fails_the_meaning_check(
     exported.write(project)
     solution = project / "Solution.lean"
     text = solution.read_text(encoding="utf-8")
-    weaker = text.split(ex.SECTION + "\n\n", 1)[0] + ex.SECTION + "\n\n" + (
-        "theorem OpnProp.and_swap_reassoc : ∀ p q r : Prop, (p ∧ q) ∧ r → True := by\n"
-        "  intro p q r h\n  trivial\n"
+    weaker = (
+        text.split(ex.SECTION + "\n\n", 1)[0]
+        + ex.SECTION
+        + "\n\n"
+        + (
+            "theorem OpnProp.and_swap_reassoc : ∀ p q r : Prop, (p ∧ q) ∧ r → True := by\n"
+            "  intro p q r h\n  trivial\n"
+        )
     )
     solution.write_text(weaker, encoding="utf-8")
     report = palomar_check.local_check(
