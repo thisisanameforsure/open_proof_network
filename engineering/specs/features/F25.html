@@ -351,11 +351,38 @@ honest report-back (D-10, D-23); agent-friendliness; a statement published is a 
     the merge's actor (D-19 v3.37), with the record's path as the artifact and the registered proof's node;
     a display-name merge earns nothing. Both modes are in the ledger's mode table and the Docs page's
     actions table, which hold every mode the classifier knows.</td></tr>
+  <tr><td>F25-Q28</td><td><strong>A page contradicting itself is a defect no test saw.</strong> The site's
+    first licence capture said "The code is Apache-2.0, in LICENSE at the graph root" directly above "No
+    license text is committed to the graph yet" (the fixture has no LICENSE). Rewritten: the rule is
+    stated as D-23 v3.37's, and the missing-file line says the build found no LICENSE and the licence is
+    the decision's until the file lands; the test that pinned the old sentence was restated to the rule
+    (T12).</td></tr>
+  <tr><td>F25-Q29</td><td><strong>Only a registered row is linked.</strong> A submission's url is neither
+    shown nor on the site's allowlist; "under review", "asked for revisions" and "declined" are plain
+    text with the id where the record has one (T12). The Problems list carries no registration mark: R17
+    names the problem's page.</td></tr>
+  <tr><td>F25-Q30</td><td><strong>The feed matcher is precise before it is complete.</strong> A match needs
+    the problem's number as a token (<code>Erdős 257</code>, <code>erdos-257</code>, <code>E257</code>,
+    <code>/257.lean</code>, <code>#257</code>, the erdosproblems url) with digit look-arounds, so 1257
+    never matches 257; only "Erdős &lt;n&gt;" in a title or abstract and the erdosproblems url are
+    <code>number</code> confidence, a namespace hit is <code>inferred</code>. Over the live snapshot of
+    200 entries and 26 targets the only candidate is erdos-257 (inferred, the E257 namespace), as the
+    plan predicted; the workflow is a dry run and never proposes (T13).</td></tr>
+  <tr><td>F25-Q31</td><td><strong>The network's checkers agree with the registry at its toolchain.</strong>
+    The corpus job built <code>opn-axioms</code> and <code>opn-statement-meaning</code> at
+    leanprover/lean4:v4.35.0-rc2 and ran them over two registered entries: the three standard axioms, and
+    the Solution's declaration has the Challenge's type, on both. Comparator alone failed on the first
+    run, on the verifier's relative config path (fixed). Nothing drifted in the registry's pins
+    (T10, 2026-10-11).</td></tr>
+  <tr><td>F25-Q32</td><td><strong>What the audit could not back with a test.</strong> <code>llms.txt</code>
+    names start points, not routes; the api's smokes and deploy package check pin none of the product
+    versions the feature bumped; <code>GET /targets/&lt;id&gt;</code> is a file on the graph, not a route.
+    Each is recorded on its line of <code>task-11-audit.md</code> with the grep that showed it (T11).</td></tr>
 </table>
 
 <h2>10. Status</h2>
 <div class="rule"><strong>status:</strong> building (branch f25-palomar, pull request #30 as a draft for the Linux probes) ·
-  <strong>Tasks:</strong> T0 ✓ 2026-10-10 (decisions v3.37 applied; PROTOCOL_VERSION 3.37; spec and index) · T1 ✓ 2026-10-11 (eight schemas; registrations.derive with four mutants killed; goldens and api fixtures regenerated; 5203 fast-tier tests green) · T2 ✓ 2026-10-11 (four runs on the pull request; seven answers in probes.txt; Q1, Q2, Q22) · T4 ✓ 2026-10-11 (agent, branch f25-t4: paths, modes, names reader, 13 codes, two routes, three tools; 153 named tests, 2054 wider; Q16–Q19) · T5 ✓ 2026-10-11 (agent: intake new --arxiv --msc, check_target_record; 11 tests; Q20) · T6 ✓ 2026-10-11 (client seam, vendored schema and pins, seven corpus fixtures, readers and writers; 56 tests; Q21) · T7 ✓ 2026-10-11 (export; 22 tests) · T8 ✓ 2026-10-11 (local check; lean tier 2 passed, 145 s) · T3 ✓ 2026-10-11 (agent, branch f25-t3: automation required at submission and validated at precheck, attestation and ledger carry it, DCO names both licences, MCP params, guide; 91 named tests, api 1792; Q14, Q23–Q26) · T9–T16 todo</div>
+  <strong>Tasks:</strong> T0 ✓ 2026-10-10 (decisions v3.37 applied; PROTOCOL_VERSION 3.37; spec and index) · T1 ✓ 2026-10-11 (eight schemas; registrations.derive with four mutants killed; goldens and api fixtures regenerated; 5203 fast-tier tests green) · T2 ✓ 2026-10-11 (four runs on the pull request; seven answers in probes.txt; Q1, Q2, Q22) · T4 ✓ 2026-10-11 (agent, branch f25-t4: paths, modes, names reader, 13 codes, two routes, three tools; 153 named tests, 2054 wider; Q16–Q19) · T5 ✓ 2026-10-11 (agent: intake new --arxiv --msc, check_target_record; 11 tests; Q20) · T6 ✓ 2026-10-11 (client seam, vendored schema and pins, seven corpus fixtures, readers and writers; 56 tests; Q21) · T7 ✓ 2026-10-11 (export; 22 tests) · T8 ✓ 2026-10-11 (local check; lean tier 2 passed, 145 s) · T3 ✓ 2026-10-11 (agent, branch f25-t3: automation required at submission and validated at precheck, attestation and ledger carry it, DCO names both licences, MCP params, guide; 91 named tests, api 1792; Q14, Q23–Q26) · T9 ✓ 2026-10-11 (port: pins, frozen Challenge, failure kinds, preflight report; 8 tests) · T10 ✓ 2026-10-11 (verifier + corpus workflow; 9 tests; first run: the network's checkers agree with the registry on two entries at 4.35.0-rc2, Q31) · T11 ✓ 2026-10-11 (agent, f25-t11: guide section, catalog wording, 11 field tests, 25-row audit; Q32) · T12 ✓ 2026-10-11 (agent, f25-t12: target page, Docs Registries, About, allowlist; 13 tests; 16 screenshots read; Q28, Q29) · T13 ✓ 2026-10-11 (agent, f25-t13: feed watcher, drift check, workflow; 37 tests; the live snapshot's one candidate, Q30) · T15 Stage A ✓ 2026-10-11 (erdos-1050 and euclid-primes exported from a detached worktree of origin/main; tutorial refused for want of a classification) · T14 optional, T15 Stage B (port on the runner), T16 owner's sitting todo</div>
 
 <h2>Tasks</h2>
 <p class="status-note">Dependency-ordered. Red before green: each new test fails on the missing
