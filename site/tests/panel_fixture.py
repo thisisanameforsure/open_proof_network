@@ -167,3 +167,52 @@ def build(tmp_path: Path) -> Path:
     schemas.validate(doc, "targets-index/v10")
     path.write_bytes(schemas.canonical_json(doc))
     return root
+
+
+# --- F25-T12 (R17; D-10 v3.37): registrations on the rows ----------------------------------
+
+PALOMAR_ID = "PALOMAR-2026-10-10-000001"
+#: A url with characters the page must escape, so the href test is an escaping test too.
+PALOMAR_URL = 'https://palomar-registry.org/entries/PALOMAR-2026-10-10-000001?v=2&q="x"'
+SUBMITTED_URL = "https://palomar-registry.org/submissions/42"
+
+
+def registration(
+    status: str,
+    *,
+    registry_id: str | None = PALOMAR_ID,
+    version: int | None = 2,
+    url: str | None = PALOMAR_URL,
+) -> dict[str, Any]:
+    """One row of ``registrations`` as ``targets-index/v10`` publishes it."""
+    return {
+        "registry": "palomar",
+        "registry_id": registry_id,
+        "version": version,
+        "status": status,
+        "url": url,
+    }
+
+
+def with_registrations(root: Path, rows: dict[str, list[dict[str, Any]]]) -> Path:
+    """Rewrite the built fixture's index with ``rows`` (target id -> registrations), validated
+    against ``targets-index/v10``; every other target keeps an empty list."""
+    path = root / "targets" / "index.json"
+    doc = json.loads(path.read_text(encoding="utf-8"))
+    for row in doc["targets"]:
+        row["registrations"] = [dict(r) for r in rows.get(str(row["target_id"]), [])]
+    schemas.validate(doc, "targets-index/v10")
+    path.write_bytes(schemas.canonical_json(doc))
+    return root
+
+
+def without_registrations(root: Path) -> Path:
+    """The index as the gate wrote it before F25: ``targets-index/v9``, no key at all."""
+    path = root / "targets" / "index.json"
+    doc = json.loads(path.read_text(encoding="utf-8"))
+    doc["schema"] = "targets-index/v9"
+    for row in doc["targets"]:
+        row.pop("registrations", None)
+    schemas.validate(doc, "targets-index/v9")
+    path.write_bytes(schemas.canonical_json(doc))
+    return root

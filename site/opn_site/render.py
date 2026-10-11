@@ -748,6 +748,7 @@ COPY_LINKS: frozenset[str] = frozenset(
         "https://leidendeclaration.ai/",  # the Leiden Declaration, 2026-06-02
         "https://terrytao.wordpress.com/2026/08/12/a-digestion-of-the-proof-of-sendovs-conjecture/",
         "https://terrytao.wordpress.com/2026/09/11/a-severe-misalignment-of-ai-in-mathematics/",
+        "https://palomar-registry.org/",  # F25-R17: the registry the Docs page describes (D-10)
     }
 )
 #: F15-R11: the Leiden compliance table, one row per objection of the research note's §5
@@ -785,8 +786,10 @@ LEIDEN_ROWS: tuple[tuple[str, str, str], ...] = (
         "A prior-art search before listing, and a target found in the literature is relabelled "
         "a known result, never paid as novelty (D-6); statements are inherited from the public "
         "registry and resolutions reported back to it (D-10); every node records the human "
-        "operator, the model and the tooling (D-19, D-23); no machine authorship (D-32); an "
-        "upstream edit or a resolution elsewhere is watched for (D-10 v3.12).",
+        "operator, the model and the tooling (D-19, D-23); no machine authorship (D-32); a "
+        "registration's authors are the ledger's identities under their pseudonyms or recorded "
+        "names and never a model (D-19 v3.37); an upstream edit or a resolution elsewhere is "
+        "watched for (D-10 v3.12).",
         "The search performed at intake is recorded as its summary, not as the queries run.",
     ),
     (
@@ -2165,6 +2168,7 @@ class Renderer:
             stages=self.stage_marks(tv),
             claimable=self.target_claimable(tv),
             calibration=self.calibration_label(tv),
+            registrations=self.registration_lines(tv),
             steward_card=self.steward_card(tv),
             count_words=esc(f"{n} statement{'' if n == 1 else 's'}"),
             legend=self.graph_legend(tv),
@@ -2658,6 +2662,39 @@ class Renderer:
         digestion = tv.digestion
         state = str(digestion.get("state") or "") if digestion else ""
         return DIGESTION_WORDS.get(state, "")
+
+    def registration_lines(self, tv: TargetView) -> str:
+        """F25-R17 (D-10 v3.37): one line per registration of the target in a public registry,
+        in the header beside the other status lines; nothing when there is none. The registry
+        entry is linked only when the status is ``registered`` and the record carries a url —
+        that url is on the allowlist because the record validated (F11-Q11); a submission's url
+        is not a registry entry and is never linked. Every string is escaped."""
+        lines = []
+        for reg in tv.registrations:
+            if reg.get("registry") != "palomar":
+                continue  # the only registry the schema names; a later one gets its own words
+            rid, version, url = reg.get("registry_id"), reg.get("version"), reg.get("url")
+            ident = (
+                f"{esc(str(rid))}{' v' + esc(str(version)) if version is not None else ''}"
+                if rid
+                else ""
+            )
+            status = reg.get("status")
+            if status == "registered":
+                shown = ident or "an entry"
+                if url:
+                    shown = f'<a href="{esc(str(url))}">{shown}</a>'
+                words = f"Registered in Palomar as {shown}"
+            elif status == "submitted":
+                words = "Submitted to Palomar, under review"
+            elif status == "revision_required":
+                words = "Palomar asked for revisions" + (f" ({ident})" if ident else "")
+            elif status == "rejected":
+                words = "Palomar declined" + (f" ({ident})" if ident else "")
+            else:
+                continue  # not a status the schema publishes
+            lines.append(f'<p class="registration">{words}</p>')
+        return "".join(lines)
 
     def calibration_label(self, tv: TargetView) -> str:
         if not tv.calibration:
@@ -3710,17 +3747,24 @@ class Renderer:
             if funnel_items
             else "<p>No human-funnel documentation yet (D-27, F10).</p>"
         )
-        parts = []
+        # F25-R17 (D-23 v3.37): the two licences by name, before whatever text the graph carries.
+        parts = [
+            "<p>The code is Apache-2.0 and the non-code record — statements, proofs, prose, "
+            "attestations and every other record — is CDLA-Permissive-2.0 (D-23 v3.37): "
+            "<code>LICENSE</code> at the graph root names the first, <code>NOTICE</code> beside "
+            "it the second, and the sign-off text names both. Annex prose carries the licence "
+            f"its author chose: {', '.join(esc(x) for x in ANNEX_LICENCES)}.</p>"
+        ]
         for name, what in (("LICENSE", "license"), ("DCO", "sign-off (DCO)")):
             path = self.site.root / name
             if path.is_file():
                 text = path.read_text(encoding="utf-8")
                 parts.append(f'<h3>{esc(name)}</h3><pre class="prose">{esc(text)}</pre>')
             elif name == "LICENSE":
+                # The rule above is the decision's; this line says what the build found.
                 parts.append(
-                    "<p>No license text is committed to the graph yet (D-23). Annex prose "
-                    "carries the licence its author chose: "
-                    f"{', '.join(esc(x) for x in ANNEX_LICENCES)}.</p>"
+                    "<p>This build found no <code>LICENSE</code> file in the graph: the licence "
+                    "is the decision's until the file lands (D-23).</p>"
                 )
             elif self.api_url:
                 # T20: the page said no sign-off text existed while the service refused a token
@@ -5315,6 +5359,13 @@ def cited_urls(site: Site) -> frozenset[str]:
             for lit in (nv.literature, nv.literature_proposed):
                 if lit is not None:
                     urls.update(r.url for r in lit.references if r.url)
+        # F25-R17 (D-10 v3.37): a registry entry the target's validated registration records
+        # name, and only once registered — a submission's url is not an entry and is not linked.
+        urls.update(
+            str(reg["url"])
+            for reg in tv.registrations
+            if reg.get("status") == "registered" and reg.get("url")
+        )
         if tv.record is None:
             continue
         urls.update(str(s["url"]) for s in tv.record.get("sources") or [])

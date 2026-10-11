@@ -242,7 +242,10 @@ def test_docs_bundle(rendered: dict[str, str]) -> None:
     """R9, R10: the decisions doc is copied with no external link, inline style or script."""
     docs = rendered["docs/index.html"]
     assert 'href="/docs/architecture-decisions.html"' in docs
-    assert "no AGENTS.md yet" in docs and "No license text" in docs and "No sign-off" in docs
+    # F25-T12: the licences are named by rule (D-23 v3.37); the fixture has no LICENSE file and
+    # the page says what the build found rather than contradicting the rule.
+    assert "no AGENTS.md yet" in docs and "No sign-off" in docs
+    assert "The code is Apache-2.0" in docs and "found no <code>LICENSE</code> file" in docs
     assert "No human-funnel documentation yet" not in docs  # F10-T5 delivered it
     copied = rendered["docs/architecture-decisions.html"]
     assert "fonts.googleapis.com" not in copied

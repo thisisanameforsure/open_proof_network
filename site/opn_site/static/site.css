@@ -317,6 +317,8 @@ main > .crumbs, main > h1:first-child { margin-top: calc(var(--s8) * 1.6); }
 .detail h2 { padding-top: var(--s4); border-top: 1px solid var(--divider); }
 .flag { border-left: 3px solid var(--warn); padding-left: var(--s4); color: var(--n300); }
 .claimable { color: var(--n300); }
+.registration { margin: 0; font-size: 14px; line-height: 1.6; color: var(--n300); overflow-wrap: anywhere; }
+.registration a { color: var(--accent-300); }
 .why-not { color: var(--n300); }
 ul.why-not { color: var(--n400); }
 
