@@ -66,7 +66,9 @@ def test_an_annex_whose_pull_request_is_open_is_annex_pending(harness: Harness) 
     seed_node(harness)
     token = harness.token_for("code_alice", "alice")
     posted = harness.client.post(
-        "/annexes", json={"node_id": NODE, "text": ANNEX_TEXT}, headers=harness.auth(token)
+        "/annexes",
+        json={"node_id": NODE, "text": ANNEX_TEXT, "licence": "CC-BY-4.0"},
+        headers=harness.auth(token),
     )
     assert posted.status_code == 201, posted.text
     digest, number = posted.json()["hash"], posted.json()["pr_number"]
@@ -171,7 +173,7 @@ def test_an_open_annex_on_another_node_does_not_count(harness: Harness) -> None:
     token = harness.token_for("code_alice", "alice")
     other = harness.client.post(
         "/annexes",
-        json={"node_id": "tutorial-and-swap", "text": ANNEX_TEXT},
+        json={"node_id": "tutorial-and-swap", "text": ANNEX_TEXT, "licence": "CC-BY-4.0"},
         headers=harness.auth(token),
     )
     assert other.status_code == 201, other.text

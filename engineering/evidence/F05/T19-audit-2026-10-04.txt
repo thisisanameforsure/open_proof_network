@@ -1,0 +1,50 @@
+F05-T19 — rate limits key on the real source address (audit 2026-10-04)
+========================================================================
+
+Finding: ratelimit.client_address took the first X-Forwarded-For hop. API Gateway's HTTP API
+appends the real caller address to whatever X-Forwarded-For the caller sends, so the first hop is
+caller-controlled; a fresh made-up hop per request made every per-source limit (token starts,
+anonymous prechecks, anonymous fast checks) unlimited. The MCP adapter also copied the outer
+request's X-Forwarded-For onto every in-process call.
+
+Fix: client_address returns request.client.host only. Mangum (payload 2.0, lifespan off) fills the
+ASGI client from requestContext.http.sourceIp, which the caller cannot set (read in
+mangum/handlers/api_gateway.py: source_ip = request_context["http"]["sourceIp"]). The MCP adapter
+no longer forwards X-Forwarded-For (Call.forwarded_for and Outer.forwarded_for removed); the
+in-process ASGITransport already carries client=(outer.client_host, 0), so a tool call is limited
+as its outer request's peer.
+
+Proposed ledger line (F05 §10 Tasks):
+  · T19 ✓ 2026-10-04 (audit; red first 2 failed on the defect, green 2; three older tests restated
+  from header-first to peer-only; engineering/evidence/F05/T19-audit-2026-10-04.txt; live at the
+  next api deploy)
+
+Proposed Q entry (F05-Q20, renumber at merge):
+  F05-Q20 — The source address is the peer, never a header (T19, audit 2026-10-04). R6's
+  per-source limits keyed on the first X-Forwarded-For hop, which API Gateway's HTTP API leaves
+  under the caller's control (it appends the real address to what the caller sent), so the
+  limits were advisory. The address is now the ASGI client, which Mangum takes from
+  requestContext.http.sourceIp. Consequence: behind any further proxy (a CloudFront in front of
+  the api, which F05 does not have today) every caller would share the proxy's address; if one is
+  ever added, the trusted hop must be chosen by position from the right, by configuration, not
+  read from the left. The MCP adapter's in-process calls carry the outer peer as their client and
+  forward no header.
+
+Red (before the fix):
+E       assert [302, 302, 302, 302] == [302, 302, 302, 429]
+E         
+E         At index 3 diff: 302 != 429
+E         Use -v to get more diff
+E       assert 429 == 302
+E        +  where 429 = <function test_the_peer_address_is_the_source_whatever_the_header_says.<locals>.start at 0x10d38dee0>(<starlette.testclient.TestClient object at 0x10d3902d0>)
+FAILED api/tests/test_finding_ratelimit_source.py::test_a_forged_forwarded_hop_per_request_does_not_escape_the_start_limit
+FAILED api/tests/test_finding_ratelimit_source.py::test_the_peer_address_is_the_source_whatever_the_header_says
+2 failed, 3 warnings in 0.30s
+
+Green (after the fix):
+2 passed, 3 warnings in 0.25s
+
+Related files (test_finding_ratelimit_source, test_ratelimit, test_precheck, test_rejections_precheck, test_mcp_*, test_finding_mcp_*, test_entrypoints, test_checks, test_auth):
+175 passed, 3 warnings in 26.99s
+
+ruff format/check and mypy --strict clean on the seven changed files.

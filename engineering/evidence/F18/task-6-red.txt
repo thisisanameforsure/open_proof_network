@@ -1,0 +1,1129 @@
+warning: `VIRTUAL_ENV=/Users/mikehiggins/Desktop/repos/open_proof_network/.venv` does not match the project environment path `.venv` and will be ignored; use `--active` to target the active environment instead
+FF.FFFFFFFFFFFFFFFFF.FFFFFFFFFFFFFFFFF.FFFFF.FFFFFFF                     [100%]
+=================================== FAILURES ===================================
+_____________________ test_a_record_has_a_role_of_its_own ______________________
+
+    def test_a_record_has_a_role_of_its_own() -> None:
+        located = paths.locate(rel(CRUX))
+>       assert located is not None
+E       assert None is not None
+
+gate/tests/test_proposed_for.py:104: AssertionError
+________________ test_one_record_alone_is_the_proposed_for_mode ________________
+
+graph = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-256/test_one_record_alone_is_the_p0/graph')
+
+    def test_one_record_alone_is_the_proposed_for_mode(graph: Path) -> None:
+        change = put(graph, rel(CRUX), record())
+        classification = modes.classify([change], author=SERVICE)
+>       assert classification.mode == "proposed-for"
+E       AssertionError: assert None == 'proposed-for'
+E        +  where None = Classification(mode=None, target_id=None, node_id=None, located=(), problems=(Diagnostic(code='path-forbidden', messag...ml', 'status': 'A'}),), admit=None, reviewers=None, author=None, replaced=(), review_basis=None, review_reference=None).mode
+
+gate/tests/test_proposed_for.py:121: AssertionError
+___________________________ test_the_proposer_passes ___________________________
+
+graph = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-256/test_the_proposer_passes0/graph')
+
+    def test_the_proposer_passes(graph: Path) -> None:
+        """The record's author is the crux's ``provenance.author``; the service opened the PR."""
+>       assert judged(graph, put(graph, rel(CRUX), record())) == []
+E       AssertionError: assert ['path-forbidden'] == []
+E         
+E         Left contains one more item: 'path-forbidden'
+E         Use -v to get more diff
+
+gate/tests/test_proposed_for.py:142: AssertionError
+_________________________ test_a_listed_curator_passes _________________________
+
+graph = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-256/test_a_listed_curator_passes0/graph')
+
+    def test_a_listed_curator_passes(graph: Path) -> None:
+        doc = record(author=f"{CURATOR}-pseudonym")
+        change = put(graph, rel(CRUX, f"20261003T120000Z-{CURATOR}-pseudonym.yaml"), doc)
+>       assert judged(graph, change, author=CURATOR) == []
+E       AssertionError: assert ['path-forbidden'] == []
+E         
+E         Left contains one more item: 'path-forbidden'
+E         Use -v to get more diff
+
+gate/tests/test_proposed_for.py:148: AssertionError
+________________________ test_a_third_party_is_refused _________________________
+
+graph = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-256/test_a_third_party_is_refused0/graph')
+
+    def test_a_third_party_is_refused(graph: Path) -> None:
+        change = put(graph, rel(CRUX, f"20261003T120000Z-{STRANGER}.yaml"), record(author=STRANGER))
+>       assert judged(graph, change, author=STRANGER) == ["proposed-for-author"]
+E       AssertionError: assert ['path-forbidden'] == ['proposed-for-author']
+E         
+E         At index 0 diff: 'path-forbidden' != 'proposed-for-author'
+E         Use -v to get more diff
+
+gate/tests/test_proposed_for.py:153: AssertionError
+____________________ test_the_author_refusal_names_who_may _____________________
+
+graph = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-256/test_the_author_refusal_names_0/graph')
+
+    def test_the_author_refusal_names_who_may(graph: Path) -> None:
+        change = put(graph, rel(CRUX), record(author=STRANGER))
+        classification = modes.classify([change], author=STRANGER)
+>       (problem,) = modes.check(graph, classification)
+        ^^^^^^^^^^
+E       ValueError: not enough values to unpack (expected 1, got 0)
+
+gate/tests/test_proposed_for.py:161: ValueError
+_______________________ test_an_unknown_node_is_refused ________________________
+
+graph = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-256/test_an_unknown_node_is_refuse0/graph')
+
+    def test_an_unknown_node_is_refused(graph: Path) -> None:
+>       assert judged(graph, put(graph, rel(CRUX), record(**{"for": "ghost"}))) == [
+            "proposed-for-unknown-node"
+        ]
+E       AssertionError: assert ['path-forbidden'] == ['proposed-for-unknown-node']
+E         
+E         At index 0 diff: 'path-forbidden' != 'proposed-for-unknown-node'
+E         Use -v to get more diff
+
+gate/tests/test_proposed_for.py:171: AssertionError
+_______________________ test_the_crux_itself_is_refused ________________________
+
+graph = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-256/test_the_crux_itself_is_refuse0/graph')
+
+    def test_the_crux_itself_is_refused(graph: Path) -> None:
+>       assert judged(graph, put(graph, rel(CRUX), record(**{"for": CRUX}))) == ["proposed-for-self"]
+E       AssertionError: assert ['path-forbidden'] == ['proposed-for-self']
+E         
+E         At index 0 diff: 'path-forbidden' != 'proposed-for-self'
+E         Use -v to get more diff
+
+gate/tests/test_proposed_for.py:177: AssertionError
+____________ test_a_superseded_node_is_refused_naming_its_successor ____________
+
+graph = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-256/test_a_superseded_node_is_refu0/graph')
+
+    def test_a_superseded_node_is_refused_naming_its_successor(graph: Path) -> None:
+        supersede(graph)
+        change = put(graph, rel(CRUX), record(**{"for": OLD}))
+        classification = modes.classify([change], author=SERVICE)
+>       (problem,) = modes.check(graph, classification)
+        ^^^^^^^^^^
+E       ValueError: not enough values to unpack (expected 1, got 0)
+
+gate/tests/test_proposed_for.py:184: ValueError
+_________________ test_a_malformed_record_is_refused[content0] _________________
+
+graph = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-256/test_a_malformed_record_is_ref0/graph')
+content = {'schema': 'proposed-for/v1', 'author': 'alice', 'date': '2026-10-03', 'note': "the crux the root's outline needs"}
+
+    @pytest.mark.parametrize(
+        "content",
+        [
+            record(**{"for": _DROP}),
+            record(extra=1),
+            record(**{"for": "Not An Id"}),
+            record(author=""),
+            record(author="x" * 101),
+            record(date="3 October"),
+            record(note="x" * 501),
+            record(schema="node-status/v1"),
+            "for: [unclosed\n",
+            "- a list, not a record\n",
+        ],
+    )
+    def test_a_malformed_record_is_refused(graph: Path, content: dict[str, Any] | str) -> None:
+>       assert judged(graph, put(graph, rel(CRUX), content)) == ["proposed-for-malformed"]
+E       AssertionError: assert ['path-forbidden'] == ['proposed-for-malformed']
+E         
+E         At index 0 diff: 'path-forbidden' != 'proposed-for-malformed'
+E         Use -v to get more diff
+
+gate/tests/test_proposed_for.py:206: AssertionError
+_________________ test_a_malformed_record_is_refused[content1] _________________
+
+graph = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-256/test_a_malformed_record_is_ref1/graph')
+content = {'schema': 'proposed-for/v1', 'for': 'and-swap-reassoc', 'author': 'alice', 'date': '2026-10-03', ...}
+
+    @pytest.mark.parametrize(
+        "content",
+        [
+            record(**{"for": _DROP}),
+            record(extra=1),
+            record(**{"for": "Not An Id"}),
+            record(author=""),
+            record(author="x" * 101),
+            record(date="3 October"),
+            record(note="x" * 501),
+            record(schema="node-status/v1"),
+            "for: [unclosed\n",
+            "- a list, not a record\n",
+        ],
+    )
+    def test_a_malformed_record_is_refused(graph: Path, content: dict[str, Any] | str) -> None:
+>       assert judged(graph, put(graph, rel(CRUX), content)) == ["proposed-for-malformed"]
+E       AssertionError: assert ['path-forbidden'] == ['proposed-for-malformed']
+E         
+E         At index 0 diff: 'path-forbidden' != 'proposed-for-malformed'
+E         Use -v to get more diff
+
+gate/tests/test_proposed_for.py:206: AssertionError
+_________________ test_a_malformed_record_is_refused[content2] _________________
+
+graph = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-256/test_a_malformed_record_is_ref2/graph')
+content = {'schema': 'proposed-for/v1', 'for': 'Not An Id', 'author': 'alice', 'date': '2026-10-03', ...}
+
+    @pytest.mark.parametrize(
+        "content",
+        [
+            record(**{"for": _DROP}),
+            record(extra=1),
+            record(**{"for": "Not An Id"}),
+            record(author=""),
+            record(author="x" * 101),
+            record(date="3 October"),
+            record(note="x" * 501),
+            record(schema="node-status/v1"),
+            "for: [unclosed\n",
+            "- a list, not a record\n",
+        ],
+    )
+    def test_a_malformed_record_is_refused(graph: Path, content: dict[str, Any] | str) -> None:
+>       assert judged(graph, put(graph, rel(CRUX), content)) == ["proposed-for-malformed"]
+E       AssertionError: assert ['path-forbidden'] == ['proposed-for-malformed']
+E         
+E         At index 0 diff: 'path-forbidden' != 'proposed-for-malformed'
+E         Use -v to get more diff
+
+gate/tests/test_proposed_for.py:206: AssertionError
+_________________ test_a_malformed_record_is_refused[content3] _________________
+
+graph = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-256/test_a_malformed_record_is_ref3/graph')
+content = {'schema': 'proposed-for/v1', 'for': 'and-swap-reassoc', 'author': '', 'date': '2026-10-03', ...}
+
+    @pytest.mark.parametrize(
+        "content",
+        [
+            record(**{"for": _DROP}),
+            record(extra=1),
+            record(**{"for": "Not An Id"}),
+            record(author=""),
+            record(author="x" * 101),
+            record(date="3 October"),
+            record(note="x" * 501),
+            record(schema="node-status/v1"),
+            "for: [unclosed\n",
+            "- a list, not a record\n",
+        ],
+    )
+    def test_a_malformed_record_is_refused(graph: Path, content: dict[str, Any] | str) -> None:
+>       assert judged(graph, put(graph, rel(CRUX), content)) == ["proposed-for-malformed"]
+E       AssertionError: assert ['path-forbidden'] == ['proposed-for-malformed']
+E         
+E         At index 0 diff: 'path-forbidden' != 'proposed-for-malformed'
+E         Use -v to get more diff
+
+gate/tests/test_proposed_for.py:206: AssertionError
+_________________ test_a_malformed_record_is_refused[content4] _________________
+
+graph = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-256/test_a_malformed_record_is_ref4/graph')
+content = {'schema': 'proposed-for/v1', 'for': 'and-swap-reassoc', 'author': 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', 'date': '2026-10-03', ...}
+
+    @pytest.mark.parametrize(
+        "content",
+        [
+            record(**{"for": _DROP}),
+            record(extra=1),
+            record(**{"for": "Not An Id"}),
+            record(author=""),
+            record(author="x" * 101),
+            record(date="3 October"),
+            record(note="x" * 501),
+            record(schema="node-status/v1"),
+            "for: [unclosed\n",
+            "- a list, not a record\n",
+        ],
+    )
+    def test_a_malformed_record_is_refused(graph: Path, content: dict[str, Any] | str) -> None:
+>       assert judged(graph, put(graph, rel(CRUX), content)) == ["proposed-for-malformed"]
+E       AssertionError: assert ['path-forbidden'] == ['proposed-for-malformed']
+E         
+E         At index 0 diff: 'path-forbidden' != 'proposed-for-malformed'
+E         Use -v to get more diff
+
+gate/tests/test_proposed_for.py:206: AssertionError
+_________________ test_a_malformed_record_is_refused[content5] _________________
+
+graph = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-256/test_a_malformed_record_is_ref5/graph')
+content = {'schema': 'proposed-for/v1', 'for': 'and-swap-reassoc', 'author': 'alice', 'date': '3 October', ...}
+
+    @pytest.mark.parametrize(
+        "content",
+        [
+            record(**{"for": _DROP}),
+            record(extra=1),
+            record(**{"for": "Not An Id"}),
+            record(author=""),
+            record(author="x" * 101),
+            record(date="3 October"),
+            record(note="x" * 501),
+            record(schema="node-status/v1"),
+            "for: [unclosed\n",
+            "- a list, not a record\n",
+        ],
+    )
+    def test_a_malformed_record_is_refused(graph: Path, content: dict[str, Any] | str) -> None:
+>       assert judged(graph, put(graph, rel(CRUX), content)) == ["proposed-for-malformed"]
+E       AssertionError: assert ['path-forbidden'] == ['proposed-for-malformed']
+E         
+E         At index 0 diff: 'path-forbidden' != 'proposed-for-malformed'
+E         Use -v to get more diff
+
+gate/tests/test_proposed_for.py:206: AssertionError
+_________________ test_a_malformed_record_is_refused[content6] _________________
+
+graph = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-256/test_a_malformed_record_is_ref6/graph')
+content = {'schema': 'proposed-for/v1', 'for': 'and-swap-reassoc', 'author': 'alice', 'date': '2026-10-03', ...}
+
+    @pytest.mark.parametrize(
+        "content",
+        [
+            record(**{"for": _DROP}),
+            record(extra=1),
+            record(**{"for": "Not An Id"}),
+            record(author=""),
+            record(author="x" * 101),
+            record(date="3 October"),
+            record(note="x" * 501),
+            record(schema="node-status/v1"),
+            "for: [unclosed\n",
+            "- a list, not a record\n",
+        ],
+    )
+    def test_a_malformed_record_is_refused(graph: Path, content: dict[str, Any] | str) -> None:
+>       assert judged(graph, put(graph, rel(CRUX), content)) == ["proposed-for-malformed"]
+E       AssertionError: assert ['path-forbidden'] == ['proposed-for-malformed']
+E         
+E         At index 0 diff: 'path-forbidden' != 'proposed-for-malformed'
+E         Use -v to get more diff
+
+gate/tests/test_proposed_for.py:206: AssertionError
+_________________ test_a_malformed_record_is_refused[content7] _________________
+
+graph = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-256/test_a_malformed_record_is_ref7/graph')
+content = {'schema': 'node-status/v1', 'for': 'and-swap-reassoc', 'author': 'alice', 'date': '2026-10-03', ...}
+
+    @pytest.mark.parametrize(
+        "content",
+        [
+            record(**{"for": _DROP}),
+            record(extra=1),
+            record(**{"for": "Not An Id"}),
+            record(author=""),
+            record(author="x" * 101),
+            record(date="3 October"),
+            record(note="x" * 501),
+            record(schema="node-status/v1"),
+            "for: [unclosed\n",
+            "- a list, not a record\n",
+        ],
+    )
+    def test_a_malformed_record_is_refused(graph: Path, content: dict[str, Any] | str) -> None:
+>       assert judged(graph, put(graph, rel(CRUX), content)) == ["proposed-for-malformed"]
+E       AssertionError: assert ['path-forbidden'] == ['proposed-for-malformed']
+E         
+E         At index 0 diff: 'path-forbidden' != 'proposed-for-malformed'
+E         Use -v to get more diff
+
+gate/tests/test_proposed_for.py:206: AssertionError
+_____________ test_a_malformed_record_is_refused[for: [unclosed\n] _____________
+
+graph = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-256/test_a_malformed_record_is_ref8/graph')
+content = 'for: [unclosed\n'
+
+    @pytest.mark.parametrize(
+        "content",
+        [
+            record(**{"for": _DROP}),
+            record(extra=1),
+            record(**{"for": "Not An Id"}),
+            record(author=""),
+            record(author="x" * 101),
+            record(date="3 October"),
+            record(note="x" * 501),
+            record(schema="node-status/v1"),
+            "for: [unclosed\n",
+            "- a list, not a record\n",
+        ],
+    )
+    def test_a_malformed_record_is_refused(graph: Path, content: dict[str, Any] | str) -> None:
+>       assert judged(graph, put(graph, rel(CRUX), content)) == ["proposed-for-malformed"]
+E       AssertionError: assert ['path-forbidden'] == ['proposed-for-malformed']
+E         
+E         At index 0 diff: 'path-forbidden' != 'proposed-for-malformed'
+E         Use -v to get more diff
+
+gate/tests/test_proposed_for.py:206: AssertionError
+_________ test_a_malformed_record_is_refused[- a list, not a record\n] _________
+
+graph = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-256/test_a_malformed_record_is_ref9/graph')
+content = '- a list, not a record\n'
+
+    @pytest.mark.parametrize(
+        "content",
+        [
+            record(**{"for": _DROP}),
+            record(extra=1),
+            record(**{"for": "Not An Id"}),
+            record(author=""),
+            record(author="x" * 101),
+            record(date="3 October"),
+            record(note="x" * 501),
+            record(schema="node-status/v1"),
+            "for: [unclosed\n",
+            "- a list, not a record\n",
+        ],
+    )
+    def test_a_malformed_record_is_refused(graph: Path, content: dict[str, Any] | str) -> None:
+>       assert judged(graph, put(graph, rel(CRUX), content)) == ["proposed-for-malformed"]
+E       AssertionError: assert ['path-forbidden'] == ['proposed-for-malformed']
+E         
+E         At index 0 diff: 'path-forbidden' != 'proposed-for-malformed'
+E         Use -v to get more diff
+
+gate/tests/test_proposed_for.py:206: AssertionError
+_ test_a_record_with_any_other_file_is_refused[targets/propositional/nodes/and-reassoc/attempts/20261003T120000Z-alice.yaml] _
+
+graph = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-256/test_a_record_with_any_other_f0/graph')
+other = 'targets/propositional/nodes/and-reassoc/attempts/20261003T120000Z-alice.yaml'
+
+    @pytest.mark.parametrize(
+        "other",
+        [
+            f"{T}/nodes/{CRUX}/attempts/20261003T120000Z-alice.yaml",
+            f"{T}/nodes/{CRUX}/Proof.lean",
+            f"{T}/nodes/{CRUX}/annex/{'a' * 64}.md",
+            f"{T}/nodes/{CRUX}/explainer/{'b' * 64}.md",
+            f"{T}/nodes/{CRUX}/status/20261003T120000Z-c.yaml",
+            f"{T}/approaches/20261003T120000Z-alice.yaml",
+        ],
+    )
+    def test_a_record_with_any_other_file_is_refused(graph: Path, other: str) -> None:
+        changes = [put(graph, rel(CRUX), record()), Change("A", other)]
+        classification = modes.classify(changes, author=CURATOR, curators=modes.load_curators(graph))
+        assert classification.mode is None
+>       assert [d.code for d in classification.problems] == ["mode-mixed"]
+E       AssertionError: assert ['path-forbidden'] == ['mode-mixed']
+E         
+E         At index 0 diff: 'path-forbidden' != 'mode-mixed'
+E         Use -v to get more diff
+
+gate/tests/test_proposed_for.py:232: AssertionError
+_ test_a_record_with_any_other_file_is_refused[targets/propositional/nodes/and-reassoc/Proof.lean] _
+
+graph = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-256/test_a_record_with_any_other_f1/graph')
+other = 'targets/propositional/nodes/and-reassoc/Proof.lean'
+
+    @pytest.mark.parametrize(
+        "other",
+        [
+            f"{T}/nodes/{CRUX}/attempts/20261003T120000Z-alice.yaml",
+            f"{T}/nodes/{CRUX}/Proof.lean",
+            f"{T}/nodes/{CRUX}/annex/{'a' * 64}.md",
+            f"{T}/nodes/{CRUX}/explainer/{'b' * 64}.md",
+            f"{T}/nodes/{CRUX}/status/20261003T120000Z-c.yaml",
+            f"{T}/approaches/20261003T120000Z-alice.yaml",
+        ],
+    )
+    def test_a_record_with_any_other_file_is_refused(graph: Path, other: str) -> None:
+        changes = [put(graph, rel(CRUX), record()), Change("A", other)]
+        classification = modes.classify(changes, author=CURATOR, curators=modes.load_curators(graph))
+        assert classification.mode is None
+>       assert [d.code for d in classification.problems] == ["mode-mixed"]
+E       AssertionError: assert ['path-forbidden'] == ['mode-mixed']
+E         
+E         At index 0 diff: 'path-forbidden' != 'mode-mixed'
+E         Use -v to get more diff
+
+gate/tests/test_proposed_for.py:232: AssertionError
+_ test_a_record_with_any_other_file_is_refused[targets/propositional/nodes/and-reassoc/annex/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.md] _
+
+graph = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-256/test_a_record_with_any_other_f2/graph')
+other = 'targets/propositional/nodes/and-reassoc/annex/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.md'
+
+    @pytest.mark.parametrize(
+        "other",
+        [
+            f"{T}/nodes/{CRUX}/attempts/20261003T120000Z-alice.yaml",
+            f"{T}/nodes/{CRUX}/Proof.lean",
+            f"{T}/nodes/{CRUX}/annex/{'a' * 64}.md",
+            f"{T}/nodes/{CRUX}/explainer/{'b' * 64}.md",
+            f"{T}/nodes/{CRUX}/status/20261003T120000Z-c.yaml",
+            f"{T}/approaches/20261003T120000Z-alice.yaml",
+        ],
+    )
+    def test_a_record_with_any_other_file_is_refused(graph: Path, other: str) -> None:
+        changes = [put(graph, rel(CRUX), record()), Change("A", other)]
+        classification = modes.classify(changes, author=CURATOR, curators=modes.load_curators(graph))
+        assert classification.mode is None
+>       assert [d.code for d in classification.problems] == ["mode-mixed"]
+E       AssertionError: assert ['path-forbidden'] == ['mode-mixed']
+E         
+E         At index 0 diff: 'path-forbidden' != 'mode-mixed'
+E         Use -v to get more diff
+
+gate/tests/test_proposed_for.py:232: AssertionError
+_ test_a_record_with_any_other_file_is_refused[targets/propositional/nodes/and-reassoc/explainer/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.md] _
+
+graph = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-256/test_a_record_with_any_other_f3/graph')
+other = 'targets/propositional/nodes/and-reassoc/explainer/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.md'
+
+    @pytest.mark.parametrize(
+        "other",
+        [
+            f"{T}/nodes/{CRUX}/attempts/20261003T120000Z-alice.yaml",
+            f"{T}/nodes/{CRUX}/Proof.lean",
+            f"{T}/nodes/{CRUX}/annex/{'a' * 64}.md",
+            f"{T}/nodes/{CRUX}/explainer/{'b' * 64}.md",
+            f"{T}/nodes/{CRUX}/status/20261003T120000Z-c.yaml",
+            f"{T}/approaches/20261003T120000Z-alice.yaml",
+        ],
+    )
+    def test_a_record_with_any_other_file_is_refused(graph: Path, other: str) -> None:
+        changes = [put(graph, rel(CRUX), record()), Change("A", other)]
+        classification = modes.classify(changes, author=CURATOR, curators=modes.load_curators(graph))
+        assert classification.mode is None
+>       assert [d.code for d in classification.problems] == ["mode-mixed"]
+E       AssertionError: assert ['path-forbidden'] == ['mode-mixed']
+E         
+E         At index 0 diff: 'path-forbidden' != 'mode-mixed'
+E         Use -v to get more diff
+
+gate/tests/test_proposed_for.py:232: AssertionError
+_ test_a_record_with_any_other_file_is_refused[targets/propositional/nodes/and-reassoc/status/20261003T120000Z-c.yaml] _
+
+graph = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-256/test_a_record_with_any_other_f4/graph')
+other = 'targets/propositional/nodes/and-reassoc/status/20261003T120000Z-c.yaml'
+
+    @pytest.mark.parametrize(
+        "other",
+        [
+            f"{T}/nodes/{CRUX}/attempts/20261003T120000Z-alice.yaml",
+            f"{T}/nodes/{CRUX}/Proof.lean",
+            f"{T}/nodes/{CRUX}/annex/{'a' * 64}.md",
+            f"{T}/nodes/{CRUX}/explainer/{'b' * 64}.md",
+            f"{T}/nodes/{CRUX}/status/20261003T120000Z-c.yaml",
+            f"{T}/approaches/20261003T120000Z-alice.yaml",
+        ],
+    )
+    def test_a_record_with_any_other_file_is_refused(graph: Path, other: str) -> None:
+        changes = [put(graph, rel(CRUX), record()), Change("A", other)]
+        classification = modes.classify(changes, author=CURATOR, curators=modes.load_curators(graph))
+        assert classification.mode is None
+>       assert [d.code for d in classification.problems] == ["mode-mixed"]
+E       AssertionError: assert ['path-forbidden'] == ['mode-mixed']
+E         
+E         At index 0 diff: 'path-forbidden' != 'mode-mixed'
+E         Use -v to get more diff
+
+gate/tests/test_proposed_for.py:232: AssertionError
+_ test_a_record_with_any_other_file_is_refused[targets/propositional/approaches/20261003T120000Z-alice.yaml] _
+
+graph = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-256/test_a_record_with_any_other_f5/graph')
+other = 'targets/propositional/approaches/20261003T120000Z-alice.yaml'
+
+    @pytest.mark.parametrize(
+        "other",
+        [
+            f"{T}/nodes/{CRUX}/attempts/20261003T120000Z-alice.yaml",
+            f"{T}/nodes/{CRUX}/Proof.lean",
+            f"{T}/nodes/{CRUX}/annex/{'a' * 64}.md",
+            f"{T}/nodes/{CRUX}/explainer/{'b' * 64}.md",
+            f"{T}/nodes/{CRUX}/status/20261003T120000Z-c.yaml",
+            f"{T}/approaches/20261003T120000Z-alice.yaml",
+        ],
+    )
+    def test_a_record_with_any_other_file_is_refused(graph: Path, other: str) -> None:
+        changes = [put(graph, rel(CRUX), record()), Change("A", other)]
+        classification = modes.classify(changes, author=CURATOR, curators=modes.load_curators(graph))
+        assert classification.mode is None
+>       assert [d.code for d in classification.problems] == ["mode-mixed"]
+E       AssertionError: assert ['path-forbidden'] == ['mode-mixed']
+E         
+E         At index 0 diff: 'path-forbidden' != 'mode-mixed'
+E         Use -v to get more diff
+
+gate/tests/test_proposed_for.py:232: AssertionError
+_______________ test_two_records_in_one_pull_request_are_refused _______________
+
+graph = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-256/test_two_records_in_one_pull_r0/graph')
+
+    def test_two_records_in_one_pull_request_are_refused(graph: Path) -> None:
+        changes = [
+            put(graph, rel(CRUX), record()),
+            put(graph, rel(CRUX, "20261003T120001Z-alice.yaml"), record()),
+        ]
+>       assert judged(graph, *changes) == ["proposed-for-multiple"]
+E       AssertionError: assert ['path-forbid...th-forbidden'] == ['proposed-for-multiple']
+E         
+E         At index 0 diff: 'path-forbidden' != 'proposed-for-multiple'
+E         Left contains one more item: 'path-forbidden'
+E         Use -v to get more diff
+
+gate/tests/test_proposed_for.py:240: AssertionError
+____________________ test_records_on_two_nodes_are_refused _____________________
+
+graph = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-256/test_records_on_two_nodes_are_0/graph')
+
+    def test_records_on_two_nodes_are_refused(graph: Path) -> None:
+        changes = [put(graph, rel(CRUX), record()), put(graph, rel(OLD), record())]
+>       assert judged(graph, *changes) == ["mode-multi-node"]
+E       AssertionError: assert ['path-forbid...th-forbidden'] == ['mode-multi-node']
+E         
+E         At index 0 diff: 'path-forbidden' != 'mode-multi-node'
+E         Left contains one more item: 'path-forbidden'
+E         Use -v to get more diff
+
+gate/tests/test_proposed_for.py:245: AssertionError
+_________________________ test_any_node_may_carry_one __________________________
+
+graph = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-256/test_any_node_may_carry_one0/graph')
+
+    def test_any_node_may_carry_one(graph: Path) -> None:
+        """Not only a ``spec-*`` crux: the rule is the proposer's, whatever the node's origin."""
+        change = put(graph, rel(OLD, f"20261003T120000Z-{CURATOR}.yaml"), record(author=CURATOR))
+>       assert judged(graph, change) == []  # OLD's provenance.author is the fixture's curator
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: assert ['path-forbidden'] == []
+E         
+E         Left contains one more item: 'path-forbidden'
+E         Use -v to get more diff
+
+gate/tests/test_proposed_for.py:251: AssertionError
+__________________ test_a_proposal_may_carry_its_first_record __________________
+
+graph = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-256/test_a_proposal_may_carry_its_0/graph')
+
+    def test_a_proposal_may_carry_its_first_record(graph: Path) -> None:
+        changes = place_proposal(graph)
+        # The fixture proposal is the curator's; the service writes the proposer's pseudonym.
+        changes.append(put(graph, rel("good", f"20261003T120000Z-{CURATOR}.yaml"), record(author=CURATOR)))
+        classification = modes.classify(changes, author=SERVICE)
+>       assert classification.mode == "proposal"
+E       AssertionError: assert None == 'proposal'
+E        +  where None = Classification(mode=None, target_id=None, node_id=None, located=(), problems=(Diagnostic(code='path-forbidden', messag...ml', 'status': 'A'}),), admit=None, reviewers=None, author=None, replaced=(), review_basis=None, review_reference=None).mode
+
+gate/tests/test_proposed_for.py:272: AssertionError
+_ test_a_proposal_s_record_is_held_to_the_same_rules[over0-proposed-for-unknown-node] _
+
+graph = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-256/test_a_proposal_s_record_is_he0/graph')
+over = {'for': 'ghost'}, code = 'proposed-for-unknown-node'
+
+    @pytest.mark.parametrize(
+        ("over", "code"),
+        [
+            ({"for": "ghost"}, "proposed-for-unknown-node"),
+            ({"for": "good"}, "proposed-for-self"),
+            ({"author": STRANGER}, "proposed-for-author"),
+            ({"date": "soon"}, "proposed-for-malformed"),
+        ],
+    )
+    def test_a_proposal_s_record_is_held_to_the_same_rules(
+        graph: Path, over: dict[str, Any], code: str
+    ) -> None:
+        changes = place_proposal(graph)
+        changes.append(put(graph, rel("good"), record(**{"author": CURATOR, **over})))
+>       assert judged(graph, *changes) == [code]
+E       AssertionError: assert ['path-forbidden'] == ['proposed-for-unknown-node']
+E         
+E         At index 0 diff: 'path-forbidden' != 'proposed-for-unknown-node'
+E         Use -v to get more diff
+
+gate/tests/test_proposed_for.py:291: AssertionError
+_ test_a_proposal_s_record_is_held_to_the_same_rules[over1-proposed-for-self] __
+
+graph = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-256/test_a_proposal_s_record_is_he1/graph')
+over = {'for': 'good'}, code = 'proposed-for-self'
+
+    @pytest.mark.parametrize(
+        ("over", "code"),
+        [
+            ({"for": "ghost"}, "proposed-for-unknown-node"),
+            ({"for": "good"}, "proposed-for-self"),
+            ({"author": STRANGER}, "proposed-for-author"),
+            ({"date": "soon"}, "proposed-for-malformed"),
+        ],
+    )
+    def test_a_proposal_s_record_is_held_to_the_same_rules(
+        graph: Path, over: dict[str, Any], code: str
+    ) -> None:
+        changes = place_proposal(graph)
+        changes.append(put(graph, rel("good"), record(**{"author": CURATOR, **over})))
+>       assert judged(graph, *changes) == [code]
+E       AssertionError: assert ['path-forbidden'] == ['proposed-for-self']
+E         
+E         At index 0 diff: 'path-forbidden' != 'proposed-for-self'
+E         Use -v to get more diff
+
+gate/tests/test_proposed_for.py:291: AssertionError
+_ test_a_proposal_s_record_is_held_to_the_same_rules[over2-proposed-for-author] _
+
+graph = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-256/test_a_proposal_s_record_is_he2/graph')
+over = {'author': 'mallory'}, code = 'proposed-for-author'
+
+    @pytest.mark.parametrize(
+        ("over", "code"),
+        [
+            ({"for": "ghost"}, "proposed-for-unknown-node"),
+            ({"for": "good"}, "proposed-for-self"),
+            ({"author": STRANGER}, "proposed-for-author"),
+            ({"date": "soon"}, "proposed-for-malformed"),
+        ],
+    )
+    def test_a_proposal_s_record_is_held_to_the_same_rules(
+        graph: Path, over: dict[str, Any], code: str
+    ) -> None:
+        changes = place_proposal(graph)
+        changes.append(put(graph, rel("good"), record(**{"author": CURATOR, **over})))
+>       assert judged(graph, *changes) == [code]
+E       AssertionError: assert ['path-forbidden'] == ['proposed-for-author']
+E         
+E         At index 0 diff: 'path-forbidden' != 'proposed-for-author'
+E         Use -v to get more diff
+
+gate/tests/test_proposed_for.py:291: AssertionError
+_ test_a_proposal_s_record_is_held_to_the_same_rules[over3-proposed-for-malformed] _
+
+graph = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-256/test_a_proposal_s_record_is_he3/graph')
+over = {'date': 'soon'}, code = 'proposed-for-malformed'
+
+    @pytest.mark.parametrize(
+        ("over", "code"),
+        [
+            ({"for": "ghost"}, "proposed-for-unknown-node"),
+            ({"for": "good"}, "proposed-for-self"),
+            ({"author": STRANGER}, "proposed-for-author"),
+            ({"date": "soon"}, "proposed-for-malformed"),
+        ],
+    )
+    def test_a_proposal_s_record_is_held_to_the_same_rules(
+        graph: Path, over: dict[str, Any], code: str
+    ) -> None:
+        changes = place_proposal(graph)
+        changes.append(put(graph, rel("good"), record(**{"author": CURATOR, **over})))
+>       assert judged(graph, *changes) == [code]
+E       AssertionError: assert ['path-forbidden'] == ['proposed-for-malformed']
+E         
+E         At index 0 diff: 'path-forbidden' != 'proposed-for-malformed'
+E         Use -v to get more diff
+
+gate/tests/test_proposed_for.py:291: AssertionError
+___________ test_a_proposal_s_record_may_not_name_a_superseded_node ____________
+
+graph = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-256/test_a_proposal_s_record_may_n0/graph')
+
+    def test_a_proposal_s_record_may_not_name_a_superseded_node(graph: Path) -> None:
+        supersede(graph)
+        changes = place_proposal(graph)
+        changes.append(put(graph, rel("good"), record(author=CURATOR, **{"for": OLD})))
+>       assert judged(graph, *changes) == ["proposed-for-superseded"]
+E       AssertionError: assert ['path-forbidden'] == ['proposed-for-superseded']
+E         
+E         At index 0 diff: 'path-forbidden' != 'proposed-for-superseded'
+E         Use -v to get more diff
+
+gate/tests/test_proposed_for.py:298: AssertionError
+__________________ test_a_proposal_carries_one_record_at_most __________________
+
+graph = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-256/test_a_proposal_carries_one_re0/graph')
+
+    def test_a_proposal_carries_one_record_at_most(graph: Path) -> None:
+        changes = place_proposal(graph)
+        changes.append(put(graph, rel("good"), record(author=CURATOR)))
+        changes.append(put(graph, rel("good", "20261003T120001Z-x.yaml"), record(author=CURATOR)))
+>       assert judged(graph, *changes) == ["proposed-for-multiple"]
+E       AssertionError: assert ['path-forbid...th-forbidden'] == ['proposed-for-multiple']
+E         
+E         At index 0 diff: 'path-forbidden' != 'proposed-for-multiple'
+E         Left contains one more item: 'path-forbidden'
+E         Use -v to get more diff
+
+gate/tests/test_proposed_for.py:305: AssertionError
+__________________________ test_the_classify_command ___________________________
+
+graph = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-256/test_the_classify_command0/graph')
+capsys = <_pytest.capture.CaptureFixture object at 0x10964ecf0>
+
+    def test_the_classify_command(graph: Path, capsys: pytest.CaptureFixture[str]) -> None:
+        env = {
+            "GIT_AUTHOR_NAME": "t",
+            "GIT_AUTHOR_EMAIL": "t@x",
+            "GIT_COMMITTER_NAME": "t",
+            "GIT_COMMITTER_EMAIL": "t@x",
+            "PATH": "/usr/bin:/bin",
+            "HOME": str(graph.parent),
+        }
+    
+        def git(*args: str) -> None:
+            subprocess.run(["git", "-C", str(graph), *args], check=True, env=env, capture_output=True)
+    
+        def classify(author: str) -> dict[str, Any]:
+            code = cli.main(["classify", "--graph", str(graph), "--base", "HEAD~1", "--author", author])
+            out: dict[str, Any] = json.loads(capsys.readouterr().out)
+            assert (code == 0) is out["ok"]
+            return out
+    
+        git("init", "-q")
+        git("add", "-A")
+        git("commit", "-q", "-m", "seed")
+        put(graph, rel(CRUX), record())
+        git("add", "-A")
+        git("commit", "-q", "-m", "proposed for")
+        out = classify(SERVICE)
+>       assert out["mode"] == "proposed-for"
+E       AssertionError: assert None == 'proposed-for'
+
+gate/tests/test_proposed_for.py:337: AssertionError
+_____________________ test_the_latest_record_is_published ______________________
+
+graph = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-256/test_the_latest_record_is_publ0/graph')
+
+    def test_the_latest_record_is_published(graph: Path) -> None:
+        put(graph, rel(CRUX, "20261001T000000Z-alice.yaml"), record(**{"for": OLD}))
+        put(graph, rel(CRUX, "20261002T000000Z-alice.yaml"), record(**{"for": FOR}))
+        loaded = proposed_for.latest(graph / T / "nodes" / CRUX)
+>       assert loaded is not None and loaded["for"] == FOR
+E       assert (None is not None)
+
+gate/tests/test_proposed_for.py:364: AssertionError
+_____________________ test_an_invalid_file_is_passed_over ______________________
+
+graph = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-256/test_an_invalid_file_is_passed0/graph')
+
+    def test_an_invalid_file_is_passed_over(graph: Path) -> None:
+        """Appends anyone may file must never decide whether the graph has products (2026-09-17)."""
+        put(graph, rel(CRUX, "20261001T000000Z-alice.yaml"), record(**{"for": FOR}))
+        put(graph, rel(CRUX, "20261009T000000Z-alice.yaml"), "for: [unclosed\n")
+        put(graph, rel(CRUX, "20261008T000000Z-alice.yaml"), record(extra=1))
+>       assert facts(graph)[CRUX].proposed_for == FOR
+               ^^^^^^^^^^^^
+
+gate/tests/test_proposed_for.py:373: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+gate/tests/test_proposed_for.py:353: in facts
+    return graphmod.load_nodes(graph, "propositional", [])
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+graph_root = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-256/test_an_invalid_file_is_passed0/graph')
+target_id = 'propositional', attestations = []
+
+    def load_nodes(
+        graph_root: Path, target_id: str, attestations: list[tuple[str, dict[str, Any]]]
+    ) -> dict[str, NodeFacts]:
+        nodes_dir = layout.graph_nodes_dir(graph_root, target_id)
+        footprints = load_footprint_cache(nodes_dir.parent)
+        facts: dict[str, NodeFacts] = {}
+        for node_dir in sorted(p for p in nodes_dir.iterdir() if p.is_dir()):
+            loaded = layout.load_node(node_dir, target_id)
+            if isinstance(loaded, list):
+                msg = f"node {node_dir.name}: " + "; ".join(d.message for d in loaded)
+>               raise GraphError(msg)
+E               opn_gate.graph.GraphError: node and-reassoc: unexpected entry proposed-for
+
+gate/opn_gate/graph.py:390: GraphError
+______________________ test_a_pointer_follows_a_revision _______________________
+
+graph = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-256/test_a_pointer_follows_a_revis0/graph')
+
+    def test_a_pointer_follows_a_revision(graph: Path) -> None:
+        """A pointer written before its node was revised points at the revision, as a dep does
+        (D-8 v3.18: read through, never rewritten)."""
+        put(graph, rel(CRUX), record(**{"for": OLD}))
+        supersede(graph)
+>       assert facts(graph)[CRUX].proposed_for == FOR
+               ^^^^^^^^^^^^
+
+gate/tests/test_proposed_for.py:381: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+gate/tests/test_proposed_for.py:353: in facts
+    return graphmod.load_nodes(graph, "propositional", [])
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+graph_root = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-256/test_a_pointer_follows_a_revis0/graph')
+target_id = 'propositional', attestations = []
+
+    def load_nodes(
+        graph_root: Path, target_id: str, attestations: list[tuple[str, dict[str, Any]]]
+    ) -> dict[str, NodeFacts]:
+        nodes_dir = layout.graph_nodes_dir(graph_root, target_id)
+        footprints = load_footprint_cache(nodes_dir.parent)
+        facts: dict[str, NodeFacts] = {}
+        for node_dir in sorted(p for p in nodes_dir.iterdir() if p.is_dir()):
+            loaded = layout.load_node(node_dir, target_id)
+            if isinstance(loaded, list):
+                msg = f"node {node_dir.name}: " + "; ".join(d.message for d in loaded)
+>               raise GraphError(msg)
+E               opn_gate.graph.GraphError: node and-reassoc: unexpected entry proposed-for
+
+gate/opn_gate/graph.py:390: GraphError
+____________________ test_the_pointer_changes_no_derivation ____________________
+
+graph = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-256/test_the_pointer_changes_no_de0/graph')
+
+    def test_the_pointer_changes_no_derivation(graph: Path) -> None:
+        """A hint, not a dependency: statuses and deps are what they were without it."""
+        before = facts(graph)
+        put(graph, rel(CRUX), record())
+>       after = facts(graph)
+                ^^^^^^^^^^^^
+
+gate/tests/test_proposed_for.py:388: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+gate/tests/test_proposed_for.py:353: in facts
+    return graphmod.load_nodes(graph, "propositional", [])
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+graph_root = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-256/test_the_pointer_changes_no_de0/graph')
+target_id = 'propositional', attestations = []
+
+    def load_nodes(
+        graph_root: Path, target_id: str, attestations: list[tuple[str, dict[str, Any]]]
+    ) -> dict[str, NodeFacts]:
+        nodes_dir = layout.graph_nodes_dir(graph_root, target_id)
+        footprints = load_footprint_cache(nodes_dir.parent)
+        facts: dict[str, NodeFacts] = {}
+        for node_dir in sorted(p for p in nodes_dir.iterdir() if p.is_dir()):
+            loaded = layout.load_node(node_dir, target_id)
+            if isinstance(loaded, list):
+                msg = f"node {node_dir.name}: " + "; ".join(d.message for d in loaded)
+>               raise GraphError(msg)
+E               opn_gate.graph.GraphError: node and-reassoc: unexpected entry proposed-for
+
+gate/opn_gate/graph.py:390: GraphError
+_____________________ test_a_good_for_lands_as_the_record ______________________
+
+harness = Harness(settings=Settings(store='memory', table_identities=None, table_tokens=None, table_claims=None, parameter_prefi...=<starlette.applications.Starlette object at 0x10964fe00>, axle=FakeAxle(calls=[], replies=[], hosted=['lean-4.33.0']))
+tmp_path = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-256/test_a_good_for_lands_as_the_r0')
+
+    def test_a_good_for_lands_as_the_record(harness: Harness, tmp_path: Path) -> None:
+        r = post(harness, base(**{"for": FOR}))
+>       assert r.status_code == 201, r.text
+E       AssertionError: {"error":"unknown-field","message":"unknown field for; this route accepts acknowledged_hazards, deps, model, require_hazards_preflight, statement, target_id, witness","details":{"unknown":["for"],"accepted":["acknowledged_hazards","deps","model","require_hazards_preflight","statement","target_id","witness"]}}
+E       assert 400 == 201
+E        +  where 400 = <Response [400 Bad Request]>.status_code
+
+api/tests/test_proposals_for.py:76: AssertionError
+_ test_a_bad_for_is_refused_before_anything_is_pushed[ghost-proposed-for-unknown-node] _
+
+harness = Harness(settings=Settings(store='memory', table_identities=None, table_tokens=None, table_claims=None, parameter_prefi...=<starlette.applications.Starlette object at 0x107c7d590>, axle=FakeAxle(calls=[], replies=[], hosted=['lean-4.33.0']))
+value = 'ghost', code = 'proposed-for-unknown-node'
+
+    @pytest.mark.parametrize(
+        ("value", "code"),
+        [
+            ("ghost", "proposed-for-unknown-node"),
+            ("Not An Id", "proposed-for-malformed"),
+            (7, "proposed-for-malformed"),
+            ("", "proposed-for-malformed"),
+        ],
+    )
+    def test_a_bad_for_is_refused_before_anything_is_pushed(
+        harness: Harness, value: Any, code: str
+    ) -> None:
+        r = post(harness, base(**{"for": value}))
+        assert r.status_code == 400, r.text
+>       assert r.json()["error"] == code, r.text
+E       AssertionError: {"error":"unknown-field","message":"unknown field for; this route accepts acknowledged_hazards, deps, model, require_hazards_preflight, statement, target_id, witness","details":{"unknown":["for"],"accepted":["acknowledged_hazards","deps","model","require_hazards_preflight","statement","target_id","witness"]}}
+E       assert 'unknown-field' == 'proposed-for-unknown-node'
+E         
+E         - proposed-for-unknown-node
+E         + unknown-field
+
+api/tests/test_proposals_for.py:130: AssertionError
+_ test_a_bad_for_is_refused_before_anything_is_pushed[Not An Id-proposed-for-malformed] _
+
+harness = Harness(settings=Settings(store='memory', table_identities=None, table_tokens=None, table_claims=None, parameter_prefi...=<starlette.applications.Starlette object at 0x107ca88a0>, axle=FakeAxle(calls=[], replies=[], hosted=['lean-4.33.0']))
+value = 'Not An Id', code = 'proposed-for-malformed'
+
+    @pytest.mark.parametrize(
+        ("value", "code"),
+        [
+            ("ghost", "proposed-for-unknown-node"),
+            ("Not An Id", "proposed-for-malformed"),
+            (7, "proposed-for-malformed"),
+            ("", "proposed-for-malformed"),
+        ],
+    )
+    def test_a_bad_for_is_refused_before_anything_is_pushed(
+        harness: Harness, value: Any, code: str
+    ) -> None:
+        r = post(harness, base(**{"for": value}))
+        assert r.status_code == 400, r.text
+>       assert r.json()["error"] == code, r.text
+E       AssertionError: {"error":"unknown-field","message":"unknown field for; this route accepts acknowledged_hazards, deps, model, require_hazards_preflight, statement, target_id, witness","details":{"unknown":["for"],"accepted":["acknowledged_hazards","deps","model","require_hazards_preflight","statement","target_id","witness"]}}
+E       assert 'unknown-field' == 'proposed-for-malformed'
+E         
+E         - proposed-for-malformed
+E         + unknown-field
+
+api/tests/test_proposals_for.py:130: AssertionError
+_ test_a_bad_for_is_refused_before_anything_is_pushed[7-proposed-for-malformed] _
+
+harness = Harness(settings=Settings(store='memory', table_identities=None, table_tokens=None, table_claims=None, parameter_prefi...=<starlette.applications.Starlette object at 0x107caa9e0>, axle=FakeAxle(calls=[], replies=[], hosted=['lean-4.33.0']))
+value = 7, code = 'proposed-for-malformed'
+
+    @pytest.mark.parametrize(
+        ("value", "code"),
+        [
+            ("ghost", "proposed-for-unknown-node"),
+            ("Not An Id", "proposed-for-malformed"),
+            (7, "proposed-for-malformed"),
+            ("", "proposed-for-malformed"),
+        ],
+    )
+    def test_a_bad_for_is_refused_before_anything_is_pushed(
+        harness: Harness, value: Any, code: str
+    ) -> None:
+        r = post(harness, base(**{"for": value}))
+        assert r.status_code == 400, r.text
+>       assert r.json()["error"] == code, r.text
+E       AssertionError: {"error":"unknown-field","message":"unknown field for; this route accepts acknowledged_hazards, deps, model, require_hazards_preflight, statement, target_id, witness","details":{"unknown":["for"],"accepted":["acknowledged_hazards","deps","model","require_hazards_preflight","statement","target_id","witness"]}}
+E       assert 'unknown-field' == 'proposed-for-malformed'
+E         
+E         - proposed-for-malformed
+E         + unknown-field
+
+api/tests/test_proposals_for.py:130: AssertionError
+_ test_a_bad_for_is_refused_before_anything_is_pushed[-proposed-for-malformed] _
+
+harness = Harness(settings=Settings(store='memory', table_identities=None, table_tokens=None, table_claims=None, parameter_prefi...=<starlette.applications.Starlette object at 0x107cc55b0>, axle=FakeAxle(calls=[], replies=[], hosted=['lean-4.33.0']))
+value = '', code = 'proposed-for-malformed'
+
+    @pytest.mark.parametrize(
+        ("value", "code"),
+        [
+            ("ghost", "proposed-for-unknown-node"),
+            ("Not An Id", "proposed-for-malformed"),
+            (7, "proposed-for-malformed"),
+            ("", "proposed-for-malformed"),
+        ],
+    )
+    def test_a_bad_for_is_refused_before_anything_is_pushed(
+        harness: Harness, value: Any, code: str
+    ) -> None:
+        r = post(harness, base(**{"for": value}))
+        assert r.status_code == 400, r.text
+>       assert r.json()["error"] == code, r.text
+E       AssertionError: {"error":"unknown-field","message":"unknown field for; this route accepts acknowledged_hazards, deps, model, require_hazards_preflight, statement, target_id, witness","details":{"unknown":["for"],"accepted":["acknowledged_hazards","deps","model","require_hazards_preflight","statement","target_id","witness"]}}
+E       assert 'unknown-field' == 'proposed-for-malformed'
+E         
+E         - proposed-for-malformed
+E         + unknown-field
+
+api/tests/test_proposals_for.py:130: AssertionError
+_______________________ test_the_crux_itself_is_refused ________________________
+
+harness = Harness(settings=Settings(store='memory', table_identities=None, table_tokens=None, table_claims=None, parameter_prefi...=<starlette.applications.Starlette object at 0x10972e250>, axle=FakeAxle(calls=[], replies=[], hosted=['lean-4.33.0']))
+
+    def test_the_crux_itself_is_refused(harness: Harness) -> None:
+        """The crux's id is new, so it is "self" only when it equals an existing id — the same
+        statement proposed for itself."""
+        node_id = proposals.scaffold.speculative_id(STATEMENT, proposals.SPECULATIVE_PREFIX)
+        r = post(harness, base(**{"for": node_id}))
+        assert r.status_code == 400, r.text
+>       assert r.json()["error"] == "proposed-for-self"
+E       AssertionError: assert 'unknown-field' == 'proposed-for-self'
+E         
+E         - proposed-for-self
+E         + unknown-field
+
+api/tests/test_proposals_for.py:141: AssertionError
+____________ test_a_superseded_node_is_refused_naming_its_successor ____________
+
+harness = Harness(settings=Settings(store='memory', table_identities=None, table_tokens=None, table_claims=None, parameter_prefi...=<starlette.applications.Starlette object at 0x10972ff00>, axle=FakeAxle(calls=[], replies=[], hosted=['lean-4.33.0']))
+
+    def test_a_superseded_node_is_refused_naming_its_successor(harness: Harness) -> None:
+        supersede(harness)
+        r = post(harness, base(**{"for": OLD}))
+        assert r.status_code == 400, r.text
+        doc = r.json()
+>       assert doc["error"] == "proposed-for-superseded"
+E       AssertionError: assert 'unknown-field' == 'proposed-for-superseded'
+E         
+E         - proposed-for-superseded
+E         + unknown-field
+
+api/tests/test_proposals_for.py:150: AssertionError
+_____________________ test_the_mcp_tool_passes_it_through ______________________
+
+harness = Harness(settings=Settings(store='memory', table_identities=None, table_tokens=None, table_claims=None, parameter_prefi...=<starlette.applications.Starlette object at 0x10985a050>, axle=FakeAxle(calls=[], replies=[], hosted=['lean-4.33.0']))
+
+    def test_the_mcp_tool_passes_it_through(harness: Harness) -> None:
+        [tool] = [t for t in writes.TOOLS if t.name == "propose_speculative_node"]
+>       assert "for" in tool.input_schema["properties"]
+E       AssertionError: assert 'for' in {'target_id': {'type': 'string', 'pattern': '^[a-z0-9][a-z0-9-]*$'}, 'stmt': {'type': 'string', 'description': 'the te...tems': {'type': 'string', 'pattern': '^[a-z0-9][a-z0-9-]*$'}, 'description': 'node ids the statement depends on'}, ...}
+
+api/tests/test_proposals_for.py:158: AssertionError
+=============================== warnings summary ===============================
+api/tests/api_fakes.py:31
+  /Users/mikehiggins/Desktop/repos/opn-f18-t6/api/tests/api_fakes.py:31: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient
+
+.venv/lib/python3.13/site-packages/starlette/testclient.py:53
+  /Users/mikehiggins/Desktop/repos/opn-f18-t6/.venv/lib/python3.13/site-packages/starlette/testclient.py:53: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.
+    _PortalFactoryType = Callable[[], AbstractContextManager[anyio.abc.BlockingPortal]]
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED gate/tests/test_proposed_for.py::test_a_record_has_a_role_of_its_own
+FAILED gate/tests/test_proposed_for.py::test_one_record_alone_is_the_proposed_for_mode
+FAILED gate/tests/test_proposed_for.py::test_the_proposer_passes - AssertionE...
+FAILED gate/tests/test_proposed_for.py::test_a_listed_curator_passes - Assert...
+FAILED gate/tests/test_proposed_for.py::test_a_third_party_is_refused - Asser...
+FAILED gate/tests/test_proposed_for.py::test_the_author_refusal_names_who_may
+FAILED gate/tests/test_proposed_for.py::test_an_unknown_node_is_refused - Ass...
+FAILED gate/tests/test_proposed_for.py::test_the_crux_itself_is_refused - Ass...
+FAILED gate/tests/test_proposed_for.py::test_a_superseded_node_is_refused_naming_its_successor
+FAILED gate/tests/test_proposed_for.py::test_a_malformed_record_is_refused[content0]
+FAILED gate/tests/test_proposed_for.py::test_a_malformed_record_is_refused[content1]
+FAILED gate/tests/test_proposed_for.py::test_a_malformed_record_is_refused[content2]
+FAILED gate/tests/test_proposed_for.py::test_a_malformed_record_is_refused[content3]
+FAILED gate/tests/test_proposed_for.py::test_a_malformed_record_is_refused[content4]
+FAILED gate/tests/test_proposed_for.py::test_a_malformed_record_is_refused[content5]
+FAILED gate/tests/test_proposed_for.py::test_a_malformed_record_is_refused[content6]
+FAILED gate/tests/test_proposed_for.py::test_a_malformed_record_is_refused[content7]
+FAILED gate/tests/test_proposed_for.py::test_a_malformed_record_is_refused[for: [unclosed\n]
+FAILED gate/tests/test_proposed_for.py::test_a_malformed_record_is_refused[- a list, not a record\n]
+FAILED gate/tests/test_proposed_for.py::test_a_record_with_any_other_file_is_refused[targets/propositional/nodes/and-reassoc/attempts/20261003T120000Z-alice.yaml]
+FAILED gate/tests/test_proposed_for.py::test_a_record_with_any_other_file_is_refused[targets/propositional/nodes/and-reassoc/Proof.lean]
+FAILED gate/tests/test_proposed_for.py::test_a_record_with_any_other_file_is_refused[targets/propositional/nodes/and-reassoc/annex/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.md]
+FAILED gate/tests/test_proposed_for.py::test_a_record_with_any_other_file_is_refused[targets/propositional/nodes/and-reassoc/explainer/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.md]
+FAILED gate/tests/test_proposed_for.py::test_a_record_with_any_other_file_is_refused[targets/propositional/nodes/and-reassoc/status/20261003T120000Z-c.yaml]
+FAILED gate/tests/test_proposed_for.py::test_a_record_with_any_other_file_is_refused[targets/propositional/approaches/20261003T120000Z-alice.yaml]
+FAILED gate/tests/test_proposed_for.py::test_two_records_in_one_pull_request_are_refused
+FAILED gate/tests/test_proposed_for.py::test_records_on_two_nodes_are_refused
+FAILED gate/tests/test_proposed_for.py::test_any_node_may_carry_one - Asserti...
+FAILED gate/tests/test_proposed_for.py::test_a_proposal_may_carry_its_first_record
+FAILED gate/tests/test_proposed_for.py::test_a_proposal_s_record_is_held_to_the_same_rules[over0-proposed-for-unknown-node]
+FAILED gate/tests/test_proposed_for.py::test_a_proposal_s_record_is_held_to_the_same_rules[over1-proposed-for-self]
+FAILED gate/tests/test_proposed_for.py::test_a_proposal_s_record_is_held_to_the_same_rules[over2-proposed-for-author]
+FAILED gate/tests/test_proposed_for.py::test_a_proposal_s_record_is_held_to_the_same_rules[over3-proposed-for-malformed]
+FAILED gate/tests/test_proposed_for.py::test_a_proposal_s_record_may_not_name_a_superseded_node
+FAILED gate/tests/test_proposed_for.py::test_a_proposal_carries_one_record_at_most
+FAILED gate/tests/test_proposed_for.py::test_the_classify_command - Assertion...
+FAILED gate/tests/test_proposed_for.py::test_the_latest_record_is_published
+FAILED gate/tests/test_proposed_for.py::test_an_invalid_file_is_passed_over
+FAILED gate/tests/test_proposed_for.py::test_a_pointer_follows_a_revision - o...
+FAILED gate/tests/test_proposed_for.py::test_the_pointer_changes_no_derivation
+FAILED api/tests/test_proposals_for.py::test_a_good_for_lands_as_the_record
+FAILED api/tests/test_proposals_for.py::test_a_bad_for_is_refused_before_anything_is_pushed[ghost-proposed-for-unknown-node]
+FAILED api/tests/test_proposals_for.py::test_a_bad_for_is_refused_before_anything_is_pushed[Not An Id-proposed-for-malformed]
+FAILED api/tests/test_proposals_for.py::test_a_bad_for_is_refused_before_anything_is_pushed[7-proposed-for-malformed]
+FAILED api/tests/test_proposals_for.py::test_a_bad_for_is_refused_before_anything_is_pushed[-proposed-for-malformed]
+FAILED api/tests/test_proposals_for.py::test_the_crux_itself_is_refused - Ass...
+FAILED api/tests/test_proposals_for.py::test_a_superseded_node_is_refused_naming_its_successor
+FAILED api/tests/test_proposals_for.py::test_the_mcp_tool_passes_it_through
+48 failed, 4 passed, 2 warnings in 1.67s

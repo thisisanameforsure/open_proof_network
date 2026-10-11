@@ -6,10 +6,17 @@ ULID or by the pull-request number, padded or not, with the pull request's live 
 the host through the App (read-only), and the attestation its merge wrote once there is one.
 ``GET /submissions.json`` lists every record no live read has found finished.
 
-The live state is cached in ``Context.pulls`` for ``frontier_max_stale_s``, the committed files'
-window. A host failure serves the last state it read with ``pull_request_error`` set — never a
-5xx, never a silent success (C7). A live read that finds the pull request merged or closed closes
-the record with that state, so a finished pull request never costs another host call.
+The live state is cached in ``Context.pulls`` for ``pull_max_stale_s``. A host failure serves the
+last state it read, marked ``stale`` with the ``read_at`` of when it was true, with
+``pull_request_error`` set — never a 5xx, never a silent success (C7). A live read that finds the
+pull request merged or closed closes the record with that state, so a finished pull request never
+costs another host call.
+
+F07-T47: no read here spends the host once the App's budget is at or below the reserve kept for
+writes (``host_budget_reserve``), and a refusal for budget names the reset and carries
+``Retry-After``. The listing reconciles the whole queue against one open-pull-request listing per
+``pull_listing_max_stale_s`` (``GitHost.list_open_pull_requests``) rather than one read per
+record, which is what let eighteen pollers spend the hour's budget.
 
 The record is operational, not evidentiary (C9): what merged is what the graph's attestations
 say, and a pull request opened by hand is answered from its attestation alone.
@@ -23,23 +30,35 @@ import re
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
-from dataclasses import asdict
+from dataclasses import asdict, dataclass
 from typing import TYPE_CHECKING, Any
 
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 
 from opn_api import clock as clockmod
-from opn_api import frontier
-from opn_api.app import ApiError, CachedFile, CachedPull
-from opn_api.githost import GATE_WORKFLOW, GitHostError, PullRequest, PullRequestState
+from opn_api import frontier, hostbudget
+from opn_api.app import ApiError, CachedFile, CachedListing, CachedPull
+from opn_api.githost import (
+    GATE_WORKFLOW,
+    GitHostError,
+    HostBudget,
+    OpenPullRequest,
+    PullRequest,
+    PullRequestState,
+    RateLimitError,
+)
 from opn_api.store import Submission
+from opn_gate import schemas
 
 if TYPE_CHECKING:
     from opn_api.app import Context
     from opn_api.store import Identity
 
 log = logging.getLogger(__name__)
+
+#: The host's open pull requests by number (F07-T47).
+Listing = dict[int, OpenPullRequest]
 
 #: The kinds whose merge writes ``attestations/<n>.json``: ``POST /submissions``' artifact types
 #: (``submissions.ARTIFACT_TYPES``, asserted equal in the tests — not imported, because
@@ -56,6 +75,7 @@ NOTE_NO_ATTESTATION = "no-attestation-for-mode"  # the kind merges without a bui
 NOTE_NOT_MERGED = "not-merged"  # the host says the pull request has not merged
 NOTE_PENDING = "attestation-pending"  # merged; the post-merge job has not committed it yet
 NOTE_UNKNOWN = "pull-request-unavailable"  # the host could not say, and main has no attestation
+HTTP_OK = 200
 
 
 # --- the record ----------------------------------------------------------------------------------
@@ -73,6 +93,7 @@ def record(  # noqa: PLR0913 — one opened pull request, described
     precheck_job_id: str | None = None,
     fingerprints: tuple[str, ...] | list[str] = (),
     defect_class: str | None = None,
+    automation: dict[str, Any] | None = None,
 ) -> Submission | None:
     """Remember a pull request the service just opened. The pull request exists whatever happens
     here, so a store failure is logged and the caller still answers 201 with its number: the
@@ -89,6 +110,7 @@ def record(  # noqa: PLR0913 — one opened pull request, described
         created=clockmod.render(ctx.clock.now()),
         fingerprints=tuple(fingerprints),
         defect_class=defect_class,
+        automation=automation,
     )
     try:
         ctx.store.put_submission(submission)
@@ -110,6 +132,10 @@ def document(submission: Submission) -> dict[str, Any]:
     doc.pop("final_state")
     doc.pop("fingerprints")  # the service's own index, not part of the answer (F07-T35)
     doc.pop("defect_class")  # likewise (F08-T18): the claim's own file says its class
+    # F05-T18: the name every write route uses (``POST /submissions``, ``/precheck``, the
+    # receipt). ``kind`` stays, and is the only one that speaks for a record that is not an
+    # artifact of ``POST /submissions`` (an annex, a witness, a proposal): there this is null.
+    doc["artifact_type"] = submission.kind if submission.kind in ATTESTING_KINDS else None
     return doc
 
 
@@ -154,12 +180,84 @@ def unknown_node(ctx: Context, node_id: str, where: str = "") -> ApiError:
         return unknown  # closed unmerged: the node never entered the graph
     waiting = state.waiting_on if state is not None else None
     what = f", which is waiting on: {waiting}" if waiting else ""
+    if waiting in GATE_GREEN:
+        # F06-T10: this route still needs the merged node, but a precheck does not
+        after = (
+            "a proof can be prechecked against the proposal already (POST /precheck runs at its "
+            "head commit); submit it, and append anything else, once the proposal has merged"
+        )
+    else:
+        after = (
+            "nothing can be appended or submitted against it until that merges, and a proof "
+            "can be prechecked against it once the proposal's gate is green"
+        )
     return ApiError(
         409,
         "node-pending",
-        f"{node_id} is proposed in pull request #{found.pr_number}{what}; nothing can be "
-        "prechecked or appended against it until that merges",
+        f"{node_id} is proposed in pull request #{found.pr_number}{what}; {after}",
         details={**details, "waiting_on": waiting},
+    )
+
+
+#: F06-T10: the ``waiting_on`` values that mean the proposal's gate concluded success, so its head
+#: is a tree the gate admitted and a proof can be prechecked against it before it merges.
+GATE_GREEN: tuple[str, ...] = ("merge", "branch-update")
+
+
+@dataclass(frozen=True)
+class GreenProposal:
+    """F06-T10: an open proposal whose gate is green, as a precheck or a check reads it — the
+    record, the head commit the gate passed, and the node's files there."""
+
+    submission: Submission
+    head_sha: str
+    statement: str  # Statement.lean at the head, as committed
+    context: str | None  # Context.lean at the head, when it has one
+    meta: str | None  # META.yaml at the head, for the deps it declares
+
+    @property
+    def statement_hash(self) -> str:
+        """The hash the gate and the products take of the tree's ``Statement.lean``
+        (``layout.Statement.statement_hash`` over the file as ``read_text`` reads it)."""
+        text = self.statement.replace("\r\n", "\n").replace("\r", "\n")
+        return schemas.content_hash(text.encode("utf-8"))
+
+    def reference(self) -> dict[str, Any]:
+        """What a job records about the proposal it ran against."""
+        return {
+            "pr_number": self.submission.pr_number,
+            "pr_url": self.submission.pr_url,
+            "head_sha": self.head_sha,
+        }
+
+
+def green_proposal(ctx: Context, node_id: str) -> GreenProposal | None:
+    """The open proposal of ``node_id`` when its gate is green, else ``None`` — and ``None`` too
+    whenever the host cannot say for certain (a failed read, a missing statement), so the caller
+    answers ``node-pending`` as before rather than run against a tree nobody checked (C7)."""
+    found = ctx.store.get_submission_by_node(node_id)
+    if found is None or found.closed is not None:
+        return None
+    state, error = live_state(ctx, found.pr_number)
+    if state is None or error is not None or state.waiting_on not in GATE_GREEN:
+        return None
+    node_dir = f"targets/{found.target_id}/nodes/{node_id}/"
+    texts: dict[str, str | None] = {}
+    for name in ("Statement.lean", "Context.lean", "META.yaml"):
+        try:
+            got = ctx.githost.fetch_raw(
+                ctx.settings.graph_repo, state.head_sha, node_dir + name, etag=None
+            )
+        except GitHostError as exc:
+            log.warning("pull request #%d: %s not read: %s", found.pr_number, name, exc)
+            return None
+        body = got.body if got.status == HTTP_OK else None
+        texts[name] = body.decode("utf-8", errors="replace") if body is not None else None
+    statement = texts["Statement.lean"]
+    if statement is None:
+        return None
+    return GreenProposal(
+        found, state.head_sha, statement, texts["Context.lean"], texts["META.yaml"]
     )
 
 
@@ -179,23 +277,131 @@ def live_state(ctx: Context, number: int) -> tuple[PullRequestState | None, str 
         return _live_state(ctx, number)
 
 
+def superseded(ctx: Context, cached: CachedPull) -> bool:
+    """F05-T18: whether something the service read *after* this state says it no longer holds,
+    so that serving it as fresh would be serving what the service already knows to be wrong
+    (#332 read ``open, waiting_on gate, stale: false`` for 84 s after its merge). Three facts,
+    none of which costs a read here:
+
+    * the open listing, read later, no longer carries the pull request: it has merged or closed;
+    * the listing carries it at another head: its branch moved, and the cached checks are a
+      commit's that is no longer its head;
+    * ``main`` has moved since, and the state said its gate was green: it is the one that merged,
+      or it is behind now.
+
+    A state that already says finished is never superseded, and a listing or a head read
+    *before* the state says nothing about it: after one re-read on evidence, the same evidence
+    does not ask for another."""
+    state = cached.state
+    if state is None or state.finished:
+        return False
+    listing = ctx.open_pulls
+    if listing is not None and listing.fetched_at > cached.fetched_at:
+        entry = listing.by_number.get(cached.number)
+        if entry is None or (entry.head_sha and entry.head_sha != state.head_sha):
+            return True
+    moved = cached.main_head is not None and ctx.head is not None and ctx.head != cached.main_head
+    return moved and state.waiting_on in GATE_GREEN
+
+
 def _live_state(ctx: Context, number: int) -> tuple[PullRequestState | None, str | None]:
     cached = ctx.pulls.get(number)
     now = time.monotonic()
-    if cached is not None and now - cached.fetched_at < ctx.settings.frontier_max_stale_s:
+    if (
+        cached is not None
+        and now - cached.fetched_at < ctx.settings.pull_max_stale_s
+        and not superseded(ctx, cached)
+    ):
         return cached.state, None if cached.state is not None else _unknown(ctx, number)
+    last = cached.state if cached is not None else None
+    hold = budget_hold(ctx)
+    if hold is not None:
+        return last, hold
     try:
         state = ctx.githost.get_pull_request(ctx.settings.graph_repo, number)
+    except RateLimitError as exc:
+        log.warning("pull request #%d: %s", number, exc)
+        return last, budget_message(ctx, exc.budget)
     except GitHostError as exc:
         log.warning("pull request #%d: %s", number, exc)
-        last = cached.state if cached is not None else None
         return last, f"the pull request's live state could not be read from the host: {exc}"
-    ctx.pulls[number] = CachedPull(number, state, now)
+    # fetched_at is taken after the read, so a listing read before it is not evidence against it
+    ctx.pulls[number] = CachedPull(
+        number, state, time.monotonic(), clockmod.render(ctx.clock.now()), ctx.head
+    )
     return state, None if state is not None else _unknown(ctx, number)
 
 
 def _unknown(ctx: Context, number: int) -> str:
     return f"the host has no pull request #{number} on {ctx.settings.graph_repo}"
+
+
+# --- the host budget (F07-T47) --------------------------------------------------------------------
+
+
+def budget_hold(ctx: Context) -> str | None:
+    """Why a read must not spend the host now, or ``None``: the budget the host last reported
+    is at or below the reserve kept for writes and has not refilled."""
+    budget = ctx.githost.budget()
+    if budget is None:
+        return None
+    now = ctx.clock.now().timestamp()
+    if hostbudget.held(budget, now, ctx.settings.host_budget_reserve):
+        return budget_message(ctx, budget)
+    return None
+
+
+#: F07-T68: the most entries a per-commit answer table keeps before it starts again; the tables
+#: are caches, so forgetting costs one host read, and an unbounded one is a leak a poller grows.
+MAX_REMEMBERED = 4096
+
+
+def forget_old(table: dict[str, float], window_s: int) -> None:
+    """Drop the entries of a ``key -> monotonic`` table older than ``window_s`` once it is large,
+    so a table of recent host reads cannot grow without bound (F07-T68)."""
+    if len(table) < MAX_REMEMBERED:
+        return
+    cutoff = time.monotonic() - window_s
+    for key, at in list(table.items()):
+        if at < cutoff:
+            del table[key]
+    if len(table) >= MAX_REMEMBERED:
+        table.clear()
+
+
+def budget_message(ctx: Context, budget: HostBudget) -> str:
+    return hostbudget.read_message(
+        budget, ctx.clock.now().timestamp(), ctx.settings.host_budget_reserve
+    )
+
+
+def retry_after(ctx: Context) -> dict[str, str]:
+    """``Retry-After`` for a read served stale because of the budget: the seconds to its reset.
+    Empty when the budget is not what held the read."""
+    budget = ctx.githost.budget()
+    now = ctx.clock.now().timestamp()
+    if budget is None or not hostbudget.held(budget, now, ctx.settings.host_budget_reserve):
+        return {}
+    return {"Retry-After": str(hostbudget.retry_after_s(budget, now))}
+
+
+def pull_block(state: PullRequestState, *, read_at: str | None, stale: bool) -> dict[str, Any]:
+    """A pull request's state as a route serves it: the host's words plus when they were read
+    and whether they are the last the host would give (F07-T47) — a stale block is never
+    mistaken for a live one, and ``waiting_on`` is what was true at ``read_at``."""
+    return {**state.as_dict(), "read_at": read_at, "stale": stale}
+
+
+def cached_block(
+    ctx: Context, number: int, state: PullRequestState | None, error: str | None
+) -> dict[str, Any] | None:
+    """The block for ``state`` as ``live_state`` answered it: ``read_at`` from the cache entry
+    it came from, stale when the answer was not fresh from the host."""
+    if state is None:
+        return None
+    cached = ctx.pulls.get(number)
+    read_at = cached.read_at if cached is not None and cached.state is state else None
+    return pull_block(state, read_at=read_at, stale=error is not None)
 
 
 # --- the attestation ------------------------------------------------------------------------------
@@ -215,8 +421,8 @@ def optional_committed(ctx: Context, path: str) -> bytes | None:
     if cached.body is not None and now - cached.fetched_at < ctx.settings.frontier_max_stale_s:
         return cached.body
     try:
-        got = ctx.githost.fetch_raw(
-            ctx.settings.graph_repo, ctx.settings.graph_branch, path, etag=cached.etag
+        got = ctx.githost.fetch_raw(  # F05-T30: at main's sha, as frontier.committed reads
+            ctx.settings.graph_repo, ctx.head or ctx.settings.graph_branch, path, etag=cached.etag
         )
     except GitHostError as exc:
         log.warning("%s: %s", path, exc)
@@ -244,6 +450,155 @@ def attestation_doc(raw: bytes, path: str) -> dict[str, Any]:
     if not isinstance(doc, dict):
         raise ApiError(502, "attestation-unparseable", f"{path} is not one object")
     return doc
+
+
+# --- the merge queue (F05-T18) --------------------------------------------------------------------
+
+#: The branches the service opens pull requests from, which are the ones the merge actor takes
+#: (``SERVICE_PREFIXES`` in the graph's ``merge.yml``; held equal by
+#: ``gate/tests/test_finding_queue_order_is_the_actors.py``).
+SERVICE_PREFIXES: tuple[str, ...] = ("propose/", "append/", "submit/")
+QUEUE_BASE = "main"
+#: How the position is to be read, said in the answer because the position alone overstates it.
+QUEUE_ORDER = (
+    "pull-request number, oldest first, over the open pull requests the merge actor takes "
+    "(non-draft, on a branch the service opened, against main), counted in the pull request's "
+    "own lane: the merge actor runs one lane per target in parallel (F07-T56), so only the "
+    "pull requests on the same target, and any whose target the service does not know (the "
+    "actor holds every lane for one it cannot place), are ahead of it. Within a lane the actor "
+    "merges the first one whose gate is green and passes over a red, conflicting or "
+    "behind-and-still-running one, so a position is an upper bound on the merges ahead, not a "
+    "count of them; consecutive green appends may merge as one batch"
+)
+QUEUE_NOTE = (
+    "each entry's queue.waiting_on is what the service last read for that pull request, with "
+    "when; null means not read (GET /submissions/<id> reads it), never that it waits on nothing. "
+    "queue.order is the actor's order across every lane; each entry's position counts its own "
+    "lane: its target's (the record's target_id), or every lane for one the service cannot place"
+)
+#: The lane of a pull request the service cannot place in one target: every lane, as the merge
+#: actor's ``EVERY_LANE`` (the graph's ``merge.yml``, F07-T56).
+EVERY_LANE = "*"
+#: The most pull requests an answer names as ahead; ``position`` says how many there are.
+MAX_AHEAD = 50
+#: F07-T70: the most finished submissions ``GET /submissions/mine`` names, newest first.
+MAX_RECENT_MINE = 20
+
+
+def queue_order(listed: Listing) -> list[int]:
+    """The merge actor's queue over the host's open listing: its own ``candidates``, in its
+    order. Nothing here asks the host anything; whether a pull request is green is the actor's
+    to read, one pull request at a time, and is not known here for the queue as a whole."""
+    return sorted(
+        entry.number
+        for entry in listed.values()
+        if not entry.draft
+        and entry.same_repo
+        and entry.base_ref == QUEUE_BASE
+        and entry.head_ref.startswith(SERVICE_PREFIXES)
+    )
+
+
+def last_read(ctx: Context, number: int) -> tuple[str | None, str | None]:
+    """``waiting_on`` for a pull request as the service last read it, and when: from the cache
+    of per-id reads, whatever its age, and never a read of its own. ``(None, None)`` when
+    nobody has asked about it since the process started."""
+    cached = ctx.pulls.get(number)
+    if cached is None or cached.state is None:
+        return None, None
+    return cached.state.waiting_on, cached.read_at
+
+
+def lane_queue(order: list[int], lanes: dict[int, str], number: int) -> list[int]:
+    """F07-T69: the part of the actor's ``order`` that shares ``number``'s lane —
+    the pull requests on its target and every one the service cannot place, which the actor
+    lets hold every lane. A pull request that cannot itself be placed waits for the whole
+    queue, as the actor's does (``merge.yml``: "waits until it is first")."""
+    lane = lanes.get(number, EVERY_LANE)
+    if lane == EVERY_LANE:
+        return list(order)
+    return [n for n in order if lanes.get(n, EVERY_LANE) in (lane, EVERY_LANE)]
+
+
+def entry_queue(
+    ctx: Context, number: int, order: list[int] | None, lanes: dict[int, str]
+) -> dict[str, Any]:
+    """One open submission's place: ``position`` from 1 in its own lane, ``of`` how many share
+    that lane (F07-T69), and what it was last read to be waiting on.
+    ``position`` is null for a pull request the actor does not take, and both are null when the
+    host has never been listed."""
+    waiting, read_at = last_read(ctx, number)
+    queued = lane_queue(order or [], lanes, number)
+    position = queued.index(number) + 1 if order is not None and number in queued else None
+    return {
+        "position": position,
+        "of": len(queued) if order is not None else None,
+        "waiting_on": waiting,
+        "waiting_on_read_at": read_at,
+    }
+
+
+def queue_block(
+    ctx: Context, found: Submission, pull: dict[str, Any] | None
+) -> dict[str, Any] | None:
+    """``GET /submissions/<id>``'s ``queue``: where an open pull request stands and what is
+    ahead of it, from the open listing the service reads once per window for every caller
+    (``open_listing``), so it costs this answer no host call of its own. ``None`` once the pull
+    request has merged or closed. With no listing at all the position is null and ``stale`` is
+    true (C7): a host that cannot be listed is said, never guessed around."""
+    if found.closed is not None or (pull is not None and pull.get("state") != "open"):
+        return None
+    listed, error, read_at = open_listing(ctx)
+    if listed is None:
+        return {
+            "position": None,
+            "of": None,
+            "ahead": [],
+            "order": QUEUE_ORDER,
+            "read_at": None,
+            "stale": True,
+        }
+    records = {s.pr_number: s for s in ctx.store.list_open_submissions()}
+    lanes = {n: s.target_id for n, s in records.items()}
+    number = found.pr_number
+    lanes[number] = found.target_id  # its own record, whatever the open index says
+    order = lane_queue(queue_order(listed), lanes, number)
+    position = order.index(number) + 1 if number in order else None
+    before = order[: position - 1] if position is not None else []
+    ahead = []
+    for other in before[:MAX_AHEAD]:
+        record = records.get(other)
+        waiting, waiting_read_at = last_read(ctx, other)
+        ahead.append(
+            {
+                "pr_number": other,
+                # the service's record of it, when it opened it and the record is still open
+                "id": record.id if record is not None else None,
+                "kind": record.kind if record is not None else None,
+                "node_id": record.node_id if record is not None else None,
+                "target_id": record.target_id if record is not None else None,
+                "waiting_on": waiting,
+                "waiting_on_read_at": waiting_read_at,
+            }
+        )
+    return {
+        "position": position,
+        "of": len(order),
+        "ahead": ahead,
+        "order": QUEUE_ORDER,
+        "read_at": read_at,
+        "stale": error is not None,
+    }
+
+
+def top_state(found: Submission | None, pull: dict[str, Any] | None) -> str | None:
+    """One word at the top of the answer (testers 2026-10-01, A12: "there is no plain merged
+    state at the top"): ``open``, ``merged`` or ``closed``; null when the host could not say."""
+    if pull is None:
+        return None
+    if pull.get("merged"):
+        return "merged"
+    return "open" if pull.get("state") == "open" else "closed"
 
 
 # --- GET /submissions/{id} ------------------------------------------------------------------------
@@ -288,6 +643,9 @@ def final_state(found: Submission) -> dict[str, Any] | None:
             {**run, "jobs": list(run.get("jobs") or [])} if isinstance(run, dict) else run
             for run in runs
         ],
+        # F07-T47: a record closed before the block carried them was read when it was closed
+        "read_at": state.get("read_at", found.closed),
+        "stale": bool(state.get("stale", False)),
     }
 
 
@@ -324,14 +682,28 @@ def _reconcile(
     if state is not None and error is None and racers.convert(ctx, found, state):
         # F07-T36: a losing racer was moved to its alternate path; read the new state
         state, error = live_state(ctx, found.pr_number)
-    if state is not None and error is None and state.finished:
+    block = cached_block(ctx, found.pr_number, state, error)
+    if state is not None and error is None and state.finished and block is not None:
         closed = ctx.store.close_submission(
-            found.id,
-            closed=clockmod.render(ctx.clock.now()),
-            final_state=state.as_dict(),
+            found.id, closed=closed_time(ctx, state), final_state=block
         )
         found = closed or found
-    return found, state.as_dict() if state is not None else None, error
+    return found, block, error
+
+
+def closed_time(ctx: Context, state: PullRequestState) -> str:
+    """F05-T18: when the host says the pull request merged or closed, in the record's own
+    timestamp shape; the time of this read only when the host gave none, or one that is not that
+    shape. ``closed`` had been the moment somebody first asked (#360 merged at 18:19:10Z and read
+    ``closed: 19:50:21Z``), and every merge time an agent took from this route was late. The
+    block's ``read_at`` still says when it was read."""
+    for stamp in (state.merged_at, state.closed_at):
+        if stamp:
+            try:
+                return clockmod.render(clockmod.parse(stamp))
+            except ValueError:
+                log.warning("pull request #%d: unreadable close time %r", state.number, stamp)
+    return clockmod.render(ctx.clock.now())
 
 
 # --- why the gate said no (F07-T26) --------------------------------------------------------------
@@ -376,13 +748,25 @@ def gate_verdict(ctx: Context, number: int, pull: dict[str, Any] | None) -> dict
     gate = next((r for r in pull.get("runs") or [] if r.get("name") == GATE_WORKFLOW), None)
     found = RUN_ID_RE.search(str((gate or {}).get("url") or ""))
     if found is not None:
+        # F07-T68: an anonymous read, so held at the reserve like the live state beside it, and
+        # a failed read is not repeated for ``verdict_retry_s``: every poll of a refused pull
+        # request asked again, each ask one or two API calls.
+        failed_at = ctx.verdict_failures.get(sha)
+        if failed_at is not None and time.monotonic() - failed_at < ctx.settings.verdict_retry_s:
+            return None
+        if budget_hold(ctx) is not None:
+            return None  # not cached: the budget refills
         try:
             zipped = ctx.githost.latest_artifact(
                 ctx.settings.graph_repo, int(found.group(1)), f"{GATE_ARTIFACT_PREFIX}{number}-"
             )
         except GitHostError as exc:
             log.warning("pull request #%d: the gate's artifact could not be read: %s", number, exc)
-            return None  # not cached: the next read may reach the host
+            if sha:
+                forget_old(ctx.verdict_failures, ctx.settings.verdict_retry_s)
+                ctx.verdict_failures[sha] = time.monotonic()
+            return None  # cached as a failure only: a read after the window may reach the host
+        ctx.verdict_failures.pop(sha, None)
         doc = _verdict_document(zipped) if zipped is not None else None
         if doc is not None:
             out = {
@@ -392,6 +776,85 @@ def gate_verdict(ctx: Context, number: int, pull: dict[str, Any] | None) -> dict
             }
     if sha:
         ctx.verdicts[sha] = out
+    return out
+
+
+CLASSIFY_ARTIFACT_PREFIX = "classify-"  # the graph's gate.yml (F22-T24): classify-<pr>-<attempt>
+#: The cache key of a head commit's report beside its verdict, in the same per-app table.
+REPORT_KEY = "report:"
+
+
+def _classification_document(zipped: bytes) -> dict[str, Any] | None:
+    """``classification.json`` from the artifact; anything unreadable is none, never an error."""
+    import io  # noqa: PLC0415
+    import zipfile  # noqa: PLC0415
+
+    try:
+        with zipfile.ZipFile(io.BytesIO(zipped)) as archive:
+            info = archive.getinfo("classification.json")
+            if info.file_size > MAX_VERDICT_BYTES:
+                return None
+            doc = json.loads(archive.read("classification.json"))
+            return doc if isinstance(doc, dict) else None
+    except (zipfile.BadZipFile, ValueError, KeyError) as exc:
+        log.warning("classification artifact unreadable: %s", exc)
+    return None
+
+
+def _finished_gate_run(pull: dict[str, Any] | None) -> int | None:
+    """The id of the pull request's finished gate run, or ``None`` while none has finished."""
+    gate = next((r for r in (pull or {}).get("runs") or [] if r.get("name") == GATE_WORKFLOW), None)
+    found = RUN_ID_RE.search(str((gate or {}).get("url") or ""))
+    if gate is None or gate.get("status") != "completed" or found is None:
+        return None
+    return int(found.group(1))
+
+
+def _read_report(ctx: Context, number: int, run_id: int, key: str) -> dict[str, Any] | None:
+    """The classification artifact of ``run_id`` as a report. A failed read is remembered under
+    ``key`` for the retry window and raised, so the caller caches nothing for it."""
+    try:
+        zipped = ctx.githost.latest_artifact(
+            ctx.settings.graph_repo, run_id, f"{CLASSIFY_ARTIFACT_PREFIX}{number}-"
+        )
+    except GitHostError as exc:
+        log.warning("pull request #%d: the classification could not be read: %s", number, exc)
+        forget_old(ctx.verdict_failures, ctx.settings.verdict_retry_s)
+        ctx.verdict_failures[key] = time.monotonic()
+        raise
+    ctx.verdict_failures.pop(key, None)
+    doc = _classification_document(zipped) if zipped is not None else None
+    if doc is None:
+        return None
+    ok = doc.get("ok")
+    return {
+        "ok": ok if isinstance(ok, bool) else None,
+        "warnings": [w for w in doc.get("warnings") or [] if isinstance(w, dict)],
+        "problems": [p for p in doc.get("problems") or [] if isinstance(p, dict)],
+    }
+
+
+def gate_report(ctx: Context, number: int, pull: dict[str, Any] | None) -> dict[str, Any] | None:
+    """F22-T24: the gate's classification of the head, read once per head commit from the gate
+    run's ``classify-<pr>-`` artifact, for any pull request whose gate run has finished: a green
+    words pull request's warnings were in the run log only. Quoted as data (D-28), and held to the
+    same budget and retry window as ``gate_verdict``."""
+    run_id = _finished_gate_run(pull)
+    sha = str((pull or {}).get("head_sha") or "")
+    key = REPORT_KEY + sha
+    if run_id is None or not sha:
+        return None
+    if key in ctx.verdicts:
+        return ctx.verdicts[key]
+    failed_at = ctx.verdict_failures.get(key)
+    recent = failed_at is not None and time.monotonic() - failed_at < ctx.settings.verdict_retry_s
+    if recent or budget_hold(ctx) is not None:
+        return None  # not cached: the window passes and the budget refills
+    try:
+        out = _read_report(ctx, number, run_id, key)
+    except GitHostError:
+        return None
+    ctx.verdicts[key] = out
     return out
 
 
@@ -446,10 +909,23 @@ def _annex_unrendered(ctx: Context, found: Submission, pull: dict[str, Any]) -> 
         return False
     rendered = precheck.rendered_from(ctx, found.target_id)
     directory = f"targets/{found.target_id}/nodes/{found.node_id}/annex"
+    # F07-T68: both listings are at immutable commits, so the answer is kept for that pair; and
+    # an anonymous read, so held at the reserve (the caller then changes nothing, C7).
+    key = (str(merge), rendered, directory)
+    known = ctx.annex_unrendered.get(key)
+    if known is not None:
+        return known
+    hold = budget_hold(ctx)
+    if hold is not None:
+        raise GitHostError(hold)
     repo = ctx.settings.graph_repo
     merged = ctx.githost.list_dir(repo, str(merge), directory) or []
     shown = ctx.githost.list_dir(repo, rendered, directory) or []
-    return bool(set(merged) - set(shown))
+    answer = bool(set(merged) - set(shown))
+    if len(ctx.annex_unrendered) >= MAX_REMEMBERED:
+        ctx.annex_unrendered.clear()
+    ctx.annex_unrendered[key] = answer
+    return answer
 
 
 def _witness_unrendered(ctx: Context, found: Submission, pull: dict[str, Any]) -> bool:
@@ -474,6 +950,11 @@ def answer(ctx: Context, raw: str) -> dict[str, Any]:
     if found is None:
         return hand_opened(ctx, raw, number)
 
+    # F05-T18: the two facts a cached state is held against, each read at most once per window
+    # for every caller: where main is, and which pull requests the host still lists as open.
+    if found.closed is None:
+        frontier.pin_head(ctx)
+        open_listing(ctx)
     found, pull, error = reconcile(ctx, found)
     pull = waiting_on_products(ctx, found, pull)
 
@@ -490,11 +971,18 @@ def answer(ctx: Context, raw: str) -> dict[str, Any]:
             path, attestation, note = candidate, attestation_doc(raw_doc, candidate), None
         else:
             note = NOTE_PENDING if pull is not None else NOTE_UNKNOWN
+            if pull is not None and pull.get("merged"):
+                # F05-T18: merged and not yet attested is the post-merge job still to commit,
+                # which the guide calls ``products``; it read null (A12)
+                pull = {**pull, "waiting_on": WAITING_ON_PRODUCTS}
     out = {
         "submission": document(found),
+        "state": top_state(found, pull),
+        "queue": queue_block(ctx, found, pull),
         "pull_request": pull,
         "pull_request_error": error,
         "gate_verdict": gate_verdict(ctx, found.pr_number, pull),
+        "gate_report": gate_report(ctx, found.pr_number, pull),
         "attestation_path": path,
         "attestation": attestation,
         "attestation_note": note,
@@ -553,9 +1041,12 @@ def hand_opened(ctx: Context, raw: str, number: int | None) -> dict[str, Any]:
     if raw_doc is None:
         raise unknown(raw)
     state, error = live_state(ctx, number)
+    block = cached_block(ctx, number, state, error)
     return {
         "submission": None,
-        "pull_request": state.as_dict() if state is not None else None,
+        "state": top_state(None, block),
+        "queue": None,  # not a pull request the service opened: the actor does not take it
+        "pull_request": block,
         "pull_request_error": error,
         "attestation_path": path,
         "attestation": attestation_doc(raw_doc, path),
@@ -564,39 +1055,202 @@ def hand_opened(ctx: Context, raw: str, number: int | None) -> dict[str, Any]:
 
 
 async def get_submission(ctx: Context, request: Request) -> Response:
-    return JSONResponse(answer(ctx, str(request.path_params["submission_id"])))
+    doc = answer(ctx, str(request.path_params["submission_id"]))
+    return JSONResponse(doc, headers=retry_after(ctx))
 
 
 # --- GET /submissions.json ------------------------------------------------------------------------
 
 
+def open_listing(ctx: Context) -> tuple[Listing | None, str | None, str | None]:
+    """The host's open pull requests by number, why that is not fresh (``None`` when it is), and
+    when it was read (F07-T47). One listing call per ``pull_listing_max_stale_s``, refreshed by
+    one thread at a time; a host that cannot be read, or a budget that must not be spent, leaves
+    the last listing standing with the reason (C7)."""
+    with ctx.listing_lock:
+        return _open_listing(ctx)
+
+
+def _open_listing(ctx: Context) -> tuple[Listing | None, str | None, str | None]:
+    cached = ctx.open_pulls
+    now = time.monotonic()
+    if cached is not None and now - cached.fetched_at < ctx.settings.pull_listing_max_stale_s:
+        return cached.by_number, None, cached.read_at
+    last = cached.by_number if cached is not None else None
+    last_read = cached.read_at if cached is not None else None
+    hold = budget_hold(ctx)
+    if hold is not None:
+        return last, hold, last_read
+    try:
+        listed = ctx.githost.list_open_pull_requests(ctx.settings.graph_repo)
+    except RateLimitError as exc:
+        log.warning("the open pull requests were not listed: %s", exc)
+        return last, budget_message(ctx, exc.budget), last_read
+    except GitHostError as exc:
+        log.warning("the open pull requests were not listed: %s", exc)
+        return last, f"the open pull requests could not be listed from the host: {exc}", last_read
+    read_at = clockmod.render(ctx.clock.now())
+    ctx.open_pulls = CachedListing({p.number: p for p in listed}, now, read_at)
+    return ctx.open_pulls.by_number, None, read_at
+
+
+def listed_state(entry: OpenPullRequest) -> PullRequestState:
+    """What the listing says of an open pull request, as a state ``reconcile`` can read: open,
+    not merged, its head. Never cached in ``Context.pulls`` and never served — the by-id route
+    reads the full state (runs, reviews, mergeability) itself."""
+    return PullRequestState(
+        number=entry.number,
+        url=entry.url,
+        state="open",
+        merged=False,
+        mergeable_state="unknown",
+        head_sha=entry.head_sha,
+        merge_commit_sha=None,
+    )
+
+
 def snapshot(ctx: Context) -> dict[str, Any]:
-    """The open records, each the ``submission`` document its own route carries.
+    """The open records, each the ``submission`` document its own route carries, and ``host``:
+    when the queue was last reconciled against the host and whether that is stale.
 
     Each is reconciled against the host first, so "open" means the host still calls it open and
-    not merely that nobody has asked. One lookup per open record per freshness window, on the
-    same cache ``answer`` uses; a record the host cannot describe stays listed (C7).
+    not merely that nobody has asked; a record the host cannot describe stays listed (C7).
 
-    F07-T39: the lookups are what cost (22 open records took 28 s live, one after another), so
-    they run on a pool ``reconcile_concurrency`` wide. Only the host reads go on the pool: the
-    rest of each reconciliation (a racer's conversion, closing the record in the store) runs
-    here, in order, because neither the store's client nor the committed-file cache is shared
-    across threads anywhere else.
+    F07-T47: the host's open pull requests are read as one listing per window (F07-T39 had put
+    one three-call read per record on a pool; eighteen pollers of this route then spent the
+    App's hourly budget). A record the listing carries is open and costs nothing; one it lacks
+    has finished, or is unknown, and is read once in full — on the pool, since those reads are
+    what remain — and closed with the state that read found. With no listing at all, every
+    record stays listed as it is, with the reason in ``host.error``.
     """
     records = ctx.store.list_open_submissions()
-    width = min(ctx.settings.reconcile_concurrency, len(records))
-    if width > 1:
-        with ThreadPoolExecutor(width, thread_name_prefix="reconcile") as pool:
-            firsts = list(pool.map(lambda s: live_state(ctx, s.pr_number), records))
-    else:
-        firsts = [live_state(ctx, s.pr_number) for s in records]
-    open_now: list[dict[str, Any]] = []
-    for submission, first in zip(records, firsts, strict=True):
-        record, _, _ = reconcile(ctx, submission, first)
+    listed, error, read_at = open_listing(ctx)
+    still_open: list[Submission] = []
+    firsts: dict[int, tuple[PullRequestState | None, str | None]] = {}
+    if listed is not None:
+        unlisted = [s for s in records if s.pr_number not in listed]
+        width = min(ctx.settings.reconcile_concurrency, len(unlisted))
+        if width > 1:
+            with ThreadPoolExecutor(width, thread_name_prefix="reconcile") as pool:
+                reads = list(pool.map(lambda s: live_state(ctx, s.pr_number), unlisted))
+        else:
+            reads = [live_state(ctx, s.pr_number) for s in unlisted]
+        firsts = dict(zip((s.pr_number for s in unlisted), reads, strict=True))
+    for submission in records:
+        record = submission
+        if listed is not None:
+            entry = listed.get(submission.pr_number)
+            first = firsts[submission.pr_number] if entry is None else (listed_state(entry), None)
+            record, _, _ = reconcile(ctx, submission, first)
         if record.closed is None:
-            open_now.append(document(record))
-    return {"snapshot_at": clockmod.render(ctx.clock.now()), "open": open_now}
+            still_open.append(record)
+    # F05-T18: each entry's place in the merge actor's order, from the same listing; the list
+    # itself is in that order, the pull requests the actor does not take after the ones it does
+    order = queue_order(listed) if listed is not None else None
+    rank = {number: index for index, number in enumerate(order or [])}
+    still_open.sort(key=lambda s: (rank.get(s.pr_number, len(rank)), s.pr_number))
+    lanes = {s.pr_number: s.target_id for s in still_open}
+    open_now = [
+        {**document(s), "queue": entry_queue(ctx, s.pr_number, order, lanes)} for s in still_open
+    ]
+    return {
+        "snapshot_at": clockmod.render(ctx.clock.now()),
+        "queue": {"order": order, "description": QUEUE_ORDER, "note": QUEUE_NOTE},
+        "open": open_now,
+        "host": {"read_at": read_at, "stale": error is not None, "error": error},
+    }
+
+
+#: F22-T8: the filters ``GET /submissions.json`` takes, equality only; ``kind=words`` is a gloss
+#: or an explainer, the words of a subject (F21-R5).
+SUBMISSION_FILTERS: tuple[str, ...] = ("target", "node", "kind")
+WORDS_FILTER = "words"
+_FILTER_ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
+_FILTER_KIND_RE = re.compile(r"^[a-z][a-z-]*$")
+
+
+def submission_filters(request: Request) -> dict[str, str]:
+    """F22-T8: the request's filters, each checked; a filter the route does not take, or a
+    value that cannot name anything, is refused by the catalogued code that names it."""
+    query = request.query_params
+    unknown_filters = sorted(k for k in query if k not in SUBMISSION_FILTERS)
+    if unknown_filters:
+        raise ApiError(
+            400,
+            "filter-unknown",
+            f"no such filter: {', '.join(unknown_filters)}; GET /submissions.json takes "
+            + ", ".join(SUBMISSION_FILTERS),
+            details={"unknown": unknown_filters, "accepted": list(SUBMISSION_FILTERS)},
+        )
+    out = {k: query[k] for k in SUBMISSION_FILTERS if k in query}
+    if "target" in out and not _FILTER_ID_RE.match(out["target"]):
+        raise ApiError(400, "target-id-invalid", "target must match ^[a-z0-9][a-z0-9-]*$")
+    if "node" in out and not _FILTER_ID_RE.match(out["node"]):
+        raise ApiError(400, "node-id-invalid", "node must match ^[a-z0-9][a-z0-9-]*$")
+    if "kind" in out and not _FILTER_KIND_RE.match(out["kind"]):
+        raise ApiError(
+            400,
+            "filter-unknown",
+            f"kind is {WORDS_FILTER} (a gloss or an explainer) or one submission kind, "
+            "as GET /submissions.json spells it",
+        )
+    return out
+
+
+def matches(entry: dict[str, Any], filters: dict[str, str]) -> bool:
+    kind = filters.get("kind")
+    kinds = {"gloss", "explainer"} if kind == WORDS_FILTER else {kind}
+    return (
+        ("target" not in filters or entry.get("target_id") == filters["target"])
+        and ("node" not in filters or entry.get("node_id") == filters["node"])
+        and (kind is None or entry.get("kind") in kinds)
+    )
+
+
+def site_headers(ctx: Context) -> dict[str, str]:
+    """F22-T8: the site's origin may read this listing from a page (a node's words in review);
+    one configured origin, on this route only (``OPN_API_SITE_ORIGIN``)."""
+    origin = ctx.settings.site_origin
+    return {"Access-Control-Allow-Origin": origin, "Vary": "Origin"} if origin else {}
 
 
 async def get_submissions(ctx: Context, request: Request) -> Response:
-    return JSONResponse(snapshot(ctx))
+    filters = submission_filters(request)
+    doc = snapshot(ctx)
+    if filters:
+        doc["open"] = [e for e in doc["open"] if matches(e, filters)]
+    return JSONResponse(doc, headers=retry_after(ctx) | site_headers(ctx))
+
+
+# --- GET /submissions/mine (F07-T70) --------------------------------------------------------------
+
+
+def mine(ctx: Context, pseudonym: str) -> dict[str, Any]:
+    """The caller's own submissions: ``open``, each the listing's own entry (the record and its
+    place in its lane of the queue, reconciled against the same host listing as
+    ``GET /submissions.json``), and ``recent``, the ``MAX_RECENT_MINE`` most recently finished,
+    newest first, each with how it ended (``state``: merged or closed). What ``GET /claims/mine``
+    is for claims (F05-T14): a lost receipt never loses a pull request. A record finished before
+    the per-pseudonym index existed is not in ``recent`` until it is next written."""
+    wanted = pseudonym.lower()
+    listed = snapshot(ctx)
+    open_now = [e for e in listed["open"] if str(e["pseudonym"]).lower() == wanted]
+    finished = [s for s in ctx.store.list_submissions_by(pseudonym) if s.closed is not None]
+    # newest first: by when it finished, then by number (ULIDs made in one millisecond do not
+    # sort by time; the host numbers pull requests in the order they were opened)
+    finished.sort(key=lambda s: (str(s.closed), s.pr_number), reverse=True)
+    recent = [
+        {**document(s), "state": top_state(s, final_state(s))} for s in finished[:MAX_RECENT_MINE]
+    ]
+    return {
+        "pseudonym": pseudonym,
+        "snapshot_at": listed["snapshot_at"],
+        "open": open_now,
+        "recent": recent,
+        "host": listed["host"],
+    }
+
+
+async def get_my_submissions(ctx: Context, request: Request) -> Response:
+    identity: Identity = request.state.identity
+    return JSONResponse(mine(ctx, identity.pseudonym), headers=retry_after(ctx))

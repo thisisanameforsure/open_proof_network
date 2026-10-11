@@ -1,0 +1,69 @@
+# F18-T5 red run, 2026-10-03T11:52:46Z, branch f18-t5-stepped-annex, seams at today's behaviour
+$ uv run --frozen pytest gate/tests/test_annex_steps.py api/tests/test_annex_steps_service.py -q -rf
+E       AssertionError: {'verdict': 'pass', 'first_failing_step': None, 'diagnostic': None, 'steps': [{'step': 1, 'name': 'toolchain', 'result...ds', 'result': 'pass', 'diagnostic': None}, {'step': 7, 'name': 'witness', 'result': 'pass', 'diagnostic': None}, .
+E       assert None == 4
+E       assert (None is not None)
+E       assert (None is not None)
+E       assert None == (Step(id='b', summary='the step that gives b'), Step(id='a', summary='the step that gives a'))
+E       Failed: DID NOT RAISE GraphWriteError
+E       assert [Diagnostic(c... 'annex/v2'})] == []
+E         Left contains one more item: Diagnostic(code='append-invalid', message="targets/propositional/nodes/and-swap-reassoc/annex/70bed9e6a7c643ee9c37c375...des/and-swap-reassoc/annex/70bed9e6a7c643ee9c37c375af264edce6dd8d5a4e47d35f5a815f69ac616c3c.md', 'sc
+E         Use -v to get more diff
+E       AssertionError: assert None == [{'step': 'hden', 'summary': 'gives hden', 'node': 'and-swap-reassoc--h1', 'status': 'ready'}, {'step': 'combine', 'su...': None, 'status': None}, {'step': 'hrem', 'summary': 'gives hrem', 'node': 'and-swap-reassoc--h2', 
+E       assert None is not None
+E       ValueError: not enough values to unpack (expected 1, got 0)
+E           AssertionError: {"error":"unknown-field","message":"unknown field steps; this route accepts licence, model_and_tooling, node_id, text","details":{"unknown":["steps"],"accepted":["licence","model_and_tooling","node_id","text"]}}
+E           assert 400 == 201
+E           AssertionError: {"error":"unknown-field","message":"unknown field steps; this route accepts licence, model_and_tooling, node_id, text","details":{"unknown":["steps"],"accepted":["licence","model_and_tooling","node_id","text"]}}
+E           assert 'unknown-field' == 'record-invalid'
+E           AssertionError: {"error":"unknown-field","message":"unknown field steps; this route accepts licence, model_and_tooling, node_id, text","details":{"unknown":["steps"],"accepted":["licence","model_and_tooling","node_id","text"]}}
+E           assert 'unknown-field' == 'record-invalid'
+E           AssertionError: {"error":"unknown-field","message":"unknown field steps; this route accepts licence, model_and_tooling, node_id, text","details":{"unknown":["steps"],"accepted":["licence","model_and_tooling","node_id","text"]}}
+E           assert 'unknown-field' == 'record-invalid'
+E           AssertionError: {"error":"unknown-field","message":"unknown field steps; this route accepts licence, model_and_tooling, node_id, text","details":{"unknown":["steps"],"accepted":["licence","model_and_tooling","node_id","text"]}}
+E           assert 'unknown-field' == 'record-invalid'
+E           AssertionError: {"error":"unknown-field","message":"unknown field steps; this route accepts licence, model_and_tooling, node_id, text","details":{"unknown":["steps"],"accepted":["licence","model_and_tooling","node_id","text"]}}
+E           assert 'unknown-field' == 'record-invalid'
+E           AssertionError: {"error":"unknown-field","message":"unknown field steps; this route accepts licence, model_and_tooling, node_id, text","details":{"unknown":["steps"],"accepted":["licence","model_and_tooling","node_id","text"]}}
+E           assert 'unknown-field' == 'record-invalid'
+E           AssertionError: {"error":"unknown-field","message":"unknown field steps; this route accepts licence, model_and_tooling, node_id, text","details":{"unknown":["steps"],"accepted":["licence","model_and_tooling","node_id","text"]}}
+E           assert 'unknown-field' == 'record-invalid'
+E           AssertionError: {"error":"unknown-field","message":"unknown field steps; this route accepts licence, model_and_tooling, node_id, text","details":{"unknown":["steps"],"accepted":["licence","model_and_tooling","node_id","text"]}}
+E           assert 'unknown-field' == 'record-invalid'
+E           AssertionError: {"error":"unknown-field","message":"unknown field steps; this route accepts licence, model_and_tooling, node_id, text","details":{"unknown":["steps"],"accepted":["licence","model_and_tooling","node_id","text"]}}
+E           assert 'unknown-field' == 'annex-steps-unsupported'
+E           AssertionError: {"error":"unknown-field","message":"unknown field steps; this route accepts licence, model_and_tooling, node_id, text","details":{"unknown":["steps"],"accepted":["licence","model_and_tooling","node_id","text"]}}
+E           assert 'unknown-field' == 'annex-steps-unsupported'
+E           AssertionError: {"error":"unknown-field","message":"unknown field steps; this route accepts licence, model_and_tooling, node_id, text","details":{"unknown":["steps"],"accepted":["licence","model_and_tooling","node_id","text"]}}
+E           assert (400 == 400 and 'unknown-field' == 'annex-steps-unsupported'
+        """The precheck ran on a gate that does not check steps (it passed); its result still names
+E           AssertionError: {"submission_id":"01M230M2G07TN5NHW2CDDC7E09","pr_url":"https://github.com/thisisanameforsure/open_proof_network_graph/pull/1","pr_number":1,"node_id":"and-reassoc","target_id":"propositional","artifact_type":"partial"}
+E           assert 201 == 400
+FAILED gate/tests/test_annex_steps.py::test_a_hole_that_is_no_step_is_refused_at_step_4_naming_it
+FAILED gate/tests/test_annex_steps.py::test_every_missing_hole_is_named_in_extraction_order
+FAILED gate/tests/test_annex_steps.py::test_check_steps_directly - assert (No...
+FAILED gate/tests/test_annex_steps.py::test_steps_of_reads_a_v2_annex_in_its_order
+FAILED gate/tests/test_annex_steps.py::test_the_post_merge_writer_refuses_the_same_skeleton
+FAILED gate/tests/test_annex_steps.py::test_the_append_check_takes_a_v2_annex_and_refuses_duplicate_ids
+FAILED gate/tests/test_annex_steps.py::test_the_outline_lists_each_step_with_its_node_and_status
+FAILED gate/tests/test_annex_steps.py::test_the_outline_is_the_most_recent_stepped_decompositions
+FAILED gate/tests/test_annex_steps.py::test_a_summary_is_carried_as_data_verbatim
+FAILED api/tests/test_annex_steps_service.py::test_an_annex_with_steps_is_written_as_v2_and_the_gate_takes_it
+FAILED api/tests/test_annex_steps_service.py::test_malformed_steps_are_refused_before_anything_is_pushed[steps0]
+FAILED api/tests/test_annex_steps_service.py::test_malformed_steps_are_refused_before_anything_is_pushed[steps1]
+FAILED api/tests/test_annex_steps_service.py::test_malformed_steps_are_refused_before_anything_is_pushed[steps2]
+FAILED api/tests/test_annex_steps_service.py::test_malformed_steps_are_refused_before_anything_is_pushed[steps3]
+FAILED api/tests/test_annex_steps_service.py::test_malformed_steps_are_refused_before_anything_is_pushed[steps4]
+FAILED api/tests/test_annex_steps_service.py::test_malformed_steps_are_refused_before_anything_is_pushed[steps5]
+FAILED api/tests/test_annex_steps_service.py::test_malformed_steps_are_refused_before_anything_is_pushed[right]
+FAILED api/tests/test_annex_steps_service.py::test_malformed_steps_are_refused_before_anything_is_pushed[steps7]
+FAILED api/tests/test_annex_steps_service.py::test_steps_on_a_target_whose_gate_predates_v2_are_refused[older-pin]
+FAILED api/tests/test_annex_steps_service.py::test_steps_on_a_target_whose_gate_predates_v2_are_refused[host-cannot-say]
+FAILED api/tests/test_annex_steps_service.py::test_steps_are_refused_when_no_commit_is_configured
+FAILED api/tests/test_annex_steps_service.py::test_a_partial_whose_hole_is_no_step_is_refused_before_any_pull_request
+22 failed, 27 passed, 2 warnings in 1.30s
+E           AssertionError: assert ({'contributor': 'alice', 'date': '2026-09-09T12:00:00Z', 'licence': 'CC-BY-4.0', 'model_and_tooling': None, ...} is not None and 'annex/v1' == 'annex/v2'
+E             
+E             - annex/v2
+E             ?        ^
+E             + annex/v1

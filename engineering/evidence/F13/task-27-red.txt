@@ -1,0 +1,67 @@
+F13-T27 red, 2026-10-01 (branch svc-queue-heartbeats-hazards, before the feature).
+Seams in at today's behaviour: POST /check accepts a heartbeats field and does nothing with it; count_heartbeats_text returns the text unchanged,
+heartbeats_message and heartbeats_of read nothing. So each test fails on the value it wants, not on a missing name.
+
+$ uv run --frozen pytest api/tests/test_finding_check_heartbeats.py -q
+E       AssertionError: assert [] == ['Opn.hb_one'...Opn.hb_three']
+E         
+E         Right contains 3 more items, first extra item: 'Opn.hb_one'
+E         Use -v to get more diff
+E       AssertionError: assert ('import Mathl...\n  exact h\n' == 'import Mathl...\n  exact h\n'
+E         
+E         Skipping 485 identical leading characters in diff, use -v to show
+E           
+E             exact h and [] == ['Opn.hb_one'...Opn.hb_three']
+E         
+E         Right contains 3 more items, first extra item: 'Opn.hb_one'
+E         Use -v to get more diff)
+E       AssertionError: assert None == (4, 31, 200000)
+E        +  where None = <function heartbeats_message at 0x7fecd6ff59e0>('-:4:0-7:6: info: Used 31 heartbeats, which is less than the current maximum of 200000.\n')
+E        +    where <function heartbeats_message at 0x7fecd6ff59e0> = checks.heartbeats_message
+E       AssertionError: assert None == (4, 11225, 5000)
+E        +  where None = <function heartbeats_message at 0x7fecd6ff59e0>('-:4:0-9:9: info: Used 11225 heartbeats, which is greater than the current maximum of 5000.\n')
+E        +    where <function heartbeats_message at 0x7fecd6ff59e0> = checks.heartbeats_message
+E       ValueError: zip() argument 2 is longer than argument 1
+E       ValueError: zip() argument 2 is longer than argument 1
+E       KeyError: 'heartbeats'
+E       AssertionError: {"error":"internal","message":"internal error"}
+E       assert 500 == 200
+E        +  where 500 = <Response [500 Internal Server Error]>.status_code
+E       ValueError: not enough values to unpack (expected 1, got 0)
+            (AxleError("AXLE check failed: ReadTimeout", timed_out=True), "check-timeout"),
+E       KeyError: 'heartbeats'
+reply = AxleError('AXLE check failed: ReadTimeout'), code = 'check-timeout'
+            (AxleError("AXLE check failed: ReadTimeout", timed_out=True), "check-timeout"),
+E       KeyError: 'heartbeats'
+            (AxleError("AXLE check failed: ReadTimeout", timed_out=True), "check-timeout"),
+E       KeyError: 'heartbeats'
+E       KeyError: 'heartbeats'
+E       KeyError: 'heartbeats'
+E       AssertionError: assert ['check'] == ['check', 'heartbeats']
+E         
+E         Right contains one more item: 'heartbeats'
+E         Use -v to get more diff
+E       KeyError: 'heartbeats'
+E       AssertionError: {"authoritative":false,"service":"axle","environment":"lean-4.33.1","exact":true,"note":null,"mode":"witness","lint":[],"inlined_defs":[],"okay":true,"user_error":null,"result":{"okay":true,"failed_declarat
+E       assert 200 == 400
+E        +  where 200 = <Response [200 OK]>.status_code
+E       AssertionError: [TextContent(type='text', text='{\n  "error": "arguments-invalid",\n  "message": "Additional properties are not allowed (\'heartbeats\' was unexpected)",\n  "source": "adapter"\n}', annotations=None, meta=N
+FAILED api/tests/test_finding_check_heartbeats.py::test_the_command_goes_before_each_top_level_theorem_and_its_doc_comment
+FAILED api/tests/test_finding_check_heartbeats.py::test_a_text_that_already_counts_is_not_counted_twice
+FAILED api/tests/test_finding_check_heartbeats.py::test_the_checkers_message_is_read_as_it_prints_it[-:4:0-7:6: info: Used 31 heartbeats, which is less than the current maximum of 200000.\n-expected0]
+FAILED api/tests/test_finding_check_heartbeats.py::test_the_checkers_message_is_read_as_it_prints_it[-:4:0-9:9: info: Used 11225 heartbeats, which is greater than the current maximum of 5000.\n-expected1]
+FAILED api/tests/test_finding_check_heartbeats.py::test_each_count_is_named_by_the_declaration_under_its_own_line
+FAILED api/tests/test_finding_check_heartbeats.py::test_a_count_over_the_cap_is_reported_as_over
+FAILED api/tests/test_finding_check_heartbeats.py::test_heartbeats_true_answers_the_counts_beside_the_unchanged_verdict
+FAILED api/tests/test_finding_check_heartbeats.py::test_the_two_calls_run_side_by_side
+FAILED api/tests/test_finding_check_heartbeats.py::test_verify_mode_measures_too_and_judges_the_plain_text
+FAILED api/tests/test_finding_check_heartbeats.py::test_a_measurement_that_fails_never_costs_the_check[reply0-upstream-unavailable]
+FAILED api/tests/test_finding_check_heartbeats.py::test_a_measurement_that_fails_never_costs_the_check[reply1-check-timeout]
+FAILED api/tests/test_finding_check_heartbeats.py::test_a_measurement_that_fails_never_costs_the_check[reply2-check-timeout]
+FAILED api/tests/test_finding_check_heartbeats.py::test_a_theorem_the_copy_could_not_count_is_said
+FAILED api/tests/test_finding_check_heartbeats.py::test_nothing_to_count_spends_no_second_call
+FAILED api/tests/test_finding_check_heartbeats.py::test_the_measurement_is_charged_and_logged_as_its_own_check
+FAILED api/tests/test_finding_check_heartbeats.py::test_a_spent_budget_skips_the_measurement_not_the_check
+FAILED api/tests/test_finding_check_heartbeats.py::test_heartbeats_is_for_a_proof_text
+FAILED api/tests/test_finding_check_heartbeats.py::test_check_lean_forwards_the_field
+18 failed, 4 passed, 2 warnings in 5.89s

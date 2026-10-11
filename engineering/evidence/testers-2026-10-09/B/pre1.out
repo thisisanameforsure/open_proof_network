@@ -1,0 +1,12 @@
+{
+ "status": 409,
+ "body": {
+  "error": "annex-pending",
+  "message": "the skeleton cites annex 301ade26e4fe…, which is not on erdos-1094--h2 yet; an annex for this node is open as pull request #461. Precheck again once it has merged and the products are rendered",
+  "details": {
+   "annex": "301ade26e4fe34edb5cfb1186ec23735a245ff1d1027f281d716cb784fa2458c",
+   "pr_number": 461,
+   "pr_url": "https://github.com/thisisanameforsure/open_proof_network_graph/pull/461"
+  }
+ }
+}

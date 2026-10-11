@@ -1,0 +1,43 @@
+F07-T72 — the guide names the two new curator records (D-18, D-19 v3.27; F08-T31, F07-T66 follow-up)
+====================================================================================================
+
+What changed
+- gate/agents/AGENTS.md, after "Permitted paths (D-3)": two short paragraphs for an agent acting as
+  curator. "Withdrawing a record": the path targets/<id>/nodes/<node>/withdrawals/<stamp>-<curator>.yaml
+  (withdrawal/v1), what `withdraws` may name (status/<file> or defects/<file> of the same node),
+  the other fields, the review rule, withdrawal-unknown-record, that the file stays and is read as
+  absent (latest remaining status decides, a withdrawn circularity claim no longer takes its hole
+  off, a disputed record resting on a withdrawn claim lifts), and that a revert restores it.
+  "Correcting a ledger line": targets/<id>/credit-corrections/<stamp>-<curator>.yaml
+  (credit-correction/v1), the fields that identify the line, from/to (null for nobody), the two
+  refusal codes, and that the post-merge job marks the old entry revoked, never deletes it, and
+  writes an active copy to `to`; the correction earns nothing.
+- gate/tests/test_finding_guide_curator_records.py: holds each sentence to the code — the path is
+  the role paths.locate assigns, the schema is the role's, every required field is named, the
+  codes are catalog codes.
+
+Red (guide stashed, test present): the paragraphs are absent
+E       ValueError: substring not found
+E       ValueError: substring not found
+FAILED gate/tests/test_finding_guide_curator_records.py::test_the_guide_tells_a_curator_how_to_withdraw_a_record
+FAILED gate/tests/test_finding_guide_curator_records.py::test_the_guide_tells_a_curator_how_to_correct_a_ledger_line
+2 failed in 0.05s
+
+Green
+2 passed in 0.03s
+  with test_finding_guide_names_exist, every test_finding_guide_* file, test_walkthrough:
+  138 passed, 1 failed — test_walkthrough.py::test_graph_copy_is_identical, which was already red
+  before this change (verified with the guide stashed: "the graph's AGENTS.md drifted; recopy it"),
+  and stays red until the graph's copy is updated at the re-pin. Expected.
+  ruff check / format, mypy --strict on the new test: clean
+
+Proposed ledger line (F07 Tasks)
+  T72 ✓ the guide names the curator records (D-18, D-19 v3.27): withdrawals and credit corrections,
+  each paragraph held to paths.locate, the schema and the catalog.
+
+Proposed Q entry
+  F07-Q77 (T72; D-18, D-19 v3.27). The guide is the curator's manual too. A curator record that the
+  gate accepts and the guide does not name is unusable by an agent curator, so each new curator role
+  gets a paragraph in the guide's "Permitted paths" section and a test tying its path to
+  paths.locate, its schema to SCHEMAS_FOR_ROLE and its refusals to the catalog. The graph's copy
+  follows at the re-pin (test_graph_copy_is_identical).

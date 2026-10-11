@@ -1,0 +1,22 @@
+F07-T51 green run, 2026-10-01T22:15:35Z
+$ uv run --frozen pytest api/tests/test_finding_partial_witnesses.py -q -rA
+PASSED api/tests/test_finding_partial_witnesses.py::test_a_partial_with_checked_witnesses_opens_one_pull_request_with_every_file
+PASSED api/tests/test_finding_partial_witnesses.py::test_pin_a_partial_without_witnesses_needs_no_holes_in_its_result
+PASSED api/tests/test_finding_partial_witnesses.py::test_a_carried_witness_the_precheck_did_not_check_opens_nothing[None]
+PASSED api/tests/test_finding_partial_witnesses.py::test_a_carried_witness_the_precheck_did_not_check_opens_nothing[holes1]
+PASSED api/tests/test_finding_partial_witnesses.py::test_a_carried_witness_the_precheck_did_not_check_opens_nothing[holes2]
+PASSED api/tests/test_finding_partial_witnesses.py::test_a_carried_witness_the_precheck_did_not_check_opens_nothing[holes3]
+PASSED api/tests/test_finding_partial_witnesses.py::test_a_malformed_carried_witness_costs_no_precheck_job[bundle0-partial-hole-witness-unnamed]
+PASSED api/tests/test_finding_partial_witnesses.py::test_a_malformed_carried_witness_costs_no_precheck_job[bundle1-partial-hole-witness-duplicate]
+PASSED api/tests/test_finding_partial_witnesses.py::test_a_malformed_carried_witness_costs_no_precheck_job[bundle2-partial-hole-witness-sorry]
+PASSED api/tests/test_finding_partial_witnesses.py::test_a_malformed_carried_witness_costs_no_precheck_job[bundle3-partial-hole-witness-unattached]
+PASSED api/tests/test_finding_partial_witnesses.py::test_a_malformed_carried_witness_costs_no_precheck_job[bundle4-None-None]
+PASSED api/tests/test_finding_partial_witnesses.py::test_a_malformed_carried_witness_costs_no_precheck_job[bundle5-proof-hole-witness-without-partial]
+PASSED api/tests/test_finding_partial_witnesses.py::test_a_malformed_carried_witness_costs_no_precheck_job[bundle6-None-hole-witness-without-partial]
+PASSED api/tests/test_finding_partial_witnesses.py::test_a_malformed_carried_witness_costs_no_precheck_job[bundle7-None-hole-witness-without-partial]
+PASSED api/tests/test_finding_partial_witnesses.py::test_a_malformed_carried_witness_is_refused_at_submission_too
+PASSED api/tests/test_finding_partial_witnesses.py::test_the_two_tools_say_how_a_bundle_carries_witnesses
+16 passed, 2 warnings in 1.22s
+
+$ uv run --frozen pytest api -q -m "not lean and not docker and not network"   (the whole service tier)
+1104 passed, 2 warnings in 47.19s

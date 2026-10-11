@@ -1,0 +1,36 @@
+# erdos-402 http tester log
+- 19:49:08 start
+- 19:49:50 POST /precheck tutorial -> 01M3J6N6VRRS915CNQC6RDXG7P
+- 19:52:13 tutorial precheck pass; POST /tokens pseudonym graham-gcd-http
+- 19:52:51 POST /check verify variant-e6d83e6d variant-e6d83e6d.Proof.lean -> {"error":"target-id-invalid","message":"target_id must match ^[a-z0-9][a-z0-9-]*$"}
+- 19:52:59 POST /check verify variant-e6d83e6d variant-e6d83e6d.Proof.lean -> {"authoritative":false,"service":"axle","environment":"lean-4.33.1","exact":true,"note":null,"mode":"verify","lint":[],"inlined_defs":["Nodes.«variant-e6d83e6d».Context"],"okay":true,"user_error":nu
+- 19:53:07 POST /check verify variant-a3b3cb8f variant-a3b3cb8f.Proof.lean -> {"authoritative":false,"service":"axle","environment":"lean-4.33.1","exact":true,"note":null,"mode":"verify","lint":[],"inlined_defs":["Nodes.«variant-a3b3cb8f».Context"],"okay":true,"user_error":nu
+- 19:53:12 POST /check verify variant-6bb50ad7 variant-6bb50ad7.Proof.lean -> {"authoritative":false,"service":"axle","environment":"lean-4.33.1","exact":true,"note":null,"mode":"verify","lint":[],"inlined_defs":["Nodes.«variant-6bb50ad7».Context"],"okay":true,"user_error":nu
+- 19:53:19 POST /check verify variant-e6d83e6d neg.lean -> {"authoritative":false,"service":"axle","environment":"lean-4.33.1","exact":true,"note":null,"mode":"verify","lint":[],"inlined_defs":["Nodes.«variant-e6d83e6d».Context"],"okay":false,"user_error":n
+- 19:53:31 POST /precheck variant-e6d83e6d -> 01M3J6VYP0T6JTSG3WD4F2JYJ2
+- 19:53:34 POST /precheck variant-a3b3cb8f -> 01M3J6W1KR0BJXQ1359FQNVX80
+- 19:53:37 POST /precheck variant-6bb50ad7 -> 01M3J6W4HG301MFQF543S86TJS
+- 19:55:14 GET /precheck/<e6d8 job> -> curl (35) Recv failure: Connection reset by peer (once; retried fine) [env?]
+- 19:56:26 POST /proposals/variant card_nine -> {"proposal_id":"01M3J719JRWHBPGYCDCWNHV1JX","node_id":"variant-892f5809","target_id":"erdos-402","pr_url":"https://github.com/thisisanameforsure/open_proof_network_graph/pull/211","pr_number":211,"hazards_preflight":"clear","witness_preflight":"matched","relation_preflight":"matched"}
+- 19:56:37 POST /proposals/variant card_ten -> {"proposal_id":"01M3J71N9RCCWV2X4EYFG4AH1K","node_id":"variant-a5969ff3","target_id":"erdos-402","pr_url":"https://github.com/thisisanameforsure/open_proof_network_graph/pull/212","pr_number":212,"hazards_preflight":"clear","witness_preflight":"matched","relation_preflight":"matched"}
+- 19:57:55 3 prechecks (card6/7/8) done: pass, ~4 min each
+- 19:58:06 POST /submissions variant-e6d83e6d -> {"submission_id":"01M3J74B7R77SHWX2E3ZTX122E","pr_url":"https://github.com/thisisanameforsure/open_proof_network_graph/pull/216","pr_number":216,"node_id":"variant-e6d83e6d","target_id":"erdos-402","artifact_type":"proof"}
+- 19:58:10 POST /submissions variant-a3b3cb8f -> {"submission_id":"01M3J74G40FKEJTZQB1JVN7KKZ","pr_url":"https://github.com/thisisanameforsure/open_proof_network_graph/pull/217","pr_number":217,"node_id":"variant-a3b3cb8f","target_id":"erdos-402","artifact_type":"proof"}
+- 19:58:16 POST /submissions variant-6bb50ad7 -> {"submission_id":"01M3J74N08D11JWM78REBZ2RQ7","pr_url":"https://github.com/thisisanameforsure/open_proof_network_graph/pull/218","pr_number":218,"node_id":"variant-6bb50ad7","target_id":"erdos-402","artifact_type":"proof"}
+- 19:59:00 SAT (pysat, local): clique cover of F_n by n-2 pairwise-bad classes exists for n=6..16; independence number <= n-2 for n=6..16
+- 19:59:25 POST /annexes erdos-402 -> {"id":"01M3J76RCGK98F3H2FS80DJ9DN","path":"targets/erdos-402/nodes/erdos-402/annex/e3b2ad47a6549078080117a1b5df80a54e5f799e48a032a0c4988c4394dbb0d4.md","pr_url":"https://github.com/thisisanameforsure/open_proof_network_graph/pull/219","pr_number":219,"hash":"e3b2ad47a6549078080117a1b5df80a54e5f799e4
+- 20:00:48 /check card16 (mode check): first maxRecDepth error in decide; with 'set_option maxRecDepth 100000 in decide' okay in 7.6 s. Not proposed (queue load).
+- 19:53 BUG? POST /check {mode:verify,node_id} without target_id -> 400 target-id-invalid "target_id must match ^[a-z0-9][a-z0-9-]*$" (field is missing, not invalid; guide says node_id suffices). Adding target_id fixed it.
+- 19:55 note: /check mode=check timings show only parse_ms (cosmetic)
+- 19:57 note: proposal receipt hazards_preflight "clear" although the statement has a div-zero finding (acknowledged in the body) -- 'clear' vs 'acknowledged' ambiguous
+- 19:53 variant proofs checked on AXLE in ~1.6 s each (card6/7/8), negative control (a = a) correctly fails
+- 20:05 own slip: my card_nine/card_ten statement doc comments call the classes pairwise "good" values; they are pairwise *bad* (the pair satisfying the conclusion). Comment only; Lean statement unaffected.
+- 20:04:56 SAT: n-2 clique cover of F_n exists for all n=6..30 (each class necessarily holds exactly one unit fraction 1/c since 1/2..1/(n-1) are pairwise good)
+- 20:05:44 other agent (agent-gcd402) proposed card_sixteen (#220) and card_eighteen (#221) with the same clique-cover method; I will not do n>=11 to avoid racing
+- 20:11:04 all 6 PRs gate-green; waiting_on merge/branch-update (queue ahead: 207-210,213-215 other targets)
+- 20:11 queue: 16 open PRs, one merge (#207) in ~15 min; my variants #211/#212 must merge before card9/card10 proofs (ready, AXLE-checked against the proposed statements) can be prechecked (409 node-pending).
+FEATURES noted: (1) precheck/submit a proof together with the variant proposal (or queue it against a pending node) so it doesn't wait a full merge cycle; (2) batch merges of independent PRs on different nodes; (3) /check verify should accept node_id alone (derive target).
+- 20:19:24 final status poll; handing back report
+- 20:23:47 coordinator: continue until 20:49; resume polling
+- 20:24:23 handback forced by harness before 20:49; presub.sh ready for card9/card10
+- 20:27:54 last seen: 211/212 waiting_on branch-update; 216-219 waiting_on merge; none merged. Monitor stopped after handback; card9/card10 not submitted (run presub.sh).

@@ -7,14 +7,16 @@ Three kinds of file, all schema-checked at the boundary (conventions §4):
 - ``nodes/<id>/status/*.yaml`` — curator or adjudication overrides (``node-status/v1``).
 - ``targets/<id>/status/*.yaml`` — the target's declaration (``target-status/v1`` or ``v2``).
 
-For the status records the latest wins: ordered by ``date``, then file name.
+For the status records the latest wins: ordered by ``date``, then file name. F08-T31 (D-18
+v3.27): a node's status record or defect claim named by a curator's ``withdrawals/`` record is
+read as absent by every loader here; the file stays in the tree.
 """
 
 from __future__ import annotations
 
 import logging
 from collections import Counter
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath
 from typing import Any
@@ -121,11 +123,22 @@ def _latest_record(
     """
     if not status_dir.is_dir():
         return None
-    records: list[StatusRecord] = []
-    for path in sorted(
+    paths = sorted(
         p for p in status_dir.iterdir() if p.suffix in ATTEMPT_SUFFIXES and p.name not in exclude
-    ):
-        doc = schemas.load_yaml(path)  # a bad status record is a graph defect: raise
+    )
+    # a bad status record is a graph defect: ``load_yaml`` raises
+    return latest_status(((p, schemas.load_yaml(p)) for p in paths), accepted)
+
+
+def latest_status(
+    docs: Iterable[tuple[Path, dict[str, Any]]], accepted: tuple[str, ...]
+) -> StatusRecord | None:
+    """The latest of the loaded records — by date, then file name — each validated against the
+    set of versions it may declare. The rule :func:`_latest_record` applies to a directory, on
+    its own so a reader that is not a directory (the bundle's host reader, F08-T22) applies the
+    same one; a record declaring a version outside ``accepted`` raises, as a malformed one does."""
+    records: list[StatusRecord] = []
+    for path, doc in docs:
         if str(doc.get("schema")) not in accepted:
             msg = f"{path} declares {doc.get('schema')!r}; expected one of {', '.join(accepted)}"
             raise schemas.SchemaError(msg)
@@ -139,8 +152,58 @@ def _latest_record(
 
 
 def load_node_status(node_dir: Path) -> StatusRecord | None:
-    """The node's effective override (F03-R1's last five statuses), or ``None``."""
-    return _latest_record(node_dir / "status", NODE_STATUS_SCHEMAS)
+    """The node's effective override (F03-R1's last five statuses), or ``None``. A withdrawn
+    record is absent (F08-T31), so the latest of the others is the override."""
+    return _latest_record(
+        node_dir / "status", NODE_STATUS_SCHEMAS, withdrawn_names(node_dir, "status")
+    )
+
+
+#: F08-T31 (D-14, D-18 v3.27): a curator's withdrawals of this node's records.
+WITHDRAWAL_SCHEMA = "withdrawal/v1"
+#: F20-R7: v2 adds gloss and explainer versions; a withdrawal of either version is read alike.
+WITHDRAWAL_SCHEMAS: tuple[str, ...] = (WITHDRAWAL_SCHEMA, "withdrawal/v2")
+WITHDRAWALS_DIR = "withdrawals"
+
+
+def withdrawn(node_dir: Path, present: Callable[[Path], bool] | None = None) -> frozenset[str]:
+    """The node's records a merged withdrawal names, as ``status/<file>`` or ``defects/<file>``.
+
+    Derive, never rewrite (F08-T10): the withdrawal is the fact, and the record it names stays in
+    the tree. No date is compared — a withdrawal applies because it is on the record, never
+    because it is newer than what it names. A file that does not validate as ``withdrawal/v1``
+    is logged and passed over, so the record it meant to withdraw stands: the gate refused it at
+    merge, and one bad file must never decide what the graph says (2026-09-17).
+
+    ``present``, when given, keeps only the withdrawal files it accepts: the gate's head check
+    reads the withdrawals that stood on a pull request's base, not those merged after it
+    (F22-T11)."""
+    directory = node_dir / WITHDRAWALS_DIR
+    if not directory.is_dir():
+        return frozenset()
+    named: set[str] = set()
+    for path in sorted(p for p in directory.iterdir() if p.suffix in ATTEMPT_SUFFIXES):
+        if present is not None and not present(path):
+            continue
+        try:
+            doc = schemas.load_yaml(path)  # against the version it declares (D-34)
+            if doc.get("schema") not in WITHDRAWAL_SCHEMAS:
+                msg = f"declares {doc.get('schema')!r}, not one of {', '.join(WITHDRAWAL_SCHEMAS)}"
+                raise schemas.SchemaError(msg)
+        except schemas.SchemaError as exc:
+            log.warning("%s: a withdrawal that does not validate is passed over: %s", path, exc)
+            continue
+        named.add(str(doc["withdraws"]))
+    return frozenset(named)
+
+
+def withdrawn_names(
+    node_dir: Path, directory: str, present: Callable[[Path], bool] | None = None
+) -> frozenset[str]:
+    """The file names under ``<node>/<directory>/`` a withdrawal names (F08-T31); ``present`` as
+    in :func:`withdrawn`."""
+    prefix = f"{directory}/"
+    return frozenset(w[len(prefix) :] for w in withdrawn(node_dir, present) if w.startswith(prefix))
 
 
 def load_target_status(
@@ -173,7 +236,7 @@ def circular_claim(node_dir: Path) -> str | None:
     relative to the node — the first by file name, so the oldest (D-13's stamp) — or ``None``.
 
     Derive, never rewrite (F08-T10): the claim file is the fact, merged only once the gate had
-    checked its ancestor and elaborated its exhibit as ``ancestor → node`` in the sandbox, so
+    checked its ancestor and elaborated its exhibit as ``node → ancestor`` in the sandbox, so
     nothing here re-checks the mathematics. A file that does not read as a valid
     ``circular-decomposition`` claim is logged and passed over: defect claims are appends anyone
     files, and one bad file must never decide whether the graph has products (2026-09-17).
@@ -188,14 +251,18 @@ def circular_claims(node_dir: Path) -> list[tuple[str, str]]:
 
     F08-T20 (D-12 v3.22): each claim is a path of its own, from its ancestor down to this node,
     so all of them are read, not only the first; a file that does not validate is passed over
-    as :func:`circular_claim` passes it over.
+    as :func:`circular_claim` passes it over. A claim a curator has withdrawn is absent (F08-T31,
+    D-18 v3.27).
     """
     directory = node_dir / DEFECTS_DIR
     if not directory.is_dir():
         return []
     accepted = paths.SCHEMAS_FOR_ROLE["defect-claim"]
+    gone = withdrawn_names(node_dir, DEFECTS_DIR)  # F08-T31: a withdrawn claim is absent
     found: list[tuple[str, str]] = []
     for path in sorted(p for p in directory.iterdir() if p.suffix in ATTEMPT_SUFFIXES):
+        if path.name in gone:
+            continue
         try:
             doc = schemas.load_yaml(path)
         except schemas.SchemaError as exc:
@@ -208,4 +275,50 @@ def circular_claims(node_dir: Path) -> list[tuple[str, str]]:
             log.warning("%s: a circularity claim that does not validate is passed over", path)
             continue
         found.append((f"{DEFECTS_DIR}/{path.name}", str(doc.get("ancestor") or "")))
+    return found
+
+
+@dataclass(frozen=True)
+class DefectClaim:
+    """F08-T35, F08-T36 (D-16, D-18 v3.28): one defect claim filed against a node, as the
+    products show it — its file (``defects/<file>``, relative to the node), its class and
+    whether it stands or a curator's withdrawal names it (F08-T31)."""
+
+    file: str
+    defect_class: str
+    withdrawn: bool
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "file": self.file,
+            "class": self.defect_class,
+            "state": "withdrawn" if self.withdrawn else "standing",
+        }
+
+
+def defect_claims(node_dir: Path) -> list[DefectClaim]:
+    """Every defect claim under the node, oldest first (D-13's stamp sorts), withdrawn ones
+    included and marked so (D-16 v3.28: every claim is shown). A file that does not validate
+    against the version it declares is logged and passed over, as :func:`circular_claims` passes
+    one over: the gate refused it at merge, and one bad file must never decide what the products
+    say (2026-09-17)."""
+    directory = node_dir / DEFECTS_DIR
+    if not directory.is_dir():
+        return []
+    accepted = paths.SCHEMAS_FOR_ROLE["defect-claim"]
+    gone = withdrawn_names(node_dir, DEFECTS_DIR)
+    found: list[DefectClaim] = []
+    for path in sorted(p for p in directory.iterdir() if p.suffix in ATTEMPT_SUFFIXES):
+        try:
+            doc = schemas.load_yaml(path)
+        except schemas.SchemaError as exc:
+            log.warning("%s: a defect claim that does not read is passed over: %s", path, exc)
+            continue
+        schema_id = str(doc.get("schema"))
+        if schema_id not in accepted or schemas.violations(doc, schema_id):
+            log.warning("%s: a defect claim that does not validate is passed over", path)
+            continue
+        found.append(
+            DefectClaim(f"{DEFECTS_DIR}/{path.name}", str(doc["class"]), path.name in gone)
+        )
     return found

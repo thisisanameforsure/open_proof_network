@@ -1,0 +1,90 @@
+warning: `VIRTUAL_ENV=/Users/mikehiggins/Desktop/repos/open_proof_network/.venv` does not match the project environment path `.venv` and will be ignored; use `--active` to target the active environment instead
+FFFF.F                                                                   [100%]
+=================================== FAILURES ===================================
+_________ test_the_proof_is_drawn_and_what_it_does_not_need_is_marked __________
+
+tmp_path = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-267/test_the_proof_is_drawn_and_wh0')
+
+    def test_the_proof_is_drawn_and_what_it_does_not_need_is_marked(tmp_path: Path) -> None:
+        page = render_page(erdos_shape(tmp_path))
+>       assert len(picker(page)) == 1
+E       assert 0 == 1
+E        +  where 0 = len([])
+E        +    where [] = picker('<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,...x/auto-render.min.js"></script><script src="/math.js"></script><script src="/problem.js"></script>\n</body>\n</html>\n')
+
+site/tests/test_proof_selector.py:79: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  opn_site.model:model.py:492 tutorial-and-swap: Proof.lean is not the file attestation attestations/000001.json covers (attested dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd, found 721b98ef97040596c6625c36749b28dfddbe4156fb84c31dcb5e4145b4f4222d); its text is withheld from the page
+_______________ test_the_key_names_what_the_proof_drawing_shows ________________
+
+tmp_path = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-267/test_the_key_names_what_the_pr0')
+
+    def test_the_key_names_what_the_proof_drawing_shows(tmp_path: Path) -> None:
+        key = legend(render_page(erdos_shape(tmp_path)))
+>       assert "on this proof" in key and "not needed by this proof" in key
+E       assert ('on this proof' in '<span class="term" tabindex="0"><span class="dot dot-proved"></span>proved<span class="term-card" role="tooltip">A pr...ts witness is not blocked in this sense: it needs a witness.<span class="proto">protocol: blocked</span></span></span>')
+
+site/tests/test_proof_selector.py:90: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  opn_site.model:model.py:492 tutorial-and-swap: Proof.lean is not the file attestation attestations/000001.json covers (attested dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd, found 721b98ef97040596c6625c36749b28dfddbe4156fb84c31dcb5e4145b4f4222d); its text is withheld from the page
+___________ test_the_panel_says_whether_a_statement_is_on_the_proof ____________
+
+tmp_path = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-267/test_the_panel_says_whether_a_0')
+
+    def test_the_panel_says_whether_a_statement_is_on_the_proof(tmp_path: Path) -> None:
+        page = render_page(erdos_shape(tmp_path))
+        panel_b = re.search(rf'<div class="card panel" data-node="{B}".*?</dl>', page, re.S)
+        panel_a = re.search(rf'<div class="card panel" data-node="{A}".*?</dl>', page, re.S)
+>       assert panel_b is not None and "Not needed by any proof of this problem" in panel_b.group(0)
+E       assert (<re.Match object; span=(6655, 6927), match='<div class="card panel" data-node="and-reassoc" h> is not None and 'Not needed by any proof of this problem' in '<div class="card panel" data-node="and-reassoc" hidden>\n<span class="kicker">Selected statement</span>\n<span class=...="panel-facts"><dt>status</dt><dd><span class="dot dot-open"></span>open</dd><dt>attempts</dt><dd>0 attempts</dd></dl>')
+E        +  where '<div class="card panel" data-node="and-reassoc" hidden>\n<span class="kicker">Selected statement</span>\n<span class=...="panel-facts"><dt>status</dt><dd><span class="dot dot-open"></span>open</dd><dt>attempts</dt><dd>0 attempts</dd></dl>' = <built-in method group of re.Match object at 0x1073ea5c0>(0)
+E        +    where <built-in method group of re.Match object at 0x1073ea5c0> = <re.Match object; span=(6655, 6927), match='<div class="card panel" data-node="and-reassoc" h>.group
+
+site/tests/test_proof_selector.py:97: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  opn_site.model:model.py:492 tutorial-and-swap: Proof.lean is not the file attestation attestations/000001.json covers (attested dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd, found 721b98ef97040596c6625c36749b28dfddbe4156fb84c31dcb5e4145b4f4222d); its text is withheld from the page
+_______ test_every_way_the_problem_is_proved_is_offered_in_record_order ________
+
+tmp_path = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-267/test_every_way_the_problem_is_0')
+
+    def test_every_way_the_problem_is_proved_is_offered_in_record_order(tmp_path: Path) -> None:
+        root = erdos_shape(tmp_path)
+        resolves_variant(root, "variant-later", 9, "carol")
+        resolves_variant(root, "variant-earlier", 5, "dave")
+        page = render_page(root)
+        entries = picker(page)
+>       assert len(entries) == 3, entries
+E       AssertionError: []
+E       assert 0 == 3
+E        +  where 0 = len([])
+
+site/tests/test_proof_selector.py:107: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  opn_site.model:model.py:492 tutorial-and-swap: Proof.lean is not the file attestation attestations/000001.json covers (attested dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd, found 721b98ef97040596c6625c36749b28dfddbe4156fb84c31dcb5e4145b4f4222d); its text is withheld from the page
+_______________________ test_an_unmeasured_proof_says_so _______________________
+
+tmp_path = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-267/test_an_unmeasured_proof_says_0')
+
+    def test_an_unmeasured_proof_says_so(tmp_path: Path) -> None:
+        """Before the backfill, every live closure is unmeasured: the page must not present a
+        closure through declared dependencies as the proof term's own."""
+        root = copy_graph(tmp_path, publish=True)
+        gate_attest(root, A, n=1, footprint={"nodes": []})
+        gate_attest(root, B, n=2, footprint={"nodes": []})
+        gate_attest(root, ROOT_NODE, n=3, artifact_hash=proof_hash(root, ROOT_NODE), footprint=None)
+        page = render_page(root)
+>       assert "not measured" in legend(page)
+E       assert 'not measured' in '<span class="term" tabindex="0"><span class="dot dot-proved"></span>proved<span class="term-card" role="tooltip">A pr...ts witness is not blocked in this sense: it needs a witness.<span class="proto">protocol: blocked</span></span></span>'
+E        +  where '<span class="term" tabindex="0"><span class="dot dot-proved"></span>proved<span class="term-card" role="tooltip">A pr...ts witness is not blocked in this sense: it needs a witness.<span class="proto">protocol: blocked</span></span></span>' = legend('<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,...x/auto-render.min.js"></script><script src="/math.js"></script><script src="/problem.js"></script>\n</body>\n</html>\n')
+
+site/tests/test_proof_selector.py:131: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  opn_site.model:model.py:492 and-reassoc: Proof.lean is not the file attestation attestations/000002.json covers (attested dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd, found b378cb7cadba8366b22489d6e3b9b02875b08a5f4accb077e9466c5f74d90b66); its text is withheld from the page
+WARNING  opn_site.model:model.py:492 tutorial-and-swap: Proof.lean is not the file attestation attestations/000001.json covers (attested dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd, found 721b98ef97040596c6625c36749b28dfddbe4156fb84c31dcb5e4145b4f4222d); its text is withheld from the page
+=========================== short test summary info ============================
+FAILED site/tests/test_proof_selector.py::test_the_proof_is_drawn_and_what_it_does_not_need_is_marked
+FAILED site/tests/test_proof_selector.py::test_the_key_names_what_the_proof_drawing_shows
+FAILED site/tests/test_proof_selector.py::test_the_panel_says_whether_a_statement_is_on_the_proof
+FAILED site/tests/test_proof_selector.py::test_every_way_the_problem_is_proved_is_offered_in_record_order
+FAILED site/tests/test_proof_selector.py::test_an_unmeasured_proof_says_so - ...
+5 failed, 1 passed in 1.02s

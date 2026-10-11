@@ -1,0 +1,44 @@
+== goldbach
+== legendre
+== oppermann
+{
+ "goldbach": {
+  "agent-a": "live",
+  "agent-b": "discarded @compile",
+  "agent-c": "live",
+  "alt-dvd": "live",
+  "alt-pq": "live",
+  "bad-domain": "discarded @intent-test (holds)",
+  "bad-lostconj": "discarded @screen",
+  "bad-natsub": "discarded @intent-test (holds)",
+  "bad-noeven": "discarded @intent-test (holds)",
+  "bad-prime1": "discarded @intent-test (concept)",
+  "bad-vacuous": "discarded @screen",
+  "human-ref": "live"
+ },
+ "legendre": {
+  "agent-a": "live",
+  "agent-b": "discarded @compile",
+  "agent-c": "live",
+  "alt-closed": "discarded @intent-test (witness)",
+  "alt-inline": "returned @format",
+  "alt-mul": "live",
+  "bad-paren": "discarded @screen",
+  "bad-plus1": "discarded @intent-test (holds)",
+  "bad-two": "discarded @intent-test (witness)",
+  "bad-zero": "discarded @intent-test (holds)",
+  "human-ref": "live"
+ },
+ "oppermann": {
+  "agent-a": "live",
+  "agent-b": "discarded @compile",
+  "agent-c": "live",
+  "alt-inclusive": "discarded @intent-test (witness)",
+  "alt-sub": "live",
+  "bad-half": "discarded @intent-test (witness)",
+  "bad-junk": "discarded @intent-test (holds)",
+  "bad-one": "discarded @intent-test (holds)",
+  "bad-or": "discarded @intent-test (witness)",
+  "human-ref": "live"
+ }
+}

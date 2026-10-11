@@ -1,0 +1,21 @@
+F24 — push, re-pin, deploy, 2026-10-09 (the owner: "push repin deploy please")
+
+1. Network: f24-panel merged with origin/main bdd8c60, pushed as main b4e4817. api-deploy 37885505143 success;
+   ci 37885505126 success (fast tier and Lean tier).
+   Live: GET / lists /motions, /votes, /writeups; POST each without a session -> 401.
+2. Tag gate-b4e4817; image-publish 37885543904 success:
+     gate-b4e4817                        sha256:8175165457107bd8638be661a5b5b12300105d3670a2be007123adc39c676064
+     gate-b4e4817-mathlib-0df444a360ea   sha256:b68e79078784c8861264b948557ffcdd697e384a854cc3c03f93ccd2d912d967
+3. Graph worktree detached at origin/main 9c3943e53: unpublished [motion/v1, policy/v3, steward/v3,
+   targets-index/v9, vote/v1, writeup/v2], [] after publish; AGENTS.md already identical; pin_image.py over 27
+   targets (tutorial plain, 26 Mathlib, riemann-hypothesis last with --api-url); 27/27 name b4e4817; devcontainer
+   diff is the image line only. Committed 76365d732.
+4. In-process render of the committed re-pin (scanner=None): targets-index/v9 validates, 27 targets;
+   frontier/v5 42 entries / 39 claimable, unchanged; erdos-1094 steward thisisanameforsure not lapsed.
+5. Network CI green; no graph run in flight; pushed 76365d732 to graph main (owner's bypass).
+6. Graph gate 37895095921 success; render 37895107433 success -> c120d59e9 "gate: render b4e4817959d5":
+   targets/index.json targets-index/v9; erdos-1094 panel {members: [thisisanameforsure], motions: []},
+   writeups {items: [], official: null}; frontier/v5 42 / 39.
+7. site-deploy 37895194331 success. Live: /rules/ lists the settings; /problems/erdos-1094/ carries the Panel
+   and Write-up sections.
+Open: the first live motion, vote and write-up record are acts on the record (the owner's or a steward's).

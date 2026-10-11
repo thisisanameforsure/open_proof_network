@@ -1,0 +1,185 @@
+F07-T50 red run, 2026-10-01T20:59:34Z: seams at today's behaviour (carried.py grammar present and uncalled; steps.witness.judge, postmerge.plan_children, child_proposal and apply_partial(witnesses=) extracted or accepted with behaviour unchanged).
+$ uv run --frozen pytest gate/tests/test_finding_partial_carries_witnesses.py -q -rf
+FFFFFFFFFFFFFFFFFF...FF.FFF.                                             [100%]
+=================================== FAILURES ===================================
+E   assert (None is not None)
+/home/claude/opn-wt-wit/gate/tests/test_finding_partial_carries_witnesses.py:126: assert (None is not None)
+E   KeyError: 'hole_witnesses'
+------------------------------ Captured log call -------------------------------
+WARNING  opn_gate.steps.deps:deps.py:145 step 8: declared dep 'tutorial-and-swap' contributes no constant to the proof
+WARNING  opn_gate.steps.deps:deps.py:145 step 8: declared dep 'and-reassoc' contributes no constant to the proof
+/home/claude/opn-wt-wit/gate/tests/test_finding_partial_carries_witnesses.py:154: KeyError: 'hole_witnesses'
+E   AssertionError: {'verdict': 'pass', 'first_failing_step': None, 'diagnostic': None, 'steps': [{'step': 1, 'name': 'toolchain', 'result...ds', 'result': 'pass', 'diagnostic': None}, {'step': 7, 'name': 'witness', 'result': 'pass', 'diagnostic': None}, ...]}
+    assert None == 2
+     +  where None = Verdict(verdict='pass', steps=(StepRecord(step=1, name='toolchain', result='pass', diagnostic=None), StepRecord(step=2...-and-swap' contributes no constant to the proof", "declared dep 'and-reassoc' contributes no constant to the proof"]}}).first_failing_step
+------------------------------ Captured log call -------------------------------
+WARNING  opn_gate.steps.deps:deps.py:145 step 8: declared dep 'tutorial-and-swap' contributes no constant to the proof
+WARNING  opn_gate.steps.deps:deps.py:145 step 8: declared dep 'and-reassoc' contributes no constant to the proof
+/home/claude/opn-wt-wit/gate/tests/test_finding_partial_carries_witnesses.py:182: AssertionError: {'verdict': 'pass', 'first_failing_step': None, 'diagnostic': None, 'steps': [{'step': 1, 'name': 'toolchain', 'result...ds', 'result': 'pass', 'diagnostic': None}, {'step': 7, 'name': 'witness', 'result': 'pass', 'diagnostic': None}, ...]}
+E   AssertionError: {'verdict': 'pass', 'first_failing_step': None, 'diagnostic': None, 'steps': [{'step': 1, 'name': 'toolchain', 'result...ds', 'result': 'pass', 'diagnostic': None}, {'step': 7, 'name': 'witness', 'result': 'pass', 'diagnostic': None}, ...]}
+    assert None == 2
+     +  where None = Verdict(verdict='pass', steps=(StepRecord(step=1, name='toolchain', result='pass', diagnostic=None), StepRecord(step=2...-and-swap' contributes no constant to the proof", "declared dep 'and-reassoc' contributes no constant to the proof"]}}).first_failing_step
+------------------------------ Captured log call -------------------------------
+WARNING  opn_gate.steps.deps:deps.py:145 step 8: declared dep 'tutorial-and-swap' contributes no constant to the proof
+WARNING  opn_gate.steps.deps:deps.py:145 step 8: declared dep 'and-reassoc' contributes no constant to the proof
+/home/claude/opn-wt-wit/gate/tests/test_finding_partial_carries_witnesses.py:182: AssertionError: {'verdict': 'pass', 'first_failing_step': None, 'diagnostic': None, 'steps': [{'step': 1, 'name': 'toolchain', 'result...ds', 'result': 'pass', 'diagnostic': None}, {'step': 7, 'name': 'witness', 'result': 'pass', 'diagnostic': None}, ...]}
+E   AssertionError: {'verdict': 'pass', 'first_failing_step': None, 'diagnostic': None, 'steps': [{'step': 1, 'name': 'toolchain', 'result...ds', 'result': 'pass', 'diagnostic': None}, {'step': 7, 'name': 'witness', 'result': 'pass', 'diagnostic': None}, ...]}
+    assert None == 2
+     +  where None = Verdict(verdict='pass', steps=(StepRecord(step=1, name='toolchain', result='pass', diagnostic=None), StepRecord(step=2...-and-swap' contributes no constant to the proof", "declared dep 'and-reassoc' contributes no constant to the proof"]}}).first_failing_step
+------------------------------ Captured log call -------------------------------
+WARNING  opn_gate.steps.deps:deps.py:145 step 8: declared dep 'tutorial-and-swap' contributes no constant to the proof
+WARNING  opn_gate.steps.deps:deps.py:145 step 8: declared dep 'and-reassoc' contributes no constant to the proof
+/home/claude/opn-wt-wit/gate/tests/test_finding_partial_carries_witnesses.py:182: AssertionError: {'verdict': 'pass', 'first_failing_step': None, 'diagnostic': None, 'steps': [{'step': 1, 'name': 'toolchain', 'result...ds', 'result': 'pass', 'diagnostic': None}, {'step': 7, 'name': 'witness', 'result': 'pass', 'diagnostic': None}, ...]}
+E   AssertionError: {'verdict': 'pass', 'first_failing_step': None, 'diagnostic': None, 'steps': [{'step': 1, 'name': 'toolchain', 'result...ds', 'result': 'pass', 'diagnostic': None}, {'step': 7, 'name': 'witness', 'result': 'pass', 'diagnostic': None}, ...]}
+    assert None == 2
+     +  where None = Verdict(verdict='pass', steps=(StepRecord(step=1, name='toolchain', result='pass', diagnostic=None), StepRecord(step=2...-and-swap' contributes no constant to the proof", "declared dep 'and-reassoc' contributes no constant to the proof"]}}).first_failing_step
+------------------------------ Captured log call -------------------------------
+WARNING  opn_gate.steps.deps:deps.py:145 step 8: declared dep 'tutorial-and-swap' contributes no constant to the proof
+WARNING  opn_gate.steps.deps:deps.py:145 step 8: declared dep 'and-reassoc' contributes no constant to the proof
+/home/claude/opn-wt-wit/gate/tests/test_finding_partial_carries_witnesses.py:182: AssertionError: {'verdict': 'pass', 'first_failing_step': None, 'diagnostic': None, 'steps': [{'step': 1, 'name': 'toolchain', 'result...ds', 'result': 'pass', 'diagnostic': None}, {'step': 7, 'name': 'witness', 'result': 'pass', 'diagnostic': None}, ...]}
+E   AssertionError: {'verdict': 'pass', 'first_failing_step': None, 'diagnostic': None, 'steps': [{'step': 1, 'name': 'toolchain', 'result...ds', 'result': 'pass', 'diagnostic': None}, {'step': 7, 'name': 'witness', 'result': 'pass', 'diagnostic': None}, ...]}
+    assert None == 2
+     +  where None = Verdict(verdict='pass', steps=(StepRecord(step=1, name='toolchain', result='pass', diagnostic=None), StepRecord(step=2...-and-swap' contributes no constant to the proof", "declared dep 'and-reassoc' contributes no constant to the proof"]}}).first_failing_step
+------------------------------ Captured log call -------------------------------
+WARNING  opn_gate.steps.deps:deps.py:145 step 8: declared dep 'tutorial-and-swap' contributes no constant to the proof
+WARNING  opn_gate.steps.deps:deps.py:145 step 8: declared dep 'and-reassoc' contributes no constant to the proof
+/home/claude/opn-wt-wit/gate/tests/test_finding_partial_carries_witnesses.py:182: AssertionError: {'verdict': 'pass', 'first_failing_step': None, 'diagnostic': None, 'steps': [{'step': 1, 'name': 'toolchain', 'result...ds', 'result': 'pass', 'diagnostic': None}, {'step': 7, 'name': 'witness', 'result': 'pass', 'diagnostic': None}, ...]}
+E   AssertionError: {'verdict': 'pass', 'first_failing_step': None, 'diagnostic': None, 'steps': [{'step': 1, 'name': 'toolchain', 'result...ds', 'result': 'pass', 'diagnostic': None}, {'step': 7, 'name': 'witness', 'result': 'pass', 'diagnostic': None}, ...]}
+    assert None == 2
+     +  where None = Verdict(verdict='pass', steps=(StepRecord(step=1, name='toolchain', result='pass', diagnostic=None), StepRecord(step=2...-and-swap' contributes no constant to the proof", "declared dep 'and-reassoc' contributes no constant to the proof"]}}).first_failing_step
+------------------------------ Captured log call -------------------------------
+WARNING  opn_gate.steps.deps:deps.py:145 step 8: declared dep 'tutorial-and-swap' contributes no constant to the proof
+WARNING  opn_gate.steps.deps:deps.py:145 step 8: declared dep 'and-reassoc' contributes no constant to the proof
+/home/claude/opn-wt-wit/gate/tests/test_finding_partial_carries_witnesses.py:182: AssertionError: {'verdict': 'pass', 'first_failing_step': None, 'diagnostic': None, 'steps': [{'step': 1, 'name': 'toolchain', 'result...ds', 'result': 'pass', 'diagnostic': None}, {'step': 7, 'name': 'witness', 'result': 'pass', 'diagnostic': None}, ...]}
+E   AssertionError: assert None == 2
+     +  where None = Verdict(verdict='pass', steps=(StepRecord(step=1, name='toolchain', result='pass', diagnostic=None), StepRecord(step=2... p ∧ q', 'witness': '∃ p q, p ∧ q', 'axioms': []}, 'deps': {'declared': [], 'used': [], 'unused': [], 'warnings': []}}).first_failing_step
+/home/claude/opn-wt-wit/gate/tests/test_finding_partial_carries_witnesses.py:201: AssertionError: assert None == 2
+E   AssertionError: assert ['OpnProp.and_swap_reassoc'] == ['OpnProp.and..._reassoc__h2']
+      
+      Right contains 2 more items, first extra item: 'and_swap_reassoc__h1'
+      Use -v to get more diff
+------------------------------ Captured log call -------------------------------
+WARNING  opn_gate.steps.deps:deps.py:145 step 8: declared dep 'tutorial-and-swap' contributes no constant to the proof
+WARNING  opn_gate.steps.deps:deps.py:145 step 8: declared dep 'and-reassoc' contributes no constant to the proof
+/home/claude/opn-wt-wit/gate/tests/test_finding_partial_carries_witnesses.py:217: AssertionError: assert ['OpnProp.and_swap_reassoc'] == ['OpnProp.and..._reassoc__h2']
+E   KeyError: 'and_swap_reassoc__h1'
+------------------------------ Captured log call -------------------------------
+WARNING  opn_gate.steps.deps:deps.py:145 step 8: declared dep 'tutorial-and-swap' contributes no constant to the proof
+WARNING  opn_gate.steps.deps:deps.py:145 step 8: declared dep 'and-reassoc' contributes no constant to the proof
+/home/claude/opn-wt-wit/gate/tests/test_finding_partial_carries_witnesses.py:264: KeyError: 'and_swap_reassoc__h1'
+E   AssertionError: {'verdict': 'pass', 'first_failing_step': None, 'diagnostic': None, 'steps': [{'step': 1, 'name': 'toolchain', 'result...ds', 'result': 'pass', 'diagnostic': None}, {'step': 7, 'name': 'witness', 'result': 'pass', 'diagnostic': None}, ...]}
+    assert None == 7
+     +  where None = Verdict(verdict='pass', steps=(StepRecord(step=1, name='toolchain', result='pass', diagnostic=None), StepRecord(step=2...-and-swap' contributes no constant to the proof", "declared dep 'and-reassoc' contributes no constant to the proof"]}}).first_failing_step
+------------------------------ Captured log call -------------------------------
+WARNING  opn_gate.steps.deps:deps.py:145 step 8: declared dep 'tutorial-and-swap' contributes no constant to the proof
+WARNING  opn_gate.steps.deps:deps.py:145 step 8: declared dep 'and-reassoc' contributes no constant to the proof
+/home/claude/opn-wt-wit/gate/tests/test_finding_partial_carries_witnesses.py:293: AssertionError: {'verdict': 'pass', 'first_failing_step': None, 'diagnostic': None, 'steps': [{'step': 1, 'name': 'toolchain', 'result...ds', 'result': 'pass', 'diagnostic': None}, {'step': 7, 'name': 'witness', 'result': 'pass', 'diagnostic': None}, ...]}
+E   AssertionError: {'verdict': 'pass', 'first_failing_step': None, 'diagnostic': None, 'steps': [{'step': 1, 'name': 'toolchain', 'result...ds', 'result': 'pass', 'diagnostic': None}, {'step': 7, 'name': 'witness', 'result': 'pass', 'diagnostic': None}, ...]}
+    assert None == 7
+     +  where None = Verdict(verdict='pass', steps=(StepRecord(step=1, name='toolchain', result='pass', diagnostic=None), StepRecord(step=2...-and-swap' contributes no constant to the proof", "declared dep 'and-reassoc' contributes no constant to the proof"]}}).first_failing_step
+------------------------------ Captured log call -------------------------------
+WARNING  opn_gate.steps.deps:deps.py:145 step 8: declared dep 'tutorial-and-swap' contributes no constant to the proof
+WARNING  opn_gate.steps.deps:deps.py:145 step 8: declared dep 'and-reassoc' contributes no constant to the proof
+/home/claude/opn-wt-wit/gate/tests/test_finding_partial_carries_witnesses.py:293: AssertionError: {'verdict': 'pass', 'first_failing_step': None, 'diagnostic': None, 'steps': [{'step': 1, 'name': 'toolchain', 'result...ds', 'result': 'pass', 'diagnostic': None}, {'step': 7, 'name': 'witness', 'result': 'pass', 'diagnostic': None}, ...]}
+E   AssertionError: {'verdict': 'pass', 'first_failing_step': None, 'diagnostic': None, 'steps': [{'step': 1, 'name': 'toolchain', 'result...ds', 'result': 'pass', 'diagnostic': None}, {'step': 7, 'name': 'witness', 'result': 'pass', 'diagnostic': None}, ...]}
+    assert None == 7
+     +  where None = Verdict(verdict='pass', steps=(StepRecord(step=1, name='toolchain', result='pass', diagnostic=None), StepRecord(step=2...-and-swap' contributes no constant to the proof", "declared dep 'and-reassoc' contributes no constant to the proof"]}}).first_failing_step
+------------------------------ Captured log call -------------------------------
+WARNING  opn_gate.steps.deps:deps.py:145 step 8: declared dep 'tutorial-and-swap' contributes no constant to the proof
+WARNING  opn_gate.steps.deps:deps.py:145 step 8: declared dep 'and-reassoc' contributes no constant to the proof
+/home/claude/opn-wt-wit/gate/tests/test_finding_partial_carries_witnesses.py:293: AssertionError: {'verdict': 'pass', 'first_failing_step': None, 'diagnostic': None, 'steps': [{'step': 1, 'name': 'toolchain', 'result...ds', 'result': 'pass', 'diagnostic': None}, {'step': 7, 'name': 'witness', 'result': 'pass', 'diagnostic': None}, ...]}
+E   AssertionError: {'verdict': 'pass', 'first_failing_step': None, 'diagnostic': None, 'steps': [{'step': 1, 'name': 'toolchain', 'result...ds', 'result': 'pass', 'diagnostic': None}, {'step': 7, 'name': 'witness', 'result': 'pass', 'diagnostic': None}, ...]}
+    assert None == 7
+     +  where None = Verdict(verdict='pass', steps=(StepRecord(step=1, name='toolchain', result='pass', diagnostic=None), StepRecord(step=2...-and-swap' contributes no constant to the proof", "declared dep 'and-reassoc' contributes no constant to the proof"]}}).first_failing_step
+------------------------------ Captured log call -------------------------------
+WARNING  opn_gate.steps.deps:deps.py:145 step 8: declared dep 'tutorial-and-swap' contributes no constant to the proof
+WARNING  opn_gate.steps.deps:deps.py:145 step 8: declared dep 'and-reassoc' contributes no constant to the proof
+/home/claude/opn-wt-wit/gate/tests/test_finding_partial_carries_witnesses.py:293: AssertionError: {'verdict': 'pass', 'first_failing_step': None, 'diagnostic': None, 'steps': [{'step': 1, 'name': 'toolchain', 'result...ds', 'result': 'pass', 'diagnostic': None}, {'step': 7, 'name': 'witness', 'result': 'pass', 'diagnostic': None}, ...]}
+E   AssertionError: {'verdict': 'pass', 'first_failing_step': None, 'diagnostic': None, 'steps': [{'step': 1, 'name': 'toolchain', 'result...ds', 'result': 'pass', 'diagnostic': None}, {'step': 7, 'name': 'witness', 'result': 'pass', 'diagnostic': None}, ...]}
+    assert None == 7
+     +  where None = Verdict(verdict='pass', steps=(StepRecord(step=1, name='toolchain', result='pass', diagnostic=None), StepRecord(step=2...-and-swap' contributes no constant to the proof", "declared dep 'and-reassoc' contributes no constant to the proof"]}}).first_failing_step
+------------------------------ Captured log call -------------------------------
+WARNING  opn_gate.steps.deps:deps.py:145 step 8: declared dep 'tutorial-and-swap' contributes no constant to the proof
+WARNING  opn_gate.steps.deps:deps.py:145 step 8: declared dep 'and-reassoc' contributes no constant to the proof
+/home/claude/opn-wt-wit/gate/tests/test_finding_partial_carries_witnesses.py:293: AssertionError: {'verdict': 'pass', 'first_failing_step': None, 'diagnostic': None, 'steps': [{'step': 1, 'name': 'toolchain', 'result...ds', 'result': 'pass', 'diagnostic': None}, {'step': 7, 'name': 'witness', 'result': 'pass', 'diagnostic': None}, ...]}
+E   assert None == 7
+     +  where None = Verdict(verdict='pass', steps=(StepRecord(step=1, name='toolchain', result='pass', diagnostic=None), StepRecord(step=2...-and-swap' contributes no constant to the proof", "declared dep 'and-reassoc' contributes no constant to the proof"]}}).first_failing_step
+------------------------------ Captured log call -------------------------------
+WARNING  opn_gate.steps.deps:deps.py:145 step 8: declared dep 'tutorial-and-swap' contributes no constant to the proof
+WARNING  opn_gate.steps.deps:deps.py:145 step 8: declared dep 'and-reassoc' contributes no constant to the proof
+/home/claude/opn-wt-wit/gate/tests/test_finding_partial_carries_witnesses.py:306: assert None == 7
+E   assert None == 7
+     +  where None = Verdict(verdict='pass', steps=(StepRecord(step=1, name='toolchain', result='pass', diagnostic=None), StepRecord(step=2...-and-swap' contributes no constant to the proof", "declared dep 'and-reassoc' contributes no constant to the proof"]}}).first_failing_step
+------------------------------ Captured log call -------------------------------
+WARNING  opn_gate.steps.deps:deps.py:145 step 8: declared dep 'tutorial-and-swap' contributes no constant to the proof
+WARNING  opn_gate.steps.deps:deps.py:145 step 8: declared dep 'and-reassoc' contributes no constant to the proof
+/home/claude/opn-wt-wit/gate/tests/test_finding_partial_carries_witnesses.py:320: assert None == 7
+E   AssertionError: assert 'import Nodes...by\n  sorry\n' == '-- hole: rig...⟩, trivial⟩\n'
+      
+      - -- hole: right
+      + import Nodes.«and-swap-reassoc--h1».Context
+        
+      - theorem witness : ∃ (p : Prop), ∃ (q : Prop), ∃ (r : Prop), (p ∧ q) ∧ r :=
+      -   ⟨True, True, True, ⟨trivial, trivial⟩, trivial⟩
+      + /-! The witness slot for a hole (D-29, F07-R6). The `True` below is a placeholder, not the...
+      
+      ...Full output truncated (8 lines hidden), use '-vv' to show
+/home/claude/opn-wt-wit/gate/tests/test_finding_partial_carries_witnesses.py:430: AssertionError: assert 'import Nodes...by\n  sorry\n' == '-- hole: rig...⟩, trivial⟩\n'
+E   AssertionError: assert 'import Nodes...by\n  sorry\n' == '-- hole: lef...e, by simp⟩\n'
+      
+      - -- hole: left
+      + import Nodes.«and-swap-reassoc--h2».Context
+        
+      - theorem witness : ∃ (p : Prop), ∃ (q : Prop), ∃ (r : Prop), (p ∧ q) ∧ r :=
+      -   ⟨True, True, True, by simp⟩
+      + /-! The witness slot for a hole (D-29, F07-R6). The `True` below is a placeholder, not the...
+      
+      ...Full output truncated (8 lines hidden), use '-vv' to show
+/home/claude/opn-wt-wit/gate/tests/test_finding_partial_carries_witnesses.py:453: AssertionError: assert 'import Nodes...by\n  sorry\n' == '-- hole: lef...e, by simp⟩\n'
+E   AssertionError: assert 'import Nodes...by\n  sorry\n' == '-- hole: thi...⟩, trivial⟩\n'
+      
+      - -- hole: third
+      + import Nodes.«and-swap-reassoc--h4».Context
+        
+      - theorem witness : ∃ (p : Prop), ∃ (q : Prop), ∃ (r : Prop), (p ∧ q) ∧ r :=
+      -   ⟨True, True, True, ⟨trivial, trivial⟩, trivial⟩
+      + /-! The witness slot for a hole (D-29, F07-R6). The `True` below is a placeholder, not the...
+      
+      ...Full output truncated (8 lines hidden), use '-vv' to show
+/home/claude/opn-wt-wit/gate/tests/test_finding_partial_carries_witnesses.py:504: AssertionError: assert 'import Nodes...by\n  sorry\n' == '-- hole: thi...⟩, trivial⟩\n'
+E   KeyError: 'witnessed'
+------------------------------ Captured log call -------------------------------
+WARNING  opn_gate.steps.deps:deps.py:145 step 8: declared dep 'tutorial-and-swap' contributes no constant to the proof
+WARNING  opn_gate.steps.deps:deps.py:145 step 8: declared dep 'and-reassoc' contributes no constant to the proof
+/home/claude/opn-wt-wit/gate/tests/test_finding_partial_carries_witnesses.py:552: KeyError: 'witnessed'
+E   assert 0 == 1
+     +  where 1 = cli.EXIT_FAIL
+------------------------------ Captured log call -------------------------------
+WARNING  opn_gate.steps.deps:deps.py:145 step 8: declared dep 'tutorial-and-swap' contributes no constant to the proof
+WARNING  opn_gate.steps.deps:deps.py:145 step 8: declared dep 'and-reassoc' contributes no constant to the proof
+/home/claude/opn-wt-wit/gate/tests/test_finding_partial_carries_witnesses.py:572: assert 0 == 1
+=========================== short test summary info ============================
+FAILED gate/tests/test_finding_partial_carries_witnesses.py::test_a_carried_witness_has_a_role_and_rides_in_partial_mode
+FAILED gate/tests/test_finding_partial_carries_witnesses.py::test_the_readers_of_assemblies_do_not_see_a_carried_witness
+FAILED gate/tests/test_finding_partial_carries_witnesses.py::test_a_malformed_carried_witness_is_refused_at_step_2[files0-hole-witness-unnamed]
+FAILED gate/tests/test_finding_partial_carries_witnesses.py::test_a_malformed_carried_witness_is_refused_at_step_2[files1-hole-witness-duplicate]
+FAILED gate/tests/test_finding_partial_carries_witnesses.py::test_a_malformed_carried_witness_is_refused_at_step_2[files2-hole-witness-sorry]
+FAILED gate/tests/test_finding_partial_carries_witnesses.py::test_a_malformed_carried_witness_is_refused_at_step_2[files3-hole-witness-unattached]
+FAILED gate/tests/test_finding_partial_carries_witnesses.py::test_a_malformed_carried_witness_is_refused_at_step_2[files4-hole-witness-unattached]
+FAILED gate/tests/test_finding_partial_carries_witnesses.py::test_a_malformed_carried_witness_is_refused_at_step_2[files5-hole-witness-unattached]
+FAILED gate/tests/test_finding_partial_carries_witnesses.py::test_a_witness_file_beside_a_proof_is_refused
+FAILED gate/tests/test_finding_partial_carries_witnesses.py::test_every_carried_witness_is_held_to_step_7_and_recorded
+FAILED gate/tests/test_finding_partial_carries_witnesses.py::test_a_carried_witness_is_narrowed_as_the_node_will_be
+FAILED gate/tests/test_finding_partial_carries_witnesses.py::test_a_carried_witness_that_fails_refuses_the_partial[answer0-witness-type-mismatch]
+FAILED gate/tests/test_finding_partial_carries_witnesses.py::test_a_carried_witness_that_fails_refuses_the_partial[answer1-witness-sorry]
+FAILED gate/tests/test_finding_partial_carries_witnesses.py::test_a_carried_witness_that_fails_refuses_the_partial[answer2-witness-axiom]
+FAILED gate/tests/test_finding_partial_carries_witnesses.py::test_a_carried_witness_that_fails_refuses_the_partial[answer3-witness-elaboration]
+FAILED gate/tests/test_finding_partial_carries_witnesses.py::test_a_carried_witness_that_fails_refuses_the_partial[answer4-metaprogram-failed]
+FAILED gate/tests/test_finding_partial_carries_witnesses.py::test_a_witness_for_a_hole_that_does_not_exist_is_refused
+FAILED gate/tests/test_finding_partial_carries_witnesses.py::test_a_name_two_holes_share_is_refused
+FAILED gate/tests/test_finding_partial_carries_witnesses.py::test_children_are_born_with_the_carried_witnesses_and_ready
+FAILED gate/tests/test_finding_partial_carries_witnesses.py::test_only_the_holes_that_carried_one_are_ready
+FAILED gate/tests/test_finding_partial_carries_witnesses.py::test_a_hole_that_is_an_existing_node_is_not_touched
+FAILED gate/tests/test_finding_partial_carries_witnesses.py::test_the_post_merge_command_writes_the_witnesses_its_run_checked
+FAILED gate/tests/test_finding_partial_carries_witnesses.py::test_the_post_merge_command_writes_nothing_when_a_carried_witness_fails
+23 failed, 5 passed in 2.05s

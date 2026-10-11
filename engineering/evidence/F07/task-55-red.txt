@@ -1,0 +1,84 @@
+# F07-T55 red: the catch-up tests against the post-merge job as it stood, with the seams added at
+# today's behaviour (graph f07-t55-queue f40e0adbd F07-T55: the seams a catch-up needs, at today's behaviour (the record step, the commit step's commands, plan's in_flight))
+# 2026-10-02T19:12:40Z
+$ uv run --frozen pytest gate/tests/test_finding_postmerge_catch_up.py -p no:cacheprovider -q -rA
+E       AssertionError: ['gate: #3 pass', 'Merge pull request #3 from owner/append/a3', 'Merge pull request #2 from owner/submit/p2', 'seed the nodes', 'gate: #1 pass', 'seed']
+E       assert ['gate: #3 pa...er/append/a3'] == ['gate: #2 pa...ate: #3 pass']
+E         
+E         At index 0 diff: 'gate: #3 pass' != 'gate: #2 pass'
+E         Use -v to get more diff
+E       AssertionError: assert ['Merge pull ...er/append/a3'] == ['gate: #2 pass']
+E         
+E         At index 0 diff: 'Merge pull request #3 from owner/append/a3' != 'gate: #2 pass'
+E         Use -v to get more diff
+E               subprocess.CalledProcessError: Command '['git', '-C', '/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-177/test_a_partials_hole_children_0/origin.git', 'show', 'main:targets/t1/nodes/n--h1/Statement.lean']' returned non-zero exit status 128.
+E       AssertionError: assert ['gate: #2 pa...er/append/a3'] == ['gate: #3 pa...ate: #2 pass']
+E         
+E         At index 0 diff: 'gate: #2 pass' != 'gate: #3 pass'
+E         Use -v to get more diff
+E       AssertionError: [detached HEAD 9382257] gate: #2 pass
+E          7 files changed, 40 insertions(+), 1 deletion(-)
+E          create mode 100644 attestations/000002.json
+E          create mode 100644 ledger/p.json
+E          create mode 100644 targets/t1/.tags-cache.json
+E          create mode 100644 targets/t1/graph.json
+E          create mode 100644 targets/t2/.tags-cache.json
+E          create mode 100644 targets/t2/graph.json
+E         ::notice::main moved under this job by a later merge; the post-merge run of that push records #2 with its own (F07-T45)
+E         To /private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-177/test_a_push_refused_every_time0/origin.git
+E          ! [rejected]        HEAD -> main (fetch first)
+E         error: failed to push some refs to '/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-177/test_a_push_refused_every_time0/origin.git'
+E         hint: Updates were rejected because the remote contains work that you do not
+E         hint: have locally. This is usually caused by another repository pushing to
+E         hint: the same ref. If you want to integrate the remote changes, use
+E         hint: 'git pull' before pushing again.
+E         hint: See the 'Note about fast-forwards' in 'git push --help' for details.
+E         From /private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-177/test_a_push_refused_every_time0/origin
+E          * branch            main       -> FETCH_HEAD
+E         
+E       assert (0 != 0)
+E       AssertionError: ['gate: #3 pass', 'Merge pull request #3 from owner/submit/p3']
+E       assert ['Merge pull ...ate: #3 pass'] == ['gate: #2 pa...ate: #3 pass']
+E         
+E         At index 0 diff: 'Merge pull request #3 from owner/submit/p3' != 'gate: #2 pass'
+E         Use -v to get more diff
+E       AssertionError: a rebase over moved inputs is what this replaces
+E       assert 'git rebase' not in 'set -euo pi... "$REPLAY"\n'
+E         
+E         'git rebase' is contained here:
+E           basing"
+E             git rebase FETCH_HEAD
+E           done
+E           if [ -z "$pushed" ]; then
+E             echo "::error::PR #${NUMBERS// / #}: the products commit could not be pushed after three attempts"; exit 1
+E           fi
+E           replay_owed HEAD "$REPLAY"
+E       AssertionError: ({'run': 'false'}, 'postmerge: a later pull request merged on main after #2; the post-merge run of that push records #2 with its own (F07-T45)
+E         ')
+E       assert (0 == 0 and 'false' == 'true'
+E         
+E         - true
+E         + false)
+E       AssertionError: {'batch': 'false', 'replay': '2'}
+E       assert {'batch': 'fa...'replay': '2'} == {'batch': 'fa... 'replay': ''}
+E         
+E         Omitting 1 identical items, use -vv to show
+E         Differing items:
+E         {'replay': '2'} != {'replay': ''}
+E         Use -v to get more diff
+PASSED gate/tests/test_finding_postmerge_catch_up.py::test_a_record_that_conflicts_with_main_is_replayed
+PASSED gate/tests/test_finding_postmerge_catch_up.py::test_a_re_pin_of_the_rendering_gate_is_replayed
+PASSED gate/tests/test_finding_postmerge_catch_up.py::test_a_merge_main_already_credits_is_not_credited_twice
+PASSED gate/tests/test_finding_postmerge_catch_up.py::test_the_tag_cache_of_both_renders_is_kept_and_nothing_is_scanned_twice
+PASSED gate/tests/test_finding_postmerge_catch_up.py::test_the_first_push_lands_as_before_when_main_has_not_moved
+PASSED gate/tests/test_finding_postmerge_catch_up.py::test_the_record_is_taken_after_signing_and_before_any_product
+FAILED gate/tests/test_finding_postmerge_catch_up.py::test_a_push_refused_by_a_merge_on_another_target_is_caught_up
+FAILED gate/tests/test_finding_postmerge_catch_up.py::test_a_push_refused_by_a_merge_on_the_same_target_is_caught_up
+FAILED gate/tests/test_finding_postmerge_catch_up.py::test_a_partials_hole_children_ride_the_catch_up
+FAILED gate/tests/test_finding_postmerge_catch_up.py::test_a_batch_drops_what_another_run_credited_and_credits_the_rest
+FAILED gate/tests/test_finding_postmerge_catch_up.py::test_a_push_refused_every_time_gives_up_loudly_and_replays
+FAILED gate/tests/test_finding_postmerge_catch_up.py::test_two_runs_racing_on_two_targets_both_land_once
+FAILED gate/tests/test_finding_postmerge_catch_up.py::test_the_catch_up_renders_with_the_gate_main_pins
+FAILED gate/tests/test_finding_postmerge_catch_up.py::test_a_building_merge_records_itself_even_with_a_later_merge_on_main
+FAILED gate/tests/test_finding_postmerge_catch_up.py::test_a_plan_leaves_a_building_merge_to_its_own_run_while_that_run_is_going
+9 failed, 6 passed in 27.02s

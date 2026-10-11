@@ -1,0 +1,11 @@
+graph /Users/mikehiggins/Desktop/repos/open_proof_network_graph at main = 6d1b2bf84b308fdfcf61d71c9e669dee6b1ca4ab: 326 merges on the first-parent line
+maintenance, owes nothing: #225 524ae9009cba f07-batch-appends
+maintenance, owes nothing: #321 719a59ca7f82 f07-t46-hold-cap
+maintenance, owes nothing: #361 6291385e87a8 f07-t55-queue
+maintenance, owes nothing: #362 7f207c7fd69b f07-t55-no-target-replay
+acknowledged: #2 6452ef80d4f1 prove-tutorial ['tutorial'] (#2 (2026-09-08), the graph's first proof, merged before the post-merge job wrote gate commits; its attestation landed by hand as 'attestation: PR #2 (tutorial-and-swap)')
+acknowledged: #8 770303ff7f66 propose/01M28CNM7GGQ1H9T8TZ16T0YY6 ['tutorial'] (#8 (2026-09-11), the first merged variant: it gave the tutorial a second sink, root inference refused and the job wrote nothing (F08-Q19) until the root was declared (F08-T6))
+acknowledged: #72 c1480c92b074 intake/erdos-1050 ['erdos-1050'] (#72 (2026-09-17), the erdos-1050 intake, merged during the F15 re-pin: a gate-written hole that never elaborated failed the tag scan and the run lost its bot commit (log 2026-09-17))
+acknowledged: #73 980344cddbd4 intake/erdos-69 ['erdos-69'] (#73 (2026-09-17), the erdos-69 intake, lost its bot commit in the same run as #72; its pin was corrected by hand in bdcd64e10)
+owed 4, acknowledged 4, failing 0
+exit 0

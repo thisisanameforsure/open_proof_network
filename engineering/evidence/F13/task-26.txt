@@ -1,0 +1,43 @@
+F13-T26 green, 2026-10-01 (branch svc-queue-heartbeats-hazards)
+
+== 1. fast tier ==
+$ uv run --frozen pytest api/tests/test_finding_hazards_hosted_budget.py api/tests/test_finding_hazards_inlined_imports.py api/tests/test_finding_hazards_preflight.py -q
+34 passed, 2 warnings in 0.82s
+$ uv run --frozen pytest api/tests -q
+1103 passed, 2 warnings in 49.60s
+
+== 2. lean tier, on this machine: Lean 4.33.1 from the GitHub release zip, linked into elan ==
+   the composed text is elaborated under the hosted environment's module list (gate/hosted-checker-modules/lean-4.33.1.txt), not under import Lean,
+   and must find, finding for finding, what the gate's own opn-hazards finds on every fixture (auto-implicit's file-level re-elaboration included)
+$ uv run --frozen pytest -m lean gate/tests/test_hazards_through_axle_text_lean.py gate/tests/test_hazards_lean.py -q
+13 passed in 61.75s (0:01:01)
+
+== 3. the hosted checker itself (AXLE lean-4.33.1), through the live fast check in mode check ==
+   The deployed route still composes the old program, so the NEW composed text (checks.hazards_text at this commit) was posted as content.
+   AXLE's own host is refused by this session's proxy (403), so the live POST /check is the way to it.
+  statement: theorem Opn.erdos_69_summable_prime_reciprocal :
+  log_id 01M3WM34BR2TYRSEX623FE3XQV environment lean-4.33.1 lean errors []
+   -:527:0-527:8: info: OPN-HAZARDS {"capped":false,"checkers":["div-zero","int-trunc","junk-value","nat-sub","off-by-one-range","unused-binder","auto-implicit","nat-div"],"findings":[{"checker":"div-zero","location":"1 / (2 ^ ↑p - 1)","message":"division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"}]}
+  statement: theorem Opn.probe_auto (h : 0 < m) : (m - 1) / k + 1 = m := by
+  log_id 01M3WM36A8T8DR9HEGASKTTDRC environment lean-4.33.1 lean errors []
+   -:521:0-521:8: info: OPN-HAZARDS {"capped":false,"checkers":["div-zero","int-trunc","junk-value","nat-sub","off-by-one-range","unused-binder","auto-implicit","nat-div"],"findings":[{"checker":"auto-implicit","location":"k","message":"`k` is not declared: autoImplicit bound it as `{k : ℕ}`, an implicit binder the author never wrote; declare it, or correct the name if a constant was meant"},{"checker":"auto-implicit","location":"m","message":"`m` is not declared: autoImplicit bound it as `{m : ℕ}`, an implicit binder the author never wrote; declare it, or correct the name if a constant was meant"},{"checker":"div-zero","location":"(m - 1) / k","message":"division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"},{"checker":"nat-div","location":"(m - 1) / k","message":"natural-number division truncates: a / b is the floor of the quotient, so a / b * b = a fails unless b divides a; a quotient meant over ℚ or ℝ needs its ascription"},{"checker":"nat-sub","location":"m - 1","message":"subtraction on ℕ truncates at 0: a - b is 0 whenever b ≥ a"}]}
+
+== 4. the guard on the deployed route: api/tools/smoke.py, which api-deploy.yml runs after every deploy ==
+   Run against the service as deployed today (network c786835, the defect live): the new step fails the smoke, as it would have at 11:43Z.
+$ uv run --frozen python api/tools/smoke.py https://api.openproofnetwork.org --read-only
+GET /health -> 200 {'ok': True, 'store': 'dynamodb', 'host_budget': {'remaining': 4999, 'limit': 5000, 'reset_at': '2026-10-01T21:56:56Z', 'read_at': '2026-10-01T20:56:56Z'}}
+GET /frontier.json -> 200, 35 entries
+GET /claims.json -> 200, 37 nodes with claims
+POST /check mode hazards on tutorial-and-swap -> 200, hazards_status None
+PROBLEM: the hazard program did not run on the hosted checker: hazards_status None, None
+smoke: 1 problem(s)
+   (exit 1 is the expected answer until this branch is deployed; after the deploy the same step must print hazards_status ran)
+
+== 5. lint and types ==
+All checks passed!
+491 files already formatted
+Success: no issues found in 160 source files
+Success: no issues found in 230 source files
+
+Not run here: the docker tier (no step-3 image in this session); nothing in this task touches a sandboxed step.
+Not verified: the deployed route after this change. It deploys on merge to main; the smoke's new step is the check.

@@ -1,0 +1,7 @@
+{
+ "route": "Borwein's q-Padé approximants (Borwein 1991, 1992) at q = 2 for T = Σ_{n≥0} 1/(2^(n+3) − 3), which is the root's sum (its first two terms are −1 and 1). On the record the root reduces to erdos-1050--h1-v2, and that to erdos-1050--h1-v2--h2 alone, or to --h3 with --h4; closing proofs through those holes are fast-checked (annexes b85da506… and f17b2d55… on erdos-1050).",
+ "outcome": "blocked",
+ "blocked_on": "The 2-adic bound v2(p_k(n)) ≥ k(k−1)/2 on the Padé numerators (annex 4670684d… on erdos-1050--h1-v2--h3); no q-Padé theory in the pinned Mathlib.",
+ "pinned_mathlib_sha": "0df444a360eaa60ab8c11dca51a86af692955474",
+ "model_and_tooling": "Claude Opus 5.5 (Anthropic), agent 1050-E, over plain HTTP; POST /check on AXLE lean-4.33.1"
+}

@@ -1,0 +1,69 @@
+F25-T13: the feed and the drift check (R14, AC13) — 2026-10-11T05:48:45Z
+
+== Red (before gate/opn_gate/palomar_feed.py existed) ==
+E   ImportError: cannot import name 'palomar_feed' from 'opn_gate' (/Users/mikehiggins/Desktop/repos/open_proof_network/.claude/worktrees/agent-a6401dd72c79b3a4f/gate/opn_gate/__init__.py)
+=========================== short test summary info ============================
+ERROR gate/tests/test_palomar_feed.py
+!!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
+1 error in 0.11s
+
+== Red, second run (module, CLI, tool and workflow in): two failures, both in the test's
+   own text and the workflow's comment, not in the code ==
+FAILED test_a_bare_257_inside_a_longer_number_is_not_a_match[E1257 and E2570 are not E257-abstract]
+  the sample text itself carried a genuine E257 token; the matcher was right; the text was changed
+FAILED test_the_workflow_is_a_weekly_dry_run_with_read_only_contents
+  the workflow's comment named the flag the guard forbids; the comment was reworded
+
+== Green: uv run --frozen pytest -q -p no:cacheprovider gate/tests/test_palomar_feed.py gate/tests/test_error_codes.py gate/tests/test_finding_workflow_action_pins.py ==
+...............................................                          [100%]
+47 passed in 3.36s
+
+== make lint ==
+uv run --frozen ruff check .
+All checks passed!
+uv run --frozen ruff format --check .
+745 files already formatted
+
+== make types ==
+uv run --frozen mypy gate
+Success: no issues found in 361 source files
+uv run --frozen mypy api
+Success: no issues found in 237 source files
+uv run --frozen mypy site
+Success: no issues found in 82 source files
+
+== Nearby suites: uv run --frozen pytest -q -m 'not lean and not docker and not network' gate/tests/test_cli_curator.py test_cli_pregate.py test_no_paid_drafter.py test_formalizations.py test_finding_guide_names_exist.py test_watcher.py test_registration.py test_walkthrough.py ==
+95 passed, 1 skipped (the walkthrough's AGENTS.md is not beside this worktree), 1 deselected
+
+== The live snapshot (data.palomar-registry.org/recent.json as served 2026-10-10, 200 entries) against the live graph's target.yaml files, read-only ==
+$ uv run --frozen python gate/tools/watch_palomar.py --graph ../open_proof_network_graph --snapshot <snapshot>/recent.json --out-report live-feed-report.json
+exit 0; the report:
+{
+ "ok": true,
+ "source": "/private/tmp/claude-501/-Users-mikehiggins-Desktop-repos-open-proof-network/cc71ba06-efd6-4974-8300-d34944260a9e/scratchpad/palomar/recent.json",
+ "entries": 200,
+ "targets": 26,
+ "candidates": [
+  {
+   "target": "erdos-257",
+   "registry_id": "PALOMAR-2026-09-25-000009",
+   "version": 1,
+   "url": "https://palomar-registry.org/entries/PALOMAR-2026-09-25-000009-v1",
+   "title": "Weighted support criteria for reciprocal Mersenne subseries",
+   "confidence": "inferred",
+   "evidence": "theorem_names: PalomarCorpus.E257.DivisibilityWeightedSupport.d…"
+  }
+ ],
+ "proposals": [],
+ "drift": null
+}
+
+Reading: 200 entries, 26 indexed targets (the tutorial has no target.yaml and is not indexed),
+one candidate — erdos-257 from PALOMAR-2026-09-25-000009 (wcook04/plectis-erdos-lean), confidence
+inferred, evidence the theorem namespace PalomarCorpus.E257. The thirteen Erdős problems the feed
+names in words (2, 274, 374, 546, 575, 809, 956, 958, 1007, 1054, 1139, 1219, 1220) are none of the
+network's targets, and erdos-1050 matches nothing. No proposal was written (no --propose); nothing
+was written to the graph.
+
+== Regression: uv run --frozen pytest -q -m "not lean and not docker and not network" gate/tests ==
+2782 passed, 267 skipped, 193 deselected in 268 s (skips: the lean/docker tiers and the graph docs not checked out beside this worktree)

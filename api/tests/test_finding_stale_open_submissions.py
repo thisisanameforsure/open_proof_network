@@ -26,6 +26,7 @@ from typing import Any
 
 import pytest
 from api_fakes import (
+    AUTOMATION,
     PROOF_PREFIX,
     TUTORIAL_NODE,
     TUTORIAL_PROOF,
@@ -59,6 +60,7 @@ def submit_proof(h: Harness, key: PrecheckKey, token: str) -> dict[str, Any]:
             "artifact_type": "proof",
             "bundle": {f"{PROOF_PREFIX}{TUTORIAL_NODE}/Proof.lean": TUTORIAL_PROOF},
             "precheck_job_id": job["id"],
+            "automation": AUTOMATION,
         },
         headers=h.auth(token),
     )
@@ -70,7 +72,11 @@ def submit_proof(h: Harness, key: PrecheckKey, token: str) -> dict[str, Any]:
 def submit_annex(h: Harness, token: str) -> dict[str, Any]:
     r = h.client.post(
         "/annexes",
-        json={"node_id": TUTORIAL_NODE, "text": "Both conjuncts are already in hand.\n"},
+        json={
+            "node_id": TUTORIAL_NODE,
+            "text": "Both conjuncts are already in hand.\n",
+            "licence": "CC-BY-4.0",
+        },
         headers=h.auth(token),
     )
     assert r.status_code == 201, r.text  # guard
@@ -85,11 +91,15 @@ def state_setter(h: Harness) -> Any:
 
 
 def age_pull_cache(h: Harness) -> None:
-    """Every cached pull-request state was fetched a window and a second ago (F05-T10's rule:
-    force staleness from *now*, never by assuming the monotonic clock's origin)."""
-    window = h.settings.frontier_max_stale_s
+    """Every cached pull-request state, and the open listing the snapshot reconciles against
+    (F07-T47), was fetched a window and a second ago (F05-T10's rule: force staleness from
+    *now*, never by assuming the monotonic clock's origin)."""
+    window = h.settings.pull_max_stale_s
     for entry in getattr(h.context, "pulls", {}).values():
         entry.fetched_at = time.monotonic() - (window + 1)
+    listing = getattr(h.context, "open_pulls", None)  # F07-T47: the queue's listing, too
+    if listing is not None:
+        listing.fetched_at = time.monotonic() - (h.settings.pull_listing_max_stale_s + 1)
 
 
 def lookups(h: Harness) -> int:

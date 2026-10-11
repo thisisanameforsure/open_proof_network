@@ -1,0 +1,134 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openproof.network/schemas/mcp/get_check/v1.json",
+  "title": "mcp/get_check/v1",
+  "description": "The result of the get_check tool (F09-T17; D-28 notation note of 2026-10-04): GET /checks/{check_id}, the caller's own record of one fast check (F13-R9, R10), or an error result naming the source that did not answer, the route's refusal (check-unknown for anyone else's record) or the adapter's refusal without a token.",
+  "oneOf": [
+    {
+      "type": "object",
+      "description": "One fast check's record: the content's hash and size, never its text (C9 v2, F13-Q3)",
+      "required": [
+        "id",
+        "created",
+        "caller_kind",
+        "caller",
+        "target_id",
+        "node_id",
+        "mode",
+        "environment",
+        "content_sha256",
+        "content_bytes",
+        "outcome",
+        "okay",
+        "error_count",
+        "lint",
+        "axle_request_id",
+        "upstream_status",
+        "latency_ms"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "created": {
+          "type": "string"
+        },
+        "caller_kind": {
+          "type": "string"
+        },
+        "caller": {
+          "type": "string"
+        },
+        "target_id": {
+          "type": "string"
+        },
+        "node_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "mode": {
+          "type": "string"
+        },
+        "environment": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "content_sha256": {
+          "type": "string"
+        },
+        "content_bytes": {
+          "type": "integer"
+        },
+        "outcome": {
+          "type": "string"
+        },
+        "okay": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "error_count": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "lint": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "axle_request_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "upstream_status": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "latency_ms": {
+          "type": "integer"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "description": "The plain path did not answer, or the arguments were refused (F09-R10)",
+      "required": [
+        "error",
+        "message",
+        "source"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "error": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "source": {
+          "enum": [
+            "graph",
+            "service",
+            "adapter"
+          ]
+        },
+        "status": {
+          "type": "integer"
+        }
+      }
+    }
+  ]
+}

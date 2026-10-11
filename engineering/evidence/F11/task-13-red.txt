@@ -1,0 +1,98 @@
+F11-T13 red run. 2026-10-01T15:33:13Z. Worktree branch f11-defs-after-intake at c786835 (= main), tests written, nothing under gate/opn_gate changed (git status below).
+Every failure is an assertion on behaviour (a mode, a diagnostic code or an exit status), none a missing name.
+
+$ git status --short
+ M gate/tests/test_cli_sandboxed.py
+ M gate/tests/test_intake_mode.py
+ M gate/tests/test_modes.py
+?? engineering/evidence/F11/task-13-red.txt
+?? gate/tests/test_defs_after_intake.py
+
+$ uv run --frozen pytest gate/tests/test_defs_after_intake.py gate/tests/test_modes.py gate/tests/test_intake_mode.py gate/tests/test_cli_sandboxed.py -q -m "not lean and not docker and not network" --tb=line
+FFFFF...........F.FFFFF................F......................F......... [ 45%]
+......................................................F................. [ 91%]
+.....F........                                                           [100%]
+=================================== FAILURES ===================================
+E   AssertionError: {'mode': None, 'target': 'euclid-primes', 'node': None, 'needs_gate': False, ...}
+    assert (None == 'curator')
+     +  where None = Classification(mode=None, target_id='euclid-primes', node_id=None, located=(Located(role='definition', path='targets/e...ng': 'target.yaml'}),), admit=None, reviewers=None, author=None, replaced=(), review_basis=None, review_reference=None).mode
+/home/claude/opn-wt-defs/gate/tests/test_defs_after_intake.py:109: AssertionError: {'mode': None, 'target': 'euclid-primes', 'node': None, 'needs_gate': False, ...}
+E   AssertionError: assert (None == 'curator')
+     +  where None = Classification(mode=None, target_id='euclid-primes', node_id=None, located=(Located(role='definition', path='targets/e...ng': 'target.yaml'}),), admit=None, reviewers=None, author=None, replaced=(), review_basis=None, review_reference=None).mode
+/home/claude/opn-wt-defs/gate/tests/test_defs_after_intake.py:120: AssertionError: assert (None == 'curator')
+E   AssertionError: assert ['intake-incomplete'] == ['curator-unlisted']
+      
+      At index 0 diff: 'intake-incomplete' != 'curator-unlisted'
+      Use -v to get more diff
+/home/claude/opn-wt-defs/gate/tests/test_defs_after_intake.py:132: AssertionError: assert ['intake-incomplete'] == ['curator-unlisted']
+E   AssertionError: assert ['intake-incomplete'] == ['curator-unlisted']
+      
+      At index 0 diff: 'intake-incomplete' != 'curator-unlisted'
+      Use -v to get more diff
+/home/claude/opn-wt-defs/gate/tests/test_defs_after_intake.py:132: AssertionError: assert ['intake-incomplete'] == ['curator-unlisted']
+E   AssertionError: assert ['intake-incomplete'] == ['curator-unlisted']
+      
+      At index 0 diff: 'intake-incomplete' != 'curator-unlisted'
+      Use -v to get more diff
+/home/claude/opn-wt-defs/gate/tests/test_defs_after_intake.py:144: AssertionError: assert ['intake-incomplete'] == ['curator-unlisted']
+E   assert (1 == 0)
+/home/claude/opn-wt-defs/gate/tests/test_defs_after_intake.py:232: assert (1 == 0)
+E   AssertionError: assert ['intake-incomplete'] == ['defs-name']
+      
+      At index 0 diff: 'intake-incomplete' != 'defs-name'
+      Use -v to get more diff
+/home/claude/opn-wt-defs/gate/tests/test_defs_after_intake.py:271: AssertionError: assert ['intake-incomplete'] == ['defs-name']
+E   AssertionError: assert ['intake-incomplete'] == ['defs-import']
+      
+      At index 0 diff: 'intake-incomplete' != 'defs-import'
+      Use -v to get more diff
+/home/claude/opn-wt-defs/gate/tests/test_defs_after_intake.py:271: AssertionError: assert ['intake-incomplete'] == ['defs-import']
+E   AssertionError: assert ['intake-incomplete'] == ['defs-import']
+      
+      At index 0 diff: 'intake-incomplete' != 'defs-import'
+      Use -v to get more diff
+/home/claude/opn-wt-defs/gate/tests/test_defs_after_intake.py:271: AssertionError: assert ['intake-incomplete'] == ['defs-import']
+E   AssertionError: assert (1 == 1 and ['intake-incomplete'] == ['defs-cycle']
+      
+      At index 0 diff: 'intake-incomplete' != 'defs-cycle'
+      Use -v to get more diff)
+/home/claude/opn-wt-defs/gate/tests/test_defs_after_intake.py:287: AssertionError: assert (1 == 1 and ['intake-incomplete'] == ['defs-cycle']
+E   AssertionError: assert (1 == 1 and ['intake-incomplete'] == ['defs-clash']
+      
+      At index 0 diff: 'intake-incomplete' != 'defs-clash'
+      Use -v to get more diff)
+/home/claude/opn-wt-defs/gate/tests/test_defs_after_intake.py:306: AssertionError: assert (1 == 1 and ['intake-incomplete'] == ['defs-clash']
+E   AssertionError: assert ['intake-incomplete'] == ['curator-unlisted']
+      
+      At index 0 diff: 'intake-incomplete' != 'curator-unlisted'
+      Use -v to get more diff
+/home/claude/opn-wt-defs/gate/tests/test_modes.py:185: AssertionError: assert ['intake-incomplete'] == ['curator-unlisted']
+E   AssertionError: assert ['intake-incomplete'] == ['curator-unlisted']
+      
+      At index 0 diff: 'intake-incomplete' != 'curator-unlisted'
+      Use -v to get more diff
+/home/claude/opn-wt-defs/gate/tests/test_modes.py:491: AssertionError: assert ['intake-incomplete'] == ['curator-unlisted']
+E   AssertionError: assert (None == 'curator')
+     +  where None = Classification(mode=None, target_id='propositional', node_id=None, located=(Located(role='definition', path='targets/p...ng': 'target.yaml'}),), admit=None, reviewers=None, author=None, replaced=(), review_basis=None, review_reference=None).mode
+/home/claude/opn-wt-defs/gate/tests/test_intake_mode.py:116: AssertionError: assert (None == 'curator')
+E   assert (2 == 0)
+     +  where 0 = cli.EXIT_PASS
+/home/claude/opn-wt-defs/gate/tests/test_cli_sandboxed.py:1016: assert (2 == 0)
+=========================== short test summary info ============================
+FAILED gate/tests/test_defs_after_intake.py::test_a_listed_curator_adds_a_definition_to_an_existing_target
+FAILED gate/tests/test_defs_after_intake.py::test_several_definitions_may_arrive_together
+FAILED gate/tests/test_defs_after_intake.py::test_a_definition_from_anyone_else_is_refused_by_name[some-prover]
+FAILED gate/tests/test_defs_after_intake.py::test_a_definition_from_anyone_else_is_refused_by_name[None]
+FAILED gate/tests/test_defs_after_intake.py::test_the_command_refuses_an_unlisted_author
+FAILED gate/tests/test_defs_after_intake.py::test_the_command_admits_it_and_schedules_the_sandbox
+FAILED gate/tests/test_defs_after_intake.py::test_a_definition_that_cannot_be_a_module_is_refused_before_the_sandbox[not-a-module.lean-def Opn.x : Nat := 0\n-defs-name]
+FAILED gate/tests/test_defs_after_intake.py::test_a_definition_that_cannot_be_a_module_is_refused_before_the_sandbox[Coprime.lean-import Defs.Missing\n\ndef Opn.x : Nat := 0\n-defs-import]
+FAILED gate/tests/test_defs_after_intake.py::test_a_definition_that_cannot_be_a_module_is_refused_before_the_sandbox[Coprime.lean-import Nodes.\xabinfinitude-of-primes\xbb.Statement\n\ndef Opn.x : Nat := 0\n-defs-import]
+FAILED gate/tests/test_defs_after_intake.py::test_an_import_cycle_among_new_definitions_is_refused
+FAILED gate/tests/test_defs_after_intake.py::test_a_name_that_differs_only_in_case_from_an_existing_definition_is_refused
+FAILED gate/tests/test_modes.py::test_classification_rejects_mixtures_and_forbidden_paths
+FAILED gate/tests/test_modes.py::test_classify_command - AssertionError: asse...
+FAILED gate/tests/test_intake_mode.py::test_the_refusals_are_named - Assertio...
+FAILED gate/tests/test_cli_sandboxed.py::test_exhibits_elaborates_a_definition_added_after_intake_in_the_sandbox
+15 failed, 143 passed in 5.00s
+exit: 1

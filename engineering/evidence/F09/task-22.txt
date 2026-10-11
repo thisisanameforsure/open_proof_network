@@ -1,0 +1,13 @@
+# F09-T22 (R9, Q21): no tool description over 1,000 characters; the guide holds the rest. 2026-10-06
+$ uv run --frozen pytest api/tests/test_finding_mcp_context_budget.py -k fits_the_budget
+1 passed, 15 deselected, 2 warnings in 0.29s
+$ every test that pins words in a description (refusal codes, pre-flight words, schema versions)
+$ uv run --frozen pytest api/tests/test_check_witness_mode.py api/tests/test_finding_check_node_target.py api/tests/test_finding_hazards_preflight.py api/tests/test_finding_mcp_context_budget.py api/tests/test_finding_mcp_schema_versions.py api/tests/test_finding_partial_witnesses.py api/tests/test_proposals_for.py gate/tests/test_finding_guide_route_preflights.py -m "not lean and not docker"
+108 passed, 1 xfailed, 2 warnings in 1.74s
+$ uv run --frozen pytest api/tests -k mcp
+161 passed, 1367 deselected, 1 xfailed, 2 warnings in 8.62s
+$ (fast tier) every test that reads gate/agents/AGENTS.md
+230 passed, 12 deselected
+$ declared descriptions, longest and total (characters, plain path included)
+longest ('check_lean', 997) total 17520
+at 3c856ca: longest ('check_lean', 4178) total 25863

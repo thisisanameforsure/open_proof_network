@@ -36,16 +36,16 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 from starlette.routing import Route
 
-from opn_api import auth, config, ratelimit
+from opn_api import auth, config, hostbudget, ratelimit
 from opn_api import axle as axlemod
 from opn_api import clock as clockmod
 from opn_api import githost as githostmod
 from opn_api import store as storemod
 from opn_api.axle import Axle
 from opn_api.clock import Clock
-from opn_api.githost import GitHost, PullRequestState
-from opn_api.routes import ROUTES, RouteSpec
-from opn_api.store import Store
+from opn_api.githost import GitHost, OpenPullRequest, PullRequestState, RateLimitError
+from opn_api.routes import DCO_ACCEPT_HANDLER, ROUTES, RouteSpec
+from opn_api.store import Claim, Store
 
 log = logging.getLogger("opn_api")
 access_log = logging.getLogger("opn_api.access")
@@ -92,11 +92,47 @@ class CachedFile:
 @dataclass
 class CachedPull:
     """A pull request's live state read through the App (F07-T16), reused for
-    ``frontier_max_stale_s``; ``state`` is ``None`` when the host had no such pull request."""
+    ``pull_max_stale_s``; ``state`` is ``None`` when the host had no such pull request.
+    ``read_at`` is the wall-clock time of the read, which the served block carries (F07-T47)."""
 
     number: int
     state: PullRequestState | None = None
     fetched_at: float = 0.0
+    read_at: str | None = None
+    #: F05-T18: where ``main`` was when this was read, so a head that moved since can be seen.
+    main_head: str | None = None
+
+
+@dataclass
+class CachedListing:
+    """The repository's open pull requests as the host last listed them (F07-T47), reused for
+    ``pull_listing_max_stale_s``: one call reconciles the whole queue."""
+
+    by_number: dict[int, OpenPullRequest]
+    fetched_at: float
+    read_at: str
+
+
+@dataclass
+class CachedDir:
+    """A directory listing read through the Contents API (F07-T68), for the head ``ref`` it was
+    read at: reused while ``main`` stays there, and served as the last listing when the App's
+    budget is held."""
+
+    ref: str
+    names: list[str] | None
+    fetched_at: float
+
+
+@dataclass
+class CachedClaims:
+    """The claims table as one scan read it (F05-T20), reused for ``claims_max_stale_s``. Only
+    the rows are kept: which claims are active is decided on every read, against the clock, so a
+    claim still expires at its ``expires`` (R8)."""
+
+    claims: list[Claim]
+    pseudonyms: dict[str, str]
+    fetched_at: float
 
 
 @dataclass
@@ -125,6 +161,27 @@ class Context:
     # request; ``pr_locks_guard`` makes the table itself safe to grow from several threads.
     pr_locks: dict[int, threading.RLock] = field(default_factory=dict)
     pr_locks_guard: threading.Lock = field(default_factory=threading.Lock)
+    # F07-T47: the open pull-request listing the snapshot reconciles against, refreshed by one
+    # thread at a time.
+    open_pulls: CachedListing | None = None
+    listing_lock: threading.Lock = field(default_factory=threading.Lock)
+    # F08-T26: whether a network commit descends from ``uses_from``, by ``(uses_from, pin)``. A
+    # commit's ancestry never changes, so an answer the host gave is kept for the process's life.
+    ancestry: dict[tuple[str, str], bool] = field(default_factory=dict)
+    # F07-T68: when each running precheck job last asked the host about its run (monotonic), so
+    # polls of one job reach the host at most once per ``precheck_poll_min_s``.
+    precheck_polls: dict[str, float] = field(default_factory=dict)
+    # F07-T68: when a gate verdict's read last failed, by head commit (monotonic); it is not
+    # asked again for ``verdict_retry_s``.
+    verdict_failures: dict[str, float] = field(default_factory=dict)
+    # F07-T68: whether a merged annex is missing from the products, by (merge commit, rendered
+    # commit, annex directory): both commits are immutable, so the answer is kept.
+    annex_unrendered: dict[tuple[str, str, str], bool] = field(default_factory=dict)
+    # F07-T68: the MCP adapter's directory listings, by path, at the head they were read for.
+    listings: dict[str, CachedDir] = field(default_factory=dict)
+    # F05-T20: the claims table as the registry last scanned it, with the holders' pseudonyms;
+    # ``None`` until scanned, and again after a claim or a release through this process.
+    claims_scan: CachedClaims | None = None
 
 
 Handler = Callable[[Context, Request], Awaitable[Response]]
@@ -144,21 +201,92 @@ def bind(ctx: Context, spec: RouteSpec) -> Callable[[Request], Awaitable[Respons
         request.state.route = spec.label
         if ctx.missing and spec.path != "/health":
             raise ApiError(503, "not-configured", "missing: " + ", ".join(ctx.missing))
-        if spec.authenticated:
-            identity = auth.authenticate(ctx, request)
-            request.state.identity_id = identity.id
-            request.state.identity = identity
-            ratelimit.check_write(ctx, identity.id)
-        return await fn(ctx, request)
+        if not spec.web:
+            return await _call(fn, ctx, spec, request)
+        # F23-R3: a route the site calls with credentials answers its CORS on every response,
+        # a refusal included, so the page can read why it was refused.
+        cors = auth.cors_headers(ctx)
+        try:
+            response = await _call(fn, ctx, spec, request)
+        except ApiError as exc:
+            exc.headers.update(cors)
+            raise
+        response.headers.update(cors)
+        return response
 
     return endpoint
 
 
+async def _call(fn: Handler, ctx: Context, spec: RouteSpec, request: Request) -> Response:
+    if spec.authenticated:
+        identity = (
+            auth.authenticate_web(ctx, request) if spec.web else auth.authenticate(ctx, request)
+        )
+        request.state.identity_id = identity.id
+        request.state.identity = identity
+        if spec.write and spec.handler != DCO_ACCEPT_HANDLER:
+            # F25-R16 (Q24): a write needs the current sign-off; the accept route is how it is
+            # given, so it is the one write judged without it. Before the limit: a refusal
+            # that asks for a sign-off must not spend the hour's writes.
+            from opn_api import identity as identity_module  # noqa: PLC0415 — identity imports app
+
+            identity_module.check_dco_current(identity)
+        ratelimit.check_write(ctx, identity.id)
+    return await fn(ctx, request)
+
+
+def preflight(ctx: Context, methods: str) -> Callable[[Request], Awaitable[Response]]:
+    """F23-R3: the ``OPTIONS`` answer for a route the site calls with credentials. It allows the
+    site's origin, its two headers and the route's methods; the browser then refuses anything
+    else before the request is sent."""
+
+    async def endpoint(request: Request) -> Response:
+        headers = auth.cors_headers(ctx)
+        if headers:
+            headers |= {
+                "Access-Control-Allow-Methods": methods,
+                "Access-Control-Allow-Headers": auth.PREFLIGHT_HEADERS,
+                "Access-Control-Max-Age": str(auth.PREFLIGHT_MAX_AGE_S),
+            }
+        return Response(status_code=204, headers=headers)
+
+    return endpoint
+
+
+def host_budget_refusal(ctx: Context, exc: RateLimitError) -> ApiError:
+    """F07-T47: the host refused for budget, so the route that needed it to act answers
+    ``503 host-budget-exhausted`` with ``Retry-After`` at the reset — never a 502 quoting the
+    host's text with no time to come back."""
+    now = ctx.clock.now().timestamp()
+    return ApiError(
+        503,
+        "host-budget-exhausted",
+        hostbudget.refusal_message(exc.budget, now),
+        headers={"Retry-After": str(hostbudget.retry_after_s(exc.budget, now))},
+    )
+
+
 async def health(ctx: Context, request: Request) -> Response:
-    """R13: 200 with the store kind, or 503 naming every missing table or parameter."""
+    """R13: 200 with the store kind, or 503 naming every missing table or parameter. F07-T47:
+    the App's host budget as last seen (``null`` until an API answer has been read), and
+    ``ok: false`` with 503 and ``Retry-After`` while it is known spent, so a service that can
+    open nothing reads as down."""
     if ctx.missing:
         return JSONResponse({"ok": False, "missing": list(ctx.missing)}, 503)
-    return JSONResponse({"ok": True, "store": ctx.settings.store})
+    budget = ctx.githost.budget()
+    now = ctx.clock.now().timestamp()
+    body: dict[str, Any] = {
+        "ok": True,
+        "store": ctx.settings.store,
+        "host_budget": hostbudget.describe(budget),
+    }
+    if budget is not None and hostbudget.exhausted(budget, now):
+        return JSONResponse(
+            {**body, "ok": False},
+            503,
+            headers={"Retry-After": str(hostbudget.retry_after_s(budget, now))},
+        )
+    return JSONResponse(body)
 
 
 class AccessLog:
@@ -295,6 +423,14 @@ def create_app(
 
     mcp = mcpmod.Mount(ctx, lambda: app)
     routes = [Route(r.path, bind(ctx, r), methods=[r.method], name=r.label) for r in ROUTES]
+    web_methods: dict[str, list[str]] = {}
+    for r in ROUTES:
+        if r.web:
+            web_methods.setdefault(r.path, []).append(r.method)
+    routes.extend(
+        Route(path, preflight(ctx, ", ".join(methods)), methods=["OPTIONS"])
+        for path, methods in web_methods.items()
+    )
     routes.append(Route(mcpmod.MCP_PATH, mcp, methods=["GET", "POST", "DELETE"], name="mcp"))
 
     @contextlib.asynccontextmanager

@@ -76,6 +76,9 @@ RUN set -eux; \
     test -x .lake/build/bin/opn-witness-type; \
     test -x .lake/build/bin/opn-used-constants; \
     test -x .lake/build/bin/opn-hazards; \
+    test -x .lake/build/bin/opn-statement-meaning; \
+    test -x .lake/build/bin/opn-axioms; \
+    test -x .lake/build/bin/opn-outline; \
     chmod -R a+rX /opt/opn
 
 # F10-R6: the network's gate, runnable offline. uv (pinned) installs the Python .python-version

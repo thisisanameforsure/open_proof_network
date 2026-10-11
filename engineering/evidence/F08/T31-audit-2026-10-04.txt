@@ -1,0 +1,94 @@
+F08-T31 — withdrawal records (D-14, D-18 v3.27; audit 2026-10-04, amendment section 2)
+=====================================================================================
+
+What changed
+- gate/schemas/withdrawal/v1.json (new; HASHES appended): {schema, withdraws, reason, author, date};
+  `withdraws` is `status/<file>` or `defects/<file>`, relative to the withdrawal's own node.
+- paths: role `withdrawal` at targets/<t>/nodes/<n>/withdrawals/<stamp>-<curator>.yaml, a CURATOR_ROLE
+  (so F08-R8's curator mode: a listed login, reviewed by the other listed identities), append-only
+  like every curator record. layout tolerates the directory.
+- modes.check_withdrawal: validates, and refuses `withdrawal-unknown-record` when the named file is not
+  a valid status record or defect claim of the same node in the checkout. codes.py has the row.
+- records: `withdrawn(node_dir)`; `load_node_status` reads a withdrawn status record as absent (the
+  latest of the rest is the override), `circular_claims` passes over a withdrawn claim. Every reader
+  that goes through these — graph.load_target, current_id, modes, uses, steps/artifact, the site
+  model — therefore reads it as absent. A withdrawal that does not validate is passed over, so the
+  record it names stands. No date is compared anywhere.
+- info.json goldens: the schema index gains `withdrawal: [1]`; test_schemas' published set likewise.
+
+Why the path is under the node (justification)
+- Status records (status/) and defect claims (defects/) are node-scoped already; a withdrawal filed
+  beside them is found by every reader that already takes a node directory, with no new walk.
+- The record is named relative to the node and the schema's pattern admits only status/ or defects/,
+  so a record of another node or another target cannot be named at all (no cross-target check needed;
+  the one-target rule of classify stays the only scope rule).
+- Not covered, deliberately: target-level status records (targets/<t>/status/, the root declaration)
+  and defs/defects/ claims. Nothing derives a node status or frontier entry from a defs/ claim, and a
+  target declaration is superseded by a later declaration already.
+
+Red (before the fix; full output in the session, summary here)
+FAILED gate/tests/test_withdrawal.py::test_a_withdrawal_is_a_curator_record
+FAILED gate/tests/test_withdrawal.py::test_a_withdrawal_by_a_non_curator_is_refused
+FAILED gate/tests/test_withdrawal.py::test_a_withdrawal_of_a_claim_on_the_record_passes_the_checks
+FAILED gate/tests/test_withdrawal.py::test_a_withdrawal_of_a_status_record_passes_the_checks
+FAILED gate/tests/test_withdrawal.py::test_a_withdrawal_naming_a_file_that_does_not_exist_is_refused
+FAILED gate/tests/test_withdrawal.py::test_a_withdrawal_naming_a_record_on_another_node_is_refused
+FAILED gate/tests/test_withdrawal.py::test_a_withdrawal_naming_a_file_on_another_target_is_refused
+FAILED gate/tests/test_withdrawal.py::test_a_withdrawal_of_a_withdrawal_is_refused
+FAILED gate/tests/test_withdrawal.py::test_a_withdrawn_circularity_claim_puts_the_hole_back_on_the_frontier
+FAILED gate/tests/test_withdrawal.py::test_a_withdrawn_status_record_is_read_as_absent
+FAILED gate/tests/test_withdrawal.py::test_an_earlier_record_stands_once_the_latest_is_withdrawn
+FAILED gate/tests/test_withdrawal.py::test_withdrawing_rewrites_nothing_and_a_revert_restores_the_products
+12 failed, 2 passed in 0.37s
+  representative failures:
+  test_a_withdrawal_is_a_curator_record: Classification(mode=None ... Diagnostic(code='path-forbidden', ...withdrawals/20261004T120000Z-founder.yaml))
+  test_a_withdrawal_by_a_non_curator_is_refused: assert ['path-forbidden'] == ['curator-unlisted']
+  test_a_withdrawal_naming_a_file_that_does_not_exist_is_refused: assert None == 'curator' (path-forbidden)
+  test_a_withdrawn_circularity_claim_puts_the_hole_back_on_the_frontier: GraphError: node and-reassoc: unexpected entry withdrawals
+  test_a_withdrawn_status_record_is_read_as_absent: StatusRecord(status='abandoned', ...) is None
+  (2 passed while red: test_a_withdrawal_may_not_be_modified_or_deleted and
+   test_a_malformed_withdrawal_withdraws_nothing — both pin what the fix must not change.)
+
+Green
+  gate/tests/test_withdrawal.py: 14 passed
+  with test_records, test_modes, test_paths, test_layout, test_products, test_error_codes, test_schemas,
+  the three circular finding files, test_finding_schemas_published, test_curator, test_cli_curator,
+  test_context, test_proposed_for, site/tests, api/tests/test_routes:
+805 passed, 2 warnings in 46.51s
+  api/tests (whole fast tier): 1368 passed
+  ruff check / ruff format / mypy --strict on the changed files: clean
+
+Proposed ledger line (F08 Tasks)
+  T31 ✓ withdrawal records (D-14, D-18 v3.27): withdrawal/v1 under nodes/<n>/withdrawals/, curator
+  mode, withdrawal-unknown-record; a withdrawn status record or defect claim is read as absent by
+  every reader of records.py. Live after the re-pin, once the graph publishes schemas/withdrawal/v1.
+
+Proposed Q entry
+  F08-Q43 (T31; D-14, D-18 v3.27). Where a withdrawal lives and what it may name. A withdrawal is
+  `nodes/<n>/withdrawals/<stamp>-<curator>.yaml` (withdrawal/v1) and names `status/<file>` or
+  `defects/<file>` of its own node, so every reader that takes a node directory finds it without a
+  new walk and nothing on another node or target can be named. It is a curator record (F08-R8:
+  listed author, the other curators review). A withdrawn record stays in the tree and is read as
+  absent: the latest of the remaining status records is the override, whatever its date. No date is
+  compared; a withdrawal applies because it is on the record (2026-09-19, ancestry not dates).
+  Target-level declarations and `defs/defects/` claims are not withdrawable: a later declaration
+  already supersedes the first, and nothing is derived from a defs/ claim. A malformed withdrawal is
+  passed over, so the record it names stands. Reversal: one commit's revert of the withdrawal
+  restores the products byte for byte (tested).
+
+Not covered here (outside this task's files), for the lead
+- gate/opn_gate/context.py reads defect claims and status records through a host reader
+  (`_circular_claims`, `_current_id.successor_of`), the CONTEXT.json builder the service shares
+  (F10-Q7). It does not read withdrawals/: a node with two circularity claims of which one is
+  withdrawn, or a withdrawn `superseded` record, would make the service's CONTEXT.json disagree
+  with the gate's. Needs a reader-side `withdrawn` (list `<node>/withdrawals`, validate, subtract).
+- api/opn_api/precheck.py `replacement_of` reads the newest `superseded` record by name to decorate
+  a refusal; best effort, ignores withdrawals.
+
+What the graph needs at the re-pin
+- schemas/withdrawal/v1.json published (`schemas.publish`), or products.generate refuses the graph
+  (schema-unpublished).
+- The guide (gate/agents/AGENTS.md, copied to the graph) needs a sentence in its curator section:
+  "A curator withdraws a status record or a defect claim by adding
+  nodes/<id>/withdrawals/<stamp>-<curator>.yaml (withdrawal/v1) naming status/<file> or
+  defects/<file> and a reason; the file stays and is read as absent."

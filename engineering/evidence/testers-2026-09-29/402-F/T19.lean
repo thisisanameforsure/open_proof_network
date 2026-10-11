@@ -1,0 +1,25 @@
+import Mathlib
+
+/-! A reduction of every fixed-size case of Erdős problem 402 (Graham's gcd problem) to a finite
+certificate. With M the largest element of A, if gcd(M, x) ≤ M/n for some x the pair (M, x)
+answers; otherwise every other element x is (j/k)·M with 1 ≤ j < k < n, so L·x = a·M for the
+value a = L·j/k in S. The n − 1 other elements land on distinct values of S, and a colouring c
+of S with n − 2 colours whose equal-coloured pairs a ≠ b all have n·gcd(a, b) ≤ max(a, b) gives,
+by pigeonhole, two elements x, y with n·gcd(x, y) ≤ x or ≤ y, because gcd(a, b)·M = L·gcd(x, y).
+A card-n variant then needs only L, S and c, and three decidable checks. -/
+
+theorem Opn.erdos_402_card_of_colouring :
+    ∀ (n L : ℕ) (S : Finset ℕ) (c : ℕ → ℕ), 2 ≤ n → 0 < L →
+      (∀ k ∈ Finset.range n, ∀ j ∈ Finset.range k, 0 < j → k ∣ L * j ∧ L * j / k ∈ S) →
+      (∀ a ∈ S, c a + 2 < n) →
+      (∀ a ∈ S, ∀ b ∈ S, a ≠ b → c a = c b → n * a.gcd b ≤ a ∨ n * a.gcd b ≤ b) →
+      ∀ A : Finset ℕ, 0 ∉ A → A.card = n → ∃ a ∈ A, ∃ b ∈ A, a.gcd b ≤ (a / A.card : ℚ) := by
+  sorry
+
+theorem Opn.erdos_402_card_nineteen_test :
+    ∀ (A : Finset ℕ), 0 ∉ A → A.card = 19 → ∃ a ∈ A, ∃ b ∈ A, a.gcd b ≤ (a / A.card : ℚ) := by
+  intro A hA hn
+  exact Opn.erdos_402_card_of_colouring 19 12252240 {680680, 720720, 765765, 816816, 875160, 942480, 1021020, 1113840, 1225224, 1361360, 1441440, 1531530, 1633632, 1750320, 1884960, 2042040, 2162160, 2227680, 2297295, 2450448, 2625480, 2722720, 2827440, 2882880, 3063060, 3267264, 3341520, 3403400, 3500640, 3603600, 3675672, 3769920, 3828825, 4084080, 4324320, 4375800, 4455360, 4594590, 4712400, 4764760, 4900896, 5045040, 5105100, 5250960, 5360355, 5445440, 5569200, 5654880, 5717712, 5765760, 6126120, 6486480, 6534528, 6597360, 6683040, 6806800, 6891885, 7001280, 7147140, 7207200, 7351344, 7487480, 7539840, 7657650, 7796880, 7876440, 7927920, 8168160, 8423415, 8482320, 8576568, 8648640, 8751600, 8848840, 8910720, 8984976, 9189180, 9369360, 9424800, 9529520, 9626760, 9801792, 9954945, 10024560, 10090080, 10210200, 10367280, 10501920, 10618608, 10720710, 10810800, 10890880, 11027016, 11138400, 11231220, 11309760, 11377080, 11435424, 11486475, 11531520, 11571560}
+    (fun a : ℕ => if a = 680680 then 15 else if a = 720720 then 14 else if a = 765765 then 2 else if a = 816816 then 16 else if a = 875160 then 12 else if a = 942480 then 9 else if a = 1021020 then 7 else if a = 1113840 then 13 else if a = 1225224 then 10 else if a = 1361360 then 11 else if a = 1441440 then 13 else if a = 1531530 then 8 else if a = 1633632 then 12 else if a = 1750320 then 5 else if a = 1884960 then 14 else if a = 2042040 then 4 else if a = 2162160 then 7 else if a = 2227680 then 15 else if a = 2297295 then 12 else if a = 2450448 then 6 else if a = 2625480 then 11 else if a = 2722720 then 10 else if a = 2827440 then 13 else if a = 2882880 then 11 else if a = 3063060 then 3 else if a = 3267264 then 5 else if a = 3341520 then 14 else if a = 3403400 then 9 else if a = 3500640 then 9 else if a = 3603600 then 2 else if a = 3675672 then 2 else if a = 3769920 then 12 else if a = 3828825 then 11 else if a = 4084080 then 1 else if a = 4324320 then 4 else if a = 4375800 then 6 else if a = 4455360 then 8 else if a = 4594590 then 9 else if a = 4712400 then 7 else if a = 4764760 then 5 else if a = 4900896 then 7 else if a = 5045040 then 3 else if a = 5105100 then 12 else if a = 5250960 then 10 else if a = 5360355 then 7 else if a = 5445440 then 6 else if a = 5569200 then 5 else if a = 5654880 then 6 else if a = 5717712 then 9 else if a = 5765760 then 8 else if a = 6126120 then 0 else if a = 6486480 then 9 else if a = 6534528 then 3 else if a = 6597360 then 8 else if a = 6683040 then 11 else if a = 6806800 then 3 else if a = 6891885 then 6 else if a = 7001280 then 13 else if a = 7147140 then 6 else if a = 7207200 then 1 else if a = 7351344 then 8 else if a = 7487480 then 13 else if a = 7539840 then 5 else if a = 7657650 then 10 else if a = 7796880 then 2 else if a = 7876440 then 1 else if a = 7927920 then 5 else if a = 8168160 then 2 else if a = 8423415 then 1 else if a = 8482320 then 2 else if a = 8576568 then 1 else if a = 8648640 then 10 else if a = 8751600 then 4 else if a = 8848840 then 14 else if a = 8910720 then 1 else if a = 8984976 then 0 else if a = 9189180 then 5 else if a = 9369360 then 0 else if a = 9424800 then 0 else if a = 9529520 then 12 else if a = 9626760 then 7 else if a = 9801792 then 4 else if a = 9954945 then 13 else if a = 10024560 then 3 else if a = 10090080 then 6 else if a = 10210200 then 8 else if a = 10367280 then 3 else if a = 10501920 then 3 else if a = 10618608 then 10 else if a = 10720710 then 4 else if a = 10810800 then 12 else if a = 10890880 then 7 else if a = 11027016 then 11 else if a = 11138400 then 6 else if a = 11231220 then 9 else if a = 11309760 then 1 else if a = 11377080 then 2 else if a = 11435424 then 11 else if a = 11486475 then 14 else if a = 11531520 then 15 else if a = 11571560 then 16 else 0)
+    (by norm_num) (by norm_num) (by decide +kernel) (by decide +kernel) (by decide +kernel) A hA hn
+

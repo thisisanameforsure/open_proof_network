@@ -1,0 +1,4 @@
+# F25-T7 — the export (R8–R10): names, closure, transform, layout, formalization.yaml, README, refusals. 2026-10-11T04:50:17Z
+
+......................                                                   [100%]
+22 passed in 3.22s

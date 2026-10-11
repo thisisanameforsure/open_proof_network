@@ -1,0 +1,252 @@
+F07-T61 — the pin step fails closed and takes the pin from the base (audit 2026-10-04)
+=====================================================================================
+
+Graph branch: audit-b-workflows, commit 0fd4d5b72 (gate.yml, the gate job's pin step). Not pushed.
+
+Finding. (1) A pull request touching no target and not policy.json exited "nothing to gate" with
+run=false, so the required check reported success for anyone's change to a workflow, curators.json,
+keys/, schemas/ or a product. (2) The pin was read from the PR's own tree (targets/$target/gate-spec.json
+at the merge ref), so a submission that rewrote its target's pin chose the gate that judged it.
+
+Fix (the pin step only; no gate CLI flag, inert on the current pin 3422bb4).
+- changed.txt is `git diff --name-only --no-renames base...HEAD` (a rename out of curators.json shows
+  its deletion too).
+- Any path not matching ^targets/<id>/.+ or ^policy.json$ -> exit 1 "not a submission", unless
+  OPN_PR_AUTHOR (env, from github.event.pull_request.user.login) is a github_login in
+  `git show $base:curators.json`. A listed curator's PR with no target stays run=false (review only);
+  with a target it goes on to the pinned classifier as before.
+- The pin is `git show $base:targets/$target/gate-spec.json`; a target new on the PR takes the first
+  target's pin on the base (and fails if the base has none). policy.json's pin is taken the same way
+  from the base instead of the working tree.
+
+Red tests (run against the step as it stood: 9 failed, 3 guards passed):
+  test_finding_gate_pin_step.py::test_a_workflow_change_by_a_stranger_fails_the_check     exit 0, run=false
+  ::test_a_pull_request_cannot_list_its_own_author_as_a_curator                           exit 0
+  ::test_anything_outside_a_target_fails_for_a_stranger[x4] (target+README, targets/index.json,
+    keys/, curators.json deleted)                                                          exit 0
+  ::test_a_submission_cannot_choose_its_own_gate                                           pin was PIN_B
+  ::test_a_new_target_is_gated_by_the_pin_the_base_carries                                 pin was PIN_B
+  ::test_the_author_reaches_the_script_through_the_environment                             no env
+Guards green before and after: a curator's workflow PR is review only; a submission gates on its
+target as before; policy.json still reaches the classifier with the base's pin.
+
+Deployment note. The ruleset requires the gate check; after this lands, a non-curator's pull request
+that touches anything outside a target is red and cannot merge. The live curators.json lists only
+thisisanameforsure, which is who opens the graph's workflow and guide pull requests.
+
+Proposed Q entry (F07-Q65): "The pin step fails closed: a pull request is a submission only if every
+changed path is under targets/<id>/ or is policy.json; anything else fails the required check unless
+its author is a curator listed on the base, whose such pull request is review only. The pin is the
+base's: a pull request never chooses the gate that judges it (D-4); a new target is gated by the pin
+the base's targets carry."
+
+Proposed ledger line: T61 ✓ 2026-10-04 (audit; red 9 failed on the defect with 3 guards; green 12
+passed, 45 with the workflow suites; graph branch audit-b-workflows 0fd4d5b72;
+engineering/evidence/F07/task-61-audit-2026-10-04.txt; live when the graph pull request merges).
+
+--- red -------------------------------------------------------------------------------------------
+F.FFFFF..FFF                                                             [100%]
+=================================== FAILURES ===================================
+_____________ test_a_workflow_change_by_a_stranger_fails_the_check _____________
+
+gate_doc = {'name': 'gate', 'run-name': "${{ github.event_name == 'workflow_dispatch' && format('gate: replay of #{0}', inputs.re...he merged pull request whose post-merge job to replay', 'required': True, 'type': 'string'}}}}, 'permissions': {}, ...}
+tmp_path = PosixPath('/Users/mikehiggins/Desktop/repos/opn-audit-b-workflows/.pytest-tmp/test_a_workflow_change_by_a_st0')
+
+    def test_a_workflow_change_by_a_stranger_fails_the_check(
+        gate_doc: dict[Any, Any], tmp_path: Path
+    ) -> None:
+        code, out, said = run_pin(
+            gate_doc, tmp_path, {".github/workflows/gate.yml": "name: gate\non: {}\n"}, STRANGER
+        )
+>       assert code == 1, (code, out, said)
+E       AssertionError: (0, {'base': '49321c30ff16281a8b420418c9faa7b029025ce0', 'run': 'false'}, 'gate: diffing from HEAD^1 49321c30ff16281a8...ch tip this merge ref carries)
+E         gate: nothing under targets/ changed; nothing to gate (maintenance PR, review only)
+E         ')
+E       assert 0 == 1
+
+gate/tests/test_finding_gate_pin_step.py:120: AssertionError
+_________ test_a_pull_request_cannot_list_its_own_author_as_a_curator __________
+
+gate_doc = {'name': 'gate', 'run-name': "${{ github.event_name == 'workflow_dispatch' && format('gate: replay of #{0}', inputs.re...he merged pull request whose post-merge job to replay', 'required': True, 'type': 'string'}}}}, 'permissions': {}, ...}
+tmp_path = PosixPath('/Users/mikehiggins/Desktop/repos/opn-audit-b-workflows/.pytest-tmp/test_a_pull_request_cannot_lis0')
+
+    def test_a_pull_request_cannot_list_its_own_author_as_a_curator(
+        gate_doc: dict[Any, Any], tmp_path: Path
+    ) -> None:
+        listed = {"identities": [{"pseudonym": STRANGER, "github_login": STRANGER}]}
+        code, _out, said = run_pin(
+            gate_doc, tmp_path, {"curators.json": json.dumps(listed)}, STRANGER
+        )
+>       assert code == 1 and "not a submission" in said, said
+E       AssertionError: gate: diffing from HEAD^1 bf58014e1916b3463d9dee6367a6f358c1e1eee2 (the base branch tip this merge ref carries)
+E         gate: nothing under targets/ changed; nothing to gate (maintenance PR, review only)
+E         
+E       assert (0 == 1)
+
+gate/tests/test_finding_gate_pin_step.py:141: AssertionError
+_________ test_anything_outside_a_target_fails_for_a_stranger[files0] __________
+
+gate_doc = {'name': 'gate', 'run-name': "${{ github.event_name == 'workflow_dispatch' && format('gate: replay of #{0}', inputs.re...he merged pull request whose post-merge job to replay', 'required': True, 'type': 'string'}}}}, 'permissions': {}, ...}
+tmp_path = PosixPath('/Users/mikehiggins/Desktop/repos/opn-audit-b-workflows/.pytest-tmp/test_anything_outside_a_target0')
+files = {'README.md': 'hello\n', 'targets/t1/nodes/n/attempts/a.yaml': 'a\n'}
+
+    @pytest.mark.parametrize(
+        "files",
+        [
+            {"README.md": "hello\n", "targets/t1/nodes/n/attempts/a.yaml": "a\n"},  # a target and more
+            {"targets/index.json": "{}\n"},  # a product, under targets/ but in no target
+            {"keys/gate.pub": "ssh-ed25519 AAAA\n"},
+            {"curators.json": None},  # a deletion is a change too
+        ],
+    )
+    def test_anything_outside_a_target_fails_for_a_stranger(
+        gate_doc: dict[Any, Any], tmp_path: Path, files: dict[str, str | None]
+    ) -> None:
+        code, _out, said = run_pin(gate_doc, tmp_path, files, STRANGER)
+>       assert code == 1 and "not a submission" in said, said
+E       AssertionError: gate: diffing from HEAD^1 bf58014e1916b3463d9dee6367a6f358c1e1eee2 (the base branch tip this merge ref carries)
+E         gate: target t1; network pin aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+E         
+E       assert (0 == 1)
+
+gate/tests/test_finding_gate_pin_step.py:157: AssertionError
+_________ test_anything_outside_a_target_fails_for_a_stranger[files1] __________
+
+gate_doc = {'name': 'gate', 'run-name': "${{ github.event_name == 'workflow_dispatch' && format('gate: replay of #{0}', inputs.re...he merged pull request whose post-merge job to replay', 'required': True, 'type': 'string'}}}}, 'permissions': {}, ...}
+tmp_path = PosixPath('/Users/mikehiggins/Desktop/repos/opn-audit-b-workflows/.pytest-tmp/test_anything_outside_a_target1')
+files = {'targets/index.json': '{}\n'}
+
+    @pytest.mark.parametrize(
+        "files",
+        [
+            {"README.md": "hello\n", "targets/t1/nodes/n/attempts/a.yaml": "a\n"},  # a target and more
+            {"targets/index.json": "{}\n"},  # a product, under targets/ but in no target
+            {"keys/gate.pub": "ssh-ed25519 AAAA\n"},
+            {"curators.json": None},  # a deletion is a change too
+        ],
+    )
+    def test_anything_outside_a_target_fails_for_a_stranger(
+        gate_doc: dict[Any, Any], tmp_path: Path, files: dict[str, str | None]
+    ) -> None:
+        code, _out, said = run_pin(gate_doc, tmp_path, files, STRANGER)
+>       assert code == 1 and "not a submission" in said, said
+E       AssertionError: gate: diffing from HEAD^1 bf58014e1916b3463d9dee6367a6f358c1e1eee2 (the base branch tip this merge ref carries)
+E         gate: nothing under targets/ changed; nothing to gate (maintenance PR, review only)
+E         
+E       assert (0 == 1)
+
+gate/tests/test_finding_gate_pin_step.py:157: AssertionError
+_________ test_anything_outside_a_target_fails_for_a_stranger[files2] __________
+
+gate_doc = {'name': 'gate', 'run-name': "${{ github.event_name == 'workflow_dispatch' && format('gate: replay of #{0}', inputs.re...he merged pull request whose post-merge job to replay', 'required': True, 'type': 'string'}}}}, 'permissions': {}, ...}
+tmp_path = PosixPath('/Users/mikehiggins/Desktop/repos/opn-audit-b-workflows/.pytest-tmp/test_anything_outside_a_target2')
+files = {'keys/gate.pub': 'ssh-ed25519 AAAA\n'}
+
+    @pytest.mark.parametrize(
+        "files",
+        [
+            {"README.md": "hello\n", "targets/t1/nodes/n/attempts/a.yaml": "a\n"},  # a target and more
+            {"targets/index.json": "{}\n"},  # a product, under targets/ but in no target
+            {"keys/gate.pub": "ssh-ed25519 AAAA\n"},
+            {"curators.json": None},  # a deletion is a change too
+        ],
+    )
+    def test_anything_outside_a_target_fails_for_a_stranger(
+        gate_doc: dict[Any, Any], tmp_path: Path, files: dict[str, str | None]
+    ) -> None:
+        code, _out, said = run_pin(gate_doc, tmp_path, files, STRANGER)
+>       assert code == 1 and "not a submission" in said, said
+E       AssertionError: gate: diffing from HEAD^1 9a330c8f9cd17065cce0d925561ea3536d5d781a (the base branch tip this merge ref carries)
+E         gate: nothing under targets/ changed; nothing to gate (maintenance PR, review only)
+E         
+E       assert (0 == 1)
+
+gate/tests/test_finding_gate_pin_step.py:157: AssertionError
+_________ test_anything_outside_a_target_fails_for_a_stranger[files3] __________
+
+gate_doc = {'name': 'gate', 'run-name': "${{ github.event_name == 'workflow_dispatch' && format('gate: replay of #{0}', inputs.re...he merged pull request whose post-merge job to replay', 'required': True, 'type': 'string'}}}}, 'permissions': {}, ...}
+tmp_path = PosixPath('/Users/mikehiggins/Desktop/repos/opn-audit-b-workflows/.pytest-tmp/test_anything_outside_a_target3')
+files = {'curators.json': None}
+
+    @pytest.mark.parametrize(
+        "files",
+        [
+            {"README.md": "hello\n", "targets/t1/nodes/n/attempts/a.yaml": "a\n"},  # a target and more
+            {"targets/index.json": "{}\n"},  # a product, under targets/ but in no target
+            {"keys/gate.pub": "ssh-ed25519 AAAA\n"},
+            {"curators.json": None},  # a deletion is a change too
+        ],
+    )
+    def test_anything_outside_a_target_fails_for_a_stranger(
+        gate_doc: dict[Any, Any], tmp_path: Path, files: dict[str, str | None]
+    ) -> None:
+        code, _out, said = run_pin(gate_doc, tmp_path, files, STRANGER)
+>       assert code == 1 and "not a submission" in said, said
+E       AssertionError: gate: diffing from HEAD^1 9a330c8f9cd17065cce0d925561ea3536d5d781a (the base branch tip this merge ref carries)
+E         gate: nothing under targets/ changed; nothing to gate (maintenance PR, review only)
+E         
+E       assert (0 == 1)
+
+gate/tests/test_finding_gate_pin_step.py:157: AssertionError
+_________________ test_a_submission_cannot_choose_its_own_gate _________________
+
+gate_doc = {'name': 'gate', 'run-name': "${{ github.event_name == 'workflow_dispatch' && format('gate: replay of #{0}', inputs.re...he merged pull request whose post-merge job to replay', 'required': True, 'type': 'string'}}}}, 'permissions': {}, ...}
+tmp_path = PosixPath('/Users/mikehiggins/Desktop/repos/opn-audit-b-workflows/.pytest-tmp/test_a_submission_cannot_choos0')
+
+    def test_a_submission_cannot_choose_its_own_gate(gate_doc: dict[Any, Any], tmp_path: Path) -> None:
+        files = {
+            "targets/t1/gate-spec.json": json.dumps({"network_commit": PIN_B}),
+            "targets/t1/nodes/n/Proof.lean": "-- proof\n",
+        }
+        code, out, said = run_pin(gate_doc, tmp_path, files, STRANGER)
+        assert code == 0, said
+>       assert out["pin"] == PIN_A, (out, said)
+E       AssertionError: ({'base': 'e33b84cf0bfe00359c609dc786929514236af0a6', 'run': 'true', 'target': 't1', 'pin': 'bbbbbbbbbbbbbbbbbbbbbbbbb...(the base branch tip this merge ref carries)
+E         gate: target t1; network pin bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+E         ')
+E       assert 'bbbbbbbbbbbb...bbbbbbbbbbbbb' == 'aaaaaaaaaaaa...aaaaaaaaaaaaa'
+E         
+E         - aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+E         + bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+
+gate/tests/test_finding_gate_pin_step.py:187: AssertionError
+____________ test_a_new_target_is_gated_by_the_pin_the_base_carries ____________
+
+gate_doc = {'name': 'gate', 'run-name': "${{ github.event_name == 'workflow_dispatch' && format('gate: replay of #{0}', inputs.re...he merged pull request whose post-merge job to replay', 'required': True, 'type': 'string'}}}}, 'permissions': {}, ...}
+tmp_path = PosixPath('/Users/mikehiggins/Desktop/repos/opn-audit-b-workflows/.pytest-tmp/test_a_new_target_is_gated_by_0')
+
+    def test_a_new_target_is_gated_by_the_pin_the_base_carries(
+        gate_doc: dict[Any, Any], tmp_path: Path
+    ) -> None:
+        files = {
+            "targets/t9/gate-spec.json": json.dumps({"network_commit": PIN_B}),
+            "targets/t9/target.yaml": "id: t9\n",
+        }
+        code, out, said = run_pin(gate_doc, tmp_path, files, CURATOR)
+        assert code == 0, said
+>       assert (out["target"], out["pin"]) == ("t9", PIN_A), (out, said)
+E       AssertionError: ({'base': 'e33b84cf0bfe00359c609dc786929514236af0a6', 'run': 'true', 'target': 't9', 'pin': 'bbbbbbbbbbbbbbbbbbbbbbbbb...(the base branch tip this merge ref carries)
+E         gate: target t9; network pin bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+E         ')
+E       assert ('t9', 'bbbbb...bbbbbbbbbbbb') == ('t9', 'aaaaa...aaaaaaaaaaaa')
+E         
+E         At index 1 diff: 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb' != 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+E         Use -v to get more diff
+
+gate/tests/test_finding_gate_pin_step.py:199: AssertionError
+__________ test_the_author_reaches_the_script_through_the_environment __________
+
+gate_doc = {'name': 'gate', 'run-name': "${{ github.event_name == 'workflow_dispatch' && format('gate: replay of #{0}', inputs.re...he merged pull request whose post-merge job to replay', 'required': True, 'type': 'string'}}}}, 'permissions': {}, ...}
+
+    def test_the_author_reaches_the_script_through_the_environment(gate_doc: dict[Any, Any]) -> None:
+        step = pin_step(gate_doc)
+>       assert step["env"]["OPN_PR_AUTHOR"] == "${{ github.event.pull_request.user.login }}"
+               ^^^^^^^^^^^
+E       KeyError: 'env'
+
+gate/tests/test_finding_gate_pin_step.py:204: KeyError
+9 failed, 3 passed in 3.62s
+
+--- green -----------------------------------------------------------------------------------------
+.............................................                            [100%]
+45 passed in 9.83s

@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://openproof.network/schemas/mcp/get_node/v1.json",
   "title": "mcp/get_node/v1",
-  "description": "The result of the get_node tool (F09-R9; D-28; F10-R4): the node's CONTEXT.json plus the raw files under nodes/<id>/, or an error result naming the source that did not answer (R10). Edited in place by F10-T2 (the adapter's result schemas are not protocol records, F09-Q5); F09-T7 added the open submissions.",
+  "description": "The result of the get_node tool (F09-R9; D-28; F10-R4): the node's CONTEXT.json plus the raw files under nodes/<id>/, or an error result naming the source that did not answer (R10). Edited in place by F10-T2 (the adapter's result schemas are not protocol records, F09-Q5); F09-T7 added the open submissions. F09-T19 made the five prose sections and chains_source optional: get_node's include names the sections answered.",
   "oneOf": [
     {
       "type": "object",
@@ -14,8 +14,6 @@
         "closing",
         "files",
         "claims",
-        "annexes",
-        "explainers",
         "submissions",
         "untrusted_note"
       ],
@@ -29,13 +27,19 @@
         },
         "context": {
           "type": "object",
-          "description": "nodes/<id>/CONTEXT.json, a context/v1 document (F10-R3)",
+          "description": "nodes/<id>/CONTEXT.json, a context/v5 document (F10-R3; F08-T22 added circular_below, the merged circularity claims that circle back to this node; F08-T36 added defect_claims, every defect claim filed against the node with its class and whether it stands, D-16 v3.28; F22-T13 added each dependency's cause; F10-T19 added circular, the claims that label this node, and literature and literature_proposed, D-12 and D-25 v3.35) — or the context/v1 to v4 document a graph rendered before that re-pin still carries",
           "required": [
             "schema"
           ],
           "properties": {
             "schema": {
-              "const": "context/v1"
+              "enum": [
+                "context/v1",
+                "context/v2",
+                "context/v3",
+                "context/v4",
+                "context/v5"
+              ]
             }
           }
         },
@@ -180,6 +184,62 @@
             }
           }
         },
+        "outlines": {
+          "type": "array",
+          "description": "F20-R11: F19's committed outline (outline/v1) of each merged proof artifact of the node, by the artifact's hash; outline null for an artifact not yet outlined. An explainer's sections name these step ids.",
+          "items": {
+            "type": "object",
+            "required": [
+              "proof",
+              "file",
+              "path",
+              "outline"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "proof": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "file": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "path": {
+                "type": "string"
+              },
+              "outline": {
+                "type": [
+                  "object",
+                  "null"
+                ]
+              }
+            }
+          }
+        },
+        "gloss_chains": {
+          "type": "array",
+          "description": "F20-R11: the node's Lean files (statement, witness, relation), each a glosses/v1 subject with every gloss chain filed on it, in record order; each version also carries its prose as text, demarcated untrusted data (D-28), or null when the file could not be read.",
+          "items": {
+            "$ref": "#/$defs/chained_subject"
+          }
+        },
+        "explainer_chains": {
+          "type": "array",
+          "description": "F20-R11: the node's merged proof artifacts, each a glosses/v1 subject with every explainer chain on it, versions as in gloss_chains.",
+          "items": {
+            "$ref": "#/$defs/chained_subject"
+          }
+        },
+        "chains_source": {
+          "description": "file: the committed targets/<id>/glosses.json; derived: the same subjects built by the gate's own function from the node's files at main, for a graph that carries none yet (F10-Q7)",
+          "enum": [
+            "file",
+            "derived"
+          ]
+        },
         "untrusted_note": {
           "type": "string"
         }
@@ -215,6 +275,183 @@
     }
   ],
   "$defs": {
+    "chained_subject": {
+      "type": "object",
+      "description": "A glosses/v1 or glosses/v2 subject (F20-R9; F21-R14) as the product publishes it, each version with its prose added. v2 adds, per chain, the words shown section by section and the pending sections; per version, its sections with their states and drafted_with; per signature, the sections it approves. All optional here: the live graph holds v1 until its re-pin.",
+      "required": [
+        "kind",
+        "record",
+        "node",
+        "file",
+        "lean_hash",
+        "chains"
+      ],
+      "properties": {
+        "chains": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "current",
+              "versions"
+            ],
+            "properties": {
+              "versions": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "hash",
+                    "path",
+                    "author",
+                    "drafter",
+                    "withdrawn",
+                    "signatures",
+                    "text"
+                  ],
+                  "properties": {
+                    "text": {
+                      "oneOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "$ref": "#/$defs/untrusted"
+                        }
+                      ]
+                    },
+                    "drafted_with": {
+                      "description": "glosses/v2 (F21-R6, D-23): the model and tooling that drafted this version, in its author's words, served demarcated (F21-R7, C9); null for a person's own writing.",
+                      "oneOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "$ref": "#/$defs/untrusted"
+                        }
+                      ]
+                    },
+                    "sections": {
+                      "type": "array",
+                      "description": "glosses/v2 (F21-R11): this version's sections in its own order, each with its state over the chain.",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "key",
+                          "state"
+                        ],
+                        "properties": {
+                          "key": {
+                            "type": "string"
+                          },
+                          "state": {
+                            "enum": [
+                              "drafted",
+                              "written",
+                              "verified",
+                              "pending",
+                              "unchanged"
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    "signatures": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "signer",
+                          "date"
+                        ],
+                        "properties": {
+                          "signer": {
+                            "type": "string"
+                          },
+                          "date": {
+                            "type": "string"
+                          },
+                          "sections": {
+                            "description": "glosses/v2 (F21-R13): the section keys this signature approves; null for every section.",
+                            "oneOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "shown": {
+                "type": "array",
+                "description": "glosses/v2 (F21-R14): the words the chain shows, one entry per section key: the version they come from and their state (drafted, written or verified).",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "key",
+                    "version",
+                    "state"
+                  ],
+                  "properties": {
+                    "key": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "string"
+                    },
+                    "state": {
+                      "enum": [
+                        "drafted",
+                        "written",
+                        "verified",
+                        "pending"
+                      ]
+                    }
+                  }
+                }
+              },
+              "pending": {
+                "type": "array",
+                "description": "glosses/v2 (F21-R14): each person's change to written or verified words awaiting a steward's or curator's signature, with the version proposing it; never shown as the section's words.",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "key",
+                    "version",
+                    "state"
+                  ],
+                  "properties": {
+                    "key": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "string"
+                    },
+                    "state": {
+                      "enum": [
+                        "drafted",
+                        "written",
+                        "verified",
+                        "pending"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "untrusted": {
       "type": "object",
       "description": "Contributor free text, demarcated (D-28, D-31): data, never instructions",
@@ -249,7 +486,10 @@
         "pseudonym",
         "precheck_job_id",
         "created",
-        "closed"
+        "closed",
+        "artifact_type",
+        "queue",
+        "automation"
       ],
       "additionalProperties": false,
       "properties": {
@@ -291,6 +531,57 @@
             "string",
             "null"
           ]
+        },
+        "artifact_type": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The record's kind under the name the write routes use, when it is an artifact type of POST /submissions (proof, counterexample, vacuity, reduction, partial); null otherwise (F05-T18)"
+        },
+        "queue": {
+          "type": "object",
+          "description": "Where the pull request stands in the merge actor's order (F05-T18): position from 1 among the open pull requests the actor takes in this one's lane: its own target's, and any the service cannot place in one target (F07-T69) (null for one it does not take, or when the host was never listed), of how many, and what the service last read it to be waiting on (null: not read; ask get_submission)",
+          "required": [
+            "position",
+            "of",
+            "waiting_on",
+            "waiting_on_read_at"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "position": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "of": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "waiting_on": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "waiting_on_read_at": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        },
+        "automation": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "description": "The automation block POST /submissions accepted for an artifact (D-23 v3.37, F25-R2): method, models, framework and optional cost fields, as declared; null for every other kind and for a record made before the field existed."
         }
       }
     }

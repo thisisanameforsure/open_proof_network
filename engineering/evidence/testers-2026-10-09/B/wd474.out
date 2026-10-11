@@ -1,0 +1,64 @@
+  curl connect=75.145854 start=77.184080 total=77.187865
+  curl connect=0.166456 start=5.935344 total=5.935628
+[13:14:10Z] withdraw_submission http=200 83.2s
+{
+ "status": 200,
+ "body": {
+  "withdrawn": true,
+  "submission": {
+   "id": "01M4GCPMBGJ08E1PVGS8GVP6TX",
+   "kind": "defect-claim",
+   "node_id": "erdos-1094--h2--h2",
+   "target_id": "erdos-1094",
+   "pr_number": 474,
+   "pr_url": "https://github.com/thisisanameforsure/open_proof_network_graph/pull/474",
+   "pseudonym": "t1009-b",
+   "precheck_job_id": null,
+   "created": "2026-10-09T13:12:41Z",
+   "closed": "2026-10-09T13:14:09Z",
+   "artifact_type": null
+  },
+  "pull_request": {
+   "waiting_on": null,
+   "number": 474,
+   "url": "https://github.com/thisisanameforsure/open_proof_network_graph/pull/474",
+   "state": "closed",
+   "merged": false,
+   "mergeable_state": "unknown",
+   "head_sha": "1ccda242e6054c656e289ded5f02e1768906ce40",
+   "merge_commit_sha": "9b8b4ff4dc56afcf64aa56b4d28ed95b97252a28",
+   "runs": [
+    {
+     "name": "gate",
+     "status": "in_progress",
+     "conclusion": null,
+     "url": "https://github.com/thisisanameforsure/open_proof_network_graph/actions/runs/37935230057",
+     "jobs": [
+      {
+       "name": "gate (steps 1, 2 and 4-8 in the sandbox)",
+       "status": "in_progress",
+       "conclusion": null
+      },
+      {
+       "name": "postmerge (step 9 record, gate signature, attestation commit)",
+       "status": "completed",
+       "conclusion": "skipped"
+      },
+      {
+       "name": "proof outlines for a merge that built (F19-R6), after its record is pushed",
+       "status": "completed",
+       "conclusion": "skipped"
+      },
+      {
+       "name": "olean cache for a merge that built (F10-R7), after its record is pushed",
+       "status": "completed",
+       "conclusion": "skipped"
+      }
+     ]
+    }
+   ],
+   "reviews": []
+  },
+  "branch_deleted": true
+ }
+}

@@ -1,0 +1,253 @@
+F07-T48 — a hole is closed over the earlier holes it mentions, not every hole in scope (D-29,
+F11-Q22 revisited). Finding: bugs.md item 4, three testers 2026-09-27, live on
+erdos-1050--h1-v2--h4 (`have hrem : … := by clear hden; sorry` still inherited `hden`; its
+witness carried the 845-line proof of hden and the same proof merged twice).
+
+Toolchain: leanprover/lean4:v4.33.1, linked from the GitHub release zip into elan 4.2.4
+(the container refuses elan's own host and ghcr). `cd gate/lean && lake build`: 40 jobs, ok.
+
+## probe: what `clear h` compiles to, and what a later hole inherits (before any change)
+
+`clear hden` inside a hole's `by` block assigns the goal to a fresh metavariable whose local
+context lacks `hden`; the hole's value is `sorryAx T _` either way and the assembly's later
+uses of `hden` are untouched (the live skeleton uses `hden` after `hrem`, lines 41-62 of
+20260924T123718Z-h0924-1050-http-partial.lean). The term records nothing: the hole's own type
+is the only thing that can say what it needs.
+
+Throwaway probe test (deleted after the run) through pipeline.run_submission on the
+propositional fixture root `and-swap-reassoc`, body:
+
+  intro p q r h
+  have h3 : ∃ x : Nat, 0 < x := sorry
+  have h4 : q ∧ p := sorry
+  have h5 : 0 < Classical.choose h3 := sorry
+  obtain ⟨c, hc⟩ : ∃ c : Nat, c = Classical.choose h3 := ⟨_, rfl⟩
+  have h6 : 0 < c := sorry
+  exact ⟨h.2, h4⟩
+
+$ uv run --frozen pytest gate/tests/test_probe_t48_tmp.py -m lean -q -p no:cacheprovider -s
+verdict: pass
+hole h3: closed_type = '∀ (p q r : Prop), (p ∧ q) ∧ r → ∃ (x : Nat), (0 : Nat) < x'
+  arrows+foralls=2 proved_binders=[] roundtrip=True expected_witness='∃ (p : Prop), ∃ (q : Prop), ∃ (r : Prop), (p ∧ q) ∧ r'
+hole h4: closed_type = '∀ (p q r : Prop), (p ∧ q) ∧ r → (∃ (x : Nat), (0 : Nat) < x) → q ∧ p'
+  arrows+foralls=3 proved_binders=[] roundtrip=True expected_witness='∃ (p : Prop), ∃ (q : Prop), ∃ (r : Prop), ((p ∧ q) ∧ r) ∧ ∃ (x : Nat), (0 : Nat) < x'
+hole h5: closed_type = '∀ (p q r : Prop), (p ∧ q) ∧ r → ∀ (h3 : ∃ (x : Nat), (0 : Nat) < x), q ∧ p → (0 : Nat) < Classical.choose h3'
+  arrows+foralls=4 proved_binders=[] roundtrip=True expected_witness='∃ (p : Prop), ∃ (q : Prop), ∃ (r : Prop), ((p ∧ q) ∧ r) ∧ (∃ (x : Nat), (0 : Nat) < x) ∧ q ∧ p'
+hole h6: closed_type = '∀ (p q r : Prop),\n  (p ∧ q) ∧ r →\n    ∀ (h3 : ∃ (x : Nat), (0 : Nat) < x),\n      q ∧ p → (0 : Nat) < Classical.choose h3 → ∀ (c : Nat), c = Classical.choose h3 → (0 : Nat) < c'
+  arrows+foralls=7 proved_binders=[7, 8] roundtrip=True expected_witness='∃ (p : Prop),\n  ∃ (q : Prop),\n    ∃ (r : Prop), ∃ (h3 : ∃ (x : Nat), (0 : Nat) < x), ((p ∧ q) ∧ r) ∧ (q ∧ p) ∧ (0 : Nat) < Classical.choose h3'
+.
+1 passed in 76.32s (0:01:16)
+
+The defect, in the numbers: h4 is closed over 3 binder groups where its type reaches 2 (it
+carries h3 as `(∃ x, 0 < x) →`); h5 carries h4 (`q ∧ p →`); h6 carries h4 and h5 and reports
+its proved fields at 7 and 8. Every closed type round-trips, so nothing was red.
+
+## red run — 2026-10-01T04:40Z (UTC), before any change to Holes.lean
+
+$ uv run --frozen pytest gate/tests/test_finding_hole_inherits_lean.py -m lean -q -p no:cacheprovider
+.FFF.FFF.                                                                [100%]
+=================================== FAILURES ===================================
+_____________ test_a_hole_is_closed_over_the_holes_it_mentions[h4] _____________
+
+holes = {'h3': {'name': 'h3', 'type': '∃ (x : Nat), (0 : Nat) < x', 'closed_type': '∀ (p q r : Prop), (p ∧ q) ∧ r → ∃ (x : Nat...p → (0 : Nat) < Classical.choose h3 → ∀ (c : Nat), c = Classical.choose h3 → (0 : Nat) < c', 'defeq_goal': False, ...}}
+name = 'h4'
+
+    @pytest.mark.parametrize("name", ["h3", "h4", "h5", "h6"])
+    def test_a_hole_is_closed_over_the_holes_it_mentions(
+        holes: dict[str, dict[str, object]], name: str
+    ) -> None:
+        """The closed type carries an earlier hole only when the hole's type reaches it."""
+        hole = holes[name]
+>       assert one_line(str(hole["closed_type"])) == CLOSED[name], hole
+E       AssertionError: {'name': 'h4', 'type': 'q ∧ p', 'closed_type': '∀ (p q r : Prop), (p ∧ q) ∧ r → (∃ (x : Nat), (0 : Nat) < x) → q ∧ p', 'defeq_goal': False, ...}
+E       assert '∀ (p q r : P... < x) → q ∧ p' == '∀ (p q r : P...) ∧ r → q ∧ p'
+E         
+E         - ∀ (p q r : Prop), (p ∧ q) ∧ r → q ∧ p
+E         + ∀ (p q r : Prop), (p ∧ q) ∧ r → (∃ (x : Nat), (0 : Nat) < x) → q ∧ p
+
+gate/tests/test_finding_hole_inherits_lean.py:110: AssertionError
+_____________ test_a_hole_is_closed_over_the_holes_it_mentions[h5] _____________
+
+holes = {'h3': {'name': 'h3', 'type': '∃ (x : Nat), (0 : Nat) < x', 'closed_type': '∀ (p q r : Prop), (p ∧ q) ∧ r → ∃ (x : Nat...p → (0 : Nat) < Classical.choose h3 → ∀ (c : Nat), c = Classical.choose h3 → (0 : Nat) < c', 'defeq_goal': False, ...}}
+name = 'h5'
+
+    @pytest.mark.parametrize("name", ["h3", "h4", "h5", "h6"])
+    def test_a_hole_is_closed_over_the_holes_it_mentions(
+        holes: dict[str, dict[str, object]], name: str
+    ) -> None:
+        """The closed type carries an earlier hole only when the hole's type reaches it."""
+        hole = holes[name]
+>       assert one_line(str(hole["closed_type"])) == CLOSED[name], hole
+E       AssertionError: {'name': 'h5', 'type': '(0 : Nat) < Classical.choose h3', 'closed_type': '∀ (p q r : Prop), (p ∧ q) ∧ r → ∀ (h3 : ∃ (x : Nat), (0 : Nat) < x), q ∧ p → (0 : Nat) < Classical.choose h3', 'defeq_goal': False, ...}
+E       assert '∀ (p q r : P...cal.choose h3' == '∀ (p q r : P...cal.choose h3'
+E         
+E         Skipping 59 identical leading characters in diff, use -v to show
+E         - at) < x), (0 : Nat) < Classical.choose h3
+E         + at) < x), q ∧ p → (0 : Nat) < Classical.choose h3
+E         ?           ++++++++
+
+gate/tests/test_finding_hole_inherits_lean.py:110: AssertionError
+_____________ test_a_hole_is_closed_over_the_holes_it_mentions[h6] _____________
+
+holes = {'h3': {'name': 'h3', 'type': '∃ (x : Nat), (0 : Nat) < x', 'closed_type': '∀ (p q r : Prop), (p ∧ q) ∧ r → ∃ (x : Nat...p → (0 : Nat) < Classical.choose h3 → ∀ (c : Nat), c = Classical.choose h3 → (0 : Nat) < c', 'defeq_goal': False, ...}}
+name = 'h6'
+
+    @pytest.mark.parametrize("name", ["h3", "h4", "h5", "h6"])
+    def test_a_hole_is_closed_over_the_holes_it_mentions(
+        holes: dict[str, dict[str, object]], name: str
+    ) -> None:
+        """The closed type carries an earlier hole only when the hole's type reaches it."""
+        hole = holes[name]
+>       assert one_line(str(hole["closed_type"])) == CLOSED[name], hole
+E       AssertionError: {'name': 'h6', 'type': '(0 : Nat) < c', 'closed_type': '∀ (p q r : Prop),
+E           (p ∧ q) ∧ r →
+E             ∀ (h3 : ∃ (x : Nat), (... p → (0 : Nat) < Classical.choose h3 → ∀ (c : Nat), c = Classical.choose h3 → (0 : Nat) < c', 'defeq_goal': False, ...}
+E       assert '∀ (p q r : P...(0 : Nat) < c' == '∀ (p q r : P...(0 : Nat) < c'
+E         
+E         Skipping 57 identical leading characters in diff, use -v to show
+E         -  Nat) < x) (c : Nat), c = Classical.choose h3 → (0 : Nat) < c
+E         +  Nat) < x), q ∧ p → (0 : Nat) < Classical.choose h3 → ∀ (c : Nat), c = Classical.choose h3 → (0 : Nat) < c
+
+gate/tests/test_finding_hole_inherits_lean.py:110: AssertionError
+______ test_the_witness_and_the_proved_indices_follow_the_closed_type[h4] ______
+
+holes = {'h3': {'name': 'h3', 'type': '∃ (x : Nat), (0 : Nat) < x', 'closed_type': '∀ (p q r : Prop), (p ∧ q) ∧ r → ∃ (x : Nat...p → (0 : Nat) < Classical.choose h3 → ∀ (c : Nat), c = Classical.choose h3 → (0 : Nat) < c', 'defeq_goal': False, ...}}
+name = 'h4'
+
+    @pytest.mark.parametrize("name", ["h3", "h4", "h5", "h6"])
+    def test_the_witness_and_the_proved_indices_follow_the_closed_type(
+        holes: dict[str, dict[str, object]], name: str
+    ) -> None:
+        """Step 7's expected type and ``proved_binders`` (F07-T44) index the closed type as reported,
+        so dropping a hole moves the indices of the binders after it."""
+        hole = holes[name]
+>       assert one_line(str(hole["expected_witness"])) == WITNESS[name], hole
+E       AssertionError: {'name': 'h4', 'type': 'q ∧ p', 'closed_type': '∀ (p q r : Prop), (p ∧ q) ∧ r → (∃ (x : Nat), (0 : Nat) < x) → q ∧ p', 'defeq_goal': False, ...}
+E       assert '∃ (p : Prop)...(0 : Nat) < x' == '∃ (p : Prop)..., (p ∧ q) ∧ r'
+E         
+E         Skipping 33 identical leading characters in diff, use -v to show
+E         - : Prop), (p ∧ q) ∧ r
+E         + : Prop), ((p ∧ q) ∧ r) ∧ ∃ (x : Nat), (0 : Nat) < x
+
+gate/tests/test_finding_hole_inherits_lean.py:121: AssertionError
+______ test_the_witness_and_the_proved_indices_follow_the_closed_type[h5] ______
+
+holes = {'h3': {'name': 'h3', 'type': '∃ (x : Nat), (0 : Nat) < x', 'closed_type': '∀ (p q r : Prop), (p ∧ q) ∧ r → ∃ (x : Nat...p → (0 : Nat) < Classical.choose h3 → ∀ (c : Nat), c = Classical.choose h3 → (0 : Nat) < c', 'defeq_goal': False, ...}}
+name = 'h5'
+
+    @pytest.mark.parametrize("name", ["h3", "h4", "h5", "h6"])
+    def test_the_witness_and_the_proved_indices_follow_the_closed_type(
+        holes: dict[str, dict[str, object]], name: str
+    ) -> None:
+        """Step 7's expected type and ``proved_binders`` (F07-T44) index the closed type as reported,
+        so dropping a hole moves the indices of the binders after it."""
+        hole = holes[name]
+>       assert one_line(str(hole["expected_witness"])) == WITNESS[name], hole
+E       AssertionError: {'name': 'h5', 'type': '(0 : Nat) < Classical.choose h3', 'closed_type': '∀ (p q r : Prop), (p ∧ q) ∧ r → ∀ (h3 : ∃ (x : Nat), (0 : Nat) < x), q ∧ p → (0 : Nat) < Classical.choose h3', 'defeq_goal': False, ...}
+E       assert '∃ (p : Prop)... < x) ∧ q ∧ p' == '∃ (p : Prop)..., (p ∧ q) ∧ r'
+E         
+E         - ∃ (p : Prop), ∃ (q : Prop), ∃ (r : Prop), ∃ (h3 : ∃ (x : Nat), (0 : Nat) < x), (p ∧ q) ∧ r
+E         ?                                            --------                          ^^^ ---------
+E         + ∃ (p : Prop), ∃ (q : Prop), ∃ (r : Prop), ((p ∧ q) ∧ r) ∧ (∃ (x : Nat), (0 : Nat) < x) ∧ q ∧ p
+E         ?                                           +++++++++++++++++                           ^^^^^^^
+
+gate/tests/test_finding_hole_inherits_lean.py:121: AssertionError
+______ test_the_witness_and_the_proved_indices_follow_the_closed_type[h6] ______
+
+holes = {'h3': {'name': 'h3', 'type': '∃ (x : Nat), (0 : Nat) < x', 'closed_type': '∀ (p q r : Prop), (p ∧ q) ∧ r → ∃ (x : Nat...p → (0 : Nat) < Classical.choose h3 → ∀ (c : Nat), c = Classical.choose h3 → (0 : Nat) < c', 'defeq_goal': False, ...}}
+name = 'h6'
+
+    @pytest.mark.parametrize("name", ["h3", "h4", "h5", "h6"])
+    def test_the_witness_and_the_proved_indices_follow_the_closed_type(
+        holes: dict[str, dict[str, object]], name: str
+    ) -> None:
+        """Step 7's expected type and ``proved_binders`` (F07-T44) index the closed type as reported,
+        so dropping a hole moves the indices of the binders after it."""
+        hole = holes[name]
+>       assert one_line(str(hole["expected_witness"])) == WITNESS[name], hole
+E       AssertionError: {'name': 'h6', 'type': '(0 : Nat) < c', 'closed_type': '∀ (p q r : Prop),
+E           (p ∧ q) ∧ r →
+E             ∀ (h3 : ∃ (x : Nat), (... p → (0 : Nat) < Classical.choose h3 → ∀ (c : Nat), c = Classical.choose h3 → (0 : Nat) < c', 'defeq_goal': False, ...}
+E       assert '∃ (p : Prop)...cal.choose h3' == '∃ (p : Prop)..., (p ∧ q) ∧ r'
+E         
+E         Skipping 70 identical leading characters in diff, use -v to show
+E         - t) < x), (p ∧ q) ∧ r
+E         + t) < x), ((p ∧ q) ∧ r) ∧ (q ∧ p) ∧ (0 : Nat) < Classical.choose h3
+
+gate/tests/test_finding_hole_inherits_lean.py:121: AssertionError
+=========================== short test summary info ============================
+FAILED gate/tests/test_finding_hole_inherits_lean.py::test_a_hole_is_closed_over_the_holes_it_mentions[h4]
+FAILED gate/tests/test_finding_hole_inherits_lean.py::test_a_hole_is_closed_over_the_holes_it_mentions[h5]
+FAILED gate/tests/test_finding_hole_inherits_lean.py::test_a_hole_is_closed_over_the_holes_it_mentions[h6]
+FAILED gate/tests/test_finding_hole_inherits_lean.py::test_the_witness_and_the_proved_indices_follow_the_closed_type[h4]
+FAILED gate/tests/test_finding_hole_inherits_lean.py::test_the_witness_and_the_proved_indices_follow_the_closed_type[h5]
+FAILED gate/tests/test_finding_hole_inherits_lean.py::test_the_witness_and_the_proved_indices_follow_the_closed_type[h6]
+6 failed, 3 passed in 87.87s (0:01:27)
+
+(6 failed, 3 passed: every failure is a closed type or an expected witness carrying an earlier
+hole the type does not mention; h3 and the statement-binder test pass before the change.)
+
+## green — after the change (Holes.lean: `Local`, `closedOver`; T44 fixture restated so `second` states `first` as its premise)
+
+First run of the new file alone (2026-10-01T04:40Z): 8 passed, 1 failed on my own guess at
+h5's expected witness — step 7 (F07-R21) exhibits a Prop binder no later binder mentions as a
+conjunct, so a hole that keeps h3 by name is asked for `… ∧ ∃ x, 0 < x`; the test now says so.
+
+$ uv run --frozen pytest gate/tests/test_finding_hole_inherits_lean.py gate/tests/test_finding_witness_proved_haves_lean.py gate/tests/test_finding_hole_roundtrip_lean.py gate/tests/test_artifacts_lean.py -m lean -q -p no:cacheprovider
+2026-10-01T04:42:42Z
+................F.                                                       [100%]
+=================================== FAILURES ===================================
+__________________________ test_artifact_types_golden __________________________
+
+bench = <gate.tests.test_artifacts_lean.Bench object at 0x7f2e53891a90>
+
+    def test_artifact_types_golden(bench: Bench) -> None:
+        """AC20: every fixture's type, holes and verdict, byte for byte against the golden."""
+>       assert observed(bench) == json.loads(GOLDEN.read_text(encoding="utf-8"))
+E       AssertionError: assert {'Proof': {'k...q', ...}, ...} == {'Proof': {'k...q', ...}, ...}
+E         
+E         Omitting 9 identical items, use -vv to show
+E         Differing items:
+E         {'Partial': {'kind': 'partial', 'decl': 'OpnProp.and_swap', 'expected': '∀ (p q : Prop), p ∧ q → q ∧ p', 'declared': '∀ (p q : Prop), p ∧ q → q ∧ p', ...}} != {'Partial': {'kind': 'partial', 'decl': 'OpnProp.and_swap', 'expected': '∀ (p q : Prop), p ∧ q → q ∧ p', 'declared': '∀ (p q : Prop), p ∧ q → q ∧ p', ...}}
+E         Use -v to get more diff
+
+gate/tests/test_artifacts_lean.py:127: AssertionError
+=========================== short test summary info ============================
+FAILED gate/tests/test_artifacts_lean.py::test_artifact_types_golden - Assert...
+1 failed, 17 passed in 320.29s (0:05:20)
+exit=1
+
+17 passed; the one failure is the artifact-types golden, where `left` inherited `right`.
+Regenerated with its own writer (test_artifacts_lean.write_golden); exactly two lines moved:
+
+diff --git a/gate/tests/golden/artifact-types.json b/gate/tests/golden/artifact-types.json
+index 2a5d5b0..1411334 100644
+--- a/gate/tests/golden/artifact-types.json
++++ b/gate/tests/golden/artifact-types.json
+@@ -84,12 +84,12 @@
+       {
+         "name": "left",
+         "type": "p",
+-        "closed_type": "∀ (p q : Prop), p ∧ q → q → p",
++        "closed_type": "∀ (p q : Prop), p ∧ q → p",
+         "defeq_goal": false,
+         "defeq_sibling": null,
+         "defeq_ancestor": null,
+         "closed_roundtrip": true,
+-        "expected_witness": "∃ (p : Prop), ∃ (q : Prop), (p ∧ q) ∧ q",
++        "expected_witness": "∃ (p : Prop), ∃ (q : Prop), p ∧ q",
+         "proved_binders": []
+       }
+     ],
+
+## fast tier, lint, types — after both T48 and T9 landed in the tree (2026-10-01T04:52Z)
+
+$ uv run --frozen pytest gate/tests -m "not lean and not docker and not network" -q -p no:cacheprovider
+1607 passed, 115 skipped, 117 deselected, 2 warnings in 75.72s (0:01:15)
+(the 115 skips are the sibling graph checkout's docs, not present beside this worktree)
+
+$ uv run --frozen ruff check . && uv run --frozen ruff format --check .
+All checks passed! / 513 files already formatted
+
+$ uv run --frozen mypy gate
+Success: no issues found in 225 source files

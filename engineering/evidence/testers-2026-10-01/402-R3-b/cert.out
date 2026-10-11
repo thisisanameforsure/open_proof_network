@@ -1,0 +1,6 @@
+n in 10..100: open (not p, not p+1): 49; pair criterion fails on 14 (28.6%); shape-certificate failures (all n): [27, 65]
+   open n<=100 where pair fails: [15, 21, 27, 28, 34, 35, 40, 45, 49, 63, 64, 65, 75, 96]
+n in 10..1000: open (not p, not p+1): 663; pair criterion fails on 42 (6.3%); shape-certificate failures (all n): [27, 65]
+n in 10..7000: open (not p, not p+1): 5199; pair criterion fails on 43 (0.8%); shape-certificate failures (all n): [27, 65]
+n in 10..50000: open (not p, not p+1): 39733; pair criterion fails on 43 (0.1%)
+n in 10..200000: open (not p, not p+1): 164031; pair criterion fails on 43 (0.0%)

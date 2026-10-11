@@ -1,0 +1,257 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openproof.network/schemas/policy/v3.json",
+  "title": "policy/v3",
+  "description": "policy.json at the graph root (F24-R1; D-32 v3.34): every number the steward panel runs on, each with the day it was set and why, so the network can learn what works and change one value by one visible curator pull request. A change applies from the next motion opened, never to one in progress. Absent, or an older version, every panel setting takes the default its description names. Versioned, never edited (D-34).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "steward_rule",
+    "steward_admission",
+    "panel"
+  ],
+  "properties": {
+    "schema": {
+      "const": "policy/v3"
+    },
+    "steward_rule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "enforced",
+        "since",
+        "evidence"
+      ],
+      "properties": {
+        "enforced": {
+          "description": "Whether an open-track target with no active steward refuses claims (F15-R4; D-6 v3.17).",
+          "type": "boolean"
+        },
+        "since": {
+          "description": "The day the current state was set.",
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/day"
+            }
+          ]
+        },
+        "evidence": {
+          "description": "What justified the current state: for enforcement, the calibration record (Stages v3.17).",
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 500
+            }
+          ]
+        }
+      }
+    },
+    "steward_admission": {
+      "description": "How a steward record is admitted (D-32 v3.33).",
+      "enum": [
+        "open",
+        "reviewed"
+      ]
+    },
+    "panel": {
+      "description": "The steward panel's settings (D-32 v3.34). Each is {value, since, reason}.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "vote_threshold",
+        "vote_window_days",
+        "vote_minimum",
+        "vote_minimum_from",
+        "steward_cap",
+        "steward_lapse_days"
+      ],
+      "properties": {
+        "vote_threshold": {
+          "description": "The share of counted votes a motion needs. It passes when yes votes are at least numerator/denominator of the counted votes AND more than the no votes, so a tie never passes. 1/2 is a simple majority; 2/3 a two-thirds majority. Default 1/2.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "value",
+            "since",
+            "reason"
+          ],
+          "properties": {
+            "value": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "numerator",
+                "denominator"
+              ],
+              "properties": {
+                "numerator": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 100
+                },
+                "denominator": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 100
+                }
+              }
+            },
+            "since": {
+              "$ref": "#/$defs/day"
+            },
+            "reason": {
+              "description": "Why the value was set to this, in a sentence: the evidence or ruling behind it.",
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 500
+            }
+          }
+        },
+        "vote_window_days": {
+          "description": "How many days a motion stays open for votes after the day it was opened. Only votes cast inside the window count; a steward who does not vote counts neither way. Default 14.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "value",
+            "since",
+            "reason"
+          ],
+          "properties": {
+            "value": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 365
+            },
+            "since": {
+              "$ref": "#/$defs/day"
+            },
+            "reason": {
+              "description": "Why the value was set to this, in a sentence: the evidence or ruling behind it.",
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 500
+            }
+          }
+        },
+        "vote_minimum": {
+          "description": "The fewest counted votes a motion needs to pass once the panel has at least vote_minimum_from members, so one voice cannot speak for a large silent panel. Default 2.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "value",
+            "since",
+            "reason"
+          ],
+          "properties": {
+            "value": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
+            },
+            "since": {
+              "$ref": "#/$defs/day"
+            },
+            "reason": {
+              "description": "Why the value was set to this, in a sentence: the evidence or ruling behind it.",
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 500
+            }
+          }
+        },
+        "vote_minimum_from": {
+          "description": "The panel size from which vote_minimum applies. Below it, one counted vote can pass a motion. Default 3.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "value",
+            "since",
+            "reason"
+          ],
+          "properties": {
+            "value": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
+            },
+            "since": {
+              "$ref": "#/$defs/day"
+            },
+            "reason": {
+              "description": "Why the value was set to this, in a sentence: the evidence or ruling behind it.",
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 500
+            }
+          }
+        },
+        "steward_cap": {
+          "description": "The most problems one person may steward at once, counted across the graph without lapsed stewardships, so no one can take every problem. Default 5.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "value",
+            "since",
+            "reason"
+          ],
+          "properties": {
+            "value": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000
+            },
+            "since": {
+              "$ref": "#/$defs/day"
+            },
+            "reason": {
+              "description": "Why the value was set to this, in a sentence: the evidence or ruling behind it.",
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 500
+            }
+          }
+        },
+        "steward_lapse_days": {
+          "description": "Days without a signed act on a problem (a steward record, a motion, a vote, a write-up record, a words signature) after which a steward lapses from its panel. Nothing is rewritten; they rejoin by the usual route. Default 183, about six months.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "value",
+            "since",
+            "reason"
+          ],
+          "properties": {
+            "value": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 3650
+            },
+            "since": {
+              "$ref": "#/$defs/day"
+            },
+            "reason": {
+              "description": "Why the value was set to this, in a sentence: the evidence or ruling behind it.",
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 500
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "day": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+    }
+  }
+}

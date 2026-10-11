@@ -1,0 +1,7 @@
+# F09-T21 (R9, Q20): every input parameter described; the frontier filters name their fields. 2026-10-06
+$ uv run --frozen pytest api/tests/test_finding_mcp_context_budget.py -k "parameter or filters"
+2 passed, 14 deselected, 2 warnings in 0.53s
+$ uv run --frozen pytest api/tests -k "mcp or renames or tooling or frontier or schema_versions"
+191 passed, 1336 deselected, 2 xfailed, 2 warnings in 9.46s
+$ input schemas of the 37 tools, compact JSON (the cost of the descriptions)
+15102 chars; 11177 at network ef94102 (79 parameters, 45 undescribed), measured from a detached worktree

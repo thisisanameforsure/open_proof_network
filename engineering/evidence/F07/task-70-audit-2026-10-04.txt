@@ -1,0 +1,83 @@
+F07-T70 and F09-T17 (audit 2026-10-04; the owner approved GET /submissions/mine (bearer) and the
+MCP tools get_my_submissions and get_check).
+
+What changed
+- GET /submissions/mine (pending.get_my_submissions, authenticated, no D-35 row, feature F07),
+  registered before GET /submissions/{submission_id} (which refused "mine" as an id with 400
+  submission-id-invalid). Answer: {pseudonym, snapshot_at, open, recent, host}. `open` is the
+  caller's entries of GET /submissions.json exactly (record + queue, lane-relative per T69,
+  reconciled against the same host listing); `recent` is the MAX_RECENT_MINE (20) most recently
+  finished records, newest first by (closed, pr_number), each the record plus `state`
+  (merged|closed from the final state the closing read found). Matched by pseudonym,
+  case-insensitively; another identity's records never appear.
+- Store: list_submissions_by(pseudonym). DynamoDB keeps a per-pseudonym string set
+  `submissionsby#<pseudonym lower>` (atomic ADD, like the open index), no TTL; the memory store
+  a dict of sets. Records written before the index existed join it when next written (closing a
+  record re-puts it), so an old record already closed before the deploy is not in `recent`;
+  open ones are always found through the open listing. The layout test is restated (four keys).
+- MCP: get_my_submissions (GET /submissions/mine) and get_check(check_id) (GET /checks/{check_id};
+  check_id validated as a 26-char ULID; the route's 404 check-unknown for anyone else's record
+  passes through), both reads with access="bearer"; result schemas mcp/get_my_submissions/v1 and
+  mcp/get_check/v1; bijection rows; server instructions name both among the token reads.
+- docs/architecture_decisions.html: two D-28 read-table rows and a "Notation note, 2026-10-04"
+  (no decision changes), because test_mcp_surface::test_d28_rows_verbatim requires every
+  bijection row's plain path to appear in D-28/D-35. The lead should check this against the
+  other agent's list_error_codes row, which needs the same.
+- Restated, not deleted: api/tests/test_routes.py::test_f07_routes_are_authenticated_writes
+  (F07's reads are now three; /submissions/mine is the authenticated one) and
+  api/tests/test_pending_submissions.py layout test (three prefixes -> four).
+
+Proposed ledger lines
+- F07: T70 ✓ (audit 2026-10-04) GET /submissions/mine; verification
+  `uv run --frozen pytest api/tests/test_finding_submissions_mine.py`.
+- F09: T17 ✓ (audit 2026-10-04) get_my_submissions and get_check tools; same verification, plus
+  api/tests/test_mcp_surface.py.
+
+Proposed Q entry (F07-Q-next): "An agent's own submissions, by token (T70, audit 2026-10-04; the
+owner's approval). A lost receipt lost the pull request: /submissions.json lists only open ones
+and names no caller. GET /submissions/mine is /claims/mine's twin: the caller's open entries,
+exactly as the listing gives them, and the twenty most recently finished with how each ended.
+Finished records are found through a per-pseudonym id set in the tokens table; a record closed
+before the set existed is not listed. Reversal: the route row, pending.mine, and the index."
+Proposed Q entry (F09-Q-next): "get_check is the tool for GET /checks/<id> (F13-R10), which had no
+tool; get_my_submissions for GET /submissions/mine. Both are bearer reads under the 2026-09-24
+rule: a read may need a token only when what it reads is the caller's own."
+
+--- red (before the route and tools existed) ---
+E       AssertionError: {"error":"submission-id-invalid","message":"a submission id is the ULID POST /submissions answered or the pull-request number"}
+E       assert 400 == 200
+E        +  where 400 = <Response [400 Bad Request]>.status_code
+E       AssertionError: {"error":"submission-id-invalid","message":"a submission id is the ULID POST /submissions answered or the pull-request number"}
+E       assert 400 == 200
+E        +  where 400 = <Response [400 Bad Request]>.status_code
+E       AssertionError: {"error":"submission-id-invalid","message":"a submission id is the ULID POST /submissions answered or the pull-request number"}
+E       assert 400 == 200
+E        +  where 400 = <Response [400 Bad Request]>.status_code
+E       AssertionError: {"error":"submission-id-invalid","message":"a submission id is the ULID POST /submissions answered or the pull-request number"}
+E       assert 400 == 200
+E        +  where 400 = <Response [400 Bad Request]>.status_code
+E       AssertionError: {"error":"submission-id-invalid","message":"a submission id is the ULID POST /submissions answered or the pull-request number"}
+E       assert 400 == 200
+E        +  where 400 = <Response [400 Bad Request]>.status_code
+E       AssertionError: {"error":"submission-id-invalid","message":"a submission id is the ULID POST /submissions answered or the pull-request number"}
+E       assert 400 == 401
+E        +  where 400 = <Response [400 Bad Request]>.status_code
+E       AssertionError: GET /submissions/mine is not in the routes table
+E       assert None is not None
+E       AssertionError: {'error': 'tool-unknown', 'message': 'no such tool get_my_submissions', 'source': 'adapter'}
+E       assert not True
+E        +  where True = CallToolResult(meta=None, content=[TextContent(type='text', text='{\n  "error": "tool-unknown",\n  "message": "no such...uredContent={'error': 'tool-unknown', 'message': 'no such tool get_my_submissions', 'source': 'adapter'}, isError=True).isError
+E       AssertionError: {'error': 'tool-unknown', 'message': 'no such tool get_my_submissions', 'source': 'adapter'}
+E       assert ('tool-unknown' == 'unauthenticated'
+E         
+E         - unauthenticated
+E         + tool-unknown)
+E       AssertionError: {'error': 'tool-unknown', 'message': 'no such tool get_check', 'source': 'adapter'}
+E       assert not True
+E        +  where True = CallToolResult(meta=None, content=[TextContent(type='text', text='{\n  "error": "tool-unknown",\n  "message": "no such...], structuredContent={'error': 'tool-unknown', 'message': 'no such tool get_check', 'source': 'adapter'}, isError=True).isError
+E           AssertionError: get_my_submissions is not declared
+E           assert None is not None
+11 failed, 2 warnings in 0.72s
+
+--- green ---
+142 passed, 2 warnings in 5.21s

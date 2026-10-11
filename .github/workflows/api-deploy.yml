@@ -10,7 +10,7 @@ on:
     branches: [main]
     paths:
       - "api/**"
-      - "gate/opn_gate/schemas.py"
+      - "gate/opn_gate/**"  # every gate module the service imports (test_finding_deploy_paths_cover_imports)
       - "gate/schemas/**"
       - "gate/hosted-checkers.yaml"  # F13: POST /check reads it at runtime
       - "gate/lean/OpnGate/WitnessType.lean"  # F13-T14: mode witness sends the gate's own program
@@ -18,8 +18,7 @@ on:
       - "gate/lean/OpnGate/Hazards.lean"  # F13-T20: mode hazards sends step 6's own checkers
       - "gate/lean/OpnGate/Hazards/**"
       - "gate/lean/OpnGate/HazardsMain.lean"  # F13-T20: its registry of checkers
-      - "gate/opn_gate/steps/hazards.py"  # F13-T20: the matching of findings to acknowledgments
-      - "gate/opn_gate/hosted.py"
+      - "site/opn_site/*.py"  # F22-T5: a dry run's preview_html is the site's prose renderer
       - "pyproject.toml"
       - "uv.lock"
       - ".github/workflows/api-deploy.yml"
@@ -41,9 +40,9 @@ jobs:
   deploy:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
 
-      - uses: astral-sh/setup-uv@v10.0.1
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d  # v10.0.1
         with:
           version: ${{ env.UV_VERSION }}
 
@@ -62,6 +61,11 @@ jobs:
             -r build/requirements.txt
           cp -R api/opn_api build/package/
           cp -R gate/opn_gate build/package/
+          # F22-T5: POST /glosses's dry run renders preview_html with the site's own prose
+          # renderer; opn_site's Python modules only (it imports nothing outside the standard
+          # library and itself, test_finding_gloss_dry_run), never its templates or static tree.
+          mkdir -p build/package/opn_site
+          cp site/opn_site/*.py build/package/opn_site/
           # opn_gate.schemas resolves gate/schemas relative to the package's parent, so the
           # schema files must travel with it or every validating route answers 500 (D-34).
           cp -R gate/schemas build/package/
@@ -87,7 +91,9 @@ jobs:
 
       - name: Check the package carries the handler and every schema
         env:
-          PYTHONPATH: gate:api  # opn_gate for the schema pins, opn_api for the MCP tool list (F09)
+          # opn_gate for the schema pins, opn_api for the MCP tool list (F09), and opn_site,
+          # which opn_api imports for a dry run's preview (F22-T5)
+          PYTHONPATH: gate:api:site
         run: |
           set -euo pipefail
           # The package is cross-built for the function's architecture, so it cannot be imported
@@ -111,8 +117,16 @@ jobs:
                         "lean/OpnGate/Hazards/JunkValue.lean", "lean/OpnGate/Hazards/NatSub.lean",
                         "lean/OpnGate/Hazards/OffByOneRange.lean",
                         "lean/OpnGate/Hazards/UnusedBinder.lean",
+                        # F02-T9: the nat-div and auto-implicit checkers
+                        "lean/OpnGate/Hazards/NatDiv.lean", "lean/OpnGate/Hazards/AutoImplicit.lean",
+                        # F07-T51: the grammar the precheck and submission routes refuse by
+                        "opn_gate/carried.py",
+                        # F05-T26: POST /tokens reads the reserved names at runtime
+                        "opn_api/reserved_pseudonyms.txt",
                         "opn_gate/schemas.py", "mangum/__init__.py", "starlette/applications.py",
-                        "opn_api/mcp/server.py", "mcp/server/lowlevel/server.py"):
+                        "opn_api/mcp/server.py", "mcp/server/lowlevel/server.py",
+                        # F22-T5: a dry run's preview_html
+                        "opn_site/__init__.py", "opn_site/prose.py"):
               assert (pkg / entry).is_file(), f"missing from the package: {entry}"
 
           # The MCP result schemas travel inside the adapter package (F09-R9, Q5): one per tool.
@@ -125,7 +139,9 @@ jobs:
           # opn_gate.schemas resolves its directory relative to the package parent, so the files
           # must sit at build/package/schemas and match their pins (D-34).
           shipped = sorted(f"{p.parent.name}/{p.stem}" for p in (pkg / "schemas").glob("*/v*.json"))
-          for required in ("frontier/v1", "frontier/v2", "frontier/v3", "info/v1", "claims/v1"):
+          for required in ("frontier/v1", "frontier/v2", "frontier/v3", "frontier/v4", "frontier/v5",
+                           "info/v1", "info/v2", "claims/v1",
+                           "context/v1", "context/v2", "context/v3", "context/v4", "context/v5"):
               assert required in shipped, f"{required} is not in the package: {shipped}"
           problems = schemas.verify_pins(pkg / "schemas", Path("gate/schemas/HASHES"))
           assert not problems, problems
@@ -133,7 +149,7 @@ jobs:
           PY
 
       - name: Assume the deploy role (OIDC, no stored key)
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a  # v4
         with:
           role-to-assume: ${{ vars.OPN_API_DEPLOY_ROLE_ARN }}
           aws-region: ${{ vars.OPN_AWS_REGION }}

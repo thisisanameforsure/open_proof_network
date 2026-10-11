@@ -1,0 +1,58 @@
+F19-T1 — the cost of opn-outline, measured. Q2 is NOT decided here: these are the numbers, and the
+Mathlib number that Q2 names is pending CI (see the end).
+
+Machine: the founder's laptop, Apple M1, 8 GiB, 8 cores; Lean 4.33.1 under elan; no Mathlib
+checkout (10 GiB free; no Mathlib image may be built or pulled here). The laptop was shared with
+other sessions throughout, at a load average of 8.8 to 12, so wall times vary by up to 25x between
+runs of the same file (Steps.lean: 3.7 s, then 90 s an hour later). Read them as orders of
+magnitude. The memory figures are steadier.
+
+How: gate/tools/measure_outline.py (committed with this file). Each phase runs in a child process
+of its own. Wall time is that child's monotonic clock around the work. Peak memory is the child's
+getrusage(RUSAGE_CHILDREN).ru_maxrss, the largest resident set among the processes it waited for
+(elan, then lean / leanchecker / opn-outline). macOS reports bytes, converted to MiB.
+  - graph mode: steps 1, 2 and 4 of the gate over a node's merged Proof.lean (the steps
+    `opn-gate footprints` runs), then opn-outline over the staged proof with the step-4 build on
+    its search path.
+  - file mode: opn-outline over one file.
+
+1. Step 4 against the outline, on the repo's fixture graph (Lean core), one run:
+   uv run python gate/tools/measure_outline.py graph --graph gate/tests/fixtures/graphs/propositional \
+       --target propositional --node and-swap-reassoc --out <scratch>/m1
+   steps 1, 2 and 4   wall 213.34 s   peak 395.9 MiB   (6-line proof, two deps compiled and replayed)
+   opn-outline        wall  17.39 s   peak 337.4 MiB   output 830 bytes, 1 top-level step
+   outline / step 4 wall: 0.082
+
+2. opn-outline alone on each lean-tier fixture, two runs each (file mode):
+   Steps    11 lines  wall 16.11 /  3.74 s   peak 346.8 / 358.5 MiB   output 1918 B
+   Casts    12 lines  wall  5.87 /  3.42 s   peak 360.6 / 387.9 MiB   output 1144 B
+   Docs      7 lines  wall  7.06 /  3.02 s   peak 352.1 / 374.1 MiB   output 1229 B
+   Tagged   32 lines  wall 118.09 / 97.12 s  peak 427.8 / 418.0 MiB   output 1310 B  (imports Lean)
+   Term      4 lines  wall  7.03 / 12.40 s   peak 351.5 / 326.4 MiB   output  388 B
+   Partial   6 lines  wall  3.47 /  3.24 s   peak 368.4 / 358.9 MiB   output 1033 B
+   The largest fixture, by what it imports, is Tagged. To see where its time goes, the same proof
+   without the stand-in tag reader (ImportOnly: `import Lean` and the same theorem) took 116.12 /
+   102.11 s through opn-outline, and plain `lean` on that file took 81.18 s real. Nearly all of it
+   is `import Lean` on a loaded laptop. The tag reader (evalTerm over getSortedCrossRefs) adds
+   nothing measurable.
+
+What the numbers say, and what they do not:
+  - opn-outline costs about one more elaboration of the artifact, on the same imports. It
+    elaborates the file once, keeping info trees, and then prints and reads back each claim and
+    goal. On Lean core it ran at about 0.08 of steps 1, 2 and 4, because step 4 compiles every
+    dependency and replays them through the kernel, while the outline elaborates one file.
+  - Peak memory is the import plus the one file: 0.33 to 0.43 GiB here, the same order as the
+    step-4 build's own 0.40 GiB.
+  - Neither number is Q2's. Q2 asks for erdos-1050's 845-line holes under Mathlib, where importing
+    Mathlib dominates both phases and the read-back of each printed claim (one elaboration per
+    text) grows with the number of steps. That ratio cannot be inferred from a 6-line Lean-core
+    proof.
+
+PENDING CI: the Mathlib measurement. In the pinned image (devcontainer_ref of the graph's
+gate-spec.json), against a graph checkout:
+   docker run --rm -v <graph>:/graph:ro -v <network>:/net -w /net <devcontainer_ref> \
+     uv run python gate/tools/measure_outline.py graph --graph /graph --target erdos-1050 \
+     --node <the node whose Proof.lean is longest> --out /tmp/measure
+It prints step 4's wall time and peak memory beside the outline's, and their ratio. The image must
+be built from a network commit that has gate/lean/OpnGate/Outline.lean; the pinned image predates
+it, so this needs an image built from this branch. No Mathlib run was made on this laptop.

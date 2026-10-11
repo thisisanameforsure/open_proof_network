@@ -16,19 +16,23 @@ Parameter names follow D-28's rows. Where the endpoint's body spells a field dif
 it carries) the mapping is ``RENAMES`` and nowhere else — every handler builds its body through
 ``present``, which applies it (F09-T7); ``submit_proof`` also takes that id directly as
 ``precheck_job_id``, exactly one of the two; the optional fields the endpoints accept
-beyond D-28's lists (``tooling``, ``licence``, ``model_and_tooling``, ``deps``, ``model``,
-``defect_class``) are offered so the tool is not weaker than its plain path (Q7).
+beyond D-28's lists (``tooling``, ``model_and_tooling``, ``deps``, ``model``,
+``defect_class``) are offered so the tool is not weaker than its plain path (Q7); ``licence`` is
+required of an annex, as the endpoint requires it (F05-T17; D-23).
 """
 
 from __future__ import annotations
 
 from collections.abc import Mapping
 from types import MappingProxyType
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from opn_api import requests, submissions
+from opn_api import literature, requests, submissions
 from opn_api.mcp import auth
 from opn_api.mcp.calls import ID_PARAM, RECORD_PARAM, Answer, Call, Tool, ToolError, error, params
+
+if TYPE_CHECKING:
+    from opn_api.app import Context
 
 LEAN = {"type": "string", "description": "the text of a Lean file"}
 BUNDLE = {
@@ -38,9 +42,12 @@ BUNDLE = {
 }
 POLL = "poll get_precheck with job_id until state is done or error; a precheck takes minutes"
 
+#: D-16's taxonomy as the class parameters describe it (F09-T21), from the list the routes check.
+DEFECT_CLASS_TEXT = ", ".join(requests.DEFECT_CLASSES[:-1]) + " or " + requests.DEFECT_CLASSES[-1]
 
-def unauthorized() -> ToolError:
-    return ToolError(Answer(auth.UNAUTHORIZED_STATUS, dict(auth.UNAUTHORIZED)).envelope())
+
+def unauthorized(ctx: Context) -> ToolError:
+    return ToolError(Answer(auth.UNAUTHORIZED_STATUS, auth.unauthorized(ctx)).envelope())
 
 
 async def forward(
@@ -86,7 +93,7 @@ async def release_claim(call: Call, args: dict[str, Any]) -> dict[str, Any]:
 
 
 async def precheck_submission(call: Call, args: dict[str, Any]) -> dict[str, Any]:
-    body = present("precheck_submission", args, "node_id", "bundle", "artifact_type")
+    body = present("precheck_submission", args, "node_id", "bundle", "artifact_type", "automation")
     out = await forward(call, "POST", "/precheck", body)
     body = out["body"] if isinstance(out["body"], dict) else {}
     return {**out, "job_id": body.get("id"), "poll": POLL}
@@ -96,7 +103,15 @@ async def check_lean(call: Call, args: dict[str, Any]) -> dict[str, Any]:
     """F13-R12: ``POST /check``, with whatever bearer there is; the endpoint charges an identity
     or an address and answers in the same response, so there is nothing to poll."""
     body = present(
-        "check_lean", args, "target_id", "node_id", "content", "mode", "statement", "deps"
+        "check_lean",
+        args,
+        "target_id",
+        "node_id",
+        "content",
+        "mode",
+        "statement",
+        "deps",
+        "heartbeats",
     )
     return await forward(call, "POST", "/check", body)
 
@@ -119,7 +134,14 @@ async def submit_proof(call: Call, args: dict[str, Any]) -> dict[str, Any]:
     if isinstance(attestation, dict):
         fields["attestation"] = attestation.get("id")  # the id is what binds (F09-Q2)
     body = present(
-        "submit_proof", fields, "node_id", "artifact_type", "bundle", "tooling", *PRECHECK_REFS
+        "submit_proof",
+        fields,
+        "node_id",
+        "artifact_type",
+        "bundle",
+        "tooling",
+        "automation",
+        *PRECHECK_REFS,
     )
     return await forward(call, "POST", "/submissions", body)
 
@@ -130,7 +152,9 @@ async def submit_postmortem(call: Call, args: dict[str, Any]) -> dict[str, Any]:
 
 
 async def submit_informal_annex(call: Call, args: dict[str, Any]) -> dict[str, Any]:
-    body = present("submit_informal_annex", args, "node_id", "text", "licence", "model_and_tooling")
+    body = present(
+        "submit_informal_annex", args, "node_id", "text", "licence", "model_and_tooling", "steps"
+    )
     return await forward(call, "POST", "/annexes", body)
 
 
@@ -159,6 +183,8 @@ async def propose_speculative_node(call: Call, args: dict[str, Any]) -> dict[str
         "deps",
         "model",
         "acknowledged_hazards",
+        "require_hazards_preflight",
+        "for",
     )
     return await forward(call, "POST", "/proposals/speculative", body)
 
@@ -175,6 +201,7 @@ async def propose_variant(call: Call, args: dict[str, Any]) -> dict[str, Any]:
         "deps",
         "model",
         "acknowledged_hazards",
+        "require_hazards_preflight",
     )
     return await forward(call, "POST", "/proposals/variant", body)
 
@@ -184,14 +211,99 @@ async def get_token(call: Call, args: dict[str, Any]) -> dict[str, Any]:
     return await forward(call, "POST", "/tokens", body)
 
 
+async def renew_token(call: Call, args: dict[str, Any]) -> dict[str, Any]:
+    """F05-T27, T29 (D-19 v3.29): ``POST /tokens/renew``, optional rotation, with the caller's
+    bearer and no body."""
+    return await forward(call, "POST", "/tokens/renew")
+
+
 async def propose_witness(call: Call, args: dict[str, Any]) -> dict[str, Any]:
     body = present("propose_witness", args, "node_id", "witness")
     return await forward(call, "POST", "/proposals/witness", body)
 
 
+async def submit_gloss(call: Call, args: dict[str, Any]) -> dict[str, Any]:
+    """F20-R11: ``POST /glosses``, body for body."""
+    body = present(
+        "submit_gloss",
+        args,
+        "subject",
+        "text",
+        "supersedes",
+        "licence",
+        "drafted_with",
+        "dry_run",
+        "amends",
+    )
+    return await forward(call, "POST", "/glosses", body)
+
+
+async def withdraw_gloss(call: Call, args: dict[str, Any]) -> dict[str, Any]:
+    """F20-R11: ``POST /glosses/withdrawals``, body for body."""
+    body = present("withdraw_gloss", args, "record", "reason")
+    return await forward(call, "POST", "/glosses/withdrawals", body)
+
+
 async def withdraw_submission(call: Call, args: dict[str, Any]) -> dict[str, Any]:
     """F07-T43 (ruling D5): ``DELETE /submissions/{id}``, the id as the input schema admits it."""
     return await forward(call, "DELETE", f"/submissions/{args['submission_id']}")
+
+
+async def propose_literature(call: Call, args: dict[str, Any]) -> dict[str, Any]:
+    """F09-T24 (D-25 v3.35): ``POST /literature``, body for body."""
+    body = present(
+        "propose_literature",
+        args,
+        "node_id",
+        "status",
+        "references",
+        "summary",
+        "model_and_tooling",
+    )
+    return await forward(call, "POST", "/literature", body)
+
+
+async def confirm_literature(call: Call, args: dict[str, Any]) -> dict[str, Any]:
+    """F09-T24 (D-25, D-32 v3.35): ``POST /literature/confirm``, body for body; the route signs
+    as the bearer's GitHub login, so the identity must be one proved with GitHub."""
+    body = present(
+        "confirm_literature", args, "node_id", "record", "status", "references", "summary"
+    )
+    return await forward(call, "POST", "/literature/confirm", body)
+
+
+async def set_display_name(call: Call, args: dict[str, Any]) -> dict[str, Any]:
+    """F25-T4 (D-3, D-19 v3.37): ``POST /me/name``, body for body; the route writes the record
+    for the bearer's own pseudonym, so there is no pseudonym to send."""
+    body = present("set_display_name", args, "name", "link")
+    return await forward(call, "POST", "/me/name", body)
+
+
+async def register_target(call: Call, args: dict[str, Any]) -> dict[str, Any]:
+    """F25-T4 (D-10 v3.37): ``POST /registrations``, body for body; the route writes
+    ``submitted_by`` from the bearer's GitHub login, so the identity must be one proved with
+    GitHub."""
+    body = present("register_target", args, *REGISTRATION_FIELDS)
+    return await forward(call, "POST", "/registrations", body)
+
+
+#: What ``POST /registrations`` reads (``opn_api.registrations.FIELDS``), sent under their names.
+REGISTRATION_FIELDS: tuple[str, ...] = (
+    "target_id",
+    "registry",
+    "registry_id",
+    "version",
+    "wrapper",
+    "graph_commit",
+    "proof",
+    "status",
+    "url",
+    "challenge_sha256",
+    "solution_sha256",
+    "note",
+)
+SHA1 = {"type": "string", "pattern": "^[0-9a-f]{40}$"}
+SHA256_OR_NULL = {"type": ["string", "null"], "pattern": "^[0-9a-f]{64}$"}
 
 
 #: One declared tooling string as ``submissions.check_tooling`` reads it: a string of at most
@@ -207,8 +319,69 @@ TOOLING = {
         "harness": DECLARED,
     },
 }
+#: F25-R1 (D-23 v3.37): the structured disclosure, as submission-meta/v2's block defines it. Every
+#: property described (F09-T21); the trio required, since POST /submissions requires it (F25-R2).
+_SHORT = {"type": "string", "minLength": 1, "maxLength": 200}
+AUTOMATION = {
+    "type": "object",
+    "description": "how the artifact was made (D-23): method, models and framework are required "
+    "of every submission (missing: 400 automation-missing; malformed: 400 automation-invalid, "
+    "nothing opens); the cost fields are optional. One line: "
+    '{"method": "agent", "models": ["claude-fable-5-1"], "framework": "Claude Code 2.1"}',
+    "additionalProperties": False,
+    "required": ["method", "models", "framework"],
+    "properties": {
+        "method": {
+            "enum": ["manual", "copilot", "agent", "autonomous", "other"],
+            "description": "manual: a person wrote it; copilot: a person with model suggestions; "
+            "agent: an agent under a person's direction; autonomous: unattended; other",
+        },
+        "models": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 20,
+            "items": _SHORT,
+            "description": "every model that contributed, by its provider's published name",
+        },
+        "framework": {
+            **_SHORT,
+            "description": "the harness the models ran in, with its version where known",
+        },
+        "tool_setup": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000,
+            "description": "tools, plugins, orchestration, in prose (optional)",
+        },
+        "wall_time": {**_SHORT, "description": "how long the work took, in your words (optional)"},
+        "tokens": {
+            "type": "object",
+            "additionalProperties": False,
+            "required": ["input", "output"],
+            "description": "total tokens consumed and produced, when the harness reports them "
+            "(optional)",
+            "properties": {
+                "input": {"type": "integer", "minimum": 0, "description": "input tokens"},
+                "output": {"type": "integer", "minimum": 0, "description": "output tokens"},
+            },
+        },
+        "hardware": {**_SHORT, "description": "what it ran on (optional)"},
+        "spend": {
+            **_SHORT,
+            "description": "what it cost, in your words: subscription, $12.40, unknown (optional)",
+        },
+    },
+}
+#: F08-T26 (R21): one sentence on use lines, shared by the tools that take a proof's text.
+USES_NOTE = (
+    " A proof may add use lines (`import Defs.<Name>`, `import Nodes.«<id>».Proof`) after the "
+    "statement's imports; a use the gate would refuse is refused by its use-* code before "
+    'anything opens. The guide\'s "Iterating fast" says more.'
+)
 DEPS = {"type": "array", "items": ID_PARAM, "description": "node ids the statement depends on"}
 MODEL = {"type": "string", "description": "the model or tooling that produced the statement"}
+#: F18-R8 (D-14 v3.26): the node of the target a crux is proposed for.
+FOR = {**ID_PARAM, "description": "the node of the same target this crux is proposed for"}
 #: F08-T14: META.yaml's own shape (F02-R4), so a statement that carries an intended step-6 finding
 #: can be proposed at all.
 HAZARDS = {
@@ -227,6 +400,41 @@ HAZARDS = {
     },
 }
 
+REQUIRE_HAZARDS = {
+    "type": "boolean",
+    "description": "true: open nothing unless the hazard pre-flight answered (clear or "
+    "acknowledged); default false",
+}
+
+#: F09-T24: the literature record's parameters, as ``opn_api.literature`` checks them.
+LITERATURE_STATUS = {
+    "type": "string",
+    "enum": list(literature.STATUSES),
+    "description": "What the literature says: open, known or elementary (D-25 v3.35).",
+}
+LITERATURE_REFERENCES = {
+    "type": "array",
+    "minItems": 1,
+    "maxItems": literature.MAX_REFERENCES,
+    "description": "What supports the status: a paper, a registry entry, a forum page.",
+    "items": {
+        "type": "object",
+        "additionalProperties": False,
+        "required": ["title"],
+        "properties": {
+            "title": {"type": "string", "minLength": 1, "maxLength": 300},
+            "url": {"type": ["string", "null"], "pattern": "^https://", "maxLength": 500},
+            "note": {"type": ["string", "null"], "maxLength": 500},
+        },
+    },
+}
+LITERATURE_SUMMARY = {
+    "type": "string",
+    "minLength": 1,
+    "maxLength": 2000,
+    "description": "What is known, in your words; shown demarcated (D-31).",
+}
+
 TOOLS: tuple[Tool, ...] = (
     Tool(
         "claim_node",
@@ -234,10 +442,25 @@ TOOLS: tuple[Tool, ...] = (
         "`ttl` is in hours, within the published flat caps; undeclared means the minimum. "
         "Claiming a node you already hold returns that same claim (status 200, same id, TTL "
         "unchanged); after release or expiry a new claim gets a new id. The receipt's `others` "
-        "lists who else holds the node (pseudonym, expires): read it before starting, since "
-        "racing is allowed. list_my_claims finds your claim ids again.",
+        "lists who else holds the node (pseudonym, expires), and its `open_submissions` the "
+        "pull requests already open on the node (pr_number, pr_url, kind, pseudonym, created), "
+        "claimed or not: read both before starting, since racing is allowed and a claim "
+        "reserves nothing. list_my_claims finds your claim ids again.",
         params(
-            {"node_id": ID_PARAM, "ttl": {"type": "integer", "minimum": 1}, "target_id": ID_PARAM},
+            {
+                "node_id": ID_PARAM,
+                "ttl": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "Hours to hold the claim, within the published caps; the "
+                    "minimum when omitted (D-25).",
+                },
+                "target_id": {
+                    **ID_PARAM,
+                    "description": "The node's target; needed only when the node id is not "
+                    "unique across targets.",
+                },
+            },
             ("node_id",),
         ),
         claim_node,
@@ -252,11 +475,17 @@ TOOLS: tuple[Tool, ...] = (
     ),
     Tool(
         "precheck_submission",
-        "Run the gate's steps 1-2 and 4-8 on a bundle server-side, structurally identical to "
-        "pregate.sh, and get back a job id to poll; a passing precheck yields the signed "
-        "attestation submit_proof needs. On the tutorial node no token is needed: the job is "
-        "answered with a single-use nonce, and its passing {id, nonce} is the proof get_token "
-        "takes. Every other node needs a token.",
+        (
+            "Run the gate's steps 1-2 and 4-8 on a bundle server-side, as pregate.sh "
+            "does, and get a job id to poll with get_precheck; a passing precheck yields "
+            "the signed attestation submit_proof needs. On the tutorial node no token is "
+            "needed, and the passing job's {id, nonce} is the proof get_token takes. A "
+            "node that exists only in an open proposal whose gate is green can be "
+            "prechecked at the proposal's head (`proposal`). A partial's bundle may "
+            "carry a hole's witness as attempts/<assembly name without "
+            ".lean>.<n>.witness, with a line `-- hole: <name>`; the result names it on "
+            "its hole (`holes[].witness`)." + USES_NOTE
+        ),
         params(
             {
                 "node_id": ID_PARAM,
@@ -265,6 +494,11 @@ TOOLS: tuple[Tool, ...] = (
                     "enum": ["proof", "counterexample", "vacuity", "reduction", "partial"],
                     "description": "optional: the type this bundle will be submitted as; a "
                     "bundle at the wrong path for it is refused before any job starts",
+                },
+                "automation": {
+                    **AUTOMATION,
+                    "description": "optional here, required by submit_proof: the same block, "
+                    "validated when offered (400 automation-invalid) and echoed on the job",
                 },
             },
             ("node_id", "bundle"),
@@ -275,35 +509,26 @@ TOOLS: tuple[Tool, ...] = (
     ),
     Tool(
         "check_lean",
-        "Check Lean text within 20 s on the hosted checker matched to the target's pinned "
-        "Mathlib (AXLE, a third party) and get its errors, goal states and, with mode verify and "
-        "a node_id, its comparison against the node's statement, plus warnings wherever the gate "
-        "would refuse what the checker accepted. The body's `okay` is true, false, or null when "
-        "the checker gave no verdict (then `user_error` says why, e.g. the node's statement did "
-        "not compile); `result` is the checker's body verbatim, except that Mathlib's "
-        "naming-linter warning on a hole's gate-generated theorem name is left out and listed "
-        "in `dropped_warnings`. The target's Defs modules and, "
-        "with a node_id, the node's own Context (its dependencies' and holes' theorems) are "
-        "inlined for you (`inlined_defs`); without a node_id you can check a statement that is "
-        "not a node yet. A proof that uses a dependency is checked with mode check, not verify. "
-        "Mode witness, with a node_id, answers `witness`: the `expected` type step 7 will hold a "
-        "witness of that node to (paste it as your witness's type), and with your witness as "
-        "content its `given` type and whether it `matches`; without content, the expected type "
-        "alone. Mode witness with `statement` instead of a node_id (the text of a statement that "
-        "is not a node yet, as propose_variant or propose_speculative_node would send it, and "
-        "the `deps` it would declare) answers the same for that statement, before you propose "
-        "it; those two tools run this check themselves and refuse a mismatch. "
-        "Mode hazards, with a node_id or a `statement` (and its `deps`) and no content, runs "
-        "step 6's own hazard checkers, those the target's gate-spec.json names, and answers "
-        "`hazards`: {checkers, findings: [{checker, location, message}], capped}; a finding "
-        "you mean is acknowledged in acknowledged_hazards with its checker, its location "
-        "exactly as printed and a justification. "
-        "Never authoritative: a precheck is the verdict. "
-        "No token needed; a token raises the limit. Every call is logged without its text; "
-        "GET /hosted-checkers.json says which targets have a checker.",
+        (
+            "Check Lean text within 20 s on the hosted checker (AXLE) matched to the "
+            "target's pinned Mathlib: errors, goals, `okay` (null with `user_error` when "
+            "no verdict) and `lint` where the gate would refuse what the checker "
+            "accepts. Defs and the node's Context are inlined; `target_id` is derived "
+            "from the node if omitted. Modes: check (default, and for a proof using a "
+            "dependency); verify, against the node's statement; witness, with a node_id "
+            "or a `statement` and `deps`: the `expected` type step 7 holds a witness to "
+            "and, with content, whether it `matches`. Mode hazards, with a node_id or a "
+            "`statement`, runs step 6's checkers: send no content (400 "
+            "content-not-used); a finding META.yaml acknowledges has `acknowledged: "
+            "true`. Never authoritative." + USES_NOTE
+        ),
         params(
             {
-                "target_id": ID_PARAM,
+                "target_id": {
+                    **ID_PARAM,
+                    "description": "optional with a node_id (derived from the node); required "
+                    "without one",
+                },
                 "node_id": ID_PARAM,
                 "content": LEAN,
                 "mode": {
@@ -320,8 +545,12 @@ TOOLS: tuple[Tool, ...] = (
                     **DEPS,
                     "description": "with statement: the node ids its proposal would declare",
                 },
+                "heartbeats": {
+                    "type": "boolean",
+                    "description": "modes check and verify: also measure each theorem's "
+                    "heartbeats on a copy of the text (a second hosted check, charged as one)",
+                },
             },
-            ("target_id",),
         ),
         check_lean,
         write=True,
@@ -337,7 +566,10 @@ TOOLS: tuple[Tool, ...] = (
         params(
             {
                 "proof": {"type": "object", "description": "{kind: tutorial, job_id, nonce}"},
-                "pseudonym": {"type": "string"},
+                "pseudonym": {
+                    "type": "string",
+                    "description": "The public name your work is credited under (D-19).",
+                },
                 "dco": {"type": "object", "description": "{version, accepted: true}"},
             },
             ("proof", "pseudonym", "dco"),
@@ -347,17 +579,35 @@ TOOLS: tuple[Tool, ...] = (
         access="anyone",
     ),
     Tool(
+        "renew_token",
+        "Rotate your write token (optional, D-19): a token in use never lapses, so you never have "
+        "to call this. Returns a new token for the same identity; the token you called with stops "
+        "working at once, so save the new one where you kept the old (OPN_TOKEN or "
+        "~/.config/opn/token). Use it if you think the token was copied.",
+        params({}),
+        renew_token,
+        write=True,
+    ),
+    Tool(
         "submit_proof",
-        "Open the submission pull request on the graph: the ledger identity as author and "
-        "sign-off, the service as committer. Name the passing precheck of this bundle with "
-        "exactly one of `attestation` (the get_precheck result) or `precheck_job_id` (its id). "
-        "On a node whose Proof.lean has already merged, a later proof is an alternate: put it "
-        "at attempts/<timestamp>-<pseudonym>-alternate.lean with artifact_type proof (D-25).",
+        (
+            "Open the submission pull request on the graph: your identity as author, the "
+            "service as committer. Name the passing precheck of this bundle with exactly "
+            "one of `attestation` (the get_precheck result) or `precheck_job_id`. A "
+            "later proof of a proved node is an alternate at "
+            "attempts/<timestamp>-<pseudonym>-alternate.lean (D-25). A partial's bundle "
+            "may carry its holes' witnesses as attempts/<assembly name without "
+            ".lean>.<n>.witness, each with a line `-- hole: <name>`; one the precheck "
+            "did not check is refused 400 hole-witness-unchecked, and a hole that is no "
+            "step of a cited stepped annex 400 annex-step-missing. Follow it with "
+            "get_submission." + USES_NOTE
+        ),
         params(
             {
                 "node_id": ID_PARAM,
                 "artifact_type": {
-                    "enum": ["proof", "counterexample", "vacuity", "reduction", "partial"]
+                    "enum": ["proof", "counterexample", "vacuity", "reduction", "partial"],
+                    "description": "What the bundle is (D-12); it must be what was prechecked.",
                 },
                 "bundle": BUNDLE,
                 "attestation": {
@@ -371,8 +621,9 @@ TOOLS: tuple[Tool, ...] = (
                     "attestation, not both",
                 },
                 "tooling": TOOLING,
+                "automation": AUTOMATION,
             },
-            ("node_id", "artifact_type", "bundle"),
+            ("node_id", "artifact_type", "bundle", "automation"),
         ),
         submit_proof,
         write=True,
@@ -385,24 +636,141 @@ TOOLS: tuple[Tool, ...] = (
         "A second record from you in the same second would share its file name "
         "(<timestamp>-<pseudonym>), so it is refused 409 record-name-taken with "
         "Retry-After: 1 and nothing opens.",
-        params({"node_id": ID_PARAM, "yaml": RECORD_PARAM}, ("node_id", "yaml")),
+        params(
+            {
+                "node_id": ID_PARAM,
+                "yaml": {
+                    **RECORD_PARAM,
+                    "description": "The postmortem record, as an object or its YAML text.",
+                },
+            },
+            ("node_id", "yaml"),
+        ),
         submit_postmortem,
         write=True,
     ),
     Tool(
         "submit_informal_annex",
         "Attach a content-hashed informal argument to a node (D-31); untrusted data that earns "
-        "nothing. Returns the hash a skeleton must cite.",
+        "nothing. The prose is licensed by its author at submission (D-23): `licence` is "
+        "required. Returns the hash a skeleton must cite. Optional `steps` names the outline's "
+        "steps (annex/v2, D-31 v3.26), each `{id, summary}`: a skeleton citing it must name "
+        "every hole after a step id, or the gate refuses it annex-step-missing.",
         params(
             {
                 "node_id": ID_PARAM,
-                "text": {"type": "string"},
+                "text": {"type": "string", "description": "The informal argument, as Markdown."},
                 "licence": {"enum": ["CC-BY-4.0", "CDLA-Permissive-2.0", "Apache-2.0"]},
-                "model_and_tooling": {"type": "string"},
+                "model_and_tooling": {
+                    "type": "string",
+                    "description": "The model and tooling that drafted it, if any.",
+                },
+                "steps": {
+                    "type": "array",
+                    "description": "1 to 50 steps, each {id, summary}: id is the `have` name a "
+                    "skeleton's hole binds for the step (ASCII, ^[A-Za-z_][A-Za-z0-9_']*$, "
+                    "unique), summary one line of at most 300 characters",
+                    "items": {
+                        "type": "object",
+                        "properties": {"id": {"type": "string"}, "summary": {"type": "string"}},
+                        "required": ["id", "summary"],
+                    },
+                },
             },
-            ("node_id", "text"),
+            ("node_id", "text", "licence"),
         ),
         submit_informal_annex,
+        write=True,
+    ),
+    Tool(
+        "submit_gloss",
+        (
+            "Write the words for one Lean file (a gloss: subject.kind statement, witness "
+            "or relation with node_id, or definition with target_id and module) or "
+            "explain one merged proof (an explainer: kind proof, node_id, and proof, the "
+            "hash get_node's outlines give). `supersedes` replaces a chain's current "
+            "version. `licence` is required; `drafted_with` names the model that drafted "
+            "the words, if one did. Refused by code before anything "
+            "opens: gloss-subject-mismatch, explainer-proof-unknown, "
+            "explainer-step-unknown, section-duplicate, tooling-invalid, record-not-head "
+            "(409), locked-by-a-person (409), duplicate-submission (409: one writer per "
+            "file). The receipt's `warnings` refuse nothing; `dry_run: true` checks, "
+            "opens nothing; `amends` replaces your open submission's version in place. "
+            'The guide\'s "Glosses, explainers and outlines" says more.'
+        ),
+        params(
+            {
+                "subject": {
+                    "type": "object",
+                    "description": "what the words describe: {kind, node_id} for a statement, "
+                    "witness or relation (optional lean_hash); {kind: definition, target_id, "
+                    "module}; {kind: proof, node_id, proof} for an explainer",
+                    "properties": {
+                        "kind": {
+                            "enum": ["statement", "witness", "relation", "definition", "proof"]
+                        },
+                        "node_id": ID_PARAM,
+                        "target_id": ID_PARAM,
+                        "module": {"type": "string"},
+                        "proof": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+                        "lean_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+                    },
+                    "required": ["kind"],
+                },
+                "text": {"type": "string", "description": "the prose, as Markdown"},
+                "supersedes": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{64}$",
+                    "description": "The hash of the version this replaces, from get_node's "
+                    "chains; omitted for a new chain.",
+                },
+                "licence": {"enum": ["CC-BY-4.0", "CDLA-Permissive-2.0", "Apache-2.0"]},
+                "drafted_with": {
+                    "type": "string",
+                    "description": "the model that drafted the words (D-23), as "
+                    "<model name> (<model id>), e.g. Claude Opus 5.5 (claude-opus-5-5); 1-200 "
+                    "characters, whitespace normalised; anything else is tooling-invalid",
+                },
+                "amends": {
+                    "type": "string",
+                    "description": "the id (or pull-request number) of your own open gloss or "
+                    "explainer submission for the same subject, whose version this replaces",
+                },
+                "dry_run": {
+                    "type": "boolean",
+                    "description": "true: check only; the answer is {ok, warnings, sections "
+                    "[{key, steps, resolved}], preview_html} and nothing opens",
+                },
+            },
+            ("subject", "text", "licence"),
+        ),
+        submit_gloss,
+        write=True,
+    ),
+    Tool(
+        "withdraw_gloss",
+        "Withdraw one version of a gloss or explainer (D-3 v3.30): `record` is its graph path "
+        "(targets/<id>/nodes/<node>/gloss/<hash>.md or .../explainer/<hash>.md, or "
+        "targets/<id>/gloss/<hash>.md for a definition module's gloss); `reason` is published. "
+        "The file stays and every reader reads it as absent, so the version before it is the "
+        "chain's current one again. Its author, an active steward of the target or a listed "
+        "curator may; anyone else is refused 403 withdrawal-unauthorized before anything opens.",
+        params(
+            {
+                "record": {
+                    "type": "string",
+                    "description": "The graph path of the version: targets/<id>/nodes/<node>/"
+                    "gloss/<hash>.md, .../explainer/<hash>.md, or targets/<id>/gloss/<hash>.md.",
+                },
+                "reason": {
+                    "type": "string",
+                    "maxLength": 1000,
+                    "description": "Why it is withdrawn, in a sentence or two.",
+                },
+            },
+            ("record", "reason"),
+        ),
+        withdraw_gloss,
         write=True,
     ),
     Tool(
@@ -412,33 +780,54 @@ TOOLS: tuple[Tool, ...] = (
         "A second record from you in the same second would share its file name "
         "(<timestamp>-<pseudonym>), so it is refused 409 record-name-taken with "
         "Retry-After: 1 and nothing opens.",
-        params({"target_id": ID_PARAM, "record": RECORD_PARAM}, ("target_id", "record")),
+        params(
+            {
+                "target_id": ID_PARAM,
+                "record": {
+                    **RECORD_PARAM,
+                    "description": "The approach record, as an object or its YAML text.",
+                },
+            },
+            ("target_id", "record"),
+        ),
         submit_approach_record,
         write=True,
     ),
     Tool(
         "file_defect_claim",
-        "File a statement-defect claim (D-16): a class from the taxonomy, a line of the "
-        "referenced file, and a Lean exhibit; malformed claims bounce here with the rule named. "
-        f"Written as `{requests.DEFECT_SCHEMA}`. Class `{requests.CIRCULAR_CLASS}` also names "
-        "`ancestor`, a node above `stmt_ref`, and is written as "
-        f"`{requests.CIRCULAR_SCHEMA}`; its exhibit is one theorem proving "
-        "`<ancestor's statement> → <stmt_ref's statement>`. "
-        "The exhibit is compiled on the hosted fast checker first, with the node's statement, "
-        "Context and definitions inlined where it imports them: one the checker says does not "
-        "compile is refused 422 exhibit-elaboration with Lean's `errors`, and nothing opens; "
-        "`exhibit_preflight` in the receipt says elaborates, inconclusive, unavailable or "
-        "skipped (a circularity claim's exhibit, which the gate checks as an implication). "
-        "A second record from you in the same second would share its file name "
-        "(<timestamp>-<pseudonym>), so it is refused 409 record-name-taken with "
-        "Retry-After: 1 and nothing opens.",
+        (
+            "File a statement-defect claim (D-16): a `class`, a `line` of the referenced "
+            f"file and a Lean `exhibit`, written as `{requests.DEFECT_SCHEMA}`. Class "
+            f"`{requests.CIRCULAR_CLASS}` also names `ancestor`, a node above `stmt_ref`, "
+            f"is written as `{requests.CIRCULAR_SCHEMA}`, and its exhibit is one theorem "
+            "proving `<stmt_ref's statement> → <ancestor's statement>` (the reverse is "
+            "refused circular-direction). The exhibit is compiled first: one that does "
+            "not compile is refused 422 exhibit-elaboration with Lean's `errors`, and "
+            "nothing opens; `exhibit_preflight` in the receipt says elaborates, "
+            "inconclusive, unavailable or skipped. A second record from you in the same "
+            "second is refused 409 record-name-taken with Retry-After: 1."
+        ),
         params(
             {
-                "stmt_ref": {"type": "string"},
-                "class": {"type": "string"},
-                "line": {"type": "integer", "minimum": 1},
+                "stmt_ref": {
+                    "type": "string",
+                    "description": "The node id, or <target>/defs/<file>.lean.",
+                },
+                "class": {
+                    "type": "string",
+                    "description": f"D-16's class: {DEFECT_CLASS_TEXT}; or "
+                    f"{requests.CIRCULAR_CLASS}.",
+                },
+                "line": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "The line of the referenced file the defect is on, from 1.",
+                },
                 "exhibit": LEAN,
-                "ancestor": {"type": "string"},
+                "ancestor": {
+                    "type": "string",
+                    "description": "circular-decomposition only: the node above stmt_ref.",
+                },
             },
             ("stmt_ref", "class", "line", "exhibit"),
         ),
@@ -457,9 +846,14 @@ TOOLS: tuple[Tool, ...] = (
         params(
             {
                 "node_id": ID_PARAM,
-                "defect_class": {"type": "string"},
+                "defect_class": {
+                    "type": "string",
+                    "description": f"D-16's class: {DEFECT_CLASS_TEXT}.",
+                },
                 "evidence": {
                     "type": "object",
+                    "description": "Why the statement is defective (text), and a Lean "
+                    "exhibit if there is one.",
                     "properties": {"text": {"type": "string"}, "exhibit": LEAN},
                     "required": ["text"],
                 },
@@ -471,20 +865,20 @@ TOOLS: tuple[Tool, ...] = (
     ),
     Tool(
         "propose_speculative_node",
-        "Enter a crux statement as a speculative node (D-14): `stmt` and `witness` are Lean "
-        "files; admission is mechanical (D-29). "
-        "The witness is checked on the hosted fast checker first: a witness of the wrong type is "
-        "refused 422 witness-type-mismatch with `expected` and `given`, one of the right type "
-        "that does not compile 422 witness-fails with the checker's `errors`, and nothing "
-        "opens; `witness_preflight` in the receipt says matched, inconclusive or unavailable. "
-        "A statement the checker says does not compile is refused 422 statement-fails with "
-        "Lean's `errors` on its own lines, and a witness resting on sorryAx (a Context "
-        "declaration it uses is restated with sorry) or on an axiom outside the target's "
-        "allowlist 422 witness-sorry or 422 witness-axiom, as step 7 would. "
-        "The statement is run through the target's hazard checkers first as well: a finding "
-        "not in `acknowledged_hazards` is refused 422 hazard-unacknowledged with step 6's "
-        "`findings`, and nothing opens; `hazards_preflight` says clear, inconclusive or "
-        "unavailable.",
+        (
+            "Enter a crux statement as a speculative node (D-14): `stmt` and `witness` "
+            "are Lean files; admission is mechanical (D-29). Pre-flights run first, and "
+            "each refusal opens nothing: 422 statement-fails; 422 witness-type-mismatch, "
+            "422 witness-fails, 422 witness-sorry or 422 witness-axiom; 422 "
+            "hazard-unacknowledged for a finding not in `acknowledged_hazards`. The "
+            "receipt's `witness_preflight` says matched, inconclusive or unavailable, "
+            "and `hazards_preflight` says clear, acknowledged, inconclusive or "
+            "unavailable; `require_hazards_preflight: true` refuses an inconclusive one "
+            "(503 hazards-preflight-inconclusive). `for` names the node it is proposed "
+            "for, a proposed-for pointer, not a dependency: refused 400 "
+            "proposed-for-unknown-node, proposed-for-superseded or proposed-for-self. "
+            'The guide\'s "Proposals" says more.'
+        ),
         params(
             {
                 "target_id": ID_PARAM,
@@ -493,6 +887,8 @@ TOOLS: tuple[Tool, ...] = (
                 "deps": DEPS,
                 "model": MODEL,
                 "acknowledged_hazards": HAZARDS,
+                "require_hazards_preflight": REQUIRE_HAZARDS,
+                "for": FOR,
             },
             ("target_id", "stmt", "witness"),
         ),
@@ -501,38 +897,35 @@ TOOLS: tuple[Tool, ...] = (
     ),
     Tool(
         "propose_variant",
-        "Enter a labeled variant of the root (D-30): relation is resolves, partial or related "
-        "(default); a label above related needs `relation_proof`, gate-checked. "
-        "The relation proof is checked on the hosted fast checker first with admission's own "
-        "relation program, beside the variant's and the root's statements: one that does not "
-        "compile is refused 422 relation-elaboration with its `errors`, one resting on sorry "
-        "422 relation-sorry, on an axiom outside the allowlist 422 relation-axiom, and one "
-        "proving the other implication 422 relation-direction with `expected` and `declared`; "
-        "a file declaring anything but `theorem relation` is 400 relation-decl before any "
-        "check, and nothing opens; `relation_preflight` says matched, inconclusive, "
-        "unavailable or skipped (a related variant claims nothing). "
-        "The witness is checked on the hosted fast checker first: a witness of the wrong type is "
-        "refused 422 witness-type-mismatch with `expected` and `given`, one of the right type "
-        "that does not compile 422 witness-fails with the checker's `errors`, and nothing "
-        "opens; `witness_preflight` in the receipt says matched, inconclusive or unavailable. "
-        "A statement the checker says does not compile is refused 422 statement-fails with "
-        "Lean's `errors` on its own lines, and a witness resting on sorryAx (a Context "
-        "declaration it uses is restated with sorry) or on an axiom outside the target's "
-        "allowlist 422 witness-sorry or 422 witness-axiom, as step 7 would. "
-        "The statement is run through the target's hazard checkers first as well: a finding "
-        "not in `acknowledged_hazards` is refused 422 hazard-unacknowledged with step 6's "
-        "`findings`, and nothing opens; `hazards_preflight` says clear, inconclusive or "
-        "unavailable.",
+        (
+            "Enter a labeled variant of the root (D-30): `relation` is resolves, partial "
+            "or related (default); above related needs `relation_proof`, a file "
+            "declaring `theorem relation` alone (else 400 relation-decl). Pre-flights "
+            "run first, and each refusal opens nothing: 422 relation-elaboration, 422 "
+            "relation-sorry, 422 relation-axiom, 422 relation-direction; 422 "
+            "statement-fails; 422 witness-type-mismatch, 422 witness-fails, 422 "
+            "witness-sorry or 422 witness-axiom; 422 hazard-unacknowledged. The "
+            "receipt's `relation_preflight` says matched, inconclusive, unavailable or "
+            "skipped, `witness_preflight` matched, inconclusive or unavailable, and "
+            "`hazards_preflight` says clear, acknowledged, inconclusive or unavailable; "
+            "`require_hazards_preflight: true` refuses an inconclusive one (503 "
+            'hazards-preflight-inconclusive). The guide\'s "Proposals" says more.'
+        ),
         params(
             {
                 "target_id": ID_PARAM,
                 "stmt": LEAN,
                 "witness": LEAN,
-                "relation": {"enum": ["resolves", "partial", "related"]},
+                "relation": {
+                    "enum": ["resolves", "partial", "related"],
+                    "description": "How the variant relates to the root (D-30); related when "
+                    "omitted.",
+                },
                 "relation_proof": LEAN,
                 "deps": DEPS,
                 "model": MODEL,
                 "acknowledged_hazards": HAZARDS,
+                "require_hazards_preflight": REQUIRE_HAZARDS,
             },
             ("target_id", "stmt", "witness"),
         ),
@@ -567,6 +960,187 @@ TOOLS: tuple[Tool, ...] = (
             ("submission_id",),
         ),
         withdraw_submission,
+        write=True,
+    ),
+    # F09-T24 (D-25, D-32 v3.35): the literature status, proposed by anyone and confirmed by a
+    # steward of the target or a curator.
+    Tool(
+        "propose_literature",
+        "Propose what the literature says of a node's statement (D-25 v3.35), written as "
+        "literature/v1: `status` is open (no proof is known), known (a proof is published and "
+        "not formalised) or elementary (a routine formalisation of a known fact), a fact about "
+        "the literature, never about difficulty; `references` support it (at least one, even "
+        "for open); `summary` is what is known, in your words. Unsigned and attributed to you; "
+        "it counts for nothing until a steward of the target or a curator confirms it, and the "
+        "products show it as proposed meanwhile. Refused 400 arguments-invalid naming the "
+        "field, 404 node-unknown; a second record from you in the same second 409 "
+        "record-name-taken with Retry-After: 1.",
+        params(
+            {
+                "node_id": ID_PARAM,
+                "status": LITERATURE_STATUS,
+                "references": LITERATURE_REFERENCES,
+                "summary": LITERATURE_SUMMARY,
+                "model_and_tooling": {
+                    **DECLARED,
+                    "description": "The model and tooling behind the record, if any (D-23).",
+                },
+            },
+            ("node_id", "status", "references", "summary"),
+        ),
+        propose_literature,
+        write=True,
+    ),
+    Tool(
+        "confirm_literature",
+        "Confirm a node's proposed literature status, or state it yourself, as an active "
+        "steward of its target or a listed curator (D-25, D-32 v3.35): the service writes a "
+        "literature/v1 record as your GitHub login, signed with the network's approval key. "
+        "`record` names the proposal you confirm (literature/<timestamp>-<contributor>.yaml, "
+        "from get_node's literature_proposed), or null to state the status directly; the "
+        "status you give may correct the proposal's. Your token must be one proved with GitHub "
+        "(403 github-login-required otherwise); anyone else is 403 not-steward-or-curator; a "
+        "proposal not on the node is 404 not-found; nothing opens on a refusal.",
+        params(
+            {
+                "node_id": ID_PARAM,
+                "record": {
+                    "type": ["string", "null"],
+                    "pattern": "^literature/[^/]+\\.ya?ml$",
+                    "description": "The proposal confirmed, relative to the node, or null.",
+                },
+                "status": LITERATURE_STATUS,
+                "references": LITERATURE_REFERENCES,
+                "summary": LITERATURE_SUMMARY,
+            },
+            ("node_id", "record", "status", "references", "summary"),
+        ),
+        confirm_literature,
+        write=True,
+    ),
+    # F25-T4 (D-3, D-10, D-19, D-35 v3.37): a contributor's display name, and a curator's or
+    # steward's registration record.
+    Tool(
+        "set_display_name",
+        "Record the display name your pseudonym is shown by where the network names its "
+        "contributors outside itself — a Palomar registration's authors (D-19 v3.37) — or "
+        "withdraw it with `name: null`. Written as display-name/v1 at names/<your pseudonym>.yaml "
+        "for your own pseudonym and no other, signed with the network's approval key, by pull "
+        "request. A one-way publication: the name reaches the registry's public record once a "
+        "registration names you; nothing on the site shows it yet. Refused 400 "
+        "arguments-invalid naming the field; 409 display-name-in-review while a pull request of "
+        "yours still writes the file (one writer at a time); 503 approval-key-missing; nothing "
+        "opens on a refusal.",
+        params(
+            {
+                "name": {
+                    "type": ["string", "null"],
+                    "maxLength": 200,
+                    "description": "The name to be shown by, 1 to 200 characters; null withdraws "
+                    "an earlier one.",
+                },
+                "link": {
+                    "type": ["string", "null"],
+                    "maxLength": 500,
+                    "description": "An https:// link for the name (an ORCID record, an "
+                    "institutional page), or null; not with a withdrawal.",
+                },
+            },
+            ("name",),
+        ),
+        set_display_name,
+        write=True,
+    ),
+    Tool(
+        "register_target",
+        "Record a target's submission to, or registration in, Palomar (D-10 v3.37) as a listed "
+        "curator or an active steward of the target: written as registration/v1 under "
+        "targets/<id>/registrations/ with `submitted_by` your GitHub login, by pull request. The "
+        "registry itself is never called: the submission is your act outside the network, and "
+        "this records what it answered. Your token must be one proved with GitHub (403 "
+        "github-login-required otherwise); anyone else is 403 not-steward-or-curator; a node "
+        "that is not the target's is 404 registration-proof-unknown; an attestation the graph "
+        "lacks 404 registration-attestation-unknown, one that is not the node's passing one 400 "
+        "registration-attestation-mismatch; a record that fails its schema 400 record-invalid; "
+        "nothing opens on a refusal.",
+        params(
+            {
+                "target_id": ID_PARAM,
+                "registry": {
+                    "enum": ["palomar"],
+                    "description": "Which registry; palomar is the one so far.",
+                },
+                "registry_id": {
+                    "type": ["string", "null"],
+                    "description": "The registry's id once issued, PALOMAR-YYYY-MM-DD-NNNNNN; "
+                    "null while a submission has none.",
+                },
+                "version": {
+                    "type": ["integer", "null"],
+                    "minimum": 1,
+                    "description": "The registry's version of the record; null before "
+                    "registration.",
+                },
+                "wrapper": {
+                    "type": "object",
+                    "description": "The wrapper repository the export wrote and you submitted: "
+                    "`repository` (owner/name on GitHub) and `commit` (its full sha).",
+                    "properties": {"repository": {"type": "string"}, "commit": SHA1},
+                    "required": ["repository", "commit"],
+                    "additionalProperties": False,
+                },
+                "graph_commit": {
+                    **SHA1,
+                    "description": "The graph commit the wrapper was exported from "
+                    "(opn-export.json).",
+                },
+                "proof": {
+                    "type": "object",
+                    "description": "Which proof: `node` (a node of the target) and "
+                    "`attestation` (the six-digit number of the attestation of its merge, "
+                    "attestations/<n>.json, as get_submission shows it).",
+                    "properties": {
+                        "node": ID_PARAM,
+                        "attestation": {"type": "string", "pattern": "^[0-9]{6}$"},
+                    },
+                    "required": ["node", "attestation"],
+                    "additionalProperties": False,
+                },
+                "status": {
+                    "enum": [
+                        "submitted",
+                        "registered",
+                        "revision_required",
+                        "rejected",
+                        "withdrawn",
+                    ],
+                    "description": "As the registry last answered; withdrawn sets the "
+                    "registration aside.",
+                },
+                "url": {
+                    "type": ["string", "null"],
+                    "maxLength": 500,
+                    "description": "The registry's page for the entry once registered, https://; "
+                    "null before.",
+                },
+                "challenge_sha256": {
+                    **SHA256_OR_NULL,
+                    "description": "The wrapper's Challenge.lean as the registry recorded it, "
+                    "or null before registration.",
+                },
+                "solution_sha256": {
+                    **SHA256_OR_NULL,
+                    "description": "Likewise for Solution.lean.",
+                },
+                "note": {
+                    "type": ["string", "null"],
+                    "maxLength": 1000,
+                    "description": "Your words about the registration, if any.",
+                },
+            },
+            ("target_id", "registry", "wrapper", "graph_commit", "proof", "status"),
+        ),
+        register_target,
         write=True,
     ),
 )

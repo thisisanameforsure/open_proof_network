@@ -1,0 +1,239 @@
+{
+ "id": "01M3W2D23GNYZZFQQWWEFPM551",
+ "node_id": "erdos-402--h3-v2--h1--h1--h1",
+ "target_id": "erdos-402",
+ "state": "done",
+ "created": "2026-10-01T15:47:50Z",
+ "graph_commit": "0fb8e1339815e176076314f8f91e5db03c0dddea",
+ "bundle_digest": "a37e314287aa5ed7e2dfecef7712050fbd4e906bb15f155f89db03a451770401",
+ "authenticated": true,
+ "result": {
+  "attestation": {
+   "artifact_hash": null,
+   "diagnostic": null,
+   "first_failing_step": null,
+   "gate_spec_hash": "d9af7df0959909beee872126fbcd11755d0220791923c4544e24f1abf2be865f",
+   "graph_commit": "0fb8e1339815e176076314f8f91e5db03c0dddea",
+   "graph_id": "erdos-402",
+   "lean_toolchain": "leanprover/lean4:v4.33.1",
+   "mathlib_sha": "0df444a360eaa60ab8c11dca51a86af692955474",
+   "merge_commit": null,
+   "model_and_tooling": "undeclared",
+   "network_commit": "3422bb401108f24a3006877a2af929894564a1c1",
+   "node_id": "erdos-402--h3-v2--h1--h1--h1",
+   "precheck_attestation": {
+    "hash": null,
+    "signature_kind": null
+   },
+   "review": null,
+   "runner": "hosted",
+   "schema": "attestation/v5",
+   "signature": {
+    "key_id": "SHA256:bJR39nO37EkRaxo4CPqdhcHk+WL+sEnAJ9ujpkF7LXo",
+    "kind": "service",
+    "timestamp": "2026-10-01T15:51:54Z",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAg4NVeR5WlT1J5vaHpDOmXNTurS+\nKqTYJTovSCpPj5G/IAAAAPb3BuLWF0dGVzdGF0aW9uAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQBTdDWiRbCHTkevIWtOlwRbrcgYZFvkwJGnem/oKhYqrUtoeiV\nvOxn26zZ71x7qcH6SEtffEl5oDGgkmFvB4IQU=\n-----END SSH SIGNATURE-----\n"
+   },
+   "statement_hash": "97aa966e79be7bd45362ba361afd70bb0be00524571b8ddec518fa0dbf4ceec9",
+   "steps": [
+    {
+     "diagnostic": {
+      "code": "mathlib-pinned",
+      "details": {
+       "mathlib_sha": "0df444a360eaa60ab8c11dca51a86af692955474",
+       "packages": 8
+      },
+      "message": "Mathlib 0df444a360ea resolved from the pinned checkout"
+     },
+     "name": "toolchain",
+     "result": "pass",
+     "step": 1
+    },
+    {
+     "diagnostic": {
+      "code": "partial-submission",
+      "details": {
+       "path": "attempts/20261001T154750Z-t1001-402a-partial.lean"
+      },
+      "message": "a partial proof: attempts/20261001T154750Z-t1001-402a-partial.lean (D-12 #5)"
+     },
+     "name": "paths",
+     "result": "pass",
+     "step": 2
+    },
+    {
+     "diagnostic": {
+      "code": "artifact-reduction",
+      "details": {
+       "holes": [
+        "hwin"
+       ],
+       "kind": "partial"
+      },
+      "message": "partial: erdos_402__h3_v2__h1__h1__h1 declares \u2200 (B : Finset \u2115),\n  0 \u2209 B \u2192\n    B.Nonempty \u2192\n      B.gcd id = 1 \u2192\n        \u00acNat.Prime B.card \u2192\n          (\u2200 (q : \u2115), Nat.Prime q \u2192 B.card \u2260 q + 1) \u2192\n            (\u2200 a \u2208 B, \u2200 b \u2208 B, a \u2264 B.card * a.gcd b) \u2192\n              (\u2200 a \u2208 B, \u2200 (p k : \u2115), Nat.Prime p \u2192 p ^ k \u2223 a \u2192 p ^ k < B.card) \u2192\n                (\u2203 a \u2208 B, \u2203 b \u2208 B, \u2191(a.gcd b) \u2264 \u2191a / \u2191B.card) \u2228 \u2203 p, Nat.Prime p \u2227 B.card \u2264 3 * p \u2227 \u2203 a \u2208 B, p \u2223 a; 1 hole(s)"
+     },
+     "name": "kernel-replay",
+     "result": "pass",
+     "step": 4
+    },
+    {
+     "diagnostic": null,
+     "name": "axioms",
+     "result": "pass",
+     "step": 5
+    },
+    {
+     "diagnostic": {
+      "code": "hazards-derived-statement",
+      "details": {
+       "acknowledged": [],
+       "checkers": [
+        "div-zero",
+        "int-trunc",
+        "junk-value",
+        "nat-sub",
+        "off-by-one-range",
+        "unused-binder"
+       ],
+       "findings": [
+        {
+         "checker": "div-zero",
+         "location": "\u2191a / \u2191B.card",
+         "message": "division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"
+        }
+       ],
+       "origin": "compiler-derived"
+      },
+      "message": "1 hazard finding(s) on a statement the gate derived from a merged assembly, recorded and not refused; first: div-zero at \u2191a / \u2191B.card: division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"
+     },
+     "name": "hazards",
+     "result": "pass",
+     "step": 6
+    },
+    {
+     "diagnostic": null,
+     "name": "witness",
+     "result": "pass",
+     "step": 7
+    },
+    {
+     "diagnostic": null,
+     "name": "deps",
+     "result": "pass",
+     "step": 8
+    }
+   ],
+   "submitter": null,
+   "toolchain_hash": "f54d0bc916bf76a7fae460ce9d078ccd1f74aeb4fd12c4b6546bca28b6aa1c63",
+   "tooling": {
+    "harness": null,
+    "model": null
+   },
+   "trust_base": "kernel",
+   "verdict": "pass"
+  },
+  "bundle_digest": "a37e314287aa5ed7e2dfecef7712050fbd4e906bb15f155f89db03a451770401",
+  "first_failing_step": null,
+  "holes": [
+   {
+    "closed_type": "\u2200 (B : Finset \u2115),\n  (0 : \u2115) \u2209 B \u2192\n    B.Nonempty \u2192\n      B.gcd id = (1 : \u2115) \u2192\n        \u00acNat.Prime B.card \u2192\n          (\u2200 (q : \u2115), Nat.Prime q \u2192 B.card \u2260 q + (1 : \u2115)) \u2192\n            (\u2200 a \u2208 B, \u2200 b \u2208 B, a \u2264 B.card * a.gcd b) \u2192\n              (\u2200 a \u2208 B, \u2200 (p k : \u2115), Nat.Prime p \u2192 p ^ k \u2223 a \u2192 p ^ k < B.card) \u2192\n                (\u2203 a \u2208 B, \u2203 b \u2208 B, (\u2191(a.gcd b) : \u211a) \u2264 (\u2191a : \u211a) / (\u2191B.card : \u211a)) \u2228\n                  \u2203 (p : \u2115),\n                    Nat.Prime p \u2227\n                      B.card < p \u2227 p < (2 : \u2115) * B.card \u2227 ((2 : \u2115) * B.card - p) * ((2 : \u2115) * B.card - p) \u2264 B.card",
+    "expected_witness": "\u2203 (B : Finset \u2115),\n  (0 : \u2115) \u2209 B \u2227\n    B.Nonempty \u2227\n      B.gcd id = (1 : \u2115) \u2227\n        \u00acNat.Prime B.card \u2227\n          (\u2200 (q : \u2115), Nat.Prime q \u2192 B.card \u2260 q + (1 : \u2115)) \u2227\n            (\u2200 a \u2208 B, \u2200 b \u2208 B, a \u2264 B.card * a.gcd b) \u2227 \u2200 a \u2208 B, \u2200 (p k : \u2115), Nat.Prime p \u2192 p ^ k \u2223 a \u2192 p ^ k < B.card",
+    "name": "hwin",
+    "proved_binders": [],
+    "restates": null
+   }
+  ],
+  "job_id": "01M3W2D23GNYZZFQQWWEFPM551",
+  "node_id": "erdos-402--h3-v2--h1--h1--h1",
+  "steps": [
+   {
+    "diagnostic": {
+     "code": "mathlib-pinned",
+     "details": {
+      "mathlib_sha": "0df444a360eaa60ab8c11dca51a86af692955474",
+      "packages": 8
+     },
+     "message": "Mathlib 0df444a360ea resolved from the pinned checkout"
+    },
+    "name": "toolchain",
+    "result": "pass",
+    "step": 1
+   },
+   {
+    "diagnostic": {
+     "code": "partial-submission",
+     "details": {
+      "path": "attempts/20261001T154750Z-t1001-402a-partial.lean"
+     },
+     "message": "a partial proof: attempts/20261001T154750Z-t1001-402a-partial.lean (D-12 #5)"
+    },
+    "name": "paths",
+    "result": "pass",
+    "step": 2
+   },
+   {
+    "diagnostic": {
+     "code": "artifact-reduction",
+     "details": {
+      "holes": [
+       "hwin"
+      ],
+      "kind": "partial"
+     },
+     "message": "partial: erdos_402__h3_v2__h1__h1__h1 declares \u2200 (B : Finset \u2115),\n  0 \u2209 B \u2192\n    B.Nonempty \u2192\n      B.gcd id = 1 \u2192\n        \u00acNat.Prime B.card \u2192\n          (\u2200 (q : \u2115), Nat.Prime q \u2192 B.card \u2260 q + 1) \u2192\n            (\u2200 a \u2208 B, \u2200 b \u2208 B, a \u2264 B.card * a.gcd b) \u2192\n              (\u2200 a \u2208 B, \u2200 (p k : \u2115), Nat.Prime p \u2192 p ^ k \u2223 a \u2192 p ^ k < B.card) \u2192\n                (\u2203 a \u2208 B, \u2203 b \u2208 B, \u2191(a.gcd b) \u2264 \u2191a / \u2191B.card) \u2228 \u2203 p, Nat.Prime p \u2227 B.card \u2264 3 * p \u2227 \u2203 a \u2208 B, p \u2223 a; 1 hole(s)"
+    },
+    "name": "kernel-replay",
+    "result": "pass",
+    "step": 4
+   },
+   {
+    "diagnostic": null,
+    "name": "axioms",
+    "result": "pass",
+    "step": 5
+   },
+   {
+    "diagnostic": {
+     "code": "hazards-derived-statement",
+     "details": {
+      "acknowledged": [],
+      "checkers": [
+       "div-zero",
+       "int-trunc",
+       "junk-value",
+       "nat-sub",
+       "off-by-one-range",
+       "unused-binder"
+      ],
+      "findings": [
+       {
+        "checker": "div-zero",
+        "location": "\u2191a / \u2191B.card",
+        "message": "division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"
+       }
+      ],
+      "origin": "compiler-derived"
+     },
+     "message": "1 hazard finding(s) on a statement the gate derived from a merged assembly, recorded and not refused; first: div-zero at \u2191a / \u2191B.card: division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"
+    },
+    "name": "hazards",
+    "result": "pass",
+    "step": 6
+   },
+   {
+    "diagnostic": null,
+    "name": "witness",
+    "result": "pass",
+    "step": 7
+   },
+   {
+    "diagnostic": null,
+    "name": "deps",
+    "result": "pass",
+    "step": 8
+   }
+  ],
+  "verdict": "pass"
+ },
+ "public": true
+}

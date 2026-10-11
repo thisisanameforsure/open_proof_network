@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>F21 — Words written by contributors, credited when signed</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="crumbs"><a href="../index.html">specs</a> / F21</nav>
+<h1>F21 — Words written by contributors, credited when signed</h1>
+<p class="subtitle">Glosses and explainers become contributor work, like proofs. The network stops
+paying a model to draft them. Agents find the Lean files that still need words, write them,
+disclose the model that helped, and earn credit only when a steward or curator signs their
+version.</p>
+
+<h2>1. Summary</h2>
+<p>F20 built a paid drafter: a network workflow called a model through OpenRouter and filed the
+results as <code>opn-drafter</code>. Seven drafts went live on 2026-10-05 for $2.09 plus $1.93 to
+redraft one. On reading the cost, the owner ruled the same day: <em>"I dont want to pay for this.
+It should be a job given by agents to work on the explainers."</em> He approved this plan.</p>
+<p>Most of F20 stays. The records, chains, withdrawal, signatures, <code>POST /glosses</code>,
+<code>submit_gloss</code>, the gate's checks and the site do not care who wrote a version. F21
+changes five things:</p>
+<ul>
+  <li><strong>The paid drafter goes.</strong> Its code, workflow, settings, service fields,
+    secrets and the graph step that starts it are removed. The seven merged drafts stay readable,
+    attributed to the drafter, and contributors can supersede them. No new draft can be filed by
+    anyone.</li>
+  <li><strong>The work becomes findable.</strong> A new MCP read tool, <code>list_words_needed</code>,
+    lists every Lean file and merged proof that still lacks words, computed from the published
+    <code>glosses.json</code>. The site gains a "needs words" filter.</li>
+  <li><strong>One writer at a time per file.</strong> The service refuses a new chain for a file
+    while another open pull request is already writing one, the D-25 v3.21 rule witnesses
+    follow.</li>
+  <li><strong>The model is disclosed.</strong> A contributor's version may say which model drafted
+    it (<code>drafted_with</code>, D-23), shown as "written by &lt;pseudonym&gt;, drafted with
+    &lt;model&gt;".</li>
+  <li><strong>Credit on signature.</strong> A version earns a write-up ledger line only when a
+    steward or curator signs it, credited to its author, once. Today nothing is paid at all: the
+    decisions doc and F20-R19 say an explainer earns at merge, but no code ever paid it (found
+    while mapping, 2026-10-05). So this is new code, and it closes that gap in the cautious
+    direction.</li>
+</ul>
+<p>Later the same day the owner added two rules: say which model gave the words, so later models can
+improve them; and once a person has verified or edited the words for some Lean lines, no model may
+change those words. Asked whether another person may edit them, he wanted something like
+Wikipedia, with a steward or curator approving people's changes. So an explainer is now read
+<strong>section by section</strong>, a section being the words for some outline steps and so for
+some Lean lines (a gloss is one section):</p>
+<ul>
+  <li><strong>drafted</strong>: a model wrote it (the version names the model in
+    <code>drafted_with</code>). Any later version, a model's or a person's, may change it.</li>
+  <li><strong>written</strong>: a person wrote or edited it. Locked against models.</li>
+  <li><strong>verified</strong>: a steward or curator signed it. Locked against models.</li>
+</ul>
+<p>A model's version that changes a written or verified section is refused. A person's edit to a
+drafted section takes effect at once and becomes written. A person's edit to a written or verified
+section merges as a <strong>pending change</strong>: the site keeps showing the approved words, with
+the pending edit and its diff, until a steward or curator signs that section of the new version.
+Approval and verification are the same act, a per-section signature, and it is also what earns the
+author credit. Nothing is overwritten and every version stays in the record.</p>
+<p>F21 changes no verdict and no status. It needs decisions v3.31 (Q1) and a re-pin for the new
+record versions.</p>
+
+<h2>2. User stories</h2>
+<ul>
+  <li>As a contributor's agent, I want a list of Lean files that still need words, so that I can
+    pick one and write it without reading the whole graph.</li>
+  <li>As a contributor, I want my version credited once a steward has read it and signed it, so
+    that careful writing is what earns.</li>
+  <li>As a contributor, I want to say my agent drafted the words, so that the record is honest
+    about how they were made.</li>
+  <li>As a second contributor, I want to be told at once that someone is already writing this file,
+    so that I pick another.</li>
+  <li>As the owner, I want the network to spend nothing on drafting.</li>
+  <li>As a contributor running a newer model, I want to improve the parts of an explainer no person
+    has touched, without being able to overwrite a person's words.</li>
+  <li>As a steward, I want to verify the sections I checked and leave the rest open, and to approve
+    or ignore a person's edit to words already approved.</li>
+</ul>
+
+<h2>3. Scope</h2>
+<p><strong>In:</strong> removal of the paid drafter; the "no new drafts" gate rule; credit on
+signature; the one-writer-per-file refusal; <code>gloss/v2</code>, <code>explainer/v2</code> and
+<code>glosses/v2</code> with <code>drafted_with</code>; sections, their states, the model lock and
+pending changes, with per-section signatures (<code>explainer-signature/v2</code>,
+<code>gloss-signature/v2</code>); <code>list_words_needed</code>; the site's
+"needs words" filter; the guide's entry task; decisions v3.31; the live re-pin and cleanup.</p>
+<p><strong>Non-goals:</strong></p>
+<ul>
+  <li>Withdrawing the seven existing drafts. They stay, labelled machine-drafted, as starting points
+    for contributors.</li>
+  <li>Claims on glosses. The one-at-a-time refusal is enough for cheap work (Q4).</li>
+  <li>Any change to <code>opn_gate.models</code>. F12's QA commands still use it, with
+    <code>OPENROUTER_API_KEY</code> in the curator's <code>.env</code> only.</li>
+  <li>Ranking which files most need words (D-25). The list is in record order.</li>
+</ul>
+
+<h2>4. Requirements</h2>
+<table>
+  <tr><th>ID</th><th>Requirement (EARS)</th></tr>
+  <tr><td>F21-R1</td><td>The network repository shall contain no code, workflow or service field
+    that drafts words at the network's expense. The secrets, the drafter's saved token, the stack
+    parameter and the graph's dispatch step stay in place, unused, on the owner's word (Q9): the step
+    finds no workflow to start and logs a warning, so nothing is spent.</td></tr>
+  <tr><td>F21-R2</td><td>If an added gloss or explainer file carries a <code>drafter</code> block,
+    then the gate shall refuse it (<code>draft-not-accepted</code>), whoever opened the pull request.
+    Merged files with a <code>drafter</code> block shall still validate, display and be
+    supersedable.</td></tr>
+  <tr><td>F21-R3</td><td>When a merged pull request adds a gloss-signature or explainer-signature,
+    the ledger job shall write one <code>write-up</code> entry crediting the
+    <code>author</code> of the version whose sections it approves, with the version's path as its
+    artifact. It shall write none if the version
+    has no author (a draft), if the signer is the author, or if an active write-up entry for that
+    artifact already exists.</td></tr>
+  <tr><td>F21-R4</td><td>A merged gloss or explainer that is not a signature shall earn no ledger
+    line (as today, now stated).</td></tr>
+  <tr><td>F21-R5</td><td>If <code>POST /glosses</code> asks for a new chain (no
+    <code>supersedes</code>) on a subject for which an open, live pull request already adds a
+    version, then the service shall refuse it before any pull request opens
+    (<code>duplicate-submission</code>, 409, naming that pull request). A pull request whose gate
+    failed or that conflicts shall not block. A request that supersedes is not subject to this
+    rule.</td></tr>
+  <tr><td>F21-R6</td><td>The system shall accept <code>gloss/v2</code> and <code>explainer/v2</code>:
+    v1 plus an optional <code>drafted_with</code> (null, or a string of 1&ndash;200 characters
+    naming the model and tooling, as annex <code>model_and_tooling</code>). It shall keep accepting
+    and reading v1. <code>POST /glosses</code> shall accept <code>drafted_with</code> and write v2.
+    The product shall become <code>glosses/v2</code>, carrying <code>drafted_with</code> per
+    version.</td></tr>
+  <tr><td>F21-R7</td><td>The site shall show a version with <code>drafted_with</code> as
+    "written by &lt;author&gt;, drafted with &lt;model&gt;", escaped, under the untrusted-data
+    demarcation (C9).</td></tr>
+  <tr><td>F21-R8</td><td>The MCP shall offer <code>list_words_needed(target_id?, kind?)</code>,
+    reading <code>glosses.json</code> and <code>target.yaml</code> at main's head, and answering each
+    subject that lacks words with its target, file, kind, node, reason and the outline path for a
+    proof. Its answer shall equal the uncovered rows of <code>opn-gate gloss coverage</code> on the
+    same tree, Context files aside.</td></tr>
+  <tr><td>F21-R9</td><td>The site's Problems page shall offer a "needs words" filter and show each
+    problem's count of subjects without words.</td></tr>
+  <tr><td>F21-R11</td><td>The system shall read every gloss and explainer version as sections. An
+    explainer section is a level-2 section keyed by its sorted step anchors, the unanchored first
+    section keyed <code>overview</code>; a gloss is one section keyed <code>whole</code>. If a
+    version has two sections with the same key, then the gate shall refuse it
+    (<code>section-duplicate</code>). Each section of each version shall carry a state derived from
+    the chain and its signatures: unchanged from the section the chain currently shows, it keeps
+    that state; changed in a version with <code>drafted_with</code>, it is <em>drafted</em>; changed
+    in a person's version over a drafted or absent section, it is <em>written</em> and shown at
+    once; changed in a person's version over a written or verified section, it is
+    <em>pending</em> and not shown; any section a valid signature approves becomes
+    <em>verified</em> and is shown.</td></tr>
+  <tr><td>F21-R12</td><td>If a version with <code>drafted_with</code> changes or omits a section
+    the chain shows as written or verified, then the gate shall refuse it
+    (<code>locked-by-a-person</code>), naming the section and the Lean lines its steps span.</td></tr>
+  <tr><td>F21-R13</td><td>The system shall accept <code>explainer-signature/v2</code> and
+    <code>gloss-signature/v2</code>: v1 plus an optional <code>sections</code> list of the section
+    keys approved (absent: every section of the version). A signature by a steward of the target or
+    a curator shall approve those sections; it shall replace F20's rule that only a steward or
+    curator may supersede a signed version (F20-R6), which is withdrawn: anyone may supersede, and a
+    changed verified section is pending until approved.</td></tr>
+  <tr><td>F21-R14</td><td>The products shall publish, for each subject, the words shown section by
+    section (the version each comes from and its state) and every pending section with its version
+    (<code>glosses/v2</code>). The site shall show each section's shown words with a label in text
+    (<em>drafted with &lt;model&gt;</em>, <em>written by &lt;author&gt;</em>, <em>read against the Lean by
+    &lt;signer&gt;</em>, Q17) and, beneath, each pending edit with its author and a diff, marked
+    <em>awaiting review</em>. <code>get_node</code> shall return the same.</td></tr>
+  <tr><td>F21-R15</td><td>A node shall count as explained (D-33) while every section of the explainer
+    words shown for its first proof is verified.</td></tr>
+  <tr><td>F21-R10</td><td>The guide shall offer "write the words for a statement" as an entry task
+    beside the tutorial proof, with the refusals and the credit rule.</td></tr>
+</table>
+
+<h2>5. Acceptance criteria</h2>
+<table>
+  <tr><th>ID</th><th>Given / When / Then</th><th>Test case</th></tr>
+  <tr><td>F21-AC1</td><td>Given the network tree, then no drafting module, workflow, CLI command or
+    service field remains (grep guard), and no network workflow is named
+    <code>gloss-draft.yml</code>, so the graph's dispatch finds nothing to start.</td>
+    <td><code>gate/tests/test_no_paid_drafter.py</code></td></tr>
+  <tr><td>F21-AC2</td><td>Given a new gloss with a <code>drafter</code> block opened by the service,
+    by a curator and by a stranger, then all three are refused <code>draft-not-accepted</code>; given
+    a merged draft, it validates, renders and can be superseded by a person.</td>
+    <td><code>gate/tests/test_no_new_drafts.py</code> (replaces
+    <code>test_gloss_draft_provenance.py</code>)</td></tr>
+  <tr><td>F21-AC3</td><td>Given a person's explainer, when a curator's signature merges, then one
+    write-up entry credits the author; a second signature on the same version adds none; a
+    signature on a draft adds none; a steward signing their own version adds none; an unsigned
+    explainer merge adds none; the same holds for glosses.</td>
+    <td><code>gate/tests/test_writeup_credit.py</code></td></tr>
+  <tr><td>F21-AC4</td><td>Given an open pull request writing a gloss of a file, when another
+    identity posts a new gloss of the same file, then 409 <code>duplicate-submission</code> naming
+    the first, and no branch; when the first's gate failed, then it passes; for another file, it
+    passes; a superseding request is not refused by this rule.</td>
+    <td><code>api/tests/test_glosses_one_writer.py</code></td></tr>
+  <tr><td>F21-AC5</td><td>Given gloss/v2 and explainer/v2 with and without
+    <code>drafted_with</code>, and v1 files, then all validate and classify; the service writes v2
+    with the field from the request; an over-long or non-string value is refused
+    <code>tooling-invalid</code>; the product carries the field.</td>
+    <td><code>gate/tests/test_drafted_with.py</code>, <code>api/tests/test_glosses_route.py</code>
+    (new cases)</td></tr>
+  <tr><td>F21-AC6</td><td>Given a version with <code>drafted_with</code>, then its provenance line
+    says "written by &lt;author&gt;, drafted with &lt;model&gt;", escaped.</td>
+    <td><code>site/tests/test_glosses.py::test_drafted_with_is_shown</code></td></tr>
+  <tr><td>F21-AC7</td><td>Given the fixture graph, then <code>list_words_needed</code> equals the
+    uncovered rows of <code>gloss coverage</code> (Context aside); filters by target and kind; an
+    unknown filter is named.</td>
+    <td><code>api/tests/test_mcp_words_needed.py</code>,
+    <code>gate/tests/test_gloss_coverage.py::test_needed_from_the_product_matches_coverage</code></td></tr>
+  <tr><td>F21-AC8</td><td>Given problems with and without uncovered subjects, then the filter keeps
+    exactly those with some and the count is shown.</td>
+    <td><code>site/tests/test_needs_words_filter.py</code></td></tr>
+  <tr><td>F21-AC10</td><td>Given a chain: a model's draft (three sections), a person's edit of one
+    section, a steward's signature on another, a second model's version: then the person's section
+    is written and shown, the signed one verified and shown, the third drafted; the second model's
+    version is accepted if it changes only the drafted section and refused
+    <code>locked-by-a-person</code> (naming the Lean lines) if it changes either other; a version
+    with two sections on the same steps is refused <code>section-duplicate</code>.</td>
+    <td><code>gate/tests/test_section_states.py</code></td></tr>
+  <tr><td>F21-AC11</td><td>Given a person's edit to a verified section, then the site shows the
+    verified words with the edit beneath, awaiting review, with its diff; when a curator signs that
+    section of the edit, the edit is shown and verified and its author is credited once; an
+    unapproved edit is never shown as the section's words.</td>
+    <td><code>gate/tests/test_pending_changes.py</code>,
+    <code>site/tests/test_pending_changes.py</code></td></tr>
+  <tr><td>F21-AC12</td><td>Given a signature naming two of three sections, then only those two are
+    verified; given a v1 signature, then every section of its version is.</td>
+    <td><code>gate/tests/test_section_states.py::test_a_signature_approves_the_sections_it_names</code></td></tr>
+  <tr><td>F21-AC9</td><td>Given the live graph after the re-pin, when a test identity writes a gloss
+    through the MCP and a curator signs it, then the version shows on the site with its model and
+    the ledger credits the writer.</td>
+    <td><code>engineering/evidence/F21/task-9-live.txt</code> (network tier)</td></tr>
+</table>
+
+<h2>6. Budgets / limits</h2>
+<ul>
+  <li>The network spends nothing on drafting. Outlines still come from CI minutes (F19).</li>
+  <li><code>list_words_needed</code> reads two committed files per target at one head, through the
+    same budget-held reads as <code>get_node</code> (F05-T13).</li>
+</ul>
+
+<h2>7. Security &amp; privacy notes</h2>
+<ul>
+  <li>The <code>OPENROUTER_API_KEY</code> and <code>OPN_DRAFTER_TOKEN</code> network secrets, the
+    saved drafter token and the <code>DrafterPseudonym</code> stack parameter stay, unread by any code
+    (Q9); C8 says so. The curator's <code>.env</code> keeps <code>OPENROUTER_API_KEY</code> for F12's
+    QA commands.</li>
+  <li>The <code>opn-drafter</code> identity stays, reserved, so nobody can take the name the
+    existing drafts carry.</li>
+  <li><code>drafted_with</code> is contributor text: demarcated wherever served (C9).</li>
+  <li>Credit on signature cannot be self-awarded: a signer's own version earns nothing (R3).</li>
+</ul>
+
+<h2>8. Dependencies</h2>
+<ul>
+  <li><strong>F20</strong> (required): the records, chains, signatures, route, tools, product and
+    site this feature reuses; F20's drafter is what it removes.</li>
+  <li><strong>F15, F05, F07, F09</strong>: signatures and stewards, the ledger job and duplicate
+    refusals, the MCP and its bijection.</li>
+  <li><strong>Packages:</strong> none.</li>
+</ul>
+
+<h2>9. Open questions / judgment calls</h2>
+<table>
+  <tr><th>ID</th><th>Call made — for review</th></tr>
+  <tr><td>F21-Q1</td><td><strong>Proposed decisions v3.31, for the owner's approval of the
+    wording.</strong> (i) <em>D-3, superseding v3.30's drafts:</em> "v3.31 — no drafts. The network
+    drafts no words. Glosses and explainers are written by contributors, whose agents may draft
+    them, saying so in <code>drafted_with</code> (D-23). The drafts filed on 2026-10-05 stay,
+    attributed to the drafter, and may be superseded; no new record with a drafter block is
+    accepted." (ii) <em>D-19, D-3, D-32, credit:</em> "v3.31 — a gloss or explainer version earns
+    on the write-up line when a steward of its target or a curator signs it, credited once to its
+    author, never to its signer; an unsigned version, a draft, and a signature on one's own version
+    earn nothing." (iii) <em>D-25, one writer:</em> "v3.31: a new chain of words on a file is
+    refused while another open pull request is writing one, as a hole takes one witness at a time."
+    (iv) <em>D-28:</em> a row for <code>list_words_needed</code>. (v) <em>D-3, sections and
+    pending changes:</em> "v3.31 — words by section. A gloss or explainer is read section by
+    section, a section being the words for some steps of the proof's outline and so for some Lean
+    lines. A section a model wrote is drafted; one a person wrote is written; one a steward of the
+    target or a curator has signed is verified. A model's version may change only drafted sections.
+    A person's version may change any: over a drafted section the change is shown at once, over a
+    written or verified one it is pending, kept in the record and shown beneath the approved words
+    until a steward or curator signs it. Signing approves the sections it names, verifies them, and
+    is what earns their author credit. This replaces v3.30's rule that only a steward or curator may
+    supersede a signed version." (vi) <em>D-33:</em> "v3.31: a node is explained while every section
+    of the explainer words shown for its proof is verified."</td></tr>
+  <tr><td>F21-Q2</td><td><strong>No new drafts, rather than deleting the rule.</strong> Deleting
+    <code>drafter-not-service</code> with nothing in its place would let a hand-opened pull request
+    file a fake "machine-drafted" record, because the schemas still allow the block for the seven
+    existing ones. So the rule tightens to "no added file may carry a drafter block".</td></tr>
+  <tr><td>F21-Q3</td><td><strong>Credit is per version, once.</strong> Several signatures on one
+    version pay once, checked against existing active write-up entries for the artifact. Signing a
+    superseded or withdrawn version still credits its author: the signature says the signer read
+    it, and the author wrote it; whether it is current is a separate fact (digestion uses that one).
+    The signer is never credited for signing (D-19 credits work, not review).</td></tr>
+  <tr><td>F21-Q4</td><td><strong>No claims on words.</strong> The one-writer refusal stops the
+    common collision at the moment it would cost something (a second pull request), without a claim
+    registry for minutes-long work. A claim kind for words can come later if collisions show
+    up.</td></tr>
+  <tr><td>F21-Q5</td><td><strong>The subject key rides in the fingerprints.</strong> The store's
+    submission records carry no subject, so the service adds a fingerprint
+    <code>words:&lt;target&gt;:&lt;file-or-proof-hash&gt;</code> to every gloss or explainer
+    submission. No store schema change is needed and both stores already persist fingerprints.</td></tr>
+  <tr><td>F21-Q7</td><td><strong>The owner's rulings of 2026-10-05 on the lock.</strong> A passage is
+    locked against models by a person's edit or by verification (he chose both). Verification is per
+    section. A person's change to locked words is approved by a steward or curator, Wikipedia-style,
+    and stays pending until then. The cost he accepted with the first choice: anyone can claim to be a
+    person (leave <code>drafted_with</code> empty) and so freeze weak words from model improvement.
+    The release is a person's edit, which a steward or curator can approve, or a withdrawal.</td></tr>
+  <tr><td>F21-Q8</td><td><strong>A section's identity is its steps, not its heading.</strong> Two
+    versions' sections are the same section when they name the same sorted step ids, so a steward
+    renaming a heading does not unlock or re-lock anything; changing a section's steps makes it a
+    new section. Text equality is exact after trimming trailing whitespace. A gloss is one section,
+    because its file has no steps. A pre-F20 explainer without anchors is one section,
+    <code>overview</code>.</td></tr>
+  <tr><td>F21-Q9</td><td><strong>Nothing outside the code is removed (the owner, 2026-10-05).</strong>
+    The secrets, the saved token, the stack parameter and the graph's dispatch step stay. What stops
+    the spending is the code: with the drafter modules and <code>gloss-draft.yml</code> gone, the
+    graph's step has no workflow to start. That step's warning on each merge is the visible trace of
+    the choice; removing the step later is one graph pull request.</td></tr>
+  <tr><td>F21-Q10</td><td><strong>The owner's ruling, 2026-10-06: an author's own edits take effect at once.</strong> A person's edit to their own <em>written</em> words is written and shown, without review; an edit to someone else's written words, or to any verified words, is pending. So a steward reviews what matters, not every typo fix.</td></tr>
+  <tr><td>F21-Q11</td><td><strong>Judgment calls in T2, T3, T5 (the building agent's, reviewed by the lead).</strong> (a) A request carrying <code>drafter</code> is refused by the generic <code>unknown-field</code>, not a named code. (b) R5's "already adds a version" covers any open version of the subject, a superseding one included, and the same writer's second new chain. (c) The one-writer check runs after the gate's pre-flight, so a request the gate would refuse gets the gate's own code first. (d) The subject key is matched in the fingerprints, not by node, so a definition module's gloss (no node) is covered; a new chain also holds a slot, so two simultaneous requests cannot both open.</td></tr>
+  <tr><td>F21-Q12</td><td><strong>Judgment calls in T4 (the building agent's, reviewed by the lead).</strong> (1) A definition module's gloss has no node, but <code>ledger/v1</code> requires one: its entry puts the target id in <code>node</code>, so the contributors page's link for that row is wrong until a <code>ledger/v2</code> allows a null node; left as a known gap. (2) Only an <em>active</em> write-up entry blocks re-crediting, so a line revoked by a credit correction can be minted again by a later signature; whether a revoked entry should block is the owner's call. (3) A signer is matched to an author by login and, for curators, by the pseudonym <code>curators.json</code> pairs with it; stewards have no such pairing, so a steward signing their own words under an unpaired pseudonym would be credited. (4) The artifact is the version's path relative to its node directory, as other entries name theirs; the tooling is the version's <code>drafted_with</code> or <code>undeclared</code>. (5) The post-merge job's ledger step runs for every recorded merge, glosses and explainers included (checked in the graph's <code>gate.yml</code>).</td></tr>
+  <tr><td>F21-Q13</td><td><strong>Judgment calls in T6 (gate) and T10 (the building agent's, reviewed by the lead).</strong> (1) An explainer naming no step is one <code>overview</code>; an anchored one may have one unanchored section, a second is <code>section-duplicate</code>. (2) Section text includes its heading without the anchor, so a person renaming a locked heading makes a pending change. (3) A signature counts at its version's place in the chain, with no clock. (4) A drafted section is removed by any later version's omission; written or verified ones are kept, since there is no pending deletion: removing locked words takes a withdrawal or a new chain. (5) A model's change over locked words that reaches the record anyway reads as pending, never shown; T11's lock refuses it at the gate. (6) A pending edit repeated in later versions is listed once, under its first proposer; approving newer words for a section clears its pending entries. (7) F20's <code>signed-supersede</code> rule and its catalog row are gone (R13); the writers keep their v1 constants beside new sets of accepted versions until the service writes v2 (T6).</td></tr>
+  <tr><td>F21-Q14</td><td><strong>An own edit must be filed by its author (found while merging, 2026-10-06).</strong> The owner's ruling that an author's own edit of their unverified words shows at once (Q10) made a record's <code>author</code> a privilege. Nothing checked that a hand-opened version's author is who opened it, so anyone could claim another's name and change their words with no review. On a pull request the service did not open, a version that changes words its named author wrote is refused <code>author-not-opener</code> unless that author is among the opener's names. Proposals under another's name are pending and gain nothing from it, so they are not checked; the service writes the author from the token. Two chain tests had modelled exactly the forgery by accident and were restated to open as the author.</td></tr>
+  <tr><td>F21-Q15</td><td><strong>Judgment calls in T6, T7, T8, T11, T12 (the building agents', reviewed by the lead).</strong> (a) <code>locked-by-a-person</code> answers 409, like <code>record-not-head</code>: the content conflicts with the chain as it stands. For a gloss it names the whole file (<code>lines: null</code>), for an explainer the least start to the greatest end line of its steps. (b) A model's version must keep a locked section's exact steps: renumbering makes it another section, so the locked one reads as omitted. (c) An author's own edit does not clear another person's pending edit of the same section; only a signature answers pending edits. (d) <code>list_words_needed</code> lists a target whose product is missing or invalid under <code>unread</code> rather than failing the call; the outline path it gives is computed, not checked to exist; <code>kind</code> is checked in the tool so a bad value is named. (e) The site's "explained and vouched for" line follows only a whole-version (v1) signature; section signatures show as "verified by" on their sections. Pending diffs show source text, so TeX appears raw, as F20's history does. (f) The one-writer rule is the service's: a hand-opened pull request can still start a second chain on a file. It needs a person to merge, since the merge queue takes only the service's branches. (g) A definition module's gloss credit carries the target id in the ledger's <code>node</code> (Q12(1)), a known gap.</td></tr>
+  <tr><td>F21-Q16</td><td><strong>The owner's rulings of 2026-10-06 on the open calls.</strong> (1) A line a credit correction revoked may be minted again by a later signature on that version: kept as built (Q12(2)). (2) The one-writer rule stays the service's: a hand-opened pull request may start a second chain on a file, since it needs a person to merge (Q15(f)). (3) The owner asked the lead to sign the AC9 gloss with the owner's curator key; done as graph #435 (gate green on its head, merged by hand, since the merge actor takes only service branches).</td></tr>
+  <tr><td>F21-Q17</td><td><strong>A verified section reads "read against the Lean by", not "verified by" (the owner's ruling, 2026-10-06).</strong> The first live signature (#435) put "verified by thisisanameforsure" directly under the block's fixed label "In words, unverified" (D-3: prose is labelled unverified wherever it appears). Both were right, and together they read as a contradiction. The page now names what the signer did; the state keeps its name <code>verified</code> in <code>glosses/v2</code>, the guide and <code>get_node</code>, so no schema changes.</td></tr>
+  <tr><td>F21-Q18</td><td><strong>A signature is its signer's (found 2026-10-06, answering the owner's question why the AC9 signature needed SSH).</strong> A gloss or explainer signature verifies under the key it carries, which proves the record unchanged and says nothing about whose key it is: a stranger could sign with their own key under a curator's name, open the pull request, and pass every check (probed on the fixture for both kinds). Under v3.31 a signature approves words, locks them against models and earns their author credit, so the gate now refuses it <code>signer-not-opener</code> unless its key is the one the signer committed with as a steward of the target (F15-R1, keeping F15-Q8's carried record) or the signer opened the pull request. A curator has no key on record, so a curator opens their own. Until the next re-pin the guard is the hand merge: the merge actor takes no curator branch. Red: <code>test_a_signature_is_filed_by_its_signer</code>, 2 of 2 on the defect; two tests that opened every signature as a stranger were restated to open as the signer.</td></tr>
+  <tr><td>F21-Q6</td><td><strong>Words needed is computed, not published.</strong> A new pure
+    function reads <code>glosses.json</code> plus each target's curated words, so no new product
+    schema is needed. Its parity with the coverage report is a test, because two builders of one
+    answer drift (log 2026-09-19).</td></tr>
+</table>
+
+<h2>10. Status</h2>
+<div class="rule"><strong>status:</strong> live (2026-10-06, network 629f916, graph re-pin a1a7ada54; AC9 signed and credited, #435) · <strong>Tasks:</strong> T1 ✓ 2026-10-05 (v3.31 applied, efea2a2; contracts b9274d4) · T2 ✓ 2026-10-06 (the paid drafter removed; guard red 4 of 4; nothing outside the code removed, Q9) · T3 ✓ 2026-10-06 (no new drafts; red 6 on the defect, six cases pinned already true) · T4 ✓ 2026-10-06 (credit on approval; red 7 of 8 on assertions; ledger tests 53) · T5 ✓ 2026-10-06 (one writer per file; red 3 on <code>201 == 409</code>) · T6 gate half ✓ 2026-10-06 (v2 records and signatures read; <code>glosses/v2</code> written) · T10 ✓ 2026-10-06 (<code>sections.py</code>; red 18 on assertions) · T6 ✓ 2026-10-06 (service writes v2 with <code>drafted_with</code>, red three; site shows "written by &lt;author&gt;, drafted with &lt;model&gt;", AC6 red then green; <code>get_node</code> serves it demarcated, red on the planted injection; <code>gloss revise</code> writes v2) · T7 ✓ 2026-10-06 (<code>glosses.needed</code> with its parity test against coverage, red <code>[] == [10 items]</code>; <code>list_words_needed</code>, 7 tests; the "needs words" filter, measured at 1440 and 390 px) · T8 ✓ 2026-10-06 (the guide's entry task, sections, approval and credit, refusals; the Docs page; the MCP handshake; every new block run, none manual) · T11 ✓ 2026-10-06 (the lock in the gate and before any pull request, 409, naming Lean lines; red <code>[] == ['locked-by-a-person']</code>; the owner's own-edit ruling in <code>sections.derive</code>, red then green; <code>author-not-opener</code>, Q14) · T12 ✓ 2026-10-06 (section-by-section words with state labels and pending edits "awaiting review" with diffs; <code>gloss sign --sections</code>; 12 screenshots measured and looked at) · T9 ✓ 2026-10-06 (re-pin a1a7ada54 to network 629f916, images gate-629f916, pregate pass, products glosses/v2, site deployed; a gloss written through the live MCP with drafted_with merged as #389 and shown "written by f21-words-check, drafted with …"; the owner's curator signature merged as #435, the section shown verified and one write-up line crediting f21-words-check in the ledger, gate: #435 pass 090fdeea0; task-9-live.txt)</div>
+
+<h2>Tasks</h2>
+<p class="status-note">Dependency-ordered. Red before green: each new test fails on the defect with
+the seam in at today's behaviour; each restated test says which rule changed it.</p>
+<table>
+  <tr><th>ID</th><th>Task</th><th>Files</th><th>Deps</th><th>Verification</th></tr>
+  <tr><td>F21-T1</td><td>Apply decisions v3.31 as approved (Q1), with the D-28 row.</td>
+    <td><code>docs/architecture_decisions.html</code></td><td>Q1</td>
+    <td><code>uv run pytest api/tests/test_mcp_surface.py gate/tests/test_walkthrough.py</code></td></tr>
+  <tr><td>F21-T2</td><td><strong>Remove the paid drafter (R1).</strong>
+    <ul>
+      <li><strong>Delete:</strong> <code>drafter.py</code>, <code>draft_run.py</code>,
+        <code>gloss-draft.yml</code>; the <code>gloss draft</code> parser, dispatch and handler in
+        <code>cli.py</code>; the <code>OPN_DRAFTER_*</code> settings and fields in
+        <code>config.py</code>; <code>drafter_of</code>, <code>DRAFTER_KEYS</code> and the
+        <code>drafter</code> request field in <code>api/opn_api/glosses.py</code>; the api's
+        <code>drafter_pseudonym</code> setting; the codes <code>drafter-invalid</code> and
+        <code>drafter-unauthorized</code>. The CFN parameter stays (Q9); its environment entry is
+        simply no longer read.</li>
+      <li><strong>Delete tests:</strong> <code>test_drafter.py</code>,
+        <code>test_gloss_draft_cli.py</code>, <code>test_gloss_draft_workflow.py</code>,
+        <code>api/tests/test_glosses_drafter.py</code>.</li>
+      <li><strong>Add the guard:</strong> <code>gate/tests/test_no_paid_drafter.py</code> greps for
+        the deleted names and the workflow file. It is red before the deletions.</li>
+      <li><strong>Keep:</strong> the readers of existing drafter blocks (schemas, glosses.py,
+        explainers.py, products.py, the site), the reserved name, and
+        <code>ModelTruncatedError</code> (QA catches it).</li>
+    </ul></td>
+    <td>as listed</td><td>&mdash;</td>
+    <td><code>make verify</code></td></tr>
+  <tr><td>F21-T3</td><td><strong>No new drafts (R2).</strong> <code>modes.check_draft_provenance</code>
+    becomes "an added file with a drafter block is refused" (<code>draft-not-accepted</code>).
+    <ul>
+      <li><strong>New test:</strong> <code>test_no_new_drafts.py</code>, red: today the service-opened
+        draft passes.</li>
+      <li><strong>Restate:</strong> <code>test_gloss_schema.py::test_a_draft_passes</code> to "a merged
+        draft validates" plus "an added one is refused"; the draft cases in
+        <code>test_explainer_schema.py</code> and <code>test_gloss_cli.py</code> likewise.</li>
+      <li><strong>Delete:</strong> <code>test_gloss_draft_provenance.py</code>, replaced.</li>
+    </ul></td>
+    <td><code>gate/opn_gate/{modes,codes}.py</code>, tests</td><td>T2</td>
+    <td><code>uv run pytest gate/tests/test_no_new_drafts.py gate/tests/test_gloss_schema.py gate/tests/test_explainer_schema.py gate/tests/test_gloss_cli.py</code></td></tr>
+  <tr><td>F21-T4</td><td><strong>Credit on signature (R3, R4).</strong>
+    <ul>
+      <li><code>ledger.writeup_entry</code> beside <code>statement_entry</code>.</li>
+      <li>A branch in <code>cli.run_ledger</code> before the explainer refusal: for each added
+        signature file, load the signed version (<code>explainers.versions</code> /
+        <code>glosses.load_versions</code>) and credit <code>version.author</code>, not
+        <code>proposer_of</code> (that is the signer), unless it is a draft, the signer is the
+        author, or an active write-up entry for the artifact exists.</li>
+      <li><strong>New test:</strong> <code>test_writeup_credit.py</code> (AC3), red: today nothing is
+        written.</li>
+      <li><strong>Restate:</strong> <code>test_ledger.py::test_merge_line_table</code> (the explainer
+        mode now earns on signature) and the line-110 assertion in
+        <code>test_explainer_signature.py</code> ("earns nothing at merge" becomes "earns its author
+        a write-up line").</li>
+    </ul></td>
+    <td><code>gate/opn_gate/{ledger,cli}.py</code>, tests</td><td>T1</td>
+    <td><code>uv run pytest gate/tests/test_writeup_credit.py gate/tests/test_ledger.py gate/tests/test_explainer_signature.py</code></td></tr>
+  <tr><td>F21-T5</td><td><strong>One writer per file (R5).</strong> The subject fingerprint (Q5) is
+    written in <code>api/opn_api/glosses.py</code> at record. A
+    <code>duplicates.check_words(ctx, key)</code>, modelled on <code>check_witness</code> with
+    <code>blocks</code>, <code>holding</code> and <code>slot</code>, runs for new chains only.
+    <strong>New test:</strong> <code>api/tests/test_glosses_one_writer.py</code> (AC4), red: today
+    the second request opens a second pull request.</td>
+    <td><code>api/opn_api/{glosses,duplicates}.py</code>, tests</td><td>T2</td>
+    <td><code>uv run pytest api/tests/test_glosses_one_writer.py api/tests/test_finding_duplicate_submissions.py</code></td></tr>
+  <tr><td>F21-T6</td><td><strong><code>drafted_with</code> (R6, R7).</strong>
+    <ul>
+      <li><strong>Schemas:</strong> <code>gloss/v2</code>, <code>explainer/v2</code> and
+        <code>glosses/v2</code>, plus <code>HASHES</code>, the frozen list and golden
+        regeneration.</li>
+      <li><strong>Gate:</strong> accepts both versions (the <code>SCHEMA</code> constants become
+        sets). The product writes v2.</li>
+      <li><strong>Service:</strong> <code>drafted_with</code> joins <code>GLOSS_FIELDS</code>, is
+        validated like annex <code>_declared</code>, and is written as v2.</li>
+      <li><strong>Site:</strong> <code>VersionView</code> and <code>who_wrote</code> show it.</li>
+      <li><strong>Consumers:</strong> MCP <code>get_node</code>'s schema, and every reader of
+        <code>glosses/v1</code> (grep the version string, log 2026-09-11).</li>
+      <li><strong>New tests:</strong> <code>test_drafted_with.py</code>, new cases in
+        <code>test_glosses_route.py</code>, and <code>site/tests/test_glosses.py::test_drafted_with_is_shown</code>.</li>
+    </ul></td>
+    <td>schemas, <code>gate/opn_gate/{glosses,explainers,products}.py</code>,
+    <code>api/opn_api/glosses.py</code>, <code>api/opn_api/mcp/</code>, <code>site/opn_site/</code>,
+    goldens</td><td>T3</td>
+    <td><code>uv run pytest gate/tests/test_drafted_with.py api/tests/test_glosses_route.py site/tests/test_glosses.py gate/tests/test_products.py gate/tests/test_schemas.py</code></td></tr>
+  <tr><td>F21-T7</td><td><strong>Words needed (R8, R9).</strong>
+    <ul>
+      <li>A pure <code>glosses.needed(doc, curated)</code>, with the parity test against
+        <code>coverage</code>.</li>
+      <li>The MCP tool <code>list_words_needed</code>, copying <code>list_frontier</code>'s filter
+        rules and reading through <code>frontier.committed</code> at <code>ctx.head</code>, with its
+        result schema, bijection row and frozen surface sets.</li>
+      <li>The site's Problems filter.</li>
+      <li><strong>New tests:</strong> AC7 and AC8.</li>
+    </ul></td>
+    <td><code>gate/opn_gate/glosses.py</code>, <code>api/opn_api/mcp/</code>,
+    <code>site/opn_site/</code>, <code>static/problems.js</code>, tests</td><td>T1, T6</td>
+    <td><code>uv run pytest api/tests/test_mcp_words_needed.py api/tests/test_mcp_surface.py api/tests/test_mcp_bijection.py site/tests/test_needs_words_filter.py gate/tests/test_gloss_coverage.py</code></td></tr>
+  <tr><td>F21-T10</td><td><strong>Sections and their states (R11, R13, R15).</strong>
+    <ul>
+      <li>A new <code>gate/opn_gate/sections.py</code>: parse a version's sections and keys, refuse
+        duplicates, and derive each section's state over a chain from versions, withdrawals and
+        signatures. It is pure and unit-tested.</li>
+      <li><strong>Schemas:</strong> <code>explainer-signature/v2</code> and
+        <code>gloss-signature/v2</code> with <code>sections</code>; the signature code accepts v1 and
+        v2.</li>
+      <li><code>glosses/v2</code> (from T6) gains the shown sections and pending sections.</li>
+      <li><strong>Digestion:</strong> <code>explainers.explained</code> moves to every shown section
+        verified.</li>
+      <li><strong>New tests:</strong> <code>test_section_states.py</code> (AC10, AC12), red with
+        <code>sections.py</code> in at today's whole-version behaviour.</li>
+      <li><strong>Restate:</strong> <code>test_gloss_chains.py::test_linear_chains_and_signed_supersede</code>
+        (the signed-supersede refusal is withdrawn, R13) and
+        <code>::test_digestion_counts_explainers_only</code> (per section).</li>
+    </ul></td>
+    <td><code>gate/opn_gate/{sections,glosses,explainers,products,modes}.py</code>, schemas,
+    tests</td><td>T6</td>
+    <td><code>uv run pytest gate/tests/test_section_states.py gate/tests/test_gloss_chains.py gate/tests/test_products.py</code></td></tr>
+  <tr><td>F21-T11</td><td><strong>The model lock (R12).</strong> In <code>modes</code>, a version with
+    <code>drafted_with</code> is checked against the chain's shown sections:
+    <code>locked-by-a-person</code> names the section and its Lean line span (from the outline). The
+    service's pre-flight refuses the same before any pull request opens. <strong>New tests:</strong>
+    the lock cases of AC10 in <code>test_section_states.py</code> and a route case in
+    <code>test_glosses_route.py</code>.</td>
+    <td><code>gate/opn_gate/{modes,codes}.py</code>, <code>api/opn_api/glosses.py</code>, tests</td>
+    <td>T10</td>
+    <td><code>uv run pytest gate/tests/test_section_states.py api/tests/test_glosses_route.py</code></td></tr>
+  <tr><td>F21-T12</td><td><strong>Pending changes on the page (R14).</strong>
+    <ul>
+      <li>The site shows each section's shown words with its state label and, beneath, pending edits
+        marked "awaiting review" with their diffs. An explainer's sections still sit beside their
+        steps.</li>
+      <li>MCP <code>get_node</code> returns states and pending sections.</li>
+      <li><code>opn-gate gloss sign</code> takes <code>--sections</code>.</li>
+      <li><strong>New tests:</strong> AC11 (gate and site), with the credit-on-approval case added
+        to <code>test_writeup_credit.py</code>.</li>
+      <li><strong>Screenshots:</strong> 1440 and 390 px, measured.</li>
+    </ul></td>
+    <td><code>site/opn_site/</code>, <code>api/opn_api/mcp/</code>, <code>gate/opn_gate/cli.py</code>,
+    tests</td><td>T10, T4</td>
+    <td><code>uv run pytest gate/tests/test_pending_changes.py site/tests/test_pending_changes.py gate/tests/test_writeup_credit.py</code></td></tr>
+  <tr><td>F21-T8</td><td><strong>The guide and docs (R10).</strong> The entry task "write the words
+    for a statement", the refusals, the credit rule and <code>drafted_with</code>, every block run by
+    the walkthrough; the drafter text in the guide reframed as history. C8 and F20's Q entries
+    updated.</td>
+    <td><code>gate/agents/AGENTS.md</code>, <code>site/docs/</code>,
+    <code>engineering/specs/constitution.html</code>, <code>F20.html</code></td><td>T2&ndash;T7,
+    T10&ndash;T12</td>
+    <td><code>uv run pytest gate/tests/test_walkthrough.py site/tests</code></td></tr>
+  <tr><td>F21-T9</td><td><strong>Live.</strong>
+    <ul>
+      <li>Tag, images, re-pin, seeding <code>gloss/v2</code>, <code>explainer/v2</code>,
+        <code>glosses/v2</code>, <code>explainer-signature/v2</code> and
+        <code>gloss-signature/v2</code>; render; site deploy.</li>
+      <li>An end-to-end gloss by a test identity through the MCP, signed by the curator: shown with
+        its model, credited in the ledger (AC9). Screenshots.</li>
+    </ul></td>
+    <td>pins, products</td><td>T1&ndash;T8, T10&ndash;T12</td>
+    <td><code>engineering/evidence/F21/task-9-live.txt</code></td></tr>
+</table>
+
+<footer>Open Proof Network · F21 spec v0 · 2026-10-05 · from the owner's ruling that words are
+contributors' work, not a paid drafter's</footer>
+</body>
+</html>

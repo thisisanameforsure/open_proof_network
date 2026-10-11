@@ -60,7 +60,9 @@ def test_a_first_request_reads_the_marker_then_the_file(harness: Harness) -> Non
 def test_a_first_mcp_read_reads_the_marker_then_the_file(harness: Harness) -> None:
     graph = McpClient(harness).ok("get_target", {"target_id": TARGET})["graph"]
     assert graph["rendered_from"] == OLD
-    assert reads(harness) == [(INFO, None), (GRAPH_PATH, None)]
+    # The client's handshake names the tutorial node (2026-09-27), which reads the index and
+    # every graph.json; the tool's own read of the graph is then served from the same cache.
+    assert reads(harness) == [(INFO, None), (INDEX, None), (GRAPH_PATH, None)]
 
 
 def test_info_json_is_its_own_marker_and_costs_one_fetch(harness: Harness) -> None:
@@ -115,11 +117,13 @@ def test_a_moved_marker_ages_every_entry_and_each_revalidates_by_its_own_etag(
     assert client.ok("get_target", {"target_id": TARGET})["graph"]["rendered_from"] == NEW
     assert frontier.committed(harness.context, INDEX) == index_body  # unchanged: a 304
 
+    # The index is revalidated by the MCP client's handshake (it names the tutorial node from
+    # the graphs, 2026-09-27) before get_target reads the graph, and each still by its own etag.
     assert reads(harness) == [
         (INFO, etags[INFO]),
         ("frontier.json", etags["frontier.json"]),
-        (GRAPH_PATH, etags[GRAPH_PATH]),
         (INDEX, etags[INDEX]),
+        (GRAPH_PATH, etags[GRAPH_PATH]),
     ]
     assert harness.context.files[INDEX].etag == etags[INDEX]
     assert harness.context.files["frontier.json"].etag != etags["frontier.json"]
@@ -134,7 +138,8 @@ def test_an_mcp_read_alone_finds_that_main_moved(harness: Harness) -> None:
     force_stale(harness, INFO)
     graph = client.ok("get_target", {"target_id": TARGET})["graph"]
     assert graph["rendered_from"] == NEW
-    assert [p for p, _ in reads(harness)] == [INFO, GRAPH_PATH]
+    # INDEX: the client's handshake names the tutorial node from the graphs (2026-09-27).
+    assert [p for p, _ in reads(harness)] == [INFO, INDEX, GRAPH_PATH]
 
 
 def test_an_unreachable_marker_invalidates_nothing_and_serves_the_last_good_copies(

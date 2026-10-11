@@ -496,6 +496,18 @@ so each trap is caught by a test, and not by a contributor's first failed sessio
         (its <code>agent</code> binary is not published on npm). Each is reported
         <code>not-attempted</code> with its reason, never as a pass.</li>
     </ul></td></tr>
+  <tr><td>F16-Q14</td><td><strong>The surface passed Cursor's cap while this branch waited (merged 2026-10-12).</strong>
+    The 2026-09-25 build held every harness's limits against 30 tools; by the merge the service
+    declared 42 (F18, F20, F23, F24 and F25 each added tools), and Cursor's documented cap is 40
+    across all servers (an unverified claim; the page was unreachable), so <code>test_surface_fits[cursor]</code>
+    went red on the merge. Fewer tools is a D-28 surface change and the owner's, so the registry now
+    says what is known: <code>profile.known_over</code> maps a rule to the reason the surface is left
+    past it, <code>check_profile</code> still reports the breach, the surface test holds the breaches
+    found to exactly the declared ones (a stale declaration fails too), and the Docs card prints the
+    limit under the connector's status. The same merge fixed three other things the branch could not
+    see: <code>opn-prove submit</code> sends the <code>automation</code> block D-23 v3.37 requires; the
+    guide-name scans learned the registry's ids and the site-served prover files; and the branch's two
+    workflows pin their actions to commits, as the action-pin scan now requires.</td></tr>
   <tr><td>F16-Q7</td><td>A new pytest marker <code>harness</code> and a Makefile target
     <code>verify-harness</code> amend conventions §2 (T2), because this tier needs neither Lean
     nor the step-3 image but does need third-party binaries. The marker is excluded from
@@ -503,7 +515,7 @@ so each trap is caught by a test, and not by a contributor's first failed sessio
 </table>
 
 <h2>10. Status</h2>
-<div class="rule"><strong>status:</strong> building &middot; <strong>Tasks:</strong> T1 ✓ 2026-09-24
+<div class="rule"><strong>status:</strong> building &middot; <strong>Tasks:</strong> T1 ✓ 2026-09-24 · T2–T6 ✓ 2026-09-25 (registry, static checks, guide table and Docs cards, gate blind to the harness) · T7 ✓ 2026-09-25 (three harnesses against the real binaries; Copilot and Cursor not attempted, Q13) · T8 ✓ 2026-09-25 (pins, lockfile, verify-harness job, harness-drift workflow) · merged to main 2026-10-12 with Q14 · T9, T10 owner's (model credentials, Q5)
 (<code>make verify</code>; <code>engineering/evidence/F16/task-1.txt</code>) &middot; T2 ✓ 2026-09-25
 (<code>uv run pytest gate/tests/test_clients_registry.py -q</code>; <code>task-2.txt</code>: the
 registry, its schema and loader in <code>gate/</code>, Q10; the <code>harness</code> marker,

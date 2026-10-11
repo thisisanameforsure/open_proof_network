@@ -1,0 +1,41 @@
+F08-T22 — the ancestor's CONTEXT.json names the circular routes below it (context/v2); red runs
+date: 2026-10-01   base: 878cb4c (F08-T21, worktree branch worktree-agent-a622cda711838581c)
+
+Finding (with tester 69-C B3, 2026-09-29; the owner: other agents should be shown "beware, this
+path is circular"): the site's ancestor page names each merged circularity claim that circles back
+to it (F08-T20), but the product an agent reads — the node's bundle, MCP get_node, the precheck —
+says nothing, so an agent choosing a route cannot see which decompositions beneath the node were
+already tried and shown circular.
+
+## red, stage one (shipped code): the field does not exist
+$ uv run --frozen pytest gate/tests/test_finding_circular_below_context.py -q -p no:cacheprovider -rf
+E       AssertionError: assert 'context/v1' == 'context/v2'
+E       KeyError: 'circular_below'
+E       KeyError: 'circular_below'
+FAILED gate/tests/test_finding_circular_below_context.py::test_the_ancestors_bundle_names_the_claim_and_the_hole
+FAILED gate/tests/test_finding_circular_below_context.py::test_the_bundle_follows_the_ancestors_revision_chain
+FAILED gate/tests/test_finding_circular_below_context.py::test_a_claim_speaks_only_while_its_hole_is_open
+3 failed, 1 passed in 0.57s
+(The one that passes pins what must not change: the host-like reader with read and listdir only
+derives the same bytes as the products pass.)
+
+$ uv run --frozen pytest api/tests/test_finding_context_window.py -q -p no:cacheprovider -rf
+E       AssertionError: assert ('context/v1' == 'context/v2'
+FAILED api/tests/test_finding_context_window.py::test_a_committed_v1_bundle_is_served_through_the_window
+1 failed, 2 warnings in 0.48s
+
+## red, stage two (the seam at today's behaviour: context/v2 pinned, circular_below always [])
+$ uv run --frozen pytest gate/tests/test_finding_circular_below_context.py -q -p no:cacheprovider -rf
+E       AssertionError: assert [] == [{'node_id': ...-alice.yaml'}]
+E         Right contains one more item: {'node_id': 'and-swap-reassoc--h2--h1--h2', 'claim': 'targets/propositional/nodes/and-swap-reassoc--h2--h1--h2/defects/20260924T123647Z-alice.yaml'}
+E       AssertionError: assert [] == [{'node_id': ...-alice.yaml'}]
+E       assert [] != []
+FAILED gate/tests/test_finding_circular_below_context.py::test_the_ancestors_bundle_names_the_claim_and_the_hole
+FAILED gate/tests/test_finding_circular_below_context.py::test_the_bundle_follows_the_ancestors_revision_chain
+FAILED gate/tests/test_finding_circular_below_context.py::test_a_claim_speaks_only_while_its_hole_is_open
+3 failed, 1 passed in 0.77s
+
+$ uv run --frozen pytest api/tests/test_finding_context_window.py -q -p no:cacheprovider -rf
+1 passed, 2 warnings in 0.48s
+(The window itself — a committed context/v1 served, a derived bundle at v2 — is the seam, so it
+is green from here; the content is the gate's.)

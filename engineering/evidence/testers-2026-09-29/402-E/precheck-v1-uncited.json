@@ -1,0 +1,249 @@
+{
+ "id": "01M3QAB540RZCJSRC9JEDT481X",
+ "node_id": "erdos-402--h3-v2",
+ "target_id": "erdos-402",
+ "state": "done",
+ "created": "2026-09-29T19:30:24Z",
+ "graph_commit": "ee09e678e656e408836544761eec3618c4ed63dd",
+ "bundle_digest": "a1111a283f1ed5bfdbed2a8012fcb087fc7609376a19cab6947aaf299eaad00d",
+ "authenticated": true,
+ "result": {
+  "attestation": {
+   "artifact_hash": null,
+   "diagnostic": null,
+   "first_failing_step": null,
+   "gate_spec_hash": "d9af7df0959909beee872126fbcd11755d0220791923c4544e24f1abf2be865f",
+   "graph_commit": "ee09e678e656e408836544761eec3618c4ed63dd",
+   "graph_id": "erdos-402",
+   "lean_toolchain": "leanprover/lean4:v4.33.1",
+   "mathlib_sha": "0df444a360eaa60ab8c11dca51a86af692955474",
+   "merge_commit": null,
+   "model_and_tooling": "undeclared",
+   "network_commit": "3422bb401108f24a3006877a2af929894564a1c1",
+   "node_id": "erdos-402--h3-v2",
+   "precheck_attestation": {
+    "hash": null,
+    "signature_kind": null
+   },
+   "review": null,
+   "runner": "hosted",
+   "schema": "attestation/v5",
+   "signature": {
+    "key_id": "SHA256:bJR39nO37EkRaxo4CPqdhcHk+WL+sEnAJ9ujpkF7LXo",
+    "kind": "service",
+    "timestamp": "2026-09-29T19:38:51Z",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAg4NVeR5WlT1J5vaHpDOmXNTurS+\nKqTYJTovSCpPj5G/IAAAAPb3BuLWF0dGVzdGF0aW9uAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQNfFz1Zj7KOYhhrh03omIsTl1xs/Ri5EjCpx+4LS7gwspkLcek\nu1keQ9/iGvkcgwZmSpWwRR4LDDvUJawTCp0gg=\n-----END SSH SIGNATURE-----\n"
+   },
+   "statement_hash": "e61cfa1d1953e660c78c3495ee7f523a3dca9afdbde0a2077bc57d20c85a25f6",
+   "steps": [
+    {
+     "diagnostic": {
+      "code": "mathlib-pinned",
+      "details": {
+       "mathlib_sha": "0df444a360eaa60ab8c11dca51a86af692955474",
+       "packages": 8
+      },
+      "message": "Mathlib 0df444a360ea resolved from the pinned checkout"
+     },
+     "name": "toolchain",
+     "result": "pass",
+     "step": 1
+    },
+    {
+     "diagnostic": {
+      "code": "partial-submission",
+      "details": {
+       "path": "attempts/20260929T192643Z-t0929-6-partial.lean"
+      },
+      "message": "a partial proof: attempts/20260929T192643Z-t0929-6-partial.lean (D-12 #5)"
+     },
+     "name": "paths",
+     "result": "pass",
+     "step": 2
+    },
+    {
+     "diagnostic": {
+      "code": "artifact-reduction",
+      "details": {
+       "holes": [
+        "hcomp"
+       ],
+       "kind": "partial"
+      },
+      "message": "partial: erdos_402__h3 declares (∀ (A : Finset ℕ) (m : ℕ),\n    0 ∉ A →\n      (∀ a ∈ A, ∀ b ∈ A, a ≤ m * a.gcd b) →\n        ∀ a ∈ A, ∀ b ∈ A, ∃ u v, 0 < u ∧ u ≤ m ∧ 0 < v ∧ v ≤ m ∧ u.Coprime v ∧ a * v = b * u) →\n  (∀ (A : Finset ℕ),\n      0 ∉ A →\n        A.Nonempty →\n          (∀ (B : Finset ℕ), 0 ∉ B → B.card = A.card → B.gcd id = 1 → ∃ a ∈ B, ∃ b ∈ B, ↑(a.gcd b) ≤ ↑a / ↑B.card) →\n            ∃ a ∈ A, ∃ b ∈ A, ↑(a.gcd b) ≤ ↑a / ↑A.card) →\n    ∀ (A : Finset ℕ),\n      0 ∉ A →\n        A.Nonempty →\n          A.gcd id = 1 →\n            (∀ a ∈ A, ∀ b ∈ A, ∃ u v, 0 < u ∧ u ≤ A.card ∧ 0 < v ∧ v ≤ A.card ∧ u.Coprime v ∧ a * v = b * u) →\n              ∃ a ∈ A, ∃ b ∈ A, ↑(a.gcd b) ≤ ↑a / ↑A.card; 1 hole(s)"
+     },
+     "name": "kernel-replay",
+     "result": "pass",
+     "step": 4
+    },
+    {
+     "diagnostic": null,
+     "name": "axioms",
+     "result": "pass",
+     "step": 5
+    },
+    {
+     "diagnostic": {
+      "code": "hazards-derived-statement",
+      "details": {
+       "acknowledged": [],
+       "checkers": [
+        "div-zero",
+        "int-trunc",
+        "junk-value",
+        "nat-sub",
+        "off-by-one-range",
+        "unused-binder"
+       ],
+       "findings": [
+        {
+         "checker": "div-zero",
+         "location": "↑a / ↑A.card",
+         "message": "division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"
+        },
+        {
+         "checker": "div-zero",
+         "location": "↑a / ↑B.card",
+         "message": "division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"
+        }
+       ],
+       "origin": "compiler-derived"
+      },
+      "message": "2 hazard finding(s) on a statement the gate derived from a merged assembly, recorded and not refused; first: div-zero at ↑a / ↑A.card: division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"
+     },
+     "name": "hazards",
+     "result": "pass",
+     "step": 6
+    },
+    {
+     "diagnostic": null,
+     "name": "witness",
+     "result": "pass",
+     "step": 7
+    },
+    {
+     "diagnostic": null,
+     "name": "deps",
+     "result": "pass",
+     "step": 8
+    }
+   ],
+   "submitter": null,
+   "toolchain_hash": "f54d0bc916bf76a7fae460ce9d078ccd1f74aeb4fd12c4b6546bca28b6aa1c63",
+   "tooling": {
+    "harness": null,
+    "model": null
+   },
+   "trust_base": "kernel",
+   "verdict": "pass"
+  },
+  "bundle_digest": "a1111a283f1ed5bfdbed2a8012fcb087fc7609376a19cab6947aaf299eaad00d",
+  "first_failing_step": null,
+  "holes": [
+   {
+    "closed_type": "∀ (B : Finset ℕ),\n  (0 : ℕ) ∉ B →\n    B.Nonempty →\n      B.gcd id = (1 : ℕ) →\n        ¬Nat.Prime B.card →\n          (∀ a ∈ B, ∀ b ∈ B, a ≤ B.card * a.gcd b) →\n            (∀ a ∈ B, ∀ (p k : ℕ), Nat.Prime p → p ^ k ∣ a → p ^ k < B.card) →\n              ∃ a ∈ B, ∃ b ∈ B, (↑(a.gcd b) : ℚ) ≤ (↑a : ℚ) / (↑B.card : ℚ)",
+    "expected_witness": "∃ (B : Finset ℕ),\n  (0 : ℕ) ∉ B ∧\n    B.Nonempty ∧\n      B.gcd id = (1 : ℕ) ∧\n        ¬Nat.Prime B.card ∧\n          (∀ a ∈ B, ∀ b ∈ B, a ≤ B.card * a.gcd b) ∧ ∀ a ∈ B, ∀ (p k : ℕ), Nat.Prime p → p ^ k ∣ a → p ^ k < B.card",
+    "name": "hcomp",
+    "proved_binders": [],
+    "restates": null
+   }
+  ],
+  "job_id": "01M3QAB540RZCJSRC9JEDT481X",
+  "node_id": "erdos-402--h3-v2",
+  "steps": [
+   {
+    "diagnostic": {
+     "code": "mathlib-pinned",
+     "details": {
+      "mathlib_sha": "0df444a360eaa60ab8c11dca51a86af692955474",
+      "packages": 8
+     },
+     "message": "Mathlib 0df444a360ea resolved from the pinned checkout"
+    },
+    "name": "toolchain",
+    "result": "pass",
+    "step": 1
+   },
+   {
+    "diagnostic": {
+     "code": "partial-submission",
+     "details": {
+      "path": "attempts/20260929T192643Z-t0929-6-partial.lean"
+     },
+     "message": "a partial proof: attempts/20260929T192643Z-t0929-6-partial.lean (D-12 #5)"
+    },
+    "name": "paths",
+    "result": "pass",
+    "step": 2
+   },
+   {
+    "diagnostic": {
+     "code": "artifact-reduction",
+     "details": {
+      "holes": [
+       "hcomp"
+      ],
+      "kind": "partial"
+     },
+     "message": "partial: erdos_402__h3 declares (∀ (A : Finset ℕ) (m : ℕ),\n    0 ∉ A →\n      (∀ a ∈ A, ∀ b ∈ A, a ≤ m * a.gcd b) →\n        ∀ a ∈ A, ∀ b ∈ A, ∃ u v, 0 < u ∧ u ≤ m ∧ 0 < v ∧ v ≤ m ∧ u.Coprime v ∧ a * v = b * u) →\n  (∀ (A : Finset ℕ),\n      0 ∉ A →\n        A.Nonempty →\n          (∀ (B : Finset ℕ), 0 ∉ B → B.card = A.card → B.gcd id = 1 → ∃ a ∈ B, ∃ b ∈ B, ↑(a.gcd b) ≤ ↑a / ↑B.card) →\n            ∃ a ∈ A, ∃ b ∈ A, ↑(a.gcd b) ≤ ↑a / ↑A.card) →\n    ∀ (A : Finset ℕ),\n      0 ∉ A →\n        A.Nonempty →\n          A.gcd id = 1 →\n            (∀ a ∈ A, ∀ b ∈ A, ∃ u v, 0 < u ∧ u ≤ A.card ∧ 0 < v ∧ v ≤ A.card ∧ u.Coprime v ∧ a * v = b * u) →\n              ∃ a ∈ A, ∃ b ∈ A, ↑(a.gcd b) ≤ ↑a / ↑A.card; 1 hole(s)"
+    },
+    "name": "kernel-replay",
+    "result": "pass",
+    "step": 4
+   },
+   {
+    "diagnostic": null,
+    "name": "axioms",
+    "result": "pass",
+    "step": 5
+   },
+   {
+    "diagnostic": {
+     "code": "hazards-derived-statement",
+     "details": {
+      "acknowledged": [],
+      "checkers": [
+       "div-zero",
+       "int-trunc",
+       "junk-value",
+       "nat-sub",
+       "off-by-one-range",
+       "unused-binder"
+      ],
+      "findings": [
+       {
+        "checker": "div-zero",
+        "location": "↑a / ↑A.card",
+        "message": "division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"
+       },
+       {
+        "checker": "div-zero",
+        "location": "↑a / ↑B.card",
+        "message": "division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"
+       }
+      ],
+      "origin": "compiler-derived"
+     },
+     "message": "2 hazard finding(s) on a statement the gate derived from a merged assembly, recorded and not refused; first: div-zero at ↑a / ↑A.card: division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"
+    },
+    "name": "hazards",
+    "result": "pass",
+    "step": 6
+   },
+   {
+    "diagnostic": null,
+    "name": "witness",
+    "result": "pass",
+    "step": 7
+   },
+   {
+    "diagnostic": null,
+    "name": "deps",
+    "result": "pass",
+    "step": 8
+   }
+  ],
+  "verdict": "pass"
+ },
+ "public": true
+}

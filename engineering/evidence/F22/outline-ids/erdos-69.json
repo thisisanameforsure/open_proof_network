@@ -1,0 +1,592 @@
+{
+  "commit": "6af6af057d9ac093cb26ab8106f64f67af896e45",
+  "image": "ghcr.io/thisisanameforsure/opn-gate@sha256:287bba8c2419afb98be974545310738b1abfe1649ce0a3c782f084c97ed5cde2",
+  "published": 24,
+  "outlined_again": 24,
+  "ids_lost_or_moved": 0,
+  "failed": [],
+  "artifacts": [
+    {
+      "target": "erdos-69",
+      "artifact": "14d0aa6c9dba52efc6ebc9022087358d9a8e839b19d283be03043c4dc1f55557",
+      "node": "variant-3a1bcb9a",
+      "outlined": true,
+      "lost": [],
+      "added": [
+        "close"
+      ],
+      "case_hypotheses": {
+        "h_x3c92.s1": {
+          "was": [],
+          "now": [
+            "h0"
+          ]
+        },
+        "h_x3c92.s2": {
+          "was": [],
+          "now": [
+            "hpos"
+          ]
+        },
+        "pow_le.s2": {
+          "was": [],
+          "now": [
+            "m"
+          ]
+        }
+      }
+    },
+    {
+      "target": "erdos-69",
+      "artifact": "1f4de287d0c72c85384d82c2d76247dc97e99ab74411065c0ed0b321e3260031",
+      "node": "erdos-69--h2-v2--h1-v2",
+      "outlined": true,
+      "lost": [],
+      "added": [
+        "close"
+      ],
+      "case_hypotheses": {}
+    },
+    {
+      "target": "erdos-69",
+      "artifact": "23537c88ca6c31f68159183b8774a710d22c5c72a8381d71e5dfdca4faddfc95",
+      "node": "variant-f592e3ab",
+      "outlined": true,
+      "lost": [],
+      "added": [
+        "close"
+      ],
+      "case_hypotheses": {
+        "comp.s2": {
+          "was": [],
+          "now": [
+            "h"
+          ]
+        },
+        "comp.s3": {
+          "was": [],
+          "now": [
+            "h"
+          ]
+        },
+        "f_le.s1": {
+          "was": [],
+          "now": [
+            "h✝"
+          ]
+        },
+        "f_le.s2": {
+          "was": [],
+          "now": [
+            "h✝"
+          ]
+        },
+        "f_nonneg.s1": {
+          "was": [],
+          "now": [
+            "h✝"
+          ]
+        },
+        "f_nonneg.s2": {
+          "was": [],
+          "now": [
+            "h✝"
+          ]
+        },
+        "hZ'.s2": {
+          "was": [],
+          "now": [
+            "h✝"
+          ]
+        },
+        "hZ'.s3": {
+          "was": [],
+          "now": [
+            "h✝"
+          ]
+        }
+      }
+    },
+    {
+      "target": "erdos-69",
+      "artifact": "23f61a74ecc47f1339e8c54e2bad90b79becaf120dec57bde0e8429b6dda102e",
+      "node": "spec-9f8cb4ea",
+      "outlined": true,
+      "lost": [],
+      "added": [
+        "close"
+      ],
+      "case_hypotheses": {}
+    },
+    {
+      "target": "erdos-69",
+      "artifact": "3529e6aec8daf079612eec3ee3b170aa2139cc456d956a365485c9ec83b0b7c7",
+      "node": "erdos-69--h2-v2--h1-v2--h1",
+      "outlined": true,
+      "lost": [],
+      "added": [
+        "close"
+      ],
+      "case_hypotheses": {}
+    },
+    {
+      "target": "erdos-69",
+      "artifact": "3c13aa8baf79c3e56dae59a48332cacbdb16b74588d0784627a91765ea773cda",
+      "node": "spec-e0b917d1",
+      "outlined": true,
+      "lost": [],
+      "added": [],
+      "case_hypotheses": {}
+    },
+    {
+      "target": "erdos-69",
+      "artifact": "42456b49087b6fd36294916ed60da808bdd3b83c79700e138e1f678530dc1a73",
+      "node": "erdos-69--h2-v2--h1-v2--h1",
+      "outlined": true,
+      "lost": [],
+      "added": [],
+      "case_hypotheses": {}
+    },
+    {
+      "target": "erdos-69",
+      "artifact": "4cf09d693e85dc7d943c07174e2c2d2c8c5df37e66b8c4e49ab588c65c75d927",
+      "node": "erdos-69--h2-v2--h1-v2--h3",
+      "outlined": true,
+      "lost": [],
+      "added": [],
+      "case_hypotheses": {}
+    },
+    {
+      "target": "erdos-69",
+      "artifact": "6251bc5153b17743fd4e860fcadaed274729c93fd8dce26154c6eb4077919aed",
+      "node": "erdos-69--h2-v2--h1-v2--h2",
+      "outlined": true,
+      "lost": [],
+      "added": [
+        "close"
+      ],
+      "case_hypotheses": {
+        "h_x3c9.s2.s2": {
+          "was": [],
+          "now": [
+            "hm"
+          ]
+        }
+      }
+    },
+    {
+      "target": "erdos-69",
+      "artifact": "72506db4539a4af1c840d98ce5fc84dc2b72151b174c252ece6813cdd9255ced",
+      "node": "spec-7f0efe19",
+      "outlined": true,
+      "lost": [],
+      "added": [],
+      "case_hypotheses": {
+        "s11": {
+          "was": [],
+          "now": [
+            "hcard"
+          ]
+        }
+      }
+    },
+    {
+      "target": "erdos-69",
+      "artifact": "7421b35be87d12cef4b27e14ad93dfe61d5a82a708769f131d531f7b84574719",
+      "node": "spec-84446025",
+      "outlined": true,
+      "lost": [],
+      "added": [],
+      "case_hypotheses": {
+        "hmean.hcount.s3": {
+          "was": [],
+          "now": [
+            "key"
+          ]
+        },
+        "hmean.hcount.s5.this.s1": {
+          "was": [],
+          "now": [
+            "h"
+          ]
+        },
+        "hmean.hcount.s5.this.s2": {
+          "was": [],
+          "now": [
+            "h"
+          ]
+        },
+        "hmean.hcount.s5.this.s3": {
+          "was": [],
+          "now": [
+            "h"
+          ]
+        }
+      }
+    },
+    {
+      "target": "erdos-69",
+      "artifact": "7d621b770af166ba06fb85dd8514e032db9326b88f6e6e33cc158a080219958f",
+      "node": "spec-c390279b",
+      "outlined": true,
+      "lost": [],
+      "added": [
+        "close"
+      ],
+      "case_hypotheses": {
+        "hper.hkey.s2": {
+          "was": [],
+          "now": [
+            "hlt"
+          ]
+        },
+        "hper.hkey.s3": {
+          "was": [],
+          "now": [
+            "hlt"
+          ]
+        },
+        "hper.s7": {
+          "was": [],
+          "now": [
+            "h"
+          ]
+        },
+        "hper.s8": {
+          "was": [],
+          "now": [
+            "h"
+          ]
+        }
+      }
+    },
+    {
+      "target": "erdos-69",
+      "artifact": "82ac07e98588860eb457ba39b6bbb4be866845b418ba4b3df5f4789f2de6bdb3",
+      "node": "erdos-69--h2-v2--h1-v2--h2",
+      "outlined": true,
+      "lost": [],
+      "added": [
+        "close"
+      ],
+      "case_hypotheses": {}
+    },
+    {
+      "target": "erdos-69",
+      "artifact": "8570ff8364c67b2217ad1edb46fa9a13b54d0ad9fbb3b872920b1d3c977cc35c",
+      "node": "spec-7d098d5c",
+      "outlined": true,
+      "lost": [],
+      "added": [
+        "close"
+      ],
+      "case_hypotheses": {
+        "hM.hlo.h3.s2": {
+          "was": [],
+          "now": [
+            "m",
+            "hm",
+            "x✝"
+          ]
+        },
+        "hM.hstir.s2.s3": {
+          "was": [],
+          "now": [
+            "h0"
+          ]
+        },
+        "hM.hstir.s2.s4": {
+          "was": [],
+          "now": [
+            "hpos"
+          ]
+        },
+        "hM.s3": {
+          "was": [],
+          "now": [
+            "h0"
+          ]
+        },
+        "habel.s2.s5": {
+          "was": [],
+          "now": [
+            "hp"
+          ]
+        },
+        "habel.s2.s6": {
+          "was": [],
+          "now": [
+            "hp"
+          ]
+        }
+      }
+    },
+    {
+      "target": "erdos-69",
+      "artifact": "886b6cfc2b95d7d823c37d2ffe9bc52f5f253801b161a39cd253ff4defb110ef",
+      "node": "erdos-69--h2-v2--h1-v2--h3",
+      "outlined": true,
+      "lost": [],
+      "added": [],
+      "case_hypotheses": {
+        "h_x3c9.s2": {
+          "was": [],
+          "now": [
+            "hm"
+          ]
+        }
+      }
+    },
+    {
+      "target": "erdos-69",
+      "artifact": "aab87793a8c0f7e89166a9002ad1d9ac77e846b4ec093325f68764d74a4898dc",
+      "node": "variant-14c6c771",
+      "outlined": true,
+      "lost": [],
+      "added": [
+        "close"
+      ],
+      "case_hypotheses": {
+        "W2.s1": {
+          "was": [],
+          "now": [
+            "h"
+          ]
+        },
+        "W2.s2": {
+          "was": [],
+          "now": [
+            "h"
+          ]
+        },
+        "f_le.s1": {
+          "was": [],
+          "now": [
+            "h✝"
+          ]
+        },
+        "f_le.s2": {
+          "was": [],
+          "now": [
+            "h✝"
+          ]
+        },
+        "f_nonneg.s1": {
+          "was": [],
+          "now": [
+            "h✝"
+          ]
+        },
+        "f_nonneg.s2": {
+          "was": [],
+          "now": [
+            "h✝"
+          ]
+        },
+        "hZ'.s2": {
+          "was": [],
+          "now": [
+            "h✝"
+          ]
+        },
+        "hZ'.s3": {
+          "was": [],
+          "now": [
+            "h✝"
+          ]
+        }
+      }
+    },
+    {
+      "target": "erdos-69",
+      "artifact": "acdf97b1e300e4bd051aa3f7d8a8b17ceb7ce34d31fa20b1484ca591800a42d1",
+      "node": "variant-09e95e7a",
+      "outlined": true,
+      "lost": [],
+      "added": [
+        "close"
+      ],
+      "case_hypotheses": {
+        "comp.s2": {
+          "was": [],
+          "now": [
+            "h"
+          ]
+        },
+        "comp.s3": {
+          "was": [],
+          "now": [
+            "h"
+          ]
+        },
+        "f_le.s1": {
+          "was": [],
+          "now": [
+            "h✝"
+          ]
+        },
+        "f_le.s2": {
+          "was": [],
+          "now": [
+            "h✝"
+          ]
+        },
+        "hZ'.s2": {
+          "was": [],
+          "now": [
+            "h✝"
+          ]
+        },
+        "hZ'.s3": {
+          "was": [],
+          "now": [
+            "h✝"
+          ]
+        }
+      }
+    },
+    {
+      "target": "erdos-69",
+      "artifact": "b34e84a4542bd25110e80df8f6b91a331a4131e61b0680cf18eb90e04f18c85a",
+      "node": "spec-2e765953",
+      "outlined": true,
+      "lost": [],
+      "added": [],
+      "case_hypotheses": {
+        "s3": {
+          "was": [],
+          "now": [
+            "p"
+          ]
+        },
+        "s4": {
+          "was": [],
+          "now": [
+            "p"
+          ]
+        }
+      }
+    },
+    {
+      "target": "erdos-69",
+      "artifact": "b757e61d833940065644f79ffb3e4b50629a6960621004ce1119bf4cc4e554dd",
+      "node": "erdos-69--h2-v2",
+      "outlined": true,
+      "lost": [],
+      "added": [
+        "close"
+      ],
+      "case_hypotheses": {}
+    },
+    {
+      "target": "erdos-69",
+      "artifact": "c0288fb0da4be2866060fed5df70920cf89fe0db0753c5ec9f71e17235f88fcb",
+      "node": "erdos-69--h2-v2--h1-v2--h1",
+      "outlined": true,
+      "lost": [],
+      "added": [
+        "close"
+      ],
+      "case_hypotheses": {
+        "h_x3c9.s2.s2": {
+          "was": [],
+          "now": [
+            "hm"
+          ]
+        }
+      }
+    },
+    {
+      "target": "erdos-69",
+      "artifact": "db65ed079add0e02d3559037738b4743aa0fe8cddb6eb253499dccdca524df6d",
+      "node": "erdos-69--h2-v2--h1-v2--h2",
+      "outlined": true,
+      "lost": [],
+      "added": [
+        "close"
+      ],
+      "case_hypotheses": {}
+    },
+    {
+      "target": "erdos-69",
+      "artifact": "de1b037b1e08ad924d73eda18b3b26532c9a907a14f053b24f6c392ee444fce7",
+      "node": "erdos-69--h1-v2",
+      "outlined": true,
+      "lost": [],
+      "added": [],
+      "case_hypotheses": {
+        "hD.s5.s4": {
+          "was": [],
+          "now": [
+            "hm"
+          ]
+        },
+        "hD.s5.s5": {
+          "was": [],
+          "now": [
+            "k",
+            "hm"
+          ]
+        },
+        "hR.s1": {
+          "was": [],
+          "now": [
+            "n"
+          ]
+        },
+        "hR.s2": {
+          "was": [],
+          "now": [
+            "n"
+          ]
+        },
+        "hR.s2.s1": {
+          "was": [],
+          "now": [
+            "h✝"
+          ]
+        },
+        "hR.s2.s2": {
+          "was": [],
+          "now": [
+            "h✝"
+          ]
+        },
+        "hSc.s2": {
+          "was": [],
+          "now": [
+            "p"
+          ]
+        },
+        "hSc.s3": {
+          "was": [],
+          "now": [
+            "p"
+          ]
+        }
+      }
+    },
+    {
+      "target": "erdos-69",
+      "artifact": "f20bdf24f9aa6a241135b6e8b0be5944ab2766dc140ef0a13dfcb97497f58b8c",
+      "node": "spec-13f68833",
+      "outlined": true,
+      "lost": [],
+      "added": [
+        "close"
+      ],
+      "case_hypotheses": {}
+    },
+    {
+      "target": "erdos-69",
+      "artifact": "fd5d6411f7f46e570d2b77ecd94ba7ad23d77c7243c6649b873fe5b45800bf4a",
+      "node": "erdos-69",
+      "outlined": true,
+      "lost": [],
+      "added": [
+        "close"
+      ],
+      "case_hypotheses": {}
+    }
+  ]
+}

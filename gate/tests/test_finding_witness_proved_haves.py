@@ -84,8 +84,9 @@ def test_anything_but_a_list_of_indices_reads_as_no_record(raw: object) -> None:
 
 
 def test_the_request_is_unchanged_without_the_record(tmp_path: Path) -> None:
-    """The metaprogram's argument list is byte for byte what an older pin was handed."""
+    """Without the record no ``--proved`` is passed. F02-T12: the program reads compiled modules
+    only, so the statement is named by its module and its source is never an argument."""
     statement = tmp_path / "S.lean"
     statement.write_text("theorem s : True := by\n  sorry\n")
     req = WitnessRequest(statement=statement, statement_module="S", decl="s")
-    assert req.args() == ["--statement", str(statement.resolve()), "--module", "S", "--decl", "s"]
+    assert req.args() == ["--module", "S", "--decl", "s"]

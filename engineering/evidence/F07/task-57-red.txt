@@ -1,0 +1,21 @@
+# F07-T57 red: the cache-job tests against the post-merge job as it stood (graph f07-t55-queue 7f61f46c9)
+# 2026-10-02T19:40:05Z
+E       assert ('cache publish' not in '[{\'uses\':...main"\\n\'}]'
+E         
+E         'cache publish' is contained here:
+E         ?           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           _gate.cli cache publish \\\n    --graph . --commit "$MERGE" --target "$target" \\\n    --sandbox --bucket "${{ vars.OPN_CACHE_BUCKET }}" --prefix "${{ vars.OPN_CACHE_PREFIX }}" \\\n    || echo "::warning::the olean cache was not published for ${MERGE} ($target); the next run builds (C7)"\ndone\n'}, {'name': 'Commit the attestation and the products (pushed with the write deploy key, which the ruleset lets bypass)', 'if': "steps.pr.outputs.run == 'true'", 'env': {'OPN_GRAPH_DEPLOY_KEY': '${{ secrets.OPN_GRAPH_D...
+E         
+E         ...Full output truncated (2 lines hidden), use '-vv' to show)
+E       KeyError: 'cache'
+__________ test_only_a_merge_that_built_and_passed_publishes_a_cache ___________
+    def test_only_a_merge_that_built_and_passed_publishes_a_cache(gate_doc: dict[Any, Any]) -> None:
+E       KeyError: 'outputs'
+E       KeyError: 'cache'
+PASSED gate/tests/test_finding_postmerge_cache_job.py::test_after_the_push_the_job_only_dispatches
+PASSED gate/tests/test_finding_postmerge_cache_job.py::test_the_verdict_is_re_derived_only_for_a_merge_that_builds
+FAILED gate/tests/test_finding_postmerge_cache_job.py::test_the_record_no_longer_waits_for_the_cache
+FAILED gate/tests/test_finding_postmerge_cache_job.py::test_the_cache_is_a_job_of_its_own_after_the_record
+FAILED gate/tests/test_finding_postmerge_cache_job.py::test_only_a_merge_that_built_and_passed_publishes_a_cache
+FAILED gate/tests/test_finding_postmerge_cache_job.py::test_the_cache_job_builds_exactly_the_merge_commit_with_the_rendering_gate
+4 failed, 2 passed in 0.13s

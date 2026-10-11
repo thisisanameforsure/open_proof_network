@@ -1,0 +1,34 @@
+Decisions v3.35 — deploy and re-pin, 2026-10-08 (the owner pushed main; "you can do the rest")
+
+1. Network: main 547ed02 pushed by the owner at 20:20Z. api-deploy 37838644080 success (the service is
+   live with F06-T14, F13-T32, F07-T74, POST /literature, POST /literature/confirm, frontier/v5 and
+   context/v5 accepted). ci 37838644035: fast tier success; Lean tier below.
+2. Tag gate-547ed02; image-publish 37838828569 success:
+     gate-547ed02                        sha256:79a980e9be454c57f2be398a9a7533e07b533fb66dea5750ebb7e38f66a41dc1
+     gate-547ed02-mathlib-0df444a360ea   sha256:85c29e72be8dd54d3fcb4df42b00b865a652ae225fc45b5f5bfd87a4f6c0e086
+   (zstd layers, F10-T17: `docker pull` on this laptop's Docker 20.10.17 fails "invalid tar header", so
+   no local pregate; the hosted gate is the check, as F10-T17's ledger said.)
+3. Graph worktree detached at origin/main 835f12390: schemas.unpublished was [context/v5, frontier/v5,
+   graph/v6, literature/v1], [] after publish; guide copied; pin_image.py over 27 targets (tutorial plain,
+   26 Mathlib, riemann-hypothesis last with --api-url); 27/27 name 547ed02; --check passes 26, the
+   tutorial one says the devcontainer runs the Mathlib image, which it did before too (61fd863 was the
+   Mathlib image). Committed f051bb2c2: 34 files.
+4. In-process render of the committed re-pin (products.generate, scanner=None, no Mathlib):
+     frontier/v5 42 entries, 39 claimable (live before: frontier/v4 38 / 35)
+     erdos-1050--h1-v2--h1 ready claimable, labelled: proves erdos-1050
+     erdos-69--h2-v2 ready claimable, labelled ×2: proves erdos-69
+     erdos-69--h2-v2--h1-v2 ready claimable, labelled ×3
+     erdos-69--h2-v2--h1-v2--h4 ready claimable, labelled ×2
+     targets/erdos-1094/graph.json graph/v6, literature null everywhere (no record yet)
+5. ci 37838644035: fast tier and Lean tier both success (the Lean tier ran 50 min). No graph run in flight,
+   base = origin/main 835f12390. Pushed f051bb2c2 -> graph main at 22:09Z (owner's bypass).
+6. The push's gate run 37851721499 success; render.yml 37851740040 success -> gate: render 547ed02baeec
+   = 9c3943e53: frontier.json frontier/v5, rendered_from f051bb2c2, 42 entries / 39 claimable / 4 labelled
+   (before: frontier/v4, 38 / 35 / 0). No record edited: the four nodes return by derivation.
+7. Live service: GET /frontier.json frontier/v5, 42 entries, 4 labelled (first: erdos-1050--h1-v2--h1 proves
+   erdos-1050); GET / lists /literature and /literature/confirm; POST /literature without a token -> 401
+   unauthenticated; POST /literature/confirm without a session -> 401; erdos-1094--h3 literature null, null.
+8. site-deploy 37851845690 (dispatched by the render) success. Live pages: erdos-69--h2-v2--h1-v2 carries three
+   "A proof of this statement is a proof of" lines and no "Not claimable"; /problems/erdos-69/ seven labels
+   and the key names "proves an ancestor"; /me/ carries no literature list yet (no record on the graph).
+   Open: the first literature proposal and its confirmation are a live act on the record (the owner's).

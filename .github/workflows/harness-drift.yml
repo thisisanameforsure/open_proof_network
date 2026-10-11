@@ -22,12 +22,12 @@ jobs:
   drift:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v10.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d  # v10.0.1
         with:
           version: "0.12.10"
           enable-cache: true
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020  # v4
         with:
           node-version: "22.22.2"
       - name: The pinned binaries
@@ -48,7 +48,7 @@ jobs:
             --bin-dir "$RUNNER_TEMP/latest/node_modules/.bin" --out latest.json || true
       - name: A check the pin passes and the latest fails is a regression
         run: uv run --frozen python gate/tools/harness_check.py --compare pinned.json latest.json
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
         if: always()
         with:
           name: harness-drift

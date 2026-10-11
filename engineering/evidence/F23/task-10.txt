@@ -1,0 +1,71 @@
+F23-T10 verification (Docs stewards section; docs-as-tests runner), 2026-10-07T09:40:53Z, branch worktree-agent-afb11a32eb578b2ae, base d2a3074 + the working tree committed with this file
+
+## site/tests/test_docs_stewards_short.py site/tests/test_copy.py gate/tests/test_walkthrough.py site/tests/test_steward_labels.py
+site/tests/test_docs_stewards_short.py::test_the_section_points_at_the_form PASSED [  5%]
+site/tests/test_docs_stewards_short.py::test_the_section_is_short PASSED [ 11%]
+site/tests/test_copy.py::test_the_home_lead_comes_first_and_carries_no_network_number PASSED [ 17%]
+site/tests/test_copy.py::test_every_outbound_link_in_the_copy_is_on_the_allowlist PASSED [ 23%]
+site/tests/test_copy.py::test_the_docs_page_has_the_steward_section_and_the_proposal_link PASSED [ 29%]
+site/tests/test_copy.py::test_the_leiden_table_has_one_row_per_recommendation PASSED [ 35%]
+site/tests/test_copy.py::test_the_students_sentence_is_honest PASSED     [ 41%]
+gate/tests/test_walkthrough.py::test_required_sections PASSED            [ 47%]
+gate/tests/test_walkthrough.py::test_graph_copy_is_identical SKIPPED     [ 52%]
+gate/tests/test_walkthrough.py::test_manual_blocks_are_the_known_two PASSED [ 58%]
+gate/tests/test_walkthrough.py::test_fast_check_section PASSED           [ 64%]
+gate/tests/test_walkthrough.py::test_agents_md_executes FAILED           [ 70%]
+site/tests/test_steward_labels.py::test_v2_labels_on_the_problem_page PASSED [ 76%]
+site/tests/test_steward_labels.py::test_v1_reads_admitted_by_curator PASSED [ 82%]
+site/tests/test_steward_labels.py::test_the_problem_cards_carry_the_labels PASSED [ 88%]
+site/tests/test_steward_labels.py::test_every_shown_steward_is_labelled PASSED [ 94%]
+site/tests/test_steward_labels.py::test_an_index_row_that_carries_admitted_by_is_read_first PASSED [100%]
+E       AssertionError: line   40 passed   test -d "$GRAPH/targets"
+E         line   59 passed   META="$(grep -l '^tutorial: true' "$GRAPH"/targets/*/nodes/*/META.yaml
+E         line   88 passed   cat "$NODE_DIR/Statement.lean"
+E         line  100 passed   python3 - "$NODE_DIR" <<'PY'
+E         line  147 passed   BUNDLE_PATH="targets/$TARGET/nodes/$NODE/Proof.lean"
+E         line  168 passed   STATE=queued
+E         line  183 passed   python3 - "$WORK/precheck-result.json" <<'PY'
+E         line  294 passed   python3 - "$NODE_DIR/Proof.lean" "$TARGET" "$NODE" <<'PY' > "$WORK/che
+E         line  378 passed   curl -fsS "$OPN_API/frontier.json" > "$WORK/frontier.json"
+E         line  402 passed   CLAIM_NODE="$(python3 - "$WORK/frontier.json" <<'PY'
+E         line  430 passed   DCO_VERSION="$(curl -fsS "$OPN_API/dco.json" | python3 -c 'import json
+E         line  451 passed   curl -fsS -X POST "$OPN_API/claims" -H "Authorization: Bearer $TOKEN" 
+E         line  498 passed   python3 - "$GRAPH/targets/index.json" <<'PY'
+E         line  531 passed   ls -p "$NODE_DIR" | LC_ALL=C sort
+E         line  564 failed   PYTHONPATH="$NETWORK/gate" uv run --frozen --project "$NETWORK" python
+E         14 passed, 0 drifted, 1 failed, 38 skipped
+line   40 passed   test -d "$GRAPH/targets"
+line   59 passed   META="$(grep -l '^tutorial: true' "$GRAPH"/targets/*/nodes/*/META.yaml
+line   88 passed   cat "$NODE_DIR/Statement.lean"
+line  100 passed   python3 - "$NODE_DIR" <<'PY'
+line  147 passed   BUNDLE_PATH="targets/$TARGET/nodes/$NODE/Proof.lean"
+line  168 passed   STATE=queued
+line  183 passed   python3 - "$WORK/precheck-result.json" <<'PY'
+line  294 passed   python3 - "$NODE_DIR/Proof.lean" "$TARGET" "$NODE" <<'PY' > "$WORK/che
+line  378 passed   curl -fsS "$OPN_API/frontier.json" > "$WORK/frontier.json"
+line  402 passed   CLAIM_NODE="$(python3 - "$WORK/frontier.json" <<'PY'
+line  430 passed   DCO_VERSION="$(curl -fsS "$OPN_API/dco.json" | python3 -c 'import json
+line  451 passed   curl -fsS -X POST "$OPN_API/claims" -H "Authorization: Bearer $TOKEN" 
+line  498 passed   python3 - "$GRAPH/targets/index.json" <<'PY'
+line  531 passed   ls -p "$NODE_DIR" | LC_ALL=C sort
+line  564 failed   PYTHONPATH="$NETWORK/gate" uv run --frozen --project "$NETWORK" python
+14 passed, 0 drifted, 1 failed, 38 skipped
+SKIPPED [1] gate/tests/test_walkthrough.py:235: /Users/mikehiggins/Desktop/repos/open_proof_network/.claude/worktrees/open_proof_network_graph/AGENTS.md is not checked out beside this repo
+FAILED gate/tests/test_walkthrough.py::test_agents_md_executes - AssertionErr...
+====== 1 failed, 15 passed, 1 skipped, 1 deselected, 2 warnings in 7.03s =======
+
+## full site fast tier
+506 passed, 1 skipped in 152.82s (0:02:32)
+
+## ruff check site / ruff format --check site / mypy site
+All checks passed!
+77 files already formatted
+Success: no issues found in 77 source files
+
+## Note: test_agents_md_executes fails above only because uv is not on this shell's PATH (the runner's line 564 calls 'uv run'). Rerun with uv on PATH:
+ERROR gate/tests/test_walkthrough.py::test_agents_md_executes_with_toolchain
+4 passed, 1 skipped, 2 warnings, 1 error in 994.41s (0:16:34)
+(the one error is test_agents_md_executes_with_toolchain, the lean tier, run without the marker filter by mistake: lake build timed out at 900 s; not this task's tier)
+## Browser measure (task-10-measure.py), screenshots docs-stewards-{desktop,phone}.png
+desktop 1440px: stewards section 242px tall, scrollWidth 1440
+phone 390px: stewards section 632px tall, scrollWidth 390

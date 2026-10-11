@@ -17,6 +17,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+import secrets
 import shutil
 import subprocess
 import sys
@@ -116,7 +117,12 @@ class AxiomResult:
 
 @dataclass(frozen=True)
 class WitnessRequest:
-    """Inputs of ``opn-witness-type`` (F01-R3)."""
+    """Inputs of ``opn-witness-type`` (F01-R3).
+
+    F02-T12: the program reads compiled modules only. ``statement`` and ``witness`` name the
+    sources step 7 compiles; what reaches the program is the statement's module, imported from
+    the judging directory's build of the node's own files, and ``witness_olean``, the witness as
+    the gate compiled it apart, read as data. A contributor's source is never an argument."""
 
     statement: Path
     statement_module: str
@@ -126,23 +132,13 @@ class WitnessRequest:
     #: F07-T44 (D-29 v3.22): the statement's binders the merged assembly proved, from the hole's
     #: ``META.yaml``; empty for every node without that record, whose expected type is today's.
     proved: tuple[int, ...] = ()
+    #: F02-T12: the witness module's olean, in the judging directory's ``contributed/``.
+    witness_olean: Path | None = None
 
     def args(self) -> list[str]:
-        out = [
-            "--statement",
-            str(self.statement.resolve()),
-            "--module",
-            self.statement_module,
-            "--decl",
-            self.decl,
-        ]
-        if self.witness is not None and self.witness_module is not None:
-            out += [
-                "--witness",
-                str(self.witness.resolve()),
-                "--witness-module",
-                self.witness_module,
-            ]
+        out = ["--module", self.statement_module, "--decl", self.decl]
+        if self.witness_olean is not None:
+            out += ["--witness-olean", str(self.witness_olean.resolve())]
         if self.proved:
             out += ["--proved", ",".join(str(i) for i in self.proved)]
         return out
@@ -150,14 +146,19 @@ class WitnessRequest:
 
 @dataclass(frozen=True)
 class UsedConstantsRequest:
-    """Inputs of ``opn-used-constants`` (F01-R4)."""
+    """Inputs of ``opn-used-constants`` (F01-R4).
 
-    file: Path
+    F02-T12: with ``file`` ``None`` the declaration is read from the compiled module ``module``
+    (step 8: the artifact's ``Proof`` module, which step 4 replayed), and nothing of it runs.
+    A ``file`` is elaborated, and is only ever a statement of record (products, statement QA)."""
+
+    file: Path | None
     module: str
     decl: str
 
     def args(self) -> list[str]:
-        return ["--file", str(self.file.resolve()), "--module", self.module, "--decl", self.decl]
+        out = ["--file", str(self.file.resolve())] if self.file is not None else []
+        return [*out, "--module", self.module, "--decl", self.decl]
 
 
 @dataclass(frozen=True)
@@ -177,11 +178,40 @@ class ArtifactRequest:
     #: F07-T34: the manifest of the node's ancestors, staged the same way; ``None`` asks no
     #: ancestor question and every hole reports ``defeq_ancestor: null``.
     ancestors: Path | None = None
+    #: F02-T12, F08-T29b: the statement's olean from the judging directory. Given, the artifact
+    #: (one with no holes) is judged from compiled modules alone: its own module, imported with
+    #: nothing of it executed, and the statement's type read from this file.
+    statement_olean: Path | None = None
+    #: F02-T13: a partial's (or a reduction's) assembly, as the olean step 4 replayed, in the
+    #: judging directory's ``modules/``; read as data and added through the kernel.
+    artifact_olean: Path | None = None
+    #: F02-T13: the directory the assembly's graph imports (``Nodes.*``: the deps' and uses'
+    #: ``Proof`` modules and the generated ``Context``s) are read from by path, as data. Never
+    #: on the program's ``LEAN_PATH``.
+    modules: Path | None = None
 
     def args(self) -> list[str]:
         extra = ["--siblings", str(self.siblings.resolve())] if self.siblings is not None else []
         if self.ancestors is not None:
             extra += ["--ancestors", str(self.ancestors.resolve())]
+        if self.statement_olean is not None:
+            compiled = [
+                "--statement-olean",
+                str(self.statement_olean.resolve()),
+                "--decl",
+                self.decl,
+                "--artifact-module",
+                self.artifact_module,
+                "--artifact-decl",
+                self.artifact_decl,
+                "--kind",
+                self.kind,
+            ]
+            if self.artifact_olean is not None:
+                compiled += ["--artifact-olean", str(self.artifact_olean.resolve())]
+            if self.modules is not None:
+                compiled += ["--modules", str(self.modules.resolve())]
+            return compiled + extra
         return [
             "--statement",
             str(self.statement.resolve()),
@@ -215,8 +245,38 @@ class RelationRequest:
     relation: Path | None = None
     relation_module: str | None = None
     relation_decl: str = "relation"
+    #: F02-T12: the compiled form. The statements' oleans from the judging directory, the
+    #: relation proof's olean from its ``contributed/``, and the imports the environment is built
+    #: from. Given, no source is an argument and nothing of the relation proof runs.
+    imports: tuple[str, ...] = ()
+    variant_olean: Path | None = None
+    root_olean: Path | None = None
+    relation_olean: Path | None = None
 
     def args(self) -> list[str]:
+        if self.variant_olean is not None and self.root_olean is not None:
+            compiled = [
+                "--imports",
+                ",".join(self.imports),
+                "--variant-olean",
+                str(self.variant_olean.resolve()),
+                "--variant-decl",
+                self.variant_decl,
+                "--root-olean",
+                str(self.root_olean.resolve()),
+                "--root-decl",
+                self.root_decl,
+                "--label",
+                self.label,
+            ]
+            if self.relation_olean is not None:
+                compiled += [
+                    "--relation-olean",
+                    str(self.relation_olean.resolve()),
+                    "--relation-decl",
+                    self.relation_decl,
+                ]
+            return compiled
         out = [
             "--variant",
             str(self.variant.resolve()),
@@ -246,6 +306,29 @@ class RelationRequest:
 
 
 @dataclass(frozen=True)
+class MeaningRequest:
+    """Inputs of ``opn-statement-meaning`` (F08-R17): the statement as compiled under its own
+    header, and the artifact's compiled module, whose declaration must have the same type."""
+
+    statement_olean: Path
+    decl: str
+    artifact_module: str
+    artifact_decl: str
+
+    def args(self) -> list[str]:
+        return [
+            "--statement-olean",
+            str(self.statement_olean.resolve()),
+            "--decl",
+            self.decl,
+            "--artifact-module",
+            self.artifact_module,
+            "--artifact-decl",
+            self.artifact_decl,
+        ]
+
+
+@dataclass(frozen=True)
 class HazardsRequest:
     """Inputs of ``opn-hazards`` (F02-R1, R3): the statement and exactly the checkers to run."""
 
@@ -264,6 +347,35 @@ class HazardsRequest:
             self.decl,
             "--checkers",
             ",".join(self.checkers),
+        ]
+
+
+@dataclass(frozen=True)
+class OutlineRequest:
+    """Inputs of ``opn-outline`` (F19-R1 to R4): the artifact, elaborated as ``module``, and the
+    declaration whose proof is outlined. ``automation`` is the configured list a closing block's
+    tactics must all be on to read as automation (F19-Q5, C6); ``doc_modules`` the module
+    prefixes whose constants carry a docstring and tags (the gate's library prefixes). The
+    artifact is elaborated: the program runs only in the step-3 sandbox (D-4)."""
+
+    file: Path
+    module: str
+    decl: str
+    automation: tuple[str, ...]
+    doc_modules: tuple[str, ...]
+
+    def args(self) -> list[str]:
+        return [
+            "--file",
+            str(self.file.resolve()),
+            "--module",
+            self.module,
+            "--decl",
+            self.decl,
+            "--automation",
+            ",".join(self.automation),
+            "--doc-modules",
+            ",".join(self.doc_modules),
         ]
 
 
@@ -299,6 +411,9 @@ class MetaprogramResult:
 
 METAPROGRAM_OUTPUT_CAP = 8192
 
+#: F02-T11: the tag a metaprogram's verdict line carries, ``@opn-verdict <nonce> <json>``.
+VERDICT_TAG = "@opn-verdict"
+
 #: The executables the Lake package builds (F01-R1, F02-R1, F07-R4).
 METAPROGRAMS: tuple[str, ...] = (
     "opn-witness-type",
@@ -306,22 +421,45 @@ METAPROGRAMS: tuple[str, ...] = (
     "opn-hazards",
     "opn-artifact-type",
     "opn-relation-type",
+    "opn-statement-meaning",
+    "opn-axioms",
+    "opn-outline",
 )
 
 
-def parse_metaprogram_output(exit_code: int, stdout: str, stderr: str) -> MetaprogramResult:
-    """R1/R9: the last stdout line must be one JSON object; anything else is a failure."""
-    lines = [ln for ln in stdout.splitlines() if ln.strip()]
+def parse_metaprogram_output(
+    exit_code: int, stdout: str, stderr: str, nonce: str | None = None
+) -> MetaprogramResult:
+    """R1/R9: the verdict must be one JSON object; anything else is a failure.
+
+    Without ``nonce`` (a program run by hand, or one that predates F02-T11) the verdict is the
+    last stdout line. With it, the verdict is the one line ``@opn-verdict <nonce> <json>``, and
+    there must be exactly one: an untagged line, wherever it stands, is not the verdict, and two
+    tagged ones are a failure. The nonce is written on the program's stdin and read before it
+    loads anything (``OpnGate.runMain``), so code the program goes on to load cannot learn it
+    there; see the evidence for F02-T11 for what that does and does not rule out."""
     doc: Any = None
-    if lines:
+    if nonce is None:
+        lines = [ln for ln in stdout.splitlines() if ln.strip()]
+        candidate = lines[-1] if lines else None
+    else:
+        tag = f"{VERDICT_TAG} {nonce} "
+        tagged = [ln[len(tag) :] for ln in stdout.splitlines() if ln.startswith(tag)]
+        candidate = tagged[0] if len(tagged) == 1 else None
+    if candidate is not None:
         try:
-            doc = json.loads(lines[-1])
+            doc = json.loads(candidate)
         except json.JSONDecodeError:
             doc = None
     if not isinstance(doc, dict) or "ok" not in doc:
         capped = (stdout + stderr)[:METAPROGRAM_OUTPUT_CAP]
         return MetaprogramResult(ok=False, exit_code=exit_code, output=capped)
     return MetaprogramResult(ok=bool(doc["ok"]) and exit_code == 0, doc=doc, exit_code=exit_code)
+
+
+def new_nonce() -> str:
+    """A per-call nonce (F02-T11): 128 random bits, hex."""
+    return secrets.token_hex(16)
 
 
 class Toolchain(Protocol):
@@ -425,6 +563,27 @@ class Toolchain(Protocol):
     ) -> MetaprogramResult:
         """F08: ``opn-relation-type`` — the implication a labeled variant claims (D-30)."""
 
+    def statement_meaning(
+        self,
+        tc: ResolvedToolchain,
+        req: MeaningRequest,
+        search_path: Sequence[Path],
+        *,
+        timeout_s: float | None = None,
+    ) -> MetaprogramResult:
+        """F08-R17: ``opn-statement-meaning`` — whether an artifact that declares uses proved
+        the statement as its own environment reads it."""
+
+    def outline(
+        self,
+        tc: ResolvedToolchain,
+        req: OutlineRequest,
+        search_path: Sequence[Path],
+        *,
+        timeout_s: float | None = None,
+    ) -> MetaprogramResult:
+        """F19: ``opn-outline`` — the step tree of a proof artifact, with its constants."""
+
 
 # --- helpers shared by the real implementation and its tests --------------------------------
 
@@ -434,15 +593,19 @@ def is_native_decide_axiom(name: str) -> bool:
 
 
 def parse_axioms(output: str, decl: str) -> frozenset[str] | None:
-    """Read ``#print axioms`` output for ``decl``; ``None`` if it is not there."""
+    """Read ``#print axioms`` output for ``decl``; ``None`` if it is not there, or if more than
+    one line answers for it (F02-T11: a line printed by code the probe loaded must not be taken
+    for the answer, so two answers are no answer). The gate's own step 5 no longer reads this
+    output: it asks ``opn-axioms``, which loads no contributor code."""
+    found: list[frozenset[str]] = []
     for m in _AXIOMS_RE.finditer(output):
         if m.group("decl") == decl:
             raw = m.group("axioms").strip()
-            return frozenset(a.strip() for a in raw.split(",") if a.strip())
+            found.append(frozenset(a.strip() for a in raw.split(",") if a.strip()))
     for m in _NO_AXIOMS_RE.finditer(output):
         if m.group("decl") == decl:
-            return frozenset()
-    return None
+            found.append(frozenset())
+    return found[0] if len(found) == 1 else None
 
 
 def parse_json_messages(stdout: str) -> tuple[Message, ...]:
@@ -620,8 +783,11 @@ class LocalToolchain:
         cwd: Path | None = None,
         extra_env: dict[str, str] | None = None,
         timeout_s: float | None = None,
+        stdin: str | None = None,
     ) -> subprocess.CompletedProcess[str]:
-        """The one place a process is started. The sandbox seam overrides this alone."""
+        """The one place a process is started. The sandbox seam overrides this alone. ``stdin``
+        is written to the process's standard input (F02-T11: a metaprogram's nonce); without it
+        the process gets an empty one, never the gate's own."""
         return subprocess.run(
             list(cmd),
             cwd=cwd,
@@ -630,6 +796,7 @@ class LocalToolchain:
             text=True,
             timeout=timeout_s,
             check=False,
+            input=stdin if stdin is not None else "",
         )
 
     def _elan(self, args: Sequence[str]) -> subprocess.CompletedProcess[str]:
@@ -749,22 +916,23 @@ class LocalToolchain:
         *,
         timeout_s: float | None = None,
     ) -> AxiomResult:
-        scratch = scratch.resolve()
-        scratch.mkdir(parents=True, exist_ok=True)
-        probe = scratch / "OpnAxioms.lean"
-        probe.write_text(f"import {module}\n#print axioms {decl}\n", encoding="utf-8")
-        proc = self._run(
-            tc.name,
-            ["lean", probe.name],
-            cwd=scratch,
-            lean_path=tc.search_path(*search_path),
-            timeout_s=timeout_s,
+        """F02-T11: ``opn-axioms``, which reads ``module`` from its olean with initializers off
+        and walks the declaration's constants itself. Until T11 this was ``lean`` on a probe file
+        importing the module: the frontend runs the imported modules' ``initialize`` blocks, so
+        code in the artifact could print an axioms line of its own, and ``#print axioms`` reads
+        an imported declaration's axioms from data its olean carries rather than from its body.
+        ``scratch`` is no longer written to; it stays in the signature for the callers."""
+        del scratch
+        result = self._metaprogram_run(
+            tc, "opn-axioms", ["--module", module, "--decl", decl], search_path, timeout_s
         )
-        output = proc.stdout + proc.stderr
-        axioms = parse_axioms(proc.stdout, decl)
-        if proc.returncode != 0 or axioms is None:
+        output = result.output or json.dumps(result.doc)
+        raw = result.doc.get("axioms")
+        if not result.ok or result.doc.get("decl") != decl or not isinstance(raw, list):
             return AxiomResult(ok=False, output=output)
-        return AxiomResult(ok=True, axioms=axioms, output=output)
+        if not all(isinstance(a, str) for a in raw):
+            return AxiomResult(ok=False, output=output)
+        return AxiomResult(ok=True, axioms=frozenset(raw), output=output)
 
     def ensure_metaprograms(self, tc: ResolvedToolchain) -> None:
         """Build the Lake package once if its executables are missing (pregate on a fresh clone)."""
@@ -789,15 +957,18 @@ class LocalToolchain:
         self.ensure_metaprograms(tc)
         binary = self.metaprogram(name)
         sysroot = tc.libdir.parent.parent
+        # F02-T11: a fresh nonce per call, on stdin; the verdict is the one line tagged with it
+        nonce = new_nonce()
         proc = self._exec(
-            [str(self.elan), "run", tc.name, str(binary), *args],
+            [str(self.elan), "run", tc.name, str(binary), *args, "--nonce", "stdin"],
             extra_env={
                 "LEAN_PATH": _join_search_path(tc.search_path(*search_path)),
                 "LEAN_SYSROOT": str(sysroot),
             },
             timeout_s=timeout_s,
+            stdin=nonce + "\n",
         )
-        return parse_metaprogram_output(proc.returncode, proc.stdout, proc.stderr)
+        return parse_metaprogram_output(proc.returncode, proc.stdout, proc.stderr, nonce=nonce)
 
     def witness_type(
         self,
@@ -848,6 +1019,28 @@ class LocalToolchain:
         timeout_s: float | None = None,
     ) -> MetaprogramResult:
         return self._metaprogram_run(tc, "opn-relation-type", req.args(), search_path, timeout_s)
+
+    def statement_meaning(
+        self,
+        tc: ResolvedToolchain,
+        req: MeaningRequest,
+        search_path: Sequence[Path],
+        *,
+        timeout_s: float | None = None,
+    ) -> MetaprogramResult:
+        return self._metaprogram_run(
+            tc, "opn-statement-meaning", req.args(), search_path, timeout_s
+        )
+
+    def outline(
+        self,
+        tc: ResolvedToolchain,
+        req: OutlineRequest,
+        search_path: Sequence[Path],
+        *,
+        timeout_s: float | None = None,
+    ) -> MetaprogramResult:
+        return self._metaprogram_run(tc, "opn-outline", req.args(), search_path, timeout_s)
 
 
 def _env_with(extra: dict[str, str] | None) -> dict[str, str] | None:

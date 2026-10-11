@@ -1,0 +1,9 @@
+19:34:24Z #252 ('open', False, 'behind', 'branch-update', (('completed', 'success'),), 'not-merged')
+19:34:25Z #258 ('open', False, 'unknown', 'merge', (('completed', 'success'),), 'no-attestation-for-mode')
+19:35:25Z #252 ('open', False, 'unknown', 'merge', (('completed', 'success'),), 'not-merged')
+19:36:37Z #258 ('ERR', '<urlopen error [Errno 104] Connection reset by peer>')
+19:37:17Z #252 ('open', False, 'unknown', 'merge', (('completed', 'success'),), 'not-merged')
+19:37:17Z #258 ('open', False, 'unknown', 'merge', (('completed', 'success'),), 'no-attestation-for-mode')
+19:41:20Z #258 ('open', False, 'behind', 'branch-update', (('completed', 'success'),), 'no-attestation-for-mode')
+19:47:32Z 252 the pull request's live state could not be read from the host: GET /repos/thisisanameforsure/open_proof_network_graph/pulls/252 returned 403: API rate limit exceeded for installation ID 160370091. If you reach out to GitHub Support for help, please include the request ID D234:D9157:22387D5:72ABC62:6ABC15D4 and timestamp 2026-09-29 19:47:32 UTC. For more on scraping GitHub and how it may affect your rights, please review our Terms of Service (https://docs.github.com/en/site-policy/github-terms/github-terms-of-service) open False unknown merge [('completed', 'success')] not-merged
+19:47:33Z 258 the pull request's live state could not be read from the host: GET /repos/thisisanameforsure/open_proof_network_graph/pulls/258 returned 403: API rate limit exceeded for installation ID 160370091. If you reach out to GitHub Support for help, please include the request ID D242:25222D:1B564:5975F:6ABC15D5 and timestamp 2026-09-29 19:47:33 UTC. For more on scraping GitHub and how it may affect your rights, please review our Terms of Service (https://docs.github.com/en/site-policy/github-terms/github-terms-of-service) open False unknown merge [('completed', 'success')] no-attestation-for-mode

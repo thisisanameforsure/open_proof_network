@@ -1,0 +1,72 @@
+F08-T25 — a use reaches the proofs built on it, so the meaning guard does too (R22; Q40); green
+date: 2026-10-02   toolchain: leanprover/lean4:v4.33.1 (GitHub release zip linked into elan);
+docker tier not run (no daemon here)
+
+## the task's own tests
+$ uv run --frozen pytest gate/tests/test_uses_carried.py gate/tests/test_uses_defs.py gate/tests/test_uses_nodes.py -v -p no:cacheprovider
+gate/tests/test_uses_carried.py::test_a_dependencys_use_line_brings_the_guard_to_a_proof_that_declares_none PASSED
+gate/tests/test_uses_carried.py::test_a_meaning_changed_by_a_dependencys_use_fails_step_4_and_names_the_carrier PASSED
+gate/tests/test_uses_carried.py::test_a_use_two_proofs_down_is_carried_as_well PASSED
+gate/tests/test_uses_carried.py::test_a_declared_use_and_a_carried_one_are_both_recorded PASSED
+gate/tests/test_uses_carried.py::test_a_closure_with_no_use_line_anywhere_is_checked_exactly_as_before PASSED
+gate/tests/test_uses_carried.py::test_a_use_in_a_node_outside_the_closure_carries_nothing PASSED
+============================== 80 passed in 0.85s ==============================
+(test_uses_defs.py and test_uses_nodes.py are T23's and T24's, unchanged and green: an artifact
+that declares uses is guarded as before, and a tree without use lines is asked nothing.)
+
+## the whole lean tier, on the tree as committed
+$ uv run --frozen pytest -m "lean and not docker" -v -p no:cacheprovider -rfxX --tb=short
+= 3 failed, 118 passed, 3264 deselected, 1 xfailed, 2 warnings in 3465.91s (0:57:45) =
+FAILED gate/tests/test_onramp_lean.py::test_the_on_ramp_node_passes_on_the_pinned_mathlib
+FAILED gate/tests/test_onramp_lean.py::test_skeleton_admits - AssertionError: {
+FAILED gate/tests/test_qa_lean.py::test_onramp_screens_clean - opn_gate.toolc...
+The three failures are this container's, not the change's: each stops at step 1 with
+"no Mathlib checkout for 0df444a360eaa60ab8c11dca51a86af692955474 under /root/.opn/mathlib; run
+gate/scripts/install-mathlib.sh ..." (the on-ramp fixtures pin Mathlib; CI has the checkout).
+The use tests in that run:
+gate/tests/test_uses_carried_lean.py::test_the_carriers_own_proof_is_an_honest_merge PASSED
+gate/tests/test_uses_carried_lean.py::test_a_dependencys_declared_definition_cannot_change_a_dependents_statement PASSED
+gate/tests/test_uses_carried_lean.py::test_without_the_guard_the_dependent_proves_a_false_statement PASSED
+gate/tests/test_uses_defs_lean.py::test_a_proof_uses_a_definition_its_statement_does_not_import PASSED
+gate/tests/test_uses_defs_lean.py::test_an_import_that_changes_the_statements_meaning_is_refused[instance] PASSED
+gate/tests/test_uses_defs_lean.py::test_an_import_that_changes_the_statements_meaning_is_refused[local-definition] PASSED
+gate/tests/test_uses_defs_lean.py::test_an_import_that_changes_the_statements_meaning_is_refused[notation] PASSED
+gate/tests/test_uses_defs_lean.py::test_without_the_guard_the_same_proof_passes_every_step[instance] PASSED
+gate/tests/test_uses_defs_lean.py::test_without_the_guard_the_same_proof_passes_every_step[local-definition] PASSED
+gate/tests/test_uses_defs_lean.py::test_without_the_guard_the_same_proof_passes_every_step[notation] PASSED
+gate/tests/test_uses_defs_lean.py::test_a_hole_over_a_declared_definition_becomes_a_statement_that_elaborates PASSED
+gate/tests/test_uses_defs_lean.py::test_a_partial_is_held_to_the_statements_meaning_too PASSED
+gate/tests/test_uses_defs_lean.py::test_a_dependencys_proof_module_cannot_change_the_statement_of_an_artifact_with_uses PASSED
+gate/tests/test_uses_defs_lean.py::test_a_dependencys_proof_module_cannot_change_the_statement_of_any_artifact XFAIL
+gate/tests/test_uses_nodes_lean.py::test_a_proof_uses_a_proved_node_by_importing_its_proof PASSED
+gate/tests/test_uses_nodes_lean.py::test_a_use_line_over_a_proof_that_does_not_use_the_node_is_refused PASSED
+gate/tests/test_uses_nodes_lean.py::test_a_theorem_reachable_through_a_use_but_not_declared_is_refused PASSED
+gate/tests/test_uses_nodes_lean.py::test_a_node_whose_dependency_has_a_use_line_still_builds PASSED
+gate/tests/test_uses_nodes_lean.py::test_a_used_nodes_proof_module_cannot_change_what_the_statement_says PASSED
+gate/tests/test_uses_nodes_lean.py::test_without_the_guard_a_used_nodes_instance_proves_a_false_statement PASSED
+
+What the lean tier shows for this task. With the fix, the false `size-is-zero-dep` is refused at
+step 4, statement-meaning-changed, before any replay, with details uses == [] and
+carried == {"carrier": ["Defs.Trap"]}, and expected != declared (the two instances, printed
+explicit). With the guard monkeypatched off the same submission passes every step. The carrier's
+own proof still passes: the trap cannot be stopped where the use is declared, only where it lands.
+The Q36 xfail still fails, now on the verdict (see task-25-red.txt): that road has no use line in
+it and is T28's.
+
+## mutants (in memory, pytest -p; no file touched), over the three fast files
+== carried_blind (the guard is T23s: only a declared use): 4 failed, 76 passed
+== carried_first_layer (a use two proofs down is not seen): 1 failed, 79 passed
+
+## regression
+$ make lint       -> exit 0
+$ make types      -> exit 0 (3 of 3 packages: no issues)
+$ make test-fast  -> exit 2, the branch's seven known failures and nothing else:
+FAILED gate/tests/test_finding_merge_actor_stale_head.py::test_the_morning_of_306_moves_past_the_stale_head
+FAILED gate/tests/test_finding_merge_actor_stale_head.py::test_a_stale_head_is_passed_over_even_if_the_host_calls_it_clean
+FAILED gate/tests/test_finding_merge_actor_stale_head.py::test_a_branch_that_no_longer_exists_is_passed_over
+FAILED gate/tests/test_finding_merge_actor_stale_head.py::test_a_head_the_host_still_computes_is_held_for_as_before
+FAILED gate/tests/test_finding_merge_actor_stale_head.py::test_a_stale_append_never_ends_a_batch
+FAILED gate/tests/test_finding_merge_actor_stale_head.py::test_the_workflow_reads_each_branch_tip_and_survives_a_missing_one
+FAILED gate/tests/test_walkthrough.py::test_graph_copy_is_identical - Asserti...
+==== 7 failed, 3236 passed, 143 deselected, 2 warnings in 132.20s (0:02:12) ====
+(3230 at T24 plus this task's six.)

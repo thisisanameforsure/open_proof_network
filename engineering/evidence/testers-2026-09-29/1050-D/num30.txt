@@ -1,0 +1,31 @@
+n= 0 den_bits=     0.00 bound_bits=     0.0 hden_ok=True | R>0:True log2|R|=      0.04 rem_ok=True slack_bits=    3.91 sign(Rsc)=+
+n= 1 den_bits=     1.00 bound_bits=     1.5 hden_ok=True | R>0:True log2|R|=      0.63 rem_ok=True slack_bits=    0.74 sign(Rsc)=+
+n= 2 den_bits=     3.00 bound_bits=     6.0 hden_ok=True | R>0:True log2|R|=     -7.15 rem_ok=True slack_bits=    6.30 sign(Rsc)=+
+n= 3 den_bits=    11.13 bound_bits=    13.5 hden_ok=True | R>0:True log2|R|=    -17.83 rem_ok=True slack_bits=    9.65 sign(Rsc)=+
+n= 4 den_bits=    18.83 bound_bits=    24.0 hden_ok=True | R>0:True log2|R|=    -32.08 rem_ok=True slack_bits=   12.17 sign(Rsc)=+
+n= 5 den_bits=    33.64 bound_bits=    37.5 hden_ok=True | R>0:True log2|R|=    -50.13 rem_ok=True slack_bits=   14.27 sign(Rsc)=+
+n= 6 den_bits=    41.87 bound_bits=    54.0 hden_ok=True | R>0:True log2|R|=    -72.08 rem_ok=True slack_bits=   16.15 sign(Rsc)=+
+n= 7 den_bits=    58.27 bound_bits=    73.5 hden_ok=True | R>0:True log2|R|=    -97.96 rem_ok=True slack_bits=   17.92 sign(Rsc)=+
+n= 8 den_bits=    80.58 bound_bits=    96.0 hden_ok=True | R>0:True log2|R|=   -127.82 rem_ok=True slack_bits=   19.64 sign(Rsc)=+
+n= 9 den_bits=   108.46 bound_bits=   121.5 hden_ok=True | R>0:True log2|R|=   -161.66 rem_ok=True slack_bits=   21.33 sign(Rsc)=+
+n=10 den_bits=   122.52 bound_bits=   150.0 hden_ok=True | R>0:True log2|R|=   -199.50 rem_ok=True slack_bits=   23.00 sign(Rsc)=+
+n=11 den_bits=   154.60 bound_bits=   181.5 hden_ok=True | R>0:True log2|R|=   -241.33 rem_ok=True slack_bits=   24.67 sign(Rsc)=+
+n=12 den_bits=   178.60 bound_bits=   216.0 hden_ok=True | R>0:True log2|R|=   -287.17 rem_ok=True slack_bits=   26.33 sign(Rsc)=+
+n=13 den_bits=   217.60 bound_bits=   253.5 hden_ok=True | R>0:True log2|R|=   -337.00 rem_ok=True slack_bits=   27.99 sign(Rsc)=+
+n=14 den_bits=   251.03 bound_bits=   294.0 hden_ok=True | R>0:True log2|R|=   -390.83 rem_ok=True slack_bits=   29.66 sign(Rsc)=+
+n=15 den_bits=   285.95 bound_bits=   337.5 hden_ok=True | R>0:True log2|R|=   -448.66 rem_ok=True slack_bits=   31.32 sign(Rsc)=+
+n=16 den_bits=   322.25 bound_bits=   384.0 hden_ok=True | R>0:True log2|R|=   -510.49 rem_ok=True slack_bits=   32.98 sign(Rsc)=+
+n=17 den_bits=   373.25 bound_bits=   433.5 hden_ok=True | R>0:True log2|R|=   -576.32 rem_ok=True slack_bits=   34.64 sign(Rsc)=+
+n=18 den_bits=   399.28 bound_bits=   486.0 hden_ok=True | R>0:True log2|R|=   -646.15 rem_ok=True slack_bits=   36.30 sign(Rsc)=+
+n=19 den_bits=   453.14 bound_bits=   541.5 hden_ok=True | R>0:True log2|R|=   -719.98 rem_ok=True slack_bits=   37.96 sign(Rsc)=+
+n=20 den_bits=   494.79 bound_bits=   600.0 hden_ok=True | R>0:True log2|R|=   -797.81 rem_ok=True slack_bits=   39.62 sign(Rsc)=+
+n=21 den_bits=   548.36 bound_bits=   661.5 hden_ok=True | R>0:True log2|R|=   -879.64 rem_ok=True slack_bits=   41.28 sign(Rsc)=+
+n=22 den_bits=   607.92 bound_bits=   726.0 hden_ok=True | R>0:True log2|R|=   -965.47 rem_ok=True slack_bits=   42.94 sign(Rsc)=+
+n=23 den_bits=   669.05 bound_bits=   793.5 hden_ok=True | R>0:True log2|R|=  -1055.30 rem_ok=True slack_bits=   44.60 sign(Rsc)=+
+n=24 den_bits=   724.96 bound_bits=   864.0 hden_ok=True | R>0:True log2|R|=  -1149.13 rem_ok=True slack_bits=   46.26 sign(Rsc)=+
+n=25 den_bits=   795.00 bound_bits=   937.5 hden_ok=True | R>0:True log2|R|=  -1246.96 rem_ok=True slack_bits=   47.92 sign(Rsc)=+
+n=26 den_bits=   858.42 bound_bits=  1014.0 hden_ok=True | R>0:True log2|R|=  -1348.79 rem_ok=True slack_bits=   49.58 sign(Rsc)=+
+n=27 den_bits=   925.78 bound_bits=  1093.5 hden_ok=True | R>0:True log2|R|=  -1454.62 rem_ok=True slack_bits=   51.24 sign(Rsc)=+
+n=28 den_bits=   981.44 bound_bits=  1176.0 hden_ok=True | R>0:True log2|R|=  -1564.45 rem_ok=True slack_bits=   52.90 sign(Rsc)=+
+n=29 den_bits=  1068.44 bound_bits=  1261.5 hden_ok=True | R>0:True log2|R|=  -1678.28 rem_ok=True slack_bits=   54.56 sign(Rsc)=+
+n=30 den_bits=  1125.78 bound_bits=  1350.0 hden_ok=True | R>0:True log2|R|=  -1796.11 rem_ok=True slack_bits=   56.22 sign(Rsc)=+

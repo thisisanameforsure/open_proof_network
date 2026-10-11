@@ -1,0 +1,308 @@
+warning: `VIRTUAL_ENV=/Users/mikehiggins/Desktop/repos/open_proof_network/.venv` does not match the project environment path `.venv` and will be ignored; use `--active` to target the active environment instead
+........................................................................ [ 52%]
+....................FF.............FF12 §6 budget: propositional compile              pass             0.4s of 120s
+F12 §6 budget: propositional screen-consequence   pass             0.0s of 0s
+F12 §6 budget: propositional screen-statement     fail            44.1s of 120s
+F12 §6 budget: propositional screen-negation      pass             0.3s of 120s
+F12 §6 budget: propositional screen-false         pass             0.5s of 120s
+......................x.......       [100%]
+=================================== FAILURES ===================================
+______________ test_the_on_ramp_node_passes_on_the_pinned_mathlib ______________
+
+tmp_path = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-312/test_the_on_ramp_node_passes_o0')
+lean_pkg = PosixPath('/Users/mikehiggins/Desktop/repos/opn-f18/gate/lean/.lake/build/bin')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10b033ce0>
+capsys = <_pytest.capture.CaptureFixture object at 0x10b11d590>
+
+    def test_the_on_ramp_node_passes_on_the_pinned_mathlib(
+        tmp_path: Path,
+        lean_pkg: Path,
+        monkeypatch: pytest.MonkeyPatch,
+        capsys: pytest.CaptureFixture[str],
+    ) -> None:
+        monkeypatch.setenv("OPN_LEAN_PKG_BIN", str(lean_pkg))
+        out = tmp_path / "out"
+        started = time.monotonic()
+        code = cli.main(
+            ["pregate", "--graph", str(ONRAMP), "--node", PROVED, "--no-diff", "--out", str(out)]
+        )
+        elapsed = time.monotonic() - started
+        captured = capsys.readouterr()
+>       assert code == cli.EXIT_PASS, captured.err[-3000:] + captured.out[-3000:]
+E       AssertionError: {
+E           "verdict": "fail",
+E           "first_failing_step": 1,
+E           "diagnostic": {
+E             "code": "toolchain-missing",
+E             "message": "no Mathlib checkout for 0df444a360eaa60ab8c11dca51a86af692955474 under /Users/mikehiggins/.opn/mathlib; run gate/scripts/install-mathlib.sh 0df444a360eaa60ab8c11dca51a86af692955474 (OPN_MATHLIB_HOME=/Users/mikehiggins/.opn/mathlib)",
+E             "details": {
+E               "toolchain": "leanprover/lean4:v4.33.1",
+E               "mathlib_sha": "0df444a360eaa60ab8c11dca51a86af692955474"
+E             }
+E           },
+E           "steps": [
+E             {
+E               "step": 1,
+E               "name": "toolchain",
+E               "result": "fail",
+E               "diagnostic": {
+E                 "code": "toolchain-missing",
+E                 "message": "no Mathlib checkout for 0df444a360eaa60ab8c11dca51a86af692955474 under /Users/mikehiggins/.opn/mathlib; run gate/scripts/install-mathlib.sh 0df444a360eaa60ab8c11dca51a86af692955474 (OPN_MATHLIB_HOME=/Users/mikehiggins/.opn/mathlib)",
+E                 "details": {
+E                   "toolchain": "leanprover/lean4:v4.33.1",
+E                   "mathlib_sha": "0df444a360eaa60ab8c11dca51a86af692955474"
+E                 }
+E               }
+E             },
+E             {
+E               "step": 2,
+E               "name": "paths",
+E               "result": "skipped",
+E               "diagnostic": null
+E             },
+E             {
+E               "step": 4,
+E               "name": "kernel-replay",
+E               "result": "skipped",
+E               "diagnostic": null
+E             },
+E             {
+E               "step": 5,
+E               "name": "axioms",
+E               "result": "skipped",
+E               "diagnostic": null
+E             },
+E             {
+E               "step": 6,
+E               "name": "hazards",
+E               "result": "skipped",
+E               "diagnostic": null
+E             },
+E             {
+E               "step": 7,
+E               "name": "witness",
+E               "result": "skipped",
+E               "diagnostic": null
+E             },
+E             {
+E               "step": 8,
+E               "name": "deps",
+E               "result": "skipped",
+E               "diagnostic": null
+E             }
+E           ],
+E           "attestation": "/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-312/test_the_on_ramp_node_passes_o0/out/attestation.json",
+E           "verdict_file": "/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-312/test_the_on_ramp_node_passes_o0/out/verdict.json",
+E           "olean_cache": {
+E             "status": "none",
+E             "commit": null,
+E             "reason": "the graph names no olean cache",
+E             "hits": [],
+E             "misses": []
+E           }
+E         }
+E         
+E       assert 1 == 0
+E        +  where 0 = cli.EXIT_PASS
+
+gate/tests/test_onramp_lean.py:41: AssertionError
+_____________________________ test_skeleton_admits _____________________________
+
+tmp_path = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-312/test_skeleton_admits0')
+lean_pkg = PosixPath('/Users/mikehiggins/Desktop/repos/opn-f18/gate/lean/.lake/build/bin')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10b0029f0>
+capsys = <_pytest.capture.CaptureFixture object at 0x10b11da90>
+
+    def test_skeleton_admits(
+        tmp_path: Path,
+        lean_pkg: Path,
+        monkeypatch: pytest.MonkeyPatch,
+        capsys: pytest.CaptureFixture[str],
+    ) -> None:
+        """AC10: on the pinned Mathlib, pregate in partial mode on the root passes — the assembly
+        typechecks modulo its three named holes, each extracted, none definitionally the root — with
+        the annex citation making them skeleton holes when merged (F07-R6)."""
+        monkeypatch.setenv("OPN_LEAN_PKG_BIN", str(lean_pkg))
+>       verdict = skeleton_run(ONRAMP, tmp_path / "out", capsys)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+gate/tests/test_onramp_lean.py:123: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+graph = PosixPath('/Users/mikehiggins/Desktop/repos/opn-f18/gate/tests/fixtures/graphs/onramp')
+out = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-312/test_skeleton_admits0/out')
+capsys = <_pytest.capture.CaptureFixture object at 0x10b11da90>
+
+    def skeleton_run(graph: Path, out: Path, capsys: pytest.CaptureFixture[str]) -> dict[str, object]:
+        """pregate on the root with its skeleton as the one added assembly."""
+        changes = out.parent / "changes.txt"
+        code = cli.main(
+            ["pregate", "--graph", str(graph), "--node", ROOT_NODE, "--no-diff", "--out", str(out)]
+        )
+        captured = capsys.readouterr()
+>       assert code == cli.EXIT_PASS, captured.err[-3000:] + captured.out[-4000:]
+E       AssertionError: {
+E           "verdict": "fail",
+E           "first_failing_step": 1,
+E           "diagnostic": {
+E             "code": "toolchain-missing",
+E             "message": "no Mathlib checkout for 0df444a360eaa60ab8c11dca51a86af692955474 under /Users/mikehiggins/.opn/mathlib; run gate/scripts/install-mathlib.sh 0df444a360eaa60ab8c11dca51a86af692955474 (OPN_MATHLIB_HOME=/Users/mikehiggins/.opn/mathlib)",
+E             "details": {
+E               "toolchain": "leanprover/lean4:v4.33.1",
+E               "mathlib_sha": "0df444a360eaa60ab8c11dca51a86af692955474"
+E             }
+E           },
+E           "steps": [
+E             {
+E               "step": 1,
+E               "name": "toolchain",
+E               "result": "fail",
+E               "diagnostic": {
+E                 "code": "toolchain-missing",
+E                 "message": "no Mathlib checkout for 0df444a360eaa60ab8c11dca51a86af692955474 under /Users/mikehiggins/.opn/mathlib; run gate/scripts/install-mathlib.sh 0df444a360eaa60ab8c11dca51a86af692955474 (OPN_MATHLIB_HOME=/Users/mikehiggins/.opn/mathlib)",
+E                 "details": {
+E                   "toolchain": "leanprover/lean4:v4.33.1",
+E                   "mathlib_sha": "0df444a360eaa60ab8c11dca51a86af692955474"
+E                 }
+E               }
+E             },
+E             {
+E               "step": 2,
+E               "name": "paths",
+E               "result": "skipped",
+E               "diagnostic": null
+E             },
+E             {
+E               "step": 4,
+E               "name": "kernel-replay",
+E               "result": "skipped",
+E               "diagnostic": null
+E             },
+E             {
+E               "step": 5,
+E               "name": "axioms",
+E               "result": "skipped",
+E               "diagnostic": null
+E             },
+E             {
+E               "step": 6,
+E               "name": "hazards",
+E               "result": "skipped",
+E               "diagnostic": null
+E             },
+E             {
+E               "step": 7,
+E               "name": "witness",
+E               "result": "skipped",
+E               "diagnostic": null
+E             },
+E             {
+E               "step": 8,
+E               "name": "deps",
+E               "result": "skipped",
+E               "diagnostic": null
+E             }
+E           ],
+E           "attestation": "/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-312/test_skeleton_admits0/out/attestation.json",
+E           "verdict_file": "/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-312/test_skeleton_admits0/out/verdict.json",
+E           "olean_cache": {
+E             "status": "none",
+E             "commit": null,
+E             "reason": "the graph names no olean cache",
+E             "hits": [],
+E             "misses": []
+E           }
+E         }
+E         
+E       assert 1 == 0
+E        +  where 0 = cli.EXIT_PASS
+
+gate/tests/test_onramp_lean.py:84: AssertionError
+__________________________ test_onramp_screens_clean ___________________________
+
+capsys = <_pytest.capture.CaptureFixture object at 0x10b032b10>
+tmp_path = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-312/test_onramp_screens_clean0')
+real_toolchain = <opn_gate.toolchain.LocalToolchain object at 0x1078d12b0>
+lean_pkg = PosixPath('/Users/mikehiggins/Desktop/repos/opn-f18/gate/lean/.lake/build/bin')
+
+    def test_onramp_screens_clean(
+        capsys: pytest.CaptureFixture[str],
+        tmp_path: Path,
+        real_toolchain: LocalToolchain,
+        lean_pkg: Path,
+    ) -> None:
+        """AC12: on the pinned toolchain and Mathlib, the statement, its negation and False all fail
+        to prove within budget; the record shows the three clean passes (and the compile, and the
+        vacuous consequence pass), no exhibit, no claim, exit as a clean pass."""
+        real_toolchain.lean_pkg_bin = lean_pkg
+        root = tmp_path / "graph"
+        shutil.copytree(ONRAMP, root)
+        ctx = context(root, ONRAMP_TARGET, ONRAMP_ROOT, real_toolchain, tmp_path / "work")
+        started = time.monotonic()
+>       run = qa.screen(ctx, "root", date=WHEN, attempt_budget_s=120.0, subject_budget_s=600.0)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+gate/tests/test_qa_lean.py:83: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+ctx = RunContext(graph_root=PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest...thlib', pr_author=None, gate_signing_key=None, precheck_signing_key=None), install_toolchain=False, node=None, data={})
+subject = 'root', date = '2026-09-12T12:00:00Z', attempt_budget_s = 120.0
+subject_budget_s = 600.0, clock = <built-in function monotonic>
+contributor = 'opn-gate-qa', tool_version = '0.0.0'
+
+    def screen(  # noqa: PLR0913 — one argument per budget and seam
+        ctx: RunContext,
+        subject: str,
+        *,
+        date: str,
+        attempt_budget_s: float,
+        subject_budget_s: float,
+        clock: Clock = time.monotonic,
+        contributor: str = SCREEN_CONTRIBUTOR,
+        tool_version: str = "0.0.0",
+    ) -> ScreenRun:
+        """R3: the screens over ``ctx.claim``'s node — the target's root — through the toolchain seam.
+    
+        ``ctx.toolchain`` is wherever the caller put it; the authoritative run puts it in the
+        step-3 sandbox (C9), because every attempt elaborates Lean that is trying to prove False.
+        The record is written whatever happened, so a run that timed out is a run that says so.
+        """
+        from opn_gate.steps.toolchain_step import ToolchainStep  # noqa: PLC0415 — an import cycle
+    
+        if subject != fidelity.ROOT_SUBJECT:
+            msg = (
+                f"the screens run on the root statement; {subject!r} is a definition and has nothing "
+                "to negate — its pass is compile, brief and backtranslation (F12-Q10)"
+            )
+            raise QaError("record", msg)
+        target_dir = ctx.graph_root / "targets" / ctx.claim.target_id
+        s = _Screening(
+            ctx, ScreenRun(subject), date, attempt_budget_s, subject_budget_s, clock, tool_version
+        )
+        s.started = clock()
+        resolved = ToolchainStep().run(ctx)
+        if not resolved.ok:
+            assert resolved.diagnostic is not None
+>           raise ToolchainMissingError(resolved.diagnostic.message)
+E           opn_gate.toolchain.ToolchainMissingError: no Mathlib checkout for 0df444a360eaa60ab8c11dca51a86af692955474 under /Users/mikehiggins/.opn/mathlib; run gate/scripts/install-mathlib.sh 0df444a360eaa60ab8c11dca51a86af692955474 (OPN_MATHLIB_HOME=/Users/mikehiggins/.opn/mathlib)
+
+gate/opn_gate/qa.py:1114: ToolchainMissingError
+=============================== warnings summary ===============================
+api/tests/api_fakes.py:31
+  /Users/mikehiggins/Desktop/repos/opn-f18/api/tests/api_fakes.py:31: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient
+
+.venv/lib/python3.13/site-packages/starlette/testclient.py:53
+  /Users/mikehiggins/Desktop/repos/opn-f18/.venv/lib/python3.13/site-packages/starlette/testclient.py:53: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.
+    _PortalFactoryType = Callable[[], AbstractContextManager[anyio.abc.BlockingPortal]]
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+XFAIL gate/tests/test_uses_defs_lean.py::test_a_dependencys_proof_module_cannot_change_the_statement_of_any_artifact - F08-Q36, a defect older than uses and not fixed by T23: an artifact with no use lines is not compared with its statement, so a dependency's merged proof that carries an instance after its body (step 2 accepts the file) changes what a dependent's statement elaborates to, and a false statement passes every step. Proposed as F08-T28: run the meaning guard whenever the staged Context imports a proof.
+FAILED gate/tests/test_onramp_lean.py::test_the_on_ramp_node_passes_on_the_pinned_mathlib
+FAILED gate/tests/test_onramp_lean.py::test_skeleton_admits - AssertionError: {
+FAILED gate/tests/test_qa_lean.py::test_onramp_screens_clean - opn_gate.toolc...
+3 failed, 134 passed, 3690 deselected, 1 xfailed, 2 warnings in 3869.85s (1:04:29)
+exit 1
+
+Lead note: the three failures are toolchain-missing at step 1 (no Mathlib checkout for 0df444a3 under ~/.opn/mathlib; 7 GiB, and the laptop has 11 GiB free, engineering/CLAUDE.md 2026-09-12). They are the Mathlib on-ramp fixture and run in CI on the push; every Lean-core lean test passed (134).

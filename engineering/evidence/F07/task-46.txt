@@ -1,0 +1,19 @@
+# F07-T46 green: graph branch f07-t46-hold-cap at 8173eb9c
+# 2026-09-30T10:22:51Z
+
+## the new tests
+.......                                                                  [100%]
+7 passed in 0.08s
+
+## every actor and post-merge test, against the branch
+........................................................................ [ 70%]
+..............................                                           [100%]
+102 passed in 8.82s
+
+## The branch's program over the host's facts at 10:20Z (GET /pulls as the API listed them; tips by git ls-remote; every head green as run 1099 read them; #306's mergeability null as the host reports it; the rest behind main)
+  #306: pull request head 641260d5989a, branch tip d74ba77c022f
+#306: its branch is at d74ba77c022f, not the 641260d5989a the host records: passed over (F07-T46)
+decide -> (307, '04a5359d9d5243444b88a32ce14dc9ce026e2df1', 'update')
+## and the same program with tip_of not read, as the shipped actor (origin/main 524ae900) decides:
+#306 is green; the host is still computing whether it conflicts: holding
+decide -> ('', '', 'hold')

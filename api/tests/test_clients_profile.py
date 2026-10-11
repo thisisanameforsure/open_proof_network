@@ -49,9 +49,14 @@ def test_registry_server_is_the_servers_name() -> None:
 
 @pytest.mark.parametrize("entry_id", ENTRIES)
 def test_surface_fits(entry_id: str) -> None:
-    """AC4 / R5: no tool breaks the harness's known limits."""
-    found = clients.check_profile(REGISTRY, REGISTRY.by_id(entry_id), views())
-    assert found == [], [str(v) for v in found]
+    """AC4 / R5: no tool breaks the harness's known limits — except the limits the registry
+    declares the surface is known to pass (``known_over``, F16-Q14), which must then be found,
+    so a declaration that has gone stale fails the test as surely as an undeclared breach."""
+    entry = REGISTRY.by_id(entry_id)
+    found = clients.check_profile(REGISTRY, entry, views())
+    assert {v.rule for v in found} == set(entry.profile.known_over), [str(v) for v in found]
+    for v in found:
+        assert v.tool is None, str(v)  # a surface-wide limit, never one tool's
 
 
 def _profile(**limits: Any) -> clients.Entry:

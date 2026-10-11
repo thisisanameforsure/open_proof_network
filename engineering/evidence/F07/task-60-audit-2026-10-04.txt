@@ -1,0 +1,113 @@
+F07-T60 — re-render the products without a merge (audit 2026-10-04)
+====================================================================
+
+Graph branch: audit-b-workflows, commit dd60a8b49 (new .github/workflows/render.yml; gate.yml's
+postmerge find step and postmerge_batch.py). Not pushed.
+
+Finding. The post-merge job renders the products only for a merged pull request; a re-pin is the
+owner's direct push of gate-spec.json, so it ended "did not merge a pull request; nothing to record"
+and the products kept the old gate's statuses until the next merge (Log 2026-09-19: the re-render was
+a second, hand-made curator commit).
+
+Fix.
+- render.yml, on workflow_dispatch only: checks out main, requires every targets/*/gate-spec.json to
+  agree on one pin (else fails naming them), extracts postmerge_batch.py from main's own gate.yml (one
+  copy of the loop), checks the pin out as network-render, runs its `products` command (present on
+  the current pin 3422bb4: inert-safe), commits `gate: render <pin12>` and pushes through `publish`
+  with RENDER=1. permissions: {} at top, contents: write on the job; OPN_GRAPH_DEPLOY_KEY in the push
+  step only; OPN_SITE_DEPLOY_TOKEN in the site step only (the render commit is the bot's, so the
+  post-merge job its push starts skips the site dispatch — this step stands in for it).
+- postmerge_batch.py: publish(render=True) does not stop at "nothing owed" — a refused push renders
+  again on main as it is; a re-pin under it ends it (that push dispatches its own render). rebuild()
+  takes env SUBJECT for the render's commit subject.
+- gate.yml postmerge find step: on a push that merged no pull request, not authored by opn-gate, whose
+  range (github.event.before..sha, else sha^..sha) touched targets/*/gate-spec.json, dispatches
+  render.yml (the job already has actions: write). A failed dispatch is a warning.
+
+Red tests (render.yml first written against today's helper, the seam):
+  test_finding_render_without_merge.py::test_a_direct_re_pin_dispatches_a_render
+      assert [] == ['workflow run render.yml --repo owner/graph --ref main']
+  test_finding_render_without_merge.py::test_the_render_job_renders_again_when_main_moves_under_it
+      "postmerge: publish credited" — nothing pushed, main stayed at `gate: #3 pass`
+Guards green throughout: a push touching no pin and a merge dispatch nothing; the unmoved render
+lands with rendered_from == main^ and credits nothing; a re-pin under it pushes nothing; disagreeing
+pins render nothing; secrets one step each.
+
+Proposed Q entry (F07-Q64): "A re-pin renders the products through render.yml, dispatched by the
+post-merge job for a push that merged nothing and touched a gate-spec.json. It credits nothing
+(`gate: render <pin12>`), uses the post-merge job's own publish loop read out of gate.yml, and needs
+every target to agree on one pin. The site is asked to deploy by render.yml itself, because the
+post-merge job skips the bot's own commits."
+
+Proposed ledger line: T60 ✓ 2026-10-04 (audit; red 2 failed on the defect with 6 guards; green 8
+passed, 82 with the post-merge suites; graph branch audit-b-workflows dd60a8b49;
+engineering/evidence/F07/task-60-audit-2026-10-04.txt; live when render.yml is on the graph's main,
+no re-pin needed; the first live re-pin after it is the evidence still to collect).
+
+--- red -------------------------------------------------------------------------------------------
+F...F...                                                                 [100%]
+=================================== FAILURES ===================================
+___________________ test_a_direct_re_pin_dispatches_a_render ___________________
+
+gate_doc = {'name': 'gate', 'run-name': "${{ github.event_name == 'workflow_dispatch' && format('gate: replay of #{0}', inputs.re...he merged pull request whose post-merge job to replay', 'required': True, 'type': 'string'}}}}, 'permissions': {}, ...}
+tmp_path = PosixPath('/Users/mikehiggins/Desktop/repos/opn-audit-b-workflows/.pytest-tmp/test_a_direct_re_pin_dispatche0')
+
+    def test_a_direct_re_pin_dispatches_a_render(gate_doc: dict[Any, Any], tmp_path: Path) -> None:
+        graph = Graph(tmp_path / "g")
+        repin = json.dumps({"network_commit": PIN_B})
+        graph.write("targets/t1/gate-spec.json", repin)
+        graph.write("targets/t2/gate-spec.json", repin)
+        sha = graph.commit("re-pin every target to the next network commit")
+        code, out, said, calls = run_find_step(gate_doc, graph, tmp_path, sha, {})
+        assert code == 0 and out.get("run") == "false", (out, said)
+>       assert renders(calls) == [f"workflow run render.yml --repo {REPO} --ref main"], (calls, said)
+E       AssertionError: (['api repos/owner/graph/commits/2576a10a001c556d4ba3e01250d720c8a03ca31a/pulls'], 'postmerge: 2576a10a001c556d4ba3e01250d720c8a03ca31a did not merge a pull request; nothing to record
+E         ')
+E       assert [] == ['workflow ru...h --ref main']
+E         
+E         Right contains one more item: 'workflow run render.yml --repo owner/graph --ref main'
+E         Use -v to get more diff
+
+gate/tests/test_finding_render_without_merge.py:89: AssertionError
+__________ test_the_render_job_renders_again_when_main_moves_under_it __________
+
+render_doc = {'name': 'render', True: {'workflow_dispatch': {}}, 'permissions': {}, 'concurrency': {'group': 'render', 'cancel-in-progress': False}, ...}
+gate_doc = {'name': 'gate', 'run-name': "${{ github.event_name == 'workflow_dispatch' && format('gate: replay of #{0}', inputs.re...he merged pull request whose post-merge job to replay', 'required': True, 'type': 'string'}}}}, 'permissions': {}, ...}
+tmp_path = PosixPath('/Users/mikehiggins/Desktop/repos/opn-audit-b-workflows/.pytest-tmp/test_the_render_job_renders_ag0')
+
+    def test_the_render_job_renders_again_when_main_moves_under_it(
+        render_doc: dict[Any, Any], gate_doc: dict[Any, Any], tmp_path: Path
+    ) -> None:
+        """A merge and its gate commit land while the render runs: the push is refused, and the job
+        renders again on main as it is rather than giving up (its loop has nothing to credit, so
+        "main already credits everything" is not an answer for it)."""
+        origin = origin_with_workflow(tmp_path)
+        job = RenderJob(render_doc, origin, "moved")
+        job.prepare()
+        three = origin.append(3, "t2")
+        moved = origin.bot(3, ledger=(three,))
+        code, said = job.push()
+        assert code == 0, said
+>       assert origin.subjects(2) == [f"gate: render {PIN_A[:12]}", "gate: #3 pass"], said
+E       AssertionError: postmerge: publish credited
+E         To /Users/mikehiggins/Desktop/repos/opn-audit-b-workflows/.pytest-tmp/test_the_render_job_renders_ag0/origin.git
+E          ! [rejected]        HEAD -> main (fetch first)
+E         error: failed to push some refs to '/Users/mikehiggins/Desktop/repos/opn-audit-b-workflows/.pytest-tmp/test_the_render_job_renders_ag0/origin.git'
+E         hint: Updates were rejected because the remote contains work that you do not
+E         hint: have locally. This is usually caused by another repository pushing to
+E         hint: the same ref. If you want to integrate the remote changes, use
+E         hint: 'git pull' before pushing again.
+E         hint: See the 'Note about fast-forwards' in 'git push --help' for details.
+E         
+E       assert ['gate: #3 pa...er/append/a3'] == ['gate: rende...ate: #3 pass']
+E         
+E         At index 0 diff: 'gate: #3 pass' != 'gate: render aaaaaaaaaaaa'
+E         Use -v to get more diff
+
+gate/tests/test_finding_render_without_merge.py:221: AssertionError
+2 failed, 6 passed in 9.18s
+
+--- green -----------------------------------------------------------------------------------------
+........................................................................ [ 87%]
+..........                                                               [100%]
+82 passed in 82.02s (0:01:22)

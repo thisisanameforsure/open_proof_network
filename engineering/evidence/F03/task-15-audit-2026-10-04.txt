@@ -1,0 +1,41 @@
+F03-T15 — staleness stays one level deep, deliberately (audit 2026-10-04)
+==========================================================================
+
+Finding. curator.revise marks stale only the direct dependents of the revised node
+(curator.dependents_of: META deps read through revisions, plus merged uses), never their
+dependents. The audit asked whether that is a gap. It is not: a proof rests on its dependencies'
+statements, never on their proofs (D-3: Context.lean carries the deps' signatures, sorry-closed),
+and a revision below a dependency does not change that dependency's statement (D-8: no statement is
+edited; the dependent is only marked stale, meaning its proof must be re-derived against the
+revision, D-18 v3.18). The grand-dependent's proof was checked against an unchanged statement and
+stays a valid proof from it.
+
+No code change. Pinning test, green today:
+  gate/tests/test_curator.py::test_staleness_stays_one_level_deep
+  chain and-reassoc <- tutorial-and-swap <- and-swap-reassoc (root, its proof uses nothing), all
+  proved; revise and-reassoc: dependents == (tutorial-and-swap,), one stale record, none on the
+  root, root still proved, and-reassoc superseded.
+Green: test_curator.py — 22 passed in 1.67s
+
+The test pins the rule (a transitive dependents_of, loaded as an in-memory pytest plugin, -p mutant_transitive, no file touched):
+E       AssertionError: assert ['tutorial-an...swap-reassoc'] == ['tutorial-and-swap']
+E         
+E         Left contains one more item: 'and-swap-reassoc'
+E         Use -v to get more diff
+1 failed in 0.11s
+
+Proposed Q entry (F03-Q18):
+  F03-Q18 — Staleness stays one level deep, deliberately (T15, audit 2026-10-04). A revision marks
+  stale the nodes that depend on the revised node, and not their dependents. A proof rests on its
+  dependencies' statements, never their proofs (D-3), and a revision below a dependency leaves that
+  dependency's statement as it was (D-8): it is marked stale, which says its proof must be
+  re-derived against the revision (D-18 v3.18), and if that fails its statement still stands. The
+  grand-dependent's proof was checked against that unchanged statement, so it stays proved;
+  propagating stale upward would mark proofs whose own check is untouched. What a stale dependency
+  does weaken is the chain beneath a node, which the products publish per node. Pinned by
+  test_curator.py::test_staleness_stays_one_level_deep (a transitive rule fails it). Reversal: make
+  curator.dependents_of transitive and restate the test.
+
+Proposed ledger line: T15 ✓ 2026-10-04 (Q18; no code change; staleness one level deep pinned by
+test_curator.py::test_staleness_stays_one_level_deep, green, and red under a transitive mutant)
+engineering/evidence/F03/task-15-audit-2026-10-04.txt

@@ -34,7 +34,7 @@ from opn_api import clock as clockmod
 from opn_api import identity as identitymod
 from opn_api.app import ApiError
 from opn_api.store import PROPOSAL_KINDS
-from opn_gate import admit, layout, scaffold
+from opn_gate import admit, layout, proposed_for, scaffold
 from opn_gate import graph as graphmod
 
 if TYPE_CHECKING:
@@ -47,6 +47,9 @@ PROPOSE_BRANCH_PREFIX = "propose/"
 SPECULATIVE_PREFIX = "spec"  # F08-R3: <target>/spec-<hash8>
 VARIANT_PREFIX = "variant"
 MAX_LEAN_BYTES = 64 * 1024  # a statement, a witness or a relation proof; F07 §6's annex cap
+#: Step 2's code for it (``layout.STATEMENT_COMMAND_CODE``), written out so the error-code
+#: catalog can read it from this module; a test holds the two equal.
+STATEMENT_COMMAND_CODE = "statement-command-forbidden"
 MAX_DEPS = 20  # F07 §6's holes-per-partial cap, reused: a proposal is not a decomposition dump
 
 
@@ -216,6 +219,50 @@ def acknowledged_hazards(fields: dict[str, Any]) -> list[dict[str, Any]] | None:
     return raw or None
 
 
+#: F13-T26: a proposer may ask that no pull request open unless the hazard pre-flight answered.
+REQUIRE_HAZARDS_FIELD = "require_hazards_preflight"
+
+
+def requires_hazards_preflight(fields: dict[str, Any]) -> bool:
+    """Whether the caller asked for the hazard pre-flight to be a condition (``true``). Absent or
+    ``false`` is the route as F13-Q23 settled it: a pre-flight that gives no verdict opens the
+    pull request and step 6 decides."""
+    raw = fields.get(REQUIRE_HAZARDS_FIELD)
+    if raw is None:
+        return False
+    if not isinstance(raw, bool):
+        raise ApiError(
+            400,
+            "require-hazards-preflight-invalid",
+            f"{REQUIRE_HAZARDS_FIELD} must be true or false",
+        )
+    return raw
+
+
+def refuse_unanswered_hazards(required: bool, preflight: dict[str, str]) -> None:
+    """F13-T26: with ``require_hazards_preflight: true``, a hazard pre-flight that gave no
+    verdict (``inconclusive``: the checkers did not answer on a statement that compiled;
+    ``unavailable``: the checker could not be asked) opens nothing. The caller chose to wait for
+    the fast check rather than learn step 6's findings from a red pull request."""
+    word = preflight.get("hazards_preflight")
+    if not required or word in (checks.PREFLIGHT_CLEAR, checks.PREFLIGHT_ACKNOWLEDGED):
+        return
+    raise ApiError(
+        503,
+        "hazards-preflight-inconclusive",
+        f"the hazard pre-flight gave no verdict ({word}) and this proposal asked for one "
+        f"({REQUIRE_HAZARDS_FIELD}: true). Nothing was opened. POST /check with mode hazards "
+        "and this statement says whether the checkers are answering (hazards_status); retry "
+        f"when they are, or send the proposal without {REQUIRE_HAZARDS_FIELD} and step 6 "
+        "decides on the pull request",
+        details={
+            "hazards_preflight": word,
+            "witness_preflight": preflight.get("witness_preflight"),
+        },
+        headers={"Retry-After": "60"},
+    )
+
+
 def check_declaration_free(ctx: Context, target_id: str, statement: str, node_id: str) -> None:
     """F08-T16: refuse a theorem name a node of the target already declares, here rather than
     three minutes and one unwithdrawable pull request later at the gate (``declaration-clash``,
@@ -315,6 +362,57 @@ def with_own_context(text: str, node_id: str) -> str:
     return layout.with_own_context(text, node_id)
 
 
+#: F18-R8 (D-14 v3.26): the node of the target a crux is proposed for, written as the new node's
+#: first ``proposed-for/`` record by the proposer, with the proposal's date.
+FOR_FIELD = "for"
+
+
+def proposed_for_node(ctx: Context, target_id: str, node_id: str, raw: Any) -> str | None:
+    """F18-T6: the ``for`` a proposal names, or ``None`` when it names none — refused 400 with
+    the gate's own code (``modes.check_proposed_for``) before anything is pushed, read from the
+    committed products: a node id, not the crux itself (whose id is new, so only the same
+    statement proposed for itself), a node of the target, and not superseded (D-8), in which
+    case the refusal names the node that replaced it. The gate checks the record again at the
+    merge; this saves the pull request it would refuse."""
+    if raw is None:
+        return None
+    if not isinstance(raw, str) or not proposed_for.NODE_ID_RE.match(raw):
+        raise ApiError(
+            400,
+            "proposed-for-malformed",
+            f"{FOR_FIELD} names a node of the target by its id (^[a-z0-9][a-z0-9-]*$)",
+            details={FOR_FIELD: raw},
+        )
+    details = {FOR_FIELD: raw, "target_id": target_id}
+    if raw == node_id:
+        raise ApiError(
+            400,
+            "proposed-for-self",
+            f"{raw} is this statement's own id; a statement is proposed for another node of its "
+            "target (F18-R8)",
+            details=details,
+        )
+    rows = {str(n.get("node_id")): n for n in precheck.graph_doc(ctx).get(target_id, [])}
+    if raw not in rows:
+        raise ApiError(
+            400,
+            "proposed-for-unknown-node",
+            f"{raw} is not a node of target {target_id} (F18-R8)",
+            details=details,
+        )
+    if rows[raw].get("status") == "superseded":
+        successor = precheck.replacement_of(ctx, target_id, raw)
+        instead = f" by {successor}: name that node instead" if successor else ""
+        raise ApiError(
+            400,
+            "proposed-for-superseded",
+            f"{raw} has been superseded{instead} (D-8); a statement is proposed for a live node "
+            "(F18-R8)",
+            details={**details, "successor": successor},
+        )
+    return raw
+
+
 def node_files(
     ctx: Context, identity: Identity, fields: dict[str, Any], **kwargs: Any
 ) -> tuple[str, dict[str, str], str]:
@@ -329,6 +427,7 @@ def node_files(
     check_witness_filled(witness)  # F13-T21: step 7's witness-sorry, before anything is spent
     deps, statements = dep_statements(ctx, target_id, fields.get("deps"))
     node_id = scaffold.speculative_id(statement, kwargs.pop("prefix"))
+    pointer = proposed_for_node(ctx, target_id, node_id, fields.get(FOR_FIELD))
     check_declaration_free(ctx, target_id, statement, node_id)
     # F08-T13: the statement always — a node gains dependencies later, when a skeleton merges
     # and its holes are written into Context.lean, and a proof may not add an import.
@@ -348,9 +447,25 @@ def node_files(
         date=clockmod.render(ctx.clock.now()),
         model=model_of(fields),
         extra_meta={ACK_FIELD: acknowledged} if acknowledged else {},
+        proposed_for=pointer,
         **kwargs,
     )
-    return target_id, scaffolded(proposal, statements), node_id
+    files = scaffolded(proposal, statements)
+    refuse_commands(files, f"targets/{target_id}/nodes/{node_id}/")
+    return target_id, files, node_id
+
+
+def refuse_commands(files: dict[str, str], prefix: str) -> None:
+    """F08-T37 (D-3 v3.28): the scaffolded ``Statement.lean`` and ``Context.lean`` hold nothing
+    but imports, ``open``, ``namespace`` and ``end`` lines, doc comments and sorry-bodied
+    theorems, by step 2's own function and in its words, before a hosted check is spent or a
+    pull request opens. The Context is the deps' statements verbatim, so a dep that holds such a
+    command is refused here too, naming Context.lean."""
+    for name in layout.COMMAND_CHECKED_FILES:
+        text = files.get(prefix + name)
+        problem = None if text is None else layout.command_problem(name, text)
+        if problem is not None:
+            raise ApiError(400, STATEMENT_COMMAND_CODE, problem.message, details=problem.details)
 
 
 # --- POST /proposals/speculative (D-14 mechanism 2) -----------------------------------------------
@@ -364,6 +479,8 @@ SPECULATIVE_FIELDS: tuple[str, ...] = (
     "deps",
     "model",
     "acknowledged_hazards",
+    "require_hazards_preflight",
+    FOR_FIELD,  # F18-R8: the node this crux is proposed for
 )
 
 
@@ -375,8 +492,10 @@ async def post_speculative(ctx: Context, request: Request) -> Response:
     target_id, files, node_id = node_files(
         ctx, identity, fields, prefix=SPECULATIVE_PREFIX, origin="authored", speculative=True
     )
+    required = requires_hazards_preflight(fields)
     duplicates.check_proposal(ctx, node_id)  # F07-T35: a copy spends no hosted check
     preflight = await checks.preflight_proposal(ctx, identity.id, target_id, node_id, files)
+    refuse_unanswered_hazards(required, preflight)
     opened = open_proposal(
         ctx,
         identity,
@@ -402,6 +521,7 @@ VARIANT_FIELDS: tuple[str, ...] = (
     "relation",
     "relation_proof",
     "acknowledged_hazards",
+    "require_hazards_preflight",
 )
 
 
@@ -460,10 +580,12 @@ async def post_variant(ctx: Context, request: Request) -> Response:
         relation=str(relation),
         relation_proof=proof,
     )
+    required = requires_hazards_preflight(fields)
     duplicates.check_proposal(ctx, node_id)  # F07-T35: a copy spends no hosted check
     preflight = await checks.preflight_proposal(
         ctx, identity.id, target_id, node_id, files, variant=True
     )
+    refuse_unanswered_hazards(required, preflight)
     opened = open_proposal(
         ctx,
         identity,

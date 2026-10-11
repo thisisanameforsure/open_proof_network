@@ -53,11 +53,16 @@ with its single home:
   <li><strong>Graph deploy key</strong> (<code>OPN_GRAPH_DEPLOY_KEY</code>, SSH, write): an Actions
     secret on the graph repo, nowhere else. The post-merge job pushes the attestation and products
     commit with it, which the main ruleset lets bypass. (In use since 2026-09-08; listed here
-    2026-09-13, when the inventory was found to omit it.)</li>
+    2026-09-13, when the inventory was found to omit it.) Since 2026-10-05 a second step reads it:
+    the outline job's commit step, which pushes only new <code>targets/&lt;id&gt;/outlines/</code>
+    files, after an extraction step that holds no secret (F19-T4); the key is written to a file
+    removed on every exit.</li>
   <li><strong>Site dispatch token</strong> (<code>OPN_SITE_DEPLOY_TOKEN</code>): a fine-grained token
     on the network repository with Actions: read and write and nothing else, an Actions secret on
     the graph repo, read by one step at the end of the post-merge job to run
-    <code>site-deploy</code> (F04-Q10; added 2026-09-13, expiring after a year). It can start any
+    <code>site-deploy</code> (F04-Q10; added 2026-09-13, expiring after a year), and since
+    2026-10-05 by one step at the end of the outline job to run <code>gloss-draft</code>
+    (F20-T10), a step that runs no code but the dispatch. It can start any
     of the network repository's workflows on <code>main</code> and cannot push code or read
     secrets; losing it costs a site that waits for the schedule.</li>
   <li><strong>Step 9 refresh permission</strong> (no stored secret: the job's own token): the graph's
@@ -80,7 +85,10 @@ with its single home:
   ruleset on every run, by exact name, and merges only a pull request on which each has finished
   and passed; and the post-merge job re-derives the verdict on the merge commit and attests
   nothing that fails or lacks a review it needed, so a wrongly merged commit cannot make a
-  statement read as proved (F03-Q7). The workflow is woken by the gate's completion in the base
+  statement read as proved (F03-Q7). The bypass is also what lets the workflow merge a pull request
+  behind <code>main</code> when nothing that moved touched its target (F07-T45 for appends,
+  F07-T56 for every kind; F07-Q61); if GitHub ever refuses that, the workflow updates the branch
+  instead. The workflow is woken by the gate's completion in the base
   repository's context, checks nothing out and runs no gate or contributor code; the job's own
   token only reads. Without the secret it is a dry run. Losing it costs merges that wait for a
   person again; leaking it lets its holder push to the graph, which the signed attestations, and
@@ -88,6 +96,34 @@ with its single home:
   would restore GitHub as the enforcer and is the better home when a second identity exists. The
   job's own <code>GITHUB_TOKEN</code> cannot stand in, since what it merges starts no
   workflow.</li>
+  <li><strong>Approval signing key</strong> (ed25519, <code>OPN_APPROVAL_SIGNING_KEY</code>): held by
+  the service in its own secret store and nowhere else; its public half is committed to the graph as
+  <code>keys/approval.pub</code>. It signs steward records, words approvals and literature confirmations made through the site
+  (D-32 v3.33, D-3 v3.33, D-25 v3.35, F23) and nothing else (added 2026-10-07; literature 2026-10-08). Losing it costs approvals until it is
+  rotated; leaking it lets its holder forge a steward, an approval or a literature confirmation, which is visible on the record and
+  undone by withdrawal and rotation. It cannot change a verdict, because no gate step reads an
+  approval (D-5).</li>
+  <li><strong>Model key</strong> (<code>OPENROUTER_API_KEY</code>): the OpenRouter API key (the
+    owner's choice of provider, 2026-10-05, replacing Anthropic's API; the model is Claude Opus 5.5,
+    <code>anthropic/claude-opus-5.5</code>), an Actions secret on the <em>network</em> repository and nowhere else, read by the one
+    drafting step of <code>gloss-draft.yml</code> through <code>opn_gate.config</code> (F20-T10, F20-Q7;
+    added 2026-10-05). The workflow is dispatch-only, holds <code>contents: read</code>, checks the
+    graph out read-only and runs no Lean. F12's model commands read the same name from the founder's
+    <code>.env</code>, a separate copy with its own home. It reaches no repository, record or service; it
+    can spend the provider account's money, so the account carries a spend limit, which is the ceiling a
+    leak costs; OpenRouter answers 402 once the account's credit is spent, which stops a run. Without it the workflow dry-runs, keeps its report and fails naming the missing key;
+    losing it costs drafts until it is replaced.</li>
+  <li><strong>Drafter token</strong> (<code>OPN_DRAFTER_TOKEN</code>): the write token of the drafter
+    identity (<code>opn-drafter</code>, F20-Q6), an ordinary D-19 contributor token issued by the service,
+    an Actions secret on the <em>network</em> repository, read by that same step and sent only in the
+    <code>Authorization</code> header of <code>POST /glosses</code> (added 2026-10-05). It is not scoped to
+    glosses: its holder can do whatever a contributor token can, under the drafter's name and within the
+    per-identity limits. What only it can do is file drafts, which the service writes with no author and
+    the drafter's block, and which the gate accepts only from the service (<code>drafter-not-service</code>).
+    Losing it costs drafts until a new token is issued (the identity's recovery code, D-19 v3.29);
+    leaking it lets its holder open pull requests as the drafter, including words labelled
+    machine-drafted, which assert nothing (D-3), merge only through the gate and stay withdrawable;
+    rotate it to stop that. It lapses only after long disuse (D-19 v3.29).</li>
   <li><strong>GitHub App private key and client secret</strong> (the App also serves as the OAuth
     app for GitHub-proof identities, F05) and the <strong>api token-signing secret</strong>: AWS
     Systems Manager Parameter Store (SecureString), read by the api function at startup.</li>
@@ -97,8 +133,8 @@ with its single home:
     founder's machine only — never in GitHub, never in any deployed environment.</li>
 </ol>
 Three doors, then: the local <code>.env</code>, Parameter Store, and Actions secrets for the two
-signing keys, the graph's deploy key, the site dispatch token and the merge token, each read only by the job named
-above. Code reads every secret through the one config module named in conventions §1; no
+signing keys, the graph's deploy key, the site dispatch token, the merge token and the drafter's two
+(on the network repository), each read only by the job named above. Code reads every secret through the one config module named in conventions §1; no
 other module touches the environment. Secrets never appear in client bundles, logs, git history,
 generated site pages, or attestations. The authoritative gate's build step is secretless by
 construction (D-4 step 3): the job that runs it is granted no secret and no write permission; only

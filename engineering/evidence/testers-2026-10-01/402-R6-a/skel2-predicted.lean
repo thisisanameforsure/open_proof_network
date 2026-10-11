@@ -1,0 +1,116 @@
+import Mathlib
+
+open Filter
+
+theorem erdos_402__h3_v2__h1__h1__h1__h2 : ∀ (B : Finset ℕ),
+    (0 : ℕ) ∉ B →
+      B.Nonempty →
+        B.gcd id = (1 : ℕ) →
+          ¬Nat.Prime B.card →
+            (∀ (q : ℕ), Nat.Prime q → B.card ≠ q + (1 : ℕ)) →
+              (∀ a ∈ B, ∀ b ∈ B, a ≤ B.card * a.gcd b) →
+                (∀ a ∈ B, ∀ (p k : ℕ), Nat.Prime p → p ^ k ∣ a → p ^ k < B.card) →
+                  (∃ a ∈ B, ∃ b ∈ B, (↑(a.gcd b) : ℚ) ≤ (↑a : ℚ) / (↑B.card : ℚ)) ∨
+                    ∃ (p : ℕ), Nat.Prime p ∧ B.card < p ∧ p < 2 * B.card ∧ 2 * (2 * B.card - p) ≤ B.card + 2 ∧
+                    ∀ α : ℕ, α < B.card → p < α + B.card →
+                      (∃ q : ℕ, Nat.Prime q ∧ B.card ≤ 3 * q ∧ q ∣ α * (p - α)) ∨
+                      (∀ x y : ℕ, x < y → x * y ∣ α → B.card * x ≤ α * y) := by
+  -- Split of `hgen` by size n = |B| (agent 402-R6-a; statements prepared with agents 402-R5-b and 402-R6-b). Three holes,
+  -- each in its own goal so none inherits another:
+  -- `hs1` (10 ≤ n ≤ 228) and `hs2` (229 ≤ n ≤ 200014): a prime with the generalised window hypotheses exists. Finite
+  -- certificates; both have complete Lean proofs ready.
+  -- `hlarge` (n > 200014): the node's own conclusion for large sets. This is NOT a finite check and not a small lemma: it
+  -- needs, for every large n, a prime within about √n below 2n, which no unconditional theorem gives; see the annex on it.
+  -- The assembly proves the sizes below 10 and the case split.
+  have hall : (∀ n : ℕ, 10 ≤ n → n ≤ 228 →
+          ∃ p : ℕ, p.Prime ∧ n < p ∧ p < 2 * n ∧ 2 * (2 * n - p) ≤ n + 2 ∧
+            ∀ α : ℕ, α < n → p < α + n →
+              (∃ q : ℕ, q.Prime ∧ n ≤ 3 * q ∧ q ∣ α * (p - α)) ∨
+              (∀ x y : ℕ, x < y → x * y ∣ α → n * x ≤ α * y))
+      ∧ (∀ n : ℕ, 229 ≤ n → n ≤ 200014 →
+          ∃ p : ℕ, p.Prime ∧ n < p ∧ p < 2 * n ∧ 2 * (2 * n - p) ≤ n + 2 ∧
+            ∀ α : ℕ, α < n → p < α + n →
+              (∃ q : ℕ, q.Prime ∧ n ≤ 3 * q ∧ q ∣ α * (p - α)) ∨
+              (∀ x y : ℕ, x < y → x * y ∣ α → n * x ≤ α * y))
+      ∧ (∀ (B : Finset ℕ),
+    (0 : ℕ) ∉ B →
+      B.Nonempty →
+        B.gcd id = (1 : ℕ) →
+          ¬Nat.Prime B.card →
+            (∀ (q : ℕ), Nat.Prime q → B.card ≠ q + (1 : ℕ)) →
+              (∀ a ∈ B, ∀ b ∈ B, a ≤ B.card * a.gcd b) →
+                (∀ a ∈ B, ∀ (p k : ℕ), Nat.Prime p → p ^ k ∣ a → p ^ k < B.card) →
+                  200014 < B.card →
+                    (∃ a ∈ B, ∃ b ∈ B, (↑(a.gcd b) : ℚ) ≤ (↑a : ℚ) / (↑B.card : ℚ)) ∨
+                    ∃ p : ℕ, p.Prime ∧ B.card < p ∧ p < 2 * B.card ∧ 2 * (2 * B.card - p) ≤ B.card + 2 ∧
+                      ∀ α : ℕ, α < B.card → p < α + B.card →
+                        (∃ q : ℕ, q.Prime ∧ B.card ≤ 3 * q ∧ q ∣ α * (p - α)) ∨
+                        (∀ x y : ℕ, x < y → x * y ∣ α → B.card * x ≤ α * y)) := by
+    refine ⟨?_, ?_, ?_⟩
+    · have hs1 : ∀ n : ℕ, 10 ≤ n → n ≤ 228 →
+          ∃ p : ℕ, p.Prime ∧ n < p ∧ p < 2 * n ∧ 2 * (2 * n - p) ≤ n + 2 ∧
+            ∀ α : ℕ, α < n → p < α + n →
+              (∃ q : ℕ, q.Prime ∧ n ≤ 3 * q ∧ q ∣ α * (p - α)) ∨
+              (∀ x y : ℕ, x < y → x * y ∣ α → n * x ≤ α * y) := by
+        sorry
+      exact hs1
+    · have hs2 : ∀ n : ℕ, 229 ≤ n → n ≤ 200014 →
+          ∃ p : ℕ, p.Prime ∧ n < p ∧ p < 2 * n ∧ 2 * (2 * n - p) ≤ n + 2 ∧
+            ∀ α : ℕ, α < n → p < α + n →
+              (∃ q : ℕ, q.Prime ∧ n ≤ 3 * q ∧ q ∣ α * (p - α)) ∨
+              (∀ x y : ℕ, x < y → x * y ∣ α → n * x ≤ α * y) := by
+        sorry
+      exact hs2
+    · have hlarge : ∀ (B : Finset ℕ),
+    (0 : ℕ) ∉ B →
+      B.Nonempty →
+        B.gcd id = (1 : ℕ) →
+          ¬Nat.Prime B.card →
+            (∀ (q : ℕ), Nat.Prime q → B.card ≠ q + (1 : ℕ)) →
+              (∀ a ∈ B, ∀ b ∈ B, a ≤ B.card * a.gcd b) →
+                (∀ a ∈ B, ∀ (p k : ℕ), Nat.Prime p → p ^ k ∣ a → p ^ k < B.card) →
+                  200014 < B.card →
+                    (∃ a ∈ B, ∃ b ∈ B, (↑(a.gcd b) : ℚ) ≤ (↑a : ℚ) / (↑B.card : ℚ)) ∨
+                    ∃ p : ℕ, p.Prime ∧ B.card < p ∧ p < 2 * B.card ∧ 2 * (2 * B.card - p) ≤ B.card + 2 ∧
+                      ∀ α : ℕ, α < B.card → p < α + B.card →
+                        (∃ q : ℕ, q.Prime ∧ B.card ≤ 3 * q ∧ q ∣ α * (p - α)) ∨
+                        (∀ x y : ℕ, x < y → x * y ∣ α → B.card * x ≤ α * y) := by
+        sorry
+      exact hlarge
+  obtain ⟨hs1, hs2, hlarge⟩ := hall
+  intro B h0 hne hg hnp hq hle hpk
+  by_cases hbig : 200014 < B.card
+  · exact hlarge B h0 hne hg hnp hq hle hpk hbig
+  by_cases c229 : 229 ≤ B.card
+  · exact Or.inr (hs2 B.card c229 (by omega))
+  by_cases c10 : 10 ≤ B.card
+  · exact Or.inr (hs1 B.card c10 (by omega))
+  by_cases h1 : B.card = 1
+  · obtain ⟨a, ha⟩ := hne
+    refine Or.inl ⟨a, ha, a, ha, ?_⟩
+    rw [h1]
+    simp
+  by_cases h9 : B.card = 9
+  · refine Or.inr ⟨17, by norm_num, by omega, by omega, by omega, fun α h1 h2 => ?_⟩
+    omega
+  have hpos : 0 < B.card := Finset.card_pos.mpr hne
+  have x2 : B.card ≠ 2 := by
+    intro h
+    rw [h] at hnp
+    exact hnp (by norm_num)
+  have x3 : B.card ≠ 3 := by
+    intro h
+    rw [h] at hnp
+    exact hnp (by norm_num)
+  have x5 : B.card ≠ 5 := by
+    intro h
+    rw [h] at hnp
+    exact hnp (by norm_num)
+  have x7 : B.card ≠ 7 := by
+    intro h
+    rw [h] at hnp
+    exact hnp (by norm_num)
+  have x4 : B.card ≠ 4 := hq 3 (by norm_num)
+  have x6 : B.card ≠ 6 := hq 5 (by norm_num)
+  have x8 : B.card ≠ 8 := hq 7 (by norm_num)
+  omega

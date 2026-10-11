@@ -24,7 +24,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from opn_gate import attestation, config, layout, pipeline, sandbox, schemas, signer
+from opn_gate import attestation, carried, config, layout, pipeline, sandbox, schemas, signer
 from opn_gate.cli import ensure_image
 from opn_gate.paths import Change, Claim
 from opn_gate.steps.base import RunContext
@@ -126,7 +126,9 @@ def result_document(
     """The result the service serves: the verdict, its steps and the signed attestation, and for
     a partial the holes it would leave (F06-T9): each hole's statement as the post-merge job will
     write it and the witness type step 7 will ask of it, so a contributor reads what a skeleton
-    creates before submitting it. Like ``steps`` they sit outside the attestation."""
+    creates before submitting it; and, on a hole whose witness the bundle carried and step 7
+    checked, ``witness`` (F07-R23), which is what the service reads before it opens a pull
+    request for such a bundle. Like ``steps`` they sit outside the attestation."""
     result: dict[str, Any] = {
         "job_id": str(job["id"]),
         "node_id": str(job["node_id"]),
@@ -135,9 +137,18 @@ def result_document(
         "first_failing_step": verdict.first_failing_step,
         "steps": verdict.as_dict(ctx.settings.diagnostic_max_bytes)["steps"],
         "attestation": doc,
+        # F25-R3: the automation block the service put on the job, as declared, or null.
+        "automation": job.get("automation") if isinstance(job.get("automation"), dict) else None,
     }
     artifact = ctx.data.get("artifact") or {}
     if artifact.get("kind") in ("partial", "reduction") and artifact.get("holes"):
+        # F07-R23 (D-29 v3.24): the witness the bundle carried for a hole, once step 7 has
+        # checked it, by the hole's name; the key is absent from a hole that carried none.
+        witnessed = {
+            str(w.get("hole")): {"path": w.get("path"), "sha256": w.get("sha256"), "checked": True}
+            for w in ctx.data.get(carried.DATA_KEY) or []
+        }
+        expected = expected_nodes(ctx, artifact["holes"])
         result["holes"] = [
             {
                 "name": hole.get("name"),
@@ -147,9 +158,34 @@ def result_document(
                 # F07-T44: the binders the assembly proved, which the witness need not exhibit.
                 "proved_binders": list(hole.get("proved_binders") or []),
             }
-            for hole in artifact["holes"]
+            | ({"witness": witnessed[hole["name"]]} if hole.get("name") in witnessed else {})
+            | (
+                {"expected_node_id": expected[i][0], "expected_new": expected[i][1]}
+                if expected is not None
+                else {}
+            )
+            for i, hole in enumerate(artifact["holes"])
         ]
     return result
+
+
+def expected_nodes(ctx: Any, holes: list[dict[str, Any]]) -> list[tuple[str, bool]] | None:
+    """Testers 2026-10-09 (A, feature): the node each hole is expected to become, by the
+    post-merge writer's own rule (``postmerge.plan_children``, R22) over the tree this job ran
+    at — a new ``<parent>--h<n>`` (``True``), or the existing node it restates (``False``). An
+    expectation, not a promise: another decomposition of the node merging first renumbers them.
+    ``None`` when step 2 found no node or the plan cannot be made, so nothing is guessed."""
+    from opn_gate import postmerge  # noqa: PLC0415 — as step 7 imports it
+    from opn_gate.steps.artifact import Hole  # noqa: PLC0415
+
+    node = getattr(ctx, "node", None)
+    if node is None:
+        return None
+    try:
+        plan = postmerge.plan_children(node.path, [Hole.of(h) for h in holes])
+    except postmerge.GraphWriteError:
+        return None
+    return [(str(child or existing), child is not None) for _, child, existing in plan]
 
 
 def run(

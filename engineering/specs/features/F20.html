@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>F20 — Glosses and explainers, drafted then improved</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="crumbs"><a href="../index.html">specs</a> / F20</nav>
+<h1>F20 — Glosses and explainers, drafted then improved</h1>
+<p class="subtitle">Every Lean file on the graph gets a mathematical version: a <em>gloss</em> for each
+statement, witness, relation and definition module, and an <em>explainer</em> for each proof. Each is
+machine-drafted by default and labelled unverified. A steward then improves it version by version
+(create, revise, withdraw, sign), and nothing is ever edited in place.</p>
+
+<h2>1. Summary</h2>
+<p>The owner, 2026-10-04: &ldquo;by default we will get some translation, but as the steward goes
+through it, they will improve it&rdquo;, and later the same day, &ldquo;all lean code should have a
+mathematized version, not just whole proofs.&rdquo; The protocol has a slot for proofs only. An
+explainer (D-3) is prose about a <em>merged proof</em>: content-hashed, attributed to a human author
+and any drafting model (D-23), immutable, labelled unverified (D-36), and since v3.17 signable as a
+comprehension claim that alone counts toward digestion (D-33). D-3 refuses one on an unproved node.
+So the Lean a frontier reader most needs to read has no home for words. That covers open nodes,
+holes, variants' relations, witnesses and definitions. The site shows informal text only for a
+target's root, from its curated <code>informal:</code> field.</p>
+<p>Four things are missing:</p>
+<ul>
+  <li><strong>Coverage.</strong> Nothing exists for any Lean file but a proof. The live graph holds 114
+    statements, 23 relations, 3 definition modules and about 74 proofs.</li>
+  <li><strong>Versions.</strong> &ldquo;A correction is a new entry&rdquo;, but nothing says which entry it
+    corrects. The site shows whichever <code>explainer/*.md</code> sorts first by hash
+    (<code>site/opn_site/model.py</code>, <code>explainer_files[0]</code>).</li>
+  <li><strong>Anchors.</strong> Nothing ties a paragraph to the Lean it describes.</li>
+  <li><strong>A first draft.</strong> The live graph holds no explainer at all.</li>
+</ul>
+<p>F20 adds them:</p>
+<ul>
+  <li><code>gloss/v1</code>: prose about one Lean file that is not a proof. It names the file and the
+    hash of the exact text it describes, and is accepted on a node of any status.</li>
+  <li><code>explainer/v1</code>: front matter naming the proof described, with sections that name F19's
+    outline steps.</li>
+  <li>For both: linear version chains through <code>supersedes</code>, withdrawal by the v3.27
+    record, and signatures on one version.</li>
+  <li>Digestion counted on an explainer chain's current version.</li>
+  <li>One service route family and two MCP tools, so a steward's agent can revise.</li>
+  <li>A local command for stewards who prefer a hand-opened pull request.</li>
+  <li>A gloss beside every block of Lean the site prints, with its history.</li>
+  <li>The <strong>drafter</strong>: a network workflow that drafts each new file's gloss when a merge
+    creates it, and each proof's explainer from its outline, and opens them as ordinary pull requests
+    attributed to the drafter and its model.</li>
+  <li><strong>The backfill</strong>: every Lean file already on the graph translated, checked by a
+    coverage report that names every file and its words or the reason they are missing (Q8,
+    R20&ndash;R21).</li>
+</ul>
+<p>Why a model writes drafts, and why only drafts: the research
+(<a href="../../../docs/reports/Lean%20proofs%20for%20mathematicians.md">docs/reports/Lean proofs for
+mathematicians.md</a>) found one measured pipeline for prose from proofs, at about 89% of steps correct
+on undergraduate calculus, with one grader. For statements, back-translation wrongly passes about a
+third (Herald's audit; D-9 v3.12). A model is the only way every file gets words by default. Its words
+must be a record that names the model, sits under an unverified label, and can be corrected and
+signed. They can never be a derived product: model output is not reproducible (D-35), and it must not
+borrow the kernel's credibility. The project's rule stands: &ldquo;A model may draft; only a human
+signature counts.&rdquo;</p>
+<p>F20 changes no verdict, no status and no fidelity grade. It needs decisions v3.30 parts (ii) to (v)
+and (vii) (F19-Q1) applied first, plus two credentials only the owner can create (Q7).</p>
+
+<h2>2. User stories</h2>
+<ul>
+  <li>As a mathematician browsing the frontier, I want each open statement in words beside its Lean,
+    so that I can see what is being asked without reading Lean.</li>
+  <li>As a reader of a decomposition, I want each hole, witness and relation in words, so that I can
+    follow how a problem was broken up.</li>
+  <li>As a steward, I want drafted words already waiting on every file of my problem, anchored to what
+    they describe, so that my work is correcting and deepening rather than starting from a blank page.</li>
+  <li>As a steward, I want to revise any gloss or explainer, see my revision become the one shown,
+    withdraw a version that is wrong, and sign the version I can stand behind. Nobody's text should
+    ever be overwritten.</li>
+  <li>As a steward working through an agent, I want to do all of that through the MCP.</li>
+  <li>As a reader, I want to see whether the words in front of me were drafted by a model, written by a
+    person, or signed, and whether they describe the Lean as it is now.</li>
+  <li>As the owner, I want the drafter's spend capped and reported, and no draft opened that fails the
+    checks a human's would fail.</li>
+</ul>
+
+<h2>3. Scope</h2>
+<p><strong>In:</strong></p>
+<ul>
+  <li>The <code>gloss/v1</code> and <code>explainer/v1</code> schemas, their mode checks and the
+    cited-name warning.</li>
+  <li>Version chains for both, withdrawal, gloss signatures, and the derivation of each chain's current
+    version.</li>
+  <li>Digestion on current explainer versions.</li>
+  <li>The routes, pre-flight and MCP tools, and <code>get_node</code>'s outline, glosses and chains.</li>
+  <li>The steward's local command.</li>
+  <li>Glosses beside every Lean block on the site, plus explainer history and diffs.</li>
+  <li>The drafter library and its workflow, with a cost measurement.</li>
+  <li>The guide and the Docs page.</li>
+  <li>The live re-pin and a first steward revision walked end to end.</li>
+</ul>
+<p><strong>Non-goals:</strong></p>
+<ul>
+  <li><strong>Machine prose outside a gloss or explainer record.</strong> No generated captions inside
+    F19's outline and no product field holding model text. Every word a model writes is a committed
+    record with its model named (D-35, D-36). The owner revised decision (b) on 2026-10-04 to cover
+    every Lean file; this boundary is what kept.</li>
+  <li><strong>Replacing a root's curated informal statement.</strong> A target's <code>informal:</code>
+    statement is the one its fidelity grade was assigned against (D-6, D-9), and it stays the root's
+    words of record. The drafter writes no gloss of a root (Q11).</li>
+  <li><strong>Any change to fidelity.</strong> A signed gloss is not a fidelity certificate and changes
+    no grade (D-9).</li>
+  <li><strong>A web editor or any input on the site</strong> (D-36). Editing goes through git or the
+    service (D-28).</li>
+  <li><strong>Checking prose for mathematical truth.</strong> Nothing reads a gloss or explainer for
+    truth (D-3). Anchors say what a passage describes, never that it describes it correctly.</li>
+  <li><strong>Glosses of annexes and postmortems</strong>, which are prose already. (A merged partial
+    assembly is Lean and is covered: it gets an explainer drafted from its outline, F19-R1.)</li>
+</ul>
+
+<h2>4. Requirements</h2>
+<p class="status-note">R1&ndash;R9 are the records and their rules; R10&ndash;R12 the service and
+the steward's tools; R13&ndash;R14 the site; R15&ndash;R18 the drafter; R19 credit.</p>
+<table>
+  <tr><th>ID</th><th>Requirement (EARS)</th></tr>
+  <tr><td>F20-R1</td><td>The system shall accept a <code>gloss/v1</code> file: Markdown with front
+    matter validated against its schema, naming the target and the subject. The subject is a kind
+    (<code>statement</code>, <code>witness</code>, <code>relation</code> or
+    <code>definition</code>), the node or definition module, and <code>lean_hash</code>, the SHA-256 of
+    the Lean file's text described. The front matter also names <code>supersedes</code>,
+    <code>author</code>, <code>drafter</code>, the date and the licence, as in R2. A node's gloss lives
+    at <code>nodes/&lt;id&gt;/gloss/&lt;hash&gt;.md</code> and a definition module's at
+    <code>targets/&lt;id&gt;/gloss/&lt;hash&gt;.md</code>. It is accepted on a node of any status,
+    by the path check alone, with no gate run.</td></tr>
+  <tr><td>F20-R2</td><td>The system shall accept an <code>explainer/v1</code> file: Markdown with
+    front matter naming the target, the node, the <code>proof</code> (the hash of the merged artifact
+    described: its <code>Proof.lean</code>, an alternate, or a merged partial assembly), <code>supersedes</code> (an explainer hash
+    or null), <code>author</code> (a login or pseudonym, null for a draft), <code>drafter</code> (null,
+    or the drafter's name with the model, the model version and the gate commit of its input), the date
+    and the licence. Its body shall be sections under level-2 headings; a section may name outline steps
+    as <code>{steps: s3 s4.1}</code> at the end of its heading (Q2); the first section may name none.
+    An explainer without this front matter (every explainer filed before F20) shall stay valid and be
+    shown unanchored.</td></tr>
+  <tr><td>F20-R3</td><td>If a gloss's <code>lean_hash</code> is not the hash of its subject's file as
+    the tree holds it at merge, then the gate shall refuse it (<code>gloss-subject-mismatch</code>,
+    naming the current hash). When a subject's file later changes (a witness filled, a definition
+    revised), every gloss of the earlier text shall be read as describing an earlier version, and never
+    shown as describing the current one.</td></tr>
+  <tr><td>F20-R4</td><td>If an explainer names a <code>proof</code> that is not a merged proof
+    artifact of its node, or a step id absent from that proof's outline, or names any step when the
+    proof has no outline, then the gate shall refuse it by name
+    (<code>explainer-proof-unknown</code>, <code>explainer-step-unknown</code>). The check reads files
+    and runs no Lean.</td></tr>
+  <tr><td>F20-R5</td><td>When an explainer section cites a Lean name in backticks that occurs in none
+    of the constants its named steps use, the gate shall emit the warning
+    <code>explainer-name-unanchored</code> and not refuse (requirement C; untested as a detector, so
+    it informs and does not block).</td></tr>
+  <tr><td>F20-R6</td><td>If a gloss or explainer supersedes a hash that is not a record of the same
+    subject (the same file, or the same proof), or one already superseded or withdrawn, then the gate
+    shall refuse it (<code>record-not-head</code>, naming the current head). If it supersedes a version
+    carrying a valid signature and its pull request is not by an active steward of the target or a
+    listed curator, then the gate shall refuse it (<code>signed-supersede</code>). Anyone may start a
+    new chain instead.</td></tr>
+  <tr><td>F20-R7</td><td>The system shall accept a withdrawal record (the next version of
+    <code>withdrawal</code>, v3.27's record) naming one gloss or explainer version, from that version's
+    author, an active steward of the target or a listed curator, with a reason. Every reader shall read
+    a withdrawn version as absent from its chain while the file stays in the tree.</td></tr>
+  <tr><td>F20-R8</td><td>The system shall accept a gloss signature (<code>gloss-signature/v1</code>, on
+    F15's signed-record seam) from an active steward of the target or a listed curator. It affirms one
+    fixed sentence: <em>I have read this against the Lean it names, and it says what the Lean
+    says.</em> A gloss signature shall change no status, grade or digestion state (Q12). Explainer
+    signatures stay F15's.</td></tr>
+  <tr><td>F20-R9</td><td>The products shall publish each gloss and explainer chain per subject: its
+    versions in order, each with its hash, author or drafter, date, signatures, withdrawn flag and
+    (for a gloss) whether it describes the current text; and its current version, the latest not
+    withdrawn. Chains shall be listed in record order, ranked by nothing (D-25). A node shall count
+    toward <code>explained</code> only while the current version of an explainer chain on its first
+    proof carries a valid explainer signature (v3.30 (iv)).</td></tr>
+  <tr><td>F20-R10</td><td>The service shall provide <code>POST /glosses</code> (a gloss or explainer,
+    new or superseding; a proof subject is filed under <code>explainer/</code>) and
+    <code>POST /glosses/withdrawals</code>. Both are token-authenticated and run R1&ndash;R7's checks as a
+    pre-flight, refusing before any pull request opens (the owner's ruling of 2026-09-24); otherwise
+    they open an <code>append/</code> pull request the merge actor merges. Signatures stay with the
+    signer's own key, filed by hand or by the local command, as F15's are.</td></tr>
+  <tr><td>F20-R11</td><td>The MCP shall offer <code>submit_gloss</code> and
+    <code>withdraw_gloss</code>, paired with those routes by the bijection test. <code>get_node</code>
+    shall return the node's outline, each gloss chain of its files and each explainer chain, all under
+    the untrusted-data demarcation (D-28).</td></tr>
+  <tr><td>F20-R12</td><td>The system shall provide a steward's command,
+    <code>opn-gate gloss revise &lt;target&gt; &lt;subject&gt;</code>, that writes the current version
+    of a gloss or explainer to an editable file with <code>supersedes</code> and
+    <code>lean_hash</code> filled in. It shall also provide <code>opn-gate gloss file &lt;path&gt;</code>,
+    which checks R1&ndash;R6, names the file by its hash and places it, and <code>opn-gate gloss
+    sign</code>, which writes a gloss signature as <code>opn-gate explainer sign</code> writes an
+    explainer's.</td></tr>
+  <tr><td>F20-R13</td><td>Wherever the site prints Lean, it shall print the current gloss of that file
+    beside it, or the recruiting cue where there is none. That covers the node page's statement,
+    witness and relation; the problem page's selected-statement card; the reading view (F19-R8); the
+    frontier page (the gloss's first sentence); a node's dependencies; and each definition module. Each
+    gloss shall carry a provenance line: <em>machine-drafted by &lt;model&gt;</em>, <em>written by
+    &lt;author&gt;</em>, or <em>read against the Lean by &lt;signer&gt;</em>. A gloss of an earlier
+    text shall be shown only in history, labelled so. For a root, the curated informal statement and its
+    fidelity state shall come first, and any root gloss after it, labelled unverified.</td></tr>
+  <tr><td>F20-R14</td><td>The node page shall show each explainer chain's current version under D-36's
+    fixed label, with its provenance line and each anchored section beside the outline steps it names.
+    For every gloss and explainer, the site shall link every earlier version with a diff to its
+    predecessor, list withdrawn versions as withdrawn and never hide them, and give the guide's revision
+    section as the way to improve the words.</td></tr>
+  <tr><td>F20-R15</td><td>The drafter shall draft a gloss of the statement of every non-root node,
+    of the witness and the relation (if any) of every node, roots included, and of each definition
+    module, when the merge that creates the file lands. It
+    shall work from the file's text at its <code>lean_hash</code> and the current glosses of the files
+    it imports, never inventing a name the file does not use. It shall say in words what the Lean says, including every
+    hypothesis, and add nothing about why it is true. It shall draft an explainer of each merged proof
+    artifact (proof, alternate or partial assembly) from its <code>outline/v1</code> (F19), never from the artifact's source text: conditioned on the
+    steps' claims and goals, summarised along the step tree, opening with the idea and the method (G),
+    saying &ldquo;routine&rdquo; of every automation-closed step rather than inventing reasoning (D),
+    and using a standard name only where the outline records it (E).</td></tr>
+  <tr><td>F20-R16</td><td>Before opening a draft, the drafter shall run the checks of R1&ndash;R6 on
+    it, and for an explainer require every non-first section to name at least one step. If a draft
+    fails, then it shall regenerate once, and if that fails too, record the subject as not drafted with
+    the reason and open nothing.</td></tr>
+  <tr><td>F20-R17</td><td>When a merge creates a Lean file or a proof that has no chain, the drafter
+    workflow shall be dispatched; it shall also run by hand on a named list. It shall stop at a per-run
+    cap of subjects and a per-run token budget (config, C6). On a provider error (429, spend limit,
+    refusal) it shall stop and report what it left undrafted. A partial run is never a silent one.</td></tr>
+  <tr><td>F20-R18</td><td>The drafter shall call the model only through <code>opn_gate.models</code>,
+    with every piece of contributor-chosen text (Lean names, docstrings, comments) under the
+    untrusted-data demarcation, and shall record the model, its version and the gate commit of its
+    input in every draft.</td></tr>
+  <tr><td>F20-R19</td><td>A draft shall earn no ledger line. A human version of a gloss or explainer
+    shall earn on the write-up line (D-19), credited to its author alone; superseding a version earns
+    its author none of that version's credit.</td></tr>
+  <tr><td>F20-R20</td><td>The system shall provide <code>opn-gate gloss coverage</code>, which lists,
+    for a graph at a named commit, every Lean file and merged proof artifact with its current gloss or
+    explainer, or the reason it has none. Coverage is complete when every non-root statement, every
+    witness, every relation and every definition module has a current gloss that describes its current
+    text, and every merged proof artifact has an explainer chain with a current version. A root's
+    statement is covered by its curated informal statement, and a <code>Context.lean</code> by the
+    glosses of the statements it restates; the report says so per file rather than leaving it
+    out.</td></tr>
+  <tr><td>F20-R21</td><td>The system shall translate every Lean file on the live graph at the time of
+    the backfill: the drafter run in batches under its caps until <code>coverage</code> reports
+    complete. A subject left undrafted for a cause (an outline missing, a draft failing its checks
+    twice, a provider error) shall be fixed and re-run, and the backfill is done only when no subject
+    is left, or when each one left is recorded as an open defect with its cause and the owner has read
+    the list (Q8).</td></tr>
+</table>
+
+<h2>5. Acceptance criteria</h2>
+<table>
+  <tr><th>ID</th><th>Given / When / Then</th><th>Test case</th></tr>
+  <tr><td>F20-AC1</td><td>Given glosses of an open node's statement, a hole's witness, a variant's
+    relation and a definition module, each with the right <code>lean_hash</code>, and one with a stale
+    hash, then four pass and one is refused <code>gloss-subject-mismatch</code> naming the current
+    hash; given the open node, no proof is required.</td>
+    <td><code>gate/tests/test_gloss_schema.py::test_every_lean_file_kind_takes_a_gloss</code></td></tr>
+  <tr><td>F20-AC2</td><td>Given a gloss of a hole's stub witness, when the witness is filled, then the
+    products mark the gloss as describing an earlier version and the page shows it only in
+    history.</td>
+    <td><code>gate/tests/test_gloss_chains.py::test_a_gloss_of_changed_text_is_marked</code>,
+    <code>site/tests/test_glosses.py::test_earlier_text_gloss_only_in_history</code></td></tr>
+  <tr><td>F20-AC3</td><td>Given explainers naming a merged proof with known steps, an unknown step, an
+    unknown proof, and steps on a proof with no outline, and an explainer filed before F20, then pass,
+    <code>explainer-step-unknown</code>, <code>explainer-proof-unknown</code>,
+    <code>explainer-step-unknown</code>, pass.</td>
+    <td><code>gate/tests/test_explainer_schema.py::test_anchors_are_checked_against_the_outline</code></td></tr>
+  <tr><td>F20-AC4</td><td>Given a section citing <code>Nat.Prime.two_le</code> where its steps use it,
+    and one where they do not, then no warning and one <code>explainer-name-unanchored</code> warning,
+    and both pass.</td>
+    <td><code>gate/tests/test_explainer_schema.py::test_unanchored_name_warns_and_passes</code></td></tr>
+  <tr><td>F20-AC5</td><td>Given a gloss chain A&larr;B, a C superseding A and a D superseding B, then C
+    is refused <code>record-not-head</code> naming B and D passes. Given B signed, and E superseding it
+    from a third party, a steward and a curator, then refused, pass, pass. The same holds for an
+    explainer chain.</td>
+    <td><code>gate/tests/test_gloss_chains.py::test_linear_chains_and_signed_supersede</code></td></tr>
+  <tr><td>F20-AC6</td><td>Given a chain A&larr;B&larr;C with C withdrawn by its author, by a steward,
+    by a curator and by a third party, then the first three pass and the current version is B; the
+    fourth is refused.</td>
+    <td><code>gate/tests/test_gloss_chains.py::test_withdrawal_and_current_version</code></td></tr>
+  <tr><td>F20-AC7</td><td>Given a resolved target whose closure nodes all have signed current explainer
+    versions, then <code>explained</code>. When one is superseded by an unsigned version, then
+    <code>undigested</code>, and when that version is signed, <code>explained</code> again. Given every
+    gloss signed, no status, grade or digestion state changes.</td>
+    <td><code>gate/tests/test_gloss_chains.py::test_digestion_counts_explainers_only</code></td></tr>
+  <tr><td>F20-AC8</td><td>Given a request that would fail R3, R4 or R6, when posted to
+    <code>/glosses</code>, then it is refused with the gate's code and no branch or pull request
+    exists. Given a valid gloss and a valid explainer, two <code>append/</code> pull requests open with
+    the hashed files in <code>gloss/</code> and <code>explainer/</code>.</td>
+    <td><code>api/tests/test_glosses_route.py</code></td></tr>
+  <tr><td>F20-AC9</td><td>Given the MCP, when <code>tools/list</code> runs, then
+    <code>submit_gloss</code> and <code>withdraw_gloss</code> are listed and paired with their routes;
+    <code>get_node</code> returns the outline, gloss chains and explainer chains under the
+    demarcation.</td>
+    <td><code>api/tests/test_mcp_bijection.py</code>, <code>api/tests/test_mcp_glosses.py</code></td></tr>
+  <tr><td>F20-AC10</td><td>Given a node with a gloss chain, when <code>revise</code> then
+    <code>file</code> run on an edited copy, then the new file is named by its hash, supersedes the
+    head, carries the current <code>lean_hash</code>, and the gate's classifier passes it;
+    <code>sign</code> writes a valid gloss signature.</td>
+    <td><code>gate/tests/test_gloss_cli.py</code></td></tr>
+  <tr><td>F20-AC11</td><td>Given a fixture graph with glosses on some files and none on others, then
+    every Lean block the site prints carries its current gloss or the cue. The root shows its curated
+    informal statement first. The frontier row shows a first sentence.</td>
+    <td><code>site/tests/test_glosses.py::test_every_lean_block_has_its_gloss_or_the_cue</code></td></tr>
+  <tr><td>F20-AC12</td><td>Given a node with a drafted explainer, a human revision, a signature and a
+    withdrawn version, then the page shows the human revision as current with its provenance line,
+    each anchored section beside its steps, a diff link, the withdrawn version labelled, and no
+    form.</td><td><code>site/tests/test_explainer_versions.py</code></td></tr>
+  <tr><td>F20-AC13</td><td>Given a fake model, then:
+    <ul>
+      <li>a valid statement gloss opens;</li>
+      <li>a gloss naming a constant its statement does not use is regenerated once;</li>
+      <li>an explainer with an unknown step that is valid on retry opens;</li>
+      <li>two invalid drafts in a row open nothing and are recorded with the reason;</li>
+      <li>prompts carry contributor text under the demarcation;</li>
+      <li>an explainer's prompt never carries the artifact's source;</li>
+      <li>no gloss is drafted for a root.</li>
+    </ul></td>
+    <td><code>gate/tests/test_drafter.py</code></td></tr>
+  <tr><td>F20-AC14</td><td>Given a run capped at two subjects over three candidates, and a fake model
+    that answers 429 on the second, then the report names what was drafted, what was left and
+    why.</td><td><code>gate/tests/test_drafter.py::test_caps_and_provider_errors_are_reported</code></td></tr>
+  <tr><td>F20-AC15</td><td>Given drafts with the real model of three explainers (the euclid-primes
+    root, the erdos-69 variant, one erdos-1050 hole) and four glosses (a hole statement, a witness, a
+    relation, a definition module), then the evidence records tokens, cost and time for each, and the
+    owner's reading of each against its Lean.</td>
+    <td><code>engineering/evidence/F20/task-11-drafts.txt</code> (network tier)</td></tr>
+  <tr><td>F20-AC16</td><td>Given the live graph after the re-pin, when a steward revises a drafted
+    gloss and a drafted explainer through the service and signs both, then the pages show the signed
+    revisions as current and the drafts in their history.</td>
+    <td><code>engineering/evidence/F20/task-13-live.txt</code> (network tier)</td></tr>
+  <tr><td>F20-AC17</td><td>Given a fixture graph with a root, a hole, a variant, a definition module,
+    a proof, an alternate and a partial assembly, some with words and some without, and one gloss of a
+    since-changed witness, then <code>coverage</code> lists every file. The root is covered by its
+    informal statement, Context files by their dependencies, the stale gloss reports its file as
+    uncovered, and the report is complete exactly when every listed subject is covered.</td>
+    <td><code>gate/tests/test_gloss_coverage.py</code></td></tr>
+  <tr><td>F20-AC18</td><td>Given the live graph after the backfill, then <code>coverage</code> at
+    the backfill's final commit reports complete, or lists only open defects the owner has read; the
+    report is the evidence.</td>
+    <td><code>engineering/evidence/F20/task-15-coverage.txt</code> (network tier)</td></tr>
+</table>
+
+<h2>6. Budgets / limits</h2>
+<ul>
+  <li><strong>Drafting cost is unmeasured.</strong> T11 measures seven drafts; from them the backfill's
+    batch size and total spend ceiling are set and the projected total is reported to the owner before
+    the first batch. The backfill itself is not optional (Q8). The per-run caps (<code>OPN_DRAFTER_MAX_SUBJECTS</code>,
+    <code>OPN_DRAFTER_TOKEN_BUDGET</code>) default to 20 subjects and 500k tokens. A gloss is far
+    smaller than an explainer: a statement is a few lines.</li>
+  <li><strong>Glosses and explainers stay appends.</strong> They run no Lean, merge in the append lane,
+    and never wait for a post-merge job (F07-T55&ndash;T57).</li>
+  <li><strong>The drafter runs no Lean.</strong> A gloss is drafted from the file's committed text and
+    an explainer from the committed outline. Where the outline is missing (F19-R5), the explainer is
+    reported as not drafted, never drafted from the source.</li>
+</ul>
+
+<h2>7. Security &amp; privacy notes</h2>
+<ul>
+  <li><strong>Two new credentials (Q7).</strong> Each has one home and must be entered in C8 before T9
+    ships:
+    <ul>
+      <li>The model key for the drafter workflow (<code>OPENROUTER_API_KEY</code>, renamed from
+        <code>OPN_MODEL_API_KEY</code> when the owner moved the provider to OpenRouter, F20-Q19), an
+        Actions secret on the network repository read by one step.</li>
+      <li>The drafter's service token, a write token like any contributor's (D-19).</li>
+    </ul>
+    Losing either costs drafts. Leaking the token lets its holder open gloss and explainer pull
+    requests, which assert nothing (D-3).</li>
+  <li><strong>The drafter is not trusted.</strong> Its input contains contributor-chosen Lean names,
+    docstrings and comments, so they go to the model under the untrusted-data demarcation (R18). Its
+    output is checked by the same rules as a human's, rendered escaped, and labelled
+    machine-drafted.</li>
+  <li><strong>A signature is over one version's hash</strong>, by the signer's own key (F15's seam). A
+    revision cannot inherit a signature, and a gloss of changed text keeps its signature only in
+    history.</li>
+  <li><strong>Withdrawal, supersede and signing are gated by role</strong> (steward, curator, author),
+    through F15's <code>real_identities</code> and v3.27's curator check. No new identity
+    mechanism.</li>
+</ul>
+
+<h2>8. Dependencies</h2>
+<ul>
+  <li><strong>F19</strong> (required): <code>outline/v1</code>, step ids, the node page's outline and
+    the reading view.</li>
+  <li><strong>F15</strong> (required): explainers, signatures on the signed-record seam, stewards,
+    digestion.</li>
+  <li><strong>F08-T31</strong> (required): <code>withdrawal/v1</code>, whose next version this
+    extends.</li>
+  <li><strong>F05, F09, F07</strong>: the service's append routes and pre-flights, the MCP and its
+    bijection, and the merge actor's append lane.</li>
+  <li><strong>F12</strong>: <code>opn_gate.models</code>, the one module that talks to a model
+    provider.</li>
+  <li><strong>Packages:</strong> none.</li>
+</ul>
+
+<h2>9. Open questions / judgment calls</h2>
+<table>
+  <tr><th>ID</th><th>Call made — for review</th></tr>
+  <tr><td>F20-Q1</td><td><strong>Decisions v3.30 (ii) to (v) and (vii)</strong>, drafted in F19-Q1,
+    for the owner's approval. F20 builds nothing that depends on them until they are applied (T1).</td></tr>
+  <tr><td>F20-Q2</td><td><strong>Anchor syntax.</strong> Section anchors are written at the end of the
+    heading: <code>## The bound on q {steps: s3 s4.1}</code>. This keeps the anchor beside the text it
+    governs, survives copy and paste, and reads acceptably as plain Markdown. A front-matter list keyed
+    by section index was rejected because it breaks silently when a steward reorders sections. Glosses
+    carry no step anchors: a gloss describes one whole file.</td></tr>
+  <tr><td>F20-Q3</td><td><strong>Chains are linear.</strong> Superseding a version that is not the head
+    is refused, so the current version needs no clock. The 2026-09-19 lesson was to ask who wrote the
+    clock, and here nobody has to. Two stewards revising at once is a race the second loses with a
+    message naming the new head, as racing proofs do (D-25 v3.21).</td></tr>
+  <tr><td>F20-Q4</td><td><strong>Several chains on one subject are all shown, in record
+    order.</strong> A second author who does not want to supersede can start a chain. Choosing one to
+    feature would be ranking (D-25).</td></tr>
+  <tr><td>F20-Q5</td><td><strong>Digestion follows the current explainer version.</strong> An edit
+    after signing drops the node to unsigned until it is signed again. That is published state matching
+    actual state (the owner's first principle). Counting any signature in the chain would let a
+    signature vouch for text its signer never saw.</td></tr>
+  <tr><td>F20-Q6</td><td><strong>The drafter is a named identity, <code>opn-drafter</code>, holding a
+    contributor token</strong> rather than a privileged one. Its pull requests are appends like anyone's,
+    and the merge actor needs no change. It appears in the ledger with no entries (R19).</td></tr>
+  <tr><td>F20-Q7</td><td><strong>Credentials are the owner's.</strong> The model key on the network
+    repository and the drafter's token. Until they exist, the workflow dry-runs and keeps its report
+    (the F12-Q16 shape), so a missing credential never reads as a passing run.</td></tr>
+  <tr><td>F20-Q8</td><td><strong>The owner's ruling, 2026-10-04 (third): all the Lean currently in the
+    system is translated, &ldquo;whatever it takes&rdquo;.</strong> This replaces the earlier draft of this
+    entry, which left bulk drafting to his call on T11's numbers. The backfill is now a requirement
+    (R20, R21) and a task (T15). T11's numbers set its batch size and spend ceiling, not whether it runs.
+    The live inventory at 2026-10-04: 114 statements (26 roots, each with a curated informal
+    statement), 114 witnesses, 23 relations, 3 definition modules, 67 proofs, 7 alternates and 20
+    partial assemblies, so about 88 + 114 + 23 + 3 = 228 glosses and 94 explainers. Two things the
+    ruling cannot buy: drafts are still unverified until a steward signs them, and the backfill still
+    needs the two credentials (Q7). Anything merged after the backfill is covered by the dispatch
+    (R17), and <code>coverage</code> shows any gap.</td></tr>
+  <tr><td>F20-Q9</td><td><strong>Dispatch, not a schedule.</strong> The post-merge job already holds
+    the site dispatch token, which can start any network workflow (C8). The drafter is dispatched the
+    same way, because a cron on GitHub Actions is a hope (2026-09-13).</td></tr>
+  <tr><td>F20-Q10</td><td><strong>The owner's ruling, 2026-10-04 (second): every Lean file has a
+    mathematical version, not only proofs.</strong> This widens his decision (b) of the same morning,
+    which had kept machine prose to the explainer slot. The boundary kept is that model text lives only
+    in a committed, attributed, correctable record, never in a product (D-35). A gloss is a separate
+    record from an explainer, not an explainer on an unproved node. D-3 refuses an explainer there for
+    a reason that still holds: an explainer's signature is a digestion claim about a proof, and a
+    statement has none to digest.</td></tr>
+  <tr><td>F20-Q11</td><td><strong>No drafted gloss of a root.</strong> A root's curated
+    <code>informal:</code> statement is the text its fidelity grade was assigned against (D-9). A model
+    gloss of the root's Lean is a back-translation, which D-9 v3.12 demoted to one input because about a
+    third of its passes are wrong. Shown beside the statement of record, it would invite exactly the
+    misreading the grade exists to prevent. A steward may still write one; it is shown after the curated
+    statement, labelled unverified.</td></tr>
+  <tr><td>F20-Q12</td><td><strong>A gloss signature claims less than it might.</strong> Its sentence
+    is that the signer read the words against the Lean and they agree. It is not a fidelity certificate:
+    D-9 grades roots only, through its own QA pass, and interior nodes are exempt. So a signed gloss
+    changes no grade and no state. Making signed glosses on a closure count toward something (a
+    "statements read" state beside digestion) is a later decision for the owner, if readers want
+    it.</td></tr>
+  <tr><td>F20-Q13</td><td><strong>Judgment calls in T9, the drafter library (2026-10-04; the building agent's, reviewed by the lead).</strong> (a) The prompt version (<code>opn-drafter-prompts/1</code>) is recorded in each run's report, not in a draft, because the drafter block of gloss/v1 and explainer/v1 is closed; a <code>prompt</code> field belongs in each schema's next version. (b) Drafts default to licence <code>CC-BY-4.0</code>, the value on the graph's existing annex records (<code>OPN_DRAFTER_LICENCE</code>). <strong>For the owner:</strong> D-23's data licence is still listed as open in the decisions doc; confirm before the backfill (T15). (c) Mathlib names, docstring sentences, tags and schema-constrained facts (ids, kinds, hashes, step ids, tactic names) go to the model unwrapped; everything a contributor chose is under the demarcation, including problems fed back on a retry. (d) The gloss name check accepts a name whose last component appears in the file (short forms after <code>open</code>), at the cost of letting an invented <code>Finset.card</code> pass where the file uses <code>.card</code>. (e) An explainer body must begin with a <code>##</code> heading; the first section's having no anchors is asked of the model, not checked. (f) A budget spent between a subject's attempts leaves it <em>left</em>, not <em>not drafted</em>; root statements are <em>skipped</em> and do not count against the cap; a provider error leaves the current subject <em>left</em>. (g) An answer wrapped whole in a code fence is unwrapped before checking.</td></tr>
+  <tr><td>F20-Q14</td><td><strong>Judgment calls in T2&ndash;T5, T7, T14 (2026-10-04; the building agent's, reviewed by the lead).</strong> (a) An explainer with no <code>schema</code> key in its front matter is pre-F20 and valid; one declaring any other schema is refused. (b) A pre-F20 explainer is a one-version chain on the node's <code>Proof.lean</code>, so a signed one still counts for digestion and a v1 version may supersede it. (c) A withdrawn version reads as absent, so its predecessor becomes the head again; the current version is derived without dates, and if a race left two live forks the head is chosen by hash. (d) Chains are listed by first version's stated date, then hash; the order decides nothing. (e) Version withdrawals ride the explainer mode; <code>classify</code> reads the withdrawal to tell them apart (a new <code>graph_root</code> keyword) and, without the checkout, treats every withdrawal as a curator's, the stricter reading. (f) A withdrawal is the author's when its <code>author</code> equals the version's, as proposed-for's precedent; a steward or curator is recognised as the pull request's author, so a draft (no author) is withdrawn only by a steward or curator. The service path (an App-authored pull request) is T6's to resolve. (g) The name warning checks dotted names only; sub-steps count toward their parent. (h) An explainer body is <code>##</code> sections with no text before the first (R2 read strictly). (i) A root statement is also covered by a <code>paraphrase</code> where the source cannot be reproduced; a <code>Context.lean</code> restates the node's effective dependencies. Outside the task's files and needed: <code>layout.py</code> (the <code>gloss/</code> directory), <code>records.py</code> and its service twin <code>context.py</code> (withdrawal v1 and v2 both read), <code>codes.py</code> (catalog rows).</td></tr>
+  <tr><td>F20-Q15</td><td><strong>Judgment calls in T6 (2026-10-04; the building agent's, reviewed by the lead).</strong> (1) A pull request opened by the service's login (<code>OPN_SERVICE_LOGIN</code>, default <code>open-proof-network[bot]</code>) acts for the record's <code>author</code>, which the service writes from the token, never from the request; a hand-opened one is judged by its opener whatever the record claims. A pinned gate older than this rule judges service pull requests by the App's login, so it binds only after the re-pin. (2) <strong>For the owner:</strong> a steward is recognised through the service only when their pseudonym equals their GitHub login; nothing links a steward's login to a different pseudonym. Curators work through <code>curators.json</code>. (3) A new refusal, <code>author-names-another</code> (403): an identity may not take a steward's or curator's login as its pseudonym unless it proved that login, because the gate now trusts a service record's author. (4) A request-supplied <code>author</code> is refused (<code>unknown-field</code>, <code>subject-invalid</code>), not silently ignored. (5) Outlines are served bare in <code>get_node</code>, as Lean files are; only gloss and explainer prose is demarcated. (6) An explainer subject must name its proof hash; no default to <code>Proof.lean</code>. (7) Chains derived from the host where <code>glosses.json</code> is absent go through <code>get_node</code>'s per-head cache, and equal the product's (tested), via <code>products.GlossScope</code>.</td></tr>
+  <tr><td>F20-Q16</td><td><strong>Judgment calls in T8 (2026-10-04; the building agent's, reviewed by the lead).</strong> (a) "Improve these words" links to the Docs page's guide through one constant (<code>GLOSS_GUIDE_HREF</code>) until T12 writes the revision section. (b) A Problems row with no gloss shows nothing rather than the cue, since the row prints no Lean and every row would carry it. (c) A root's words are its curated informal statement first and any gloss after, on the reading view, the selected-statement card and the root's node page alike. (d) Relations and definition modules are printed on the site for the first time (a Relation section on variants, a Definitions section on problems with <code>defs/</code>). (e) The site re-checks whether a gloss describes the current text against the checkout, not the product, so a lagging product cannot mislabel it. (f) A graph with no <code>glosses.json</code> (the live graph until the re-pin) renders every slot with its cue and logs a warning. (g) An explainer filed before F20 under a name that is not its hash renders as before. (h) The product does not carry a withdrawal's reason, so history says "withdrawn" without it; carrying it is a small product change for later.</td></tr>
+  <tr><td>F20-Q17</td><td><strong>Judgment calls in T10 (2026-10-05; the building agent's, reviewed by the lead).</strong> (a) The service recognises the drafter by a configured pseudonym, <code>OPN_API_DRAFTER_PSEUDONYM</code>, empty by default so nobody can claim the role before the owner creates the identity; <strong>for the owner:</strong> create the identity (ideally <code>opn-drafter</code>), set the variable, then reserve the name. (b) Only the service files a draft (<code>drafter-not-service</code>, a gate refusal binding from the re-pin), so nobody can hand-file words labelled machine-drafted. (c) A run exits 1 only when the provider or the service cut it short, or the service refused a draft; a stop at the subject cap or token budget is a batch and exits 0. (d) <code>new</code> means no chain at all; glosses of since-changed text and fully withdrawn chains are drafted only under <code>uncovered</code>. (e) The drafter never supersedes; it always starts a chain. (f) 401, 403, 429, 5xx and an unreachable service stop the run; 400 and 409 are recorded and the run continues. (g) <strong>For T15:</strong> the service holds each identity to <code>OPN_API_OPEN_PRS_PER_IDENTITY</code> open pull requests (default 10), so the backfill runs in batches of at most that size, waiting for the merge actor between batches, or the owner raises the limit for the drafter. The lead corrected one line of the builder's draft C8 text: a token now lapses only after long disuse (D-19 v3.29), not after ninety days. (h) The graph dispatches the drafter at the end of the outline job, which runs only for a merge that built, so a gloss or explainer merge never starts another draft.</td></tr>
+  <tr><td>F20-Q18</td><td><strong>Judgment calls in T12 (2026-10-05; the writing agent's, reviewed by the lead).</strong> (1) Guide sections get ids on the Docs page only where asked (<code>render_document(anchors=…)</code>), level-2 headings only, slugged from the words before any parenthesised citation so a new D-cite never moves an anchor; the first of a duplicate wins. (2) Until the re-pin syncs the graph's copy of AGENTS.md, the live "Improve these words" link lands at the top of the Docs page; fragments are not link-checked. (3) The guide does not yet document <code>opn-gate outline</code> (written while that command was on a branch); a follow-up line. (4) No MCP <code>get_node</code> block in the walkthrough: each MCP call costs about ten seconds there.</td></tr>
+  <tr><td>F20-Q19</td><td><strong>The owner's ruling, 2026-10-05: OpenRouter, and Claude Opus 5.5.</strong> The <code>opn_gate.models</code> seam now calls OpenRouter's chat completions API (<code>POST https://openrouter.ai/api/v1/chat/completions</code>, a system turn and a user turn, the key as a bearer token) instead of Anthropic's Messages API, read from <code>OPENROUTER_API_KEY</code>; the default model is <code>anthropic/claude-opus-5.5</code> as OpenRouter's model list names it ($4 per million input tokens, $20 per million output, read from <code>GET /api/v1/models</code> that day). One provider, not two (C5). Found on the way: R7's independence rule reads a family from a model id's leading letters, so <code>anthropic/claude-opus-5.5</code> would have read as family <em>anthropic</em> and a Claude-formalized statement could have been back-translated by Claude; <code>family_of</code> now reads past the provider prefix (red first in <code>test_models.py</code>). F12's QA commands use the same seam and moved with it.</td></tr>
+  <tr><td>F20-Q20</td><td><strong>A cut-off answer is never a draft (found in T11, 2026-10-05).</strong> The first live run's erdos-1050 hole explainer used exactly the 16000-token output limit and stopped mid-formula; every check passed it, because a cut-off text is still well-formed Markdown with valid anchors, and the merge queue merged it. The seam now raises <code>ModelTruncatedError</code> on a <code>length</code> finish (a <code>ModelError</code>, so the QA commands record it as inconclusive), the drafter records that subject as not drafted and goes on, and explainers may run to 64000 tokens. Cost scales with the outline: that one proof's outline is 329k input tokens against 1k&ndash;40k for the others, so a backfill's spend is dominated by a few long proofs (the erdos-1050 holes run 716&ndash;845 lines). The truncated version was withdrawn by the curator (#387); its history stays on the page.</td></tr>
+</table>
+
+<h2>10. Status</h2>
+<div class="rule"><strong>status:</strong> planned (2026-10-04; widened the same day to every Lean
+  file, and to a full backfill of the live graph; waits on F19 and on v3.30's wording) · <strong>Tasks:</strong> T1 ✓ 2026-10-04 (decisions v3.30 applied as drafted on the owner's word; the tests that read the doc pass, bar the graph-copy test that reads the stale sibling checkout) · T2 ✓ 2026-10-04 (R1, R3; AC1; red: a gloss path was <code>path-forbidden</code>) · T3 ✓ 2026-10-04 (R2, R4; AC3; red <code>[] == ['explainer-step-unknown']</code>) · T4 ✓ 2026-10-04 (R6&ndash;R9; AC2 gate half, AC5&ndash;AC7; <code>glosses/v1</code> product; found and fixed: the layout check refused a node's <code>gloss/</code> directory, so the first merged gloss would have stopped every product) · T5 ✓ 2026-10-04 (R5; AC4; red <code>[] == ['Nat.Prime.one_lt']</code>) · T6 ✓ 2026-10-04 (R10, R11; AC8, AC9; the identity rule <code>modes.acting_names</code>; red: gate 10, route 8 with 201 where a refusal was owed, MCP 8 of which three on a KeyError, said so in task-6.txt; found and fixed two holes already on main: a stranger's hand-opened withdrawal passed by naming the version's author, and <code>opn-gate classify</code> never passed the checkout, so a steward's hand-opened gloss withdrawal read as a curator record) · T7 ✓ 2026-10-04 (R12; AC10) · T8 ✓ 2026-10-04 (R13, R14; AC2 site half, AC11, AC12; red on assertions such as "no slot for …/Witness.lean"; 14 screenshots at 1440 and 390 px measured and looked at, the first 390 px run was 738 px wide on unwrapped hashes and diffs, fixed; task-8.txt) · T9 ✓ 2026-10-04 (R15&ndash;R18 library; AC13, AC14; 23 tests, red 22 on assertions against a stub; no real model call) · T10 code complete 2026-10-05, dispatch pending the push (R13, R17; <code>opn-gate gloss draft</code>, <code>gloss-draft.yml</code>, the drafter fields on <code>POST /glosses</code> and the gate's <code>drafter-not-service</code>; red: route and rule 9 on assertions, command 11 of 15 of which four on a stub's missing fields, workflow 4 against a mutant; the graph's dispatch of the drafter from the outline job on graph branch <code>f19-t4-outline-job</code> (89e0ec7c8, unpushed), inert before the re-pin; the C8 entries for the model key and the drafter token, 2026-10-05; task-10.txt) · T11 drafted 2026-10-05, the owner's reading pending (seven subjects through OpenRouter, Claude Opus 5.5: three explainers and four glosses, graph PRs #380&ndash;#386, all merged; $2.09 in all, glosses 1&ndash;3 cents each, explainers 10 cents, 29 cents and $1.64; the erdos-1050 hole's explainer was cut off at the 16000-token limit and merged, found by reading its last lines, F20-Q20; withdrawn by the curator, #387, and redrafted complete in 30866 tokens for $1.93, #388) · T12 ✓ 2026-10-05 (the guide and the Docs page; ten new runnable blocks, none manual; found two misleading refusals, fixed test first in ac00767) · T13 partly live 2026-10-05 (the routes, the gate's rules and the site are live at re-pin 490d3de43; the drafter identity opn-drafter was created on the live service and set in the stack (change set f20-drafter-and-hardening, which also applied the audit's F05-T22); OPN_DRAFTER_TOKEN set; the drafter waits for OPENROUTER_API_KEY as a network secret) · T14 ✓ 2026-10-04 (R20; AC17; red: an empty report called itself complete) · T15 todo · gate tier 2125 passed on the branch; fast tier on merged main 4193 passed (the stale-checkout graph-copy test aside); evidence in <code>engineering/evidence/F20/</code></div>
+
+<h2>Tasks</h2>
+<p class="status-note">Dependency-ordered. Each task names the files it touches, its deps, and its
+one verification command (conventions §3, §6). Red before green, with the seam in at today's
+behaviour.</p>
+<table>
+  <tr><th>ID</th><th>Task</th><th>Files</th><th>Deps</th><th>Verification</th></tr>
+  <tr><td>F20-T1</td><td>Apply decisions v3.30 as approved (both features' parts), with the version
+    line, the D-3 layout (<code>gloss/</code>) and the D-28 and D-36 tables.</td>
+    <td><code>docs/architecture_decisions.html</code></td>
+    <td>F19-Q1 approved</td><td><code>make verify</code></td></tr>
+  <tr><td>F20-T2</td><td><code>gloss/v1</code> and its mode checks (R1, R3), the
+    <code>gloss</code> path roles.</td>
+    <td><code>gate/schemas/gloss/v1.json</code>, <code>gate/schemas/HASHES</code>,
+    <code>gate/opn_gate/{glosses,modes,paths}.py</code>, <code>gate/tests/test_gloss_schema.py</code></td>
+    <td>T1</td><td><code>uv run pytest gate/tests/test_gloss_schema.py</code></td></tr>
+  <tr><td>F20-T3</td><td><code>explainer/v1</code> and its anchor checks (R2, R4).</td>
+    <td><code>gate/schemas/explainer/v1.json</code>, <code>gate/opn_gate/{explainers,modes}.py</code>,
+    <code>gate/tests/test_explainer_schema.py</code></td>
+    <td>T1, F19-T2</td><td><code>uv run pytest gate/tests/test_explainer_schema.py</code></td></tr>
+  <tr><td>F20-T4</td><td>Chains for both records, signed supersede, withdrawal, gloss signatures,
+    current versions, describes-current flag, digestion (R6&ndash;R9); the products' chain fields.</td>
+    <td><code>gate/schemas/withdrawal/</code> and <code>gate/schemas/graph/</code> (next versions),
+    <code>gate/schemas/gloss-signature/v1.json</code>,
+    <code>gate/opn_gate/{glosses,explainers,modes,products}.py</code>,
+    <code>gate/tests/test_gloss_chains.py</code></td>
+    <td>T2, T3</td><td><code>uv run pytest gate/tests/test_gloss_chains.py</code></td></tr>
+  <tr><td>F20-T5</td><td>The cited-name warning (R5).</td>
+    <td><code>gate/opn_gate/explainers.py</code>, <code>gate/tests/test_explainer_schema.py</code></td>
+    <td>T3</td><td><code>uv run pytest gate/tests/test_explainer_schema.py</code></td></tr>
+  <tr><td>F20-T6</td><td>The routes, pre-flight and MCP tools (R10, R11).</td>
+    <td><code>api/opn_api/{routes,appends}.py</code>, <code>api/opn_api/mcp/</code>,
+    <code>api/tests/test_glosses_route.py</code>, <code>api/tests/test_mcp_glosses.py</code></td>
+    <td>T4</td><td><code>uv run pytest api/tests/test_glosses_route.py api/tests/test_mcp_glosses.py api/tests/test_mcp_bijection.py</code></td></tr>
+  <tr><td>F20-T7</td><td>The steward's commands (R12).</td>
+    <td><code>gate/opn_gate/cli.py</code>, <code>gate/tests/test_gloss_cli.py</code></td>
+    <td>T4</td><td><code>uv run pytest gate/tests/test_gloss_cli.py</code></td></tr>
+  <tr><td>F20-T8</td><td>The site: a gloss beside every Lean block; explainer versions, anchored
+    sections, history and diffs (R13, R14).</td>
+    <td><code>site/opn_site/{model,render}.py</code>, <code>templates/{node,target,frontier,proof}.html</code>,
+    <code>site/tests/test_glosses.py</code>, <code>site/tests/test_explainer_versions.py</code></td>
+    <td>T4, F19-T7</td><td><code>uv run pytest site/tests/test_glosses.py site/tests/test_explainer_versions.py</code></td></tr>
+  <tr><td>F20-T9</td><td>The drafter library: prompts for each subject kind, post-checks, retry,
+    caps, report (R15&ndash;R18), with a fake model.</td>
+    <td><code>gate/opn_gate/drafter.py</code>, <code>gate/tests/test_drafter.py</code></td>
+    <td>T2, T3, T5</td><td><code>uv run pytest gate/tests/test_drafter.py</code></td></tr>
+  <tr><td>F20-T10</td><td>The drafter workflow, its dispatch from the post-merge job, dry-run without
+    credentials, the C8 entries (R17, Q6, Q7, Q9).</td>
+    <td><code>.github/workflows/gloss-draft.yml</code>,
+    <code>../open_proof_network_graph/.github/workflows/gate.yml</code>,
+    <code>engineering/specs/constitution.html</code></td>
+    <td>T6, T9</td><td>a dispatched dry run, run id in the evidence</td></tr>
+  <tr><td>F20-T11</td><td><strong>Measure the drafts.</strong> Seven live subjects drafted with the
+    real model: tokens, cost, time, and the owner's reading (AC15). Decides Q8.</td>
+    <td><code>engineering/evidence/F20/task-11-drafts.txt</code></td>
+    <td>T9, Q7</td><td>the evidence file, with the owner's verdict on each draft</td></tr>
+  <tr><td>F20-T12</td><td>The guide and the Docs page: how a steward revises, withdraws and signs a
+    gloss or explainer, through the MCP and by hand; every new block run by the walkthrough.</td>
+    <td><code>gate/agents/AGENTS.md</code>, <code>site/docs/</code></td>
+    <td>T6, T7, T8</td><td><code>uv run pytest gate/tests/test_walkthrough.py site/tests</code></td></tr>
+  <tr><td>F20-T13</td><td><strong>Live.</strong> Re-pin, re-render, the dispatch live on new merges, one
+    steward revision and signature of a gloss and of an explainer end to end, screenshots.</td>
+    <td><code>../open_proof_network_graph/targets/*/gate-spec.json</code>, products, glosses,
+    explainers</td>
+    <td>T1&ndash;T12</td><td><code>engineering/evidence/F20/task-13-live.txt</code></td></tr>
+  <tr><td>F20-T14</td><td>The coverage report (R20).</td>
+    <td><code>gate/opn_gate/{glosses,cli}.py</code>, <code>gate/tests/test_gloss_coverage.py</code></td>
+    <td>T4</td><td><code>uv run pytest gate/tests/test_gloss_coverage.py</code></td></tr>
+  <tr><td>F20-T15</td><td><strong>The backfill (R21, Q8).</strong> After F19-T10's outline backfill:
+    coverage at the start; the projected spend reported to the owner; the drafter run in batches over
+    every uncovered subject; each failure's cause fixed and re-run; coverage at the end. Every draft
+    lands through the append lane like any other.</td>
+    <td><code>engineering/evidence/F20/task-15-coverage.txt</code>, glosses and explainers on the
+    graph</td>
+    <td>T11, T13, T14, F19-T10</td><td><code>opn-gate gloss coverage</code> at the final commit,
+    complete or with only open defects the owner has read (AC18)</td></tr>
+</table>
+
+<footer>Open Proof Network · F20 spec v1 · 2026-10-04 · from the owner's rulings of 2026-10-04: a
+translation by default, improved by stewards version by version, for every Lean file</footer>
+</body>
+</html>

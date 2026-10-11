@@ -1,0 +1,61 @@
+F22-T14: outline case branches list what their split introduced; trailing closing tactics are
+the `close` step.
+
+gate/lean/OpnGate/Outline.lean: `splitBase` finds the innermost written tactic that has the
+branch's goal among its goals after and not before (rcases, constructor, refine), following a
+`case inl a =>` rename back through the goal it assigned; a case step's hypotheses are read
+against the goal before that tactic, else against the goal before the enclosing tactic (an
+alternative of `cases … with`), never against the goal the branch starts on. `closeStep`: the
+top-level tactics after the last step, which no step encloses, are one `term` step carrying
+`"id": "close"`, its claim the goal they close. gate/opn_gate/outline.py: `step_ids` numbers the
+other siblings as if the close step were absent (so no published id moves) and gives it `close`
+(underscored if a sibling's name already gives that id); `lost_ids` is the invariant's check.
+outline/v1 permits both (`close` matches the id pattern, kind `term` is in the enum, goal
+hypotheses were always there): no schema bump.
+
+Lean tier: run locally with elan (Lean 4.33.1), lake build of gate/lean, the outline lean tests.
+The full `make verify-lean` (every lean and docker test) was not run.
+
+Invariant on published outlines:
+- Lean tier, real published outlines: the live graph's two Lean-core outlines (tutorial, graph
+  origin/main 3257eb5c, extracted by gate 82834c46) are copied with their artifacts under
+  gate/tests/fixtures/outline/published/ and re-extracted: lost_ids == [] for both
+  (test_a_published_outline_keeps_every_id).
+- Mathlib outlines (91 of the 93: erdos-1050 17, erdos-402 35, erdos-69 24, euclid-primes 14,
+  erdos-412 1): NOT RUN here. gate/tools/check_outline_ids.py re-extracts a target's merged
+  artifacts in a given step-3 image and runs lost_ids over every published outline; it needs the
+  pinned Mathlib image with this branch's Lean programs rebuilt in it (a derived Dockerfile: FROM
+  the pinned digest, COPY gate/lean, lake build). Pulling ghcr.io/.../opn-gate@sha256:0b0b2d82
+  took the laptop's data volume from 25 GiB to 12 GiB free mid-pull (other agents writing too),
+  and it was stopped there, per the Log's disk rule. Run it in CI or on a machine with room before
+  the re-pin, and before any outline backfill.
+
+== RED, before the Lean change (pytest gate/tests/test_outline_lean.py -k "case_branch or close_step")
+E       AssertionError: assert [[], []] == [['a'], ['b']]        (the `·` after rcases)
+E       AssertionError: assert [[], []] == [['a'], ['b']]        (`case inl a =>`)
+E       AssertionError: assert [('h', 'have', 20, 20)] == [('h', 'have'...erm', 21, 22)]
+E         Right contains one more item: ('close', 'term', 21, 22)
+3 failed, 1 passed (the `cases … with` alternatives already listed `a` and `b`: a guard)
+
+== GREEN, lean tier: pytest gate/tests/test_outline_lean.py -v
+gate/tests/test_outline_lean.py::test_have_tree_with_kinds_spans_and_closing PASSED [  7%]
+gate/tests/test_outline_lean.py::test_claims_read_back_or_are_marked PASSED [ 15%]
+gate/tests/test_outline_lean.py::test_mathlib_docs_and_tags PASSED       [ 23%]
+gate/tests/test_outline_lean.py::test_term_proof_is_one_step PASSED      [ 30%]
+gate/tests/test_outline_lean.py::test_partial_assembly_marks_holes PASSED [ 38%]
+gate/tests/test_outline_lean.py::test_the_seam_names_a_file_that_does_not_elaborate PASSED [ 46%]
+gate/tests/test_outline_lean.py::test_request_shape_is_the_programs PASSED [ 53%]
+gate/tests/test_outline_lean.py::test_a_case_branch_lists_what_its_split_introduced[OpnOutline.split] PASSED [ 61%]
+gate/tests/test_outline_lean.py::test_a_case_branch_lists_what_its_split_introduced[OpnOutline.alts] PASSED [ 69%]
+gate/tests/test_outline_lean.py::test_a_case_branch_lists_what_its_split_introduced[OpnOutline.named] PASSED [ 76%]
+gate/tests/test_outline_lean.py::test_trailing_closing_tactics_are_the_close_step PASSED [ 84%]
+gate/tests/test_outline_lean.py::test_a_published_outline_keeps_every_id[721b98ef97040596c6625c36749b28dfddbe4156fb84c31dcb5e4145b4f4222d-OpnProp.and_swap] PASSED [ 92%]
+gate/tests/test_outline_lean.py::test_a_published_outline_keeps_every_id[df375af29a9b41444121a30a5577ad2324708de0aec71444cbdcb2f5c56302b0-OpnProp.and_left_of_and_swap] PASSED [100%]
+======================== 13 passed in 523.02s (0:08:43) ========================
+
+== Outline CLI and job tests (fast tier plus the lean one)
+First run: 1 failed, 45 passed, 13 skipped: test_outline_cli_real asserted the steps' names were
+["h2"]; its closing `exact` is now the close step (['h2', None]), so the assertion was restated
+to [("h2", "h2"), ("close", None)] (its comment cited F19-Q11 (7): a use in the closing exact
+belonged to no step).
+After: pytest gate/tests/test_outline_cli.py -m lean: 1 passed, 7 deselected in 151.61s

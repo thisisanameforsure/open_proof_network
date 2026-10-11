@@ -1,0 +1,36 @@
+warning: `VIRTUAL_ENV=/Users/mikehiggins/Desktop/repos/open_proof_network/.venv` does not match the project environment path `.venv` and will be ignored; use `--active` to target the active environment instead
+F..F                                                                     [100%]
+=================================== FAILURES ===================================
+________________ test_the_pointer_is_published_and_drawn_dashed ________________
+
+tmp_path = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-294/test_the_pointer_is_published_0')
+
+    def test_the_pointer_is_published_and_drawn_dashed(tmp_path: Path) -> None:
+        root = copy_graph(tmp_path, publish=True)
+        point(root)
+        rows, page = rendered(root)
+>       assert rows[CRUX]["proposed_for"] == FOR
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'proposed_for'
+
+site/tests/test_proposed_for_site.py:48: KeyError
+______________ test_the_crux_is_drawn_beneath_the_node_it_serves _______________
+
+    def test_the_crux_is_drawn_beneath_the_node_it_serves() -> None:
+        nodes = [
+            {"node_id": "n", "status": "ready", "deps": [], "uses": [], "proposed_for": None},
+            {"node_id": "c", "status": "proved", "deps": [], "uses": [], "proposed_for": "n"},
+        ]
+>       assert dag.layers(nodes) == {"c": 0, "n": 1}
+E       AssertionError: assert {'c': 0, 'n': 0} == {'c': 0, 'n': 1}
+E         
+E         Omitting 1 identical items, use -vv to show
+E         Differing items:
+E         {'n': 0} != {'n': 1}
+E         Use -v to get more diff
+
+site/tests/test_proposed_for_site.py:80: AssertionError
+=========================== short test summary info ============================
+FAILED site/tests/test_proposed_for_site.py::test_the_pointer_is_published_and_drawn_dashed
+FAILED site/tests/test_proposed_for_site.py::test_the_crux_is_drawn_beneath_the_node_it_serves
+2 failed, 2 passed in 16.98s

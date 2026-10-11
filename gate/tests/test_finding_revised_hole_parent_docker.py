@@ -36,6 +36,7 @@ def test_the_parent_passes_in_the_sandbox_against_the_revision(
             "--out",
             str(out),
             "--no-build",
+            "--allow-network-mismatch",  # F07-T65: the fixtures pin forty zeros
         ],
         capture_output=True,
         text=True,

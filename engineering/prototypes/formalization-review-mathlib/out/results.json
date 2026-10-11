@@ -1,0 +1,3025 @@
+{
+ "erdos-1003": {
+  "words": "Are there infinitely many solutions to φ(n) = φ(n+1), where φ is the Euler totient function?",
+  "candidates": {
+   "agent-a": {
+    "author": "agent",
+    "model": "sonnet",
+    "expect": "survive",
+    "id": "agent-a",
+    "status": "live",
+    "tables": {
+     "member": [
+      "false",
+      "true",
+      "false",
+      "true",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "true",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false"
+     ]
+    }
+   },
+   "agent-b": {
+    "author": "agent",
+    "model": "haiku",
+    "expect": "survive",
+    "id": "agent-b",
+    "status": "live",
+    "tables": {
+     "member": [
+      "false",
+      "true",
+      "false",
+      "true",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "true",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false"
+     ]
+    }
+   },
+   "agent-c": {
+    "author": "agent",
+    "model": "opus",
+    "expect": "survive",
+    "id": "agent-c",
+    "status": "live",
+    "tables": {
+     "member": [
+      "false",
+      "true",
+      "false",
+      "true",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "true",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false"
+     ]
+    }
+   },
+   "alt-forall": {
+    "author": "human",
+    "expect": "survive",
+    "note": "∀ N, ∃ n > N for Set.Infinite",
+    "id": "alt-forall",
+    "status": "live",
+    "tables": {
+     "member": [
+      "false",
+      "true",
+      "false",
+      "true",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "true",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false"
+     ]
+    }
+   },
+   "bad-finite": {
+    "author": "planted",
+    "defect": "negated shape (finitely many)",
+    "expect": "caught",
+    "id": "bad-finite",
+    "status": "live",
+    "tables": {
+     "member": [
+      "false",
+      "true",
+      "false",
+      "true",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "true",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false"
+     ]
+    },
+    "flag": "contradicts the main cluster, by proof: a structural question for the signers"
+   },
+   "bad-nonempty": {
+    "author": "planted",
+    "defect": "quantifier (some n, not infinitely many)",
+    "expect": "caught",
+    "id": "bad-nonempty",
+    "status": "discarded",
+    "tables": {
+     "member": [
+      "false",
+      "true",
+      "false",
+      "true",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "true",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false"
+     ]
+    },
+    "screen": {
+     "exhibit": "theorem screen : conj := ⟨1, by decide⟩",
+     "accepted": true
+    },
+    "stage": "screen",
+    "reason": "an agent proved the statement itself in a few lines: as written it is not the open conjecture",
+    "exhibit": "theorem screen : conj := ⟨1, by decide⟩"
+   },
+   "bad-shift": {
+    "author": "planted",
+    "defect": "wrong term (φ(n+2))",
+    "expect": "caught",
+    "id": "bad-shift",
+    "status": "discarded",
+    "tables": {
+     "member": [
+      "false",
+      "false",
+      "false",
+      "false",
+      "true",
+      "false",
+      "false",
+      "true",
+      "true",
+      "false",
+      "true",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "true",
+      "false",
+      "false",
+      "false",
+      "false"
+     ]
+    },
+    "stage": "question (member)",
+    "reason": "asked “Is n = 1 a solution, that is, φ(1) = φ(1+1)?” the proposer answers true; this candidate's member gives false",
+    "exhibit": "-- the kernel's decision (decide) on this candidate:\n-- member 1 = false"
+   },
+   "bad-sigma": {
+    "author": "planted",
+    "defect": "wrong function (σ for φ)",
+    "expect": "caught",
+    "id": "bad-sigma",
+    "status": "discarded",
+    "tables": {
+     "member": [
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "true",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false"
+     ]
+    },
+    "stage": "question (member)",
+    "reason": "asked “Is n = 1 a solution, that is, φ(1) = φ(1+1)?” the proposer answers true; this candidate's member gives false",
+    "exhibit": "-- the kernel's decision (decide) on this candidate:\n-- member 1 = false"
+   },
+   "incumbent": {
+    "author": "registry",
+    "who": "The Formal Conjectures Authors",
+    "expect": "survive",
+    "note": "the live root, ported by a wrapper proved equal by Iff.rfl",
+    "id": "incumbent",
+    "status": "live",
+    "tables": {
+     "member": [
+      "false",
+      "true",
+      "false",
+      "true",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "true",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false"
+     ]
+    }
+   }
+  },
+  "tests": [
+   {
+    "table": "member",
+    "key": [
+     1
+    ],
+    "expected": true,
+    "results": {
+     "agent-a": true,
+     "agent-b": true,
+     "agent-c": true,
+     "alt-forall": true,
+     "bad-finite": true,
+     "bad-shift": false,
+     "bad-sigma": false,
+     "incumbent": true
+    }
+   }
+  ],
+  "questions": [
+   {
+    "table": "member",
+    "key": [
+     1
+    ],
+    "asked": "Is n = 1 a solution, that is, φ(1) = φ(1+1)?",
+    "answer": true,
+    "between": [
+     "bad-sigma",
+     "incumbent"
+    ]
+   }
+  ],
+  "pairs": {
+   "agent-a→agent-b:implies": {
+    "state": "open",
+    "by": null
+   },
+   "agent-a→agent-b:contradicts": {
+    "state": "open",
+    "by": null
+   },
+   "agent-a→agent-c:implies": {
+    "state": "open",
+    "by": null
+   },
+   "agent-a→agent-c:contradicts": {
+    "state": "open",
+    "by": null
+   },
+   "agent-a→alt-forall:implies": {
+    "state": "open",
+    "by": null
+   },
+   "agent-a→alt-forall:contradicts": {
+    "state": "open",
+    "by": null
+   },
+   "agent-a→bad-finite:implies": {
+    "state": "open",
+    "by": null
+   },
+   "agent-a→bad-finite:contradicts": {
+    "state": "proved",
+    "by": "tactic"
+   },
+   "agent-a→incumbent:implies": {
+    "state": "proved",
+    "by": "tactic"
+   },
+   "agent-a→incumbent:contradicts": {
+    "state": "open",
+    "by": null
+   },
+   "agent-b→agent-a:implies": {
+    "state": "open",
+    "by": null
+   },
+   "agent-b→agent-a:contradicts": {
+    "state": "open",
+    "by": null
+   },
+   "agent-b→agent-c:implies": {
+    "state": "open",
+    "by": null
+   },
+   "agent-b→agent-c:contradicts": {
+    "state": "open",
+    "by": null
+   },
+   "agent-b→alt-forall:implies": {
+    "state": "proved",
+    "by": "tactic"
+   },
+   "agent-b→alt-forall:contradicts": {
+    "state": "open",
+    "by": null
+   },
+   "agent-b→bad-finite:implies": {
+    "state": "open",
+    "by": null
+   },
+   "agent-b→bad-finite:contradicts": {
+    "state": "open",
+    "by": null
+   },
+   "agent-b→incumbent:implies": {
+    "state": "proved",
+    "by": "agent exhibit",
+    "lean": "theorem dir : C_agent_b.conj → C_incumbent.conj := by\n  intro h\n  apply Set.infinite_of_forall_exists_gt\n  intro a\n  obtain ⟨n, hn, hm⟩ := h (a + 1)\n  exact ⟨n, hm, by omega⟩"
+   },
+   "agent-b→incumbent:contradicts": {
+    "state": "open",
+    "by": null
+   },
+   "agent-c→agent-a:implies": {
+    "state": "open",
+    "by": null
+   },
+   "agent-c→agent-a:contradicts": {
+    "state": "open",
+    "by": null
+   },
+   "agent-c→agent-b:implies": {
+    "state": "open",
+    "by": null
+   },
+   "agent-c→agent-b:contradicts": {
+    "state": "open",
+    "by": null
+   },
+   "agent-c→alt-forall:implies": {
+    "state": "open",
+    "by": null
+   },
+   "agent-c→alt-forall:contradicts": {
+    "state": "open",
+    "by": null
+   },
+   "agent-c→bad-finite:implies": {
+    "state": "open",
+    "by": null
+   },
+   "agent-c→bad-finite:contradicts": {
+    "state": "open",
+    "by": null
+   },
+   "agent-c→incumbent:implies": {
+    "state": "proved",
+    "by": "agent exhibit",
+    "lean": "theorem dir : C_agent_c.conj → C_incumbent.conj := by\n  intro h\n  exact Set.Infinite.mono (fun n hn => hn.2) h"
+   },
+   "agent-c→incumbent:contradicts": {
+    "state": "open",
+    "by": null
+   },
+   "alt-forall→agent-a:implies": {
+    "state": "open",
+    "by": null
+   },
+   "alt-forall→agent-a:contradicts": {
+    "state": "open",
+    "by": null
+   },
+   "alt-forall→agent-b:implies": {
+    "state": "open",
+    "by": null
+   },
+   "alt-forall→agent-b:contradicts": {
+    "state": "open",
+    "by": null
+   },
+   "alt-forall→agent-c:implies": {
+    "state": "open",
+    "by": null
+   },
+   "alt-forall→agent-c:contradicts": {
+    "state": "open",
+    "by": null
+   },
+   "alt-forall→bad-finite:implies": {
+    "state": "open",
+    "by": null
+   },
+   "alt-forall→bad-finite:contradicts": {
+    "state": "open",
+    "by": null
+   },
+   "alt-forall→incumbent:implies": {
+    "state": "proved",
+    "by": "agent exhibit",
+    "lean": "theorem dir : C_alt_forall.conj → C_incumbent.conj := by\n  intro h\n  apply Set.infinite_of_forall_exists_gt\n  intro a\n  obtain ⟨n, hn, hm⟩ := h a\n  exact ⟨n, hm, hn⟩"
+   },
+   "alt-forall→incumbent:contradicts": {
+    "state": "open",
+    "by": null
+   },
+   "bad-finite→agent-a:implies": {
+    "state": "open",
+    "by": null
+   },
+   "bad-finite→agent-a:contradicts": {
+    "state": "proved",
+    "by": "tactic"
+   },
+   "bad-finite→agent-b:implies": {
+    "state": "open",
+    "by": null
+   },
+   "bad-finite→agent-b:contradicts": {
+    "state": "open",
+    "by": null
+   },
+   "bad-finite→agent-c:implies": {
+    "state": "open",
+    "by": null
+   },
+   "bad-finite→agent-c:contradicts": {
+    "state": "open",
+    "by": null
+   },
+   "bad-finite→alt-forall:implies": {
+    "state": "open",
+    "by": null
+   },
+   "bad-finite→alt-forall:contradicts": {
+    "state": "open",
+    "by": null
+   },
+   "bad-finite→incumbent:implies": {
+    "state": "open",
+    "by": null
+   },
+   "bad-finite→incumbent:contradicts": {
+    "state": "proved",
+    "by": "tactic"
+   },
+   "incumbent→agent-a:implies": {
+    "state": "proved",
+    "by": "tactic"
+   },
+   "incumbent→agent-a:contradicts": {
+    "state": "open",
+    "by": null
+   },
+   "incumbent→agent-b:implies": {
+    "state": "proved",
+    "by": "agent exhibit",
+    "lean": "theorem dir : C_incumbent.conj → C_agent_b.conj := by\n  intro h N\n  obtain ⟨b, hb, hlt⟩ := Set.Infinite.exists_gt h N\n  exact ⟨b, hlt.le, hb⟩"
+   },
+   "incumbent→agent-b:contradicts": {
+    "state": "open",
+    "by": null
+   },
+   "incumbent→agent-c:implies": {
+    "state": "proved",
+    "by": "agent exhibit",
+    "lean": "theorem dir : C_incumbent.conj → C_agent_c.conj := by\n  intro h\n  apply Set.infinite_of_forall_exists_gt\n  intro a\n  obtain ⟨b, hb, hlt⟩ := Set.Infinite.exists_gt h a\n  exact ⟨b, ⟨by omega, hb⟩, hlt⟩"
+   },
+   "incumbent→agent-c:contradicts": {
+    "state": "open",
+    "by": null
+   },
+   "incumbent→alt-forall:implies": {
+    "state": "proved",
+    "by": "agent exhibit",
+    "lean": "theorem dir : C_incumbent.conj → C_alt_forall.conj := by\n  intro h N\n  obtain ⟨b, hb, hlt⟩ := Set.Infinite.exists_gt h N\n  exact ⟨b, hlt, hb⟩"
+   },
+   "incumbent→alt-forall:contradicts": {
+    "state": "open",
+    "by": null
+   },
+   "incumbent→bad-finite:implies": {
+    "state": "open",
+    "by": null
+   },
+   "incumbent→bad-finite:contradicts": {
+    "state": "proved",
+    "by": "tactic"
+   }
+  },
+  "clusters": [
+   [
+    "agent-a",
+    "agent-b",
+    "agent-c",
+    "alt-forall",
+    "incumbent"
+   ],
+   [
+    "bad-finite"
+   ]
+  ],
+  "mutants": [
+   {
+    "mutation": "member: n + 1 → n + 2",
+    "result": "caught",
+    "by": "member at (1,) disagrees with the proposer"
+   },
+   {
+    "mutation": "member: 1 → 0",
+    "result": "caught",
+    "by": "member at (0,) disagrees with the proposer"
+   },
+   {
+    "mutation": "member: 1 → 2",
+    "result": "caught",
+    "by": "member at (1,) disagrees with the proposer"
+   }
+  ]
+ },
+ "_calls": [
+  {
+   "target": "erdos-1003",
+   "bytes": 1643,
+   "s": 63.1,
+   "okay": true,
+   "err": null
+  },
+  {
+   "target": "erdos-1003",
+   "bytes": 1557,
+   "s": 0.7,
+   "okay": true,
+   "err": null
+  },
+  {
+   "target": "erdos-1003",
+   "bytes": 1857,
+   "s": 0.9,
+   "okay": true,
+   "err": null
+  },
+  {
+   "target": "erdos-1003",
+   "bytes": 1665,
+   "s": 19.8,
+   "okay": true,
+   "err": null
+  },
+  {
+   "target": "erdos-1003",
+   "bytes": 1640,
+   "s": 0.7,
+   "okay": true,
+   "err": null
+  },
+  {
+   "target": "erdos-1003",
+   "bytes": 1694,
+   "s": 0.8,
+   "okay": true,
+   "err": null
+  },
+  {
+   "target": "erdos-1003",
+   "bytes": 1609,
+   "s": 0.7,
+   "okay": true,
+   "err": null
+  },
+  {
+   "target": "erdos-1003",
+   "bytes": 1629,
+   "s": 0.7,
+   "okay": true,
+   "err": null
+  },
+  {
+   "target": "erdos-1003",
+   "bytes": 1804,
+   "s": 37.3,
+   "okay": true,
+   "err": null
+  },
+  {
+   "target": "erdos-1003",
+   "bytes": 256,
+   "s": 0.7,
+   "okay": true,
+   "err": null
+  },
+  {
+   "target": "erdos-1003",
+   "bytes": 2920,
+   "s": 0.7,
+   "okay": false,
+   "err": null
+  },
+  {
+   "target": "erdos-1003",
+   "bytes": 8088,
+   "s": 0.9,
+   "okay": false,
+   "err": null
+  },
+  {
+   "target": "erdos-1003",
+   "bytes": 8126,
+   "s": 36.0,
+   "okay": false,
+   "err": null
+  },
+  {
+   "target": "erdos-1003",
+   "bytes": 8154,
+   "s": 1.0,
+   "okay": false,
+   "err": null
+  },
+  {
+   "target": "erdos-1003",
+   "bytes": 8090,
+   "s": 0.9,
+   "okay": false,
+   "err": null
+  },
+  {
+   "target": "erdos-1003",
+   "bytes": 8186,
+   "s": 0.9,
+   "okay": false,
+   "err": null
+  },
+  {
+   "target": "erdos-1003",
+   "bytes": 8202,
+   "s": 21.0,
+   "okay": null,
+   "err": 504
+  },
+  {
+   "target": "erdos-1003",
+   "bytes": 8282,
+   "s": 24.8,
+   "okay": false,
+   "err": null
+  },
+  {
+   "target": "erdos-1003",
+   "bytes": 8250,
+   "s": 0.9,
+   "okay": false,
+   "err": null
+  },
+  {
+   "target": "erdos-1003",
+   "bytes": 8202,
+   "s": 0.9,
+   "okay": false,
+   "err": null
+  },
+  {
+   "target": "erdos-1003",
+   "bytes": 8250,
+   "s": 0.9,
+   "okay": false,
+   "err": null
+  },
+  {
+   "target": "erdos-1003",
+   "bytes": 793,
+   "s": 0.8,
+   "okay": true,
+   "err": null
+  },
+  {
+   "target": "erdos-1003",
+   "bytes": 1151,
+   "s": 0.8,
+   "okay": true,
+   "err": null
+  },
+  {
+   "target": "erdos-1003",
+   "bytes": 826,
+   "s": 0.8,
+   "okay": true,
+   "err": null
+  },
+  {
+   "target": "erdos-1003",
+   "bytes": 832,
+   "s": 0.9,
+   "okay": true,
+   "err": null
+  },
+  {
+   "target": "erdos-1003",
+   "bytes": 1062,
+   "s": 1.0,
+   "okay": true,
+   "err": null
+  },
+  {
+   "target": "erdos-1003",
+   "bytes": 808,
+   "s": 62.5,
+   "okay": true,
+   "err": null
+  },
+  {
+   "target": "erdos-1003",
+   "bytes": 5112,
+   "s": 0.7,
+   "okay": true,
+   "err": null
+  },
+  {
+   "target": "erdos-727",
+   "bytes": 3583,
+   "s": 0.8,
+   "okay": true,
+   "err": null
+  },
+  {
+   "target": "erdos-727",
+   "bytes": 3431,
+   "s": 0.7,
+   "okay": true,
+   "err": null
+  },
+  {
+   "target": "erdos-727",
+   "bytes": 3613,
+   "s": 0.7,
+   "okay": true,
+   "err": null
+  },
+  {
+   "target": "erdos-727",
+   "bytes": 3440,
+   "s": 0.7,
+   "okay": true,
+   "err": null
+  },
+  {
+   "target": "erdos-727",
+   "bytes": 3637,
+   "s": 0.8,
+   "okay": true,
+   "err": null
+  },
+  {
+   "target": "erdos-727",
+   "bytes": 3353,
+   "s": 62.4,
+   "okay": true,
+   "err": null
+  },
+  {
+   "target": "erdos-727",
+   "bytes": 3489,
+   "s": 0.7,
+   "okay": true,
+   "err": null
+  },
+  {
+   "target": "erdos-727",
+   "bytes": 3493,
+   "s": 19.8,
+   "okay": true,
+   "err": null
+  },
+  {
+   "target": "erdos-727",
+   "bytes": 3738,
+   "s": 0.8,
+   "okay": true,
+   "err": null
+  },
+  {
+   "target": "erdos-727",
+   "bytes": 4510,
+   "s": 0.7,
+   "okay": false,
+   "err": null
+  },
+  {
+   "target": "erdos-727",
+   "bytes": 4091,
+   "s": 0.9,
+   "okay": false,
+   "err": null
+  },
+  {
+   "target": "erdos-727",
+   "bytes": 3638,
+   "s": 19.8,
+   "okay": false,
+   "err": null
+  },
+  {
+   "target": "erdos-727",
+   "bytes": 11743,
+   "s": 1.1,
+   "okay": false,
+   "err": null
+  },
+  {
+   "target": "erdos-727",
+   "bytes": 11893,
+   "s": 1.1,
+   "okay": false,
+   "err": null
+  },
+  {
+   "target": "erdos-727",
+   "bytes": 11857,
+   "s": 22.5,
+   "okay": false,
+   "err": null
+  },
+  {
+   "target": "erdos-727",
+   "bytes": 11829,
+   "s": 20.0,
+   "okay": false,
+   "err": null
+  },
+  {
+   "target": "erdos-727",
+   "bytes": 11913,
+   "s": 1.1,
+   "okay": false,
+   "err": null
+  },
+  {
+   "target": "erdos-727",
+   "bytes": 11773,
+   "s": 1.0,
+   "okay": false,
+   "err": null
+  },
+  {
+   "target": "erdos-727",
+   "bytes": 11997,
+   "s": 1.1,
+   "okay": false,
+   "err": null
+  },
+  {
+   "target": "erdos-727",
+   "bytes": 12025,
+   "s": 1.0,
+   "okay": false,
+   "err": null
+  },
+  {
+   "target": "erdos-727",
+   "bytes": 12025,
+   "s": 62.8,
+   "okay": false,
+   "err": null
+  },
+  {
+   "target": "erdos-727",
+   "bytes": 12025,
+   "s": 1.4,
+   "okay": false,
+   "err": null
+  },
+  {
+   "target": "erdos-727",
+   "bytes": 1097,
+   "s": 0.7,
+   "okay": true,
+   "err": null
+  },
+  {
+   "target": "erdos-727",
+   "bytes": 1337,
+   "s": 0.7,
+   "okay": true,
+   "err": null
+  },
+  {
+   "target": "erdos-727",
+   "bytes": 1128,
+   "s": 0.7,
+   "okay": true,
+   "err": null
+  },
+  {
+   "target": "erdos-727",
+   "bytes": 1335,
+   "s": 0.7,
+   "okay": true,
+   "err": null
+  },
+  {
+   "target": "erdos-727",
+   "bytes": 21417,
+   "s": 20.2,
+   "okay": true,
+   "err": null
+  },
+  {
+   "target": "erdos-727",
+   "bytes": 14280,
+   "s": 1.0,
+   "okay": true,
+   "err": null
+  },
+  {
+   "target": "erdos-410",
+   "bytes": 1647,
+   "s": 0.9,
+   "okay": true,
+   "err": null
+  },
+  {
+   "target": "erdos-410",
+   "bytes": 1279,
+   "s": 0.8,
+   "okay": false,
+   "err": null
+  },
+  {
+   "target": "erdos-410",
+   "bytes": 1685,
+   "s": 0.7,
+   "okay": true,
+   "err": null
+  },
+  {
+   "target": "erdos-410",
+   "bytes": 1237,
+   "s": 0.7,
+   "okay": true,
+   "err": null
+  },
+  {
+   "target": "erdos-410",
+   "bytes": 1318,
+   "s": 44.2,
+   "okay": true,
+   "err": null
+  },
+  {
+   "target": "erdos-410",
+   "bytes": 1296,
+   "s": 0.7,
+   "okay": true,
+   "err": null
+  },
+  {
+   "target": "erdos-410",
+   "bytes": 1322,
+   "s": 0.7,
+   "okay": true,
+   "err": null
+  },
+  {
+   "target": "erdos-410",
+   "bytes": 1369,
+   "s": 0.8,
+   "okay": true,
+   "err": null
+  },
+  {
+   "target": "erdos-410",
+   "bytes": 1318,
+   "s": 19.8,
+   "okay": true,
+   "err": null
+  },
+  {
+   "target": "erdos-410",
+   "bytes": 1438,
+   "s": 19.7,
+   "okay": true,
+   "err": null
+  },
+  {
+   "target": "erdos-410",
+   "bytes": 712,
+   "s": 0.7,
+   "okay": true,
+   "err": null
+  },
+  {
+   "target": "erdos-410",
+   "bytes": 727,
+   "s": 0.8,
+   "okay": true,
+   "err": null
+  },
+  {
+   "target": "erdos-410",
+   "bytes": 3685,
+   "s": 0.7,
+   "okay": false,
+   "err": null
+  },
+  {
+   "target": "erdos-410",
+   "bytes": 2912,
+   "s": 0.7,
+   "okay": false,
+   "err": null
+  },
+  {
+   "target": "erdos-410",
+   "bytes": 10756,
+   "s": 0.9,
+   "okay": false,
+   "err": null
+  },
+  {
+   "target": "erdos-410",
+   "bytes": 10766,
+   "s": 37.5,
+   "okay": false,
+   "err": null
+  },
+  {
+   "target": "erdos-410",
+   "bytes": 10954,
+   "s": 0.9,
+   "okay": false,
+   "err": null
+  },
+  {
+   "target": "erdos-410",
+   "bytes": 10898,
+   "s": 1.0,
+   "okay": false,
+   "err": null
+  },
+  {
+   "target": "erdos-410",
+   "bytes": 1069,
+   "s": 0.7,
+   "okay": true,
+   "err": null
+  },
+  {
+   "target": "erdos-410",
+   "bytes": 1660,
+   "s": 0.8,
+   "okay": true,
+   "err": null
+  },
+  {
+   "target": "erdos-410",
+   "bytes": 1653,
+   "s": 0.7,
+   "okay": true,
+   "err": null
+  },
+  {
+   "target": "erdos-410",
+   "bytes": 1082,
+   "s": 0.7,
+   "okay": true,
+   "err": null
+  },
+  {
+   "target": "erdos-410",
+   "bytes": 8164,
+   "s": 19.7,
+   "okay": true,
+   "err": null
+  },
+  {
+   "target": "erdos-410",
+   "bytes": 1360,
+   "s": 0.8,
+   "okay": true,
+   "err": null
+  }
+ ],
+ "erdos-727": {
+  "words": "Let k ≥ 2. Does ((n+k)!)² ∣ (2n)! hold for infinitely many n?",
+  "candidates": {
+   "agent-a": {
+    "author": "agent",
+    "model": "sonnet",
+    "expect": "survive",
+    "id": "agent-a",
+    "status": "live",
+    "tables": {
+     "domain": [
+      "false",
+      "false",
+      "true",
+      "true",
+      "true",
+      "true"
+     ],
+     "member": [
+      "true",
+      "false",
+      "false",
+      "false",
+      "false",
+      "true",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "true",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false"
+     ]
+    }
+   },
+   "agent-b": {
+    "author": "agent",
+    "model": "haiku",
+    "expect": "survive",
+    "id": "agent-b",
+    "status": "live",
+    "tables": {
+     "domain": [
+      "false",
+      "false",
+      "true",
+      "true",
+      "true",
+      "true"
+     ],
+     "member": [
+      "true",
+      "false",
+      "false",
+      "false",
+      "false",
+      "true",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "true",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false"
+     ]
+    }
+   },
+   "agent-c": {
+    "author": "agent",
+    "model": "opus",
+    "expect": "survive",
+    "id": "agent-c",
+    "status": "live",
+    "tables": {
+     "domain": [
+      "false",
+      "false",
+      "true",
+      "true",
+      "true",
+      "true"
+     ],
+     "member": [
+      "true",
+      "false",
+      "false",
+      "false",
+      "false",
+      "true",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "true",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false"
+     ]
+    }
+   },
+   "alt-sum": {
+    "author": "human",
+    "expect": "survive",
+    "note": "1 < k, a product for the square, n + n for 2n",
+    "id": "alt-sum",
+    "status": "live",
+    "tables": {
+     "domain": [
+      "false",
+      "false",
+      "true",
+      "true",
+      "true",
+      "true"
+     ],
+     "member": [
+      "true",
+      "false",
+      "false",
+      "false",
+      "false",
+      "true",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "true",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false"
+     ]
+    }
+   },
+   "bad-exists": {
+    "author": "planted",
+    "defect": "quantifier (some k, not every k)",
+    "expect": "caught",
+    "id": "bad-exists",
+    "status": "live",
+    "tables": {
+     "domain": [
+      "false",
+      "false",
+      "true",
+      "true",
+      "true",
+      "true"
+     ],
+     "member": [
+      "true",
+      "false",
+      "false",
+      "false",
+      "false",
+      "true",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "true",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false"
+     ]
+    },
+    "flag": "no direction proved against incumbent"
+   },
+   "bad-k1": {
+    "author": "planted",
+    "defect": "wrong domain (k ≥ 1)",
+    "expect": "caught",
+    "id": "bad-k1",
+    "status": "discarded",
+    "tables": {
+     "domain": [
+      "false",
+      "true",
+      "true",
+      "true",
+      "true",
+      "true"
+     ],
+     "member": [
+      "true",
+      "false",
+      "false",
+      "false",
+      "false",
+      "true",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "true",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false"
+     ]
+    },
+    "stage": "question (domain)",
+    "reason": "asked “Is k = 1 one of the k the conjecture is about?” the proposer answers false; this candidate's domain gives true",
+    "exhibit": "-- the kernel's decision (decide) on this candidate:\n-- domain 1 = true"
+   },
+   "bad-nosq": {
+    "author": "planted",
+    "defect": "lost exponent (no square)",
+    "expect": "caught",
+    "id": "bad-nosq",
+    "status": "discarded",
+    "tables": {
+     "domain": [
+      "false",
+      "false",
+      "true",
+      "true",
+      "true",
+      "true"
+     ],
+     "member": [
+      "true",
+      "true",
+      "true",
+      "true",
+      "true",
+      "true",
+      "true",
+      "true",
+      "true",
+      "true",
+      "true",
+      "true",
+      "true",
+      "true",
+      "true",
+      "true",
+      "true",
+      "true",
+      "true",
+      "true",
+      "true",
+      "false",
+      "false",
+      "true",
+      "true",
+      "true",
+      "true",
+      "true",
+      "true",
+      "true",
+      "true",
+      "true",
+      "true",
+      "true",
+      "true",
+      "true",
+      "true",
+      "true",
+      "true",
+      "true",
+      "true",
+      "true",
+      "false",
+      "false",
+      "false",
+      "true",
+      "true",
+      "true",
+      "true",
+      "true",
+      "true",
+      "true",
+      "true",
+      "true",
+      "true",
+      "true",
+      "true",
+      "true",
+      "true",
+      "true",
+      "true",
+      "true",
+      "true"
+     ]
+    },
+    "stage": "question (member)",
+    "reason": "asked “For k = 1, n = 1: does ((n+k)!)² divide (2n)!?” the proposer answers false; this candidate's member gives true",
+    "exhibit": "-- the kernel's decision (decide) on this candidate:\n-- member 1 1 = true"
+   },
+   "bad-prec": {
+    "author": "planted",
+    "defect": "precedence (2 * n! for (2n)!)",
+    "expect": "caught",
+    "id": "bad-prec",
+    "status": "discarded",
+    "tables": {
+     "domain": [
+      "false",
+      "false",
+      "true",
+      "true",
+      "true",
+      "true"
+     ],
+     "member": [
+      "true",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false"
+     ]
+    },
+    "stage": "question (member)",
+    "reason": "asked “For k = 1, n = 5: does ((n+k)!)² divide (2n)!?” the proposer answers true; this candidate's member gives false",
+    "exhibit": "-- the kernel's decision (decide) on this candidate:\n-- member 1 5 = false"
+   },
+   "incumbent": {
+    "author": "registry",
+    "who": "The Formal Conjectures Authors",
+    "expect": "survive",
+    "note": "the live root, ported by a wrapper proved equal by Iff.rfl",
+    "id": "incumbent",
+    "status": "live",
+    "tables": {
+     "domain": [
+      "false",
+      "false",
+      "true",
+      "true",
+      "true",
+      "true"
+     ],
+     "member": [
+      "true",
+      "false",
+      "false",
+      "false",
+      "false",
+      "true",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "true",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+      "false"
+     ]
+    }
+   }
+  },
+  "tests": [
+   {
+    "table": "domain",
+    "key": [
+     1
+    ],
+    "expected": false,
+    "results": {
+     "agent-a": true,
+     "agent-b": true,
+     "agent-c": true,
+     "alt-sum": true,
+     "bad-exists": true,
+     "bad-k1": false,
+     "bad-nosq": true,
+     "bad-prec": true,
+     "incumbent": true
+    }
+   },
+   {
+    "table": "member",
+    "key": [
+     1,
+     1
+    ],
+    "expected": false,
+    "results": {
+     "agent-a": true,
+     "agent-b": true,
+     "agent-c": true,
+     "alt-sum": true,
+     "bad-exists": true,
+     "bad-nosq": false,
+     "bad-prec": true,
+     "incumbent": true
+    }
+   },
+   {
+    "table": "member",
+    "key": [
+     1,
+     5
+    ],
+    "expected": true,
+    "results": {
+     "agent-a": true,
+     "agent-b": true,
+     "agent-c": true,
+     "alt-sum": true,
+     "bad-exists": true,
+     "bad-prec": false,
+     "incumbent": true
+    }
+   }
+  ],
+  "questions": [
+   {
+    "table": "domain",
+    "key": [
+     1
+    ],
+    "asked": "Is k = 1 one of the k the conjecture is about?",
+    "answer": false,
+    "between": [
+     "bad-k1",
+     "incumbent"
+    ]
+   },
+   {
+    "table": "member",
+    "key": [
+     1,
+     1
+    ],
+    "asked": "For k = 1, n = 1: does ((n+k)!)² divide (2n)!?",
+    "answer": false,
+    "between": [
+     "bad-nosq",
+     "incumbent"
+    ]
+   },
+   {
+    "table": "member",
+    "key": [
+     1,
+     5
+    ],
+    "asked": "For k = 1, n = 5: does ((n+k)!)² divide (2n)!?",
+    "answer": true,
+    "between": [
+     "bad-prec",
+     "incumbent"
+    ]
+   }
+  ],
+  "pairs": {
+   "agent-a→agent-b:implies": {
+    "state": "open",
+    "by": null
+   },
+   "agent-a→agent-b:contradicts": {
+    "state": "open",
+    "by": null
+   },
+   "agent-a→agent-c:implies": {
+    "state": "proved",
+    "by": "tactic"
+   },
+   "agent-a→agent-c:contradicts": {
+    "state": "open",
+    "by": null
+   },
+   "agent-a→alt-sum:implies": {
+    "state": "open",
+    "by": null
+   },
+   "agent-a→alt-sum:contradicts": {
+    "state": "open",
+    "by": null
+   },
+   "agent-a→bad-exists:implies": {
+    "state": "open",
+    "by": null
+   },
+   "agent-a→bad-exists:contradicts": {
+    "state": "open",
+    "by": null
+   },
+   "agent-a→incumbent:implies": {
+    "state": "proved",
+    "by": "tactic"
+   },
+   "agent-a→incumbent:contradicts": {
+    "state": "open",
+    "by": null
+   },
+   "agent-b→agent-a:implies": {
+    "state": "open",
+    "by": null
+   },
+   "agent-b→agent-a:contradicts": {
+    "state": "open",
+    "by": null
+   },
+   "agent-b→agent-c:implies": {
+    "state": "open",
+    "by": null
+   },
+   "agent-b→agent-c:contradicts": {
+    "state": "open",
+    "by": null
+   },
+   "agent-b→alt-sum:implies": {
+    "state": "open",
+    "by": null
+   },
+   "agent-b→alt-sum:contradicts": {
+    "state": "open",
+    "by": null
+   },
+   "agent-b→bad-exists:implies": {
+    "state": "open",
+    "by": null
+   },
+   "agent-b→bad-exists:contradicts": {
+    "state": "open",
+    "by": null
+   },
+   "agent-b→incumbent:implies": {
+    "state": "proved",
+    "by": "agent exhibit",
+    "lean": "theorem dir : C_agent_b.conj → C_incumbent.conj := by\n  intro h k hk\n  apply Set.infinite_of_forall_exists_gt\n  intro a\n  obtain ⟨n, hn, hm⟩ := h k hk (a + 1)\n  exact ⟨n, hm, by omega⟩"
+   },
+   "agent-b→incumbent:contradicts": {
+    "state": "open",
+    "by": null
+   },
+   "agent-c→agent-a:implies": {
+    "state": "proved",
+    "by": "tactic"
+   },
+   "agent-c→agent-a:contradicts": {
+    "state": "open",
+    "by": null
+   },
+   "agent-c→agent-b:implies": {
+    "state": "open",
+    "by": null
+   },
+   "agent-c→agent-b:contradicts": {
+    "state": "open",
+    "by": null
+   },
+   "agent-c→alt-sum:implies": {
+    "state": "open",
+    "by": null
+   },
+   "agent-c→alt-sum:contradicts": {
+    "state": "open",
+    "by": null
+   },
+   "agent-c→bad-exists:implies": {
+    "state": "open",
+    "by": null
+   },
+   "agent-c→bad-exists:contradicts": {
+    "state": "open",
+    "by": null
+   },
+   "agent-c→incumbent:implies": {
+    "state": "proved",
+    "by": "tactic"
+   },
+   "agent-c→incumbent:contradicts": {
+    "state": "open",
+    "by": null
+   },
+   "alt-sum→agent-a:implies": {
+    "state": "open",
+    "by": null
+   },
+   "alt-sum→agent-a:contradicts": {
+    "state": "open",
+    "by": null
+   },
+   "alt-sum→agent-b:implies": {
+    "state": "open",
+    "by": null
+   },
+   "alt-sum→agent-b:contradicts": {
+    "state": "open",
+    "by": null
+   },
+   "alt-sum→agent-c:implies": {
+    "state": "open",
+    "by": null
+   },
+   "alt-sum→agent-c:contradicts": {
+    "state": "open",
+    "by": null
+   },
+   "alt-sum→bad-exists:implies": {
+    "state": "open",
+    "by": null
+   },
+   "alt-sum→bad-exists:contradicts": {
+    "state": "open",
+    "by": null
+   },
+   "alt-sum→incumbent:implies": {
+    "state": "proved",
+    "by": "agent exhibit",
+    "lean": "theorem dir : C_alt_sum.conj → C_incumbent.conj := by\n  intro h k hk\n  have hk' : C_alt_sum.domain k := by\n    simp only [C_incumbent.domain] at hk; simp only [C_alt_sum.domain]; omega\n  have e : {n : ℕ | C_incumbent.member k n} = {n : ℕ | C_alt_sum.member k n} := by\n    ext n; simp only [Set.mem_setOf_eq, C_alt_sum.member, C_incumbent.member, sq, two_mul]\n  rw [e]; exact h k hk'"
+   },
+   "alt-sum→incumbent:contradicts": {
+    "state": "open",
+    "by": null
+   },
+   "bad-exists→agent-a:implies": {
+    "state": "open",
+    "by": null
+   },
+   "bad-exists→agent-a:contradicts": {
+    "state": "open",
+    "by": null
+   },
+   "bad-exists→agent-b:implies": {
+    "state": "open",
+    "by": null
+   },
+   "bad-exists→agent-b:contradicts": {
+    "state": "open",
+    "by": null
+   },
+   "bad-exists→agent-c:implies": {
+    "state": "open",
+    "by": null
+   },
+   "bad-exists→agent-c:contradicts": {
+    "state": "open",
+    "by": null
+   },
+   "bad-exists→alt-sum:implies": {
+    "state": "open",
+    "by": null
+   },
+   "bad-exists→alt-sum:contradicts": {
+    "state": "open",
+    "by": null
+   },
+   "bad-exists→incumbent:implies": {
+    "state": "open",
+    "by": null
+   },
+   "bad-exists→incumbent:contradicts": {
+    "state": "open",
+    "by": null
+   },
+   "incumbent→agent-a:implies": {
+    "state": "proved",
+    "by": "tactic"
+   },
+   "incumbent→agent-a:contradicts": {
+    "state": "open",
+    "by": null
+   },
+   "incumbent→agent-b:implies": {
+    "state": "proved",
+    "by": "agent exhibit",
+    "lean": "theorem dir : C_incumbent.conj → C_agent_b.conj := by\n  intro h k hk N\n  obtain ⟨b, hb, hlt⟩ := Set.Infinite.exists_gt (h k hk) N\n  exact ⟨b, hlt.le, hb⟩"
+   },
+   "incumbent→agent-b:contradicts": {
+    "state": "open",
+    "by": null
+   },
+   "incumbent→agent-c:implies": {
+    "state": "proved",
+    "by": "tactic"
+   },
+   "incumbent→agent-c:contradicts": {
+    "state": "open",
+    "by": null
+   },
+   "incumbent→alt-sum:implies": {
+    "state": "proved",
+    "by": "agent exhibit",
+    "lean": "theorem dir : C_incumbent.conj → C_alt_sum.conj := by\n  intro h k hk\n  have hk' : C_incumbent.domain k := by\n    simp only [C_alt_sum.domain] at hk; simp only [C_incumbent.domain]; omega\n  have e : {n : ℕ | C_alt_sum.member k n} = {n : ℕ | C_incumbent.member k n} := by\n    ext n; simp only [Set.mem_setOf_eq, C_alt_sum.member, C_incumbent.member, sq, two_mul]\n  rw [e]; exact h k hk'"
+   },
+   "incumbent→alt-sum:contradicts": {
+    "state": "open",
+    "by": null
+   },
+   "incumbent→bad-exists:implies": {
+    "state": "open",
+    "by": null
+   },
+   "incumbent→bad-exists:contradicts": {
+    "state": "open",
+    "by": null
+   }
+  },
+  "clusters": [
+   [
+    "agent-a",
+    "agent-b",
+    "agent-c",
+    "alt-sum",
+    "incumbent"
+   ],
+   [
+    "bad-exists"
+   ]
+  ],
+  "mutants": [
+   {
+    "mutation": "domain: ≥ → >",
+    "result": "caught",
+    "by": "domain at (2,) disagrees with the proposer"
+   },
+   {
+    "mutation": "domain: 2 → 1",
+    "result": "caught",
+    "by": "domain at (1,) disagrees with the proposer"
+   },
+   {
+    "mutation": "domain: 2 → 3",
+    "result": "caught",
+    "by": "domain at (2,) disagrees with the proposer"
+   },
+   {
+    "mutation": "member: + k → + 1",
+    "result": "caught",
+    "by": "member at (2, 0) disagrees with the proposer"
+   },
+   {
+    "mutation": "member: ^ 2 → ∅",
+    "result": "caught",
+    "by": "member at (1, 1) disagrees with the proposer"
+   },
+   {
+    "mutation": "member: 2 * → 3 *",
+    "result": "caught",
+    "by": "member at (1, 2) disagrees with the proposer"
+   },
+   {
+    "mutation": "member: 2 → 1",
+    "result": "caught",
+    "by": "member at (1, 1) disagrees with the proposer"
+   },
+   {
+    "mutation": "member: 2 → 3",
+    "result": "caught",
+    "by": "member at (1, 5) disagrees with the proposer"
+   },
+   {
+    "mutation": "member: 2 → 1",
+    "result": "caught",
+    "by": "member at (1, 5) disagrees with the proposer"
+   },
+   {
+    "mutation": "member: 2 → 3",
+    "result": "caught",
+    "by": "member at (1, 2) disagrees with the proposer"
+   }
+  ]
+ },
+ "erdos-410": {
+  "words": "Let σ_1(n) = σ(n), the sum of divisors function, and σ_k(n) = σ(σ_{k-1}(n)). Is it true that lim_{k → ∞} σ_k(n)^(1/k) = ∞?",
+  "candidates": {
+   "agent-a": {
+    "author": "agent",
+    "model": "sonnet",
+    "expect": "survive",
+    "id": "agent-a",
+    "status": "discarded",
+    "tables": {
+     "domain": [
+      "false",
+      "true",
+      "true",
+      "true",
+      "true",
+      "true"
+     ],
+     "iter": [
+      "1",
+      "1",
+      "1",
+      "3",
+      "4",
+      "7",
+      "4",
+      "7",
+      "8",
+      "7",
+      "8",
+      "15",
+      "6",
+      "12",
+      "28",
+      "12",
+      "28",
+      "56"
+     ]
+    },
+    "stage": "question (domain)",
+    "reason": "asked “Is n = 1 one of the n the conjecture is about? (The words are silent; the source, Erdős–Granville–Pomerance–Spiro 1990, takes n ≥ 2, and at n = 1 every σ_k(1) is 1.)” the proposer answers false; this candidate's domain gives true",
+    "exhibit": "-- the kernel's decision (decide) on this candidate:\n-- domain 1 = true"
+   },
+   "agent-b": {
+    "author": "agent",
+    "model": "haiku",
+    "expect": "survive",
+    "id": "agent-b",
+    "status": "discarded",
+    "tables": {
+     "domain": [
+      "false",
+      "false",
+      "true",
+      "true",
+      "true",
+      "true"
+     ]
+    },
+    "stage": "compile",
+    "reason": "does not elaborate, or a table could not be evaluated",
+    "exhibit": "-:11:21-11:33: error(lean.unknownIdentifier): Unknown identifier `divisorSigma`\n\n-:12:7-12:19: error(lean.unknownIdentifier): Unknown identifier `divisorSigma`\n\n-:18:0-18:5: error: Aborting evaluation since the expression depends on the 'sorry' axiom, which can lead to runtime instability and crashes.\n\nTo attempt to evaluate anyway despite the risks, use the '#eval!' command.\n"
+   },
+   "agent-c": {
+    "author": "agent",
+    "model": "opus",
+    "expect": "survive",
+    "id": "agent-c",
+    "status": "live",
+    "tables": {
+     "domain": [
+      "false",
+      "false",
+      "true",
+      "true",
+      "true",
+      "true"
+     ],
+     "iter": [
+      "1",
+      "1",
+      "1",
+      "3",
+      "4",
+      "7",
+      "4",
+      "7",
+      "8",
+      "7",
+      "8",
+      "15",
+      "6",
+      "12",
+      "28",
+      "12",
+      "28",
+      "56"
+     ]
+    }
+   },
+   "alt-eps": {
+    "author": "human",
+    "expect": "survive",
+    "note": "∀ M, ∃ K, ∀ k ≥ K, M ≤ … for Tendsto atTop atTop; 2 ≤ n",
+    "id": "alt-eps",
+    "status": "live",
+    "tables": {
+     "domain": [
+      "false",
+      "false",
+      "true",
+      "true",
+      "true",
+      "true"
+     ],
+     "iter": [
+      "1",
+      "1",
+      "1",
+      "3",
+      "4",
+      "7",
+      "4",
+      "7",
+      "8",
+      "7",
+      "8",
+      "15",
+      "6",
+      "12",
+      "28",
+      "12",
+      "28",
+      "56"
+     ]
+    }
+   },
+   "bad-exists": {
+    "author": "planted",
+    "defect": "quantifier (some n, not every n)",
+    "expect": "caught",
+    "id": "bad-exists",
+    "status": "live",
+    "tables": {
+     "domain": [
+      "false",
+      "false",
+      "true",
+      "true",
+      "true",
+      "true"
+     ],
+     "iter": [
+      "1",
+      "1",
+      "1",
+      "3",
+      "4",
+      "7",
+      "4",
+      "7",
+      "8",
+      "7",
+      "8",
+      "15",
+      "6",
+      "12",
+      "28",
+      "12",
+      "28",
+      "56"
+     ]
+    },
+    "flag": "no direction proved against incumbent"
+   },
+   "bad-index": {
+    "author": "planted",
+    "defect": "off-by-one index (σ_{k+1})",
+    "expect": "caught",
+    "id": "bad-index",
+    "status": "discarded",
+    "tables": {
+     "domain": [
+      "false",
+      "false",
+      "true",
+      "true",
+      "true",
+      "true"
+     ],
+     "iter": [
+      "1",
+      "1",
+      "1",
+      "4",
+      "7",
+      "8",
+      "7",
+      "8",
+      "15",
+      "8",
+      "15",
+      "24",
+      "12",
+      "28",
+      "56",
+      "28",
+      "56",
+      "120"
+     ]
+    },
+    "stage": "question (iter)",
+    "reason": "asked “What is σ_1(2) in the problem's indexing (σ_1 = σ)?” the proposer answers 3; this candidate's iter gives 4",
+    "exhibit": "-- the kernel's decision (decide) on this candidate:\n-- iter 2 1 = 4"
+   },
+   "bad-natdiv": {
+    "author": "planted",
+    "defect": "junk value (1/k in ℕ is 0)",
+    "expect": "caught",
+    "id": "bad-natdiv",
+    "status": "discarded",
+    "tables": {
+     "domain": [
+      "false",
+      "false",
+      "true",
+      "true",
+      "true",
+      "true"
+     ],
+     "iter": [
+      "1",
+      "1",
+      "1",
+      "3",
+      "4",
+      "7",
+      "4",
+      "7",
+      "8",
+      "7",
+      "8",
+      "15",
+      "6",
+      "12",
+      "28",
+      "12",
+      "28",
+      "56"
+     ]
+    },
+    "screen": {
+     "exhibit": "theorem screen_neg : ¬ conj := by\n  intro h\n  have h2 := h 2 (by decide)\n  have hev : (fun k : ℕ ↦ (iter 2 k : ℝ) ^ ((1 / k : ℕ) : ℝ)) =ᶠ[Filter.atTop] fun _ => 1 := by\n    filter_upwards [Filter.eventually_ge_atTop 2] with k hk\n    have : (1 / k : ℕ) = 0 := Nat.div_eq_of_lt (by omega)\n    simp [this]\n  exact Filter.not_tendsto_const_atTop 1 _ ((Filter.tendsto_congr' hev).mp h2)",
+     "accepted": true
+    },
+    "stage": "screen",
+    "reason": "an agent proved its negation in a few lines: as written it is not the open conjecture",
+    "exhibit": "theorem screen_neg : ¬ conj := by\n  intro h\n  have h2 := h 2 (by decide)\n  have hev : (fun k : ℕ ↦ (iter 2 k : ℝ) ^ ((1 / k : ℕ) : ℝ)) =ᶠ[Filter.atTop] fun _ => 1 := by\n    filter_upwards [Filter.eventually_ge_atTop 2] with k hk\n    have : (1 / k : ℕ) = 0 := Nat.div_eq_of_lt (by omega)\n    simp [this]\n  exact Filter.not_tendsto_const_atTop 1 _ ((Filter.tendsto_congr' hev).mp h2)"
+   },
+   "bad-nodomain": {
+    "author": "planted",
+    "defect": "wrong domain (every n, so n = 1 too)",
+    "expect": "caught",
+    "id": "bad-nodomain",
+    "status": "discarded",
+    "tables": {
+     "domain": [
+      "true",
+      "true",
+      "true",
+      "true",
+      "true",
+      "true"
+     ],
+     "iter": [
+      "1",
+      "1",
+      "1",
+      "3",
+      "4",
+      "7",
+      "4",
+      "7",
+      "8",
+      "7",
+      "8",
+      "15",
+      "6",
+      "12",
+      "28",
+      "12",
+      "28",
+      "56"
+     ]
+    },
+    "screen": {
+     "exhibit": "theorem screen_neg : ¬ conj := by\n  intro h\n  have h1 := h 1 trivial\n  have e : (fun k : ℕ ↦ ((iter 1 k : ℕ) : ℝ) ^ (1 / (k : ℝ))) = fun _ => 1 := by\n    funext k\n    have : iter 1 k = 1 := by\n      unfold iter\n      induction k with\n      | zero => rfl\n      | succ k ih => rw [Function.iterate_succ_apply', ih]; decide\n    simp [this]\n  rw [e] at h1\n  exact Filter.not_tendsto_const_atTop 1 _ h1",
+     "accepted": true
+    },
+    "stage": "screen",
+    "reason": "an agent proved its negation in a few lines: as written it is not the open conjecture",
+    "exhibit": "theorem screen_neg : ¬ conj := by\n  intro h\n  have h1 := h 1 trivial\n  have e : (fun k : ℕ ↦ ((iter 1 k : ℕ) : ℝ) ^ (1 / (k : ℝ))) = fun _ => 1 := by\n    funext k\n    have : iter 1 k = 1 := by\n      unfold iter\n      induction k with\n      | zero => rfl\n      | succ k ih => rw [Function.iterate_succ_apply', ih]; decide\n    simp [this]\n  rw [e] at h1\n  exact Filter.not_tendsto_const_atTop 1 _ h1"
+   },
+   "bad-sigma0": {
+    "author": "planted",
+    "defect": "wrong function (σ_0, the divisor count)",
+    "expect": "caught",
+    "id": "bad-sigma0",
+    "status": "discarded",
+    "tables": {
+     "domain": [
+      "false",
+      "false",
+      "true",
+      "true",
+      "true",
+      "true"
+     ],
+     "iter": [
+      "1",
+      "1",
+      "1",
+      "2",
+      "2",
+      "2",
+      "2",
+      "2",
+      "2",
+      "3",
+      "2",
+      "2",
+      "2",
+      "2",
+      "2",
+      "4",
+      "3",
+      "2"
+     ]
+    },
+    "stage": "question (iter)",
+    "reason": "asked “What is σ_1(2) in the problem's indexing (σ_1 = σ)?” the proposer answers 3; this candidate's iter gives 2",
+    "exhibit": "-- the kernel's decision (decide) on this candidate:\n-- iter 2 1 = 2"
+   },
+   "incumbent": {
+    "author": "registry",
+    "who": "The Formal Conjectures Authors",
+    "expect": "survive",
+    "note": "the live root, ported by a wrapper proved equal by Iff.rfl",
+    "id": "incumbent",
+    "status": "live",
+    "tables": {
+     "domain": [
+      "false",
+      "false",
+      "true",
+      "true",
+      "true",
+      "true"
+     ],
+     "iter": [
+      "1",
+      "1",
+      "1",
+      "3",
+      "4",
+      "7",
+      "4",
+      "7",
+      "8",
+      "7",
+      "8",
+      "15",
+      "6",
+      "12",
+      "28",
+      "12",
+      "28",
+      "56"
+     ]
+    }
+   }
+  },
+  "tests": [
+   {
+    "table": "domain",
+    "key": [
+     1
+    ],
+    "expected": false,
+    "results": {
+     "agent-a": false,
+     "agent-c": true,
+     "alt-eps": true,
+     "bad-exists": true,
+     "bad-index": true,
+     "bad-sigma0": true,
+     "incumbent": true
+    }
+   },
+   {
+    "table": "iter",
+    "key": [
+     2,
+     1
+    ],
+    "expected": 3,
+    "results": {
+     "agent-c": true,
+     "alt-eps": true,
+     "bad-exists": true,
+     "bad-index": false,
+     "bad-sigma0": false,
+     "incumbent": true
+    }
+   }
+  ],
+  "questions": [
+   {
+    "table": "domain",
+    "key": [
+     1
+    ],
+    "asked": "Is n = 1 one of the n the conjecture is about? (The words are silent; the source, Erdős–Granville–Pomerance–Spiro 1990, takes n ≥ 2, and at n = 1 every σ_k(1) is 1.)",
+    "answer": false,
+    "between": [
+     "agent-a",
+     "incumbent"
+    ]
+   },
+   {
+    "table": "iter",
+    "key": [
+     2,
+     1
+    ],
+    "asked": "What is σ_1(2) in the problem's indexing (σ_1 = σ)?",
+    "answer": 3,
+    "between": [
+     "bad-index",
+     "bad-sigma0",
+     "incumbent"
+    ]
+   }
+  ],
+  "pairs": {
+   "agent-c→alt-eps:implies": {
+    "state": "open",
+    "by": null
+   },
+   "agent-c→alt-eps:contradicts": {
+    "state": "open",
+    "by": null
+   },
+   "agent-c→bad-exists:implies": {
+    "state": "open",
+    "by": null
+   },
+   "agent-c→bad-exists:contradicts": {
+    "state": "open",
+    "by": null
+   },
+   "agent-c→incumbent:implies": {
+    "state": "proved",
+    "by": "agent exhibit",
+    "lean": "theorem dir : C_agent_c.conj → C_incumbent.conj := by\n  have e : (fun m : ℕ => ∑ d ∈ m.divisors, d) = ⇑(ArithmeticFunction.sigma 1) := by\n    funext m; exact (ArithmeticFunction.sigma_one_apply m).symm\n  intro h n hn\n  have hn' : C_agent_c.domain n := by\n    simp only [C_incumbent.domain] at hn; simp only [C_agent_c.domain]; omega\n  have h' := h n hn'\n  simp only [C_agent_c.iter, C_incumbent.iter, e] at *\n  exact h'"
+   },
+   "agent-c→incumbent:contradicts": {
+    "state": "open",
+    "by": null
+   },
+   "alt-eps→agent-c:implies": {
+    "state": "open",
+    "by": null
+   },
+   "alt-eps→agent-c:contradicts": {
+    "state": "open",
+    "by": null
+   },
+   "alt-eps→bad-exists:implies": {
+    "state": "open",
+    "by": null
+   },
+   "alt-eps→bad-exists:contradicts": {
+    "state": "open",
+    "by": null
+   },
+   "alt-eps→incumbent:implies": {
+    "state": "proved",
+    "by": "agent exhibit",
+    "lean": "theorem dir : C_alt_eps.conj → C_incumbent.conj := by\n  intro h n hn\n  have hn' : C_alt_eps.domain n := by\n    simp only [C_incumbent.domain] at hn; simp only [C_alt_eps.domain]; omega\n  apply Filter.tendsto_atTop_atTop.mpr\n  intro M\n  obtain ⟨K, hK⟩ := h n hn' M\n  exact ⟨K, fun k hk => hK k hk⟩"
+   },
+   "alt-eps→incumbent:contradicts": {
+    "state": "open",
+    "by": null
+   },
+   "bad-exists→agent-c:implies": {
+    "state": "open",
+    "by": null
+   },
+   "bad-exists→agent-c:contradicts": {
+    "state": "open",
+    "by": null
+   },
+   "bad-exists→alt-eps:implies": {
+    "state": "open",
+    "by": null
+   },
+   "bad-exists→alt-eps:contradicts": {
+    "state": "open",
+    "by": null
+   },
+   "bad-exists→incumbent:implies": {
+    "state": "open",
+    "by": null
+   },
+   "bad-exists→incumbent:contradicts": {
+    "state": "open",
+    "by": null
+   },
+   "incumbent→agent-c:implies": {
+    "state": "proved",
+    "by": "agent exhibit",
+    "lean": "theorem dir : C_incumbent.conj → C_agent_c.conj := by\n  have e : (fun m : ℕ => ∑ d ∈ m.divisors, d) = ⇑(ArithmeticFunction.sigma 1) := by\n    funext m; exact (ArithmeticFunction.sigma_one_apply m).symm\n  intro h n hn\n  have hn' : C_incumbent.domain n := by\n    simp only [C_agent_c.domain] at hn; simp only [C_incumbent.domain]; omega\n  have h' := h n hn'\n  simp only [C_agent_c.iter, C_incumbent.iter] at *\n  rw [e]; exact h'"
+   },
+   "incumbent→agent-c:contradicts": {
+    "state": "open",
+    "by": null
+   },
+   "incumbent→alt-eps:implies": {
+    "state": "proved",
+    "by": "agent exhibit",
+    "lean": "theorem dir : C_incumbent.conj → C_alt_eps.conj := by\n  intro h n hn M\n  have hn' : C_incumbent.domain n := by\n    simp only [C_alt_eps.domain] at hn; simp only [C_incumbent.domain]; omega\n  obtain ⟨K, hK⟩ := Filter.tendsto_atTop_atTop.mp (h n hn') M\n  exact ⟨K, fun k hk => hK k hk⟩"
+   },
+   "incumbent→alt-eps:contradicts": {
+    "state": "open",
+    "by": null
+   },
+   "incumbent→bad-exists:implies": {
+    "state": "open",
+    "by": null
+   },
+   "incumbent→bad-exists:contradicts": {
+    "state": "open",
+    "by": null
+   }
+  },
+  "clusters": [
+   [
+    "agent-c",
+    "alt-eps",
+    "incumbent"
+   ],
+   [
+    "bad-exists"
+   ]
+  ],
+  "mutants": [
+   {
+    "mutation": "domain: > → ≥",
+    "result": "caught",
+    "by": "domain at (1,) disagrees with the proposer"
+   },
+   {
+    "mutation": "domain: 1 → 0",
+    "result": "caught",
+    "by": "domain at (1,) disagrees with the proposer"
+   },
+   {
+    "mutation": "domain: 1 → 2",
+    "result": "caught",
+    "by": "domain at (2,) disagrees with the proposer"
+   },
+   {
+    "mutation": "iter: sigma 1 → sigma 0",
+    "result": "caught",
+    "by": "iter at (2, 1) disagrees with the proposer"
+   },
+   {
+    "mutation": "iter: ^[k] → ^[k + 1]",
+    "result": "caught",
+    "by": "iter at (2, 1) disagrees with the proposer"
+   },
+   {
+    "mutation": "iter: 1 → 0",
+    "result": "caught",
+    "by": "iter at (2, 1) disagrees with the proposer"
+   },
+   {
+    "mutation": "iter: 1 → 2",
+    "result": "caught",
+    "by": "iter at (2, 1) disagrees with the proposer"
+   }
+  ]
+ }
+}

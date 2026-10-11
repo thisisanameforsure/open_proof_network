@@ -13,9 +13,11 @@
   "gate_owner": "thisisanameforsure",
   "graph_id": "adversarial",
   "hazard_checkers": [
+    "auto-implicit",
     "div-zero",
     "int-trunc",
     "junk-value",
+    "nat-div",
     "nat-sub",
     "off-by-one-range",
     "unused-binder"

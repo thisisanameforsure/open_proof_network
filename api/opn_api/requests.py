@@ -83,8 +83,8 @@ def exhibit_text(fields: dict[str, Any], *, required: bool) -> str | None:
 def fetch_optional(ctx: Context, path: str) -> bytes | None:
     """A committed file, or ``None`` when the graph has no such file; unreachable is a 503."""
     try:
-        got = ctx.githost.fetch_raw(
-            ctx.settings.graph_repo, ctx.settings.graph_branch, path, etag=None
+        got = ctx.githost.fetch_raw(  # F05-T30: at main's sha, as every committed read
+            ctx.settings.graph_repo, ctx.head or ctx.settings.graph_branch, path, etag=None
         )
     except GitHostError as exc:
         raise ApiError(503, "graph-unreachable", f"cannot read {path} from the graph") from exc
@@ -289,7 +289,7 @@ def check_ancestor(
             400,
             "circular-ancestor",
             f"a {CIRCULAR_CLASS} claim names `ancestor`: a node that depends on {stmt_ref}; the "
-            f"exhibit proves `<ancestor's statement> → <{stmt_ref}'s statement>`",
+            f"exhibit proves `<{stmt_ref}'s statement> → <ancestor's statement>` (F08-T21)",
         )
     above = ancestors_in(precheck.graph_doc(ctx).get(target_id, []), stmt_ref)
     if raw not in above:

@@ -1,0 +1,97 @@
+{
+  "artifact": {
+    "hash": "df375af29a9b41444121a30a5577ad2324708de0aec71444cbdcb2f5c56302b0",
+    "kind": "partial",
+    "path": "attempts/20260913T160600Z-agent-4b1f4d-partial.lean"
+  },
+  "gate": "82834c4684b8e4130e5c23ad9d6afc6dad4dc1bb",
+  "node": "variant-93e79cb5",
+  "schema": "outline/v1",
+  "steps": [
+    {
+      "child_node": "variant-93e79cb5--h1",
+      "children": [],
+      "claim": {
+        "printed": "reliable",
+        "text": "q ∧ p",
+        "truncated": false
+      },
+      "closed_by": {
+        "kind": "hole",
+        "tactics": []
+      },
+      "goal": {
+        "hypotheses": [
+          {
+            "name": "h₁",
+            "type": {
+              "printed": "reliable",
+              "text": "q ∧ p",
+              "truncated": false
+            }
+          }
+        ],
+        "target": {
+          "printed": "reliable",
+          "text": "p",
+          "truncated": false
+        }
+      },
+      "id": "h1",
+      "kind": "hole",
+      "name": "h₁",
+      "span": {
+        "end_line": 6,
+        "start_line": 6
+      },
+      "uses": {
+        "defs": [],
+        "mathlib": [],
+        "nodes": []
+      }
+    },
+    {
+      "child_node": "variant-93e79cb5--h2",
+      "children": [],
+      "claim": {
+        "printed": "reliable",
+        "text": "q ∧ p → p",
+        "truncated": false
+      },
+      "closed_by": {
+        "kind": "hole",
+        "tactics": []
+      },
+      "goal": {
+        "hypotheses": [
+          {
+            "name": "h₂",
+            "type": {
+              "printed": "reliable",
+              "text": "q ∧ p → p",
+              "truncated": false
+            }
+          }
+        ],
+        "target": {
+          "printed": "reliable",
+          "text": "p",
+          "truncated": false
+        }
+      },
+      "id": "h2",
+      "kind": "hole",
+      "name": "h₂",
+      "span": {
+        "end_line": 7,
+        "start_line": 7
+      },
+      "uses": {
+        "defs": [],
+        "mathlib": [],
+        "nodes": []
+      }
+    }
+  ],
+  "target": "tutorial"
+}

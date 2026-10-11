@@ -1,0 +1,87 @@
+F07-T53 green run, 2026-10-01T23:14:54Z
+$ uv run --frozen pytest api/tests/test_finding_partial_witnesses.py gate/tests/test_finding_partial_carries_witnesses.py gate/tests/test_finding_guide_carried_witnesses.py -q -rA
+PASSED api/tests/test_finding_partial_witnesses.py::test_a_partial_with_checked_witnesses_opens_one_pull_request_with_every_file
+PASSED api/tests/test_finding_partial_witnesses.py::test_pin_a_partial_without_witnesses_needs_no_holes_in_its_result
+PASSED api/tests/test_finding_partial_witnesses.py::test_a_carried_witness_the_precheck_did_not_check_opens_nothing[None]
+PASSED api/tests/test_finding_partial_witnesses.py::test_a_carried_witness_the_precheck_did_not_check_opens_nothing[holes1]
+PASSED api/tests/test_finding_partial_witnesses.py::test_a_carried_witness_the_precheck_did_not_check_opens_nothing[holes2]
+PASSED api/tests/test_finding_partial_witnesses.py::test_a_carried_witness_the_precheck_did_not_check_opens_nothing[holes3]
+PASSED api/tests/test_finding_partial_witnesses.py::test_a_malformed_carried_witness_costs_no_precheck_job[bundle0-partial-hole-witness-unnamed]
+PASSED api/tests/test_finding_partial_witnesses.py::test_a_malformed_carried_witness_costs_no_precheck_job[bundle1-partial-hole-witness-duplicate]
+PASSED api/tests/test_finding_partial_witnesses.py::test_a_malformed_carried_witness_costs_no_precheck_job[bundle2-partial-hole-witness-sorry]
+PASSED api/tests/test_finding_partial_witnesses.py::test_a_malformed_carried_witness_costs_no_precheck_job[bundle3-partial-hole-witness-unattached]
+PASSED api/tests/test_finding_partial_witnesses.py::test_a_malformed_carried_witness_costs_no_precheck_job[bundle4-None-None]
+PASSED api/tests/test_finding_partial_witnesses.py::test_a_malformed_carried_witness_costs_no_precheck_job[bundle5-proof-hole-witness-without-partial]
+PASSED api/tests/test_finding_partial_witnesses.py::test_a_malformed_carried_witness_costs_no_precheck_job[bundle6-None-hole-witness-without-partial]
+PASSED api/tests/test_finding_partial_witnesses.py::test_a_malformed_carried_witness_costs_no_precheck_job[bundle7-None-hole-witness-without-partial]
+PASSED api/tests/test_finding_partial_witnesses.py::test_a_malformed_carried_witness_is_refused_at_submission_too
+PASSED api/tests/test_finding_partial_witnesses.py::test_the_two_tools_say_how_a_bundle_carries_witnesses
+PASSED api/tests/test_finding_partial_witnesses.py::test_a_bundle_path_the_gate_gives_no_role_costs_no_job_and_opens_nothing[targets/propositional/nodes/tutorial-and-swap/attempts/20261001T160800Z-alice-partial.1.witness.bak]
+PASSED api/tests/test_finding_partial_witnesses.py::test_a_bundle_path_the_gate_gives_no_role_costs_no_job_and_opens_nothing[targets/propositional/nodes/tutorial-and-swap/attempts/.witness]
+PASSED api/tests/test_finding_partial_witnesses.py::test_a_bundle_path_the_gate_gives_no_role_costs_no_job_and_opens_nothing[targets/propositional/nodes/tutorial-and-swap/attempts/20261001T160800Z-alice-partial.1.Witness]
+PASSED api/tests/test_finding_partial_witnesses.py::test_a_bundle_path_the_gate_gives_no_role_costs_no_job_and_opens_nothing[targets/propositional/nodes/tutorial-and-swap/attempts/notes.txt]
+PASSED api/tests/test_finding_partial_witnesses.py::test_a_precheck_whose_gate_did_not_check_the_carried_witnesses_says_so
+PASSED api/tests/test_finding_partial_witnesses.py::test_pin_a_precheck_that_checked_every_carried_witness_adds_nothing
+PASSED api/tests/test_finding_partial_witnesses.py::test_the_precheck_tool_says_what_the_note_means
+PASSED gate/tests/test_finding_partial_carries_witnesses.py::test_a_carried_witness_has_a_role_and_rides_in_partial_mode
+PASSED gate/tests/test_finding_partial_carries_witnesses.py::test_the_readers_of_assemblies_do_not_see_a_carried_witness
+PASSED gate/tests/test_finding_partial_carries_witnesses.py::test_a_malformed_carried_witness_is_refused_at_step_2[files0-hole-witness-unnamed]
+PASSED gate/tests/test_finding_partial_carries_witnesses.py::test_a_malformed_carried_witness_is_refused_at_step_2[files1-hole-witness-duplicate]
+PASSED gate/tests/test_finding_partial_carries_witnesses.py::test_a_malformed_carried_witness_is_refused_at_step_2[files2-hole-witness-sorry]
+PASSED gate/tests/test_finding_partial_carries_witnesses.py::test_a_malformed_carried_witness_is_refused_at_step_2[files3-hole-witness-unattached]
+PASSED gate/tests/test_finding_partial_carries_witnesses.py::test_a_malformed_carried_witness_is_refused_at_step_2[files4-hole-witness-unattached]
+PASSED gate/tests/test_finding_partial_carries_witnesses.py::test_a_malformed_carried_witness_is_refused_at_step_2[files5-hole-witness-unattached]
+PASSED gate/tests/test_finding_partial_carries_witnesses.py::test_a_witness_file_beside_a_proof_is_refused
+PASSED gate/tests/test_finding_partial_carries_witnesses.py::test_every_carried_witness_is_held_to_step_7_and_recorded
+PASSED gate/tests/test_finding_partial_carries_witnesses.py::test_a_carried_witness_is_narrowed_as_the_node_will_be
+PASSED gate/tests/test_finding_partial_carries_witnesses.py::test_a_carried_witness_that_fails_refuses_the_partial[answer0-witness-type-mismatch]
+PASSED gate/tests/test_finding_partial_carries_witnesses.py::test_a_carried_witness_that_fails_refuses_the_partial[answer1-witness-sorry]
+PASSED gate/tests/test_finding_partial_carries_witnesses.py::test_a_carried_witness_that_fails_refuses_the_partial[answer2-witness-axiom]
+PASSED gate/tests/test_finding_partial_carries_witnesses.py::test_a_carried_witness_that_fails_refuses_the_partial[answer3-witness-elaboration]
+PASSED gate/tests/test_finding_partial_carries_witnesses.py::test_a_carried_witness_that_fails_refuses_the_partial[answer4-metaprogram-failed]
+PASSED gate/tests/test_finding_partial_carries_witnesses.py::test_a_witness_for_a_hole_that_does_not_exist_is_refused
+PASSED gate/tests/test_finding_partial_carries_witnesses.py::test_a_name_two_holes_share_is_refused
+PASSED gate/tests/test_finding_partial_carries_witnesses.py::test_the_nodes_own_witness_is_judged_first
+PASSED gate/tests/test_finding_partial_carries_witnesses.py::test_a_partial_that_carries_nothing_is_what_it_was
+PASSED gate/tests/test_finding_partial_carries_witnesses.py::test_the_writer_without_witnesses_writes_the_slots_it_wrote
+PASSED gate/tests/test_finding_partial_carries_witnesses.py::test_children_are_born_with_the_carried_witnesses_and_ready
+PASSED gate/tests/test_finding_partial_carries_witnesses.py::test_only_the_holes_that_carried_one_are_ready
+PASSED gate/tests/test_finding_partial_carries_witnesses.py::test_the_writer_run_twice_writes_nothing_the_second_time
+PASSED gate/tests/test_finding_partial_carries_witnesses.py::test_a_hole_that_is_an_existing_node_is_not_touched
+PASSED gate/tests/test_finding_partial_carries_witnesses.py::test_the_post_merge_command_writes_the_witnesses_its_run_checked
+PASSED gate/tests/test_finding_partial_carries_witnesses.py::test_the_post_merge_command_writes_nothing_when_a_carried_witness_fails
+PASSED gate/tests/test_finding_partial_carries_witnesses.py::test_the_assembly_text_is_the_one_test_partial_builds
+PASSED gate/tests/test_finding_partial_carries_witnesses.py::test_a_carried_witness_is_hashed_and_written_as_its_bytes
+PASSED gate/tests/test_finding_guide_carried_witnesses.py::test_the_guide_says[a failure refuses the whole partial]
+PASSED gate/tests/test_finding_guide_carried_witnesses.py::test_the_guide_says[a file the gate has no place for]
+PASSED gate/tests/test_finding_guide_carried_witnesses.py::test_the_guide_says[a hole without a file is as before]
+PASSED gate/tests/test_finding_guide_carried_witnesses.py::test_the_guide_says[the after-merge section knows]
+PASSED gate/tests/test_finding_guide_carried_witnesses.py::test_the_guide_says[the file name, built from the assembly's]
+PASSED gate/tests/test_finding_guide_carried_witnesses.py::test_the_guide_says[the hole is born ready]
+PASSED gate/tests/test_finding_guide_carried_witnesses.py::test_the_guide_says[the marker that names the hole]
+PASSED gate/tests/test_finding_guide_carried_witnesses.py::test_the_guide_says[the old pin]
+PASSED gate/tests/test_finding_guide_carried_witnesses.py::test_the_guide_says[the own-Context import is left out]
+PASSED gate/tests/test_finding_guide_carried_witnesses.py::test_the_guide_says[the permitted-paths row]
+PASSED gate/tests/test_finding_guide_carried_witnesses.py::test_the_guide_says[the unknown-hole code]
+PASSED gate/tests/test_finding_guide_carried_witnesses.py::test_the_guide_says[what the old pin's precheck says]
+PASSED gate/tests/test_finding_guide_carried_witnesses.py::test_the_guide_says[what the second precheck says]
+PASSED gate/tests/test_finding_guide_carried_witnesses.py::test_the_guide_says[where the type comes from]
+PASSED gate/tests/test_finding_guide_carried_witnesses.py::test_the_section_sits_between_the_skeleton_and_its_holes
+PASSED gate/tests/test_finding_guide_carried_witnesses.py::test_the_example_witness_is_one_the_grammar_reads
+PASSED gate/tests/test_finding_guide_carried_witnesses.py::test_every_refusal_the_guide_names_is_one_the_gate_gives
+69 passed, 2 warnings in 61.66s (0:01:01)
+
+$ make lint          -> All checks passed; 496 files already formatted (exit 0)
+$ make types         -> mypy gate 235, api 160, site 44 source files: no issues (exit 0)
+$ uv run --frozen pytest -m "not lean and not docker and not network" -q   (the fast tier, bare)
+FAILED gate/tests/test_finding_merge_actor_stale_head.py::test_the_morning_of_306_moves_past_the_stale_head
+FAILED gate/tests/test_finding_merge_actor_stale_head.py::test_a_stale_head_is_passed_over_even_if_the_host_calls_it_clean
+FAILED gate/tests/test_finding_merge_actor_stale_head.py::test_a_branch_that_no_longer_exists_is_passed_over
+FAILED gate/tests/test_finding_merge_actor_stale_head.py::test_a_head_the_host_still_computes_is_held_for_as_before
+FAILED gate/tests/test_finding_merge_actor_stale_head.py::test_a_stale_append_never_ends_a_batch
+FAILED gate/tests/test_finding_merge_actor_stale_head.py::test_the_workflow_reads_each_branch_tip_and_survives_a_missing_one
+FAILED gate/tests/test_walkthrough.py::test_graph_copy_is_identical - Asserti...
+7 failed, 3197 passed, 135 deselected, 2 warnings in 131.68s (0:02:11)
+
+The seven failures read the sibling graph checkout (six in test_finding_merge_actor_stale_head.py,
+test_graph_copy_is_identical) and fail the same way on untouched main in this container.

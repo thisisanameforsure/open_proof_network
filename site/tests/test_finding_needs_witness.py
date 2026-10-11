@@ -45,10 +45,14 @@ def row(page: str, node_id: str) -> str:
 def test_the_sites_workable_statements_are_the_frontiers(
     built: tuple[model.Site, dict[str, str]],
 ) -> None:
-    """One set, two readers: what the site invites work on is what a claim can take."""
+    """One set, two readers: what the site invites work on is what the frontier offers — a
+    claimable entry, or (F03-T16, ``frontier/v4``) one whose ``needs`` is ``witness``, which is
+    listed but no longer claimable because a claim reserves a proof."""
     site, _pages = built
     frontier = json.loads((site.root / "frontier.json").read_text(encoding="utf-8"))
-    claimable = {e["node_id"] for e in frontier["entries"] if e["claimable"]}
+    claimable = {
+        e["node_id"] for e in frontier["entries"] if e["claimable"] or e["needs"] == "witness"
+    }
     assert fixture.HOLE in claimable and fixture.REVISION in claimable, "guard: the fixture"
     r = render.Renderer(site, repo_url=REPO)
     tv = site.targets[TARGET]

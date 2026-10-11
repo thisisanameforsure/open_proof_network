@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from opn_gate import layout, paths
+from opn_gate import carried, layout, paths, uses
 from opn_gate.diagnostic import Diagnostic
 from opn_gate.steps import artifact
 from opn_gate.steps.artifact import ALTERNATE_KEY, PARTIAL_KEY
@@ -15,7 +15,7 @@ class PathsStep:
     number = 2
     name = "paths"
 
-    def run(self, ctx: RunContext) -> StepResult:  # noqa: PLR0911 — one return per rule
+    def run(self, ctx: RunContext) -> StepResult:  # noqa: PLR0911, PLR0912 — one per rule
         node_dir = layout.graph_nodes_dir(ctx.graph_root, ctx.claim.target_id) / ctx.claim.node_id
         if ctx.changes is not None:
             proof = node_dir / "Proof.lean"
@@ -37,6 +37,12 @@ class PathsStep:
                 first.code, first.message, **first.details, problems=[d.message for d in loaded]
             )
         ctx.node = loaded
+        # F08-T37 (D-3 v3.28): the modules every later step imports hold no command that runs
+        # or rebinds anything; admission refused one at the door, and this is the same rule
+        # over whatever the tree holds.
+        commands = layout.check_commands(node_dir)
+        if commands is not None:
+            return StepResult(ok=False, diagnostic=commands)
         hash_problem = paths.check_statement_hash(loaded.statement, loaded.meta)
         if hash_problem:  # defence in depth: load_node already refused a hash mismatch above
             return StepResult(ok=False, diagnostic=hash_problem)
@@ -44,7 +50,7 @@ class PathsStep:
         if isinstance(alternate, StepResult):
             return alternate
         if alternate is not None:
-            return take_alternate(ctx, loaded, node_dir, alternate)
+            return stray_witnesses(ctx) or take_alternate(ctx, loaded, node_dir, alternate)
         if not loaded.proof_path.is_file():
             # F07-R3, R5 (F11-T4): with no Proof.lean the submission may be a partial — one new
             # assembly under attempts/. Its header and signature are the statement's, like a
@@ -53,20 +59,38 @@ class PathsStep:
             if isinstance(assembly, StepResult):
                 return assembly
             if assembly is None:
-                return StepResult.failed("proof-missing", "the claimed node has no Proof.lean")
+                return stray_witnesses(ctx) or StepResult.failed(
+                    "proof-missing", "the claimed node has no Proof.lean"
+                )
             text = assembly.read_text(encoding="utf-8")
             refusal = partial_refusal(loaded.statement, node_dir, text)
             if refusal is not None:
                 return StepResult(ok=False, diagnostic=refusal)
+            refused = declared_uses(ctx, loaded, text)
+            if refused is not None:
+                return refused
             ctx.data[PARTIAL_KEY] = {
                 "path": assembly.relative_to(node_dir).as_posix(),
                 "file": str(assembly),
             }
+            # F07-R23 (D-29 v3.24): the witnesses the partial carries for its holes, read and
+            # held to the grammar here, before any Lean is built; step 7 checks each one.
+            witnesses, problem = carried_witnesses(ctx, node_dir, assembly)
+            if problem is not None:
+                return StepResult(ok=False, diagnostic=problem)
+            if witnesses:  # absent when nothing is carried: the record is what it was
+                ctx.data[PARTIAL_KEY][carried.PARTIAL_WITNESSES_KEY] = [
+                    {"hole": w.hole, "path": w.path, "file": str(node_dir / w.path)}
+                    for w in witnesses
+                ]
             return StepResult.passed_with(
                 "partial-submission",
                 f"a partial proof: {assembly.relative_to(node_dir).as_posix()} (D-12 #5)",
                 path=assembly.relative_to(node_dir).as_posix(),
             )
+        stray = stray_witnesses(ctx)
+        if stray is not None:
+            return stray
         proof_text = loaded.proof_path.read_text(encoding="utf-8")
         # F07-R4 (dispatched in F11-T4): which of D-12's artifacts the file declares decides
         # the shape rule. A proof is the statement with its sorry replaced, textually
@@ -76,7 +100,7 @@ class PathsStep:
             loaded.statement, proof_text, node_id=ctx.claim.node_id
         )
         if shape_problem is None:
-            return StepResult.passed()
+            return declared_uses(ctx, loaded, proof_text) or StepResult.passed()
         kind, _unknown = artifact.declared_kind(loaded.statement.decl_name, proof_text)
         if kind is None or kind == "proof":
             return StepResult(ok=False, diagnostic=shape_problem)  # F00-R19's own words
@@ -85,6 +109,66 @@ class PathsStep:
             f"Proof.lean declares a {kind} of the statement; its type is step 4's check (D-12)",
             kind=kind,
         )
+
+
+def added_witnesses(ctx: RunContext) -> list[str]:
+    """The carried-witness files the diff adds under this node's ``attempts/``, as paths under
+    the node; nothing on a bare tree, which has no diff to say what is new."""
+    if ctx.changes is None:
+        return []
+    prefix = ctx.claim.node_prefix + carried.ATTEMPTS
+    return sorted(
+        c.path[len(ctx.claim.node_prefix) :]
+        for c in ctx.changes
+        if c.status == "A"
+        and c.path.startswith(prefix)
+        and "/" not in c.path[len(prefix) :]
+        and carried.is_carried(c.path[len(prefix) :])
+    )
+
+
+def stray_witnesses(ctx: RunContext) -> StepResult | None:
+    """R23: a carried witness in a submission that is not a partial is refused by name. The
+    classifier refuses the same diff as fitting no mode; a precheck never classifies, so step 2
+    says it too."""
+    added = added_witnesses(ctx)
+    return StepResult(ok=False, diagnostic=carried.without_partial(added)) if added else None
+
+
+def carried_witnesses(
+    ctx: RunContext, node_dir: Path, assembly: Path
+) -> tuple[list[carried.Carried], Diagnostic | None]:
+    """R23: the witnesses this partial carries, or why one of its files is not one. With a diff,
+    every witness file it adds must be attached to the one assembly it adds; on a bare tree the
+    files attached to the assembly taken (the newest) are the submission's."""
+    assembly_rel = assembly.relative_to(node_dir).as_posix()
+    if ctx.changes is not None:
+        names = added_witnesses(ctx)
+    else:
+        attempts = node_dir / "attempts"
+        on_disk = {
+            f"{carried.ATTEMPTS}{p.name}": ""
+            for p in attempts.iterdir()
+            if p.is_file() and carried.is_carried(p.name)
+        }
+        names = sorted(carried.attached_to(assembly_rel, on_disk))
+    files = {rel: carried.read_file(node_dir / rel) for rel in names}
+    return carried.read(assembly_rel, files)
+
+
+def declared_uses(ctx: RunContext, node: layout.Node, text: str) -> StepResult | None:
+    """F08-R16: the uses an artifact declares in its header, held to the tree's rules
+    (``uses.check``) and recorded for steps 4 and 8; ``None`` when there are none or they are
+    all usable. An artifact without use lines leaves no record, and every later step is then
+    exactly what it was."""
+    found = uses.declared(node.statement, text, node.node_id)
+    if not found:
+        return None
+    problem = uses.check(node, found)
+    if problem is not None:
+        return StepResult(ok=False, diagnostic=problem)
+    ctx.data[uses.USES_KEY] = found.as_dict()
+    return None
 
 
 def partial_assembly(ctx: RunContext, node_dir: Path) -> Path | StepResult | None:
@@ -183,6 +267,9 @@ def take_alternate(
                 kind=kind,
             )
         return StepResult(ok=False, diagnostic=shape_problem)
+    refused = declared_uses(ctx, loaded, text)
+    if refused is not None:
+        return refused
     ctx.data[ALTERNATE_KEY] = {"path": rel, "file": str(alternate)}
     return StepResult.passed_with(
         "alternate-submission",

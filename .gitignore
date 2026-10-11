@@ -13,3 +13,6 @@ __pycache__/
 .mypy_cache/
 .ruff_cache/
 .playwright-mcp/
+
+# Agent worktrees a session creates under the checkout (never part of the repo)
+.claude/worktrees/

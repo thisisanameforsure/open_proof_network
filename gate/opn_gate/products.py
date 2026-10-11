@@ -16,6 +16,7 @@ are ``[]`` without a scan.
 
 from __future__ import annotations
 
+import datetime as dt
 import functools
 import json
 import logging
@@ -25,18 +26,24 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from opn_gate import annex as annexmod
 from opn_gate import (
     context,
     defs,
     evidence,
     explainers,
     formalizations,
+    glosses,
     intake,
     layout,
+    panel,
+    paths,
     postmerge,
     qa,
     records,
+    registrations,
     schemas,
+    sections,
     signed,
     steward,
     watch,
@@ -44,6 +51,7 @@ from opn_gate import (
 )
 from opn_gate import fidelity as fidelitymod
 from opn_gate import graph as graphmod
+from opn_gate import literature as literaturemod
 from opn_gate import policy as policymod
 from opn_gate.graph import GraphError, NodeFacts, TargetGraph
 from opn_gate.signer import Signer
@@ -51,9 +59,15 @@ from opn_gate.toolchain import ResolvedToolchain, Toolchain, UsedConstantsReques
 
 log = logging.getLogger(__name__)
 
-PROTOCOL_VERSION = "3.22"  # docs/architecture_decisions.html (v3.22, F08-T20, F07-T44)
-GRAPH_SCHEMA = "graph/v3"  # F12-R13: a related variant's relevance signature (v2: F07-R8)
-FRONTIER_SCHEMA = "frontier/v3"  # T7: attempts counts partials (v2, F11-R4: D-33 dormancy)
+PROTOCOL_VERSION = "3.37"  # docs/architecture_decisions.html (v3.37: Palomar, 2026-10-10)
+#: F08-T39 (D-12 v3.35): graph/v6 carries ``circular`` (the label), ``literature`` and
+#: ``literature_proposed`` (F08-T40); v5: every defect claim (F08-T36); v4: F08-T27, F18; v3:
+#: F12-R13.
+GRAPH_SCHEMA = "graph/v7"  # v7 (F25-R7, D-10 v3.37): registrations
+#: F03-T18 (D-12 v3.35): frontier/v5 repeats graph/v6's three fields on every entry, and a node
+#: under a circularity claim is an entry on its status alone; v4 (T16): status, cause, needs;
+#: v3 (T7): partials; v2: D-33 dormancy.
+FRONTIER_SCHEMA = "frontier/v5"
 #: F11-R12 renames D-9's second rung and F11-R3/R4 add the derived fields. v2 was already spent
 #: on F07-R8's node counts and D-34 forbids editing it, so the rename lands at v3 (F11-Q9).
 #: F12-R14 adds the QA pass state per subject, the counted attempts and the drift flag: v4.
@@ -61,8 +75,10 @@ FRONTIER_SCHEMA = "frontier/v3"  # T7: attempts counts partials (v2, F11-R4: D-3
 #: formalizations: v5.
 #: F15-R9: the policy state at the top; per target the active stewards, the digestion state with
 #: its counts, the calibration flag, and `no-steward` among the reasons: v6.
-INDEX_SCHEMA = "targets-index/v7"  # v7 (F07-T24): step9 gains `calibration`
-INFO_SCHEMA = "info/v1"
+#: v8 (F23-R14): stewards carry admitted_by, via; link nullable. v9 (F24-R6, R7): the panel
+#: settings, each steward's last act and lapse, each target's panel and write-ups.
+INDEX_SCHEMA = "targets-index/v10"  # v10 (F25-R7): registrations
+INFO_SCHEMA = "info/v2"  # F05-T25: guide_url, errors_url (null here; the service fills them)
 CLAIMS_SCHEMA = "claims/v1"
 CLAIMS_FILE = "claims.json"
 TAGS_CACHE = ".tags-cache.json"
@@ -216,6 +232,13 @@ class TargetFacts:
     stewards: tuple[steward.Steward, ...] = ()
     digestion: dict[str, Any] = field(default_factory=lambda: dict(NO_DIGESTION))
     calibration: bool = False
+    #: F24-R4, R6, R7 (targets-index/v9): the steward rows with ``last_act`` and ``lapsed``, the
+    #: panel (unlapsed stewards and every motion's tally), and the write-ups with the official one.
+    steward_rows: tuple[dict[str, Any], ...] = ()
+    panel: dict[str, Any] = field(default_factory=lambda: {"members": [], "motions": []})
+    writeups: dict[str, Any] = field(default_factory=lambda: {"official": None, "items": []})
+    #: F25-R7 (D-10 v3.37, targets-index/v10): the target's registrations in public registries.
+    registrations: tuple[dict[str, Any], ...] = ()
 
     @property
     def dormant(self) -> bool:
@@ -235,11 +258,34 @@ EXPLAINED = "explained"
 WRITTEN_UP = "written-up"
 
 
+#: F24-T4 (D-5): the day a product is rendered on when nothing names the rendered commit and the
+#: target carries no signed act to date it by. Fixed, so two runs agree.
+EPOCH_DAY = dt.date(1970, 1, 1)
+
+
+def render_day(
+    commit_time: str | None, *, acts: Mapping[str, list[dt.date]] | None = None
+) -> dt.date:
+    """F24-T4 (D-5): "today" for a target's panel (lapse, a motion's window); never the clock.
+
+    The later of the rendered commit's committer day (UTC; ``generate`` always knows it, the CLI
+    passing ``graph.commit_timestamp``) and the target's latest signed act (``acts``, by login).
+    A tree cannot be read on a day before a record it holds: a record dated ahead of the commit
+    (a signer's timezone, a hand-made fixture) moves the day forward rather than dropping its
+    signer from the panel. With neither, ``EPOCH_DAY``. A pure function of the tree and the
+    commit, so two runs anywhere agree byte for byte."""
+    days = [d for found in (acts or {}).values() for d in found]
+    if commit_time is not None:
+        days.append(dt.datetime.fromisoformat(commit_time).astimezone(dt.UTC).date())
+    return max(days, default=EPOCH_DAY)
+
+
 def closing_node(tg: TargetGraph) -> str | None:
     """F15-Q11: the node whose proof closed the target — the root, or the ``resolves`` variant
     where the target resolved by variant (D-30); ``None`` while nothing has. A ``partial``
-    variant closes nothing and starts no digestion state."""
-    if tg.statuses[tg.root] == "proved":
+    variant closes nothing and starts no digestion state. F03-T17: a root settled by any
+    root-level D-12 artifact (proof, counterexample, vacuity certificate) is the closing node."""
+    if tg.statuses[tg.root] in graphmod.RESOLVED_STATUSES:
         return tg.root
     for node_id in tg.order:
         n = tg.nodes[node_id]
@@ -249,7 +295,9 @@ def closing_node(tg: TargetGraph) -> str | None:
 
 
 def dependency_closure(tg: TargetGraph, node_id: str) -> list[str]:
-    """``node_id`` and every node it depends on, transitively, in id order."""
+    """``node_id`` and every node it rests on, transitively, in id order. A node with a measured
+    first proof rests on what that proof's term used (F08-T27); any other node on its
+    dependencies and (F08-R19) the nodes its merged proof uses, the most it could rest on."""
     seen: set[str] = set()
     stack = [node_id]
     while stack:
@@ -257,21 +305,27 @@ def dependency_closure(tg: TargetGraph, node_id: str) -> list[str]:
         if current in seen or current not in tg.nodes:
             continue
         seen.add(current)
-        stack.extend(tg.nodes[current].deps)
+        # F08-T27 (Q38): what the node's proof term used, where the record measured it.
+        stack.extend(tg.nodes[current].rests_on)
     return sorted(seen)
 
 
-def digestion(tg: TargetGraph, *, status: str, signer: Signer) -> dict[str, Any]:
+def digestion(
+    tg: TargetGraph, *, status: str, signer: Signer, curators: frozenset[str] = frozenset()
+) -> dict[str, Any]:
     """F15-R7 (D-33 v3.17): the digestion state of a resolved target and the counts behind it.
 
     ``written-up`` when a valid ``paper`` write-up record exists; else ``explained`` when every
-    proved node in the closing artifact's dependency closure carries at least one valid signed
-    explainer; else ``undigested``. A target in any other status carries ``null``, with the
-    proved-node counts still filled in, because the home page's coverage count ("explained: n of
-    m proved nodes") sums over every target, resolved or not (F15-R10, Q10).
+    proved node in the closing artifact's dependency closure has an explainer chain on its first
+    proof whose current version carries a valid signature (D-33 v3.30); else ``undigested``. A
+    target in any other status carries ``null``, with the proved-node counts still filled in,
+    because the home page's coverage count ("explained: n of m proved nodes") sums over every
+    target, resolved or not (F15-R10, Q10).
     """
     proved = [n for n in tg.order if tg.statuses[n] == "proved"]
-    explained = {n for n in proved if explainers.valid(tg.nodes[n].path, signer)}
+    # D-33 v3.30 (F20-R9): a node counts while the current version of an explainer chain on its
+    # first proof is signed, so a revision after a signature must be signed again.
+    explained = {n for n in proved if explainers.explained(tg.nodes[n].path, signer)}
     out: dict[str, Any] = {
         **NO_DIGESTION,
         "proved": len(proved),
@@ -281,11 +335,18 @@ def digestion(tg: TargetGraph, *, status: str, signer: Signer) -> dict[str, Any]
         return out
     closing = closing_node(tg)
     closure = dependency_closure(tg, closing) if closing is not None else []
-    closure_proved = [n for n in closure if tg.statuses[n] == "proved"]
-    closure_explained = [n for n in closure_proved if n in explained]
+    # F03-T17: the closing artifact may be a counterexample or a vacuity certificate, whose node
+    # is settled but not ``proved``; it is in the closure all the same, and needs its explainer.
+    closure_proved = [n for n in closure if tg.statuses[n] in graphmod.RESOLVED_STATUSES]
+    closure_explained = [
+        n
+        for n in closure_proved
+        if n in explained or (n not in proved and explainers.explained(tg.nodes[n].path, signer))
+    ]
     out["closure"] = len(closure_proved)
     out["closure_explained"] = len(closure_explained)
-    if writeup.has_paper(tg.path, signer):
+    # F24-R5: a paper at steward-signed or above, a curator's signature counting (F24-T4).
+    if writeup.has_paper(tg.path, signer, curators=curators):
         out["state"] = WRITTEN_UP
     elif closure_proved and len(closure_explained) == len(closure_proved):
         out["state"] = EXPLAINED
@@ -294,8 +355,55 @@ def digestion(tg: TargetGraph, *, status: str, signer: Signer) -> dict[str, Any]
     return out
 
 
+@dataclass(frozen=True)
+class PanelFacts:
+    """F24-R4, R6, R7: a target's panel as the index publishes it, read on one day."""
+
+    steward_rows: tuple[dict[str, Any], ...]
+    members: tuple[str, ...]
+    panel: dict[str, Any]
+    writeups: dict[str, Any]
+
+
+def panel_facts(
+    tg: TargetGraph,
+    stewards: tuple[steward.Steward, ...],
+    *,
+    commit_time: str | None,
+    signer: Signer,
+    settings: panel.Settings,
+    curators: frozenset[str],
+) -> PanelFacts:
+    """The panel of ``tg`` read on ``render_day`` of ``commit_time`` and the target's acts."""
+    graph_root = tg.path.parents[1]
+    last = panel.last_acts(graph_root, tg.target_id, signer=signer)
+    on = render_day(commit_time, acts={k: [v] for k, v in last.items()})
+    rows = tuple(
+        {
+            **s.as_dict(),
+            # A counting commit is itself an act, so every active steward has a last act.
+            "last_act": last[s.login].isoformat(),
+            "lapsed": panel.lapsed(last.get(s.login), on, settings),
+        }
+        for s in stewards
+    )
+    members = panel.members(graph_root, tg.target_id, on, settings=settings, signer=signer)
+    tallies = panel.tallies(graph_root, tg.target_id, today=on, signer=signer, curators=curators)
+    found = writeup.views(graph_root, tg.target_id, today=on, signer=signer, curators=curators)
+    return PanelFacts(
+        steward_rows=rows,
+        members=members,
+        panel={"members": list(members), "motions": [t.as_dict() for t in tallies]},
+        writeups={"official": writeup.official(found), "items": [v.as_dict() for v in found]},
+    )
+
+
 def target_facts(
-    tg: TargetGraph, *, signer: Signer | None = None, policy: policymod.Policy | None = None
+    tg: TargetGraph,
+    *,
+    signer: Signer | None = None,
+    policy: policymod.Policy | None = None,
+    commit_time: str | None = None,
 ) -> TargetFacts:
     """(status, claimable, fidelity) and the rest, for the index (R9; Q4, Q5; F11-R3, R4).
 
@@ -309,6 +417,7 @@ def target_facts(
     ``signer`` verifies the F15 records (stewards, explainer signatures, write-ups); the default
     is the platform's ssh-keygen, which is where the products are generated (F15 §7). ``policy``
     is the graph's ``policy.json`` (F15-R3), read from the target's graph root when not given.
+    ``commit_time`` is the rendered commit's, which dates the panel (``render_day``; D-5).
     """
     verifier = signer if signer is not None else signed.default_signer()
     rule = policy if policy is not None else policymod.load(tg.path.parents[1])
@@ -319,7 +428,11 @@ def target_facts(
     fallback = str(decl.get("fidelity", DEFAULT_FIDELITY))
     grade = derived_grade if derived_grade is not None else fallback
     legacy_claimable = bool(decl.get("claimable", tg.nodes[tg.root].tutorial))
-    if tg.statuses[tg.root] == "proved":
+    # F03-T17 (D-33 as written, decisions v3.28): "resolved (root closed by a root-level D-12
+    # artifact ...)" — a merged counterexample or vacuity certificate closes the root as a proof
+    # does, so a refuted or defective root resolves its target. ``abandoned`` is a curator's
+    # record (D-14), not a D-12 artifact, and keeps the declared status (``root-abandoned``).
+    if tg.statuses[tg.root] in graphmod.RESOLVED_STATUSES:
         status = "resolved"
     elif "status" in decl:
         status = str(decl["status"])
@@ -328,14 +441,42 @@ def target_facts(
     else:
         status = "active" if legacy_claimable else "listed"
     stewards = tuple(steward.active(tg.path, verifier))
-    digested = digestion(tg, status=status, signer=verifier)
+    from opn_gate import modes  # noqa: PLC0415 — modes imports this module's neighbours
+
+    curators = modes.load_curators(tg.path.parents[1]).logins
+    seated = panel_facts(
+        tg,
+        stewards,
+        commit_time=commit_time,
+        signer=verifier,
+        settings=rule.panel,
+        curators=curators,
+    )
+    digested = digestion(tg, status=status, signer=verifier, curators=curators)
+    on_panel: dict[str, Any] = {
+        "steward_rows": seated.steward_rows,
+        "panel": seated.panel,
+        "writeups": seated.writeups,
+        "registrations": tuple(registrations.derive(tg.path)),
+    }
+    root_status = tg.statuses[tg.root]
     if doc is None:
+        # F03-T14: a closed root closes a pre-F11 target too, whatever its declaration says. Only
+        # a declaration that says yes gets reasons: one that says no keeps its silence (Q4), so
+        # ``open_beneath`` does not reopen the nodes beneath a target declared closed.
+        legacy_reasons: tuple[str, ...] = ()
+        if legacy_claimable:
+            legacy_reasons = (
+                (ROOT_SETTLED_REASON,) if status == "resolved" else ()
+            ) + intake.root_reasons(root_status)
         return TargetFacts(
             status=status,
-            claimable=legacy_claimable,
+            claimable=legacy_claimable and not legacy_reasons,
+            reasons=legacy_reasons,
             fidelity=grade,
             stewards=stewards,
             digestion=digested,
+            **on_panel,
         )
     # F12-R11: an upstream edit that stands on the root as it is freezes proving compute.
     root_hash = tg.nodes[tg.root].statement_hash
@@ -346,7 +487,9 @@ def target_facts(
         grade=grade,
         drifted=drift.frozen,
         steward_rule=rule.enforced,  # F15-R4: only while the switch is on
-        stewards=tuple(s.login for s in stewards),
+        # F24-R4 (Q5): a lapsed steward is not on the panel and does not count as a steward.
+        stewards=seated.members,
+        root_status=root_status,
     )
     # F12-R14: the pass state per subject, the counted attempts and the flag, all derived.
     routed = qa.routed_by_claims(tg.path, tg.root)
@@ -370,12 +513,427 @@ def target_facts(
         stewards=stewards,
         digestion=digested,
         calibration=intake.is_calibration(doc),
+        **on_panel,
     )
 
 
-def graph_doc(tg: TargetGraph, rendered_from: str | None) -> dict[str, Any]:
+def decompositions_of(tg: TargetGraph, node_id: str) -> list[dict[str, Any]]:
+    """F18-R4: each merged partial of the node, the annex it cites and the holes it made.
+
+    Three records, kept apart until now: the attestation names the file and the holes (step 2,
+    step 4), the file names its annex (D-31 v3.12, ``postmerge.annex_citation``), and each hole
+    child's header names its hole (``postmerge.hole_name``). A hole is matched to the first of
+    the node's hole children (its holes, read through revisions, in the order the post-merge job
+    recorded them) that carries its name and no earlier hole took; one the tree does not hold is
+    named with no node (C7)."""
+    node = tg.nodes[node_id]
+    names: dict[str, str | None] = {}
+    for child in node.holes:
+        text = (tg.nodes[child].path / "Statement.lean").read_text(encoding="utf-8")
+        names[child] = postmerge.hole_name(text)
+    taken: set[str] = set()
+    out: list[dict[str, Any]] = []
+    for partial in node.partials:
+        file = node.path / partial.path
+        try:
+            annex = (
+                postmerge.annex_citation(file.read_text(encoding="utf-8"))
+                if file.is_file()
+                else None
+            )
+        except postmerge.MalformedCitationError:
+            annex = None  # step 2 refuses one, so a merged partial cannot carry it
+        holes: list[dict[str, str | None]] = []
+        for hole in partial.holes:
+            found = next((c for c in node.holes if names.get(c) == hole and c not in taken), None)
+            if found is not None:
+                taken.add(found)
+            holes.append({"name": hole, "node": found})
+        out.append({"partial": partial.path, "annex": annex, "holes": holes})
+    return out
+
+
+def outline_doc(tg: TargetGraph, node_id: str) -> dict[str, Any] | None:
+    """F18-R7 as ``graph.json`` carries it: ``outline_of``'s steps with the annex they come from
+    and the partial that followed it, so the page can say which outline is being tracked."""
+    steps = outline_of(tg, node_id)
+    if steps is None:
+        return None
+    node = tg.nodes[node_id]
+    for d in reversed(decompositions_of(tg, node_id)):
+        if d["annex"] and annexmod.steps_at(node.path, d["annex"]) is not None:
+            return {"annex": d["annex"], "partial": d["partial"], "steps": steps}
+    return None
+
+
+def outline_of(tg: TargetGraph, node_id: str) -> list[dict[str, Any]] | None:
+    """F18-R7 (D-31 v3.26): the outline the node's most recent stepped decomposition followed.
+
+    One list, for the node's most recent decomposition (the last in ``decompositions_of``'s
+    record order) whose cited annex names its steps: each step in the annex's order, with the
+    hole child the skeleton named after it and that node's derived status, or ``None`` for both
+    when the assembly carries the step itself (no hole). ``None`` when no decomposition of the
+    node cites a stepped annex. A summary is the annex author's text, carried as data and acted
+    on by nothing (C9); the page escapes it."""
+    node = tg.nodes[node_id]
+    for d in reversed(decompositions_of(tg, node_id)):
+        digest = d["annex"]
+        steps = annexmod.steps_at(node.path, digest) if digest else None
+        if steps is None:
+            continue
+        by_name = {h["name"]: h["node"] for h in d["holes"]}
+        out: list[dict[str, Any]] = []
+        for step in steps:
+            child = by_name.get(step.id)
+            out.append(
+                {
+                    "step": step.id,
+                    "summary": step.summary,
+                    "node": child,
+                    "status": tg.statuses.get(child) if child is not None else None,
+                }
+            )
+        return out
+    return None
+
+
+def target_proofs(tg: TargetGraph) -> list[dict[str, Any]]:
+    """F18-R1, R2: every way the target is proved, each with its closure by use.
+
+    The root's merged proofs come first (``Proof.lean``, then its alternates), then each proved
+    ``resolves`` variant's, the variants in the order their proofs were attested — the record's
+    order, which ranks nothing (D-25). A ``partial`` or ``related`` variant proves no target.
+    """
+    sources: list[tuple[str, str | None]] = []
+    if tg.statuses[tg.root] == "proved":
+        sources.append((tg.root, None))
+    variants = [
+        n
+        for n in tg.order
+        if tg.nodes[n].relation == "resolves" and tg.statuses[n] == "proved" and tg.nodes[n].proofs
+    ]
+    variants.sort(key=lambda n: (tg.nodes[n].proofs[0].attestation, n))
+    sources.extend((v, "resolves") for v in variants)
+    out: list[dict[str, Any]] = []
+    for node_id, relation in sources:
+        for proof in tg.nodes[node_id].proofs:
+            closure, unmeasured = proof_closure(tg, node_id, proof)
+            out.append(
+                {
+                    "node_id": node_id,
+                    "relation": relation,
+                    "kind": proof.kind,
+                    "path": proof.path,
+                    "artifact_hash": proof.artifact_hash,
+                    "merge_commit": proof.merge_commit,
+                    "submitter": proof.submitter,
+                    "closure": closure,
+                    "unmeasured": unmeasured,
+                }
+            )
+    return out
+
+
+def proof_closure(
+    tg: TargetGraph, node_id: str, proof: graphmod.ProofRecord
+) -> tuple[list[str], list[str]]:
+    """F18-R2: ``proof``'s node and every node its term rests on — this proof's ``used`` first,
+    then each node's first proof's (``NodeFacts.rests_on``) — and the nodes of it whose reading
+    nothing measured, where the closure followed declared dependencies instead."""
+    node = tg.nodes[node_id]
+    seen = {node_id}
+    unmeasured: set[str] = set()
+    if proof.used is None:
+        unmeasured.add(node_id)
+        stack = [*node.deps, *node.uses]
+    else:
+        stack = list(proof.used)
+    while stack:
+        current = stack.pop()
+        if current in seen or current not in tg.nodes:
+            continue
+        seen.add(current)
+        facts = tg.nodes[current]
+        if facts.proofs and facts.proofs[0].used is None:
+            unmeasured.add(current)
+        stack.extend(facts.rests_on)
+    return sorted(seen), sorted(unmeasured)
+
+
+GLOSSES_SCHEMA = "glosses/v2"  # v2: drafted_with, sections, shown, pending (F21-R6, R14)
+GLOSSES_FILE = "glosses.json"
+
+
+@dataclass(frozen=True)
+class GlossScope:
+    """What ``glosses_doc`` reads of a target: its directory and its nodes' directories. A
+    checkout supplies the whole target (``of``); the service supplies the one node it read from
+    the host into a scratch tree (F20-T6, F10-Q7's toolchain-free twin), and gets the same
+    subjects and chains for that node as the committed product carries."""
+
+    target_id: str
+    path: Path
+    nodes: Mapping[str, Path]
+
+    @classmethod
+    def of(cls, tg: TargetGraph) -> GlossScope:
+        return cls(tg.target_id, tg.path, {n: tg.nodes[n].path for n in tg.order})
+
+    @property
+    def order(self) -> list[str]:
+        return sorted(self.nodes)
+
+
+def lean_subjects(tg: GlossScope) -> list[dict[str, Any]]:
+    """F20-R9: every Lean file of the target that takes a gloss and every merged proof artifact
+    that takes an explainer, in the target's structural order — each node's statement, witness
+    and relation, then its artifacts (``Proof.lean``, then ``attempts/`` by name), node by node;
+    then the definition modules by path. Ranked by nothing (D-25)."""
+    out: list[dict[str, Any]] = []
+    for node_id in tg.order:
+        node_dir = tg.nodes[node_id]
+        for kind, name in glosses.KIND_FILES.items():
+            if (node_dir / name).is_file():
+                out.append(
+                    _subject(
+                        tg, kind, "gloss", node=node_id, module=None, file=f"nodes/{node_id}/{name}"
+                    )
+                )
+        for digest, rel in explainers.merged_artifacts(node_dir).items():
+            kind = (
+                "proof"
+                if rel == "Proof.lean"
+                else "alternate"
+                if rel.endswith(paths.ALTERNATE_SUFFIX)
+                else "partial"
+            )
+            subject = _subject(
+                tg, kind, "explainer", node=node_id, module=None, file=f"nodes/{node_id}/{rel}"
+            )
+            subject["lean_hash"] = digest
+            out.append(subject)
+    defs_dir = tg.path / glosses.DEFS_DIR
+    if defs_dir.is_dir():
+        for path in sorted(p for p in defs_dir.rglob("*.lean") if p.is_file()):
+            module = path.relative_to(defs_dir).as_posix()
+            out.append(
+                _subject(tg, "definition", "gloss", node=None, module=module, file=f"defs/{module}")
+            )
+    return out
+
+
+def _subject(
+    tg: GlossScope, kind: str, record: str, *, node: str | None, module: str | None, file: str
+) -> dict[str, Any]:
+    path = tg.path / file
+    return {
+        "kind": kind,
+        "record": record,
+        "node": node,
+        "module": module,
+        "file": file,
+        "lean_hash": schemas.content_hash(path.read_bytes()) if path.is_file() else None,
+        "chains": [],
+    }
+
+
+def glosses_doc(
+    target: TargetGraph | GlossScope, rendered_from: str | None, *, signer: Signer
+) -> dict[str, Any]:
+    """F20-R9: ``targets/<id>/glosses.json`` — every subject with the chains filed on it, each
+    version with its author or drafter, date, valid signatures, withdrawn flag and, for a gloss,
+    whether it describes the file as it stands; and each chain's current version, its latest not
+    withdrawn. A version naming a file not in the tree is listed under that subject all the same,
+    so nothing filed is hidden."""
+    tg = target if isinstance(target, GlossScope) else GlossScope.of(target)
+    subjects = lean_subjects(tg)
+    by_key: dict[tuple[Any, ...], dict[str, Any]] = {}
+    for s in subjects:
+        if s["record"] == "gloss":
+            by_key[("gloss", s["node"], s["module"], s["kind"])] = s
+        else:
+            by_key[("explainer", s["node"], s["lean_hash"])] = s
+    parents: list[tuple[Path, str | None]] = [(tg.nodes[n], n) for n in tg.order]
+    parents.append((tg.path, None))
+    for parent, node_id in parents:
+        _gloss_chains(tg, parent, node_id, by_key=by_key, subjects=subjects, signer=signer)
+        if node_id is not None:
+            _explainer_chains(tg, parent, node_id, by_key=by_key, subjects=subjects, signer=signer)
+    return {
+        "schema": GLOSSES_SCHEMA,
+        "target": tg.target_id,
+        "rendered_from": rendered_from,
+        "subjects": subjects,
+    }
+
+
+def _gloss_chains(
+    tg: GlossScope,
+    parent: Path,
+    node_id: str | None,
+    *,
+    by_key: dict[tuple[Any, ...], dict[str, Any]],
+    subjects: list[dict[str, Any]],
+    signer: Signer,
+) -> None:
+    """The gloss chains under one node (or, ``node_id`` None, the target), onto their subjects."""
+    withdrawn = glosses.withdrawn_versions(parent, glosses.GLOSS_DIR)
+    sigs = {
+        h: [s.as_dict() for s in found]
+        for h, found in glosses.valid_signatures(parent, signer).items()
+    }
+    groups: dict[tuple[Any, ...], list[glosses.Version]] = {}
+    for v in glosses.load_versions(parent):
+        kind, node, module = v.subject
+        if node != node_id or (node_id is None) != (kind == glosses.DEFINITION):
+            log.warning("%s glosses a file it does not sit beside; passed over", v.path)
+            continue
+        groups.setdefault(("gloss", node, module, kind), []).append(v)
+    for key, found in groups.items():
+        subject = by_key.get(key)
+        if subject is None:
+            _, node, module, kind = key
+            file = (
+                f"{glosses.DEFS_DIR}/{module}"
+                if kind == glosses.DEFINITION
+                else f"nodes/{node}/{glosses.KIND_FILES[kind]}"
+            )
+            subject = by_key[key] = _subject(tg, kind, "gloss", node=node, module=module, file=file)
+            subjects.append(subject)
+        subject["chains"] = _chains_doc(tg, found, withdrawn, sigs, subject["lean_hash"])
+
+
+def _explainer_chains(
+    tg: GlossScope,
+    parent: Path,
+    node_id: str,
+    *,
+    by_key: dict[tuple[Any, ...], dict[str, Any]],
+    subjects: list[dict[str, Any]],
+    signer: Signer,
+) -> None:
+    """The explainer chains of one node, each onto the merged artifact it names — or onto an
+    ``absent`` subject when that artifact is not in the tree, so nothing filed is hidden."""
+    withdrawn = glosses.withdrawn_versions(parent, explainers.EXPLAINER_DIR)
+    sigs: dict[str, list[dict[str, Any]]] = {}
+    for sig in explainers.valid(parent, signer):
+        sigs.setdefault(sig.explainer, []).append(
+            {"signer": sig.signer, "date": sig.date, "sections": sig.sections}
+        )
+    by_proof: dict[str | None, list[glosses.Version]] = {}
+    for v in explainers.versions(parent):
+        by_proof.setdefault(v.subject[2], []).append(v)
+    for proof, found in by_proof.items():
+        key = ("explainer", node_id, proof)
+        subject = by_key.get(key)
+        if subject is None:
+            subject = by_key[key] = {
+                "kind": "absent",
+                "record": "explainer",
+                "node": node_id,
+                "module": None,
+                "file": None,
+                "lean_hash": proof,
+                "chains": [],
+            }
+            subjects.append(subject)
+        subject["chains"] = _chains_doc(tg, found, withdrawn, sigs, None)
+
+
+def _chains_doc(
+    tg: GlossScope,
+    found: list[glosses.Version],
+    withdrawn: frozenset[str],
+    sigs: Mapping[str, list[dict[str, Any]]],
+    current_text: str | None,
+) -> list[dict[str, Any]]:
+    """One subject's chains as ``glosses/v2`` publishes them. ``current_text`` is the subject
+    file's hash for a gloss (``describes_current``), ``None`` for an explainer. Each version
+    carries its sections with their states and each chain the words it shows, section by
+    section, and the pending sections (F21-R11, R14; ``opn_gate.sections``)."""
+    approvals = {
+        h: [None if s["sections"] is None else frozenset(s["sections"]) for s in found]
+        for h, found in sigs.items()
+    }
+    out: list[dict[str, Any]] = []
+    for chain in glosses.chains(found, withdrawn):
+        current = chain.current
+        derived = sections.of_chain(chain, approvals, withdrawn)
+        out.append(
+            {
+                "current": current.hash if current is not None else None,
+                "shown": [p.as_dict() for p in derived.shown],
+                "pending": [p.as_dict() for p in derived.pending],
+                "versions": [
+                    {
+                        "hash": v.hash,
+                        "path": v.path.relative_to(tg.path).as_posix(),
+                        "schema": v.schema,
+                        "supersedes": v.supersedes,
+                        "author": v.author,
+                        "drafter": v.drafter,
+                        "date": v.date,
+                        "lean_hash": v.lean_hash,
+                        "describes_current": (
+                            None if v.schema not in glosses.SCHEMAS else v.lean_hash == current_text
+                        ),
+                        "withdrawn": v.hash in withdrawn,
+                        "signatures": list(sigs.get(v.hash, [])),
+                        "drafted_with": v.drafted_with,
+                        "sections": [
+                            {"key": key, "state": state} for key, state in derived.states[v.hash]
+                        ],
+                    }
+                    for v in chain.versions
+                ],
+            }
+        )
+    return out
+
+
+def literature_states(
+    tg: TargetGraph, *, signer: Signer | None = None
+) -> dict[str, literaturemod.Literature]:
+    """F08-T40 (D-25 v3.35): per node, the literature status the products publish — the latest
+    counting confirmation and the latest uncovered proposal (``literature.derive``). Who may
+    confirm is the target's active stewards and the graph's listed curators
+    (``modes.real_identities``), read only when some record is signed, so a graph with no
+    literature records costs no signature check."""
+    graph_root = tg.path.parents[1]
+    loaded = {node_id: literaturemod.load(node.path) for node_id, node in tg.nodes.items()}
+    signers: frozenset[str] | None = None
+    verifier = signer if signer is not None else signed.default_signer()
+    out: dict[str, literaturemod.Literature] = {}
+    for node_id, found in loaded.items():
+        if signers is None and any(r.signed or r.half_signed for r in found):
+            from opn_gate import modes  # noqa: PLC0415 — modes owns the role rule
+
+            signers = modes.real_identities(graph_root, tg.target_id, signer=verifier)
+        out[node_id] = literaturemod.derive(
+            found,
+            signers=signers or frozenset(),
+            approval_key=signed.published_key(
+                (graph_root / signed.APPROVAL_KEY_PATH).read_bytes()
+                if (graph_root / signed.APPROVAL_KEY_PATH).is_file()
+                else None
+            ),
+            verifier=verifier,
+        )
+    return out
+
+
+def graph_doc(
+    tg: TargetGraph,
+    rendered_from: str | None,
+    *,
+    signer: Signer | None = None,
+    literature: Mapping[str, literaturemod.Literature] | None = None,
+) -> dict[str, Any]:
     nodes = []
     causes = graphmod.derive_causes(tg.nodes, tg.statuses)
+    lit = literature_states(tg, signer=signer) if literature is None else literature
+    # F08-T36: the reader CONTEXT.json's builders share, so the two lists cannot disagree.
+    reader = context.DiskReader(tg.path.parents[1])
     for node_id in tg.order:
         n = tg.nodes[node_id]
         # A refuted or defective node has a merged artifact too, and the commit that carries it
@@ -395,6 +953,28 @@ def graph_doc(tg: TargetGraph, rendered_from: str | None) -> dict[str, Any]:
                 "proof_commit": n.proof.merge_commit if resolved and n.proof else None,
                 # F12-R13: a related variant is pertinent only with its one signature.
                 "relevance": qa.relevance_of(n.path, n.relation),
+                # F08-T27: what a merged proof's header declares beyond the deps (R19), and
+                # each merged proof with the nodes its term used.
+                "uses": list(n.uses),
+                "proofs": [p.as_dict() for p in n.proofs],
+                # F18-R4: each merged partial, the annex it cites and the holes it made.
+                "decompositions": decompositions_of(tg, node_id),
+                # F18-R8 (D-14 v3.26): the node this one was proposed for, a pointer only.
+                "proposed_for": n.proposed_for,
+                # F18-R7 (D-31 v3.26): the steps of the stepped outline the node followed.
+                "outline": outline_doc(tg, node_id),
+                # F08-T36 (D-16 v3.28): every defect claim, standing or withdrawn, and the one
+                # a curator's disputed record accepts (D-18 v3.28).
+                "defect_claims": context.defect_claims(
+                    reader, tg.target_id, node_id, status=tg.statuses[node_id]
+                ),
+                # F08-T39 (D-12 v3.35): the merged circularity claims as a label — the node's own
+                # and the one a circular path assigns it — never a removal and never a cause.
+                "circular": [label.as_dict() for label in n.circular],
+                # F08-T40 (D-25 v3.35): the latest confirmed literature status and the latest
+                # proposal awaiting a steward or curator; null when none.
+                "literature": lit[node_id].confirmed,
+                "literature_proposed": lit[node_id].proposed,
             }
         )
     return {
@@ -403,6 +983,9 @@ def graph_doc(tg: TargetGraph, rendered_from: str | None) -> dict[str, Any]:
         "root": tg.root,
         "rendered_from": rendered_from,
         "nodes": nodes,
+        "target_proofs": target_proofs(tg),
+        # F25-R7 (D-10 v3.37): the same derivation targets-index/v10 carries on the row.
+        "registrations": registrations.derive(tg.path),
     }
 
 
@@ -413,24 +996,56 @@ def status_or_ready(statuses: Mapping[str, str], node_id: str) -> str:
 
 
 def workable(status: str, node: NodeFacts, status_of: Callable[[str], str]) -> bool:
-    """R13: what a claim could be worked on. A ready or speculative node, or a hole waiting only
-    for its witness while ``blocked`` is still its status. A record status is the curator's word
-    over the mechanical reason, the reading ``graph.derive_causes`` takes for ``cause`` and the
-    api's witness route keys off; and a superseded node is refused on the fact itself (D-8),
-    whatever its slot says. Found live 2026-09-17: ``erdos-69--h2``, replaced by a D-8 revision,
-    was still ``claimable: true`` because the hole clause asked only about the slot. One predicate
-    for membership and for ``claimable``, so the two cannot drift (the 2026-09-14 lesson)."""
+    """R13: what a contributor could work on. A ready or speculative node, or a hole waiting only
+    for its witness while ``blocked`` is still its status. (F03-T16: ``claimable`` is narrower —
+    a claim reserves a proof, so it keys off :func:`needs_of`; the superseded exclusion below
+    holds there too, since ``needs_of`` answers ``None`` for it.) A record status is the
+    curator's word over the mechanical reason, the reading ``graph.derive_causes`` takes for
+    ``cause`` and the api's witness route keys off; and a superseded node is refused on the fact
+    itself (D-8), whatever its slot says. Found live 2026-09-17: ``erdos-69--h2``, replaced by a
+    D-8 revision, was still ``claimable: true`` because the hole clause asked only about the
+    slot. A merged circularity claim excludes nothing here (F08-T39, D-12 v3.35): it is the
+    label the entry carries, and choosing to work past it is the operator's filter (D-25)."""
     if graphmod.is_superseded(node):
         return False
-    if graphmod.is_circular(node, status):
-        return False  # F08-T17: no easier than a node above it, by a merged claim (D-16)
     if status in graphmod.FRONTIER_STATUSES:
         return True
     return status == "blocked" and graphmod.awaiting_witness(node, status_of)
 
 
+#: F03-T16 (frontier/v4 on): what an entry's node needs. A claim reserves a proof, so
+#: ``claimable`` is true only where ``needs`` is ``NEEDS_PROOF``.
+NEEDS_PROOF = "proof"
+NEEDS_WITNESS = "witness"
+NEEDS_DEPENDENCIES = "dependencies"
+
+
+def needs_of(status: str, node: NodeFacts, status_of: Callable[[str], str]) -> str | None:
+    """F03-T16: the next action on a frontier node, from the facts :func:`in_frontier` reads.
+
+    ``proof`` for a ready or speculative node; ``witness`` for a hole blocked only by its unfilled
+    slot (``POST /proposals/witness`` takes it, D-29); ``dependencies`` for a node blocked on
+    dependencies nobody has proved yet (an open variant, which R5 lists whatever it waits on);
+    ``None`` when no contributor's submission moves it — a refuted dependency (a curator has to
+    act, D-12), a curator's ``stale`` or ``disputed`` record, a superseded node. A circularity
+    claim changes nothing here (F08-T39, D-12 v3.35).
+    """
+    if graphmod.is_superseded(node):
+        return None
+    if status in graphmod.FRONTIER_STATUSES:
+        return NEEDS_PROOF
+    if status != "blocked":
+        return None
+    if graphmod.awaiting_witness(node, status_of):
+        return NEEDS_WITNESS
+    blocked, cause = graphmod.blocked_because(node, status_of)
+    return NEEDS_DEPENDENCIES if blocked and cause is None else None
+
+
 #: D-14: the curator's status for a dead branch; on the graph with its cause, off the frontier.
 ABANDONED = "abandoned"
+#: D-18 v3.28: a dispute a curator has accepted; on the graph with its claim, off the frontier.
+DISPUTED = "disputed"
 
 
 def in_frontier(status: str, node: NodeFacts, status_of: Callable[[str], str]) -> bool:
@@ -448,15 +1063,23 @@ def in_frontier(status: str, node: NodeFacts, status_of: Callable[[str], str]) -
     first hole on an open Erdős target took its whole target off the frontier). The witness is
     work anyone can do — ``POST /proposals/witness`` takes exactly this node — so it belongs
     here, while a node waiting on an unproved dependency does not.
+
+    F08-T17 and F08-T20 took a node under a merged circularity claim off here; F08-T39 (D-12
+    v3.35) stopped that, because the claim's exhibit is met by every honest reduction (D-12 #4)
+    and by the last open hole of any decomposition, so the removal hid genuine progress. The
+    claim is the entry's ``circular`` label now, and membership asks nothing about it.
     """
     if graphmod.is_superseded(node):
         return False  # R13: its successor carries the question, variant or not
-    if graphmod.is_circular(node, status):
-        return False  # F08-T17: graph.json says why, as the cause ``circular``
     if workable(status, node, status_of):
         return True
-    # F03-T13: a curator's ``abandoned`` closes a variant as it closes any node (AC4, Q16).
-    return node.origin == "variant" and status not in (*graphmod.RESOLVED_STATUSES, ABANDONED)
+    # F03-T13: a curator's ``abandoned`` closes a variant as it closes any node (AC4, Q16); and
+    # F08-T35 (D-18 v3.28): a disputed node leaves the frontier, a variant too.
+    return node.origin == "variant" and status not in (
+        *graphmod.RESOLVED_STATUSES,
+        ABANDONED,
+        DISPUTED,
+    )
 
 
 #: D-33 v3.20: the one reason that closes a target's *root* and nothing beneath it.
@@ -466,11 +1089,15 @@ ROOT_SETTLED_REASON = "status-resolved"
 def open_beneath(reasons: tuple[str, ...]) -> bool:
     """F03-T12 (D-33 v3.20): whether the nodes beneath a target's root take claims, given why the
     target itself does not. ``resolved`` is a fact about the root: a variant or a crux proposed
-    beneath a settled root is open work, and the root itself is off the frontier anyway. Every
+    beneath a settled root is open work, and the root itself is off the frontier anyway. So is a
+    ``root-<status>`` reason (F03-T14: the root refuted, defective or abandoned). Every
     other reason (a frozen upstream, no steward, a listing not yet activated, a known result) is
     about the whole target and still closes every node of it. No reasons at all says nothing: a
     target that predates F11 publishes none, and its own flag decides."""
-    return bool(reasons) and all(reason == ROOT_SETTLED_REASON for reason in reasons)
+    return bool(reasons) and all(
+        reason == ROOT_SETTLED_REASON or reason.startswith(intake.ROOT_REASON_PREFIX)
+        for reason in reasons
+    )
 
 
 def frontier_entry(
@@ -482,8 +1109,13 @@ def frontier_entry(
     ready_since: str | None,
     tags: list[str],
     claims: dict[str, Any] | None = None,
+    literature: literaturemod.Literature | None = None,
 ) -> dict[str, Any]:
     status = tg.statuses[node.node_id]
+    status_of = functools.partial(status_or_ready, tg.statuses)
+    needs = needs_of(status, node, status_of)
+    # F08-T40: graph.json's literature fields, repeated; derived here when the caller did not.
+    lit = literature if literature is not None else literature_states(tg)[node.node_id]
     attempts = records.load_attempts(node.path)
     for name in attempts.invalid_files:
         log.warning(
@@ -505,17 +1137,26 @@ def frontier_entry(
         "annex_present": annex_present(node.path),
         "bounty": False,
         # Q4 (T6): the target's claimability and the node's status. An open variant is listed
-        # while it waits on its holes (R5), but a claim on it could not be worked. A hole waiting
-        # only for its witness is the exception that premise does not cover: the witness *is* the
-        # work, and ``POST /proposals/witness`` accepts it today, so a claim on it is workable
-        # (owner's call, 2026-09-16).
-        "claimable": claimable
-        and workable(status, node, functools.partial(status_or_ready, tg.statuses)),
+        # while it waits on its holes (R5), but a claim on it could not be worked. F03-T16
+        # (frontier/v4 on): a claim reserves a proof, so a hole waiting only for its witness is
+        # listed (D-29, Q11) with ``needs: witness`` and is not claimable — live, three such holes
+        # read ``claimable: true`` and every claim on one was answered ``409 node-blocked``.
+        "claimable": claimable and needs == NEEDS_PROOF,
         "tutorial": node.tutorial,
         # D-33: a dormancy declaration refuses no claim, so this is a fact and not a gate. It
         # rides on the entry rather than only on the index so an agent choosing work sees it
         # without a second fetch (F11-R4).
         "dormant": dormant,
+        # F03-T16: what the entry's node is and what would move it, graph.json's two facts and
+        # the next action derived from them, so an agent choosing work needs no second fetch.
+        "status": status,
+        "cause": graphmod.cause_of(node, status, status_of),
+        "needs": needs,
+        # F03-T18 (D-12 v3.35, D-25 v3.35): graph/v6's label and literature status, repeated so
+        # an agent filtering the frontier needs no second fetch; F08-T40 fills the latter two.
+        "circular": [label.as_dict() for label in node.circular],
+        "literature": lit.confirmed,
+        "literature_proposed": lit.proposed,
     }
 
 
@@ -561,10 +1202,12 @@ def index_doc(
     *,
     policy: policymod.Policy | None = None,
     signer: Signer | None = None,
+    commit_time: str | None = None,
 ) -> dict[str, Any]:
+    """``targets/index.json``. ``commit_time`` is the rendered commit's (``render_day``)."""
     out = []
     for tg in targets:
-        facts = target_facts(tg, signer=signer, policy=policy)
+        facts = target_facts(tg, signer=signer, policy=policy, commit_time=commit_time)
         counts = dict.fromkeys(graphmod.ALL_STATUSES, 0)
         for status in tg.statuses.values():
             counts[status] += 1
@@ -592,9 +1235,14 @@ def index_doc(
                 "step9": step9_basis(tg),
                 "formalizations": formalizations.summary(tg.path),
                 # F15-R9: the active stewards, the digestion state and the calibration flag.
-                "stewards": [s.as_dict() for s in facts.stewards],
+                "stewards": list(facts.steward_rows),
                 "digestion": dict(facts.digestion),
                 "calibration": facts.calibration,
+                # F24-R6, R7: the panel and its motions; the write-ups and the official one.
+                "panel": facts.panel,
+                "writeups": facts.writeups,
+                # F25-R7 (D-10 v3.37): the registrations, derived from the records.
+                "registrations": list(facts.registrations),
             }
         )
     return {
@@ -627,6 +1275,11 @@ def info_doc(
         },
         "rate_limit_policy": None,
         "rendered_from": rendered_from,
+        # F05-T25 (info/v2): where the guide and the errors catalog are deployed is the
+        # service's configuration, not a fact of the graph, and the products regenerate byte
+        # for byte from the tree (R11); the service fills both on every read.
+        "guide_url": None,
+        "errors_url": None,
     }
 
 
@@ -707,15 +1360,20 @@ def generate(
     for target_id in target_ids(graph_root):
         tg = graphmod.load_target(graph_root, target_id)
         products.targets.append(tg)
-        gdoc = schemas.validate(graph_doc(tg, rendered_from), GRAPH_SCHEMA)
+        lit = literature_states(tg, signer=verifier)
+        gdoc = schemas.validate(graph_doc(tg, rendered_from, literature=lit), GRAPH_SCHEMA)
         products.files[Path("targets") / target_id / "graph.json"] = schemas.canonical_json(gdoc)
+        # F20-R9: the gloss and explainer chains per subject, beside the graph they describe.
+        products.files[Path("targets") / target_id / GLOSSES_FILE] = schemas.canonical_json(
+            schemas.validate(glosses_doc(tg, rendered_from, signer=verifier), GLOSSES_SCHEMA)
+        )
         # F10-R3: one context bundle per node, a rendering of the same facts, bot-owned (Q2).
         states = context.graph_states(gdoc)
         for node_id in tg.order:
             products.files[Path(context.context_path(target_id, node_id))] = context.render(
                 reader, target_id, node_id, states=states, rendered_from=rendered_from
             )
-        facts = target_facts(tg, signer=verifier, policy=policy)
+        facts = target_facts(tg, signer=verifier, policy=policy, commit_time=commit_time)
         ready_since = graphmod.ready_since_map(previous, tg.statuses, commit_time)
         # R6: only a Mathlib-pinned graph has library tags to scan for and a cache to keep.
         cache = TagCache(tg.path / TAGS_CACHE) if tg.spec["mathlib_sha"] is not None else None
@@ -751,6 +1409,7 @@ def generate(
                     ready_since=ready_since[node_id],
                     tags=tags,
                     claims=registry.get(node_id),
+                    literature=lit[node_id],
                 )
             )
         if cache is not None and cache.dirty:
@@ -762,7 +1421,13 @@ def generate(
     )
     products.files[Path("targets") / "index.json"] = schemas.canonical_json(
         schemas.validate(
-            index_doc(products.targets, rendered_from, policy=policy, signer=verifier),
+            index_doc(
+                products.targets,
+                rendered_from,
+                policy=policy,
+                signer=verifier,
+                commit_time=commit_time,
+            ),
             INDEX_SCHEMA,
         )
     )

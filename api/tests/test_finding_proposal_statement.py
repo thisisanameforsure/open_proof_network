@@ -107,11 +107,14 @@ def test_a_long_statement_is_capped_at_16_kb_and_says_so(harness: Harness) -> No
 
 def test_the_list_entry_still_equals_the_document(harness: Harness) -> None:
     """The pinned equality between ``submissions.json`` and the per-id ``submission`` holds: the
-    statement rides beside the document, never inside it."""
+    statement rides beside the document, never inside it. F05-T18: so does an entry's place in
+    the queue, the one key a list entry has that the per-id document does not (per id it is the
+    answer's own ``queue``)."""
     open_proposal(harness)
     doc = get(harness, 188)
     [entry] = harness.client.get("/submissions.json").json()["open"]
-    assert entry == doc["submission"]
+    assert set(entry) - set(doc["submission"]) == {"queue"}
+    assert {k: v for k, v in entry.items() if k != "queue"} == doc["submission"]
     assert "proposed_statement" not in doc["submission"]
     assert "proposed_statement" in doc
 

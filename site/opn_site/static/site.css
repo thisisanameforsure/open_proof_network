@@ -103,8 +103,17 @@ main > .crumbs, main > h1:first-child { margin-top: calc(var(--s8) * 1.6); }
 /* F04-T14: the other statuses wear the node pages' colours — amber waits on a repair, red is off the route */
 .dot-stale, .dot-disputed { border-color: var(--warn); }
 .dot-superseded, .dot-abandoned, .dot-refuted, .dot-defective { border-color: var(--bad); }
-/* F04-T26: circular is off the route by a merged claim, not by a failure: a dotted red ring */
-.dot-circular { border-color: var(--bad); border-style: dotted; }
+/* F04-T37 (D-12 v3.35): the circularity label's mark — a small tab carrying the implication, the
+   same mark the pill wears; a fact about the route, so a neutral colour, never a state's ring. */
+.dot-circular { width: 15px; height: 14px; border-radius: 3px; border: 1px solid var(--n500); background: var(--bg); vertical-align: -3px; position: relative; }
+.dot-circular::after { content: "⇒"; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 10px; line-height: 1; color: var(--n300); }
+/* F18-T2: the proof drawing's key swatches: a filled square for on the proof, a faint ring for
+   not needed, a dashed bar for a used lemma's line, a dotted ring for a reading not measured. */
+.dot-on-proof { background: var(--accent); border-color: var(--accent); border-radius: 2px; }
+.dot-not-needed { border-color: var(--n600); opacity: .4; }
+.dot-use { width: 16px; height: 0; border: 0; border-top: 2px dashed var(--n500); border-radius: 0; vertical-align: 3px; }
+.dot-unmeasured { border-color: var(--n500); border-style: dotted; }
+.dot-proposed-for { width: 16px; height: 0; border: 0; border-top: 2px dotted var(--accent-300); border-radius: 0; vertical-align: 3px; }
 .stages { display: inline-flex; gap: var(--s3); flex-wrap: wrap; font-size: 12.5px; }
 .stage { display: inline-flex; align-items: center; white-space: nowrap; }
 .stage.on { color: var(--n100); }
@@ -112,6 +121,8 @@ main > .crumbs, main > h1:first-child { margin-top: calc(var(--s8) * 1.6); }
 .steward { font-size: 13.5px; color: var(--n400); }
 .steward.has { color: var(--n300); }
 .steward.wanted { color: var(--accent-300); }
+.words { font-size: 13.5px; color: var(--n400); }
+.words.wanted { color: var(--accent-300); }
 
 /* — hover cards: the Glossary, on hover or focus, no pointer needed — */
 .term { position: relative; display: inline-block; border-bottom: 1px dotted var(--n500); cursor: help; color: inherit; }
@@ -198,6 +209,16 @@ main > .crumbs, main > h1:first-child { margin-top: calc(var(--s8) * 1.6); }
 .stmt .role, .stmt .state { color: var(--n400); }
 .stmt .attempts { color: var(--n500); font-variant-numeric: tabular-nums; }
 .stmt .act { justify-self: end; font-size: 12.5px; white-space: nowrap; }
+/* F04-T34 (Q35): a card shows its own statement; the rest fold under one summary row. */
+.statements details.more > summary { display: flex; align-items: center; gap: var(--s2); min-height: 44px; padding: var(--s2) 0; font-size: 13px; color: var(--accent-300); cursor: pointer; list-style: none; }
+.statements details.more > summary::-webkit-details-marker { display: none; }
+.statements details.more > summary:hover { color: var(--text); }
+.statements details.more > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.statements details.more > summary .caret { transition: transform 120ms ease; }
+.statements details.more[open] > summary .caret { transform: rotate(180deg); }
+.statements details.more[open] > summary { box-shadow: inset 0 -1px 0 var(--divider); }
+.statements details.more:not([open]) > summary .hide,
+.statements details.more[open] > summary .show { display: none; }
 .act-open { color: var(--accent-300); }
 .act-proved { color: var(--n300); }
 .act-blocked { color: var(--n500); }
@@ -228,20 +249,55 @@ main > .crumbs, main > h1:first-child { margin-top: calc(var(--s8) * 1.6); }
 .dag { display: block; max-width: 100%; height: auto; margin: 0 auto; }
 .dag rect { fill: var(--bg); stroke: var(--divider); stroke-width: 1; }
 .dag text { fill: var(--text); font-family: var(--mono); font-size: 13px; }
-.dag .edge { stroke: var(--n700); stroke-width: 1.5; }
+.dag .edge { stroke: var(--n700); stroke-width: 1.5; fill: none; transition: opacity .12s; }
 .dag circle { fill: none; stroke: var(--n600); stroke-width: 1.5; }
 .dag .status-proved circle { fill: var(--accent); stroke: var(--accent); }
 .dag .status-ready circle, .dag .status-speculative circle { stroke: var(--accent); }
 .dag .status-needs-witness circle { stroke: var(--accent); stroke-dasharray: 2 2; }
 .dag .status-stale circle, .dag .status-disputed circle { stroke: var(--warn); }
 .dag .status-superseded circle, .dag .status-abandoned circle, .dag .status-refuted circle, .dag .status-defective circle { stroke: var(--bad); }
-.dag .status-circular circle { stroke: var(--bad); stroke-dasharray: 1.5 2; }
+.dag .circular-mark rect { fill: var(--bg); stroke: var(--n500); stroke-width: 1; }
+.dag .circular-mark text { fill: var(--n300); font-family: var(--sans, inherit); font-size: 10px; text-anchor: middle; }
 .dag .status-superseded rect, .dag .status-abandoned rect { stroke-dasharray: 4 3; }
 .dag .status-superseded text, .dag .status-abandoned text { fill: var(--n500); }
 .dag a:hover rect, .dag a:focus-visible rect { stroke: var(--accent); }
 .dag .selected rect { stroke: var(--accent); }
 .dag .node .halo { display: none; fill: var(--accent); stroke: none; }
 .dag .selected .halo { display: block; }
+/* F18-T2: one proof of the problem at a time. The first is drawn without the script; the
+   picker's buttons redraw from each mark's data-proofs. */
+.proof-picker { display: flex; flex-wrap: wrap; gap: var(--s2); align-items: center; margin-bottom: var(--s2); font-size: 12.5px; color: var(--n400); }
+.proof-picker-lead { margin-right: var(--s2); }
+.proof-picker button { font: inherit; color: var(--n300); background: var(--bg); border: 1px solid var(--divider); border-radius: 999px; padding: 4px 12px; cursor: pointer; max-width: 100%; overflow-wrap: anywhere; text-align: left; }
+.proof-picker button:hover, .proof-picker button:focus-visible { border-color: var(--accent); }
+.proof-picker button[aria-pressed="true"] { border-color: var(--accent); color: var(--text); background: rgba(145, 132, 217, .14); }
+.proof-note { font-size: 12.5px; color: var(--n400); margin: 0 0 var(--s4); line-height: 1.5; }
+.dag .off-proof { opacity: .32; }
+.dag .node.on-proof rect { stroke: var(--accent); stroke-width: 1.5; }
+.dag .edge.on-proof { stroke: var(--accent); stroke-width: 2; }
+.dag .edge.use { stroke-dasharray: 7 4; }
+.dag .outline-mark rect { fill: var(--bg); stroke: var(--accent-300); stroke-width: 1; }
+.dag .outline-mark text { fill: var(--accent-300); font-family: var(--sans, inherit); font-size: 10px; text-anchor: middle; }
+.panel-outlines { width: 100%; font-size: 13px; }
+.panel-outlines ul, .panel-outlines ol { margin: var(--s2) 0; padding-left: 1.2em; line-height: 1.6; }
+.panel-outlines li { margin-bottom: var(--s2); overflow-wrap: anywhere; }
+.panel-outlines .untrusted-title { color: var(--n300); font-style: italic; }
+.dot-outline { border-radius: 3px; border-color: var(--accent-300); }
+.dag .edge.proposed { stroke: var(--accent-300); stroke-dasharray: 1.5 4; stroke-linecap: round; }
+/* F04-T33 (Q34): superseded statements faded, and hidden on request; hovering a statement
+   lights its lines and dims the rest; the group no line joins has a label and a rule. */
+.dag .node { transition: opacity .12s; }
+.dag .node.status-superseded { opacity: .5; }
+.dag.hide-superseded .status-superseded, .dag.hide-superseded .touches-superseded { display: none; }
+.dag.hovering .edge:not(.lit) { opacity: .12; }
+.dag.hovering .node:not(.lit) { opacity: .35; }
+.dag .edge.lit { stroke: var(--accent-300); stroke-width: 2; }
+.dag .dag-group { fill: var(--n400); font-family: var(--sans, inherit); font-size: 12px; text-anchor: middle; }
+.dag .dag-divider { stroke: var(--divider); stroke-dasharray: 2 4; }
+.dot-depends-on { width: 16px; height: 0; border: 0; border-top: 2px solid var(--n500); border-radius: 0; vertical-align: 3px; }
+.dag-toggle { font: inherit; font-size: 12px; color: var(--n300); background: var(--bg); border: 1px solid var(--divider); border-radius: 999px; padding: 2px 10px; cursor: pointer; }
+.dag-toggle:hover, .dag-toggle:focus-visible { border-color: var(--accent); }
+.dag-toggle[aria-pressed="true"] { border-color: var(--accent); color: var(--text); }
 .dag-caption { position: absolute; left: var(--s6); bottom: var(--s4); font-size: 11.5px; color: var(--n400); }
 .panels { display: flex; flex-direction: column; }
 .panel { gap: var(--s4); align-items: flex-start; }
@@ -261,6 +317,8 @@ main > .crumbs, main > h1:first-child { margin-top: calc(var(--s8) * 1.6); }
 .detail h2 { padding-top: var(--s4); border-top: 1px solid var(--divider); }
 .flag { border-left: 3px solid var(--warn); padding-left: var(--s4); color: var(--n300); }
 .claimable { color: var(--n300); }
+.registration { margin: 0; font-size: 14px; line-height: 1.6; color: var(--n300); overflow-wrap: anywhere; }
+.registration a { color: var(--accent-300); }
 .why-not { color: var(--n300); }
 ul.why-not { color: var(--n400); }
 
@@ -304,7 +362,6 @@ pre.statement.st-superseded, pre.statement.st-abandoned { border-left-color: var
 .status-ready .mark, .status-speculative .mark { border-color: var(--accent); }
 .status-stale .mark, .status-disputed .mark { border-color: var(--warn); }
 .status-superseded .mark, .status-abandoned .mark, .status-refuted .mark { border-color: var(--bad); }
-.status-circular .mark { border-color: var(--bad); border-style: dotted; }
 .status-revoked { color: var(--bad); }
 .result-pass { color: var(--accent-300); }
 .result-fail { color: var(--bad); }
@@ -330,6 +387,61 @@ button { font: inherit; padding: var(--s2) var(--s4); border: 1px solid var(--n7
 .prose-block.untrusted { border-left-color: var(--warn); }
 .prose-block .label { color: var(--n500); font-size: 13px; margin: var(--s1) 0 var(--s3); }
 pre.prose { white-space: pre-wrap; overflow-wrap: anywhere; font-family: var(--sans); font-size: 14px; margin: 0 0 var(--s3); }
+
+/* F19-R11: every block says in words what it is; the bold phrase is the label, never a colour. */
+.block-label { font-size: 13px; color: var(--n400); margin: var(--s2) 0; overflow-wrap: anywhere; }
+.block-label strong { color: var(--n100); font-weight: 600; }
+.statement-block, .attestation-block { margin: var(--s4) 0; }
+
+/* F19-R9: a proof's outline, a tree of native <details> (keyboard and screen reader for free). */
+.proof-outline { margin: var(--s4) 0 var(--s6); padding: var(--s3) var(--s6); border: 1px solid var(--divider); border-left: 3px solid var(--proved); border-radius: var(--radius-sm); }
+.prose-block .proof-outline { border-left-color: var(--warn); padding: var(--s2) var(--s4); }
+.proof-outline > .cue { font-size: 13px; }
+.po-steps { list-style: none; margin: var(--s2) 0; padding: 0; }
+.po-steps .po-steps { margin-left: var(--s2); padding-left: var(--s4); border-left: 1px solid var(--divider); }
+.po-step { margin: var(--s1) 0; min-width: 0; }
+.po-step > details > summary { cursor: pointer; padding: var(--s1) 0; line-height: 1.7; overflow-wrap: anywhere; }
+.po-step > details > summary:focus-visible, .po-lean > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.po-id { color: var(--n500); font-size: 12.5px; }
+.po-kind { font-size: 12px; color: var(--n500); }
+.po-claim { color: var(--n100); white-space: pre-wrap; overflow-wrap: anywhere; }
+.po-routine, .po-note, .po-tag { display: inline-block; font-size: 12px; line-height: 1.5; padding: 0 var(--s2); border: 1px solid var(--divider); border-radius: var(--radius-sm); color: var(--n400); }
+.po-note { border-color: var(--warn); }
+.po-body { padding: 0 0 var(--s2) var(--s5); font-size: 14px; }
+.po-body p { margin: var(--s1) 0; }
+.po-goal, .po-uses, .po-hole { color: var(--n300); overflow-wrap: anywhere; }
+.po-lean > summary { cursor: pointer; font-size: 13px; color: var(--accent-300); padding: var(--s1) 0; }
+.po-body pre.lean { margin: var(--s2) 0; padding: var(--s3) var(--s4); font-size: 12.5px; }
+.po-at { font-size: 12.5px; overflow-wrap: anywhere; }
+/* A file link names a path that may end in a 64-character hash (an annex, an explainer): it
+   breaks anywhere, or a phone page scrolls sideways (found live 2026-10-05). */
+a.file { overflow-wrap: anywhere; }
+.po-cut { color: var(--warn); font-family: var(--sans); font-size: 12px; }
+/* F19-R8, R10: the reading view — one proof, top-down. */
+.rv-statement .informal { font-size: 16px; color: var(--n200); max-width: 70ch; }
+.rv-statement .informal .kicker { margin-bottom: var(--s1); }
+.rv-nodes { list-style: none; padding: 0; margin: var(--s4) 0; counter-reset: rv; }
+.rv-node { padding: var(--s4) 0 var(--s6); border-top: 1px solid var(--divider); min-width: 0; }
+.rv-node > h3 { font-family: var(--mono); font-size: 17px; overflow-wrap: anywhere; display: flex; flex-wrap: wrap; gap: var(--s3); align-items: baseline; }
+.rv-state { font-family: var(--sans); font-size: 13px; color: var(--n400); }
+.gloss-slot { font-size: 13px; }
+.rv-lines { font-size: 13px; overflow-wrap: anywhere; }
+table.correspondence td { font-size: 13px; overflow-wrap: anywhere; }
+table.correspondence td:first-child { font-family: var(--mono); }
+/* On a phone five columns crush the file path to a few characters a line and push the explainer
+   column out of view (measured at 390px), so each row becomes a card with its column names. */
+@media (max-width: 700px) {
+  table.correspondence thead { display: none; }
+  table.correspondence tr { display: block; padding: var(--s3) 0; border-bottom: 1px solid var(--divider); }
+  table.correspondence td { display: block; border: 0; padding: var(--s1) 0; }
+  table.correspondence td::before { content: attr(data-label); display: block; font-family: var(--sans); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--n500); }
+}
+
+/* The docstring card hangs from the "Uses" line, not the word, so on a phone it stays inside the
+   viewport (measured: anchored to the word it ran 14px past 390px). */
+.po-uses { position: relative; }
+.term.const { position: static; border-bottom-color: var(--n600); }
+.term.const .term-card { width: min(300px, 100%); }
 .prose p { overflow-wrap: anywhere; }
 .prose pre { background: var(--bg); padding: var(--s3) var(--s4); overflow-x: auto; border-radius: var(--radius-sm); }
 .prose .fence-label { color: var(--n500); font-size: 12.5px; margin: -0.4rem 0 0.1rem; }
@@ -388,7 +500,7 @@ main > h2 { padding-top: var(--s4); border-top: 1px solid var(--divider); }
   .two-cards { grid-template-columns: 1fr; }
   .page-head { flex-direction: column; align-items: flex-start; gap: var(--s4); padding-top: var(--s8); padding-bottom: var(--s5); }
   .controls { align-items: flex-start; }
-  .seg-opt[data-filter="unstewarded"], .search, .seg-opt .long, .problems-head .lead, .problem-id-row .tag-outline { display: none; }
+  .seg-opt[data-filter="unstewarded"], .search, .seg-opt .long, .problems-head .lead { display: none; }
   .legend { display: none; }
   .legend-mobile { display: block; }
   .card.problem { padding: var(--s5); gap: var(--s3); }
@@ -409,9 +521,26 @@ main > h2 { padding-top: var(--s4); border-top: 1px solid var(--divider); }
 .revision-note { border-left: 2px solid var(--bad); padding-left: var(--s4); color: var(--n300); font-size: 14px; }
 .closing-note { border-left: 2px solid var(--n600); padding-left: var(--s4); color: var(--n300); font-size: 14px; }
 .closing-note code { overflow-wrap: anywhere; }
-/* F08-T20: an ancestor a circularity claim circles back to: open, one route closed (dotted, as circular). */
-.circular-note { border-left: 2px dotted var(--bad); padding-left: var(--s4); color: var(--n300); font-size: 14px; }
+/* F08-T20: an ancestor a circularity claim circles back to: open, one route proves it too. */
+.circular-note { border-left: 2px dotted var(--n500); padding-left: var(--s4); color: var(--n300); font-size: 14px; }
 .circular-note a.file { overflow-wrap: anywhere; }
+/* F04-T37 (D-12 v3.35): the label on a node — a fact, in the closing note's neutral rule. */
+.circular-label { border-left: 2px solid var(--n600); padding-left: var(--s4); color: var(--n300); font-size: 14px; }
+.circular-label a.file { overflow-wrap: anywhere; }
+.stmt .proves { display: inline-flex; align-items: center; gap: var(--s1); margin-left: var(--s2); color: var(--n400); white-space: nowrap; }
+.stmt .proves code { font-size: 12px; }
+/* F04-T38 (D-25 v3.35): a literature status — a fact in the neutral rule; no colour by status. */
+.literature { border-left: 2px solid var(--n600); padding-left: var(--s4); margin: var(--s4) 0; color: var(--n300); font-size: 14px; width: 100%; }
+.literature .kicker { color: var(--n500); }
+.literature-fact, .literature-later { margin: var(--s2) 0; overflow-wrap: anywhere; }
+.literature-fact strong { color: var(--n200); font-weight: 500; }
+.literature-refs { margin: var(--s2) 0; padding-left: 1.2em; line-height: 1.6; }
+.literature-refs li { overflow-wrap: anywhere; }
+.literature .prose-block { margin: var(--s3) 0 var(--s2); }
+.literature-waiting { padding-left: 1.2em; }
+.literature-waiting .lit-row { margin-bottom: var(--s2); overflow-wrap: anywhere; }
+.defect-claims { border-left: 2px dashed var(--bad); padding-left: var(--s4); color: var(--n300); font-size: 14px; }
+.defect-claims a.file { overflow-wrap: anywhere; }
 .revision-note .why { display: block; margin-top: var(--s2); color: var(--n500); font-size: 12.5px; overflow-wrap: anywhere; }
 /* F04-T20: wayfinding lines. */
 .wayfinding, .jump { font-size: 13.5px; color: var(--n400); }
@@ -466,3 +595,168 @@ table.actions code { color: var(--n400); font-size: 12px; }
 .connector-status { color: var(--n700); font-size: 14px; }
 .snippet-title { font-weight: 600; margin: var(--s3) 0 var(--s1); }
 pre.snippet { background: var(--surface); padding: var(--s3) var(--s4); overflow-x: auto; white-space: pre; margin: 0 0 var(--s3); border-radius: var(--radius-sm); font-size: 13px; }
+/* — F20-T8: glosses beside the Lean, explainer versions, history and diffs (R13, R14) — */
+.gloss-slot { margin: var(--s2) 0 var(--s5); font-size: 14px; min-width: 0; }
+.gloss-slot > .cue { font-size: 13px; margin: var(--s2) 0; }
+.gloss, .informal-block { margin: var(--s2) 0; padding: var(--s1) var(--s5) var(--s2); border: 1px solid var(--divider); border-left: 3px solid var(--speculative); border-radius: var(--radius-sm); min-width: 0; }
+.informal-block { border-left-color: var(--accent); }
+.informal-block .informal { font-size: 15px; color: var(--n200); max-width: 72ch; margin: var(--s1) 0; }
+.gloss-prose { max-width: 72ch; color: var(--n200); line-height: 1.6; }
+.gloss-prose p { margin: var(--s1) 0 var(--s2); }
+.gloss-foot { font-size: 12.5px; color: var(--n500); margin: var(--s1) 0; overflow-wrap: anywhere; }
+details.history { margin: var(--s2) 0; font-size: 13px; color: var(--n300); min-width: 0; }
+details.history > summary, details.version-text > summary, details.diff > summary { cursor: pointer; color: var(--accent-300); padding: var(--s1) 0; }
+details.history > summary { min-height: 32px; display: list-item; }
+.chain-head { margin: var(--s3) 0 var(--s1); color: var(--n400); font-size: 12.5px; letter-spacing: 0.04em; text-transform: uppercase; }
+ol.versions { margin: var(--s1) 0 var(--s3); padding-left: 1.4em; }
+li.version { margin: var(--s2) 0; }
+.version-facts { margin: 0; overflow-wrap: anywhere; }
+.version-facts .withdrawn { color: var(--bad); font-weight: 500; }
+.version-facts .earlier { color: var(--warn); font-weight: 500; }
+details.version-text .prose { border-left: 1px solid var(--divider); padding-left: var(--s4); color: var(--n300); }
+details.version-text h4 { font-size: 14px; margin: var(--s3) 0 var(--s1); }
+details.diff { margin: var(--s2) 0; }
+pre.diff .diff-add { color: var(--accent-300); background: rgba(145, 132, 217, 0.14); }
+pre.diff .diff-del { color: var(--bad); background: rgba(224, 122, 122, 0.12); }
+pre.diff .diff-hunk { color: var(--n500); }
+.history-foot { margin: var(--s2) 0 0; font-size: 12.5px; color: var(--n500); }
+.deps { font-size: 14px; color: var(--n300); }
+.deps ul { margin: var(--s1) 0 var(--s3); padding-left: 1.2em; }
+.deps li { margin: var(--s1) 0; overflow-wrap: anywhere; }
+.deps .gloss-line { color: var(--n300); }
+.explainer-of { margin: var(--s5) 0 var(--s1); color: var(--n400); font-size: 13.5px; overflow-wrap: anywhere; }
+/* An anchored section: the outline steps it names beside its words; on a phone the steps first,
+   the words directly under them. */
+.ex-section { display: grid; grid-template-columns: minmax(180px, 260px) minmax(0, 1fr); gap: var(--s3) var(--s8); padding: var(--s3) 0; border-top: 1px solid var(--divider); }
+.ex-section:first-of-type { border-top: 0; }
+.ex-section[data-steps=""] { grid-template-columns: minmax(0, 1fr); }
+.ex-steps { font-size: 13px; color: var(--n400); min-width: 0; }
+.ex-steps ul { list-style: none; margin: var(--s1) 0 0; padding: 0; }
+.ex-steps li { margin: var(--s1) 0; overflow-wrap: anywhere; }
+.ex-prose { min-width: 0; max-width: 72ch; }
+.ex-prose h3 { font-size: 16px; margin: 0 0 var(--s2); }
+.ex-prose p { overflow-wrap: anywhere; }
+/* A statement row's words: its gloss's first sentence on a line of its own, under the id. */
+.stmt .gloss-line { grid-column: 2 / -1; margin-top: calc(var(--s3) * -1); color: var(--n400); font-size: 13px; line-height: 1.5; overflow-wrap: anywhere; }
+@media (max-width: 700px) {
+  .ex-section { grid-template-columns: minmax(0, 1fr); }
+  /* F22-T18 (R): on a phone a section's words come before its steps column. */
+  .ex-prose { order: -1; }
+  .graph-grid { grid-template-columns: minmax(0, 1fr); }
+  /* The statement graph keeps its drawn size and scrolls sideways, so its labels stay legible. */
+  .dag { max-width: none; flex: none; }
+  .gloss, .informal-block { padding-left: var(--s4); padding-right: var(--s4); }
+}
+@media (max-width: 900px) {
+  .stmt { flex-wrap: wrap; }
+  .stmt .gloss-line { flex: 1 1 100%; order: 9; margin: calc(var(--s2) * -1) 0 var(--s1) calc(9px + var(--s3)); font-size: 12.5px; }
+}
+/* A version's file is named by its 64-character hash: let the path break, and let a prose diff
+   wrap rather than scroll (measured at 390px: the unbroken path pushed the page to 738px). */
+.explainer-version .label, .vouched { overflow-wrap: anywhere; }
+details.diff pre.diff { white-space: pre-wrap; overflow-wrap: anywhere; }
+/* — F21-T12: words by section (R14). Each section's state is said in text; the border only
+   repeats it. An edit awaiting review sits beneath the words it would change, as a diff. — */
+.words-state { display: inline-block; max-width: 100%; margin: 0 0 var(--s2); padding: 1px var(--s3); font-size: 12.5px; color: var(--n300); border: 1px solid var(--divider); border-radius: 999px; overflow-wrap: anywhere; }
+.words-state[data-state="drafted"] { border-style: dashed; }
+.words-state[data-state="verified"] { border-color: var(--accent); color: var(--accent-200); }
+.pending-edit { margin: var(--s2) 0 var(--s4); padding: var(--s2) var(--s4); border: 1px dashed var(--warn); border-radius: var(--radius-sm); font-size: 13px; color: var(--n300); min-width: 0; }
+.pending-head { margin: 0 0 var(--s2); overflow-wrap: anywhere; }
+.pending-head strong { color: var(--warn); }
+.pending-edit pre.diff { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+/* — F22-T18: what a reader of a proof page needed (feature requests I, J, M-S). — */
+.on-touch { display: none; }
+@media (hover: none) { .on-hover { display: none; } .on-touch { display: inline; } }
+.sorry-note { margin: var(--s1) 0 var(--s3); font-size: 12.5px; color: var(--n400); overflow-wrap: anywhere; }
+.thm-name, .po-name { font-size: .9em; color: var(--n400); overflow-wrap: anywhere; }
+.dep-unused { color: var(--n500); }
+.ex-steps-fold summary { cursor: pointer; color: var(--n300); }
+.rv-toc { margin: var(--s4) 0; padding: var(--s3) var(--s4); border: 1px solid var(--divider); border-radius: var(--radius-sm); font-size: 13.5px; }
+.rv-toc ol { margin: var(--s1) 0 0; padding-left: var(--s6); }
+.rv-toc li { overflow-wrap: anywhere; }
+.rv-order { display: flex; flex-wrap: wrap; gap: var(--s2); align-items: center; margin: 0 0 var(--s4); font-size: 12.5px; color: var(--n400); }
+.proved-in-words { padding-bottom: calc(var(--s8) * 2); max-width: 80ch; }
+.rv-order .chip[aria-current="true"] { color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+/* F22-T19: words in review, written by in-review.js under the words they would change. */
+.in-review { margin: var(--s2) 0; padding: var(--s1) var(--s3); border: 1px dashed var(--warn); border-radius: var(--radius-sm); font-size: 13px; color: var(--n300); }
+.in-review p { margin: var(--s1) 0; overflow-wrap: anywhere; }
+/* F22-T15: words now carry lists and headings; they wrap like the paragraphs (a long code span
+   in a list item pushed a 390px page to 398px). */
+.prose li, .prose h4, .prose h5, .prose h6, .ex-prose li { overflow-wrap: anywhere; }
+/* F22-T15: a gloss's first sentence can carry display math; it scrolls inside the row rather than
+   widening the page (measured: /problems/ at 390px was 671px wide before this rule). */
+.gloss-line { min-width: 0; max-width: 100%; }
+.gloss-line .math:has(.katex-display), .gloss-line .katex-display { display: block; max-width: 100%; overflow-x: auto; overflow-y: hidden; }
+.rv-order .chip { padding: 2px var(--s3); border: 1px solid var(--divider); border-radius: 999px; color: var(--n300); text-decoration: none; }
+h1 .thm-name { font-size: .55em; }
+/* F23-T8: the header's session slot, filled by session.js once the service answers (R1, R15). */
+.session-slot { display: inline-flex; align-items: center; gap: var(--s3); font-size: 14px; }
+.session-slot .session-login { color: var(--text); font-family: var(--mono); font-size: 13px; }
+/* F23-R14: how a steward came in, beside their name. */
+.admitted { font-size: 12px; color: var(--n500); white-space: nowrap; }
+/* F23-T8: /steward/ and /steward/<target>/. */
+.steward-list { list-style: none; margin: var(--s6) 0; padding: 0; display: flex; flex-direction: column; gap: var(--s3); }
+.steward-row { display: flex; align-items: center; gap: var(--s6); padding: var(--s4) var(--s5); background: var(--surface); border-radius: var(--radius-md); }
+.steward-row .id { font-family: var(--mono); font-size: 14px; flex: none; }
+.steward-row .informal { flex: 1; min-width: 0; color: var(--n300); overflow-wrap: anywhere; }
+.steward-head h1 { margin: var(--s2) 0 var(--s3); }
+.steward-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: var(--s6); margin-top: var(--s6); }
+.steward-asks ul { margin: 0; padding-left: var(--s6); line-height: 1.6; }
+.steward-form { display: flex; flex-direction: column; gap: var(--s3); }
+.steward-form-card:has(.steward-form:empty) { display: none; }
+.steward-fields { display: flex; flex-direction: column; gap: var(--s2); }
+.steward-fields label { font-size: 13.5px; color: var(--n400); }
+.steward-fields .input { width: 100%; max-width: 100%; box-sizing: border-box; }
+.steward-fields .tick { display: flex; gap: var(--s3); align-items: flex-start; margin: var(--s3) 0; color: var(--text); font-size: 14.5px; line-height: 1.5; }
+.tick input { margin-top: 4px; flex: none; }
+.form-error { color: var(--warn); margin: 0; overflow-wrap: anywhere; }
+.form-error:empty { display: none; }
+.receipt { margin: 0; overflow-wrap: anywhere; }
+@media (max-width: 760px) {
+  .steward-grid { grid-template-columns: minmax(0, 1fr); }
+  .steward-row { flex-wrap: wrap; gap: var(--s3); }
+}
+/* F24-T6 (R9): the panel, its motions, the write-up ladder and their controls; the rules page. */
+.panel-writeup h3 { font-size: 16px; margin-top: var(--s5); color: var(--n300); }
+ul.panel-members, ul.motions, ul.writeups-other { padding-left: 1.2rem; }
+ul.motions li, ul.writeups-other li { margin-bottom: var(--s3); overflow-wrap: anywhere; }
+.panel-lapsed { color: var(--n400); font-size: 14px; }
+.motion-n { font-family: var(--mono); color: var(--n500); }
+.motion-meta { color: var(--n400); font-size: 13.5px; }
+.outcome { font-weight: 500; }
+.outcome.passed { color: var(--accent-300); }
+.outcome.failed { color: var(--bad); }
+.writeup-official { max-width: 900px; margin-bottom: var(--s5); }
+.writeup-official p { margin: 0; overflow-wrap: anywhere; }
+.writeup-title { font-size: 17px; }
+.writeup-kind, .stage { font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--n500); }
+/* The ladder: every rung, the reached one marked, so a reader sees what comes next. */
+ol.ladder { list-style: none; display: flex; flex-wrap: wrap; gap: var(--s2); padding: 0; margin: var(--s2) 0; counter-reset: rung; }
+ol.ladder .rung { counter-increment: rung; font-size: 12.5px; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--n700); color: var(--n500); }
+ol.ladder .rung::before { content: counter(rung) ". "; }
+ol.ladder .rung.passed { color: var(--n300); border-color: var(--n600); }
+ol.ladder .rung.reached { color: var(--bg); background: var(--accent); border-color: var(--accent); font-weight: 500; }
+.panel-ctl, .writeup-ctl { display: flex; flex-direction: column; gap: var(--s4); margin-top: var(--s4); max-width: 640px; }
+.ctl-box { display: flex; flex-direction: column; gap: var(--s2); padding: var(--s5); border-radius: var(--radius-md); background: var(--surface); box-shadow: var(--shadow-sm); }
+.ctl-box h3 { margin: 0; font-size: 16px; color: var(--text); overflow-wrap: anywhere; }
+.ctl-box summary { cursor: pointer; color: var(--accent-300); }
+.ctl-field { display: flex; flex-direction: column; gap: 4px; }
+.ctl-field label { font-size: 13.5px; color: var(--n400); }
+.ctl-field .input { width: 100%; max-width: 100%; }
+.ctl-act { display: flex; flex-direction: column; gap: var(--s2); padding-top: var(--s2); border-top: 1px solid var(--divider); }
+.ctl-box .btn, .ctl-act .btn { align-self: flex-start; white-space: normal; text-align: left; }
+.ctl-box .tick { display: flex; gap: var(--s3); align-items: flex-start; font-size: 14px; }
+.vote-ctl { display: inline-flex; gap: var(--s2); margin-left: var(--s3); vertical-align: middle; }
+.btn-small { padding: 3px 12px; font-size: 13px; }
+ul.me-votes, ul.me-invitations { padding-left: 1.2rem; }
+table.rules { font-size: 13.5px; }
+table.rules td { vertical-align: top; overflow-wrap: anywhere; }
+table.rules td:first-child { width: 22%; }
+table.rules code { color: var(--n500); font-size: 12px; }
+@media (max-width: 700px) {
+  table.rules thead { display: none; }
+  table.rules tr { display: block; padding: var(--s3) 0; border-bottom: 1px solid var(--divider); }
+  table.rules td { display: block; width: auto !important; border: 0; padding: var(--s1) 0; }
+  table.rules td::before { content: attr(data-label); display: block; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--n500); }
+  .vote-ctl { display: flex; margin: var(--s2) 0 0; }
+}

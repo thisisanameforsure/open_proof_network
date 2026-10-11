@@ -11,18 +11,32 @@ said "circular", a claim could not name the statement it circles back to, and th
 checked that an exhibit *elaborates*, never what it proves.
 
 No program decides "equivalent up to proof". The owner's ruling (2026-09-23): anyone may file a
-claim whose Lean exhibit proves ``Ancestor → Hole`` — the hole is no easier than a statement it
-was meant to reduce; the gate elaborates the exhibit in the sandbox and checks its type is that
+claim whose Lean exhibit proves, in Lean, that the hole circles back to a statement it was meant
+to reduce; the gate elaborates the exhibit in the sandbox and checks its type is that
 implication, with the ancestor a transitive dependent of the hole (read through revisions); once
 merged, the hole leaves the frontier with the reason ``circular`` and the site labels it. No
 record is rewritten: the claim file is the fact the products derive from (derive, never
 rewrite, F08-T10).
 
+F08-T21 (2026-09-29, tester 69-C B3) turned the implication round. F08-T17 had asked for
+``Ancestor → Hole``, which says the hole is no *harder* than the ancestor: any provable hole and
+any hole whose hypothesis contradicts the ancestor met it, so one merged claim could take a
+genuinely easier hole off the frontier. The exhibit now proves ``Hole → Ancestor``: any proof of
+the hole is a proof of the ancestor, so from the ancestor the decomposition leads to the hole and
+the hole leads straight back — the literal cycle. A hole that is the ancestor restated passes by
+``exact``; a strictly easier hole cannot pass unless the ancestor is proved.
+
 The shape: ``defect-claim/v3`` adds the class ``circular-decomposition`` and the field
 ``ancestor``; the classifier checks the ancestor, ``exhibits.run`` asks ``opn-relation-type``
-(label ``resolves``, the ancestor as the variant and the hole as the root) whether the exhibit's
+(label ``resolves``, the hole as the variant and the ancestor as the root) whether the exhibit's
 one theorem is that implication, and ``graph.load_target`` reads the merged claim into
-``NodeFacts.circular``.
+``NodeFacts.circular_claims``.
+
+F08-T39 (D-12 v3.35, 2026-10-08) kept every check here and reversed the consequence: the exhibit
+is met by every honest reduction (D-12 #4) and by the last open hole of any decomposition, so a
+merged claim is published as the node's ``circular`` label and removes nothing — the hole stays on
+the frontier, claimable on its status alone, and ``cause`` is never ``circular``
+(``test_circular_label.py``).
 """
 
 from __future__ import annotations
@@ -46,11 +60,12 @@ HOLE = "and-reassoc"
 ANCESTOR = "and-swap-reassoc"  # the root; it depends on the hole
 SIBLING = "tutorial-and-swap"  # a node beside the hole, not above it
 CLAIM = f"targets/{TARGET}/nodes/{HOLE}/defects/20260923T120000Z-alice.yaml"
+#: ``hole → ancestor`` (F08-T21): the hole ``and-reassoc`` implies the root above it.
 EXHIBIT = (
     "theorem circular :\n"
-    "    (∀ p q r : Prop, (p ∧ q) ∧ r → r ∧ (q ∧ p)) →\n"
-    "    ∀ p q r : Prop, (p ∧ q) ∧ r → p ∧ (q ∧ r) :=\n"
-    "  fun _ _ _ _ h => ⟨h.1.1, h.1.2, h.2⟩\n"
+    "    (∀ p q r : Prop, (p ∧ q) ∧ r → p ∧ (q ∧ r)) →\n"
+    "    ∀ p q r : Prop, (p ∧ q) ∧ r → r ∧ (q ∧ p) :=\n"
+    "  fun _ _ _ _ h => ⟨h.2, h.1.2, h.1.1⟩\n"
 )
 RENDERED = "5" * 40
 NOW = "2026-09-23T12:00:00Z"
@@ -166,17 +181,20 @@ def test_the_ancestor_is_read_through_revisions(tmp_path: Path) -> None:
 # --- the sandbox checks what the exhibit proves -------------------------------------------------
 
 
-def test_the_exhibit_is_checked_as_ancestor_implies_hole(tmp_path: Path) -> None:
+def test_the_exhibit_is_checked_as_hole_implies_ancestor(tmp_path: Path) -> None:
     root = copy_graph(tmp_path)
     fake = FakeToolchain()
     assert run_exhibits(root, file_claim(root), fake) == []
-    # The ancestor is the variant and the hole the root: ``resolves`` is variant → root.
-    assert "relation_type:resolves:OpnProp.and_swap_reassoc" in fake.calls
+    # F08-T21: the hole is the variant and the ancestor the root: ``resolves`` is variant → root.
+    assert "relation_type:resolves:OpnProp.and_reassoc" in fake.calls
+    assert "relation_type:resolves:OpnProp.and_swap_reassoc" not in fake.calls
 
 
 def test_the_reverse_implication_is_refused(tmp_path: Path) -> None:
+    """``ancestor → hole`` is what F08-T17 asked for; it says the hole is no harder, which every
+    provable hole satisfies (F08-T21), so it is the direction refused now."""
     root = copy_graph(tmp_path)
-    fake = FakeToolchain(relation=relation_result(expected="A → H", declared="H → A"))
+    fake = FakeToolchain(relation=relation_result(expected="H → A", declared="A → H"))
     assert run_exhibits(root, file_claim(root), fake) == ["circular-direction"]
 
 
@@ -219,16 +237,22 @@ def graph_row(prod: products.Products, node_id: str) -> dict[str, Any]:
     return rows[0]
 
 
-def test_a_merged_circularity_claim_takes_the_hole_off_the_frontier(tmp_path: Path) -> None:
+def test_a_merged_circularity_claim_labels_the_hole_and_removes_nothing(tmp_path: Path) -> None:
+    """F08-T17 took the hole off the frontier with ``cause: circular``; D-12 v3.35 (F08-T39)
+    makes the merged claim a label on the row instead, and the hole stays work."""
     root = copy_graph(tmp_path, publish=True)
     assert HOLE in frontier_ids(generate(root)), "guard: the hole is work before the claim"
     file_claim(root)
     prod = generate(root)
-    assert HOLE not in frontier_ids(prod)
+    assert HOLE in frontier_ids(prod)
     row = graph_row(prod, HOLE)
     assert row["status"] == "ready"  # nothing about the statement changed (D-3)
-    assert row["cause"] == "circular"
-    assert graph.load_target(root, TARGET).nodes[HOLE].circular == CLAIM.split(f"{HOLE}/")[1]
+    assert row["cause"] is None
+    own = CLAIM.split(f"{HOLE}/")[1]  # defects/<file>
+    assert row["circular"] == [{"ancestor": ANCESTOR, "claim": f"{HOLE}/{own}"}]
+    node = graph.load_target(root, TARGET).nodes[HOLE]
+    assert node.circular_claims == ((own, ANCESTOR),)
+    assert [c.as_dict() for c in node.circular] == row["circular"]
 
 
 def test_no_record_is_rewritten(tmp_path: Path) -> None:
@@ -250,3 +274,4 @@ def test_a_claim_of_another_class_leaves_the_hole_on_the_frontier(tmp_path: Path
     prod = generate(root)
     assert HOLE in frontier_ids(prod)
     assert graph_row(prod, HOLE)["cause"] is None
+    assert graph_row(prod, HOLE)["circular"] == []  # and labels nothing (F08-T39)

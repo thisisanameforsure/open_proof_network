@@ -3,10 +3,13 @@ the same request, modulo the R6 demarcation; every write reaches exactly one end
 
 from __future__ import annotations
 
+import functools
 import hashlib
 import json
 import logging
 import re
+import subprocess
+import tempfile
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
@@ -15,6 +18,7 @@ import pytest
 import samples
 import yaml
 from api_fakes import (
+    AUTOMATION,
     PROOF_PREFIX,
     TUTORIAL_NODE,
     TUTORIAL_PROOF,
@@ -25,10 +29,11 @@ from api_fakes import (
 )
 from mcp_client import NODE, NODE_DIR, TARGET, McpClient, materialize, plain, seed_node, unwrap
 from test_finding_mcp_bootstrap import HOLE, add_hole
+from test_literature_route import seed_stewards
 
 from opn_api.mcp import demarcate
 from opn_api.mcp.server import TOOLS
-from opn_gate import context, schemas
+from opn_gate import context, schemas, steward
 
 ULID_RE = re.compile(r"[0-9A-Z]{26}")
 STATEMENT = "theorem OpnProp.and_weaken : ∀ p q : Prop, p ∧ q → p ∨ q := by\n  sorry\n"  # noqa: RUF001
@@ -250,7 +255,11 @@ def with_submission(h: Harness, token: str) -> dict[str, Any]:
     """F07-T43: a pull request the caller opened through the service, to withdraw."""
     r = h.client.post(
         "/annexes",
-        json={"node_id": TUTORIAL_NODE, "text": "An argument to withdraw.\n"},
+        json={
+            "node_id": TUTORIAL_NODE,
+            "text": "An argument to withdraw.\n",
+            "licence": "CC-BY-4.0",
+        },
         headers=h.auth(token),
     )
     assert r.status_code == 201, r.text
@@ -265,6 +274,60 @@ def with_hole(h: Harness, token: str) -> dict[str, Any]:
 #: F13-T6: gate/mathlib-pins.txt's v4.33.1, which the hosted-checker mapping serves.
 PIN = "0df444a360eaa60ab8c11dca51a86af692955474"
 CHECKED = "theorem OpnProp.and_reassoc : True := by\n  trivial\n"
+
+
+#: F20-T6: a gloss of the tutorial statement by the caller, on the host, for withdraw_gloss.
+GLOSSED = "theorem x : True := trivial\n"
+GLOSS = (
+    "---\nschema: gloss/v1\ntarget: propositional\nsubject:\n  kind: statement\n"
+    f"  node: {TUTORIAL_NODE}\n  module: null\n"
+    f"  lean_hash: {hashlib.sha256(GLOSSED.encode()).hexdigest()}\n"
+    "supersedes: null\nauthor: alice\ndrafter: null\ndate: '2026-10-04'\nlicence: CC-BY-4.0\n"
+    "---\nTruth holds.\n"
+)
+GLOSS_PATH = f"{TUTORIAL_DIR}gloss/{hashlib.sha256(GLOSS.encode()).hexdigest()}.md"
+
+
+def with_gloss(h: Harness, token: str) -> dict[str, Any]:
+    h.githost.files[TUTORIAL_DIR + "Statement.lean"] = GLOSSED.encode()
+    h.githost.files[GLOSS_PATH] = GLOSS.encode()
+    h.context.files.clear()
+    h.context.listings.clear()
+    return {}
+
+
+#: F09-T24: a literature proposal, and the same words as a steward's own statement of it.
+LITERATURE = {
+    "node_id": TUTORIAL_NODE,
+    "status": "known",
+    "references": [{"title": "A published proof", "url": "https://example.org/p", "note": None}],
+    "summary": "Proved in the literature; never formalised.",
+}
+
+
+@functools.cache
+def approval_env() -> dict[str, str]:
+    """One throwaway approval key for the process, generated the way the route's tests do."""
+    key = Path(tempfile.mkdtemp(prefix="opn-equivalence-approval-")) / "approval"
+    subprocess.run(["ssh-keygen", "-q", "-t", "ed25519", "-N", "", "-f", str(key)], check=True)
+    return {"OPN_API_APPROVAL_SIGNING_KEY": key.read_text()}
+
+
+def with_steward(h: Harness, token: str) -> dict[str, Any]:
+    """F09-T24: alice an active steward of the target, so her login may confirm."""
+    seed_stewards(h, ("alice", steward.COMMIT))
+    return {}
+
+
+def with_registration(h: Harness, token: str) -> dict[str, Any]:
+    """F25-T4: alice an active steward of the target, and the passing attestation of the node's
+    merge on the graph, so her login may record a registration naming it."""
+    seed_stewards(h, ("alice", steward.COMMIT))
+    h.githost.files["attestations/000001.json"] = schemas.canonical_json(
+        samples.attestation(graph_id=TARGET, node_id=TUTORIAL_NODE)
+    )
+    h.context.files.clear()
+    return {}
 
 
 def with_pin(h: Harness, token: str) -> dict[str, Any]:
@@ -283,6 +346,15 @@ def postmortem() -> dict[str, Any]:
 
 
 BUNDLE = {f"{PROOF_PREFIX}{TUTORIAL_NODE}/Proof.lean": TUTORIAL_PROOF}
+#: F25-T4: a registration record as POST /registrations takes it, the optional fields left out.
+REGISTRATION: dict[str, Any] = {
+    "target_id": TARGET,
+    "registry": "palomar",
+    "wrapper": {"repository": "o/r", "commit": "a" * 40},
+    "graph_commit": "b" * 40,
+    "proof": {"node": TUTORIAL_NODE, "attestation": "000001"},
+    "status": "submitted",
+}
 # tool -> (tool arguments, route label, endpoint body, setup)
 WRITES: dict[str, tuple[dict[str, Any], str, dict[str, Any], Setup]] = {
     "claim_node": (
@@ -322,6 +394,27 @@ WRITES: dict[str, tuple[dict[str, Any], str, dict[str, Any], Setup]] = {
         {"target_id": TARGET, "record": {"route": "normalise", "outcome": "exhausted"}},
         no_setup,
     ),
+    # F20-T6: the two gloss tools, each POST /glosses* body for body.
+    "submit_gloss": (
+        {
+            "subject": {"kind": "statement", "node_id": TUTORIAL_NODE},
+            "text": "Truth holds.",
+            "licence": "CC-BY-4.0",
+        },
+        "POST /glosses",
+        {
+            "subject": {"kind": "statement", "node_id": TUTORIAL_NODE},
+            "text": "Truth holds.",
+            "licence": "CC-BY-4.0",
+        },
+        with_statement,
+    ),
+    "withdraw_gloss": (
+        {"record": GLOSS_PATH, "reason": "It misreads the goal."},
+        "POST /glosses/withdrawals",
+        {"record": GLOSS_PATH, "reason": "It misreads the goal."},
+        with_gloss,
+    ),
     "file_defect_claim": (
         {"stmt_ref": TUTORIAL_NODE, "class": "junk-value", "line": 1, "exhibit": EXHIBIT},
         "POST /defect-claims",
@@ -353,6 +446,42 @@ WRITES: dict[str, tuple[dict[str, Any], str, dict[str, Any], Setup]] = {
         with_hole,
     ),
     "withdraw_submission": ({}, "DELETE /submissions/{submission_id}", {}, with_submission),
+    # F05-T27: the caller's own token renewed; the new token is masked, the expiry is not.
+    "renew_token": ({}, "POST /tokens/renew", {}, no_setup),
+    # F09-T24 (D-25, D-32 v3.35): the literature pair, each POST /literature* body for body.
+    "propose_literature": (
+        LITERATURE,
+        "POST /literature",
+        LITERATURE,
+        no_setup,
+    ),
+    "confirm_literature": (
+        {**LITERATURE, "record": None},
+        "POST /literature/confirm",
+        {**LITERATURE, "record": None},
+        with_steward,
+    ),
+    # F25-T4 (D-3, D-10, D-35 v3.37): the names-and-registrations pair, body for body.
+    "set_display_name": (
+        {"name": "Alice Agent", "link": None},
+        "POST /me/name",
+        {"name": "Alice Agent", "link": None},
+        no_setup,
+    ),
+    "register_target": (
+        REGISTRATION,
+        "POST /registrations",
+        REGISTRATION,
+        with_registration,
+    ),
+}
+
+#: F09-T24: ``confirm_literature`` signs with the approval key, so its two harnesses need one
+#: (the same one, so the two signatures are byte for byte the same); every other row runs on
+#: the default settings.
+ENV_FOR: dict[str, Callable[[], dict[str, str]]] = {
+    "confirm_literature": approval_env,
+    "set_display_name": approval_env,  # F25-T4: signed with the approval key as well
 }
 
 
@@ -372,12 +501,14 @@ def submit_proof_pair(key: PrecheckKey) -> tuple[Harness, dict[str, Any], Harnes
         "artifact_type": "proof",
         "bundle": BUNDLE,
         "attestation": at_a,
+        "automation": AUTOMATION,
     }
     body = {
         "node_id": TUTORIAL_NODE,
         "artifact_type": "proof",
         "bundle": BUNDLE,
         "precheck_job_id": at_b["id"],
+        "automation": AUTOMATION,
     }
     return a, {"token": ta, "args": args}, b, {"token": tb, "body": body}
 
@@ -390,7 +521,8 @@ def test_write_tools_forward_once(
     caplog.set_level(logging.INFO, logger="opn_api.access")
     covered = set()
     for name, (given, route, body, setup) in WRITES.items():
-        a, b = make_harness(), make_harness()
+        env = ENV_FOR[name]() if name in ENV_FOR else None
+        a, b = make_harness(env), make_harness(env)
         token_a = a.token_for("code_alice", "alice")
         token_b = b.token_for("code_alice", "alice")
         args = {**given, **setup(a, token_a)}

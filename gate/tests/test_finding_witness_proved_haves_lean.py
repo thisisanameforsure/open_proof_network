@@ -2,7 +2,7 @@
 """F07-T44 (D-29 v3.22), lean tier: a hole's witness exhibits only what the decomposition left
 unproved.
 
-A hole is closed over every binder in scope where it sits (F11-Q22), so step 7 used to hold its
+A hole is closed over the binders in scope where it sits (F11-Q22), so step 7 used to hold its
 witness to the conjunction of all of them — including facts the skeleton itself had proved, which a
 contributor then had to prove again inside ``Witness.lean``. The owner's rule (decisions v3.22):
 the witness exhibits the hypotheses the hole inherited from the statement and from other holes;
@@ -16,6 +16,11 @@ closed type drops when nothing uses it, so it was never a hypothesis at all; wha
 hole's statement is a binder the assembly introduced by destructuring a proved fact —
 ``obtain ⟨hp, hq⟩ := pq`` is ``And.casesOn pq (fun hp hq => …)`` — and those are what the
 extractor now marks. The fixture has both, one hole after them, and one hole after that hole.
+
+F07-T48 restated the second hole: an earlier hole reaches a later one only when the later hole's
+type mentions it (``test_finding_hole_inherits_lean``), so ``second`` states ``first`` as its
+premise, ``q ∧ p → r ∧ q``, which closes to the same ``CLOSED_SECOND`` the rule was written
+against. Every constant below is as it was.
 
 Lean core only, like the rest of the propositional fixture.
 """
@@ -40,14 +45,14 @@ from opn_gate.toolchain import LocalToolchain, ResolvedToolchain
 pytestmark = pytest.mark.lean
 
 #: One proved ``have`` (a let, absent from every closed type), one destructuring of it (two
-#: binders the assembly proved), then a hole, then a hole after that hole.
+#: binders the assembly proved), then a hole, then a hole that states that hole as its premise.
 BODY = (
     "  intro p q r h\n"
     "  have pq : p ∧ q := h.1\n"
     "  obtain ⟨hp, hq⟩ := pq\n"
     "  have first : q ∧ p := sorry\n"
-    "  have second : r ∧ q := sorry\n"
-    "  exact ⟨second.1, first⟩\n"
+    "  have second : q ∧ p → r ∧ q := sorry\n"
+    "  exact ⟨(second first).1, first⟩\n"
 )
 FIRST, SECOND = f"{ROOT}--h1", f"{ROOT}--h2"
 #: The statements as the extractor printed them before the rule; the rule must not move them.
@@ -186,7 +191,8 @@ def test_a_hole_after_a_hole_still_asks_for_that_hole(
     second = holes[1]
     assert second["name"] == "second"
     assert second["proved_binders"] == PROVED, second
-    # ``first`` is a hole, so it stays an obligation — given the facts the assembly proved.
+    # ``second`` states ``first`` as its premise (F07-T48), so it stays an obligation — given
+    # the facts the assembly proved.
     assert second["expected_witness"] == NARROW_SECOND, second
     admitted = with_witness(
         real_toolchain, tmp_path / "ok", graph, SECOND, (NARROW_SECOND, PROOF_NARROW_SECOND)

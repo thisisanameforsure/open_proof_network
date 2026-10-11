@@ -85,7 +85,7 @@ def test_context_bundle(tmp_path: Path) -> None:
     for path, data in bundles.items():
         assert data == second.files[path], path
         doc = json.loads(data)
-        assert schemas.violations(doc, "context/v1") == []
+        assert schemas.violations(doc, context.SCHEMA) == []
         assert len(data) <= context.MAX_BYTES
         for entry in doc["attempts"]["records"]:
             detail = entry.get("record", {}).get("detail")

@@ -1,0 +1,3 @@
+F04-T30 — llms.txt and robots.txt on the site (audit 2026-10-04). Built in the same commit as
+F05-T24, the service side; the red and green runs, the sample output and the proposed ledger
+line are in engineering/evidence/F05/task-24-audit-2026-10-04.txt.

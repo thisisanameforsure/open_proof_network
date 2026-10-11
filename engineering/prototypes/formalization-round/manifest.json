@@ -1,0 +1,243 @@
+{
+ "_doc": "Each candidate's provenance and, for planted ones, the defect class (D-11) and the outcome the round must reach. expect: survive | discard-screen | discard-question | flag (survives the automated stages but is shown as strictly weaker or stronger than another survivor, for the signers). planted candidates pass if they end outside the main cluster (discarded, or flagged); correct ones pass if they end in it. 'expect_changed' records an expectation revised after a run, with the reason, so the revision is visible rather than silent.",
+ "goldbach": {
+  "words": "Every even integer greater than 2 is the sum of two primes.",
+  "seeds": [
+   [
+    2,
+    "2 is not covered by the conjecture"
+   ],
+   [
+    3,
+    "odd numbers are not covered"
+   ],
+   [
+    4,
+    "4 = 2 + 2"
+   ],
+   [
+    28,
+    "28 = 5 + 23"
+   ]
+  ],
+  "candidates": {
+   "human-ref": {
+    "author": "human",
+    "expect": "survive"
+   },
+   "agent-a": {
+    "author": "agent",
+    "model": "sonnet",
+    "expect": "survive"
+   },
+   "agent-b": {
+    "author": "agent",
+    "model": "haiku",
+    "expect": "discard-compile",
+    "expect_changed": "2026-10-09 after run 1: the haiku formalizer's files do not elaborate (its instance `fun _ => by decide` cannot be synthesised; its own report says so). The round discards at compile, which is correct for a file that does not compile."
+   },
+   "agent-c": {
+    "author": "agent",
+    "model": "opus",
+    "expect": "survive"
+   },
+   "alt-dvd": {
+    "author": "human",
+    "expect": "survive",
+    "note": "2 ∣ n and 2 < n for n % 2 = 0 and 4 ≤ n"
+   },
+   "alt-pq": {
+    "author": "human",
+    "expect": "survive",
+    "note": "two named primes p + q = n"
+   },
+   "bad-noeven": {
+    "author": "planted",
+    "defect": "missing hypothesis",
+    "expect": "discard-question"
+   },
+   "bad-domain": {
+    "author": "planted",
+    "defect": "wrong domain (2 ≤ n)",
+    "expect": "discard-question"
+   },
+   "bad-vacuous": {
+    "author": "planted",
+    "defect": "vacuity (contradictory hypotheses)",
+    "expect": "discard-screen"
+   },
+   "bad-lostconj": {
+    "author": "planted",
+    "defect": "lost conjunct (only one prime asked for)",
+    "expect": "discard-screen"
+   },
+   "bad-natsub": {
+    "author": "planted",
+    "defect": "junk value (p - n truncates to 0)",
+    "expect": "discard-question"
+   },
+   "bad-prime1": {
+    "author": "planted",
+    "defect": "definition mismatch (1 counted as prime)",
+    "expect": "flag"
+   }
+  },
+  "probe": {
+   "arity": 1,
+   "values": 13,
+   "n": 24
+  }
+ },
+ "legendre": {
+  "words": "For every positive integer n, there is a prime strictly between n² and (n+1)².",
+  "seeds": [
+   [
+    0,
+    "0 is not a positive integer"
+   ],
+   [
+    1,
+    "between 1 and 4: 2 and 3"
+   ]
+  ],
+  "candidates": {
+   "human-ref": {
+    "author": "human",
+    "expect": "survive"
+   },
+   "agent-a": {
+    "author": "agent",
+    "model": "sonnet",
+    "expect": "survive"
+   },
+   "agent-b": {
+    "author": "agent",
+    "model": "haiku",
+    "expect": "discard-compile",
+    "expect_changed": "2026-10-09 after run 1: the haiku formalizer's files do not elaborate (its instance `fun _ => by decide` cannot be synthesised; its own report says so). The round discards at compile, which is correct for a file that does not compile."
+   },
+   "agent-c": {
+    "author": "agent",
+    "model": "opus",
+    "expect": "survive"
+   },
+   "alt-mul": {
+    "author": "human",
+    "expect": "survive",
+    "note": "n*n for n^2, 0 < n"
+   },
+   "alt-closed": {
+    "author": "human",
+    "expect": "discard-question",
+    "note": "closed interval; equivalent because squares are never prime, but not by a small tactic",
+    "expect_changed": "2026-10-09 after the witness probes: the closed interval is equivalent to the open one only because squares are never prime. The probe judges the formula against the words ('strictly between'); asked whether a prime at 1 would count for n = 1, the proposer says no, and the closed reading goes. The faithful formulas survive, so nothing is lost."
+   },
+   "bad-zero": {
+    "author": "planted",
+    "defect": "wrong domain (n = 0 included)",
+    "expect": "discard-question"
+   },
+   "bad-plus1": {
+    "author": "planted",
+    "defect": "wrong bound (n² + 1 for (n+1)²)",
+    "expect": "discard-question"
+   },
+   "bad-two": {
+    "author": "planted",
+    "defect": "strength drift (two primes asked for)",
+    "expect": "flag"
+   },
+   "bad-paren": {
+    "author": "planted",
+    "defect": "parenthesization (n² < p → Prime p)",
+    "expect": "discard-screen"
+   },
+   "alt-inline": {
+    "author": "human",
+    "expect": "returned",
+    "note": "primality written inline, no named helper: a test of the witness probes' own assumption",
+    "expect_changed": "2026-10-09 after its first run: expected to survive, it was DISCARDED by the coverage probe, a false positive. With primality inline there is no predicate for the probe to replace, so the probe asked the real claim. Fixed by a format rule (a candidate names each concept the words use as its own predicate, or is returned to its author), not by changing what the probe concludes."
+   }
+  },
+  "probe": {
+   "arity": 1,
+   "values": 37,
+   "n": 5
+  }
+ },
+ "oppermann": {
+  "words": "For every integer n > 1, there is at least one prime between n(n−1) and n², and at least one prime between n² and n(n+1).",
+  "seeds": [
+   [
+    0,
+    "not covered"
+   ],
+   [
+    1,
+    "not covered"
+   ],
+   [
+    2,
+    "3 lies in (2, 4) and 5 in (4, 6)"
+   ]
+  ],
+  "candidates": {
+   "human-ref": {
+    "author": "human",
+    "expect": "survive"
+   },
+   "agent-a": {
+    "author": "agent",
+    "model": "sonnet",
+    "expect": "survive"
+   },
+   "agent-b": {
+    "author": "agent",
+    "model": "haiku",
+    "expect": "discard-compile",
+    "expect_changed": "2026-10-09 after run 1: the haiku formalizer's files do not elaborate (its instance `fun _ => by decide` cannot be synthesised; its own report says so). The round discards at compile, which is correct for a file that does not compile."
+   },
+   "agent-c": {
+    "author": "agent",
+    "model": "opus",
+    "expect": "survive"
+   },
+   "alt-sub": {
+    "author": "human",
+    "expect": "survive",
+    "note": "n^2 - n for n(n-1)"
+   },
+   "alt-inclusive": {
+    "author": "human",
+    "expect": "discard-question",
+    "note": "the inclusive reading of 'between' (agent C's ambiguity)",
+    "expect_changed": "2026-10-09 after the witness probes: the ambiguity agent C reported is settled by one question (for n = 2, would a prime at 4 count? no), which is the round working as designed."
+   },
+   "bad-one": {
+    "author": "planted",
+    "defect": "wrong domain (1 ≤ n)",
+    "expect": "discard-question"
+   },
+   "bad-half": {
+    "author": "planted",
+    "defect": "lost conjunct (second interval only)",
+    "expect": "flag"
+   },
+   "bad-or": {
+    "author": "planted",
+    "defect": "connective (∨ for ∧)",
+    "expect": "flag"
+   },
+   "bad-junk": {
+    "author": "planted",
+    "defect": "wrong bound (n² - 1 for n(n-1))",
+    "expect": "discard-question"
+   }
+  },
+  "probe": {
+   "arity": 2,
+   "values": 21,
+   "n": 4
+  }
+ }
+}

@@ -1,0 +1,63 @@
+# F22-T14 (Q9): check that this commit's outline extractor keeps every published step id, on a
+# hosted runner. Explainers anchor on step ids (F20-R3), so the extractor may add steps but never
+# drop or move one. A laptop's Docker elaborates Mathlib too slowly for the large proofs (16 of 91
+# artifacts timed out at 30 minutes on 2026-10-07), so the check runs here.
+#
+# Read-only, like outline-backfill.yml: no secret, `contents: read`, the graph cloned from its public
+# URL, contributor Lean only inside the image named by digest. The report is uploaded as an artifact.
+name: outline ids
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "the target id to check"
+        required: true
+        type: string
+      image:
+        description: "the step-3 image, name@sha256:<digest>, carrying this commit's Lean programs"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+env:
+  GRAPH_REPO: https://github.com/thisisanameforsure/open_proof_network_graph
+
+jobs:
+  check:
+    name: published outline ids survive this extractor (F22-T14)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d  # v10.0.1
+      - name: Clone the graph (read-only; D-35)
+        run: git clone --quiet "$GRAPH_REPO" graph
+      - name: Pull the image by digest
+        env:
+          IMAGE: ${{ inputs.image }}
+        run: |
+          set -euo pipefail
+          printf '%s' "$IMAGE" | grep -Eq '^ghcr\.io/[a-z0-9_./-]+@sha256:[0-9a-f]{64}$' \
+            || { echo "::error::image must be name@sha256:<digest>"; exit 1; }
+          docker pull -q "$IMAGE"
+      - name: Check the ids
+        env:
+          IMAGE: ${{ inputs.image }}
+          TARGET: ${{ inputs.target }}
+          OPN_OUTLINE_TIMEOUT_S: "3600"
+        run: |
+          set -euo pipefail
+          printf '%s' "$TARGET" | grep -Eq '^[A-Za-z0-9][A-Za-z0-9._-]*$' || exit 1
+          status=0
+          uv run --frozen python gate/tools/check_outline_ids.py --graph graph --ref origin/main \
+            --target "$TARGET" --image "$IMAGE" --out "$RUNNER_TEMP/out" > report.json || status=$?
+          python3 -c "import json; d=json.load(open('report.json')); print({k: d[k] for k in ('published','outlined_again','ids_lost_or_moved')}, 'failed', len(d['failed']))"
+          exit "$status"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
+        if: always()
+        with:
+          name: outline-ids-${{ inputs.target }}
+          path: report.json

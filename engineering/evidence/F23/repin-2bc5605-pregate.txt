@@ -1,0 +1,59 @@
+INFO opn_gate.cache: olean cache hit: e559debaa39a
+{
+  "verdict": "pass",
+  "first_failing_step": null,
+  "diagnostic": null,
+  "steps": [
+    {
+      "step": 1,
+      "name": "toolchain",
+      "result": "pass",
+      "diagnostic": null
+    },
+    {
+      "step": 2,
+      "name": "paths",
+      "result": "pass",
+      "diagnostic": null
+    },
+    {
+      "step": 4,
+      "name": "kernel-replay",
+      "result": "pass",
+      "diagnostic": null
+    },
+    {
+      "step": 5,
+      "name": "axioms",
+      "result": "pass",
+      "diagnostic": null
+    },
+    {
+      "step": 6,
+      "name": "hazards",
+      "result": "pass",
+      "diagnostic": null
+    },
+    {
+      "step": 7,
+      "name": "witness",
+      "result": "pass",
+      "diagnostic": null
+    },
+    {
+      "step": 8,
+      "name": "deps",
+      "result": "pass",
+      "diagnostic": null
+    }
+  ],
+  "attestation": "/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/opn-pregate-p4nmvqdb/attestation.json",
+  "verdict_file": "/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/opn-pregate-p4nmvqdb/verdict.json",
+  "olean_cache": {
+    "status": "hit",
+    "commit": "e559debaa39a437425ce4f4b25e07bc3235f366c",
+    "reason": "",
+    "hits": [],
+    "misses": []
+  }
+}

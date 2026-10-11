@@ -17,6 +17,7 @@ identity, exactly as one GitHub login is worth one.
 from __future__ import annotations
 
 import dataclasses
+import functools
 import hashlib
 import html
 import json
@@ -25,6 +26,7 @@ import re
 import secrets
 from collections.abc import Callable, Collection, Mapping
 from datetime import datetime, timedelta
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 from urllib.parse import parse_qs
 
@@ -35,6 +37,7 @@ from opn_api import auth, ratelimit
 from opn_api import clock as clockmod
 from opn_api import githost as githostmod
 from opn_api.app import ApiError
+from opn_api.config import Settings
 from opn_api.githost import GitHostError
 from opn_api.store import KEY_PROOF, KEY_STATE, ConflictError, Identity, TokenRecord
 
@@ -81,6 +84,17 @@ By making a contribution to this project, I certify that:
     personal information I submit with it, including my sign-off) is
     maintained indefinitely and may be redistributed consistent with
     this project or the open source license(s) involved.
+
+
+The Open Proof Network's addition (not part of the Developer's
+Certificate of Origin above; D-23 v3.37)
+
+The licences "indicated in the file" are these. Code contributions
+(Lean files and anything else that runs) are licensed under Apache-2.0.
+The non-code record -- attestations, postmortems, approach records,
+review and adjudication records, registration records and the other
+records the graph keeps -- is licensed under CDLA-Permissive-2.0. A
+record of a contribution names both by their SPDX identifiers.
 """
 DCO_VERSION = hashlib.sha256(DCO_TEXT.encode("utf-8")).hexdigest()[:16]
 
@@ -188,6 +202,64 @@ def check_dco(doc: Any) -> None:
         )
 
 
+# --- reserved pseudonyms (F05-T26; D-19 v3.28, Q26) ----------------------------------------------
+
+#: The published list of reserved names, one per line: the owner adds a name here (Q26).
+RESERVED_FILE = Path(__file__).with_name("reserved_pseudonyms.txt")
+
+
+def fold(name: str) -> str:
+    """How two names are compared: without regard to case, and with ``-`` and ``_`` removed, so
+    ``Opn_Gate`` and ``opngate`` are both the gate's own name."""
+    return name.lower().replace("-", "").replace("_", "")
+
+
+@functools.cache
+def published_reserved() -> frozenset[str]:
+    """The names on ``RESERVED_FILE``, folded; ``#`` starts a comment. Read once per process.
+    A missing file is an error, never an empty list: the reservation must not lapse silently
+    because the package shipped without its data (C7)."""
+    names = set()
+    for line in RESERVED_FILE.read_text(encoding="utf-8").splitlines():
+        entry = line.split("#", 1)[0].strip()
+        if entry:
+            names.add(fold(entry))
+    return frozenset(names)
+
+
+def _owner(repo: str) -> str:
+    return repo.split("/", 1)[0]
+
+
+def reserved_names(settings: Settings) -> frozenset[str]:
+    """Every reserved name, folded: the operator's logins as configuration knows them (the
+    owners of the graph, network and precheck repositories), the App's committer name less its
+    ``[bot]`` suffix, and the published list. Nothing about the deployment is written in code."""
+    configured = {
+        _owner(settings.graph_repo),
+        _owner(settings.network_repo),
+        _owner(settings.precheck_repo),
+        settings.committer_name.removesuffix("[bot]"),
+    }
+    return frozenset(fold(n) for n in configured if n) | published_reserved()
+
+
+def is_reserved(settings: Settings, name: str) -> bool:
+    return fold(name) in reserved_names(settings)
+
+
+def check_not_reserved(settings: Settings, pseudonym: str) -> None:
+    """F05-T26: a new identity may not take a reserved name (D-19 v3.28). Checked only when an
+    identity is created: one that already holds a name reserved later keeps it."""
+    if is_reserved(settings, pseudonym):
+        raise ApiError(
+            409,
+            "pseudonym-reserved",
+            f"pseudonym {pseudonym!r} is reserved (the operator's, the gate's own, or a name on "
+            "the published list, compared without case or separators); choose another",
+        )
+
+
 def check_pseudonym(value: Any) -> str:
     if not isinstance(value, str) or not PSEUDONYM_RE.match(value):
         raise ApiError(
@@ -207,13 +279,56 @@ def expiry(ctx: Context) -> datetime:
     return ctx.clock.now() + timedelta(seconds=ctx.settings.state_ttl_s)
 
 
+#: F23-R2: the longest ``return`` path a sign-in carries back to the site.
+RETURN_MAX = 512
+#: A plain path on the site: printable ASCII after one ``/``, no whitespace or control character.
+_RETURN_RE = re.compile(r"^/[!-~]*$")
+
+
+def check_return(raw: Any) -> str:
+    """F23-R2, AC1: ``return`` is a path on the site's own origin and nothing else — it starts
+    with one ``/``, never ``//`` (a scheme-relative URL), has no backslash (which browsers read
+    as ``/``), so no scheme or host can ride in it, no whitespace or control character, and is
+    at most ``RETURN_MAX`` characters. Anything else is a 400: the service never redirects off
+    the site."""
+    if (
+        not isinstance(raw, str)
+        or len(raw) > RETURN_MAX
+        or not _RETURN_RE.match(raw)
+        or raw.startswith("//")
+        or "\\" in raw
+    ):
+        raise ApiError(
+            400,
+            "return-invalid",
+            "return must be a path on the site: one leading /, never //, no backslash or "
+            f"scheme, at most {RETURN_MAX} characters",
+        )
+    return raw
+
+
+def site_origin(ctx: Context) -> str:
+    """Where a web sign-in returns to (F22-T8's ``OPN_API_SITE_ORIGIN``); a service with none
+    cannot hold a web session, and says so (C7)."""
+    origin = ctx.settings.site_origin
+    if not origin:
+        raise ApiError(503, "site-origin-unset", "OPN_API_SITE_ORIGIN is unset: web sign-in is off")
+    return origin
+
+
 async def github_start(ctx: Context, request: Request) -> Response:
-    """R3: a state nonce, then GitHub's authorization page. Per-source limited (R6)."""
+    """R3: a state nonce, then GitHub's authorization page. Per-source limited (R6).
+
+    F23-R2: with ``return``, the flow is a web sign-in: the path is checked here, kept with the
+    nonce, and the callback sends the browser back to it with a web session instead of a token.
+    """
+    state_doc: dict[str, Any] = {"created": clockmod.render(ctx.clock.now())}
+    if "return" in request.query_params:
+        state_doc["return"] = check_return(request.query_params["return"])
+        site_origin(ctx)
     ratelimit.check_token_start(ctx, ratelimit.client_address(request))
     state = secrets.token_urlsafe(24)
-    ctx.store.put_ephemeral(
-        KEY_STATE + state, {"created": clockmod.render(ctx.clock.now())}, expiry(ctx)
-    )
+    ctx.store.put_ephemeral(KEY_STATE + state, state_doc, expiry(ctx))
     url = githostmod.authorize_url(
         client_id=ctx.settings.github_client_id or "", redirect_uri=redirect_uri(ctx), state=state
     )
@@ -226,13 +341,19 @@ async def github_callback(ctx: Context, request: Request) -> Response:
     state = request.query_params.get("state", "")
     if not code or not state:
         raise ApiError(400, "callback-incomplete", "GitHub's callback needs code and state")
-    if ctx.store.take_ephemeral(KEY_STATE + state, ctx.clock.now()) is None:
+    started = ctx.store.take_ephemeral(KEY_STATE + state, ctx.clock.now())
+    if started is None:
         raise ApiError(400, "state-invalid", "unknown, used or expired state; start again")
     try:
         user = ctx.githost.exchange_code(code, redirect_uri=redirect_uri(ctx))
     except GitHostError as exc:
         raise ApiError(502, "github-exchange-failed", str(exc)) from exc
-    if (
+    if "return" in started:  # F23-R2: a web sign-in
+        return web_callback(ctx, user.login, user.id, user.created_at, str(started["return"]))
+    existing = ctx.store.get_identity_by_proof(PROOF_GITHUB, user.login)
+    if existing is not None:
+        check_reprovable(ctx, existing, user.login)  # F05-T27: a lapsed identity re-proves
+    elif (
         ctx.store.count_identities_by_proof(PROOF_GITHUB, user.login)
         >= ctx.settings.tokens_per_login
     ):
@@ -246,17 +367,75 @@ async def github_callback(ctx: Context, request: Request) -> Response:
         expiry(ctx),
     )
     proof = {"kind": PROOF_GITHUB, "id": proof_id}
+    held = existing.pseudonym if existing is not None else None
     if wants_json(request):
-        return JSONResponse(
-            {
-                "proof": proof,
-                "login": user.login,
-                "dco": {"version": DCO_VERSION},
-                "expires_in_s": ctx.settings.state_ttl_s,
-                "next": "POST /tokens {proof, pseudonym, dco: {version, accepted: true}}",
-            }
+        doc: dict[str, Any] = {
+            "proof": proof,
+            "login": user.login,
+            "dco": {"version": DCO_VERSION},
+            "expires_in_s": ctx.settings.state_ttl_s,
+            "next": "POST /tokens {proof, pseudonym, dco: {version, accepted: true}}",
+        }
+        if held is not None:  # F05-T27: the pseudonym the new token must be asked for under
+            doc["pseudonym"] = held
+        return JSONResponse(doc)
+    return HTMLResponse(token_form(login=user.login, proof_id=proof_id, pseudonym=held))
+
+
+# --- a lapsed identity re-proves (F05-T27; D-19 v3.28, Q27) --------------------------------------
+
+
+def reprovable(ctx: Context, held: Identity) -> bool:
+    """Whether the proof that made ``held`` may give it a new token: none of its tokens is live
+    (a lost live token waits out its idle window; the recovery code, F05-T30, is not built),
+    and none was revoked by the operator (F05-T21) — a lapse after a revocation must not undo it.
+    A token retired by a rotation is neither."""
+    for record in ctx.store.list_tokens(held.id):
+        if record.revoked and not record.renewed:
+            return False
+        if not record.revoked and not auth.lapsed(ctx, record):
+            return False
+    return True
+
+
+def check_reprovable(ctx: Context, held: Identity, reference: str) -> None:
+    if not reprovable(ctx, held):
+        raise ApiError(
+            409,
+            "github-login-taken",
+            f"an identity already exists for GitHub login {reference} ({held.pseudonym}); a new "
+            "token for it is issued by this proof only once its tokens have lapsed from disuse, "
+            "and never after the operator revoked them. A lost live token cannot be replaced "
+            "until it lapses: the recovery code of D-19 v3.29 is not built yet (F05-T30)",
         )
-    return HTMLResponse(token_form(login=user.login, proof_id=proof_id))
+
+
+def issue(ctx: Context, identity_id: str, now: datetime) -> tuple[str, TokenRecord]:
+    """A new token for ``identity_id``, issued at ``now``. It has no fixed end: it lapses only
+    after ``OPN_API_TOKEN_IDLE_DAYS`` without use (D-19 v3.29, F05-T29)."""
+    token = auth.new_token()
+    record = TokenRecord(
+        token_hash=auth.token_hash(ctx.settings.token_secret or "", token),
+        identity_id=identity_id,
+        created=clockmod.render(now),
+        last_used=clockmod.render(now),  # issue counts as a use: only a legacy token has none
+    )
+    return token, record
+
+
+def token_doc(ctx: Context, token: str, held: Identity) -> dict[str, Any]:
+    """The answer that shows a token once. ``idle_days``: how long it may go unused before it
+    lapses (D-19 v3.29); a token in use never lapses."""
+    return {
+        "token": token,
+        "identity": {
+            "id": held.id,
+            "pseudonym": held.pseudonym,
+            "proof_kind": held.proof_kind,
+            "created": held.created,
+        },
+        "idle_days": ctx.settings.token_idle_days,
+    }
 
 
 # --- the two proofs a token may be minted from ---------------------------------------------------
@@ -336,46 +515,235 @@ async def post_tokens(ctx: Context, request: Request) -> Response:
         )
     assert isinstance(proof, dict)
     now = ctx.clock.now()
+    existing: Identity | None = None
     if kind == PROOF_TUTORIAL:
+        # A tutorial proof is a job, spent once: it can only ever make a new identity.
+        check_not_reserved(ctx.settings, pseudonym)
         reference, undo = tutorial_reference(ctx, request, proof)
     else:
         reference, undo = github_reference(ctx, proof)
-    identity = Identity(
-        id=new_ulid(now),
-        pseudonym=pseudonym,
-        proof_kind=str(kind),
-        proof_reference=reference,
-        created=clockmod.render(now),
-    )
-    try:
-        ctx.store.put_identity(identity)
-    except ConflictError as exc:
-        # The proof survives a pseudonym clash so the person can pick another (AC3).
-        undo()
-        if exc.what == "pseudonym":
-            raise ApiError(409, "pseudonym-taken", f"pseudonym {pseudonym!r} is taken") from exc
-        taken = "github-login-taken" if kind == PROOF_GITHUB else "proof-invalid"
-        raise ApiError(409, taken, f"an identity already exists for {reference}") from exc
-    token = auth.new_token()
-    ctx.store.put_token(
-        TokenRecord(
-            token_hash=auth.token_hash(ctx.settings.token_secret or "", token),
-            identity_id=identity.id,
-            created=identity.created,
+        try:
+            existing = ctx.store.get_identity_by_proof(PROOF_GITHUB, reference)
+            if existing is None:
+                check_not_reserved(ctx.settings, pseudonym)
+            else:
+                # F05-T27 (D-19 v3.28): the same login re-proves a lapsed identity, under its
+                # own pseudonym; reservation governs new identities only (F05-T26).
+                check_reprovable(ctx, existing, reference)
+                if existing.pseudonym.lower() != pseudonym.lower():
+                    raise ApiError(
+                        409,
+                        "github-login-taken",
+                        f"GitHub login {reference} already holds the identity "
+                        f"{existing.pseudonym!r}; ask for its new token under that pseudonym",
+                    )
+        except ApiError:
+            undo()  # the proof survives, as for a clash (AC3)
+            raise
+    if existing is not None:
+        identity = existing
+        # F25-R16 (Q24): this request accepted the current text, so the record says so.
+        ctx.store.set_dco_version(identity.id, DCO_VERSION)
+    else:
+        identity = Identity(
+            id=new_ulid(now),
+            pseudonym=pseudonym,
+            proof_kind=str(kind),
+            proof_reference=reference,
+            created=clockmod.render(now),
+            dco_version=DCO_VERSION,
         )
-    )
-    doc = {
-        "token": token,
-        "identity": {
-            "id": identity.id,
-            "pseudonym": identity.pseudonym,
-            "proof_kind": identity.proof_kind,
-            "created": identity.created,
-        },
-    }
+        try:
+            ctx.store.put_identity(identity)
+        except ConflictError as exc:
+            # The proof survives a pseudonym clash so the person can pick another (AC3).
+            undo()
+            if exc.what == "pseudonym":
+                raise ApiError(409, "pseudonym-taken", f"pseudonym {pseudonym!r} is taken") from exc
+            taken = "github-login-taken" if kind == PROOF_GITHUB else "proof-invalid"
+            raise ApiError(409, taken, f"an identity already exists for {reference}") from exc
+    token, record = issue(ctx, identity.id, now)
+    ctx.store.put_token(record)
+    doc = token_doc(ctx, token, identity)
     if was_form and not wants_json(request):
         return HTMLResponse(token_page(doc), status_code=201)
     return JSONResponse(doc, status_code=201)
+
+
+# --- web sign-in (F23-R2, R3; D-35 v3.33) --------------------------------------------------------
+
+#: F23-Q3: the suffix of the fallback pseudonym, for a login that cannot be its own.
+FALLBACK_SUFFIX = "-gh"
+
+
+def web_pseudonym(ctx: Context, login: str) -> str:
+    """F23-Q3: a first web sign-in takes the GitHub login as its pseudonym, with no screen to
+    choose one. A login that cannot be (reserved, or held by another identity) takes the
+    deterministic fallback ``<login>-gh``, trimmed to fit 39 characters; when that cannot be
+    either, the sign-in is refused by name rather than a third name being invented."""
+    fallback = login[: 39 - len(FALLBACK_SUFFIX)] + FALLBACK_SUFFIX
+    for name in (login, fallback):
+        if not PSEUDONYM_RE.match(name) or is_reserved(ctx.settings, name):
+            continue
+        if ctx.store.get_identity_by_pseudonym(name) is None:
+            return name
+    raise ApiError(
+        409,
+        "pseudonym-taken",
+        f"neither {login!r} nor {fallback!r} is free as a pseudonym; sign in for a token "
+        "instead (GET /auth/github/start without return) and choose one",
+    )
+
+
+def check_web_identity(ctx: Context, held: Identity) -> None:
+    """A web session acts as the identity, so one the operator revoked (F05-T21) does not get
+    one: a revocation must not be undone by signing in on the site."""
+    for record in ctx.store.list_tokens(held.id):
+        if record.revoked and not record.renewed:
+            raise ApiError(
+                403,
+                "identity-revoked",
+                "this identity's tokens were revoked by the operator; it cannot sign in",
+            )
+
+
+def session_redirect(ctx: Context, identity_id: str, path: str) -> Response:
+    """R2: a new web session for ``identity_id`` and a 303 back to ``path`` on the site."""
+    raw, _ = auth.new_session(ctx, identity_id)
+    response = RedirectResponse(site_origin(ctx) + path, status_code=303)
+    response.headers["set-cookie"] = auth.session_cookie(raw, ctx.settings.web_session_ttl_s)
+    response.headers["cache-control"] = "no-store"
+    return response
+
+
+def web_callback(ctx: Context, login: str, github_id: int, created_at: str, path: str) -> Response:
+    """R2: an existing identity for the login gets a session and goes back to the page (AC3:
+    never a second identity); a new login is asked for the DCO once, on one small page."""
+    existing = ctx.store.get_identity_by_proof(PROOF_GITHUB, login)
+    if existing is not None:
+        check_web_identity(ctx, existing)
+        return session_redirect(ctx, existing.id, path)
+    if ctx.store.count_identities_by_proof(PROOF_GITHUB, login) >= ctx.settings.tokens_per_login:
+        raise ApiError(
+            409, "github-login-taken", f"an identity already exists for GitHub login {login}"
+        )
+    proof_id = secrets.token_urlsafe(24)
+    ctx.store.put_ephemeral(
+        KEY_PROOF + proof_id,
+        {"login": login, "github_id": github_id, "created_at": created_at, "return": path},
+        expiry(ctx),
+    )
+    return HTMLResponse(
+        accept_form(login=login, proof_id=proof_id, path=path),
+        headers={"cache-control": "no-store"},
+    )
+
+
+#: The fields ``POST /auth/web/accept`` reads, as the accept page's form sends them.
+WEB_ACCEPT_FIELDS: tuple[str, ...] = ("proof", "dco", "return")
+
+
+async def post_web_accept(ctx: Context, request: Request) -> Response:
+    """R2: the one DCO tick of a first web sign-in. Creates the identity (pseudonym: the login,
+    Q3), starts a session and goes back to the page. No token is issued or shown."""
+    fields, _ = await body_fields(request, WEB_ACCEPT_FIELDS)
+    path = check_return(fields.get("return"))
+    check_dco(fields.get("dco"))
+    proof = fields.get("proof")
+    proof_id = proof.get("id") if isinstance(proof, dict) else proof
+    record = (
+        ctx.store.take_ephemeral(KEY_PROOF + proof_id, ctx.clock.now())
+        if isinstance(proof_id, str) and proof_id
+        else None
+    )
+    if record is None or record.get("return") != path:
+        raise ApiError(400, "proof-invalid", "unknown, used or expired proof; sign in again")
+    login = str(record["login"])
+    held = ctx.store.get_identity_by_proof(PROOF_GITHUB, login)
+    if held is None:
+        now = ctx.clock.now()
+        held = Identity(
+            id=new_ulid(now),
+            pseudonym=web_pseudonym(ctx, login),
+            proof_kind=PROOF_GITHUB,
+            proof_reference=login,
+            created=clockmod.render(now),
+            dco_version=DCO_VERSION,
+        )
+        try:
+            ctx.store.put_identity(held)
+        except ConflictError as exc:
+            raise ApiError(
+                409, "github-login-taken", f"an identity already exists for {login}"
+            ) from exc
+    else:  # created meanwhile (a second tab): the same identity, never a second (AC3)
+        check_web_identity(ctx, held)
+        ctx.store.set_dco_version(held.id, DCO_VERSION)  # F25-R16: the tick was for this text
+    return session_redirect(ctx, held.id, path)
+
+
+# --- POST /dco/accept: a live identity accepts the current text (F25-R16, Q24; D-23 v3.37) -------
+
+#: The one field ``POST /dco/accept`` reads: the same ``dco`` object a token request carries.
+DCO_ACCEPT_FIELDS: tuple[str, ...] = ("dco",)
+DCO_REACCEPT_CODE = "dco-reaccept-required"
+
+
+def check_dco_current(identity: Identity) -> None:
+    """F25-R16 (Q24): an identity whose recorded acceptance is not the current text is refused
+    every write until it accepts again — a token issued against the old text, or one whose
+    acceptance was never recorded (every identity older than this rule). Reads are untouched:
+    the bearer still says who is asking. Called by the app before any write handler runs."""
+    if identity.dco_version == DCO_VERSION:
+        return
+    raise ApiError(
+        403,
+        DCO_REACCEPT_CODE,
+        "the sign-off text this identity accepted has changed (it now names the licences, D-23); "
+        f"read GET /dco.json and POST /dco/accept {{dco: {{version: {DCO_VERSION!r}, "
+        "accepted: true}}} with this token, then retry",
+    )
+
+
+async def post_dco_accept(ctx: Context, request: Request) -> Response:
+    """The bearer's identity accepts the current DCO text. The body is the ``dco`` object a token
+    request carries; a stale version or an unticked box is refused exactly as there. 200 with the
+    identity and the version recorded. The web form's tick (``POST /auth/web/accept``) and a
+    GitHub re-proof through ``POST /tokens`` record the same thing."""
+    identity = request.state.identity
+    fields, _ = await body_fields(request, DCO_ACCEPT_FIELDS)
+    check_dco(fields.get("dco"))
+    ctx.store.set_dco_version(identity.id, DCO_VERSION)
+    return JSONResponse(
+        {
+            "identity": {"pseudonym": identity.pseudonym},
+            "dco": {"version": DCO_VERSION, "accepted": True},
+        }
+    )
+
+
+# --- POST /tokens/renew: optional rotation (F05-T27, T29; D-19 v3.29, Q27, Q29) ----------------
+
+
+async def post_renew(ctx: Context, request: Request) -> Response:
+    """Rotation, optional and never required (D-19 v3.29): a *new* token for the same identity and
+    the presented one retired at once. A holder who suspects a copy rotates, and the copy dies;
+    if a thief rotates first, the owner's next call is refused with a message saying a renewal
+    happened, which is how they learn of the leak. One token rotates once, even when two
+    rotations race (``Store.renew_token``). A lapsed token cannot rotate (``token-expired``); its
+    identity recovers instead. The body carries nothing."""
+    await body_fields(request, ())
+    record, held = auth.authenticated(ctx, request)  # the route table already charged the write
+    now = ctx.clock.now()
+    token, fresh = issue(ctx, held.id, now)
+    if not ctx.store.renew_token(record.token_hash, fresh, clockmod.render(now)):
+        raise ApiError(
+            401,
+            "invalid-token",
+            "this token was renewed or revoked while the renewal ran",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    return JSONResponse(token_doc(ctx, token, held), status_code=201)
 
 
 # --- the two pages (escaped; no script, no off-origin reference) ---------------------------------
@@ -387,7 +755,7 @@ _STYLE = (
 )
 
 
-def token_form(*, login: str, proof_id: str) -> str:
+def token_form(*, login: str, proof_id: str, pseudonym: str | None = None) -> str:
     return (
         "<!doctype html><meta charset='utf-8'><title>Open Proof Network — token</title>"
         f"<style>{_STYLE}</style>"
@@ -398,11 +766,33 @@ def token_form(*, login: str, proof_id: str) -> str:
         f"<input type='hidden' name='proof.kind' value='{PROOF_GITHUB}'>"
         f"<input type='hidden' name='proof.id' value='{html.escape(proof_id, quote=True)}'>"
         f"<input type='hidden' name='dco.version' value='{DCO_VERSION}'>"
-        "<label>Pseudonym <input name='pseudonym' required pattern='[A-Za-z0-9-]{1,39}'></label>"
+        "<label>Pseudonym <input name='pseudonym' required pattern='[A-Za-z0-9-]{1,39}'"
+        + (f" value='{html.escape(pseudonym, quote=True)}'" if pseudonym else "")
+        + "></label>"
         f"<pre>{html.escape(DCO_TEXT)}</pre>"
         "<label><input type='checkbox' name='dco.accepted' value='true' required> "
         "I certify the above for every contribution made under this pseudonym.</label>"
         "<button type='submit'>Issue my token</button></form>"
+    )
+
+
+def accept_form(*, login: str, proof_id: str, path: str) -> str:
+    """F23-R2: a first web sign-in's one screen — the DCO and a tick box. No pseudonym field
+    (Q3) and no token: Continue goes back to the page the sign-in started from."""
+    return (
+        "<!doctype html><meta charset='utf-8'><title>Open Proof Network — sign in</title>"
+        f"<style>{_STYLE}</style>"
+        f"<h1>Welcome, {html.escape(login)}</h1><p>GitHub login <code>{html.escape(login)}"
+        "</code> is proven, and the network will name you by it. Before your first "
+        "contribution, accept the Developer Certificate of Origin.</p>"
+        "<form method='post' action='/auth/web/accept'>"
+        f"<input type='hidden' name='proof' value='{html.escape(proof_id, quote=True)}'>"
+        f"<input type='hidden' name='return' value='{html.escape(path, quote=True)}'>"
+        f"<input type='hidden' name='dco.version' value='{DCO_VERSION}'>"
+        f"<pre>{html.escape(DCO_TEXT)}</pre>"
+        "<label><input type='checkbox' name='dco.accepted' value='true' required> "
+        "I certify the above for every contribution I make.</label>"
+        "<button type='submit'>Continue</button></form>"
     )
 
 
@@ -416,5 +806,6 @@ def token_page(doc: dict[str, Any]) -> str:
         "<code>Authorization: Bearer …</code>.</p>"
         f"<pre>{html.escape(str(doc['token']))}</pre>"
         f"<p>Identity <code>{html.escape(str(identity['id']))}</code>, "
-        f"created {html.escape(str(identity['created']))}.</p>"
+        f"created {html.escape(str(identity['created']))}. A token in use never lapses; one "
+        f"left unused for {html.escape(str(doc['idle_days']))} days does.</p>"
     )

@@ -7,6 +7,7 @@ The policy in force is what ``info.json`` publishes (``Settings.rate_limit_polic
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import datetime
 from typing import TYPE_CHECKING
 
@@ -78,16 +79,70 @@ def check_check(ctx: Context, identity_id: str) -> None:
     enforce(ctx, "check", identity_id, limit=ctx.settings.checks_per_hour, seconds=HOUR_S)
 
 
+@dataclass
+class Reservation:
+    """Checks taken from an identity's hourly budget before a route asks the checker anything
+    (F13-T28): ``held`` were added to the window's counter at once, each pre-flight ``take``s
+    one where it would have been charged, and ``release`` gives back what none of them used."""
+
+    ctx: Context
+    key: str
+    expires: datetime
+    held: int
+    taken: int = 0
+
+    def take(self) -> None:
+        if self.taken >= self.held:
+            msg = f"a pre-flight took more than the {self.held} check(s) reserved for it"
+            raise RuntimeError(msg)
+        self.taken += 1
+
+    def release(self) -> None:
+        unused = self.held - self.taken
+        if unused > 0:
+            self.ctx.store.bump_counter(self.key, self.expires, by=-unused)
+            self.held = self.taken
+
+
+def reserve_checks(ctx: Context, identity_id: str, n: int) -> Reservation:
+    """F13-T28 (the owner's ruling amending F13-Q22): ``n`` fast checks from the identity's hourly
+    budget, all or none. One atomic add; over the limit it is taken back at once and the caller
+    gets the 429 ``check_check`` would give, with ``Retry-After``, before anything is asked or
+    opened. The same counter as ``check_check``, so ``POST /check`` and the pre-flights share
+    one budget (R8)."""
+    from opn_api.app import ApiError  # noqa: PLC0415 — app imports this module
+
+    now = ctx.clock.now()
+    start, ends = window(now, HOUR_S)
+    key = f"{KEY_RATE}check#{identity_id}#{start}"
+    if n <= 0:
+        return Reservation(ctx, key, ends, 0)
+    limit = ctx.settings.checks_per_hour
+    count = ctx.store.bump_counter(key, ends, by=n)
+    if count > limit:
+        ctx.store.bump_counter(key, ends, by=-n)
+        raise ApiError(
+            429,
+            "rate-limited",
+            f"check: limit of {limit} per {HOUR_S}s reached ({n} needed by this request's "
+            "pre-flights; nothing was asked and nothing opened)",
+            headers={"Retry-After": retry_after(now, ends)},
+        )
+    return Reservation(ctx, key, ends, n)
+
+
 def check_anonymous_check(ctx: Context, address: str) -> None:
     """F13-R8, Q2: anonymous fast checks per source address per day."""
     enforce(ctx, "anon-check", address, limit=ctx.settings.anonymous_checks_per_day, seconds=DAY_S)
 
 
 def client_address(request: Request) -> str:
-    """The source address: the first ``X-Forwarded-For`` hop (API Gateway sets it) or the peer."""
-    forwarded = request.headers.get("x-forwarded-for", "")
-    if forwarded:
-        return forwarded.split(",")[0].strip()
+    """The source address: the ASGI peer, never a header (F05-T19).
+
+    On Lambda, Mangum fills the peer from the HTTP API event's ``requestContext.http.sourceIp``,
+    which API Gateway sets and the caller cannot. ``X-Forwarded-For`` is not read at all: API
+    Gateway appends the real address to whatever the caller sent, so the header's first hop is
+    the caller's to write, and keying a limit on it made every per-source limit unlimited."""
     return request.client.host if request.client else "unknown"
 
 

@@ -9,7 +9,7 @@ from pathlib import Path
 import pytest
 from harness import TUTORIAL, make_context, node_dir
 
-from opn_gate import pipeline, sandbox
+from opn_gate import judging, pipeline, sandbox
 from opn_gate.sandbox import Caps, SandboxToolchain
 from opn_gate.steps.base import RunContext
 from opn_gate.toolchain import WitnessRequest
@@ -123,14 +123,26 @@ def test_lean_pkg_in_image(sandbox_image: str, tmp_path: Path) -> None:
     wit.write_text((node_dir(ctx) / "Witness.lean").read_text(), encoding="utf-8")
     sb = SandboxToolchain(sandbox_image, Caps.from_spec(ctx.spec), read_write=[work])
     tc = sb.resolve(str(ctx.spec["lean_toolchain"]))
+    # F02-T12: the statement compiled, the witness compiled apart under it, the olean read
+    statement = "Nodes.«tutorial-and-swap».Statement"
+    out = work / "build"
+    assert sb.elaborate(tc, src, statement, out, timeout_s=120).ok
+    compiled = work / "W" / "Witness.lean"
+    compiled.parent.mkdir()
+    compiled.write_text(
+        judging.with_header(wit.read_text(encoding="utf-8"), [statement]), encoding="utf-8"
+    )
+    witness_module = "Nodes.«tutorial-and-swap».Witness"
+    assert sb.elaborate(tc, compiled, witness_module, out, timeout_s=120).ok
     req = WitnessRequest(
         src,
-        "Nodes.«tutorial-and-swap».Statement",
+        statement,
         "OpnProp.and_swap",
         wit,
-        "Nodes.«tutorial-and-swap».Witness",
+        witness_module,
+        witness_olean=out / "Nodes" / "tutorial-and-swap" / "Witness.olean",
     )
-    result = sb.witness_type(tc, req, [work], timeout_s=120)
+    result = sb.witness_type(tc, req, [out], timeout_s=120)
     assert result.ok, result
     assert result.doc["expected"] == golden["tutorial-and-swap"]["expected"]
     assert result.doc["defeq"] is True and result.doc["witness_axioms"] == []

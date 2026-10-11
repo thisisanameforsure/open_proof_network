@@ -1,0 +1,200 @@
+# F08-T26 red run, 2026-10-03T09:53:08Z, before any service change (seam only: Settings.uses_from, FakeGitHost.ancestry)
+$ uv run --frozen pytest api/tests/test_uses_service.py -q --tb=line -p no:cacheprovider
+warning: `VIRTUAL_ENV=/Users/mikehiggins/Desktop/repos/open_proof_network/.venv` does not match the project environment path `.venv` and will be ignored; use `--active` to target the active environment instead
+FFFF...FFFFFFFFFFFFFFFFFFFFFF..FFF.                                      [100%]
+=================================== FAILURES ===================================
+E   AssertionError: [{'code': 'imports-differ', 'message': "the gate requires the statement's imports exactly (F00-R19); the checker substitutes its own header and would not notice", 'expected': ['Init'], 'got': ['Init', 'Nodes.«lemma-a».Proof']}]
+    assert 'imports-differ' not in ['imports-differ']
+     +  where ['imports-differ'] = codes({'authoritative': False, 'service': 'axle', 'environment': 'lean-4.33.1', 'exact': True, ...})
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:74 the graph's head could not be read, serving the branch: no head configured
+/Users/mikehiggins/Desktop/repos/opn-f08-t26/api/tests/test_uses_service.py:140: AssertionError: [{'code': 'imports-differ', 'message': "the gate requires the statement's imports exactly (F00-R19); the checker substitutes its own header and would not notice", 'expected': ['Init'], 'got': ['Init', 'Nodes.«lemma-a».Proof']}]
+E   AssertionError: [{'code': 'imports-differ', 'message': "the gate requires the statement's imports exactly (F00-R19); the checker substitutes its own header and would not notice", 'expected': ['Init'], 'got': ['Init', 'Defs.Fact']}]
+    assert 'imports-differ' not in ['imports-differ']
+     +  where ['imports-differ'] = codes({'authoritative': False, 'service': 'axle', 'environment': 'lean-4.33.1', 'exact': True, ...})
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:74 the graph's head could not be read, serving the branch: no head configured
+/Users/mikehiggins/Desktop/repos/opn-f08-t26/api/tests/test_uses_service.py:154: AssertionError: [{'code': 'imports-differ', 'message': "the gate requires the statement's imports exactly (F00-R19); the checker substitutes its own header and would not notice", 'expected': ['Init'], 'got': ['Init', 'Defs.Fact']}]
+E   AssertionError: {'authoritative': False, 'service': 'axle', 'environment': 'lean-4.33.1', 'exact': True, ...}
+    assert False is True
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:74 the graph's head could not be read, serving the branch: no head configured
+/Users/mikehiggins/Desktop/repos/opn-f08-t26/api/tests/test_uses_service.py:163: AssertionError: {'authoritative': False, 'service': 'axle', 'environment': 'lean-4.33.1', 'exact': True, ...}
+E   AssertionError: []
+    assert 0 == 1
+     +  where 0 = len([])
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:74 the graph's head could not be read, serving the branch: no head configured
+/Users/mikehiggins/Desktop/repos/opn-f08-t26/api/tests/test_uses_service.py:172: AssertionError: []
+E   AssertionError: [{'code': 'imports-differ', 'message': "the gate requires the statement's imports exactly (F00-R19); the checker substitutes its own header and would not notice", 'expected': ['Init'], 'got': ['Init', 'Defs.Fact', 'Defs.Fact']}]
+    assert 'use-duplicate' in ['imports-differ']
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:74 the graph's head could not be read, serving the branch: no head configured
+/Users/mikehiggins/Desktop/repos/opn-f08-t26/api/tests/test_uses_service.py:223: AssertionError: [{'code': 'imports-differ', 'message': "the gate requires the statement's imports exactly (F00-R19); the checker substitutes its own header and would not notice", 'expected': ['Init'], 'got': ['Init', 'Defs.Fact', 'Defs.Fact']}]
+E   AssertionError: [{'code': 'imports-differ', 'message': "the gate requires the statement's imports exactly (F00-R19); the checker subst...header and would not notice", 'expected': ['Init'], 'got': ['Init', 'Nodes.«lemma-a».Proof', 'Nodes.«lemma-a».Proof']}]
+    assert 'use-duplicate' in ['imports-differ']
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:74 the graph's head could not be read, serving the branch: no head configured
+/Users/mikehiggins/Desktop/repos/opn-f08-t26/api/tests/test_uses_service.py:223: AssertionError: [{'code': 'imports-differ', 'message': "the gate requires the statement's imports exactly (F00-R19); the checker subst...header and would not notice", 'expected': ['Init'], 'got': ['Init', 'Nodes.«lemma-a».Proof', 'Nodes.«lemma-a».Proof']}]
+E   AssertionError: {"error":"defs-unknown","message":"propositional has no Defs.Missing (defs/Missing.lean could not be read)","details":{"log_id":"01M230M2G0JB0K38995QJKCAA3"}}
+    assert 400 == 200
+     +  where 400 = <Response [400 Bad Request]>.status_code
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:74 the graph's head could not be read, serving the branch: no head configured
+WARNING  opn_api.frontier:frontier.py:123 targets/propositional/defs/Missing.lean: graph returned 404
+/Users/mikehiggins/Desktop/repos/opn-f08-t26/api/tests/test_uses_service.py:124: AssertionError: {"error":"defs-unknown","message":"propositional has no Defs.Missing (defs/Missing.lean could not be read)","details":{"log_id":"01M230M2G0JB0K38995QJKCAA3"}}
+E   AssertionError: [{'code': 'imports-differ', 'message': "the gate requires the statement's imports exactly (F00-R19); the checker substitutes its own header and would not notice", 'expected': ['Init'], 'got': ['Init', 'Nodes.«and-reassoc».Proof']}]
+    assert 'use-self' in ['imports-differ']
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:74 the graph's head could not be read, serving the branch: no head configured
+/Users/mikehiggins/Desktop/repos/opn-f08-t26/api/tests/test_uses_service.py:223: AssertionError: [{'code': 'imports-differ', 'message': "the gate requires the statement's imports exactly (F00-R19); the checker substitutes its own header and would not notice", 'expected': ['Init'], 'got': ['Init', 'Nodes.«and-reassoc».Proof']}]
+E   AssertionError: [{'code': 'imports-differ', 'message': "the gate requires the statement's imports exactly (F00-R19); the checker subst... cannot build the module (F00's import rule: a node imports only its own Context)", 'modules': ['Nodes.«nope».Proof']}]
+    assert 'use-unknown-node' in ['imports-differ', 'import-unknown-node']
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:74 the graph's head could not be read, serving the branch: no head configured
+/Users/mikehiggins/Desktop/repos/opn-f08-t26/api/tests/test_uses_service.py:223: AssertionError: [{'code': 'imports-differ', 'message': "the gate requires the statement's imports exactly (F00-R19); the checker subst... cannot build the module (F00's import rule: a node imports only its own Context)", 'modules': ['Nodes.«nope».Proof']}]
+E   AssertionError: [{'code': 'imports-differ', 'message': "the gate requires the statement's imports exactly (F00-R19); the checker substitutes its own header and would not notice", 'expected': ['Init'], 'got': ['Init', 'Nodes.«old-d».Proof']}]
+    assert 'use-superseded' in ['imports-differ']
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:74 the graph's head could not be read, serving the branch: no head configured
+/Users/mikehiggins/Desktop/repos/opn-f08-t26/api/tests/test_uses_service.py:223: AssertionError: [{'code': 'imports-differ', 'message': "the gate requires the statement's imports exactly (F00-R19); the checker substitutes its own header and would not notice", 'expected': ['Init'], 'got': ['Init', 'Nodes.«old-d».Proof']}]
+E   AssertionError: [{'code': 'imports-differ', 'message': "the gate requires the statement's imports exactly (F00-R19); the checker substitutes its own header and would not notice", 'expected': ['Init'], 'got': ['Init', 'Nodes.«open-c».Proof']}]
+    assert 'use-unproved' in ['imports-differ']
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:74 the graph's head could not be read, serving the branch: no head configured
+/Users/mikehiggins/Desktop/repos/opn-f08-t26/api/tests/test_uses_service.py:223: AssertionError: [{'code': 'imports-differ', 'message': "the gate requires the statement's imports exactly (F00-R19); the checker substitutes its own header and would not notice", 'expected': ['Init'], 'got': ['Init', 'Nodes.«open-c».Proof']}]
+E   AssertionError: [{'code': 'imports-differ', 'message': "the gate requires the statement's imports exactly (F00-R19); the checker substitutes its own header and would not notice", 'expected': ['Init'], 'got': ['Init', 'Nodes.«refuted-g».Proof']}]
+    assert 'use-unproved' in ['imports-differ']
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:74 the graph's head could not be read, serving the branch: no head configured
+/Users/mikehiggins/Desktop/repos/opn-f08-t26/api/tests/test_uses_service.py:223: AssertionError: [{'code': 'imports-differ', 'message': "the gate requires the statement's imports exactly (F00-R19); the checker substitutes its own header and would not notice", 'expected': ['Init'], 'got': ['Init', 'Nodes.«refuted-g».Proof']}]
+E   AssertionError: [{'code': 'imports-differ', 'message': "the gate requires the statement's imports exactly (F00-R19); the checker substitutes its own header and would not notice", 'expected': ['Init'], 'got': ['Init', 'Nodes.«dep-b».Proof']}]
+    assert 'use-redundant' in ['imports-differ']
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:74 the graph's head could not be read, serving the branch: no head configured
+/Users/mikehiggins/Desktop/repos/opn-f08-t26/api/tests/test_uses_service.py:223: AssertionError: [{'code': 'imports-differ', 'message': "the gate requires the statement's imports exactly (F00-R19); the checker substitutes its own header and would not notice", 'expected': ['Init'], 'got': ['Init', 'Nodes.«dep-b».Proof']}]
+E   AssertionError: [{'code': 'imports-differ', 'message': "the gate requires the statement's imports exactly (F00-R19); the checker substitutes its own header and would not notice", 'expected': ['Init'], 'got': ['Init', 'Nodes.«above-e».Proof']}]
+    assert 'use-ancestor' in ['imports-differ']
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:74 the graph's head could not be read, serving the branch: no head configured
+/Users/mikehiggins/Desktop/repos/opn-f08-t26/api/tests/test_uses_service.py:223: AssertionError: [{'code': 'imports-differ', 'message': "the gate requires the statement's imports exactly (F00-R19); the checker substitutes its own header and would not notice", 'expected': ['Init'], 'got': ['Init', 'Nodes.«above-e».Proof']}]
+E   AssertionError: [{'code': 'imports-differ', 'message': "the gate requires the statement's imports exactly (F00-R19); the checker substitutes its own header and would not notice", 'expected': ['Init'], 'got': ['Init', 'Nodes.«above-f».Proof']}]
+    assert 'use-ancestor' in ['imports-differ']
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:74 the graph's head could not be read, serving the branch: no head configured
+/Users/mikehiggins/Desktop/repos/opn-f08-t26/api/tests/test_uses_service.py:223: AssertionError: [{'code': 'imports-differ', 'message': "the gate requires the statement's imports exactly (F00-R19); the checker substitutes its own header and would not notice", 'expected': ['Init'], 'got': ['Init', 'Nodes.«above-f».Proof']}]
+E   AssertionError: {"id":"01M230M2G0YSSYHMYF883T742H","node_id":"and-reassoc","target_id":"propositional","state":"queued","created":"2026-09-09T12:00:00Z","graph_commit":"5555555555555555555555555555555555555555","bundle_digest":"b1b7463c0ebe26e341fa467939386d26baa4662510087d47973b0c30613e3b98","authenticated":true,"public":true}
+    assert 202 == 400
+     +  where 202 = <Response [202 Accepted]>.status_code
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:74 the graph's head could not be read, serving the branch: no head configured
+/Users/mikehiggins/Desktop/repos/opn-f08-t26/api/tests/test_uses_service.py:282: AssertionError: {"id":"01M230M2G0YSSYHMYF883T742H","node_id":"and-reassoc","target_id":"propositional","state":"queued","created":"2026-09-09T12:00:00Z","graph_commit":"5555555555555555555555555555555555555555","bundle_digest":"b1b7463c0ebe26e341fa467939386d26baa4662510087d47973b0c30613e3b98","authenticated":true,"public":true}
+E   AssertionError: {"id":"01M230M2G0N4K5DFBT9DD0BYAQ","node_id":"and-reassoc","target_id":"propositional","state":"queued","created":"2026-09-09T12:00:00Z","graph_commit":"5555555555555555555555555555555555555555","bundle_digest":"3baed712b0a5c4021b21bb24e562126a5355be831412f961d88229d3ce757fae","authenticated":true,"public":true}
+    assert 202 == 400
+     +  where 202 = <Response [202 Accepted]>.status_code
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:74 the graph's head could not be read, serving the branch: no head configured
+/Users/mikehiggins/Desktop/repos/opn-f08-t26/api/tests/test_uses_service.py:282: AssertionError: {"id":"01M230M2G0N4K5DFBT9DD0BYAQ","node_id":"and-reassoc","target_id":"propositional","state":"queued","created":"2026-09-09T12:00:00Z","graph_commit":"5555555555555555555555555555555555555555","bundle_digest":"3baed712b0a5c4021b21bb24e562126a5355be831412f961d88229d3ce757fae","authenticated":true,"public":true}
+E   AssertionError: {"id":"01M230M2G0AQY2B51Q864RACX7","node_id":"and-reassoc","target_id":"propositional","state":"queued","created":"2026-09-09T12:00:00Z","graph_commit":"5555555555555555555555555555555555555555","bundle_digest":"b6879ed7ed2859635c34195c6e5816e016c27f01fb330008bcf2b768b62c0bf5","authenticated":true,"public":true}
+    assert 202 == 400
+     +  where 202 = <Response [202 Accepted]>.status_code
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:74 the graph's head could not be read, serving the branch: no head configured
+/Users/mikehiggins/Desktop/repos/opn-f08-t26/api/tests/test_uses_service.py:282: AssertionError: {"id":"01M230M2G0AQY2B51Q864RACX7","node_id":"and-reassoc","target_id":"propositional","state":"queued","created":"2026-09-09T12:00:00Z","graph_commit":"5555555555555555555555555555555555555555","bundle_digest":"b6879ed7ed2859635c34195c6e5816e016c27f01fb330008bcf2b768b62c0bf5","authenticated":true,"public":true}
+E   AssertionError: {"id":"01M230M2G0KRJ16P8RCFZF0FPE","node_id":"and-reassoc","target_id":"propositional","state":"queued","created":"2026-09-09T12:00:00Z","graph_commit":"5555555555555555555555555555555555555555","bundle_digest":"b474756d0d19d500be04de0b8c2b912280876b0e7072a2af26895c1adfac93aa","authenticated":true,"public":true}
+    assert 202 == 400
+     +  where 202 = <Response [202 Accepted]>.status_code
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:74 the graph's head could not be read, serving the branch: no head configured
+/Users/mikehiggins/Desktop/repos/opn-f08-t26/api/tests/test_uses_service.py:282: AssertionError: {"id":"01M230M2G0KRJ16P8RCFZF0FPE","node_id":"and-reassoc","target_id":"propositional","state":"queued","created":"2026-09-09T12:00:00Z","graph_commit":"5555555555555555555555555555555555555555","bundle_digest":"b474756d0d19d500be04de0b8c2b912280876b0e7072a2af26895c1adfac93aa","authenticated":true,"public":true}
+E   AssertionError: {"id":"01M230M2G0X5JDCX4RKQZF8FCN","node_id":"and-reassoc","target_id":"propositional","state":"queued","created":"2026-09-09T12:00:00Z","graph_commit":"5555555555555555555555555555555555555555","bundle_digest":"09c9db8690d568905f7a0dadfc9ab8712627fb1cd149960a79d2687ac57d20a2","authenticated":true,"public":true}
+    assert 202 == 400
+     +  where 202 = <Response [202 Accepted]>.status_code
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:74 the graph's head could not be read, serving the branch: no head configured
+/Users/mikehiggins/Desktop/repos/opn-f08-t26/api/tests/test_uses_service.py:282: AssertionError: {"id":"01M230M2G0X5JDCX4RKQZF8FCN","node_id":"and-reassoc","target_id":"propositional","state":"queued","created":"2026-09-09T12:00:00Z","graph_commit":"5555555555555555555555555555555555555555","bundle_digest":"09c9db8690d568905f7a0dadfc9ab8712627fb1cd149960a79d2687ac57d20a2","authenticated":true,"public":true}
+E   AssertionError: {"id":"01M230M2G0KFCR9R16N86NY1YF","node_id":"and-reassoc","target_id":"propositional","state":"queued","created":"2026-09-09T12:00:00Z","graph_commit":"5555555555555555555555555555555555555555","bundle_digest":"3dc9509a28fcdbdc0c3d6b6abc7f7376164af50228e9843e98a41e85c48bb331","authenticated":true,"public":true}
+    assert 202 == 400
+     +  where 202 = <Response [202 Accepted]>.status_code
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:74 the graph's head could not be read, serving the branch: no head configured
+/Users/mikehiggins/Desktop/repos/opn-f08-t26/api/tests/test_uses_service.py:282: AssertionError: {"id":"01M230M2G0KFCR9R16N86NY1YF","node_id":"and-reassoc","target_id":"propositional","state":"queued","created":"2026-09-09T12:00:00Z","graph_commit":"5555555555555555555555555555555555555555","bundle_digest":"3dc9509a28fcdbdc0c3d6b6abc7f7376164af50228e9843e98a41e85c48bb331","authenticated":true,"public":true}
+E   AssertionError: {"id":"01M230M2G0NE8VKJ98A792EK84","node_id":"and-reassoc","target_id":"propositional","state":"queued","created":"2026-09-09T12:00:00Z","graph_commit":"5555555555555555555555555555555555555555","bundle_digest":"008278e923f9ef37ec71816e519a5b65ae79de0b1a57ad7a62eeb634e5bc0b55","authenticated":true,"public":true}
+    assert 202 == 400
+     +  where 202 = <Response [202 Accepted]>.status_code
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:74 the graph's head could not be read, serving the branch: no head configured
+/Users/mikehiggins/Desktop/repos/opn-f08-t26/api/tests/test_uses_service.py:282: AssertionError: {"id":"01M230M2G0NE8VKJ98A792EK84","node_id":"and-reassoc","target_id":"propositional","state":"queued","created":"2026-09-09T12:00:00Z","graph_commit":"5555555555555555555555555555555555555555","bundle_digest":"008278e923f9ef37ec71816e519a5b65ae79de0b1a57ad7a62eeb634e5bc0b55","authenticated":true,"public":true}
+E   AssertionError: {"id":"01M230M2G0CP45800PEFD20F3N","node_id":"and-reassoc","target_id":"propositional","state":"queued","created":"2026-09-09T12:00:00Z","graph_commit":"5555555555555555555555555555555555555555","bundle_digest":"82402f11af6e11271b93e8671dd31aa75dee468677c7eeaacb5f32fcdda6ab7e","authenticated":true,"public":true}
+    assert 202 == 400
+     +  where 202 = <Response [202 Accepted]>.status_code
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:74 the graph's head could not be read, serving the branch: no head configured
+/Users/mikehiggins/Desktop/repos/opn-f08-t26/api/tests/test_uses_service.py:282: AssertionError: {"id":"01M230M2G0CP45800PEFD20F3N","node_id":"and-reassoc","target_id":"propositional","state":"queued","created":"2026-09-09T12:00:00Z","graph_commit":"5555555555555555555555555555555555555555","bundle_digest":"82402f11af6e11271b93e8671dd31aa75dee468677c7eeaacb5f32fcdda6ab7e","authenticated":true,"public":true}
+E   AssertionError: {"id":"01M230M2G08BK3V1M4QQKC8HTA","node_id":"and-reassoc","target_id":"propositional","state":"queued","created":"2026-09-09T12:00:00Z","graph_commit":"5555555555555555555555555555555555555555","bundle_digest":"939ed469e4f1ada4e40be6f4f6251d9cc91f3ed9ab083bbcd6f6f9e682e388e6","authenticated":true,"public":true}
+    assert 202 == 400
+     +  where 202 = <Response [202 Accepted]>.status_code
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:74 the graph's head could not be read, serving the branch: no head configured
+/Users/mikehiggins/Desktop/repos/opn-f08-t26/api/tests/test_uses_service.py:282: AssertionError: {"id":"01M230M2G08BK3V1M4QQKC8HTA","node_id":"and-reassoc","target_id":"propositional","state":"queued","created":"2026-09-09T12:00:00Z","graph_commit":"5555555555555555555555555555555555555555","bundle_digest":"939ed469e4f1ada4e40be6f4f6251d9cc91f3ed9ab083bbcd6f6f9e682e388e6","authenticated":true,"public":true}
+E   AssertionError: {"id":"01M230M2G06TZ8AK41S01XPPJC","node_id":"and-reassoc","target_id":"propositional","state":"queued","created":"2026-09-09T12:00:00Z","graph_commit":"5555555555555555555555555555555555555555","bundle_digest":"d03064be760b290384f716bc8f4112dc19f49193ef12f39e5aef3005f0d7063f","authenticated":true,"public":true}
+    assert 202 == 400
+     +  where 202 = <Response [202 Accepted]>.status_code
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:74 the graph's head could not be read, serving the branch: no head configured
+/Users/mikehiggins/Desktop/repos/opn-f08-t26/api/tests/test_uses_service.py:282: AssertionError: {"id":"01M230M2G06TZ8AK41S01XPPJC","node_id":"and-reassoc","target_id":"propositional","state":"queued","created":"2026-09-09T12:00:00Z","graph_commit":"5555555555555555555555555555555555555555","bundle_digest":"d03064be760b290384f716bc8f4112dc19f49193ef12f39e5aef3005f0d7063f","authenticated":true,"public":true}
+E   AssertionError: {"id":"01M230M2G0V9SKH9BR30R9VTN0","node_id":"and-reassoc","target_id":"propositional","state":"queued","created":"2026-09-09T12:00:00Z","graph_commit":"5555555555555555555555555555555555555555","bundle_digest":"afc9e70ead843403ff6a1c8a8172d36f4561fca7e985ef5638345a77be014feb","authenticated":true,"public":true}
+    assert 202 == 400
+     +  where 202 = <Response [202 Accepted]>.status_code
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:74 the graph's head could not be read, serving the branch: no head configured
+/Users/mikehiggins/Desktop/repos/opn-f08-t26/api/tests/test_uses_service.py:282: AssertionError: {"id":"01M230M2G0V9SKH9BR30R9VTN0","node_id":"and-reassoc","target_id":"propositional","state":"queued","created":"2026-09-09T12:00:00Z","graph_commit":"5555555555555555555555555555555555555555","bundle_digest":"afc9e70ead843403ff6a1c8a8172d36f4561fca7e985ef5638345a77be014feb","authenticated":true,"public":true}
+E   AssertionError: {"submission_id":"01M230M2G0J1Z4PZWA9C6Z95M1","pr_url":"https://github.com/thisisanameforsure/open_proof_network_graph/pull/1","pr_number":1,"node_id":"and-reassoc","target_id":"propositional","artifact_type":"proof"}
+    assert 201 == 400
+     +  where 201 = <Response [201 Created]>.status_code
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:74 the graph's head could not be read, serving the branch: no head configured
+/Users/mikehiggins/Desktop/repos/opn-f08-t26/api/tests/test_uses_service.py:331: AssertionError: {"submission_id":"01M230M2G0J1Z4PZWA9C6Z95M1","pr_url":"https://github.com/thisisanameforsure/open_proof_network_graph/pull/1","pr_number":1,"node_id":"and-reassoc","target_id":"propositional","artifact_type":"proof"}
+E   AssertionError: {"submission_id":"01M230M2G0XNG6KKKT2YCYAQ8H","pr_url":"https://github.com/thisisanameforsure/open_proof_network_graph/pull/1","pr_number":1,"node_id":"and-reassoc","target_id":"propositional","artifact_type":"partial"}
+    assert 201 == 400
+     +  where 201 = <Response [201 Created]>.status_code
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:74 the graph's head could not be read, serving the branch: no head configured
+/Users/mikehiggins/Desktop/repos/opn-f08-t26/api/tests/test_uses_service.py:331: AssertionError: {"submission_id":"01M230M2G0XNG6KKKT2YCYAQ8H","pr_url":"https://github.com/thisisanameforsure/open_proof_network_graph/pull/1","pr_number":1,"node_id":"and-reassoc","target_id":"propositional","artifact_type":"partial"}
+E   AssertionError: {"submission_id":"01M230M2G0W12VBYFHWX0RMV71","pr_url":"https://github.com/thisisanameforsure/open_proof_network_graph/pull/1","pr_number":1,"node_id":"lemma-a","target_id":"propositional","artifact_type":"proof","node_proved":true,"becomes":"alternate"}
+    assert 201 == 400
+     +  where 201 = <Response [201 Created]>.status_code
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:74 the graph's head could not be read, serving the branch: no head configured
+/Users/mikehiggins/Desktop/repos/opn-f08-t26/api/tests/test_uses_service.py:331: AssertionError: {"submission_id":"01M230M2G0W12VBYFHWX0RMV71","pr_url":"https://github.com/thisisanameforsure/open_proof_network_graph/pull/1","pr_number":1,"node_id":"lemma-a","target_id":"propositional","artifact_type":"proof","node_proved":true,"becomes":"alternate"}
+=========================== short test summary info ============================
+FAILED api/tests/test_uses_service.py::test_a_valid_node_use_is_not_imports_differ_and_is_composed
+FAILED api/tests/test_uses_service.py::test_a_valid_defs_use_is_not_imports_differ_and_is_inlined
+FAILED api/tests/test_uses_service.py::test_verify_mode_answers_the_checker_on_a_valid_use
+FAILED api/tests/test_uses_service.py::test_the_ancestry_answer_is_asked_once_per_pin
+FAILED api/tests/test_uses_service.py::test_a_bad_use_is_named_by_the_gates_code[use-duplicate-0]
+FAILED api/tests/test_uses_service.py::test_a_bad_use_is_named_by_the_gates_code[use-duplicate-1]
+FAILED api/tests/test_uses_service.py::test_a_bad_use_is_named_by_the_gates_code[use-unknown-defs-2]
+FAILED api/tests/test_uses_service.py::test_a_bad_use_is_named_by_the_gates_code[use-self-3]
+FAILED api/tests/test_uses_service.py::test_a_bad_use_is_named_by_the_gates_code[use-unknown-node-4]
+FAILED api/tests/test_uses_service.py::test_a_bad_use_is_named_by_the_gates_code[use-superseded-5]
+FAILED api/tests/test_uses_service.py::test_a_bad_use_is_named_by_the_gates_code[use-unproved-6]
+FAILED api/tests/test_uses_service.py::test_a_bad_use_is_named_by_the_gates_code[use-unproved-7]
+FAILED api/tests/test_uses_service.py::test_a_bad_use_is_named_by_the_gates_code[use-redundant-8]
+FAILED api/tests/test_uses_service.py::test_a_bad_use_is_named_by_the_gates_code[use-ancestor-9]
+FAILED api/tests/test_uses_service.py::test_a_bad_use_is_named_by_the_gates_code[use-ancestor-10]
+FAILED api/tests/test_uses_service.py::test_precheck_refuses_a_bad_use_before_any_job[use-duplicate-0]
+FAILED api/tests/test_uses_service.py::test_precheck_refuses_a_bad_use_before_any_job[use-duplicate-1]
+FAILED api/tests/test_uses_service.py::test_precheck_refuses_a_bad_use_before_any_job[use-unknown-defs-2]
+FAILED api/tests/test_uses_service.py::test_precheck_refuses_a_bad_use_before_any_job[use-self-3]
+FAILED api/tests/test_uses_service.py::test_precheck_refuses_a_bad_use_before_any_job[use-unknown-node-4]
+FAILED api/tests/test_uses_service.py::test_precheck_refuses_a_bad_use_before_any_job[use-superseded-5]
+FAILED api/tests/test_uses_service.py::test_precheck_refuses_a_bad_use_before_any_job[use-unproved-6]
+FAILED api/tests/test_uses_service.py::test_precheck_refuses_a_bad_use_before_any_job[use-unproved-7]
+FAILED api/tests/test_uses_service.py::test_precheck_refuses_a_bad_use_before_any_job[use-redundant-8]
+FAILED api/tests/test_uses_service.py::test_precheck_refuses_a_bad_use_before_any_job[use-ancestor-9]
+FAILED api/tests/test_uses_service.py::test_precheck_refuses_a_bad_use_before_any_job[use-ancestor-10]
+FAILED api/tests/test_uses_service.py::test_submissions_refuse_a_bad_use_before_any_pull_request[proof]
+FAILED api/tests/test_uses_service.py::test_submissions_refuse_a_bad_use_before_any_pull_request[partial]
+FAILED api/tests/test_uses_service.py::test_submissions_refuse_a_bad_use_before_any_pull_request[alternate]
+29 failed, 6 passed in 0.56s

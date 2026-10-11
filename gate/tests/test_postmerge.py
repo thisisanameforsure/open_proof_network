@@ -11,7 +11,7 @@ from typing import Any
 
 import pytest
 import yaml
-from harness import copy_graph, make_context
+from harness import GRAPH_CHECKOUT, copy_graph, make_context
 
 from opn_gate import attestation, pipeline, postmerge, products, schemas
 from opn_gate import graph as graphmod
@@ -642,7 +642,7 @@ def test_bot_commit_mentions_stewards(tmp_path: Path, capsys: pytest.CaptureFixt
     assert code == cli.EXIT_PASS and json.loads(capsys.readouterr().out)["mention"] == ""
 
 
-GRAPH_REPO = Path(__file__).resolve().parents[2].parent / "open_proof_network_graph"
+GRAPH_REPO = GRAPH_CHECKOUT
 
 
 def test_mention_line_is_inert_on_the_old_pin(tmp_path: Path) -> None:
@@ -659,10 +659,18 @@ def test_mention_line_is_inert_on_the_old_pin(tmp_path: Path) -> None:
     run = str(commit["run"])
     assert "opn_gate.cli stewards" in run
     assert "|| true" in run and "2>/dev/null" in run
-    number, verdict = "${{ steps.pr.outputs.number }}", "${{ steps.products.outputs.verdict }}"
-    # F07-T33 put `(replayed)` between the verdict and the mention on a replay; the mention is
+    verdict = "${{ steps.products.outputs.verdict }}"
+    # F07-T33 put `(replayed)` between the verdict and the mention on a replay, and F07-T45 made
+    # the credits a list (`#A #B`, one number unless a batch of appends); F07-T55 hands the verdict
+    # in through the step's env, so a catch-up can write the same message again. The mention is
     # still the message's last part and empty on the old pin, which is what this test is about
-    assert f'git commit -m "gate: #{number} {verdict}${{replayed}}${{mention}}"' in run
+    inline = f'git commit -m "gate: ${{credits}} {verdict}${{replayed}}${{mention}}"' in run
+    through_env = (
+        'git commit -m "gate: ${credits} ${VERDICT}${replayed}${mention}"' in run
+        and (commit.get("env") or {}).get("VERDICT") == verdict
+        and 'SUFFIX="${VERDICT}${replayed}${mention}"' in run
+    )
+    assert inline or through_env
     # The guard's shape, run for real with a command the old pin would refuse (exit 2, no JSON):
     # the suffix is empty and the message is the old one.
     shape = (

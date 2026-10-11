@@ -13,11 +13,12 @@ import subprocess
 from pathlib import Path
 
 import pytest
+from harness import GRAPH_CHECKOUT
 
 from opn_gate import config
 
 ROOT = Path(__file__).resolve().parents[2]
-GRAPH_REPO = ROOT.parent / "open_proof_network_graph"
+GRAPH_REPO = GRAPH_CHECKOUT
 #: F10-T9 (2026-09-19) took the version out of the filename; an older README may still carry one.
 CITATION = re.compile(r"docs/architecture_decisions(?:_v_\d+_\d+)?\.html")
 

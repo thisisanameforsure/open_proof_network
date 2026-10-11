@@ -4,7 +4,8 @@
 claimable; a refusal names why not, from the graph and the targets index — F05-T9), clamps
 an undeclared TTL to the minimum, rejects one above the maximum, enforces the active-claim cap,
 and returns the receipt — or, when the caller already holds an active claim on the node, that
-claim again with ``200`` (F05-T14); every receipt names the node's other active holders.
+claim again with ``200`` (F05-T14); every receipt names the node's other active holders and the
+pull requests already open on it (``open_submissions``).
 ``DELETE /claims/<id>`` releases the holder's own claim, and ``GET /claims/mine`` lists the
 caller's active claims with their ids. Expiry is lazy: a claim past ``expires`` counts as
 released wherever it is read.
@@ -34,6 +35,12 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 
 NODE_ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
+
+
+def invalidate(ctx: Context) -> None:
+    """F05-T20: drop the registry's kept scan after a claim write, so this process's next read
+    of ``/frontier.json`` or ``/claims.json`` sees it."""
+    ctx.claims_scan = None
 
 
 def receipt(claim: Claim, pseudonym: str) -> dict[str, Any]:
@@ -66,9 +73,36 @@ def others(ctx: Context, claim: Claim, claims: list[Claim]) -> list[dict[str, st
     return sorted(out, key=lambda a: (a["expires"], a["pseudonym"]))
 
 
+#: The fields of an open submission a claim receipt names (the service's own record, F07-T16).
+OPEN_SUBMISSION_FIELDS: tuple[str, ...] = ("pr_number", "pr_url", "kind", "pseudonym", "created")
+
+
+def open_submissions(ctx: Context, claim: Claim) -> list[dict[str, Any]]:
+    """The pull requests the service opened on ``claim``'s node that the host still calls open,
+    oldest first, the caller's own included. A claim is advisory (D-25, F05-Q1), so a claimer
+    learns what it is racing only here: another pseudonym's open witness or proof is racing it
+    whether or not that pseudonym ever claimed (tester finding, erdos-1050, 2026-09-27).
+
+    Each record is reconciled as ``GET /submissions.json`` does, so a merged or closed pull
+    request is not listed; one the host cannot describe stays listed (C7)."""
+    out: list[dict[str, Any]] = []
+    for found in ctx.store.list_open_submissions():
+        if found.node_id != claim.node_id or found.target_id != claim.target_id:
+            continue
+        record, _, _ = pending.reconcile(ctx, found)
+        if record.closed is None:
+            out.append({k: getattr(record, k) for k in OPEN_SUBMISSION_FIELDS})
+    return sorted(out, key=lambda s: (s["created"], s["pr_number"]))
+
+
 def held_receipt(ctx: Context, claim: Claim, pseudonym: str, claims: list[Claim]) -> dict[str, Any]:
-    """A receipt for a claim its holder is looking at: the claim and who else holds the node."""
-    return {**receipt(claim, pseudonym), "others": others(ctx, claim, claims)}
+    """A receipt for a claim its holder is looking at: the claim, who else holds the node, and
+    the pull requests already open on it."""
+    return {
+        **receipt(claim, pseudonym),
+        "others": others(ctx, claim, claims),
+        "open_submissions": open_submissions(ctx, claim),
+    }
 
 
 def ttl_hours(ctx: Context, raw: Any) -> int:
@@ -115,8 +149,22 @@ def unclaimable(ctx: Context, node_id: str, target_id: str) -> ApiError:
     if row is not None:
         facts = precheck.facts_of(target_id, row)
         if facts["status"] == "blocked":
-            return precheck.blocked_error(node_id, facts, graph)
+            return blocked(ctx, node_id, facts, graph)
     return not_claimable(ctx, node_id, target_id)
+
+
+def blocked(
+    ctx: Context, node_id: str, facts: dict[str, Any], graph: dict[str, list[dict[str, Any]]]
+) -> ApiError:
+    """The shared ``409 node-blocked``, naming an open witness pull request for a hole waiting on
+    its witness, as a precheck does (F06-T13): a claimant whose witness is open is not told to send
+    one."""
+    waiting = (
+        precheck.open_witness(ctx, node_id)
+        if facts.get("cause") == graphmod.CAUSE_WITNESS_MISSING
+        else None
+    )
+    return precheck.blocked_error(node_id, facts, graph, pending_witness=waiting)
 
 
 def circular(
@@ -180,7 +228,7 @@ def off_frontier(ctx: Context, node_id: str, target_id: str | None) -> ApiError:
     if facts["status"] == "blocked":
         if precheck.witness_awaits_render(ctx, node_id, facts):  # F06-T8: one state, one answer
             return precheck.awaits_render(node_id, f"{node_id}'s witness has merged")
-        return precheck.blocked_error(node_id, facts, graph)
+        return blocked(ctx, node_id, facts, graph)
     details = precheck.standing(ctx, node_id, facts)
     successor = f" {details['replacement']} replaced it." if details["replacement"] else ""
     return ApiError(
@@ -270,6 +318,7 @@ async def post_claims(ctx: Context, request: Request) -> Response:
         expires=clockmod.render(now + timedelta(hours=hours)),
     )
     ctx.store.put_claim(claim)
+    invalidate(ctx)
     return JSONResponse(
         held_receipt(ctx, claim, identity.pseudonym, ctx.store.list_claims()), status_code=201
     )
@@ -302,4 +351,5 @@ async def delete_claim(ctx: Context, request: Request) -> Response:
     if claim.released is None:
         claim = release(claim, now)
         ctx.store.put_claim(claim)
+        invalidate(ctx)
     return JSONResponse(receipt(claim, identity.pseudonym))

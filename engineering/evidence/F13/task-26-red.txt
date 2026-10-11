@@ -1,0 +1,96 @@
+F13-T26 red, 2026-10-01 (branch svc-queue-heartbeats-hazards, before the fix; the seams hazards_status / service_fault / hazards_error and the accepted-but-unread require_hazards_preflight field are in at today's behaviour, so each failure below is the defect and not a missing name)
+
+== 1. the live route, read-only (anonymous POST /check; 2026-10-01T23:4xZ) ==
+$ curl -s -X POST https://api.openproofnetwork.org/check -H "Content-Type: application/json" -d '{"target_id":"erdos-69","mode":"hazards","node_id":"spec-2e765953"}'
+{"authoritative": false, "service": "axle", "environment": "lean-4.33.1", "exact": true, "note": null, "mode": "hazards", "lint": [], "inlined_defs": ["Nodes.«spec-2e765953».Context"], "okay": false, "user_error": null, "dropped_warnings": [], "log_id": "01M3WKE4FRNJRJMT7KM92NAJAJ", "hazards": null}
+result.lean_messages.errors:
+  -:513:15-513:43: error(lean.unknownIdentifier): Unknown identifier `Lean.Elab.IO.processCommands`
+  -:515:11-515:35: error(lean.invalidField): Invalid field notation: Type of
+  st
+is not known; cannot resolve field `commandState`
+result.tool_messages.infos[0]: "Imports mismatch detected. Overriding with default header. If this behavior is not desired, please turn `ignoreImports` off. Default header:\n\nimport Mathlib\n"
+
+== 2. what the hosted environment holds (POST /check mode check, log 01M3WKJF58HFC44HKBW2101CRM; probe in gate/hosted-checker-modules/lean-4.33.1.txt) ==
+-:4:0-4:7: info: OPN-PROBE [(Lean, false),
+ (Lean.Elab.Frontend, false),
+ (Lean.Elab.Command, true),
+ (Lean.Parser.Module, true),
+ (Lean.Elab.Import, true),
+ (Lean.Language.Lean, false),
+ (Lean.Elab.BuiltinCommand, true),
+ (Lean.Meta, false),
+ (Lean.Elab, false),
+ (Lean.Elab.Term, true),
+ (Lean.Util.CollectAxioms, true),
+ (Lean.Elab.Print, false),
+ (Lean.Server.References, true),
+ (Lean.Elab.Tactic, false),
+ (Lean.Data.Json, true)] leanModules=693 all=10498
+
+== 3. fast tier: uv run --frozen pytest api/tests/test_finding_hazards_hosted_budget.py ==
+E       AssertionError: declared in modules `import Mathlib` does not reach: {'Lean.Elab.IO.processCommands': 'Lean.Elab.Frontend'}
+E       assert not {'Lean.Elab.IO.processCommands': 'Lean.Elab.Frontend'}
+________ test_a_runner_that_failed_is_unavailable_not_the_callers_false ________
+    def test_a_runner_that_failed_is_unavailable_not_the_callers_false() -> None:
+E       AssertionError: assert 'statement-failed' == 'unavailable'
+E         
+E         - unavailable
+E         + statement-failed
+____________ test_the_runner_fault_is_logged_under_its_own_outcome _____________
+>       assert h.store.checks[doc["log_id"]].outcome == "hazards-runner-failed"
+E       AssertionError: assert 'answered' == 'hazards-runner-failed'
+E         
+E         - hazards-runner-failed
+E         + answered
+_________ test_a_caller_may_require_the_hazard_pre_flight[speculative] _________
+E       AssertionError: {"proposal_id":"01M230M2G08TA5JRF4APKMTQH8","node_id":"spec-b99319d7","target_id":"propositional","pr_url":"https://github.com/thisisanameforsure/open_proof_network_graph/pull/1","pr_number":1,"hazards_preflight":"inconclusive","witness_preflight":"matched"}
+E       assert 201 == 503
+E        +  where 201 = <Response [201 Created]>.status_code
+___________ test_a_caller_may_require_the_hazard_pre_flight[variant] ___________
+E       AssertionError: {"proposal_id":"01M230M2G0ENP26BCXTW4VN9NB","node_id":"variant-b99319d7","target_id":"propositional","pr_url":"https://github.com/thisisanameforsure/open_proof_network_graph/pull/1","pr_number":1,"hazards_preflight":"inconclusive","witness_preflight":"matched","relation_preflight":"skipped"}
+E       assert 201 == 503
+E        +  where 201 = <Response [201 Created]>.status_code
+_______ test_requiring_the_pre_flight_refuses_an_unavailable_checker_too _______
+E       AssertionError: {"proposal_id":"01M230M2G0MMDWVZ14018EH0J7","node_id":"spec-b99319d7","target_id":"propositional","pr_url":"https://github.com/thisisanameforsure/open_proof_network_graph/pull/1","pr_number":1,"hazards_preflight":"unavailable","witness_preflight":"matched"}
+E       assert 201 == 503
+E        +  where 201 = <Response [201 Created]>.status_code
+_________________ test_require_hazards_preflight_is_a_boolean __________________
+E       AssertionError: {"proposal_id":"01M230M2G09MBZ0ZGKHNFN83MJ","node_id":"spec-b99319d7","target_id":"propositional","pr_url":"https://github.com/thisisanameforsure/open_proof_network_graph/pull/1","pr_number":1,"hazards_preflight":"clear","witness_preflight":"matched"}
+E       assert 201 == 400
+E        +  where 201 = <Response [201 Created]>.status_code
+FAILED api/tests/test_finding_hazards_hosted_budget.py::test_the_composed_hazards_program_names_nothing_the_hosted_environment_lacks
+FAILED api/tests/test_finding_hazards_hosted_budget.py::test_a_runner_that_failed_is_unavailable_not_the_callers_false
+FAILED api/tests/test_finding_hazards_hosted_budget.py::test_the_runner_fault_is_logged_under_its_own_outcome
+FAILED api/tests/test_finding_hazards_hosted_budget.py::test_a_caller_may_require_the_hazard_pre_flight[speculative]
+FAILED api/tests/test_finding_hazards_hosted_budget.py::test_a_caller_may_require_the_hazard_pre_flight[variant]
+FAILED api/tests/test_finding_hazards_hosted_budget.py::test_requiring_the_pre_flight_refuses_an_unavailable_checker_too
+FAILED api/tests/test_finding_hazards_hosted_budget.py::test_require_hazards_preflight_is_a_boolean
+7 failed, 7 passed, 2 warnings in 0.78s
+
+== 4. lean tier (Lean 4.33.1 from the GitHub release, linked into elan): the composed text under the hosted module list ==
+$ uv run --frozen pytest -m lean gate/tests/test_hazards_through_axle_text_lean.py -q
+E       AssertionError: test_the_composed_text_finds_w0/Hazards.lean:1812:8: warning: declaration uses `sorry`
+E         test_the_composed_text_finds_w0/Hazards.lean:2316:15: error(lean.unknownIdentifier): Unknown identifier `Lean.Elab.IO.processCommands`
+E         test_the_composed_text_finds_w0/Hazards.lean:2318:11: error(lean.invalidField): Invalid field notation: Type of
+E           st
+E         is not known; cannot resolve field `commandState`
+E         
+E       assert None is not None
+E       AssertionError: test_the_nodes_with_their_cont0/Hazards.lean:1814:8: warning: declaration uses `sorry`
+E         test_the_nodes_with_their_cont0/Hazards.lean:2318:15: error(lean.unknownIdentifier): Unknown identifier `Lean.Elab.IO.processCommands`
+E         test_the_nodes_with_their_cont0/Hazards.lean:2320:11: error(lean.invalidField): Invalid field notation: Type of
+E           st
+E         is not known; cannot resolve field `commandState`
+E         
+E       assert None is not None
+E       AssertionError: test_only_the_named_checkers_r0/Hazards.lean:1812:8: warning: declaration uses `sorry`
+E         test_only_the_named_checkers_r0/Hazards.lean:2316:15: error(lean.unknownIdentifier): Unknown identifier `Lean.Elab.IO.processCommands`
+E         test_only_the_named_checkers_r0/Hazards.lean:2318:11: error(lean.invalidField): Invalid field notation: Type of
+E           st
+E         is not known; cannot resolve field `commandState`
+E         
+E       assert None is not None
+FAILED gate/tests/test_hazards_through_axle_text_lean.py::test_the_composed_text_finds_what_opn_hazards_finds
+FAILED gate/tests/test_hazards_through_axle_text_lean.py::test_the_nodes_with_their_context_inlined_agree
+FAILED gate/tests/test_hazards_through_axle_text_lean.py::test_only_the_named_checkers_run
+3 failed in 8.97s

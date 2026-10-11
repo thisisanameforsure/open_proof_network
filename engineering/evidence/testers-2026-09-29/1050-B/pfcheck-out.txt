@@ -1,0 +1,1 @@
+partial_fractions exact check n=1..10, m=1..12: mismatches = 0

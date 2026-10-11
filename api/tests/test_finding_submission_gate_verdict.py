@@ -101,7 +101,9 @@ def test_it_is_read_once_per_head_commit(harness: Harness) -> None:
     calls = harness.githost.artifact_reads
     get(harness)
     get(harness)
-    assert harness.githost.artifact_reads == calls == 1
+    assert harness.githost.artifact_reads == calls
+    # restated by F22-T24: a finished run's classification is a second read, cached the same way
+    assert [p for p in harness.githost.artifact_prefixes if p.startswith("gate-")] == ["gate-7-"]
 
 
 def test_no_artifact_or_a_host_failure_is_null_never_a_500(harness: Harness) -> None:
@@ -118,4 +120,5 @@ def test_a_pull_request_that_did_not_fail_reads_no_artifact(harness: Harness) ->
         8, runs=[{"name": "gate", "status": "completed", "conclusion": "success", "url": RUN_URL}]
     )
     assert get(harness, 8)["gate_verdict"] is None
-    assert harness.githost.artifact_reads == 0
+    # restated by F22-T24: no verdict is read; the classification is (its warnings, once)
+    assert harness.githost.artifact_prefixes == ["classify-8-"]

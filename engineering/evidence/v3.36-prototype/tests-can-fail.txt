@@ -1,0 +1,6 @@
+1) a planted defect marked as surviving in the main cluster:
+   test fails as it should: bad-two (strength drift (two primes asked for)) was not caught
+2) the kernel re-check run on a planted candidate as if it had survived:
+   test fails as it should: bad-or fails witness at n = 2
+3) a missed mutant recorded:
+   test fails as it should

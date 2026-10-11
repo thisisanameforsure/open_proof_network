@@ -16,13 +16,14 @@ import re
 from pathlib import Path
 
 import pytest
+from harness import GRAPH_CHECKOUT
 
 from opn_api import checks, config, pending, routes
 
 ROOT = Path(__file__).resolve().parents[2]
 GUIDE = (ROOT / "gate" / "agents" / "AGENTS.md").read_text(encoding="utf-8")
 FLAT = re.sub(r"\s+", " ", GUIDE)
-GRAPH = ROOT.parent / "open_proof_network_graph"
+GRAPH = GRAPH_CHECKOUT
 
 GONE = {
     "AXLE runs no hazard checker": "runs none of the hazard checkers",
@@ -41,15 +42,22 @@ PRESENT = {
     "claiming twice returns the same claim": "returns the same claim",
     "the receipt's other holders": "`others`",
     "the caller's own claims": "`GET /claims/mine`",
-    "products for annexes and witnesses": "`products` for a merged proposal, annex or witness",
+    # F05-T18: and for a merged proof or partial whose attestation is not committed yet
+    "products for annexes and witnesses": (
+        "`products` for a merged proof, partial, proposal, annex or witness"
+    ),
     "jobs is always present": "each run's `jobs` is `[]`",
     "a proposal's statement": "`proposed_statement`",
     "withdrawing a pull request": "`DELETE /submissions/<id>`",
     "rivals in a proof's receipt": "`rivals`",
     "a proof on a proved node becomes an alternate": '`becomes: "alternate"`',
-    "a second circularity claim is refused": "`circular-decomposition` claim on a node already",
+    # F08-T39 (D-12 v3.35) restated the two circular sentences: a merged claim labels the node
+    # and takes nothing off the frontier, and `cause` is never `circular` since graph/v6.
+    "a merged circularity claim is a label": (
+        "`circular-decomposition` claim labels the node under `circular` and takes nothing off"
+    ),
     "an open claim of the same class is named": "`also_open`",
-    "circular is a cause, not a status": "read `cause`, not `status`",
+    "circular is a label, never a cause": "`cause` is never `circular` since `graph/v6`",
     "the service's rendered_from": "service's `rendered_from` is the commit it read the tree at",
     "the tutorial node without a clone": "`targets/tutorial/nodes/tutorial-and-swap/`",
     "the MCP list_my_claims row": "| `list_my_claims` | `GET /claims/mine`",
@@ -93,8 +101,15 @@ def test_every_witness_pre_flight_word_is_the_services() -> None:
 
 
 def test_every_hazard_pre_flight_word_is_the_services() -> None:
-    words = (checks.PREFLIGHT_CLEAR, checks.PREFLIGHT_INCONCLUSIVE, checks.PREFLIGHT_UNAVAILABLE)
-    assert "`hazards_preflight` says " + ", ".join(f"`{w}`" for w in words[:2]) in FLAT
+    words = (
+        checks.PREFLIGHT_CLEAR,
+        checks.PREFLIGHT_ACKNOWLEDGED,
+        checks.PREFLIGHT_INCONCLUSIVE,
+        checks.PREFLIGHT_UNAVAILABLE,
+    )
+    assert "`hazards_preflight` says `clear` (no findings), `acknowledged` (" in FLAT
+    for word in words:
+        assert f"`{word}`" in FLAT, word
 
 
 def test_the_new_routes_the_guide_names_exist() -> None:

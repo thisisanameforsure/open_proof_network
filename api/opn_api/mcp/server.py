@@ -24,14 +24,15 @@ import json
 import logging
 from collections.abc import AsyncIterator, Callable
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 import httpx
 import jsonschema
 from mcp import types
 from mcp.server.auth.middleware.auth_context import AuthContextMiddleware
 from mcp.server.auth.middleware.bearer_auth import BearerAuthBackend
-from mcp.server.lowlevel import Server
+from mcp.server.lowlevel import NotificationOptions, Server
+from mcp.server.models import InitializationOptions
 from mcp.server.streamable_http_manager import StreamableHTTPSessionManager
 from starlette.middleware.authentication import AuthenticationMiddleware
 from starlette.requests import HTTPConnection
@@ -50,35 +51,160 @@ SERVER_NAME = "open-proof-network"
 MCP_PATH = "/mcp"
 TOOLS: tuple[Tool, ...] = (*reads.TOOLS, *writes.TOOLS)
 BY_NAME: dict[str, Tool] = {t.name: t for t in TOOLS}
-INSTRUCTIONS = (
-    "The Open Proof Network's reference MCP server (D-28). Every tool is a lens over plain git "
-    "and HTTP and holds no state: reads need no token, except list_my_claims, which reads your "
-    "own; writes need `Authorization: Bearer "
-    "<token>` and pass their endpoint's status and body through. Three writes need none: "
-    "precheck_submission on the tutorial node; get_token, which turns that passing precheck "
-    "into a token; and check_lean, the non-authoritative fast check (F13). "
-    + demarcate.UNTRUSTED_NOTE
-)
+
+
+def instructions(tutorial: str, *, guide: str | None = None, errors: str | None = None) -> str:
+    """The handshake's instructions, naming the tutorial node as ``tutorial`` words it
+    (``auth.tutorial_phrase``: by name when the graph can be read), and the contributor guide
+    and the error-code catalog by their full URLs when the service's configuration gives them
+    (F09-T16: ``urls``); without one, the plain path stands in."""
+    return (
+        "The Open Proof Network's reference MCP server (D-28). Every tool is a lens over plain "
+        "git and HTTP and holds no state: reads need no token, except list_my_claims, "
+        "get_my_submissions and get_check, which read your own; writes need "
+        "`Authorization: Bearer <token>` and pass their endpoint's "
+        f"status and body through. Three writes need none: precheck_submission on {tutorial} "
+        "(start there; list_frontier leaves it out, because it is proved); get_token, which "
+        "turns that passing precheck into a token; and check_lean, the non-authoritative fast "
+        "check (F13). "
+        # F09-T16 (audit 2026-10-04): where the rest is written down, and the usual order.
+        f"The contributor guide is {guide or 'AGENTS.md in the graph repository'}. A first "
+        "contribution usually goes: list_frontier for an open node, get_node for its statement "
+        "and context, claim_node, check_lean while you iterate, precheck_submission and "
+        "get_precheck until it is done, submit_proof with the passing precheck, and "
+        "get_submission to follow its pull request. "
+        # F21-T8 (R10): the second entry task, words rather than a proof (D-3 v3.31).
+        "A contribution that needs no proof: list_words_needed for a Lean file that has no words "
+        "yet, get_node for its Lean, then submit_gloss with the words, naming in drafted_with "
+        "the model that helped draft them, if one did; one writer per file at a time, and a "
+        "steward's or curator's signature on your words is what earns credit. "
+        "Every refusal names its rule by a code "
+        "(`error`, or a verdict's diagnostic `code`): list_error_codes, or "
+        f"{errors or 'GET /errors.json'}, says what each means and what to do. "
+        + demarcate.UNTRUSTED_NOTE
+    )
+
+
+def urls(ctx: Context) -> dict[str, str]:
+    """The guide's and the error catalog's full URLs, from the service's configuration."""
+    from opn_api import wayfinding  # noqa: PLC0415 — wayfinding imports this module
+
+    return {
+        "guide": wayfinding.guide_url(ctx.settings),
+        "errors": ctx.settings.public_url.rstrip("/") + "/errors.json",
+    }
+
+
+#: The instructions in the words used when the tutorial node cannot be named.
+INSTRUCTIONS = instructions(auth.TUTORIAL_UNNAMED)
+
+
+class LazyInstructions:
+    """Initialization options whose ``instructions`` are derived only when read. In stateless
+    mode the SDK builds the options for every request, but its session reads ``instructions``
+    only to answer ``initialize``; deriving them eagerly put every graph file in front of every
+    tool call (the read-order tests in ``test_frontier_generation`` pin that it does not)."""
+
+    def __init__(self, base: InitializationOptions, derive: Callable[[], str]) -> None:
+        self._base = base
+        self._derive = derive
+
+    @property
+    def instructions(self) -> str:
+        return self._derive()
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self._base, name)
+
+
+class LiveServer(Server[Any, Any]):
+    """The SDK server with instructions derived when a client initialises, not at import: they
+    name the tutorial node from the committed graphs (tester finding 2026-09-27), so moving the
+    ``tutorial`` flag moves the name."""
+
+    def __init__(self, ctx: Context) -> None:
+        super().__init__(SERVER_NAME, version=PROTOCOL_VERSION, instructions=INSTRUCTIONS)
+        self._ctx = ctx
+
+    def create_initialization_options(
+        self,
+        notification_options: NotificationOptions | None = None,
+        experimental_capabilities: dict[str, dict[str, Any]] | None = None,
+    ) -> InitializationOptions:
+        base = super().create_initialization_options(
+            notification_options, experimental_capabilities
+        )
+        lazy = LazyInstructions(
+            base, lambda: instructions(auth.tutorial_phrase(self._ctx), **urls(self._ctx))
+        )
+        return cast("InitializationOptions", lazy)
 
 
 @dataclass(frozen=True)
 class Outer:
     """What the tool needs from the HTTP request that carried the MCP call."""
 
-    forwarded_for: str | None
-    client_host: str
+    client_host: str  # the outer request's peer: the source the identity layer limits (F05-T19)
 
 
 OUTER: contextvars.ContextVar[Outer | None] = contextvars.ContextVar("opn_mcp_outer", default=None)
+
+
+#: F09-T23 (Q22): what a client shows a person for each tool, beside its name.
+TITLES: dict[str, str] = {
+    "server_info": "Server info",
+    "list_targets": "List targets",
+    "get_target": "Read a target",
+    "list_frontier": "List open nodes",
+    "get_node": "Read a node",
+    "get_defs": "Read shared definitions",
+    "get_gate_spec": "Read a gate spec",
+    "get_submission": "Follow a submission",
+    "list_submissions": "List open submissions",
+    "get_schema": "Read a schema",
+    "get_precheck": "Poll a precheck",
+    "get_dco": "Read the DCO",
+    "list_routes": "List HTTP routes",
+    "get_hosted_checkers": "List hosted checkers",
+    "list_my_claims": "List my claims",
+    "get_my_submissions": "List my submissions",
+    "get_check": "Read a fast check",
+    "list_error_codes": "List error codes",
+    "list_words_needed": "List files needing words",
+    "claim_node": "Claim a node",
+    "release_claim": "Release a claim",
+    "precheck_submission": "Precheck a submission",
+    "check_lean": "Fast-check Lean",
+    "get_token": "Get a write token",
+    "renew_token": "Renew a write token",
+    "propose_witness": "Propose a hole witness",
+    "submit_proof": "Submit a proof",
+    "submit_postmortem": "Submit a postmortem",
+    "submit_informal_annex": "Submit an informal annex",
+    "submit_approach_record": "Submit an approach record",
+    "file_defect_claim": "File a defect claim",
+    "file_revision_request": "File a revision request",
+    "propose_speculative_node": "Propose a crux statement",
+    "propose_variant": "Propose a variant",
+    "withdraw_submission": "Withdraw a submission",
+    "submit_gloss": "Submit words for a file",
+    "withdraw_gloss": "Withdraw words",
+    "propose_literature": "Propose a literature status",
+    "confirm_literature": "Confirm a literature status",
+    "list_registrations": "List registry registrations",
+    "set_display_name": "Set my display name",
+    "register_target": "Record a registration",
+}
 
 
 def declare(tool: Tool) -> types.Tool:
     row = bijection.BY_TOOL[tool.name]
     return types.Tool(
         name=tool.name,
+        title=TITLES[tool.name],
         description=f"{tool.description} Plain path: {row.d28}.",
         inputSchema=tool.input_schema,
-        outputSchema=results.load(tool.name),
+        outputSchema=results.declared(tool.name),
         annotations=types.ToolAnnotations(
             readOnlyHint=not tool.write, destructiveHint=False, idempotentHint=not tool.write
         ),
@@ -95,18 +221,24 @@ def error_result(tool: str, doc: dict[str, Any]) -> types.CallToolResult:
             "message": "the adapter produced an unschematic error result",
             "source": "adapter",
         }
-    return types.CallToolResult(
-        content=[types.TextContent(type="text", text=json.dumps(doc, indent=2))],
-        structuredContent=doc,
-        isError=True,
-    )
+    return types.CallToolResult(content=text_block(doc), structuredContent=doc, isError=True)
+
+
+def text_block(doc: dict[str, Any]) -> list[types.ContentBlock]:
+    """The text a client without structured output reads: the structured content as compact
+    JSON with its characters as they are (F09-T18, Q17). The SDK's own default is ``indent=2``
+    with ASCII escapes, which cost about two fifths of a large result in whitespace and six
+    characters for every Lean symbol."""
+    return [
+        types.TextContent(
+            type="text", text=json.dumps(doc, separators=(",", ":"), ensure_ascii=False)
+        )
+    ]
 
 
 def build_server(ctx: Context, host: Callable[[], ASGIApp]) -> Server[Any, Any]:
     """The SDK server over ``ctx``; ``host`` yields the application the write tools call."""
-    server: Server[Any, Any] = Server(
-        SERVER_NAME, version=PROTOCOL_VERSION, instructions=INSTRUCTIONS
-    )
+    server: Server[Any, Any] = LiveServer(ctx)
 
     # The SDK's registration decorators are unannotated, hence the two ignores.
     @server.list_tools()  # type: ignore[untyped-decorator,no-untyped-call]
@@ -116,7 +248,7 @@ def build_server(ctx: Context, host: Callable[[], ASGIApp]) -> Server[Any, Any]:
     @server.call_tool(validate_input=False)  # type: ignore[untyped-decorator]
     async def call_tool(
         name: str, arguments: dict[str, Any]
-    ) -> dict[str, Any] | types.CallToolResult:
+    ) -> tuple[list[types.ContentBlock], dict[str, Any]] | types.CallToolResult:
         tool = BY_NAME.get(name)
         if tool is None:
             return error_result(
@@ -134,12 +266,13 @@ def build_server(ctx: Context, host: Callable[[], ASGIApp]) -> Server[Any, Any]:
         if tool.needs_bearer and not token:  # R2: refused here, the endpoint never reached
             # A write answers in its envelope; a read of the caller's own records (F05-T14) in
             # the read tools' error shape, with the same code, message and status.
+            body = auth.unauthorized(ctx)
             refusal = (
-                writes.unauthorized()
+                writes.unauthorized(ctx)
                 if tool.write
                 else error(
-                    str(auth.UNAUTHORIZED["error"]),
-                    str(auth.UNAUTHORIZED["message"]),
+                    str(body["error"]),
+                    str(body["message"]),
                     "adapter",
                     status=auth.UNAUTHORIZED_STATUS,
                 )
@@ -154,14 +287,9 @@ def build_server(ctx: Context, host: Callable[[], ASGIApp]) -> Server[Any, Any]:
             ),
             base_url=ctx.settings.public_url,
         ) as http:
-            call = Call(
-                ctx,
-                http,
-                token=token,
-                forwarded_for=outer.forwarded_for if outer else None,
-            )
+            call = Call(ctx, http, token=token)
             try:
-                return await tool.handler(call, arguments)
+                doc = await tool.handler(call, arguments)
             except ToolError as failure:
                 return error_result(name, failure.doc)
             except Exception as exc:  # C7: named, logged, never a partial answer
@@ -169,6 +297,9 @@ def build_server(ctx: Context, host: Callable[[], ASGIApp]) -> Server[Any, Any]:
                 return error_result(
                     name, error("internal", f"{name} failed: {type(exc).__name__}", "adapter").doc
                 )
+            # Both halves, so the SDK still validates the structured half against the output
+            # schema and leaves the text as written (T18).
+            return text_block(doc), doc
 
     return server
 
@@ -205,10 +336,7 @@ class Mount:
 
     async def _dispatch(self, scope: Scope, receive: Receive, send: Send) -> None:
         conn = HTTPConnection(scope)
-        outer = Outer(
-            forwarded_for=conn.headers.get("x-forwarded-for") or None,
-            client_host=conn.client.host if conn.client else "unknown",
-        )
+        outer = Outer(client_host=conn.client.host if conn.client else "unknown")
         token = OUTER.set(outer)
         try:
             manager = self._manager

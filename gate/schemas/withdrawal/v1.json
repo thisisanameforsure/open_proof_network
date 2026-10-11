@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openproof.network/schemas/withdrawal/v1.json",
+  "title": "withdrawal/v1",
+  "description": "nodes/<id>/withdrawals/<timestamp>-<curator>.yaml (F08-T31; D-14, D-18 v3.27): a listed curator withdraws one status record or one defect claim of the same node, with a reason, reviewed like any curator record (F08-R8). Append-only. The withdrawn file stays in the tree and every reader of status records and defect claims reads it as absent; a disputed status lifts when its record, or the claim its reference names, is withdrawn. No date is compared: a withdrawal applies because it is on the record. Versioned, never edited (D-34).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "withdraws",
+    "reason",
+    "author",
+    "date"
+  ],
+  "properties": {
+    "schema": {
+      "const": "withdrawal/v1"
+    },
+    "withdraws": {
+      "description": "The record withdrawn, relative to this node's directory: status/<file> (a node-status record) or defects/<file> (a defect claim against this node).",
+      "type": "string",
+      "pattern": "^(status|defects)/[A-Za-z0-9][A-Za-z0-9._-]*\\.ya?ml$"
+    },
+    "reason": {
+      "description": "Why, in the curator's words: the published reasoning a withdrawal owes the record (D-22).",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1000
+    },
+    "author": {
+      "description": "The listed curator's pseudonym.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100
+    },
+    "date": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+    }
+  }
+}

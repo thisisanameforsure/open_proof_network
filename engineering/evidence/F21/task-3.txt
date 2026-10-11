@@ -1,0 +1,70 @@
+F21-T3 verification: no new drafts (R2, AC2)
+(run from a worktree through the shared venv: UV_PROJECT_ENVIRONMENT=<repo>/.venv uv run --frozen ...)
+
+Red run (seam at today's behaviour, before the fix):
+E       AssertionError: assert [] == ['draft-not-accepted']
+E       AssertionError: assert [] == ['draft-not-accepted']
+E       AssertionError: assert ['drafter-not-service'] == ['draft-not-accepted']
+E       AssertionError: assert ['drafter-not-service'] == ['draft-not-accepted']
+E       AssertionError: assert ['drafter-not-service'] == ['draft-not-accepted']
+E       AssertionError: assert ['drafter-not-service'] == ['draft-not-accepted']
+FAILED gate/tests/test_no_new_drafts.py::test_an_added_draft_is_refused_whoever_opens_it[open-proof-network[bot]-gloss]
+FAILED gate/tests/test_no_new_drafts.py::test_an_added_draft_is_refused_whoever_opens_it[open-proof-network[bot]-explainer]
+FAILED gate/tests/test_no_new_drafts.py::test_an_added_draft_is_refused_whoever_opens_it[thisisanameforsure-gloss]
+FAILED gate/tests/test_no_new_drafts.py::test_an_added_draft_is_refused_whoever_opens_it[thisisanameforsure-explainer]
+FAILED gate/tests/test_no_new_drafts.py::test_an_added_draft_is_refused_whoever_opens_it[mallory-gloss]
+FAILED gate/tests/test_no_new_drafts.py::test_an_added_draft_is_refused_whoever_opens_it[mallory-explainer]
+6 failed, 6 passed in 0.99s
+
+Green run: uv run pytest gate/tests/test_no_new_drafts.py gate/tests/test_gloss_schema.py gate/tests/test_explainer_schema.py gate/tests/test_gloss_cli.py
+gate/tests/test_no_new_drafts.py::test_an_added_draft_is_refused_whoever_opens_it[open-proof-network[bot]-gloss] PASSED [  2%]
+gate/tests/test_no_new_drafts.py::test_an_added_draft_is_refused_whoever_opens_it[open-proof-network[bot]-explainer] PASSED [  5%]
+gate/tests/test_no_new_drafts.py::test_an_added_draft_is_refused_whoever_opens_it[thisisanameforsure-gloss] PASSED [  7%]
+gate/tests/test_no_new_drafts.py::test_an_added_draft_is_refused_whoever_opens_it[thisisanameforsure-explainer] PASSED [ 10%]
+gate/tests/test_no_new_drafts.py::test_an_added_draft_is_refused_whoever_opens_it[mallory-gloss] PASSED [ 12%]
+gate/tests/test_no_new_drafts.py::test_an_added_draft_is_refused_whoever_opens_it[mallory-explainer] PASSED [ 15%]
+gate/tests/test_no_new_drafts.py::test_a_persons_version_is_unchanged[open-proof-network[bot]-gloss] PASSED [ 17%]
+gate/tests/test_no_new_drafts.py::test_a_persons_version_is_unchanged[open-proof-network[bot]-explainer] PASSED [ 20%]
+gate/tests/test_no_new_drafts.py::test_a_persons_version_is_unchanged[mallory-gloss] PASSED [ 22%]
+gate/tests/test_no_new_drafts.py::test_a_persons_version_is_unchanged[mallory-explainer] PASSED [ 25%]
+gate/tests/test_no_new_drafts.py::test_a_merged_draft_validates_renders_and_is_superseded_by_a_person[gloss] PASSED [ 27%]
+gate/tests/test_no_new_drafts.py::test_a_merged_draft_validates_renders_and_is_superseded_by_a_person[explainer] PASSED [ 30%]
+gate/tests/test_gloss_schema.py::test_every_lean_file_kind_takes_a_gloss PASSED [ 32%]
+gate/tests/test_gloss_schema.py::test_a_gloss_and_its_node_may_ride_one_pull_request_only_with_its_own_family PASSED [ 35%]
+gate/tests/test_gloss_schema.py::test_exactly_one_of_author_and_drafter[None-None] PASSED [ 37%]
+gate/tests/test_gloss_schema.py::test_exactly_one_of_author_and_drafter[alice-drafter1] PASSED [ 40%]
+gate/tests/test_gloss_schema.py::test_a_merged_draft_validates PASSED    [ 42%]
+gate/tests/test_gloss_schema.py::test_an_added_draft_is_refused PASSED   [ 45%]
+gate/tests/test_gloss_schema.py::test_a_gloss_without_front_matter_or_with_a_bad_schema_is_refused PASSED [ 47%]
+gate/tests/test_gloss_schema.py::test_a_gloss_names_the_node_and_target_it_sits_under PASSED [ 50%]
+gate/tests/test_gloss_schema.py::test_a_gloss_of_a_file_that_is_not_there_is_refused PASSED [ 52%]
+gate/tests/test_gloss_schema.py::test_a_gloss_is_named_for_its_content_and_is_append_only PASSED [ 55%]
+gate/tests/test_explainer_schema.py::test_anchors_are_checked_against_the_outline PASSED [ 57%]
+gate/tests/test_explainer_schema.py::test_an_alternate_without_anchors_and_a_partial_assembly_take_explainers PASSED [ 60%]
+gate/tests/test_explainer_schema.py::test_the_body_is_sections[Text before any section.\n\n## Intro\nx\n] PASSED [ 62%]
+gate/tests/test_explainer_schema.py::test_the_body_is_sections[] PASSED  [ 65%]
+gate/tests/test_explainer_schema.py::test_the_body_is_sections[# A level-one heading\nx\n] PASSED [ 67%]
+gate/tests/test_explainer_schema.py::test_front_matter_is_held_to_the_schema PASSED [ 70%]
+gate/tests/test_explainer_schema.py::test_unanchored_name_warns_and_passes PASSED [ 72%]
+gate/tests/test_explainer_schema.py::test_the_name_warning_reads_names_not_code PASSED [ 75%]
+gate/tests/test_gloss_cli.py::test_revise_then_file_supersedes_the_head PASSED [ 77%]
+gate/tests/test_gloss_cli.py::test_file_refuses_a_new_draft PASSED       [ 80%]
+gate/tests/test_gloss_cli.py::test_file_refuses_what_the_gate_refuses_and_leaves_nothing PASSED [ 82%]
+gate/tests/test_gloss_cli.py::test_revise_an_explainer_and_start_a_chain PASSED [ 85%]
+gate/tests/test_gloss_cli.py::test_sign_writes_a_valid_gloss_signature PASSED [ 87%]
+gate/tests/test_gloss_cli.py::test_revise_refuses_a_subject_that_is_not_there[statement:no-such-node] PASSED [ 90%]
+gate/tests/test_gloss_cli.py::test_revise_refuses_a_subject_that_is_not_there[nonsense] PASSED [ 92%]
+gate/tests/test_gloss_cli.py::test_revise_refuses_a_subject_that_is_not_there[relation:and-reassoc] PASSED [ 95%]
+gate/tests/test_gloss_cli.py::test_revise_refuses_a_subject_that_is_not_there[explainer:and-reassoc:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff] PASSED [ 97%]
+gate/tests/test_gloss_cli.py::test_errors_never_escape_main PASSED       [100%]
+============================== 40 passed in 1.90s ==============================
+
+ruff check / ruff format --check / mypy gate, api, site:
+All checks passed!
+637 files already formatted
+Success: no issues found in 315 source files
+Success: no issues found in 199 source files
+Success: no issues found in 63 source files
+
+Fast tier: uv run pytest gate/tests api/tests site/tests -m 'not lean and not docker and not network'
+4116 passed, 254 skipped, 185 deselected, 2 warnings in 374.69s (0:06:14)

@@ -60,9 +60,18 @@ Parameters:
     Type: String
     Default: cache
     Description: the key prefix in the cache bucket, and the path under the site the cache is served at (F10-R7)
+  ServiceOrigin:
+    Type: String
+    Default: ""
+    Description: >-
+      the network service's origin (scheme and host, no path), the one place a page may connect
+      to: node pages read its open words listing (F22-T19), and every page asks it who is
+      signed in and sends it steward records and words with credentials (F23-T8, T9; the
+      service's CORS names the site's origin). Empty keeps connect-src 'none'
 
 Conditions:
   MakeProvider: !Equals [!Ref CreateOidcProvider, "true"]
+  HasService: !Not [!Equals [!Ref ServiceOrigin, ""]]
   HasDomain: !Not [!Equals [!Ref SiteDomain, ""]]
   MakeDns: !And
     - !Not [!Equals [!Ref SiteDomain, ""]]
@@ -167,10 +176,37 @@ Resources:
     Properties:
       ResponseHeadersPolicyConfig:
         Name: !Sub "${AWS::StackName}-headers"
-        Comment: F04 §7 — the site references nothing off-origin (R10); fonts are its own (T16)
+        Comment: F04 §7 — the site loads nothing off-origin (R10); fonts are its own (T16); it reads the service (F22-T19)
         SecurityHeadersConfig:
           ContentSecurityPolicy:
-            ContentSecurityPolicy: "default-src 'none'; style-src 'self'; script-src 'self'; img-src 'self'; font-src 'self'"
+            ContentSecurityPolicy: !Sub
+              - "default-src 'none'; connect-src ${Connect}; style-src 'self'; script-src 'self'; img-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'"
+              - Connect: !If [HasService, !Ref ServiceOrigin, "'none'"]
+            Override: true
+          ContentTypeOptions:
+            Override: true
+          FrameOptions:
+            FrameOption: DENY
+            Override: true
+          ReferrerPolicy:
+            ReferrerPolicy: no-referrer
+            Override: true
+          StrictTransportSecurity:
+            AccessControlMaxAgeSec: 31536000
+            IncludeSubdomains: true
+            Override: true
+
+  # F04-T28: the olean cache (F10-R7) serves binary build products only, so nothing it serves may
+  # be sniffed, framed, or run as a document: a CSP that forbids every fetch and sandboxes the rest.
+  CacheResponseHeaders:
+    Type: AWS::CloudFront::ResponseHeadersPolicy
+    Properties:
+      ResponseHeadersPolicyConfig:
+        Name: !Sub "${AWS::StackName}-cache-headers"
+        Comment: F04-T28 — the /cache/* objects are files, never pages
+        SecurityHeadersConfig:
+          ContentSecurityPolicy:
+            ContentSecurityPolicy: "default-src 'none'; sandbox"
             Override: true
           ContentTypeOptions:
             Override: true
@@ -248,6 +284,7 @@ Resources:
             CachedMethods: [GET, HEAD]
             Compress: false
             CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6  # AWS managed CachingOptimized
+            ResponseHeadersPolicyId: !Ref CacheResponseHeaders
         DefaultCacheBehavior:
           TargetOriginId: site
           ViewerProtocolPolicy: redirect-to-https

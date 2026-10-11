@@ -5,7 +5,7 @@
 <p class="informal-big">$informal</p>
 <p class="provenance-line">$provenance</p>
 $stages
-$claimable$calibration
+$claimable$calibration$registrations
 </div>
 $steward_card
 </section>
@@ -14,17 +14,24 @@ $steward_card
 <div><h2>Statements</h2><p class="cue">$count_words. The problem's own statement is the one selected when the page opens. A statement is drawn above the statements it depends on, so the pieces of its proof are below it and a variant that uses it is above it. Select one to see its record.</p></div>
 </div>
 <div class="graph-grid">
-<div class="dag-wrap card"><div class="dag-legend">$legend</div><div class="dag-scroll">$dag</div><span class="dag-caption">lines join a statement to the statements its proof depends on</span></div>
+<div class="dag-wrap card">$proof_picker<div class="dag-legend">$legend</div><div class="dag-scroll">$dag</div><span class="dag-caption">labels drop the problem&rsquo;s own name (a pill&rsquo;s title has its full id); <span class="on-hover">hover</span><span class="on-touch">tap</span> a statement to light its lines</span></div>
 <div class="panels">
 $panels
 </div>
 </div>
 </section>
+$proved_in_words
 <section class="detail">
-<h2>Proved, explained, written up</h2>
+<h2>$digestion_heading, explained, written up</h2>
 $digestion
 <h2>Steward</h2>
 $stewards
+<div class="panel-writeup">
+<h2 id="panel">Panel</h2>
+$panel
+<h2 id="writeup">Write-up</h2>
+$writeup
+</div>
 <h2>Where the statement comes from</h2>
 <p class="informal">$informal_full</p>
 $sources
@@ -34,6 +41,7 @@ $qa_block
 <h2>Does the Lean say the conjecture?</h2>
 <p class="cue">What the mechanizable pass checked on each subject, who signed, the attempts that count, and whether the statement moved upstream.</p>
 $qa
+$definitions
 <h2>Approach records</h2>
 $approaches
 <h2>State of the problem</h2>

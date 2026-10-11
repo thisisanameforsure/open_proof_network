@@ -1,0 +1,6 @@
+p 2 n = p+2 = 4 largest admissible set 3
+p 3 n = p+2 = 5 largest admissible set 4
+p 5 n = p+2 = 7 largest admissible set 6
+p 7 n = p+2 = 9 largest admissible set 8
+p 11 n = p+2 = 13 largest admissible set 12
+p 13 n = p+2 = 15 largest admissible set 14

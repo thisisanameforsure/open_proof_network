@@ -1,0 +1,72 @@
+{
+ "origin": "http://127.0.0.1:51859",
+ "shots": [
+  {
+   "page": "erdos-1050",
+   "width": 1440,
+   "proof": 1,
+   "file": "task-2-simulated-measured-erdos-1050-desktop-proof1.png",
+   "ok": true,
+   "scrollWidth": 1440,
+   "overflowing": [],
+   "on": [
+    "erdos-1050",
+    "erdos-1050--h1-v2",
+    "erdos-1050--h1-v2--h3"
+   ],
+   "off": [
+    "erdos-1050--h1",
+    "erdos-1050--h1-v2--h1",
+    "erdos-1050--h1-v2--h2",
+    "erdos-1050--h1-v2--h2--h1",
+    "erdos-1050--h1-v2--h4",
+    "spec-180d8b72",
+    "spec-1a5ab7c3",
+    "spec-440db0f9",
+    "spec-eb1219eb",
+    "spec-f2b55478",
+    "spec-ffd3137a"
+   ],
+   "lines_on": 2,
+   "buttons": [
+    "Proof 1 · root · by t1001-1050a"
+   ],
+   "picker_width": 897,
+   "picker_client": 897
+  },
+  {
+   "page": "erdos-1050",
+   "width": 390,
+   "proof": 1,
+   "file": "task-2-simulated-measured-erdos-1050-phone-proof1.png",
+   "ok": true,
+   "scrollWidth": 390,
+   "overflowing": [],
+   "on": [
+    "erdos-1050",
+    "erdos-1050--h1-v2",
+    "erdos-1050--h1-v2--h3"
+   ],
+   "off": [
+    "erdos-1050--h1",
+    "erdos-1050--h1-v2--h1",
+    "erdos-1050--h1-v2--h2",
+    "erdos-1050--h1-v2--h2--h1",
+    "erdos-1050--h1-v2--h4",
+    "spec-180d8b72",
+    "spec-1a5ab7c3",
+    "spec-440db0f9",
+    "spec-eb1219eb",
+    "spec-f2b55478",
+    "spec-ffd3137a"
+   ],
+   "lines_on": 2,
+   "buttons": [
+    "Proof 1 · root · by t1001-1050a"
+   ],
+   "picker_width": 323,
+   "picker_client": 323
+  }
+ ],
+ "ok": true
+}

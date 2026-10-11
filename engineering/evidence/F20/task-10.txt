@@ -1,0 +1,67 @@
+F20-T10 (code half; the dispatched dry run and its run id are the lead's, after the push)
+
+Built:
+  1. POST /glosses carries a draft (the T6 gap). The identity whose pseudonym is the api's
+     OPN_API_DRAFTER_PSEUDONYM (default empty: nobody) files with author: null and a drafter
+     block {name: its own pseudonym, model, model_version, input_commit} taken from the request,
+     and must send one (drafter-invalid, 400); any other identity sending a drafter block is
+     refused drafter-unauthorized (403); both before any branch or pull request.
+     Gate counterpart: a version with a drafter block in a pull request the service did not open
+     is refused drafter-not-service (modes.check_draft_provenance), so nobody can hand-file words
+     as "machine-drafted by" a model. Codes catalogued in opn_gate.codes.
+     The service's pre-flight body moved into the gate as modes.check_as_service, so the drafter's
+     own check and the service's are one function.
+  2. opn-gate gloss draft --graph G [--target T] [--subjects new|uncovered|<file>] [--dry-run]
+     [--submit-url URL] [--report PATH] (gate/opn_gate/draft_run.py): coverage -> subjects (roots'
+     statements skipped by the library, Context passed over, explainers only from an outline,
+     else "no outline") -> drafter.draft_many with the real models client and the gate's checks
+     over a scratch copy -> each draft POSTed as it is drafted with OPN_DRAFTER_TOKEN (a new
+     secret, read only by opn_gate.config, never printed). Report written after planning and after
+     every subject. Exit 1 when the provider or the service cut the run short or the service
+     refused a draft; 0 otherwise (cap and budget stops are batches); 2 for a missing credential.
+     drafter.draft_many gained Report.stop_kind (cap|budget|provider|caller) and after_each.
+  3. .github/workflows/gloss-draft.yml: workflow_dispatch only; contents: read; graph checked out
+     read-only; the two secrets in the one drafting step; dry run (report kept, job then failed
+     naming what is missing) without OPN_MODEL_API_KEY, OPN_DRAFTER_TOKEN or vars.OPN_API_URL;
+     no Lean, no docker; report uploaded always; actions pinned.
+
+Red runs (each failing on its assertion; seams in at today's behaviour first):
+
+  Route and gate rule (OPN_API_DRAFTER_PSEUDONYM in config and `drafter` accepted-and-ignored by
+  the route; no gate rule) -- 9 failed, 5 passed:
+    gate/tests/test_gloss_draft_provenance.py (x4): assert [] == ['drafter-not-service']
+    api/tests/test_glosses_drafter.py:
+      test_the_drafter_files_a_draft_with_no_author: assert 'opn-drafter' is None
+      test_the_drafter_may_name_itself_but_no_one_else: assert (409 == 400)
+          (a draft naming another drafter went through to the duplicate check)
+      test_another_identity_sending_a_drafter_block_is_refused: assert 201 == 403
+      test_no_identity_is_the_drafter_until_one_is_configured: assert 201 == 403
+      test_the_drafter_must_say_what_wrote_the_text: assert 201 == 400
+  Two existing tests pinned the old rule (a draft opened by "anyone" passes) and were restated to
+  it: test_gloss_schema::test_a_draft_passes and
+  test_explainer_schema::test_front_matter_is_held_to_the_schema now open the draft as the service.
+
+  The command (draft_run.run stubbed to today's behaviour: the command exists, drafts nothing)
+  -- 11 failed, 2 passed:
+    assert [] == [('https://service.invalid', '<token>')]   (no poster built)
+    assert 0 == 2 (no check ran); assert 0 == 1 (x3: no non-zero exit for a 429, a refusing
+    service, an unreachable one); assert 0 == 2 (no refusal without credentials);
+    four on the stub report's missing shape (KeyError 'model', KeyError 'subjects',
+    TypeError on drafting None x2, ValueError unpacking an empty plan) -- recorded, not hidden.
+
+  The workflow (a mutant: no fail step, no missing-credential branch, a secret on the summary
+  step) -- 4 failed, 6 passed:
+    AssertionError: Summarise the run / assert 'secrets.' not in ...
+    ValueError: not enough values to unpack (the fail step absent)
+    assert False ('--dry-run' not in argv without credentials)
+    assert (0 == 0 and 'OPN_DRAFTER_TOKEN' == 'OPN_DRAFTER_TOKEN' and ...) (live with a token missing)
+
+Green:
+  uv run pytest gate/tests/test_gloss_draft_cli.py gate/tests/test_gloss_draft_workflow.py
+    gate/tests/test_gloss_draft_provenance.py api/tests/test_glosses_drafter.py
+    gate/tests/test_finding_workflow_action_pins.py  -> all passed (15 + 10 + 8 + 6 + 3)
+  gate fast tier (-m "not lean and not docker and not network"): 2224 passed, 237 skipped
+  api fast tier: 1473 passed
+  ruff check ., ruff format --check ., mypy gate, mypy api: clean
+
+No model, service or network call was made; nothing pushed or dispatched.

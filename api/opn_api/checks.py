@@ -31,18 +31,19 @@ import logging
 import re
 import threading
 import time
-from collections.abc import Sequence
-from dataclasses import asdict, dataclass
-from typing import TYPE_CHECKING, Any
+from collections.abc import Awaitable, Callable, Sequence
+from dataclasses import asdict, dataclass, replace
+from typing import TYPE_CHECKING, Any, Protocol
 
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 
-from opn_api import auth, frontier, identity, precheck, ratelimit
+from opn_api import auth, frontier, identity, pending, precheck, ratelimit
 from opn_api import clock as clockmod
+from opn_api import uses as usesmod
 from opn_api.axle import AxleAnswer, AxleError
 from opn_api.store import CheckLog
-from opn_gate import hosted, layout, scaffold, schemas
+from opn_gate import exhibits, hosted, layout, paths, scaffold, schemas
 
 if TYPE_CHECKING:
     from opn_api.app import Context
@@ -50,7 +51,7 @@ if TYPE_CHECKING:
 log = logging.getLogger("opn_api.checks")
 
 SERVICE = hosted.SERVICE
-FIELDS = frozenset({"target_id", "node_id", "content", "mode", "statement", "deps"})
+FIELDS = frozenset({"target_id", "node_id", "content", "mode", "statement", "deps", "heartbeats"})
 MODES = ("check", "verify", "witness", "hazards")
 #: F13-T14: the modes that read the node's own statement, so cannot do without a node.
 NODE_MODES = ("verify", "witness", "hazards")
@@ -106,6 +107,11 @@ def mapping(ctx: Context | None = None) -> hosted.HostedMapping:
 # --- the body and the caller ---------------------------------------------------------------------
 
 
+#: A request's ``target_id`` until ``resolve_target`` reads it off the node: the caller sent a
+#: ``node_id`` and no ``target_id``, and a node belongs to one target, which the products name.
+TARGET_FROM_NODE = ""
+
+
 @dataclass(frozen=True)
 class CheckRequest:
     target_id: str
@@ -116,6 +122,8 @@ class CheckRequest:
     #: would carry it — and the deps that proposal would declare (unchecked until the graph is).
     statement: str | None = None
     deps: Any = None
+    #: F13-T27: also measure each theorem's heartbeats, on a copy of the text.
+    heartbeats: bool = False
 
 
 @dataclass(frozen=True)
@@ -129,11 +137,18 @@ class Caller:
 def parse_body(ctx: Context, fields: dict[str, Any]) -> CheckRequest:
     # A key outside FIELDS was already refused by identity.body_fields (F05-T8, Q10).
     target_id = fields.get("target_id")
-    if not isinstance(target_id, str) or not ID_RE.match(target_id):
+    if target_id is not None and (not isinstance(target_id, str) or not ID_RE.match(target_id)):
         raise api_error(400, "target-id-invalid", "target_id must match ^[a-z0-9][a-z0-9-]*$")
     node_id = fields.get("node_id")
     if node_id is not None and (not isinstance(node_id, str) or not ID_RE.match(node_id)):
         raise api_error(400, "node-id-invalid", "node_id must match ^[a-z0-9][a-z0-9-]*$")
+    if target_id is None and node_id is None:
+        # Missing, not malformed (lead's probe, 2026-09-27): say both ways to name the target.
+        msg = (
+            "name the target: send target_id, or a node_id and the node's own target is used; "
+            "a statement that is not a node yet needs target_id"
+        )
+        raise api_error(400, "target-id-required", msg)
     mode = fields.get("mode", "check")
     if mode not in MODES:
         raise api_error(400, "mode-invalid", f"mode must be one of {', '.join(MODES)}")
@@ -157,7 +172,29 @@ def parse_body(ctx: Context, fields: dict[str, Any]) -> CheckRequest:
     size = len(content.encode("utf-8"))
     if size > ctx.settings.check_max_bytes:
         raise too_large(ctx, "content", size)
-    return CheckRequest(target_id, node_id, content, mode, statement, fields.get("deps"))
+    return CheckRequest(
+        target_id or TARGET_FROM_NODE,
+        node_id,
+        content,
+        mode,
+        statement,
+        fields.get("deps"),
+        heartbeats_field(fields, mode),
+    )
+
+
+def heartbeats_field(fields: dict[str, Any], mode: str) -> bool:
+    """F13-T27: ``heartbeats`` is true or false, and is for a proof text: the statement modes
+    send a program of the network's own after the statement, and there is no proof to count."""
+    raw = fields.get("heartbeats")
+    if raw is None:
+        return False
+    if not isinstance(raw, bool):
+        raise api_error(400, "heartbeats-invalid", "heartbeats must be true or false")
+    if raw and mode in STATEMENT_MODES:
+        msg = f"heartbeats measures a proof's theorems (modes check and verify), not mode {mode}"
+        raise api_error(400, "heartbeats-not-used", msg)
+    return raw
 
 
 def too_large(ctx: Context, what: str, size: int) -> Exception:
@@ -257,14 +294,42 @@ def hosted_for(ctx: Context, target_id: str) -> tuple[str | None, hosted.Hosted 
     return sha, hosted.lookup(mapping(), sha if isinstance(sha, str) else None)
 
 
-def statement_of(ctx: Context, target_id: str, node_id: str) -> layout.Statement | None:
-    facts = precheck.node_facts(ctx, node_id)
+def resolve_target(ctx: Context, req: CheckRequest) -> CheckRequest:
+    """The request with its target read off its node (``precheck.node_facts``, as the precheck
+    and ``get_node`` find a node): derived when the caller sent none, and a ``target_id`` the node
+    does not belong to refused as the mismatch it is, before anything is looked up under it. An
+    unknown or pending node is ``node_facts``' own answer, except that a node in an open proposal
+    whose gate is green is read from the proposal (F06-T10, ``precheck.facts_or_proposal``)."""
+    if req.node_id is None:
+        return req
+    actual = str(precheck.facts_or_proposal(ctx, req.node_id)[0]["target_id"])
+    if req.target_id == TARGET_FROM_NODE:
+        return replace(req, target_id=actual)
+    if req.target_id != actual:
+        msg = (
+            f"{req.node_id} belongs to {actual}, not {req.target_id}; "
+            "send the node's own target_id, or omit target_id and it is derived from the node"
+        )
+        raise api_error(400, "node-target-mismatch", msg, details={"target_id": actual})
+    return req
+
+
+def statement_of(
+    ctx: Context, target_id: str, node_id: str
+) -> tuple[layout.Statement | None, pending.GreenProposal | None]:
+    """The node's statement, from ``main``; or (F06-T10) for a node that exists only in an open
+    proposal whose gate is green, from that proposal's head commit, with the proposal."""
+    facts, proposal = precheck.facts_or_proposal(ctx, node_id)
     if facts["target_id"] != target_id:
         msg = f"{node_id} belongs to {facts['target_id']}, not {target_id}"
         raise api_error(400, "node-target-mismatch", msg)
-    raw = frontier.committed(ctx, f"targets/{target_id}/nodes/{node_id}/Statement.lean")
-    parsed = layout.parse_statement(raw.decode("utf-8"))
-    return parsed if isinstance(parsed, layout.Statement) else None
+    if proposal is not None:
+        text = proposal.statement
+    else:
+        raw = frontier.committed(ctx, f"targets/{target_id}/nodes/{node_id}/Statement.lean")
+        text = raw.decode("utf-8")
+    parsed = layout.parse_statement(text)
+    return (parsed if isinstance(parsed, layout.Statement) else None), proposal
 
 
 def defs_modules(text: str) -> list[str]:
@@ -289,6 +354,8 @@ def inline_defs(  # noqa: PLR0913 — the node's Context may be given rather tha
     node_id: str | None = None,
     *,
     context: str | None = None,
+    used: Sequence[tuple[str, str, str]] = (),
+    skip: frozenset[str] = frozenset(),
 ) -> list[tuple[str, str]]:
     """R5: the statement's ``Defs`` modules, then the content's own (F13-T11: a proposer's
     statement is not a node yet, so its header is the only thing that names them), and everything
@@ -297,7 +364,12 @@ def inline_defs(  # noqa: PLR0913 — the node's Context may be given rather tha
     as an unknown identifier.
 
     ``context`` is the node's own ``Context.lean`` when it is not on the graph yet (F13-T16: a
-    proposal's, generated from the deps it declares); it is inlined in place of a fetched one."""
+    proposal's, generated from the deps it declares); it is inlined in place of a fetched one.
+
+    F08-T26: ``used`` are the nodes a use line names, as ``uses.used_sources`` reads them, each
+    inlined last as its statement verbatim with its ``sorry`` body — a signature, as a Context
+    carries a dependency's (D-3) — after its own definitions and its own Context; ``skip`` are
+    the modules a use line names that the lint refuses, which are not fetched or inlined."""
     from opn_api.app import ApiError  # noqa: PLC0415 — app imports the routes that import this
 
     named = defs_modules(statement.text) if statement is not None else []
@@ -325,7 +397,8 @@ def inline_defs(  # noqa: PLR0913 — the node's Context may be given rather tha
         ordered.append((module, IMPORT_LINE_RE.sub("", source).strip("\n")))
 
     for module in (*named, *defs_modules(content)):
-        visit(module, ())
+        if module not in skip:
+            visit(module, ())
     # F13-T12: the node's own Context, last, after the Defs it imports. It is where a declared
     # dependency's theorem lives (and, after a skeleton merges, a node's holes), so without it a
     # proof that uses one reads "Unknown identifier" on a checker that would otherwise pass it.
@@ -341,6 +414,22 @@ def inline_defs(  # noqa: PLR0913 — the node's Context may be given rather tha
         for dep in defs_modules(source):
             visit(dep, (own,))
         ordered.append((own, IMPORT_LINE_RE.sub("", source).strip("\n")))
+    inlined = {module for module, _ in ordered}
+    for module, text, used_id in used:
+        for dep in defs_modules(text):
+            visit(dep, (module,))
+        theirs = layout.node_module(used_id, "Context")
+        if theirs not in inlined and layout.imports_own_context(used_id, text):
+            theirs_raw = pending.optional_committed(
+                ctx, f"targets/{target_id}/nodes/{used_id}/Context.lean"
+            )
+            if theirs_raw is not None:
+                found = theirs_raw.decode("utf-8")
+                for dep in defs_modules(found):
+                    visit(dep, (theirs,))
+                ordered.append((theirs, IMPORT_LINE_RE.sub("", found).strip("\n")))
+                inlined.add(theirs)
+        ordered.append((module, IMPORT_LINE_RE.sub("", text).strip("\n")))
     return ordered
 
 
@@ -368,13 +457,61 @@ def forwarded_text(content: str, defs: list[tuple[str, str]]) -> str:
 # --- the lint ------------------------------------------------------------------------------------
 
 
+#: F13-T25: the lint codes that name a refusal the gate makes of a proof — step 2's
+#: proof-is-statement rule (its imports, a helper declaration, the header, the signature, an
+#: empty body), step 5's axiom check (``sorry``, ``admit``, and the checker's own report of
+#: either) and a module the gate could not build — so a verify verdict is false with any of
+#: them, whatever the checker said. The other lints (a restated Context, a superseded node) say
+#: something true without the gate refusing on it.
+GATE_REFUSALS: frozenset[str] = frozenset(
+    {
+        "imports-differ",
+        "helper-declarations",
+        "header-diverges",
+        "signature-diverges",
+        "proof-empty",
+        "sorry-present",
+        "admit-present",
+        "sorry-reported",
+        "import-unknown-node",
+        # F08-T26: a use line step 2 refuses, by the gate's own code (``opn_gate.uses``)
+        *usesmod.CODES,
+    }
+)
+#: F13-T30 (testers 2026-10-01, A15): the findings that are the caller's own text resting on
+#: ``sorryAx`` — read from the text, never from the checker's warning, which in check mode is as
+#: often a Context's restated dependency. They make ``okay`` false in check mode too.
+TEXT_SORRY: frozenset[str] = frozenset({"sorry-present", "admit-present"})
+#: ``admit`` as a token in code, the way ``layout.mentions_sorry`` reads ``sorry``: Lean's
+#: ``admit`` is the ``sorry`` tactic by another name (it elaborates to ``sorryAx``).
+ADMIT_TOKEN_RE = re.compile(r"(?<![\w'.!?])admit(?![\w'.!?])")
+#: Lean's warning on a declaration whose term rests on ``sorryAx`` — what ``admit``, ``sorry``
+#: and a search tactic that found nothing (``apply?`` admits the goal) leave behind.
+SORRY_REPORTED_RE = re.compile(r"declaration uses `?sorry`?")
+
+
 def lint(
-    content: str, statement: layout.Statement | None, node_id: str | None = None
+    content: str,
+    statement: layout.Statement | None,
+    node_id: str | None = None,
+    *,
+    unknown_nodes: Sequence[str] = (),
+    reading: UseReading | None = None,
 ) -> list[dict[str, Any]]:
-    """R4: where the gate would refuse what the checker accepts. Warnings only."""
+    """R4: where the gate would refuse what the checker accepts. Findings; in verify mode the
+    ones in ``GATE_REFUSALS`` decide ``okay`` (F13-T25). ``unknown_nodes`` are the content's
+    node imports the graph cannot satisfy (``unknown_node_imports``).
+
+    F08-T26: ``reading`` is what ``read_uses`` made of the content's use lines. Where the
+    target's pinned gate reads them, the header is compared as step 2 compares it, with the use
+    lines taken out by the gate's own reading, and the first use step 2 would refuse is reported
+    by its code. Without it, a use line is ``imports-differ``, as before."""
     warnings: list[dict[str, Any]] = []
+    if reading is not None and reading.problem is not None:
+        warnings.append(usesmod.finding(reading.problem))
     if statement is not None:
-        expected, got = layout.imports_of(statement.text), layout.imports_of(content)
+        compared = reading.rest if reading is not None and reading.understood else content
+        expected, got = layout.imports_of(statement.text), layout.imports_of(compared)
         # F00-T10: the one header the gate takes besides the statement's own — its imports with
         # the node's own Context placed where ``layout.with_own_context`` puts it.
         allowed = (
@@ -407,6 +544,18 @@ def lint(
                     "declarations": extra,
                 }
             )
+        # F13-T25: the gate's own step-2 rule, not a re-reading of it: a header the checker
+        # would substitute away (set_option … in, an extra open) or a binder renamed in the
+        # signature both diverge from the statement and are refused as proof-not-statement.
+        divergence = proof_divergence(
+            paths.check_proof_is_statement(statement, content, node_id=node_id),
+            statement,
+            content,
+            named={w["code"] for w in warnings},
+            written=written,
+        )
+        if divergence is not None:
+            warnings.append(divergence)
     if layout.mentions_sorry(content):
         warnings.append(
             {
@@ -415,7 +564,163 @@ def lint(
                 "and a skeleton is submitted as a partial",
             }
         )
+    if ADMIT_TOKEN_RE.search(layout.strip_comments(content)):
+        warnings.append(
+            {
+                "code": "admit-present",
+                "message": "the text uses admit, which is sorry by another name (Lean elaborates "
+                "it to sorryAx); a proof with it fails the axiom step (D-4 step 5)",
+            }
+        )
+    if unknown_nodes:
+        warnings.append(
+            {
+                "code": "import-unknown-node",
+                "message": "the text imports a node the graph does not have; the checker "
+                "substitutes its own header and would not notice, and the gate cannot build "
+                "the module (F00's import rule: a node imports only its own Context)",
+                "modules": list(unknown_nodes),
+            }
+        )
     return warnings
+
+
+def proof_divergence(
+    diagnostic: Any,
+    statement: layout.Statement,
+    content: str,
+    *,
+    named: set[str],
+    written: str | None,
+) -> dict[str, Any] | None:
+    """The gate's ``proof-not-statement`` diagnostic as a lint finding (F13-T25): ``proof-empty``
+    as it is; a divergence inside the theorem's own signature as ``signature-diverges``; any
+    other as ``header-diverges`` — unless an earlier finding (``imports-differ``,
+    ``helper-declarations``) already names the very line, in which case nothing is repeated."""
+    if diagnostic is None:
+        return None
+    details = dict(diagnostic.details)
+    if diagnostic.code == "proof-empty":
+        return {"code": "proof-empty", "message": f"{diagnostic.message} (F00-R19)"}
+    line = int(details.get("line") or 0)
+    expected, got = str(details.get("expected") or ""), str(details.get("got") or "")
+    if "imports-differ" in named and (expected.startswith("import ") or got.startswith("import ")):
+        return None
+    got_decl = DECLARATION_RE.match(got)
+    if "helper-declarations" in named and got_decl and got_decl.group("name") != written:
+        return None
+    decl = _declaration_line(statement.prefix)
+    inside = decl is not None and line >= decl and _declaration_line(content) == decl
+    return {
+        "code": "signature-diverges" if inside and "got" in details else "header-diverges",
+        "message": f"{diagnostic.message}: the gate takes a proof as the statement with its "
+        "sorry replaced (F00-R19) and refuses this at step 2",
+        "line": line,
+        "expected": expected,
+        "got": got,
+    }
+
+
+def _declaration_line(text: str) -> int | None:
+    """The line the first top-level declaration starts on, comments blanked. Counted in the
+    blanked text: blanking shortens it, and its newlines are the source's (``strip_comments``)."""
+    stripped = layout.strip_comments(text)
+    m = DECLARATION_RE.search(stripped)
+    return stripped.count("\n", 0, m.start()) + 1 if m else None
+
+
+def unknown_node_imports(ctx: Context, content: str, node_id: str | None) -> list[str]:
+    """F13-T25: the content's ``import Nodes.…`` modules naming a node the graph does not have
+    (the node named itself excepted: it may be a green proposal, F06-T10). Read from the
+    products only when the content names another node at all."""
+    foreign: list[tuple[str, str]] = []
+    for module in layout.imports_of(content):
+        kind, imported = layout.module_origin(module)
+        if kind == "node" and imported is not None and imported != node_id:
+            foreign.append((module, imported))
+    if not foreign:
+        return []
+    known = {
+        str(node.get("node_id")) for nodes in precheck.graph_doc(ctx).values() for node in nodes
+    }
+    return [module for module, imported in foreign if imported not in known]
+
+
+def lean_warnings(body: dict[str, Any]) -> list[str]:
+    """Lean's warnings as the checker gave them (untrusted text, read for one pattern)."""
+    block = body.get("lean_messages")
+    found = block.get("warnings") if isinstance(block, dict) else None
+    return [str(w) for w in found] if isinstance(found, list) else []
+
+
+def sorry_reported(body: dict[str, Any]) -> dict[str, Any] | None:
+    """F13-T25: the checker's own word that the declaration rests on ``sorryAx`` — what text
+    cannot see of a search tactic that found nothing — as a finding, or ``None``."""
+    if not any(SORRY_REPORTED_RE.search(w) for w in lean_warnings(body)):
+        return None
+    return {
+        "code": "sorry-reported",
+        "message": "the checker reports that the declaration uses sorry (an admit, a sorry, or "
+        "a search tactic such as apply? that found nothing and admitted the goal); the gate's "
+        "axiom step refuses sorryAx (D-4 step 5)",
+    }
+
+
+def gate_verdict(mode: str, checker: bool | None, warnings: list[dict[str, Any]]) -> bool | None:
+    """F13-T25: ``okay`` as the caller reads it — would the gate accept this? In verify mode a
+    finding the gate refuses on makes it false whatever the checker said; an import of a node
+    the graph lacks makes it false in every mode, because the checker never saw the import. The
+    checker's own ``okay`` stays verbatim in ``result`` and in the call log."""
+    found = {str(w.get("code")) for w in warnings}
+    if "import-unknown-node" in found:
+        return False
+    if mode == "verify" and found & GATE_REFUSALS:
+        return False
+    if mode == "check" and found & TEXT_SORRY:  # F13-T30, A15
+        return False
+    return checker
+
+
+def context_failure_only(body: dict[str, Any], own: str | None) -> bool:
+    """F13-T30 (testers 2026-10-01, A6): whether a verify ``okay: false`` is the restated
+    Context's and not the proof's — Lean reported no error, and every declaration the checker
+    names as failed is one other than the proof's own theorem (``own``, the statement's written
+    name; matched with or without a namespace). Asked only where ``context-restated`` fired: a
+    Context restates each dependency with a ``sorry`` body, which a verifier refuses whether or
+    not the proof uses it, while the gate builds against the real proofs."""
+    if body.get("okay") is not False or own is None:
+        return False
+    failed = body.get("failed_declarations")
+    block = body.get("lean_messages")
+    errors = block.get("errors") if isinstance(block, dict) else None
+    if not isinstance(failed, list) or not failed or errors:
+        return False
+
+    def is_own(name: str) -> bool:
+        return name == own or name.endswith("." + own) or own.endswith("." + name)
+
+    return not any(is_own(str(name)) for name in failed)
+
+
+def verify_findings(
+    mode: str,
+    body: dict[str, Any],
+    statement: layout.Statement | None,
+    warnings: list[dict[str, Any]],
+) -> bool:
+    """Verify mode's findings from the checker's answer, added to ``warnings``: its own word on
+    ``sorryAx`` (``sorry-reported``, F13-T25) — unless the failure is the restated Context's
+    alone (F13-T30, A6), which is returned as true, so the caller reads the verdict as true."""
+    if mode != "verify":
+        return False
+    restated_only = any(w["code"] == "context-restated" for w in warnings) and (
+        context_failure_only(body, _written_name(statement.text) if statement else None)
+    )
+    if not restated_only:
+        reported = sorry_reported(body)
+        if reported is not None:
+            warnings.append(reported)
+    return restated_only
 
 
 def _written_name(statement_text: str) -> str | None:
@@ -430,19 +735,67 @@ NAME_CHECK = "linter.style.nameCheck"
 NAME_CHECK_RE = re.compile(r"The declaration '(?P<name>[^']+)' contains '__'")
 
 
+def flagged_names(body: dict[str, Any]) -> set[str]:
+    """The declarations Mathlib's naming linter flags in the checker's answer."""
+    return {
+        m.group("name")
+        for w in lean_warnings(body)
+        if NAME_CHECK in w and (m := NAME_CHECK_RE.search(w)) is not None
+    }
+
+
+def inlined_hole_names(
+    ctx: Context, target_id: str | None, defs: Sequence[tuple[str, str]], flagged: set[str]
+) -> frozenset[str]:
+    """F13-T32: the flagged names that are gate-generated holes the service inlined. A name
+    qualifies when a node module the service inlined declares it (the node's Context, a used
+    node's statement; never the caller's own text) and it is a hole of the target's graph with
+    ``-`` made ``_``, as ``postmerge.child_statement`` writes it (a D-8 revision of a hole keeps
+    the superseded hole's name, and that hole stays on the graph). The graph is read only when an
+    inlined declaration is flagged; a graph that cannot be read drops nothing (C7)."""
+    from opn_api.app import ApiError  # noqa: PLC0415 — app imports the routes that import this
+    from opn_gate import graph as graphmod  # noqa: PLC0415 — as in preflight_relation
+
+    declared = {
+        m.group("name")
+        for module, source in defs
+        if module == PROPOSED_CONTEXT or layout.module_origin(module)[0] == "node"
+        for m in DECLARATION_RE.finditer(layout.strip_comments(source))
+    }
+    candidates = flagged & declared
+    if target_id is None or not candidates:
+        return frozenset()
+    try:
+        doc = json.loads(frontier.committed(ctx, f"targets/{target_id}/graph.json"))
+    except (ApiError, ValueError):
+        return frozenset()
+    holes = {
+        str(node.get("node_id", "")).replace("-", "_")
+        for node in doc.get("nodes", [])
+        if isinstance(node, dict) and node.get("origin") in graphmod.HOLE_ORIGINS
+    }
+    return frozenset(candidates & holes)
+
+
 def without_generated_name_warning(
-    body: dict[str, Any], statement: layout.Statement | None, node_id: str | None
+    body: dict[str, Any],
+    statement: layout.Statement | None,
+    node_id: str | None,
+    inlined: frozenset[str] = frozenset(),
 ) -> tuple[dict[str, Any], list[dict[str, str]]]:
     """F13-T18 (D6): the checker's body with Mathlib's naming-linter warning dropped when, and
     only when, the name it flags is the node's own gate-generated declaration: its id with ``-``
     made ``_``, declared by its statement, as ``postmerge.child_statement`` writes every hole. A
     contributor cannot rename that theorem, so the warning was noise on every check of a hole.
-    Every other warning passes through verbatim. A copy: the body the log reads is the
-    checker's (R9)."""
-    if node_id is None or statement is None:
-        return body, []
-    generated = node_id.replace("-", "_")
-    if statement.decl_name != generated:
+    F13-T32: and when it is one of ``inlined``, the gate-generated hole names the service
+    inlined (``inlined_hole_names``), which the contributor cannot rename either. Every other
+    warning passes through verbatim. A copy: the body the log reads is the checker's (R9)."""
+    generated = set(inlined)
+    if node_id is not None and statement is not None:
+        own = node_id.replace("-", "_")
+        if statement.decl_name == own:
+            generated.add(own)
+    if not generated:
         return body, []
     messages = body.get("lean_messages")
     warnings = messages.get("warnings") if isinstance(messages, dict) else None
@@ -452,8 +805,8 @@ def without_generated_name_warning(
     dropped: list[dict[str, str]] = []
     for w in warnings:
         m = NAME_CHECK_RE.search(w) if isinstance(w, str) and NAME_CHECK in w else None
-        if m is not None and m.group("name") == generated:
-            dropped.append({"linter": NAME_CHECK, "declaration": generated})
+        if m is not None and m.group("name") in generated:
+            dropped.append({"linter": NAME_CHECK, "declaration": m.group("name")})
         else:
             kept.append(w)
     if not dropped:
@@ -681,13 +1034,76 @@ def hazard_sources() -> tuple[list[tuple[str, str]], str]:
     return ordered, registry.group("list")
 
 
-def hazards_program(decl_name: str, checkers: list[str]) -> str:
+def lean_string(text: str) -> str:
+    """``text`` as one Lean string literal."""
+    escaped = (
+        text.replace("\\", "\\\\")
+        .replace('"', '\\"')
+        .replace("\r", "\\r")
+        .replace("\n", "\\n")
+        .replace("\t", "\\t")
+    )
+    return f'"{escaped}"'
+
+
+#: The namespace the probe's copy of the statement is elaborated under, so nothing it declares
+#: collides with the declarations the file already elaborated (F02-T9).
+PROBE_NAMESPACE = "OpnAutoImplicitProbe"
+
+
+#: F13-T26: the probe's commands elaborated on the current environment under the options a
+#: file-level checker asks for, answered as their log. This is Lean's own frontend loop
+#: (``Lean.Elab.Frontend.processCommand``) written out over ``Lean.Parser.parseCommand`` and
+#: ``Lean.Elab.Command.elabCommandTopLevel``, because the hosted checker's environment is
+#: ``import Mathlib`` and that does not reach ``Lean.Elab.Frontend`` or ``Lean.Language.Lean``
+#: (``gate/hosted-checker-modules/``): ``Lean.Elab.IO.processCommands`` is an unknown identifier
+#: there. A command's messages arrive in its state and, for a declaration elaborated
+#: asynchronously (a theorem's header and body), in the snapshot tasks it logged; both are read,
+#: as ``IO.processCommands`` reads the whole snapshot tree, or ``auto-implicit`` finds nothing.
+REELABORATE = """\
+/-- The probe's commands elaborated on `env` under `opts`, answered as their log (F13-T26). -/
+partial def networkReelaborate (env : Lean.Environment) (opts : Lean.Options) :
+    IO Lean.MessageLog := do
+  let inputCtx := Lean.Parser.mkInputContext networkProbe "<OpnAutoImplicitProbe>"
+  let (_, first, msgs) ← Lean.Parser.parseHeader inputCtx
+  let rec loop (pstate : Lean.Parser.ModuleParserState) (st : Lean.Elab.Command.State)
+      (log : Lean.MessageLog) : IO Lean.MessageLog := do
+    let scope := st.scopes.head!
+    let pmctx : Lean.Parser.ParserModuleContext := {
+      env := st.env, options := scope.opts, currNamespace := scope.currNamespace,
+      openDecls := scope.openDecls }
+    let (cmd, next, parsed) := Lean.Parser.parseCommand inputCtx pmctx pstate {}
+    let cmdCtx : Lean.Elab.Command.Context := {
+      cmdPos := pstate.pos, fileName := inputCtx.fileName, fileMap := inputCtx.fileMap,
+      snap? := none, cancelTk? := none }
+    let ran ← EIO.toIO' <|
+      ((Lean.Elab.Command.elabCommandTopLevel cmd #[]).run cmdCtx).run
+        { st with messages := parsed, snapshotTasks := #[] }
+    match ran with
+    | .error e =>
+      throw <| IO.userError s!"the probe failed outside its log: {← e.toMessageData.toString}"
+    | .ok (_, st') =>
+      let mut log := log ++ st'.messages
+      for task in st'.snapshotTasks do
+        log := task.get.foldM (m := Id) (fun acc snap => acc ++ snap.diagnostics.msgLog) log
+      if Lean.Parser.isTerminalCommand cmd then pure log else loop next st' log
+  loop first (Lean.Elab.Command.mkState env {} opts) msgs
+"""
+
+
+def hazards_program(decl_name: str, checkers: list[str], probe: str) -> str:
     """The gate's checkers and the few lines that ask them one question: the findings of exactly
     ``checkers``, in that order, over ``decl_name``'s type, printed as ``opn-hazards`` prints
     them. Each file sits in a ``section`` so its ``open`` lines end with it, and the question
     runs under the context ``opn-hazards`` gives it (no open namespaces, no options), because a
-    finding's location is pretty-printed and is what an acknowledgment must match (F02-Q4)."""
+    finding's location is pretty-printed and is what an acknowledgment must match (F02-Q4).
+
+    ``probe`` is the statement's own text without its header: the ``Statement`` the file-level
+    checkers read (F02-T9, ``auto-implicit``) re-elaborates it on the current environment, under
+    ``PROBE_NAMESPACE``, with whatever options the checker asks for, and reads the log — what
+    ``opn-hazards`` does with the file on the once-imported environment."""
     sources, registry = hazard_sources()
+    probe_text = f"namespace {PROBE_NAMESPACE}\n{probe.strip(chr(10))}\nend {PROBE_NAMESPACE}\n"
     block = "".join(
         f"\nsection\n-- inlined by the network from {module} (F13-T20)\n{src}\nend\n"
         for module, src in sources
@@ -699,16 +1115,28 @@ def hazards_program(decl_name: str, checkers: list[str]) -> str:
         "namespace OpnGate.Hazards\n"
         "-- HazardsMain.lean's registry, inlined by the network\n"
         f"def networkRegistry : Array Checker :=\n  {registry}\n"
+        "-- the statement's own text, re-elaborated by the file-level checkers (F02-T9)\n"
+        f"def networkProbe : String := {lean_string(probe_text)}\n"
+        f"{REELABORATE}"
         "end OpnGate.Hazards\n\n"
         "run_meta do\n"
         f"  let s ← Lean.getConstInfo `{decl_name}\n"
         f"  let ids : List String := {ids}\n"
         "  let selected := ids.toArray.filterMap fun id =>\n"
         "    OpnGate.Hazards.networkRegistry.find? (·.id == id)\n"
+        "  let env ← Lean.getEnv\n"
+        "  let stmt : OpnGate.Hazards.Statement := {\n"
+        "    path := ⟨(← readThe Lean.Core.Context).fileName⟩, module := env.mainModule,\n"
+        f"    decl := `{decl_name}, env,\n"
+        "    reelaborate := fun opts => OpnGate.Hazards.networkReelaborate env opts }\n"
+        "  let mut extra : Array OpnGate.Hazards.Finding := #[]\n"
+        "  for c in selected do\n"
+        "    if let some check := c.source then\n"
+        "      extra := extra ++ (← check stmt)\n"
         "  let (findings, capped) ← withTheReader Lean.Core.Context\n"
         "      (fun c => { c with openDecls := [], currNamespace := Lean.Name.anonymous,\n"
         "                         options := Lean.Options.empty })\n"
-        "      (OpnGate.Hazards.run selected s.type)\n"
+        "      (OpnGate.Hazards.run selected s.type extra)\n"
         "  let answer := Lean.Json.mkObj [\n"
         '    ("checkers", Lean.toJson (selected.map (·.id))),\n'
         '    ("findings", Lean.toJson findings), ("capped", Lean.Json.bool capped)]\n'
@@ -717,14 +1145,29 @@ def hazards_program(decl_name: str, checkers: list[str]) -> str:
     )
 
 
-def hazards_text(formal: str, decl_name: str, checkers: list[str]) -> str:
+def hazards_text(
+    formal: str, decl_name: str, checkers: list[str], *, statement: str | None = None
+) -> str:
     """What the checker is sent in hazards mode: the statement under its own header (the
-    definitions already inlined), ``import Lean`` for the checkers, then the program."""
+    definitions already inlined), ``import Lean`` for the checkers, then the program.
+
+    F13-T26: the hosted checker does not honour that ``import Lean``. It replaces the header with
+    its own, ``import Mathlib``, so what the program may name is what ``import Mathlib`` reaches
+    at the pin (``gate/hosted-checker-modules/<environment>.txt``, measured), which is less than
+    ``Lean``. The line stays for a reader who elaborates the text locally, and the lean tier
+    elaborates it under the measured list instead.
+
+    ``statement`` is the statement's own text when ``formal`` has definitions inlined into it:
+    the file-level checkers re-elaborate that, never the definitions' copies, which the gate's
+    own second elaboration never sees either (they are imports there). Without it the probe is
+    ``formal`` less its header, right when nothing was inlined."""
     lines = formal.splitlines(keepends=True)
     imports = [i for i, line in enumerate(lines) if line.startswith("import ")]
     at = imports[-1] + 1 if imports else 0
     header = "" if "Lean" in layout.imports_of(formal) else "import Lean\n"
-    return "".join(lines[:at]) + header + "".join(lines[at:]) + hazards_program(decl_name, checkers)
+    probe = IMPORT_LINE_RE.sub("", formal if statement is None else statement)
+    program = hazards_program(decl_name, checkers, probe)
+    return "".join(lines[:at]) + header + "".join(lines[at:]) + program
 
 
 def hazards_verdict(body: dict[str, Any]) -> dict[str, Any] | None:
@@ -761,6 +1204,90 @@ def hazards_verdict(body: dict[str, Any]) -> dict[str, Any] | None:
     return None
 
 
+def acknowledged(found: dict[str, Any] | None, meta: dict[str, Any]) -> dict[str, Any] | None:
+    """``found`` with each finding that one of ``meta``'s ``acknowledged_hazards`` covers marked
+    ``acknowledged: true`` with that entry's justification. The cover is step 6's own rule
+    (``steps.hazards.evaluate``: checker and location exactly, a justification that says
+    something), asked of one finding at a time; a finding nothing covers is left as it was."""
+    from opn_gate.steps import hazards as gate_hazards  # noqa: PLC0415 — only this path needs it
+
+    acks = gate_hazards.acknowledgments_from(meta)
+    if found is None or not acks:
+        return found
+    marked: list[dict[str, Any]] = []
+    for raw in found["findings"]:
+        ev = gate_hazards.evaluate(gate_hazards.findings_from({"findings": [raw]}), acks)
+        if ev.unacknowledged or not ev.used:
+            marked.append(raw)
+        else:
+            marked.append({**raw, "acknowledged": True, "justification": ev.used[0].justification})
+    return {**found, "findings": marked}
+
+
+def node_hazards(
+    ctx: Context, req: CheckRequest, body: dict[str, Any], *, proposed: bool = False
+) -> dict[str, Any] | None:
+    """Hazards mode's answer: the findings as ``opn-hazards`` prints them and, on a node, what the
+    node's committed ``META.yaml`` already acknowledges (lead's probe, 2026-09-27: erdos-69's
+    div-zero read as work to do). A statement that is not a node yet has acknowledged nothing.
+    F06-T10: a node in a green proposal is read at the proposal's head, where its META.yaml is."""
+    import yaml  # noqa: PLC0415 — only this path reads a META.yaml
+
+    found = hazards_verdict(body)
+    if found is None or req.node_id is None or req.statement is not None:
+        return found
+    if proposed:
+        proposal = pending.green_proposal(ctx, req.node_id)
+        raw: str | bytes = (proposal.meta if proposal is not None else None) or ""
+    else:
+        raw = frontier.committed(ctx, f"targets/{req.target_id}/nodes/{req.node_id}/META.yaml")
+    try:
+        meta = yaml.safe_load(raw) or {}
+    except yaml.YAMLError:
+        return found  # C7: the findings still stand; only the marks are lost
+    return acknowledged(found, meta if isinstance(meta, dict) else {})
+
+
+#: F13-T26: what hazards mode says of its own run, beside ``hazards``.
+HAZARDS_RAN = "ran"
+HAZARDS_STATEMENT_FAILED = "statement-failed"
+HAZARDS_UNAVAILABLE = "unavailable"
+#: The call log's outcome when the network's own program failed on a statement that compiled.
+HAZARDS_RUNNER_FAILED = "hazards-runner-failed"
+#: How many of the program's own errors ``hazards_error`` quotes.
+HAZARDS_ERRORS_SHOWN = 5
+
+
+def hazards_status(body: dict[str, Any], lines: int) -> tuple[str, str | None]:
+    """How the hazard program's run went, and the program's own errors when it is at fault.
+    ``lines`` is how many leading lines of the text sent are the statement's
+    (``statement_lines``).
+
+    The program printed its line: ``ran``. It did not and Lean reported an error on a line of the
+    statement (the theorem, or the definitions and Context inlined into it): the caller's
+    statement does not compile, ``statement-failed``. Anything else is the network's own program
+    failing on a statement that compiled, or a body with no verdict at all: ``unavailable``, with
+    the errors positioned after the statement as the reason (F13-T26; on 2026-10-01 that was
+    every call, and it read ``okay: false`` like a caller's mistake)."""
+    if hazards_verdict(body) is not None:
+        return HAZARDS_RAN, None
+    if errors_on_lines(body, 1, lines):
+        return HAZARDS_STATEMENT_FAILED, None
+    after = [e for e in lean_errors(body) if (error_line(e) or 0) > lines]
+    reason = "\n".join(e.strip() for e in after[:HAZARDS_ERRORS_SHOWN])
+    return HAZARDS_UNAVAILABLE, reason or "the hazard program printed no answer"
+
+
+def runner_gave_no_answer(
+    body: dict[str, Any], lines: int, node_id: str, log_id: str | None
+) -> str:
+    """The pre-flight's word when the program printed nothing, logged with the program's own
+    errors so an operator sees a broken runner the day it breaks."""
+    _, reason = hazards_status(body, lines)
+    log.warning("hazards preflight inconclusive for %s (log %s): %s", node_id, log_id, reason)
+    return PREFLIGHT_INCONCLUSIVE
+
+
 def target_checkers(ctx: Context, target_id: str) -> list[str]:
     """The hazard checkers the target's ``gate-spec.json`` names, which step 6 runs; one this
     gate does not ship is the gate owner's configuration error, refused by the gate's own words
@@ -772,6 +1299,234 @@ def target_checkers(ctx: Context, target_id: str) -> list[str]:
     if problem is not None:
         raise api_error(409, problem.code, problem.message, details=problem.details)
     return [str(c) for c in spec.get("hazard_checkers") or []]
+
+
+# --- heartbeats per declaration (F13-T27) --------------------------------------------------------
+
+#: Mathlib's command, as the hosted checker accepts it (probed 2026-10-01): before the doc
+#: comment, with the ``#``; ``count_heartbeats in`` is a parse error.
+COUNT_HEARTBEATS = "#count_heartbeats in"
+#: The command's own message, at the command's line: ``-:4:0-7:6: info: Used 31 heartbeats, which
+#: is less than the current maximum of 200000.`` (``greater`` when it is).
+HEARTBEATS_RE = re.compile(
+    r"^[^:\n]*:(?P<line>[0-9]+):[0-9]+[^\n]*?: info: Used (?P<used>[0-9]+) heartbeats, which is "
+    r"(?:less|greater) than the current maximum of (?P<cap>[0-9]+)"
+)
+#: The declarations the gate takes a proof to be made of, and so the ones counted.
+COUNTED_KINDS = ("theorem", "lemma")
+HEARTBEATS_NO_THEOREM = "no-theorem"
+HEARTBEATS_RATE_LIMITED = "rate-limited"
+HEARTBEATS_FAILED = "measurement-failed"
+HEARTBEATS_NOTE = (
+    "A measurement, not a verdict. The command elaborates its declaration without the cap, so "
+    "a count above the cap is printed here where your text as sent would usually stop with a "
+    "heartbeat timeout; over_cap is that count against the cap, and whether your text as sent "
+    "passes is okay's to say. A declaration that needs longer than the fast check's budget is "
+    "not measured at all. okay, result and lint are those of your text as sent, which this copy "
+    "never replaces. The gate elaborates your text as sent, under Lean's own cap"
+)
+
+
+def lean_mask(text: str) -> tuple[str, list[tuple[int, int]]]:
+    """``text`` with every comment and string body blanked to spaces, character for character
+    (so an offset in the mask is the same offset in the text), and the spans of its doc comments
+    (``/-- ... -/``). The rules are ``layout.strip_comments``': ``--`` to the end of the line,
+    nested ``/- -/`` blocks, the inside of ``"..."``."""
+    out: list[str] = []
+    docs: list[tuple[int, int]] = []
+    i, n = 0, len(text)
+
+    def blank(upto: int) -> None:
+        out.extend(ch if ch == "\n" else " " for ch in text[len(out) : upto])
+
+    while i < n:
+        pair = text[i : i + 2]
+        if pair == "/-":
+            start, depth, i = i, 1, i + 2
+            while i < n and depth:
+                inner = text[i : i + 2]
+                depth += 1 if inner == "/-" else -1 if inner == "-/" else 0
+                i += 2 if inner in ("/-", "-/") else 1
+            if text.startswith("/--", start):
+                docs.append((start, i))
+            blank(i)
+        elif pair == "--":
+            end = text.find("\n", i)
+            i = n if end == -1 else end
+            blank(i)
+        elif text[i] == '"':
+            end = i + 1
+            while end < n and text[end] != '"':
+                end += 2 if text[end] == "\\" else 1
+            out.append('"')
+            blank(min(end, n))
+            if end < n:
+                out.append('"')
+            i = min(end + 1, n)
+        else:
+            out.append(text[i])
+            i += 1
+    return "".join(out), docs
+
+
+def count_heartbeats_text(content: str) -> tuple[str, list[str]]:
+    """A copy of ``content`` with ``#count_heartbeats in`` on a line of its own before each
+    top-level theorem and lemma, and those declarations' names in order. The line goes before
+    the declaration's doc comment and attributes, where the command must stand, and after
+    anything written before those (an ``open ... in``). A declaration that already has the
+    command directly above it is counted as it stands. Comments and strings are not read as
+    code, so a ``theorem`` in one is not a declaration."""
+    mask, docs = lean_mask(content)
+    names: list[str] = []
+    inserts: list[int] = []
+    for match in DECLARATION_RE.finditer(mask):
+        if match.group("kind") not in COUNTED_KINDS:
+            continue
+        at = match.start()
+        for start, end in docs:
+            if end <= at and not mask[end:at].strip():
+                at = content.rfind("\n", 0, start) + 1  # the line the doc comment begins
+        names.append(match.group("name"))
+        if not mask[:at].rstrip().endswith(COUNT_HEARTBEATS):
+            inserts.append(at)
+    for at in reversed(inserts):
+        content = content[:at] + COUNT_HEARTBEATS + "\n" + content[at:]
+    return content, names
+
+
+def heartbeats_message(message: str) -> tuple[int, int, int] | None:
+    """``(line, heartbeats, cap)`` when ``message`` is the command's count, else ``None``."""
+    found = HEARTBEATS_RE.match(message)
+    if found is None:
+        return None
+    return int(found.group("line")), int(found.group("used")), int(found.group("cap"))
+
+
+def heartbeats_of(body: dict[str, Any]) -> list[dict[str, Any]]:
+    """The counts in a measuring call's answer, in the text's order: each of the checker's count
+    messages, named by the first theorem or lemma at or after the message's own line in the text
+    the checker echoes (``content``). Read from the echo and not from where the lines were
+    inserted, because the checker substitutes its header and the definitions and Context are
+    inlined above the caller's text. Untrusted output: only numbers are taken from it, and a
+    name is taken from the text the service itself sent, as echoed."""
+    messages = body.get("lean_messages")
+    infos = messages.get("infos") if isinstance(messages, dict) else None
+    echoed = body.get("content")
+    mask = lean_mask(echoed)[0] if isinstance(echoed, str) else ""
+    starts = [0]
+    starts.extend(i + 1 for i, ch in enumerate(mask) if ch == "\n")
+    out: list[tuple[int, dict[str, Any]]] = []
+    for info in infos if isinstance(infos, list) else ():
+        parsed = heartbeats_message(str(info))
+        if parsed is None:
+            continue
+        line, used, cap = parsed
+        name: str | None = None
+        if 1 <= line <= len(starts):
+            for match in DECLARATION_RE.finditer(mask, starts[line - 1]):
+                if match.group("kind") in COUNTED_KINDS:
+                    name = match.group("name")
+                    break
+        out.append(
+            (
+                line,
+                {
+                    "declaration": name,
+                    "heartbeats": used,
+                    "cap": cap,
+                    "over_cap": cap > 0 and used > cap,
+                },
+            )
+        )
+    return [entry for _, entry in sorted(out, key=lambda pair: pair[0])]
+
+
+def heartbeats_block(
+    environment: str | None,
+    names: list[str],
+    declarations: list[dict[str, Any]],
+    *,
+    error: str | None,
+    log_id: str | None,
+) -> dict[str, Any]:
+    """What ``heartbeats: true`` adds to the answer: the counts, how they were made, and what
+    they are not."""
+    counted = {d["declaration"] for d in declarations}
+    return {
+        "authoritative": False,
+        "measured_by": f"`{COUNT_HEARTBEATS}` (Mathlib) placed before each top-level theorem "
+        f"and lemma of your content, in a copy of the text, on the hosted fast checker "
+        f"({environment}); not the gate",
+        "note": HEARTBEATS_NOTE,
+        "declarations": declarations,
+        # a theorem the copy named and the checker gave no figure for (it did not get that far)
+        "not_measured": [n for n in names if n not in counted] if error is None else list(names),
+        "error": error,
+        "log_id": log_id,
+    }
+
+
+def charge_again(ctx: Context, request: Request, caller: Caller) -> None:
+    """The measuring call is a second hosted check and is charged as one (R8), to the caller
+    the first was charged to."""
+    if caller.kind == "identity":
+        ratelimit.check_check(ctx, caller.id)
+    else:
+        ratelimit.check_anonymous_check(ctx, ratelimit.client_address(request))
+
+
+async def measure_heartbeats(  # noqa: PLR0913 — the call, its caller and what is inlined
+    ctx: Context,
+    request: Request,
+    req: CheckRequest,
+    caller: Caller,
+    *,
+    defs: list[tuple[str, str]],
+    environment: str,
+) -> dict[str, Any]:
+    """F13-T27: the counts for ``req.content``'s theorems, from one more hosted call on a copy of
+    the text. It never fails the check it rides beside (C7): a spent budget, a busy or absent
+    checker and a timeout each become the block's ``error``, with no declarations. Charged and
+    logged as a check of its own (R8, R9), under mode ``heartbeats``."""
+    from opn_api.app import ApiError  # noqa: PLC0415 — app imports the routes that import this
+
+    measured, names = count_heartbeats_text(req.content)
+    if not names:
+        return heartbeats_block(environment, names, [], error=HEARTBEATS_NO_THEOREM, log_id=None)
+    try:
+        charge_again(ctx, request, caller)
+    except ApiError:
+        return heartbeats_block(environment, names, [], error=HEARTBEATS_RATE_LIMITED, log_id=None)
+    copy = replace(req, content=measured, mode="heartbeats")
+    started = time.monotonic()
+    try:
+        answer = await asyncio.to_thread(
+            call_checker, ctx, copy, forwarded_text(measured, defs), environment, None
+        )
+        if answer.body.get("error_type") == LEAN_TIMEOUT:
+            raise timed_out(ctx, answer.request_id)
+    except (ApiError, AxleError) as exc:
+        if isinstance(exc, ApiError):
+            code, status = exc.code, None
+        else:
+            code = "check-timeout" if exc.timed_out else "upstream-unavailable"
+            status = exc.status
+        log_id = write_log(
+            ctx,
+            copy,
+            caller,
+            outcome=code,
+            started=started,
+            environment=environment,
+            upstream_status=status,
+        )
+        return heartbeats_block(environment, names, [], error=code, log_id=log_id)
+    log_id = write_log(
+        ctx, copy, caller, outcome=ANSWERED, started=started, environment=environment, answer=answer
+    )
+    return heartbeats_block(
+        environment, names, heartbeats_of(answer.body), error=None, log_id=log_id
+    )
 
 
 # --- the checker ---------------------------------------------------------------------------------
@@ -1036,14 +1791,76 @@ def refuse_axioms(  # noqa: PLR0913 — the axioms, the rule, and what to call a
 #: What a proposal's 201 says of its pre-flight: the checker found the witness's type is the one
 #: step 7 wants and the text compiles (F13-T17); it answered without a verdict (the statement or
 #: the witness did not elaborate there); or it could not be asked (no environment, down, out of
-#: time, busy, budget spent).
+#: time, busy). A spent check budget is no longer a word here: since F13-T28 it is the caller's
+#: 429, before anything opens.
 PREFLIGHT_MATCHED = "matched"
 PREFLIGHT_INCONCLUSIVE = "inconclusive"
 PREFLIGHT_UNAVAILABLE = "unavailable"
 
 
-async def preflight_witness(
-    ctx: Context, identity_id: str, target_id: str, node_id: str, files: dict[str, str]
+class Charge(Protocol):
+    """Where a pre-flight pays for its one call to the checker (``ratelimit.Reservation``)."""
+
+    def take(self) -> None: ...
+
+
+class _WouldCharge(Exception):  # noqa: N818 — a signal, not an error
+    """A probing run reached the point where it would pay: it needs one check."""
+
+
+class _Probe:
+    def take(self) -> None:
+        raise _WouldCharge
+
+
+Run = Callable[[Charge], Awaitable[str]]
+
+
+async def reserved(ctx: Context, identity_id: str, runs: Sequence[Run]) -> list[str]:
+    """F13-T28 (the owner's ruling amending F13-Q22): the pre-flights a route runs, paid for
+    together and up front, failing closed.
+
+    Each run first goes as far as the point where it would be charged, with a probe that stops
+    it there, so a run that answers without the checker (nothing to check, no checkers on the
+    target, a label that claims nothing) needs nothing and its word is final; the reads before
+    that point are the committed graph's, cached, and side-effect free. The rest are reserved in
+    one step (``ratelimit.reserve_checks``): a budget that cannot cover them all is the caller's
+    429 with ``Retry-After`` before any checker call, branch or pull request, and nothing is
+    spent. They then run side by side, each taking its check where it used to be charged, and
+    whatever was reserved and not taken is given back. Refusals are raised in the order of
+    ``runs`` (the statement before what is of it), as before."""
+    words: list[str | BaseException | None] = []
+    for run in runs:
+        try:
+            words.append(await run(_Probe()))
+        except _WouldCharge:
+            words.append(None)
+    needed = [i for i, word in enumerate(words) if word is None]
+    reservation = ratelimit.reserve_checks(ctx, identity_id, len(needed))
+    try:
+        outcomes = await asyncio.gather(
+            *(runs[i](reservation) for i in needed), return_exceptions=True
+        )
+    finally:
+        reservation.release()
+    for i, outcome in zip(needed, outcomes, strict=True):
+        words[i] = outcome
+    out: list[str] = []
+    for word in words:
+        if isinstance(word, BaseException):
+            raise word
+        out.append(str(word))
+    return out
+
+
+async def preflight_witness(  # noqa: PLR0913 — the caller, the node, its files, its payment
+    ctx: Context,
+    identity_id: str,
+    target_id: str,
+    node_id: str,
+    files: dict[str, str],
+    *,
+    reservation: Charge | None = None,
 ) -> str:
     """Witness mode over exactly the files a proposal is about to push, before its pull request
     exists: the statement as written (own-Context import included), its generated Context
@@ -1054,15 +1871,23 @@ async def preflight_witness(
     the identity's check budget and logged as a check, like every call to the checker (R8, R9)."""
     from opn_api.app import ApiError  # noqa: PLC0415 — app imports the routes that import this
 
+    if reservation is None:  # F13-T28: on its own, it reserves its own check
+        (word,) = await reserved(
+            ctx,
+            identity_id,
+            [
+                lambda r: preflight_witness(
+                    ctx, identity_id, target_id, node_id, files, reservation=r
+                )
+            ],
+        )
+        return word
     prefix = f"targets/{target_id}/nodes/{node_id}/"
     parsed = layout.parse_statement(files.get(prefix + "Statement.lean", ""))
     witness = files.get(prefix + "Witness.lean", "")
     if not isinstance(parsed, layout.Statement) or not witness.strip():
         return PREFLIGHT_UNAVAILABLE  # the scaffold refuses both before this is reached
-    try:
-        ratelimit.check_check(ctx, identity_id)
-    except ApiError:
-        return PREFLIGHT_UNAVAILABLE  # a spent check budget skips the courtesy, never the route
+    reservation.take()  # F13-T28: reserved up front, so a spent budget never reaches here
     req = CheckRequest(target_id, node_id, witness, "witness")
     caller = Caller("identity", identity_id)
     started = time.monotonic()
@@ -1148,13 +1973,21 @@ async def preflight_witness(
 
 
 #: What a proposal's 201 says of its hazard pre-flight (F13-T20): the target's checkers ran and
-#: every finding is acknowledged (or the target names none); the program did not run (the
-#: statement did not elaborate there); or the checker could not be asked.
+#: found nothing (or the target names none); they found something and the proposal acknowledged
+#: every finding; the program did not run (the statement did not elaborate there); or the
+#: checker could not be asked.
 PREFLIGHT_CLEAR = "clear"
+PREFLIGHT_ACKNOWLEDGED = "acknowledged"
 
 
-async def preflight_hazards(  # noqa: PLR0911 — one return per outcome word
-    ctx: Context, identity_id: str, target_id: str, node_id: str, files: dict[str, str]
+async def preflight_hazards(  # noqa: PLR0911, PLR0913 — one return per outcome word
+    ctx: Context,
+    identity_id: str,
+    target_id: str,
+    node_id: str,
+    files: dict[str, str],
+    *,
+    reservation: Charge | None = None,
 ) -> str:
     """F13-T20 (D8): step 6 over exactly the statement a proposal is about to push, before its
     pull request exists, on the hosted checker: the target's checkers, the gate's own matching
@@ -1168,6 +2001,17 @@ async def preflight_hazards(  # noqa: PLR0911 — one return per outcome word
     from opn_api.app import ApiError  # noqa: PLC0415 — app imports the routes that import this
     from opn_gate.steps import hazards as gate_hazards  # noqa: PLC0415
 
+    if reservation is None:  # F13-T28: on its own, it reserves its own check
+        (word,) = await reserved(
+            ctx,
+            identity_id,
+            [
+                lambda r: preflight_hazards(
+                    ctx, identity_id, target_id, node_id, files, reservation=r
+                )
+            ],
+        )
+        return word
     prefix = f"targets/{target_id}/nodes/{node_id}/"
     parsed = layout.parse_statement(files.get(prefix + "Statement.lean", ""))
     if not isinstance(parsed, layout.Statement):
@@ -1178,10 +2022,7 @@ async def preflight_hazards(  # noqa: PLR0911 — one return per outcome word
         return PREFLIGHT_UNAVAILABLE  # the gate owner's configuration, or the graph unread
     if not checkers:
         return PREFLIGHT_CLEAR  # step 6 runs nothing on this target; nothing to spend
-    try:
-        ratelimit.check_check(ctx, identity_id)
-    except ApiError:
-        return PREFLIGHT_UNAVAILABLE  # a spent check budget skips the courtesy, never the route
+    reservation.take()  # F13-T28: reserved up front, so a spent budget never reaches here
     req = CheckRequest(target_id, node_id, parsed.text, "hazards")
     caller = Caller("identity", identity_id)
     started = time.monotonic()
@@ -1194,7 +2035,7 @@ async def preflight_hazards(  # noqa: PLR0911 — one return per outcome word
         context = files.get(prefix + "Context.lean")
         defs = inline_defs(ctx, target_id, parsed, "", node_id, context=context)
         formal = forwarded_text(parsed.text, defs)
-        text = hazards_text(formal, parsed.decl_name, checkers)
+        text = hazards_text(formal, parsed.decl_name, checkers, statement=parsed.text)
         budget = min(PREFLIGHT_TIMEOUT_S, ctx.settings.check_timeout_s)
         answer = await asyncio.to_thread(
             call_checker, ctx, req, text, environment, None, timeout_s=budget
@@ -1221,7 +2062,9 @@ async def preflight_hazards(  # noqa: PLR0911 — one return per outcome word
     refuse_failing_statement(answer.body, statement_lines(formal), environment, log_id)
     found = hazards_verdict(answer.body)
     if found is None:
-        return PREFLIGHT_INCONCLUSIVE
+        # F13-T26: the statement compiled (the refusal above did not fire) and the program gave
+        # no answer. That is the network's fault, and an operator must be able to see it.
+        return runner_gave_no_answer(answer.body, statement_lines(formal), node_id, log_id)
     try:
         meta = yaml.safe_load(files.get(prefix + "META.yaml", "")) or {}
     except yaml.YAMLError:
@@ -1229,7 +2072,7 @@ async def preflight_hazards(  # noqa: PLR0911 — one return per outcome word
     acks = gate_hazards.acknowledgments_from(meta if isinstance(meta, dict) else {})
     ev = gate_hazards.evaluate(gate_hazards.findings_from(found), acks)
     if not ev.unacknowledged:
-        return PREFLIGHT_CLEAR
+        return PREFLIGHT_ACKNOWLEDGED if found["findings"] else PREFLIGHT_CLEAR
     first = ev.unacknowledged[0]
     raise api_error(
         422,
@@ -1261,17 +2104,16 @@ async def preflight_proposal(  # noqa: PLR0913 — the caller, the node, its fil
     before it opens the pull request (F13-T16). A hazard refusal is raised before a witness
     refusal, and both before a relation refusal: the statement is what the others are of.
     F13-T23: a variant's relation proof is the third (``relation_preflight``)."""
-    runs = [
-        preflight_hazards(ctx, identity_id, target_id, node_id, files),
-        preflight_witness(ctx, identity_id, target_id, node_id, files),
+    runs: list[Run] = [
+        lambda r: preflight_hazards(ctx, identity_id, target_id, node_id, files, reservation=r),
+        lambda r: preflight_witness(ctx, identity_id, target_id, node_id, files, reservation=r),
     ]
     if variant:
-        runs.append(preflight_relation(ctx, identity_id, target_id, node_id, files))
-    outcomes = await asyncio.gather(*runs, return_exceptions=True)
-    for outcome in outcomes:
-        if isinstance(outcome, BaseException):
-            raise outcome
-    words = [str(o) for o in outcomes]
+        runs.append(
+            lambda r: preflight_relation(ctx, identity_id, target_id, node_id, files, reservation=r)
+        )
+    # F13-T28: every check the three need is reserved before any of them asks the checker.
+    words = await reserved(ctx, identity_id, runs)
     out = {"hazards_preflight": words[0], "witness_preflight": words[1]}
     if variant:
         out["relation_preflight"] = words[2]
@@ -1406,8 +2248,14 @@ def root_block(
     return forwarded_text(parsed.text, defs)
 
 
-async def preflight_relation(  # noqa: PLR0911, PLR0912, PLR0915 — one return per outcome word
-    ctx: Context, identity_id: str, target_id: str, node_id: str, files: dict[str, str]
+async def preflight_relation(  # noqa: PLR0911, PLR0912, PLR0913, PLR0915 — one return per word
+    ctx: Context,
+    identity_id: str,
+    target_id: str,
+    node_id: str,
+    files: dict[str, str],
+    *,
+    reservation: Charge | None = None,
 ) -> str:
     """F13-T23 (audit Q-c): admission's relation check (``admit.RelationCheck``, D-30) on the
     hosted checker, before a variant's pull request exists. The variant's statement as it will be
@@ -1423,6 +2271,17 @@ async def preflight_relation(  # noqa: PLR0911, PLR0912, PLR0915 — one return 
     from opn_api.app import ApiError  # noqa: PLC0415 — app imports the routes that import this
     from opn_gate import graph as graphmod  # noqa: PLC0415
 
+    if reservation is None:  # F13-T28: on its own, it reserves its own check
+        (word,) = await reserved(
+            ctx,
+            identity_id,
+            [
+                lambda r: preflight_relation(
+                    ctx, identity_id, target_id, node_id, files, reservation=r
+                )
+            ],
+        )
+        return word
     prefix = f"targets/{target_id}/nodes/{node_id}/"
     relation = files.get(prefix + scaffold.RELATION_FILE)
     label = graphmod.relation_label(relation, "variant") if relation else None
@@ -1446,10 +2305,7 @@ async def preflight_relation(  # noqa: PLR0911, PLR0912, PLR0915 — one return 
         return PREFLIGHT_UNAVAILABLE  # the graph unread: nothing spent, the gate decides
     if not isinstance(root_parsed, layout.Statement):
         return PREFLIGHT_UNAVAILABLE  # the root's own defect, not this proposal's
-    try:
-        ratelimit.check_check(ctx, identity_id)
-    except ApiError:
-        return PREFLIGHT_UNAVAILABLE  # a spent check budget skips the courtesy, never the route
+    reservation.take()  # F13-T28: reserved up front, so a spent budget never reaches here
     req = CheckRequest(target_id, node_id, relation, "check")
     caller = Caller("identity", identity_id)
     started = time.monotonic()
@@ -1557,8 +2413,10 @@ async def preflight_relation(  # noqa: PLR0911, PLR0912, PLR0915 — one return 
 #: service can reproduce (a circularity claim's relation, a module only the gate's staging holds).
 PREFLIGHT_ELABORATES = "elaborates"
 PREFLIGHT_SKIPPED = "skipped"
-#: The node modules an exhibit may import, as the gate stages them (``exhibits.stage_node``).
-EXHIBIT_NODE_MODULES = ("Statement", "Context")
+#: The node modules an exhibit may import: the gate's own tuple, the modules its staging compiles
+#: (``exhibits.stage_node``). F13-T31: this said Statement too, which the gate never compiles for
+#: an exhibit, so the pre-flight vouched for a text the gate refuses.
+EXHIBIT_NODE_MODULES = exhibits.EXHIBIT_NODE_MODULES
 
 
 def exhibit_imports(exhibit: str, node_id: str | None) -> tuple[list[str], set[str]] | None:
@@ -1588,23 +2446,14 @@ def exhibit_check_text(
     exhibit: str,
     found: tuple[list[str], set[str]],
 ) -> str:
-    """The exhibit as the gate elaborates it, in one file: the node's committed ``Defs`` and
-    Context, then its committed statement when the exhibit imports it, inlined in place of the
-    imports the checker cannot resolve, under the union of their library imports. ``found`` is
-    ``exhibit_imports``' answer."""
+    """The exhibit as the gate elaborates it, in one file: the target's committed ``Defs`` and,
+    when the exhibit imports it, the node's committed Context, inlined in place of the imports
+    the checker cannot resolve, under the union of their library imports. ``found`` is
+    ``exhibit_imports``' answer; its node modules are the gate's ``EXHIBIT_NODE_MODULES``, so
+    nothing is inlined that the gate's staging would not have compiled (F13-T31)."""
     library, own = found
-    statement: layout.Statement | None = None
     headers = [exhibit]
-    if "Statement" in own:
-        assert node_id is not None
-        raw = frontier.committed(ctx, f"targets/{target_id}/nodes/{node_id}/Statement.lean")
-        parsed = layout.parse_statement(raw.decode("utf-8"))
-        if not isinstance(parsed, layout.Statement):
-            msg = f"{node_id}'s Statement.lean has no single sorry-bodied theorem"
-            raise api_error(409, "statement-unparsable", msg)
-        statement = parsed
-        headers.append(parsed.text)
-    defs = inline_defs(ctx, target_id, statement, exhibit, node_id if own else None)
+    defs = inline_defs(ctx, target_id, None, exhibit, node_id if own else None)
     for module, _ in defs:
         origin, _node = layout.module_origin(module)
         if origin == "defs":
@@ -1613,10 +2462,6 @@ def exhibit_check_text(
             assert node_id is not None
             path = f"targets/{target_id}/nodes/{node_id}/Context.lean"
         headers.append(frontier.committed(ctx, path).decode("utf-8"))
-    if statement is not None:
-        assert node_id is not None
-        body = IMPORT_LINE_RE.sub("", statement.text).strip("\n")
-        defs.append((layout.node_module(node_id, "Statement"), body))
     imports = [
         m
         for text in headers
@@ -1643,6 +2488,7 @@ async def preflight_exhibit(  # noqa: PLR0913 — the caller, the node, the text
     exhibit: str,
     *,
     relational: bool = False,
+    reservation: Charge | None = None,
 ) -> str:
     """F13-T22: the gate's exhibit check (``opn-gate exhibits``: the exhibit elaborates, against
     the node it is about) on the hosted checker, before the append's pull request exists. One
@@ -1653,13 +2499,27 @@ async def preflight_exhibit(  # noqa: PLR0913 — the caller, the node, the text
     sent, so it is skipped rather than half-checked. Charged and logged as a check (R8, R9)."""
     from opn_api.app import ApiError  # noqa: PLC0415 — app imports the routes that import this
 
+    if reservation is None:  # F13-T28: on its own, it reserves its own check
+        (word,) = await reserved(
+            ctx,
+            identity_id,
+            [
+                lambda r: preflight_exhibit(
+                    ctx,
+                    identity_id,
+                    target_id,
+                    node_id,
+                    exhibit,
+                    relational=relational,
+                    reservation=r,
+                )
+            ],
+        )
+        return word
     found = None if relational else exhibit_imports(exhibit, node_id)
     if found is None:
         return PREFLIGHT_SKIPPED
-    try:
-        ratelimit.check_check(ctx, identity_id)
-    except ApiError:
-        return PREFLIGHT_UNAVAILABLE  # a spent check budget skips the courtesy, never the route
+    reservation.take()  # F13-T28: reserved up front, so a spent budget never reaches here
     req = CheckRequest(target_id, node_id, exhibit, "check")
     caller = Caller("identity", identity_id)
     started = time.monotonic()
@@ -1705,7 +2565,7 @@ async def preflight_exhibit(  # noqa: PLR0913 — the caller, the node, the text
         "the exhibit does not elaborate: the checker reported Lean errors in it (F08-R6, R7), so "
         "nothing was opened. An exhibit is Lean the gate elaborates against the node it is about, "
         "not prose. Checked on the hosted fast checker "
-        f"({environment}) with the node's statement, Context and definitions inlined where the "
+        f"({environment}) with the node's Context and the target's definitions inlined where the "
         "exhibit imports them; not authoritative, but the gate elaborates the same text",
         details={"errors": errors, "log_id": log_id},
     )
@@ -1715,21 +2575,143 @@ async def preflight_exhibit(  # noqa: PLR0913 — the caller, the node, the text
 
 
 def statement_mode_text(
-    ctx: Context, req: CheckRequest, statement: layout.Statement, formal: str
+    ctx: Context,
+    req: CheckRequest,
+    statement: layout.Statement,
+    formal: str,
+    *,
+    proposed: bool = False,
 ) -> str:
     """The text sent in a mode that reads the statement: the witness program (F13-T14) or the
     hazard checkers (F13-T20), after ``formal``, the statement with its definitions inlined."""
     if req.mode == "hazards":
-        return hazards_text(formal, statement.decl_name, target_checkers(ctx, req.target_id))
+        return hazards_text(
+            formal,
+            statement.decl_name,
+            target_checkers(ctx, req.target_id),
+            statement=statement.text,
+        )
     # The caller's own text, not the forwarded one: the definitions and the Context are already
     # in ``formal``, and inlined into an empty witness they read as one. A merged hole's record of
     # what its assembly proved narrows the question as it narrows step 7's (F07-T44); a statement
-    # that is not a node yet has none.
+    # that is not a node yet has none, and neither does a proposed node (F06-T10: no hole is).
     proved: tuple[int, ...] = ()
-    if req.node_id is not None and req.statement is None:
+    if req.node_id is not None and req.statement is None and not proposed:
         meta = frontier.committed(ctx, f"targets/{req.target_id}/nodes/{req.node_id}/META.yaml")
         proved = proved_binders_of(meta)
     return witness_text(formal, req.content, statement.decl_name, proved)
+
+
+def request_statement(
+    ctx: Context, req: CheckRequest
+) -> tuple[layout.Statement | None, str | None, bool]:
+    """The statement a check reads, the node's own Context when it is not fetched from ``main``,
+    and whether the node exists only in a proposal (F06-T10)."""
+    if req.statement is not None:
+        # F13-T16: a statement that is not a node yet, with the Context its proposal would
+        # carry. parse_body has already held it to one sorry-bodied theorem.
+        parsed = layout.parse_statement(without_node_imports(req.statement))
+        statement = parsed if isinstance(parsed, layout.Statement) else None
+        return statement, proposed_context(ctx, req.target_id, req.deps), False
+    if not req.node_id:
+        return None, None, False
+    statement, proposal = statement_of(ctx, req.target_id, req.node_id)
+    if proposal is None:
+        return statement, None, False
+    # F06-T10: a green proposal's node, read at its head; its own Context is on that branch
+    return statement, proposal.context or "", True
+
+
+async def checked(  # noqa: PLR0913 — the check, and the measurement that may ride beside it
+    ctx: Context,
+    request: Request,
+    req: CheckRequest,
+    caller: Caller,
+    *,
+    text: str,
+    environment: str,
+    formal: str | None,
+    defs: list[tuple[str, str]],
+) -> tuple[AxleAnswer, dict[str, Any] | None]:
+    """The checker's answer for ``text`` and, with ``heartbeats``, the counts measured side by
+    side on a copy, so both fit the one budget the function has (F13-T27)."""
+    check = asyncio.to_thread(call_checker, ctx, req, text, environment, formal)
+    if not req.heartbeats:
+        return await check, None
+    answer, counted = await asyncio.gather(
+        check,
+        measure_heartbeats(ctx, request, req, caller, defs=defs, environment=environment),
+        return_exceptions=True,
+    )
+    if isinstance(answer, BaseException):
+        raise answer
+    if isinstance(counted, BaseException):
+        # C7: the measurement is a courtesy beside the check and never costs it
+        log.error("heartbeats were not measured: %s", type(counted).__name__)
+        counted = heartbeats_block(environment, [], [], error=HEARTBEATS_FAILED, log_id=None)
+    return answer, counted
+
+
+@dataclass(frozen=True)
+class UseReading:
+    """F08-T26: what a check makes of the content's use lines. ``rest`` is the content as step 2
+    compares it (the content itself where the target's gate does not read uses)."""
+
+    understood: bool
+    rest: str
+    problem: Any = None  # the first use step 2 would refuse (a ``Diagnostic``), or None
+    used: tuple[tuple[str, str, str], ...] = ()
+    skip: frozenset[str] = frozenset()
+
+    @property
+    def used_modules(self) -> tuple[str, ...]:
+        """The ``Nodes.«<id>».Proof`` modules inlined as signatures."""
+        return tuple(module for module, _, _ in self.used)
+
+
+def read_uses(ctx: Context, req: CheckRequest, statement: layout.Statement | None) -> UseReading:
+    """The content's uses as the target's pinned gate reads them (``uses``), in the proof modes
+    only: a witness or a statement declares none. No fetch at all for a text with no line of a
+    use's shape, or a target whose gate predates uses."""
+    plain = UseReading(False, req.content)
+    if (
+        statement is None
+        or req.mode in STATEMENT_MODES
+        or not usesmod.has_use_line(req.content)
+        or not usesmod.understood(ctx, req.target_id)
+    ):
+        return plain
+    found = usesmod.declared(statement, req.content, req.node_id)
+    rest = usesmod.without_uses(statement, req.content, req.node_id)
+    if not found:
+        return replace(plain, understood=True, rest=rest)
+    bad = usesmod.problem(ctx, req.target_id, req.node_id, statement, found)
+    skip = frozenset({str(bad.details["module"])}) if bad is not None else frozenset()
+    used = usesmod.used_sources(ctx, req.target_id, found, skip)
+    return UseReading(True, rest, bad, tuple(used), skip)
+
+
+def composed(
+    ctx: Context, req: CheckRequest, statement: layout.Statement | None, context: str | None
+) -> tuple[UseReading, list[tuple[str, str]]]:
+    """F08-T26: the content's uses as step 2 reads them, and what is inlined for the checker:
+    the definitions, the node's own Context and each used node's signature (``inline_defs``)."""
+    reading = read_uses(ctx, req, statement)
+    defs = inline_defs(
+        ctx,
+        req.target_id,
+        statement,
+        req.content,
+        req.node_id,
+        context=context,
+        used=reading.used,
+        skip=reading.skip,
+    )
+    return reading, defs
+
+
+def text_or_none(value: Any) -> str | None:
+    return value if isinstance(value, str) else None
 
 
 async def post_check(ctx: Context, request: Request) -> Response:
@@ -1741,6 +2723,7 @@ async def post_check(ctx: Context, request: Request) -> Response:
     started = time.monotonic()
     environment: str | None = None
     try:
+        req = resolve_target(ctx, req)
         sha, hosted = hosted_for(ctx, req.target_id)
         if hosted is None or hosted.environment is None:
             msg = (
@@ -1750,23 +2733,20 @@ async def post_check(ctx: Context, request: Request) -> Response:
             )
             raise api_error(422, "no-hosted-environment", msg, details={"mathlib_sha": sha})
         environment = hosted.environment
-        context: str | None = None
-        if req.statement is not None:
-            # F13-T16: a statement that is not a node yet, with the Context its proposal would
-            # carry. parse_body has already held it to one sorry-bodied theorem.
-            parsed = layout.parse_statement(without_node_imports(req.statement))
-            statement = parsed if isinstance(parsed, layout.Statement) else None
-            context = proposed_context(ctx, req.target_id, req.deps)
-        else:
-            statement = statement_of(ctx, req.target_id, req.node_id) if req.node_id else None
+        statement, context, proposed = request_statement(ctx, req)
         if req.mode in NODE_MODES and statement is None:
             msg = f"{req.node_id}'s Statement.lean has no single sorry-bodied theorem to verify"
             raise api_error(409, "statement-unparsable", msg)
-        defs = inline_defs(ctx, req.target_id, statement, req.content, req.node_id, context=context)
+        reading, defs = composed(ctx, req, statement, context)
         text = forwarded_text(req.content, defs)
         # F13-T14: a witness is not a proof. It declares ``witness`` and its header is its own,
         # so the gate-gap lints (R4), which are about proofs, say nothing true of it.
-        warnings = [] if req.mode in STATEMENT_MODES else lint(req.content, statement, req.node_id)
+        unknown = unknown_node_imports(ctx, reading.rest, req.node_id)
+        warnings = (
+            []
+            if req.mode in STATEMENT_MODES
+            else lint(req.content, statement, req.node_id, unknown_nodes=unknown, reading=reading)
+        )
         warnings += superseded_warning(ctx, req.node_id)
         if req.mode == "verify" and req.node_id is not None:
             own = layout.node_module(req.node_id, "Context")
@@ -1774,26 +2754,38 @@ async def post_check(ctx: Context, request: Request) -> Response:
             # imports its own Context since F08-T13, so an empty one ("dependencies: none")
             # set the warning off on every node, where it said nothing true.
             if any(
-                module == own and DECLARATION_RE.search(layout.strip_comments(source))
+                module in {own, *reading.used_modules}
+                and DECLARATION_RE.search(layout.strip_comments(source))
                 for module, source in defs
             ):
                 # F13-T12: a Context restates each dependency with a sorry body (the gate builds
                 # against the real proofs instead), and a verifier refuses any proof that leans on
-                # one, so its "no" here says nothing about the contributor's proof.
+                # one, so its "no" here says nothing about the contributor's proof. F08-T26: a
+                # used node's statement is inlined the same way, so the same is true of it.
                 warnings.append(
                     {
                         "code": "context-restated",
-                        "message": "this node's Context restates its dependencies with sorry "
-                        "bodies, so verify reports a proof that uses one as incomplete whatever "
-                        "its merit; use mode check for it, and the precheck for the verdict",
+                        "message": "this node's Context (or a used node's statement, F08-T26) "
+                        "restates what the proof uses with sorry bodies, so verify reports a "
+                        "proof that uses one as incomplete whatever its merit; use mode check "
+                        "for it, and the precheck for the verdict",
                     }
                 )
         try:
             formal = forwarded_text(statement.text, defs) if statement is not None else None
             if req.mode in STATEMENT_MODES:
                 assert statement is not None and formal is not None  # NODE_MODES, above
-                text = statement_mode_text(ctx, req, statement, formal)
-            answer = await asyncio.to_thread(call_checker, ctx, req, text, environment, formal)
+                text = statement_mode_text(ctx, req, statement, formal, proposed=proposed)
+            answer, counted = await checked(
+                ctx,
+                request,
+                req,
+                caller,
+                text=text,
+                environment=environment,
+                formal=formal,
+                defs=defs,
+            )
             if answer.body.get("error_type") == LEAN_TIMEOUT:
                 raise timed_out(ctx, answer.request_id)
         except AxleError as exc:
@@ -1815,18 +2807,28 @@ async def post_check(ctx: Context, request: Request) -> Response:
         )
         refusal.details = {**(refusal.details or {}), "log_id": log_id}
         raise
+    restated_only = verify_findings(req.mode, answer.body, statement, warnings)
+    status, program_error = (
+        hazards_status(answer.body, statement_lines(formal or ""))
+        if req.mode == "hazards"
+        else (None, None)
+    )
     log_id = write_log(
         ctx,
         req,
         caller,
-        outcome=ANSWERED,
+        outcome=HAZARDS_RUNNER_FAILED if status == HAZARDS_UNAVAILABLE else ANSWERED,
         started=started,
         environment=environment,
         lint_codes=[w["code"] for w in warnings],
         answer=answer,
     )
-    user_error = answer.body.get("user_error")
-    shown, dropped = without_generated_name_warning(answer.body, statement, req.node_id)
+    shown, dropped = without_generated_name_warning(
+        answer.body,
+        statement,
+        req.node_id,
+        inlined_hole_names(ctx, req.target_id, defs, flagged_names(answer.body)),
+    )
     return JSONResponse(
         {
             "authoritative": False,
@@ -1839,15 +2841,31 @@ async def post_check(ctx: Context, request: Request) -> Response:
             "inlined_defs": [module for module, _ in defs],
             # T10: the two facts a caller reads first, lifted beside the verbatim body, so a
             # body with no ``okay`` (a statement that does not compile) is still an answer.
-            "okay": verdict(answer.body),
-            "user_error": user_error if isinstance(user_error, str) else None,
+            # F13-T25: in verify mode, false too when the lint names a gate refusal.
+            "okay": None
+            if status == HAZARDS_UNAVAILABLE
+            else gate_verdict(req.mode, True if restated_only else verdict(answer.body), warnings),
+            "user_error": text_or_none(answer.body.get("user_error")),
             "result": shown,
             # F13-T18: what was left out of ``result`` and why; the log keeps the checker's own.
             "dropped_warnings": dropped,
             "log_id": log_id,
+            # F13-T27: each theorem's heartbeats, measured on a copy; only when asked for
+            **({"heartbeats": counted} if counted is not None else {}),
             **({"witness": witness_verdict(answer.body)} if req.mode == "witness" else {}),
             # F13-T20: step 6's findings as opn-hazards prints them, ready to acknowledge.
-            **({"hazards": hazards_verdict(answer.body)} if req.mode == "hazards" else {}),
+            # Each one the node's META.yaml acknowledges says so, by step 6's own matching.
+            **(
+                {
+                    "hazards": node_hazards(ctx, req, answer.body, proposed=proposed),
+                    # F13-T26: whether the program ran, and whose fault it is when it did not.
+                    "hazards_status": status,
+                    "service_fault": status == HAZARDS_UNAVAILABLE,
+                    "hazards_error": program_error,
+                }
+                if req.mode == "hazards"
+                else {}
+            ),
         }
     )
 

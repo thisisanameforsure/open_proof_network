@@ -19,7 +19,9 @@ from opn_site import render
 
 def target(reasons: list[str], *, claimable: bool = False, status: str = "resolved") -> Any:
     entry = {"claimable": claimable, "status": status, "not_claimable": reasons, "root": "r"}
-    return SimpleNamespace(index_entry=entry, nodes={"r": SimpleNamespace(tutorial=False)})
+    return SimpleNamespace(
+        index_entry=entry, nodes={"r": SimpleNamespace(tutorial=False, status="proved")}
+    )
 
 
 def renderer(open_count: int, tv: Any = None) -> Any:
@@ -28,6 +30,7 @@ def renderer(open_count: int, tv: Any = None) -> Any:
         open_count=lambda _tv: open_count,
         open_beneath=render.Renderer.open_beneath,
         is_tutorial=render.Renderer.is_tutorial,
+        resolution=render.Renderer.resolution,  # F04-T31: the word follows the root
         why_not_claimable=lambda _tv, detail=True: "<p>Not claimable, because:</p>",
         site=SimpleNamespace(targets={"t": tv}),
     )

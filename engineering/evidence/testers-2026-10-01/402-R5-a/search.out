@@ -1,0 +1,15 @@
+n=2 window primes=[3] M=400: largest strict set found 1 (need 2 to refute) nodes=400 t=0.0s exhaustive
+n=3 window primes=[5] M=400: largest strict set found 1 (need 3 to refute) nodes=399 t=0.0s exhaustive
+n=4 window primes=[7] M=300: largest strict set found 2 (need 4 to refute) nodes=348 t=0.0s exhaustive
+n=6 window primes=[11] M=200: largest strict set found 3 (need 6 to refute) nodes=319 t=0.0s exhaustive
+n=7 window primes=[13] M=150: largest strict set found 3 (need 7 to refute) nodes=226 t=0.0s exhaustive
+n=9 window primes=[17] M=120: largest strict set found 4 (need 9 to refute) nodes=262 t=0.0s exhaustive
+n=10 window primes=[17, 19] M=100: largest strict set found 5 (need 10 to refute) nodes=284 t=0.0s exhaustive
+n=11 window primes=[19] M=90: largest strict set found 5 (need 11 to refute) nodes=264 t=0.0s exhaustive
+n=12 window primes=[23] M=80: largest strict set found 6 (need 12 to refute) nodes=302 t=0.0s exhaustive
+n=13 window primes=[23] M=70: largest strict set found 6 (need 13 to refute) nodes=232 t=0.0s exhaustive
+n=15 window primes=[29] M=60: largest strict set found 7 (need 15 to refute) nodes=274 t=0.0s exhaustive
+n=16 window primes=[29, 31] M=60: largest strict set found 8 (need 16 to refute) nodes=363 t=0.0s exhaustive
+n=5 window primes=[] M=300: largest strict set found 2 (need 5 to refute) nodes=363 t=0.0s exhaustive
+n=8 window primes=[] M=150: largest strict set found 4 (need 8 to refute) nodes=312 t=0.0s exhaustive
+n=14 window primes=[] M=60: largest strict set found 7 (need 14 to refute) nodes=269 t=0.0s exhaustive

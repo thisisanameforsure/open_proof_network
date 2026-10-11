@@ -72,6 +72,7 @@ def test_real_alternate_passes_in_the_sandbox(sandbox_image: str, tmp_path: Path
             "--out",
             str(out),
             "--no-build",
+            "--allow-network-mismatch",  # F07-T65: the fixtures pin forty zeros
         ],
         capture_output=True,
         text=True,

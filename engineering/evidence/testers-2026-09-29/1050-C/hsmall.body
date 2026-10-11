@@ -1,0 +1,11 @@
+  intro Qc hQc Qx hQx Aq hAq n M _ C _ _ _ _ _
+  subst hQc hQx hAq
+  refine ⟨fun h5 => ?_, fun h7 => ?_⟩
+  · subst h5
+    refine ⟨1338545055613790115, 1380067124193819576, ?_, ?_⟩
+    · norm_num [Finset.sum_range_succ, Finset.prod_range_succ]
+    · norm_num [Finset.sum_range_succ, Finset.prod_range_succ]
+  · subst h7
+    refine ⟨653756503247821948956012109840125, 674036225808261890798679141926088, ?_, ?_⟩
+    · norm_num [Finset.sum_range_succ, Finset.prod_range_succ]
+    · norm_num [Finset.sum_range_succ, Finset.prod_range_succ]

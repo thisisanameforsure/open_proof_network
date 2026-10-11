@@ -10,6 +10,7 @@ from typing import Any
 
 import pytest
 from api_fakes import Harness, PrecheckKey, make_harness, make_precheck_key, result_zip
+from starlette.testclient import TestClient
 
 from opn_api import bundles, precheck
 from opn_api.store import plain
@@ -195,25 +196,19 @@ def test_result_retention(harness: Harness) -> None:
 
 
 def test_anonymous_rate_limit() -> None:
-    """AC5: the 21st anonymous tutorial precheck from one address in a day is 429."""
+    """AC5: the 21st anonymous tutorial precheck from one address in a day is 429. The address
+    is the peer, never ``X-Forwarded-For`` (F05-T19): a new hop in the header is the same source."""
     h = make_harness({"OPN_API_ANONYMOUS_PRECHECKS_PER_DAY": "3"})
-    headers = {"X-Forwarded-For": "203.0.113.9"}
+    source = TestClient(h.app, client=("203.0.113.9", 40000), raise_server_exceptions=False)
+    body = {"node_id": TUTORIAL, "bundle": bundle_for(TUTORIAL)}
     for n in range(3):
-        r = h.client.post(
-            "/precheck", json={"node_id": TUTORIAL, "bundle": bundle_for(TUTORIAL)}, headers=headers
-        )
+        r = source.post("/precheck", json=body, headers={"X-Forwarded-For": f"10.0.0.{n}"})
         assert r.status_code == 202, (n, r.text)
-    over = h.client.post(
-        "/precheck", json={"node_id": TUTORIAL, "bundle": bundle_for(TUTORIAL)}, headers=headers
-    )
+    over = source.post("/precheck", json=body, headers={"X-Forwarded-For": "10.0.0.99"})
     assert over.status_code == 429
     assert int(over.headers["retry-after"]) > 0
-    elsewhere = h.client.post(
-        "/precheck",
-        json={"node_id": TUTORIAL, "bundle": bundle_for(TUTORIAL)},
-        headers={"X-Forwarded-For": "198.51.100.4"},
-    )
-    assert elsewhere.status_code == 202
+    elsewhere = TestClient(h.app, client=("198.51.100.4", 40000), raise_server_exceptions=False)
+    assert elsewhere.post("/precheck", json=body).status_code == 202
 
 
 def test_authenticated_precheck_limit() -> None:
@@ -310,6 +305,13 @@ def test_dispatch_failure_is_error(harness: Harness) -> None:
     assert "reference already exists" in (job.error or "")
 
 
+def next_poll(h: Harness) -> None:
+    """F07-T68: a poll of a running job reaches the host at most once per
+    ``precheck_poll_min_s``; a test that polls again at once forgets the last poll, which is the
+    interval having passed."""
+    h.context.precheck_polls.clear()
+
+
 def test_poll_to_done(signed: Harness, key: PrecheckKey) -> None:
     """AC6: queued -> running while the run is in flight, then done with a verified result."""
     created = start(signed)
@@ -319,12 +321,14 @@ def test_poll_to_done(signed: Harness, key: PrecheckKey) -> None:
     assert signed.client.get(f"/precheck/{job_id}").json()["state"] == "queued"
 
     signed.githost.start_run(branch)
+    next_poll(signed)
     running = signed.client.get(f"/precheck/{job_id}").json()
     assert running["state"] == "running"
 
     signed.githost.finish_run(
         branch, artifact=(f"result-{job_id}", artifact_for(signed, job_id, key))
     )
+    next_poll(signed)
     done = signed.client.get(f"/precheck/{job_id}").json()
     assert done["state"] == "done", done
     assert done["result"]["verdict"] == "pass"
@@ -398,6 +402,7 @@ def test_lookup_failure_leaves_the_job_alone(signed: Harness) -> None:
 
     signed.githost.lookup_failure = None
     signed.githost.start_run(f"job/{job_id}")
+    next_poll(signed)
     assert signed.client.get(f"/precheck/{job_id}").json()["state"] == "running"
 
 
@@ -439,6 +444,7 @@ def test_an_unreadable_key_does_not_burn_the_job(harness: Harness, key: Precheck
 
     # The key comes back, and the same poll now completes the job.
     harness.commit_precheck_key(key.public)
+    next_poll(harness)
     assert harness.client.get(f"/precheck/{job_id}").json()["state"] == "done"
 
 

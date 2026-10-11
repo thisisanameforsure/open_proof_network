@@ -1,0 +1,12 @@
+19 values 101 colours 17 ok True
+20 values 119 colours 18 ok True
+21 values 127 colours 19 ok True
+22 values 139 colours 20 ok True
+23 values 149 colours 21 ok True
+24 values 171 colours 22 ok True
+25 values 179 colours 23 ok True
+26 values 199 colours 24 ok True
+27 values 211 colours 25 ok True
+28 values 229 colours 26 ok True
+29 values 241 colours 27 ok True
+30 values 269 colours 28 ok True

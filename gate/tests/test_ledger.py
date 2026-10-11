@@ -332,7 +332,9 @@ def test_a_target_with_no_curator_on_record_bars_nobody() -> None:
 
 def test_merge_line_table() -> None:
     """Every classified mode, and the one line its merge can earn (``None``: nothing, ever, at
-    merge). An alternate is credited at write-up (D-25 v3.13), not when it merges."""
+    merge). An alternate is credited at write-up (D-25 v3.13), not when it merges. The explainer
+    mode earns the write-up line, but only when it merges a signature, and then for the signed
+    version's author, never the signer (F21-R3); a gloss or explainer itself earns nothing (R4)."""
     import typing  # noqa: PLC0415
 
     from opn_gate import modes  # noqa: PLC0415
@@ -342,12 +344,15 @@ def test_merge_line_table() -> None:
         "partial": "proof",
         "alternate": None,
         "append": "attempts",
-        "explainer": None,
+        "explainer": "write-up",  # F21-R3: on a signature, to the version's author (D-19 v3.31)
         "proposal": "statement",
         "curator": None,
         "intake": None,
         "fidelity": None,
         "steward": None,  # F15: a commitment is a stake, not an artifact (D-32 v3.17)
+        "proposed-for": None,  # F18-T6: a pointer, not an artifact (D-14 v3.26)
+        "registration": "upstreaming",  # F25-T4 (D-19 v3.37): the registering curator
+        "display-name": None,  # F25-T4: a name is not an artifact
     }
     assert set(expected) == set(typing.get_args(modes.Mode))
     assert getattr(ledger, "MERGE_LINES", None) == expected
@@ -385,3 +390,153 @@ def test_a_signer_earns_the_proof_line(tmp_path: Path) -> None:
         tooling=ledger.UNDECLARED, doc=empty() | {"identity": "curator"},
     )  # fmt: skip
     assert earned == [] and "D-21" in skipped[0]
+
+
+# --- F25-T4 (D-19 v3.37): a registration merge earns the curator the upstreaming line ---------
+
+
+def test_a_registration_merge_earns_the_upstreaming_line(tmp_path: Path) -> None:
+    """The curator who registered the target in Palomar is credited once, on the upstreaming
+    line, for the record's file; anyone else's identity on the merge earns nothing (the gate holds
+    the record to its actor, so the two coincide on a merged pull request)."""
+    import samples  # noqa: PLC0415
+    import yaml  # noqa: PLC0415
+    from harness import copy_graph, take_in  # noqa: PLC0415
+
+    from opn_gate import cli, modes  # noqa: PLC0415
+    from opn_gate.paths import Change  # noqa: PLC0415
+
+    root = copy_graph(tmp_path)
+    take_in(root, "euclid-primes")
+    rel = "targets/euclid-primes/registrations/2026-10-12-1.yaml"
+    (root / rel).parent.mkdir()
+    (root / rel).write_text(
+        yaml.safe_dump(
+            samples.registration(
+                target="euclid-primes",
+                submitted_by="curator",
+                proof={"node": "and-reassoc", "attestation": "000001"},
+            )
+        ),
+        encoding="utf-8",
+    )
+    classification = modes.classify([Change("A", rel)])
+    assert classification.mode == "registration"
+    earned, skipped, doc = cli._merge_entries(
+        root, classification, identity="curator", commit="a" * 40, date="2026-10-12T00:00:00Z",
+        tooling=ledger.UNDECLARED, doc=empty() | {"identity": "curator"},
+    )  # fmt: skip
+    assert [e.line for e in earned] == ["upstreaming"] and skipped == []
+    assert (
+        earned[0].artifact == "registrations/2026-10-12-1.yaml" and earned[0].node == "and-reassoc"
+    )
+    assert doc["entries"][0]["line"] == "upstreaming" and doc["entries"][0]["automation"] is None
+    earned, skipped, _ = cli._merge_entries(
+        root, classification, identity="someone-else", commit="a" * 40, date="2026-10-12T00:00:00Z",
+        tooling=ledger.UNDECLARED, doc=empty() | {"identity": "someone-else"},
+    )  # fmt: skip
+    assert earned == [] and "names curator" in skipped[0]
+
+
+# --- F07-T66 (D-18, D-19 v3.27): a curator's credit correction ----------------------------------
+#
+# The live ledger credits the owner with two attempts another contributor made (graph PRs #68,
+# #69) and has no file for the contributor PR #71 names; ``ledger/`` is no path a mode accepts and
+# nothing wrote the ``revoked`` status ledger/v1 defines. A correction names the line, the identity
+# credited and the one that should be (or none); applying it revokes the old entry and writes the
+# corrected one. Nothing is deleted, and applying twice changes nothing.
+
+
+def correction(**kw: object) -> dict[str, object]:
+    doc: dict[str, object] = {
+        "schema": "credit-correction/v1",
+        "merge_commit": MERGE,
+        "line": "proof",
+        "node": NODE,
+        "artifact": "Proof.lean",
+        "from": "alice",
+        "to": "bob",
+        "reason": "the merge credited the merger; bob's commit is the submission (PR #71)",
+        "author": "founder",
+        "date": "2026-10-04",
+    }
+    doc.update(kw)
+    return doc
+
+
+def credited_to_alice(tmp_path: Path) -> dict[str, object]:
+    entry = proof()
+    assert entry is not None
+    ledger.record(tmp_path, "alice", entry)
+    return entry.as_dict()
+
+
+def test_a_correction_revokes_the_wrong_entry_and_credits_the_right_identity(
+    tmp_path: Path,
+) -> None:
+    original = credited_to_alice(tmp_path)
+    written = ledger.apply_correction(tmp_path, correction(), target=TARGET)
+    alice = ledger.entries_of(ledger.load(tmp_path, "alice"))
+    bob = ledger.entries_of(ledger.load(tmp_path, "bob"))
+    assert alice == [{**original, "status": "revoked"}], "kept, marked, never deleted"
+    assert bob == [{**original, "status": "active"}]
+    assert sorted(p.name for p in written) == ["alice.json", "bob.json"]
+
+
+def test_applying_a_correction_twice_changes_nothing(tmp_path: Path) -> None:
+    credited_to_alice(tmp_path)
+    ledger.apply_correction(tmp_path, correction(), target=TARGET)
+    before = {p.name: p.read_bytes() for p in (tmp_path / ledger.LEDGER_DIR).iterdir()}
+    assert ledger.apply_correction(tmp_path, correction(), target=TARGET) == []
+    after = {p.name: p.read_bytes() for p in (tmp_path / ledger.LEDGER_DIR).iterdir()}
+    assert after == before
+
+
+def test_a_correction_to_nobody_only_revokes(tmp_path: Path) -> None:
+    original = credited_to_alice(tmp_path)
+    written = ledger.apply_correction(tmp_path, correction(to=None), target=TARGET)
+    assert ledger.entries_of(ledger.load(tmp_path, "alice")) == [{**original, "status": "revoked"}]
+    assert [p.name for p in written] == ["alice.json"]
+    assert sorted(p.name for p in (tmp_path / ledger.LEDGER_DIR).iterdir()) == ["alice.json"]
+
+
+def test_a_correction_touches_only_the_line_it_names(tmp_path: Path) -> None:
+    credited_to_alice(tmp_path)
+    other = proof(node="and-swap-reassoc")
+    assert other is not None
+    ledger.record(tmp_path, "alice", other)
+    ledger.apply_correction(tmp_path, correction(), target=TARGET)
+    statuses = [(e["node"], e["status"]) for e in ledger.entries_of(ledger.load(tmp_path, "alice"))]
+    assert statuses == [(NODE, "revoked"), ("and-swap-reassoc", "active")]
+
+
+def test_a_correction_naming_no_entry_writes_nothing(tmp_path: Path) -> None:
+    credited_to_alice(tmp_path)
+    before = (tmp_path / ledger.LEDGER_DIR / "alice.json").read_bytes()
+    assert ledger.apply_correction(tmp_path, correction(node="ghost"), target=TARGET) == []
+    assert (tmp_path / ledger.LEDGER_DIR / "alice.json").read_bytes() == before
+    assert not (tmp_path / ledger.LEDGER_DIR / "bob.json").exists()
+
+
+def test_an_attempts_correction_matches_the_route_class(tmp_path: Path) -> None:
+    doc = empty()
+    for route in ("induction", "contradiction"):
+        entry = postmortem(doc, route_class=route)
+        assert entry is not None
+        doc = ledger.append(doc, entry)
+    ledger.write(tmp_path, doc)
+    ledger.apply_correction(
+        tmp_path,
+        correction(
+            line="attempts", artifact="attempts/2026-09-10-alice.yaml", route_class="contradiction"
+        ),
+        target=TARGET,
+    )
+    alice = ledger.entries_of(ledger.load(tmp_path, "alice"))
+    assert [(e["route_class"], e["status"]) for e in alice] == [
+        ("induction", "active"),
+        ("contradiction", "revoked"),
+    ]
+    assert [e["route_class"] for e in ledger.entries_of(ledger.load(tmp_path, "bob"))] == [
+        "contradiction"
+    ]

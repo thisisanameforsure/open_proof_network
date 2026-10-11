@@ -18,7 +18,7 @@ from __future__ import annotations
 import json
 import logging
 from collections.abc import Iterator
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from datetime import timedelta
 from typing import TYPE_CHECKING, Any
 
@@ -29,7 +29,9 @@ from starlette.responses import JSONResponse, Response
 from opn_api import clock as clockmod
 from opn_api import duplicates, frontier, pending, precheck, submissions
 from opn_api import identity as identitymod
+from opn_api import uses as usesmod
 from opn_api.app import ApiError
+from opn_gate import annex as annexmod
 from opn_gate import schemas
 
 if TYPE_CHECKING:
@@ -42,7 +44,6 @@ POSTMORTEM_SCHEMA = "postmortem/v1"
 ANNEX_SCHEMA = "annex/v1"
 APPROACH_SCHEMA = "approach-record/v1"
 ANNEX_MAX_BYTES = 64 * 1024  # F07 §6
-DEFAULT_LICENCE = "CC-BY-4.0"
 LICENCES: tuple[str, ...] = ("CC-BY-4.0", "CDLA-Permissive-2.0", "Apache-2.0")
 FILE_TIMESTAMP = "%Y%m%dT%H%M%SZ"  # sorts lexically, and is a legal file name everywhere
 
@@ -123,6 +124,19 @@ def holding_name(
         raise
 
 
+def string_cap(spec: Any) -> int | None:
+    """A property's string cap, stated on the property or on a ``oneOf``/``anyOf`` branch (a
+    nullable string, as ``approach-record/v1`` states ``model_and_tooling``; testers 2026-10-08)."""
+    if not isinstance(spec, dict):
+        return None
+    cap = spec.get("maxLength")
+    if isinstance(cap, int):
+        return cap
+    branches = [*spec.get("oneOf", []), *spec.get("anyOf", [])]
+    caps = [c for c in (string_cap(b) for b in branches) if c is not None]
+    return min(caps) if caps else None
+
+
 def check_caps(doc: dict[str, Any], schema_id: str) -> None:
     """R14, AC19: every capped string field, against the cap its own schema publishes.
 
@@ -131,7 +145,7 @@ def check_caps(doc: dict[str, Any], schema_id: str) -> None:
     """
     properties = schemas.load_schema(schema_id).get("properties", {})
     for field, spec in properties.items():
-        cap = spec.get("maxLength") if isinstance(spec, dict) else None
+        cap = string_cap(spec)
         value = doc.get(field)
         if isinstance(cap, int) and isinstance(value, str) and len(value) > cap:
             raise ApiError(
@@ -182,6 +196,73 @@ def node_dir(target_id: str, node_id: str) -> str:
     return f"targets/{target_id}/nodes/{node_id}/"
 
 
+#: F22-T3 (testers 2026-10-06, P3-16): what the gate checks for each kind of append, as the
+#: pull-request body says it. A kind not listed gets its path and its schema (F07-R9).
+APPEND_CHECKS: dict[str, str] = {
+    "gloss": (
+        "its path, its schema, the Lean file it describes (at that file's hash), that it "
+        "supersedes its chain's head, and that a model's draft changes no section a person "
+        "wrote (F20-R1 to R7, F21-R12)"
+    ),
+    "explainer": (
+        "its path, its schema, the merged proof it describes, its sections' steps against that "
+        "proof's outline, that it supersedes its chain's head, and that a model's draft changes "
+        "no section a person wrote (F20-R1 to R7, F21-R12)"
+    ),
+    "withdrawal": "its path, its schema, and that its author may withdraw that version (F20-R7)",
+    "defect claim": (
+        "its path, its schema, D-16's pre-triage, and its exhibit, elaborated in the sandbox"
+    ),
+    "revision request": "its path, its schema, and any exhibit, elaborated in the sandbox",
+    "steward record": (
+        "its path, its schema, its signature under the graph's approval key, and that its "
+        "admission agrees with policy.json (F23-R9)"
+    ),
+    "approval": (
+        "its path, its schema, its signature under the graph's approval key, and that the version "
+        "and sections it approves exist (F23-R10, R11)"
+    ),
+    # D-25 v3.35 (F05-T29, F23-T12): a proposal is unsigned; a confirmation is signed.
+    "literature record": (
+        "its path and its schema (F07-R9); an unsigned literature record is a proposal and "
+        "counts for nothing until a steward of the target or a curator confirms it (D-25 v3.35)"
+    ),
+    "literature confirmation": (
+        "its path, its schema, its signature under the graph's approval key, and that its signer "
+        "is an active steward of the target or a listed curator (D-25, D-32 v3.35)"
+    ),
+    # F25-R5, R6 (D-3, D-10 v3.37): the two records outside the node.
+    "registration record": (
+        "its path, its schema, that its submitter is a listed curator or an active steward of the "
+        "target and is who the pull request acts for, that its proof names a node of the target "
+        "and that node's passing attestation, and that its graph commit is in the graph's "
+        "history (F25-R5)"
+    ),
+    "display name": (
+        "its path, its schema, its signature under the graph's approval key, and that it is for "
+        "the pseudonym the pull request acts for and no other (F25-R6, D-3 v3.37)"
+    ),
+}
+DEFAULT_CHECKS = "its path and its schema (F07-R9)"
+
+
+def article(word: str) -> str:
+    """``a`` or ``an`` for ``word``, by its first letter: every kind named here is spelt so that
+    its vowel letter is its sound (an annex, an explainer, an approach record)."""
+    return "an" if word[:1].lower() in "aeiou" else "a"
+
+
+def pr_body(what: str, pseudonym: str, path: str) -> str:
+    """An append's pull-request body: the kind with its article, who filed it, and what the gate
+    checks for that kind; it claims nothing a kernel checks."""
+    checks = APPEND_CHECKS.get(what, DEFAULT_CHECKS)
+    return (
+        f"{article(what).capitalize()} {what} appended through the Open Proof Network service by "
+        f"`{pseudonym}`. It claims nothing a kernel checks: the gate checks {checks}.\n\n"
+        f"`{path}`\n"
+    )
+
+
 def append_pr(  # noqa: PLR0913 — one pull request, described
     ctx: Context,
     identity: Identity,
@@ -195,29 +276,40 @@ def append_pr(  # noqa: PLR0913 — one pull request, described
     node_id: str | None,
     written: str | None = None,
     defect_class: str | None = None,
+    subject_prints: tuple[str, ...] = (),
+    subject_slots: tuple[str, ...] = (),
+    extra_body: str = "",
+    branch_prefix: str = submissions.APPEND_BRANCH_PREFIX,
+    hold_name: bool = True,
 ) -> dict[str, Any]:
     """One appended file, one branch, one pull request (R11, R2), recorded as ``kind`` so its
     state can be watched through ``GET /submissions/{id}`` (F07-T16). F07-T35: an append
-    identical to one open for the same node (or target) is refused before anything is pushed."""
+    identical to one open for the same node (or target) is refused before anything is pushed.
+    F21-Q5: ``subject_prints`` are recorded beside the content fingerprints (a gloss's or
+    explainer's subject key), and ``subject_slots`` are held with them, so two requests for one
+    slot arriving together cannot both open (F21-R5). ``extra_body`` follows the body's own lines
+    (F22-T4: the gate's warnings to a gloss or explainer). ``branch_prefix`` is ``append/``, which
+    the merge actor takes, except for a steward record under reviewed admission (F23-R8:
+    ``curate/``, left to a curator). ``hold_name`` is the same-second rule (``holding_name``),
+    written for files named ``<timestamp>-<pseudonym>``; a route whose file has one fixed path
+    and its own one-writer rule (``names/<pseudonym>.yaml``, F25-R6) turns it off, since a hold
+    on a path that never changes is a hold on every later write."""
     owner = node_id or target_id
     prints = duplicates.check_append(ctx, kind, owner, written or content)
     append_id = identitymod.new_ulid(ctx.clock.now())
-    with (
-        duplicates.holding(ctx, [duplicates.slot(kind, owner, fp) for fp in prints], kind),
-        holding_name(ctx, identity, path, kind=kind, owner=owner),
-    ):
+    slots = [duplicates.slot(kind, owner, fp) for fp in prints] + list(subject_slots)
+    name_hold = (
+        holding_name(ctx, identity, path, kind=kind, owner=owner) if hold_name else nullcontext()
+    )
+    with duplicates.holding(ctx, slots, kind), name_hold:
         pr = submissions.open_pr(
             ctx,
             identity,
-            branch=submissions.APPEND_BRANCH_PREFIX + append_id,
+            branch=branch_prefix + append_id,
             files={path: content},
             subject=subject,
             title=subject,
-            body=(
-                f"A {what} appended through the Open Proof Network service by "
-                f"`{identity.pseudonym}`. It claims nothing: the gate checks its path and its "
-                f"schema (F07-R9).\n\n`{path}`\n"
-            ),
+            body=pr_body(what, identity.pseudonym, path) + extra_body,
         )
     log.info("%s %s opened %s for %s", what, append_id, pr.url, identity.id)
     pending.record(
@@ -228,7 +320,7 @@ def append_pr(  # noqa: PLR0913 — one pull request, described
         target_id=target_id,
         node_id=node_id,
         pr=pr,
-        fingerprints=prints,
+        fingerprints=[*prints, *subject_prints],
         defect_class=defect_class,
     )
     return {"id": append_id, "path": path, "pr_url": pr.url, "pr_number": pr.number}
@@ -274,10 +366,19 @@ async def post_postmortems(ctx: Context, request: Request) -> Response:
 # --- POST /annexes (D-31) -------------------------------------------------------------------------
 
 
-def check_licence(raw: Any) -> str:
-    """D-23's amendment: annex prose is licensed by its author at submission, or not accepted."""
+def check_licence(raw: Any, *, licensed: str = "the annex is licensed") -> str:
+    """D-23's amendment: annex prose is licensed by its author at submission, or not accepted.
+    F05-T17: an absent licence is refused, not defaulted — until 2026-10-01 it was silently
+    recorded as ``CC-BY-4.0``, a choice the record then attributed to an author who never made
+    it. ``licensed`` names what is being licensed, since ``POST /glosses`` shares the check."""
     if raw is None:
-        return DEFAULT_LICENCE
+        raise ApiError(
+            400,
+            "licence-required",
+            f"licence is required: {licensed} by its author at submission (D-23); "
+            f"one of {', '.join(LICENCES)}",
+            details={"accepted": list(LICENCES)},
+        )
     if raw not in LICENCES:
         raise ApiError(400, "licence-invalid", f"licence must be one of {', '.join(LICENCES)}")
     return str(raw)
@@ -291,7 +392,37 @@ def annex_file(doc: dict[str, Any], text: str) -> str:
 
 
 #: F05-T8: the fields ``POST /annexes`` reads; any other top-level key is refused.
-ANNEX_FIELDS: tuple[str, ...] = ("node_id", "text", "licence", "model_and_tooling")
+ANNEX_FIELDS: tuple[str, ...] = ("node_id", "text", "licence", "model_and_tooling", "steps")
+#: F18-R6 (D-31 v3.26): an annex that names its steps is written as this version.
+STEPPED_ANNEX_SCHEMA = annexmod.STEPPED_SCHEMA
+
+
+def check_steps(ctx: Context, target_id: str, front: dict[str, Any], raw: Any) -> None:
+    """F18-R6: ``steps`` held to ``annex/v2`` and to unique ids (``record-invalid``), and taken
+    only for a target whose pinned gate reads ``annex/v2`` (``annex-steps-unsupported``): an
+    older gate refuses such an append, so the pull request would open and go red. The summaries
+    are the author's text, written as sent and acted on by nothing (C9)."""
+    front["schema"] = STEPPED_ANNEX_SCHEMA
+    front["steps"] = raw
+    validated(front, STEPPED_ANNEX_SCHEMA)
+    repeated = annexmod.duplicate_step_ids(front)
+    if repeated:
+        raise ApiError(
+            400,
+            "record-invalid",
+            "steps: the step id " + ", ".join(repeated) + " is named more than once; a stepped "
+            "annex's ids are unique, since a skeleton's hole is matched to a step by its name",
+            details={"duplicates": repeated},
+        )
+    if not usesmod.pinned_from(
+        ctx, target_id, ctx.settings.annex_steps_from, what="stepped annexes"
+    ):
+        raise ApiError(
+            400,
+            "annex-steps-unsupported",
+            f"the gate {target_id} pins does not read a stepped annex (annex/v2, D-31 v3.26) "
+            "yet; it reaches a target at its re-pin. Submit the annex without steps",
+        )
 
 
 async def post_annexes(ctx: Context, request: Request) -> Response:
@@ -314,9 +445,14 @@ async def post_annexes(ctx: Context, request: Request) -> Response:
         "contributor": identity.pseudonym,
         "licence": check_licence(fields.get("licence")),
         "date": clockmod.render(ctx.clock.now()),
-        "model_and_tooling": _declared(fields.get("model_and_tooling")),
+        "model_and_tooling": declared(fields.get("model_and_tooling")),
     }
-    validated(front, ANNEX_SCHEMA)
+    written = text
+    if "steps" in fields:
+        check_steps(ctx, target_id, front, fields["steps"])
+        written = text + "\n" + yaml.safe_dump(front["steps"], sort_keys=True, allow_unicode=True)
+    else:
+        validated(front, ANNEX_SCHEMA)
     content = annex_file(front, text)
     digest = schemas.content_hash(content.encode())
     path = node_dir(target_id, node_id) + f"annex/{digest}.md"
@@ -328,7 +464,7 @@ async def post_annexes(ctx: Context, request: Request) -> Response:
         subject=f"annex: {node_id}",
         what="annex",
         kind="annex",
-        written=text,
+        written=written,
         target_id=target_id,
         node_id=node_id,
     )
@@ -336,11 +472,23 @@ async def post_annexes(ctx: Context, request: Request) -> Response:
     return JSONResponse(body, status_code=201)
 
 
-def _declared(raw: Any) -> str | None:
+def declared(raw: Any, field: str = "model_and_tooling", *, cap: int | None = None) -> str | None:
+    """A declared model and tooling (D-23): ``None`` for null or empty, else the string; one that
+    is not a string, or is longer than ``cap`` characters, is ``tooling-invalid`` naming
+    ``field``. An annex's cap is its schema's, checked with every capped field (``check_caps``);
+    a gloss's ``drafted_with`` sits under a ``oneOf`` that check cannot read, so it passes its cap
+    here (F21-R6)."""
     if raw is None or raw == "":
         return None
     if not isinstance(raw, str):
-        raise ApiError(400, "tooling-invalid", "model_and_tooling must be a string")
+        raise ApiError(400, "tooling-invalid", f"{field} must be a string")
+    if cap is not None and len(raw) > cap:
+        raise ApiError(
+            400,
+            "tooling-invalid",
+            f"{field} is {len(raw)} characters; the cap is {cap}",
+            details={"field": field, "length": len(raw), "cap": cap},
+        )
     return raw
 
 

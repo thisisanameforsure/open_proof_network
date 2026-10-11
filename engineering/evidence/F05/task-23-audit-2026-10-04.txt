@@ -1,0 +1,69 @@
+F05-T23 + F09-T15 — GET /errors.json and the MCP read list_error_codes (audit 2026-10-04)
+Owner-approved surfaces: GET /errors.json (an open read with no D-35 row) and the D-28 read
+list_error_codes(prefix?). Both serve opn_gate.codes.document() (F13-T29).
+
+Verification command:
+  uv run --frozen pytest -q -m "not lean and not docker and not network" \
+    api/tests/test_finding_error_catalog.py api/tests/test_mcp_surface.py \
+    api/tests/test_finding_route_index.py
+
+What changed:
+  api/opn_api/errorcodes.py   get_errors: the catalog, ?prefix= narrows it,
+                              Cache-Control: public, max-age=3600 (it changes only with a deploy)
+  api/opn_api/routes.py       one RouteSpec and one PURPOSES line, a contiguous block at the end
+  api/opn_api/mcp/reads.py    list_error_codes: GET /errors.json body for body, prefix passed as
+                              the route's query parameter (pattern ^[a-z0-9_-]{0,64}$)
+  api/opn_api/mcp/bijection.py   the row (plain path GET /errors.json)
+  api/opn_api/mcp/schemas/list_error_codes/v1.json   the result schema (beside the adapter, not
+                              in gate/schemas, F09-Q5)
+  docs/architecture_decisions.html   D-28's read table: a list_error_codes row and a notation
+                              note of 2026-10-04 (test_d28_rows_verbatim reads the doc; the doc
+                              leads, as for list_my_claims on 2026-09-24). No decision changes.
+  api/tests/test_mcp_surface.py   READS restated to include list_error_codes (the frozen surface)
+
+Deploy: opn_gate is copied whole into the Lambda package, so codes.py travels; no data file,
+no api-deploy.yml change.
+
+RED (before the route and the tool existed):
+E       ValueError: not enough values to unpack (expected 1, got 0)
+E       AssertionError: {"error":"not-found","message":"no such route"}
+E       assert 404 == 200
+E        +  where 404 = <Response [404 Not Found]>.status_code
+E       AssertionError: {"error":"not-found","message":"no such route"}
+E       assert 404 == 200
+E        +  where 404 = <Response [404 Not Found]>.status_code
+E       KeyError: 'codes'
+E       AssertionError: assert 'list_error_codes' in {'server_info': Tool(name='server_info', title=None, description='Protocol version, gate-spec hashes, schema index and...e, readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=None), meta=None, execution=None), ...}
+E       KeyError: 'list_error_codes'
+FAILED api/tests/test_finding_error_catalog.py::test_the_route_is_an_open_read_with_no_d35_row
+FAILED api/tests/test_finding_error_catalog.py::test_the_route_serves_the_whole_catalog_without_a_token
+FAILED api/tests/test_finding_error_catalog.py::test_the_route_filters_by_prefix
+FAILED api/tests/test_finding_error_catalog.py::test_every_code_a_response_carries_is_in_the_catalog
+FAILED api/tests/test_finding_error_catalog.py::test_the_tool_is_the_route_body_for_body
+FAILED api/tests/test_finding_error_catalog.py::test_the_tool_needs_no_token_and_maps_to_the_route
+6 failed, 2 warnings in 0.62s
+
+GREEN:
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+17 passed, 2 warnings in 2.33s
+Wider: api/tests/test_mcp_*.py, test_finding_mcp_*.py, test_entrypoints.py — 104 passed.
+ruff check, ruff format --check and mypy (strict) clean on the files touched.
+
+Proposed ledger lines
+  F05 §10 Tasks: T23 ✓ (audit 2026-10-04): GET /errors.json serves opn_gate.codes (F13-T29).
+  F09 §10 Tasks: T15 ✓ (audit 2026-10-04): list_error_codes(prefix?), D-28 notation note 2026-10-04.
+
+Proposed guide text (the lead edits gate/agents/AGENTS.md; a row for the MCP appendix too)
+-----------------------------------------------------------------------------------------
+### Error codes
+
+Every refusal names its rule by a code: the gate in a verdict's diagnostic (`code`), the service
+in a response's `error` field, an MCP tool in its error result's `error`. `GET $OPN_API/errors.json`
+(MCP `list_error_codes`) lists every code with where it is met (`gate`, `api` or `both`), the
+D-4 step that emits it, what it means and what to do about it; `?prefix=witness-` narrows the list.
+A few codes are not errors at all: a passing verdict records `partial-submission`,
+`hazards-acknowledged` and the like, and the catalog says so. The catalog is held to the code
+by the network's tests, so a code you meet that is not in it is a bug worth reporting.
+
+Appendix row:
+| `list_error_codes(prefix?)` | `GET /errors.json` | |

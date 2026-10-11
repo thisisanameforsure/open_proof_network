@@ -29,15 +29,22 @@ from __future__ import annotations
 import json
 import re
 import subprocess
-from dataclasses import dataclass
+from collections.abc import Sequence
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any, Literal
 
 from opn_gate import graph as graphmod
-from opn_gate import layout, records, schemas
+from opn_gate import judging, layout, records, schemas
 from opn_gate.diagnostic import Diagnostic
 from opn_gate.steps.base import RunContext, StepResult
-from opn_gate.toolchain import ArtifactRequest, MetaprogramResult, ResolvedToolchain
+from opn_gate.toolchain import (
+    ArtifactRequest,
+    MetaprogramResult,
+    ResolvedToolchain,
+    Toolchain,
+    module_output_path,
+)
 
 Kind = Literal["proof", "counterexample", "vacuity", "partial", "reduction"]
 
@@ -515,12 +522,22 @@ def request(  # noqa: PLR0913 — the request's inputs, each named
     )
 
 
-def run(
-    ctx: RunContext, tc: ResolvedToolchain, req: ArtifactRequest, kind: Kind
+def run(  # noqa: PLR0913 — the request, and where it is read from
+    ctx: RunContext,
+    tc: ResolvedToolchain,
+    req: ArtifactRequest,
+    kind: Kind,
+    *,
+    seam: Toolchain | None = None,
+    search_path: Sequence[Path] | None = None,
 ) -> tuple[Artifact | None, StepResult | None]:
-    """Call the metaprogram and turn its answer into an ``Artifact`` or a step failure."""
+    """Call the metaprogram and turn its answer into an ``Artifact`` or a step failure. ``seam``
+    and ``search_path`` are the judging directory's when the request is the compiled form
+    (F02-T12); by default the elaborating form's, over the build."""
+    reader = seam if seam is not None else ctx.toolchain
+    where = list(search_path) if search_path is not None else [ctx.build_dir]
     try:
-        result = ctx.toolchain.artifact_type(tc, req, [ctx.build_dir], timeout_s=ctx.wallclock_s)
+        result = reader.artifact_type(tc, req, where, timeout_s=ctx.wallclock_s)
     except subprocess.TimeoutExpired:
         return None, StepResult.failed(
             "timeout", f"the artifact-type check exceeded the {ctx.wallclock_s:g}s cap"
@@ -569,6 +586,69 @@ ALTERNATE_KEY = "alternate"
 ARTIFACT_KEY = "artifact"
 
 
+def _annex_steps_problem(ctx: RunContext, node_dir: Path, artifact: Artifact) -> Diagnostic | None:
+    """F18-R6: ``postmerge.check_annex_steps`` over the assembly step 2 took and the holes the
+    extractor just named; ``None`` when step 2 recorded no assembly."""
+    from opn_gate import postmerge  # noqa: PLC0415 — postmerge imports the steps
+
+    chosen = ctx.data.get(PARTIAL_KEY)
+    if not isinstance(chosen, dict) or not chosen.get("file"):
+        return None
+    text = Path(str(chosen["file"])).read_text(encoding="utf-8")
+    return postmerge.check_annex_steps(node_dir, text, [h.name for h in artifact.holes])
+
+
+#: F02-T12, F08-T29b: the artifacts with no holes, judged from compiled modules only.
+COMPILED_KINDS: tuple[Kind, ...] = ("counterexample", "vacuity")
+#: F02-T13: the artifacts with holes, whose assembly is read from compiled modules too: its olean
+#: (the one step 4 replayed) is added through the kernel into an environment imported only from
+#: modules of record, and the holes are extracted from that.
+HOLE_KINDS: tuple[Kind, ...] = ("partial", "reduction")
+#: F02-T13: the judging area a partial's probes are staged in, beside the judging directory's
+#: other inputs and never in the work directory.
+HOLES_AREA = "holes"
+
+
+def _run_compiled(
+    ctx: RunContext, tc: ResolvedToolchain, req: ArtifactRequest, kind: Kind
+) -> tuple[Artifact | None, StepResult | None]:
+    """F02-T12, F08-T29b: the statement built from the node's own files in the judging directory,
+    the artifact read from the module step 4 replayed there; both mounted read-only, nothing
+    writable, and no source an argument.
+
+    F02-T13: a partial's (or a reduction's) assembly too. Its olean and the graph modules it
+    imports (the deps' and uses' ``Proof`` modules, the generated ``Context``s) are read by path
+    from ``modules/``, which is not on the program's ``LEAN_PATH``: only the statement's own
+    build is, so every module the program imports with its extensions is one the gate built from
+    the record (the target's definitions, the node's ``Context`` and ``Statement``) or the
+    toolchain's and Mathlib's. The sibling and ancestor probes are staged in a judging area."""
+    node = ctx.node
+    judge = ctx.data.get(judging.KEY)
+    if node is None or not isinstance(judge, judging.Judge):
+        return None, StepResult.failed("step-order", "the artifact check needs step 4's build")
+    target_dir = layout.gate_spec_path(ctx.graph_root, ctx.claim.target_id).parent
+    problem = judging.node_statement(
+        ctx.toolchain, tc, target_dir, node, judge, timeout_s=ctx.wallclock_s
+    )
+    if problem is not None:
+        return None, StepResult(ok=False, diagnostic=problem)
+    build = judge.statement / "build"
+    compiled = replace(req, statement_olean=judging.statement_olean(build, node.node_id))
+    if kind not in HOLE_KINDS:
+        seam = judging.confined(ctx.toolchain, read_only=[judge.modules, build])
+        return run(ctx, tc, compiled, kind, seam=seam, search_path=[judge.modules])
+    probes = judging.area(ctx.workdir, HOLES_AREA)
+    compiled = replace(
+        compiled,
+        artifact_olean=judge.modules / module_output_path(req.artifact_module, ".olean"),
+        modules=judge.modules,
+        siblings=stage_siblings(probes, node),
+        ancestors=stage_ancestors(probes, node),
+    )
+    seam = judging.confined(ctx.toolchain, read_only=[judge.modules, build, probes])
+    return run(ctx, tc, compiled, kind, seam=seam, search_path=[build])
+
+
 def judge(ctx: RunContext, tc: ResolvedToolchain) -> StepResult:
     """D-12's shape rule, at the end of step 4 where the build it needs exists (F07-R4, R5;
     dispatched in F11-T4). Not a step of its own: the verdict's steps are D-4's numbering,
@@ -603,15 +683,21 @@ def judge(ctx: RunContext, tc: ResolvedToolchain) -> StepResult:
         node_dir=staged_dir,
         artifact=proof,
         artifact_module=layout.node_module(node.node_id, "Proof"),
-        # F07-T7: only a partial's holes become nodes, so only a partial asks about siblings.
-        siblings=stage_siblings(ctx.workdir, node) if kind == "partial" else None,
-        # F07-T34: and only a partial's holes can close a cycle, so only a partial asks this.
-        ancestors=stage_ancestors(ctx.workdir, node) if kind == "partial" else None,
     )
-    artifact, failure = run(ctx, tc, req, kind)
+    # F02-T12, T13: every artifact that reaches here is judged from compiled modules. F07-T7,
+    # F07-T34: only a partial's holes become nodes or can close a cycle, so only a partial asks
+    # about siblings and ancestors; ``_run_compiled`` stages both in the judging directory.
+    artifact, failure = _run_compiled(ctx, tc, req, kind)
     if failure is not None:
         return failure
     assert artifact is not None
+    if kind == "partial":
+        # F18-R6 (D-31 v3.26): a skeleton that cites a stepped annex names each hole after one of
+        # its steps. The names are the extractor's, known only now, so the refusal is step 4's
+        # last word and comes before the merge; the post-merge writer repeats it as a backstop.
+        stepped = _annex_steps_problem(ctx, node.path, artifact)
+        if stepped is not None:
+            return StepResult(ok=False, diagnostic=stepped)
     return StepResult.passed_with(
         "artifact-" + ("reduction" if artifact.is_reduction else artifact.kind),
         f"{artifact.kind}: {artifact.decl} declares {artifact.declared}"

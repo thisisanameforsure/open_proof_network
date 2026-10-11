@@ -20,15 +20,17 @@ import json
 import re
 import time
 from typing import TYPE_CHECKING, Any
+from urllib.parse import urlencode
 
 import yaml
 
-from opn_api import frontier, precheck, requests
-from opn_api.app import ApiError, CachedFile
+from opn_api import duplicates, frontier, pending, precheck, requests
+from opn_api import glosses as glossroutes
+from opn_api.app import ApiError, CachedDir, CachedFile
 from opn_api.githost import GitHostError
 from opn_api.mcp import demarcate, results
-from opn_api.mcp.calls import ID_PARAM, Call, Source, Tool, error, params
-from opn_gate import context, layout, schemas
+from opn_api.mcp.calls import ID_PARAM, Call, Source, Tool, ToolError, error, params
+from opn_gate import context, explainers, glosses, layout, products, schemas
 
 if TYPE_CHECKING:
     from opn_api.app import Context
@@ -45,7 +47,13 @@ NODE_FILES: tuple[tuple[str, bool], ...] = (  # (file, required): the raw files 
 #: The frontier version whose entry fields the filters are drawn from. The newest known
 #: one: its field set is a superset of the older versions', and a filter naming a field
 #: an older document does not carry simply matches nothing (F11-R4).
-FRONTIER_SCHEMA = "frontier/v3"
+FRONTIER_SCHEMA = "frontier/v5"  # F09-T24: `circular`, `literature`, `literature_proposed` too
+#: The ``CONTEXT.json`` versions get_node serves: the gate module's own set, plus the version the
+#: v3.35 re-pin first renders (F09-T24), so the service accepts it whichever side of that
+#: re-pin it is deployed on (the deploy-window lesson of 2026-09-11).
+CONTEXT_SCHEMAS: tuple[str, ...] = tuple(
+    dict.fromkeys((*context.ACCEPTED, "context/v5"))  # ordered, without a repeat
+)
 SCHEMA_NAME_RE = re.compile(r"^[a-z][a-z0-9-]*/v[1-9][0-9]*$")
 FRONT_MATTER_RE = re.compile(r"\A---[ \t]*\r?\n(?P<yaml>.*?)\r?\n---[ \t]*\r?\n", re.S)
 
@@ -66,7 +74,7 @@ def committed(ctx: Context, path: str, *, optional: bool = False) -> bytes | Non
         return cached.body
     try:
         got = ctx.githost.fetch_raw(
-            ctx.settings.graph_repo, ctx.settings.graph_branch, path, etag=cached.etag
+            ctx.settings.graph_repo, ctx.head or ctx.settings.graph_branch, path, etag=cached.etag
         )
     except GitHostError as exc:
         if cached.body is not None:
@@ -89,13 +97,41 @@ def committed(ctx: Context, path: str, *, optional: bool = False) -> bytes | Non
 
 
 def listing(ctx: Context, path: str) -> list[str]:
-    """The files under a directory at ``main``; an absent directory is an empty listing."""
+    """The files under a directory at ``main``; an absent directory is an empty listing.
+
+    F07-T68: a listing is a Contents-API call as the App, so it is read once per head of
+    ``main`` (``frontier.pin_head``; once per ``frontier_max_stale_s`` when the head is not
+    known) and kept. While the App's budget is held at the reserve it is not read at all: the
+    last listing of the path is served, and with none the call is a ``host-budget-exhausted``
+    error naming the reset, as the other held reads say it."""
+    frontier.pin_head(ctx)
+    ref = ctx.head or ctx.settings.graph_branch
+    cached = ctx.listings.get(path)
+    now = time.monotonic()
+    if (
+        cached is not None
+        and cached.ref == ref
+        and (ctx.head is not None or now - cached.fetched_at < ctx.settings.frontier_max_stale_s)
+    ):
+        return _names(cached.names)
+    hold = pending.budget_hold(ctx)
+    if hold is not None:
+        if cached is not None:
+            return _names(cached.names)
+        raise error("host-budget-exhausted", hold, "graph")
     try:
-        names = ctx.githost.list_dir(ctx.settings.graph_repo, ctx.settings.graph_branch, path)
+        names = ctx.githost.list_dir(ctx.settings.graph_repo, ref, path)
     except GitHostError as exc:
         raise error(
             "graph-unreachable", f"cannot list {path} in the graph: {exc}", "graph"
         ) from exc
+    if len(ctx.listings) >= pending.MAX_REMEMBERED:
+        ctx.listings.clear()
+    ctx.listings[path] = CachedDir(ref, names, now)
+    return _names(names)
+
+
+def _names(names: list[str] | None) -> list[str]:
     return [n for n in (names or []) if n != ".gitkeep"]
 
 
@@ -193,11 +229,46 @@ async def get_target(call: Call, args: dict[str, Any]) -> dict[str, Any]:
         approaches.append(
             {"path": path, "record": demarcate.record(document(call.ctx, path), path)}
         )
+    # F25-R15 (D-3 v3.37): the target's registrations, as graph/v7 publishes them; a graph.json
+    # rendered before v7 carries none, and the answer says so with an empty list.
+    registrations = graph.get("registrations")
     return {
         "target_id": target_id,
         "graph": graph,
         "approaches": approaches,
+        "registrations": registrations if isinstance(registrations, list) else [],
         "untrusted_note": demarcate.UNTRUSTED_NOTE,
+    }
+
+
+async def list_registrations(call: Call, args: dict[str, Any]) -> dict[str, Any]:
+    """F25-R15 (D-3, D-10 v3.37): every registration the products derive per target, read from
+    ``targets/index.json``'s rows (``targets-index/v10``'s ``registrations``), in the index's
+    order: nothing is ranked (D-25) and nothing is recorded. An index rendered before v10 carries
+    the field on no row, so it lists none. Every value is an identifier, an enum or a url the
+    products built from validated records, so nothing is demarcated."""
+    ctx = call.ctx
+    target_id = args.get("target_id")
+    if target_id is not None:
+        target_id = check_id(target_id, "target_id")
+    index_path = "targets/index.json"
+    index = document(ctx, index_path)
+    entries = [e for e in index.get("targets") or [] if isinstance(e, dict)]
+    if target_id is not None:
+        entries = [e for e in entries if e.get("target_id") == target_id]
+        if not entries:
+            raise error("not-found", f"no target {target_id} in {index_path} at main", "graph")
+    found: list[dict[str, Any]] = []
+    for entry in entries:
+        rows = entry.get("registrations")
+        for row in rows if isinstance(rows, list) else []:
+            if isinstance(row, dict):
+                found.append({"target_id": str(entry.get("target_id")), **row})
+    return {
+        "read_at": ctx.head or ctx.settings.graph_branch,
+        "target_id": target_id,
+        "count": len(found),
+        "registrations": found,
     }
 
 
@@ -206,6 +277,18 @@ def _entry_fields() -> dict[str, Any]:
         "properties"
     ]
     return props
+
+
+def filters_param() -> dict[str, Any]:
+    """F09-T21 (Q20): the filters parameter, its fields named from the frontier schema the
+    filters are checked against, so the description cannot drift from what is accepted."""
+    fields = ", ".join(f"`{f}`" for f in sorted(_entry_fields()))
+    return {
+        "type": "object",
+        "description": "Field: value pairs, all of which an entry must match: equality on a "
+        "scalar field, containment on a list field, a dotted path into an object field "
+        f"(`tags.library`). The fields: {fields}.",
+    }
 
 
 def _resolve(entry: dict[str, Any], field: str) -> tuple[bool, Any]:
@@ -217,12 +300,24 @@ def _resolve(entry: dict[str, Any], field: str) -> tuple[bool, Any]:
     return True, node
 
 
+def _properties_of(node: Any) -> dict[str, Any]:
+    """A schema node's object properties, read through a ``oneOf``/``anyOf`` as well (F09-T24:
+    ``literature`` and ``literature_proposed`` are nullable objects, and a dotted path into one
+    is a path into its object branch; on an entry where it is null the filter matches nothing)."""
+    if not isinstance(node, dict):
+        return {}
+    out: dict[str, Any] = dict(node.get("properties", {}))
+    for branch in [*node.get("oneOf", []), *node.get("anyOf", [])]:
+        out.update(_properties_of(branch))
+    return out
+
+
 def _known_field(field: str) -> bool:
     props = _entry_fields()
     steps = field.split(".")
     node: Any = {"properties": props}
     for step in steps:
-        inner = node.get("properties", {}) if isinstance(node, dict) else {}
+        inner = _properties_of(node)
         if step not in inner:
             return False
         node = inner[step]
@@ -299,8 +394,19 @@ def node_context(ctx: Context, target_id: str, node_id: str) -> tuple[dict[str, 
     path = context.context_path(target_id, node_id)
     raw = committed(ctx, path, optional=True)
     if raw is not None:
+        # F08-T22: a committed bundle is validated against the version it names, within the
+        # versions the bundle's module accepts — a graph rendered before the re-pin that first
+        # writes ``context/v2`` still carries v1, and the service deploys before that re-pin.
+        doc = parse(raw, path)
+        declared = str(doc.get("schema"))
+        if declared not in CONTEXT_SCHEMAS:
+            raise error(
+                "context-invalid",
+                f"{path} declares {declared!r}; expected one of {', '.join(CONTEXT_SCHEMAS)}",
+                "graph",
+            )
         try:
-            return schemas.validate(parse(raw, path), context.SCHEMA), "file"
+            return schemas.validate(doc, declared), "file"
         except schemas.SchemaError as exc:
             raise error("context-invalid", f"{path} does not validate: {exc}", "graph") from exc
     states = context.graph_states({"nodes": precheck.graph_doc(ctx).get(target_id, [])})
@@ -333,8 +439,98 @@ def closing_route(node_id: str, statement: str | None) -> dict[str, Any]:
     }
 
 
+#: The ``glosses.json`` versions get_node reads (F21-R6): v1 until a graph's re-pin renders v2,
+#: which adds sections, shown and pending words and ``drafted_with``; the gate writes v2.
+GLOSSES_SCHEMAS: frozenset[str] = frozenset({"glosses/v1", products.GLOSSES_SCHEMA})
+
+
+def node_chains(ctx: Context, target_id: str, node_id: str) -> tuple[list[dict[str, Any]], str]:
+    """F20-R11: the node's ``glosses/v1`` or ``glosses/v2`` subjects — each Lean file with the
+    gloss chains filed on it, each merged proof artifact with its explainer chains — from the
+    committed ``targets/<id>/glosses.json``, or derived from the node's files at ``main`` by the
+    gate's own function while the graph carries none (F10-Q7; ``derived``). Every version gains
+    its prose, as demarcated untrusted data (D-28)."""
+    path = f"targets/{target_id}/{products.GLOSSES_FILE}"
+    raw = committed(ctx, path, optional=True)
+    if raw is not None:
+        doc = parse(raw, path)
+        try:
+            # F21-R6: the committed product is validated against the version it declares, v1 or
+            # v2 — the live graph holds glosses/v1 until the re-pin renders v2 (D-34).
+            declared = doc.get("schema")
+            if declared not in GLOSSES_SCHEMAS:
+                msg = f"declares {declared!r}, not one of {', '.join(sorted(GLOSSES_SCHEMAS))}"
+                raise schemas.SchemaError(msg)
+            schemas.validate(doc, str(declared))
+        except schemas.SchemaError as exc:
+            raise error("glosses-invalid", f"{path} does not validate: {exc}", "graph") from exc
+        subjects = [s for s in doc["subjects"] if s.get("node") == node_id]
+        source = "file"
+    else:
+        try:
+            subjects = glossroutes.node_glosses(
+                ctx, target_id, node_id, lambda directory: listing(ctx, directory)
+            )
+        except ApiError as exc:
+            raise from_api_error(exc) from exc
+        source = "derived"
+    for subject in subjects:
+        for chain in subject["chains"]:
+            for version in chain["versions"]:
+                where = f"targets/{target_id}/{version['path']}"
+                found = committed(ctx, where, optional=True)
+                body = None
+                if found is not None:
+                    _front, body = glosses.split_front_matter(text(found, where))
+                version["text"] = demarcate.wrap(body, where) if body is not None else None
+                if isinstance(version.get("drafted_with"), str):
+                    # F21-R7, C9: the contributor's own words on the model they used
+                    version["drafted_with"] = demarcate.wrap(
+                        version["drafted_with"], f"{where}#drafted_with"
+                    )
+    return subjects, source
+
+
+def node_outlines(
+    ctx: Context, target_id: str, subjects: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
+    """F20-R11: F19's committed outline of each of the node's merged proof artifacts, or
+    ``None`` beside an artifact not yet outlined — the step ids an explainer's sections name."""
+    out = []
+    for subject in subjects:
+        if subject["record"] != "explainer" or subject["kind"] == "absent":
+            continue
+        digest = subject["lean_hash"]
+        path = f"targets/{target_id}/{explainers.OUTLINES_DIR}/{digest}.json"
+        raw = committed(ctx, path, optional=True)
+        out.append(
+            {
+                "proof": digest,
+                "file": subject["file"],
+                "path": path,
+                "outline": parse(raw, path) if raw is not None else None,
+            }
+        )
+    return out
+
+
+#: The prose sections of a node's bundle a caller may leave out (F09-T19, Q18), in answer order.
+PROSE_SECTIONS: tuple[str, ...] = (
+    "annexes",
+    "explainers",
+    "outlines",
+    "gloss_chains",
+    "explainer_chains",
+)
+#: The sections read from the node's chains of words, and so answered with ``chains_source``.
+CHAIN_SECTIONS = frozenset({"outlines", "gloss_chains", "explainer_chains"})
+
+
 async def get_node(call: Call, args: dict[str, Any]) -> dict[str, Any]:
     node_id = check_id(args.get("node_id"), "node_id")
+    # T19: every prose section unless the caller names the ones it wants (the owner's ruling:
+    # full by default). The input schema has already refused an unknown name.
+    wanted = set(PROSE_SECTIONS if args.get("include") is None else args["include"])
     try:
         facts = precheck.node_facts(call.ctx, node_id)
         bundle, source = node_context(call.ctx, str(facts["target_id"]), node_id)
@@ -354,7 +550,8 @@ async def get_node(call: Call, args: dict[str, Any]) -> dict[str, Any]:
         # Owner, 2026-09-14: get_node returns the latest node, so the bundle's committed claims
         # snapshot is replaced by the live overlay and the two blocks can never disagree.
         bundle = {**bundle, "claims": dict(claims)}
-    return {
+    bundle = frontier.read_at(call.ctx, bundle)  # F05-T30: the commit its files were read at
+    out: dict[str, Any] = {
         "node_id": node_id,
         "target_id": target_id,
         "context": bundle,
@@ -362,14 +559,29 @@ async def get_node(call: Call, args: dict[str, Any]) -> dict[str, Any]:
         "closing": closing_route(node_id, files.get("Statement.lean")),
         "files": files,
         "claims": dict(entry["claims"]) if entry is not None else None,
-        "annexes": _prose(call.ctx, f"{node_dir}/annex"),
-        "explainers": _prose(call.ctx, f"{node_dir}/explainer"),
-        # F09-T7: the pull requests already open on this node, as GET /submissions.json lists them.
-        "submissions": {
-            "open": [s for s in pending.get("open", []) if s.get("node_id") == node_id]
-        },
-        "untrusted_note": demarcate.UNTRUSTED_NOTE,
     }
+    # A section not asked for is not read from the host either (T19).
+    if "annexes" in wanted:
+        out["annexes"] = _prose(call.ctx, f"{node_dir}/annex")
+    if "explainers" in wanted:
+        out["explainers"] = _prose(call.ctx, f"{node_dir}/explainer")
+    if wanted & CHAIN_SECTIONS:
+        # F20-R11: the outlines an explainer's sections name steps of, and every chain of words
+        # on the node's Lean files and merged proofs, from the product or derived (F10-Q7).
+        subjects, chains_source = node_chains(call.ctx, target_id, node_id)
+        if "outlines" in wanted:
+            out["outlines"] = node_outlines(call.ctx, target_id, subjects)
+        if "gloss_chains" in wanted:
+            out["gloss_chains"] = [s for s in subjects if s["record"] == "gloss"]
+        if "explainer_chains" in wanted:
+            out["explainer_chains"] = [s for s in subjects if s["record"] == "explainer"]
+        out["chains_source"] = chains_source
+    # F09-T7: the pull requests already open on this node, as GET /submissions.json lists them.
+    out["submissions"] = {
+        "open": [s for s in pending.get("open", []) if s.get("node_id") == node_id]
+    }
+    out["untrusted_note"] = demarcate.UNTRUSTED_NOTE
+    return out
 
 
 async def get_defs(call: Call, args: dict[str, Any]) -> dict[str, Any]:
@@ -411,8 +623,12 @@ async def get_submission(call: Call, args: dict[str, Any]) -> dict[str, Any]:
 
 
 async def list_submissions(call: Call, args: dict[str, Any]) -> dict[str, Any]:
-    """``GET /submissions.json`` body for body (F09-T7; D-28's notation note of 2026-09-14)."""
-    return service_answer(await call.endpoint("GET", "/submissions.json"), "/submissions.json")
+    """``GET /submissions.json`` body for body (F09-T7; D-28's notation note of 2026-09-14), its
+    filters as the route's (F22-T8): ``target_id``, ``node_id`` and ``kind``."""
+    names = {"target_id": "target", "node_id": "node", "kind": "kind"}
+    query = {names[k]: str(v) for k, v in args.items() if k in names and v is not None}
+    path = "/submissions.json" + (f"?{urlencode(query)}" if query else "")
+    return service_answer(await call.endpoint("GET", path), "/submissions.json")
 
 
 async def get_schema(call: Call, args: dict[str, Any]) -> dict[str, Any]:
@@ -473,6 +689,205 @@ async def list_my_claims(call: Call, args: dict[str, Any]) -> dict[str, Any]:
     return service_answer(await call.endpoint("GET", "/claims/mine"), "/claims/mine")
 
 
+async def get_my_submissions(call: Call, args: dict[str, Any]) -> dict[str, Any]:
+    """``GET /submissions/mine``, body for body (F07-T70, F09-T17): the caller's own open
+    submissions with their place in the queue, and the most recently finished. A read that needs
+    a bearer, as ``list_my_claims``: what it reads is the caller's own."""
+    return service_answer(await call.endpoint("GET", "/submissions/mine"), "/submissions/mine")
+
+
+async def get_check(call: Call, args: dict[str, Any]) -> dict[str, Any]:
+    """``GET /checks/{id}``, body for body (F09-T17): the caller's own record of one fast check
+    (F13-R10). The route answers ``404 check-unknown`` for anyone else's, which passes through."""
+    check_id = args.get("check_id")
+    if not isinstance(check_id, str) or not re.match(r"^[0-9A-Z]{26}$", check_id):
+        raise error("arguments-invalid", "check_id is the log_id check_lean returned", "adapter")
+    return service_answer(await call.endpoint("GET", f"/checks/{check_id}"), "/checks/<id>")
+
+
+# --- F09-T15 (audit 2026-10-04, owner-approved): the error-code catalog -------------------------
+
+#: A code prefix as the catalog spells codes: lower case, digits, ``-`` and ``_`` (F13-T29).
+PREFIX_PARAM: dict[str, Any] = {
+    "type": "string",
+    "pattern": "^[a-z0-9_-]{0,64}$",
+    "description": "Only the codes that start with this.",
+}
+
+
+async def list_error_codes(call: Call, args: dict[str, Any]) -> dict[str, Any]:
+    """``GET /errors.json``, body for body (F13-T29): every error code with what it means and
+    what to do; ``prefix`` is passed through as the route's own query parameter."""
+    path = "/errors.json"
+    prefix = args.get("prefix")
+    query = f"?{urlencode({'prefix': prefix})}" if prefix else ""
+    return service_answer(await call.endpoint("GET", path + query), path)
+
+
+# --- F21-T7 (R8; D-28 notation note of 2026-10-05): the files that lack words --------------------
+
+#: The kinds a subject lacking words can be: ``glosses/v2``'s subject kinds, ``absent`` aside
+#: (an explainer of an artifact the tree does not hold has no file to write words for).
+WORD_KINDS: tuple[str, ...] = (
+    "statement",
+    "witness",
+    "relation",
+    "definition",
+    "proof",
+    "alternate",
+    "partial",
+)
+
+
+#: The products ``glosses.needed`` reads: the live graph holds v1 until its re-pin (F21-R6).
+GLOSSES_VERSIONS = frozenset({"glosses/v1", "glosses/v2"})
+
+
+class _UnreadError(Exception):
+    """One target's file that could not be read, listed under ``unread`` (never an empty
+    answer: a target without its product has not been shown to need nothing)."""
+
+    def __init__(self, path: str, code: str, message: str) -> None:
+        super().__init__(message)
+        self.path, self.code, self.message = path, code, message
+
+
+def _at_head(ctx: Context, path: str) -> dict[str, Any]:
+    """A committed record at main's head (``frontier.committed``, F05-T13). ``reads.committed``
+    reads the branch path instead, which the host's CDN caches for minutes; this tool does not
+    inherit that gap."""
+    try:
+        return parse(frontier.committed(ctx, path), path)
+    except ApiError as exc:
+        raise _UnreadError(path, exc.code, exc.message) from exc
+    except ToolError as exc:  # unparseable
+        raise _UnreadError(path, str(exc.doc["error"]), str(exc.doc["message"])) from exc
+
+
+def _target_words(ctx: Context, entry: dict[str, Any]) -> list[dict[str, Any]]:
+    """One target's subjects lacking words, from its committed ``glosses.json`` and
+    ``target.yaml`` by the gate's own rule."""
+    target_id = str(entry["target_id"])
+    path = f"targets/{target_id}/{products.GLOSSES_FILE}"
+    doc = _at_head(ctx, path)
+    if doc.get("schema") not in GLOSSES_VERSIONS or doc.get("target") != target_id:
+        raise _UnreadError(
+            path,
+            "glosses-invalid",
+            f"{path} is {doc.get('schema')!r} for {doc.get('target')!r}; this service reads "
+            + ", ".join(sorted(GLOSSES_VERSIONS)),
+        )
+    try:
+        schemas.validate(doc, str(doc["schema"]))
+    except schemas.SchemaError as exc:
+        raise _UnreadError(path, "glosses-invalid", f"{path} does not validate: {exc}") from exc
+    curated = None
+    # targets-index: ``track`` is null exactly for a target with no target.yaml (F11). An
+    # older index without the field says nothing, so the record is read.
+    if "track" not in entry or entry["track"] is not None:
+        curated = glosses.curated_words(_at_head(ctx, f"targets/{target_id}/target.yaml"))
+    root = entry.get("root")
+    return glosses.needed(doc, root=str(root) if root else None, curated=curated)
+
+
+def _node_statuses(ctx: Context, target_id: str) -> dict[str, str]:
+    """F22-T7: each node's status in the target's committed ``graph.json`` at main's head; none
+    when it cannot be read (the rows still answer, with ``node_status`` null)."""
+    try:
+        doc = _at_head(ctx, f"targets/{target_id}/graph.json")
+    except _UnreadError:
+        return {}
+    return {
+        str(n["node_id"]): str(n["status"])
+        for n in doc.get("nodes") or []
+        if isinstance(n, dict) and "node_id" in n and "status" in n
+    }
+
+
+def _subject_key(row: dict[str, Any]) -> str:
+    """The row's subject as the one-writer rule keys it (``duplicates.words_key``): a merged
+    artifact by its hash (the outline's name), a Lean file by its path under the target."""
+    target = str(row["target"])
+    if row.get("outline"):
+        return duplicates.words_key(target, str(row["outline"]).rsplit("/", 1)[-1][: -len(".json")])
+    return duplicates.words_key(target, str(row["file"]).removeprefix(f"targets/{target}/"))
+
+
+def _review_and_status(ctx: Context, subjects: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """F22-T7 (testers 2026-10-06, request D, P3-13): each row's ``in_review`` — the open words
+    pull request, still able to merge, writing its subject (``{pr_number, author}``), or null —
+    and ``node_status`` from the target's ``graph.json`` (null for a definition module); rows of
+    superseded nodes last, the record's order otherwise kept (nothing is ranked, D-25)."""
+    writing = duplicates.in_review(ctx, {_subject_key(r) for r in subjects}) if subjects else {}
+    statuses: dict[str, dict[str, str]] = {}
+    for row in subjects:
+        target = str(row["target"])
+        if target not in statuses:
+            statuses[target] = _node_statuses(ctx, target)
+        found = writing.get(_subject_key(row))
+        row["in_review"] = (
+            {"pr_number": found.pr_number, "author": found.pseudonym} if found is not None else None
+        )
+        node = row.get("node")
+        row["node_status"] = statuses[target].get(str(node)) if node is not None else None
+    return sorted(subjects, key=lambda r: r["node_status"] == "superseded")
+
+
+async def list_words_needed(call: Call, args: dict[str, Any]) -> dict[str, Any]:
+    """Every Lean file and merged proof that still lacks words (F21-R8), computed from the
+    committed products by ``glosses.needed`` (Q6), in the index's target order and each
+    product's subject order: equality filters only, nothing ranked (D-25), nothing recorded.
+
+    Every value served is an identifier, a path the gate's layout admits or a reason code, so
+    there is no contributor prose to demarcate (D-28's untrusted-data rule wraps prose)."""
+    ctx = call.ctx
+    target_id = args.get("target_id")
+    if target_id is not None:
+        target_id = check_id(target_id, "target_id")
+    kind = args.get("kind")
+    if kind is not None and kind not in WORD_KINDS:
+        raise error(
+            "filter-unknown",
+            f"no such kind: {kind!r}; the kinds are {', '.join(WORD_KINDS)}",
+            "adapter",
+        )
+    index_path = "targets/index.json"
+    try:
+        index = _at_head(ctx, index_path)
+    except _UnreadError as exc:
+        raise error(exc.code, exc.message, "graph") from exc
+    entries = [e for e in index.get("targets") or [] if isinstance(e, dict)]
+    if target_id is not None:
+        entries = [e for e in entries if e.get("target_id") == target_id]
+        if not entries:
+            raise error("not-found", f"no target {target_id} in {index_path} at main", "graph")
+    subjects: list[dict[str, Any]] = []
+    unread: list[dict[str, str]] = []
+    for entry in entries:
+        try:
+            rows = _target_words(ctx, entry)
+        except _UnreadError as exc:
+            unread.append(
+                {
+                    "target": str(entry.get("target_id")),
+                    "path": exc.path,
+                    "error": exc.code,
+                    "message": exc.message,
+                }
+            )
+            continue
+        subjects.extend(r for r in rows if kind is None or r["kind"] == kind)
+    subjects = _review_and_status(ctx, subjects)
+    return {
+        "read_at": ctx.head or ctx.settings.graph_branch,
+        "target_id": target_id,
+        "kind": kind,
+        "count": len(subjects),
+        "subjects": subjects,
+        "unread": unread,
+    }
+
+
 TOOLS: tuple[Tool, ...] = (
     Tool(
         "server_info",
@@ -486,7 +901,7 @@ TOOLS: tuple[Tool, ...] = (
         params({}),
         list_targets,
     ),
-    Tool(
+    Tool(  # F25-R15: `registrations` rides beside the graph, as graph/v7 publishes them
         "get_target",
         "A target's graph structure and node statuses, with its approach records.",
         params({"target_id": ID_PARAM}, ("target_id",)),
@@ -498,15 +913,29 @@ TOOLS: tuple[Tool, ...] = (
         "object of frontier field to value (dotted for nested, e.g. `tags.library`): equality "
         "on a scalar field, containment on a list field; results keep the file's order and "
         "carry no ranking.",
-        params({"filters": {"type": "object"}}),
+        params({"filters": filters_param()}),
         list_frontier,
     ),
     Tool(
         "get_node",
         "A node's context bundle (nodes/<id>/CONTEXT.json: statement, deps' signatures, witness, "
         "status, gate-spec reference, attempt log, annex hashes) plus the raw Lean files, live "
-        "claim status, annexes, explainers and the submissions open on it.",
-        params({"node_id": ID_PARAM}, ("node_id",)),
+        "claim status, annexes, explainers and the submissions open on it. `include` names the "
+        "prose sections to answer (all of them when omitted); `include: []` answers the Lean, the "
+        "context, the claims and the open submissions alone.",
+        params(
+            {
+                "node_id": ID_PARAM,
+                "include": {
+                    "type": "array",
+                    "items": {"enum": list(PROSE_SECTIONS)},
+                    "uniqueItems": True,
+                    "description": "The prose sections to answer; every one when omitted, "
+                    "none with [].",
+                },
+            },
+            ("node_id",),
+        ),
         get_node,
     ),
     Tool(
@@ -524,20 +953,41 @@ TOOLS: tuple[Tool, ...] = (
     ),
     Tool(
         "get_submission",
-        "A submission or proposal by its ULID, or by pull-request number (padded or not): the "
-        "record, the pull request's live state and, once merged, the attestation it earned or "
-        "why there is none. `pull_request.waiting_on` names the one thing it waits for (gate, "
-        "step9-review, branch-update, merge, products, or gate-failed), and when that is "
-        "gate-failed, `gate_verdict` carries the gate's own diagnostic: why it was refused.",
+        (
+            "A submission or proposal by its ULID or pull-request number (padded or "
+            "not): the record, the pull request's live state and, once merged, the "
+            "attestation it earned or why there is none. `pull_request.waiting_on` names "
+            "the one thing it waits for (gate, step9-review, branch-update, merge, "
+            "products, or gate-failed, when `gate_verdict` carries the gate's own "
+            "diagnostic). `state` is open, merged or closed. While open, `queue` gives "
+            "its `position` (from 1) `of` how many in its target's lane of the merge "
+            "actor, and the pull requests `ahead`; a position is an upper bound on the "
+            'merges ahead. The guide\'s "Precheck and submit" says more.'
+        ),
         params({"submission_id": {"type": "string"}}, ("submission_id",)),
         get_submission,
     ),
     Tool(
         "list_submissions",
         "Every pull request the service opened on the graph that no live read has yet found "
-        "merged or closed: id, kind, node, target, pull-request number and URL, pseudonym. "
-        "get_submission gives one with its checks and reviews; get_node lists a node's own.",
-        params({}),
+        "merged or closed: id, kind, node, target, pull-request number and URL, pseudonym, in "
+        "the merge actor's order. Each entry's `queue` gives its `position` `of` how many in its "
+        "own target's lane (the actor runs one lane per target in parallel) and "
+        "the `waiting_on` the service last read for it (null: not read, ask get_submission); "
+        "the top-level `queue.order` is the queue's pull-request numbers across every lane. "
+        "get_submission gives one with its checks and reviews; get_node lists a node's own. "
+        "`target_id`, `node_id` and `kind` filter by equality; `kind: words` keeps glosses and "
+        "explainers (F22-T8).",
+        params(
+            {
+                "target_id": ID_PARAM,
+                "node_id": ID_PARAM,
+                "kind": {
+                    "type": "string",
+                    "description": "words (a gloss or explainer), or one submission kind",
+                },
+            }
+        ),
         list_submissions,
     ),
     Tool(
@@ -546,13 +996,24 @@ TOOLS: tuple[Tool, ...] = (
         "or a tool result's (`mcp/<tool>/v1`). A defect claim of class "
         f"`{requests.CIRCULAR_CLASS}` is written as `{requests.CIRCULAR_SCHEMA}`, every other "
         f"class as `{requests.DEFECT_SCHEMA}`.",
-        params({"name": {"type": "string"}}, ("name",)),
+        params(
+            {
+                "name": {
+                    "type": "string",
+                    "description": "A record schema as a record's `schema` field spells it, "
+                    "<name>/v<n>, or a tool's result schema, mcp/<tool>/v1.",
+                }
+            },
+            ("name",),
+        ),
         get_schema,
     ),
     Tool(
         "get_precheck",
         "A precheck job's state, diagnostics and signed attestation; poll after "
-        "precheck_submission until the state is done or error.",
+        "precheck_submission until the state is done or error. A pass that carries "
+        "`carried_witnesses` did not check the witness files its `unchecked` lists (the "
+        "target's pinned gate predates carried witnesses): it is a pass of the skeleton alone.",
         params({"job_id": {"type": "string"}}, ("job_id",)),
         get_precheck,
     ),
@@ -589,5 +1050,72 @@ TOOLS: tuple[Tool, ...] = (
         params({}),
         list_my_claims,
         access="bearer",
+    ),
+    Tool(
+        "get_my_submissions",
+        "Your own submissions, by your token: `open`, each as list_submissions gives it (the "
+        "record and its `queue` place in its own target's lane), and `recent`, the most "
+        "recently merged or closed, newest first, each with `state` (merged or closed). Finds a "
+        "pull request again after its receipt was lost; get_submission gives one in full. "
+        "Plain path: GET /submissions/mine.",
+        params({}),
+        get_my_submissions,
+        access="bearer",
+    ),
+    Tool(
+        "get_check",
+        "Your own record of one check_lean call, by the `log_id` it returned: target, node, "
+        "mode, environment, the content's hash and size (never the text), the outcome, `okay`, "
+        "the error count and the lint codes. Only the identity that made the call can read it; "
+        "anyone else's answers not-found. Plain path: GET /checks/{check_id}.",
+        params({"check_id": {"type": "string"}}, ("check_id",)),
+        get_check,
+        access="bearer",
+    ),
+    # F09-T15: D-28's read table, notation note of 2026-10-04.
+    Tool(
+        "list_error_codes",
+        "Every error code the gate and the service emit: where it is met (gate, api or both), "
+        "the D-4 step that emits it, what it means and what to do about it. `prefix` keeps the "
+        "codes that start with it (`witness-`, `relation-`). Look a refusal's `error` or a "
+        "verdict's diagnostic `code` up here. Plain path: GET /errors.json.",
+        params({"prefix": PREFIX_PARAM}),
+        list_error_codes,
+    ),
+    # F21-T7: D-28's read table, notation note of 2026-10-05.
+    Tool(
+        "list_words_needed",
+        "Every Lean file and merged proof that still lacks words (a gloss for a statement, "
+        "witness, relation or definition; an explainer for a proof, alternate or partial), with "
+        "its target, file, kind, node, the reason none covers it and, for a proof, the path of "
+        "its outline, `in_review` (the open pull request already writing it, {pr_number, "
+        "author}, or null) and `node_status` (superseded nodes come last: skip them). "
+        "`target_id` keeps one target; `kind` keeps one kind. Read from each "
+        "target's glosses.json and target.yaml at main's head; in the record's order, ranked by "
+        "nothing. A target whose files could not be read is named under `unread`. Plain path: "
+        "targets/<id>/glosses.json and targets/<id>/target.yaml.",
+        params(
+            {
+                "target_id": {**ID_PARAM, "description": "Only this target's files."},
+                "kind": {
+                    "type": "string",
+                    "description": "Only this kind: statement, witness, relation, definition, "
+                    "proof, alternate or partial.",
+                },
+            }
+        ),
+        list_words_needed,
+    ),
+    # F25-T4: D-28's read table, v3.37.
+    Tool(
+        "list_registrations",
+        "Every registration of a target in a public registry (Palomar), as the products derive "
+        "it from the target's registration records: registry, registry_id, version, status "
+        "(submitted, registered, revision_required, rejected) and url, with the target_id, in the "
+        "index's order and ranked by nothing. `target_id` keeps one target (not-found when the "
+        "index has no such target). Read from targets/index.json at main's head; an index "
+        "rendered before the field existed lists none. Plain path: targets/index.json.",
+        params({"target_id": {**ID_PARAM, "description": "Only this target's registrations."}}),
+        list_registrations,
     ),
 )

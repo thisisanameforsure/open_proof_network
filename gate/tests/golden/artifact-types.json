@@ -84,12 +84,12 @@
       {
         "name": "left",
         "type": "p",
-        "closed_type": "∀ (p q : Prop), p ∧ q → q → p",
+        "closed_type": "∀ (p q : Prop), p ∧ q → p",
         "defeq_goal": false,
         "defeq_sibling": null,
         "defeq_ancestor": null,
         "closed_roundtrip": true,
-        "expected_witness": "∃ (p : Prop), ∃ (q : Prop), (p ∧ q) ∧ q",
+        "expected_witness": "∃ (p : Prop), ∃ (q : Prop), p ∧ q",
         "proved_binders": []
       }
     ],

@@ -55,24 +55,17 @@ def green() -> list[dict[str, Any]]:
 # --- the actor ------------------------------------------------------------------------------------
 
 
+# Restated by F07-T56 (Q61), on the owner's request: T33's hold is reversed and its aim kept. The
+# actor no longer waits for a post-merge job, a replay included; a job that finds main moved under
+# it catches up on main as it is instead of losing its record (F07-T55, tested end to end in
+# ``test_finding_postmerge_catch_up.py``).
+
+
 @pytest.mark.parametrize("ref", ["append/annex", "propose/variant", "submit/proof"])
-def test_nothing_is_merged_while_a_post_merge_job_runs(pick: dict[str, Any], ref: str) -> None:
-    """An up-to-date green pull request of any kind waits for the running job to commit."""
+def test_nothing_waits_for_a_post_merge_job(pick: dict[str, Any], ref: str) -> None:
     pulls = [pull(142, ref)]
-    got = pick["decide"](
-        pulls, RULES, lambda _s: green(), lambda _s: 0, postmerge_running=lambda: True
-    )
-    assert got == ("", "", "hold"), (ref, got)
-
-
-def test_an_append_is_not_updated_into_the_window_either(pick: dict[str, Any]) -> None:
-    """Updating it would only make it green and up to date inside the window, to be held there;
-    the round is spent after the job commits instead."""
-    pulls = [pull(142, "append/annex")]
-    got = pick["decide"](
-        pulls, RULES, lambda _s: green(), lambda _s: 1, postmerge_running=lambda: True
-    )
-    assert got == ("", "", "hold")
+    got = pick["decide"](pulls, RULES, lambda _s: green(), lambda _s: 0)
+    assert got == (142, pulls[0]["head"]["sha"], "merge"), (ref, got)
 
 
 def moved_under_a_job(w: World) -> list[int]:
@@ -85,19 +78,26 @@ def moved_under_a_job(w: World) -> list[int]:
     return sorted(set(lost))
 
 
-def test_the_afternoon_loses_no_post_merge_commit(
+def test_the_afternoon_drains_with_merges_under_running_jobs_and_each_job_catches_up(
     pick: dict[str, Any], gate_doc: dict[Any, Any]
 ) -> None:
+    """The window T33 closed is open again on purpose: merges land under running jobs, and each
+    such job's push is the case the catch-up exists for."""
     w = world(pick, gate_doc, the_afternoon_of_148())
     w.advance(4 * 3600)
     assert w.open == {}, sorted(w.open)
-    assert moved_under_a_job(w) == [], "these merges' post-merge jobs had main moved under them"
+    assert moved_under_a_job(w), "no merge landed under a running job: the hold is still there"
+    commit = next(
+        s for s in gate_doc["jobs"]["postmerge"]["steps"]
+        if str(s.get("name", "")).startswith("Commit the attestation")
+    )  # fmt: skip
+    assert 'python3 "$helper" publish' in str(commit["run"])
 
 
-def test_a_replayed_post_merge_job_is_one_the_actor_waits_for(text: str) -> None:
-    """A replay is the gate workflow on main by dispatch, not by push; the actor must see it."""
-    assert 'for event in ("push", "workflow_dispatch")' in text
-    assert "&event={event}&" in text
+def test_the_actor_reads_no_post_merge_run_a_replay_included(text: str) -> None:
+    """A replay was waited for like a push (T33); the actor reads no run of either now."""
+    assert 'workflow_dispatch")' not in text and "&event={event}&" not in text
+    assert "actions/runs" not in text
 
 
 @pytest.fixture(scope="module")
@@ -136,9 +136,13 @@ def test_a_replay_takes_the_merge_commit_from_the_pull_request(gate_doc: dict[An
 
 
 def test_a_replay_of_a_merge_that_has_its_commit_does_nothing(gate_doc: dict[Any, Any]) -> None:
-    """Idempotent: the ledger appends, so a second run would credit the merge twice."""
+    """Idempotent: the ledger appends, so a second run would credit the merge twice. Restated by
+    F07-T45: the check was ``grep -q "^gate: #$number "``, which misses a number inside a batch's
+    ``gate: #2 #3 pass``; it is now the post-merge program's matcher, run over real subjects in
+    ``test_finding_postmerge_batch.py``."""
     run = find_step(gate_doc)
-    assert 'grep -q "^gate: #$number "' in run or "gate: #$number " in run, run
+    at = run.index('python3 "$helper" credited HEAD "$number"')
+    assert "already has its gate commit" in run[at:].split("fi\n", 1)[0], run[at:]
 
 
 def test_every_step_reads_the_merge_commit_not_the_event_commit(gate_doc: dict[Any, Any]) -> None:
@@ -156,16 +160,27 @@ def test_every_step_reads_the_merge_commit_not_the_event_commit(gate_doc: dict[A
 def test_a_moved_main_dispatches_the_replay_instead_of_asking_for_hands(
     gate_doc: dict[Any, Any],
 ) -> None:
-    (commit,) = [s for s in job(gate_doc)["steps"] if "git push" in str(s.get("run", ""))]
+    commit = commit_step(gate_doc)
     run = str(commit["run"])
     assert "re-render by hand" not in run
     assert "gh workflow run gate.yml" in run and "replay_pr" in run
     assert "github.token" in str(commit.get("env", {}))
 
 
+def commit_step(gate_doc: dict[Any, Any]) -> dict[str, Any]:
+    """The step that pushes the gate commit. Since F07-T55 the push itself is in the helper's
+    ``publish``, which catches up on a moved main; a merge it cannot lay on main is replayed."""
+    (commit,) = [
+        s for s in job(gate_doc)["steps"]
+        if str(s.get("name", "")).startswith("Commit the attestation")
+    ]  # fmt: skip
+    assert "publish" in str(commit["run"]) or "git push" in str(commit["run"])
+    found: dict[str, Any] = commit
+    return found
+
+
 def test_a_replay_says_so_in_its_commit(gate_doc: dict[Any, Any]) -> None:
-    (commit,) = [s for s in job(gate_doc)["steps"] if "git push" in str(s.get("run", ""))]
-    assert "(replayed)" in str(commit["run"])
+    assert "(replayed)" in str(commit_step(gate_doc)["run"])
 
 
 def test_the_gate_that_attests_is_the_one_the_merge_pinned(gate_doc: dict[Any, Any]) -> None:

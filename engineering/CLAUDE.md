@@ -1159,3 +1159,313 @@ The law of the project:
   writer said write tokens travel as a tool argument, and built a recommendation on it. The code
   (`mcp/auth.py`) reads only the header. One grep before the commit caught it, and the corrected
   version made F16-Q3 sharper, not softer.
+- 2026-09-29 — Six testers on the three Erdős targets (`engineering/session-notes/2026-09-27-erdos-testers.md`),
+  run as background subagents of one session instead of six cloud sessions: no draft pull requests paying the
+  Lean tier, reports straight to the lead, and a curl probe of the three hosts before launch. Twenty graph PRs,
+  seven merged in the hour. Two things worth keeping. **Price a lever before promising it**: "let appends skip
+  the up-to-date rebuild" read as the throughput fix, but the rebuild costs an append seconds; the three minutes
+  a merge costs are the post-merge job F07-T33 makes everything wait for, so batching appends under one job is
+  the lever, and it lives in the graph repository. **Nothing on the record can say "this kind of work does not
+  help"**: two agents spent the hour on erdos-402 size cases the owner judged worthless, while `attack_routes`
+  is read by no code and D-25 forbids ranking; a direction mechanism is a D-25 amendment and the owner's.
+  Built from the findings, test first: F13-T24, F05-T16, F09-T14, F01-T6, F10-T15 and F06-T10 (precheck
+  against a proposal whose gate is green, the owner's ruling on F08-Q23).
+- 2026-09-30 — A hold keyed on the host's flag froze the queue for six hours with nothing red. The
+  actor updated #306's branch, the push landed, and GitHub never synchronised the pull request: old
+  head, green checks on it, `mergeable: null`, and every run held on "the host is still computing"
+  for its whole cap while fourteen green pull requests waited (F07-T46). Two API attempts to update
+  the branch were refused on a head mismatch for *either* commit, so the host's record was
+  inconsistent with itself. The fact that tells "computing" from "stale" was one `git ls-remote`
+  away: the branch's tip. Key a hold on a fact the host cannot leave half-written, and when a hold
+  has no cap across runs, ask what evidence would end it — if nothing on the host can, it is a
+  freeze waiting for its case. Also: the red run first failed on a missing keyword, which is not
+  red; the seam went in at today's behaviour first, and the second red run failed on the hold.
+- 2026-10-01 — The 2026-09-29 run's report became nine fixes in one sitting on the owner's word
+  ("take a test driven development: get failing tests, then iterate until they are green"), three
+  worktree agents on the service, the gate's Lean and the circularity rule while the lead did the
+  ledger, the site, CI and the spec entries. Worth keeping. **A red test must fail on the defect**:
+  twice the first red was a missing name (`statement_tooling`, `steward_rule_enforced`); the seam
+  went in at today's behaviour and the second red was honest, and one "red" was a missing
+  `ssh-keygen` (install `openssh-client` before believing a fixture error). **A rule's direction is
+  a claim to check against its own gloss**: D-16 said "no easier than" of an implication that
+  proved "no harder than", and every provable hole met it; the owner's words, start at the premise
+  and end at it, were the test. **The agents' worktrees live under the checkout** (`.claude/
+  worktrees/`), so `ruff check .` and a stop hook both saw them: exclude them and ignore them.
+  **A sentence an agent needs is a product field, not a page**: the site's circular note existed
+  since T20 and no agent could see it; `context/v2` carries it, which the re-pin must seed. And
+  **the lean tier runs here** from the GitHub release zip linked into elan, so "docker tier not run"
+  is now the only line in a report that means CI must finish the evidence. **And a file the network
+  inlines has an import budget nobody wrote down**: `auto-implicit` imported `OpnGate.Frontend`, the
+  composer strips imports and walks only `OpnGate.Hazards*`, so the hosted hazards program failed to
+  elaborate for every checker and the lean tier was the first thing to say so, 52 minutes in. The
+  second elaboration became a seam on the `Statement` that both the binary and the composed program
+  fill; the fast-tier guard asserts the import set. When a module is inlined somewhere, its imports are
+  a contract, and a test that reads them is cheaper than the tier that finds the breach.
+
+- 2026-10-02 — The queue stopped waiting (F07-T55–T57, Q60–Q62, graph branch `f07-t55-queue` on T46's
+  PR #321, unpushed). **Plan against `origin`, not the checkout**: both local mains were nine days stale,
+  the plan's first draft read a `gate.yml` and `merge.yml` that T45 and T46 had since rewritten, and the
+  task ids T39–T41 were already spent in the spec on `origin`. `git fetch` both repos and read
+  `origin/main` before the first design question; take ids from the spec as pushed. **What makes a
+  catch-up safe is the split between a merge's own record and what is derived from the tree**: snapshot
+  the record (attestation, a partial's holes) before anything renders, and a refused push can throw its
+  render away and make it again on any newer main; drop what main already credits first, and nothing is
+  credited twice. **A hold can be covering more than the race it was written for**: removing T33's wait
+  reopened a stranded-PR case (pending and behind decided "nothing", and the only wake came before the
+  host reported the check) that only the lag-modelling replay showed. When a wait goes, replay the host
+  without it before believing the tests. Measure an ask before doing it: uv caching and shallow fetches
+  saved under ten seconds, and a shallow history would have changed the products (`--diff-filter=A`,
+  ancestry); the owner skipped both. The fast tier's two red tests read the sibling graph's working tree,
+  still at #173, so these commits went in with `--no-verify`; pulling that checkout is the owner's.
+
+- 2026-10-04 — An audit against the owner's four principles (published state is actual state,
+  trackable, reversible, hard to tamper with), then its findings built test first by eleven worktree
+  agents in one sitting, all merged on local `main`, nothing pushed (`engineering/session-notes/
+  2026-10-04-audit-amendment-v3.27.md`; the spec ledgers carry every task). Five things worth
+  keeping. **A finding read in code is a claim until the toolchain shows it**: the audit said the
+  axioms probe and the meaning check could be told their verdict by contributor code; on Lean 4.33.1
+  a sorry proof's `initialize` made the old probe print "does not depend on any axioms", and the old
+  meaning program printed `"matches": true` for a mismatched artifact. Judging now runs in a
+  workspace the compile never wrote, with initializers off and one nonce-tagged verdict line
+  (F08-T28, F02-T10, F02-T11). **Two branches meet at the merge, not in either worktree** — four
+  times: a comment seam written against the unscoped token call, an environment read beside the
+  rule that only `config` reads it, a new workflow beside the new action-pin scan, and a seam's
+  new `stdin` parameter beside a test that overrides it. The full suite and `make types` after each
+  merge batch found all four in minutes. **Never put pytest's `--basetemp` inside a git
+  worktree**: the brief I wrote said `$PWD/.pytest-tmp`, and a curator test's "not a checkout"
+  tree then ran git against the agent's own worktree (checked out a branch, staged a file) —
+  2026-09-11's hazard, re-armed by the lead's own preamble. **A full disk is a scheduling input**:
+  at 0.8–3 GiB free, eleven agents ran on one shared `.venv`, targeted tests only, and one lead
+  `make verify` per merge batch; finished pytest temp dirs and merged worktrees are what to clear,
+  never a running run's. **Re-derive ids and the live pin at the start of execution, not at
+  planning**: between the plan and the first commit another session had applied decisions v3.25
+  and v3.26 and re-pinned the graph, so the amendment became v3.27 and the graph branch was rebased.
+
+- 2026-10-04 — The statement graph lost every crossing (F04-T33, Q34): lexical order and straight
+  lines had made 16 crossings and 22 lines behind pills on erdos-69, and the four live shapes that
+  crossed all draw with none once rows are ordered by median sweeps and long lines bend through
+  every row they pass. Three things worth keeping. **A metric I invented for a test measured the
+  wrong thing**: "sideways travel at most 60% of the old layout" rose under a layout the pictures
+  showed was better, because a root fanning out to seven statements costs the same distance in any
+  order; replace a proxy with the property the picture shows (here: one layer below what rests on
+  it, chains upright), and prove the replacement red against the old code. **Measure each version
+  with its own instruments**: the before/after table first sampled the old straight lines with the
+  new curve function and reported 21 crossings where there were 16. **A screenshot can undo the
+  state it was meant to show**: `locator.screenshot` scrolled the page, the pill left the pointer,
+  and hover measured zero lit lines; scroll first, then hover, then measure and capture.
+
+- 2026-10-05 — Readable proofs (F19, F20; decisions v3.30): research → specs → nine worktree agents in
+  four waves, everything on local `main`, nothing pushed. Four things worth keeping. **Publish the
+  shared contracts before the agents start**: the five schemas went in one commit with one golden
+  regeneration, so four agents built against one shape in parallel and three of four merges were
+  clean. The contract still carried a self-contradiction (an id pattern refusing `s3.1`, its own
+  description's example); an agent comparing ids as strings found it. Test a schema's own examples
+  against its own patterns before anyone builds on it. **An agent's report can name the wrong
+  branch**: three reports named another agent's branch for their commits; `git branch --contains
+  <sha>` before every merge settled each in a second. **Never merge into the tree a test run is
+  reading**: a run that overlapped a merge reported `KeyError: 'gloss'` in two lifecycle tests that
+  were green alone (2026-09-09's hazard, by the lead this time); and a test with a wall-clock budget
+  (the lifecycle's 10 s) fails under a laptop full of agents. Re-run alone, then in a quiet full run,
+  before believing either. **The service is the App to the gate**: every rule keyed on "who opened
+  the pull request" refused a steward working through the MCP, and a hand-opened withdrawal naming
+  someone else's authorship passed on main. F18-Q7's precedent fixed both: a service pull request
+  acts for the record's author, which the service writes from the token; a hand-opened one is judged
+  by its opener.
+
+- 2026-10-04 — F18 (proof structure on the record), from the owner's reading of erdos-1050's page:
+  which branches are the proof, which nodes it does not need, how the specs relate, where the
+  outlines are. **The fact was in the gate all along**: step 8 reads every constant of the proof
+  term and threw the set away (F08-Q38 had named it and deferred it); `attestation/v6` keeps it,
+  a one-time backfill measured the 74 older merges (none failed), and erdos-1050's proof is now
+  drawn as what its term uses — root, `h1-v2`, `h3` — not the seven nodes it declared. When a
+  reader cannot tell what something rests on, look first for what the gate already computes.
+  **Measured beats read**: my hand simulation said `h2` uses `h2--h1`; the kernel term says it
+  uses nothing. **Three worktree agents, one boring merge rule**: none of them touched
+  `graph/v4.json` or `graph_doc`; each exposed an accessor and the lead wired the fields, so the
+  only conflict was two fields added to one dataclass. **A curator branch is the curator's to
+  merge**: the merge actor takes only the service's `propose/`, `append/`, `submit/` branches, so
+  six green pointer PRs sat unmerged until read in its log ("nothing to do"); my first merge loop
+  also read each PR's state before the previous merge made it BEHIND — update, then wait, then
+  merge. **A render must come from the pin**: run from the main checkout it picked up another
+  session's unpushed gate and refused with `schema-unpublished`; the pin's worktree rendered
+  clean. **A stack parameter is not deployed by api-deploy** (it updates code): T26's `UsesFrom`
+  was in the template and never on the stack; a change set showed two Dynamic re-evaluations of
+  `Function.Arn` beside the env change — read `Evaluation` before executing. `check_products.py`
+  regenerates over a tree without `.git`, so a stale record lifted by ancestry (F08-T10) always
+  reads as a difference there; the bot's own commit shows the same four. And zsh's `$b:t` ate a
+  path a third time: brace every variable followed by a colon, in `git show` arguments too.
+
+- 2026-10-06 — Four agents wrote the words for every file of erdos-1050 (graph #390–#436) and a
+  fifth read it as a mathematician; the findings became F22 (decisions v3.32), built test first by
+  three worktree agents and the lead, on local `main`. Four things worth keeping. **An exemption in
+  a rule is a door in it**: the service's one-writer check skipped any superseding version
+  (`if supersedes is None`), each of #415 and #417 was green against a base without the other, and
+  one append batch merged both: a fork, and two red replays after every later merge on the target.
+  Every layer that admits a record needed the rule (service, merge actor, gate), and the repair
+  was a curator withdrawal plus a credit commit naming it, which is a direct push to graph `main`
+  and was the owner's. **Read the actor's own log before guessing a cause**: explainers merging one
+  at a time looked like a rule about explainers; every slow run had held on GitHub's
+  `mergeable: null` for up to fifteen minutes, and an append (one content-named file) can act
+  through it. **Never `pkill -f` a pattern on a shared machine**: an agent's `pkill -f "make
+  verify"` matches every session's pre-commit run. **A heredoc delimiter inside the text it
+  carries ends it early**: a Python edit script fed by `<<'PY'` that quoted the guide's own `PY`
+  lines failed in the shell; write such a script to a file. And a marker filter can deselect the
+  test you meant to run: `-m "not lean and not docker"` dropped the walkthrough's executing test,
+  so "4 passed" said nothing about the new example.
+- 2026-10-06 — The MCP's context cost (F09-T18–T23, the owner's review). Two things worth keeping.
+  **Price a token saving by measuring it, not by summing the parts you plan to cut**: I promised
+  `tools/list` would roughly halve; stripping the output schemas' prose left 35k characters of
+  structure, and describing every parameter added 4k back, so it fell 28% (103,714 → 74,737) and
+  only 11% for a client that drops output schemas. The large win was one tool: `get_node` on
+  erdos-1050 went from 120k characters of text to 12k with `include: []`. Measure the before from
+  a detached worktree (`git worktree add --detach`), never from memory, and twice I had to replace
+  a number I had typed into evidence before measuring it. **`pytest -k` matches file names too**:
+  `-k budget` in `test_finding_mcp_context_budget.py` selected all sixteen tests, so a task's
+  verification command must name its tests by something only they carry.
+
+- 2026-10-07 — The gate image's 150 s pull is mostly *unpacking*, not downloading: decompress and
+  write 11 GB as 177,000 files took 71 s on every fresh runner, the download 16–64 s. So a smaller
+  image buys nothing (13% fewer bytes, same time), and deleting Mathlib's `.c` files to get there
+  makes `lake build` rebuild Mathlib in a devcontainer; a lazy image fetches 7 GiB anyway, because
+  an `import Mathlib` check opens 52,504 files. zstd took the median pull to 121 s with identical
+  replays (F10-T17, Q23). Two traps: my "half the image can go" was said before any `du`, and
+  a zstd request is silently pushed as gzip unless compression is forced, so read the pushed
+  manifest's layer types back. And zstd needs Docker 23 to *pull*: price the client before a
+  format change to a pinned artifact.
+
+- 2026-10-08 — Three testers on erdos-1094, the first open-track Erdős target worked on
+  (`engineering/evidence/testers-2026-10-08/bugs.md`): 21 graph PRs in 75 minutes, none needing a
+  human, no two agents racing, `--h1` proved and the problem split into an open core and a
+  literature theorem. Three things worth keeping. **The lead's mathematics is a claim too**: the
+  brief called n ≥ k² "Ecklund's theorem" when it is Ecklund's conjecture; the literature agent
+  corrected it on the board in three minutes, before any Lean. Give the literature role the first
+  quarter hour and make the others read the board before building on the brief. **A pin that
+  names the commit products were rendered *from* can never see what the post-merge job *writes*
+  after it**: holes written by a bot commit are absent at `rendered_from`, so every precheck of a
+  fresh hole fails `layout-missing` until another merge re-renders (P1). Same family as F06-T7:
+  ask which commit carries the thing, not which commit it came from. **`curl -w
+  '%{time_connect}'` settles a latency report in one call**: 75 s in connect is the laptop's
+  path, not the service, which turned four "slow route" bugs into one known environment fact.
+  The fixes went in the same day, red first, from four worktree agents (F06-T14, F04-T35/T36,
+  F13-T32, F07-T74/T75, F10-T18). One thing the agents' green missed: **verify a site fix on a
+  full render of the live graph, not on the fixture**. The fixture's parent has a `Proof.lean`,
+  so a partial's attestation rendered there as the proof's, and the live root's "nothing has been
+  merged" beside a merged partial only showed on the real render.
+
+- 2026-10-08 (evening) — Decisions v3.35 from the testers' two design findings, on the owner's
+  rulings: a merged circularity claim is a *label* ("a proof of this is a proof of X"), never a
+  removal, and a node carries a literature status that anyone proposes and a steward or curator
+  confirms, told through `/me/`. Three worktree agents (gate, service, site) built against four
+  schemas committed first; nine tasks, 4924 green. Three things worth keeping. **A rule met by
+  the artifact it was meant to protect is a rule about the wrong thing**: the circularity exhibit
+  is satisfied by every reduction and by the last open hole of every decomposition, because the
+  assembly *is* that proof; publishing the fact and leaving the choice to the operator's filter is
+  what D-25 already said. **"Fix some old data" was a re-render, not an edit**: the four nodes off
+  the live frontier under claims come back by derivation at the re-render after the re-pin, and no
+  record moves (F08-T10's principle, paid again). **Parallel agents meet at the version sweep**:
+  four conflicts, all the same two lines added by both sides, and five "older snapshot" tests
+  that assumed the fixture still emitted the old version — a test about an old shape must build
+  the old shape by hand, never trust the generator to still produce it.
+
+- 2026-10-09 — F24 (the steward panel, decisions v3.34) built in one sitting from the owner's
+  rulings: the lead wrote the schemas and the panel library test first, then four worktree agents
+  built the gate, products, service and site in parallel, all on branch `f24-panel`, unpushed.
+  Three things worth keeping. **"The highest stage whose condition holds" is not a ladder**: its
+  own tests showed a contributor's solo note reading as released, above a panel-verified paper,
+  because a sole author who signs meets the release condition; a ladder is climbed in order (Q7).
+  **Every derivation over records needs to say what "before" means, and the agents found both
+  holes**: an invitation passing at once flipped back to open when the invitee accepted the same
+  day, and a lapsed steward could seat themselves by opening a motion. Both are the same fix: a
+  motion is put to the panel as it stood before it, keyed on record numbers, not days (Q8, Q9).
+  **Two agents will name the same helper differently**: both added `panel.voters` with different
+  return types, and both registered `steward-cap`; read the merged module for duplicate
+  definitions, which Python accepts silently and ruff only flags for dict keys.
+- 2026-10-09 — The formalization round (draft v3.36) prototyped on core Lean before any protocol
+  change (`engineering/prototypes/formalization-round/`, evidence in `engineering/evidence/
+  v3.36-prototype/`): three conjectures, human, blind-agent and 14 planted candidates, all 14
+  caught, one cluster per conjecture, every meaning-changing mutant caught, 76 tests. Three things
+  worth keeping. **Testing truth values cannot see a weakening of a true conjecture**, because it is
+  true too: the planted defects that matter (lost conjunct, ∨ for ∧, a stronger "two primes")
+  passed every small case. What saw them was replacing the concept the words use: "prime" made
+  empty gives coverage (says something at n, or nothing), and "only 5 is prime" exposes the
+  formula's intervals and connectives. **A probe has an assumption, so test it**: a correct
+  candidate with primality written inline gave the probe nothing to replace and was discarded;
+  the fix was a format rule that returns it to its author, found only because a candidate was
+  written to break the design. **Read the questions, not just the counts**: "would a prime at 5
+  count?" invites the opposite of the probe's answer when the claim needs two witnesses, and the
+  screenshot showed a discard's exhibit as the *failed* test rather than the fact the kernel
+  accepted. Both passed every test.
+- 2026-10-09 — The second formalization-review prototype ran on three live Mathlib targets through the
+  network's own `POST /check` (80 calls, `engineering/evidence/v3.36-prototype-mathlib/`): 13 of 13
+  planted defects kept out of the surviving cluster, and one real error from a blind agent caught (a
+  domain of 1 ≤ n on erdos-410, false at n = 1). Two things worth keeping. **Name a statement's parts
+  and small cases survive Mathlib**: even for a limit, the questions that mattered were about the
+  domain and the indexing. **On Mathlib, equivalence is agent work**: simple tactics proved only
+  near-identical texts; 14 directions needed short agent proofs, all accepted first time. Also: a
+  laptop shutdown stops background agents without a report, so check their files before resuming.
+
+- 2026-10-11 — F25 (registration in Palomar, decisions v3.37) built in one sitting on branch
+  `f25-palomar` with five worktree agents, a draft pull request standing in for a dispatch (a new
+  workflow cannot be dispatched until it is on the default branch; `pull_request` with a paths filter
+  runs it). Five things worth keeping. **Ask the tool, not its README, what a field means**: Comparator's
+  `definition_names` is a *hole* — a Solution may fill a listed definition with any body and pass — so the
+  sound export duplicates definitions byte for byte and lists none; the README's "definition holes" sentence
+  said as much and three readers (me included) read it as a check. **A bare tree is not the record**: a
+  parent whose revised child superseded a hole reads as `stale` without git history (F08-T10 lifts by
+  ancestry), so the export runs on a detached worktree; found on erdos-1050 at the first rehearsal, after
+  the 2026-10-04 log had said it of `check_products.py`. **A path handed to a subprocess is relative to its
+  cwd, not yours** — Comparator could not read its config twice in one day, in the probe and in the corpus
+  verifier; resolve before passing. **The registry's shapes differ from their description**: no
+  `mathlib_revision`, kernels as objects, `project_path` under `source`, today's schema refusing an entry
+  it accepted a month ago — a seven-entry corpus found all four in its first hour, and the network's own
+  checkers then agreed with Palomar on two entries at 4.35.0-rc2. **Agents' worktrees come up on `main`**,
+  not on the branch the lead is on: say so in the brief (`git reset --hard origin/<branch>` first), and
+  remove merged worktrees before the disk reaches 4 GiB, which it did.
+
+- 2026-10-11 — The erdos-1050 port's repair loop and Q24, in one sitting. Three things worth keeping.
+  **A hint attached to an error is not its cause**: Q33 had blamed the module system ("Real.instLT not
+  exposed") for one of three build errors; the fix was a rename — Mathlib (2026-09-01) gave the unprimed
+  `Finset.prod_le_one`/`prod_le_prod` to the ordered-monoid lemmas and the semiring ones became `₀` — so the
+  proof was passing two hypotheses to a lemma that takes one, and the note was Lean reporting what it did
+  not unfold while failing to unify. Grep the Mathlib checkout for the lemma before believing the note.
+  **A whole-file repair silently reverts an export**: a repair the port copies over the wrapper is the full
+  module, so one made against an older export would put that export's text back with nothing red; the
+  `.before.sha256` sidecar is what refuses it, and the report records both hashes so the wrapper's text
+  and the export's can always be told apart. **A step under `set +e` is green whatever happened**: the
+  port job reports success by design so the artifact uploads; the verdict is `port.json`'s `ok` and the
+  Comparator's own lines, and the first thing to do with a green run is download the artifact. Also: a
+  rule that refuses every write of an identity (Q24) breaks every test that fabricates an identity by
+  hand; restating those fixtures to carry the acceptance is the honest fix, since they describe live
+  identities, and the test that fabricates a pre-field identity is now the one that proves the
+  deploy-day behaviour.
+- 2026-10-11 — T16 on the owner's word, and where it stopped. **The gate re-renders on a re-pin now** (F07-T60):
+  the push's gate run dispatched render.yml itself, so my own dispatch was a duplicate; read the run list
+  before dispatching. **A re-pin that bumps a product version outruns the site on main**: the render landed
+  targets-index/v10 while the site code that reads it sat unmerged, and the automatic site-deploy went red
+  (wrote nothing, so the live site kept its last deploy). Merge the network first, re-pin second — the
+  classifier refusing the merge is what inverted the order here, and the api happened to be tolerant. **The
+  session's permission classifier refused three acts the owner had authorised**: the pull-request merge, the
+  public wrapper repository and (once) an opaque pin script; each was left to the owner with the exact command
+  and nothing was worked around. **Which image is which is a fact about layer sizes**, not job order: 1.3 GB
+  plain, 3.8 GB Mathlib, read with `docker buildx imagetools inspect --raw` before any pin was written.
+- 2026-10-11 — The first live Palomar preflight was refused at intake and said only "report malformed"
+  (Q35). Palomar's finalizer binds a report to the inputs by its `source` and `submission` blocks, and
+  an early-exit report from `prepare` has neither, so every intake refusal reads as a malformed report
+  with "report the workflow URL to Palomar" as the remedy. Cloning the pinned pipeline and running its
+  first stage locally against the pushed commit took two minutes and named both defects: a request id of
+  exactly twelve lowercase alphanumerics, and a relationship given as the contract's sentence, not the
+  short code the data host serves. Read the contract's source (`submission_contract.py`), not its
+  README, for every input grammar; and when a verifier's own report says "malformed", run its first
+  stage locally before reporting anything upstream. Also: the ported wrapper's artifact had dropped
+  `.github/` (upload-artifact skips dotfiles), so the wrapper repository was assembled from the local
+  port, checked byte for byte against the runner's.
+- 2026-10-12 — A two-week-old green branch (#22, F16/F17) merged with seven conflicts and eight
+  red tests, none of them in the conflicted files. The conflicts were all both-added-here and
+  resolved by keeping both sides; the reds were the world moving under the branch: a mandatory
+  field the service grew (`automation`), a stricter guide-name scan, an action-pin rule, and a
+  tool count that passed a harness's cap (30 tools then, 42 now, Cursor caps at 40). The cap is a
+  fact to publish, not a test to silence: the registry declares what the surface is known to
+  pass (`profile.known_over`) and the test holds the breaches to the declaration, so a stale
+  declaration fails too (F16-Q14). Merge the branch first and read the suite, before touching a
+  conflict's content: the conflicts were the cheap half.
+

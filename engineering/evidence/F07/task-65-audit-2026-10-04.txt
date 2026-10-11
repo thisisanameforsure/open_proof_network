@@ -1,0 +1,73 @@
+F07-T65 — reproduce and postmerge refuse a checkout that is not the spec's pin (audit 2026-10-04)
+
+Finding. attestation.build copies ctx.spec["network_commit"] into the record, and neither
+run_reproduce nor gate/reproduce.sh compared the gate actually running with that pin. A replay from
+a later main, a branch or an edited gate/ wrote a record naming the pinned gate, and --compare could
+answer "identical": true for a run the pinned gate never made (D-5 speaks of the pinned gate).
+
+Fix (gate/opn_gate/cli.py, reproduce and postmerge entry points only, plus helpers above
+run_reproduce):
+- running_network_commit(): git rev-parse HEAD and git status --porcelain -- gate on the repository
+  the gate was loaded from (GATE_DIR.parent), through the existing _git (repo variables scrubbed).
+- pinned_network_commit(): the target's gate-spec.json at the commit, read with git show before any
+  export (target inferred from git ls-tree when --target is absent).
+- network_mismatch(): the diagnostic network-mismatch when HEAD differs, when the gate is not a git checkout, or
+  (reproduce only) when gate/ is dirty. A pin that cannot be read is not judged; the spec load
+  refuses it as before.
+- reproduce: refused with {"verdict": "refused", "diagnostic": {...}} and exit 2 before the export,
+  the image and the sandbox. --allow-network-mismatch runs anyway, warns on stderr, and with
+  --compare adds "network_mismatch" and sets "identical": false (exit 1).
+- postmerge: refused the same way only when OPN_NETWORK_COMMIT is set and differs from HEAD
+  (dirty is not checked there, as asked). The graph's workflow does not set it, so live runs are
+  unchanged; setting it (the pin the job checked out) is the later graph task.
+- gate/reproduce.sh: header documents the refusal and the flag; the check itself is in the Python
+  it execs.
+
+Tests. gate/tests/test_finding_reproduce_pin.py (9 tests, fast tier). gate/tests/conftest.py gains an
+autouse fixture that puts every in-process run at the fixtures' forty-zero pin, clean (every fixture
+graph pins 0*40, which no checkout is). The docker-tier subprocess tests (test_reproduce_docker,
+test_alternate_docker, test_finding_revised_hole_parent_docker) pass --allow-network-mismatch;
+test_compare_against_committed_attestation now asserts differing_fields == [] with identical false and
+the mismatch reported (exit 1), since the fast tier asserts exit 0 at the pin.
+NOT RUN HERE: the docker tier (no Docker on this laptop by rule). Those three files were only
+collected (6 tests collect); CI must run them.
+
+Proposed ledger line: T65 ✓ reproduce refuses network-mismatch (commit, dirty gate/, non-checkout)
+before building anything, --allow-network-mismatch never identical; postmerge refuses on
+OPN_NETWORK_COMMIT mismatch; docker-tier tests updated, CI to run them.
+
+Proposed Q entry (F07-Q-next): A replay speaks for the gate the spec pins, so reproduce compares
+the running checkout (HEAD, and gate/ clean) with gate-spec.json's network_commit before it builds
+anything, and refuses network-mismatch otherwise. --allow-network-mismatch exists for diagnosis (why
+does a later gate disagree?) and its result is never "identical". postmerge refuses only on the job's
+own declaration (OPN_NETWORK_COMMIT), so the check reaches the graph by a visible gate.yml change at a
+re-pin (D-4) rather than by surprise. Follow-ups: the graph's gate.yml to export OPN_NETWORK_COMMIT=pin
+in the postmerge job; gate/tools/check_reproduce.py invokes reproduce.sh from the laptop checkout and
+will now be refused unless that checkout is at the pin (run it from a worktree at the pin, as the
+2026-09-12 check_products lesson already says).
+
+== red (seam 48698bd: network_mismatch answers None) ==
+uv run --frozen pytest -q -rf -m 'not lean and not docker and not network' gate/tests/test_finding_reproduce_pin.py
+FAILED gate/tests/test_finding_reproduce_pin.py::test_reproduce_refuses_another_commit_before_building_anything
+FAILED gate/tests/test_finding_reproduce_pin.py::test_reproduce_refuses_a_dirty_gate_at_the_pin
+FAILED gate/tests/test_finding_reproduce_pin.py::test_reproduce_refuses_a_gate_that_is_not_a_git_checkout
+FAILED gate/tests/test_finding_reproduce_pin.py::test_allow_network_mismatch_reports_it_and_is_never_identical
+FAILED gate/tests/test_finding_reproduce_pin.py::test_postmerge_refuses_when_the_job_declares_another_commit
+5 failed, 4 passed in 6.80s
+E       AssertionError: ({'verdict': 'pass', 'first_failing_step': None, 'diagnostic': None, 'steps': [{'step': 1, 'name': 'toolchain', 'resul...lt': 'pass', 'diagnostic': None}, {'step': 7, 'name': '
+E       assert 0 == 2
+E        +  where 2 = cli.EXIT_ERROR
+E       assert 0 == 2
+E        +  where 2 = cli.EXIT_ERROR
+E       assert 0 == 2
+E        +  where 2 = cli.EXIT_ERROR
+E       AssertionError: ({'identical': True, 'differing_fields': []}, '')
+
+== green ==
+uv run --frozen pytest -q -m 'not lean and not docker and not network' gate/tests/test_finding_reproduce_pin.py \
+  gate/tests/test_cli_sandboxed.py gate/tests/test_finding_attestation_drops_submission.py \
+  gate/tests/test_postmerge_apply.py gate/tests/test_postmerge.py gate/tests/test_pins.py gate/tests/test_credit_sweep.py
+105 passed in 41.87s
+(basetemp outside the worktree: with --basetemp inside it, the existing
+test_sandboxed_commands_refuse_a_non_checkout_and_an_unknown_commit fails before and after this change,
+because its "non-checkout" directory then sits inside the worktree's git repository.)

@@ -1,0 +1,21 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.13.5, pytest-9.1.1, pluggy-1.6.0 -- /Users/mikehiggins/Desktop/repos/open_proof_network/.venv/bin/python
+rootdir: /Users/mikehiggins/Desktop/repos/open_proof_network/.claude/worktrees/agent-af198a8d488e39134
+configfile: pyproject.toml
+plugins: anyio-4.15.1
+collecting ... collected 12 items
+
+site/tests/test_outline_render.py::test_the_outline_is_a_tree_of_details_above_the_source PASSED [  8%]
+site/tests/test_outline_render.py::test_each_step_shows_its_claim_and_the_goal_it_leaves PASSED [ 16%]
+site/tests/test_outline_render.py::test_the_automation_step_is_folded_and_labelled_with_its_tactics PASSED [ 25%]
+site/tests/test_outline_render.py::test_a_mathlib_constant_carries_its_docstring_as_a_tooltip_and_its_tag_as_text PASSED [ 33%]
+site/tests/test_outline_render.py::test_expanding_a_step_reaches_its_lean_lines PASSED [ 41%]
+site/tests/test_outline_render.py::test_unreliable_step_shows_lean_only PASSED [ 50%]
+site/tests/test_outline_render.py::test_the_outline_says_what_checked_it PASSED [ 58%]
+site/tests/test_outline_render.py::test_without_an_outline_the_proof_section_is_unchanged PASSED [ 66%]
+site/tests/test_outline_render.py::test_an_outline_of_other_bytes_is_not_shown PASSED [ 75%]
+site/tests/test_outline_render.py::test_an_outline_that_does_not_validate_is_skipped_and_named PASSED [ 83%]
+site/tests/test_outline_render.py::test_a_term_proof_says_it_is_a_single_term PASSED [ 91%]
+site/tests/test_outline_render.py::test_a_hole_step_of_a_partial_links_its_child_node PASSED [100%]
+
+============================== 12 passed in 4.88s ==============================

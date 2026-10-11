@@ -23,15 +23,24 @@ from typing import Any
 
 import pytest
 import yaml
+from harness import GRAPH_CHECKOUT
 
 from opn_gate import config
 
 ROOT = Path(__file__).resolve().parents[2]
-GRAPH_REPO = ROOT.parent / "open_proof_network_graph"
+GRAPH_REPO = GRAPH_CHECKOUT
 PATH = ".github/workflows/merge.yml"
 #: ``origin/main`` first. A change to the actor lives on a graph branch until the owner pushes it;
 #: put that branch first while it does (T31 did), and take it out again once it is on main.
-REFS = ("origin/main", "f07-t25-merge-actor")
+#: ``audit-b-workflows`` is the audit of 2026-10-04 (F07-T58, T60-T63), first while it is a graph
+#: branch; F07-T46 and T55-T57 merged 2026-10-03. F22-T20 to T24 (graph branch
+#: ``f22-workflows``) merged 2026-10-06 as graph #438; ``repin-readable`` came out then too, a
+#: merged branch 155 commits behind that shadowed ``origin/main`` once main's workflows moved.
+REFS = (
+    "audit-b-workflows",
+    "origin/main",
+    "f07-t25-merge-actor",
+)
 SECRET = "OPN_GRAPH_MERGE_TOKEN"  # noqa: S105 — the secret's name, not a secret
 GATE_JOB = "gate (steps 1, 2 and 4-8 in the sandbox)"
 STEP9_JOB = "step 9 (a non-author approving review)"
@@ -64,7 +73,45 @@ def load_pick(doc: dict[Any, Any]) -> dict[str, Any]:
     body = script.split("cat > pick.py <<'PY'\n", 1)[1].split("\nPY\n", 1)[0]
     namespace: dict[str, Any] = {"__name__": "pick"}
     exec(compile(textwrap.dedent(body), "pick.py", "exec"), namespace)  # noqa: S102
+    if "lane_of_paths" in namespace:  # F07-T56: ``decide`` answers one step per lane
+        namespace["decide_lanes"] = namespace["decide"]
+        namespace["decide"] = one_line(namespace["decide"])
     return namespace
+
+
+def one_line(decide: Any) -> Any:
+    """F07-T56: ``decide`` answers a list of (number, sha, action), one step per lane. The tests
+    written before lanes pass no ``lane_of``, so every pull request is in the one line the queue
+    was, and read the answer the way the acting step took it then: nothing, a hold, one action, or
+    T45's batch of appends, the numbers and heads joined and the action ``merge-batch``."""
+
+    def shaped(
+        pulls: list[dict[str, Any]],
+        rules: Any,
+        checks_of: Any,
+        behind_of: Any,
+        conflicted: Any = lambda _number: False,
+        **kw: Any,
+    ) -> tuple[Any, Any, str]:
+        assert "postmerge_running" not in kw, "F07-T56: nothing waits for a post-merge job"
+        decided = decide(pulls, rules, checks_of, behind_of, conflicted, **kw)
+        decided = [d for d in decided if d[2] != "wait"]  # a wait holds nothing: as it was
+        if not decided:
+            return "", "", ""
+        if decided[0][2] == "hold":
+            return "", "", "hold"
+        refs = {pr["number"]: pr["head"]["ref"] for pr in pulls}
+        number, sha, action = decided[0]
+        lone_append_behind = refs[number].startswith("append/") and behind_of(sha) > 0
+        if len(decided) == 1 and not lone_append_behind:
+            return number, sha, action
+        return (
+            " ".join(str(n) for n, _s, _a in decided),
+            " ".join(s for _n, s, _a in decided),
+            "merge-batch",
+        )
+
+    return shaped
 
 
 @pytest.fixture(scope="module")
@@ -113,7 +160,7 @@ def test_exactly_one_step_names_the_secret_and_it_dry_runs_without_it(doc: dict[
     act = naming[0]["run"]
     assert 'if [ -z "${GH_TOKEN:-}" ]' in act and "dry run" in act and "exit 0" in act
     # the merge names the commit it saw, so a push in between refuses rather than lands unchecked
-    assert '-f sha="$SHA"' in act and 'expected_head_sha="$SHA"' in act
+    assert '-f sha="$s"' in act and 'expected_head_sha="$s"' in act
     assert doc["concurrency"] == {"group": "merge", "cancel-in-progress": False}
 
 
@@ -214,12 +261,18 @@ def test_a_ruleset_that_requires_no_gate_merges_nothing(pick: dict[str, Any]) ->
 
 
 def test_it_takes_the_oldest_green_one_and_updates_before_it_merges(pick: dict[str, Any]) -> None:
-    pulls = [pull(7, "submit/x"), pull(5, "propose/x"), pull(6, "append/x")]
+    """Restated by F07-T45: #6 was an append, and an append is no longer updated before it merges
+    (it is merged behind main, below). The rule this test is about stands for a building one."""
+    pulls = [pull(7, "submit/x"), pull(5, "propose/x"), pull(6, "submit/y")]
     red = [check(GATE_JOB, "failure"), check(STEP9_JOB, "skipped", id_=2)]
     checks = {f"{5:040d}": red, f"{6:040d}": GREEN, f"{7:040d}": GREEN}
     decide = pick["decide"]
     assert decide(pulls, RULES, checks.__getitem__, lambda _sha: 2) == (6, f"{6:040d}", "update")
     assert decide(pulls, RULES, checks.__getitem__, lambda _sha: 0) == (6, f"{6:040d}", "merge")
+    # F07-T45: the same queue with #6 an append merges it behind main, alone (#7 is building)
+    pulls[2] = pull(6, "append/x")
+    got = decide(pulls, RULES, checks.__getitem__, lambda _sha: 2)
+    assert got == ("6", f"{6:040d}", "merge-batch")
     assert decide(pulls, RULES, lambda _sha: red, lambda _sha: 0) == ("", "", "")
     assert decide([], RULES, checks.__getitem__, lambda _sha: 0) == ("", "", "")
 

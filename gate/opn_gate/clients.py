@@ -19,7 +19,7 @@ import shlex
 import textwrap
 import tomllib
 from collections.abc import Iterable, Iterator, Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
@@ -84,6 +84,9 @@ class Profile:
     forbidden_keywords: tuple[str, ...] = ()
     result_cap_tokens: int | None = None
     requires_readonly_hint: bool = False
+    #: F16-Q14: rule name -> why the surface is known to pass this limit and left as a fact;
+    #: ``check_profile`` still reports it, and the surface test holds the report to exactly these.
+    known_over: Mapping[str, str] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -200,6 +203,7 @@ def _entry(raw: Mapping[str, Any]) -> Entry:
     profile = dict(raw["profile"])
     sources = tuple(Source(**s) for s in profile.pop("sources"))
     profile["forbidden_keywords"] = tuple(profile.get("forbidden_keywords", ()))
+    profile["known_over"] = dict(profile.get("known_over", {}))
     return Entry(
         id=raw["id"],
         name=raw["name"],

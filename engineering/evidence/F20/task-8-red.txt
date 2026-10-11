@@ -1,0 +1,76 @@
+FFF                                                                      [100%]
+=================================== FAILURES ===================================
+________________ test_every_lean_block_has_its_gloss_or_the_cue ________________
+
+pages = {'index.html': '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="widt...6666666666666666666666666666666666666/frontier.json">frontier.json ↗</a></span>\n</footer>\n\n</body>\n</html>\n', ...}
+
+    def test_every_lean_block_has_its_gloss_or_the_cue(pages: dict[str, str]) -> None:
+        """AC11: every statement, witness, relation and definition block on every page is followed by
+        its gloss slot, which holds the current gloss or the cue; the root shows its curated informal
+        statement first; the frontier row shows a first sentence."""
+        seen: dict[str, set[str]] = {}
+        for rel, page in pages.items():
+            if not rel.endswith(".html"):
+                continue
+            for m in GLOSSED_PRE.finditer(page):
+>               file, slot = slot_after(page, m.start())
+                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+site/tests/test_glosses.py:83: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+page = '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,...x/auto-render.min.js"></script><script src="/math.js"></script><script src="/problem.js"></script>\n</body>\n</html>\n'
+start = 6415
+
+    def slot_after(page: str, start: int) -> tuple[str, str]:
+        """The gloss slot that follows the Lean block opening at ``start``: its file and its HTML up
+        to the end of the slot (the slot holds no nested ``gloss-slot``)."""
+        end = page.index("</pre>", start)
+        m = SLOT.search(page, end)
+>       assert m is not None, f"no gloss slot after the Lean block at {start}"
+E       AssertionError: no gloss slot after the Lean block at 6415
+E       assert None is not None
+
+site/tests/test_glosses.py:47: AssertionError
+___________________ test_earlier_text_gloss_only_in_history ____________________
+
+pages = {'index.html': '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="widt...6666666666666666666666666666666666666/frontier.json">frontier.json ↗</a></span>\n</footer>\n\n</body>\n</html>\n', ...}
+
+    def test_earlier_text_gloss_only_in_history(pages: dict[str, str]) -> None:
+        """AC2 (site half): the hole's witness was glossed as a stub and then filled. The gloss is
+        shown only in the slot's history, labelled as describing an earlier version of the file, and
+        the slot invites a gloss of the witness as it stands."""
+        page = node_page(pages, gf.HOLE)
+>       slot = slot_of(page, f"{TARGET}/nodes/{gf.HOLE}/Witness.lean")
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+site/tests/test_glosses.py:164: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+page = '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,...ob/6666666666666666666666666666666666666666/frontier.json">frontier.json ↗</a></span>\n</footer>\n\n</body>\n</html>\n'
+file = 'propositional/nodes/and-swap-reassoc--h1/Witness.lean'
+
+    def slot_of(page: str, file: str) -> str:
+        m = re.search(rf'<div class="gloss-slot" data-gloss-slot="{re.escape(file)}">', page)
+>       assert m is not None, f"no slot for {file}"
+E       AssertionError: no slot for propositional/nodes/and-swap-reassoc--h1/Witness.lean
+E       assert None is not None
+
+site/tests/test_glosses.py:57: AssertionError
+__________ test_the_current_version_its_sections_history_and_no_form ___________
+
+pages = {'index.html': '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="widt...6666666666666666666666666666666666666/frontier.json">frontier.json ↗</a></span>\n</footer>\n\n</body>\n</html>\n', ...}
+
+    def test_the_current_version_its_sections_history_and_no_form(pages: dict[str, str]) -> None:
+        page = pages[f"nodes/{TARGET}/{gf.TUTORIAL}/index.html"]
+        section = explainer_section(page)
+>       assert '<details class="history"' in section, "the explainer chain has no history"
+E       AssertionError: the explainer chain has no history
+E       assert '<details class="history"' in '<h2>Explainer</h2>\n<p class="vouched">Explained and vouched for by <strong>curator-one</strong>, 2026-10-06 (<em>I c...29977999c8.md</a>.</p><div class="prose"><p>## The idea A third reading that misread the hypothesis.</p></div></div>\n'
+
+site/tests/test_explainer_versions.py:40: AssertionError
+=========================== short test summary info ============================
+FAILED site/tests/test_glosses.py::test_every_lean_block_has_its_gloss_or_the_cue
+FAILED site/tests/test_glosses.py::test_earlier_text_gloss_only_in_history - ...
+FAILED site/tests/test_explainer_versions.py::test_the_current_version_its_sections_history_and_no_form
+3 failed in 3.13s

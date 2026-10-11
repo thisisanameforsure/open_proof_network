@@ -23,6 +23,7 @@ from typing import Any, cast
 
 import pytest
 from api_fakes import (
+    AUTOMATION,
     PROOF_PREFIX,
     TUTORIAL_NODE,
     TUTORIAL_PROOF,
@@ -107,11 +108,11 @@ def test_renames_is_what_the_handlers_send() -> None:
         args = {n: value_for(tool.name, n) for n in names}
         body = sent_body(tool, args)
         if body is None:
-            continue  # a path-only call (release_claim, withdraw_submission)
+            continue  # a path-only call (release_claim, withdraw_submission, renew_token)
         with_body += 1
         mapping = dict(renames.get(tool.name, {}))
         assert body == {mapping.get(n, n): expected_value(tool.name, n) for n in names}, tool.name
-    assert with_body == len(writes.TOOLS) - 2
+    assert with_body == len(writes.TOOLS) - 3  # F05-T27 added renew_token, which sends no body
 
 
 def test_submit_proof_accepts_precheck_job_id_and_forwards_the_same_body(
@@ -126,7 +127,12 @@ def test_submit_proof_accepts_precheck_job_id_and_forwards_the_same_body(
     assert "precheck_job_id" in properties, sorted(properties)
 
     [tool] = [t for t in writes.TOOLS if t.name == "submit_proof"]
-    common = {"node_id": TUTORIAL_NODE, "artifact_type": "proof", "bundle": BUNDLE}
+    common = {
+        "node_id": TUTORIAL_NODE,
+        "artifact_type": "proof",
+        "bundle": BUNDLE,
+        "automation": AUTOMATION,
+    }
     by_id = sent_body(tool, {**common, "precheck_job_id": JOB_ID})
     by_attestation = sent_body(tool, {**common, "attestation": {"id": JOB_ID, "state": "done"}})
     assert by_id == by_attestation == {**common, "precheck_job_id": JOB_ID}

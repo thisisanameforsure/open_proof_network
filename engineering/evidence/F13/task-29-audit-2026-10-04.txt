@@ -1,0 +1,67 @@
+F13-T29 — one catalog of every error code, each with a remedy (gate/opn_gate/codes.py)
+Audit 2026-10-04, worktree audit-g1-catalog.
+
+Verification command:
+  uv run --frozen pytest -q -m "not lean and not docker and not network" gate/tests/test_error_codes.py
+
+What the test walks (gate/tests/test_error_codes.py):
+  * the literal code argument of Diagnostic(, StepResult.failed(/passed_with(, QaError(,
+    _check_schema(code=) in gate/opn_gate; ApiError(, api_error(, bundles.Rejection(, the MCP
+    adapter's bare error(, refuse_axioms(sorry_code=, axiom_code=) in api/opn_api; plus every
+    literal {"error": "<code>"} the api builds by hand (the 404 and 500 handlers, the MCP 401);
+  * module-level string constants (CODE_HASH, NAME_ERROR, duplicates.ERROR ...), local variables
+    (identity's 'taken', witness.py's 'code', qa's 'code'), IfExp, x or "lit", str(...), and a
+    forwarder's literal default (_check_schema's "append-invalid");
+  * 17 relays listed by (file, expression) — first.code, rejection.code, exc.code ... — whose own
+    construction the walk already collects;
+  * 6 families listed by (file, expression) with a resolver each: the steward/explainer
+    "<code>: <message>" problems (problems_of), 'artifact-' + kind over steps.artifact.Kind,
+    f'{kind}-submission' over PROOF_FILE_KINDS, f'{field}-invalid' over as_mapping's call sites,
+    f'{name}-missing' / f'{name}-invalid' over lean_text's call sites (-missing only where required).
+  A site that is none of these fails test_every_code_site_is_resolved; a listed relay or family
+  that no longer exists fails it too. Mutant check (temporary module, deleted): a
+  Diagnostic(x.upper(), ...) was reported unresolved and a Diagnostic("zz-new-code", ...) as a
+  code with no row.
+
+Count: 348 codes — gate 196, api 126 (the MCP adapter's errors included), both 26 (the service
+refuses by the gate's own rule before anything opens: path-forbidden, witness-sorry, relation-*,
+declaration-clash ...). The lead's estimate (~131 gate, ~97 api) counted Diagnostic( and ApiError(
+alone; the forwarding helpers and dict literals add the rest.
+
+Seam first: codes.py committed with an empty _ROWS and render_json/document at today's
+behaviour (nothing), so the red run fails on the missing rows, not on a missing name.
+
+RED (empty catalog):
+E       AssertionError: codes with no catalog row
+E       assert ['acknowledge...ultiple', ...] == []
+E         
+E         Left contains 348 more items, first extra item: 'acknowledged-hazards-invalid'
+E         Use -v to get more diff
+E       IndexError: list index out of range
+2 failed, 5 passed in 1.22s
+
+GREEN:
+.......                                                                  [100%]
+7 passed in 1.28s
+ruff check / ruff format / mypy (strict) on codes.py and the test: clean.
+
+Proposed spec text (lead to apply; spec HTML not edited here)
+-------------------------------------------------------------
+Ledger line (F13 §10 Tasks): T29 ✓ (audit 2026-10-04): opn_gate.codes, 348 codes with source,
+step, meaning and remedy; held to the source by an AST walk (test_error_codes.py).
+
+Q entry (F13-Q?): "The catalog's source field has a third value, both." The task named
+gate|api. 26 codes are emitted by the gate and refused early by the service under the same name
+(the F13-T21 pre-flights); 'both' says the remedy is the same wherever it is met, and the test
+derives the value from where the walk finds the code, so it cannot drift. MCP adapter errors
+(arguments-invalid, tool-unknown, filter-unknown, unparseable, context-*, service-error) are
+catalogued as api: the adapter is part of the service package, and an agent meets them in the
+same 'error' field. step is the number the verdict carries: admission numbers its checks after
+D-4's (the relation check is 9), so relation-* say 9 although D-4's step 9 is review. Pass
+records that a verdict carries as a code (alternate-submission, artifact-proof, hazards-
+acknowledged, partial-submission ...) have rows too, with "Not an error" as their meaning and
+"Nothing to do" as their remedy, because they arrive in the same diagnostic field.
+
+Follow-up worth having: the walk shows the gate emits 'failed' ("check failed without detail")
+and 'unexpected-error'; both are catalogued as "report it", which is honest, but they are the two
+codes a contributor can do nothing with.

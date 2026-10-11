@@ -1,0 +1,18 @@
+>       assert html.count("<details") == 1, "one fold per card"
+E       AssertionError: one fold per card
+E       assert 0 == 1
+site/tests/test_finding_collapsed_statements.py:44: AssertionError
+>       assert tag and " open" not in tag.group(0), "collapsed by default"
+E       AssertionError: collapsed by default
+E       assert (None)
+site/tests/test_finding_collapsed_statements.py:56: AssertionError
+>       assert render.more_statements_words(1, 0) == "1 more statement"
+E       AttributeError: module 'opn_site.render' has no attribute 'more_statements_words'
+site/tests/test_finding_collapsed_statements.py:78: AttributeError
+>       assert "details.more" in script, "the script finds each card's fold"
+E       AssertionError: the script finds each card's fold
+E       assert 'details.more' in '// Problems filtering (F04-R7, F04-T12): the segmented control and the search box filter the\n// cards and their stat...t.activeElement.classList.contains("term")) {\n      document.activeElement.blur();\n    }\n  });\n  apply();\n})();\n'
+site/tests/test_finding_collapsed_statements.py:85: AssertionError
+4 failed, 1 passed in 212.92s (0:03:32)
+
+[exited with code 0]

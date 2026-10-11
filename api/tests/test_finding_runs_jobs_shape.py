@@ -191,6 +191,8 @@ def test_the_mcp_schema_requires_jobs_on_every_run() -> None:
     run = {"name": "gate", "status": "completed", "conclusion": "success", "url": "u"}
     doc = {
         "submission": None,
+        "state": "merged" if LEGACY_FINAL_STATE.get("merged") else "closed",  # F05-T18
+        "queue": None,  # F05-T18: nothing finished is queued
         "pull_request": {**LEGACY_FINAL_STATE, "runs": [run]},
         "pull_request_error": None,
         "attestation_path": None,
@@ -198,7 +200,9 @@ def test_the_mcp_schema_requires_jobs_on_every_run() -> None:
         "attestation_note": None,
     }
     assert results.violations("get_submission", doc) != []
-    fixed = {**doc, "pull_request": {**LEGACY_FINAL_STATE, "runs": [{**run, "jobs": []}]}}
+    # read_at and stale: what every served block carries since F07-T47
+    served = {**LEGACY_FINAL_STATE, "read_at": "2026-09-24T12:30:00Z", "stale": False}
+    fixed = {**doc, "pull_request": {**served, "runs": [{**run, "jobs": []}]}}
     assert results.violations("get_submission", fixed) == []
 
 

@@ -1,0 +1,32 @@
+F06-T13 (audit 2026-10-04; testers 2026-10-01, bugs.md A14): a precheck on a hole whose witness is
+already in an open pull request names that pull request.
+
+Finding: POST /precheck on a hole blocked witness-missing answered "a witness goes in through
+POST /proposals/witness" even while the service's own witness pull request for it was open.
+Fix: precheck.open_witness(ctx, node_id) finds an open record of kind witness for the node in the
+service's open records (as annex-pending finds an open annex, F06-T8; no host call);
+blocked_error takes it as keyword pending_witness and, for the witness-missing cause, names
+"#N; precheck again once it has merged and the products are rendered" and adds details.pending =
+{kind, id, pr_number, pr_url}. The key is added only when there is one, so every other node-blocked
+refusal keeps its exact shape (several tests pin the details dict exactly). precheck.check_open
+passes it.
+
+Not done (file not owned by this task): claims.py's two blocked_error callers (POST /claims on a
+blocked hole) still give the route sentence; passing
+pending_witness=precheck.open_witness(ctx, node_id) there is a one-line follow-up each.
+
+Proposed ledger line: T13 ✓ (audit 2026-10-04) node-blocked names an open witness pull request;
+verification `uv run --frozen pytest api/tests/test_finding_precheck_witness_pending.py api/tests/test_finding_precheck_blocked.py`.
+
+Proposed Q entry (F06-Q-next): "A hole waiting on its own open witness says so (T13, audit
+2026-10-04; testers 2026-10-01 A14). The witness-missing refusal named POST /proposals/witness to a
+submitter whose witness was already in a pull request. It now names that pull request in the
+message and as details.pending, found in the service's open records as annex-pending finds an
+annex. Reversal: precheck.open_witness and its one caller."
+
+--- red ---
+/Users/mikehiggins/Desktop/repos/opn-audit-g2-agentapi/api/tests/test_finding_precheck_witness_pending.py:54: AssertionError: and-reassoc--h1 is blocked: cause witness-missing: its witness slot is empty, and a witness goes in through POST /proposals/witness (F08-R5) before the node opens
+1 failed, 1 passed, 2 warnings in 1.65s
+
+--- green (precheck, claims and refusal tests) ---
+130 passed, 2 warnings in 3.79s

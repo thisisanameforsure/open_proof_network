@@ -21,6 +21,7 @@ import threading
 import time
 from collections.abc import Mapping
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from typing import Any, Protocol
 
 import httpx
@@ -46,6 +47,65 @@ BLOB_MODE = "100644"
 
 class GitHostError(Exception):
     """The host refused or failed; the message is safe to log (no credential in it)."""
+
+
+@dataclass(frozen=True)
+class HostBudget:
+    """What the host last said about the App's hourly budget (F07-T47): the ``X-RateLimit-*``
+    headers GitHub puts on every API answer, and when they were read (unix seconds). ``None``
+    fields are headers the answer did not carry."""
+
+    remaining: int | None
+    limit: int | None
+    reset_at: float | None  # unix seconds; when the budget refills
+    read_at: float  # unix seconds; when this was seen
+
+    @property
+    def reset_iso(self) -> str | None:
+        if self.reset_at is None:
+            return None
+        return datetime.fromtimestamp(self.reset_at, UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+RATE_LIMIT_STATUSES = (403, 429)
+
+
+def budget_from(headers: Mapping[str, str], *, read_at: float) -> HostBudget | None:
+    """The budget an answer's headers carry, or ``None`` when it carries no ``remaining``."""
+    remaining = _header_int(headers, "X-RateLimit-Remaining")
+    if remaining is None:
+        return None
+    return HostBudget(
+        remaining=remaining,
+        limit=_header_int(headers, "X-RateLimit-Limit"),
+        reset_at=_header_int(headers, "X-RateLimit-Reset"),
+        read_at=read_at,
+    )
+
+
+def _header_int(headers: Mapping[str, str], name: str) -> int | None:
+    raw = headers.get(name)
+    if raw is None:
+        return None
+    try:
+        return int(raw)
+    except ValueError:
+        return None
+
+
+class RateLimitError(GitHostError):
+    """The host refused the call because the App's budget is spent (F07-T47): a 403 or 429
+    carrying ``X-RateLimit-Remaining: 0``, which is how GitHub answers a primary rate limit.
+    Its own kind, so a route can answer "come back at the reset" instead of a bare 502."""
+
+    def __init__(self, budget: HostBudget, call: str = "") -> None:
+        self.budget = budget
+        where = f"{call}: " if call else ""
+        limit = f" of {budget.limit}" if budget.limit is not None else ""
+        refills = f"; it refills at {budget.reset_iso}" if budget.reset_iso else ""
+        super().__init__(
+            f"{where}GitHub's rate limit for the App is spent (0{limit} calls remaining){refills}"
+        )
 
 
 @dataclass(frozen=True)
@@ -80,6 +140,23 @@ class Author:
 class PullRequest:
     number: int
     url: str
+
+
+@dataclass(frozen=True)
+class OpenPullRequest:
+    """One entry of the repository's open pull-request listing (F07-T47): enough to say a pull
+    request is still open and where its head is, read for the whole queue in one call."""
+
+    number: int
+    url: str
+    head_sha: str
+    #: F05-T18: what the merge actor's ``candidates`` reads of each entry, from the same listing:
+    #: the head branch, the base branch, whether it is a draft, and whether the head is in this
+    #: repository (a fork's is not the service's).
+    head_ref: str = ""
+    base_ref: str = "main"
+    draft: bool = False
+    same_repo: bool = True
 
 
 @dataclass(frozen=True)
@@ -128,6 +205,10 @@ class PullRequestState:
     merge_commit_sha: str | None
     runs: tuple[dict[str, Any], ...] = ()
     reviews: tuple[dict[str, Any], ...] = ()
+    #: F05-T18: when the host says it merged, and when it closed (merged or not), in the host's
+    #: own timestamps: what a record is closed with, instead of the time somebody first asked.
+    merged_at: str | None = None
+    closed_at: str | None = None
 
     @property
     def finished(self) -> bool:
@@ -201,6 +282,12 @@ class GitHost(Protocol):
         never guessed)."""
         ...
 
+    def is_ancestor(self, repo: str, ancestor: str, commit: str) -> bool:
+        """Whether ``commit`` is ``ancestor`` or descends from it in ``repo`` (F08-T26: does a
+        target's pinned gate understand use lines). ``False`` when the host knows neither
+        commit; a ``GitHostError`` when it cannot be asked. Read-only."""
+        ...
+
     def push_branch(  # noqa: PLR0913 — one argument per part of the commit being made
         self,
         repo: str,
@@ -265,6 +352,39 @@ class GitHost(Protocol):
         App (F07-T16); ``None`` when the host has no such pull request. Read-only."""
         ...
 
+    def list_open_pull_requests(self, repo: str) -> list[OpenPullRequest]:
+        """Every open pull request of ``repo``, as the App, in one listing call per page of 100
+        (F07-T47): the queue's open set, so the snapshot costs one call rather than one per
+        record. Read-only."""
+        ...
+
+    def budget(self) -> HostBudget | None:
+        """The App's budget as the host last reported it on any API answer (F07-T47), or
+        ``None`` when no answer has been seen since the process started."""
+        ...
+
+    def comment_on_pull_request(self, repo: str, number: int, body: str) -> None:
+        """Post ``body`` as a comment on pull request ``number``, as the App (F07-T64): the
+        reason the service gives on the host before it closes or rewrites a pull request it
+        opened. Pull requests: write covers it (the issue-comments endpoint, which serves pull
+        requests too)."""
+        ...
+
+
+#: F06-T12: what each call's installation token may do. A token request names the one repository
+#: and exactly these permissions, so a read's token cannot write and no token reaches a repository
+#: its call is not for (an empty request is the App's whole grant on every installed repository).
+#: Metadata: read is implied by GitHub on every token. Each set is a sorted tuple of pairs, so it
+#: can key the token cache.
+Permissions = tuple[tuple[str, str], ...]
+CONTENTS_READ: Permissions = (("contents", "read"),)  # refs, the Contents API, compare
+CONTENTS_WRITE: Permissions = (("contents", "write"),)  # the Git Data API: trees, commits, refs
+PULLS_READ: Permissions = (("pull_requests", "read"),)  # the open listing
+PULLS_WRITE: Permissions = (("pull_requests", "write"),)  # open and close a pull request
+PULL_STATE: Permissions = (("actions", "read"), ("pull_requests", "read"))  # pull, reviews, runs
+ACTIONS_READ: Permissions = (("actions", "read"),)  # runs, jobs, artifacts
+ACTIONS_WRITE: Permissions = (("actions", "write"),)  # workflow_dispatch
+
 
 class HttpxGitHost:
     def __init__(
@@ -274,11 +394,29 @@ class HttpxGitHost:
         self._client_secret = client_secret
         self._app_id = app_id
         self._private_key = private_key
-        # repo -> (installation access token, unix expiry). Memory only: never stored (C8).
-        self._installation_tokens: dict[str, tuple[str, float]] = {}
+        # (repo, permissions) -> (installation access token, unix expiry). Memory only: never
+        # stored (C8). F06-T12: one token per permission set, never shared between sets.
+        self._installation_tokens: dict[tuple[str, Permissions], tuple[str, float]] = {}
         # F07-T39: the snapshot's lookups run on a pool, so a cold process asks for the token
         # from several threads at once; one mints it and the rest read the cache.
         self._token_lock = threading.Lock()
+        # F07-T47: the budget the host last reported, from the headers of any API answer.
+        self._budget: HostBudget | None = None
+
+    def budget(self) -> HostBudget | None:
+        return self._budget
+
+    def _observe(self, resp: httpx.Response) -> None:
+        """F07-T47: a response hook on every App-authenticated client. The answer's
+        ``X-RateLimit-*`` headers are the budget's latest reading, and a 403 or 429 with none
+        remaining is the host refusing for budget, raised as its own kind before any caller
+        reads the status, so no route mistakes it for a permission or a transient."""
+        budget = budget_from(resp.headers, read_at=time.time())
+        if budget is None:
+            return
+        self._budget = budget
+        if resp.status_code in RATE_LIMIT_STATUSES and budget.remaining == 0:
+            raise RateLimitError(budget, f"{resp.request.method} {_path(str(resp.request.url))}")
 
     def exchange_code(self, code: str, *, redirect_uri: str) -> GitHubUser:
         with httpx.Client(timeout=TIMEOUT_S, headers={"Accept": "application/json"}) as http:
@@ -330,7 +468,7 @@ class HttpxGitHost:
     def head_sha(self, repo: str, branch: str) -> str:
         """The commit ``branch`` points to, from the API as the App (F05-T13). Not the raw host:
         that is a CDN which caches a branch path for minutes, and the point is to see past it."""
-        with self._api(repo) as http:
+        with self._api(repo, CONTENTS_READ) as http:
             ref = _json(_send(http, "GET", f"{GITHUB_API}/repos/{repo}/git/ref/heads/{branch}"))
         sha = str((ref.get("object") or {}).get("sha") or "")
         if not sha:
@@ -356,7 +494,7 @@ class HttpxGitHost:
     def list_dir(self, repo: str, ref: str, path: str) -> list[str] | None:
         """The Contents API as the App (F09-R6): the raw host serves files, not listings, and
         the App's installation token has the rate budget an anonymous call lacks."""
-        with self._api(repo) as http:
+        with self._api(repo, CONTENTS_READ) as http:
             try:
                 resp = http.get(f"{GITHUB_API}/repos/{repo}/contents/{path}", params={"ref": ref})
             except httpx.HTTPError as exc:
@@ -377,6 +515,33 @@ class HttpxGitHost:
         return sorted(
             str(e["name"]) for e in entries if isinstance(e, dict) and e.get("type") == "file"
         )
+
+    def is_ancestor(self, repo: str, ancestor: str, commit: str) -> bool:
+        """The compare API (``GET /repos/{repo}/compare/{ancestor}...{commit}``): ``identical``
+        or ``ahead`` means ``commit`` contains ``ancestor``. As the App where it is installed on
+        ``repo``; the network repository is public, so otherwise unauthenticated. One call per
+        pair for the life of the process: the caller caches it, since ancestry never changes."""
+        url = f"{GITHUB_API}/repos/{repo}/compare/{ancestor}...{commit}"
+        params = {"per_page": 1}  # the status is all that is read; the commit list is not
+        try:
+            http = self._api(repo, CONTENTS_READ)
+        except GitHostError:
+            http = httpx.Client(
+                timeout=TIMEOUT_S,
+                headers={"Accept": API_ACCEPT, "X-GitHub-Api-Version": API_VERSION},
+            )
+        with http:
+            try:
+                resp = http.get(url, params=params)
+            except httpx.HTTPError as exc:
+                msg = f"GET {_path(url)} failed: {type(exc).__name__}"
+                raise GitHostError(msg) from exc
+        if resp.status_code == 404:
+            return False
+        if resp.status_code != 200:
+            msg = f"GET {_path(url)} returned {resp.status_code}"
+            raise GitHostError(msg)
+        return _json(resp, "the commit comparison").get("status") in ("identical", "ahead")
 
     # --- as the GitHub App (F06-R3, R5) ---------------------------------------------------------
 
@@ -410,14 +575,15 @@ class HttpxGitHost:
         signature = key.sign(signing_input, padding.PKCS1v15(), hashes.SHA256())
         return (signing_input + b"." + _b64url(signature)).decode("ascii")
 
-    def _installation_token(self, repo: str) -> str:
-        """The App's installation access token for ``repo``, cached until it nearly expires.
-        Minted under a lock, so threads that arrive together mint one token (F07-T39)."""
+    def _installation_token(self, repo: str, permissions: Permissions) -> str:
+        """The App's installation access token for ``repo`` with ``permissions`` and nothing
+        more (F06-T12), cached per (repo, permissions) until it nearly expires. Minted under a
+        lock, so threads that arrive together mint one token (F07-T39)."""
         with self._token_lock:
-            return self._installation_token_locked(repo)
+            return self._installation_token_locked(repo, permissions)
 
-    def _installation_token_locked(self, repo: str) -> str:
-        cached = self._installation_tokens.get(repo)
+    def _installation_token_locked(self, repo: str, permissions: Permissions) -> str:
+        cached = self._installation_tokens.get((repo, permissions))
         if cached is not None and cached[1] - TOKEN_REFRESH_MARGIN_S > time.time():
             return cached[0]
         jwt = self._app_jwt()
@@ -426,7 +592,9 @@ class HttpxGitHost:
             "Accept": API_ACCEPT,
             "X-GitHub-Api-Version": API_VERSION,
         }
-        with httpx.Client(timeout=TIMEOUT_S, headers=headers) as http:
+        with httpx.Client(
+            timeout=TIMEOUT_S, headers=headers, event_hooks={"response": [self._observe]}
+        ) as http:
             installation = _json(_send(http, "GET", f"{GITHUB_API}/repos/{repo}/installation"))
             installation_id = installation.get("id")
             if not installation_id:
@@ -434,7 +602,13 @@ class HttpxGitHost:
                 raise GitHostError(msg)
             issued = _json(
                 _send(
-                    http, "POST", f"{GITHUB_API}/app/installations/{installation_id}/access_tokens"
+                    http,
+                    "POST",
+                    f"{GITHUB_API}/app/installations/{installation_id}/access_tokens",
+                    json={
+                        "repositories": [repo.split("/", 1)[-1]],
+                        "permissions": dict(permissions),
+                    },
                 )
             )
         token = str(issued.get("token") or "")
@@ -442,19 +616,21 @@ class HttpxGitHost:
             msg = f"GitHub issued no installation token for {repo}"
             raise GitHostError(msg)
         # An installation token lives an hour; trust the margin rather than parsing expires_at.
-        self._installation_tokens[repo] = (token, time.time() + 3600)
+        self._installation_tokens[(repo, permissions)] = (token, time.time() + 3600)
         return token
 
-    def _api(self, repo: str) -> httpx.Client:
-        """A client carrying the installation token for ``repo``. The token is in memory and in
-        this header only — never in a store, a response or a log (C8)."""
+    def _api(self, repo: str, permissions: Permissions) -> httpx.Client:
+        """A client carrying an installation token for ``repo`` scoped to ``permissions``
+        (F06-T12). The token is in memory and in this header only — never in a store, a response
+        or a log (C8)."""
         return httpx.Client(
             timeout=TIMEOUT_S,
             headers={
-                "Authorization": f"Bearer {self._installation_token(repo)}",
+                "Authorization": f"Bearer {self._installation_token(repo, permissions)}",
                 "Accept": API_ACCEPT,
                 "X-GitHub-Api-Version": API_VERSION,
             },
+            event_hooks={"response": [self._observe]},  # F07-T47: the budget, every answer
         )
 
     def push_branch(  # noqa: PLR0913 — one argument per part of the commit being made
@@ -469,7 +645,7 @@ class HttpxGitHost:
         committer: Author | None = None,
         replace: bool = False,
     ) -> str:
-        with self._api(repo) as http:
+        with self._api(repo, CONTENTS_WRITE) as http:
             ref = _json(_send(http, "GET", f"{GITHUB_API}/repos/{repo}/git/ref/heads/{base}"))
             base_sha = str(ref.get("object", {}).get("sha") or "")
             if not base_sha:
@@ -526,7 +702,7 @@ class HttpxGitHost:
     def open_pull_request(
         self, repo: str, *, head: str, base: str, title: str, body: str
     ) -> PullRequest:
-        with self._api(repo) as http:
+        with self._api(repo, PULLS_WRITE) as http:
             doc = _json(
                 _send(
                     http,
@@ -538,7 +714,7 @@ class HttpxGitHost:
         return PullRequest(number=int(doc["number"]), url=str(doc.get("html_url") or ""))
 
     def close_pull_request(self, repo: str, number: int) -> str | None:
-        with self._api(repo) as http:
+        with self._api(repo, PULLS_WRITE) as http:
             doc = _json(
                 _send(
                     http,
@@ -558,7 +734,7 @@ class HttpxGitHost:
 
     def delete_branch(self, repo: str, branch: str) -> bool:
         url = f"{GITHUB_API}/repos/{repo}/git/refs/heads/{branch}"
-        with self._api(repo) as http:
+        with self._api(repo, CONTENTS_WRITE) as http:
             try:
                 resp = http.request("DELETE", url)
             except httpx.HTTPError as exc:
@@ -577,7 +753,7 @@ class HttpxGitHost:
     def dispatch_workflow(
         self, repo: str, workflow: str, *, ref: str, inputs: Mapping[str, str]
     ) -> None:
-        with self._api(repo) as http:
+        with self._api(repo, ACTIONS_WRITE) as http:
             _send(
                 http,
                 "POST",
@@ -586,7 +762,7 @@ class HttpxGitHost:
             )
 
     def find_run(self, repo: str, workflow: str, *, branch: str) -> WorkflowRun | None:
-        with self._api(repo) as http:
+        with self._api(repo, ACTIONS_READ) as http:
             page = _json(
                 _send(
                     http,
@@ -609,7 +785,7 @@ class HttpxGitHost:
     def latest_artifact(self, repo: str, run_id: int, prefix: str) -> bytes | None:
         """The newest artifact of the run whose name starts with ``prefix`` (F07-T26): the gate
         names its verdict ``gate-<pr>-<attempt>``, and only the run knows its attempt."""
-        with self._api(repo) as http:
+        with self._api(repo, ACTIONS_READ) as http:
             listing = _json(
                 _send(http, "GET", f"{GITHUB_API}/repos/{repo}/actions/runs/{run_id}/artifacts")
             )
@@ -631,7 +807,7 @@ class HttpxGitHost:
         return zipped.content
 
     def download_artifact(self, repo: str, run_id: int, name: str) -> bytes | None:
-        with self._api(repo) as http:
+        with self._api(repo, ACTIONS_READ) as http:
             listing = _json(
                 _send(http, "GET", f"{GITHUB_API}/repos/{repo}/actions/runs/{run_id}/artifacts")
             )
@@ -658,7 +834,7 @@ class HttpxGitHost:
         F06) — not the check-runs API, whose Checks permission C8 does not list. One page of
         each (100 items) is Stage 0's volume."""
         base = f"{GITHUB_API}/repos/{repo}"
-        with self._api(repo) as http:
+        with self._api(repo, PULL_STATE) as http:
             try:
                 resp = http.get(f"{base}/pulls/{number}")
             except httpx.HTTPError as exc:
@@ -725,6 +901,8 @@ class HttpxGitHost:
             mergeable_state=str(pr.get("mergeable_state") or "unknown"),
             head_sha=head_sha,
             merge_commit_sha=str(pr["merge_commit_sha"]) if pr.get("merge_commit_sha") else None,
+            merged_at=str(pr["merged_at"]) if pr.get("merged_at") else None,
+            closed_at=str(pr["closed_at"]) if pr.get("closed_at") else None,
             runs=tuple(
                 {
                     "name": run.get("name"),
@@ -747,6 +925,64 @@ class HttpxGitHost:
                 if isinstance(r, dict)
             ),
         )
+
+    def list_open_pull_requests(self, repo: str) -> list[OpenPullRequest]:
+        """``GET /repos/{repo}/pulls?state=open`` as the App (F07-T47), a page of 100 at a time
+        until a short page: one call for the whole queue at Stage 0's volume."""
+        out: list[OpenPullRequest] = []
+        with self._api(repo, PULLS_READ) as http:
+            for page in range(1, LISTING_MAX_PAGES + 1):
+                entries = _json_list(
+                    _send(
+                        http,
+                        "GET",
+                        f"{GITHUB_API}/repos/{repo}/pulls",
+                        params={"state": "open", "per_page": LISTING_PAGE, "page": page},
+                    ),
+                    f"the open pull requests of {repo}",
+                )
+                for pr in entries:
+                    if not isinstance(pr, dict) or pr.get("number") is None:
+                        continue
+                    out.append(open_pull_request_of(pr))
+                if len(entries) < LISTING_PAGE:
+                    break
+        return out
+
+    def comment_on_pull_request(self, repo: str, number: int, body: str) -> None:
+        """``POST /repos/{repo}/issues/{number}/comments`` as the App (F07-T64). Pull requests:
+        write covers the issue-comments endpoint on a pull request (F06-T12's scoping)."""
+        with self._api(repo, PULLS_WRITE) as http:
+            _send(
+                http,
+                "POST",
+                f"{GITHUB_API}/repos/{repo}/issues/{number}/comments",
+                json={"body": body},
+            )
+
+
+def open_pull_request_of(pr: dict[str, Any]) -> OpenPullRequest:
+    """One entry of the host's open listing, with what the merge actor's ``candidates`` reads of
+    it (F05-T18). A head whose repository the host no longer names (a deleted fork) is not this
+    repository's."""
+    head = pr.get("head") if isinstance(pr.get("head"), dict) else {}
+    base = pr.get("base") if isinstance(pr.get("base"), dict) else {}
+    assert isinstance(head, dict) and isinstance(base, dict)
+    head_repo = (head.get("repo") or {}).get("full_name")
+    base_repo = (base.get("repo") or {}).get("full_name")
+    return OpenPullRequest(
+        number=int(pr["number"]),
+        url=str(pr.get("html_url") or ""),
+        head_sha=str(head.get("sha") or ""),
+        head_ref=str(head.get("ref") or ""),
+        base_ref=str(base.get("ref") or ""),
+        draft=bool(pr.get("draft")),
+        same_repo=head_repo is not None and head_repo == base_repo,
+    )
+
+
+LISTING_PAGE = 100
+LISTING_MAX_PAGES = 10  # a thousand open pull requests is far beyond Stage 0's queue
 
 
 def _b64url(raw: bytes) -> bytes:

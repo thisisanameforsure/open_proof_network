@@ -1,0 +1,113 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.13.5, pytest-9.1.1, pluggy-1.6.0 -- /Users/mikehiggins/Desktop/repos/open_proof_network/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /Users/mikehiggins/Desktop/repos/open_proof_network/.claude/worktrees/agent-a004d895c3344f84d
+configfile: pyproject.toml
+plugins: anyio-4.15.1
+collecting ... collected 34 items / 1 deselected / 33 selected
+
+gate/tests/test_walkthrough.py::test_required_sections PASSED
+gate/tests/test_walkthrough.py::test_graph_copy_is_identical SKIPPED
+gate/tests/test_walkthrough.py::test_manual_blocks_are_the_known_two PASSED
+gate/tests/test_walkthrough.py::test_fast_check_section PASSED
+gate/tests/test_walkthrough.py::test_agents_md_executes line   40 passed   test -d "$GRAPH/targets"
+line   59 passed   META="$(grep -l '^tutorial: true' "$GRAPH"/targets/*/nodes/*/META.yaml
+line   88 passed   cat "$NODE_DIR/Statement.lean"
+line  100 passed   python3 - "$NODE_DIR" <<'PY'
+line  123 skipped  OUT="$WORK/pregate"  [lean]
+line  147 passed   BUNDLE_PATH="targets/$TARGET/nodes/$NODE/Proof.lean"
+line  168 passed   STATE=queued
+line  183 passed   python3 - "$WORK/precheck-result.json" <<'PY'
+line  294 passed   python3 - "$NODE_DIR/Proof.lean" "$TARGET" "$NODE" <<'PY' > "$WORK/che
+line  378 passed   curl -fsS "$OPN_API/frontier.json" > "$WORK/frontier.json"
+line  402 passed   CLAIM_NODE="$(python3 - "$WORK/frontier.json" <<'PY'
+line  430 passed   DCO_VERSION="$(curl -fsS "$OPN_API/dco.json" | python3 -c 'import json
+line  451 passed   curl -fsS -X POST "$OPN_API/claims" -H "Authorization: Bearer $TOKEN" 
+line  498 passed   python3 - "$GRAPH/targets/index.json" <<'PY'
+line  531 passed   ls -p "$NODE_DIR" | LC_ALL=C sort
+line  564 passed   PYTHONPATH="$NETWORK/gate" uv run --frozen --project "$NETWORK" python
+line  656 passed   python3 - "$GRAPH/targets/$TARGET/gate-spec.json" <<'PY'
+line  709 passed   curl -s -o /dev/null -w '%{http_code} %{redirect_url}\n' "$OPN_API/aut
+line  726 passed   curl -fsS -X POST "$OPN_API/precheck" -H "Authorization: Bearer $TOKEN
+line  753 passed   python3 - "$WORK/precheck-request.json" "$OWNED_JOB" <<'PY' > "$WORK/s
+line  834 passed   SUBMISSION_ID="$(python3 -c 'import json,sys; print(json.load(sys.stdi
+line  867 passed   BRANCH="proof/$NODE-$PSEUDONYM"
+line  884 passed   PYTHONPATH="$NETWORK/gate" uv run --frozen --project "$NETWORK" python
+line  897 passed   ATTESTATION="$WORK/attestation.json"
+line  922 skipped  git -C "$GRAPH" push -u origin "$BRANCH"  [manual]
+line  958 passed   cat > "$WORK/postmortem.yaml" <<'YAML'
+line 1011 passed   python3 - "$WORK/postmortem.yaml" "$NODE" <<'PY' > "$WORK/postmortem-r
+line 1173 passed   python3 - "$NODE" <<'PY' > "$WORK/annex-request.json"
+line 1409 passed   curl -sS -X POST "$OPN_API/submissions" -H "Authorization: Bearer $TOK
+line 1499 passed   python3 - "$TARGET" "$NODE" <<'PY' > "$WORK/proposal.json"
+line 1527 passed   python3 - "$GRAPH/targets/index.json" <<'PY'
+line 1549 passed   ssh-keygen -q -t ed25519 -N "" -f "$WORK/steward-key" -C "steward"
+line 1575 passed   python3 - "$NODE_DIR" <<'PY' > "$WORK/explainer-hash"
+line 1597 passed   PYTHONPATH="$NETWORK/gate" uv run --frozen --project "$NETWORK" python
+line 1652 passed   curl -fsS -X POST "$OPN_API/mcp" -H 'Content-Type: application/json' \
+line 1685 passed   python3 - "$NODE" <<'PY' > "$WORK/gloss.json"
+line 1712 passed   python3 - "$NODE" <<'PY' > "$WORK/gloss-second.json"
+line 1765 passed   cat > "$WORK/outline.json" <<'JSON'
+line 1838 passed   git -C "$GRAPH" show "main:targets/$TARGET/glosses.json" > "$WORK/glos
+line 1980 passed   python3 - "$NODE" "$GLOSS_HASH" <<'PY' > "$WORK/gloss-revision.json"
+line 2016 passed   python3 - "$NODE" "$PROOF_HASH" <<'PY' > "$WORK/explainer-anchored.jso
+line 2049 passed   python3 - "$TARGET" "$NODE" "$GLOSS_HASH" <<'PY' > "$WORK/withdrawal.j
+line 2087 passed   PYTHONPATH="$NETWORK/gate" uv run --frozen --project "$NETWORK" python
+line 2115 passed   PYTHONPATH="$NETWORK/gate" uv run --frozen --project "$NETWORK" python
+line 2131 passed   PYTHONPATH="$NETWORK/gate" uv run --frozen --project "$NETWORK" python
+line 2154 passed   cat > "$WORK/states.py" <<'PY'
+line 2188 passed   PYTHONPATH="$NETWORK/gate" uv run --frozen --project "$NETWORK" python
+line 2213 passed   PYTHONPATH="$NETWORK/gate" uv run --frozen --project "$NETWORK" python
+line 2243 passed   PYTHONPATH="$NETWORK/gate" uv run --frozen --project "$NETWORK" python
+line 2302 passed   curl -fsS "$OPN_API/info.json" | python3 -c '
+line 2319 passed   curl -fsS -X DELETE "$OPN_API/claims/$CLAIM_ID" -H "Authorization: Bea
+line 2339 passed   curl -fsS "$OPN_API/errors.json?prefix=precheck-" | python3 -c '
+line 2396 skipped  claude mcp add --transport http open-proof-network "$OPN_API/mcp"  [manual]
+50 passed, 0 drifted, 0 failed, 3 skipped
+PASSED
+gate/tests/test_finding_guide_words_entry.py::test_the_entry_task_is_pointed_to_beside_the_tutorial PASSED
+gate/tests/test_finding_guide_words_entry.py::test_the_entry_task_finds_reads_writes_and_submits PASSED
+gate/tests/test_finding_guide_words_entry.py::test_the_states_the_lock_and_the_review_are_said PASSED
+gate/tests/test_finding_guide_words_entry.py::test_the_credit_rule_is_said PASSED
+gate/tests/test_finding_guide_words_entry.py::test_the_refusal_table_names_f21s_codes_and_not_the_removed_ones PASSED
+gate/tests/test_finding_guide_words_entry.py::test_the_seven_drafts_are_history PASSED
+gate/tests/test_finding_guide_names_exist.py::test_every_route_the_guide_names_is_served PASSED
+gate/tests/test_finding_guide_names_exist.py::test_every_tool_the_guide_names_is_a_tool PASSED
+gate/tests/test_finding_guide_names_exist.py::test_the_appendix_has_a_row_for_every_tool PASSED
+gate/tests/test_finding_guide_names_exist.py::test_every_status_and_code_the_guide_names_is_in_the_catalog PASSED
+gate/tests/test_finding_guide_names_exist.py::test_every_other_kebab_name_exists_in_the_code PASSED
+gate/tests/test_finding_guide_names_exist.py::test_the_queue_is_one_lane_per_target PASSED
+gate/tests/test_finding_guide_names_exist.py::test_the_open_pull_request_caps_are_the_services PASSED
+gate/tests/test_finding_guide_names_exist.py::test_a_precheck_backs_one_pull_request PASSED
+gate/tests/test_finding_guide_names_exist.py::test_a_spent_check_budget_refuses_the_pre_flight PASSED
+gate/tests/test_finding_guide_names_exist.py::test_the_error_catalog_and_the_wayfinding_routes PASSED
+gate/tests/test_finding_guide_names_exist.py::test_the_frontier_says_status_cause_and_needs PASSED
+gate/tests/test_finding_guide_names_exist.py::test_an_agents_own_submissions_and_checks PASSED
+gate/tests/test_finding_guide_names_exist.py::test_check_mode_reads_the_texts_own_sorry PASSED
+gate/tests/test_finding_guide_names_exist.py::test_withdrawal_and_racer_moves_comment_first PASSED
+site/tests/test_docs_reading.py::test_the_reading_section_sits_before_the_state_map_and_is_linked PASSED
+site/tests/test_docs_reading.py::test_every_provenance_label_has_a_row PASSED
+site/tests/test_docs_reading.py::test_the_gloss_guide_link_lands_on_the_guides_section PASSED
+site/tests/test_docs_reading.py::test_the_actions_table_names_the_word_actions PASSED
+site/tests/test_docs_reading.py::test_heading_anchors_are_opt_in_slugged_and_unique PASSED
+api/tests/test_finding_mcp_instructions_urls.py::test_the_instructions_name_the_guide_and_the_error_codes PASSED
+api/tests/test_finding_mcp_instructions_urls.py::test_the_instructions_give_the_usual_order_of_calls PASSED
+api/tests/test_finding_mcp_instructions_urls.py::test_the_instructions_give_the_words_entry_task PASSED
+
+=============================== warnings summary ===============================
+api/tests/api_fakes.py:31
+  /Users/mikehiggins/Desktop/repos/open_proof_network/.claude/worktrees/agent-a004d895c3344f84d/api/tests/api_fakes.py:31: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient
+
+../../../.venv/lib/python3.13/site-packages/starlette/testclient.py:53
+  /Users/mikehiggins/Desktop/repos/open_proof_network/.venv/lib/python3.13/site-packages/starlette/testclient.py:53: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.
+    _PortalFactoryType = Callable[[], AbstractContextManager[anyio.abc.BlockingPortal]]
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+SKIPPED [1] gate/tests/test_walkthrough.py:235: /Users/mikehiggins/Desktop/repos/open_proof_network/.claude/worktrees/open_proof_network_graph/AGENTS.md is not checked out beside this repo
+=========== 32 passed, 1 skipped, 1 deselected, 2 warnings in 8.24s ============
+=========================== short test summary info ============================
+SKIPPED [1] gate/tests/test_walkthrough.py:235: /Users/mikehiggins/Desktop/repos/open_proof_network/.claude/worktrees/open_proof_network_graph/AGENTS.md is not checked out beside this repo
+SKIPPED [1] gate/tests/test_finding_guide_tester_0924.py:117: the graph repo is not checked out
+681 passed, 2 skipped, 1 deselected, 2 warnings in 41.55s

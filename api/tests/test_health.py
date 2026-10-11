@@ -13,7 +13,7 @@ from opn_api import config
 def test_health_ok(harness: Harness) -> None:
     r = harness.client.get("/health")
     assert r.status_code == 200
-    assert r.json() == {"ok": True, "store": "memory"}
+    assert r.json() == {"ok": True, "store": "memory", "host_budget": None}  # F07-T47
 
 
 def test_missing_dependency_503() -> None:
@@ -68,6 +68,8 @@ def test_rate_limit_policy_shape() -> None:
         "prechecks_per_hour": 40,
         "anonymous_prechecks_per_address_per_day": 20,
         "proposals_per_day": 40,  # F08 §6: published, like every identity-layer limit
+        "open_pull_requests_per_identity": 10,  # F07-T67, awaiting the owner's sign-off
+        "open_pull_requests_global": 150,  # F07-T67, awaiting the owner's sign-off
         "claim_ttl_hours": {"min": 1, "max": 168},
     }
 

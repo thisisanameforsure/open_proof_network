@@ -14,7 +14,21 @@ from dataclasses import dataclass, field, replace
 from pathlib import Path, PurePosixPath
 from typing import Any
 
-from opn_gate import evidence, explainers, intake, layout, paths, records, schemas, signed, watch
+import yaml
+
+from opn_gate import (
+    evidence,
+    explainers,
+    glosses,
+    intake,
+    layout,
+    paths,
+    records,
+    schemas,
+    sections,
+    signed,
+    watch,
+)
 from opn_gate import graph as graphmod
 from opn_gate import writeup as writeupmod
 
@@ -22,8 +36,14 @@ from opn_gate import writeup as writeupmod
 #: snapshots keep rendering (D-34), so this is a set per product, not a pin: `targets-index/v2`
 #: and `graph/v2` add F07-R8's two statuses, which the site shows without needing to know them.
 PRODUCT_SCHEMAS: dict[str, tuple[str, ...]] = {
-    "frontier.json": ("frontier/v1", "frontier/v2", "frontier/v3"),
-    "info.json": ("info/v1",),
+    "frontier.json": (
+        "frontier/v1",
+        "frontier/v2",
+        "frontier/v3",
+        "frontier/v4",  # F03-T16: status, cause, needs
+        "frontier/v5",  # F03-T18 (D-12 v3.35): circular, literature, literature_proposed
+    ),
+    "info.json": ("info/v1", "info/v2"),  # v2: F05-T25
     "targets/index.json": (
         "targets-index/v1",
         "targets-index/v2",
@@ -32,8 +52,19 @@ PRODUCT_SCHEMAS: dict[str, tuple[str, ...]] = {
         "targets-index/v5",  # F14: evidence, step 9 basis, formalizations
         "targets-index/v6",  # F15: policy, stewards, digestion, calibration
         "targets-index/v7",  # F07-T24: step9 may be `calibration`
+        "targets-index/v8",  # F23-R14: stewards carry admitted_by and via; link may be null
+        "targets-index/v9",  # F24-R6, R7: panel settings, lapse, motions, write-ups
+        "targets-index/v10",  # F25-R7: registrations
     ),
-    "graph.json": ("graph/v1", "graph/v2", "graph/v3"),
+    "graph.json": (
+        "graph/v1",
+        "graph/v2",
+        "graph/v3",
+        "graph/v4",
+        "graph/v5",  # F08-T36: every defect claim
+        "graph/v6",  # F08-T39 (D-12 v3.35): circular is a label; literature (D-25 v3.35)
+        "graph/v7",  # F25-R7: registrations
+    ),
 }
 log = logging.getLogger(__name__)
 KEEP_FILE = ".gitkeep"
@@ -53,6 +84,20 @@ class Prose:
     author: str | None = None
     model: str | None = None
     date: str | None = None
+    licence: str | None = None  # F18-R10: annex/v1 records one
+
+
+#: F18-T3 (R10): the front-matter keys each field is read from. Explainers write ``author`` and
+#: ``model``; ``annex/v1`` writes ``contributor`` and ``model_and_tooling`` (and a licence), and
+#: until 2026-10-03 every annex on the site read "author not recorded".
+PROSE_KEYS: dict[str, tuple[str, ...]] = {
+    "author": ("author", "contributor"),
+    "model": ("model", "model_and_tooling"),
+    "date": ("date",),
+    "licence": ("licence",),
+}
+#: YAML's spellings of nothing: ``model_and_tooling: null`` is no model, not one called "null".
+_YAML_NULLS = frozenset({"", "null", "~", "Null", "NULL"})
 
 
 @dataclass(frozen=True)
@@ -88,11 +133,15 @@ class LeanFile:
 
 @dataclass(frozen=True)
 class PartialView:
-    """One ``attempts/*.lean`` partial assembly (D-3, D-12 #5) and the postmortem naming it.
+    """One ``attempts/*.lean`` partial assembly (D-3, D-12 #5) and the records naming it.
 
-    A partial is contributor text no attestation covers, so it renders untrusted (R4). The
-    record is optional: the live graph carries partials that no ``postmortem/v1`` file names,
-    and ``records.count_attempts`` already counts those as attempts in their own right.
+    A partial is contributor text no hash in the record binds, so it renders untrusted (R4).
+    Two records can name it, both optional: a ``postmortem/v1`` file (``record_path``, its
+    ``contributor`` and typed fields), and — for a partial that merged — the passing attestation
+    whose step 2 took the file (``graph.partials_of``; F04-T35). That attestation is a pass
+    against the parent's statement hash and proves nothing (F03-Q7); what it records is who
+    submitted the file and the merge that filed it. The live graph carries partials neither
+    names, and ``records.count_attempts`` already counts those as attempts in their own right.
     """
 
     file: LeanFile
@@ -102,6 +151,10 @@ class PartialView:
     outcome: str | None = None
     failure_class: str | None = None
     record_path: str | None = None
+    #: F04-T35: from the merged attestation that took this file as a partial, when one did.
+    attestation_path: str | None = None
+    merge_commit: str | None = None
+    submitter: str | None = None
 
 
 @dataclass(frozen=True)
@@ -111,6 +164,8 @@ class AlternateView:
     path: str
     merge_commit: str | None  # None only when no attestation names the file's hash
     submitter: str | None
+    #: F19-T8: the file's text and hash, for its outline's Lean lines on the reading view.
+    file: LeanFile | None = None
 
 
 @dataclass(frozen=True)
@@ -121,6 +176,168 @@ class SignatureView:
     date: str
     explainer: str
     path: str
+
+
+@dataclass(frozen=True)
+class WordsSection:
+    """F21-R11: one section of a gloss or explainer version as the site prints it — its key (the
+    gate's, from ``opn_gate.sections``), its heading and the outline steps it names (an explainer's
+    level-2 section; ``None`` and none for a gloss or an unanchored explainer), its words, and the
+    gate's normalised text of the section, which is what a pending edit is diffed against."""
+
+    key: str
+    heading: str | None
+    steps: tuple[str, ...]
+    text: str
+    canonical: str
+
+
+@dataclass(frozen=True)
+class VersionView:
+    """F20-R9, R13, R14: one version of a gloss or explainer chain, as ``glosses.json`` lists it,
+    with its prose read from the tree and its signatures re-verified at render (F15's seam): only
+    a valid signature is a claim, so the site never takes the product's word for one."""
+
+    hash: str
+    path: str  # relative to the graph root
+    schema: str | None  # gloss/v1, explainer/v1, or None for an explainer filed before F20
+    supersedes: str | None
+    author: str | None
+    drafter: dict[str, Any] | None
+    date: str | None
+    withdrawn: bool
+    #: A gloss's: whether it describes its file as the checkout holds it (F20-R3); None for an
+    #: explainer.
+    describes_current: bool | None
+    signers: tuple[tuple[str, str, str], ...]  # (signer, date, file), valid signatures only
+    body: str  # the prose after the front matter
+    #: An ``explainer/v1``'s sections, each with the outline steps it names (F20-Q2).
+    sections: tuple[explainers.Section, ...] = ()
+    #: F21-R6: the model and tooling a contributor says drafted this version (``gloss/v2``,
+    #: ``explainer/v2``); contributor text, escaped and demarcated wherever shown (C9).
+    drafted_with: str | None = None
+    #: F21-R13: each valid signature's signer and the section keys it approves (``None``: every
+    #: section of the version, a v1 signature), re-verified at render like ``signers``.
+    approvals: tuple[tuple[str, frozenset[str] | None], ...] = ()
+    #: F21-R11: the version's sections, keyed as the gate keys them.
+    parts: tuple[WordsSection, ...] = ()
+
+    def part(self, key: str) -> WordsSection | None:
+        return next((p for p in self.parts if p.key == key), None)
+
+    def verified_by(self, key: str) -> list[str]:
+        """The signers whose valid signature approves this version's section ``key``."""
+        found = [s for s, keys in self.approvals if keys is None or key in keys]
+        return list(dict.fromkeys(found))
+
+    @property
+    def model(self) -> str | None:
+        """The model a draft names (D-23), or ``None`` for a person's version."""
+        return str(self.drafter["model"]) if self.drafter and self.drafter.get("model") else None
+
+
+@dataclass(frozen=True)
+class Placed:
+    """F21-R14: one section a chain shows, or one awaiting review — its key, the version its words
+    come from, and its state (drafted, written, verified; pending for one awaiting review)."""
+
+    key: str
+    version: str
+    state: str
+
+
+@dataclass(frozen=True)
+class ChainView:
+    versions: tuple[VersionView, ...]
+    current: str | None  # the latest version not withdrawn (D-3 v3.30), or None
+    #: F21-R14 (``glosses/v2``): the chain is read section by section — ``shown`` is what it
+    #: shows, ``pending`` what awaits review. False for a ``glosses/v1`` product, which the site
+    #: renders as whole versions, as before.
+    sectioned: bool = False
+    shown: tuple[Placed, ...] = ()
+    pending: tuple[Placed, ...] = ()
+
+    @property
+    def current_version(self) -> VersionView | None:
+        return next((v for v in self.versions if v.hash == self.current), None)
+
+    def version(self, digest: str) -> VersionView | None:
+        return next((v for v in self.versions if v.hash == digest), None)
+
+    def shown_version(self, key: str) -> VersionView | None:
+        """The version whose words the chain shows for section ``key`` (``glosses/v2``)."""
+        placed = next((p for p in self.shown if p.key == key), None)
+        return self.version(placed.version) if placed is not None else None
+
+    def words(self) -> VersionView | None:
+        """The version a gloss chain shows: under ``glosses/v2`` the one its ``whole`` section
+        comes from — never an edit awaiting review (F21-R11) — and under v1 the current one."""
+        return self.shown_version(sections.WHOLE) if self.sectioned else self.current_version
+
+
+@dataclass(frozen=True)
+class SubjectView:
+    """One Lean file or merged proof artifact with the chains filed on it (``glosses/v1`` or
+    ``glosses/v2``)."""
+
+    kind: str  # statement, witness, relation, definition; proof, alternate, partial, absent
+    record: str  # gloss or explainer
+    node: str | None
+    module: str | None
+    file: str | None  # relative to the target directory
+    lean_hash: str | None
+    chains: tuple[ChainView, ...]
+
+    def describing(self) -> list[VersionView]:
+        """R13: each chain's current version that describes the file as it stands, in record
+        order (F20-Q4) — what the site prints beside the Lean."""
+        found = [c.words() for c in self.chains]
+        return [v for v in found if v is not None and v.describes_current is not False]
+
+
+@dataclass(frozen=True)
+class CircularLabel:
+    """F04-T37 (D-12 v3.35): one entry of a row's ``circular``: a merged circularity claim says
+    a proof of this node is a proof of ``ancestor``. A label, never a removal; ``claim`` is the
+    claim file relative to the graph root, so the page links it at the rendered commit."""
+
+    ancestor: str
+    claim: str
+
+
+@dataclass(frozen=True)
+class Reference:
+    """One reference a literature record names: a title, a url the site links only through its
+    allowlist (F11-Q11; ``None`` when the record gives none) and a one-sentence note."""
+
+    title: str
+    url: str | None = None
+    note: str | None = None
+
+
+@dataclass(frozen=True)
+class LiteratureView:
+    """F04-T38 (D-25, D-32 v3.35): what the literature says of a statement, as the products
+    publish it (status, record, contributor; the confirming steward or curator and their record
+    when confirmed) plus what the record file itself carries (date, references, summary, the
+    model declared). ``readable`` is false when the row names a record the tree lacks or that
+    does not validate: the page then shows the products' facts and says the record could not be
+    read (C7), and the graph still has a site."""
+
+    status: str
+    record: str  # relative to the graph root
+    contributor: str
+    confirmed_by: str | None = None
+    confirmation: str | None = None  # relative to the graph root
+    date: str | None = None
+    references: tuple[Reference, ...] = ()
+    summary: str | None = None
+    model: str | None = None
+    readable: bool = True
+
+    @property
+    def confirmed(self) -> bool:
+        return self.confirmed_by is not None
 
 
 @dataclass(frozen=True)
@@ -158,12 +375,21 @@ class NodeView:
     superseded_cause: str | None = None
     superseded_record: str | None = None
     supersedes: str | None = None
-    #: F08-T17: the merged circularity claim (graph-root relative) that ``graph.json``'s cause
-    #: ``circular`` rests on, read by the gate's own reader so the two cannot name different files.
-    circular_claim: str | None = None
+    #: F04-T37 (D-12 v3.35): the circularity labels the row carries (``graph/v6`` ``circular``),
+    #: each the claim that says a proof of this node proves its ancestor. On an older graph
+    #: (D-34) they are read from the merged claim files through the gate's own reader, as
+    #: F08-T17 and F08-T20 read them, so the two cannot name different files.
+    circular: tuple[CircularLabel, ...] = ()
+    #: F04-T38 (D-25 v3.35): the latest confirmed literature status and the latest proposal no
+    #: confirmed record covers (``graph/v6`` ``literature``, ``literature_proposed``); ``None``
+    #: on an older graph or when the row carries none.
+    literature: LiteratureView | None = None
+    literature_proposed: LiteratureView | None = None
     #: F08-T20 (D-12 v3.22): the merged circularity claims whose ancestor is this node
     #: (graph-root relative). The node stays open; its page names them.
     circular_below: tuple[str, ...] = ()
+    #: F20-T8 (R13): a variant's ``Relation.lean``, shown with its gloss.
+    relation: LeanFile | None = None
 
     @property
     def status(self) -> str:
@@ -178,6 +404,20 @@ class NodeView:
         """Why a blocked node is blocked (``graph/v2`` on; absent before, read as ``None``)."""
         cause = self.graph_entry.get("cause")
         return None if cause is None else str(cause)
+
+    @property
+    def circular_claim(self) -> str | None:
+        """The first label's claim, graph-root relative, for a page that links one."""
+        return self.circular[0].claim if self.circular else None
+
+    @property
+    def open_claims(self) -> list[dict[str, Any]]:
+        """F08-T36 (D-16 v3.28): the defect claims against the node that stand, oldest first, as
+        ``graph/v5`` lists them; none on an older graph, which did not list them."""
+        raw = self.graph_entry.get("defect_claims")
+        if not isinstance(raw, list):
+            return []
+        return [dict(c) for c in raw if isinstance(c, dict) and c.get("state") == "standing"]
 
 
 @dataclass(frozen=True)
@@ -195,16 +435,66 @@ class TargetView:
     evidence: dict[str, Any] | None = None
     #: F15-R10: the valid write-up records — a paper or a note, with where it lives (R6).
     writeups: tuple[dict[str, Any], ...] = ()
+    #: F19-R1, T7: the target's ``outline/v1`` products, keyed by the artifact hash they outline.
+    outlines: dict[str, dict[str, Any]] = field(default_factory=dict)
+    #: F20-T8 (R13, R14): every subject ``glosses.json`` lists, in its order; empty when the
+    #: products predate F20 (every slot then shows the cue).
+    subjects: tuple[SubjectView, ...] = ()
+    #: F20-T8 (R13): each definition module under ``defs/``, shown with its gloss.
+    definitions: tuple[LeanFile, ...] = ()
+    #: F21-T7 (R9): the subjects that lack words, by ``glosses.needed`` over the committed
+    #: ``glosses.json`` and ``target.yaml`` (the rows ``list_words_needed`` serves); ``None``
+    #: when the product is absent or unreadable, so the page claims no count it cannot know.
+    words_needed: tuple[dict[str, Any], ...] | None = None
+    #: F23-R14: login -> how its steward was admitted (``_steward_admissions``).
+    admissions: dict[str, str] = field(default_factory=dict)
 
     @property
     def root(self) -> str:
         return str(self.graph["root"])
 
+    def gloss_subject(
+        self, kind: str, *, node: str | None = None, module: str | None = None
+    ) -> SubjectView | None:
+        """The gloss subject of one file: a node's statement, witness or relation, or a module."""
+        return next(
+            (
+                s
+                for s in self.subjects
+                if s.record == "gloss" and s.kind == kind and s.node == node and s.module == module
+            ),
+            None,
+        )
+
+    def explainer_subjects(self, node: str) -> list[SubjectView]:
+        """The node's merged proof artifacts that carry an explainer chain, in product order."""
+        return [s for s in self.subjects if s.record == "explainer" and s.node == node and s.chains]
+
     @property
-    def stewards(self) -> list[dict[str, Any]]:
-        """The active stewards the index publishes (``targets-index/v6``); none before it."""
+    def all_stewards(self) -> list[dict[str, Any]]:
+        """Every steward row the index publishes (``targets-index/v6``), lapsed or not."""
         raw = self.index_entry.get("stewards")
         return [dict(s) for s in raw] if isinstance(raw, list) else []
+
+    @property
+    def stewards(self) -> list[dict[str, Any]]:
+        """The stewards who count: every row before v9, and from v9 those who have not lapsed
+        (F24-R4: a lapsed steward is off the panel and not a steward for claimability)."""
+        return [s for s in self.all_stewards if not s.get("lapsed")]
+
+    @property
+    def panel(self) -> dict[str, Any] | None:
+        """F24-R2, R3: the panel's members and every motion put to it (``targets-index/v9``), or
+        ``None`` on an older index, which did not publish them."""
+        raw = self.index_entry.get("panel")
+        return dict(raw) if isinstance(raw, dict) else None
+
+    @property
+    def index_writeups(self) -> dict[str, Any] | None:
+        """F24-R5, R7: every write-up with its derived stage, and the official one's number
+        (``targets-index/v9``); ``None`` on an older index."""
+        raw = self.index_entry.get("writeups")
+        return dict(raw) if isinstance(raw, dict) else None
 
     @property
     def digestion(self) -> dict[str, Any] | None:
@@ -215,6 +505,15 @@ class TargetView:
     @property
     def calibration(self) -> bool:
         return bool(self.index_entry.get("calibration", False))
+
+    @property
+    def registrations(self) -> list[dict[str, Any]]:
+        """F25-R17 (D-10 v3.37): the target's registrations in public registries as the row
+        publishes them (``targets-index/v10``: registry, id, version, status, url), derived by the
+        gate from the validated registration records; an older index, which has no key, reads as
+        none."""
+        raw = self.index_entry.get("registrations")
+        return [dict(r) for r in raw if isinstance(r, dict)] if isinstance(raw, list) else []
 
 
 @dataclass(frozen=True)
@@ -229,6 +528,22 @@ class Site:
     @property
     def nodes(self) -> list[NodeView]:
         return [n for t in self.targets.values() for n in t.nodes.values()]
+
+    @property
+    def steward_rule_enforced(self) -> bool:
+        """F15-R3, F04-T27: whether the graph's ``policy.json`` enforces the steward rule, as the
+        index publishes it; ``False`` when the index predates the policy block (not enforced)."""
+        policy = self.index.get("policy") or {}
+        rule = policy.get("steward_rule") or {} if isinstance(policy, dict) else {}
+        return bool(rule.get("enforced", False)) if isinstance(rule, dict) else False
+
+    @property
+    def panel_settings(self) -> dict[str, Any] | None:
+        """F24-R1, R9: the panel settings in force as the index publishes them (v9), each
+        ``{value, since, reason}``; ``None`` on an older index."""
+        policy = self.index.get("policy")
+        raw = policy.get("panel") if isinstance(policy, dict) else None
+        return dict(raw) if isinstance(raw, dict) else None
 
 
 def _load_product(root: Path, rel: str, accepted: tuple[str, ...]) -> dict[str, Any]:
@@ -266,6 +581,32 @@ def _load_record(target_dir: Path) -> dict[str, Any] | None:
         raise SiteError(msg) from exc
 
 
+#: F21-T7: the ``glosses.json`` versions ``glosses.needed`` reads (the live graph holds v1 until
+#: its re-pin).
+WORDS_GLOSSES_SCHEMAS = frozenset({"glosses/v1", "glosses/v2"})
+
+
+def _load_words_needed(target_dir: Path, root: str) -> tuple[dict[str, Any], ...] | None:
+    """F21-R9: the target's subjects without words, computed as the MCP's
+    ``list_words_needed`` computes them (F21-Q6): ``glosses.needed`` over the committed
+    product and the curated words of ``target.yaml``. A product that is absent, of another
+    version or invalid is warned about and gives ``None``: no count rather than a false zero."""
+    path = target_dir / GLOSSES_FILE
+    if not path.is_file():
+        return None
+    try:
+        doc = schemas.load_json(path)
+        if doc.get("schema") not in WORDS_GLOSSES_SCHEMAS or doc.get("target") != target_dir.name:
+            log.warning("%s: no words count from %s", path, doc.get("schema"))
+            return None
+        schemas.validate(doc, str(doc["schema"]))
+    except schemas.SchemaError as exc:
+        log.warning("%s: no words count, it does not validate: %s", path, exc)
+        return None
+    curated = glosses.curated_words(_load_record(target_dir))
+    return tuple(glosses.needed(doc, root=root, curated=curated))
+
+
 def _load_drift(target_dir: Path) -> tuple[watch.DriftRecord, ...]:
     """The watcher's records (F12-R11, R12), for the diff excerpt and the citation the target
     page shows escaped (R14); a malformed one is a ``SiteError`` like any invalid graph file."""
@@ -276,23 +617,50 @@ def _load_drift(target_dir: Path) -> tuple[watch.DriftRecord, ...]:
         raise SiteError(msg) from exc
 
 
+def _front_matter_strings(head: str) -> dict[str, str]:
+    """The front matter's top-level string values, each as the text it is written as.
+
+    F04-T36: the head is YAML (``annex/v2`` folds a long ``model_and_tooling`` over several
+    lines), so it is read as YAML — with ``BaseLoader``, which builds only strings, lists and
+    mappings, so a timestamp stays the text the contributor wrote rather than a datetime printed
+    back differently, and ``null`` stays the word (``_YAML_NULLS`` reads it as nothing). A head
+    that is not YAML (``model: tool: v2``) is read line by line as before, so one contributor's
+    malformed head neither takes a page down nor loses the fields it does state.
+    """
+    try:
+        doc = yaml.load(head, Loader=yaml.BaseLoader)  # noqa: S506 — BaseLoader builds strings only
+    except yaml.YAMLError:
+        doc = None
+    if isinstance(doc, dict):
+        return {str(k): v.strip() for k, v in doc.items() if isinstance(v, str)}
+    raw: dict[str, str] = {}
+    for line in head.splitlines():
+        key, sep, value = line.partition(":")
+        if sep:
+            raw[key.strip()] = value.strip().strip("\"'")
+    return raw
+
+
 def parse_prose(path: Path, root: Path) -> Prose:
-    """A text file with optional YAML-style front matter naming author, model and date."""
+    """A text file with optional YAML-style front matter naming author, model, date and licence
+    (``PROSE_KEYS``: an explainer's names and an annex's)."""
     text = path.read_text(encoding="utf-8")
-    meta: dict[str, str] = {}
+    raw: dict[str, str] = {}
     m = _FRONT_MATTER_RE.match(text)
     if m:
-        for line in m.group("head").splitlines():
-            key, sep, value = line.partition(":")
-            if sep and key.strip() in ("author", "model", "date"):
-                meta[key.strip()] = value.strip().strip("\"'")
+        raw = _front_matter_strings(m.group("head"))
         text = m.group("body")
+    meta = {
+        field: next((raw[k] for k in keys if raw.get(k, "") not in _YAML_NULLS), None)
+        for field, keys in PROSE_KEYS.items()
+    }
     return Prose(
         path=path.relative_to(root).as_posix(),
         text=text,
-        author=meta.get("author"),
-        model=meta.get("model"),
-        date=meta.get("date"),
+        author=meta["author"],
+        model=meta["model"],
+        date=meta["date"],
+        licence=meta["licence"],
     )
 
 
@@ -362,12 +730,14 @@ def _alternates_for(
             by_hash.setdefault(digest, doc)
     views: list[AlternateView] = []
     for f in files:
-        found = by_hash.get(schemas.content_hash(f.read_bytes()))
+        digest = schemas.content_hash(f.read_bytes())
+        found = by_hash.get(digest)
         views.append(
             AlternateView(
                 path=f.relative_to(root).as_posix(),
                 merge_commit=str(found["merge_commit"]) if found else None,
                 submitter=str(found["submitter"]) if found and found.get("submitter") else None,
+                file=_lean_file(root, f, attested_hash=digest if found else None),
             )
         )
     return tuple(views)
@@ -393,8 +763,28 @@ def _lean_file(root: Path, path: Path, *, attested_hash: str | None = None) -> L
     )
 
 
-def _partials_for(root: Path, node_dir: Path) -> tuple[PartialView, ...]:
-    """Every partial assembly under ``attempts/``, with the record naming it when one does.
+def _merged_partials(
+    root: Path, node_id: str, statement_hash: str
+) -> dict[str, tuple[dict[str, Any], str]]:
+    """F04-T35: each partial of the node that merged, by its path under the node directory, with
+    the attestation that took it — the gate's own reading (``graph.partials_of``: passing,
+    merged, this node and its current statement, step 2's ``partial-submission`` path). The
+    first attestation naming a path is the one that filed it."""
+    try:
+        attestations = graphmod.load_attestations(root)
+    except graphmod.GraphError as exc:
+        raise SiteError(str(exc)) from exc
+    docs = dict(attestations)
+    out: dict[str, tuple[dict[str, Any], str]] = {}
+    for rec in graphmod.partials_of(node_id, statement_hash, attestations):
+        out.setdefault(rec.path, (docs[rec.attestation], f"attestations/{rec.attestation}"))
+    return out
+
+
+def _partials_for(
+    root: Path, node_dir: Path, node_id: str, statement_hash: str
+) -> tuple[PartialView, ...]:
+    """Every partial assembly under ``attempts/``, with the records naming it when any do.
 
     An alternate is a proof, not an attempt (D-25 v3.13), and has its own view. A postmortem
     that does not validate is skipped rather than refused: ``records.load_attempts`` already
@@ -404,6 +794,12 @@ def _partials_for(root: Path, node_dir: Path) -> tuple[PartialView, ...]:
     attempts = node_dir / "attempts"
     if not attempts.is_dir():
         return ()
+    lean_files = [
+        p for p in sorted(attempts.glob("*.lean")) if not p.name.endswith(paths.ALTERNATE_SUFFIX)
+    ]
+    if not lean_files:
+        return ()
+    merged = _merged_partials(root, node_id, statement_hash)
     named: dict[str, tuple[dict[str, Any], str]] = {}
     for path in sorted(p for p in attempts.iterdir() if p.suffix in records.ATTEMPT_SUFFIXES):
         try:
@@ -414,13 +810,12 @@ def _partials_for(root: Path, node_dir: Path) -> tuple[PartialView, ...]:
         if isinstance(partial, str):
             named[PurePosixPath(partial).name] = (doc, path.relative_to(root).as_posix())
     views: list[PartialView] = []
-    for path in sorted(attempts.glob("*.lean")):
-        if path.name.endswith(paths.ALTERNATE_SUFFIX):
-            continue
+    for path in lean_files:
         lean = _lean_file(root, path)
         if lean is None:  # pragma: no cover — glob yields only files
             continue
         doc, record_path = named.get(path.name, ({}, ""))
+        att, att_path = merged.get(f"attempts/{path.name}", ({}, ""))
 
         def field(key: str, doc: dict[str, Any] = doc) -> str | None:
             value = doc.get(key)
@@ -435,6 +830,9 @@ def _partials_for(root: Path, node_dir: Path) -> tuple[PartialView, ...]:
                 outcome=field("outcome"),
                 failure_class=field("failure_class"),
                 record_path=record_path or None,
+                attestation_path=att_path or None,
+                merge_commit=field("merge_commit", att),
+                submitter=field("submitter", att),
             )
         )
     return tuple(views)
@@ -500,16 +898,78 @@ def load_node(root: Path, target_id: str, entry: dict[str, Any]) -> NodeView:
         proof=proof_file,
         witness=_lean_file(root, node_dir / paths.WITNESS_FILE),
         witness_open=graphmod.witness_is_stub(node_dir),
-        partials=_partials_for(root, node_dir),
+        relation=_lean_file(root, node_dir / paths.RELATION_FILE),
+        partials=_partials_for(root, node_dir, node_id, loaded.statement.statement_hash),
         superseded_by=str(successor) if successor else None,
         superseded_cause=str(why) if why else None,
         superseded_record=replaced.path.relative_to(root).as_posix() if replaced else None,
         supersedes=str(predecessor) if predecessor else None,
-        circular_claim=(
-            (node_dir / claim).relative_to(root).as_posix()
-            if (claim := records.circular_claim(node_dir))
-            else None
-        ),
+        circular=_circular_labels(root, target_id, node_dir, entry),
+        literature=_literature_for(root, node_dir, entry.get("literature")),
+        literature_proposed=_literature_for(root, node_dir, entry.get("literature_proposed")),
+    )
+
+
+def _literature_for(root: Path, node_dir: Path, raw: object) -> LiteratureView | None:
+    """F04-T38: one of the row's literature fields as a view: the products' facts, then the
+    record file read by its own schema (``literature/v1``) for the date, references, summary
+    and model. A record that is missing or does not validate is logged and carried unreadable,
+    never raised on: one node's defect must not decide whether the graph has a site."""
+    if not isinstance(raw, dict):
+        return None
+    rel = str(raw.get("record") or "")
+    prefix = node_dir.relative_to(root).as_posix()
+    confirmation = raw.get("confirmation")
+    view = LiteratureView(
+        status=str(raw.get("status") or ""),
+        record=f"{prefix}/{rel}",
+        contributor=str(raw.get("contributor") or ""),
+        confirmed_by=str(raw["confirmed_by"]) if raw.get("confirmed_by") else None,
+        confirmation=f"{prefix}/{confirmation}" if confirmation else None,
+    )
+    try:
+        doc = schemas.load_yaml(node_dir / rel, "literature/v1")
+    except schemas.SchemaError as exc:
+        log.warning("%s: literature record %s could not be read: %s", node_dir.name, rel, exc)
+        return replace(view, readable=False)
+    references = tuple(
+        Reference(
+            title=str(r.get("title") or ""),
+            url=str(r["url"]) if r.get("url") else None,
+            note=str(r["note"]) if r.get("note") else None,
+        )
+        for r in doc.get("references") or []
+        if isinstance(r, dict)
+    )
+    model_ = doc.get("model_and_tooling")
+    return replace(
+        view,
+        date=str(doc.get("date") or "") or None,
+        references=references,
+        summary=str(doc.get("summary") or ""),
+        model=str(model_) if model_ else None,
+    )
+
+
+def _circular_labels(
+    root: Path, target_id: str, node_dir: Path, entry: dict[str, Any]
+) -> tuple[CircularLabel, ...]:
+    """F04-T37 (D-12 v3.35): the row's ``circular`` labels, each claim made graph-root relative.
+    A ``graph/v6`` row carries them; an older row has no such key and the node's own merged
+    claims are read from the tree (``graph.resolved_circular_claims``, the ancestor read through
+    its revision chain), the path labels being added by ``_with_circular_paths``."""
+    nodes_dir = layout.graph_nodes_dir(root, target_id)
+    prefix = nodes_dir.relative_to(root).as_posix()
+    if "circular" in entry:
+        raw = entry.get("circular")
+        return tuple(
+            CircularLabel(ancestor=str(c["ancestor"]), claim=f"{prefix}/{c['claim']}")
+            for c in (raw if isinstance(raw, list) else [])
+            if isinstance(c, dict)
+        )
+    return tuple(
+        CircularLabel(ancestor=ancestor, claim=f"{prefix}/{node_dir.name}/{ref}")
+        for ref, ancestor in graphmod.resolved_circular_claims(nodes_dir, node_dir)
     )
 
 
@@ -531,6 +991,44 @@ def _signatures_for(root: Path, node_dir: Path) -> tuple[SignatureView, ...]:
         )
         for sig in valid
     )
+
+
+#: F23-R14: what a v1 steward record says of how its steward came in — a curator merged it, and
+#: the record does not say which.
+ADMITTED_BY_CURATOR = "curator"
+_STEWARD_FILE_RE = re.compile(r"^(?P<n>[1-9][0-9]*)\.ya?ml$")
+
+
+def _steward_admissions(target_dir: Path) -> dict[str, str]:
+    """F23-R14 (D-32 v3.33): for each login, how the commit it is active under was admitted —
+    ``self``, a curator's login, or ``curator`` for a ``steward/v1`` record — read from the
+    latest ``commit`` record with that login. Who is *active* is the index's (the gate's rule,
+    signatures checked); this only labels them, so an unreadable record is skipped, never
+    raised on, and a login with no record found gets no label."""
+    directory = target_dir / "stewards"
+    if not directory.is_dir():
+        return {}
+    numbered = []
+    for p in directory.iterdir():
+        m = _STEWARD_FILE_RE.match(p.name)
+        if m and p.is_file():
+            numbered.append((int(m.group("n")), p))
+    found: dict[str, str] = {}
+    for _n, path in sorted(numbered):
+        try:
+            doc = yaml.safe_load(path.read_text(encoding="utf-8"))
+        except (OSError, yaml.YAMLError):
+            continue
+        if not isinstance(doc, dict) or doc.get("action") != "commit":
+            continue
+        login = str(doc.get("login") or "")
+        if doc.get("schema") == "steward/v2":
+            admitted = str(doc.get("admitted_by") or "")
+            if admitted:
+                found[login] = admitted
+        elif doc.get("schema") == "steward/v1":
+            found[login] = ADMITTED_BY_CURATOR
+    return found
 
 
 def _writeups_for(target_dir: Path) -> tuple[dict[str, Any], ...]:
@@ -574,14 +1072,236 @@ def _load_evidence(target_dir: Path) -> dict[str, Any] | None:
     return record.doc if record is not None else None
 
 
+#: F19-R1: where a target's outlines live, and the one schema version this generator renders.
+OUTLINES_DIR = "outlines"
+OUTLINE_SCHEMA = "outline/v1"
+
+
+def _load_outlines(target_dir: Path) -> dict[str, dict[str, Any]]:
+    """F19-T7: the target's ``outline/v1`` products, keyed by the artifact hash each outlines.
+
+    An outline is a display aid over a proof the page already shows, so one that does not read —
+    malformed, another version, filed under a name that is not its artifact's hash, or naming
+    another target — is skipped with a warning naming the file, and the page shows the proof as
+    it did before outlines existed (C7; the 2026-09-17 rule that one product's defect does not
+    decide whether the graph has a site). Which bytes an outline may stand beside is the
+    renderer's check: it shows one only over the very artifact it names.
+    """
+    directory = target_dir / OUTLINES_DIR
+    if not directory.is_dir():
+        return {}
+    out: dict[str, dict[str, Any]] = {}
+    for path in sorted(p for p in directory.iterdir() if p.suffix == ".json"):
+        try:
+            doc = schemas.load_json(path)
+        except schemas.SchemaError as exc:
+            log.warning("outline %s skipped: it does not validate: %s", path.name, exc)
+            continue
+        problem = (
+            f"it is {doc.get('schema')}, and this generator renders {OUTLINE_SCHEMA}"
+            if doc.get("schema") != OUTLINE_SCHEMA
+            else "its file name is not its artifact's hash"
+            if doc["artifact"]["hash"] != path.stem
+            else f"it names target {doc['target']}"
+            if doc["target"] != target_dir.name
+            else None
+        )
+        if problem is not None:
+            log.warning("outline %s skipped: %s", path.name, problem)
+            continue
+        out[path.stem] = dict(doc)
+    return out
+
+
+#: F20-R9: the gloss and explainer chains per subject, and the versions this generator renders:
+#: v1 as whole versions (the live graph until its re-pin), v2 section by section (F21-R14).
+GLOSSES_FILE = "glosses.json"
+GLOSSES_SCHEMAS: tuple[str, ...] = ("glosses/v1", "glosses/v2")
+#: A signer, the signature's date, its file, and the section keys it approves (None: all).
+_Sig = tuple[str, str, str, frozenset[str] | None]
+
+
+def _load_glosses(target_dir: Path) -> tuple[SubjectView, ...]:
+    """F20-T8: the target's ``glosses.json``, each version's prose read from the tree and each
+    signature verified at render through the gate's own seam (as F15's explainer signatures are).
+
+    The product is new with F20, so a graph rendered by an older gate has none: that is said in
+    a warning and every slot shows its cue. One that does not read is skipped the same way — a
+    display aid's defect never decides whether the graph has a site (C7; the 2026-09-17 rule).
+    Whether a gloss describes its file is re-derived from the checkout, so the page states what
+    the tree holds even when the products lag it."""
+    path = target_dir / GLOSSES_FILE
+    if not path.is_file():
+        log.warning("%s has no %s; every gloss slot shows its cue", target_dir.name, GLOSSES_FILE)
+        return ()
+    try:
+        doc = schemas.load_json(path)
+    except schemas.SchemaError as exc:
+        log.warning("%s skipped: it does not validate: %s", path, exc)
+        return ()
+    if doc.get("schema") not in GLOSSES_SCHEMAS or doc.get("target") != target_dir.name:
+        log.warning("%s skipped: it is %s for %s", path, doc.get("schema"), doc.get("target"))
+        return ()
+    signer = signed.default_signer()
+    gloss_sigs: dict[str, list[_Sig]] = {}
+    explainer_sigs: dict[str, list[_Sig]] = {}
+    root = target_dir.parents[1]
+    parents = {target_dir, *(p for p in (target_dir / "nodes").glob("*") if p.is_dir())}
+    try:
+        for parent in sorted(parents):
+            for digest, found in glosses.valid_signatures(parent, signer).items():
+                gloss_sigs.setdefault(digest, []).extend(
+                    (s.signer, s.date, s.path.relative_to(root).as_posix(), _keys(s.sections))
+                    for s in found
+                )
+            if parent != target_dir:
+                for sig in explainers.valid(parent, signer):
+                    explainer_sigs.setdefault(sig.explainer, []).append(
+                        (
+                            sig.signer,
+                            sig.date,
+                            sig.path.relative_to(root).as_posix(),
+                            _keys(sig.sections),
+                        )
+                    )
+    except schemas.SchemaError as exc:
+        msg = f"targets/{target_dir.name}: a gloss or explainer signature does not validate: {exc}"
+        raise SiteError(msg) from exc
+    out: list[SubjectView] = []
+    for s in doc["subjects"]:
+        file = target_dir / s["file"] if s.get("file") else None
+        now = (
+            schemas.content_hash(file.read_bytes()) if file is not None and file.is_file() else None
+        )
+        sigs = gloss_sigs if s["record"] == "gloss" else explainer_sigs
+        sectioned = doc["schema"] != "glosses/v1"
+        chains = tuple(
+            ChainView(
+                versions=tuple(
+                    _version(target_dir, v, now=now, record=s["record"], sigs=sigs)
+                    for v in c["versions"]
+                ),
+                current=c["current"],
+                sectioned=sectioned,
+                shown=tuple(_placed(p) for p in c.get("shown", ())),
+                pending=tuple(_placed(p) for p in c.get("pending", ())),
+            )
+            for c in s["chains"]
+        )
+        out.append(
+            SubjectView(
+                kind=str(s["kind"]),
+                record=str(s["record"]),
+                node=s["node"],
+                module=s["module"],
+                file=s["file"],
+                lean_hash=s["lean_hash"],
+                chains=chains,
+            )
+        )
+    return tuple(out)
+
+
+def _keys(named: list[str] | None) -> frozenset[str] | None:
+    return None if named is None else frozenset(named)
+
+
+def _placed(p: dict[str, Any]) -> Placed:
+    return Placed(key=str(p["key"]), version=str(p["version"]), state=str(p["state"]))
+
+
+def _parts(
+    record: str, text: str, body: str, found: tuple[explainers.Section, ...]
+) -> tuple[WordsSection, ...]:
+    """F21-R11: a version's sections, keyed by the gate's own reading (``sections.parts_of_text``,
+    ``sections.key_of``) so the site's keys are the product's. An explainer whose sections name
+    no step is one ``overview`` of its whole body, as the gate reads it; a section key carried
+    twice (refused at the gate today) is shown once, its words joined, as the gate joins them."""
+    canonical = {
+        p.key: p.text for p in sections.keyed(sections.parts_of_text(text, gloss=record == "gloss"))
+    }
+    if record == "gloss" or not any(sec.steps for sec in found):
+        key = sections.WHOLE if record == "gloss" else sections.OVERVIEW
+        return (WordsSection(key, None, (), body, canonical.get(key, "")),)
+    out: dict[str, WordsSection] = {}
+    for sec in found:
+        key = sections.key_of(sec.steps)
+        if key in out:
+            prior = out[key]
+            out[key] = replace(prior, text=f"{prior.text}\n\n{sec.text}")
+            continue
+        out[key] = WordsSection(key, sec.heading, sec.steps, sec.text, canonical.get(key, ""))
+    return tuple(out.values())
+
+
+def _version(
+    target_dir: Path,
+    v: dict[str, Any],
+    *,
+    now: str | None,
+    record: str,
+    sigs: dict[str, list[_Sig]],
+) -> VersionView:
+    """One version as the product lists it, its words read from the tree. ``now`` is the hash of
+    the subject's file as the checkout holds it, from which a gloss's ``describes_current`` is
+    re-derived."""
+    root = target_dir.parents[1]
+    path = target_dir / str(v["path"])
+    text = ""
+    try:
+        text = path.read_text(encoding="utf-8")
+        _doc, body = glosses.split_front_matter(text)
+    except (OSError, UnicodeDecodeError, ValueError) as exc:
+        log.warning("%s does not read; shown without its words: %s", path, exc)
+        body = ""
+    found: tuple[explainers.Section, ...] = ()
+    # F21-R6: an explainer/v2 is sectioned as a v1 is.
+    if record == "explainer" and v["schema"] in explainers.RECORD_SCHEMAS:
+        try:
+            found = tuple(explainers.sections(body))
+        except ValueError:
+            found = ()
+    signatures = sigs.get(str(v["hash"]), [])
+    describes = v["describes_current"]
+    if record == "gloss" and now is not None and v.get("lean_hash"):
+        describes = v["lean_hash"] == now
+    return VersionView(
+        hash=str(v["hash"]),
+        path=path.relative_to(root).as_posix(),
+        schema=v["schema"],
+        supersedes=v["supersedes"],
+        author=v["author"],
+        drafter=dict(v["drafter"]) if v["drafter"] else None,
+        date=v["date"],
+        withdrawn=bool(v["withdrawn"]),
+        describes_current=describes,
+        signers=tuple((s, d, p) for s, d, p, _k in signatures),
+        body=body,
+        sections=found,
+        drafted_with=str(v["drafted_with"]) if v.get("drafted_with") else None,
+        approvals=tuple((s, k) for s, _d, _p, k in signatures),
+        parts=_parts(record, text, body, found),
+    )
+
+
+def _load_definitions(root: Path, target_dir: Path) -> tuple[LeanFile, ...]:
+    """F20-T8 (R13): each definition module under ``defs/``, by path, as the products list them."""
+    defs = target_dir / glosses.DEFS_DIR
+    if not defs.is_dir():
+        return ()
+    found = (_lean_file(root, p) for p in sorted(defs.rglob("*.lean")) if p.is_file())
+    return tuple(f for f in found if f is not None)
+
+
 def _with_circular_paths(
     root: Path, target_id: str, graph: dict[str, Any], nodes: dict[str, NodeView]
 ) -> dict[str, NodeView]:
-    """F08-T20 (D-12 v3.22): which claim each circular node on a path rests on, and which claims
-    circle back to each ancestor — the gate's own ``graph.circular_marks`` over ``graph.json``'s
-    deps, origins and statuses and the claim files in the tree, so the site cannot reach a
-    different set of nodes than the products did. A path node's claim sits under the hole, not
-    under the node, which is why the node's own ``defects/`` cannot name it."""
+    """F08-T20 (D-12 v3.22): which claims circle back to each ancestor (``circular_below``) —
+    the gate's own ``graph.circular_marks`` over ``graph.json``'s deps, origins and statuses and
+    the claim files in the tree, so the site cannot reach a different set of nodes than the
+    products did. On a graph older than ``graph/v6`` (D-34) the same marks give each node on a
+    path its label: a path node's claim sits under the hole, not under the node, which is why
+    the node's own ``defects/`` cannot name it. A v6 row carries its labels itself (F04-T37)."""
     nodes_dir = layout.graph_nodes_dir(root, target_id)
     rows = {str(e["node_id"]): e for e in graph["nodes"]}
     deps = {n: [str(d) for d in e["deps"]] for n, e in rows.items()}
@@ -597,11 +1317,14 @@ def _with_circular_paths(
     statuses = {n: str(e["status"]) for n, e in rows.items()}
     on_path, below = graphmod.circular_marks(holes, deps, claims, statuses)
     prefix = nodes_dir.relative_to(root).as_posix()
+    ancestor_of = {ref: ancestor for found in claims.values() for ref, ancestor in found}
     out = dict(nodes)
     for node_id, nv in nodes.items():
         view = nv
-        if view.circular_claim is None and node_id in on_path:
-            view = replace(view, circular_claim=f"{prefix}/{on_path[node_id]}")
+        if "circular" not in rows[node_id] and not view.circular and node_id in on_path:
+            ref = on_path[node_id]
+            label = CircularLabel(ancestor=ancestor_of.get(ref, ""), claim=f"{prefix}/{ref}")
+            view = replace(view, circular=(label,))
         if node_id in below:
             view = replace(view, circular_below=tuple(f"{prefix}/{r}" for r in below[node_id]))
         out[node_id] = view
@@ -648,5 +1371,10 @@ def load_site(root: Path, commit: str) -> Site:
             drift=_load_drift(target_dir),
             evidence=_load_evidence(target_dir),
             writeups=_writeups_for(target_dir),
+            admissions=_steward_admissions(target_dir),
+            outlines=_load_outlines(target_dir),
+            subjects=_load_glosses(target_dir),
+            definitions=_load_definitions(root, target_dir),
+            words_needed=_load_words_needed(target_dir, str(graph["root"])),
         )
     return site

@@ -1,0 +1,16 @@
+F10-T16 red, 2026-10-01 (branch svc-queue-heartbeats-hazards, before the guide was edited)
+
+$ uv run --frozen pytest gate/tests/test_finding_guide_tester_1001.py -q
+FAILED gate/tests/test_finding_guide_tester_1001.py::test_the_guide_says[a hole that can never be witnessed]
+FAILED gate/tests/test_finding_guide_tester_1001.py::test_the_guide_says[decide +kernel is accepted]
+FAILED gate/tests/test_finding_guide_tester_1001.py::test_the_guide_says[the annex's disclosure field]
+FAILED gate/tests/test_finding_guide_tester_1001.py::test_the_guide_says[the cap's own refusal]
+FAILED gate/tests/test_finding_guide_tester_1001.py::test_the_guide_says[the cure: positive disjuncts]
+FAILED gate/tests/test_finding_guide_tester_1001.py::test_the_guide_says[the fast check needs no token]
+FAILED gate/tests/test_finding_guide_tester_1001.py::test_the_guide_says[the refusal's own code]
+FAILED gate/tests/test_finding_guide_tester_1001.py::test_the_guide_says[the scoped layout]
+FAILED gate/tests/test_finding_guide_tester_1001.py::test_the_guide_says[what scoping buys]
+FAILED gate/tests/test_finding_guide_tester_1001.py::test_the_guide_says[why native_decide is not]
+FAILED gate/tests/test_finding_guide_tester_1001.py::test_the_hole_cap_is_the_gates
+FAILED gate/tests/test_finding_guide_tester_1001.py::test_the_disclosure_fields_are_the_routes
+12 failed, 3 passed in 0.22s

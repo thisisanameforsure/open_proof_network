@@ -1,0 +1,166 @@
+F06-T12 — installation tokens are scoped to one repository and the call's own permissions
+(audit 2026-10-04). Worktree opn-audit-cb-reads; fast tier only. NOT probed live: the probes
+below are the lead's/owner's to run before deploy (credentials; Log 2026-09-10).
+
+== The finding ==
+githost._installation_token_locked POSTed /app/installations/{id}/access_tokens with no body.
+GitHub then issues a token with every permission the App holds on every repository of the
+installation, so the token minted for an anonymous directory listing could push to the graph,
+dispatch scratch workflows and close pull requests.
+
+== Red: api/tests/test_finding_scoped_installation_tokens.py (before the fix; no seam needed,
+   the test reads the request body the seam already sends) ==
+E       AssertionError: head_sha
+E       assert None == {'repositories': ['scratch'], 'permissions': {'contents': 'read'}}
+E       AssertionError: list_dir
+E       assert None == {'repositories': ['scratch'], 'permissions': {'contents': 'read'}}
+E       AssertionError: is_ancestor
+E       assert None == {'repositories': ['scratch'], 'permissions': {'contents': 'read'}}
+E       AssertionError: push_branch
+E       assert None == {'repositories': ['scratch'], 'permissions': {'contents': 'write'}}
+E       AssertionError: delete_branch
+E       assert None == {'repositories': ['scratch'], 'permissions': {'contents': 'write'}}
+E       AssertionError: open_pull_request
+E       assert None == {'repositories': ['scratch'], 'permissions': {'pull_requests': 'write'}}
+E       AssertionError: close_pull_request
+E       assert None == {'repositories': ['scratch'], 'permissions': {'pull_requests': 'write'}}
+E       AssertionError: list_open_pull_requests
+E       assert None == {'repositories': ['scratch'], 'permissions': {'pull_requests': 'read'}}
+E       AssertionError: get_pull_request
+E       assert None == {'repositories': ['scratch'], 'permissions': {'pull_requests': 'read', 'actions': 'read'}}
+E       AssertionError: dispatch_workflow
+E       assert None == {'repositories': ['scratch'], 'permissions': {'actions': 'write'}}
+E       AssertionError: find_run
+E       assert None == {'repositories': ['scratch'], 'permissions': {'actions': 'read'}}
+E       AssertionError: download_artifact
+E       assert None == {'repositories': ['scratch'], 'permissions': {'actions': 'read'}}
+E       AssertionError: latest_artifact
+E       assert None == {'repositories': ['scratch'], 'permissions': {'actions': 'read'}}
+E       TypeError: 'NoneType' object is not subscriptable
+14 failed in 2.89s
+
+== The audit of every call the seam makes with an App token (GitHub's "Permissions required
+   for GitHub Apps" page, read 2026-10-04) ==
+  method                   repo(s) called on            endpoints                                    token asks for
+  head_sha                 graph                        GET git/ref/heads/{b}                        contents: read
+  list_dir                 graph                        GET contents/{path}?ref=                     contents: read
+  is_ancestor              network (public fallback)    GET compare/{a}...{b}                        contents: read
+  push_branch              graph (submit, racers),      GET git/ref, GET git/commits, POST git/trees, contents: write
+                           scratch (precheck)           POST git/commits, POST git/refs | PATCH ref
+  delete_branch            graph (withdraw)             DELETE git/refs/heads/{b}                    contents: write
+  open_pull_request        graph                        POST pulls                                   pull_requests: write
+  close_pull_request       graph (withdraw)             PATCH pulls/{n}                              pull_requests: write
+  list_open_pull_requests  graph                        GET pulls?state=open                         pull_requests: read
+  get_pull_request         graph                        GET pulls/{n}, GET pulls/{n}/reviews,        pull_requests: read,
+                                                        GET actions/runs, GET actions/runs/{id}/jobs actions: read
+  latest_artifact          graph                        GET actions/runs/{id}/artifacts, GET .../zip actions: read
+  dispatch_workflow        scratch                      POST actions/workflows/{w}/dispatches        actions: write
+  find_run                 scratch                      GET actions/workflows/{w}/runs               actions: read
+  download_artifact        scratch                      GET actions/runs/{id}/artifacts, GET .../zip actions: read
+  (metadata: read is implied on every token)
+
+So the union per repository is:
+  graph:   contents: write, pull_requests: write, actions: read        (no checks permission is
+           used: get_pull_request reads actions/runs, not check-runs — F07-T16's own note)
+  scratch: contents: write, actions: write
+  network: contents: read (the compare call only)
+but no single token carries the union: each call mints (once per hour, cached per
+(repository, permission set)) the narrowest set above, so a read's token can never write.
+
+comment_on_pull_request (added on branch audit-e-tools, not in this branch): POST
+issues/{n}/comments is listed on GitHub's permissions page under BOTH "Issues: write" and
+"Pull requests: write"; for a comment on a pull request, pull_requests: write is the documented
+alternative. At merge, that method should call `self._api(repo, PULLS_WRITE)`. If probe P6b below
+answers 403, use `(("issues", "write"), ("pull_requests", "write"))` instead (and the App must
+hold Issues: write on the graph installation).
+
+== The fix ==
+githost: Permissions constants (CONTENTS_READ/WRITE, PULLS_READ/WRITE, PULL_STATE,
+ACTIONS_READ/WRITE); _api(repo, permissions) and _installation_token(repo, permissions); the
+token request body {"repositories": [<name without owner>], "permissions": {...}}; tokens cached
+per (repo, permissions). Restated: test_finding_submissions_cold_latency's concurrent-mint test
+now names the permission set it mints.
+
+== Green ==
+api/tests/test_finding_scoped_installation_tokens.py::test_each_call_asks_for_its_own_permissions_on_its_own_repository[head_sha] PASSED [  7%]
+api/tests/test_finding_scoped_installation_tokens.py::test_each_call_asks_for_its_own_permissions_on_its_own_repository[list_dir] PASSED [ 14%]
+api/tests/test_finding_scoped_installation_tokens.py::test_each_call_asks_for_its_own_permissions_on_its_own_repository[is_ancestor] PASSED [ 21%]
+api/tests/test_finding_scoped_installation_tokens.py::test_each_call_asks_for_its_own_permissions_on_its_own_repository[push_branch] PASSED [ 28%]
+api/tests/test_finding_scoped_installation_tokens.py::test_each_call_asks_for_its_own_permissions_on_its_own_repository[delete_branch] PASSED [ 35%]
+api/tests/test_finding_scoped_installation_tokens.py::test_each_call_asks_for_its_own_permissions_on_its_own_repository[open_pull_request] PASSED [ 42%]
+api/tests/test_finding_scoped_installation_tokens.py::test_each_call_asks_for_its_own_permissions_on_its_own_repository[close_pull_request] PASSED [ 50%]
+api/tests/test_finding_scoped_installation_tokens.py::test_each_call_asks_for_its_own_permissions_on_its_own_repository[list_open_pull_requests] PASSED [ 57%]
+api/tests/test_finding_scoped_installation_tokens.py::test_each_call_asks_for_its_own_permissions_on_its_own_repository[get_pull_request] PASSED [ 64%]
+api/tests/test_finding_scoped_installation_tokens.py::test_each_call_asks_for_its_own_permissions_on_its_own_repository[dispatch_workflow] PASSED [ 71%]
+api/tests/test_finding_scoped_installation_tokens.py::test_each_call_asks_for_its_own_permissions_on_its_own_repository[find_run] PASSED [ 78%]
+api/tests/test_finding_scoped_installation_tokens.py::test_each_call_asks_for_its_own_permissions_on_its_own_repository[download_artifact] PASSED [ 85%]
+api/tests/test_finding_scoped_installation_tokens.py::test_each_call_asks_for_its_own_permissions_on_its_own_repository[latest_artifact] PASSED [ 92%]
+api/tests/test_finding_scoped_installation_tokens.py::test_a_token_is_kept_per_permission_set PASSED [100%]
+============================== 14 passed in 2.17s ==============================
+Whole api fast tier on this branch after all three tasks: 1266 passed. ruff check / format /
+mypy strict clean on the touched files.
+
+== Live probes the lead must run BEFORE deploying (inert: each answers 403 when the scoped token
+   lacks the permission, and something else, starting nothing, when it has it) ==
+Run from the network checkout with the App's credentials in the environment the way the service
+reads them (OPN_API_GITHUB_APP_ID, OPN_API_GITHUB_PRIVATE_KEY; never print them). The script
+mints each scoped token through the seam itself, so a 422 on the mint means the installation does
+not hold that permission at all.
+
+cat > /tmp/opn_probe.py <<'PY'
+import os, httpx
+from opn_api.githost import (HttpxGitHost, CONTENTS_READ, CONTENTS_WRITE, PULLS_READ,
+    PULLS_WRITE, PULL_STATE, ACTIONS_READ, ACTIONS_WRITE, GITHUB_API)
+G = "thisisanameforsure/open_proof_network_graph"
+S = "thisisanameforsure/open_proof_network_precheck"
+h = HttpxGitHost(client_id="", client_secret="", app_id=os.environ["OPN_API_GITHUB_APP_ID"],
+                 private_key=os.environ["OPN_API_GITHUB_PRIVATE_KEY"])
+Z = "0" * 40
+probes = [  # (label, repo, permissions, method, path, json, authorised-if)
+ ("P1 contents:read graph",  G, CONTENTS_READ,  "GET",  "/git/ref/heads/main", None, "200"),
+ ("P2 contents:write graph", G, CONTENTS_WRITE, "POST", "/git/refs",
+     {"ref": "refs/heads/opn-probe-inert", "sha": Z}, "422 (Object does not exist)"),
+ ("P3 contents:write scratch", S, CONTENTS_WRITE, "POST", "/git/refs",
+     {"ref": "refs/heads/opn-probe-inert", "sha": Z}, "422"),
+ ("P4 pull_requests:read graph", G, PULLS_READ, "GET", "/pulls?state=open&per_page=1", None, "200"),
+ ("P5 pull_state graph", G, PULL_STATE, "GET", "/actions/runs?per_page=1", None, "200"),
+ ("P6 pull_requests:write graph (open)", G, PULLS_WRITE, "POST", "/pulls",
+     {"head": "opn-probe-no-such-branch", "base": "main", "title": "probe"}, "422"),
+ ("P6b pull_requests:write graph (issue comment)", G, PULLS_WRITE, "POST",
+     "/issues/999999999/comments", {"body": "probe"}, "404 (no such issue)"),
+ ("P7 actions:read graph", G, ACTIONS_READ, "GET", "/actions/runs/1/artifacts", None, "404/200"),
+ ("P8 actions:read scratch", S, ACTIONS_READ, "GET", "/actions/workflows/precheck.yml/runs?per_page=1", None, "200"),
+ ("P9 actions:write scratch", S, ACTIONS_WRITE, "POST",
+     "/actions/workflows/precheck.yml/dispatches", {"ref": "opn-probe-no-such-ref"}, "422 (No ref found)"),
+ ("N1 a read token cannot write", G, CONTENTS_READ, "POST", "/git/refs",
+     {"ref": "refs/heads/opn-probe-inert", "sha": Z}, "403 (the scoping works)"),
+]
+for label, repo, perms, method, path, body, ok in probes:
+    try:
+        token = h._installation_token(repo, perms)
+    except Exception as exc:
+        print(f"{label}: MINT REFUSED: {exc}"); continue
+    r = httpx.request(method, f"{GITHUB_API}/repos/{repo}{path}", json=body, timeout=30,
+        headers={"Authorization": f"Bearer {token}", "Accept": "application/vnd.github+json"})
+    msg = (r.json() or {}).get("message", "") if r.content and r.headers.get("content-type","").startswith("application/json") and isinstance(r.json(), dict) else ""
+    print(f"{label}: {r.status_code} {msg!r}   expect {ok}")
+PY
+PYTHONPATH=api:gate uv run --frozen python /tmp/opn_probe.py; rm /tmp/opn_probe.py   # from the repo root
+
+Reading it: every P line must answer what "expect" says and never 403; N1 must answer 403. If P6b
+answers 403, the comment needs issues: write (see above). None of the calls creates anything: the
+refs point at a commit that does not exist, the pull request's head and the dispatch's ref do not
+exist, and issue 999999999 does not exist.
+
+== Proposed spec text (F06) ==
+Ledger line: T12 ✓ (code) — installation tokens scoped per call; live probes P1–P9, N1 pending
+before deploy (audit 2026-10-04; evidence task-12-audit-2026-10-04.txt).
+
+Proposed Q (next free F06 Q): "An installation token is minted for one repository and the
+permissions of the call that uses it, and cached per (repository, permission set): contents read
+for refs, listings and compare; contents write for the Git Data API and branch deletion;
+pull_requests write to open, close and comment on a pull request; pull_requests and actions read
+for a pull request's state; actions read for runs and artifacts; actions write for dispatch. The
+App's grant (C8) is the union, graph: contents write, pull_requests write, actions read; scratch:
+contents write, actions write; no checks permission is used. An empty token request, which GitHub
+answers with the App's whole grant on every installed repository, is never made."

@@ -1,0 +1,680 @@
+{
+  "commit": "6af6af057d9ac093cb26ab8106f64f67af896e45",
+  "image": "ghcr.io/thisisanameforsure/opn-gate@sha256:287bba8c2419afb98be974545310738b1abfe1649ce0a3c782f084c97ed5cde2",
+  "published": 17,
+  "outlined_again": 8,
+  "ids_lost_or_moved": 0,
+  "failed": [
+    {
+      "target": "erdos-1050",
+      "node": "erdos-1050",
+      "path": "Proof.lean",
+      "kind": "proof",
+      "artifact_hash": "7fce90cd718e05d5af54bfe13e0cd316c04769ef58e9db84010d91039bd603e9",
+      "outline": null,
+      "reason": "timeout",
+      "detail": "TimeoutExpired: Command '['/opt/elan/bin/elan', 'run', 'leanprover/lean4:v4.33.1', 'lean', '--json', '-o', '/private/tmp/oid-erdos-1050/work/erdos-1050/erdos-1050/build/Nodes/erdos-1050--h1-v2--h2/Proof.olean', '-i', '/private/tmp/oid-erdos-1050/work/erdos-1050/erdos-1050/build/Nodes/erdos-1050--h1-v2--h2/Proof.ilean', 'Nodes/erdos-1050--h1-v2--h2/Proof.lean']' timed out after 600.0 seconds"
+    },
+    {
+      "target": "erdos-1050",
+      "node": "erdos-1050",
+      "path": "attempts/20260917T141921Z-calib-1050-fable-partial.lean",
+      "kind": "partial",
+      "artifact_hash": "78ccef88d5e283ac033a7d030e55a35fd39d8115f597ae7a4751ea8afc29beeb",
+      "outline": null,
+      "reason": "timeout",
+      "detail": "TimeoutExpired: Command '['/opt/elan/bin/elan', 'run', 'leanprover/lean4:v4.33.1', 'lean', '--json', '-o', '/private/tmp/oid-erdos-1050/work/erdos-1050/erdos-1050/build/Nodes/erdos-1050--h1-v2--h2/Proof.olean', '-i', '/private/tmp/oid-erdos-1050/work/erdos-1050/erdos-1050/build/Nodes/erdos-1050--h1-v2--h2/Proof.ilean', 'Nodes/erdos-1050--h1-v2--h2/Proof.lean']' timed out after 600.0 seconds"
+    },
+    {
+      "target": "erdos-1050",
+      "node": "erdos-1050--h1-v2",
+      "path": "Proof.lean",
+      "kind": "proof",
+      "artifact_hash": "41533dc1fe333e823c0aefa2d80c73a020d7e46f88412d2bfaae9386a128ffdb",
+      "outline": null,
+      "reason": "timeout",
+      "detail": "TimeoutExpired: Command '['/opt/elan/bin/elan', 'run', 'leanprover/lean4:v4.33.1', 'lean', '--json', '-o', '/private/tmp/oid-erdos-1050/work/erdos-1050/erdos-1050--h1-v2/build/Nodes/erdos-1050--h1-v2--h2--h1/Proof.olean', '-i', '/private/tmp/oid-erdos-1050/work/erdos-1050/erdos-1050--h1-v2/build/Nodes/erdos-1050--h1-v2--h2--h1/Proof.ilean', 'Nodes/erdos-1050--h1-v2--h2--h1/Proof.lean']' timed out after 600.0 seconds"
+    },
+    {
+      "target": "erdos-1050",
+      "node": "erdos-1050--h1-v2",
+      "path": "attempts/20260921T064200Z-tester-1050-2045-partial.lean",
+      "kind": "partial",
+      "artifact_hash": "435d715d73f368c1638dd993150e14573e92e0dba81794c48ec71c7282340efc",
+      "outline": null,
+      "reason": "timeout",
+      "detail": "TimeoutExpired: Command '['/opt/elan/bin/elan', 'run', 'leanprover/lean4:v4.33.1', 'lean', '--json', '-o', '/private/tmp/oid-erdos-1050/work/erdos-1050/erdos-1050--h1-v2/build/Nodes/erdos-1050--h1-v2--h2/Proof.olean', '-i', '/private/tmp/oid-erdos-1050/work/erdos-1050/erdos-1050--h1-v2/build/Nodes/erdos-1050--h1-v2--h2/Proof.ilean', 'Nodes/erdos-1050--h1-v2--h2/Proof.lean']' timed out after 600.0 seconds"
+    },
+    {
+      "target": "erdos-1050",
+      "node": "erdos-1050--h1-v2",
+      "path": "attempts/20260924T123700Z-t0924-1050-mcp-partial.lean",
+      "kind": "partial",
+      "artifact_hash": "4e668a775da9b692d4676892e9ee77b602edaefccc14a1469c1dc78fc08aa53c",
+      "outline": null,
+      "reason": "timeout",
+      "detail": "TimeoutExpired: Command '['/opt/elan/bin/elan', 'run', 'leanprover/lean4:v4.33.1', 'lean', '--json', '-o', '/private/tmp/oid-erdos-1050/work/erdos-1050/erdos-1050--h1-v2/build/Nodes/erdos-1050--h1-v2--h2/Proof.olean', '-i', '/private/tmp/oid-erdos-1050/work/erdos-1050/erdos-1050--h1-v2/build/Nodes/erdos-1050--h1-v2--h2/Proof.ilean', 'Nodes/erdos-1050--h1-v2--h2/Proof.lean']' timed out after 600.0 seconds"
+    },
+    {
+      "target": "erdos-1050",
+      "node": "erdos-1050--h1-v2",
+      "path": "attempts/20260924T123718Z-h0924-1050-http-partial.lean",
+      "kind": "partial",
+      "artifact_hash": "8cbaf7c36f939b2ae88e8e3ab386d45245dbf61e3b8b697837f1a7a2f50cdbe6",
+      "outline": null,
+      "reason": "timeout",
+      "detail": "TimeoutExpired: Command '['/opt/elan/bin/elan', 'run', 'leanprover/lean4:v4.33.1', 'lean', '--json', '-o', '/private/tmp/oid-erdos-1050/work/erdos-1050/erdos-1050--h1-v2/build/Nodes/erdos-1050--h1-v2--h4/Proof.olean', '-i', '/private/tmp/oid-erdos-1050/work/erdos-1050/erdos-1050--h1-v2/build/Nodes/erdos-1050--h1-v2--h4/Proof.ilean', 'Nodes/erdos-1050--h1-v2--h4/Proof.lean']' timed out after 600.0 seconds"
+    },
+    {
+      "target": "erdos-1050",
+      "node": "erdos-1050--h1-v2--h2",
+      "path": "Proof.lean",
+      "kind": "proof",
+      "artifact_hash": "36efaada6df478f477dae4d00917792642aac3e3b69bbd2af3b0273a331bba47",
+      "outline": null,
+      "reason": "timeout",
+      "detail": "over OPN_OUTLINE_TIMEOUT_S=1800"
+    },
+    {
+      "target": "erdos-1050",
+      "node": "erdos-1050--h1-v2--h2--h1",
+      "path": "Proof.lean",
+      "kind": "proof",
+      "artifact_hash": "4829240ca0f31728e9ea1616cfaa956ed4b018e48f2f30c11348de1fff3e403e",
+      "outline": null,
+      "reason": "timeout",
+      "detail": "over OPN_OUTLINE_TIMEOUT_S=1800"
+    },
+    {
+      "target": "erdos-1050",
+      "node": "erdos-1050--h1-v2--h4",
+      "path": "Proof.lean",
+      "kind": "proof",
+      "artifact_hash": "88ecdb43be996d29816ae2ebf0d04b83d76f692d8fc9ef5f0c2d1f7753cc9332",
+      "outline": null,
+      "reason": "timeout",
+      "detail": "over OPN_OUTLINE_TIMEOUT_S=1800"
+    }
+  ],
+  "artifacts": [
+    {
+      "target": "erdos-1050",
+      "artifact": "09e78d58c01f1a75caf7ddd403c9e8884221c5f9b9fa97d3440266bbca7e0354",
+      "node": "erdos-1050--h1-v2--h2",
+      "outlined": true,
+      "lost": [],
+      "added": [
+        "close"
+      ],
+      "case_hypotheses": {
+        "hden.key.hid.s2.hQdeg.s1": {
+          "was": [],
+          "now": [
+            "t",
+            "x✝"
+          ]
+        },
+        "hden.key.hid.s2.hRdeg.s1": {
+          "was": [],
+          "now": [
+            "j",
+            "x✝"
+          ]
+        }
+      }
+    },
+    {
+      "target": "erdos-1050",
+      "artifact": "36efaada6df478f477dae4d00917792642aac3e3b69bbd2af3b0273a331bba47",
+      "outlined": false
+    },
+    {
+      "target": "erdos-1050",
+      "artifact": "3ff2a2cfeae6216ebd583042a291ffe3c409c85cf585e94dcd2d95519fd2e6e6",
+      "node": "spec-180d8b72",
+      "outlined": true,
+      "lost": [],
+      "added": [],
+      "case_hypotheses": {
+        "h4_big.hGnn.s1": {
+          "was": [],
+          "now": [
+            "h"
+          ]
+        },
+        "h4_big.hGnn.s2": {
+          "was": [],
+          "now": [
+            "h"
+          ]
+        },
+        "h4_big.s7.hGH.s1": {
+          "was": [],
+          "now": [
+            "h"
+          ]
+        },
+        "h4_big.s7.hGH.s2": {
+          "was": [],
+          "now": [
+            "h"
+          ]
+        },
+        "h4_series.hAsum.s1": {
+          "was": [],
+          "now": [
+            "s"
+          ]
+        },
+        "h4_series.hAsum.s2": {
+          "was": [],
+          "now": [
+            "s"
+          ]
+        },
+        "h4_series.hfun.s1": {
+          "was": [],
+          "now": [
+            "hK"
+          ]
+        },
+        "h4_series.hfun.s2": {
+          "was": [],
+          "now": [
+            "hK"
+          ]
+        },
+        "h4_series.hfun.s2.s2": {
+          "was": [],
+          "now": [
+            "h2"
+          ]
+        },
+        "h4_series.hfun.s2.s3": {
+          "was": [],
+          "now": [
+            "h2"
+          ]
+        },
+        "id1_full.hexp.s1": {
+          "was": [],
+          "now": [
+            "hj",
+            "hG1",
+            "hG2",
+            "hsplit",
+            "hdisj",
+            "hR",
+            "hsign",
+            "ha"
+          ]
+        },
+        "id1_full.hexp.s2": {
+          "was": [],
+          "now": [
+            "i",
+            "hj",
+            "hG1",
+            "hG2",
+            "hsplit",
+            "hdisj",
+            "hR",
+            "hsign",
+            "ha"
+          ]
+        },
+        "ineq_pow.s2.s1": {
+          "was": [],
+          "now": [
+            "ih",
+            "hn"
+          ]
+        },
+        "ineq_pow.s2.s2": {
+          "was": [],
+          "now": [
+            "hm"
+          ]
+        },
+        "split3T.hsum.s1": {
+          "was": [],
+          "now": [
+            "m"
+          ]
+        },
+        "split3T.hsum.s2": {
+          "was": [],
+          "now": [
+            "m"
+          ]
+        },
+        "tail3.hsum1.s1": {
+          "was": [],
+          "now": [
+            "m"
+          ]
+        },
+        "tail3.hsum1.s2": {
+          "was": [],
+          "now": [
+            "m"
+          ]
+        }
+      }
+    },
+    {
+      "target": "erdos-1050",
+      "artifact": "41533dc1fe333e823c0aefa2d80c73a020d7e46f88412d2bfaae9386a128ffdb",
+      "outlined": false
+    },
+    {
+      "target": "erdos-1050",
+      "artifact": "435d715d73f368c1638dd993150e14573e92e0dba81794c48ec71c7282340efc",
+      "outlined": false
+    },
+    {
+      "target": "erdos-1050",
+      "artifact": "4829240ca0f31728e9ea1616cfaa956ed4b018e48f2f30c11348de1fff3e403e",
+      "outlined": false
+    },
+    {
+      "target": "erdos-1050",
+      "artifact": "4b6884a484fb214bd184ff34c3f3fe0d74c82aa297e7eaf777202a454f9f8e8b",
+      "node": "spec-f2b55478",
+      "outlined": true,
+      "lost": [],
+      "added": [
+        "close"
+      ],
+      "case_hypotheses": {
+        "hr.s3": {
+          "was": [],
+          "now": [
+            "h"
+          ]
+        },
+        "hr.s4": {
+          "was": [],
+          "now": [
+            "h"
+          ]
+        },
+        "hres.hp.s2": {
+          "was": [],
+          "now": [
+            "hnm",
+            "hj",
+            "F1",
+            "F2",
+            "F3",
+            "h2"
+          ]
+        },
+        "hres.hp.s3": {
+          "was": [],
+          "now": [
+            "s",
+            "hnm",
+            "hj",
+            "F1",
+            "F2",
+            "F3",
+            "h2"
+          ]
+        }
+      }
+    },
+    {
+      "target": "erdos-1050",
+      "artifact": "4e668a775da9b692d4676892e9ee77b602edaefccc14a1469c1dc78fc08aa53c",
+      "outlined": false
+    },
+    {
+      "target": "erdos-1050",
+      "artifact": "78ccef88d5e283ac033a7d030e55a35fd39d8115f597ae7a4751ea8afc29beeb",
+      "outlined": false
+    },
+    {
+      "target": "erdos-1050",
+      "artifact": "7eeed60bace9b0d7d292c7c161f6a1935fff75a55942596144053287a209f4f7",
+      "node": "spec-440db0f9",
+      "outlined": true,
+      "lost": [],
+      "added": [
+        "close"
+      ],
+      "case_hypotheses": {
+        "key.s4": {
+          "was": [],
+          "now": [
+            "hjm"
+          ]
+        },
+        "key.s5": {
+          "was": [],
+          "now": [
+            "hjm"
+          ]
+        }
+      }
+    },
+    {
+      "target": "erdos-1050",
+      "artifact": "7fce90cd718e05d5af54bfe13e0cd316c04769ef58e9db84010d91039bd603e9",
+      "outlined": false
+    },
+    {
+      "target": "erdos-1050",
+      "artifact": "88ecdb43be996d29816ae2ebf0d04b83d76f692d8fc9ef5f0c2d1f7753cc9332",
+      "outlined": false
+    },
+    {
+      "target": "erdos-1050",
+      "artifact": "8cbaf7c36f939b2ae88e8e3ab386d45245dbf61e3b8b697837f1a7a2f50cdbe6",
+      "outlined": false
+    },
+    {
+      "target": "erdos-1050",
+      "artifact": "da8d67aab2f67610ce0da375db6019d53ff85895969dcf1830f5fab179a7b683",
+      "node": "erdos-1050--h1-v2--h3",
+      "outlined": true,
+      "lost": [],
+      "added": [],
+      "case_hypotheses": {
+        "gauss.key.s4": {
+          "was": [],
+          "now": [
+            "hjm"
+          ]
+        },
+        "gauss.key.s5": {
+          "was": [],
+          "now": [
+            "hjm"
+          ]
+        },
+        "hAqint.s1": {
+          "was": [],
+          "now": [
+            "h5"
+          ]
+        },
+        "hAqint.s2": {
+          "was": [],
+          "now": [
+            "h5"
+          ]
+        },
+        "hAqint.s2.s1": {
+          "was": [],
+          "now": [
+            "h7"
+          ]
+        },
+        "hAqint.s2.s2": {
+          "was": [],
+          "now": [
+            "h7"
+          ]
+        },
+        "hAqint.s2.s2.hterm.hexp.s4": {
+          "was": [],
+          "now": [
+            "hk",
+            "hkn",
+            "hw",
+            "hm",
+            "e1",
+            "e2"
+          ]
+        },
+        "hAqint.s2.s2.hterm.hexp.s5": {
+          "was": [],
+          "now": [
+            "j",
+            "hk",
+            "hkn",
+            "hw",
+            "hm",
+            "e1",
+            "e2"
+          ]
+        },
+        "hE.s1": {
+          "was": [],
+          "now": [
+            "h✝"
+          ]
+        },
+        "hE.s2": {
+          "was": [],
+          "now": [
+            "h✝",
+            "h✝"
+          ]
+        },
+        "hE.s3": {
+          "was": [],
+          "now": [
+            "h✝",
+            "h✝"
+          ]
+        },
+        "hE.s3.s1": {
+          "was": [],
+          "now": [
+            "m",
+            "hm"
+          ]
+        },
+        "hE.s3.s2": {
+          "was": [],
+          "now": [
+            "j",
+            "hj"
+          ]
+        },
+        "hb.key.s1": {
+          "was": [],
+          "now": [
+            "hn"
+          ]
+        },
+        "hb.key.s2": {
+          "was": [],
+          "now": [
+            "hn"
+          ]
+        },
+        "hb.key.s2.hexp.arith.s2": {
+          "was": [],
+          "now": [
+            "hr",
+            "hA",
+            "hB",
+            "hT"
+          ]
+        },
+        "hb.key.s2.hexp.arith.s3": {
+          "was": [],
+          "now": [
+            "hr",
+            "hA",
+            "hB",
+            "hT"
+          ]
+        },
+        "hcnall.hint.s1": {
+          "was": [],
+          "now": [
+            "h2"
+          ]
+        },
+        "hcnall.hint.s1.s2": {
+          "was": [],
+          "now": [
+            "hj",
+            "h2"
+          ]
+        },
+        "hcnall.hint.s1.s3": {
+          "was": [],
+          "now": [
+            "hj",
+            "h2"
+          ]
+        },
+        "hcnall.hint.s2": {
+          "was": [],
+          "now": [
+            "h2"
+          ]
+        },
+        "hcore.key1.s1": {
+          "was": [],
+          "now": [
+            "hlt"
+          ]
+        },
+        "hcore.key1.s2": {
+          "was": [],
+          "now": [
+            "hgt"
+          ]
+        },
+        "hodd.hint.s2": {
+          "was": [],
+          "now": [
+            "hjeq"
+          ]
+        },
+        "hodd.hint.s3": {
+          "was": [],
+          "now": [
+            "hjeq"
+          ]
+        },
+        "hqx.hterm.hexp.s4": {
+          "was": [],
+          "now": [
+            "hb",
+            "hk",
+            "hkn",
+            "ha",
+            "hb",
+            "e1",
+            "e2"
+          ]
+        },
+        "hqx.hterm.hexp.s5": {
+          "was": [],
+          "now": [
+            "j",
+            "hb",
+            "hk",
+            "hkn",
+            "ha",
+            "hb",
+            "e1",
+            "e2"
+          ]
+        },
+        "id1_full.hexp.s1": {
+          "was": [],
+          "now": [
+            "hj",
+            "hG1",
+            "hG2",
+            "hsplit",
+            "hdisj",
+            "hR",
+            "hsign",
+            "ha"
+          ]
+        },
+        "id1_full.hexp.s2": {
+          "was": [],
+          "now": [
+            "i",
+            "hj",
+            "hG1",
+            "hG2",
+            "hsplit",
+            "hdisj",
+            "hR",
+            "hsign",
+            "ha"
+          ]
+        }
+      }
+    },
+    {
+      "target": "erdos-1050",
+      "artifact": "e513f32b0a48902a2c88abe8aea9089472c415f8585a5c4a69a8c25c1b065cdc",
+      "node": "spec-ffd3137a",
+      "outlined": true,
+      "lost": [],
+      "added": [],
+      "case_hypotheses": {
+        "lag_test.hjj.s2": {
+          "was": [],
+          "now": [
+            "hj",
+            "hb",
+            "hc",
+            "hd",
+            "he",
+            "hf",
+            "hB",
+            "h2"
+          ]
+        },
+        "lag_test.hjj.s3": {
+          "was": [],
+          "now": [
+            "j",
+            "hj",
+            "hb",
+            "hc",
+            "hd",
+            "he",
+            "hf",
+            "hB",
+            "h2"
+          ]
+        }
+      }
+    },
+    {
+      "target": "erdos-1050",
+      "artifact": "f59ccf25b70e1e5b9b9fc580e925b5708deccfd679073939bb698bb55a6e76c7",
+      "node": "spec-eb1219eb",
+      "outlined": true,
+      "lost": [],
+      "added": [],
+      "case_hypotheses": {}
+    },
+    {
+      "target": "erdos-1050",
+      "artifact": "fb2d53c7f931a2c0562e9e3cedd767b60e91434c5d64db9f42da26e66ad6d62a",
+      "node": "spec-1a5ab7c3",
+      "outlined": true,
+      "lost": [],
+      "added": [],
+      "case_hypotheses": {
+        "s2": {
+          "was": [],
+          "now": [
+            "h0"
+          ]
+        },
+        "s3": {
+          "was": [],
+          "now": [
+            "h0"
+          ]
+        }
+      }
+    }
+  ]
+}

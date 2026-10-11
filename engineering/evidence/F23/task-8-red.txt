@@ -1,0 +1,316 @@
+warning: `VIRTUAL_ENV=/Users/mikehiggins/Desktop/repos/open_proof_network/.venv` does not match the project environment path `.venv` and will be ignored; use `--active` to target the active environment instead
+Using CPython 3.13.15
+Creating virtual environment at: .venv
+Installed 49 packages in 314ms
+FFFFFFFF.FFFFF                                                           [100%]
+=================================== FAILURES ===================================
+_______________ test_every_page_has_the_session_slot_and_script ________________
+
+pages = {'index.html': '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="widt...a> · <a href="https://api.example.invalid/claims.json">claims.json ↗</a></span>\n</footer>\n\n</body>\n</html>\n', ...}
+
+    def test_every_page_has_the_session_slot_and_script(pages: dict[str, str]) -> None:
+        """R1, R15: an empty, hidden slot in every header, and the script that fills it, pointed at
+        the configured service; the slot holds nothing until the service answers."""
+        found = html_pages(pages)
+        assert len(found) > 20  # guard: the walk sees the whole site
+        for rel, page in found.items():
+>           assert SLOT in header(page), rel
+E           AssertionError: index.html
+E           assert '<span class="session-slot" data-session hidden></span>' in '<header class="masthead">\n  <a class="site-name" href="/"><span class="brand-mark"></span>Open Proof Network</a>\n  ..."/about/">About</a><a class="btn btn-primary nav-action" href="/problems/?filter=open">Work on a statement</a></nav>\n'
+E            +  where '<header class="masthead">\n  <a class="site-name" href="/"><span class="brand-mark"></span>Open Proof Network</a>\n  ..."/about/">About</a><a class="btn btn-primary nav-action" href="/problems/?filter=open">Work on a statement</a></nav>\n' = header('<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,...></script><script src="/vendor/katex/auto-render.min.js"></script><script src="/math.js"></script>\n</body>\n</html>\n')
+
+site/tests/test_steward_links.py:65: AssertionError
+------------------------------ Captured log setup ------------------------------
+WARNING  opn_gate.records:records.py:82 attempt record /private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-6/steward-links0/graph/targets/propositional/nodes/and-swap-reassoc/attempts/2026-09-02-b.yaml is invalid and counted as such: cannot read YAML /private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-6/steward-links0/graph/targets/propositional/nodes/and-swap-reassoc/attempts/2026-09-02-b.yaml: while parsing a flow sequence
+  in "<unicode string>", line 1, column 8:
+    route: [oops
+           ^
+expected ',' or ']', but got '<stream end>'
+  in "<unicode string>", line 2, column 1:
+    
+    ^
+WARNING  opn_gate.products:products.py:956 propositional/and-swap-reassoc: attempt 2026-09-02-b.yaml does not validate (counted as invalid)
+WARNING  opn_gate.records:records.py:82 attempt record /private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-6/steward-links0/graph/targets/propositional/nodes/and-swap-reassoc/attempts/2026-09-02-b.yaml is invalid and counted as such: cannot read YAML /private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-6/steward-links0/graph/targets/propositional/nodes/and-swap-reassoc/attempts/2026-09-02-b.yaml: while parsing a flow sequence
+  in "<unicode string>", line 1, column 8:
+    route: [oops
+           ^
+expected ',' or ']', but got '<stream end>'
+  in "<unicode string>", line 2, column 1:
+    
+    ^
+WARNING  opn_gate.products:products.py:956 propositional/and-swap-reassoc: attempt 2026-09-02-b.yaml does not validate (counted as invalid)
+WARNING  opn_gate.records:records.py:82 attempt record /private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-6/steward-links0/graph/targets/propositional/nodes/and-swap-reassoc/attempts/2026-09-02-b.yaml is invalid and counted as such: cannot read YAML /private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-6/steward-links0/graph/targets/propositional/nodes/and-swap-reassoc/attempts/2026-09-02-b.yaml: while parsing a flow sequence
+  in "<unicode string>", line 1, column 8:
+    route: [oops
+           ^
+expected ',' or ']', but got '<stream end>'
+  in "<unicode string>", line 2, column 1:
+    
+    ^
+WARNING  opn_site.model:model.py:690 resolved-lemma: Proof.lean is not the file attestation attestations/000009.json covers (attested dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd, found b378cb7cadba8366b22489d6e3b9b02875b08a5f4accb077e9466c5f74d90b66); its text is withheld from the page
+__________ test_without_a_service_the_slot_stays_and_no_script_loads ___________
+
+tmp_path_factory = TempPathFactory(_given_basetemp=None, _trace=<pluggy._tracing.TagTracerSub object at 0x1077bb490>, _basetemp=PosixPath...ders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-6'), _retention_count=3, _retention_policy='all')
+
+    def test_without_a_service_the_slot_stays_and_no_script_loads(
+        tmp_path_factory: pytest.TempPathFactory,
+    ) -> None:
+        """C7: a build with no service address draws the read-only page: the slot, no script."""
+        root = build_with_stewards(tmp_path_factory.mktemp("steward-links-off"))
+        files = render.render_site(model.load_site(root, COMMIT), repo_url=REPO)
+        for rel, page in html_pages(files).items():
+>           assert SLOT in header(page), rel
+E           AssertionError: index.html
+E           assert '<span class="session-slot" data-session hidden></span>' in '<header class="masthead">\n  <a class="site-name" href="/"><span class="brand-mark"></span>Open Proof Network</a>\n  ..."/about/">About</a><a class="btn btn-primary nav-action" href="/problems/?filter=open">Work on a statement</a></nav>\n'
+E            +  where '<header class="masthead">\n  <a class="site-name" href="/"><span class="brand-mark"></span>Open Proof Network</a>\n  ..."/about/">About</a><a class="btn btn-primary nav-action" href="/problems/?filter=open">Work on a statement</a></nav>\n' = header('<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,...></script><script src="/vendor/katex/auto-render.min.js"></script><script src="/math.js"></script>\n</body>\n</html>\n')
+
+site/tests/test_steward_links.py:77: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  opn_gate.records:records.py:82 attempt record /private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-6/steward-links-off0/graph/targets/propositional/nodes/and-swap-reassoc/attempts/2026-09-02-b.yaml is invalid and counted as such: cannot read YAML /private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-6/steward-links-off0/graph/targets/propositional/nodes/and-swap-reassoc/attempts/2026-09-02-b.yaml: while parsing a flow sequence
+  in "<unicode string>", line 1, column 8:
+    route: [oops
+           ^
+expected ',' or ']', but got '<stream end>'
+  in "<unicode string>", line 2, column 1:
+    
+    ^
+WARNING  opn_gate.products:products.py:956 propositional/and-swap-reassoc: attempt 2026-09-02-b.yaml does not validate (counted as invalid)
+WARNING  opn_gate.records:records.py:82 attempt record /private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-6/steward-links-off0/graph/targets/propositional/nodes/and-swap-reassoc/attempts/2026-09-02-b.yaml is invalid and counted as such: cannot read YAML /private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-6/steward-links-off0/graph/targets/propositional/nodes/and-swap-reassoc/attempts/2026-09-02-b.yaml: while parsing a flow sequence
+  in "<unicode string>", line 1, column 8:
+    route: [oops
+           ^
+expected ',' or ']', but got '<stream end>'
+  in "<unicode string>", line 2, column 1:
+    
+    ^
+WARNING  opn_gate.products:products.py:956 propositional/and-swap-reassoc: attempt 2026-09-02-b.yaml does not validate (counted as invalid)
+WARNING  opn_gate.records:records.py:82 attempt record /private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-6/steward-links-off0/graph/targets/propositional/nodes/and-swap-reassoc/attempts/2026-09-02-b.yaml is invalid and counted as such: cannot read YAML /private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-6/steward-links-off0/graph/targets/propositional/nodes/and-swap-reassoc/attempts/2026-09-02-b.yaml: while parsing a flow sequence
+  in "<unicode string>", line 1, column 8:
+    route: [oops
+           ^
+expected ',' or ']', but got '<stream end>'
+  in "<unicode string>", line 2, column 1:
+    
+    ^
+WARNING  opn_site.model:model.py:690 resolved-lemma: Proof.lean is not the file attestation attestations/000009.json covers (attested dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd, found b378cb7cadba8366b22489d6e3b9b02875b08a5f4accb077e9466c5f74d90b66); its text is withheld from the page
+__________ test_home_and_problems_link_needs_a_steward_with_its_count __________
+
+built = (Site(root=PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-6/steward-...> · <a href="https://api.example.invalid/claims.json">claims.json ↗</a></span>\n</footer>\n\n</body>\n</html>\n', ...})
+
+    def test_home_and_problems_link_needs_a_steward_with_its_count(
+        built: tuple[model.Site, dict[str, str]],
+    ) -> None:
+        """R5: "Needs a steward" is a link with its count to /steward/ on both pages; the count is
+        the number of lines /steward/ lists; the Problems filter stays."""
+        _site, pages = built
+>       listed = re.findall(r'<li class="steward-row"', pages["steward/index.html"])
+                                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'steward/index.html'
+
+site/tests/test_steward_links.py:95: KeyError
+____________ test_the_steward_index_lists_the_problems_without_one _____________
+
+pages = {'index.html': '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="widt...a> · <a href="https://api.example.invalid/claims.json">claims.json ↗</a></span>\n</footer>\n\n</body>\n</html>\n', ...}
+
+    def test_the_steward_index_lists_the_problems_without_one(pages: dict[str, str]) -> None:
+        """R5: one line per target with no active steward that can have one, each with Steward this
+        to its own page; a stewarded, a calibration and an on-ramp target are not listed."""
+>       page = pages["steward/index.html"]
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'steward/index.html'
+
+site/tests/test_steward_links.py:107: KeyError
+_____________________ test_every_target_has_a_steward_page _____________________
+
+built = (Site(root=PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-6/steward-...> · <a href="https://api.example.invalid/claims.json">claims.json ↗</a></span>\n</footer>\n\n</body>\n</html>\n', ...})
+
+    def test_every_target_has_a_steward_page(
+        built: tuple[model.Site, dict[str, str]],
+    ) -> None:
+        site, pages = built
+        for tid in site.targets:
+>           assert f"steward/{tid}/index.html" in pages, tid
+E           AssertionError: calibration-target
+E           assert 'steward/calibration-target/index.html' in {'index.html': '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="widt...a> · <a href="https://api.example.invalid/claims.json">claims.json ↗</a></span>\n</footer>\n\n</body>\n</html>\n', ...}
+
+site/tests/test_steward_links.py:123: AssertionError
+_______ test_the_steward_page_carries_what_the_form_needs_and_no_control _______
+
+pages = {'index.html': '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="widt...a> · <a href="https://api.example.invalid/claims.json">claims.json ↗</a></span>\n</footer>\n\n</body>\n</html>\n', ...}
+
+    def test_the_steward_page_carries_what_the_form_needs_and_no_control(
+        pages: dict[str, str],
+    ) -> None:
+        """R7: the statement in prose, what the role asks in three lines, Read more to the Docs
+        anchor, and an empty form slot carrying the commitment sentence as data — verbatim, from
+        opn_gate.steward — for the script to draw; the page itself has no input and no button."""
+>       page = pages[f"steward/{STEWARDLESS_TARGET}/index.html"]
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'steward/stewardless-target/index.html'
+
+site/tests/test_steward_links.py:132: KeyError
+________ test_a_problem_that_takes_no_steward_says_so_and_draws_no_form ________
+
+pages = {'index.html': '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="widt...a> · <a href="https://api.example.invalid/claims.json">claims.json ↗</a></span>\n</footer>\n\n</body>\n</html>\n', ...}
+
+    def test_a_problem_that_takes_no_steward_says_so_and_draws_no_form(
+        pages: dict[str, str],
+    ) -> None:
+>       page = pages[f"steward/{CALIBRATION_TARGET}/index.html"]
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'steward/calibration-target/index.html'
+
+site/tests/test_steward_links.py:150: KeyError
+__________ test_steward_calls_to_action_go_to_the_form_never_the_docs __________
+
+built = (Site(root=PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-6/steward-...> · <a href="https://api.example.invalid/claims.json">claims.json ↗</a></span>\n</footer>\n\n</body>\n</html>\n', ...})
+
+    def test_steward_calls_to_action_go_to_the_form_never_the_docs(
+        built: tuple[model.Site, dict[str, str]],
+    ) -> None:
+        """R6: the problem page's card and stewards section, the problem cards and rows, About and
+        Home: a known target's call goes to /steward/<target>/, a general one to /steward/; the
+        Docs anchor is linked only by the steward pages' Read more and the Docs page itself."""
+        site, pages = built
+        page = pages[f"problems/{STEWARDLESS_TARGET}/index.html"]
+>       assert f'href="/steward/{STEWARDLESS_TARGET}/">Become its steward</a>' in page
+E       assert 'href="/steward/stewardless-target/">Become its steward</a>' in '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,...x/auto-render.min.js"></script><script src="/math.js"></script><script src="/problem.js"></script>\n</body>\n</html>\n'
+
+site/tests/test_steward_links.py:163: AssertionError
+_________________________ test_the_me_page_is_a_shell __________________________
+
+pages = {'index.html': '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="widt...a> · <a href="https://api.example.invalid/claims.json">claims.json ↗</a></span>\n</footer>\n\n</body>\n</html>\n', ...}
+
+    def test_the_me_page_is_a_shell(pages: dict[str, str]) -> None:
+        """R13: /me/ is a static shell the script fills; signed out, or with no service, it says
+        what the page is for and holds nothing personal."""
+>       page = pages["me/index.html"]
+               ^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'me/index.html'
+
+site/tests/test_steward_links.py:193: KeyError
+______________________ test_v2_labels_on_the_problem_page ______________________
+
+pages = {'index.html': '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="widt...6666666666666666666666666666666666666/frontier.json">frontier.json ↗</a></span>\n</footer>\n\n</body>\n</html>\n', ...}
+
+    def test_v2_labels_on_the_problem_page(pages: dict[str, str]) -> None:
+        page = pages[f"problems/{STEWARDLESS_TARGET}/index.html"]
+        card = page[page.index('<aside class="card steward-card">') :]
+        card = card[: card.index("</aside>")]
+        section = page[page.index("<h2>Steward</h2>") :]
+        for where in (card, section):
+>           assert label_after(where, "Self Steward") == "self-admitted"
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+site/tests/test_steward_labels.py:96: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+text = '<aside class="card steward-card"><span class="kicker">Steward</span><span class="names"><a href="https://orcid.org/00... sign the explainer of the proof that closes it. self-steward since 2026-10-07, reviewed-steward since 2026-10-07.</p>'
+name = 'Self Steward'
+
+    def label_after(text: str, name: str) -> str:
+        m = re.search(re.escape(name) + r'</a> <span class="admitted"[^>]*>([^<]+)</span>', text)
+>       assert m is not None, (name, text[:600])
+E       AssertionError: ('Self Steward', '<aside class="card steward-card"><span class="kicker">Steward</span><span class="names"><a href="htt...sign the explainer of the proof that closes it. self-steward since 2026-10-07, reviewed-steward since 2026-10-07.</p>')
+E       assert None is not None
+
+site/tests/test_steward_labels.py:86: AssertionError
+------------------------------ Captured log setup ------------------------------
+WARNING  opn_gate.records:records.py:82 attempt record /private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-6/steward-labels0/graph/targets/propositional/nodes/and-swap-reassoc/attempts/2026-09-02-b.yaml is invalid and counted as such: cannot read YAML /private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-6/steward-labels0/graph/targets/propositional/nodes/and-swap-reassoc/attempts/2026-09-02-b.yaml: while parsing a flow sequence
+  in "<unicode string>", line 1, column 8:
+    route: [oops
+           ^
+expected ',' or ']', but got '<stream end>'
+  in "<unicode string>", line 2, column 1:
+    
+    ^
+WARNING  opn_gate.products:products.py:956 propositional/and-swap-reassoc: attempt 2026-09-02-b.yaml does not validate (counted as invalid)
+WARNING  opn_gate.records:records.py:82 attempt record /private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-6/steward-labels0/graph/targets/propositional/nodes/and-swap-reassoc/attempts/2026-09-02-b.yaml is invalid and counted as such: cannot read YAML /private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-6/steward-labels0/graph/targets/propositional/nodes/and-swap-reassoc/attempts/2026-09-02-b.yaml: while parsing a flow sequence
+  in "<unicode string>", line 1, column 8:
+    route: [oops
+           ^
+expected ',' or ']', but got '<stream end>'
+  in "<unicode string>", line 2, column 1:
+    
+    ^
+WARNING  opn_gate.products:products.py:956 propositional/and-swap-reassoc: attempt 2026-09-02-b.yaml does not validate (counted as invalid)
+WARNING  opn_gate.records:records.py:82 attempt record /private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-6/steward-labels0/graph/targets/propositional/nodes/and-swap-reassoc/attempts/2026-09-02-b.yaml is invalid and counted as such: cannot read YAML /private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-6/steward-labels0/graph/targets/propositional/nodes/and-swap-reassoc/attempts/2026-09-02-b.yaml: while parsing a flow sequence
+  in "<unicode string>", line 1, column 8:
+    route: [oops
+           ^
+expected ',' or ']', but got '<stream end>'
+  in "<unicode string>", line 2, column 1:
+    
+    ^
+WARNING  opn_site.model:model.py:690 resolved-lemma: Proof.lean is not the file attestation attestations/000009.json covers (attested dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd, found b378cb7cadba8366b22489d6e3b9b02875b08a5f4accb077e9466c5f74d90b66); its text is withheld from the page
+______________________ test_v1_reads_admitted_by_curator _______________________
+
+pages = {'index.html': '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="widt...6666666666666666666666666666666666666/frontier.json">frontier.json ↗</a></span>\n</footer>\n\n</body>\n</html>\n', ...}
+
+    def test_v1_reads_admitted_by_curator(pages: dict[str, str]) -> None:
+        page = pages[f"problems/{STEWARDED_TARGET}/index.html"]
+>       assert 'class="admitted" data-admitted="curator">admitted by curator</span>' in page
+E       assert 'class="admitted" data-admitted="curator">admitted by curator</span>' in '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,...x/auto-render.min.js"></script><script src="/math.js"></script><script src="/problem.js"></script>\n</body>\n</html>\n'
+
+site/tests/test_steward_labels.py:102: AssertionError
+___________________ test_the_problem_cards_carry_the_labels ____________________
+
+pages = {'index.html': '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="widt...6666666666666666666666666666666666666/frontier.json">frontier.json ↗</a></span>\n</footer>\n\n</body>\n</html>\n', ...}
+
+    def test_the_problem_cards_carry_the_labels(pages: dict[str, str]) -> None:
+        listing = pages["problems/index.html"]
+        start = listing.index(f'id="p-{STEWARDLESS_TARGET}"')
+        card = listing[start : listing.index("</article>", start)]
+>       assert label_after(card, "Self Steward") == "self-admitted"
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+site/tests/test_steward_labels.py:110: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+text = 'id="p-stewardless-target">\n<div class="problem-top">\n<div class="problem-main">\n<div class="problem-id-row"><a cla.../span><a class="act act-open" href="/nodes/stewardless-target/stewardless-lemma/">Work on this →</a></div>\n\n</div>\n'
+name = 'Self Steward'
+
+    def label_after(text: str, name: str) -> str:
+        m = re.search(re.escape(name) + r'</a> <span class="admitted"[^>]*>([^<]+)</span>', text)
+>       assert m is not None, (name, text[:600])
+E       AssertionError: ('Self Steward', 'id="p-stewardless-target">
+E         <div class="problem-top">
+E         <div class="problem-main">
+E         <div class="probl...ass="term tag tag-outline" tabindex="0">statement unchecked<span class="term-card" role="tooltip">Nobody other than i')
+E       assert None is not None
+
+site/tests/test_steward_labels.py:86: AssertionError
+_____________________ test_every_shown_steward_is_labelled _____________________
+
+pages = {'index.html': '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="widt...6666666666666666666666666666666666666/frontier.json">frontier.json ↗</a></span>\n</footer>\n\n</body>\n</html>\n', ...}
+
+    def test_every_shown_steward_is_labelled(pages: dict[str, str]) -> None:
+        """R14: no steward name is shown on a problem page without its label beside it."""
+        for rel, text in pages.items():
+            if not rel.startswith("problems/") or not rel.endswith("index.html"):
+                continue
+            for name in ("Self Steward", "Reviewed Steward"):
+                for m in re.finditer(re.escape(name) + "</a>", text):
+                    after = text[m.end() : m.end() + 40]
+>                   assert after.startswith(' <span class="admitted"'), (rel, after)
+E                   AssertionError: ('problems/index.html', ', <a href="https://orcid.org/0000-0001-0')
+E                   assert False
+E                    +  where False = <built-in method startswith of str object at 0x108657810>(' <span class="admitted"')
+E                    +    where <built-in method startswith of str object at 0x108657810> = ', <a href="https://orcid.org/0000-0001-0'.startswith
+
+site/tests/test_steward_labels.py:122: AssertionError
+=========================== short test summary info ============================
+FAILED site/tests/test_steward_links.py::test_every_page_has_the_session_slot_and_script
+FAILED site/tests/test_steward_links.py::test_without_a_service_the_slot_stays_and_no_script_loads
+FAILED site/tests/test_steward_links.py::test_home_and_problems_link_needs_a_steward_with_its_count
+FAILED site/tests/test_steward_links.py::test_the_steward_index_lists_the_problems_without_one
+FAILED site/tests/test_steward_links.py::test_every_target_has_a_steward_page
+FAILED site/tests/test_steward_links.py::test_the_steward_page_carries_what_the_form_needs_and_no_control
+FAILED site/tests/test_steward_links.py::test_a_problem_that_takes_no_steward_says_so_and_draws_no_form
+FAILED site/tests/test_steward_links.py::test_steward_calls_to_action_go_to_the_form_never_the_docs
+FAILED site/tests/test_steward_links.py::test_the_me_page_is_a_shell - KeyErr...
+FAILED site/tests/test_steward_labels.py::test_v2_labels_on_the_problem_page
+FAILED site/tests/test_steward_labels.py::test_v1_reads_admitted_by_curator
+FAILED site/tests/test_steward_labels.py::test_the_problem_cards_carry_the_labels
+FAILED site/tests/test_steward_labels.py::test_every_shown_steward_is_labelled
+13 failed, 1 passed in 5.56s

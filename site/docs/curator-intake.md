@@ -43,6 +43,13 @@ the intake commands are F11's; this page is the judgment the commands cannot mak
 - Every definition the root uses lives in the target's `defs/`, or in the pinned Mathlib.
   Read each `defs/` file with the review checklist in hand: a definition-mismatch here poisons
   the whole graph (D-15).
+- A definition the target turns out to need after it is listed is added by a listed curator in
+  a pull request that adds the new `defs/<Name>.lean` files and nothing else. The gate
+  elaborates the target's definitions on the merged tree before it can merge. A merged
+  definition is never edited or deleted (D-3): a wrong one is superseded by a new file under a
+  new name, and the old one stays on the record, so have what will be stated over it checked
+  first. Until someone signs a certificate for it, the new definition sits at the lowest
+  fidelity rung and the target's grade is the minimum over all of them (D-9).
 - The root statement, the informal statement and the certificate level are what the target
   page shows a bystander (D-36); write the informal statement for that reader.
 - Run the gate's admission over the root as a proposal would be admitted (F08-R1): layout,

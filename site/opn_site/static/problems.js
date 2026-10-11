@@ -19,7 +19,10 @@
     var status = card.getAttribute("data-status");
     if (filter === "open") { return parseInt(card.getAttribute("data-open") || "0", 10) > 0; }
     if (filter === "proved") { return status === "proved"; }
-    if (filter === "unstewarded") { return status === "needs a steward"; }
+    // F23-R5: the same set /steward/ lists, so the filter and the link's count agree.
+    if (filter === "unstewarded") { return card.getAttribute("data-needs-steward") === "1"; }
+    // F21-T7 (R9): a problem with any Lean file or merged proof that has no words yet.
+    if (filter === "words") { return parseInt(card.getAttribute("data-words") || "0", 10) > 0; }
     return true;
   }
 
@@ -43,6 +46,25 @@
         }
         row.hidden = !keep;
       });
+      // F04-T34 (Q35): the card's fold. Hidden when the filter or search leaves nothing in it;
+      // opened when a search match sits inside it, and closed again once the search no longer
+      // needs it — but only a fold the search opened, never one the reader opened.
+      var fold = card.querySelector("details.more");
+      if (fold) {
+        var inner = Array.prototype.filter.call(fold.querySelectorAll(".stmt"), function (r) { return !r.hidden; });
+        var anyLeft = inner.length > 0;
+        fold.hidden = !anyLeft;
+        var matchInside = Boolean(query) && inner.some(function (r) {
+          return r.textContent.toLowerCase().indexOf(query) !== -1;
+        });
+        if (matchInside && !fold.open) {
+          fold.open = true;
+          fold.setAttribute("data-auto-open", "1");
+        } else if (!matchInside && fold.hasAttribute("data-auto-open")) {
+          fold.open = false;
+          fold.removeAttribute("data-auto-open");
+        }
+      }
     });
     opts.forEach(function (o) {
       if (o.getAttribute("data-filter") === filter) { o.setAttribute("aria-current", "true"); }

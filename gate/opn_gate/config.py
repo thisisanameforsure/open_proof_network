@@ -31,6 +31,14 @@ Variables (prefix ``OPN_``):
     an environment variable rather than only a flag so the graph's workflow can set it before its
     pinned gate understands the flag (F08-Q8). Default ``None``: no author is known, and a
     curator-shaped pull request is refused.
+``OPN_SERVICE_LOGIN``
+    The host login the network's service opens pull requests as: its GitHub App's bot login,
+    ``<app-slug>[bot]`` (F20-T6). A pull request opened by this login acts for the identity the
+    service authenticated, which the service writes into the record's own ``author`` field and
+    nowhere else; so for a gloss or explainer version and a withdrawal of one, the gate judges
+    who is acting from that field, and from the pull request's author for every other login
+    (F20-R6, R7). Default ``open-proof-network[bot]``, the Stage 0 App (the service's
+    ``OPN_API_COMMITTER_NAME`` default).
 ``OPN_GRAPH_REPO_URL``
     The graph repository's web URL (D-35), the one place a problem proposal may be filed: an
     issue there is the only ``ref`` a ``proposal``-sourced target record may carry (F15-R13).
@@ -44,13 +52,30 @@ Variables (prefix ``OPN_``):
 ``OPN_QA_SUBJECT_BUDGET_S``
     The budget of one ``qa screen`` run over one subject, in seconds; attempts that would start
     past it are recorded ``inconclusive`` rather than skipped (F12-R3, §6). Default ``300``.
+``OPN_OUTLINE_TIMEOUT_S``
+    The wall-clock cap of one ``opn-outline`` run, in seconds (F19 §6). An exceeded cap is a
+    named reason in the job's report and no outline, never a failed gate (F19-R5). Default
+    ``300``; provisional until T1's Mathlib measurement (F19-Q2).
+``OPN_OUTLINE_TEXT_CAP``
+    The longest claim, goal target or hypothesis type an outline stores, in characters; a longer
+    one keeps its prefix and is marked ``truncated`` (F19 §6). Default ``2000``.
+``OPN_OUTLINE_DOC_CAP``
+    The longest docstring sentence an outline stores for a library constant, in characters
+    (F19 §6). Default ``300``.
+``OPN_OUTLINE_AUTOMATION``
+    Comma-separated tactic names: a step is closed by ``automation`` when every tactic of its
+    closing block is on this list (F19-Q5). Default ``omega,simp,norm_num,ring,linarith,
+    nlinarith,positivity,decide,field_simp,aesop``.
 ``OPN_MODEL``
-    The model the QA brief and back-translation ask (F12-R6, R7, Q5): a Messages API model id
-    whose leading letters name its family for R7's independence rule. Default ``claude-opus-5``.
-``OPN_MODEL_API_KEY``
-    **Secret.** The model provider's API key (F12 §7; C8: the curator's ``.env``, never in
-    the graph, a log or a record). Default ``None`` — meaning "no model: the brief and
-    back-translation refuse before they start".
+    The model the QA brief and the back-translation (F12-R6, R7, Q5) ask; it serves F12's QA
+    commands only, since the network drafts no words (F21-R1):
+    a model id, as OpenRouter names it, whose leading letters after any provider prefix name its
+    family for R7's independence rule. Default ``anthropic/claude-opus-5.5``.
+``OPENROUTER_API_KEY``
+    **Secret.** The OpenRouter API key for F12's QA commands only (F12 §7; C8: the curator's
+    ``.env``, never in the graph, a log or a record; the network repository's Actions secret of
+    the same name stays, unread by any code, F21-Q9). Default ``None`` — meaning "no model: the
+    brief and the back-translation refuse before they start".
 ``OPN_GATE_SIGNING_KEY``
     **Secret.** The gate's ed25519 private key (C8 item 1), present only in the post-merge job's
     environment. Default ``None`` — meaning "no key: emit an unsigned attestation".
@@ -62,6 +87,7 @@ from __future__ import annotations
 
 import logging
 import os
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Literal
@@ -79,11 +105,35 @@ DEFAULT_LEAN_PKG_BIN = Path(__file__).resolve().parents[1] / "lean" / ".lake" / 
 DEFAULT_MATHLIB_HOME = Path.home() / ".opn" / "mathlib"  # F11-R6: one checkout per pinned sha
 DEFAULT_QA_ATTEMPT_BUDGET_S = 60.0  # F12 §6: per screen attempt, provisional (F12-Q4)
 DEFAULT_QA_SUBJECT_BUDGET_S = 300.0  # F12 §6: per subject per run
-DEFAULT_MODEL = "claude-opus-5"  # F12-Q5: recorded on every brief row, swapped by config
+DEFAULT_MODEL = (
+    "anthropic/claude-opus-5.5"  # F12-Q5; OpenRouter's id, the owner's choice 2026-10-05
+)
 #: F14-R5, Q4: the catalog score at which a root's recorded evidence stands in for step 9 ("B+").
 DEFAULT_STEP9_MIN_SCORE = 5
+DEFAULT_OUTLINE_TIMEOUT_S = 300.0  # F19 §6, provisional until the Mathlib measurement (F19-Q2)
+DEFAULT_OUTLINE_TEXT_CAP = 2000  # F19 §6: claim and goal text
+DEFAULT_OUTLINE_DOC_CAP = 300  # F19 §6: a docstring's first sentence
+#: F19-Q5: "routine" is a list, in config.
+DEFAULT_OUTLINE_AUTOMATION: tuple[str, ...] = (
+    "omega",
+    "simp",
+    "norm_num",
+    "ring",
+    "linarith",
+    "nlinarith",
+    "positivity",
+    "decide",
+    "field_simp",
+    "aesop",
+)
+#: F20-T6: the login the service's GitHub App opens pull requests as (``<app-slug>[bot]``).
+DEFAULT_SERVICE_LOGIN = "open-proof-network[bot]"
 
-SECRET_NAMES: tuple[str, ...] = ("gate_signing_key", "precheck_signing_key", "model_api_key")
+SECRET_NAMES: tuple[str, ...] = (
+    "gate_signing_key",
+    "precheck_signing_key",
+    "model_api_key",
+)
 
 
 class ConfigError(ValueError):
@@ -106,7 +156,15 @@ class Settings:
     qa_attempt_budget_s: float = DEFAULT_QA_ATTEMPT_BUDGET_S
     qa_subject_budget_s: float = DEFAULT_QA_SUBJECT_BUDGET_S
     model: str = DEFAULT_MODEL
+    outline_timeout_s: float = DEFAULT_OUTLINE_TIMEOUT_S
+    outline_text_cap: int = DEFAULT_OUTLINE_TEXT_CAP
+    outline_doc_cap: int = DEFAULT_OUTLINE_DOC_CAP
+    outline_automation: tuple[str, ...] = DEFAULT_OUTLINE_AUTOMATION
     pr_author: str | None = None
+    service_login: str = DEFAULT_SERVICE_LOGIN
+    #: F07-T65: the network commit the job checked out at the pin (``OPN_NETWORK_COMMIT``),
+    #: when the job says.
+    network_commit: str | None = None
     model_api_key: str | None = field(default=None, repr=False)
     gate_signing_key: str | None = field(default=None, repr=False)
     precheck_signing_key: str | None = field(default=None, repr=False)
@@ -119,12 +177,46 @@ class Settings:
             f"listed_targets_max={self.listed_targets_max}, "
             f"qa_attempt_budget_s={self.qa_attempt_budget_s}, "
             f"qa_subject_budget_s={self.qa_subject_budget_s}, model={self.model!r}, "
+            f"outline_timeout_s={self.outline_timeout_s}, "
+            f"outline_text_cap={self.outline_text_cap}, "
+            f"outline_doc_cap={self.outline_doc_cap}, "
+            f"outline_automation={self.outline_automation!r}, "
             f"model_api_key={'<set>' if self.model_api_key else None}, "
             f"lean_pkg_bin={str(self.lean_pkg_bin)!r}, "
             f"mathlib_home={str(self.mathlib_home)!r}, pr_author={self.pr_author!r}, "
+            f"service_login={self.service_login!r}, "
+            f"network_commit={self.network_commit!r}, "
             f"gate_signing_key={'<set>' if self.gate_signing_key else None}, "
             f"precheck_signing_key={'<set>' if self.precheck_signing_key else None})"
         )
+
+
+def _outline_settings(env: Mapping[str, str]) -> tuple[int, int, tuple[str, ...]]:
+    """F19 §6 and Q5: the outline's text cap, docstring cap and automation list."""
+    caps: dict[str, int] = {}
+    for name, cap_default in (
+        ("OPN_OUTLINE_TEXT_CAP", DEFAULT_OUTLINE_TEXT_CAP),
+        ("OPN_OUTLINE_DOC_CAP", DEFAULT_OUTLINE_DOC_CAP),
+    ):
+        raw_cap = env.get(name, str(cap_default))
+        try:
+            caps[name] = int(raw_cap)
+        except ValueError as exc:
+            msg = f"{name} must be an integer number of characters, got {raw_cap!r}"
+            raise ConfigError(msg) from exc
+        if caps[name] <= 0:
+            msg = f"{name} must be positive, got {caps[name]}"
+            raise ConfigError(msg)
+    raw_auto = env.get("OPN_OUTLINE_AUTOMATION")
+    automation = (
+        DEFAULT_OUTLINE_AUTOMATION
+        if raw_auto is None
+        else tuple(dict.fromkeys(t.strip() for t in raw_auto.split(",") if t.strip()))
+    )
+    if any(not t.replace("_", "").replace("?", "").isalnum() for t in automation):
+        msg = f"OPN_OUTLINE_AUTOMATION must be comma-separated tactic names, got {raw_auto!r}"
+        raise ConfigError(msg)
+    return caps["OPN_OUTLINE_TEXT_CAP"], caps["OPN_OUTLINE_DOC_CAP"], automation
 
 
 def load(environ: dict[str, str] | None = None) -> Settings:  # noqa: PLR0915 — one per setting
@@ -176,6 +268,7 @@ def load(environ: dict[str, str] | None = None) -> Settings:  # noqa: PLR0915 �
     for name, default in (
         ("OPN_QA_ATTEMPT_BUDGET_S", DEFAULT_QA_ATTEMPT_BUDGET_S),
         ("OPN_QA_SUBJECT_BUDGET_S", DEFAULT_QA_SUBJECT_BUDGET_S),
+        ("OPN_OUTLINE_TIMEOUT_S", DEFAULT_OUTLINE_TIMEOUT_S),
     ):
         raw_budget = env.get(name, str(default))
         try:
@@ -187,6 +280,7 @@ def load(environ: dict[str, str] | None = None) -> Settings:  # noqa: PLR0915 �
             msg = f"{name} must be a positive number of seconds, got {raw_budget!r}"
             raise ConfigError(msg)
 
+    outline_text_cap, outline_doc_cap, outline_automation = _outline_settings(env)
     raw_level = env.get("OPN_LOG_LEVEL", DEFAULT_LOG_LEVEL)
     log_level = raw_level.upper()
     if log_level not in logging.getLevelNamesMapping():
@@ -205,10 +299,16 @@ def load(environ: dict[str, str] | None = None) -> Settings:  # noqa: PLR0915 �
         qa_attempt_budget_s=budgets["OPN_QA_ATTEMPT_BUDGET_S"],
         qa_subject_budget_s=budgets["OPN_QA_SUBJECT_BUDGET_S"],
         model=env.get("OPN_MODEL") or DEFAULT_MODEL,
-        model_api_key=env.get("OPN_MODEL_API_KEY") or None,
+        outline_timeout_s=budgets["OPN_OUTLINE_TIMEOUT_S"],
+        outline_text_cap=outline_text_cap,
+        outline_doc_cap=outline_doc_cap,
+        outline_automation=outline_automation,
+        model_api_key=env.get("OPENROUTER_API_KEY") or None,
         lean_pkg_bin=Path(env.get("OPN_LEAN_PKG_BIN", str(DEFAULT_LEAN_PKG_BIN))).expanduser(),
         mathlib_home=Path(env.get("OPN_MATHLIB_HOME", str(DEFAULT_MATHLIB_HOME))).expanduser(),
         pr_author=env.get("OPN_PR_AUTHOR") or None,
+        service_login=env.get("OPN_SERVICE_LOGIN", "").strip() or DEFAULT_SERVICE_LOGIN,
+        network_commit=env.get("OPN_NETWORK_COMMIT", "").strip() or None,
         gate_signing_key=env.get("OPN_GATE_SIGNING_KEY") or None,
         precheck_signing_key=env.get("OPN_PRECHECK_SIGNING_KEY") or None,
     )

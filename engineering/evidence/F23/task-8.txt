@@ -1,0 +1,25 @@
+F23-T8 verification (AC10, AC12), 2026-10-07T09:20:55Z, branch worktree-agent-afb11a32eb578b2ae, base 769bd44 + the working tree committed with this file
+
+## site/tests/test_steward_links.py site/tests/test_steward_labels.py
+site/tests/test_steward_links.py::test_every_page_has_the_session_slot_and_script PASSED [  7%]
+site/tests/test_steward_links.py::test_without_a_service_the_slot_stays_and_no_script_loads PASSED [ 15%]
+site/tests/test_steward_links.py::test_home_and_problems_link_needs_a_steward_with_its_count PASSED [ 23%]
+site/tests/test_steward_links.py::test_the_steward_index_lists_the_problems_without_one PASSED [ 30%]
+site/tests/test_steward_links.py::test_every_target_has_a_steward_page PASSED [ 38%]
+site/tests/test_steward_links.py::test_the_steward_page_carries_what_the_form_needs_and_no_control PASSED [ 46%]
+site/tests/test_steward_links.py::test_a_problem_that_takes_no_steward_says_so_and_draws_no_form PASSED [ 53%]
+site/tests/test_steward_links.py::test_steward_calls_to_action_go_to_the_form_never_the_docs PASSED [ 61%]
+site/tests/test_steward_links.py::test_no_static_page_has_a_session_control PASSED [ 69%]
+site/tests/test_steward_labels.py::test_v2_labels_on_the_problem_page PASSED [ 76%]
+site/tests/test_steward_labels.py::test_v1_reads_admitted_by_curator PASSED [ 84%]
+site/tests/test_steward_labels.py::test_the_problem_cards_carry_the_labels PASSED [ 92%]
+site/tests/test_steward_labels.py::test_every_shown_steward_is_labelled PASSED [100%]
+============================= 13 passed in 14.23s ==============================
+
+## full site fast tier
+498 passed in 142.75s (0:02:22)
+
+## ruff check site / ruff format --check site / mypy site
+All checks passed!
+74 files already formatted
+Success: no issues found in 74 source files

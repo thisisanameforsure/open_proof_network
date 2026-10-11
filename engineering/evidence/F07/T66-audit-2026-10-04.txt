@@ -1,0 +1,96 @@
+F07-T66 — credit corrections (D-18, D-19 v3.27; audit 2026-10-04, amendment section 3)
+=======================================================================================
+
+What changed
+- gate/schemas/credit-correction/v1.json (new; HASHES appended): merge_commit, line, node, artifact,
+  route_class (attempts lines only), from, to (identity or null), reason, author, date. The target is
+  the directory the record is filed under.
+- paths: role `credit-correction` at targets/<t>/credit-corrections/<stamp>-<curator>.yaml, a
+  CURATOR_ROLE (F08-R8: a listed login, the other curators review), append-only.
+- modes.check_credit_correction: validates; refuses `credit-correction-same-identity` (to == from) and
+  `credit-correction-unknown-entry` (ledger/<from>.json does not hold that line active on this target
+  as the checkout stands). codes.py has both rows.
+- ledger.apply_correction(graph_root, correction, target): `from`'s matching entry becomes `revoked`
+  (kept, never deleted) and an `active` copy — original merge_commit, date and tooling — is appended to
+  `to`'s ledger (none when to is null). Idempotent: an already revoked entry is left alone and `to`
+  gains the line only if it does not hold it active, so applying twice writes nothing. A correction
+  naming no line writes nothing. ledger.corrected_entry is the check's question.
+- cli.run_ledger (the post-merge ledger step): a merge that adds credit-correction files applies each
+  one and prints {"corrected": [...], "written": [...]}; it earns no line itself. The corrections are
+  found from the merge's paths, not its mode, because the post-merge step classifies without
+  curators.json and the merge has already passed the curator rule at its gate run.
+- info.json goldens gain `credit-correction: [1]`; test_schemas' published set likewise.
+
+Why the path (justification)
+- A submission reaches only targets/** and policy.json (paths.locate), and `ledger/` is bot-owned
+  (D-35) and stays no submission's path (tested). A ledger line names the target its merge touched,
+  so the correction is filed under that target: the one-target rule of classify holds, the post-merge
+  job runs for it (it touches one target), and the check reads the line on that target only.
+- Target-scoped like approaches/ and status/, not node-scoped: a correction is about credit, which is
+  the target's record, and an intake-time line or a future write-up line need not sit on a node.
+
+Red (before the fix; `apply_correction` existed as a seam that applied nothing)
+FAILED gate/tests/test_credit_correction.py::test_a_credit_correction_is_a_curator_record
+FAILED gate/tests/test_credit_correction.py::test_a_credit_correction_by_a_non_curator_is_refused
+FAILED gate/tests/test_credit_correction.py::test_a_correction_of_a_line_on_the_ledger_passes_the_checks
+FAILED gate/tests/test_credit_correction.py::test_a_correction_naming_no_active_line_is_refused[another-node]
+FAILED gate/tests/test_credit_correction.py::test_a_correction_naming_no_active_line_is_refused[another-merge]
+FAILED gate/tests/test_credit_correction.py::test_a_correction_naming_no_active_line_is_refused[another-identity]
+FAILED gate/tests/test_credit_correction.py::test_a_correction_to_the_same_identity_is_refused
+FAILED gate/tests/test_credit_correction.py::test_a_malformed_correction_is_refused
+FAILED gate/tests/test_credit_correction.py::test_the_post_merge_ledger_step_applies_a_merged_correction
+FAILED gate/tests/test_ledger.py::test_a_correction_revokes_the_wrong_entry_and_credits_the_right_identity
+FAILED gate/tests/test_ledger.py::test_a_correction_to_nobody_only_revokes - ...
+FAILED gate/tests/test_ledger.py::test_a_correction_touches_only_the_line_it_names
+FAILED gate/tests/test_ledger.py::test_an_attempts_correction_matches_the_route_class
+13 failed, 28 passed in 1.65s
+  representative failures:
+  test_a_credit_correction_is_a_curator_record: paths.locate -> None (path-forbidden)
+  test_a_credit_correction_by_a_non_curator_is_refused: ['path-forbidden'] == ['curator-unlisted']
+  test_the_post_merge_ledger_step_applies_a_merged_correction: KeyError 'corrected'
+  test_a_correction_revokes_the_wrong_entry_and_credits_the_right_identity: AssertionError: kept, marked, never deleted
+  (passing while red, pinning what must not change: test_applying_a_correction_twice_changes_nothing
+   and test_a_correction_naming_no_entry_writes_nothing, plus test_the_ledger_itself_is_still_no_submission.)
+
+Green
+  test_credit_correction.py + test_ledger.py: 41 passed
+  with every ledger, postmerge, modes, paths, products, error-codes, schemas, curator, records,
+  context, intake-mode, proposed-for and withdrawal test file and site/tests:
+923 passed in 231.76s (0:03:51)
+  api/tests (fast tier): 1368 passed
+  ruff check / format / mypy --strict on the changed files: clean
+
+Proposed ledger line (F07 Tasks)
+  T66 ✓ credit corrections (D-18, D-19 v3.27): credit-correction/v1 under
+  targets/<t>/credit-corrections/, curator mode, credit-correction-unknown-entry and -same-identity;
+  the post-merge ledger step revokes the line and writes it to the corrected identity, idempotently.
+
+Proposed Q entry
+  F07-Q75 (T66; D-18, D-19 v3.27). How a ledger line is corrected. A listed curator files
+  targets/<t>/credit-corrections/<stamp>-<curator>.yaml (credit-correction/v1) naming the line as
+  ledger/v1 identifies it (merge_commit, line, node, artifact, route_class on an attempts line) and
+  `from`/`to`; the gate checks `from` holds it active as main stands. The post-merge ledger step
+  applies it: the entry is marked `revoked` in place (the only in-place change a ledger file ever
+  takes, and the one ledger/v1's `status` exists for) and an `active` copy with the original merge,
+  date and tooling is appended to `to`'s ledger. Nothing is deleted; applying twice writes nothing.
+  The corrected copy carries no pointer back to the correction (ledger/v1's entry is closed); the
+  correction file is the provenance, and `git log` on the ledger names the merge that applied it. A
+  ledger/v2 with a `corrected_by` field is the reversal path if a reader needs the link in the file.
+  A correction earns nothing (D-19: it is not an artifact).
+
+What the graph needs at the re-pin
+- schemas/credit-correction/v1.json published (`schemas.publish`), or products.generate refuses the
+  graph (schema-unpublished).
+- The guide (gate/agents/AGENTS.md) needs a sentence beside its curator rows, e.g.:
+  "A listed curator corrects a ledger line by adding
+  targets/<id>/credit-corrections/<stamp>-<curator>.yaml (credit-correction/v1): the post-merge job
+  marks the old entry revoked and writes the line to the identity that should hold it."
+- The live cases the audit names (PRs #68, #69 crediting the owner; PR #71's contributor with no
+  ledger file) are for the owner to file once the re-pin is live; nothing here touches the graph.
+
+Notes
+- The post-merge step applies corrections from the merge's added paths; it does not re-check the
+  curator rule (it has no curators.json argument), relying on the gate run the merge passed, like
+  every other post-merge write.
+- No CLI command writes a correction; the curator writes the YAML by hand (the four existing curator
+  commands were not extended — not asked for).

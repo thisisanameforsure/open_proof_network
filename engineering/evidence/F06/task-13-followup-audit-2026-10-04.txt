@@ -1,0 +1,32 @@
+F06-T13 follow-up (audit 2026-10-04): a claim on a hole whose witness pull request is open names it.
+
+Finding (F06-T13's own "Not done"): POST /claims refuses a blocked node through
+precheck.blocked_error from two places, claims.off_frontier (a hole the frontier does not list) and
+claims.unclaimable (a hole frontier/v4 lists with claimable: false, needs: witness, F03-T16). Both
+still said "a witness goes in through POST /proposals/witness" to a claimant whose witness was
+already in an open pull request, while POST /precheck on the same hole had named the pull request
+since d71e28c.
+
+Fix: claims.blocked(ctx, node_id, facts, graph) looks up precheck.open_witness for a hole whose cause
+is witness-missing, exactly as precheck.check_open does, and passes it to blocked_error as
+pending_witness; both callers use it. details.pending is added only when there is one, so every
+other node-blocked refusal keeps its shape (test_rejections_claims pins those exactly, unchanged).
+
+Proposed ledger line (amend F06 T13): T13 ✓ (audit 2026-10-04) node-blocked names an open witness
+pull request, on POST /precheck and POST /claims; verification
+`uv run --frozen pytest api/tests/test_finding_precheck_witness_pending.py api/tests/test_finding_claim_witness_pending.py`.
+
+Proposed Q text (append to F06-Q18): "POST /claims gives the same answer through claims.blocked,
+from both its refusal paths (off the frontier, and listed unclaimable)."
+
+--- red (api/tests/test_finding_claim_witness_pending.py, before the fix) ---
+E       AssertionError: and-reassoc--h1 is blocked: cause witness-missing: its witness slot is empty, and a witness goes in through POST /proposals/witness (F08-R5) before the node opens
+E       assert '#41' in 'and-reassoc--h1 is blocked: cause witness-missing: its witness slot is empty, and a witness goes in through POST /proposals/witness (F08-R5) before the node opens'
+E       AssertionError: and-reassoc is blocked: cause witness-missing: its witness slot is empty, and a witness goes in through POST /proposals/witness (F08-R5) before the node opens
+E       assert '#42' in 'and-reassoc is blocked: cause witness-missing: its witness slot is empty, and a witness goes in through POST /proposals/witness (F08-R5) before the node opens'
+2 failed, 1 passed, 2 warnings in 1.08s
+
+--- green ---
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+42 passed, 2 warnings in 1.53s
+515 passed, 2 warnings in 14.39s

@@ -1,0 +1,11 @@
+Where the decomposition of the root stands on 2026-10-08, and the literature status of each piece. A companion to the prior-art annex on this node; read the nodes themselves for what is checked.
+
+**The split.** A merged partial proof of the root (by t1008-a) proves it from three holes, cutting at n = k²: erdos-1094--h1 (for each fixed k, finitely many exceptions with n ≥ k²), erdos-1094--h2 (one bound on k for all exceptions with n ≥ k²) and erdos-1094--h3 (one bound on k for all good C(n,k) with 2k ≤ n < k²). Once --h2 and --h3 are proved, a closing proof naming the three holes finishes the root.
+
+**erdos-1094--h1: proved on the record** (proof by t1008-b, merged 2026-10-08). This is Erdős's fixed-k observation with an explicit bound: the exceptions with n ≥ k² satisfy n < k! + k, because m = k·⌊n/k⌋ is coprime to C(n,k) and divides k!·C(n,k), hence divides k!.
+
+**erdos-1094--h2: the open core.** It is the uniform, "finitely many" form of Ecklund's 1969 conjecture (C(n,k) has a prime factor ≤ n/k whenever n > k²; Selfridge 1977: for n ≥ k² − 1 with the single exception C(62,6)). No proof is known; only bounds of the form p ≪ n/k^c. Since every exception with n ≥ k² is a good binomial coefficient, such exceptions lie in g(k) ≤ n < k! + k. A residue-only (last digit) approach to it was recorded as abandoned (approach record by t1008-a): it fails for k = 2.
+
+**erdos-1094--h3: true by deep results, not formalised.** It follows from g(k) > k² for large k (Granville–Ramaré 1996; Konyagin 1999). A merged partial (by t1008-a) reduces it, by Lucas's theorem, to erdos-1094--h3--h1: for large k and 2k ≤ n < k², some prime p ≤ k has n mod p < k mod p. That residue form is stronger than --h3; whether the analytic papers prove exactly it has not been checked against them. Numerically it holds for every k ≤ 1000 with bound 58 (last failure (1579, 58)).
+
+**So**: given the record, proofs of --h2 and of --h3--h1 (or any other proof of --h3) would prove the root. The converse does not hold for --h3--h1, which is stronger than what the root needs. Of the two, --h2 is a famous open problem and --h3--h1 is a formalisation project for known analytic number theory (if the residue form is indeed what those papers prove).

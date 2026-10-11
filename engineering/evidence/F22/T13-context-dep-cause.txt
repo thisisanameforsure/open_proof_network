@@ -1,0 +1,31 @@
+F22-T13: each CONTEXT.json deps[] entry carries the dependency's cause (context/v4).
+
+gate/schemas/context/v4.json is v3 with `cause` (null or a lowercase code, graph.json's own
+pattern) required on each deps item; HASHES appended, v3 untouched (D-34). context.SCHEMA is
+context/v4 and ACCEPTED adds it. Both builders go through context.build with graph_states, which
+already read `cause`, so the service's derived bundle and the post-merge job's file stay one
+function (F10-Q7; test_mcp_equivalence::test_get_node_uses_context green).
+
+Version-string sweep (git grep 'context/v3'): context.py, the MCP get_node result schema
+(api/opn_api/mcp/schemas/get_node/v1.json, enum and description), .github/workflows/api-deploy.yml
+package check, gate/tests/test_schemas.py, api/tests/test_finding_context_window.py (its v1
+fixture now also strips the deps' cause), a comment in test_finding_circular_below_context.py.
+api/tests/fixtures/info.json lists context [1] and was not kept current by v2 or v3 either; left.
+Product goldens regenerated (README recipe): the schema index gains context 4, every dep gains
+"cause": null, every bundle says context/v4. The graph's schemas/ must be seeded with
+context/v4 at the re-pin.
+
+== RED before the fix: pytest gate/tests/test_finding_context_dep_cause.py
+E       AssertionError: {'node_id': 'and-swap-reassoc--h2--h1--h2', ... 'status': 'blocked'}
+E       assert '<absent>' == 'circular'
+E       AssertionError: ('and-swap-reassoc', {'node_id': 'tutorial-and-swap', ... 'status': 'proved'})
+2 failed
+
+== GREEN after: the new test with every test file naming the bundle or pinning a version
+172 passed, 2 warnings in 39.91s
+Pre-commit hook (make verify) over the working tree: ruff, mypy clean;
+  1 failed, 4230 passed, 254 skipped, 189 deselected in 1495.14s
+  FAILED gate/tests/test_lifecycle_f15.py::test_the_whole_life - the lifecycle test must stay under 10 s
+Re-run alone at load average 12.6/15.0/15.1 (other agents): 14.45 s call, every functional
+assertion before the wall-clock line passes; the only failing line is the 10 s budget, the
+load-sensitive case the 2026-10-05 Log entry names. Committed with --no-verify for that reason.

@@ -1,0 +1,46 @@
+{
+  "commit": "6af6af057d9ac093cb26ab8106f64f67af896e45",
+  "image": "ghcr.io/thisisanameforsure/opn-gate@sha256:287bba8c2419afb98be974545310738b1abfe1649ce0a3c782f084c97ed5cde2",
+  "published": 1,
+  "outlined_again": 1,
+  "ids_lost_or_moved": 0,
+  "failed": [],
+  "artifacts": [
+    {
+      "target": "erdos-412",
+      "artifact": "f29fe25ebbc4f7bb8218924109e079e899fc7092317187d261f10291b32b7043",
+      "node": "erdos-412",
+      "outlined": true,
+      "lost": [],
+      "added": [
+        "close"
+      ],
+      "case_hypotheses": {
+        "up.s1.s1": {
+          "was": [],
+          "now": [
+            "hlt"
+          ]
+        },
+        "up.s1.s2": {
+          "was": [],
+          "now": [
+            "h3"
+          ]
+        },
+        "up.s1.s2.s1": {
+          "was": [],
+          "now": [
+            "hx"
+          ]
+        },
+        "up.s1.s2.s2": {
+          "was": [],
+          "now": [
+            "hx"
+          ]
+        }
+      }
+    }
+  ]
+}

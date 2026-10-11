@@ -1,0 +1,66 @@
+F21-T6, service side (R6, AC5) and the changeover readers; F21-T11's route case; F21-R13's
+restated api tests. 2026-10-06.
+
+Rules as built:
+- POST /glosses reads drafted_with (GLOSS_FIELDS). appends.declared(raw, field, cap=):
+  null or "" -> null; not a string -> 400 tooling-invalid; longer than 200 characters ->
+  400 tooling-invalid (the annex path keeps its cap in check_caps, unchanged: cap=None there).
+- The service writes gloss/v2 and explainer/v2 always (api/opn_api/glosses.py GLOSS_SCHEMA,
+  EXPLAINER_SCHEMA), drafted_with null when the request names none. The gate's own
+  glosses.SCHEMA / explainers.RECORD_SCHEMA stay the v1 strings its readers compare against.
+- MCP submit_gloss carries drafted_with body for body (its input schema was closed, so the
+  field was refused by the adapter, arguments-invalid); its description drops signed-supersede
+  and names locked-by-a-person, section-duplicate and tooling-invalid.
+- STATUS: signed-supersede removed (F21-R13 withdrew it); locked-by-a-person -> 409 (a conflict
+  with the chain's present state, as record-not-head is: the caller may file, these words
+  conflict with a person's, and the same request keeping that section succeeds);
+  section-duplicate and signature-section-unknown -> 400 (named; 400 was already the default).
+- get_node reads a committed glosses.json validated against the version it declares, glosses/v1
+  or glosses/v2 (reads.GLOSSES_SCHEMAS); any other is glosses-invalid. The live graph holds v1
+  until its re-pin.
+- get_node's result schema (open) documents v2's optional fields: chain shown/pending, version
+  sections/drafted_with, signature sections.
+
+$ pytest api/tests/test_glosses_route.py -k drafted_with
+RED (today's route: drafted_with an unknown field, records written as v1):
+E   assert 400 == 201   ("error":"unknown-field" ... drafted_with)  x2
+E   'gloss/v1' == 'gloss/v2' ; 'explainer/v1' == 'explainer/v2'
+E   assert 'unknown-field' == 'tooling-invalid'  x3
+7 failed, 18 deselected
+
+$ pytest api/tests/test_mcp_glosses.py -k v1_product
+RED (get_node validated the committed product against glosses/v2 only):
+E   "error": "glosses-invalid", "message": "... does not satisfy 'glosses/v2': $['schema']:
+    'glosses/v2' was expected; ... 'shown' is a required property ..."
+FAILED test_a_committed_v1_product_is_still_served
+
+$ pytest api/tests/test_mcp_glosses.py -k carries_drafted_with   (writes.py at main)
+RED:
+E   "error": "arguments-invalid", "message": "Additional properties are not allowed
+    ('drafted_with' was unexpected)", "source": "adapter"
+FAILED test_submit_gloss_carries_drafted_with
+
+$ pytest api/tests/test_glosses_route.py -k model_over_a_persons -p nolock
+RED against a mutant gate without check_model_lock (shows the route case rests on the gate's
+rule, reached through modes.check_as_service with no service code of its own):
+E   assert 201 == 409
+FAILED test_a_model_over_a_persons_words_is_refused_before_anything_opens
+
+Restated (were the two known-red api tests after F21-T10):
+- test_glosses_route.py::test_a_steward_supersedes_a_signed_version_through_the_service:
+  a stranger's supersede of a signed gloss is now 201 (R13 withdrew signed-supersede); the
+  landed tree's chain shows the signed words verified and the stranger's pending.
+- test_mcp_glosses.py::test_get_node_serves_outlines_and_chains_demarcated: signature dicts
+  carry sections (null for a v1 signature); the chain shows "whole" verified, nothing pending.
+
+$ pytest api/tests/test_glosses_route.py api/tests/test_mcp_glosses.py -v
+GREEN:
+test_a_steward_supersedes_a_signed_version_through_the_service PASSED
+test_drafted_with_is_written_as_v2[gloss|explainer] PASSED
+test_absent_drafted_with_is_null[gloss|explainer] PASSED
+test_a_bad_drafted_with_is_refused_tooling_invalid[x*201|123|list] PASSED
+test_a_model_over_a_persons_words_is_refused_before_anything_opens PASSED
+test_submit_gloss_carries_drafted_with PASSED
+test_get_node_serves_outlines_and_chains_demarcated PASSED
+test_a_committed_v1_product_is_still_served PASSED
+34 passed

@@ -1,0 +1,127 @@
+F08-T23 — a proof may use a definition its statement does not import, and cannot change what the
+statement says (R16, R17, R20; Q35, Q36); red runs
+date: 2026-10-01   base: d631052 (f11-defs-after-intake, PR #26), worktree branch nodes-import-lemmas-and-defs
+
+Finding (testers 2026-10-01, item B1; the owner: "Yes we should allow defs. Unless there is a
+compelling reason not to...", "For defs, it seems like we should be able to use them in this"):
+a proof's header is the statement's (F00-R19), so beneath a root stated over Mathlib alone nothing
+can name a definition admitted to the target later (F11-T13). 69-R5-a's header experiment: one
+added `import Defs.Fact` answers `imports-differ`; at the gate it is `proof-not-statement`.
+
+The seam went in first, at today's behaviour: `uses.split` returned the text unchanged and no
+uses, wired into `paths.check_proof_is_statement`, step 2 (`declared_uses`), step 4
+(`meaning.guard`, which does nothing without a declaration), step 8 and the hole writer. Every
+red below is therefore the refusal itself, not a missing name.
+
+## red, fast tier (the seam at today's behaviour)
+$ uv run --frozen pytest gate/tests/test_uses_defs.py -q -p no:cacheprovider
+E       AssertionError: assert Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 2 (header or signature)', details={'line': 2, 'expected': '', 'got': 'import Defs.Extra'}) is None
+E        +  where Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 2 (header or signature)', details={'line': 2, 'expected': '', 'got': 'import Defs.Extra'}) = check('import Init\nimp
+E       AssertionError: assert Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 2 (header or signature)', details={'line': 2, 'expected': '', 'got': 'import Nodes.«and-swap-reassoc»
+E        +  where Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 2 (header or signature)', details={'line': 2, 'expected': '', 'got': 'import Nodes.«and-swap-reassoc».Context'}) =
+E       AssertionError: assert Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 1 (header or signature... 'expected': 'theorem OpnProp.and_reassoc : ∀ p q r : Prop, (p ∧ q) ∧ r 
+E        +  where Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 1 (header or signature... 'expected': 'theorem OpnProp.and_reassoc : ∀ p q r : Prop, (p ∧ q) ∧ r → p ∧ (q 
+E        +    where <function check_proof_is_statement at 0x7effe7243920> = paths.check_proof_is_statement
+E       AssertionError: assert (Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 2 (header or signature)', details={'line': 2, 'expected': '', 'got': 'import Defs.Extra'}) is not None
+E         
+E         - proof-empty
+E         + proof-not-statement)
+E       AssertionError: assert Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 2 (header or signature)', details={'line': 2, 'expected': '', 'got': 'import Defs.Extra'}) is None
+E        +  where Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 2 (header or signature)', details={'line': 2, 'expected': '', 'got': 'import Defs.Extra'}) = <function check_proof_i
+E        +    where <function check_proof_is_statement at 0x7effe7243920> = paths.check_proof_is_statement
+E        +    and   Statement(decl_name='OpnProp.and_swap_reassoc', text='import Init\n\n/-! Restated by hand. -/\n\nopen Nat\n\ntheorem O... hand. -/\n\nopen Nat\n\ntheorem OpnProp.and_swap_reassoc : ∀ p q r : Prop, (p ∧ q) �
+E       AssertionError: Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 2 (header or signature)', details={'line': 2, 'expected': '', 'got': 'import Defs.Extra'})
+E       assert False
+E        +  where False = Verdict(verdict='fail', steps=(StepRecord(step=1, name='toolchain', result='pass', diagnostic=None), StepRecord(step=2...19816b2e0a3bf405af45ae5c7af2491d8f5bee6', libdir=PosixPath('/fake/elan/lib/lean'), 
+E       AssertionError: assert (Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 2 (header or signature)', details={'line': 2, 'expected': '', 'got': 'import Defs.Extra'}) is not None
+E        +  where Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 2 (header or signature)', details={'line': 2, 'expected': '', 'got': 'import Defs.Extra'}) = Verdict(verdict='fail',
+E         
+E         - use-unknown-defs
+E         + proof-not-statement)
+E       AssertionError: assert (Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 2 (header or signature)', details={'line': 2, 'expected': '', 'got': 'import Defs.Extra'}) is not None
+E        +  where Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 2 (header or signature)', details={'line': 2, 'expected': '', 'got': 'import Defs.Extra'}) = Verdict(verdict='fail',
+E         
+E         - use-duplicate
+E         + proof-not-statement)
+E       AssertionError: assert (Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 3 (header or signature)', details={'line': 3, 'expected': '', 'got': 'import Defs.Extra'}) is not None
+E        +  where Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 3 (header or signature)', details={'line': 3, 'expected': '', 'got': 'import Defs.Extra'}) = Verdict(verdict='fail',
+E         
+E         - use-duplicate
+E         + proof-not-statement)
+E       AssertionError: assert 2 == 4
+E        +  where 2 = Verdict(verdict='fail', steps=(StepRecord(step=1, name='toolchain', result='pass', diagnostic=None), StepRecord(step=2...19816b2e0a3bf405af45ae5c7af2491d8f5bee6', libdir=PosixPath('/fake/elan/lib/lean'), math
+E       AssertionError: assert 2 == 4
+E        +  where 2 = Verdict(verdict='fail', steps=(StepRecord(step=1, name='toolchain', result='pass', diagnostic=None), StepRecord(step=2...19816b2e0a3bf405af45ae5c7af2491d8f5bee6', libdir=PosixPath('/fake/elan/lib/lean'), math
+E       AssertionError: assert 2 == 4
+E        +  where 2 = Verdict(verdict='fail', steps=(StepRecord(step=1, name='toolchain', result='pass', diagnostic=None), StepRecord(step=2...19816b2e0a3bf405af45ae5c7af2491d8f5bee6', libdir=PosixPath('/fake/elan/lib/lean'), math
+E       AssertionError: Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 2 (header or signature)', details={'line': 2, 'expected': '', 'got': 'import Defs.Extra'})
+E       assert False
+E        +  where False = Verdict(verdict='fail', steps=(StepRecord(step=1, name='toolchain', result='pass', diagnostic=None), StepRecord(step=2...19816b2e0a3bf405af45ae5c7af2491d8f5bee6', libdir=PosixPath('/fake/elan/lib/lean'), 
+E       AssertionError: Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 1 (header or signature... 'expected': 'theorem OpnProp.and_reassoc : ∀ p q r : Prop, (p ∧ q) ∧ r → p �
+E       assert False
+E        +  where False = Verdict(verdict='fail', steps=(StepRecord(step=1, name='toolchain', result='pass', diagnostic=None), StepRecord(step=2...19816b2e0a3bf405af45ae5c7af2491d8f5bee6', libdir=PosixPath('/fake/elan/lib/lean'), 
+E       AssertionError: assert ['Nodes.«and-...-h1».Context'] == ['Defs.Extra'...-h1».Context']
+E         
+E         At index 0 diff: 'Nodes.«and-reassoc--h1».Context' != 'Defs.Extra'
+E         Right contains one more item: 'Nodes.«and-reassoc--h1».Context'
+E         Use -v to get more diff
+FAILED gate/tests/test_uses_defs.py::test_a_proof_may_add_a_use_line_after_the_statements_last_import
+FAILED gate/tests/test_uses_defs.py::test_use_lines_follow_the_own_context_line_where_the_proof_adds_one
+FAILED gate/tests/test_uses_defs.py::test_use_lines_lead_the_file_of_a_statement_with_no_imports
+FAILED gate/tests/test_uses_defs.py::test_a_use_line_does_not_excuse_an_empty_body
+FAILED gate/tests/test_uses_defs.py::test_without_the_node_named_a_use_line_is_still_read
+FAILED gate/tests/test_uses_defs.py::test_a_proof_with_an_admitted_definition_passes_and_is_held_to_the_statements_meaning
+FAILED gate/tests/test_uses_defs.py::test_a_definition_that_is_not_on_the_tree_is_refused_at_step_2
+FAILED gate/tests/test_uses_defs.py::test_a_use_line_repeating_another_is_refused
+FAILED gate/tests/test_uses_defs.py::test_a_use_line_repeating_a_statement_import_is_refused
+FAILED gate/tests/test_uses_defs.py::test_a_changed_meaning_fails_step_4_before_any_replay
+FAILED gate/tests/test_uses_defs.py::test_a_local_declaration_that_differs_fails_step_4
+FAILED gate/tests/test_uses_defs.py::test_a_guard_that_cannot_answer_fails_step_4
+FAILED gate/tests/test_uses_defs.py::test_an_alternate_may_declare_uses - Ass...
+FAILED gate/tests/test_uses_defs.py::test_a_partial_may_declare_uses - Assert...
+FAILED gate/tests/test_uses_defs.py::test_a_partials_holes_import_the_definitions_it_declared
+15 failed, 15 passed in 1.28s
+(The 15 that pass pin what must not change: every other header is still `proof-not-statement`,
+a changed signature and a submission that brings its own defs file are still refused, a proof
+with no use lines is checked exactly as before, and a partial without uses writes its holes as
+before.)
+
+## red, lean tier (the same seam; the real toolchain)
+$ uv run --frozen pytest -m lean gate/tests/test_uses_defs_lean.py -q -p no:cacheprovider
+E       AssertionError: {'verdict': 'fail', 'first_failing_step': 2, 'diagnostic': {'code': 'proof-not-statement', 'message': 'Proof.lean dive...result': 'skipped', 'diagnostic': None}, {'step': 7, 'name': 'witness', 'result': 'skipped', 'diagnostic': None}, .
+E       assert 'fail' == 'pass'
+E         
+E         - pass
+E         + fail
+E       AssertionError: assert 2 == 4
+E        +  where 2 = Verdict(verdict='fail', steps=(StepRecord(step=1, name='toolchain', result='pass', diagnostic=None), StepRecord(step=2...e/31c3e667-c418-5784-a734-bd7529a6bb30/scratchpad/tc/lean-4.33.1-linux/lib/lean'), mathlib_sha=None, library_path=())
+E       AssertionError: assert 2 == 4
+E        +  where 2 = Verdict(verdict='fail', steps=(StepRecord(step=1, name='toolchain', result='pass', diagnostic=None), StepRecord(step=2...e/31c3e667-c418-5784-a734-bd7529a6bb30/scratchpad/tc/lean-4.33.1-linux/lib/lean'), mathlib_sha=None, library_path=())
+E       AssertionError: assert 2 == 4
+E        +  where 2 = Verdict(verdict='fail', steps=(StepRecord(step=1, name='toolchain', result='pass', diagnostic=None), StepRecord(step=2...e/31c3e667-c418-5784-a734-bd7529a6bb30/scratchpad/tc/lean-4.33.1-linux/lib/lean'), mathlib_sha=None, library_path=())
+E       AssertionError: {'verdict': 'fail', 'first_failing_step': 2, 'diagnostic': {'code': 'proof-not-statement', 'message': 'Proof.lean dive...result': 'skipped', 'diagnostic': None}, {'step': 7, 'name': 'witness', 'result': 'skipped', 'diagnostic': None}, .
+E       assert 'fail' == 'pass'
+E         
+E         - pass
+E         + fail
+E       AssertionError: {'verdict': 'fail', 'first_failing_step': 2, 'diagnostic': {'code': 'proof-not-statement', 'message': 'Proof.lean dive...result': 'skipped', 'diagnostic': None}, {'step': 7, 'name': 'witness', 'result': 'skipped', 'diagnostic': None}, .
+E       assert 'fail' == 'pass'
+E         
+E         - pass
+E         + fail
+E       AssertionError: {'verdict': 'fail', 'first_failing_step': 2, 'diagnostic': {'code': 'proof-not-statement', 'message': 'Proof.lean dive...result': 'skipped', 'diagnostic': None}, {'step': 7, 'name': 'witness', 'result': 'skipped', 'diagnostic': None}, .
+E       assert 'fail' == 'pass'
+E         
+E         - pass
+E         + fail
+FAILED gate/tests/test_uses_defs_lean.py::test_a_proof_uses_a_definition_its_statement_does_not_import
+FAILED gate/tests/test_uses_defs_lean.py::test_an_import_that_changes_the_statements_meaning_is_refused[instance]
+FAILED gate/tests/test_uses_defs_lean.py::test_an_import_that_changes_the_statements_meaning_is_refused[local-definition]
+FAILED gate/tests/test_uses_defs_lean.py::test_an_import_that_changes_the_statements_meaning_is_refused[notation]
+FAILED gate/tests/test_uses_defs_lean.py::test_without_the_guard_the_same_proof_passes_every_step[instance]
+FAILED gate/tests/test_uses_defs_lean.py::test_without_the_guard_the_same_proof_passes_every_step[local-definition]
+FAILED gate/tests/test_uses_defs_lean.py::test_without_the_guard_the_same_proof_passes_every_step[notation]
+7 failed in 39.94s
+(Before the hole, dependency and partial tests were added; all seven fail at step 2 with
+`proof-not-statement`, the three `without_the_guard` cases included: the header is refused
+before anything is built.)

@@ -10,14 +10,23 @@ changes it, which is why the switch is a file and not a gate commit (F15-Q2).
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+import json
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
 from opn_gate import schemas
+from opn_gate.panel import Settings, settings_of
 
 FILE = "policy.json"
 SCHEMA = "policy/v1"
+#: v2 (F23-R9; D-32 v3.33) adds ``steward_admission``. Both are live (D-34).
+SCHEMA_V2 = "policy/v2"
+#: v3 (F24-R1; D-32 v3.34) adds ``panel``, the steward panel's settings.
+SCHEMA_V3 = "policy/v3"
+SCHEMAS: frozenset[str] = frozenset({SCHEMA, SCHEMA_V2, SCHEMA_V3})
+OPEN = "open"
+REVIEWED = "reviewed"
 
 
 @dataclass(frozen=True)
@@ -28,15 +37,20 @@ class Policy:
     since: str | None = None
     evidence: str | None = None
     present: bool = False
+    admission: str = OPEN
+    #: v3 (F24-R1; D-32 v3.34): the panel's settings, or their defaults.
+    panel: Settings = field(default_factory=Settings)
 
     def as_dict(self) -> dict[str, Any]:
-        """The shape ``targets/index.json`` publishes (``targets-index/v6``)."""
+        """The shape ``targets/index.json`` publishes (``targets-index/v9``: v6's rule and the
+        panel settings in force, F24-R6)."""
         return {
             "steward_rule": {
                 "enforced": self.enforced,
                 "since": self.since,
                 "evidence": self.evidence,
-            }
+            },
+            "panel": self.panel.as_dict(),
         }
 
 
@@ -51,13 +65,38 @@ def load(graph_root: Path) -> Policy:
     path = policy_path(graph_root)
     if not path.is_file():
         return Policy()
-    doc = schemas.load_json(path, SCHEMA)
+    try:
+        data = path.read_bytes()
+    except OSError as exc:
+        msg = f"cannot read JSON {path}: {exc}"
+        raise schemas.SchemaError(msg) from exc
+    return parse(data)
+
+
+def parse(data: bytes | None) -> Policy:
+    """The policy a ``policy.json``'s bytes say, or the default for ``None`` (no file) — for a
+    file read from a pull request's base, where the gate judges admission (F23-R9). A ``policy/v1``
+    file means ``open`` admission (D-32 v3.33)."""
+    if data is None:
+        return Policy()
+    try:
+        doc = json.loads(data)
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        msg = f"cannot read JSON {FILE}: {exc}"
+        raise schemas.SchemaError(msg) from exc
+    declared = doc.get("schema") if isinstance(doc, dict) else None
+    if declared not in SCHEMAS:
+        msg = f"{FILE} declares {declared!r}, not one of {', '.join(sorted(SCHEMAS))}"
+        raise schemas.SchemaError(msg)
+    schemas.validate(doc, str(declared))
     rule = doc["steward_rule"]
     return Policy(
         enforced=bool(rule["enforced"]),
         since=rule.get("since"),
         evidence=rule.get("evidence"),
         present=True,
+        admission=str(doc.get("steward_admission") or OPEN),
+        panel=settings_of(doc["panel"]) if "panel" in doc else Settings(),
     )
 
 

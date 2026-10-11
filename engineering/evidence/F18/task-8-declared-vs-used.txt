@@ -1,0 +1,10 @@
+F18-T8: declared dependencies against what each merged proof's kernel term uses
+graph 15298626abc4479a28f50420c28f83a748eeb1d0 ; caches from footprint-backfill run 37179155094 (74 proofs measured, 0 failed)
+
+erdos-1050:
+  erdos-1050--h1-v2 (proof): declares 4, uses ['erdos-1050--h1-v2--h3']; not used: erdos-1050--h1-v2--h1, erdos-1050--h1-v2--h2, erdos-1050--h1-v2--h4
+  erdos-1050--h1-v2--h2 (proof): declares 1, uses none; not used: erdos-1050--h1-v2--h2--h1
+
+euclid-primes:
+  variant-2a7919a9 (proof): declares 2, uses none; not used: variant-2a7919a9--h1, variant-2a7919a9--h2
+

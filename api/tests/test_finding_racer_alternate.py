@@ -19,7 +19,17 @@ from __future__ import annotations
 from typing import Any
 
 from api_fakes import PROOF_PREFIX, Harness
-from test_githost_seam import COMMIT_SHA, REPO, Script, host, pem, push_ok, rsa_key, script
+from test_githost_seam import (
+    COMMIT_SHA,
+    REPO,
+    Script,
+    host,
+    install_app,
+    pem,
+    push_ok,
+    rsa_key,
+    script,
+)
 from test_pending_submissions import record
 from test_submissions_alternate import mark_proved
 
@@ -113,3 +123,43 @@ def test_a_racer_is_moved_whatever_the_host_says_about_mergeability(harness: Har
     harness.githost.set_pull_request_state(12, mergeable_state="unknown", head_sha=HEAD)
     harness.client.get(f"/submissions/{loser.id}")
     assert len(replaced(harness)) == 1
+
+
+# --- F07-T64: the conversion leaves its reason on the pull request, before the branch moves ------
+
+
+def test_the_conversion_comments_the_original_head_before_the_push(harness: Harness) -> None:
+    """A forced replace of ``submit/<id>`` throws the contributor's commit off the branch; the
+    comment, posted first, keeps on the host which commit it was and where the proof went."""
+    _node, loser = racing(harness)
+    pushes_before = len(harness.githost.pushes)
+    harness.client.get(f"/submissions/{loser.id}")
+    (push,) = replaced(harness)
+    comments = [c for c in harness.githost.comments if c.number == 12]
+    assert len(comments) == 1, harness.githost.comments
+    (comment,) = comments
+    assert comment.pushes_before == pushes_before  # posted before the branch was replaced
+    (path,) = push.files
+    assert HEAD in comment.body and path in comment.body
+    assert "D-25" in comment.body
+
+
+def test_a_failed_comment_never_blocks_the_conversion(harness: Harness) -> None:
+    _node, loser = racing(harness)
+    harness.githost.comment_failure = "POST /repos/o/g/issues/12/comments returned 403"
+    harness.client.get(f"/submissions/{loser.id}")
+    assert len(replaced(harness)) == 1
+    assert harness.githost.comments == []
+
+
+def test_a_conversion_done_once_comments_once(harness: Harness) -> None:
+    _node, loser = racing(harness)
+    for _ in range(3):
+        harness.client.get(f"/submissions/{loser.id}")
+    assert len([c for c in harness.githost.comments if c.number == 12]) == 1
+
+
+def test_the_host_posts_the_comment_on_the_issue_endpoint(script: Script, host: Any) -> None:
+    install_app(script).on("POST", f"/repos/{REPO}/issues/12/comments", 201, json={"id": 1})
+    host.comment_on_pull_request(REPO, 12, "a reason")
+    assert script.sent("POST", f"/repos/{REPO}/issues/12/comments") == {"body": "a reason"}

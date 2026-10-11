@@ -3,7 +3,8 @@
 A signature on an explainer is a comprehension claim by a real-identity contributor — at Stage 0
 an active steward of the target or a listed curator (F15-Q4) — affirming one fixed sentence. It
 merges in the explainer mode on the path and signature checks alone, claims nothing about the
-mathematics, and earns nothing; only its validity matters, and each way it can be invalid is
+mathematics, and earns the signer nothing (it earns the version's author a write-up line,
+F21-R3); only its validity matters, and each way it can be invalid is
 refused by name before it merges. Every signature here is a real ``ssh-keygen`` one.
 """
 
@@ -87,8 +88,8 @@ def sign(node_dir: Path, digest: str, by: str, key: Path, **overrides: Any) -> C
     return Change("A", path.relative_to(node_dir.parents[3]).as_posix())
 
 
-def codes(root: Path, *changes: Change) -> list[str]:
-    classification = modes.classify(list(changes), author="anyone")
+def codes(root: Path, *changes: Change, opened_by: str = "anyone") -> list[str]:
+    classification = modes.classify(list(changes), author=opened_by)
     assert classification.mode == "explainer", classification.as_dict()
     return [d.code for d in modes.check(root, classification)]
 
@@ -98,29 +99,37 @@ def test_a_curator_signs_and_the_pull_request_merges_on_the_path_check(
 ) -> None:
     """AC7: a curator's signature on a proved node's explainer is the explainer mode, needs no
     build, no admission and no review, and passes every check; a steward's does too; a
-    signature arriving with the explainer it signs is accepted in one pull request."""
+    signature arriving with the explainer it signs is accepted in one pull request. Restated
+    for F21-R3: the explainer mode's merge line is now ``write-up``, which a signature earns the
+    signed version's author (never the signer). Restated for F21-Q18: each signature is opened by
+    its signer, since a signature opened by anyone else is ``signer-not-opener``."""
     root, node, digest = graph
     change = sign(node, digest, CURATOR, keys[CURATOR])
     assert change.path.endswith(f"/explainer/signed/{digest}-1.yaml")
-    classification = modes.classify([change], author="anyone")
+    classification = modes.classify([change], author=CURATOR)
     assert classification.mode == "explainer" and classification.node_id == NODE
     assert not classification.needs_gate and not classification.needs_review
     assert not classification.needs_admission
     assert modes.check(root, classification) == []
-    assert ledger.MERGE_LINES["explainer"] is None  # earns nothing at merge (R8)
+    # F21-R3 (D-19 v3.31) restates F15-R8's "earns nothing at merge": the signature earns the
+    # signed version's author a write-up line, never the signer (test_writeup_credit.py).
+    assert ledger.MERGE_LINES["explainer"] == "write-up"
     [valid] = explainers.valid(node, SIGNER)
     assert valid.signer == CURATOR and valid.explainer == digest
 
     by_steward = sign(node, digest, STEWARD, keys[STEWARD])
     assert by_steward.path.endswith("-2.yaml")
-    assert codes(root, by_steward) == []
+    assert codes(root, by_steward, opened_by=STEWARD) == []
 
     # Explainer and signature together.
     second = "---\nauthor: other\ndate: 2026-09-16\n---\nAnother account.\n"
     other = schemas.content_hash(second.encode("utf-8"))
     (node / "explainer" / f"{other}.md").write_text(second, encoding="utf-8")
     explainer_change = Change("A", f"targets/{TARGET}/nodes/{NODE}/explainer/{other}.md")
-    assert codes(root, explainer_change, sign(node, other, CURATOR, keys[CURATOR])) == []
+    assert (
+        codes(root, explainer_change, sign(node, other, CURATOR, keys[CURATOR]), opened_by=CURATOR)
+        == []
+    )
 
 
 def test_each_defect_is_refused_by_name(
@@ -199,6 +208,26 @@ def test_only_valid_signatures_count(graph: tuple[Path, Path, str], keys: dict[s
     (explainers.signed_dir(node) / "notes.yaml").write_text("x: 1\n", encoding="utf-8")
     with pytest.raises(schemas.SchemaError):
         explainers.load(node)
+
+
+def test_explainer_sign_command_takes_sections(
+    graph: tuple[Path, Path, str], keys: dict[str, Path], capsys: pytest.CaptureFixture[str]
+) -> None:
+    """F21-R13 (T12): ``--sections`` writes an ``explainer-signature/v2`` approving the named
+    sections; a key the explainer lacks is refused, nothing written."""
+    root, node, digest = graph
+    argv = [
+        "explainer", "sign", TARGET, NODE, digest, "--graph", str(root), "--by", CURATOR,
+        "--key", str(keys[CURATOR]), "--date", "2026-10-06T00:00:00Z", "--sections", "overview",
+    ]  # fmt: skip
+    assert cli.main(argv) == cli.EXIT_PASS
+    out = json.loads(capsys.readouterr().out)
+    doc = schemas.load_yaml(root / out["written"][0], "explainer-signature/v2")
+    assert doc["sections"] == ["overview"] and out["sections"] == ["overview"]
+    argv[-1] = "steps:s9"
+    assert cli.main(argv) == cli.EXIT_FAIL
+    capsys.readouterr()
+    assert sorted(p.name for p in explainers.signed_dir(node).iterdir()) == [f"{digest}-1.yaml"]
 
 
 def test_explainer_sign_command(

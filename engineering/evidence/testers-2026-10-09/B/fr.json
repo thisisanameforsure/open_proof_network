@@ -1,0 +1,231 @@
+{
+ "entries": [
+  {
+   "annex_present": true,
+   "attempts": 1,
+   "bounty": false,
+   "cause": null,
+   "circular": [],
+   "claimable": true,
+   "claims": {
+    "active": [],
+    "history_count": 2
+   },
+   "dormant": false,
+   "failure_class_histogram": {},
+   "literature": null,
+   "literature_proposed": null,
+   "needs": "proof",
+   "node_id": "erdos-1094",
+   "origin": "authored",
+   "ready_since": "2026-09-14T19:09:52Z",
+   "refuted_route_classes": [],
+   "relation": null,
+   "statement_hash": "bbeff8af9bb8437ed30cba3479c4e69ee3dd365230cbd78083baf56b10acb8e2",
+   "status": "ready",
+   "tags": {
+    "deps": [
+     "erdos-1094--h1",
+     "erdos-1094--h2",
+     "erdos-1094--h3"
+    ],
+    "library": [
+     "Data"
+    ]
+   },
+   "target_id": "erdos-1094",
+   "tutorial": false
+  },
+  {
+   "annex_present": true,
+   "attempts": 1,
+   "bounty": false,
+   "cause": null,
+   "circular": [],
+   "claimable": true,
+   "claims": {
+    "active": [
+     {
+      "pseudonym": "t1009-b",
+      "expires": "2026-10-09T14:46:31Z"
+     }
+    ],
+    "history_count": 1
+   },
+   "dormant": false,
+   "failure_class_histogram": {},
+   "literature": null,
+   "literature_proposed": {
+    "contributor": "t1009-b",
+    "record": "literature/20261009T125137Z-t1009-b.yaml",
+    "status": "open"
+   },
+   "needs": "proof",
+   "node_id": "erdos-1094--h2",
+   "origin": "compiler-derived",
+   "ready_since": "2026-10-08T13:15:38Z",
+   "refuted_route_classes": [],
+   "relation": null,
+   "statement_hash": "f15d9f4d5612ab61028478f73ebc518fabaccb5d90958c7be30069f1dadd2d6e",
+   "status": "ready",
+   "tags": {
+    "deps": [
+     "erdos-1094--h2--h1",
+     "erdos-1094--h2--h2"
+    ],
+    "library": [
+     "Data"
+    ]
+   },
+   "target_id": "erdos-1094",
+   "tutorial": false
+  },
+  {
+   "annex_present": false,
+   "attempts": 0,
+   "bounty": false,
+   "cause": null,
+   "circular": [],
+   "claimable": true,
+   "claims": {
+    "active": [],
+    "history_count": 0
+   },
+   "dormant": false,
+   "failure_class_histogram": {},
+   "literature": null,
+   "literature_proposed": {
+    "contributor": "t1009-b",
+    "record": "literature/20261009T130904Z-t1009-b.yaml",
+    "status": "known"
+   },
+   "needs": "proof",
+   "node_id": "erdos-1094--h2--h1",
+   "origin": "skeleton-hole",
+   "ready_since": "2026-10-09T13:00:58Z",
+   "refuted_route_classes": [],
+   "relation": null,
+   "statement_hash": "c926a7c69c19de8b32ba63d9172cb76be6b13d1e08e887166170b716e49992c4",
+   "status": "ready",
+   "tags": {
+    "deps": [],
+    "library": [
+     "Data"
+    ]
+   },
+   "target_id": "erdos-1094",
+   "tutorial": false
+  },
+  {
+   "annex_present": true,
+   "attempts": 0,
+   "bounty": false,
+   "cause": null,
+   "circular": [],
+   "claimable": true,
+   "claims": {
+    "active": [],
+    "history_count": 0
+   },
+   "dormant": false,
+   "failure_class_histogram": {},
+   "literature": null,
+   "literature_proposed": null,
+   "needs": "proof",
+   "node_id": "erdos-1094--h2--h2",
+   "origin": "skeleton-hole",
+   "ready_since": "2026-10-09T13:00:58Z",
+   "refuted_route_classes": [],
+   "relation": null,
+   "statement_hash": "f758468369e2bb928f1f2dc3cbf0816e47aeecd95ca83d46b9c8bbdb05d823b3",
+   "status": "ready",
+   "tags": {
+    "deps": [],
+    "library": [
+     "Data"
+    ]
+   },
+   "target_id": "erdos-1094",
+   "tutorial": false
+  },
+  {
+   "annex_present": true,
+   "attempts": 1,
+   "bounty": false,
+   "cause": null,
+   "circular": [],
+   "claimable": true,
+   "claims": {
+    "active": [],
+    "history_count": 1
+   },
+   "dormant": false,
+   "failure_class_histogram": {},
+   "literature": null,
+   "literature_proposed": {
+    "contributor": "t1009-a",
+    "record": "literature/20261009T125700Z-t1009-a.yaml",
+    "status": "known"
+   },
+   "needs": "proof",
+   "node_id": "erdos-1094--h3",
+   "origin": "compiler-derived",
+   "ready_since": "2026-10-08T13:15:38Z",
+   "refuted_route_classes": [],
+   "relation": null,
+   "statement_hash": "ea8c2bd908e4a56d2b703223b839ff4664882ab9c1fbd85e71ed4eb05e2da99b",
+   "status": "ready",
+   "tags": {
+    "deps": [
+     "erdos-1094--h3--h1"
+    ],
+    "library": [
+     "Data"
+    ]
+   },
+   "target_id": "erdos-1094",
+   "tutorial": false
+  },
+  {
+   "annex_present": true,
+   "attempts": 2,
+   "bounty": false,
+   "cause": null,
+   "circular": [],
+   "claimable": true,
+   "claims": {
+    "active": [
+     {
+      "pseudonym": "t1009-a",
+      "expires": "2026-10-09T14:46:44Z"
+     }
+    ],
+    "history_count": 1
+   },
+   "dormant": false,
+   "failure_class_histogram": {
+    "missing-library": 1
+   },
+   "literature": null,
+   "literature_proposed": null,
+   "needs": "proof",
+   "node_id": "erdos-1094--h3--h1",
+   "origin": "compiler-derived",
+   "ready_since": "2026-10-08T13:40:22Z",
+   "refuted_route_classes": [],
+   "relation": null,
+   "statement_hash": "ed95258f3758b5ddc3ebf24feaf8dd9989b6284c3bc4cd6e772367a819d16399",
+   "status": "ready",
+   "tags": {
+    "deps": [],
+    "library": [
+     "Data"
+    ]
+   },
+   "target_id": "erdos-1094",
+   "tutorial": false
+  }
+ ],
+ "rendered_from": "5b3fa00c02b6c775b376af1d9a7b7219cf4909d6",
+ "schema": "frontier/v5"
+}

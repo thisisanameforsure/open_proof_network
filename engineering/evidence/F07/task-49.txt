@@ -1,0 +1,11 @@
+# F07-T49 green: statement_tooling reads provenance.model
+# 2026-10-01T04:26:08Z
+## the new tests
+...                                                                      [100%]
+3 passed in 0.54s
+## the ledger suites
+..................................................                       [100%]
+50 passed in 2.21s
+## the cli ledger tests
+...                                                                      [100%]
+3 passed, 25 deselected in 0.42s

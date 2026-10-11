@@ -1,0 +1,114 @@
+F08-T37 (D-3 v3.28) — step 2 refuses a proposed Statement.lean or Context.lean holding any
+command beyond imports, open, namespace and end lines, doc comments and sorry-bodied theorems.
+Audit of 2026-10-04; built in worktree audit-q-statements.
+
+== What changed
+gate/opn_gate/layout.py: code_mask (comments nested and doc, string, raw-string and character
+  literals, «» names masked at the same offsets), forbidden_commands (the file read as a sequence
+  of commands), command_problem / check_commands, STATEMENT_COMMAND_CODE.
+gate/opn_gate/steps/hazards.py: StatementStep (admission's "layout" check, step 2 of the
+  standalone run) refuses before anything is copied or built.
+gate/opn_gate/steps/paths_step.py: PathsStep (step 2 of a submission) holds the node it loads to
+  the same rule, as defence in depth before any later step imports it.
+gate/opn_gate/codes.py: row for statement-command-forbidden (gate, step 2; "both" once the service
+  refuses by it, F08-T37 service half).
+gate/tests/test_finding_statement_commands.py.
+
+== The reading (judgment calls)
+- A declaration runs from `theorem`/`lemma` to the first `:=` outside brackets that is not a
+  let/have/letI/haveI binding's, and that `:=` must be followed by `sorry` or `by sorry`. So a
+  Context's signature must be sorry-bodied too; a proved theorem in a Context is refused.
+- Attributes (`@[...]`) and modifiers (`protected`, `private`, `noncomputable`) are refused,
+  including `@[...]` inside a type. The live record has none; no gate writer emits one (the wave
+  driver drops the registry's `@[category ...]`).
+- `section` and `universe`/`variable` are refused: D-3 v3.28 lists namespace and end only.
+- An `open` line holds names and `scoped`/`hiding`/`renaming`/`in`, parentheses and arrows; an
+  `open ... in` line before the theorem is allowed. A multi-line `open` (names continued on the
+  next line) would be refused; nothing on the record does it.
+- Inside a type, Mathlib's `#s` card notation is allowed (only command words and attributes are
+  refused there): a command can follow a declaration only after its `:= sorry`, so one inside a
+  type is a parse error, which admission refuses for not elaborating.
+- strip_comments (used elsewhere) reads `'"'` as the start of a string; code_mask does not, so a
+  command cannot hide from this scan behind a quote Lean reads as a character (tested).
+
+== Red (before the fix; each case was admitted, step 2 passed)
+E       assert (None, None) == ('layout', 's...nd-forbidden')
+E         At index 0 diff: None != 'layout'
+E       assert (None, None) == ('layout', 's...nd-forbidden')
+E         At index 0 diff: None != 'layout'
+E       assert (None, None) == ('layout', 's...nd-forbidden')
+E         At index 0 diff: None != 'layout'
+E       assert (None, None) == ('layout', 's...nd-forbidden')
+E         At index 0 diff: None != 'layout'
+E       assert (None, None) == ('layout', 's...nd-forbidden')
+E         At index 0 diff: None != 'layout'
+E       assert not True
+6 failed in 0.19s
+
+== Green
+gate/tests/test_finding_statement_commands.py::test_admission_refuses_a_command_beyond_d3s_list[initialize] PASSED
+gate/tests/test_finding_statement_commands.py::test_admission_refuses_a_command_beyond_d3s_list[instance] PASSED
+gate/tests/test_finding_statement_commands.py::test_admission_refuses_a_command_beyond_d3s_list[macro_rules] PASSED
+gate/tests/test_finding_statement_commands.py::test_admission_refuses_a_command_beyond_d3s_list[set_option] PASSED
+gate/tests/test_finding_statement_commands.py::test_admission_refuses_a_command_beyond_d3s_list[eval-in-context] PASSED
+gate/tests/test_finding_statement_commands.py::test_step_two_refuses_a_node_whose_context_carries_a_command PASSED
+gate/tests/test_finding_statement_commands.py::test_what_a_statement_may_hold_passes[comments, nested and doc] PASSED
+gate/tests/test_finding_statement_commands.py::test_what_a_statement_may_hold_passes[a let binding, a structure instance, a default argument and the card notation] PASSED
+gate/tests/test_finding_statement_commands.py::test_what_a_statement_may_hold_passes[a Context of two signatures under one header] PASSED
+gate/tests/test_finding_statement_commands.py::test_what_a_statement_may_hold_passes[a quoted name, a string and a character inside the type] PASSED
+gate/tests/test_finding_statement_commands.py::test_what_a_statement_may_hold_passes[an end with no name, and lemma] PASSED
+gate/tests/test_finding_statement_commands.py::test_anything_else_is_refused_and_named[an attribute on the theorem] PASSED
+gate/tests/test_finding_statement_commands.py::test_anything_else_is_refused_and_named[a modifier on the theorem] PASSED
+gate/tests/test_finding_statement_commands.py::test_anything_else_is_refused_and_named[a section] PASSED
+gate/tests/test_finding_statement_commands.py::test_anything_else_is_refused_and_named[a command after the sorry on the same line] PASSED
+gate/tests/test_finding_statement_commands.py::test_anything_else_is_refused_and_named[a command hidden behind a quote Lean reads as a character] PASSED
+gate/tests/test_finding_statement_commands.py::test_anything_else_is_refused_and_named[a command after an open line's names] PASSED
+gate/tests/test_finding_statement_commands.py::test_anything_else_is_refused_and_named[a command word in an open line] PASSED
+gate/tests/test_finding_statement_commands.py::test_anything_else_is_refused_and_named[a second command on an import line] PASSED
+gate/tests/test_finding_statement_commands.py::test_anything_else_is_refused_and_named[a Context signature proved rather than sorry] PASSED
+gate/tests/test_finding_statement_commands.py::test_anything_else_is_refused_and_named[a declaration that never reaches its body] PASSED
+gate/tests/test_finding_statement_commands.py::test_anything_else_is_refused_and_named[an attribute inside the type] PASSED
+gate/tests/test_finding_statement_commands.py::test_anything_else_is_refused_and_named[a term-level set_option] PASSED
+gate/tests/test_finding_statement_commands.py::test_anything_else_is_refused_and_named[every forbidden command, each named] PASSED
+gate/tests/test_finding_statement_commands.py::test_the_mask_keeps_every_offset PASSED
+gate/tests/test_finding_statement_commands.py::test_the_hole_writer_and_the_context_writer_pass PASSED
+gate/tests/test_finding_statement_commands.py::test_a_scaffolded_proposal_and_a_revision_pass PASSED
+gate/tests/test_finding_statement_commands.py::test_the_wave_drafts_pass PASSED
+============================== 67 passed in 2.05s ==============================
+
+== The live record (sibling graph checkout, read-only, committed blobs at origin/main)
+graph /Users/mikehiggins/Desktop/repos/open_proof_network_graph at 6d1b2bf84b308fdfcf61d71c9e669dee6b1ca4ab
+checked {'Statement.lean': 114, 'Context.lean': 114} refused 0
+Also: all 151 distinct Statement.lean/Context.lean blobs reachable from any ref of the graph
+repository: refused 0. All 97 Statement.lean/Context.lean files tracked in this repository
+(fixture graphs, proposals, onramp): refused 0.
+Gate writers exercised in the tests: postmerge.child_statement (with imports and open lines,
+including `open ... in`, and a let-bound closed type), scaffold.context_from (with and without
+deps), layout.with_own_context, curator.revise (opn-gate revise) over the propositional fixture,
+and every statement gate/tools/wave.py drafts from test_wave's registry fixture.
+
+== Proposed Q entry (F08-Q48)
+F08-Q48 (T37, D-3 v3.28). What a statement may hold is read as a sequence of commands over the
+text with comments, strings, characters and «» names masked: header lines (`import`, `open`,
+`namespace`, `end`) run to the end of their line and hold names only; a declaration is `theorem`
+or `lemma` up to its body, the first `:=` outside brackets that is not a let or have binding's,
+which must be `sorry` or `by sorry`. Anything else where a command starts is refused as
+`statement-command-forbidden`, naming the file, the line and the command. Attributes and
+modifiers are refused (none on the record; none written by any gate writer), and so are
+`section`, `universe` and `variable`, which D-3 does not list. The rule runs at admission's layout
+check and at a submission's step 2, before anything is built; the service refuses a proposal by
+the same function before any pull request opens. Every committed statement and context on the
+graph met it when it landed (114 and 114 at 6d1b2bf8; 151 distinct blobs in its history). A
+Mathlib command word inside a type is refused too, though a command can only follow a
+declaration after its `:= sorry`; that list is belt and braces, not the guarantee.
+Not covered: targets/<id>/formalizations/<name>/Statement.lean (F14-R7) is not a node file and is
+not read by this rule; if the judges import those too, the same function applies (follow-up).
+
+== Proposed ledger line
+T37 ✓ step 2 refuses a Statement.lean or Context.lean holding any command beyond D-3 v3.28's list
+(statement-command-forbidden); the live record passes (evidence/F08/task-37-audit-2026-10-04.txt).
+
+== Guide sentence (graph AGENTS.md, the statement section)
+A proposed Statement.lean holds its imports, `open`, `namespace` and `end` lines, doc comments and
+one sorry-bodied theorem, and nothing else: no attribute, `instance`, `notation`, `set_option`,
+`#eval` or other command, or the gate refuses it as `statement-command-forbidden`.

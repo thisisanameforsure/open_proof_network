@@ -1,0 +1,3 @@
+F05-T30 (B3): served rendered_from is main's sha; node files read there. Red first 2026-10-09: 2 failed on the defect ('5555...' served where 'bbbb...' expected), then the node-files assertion failed on Relation.lean and Proof.lean read at 'main' (requests.fetch_optional, racers, pending.optional_committed), fixed.
+$ uv run --frozen pytest -q api/tests/test_finding_served_rendered_from.py
+4 passed, 2 warnings in 0.32s

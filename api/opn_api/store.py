@@ -34,11 +34,19 @@ KEY_SUBMISSION = "submission#"
 KEY_SUBMISSION_PR = "submissionpr#"
 KEY_SUBMISSIONS_OPEN = "submissions#open"
 KEY_SUBMISSION_NODE = "submissionnode#"
+#: F07-T70: every record one pseudonym opened, open or closed — a string set of ids per
+#: pseudonym (lower-cased, as the pseudonym is reserved), so ``GET /submissions/mine`` can name
+#: the caller's finished pull requests without a scan. Records put before the index existed
+#: join it when they are next written (a close re-puts the record).
+KEY_SUBMISSIONS_BY = "submissionsby#"
 #: The kinds that *create* a node (F08-T11): a record of one is findable by the node it proposes,
 #: so a route can tell a node waiting on its pull request from one nobody proposed.
 PROPOSAL_KINDS = ("speculative", "variant")
 # F13-T4: one record per fast check, no TTL (Q3), in the tokens table like the submissions.
 KEY_CHECK = "check#"
+# F06-T11: a precheck job that has opened its pull request — a counter (``bump_counter``) whose
+# TTL is the job's retention, so taking it is one atomic add on either store.
+KEY_PRECHECK_USED = "precheckused#"
 
 
 class ConflictError(Exception):
@@ -56,6 +64,10 @@ class Identity:
     proof_kind: str
     proof_reference: str
     created: str
+    #: F25-R16 (Q24): the ``DCO_VERSION`` this identity last accepted — at issuance, at a web
+    #: sign-in's tick, or through ``POST /dco/accept``. ``None`` is "never recorded", which every
+    #: identity created before the field existed reads as, and the service treats as stale.
+    dco_version: str | None = None
 
 
 @dataclass(frozen=True)
@@ -64,6 +76,10 @@ class TokenRecord:
     identity_id: str
     created: str
     revoked: bool = False
+    #: F05-T27: when a rotation (``POST /tokens/renew``) retired this token.
+    renewed: str | None = None
+    #: F05-T29 (D-19 v3.29): the last authenticated use, refreshed at most once a day.
+    last_used: str | None = None
 
 
 @dataclass(frozen=True)
@@ -107,6 +123,9 @@ class Submission:
     #: named in the next claim's receipt (ruling D2); ``None`` for every other kind, and for a
     #: claim recorded before the field existed.
     defect_class: str | None = None
+    #: F25-R2: the ``automation`` block ``POST /submissions`` accepted (D-23 v3.37), served on the
+    #: record's row; ``None`` for every other kind and for a record made before the field existed.
+    automation: dict[str, Any] | None = None
 
 
 def proposes(submission: Submission) -> bool:
@@ -150,11 +169,44 @@ class Store(Protocol):
 
     def get_identity(self, identity_id: str) -> Identity | None: ...
 
+    def set_dco_version(self, identity_id: str, version: str | None) -> None:
+        """F25-R16 (Q24): record the sign-off version ``identity_id`` accepted; ``KeyError`` for an
+        identity that does not exist, never a row made up for it."""
+        ...
+
     def count_identities_by_proof(self, proof_kind: str, reference: str) -> int: ...
 
     def put_token(self, record: TokenRecord) -> None: ...
 
     def get_token(self, token_hash: str) -> TokenRecord | None: ...
+
+    def get_identity_by_pseudonym(self, pseudonym: str) -> Identity | None:
+        """The identity holding ``pseudonym``, matched case-insensitively as it is reserved."""
+        ...
+
+    def revoke_tokens(self, identity_id: str) -> int:
+        """F05-T21: mark every token of ``identity_id`` revoked; how many were not already."""
+        ...
+
+    def renew_token(self, old_hash: str, new: TokenRecord, at: str) -> bool:
+        """F05-T27: store ``new`` and retire ``old_hash`` (revoked, ``renewed`` = ``at``), but
+        only if the old token is still unrevoked; ``False``, with nothing stored, if it is not,
+        so one token renews once even when two renewals race."""
+        ...
+
+    def touch_token(self, token_hash: str, at: str, before: str) -> bool:
+        """F05-T29: set the token's ``last_used`` to ``at``, but only if it has none or one no
+        later than ``before`` — a conditional write, so a busy token costs one write a day
+        however many requests race. ``True`` if it wrote."""
+        ...
+
+    def get_identity_by_proof(self, proof_kind: str, reference: str) -> Identity | None:
+        """F05-T27: the identity a proof reference made, through its uniqueness marker."""
+        ...
+
+    def list_tokens(self, identity_id: str) -> list[TokenRecord]:
+        """F05-T27: every token record of ``identity_id``, live, lapsed, renewed or revoked."""
+        ...
 
     def put_job(self, job_id: str, record: dict[str, Any], expires: datetime) -> None:
         """A precheck job (F06-R3). Readable until ``expires``, unlike an ephemeral item."""
@@ -174,8 +226,18 @@ class Store(Protocol):
         """Read and delete in one step (single use); ``None`` when absent or expired."""
         ...
 
-    def bump_counter(self, key: str, expires: datetime) -> int:
-        """Increment and return the counter at ``key``; it disappears after ``expires``."""
+    def get_ephemeral(self, key: str, now: datetime) -> dict[str, Any] | None:
+        """Read without deleting (F23-R3: a web session is read on every request); ``None`` when
+        absent or expired."""
+        ...
+
+    def drop_ephemeral(self, key: str) -> None:
+        """Delete at once, whether or not present (F23: a session ended by its holder)."""
+        ...
+
+    def bump_counter(self, key: str, expires: datetime, *, by: int = 1) -> int:
+        """Add ``by`` (one by default; negative to give back a reservation, F13-T28) to the
+        counter at ``key`` atomically and return it; it disappears after ``expires``."""
         ...
 
     def drop_counter(self, key: str) -> None:
@@ -196,6 +258,11 @@ class Store(Protocol):
 
     def list_open_submissions(self) -> list[Submission]:
         """Every record no live read has found finished, by id (ULIDs sort by time)."""
+        ...
+
+    def list_submissions_by(self, pseudonym: str) -> list[Submission]:
+        """F07-T70: every record ``pseudonym`` opened, open or closed, by id; the pseudonym is
+        matched case-insensitively, as it is reserved."""
         ...
 
     def close_submission(
@@ -226,6 +293,7 @@ class MemoryStore:
     submissions: dict[str, Submission] = field(default_factory=dict)
     submissions_by_pr: dict[int, str] = field(default_factory=dict)
     submissions_by_node: dict[str, str] = field(default_factory=dict)
+    submissions_by_pseudonym: dict[str, set[str]] = field(default_factory=dict)
     open_submissions: set[str] = field(default_factory=set)
     checks: dict[str, CheckLog] = field(default_factory=dict)
 
@@ -243,6 +311,9 @@ class MemoryStore:
     def get_identity(self, identity_id: str) -> Identity | None:
         return self.identities.get(identity_id)
 
+    def set_dco_version(self, identity_id: str, version: str | None) -> None:
+        self.identities[identity_id] = replace(self.identities[identity_id], dco_version=version)
+
     def count_identities_by_proof(self, proof_kind: str, reference: str) -> int:
         return sum(
             1
@@ -255,6 +326,45 @@ class MemoryStore:
 
     def get_token(self, token_hash: str) -> TokenRecord | None:
         return self.tokens.get(token_hash)
+
+    def get_identity_by_pseudonym(self, pseudonym: str) -> Identity | None:
+        wanted = pseudonym.lower()
+        for found in self.identities.values():
+            if found.pseudonym.lower() == wanted:
+                return found
+        return None
+
+    def renew_token(self, old_hash: str, new: TokenRecord, at: str) -> bool:
+        old = self.tokens.get(old_hash)
+        if old is None or old.revoked:
+            return False
+        self.tokens[new.token_hash] = new
+        self.tokens[old_hash] = replace(old, revoked=True, renewed=at)
+        return True
+
+    def touch_token(self, token_hash: str, at: str, before: str) -> bool:
+        record = self.tokens.get(token_hash)
+        if record is None or (record.last_used is not None and record.last_used > before):
+            return False
+        self.tokens[token_hash] = replace(record, last_used=at)
+        return True
+
+    def get_identity_by_proof(self, proof_kind: str, reference: str) -> Identity | None:
+        for found in self.identities.values():
+            if found.proof_kind == proof_kind and found.proof_reference == reference:
+                return found
+        return None
+
+    def list_tokens(self, identity_id: str) -> list[TokenRecord]:
+        return [r for r in self.tokens.values() if r.identity_id == identity_id]
+
+    def revoke_tokens(self, identity_id: str) -> int:
+        count = 0
+        for digest, record in list(self.tokens.items()):
+            if record.identity_id == identity_id and not record.revoked:
+                self.tokens[digest] = replace(record, revoked=True)
+                count += 1
+        return count
 
     def put_job(self, job_id: str, record: dict[str, Any], expires: datetime) -> None:
         self.jobs[job_id] = dict(record)
@@ -281,10 +391,19 @@ class MemoryStore:
             return None
         return item[0]
 
-    def bump_counter(self, key: str, expires: datetime) -> int:
+    def get_ephemeral(self, key: str, now: datetime) -> dict[str, Any] | None:
+        item = self.ephemeral.get(key)
+        if item is None or item[1] <= now:
+            return None
+        return dict(item[0])
+
+    def drop_ephemeral(self, key: str) -> None:
+        self.ephemeral.pop(key, None)
+
+    def bump_counter(self, key: str, expires: datetime, *, by: int = 1) -> int:
         count, _ = self.counters.get(key, (0, expires))
-        self.counters[key] = (count + 1, expires)
-        return count + 1
+        self.counters[key] = (count + by, expires)
+        return count + by
 
     def drop_counter(self, key: str) -> None:
         self.counters.pop(key, None)
@@ -296,6 +415,9 @@ class MemoryStore:
             str(submission.node_id), ""
         ):  # ULIDs sort by time: closing an older record never hides a newer proposal
             self.submissions_by_node[str(submission.node_id)] = submission.id
+        self.submissions_by_pseudonym.setdefault(submission.pseudonym.lower(), set()).add(
+            submission.id
+        )
         if submission.closed is None:
             self.open_submissions.add(submission.id)
         else:
@@ -314,6 +436,10 @@ class MemoryStore:
 
     def list_open_submissions(self) -> list[Submission]:
         return [self.submissions[i] for i in sorted(self.open_submissions) if i in self.submissions]
+
+    def list_submissions_by(self, pseudonym: str) -> list[Submission]:
+        ids = self.submissions_by_pseudonym.get(pseudonym.lower(), set())
+        return [self.submissions[i] for i in sorted(ids) if i in self.submissions]
 
     def close_submission(
         self, submission_id: str, *, closed: str, final_state: dict[str, Any]
@@ -434,7 +560,8 @@ class DynamoStore:
 
     def put_identity(self, identity: Identity) -> None:
         table = self._names["identities"]
-        items = [{"Put": {"TableName": table, "Item": asdict(identity)}}]
+        row = {k: v for k, v in asdict(identity).items() if v is not None}  # as put_token does
+        items = [{"Put": {"TableName": table, "Item": row}}]
         for key, what in _unique_keys(identity):
             items.append(
                 {
@@ -458,13 +585,29 @@ class DynamoStore:
         item = self._identities.get_item(Key={"id": identity_id}).get("Item")
         return _identity(item) if item and "pseudonym" in item else None
 
+    def set_dco_version(self, identity_id: str, version: str | None) -> None:
+        """One attribute on the identity row, under the condition that the row is an identity's
+        (a uniqueness key shares the table and has no pseudonym), so nothing is made up."""
+        try:
+            self._identities.update_item(
+                Key={"id": identity_id},
+                UpdateExpression="SET dco_version = :v",
+                ConditionExpression="attribute_exists(pseudonym)",
+                ExpressionAttributeValues={":v": version},
+            )
+        except Exception as exc:
+            code = getattr(exc, "response", {}).get("Error", {}).get("Code")
+            if code != "ConditionalCheckFailedException":
+                raise
+            raise KeyError(identity_id) from exc
+
     def count_identities_by_proof(self, proof_kind: str, reference: str) -> int:
         key = KEY_PROOF_REF + proof_kind + "#" + reference
         return 1 if self._identities.get_item(Key={"id": key}).get("Item") else 0
 
     def put_token(self, record: TokenRecord) -> None:
-        item = {"key": KEY_TOKEN + record.token_hash, **asdict(record)}
-        self._tokens.put_item(Item=item)
+        fields_ = {k: v for k, v in asdict(record).items() if v is not None}
+        self._tokens.put_item(Item={"key": KEY_TOKEN + record.token_hash, **fields_})
 
     def get_token(self, token_hash: str) -> TokenRecord | None:
         item = self._tokens.get_item(Key={"key": KEY_TOKEN + token_hash}).get("Item")
@@ -475,7 +618,111 @@ class DynamoStore:
             identity_id=str(item["identity_id"]),
             created=str(item["created"]),
             revoked=bool(item.get("revoked", False)),
+            renewed=_optional(item.get("renewed")),
+            last_used=_optional(item.get("last_used")),
         )
+
+    def renew_token(self, old_hash: str, new: TokenRecord, at: str) -> bool:
+        """The new token is stored first and the old one retired under a condition; if the
+        condition fails (the old token was renewed or revoked meanwhile) the new one is deleted
+        again. A crash between the two leaves both valid until the old one lapses, never the
+        holder with neither."""
+        self.put_token(new)
+        try:
+            self._tokens.update_item(
+                Key={"key": KEY_TOKEN + old_hash},
+                UpdateExpression="SET revoked = :yes, renewed = :at",
+                ConditionExpression=(
+                    "attribute_exists(#k) AND (attribute_not_exists(revoked) OR revoked = :no)"
+                ),
+                ExpressionAttributeNames={"#k": "key"},
+                ExpressionAttributeValues={":yes": True, ":no": False, ":at": at},
+            )
+        except Exception as exc:
+            code = getattr(exc, "response", {}).get("Error", {}).get("Code")
+            if code != "ConditionalCheckFailedException":
+                raise
+            self._tokens.delete_item(Key={"key": KEY_TOKEN + new.token_hash})
+            return False
+        return True
+
+    def touch_token(self, token_hash: str, at: str, before: str) -> bool:
+        """One conditional ``UpdateItem``: timestamps are ``clock.render``'s fixed-width UTC form,
+        so DynamoDB's string comparison orders them as times."""
+        try:
+            self._tokens.update_item(
+                Key={"key": KEY_TOKEN + token_hash},
+                UpdateExpression="SET last_used = :at",
+                ConditionExpression=(
+                    "attribute_exists(#k) AND "
+                    "(attribute_not_exists(last_used) OR last_used <= :before)"
+                ),
+                ExpressionAttributeNames={"#k": "key"},
+                ExpressionAttributeValues={":at": at, ":before": before},
+            )
+        except Exception as exc:
+            code = getattr(exc, "response", {}).get("Error", {}).get("Code")
+            if code != "ConditionalCheckFailedException":
+                raise
+            return False
+        return True
+
+    def get_identity_by_proof(self, proof_kind: str, reference: str) -> Identity | None:
+        key = KEY_PROOF_REF + proof_kind + "#" + reference
+        item = self._identities.get_item(Key={"id": key}).get("Item")
+        found = item.get("identity_id") if item else None
+        return self.get_identity(str(found)) if found else None
+
+    def list_tokens(self, identity_id: str) -> list[TokenRecord]:
+        """A scan, as ``revoke_tokens`` (no index by identity, R12): run only when a lapsed
+        identity re-proves, which is rare."""
+        out: list[TokenRecord] = []
+        kwargs: dict[str, Any] = {
+            "FilterExpression": "begins_with(#k, :prefix) AND identity_id = :id",
+            "ExpressionAttributeNames": {"#k": "key"},
+            "ExpressionAttributeValues": {":prefix": KEY_TOKEN, ":id": identity_id},
+        }
+        while True:
+            page = self._tokens.scan(**kwargs)
+            for item in page.get("Items", []):
+                record = self.get_token(str(item["token_hash"]))
+                if record is not None:
+                    out.append(record)
+            last = page.get("LastEvaluatedKey")
+            if not last:
+                return out
+            kwargs["ExclusiveStartKey"] = last
+
+    def get_identity_by_pseudonym(self, pseudonym: str) -> Identity | None:
+        """Through the uniqueness marker ``put_identity`` writes with every identity (R4)."""
+        item = self._identities.get_item(Key={"id": KEY_PSEUDONYM + pseudonym.lower()}).get("Item")
+        found = item.get("identity_id") if item else None
+        return self.get_identity(str(found)) if found else None
+
+    def revoke_tokens(self, identity_id: str) -> int:
+        """No index by identity (three tables, R12): one scan of the ``token#`` rows for it, each
+        page filtered on DynamoDB's side, then each match written back marked. A founder's
+        command, run rarely; the scan reads the whole tokens table, every key prefix in it."""
+        count = 0
+        kwargs: dict[str, Any] = {
+            "FilterExpression": "begins_with(#k, :prefix) AND identity_id = :id",
+            "ExpressionAttributeNames": {"#k": "key"},
+            "ExpressionAttributeValues": {":prefix": KEY_TOKEN, ":id": identity_id},
+        }
+        while True:
+            page = self._tokens.scan(**kwargs)
+            for item in page.get("Items", []):
+                if not bool(item.get("revoked", False)):
+                    self._tokens.update_item(
+                        Key={"key": item["key"]},
+                        UpdateExpression="SET revoked = :yes",
+                        ExpressionAttributeValues={":yes": True},
+                    )
+                    count += 1
+            last = page.get("LastEvaluatedKey")
+            if not last:
+                return count
+            kwargs["ExclusiveStartKey"] = last
 
     def put_job(self, job_id: str, record: dict[str, Any], expires: datetime) -> None:
         self._tokens.put_item(
@@ -530,12 +777,22 @@ class DynamoStore:
         # `plain`, as in get_job: what went in comes back out, ints not Decimals.
         return plain(dict(data)) if isinstance(data, dict) else None
 
-    def bump_counter(self, key: str, expires: datetime) -> int:
+    def get_ephemeral(self, key: str, now: datetime) -> dict[str, Any] | None:
+        item = self._tokens.get_item(Key={"key": key}).get("Item")
+        if not item or int(item.get("expires_at", 0)) <= _epoch(now):
+            return None
+        data = item.get("data")
+        return plain(dict(data)) if isinstance(data, dict) else None
+
+    def drop_ephemeral(self, key: str) -> None:
+        self._tokens.delete_item(Key={"key": key})
+
+    def bump_counter(self, key: str, expires: datetime, *, by: int = 1) -> int:
         updated = self._tokens.update_item(
             Key={"key": key},
-            UpdateExpression="ADD #c :one SET expires_at = if_not_exists(expires_at, :exp)",
+            UpdateExpression="ADD #c :n SET expires_at = if_not_exists(expires_at, :exp)",
             ExpressionAttributeNames={"#c": "count"},
-            ExpressionAttributeValues={":one": 1, ":exp": _epoch(expires)},
+            ExpressionAttributeValues={":n": by, ":exp": _epoch(expires)},
             ReturnValues="UPDATED_NEW",
         )
         return int(updated["Attributes"]["count"])
@@ -565,6 +822,12 @@ class DynamoStore:
                     }
                 )
         self._open_index("DELETE" if submission.closed is not None else "ADD", submission.id)
+        self._tokens.update_item(  # F07-T70: atomic, as the open index
+            Key={"key": KEY_SUBMISSIONS_BY + submission.pseudonym.lower()},
+            UpdateExpression="ADD #ids :one",
+            ExpressionAttributeNames={"#ids": "ids"},
+            ExpressionAttributeValues={":one": {submission.id}},
+        )
 
     def _open_index(self, action: str, submission_id: str) -> None:
         """``ADD`` or ``DELETE`` one id in the open index's string set — atomic on DynamoDB's side,
@@ -600,6 +863,16 @@ class DynamoStore:
                 out.append(found)
         return out
 
+    def list_submissions_by(self, pseudonym: str) -> list[Submission]:
+        key = KEY_SUBMISSIONS_BY + pseudonym.lower()
+        item = self._tokens.get_item(Key={"key": key}).get("Item") or {}
+        out: list[Submission] = []
+        for submission_id in sorted(str(i) for i in item.get("ids") or ()):
+            found = self.get_submission(submission_id)
+            if found is not None:
+                out.append(found)
+        return out
+
     def close_submission(
         self, submission_id: str, *, closed: str, final_state: dict[str, Any]
     ) -> Submission | None:
@@ -623,6 +896,10 @@ class DynamoStore:
         return _check(plain(dict(record))) if isinstance(record, dict) else None
 
 
+def _optional(value: Any) -> str | None:
+    return None if value is None else str(value)
+
+
 def _identity(item: dict[str, Any]) -> Identity:
     return Identity(
         id=str(item["id"]),
@@ -630,6 +907,7 @@ def _identity(item: dict[str, Any]) -> Identity:
         proof_kind=str(item["proof_kind"]),
         proof_reference=str(item["proof_reference"]),
         created=str(item["created"]),
+        dco_version=_optional(item.get("dco_version")),  # absent on rows older than F25-R16
     )
 
 
@@ -663,6 +941,9 @@ def _submission(record: dict[str, Any]) -> Submission:
         final_state=dict(final) if isinstance(final, dict) else None,
         fingerprints=tuple(str(fp) for fp in record.get("fingerprints") or ()),
         defect_class=_optional_str(record.get("defect_class")),
+        automation=(
+            dict(record["automation"]) if isinstance(record.get("automation"), dict) else None
+        ),
     )
 
 

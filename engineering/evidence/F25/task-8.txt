@@ -1,0 +1,17 @@
+# F25-T8 — the local check at the pin (R11) and the export-palomar command; lean tier with the real toolchain (4.33.1, core): elaboration under module headers, fresh kernel replay, axioms, opn-statement-meaning; a tampered Solution refused. 2026-10-11T04:50:22Z
+
+======================== 2 passed in 144.71s (0:02:24) =========================
+
+## export-palomar --help
+
+options:
+  -h, --help         show this help message and exit
+  --graph GRAPH      path to the graph checkout
+  --commit COMMIT    the graph commit to export (default HEAD)
+  --target TARGET
+  --out OUT          output directory (default: a fresh temp dir)
+  --licence LICENCE  the graph's licence as an SPDX id, for a graph commit
+                     with no root LICENSE yet (F25-Q15; recorded in opn-
+                     export.json as supplied by flag)
+  --check            run the local check at the pin (R11)
+  --install          let elan install the pinned toolchain

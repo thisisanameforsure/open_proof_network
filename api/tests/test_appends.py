@@ -132,7 +132,9 @@ def test_annex_hash(harness: Harness) -> None:
     """AC14: the returned hash is the file's, is its name, and the gate accepts what lands."""
     token = harness.token_for("code_alice", "alice")
     text = "The route is symmetry: both conjuncts are already in hand.\n"
-    r = post(harness, "/annexes", token, {"node_id": TUTORIAL_NODE, "text": text})
+    # F05-T17: the licence is the author's choice, sent with the prose; none is assumed
+    body = {"node_id": TUTORIAL_NODE, "text": text, "licence": "CC-BY-4.0"}
+    r = post(harness, "/annexes", token, body)
     assert r.status_code == 201, r.text
     digest = r.json()["hash"]
     path, content = only_file(harness)

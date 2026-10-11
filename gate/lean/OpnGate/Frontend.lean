@@ -77,9 +77,10 @@ def unionHeaderEnv (paths : Array System.FilePath) (moduleName : Name)
 With `base? = none` the file's own header is processed (imports resolved via `LEAN_PATH`).
 With `base? = some env` the file's commands are elaborated on top of `env` instead, and its
 header may import only modules `env` already imported — so two files can share one environment
-(the statement and its witness). -/
+(the statement and its witness). `opts` are the options the commands elaborate under; the
+default is Lean's (F02-T9's `auto-implicit` passes `autoImplicit := false`). -/
 def elabFile (path : System.FilePath) (moduleName : Name) (base? : Option Environment := none)
-    : IO (Environment × MessageLog) := do
+    (opts : Options := {}) : IO (Environment × MessageLog) := do
   let input ← IO.FS.readFile path
   let inputCtx := Parser.mkInputContext input path.toString
   let (stx, parserState, messages) ← Parser.parseHeader inputCtx
@@ -92,7 +93,7 @@ def elabFile (path : System.FilePath) (moduleName : Name) (base? : Option Enviro
         unless imported.contains imp.module do
           throw <| IO.userError s!"{path}: import {imp.module} is not among the statement's imports"
       pure (env.setMainModule moduleName, messages)
-  let s ← IO.processCommands inputCtx parserState (Command.mkState env messages {})
+  let s ← IO.processCommands inputCtx parserState (Command.mkState env messages opts)
   return (s.commandState.env, s.commandState.messages)
 
 def printJson (j : Json) : IO Unit := do
@@ -126,12 +127,64 @@ where
 def getArg (kv : List (String × String)) (key : String) : Option String :=
   (kv.find? (·.1 == key)).map (·.2)
 
+/-- The tag a metaprogram's verdict line carries when its caller passed a nonce (F02-T11):
+`@opn-verdict <nonce> <json>`. The Python side accepts exactly one line so tagged. -/
+def verdictTag : String := "@opn-verdict"
+
+/-- The caller's per-call nonce: the first line of stdin, when `--nonce stdin` is among the
+arguments. Read before anything else happens, so nothing the program goes on to import or
+elaborate can read it from stdin. -/
+def readNonce (args : List String) : IO (Option String) := do
+  unless getArg (parseArgs args).1 "nonce" == some "stdin" do return none
+  let line ← (← IO.getStdin).getLine
+  let nonce := line.trimAscii.copy
+  if nonce.isEmpty then
+    throw <| IO.userError "--nonce stdin was given, but stdin carried no nonce"
+  return some nonce
+
+/-- Run `body` with stdin, stdout and stderr captured, then print the line it printed last as the
+verdict, tagged with `nonce` (F02-T11). A sentinel carrying the nonce is printed into the capture
+after `body` returns, and the verdict is taken only when that sentinel is the last line captured:
+code that ran inside `body` and swapped stdout to the real one, or printed after `body`'s own
+verdict, leaves no tagged verdict at all. Everything else captured goes to stderr. -/
+def emitTagged (nonce : String) (body : IO UInt32) : IO UInt32 := do
+  let sentinel := s!"{verdictTag} {nonce} end"
+  let (out, code) ← IO.FS.withIsolatedStreams (isolateStderr := false) do
+    let code ← body
+    IO.println sentinel
+    return code
+  let lines := (out.splitOn "\n").filter (fun l => !l.isEmpty)
+  match lines.reverse with
+  | last :: verdict :: _ =>
+    if last == sentinel && !(verdict.startsWith verdictTag) then
+      for l in lines.dropLast.dropLast do IO.eprintln l
+      IO.println s!"{verdictTag} {nonce} {verdict}"
+      return code
+    for l in lines do IO.eprintln l
+    return 1
+  | _ =>
+    for l in lines do IO.eprintln l
+    return 1
+
 /-- Run a metaprogram body with the search path initialised from the toolchain and `LEAN_PATH`.
-`unsafe` because importing modules with their extensions requires enabling initializers. -/
-unsafe def runMain (body : IO UInt32) : IO UInt32 := do
-  enableInitializersExecution
+
+`initializers`: whether imported modules' `initialize` blocks run. A program that elaborates a
+file must (importing with extensions requires it, and Mathlib's attributes are registered that
+way), and so contributor code in a module such a file imports runs in it. A program that only
+reads compiled modules (`opn-statement-meaning`, `opn-axioms`) passes `false` and imports with
+`loadExts := false`: nothing of the imported modules is executed there (F02-T11).
+
+With `--nonce stdin` the verdict is printed tagged (`emitTagged`); without it, as before. -/
+unsafe def runMain (args : List String) (body : IO UInt32) (initializers := true) :
+    IO UInt32 := do
+  let nonce? ← readNonce args
+  if initializers then enableInitializersExecution
   initSearchPath (← findSysroot)
-  try body
-  catch e => fail (toString e)
+  let guarded : IO UInt32 := do
+    try body
+    catch e => fail (toString e)
+  match nonce? with
+  | none => guarded
+  | some nonce => emitTagged nonce guarded
 
 end OpnGate

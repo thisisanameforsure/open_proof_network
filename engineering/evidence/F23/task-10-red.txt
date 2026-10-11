@@ -1,0 +1,45 @@
+warning: `VIRTUAL_ENV=/Users/mikehiggins/Desktop/repos/open_proof_network/.venv` does not match the project environment path `.venv` and will be ignored; use `--active` to target the active environment instead
+FF                                                                       [100%]
+=================================== FAILURES ===================================
+_____________________ test_the_section_points_at_the_form ______________________
+
+section = '<h2 id="stewards">Stewards</h2>\n<p>An open problem is meant to have a steward: a mathematician who has committed, be...l\nrequest; it takes effect when it merges. The commitment you made stays on the record, as does the\nstep-down.</p>\n'
+
+    def test_the_section_points_at_the_form(section: str) -> None:
+>       assert 'href="/steward/"' in section
+E       assert 'href="/steward/"' in '<h2 id="stewards">Stewards</h2>\n<p>An open problem is meant to have a steward: a mathematician who has committed, be...l\nrequest; it takes effect when it merges. The commitment you made stays on the record, as does the\nstep-down.</p>\n'
+
+site/tests/test_docs_stewards_short.py:34: AssertionError
+------------------------------ Captured log setup ------------------------------
+WARNING  opn_gate.records:records.py:82 attempt record /private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-46/docs-stewards0/graph/targets/propositional/nodes/and-swap-reassoc/attempts/2026-09-02-b.yaml is invalid and counted as such: cannot read YAML /private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-46/docs-stewards0/graph/targets/propositional/nodes/and-swap-reassoc/attempts/2026-09-02-b.yaml: while parsing a flow sequence
+  in "<unicode string>", line 1, column 8:
+    route: [oops
+           ^
+expected ',' or ']', but got '<stream end>'
+  in "<unicode string>", line 2, column 1:
+    
+    ^
+WARNING  opn_gate.products:products.py:956 propositional/and-swap-reassoc: attempt 2026-09-02-b.yaml does not validate (counted as invalid)
+WARNING  opn_gate.records:records.py:82 attempt record /private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-46/docs-stewards0/graph/targets/propositional/nodes/and-swap-reassoc/attempts/2026-09-02-b.yaml is invalid and counted as such: cannot read YAML /private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-46/docs-stewards0/graph/targets/propositional/nodes/and-swap-reassoc/attempts/2026-09-02-b.yaml: while parsing a flow sequence
+  in "<unicode string>", line 1, column 8:
+    route: [oops
+           ^
+expected ',' or ']', but got '<stream end>'
+  in "<unicode string>", line 2, column 1:
+    
+    ^
+__________________________ test_the_section_is_short ___________________________
+
+section = '<h2 id="stewards">Stewards</h2>\n<p>An open problem is meant to have a steward: a mathematician who has committed, be...l\nrequest; it takes effect when it merges. The commitment you made stays on the record, as does the\nstep-down.</p>\n'
+
+    def test_the_section_is_short(section: str) -> None:
+        words = len(re.sub(r"<[^>]+>", " ", section).split())
+>       assert words <= MAX_WORDS, words
+E       AssertionError: 358
+E       assert 358 <= 170
+
+site/tests/test_docs_stewards_short.py:39: AssertionError
+=========================== short test summary info ============================
+FAILED site/tests/test_docs_stewards_short.py::test_the_section_points_at_the_form
+FAILED site/tests/test_docs_stewards_short.py::test_the_section_is_short - As...
+2 failed in 2.94s

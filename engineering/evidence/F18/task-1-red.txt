@@ -1,0 +1,97 @@
+warning: `VIRTUAL_ENV=/Users/mikehiggins/Desktop/repos/open_proof_network/.venv` does not match the project environment path `.venv` and will be ignored; use `--active` to target the active environment instead
+FFFF.                                                                    [100%]
+=================================== FAILURES ===================================
+___________________ test_closure_follows_use_not_declaration ___________________
+
+tmp_path = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-245/test_closure_follows_use_not_d0')
+
+    def test_closure_follows_use_not_declaration(tmp_path: Path) -> None:
+        """AC1, the erdos-1050 shape: the root declares A and B, its term uses A, and B is still
+        open. The proof is the root and A; B is on the graph and not on the proof."""
+        root = copy_graph(tmp_path, publish=True)
+        attest(root, A, n=1, footprint={"nodes": []})
+        attest(root, ROOT_NODE, n=3, artifact_hash=proof_hash(root, ROOT_NODE), footprint={"nodes": [A]})
+        assert graph.load_target(root, TARGET).statuses[B] == "ready"  # open, as erdos-1050's h1
+>       [entry] = target_proofs(root)
+        ^^^^^^^
+E       ValueError: not enough values to unpack (expected 1, got 0)
+
+gate/tests/test_target_proofs.py:73: ValueError
+________ test_every_way_the_target_is_proved_is_listed_in_record_order _________
+
+tmp_path = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-245/test_every_way_the_target_is_p0')
+
+    def test_every_way_the_target_is_proved_is_listed_in_record_order(tmp_path: Path) -> None:
+        """AC2, the euclid-primes shape: the root's proof, then each proved resolves variant by the
+        order its merge was attested."""
+        root = copy_graph(tmp_path, publish=True)
+        attest(root, A, n=1, footprint={"nodes": []})
+        attest(root, B, n=2, footprint={"nodes": []})
+        attest(root, ROOT_NODE, n=3, artifact_hash=proof_hash(root, ROOT_NODE), footprint={"nodes": [A, B]})
+        resolves_variant(root, "variant-later", 9, "carol")
+        resolves_variant(root, "variant-earlier", 5, "dave")
+        entries = target_proofs(root)
+>       assert [(e["node_id"], e["relation"], e["submitter"]) for e in entries] == [
+            (ROOT_NODE, None, None),
+            ("variant-earlier", "resolves", "dave"),
+            ("variant-later", "resolves", "carol"),
+        ]
+E       AssertionError: assert [] == [('and-swap-r...es', 'carol')]
+E         
+E         Right contains 3 more items, first extra item: ('and-swap-reassoc', None, None)
+E         Use -v to get more diff
+
+gate/tests/test_target_proofs.py:97: AssertionError
+_____ test_an_alternate_of_the_root_is_its_own_entry_with_its_own_closure ______
+
+tmp_path = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-245/test_an_alternate_of_the_root_0')
+
+    def test_an_alternate_of_the_root_is_its_own_entry_with_its_own_closure(tmp_path: Path) -> None:
+        root = copy_graph(tmp_path, publish=True)
+        attest(root, A, n=1, footprint={"nodes": []})
+        attest(root, B, n=2, footprint={"nodes": []})
+        attest(root, ROOT_NODE, n=3, artifact_hash=proof_hash(root, ROOT_NODE), footprint={"nodes": [A]})
+        alt = nodes_dir(root) / ROOT_NODE / "attempts" / "20260930T120000Z-bob-alternate.lean"
+        alt.parent.mkdir(exist_ok=True)
+        alt.write_text("-- a second proof\n", encoding="utf-8")
+        attest(
+            root,
+            ROOT_NODE,
+            n=4,
+            artifact_hash=schemas.content_hash(alt.read_bytes()),
+            submitter="bob",
+            footprint={"nodes": [B]},
+        )
+        entries = target_proofs(root)
+>       assert [(e["kind"], e["closure"]) for e in entries] == [
+            ("proof", sorted([ROOT_NODE, A])),
+            ("alternate", sorted([ROOT_NODE, B])),
+        ]
+E       AssertionError: assert [] == [('proof', ['...ap-reassoc'])]
+E         
+E         Right contains 2 more items, first extra item: ('proof', ['and-swap-reassoc', 'tutorial-and-swap'])
+E         Use -v to get more diff
+
+gate/tests/test_target_proofs.py:123: AssertionError
+_______________________ test_an_unmeasured_proof_says_so _______________________
+
+tmp_path = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-245/test_an_unmeasured_proof_says_0')
+
+    def test_an_unmeasured_proof_says_so(tmp_path: Path) -> None:
+        """AC3: with no footprint anywhere, the closure follows the declared dependencies and the
+        entry names the node whose reading it could not have."""
+        root = copy_graph(tmp_path, publish=True)
+        attest(root, A, n=1, footprint={"nodes": []})
+        attest(root, B, n=2, footprint=None)
+        attest(root, ROOT_NODE, n=3, artifact_hash=proof_hash(root, ROOT_NODE), footprint=None)
+>       [entry] = target_proofs(root)
+        ^^^^^^^
+E       ValueError: not enough values to unpack (expected 1, got 0)
+
+gate/tests/test_target_proofs.py:136: ValueError
+=========================== short test summary info ============================
+FAILED gate/tests/test_target_proofs.py::test_closure_follows_use_not_declaration
+FAILED gate/tests/test_target_proofs.py::test_every_way_the_target_is_proved_is_listed_in_record_order
+FAILED gate/tests/test_target_proofs.py::test_an_alternate_of_the_root_is_its_own_entry_with_its_own_closure
+FAILED gate/tests/test_target_proofs.py::test_an_unmeasured_proof_says_so - V...
+4 failed, 1 passed in 0.31s

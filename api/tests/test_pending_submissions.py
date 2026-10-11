@@ -38,7 +38,8 @@ _ANNEXES = iter(range(1_000_000))
 def annex(h: Harness, token: str, node: str = TUTORIAL_NODE) -> dict[str, Any]:
     # each a different argument: an identical annex open for the node is refused (F07-T35)
     text = f"An informal argument, number {next(_ANNEXES)}.\n"
-    r = h.client.post("/annexes", json={"node_id": node, "text": text}, headers=h.auth(token))
+    body = {"node_id": node, "text": text, "licence": "CC-BY-4.0"}  # F05-T17: always sent
+    r = h.client.post("/annexes", json=body, headers=h.auth(token))
     assert r.status_code == 201, r.text
     doc: dict[str, Any] = r.json()
     return doc
@@ -52,11 +53,15 @@ def get(h: Harness, submission_id: str) -> dict[str, Any]:
 
 
 def age(h: Harness) -> None:
-    """Every cached pull request fetched a window and a second ago, relative to now (the
-    monotonic clock counts from boot, so an epoch of 0.0 can still be fresh)."""
-    window = h.settings.frontier_max_stale_s
-    for entry in h.context.pulls.values():
+    """Every cached pull request, and the open listing (F07-T47), fetched a window and a second
+    ago, relative to now (the monotonic clock counts from boot, so an epoch of 0.0 can still be
+    fresh)."""
+    window = h.settings.pull_max_stale_s
+    for entry in getattr(h.context, "pulls", {}).values():
         entry.fetched_at = time.monotonic() - (window + 1)
+    listing = getattr(h.context, "open_pulls", None)  # F07-T47: the queue's listing, too
+    if listing is not None:
+        listing.fetched_at = time.monotonic() - (h.settings.pull_listing_max_stale_s + 1)
 
 
 def proof_record(h: Harness, number: int = 7) -> Submission:
@@ -286,6 +291,8 @@ def test_a_merged_proof_is_pending_until_its_attestation_lands(harness: Harness)
     )
     waiting = get(harness, "7")
     assert (waiting["attestation"], waiting["attestation_note"]) == (None, "attestation-pending")
+    # F05-T18: and it is waiting on the post-merge job, in the word the guide uses
+    assert waiting["pull_request"]["waiting_on"] == "products"
     assert waiting["submission"]["closed"] is not None
     assert harness.store.list_open_submissions() == []
 
@@ -295,7 +302,7 @@ def test_a_merged_proof_is_pending_until_its_attestation_lands(harness: Harness)
     assert landed["attestation_path"] == path == "attestations/000007.json"
     assert landed["attestation"] == plain(harness, path)
     assert landed["attestation_note"] is None
-    assert landed["pull_request"] == waiting["pull_request"]
+    assert landed["pull_request"] == {**waiting["pull_request"], "waiting_on": None}
     assert harness.githost.pull_lookups == lookups
 
 
@@ -307,7 +314,7 @@ def test_a_merged_annex_leaves_the_snapshot(harness: Harness) -> None:
     harness.clock.advance(seconds=1)
     annex(harness, token)
     first = harness.client.get("/submissions.json").json()
-    assert set(first) == {"snapshot_at", "open"}
+    assert set(first) == {"snapshot_at", "open", "host", "queue"}  # host: F07-T47
     assert first["snapshot_at"] == clockmod.render(harness.clock.now())
     assert [e["pr_number"] for e in first["open"]] == [1, 2]
 
@@ -321,7 +328,9 @@ def test_a_merged_annex_leaves_the_snapshot(harness: Harness) -> None:
     assert get(harness, "1")["submission"]["closed"] is not None
     snapshot = harness.client.get("/submissions.json").json()
     assert [e["pr_number"] for e in snapshot["open"]] == [2]
-    assert snapshot["open"][0] == get(harness, "2")["submission"]
+    # F05-T18: an entry is the per-id document and, beside it, its ``queue``
+    entry = {k: v for k, v in snapshot["open"][0].items() if k != "queue"}
+    assert entry == get(harness, "2")["submission"]
 
 
 # --- the store seam: both halves agree ------------------------------------------------------------
@@ -375,7 +384,8 @@ def test_closing_keeps_the_final_state_and_leaves_the_open_index_in_both_stores(
     assert [s.pr_number for s in store.list_open_submissions()] == [3]
 
 
-def test_the_dynamo_layout_is_three_prefixes_in_the_tokens_table_without_a_ttl() -> None:
+def test_the_dynamo_layout_is_four_prefixes_in_the_tokens_table_without_a_ttl() -> None:
+    """F07-T16's three prefixes, and F07-T70's per-pseudonym index beside the open one."""
     table_store = dynamo()
     table_store.put_submission(record(4))
     table = table_store._tokens
@@ -383,6 +393,8 @@ def test_the_dynamo_layout_is_three_prefixes_in_the_tokens_table_without_a_ttl()
         "submission#01M00000000000000000000004",
         "submissionpr#4",
         "submissions#open",
+        "submissionsby#alice",
     }
+    assert table.items["submissionsby#alice"]["ids"] == {"01M00000000000000000000004"}
     assert all("expires_at" not in item for item in table.items.values())
     assert table.items["submissions#open"]["ids"] == {"01M00000000000000000000004"}

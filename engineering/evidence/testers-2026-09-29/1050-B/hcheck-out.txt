@@ -1,0 +1,2 @@
+beta0 == [x^(n-1)] Q/prod(1-p_k x) for n=1..20: True
+3^(n-1) * beta0(n) integral for n=1..20: True

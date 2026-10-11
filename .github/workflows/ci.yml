@@ -10,13 +10,21 @@ on:
 permissions:
   contents: read
 
+# Testers 2026-09-29, item 2: a push to a pull request branch replaces the run of the commit it
+# superseded, which checked nothing anyone will merge; 27 such runs from one pull request held the
+# account's whole hosted-runner pool and the graph's gate queued for 16 to 24 minutes behind them.
+# A run on main is never cancelled: every commit there is one a graph may pin.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   verify:
     name: make verify (fast tier)
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v10.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d  # v10.0.1
         with:
           version: "0.12.10"
           enable-cache: true
@@ -26,8 +34,8 @@ jobs:
     name: make verify-lean (real toolchain + sandbox)
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v10.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d  # v10.0.1
         with:
           version: "0.12.10"
           enable-cache: true
@@ -46,7 +54,7 @@ jobs:
       # runner's preinstalled toolchains occupy.
       - name: Cache the pinned Mathlib checkouts
         id: mathlib-cache
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830  # v4
         with:
           path: ~/.opn/mathlib
           key: mathlib-${{ hashFiles('gate/mathlib-pins.txt') }}
@@ -72,12 +80,12 @@ jobs:
     name: make verify-harness (connectors against real harness binaries)
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v10.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d  # v10.0.1
         with:
           version: "0.12.10"
           enable-cache: true
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020  # v4
         with:
           node-version: "22.22.2"
       - name: Install the pinned harness binaries
@@ -91,7 +99,7 @@ jobs:
         run: |
           uv run --frozen python gate/tools/harness_check.py \
             --bin-dir gate/clients/harness/node_modules/.bin --out harness-report.json || true
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
         if: always()
         with:
           name: harness-report

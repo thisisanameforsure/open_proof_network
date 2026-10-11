@@ -44,8 +44,19 @@ def legend(html: str) -> str:
     return m.group(1)
 
 
+#: F18-T2, T4, T6: the marks the drawing itself makes (a proof, an outline, a pointer) have keys
+#: too, shown when the drawing shows them; these tests are about the *status* part of the key.
+DRAWING_KEYS = frozenset(
+    render.GLOSSARY_BY_KEY[k][0]
+    for k in ("on-proof", "not-needed", "use", "unmeasured", "proposed-for", "outline")
+)
+
+
 def legend_words(html: str) -> list[str]:
-    return re.findall(r'<span class="dot dot-[a-z]+"></span>([a-z ]+)<span class="term-card"', html)
+    words = re.findall(
+        r'<span class="dot dot-[a-z]+"></span>([a-z ]+)<span class="term-card"', html
+    )
+    return [w for w in words if w not in DRAWING_KEYS]
 
 
 def test_the_key_is_inside_the_graph_card(tmp_path: Path) -> None:

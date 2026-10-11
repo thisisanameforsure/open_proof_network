@@ -1,0 +1,190 @@
+F04-T31 — the site says how a problem was resolved (follow-up to F03-T17; D-33 as written, v3.28)
+Branch audit-s-followups, 2026-10-04.
+
+Finding: since F03-T17 a target is `resolved` when its root is proved, refuted (merged
+counterexample) or defective (merged vacuity certificate). The site turned `resolved` into
+"proved" everywhere it named a problem's status: Renderer.problem_status (the tag and the card's
+data-status, hence the Problems "Proved" filter), stage_marks, the Problems page's Proved count,
+target_claimable ("Proved: the problem's own statement is closed"), the steward card ("This problem
+is proved but not explained"), the target page's section heading ("Proved, explained, written up")
+and the digestion counts ("proved nodes in the closing proof's dependency closure"). A conjecture a
+counterexample settled read "proved".
+
+Change (site/opn_site/render.py, templates/target.html, templates/states.html):
+- Renderer.resolution(tv): the word follows the root's status in graph.json —
+  RESOLUTION_WORDS = {refuted: "disproved", defective: "shown ill-posed"}, anything else
+  (a proved root, or a root left open under a proved resolves-variant) reads "proved".
+- problem_status, stage marks, the claimable sentence ("Disproved: a counterexample is on the
+  record, so ..." / "Shown ill-posed: a vacuity certificate is on the record, so ..." /
+  "Proved: a proof is on the record, so ..."), the steward card, the section heading and the
+  digestion counts ("settled nodes in the closing counterexample's dependency closure") use it.
+- The Problems "Proved" count is now the set its filter shows (data-status="proved"); a
+  disproved problem is under All only.
+- Vocabulary: PROBLEM_STATUS_DEFS and the Docs problem key (STATE_MAP_PROBLEM_KEYS, five words
+  -> seven) gain "disproved" and "shown ill-posed"; two Glossary rows (keys disproved,
+  ill-posed; protocol "resolved · root refuted/defective"). The Docs problem state map's
+  resolved box reads "site: proved · disproved · shown ill-posed" and names the three artifacts;
+  the arrow reads "the root is settled, or a resolves-variant proved"; the actions table's
+  Refute/Show-vacuous rows say what happens at the root. Docs golden regenerated (only page
+  that changed).
+- Tests restated, not deleted: two renderer stubs carry the root's status and `resolution`
+  (test_finding_tutorial_page, test_finding_resolved_target_open_variants); the Docs key regex
+  admits a hyphen (test_docs_states).
+- Held to the products: test_the_site_words_follow_the_products reads every target's graph.json
+  root status from disk and asserts the card's word is the one it calls for.
+- Fixture: fixture.build_with_resolutions (three open-track targets, each root settled by a
+  proof, a counterexample or a vacuity certificate via the gate's own test helper `settle`).
+
+Proposed spec Q entry:
+F04-Q33 — A resolved problem's word follows its root (T31; F03-T17, D-33 as written, v3.28).
+The site says "proved" of a resolved problem only when its root (or a resolves-variant) is
+proved; a root refuted by a merged counterexample reads "disproved" ("a counterexample is on the
+record"), a root defective by a merged vacuity certificate "shown ill-posed" ("a vacuity
+certificate is on the record"). The word is read from graph.json's root status (one function,
+Renderer.resolution) and a test holds every card's word to that file. The two words have
+definitions, Docs key items and Glossary rows; the state map's resolved box names all three.
+The Problems "Proved" segment counts what it filters, so a disproved problem is listed under All
+only (no "Disproved" segment was added: no live target is resolved that way). Reversal: empty
+RESOLUTION_WORDS.
+
+Proposed ledger line (F04 Tasks:):
+· T31 ✓ 2026-10-04 (Q33; a resolved problem reads proved, disproved or shown ill-posed by its
+root's status; test_finding_resolution_words.py 3 failed red, site/tests 345 passed green;
+screenshots task-31-*.png; engineering/evidence/F04/task-31-audit-2026-10-04.txt)
+
+Command:
+uv run --frozen pytest -q -rs -m "not lean and not docker and not network" site/tests/test_finding_resolution_words.py
+
+=== RED (seam RESOLUTION_WORDS = {} at today's behaviour; before the fix) ===
+E       assert 'data-status="disproved"' in ' class="card problem" data-status="proved" data-open="0" id="p-disproved-target">\n<div class="problem-top">\n<div cl...>0 attempts</span><a class="act act-blocked" href="/nod
+E       assert 'data-status="shown ill-posed"' in ' class="card problem" data-status="proved" data-open="0" id="p-ill-posed-target">\n<div class="problem-top">\n<div cl...>0 attempts</span><a class="act act-blocked" href
+E       assert 'a counterexample is on the record' in '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,...x/auto-render.min.js"></script><script src="/
+E        +  where '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,...x/auto-render.min.js"></script><script src="/math.js"></script><script src="/prob
+3 failed, 5 passed in 0.64s
+
+=== GREEN (site/tests, all) ===
+345 passed in 21.79s
+
+=== Screenshots and measurements ===
+Rendered: python render script over fixture.build_with_resolutions, then
+uv run --no-project --with playwright python engineering/evidence/F04/task-31-shoot.py --site <site> --out engineering/evidence/F04
+127.0.0.1 - - [04/Oct/2026 19:00:36] "GET /problems/disproved-target/ HTTP/1.1" 200 -
+127.0.0.1 - - [04/Oct/2026 19:00:36] "GET /site.css HTTP/1.1" 200 -
+127.0.0.1 - - [04/Oct/2026 19:00:36] "GET /vendor/katex/katex.min.css HTTP/1.1" 200 -
+127.0.0.1 - - [04/Oct/2026 19:00:36] "GET /vendor/katex/katex.min.js HTTP/1.1" 200 -
+127.0.0.1 - - [04/Oct/2026 19:00:36] "GET /vendor/katex/auto-render.min.js HTTP/1.1" 200 -
+127.0.0.1 - - [04/Oct/2026 19:00:36] "GET /math.js HTTP/1.1" 200 -
+127.0.0.1 - - [04/Oct/2026 19:00:36] "GET /problem.js HTTP/1.1" 200 -
+127.0.0.1 - - [04/Oct/2026 19:00:36] "GET /problems/ill-posed-target/ HTTP/1.1" 200 -
+127.0.0.1 - - [04/Oct/2026 19:00:36] "GET /site.css HTTP/1.1" 304 -
+127.0.0.1 - - [04/Oct/2026 19:00:36] "GET /vendor/katex/katex.min.css HTTP/1.1" 304 -
+127.0.0.1 - - [04/Oct/2026 19:00:36] "GET /vendor/katex/katex.min.js HTTP/1.1" 304 -
+127.0.0.1 - - [04/Oct/2026 19:00:36] "GET /vendor/katex/auto-render.min.js HTTP/1.1" 304 -
+127.0.0.1 - - [04/Oct/2026 19:00:36] "GET /math.js HTTP/1.1" 304 -
+127.0.0.1 - - [04/Oct/2026 19:00:36] "GET /problem.js HTTP/1.1" 304 -
+127.0.0.1 - - [04/Oct/2026 19:00:36] "GET /problems/ HTTP/1.1" 200 -
+127.0.0.1 - - [04/Oct/2026 19:00:36] "GET /site.css HTTP/1.1" 304 -
+127.0.0.1 - - [04/Oct/2026 19:00:36] "GET /vendor/katex/katex.min.css HTTP/1.1" 304 -
+127.0.0.1 - - [04/Oct/2026 19:00:36] "GET /vendor/katex/katex.min.js HTTP/1.1" 304 -
+127.0.0.1 - - [04/Oct/2026 19:00:36] "GET /vendor/katex/auto-render.min.js HTTP/1.1" 304 -
+127.0.0.1 - - [04/Oct/2026 19:00:36] "GET /problems.js HTTP/1.1" 200 -
+127.0.0.1 - - [04/Oct/2026 19:00:36] "GET /math.js HTTP/1.1" 304 -
+127.0.0.1 - - [04/Oct/2026 19:00:36] "GET /problems/disproved-target/ HTTP/1.1" 200 -
+127.0.0.1 - - [04/Oct/2026 19:00:36] "GET /site.css HTTP/1.1" 200 -
+127.0.0.1 - - [04/Oct/2026 19:00:36] "GET /vendor/katex/katex.min.css HTTP/1.1" 200 -
+127.0.0.1 - - [04/Oct/2026 19:00:36] "GET /vendor/katex/katex.min.js HTTP/1.1" 200 -
+127.0.0.1 - - [04/Oct/2026 19:00:36] "GET /vendor/katex/auto-render.min.js HTTP/1.1" 200 -
+127.0.0.1 - - [04/Oct/2026 19:00:36] "GET /math.js HTTP/1.1" 200 -
+127.0.0.1 - - [04/Oct/2026 19:00:36] "GET /problem.js HTTP/1.1" 200 -
+127.0.0.1 - - [04/Oct/2026 19:00:36] "GET /problems/ill-posed-target/ HTTP/1.1" 200 -
+127.0.0.1 - - [04/Oct/2026 19:00:36] "GET /site.css HTTP/1.1" 304 -
+127.0.0.1 - - [04/Oct/2026 19:00:36] "GET /vendor/katex/katex.min.css HTTP/1.1" 304 -
+127.0.0.1 - - [04/Oct/2026 19:00:37] "GET /vendor/katex/katex.min.js HTTP/1.1" 304 -
+127.0.0.1 - - [04/Oct/2026 19:00:37] "GET /vendor/katex/auto-render.min.js HTTP/1.1" 304 -
+127.0.0.1 - - [04/Oct/2026 19:00:37] "GET /math.js HTTP/1.1" 304 -
+127.0.0.1 - - [04/Oct/2026 19:00:37] "GET /problem.js HTTP/1.1" 304 -
+127.0.0.1 - - [04/Oct/2026 19:00:37] "GET /problems/ HTTP/1.1" 200 -
+127.0.0.1 - - [04/Oct/2026 19:00:37] "GET /site.css HTTP/1.1" 304 -
+127.0.0.1 - - [04/Oct/2026 19:00:37] "GET /vendor/katex/katex.min.css HTTP/1.1" 304 -
+127.0.0.1 - - [04/Oct/2026 19:00:37] "GET /problems.js HTTP/1.1" 200 -
+127.0.0.1 - - [04/Oct/2026 19:00:37] "GET /docs/ HTTP/1.1" 200 -
+127.0.0.1 - - [04/Oct/2026 19:00:37] "GET /site.css HTTP/1.1" 200 -
+{
+  "pages": {
+    "disproved-target@1440": {
+      "scrollWidth": 1440,
+      "claimable": "Disproved: a counterexample is on the record, so its statement no longer accepts work."
+    },
+    "ill-posed-target@1440": {
+      "scrollWidth": 1440,
+      "claimable": "Shown ill-posed: a vacuity certificate is on the record, so its statement no longer accepts work."
+    },
+    "problems@1440": {
+      "scrollWidth": 1440,
+      "statuses": [
+        [
+          "p-disproved-target",
+          "disproved"
+        ],
+        [
+          "p-ill-posed-target",
+          "shown ill-posed"
+        ],
+        [
+          "p-propositional",
+          "open"
+        ],
+        [
+          "p-proved-target",
+          "proved"
+        ]
+      ],
+      "proved_count": "1"
+    },
+    "disproved-target@390": {
+      "scrollWidth": 390,
+      "claimable": "Disproved: a counterexample is on the record, so its statement no longer accepts work."
+    },
+    "ill-posed-target@390": {
+      "scrollWidth": 390,
+      "claimable": "Shown ill-posed: a vacuity certificate is on the record, so its statement no longer accepts work."
+    },
+    "problems@390": {
+      "scrollWidth": 390,
+      "statuses": [
+        [
+          "p-disproved-target",
+          "disproved"
+        ],
+        [
+          "p-ill-posed-target",
+          "shown ill-posed"
+        ],
+        [
+          "p-propositional",
+          "open"
+        ],
+        [
+          "p-proved-target",
+          "proved"
+        ]
+      ],
+      "proved_count": "1"
+    }
+  },
+  "ok": true,
+  "smap_overflowing": {
+    "inside": 19,
+    "overflowing": []
+  }
+}
+
+Looked at: task-31-disproved-target-1440.png (tag "disproved", stage "Disproved", sentence
+"Disproved: a counterexample is on the record ...", steward card "disproved but not explained",
+heading "Disproved, explained, written up", "0 of 1 settled nodes in the closing
+counterexample's ..."); task-31-ill-posed-target-390.png (no horizontal scroll, wraps cleanly);
+task-31-card-1440.png; task-31-docs-problem-map-1440.png (resolved box widened to 370 so the
+three words fit; 19 texts measured inside their boxes, none overflowing). The first capture
+showed the section heading still saying "Proved, explained, written up"; fixed and asserted.
+Not changed (pre-existing, noted): the target page's step-9 sentence ("A proof of this statement
+waits for a non-author's approving review") still prints for a resolved root.

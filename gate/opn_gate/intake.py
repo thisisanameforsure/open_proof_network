@@ -33,7 +33,7 @@ from __future__ import annotations
 import logging
 import re
 import shutil
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -41,15 +41,16 @@ from typing import Any
 import yaml
 
 from opn_gate import fidelity, layout, records, schemas
+from opn_gate.diagnostic import Diagnostic
 
 log = logging.getLogger(__name__)
 
 #: New records are written at v2 (F15-R13): a proposal source, the proposer, the calibration flag
 #: and the upstream opt-out, each optional, so a v1 record carries over by its schema string.
-SCHEMA = "target/v2"
+SCHEMA = "target/v3"  # v3 (F25-R4): classification
 #: Every version the reader accepts (D-34: versioned, never edited). A record is validated
 #: against the version it declares; anything outside the set is a graph defect.
-READABLE_SCHEMAS: tuple[str, ...] = ("target/v1", "target/v2")
+READABLE_SCHEMAS: tuple[str, ...] = ("target/v1", "target/v2", "target/v3")
 TARGET_FILE = "target.yaml"
 TARGET_STATUS_SCHEMA = "target-status/v2"
 GATE_SPEC_SCHEMA = "gate-spec/v1"
@@ -62,6 +63,21 @@ DORMANT = "dormant"
 #: human check sits on the proof (D-4 step 9), not on the claim. A dormancy declaration refuses no
 #: claim either — it is a signal to the curator, not a lock on the target.
 CLAIMING_STATUSES: tuple[str, ...] = (LISTED, ACTIVE, DORMANT)
+#: F03-T14: the root statuses that leave nothing at the root to work on without resolving the
+#: target. F03-T17 (D-33 as written, decisions v3.28): a merged counterexample or vacuity
+#: certificate settles the root by a root-level D-12 artifact and so *resolves* the target, which
+#: answers with ``status-resolved``; only a curator's ``abandoned`` (D-14) closes the root while
+#: the status word stays, and claimability answers with the reason ``root-abandoned``.
+CLOSED_ROOT_STATUSES: tuple[str, ...] = ("abandoned",)
+ROOT_REASON_PREFIX = "root-"
+
+
+def root_reasons(root_status: str | None) -> tuple[str, ...]:
+    """F03-T14: why a target's root takes no claim, apart from the target's own status."""
+    if root_status in CLOSED_ROOT_STATUSES:
+        return (f"{ROOT_REASON_PREFIX}{root_status}",)
+    return ()
+
 
 #: D-6's Stage 0 exclusions. Not a judgment about the mathematics: these are the domains where a
 #: statement's fidelity cannot be screened by anyone the network can currently reach.
@@ -151,6 +167,70 @@ def write_doc(target_directory: Path, doc: dict[str, Any]) -> Path:
 def is_calibration(doc: dict[str, Any] | None) -> bool:
     """F15-R13, Q9: whether the record marks a calibration target; absent reads as false."""
     return bool(doc.get("calibration", False)) if doc is not None else False
+
+
+def classification(doc: dict[str, Any] | None) -> dict[str, Any] | None:
+    """F25-R4: the record's ``classification`` block, or ``None`` for a target that has none."""
+    if doc is None:
+        return None
+    block = doc.get("classification")
+    return dict(block) if isinstance(block, dict) else None
+
+
+def check_classification(doc: dict[str, Any]) -> list[Diagnostic]:
+    """F25-R4: every way the record's classification fails the shape ``target/v3`` gives it.
+
+    The rule itself lives in the schema alone — the arXiv and MSC 2020 patterns, one or two and
+    one to eight codes, no duplicates, both lists or neither — so nothing here can drift from it.
+    What this adds is a *named* refusal: ``intake new`` and F25-T7's export get one
+    ``classification-invalid`` per violation with the field it sits on, instead of a schema
+    error over the whole record. A record with no block is fine: the block is optional at
+    intake, and refusing a target without one is the export's (R4).
+    """
+    if "classification" not in doc:
+        return []
+    found: list[Diagnostic] = []
+    for v in schemas.violations({**doc, "schema": SCHEMA}, SCHEMA):
+        if not v.path.startswith("$['classification']"):
+            continue
+        found.append(
+            Diagnostic(
+                "classification-invalid",
+                f"classification: {v.path}: {v.message} (F25-R4: one or two arXiv category "
+                "codes such as math.NT and one to eight MSC 2020 codes such as 11A41, none "
+                "repeated, both lists or neither)",
+                {"field": v.path, "schema": SCHEMA},
+            )
+        )
+    return found
+
+
+def with_classification(
+    doc: dict[str, Any], *, arxiv: Sequence[str], msc: Sequence[str]
+) -> dict[str, Any]:
+    """R4: the record as ``intake new`` writes it once ``--arxiv`` and ``--msc`` are read.
+
+    Neither flag leaves the record exactly as the curator wrote it, at the version it declares.
+    Both make it a ``target/v3`` record carrying the block — the earlier versions cannot hold
+    one (D-34) — and the block is checked before anything is written. One flag without the
+    other is refused by name: the schema requires both lists, and a half-classified target is
+    not one the registry could take.
+    """
+    if not arxiv and not msc:
+        return doc
+    if not arxiv or not msc:
+        missing = "--msc" if not msc else "--arxiv"
+        msg = (
+            f"a classification names both arXiv categories and MSC 2020 codes (F25-R4); pass "
+            f"{missing} too, or neither flag"
+        )
+        raise IntakeError(msg)
+    block = {"arxiv": list(arxiv), "msc2020": list(msc)}
+    classified = {**doc, "schema": SCHEMA, "classification": block}
+    problems = check_classification(classified)
+    if problems:
+        raise IntakeError("; ".join(p.message for p in problems))
+    return classified
 
 
 def proposer_of(doc: dict[str, Any] | None) -> str | None:
@@ -275,6 +355,9 @@ def check(doc: dict[str, Any], root_dir: Path, *, repo_url: str | None = None) -
     check_quotation(doc)
     check_proposal(doc, repo_url=repo_url)
     check_calibration(doc)
+    problems = check_classification(doc)
+    if problems:
+        raise IntakeError("; ".join(p.message for p in problems))
     check_witness(root_dir)
 
 
@@ -292,10 +375,12 @@ def claimability(  # noqa: PLR0913 — one argument per input the rule reads
     drifted: bool = False,
     steward_rule: bool = False,
     stewards: tuple[str, ...] | list[str] = (),
+    root_status: str | None = None,
 ) -> tuple[bool, tuple[str, ...]]:
     """F14-R1, F15-R4: ``(claimable, reasons)``. The reasons are empty exactly when it is claimable.
 
-    Three things close claiming: a status that is not open (``resolved``, ``known-result``),
+    Four things close claiming: a status that is not open (``resolved``, ``known-result``), a
+    root that is refuted, defective or abandoned (``root_status``, F03-T14), and
     F12-R11's drift freeze, where an upstream edit stands on the root as it is and proving compute
     waits for a person (D-10 v3.12), and — while the graph's ``policy.json`` enforces the steward
     rule (F15-R3) — an ``open``-track target with no active steward (D-6 v3.17, D-32 v3.17). The
@@ -318,6 +403,7 @@ def claimability(  # noqa: PLR0913 — one argument per input the rule reads
     reasons: list[str] = []
     if status not in CLAIMING_STATUSES:
         reasons.append(f"status-{status}")
+    reasons.extend(root_reasons(root_status))
     if drifted:
         reasons.append("upstream-drift")
     if steward_rule and str(doc.get("track")) == OPEN_TRACK and not stewards:
@@ -325,22 +411,30 @@ def claimability(  # noqa: PLR0913 — one argument per input the rule reads
     return not reasons, tuple(reasons)
 
 
+#: The reasons ``explain`` words whole; the prefixed ones (``status-``, ``root-``,
+#: ``grade-below-``) carry their value and are worded in ``explain`` itself.
+FIXED_REASONS: dict[str, str] = {
+    NO_STEWARD: "no steward has committed to digest and write it up (D-32 v3.17)",
+    "no-posting": "it has not been posted upstream (D-10)",
+    "upstream-drift": (
+        "the statement it was imported from changed upstream; compute is frozen until a "
+        "curator acts (D-10 v3.12)"
+    ),
+}
+
+
 def explain(reason: str) -> str:
     """One reason, in the words the Targets page uses (R10)."""
     if reason.startswith("status-"):
         return f"the target's D-33 status is {reason.removeprefix('status-')}"
-    if reason == NO_STEWARD:
-        return "no steward has committed to digest and write it up (D-32 v3.17)"
+    if reason.startswith(ROOT_REASON_PREFIX):
+        return (
+            f"its root statement is {reason.removeprefix(ROOT_REASON_PREFIX)}, so nothing at the "
+            "root is left to prove (D-12, D-14)"
+        )
     if reason.startswith("grade-below-"):
         return f"its fidelity grade is below {reason.removeprefix('grade-below-')} (D-9)"
-    if reason == "no-posting":
-        return "it has not been posted upstream (D-10)"
-    if reason == "upstream-drift":
-        return (
-            "the statement it was imported from changed upstream; compute is frozen until a "
-            "curator acts (D-10 v3.12)"
-        )
-    return reason
+    return FIXED_REASONS.get(reason, reason)
 
 
 # --- intake new (R2) -----------------------------------------------------------------------

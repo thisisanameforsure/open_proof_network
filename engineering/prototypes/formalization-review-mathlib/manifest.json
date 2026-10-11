@@ -1,0 +1,163 @@
+{
+ "_doc": "Second prototype of the formalization review (draft v3.36): three live Mathlib targets through the network's POST /check. Each candidate's provenance and, for planted ones, the defect and the outcome expected. Planted candidates pass if they end outside the main cluster; correct ones if they end in it. 'expect_changed' records a revision after a run, with its reason.",
+ "erdos-1003": {
+  "words": "Are there infinitely many solutions to φ(n) = φ(n+1), where φ is the Euler totient function?",
+  "candidates": {
+   "incumbent": {
+    "author": "registry",
+    "who": "The Formal Conjectures Authors",
+    "expect": "survive",
+    "note": "the live root, ported by a wrapper proved equal by Iff.rfl"
+   },
+   "agent-a": {
+    "author": "agent",
+    "model": "sonnet",
+    "expect": "survive"
+   },
+   "agent-b": {
+    "author": "agent",
+    "model": "haiku",
+    "expect": "survive"
+   },
+   "agent-c": {
+    "author": "agent",
+    "model": "opus",
+    "expect": "survive"
+   },
+   "alt-forall": {
+    "author": "human",
+    "expect": "survive",
+    "note": "∀ N, ∃ n > N for Set.Infinite"
+   },
+   "bad-shift": {
+    "author": "planted",
+    "defect": "wrong term (φ(n+2))",
+    "expect": "caught"
+   },
+   "bad-sigma": {
+    "author": "planted",
+    "defect": "wrong function (σ for φ)",
+    "expect": "caught"
+   },
+   "bad-nonempty": {
+    "author": "planted",
+    "defect": "quantifier (some n, not infinitely many)",
+    "expect": "caught"
+   },
+   "bad-finite": {
+    "author": "planted",
+    "defect": "negated shape (finitely many)",
+    "expect": "caught"
+   }
+  }
+ },
+ "erdos-727": {
+  "words": "Let k ≥ 2. Does ((n+k)!)² ∣ (2n)! hold for infinitely many n?",
+  "candidates": {
+   "incumbent": {
+    "author": "registry",
+    "who": "The Formal Conjectures Authors",
+    "expect": "survive",
+    "note": "the live root, ported by a wrapper proved equal by Iff.rfl"
+   },
+   "agent-a": {
+    "author": "agent",
+    "model": "sonnet",
+    "expect": "survive"
+   },
+   "agent-b": {
+    "author": "agent",
+    "model": "haiku",
+    "expect": "survive"
+   },
+   "agent-c": {
+    "author": "agent",
+    "model": "opus",
+    "expect": "survive"
+   },
+   "alt-sum": {
+    "author": "human",
+    "expect": "survive",
+    "note": "1 < k, a product for the square, n + n for 2n"
+   },
+   "bad-k1": {
+    "author": "planted",
+    "defect": "wrong domain (k ≥ 1)",
+    "expect": "caught"
+   },
+   "bad-nosq": {
+    "author": "planted",
+    "defect": "lost exponent (no square)",
+    "expect": "caught"
+   },
+   "bad-prec": {
+    "author": "planted",
+    "defect": "precedence (2 * n! for (2n)!)",
+    "expect": "caught"
+   },
+   "bad-exists": {
+    "author": "planted",
+    "defect": "quantifier (some k, not every k)",
+    "expect": "caught"
+   }
+  }
+ },
+ "erdos-410": {
+  "words": "Let σ_1(n) = σ(n), the sum of divisors function, and σ_k(n) = σ(σ_{k-1}(n)). Is it true that lim_{k → ∞} σ_k(n)^(1/k) = ∞?",
+  "candidates": {
+   "incumbent": {
+    "author": "registry",
+    "who": "The Formal Conjectures Authors",
+    "expect": "survive",
+    "note": "the live root, ported by a wrapper proved equal by Iff.rfl"
+   },
+   "agent-a": {
+    "author": "agent",
+    "model": "sonnet",
+    "expect": "discard-question",
+    "expect_changed": "2026-10-09 after the first run: expected to survive, it was discarded by the domain question at n = 1, correctly. Working blind, the Sonnet formalizer chose 1 ≤ n; the words name no domain, the source (Erdős–Granville–Pomerance–Spiro 1990) takes n ≥ 2, and at n = 1 every σ_k(1) = 1, so its statement is false. A real defect from a blind agent, caught by the review: nothing about it was planted."
+   },
+   "agent-b": {
+    "author": "agent",
+    "model": "haiku",
+    "expect": "discard-compile",
+    "expect_changed": "2026-10-09 after the first run: the Haiku formalizer's file names `divisorSigma`, which does not exist in Mathlib, so it does not elaborate. Its session ended before it reported (the laptop shut down), so it never saw the error."
+   },
+   "agent-c": {
+    "author": "agent",
+    "model": "opus",
+    "expect": "survive"
+   },
+   "alt-eps": {
+    "author": "human",
+    "expect": "survive",
+    "note": "∀ M, ∃ K, ∀ k ≥ K, M ≤ … for Tendsto atTop atTop; 2 ≤ n"
+   },
+   "bad-nodomain": {
+    "author": "planted",
+    "defect": "wrong domain (every n, so n = 1 too)",
+    "expect": "caught"
+   },
+   "bad-natdiv": {
+    "author": "planted",
+    "defect": "junk value (1/k in ℕ is 0)",
+    "expect": "caught"
+   },
+   "bad-sigma0": {
+    "author": "planted",
+    "defect": "wrong function (σ_0, the divisor count)",
+    "expect": "caught"
+   },
+   "bad-index": {
+    "author": "planted",
+    "defect": "off-by-one index (σ_{k+1})",
+    "expect": "caught"
+   },
+   "bad-exists": {
+    "author": "planted",
+    "defect": "quantifier (some n, not every n)",
+    "expect": "caught"
+   }
+  }
+ }
+}

@@ -16,6 +16,7 @@ from opn_gate.schemas import SchemaError
 def test_known_schemas_are_the_published_set() -> None:
     assert schemas.known_schemas() == (
         "annex/v1",
+        "annex/v2",
         "approach-record/v1",
         "attempts/v1",
         "attestation/v1",
@@ -23,55 +24,100 @@ def test_known_schemas_are_the_published_set() -> None:
         "attestation/v3",
         "attestation/v4",
         "attestation/v5",
+        "attestation/v6",
+        "attestation/v7",  # F25-T1 (automation)
         "claims/v1",
         "context/v1",
+        "context/v2",
+        "context/v3",
+        "context/v4",  # F22-T13 (a cause on each dep)
+        "context/v5",  # v3.35: circular, literature, literature_proposed
+        "credit-correction/v1",
         "defect-claim/v1",
         "defect-claim/v2",
         "defect-claim/v3",
+        "display-name/v1",  # F25-T1
         "drift/v1",
         "explainer-signature/v1",
+        "explainer-signature/v2",
+        "explainer-signature/v3",  # F23-T1 (via: the approval key)
+        "explainer/v1",
+        "explainer/v2",
         "fidelity/v1",
         "fidelity/v2",
         "formalization/v1",
         "frontier/v1",
         "frontier/v2",
         "frontier/v3",
+        "frontier/v4",
+        "frontier/v5",
         "gate-spec/v1",
+        "gloss-signature/v1",
+        "gloss-signature/v2",
+        "gloss-signature/v3",  # F23-T1
+        "gloss/v1",
+        "gloss/v2",
+        "glosses/v1",
+        "glosses/v2",
         "graph/v1",
         "graph/v2",
         "graph/v3",
+        "graph/v4",
+        "graph/v5",
+        "graph/v6",
+        "graph/v7",  # F25-T1 (registrations)
         "info/v1",
+        "info/v2",
         "ledger/v1",
+        "ledger/v2",  # F25-T1 (automation)
+        "literature/v1",
         "meta/v1",
         "meta/v2",
         "meta/v3",
         "meta/v4",
         "meta/v5",
+        "motion/v1",
         "node-status/v1",
+        "outline/v1",
         "policy/v1",
+        "policy/v2",
+        "policy/v3",  # F23-T1 (steward_admission)
         "postmortem/v1",
         "precheck-record/v1",
+        "proposed-for/v1",
         "qa/v1",
         "qa/v2",
+        "registration/v1",  # F25-T1
         "relevance/v1",
         "revision-request/v1",
         "revision-request/v2",
         "statement-evidence/v1",
         "steward/v1",
+        "steward/v2",
+        "steward/v3",  # F23-T1 (via, admitted_by)
         "submission-meta/v1",
+        "submission-meta/v2",  # F25-T1 (automation)
         "target-status/v1",
         "target-status/v2",
         "target/v1",
         "target/v2",
+        "target/v3",  # F25-T1 (classification)
         "targets-index/v1",
+        "targets-index/v10",  # F25-T1 (registrations)
         "targets-index/v2",
         "targets-index/v3",
         "targets-index/v4",
         "targets-index/v5",
         "targets-index/v6",
         "targets-index/v7",
+        "targets-index/v8",
+        "targets-index/v9",
+        "vote/v1",
         "waiver/v1",
+        "withdrawal/v1",
+        "withdrawal/v2",
         "writeup/v1",
+        "writeup/v2",
     )
 
 
@@ -280,7 +326,7 @@ def test_attestation_v3_trust_base() -> None:
     schemas.validate(doc)
     assert schemas.violations(samples.attestation(trust_base="hardware"))
     older = samples.attestation(schema="attestation/v2")
-    for gone in ("trust_base", "submitter", "model_and_tooling"):
+    for gone in ("trust_base", "submitter", "model_and_tooling", "footprint", "automation"):
         older.pop(gone, None)
     schemas.validate(older)  # a v2 record still validates as v2
     assert schemas.violations(samples.attestation(schema="attestation/v2"))  # v2 has no v3/v4 keys

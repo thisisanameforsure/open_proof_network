@@ -1,0 +1,455 @@
+FFFFFFFFFFFF..F.FFF................FF..                                  [100%]
+=================================== FAILURES ===================================
+_____________ test_an_explainers_sections_are_keyed_by_their_steps _____________
+
+    def test_an_explainers_sections_are_keyed_by_their_steps() -> None:
+        """R11, Q8: the unanchored section is ``overview``; an anchored one is ``steps:`` and its
+        step ids sorted and comma-joined, whatever order the heading names them in; the text is the
+        heading (without its anchor) and the body."""
+        parts = sections.explainer_parts(ANCHORED, explainers.sections(ANCHORED))
+>       assert [p.key for p in parts] == ["overview", "steps:s3,s4.1", "steps:s5"]
+E       AssertionError: assert ['overview'] == ['overview', ...', 'steps:s5']
+E         
+E         Right contains 2 more items, first extra item: 'steps:s3,s4.1'
+E         Use -v to get more diff
+
+gate/tests/test_section_states.py:79: AssertionError
+______________ test_an_explainer_without_anchors_is_one_overview _______________
+
+    def test_an_explainer_without_anchors_is_one_overview() -> None:
+        """Q8: an explainer that names no step — filed before F20, or a record on a proof with no
+        outline — is one section, ``overview``, holding its whole body."""
+        body = "## The idea\nOne.\n\n## More\nTwo.\n"
+        [part] = sections.explainer_parts(body, explainers.sections(body))
+>       assert part.key == "overview" and part.text == body.rstrip()
+E       AssertionError: assert ('overview' == 'overview'
+E         
+E           overview and '## The idea\... More\nTwo.\n' == '## The idea\...## More\nTwo.'
+E         
+E           ## The idea
+E           One.
+E           
+E           ## More
+E         - Two.
+E         + Two.
+E         ?     +)
+
+gate/tests/test_section_states.py:89: AssertionError
+_________________________ test_a_gloss_is_one_section __________________________
+
+    def test_a_gloss_is_one_section() -> None:
+        text = "---\nschema: gloss/v1\n---\nWhat the statement says.\n"
+>       assert sections.parts_of_text(text, gloss=True) == [Part("whole", "What the statement says.")]
+E       AssertionError: assert [Part(key='wh...ent says.\n')] == [Part(key='wh...ement says.')]
+E         
+E         At index 0 diff: Part(key='whole', text='What the statement says.\n') != Part(key='whole', text='What the statement says.')
+E         Use -v to get more diff
+
+gate/tests/test_section_states.py:96: AssertionError
+_____________ test_text_equality_ignores_trailing_whitespace_only ______________
+
+    def test_text_equality_ignores_trailing_whitespace_only() -> None:
+        """Q8: exact after trimming trailing whitespace on each line and at the end."""
+>       assert sections.normalize("a  \nb\t\n\n\n") == sections.normalize("a\nb") == "a\nb"
+E       AssertionError: assert 'a  \nb\t\n\n\n' == 'a\nb'
+E         
+E         - a
+E         - b
+E         + a  
+E         + b	
+E         + 
+E         +
+
+gate/tests/test_section_states.py:101: AssertionError
+_ test_two_sections_of_one_key_are_duplicates[## One {steps: s1 s2}\nx\n## Two {steps: s2 s1}\ny\n] _
+
+body = '## One {steps: s1 s2}\nx\n## Two {steps: s2 s1}\ny\n'
+
+    @pytest.mark.parametrize(
+        "body",
+        [
+            "## One {steps: s1 s2}\nx\n## Two {steps: s2 s1}\ny\n",
+            "## One {steps: s1}\nx\n## Two\ny\n## Three\nz\n",
+        ],
+    )
+    def test_two_sections_of_one_key_are_duplicates(body: str) -> None:
+        """R11: two sections naming the same steps (in any order), or two unanchored sections in an
+        explainer that anchors others, share a key."""
+        parts = sections.explainer_parts(body, explainers.sections(body))
+>       assert len(sections.duplicates(parts)) == 1
+E       AssertionError: assert 0 == 1
+E        +  where 0 = len([])
+E        +    where [] = <function duplicates at 0x107775440>([Part(key='overview', text='## One {steps: s1 s2}\nx\n## Two {steps: s2 s1}\ny\n')])
+E        +      where <function duplicates at 0x107775440> = sections.duplicates
+
+gate/tests/test_section_states.py:117: AssertionError
+_ test_two_sections_of_one_key_are_duplicates[## One {steps: s1}\nx\n## Two\ny\n## Three\nz\n] _
+
+body = '## One {steps: s1}\nx\n## Two\ny\n## Three\nz\n'
+
+    @pytest.mark.parametrize(
+        "body",
+        [
+            "## One {steps: s1 s2}\nx\n## Two {steps: s2 s1}\ny\n",
+            "## One {steps: s1}\nx\n## Two\ny\n## Three\nz\n",
+        ],
+    )
+    def test_two_sections_of_one_key_are_duplicates(body: str) -> None:
+        """R11: two sections naming the same steps (in any order), or two unanchored sections in an
+        explainer that anchors others, share a key."""
+        parts = sections.explainer_parts(body, explainers.sections(body))
+>       assert len(sections.duplicates(parts)) == 1
+E       AssertionError: assert 0 == 1
+E        +  where 0 = len([])
+E        +    where [] = <function duplicates at 0x107775440>([Part(key='overview', text='## One {steps: s1}\nx\n## Two\ny\n## Three\nz\n')])
+E        +      where <function duplicates at 0x107775440> = sections.duplicates
+
+gate/tests/test_section_states.py:117: AssertionError
+________________________ test_ac10_draft_edit_signature ________________________
+
+    def test_ac10_draft_edit_signature() -> None:
+        """AC10: a model's draft of three sections; a person's edit of one is ``written`` and shown;
+        a signature on another verifies it and shows it; the third stays ``drafted``."""
+        v1 = entry("v1", model=True, a="draft a", b="draft b", c="draft c")
+        v2 = entry("v2", model=False, a="draft a", b="person b", c="draft c")
+        got = sections.derive([v1, v2], {"v2": [frozenset({C})]})
+        assert got.states["v1"] == [(A, DRAFTED), (B, DRAFTED), (C, DRAFTED)]
+>       assert got.states["v2"] == [(A, UNCHANGED), (B, WRITTEN), (C, VERIFIED)]
+E       AssertionError: assert [('overview',..., 'verified')] == [('overview',..., 'verified')]
+E         
+E         At index 0 diff: ('overview', 'verified') != ('overview', 'unchanged')
+E         Use -v to get more diff
+
+gate/tests/test_section_states.py:130: AssertionError
+______ test_ac10_a_persons_edit_of_verified_words_is_pending_until_signed ______
+
+    def test_ac10_a_persons_edit_of_verified_words_is_pending_until_signed() -> None:
+        """AC10/AC11 (gate states): a person's edit of the verified section is ``pending``; the chain
+        still shows the verified words; a later signature on that section of the edit verifies it,
+        shows it, and clears the pending entry."""
+        v1 = entry("v1", model=True, a="draft a", b="draft b", c="draft c")
+        v2 = entry("v2", model=False, a="draft a", b="person b", c="draft c")
+        v3 = entry("v3", model=False, a="draft a", b="person b", c="better c")
+        approvals: dict[str, list[frozenset[str] | None]] = {"v2": [frozenset({C})]}
+        got = sections.derive([v1, v2, v3], approvals)
+>       assert got.states["v3"] == [(A, UNCHANGED), (B, UNCHANGED), (C, PENDING)]
+E       AssertionError: assert [('overview',...', 'written')] == [('overview',...', 'pending')]
+E         
+E         At index 0 diff: ('overview', 'written') != ('overview', 'unchanged')
+E         Use -v to get more diff
+
+gate/tests/test_section_states.py:145: AssertionError
+_______________ test_a_persons_edit_of_written_words_is_pending ________________
+
+    def test_a_persons_edit_of_written_words_is_pending() -> None:
+        """R11: written words are a person's; another person's change to them waits for approval."""
+        v1 = entry("v1", model=False, a="carol's a")
+        v2 = entry("v2", model=False, a="dave's a")
+        got = sections.derive([v1, v2], {})
+>       assert placed(got.shown) == [(A, "v1", WRITTEN)]
+E       AssertionError: assert [('overview',...', 'written')] == [('overview',...', 'written')]
+E         
+E         At index 0 diff: ('overview', 'v2', 'written') != ('overview', 'v1', 'written')
+E         Use -v to get more diff
+
+gate/tests/test_section_states.py:160: AssertionError
+__________________ test_a_model_may_change_only_drafted_words __________________
+
+    def test_a_model_may_change_only_drafted_words() -> None:
+        """R11: a model's change over drafted words is shown as drafted; over written words it is not
+        shown — derived conservatively as pending (the gate refuses it outright, R12, F21-T11)."""
+        v1 = entry("v1", model=True, a="draft a", b="draft b")
+        v2 = entry("v2", model=False, a="person a", b="draft b")
+        v3 = entry("v3", model=True, a="newer model a", b="newer model b")
+        got = sections.derive([v1, v2, v3], {})
+>       assert got.states["v3"] == [(A, PENDING), (B, DRAFTED)]
+E       AssertionError: assert [('overview',...', 'drafted')] == [('overview',...', 'drafted')]
+E         
+E         At index 0 diff: ('overview', 'drafted') != ('overview', 'pending')
+E         Use -v to get more diff
+
+gate/tests/test_section_states.py:171: AssertionError
+_________________ test_a_repeated_pending_edit_is_listed_once __________________
+
+    def test_a_repeated_pending_edit_is_listed_once() -> None:
+        """A later version carrying an earlier pending edit unchanged is pending too, and the edit is
+        listed once, under the version that first proposed it."""
+        v1 = entry("v1", model=False, a="carol's a", b="carol's b")
+        v2 = entry("v2", model=False, a="dave's a", b="carol's b")
+        v3 = entry("v3", model=False, a="dave's a", b="erin's b")
+        got = sections.derive([v1, v2, v3], {})
+>       assert got.states["v3"] == [(A, PENDING), (B, PENDING)]
+E       AssertionError: assert [('overview',...', 'written')] == [('overview',...', 'pending')]
+E         
+E         At index 0 diff: ('overview', 'written') != ('overview', 'pending')
+E         Use -v to get more diff
+
+gate/tests/test_section_states.py:182: AssertionError
+____________________________ test_omitted_sections _____________________________
+
+    def test_omitted_sections() -> None:
+        """Q (proposed): a later version that omits a drafted section removes it; one that omits a
+        written or verified section leaves it shown, after the current version's own sections."""
+        v1 = entry("v1", model=True, a="draft a", b="draft b", c="draft c")
+        v2 = entry("v2", model=False, a="draft a", b="person b", c="draft c")
+        v3 = entry("v3", model=False, c="draft c")
+        got = sections.derive([v1, v2, v3], {})
+>       assert placed(got.shown) == [(C, "v1", DRAFTED), (B, "v2", WRITTEN)]
+E       AssertionError: assert [('steps:s2,s...', 'written')] == [('steps:s2,s...', 'written')]
+E         
+E         At index 0 diff: ('steps:s2,s3', 'v3', 'written') != ('steps:s2,s3', 'v1', 'drafted')
+E         Right contains one more item: ('steps:s1', 'v2', 'written')
+E         Use -v to get more diff
+
+gate/tests/test_section_states.py:193: AssertionError
+_______________ test_a_signature_approves_the_sections_it_names ________________
+
+root = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-281/test_a_signature_approves_the_0/graph')
+keys = {'thisisanameforsure': PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytes...xPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-281/gloss-keys0/mallory')}
+
+    def test_a_signature_approves_the_sections_it_names(root: Path, keys: dict[str, Path]) -> None:
+        """AC12: a v2 signature naming two of three sections verifies only those two; a v1
+        signature verifies every section of its version. Both validate and pass the gate."""
+        digest = anchored_explainer(root)
+>       change = sign_sections(root, digest, [A, B], keys[CURATOR])
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+gate/tests/test_section_states.py:266: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+gate/tests/test_section_states.py:255: in sign_sections
+    path = explainers.sign(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+node_dir = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-281/test_a_signature_approves_the_0/graph/targets/propositional/nodes/and-reassoc')
+explainer_hash = '4fced576e015988d3f803071031ae650c4990ef86ce2e925b09287202d96a696'
+target_id = 'propositional', signer_login = 'thisisanameforsure'
+date = '2026-10-05'
+key_path = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-281/gloss-keys0/thisisanameforsure')
+signer = <opn_gate.signer.SshKeygenSigner object at 0x107ac8590>
+approves = ['overview', 'steps:s1']
+
+    def sign(  # noqa: PLR0913 — one argument per fact the record carries
+        node_dir: Path,
+        explainer_hash: str,
+        *,
+        target_id: str,
+        signer_login: str,
+        date: str,
+        key_path: Path,
+        signer: Signer,
+        approves: list[str] | None = None,
+    ) -> Path:
+        """R8: write one signature with the signer's own key, refusing by name with nothing written
+        when the explainer is not on the node (C7). ``approves`` names the sections approved
+        (``explainer-signature/v2``, F21-R13), each one the explainer has; ``None`` writes a v1
+        signature, which approves every section."""
+        if not _HASH_RE.match(explainer_hash):
+            msg = f"{explainer_hash!r} is not an explainer hash (64 lowercase hex characters, D-3)"
+            raise ExplainerError(msg)
+        if explainer_hash not in explainer_hashes(node_dir):
+            msg = f"no explainer {explainer_hash[:12]}… is on {node_dir.name}; nothing to sign"
+            raise ExplainerError(msg)
+        if approves is not None:
+            known = section_keys(node_dir / EXPLAINER_DIR / f"{explainer_hash}.md")
+            unknown = [k for k in approves if k not in known]
+            if unknown:
+                msg = (
+                    f"explainer {explainer_hash[:12]}… has no section {', '.join(unknown)}; its "
+                    f"sections are {', '.join(known) or 'none'}"
+                )
+>               raise ExplainerError(msg)
+E               opn_gate.explainers.ExplainerError: explainer 4fced576e015… has no section steps:s1; its sections are overview
+
+gate/opn_gate/explainers.py:201: ExplainerError
+____________ test_a_version_with_two_sections_of_one_key_is_refused ____________
+
+root = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-281/test_a_version_with_two_sectio0/graph')
+
+    def test_a_version_with_two_sections_of_one_key_is_refused(root: Path) -> None:
+        """AC10: an explainer record with two sections on the same steps is ``section-duplicate``."""
+        digest = anchored_explainer(root, "## One {steps: s1 s2}\nx\n\n## Two {steps: s2 s1}\ny\n")
+        path = node_dir(root) / "explainer" / f"{digest}.md"
+>       assert codes(root, Change("A", rel(root, path))) == ["section-duplicate"]
+E       AssertionError: assert ['explainer-step-unknown'] == ['section-duplicate']
+E         
+E         At index 0 diff: 'explainer-step-unknown' != 'section-duplicate'
+E         Use -v to get more diff
+
+gate/tests/test_section_states.py:340: AssertionError
+_________________ test_the_product_publishes_shown_and_pending _________________
+
+root = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-281/test_the_product_publishes_sho0/graph')
+keys = {'thisisanameforsure': PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytes...xPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-281/gloss-keys0/mallory')}
+
+    def test_the_product_publishes_shown_and_pending(root: Path, keys: dict[str, Path]) -> None:
+        """R14: a person's edit of a signed explainer stays pending in ``glosses/v2`` and the chain
+        shows the signed words; the product validates."""
+        first, _ = explainer(root, "First account.")
+        sign_explainer(root, first, STEWARD, keys[STEWARD])
+        second, _ = explainer(root, "A rewrite.", supersedes=first, author="dave")
+        [chain] = chains_of_v2(root, "proof")
+        assert chain["current"] == second
+>       assert chain["shown"] == [{"key": A, "version": first, "state": VERIFIED}]
+E       AssertionError: assert [{'key': 'ove...cf83606d9ba'}] == [{'key': 'ove...: 'verified'}]
+E         
+E         At index 0 diff: {'key': 'overview', 'state': 'written', 'version': '474208ae1b5d897a098606d01952a92ac138d7ddb55f8c3daaa27cf83606d9ba'} != {'key': 'overview', 'version': '72ccb9bba0b81f1a338a04a2bd7b251a18705193f81bcc731b40d9cba7a715c2', 'state': 'verified'}
+E         Use -v to get more diff
+
+gate/tests/test_section_states.py:354: AssertionError
+______ test_digestion_counts_a_node_while_every_shown_section_is_verified ______
+
+root = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-281/test_digestion_counts_a_node_w0/graph')
+keys = {'thisisanameforsure': PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytes...xPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-281/gloss-keys0/mallory')}
+
+    def test_digestion_counts_a_node_while_every_shown_section_is_verified(
+        root: Path, keys: dict[str, Path]
+    ) -> None:
+        """R15: a node is explained while every section shown for its first proof is verified: a v2
+        signature on two of three sections leaves it unexplained, one on the third explains it."""
+        for n, node in enumerate(("tutorial-and-swap", "and-reassoc", ROOT_NODE), start=1):
+            attest(root, node, n=n)
+        for node in ("tutorial-and-swap", ROOT_NODE):
+            head, _ = explainer(root, f"Why {node} holds.", node=node)
+            sign_explainer(root, head, STEWARD, keys[STEWARD], node=node)
+        digest = anchored_explainer(root)
+>       sign_sections(root, digest, [A, B], keys[CURATOR])
+
+gate/tests/test_section_states.py:374: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+gate/tests/test_section_states.py:255: in sign_sections
+    path = explainers.sign(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+node_dir = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-281/test_digestion_counts_a_node_w0/graph/targets/propositional/nodes/and-reassoc')
+explainer_hash = '4fced576e015988d3f803071031ae650c4990ef86ce2e925b09287202d96a696'
+target_id = 'propositional', signer_login = 'thisisanameforsure'
+date = '2026-10-05'
+key_path = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-281/gloss-keys0/thisisanameforsure')
+signer = <opn_gate.signer.SshKeygenSigner object at 0x107ac8590>
+approves = ['overview', 'steps:s1']
+
+    def sign(  # noqa: PLR0913 — one argument per fact the record carries
+        node_dir: Path,
+        explainer_hash: str,
+        *,
+        target_id: str,
+        signer_login: str,
+        date: str,
+        key_path: Path,
+        signer: Signer,
+        approves: list[str] | None = None,
+    ) -> Path:
+        """R8: write one signature with the signer's own key, refusing by name with nothing written
+        when the explainer is not on the node (C7). ``approves`` names the sections approved
+        (``explainer-signature/v2``, F21-R13), each one the explainer has; ``None`` writes a v1
+        signature, which approves every section."""
+        if not _HASH_RE.match(explainer_hash):
+            msg = f"{explainer_hash!r} is not an explainer hash (64 lowercase hex characters, D-3)"
+            raise ExplainerError(msg)
+        if explainer_hash not in explainer_hashes(node_dir):
+            msg = f"no explainer {explainer_hash[:12]}… is on {node_dir.name}; nothing to sign"
+            raise ExplainerError(msg)
+        if approves is not None:
+            known = section_keys(node_dir / EXPLAINER_DIR / f"{explainer_hash}.md")
+            unknown = [k for k in approves if k not in known]
+            if unknown:
+                msg = (
+                    f"explainer {explainer_hash[:12]}… has no section {', '.join(unknown)}; its "
+                    f"sections are {', '.join(known) or 'none'}"
+                )
+>               raise ExplainerError(msg)
+E               opn_gate.explainers.ExplainerError: explainer 4fced576e015… has no section steps:s1; its sections are overview
+
+gate/opn_gate/explainers.py:201: ExplainerError
+_________________ test_the_product_carries_drafted_with[gloss] _________________
+
+root = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-281/test_the_product_carries_draft0/graph')
+record = 'gloss'
+
+    @pytest.mark.parametrize("record", ["gloss", "explainer"])
+    def test_the_product_carries_drafted_with(root: Path, record: str) -> None:
+        """AC5 (product): ``glosses/v2`` publishes ``drafted_with`` per version — the model for a v2
+        version naming one, null for a v2 version without and for every v1 version — and a version
+        that names a model wrote its sections as ``drafted`` (R11)."""
+        make = gloss_doc if record == "gloss" else explainer_doc
+        first, _ = file_record(root, record, make(root, f"{record}/v1"), "## The idea\nOne.\n")
+        second_doc = make(root, f"{record}/v2", MODEL)
+        second_doc["supersedes"] = first
+        second, _ = file_record(root, record, second_doc, "## The idea\nTwo.\n")
+        doc = loads(generate(root), f"targets/{TARGET}/glosses.json")
+        assert doc["schema"] == "glosses/v2"
+        assert schemas.violations(doc) == []
+        kind = "statement" if record == "gloss" else "proof"
+        [subject] = [s for s in doc["subjects"] if s["kind"] == kind and s["node"] == NODE]
+        [chain] = subject["chains"]
+        versions = {v["hash"]: v for v in chain["versions"]}
+        assert versions[first]["drafted_with"] is None
+        assert versions[first]["schema"] == f"{record}/v1"
+        assert versions[second]["drafted_with"] == MODEL
+        assert versions[second]["schema"] == f"{record}/v2"
+        key = "whole" if record == "gloss" else "overview"
+        assert versions[first]["sections"] == [{"key": key, "state": "written"}]
+        # A model's change over a person's words is not shown (R11, R12); the person's stay.
+>       assert versions[second]["sections"] == [{"key": key, "state": "pending"}]
+E       AssertionError: assert [{'key': 'who...': 'drafted'}] == [{'key': 'who...': 'pending'}]
+E         
+E         At index 0 diff: {'key': 'whole', 'state': 'drafted'} != {'key': 'whole', 'state': 'pending'}
+E         Use -v to get more diff
+
+gate/tests/test_drafted_with.py:135: AssertionError
+_______________ test_the_product_carries_drafted_with[explainer] _______________
+
+root = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-281/test_the_product_carries_draft1/graph')
+record = 'explainer'
+
+    @pytest.mark.parametrize("record", ["gloss", "explainer"])
+    def test_the_product_carries_drafted_with(root: Path, record: str) -> None:
+        """AC5 (product): ``glosses/v2`` publishes ``drafted_with`` per version — the model for a v2
+        version naming one, null for a v2 version without and for every v1 version — and a version
+        that names a model wrote its sections as ``drafted`` (R11)."""
+        make = gloss_doc if record == "gloss" else explainer_doc
+        first, _ = file_record(root, record, make(root, f"{record}/v1"), "## The idea\nOne.\n")
+        second_doc = make(root, f"{record}/v2", MODEL)
+        second_doc["supersedes"] = first
+        second, _ = file_record(root, record, second_doc, "## The idea\nTwo.\n")
+        doc = loads(generate(root), f"targets/{TARGET}/glosses.json")
+        assert doc["schema"] == "glosses/v2"
+        assert schemas.violations(doc) == []
+        kind = "statement" if record == "gloss" else "proof"
+        [subject] = [s for s in doc["subjects"] if s["kind"] == kind and s["node"] == NODE]
+        [chain] = subject["chains"]
+        versions = {v["hash"]: v for v in chain["versions"]}
+        assert versions[first]["drafted_with"] is None
+        assert versions[first]["schema"] == f"{record}/v1"
+        assert versions[second]["drafted_with"] == MODEL
+        assert versions[second]["schema"] == f"{record}/v2"
+        key = "whole" if record == "gloss" else "overview"
+        assert versions[first]["sections"] == [{"key": key, "state": "written"}]
+        # A model's change over a person's words is not shown (R11, R12); the person's stay.
+>       assert versions[second]["sections"] == [{"key": key, "state": "pending"}]
+E       AssertionError: assert [{'key': 'ove...': 'drafted'}] == [{'key': 'ove...': 'pending'}]
+E         
+E         At index 0 diff: {'key': 'overview', 'state': 'drafted'} != {'key': 'overview', 'state': 'pending'}
+E         Use -v to get more diff
+
+gate/tests/test_drafted_with.py:135: AssertionError
+=========================== short test summary info ============================
+FAILED gate/tests/test_section_states.py::test_an_explainers_sections_are_keyed_by_their_steps
+FAILED gate/tests/test_section_states.py::test_an_explainer_without_anchors_is_one_overview
+FAILED gate/tests/test_section_states.py::test_a_gloss_is_one_section - Asser...
+FAILED gate/tests/test_section_states.py::test_text_equality_ignores_trailing_whitespace_only
+FAILED gate/tests/test_section_states.py::test_two_sections_of_one_key_are_duplicates[## One {steps: s1 s2}\nx\n## Two {steps: s2 s1}\ny\n]
+FAILED gate/tests/test_section_states.py::test_two_sections_of_one_key_are_duplicates[## One {steps: s1}\nx\n## Two\ny\n## Three\nz\n]
+FAILED gate/tests/test_section_states.py::test_ac10_draft_edit_signature - As...
+FAILED gate/tests/test_section_states.py::test_ac10_a_persons_edit_of_verified_words_is_pending_until_signed
+FAILED gate/tests/test_section_states.py::test_a_persons_edit_of_written_words_is_pending
+FAILED gate/tests/test_section_states.py::test_a_model_may_change_only_drafted_words
+FAILED gate/tests/test_section_states.py::test_a_repeated_pending_edit_is_listed_once
+FAILED gate/tests/test_section_states.py::test_omitted_sections - AssertionEr...
+FAILED gate/tests/test_section_states.py::test_a_signature_approves_the_sections_it_names
+FAILED gate/tests/test_section_states.py::test_a_version_with_two_sections_of_one_key_is_refused
+FAILED gate/tests/test_section_states.py::test_the_product_publishes_shown_and_pending
+FAILED gate/tests/test_section_states.py::test_digestion_counts_a_node_while_every_shown_section_is_verified
+FAILED gate/tests/test_drafted_with.py::test_the_product_carries_drafted_with[gloss]
+FAILED gate/tests/test_drafted_with.py::test_the_product_carries_drafted_with[explainer]
+18 failed, 21 passed in 3.28s

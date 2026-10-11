@@ -177,6 +177,7 @@ class ScriptedToolchain(toolchain.LocalToolchain):
         super().__init__(Path("/fake/elan"), lean_pkg_bin=lean_pkg_bin)
         self.script = script
         self.calls: list[tuple[list[str], Path | None, dict[str, str] | None, float | None]] = []
+        self.stdins: list[str | None] = []
 
     def _exec(
         self,
@@ -185,13 +186,24 @@ class ScriptedToolchain(toolchain.LocalToolchain):
         cwd: Path | None = None,
         extra_env: dict[str, str] | None = None,
         timeout_s: float | None = None,
+        stdin: str | None = None,
     ) -> subprocess.CompletedProcess[str]:
         self.calls.append((list(cmd), cwd, extra_env, timeout_s))
+        self.stdins.append(stdin)
         joined = " ".join(cmd)
         for key, (code, out, err) in self.script:
             if key in joined:
-                return subprocess.CompletedProcess(list(cmd), code, out, err)
+                return subprocess.CompletedProcess(list(cmd), code, tagged(out, stdin), err)
         return subprocess.CompletedProcess(list(cmd), 0, "", "")
+
+
+def tagged(out: str, stdin: str | None) -> str:
+    """What a metaprogram run with ``--nonce stdin`` prints (F02-T11): its verdict, the last line
+    it printed, tagged with the nonce it read; everything else it printed went to stderr."""
+    lines = [ln for ln in out.splitlines() if ln.strip()]
+    if stdin is None or not lines or not lines[-1].startswith("{"):
+        return out
+    return f"{toolchain.VERDICT_TAG} {stdin.strip()} {lines[-1]}\n"
 
 
 PIN = "leanprover/lean4:v4.33.1"
@@ -313,31 +325,46 @@ def test_kernel_replay_failure_carries_both_streams(tmp_path: Path) -> None:
     assert env is not None and env["LEAN_PATH"].endswith(str(tc.libdir.resolve()))
 
 
-def test_axioms_fail_closed_when_the_probe_says_nothing_about_the_declaration(
+def test_axioms_fail_closed_when_the_answer_says_nothing_about_the_declaration(
     tmp_path: Path,
 ) -> None:
-    """R6: a probe that runs but never prints the declaration's axioms — or exits non-zero even
-    though it printed them — is unreadable, never an empty set."""
-    lt = scripted(tmp_path, ("OpnAxioms.lean", (0, "'Other' depends on axioms: [propext]\n", "")))
+    """R6, restated by F02-T11 (the query is ``opn-axioms`` now, not ``lean`` on a probe file):
+    an answer about another declaration, or a non-zero exit even with an answer, is unreadable,
+    never an empty set. The call carries a fresh nonce on stdin and asks for the tagged verdict."""
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    (bin_dir / "opn-axioms").write_text("")
+    other = '{"ok": true, "decl": "Other", "axioms": ["propext"]}\n'
+    lt = ScriptedToolchain([("opn-axioms", (0, other, "")), *HEALTHY], bin_dir)
     tc = lt.resolve(PIN)
     result = lt.axioms(tc, "Nodes.«n».Proof", "T.x", [tmp_path / "build"], tmp_path / "scratch")
-    assert result.ok is False and result.axioms == frozenset() and "Other" in result.output
-    probe = (tmp_path / "scratch" / "OpnAxioms.lean").read_text()
-    assert probe == "import Nodes.«n».Proof\n#print axioms T.x\n"
+    assert result.ok is False and result.axioms == frozenset()
+    cmd = lt.calls[-1][0]
+    assert cmd[4:] == ["--module", "Nodes.«n».Proof", "--decl", "T.x", "--nonce", "stdin"]
+    nonce = lt.stdins[-1]
+    assert nonce is not None and re.fullmatch(r"[0-9a-f]{32}\n", nonce)
+    assert not (tmp_path / "scratch").exists()  # no probe file is written any more
 
-    nonzero = scripted(
-        tmp_path, ("OpnAxioms.lean", (1, "'T.x' depends on axioms: [propext]\n", "error\n"))
-    )
+    answer = '{"ok": true, "decl": "T.x", "axioms": ["propext"]}\n'
+    nonzero = ScriptedToolchain([("opn-axioms", (1, answer, "error\n")), *HEALTHY], bin_dir)
     result = nonzero.axioms(
         tc, "Nodes.«n».Proof", "T.x", [tmp_path / "build"], tmp_path / "scratch"
     )
     assert result.ok is False and result.axioms == frozenset()
 
-    fine = scripted(
-        tmp_path, ("OpnAxioms.lean", (0, "'T.x' depends on axioms: [propext, sorryAx]\n", ""))
+    fine = ScriptedToolchain(
+        [
+            (
+                "opn-axioms",
+                (0, '{"ok": true, "decl": "T.x", "axioms": ["propext", "sorryAx"]}\n', ""),
+            ),
+            *HEALTHY,
+        ],
+        bin_dir,
     )
     result = fine.axioms(tc, "Nodes.«n».Proof", "T.x", [tmp_path / "build"], tmp_path / "scratch")
     assert result.ok is True and result.axioms == frozenset({"propext", "sorryAx"})
+    assert fine.stdins[-1] != lt.stdins[-1]  # a nonce per call
 
 
 def test_metaprograms_need_a_built_package(tmp_path: Path) -> None:
@@ -498,7 +525,8 @@ def test_resolve_with_a_mathlib_pin_puts_its_oleans_on_every_search_path(tmp_pat
     lt.kernel_replay(tc, ["Nodes.«n».Proof"], [build], fresh=True)
     assert lt.calls[-1][2] == {"LEAN_PATH": expected}
     lt.axioms(tc, "Nodes.«n».Proof", "t", [build], tmp_path / "scratch")
-    assert lt.calls[-1][2] == {"LEAN_PATH": expected}
+    env = lt.calls[-1][2]  # opn-axioms since F02-T11: a metaprogram, so the sysroot too
+    assert env is not None and env["LEAN_PATH"] == expected
     req = toolchain.WitnessRequest(tmp_path / "S.lean", "Nodes.«n».Statement", "T.x")
     lt.witness_type(tc, req, [build])
     env = lt.calls[-1][2]

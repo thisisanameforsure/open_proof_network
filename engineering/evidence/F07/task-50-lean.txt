@@ -1,0 +1,72 @@
+F07-T50 lean tier, 2026-10-01, local toolchain leanprover/lean4:v4.33.1 (the release zip linked into elan); Lean core only, no Mathlib.
+
+First real-toolchain run (before the fix): 4 of 6 failed, every carried witness refused with
+  witness-elaboration: "statement does not elaborate", line 6 column 52: "expected token"
+The staged child's statement imports its own Context; with the node's build first on LEAN_PATH
+Lean looked for Nodes.<child>.Context in the first root that has a Nodes directory and nowhere
+else, so the import failed and the statement lost its notations. Reproduced by hand:
+  LEAN_PATH=work/build:work/holes/build:<lib>  opn-witness-type ... -> {"error":"statement does not elaborate",...}
+  LEAN_PATH=work/holes/build:<lib>             opn-witness-type ... -> {"ok":true,"expected":"∃ p q r, (p ∧ q) ∧ r",...}
+Fixed by putting the staged build first (a child's statement imports no node but itself).
+A second run then failed 3 of 6 on the test's own string comparison: step 7 prints the expected
+type with ppExpr's defaults, the extractor prints the form that reads back. Types equal; the
+assertions were restated.
+
+$ uv run --frozen pytest gate/tests/test_finding_partial_carries_witnesses_lean.py -m lean -q -rA
+PASSED gate/tests/test_finding_partial_carries_witnesses_lean.py::test_the_precheck_states_each_holes_witness_type
+PASSED gate/tests/test_finding_partial_carries_witnesses_lean.py::test_a_skeleton_carrying_every_witness_leaves_every_hole_ready
+PASSED gate/tests/test_finding_partial_carries_witnesses_lean.py::test_a_carried_witness_of_the_wrong_type_refuses_the_partial
+PASSED gate/tests/test_finding_partial_carries_witnesses_lean.py::test_a_carried_witness_resting_on_an_axiom_refuses_the_partial
+PASSED gate/tests/test_finding_partial_carries_witnesses_lean.py::test_a_carried_witness_that_does_not_elaborate_refuses_the_partial
+PASSED gate/tests/test_finding_partial_carries_witnesses_lean.py::test_a_narrowed_witness_is_carried_as_it_would_be_proposed
+6 passed in 448.44s (0:07:28)
+
+Regression over the suites that share the seams (step 7, the extractor, admission, pregate), after the test helper was split into prepare/submit:
+$ uv run --frozen pytest gate/tests/test_finding_partial_carries_witnesses_lean.py gate/tests/test_finding_witness_proved_haves_lean.py gate/tests/test_finding_hole_inherits_lean.py gate/tests/test_finding_hole_roundtrip_lean.py gate/tests/test_artifacts_lean.py gate/tests/test_admit_lean.py gate/tests/test_pregate_lean.py -m lean -q -rA
+PASSED gate/tests/test_finding_partial_carries_witnesses_lean.py::test_the_precheck_states_each_holes_witness_type
+PASSED gate/tests/test_finding_partial_carries_witnesses_lean.py::test_a_skeleton_carrying_every_witness_leaves_every_hole_ready
+PASSED gate/tests/test_finding_partial_carries_witnesses_lean.py::test_a_carried_witness_of_the_wrong_type_refuses_the_partial
+PASSED gate/tests/test_finding_partial_carries_witnesses_lean.py::test_a_carried_witness_resting_on_an_axiom_refuses_the_partial
+PASSED gate/tests/test_finding_partial_carries_witnesses_lean.py::test_a_carried_witness_that_does_not_elaborate_refuses_the_partial
+PASSED gate/tests/test_finding_partial_carries_witnesses_lean.py::test_a_narrowed_witness_is_carried_as_it_would_be_proposed
+PASSED gate/tests/test_finding_witness_proved_haves_lean.py::test_a_hole_after_a_proved_have_asks_only_for_the_unproved_hypotheses
+PASSED gate/tests/test_finding_witness_proved_haves_lean.py::test_a_hole_after_a_hole_still_asks_for_that_hole
+PASSED gate/tests/test_finding_witness_proved_haves_lean.py::test_the_statement_text_and_hash_are_unchanged
+PASSED gate/tests/test_finding_witness_proved_haves_lean.py::test_an_old_hole_with_no_record_keeps_todays_expected_type
+PASSED gate/tests/test_finding_witness_proved_haves_lean.py::test_the_fast_check_asks_the_same_narrowed_type
+PASSED gate/tests/test_finding_witness_proved_haves_lean.py::test_a_case_branch_is_an_obligation_and_an_obtained_value_is_given
+PASSED gate/tests/test_finding_hole_inherits_lean.py::test_a_hole_is_closed_over_the_holes_it_mentions[h3]
+PASSED gate/tests/test_finding_hole_inherits_lean.py::test_a_hole_is_closed_over_the_holes_it_mentions[h4]
+PASSED gate/tests/test_finding_hole_inherits_lean.py::test_a_hole_is_closed_over_the_holes_it_mentions[h5]
+PASSED gate/tests/test_finding_hole_inherits_lean.py::test_a_hole_is_closed_over_the_holes_it_mentions[h6]
+PASSED gate/tests/test_finding_hole_inherits_lean.py::test_the_witness_and_the_proved_indices_follow_the_closed_type[h3]
+PASSED gate/tests/test_finding_hole_inherits_lean.py::test_the_witness_and_the_proved_indices_follow_the_closed_type[h4]
+PASSED gate/tests/test_finding_hole_inherits_lean.py::test_the_witness_and_the_proved_indices_follow_the_closed_type[h5]
+PASSED gate/tests/test_finding_hole_inherits_lean.py::test_the_witness_and_the_proved_indices_follow_the_closed_type[h6]
+PASSED gate/tests/test_finding_hole_inherits_lean.py::test_the_statement_binders_are_always_kept
+PASSED gate/tests/test_finding_hole_roundtrip_lean.py::test_a_holes_printed_type_reads_back
+PASSED gate/tests/test_artifacts_lean.py::test_artifact_types_golden
+PASSED gate/tests/test_artifacts_lean.py::test_the_golden_says_what_the_rules_say
+PASSED gate/tests/test_admit_lean.py::test_admission_matrix[good]
+PASSED gate/tests/test_admit_lean.py::test_admission_matrix[bad-statement]
+PASSED gate/tests/test_admit_lean.py::test_admission_matrix[bad-witness]
+PASSED gate/tests/test_admit_lean.py::test_admission_matrix[hazard]
+PASSED gate/tests/test_admit_lean.py::test_admission_matrix[variant-resolves]
+PASSED gate/tests/test_admit_lean.py::test_admission_matrix[variant-backwards]
+PASSED gate/tests/test_admit_lean.py::test_admission_matrix[variant-related]
+PASSED gate/tests/test_admit_lean.py::test_a_proposal_redeclaring_an_existing_nodes_theorem_is_refused
+PASSED gate/tests/test_admit_lean.py::test_the_relation_direction_is_the_claim
+PASSED gate/tests/test_pregate_lean.py::test_tutorial_node_passes
+PASSED gate/tests/test_pregate_lean.py::test_sorry_fails_step5
+PASSED gate/tests/test_pregate_lean.py::test_extra_axiom_fails_step5
+PASSED gate/tests/test_pregate_lean.py::test_extra_axiom_declared_fails_step5
+PASSED gate/tests/test_pregate_lean.py::test_ssh_signature_verifies
+PASSED gate/tests/test_pregate_lean.py::test_root_with_deps_passes_all_steps
+PASSED gate/tests/test_pregate_lean.py::test_undeclared_dep_fails_step8
+PASSED gate/tests/test_pregate_lean.py::test_wrong_witness_fails_step7
+PASSED gate/tests/test_pregate_lean.py::test_hazard_ack_roundtrip
+PASSED gate/tests/test_pregate_lean.py::test_hazards_command
+PASSED gate/tests/test_pregate_lean.py::test_unused_dep_warns_and_context_mismatch_fails
+44 passed in 1745.30s (0:29:05)
+
+Docker tier: gate/tests/test_finding_partial_carries_witnesses_docker.py (2 tests) collected, not run: no docker daemon in this container. Pending CI.

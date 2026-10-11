@@ -1,0 +1,51 @@
+F24-T5 red run (seam in: routes registered answering 501 not-built; materialise absent; GET /session without awaiting)
+uv run pytest -q -p no:cacheprovider api/tests/test_panel_routes.py gate/tests/test_panel.py -k 'panel_routes or voters'
+FAILED api/tests/test_panel_routes.py::test_a_member_opens_an_invitation_that_the_gate_tallies
+FAILED api/tests/test_panel_routes.py::test_a_motion_copies_the_policy_settings
+FAILED api/tests/test_panel_routes.py::test_a_curator_may_open_a_motion - Ass...
+FAILED api/tests/test_panel_routes.py::test_a_non_member_may_not_open_a_motion
+FAILED api/tests/test_panel_routes.py::test_an_invitee_already_on_the_panel_is_refused
+FAILED api/tests/test_panel_routes.py::test_a_second_open_invitation_for_one_login_is_refused
+FAILED api/tests/test_panel_routes.py::test_a_verify_motion_must_name_a_write_up
+FAILED api/tests/test_panel_routes.py::test_a_malformed_motion_is_400[body0]
+FAILED api/tests/test_panel_routes.py::test_a_malformed_motion_is_400[body1]
+FAILED api/tests/test_panel_routes.py::test_a_malformed_motion_is_400[body2]
+FAILED api/tests/test_panel_routes.py::test_a_malformed_motion_is_400[body3]
+FAILED api/tests/test_panel_routes.py::test_a_members_vote_is_counted - KeyEr...
+FAILED api/tests/test_panel_routes.py::test_a_non_member_may_not_vote - KeyEr...
+FAILED api/tests/test_panel_routes.py::test_an_unknown_motion_is_refused - As...
+FAILED api/tests/test_panel_routes.py::test_a_decided_motion_takes_no_vote - ...
+FAILED api/tests/test_panel_routes.py::test_a_closed_window_takes_no_vote - K...
+FAILED api/tests/test_panel_routes.py::test_a_malformed_vote_is_400[body0] - ...
+FAILED api/tests/test_panel_routes.py::test_a_malformed_vote_is_400[body1] - ...
+FAILED api/tests/test_panel_routes.py::test_anyone_records_and_an_authors_signature_moves_the_stage
+FAILED api/tests/test_panel_routes.py::test_a_non_author_may_not_act_on_a_write_up
+FAILED api/tests/test_panel_routes.py::test_an_author_signs_once - KeyError: ...
+FAILED api/tests/test_panel_routes.py::test_an_act_must_name_a_record - Asser...
+FAILED api/tests/test_panel_routes.py::test_a_malformed_writeup_is_400[body0]
+FAILED api/tests/test_panel_routes.py::test_a_malformed_writeup_is_400[body1]
+FAILED api/tests/test_panel_routes.py::test_a_malformed_writeup_is_400[body2]
+FAILED api/tests/test_panel_routes.py::test_a_malformed_writeup_is_400[body3]
+FAILED api/tests/test_panel_routes.py::test_an_invited_commitment_is_a_v3_record_the_gate_admits
+FAILED api/tests/test_panel_routes.py::test_self_is_refused_when_the_target_has_a_panel
+FAILED api/tests/test_panel_routes.py::test_a_motion_that_is_not_carols_passed_invitation_is_refused
+FAILED api/tests/test_panel_routes.py::test_the_cap_is_refused_before_anything_opens
+FAILED api/tests/test_panel_routes.py::test_a_step_down_takes_no_motion - Ass...
+FAILED api/tests/test_panel_routes.py::test_nothing_waits_on_a_quiet_graph - ...
+FAILED api/tests/test_panel_routes.py::test_an_invitation_waits_for_its_invitee_until_accepted
+FAILED api/tests/test_panel_routes.py::test_an_open_motion_waits_for_each_member_until_they_vote
+FAILED api/tests/test_panel_routes.py::test_a_provers_uncounted_vote_does_not_wait
+FAILED api/tests/test_panel_routes.py::test_the_materialised_tree_holds_what_the_rules_read
+36 failed, 3 passed, 26 deselected, 2 warnings in 7.81s
+
+F24-T5 green run (same selection)
+39 passed, 26 deselected, 2 warnings in 12.46s
+
+Regression: the api and gate files this task touches or that test routes, session, stewards, bijection, codes
+uv run pytest -q api/tests/test_panel_routes.py api/tests/test_stewards_route.py api/tests/test_session_roles.py api/tests/test_routes.py api/tests/test_mcp_bijection.py api/tests/test_mcp_surface.py api/tests/test_finding_unknown_fields.py api/tests/test_finding_error_catalog.py api/tests/test_web_session.py api/tests/test_approvals_route.py api/tests/test_finding_route_index.py api/tests/test_finding_messages_name_real_routes.py gate/tests/test_panel.py gate/tests/test_error_codes.py gate/tests/test_catalog.py
+206 passed, 2 warnings in 60.17s (0:01:00)
+
+make lint: exit 0; make types: exit 0
+
+Note: gate/tests/test_panel.py::test_voters_names_the_counted_and_the_uncounted_provers was written with
+the panel.voters helper it tests (a new public accessor over _who_counts); it passed in the red run too.

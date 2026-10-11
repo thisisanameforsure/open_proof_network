@@ -1,0 +1,32 @@
+F04-T28 — the /cache/* behaviour gets security headers; the site CSP closes base-uri and form-action
+(audit 2026-10-04, finding D)
+
+Proposed ledger line (F04 §10 Tasks):
+  T28 ✓ (audit 2026-10-04: CacheResponseHeaders on /cache/*, CSP "default-src 'none'; sandbox",
+  nosniff, DENY, HSTS; the pages' CSP gains base-uri 'none'; form-action 'none'; not deployed)
+
+Proposed F04-Q30 (number to be assigned at merge):
+  The olean cache path (F10-R7) was the one behaviour on the distribution with no response
+  headers policy. It serves binary build products only, so it gets its own policy that forbids
+  every fetch and sandboxes the response (default-src 'none'; sandbox), with nosniff, frame DENY,
+  no-referrer and HSTS as the pages have. The pages' CSP gains base-uri 'none' and form-action
+  'none', which default-src does not cover; the site renders no <form> and no <base> (grep of
+  site/opn_site). F04 §7's policy string must be updated to the new one at merge (spec HTML is the
+  lead's): "default-src 'none'; style-src 'self'; script-src 'self'; img-src 'self';
+  font-src 'self'; base-uri 'none'; form-action 'none'". site/tools/check_deploy.py's CSP follows,
+  so a check_deploy run against the live site reports a CSP mismatch until the owner applies the
+  site stack change; apply first, then check. Applying: a change set on the site stack, as the api
+  README describes (UsePreviousValue for every existing parameter, read, then execute); expect Add
+  CacheResponseHeaders and Modify ResponseHeaders and Distribution, no Replacement.
+  test_finding_csp_fonts.served_policy restated: it took "the template's one CSP" and now takes the
+  one CSP besides the cache behaviour's, which it asserts is present exactly once.
+
+---- red (before the template change) ----
+E       AssertionError: the /cache/* behaviour serves with no security headers
+E       assert None is not None
+E       KeyError: 'ResponseHeadersPolicyId'
+E       assert None == ["'none'"]
+3 failed in 0.12s
+
+---- green (cache headers + csp fonts) ----
+8 passed in 0.80s

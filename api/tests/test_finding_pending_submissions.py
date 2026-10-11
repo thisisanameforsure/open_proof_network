@@ -31,6 +31,7 @@ from typing import Any
 import pytest
 import samples
 from api_fakes import (
+    AUTOMATION,
     PROOF_PREFIX,
     TUTORIAL_NODE,
     TUTORIAL_PROOF,
@@ -93,6 +94,7 @@ def submit_proof(
             "artifact_type": "proof",
             "bundle": {f"{PROOF_PREFIX}{node}/Proof.lean": TUTORIAL_PROOF},
             "precheck_job_id": job["id"],
+            "automation": AUTOMATION,
         },
         headers=h.auth(token),
     )
@@ -105,7 +107,11 @@ def submit_proof(
 def submit_annex(h: Harness, token: str) -> dict[str, Any]:
     r = h.client.post(
         "/annexes",
-        json={"node_id": TUTORIAL_NODE, "text": "Both conjuncts are already in hand.\n"},
+        json={
+            "node_id": TUTORIAL_NODE,
+            "text": "Both conjuncts are already in hand.\n",
+            "licence": "CC-BY-4.0",
+        },
         headers=h.auth(token),
     )
     assert r.status_code == 201, r.text  # guard
@@ -137,11 +143,15 @@ def lookups(h: Harness) -> int:
 
 
 def age_pull_cache(h: Harness) -> None:
-    """``test_frontier.force_stale`` for the pull-request cache: every entry in
-    ``Context.pulls`` was fetched a window and a second ago, on the monotonic clock."""
-    window = h.settings.frontier_max_stale_s
+    """``test_frontier.force_stale`` for the host's cached views: every entry in
+    ``Context.pulls``, and the open listing, was fetched a window and a second ago, on the
+    monotonic clock."""
+    window = h.settings.pull_max_stale_s
     for entry in getattr(h.context, "pulls", {}).values():
         entry.fetched_at = time.monotonic() - (window + 1)
+    listing = getattr(h.context, "open_pulls", None)  # F07-T47: the queue's listing, too
+    if listing is not None:
+        listing.fetched_at = time.monotonic() - (h.settings.pull_listing_max_stale_s + 1)
 
 
 def json_of(r: Any) -> dict[str, Any]:
@@ -355,15 +365,18 @@ def test_the_pull_request_state_is_cached_and_survives_a_host_failure(
     assert hasattr(harness.githost, "pr_lookup_failure"), "FakeGitHost.pr_lookup_failure"
     harness.githost.pr_lookup_failure = "GET /repos/.../pulls/1 returned 502"
     served = get_submission(harness, "1")
-    assert served["pull_request"] == fresh["pull_request"], "the last good state is served"
+    # F07-T47: the last good state is served, and says so
+    assert served["pull_request"] == {**fresh["pull_request"], "stale": True}
     assert isinstance(served["pull_request_error"], str) and served["pull_request_error"]
 
 
 def test_submissions_json_lists_open_work_and_drops_the_merged(
     harness: Harness, key: PrecheckKey
 ) -> None:
-    """``{snapshot_at, open: [...]}``: every open record, each the ``submission`` document
-    ``GET /submissions/{id}`` carries; a submission a live read found merged is gone."""
+    """``{snapshot_at, open: [...], host, queue}``: every open record, each the ``submission``
+    document ``GET /submissions/{id}`` carries plus its place in the merge queue (F05-T18); a
+    submission a live read found merged is gone. ``host`` says when the queue was reconciled
+    against the host (F07-T47)."""
     set_state = state_setter(harness)
     token = harness.token_for("code_alice", "alice")
     proof = submit_proof(harness, key, token)
@@ -374,7 +387,7 @@ def test_submissions_json_lists_open_work_and_drops_the_merged(
     r = harness.client.get("/submissions.json")
     assert r.status_code == 200, f"GET /submissions.json: {r.status_code} {r.text}"
     snapshot = json_of(r)
-    assert set(snapshot) == {"snapshot_at", "open"}, sorted(snapshot)
+    assert set(snapshot) == {"snapshot_at", "open", "host", "queue"}, sorted(snapshot)
     assert snapshot["snapshot_at"] == clockmod.render(harness.clock.now())
     assert sorted(e["pr_number"] for e in snapshot["open"]) == [1, 2]
     assert {e["id"] for e in snapshot["open"]} == {proof["submission_id"], annex["id"]}
@@ -385,7 +398,9 @@ def test_submissions_json_lists_open_work_and_drops_the_merged(
 
     after = json_of(harness.client.get("/submissions.json"))
     assert [e["pr_number"] for e in after["open"]] == [2]
-    assert after["open"][0] == get_submission(harness, "2")["submission"]
+    # F05-T18: an entry is the per-id document and, beside it, its ``queue``
+    entry = {k: v for k, v in after["open"][0].items() if k != "queue"}
+    assert entry == get_submission(harness, "2")["submission"]
 
 
 # --- F09-T7: the MCP side -------------------------------------------------------------------------

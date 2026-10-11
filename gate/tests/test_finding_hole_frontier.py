@@ -17,9 +17,12 @@ being ``blocked``, was excluded.
 
 The witness *is* the work: ``POST /proposals/witness`` accepts exactly a hole whose cause is
 ``witness-missing`` (``hole_awaiting_witness``), and refuses a witness carrying a ``sorry``. So
-such a hole is both listable and claimable — the owner's call, 2026-09-16. A node blocked on an
-unproved dependency stays off the frontier, because nothing about it can be worked yet; that is
-the distinction ``blocked_because`` already draws and this fix reuses rather than re-derives.
+such a hole is listable — the owner's call, 2026-09-16 (F03-Q11). It was claimable too until
+F03-T16 (``frontier/v4``, audit 2026-10-04): a claim reserves a proof, every claim on such a hole
+was answered ``409 node-blocked``, and the entry now says ``needs: witness`` instead. A node
+blocked on an unproved dependency stays off the frontier, because nothing about it can be worked
+yet; that is the distinction ``blocked_because`` already draws and this fix reuses rather than
+re-derives.
 """
 
 from __future__ import annotations
@@ -99,9 +102,10 @@ def test_a_hole_blocked_on_an_unproved_dependency_is_not(tmp_path: Path) -> None
     assert not products.in_frontier("blocked", waiting, status_of(tg))
 
 
-def test_a_witness_missing_hole_is_claimable(tmp_path: Path) -> None:
-    """Owner's call 2026-09-16: the witness is the work and ``propose_witness`` takes it, so a
-    claim on such a hole can be worked — unlike a claim on a node waiting for a dependency."""
+def test_a_witness_missing_hole_is_listed_as_needing_a_witness(tmp_path: Path) -> None:
+    """Owner's call 2026-09-16 (Q11): the witness is the work and ``propose_witness`` takes it.
+    Restated by F03-T16: the entry says ``needs: witness`` and is not ``claimable``, because a
+    claim reserves a proof and the claim route answered ``409 node-blocked`` on such a hole."""
     root = copy_graph(tmp_path, publish=True)
     tg = graph.load_target(root, TARGET)
     hole = hole_of(tg)
@@ -117,9 +121,13 @@ def test_a_witness_missing_hole_is_claimable(tmp_path: Path) -> None:
             tags=[],
         )
 
-    assert entry(hole)["claimable"] is True
-    # The target's own refusal still governs: an unclaimable target keeps its holes unclaimable.
-    assert entry(hole, target_claimable=False)["claimable"] is False
+    listed = entry(hole)
+    assert (listed["claimable"], listed["needs"], listed["cause"]) == (
+        False,
+        "witness",
+        graph.CAUSE_WITNESS_MISSING,
+    )
+    assert entry(hole, target_claimable=False)["needs"] == "witness"
     # And a node blocked on a dependency is listed-or-not by R5, never claimable.
     assert entry(hole_of(tg, deps=(ROOT_NODE,)))["claimable"] is False
 
@@ -197,8 +205,8 @@ def write_hole(
 
 
 def test_the_generated_frontier_carries_the_hole(tmp_path: Path) -> None:
-    """End to end over a tree: the product the gate renders lists the hole and marks it
-    claimable, which is what ``list_frontier`` and the site read."""
+    """End to end over a tree: the product the gate renders lists the hole and says it needs a
+    witness (F03-T16: not claimable), which is what ``list_frontier`` and the site read."""
     root = copy_graph(tmp_path, publish=True)
     write_hole(root, witness=STUB_WITNESS)
     tg = graph.load_target(root, TARGET)
@@ -210,7 +218,8 @@ def test_the_generated_frontier_carries_the_hole(tmp_path: Path) -> None:
     entries = {e["node_id"]: e for e in doc["entries"]}
     assert HOLE in entries, f"the hole is not on the frontier: {sorted(entries)}"
     assert entries[HOLE]["origin"] == "skeleton-hole"
-    assert entries[HOLE]["claimable"] is True
+    assert entries[HOLE]["claimable"] is False
+    assert entries[HOLE]["needs"] == "witness"
     schemas.validate(doc, products.FRONTIER_SCHEMA)
 
 

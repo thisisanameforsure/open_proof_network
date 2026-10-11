@@ -1,0 +1,110 @@
+F07-T52, 2026-10-01T23:11:09Z
+$ uv run --frozen pytest gate/tests/test_finding_guide_carried_witnesses.py gate/tests/test_walkthrough.py -q -rA
+line   38 passed   test -d "$GRAPH/targets"
+line   57 passed   META="$(grep -l '^tutorial: true' "$GRAPH"/targets/*/nodes/*/META.yaml
+line   79 passed   cat "$NODE_DIR/Statement.lean"
+line   91 passed   python3 - "$NODE_DIR" <<'PY'
+line  138 passed   BUNDLE_PATH="targets/$TARGET/nodes/$NODE/Proof.lean"
+line  159 passed   STATE=queued
+line  174 passed   python3 - "$WORK/precheck-result.json" <<'PY'
+line  252 passed   python3 - "$NODE_DIR/Proof.lean" "$TARGET" "$NODE" <<'PY' > "$WORK/che
+line  316 passed   curl -fsS "$OPN_API/frontier.json" > "$WORK/frontier.json"
+line  340 passed   CLAIM_NODE="$(python3 - "$WORK/frontier.json" <<'PY'
+line  368 passed   DCO_VERSION="$(curl -fsS "$OPN_API/dco.json" | python3 -c 'import json
+line  389 passed   curl -fsS -X POST "$OPN_API/claims" -H "Authorization: Bearer $TOKEN" 
+line  427 passed   python3 - "$GRAPH/targets/index.json" <<'PY'
+line  460 passed   ls -p "$NODE_DIR" | LC_ALL=C sort
+line  490 passed   PYTHONPATH="$NETWORK/gate" uv run --frozen --project "$NETWORK" python
+line  548 passed   python3 - "$GRAPH/targets/$TARGET/gate-spec.json" <<'PY'
+line  591 passed   curl -s -o /dev/null -w '%{http_code} %{redirect_url}\n' "$OPN_API/aut
+line  608 passed   curl -fsS -X POST "$OPN_API/precheck" -H "Authorization: Bearer $TOKEN
+line  632 passed   python3 - "$WORK/precheck-request.json" "$OWNED_JOB" <<'PY' > "$WORK/s
+line  681 passed   SUBMISSION_ID="$(python3 -c 'import json,sys; print(json.load(sys.stdi
+line  714 passed   BRANCH="proof/$NODE-$PSEUDONYM"
+line  731 passed   PYTHONPATH="$NETWORK/gate" uv run --frozen --project "$NETWORK" python
+line  744 passed   ATTESTATION="$WORK/attestation.json"
+line  803 passed   cat > "$WORK/postmortem.yaml" <<'YAML'
+line  856 passed   python3 - "$WORK/postmortem.yaml" "$NODE" <<'PY' > "$WORK/postmortem-r
+line  966 passed   python3 - "$NODE" <<'PY' > "$WORK/annex-request.json"
+line 1149 passed   curl -sS -X POST "$OPN_API/submissions" -H "Authorization: Bearer $TOK
+line 1226 passed   python3 - "$TARGET" "$NODE" <<'PY' > "$WORK/proposal.json"
+line 1254 passed   python3 - "$GRAPH/targets/index.json" <<'PY'
+line 1276 passed   ssh-keygen -q -t ed25519 -N "" -f "$WORK/steward-key" -C "steward"
+line 1300 passed   python3 - "$NODE_DIR" <<'PY' > "$WORK/explainer-hash"
+line 1322 passed   PYTHONPATH="$NETWORK/gate" uv run --frozen --project "$NETWORK" python
+line 1346 passed   curl -fsS "$OPN_API/info.json" | python3 -c '
+line 1363 passed   curl -fsS -X DELETE "$OPN_API/claims/$CLAIM_ID" -H "Authorization: Bea
+34 passed, 0 drifted, 0 failed, 3 skipped
+line   38 passed   test -d "$GRAPH/targets"
+line   57 passed   META="$(grep -l '^tutorial: true' "$GRAPH"/targets/*/nodes/*/META.yaml
+line   79 passed   cat "$NODE_DIR/Statement.lean"
+line   91 passed   python3 - "$NODE_DIR" <<'PY'
+line  114 passed   OUT="$WORK/pregate"  [lean]
+line  138 passed   BUNDLE_PATH="targets/$TARGET/nodes/$NODE/Proof.lean"
+line  159 passed   STATE=queued
+line  174 passed   python3 - "$WORK/precheck-result.json" <<'PY'
+line  252 passed   python3 - "$NODE_DIR/Proof.lean" "$TARGET" "$NODE" <<'PY' > "$WORK/che
+line  316 passed   curl -fsS "$OPN_API/frontier.json" > "$WORK/frontier.json"
+line  340 passed   CLAIM_NODE="$(python3 - "$WORK/frontier.json" <<'PY'
+line  368 passed   DCO_VERSION="$(curl -fsS "$OPN_API/dco.json" | python3 -c 'import json
+line  389 passed   curl -fsS -X POST "$OPN_API/claims" -H "Authorization: Bearer $TOKEN" 
+line  427 passed   python3 - "$GRAPH/targets/index.json" <<'PY'
+line  460 passed   ls -p "$NODE_DIR" | LC_ALL=C sort
+line  490 passed   PYTHONPATH="$NETWORK/gate" uv run --frozen --project "$NETWORK" python
+line  548 passed   python3 - "$GRAPH/targets/$TARGET/gate-spec.json" <<'PY'
+line  591 passed   curl -s -o /dev/null -w '%{http_code} %{redirect_url}\n' "$OPN_API/aut
+line  608 passed   curl -fsS -X POST "$OPN_API/precheck" -H "Authorization: Bearer $TOKEN
+line  632 passed   python3 - "$WORK/precheck-request.json" "$OWNED_JOB" <<'PY' > "$WORK/s
+line  681 passed   SUBMISSION_ID="$(python3 -c 'import json,sys; print(json.load(sys.stdi
+line  714 passed   BRANCH="proof/$NODE-$PSEUDONYM"
+line  731 passed   PYTHONPATH="$NETWORK/gate" uv run --frozen --project "$NETWORK" python
+line  744 passed   ATTESTATION="$WORK/attestation.json"
+line  803 passed   cat > "$WORK/postmortem.yaml" <<'YAML'
+line  856 passed   python3 - "$WORK/postmortem.yaml" "$NODE" <<'PY' > "$WORK/postmortem-r
+line  966 passed   python3 - "$NODE" <<'PY' > "$WORK/annex-request.json"
+line 1149 passed   curl -sS -X POST "$OPN_API/submissions" -H "Authorization: Bearer $TOK
+line 1226 passed   python3 - "$TARGET" "$NODE" <<'PY' > "$WORK/proposal.json"
+line 1254 passed   python3 - "$GRAPH/targets/index.json" <<'PY'
+line 1276 passed   ssh-keygen -q -t ed25519 -N "" -f "$WORK/steward-key" -C "steward"
+line 1300 passed   python3 - "$NODE_DIR" <<'PY' > "$WORK/explainer-hash"
+line 1322 passed   PYTHONPATH="$NETWORK/gate" uv run --frozen --project "$NETWORK" python
+line 1346 passed   curl -fsS "$OPN_API/info.json" | python3 -c '
+line 1363 passed   curl -fsS -X DELETE "$OPN_API/claims/$CLAIM_ID" -H "Authorization: Bea
+35 passed, 0 drifted, 0 failed, 2 skipped
+PASSED gate/tests/test_finding_guide_carried_witnesses.py::test_the_guide_says[a failure refuses the whole partial]
+PASSED gate/tests/test_finding_guide_carried_witnesses.py::test_the_guide_says[a file the gate has no place for]
+PASSED gate/tests/test_finding_guide_carried_witnesses.py::test_the_guide_says[a hole without a file is as before]
+PASSED gate/tests/test_finding_guide_carried_witnesses.py::test_the_guide_says[the after-merge section knows]
+PASSED gate/tests/test_finding_guide_carried_witnesses.py::test_the_guide_says[the file name, built from the assembly's]
+PASSED gate/tests/test_finding_guide_carried_witnesses.py::test_the_guide_says[the hole is born ready]
+PASSED gate/tests/test_finding_guide_carried_witnesses.py::test_the_guide_says[the marker that names the hole]
+PASSED gate/tests/test_finding_guide_carried_witnesses.py::test_the_guide_says[the old pin]
+PASSED gate/tests/test_finding_guide_carried_witnesses.py::test_the_guide_says[the own-Context import is left out]
+PASSED gate/tests/test_finding_guide_carried_witnesses.py::test_the_guide_says[the permitted-paths row]
+PASSED gate/tests/test_finding_guide_carried_witnesses.py::test_the_guide_says[the unknown-hole code]
+PASSED gate/tests/test_finding_guide_carried_witnesses.py::test_the_guide_says[what the old pin's precheck says]
+PASSED gate/tests/test_finding_guide_carried_witnesses.py::test_the_guide_says[what the second precheck says]
+PASSED gate/tests/test_finding_guide_carried_witnesses.py::test_the_guide_says[where the type comes from]
+PASSED gate/tests/test_finding_guide_carried_witnesses.py::test_the_section_sits_between_the_skeleton_and_its_holes
+PASSED gate/tests/test_finding_guide_carried_witnesses.py::test_the_example_witness_is_one_the_grammar_reads
+PASSED gate/tests/test_finding_guide_carried_witnesses.py::test_every_refusal_the_guide_names_is_one_the_gate_gives
+PASSED gate/tests/test_walkthrough.py::test_required_sections
+PASSED gate/tests/test_walkthrough.py::test_manual_blocks_are_the_known_two
+PASSED gate/tests/test_walkthrough.py::test_fast_check_section
+PASSED gate/tests/test_walkthrough.py::test_agents_md_executes
+PASSED gate/tests/test_walkthrough.py::test_agents_md_executes_with_toolchain
+FAILED gate/tests/test_walkthrough.py::test_graph_copy_is_identical - Asserti...
+1 failed, 22 passed, 2 warnings in 289.35s (0:04:49)
+
+The one failure is test_graph_copy_is_identical: the sibling graph checkout's copy of AGENTS.md
+differs from this repo's, as it does on untouched main in this container (it is skipped in CI,
+where no sibling is checked out). The graph's copy is recopied by the owner after the merge (D-35).
+
+Red first: the guide test was written against the guide before its section existed (the first
+agent's run, not captured before its interruption); re-shown here by running it against main's guide:
+17 failed in 0.20s
+
+Lean tier, the worked file (leanprover/lean4:v4.33.1, local):
+$ uv run --frozen pytest gate/tests/test_finding_partial_carries_witnesses_lean.py -m lean -q -rA
+PASSED gate/tests/test_finding_partial_carries_witnesses_lean.py::test_the_guides_worked_file_is_a_carried_witness
+12 passed in 887.95s (0:14:47)

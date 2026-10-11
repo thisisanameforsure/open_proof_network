@@ -17,6 +17,12 @@ paid retroactively on demonstrated reuse, which is not a thing this module can s
 tutorial node is off-ledger entirely (D-27): it is the proof-of-work that mints an identity, and
 paying for it would make identity creation itself a credit farm.
 
+F21 adds a third line, ``write-up``: a gloss or explainer version earns it for its author when a
+steward or curator's signature on it merges (D-19 v3.31) — once per version, never for the signer,
+never for a draft. A steward's or curator's own version signed by them earns once too, as their
+written work, and the signature nothing beyond it (D-3 v3.33). The version itself earns nothing
+(R4).
+
 The ledger is derived from merges that already happened, so it is rebuildable from the graph and
 is never a second source of truth (D-35). Every function here is pure: the post-merge job hands
 in what merged, and gets back the entry to append.
@@ -30,7 +36,9 @@ from typing import Any, Literal
 
 from opn_gate import schemas
 
-SCHEMA = "ledger/v1"
+SCHEMA = "ledger/v2"  # v2 (F25-R3, D-23 v3.37): automation on every entry
+#: Every ledger version read (D-34); a v1 file is lifted to v2 in memory (null automation).
+ACCEPTED_SCHEMAS: tuple[str, ...] = ("ledger/v1", "ledger/v2")
 LEDGER_DIR = "ledger"
 UNDECLARED = "undeclared"  # R13: what a hand-opened pull request's tooling is recorded as
 Line = Literal["statement", "proof", "review", "attempts", "upstreaming", "write-up"]
@@ -39,18 +47,24 @@ Line = Literal["statement", "proof", "review", "attempts", "upstreaming", "write
 PROOF_ARTIFACTS: tuple[str, ...] = ("proof", "counterexample", "vacuity", "partial", "reduction")
 #: F07-R12, T15: the one line each classified mode's merge can earn, ``None`` for nothing at
 #: merge. ``append`` earns only for a postmortem (D-13; an annex earns nothing, D-31), and an
-#: alternate proof is credited at write-up, not when it merges (D-25 v3.13).
+#: alternate proof is credited at write-up, not when it merges (D-25 v3.13). ``explainer`` earns
+#: only on a *signature* (F21-R3, D-19 v3.31): the version's author, never the signer, once per
+#: version (a self-signed version by a steward or curator earns once, as written work, D-3
+#: v3.33); the gloss or explainer itself and a draft earn nothing (R4).
 MERGE_LINES: dict[str, Line | None] = {
     "proof": "proof",
     "partial": "proof",
     "alternate": None,
     "append": "attempts",
-    "explainer": None,
+    "explainer": "write-up",
     "proposal": "statement",
     "curator": None,
     "intake": None,
     "fidelity": None,
     "steward": None,  # F15-R8's sibling rule: a commitment is a stake, not an artifact (D-32)
+    "proposed-for": None,  # F18-R8: a pointer, not an artifact (D-14 v3.26)
+    "registration": "upstreaming",  # F25-T4 (D-19 v3.37): the registering curator's line
+    "display-name": None,  # F25-T4: a name is a label on an identity, not an artifact
 }
 #: D-21, F11 §7: the curator of a target earns no proof credit on it. They chose the statement,
 #: its decomposition and its difficulty, so a proof of one of its nodes is not a result they
@@ -72,6 +86,8 @@ class Entry:
     tooling: str = UNDECLARED
     route_class: str | None = None
     status: str = "active"
+    #: F25-R3 (D-23 v3.37): the structured disclosure the attestation carried, or None.
+    automation: dict[str, Any] | None = None
 
     def as_dict(self) -> dict[str, Any]:
         doc: dict[str, Any] = {
@@ -83,6 +99,7 @@ class Entry:
             "date": self.date,
             "tooling": self.tooling or UNDECLARED,
             "status": self.status,
+            "automation": self.automation,
         }
         if self.route_class is not None:
             doc["route_class"] = self.route_class
@@ -99,7 +116,32 @@ def load(graph_root: Path, identity: str) -> dict[str, Any]:
     path = ledger_path(graph_root, identity)
     if not path.is_file():
         return {"schema": SCHEMA, "identity": identity, "entries": []}
-    return schemas.load_json(path, SCHEMA)
+    return read(path)
+
+
+def read(path: Path) -> dict[str, Any]:
+    """One ledger file of any accepted version, validated against the version it declares and
+    lifted to the current one (F25-R3). A file declaring no accepted version is refused with
+    the current schema's violations, so the message still names a ledger schema."""
+    doc = schemas.load_json(path)
+    declared = doc.get("schema") if isinstance(doc, dict) else None
+    if declared not in ACCEPTED_SCHEMAS:
+        schemas.validate(doc, SCHEMA)  # raises, naming the current version and every gap
+    assert isinstance(doc, dict)
+    schemas.validate(doc, str(declared))
+    return lift(doc)
+
+
+def lift(doc: dict[str, Any]) -> dict[str, Any]:
+    """A ledger of any accepted version as v2 (F25-R3): a v1 entry gains ``automation: null``
+    — nothing it recorded is changed, and the file is rewritten as v2 only when it next gains a
+    line (``write``)."""
+    if doc.get("schema") == SCHEMA:
+        return doc
+    out = dict(doc)
+    out["schema"] = SCHEMA
+    out["entries"] = [{**e, "automation": e.get("automation")} for e in entries_of(doc)]
+    return out
 
 
 def entries_of(doc: dict[str, Any]) -> list[dict[str, Any]]:
@@ -178,8 +220,11 @@ def proof_entry(  # noqa: PLR0913 — one argument per fact the entry records
     tooling: str = UNDECLARED,
     tutorial: bool = False,
     curator: str | None = None,
+    automation: dict[str, Any] | None = None,
 ) -> Entry | None:
     """R12: the proof line for a merged D-12 artifact, or ``None`` when it earns nothing.
+    ``automation`` is F25-R3's structured disclosure as the merge's attestation carried it
+    (``merge_automation``), or ``None``.
 
     ``tutorial`` is the one exclusion that is not about the artifact: D-27's node is how an
     identity is minted, so paying for it would make minting an identity a way to be paid.
@@ -199,6 +244,7 @@ def proof_entry(  # noqa: PLR0913 — one argument per fact the entry records
         merge_commit=merge_commit,
         date=date,
         tooling=tooling,
+        automation=automation,
     )
 
 
@@ -214,8 +260,11 @@ def postmortem_entry(  # noqa: PLR0913 — the ledger, plus one argument per fac
     date: str,
     tooling: str = UNDECLARED,
     tutorial: bool = False,
+    automation: dict[str, Any] | None = None,
 ) -> Entry | None:
-    """R12, D-13: the attempts line, first per route class on that node, never for the tutorial."""
+    """R12, D-13: the attempts line, first per route class on that node, never for the tutorial.
+    ``automation`` as ``proof_entry`` takes it; an append has no attestation, so it is null
+    unless a later record supplies one (F25-R3)."""
     if tutorial or not earns_attempts(doc, node, route_class):
         return None
     return Entry(
@@ -227,6 +276,7 @@ def postmortem_entry(  # noqa: PLR0913 — the ledger, plus one argument per fac
         date=date,
         tooling=tooling,
         route_class=route_class,
+        automation=automation,
     )
 
 
@@ -264,6 +314,121 @@ def statement_entry(  # noqa: PLR0913 — one argument per fact the entry record
     )
 
 
+def writeup_holder(graph_root: Path, *, target: str, node: str, artifact: str) -> str | None:
+    """F21-R3, Q3: the identity holding an active write-up entry for ``artifact``, or ``None``.
+
+    Asked of every ledger, not only the author's: a credit correction (F07-T66) may have moved
+    the line to someone else, and the version is still credited once. A revoked entry does not
+    count (D-18 keeps it, and the line is no longer held)."""
+    for identity, entries in contributions(graph_root).items():
+        for e in entries:
+            if (
+                e.get("line") == "write-up"
+                and e.get("target") == target
+                and e.get("node") == node
+                and e.get("artifact") == artifact
+                and e.get("status") == "active"
+            ):
+                return identity
+    return None
+
+
+def writeup_entry(  # noqa: PLR0913 — one argument per fact the entry records
+    *,
+    author: str | None,
+    signer_names: frozenset[str],
+    target: str,
+    node: str,
+    artifact: str,
+    merge_commit: str,
+    date: str,
+    tooling: str = UNDECLARED,
+    held_by: str | None = None,
+) -> tuple[Entry | None, str]:
+    """F21-R3 (D-19 v3.31): the write-up line a signature on a gloss or explainer version earns
+    its author, with the reason; ``(None, why)`` when it earns nothing.
+
+    Nothing for a draft (no author), or when the version is already credited (``held_by``, from
+    ``writeup_holder``): credit is per version, once (Q3). The signer is never credited for
+    signing: D-19 credits work, not review. D-3 v3.33: a steward or curator may sign their own
+    version (``signer_names`` is the signer's login with any pseudonym ``curators.json`` pairs it
+    with), and it then earns once, as the author's written work — the signature itself earns
+    nothing beyond that, so v3.31's "a signature on one's own version earns nothing" stands."""
+    if author is None:
+        return None, f"{artifact} is a draft with no author, so its signature credits nobody (R3)"
+    if held_by is not None:
+        return None, f"{artifact} is already credited to {held_by}: once per version (Q3)"
+    if author in signer_names:
+        why = (
+            f"{author} wrote {artifact} and signed it as a steward or curator: it earns once, as "
+            "written work, and the signature nothing beyond that (D-3 v3.33, D-19)"
+        )
+    else:
+        why = f"{author} wrote {artifact}, and a signature approved it (R3, D-19 v3.31)"
+    entry = Entry(
+        line="write-up",
+        target=target,
+        node=node,
+        artifact=artifact,
+        merge_commit=merge_commit,
+        date=date,
+        tooling=tooling,
+    )
+    return entry, why
+
+
+def registration_entry(  # noqa: PLR0913 — one argument per fact the entry records
+    *,
+    identity: str,
+    target: str,
+    node: str,
+    artifact: str,
+    merge_commit: str,
+    date: str,
+) -> Entry:
+    """F25 (D-19 v3.37): the upstreaming line a merged registration record earns the curator or
+    steward who registered the target in a public registry; ``artifact`` is the record's path
+    under the target (``registrations/<date>-<n>.yaml``), ``node`` the registered proof's. A
+    curator's act, so D-21's bar on the proof line does not reach it, and no model took part."""
+    return Entry(
+        line="upstreaming",
+        target=target,
+        node=node,
+        artifact=artifact,
+        merge_commit=merge_commit,
+        date=date,
+        tooling=UNDECLARED,
+        automation=None,
+    )
+
+
+def statement_tooling(meta: dict[str, Any]) -> str:
+    """The tooling a merged proposal's statement line records (D-23, R13; F07-T49): the model
+    its proposer declared, which the scaffold wrote into ``META.yaml`` as ``provenance.model``.
+    A proposal has no attestation, so ``merge_tooling`` cannot read it; the record is the META.
+    ``undeclared`` when the proposer declared nothing."""
+    provenance = meta.get("provenance") or {}
+    model = provenance.get("model") if isinstance(provenance, dict) else None
+    return str(model) if isinstance(model, str) and model.strip() else UNDECLARED
+
+
+def merge_automation(graph_root: Path, merge_commit: str) -> dict[str, Any] | None:
+    """F25-R3: the ``automation`` block the post-merge job attested for ``merge_commit``
+    (attestation/v7), or ``None`` for an older or undeclared one; read as ``merge_tooling`` is."""
+    directory = graph_root / "attestations"
+    if not directory.is_dir():
+        return None
+    for path in sorted(directory.glob("*.json")):
+        try:
+            doc = schemas.load_json(path)
+        except schemas.SchemaError:
+            continue
+        if isinstance(doc, dict) and doc.get("merge_commit") == merge_commit:
+            declared = doc.get("automation")
+            return dict(declared) if isinstance(declared, dict) else None
+    return None
+
+
 def merge_tooling(graph_root: Path, merge_commit: str) -> str:
     """The ``model_and_tooling`` the post-merge job attested for ``merge_commit`` (R13, T14), or
     ``undeclared``. Read from the committed attestations rather than passed as a flag, because the
@@ -291,6 +456,67 @@ def record(graph_root: Path, identity: str, entry: Entry | None) -> Path | None:
     return write(graph_root, append(load(graph_root, identity), entry))
 
 
+CORRECTION_SCHEMA = "credit-correction/v1"
+#: The fields of a ledger/v1 entry that identify its line (F07-T66); ``route_class`` too, where the
+#: entry has one, since two attempts lines on one node and merge differ only in it (D-13).
+LINE_KEY: tuple[str, ...] = ("line", "node", "artifact", "merge_commit")
+
+
+def names_entry(correction: dict[str, Any], entry: dict[str, Any], *, target: str) -> bool:
+    """Whether ``entry`` is the ledger line ``correction`` names on ``target``."""
+    return (
+        entry.get("target") == target
+        and all(entry.get(k) == correction.get(k) for k in LINE_KEY)
+        and entry.get("route_class") == correction.get("route_class")
+    )
+
+
+def corrected_entry(graph_root: Path, correction: dict[str, Any], *, target: str) -> bool:
+    """Whether ``correction``'s ``from`` holds the line it names, active (what a curator's pull
+    request is checked for before it merges, F07-T66)."""
+    return any(
+        names_entry(correction, e, target=target) and e.get("status") == "active"
+        for e in entries_of(load(graph_root, str(correction["from"])))
+    )
+
+
+def apply_correction(graph_root: Path, correction: dict[str, Any], *, target: str) -> list[Path]:
+    """F07-T66 (D-18, D-19 v3.27): apply a merged credit correction; the ledgers written.
+
+    The line ``correction`` names is marked ``revoked`` in ``from``'s ledger, and an ``active``
+    copy of it — the original merge, date and tooling, so the record still says when and how the
+    work merged — is appended to ``to``'s (none when ``to`` is null). An entry is never deleted.
+    Idempotent: a line already revoked is left as it is, and ``to`` gains the line only if it
+    does not already hold it active, so a replay of the post-merge job (F07-T33) writes nothing.
+    A correction naming no line ``from`` holds writes nothing: the gate refused it before the
+    merge (``credit-correction-unknown-entry``), and the ledger is no place to guess."""
+    schemas.validate(correction, CORRECTION_SCHEMA)
+    giver = load(graph_root, str(correction["from"]))
+    found = [e for e in entries_of(giver) if names_entry(correction, e, target=target)]
+    if not found:
+        return []
+    written: list[Path] = []
+    if any(e.get("status") == "active" for e in found):
+        out = dict(giver)
+        out["entries"] = [
+            {**e, "status": "revoked"} if names_entry(correction, e, target=target) else e
+            for e in entries_of(giver)
+        ]
+        written.append(write(graph_root, out))
+    receiver = correction.get("to")
+    if isinstance(receiver, str):
+        taker = load(graph_root, receiver)
+        held = any(
+            names_entry(correction, e, target=target) and e.get("status") == "active"
+            for e in entries_of(taker)
+        )
+        if not held:
+            out = dict(taker)
+            out["entries"] = [*entries_of(taker), {**found[0], "status": "active"}]
+            written.append(write(graph_root, out))
+    return written
+
+
 def contributions(graph_root: Path) -> dict[str, list[dict[str, Any]]]:
     """Every identity's entries, for the site's contributors page (D-36, F04).
 
@@ -306,7 +532,7 @@ def contributions(graph_root: Path) -> dict[str, list[dict[str, Any]]]:
     if not directory.is_dir():
         return out
     for path in sorted(p for p in directory.iterdir() if p.suffix == ".json"):
-        doc = schemas.load_json(path, SCHEMA)
+        doc = read(path)
         entries = entries_of(doc)
         if entries:
             out[str(doc["identity"])] = entries

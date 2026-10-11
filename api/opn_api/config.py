@@ -19,20 +19,38 @@ Variables (prefix ``OPN_API_``):
 ``OPN_API_PUBLIC_URL``
     The service's own origin, used for the OAuth redirect URI (R3).
     Default ``http://127.0.0.1:8000`` (the local runner).
+``OPN_API_SITE_ORIGIN``
+    The public site's origin, the one origin ``GET /submissions.json`` answers with
+    ``Access-Control-Allow-Origin`` so a node page can show the words in review (F22-T8).
+    Default: the public URL without its leading ``api.`` label (``https://api.<domain>`` gives
+    ``https://<domain>``), and none for a public URL without one (the local runner); set it to
+    the empty string to send no header at all.
 ``OPN_API_GRAPH_REPO`` / ``OPN_API_GRAPH_BRANCH``
     Where the committed ``frontier.json`` is read from (R7, R9). Defaults: the Stage 0 graph
     under the founder's account, ``main``.
+``OPN_API_GUIDE_URL``
+    The contributor guide's URL, as ``GET /`` and ``info.json`` (``info/v2``'s ``guide_url``,
+    F05-T25) name it. Default: ``AGENTS.md`` in the graph repository at the graph branch, on the
+    graph's host (D-35: contributors clone the graph only).
 ``OPN_API_FRONTIER_MAX_STALE_S``
     How long a fetched ``frontier.json`` is reused before its ETag is rechecked (R9).
     Default ``60``.
 ``OPN_API_WRITES_PER_HOUR`` / ``OPN_API_ACTIVE_CLAIMS`` / ``OPN_API_TOKENS_PER_LOGIN``
     Per-identity limits (R6). Defaults ``120`` / ``20`` / ``1`` (Q2).
+``OPN_API_TOKEN_IDLE_DAYS`` / ``OPN_API_TOKEN_CUTOVER``
+    How many days a write token may go unused before it lapses (D-19 v3.29, F05-T29), default
+    ``180``: a token in use never lapses. And the date (``YYYY-MM-DD``) a token with no recorded
+    use counts its disuse from, default ``2026-10-04`` — set it to the deploy day if that is
+    later, so no token held at the deploy lapses because of it (Q29).
 ``OPN_API_TOKEN_STARTS_PER_DAY``
     Per-source limit on ``GET /auth/github/start`` (R6). Default ``10``.
 ``OPN_API_PRECHECKS_PER_HOUR`` / ``OPN_API_ANONYMOUS_PRECHECKS_PER_DAY``
     Precheck limits per identity and per source address (F06-R8, R2). Defaults ``40`` / ``20``.
 ``OPN_API_PROPOSALS_PER_DAY``
     Node proposals per identity per day (F08 §6; D-29's identity-layer bound). Default ``40``.
+``OPN_API_OPEN_PRS_PER_IDENTITY`` / ``OPN_API_OPEN_PRS_GLOBAL``
+    Pull requests the service may hold open on the graph per pseudonym, and in all (F07-T67).
+    Defaults ``10`` / ``150``, not yet signed off by the owner.
 ``OPN_API_PRECHECK_REPO`` / ``OPN_API_PRECHECK_BRANCH`` / ``OPN_API_PRECHECK_WORKFLOW``
     The scratch repository job branches are pushed to, the branch they are based on, and the
     workflow file dispatched there (F06-R3; D-35). Defaults: the Stage 0 scratch repo under the
@@ -64,16 +82,53 @@ Variables (prefix ``OPN_API_``):
 ``OPN_API_CHECK_CONCURRENCY``
     Checks in flight to the hosted service per process (F13-R8, Q8). Default ``8``, under
     AXLE's ten concurrent keyless requests.
+``OPN_API_PULL_MAX_STALE_S``
+    How long a pull request's live state (``GET /submissions/<id>``) is reused before the host
+    is asked again (F07-T47). Default ``180``: a read is three or four API calls, the queue moves
+    at about three minutes a merge, and at 60 s twenty open pull requests polled by a few agents
+    spent the App's whole hourly budget.
+``OPN_API_PULL_LISTING_MAX_STALE_S``
+    How long the open pull-request listing ``GET /submissions.json`` reconciles the queue against
+    is reused (F07-T47). Default ``60``: it is one call for the whole queue.
+``OPN_API_HOST_BUDGET_RESERVE``
+    The App's remaining hourly calls at or below which the service stops spending the host on
+    unauthenticated reads and serves their cached state as stale (F07-T47), so pollers cannot
+    starve the writes that open and close pull requests. Default ``200``; ``0`` keeps no reserve.
 ``OPN_API_RECONCILE_CONCURRENCY``
     Pull-request lookups ``GET /submissions.json`` makes at once while it reconciles the open
     records against the host (F07-T39, Q47). Default ``8``; each lookup is three or four GitHub API
     calls, and the App's rate budget is per hour, not per second.
+``OPN_API_NETWORK_REPO``
+    Where this repository lives on the host, so a target's pinned ``network_commit`` can be
+    compared with ``OPN_API_USES_FROM`` (F08-T26). Default the Stage 0 network repository.
+``OPN_API_USES_FROM``
+    The network commit from which the gate understands use lines (F08-R21, Q39 option (a)): a
+    target whose ``gate-spec.json`` pins this commit or a descendant of it takes a proof with
+    use lines, and the service then reads them as the gate does. Default empty: no target
+    understands uses, and a use line is ``imports-differ`` everywhere, as before T26.
+``OPN_API_ANNEX_STEPS_FROM``
+    The network commit from which the gate takes a stepped annex (F18-R6, D-31 v3.26:
+    ``annex/v2``'s ``steps``), compared as ``OPN_API_USES_FROM`` is. ``POST /annexes`` writes
+    ``steps`` only for a target whose pin is this commit or a descendant of it, since an older
+    gate refuses an ``annex/v2`` append. Default empty: no target takes steps, and an annex
+    without them is written as ``annex/v1``, as before F18-T5.
 ``OPN_API_GITHUB_APP_ID`` / ``OPN_API_GITHUB_CLIENT_ID``
     The GitHub App's ids (not secret, but issued with the App, so they travel with its secrets).
 ``OPN_API_GITHUB_CLIENT_SECRET`` / ``OPN_API_GITHUB_PRIVATE_KEY``
     **Secret.** The App's OAuth client secret and private key (C8 item 3).
 ``OPN_API_TOKEN_SECRET``
     **Secret.** The salt every stored token hash uses (R4).
+``OPN_API_WEB_SESSION_TTL_S``
+    How long a web session lasts, in seconds (F23-R3, §6). Default ``28800`` (eight hours).
+``OPN_API_STEWARDS_PER_DAY`` / ``OPN_API_APPROVALS_PER_HOUR``
+    ``POST /stewards`` per GitHub login per day and ``POST /approvals`` per login per hour
+    (F23 §6). Defaults ``5`` / ``60``.
+``OPN_API_APPROVAL_SIGNING_KEY``
+    **Secret.** The network's approval key (C8; D-32 v3.33): the OpenSSH ed25519 private key
+    text that signs a steward record or a words approval made through the site, and nothing
+    else. Optional: without it the service runs, and ``POST /stewards`` and ``POST /approvals``
+    answer ``503 approval-key-missing`` (C7). Its public half is derived from it, never
+    configured separately; the graph publishes it as ``keys/approval.pub``.
 """
 
 from __future__ import annotations
@@ -81,7 +136,9 @@ from __future__ import annotations
 import os
 from collections.abc import Mapping
 from dataclasses import dataclass, field, fields
+from datetime import date
 from typing import Any, Literal
+from urllib.parse import urlsplit
 
 StoreKind = Literal["memory", "dynamodb"]
 
@@ -89,6 +146,32 @@ DEFAULT_PARAMETER_PREFIX = "/opn/api/"
 DEFAULT_PUBLIC_URL = "http://127.0.0.1:8000"
 DEFAULT_GRAPH_REPO = "thisisanameforsure/open_proof_network_graph"
 DEFAULT_GRAPH_BRANCH = "main"
+#: The web host of the graph repository (the host the ``GitHost`` seam talks to, not this
+#: deployment's own hostname, which only configuration names).
+GRAPH_HOST_WEB = "https://github.com"
+GUIDE_FILE = "AGENTS.md"
+
+
+def default_site_origin(public_url: str) -> str | None:
+    """F22-T8: the site's origin as the domain configuration implies it — the service answers on
+    ``api.<domain>`` and the site on ``<domain>`` — so no hostname is written here (log
+    2026-09-09). ``None`` when the public URL's host has no ``api.`` label."""
+    parts = urlsplit(public_url)
+    host = parts.hostname or ""
+    if not parts.scheme or not host.startswith("api.") or len(host) <= len("api."):
+        return None
+    port = f":{parts.port}" if parts.port else ""
+    return f"{parts.scheme}://{host.removeprefix('api.')}{port}"
+
+
+def default_guide_url(graph_repo: str, graph_branch: str) -> str:
+    """The guide in the graph repository, the one place every contributor reads (D-35)."""
+    return f"{GRAPH_HOST_WEB}/{graph_repo}/blob/{graph_branch}/{GUIDE_FILE}"
+
+
+DEFAULT_NETWORK_REPO = "thisisanameforsure/open_proof_network"  # F08-T26
+DEFAULT_USES_FROM = ""  # F08-T26: no target understands uses until a commit is named
+DEFAULT_ANNEX_STEPS_FROM = ""  # F18-T5: no target takes a stepped annex until a commit is named
 DEFAULT_FRONTIER_MAX_STALE_S = 60
 DEFAULT_WRITES_PER_HOUR = 120
 DEFAULT_ACTIVE_CLAIMS = 20
@@ -97,6 +180,8 @@ DEFAULT_TOKEN_STARTS_PER_DAY = 10
 DEFAULT_PRECHECKS_PER_HOUR = 40
 DEFAULT_ANONYMOUS_PRECHECKS_PER_DAY = 20
 DEFAULT_PROPOSALS_PER_DAY = 40  # F08 §6
+DEFAULT_OPEN_PRS_PER_IDENTITY = 10  # F07-T67; awaiting the owner's sign-off
+DEFAULT_OPEN_PRS_GLOBAL = 150  # F07-T67; awaiting the owner's sign-off
 DEFAULT_PRECHECK_REPO = "thisisanameforsure/open_proof_network_precheck"
 DEFAULT_PRECHECK_BRANCH = "main"
 DEFAULT_PRECHECK_WORKFLOW = "precheck.yml"
@@ -117,6 +202,30 @@ DEFAULT_ANONYMOUS_CHECKS_PER_DAY = 200  # F13-R8
 DEFAULT_CHECK_MAX_BYTES = 200_000  # F13-R7
 DEFAULT_CHECK_CONCURRENCY = 8  # F13-R8, Q8
 DEFAULT_RECONCILE_CONCURRENCY = 8  # F07-T39, Q47
+DEFAULT_PULL_MAX_STALE_S = 180  # F07-T47
+DEFAULT_PULL_LISTING_MAX_STALE_S = 60  # F07-T47
+DEFAULT_HOST_BUDGET_RESERVE = 200  # F07-T47
+
+# --- audit 2026-10-04: reads that spend the host or the store (F07-T68, F05-T20) ---------------
+#: OPN_API_PRECHECK_POLL_MIN_S: the least time between two host reads made by polls of one
+#: running precheck job (``GET /precheck/<id>``); a poll inside it answers the record as it is.
+DEFAULT_PRECHECK_POLL_MIN_S = 10  # F07-T68
+#: OPN_API_VERDICT_RETRY_S: how long a failed read of a refused pull request's gate verdict is
+#: remembered before the host is asked again (F07-T68).
+DEFAULT_VERDICT_RETRY_S = 60  # F07-T68
+#: OPN_API_CLAIMS_MAX_STALE_S: how long the claims registry (``/frontier.json``,
+#: ``/claims.json``) is reused before the claims table is scanned again; a claim or a release
+#: through this process invalidates it at once (F05-T20).
+DEFAULT_CLAIMS_MAX_STALE_S = 30  # F05-T20
+
+# --- write tokens lapse after long disuse (F05-T29; D-19 v3.29, Q29) -------------------------
+#: OPN_API_TOKEN_IDLE_DAYS: how many days a write token may go unused before it lapses. Every
+#: authenticated use refreshes it (one store write a day at most), so a token in use never lapses.
+DEFAULT_TOKEN_IDLE_DAYS = 180
+#: OPN_API_TOKEN_CUTOVER: the date (YYYY-MM-DD, UTC midnight) a token with no recorded use counts
+#: its disuse from (or its own issue, if later), so a token held when use began to be recorded
+#: gets a full window from the deploy rather than lapsing at once. Set it to the deploy day.
+DEFAULT_TOKEN_CUTOVER = "2026-10-04"  # noqa: S105 — a date, not a secret
 
 # Parameter Store name (under the prefix) -> the variable it populates (C8 item 3).
 PARAMETERS: dict[str, str] = {
@@ -125,8 +234,15 @@ PARAMETERS: dict[str, str] = {
     "github-client-secret": "OPN_API_GITHUB_CLIENT_SECRET",
     "github-private-key": "OPN_API_GITHUB_PRIVATE_KEY",
     "token-secret": "OPN_API_TOKEN_SECRET",
+    "approval-signing-key": "OPN_API_APPROVAL_SIGNING_KEY",  # F23 (C8): optional
 }
 SECRET_FIELDS: tuple[str, ...] = ("github_client_secret", "github_private_key", "token_secret")
+#: Secrets the service runs without (F23): never shown, but not in ``missing()`` — a route that
+#: needs one refuses by name instead (C7).
+OPTIONAL_SECRET_FIELDS: tuple[str, ...] = ("approval_signing_key",)
+DEFAULT_WEB_SESSION_TTL_S = 8 * 3600  # F23-R3
+DEFAULT_STEWARDS_PER_DAY = 5  # F23 §6
+DEFAULT_APPROVALS_PER_HOUR = 60  # F23 §6
 TABLE_FIELDS: tuple[str, ...] = ("table_identities", "table_tokens", "table_claims")
 
 
@@ -146,6 +262,9 @@ class Settings:
     public_url: str = DEFAULT_PUBLIC_URL
     graph_repo: str = DEFAULT_GRAPH_REPO
     graph_branch: str = DEFAULT_GRAPH_BRANCH
+    network_repo: str = DEFAULT_NETWORK_REPO
+    uses_from: str = DEFAULT_USES_FROM
+    annex_steps_from: str = DEFAULT_ANNEX_STEPS_FROM
     frontier_max_stale_s: int = DEFAULT_FRONTIER_MAX_STALE_S
     writes_per_hour: int = DEFAULT_WRITES_PER_HOUR
     active_claims: int = DEFAULT_ACTIVE_CLAIMS
@@ -154,6 +273,8 @@ class Settings:
     prechecks_per_hour: int = DEFAULT_PRECHECKS_PER_HOUR
     anonymous_prechecks_per_day: int = DEFAULT_ANONYMOUS_PRECHECKS_PER_DAY
     proposals_per_day: int = DEFAULT_PROPOSALS_PER_DAY
+    open_prs_per_identity: int = DEFAULT_OPEN_PRS_PER_IDENTITY
+    open_prs_global: int = DEFAULT_OPEN_PRS_GLOBAL
     precheck_repo: str = DEFAULT_PRECHECK_REPO
     precheck_branch: str = DEFAULT_PRECHECK_BRANCH
     precheck_workflow: str = DEFAULT_PRECHECK_WORKFLOW
@@ -172,17 +293,37 @@ class Settings:
     check_max_bytes: int = DEFAULT_CHECK_MAX_BYTES
     check_concurrency: int = DEFAULT_CHECK_CONCURRENCY
     reconcile_concurrency: int = DEFAULT_RECONCILE_CONCURRENCY
+    pull_max_stale_s: int = DEFAULT_PULL_MAX_STALE_S
+    pull_listing_max_stale_s: int = DEFAULT_PULL_LISTING_MAX_STALE_S
+    host_budget_reserve: int = DEFAULT_HOST_BUDGET_RESERVE
     github_app_id: str | None = None
     github_client_id: str | None = None
     github_client_secret: str | None = field(default=None, repr=False)
     github_private_key: str | None = field(default=None, repr=False)
     token_secret: str | None = field(default=None, repr=False)
+    # --- audit 2026-10-04 (F07-T68, F05-T20) ---
+    precheck_poll_min_s: int = DEFAULT_PRECHECK_POLL_MIN_S
+    verdict_retry_s: int = DEFAULT_VERDICT_RETRY_S
+    claims_max_stale_s: int = DEFAULT_CLAIMS_MAX_STALE_S
+    # --- audit 2026-10-04 (F05-T25) ---
+    guide_url: str = default_guide_url(DEFAULT_GRAPH_REPO, DEFAULT_GRAPH_BRANCH)
+    # --- audit 2026-10-04 (F05-T27) ---
+    token_idle_days: int = DEFAULT_TOKEN_IDLE_DAYS
+    token_cutover: str = DEFAULT_TOKEN_CUTOVER
+    # --- F22-T8 ---
+    site_origin: str | None = None
+    # --- F23 ---
+    web_session_ttl_s: int = DEFAULT_WEB_SESSION_TTL_S
+    stewards_per_day: int = DEFAULT_STEWARDS_PER_DAY
+    approvals_per_hour: int = DEFAULT_APPROVALS_PER_HOUR
+    approval_signing_key: str | None = field(default=None, repr=False)
 
     def __repr__(self) -> str:  # secrets never appear in a repr or a log (C8)
         parts = []
         for f in fields(self):
             value = getattr(self, f.name)
-            shown = ("<set>" if value else None) if f.name in SECRET_FIELDS else repr(value)
+            hidden = f.name in SECRET_FIELDS or f.name in OPTIONAL_SECRET_FIELDS
+            shown = ("<set>" if value else None) if hidden else repr(value)
             parts.append(f"{f.name}={shown}")
         return "Settings(" + ", ".join(parts) + ")"
 
@@ -208,6 +349,8 @@ class Settings:
             "prechecks_per_hour": self.prechecks_per_hour,
             "anonymous_prechecks_per_address_per_day": self.anonymous_prechecks_per_day,
             "proposals_per_day": self.proposals_per_day,
+            "open_pull_requests_per_identity": self.open_prs_per_identity,
+            "open_pull_requests_global": self.open_prs_global,
             "claim_ttl_hours": {"min": self.claim_ttl_min_h, "max": self.claim_ttl_max_h},
         }
 
@@ -227,6 +370,44 @@ def _int(env: Mapping[str, str], name: str, default: int) -> int:
         msg = f"{name} must be positive, got {value}"
         raise ConfigError(msg)
     return value
+
+
+def _date(env: Mapping[str, str], name: str, default: str) -> str:
+    """A calendar date, ``YYYY-MM-DD``, refused at load time if it is not one (C7)."""
+    raw = env.get(name, default).strip()
+    try:
+        date.fromisoformat(raw)
+    except ValueError as exc:
+        msg = f"{name} must be a date YYYY-MM-DD, got {raw!r}"
+        raise ConfigError(msg) from exc
+    if len(raw) != len("2026-10-04"):
+        msg = f"{name} must be a date YYYY-MM-DD, got {raw!r}"
+        raise ConfigError(msg)
+    return raw
+
+
+def _count(env: Mapping[str, str], name: str, default: int) -> int:
+    """``_int`` for a value that may be zero (a reserve of none)."""
+    raw = env.get(name, str(default))
+    try:
+        value = int(raw)
+    except ValueError as exc:
+        msg = f"{name} must be an integer, got {raw!r}"
+        raise ConfigError(msg) from exc
+    if value < 0:
+        msg = f"{name} must not be negative, got {value}"
+        raise ConfigError(msg)
+    return value
+
+
+def _commit(env: Mapping[str, str], name: str) -> str:
+    """A full commit id, or empty when unset (F08-T26). A short or malformed id is refused at
+    load time: compared by ancestry, it would silently match nothing (C7)."""
+    raw = env.get(name, "").strip().lower()
+    if raw and (len(raw) != 40 or any(c not in "0123456789abcdef" for c in raw)):
+        msg = f"{name} must be a full 40-character commit id, got {raw!r}"
+        raise ConfigError(msg)
+    return raw
 
 
 def load(environ: Mapping[str, str] | None = None) -> Settings:
@@ -251,15 +432,24 @@ def load(environ: Mapping[str, str] | None = None) -> Settings:
     if ttl_min > ttl_max:
         msg = f"OPN_API_CLAIM_TTL_MIN_H ({ttl_min}) exceeds OPN_API_CLAIM_TTL_MAX_H ({ttl_max})"
         raise ConfigError(msg)
+    public_url = env.get("OPN_API_PUBLIC_URL", DEFAULT_PUBLIC_URL).rstrip("/")
     return Settings(
         store=store,
         table_identities=env.get("OPN_API_TABLE_IDENTITIES") or None,
         table_tokens=env.get("OPN_API_TABLE_TOKENS") or None,
         table_claims=env.get("OPN_API_TABLE_CLAIMS") or None,
         parameter_prefix=env.get("OPN_API_PARAMETER_PREFIX", DEFAULT_PARAMETER_PREFIX),
-        public_url=env.get("OPN_API_PUBLIC_URL", DEFAULT_PUBLIC_URL).rstrip("/"),
+        public_url=public_url,
+        site_origin=(
+            (env["OPN_API_SITE_ORIGIN"].rstrip("/") or None)
+            if "OPN_API_SITE_ORIGIN" in env
+            else default_site_origin(public_url)
+        ),
         graph_repo=env.get("OPN_API_GRAPH_REPO", DEFAULT_GRAPH_REPO),
         graph_branch=env.get("OPN_API_GRAPH_BRANCH", DEFAULT_GRAPH_BRANCH),
+        network_repo=env.get("OPN_API_NETWORK_REPO", DEFAULT_NETWORK_REPO),
+        uses_from=_commit(env, "OPN_API_USES_FROM"),
+        annex_steps_from=_commit(env, "OPN_API_ANNEX_STEPS_FROM"),
         frontier_max_stale_s=_int(
             env, "OPN_API_FRONTIER_MAX_STALE_S", DEFAULT_FRONTIER_MAX_STALE_S
         ),
@@ -274,6 +464,10 @@ def load(environ: Mapping[str, str] | None = None) -> Settings:
             env, "OPN_API_ANONYMOUS_PRECHECKS_PER_DAY", DEFAULT_ANONYMOUS_PRECHECKS_PER_DAY
         ),
         proposals_per_day=_int(env, "OPN_API_PROPOSALS_PER_DAY", DEFAULT_PROPOSALS_PER_DAY),
+        open_prs_per_identity=_int(
+            env, "OPN_API_OPEN_PRS_PER_IDENTITY", DEFAULT_OPEN_PRS_PER_IDENTITY
+        ),
+        open_prs_global=_int(env, "OPN_API_OPEN_PRS_GLOBAL", DEFAULT_OPEN_PRS_GLOBAL),
         precheck_repo=env.get("OPN_API_PRECHECK_REPO", DEFAULT_PRECHECK_REPO),
         precheck_branch=env.get("OPN_API_PRECHECK_BRANCH", DEFAULT_PRECHECK_BRANCH),
         precheck_workflow=env.get("OPN_API_PRECHECK_WORKFLOW", DEFAULT_PRECHECK_WORKFLOW),
@@ -296,11 +490,36 @@ def load(environ: Mapping[str, str] | None = None) -> Settings:
         reconcile_concurrency=_int(
             env, "OPN_API_RECONCILE_CONCURRENCY", DEFAULT_RECONCILE_CONCURRENCY
         ),
+        pull_max_stale_s=_int(env, "OPN_API_PULL_MAX_STALE_S", DEFAULT_PULL_MAX_STALE_S),
+        pull_listing_max_stale_s=_int(
+            env, "OPN_API_PULL_LISTING_MAX_STALE_S", DEFAULT_PULL_LISTING_MAX_STALE_S
+        ),
+        host_budget_reserve=_count(env, "OPN_API_HOST_BUDGET_RESERVE", DEFAULT_HOST_BUDGET_RESERVE),
         github_app_id=env.get("OPN_API_GITHUB_APP_ID") or None,
         github_client_id=env.get("OPN_API_GITHUB_CLIENT_ID") or None,
         github_client_secret=env.get("OPN_API_GITHUB_CLIENT_SECRET") or None,
         github_private_key=env.get("OPN_API_GITHUB_PRIVATE_KEY") or None,
         token_secret=env.get("OPN_API_TOKEN_SECRET") or None,
+        # --- F23 ---
+        web_session_ttl_s=_int(env, "OPN_API_WEB_SESSION_TTL_S", DEFAULT_WEB_SESSION_TTL_S),
+        stewards_per_day=_int(env, "OPN_API_STEWARDS_PER_DAY", DEFAULT_STEWARDS_PER_DAY),
+        approvals_per_hour=_int(env, "OPN_API_APPROVALS_PER_HOUR", DEFAULT_APPROVALS_PER_HOUR),
+        approval_signing_key=env.get("OPN_API_APPROVAL_SIGNING_KEY") or None,
+        # --- audit 2026-10-04 (F07-T68, F05-T20) ---
+        precheck_poll_min_s=_count(env, "OPN_API_PRECHECK_POLL_MIN_S", DEFAULT_PRECHECK_POLL_MIN_S),
+        verdict_retry_s=_count(env, "OPN_API_VERDICT_RETRY_S", DEFAULT_VERDICT_RETRY_S),
+        claims_max_stale_s=_count(env, "OPN_API_CLAIMS_MAX_STALE_S", DEFAULT_CLAIMS_MAX_STALE_S),
+        # --- D-19 v3.29 (F05-T29) ---
+        token_idle_days=_int(env, "OPN_API_TOKEN_IDLE_DAYS", DEFAULT_TOKEN_IDLE_DAYS),
+        token_cutover=_date(env, "OPN_API_TOKEN_CUTOVER", DEFAULT_TOKEN_CUTOVER),
+        # --- audit 2026-10-04 (F05-T25) ---
+        guide_url=(
+            env.get("OPN_API_GUIDE_URL", "").strip()
+            or default_guide_url(
+                env.get("OPN_API_GRAPH_REPO", DEFAULT_GRAPH_REPO),
+                env.get("OPN_API_GRAPH_BRANCH", DEFAULT_GRAPH_BRANCH),
+            )
+        ),
     )
 
 

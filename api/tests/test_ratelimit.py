@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from api_fakes import Harness, make_harness
+from starlette.testclient import TestClient
 
 CLAIM = {"node_id": "and-reassoc"}
 
@@ -37,20 +38,26 @@ def test_limit_is_per_identity() -> None:
 
 
 def test_token_starts_limited_per_source() -> None:
-    """R6: unauthenticated starts are limited per address per day."""
+    """R6: unauthenticated starts are limited per address per day. The address is the peer
+    (on Lambda, the HTTP API event's ``sourceIp``), never ``X-Forwarded-For``, whose first hop
+    the caller writes (F05-T19; restated from the header-first rule)."""
     h = make_harness({"OPN_API_TOKEN_STARTS_PER_DAY": "2"})
+    source = TestClient(h.app, client=("203.0.113.7", 40000))
     headers = {"X-Forwarded-For": "203.0.113.7, 10.0.0.1"}
     for _ in range(2):
-        r = h.client.get("/auth/github/start", headers=headers, follow_redirects=False)
+        r = source.get("/auth/github/start", headers=headers, follow_redirects=False)
         assert r.status_code == 302
-    over = h.client.get("/auth/github/start", headers=headers, follow_redirects=False)
+    over = source.get("/auth/github/start", headers=headers, follow_redirects=False)
     assert over.status_code == 429
     assert int(over.headers["retry-after"]) > 0
-    # A different source is unaffected.
-    other = h.client.get(
+    # A different hop in the header is not a different source.
+    forged = source.get(
         "/auth/github/start", headers={"X-Forwarded-For": "198.51.100.2"}, follow_redirects=False
     )
-    assert other.status_code == 302
+    assert forged.status_code == 429
+    # A different peer is unaffected.
+    other = TestClient(h.app, client=("198.51.100.2", 40000))
+    assert other.get("/auth/github/start", follow_redirects=False).status_code == 302
 
 
 def test_reads_are_not_write_limited(harness: Harness) -> None:

@@ -1,0 +1,167 @@
+F07-T58 — a merge counts as recorded only if some gate commit names it (audit 2026-10-04)
+==========================================================================================
+
+Graph branch: audit-b-workflows (graph worktree opn-audit-graph), commit c9e2c9a27, .github/workflows/gate.yml only.
+Not pushed; the lead opens the graph pull request.
+
+Finding. postmerge_batch.py's uncredited() stopped at the first gate commit that was not a replay and
+assumed it credited every merge before it. Three gate commits do not: a T55 catch-up (rebuild() lays
+the record on main as it is, on top of merges it does not credit), a single run's own commit, and the
+case an append's run relies on when it exits at "a later pull request merged on main" (T45) expecting
+the later run to record it. So: bot(1), #2 building, #3 append, #2's catch-up `gate: #2` on top of #3,
+#4 append -> #4's run recorded #4 only and #3 was lost; and a building merge whose run ended without
+crediting it was never replayed once any later gate commit landed.
+
+Fix. uncredited() reads every gate commit in the walk window (WALK_LIMIT), replays included, and
+returns the merges in the window that none of them names; None only when the window holds no gate
+commit at all. plan()'s in-flight and no-target filters are unchanged. The append exit stays: the
+later run now records the append whatever lands between. run-name: "gate: replay of #N" on a
+workflow_dispatch, the host's own name otherwise (whitespace falls back).
+
+Red tests (written first, run against the job as it stood):
+  test_finding_postmerge_batch.py::test_a_catch_up_commit_credits_only_its_own_merges
+      assert [4] == [3, 4]
+  test_finding_postmerge_batch.py::test_the_run_at_the_head_records_the_append_a_catch_up_walked_over
+      the pr step for #4: batch absent, run=true number=4 (records #4 alone)
+  test_finding_postmerge_catch_up.py::test_a_building_merge_whose_run_ended_uncredited_is_replayed_past_a_later_gate_commit
+      {'replay': ''} != {'replay': '2'}
+
+Restated (kept, assertion and docstring changed):
+  test_finding_postmerge_batch.py::test_a_building_merge_is_never_batched_and_the_others_are_replayed
+      after `gate: #4`, #2's replay has not committed, so #6's plan names "2 5", not "5"; once
+      `gate: #2 pass (replayed)` lands, the next plan batches "5 7". The replay is idempotent.
+
+Measured against the live graph (origin/main 7f207c7fd, read-only): the new uncredited() over the
+400-commit window finds 4 merges no gate commit names — #225, #321, #361, #362 — and all four touched
+no target, so plan() sets them aside. Deploying this replays nothing old.
+
+Risk: a merge whose post-merge run fails for good (a bypass the pinned gate refuses, a two-target
+merge) is now named by every later plan within the window and replayed each time, failing visibly
+each time (C7), where before it was forgotten after the next gate commit.
+
+Proposed Q entry (F07-Q63): "A gate commit credits the merges its subject names and nothing else.
+F07-T55's catch-up made the old rule (the last non-replay gate commit credited everything before it)
+false: it is laid on main on top of merges it does not credit. uncredited() reads every gate commit
+in the walk window, replays included. Measured on the live graph 2026-10-04: the four uncredited
+merges in the window all touched no target."
+
+Proposed ledger line: T58 ✓ 2026-10-04 (audit; red 3 failed on the defect, one test restated; green
+57 passed across the post-merge batch, catch-up, replay and push-race suites; graph branch
+audit-b-workflows c9e2c9a27; engineering/evidence/F07/task-58-audit-2026-10-04.txt; live when the
+graph pull request merges — the helper runs from the graph's own workflow, no re-pin needed).
+
+--- red -------------------------------------------------------------------------------------------
+FFF                                                                      [100%]
+=================================== FAILURES ===================================
+______________ test_a_catch_up_commit_credits_only_its_own_merges ______________
+
+helper = {'__name__': 'postmerge_batch', '__builtins__': {'__name__': 'builtins', '__doc__': "Built-in functions, types, except...pt/homebrew/Cellar/python@3.13/3.13.5/Frameworks/Python.framework/Versions/3.13/lib/python3.13/json/__init__.py'>, ...}
+tmp_path = PosixPath('/Users/mikehiggins/Desktop/repos/opn-audit-b-workflows/.pytest-tmp/test_a_catch_up_commit_credits0')
+
+    def test_a_catch_up_commit_credits_only_its_own_merges(helper: dict[str, Any], tmp_path: Path) -> None:
+        """F07-T58 (audit 2026-10-04): a gate commit credits the merges it names and nothing else.
+    
+        #2 builds; while its run renders, #3 (an append) merges. #2's push is refused, it catches up
+        on main as it now is and pushes ``gate: #2 pass`` *on top of* #3 (F07-T55), crediting #2
+        alone. #3's own run had found #4 already on main and left #3 to #4's run (T45). As the walk
+        stood, #4's run stopped at ``gate: #2`` and took it to have credited everything before it, so
+        #3 was never recorded. A merge counts as recorded only if some gate commit names it."""
+        graph = Graph(tmp_path / "g")
+        graph.merge(2, "submit/p", {"targets/t1/nodes/n/Proof.lean": "theorem x : True := trivial\n"})
+        graph.append(3)
+        graph.bot(2)  # #2's catch-up commit, on top of #3
+        graph.append(4)
+>       assert uncredited(helper, graph) == [3, 4]
+E       assert [4] == [3, 4]
+E         
+E         At index 0 diff: 4 != 3
+E         Right contains one more item: 4
+E         Use -v to get more diff
+
+gate/tests/test_finding_postmerge_batch.py:224: AssertionError
+______ test_the_run_at_the_head_records_the_append_a_catch_up_walked_over ______
+
+gate_doc = {'name': 'gate', True: {'pull_request': {'branches': ['main']}, 'push': {'branches': ['main']}, 'workflow_dispatch': {...merge job to replay', 'required': True, 'type': 'string'}}}}, 'permissions': {}, 'env': {'UV_VERSION': '0.12.10'}, ...}
+tmp_path = PosixPath('/Users/mikehiggins/Desktop/repos/opn-audit-b-workflows/.pytest-tmp/test_the_run_at_the_head_recor0')
+
+    def test_the_run_at_the_head_records_the_append_a_catch_up_walked_over(
+        gate_doc: dict[Any, Any], tmp_path: Path
+    ) -> None:
+        """F07-T58: the same history through the job's own step. #3's run leaves #3 to the later
+        merge's run, as T45 says; that run must then record it."""
+        graph = Graph(tmp_path / "g")
+        two = graph.merge(
+            2, "submit/p", {"targets/t1/nodes/n/Proof.lean": "theorem x : True := trivial\n"}
+        )
+        three = graph.append(3)
+        graph.bot(2)
+        four = graph.append(4)
+        prs = {two: 2, three: 3, four: 4}
+        code, out, said, _calls = run_find_step(gate_doc, graph, tmp_path, three, prs)
+        assert code == 0 and out.get("run") == "false", (out, said)
+        code, out, said, _calls = run_find_step(gate_doc, graph, tmp_path, four, prs)
+        assert code == 0, said
+>       assert out.get("batch") == "true" and out.get("numbers") == "3 4", (out, said)
+E       AssertionError: ({'run': 'true', 'number': '4', 'author': 'bot', 'target': 't1', ...}, 'batch=false
+E         replay=
+E         postmerge: PR #4 by bot; target t1; pin aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+E         ')
+E       assert (None == 'true')
+E        +  where None = <built-in method get of dict object at 0x10b5225c0>('batch')
+E        +    where <built-in method get of dict object at 0x10b5225c0> = {'run': 'true', 'number': '4', 'author': 'bot', 'target': 't1', ...}.get
+
+gate/tests/test_finding_postmerge_batch.py:244: AssertionError
+_ test_a_building_merge_whose_run_ended_uncredited_is_replayed_past_a_later_gate_commit _
+
+gate_doc = {'name': 'gate', True: {'pull_request': {'branches': ['main']}, 'push': {'branches': ['main']}, 'workflow_dispatch': {...merge job to replay', 'required': True, 'type': 'string'}}}}, 'permissions': {}, 'env': {'UV_VERSION': '0.12.10'}, ...}
+tmp_path = PosixPath('/Users/mikehiggins/Desktop/repos/opn-audit-b-workflows/.pytest-tmp/test_a_building_merge_whose_ru0')
+
+    def test_a_building_merge_whose_run_ended_uncredited_is_replayed_past_a_later_gate_commit(
+        gate_doc: dict[Any, Any], tmp_path: Path
+    ) -> None:
+        """F07-T58 (audit 2026-10-04): #2 builds and its run is going when #3 (an append) merges, so
+        #3's run leaves #2 to its own run and records #3 alone (T55). #2's run then ends without a
+        gate commit (lost, as #125 and #145 were). As the walk stood, #4's run stopped at
+        ``gate: #3`` and never saw #2 again; a merge counts as recorded only if a gate commit names
+        it, so #2 is replayed."""
+        helper: dict[str, Any] = {"__name__": "postmerge_batch"}
+        exec(compile(helper_source(gate_doc), "postmerge_batch.py", "exec"), helper)  # noqa: S102
+        graph = Graph(tmp_path / "g")
+        two = graph.merge(
+            2, "submit/p", {"targets/t1/nodes/n/Proof.lean": "theorem x : True := trivial\n"}
+        )
+        three = graph.append(3)
+    
+        def log_of() -> list[tuple[str, int, str]]:
+            rows = []
+            for line in graph.git(
+                "log", "--first-parent", "--format=%H%x09%P%x09%s", "HEAD"
+            ).splitlines():
+                sha, parents, subject = line.split("\t", 2)
+                rows.append((sha, len(parents.split()), subject))
+            return rows
+    
+        def plan(merge: str, own: int, going: set[str]) -> dict[str, str]:
+            got: dict[str, str] = helper["plan"](
+                merge, own, log=log_of(), targets_of=lambda _s: ["t1"], pin_of=lambda _s, _t: PIN_A,
+                in_flight=lambda s: s in going,
+            )  # fmt: skip
+            return got
+    
+        assert plan(three, 3, {two}) == {"batch": "false", "replay": ""}  # #2's run is going
+        graph.bot(3)  # #3 recorded alone
+        four = graph.append(4)
+>       assert plan(four, 4, set()) == {"batch": "false", "replay": "2"}
+E       AssertionError: assert {'batch': 'fa... 'replay': ''} == {'batch': 'fa...'replay': '2'}
+E         
+E         Omitting 1 identical items, use -vv to show
+E         Differing items:
+E         {'replay': ''} != {'replay': '2'}
+E         Use -v to get more diff
+
+gate/tests/test_finding_postmerge_catch_up.py:723: AssertionError
+3 failed, 39 deselected in 4.18s
+
+--- green -----------------------------------------------------------------------------------------
+.........................................................                [100%]
+57 passed in 61.91s (0:01:01)

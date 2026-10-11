@@ -1,0 +1,10 @@
+precheck job 01M3VWN88RKGQFA142TCH1MBFN
+state done verdict pass first failing None
+  1 toolchain pass
+  2 paths pass
+  4 kernel-replay pass
+  5 axioms pass
+  6 hazards pass
+  7 witness pass
+  8 deps pass
+{"submission_id": "01M3VWW7X0XVY86Y3265P01RV0", "pr_url": "https://github.com/thisisanameforsure/open_proof_network_graph/pull/343", "pr_number": 343, "node_id": "spec-7d098d5c", "target_id": "erdos-69", "artifact_type": "proof"}

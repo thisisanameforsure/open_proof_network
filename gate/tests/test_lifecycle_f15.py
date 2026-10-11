@@ -188,7 +188,8 @@ def test_the_whole_life(  # noqa: PLR0915 — one life, walked in order
         key_path=keys[CURATOR], signer=SIGNER,
     )  # fmt: skip
     change = Change("A", signature.relative_to(root).as_posix())
-    assert modes.check(root, modes.classify([change])) == []  # a curator's, accepted
+    # F21-Q18: opened by the curator it names, as a signature must be.
+    assert modes.check(root, modes.classify([change], author=CURATOR)) == []  # a curator's
     render_products(root)
     assert row_of(root, RESOLVED)["digestion"]["state"] == "explained"
     writeup.write(

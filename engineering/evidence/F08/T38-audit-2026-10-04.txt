@@ -1,0 +1,62 @@
+F08-T38 — the gate refuses a disputed record that names no standing claim (D-18 v3.28)
+Branch audit-s-followups, 2026-10-04. Follow-up named in F08-T35's evidence.
+
+Finding: curator mode admitted any schema-valid node-status/v1 record, so a hand-written
+`disputed` record with no `reference` (or one naming a missing, withdrawn, foreign or free-text
+claim) passed the gate. It took the node off the frontier and could never lift when a claim was
+withdrawn (graph.disputed_is_void needs the reference, F08-T32). F08-T35 held only the curator
+command to D-18 v3.28's rule.
+
+Change:
+- modes.check_status_record: outside proposal mode, a node-status record goes to
+  modes.check_dispute_reference, which calls curator.accepted_claim — the command's own rule
+  (CLAIM_REF_RE, records.defect_claims, withdrawn claims refused) — and turns its CuratorError
+  into the new diagnostic `dispute-claim-unnamed`. Any other status (abandoned, D-14) is not
+  asked. curator is imported locally (it pulls in the toolchain steps).
+- codes.py: the `dispute-claim-unnamed` row (gate, no step).
+- No schema change, no new mode, no api change. The live graph carries no disputed record
+  (git grep 'status: disputed' over targets/*/nodes/*/status at the sibling's origin/main: none),
+  so the rule refuses nothing already merged.
+
+Proposed spec Q entry:
+F08-Q49 — The gate holds a disputed record to the command's rule (T38; D-18 v3.28). A `disputed`
+node-status record in a curator pull request must name, in `reference`, a valid defect claim on
+its own node that is on the record and not withdrawn — `defects/<file>` or the claim's path from
+the graph root — or step 2 refuses it with `dispute-claim-unnamed`. The check is
+curator.accepted_claim, the function `opn-gate curator status <node> disputed` already runs
+(F08-T35), so a hand-written record and the command's agree by construction; the claim must
+already be on main, since a defect claim is not a curator-mode file. `abandoned` takes no claim
+and is unaffected; a target's status records are unaffected. Reversal: drop the node-status branch
+in check_status_record and the code row.
+
+Proposed ledger line (F08 Tasks:):
+· T38 ✓ 2026-10-04 (Q49; D-18 v3.28: curator mode refuses a disputed record naming no standing
+claim on its node, `dispute-claim-unnamed`, by curator.accepted_claim; test_dispute_record_names_claim.py
+7 failed red, green 1251 passed across every gate and api test naming disputed, node-status or
+curator; engineering/evidence/F08/T38-audit-2026-10-04.txt)
+
+Command:
+uv run --frozen pytest -q -rs -m "not lean and not docker and not network" gate/tests/test_dispute_record_names_claim.py
+
+=== RED (before the fix) ===
+        """The red case: a hand-written ``disputed`` with no ``reference`` passed the gate."""
+E       AssertionError: assert [] == ['dispute-claim-unnamed']
+E       AssertionError: assert [] == ['dispute-claim-unnamed']
+E       AssertionError: assert [] == ['dispute-claim-unnamed']
+E       AssertionError: assert [] == ['dispute-claim-unnamed']
+E       AssertionError: assert [] == ['dispute-claim-unnamed']
+E       AssertionError: assert [] == ['dispute-claim-unnamed']
+E       KeyError: 'dispute-claim-unnamed'
+FAILED gate/tests/test_dispute_record_names_claim.py::test_a_disputed_record_naming_no_claim_is_refused
+FAILED gate/tests/test_dispute_record_names_claim.py::test_a_disputed_record_naming_no_claim_of_its_node_is_refused[defects/20260101T000000Z-nobody.yaml]
+FAILED gate/tests/test_dispute_record_names_claim.py::test_a_disputed_record_naming_no_claim_of_its_node_is_refused[dispute-42]
+FAILED gate/tests/test_dispute_record_names_claim.py::test_a_disputed_record_naming_no_claim_of_its_node_is_refused[targets/other-target/nodes/and-reassoc/defects/20261003T120000Z-alice.yaml]
+FAILED gate/tests/test_dispute_record_names_claim.py::test_a_disputed_record_naming_no_claim_of_its_node_is_refused[targets/propositional/nodes/tutorial-and-swap/defects/20261003T120000Z-alice.yaml]
+FAILED gate/tests/test_dispute_record_names_claim.py::test_a_disputed_record_naming_a_withdrawn_claim_is_refused
+FAILED gate/tests/test_dispute_record_names_claim.py::test_the_code_has_its_catalog_row
+7 failed, 4 passed in 0.14s
+
+=== GREEN (test_dispute_record_names_claim.py: 11 passed; and every gate/api test file naming disputed, node-status, node_status or curator) ===
+=========================== short test summary info ============================
+SKIPPED [1] gate/tests/test_defs_after_intake.py:301: this filesystem folds case; the two files cannot coexist here
+1251 passed, 1 skipped, 32 deselected, 2 warnings in 128.04s (0:02:08)

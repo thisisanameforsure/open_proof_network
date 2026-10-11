@@ -1,0 +1,190 @@
+{
+ "id": "01M3QFBD1RKZFPWCFCZTKZ230D",
+ "node_id": "variant-f592e3ab",
+ "target_id": "erdos-69",
+ "state": "done",
+ "created": "2026-09-29T20:57:55Z",
+ "graph_commit": "fa9ee2551d75c3e8e9b242544cc6287f996edab2",
+ "bundle_digest": "cbe3bec5aaa0f2f163848b2c7d6b9f09c4f134dcca0c5ac28b41067faf0549c4",
+ "authenticated": true,
+ "result": {
+  "attestation": {
+   "artifact_hash": "23537c88ca6c31f68159183b8774a710d22c5c72a8381d71e5dfdca4faddfc95",
+   "diagnostic": null,
+   "first_failing_step": null,
+   "gate_spec_hash": "51011fcedb4c150a7d7f470506aa2ef9e407cf8a24c579d3bdef6a3263b14a68",
+   "graph_commit": "fa9ee2551d75c3e8e9b242544cc6287f996edab2",
+   "graph_id": "erdos-69",
+   "lean_toolchain": "leanprover/lean4:v4.33.1",
+   "mathlib_sha": "0df444a360eaa60ab8c11dca51a86af692955474",
+   "merge_commit": null,
+   "model_and_tooling": "undeclared",
+   "network_commit": "3422bb401108f24a3006877a2af929894564a1c1",
+   "node_id": "variant-f592e3ab",
+   "precheck_attestation": {
+    "hash": null,
+    "signature_kind": null
+   },
+   "review": null,
+   "runner": "hosted",
+   "schema": "attestation/v5",
+   "signature": {
+    "key_id": "SHA256:bJR39nO37EkRaxo4CPqdhcHk+WL+sEnAJ9ujpkF7LXo",
+    "kind": "service",
+    "timestamp": "2026-09-29T21:00:58Z",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAg4NVeR5WlT1J5vaHpDOmXNTurS+\nKqTYJTovSCpPj5G/IAAAAPb3BuLWF0dGVzdGF0aW9uAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQHXonuvLXzSAi93UikXUg13cvT7XFhKMQh5Ba4KMkC/GHV+s/g\nYRQPQtPjH0oyGMRri6Noy5qH2H9mepdWhf7gY=\n-----END SSH SIGNATURE-----\n"
+   },
+   "statement_hash": "daa63d936808636a9a390525c85e55438ba7643a7608d136b9bd681d864e9e35",
+   "steps": [
+    {
+     "diagnostic": {
+      "code": "mathlib-pinned",
+      "details": {
+       "mathlib_sha": "0df444a360eaa60ab8c11dca51a86af692955474",
+       "packages": 8
+      },
+      "message": "Mathlib 0df444a360ea resolved from the pinned checkout"
+     },
+     "name": "toolchain",
+     "result": "pass",
+     "step": 1
+    },
+    {
+     "diagnostic": null,
+     "name": "paths",
+     "result": "pass",
+     "step": 2
+    },
+    {
+     "diagnostic": null,
+     "name": "kernel-replay",
+     "result": "pass",
+     "step": 4
+    },
+    {
+     "diagnostic": null,
+     "name": "axioms",
+     "result": "pass",
+     "step": 5
+    },
+    {
+     "diagnostic": {
+      "code": "hazards-acknowledged",
+      "details": {
+       "acknowledged": [
+        {
+         "checker": "div-zero",
+         "justification": "The divisor is b^p with b ≥ 2 by hypothesis, so it is never 0 and no term takes Lean's junk value.",
+         "location": "1 / ↑b ^ ↑p"
+        },
+        {
+         "checker": "off-by-one-range",
+         "justification": "Inclusive on purpose: bases b ≥ 2 are exactly those where the series is a base-b expansion (b = 1 diverges to the junk value 0 of tsum, b = 0 is junk).",
+         "location": "2 ≤ b"
+        }
+       ]
+      },
+      "message": "2 hazard finding(s) acknowledged in META.yaml"
+     },
+     "name": "hazards",
+     "result": "pass",
+     "step": 6
+    },
+    {
+     "diagnostic": null,
+     "name": "witness",
+     "result": "pass",
+     "step": 7
+    },
+    {
+     "diagnostic": null,
+     "name": "deps",
+     "result": "pass",
+     "step": 8
+    }
+   ],
+   "submitter": null,
+   "toolchain_hash": "f54d0bc916bf76a7fae460ce9d078ccd1f74aeb4fd12c4b6546bca28b6aa1c63",
+   "tooling": {
+    "harness": null,
+    "model": null
+   },
+   "trust_base": "kernel",
+   "verdict": "pass"
+  },
+  "bundle_digest": "cbe3bec5aaa0f2f163848b2c7d6b9f09c4f134dcca0c5ac28b41067faf0549c4",
+  "first_failing_step": null,
+  "job_id": "01M3QFBD1RKZFPWCFCZTKZ230D",
+  "node_id": "variant-f592e3ab",
+  "steps": [
+   {
+    "diagnostic": {
+     "code": "mathlib-pinned",
+     "details": {
+      "mathlib_sha": "0df444a360eaa60ab8c11dca51a86af692955474",
+      "packages": 8
+     },
+     "message": "Mathlib 0df444a360ea resolved from the pinned checkout"
+    },
+    "name": "toolchain",
+    "result": "pass",
+    "step": 1
+   },
+   {
+    "diagnostic": null,
+    "name": "paths",
+    "result": "pass",
+    "step": 2
+   },
+   {
+    "diagnostic": null,
+    "name": "kernel-replay",
+    "result": "pass",
+    "step": 4
+   },
+   {
+    "diagnostic": null,
+    "name": "axioms",
+    "result": "pass",
+    "step": 5
+   },
+   {
+    "diagnostic": {
+     "code": "hazards-acknowledged",
+     "details": {
+      "acknowledged": [
+       {
+        "checker": "div-zero",
+        "justification": "The divisor is b^p with b ≥ 2 by hypothesis, so it is never 0 and no term takes Lean's junk value.",
+        "location": "1 / ↑b ^ ↑p"
+       },
+       {
+        "checker": "off-by-one-range",
+        "justification": "Inclusive on purpose: bases b ≥ 2 are exactly those where the series is a base-b expansion (b = 1 diverges to the junk value 0 of tsum, b = 0 is junk).",
+        "location": "2 ≤ b"
+       }
+      ]
+     },
+     "message": "2 hazard finding(s) acknowledged in META.yaml"
+    },
+    "name": "hazards",
+    "result": "pass",
+    "step": 6
+   },
+   {
+    "diagnostic": null,
+    "name": "witness",
+    "result": "pass",
+    "step": 7
+   },
+   {
+    "diagnostic": null,
+    "name": "deps",
+    "result": "pass",
+    "step": 8
+   }
+  ],
+  "verdict": "pass"
+ },
+ "public": true
+}

@@ -1,0 +1,7 @@
+T1 rectangle: cases 294292 violations 0
+T1b beyond the threshold: violations 104 [(18, 29, 12, 3, 4), (18, 29, 12, 6, 8), (18, 29, 12, 9, 12), (18, 29, 12, 12, 16), (18, 29, 12, 15, 20)]
+T2 collision: sets tested 6144 violations 0
+T2b valuation: violations 0
+T3 n in 2..200000 with no prime in [2n-sqrt n,2n): 18 [5, 8, 14, 18, 48, 61, 62, 63, 74, 105, 111, 153, 165, 270, 677, 678, 679, 680]
+   of which open (n, n-1 not prime): 7 [63, 105, 111, 153, 165, 679, 680]
+   max n exception: 680

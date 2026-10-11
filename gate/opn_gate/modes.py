@@ -13,7 +13,9 @@ So the diff is classified into exactly one mode before anything else runs:
 
 ===============  ==========================================================================
 ``proof``        the node's ``Proof.lean``, plus appends — the D-4 pipeline (D-12 #1, #2, #3)
-``partial``      a ``.lean`` assembly under ``attempts/``, plus appends (D-12 #4, #5)
+``partial``      a ``.lean`` assembly under ``attempts/``, plus appends (D-12 #4, #5) and the
+                 witnesses it carries for its holes, ``attempts/<assembly>.<n>.witness``
+                 (F07-R23, D-29 v3.24)
 ``append``       only new postmortems, precheck records, annexes, approach records, revision
                  requests or defect claims (the last two may carry a Lean exhibit, which is
                  elaborated in the sandbox — ``opn_gate.exhibits``)
@@ -22,7 +24,9 @@ So the diff is classified into exactly one mode before anything else runs:
                  new explainers: a real-identity contributor's comprehension claim on one
                  explainer, refused by name when the explainer is absent, the sentence
                  differs, the signature fails or the signer is neither an active steward of
-                 the target nor a listed curator (F15-Q4)
+                 the target nor a listed curator (F15-Q4). Since F20-R1, also glosses under
+                 ``gloss/`` of a node of any status or of a target's definition modules
+                 (D-3 v3.30), checked by ``opn_gate.glosses`` and never built
 ``proposal``     exactly one new node directory and nothing else — or only ``Witness.lean``
                  on a hole whose slot is unfilled (F08-R2, R5); admission decides, nobody
                  reviews (D-29)
@@ -45,6 +49,10 @@ So the diff is classified into exactly one mode before anything else runs:
                  the record, not the pull request's author (F15-Q8), and the merge is the
                  curator's check of the identity link (F15-Q7). Inside an intake or a
                  curator pull request the records are checked the same way
+``proposed-for`` exactly one new ``proposed-for/`` record on one node and nothing else (F18-R8,
+                 D-14 v3.26): which node of its target the statement was proposed for, by the
+                 node's proposer or a listed curator (``check_proposed_for``). Nothing is built
+                 and nothing is derived from it. A proposal may carry its node's first record
 ===============  ==========================================================================
 
 A diff that fits none of them is rejected at step 2, naming the paths — never guessed at.
@@ -59,9 +67,11 @@ not evidentiary and the paths are.
 
 from __future__ import annotations
 
+import datetime
 import json
 import logging
 import re
+import subprocess
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass, replace
 from pathlib import Path, PurePosixPath
@@ -69,16 +79,24 @@ from typing import Any, Literal
 
 import yaml
 
+from opn_gate import annex as annexmod
 from opn_gate import (
+    clock,
     config,
+    defs,
     evidence,
     fidelity,
+    glosses,
     intake,
     layout,
+    ledger,
+    panel,
     paths,
+    policy,
     qa,
     records,
     schemas,
+    sections,
     signed,
     steward,
 )
@@ -98,8 +116,20 @@ Mode = Literal[
     "intake",
     "fidelity",
     "steward",
+    "proposed-for",
+    "registration",
+    "display-name",
 ]
 
+#: F25-R5, R6 (D-3, D-10 v3.37): the two records outside the node, each a mode of its own and
+#: nothing else's. Explicit rows, placed before every other test in ``classify``, so the mode
+#: table's fallthrough (``return "append"`` for whatever is left) can never absorb them — the
+#: shape that swallowed the first steward record (log, 2026-09-17).
+RECORD_MODES: dict[Role, Mode] = {"registration": "registration", "display-name": "display-name"}
+
+#: F15-R2, R6; F24-R2, R3: a steward's signed acts on a target, which merge as the steward mode
+#: alone or ride with a curator's records — one list, so a new act cannot fall through a mode.
+PANEL_ROLES: tuple[Role, ...] = ("steward", "writeup", "motion", "vote")
 #: The modes that run the Lean pipeline; the others never build a proof (R9, R10; F08-R2).
 BUILDING_MODES: tuple[Mode, ...] = ("proof", "partial", "alternate")
 #: F08-R8: the graph's role file — the founder's, and the only one at Stage 0 (F08 §7).
@@ -167,8 +197,21 @@ def load_curators(graph_root: Path) -> Curators:
     if not path.is_file():
         return Curators()
     try:
-        doc = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, ValueError) as exc:
+        data = path.read_bytes()
+    except OSError as exc:
+        msg = f"{CURATORS_FILE} is not readable JSON: {exc}"
+        raise CuratorsError(msg) from exc
+    return parse_curators(data)
+
+
+def parse_curators(data: bytes | None) -> Curators:
+    """``curators.json``'s bytes as the role file, or an empty list for ``None`` (no file) — for
+    the file as it stood on a pull request's base (F23-R9)."""
+    if data is None:
+        return Curators()
+    try:
+        doc = json.loads(data)
+    except ValueError as exc:
         msg = f"{CURATORS_FILE} is not readable JSON: {exc}"
         raise CuratorsError(msg) from exc
     identities = doc.get("identities") if isinstance(doc, dict) else None
@@ -216,6 +259,10 @@ class Classification:
     #: Read from the graph (``with_statement_review``), since the diff alone cannot say.
     review_basis: StatementBasis | None = None
     review_reference: str | None = None
+    #: F20-T6: whether the pull request was opened by the network's service (its App's login,
+    #: ``config.service_login``), which acts for the identity it wrote into the record's own
+    #: ``author``. The host's fact, like ``author``; not published.
+    by_service: bool = False
 
     @property
     def ok(self) -> bool:
@@ -410,11 +457,22 @@ def classify(  # noqa: PLR0911, PLR0912 — one return and one branch per reject
     *,
     author: str | None = None,
     curators: Curators | None = None,
+    graph_root: Path | None = None,
+    service_login: str | None = config.DEFAULT_SERVICE_LOGIN,
 ) -> Classification:
     """R3, F08-R2, R8: the diff's one mode, or the reasons it is not a submission at all.
 
     ``author`` is the login that opened the pull request, as the host reports it; ``curators`` is
     the graph's role file. Both are consulted only when the diff is curator-shaped.
+
+    ``graph_root``, the checkout, is read for one fact the path cannot give: what a withdrawal
+    withdraws. A withdrawal of a gloss or explainer version (F20-R7) is its author's, a steward's
+    or a curator's and rides the explainer mode; every other withdrawal stays a curator record
+    (F08-T31). Without a checkout every withdrawal is read as a curator's, the stricter reading.
+
+    ``service_login`` is the login the network's service opens pull requests as (F20-T6): such a
+    pull request acts for the identity the service wrote into the record's ``author``, which is
+    how the explainer mode's role rules then read it (``acting_names``).
     """
     changes = list(changes)
     if not changes:
@@ -440,11 +498,27 @@ def classify(  # noqa: PLR0911, PLR0912 — one return and one branch per reject
         )
     target_id = targets[0]
 
+    # F25-R5, R6: a registration or a display name is a pull request of its own.
+    roles_present = {loc.role for loc in located}
+    if roles_present & set(RECORD_MODES):
+        return _classify_record(located, target_id, roles_present, author, service_login)
+
     # A new node directory is one whose definition files are added; a status record outside
     # every new directory, or a versioned directory, is a curator's act (F08-R8).
     new_dirs = sorted({loc.node_id for loc in located if loc.role == "node" and loc.node_id})
+    versions_withdrawn = {
+        loc.path
+        for loc in located
+        if loc.role == "withdrawal"
+        and graph_root is not None
+        and withdraws_version(graph_root, loc.path)
+    }
     curator_records = [
-        loc for loc in located if loc.role in paths.CURATOR_ROLES and loc.node_id not in new_dirs
+        loc
+        for loc in located
+        if loc.role in paths.CURATOR_ROLES
+        and loc.node_id not in new_dirs
+        and loc.path not in versions_withdrawn
     ]
     if any(loc.role in paths.INTAKE_ROLES for loc in located):
         # A target's own files arrive whole in its intake (F11-R2); after it, exactly two of them
@@ -453,6 +527,11 @@ def classify(  # noqa: PLR0911, PLR0912 — one return and one branch per reject
         roles = {loc.role for loc in located}
         added = {c.path for c in changes if c.status == "A"}
         adds_record = any(loc.role == "target-record" and loc.path in added for loc in located)
+        if roles == {"definition"}:
+            # F11-R15: definitions alone are a curator's addition to a target that exists.
+            return _classify_definitions(
+                located, target_id, author=author, curators=curators or Curators()
+            )
         if adds_record or roles & {"gate-spec", "definition"}:
             return _classify_intake(
                 located,
@@ -490,7 +569,7 @@ def classify(  # noqa: PLR0911, PLR0912 — one return and one branch per reject
     # F15-R2, R6: steward records and write-up records alone are the steward mode — both are a
     # steward's signed acts — whoever opened the pull request (Q8); brought by anything else
     # that is not an intake or a curator record, they are a mixture.
-    if all(loc.role in ("steward", "writeup") for loc in located):
+    if all(loc.role in PANEL_ROLES for loc in located):
         return Classification("steward", target_id, None, tuple(located), author=author)
 
     nodes = sorted({loc.node_id for loc in located if loc.node_id is not None})
@@ -511,6 +590,15 @@ def classify(  # noqa: PLR0911, PLR0912 — one return and one branch per reject
     mode = _mode_for(roles)
     if mode is None:
         return Classification(None, target_id, node_id, tuple(located), (_mixed(roles),))
+    pointers = [loc.path for loc in located if loc.role == "proposed-for"]
+    if len(pointers) > 1:
+        multiple = Diagnostic(
+            "proposed-for-multiple",
+            f"a pull request adds one proposed-for record (F18-R8; the latest is the one shown); "
+            f"this one adds {len(pointers)}: " + ", ".join(pointers),
+            {"paths": pointers},
+        )
+        return Classification(None, target_id, node_id, tuple(located), (multiple,))
     alternates = [loc.path for loc in located if loc.role == "alternate"]
     if len(alternates) > 1:
         multiple = Diagnostic(
@@ -523,7 +611,47 @@ def classify(  # noqa: PLR0911, PLR0912 — one return and one branch per reject
     admit = node_id if mode == "proposal" else None
     modified = {c.path for c in changes if c.status == "M"}
     replaced = tuple(loc.path for loc in located if loc.role == "proof" and loc.path in modified)
-    return Classification(mode, target_id, node_id, tuple(located), admit=admit, replaced=replaced)
+    # F18-R8: who may write a proposed-for record is ``check_proposed_for``'s question, and the
+    # curator half of it is the host's fact, so it rides on the classification. F20-R6, R7: so
+    # is the steward-or-curator half of superseding a signed version and of a withdrawal.
+    # F08-T40: and the opener of an SSH-signed literature confirmation (D-32 v3.35), which is
+    # the signer's act as a gloss signature is (``check_literature_record``).
+    literature = any(loc.role == "literature" for loc in located)
+    who = author if pointers or literature or mode == "explainer" else None
+    return Classification(
+        mode,
+        target_id,
+        node_id,
+        tuple(located),
+        admit=admit,
+        replaced=replaced,
+        author=who,
+        by_service=mode == "explainer" and author is not None and author == service_login,
+    )
+
+
+def _classify_record(
+    located: list[Located],
+    target_id: str,
+    roles: set[Role],
+    author: str | None,
+    service_login: str | None,
+) -> Classification:
+    """F25-R5, R6: the one record role present is the mode, when nothing else rides with it. Who
+    the pull request acts for is the check's question (``check_registration``,
+    ``check_display_name``): the opener, or, when the service opened it, the record's own author
+    (F18-Q7's precedent, ``acting_names``)."""
+    if len(roles) > 1:
+        return Classification(None, target_id, None, tuple(located), (_mixed(roles),))
+    (role,) = roles
+    return Classification(
+        RECORD_MODES[role],
+        target_id,
+        None,
+        tuple(located),
+        author=author,
+        by_service=author is not None and author == service_login,
+    )
 
 
 def _classify_curator(  # noqa: PLR0913 — the diff, its located paths and the host's one fact
@@ -547,7 +675,7 @@ def _classify_curator(  # noqa: PLR0913 — the diff, its located paths and the 
     roles = {loc.role for loc in located}
     # F15-R2, R6: a curator may carry a steward's signed record or a write-up record (Q8);
     # each is checked like any other.
-    allowed = set(paths.NODE_ROLES) | set(paths.CURATOR_ROLES) | {"steward", "writeup"}
+    allowed = set(paths.NODE_ROLES) | set(paths.CURATOR_ROLES) | set(PANEL_ROLES)
     if "qa-record" in roles:
         # F12-R4: the screen's own claim rides with the QA record that produced it; the claim is
         # then held to being a screen-finding (``check_defect_claim``), not a contributor's.
@@ -741,6 +869,53 @@ def _classify_intake(  # noqa: PLR0913 — one return per refusal; the diff and 
     )
 
 
+def definitions_added(changes: Iterable[Change]) -> list[Located] | None:
+    """The diff's files when it is new ``defs/`` files of one target and nothing else (F11-R15),
+    else ``None``. The shape alone, without the author: the sandbox step that elaborates them is
+    told no author, and who may open such a pull request is ``classify``'s question."""
+    located: list[Located] = []
+    for change in changes:
+        if _locate_change(change, located):
+            return None
+    if not located or {loc.role for loc in located} != {"definition"}:
+        return None
+    return located if len({loc.target_id for loc in located}) == 1 else None
+
+
+def _classify_definitions(
+    located: list[Located], target_id: str, *, author: str | None, curators: Curators
+) -> Classification:
+    """F11-R15 (D-3; Q35): new ``defs/`` files alone are a listed curator's pull request.
+
+    Every change is an addition: a definition is immutable, so ``_locate_change`` has already
+    refused a rewrite or a deletion by path, and nothing else may ride along (the caller routes
+    here only when definitions are the whole diff). That the target exists, that each name can
+    be a module and that none collides with one already there are ``check_definitions``'s, which
+    reads the tree; that they elaborate is the sandbox's (``cli.run_exhibits``).
+    """
+    if author is None or author not in curators.logins:
+        who = "unknown" if author is None else repr(author)
+        return Classification(
+            None,
+            target_id,
+            None,
+            tuple(located),
+            (
+                Diagnostic(
+                    "curator-unlisted",
+                    f"a shared definition is added by a curator, never by a prover (D-3, "
+                    f"F11-R15), and the pull request's author ({who}) is not listed in "
+                    f"{CURATORS_FILE}",
+                    {"author": author, "listed": sorted(curators.logins)},
+                ),
+            ),
+        )
+    reviewers = tuple(sorted(curators.logins - {author}))
+    return Classification(
+        "curator", target_id, None, tuple(located), reviewers=reviewers, author=author
+    )
+
+
 def _classify_posting(
     located: list[Located], target_id: str, *, author: str | None, curators: Curators
 ) -> Classification:
@@ -855,23 +1030,54 @@ def _locate_change(change: Change, located: list[Located]) -> list[Diagnostic]:
     return []
 
 
+#: The roles the explainer mode carries: prose about Lean that asserts nothing a kernel checks,
+#: and the signatures on it (F15-R8; F20-R1).
+#: A withdrawal reaches this table only when it withdraws a gloss or explainer version (F20-R7):
+#: ``classify`` sends every other withdrawal to the curator mode first.
+EXPLAINER_FAMILY: frozenset[Role] = frozenset(
+    {"explainer", "explainer-signature", "gloss", "gloss-signature", "withdrawal"}
+)
+
+
+def withdraws_version(graph_root: Path, path: str) -> bool:
+    """Whether the withdrawal at ``path`` names a gloss or explainer version (F20-R7). One that
+    cannot be read names nothing, so it stays a curator record and is refused there (C7)."""
+    try:
+        doc = yaml.safe_load((graph_root / path).read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, yaml.YAMLError):
+        return False
+    named = doc.get("withdraws") if isinstance(doc, dict) else None
+    return isinstance(named, str) and named.startswith(VERSION_DIRS)
+
+
+#: The directories whose files are versions of a chain (D-3 v3.30), as a withdrawal names them.
+VERSION_DIRS: tuple[str, ...] = ("gloss/", "explainer/")
+
+
 def _mode_for(roles: set[Role]) -> Mode | None:  # noqa: PLR0911 — one return per mode
     appendish = set(paths.APPEND_ROLES)
     if "node" in roles:  # F08-R2: a whole new directory, and nothing outside it
-        return "proposal" if roles <= (set(paths.NODE_ROLES) | {"node-status"}) else None
+        # F18-R8: a proposal may carry its node's first proposed-for record.
+        allowed = set(paths.NODE_ROLES) | {"node-status", "proposed-for"}
+        return "proposal" if roles <= allowed else None
     if roles == {"witness"}:  # F08-R5: filling a hole's slot
         return "proposal"
     if roles & (set(paths.NODE_ROLES) | {"node-status"}):
         return None  # a node file or a status record outside a new directory, with other things
+    if "proposed-for" in roles:  # F18-R8: a pointer is a pull request of its own
+        return "proposed-for" if roles == {"proposed-for"} else None
     if "proof" in roles or "waiver" in roles:
         return "proof" if roles <= ({"proof", "waiver"} | appendish) else None
     if "alternate" in roles:  # D-25 v3.13: a later proof of a proved node, plus appends
         return "alternate" if roles <= ({"alternate"} | appendish) else None
     if "partial" in roles:
-        return "partial" if roles <= ({"partial"} | appendish) else None
-    if roles & {"explainer", "explainer-signature"}:
-        # F15-R8: signature files alone, or with new explainers, are the explainer mode.
-        return "explainer" if roles <= {"explainer", "explainer-signature"} else None
+        # F07-R23: the assembly, the witnesses it carries for its holes, and appends. A carried
+        # witness with no assembly beside it falls through to the end and fits no mode.
+        return "partial" if roles <= ({"partial", "hole-witness"} | appendish) else None
+    if roles & EXPLAINER_FAMILY:
+        # F15-R8: signature files alone, or with new explainers, are the explainer mode; F20-R1
+        # (D-3 v3.30): so are glosses, prose about a Lean file that asserts as little.
+        return "explainer" if roles <= EXPLAINER_FAMILY else None
     # F15: a steward record, a write-up or a policy file is nobody's append; only D-13's,
     # D-31's and D-14's records reach the append mode.
     return "append" if roles <= appendish else None
@@ -888,8 +1094,48 @@ def _verb(status: str) -> str:
 # --- the checks the non-building modes run instead of a build ----------------------------------
 
 
-def check(  # noqa: PLR0912 — one branch per role with a check of its own
-    graph_root: Path, classification: Classification, *, base: BaseReader | None = None
+def check_as_service(
+    root: Path,
+    path: str,
+    content: bytes,
+    *,
+    service_login: str = config.DEFAULT_SERVICE_LOGIN,
+    signer: Signer | None = None,
+) -> list[Diagnostic]:
+    """The gate's classifier and checks over ``root`` with one new file at ``path``, as the merge
+    would run them on a pull request the service opened adding it: every problem, or none. The
+    file is written into ``root`` and left there; ``root`` is the caller's scratch tree.
+
+    One function for both callers that must judge a gloss, explainer or withdrawal before any
+    pull request exists (F20-T6, T10): the service's pre-flight, over the files it fetched from
+    the host, and the drafter's own check of each draft (R16), over a copy of its checkout — so
+    neither restates a rule."""
+    dest = root / path
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    dest.write_bytes(content)
+    try:
+        curators = load_curators(root)
+    except CuratorsError:
+        curators = Curators()
+    classification = classify(
+        [Change("A", path)],
+        author=service_login,
+        curators=curators,
+        graph_root=root,
+        service_login=service_login,
+    )
+    problems = list(classification.problems)
+    if classification.ok:
+        problems.extend(check(root, classification, signer=signer))
+    return problems
+
+
+def check(  # noqa: PLR0912, PLR0915 — one branch per role with a check of its own
+    graph_root: Path,
+    classification: Classification,
+    *,
+    base: BaseReader | None = None,
+    signer: Signer | None = None,
 ) -> list[Diagnostic]:
     """R9, R10, F08-R2, R5, R8: everything a pull request is checked for before any sandbox.
 
@@ -898,33 +1144,89 @@ def check(  # noqa: PLR0912 — one branch per role with a check of its own
     appear, so a proof that carries an append is held to the same rules. A proposal's shape and a
     witness completion's precondition are mode rules, checked here so a malformed proposal never
     costs a sandbox.
+
+    ``signer`` verifies the signed records the explainer mode reads (stewards, signatures); by
+    default the platform's ssh-keygen. The service passes its own verifier, since its runtime
+    has no OpenSSH (F06-Q6, F20-T6).
     """
     problems: list[Diagnostic] = []
+    added = frozenset(loc.path for loc in classification.located)
     for located in classification.located:
-        if located.role in paths.APPEND_ROLES:
+        if located.role == "literature":
+            # F08-T40 (D-25 v3.35): an append whose signed form is a steward's or curator's act.
+            problems.extend(
+                check_literature_record(
+                    graph_root, located, classification, signer=signer, base=base
+                )
+            )
+        elif located.role in paths.APPEND_ROLES:
             problems.extend(check_append_file(graph_root, located, mode=classification.mode))
         elif located.role == "explainer":
-            problems.extend(check_explainer_file(graph_root, located, classification))
+            found = check_explainer_file(graph_root, located, classification)
+            problems.extend(
+                found
+                or check_draft_provenance(graph_root, located, classification)
+                or check_version_head(graph_root, located, base=base, added=added)
+                or check_model_lock(graph_root, located, signer=signer)
+                or check_own_edit_opener(graph_root, located, classification, signer=signer)
+            )
         elif located.role == "explainer-signature":
-            problems.extend(check_explainer_signature(graph_root, located, classification))
+            problems.extend(
+                check_explainer_signature(
+                    graph_root, located, classification, signer=signer, base=base
+                )
+            )
+        elif located.role == "gloss":
+            found = glosses.check_gloss(graph_root, located)
+            problems.extend(
+                found
+                or check_draft_provenance(graph_root, located, classification)
+                or check_version_head(graph_root, located, base=base, added=added)
+                or check_model_lock(graph_root, located, signer=signer)
+                or check_own_edit_opener(graph_root, located, classification, signer=signer)
+            )
+        elif located.role == "gloss-signature":
+            problems.extend(
+                check_gloss_signature(graph_root, located, classification, signer=signer, base=base)
+            )
         elif located.role == "statement-evidence":
             problems.extend(check_evidence(graph_root, located))
         elif located.role in ("formalization", "formalization-statement"):
             problems.extend(check_formalization(graph_root, located))
         elif located.role == "steward":
-            problems.extend(check_steward_record(graph_root, located, classification))
+            problems.extend(check_steward_record(graph_root, located, classification, base=base))
         elif located.role == "writeup":
-            problems.extend(check_writeup_record(graph_root, located, classification))
+            problems.extend(check_writeup_record(graph_root, located, classification, base=base))
+        elif located.role == "motion":
+            problems.extend(check_motion_record(graph_root, located, classification, base=base))
+        elif located.role == "vote":
+            problems.extend(check_vote_record(graph_root, located, classification, base=base))
+        elif located.role == "proposed-for":
+            problems.extend(check_proposed_for(graph_root, located, classification))
         elif located.role == "policy":
             # F15-R3: the switch validates; who may flip it is the curator mode's author rule.
             data = _read(graph_root, located)
             problems.extend(
                 [data] if isinstance(data, Diagnostic) else _check_schema(located, data)
             )
+        elif located.role == "withdrawal":
+            problems.extend(check_withdrawal(graph_root, located, classification, signer=signer))
+        elif located.role == "credit-correction":
+            problems.extend(check_credit_correction(graph_root, located))
+        elif located.role == "registration":
+            problems.extend(check_registration(graph_root, located, classification, signer=signer))
+        elif located.role == "display-name":
+            problems.extend(
+                check_display_name(graph_root, located, classification, signer=signer, base=base)
+            )
         elif located.role in paths.CURATOR_ROLES:
             problems.extend(check_status_record(graph_root, located, classification))
         elif located.role == "target-record" and classification.mode == "curator":
             problems.extend(check_posting(graph_root, located, base))
+        elif located.role == "target-record" and classification.mode == "intake":
+            problems.extend(check_target_record(graph_root, located))
+    if classification.mode == "curator":
+        problems.extend(check_definitions(graph_root, classification))
     if classification.mode == "proposal":
         problems.extend(check_proposal(graph_root, classification, base))
     if classification.mode == "fidelity":
@@ -932,6 +1234,66 @@ def check(  # noqa: PLR0912 — one branch per role with a check of its own
     if classification.mode == "alternate":
         problems.extend(check_alternate(graph_root, classification))
     problems.extend(check_replaced_proof(graph_root, classification))
+    return problems
+
+
+def warnings(graph_root: Path, classification: Classification) -> list[Diagnostic]:
+    """What the gate tells a pull request without refusing it (F20-R5). Never a problem: the
+    classification's ``ok`` does not read these. Today: ``explainer-name-unanchored`` on each
+    explainer record whose anchored sections cite a name their steps do not use."""
+    from opn_gate import explainers  # noqa: PLC0415 — explainers reads glosses, as this does
+
+    found: list[Diagnostic] = []
+    for located in classification.located:
+        if located.role == "explainer" and located.node_id is not None:
+            found.extend(explainers.name_warnings(graph_root, located))
+    return found
+
+
+def check_definitions(graph_root: Path, classification: Classification) -> list[Diagnostic]:
+    """F11-R15: what a definition added after intake is held to before any sandbox.
+
+    The target must be on the record: the diff adds no gate-spec (it would be an intake), so one
+    in the tree was there on the base, and without one this is an intake that forgot everything
+    but its definitions (R2). Then the merged ``defs/`` must still be buildable as modules — each
+    name a Lean identifier, each import a library module or another definition, no cycle — which
+    is ``defs.order``'s answer with its own diagnostics; and no new name may differ from another
+    only in case, since those are one file on a case-folding checkout and two modules in the
+    sandbox. The same path cannot be added twice: git calls that a modification, refused by path.
+    """
+    added = [loc for loc in classification.located if loc.role == "definition"]
+    if not added or classification.target_id is None:
+        return []
+    target_id = classification.target_id
+    spec = layout.gate_spec_path(graph_root, target_id)
+    if not spec.is_file():
+        return [
+            Diagnostic(
+                "intake-incomplete",
+                f"targets/{target_id} is not a target on this graph: a definition is added to "
+                "a target that exists (F11-R15), and a new target arrives whole, in an intake "
+                f"that adds targets/{target_id}/gate-spec.json (F11-R2)",
+                {"missing": "gate-spec.json"},
+            )
+        ]
+    target_dir = spec.parent
+    ordered = defs.order(target_dir)
+    if isinstance(ordered, Diagnostic):
+        return [ordered]
+    problems: list[Diagnostic] = []
+    present = sorted(p.name for p in defs.target_defs_dir(target_dir).glob("*.lean"))
+    for loc in added:
+        name = PurePosixPath(loc.path).name
+        twins = [other for other in present if other != name and other.lower() == name.lower()]
+        if twins:
+            problems.append(
+                Diagnostic(
+                    "defs-clash",
+                    f"defs/{name} differs from defs/{twins[0]} only in case: one file on a "
+                    "case-folding checkout and two modules in the sandbox; choose another name",
+                    {"file": name, "existing": twins[0]},
+                )
+            )
     return problems
 
 
@@ -950,6 +1312,8 @@ def check_status_record(  # noqa: PLR0911 — one return per rule
     if located.role == "target-status":
         return check_activation(graph_root, located, data, classification)
     if classification.mode != "proposal":
+        if located.role == "node-status":
+            return check_dispute_reference(graph_root, located, data)
         return problems
     doc = _document(located, data)
     if isinstance(doc, Diagnostic):
@@ -966,12 +1330,225 @@ def check_status_record(  # noqa: PLR0911 — one return per rule
     return []
 
 
+def check_dispute_reference(graph_root: Path, located: Located, data: bytes) -> list[Diagnostic]:
+    """F08-T38 (D-18 v3.28): a ``disputed`` record names the defect claim it accepts — a valid,
+    standing claim on its own node — by the curator command's own rule (``curator.accepted_claim``,
+    F08-T35), so a hand-written record is held to what the command writes. Without a claim it
+    could never lift when one is withdrawn (``graph.disputed_is_void``, F08-T32). Every other
+    status (``abandoned``, D-14) takes no claim and is not asked."""
+    from opn_gate import curator  # noqa: PLC0415 — curator pulls in the toolchain steps
+
+    doc = _document(located, data)
+    if isinstance(doc, Diagnostic):
+        return [doc]  # defence in depth: _check_schema just parsed this same document
+    if doc.get("status") != curator.DISPUTED or located.node_id is None:
+        return []
+    reference = doc.get("reference")
+    node_dir = PurePosixPath(located.path).parent.parent
+    try:
+        curator.accepted_claim(
+            graph_root / node_dir,
+            located.target_id,
+            located.node_id,
+            None if reference is None else str(reference),
+        )
+    except curator.CuratorError as exc:
+        return [
+            Diagnostic(
+                "dispute-claim-unnamed",
+                f"{located.path}: a disputed record names the defect claim on this node it "
+                f"accepts for adjudication (D-18 v3.28); {exc}",
+                {"path": located.path, "reference": reference},
+            )
+        ]
+    return []
+
+
+def parent_file(graph_root: Path, base: BaseReader | None, rel: str) -> bytes | None:
+    """A file as it stood in the merge's parent tree (the pull request's base), or ``None`` when
+    it did not exist there. Without ``base`` (a local check, the service's composer) the
+    checkout stands in for it."""
+    if base is not None:
+        return base(rel)
+    path = graph_root / rel
+    return path.read_bytes() if path.is_file() else None
+
+
+def approval_key(graph_root: Path, base: BaseReader | None) -> str | None:
+    """D-3, D-32 v3.33: the network's approval key as the merge's parent tree publishes it."""
+    return signed.published_key(parent_file(graph_root, base, signed.APPROVAL_KEY_PATH))
+
+
+def _parent_policy(graph_root: Path, base: BaseReader | None) -> policy.Policy:
+    """``policy.json`` as the merge's parent tree has it; ``SchemaError`` when it does not read."""
+    return policy.parse(parent_file(graph_root, base, policy.FILE))
+
+
+def _parent_curators(graph_root: Path, base: BaseReader | None) -> frozenset[str]:
+    """The logins ``curators.json`` lists in the merge's parent tree (F23-R9)."""
+    try:
+        return parse_curators(parent_file(graph_root, base, CURATORS_FILE)).logins
+    except CuratorsError:
+        return frozenset()
+
+
+def check_steward_admission(
+    graph_root: Path,
+    located: Located,
+    record: steward.Record,
+    base: BaseReader | None,
+    *,
+    signer: Signer | None = None,
+) -> list[Diagnostic]:
+    """F23-R9, F24-R4 (D-32 v3.33, v3.34; D-22 v3.33): a ``steward/v2`` or ``v3`` record is
+    admitted only when an approval-key record carries the approval key of the merge's parent
+    tree, and a commitment's ``admitted_by`` is one the parent tree's rules allow:
+
+    * ``motion:<n>``, when motion n is a passed invitation naming the login, under either
+      admission;
+    * a login the parent's ``curators.json`` lists, at any time (the reviewed path, and a
+      curator adding a steward directly, F24-Q1);
+    * ``self``, under ``open`` only, and only while the target has no panel member on the gate's
+      day (``steward-invitation-required``): every later steward comes by invitation.
+
+    And no commitment takes its login over ``steward_cap`` unlapsed stewardships of *other*
+    targets (``steward-cap``). Which curator merges a pull request is not known until it has
+    merged, so under ``reviewed`` the gate holds the record to a listed curator; that the merger
+    is that curator is the merge actor's to leave alone (``curate/`` is never one of its
+    branches, F23-T7) and the curator's to honour. A step-down needs no admission: anyone may
+    stop being a steward."""
+    found: list[Diagnostic] = []
+    details = {"path": located.path, "login": record.login}
+    problem = signed.approval_key_problem(record.doc, approval_key(graph_root, base))
+    if problem is not None:
+        found.append(Diagnostic("steward-signature", f"{located.path}: {problem}", details))
+    if record.action != steward.COMMIT:
+        return found
+    try:
+        rules = _parent_policy(graph_root, base)
+    except schemas.SchemaError as exc:
+        return [*found, Diagnostic("steward-admission", f"{located.path}: {exc}", details)]
+    curators = _parent_curators(graph_root, base)
+    verifier = signer or signed.default_signer()
+    today = clock.today()
+    target_id = str(located.target_id)
+    admitted = str(record.admitted_by)
+    try:
+        if admitted.startswith(steward.MOTION_PREFIX):
+            found.extend(
+                _invitation_problems(
+                    graph_root,
+                    located,
+                    record,
+                    admitted,
+                    today=today,
+                    signer=verifier,
+                    curators=curators,
+                )
+            )
+        elif admitted in curators:
+            pass
+        elif admitted == steward.SELF and rules.admission == policy.OPEN:
+            others = set(
+                panel.members(graph_root, target_id, today, settings=rules.panel, signer=verifier)
+            ) - {record.login}
+            if others:
+                found.append(
+                    Diagnostic(
+                        "steward-invitation-required",
+                        f"{located.path}: {target_id} has a panel ({', '.join(sorted(others))}), "
+                        f"so a steward joins by a passed invitation (admitted_by "
+                        f"{steward.MOTION_PREFIX}<n>) or a curator, not {steward.SELF!r} "
+                        "(F24-R4, D-32 v3.34)",
+                        {**details, "panel": sorted(others)},
+                    )
+                )
+        elif rules.admission == policy.OPEN:
+            found.append(
+                Diagnostic(
+                    "steward-admission",
+                    f"{located.path}: steward admission is {policy.OPEN}, so the record is "
+                    f"admitted by {steward.SELF!r}, a passed invitation or a listed curator, not "
+                    f"{admitted!r} (D-32 v3.33, v3.34)",
+                    {**details, "admission": rules.admission, "admitted_by": admitted},
+                )
+            )
+        else:
+            found.append(
+                Diagnostic(
+                    "steward-admission",
+                    f"{located.path}: steward admission is {policy.REVIEWED}, so the record "
+                    f"names the listed curator who admits it or a passed invitation, not "
+                    f"{admitted!r} (D-32 v3.33, v3.34)",
+                    {**details, "admission": rules.admission, "admitted_by": admitted},
+                )
+            )
+        held = [
+            t
+            for t in panel.stewardships(
+                graph_root, record.login, today, settings=rules.panel, signer=verifier
+            )
+            if t != target_id
+        ]
+    except schemas.SchemaError as exc:  # a panel record in the tree no longer reads
+        return [*found, Diagnostic("record-invalid", str(exc), {"path": located.path})]
+    if len(held) >= rules.panel.cap:
+        found.append(
+            Diagnostic(
+                "steward-cap",
+                f"{located.path}: {record.login} already stewards {len(held)} other targets "
+                f"({', '.join(held)}), and steward_cap is {rules.panel.cap} (F24-R4)",
+                {**details, "stewardships": held, "cap": rules.panel.cap},
+            )
+        )
+    return found
+
+
+def _invitation_problems(  # noqa: PLR0913 — the record, its tree, and how to read it
+    graph_root: Path,
+    located: Located,
+    record: steward.Record,
+    admitted: str,
+    *,
+    today: datetime.date,
+    signer: Signer,
+    curators: frozenset[str],
+) -> list[Diagnostic]:
+    """F24-R4: why ``admitted_by: motion:<n>`` does not admit the record's login, if it does
+    not."""
+    text = admitted[len(steward.MOTION_PREFIX) :]
+    why = (
+        panel.passed_invitation(
+            graph_root,
+            str(located.target_id),
+            int(text),
+            record.login,
+            today=today,
+            signer=signer,
+            curators=curators,
+        )
+        if text.isdigit()
+        else f"{admitted!r} names no motion"
+    )
+    if why is None:
+        return []
+    return [
+        Diagnostic(
+            "steward-invitation",
+            f"{located.path}: {why}; a commitment admitted by a motion needs a passed invitation "
+            "naming its login (F24-R4)",
+            {"path": located.path, "login": record.login, "admitted_by": admitted},
+        )
+    ]
+
+
 def check_steward_record(  # noqa: PLR0911 — one return per rule
     graph_root: Path,
     located: Located,
     classification: Classification,
     *,
     signer: Signer | None = None,
+    base: BaseReader | None = None,
 ) -> list[Diagnostic]:
     """F15-R1, R2: a steward record validates, names the target it sits under, is numbered as
     R1 lays them out, and *counts* — its signature verifies under its own key, its sentence is
@@ -1034,7 +1611,7 @@ def check_steward_record(  # noqa: PLR0911 — one return per rule
                 {"path": located.path},
             )
         ]
-    return [
+    found = [
         Diagnostic(
             problem.split(":", 1)[0],
             f"{located.path}: {problem}",
@@ -1042,14 +1619,22 @@ def check_steward_record(  # noqa: PLR0911 — one return per rule
         )
         for problem in verdict.problems
     ]
+    if verdict.record.doc.get("schema") in steward.SIGNED_VIA:
+        found.extend(
+            check_steward_admission(
+                graph_root, located, verdict.record, base, signer=signer or signed.default_signer()
+            )
+        )
+    return found
 
 
-def check_writeup_record(
+def check_writeup_record(  # noqa: PLR0911 — one return per rule
     graph_root: Path,
     located: Located,
     classification: Classification,
     *,
     signer: Signer | None = None,
+    base: BaseReader | None = None,
 ) -> list[Diagnostic]:
     """F15-R6: a write-up record validates, names the target it sits under, is numbered, its
     signature verifies under its own key, and its signer is an active steward of the target or
@@ -1084,6 +1669,8 @@ def check_writeup_record(
             )
         ]
     verifier = signer or signed.default_signer()
+    if doc.get("schema") == writeup.SCHEMA_V2:
+        return check_writeup_v2(graph_root, located, doc, signer=verifier, base=base)
     found: list[Diagnostic] = []
     if not signed.verifies(doc, verifier):
         found.append(
@@ -1103,8 +1690,691 @@ def check_writeup_record(
                 {"path": located.path, "signer": who},
             )
         )
-    del writeup  # the record's shape is the schema's; nothing else is read here
     return found
+
+
+def _panel_record(
+    graph_root: Path, located: Located, *, prefix: str, directory: str
+) -> dict[str, Any] | list[Diagnostic]:
+    """F24-R2, R3: a motion or vote record's document once it validates, names the target it
+    sits under and is numbered; otherwise the refusals, named ``<prefix>-…``."""
+    data = _read(graph_root, located)
+    if isinstance(data, Diagnostic):
+        return [data]
+    problems = _check_schema(located, data, code="record-invalid")
+    if problems:
+        return problems
+    doc = _document(located, data)
+    if isinstance(doc, Diagnostic):
+        return [doc]
+    if doc.get("target") != located.target_id:
+        return [
+            Diagnostic(
+                "motion-target" if prefix == "motion" else "vote-target",
+                f"{located.path} is a record for target {doc.get('target')!r}, and it sits under "
+                f"targets/{located.target_id}/ (F24-R2, R3)",
+                {"path": located.path, "target": doc.get("target")},
+            )
+        ]
+    if not re.match(r"^[1-9][0-9]*\.ya?ml$", PurePosixPath(located.path).name):
+        return [
+            Diagnostic(
+                "motion-name" if prefix == "motion" else "vote-name",
+                f"{located.path}: a {prefix} record is {directory}/<n>.yaml, numbered (F24-R2, R3)",
+                {"path": located.path},
+            )
+        ]
+    return doc
+
+
+def _signed_and_dated(  # noqa: PLR0913 — the record, its tree, and how to read it
+    graph_root: Path,
+    located: Located,
+    doc: dict[str, Any],
+    *,
+    prefix: str,
+    signer: Signer,
+    base: BaseReader | None,
+) -> list[Diagnostic]:
+    """F24-R10, §7: a panel record's signature verifies, an approval-key record carries the
+    parent tree's approval key (``<prefix>-signature``), and its date is within one day of the
+    gate's clock (``<prefix>-date``)."""
+    signature = (
+        "motion-signature"
+        if prefix == "motion"
+        else "vote-signature"
+        if prefix == "vote"
+        else "writeup-signature"
+    )
+    found: list[Diagnostic] = []
+    if not signed.verifies(doc, signer):
+        found.append(
+            Diagnostic(
+                signature,
+                f"{located.path}: the signature does not verify under the record's key",
+                {"path": located.path},
+            )
+        )
+    problem = signed.approval_key_problem(doc, approval_key(graph_root, base))
+    if problem is not None:
+        found.append(Diagnostic(signature, f"{located.path}: {problem}", {"path": located.path}))
+    on = panel.day_of(doc["date"])
+    if not clock.near(on):
+        found.append(
+            Diagnostic(
+                "motion-date"
+                if prefix == "motion"
+                else "vote-date"
+                if prefix == "vote"
+                else "writeup-date",
+                f"{located.path} is dated {on.isoformat()}, more than one day from the gate's "
+                f"day {clock.today().isoformat()} (F24-R10)",
+                {"path": located.path, "date": on.isoformat(), "today": clock.today().isoformat()},
+            )
+        )
+    return found
+
+
+def check_motion_record(
+    graph_root: Path,
+    located: Located,
+    classification: Classification,
+    *,
+    signer: Signer | None = None,
+    base: BaseReader | None = None,
+) -> list[Diagnostic]:
+    """F24-R2, R10: a motion validates, names its target, is numbered, is signed (with the
+    parent's approval key when made through the service) and dated within a day of the gate's
+    clock; it copies the parent's panel settings; its opener is on the panel on its date or a
+    listed curator; an invitation names someone not on the panel with no other open invitation
+    on the target; a ``verify-writeup`` names an existing write-up record. The tree read is the
+    pull request's own, so a motion may ride with the records it needs."""
+    from opn_gate import writeup  # noqa: PLC0415 — writeup reads the panel
+
+    doc = _panel_record(graph_root, located, prefix="motion", directory="motions")
+    if isinstance(doc, list):
+        return doc
+    del classification
+    verifier = signer or signed.default_signer()
+    found = _signed_and_dated(graph_root, located, doc, prefix="motion", signer=verifier, base=base)
+    details = {"path": located.path}
+    try:
+        settings = _parent_policy(graph_root, base).panel
+    except schemas.SchemaError as exc:
+        return [*found, Diagnostic("motion-settings", f"{located.path}: {exc}", details)]
+    if doc["settings"] != settings.motion_settings():
+        found.append(
+            Diagnostic(
+                "motion-settings",
+                f"{located.path}: the motion's settings are not policy.json's panel settings in "
+                "the merge's parent tree; a motion copies them as they stand (F24-R1)",
+                {**details, "expected": settings.motion_settings(), "found": doc["settings"]},
+            )
+        )
+    curators = _parent_curators(graph_root, base)
+    target_id = str(located.target_id)
+    n = int(PurePosixPath(located.path).name.split(".", 1)[0])
+    opened = panel.day_of(doc["date"])
+    opener = str(doc["opened_by"])
+    subject = doc["subject"]
+    try:
+        on_panel = panel.members(
+            graph_root, target_id, opened, settings=settings, signer=verifier, before_motion=n
+        )
+        if opener not in on_panel and opener not in curators:
+            found.append(
+                Diagnostic(
+                    "motion-opener",
+                    f"{located.path}: {opener!r} is neither on {target_id}'s panel on "
+                    f"{opened.isoformat()} nor a listed curator (F24-R2)",
+                    {**details, "opened_by": opener, "panel": list(on_panel)},
+                )
+            )
+        if doc["kind"] == panel.INVITE:
+            found.extend(
+                _invitation_motion_problems(
+                    graph_root,
+                    located,
+                    n,
+                    str(subject["login"]),
+                    on_panel=on_panel,
+                    signer=verifier,
+                    curators=curators,
+                )
+            )
+        elif doc["kind"] == panel.VERIFY_WRITEUP:
+            target_dir = graph_root / "targets" / target_id
+            records = {a.n for a in writeup.load_any(target_dir) if a.is_record}
+            if int(subject["writeup"]) not in records:
+                found.append(
+                    Diagnostic(
+                        "motion-writeup-unknown",
+                        f"{located.path}: write-up {subject['writeup']} is not a write-up record "
+                        f"of {target_id} (F24-R2)",
+                        {**details, "writeup": subject["writeup"]},
+                    )
+                )
+    except schemas.SchemaError as exc:  # another panel record in the tree does not read
+        return [*found, Diagnostic("record-invalid", str(exc), details)]
+    return found
+
+
+def _invitation_motion_problems(  # noqa: PLR0913 — the invitation, its tree, and how to read it
+    graph_root: Path,
+    located: Located,
+    n: int,
+    login: str,
+    *,
+    on_panel: tuple[str, ...],
+    signer: Signer,
+    curators: frozenset[str],
+) -> list[Diagnostic]:
+    """F24-R10: an invitation of a member, or a second open one for the same login."""
+    details = {"path": located.path, "login": login}
+    if login in on_panel:
+        return [
+            Diagnostic(
+                "motion-invite-member",
+                f"{located.path}: {login} is already on {located.target_id}'s panel (F24-R2)",
+                details,
+            )
+        ]
+    others = [
+        t.n
+        for t in panel.tallies(
+            graph_root,
+            str(located.target_id),
+            today=clock.today(),
+            signer=signer,
+            curators=curators,
+        )
+        if t.n != n
+        and t.kind == panel.INVITE
+        and t.subject.get("login") == login
+        and t.state == panel.OPEN
+    ]
+    if others:
+        return [
+            Diagnostic(
+                "motion-invite-open",
+                f"{located.path}: motion {others[0]} already invites {login} and is still open; "
+                "one open invitation per login (F24-R10)",
+                {**details, "open": others},
+            )
+        ]
+    return []
+
+
+def check_vote_record(
+    graph_root: Path,
+    located: Located,
+    classification: Classification,
+    *,
+    signer: Signer | None = None,
+    base: BaseReader | None = None,
+) -> list[Diagnostic]:
+    """F24-R3, R10: a vote validates, names its target, is numbered, is signed and dated within
+    a day of the gate's clock, names a motion that exists (the pull request's own included), is
+    dated inside that motion's window under the motion's own settings, and is cast by someone
+    whose vote the motion reads: the panel on the motion's date, or the curators where curators
+    count (``panel.eligible_voters``)."""
+    doc = _panel_record(graph_root, located, prefix="vote", directory="votes")
+    if isinstance(doc, list):
+        return doc
+    del classification
+    verifier = signer or signed.default_signer()
+    found = _signed_and_dated(graph_root, located, doc, prefix="vote", signer=verifier, base=base)
+    target_id = str(located.target_id)
+    n = int(doc["motion"])
+    login = str(doc["login"])
+    details = {"path": located.path, "motion": n, "login": login}
+    try:
+        motion = next(
+            (m for m in panel.load_motions(graph_root / "targets" / target_id) if m.n == n), None
+        )
+        if motion is None:
+            return [
+                *found,
+                Diagnostic(
+                    "vote-motion-unknown",
+                    f"{located.path}: {target_id} has no motion {n} (F24-R10)",
+                    details,
+                ),
+            ]
+        base_settings = panel.current_settings(graph_root)
+        window = panel.voting_settings_of(motion.settings, base_settings).window_days
+        closes = motion.date + datetime.timedelta(days=window)
+        cast = panel.day_of(doc["date"])
+        if not motion.date <= cast <= closes:
+            found.append(
+                Diagnostic(
+                    "vote-window",
+                    f"{located.path}: motion {n} is open from {motion.date.isoformat()} to "
+                    f"{closes.isoformat()}, and the vote is dated {cast.isoformat()} (F24-R3)",
+                    {**details, "opened": motion.date.isoformat(), "closes": closes.isoformat()},
+                )
+            )
+        eligible = panel.eligible_voters(
+            graph_root, target_id, n, signer=verifier,
+            curators=_parent_curators(graph_root, base),
+        )  # fmt: skip
+        if login not in eligible:
+            found.append(
+                Diagnostic(
+                    "vote-not-member",
+                    f"{located.path}: {login} was not on {target_id}'s panel on "
+                    f"{motion.date.isoformat()}, when motion {n} was opened, and is no curator "
+                    "whose vote counts on it (F24-R3)",
+                    details,
+                )
+            )
+    except schemas.SchemaError as exc:
+        return [*found, Diagnostic("record-invalid", str(exc), {"path": located.path})]
+    return found
+
+
+def check_writeup_v2(
+    graph_root: Path,
+    located: Located,
+    doc: dict[str, Any],
+    *,
+    signer: Signer,
+    base: BaseReader | None,
+) -> list[Diagnostic]:
+    """F24-R5, R10: a ``writeup/v2`` act is signed (with the parent's approval key when made
+    through the service) and dated within a day of the gate's clock. Anyone may make a
+    ``record``; every later act names an existing record, is signed by one of its authors, and an
+    author signs once (the record's own signer has signed already)."""
+    from opn_gate import writeup  # noqa: PLC0415 — writeup reads the panel
+
+    found = _signed_and_dated(graph_root, located, doc, prefix="writeup", signer=signer, base=base)
+    if doc["action"] == writeup.RECORD:
+        return found
+    who = str(doc["signer"])
+    w = int(doc["writeup"])
+    n = int(PurePosixPath(located.path).name.split(".", 1)[0])
+    details = {"path": located.path, "writeup": w, "signer": who}
+    try:
+        acts = writeup.load_any(graph_root / "targets" / str(located.target_id))
+    except schemas.SchemaError as exc:
+        return [*found, Diagnostic("record-invalid", str(exc), {"path": located.path})]
+    record = next((a for a in acts if a.n == w and a.is_record), None)
+    if record is None:
+        return [
+            *found,
+            Diagnostic(
+                "writeup-unknown",
+                f"{located.path}: write-up {w} is not a write-up record of {located.target_id} "
+                "(F24-R5)",
+                details,
+            ),
+        ]
+    if who not in record.authors:
+        return [
+            *found,
+            Diagnostic(
+                "writeup-not-author",
+                f"{located.path}: {who} is not among write-up {w}'s authors "
+                f"({', '.join(record.authors)}); its later acts are theirs (F24-R5)",
+                details,
+            ),
+        ]
+    if doc["action"] == writeup.AUTHOR_SIGN and (
+        record.signer == who
+        or any(
+            a.n < n and a.action == writeup.AUTHOR_SIGN and a.writeup == w and a.signer == who
+            for a in acts
+        )
+    ):
+        found.append(
+            Diagnostic(
+                "writeup-signed-twice",
+                f"{located.path}: {who} has already signed write-up {w} (F24-R10)",
+                details,
+            )
+        )
+    return found
+
+
+def check_literature_record(  # noqa: PLR0911 — one return per rule
+    graph_root: Path,
+    located: Located,
+    classification: Classification,
+    *,
+    signer: Signer | None = None,
+    base: BaseReader | None = None,
+) -> list[Diagnostic]:
+    """F08-T40 (D-3, D-25, D-32 v3.35): a literature record validates and names the node it sits
+    under. Unsigned (``via``, ``key``, ``signature`` all null, ``confirms`` null) it is anyone's
+    proposal and nothing more is asked. Signed, it is checked as a steward record is: the
+    signature verifies under its key; an ``approval-key`` record carries the approval key of the
+    merge's parent tree (``signed.approval_key_problem``); its contributor is an active steward of
+    the target or a listed curator (``real_identities``, the stewards read with the pull request's
+    own records in the tree); a ``confirms`` names a record on the node; and an SSH signature is
+    its signer's — the key they committed with as a steward, or they opened the pull request
+    (``check_signer_opener``, F21-Q18). The products apply the same rule (``literature.derive``)."""
+    from opn_gate import literature  # noqa: PLC0415 — only this check and the products read them
+
+    data = _read(graph_root, located)
+    if isinstance(data, Diagnostic):
+        return [data]
+    problems = _check_schema(located, data, code="record-invalid")
+    if problems:
+        return problems
+    doc = _document(located, data)
+    if isinstance(doc, Diagnostic):
+        return [doc]
+    if doc.get("node") != located.node_id:
+        return [
+            Diagnostic(
+                "literature-node",
+                f"{located.path} is a record for node {doc.get('node')!r}, and it sits under "
+                f"nodes/{located.node_id}/ (D-25 v3.35)",
+                {"path": located.path, "node": doc.get("node")},
+            )
+        ]
+    record = literature.Record(PurePosixPath(located.path).name, doc)
+    if not record.signed and not record.half_signed:
+        if record.confirms is not None:
+            return [
+                Diagnostic(
+                    "literature-signature",
+                    f"{located.path}: an unsigned record is a proposal and confirms nothing; a "
+                    "confirmation is signed by a steward of the target or a curator (D-32 v3.35)",
+                    {"path": located.path, "confirms": record.confirms},
+                )
+            ]
+        return []
+    verifier = signer or signed.default_signer()
+    assert located.target_id is not None
+    problem = literature.signature_problem(
+        record,
+        signers=real_identities(graph_root, located.target_id, signer=verifier),
+        approval_key=approval_key(graph_root, base),
+        verifier=verifier,
+    )
+    if problem is not None:
+        code, reason = problem
+        details = {"path": located.path, "signer": record.contributor}
+        message = f"{located.path}: {reason}"
+        if code == "literature-signer-unlisted":
+            return [Diagnostic("literature-signer-unlisted", message, details)]
+        return [Diagnostic("literature-signature", message, details)]
+    found: list[Diagnostic] = []
+    named = record.confirms
+    if named is not None:
+        node_dir = graph_root / "targets" / located.target_id / "nodes" / str(located.node_id)
+        if not (node_dir / named).is_file():
+            found.append(
+                Diagnostic(
+                    "literature-record-unknown",
+                    f"{located.path}: confirms {named!r}, which is not a record on the node",
+                    {"path": located.path, "confirms": named},
+                )
+            )
+    if found or _by_approval_key(doc):
+        return found  # an approval-key signature is the service's act for the login it names
+    return check_signer_opener(
+        graph_root,
+        located,
+        classification,
+        signer_name=record.contributor,
+        key=str(doc.get(signed.KEY_FIELD) or ""),
+        verifier=verifier,
+    )
+
+
+#: F25-R5: ``registrations/<date>-<n>.yaml``, the date the record was filed and a number from 1.
+_REGISTRATION_NAME_RE = re.compile(r"^[0-9]{4}-[0-9]{2}-[0-9]{2}-[1-9][0-9]*\.ya?ml$")
+ATTESTATIONS_DIR = "attestations"
+OK_VERDICT = "pass"
+
+
+def check_registration(  # noqa: PLR0911 — one return per rule
+    graph_root: Path,
+    located: Located,
+    classification: Classification,
+    *,
+    signer: Signer | None = None,
+) -> list[Diagnostic]:
+    """F25-R5 (D-3, D-10 v3.37): a registration record validates, names the target it sits under
+    and is named ``<date>-<n>``; its ``submitted_by`` is a listed curator or an active steward of
+    the target (``real_identities``) and is who the pull request acts for — the opener, or the
+    record's own author when the service opened it (``acting_names``, F18-Q7); its ``proof.node``
+    is a node of the target and ``proof.attestation`` a passing attestation of that node; and its
+    ``graph_commit`` is in the checkout's history when the checkout is a repository with one
+    (``_commit_problem``). Nothing here is a verdict about the registry: the record says what the
+    curator was told, and the products derive the latest (``registrations.derive``)."""
+    data = _read(graph_root, located)
+    if isinstance(data, Diagnostic):
+        return [data]
+    problems = _check_schema(located, data, code="record-invalid")
+    if problems:
+        return problems
+    doc = _document(located, data)
+    if isinstance(doc, Diagnostic):
+        return [doc]
+    if doc.get("target") != located.target_id:
+        return [
+            Diagnostic(
+                "registration-target-mismatch",
+                f"{located.path} is a record for target {doc.get('target')!r}, and it sits under "
+                f"targets/{located.target_id}/ (F25-R5)",
+                {"path": located.path, "target": doc.get("target")},
+            )
+        ]
+    name = PurePosixPath(located.path).name
+    if not _REGISTRATION_NAME_RE.match(name):
+        return [
+            Diagnostic(
+                "registration-name",
+                f"{located.path}: a registration record is registrations/<date>-<n>.yaml, the date "
+                "it was filed and a number from 1 (F25-R5)",
+                {"path": located.path},
+            )
+        ]
+    submitted_by = str(doc.get("submitted_by"))
+    verifier = signer or signed.default_signer()
+    if submitted_by not in real_identities(graph_root, located.target_id, signer=verifier):
+        return [
+            Diagnostic(
+                "registration-not-curator",
+                f"{located.path}: submitted_by {submitted_by!r} is neither a listed curator nor an "
+                f"active steward of {located.target_id}; a registration is theirs to record "
+                "(D-10 v3.37)",
+                {"path": located.path, "submitted_by": submitted_by},
+            )
+        ]
+    names = acting_names(graph_root, classification, submitted_by)
+    if submitted_by not in names:
+        return [
+            Diagnostic(
+                "registration-not-opener",
+                f"{located.path}: submitted_by {submitted_by!r} did not open this pull request "
+                "(F25-R5); the service writes it from the sign-in that asked",
+                {"path": located.path, "submitted_by": submitted_by, "opened_by": sorted(names)},
+            )
+        ]
+    raw_proof = doc.get("proof")
+    proof: dict[str, Any] = raw_proof if isinstance(raw_proof, dict) else {}
+    node = str(proof.get("node"))
+    target_dir = graph_root / "targets" / located.target_id
+    if not (target_dir / "nodes" / node / "META.yaml").is_file():
+        return [
+            Diagnostic(
+                "registration-proof-unknown",
+                f"{located.path}: proof.node {node!r} is not a node of {located.target_id}",
+                {"path": located.path, "node": node},
+            )
+        ]
+    found = _attestation_problem(graph_root, located, str(proof.get("attestation")), node)
+    if found is not None:
+        return [found]
+    commit = str(doc.get("graph_commit"))
+    reason = _commit_problem(graph_root, commit)
+    if reason is not None:
+        return [
+            Diagnostic(
+                "registration-commit-unknown",
+                f"{located.path}: {reason}",
+                {"path": located.path, "graph_commit": commit},
+            )
+        ]
+    return []
+
+
+def _attestation_problem(
+    graph_root: Path, located: Located, number: str, node: str
+) -> Diagnostic | None:
+    """Why ``attestations/<number>.json`` is not a passing attestation of ``node``, or ``None``.
+    The attestation is the fact a registration rests on (F25-R5): what was registered is what
+    that merge proved."""
+    rel = f"{ATTESTATIONS_DIR}/{number}.json"
+    details = {"path": located.path, "node": node, "attestation": number}
+    path = graph_root / rel
+    if not path.is_file():
+        return Diagnostic(
+            "registration-attestation-unknown",
+            f"{located.path}: proof.attestation names {rel}, which is not on the graph",
+            details,
+        )
+    try:
+        att = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, ValueError):
+        return Diagnostic(
+            "registration-attestation-mismatch",
+            f"{located.path}: {rel} does not read as an attestation",
+            details,
+        )
+    if not isinstance(att, dict) or att.get("node_id") != node:
+        attested = att.get("node_id") if isinstance(att, dict) else None
+        return Diagnostic(
+            "registration-attestation-mismatch",
+            f"{located.path}: {rel} attests node {attested!r}, not proof.node {node!r}",
+            details,
+        )
+    if att.get("verdict") != OK_VERDICT:
+        return Diagnostic(
+            "registration-attestation-mismatch",
+            f"{located.path}: {rel} is not a passing attestation (verdict {att.get('verdict')!r})",
+            details,
+        )
+    return None
+
+
+def _commit_problem(graph_root: Path, commit: str) -> str | None:
+    """Why ``commit`` is not in the checkout's history, or ``None`` when it is — or when the
+    question cannot be asked: a plain tree (every fixture, the service's scratch copy) or a
+    shallow clone has no history to answer from, and a check that cannot run refuses nothing
+    (F25-Q, proposed). Child git calls drop the repository variables (log, 2026-09-11)."""
+    if not (graph_root / ".git").exists():
+        return None
+    env = config.child_environment(drop=config.GIT_REPO_VARIABLES)
+
+    def git(*args: str) -> subprocess.CompletedProcess[str]:
+        return subprocess.run(
+            ["git", "-C", str(graph_root), *args],
+            capture_output=True,
+            text=True,
+            check=False,
+            env=env,
+        )
+
+    shallow = git("rev-parse", "--is-shallow-repository")
+    if shallow.returncode != 0 or shallow.stdout.strip() != "false":
+        return None
+    if git("merge-base", "--is-ancestor", commit, "HEAD").returncode == 0:
+        return None
+    return (
+        f"graph_commit {commit[:12]}… is not in the graph's history; name the commit the wrapper "
+        "was exported from (opn-export.json)"
+    )
+
+
+def check_display_name(  # noqa: PLR0911 — one return per rule
+    graph_root: Path,
+    located: Located,
+    classification: Classification,
+    *,
+    signer: Signer | None = None,
+    base: BaseReader | None = None,
+) -> list[Diagnostic]:
+    """F25-R6 (D-3, D-19 v3.37): a display-name record validates, sits at
+    ``names/<pseudonym>.yaml`` for the pseudonym it carries, and its signature verifies under its
+    key. Written by the holder of the pseudonym and nobody else: through the service, the record
+    is signed with the approval key of the merge's parent tree (``check_approval_signature``) and
+    the service acts for the bearer it names; opened by hand, its pseudonym must be the one the
+    graph pairs with the opener's login (``curators.json``), whether the approval key or the
+    opener's own SSH key signed it — a login spelled like a pseudonym is never its holder
+    (``acting_names``'s rule). No pairing exists for an ordinary contributor, so a hand-opened
+    SSH record for one is refused by name: the route is ``POST /me/name`` (F25-Q, proposed)."""
+    data = _read(graph_root, located)
+    if isinstance(data, Diagnostic):
+        return [data]
+    problems = _check_schema(located, data, code="record-invalid")
+    if problems:
+        return problems
+    doc = _document(located, data)
+    if isinstance(doc, Diagnostic):
+        return [doc]
+    pseudonym = str(doc.get("pseudonym"))
+    if PurePosixPath(located.path).stem != pseudonym:
+        return [
+            Diagnostic(
+                "display-name-stem-mismatch",
+                f"{located.path} carries a record for {pseudonym!r}; a display name is "
+                f"{paths.NAMES_DIR}/<pseudonym>.yaml (F25-R6)",
+                {"path": located.path, "pseudonym": pseudonym},
+            )
+        ]
+    verifier = signer or signed.default_signer()
+    if not signed.verifies(doc, verifier):
+        return [
+            Diagnostic(
+                "display-name-unsigned",
+                f"{located.path}: the signature does not verify under the record's key",
+                {"path": located.path, "pseudonym": pseudonym},
+            )
+        ]
+    try:
+        curators = load_curators(graph_root)
+    except CuratorsError:
+        curators = Curators()
+    paired_to_opener = {p for p, login in curators.identities if login == classification.author}
+    if _by_approval_key(doc):
+        found = check_approval_signature(graph_root, located, doc, base)
+        if found:
+            return found
+        if classification.by_service or pseudonym in paired_to_opener:
+            return []  # the service acts for the bearer it names; a curator for her own pseudonym
+        return [
+            Diagnostic(
+                "display-name-not-owner",
+                f"{located.path}: a display name is written by the holder of {pseudonym!r} alone "
+                "(D-3 v3.37), and this pull request does not act for them",
+                {"path": located.path, "pseudonym": pseudonym, "opened_by": classification.author},
+            )
+        ]
+    if not classification.by_service and pseudonym in paired_to_opener:
+        return []
+    if not classification.by_service and any(p == pseudonym for p, _ in curators.identities):
+        return [
+            Diagnostic(
+                "display-name-not-owner",
+                f"{located.path}: {pseudonym!r} is paired with a login that did not open this pull "
+                "request (D-3 v3.37)",
+                {"path": located.path, "pseudonym": pseudonym, "opened_by": classification.author},
+            )
+        ]
+    return [
+        Diagnostic(
+            "display-name-ssh-unpaired",
+            f"{located.path}: an SSH-signed display name needs a login the graph pairs with "
+            f"{pseudonym!r}, and none is; the holder sets it through POST /me/name, which the "
+            "service signs with the approval key (F25-R6)",
+            {"path": located.path, "pseudonym": pseudonym, "opened_by": classification.author},
+        )
+    ]
 
 
 def check_formalization(graph_root: Path, located: Located) -> list[Diagnostic]:
@@ -1165,6 +2435,32 @@ def check_evidence(graph_root: Path, located: Located) -> list[Diagnostic]:
 
 
 _ABSENT = object()
+
+
+def check_target_record(graph_root: Path, located: Located) -> list[Diagnostic]:
+    """F11-R1, F25-R4 (D-34): an intake's ``target.yaml`` satisfies the version it declares.
+
+    Until F25-T5 nothing on the gate read the record an intake added: D-6's artifact rules are
+    ``intake new``'s and run where the curator ran it, and every record the tool wrote had been
+    validated by ``intake.write_doc``. A classification is the first field the registry reads
+    off the record, so a malformed one — a code that is not an arXiv category, nine MSC codes —
+    must be refused here too, by the schema and not by a second statement of it.
+    """
+    data = _read(graph_root, located)
+    if isinstance(data, Diagnostic):
+        return [data]
+    doc = _document(located, data)
+    if isinstance(doc, Diagnostic):
+        return [doc]
+    declared = intake.record_schema(doc)
+    return [
+        Diagnostic(
+            "record-invalid",
+            f"{located.path} does not satisfy {declared}: {v.path}: {v.message}",
+            {"path": located.path, "schema": declared, "field": v.path},
+        )
+        for v in schemas.violations(doc, declared)[:5]
+    ]
 
 
 def check_posting(  # noqa: PLR0911 — one return per rule
@@ -1470,6 +2766,110 @@ def check_activation(
     ]
 
 
+def check_proposed_for(  # noqa: PLR0911 — one return per rule
+    graph_root: Path, located: Located, classification: Classification
+) -> list[Diagnostic]:
+    """F18-R8 (D-14 v3.26): a proposed-for record validates, is written by the node's proposer —
+    the record's ``author`` is its ``META.yaml`` ``provenance.author`` — or arrives in a pull
+    request a listed curator opened, and names one other node of the same target that has not
+    been superseded (D-8). Each failure is refused by its own code; a superseded node is refused
+    naming its successor, which is the node the record should name.
+
+    The record is a hint: it claims nothing about the mathematics, and nothing derives a status,
+    a frontier entry or a dependency from it, so nothing else is asked of it."""
+    data = _read(graph_root, located)
+    if isinstance(data, Diagnostic):
+        return [data]
+    found = _check_schema(located, data, code="proposed-for-malformed")
+    if found:
+        return [
+            Diagnostic("proposed-for-malformed", d.message, {**d.details, "path": located.path})
+            for d in found
+        ][:1]
+    doc = _document(located, data)
+    if isinstance(doc, Diagnostic):  # defence in depth: _check_schema just parsed it
+        return [Diagnostic("proposed-for-malformed", doc.message, {"path": located.path})]
+    node_id = str(located.node_id)
+    named = str(doc["for"])
+    nodes_dir = graph_root / "targets" / located.target_id / "nodes"
+    details: dict[str, Any] = {"path": located.path, "node": node_id, "for": named}
+    author = str(doc["author"])
+    proposer = _proposer_of(nodes_dir / node_id)
+    if author != proposer and not _is_curator(graph_root, classification.author):
+        return [
+            Diagnostic(
+                "proposed-for-author",
+                f"{located.path}: a proposed-for record is written by the node's proposer "
+                f"({proposer!r}) or a listed curator (F18-R8, D-14 v3.26); this one is "
+                f"{author!r}, in a pull request opened by "
+                f"{classification.author or 'an unknown login'}",
+                {**details, "author": author, "proposer": proposer},
+            )
+        ]
+    if named == node_id:
+        return [
+            Diagnostic(
+                "proposed-for-self",
+                f"{located.path}: a statement is proposed for another node of its target, never "
+                "for itself (F18-R8)",
+                details,
+            )
+        ]
+    if not (nodes_dir / named).is_dir():
+        return [
+            Diagnostic(
+                "proposed-for-unknown-node",
+                f"{located.path}: {named} is not a node of {located.target_id} (F18-R8)",
+                details,
+            )
+        ]
+    successor = _successor_of(nodes_dir, named)
+    if successor is not None:
+        instead = f" by {successor}: name that node instead" if successor != named else ""
+        return [
+            Diagnostic(
+                "proposed-for-superseded",
+                f"{located.path}: {named} has been superseded{instead} (D-8); a statement is "
+                "proposed for a live node (F18-R8)",
+                {**details, "successor": successor if successor != named else None},
+            )
+        ]
+    return []
+
+
+def _proposer_of(node_dir: Path) -> str | None:
+    """The node's ``provenance.author`` at head, or ``None`` when its META does not read."""
+    try:
+        meta = schemas.load_yaml(node_dir / "META.yaml")
+    except (OSError, schemas.SchemaError):
+        return None
+    provenance = meta.get("provenance")
+    author = provenance.get("author") if isinstance(provenance, dict) else None
+    return str(author) if author else None
+
+
+def _is_curator(graph_root: Path, login: str | None) -> bool:
+    """Whether the login that opened the pull request is listed in ``curators.json``."""
+    if not login:
+        return False
+    try:
+        return login in load_curators(graph_root).logins
+    except CuratorsError:
+        return False
+
+
+def _successor_of(nodes_dir: Path, node_id: str) -> str | None:
+    """The end of ``node_id``'s revision chain when a status record says it is superseded (the
+    node itself when the record names no sound successor), else ``None`` — ``uses``'s reading."""
+    try:
+        record = records.load_node_status(nodes_dir / node_id)
+    except (OSError, schemas.SchemaError):
+        return None
+    if record is None or record.status != "superseded":
+        return None
+    return graphmod.current_id(nodes_dir, node_id)
+
+
 def check_proposal(
     graph_root: Path, classification: Classification, base: BaseReader | None
 ) -> list[Diagnostic]:
@@ -1588,7 +2988,29 @@ def check_append_file(
             )
         )
     problems.extend(_check_schema(located, data))
+    if located.role == "annex" and not problems:
+        problems.extend(_check_step_ids(located, data))
     return problems
+
+
+def _check_step_ids(located: Located, data: bytes) -> list[Diagnostic]:
+    """F18-R6: a stepped annex names each step once, since a hole is matched to a step by its
+    name; JSON Schema cannot say that of a list of objects, so it is asked here."""
+    doc = _document(located, data)
+    if isinstance(doc, Diagnostic):
+        return [doc]
+    repeated = annexmod.duplicate_step_ids(doc)
+    if not repeated:
+        return []
+    return [
+        Diagnostic(
+            "append-invalid",
+            f"{located.path} names the step "
+            + ", ".join(repeated)
+            + " more than once; a stepped annex's step ids are unique (D-31 v3.26)",
+            {"path": located.path, "schema": doc.get("schema"), "duplicates": repeated},
+        )
+    ]
 
 
 def referenced_file(located: Located, stmt_ref: str) -> str | None:
@@ -1801,7 +3223,22 @@ def check_explainer_file(
     graph_root: Path, located: Located, classification: Classification
 ) -> list[Diagnostic]:
     """R10: an explainer is prose about a merged proof; on an unproved node it is a misfiled
-    annex (D-3), and it is named for its content like one, because a correction is a new entry."""
+    annex (D-3), and it is named for its content like one, because a correction is a new entry.
+
+    F20-R2, R4: an explainer whose front matter declares ``explainer/v1`` names the merged
+    artifact it describes — which may be a partial assembly on a node with no ``Proof.lean`` —
+    and the outline steps its sections describe; ``explainers.check_record`` holds it to both.
+    One filed before F20 keeps the rule above."""
+    from opn_gate import explainers  # noqa: PLC0415 — explainers reads glosses, as this does
+
+    data = _read(graph_root, located)
+    if isinstance(data, Diagnostic):
+        return [data]
+    if located.node_id is not None and explainers.is_record(data):
+        naming = paths.check_content_hash_name(located, data)
+        if naming is not None:
+            return [naming]
+        return explainers.check_record(graph_root, located, data) or []
     if located.node_id is not None and not _has_proof(graph_root, located):
         return [
             Diagnostic(
@@ -1811,9 +3248,6 @@ def check_explainer_file(
                 {"path": located.path, "node": located.node_id},
             )
         ]
-    data = _read(graph_root, located)
-    if isinstance(data, Diagnostic):
-        return [data]
     naming = paths.check_content_hash_name(located, data)
     return [naming] if naming is not None else []
 
@@ -1830,12 +3264,98 @@ def real_identities(graph_root: Path, target_id: str, *, signer: Signer) -> froz
     return frozenset(steward.active_logins(target_dir, signer)) | listed
 
 
+def acting_names(
+    graph_root: Path, classification: Classification | None, record_author: str | None
+) -> frozenset[str]:
+    """F20-T6: the names of whoever a gloss, explainer or withdrawal pull request acts for.
+
+    A pull request the service opened (``Classification.by_service``) acts for the identity the
+    service authenticated, which it writes into the record's own ``author`` and nowhere else; any
+    other pull request acts for the login that opened it, whatever its record says. A listed
+    curator is known by both halves of their ``curators.json`` pair, each read in the direction
+    its namespace allows: the service's pseudonym to the login it is paired with (a pseudonym is
+    the service's to issue, once), and a host login to its pseudonym (a login is the host's) —
+    never a host login to a login, since anyone may register a login spelled like a pseudonym.
+    The service refuses to write a pseudonym spelled like another person's real-identity login
+    (``api/opn_api/glosses.py``), which is what makes the first direction safe for stewards too.
+    Empty when nobody is known."""
+    if classification is None:
+        return frozenset()
+    who = record_author if classification.by_service else classification.author
+    if not who:
+        return frozenset()
+    try:
+        curators = load_curators(graph_root)
+    except CuratorsError:
+        return frozenset({who})
+    if classification.by_service:
+        paired = {login for pseudonym, login in curators.identities if pseudonym == who}
+    else:
+        paired = {pseudonym for pseudonym, login in curators.identities if login == who}
+    return frozenset({who, *paired})
+
+
+def check_signer_opener(  # noqa: PLR0913 — the record, its signer, its key and who opened it
+    graph_root: Path,
+    located: Located,
+    classification: Classification,
+    *,
+    signer_name: str,
+    key: str,
+    verifier: Signer,
+) -> list[Diagnostic]:
+    """F21-Q18: a gloss or explainer signature is the person's it names. The signature verifies
+    under the key the record carries, which proves the record unchanged and says nothing about
+    who holds the key. So it passes when that key is the one the signer committed with as a
+    steward of the target (F15-R1), which keeps F15-Q8's carried record, or when the signer
+    opened the pull request (``acting_names``; a curator has no key on record). The service
+    opens no signature, so one in a service pull request acts for no one."""
+    target_dir = graph_root / "targets" / located.target_id
+    if key and steward.commit_key_of(target_dir, signer_name, verifier) == key:
+        return []
+    names = acting_names(graph_root, classification, None)
+    if signer_name in names:
+        return []
+    return [
+        Diagnostic(
+            "signer-not-opener",
+            f"{located.path}: the signature names {signer_name!r}, under a key that is not their "
+            "steward key, and they did not open this pull request (F21-Q18)",
+            {"path": located.path, "signer": signer_name, "opened_by": sorted(names)},
+        )
+    ]
+
+
+def check_approval_signature(
+    graph_root: Path, located: Located, doc: dict[str, Any], base: BaseReader | None
+) -> list[Diagnostic]:
+    """F23-R10, R11 (D-3 v3.33): a ``via: approval-key`` signature is the service's, made for the
+    signed-in login it names, so its key must be ``keys/approval.pub`` in the merge's parent tree
+    — a pull request cannot bring its own. ``signature-invalid`` otherwise; empty for an SSH
+    signature, which ``check_signer_opener`` ties to its signer instead."""
+    problem = signed.approval_key_problem(doc, approval_key(graph_root, base))
+    if problem is None:
+        return []
+    return [
+        Diagnostic(
+            "signature-invalid",
+            f"{located.path}: {problem}",
+            {"path": located.path, "signer": doc.get("signer")},
+        )
+    ]
+
+
+def _by_approval_key(doc: dict[str, Any]) -> bool:
+    return doc.get(signed.VIA_FIELD) == signed.VIA_APPROVAL_KEY
+
+
 def check_explainer_signature(
     graph_root: Path,
     located: Located,
     classification: Classification,
     *,
     signer: Signer | None = None,
+    base: BaseReader | None = None,
 ) -> list[Diagnostic]:
     """F15-R8: a signature validates, sits under the node and target it names, is named for
     the explainer it signs, and is valid — the explainer is on the node (at head, so one
@@ -1884,7 +3404,312 @@ def check_explainer_signature(
                 {"path": located.path, "signer": sig.signer},
             )
         )
-    return found
+    found.extend(check_approval_signature(graph_root, located, doc, base))
+    if found or _by_approval_key(doc):
+        return found  # an approval-key signature is the service's act for the login it names
+    return check_signer_opener(
+        graph_root, located, classification, signer_name=sig.signer, key=sig.key, verifier=verifier
+    )
+
+
+def _record_parent(graph_root: Path, located: Located) -> Path:
+    """The directory holding a record's ``gloss/``, ``explainer/`` or ``withdrawals/``: its node,
+    or its target for a definition module's gloss."""
+    rel = PurePosixPath(located.path)
+    depth = 3 if rel.parent.name == glosses.SIGNED_DIR else 2
+    return graph_root / rel.parents[depth - 1]
+
+
+def _versions_of(parent: Path, role: str) -> list[glosses.Version]:
+    from opn_gate import explainers  # noqa: PLC0415 — explainers reads glosses, as this does
+
+    return glosses.load_versions(parent) if role == "gloss" else explainers.versions(parent)
+
+
+def check_draft_provenance(
+    graph_root: Path, located: Located, classification: Classification
+) -> list[Diagnostic]:
+    """F21-R2 (Q2; D-3 v3.31): no new drafts. The network drafts nothing (F21-R1), so an added
+    gloss or explainer version carrying a ``drafter`` block is refused ``draft-not-accepted``
+    whoever opened the pull request — the service, a curator or anyone else. The block stays in
+    the schemas only for the versions already merged, which still validate, render and can be
+    superseded by a person; refusing it here keeps anyone from filing words as "machine-drafted
+    by" a model. ``classification`` names the opener in the refusal and decides nothing.
+    (F20-T10's ``drafter-not-service`` let the service's own pull request through.)"""
+    parent = _record_parent(graph_root, located)
+    stem = PurePosixPath(located.path).stem
+    version = next((v for v in _versions_of(parent, located.role) if v.hash == stem), None)
+    if version is None or version.drafter is None:
+        return []
+    return [
+        Diagnostic(
+            "draft-not-accepted",
+            f"{located.path} carries a drafter block: the network accepts no new drafts "
+            "(F21-R2, D-3 v3.31). Words are a contributor's work; file the version with yourself "
+            "as its author (drafter: null) and name any model that helped in drafted_with",
+            {"path": located.path, "author": classification.author},
+        )
+    ]
+
+
+def _on_base(graph_root: Path, base: BaseReader, added: frozenset[str]) -> Callable[[Path], bool]:
+    """Whether a file of the checkout stood on the pull request's base or is one of its own."""
+
+    def present(path: Path) -> bool:
+        rel = path.relative_to(graph_root).as_posix()
+        return rel in added or base(rel) is not None
+
+    return present
+
+
+def check_version_head(
+    graph_root: Path,
+    located: Located,
+    *,
+    base: BaseReader | None = None,
+    added: frozenset[str] = frozenset(),
+) -> list[Diagnostic]:
+    """F20-R6: a gloss or explainer that supersedes names the current head of a chain of its own
+    subject. Who may supersede a signed version is no longer asked: anyone may, and a person's
+    change to verified words is pending until a steward or curator signs it (F21-R13, withdrawing
+    F20-R6's ``signed-supersede``; ``opn_gate.sections``).
+
+    F22-T11: what the version superseded is a fact about the pull request's base. With ``base``,
+    the siblings and withdrawals read are those that stood on the base, plus the pull request's
+    own files (``added``); the files are read from the checkout, since a version is named for its
+    content and never changes. A replay runs on ``main``'s tip, where a rival merged later sits
+    beside the version (#415, #417), so reading the checkout refused the version that had
+    superseded the head legitimately; a true fork (a rival on the base) is still refused. Without
+    ``base`` (``gloss file``, the service's composer) the checkout is the base plus the file."""
+    parent = _record_parent(graph_root, located)
+    siblings = _versions_of(parent, located.role)
+    stem = PurePosixPath(located.path).stem
+    version = next((v for v in siblings if v.hash == stem), None)
+    if version is None or version.supersedes is None:
+        return []  # nothing superseded; a file that did not load was refused by its own check
+    present = None if base is None else _on_base(graph_root, base, added)
+    if present is not None:
+        siblings = [v for v in siblings if v.hash == stem or present(v.path)]
+    directory = glosses.GLOSS_DIR if located.role == "gloss" else "explainer"
+    return glosses.head_problems(
+        located.path, version, siblings, glosses.withdrawn_versions(parent, directory, present)
+    )
+
+
+def _chain_before(
+    graph_root: Path, located: Located, *, signer: Signer | None, models_only: bool
+) -> tuple[glosses.Version, sections.Derived, str] | None:
+    """The version ``located`` adds, what its chain shows over the versions ahead of it (with the
+    valid signatures on them), and the version's text; ``None`` when there is nothing to judge (no
+    such version, no version ahead, an unreadable file, or, with ``models_only``, a person's
+    version)."""
+    from opn_gate import explainers  # noqa: PLC0415 — explainers reads glosses, as this does
+
+    parent = _record_parent(graph_root, located)
+    siblings = _versions_of(parent, located.role)
+    stem = PurePosixPath(located.path).stem
+    version = next((v for v in siblings if v.hash == stem), None)
+    if version is None or (models_only and not version.by_model):
+        return None
+    gloss = located.role == "gloss"
+    directory = glosses.GLOSS_DIR if gloss else explainers.EXPLAINER_DIR
+    withdrawn = glosses.withdrawn_versions(parent, directory)
+    same = [v for v in siblings if v.subject == version.subject]
+    chain = glosses.chain_of(glosses.chains(same, withdrawn), version.hash)
+    if chain is None:
+        return None  # defence in depth: every version is in some chain
+    ahead = chain.versions[: [v.hash for v in chain.versions].index(version.hash)]
+    if not ahead:
+        return None
+    verifier = signer or signed.default_signer()
+    if gloss:
+        approvals: dict[str, list[frozenset[str] | None]] = {
+            h: [None if s.sections is None else frozenset(s.sections) for s in found]
+            for h, found in glosses.valid_signatures(parent, verifier).items()
+        }
+    else:
+        approvals = explainers.approvals_of(explainers.valid(parent, verifier))
+    before = sections.of_chain(glosses.Chain(ahead, withdrawn), approvals, withdrawn)
+    try:
+        text = (graph_root / located.path).read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        return None  # the file's own check names what is wrong with it
+    return version, before, text
+
+
+def check_own_edit_opener(
+    graph_root: Path,
+    located: Located,
+    classification: Classification | None,
+    *,
+    signer: Signer | None = None,
+) -> list[Diagnostic]:
+    """F21-Q14: an author's edit of their own written words shows at once (the owner's ruling,
+    Q10), so a version that uses that privilege must be filed by its author. On a pull request the
+    service did not open, a version naming an ``author`` that changes a section the chain shows
+    as written by that same author is refused ``author-not-opener`` unless the author is among the
+    opener's names (``acting_names``). The service writes the author from the token, so its pull
+    requests are not in question; a version that merely proposes a change to another's words is
+    pending and gains nothing from its name, so it is not checked; with no opener known (a local
+    classify without ``--author``) nothing is judged."""
+    if classification is None or classification.by_service or not classification.author:
+        return []
+    found = _chain_before(graph_root, located, signer=signer, models_only=False)
+    if found is None:
+        return []
+    version, before, text = found
+    if version.by_model or version.author is None:
+        return []
+    gloss = located.role == "gloss"
+    edits = sections.own_edits(before, sections.parts_of_text(text, gloss=gloss), version.author)
+    if not edits or version.author in acting_names(graph_root, classification, version.author):
+        return []
+    keys = ", ".join(p.key for p in edits)
+    return [
+        Diagnostic(
+            "author-not-opener",
+            f"{located.path} names author {version.author} and changes words that author wrote "
+            f"({keys}), which would show at once as their own edit (F21-Q10); but the pull "
+            f"request was opened by {classification.author}. File it through the service, which "
+            "writes the author from the token, or open it as the author; a change to another "
+            "person's words is filed under your own name and waits for a steward or curator",
+            {
+                "path": located.path,
+                "author": version.author,
+                "opened_by": classification.author,
+                "sections": [p.key for p in edits],
+            },
+        )
+    ]
+
+
+def check_model_lock(
+    graph_root: Path, located: Located, *, signer: Signer | None = None
+) -> list[Diagnostic]:
+    """F21-R12 (D-3 v3.31, Q7): a version a model drafted (one naming ``drafted_with``) may not
+    change or omit a section its chain shows as written or verified: ``locked-by-a-person``, one
+    per such section, naming its key and the Lean it describes — for an explainer's ``steps:``
+    section the lines its steps span in the proof's outline (the least start to the greatest
+    end), for its overview or a gloss the whole file. What the chain shows is derived over the
+    versions ahead of this one, with the valid signatures on them (``opn_gate.sections``). A
+    person's version is never refused here: their change to locked words is pending until a
+    steward or curator signs it. (A legacy ``drafter`` block is refused before this, R2.)"""
+    found = _chain_before(graph_root, located, signer=signer, models_only=True)
+    if found is None:
+        return []
+    version, before, text = found
+    gloss = located.role == "gloss"
+    target_dir = graph_root / "targets" / located.target_id
+    out: list[Diagnostic] = []
+    for placed in sections.breaches(before, sections.parts_of_text(text, gloss=gloss)):
+        file, lines = _locked_lean(target_dir, version, placed.key)
+        where = (
+            f"Lean lines {lines[0]}-{lines[1]} of {file}" if lines is not None else f"all of {file}"
+        )
+        out.append(
+            Diagnostic(
+                "locked-by-a-person",
+                f"{located.path} names drafted_with and changes or omits section {placed.key} "
+                f"({where}), which its chain shows as {placed.state} (version "
+                f"{placed.version[:12]}…): a person's words are locked against models (F21-R12, "
+                "D-3 v3.31). Keep that section exactly as the chain shows it, or file the version "
+                "as your own words (drafted_with: null); a person's change to it is pending until "
+                "a steward or curator signs it",
+                {
+                    "path": located.path,
+                    "section": placed.key,
+                    "state": placed.state,
+                    "version": placed.version,
+                    "file": file,
+                    "lines": list(lines) if lines is not None else None,
+                },
+            )
+        )
+    return out
+
+
+def _locked_lean(
+    target_dir: Path, version: glosses.Version, key: str
+) -> tuple[str, tuple[int, int] | None]:
+    """The Lean a locked section describes, as ``(file relative to the target, lines)``: an
+    explainer's ``steps:`` section spans its steps' lines in the artifact's outline (``None`` when
+    the outline or a step is missing); its overview, and a gloss, are the whole file."""
+    from opn_gate import explainers  # noqa: PLC0415 — explainers reads glosses, as this does
+
+    kind, node, third = version.subject
+    if kind != "proof":
+        lean = glosses.subject_file(target_dir, {"kind": kind, "node": node, "module": third})
+        return (lean.relative_to(target_dir).as_posix() if lean is not None else str(kind)), None
+    node_dir = target_dir / "nodes" / str(node)
+    proof = str(third)
+    artifact = explainers.merged_artifacts(node_dir).get(proof, proof)
+    file = f"nodes/{node}/{artifact}"
+    if not key.startswith(sections.STEPS):
+        return file, None
+    outline = explainers.outline_of(target_dir, proof)
+    steps = explainers.outline_steps(outline) if outline is not None else {}
+    named_steps = [steps.get(s) for s in key[len(sections.STEPS) :].split(",")]
+    spans = [s["span"] for s in named_steps if s is not None]
+    if not spans or len(spans) != len(named_steps):
+        return file, None
+    return file, (min(s["start_line"] for s in spans), max(s["end_line"] for s in spans))
+
+
+def check_gloss_signature(
+    graph_root: Path,
+    located: Located,
+    classification: Classification,
+    *,
+    signer: Signer | None = None,
+    base: BaseReader | None = None,
+) -> list[Diagnostic]:
+    """F20-R8: a gloss signature validates, sits beside the gloss it signs under the node (or
+    target) it names, is valid (``glosses.signature_problems``) and is a real-identity
+    contributor's: an active steward of the target or a listed curator. It changes no status,
+    grade or digestion state (F20-Q12), so nothing else is asked of it."""
+    data = _read(graph_root, located)
+    if isinstance(data, Diagnostic):
+        return [data]
+    problems = _check_schema(located, data, code="record-invalid")
+    if problems:
+        return problems
+    doc = _document(located, data)
+    if isinstance(doc, Diagnostic):
+        return [doc]
+    if doc.get("target") != located.target_id or doc.get("node") != located.node_id:
+        return [
+            Diagnostic(
+                "signature-node",
+                f"{located.path} signs a gloss on {doc.get('target')}/{doc.get('node')}, and it "
+                f"sits under {located.target_id}/{located.node_id} (F20-R8)",
+                {"path": located.path, "target": doc.get("target"), "node": doc.get("node")},
+            )
+        ]
+    verifier = signer or signed.default_signer()
+    found = glosses.signature_problems(
+        located.path, doc, _record_parent(graph_root, located), verifier
+    )
+    who = str(doc["signer"])
+    if who not in real_identities(graph_root, located.target_id, signer=verifier):
+        found.append(
+            Diagnostic(
+                "signer-unlisted",
+                f"{located.path}: {who!r} is neither an active steward of {located.target_id} nor "
+                "a listed curator; a gloss is signed by one of them (F20-R8; D-22)",
+                {"path": located.path, "signer": who},
+            )
+        )
+    found.extend(check_approval_signature(graph_root, located, doc, base))
+    if found or _by_approval_key(doc):
+        return found  # an approval-key signature is the service's act for the login it names
+    return check_signer_opener(
+        graph_root,
+        located,
+        classification,
+        signer_name=who,
+        key=str(doc.get("key") or ""),
+        verifier=verifier,
+    )
 
 
 def _has_proof(graph_root: Path, located: Located) -> bool:
@@ -1962,6 +3787,166 @@ def check_alternate(graph_root: Path, classification: Classification) -> list[Di
                 )
                 break
     return problems
+
+
+def check_withdrawal(
+    graph_root: Path,
+    located: Located,
+    classification: Classification | None = None,
+    *,
+    signer: Signer | None = None,
+) -> list[Diagnostic]:
+    """F08-T31 (D-14, D-18 v3.27): a withdrawal validates, and names a record that is on the
+    record — a valid status record or defect claim in this node's own ``status/`` or
+    ``defects/``. Who may file one is the curator mode's rule (F08-R8): a listed login, reviewed
+    by another one. The schema's pattern keeps the name inside the node, so a record of another
+    node or another target cannot be named at all; one that is not there is refused by name.
+
+    F20-R7 (D-3 v3.30): or a gloss or explainer version beside it — under a node, or under the
+    target for a definition module's gloss — withdrawn by that version's author (the record's
+    ``author`` is the version's), or in a pull request an active steward of the target or a
+    listed curator opened; a curator's pull request is the curator mode, already asked."""
+    data = _read(graph_root, located)
+    if isinstance(data, Diagnostic):
+        return [data]
+    problems = _check_schema(located, data, code="record-invalid")
+    if problems:
+        return problems
+    doc = _document(located, data)
+    if isinstance(doc, Diagnostic):
+        return [doc]  # defence in depth: _check_schema just parsed this same document
+    named = str(doc["withdraws"])
+    node_dir = PurePosixPath(located.path).parent.parent
+    if named.startswith(VERSION_DIRS):
+        return _check_version_withdrawal(graph_root, located, doc, classification, signer)
+    if _is_record_on_file(graph_root, f"{node_dir}/{named}"):
+        return []
+    return [
+        Diagnostic(
+            "withdrawal-unknown-record",
+            f"{located.path} withdraws {named}, which is not a status record or a defect claim "
+            f"of this node on the record ({node_dir}/{named}); a withdrawal names one of its own "
+            "node's records (F08-T31, D-18 v3.27)",
+            {"path": located.path, "withdraws": named},
+        )
+    ]
+
+
+def _check_version_withdrawal(
+    graph_root: Path,
+    located: Located,
+    doc: dict[str, Any],
+    classification: Classification | None,
+    signer: Signer | None,
+) -> list[Diagnostic]:
+    """F20-R7: the version is on the record beside the withdrawal, and the withdrawal is its
+    author's, or a steward's or curator's pull request."""
+    named = str(doc["withdraws"])
+    directory, _, name = named.partition("/")
+    parent = _record_parent(graph_root, located)
+    role = "gloss" if directory == glosses.GLOSS_DIR else "explainer"
+    stem = PurePosixPath(name).stem
+    version = next((v for v in _versions_of(parent, role) if v.hash == stem), None)
+    if version is None or (role == "explainer" and located.node_id is None):
+        return [
+            Diagnostic(
+                "withdrawal-unknown-record",
+                f"{located.path} withdraws {named}, which is not a {role} version on the record "
+                f"beside it ({parent.relative_to(graph_root).as_posix()}/{named}); a withdrawal "
+                "names a version under its own node, or a definition gloss under its target "
+                "(F20-R7)",
+                {"path": located.path, "withdraws": named},
+            )
+        ]
+    if classification is None or classification.mode == "curator":
+        return []  # the curator mode asked who opened it (F08-R8)
+    # F20-T6: who acts is the opener, or for a pull request the service opened the record's own
+    # ``author``, which the service fills from the identity it authenticated (``acting_names``).
+    names = acting_names(graph_root, classification, str(doc["author"]))
+    if version.author is not None and version.author in names:
+        return []
+    verifier = signer or signed.default_signer()
+    if names & real_identities(graph_root, located.target_id, signer=verifier):
+        return []
+    opened = classification.author
+    return [
+        Diagnostic(
+            "withdrawal-unauthorized",
+            f"{located.path} withdraws {named}, by {doc['author']!r} in a pull request opened by "
+            f"{opened or 'an unknown login'}; a version is withdrawn by its author "
+            f"({version.author or 'a draft has none'}), an active steward of {located.target_id} "
+            "or a listed curator, and a pull request acts for whoever opened it, or for the "
+            "record's author when the network's service opened it (F20-R7, D-3 v3.30)",
+            {
+                "path": located.path,
+                "withdraws": named,
+                "author": doc["author"],
+                "opened_by": opened,
+            },
+        )
+    ]
+
+
+def check_credit_correction(graph_root: Path, located: Located) -> list[Diagnostic]:
+    """F07-T66 (D-18, D-19 v3.27): a credit correction validates, names a line its ``from``
+    holds active on this target's ledger as it stands, and moves it to someone else. Who may file
+    one is the curator mode's rule (F08-R8). The post-merge ledger step applies it
+    (``ledger.apply_correction``)."""
+    data = _read(graph_root, located)
+    if isinstance(data, Diagnostic):
+        return [data]
+    problems = _check_schema(located, data, code="record-invalid")
+    if problems:
+        return problems
+    doc = _document(located, data)
+    if isinstance(doc, Diagnostic):
+        return [doc]  # defence in depth: _check_schema just parsed this same document
+    if doc.get("to") == doc["from"]:
+        return [
+            Diagnostic(
+                "credit-correction-same-identity",
+                f"{located.path} moves a line from {doc['from']!r} to {doc['from']!r}; a "
+                "correction names the identity that should hold it, or null for none (F07-T66)",
+                {"path": located.path, "identity": doc["from"]},
+            )
+        ]
+    try:
+        held = ledger.corrected_entry(graph_root, doc, target=located.target_id)
+    except schemas.SchemaError:
+        held = False  # a ledger that does not read holds nothing a correction can name
+    if held:
+        return []
+    return [
+        Diagnostic(
+            "credit-correction-unknown-entry",
+            f"{located.path} names a {doc['line']} line on {doc['node']} ({doc['artifact']}, "
+            f"merge {doc['merge_commit'][:12]}) that ledger/{doc['from']}.json does not hold "
+            f"active on {located.target_id} (F07-T66, D-19 v3.27)",
+            {
+                "path": located.path,
+                "from": doc["from"],
+                "line": doc["line"],
+                "node": doc["node"],
+                "merge_commit": doc["merge_commit"],
+            },
+        )
+    ]
+
+
+def _is_record_on_file(graph_root: Path, rel: str) -> bool:
+    """Whether ``rel`` is a node's status record or defect claim, present and valid against a
+    version its role accepts (F08-T31: what a withdrawal may name)."""
+    role = paths.locate(rel)
+    path = graph_root / rel
+    if role is None or role.role not in ("node-status", "defect-claim") or not path.is_file():
+        return False
+    try:
+        record = schemas.load_yaml(path)
+    except schemas.SchemaError:
+        return False
+    schema_id = str(record.get("schema"))
+    accepted = paths.SCHEMAS_FOR_ROLE[role.role]
+    return schema_id in accepted and not schemas.violations(record, schema_id)
 
 
 def _read(graph_root: Path, located: Located) -> bytes | Diagnostic:

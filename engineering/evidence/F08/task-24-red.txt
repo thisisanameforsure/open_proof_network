@@ -1,0 +1,187 @@
+F08-T24 — red run, 2026-10-02. The task's tests (gate/tests/test_uses_nodes.py and the restated
+gate/tests/test_layout.py) against commit 443934a (F08-T23), in a detached worktree, with the new names
+added as seams at today's behaviour so that every failure is the behaviour and none a missing name:
+layout.USED_STEM; layout.node_uses and layout.merged_uses returning (); uses.Uses.nodes returning ();
+uses.edges giving recorded dependencies only; uses.above returning the empty set; NodeFacts.uses never set.
+
+$ python -m pytest gate/tests/test_uses_nodes.py gate/tests/test_layout.py -q -p no:cacheprovider -rf --tb=line
+F....F.......FFF.FFF.FFFFFFFFFFFFFFFF.FF.FF...........F...               [100%]
+=================================== FAILURES ===================================
+E   AssertionError: assert Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 2 (header or signature)', details={'line': 2, 'expected': '', 'got': 'import Defs.Extra'}) is None
+     +  where Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 2 (header or signature)', details={'line': 2, 'expected': '', 'got': 'import Defs.Extra'}) = <function check_proof_is_statement at 0x7fbff53f5800>(Statement(decl_name='OpnProp.t', text='import Init\n\ntheorem OpnProp.t : ∀ p : Prop, p → p := by\n  sorry\n', prefix='import Init\n\ntheorem OpnProp.t : ∀ p : Prop, p → p :=', suffix='\n'), 'import Init\nimport Defs.Extra\nimport Nodes.«tutorial-and-swap».Proof\n\ntheorem OpnProp.t : ∀ p : Prop, p → p := fun _ h => h\n', node_id='t')
+     +    where <function check_proof_is_statement at 0x7fbff53f5800> = paths.check_proof_is_statement
+/tmp/claude-0/-home-claude/31c3e667-c418-5784-a734-bd7529a6bb30/scratchpad/red24/gate/tests/test_uses_nodes.py:156: AssertionError: assert Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 2 (header or signature)', details={'line': 2, 'expected': '', 'got': 'import Defs.Extra'}) is None
+E   AssertionError: assert [Diagnostic(c...wap».Proof'})] == []
+      
+      Left contains one more item: Diagnostic(code='import-forbidden', message='Proof.lean imports Nodes.«tutorial-and-swap».Proof; allowed: library modules, Defs.*, Nodes.«and-reassoc».Context', details={'file': 'Proof.lean', 'module': 'Nodes.«tutorial-and-swap».Proof'})
+      Use -v to get more diff
+/tmp/claude-0/-home-claude/31c3e667-c418-5784-a734-bd7529a6bb30/scratchpad/red24/gate/tests/test_uses_nodes.py:179: AssertionError: assert [Diagnostic(c...wap».Proof'})] == []
+E   AssertionError: Diagnostic(code='import-forbidden', message='Proof.lean imports Nodes.«tutorial-and-swap».Proof; allowed: library modu...['Proof.lean imports Nodes.«tutorial-and-swap».Proof; allowed: library modules, Defs.*, Nodes.«and-reassoc».Context']})
+    assert False
+     +  where False = Verdict(verdict='fail', steps=(StepRecord(step=1, name='toolchain', result='pass', diagnostic=None), StepRecord(step=2...19816b2e0a3bf405af45ae5c7af2491d8f5bee6', libdir=PosixPath('/fake/elan/lib/lean'), mathlib_sha=None, library_path=())}).ok
+/tmp/claude-0/-home-claude/31c3e667-c418-5784-a734-bd7529a6bb30/scratchpad/red24/gate/tests/test_uses_nodes.py:235: AssertionError: Diagnostic(code='import-forbidden', message='Proof.lean imports Nodes.«tutorial-and-swap».Proof; allowed: library modu...['Proof.lean imports Nodes.«tutorial-and-swap».Proof; allowed: library modules, Defs.*, Nodes.«and-reassoc».Context']})
+E   AssertionError: Diagnostic(code='import-forbidden', message='Proof.lean imports Nodes.«and-reassoc».Proof; allowed: library modules, D...roof.lean imports Nodes.«and-reassoc».Proof; allowed: library modules, Defs.*, Nodes.«and-swap-reassoc--h1».Context']})
+    assert False
+     +  where False = Verdict(verdict='fail', steps=(StepRecord(step=1, name='toolchain', result='pass', diagnostic=None), StepRecord(step=2...19816b2e0a3bf405af45ae5c7af2491d8f5bee6', libdir=PosixPath('/fake/elan/lib/lean'), mathlib_sha=None, library_path=())}).ok
+/tmp/claude-0/-home-claude/31c3e667-c418-5784-a734-bd7529a6bb30/scratchpad/red24/gate/tests/test_uses_nodes.py:268: AssertionError: Diagnostic(code='import-forbidden', message='Proof.lean imports Nodes.«and-reassoc».Proof; allowed: library modules, D...roof.lean imports Nodes.«and-reassoc».Proof; allowed: library modules, Defs.*, Nodes.«and-swap-reassoc--h1».Context']})
+E   AssertionError: Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 1 (header or signature... OpnProp.and_reassoc : ∀ p q r : Prop, (p ∧ q) ∧ r → p ∧ (q ∧ r) :=', 'got': 'import Nodes.«tutorial-and-swap».Proof'})
+    assert False
+     +  where False = Verdict(verdict='fail', steps=(StepRecord(step=1, name='toolchain', result='pass', diagnostic=None), StepRecord(step=2...19816b2e0a3bf405af45ae5c7af2491d8f5bee6', libdir=PosixPath('/fake/elan/lib/lean'), mathlib_sha=None, library_path=())}).ok
+/tmp/claude-0/-home-claude/31c3e667-c418-5784-a734-bd7529a6bb30/scratchpad/red24/gate/tests/test_uses_nodes.py:285: AssertionError: Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 1 (header or signature... OpnProp.and_reassoc : ∀ p q r : Prop, (p ∧ q) ∧ r → p ∧ (q ∧ r) :=', 'got': 'import Nodes.«tutorial-and-swap».Proof'})
+E   assert (None is not None)
+/tmp/claude-0/-home-claude/31c3e667-c418-5784-a734-bd7529a6bb30/scratchpad/red24/gate/tests/test_uses_nodes.py:342: assert (None is not None)
+E   AssertionError: Diagnostic(code='import-forbidden', message='Proof.lean imports Nodes.«no-such-node».Proof; allowed: library modules, ...ms': ['Proof.lean imports Nodes.«no-such-node».Proof; allowed: library modules, Defs.*, Nodes.«and-reassoc».Context']})
+    assert (Diagnostic(code='import-forbidden', message='Proof.lean imports Nodes.«no-such-node».Proof; allowed: library modules, ...ms': ['Proof.lean imports Nodes.«no-such-node».Proof; allowed: library modules, Defs.*, Nodes.«and-reassoc».Context']}) is not None and 'import-forbidden' == 'use-unknown-node'
+     +  where Diagnostic(code='import-forbidden', message='Proof.lean imports Nodes.«no-such-node».Proof; allowed: library modules, ...ms': ['Proof.lean imports Nodes.«no-such-node».Proof; allowed: library modules, Defs.*, Nodes.«and-reassoc».Context']}) = Verdict(verdict='fail', steps=(StepRecord(step=1, name='toolchain', result='pass', diagnostic=None), StepRecord(step=2...19816b2e0a3bf405af45ae5c7af2491d8f5bee6', libdir=PosixPath('/fake/elan/lib/lean'), mathlib_sha=None, library_path=())}).diagnostic
+      
+      - use-unknown-node
+      + import-forbidden)
+/tmp/claude-0/-home-claude/31c3e667-c418-5784-a734-bd7529a6bb30/scratchpad/red24/gate/tests/test_uses_nodes.py:98: AssertionError: Diagnostic(code='import-forbidden', message='Proof.lean imports Nodes.«no-such-node».Proof; allowed: library modules, ...ms': ['Proof.lean imports Nodes.«no-such-node».Proof; allowed: library modules, Defs.*, Nodes.«and-reassoc».Context']})
+E   AssertionError: Diagnostic(code='import-forbidden', message='Proof.lean imports Nodes.«tutorial-and-swap».Proof; allowed: library modu...['Proof.lean imports Nodes.«tutorial-and-swap».Proof; allowed: library modules, Defs.*, Nodes.«and-reassoc».Context']})
+    assert (Diagnostic(code='import-forbidden', message='Proof.lean imports Nodes.«tutorial-and-swap».Proof; allowed: library modu...['Proof.lean imports Nodes.«tutorial-and-swap».Proof; allowed: library modules, Defs.*, Nodes.«and-reassoc».Context']}) is not None and 'import-forbidden' == 'use-unproved'
+     +  where Diagnostic(code='import-forbidden', message='Proof.lean imports Nodes.«tutorial-and-swap».Proof; allowed: library modu...['Proof.lean imports Nodes.«tutorial-and-swap».Proof; allowed: library modules, Defs.*, Nodes.«and-reassoc».Context']}) = Verdict(verdict='fail', steps=(StepRecord(step=1, name='toolchain', result='pass', diagnostic=None), StepRecord(step=2...19816b2e0a3bf405af45ae5c7af2491d8f5bee6', libdir=PosixPath('/fake/elan/lib/lean'), mathlib_sha=None, library_path=())}).diagnostic
+      
+      - use-unproved
+      + import-forbidden)
+/tmp/claude-0/-home-claude/31c3e667-c418-5784-a734-bd7529a6bb30/scratchpad/red24/gate/tests/test_uses_nodes.py:98: AssertionError: Diagnostic(code='import-forbidden', message='Proof.lean imports Nodes.«tutorial-and-swap».Proof; allowed: library modu...['Proof.lean imports Nodes.«tutorial-and-swap».Proof; allowed: library modules, Defs.*, Nodes.«and-reassoc».Context']})
+E   AssertionError: Diagnostic(code='import-forbidden', message='Proof.lean imports Nodes.«tutorial-and-swap».Proof; allowed: library modu...['Proof.lean imports Nodes.«tutorial-and-swap».Proof; allowed: library modules, Defs.*, Nodes.«and-reassoc».Context']})
+    assert (Diagnostic(code='import-forbidden', message='Proof.lean imports Nodes.«tutorial-and-swap».Proof; allowed: library modu...['Proof.lean imports Nodes.«tutorial-and-swap».Proof; allowed: library modules, Defs.*, Nodes.«and-reassoc».Context']}) is not None and 'import-forbidden' == 'use-unproved'
+     +  where Diagnostic(code='import-forbidden', message='Proof.lean imports Nodes.«tutorial-and-swap».Proof; allowed: library modu...['Proof.lean imports Nodes.«tutorial-and-swap».Proof; allowed: library modules, Defs.*, Nodes.«and-reassoc».Context']}) = Verdict(verdict='fail', steps=(StepRecord(step=1, name='toolchain', result='pass', diagnostic=None), StepRecord(step=2...19816b2e0a3bf405af45ae5c7af2491d8f5bee6', libdir=PosixPath('/fake/elan/lib/lean'), mathlib_sha=None, library_path=())}).diagnostic
+      
+      - use-unproved
+      + import-forbidden)
+/tmp/claude-0/-home-claude/31c3e667-c418-5784-a734-bd7529a6bb30/scratchpad/red24/gate/tests/test_uses_nodes.py:98: AssertionError: Diagnostic(code='import-forbidden', message='Proof.lean imports Nodes.«tutorial-and-swap».Proof; allowed: library modu...['Proof.lean imports Nodes.«tutorial-and-swap».Proof; allowed: library modules, Defs.*, Nodes.«and-reassoc».Context']})
+E   AssertionError: Diagnostic(code='import-forbidden', message='Proof.lean imports Nodes.«tutorial-and-swap».Proof; allowed: library modu...['Proof.lean imports Nodes.«tutorial-and-swap».Proof; allowed: library modules, Defs.*, Nodes.«and-reassoc».Context']})
+    assert (Diagnostic(code='import-forbidden', message='Proof.lean imports Nodes.«tutorial-and-swap».Proof; allowed: library modu...['Proof.lean imports Nodes.«tutorial-and-swap».Proof; allowed: library modules, Defs.*, Nodes.«and-reassoc».Context']}) is not None and 'import-forbidden' == 'use-superseded'
+     +  where Diagnostic(code='import-forbidden', message='Proof.lean imports Nodes.«tutorial-and-swap».Proof; allowed: library modu...['Proof.lean imports Nodes.«tutorial-and-swap».Proof; allowed: library modules, Defs.*, Nodes.«and-reassoc».Context']}) = Verdict(verdict='fail', steps=(StepRecord(step=1, name='toolchain', result='pass', diagnostic=None), StepRecord(step=2...19816b2e0a3bf405af45ae5c7af2491d8f5bee6', libdir=PosixPath('/fake/elan/lib/lean'), mathlib_sha=None, library_path=())}).diagnostic
+      
+      - use-superseded
+      + import-forbidden)
+/tmp/claude-0/-home-claude/31c3e667-c418-5784-a734-bd7529a6bb30/scratchpad/red24/gate/tests/test_uses_nodes.py:98: AssertionError: Diagnostic(code='import-forbidden', message='Proof.lean imports Nodes.«tutorial-and-swap».Proof; allowed: library modu...['Proof.lean imports Nodes.«tutorial-and-swap».Proof; allowed: library modules, Defs.*, Nodes.«and-reassoc».Context']})
+E   AssertionError: Diagnostic(code='import-forbidden', message='Proof.lean imports Nodes.«tutorial-and-swap».Proof; allowed: library modu...['Proof.lean imports Nodes.«tutorial-and-swap».Proof; allowed: library modules, Defs.*, Nodes.«and-reassoc».Context']})
+    assert (Diagnostic(code='import-forbidden', message='Proof.lean imports Nodes.«tutorial-and-swap».Proof; allowed: library modu...['Proof.lean imports Nodes.«tutorial-and-swap».Proof; allowed: library modules, Defs.*, Nodes.«and-reassoc».Context']}) is not None and 'import-forbidden' == 'use-superseded'
+     +  where Diagnostic(code='import-forbidden', message='Proof.lean imports Nodes.«tutorial-and-swap».Proof; allowed: library modu...['Proof.lean imports Nodes.«tutorial-and-swap».Proof; allowed: library modules, Defs.*, Nodes.«and-reassoc».Context']}) = Verdict(verdict='fail', steps=(StepRecord(step=1, name='toolchain', result='pass', diagnostic=None), StepRecord(step=2...19816b2e0a3bf405af45ae5c7af2491d8f5bee6', libdir=PosixPath('/fake/elan/lib/lean'), mathlib_sha=None, library_path=())}).diagnostic
+      
+      - use-superseded
+      + import-forbidden)
+/tmp/claude-0/-home-claude/31c3e667-c418-5784-a734-bd7529a6bb30/scratchpad/red24/gate/tests/test_uses_nodes.py:98: AssertionError: Diagnostic(code='import-forbidden', message='Proof.lean imports Nodes.«tutorial-and-swap».Proof; allowed: library modu...['Proof.lean imports Nodes.«tutorial-and-swap».Proof; allowed: library modules, Defs.*, Nodes.«and-reassoc».Context']})
+E   AssertionError: Diagnostic(code='import-forbidden', message='Proof.lean imports Nodes.«and-reassoc».Proof; allowed: library modules, D... ['Proof.lean imports Nodes.«and-reassoc».Proof; allowed: library modules, Defs.*, Nodes.«and-swap-reassoc».Context']})
+    assert (Diagnostic(code='import-forbidden', message='Proof.lean imports Nodes.«and-reassoc».Proof; allowed: library modules, D... ['Proof.lean imports Nodes.«and-reassoc».Proof; allowed: library modules, Defs.*, Nodes.«and-swap-reassoc».Context']}) is not None and 'import-forbidden' == 'use-redundant'
+     +  where Diagnostic(code='import-forbidden', message='Proof.lean imports Nodes.«and-reassoc».Proof; allowed: library modules, D... ['Proof.lean imports Nodes.«and-reassoc».Proof; allowed: library modules, Defs.*, Nodes.«and-swap-reassoc».Context']}) = Verdict(verdict='fail', steps=(StepRecord(step=1, name='toolchain', result='pass', diagnostic=None), StepRecord(step=2...19816b2e0a3bf405af45ae5c7af2491d8f5bee6', libdir=PosixPath('/fake/elan/lib/lean'), mathlib_sha=None, library_path=())}).diagnostic
+      
+      - use-redundant
+      + import-forbidden)
+/tmp/claude-0/-home-claude/31c3e667-c418-5784-a734-bd7529a6bb30/scratchpad/red24/gate/tests/test_uses_nodes.py:98: AssertionError: Diagnostic(code='import-forbidden', message='Proof.lean imports Nodes.«and-reassoc».Proof; allowed: library modules, D... ['Proof.lean imports Nodes.«and-reassoc».Proof; allowed: library modules, Defs.*, Nodes.«and-swap-reassoc».Context']})
+E   AssertionError: Diagnostic(code='import-forbidden', message='Proof.lean imports Nodes.«and-swap-reassoc».Proof; allowed: library modul... ['Proof.lean imports Nodes.«and-swap-reassoc».Proof; allowed: library modules, Defs.*, Nodes.«and-reassoc».Context']})
+    assert (Diagnostic(code='import-forbidden', message='Proof.lean imports Nodes.«and-swap-reassoc».Proof; allowed: library modul... ['Proof.lean imports Nodes.«and-swap-reassoc».Proof; allowed: library modules, Defs.*, Nodes.«and-reassoc».Context']}) is not None and 'import-forbidden' == 'use-ancestor'
+     +  where Diagnostic(code='import-forbidden', message='Proof.lean imports Nodes.«and-swap-reassoc».Proof; allowed: library modul... ['Proof.lean imports Nodes.«and-swap-reassoc».Proof; allowed: library modules, Defs.*, Nodes.«and-reassoc».Context']}) = Verdict(verdict='fail', steps=(StepRecord(step=1, name='toolchain', result='pass', diagnostic=None), StepRecord(step=2...19816b2e0a3bf405af45ae5c7af2491d8f5bee6', libdir=PosixPath('/fake/elan/lib/lean'), mathlib_sha=None, library_path=())}).diagnostic
+      
+      - use-ancestor
+      + import-forbidden)
+/tmp/claude-0/-home-claude/31c3e667-c418-5784-a734-bd7529a6bb30/scratchpad/red24/gate/tests/test_uses_nodes.py:98: AssertionError: Diagnostic(code='import-forbidden', message='Proof.lean imports Nodes.«and-swap-reassoc».Proof; allowed: library modul... ['Proof.lean imports Nodes.«and-swap-reassoc».Proof; allowed: library modules, Defs.*, Nodes.«and-reassoc».Context']})
+E   AssertionError: Diagnostic(code='import-forbidden', message='Proof.lean imports Nodes.«and-swap-reassoc».Proof; allowed: library modul...lean imports Nodes.«and-swap-reassoc».Proof; allowed: library modules, Defs.*, Nodes.«and-swap-reassoc--h1».Context']})
+    assert (Diagnostic(code='import-forbidden', message='Proof.lean imports Nodes.«and-swap-reassoc».Proof; allowed: library modul...lean imports Nodes.«and-swap-reassoc».Proof; allowed: library modules, Defs.*, Nodes.«and-swap-reassoc--h1».Context']}) is not None and 'import-forbidden' == 'use-ancestor'
+     +  where Diagnostic(code='import-forbidden', message='Proof.lean imports Nodes.«and-swap-reassoc».Proof; allowed: library modul...lean imports Nodes.«and-swap-reassoc».Proof; allowed: library modules, Defs.*, Nodes.«and-swap-reassoc--h1».Context']}) = Verdict(verdict='fail', steps=(StepRecord(step=1, name='toolchain', result='pass', diagnostic=None), StepRecord(step=2...19816b2e0a3bf405af45ae5c7af2491d8f5bee6', libdir=PosixPath('/fake/elan/lib/lean'), mathlib_sha=None, library_path=())}).diagnostic
+      
+      - use-ancestor
+      + import-forbidden)
+/tmp/claude-0/-home-claude/31c3e667-c418-5784-a734-bd7529a6bb30/scratchpad/red24/gate/tests/test_uses_nodes.py:98: AssertionError: Diagnostic(code='import-forbidden', message='Proof.lean imports Nodes.«and-swap-reassoc».Proof; allowed: library modul...lean imports Nodes.«and-swap-reassoc».Proof; allowed: library modules, Defs.*, Nodes.«and-swap-reassoc--h1».Context']})
+E   AssertionError: assert set() >= {'and-swap-reassoc', 'lemma'}
+      
+      Extra items in the right set:
+      'lemma'
+      'and-swap-reassoc'
+/tmp/claude-0/-home-claude/31c3e667-c418-5784-a734-bd7529a6bb30/scratchpad/red24/gate/tests/test_uses_nodes.py:450: AssertionError: assert set() >= {'and-swap-reassoc', 'lemma'}
+E   AssertionError: Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 1 (header or signature...'/-! The tutorial node (D-27): permanently open, off-ledger. Lean core only. -/', 'got': 'import Nodes.«lemma».Proof'})
+    assert (Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 1 (header or signature...'/-! The tutorial node (D-27): permanently open, off-ledger. Lean core only. -/', 'got': 'import Nodes.«lemma».Proof'}) is not None and 'proof-not-statement' == 'use-ancestor'
+     +  where Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 1 (header or signature...'/-! The tutorial node (D-27): permanently open, off-ledger. Lean core only. -/', 'got': 'import Nodes.«lemma».Proof'}) = Verdict(verdict='fail', steps=(StepRecord(step=1, name='toolchain', result='pass', diagnostic=None), StepRecord(step=2...19816b2e0a3bf405af45ae5c7af2491d8f5bee6', libdir=PosixPath('/fake/elan/lib/lean'), mathlib_sha=None, library_path=())}).diagnostic
+      
+      - use-ancestor
+      + proof-not-statement)
+/tmp/claude-0/-home-claude/31c3e667-c418-5784-a734-bd7529a6bb30/scratchpad/red24/gate/tests/test_uses_nodes.py:98: AssertionError: Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 1 (header or signature...'/-! The tutorial node (D-27): permanently open, off-ledger. Lean core only. -/', 'got': 'import Nodes.«lemma».Proof'})
+E   AssertionError: assert ('and-swap-reassoc' in set())
+     +  where set() = <function above at 0x7fbff52f63e0>(PosixPath('/tmp/pytest-of-root/pytest-125/test_a_replaced_hole_is_still_0/graph/targets/propositional/nodes'), 'and-swap-reassoc--h1')
+     +    where <function above at 0x7fbff52f63e0> = uses.above
+     +    and   PosixPath('/tmp/pytest-of-root/pytest-125/test_a_replaced_hole_is_still_0/graph/targets/propositional/nodes') = nodes(RunContext(graph_root=PosixPath('/tmp/pytest-of-root/pytest-125/test_a_replaced_hole_is_still_0/graph'), claim=Claim(t...thlib', pr_author=None, gate_signing_key=None, precheck_signing_key=None), install_toolchain=False, node=None, data={}))
+/tmp/claude-0/-home-claude/31c3e667-c418-5784-a734-bd7529a6bb30/scratchpad/red24/gate/tests/test_uses_nodes.py:486: AssertionError: assert ('and-swap-reassoc' in set())
+E   AssertionError: Diagnostic(code='import-forbidden', message='Proof.lean imports Nodes.«elsewhere».Proof; allowed: library modules, Def...blems': ['Proof.lean imports Nodes.«elsewhere».Proof; allowed: library modules, Defs.*, Nodes.«and-reassoc».Context']})
+    assert (Diagnostic(code='import-forbidden', message='Proof.lean imports Nodes.«elsewhere».Proof; allowed: library modules, Def...blems': ['Proof.lean imports Nodes.«elsewhere».Proof; allowed: library modules, Defs.*, Nodes.«and-reassoc».Context']}) is not None and 'import-forbidden' == 'use-unknown-node'
+     +  where Diagnostic(code='import-forbidden', message='Proof.lean imports Nodes.«elsewhere».Proof; allowed: library modules, Def...blems': ['Proof.lean imports Nodes.«elsewhere».Proof; allowed: library modules, Defs.*, Nodes.«and-reassoc».Context']}) = Verdict(verdict='fail', steps=(StepRecord(step=1, name='toolchain', result='pass', diagnostic=None), StepRecord(step=2...19816b2e0a3bf405af45ae5c7af2491d8f5bee6', libdir=PosixPath('/fake/elan/lib/lean'), mathlib_sha=None, library_path=())}).diagnostic
+      
+      - use-unknown-node
+      + import-forbidden)
+/tmp/claude-0/-home-claude/31c3e667-c418-5784-a734-bd7529a6bb30/scratchpad/red24/gate/tests/test_uses_nodes.py:98: AssertionError: Diagnostic(code='import-forbidden', message='Proof.lean imports Nodes.«elsewhere».Proof; allowed: library modules, Def...blems': ['Proof.lean imports Nodes.«elsewhere».Proof; allowed: library modules, Defs.*, Nodes.«and-reassoc».Context']})
+E   AssertionError: Diagnostic(code='import-forbidden', message='Proof.lean imports Nodes.«open-lemma».Proof; allowed: library modules, De...lems': ['Proof.lean imports Nodes.«open-lemma».Proof; allowed: library modules, Defs.*, Nodes.«and-reassoc».Context']})
+    assert (Diagnostic(code='import-forbidden', message='Proof.lean imports Nodes.«open-lemma».Proof; allowed: library modules, De...lems': ['Proof.lean imports Nodes.«open-lemma».Proof; allowed: library modules, Defs.*, Nodes.«and-reassoc».Context']}) is not None and 'import-forbidden' == 'use-unproved'
+     +  where Diagnostic(code='import-forbidden', message='Proof.lean imports Nodes.«open-lemma».Proof; allowed: library modules, De...lems': ['Proof.lean imports Nodes.«open-lemma».Proof; allowed: library modules, Defs.*, Nodes.«and-reassoc».Context']}) = Verdict(verdict='fail', steps=(StepRecord(step=1, name='toolchain', result='pass', diagnostic=None), StepRecord(step=2...19816b2e0a3bf405af45ae5c7af2491d8f5bee6', libdir=PosixPath('/fake/elan/lib/lean'), mathlib_sha=None, library_path=())}).diagnostic
+      
+      - use-unproved
+      + import-forbidden)
+/tmp/claude-0/-home-claude/31c3e667-c418-5784-a734-bd7529a6bb30/scratchpad/red24/gate/tests/test_uses_nodes.py:98: AssertionError: Diagnostic(code='import-forbidden', message='Proof.lean imports Nodes.«open-lemma».Proof; allowed: library modules, De...lems': ['Proof.lean imports Nodes.«open-lemma».Proof; allowed: library modules, Defs.*, Nodes.«and-reassoc».Context']})
+E   AssertionError: assert False
+     +  where False = isinstance([Diagnostic(code='import-forbidden', message='Proof.lean imports Nodes.«tutorial-and-swap».Proof; allowed: library modules, Defs.*, Nodes.«and-reassoc».Context', details={'file': 'Proof.lean', 'module': 'Nodes.«tutorial-and-swap».Proof'})], <class 'opn_gate.layout.Node'>)
+     +    where <class 'opn_gate.layout.Node'> = layout.Node
+/tmp/claude-0/-home-claude/31c3e667-c418-5784-a734-bd7529a6bb30/scratchpad/red24/gate/tests/test_uses_nodes.py:522: AssertionError: assert False
+E   ValueError: tuple.index(x): x not in tuple
+/tmp/claude-0/-home-claude/31c3e667-c418-5784-a734-bd7529a6bb30/scratchpad/red24/gate/tests/test_uses_nodes.py:538: ValueError: tuple.index(x): x not in tuple
+E   AssertionError: {'verdict': 'fail', 'first_failing_step': 2, 'diagnostic': {'code': 'import-forbidden', 'message': 'Proof.lean imports...result': 'skipped', 'diagnostic': None}, {'step': 7, 'name': 'witness', 'result': 'skipped', 'diagnostic': None}, ...]}
+    assert 2 == 8
+     +  where 2 = Verdict(verdict='fail', steps=(StepRecord(step=1, name='toolchain', result='pass', diagnostic=None), StepRecord(step=2...19816b2e0a3bf405af45ae5c7af2491d8f5bee6', libdir=PosixPath('/fake/elan/lib/lean'), mathlib_sha=None, library_path=())}).first_failing_step
+/tmp/claude-0/-home-claude/31c3e667-c418-5784-a734-bd7529a6bb30/scratchpad/red24/gate/tests/test_uses_nodes.py:97: AssertionError: {'verdict': 'fail', 'first_failing_step': 2, 'diagnostic': {'code': 'import-forbidden', 'message': 'Proof.lean imports...result': 'skipped', 'diagnostic': None}, {'step': 7, 'name': 'witness', 'result': 'skipped', 'diagnostic': None}, ...]}
+E   AssertionError: {'verdict': 'fail', 'first_failing_step': 2, 'diagnostic': {'code': 'import-forbidden', 'message': 'Proof.lean imports...result': 'skipped', 'diagnostic': None}, {'step': 7, 'name': 'witness', 'result': 'skipped', 'diagnostic': None}, ...]}
+    assert 2 == 8
+     +  where 2 = Verdict(verdict='fail', steps=(StepRecord(step=1, name='toolchain', result='pass', diagnostic=None), StepRecord(step=2...19816b2e0a3bf405af45ae5c7af2491d8f5bee6', libdir=PosixPath('/fake/elan/lib/lean'), mathlib_sha=None, library_path=())}).first_failing_step
+/tmp/claude-0/-home-claude/31c3e667-c418-5784-a734-bd7529a6bb30/scratchpad/red24/gate/tests/test_uses_nodes.py:97: AssertionError: {'verdict': 'fail', 'first_failing_step': 2, 'diagnostic': {'code': 'import-forbidden', 'message': 'Proof.lean imports...result': 'skipped', 'diagnostic': None}, {'step': 7, 'name': 'witness', 'result': 'skipped', 'diagnostic': None}, ...]}
+E   AssertionError: {'verdict': 'fail', 'first_failing_step': 2, 'diagnostic': {'code': 'import-forbidden', 'message': 'Proof.lean imports...result': 'skipped', 'diagnostic': None}, {'step': 7, 'name': 'witness', 'result': 'skipped', 'diagnostic': None}, ...]}
+    assert 2 == 8
+     +  where 2 = Verdict(verdict='fail', steps=(StepRecord(step=1, name='toolchain', result='pass', diagnostic=None), StepRecord(step=2...19816b2e0a3bf405af45ae5c7af2491d8f5bee6', libdir=PosixPath('/fake/elan/lib/lean'), mathlib_sha=None, library_path=())}).first_failing_step
+/tmp/claude-0/-home-claude/31c3e667-c418-5784-a734-bd7529a6bb30/scratchpad/red24/gate/tests/test_uses_nodes.py:97: AssertionError: {'verdict': 'fail', 'first_failing_step': 2, 'diagnostic': {'code': 'import-forbidden', 'message': 'Proof.lean imports...result': 'skipped', 'diagnostic': None}, {'step': 7, 'name': 'witness', 'result': 'skipped', 'diagnostic': None}, ...]}
+E   opn_gate.graph.GraphError: node and-reassoc: Proof.lean imports Nodes.«tutorial-and-swap».Proof; allowed: library modules, Defs.*, Nodes.«and-reassoc».Context
+/tmp/claude-0/-home-claude/31c3e667-c418-5784-a734-bd7529a6bb30/scratchpad/red24/gate/opn_gate/graph.py:249: opn_gate.graph.GraphError: node and-reassoc: Proof.lean imports Nodes.«tutorial-and-swap».Proof; allowed: library modules, Defs.*, Nodes.«and-reassoc».Context
+E   AssertionError: assert {'and-swap-reassoc'} == {'and-swap-re...ial-and-swap'}
+      
+      Extra items in the right set:
+      'tutorial-and-swap'
+      Use -v to get more diff
+/tmp/claude-0/-home-claude/31c3e667-c418-5784-a734-bd7529a6bb30/scratchpad/red24/gate/tests/test_uses_nodes.py:633: AssertionError: assert {'and-swap-reassoc'} == {'and-swap-re...ial-and-swap'}
+E   opn_gate.graph.GraphError: node tutorial-and-swap: Proof.lean imports Nodes.«and-reassoc».Proof; allowed: library modules, Defs.*, Nodes.«tutorial-and-swap».Context
+/tmp/claude-0/-home-claude/31c3e667-c418-5784-a734-bd7529a6bb30/scratchpad/red24/gate/opn_gate/graph.py:249: opn_gate.graph.GraphError: node tutorial-and-swap: Proof.lean imports Nodes.«and-reassoc».Proof; allowed: library modules, Defs.*, Nodes.«tutorial-and-swap».Context
+E   opn_gate.graph.GraphError: node tutorial-and-swap: Proof.lean imports Nodes.«and-reassoc».Proof; allowed: library modules, Defs.*, Nodes.«tutorial-and-swap».Context
+/tmp/claude-0/-home-claude/31c3e667-c418-5784-a734-bd7529a6bb30/scratchpad/red24/gate/opn_gate/graph.py:249: opn_gate.graph.GraphError: node tutorial-and-swap: Proof.lean imports Nodes.«and-reassoc».Proof; allowed: library modules, Defs.*, Nodes.«tutorial-and-swap».Context
+E   AssertionError: assert [('Proof.lean...ssoc».Proof')] == [('Witness.le...ssoc».Proof')]
+      
+      At index 0 diff: ('Proof.lean', 'Nodes.«and-reassoc».Proof') != ('Witness.lean', 'Nodes.«and-reassoc».Statement')
+      Left contains one more item: ('Witness.lean', 'Nodes.«and-reassoc».Proof')
+      Use -v to get more diff
+/tmp/claude-0/-home-claude/31c3e667-c418-5784-a734-bd7529a6bb30/scratchpad/red24/gate/tests/test_layout.py:219: AssertionError: assert [('Proof.lean...ssoc».Proof')] == [('Witness.le...ssoc».Proof')]
+=========================== short test summary info ============================
+FAILED gate/tests/test_uses_nodes.py::test_a_node_use_line_is_a_use - Asserti...
+FAILED gate/tests/test_uses_nodes.py::test_the_layout_takes_a_proof_that_imports_another_nodes_proof
+FAILED gate/tests/test_uses_nodes.py::test_a_proof_uses_a_proved_node_it_does_not_depend_on
+FAILED gate/tests/test_uses_nodes.py::test_a_hole_uses_a_proved_node_of_its_target
+FAILED gate/tests/test_uses_nodes.py::test_an_alternate_and_a_partial_may_use_a_proved_node
+FAILED gate/tests/test_uses_nodes.py::test_a_node_may_not_use_itself - assert...
+FAILED gate/tests/test_uses_nodes.py::test_a_node_that_does_not_exist_cannot_be_used
+FAILED gate/tests/test_uses_nodes.py::test_a_node_with_no_merged_proof_cannot_be_used
+FAILED gate/tests/test_uses_nodes.py::test_a_refuted_node_cannot_be_used - As...
+FAILED gate/tests/test_uses_nodes.py::test_a_superseded_node_cannot_be_used_and_the_refusal_names_its_successor
+FAILED gate/tests/test_uses_nodes.py::test_a_superseded_node_with_no_sound_successor_is_still_refused
+FAILED gate/tests/test_uses_nodes.py::test_a_dependency_is_not_declared_a_second_time
+FAILED gate/tests/test_uses_nodes.py::test_a_node_cannot_use_a_node_that_depends_on_it
+FAILED gate/tests/test_uses_nodes.py::test_a_hole_is_never_proved_from_the_node_it_was_cut_from
+FAILED gate/tests/test_uses_nodes.py::test_an_ancestor_reached_through_a_merged_use_is_refused_too
+FAILED gate/tests/test_uses_nodes.py::test_an_alternate_cannot_use_a_node_whose_proof_uses_this_one
+FAILED gate/tests/test_uses_nodes.py::test_a_replaced_hole_is_still_not_proved_from_the_node_it_was_cut_from
+FAILED gate/tests/test_uses_nodes.py::test_a_node_of_another_target_cannot_be_named
+FAILED gate/tests/test_uses_nodes.py::test_an_open_node_has_no_proof_to_use_whatever_else_is_said_of_it
+FAILED gate/tests/test_uses_nodes.py::test_the_build_refuses_a_cycle_of_uses_whatever_step_2_saw
+FAILED gate/tests/test_uses_nodes.py::test_a_used_nodes_own_uses_are_staged_with_it
+FAILED gate/tests/test_uses_nodes.py::test_a_declared_use_the_proof_term_does_not_make_is_refused
+FAILED gate/tests/test_uses_nodes.py::test_one_use_made_and_one_not_is_refused_for_the_one_not_made
+FAILED gate/tests/test_uses_nodes.py::test_a_node_reachable_through_a_use_but_not_declared_is_still_refused
+FAILED gate/tests/test_uses_nodes.py::test_a_merged_use_is_a_fact_of_the_tree_and_nothing_is_written_for_it
+FAILED gate/tests/test_uses_nodes.py::test_revising_a_used_node_marks_its_proved_user_stale
+FAILED gate/tests/test_uses_nodes.py::test_the_cache_builds_a_used_node_before_its_user_and_a_closure_follows_uses
+FAILED gate/tests/test_uses_nodes.py::test_the_cache_leaves_out_a_node_whose_used_node_is_not_built
+FAILED gate/tests/test_layout.py::test_proof_and_witness_may_not_import_another_node
+29 failed, 29 passed in 0.96s

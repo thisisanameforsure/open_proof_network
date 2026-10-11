@@ -1,0 +1,611 @@
+{
+ "shots": [
+  {
+   "phase": "before",
+   "path": "/nodes/propositional/tutorial-and-swap/",
+   "width": 1440,
+   "expanded": false,
+   "file": "task-12-before-node-desktop.png",
+   "ok": true,
+   "viewport": 1440,
+   "scrollWidth": 1440,
+   "overflowing": [],
+   "states": [
+    {
+     "state": "verified",
+     "text": "verified by curator-one"
+    },
+    {
+     "state": "drafted",
+     "text": "drafted with anthropic/claude-opus-5.5 via \"Claude Code\" <cli> & tools"
+    },
+    {
+     "state": "written",
+     "text": "written by alice"
+    },
+    {
+     "state": "verified",
+     "text": "verified by curator-one"
+    }
+   ],
+   "pending": [
+    {
+     "key": "whole",
+     "text": "Awaiting review: an edit written by bob, 2026-10-06. It is not shown as these wo",
+     "below_its_section": null
+    },
+    {
+     "key": "steps:hp,s3",
+     "text": "Awaiting review: an edit written by bob, 2026-10-06. It is not shown as these wo",
+     "below_its_section": true
+    }
+   ],
+   "sections": [
+    {
+     "key": "steps:hq",
+     "beside": true,
+     "above": false
+    },
+    {
+     "key": "steps:hp,s3",
+     "beside": true,
+     "above": false
+    }
+   ],
+   "math_spans": 5,
+   "mathml": 5,
+   "inputs": 0
+  },
+  {
+   "phase": "before",
+   "path": "/nodes/propositional/tutorial-and-swap/",
+   "width": 1440,
+   "expanded": true,
+   "file": "task-12-before-node-desktop-open.png",
+   "ok": true,
+   "viewport": 1440,
+   "scrollWidth": 1440,
+   "overflowing": [],
+   "states": [
+    {
+     "state": "verified",
+     "text": "verified by curator-one"
+    },
+    {
+     "state": "drafted",
+     "text": "drafted with anthropic/claude-opus-5.5 via \"Claude Code\" <cli> & tools"
+    },
+    {
+     "state": "written",
+     "text": "written by alice"
+    },
+    {
+     "state": "verified",
+     "text": "verified by curator-one"
+    }
+   ],
+   "pending": [
+    {
+     "key": "whole",
+     "text": "Awaiting review: an edit written by bob, 2026-10-06. It is not shown as these wo",
+     "below_its_section": null
+    },
+    {
+     "key": "steps:hp,s3",
+     "text": "Awaiting review: an edit written by bob, 2026-10-06. It is not shown as these wo",
+     "below_its_section": true
+    }
+   ],
+   "sections": [
+    {
+     "key": "steps:hq",
+     "beside": true,
+     "above": false
+    },
+    {
+     "key": "steps:hp,s3",
+     "beside": true,
+     "above": false
+    }
+   ],
+   "math_spans": 5,
+   "mathml": 5,
+   "inputs": 0
+  },
+  {
+   "phase": "before",
+   "path": "/problems/propositional/proofs/11451d603f82/",
+   "width": 1440,
+   "expanded": false,
+   "file": "task-12-before-reading-desktop.png",
+   "ok": true,
+   "viewport": 1440,
+   "scrollWidth": 1440,
+   "overflowing": [],
+   "states": [
+    {
+     "state": "verified",
+     "text": "verified by curator-one"
+    },
+    {
+     "state": "drafted",
+     "text": "drafted with anthropic/claude-opus-5.5 via \"Claude Code\" <cli> & tools"
+    },
+    {
+     "state": "written",
+     "text": "written by alice"
+    },
+    {
+     "state": "verified",
+     "text": "verified by curator-one"
+    }
+   ],
+   "pending": [
+    {
+     "key": "whole",
+     "text": "Awaiting review: an edit written by bob, 2026-10-06. It is not shown as these wo",
+     "below_its_section": null
+    },
+    {
+     "key": "steps:hp,s3",
+     "text": "Awaiting review: an edit written by bob, 2026-10-06. It is not shown as these wo",
+     "below_its_section": true
+    }
+   ],
+   "sections": [
+    {
+     "key": "steps:hq",
+     "beside": true,
+     "above": false
+    },
+    {
+     "key": "steps:hp,s3",
+     "beside": true,
+     "above": false
+    }
+   ],
+   "math_spans": 5,
+   "mathml": 5,
+   "inputs": 0
+  },
+  {
+   "phase": "before",
+   "path": "/nodes/propositional/tutorial-and-swap/",
+   "width": 390,
+   "expanded": false,
+   "file": "task-12-before-node-phone.png",
+   "ok": true,
+   "viewport": 390,
+   "scrollWidth": 390,
+   "overflowing": [],
+   "states": [
+    {
+     "state": "verified",
+     "text": "verified by curator-one"
+    },
+    {
+     "state": "drafted",
+     "text": "drafted with anthropic/claude-opus-5.5 via \"Claude Code\" <cli> & tools"
+    },
+    {
+     "state": "written",
+     "text": "written by alice"
+    },
+    {
+     "state": "verified",
+     "text": "verified by curator-one"
+    }
+   ],
+   "pending": [
+    {
+     "key": "whole",
+     "text": "Awaiting review: an edit written by bob, 2026-10-06. It is not shown as these wo",
+     "below_its_section": null
+    },
+    {
+     "key": "steps:hp,s3",
+     "text": "Awaiting review: an edit written by bob, 2026-10-06. It is not shown as these wo",
+     "below_its_section": true
+    }
+   ],
+   "sections": [
+    {
+     "key": "steps:hq",
+     "beside": false,
+     "above": true
+    },
+    {
+     "key": "steps:hp,s3",
+     "beside": false,
+     "above": true
+    }
+   ],
+   "math_spans": 5,
+   "mathml": 5,
+   "inputs": 0
+  },
+  {
+   "phase": "before",
+   "path": "/nodes/propositional/tutorial-and-swap/",
+   "width": 390,
+   "expanded": true,
+   "file": "task-12-before-node-phone-open.png",
+   "ok": true,
+   "viewport": 390,
+   "scrollWidth": 390,
+   "overflowing": [],
+   "states": [
+    {
+     "state": "verified",
+     "text": "verified by curator-one"
+    },
+    {
+     "state": "drafted",
+     "text": "drafted with anthropic/claude-opus-5.5 via \"Claude Code\" <cli> & tools"
+    },
+    {
+     "state": "written",
+     "text": "written by alice"
+    },
+    {
+     "state": "verified",
+     "text": "verified by curator-one"
+    }
+   ],
+   "pending": [
+    {
+     "key": "whole",
+     "text": "Awaiting review: an edit written by bob, 2026-10-06. It is not shown as these wo",
+     "below_its_section": null
+    },
+    {
+     "key": "steps:hp,s3",
+     "text": "Awaiting review: an edit written by bob, 2026-10-06. It is not shown as these wo",
+     "below_its_section": true
+    }
+   ],
+   "sections": [
+    {
+     "key": "steps:hq",
+     "beside": false,
+     "above": true
+    },
+    {
+     "key": "steps:hp,s3",
+     "beside": false,
+     "above": true
+    }
+   ],
+   "math_spans": 5,
+   "mathml": 5,
+   "inputs": 0
+  },
+  {
+   "phase": "before",
+   "path": "/problems/propositional/proofs/11451d603f82/",
+   "width": 390,
+   "expanded": false,
+   "file": "task-12-before-reading-phone.png",
+   "ok": true,
+   "viewport": 390,
+   "scrollWidth": 390,
+   "overflowing": [],
+   "states": [
+    {
+     "state": "verified",
+     "text": "verified by curator-one"
+    },
+    {
+     "state": "drafted",
+     "text": "drafted with anthropic/claude-opus-5.5 via \"Claude Code\" <cli> & tools"
+    },
+    {
+     "state": "written",
+     "text": "written by alice"
+    },
+    {
+     "state": "verified",
+     "text": "verified by curator-one"
+    }
+   ],
+   "pending": [
+    {
+     "key": "whole",
+     "text": "Awaiting review: an edit written by bob, 2026-10-06. It is not shown as these wo",
+     "below_its_section": null
+    },
+    {
+     "key": "steps:hp,s3",
+     "text": "Awaiting review: an edit written by bob, 2026-10-06. It is not shown as these wo",
+     "below_its_section": true
+    }
+   ],
+   "sections": [
+    {
+     "key": "steps:hq",
+     "beside": false,
+     "above": true
+    },
+    {
+     "key": "steps:hp,s3",
+     "beside": false,
+     "above": true
+    }
+   ],
+   "math_spans": 5,
+   "mathml": 5,
+   "inputs": 0
+  },
+  {
+   "phase": "after",
+   "path": "/nodes/propositional/tutorial-and-swap/",
+   "width": 1440,
+   "expanded": false,
+   "file": "task-12-after-node-desktop.png",
+   "ok": true,
+   "viewport": 1440,
+   "scrollWidth": 1440,
+   "overflowing": [],
+   "states": [
+    {
+     "state": "verified",
+     "text": "verified by curator-one"
+    },
+    {
+     "state": "drafted",
+     "text": "drafted with anthropic/claude-opus-5.5 via \"Claude Code\" <cli> & tools"
+    },
+    {
+     "state": "written",
+     "text": "written by alice"
+    },
+    {
+     "state": "verified",
+     "text": "verified by curator-one"
+    }
+   ],
+   "pending": [],
+   "sections": [
+    {
+     "key": "steps:hq",
+     "beside": true,
+     "above": false
+    },
+    {
+     "key": "steps:hp,s3",
+     "beside": true,
+     "above": false
+    }
+   ],
+   "math_spans": 7,
+   "mathml": 7,
+   "inputs": 0
+  },
+  {
+   "phase": "after",
+   "path": "/nodes/propositional/tutorial-and-swap/",
+   "width": 1440,
+   "expanded": true,
+   "file": "task-12-after-node-desktop-open.png",
+   "ok": true,
+   "viewport": 1440,
+   "scrollWidth": 1440,
+   "overflowing": [],
+   "states": [
+    {
+     "state": "verified",
+     "text": "verified by curator-one"
+    },
+    {
+     "state": "drafted",
+     "text": "drafted with anthropic/claude-opus-5.5 via \"Claude Code\" <cli> & tools"
+    },
+    {
+     "state": "written",
+     "text": "written by alice"
+    },
+    {
+     "state": "verified",
+     "text": "verified by curator-one"
+    }
+   ],
+   "pending": [],
+   "sections": [
+    {
+     "key": "steps:hq",
+     "beside": true,
+     "above": false
+    },
+    {
+     "key": "steps:hp,s3",
+     "beside": true,
+     "above": false
+    }
+   ],
+   "math_spans": 7,
+   "mathml": 7,
+   "inputs": 0
+  },
+  {
+   "phase": "after",
+   "path": "/problems/propositional/proofs/11451d603f82/",
+   "width": 1440,
+   "expanded": false,
+   "file": "task-12-after-reading-desktop.png",
+   "ok": true,
+   "viewport": 1440,
+   "scrollWidth": 1440,
+   "overflowing": [],
+   "states": [
+    {
+     "state": "verified",
+     "text": "verified by curator-one"
+    },
+    {
+     "state": "drafted",
+     "text": "drafted with anthropic/claude-opus-5.5 via \"Claude Code\" <cli> & tools"
+    },
+    {
+     "state": "written",
+     "text": "written by alice"
+    },
+    {
+     "state": "verified",
+     "text": "verified by curator-one"
+    }
+   ],
+   "pending": [],
+   "sections": [
+    {
+     "key": "steps:hq",
+     "beside": true,
+     "above": false
+    },
+    {
+     "key": "steps:hp,s3",
+     "beside": true,
+     "above": false
+    }
+   ],
+   "math_spans": 7,
+   "mathml": 7,
+   "inputs": 0
+  },
+  {
+   "phase": "after",
+   "path": "/nodes/propositional/tutorial-and-swap/",
+   "width": 390,
+   "expanded": false,
+   "file": "task-12-after-node-phone.png",
+   "ok": true,
+   "viewport": 390,
+   "scrollWidth": 390,
+   "overflowing": [],
+   "states": [
+    {
+     "state": "verified",
+     "text": "verified by curator-one"
+    },
+    {
+     "state": "drafted",
+     "text": "drafted with anthropic/claude-opus-5.5 via \"Claude Code\" <cli> & tools"
+    },
+    {
+     "state": "written",
+     "text": "written by alice"
+    },
+    {
+     "state": "verified",
+     "text": "verified by curator-one"
+    }
+   ],
+   "pending": [],
+   "sections": [
+    {
+     "key": "steps:hq",
+     "beside": false,
+     "above": true
+    },
+    {
+     "key": "steps:hp,s3",
+     "beside": false,
+     "above": true
+    }
+   ],
+   "math_spans": 7,
+   "mathml": 7,
+   "inputs": 0
+  },
+  {
+   "phase": "after",
+   "path": "/nodes/propositional/tutorial-and-swap/",
+   "width": 390,
+   "expanded": true,
+   "file": "task-12-after-node-phone-open.png",
+   "ok": true,
+   "viewport": 390,
+   "scrollWidth": 390,
+   "overflowing": [],
+   "states": [
+    {
+     "state": "verified",
+     "text": "verified by curator-one"
+    },
+    {
+     "state": "drafted",
+     "text": "drafted with anthropic/claude-opus-5.5 via \"Claude Code\" <cli> & tools"
+    },
+    {
+     "state": "written",
+     "text": "written by alice"
+    },
+    {
+     "state": "verified",
+     "text": "verified by curator-one"
+    }
+   ],
+   "pending": [],
+   "sections": [
+    {
+     "key": "steps:hq",
+     "beside": false,
+     "above": true
+    },
+    {
+     "key": "steps:hp,s3",
+     "beside": false,
+     "above": true
+    }
+   ],
+   "math_spans": 7,
+   "mathml": 7,
+   "inputs": 0
+  },
+  {
+   "phase": "after",
+   "path": "/problems/propositional/proofs/11451d603f82/",
+   "width": 390,
+   "expanded": false,
+   "file": "task-12-after-reading-phone.png",
+   "ok": true,
+   "viewport": 390,
+   "scrollWidth": 390,
+   "overflowing": [],
+   "states": [
+    {
+     "state": "verified",
+     "text": "verified by curator-one"
+    },
+    {
+     "state": "drafted",
+     "text": "drafted with anthropic/claude-opus-5.5 via \"Claude Code\" <cli> & tools"
+    },
+    {
+     "state": "written",
+     "text": "written by alice"
+    },
+    {
+     "state": "verified",
+     "text": "verified by curator-one"
+    }
+   ],
+   "pending": [],
+   "sections": [
+    {
+     "key": "steps:hq",
+     "beside": false,
+     "above": true
+    },
+    {
+     "key": "steps:hp,s3",
+     "beside": false,
+     "above": true
+    }
+   ],
+   "math_spans": 7,
+   "mathml": 7,
+   "inputs": 0
+  }
+ ],
+ "ok": true
+}

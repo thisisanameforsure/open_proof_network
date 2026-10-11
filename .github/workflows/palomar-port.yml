@@ -1,0 +1,94 @@
+# F25-T15 (Stage B, F25-R12): export one target of the graph at a commit and port the wrapper to the
+# registry's toolchain on a hosted runner, where a Mathlib cache fits. Dispatch by hand; uploads the
+# wrapper and port-report.json. A rehearsal: nothing is pushed anywhere, nothing registered.
+name: palomar-port
+on:
+  # until the file is on the default branch a dispatch is impossible, so the pull request that
+  # carries it runs the default rehearsal (erdos-1050 at the registry's minimum toolchain)
+  pull_request:
+    paths:
+      - .github/workflows/palomar-port.yml
+      - gate/palomar/repairs/**
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "target id on the graph"
+        default: "erdos-1050"
+      graph_commit:
+        description: "graph commit to export from (default: origin/main)"
+        default: "origin/main"
+      toolchain:
+        description: "the registry's toolchain"
+        default: "leanprover/lean4:v4.35.0-rc2"
+      mathlib_rev:
+        description: "Mathlib revision at that toolchain"
+        default: "v4.35.0-rc2"
+      classification:
+        description: "arxiv:msc,msc when the record carries none (rehearsal; Q15)"
+        default: "math.NT:11J72,11B25"
+      licence:
+        description: "SPDX id when the graph has no root LICENSE yet (rehearsal; Q15)"
+        default: "Apache-2.0"
+      repairs:
+        description: "directory of proof-body repairs applied before the build (Q34); empty for none"
+        default: "gate/palomar/repairs/erdos-1050"
+permissions:
+  contents: read
+jobs:
+  port:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d  # v10.0.1
+        with:
+          version: "0.12.10"
+      - name: Make room (a Mathlib cache is ~7 GiB)
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+          df -h / | tail -1
+      - name: Install bubblewrap and elan, and the toolchains
+        run: |
+          sudo apt-get update -q && sudo apt-get install -y -q bubblewrap
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+          curl -sSfL https://github.com/leanprover/elan/releases/latest/download/elan-x86_64-unknown-linux-gnu.tar.gz | tar xz
+          ./elan-init -y --no-modify-path --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          "$HOME/.elan/bin/elan" toolchain install "${{ inputs.toolchain || 'leanprover/lean4:v4.35.0-rc2' }}"
+      - name: Clone the graph
+        run: |
+          git clone -q https://github.com/thisisanameforsure/open_proof_network_graph graph
+          git -C graph rev-parse "${{ inputs.graph_commit || 'origin/main' }}"
+      - name: Export at the graph's pin (Stage A)
+        run: |
+          uv sync --frozen --quiet
+          mkdir -p out
+          PYTHONPATH=gate uv run --frozen python -m opn_gate.cli export-palomar --graph graph \
+            --commit "${{ inputs.graph_commit || 'origin/main' }}" --target "${{ inputs.target || 'erdos-1050' }}" --out out \
+            --licence "${{ inputs.licence || 'Apache-2.0' }}" --classification "${{ inputs.classification || 'math.NT:11J72,11B25' }}" | tee out/export.json
+          ls out
+      - name: Port to the registry's toolchain (Stage B)
+        run: |
+          PKG=$(python3 -c "import json; print(json.load(open('out/export.json'))['package'])")
+          echo "package=$PKG" >> "$GITHUB_ENV"
+          REPAIRS="${{ inputs.repairs || 'gate/palomar/repairs/erdos-1050' }}"
+          REPAIR_FLAG=()
+          if [ -n "$REPAIRS" ] && [ -d "$REPAIRS" ]; then REPAIR_FLAG=(--repairs "$REPAIRS"); fi
+          echo "repairs: ${REPAIR_FLAG[*]:-none}"
+          set +e
+          PYTHONPATH=gate uv run --frozen python -m opn_gate.cli palomar-port "out/$PKG" "${REPAIR_FLAG[@]}" \
+            --toolchain "${{ inputs.toolchain || 'leanprover/lean4:v4.35.0-rc2' }}" --mathlib-rev "${{ inputs.mathlib_rev || 'v4.35.0-rc2' }}" | tee out/port.json
+          echo "port exit $?"
+          rm -rf "out/$PKG/.lake" out/tree
+          git -C graph worktree prune || true
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
+        if: always()
+        with:
+          name: palomar-port-${{ inputs.target || 'erdos-1050' }}
+          path: |
+            out/export.json
+            out/port.json
+            out/${{ env.package }}
+          if-no-files-found: error

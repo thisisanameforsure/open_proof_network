@@ -1,0 +1,99 @@
+F03-T16 (audit 2026-10-04): frontier/v4 — each entry says its node's status, cause and what it needs
+=====================================================================================================
+
+Finding: frontier/v3 entries carried no status, cause or next action. Live, three holes waiting
+only for a witness (blocked, cause witness-missing) were published claimable: true; an agent that
+claimed one was then answered 409 node-blocked. Owner approved the schema bump (sign-off S4).
+
+Change
+- gate/schemas/frontier/v4.json (new; HASHES gains one appended line, D-34): v3 plus three
+  required entry fields: status (graph/v4's status enum), cause (null or graph.json's cause
+  pattern), needs (null | proof | witness | dependencies).
+- needs is derived from the facts products.in_frontier already reads (products.needs_of):
+    proof         status ready or speculative (graph.FRONTIER_STATUSES)
+    witness       blocked, and graph.awaiting_witness (cause witness-missing)
+    dependencies  blocked on unproved dependencies, cause null (an open variant, R5)
+    null          anything else on the frontier: blocked under a refuted dep (cause dep-refuted,
+                  a curator acts), a curator's stale/disputed record on a variant; also
+                  superseded or circular (never listed).
+  No other value is derivable from graph.py/products.py.
+- claimable = target claimable AND needs == "proof". A witness-only hole stays on the frontier
+  (D-29, Q11) and reads claimable: false, needs: witness.
+- cause is graph.cause_of, extracted from graph.derive_causes so graph.json and the frontier read
+  one function.
+
+Red (gate/tests/test_finding_frontier_needs.py, before the fix):
+E       AssertionError: a hole waiting for its witness is published claimable
+E       assert True is False
+gate/tests/test_finding_frontier_needs.py:48: AssertionError
+E           KeyError: 'status'
+gate/tests/test_finding_frontier_needs.py:67: KeyError
+E       KeyError: 'status'
+gate/tests/test_finding_frontier_needs.py:98: KeyError
+E           KeyError: 'status'
+gate/tests/test_finding_frontier_needs.py:125: KeyError
+4 failed in 0.23s
+  The first test fails on the defect itself (the hole is published claimable); the others fail
+  because v3 entries carry no status/cause/needs, which is the finding.
+
+Green (targeted fast tier, -m "not lean and not docker and not network"):
+  gate: test_finding_frontier_needs, test_finding_hole_frontier, test_finding_frontier_superseded_defective,
+        test_finding_hole_revision_witness, test_finding_circular_path, test_products, test_schemas
+  api:  test_finding_frontier_v4 (new), test_claims, test_frontier, test_mcp_frontier, test_fixture_is_golden
+  site: test_finding_needs_witness, test_finding_circular_label
+  229 passed, 2 warnings in 20.74s
+  Wider sweeps also green: every gate test naming derive_causes/FRONTIER_SCHEMA/golden (206 passed);
+  every api test naming frontier/claimable/info.json (366 passed); site/tests (330 passed).
+  ruff check + ruff format + mypy (strict) clean on all 16 changed Python files.
+
+Tests restated (assertion and docstring changed, none deleted), each pinned the defect:
+  test_finding_hole_frontier: test_a_witness_missing_hole_is_claimable ->
+    test_a_witness_missing_hole_is_listed_as_needing_a_witness; test_the_generated_frontier_carries_the_hole
+  test_finding_frontier_superseded_defective: test_a_superseded_hole_is_not_claimable (live hole
+    now needs: witness, claimable false); the end-to-end successor assertion
+  test_finding_hole_revision_witness: test_revising_a_hole_keeps_it_awaiting_its_witness
+  test_finding_circular_path: test_guard_the_chain_is_work_before_any_claim (root claimable;
+    path holes need proof or witness)
+  test_products: test_a_merged_partial_is_an_attempt_on_the_frontier (schema == FRONTIER_SCHEMA)
+  site test_finding_needs_witness / test_finding_circular_label: the site's workable set equals the
+    frontier's claimable entries plus those whose needs is witness.
+
+Consumers changed (grep for the version string "frontier/v3", 2026-10-04):
+  gate/opn_gate/products.py        FRONTIER_SCHEMA = frontier/v4
+  gate/tests/test_schemas.py       registry list
+  api/opn_api/frontier.py          FRONTIER_SCHEMAS gains frontier/v4 (v1-v3 still served)
+  api/opn_api/mcp/reads.py         FRONTIER_SCHEMA = frontier/v4 (filters may name needs/status/cause)
+  site/opn_site/model.py           PRODUCT_SCHEMAS["frontier.json"] gains frontier/v4
+  .github/workflows/api-deploy.yml package check requires frontier/v4
+  api/tools/smoke.py               unchanged: validates frontier.json against its own version
+  api/opn_api/mcp/schemas/list_frontier/v1.json  unchanged: pattern ^frontier/v[1-9][0-9]*$
+
+Goldens regenerated in this commit (diff reviewed: schema string, the three new fields per entry,
+and info.json's schema index frontier [1,2,3] -> [1,2,3,4]; nothing else):
+  PYTHONPATH=gate uv run --frozen python -c "import sys; sys.path.insert(0, 'gate/tests'); import test_products as t; t.write_goldens()"
+API fixtures (F05-Q5, golden copies):
+  cp api/tests/fixtures/frontier-listed.json api/tests/fixtures/frontier-listed-v3.json   # the v3 copy, kept byte for byte
+  PYTHONPATH=gate:gate/tests:api:api/tests uv run --frozen python -c "import test_fixture_is_golden as t; t.write_fixtures()"
+  -> frontier-listed/-frozen/-stewardless.json at v4 (diff: schema + status/cause/needs per entry);
+     targets-index-*.json unchanged. api/tests/fixtures/frontier.json (frontier/v1, hand-built) unchanged.
+
+Re-pin notes (owner's): the graph must publish schemas/frontier/v4.json (opn_gate.schemas.publish)
+in the re-pin commit, or products.generate refuses "schema-unpublished" (F03-T8). The live products
+stay frontier/v3 until a re-render after the re-pin (2026-09-19: a re-pin never re-renders).
+AGENTS.md (the guide) should name needs/status/cause at the re-pin (F07-T71).
+
+Proposed Q entry (F03-Q19):
+  A frontier entry says what its node needs, and claimable means a proof can be claimed (T16,
+  frontier/v4, audit 2026-10-04; owner's sign-off S4). Q11 put holes waiting only for a witness on
+  the frontier and made them claimable; the second half is withdrawn: a claim reserves a proof, no
+  route takes a claim's work on such a hole (the claim route and every write answered 409
+  node-blocked, the work goes through POST /proposals/witness), and three live holes were
+  published claimable: true. The hole stays listed (D-29, Q11's first half) with needs: witness.
+  needs is derived, never authored: proof (ready, speculative), witness (blocked, cause
+  witness-missing), dependencies (blocked on unproved dependencies), null where no contributor's
+  submission moves the node. status and cause repeat graph.json's (one function, graph.cause_of).
+  Reversal: drop `and needs == NEEDS_PROOF` from frontier_entry's claimable (the fields may stay).
+
+Proposed ledger line: T16 ✓ 2026-10-04 (frontier/v4: status, cause, needs; a witness-only hole
+  needs: witness and is not claimable; the api serves v1-v4; live after the re-pin and a re-render)
+  engineering/evidence/F03/task-16-audit-2026-10-04.txt

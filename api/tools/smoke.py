@@ -71,8 +71,12 @@ def read_only(
     print(f"GET /info.json -> {status}, protocol {info.get('protocol_version')}, policy {policy}")
     if status != 200:
         problems.append(f"info.json is {status}")
-    elif schemas.violations(info, "info/v1"):
-        problems.append(f"info.json does not validate: {schemas.violations(info, 'info/v1')}")
+    elif info.get("schema") not in ("info/v1", "info/v2"):
+        problems.append(f"info.json declares {info.get('schema')!r}, not info/v1 or info/v2")
+    elif schemas.violations(info):  # against the version the graph published (D-34)
+        problems.append(f"info.json does not validate: {schemas.violations(info)[:2]}")
+    elif info.get("schema") != "info/v1" and not (info.get("guide_url") and info.get("errors_url")):
+        problems.append("info.json names no guide_url or errors_url (info/v2, F05-T25)")
     elif not isinstance(policy, dict) or "writes_per_hour" not in policy:
         problems.append(f"info.json carries no rate-limit policy: {policy!r}")
 
@@ -88,7 +92,37 @@ def read_only(
     print(f"GET /claims.json -> {status}, {len(claims.get('nodes', {}))} nodes with claims")
     if status != 200 or schemas.violations(claims, "claims/v1"):
         problems.append(f"claims.json is {status} / does not validate")
+    hazards_mode(base, problems)
     return frontier if isinstance(frontier, dict) else {}
+
+
+#: The tutorial's node: on every graph, Mathlib-free, and enough to elaborate the whole program.
+HAZARDS_NODE = "tutorial-and-swap"
+#: Answers that say the hosted checker could not be asked, which is not this deploy's fault.
+CHECKER_OUTAGE = (429, 502, 503, 504)
+
+
+def hazards_mode(base: str, problems: list[str]) -> None:
+    """F13-T26: the network's own hazard program runs on the hosted checker. Anonymous, and it
+    writes nothing to the graph. The program is composed here and elaborated there, in an
+    environment no local tier has, so only this call says the two still agree: on 2026-10-01 a
+    green lean tier deployed a program that failed on every statement until a tester said so."""
+    status, doc = call(
+        f"{base}/check", method="POST", body={"mode": "hazards", "node_id": HAZARDS_NODE}
+    )
+    if status in CHECKER_OUTAGE:
+        code = doc.get("error") if isinstance(doc, dict) else doc
+        print(f"POST /check mode hazards -> {status} {code}: NOT CHECKED (the checker, not us)")
+        return
+    ran = isinstance(doc, dict) and doc.get("hazards_status")
+    print(f"POST /check mode hazards on {HAZARDS_NODE} -> {status}, hazards_status {ran}")
+    if status != 200 or not isinstance(doc, dict):
+        problems.append(f"hazards mode answered {status} {doc}")
+    elif ran != "ran" or not isinstance(doc.get("hazards"), dict):
+        problems.append(
+            f"the hazard program did not run on the hosted checker: hazards_status {ran}, "
+            f"{doc.get('hazards_error') or doc.get('user_error')}"
+        )
 
 
 ABSENT_NODE = "opn-smoke-no-such-node"

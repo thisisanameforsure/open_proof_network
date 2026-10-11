@@ -591,6 +591,9 @@ def submit(  # noqa: PLR0913 — one argument per thing a submission names
         "bundle": {path: text},
         "precheck_job_id": job["id"],
         "tooling": {"model": model, "version": None, "harness": f"{HARNESS}/{backend}"},
+        # D-23 v3.37 (F25): the structured disclosure the service requires. A prover answered a
+        # sorry under a person's direction, so the method is "agent"; the model is the prover.
+        "automation": {"method": "agent", "models": [model], "framework": f"{HARNESS}/{backend}"},
     }
     status, body = http("POST", f"{api}/submissions", submission, token)
     return {"stage": "submission", "status": status, **body}

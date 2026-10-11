@@ -1,0 +1,6 @@
+$ uv run --frozen pytest api/tests/test_finding_mcp_tutorial_named.py api/tests/test_frontier_generation.py api/tests/test_mcp_auth.py -q
+# 2026-09-29T08:37:42Z at f11aba1
+    _PortalFactoryType = Callable[[], AbstractContextManager[anyio.abc.BlockingPortal]]
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+19 passed, 2 warnings in 2.25s

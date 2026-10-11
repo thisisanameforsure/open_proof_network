@@ -2,10 +2,10 @@
 (F07-T34).
 
 The lean tier proves the extractor names the ancestor when it can read the probes; this proves it
-can read them where the gate runs. The sandbox holds the node under check and the work directory
-and nothing else, and the ancestors live elsewhere in the graph, so their probes are staged under
-the work directory — and only a run through the container shows the staging reaches it (the Log's
-three sandbox-only failures).
+can read them where the gate runs. The sandbox holds only the directories each call is given, and
+the ancestors live elsewhere in the graph, so their probes are staged (since F02-T13 in the judging
+directory, mounted read-only for the extractor) — and only a run through the container shows the
+staging reaches it (the Log's three sandbox-only failures).
 """
 
 from __future__ import annotations

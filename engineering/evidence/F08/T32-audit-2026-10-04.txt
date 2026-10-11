@@ -1,0 +1,47 @@
+F08-T32 — an exit from `disputed` (D-18 v3.27; audit 2026-10-04, amendment section 2)
+=====================================================================================
+
+What changed
+- graph.disputed_is_void(node), beside stale_is_void and speculative_is_void: a `disputed` override
+  does not decide the status once the defect claim its `reference` names has been withdrawn
+  (F08-T31); the status is derived again from the tree. NodeFacts.dispute_withdrawn is computed in
+  load_nodes by graph.dispute_withdrawn(nodes_dir, node_id, override), which reads the reference as
+  `defects/<file>` of the node or `targets/<t>/nodes/<n>/defects/<file>` on the same target and asks
+  records.withdrawn of the claim's node. Any other reference (a free dispute id, another target's
+  path) never lifts the record.
+- A withdrawn `disputed` record itself is absent already (F08-T31's reader), so needs no rule here;
+  a test pins it.
+- Only `disputed` is voided by a withdrawn claim: an `abandoned` record that happens to cite the
+  claim keeps its precedence (a curator's judgment on a route, not on a claim) — pinned by a test.
+
+Red (the two new tests that name the defect; the other four pin what must not change)
+/Users/mikehiggins/Desktop/repos/opn-audit-k-records/gate/tests/test_withdrawal.py:273: AssertionError: assert 'disputed' == 'ready'
+/Users/mikehiggins/Desktop/repos/opn-audit-k-records/gate/tests/test_withdrawal.py:282: AssertionError: assert 'disputed' == 'ready'
+FAILED gate/tests/test_withdrawal.py::test_a_disputed_record_lifts_when_the_claim_it_rests_on_is_withdrawn
+FAILED gate/tests/test_withdrawal.py::test_a_claim_named_by_its_full_graph_path_lifts_too
+2 failed, 18 passed in 0.67s
+
+Green
+  gate/tests/test_withdrawal.py: 20 passed
+  with test_products, test_records, test_finding_speculative_yields, test_finding_revised_hole_parent,
+  test_modes, test_curator, test_context, the circular finding files, test_node_proofs,
+  test_target_proofs and site/tests:
+607 passed in 53.74s
+  every file that mentions `disputed` (gate, site, api tests): 150 passed
+  ruff check / format / mypy --strict on graph.py and the test: clean
+
+Proposed ledger line (F08 Tasks)
+  T32 ✓ an exit from disputed (D-18 v3.27): graph.disputed_is_void — a disputed record whose
+  referenced claim is withdrawn yields to the derivation, as stale and speculative do.
+
+Proposed Q entry
+  F08-Q44 (T32; D-18 v3.27). How a dispute lifts. A `disputed` record lifts in two ways and both are
+  withdrawals (F08-T31): the record itself withdrawn (absent, so the latest remaining record or the
+  derivation decides), or the claim its `reference` names withdrawn (void, so the derivation
+  decides, as `stale_is_void` does). The reference is read as `defects/<file>` of the node or as the
+  claim's path from the graph root on the same target; a reference that names no claim — a free
+  dispute id, which node-status/v1 allows — never lifts, so such a record ends only by withdrawing
+  the record. Only `disputed` rests on a claim: an `abandoned` or `stale` record citing one keeps its
+  precedence. An upheld dispute ends in D-8's revision, as before. No date is compared.
+  Follow-up for whoever next writes a `disputed` record (no tool writes one today): write the claim's
+  path as `reference`, so the claim's withdrawal can reach it.

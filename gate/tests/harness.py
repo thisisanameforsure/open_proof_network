@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import shutil
 from pathlib import Path
 from typing import Any
@@ -17,6 +18,13 @@ GRAPH = FIXTURES / "graphs" / "propositional"
 ADVERSARIAL = FIXTURES / "graphs" / "adversarial"
 TARGET = "propositional"
 TUTORIAL = "tutorial-and-swap"
+#: The sibling graph checkout (D-35) that the workflow and guide tests read. A worktree that is not
+#: a sibling of it sets ``OPN_GRAPH_CHECKOUT``, so those tests read the graph rather than skip: a
+#: skipped test is evidence of nothing (2026-10-04).
+GRAPH_CHECKOUT = Path(
+    os.environ.get("OPN_GRAPH_CHECKOUT")
+    or Path(__file__).resolve().parents[3] / "open_proof_network_graph"
+)
 
 
 def copy_graph(tmp_path: Path, graph: Path = GRAPH, *, publish: bool = False) -> Path:

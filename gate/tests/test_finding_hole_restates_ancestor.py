@@ -33,7 +33,7 @@ import yaml
 from fakes import FakeToolchain, artifact_result, witness_result
 from harness import TARGET, TUTORIAL, make_context
 
-from opn_gate import curator, layout, pipeline
+from opn_gate import curator, judging, layout, pipeline
 from opn_gate.paths import Change
 from opn_gate.steps import artifact as art
 from opn_gate.steps.base import RunContext
@@ -144,14 +144,18 @@ def test_a_hole_restating_an_ancestor_is_refused_at_step_4(tmp_path: Path, ances
     assert [h["defeq_ancestor"] for h in holes] == [ancestor, None]
 
 
-def test_a_partial_run_stages_every_ancestor_in_the_work_directory(tmp_path: Path) -> None:
-    """The sandbox reads the work directory and the node under check, nothing else, so each
-    ancestor's statement is staged there as a probe, nearest first, with a manifest the extractor
-    is pointed at. The unrelated tutorial node is a sibling, not an ancestor."""
+def test_a_partial_run_stages_every_ancestor_in_the_judging_directory(tmp_path: Path) -> None:
+    """The sandbox reads only what it is given, so each ancestor's statement is staged as a probe,
+    nearest first, with a manifest the extractor is pointed at. F02-T13 (restated): the probes are
+    staged in the judging directory beside the extractor's other inputs, never in the work
+    directory the contributor's compile can write. The unrelated tutorial node is a sibling, not
+    an ancestor."""
     ctx = leaf_partial(tmp_path, reporting(None))
     verdict = pipeline.run_steps(ctx)
     assert verdict.first_failing_step is None, verdict.as_dict()
-    manifests = list(ctx.workdir.rglob(art.ANCESTORS_MANIFEST))
+    assert not list(ctx.workdir.rglob(art.ANCESTORS_MANIFEST))
+    judged = judging.root_for(ctx.workdir)
+    manifests = list(judged.rglob(art.ANCESTORS_MANIFEST))
     assert len(manifests) == 1, manifests
     manifest = manifests[0]
     assert manifest.parent.name == art.ANCESTORS_DIR
@@ -162,7 +166,7 @@ def test_a_partial_run_stages_every_ancestor_in_the_work_directory(tmp_path: Pat
         assert layout.imports_of(probe) == [] and entry["decl"] == art.SIBLING_PROBE_NAME
     root_probe = (manifest.parent / entries[1]["file"]).read_text(encoding="utf-8")
     assert "(p ∧ q) ∧ r → r ∧ (q ∧ p)" in root_probe
-    siblings = json.loads(next(ctx.workdir.rglob(art.SIBLINGS_MANIFEST)).read_text("utf-8"))
+    siblings = json.loads(next(judged.rglob(art.SIBLINGS_MANIFEST)).read_text("utf-8"))
     assert [e["node"] for e in siblings] == [TUTORIAL]
 
 
@@ -182,7 +186,7 @@ def test_a_superseded_ancestor_is_asked_about_in_its_successor(tmp_path: Path) -
     supersede(nodes, PARENT, revised)
     verdict = pipeline.run_steps(ctx)
     assert verdict.first_failing_step is None, verdict.as_dict()
-    manifest = next(ctx.workdir.rglob(art.ANCESTORS_MANIFEST))
+    manifest = next(judging.root_for(ctx.workdir).rglob(art.ANCESTORS_MANIFEST))
     entries = json.loads(manifest.read_text(encoding="utf-8"))
     assert [e["node"] for e in entries] == [revised, ROOT]
     probe = (manifest.parent / entries[0]["file"]).read_text(encoding="utf-8")

@@ -17,7 +17,7 @@ from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 from typing import Literal
 
-from opn_gate import layout, schemas
+from opn_gate import carried, layout, schemas
 from opn_gate.diagnostic import Diagnostic
 from opn_gate.layout import Statement
 
@@ -121,8 +121,18 @@ def check_proof_is_statement(
     merged skeleton had put there, and a statement is immutable (D-3). Such a proof may carry
     that one line, exactly where ``layout.with_own_context`` puts it; any other header is refused
     as before. Sound because step 4 stages only proved dependencies: a name that is not proved
-    is not there to be used."""
+    is not there to be used.
+
+    F08-R16: and with its *use lines* (``opn_gate.uses``), which declare what the proof draws on
+    beyond the statement's header. They are removed before the comparison, so everything else
+    in the file is held to the statement exactly as before; what they may name is
+    ``uses.check``'s question, and step 2 asks it of the same text."""
+    from opn_gate import uses  # noqa: PLC0415 — uses reads layout, as this module does
+
     prefix = statement.prefix
+    # F08-R16: use lines are the artifact's declaration, not part of the statement's text; with
+    # them taken out, the rule below is the one it always was.
+    proof_text, _declared = uses.split(prefix, proof_text, node_id)
     if node_id is not None and not proof_text.startswith(prefix):
         allowed = layout.with_own_context(prefix, node_id)
         if allowed != prefix and proof_text.startswith(allowed):
@@ -176,11 +186,14 @@ Role = Literal[
     "waiver",  # waivers/native_decide.yaml (F02-R8)
     "partial",  # a .lean assembly under attempts/ (D-12 #5): the node stays open
     "alternate",  # attempts/<ts>-<pseudonym>-alternate.lean: a later proof of a proved node (D-25)
+    "hole-witness",  # attempts/<assembly>.<n>.witness: a witness a partial carries (F07-R23)
     "postmortem",  # attempts/<ts>-<contributor>.yaml (D-13)
     "precheck-record",  # attempts/precheck/<name>.json (D-34)
     "annex",  # annex/<hash>.md (D-31)
     "explainer",  # explainer/<hash>.md (D-3, D-36)
     "explainer-signature",  # explainer/signed/<hash>-<n>.yaml: a comprehension claim (F15-R8)
+    "gloss",  # nodes/<id>/gloss/<hash>.md or targets/<id>/gloss/<hash>.md (F20-R1, D-3 v3.30)
+    "gloss-signature",  # gloss/signed/<hash>-<n>.yaml beside its gloss (F20-R8)
     "approach-record",  # targets/<id>/approaches/<name>.yaml (D-14 mechanism 3)
     "node",  # META.yaml, Statement.lean, Context.lean: the node's definition, added once (D-3)
     "witness",  # Witness.lean: added with the node, or filled in on a hole's slot (F08-R5)
@@ -205,6 +218,14 @@ Role = Literal[
     "steward",  # targets/<id>/stewards/<n>.yaml: a signed commitment or step-down (F15-R1)
     "policy",  # policy.json at the graph root: the steward rule's switch (F15-R3, Q2)
     "writeup",  # targets/<id>/writeup/<n>.yaml: a signed paper or note record (F15-R6)
+    "motion",  # targets/<id>/motions/<n>.yaml: a question put to the panel (F24-R2)
+    "vote",  # targets/<id>/votes/<n>.yaml: a panel member's vote on a motion (F24-R3)
+    "proposed-for",  # nodes/<id>/proposed-for/<ts>-<pseudonym>.yaml: a pointer (F18-R8, D-14)
+    "withdrawal",  # nodes/<id>/withdrawals/<ts>-<curator>.yaml: a record withdrawn (F08-T31)
+    "credit-correction",  # targets/<id>/credit-corrections/<ts>-<curator>.yaml (F07-T66)
+    "literature",  # nodes/<id>/literature/<ts>-<contributor>.yaml: a literature status (D-25 v3.35)
+    "registration",  # targets/<id>/registrations/<date>-<n>.yaml: a registry record (D-10 v3.37)
+    "display-name",  # names/<pseudonym>.yaml at the graph root: an opt-in display name (D-3 v3.37)
 ]
 
 #: Roles that claim nothing and merge on schema and path checks alone (F07-R9).
@@ -215,6 +236,9 @@ APPEND_ROLES: tuple[Role, ...] = (
     "approach-record",
     "revision-request",
     "defect-claim",
+    # F08-T40 (D-25 v3.35): unsigned, anyone's proposal; signed, a steward's or curator's
+    # confirmation, checked as a steward record is (``modes.check_literature_record``).
+    "literature",
 )
 
 #: Appends that may carry a Lean exhibit, which the gate elaborates in the sandbox (F08-R6, R7).
@@ -237,6 +261,8 @@ CURATOR_ROLES: tuple[Role, ...] = (
     "formalization",  # F14-R7: a curator adds a second formalization, never a node
     "formalization-statement",
     "policy",  # F15-R3: the steward rule is switched by a curator, in the open
+    "withdrawal",  # F08-T31 (D-18 v3.27): a status record or defect claim withdrawn, by a curator
+    "credit-correction",  # F07-T66 (D-19 v3.27): a ledger line corrected, by a curator
 )
 
 #: What a curated intake adds beside the root node (F11-R2; D-6): the target's own files. A pull
@@ -249,6 +275,8 @@ INTAKE_ROLES: tuple[Role, ...] = ("target-record", "gate-spec", "definition", "f
 #: The target record takes its D-10 posting in place (F11-R5): ``modes.check_posting`` holds the
 #: modification to that one field, null to a posting, and a target record is never deleted.
 #: The policy file is the one switch that flips both ways (F15-Q2), by a curator's pull request.
+#: A display name is one file per pseudonym (F25-R6): a later record replaces it, a null name
+#: withdraws it, and the history is the trail (F25-Q6).
 MODIFIABLE_ROLES: tuple[Role, ...] = (
     "proof",
     "waiver",
@@ -256,6 +284,7 @@ MODIFIABLE_ROLES: tuple[Role, ...] = (
     "attempts-ledger",
     "target-record",
     "policy",
+    "display-name",
 )
 
 #: The schema versions each record may declare; an annex validates its YAML front matter.
@@ -264,7 +293,7 @@ MODIFIABLE_ROLES: tuple[Role, ...] = (
 SCHEMAS_FOR_ROLE: dict[Role, tuple[str, ...]] = {
     "postmortem": ("postmortem/v1",),
     "precheck-record": ("precheck-record/v1",),
-    "annex": ("annex/v1",),
+    "annex": ("annex/v1", "annex/v2"),  # v2: a stepped outline (F18-R6, D-31 v3.26)
     "approach-record": ("approach-record/v1",),
     "node-status": ("node-status/v1",),
     "target-status": ("target-status/v1", "target-status/v2"),
@@ -276,14 +305,33 @@ SCHEMAS_FOR_ROLE: dict[Role, tuple[str, ...]] = {
     "relevance": ("relevance/v1",),
     "statement-evidence": ("statement-evidence/v1",),
     "formalization": ("formalization/v1",),
-    "steward": ("steward/v1",),
-    "policy": ("policy/v1",),
-    "explainer-signature": ("explainer-signature/v1",),
-    "writeup": ("writeup/v1",),
+    # v2: via and admitted_by (F23-R9); v3: admitted_by may be motion:<n> (F24-R4)
+    "steward": ("steward/v1", "steward/v2", "steward/v3"),
+    # v2: steward_admission (F23-R9); v3: the panel's settings (F24-R1)
+    "policy": ("policy/v1", "policy/v2", "policy/v3"),
+    "explainer-signature": (
+        "explainer-signature/v1",
+        "explainer-signature/v2",
+        "explainer-signature/v3",
+    ),  # v2: the sections approved (F21-R13); v3: via (F23-R11)
+    "gloss-signature": (
+        "gloss-signature/v1",
+        "gloss-signature/v2",
+        "gloss-signature/v3",
+    ),  # v2: the sections approved (F21-R13); v3: via (F23-R11)
+    "writeup": ("writeup/v1", "writeup/v2"),  # v2: a write-up's life (F24-R5)
+    "motion": ("motion/v1",),
+    "vote": ("vote/v1",),
+    "proposed-for": ("proposed-for/v1",),
+    "withdrawal": ("withdrawal/v1", "withdrawal/v2"),  # v2: gloss and explainer versions (F20)
+    "credit-correction": ("credit-correction/v1",),
+    "literature": ("literature/v1",),  # F08-T40 (D-25 v3.35)
+    "registration": ("registration/v1",),  # F25-R5 (D-10 v3.37)
+    "display-name": ("display-name/v1",),  # F25-R6 (D-3 v3.37)
 }
 
-#: Roles whose file name is the SHA-256 of the file (D-31 annexes; D-3 explainers).
-CONTENT_HASHED_ROLES: tuple[Role, ...] = ("annex", "explainer")
+#: Roles whose file name is the SHA-256 of the file (D-31 annexes; D-3 explainers and glosses).
+CONTENT_HASHED_ROLES: tuple[Role, ...] = ("annex", "explainer", "gloss")
 
 ANNEX_MAX_BYTES = 64 * 1024  # F07 §6
 YAML_SUFFIXES: tuple[str, ...] = (".yaml", ".yml")
@@ -292,7 +340,7 @@ NODE_DEFINITION_FILES: tuple[str, ...] = ("META.yaml", "Statement.lean", "Contex
 WITNESS_FILE = "Witness.lean"
 RELATION_FILE = "Relation.lean"
 RELEVANCE_FILE = "relevance.yaml"
-KEEP_DIRS: tuple[str, ...] = ("attempts", "annex", "explainer")
+KEEP_DIRS: tuple[str, ...] = ("attempts", "annex", "explainer", "gloss")  # gloss/: v3.30
 #: What a QA run leaves under ``targets/<id>/qa/`` (F12-R1, R6, R7), each directory flat.
 QA_SUBDIRS: dict[str, tuple[str, ...]] = {
     "exhibits": (".lean",),
@@ -306,6 +354,17 @@ RECORD_DIRS: dict[str, Role] = {
     "status/": "node-status",
     "revisions/": "revision-request",
     "defects/": "defect-claim",
+    # F18-R8 (D-14 v3.26): which node of the target this one was proposed for. Its own role and
+    # its own mode, never an append: only the proposer or a curator writes one (F18-T6).
+    "proposed-for/": "proposed-for",
+    # F08-T31 (D-14, D-18 v3.27): a curator's withdrawal of one of this node's status records or
+    # defect claims. Under the node whose record it names, so every reader that takes a node
+    # directory finds it beside what it withdraws, and a record of another node or target cannot
+    # be named at all.
+    "withdrawals/": "withdrawal",
+    # F08-T40 (D-3, D-25 v3.35): what the literature says of the statement, a proposal until a
+    # steward of the target or a curator confirms it by a signed record of their own.
+    "literature/": "literature",
 }
 
 _NODE_PATH_RE = re.compile(r"^targets/(?P<target>[^/]+)/nodes/(?P<node>[^/]+)/(?P<rest>.+)$")
@@ -338,12 +397,25 @@ class Located:
 #: and a pull request mixing it with any target's files is refused as touching two targets.
 GRAPH_SCOPE = ""
 POLICY_FILE = "policy.json"
+#: F25-R6 (D-3 v3.37): ``names/<pseudonym>.yaml``, the other graph-root file a pull request may
+#: touch, scoped like ``policy.json`` so it never rides with a target's files. The stem is the
+#: pseudonym, in the service's own grammar for one (``opn_api.identity.PSEUDONYM_RE``).
+NAMES_DIR = "names"
+PSEUDONYM_RE = re.compile(r"^[A-Za-z0-9-]{1,39}$")
+#: F25-R5 (D-10 v3.37): a target's registry records, target-scoped like its approach records.
+REGISTRATIONS_DIR = "registrations"
 
 
 def locate(path: str) -> Located | None:  # noqa: PLR0911, PLR0912 — one branch per D-3 entry
     """The role of ``path``, or ``None`` when no mode may touch it (F07-R3's rejection)."""
     if path == POLICY_FILE:
         return Located("policy", path, GRAPH_SCOPE, None)
+    head, _, leaf = path.partition("/")
+    if head == NAMES_DIR and _is_flat(leaf, YAML_SUFFIXES):
+        # F25-R6: one file per pseudonym, named for it; anything else under names/ is nobody's.
+        if PSEUDONYM_RE.match(PurePosixPath(leaf).stem):
+            return Located("display-name", path, GRAPH_SCOPE, None)
+        return None
     node_match = _NODE_PATH_RE.match(path)
     if node_match is not None:
         target, node = node_match.group("target"), node_match.group("node")
@@ -357,6 +429,9 @@ def locate(path: str) -> Located | None:  # noqa: PLR0911, PLR0912 — one branc
         head, _, name = rest.partition("/")
         if head == "approaches" and _is_flat(name, YAML_SUFFIXES):
             return Located("approach-record", path, target_match.group("target"), None)
+        # F25-R5 (D-10 v3.37): a registry record, by a curator or a steward of the target.
+        if head == REGISTRATIONS_DIR and _is_flat(name, YAML_SUFFIXES):
+            return Located("registration", path, target_match.group("target"), None)
         if head == "status" and _is_flat(name, YAML_SUFFIXES):
             return Located("target-status", path, target_match.group("target"), None)
         if head == "defs" and name.startswith("defects/") and _is_flat(name[8:], YAML_SUFFIXES):
@@ -368,6 +443,11 @@ def locate(path: str) -> Located | None:  # noqa: PLR0911, PLR0912 — one branc
             return Located("gate-spec", path, target_match.group("target"), None)
         if rest == "attempts.yaml":
             return Located("attempts-ledger", path, target_match.group("target"), None)
+        # F07-T66 (D-19 v3.27): a curator's correction of a ledger line of this target. Under the
+        # target the line names, since a submission reaches only targets/** and policy.json and
+        # the bot-owned ledger/ stays no submission's path (D-35).
+        if head == "credit-corrections" and _is_flat(name, YAML_SUFFIXES):
+            return Located("credit-correction", path, target_match.group("target"), None)
         if head == "drift" and _is_flat(name, YAML_SUFFIXES):
             return Located("drift-record", path, target_match.group("target"), None)
         if head == "defs" and _is_flat(name, (".lean",)):
@@ -380,9 +460,22 @@ def locate(path: str) -> Located | None:  # noqa: PLR0911, PLR0912 — one branc
         # F15-R1: a steward's signed commitment or step-down, append-only.
         if head == "stewards" and _is_flat(name, YAML_SUFFIXES):
             return Located("steward", path, target_match.group("target"), None)
+        # F20-R1 (D-3 v3.30): a definition module's gloss, beside the defs/ it describes; its
+        # signatures (R8) under gloss/signed/; and a withdrawal of one of its versions (R7).
+        if head == "gloss" and _is_flat(name, (".md",)):
+            return Located("gloss", path, target_match.group("target"), None)
+        if head == "gloss" and name.startswith("signed/") and _is_flat(name[7:], YAML_SUFFIXES):
+            return Located("gloss-signature", path, target_match.group("target"), None)
+        if head == "withdrawals" and _is_flat(name, YAML_SUFFIXES):
+            return Located("withdrawal", path, target_match.group("target"), None)
         # F15-R6: a signed write-up record, append-only; the note's text stays note.md.
         if head == "writeup" and _is_flat(name, YAML_SUFFIXES):
             return Located("writeup", path, target_match.group("target"), None)
+        # F24-R2, R3: the panel's motions and votes, append-only and numbered.
+        if head == "motions" and _is_flat(name, YAML_SUFFIXES):
+            return Located("motion", path, target_match.group("target"), None)
+        if head == "votes" and _is_flat(name, YAML_SUFFIXES):
+            return Located("vote", path, target_match.group("target"), None)
         # F14-R7: a second formalization, outside nodes/, so never a node.
         if head == "formalizations":
             directory, _, leaf = name.partition("/")
@@ -423,6 +516,10 @@ def _node_role(rest: str) -> Role | None:  # noqa: PLR0911, PLR0912 — one bran
         return "precheck-record" if _is_flat(name, (".json",)) else None
     if rest.startswith("attempts/"):
         name = rest[len("attempts/") :]
+        # F07-R23 (D-29 v3.24): a witness a partial carries for one of its holes. Not `.lean`,
+        # so nothing that reads attempts/*.lean for assemblies takes it for one.
+        if _is_flat(name, (carried.SUFFIX,)) and carried.is_carried(name):
+            return "hole-witness"
         if _is_flat(name, (".lean",)):
             return "alternate" if name.endswith(ALTERNATE_SUFFIX) else "partial"
         return "postmortem" if _is_flat(name, YAML_SUFFIXES) else None
@@ -433,6 +530,11 @@ def _node_role(rest: str) -> Role | None:  # noqa: PLR0911, PLR0912 — one bran
         return "explainer-signature" if _is_flat(name, YAML_SUFFIXES) else None
     if rest.startswith("explainer/"):
         return "explainer" if _is_flat(rest[len("explainer/") :], (".md",)) else None
+    if rest.startswith("gloss/signed/"):  # F20-R8: a steward's or curator's signature on one
+        name = rest[len("gloss/signed/") :]
+        return "gloss-signature" if _is_flat(name, YAML_SUFFIXES) else None
+    if rest.startswith("gloss/"):  # F20-R1: prose about one of the node's Lean files
+        return "gloss" if _is_flat(rest[len("gloss/") :], (".md",)) else None
     return None
 
 

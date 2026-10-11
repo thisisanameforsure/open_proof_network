@@ -20,7 +20,7 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 
 from opn_api import clock as clockmod
-from opn_api.app import ApiError, CachedFile
+from opn_api.app import ApiError, CachedClaims, CachedFile
 from opn_api.githost import GitHostError
 from opn_api.store import Claim
 from opn_gate import schemas
@@ -36,7 +36,13 @@ INFO_PATH = "info.json"
 #: The frontier versions this service will serve. A product names its own version and
 #: several are live at once (D-34, F11-R4), so what is pinned is the set: a graph that
 #: published something outside it is refused rather than passed through unvalidated.
-FRONTIER_SCHEMAS: tuple[str, ...] = ("frontier/v1", "frontier/v2", "frontier/v3")
+FRONTIER_SCHEMAS: tuple[str, ...] = (
+    "frontier/v1",
+    "frontier/v2",
+    "frontier/v3",
+    "frontier/v4",  # F03-T16: status, cause, needs; the live graph serves v3 until its re-pin
+    "frontier/v5",  # F03-T18 (D-12 v3.35): circular, literature, literature_proposed
+)
 CLAIMS_SCHEMA = "claims/v1"
 EMPTY_CLAIMS: dict[str, Any] = {"active": [], "history_count": 0}
 
@@ -95,6 +101,8 @@ def stale_all_but(ctx: Context, keep: str, now: float) -> None:
     for path, entry in list(ctx.files.items()):  # a copy: other threads may add (F07-T39)
         if path != keep:
             entry.fetched_at = min(entry.fetched_at, aged)
+    for listed in list(ctx.listings.values()):  # F07-T68: the MCP listings share the generation
+        listed.fetched_at = min(listed.fetched_at, aged)
 
 
 def committed(ctx: Context, path: str) -> bytes:
@@ -131,12 +139,28 @@ def is_active(claim: Claim, now: str) -> bool:
     return claim.released is None and claim.expires > now
 
 
+def claims_scan(ctx: Context) -> CachedClaims:
+    """F05-T20: the claims table as last scanned, reused for ``claims_max_stale_s``. A scan is a
+    paged ``Scan`` of every claim ever made (R9 counts released and expired ones), and it was
+    made on every anonymous ``/frontier.json`` and ``/claims.json``. ``claims.invalidate`` drops
+    it after a write through this process; another process sees the write within the window."""
+    kept = ctx.claims_scan
+    now = time.monotonic()
+    if kept is not None and now - kept.fetched_at < ctx.settings.claims_max_stale_s:
+        return kept
+    pseudonyms = dict(kept.pseudonyms) if kept is not None else {}
+    ctx.claims_scan = CachedClaims(ctx.store.list_claims(), pseudonyms, now)
+    return ctx.claims_scan
+
+
 def registry(ctx: Context) -> dict[str, dict[str, Any]]:
-    """Per node: ``active`` [{pseudonym, expires}] and ``history_count`` (R9)."""
+    """Per node: ``active`` [{pseudonym, expires}] and ``history_count`` (R9). Which claims are
+    active is decided here, against the clock, on every read, over the kept scan (F05-T20)."""
     now = clockmod.render(ctx.clock.now())
-    names: dict[str, str] = {}
+    scan = claims_scan(ctx)
+    names = scan.pseudonyms  # an identity's pseudonym never changes, so it is kept with the scan
     out: dict[str, dict[str, Any]] = {}
-    for claim in ctx.store.list_claims():
+    for claim in scan.claims:
         entry = out.setdefault(claim.node_id, {"active": [], "history_count": 0})
         entry["history_count"] += 1
         if not is_active(claim, now):
@@ -159,6 +183,15 @@ def overlay(doc: dict[str, Any], reg: dict[str, dict[str, Any]]) -> dict[str, An
     return out
 
 
+def read_at(ctx: Context, doc: dict[str, Any]) -> dict[str, Any]:
+    """F05-T30 (testers 2026-10-09, B3): the service's ``rendered_from`` is the commit it read
+    the tree at — ``main``'s sha, where every file is read (F05-T13) — not the merge commit the
+    products were labelled with, which lacks whatever the bot commit wrote beside them (a merged
+    partial's holes). The committed label stands when the API never said where ``main`` is (C7),
+    and a precheck is still pinned by it (``precheck.rendered_from``)."""
+    return {**doc, "rendered_from": ctx.head} if ctx.head else doc
+
+
 def validate_frontier(doc: dict[str, Any]) -> dict[str, Any]:
     """Validate against the version the document declares, constrained to the set above."""
     declared = str(doc.get("schema"))
@@ -177,7 +210,7 @@ def committed_frontier(ctx: Context) -> dict[str, Any]:
 
 
 async def get_frontier(ctx: Context, request: Request) -> Response:
-    doc = overlay(committed_frontier(ctx), registry(ctx))
+    doc = read_at(ctx, overlay(committed_frontier(ctx), registry(ctx)))
     return JSONResponse(validate_frontier(doc))
 
 

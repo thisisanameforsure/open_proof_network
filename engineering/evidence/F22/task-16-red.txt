@@ -1,0 +1,48 @@
+warning: `VIRTUAL_ENV=/Users/mikehiggins/Desktop/repos/open_proof_network/.venv` does not match the project environment path `.venv` and will be ignored; use `--active` to target the active environment instead
+FFF                                                                      [100%]
+=================================== FAILURES ===================================
+________________________ test_the_bare_sentence_is_gone ________________________
+
+page = '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,...ob/6666666666666666666666666666666666666666/frontier.json">frontier.json ↗</a></span>\n</footer>\n\n</body>\n</html>\n'
+
+    def test_the_bare_sentence_is_gone(page: str) -> None:
+>       assert BARE not in page
+E       assert 'Every versi...is withdrawn' not in '<!DOCTYPE h...>\n</html>\n'
+E         
+E         'Every version of t...lainer is withdrawn' is contained here:
+E           ass="cue">Every version of this explainer is withdrawn; they are listed in its history below (D-3 v3.30).</p><div class="prose-block unverified explainer-version" data-block="explainer" data-explainer="e00aa365d74a407006bdd2ae35cc4db044381aeb9f3f69a22b36336095568f8e"><p class="block-label" data-provenance="unverified"><strong>Informal account, unverified</strong> — unverified prose about a kernel-checked proof; shown section by section, each labelled with who drafted, wrote or verified it (D-3 v3.31).</p><p ...
+E         
+E         ...Full output truncated (20 lines hidden), use '-vv' to show
+
+site/tests/test_f22_withdrawn_chain.py:66: AssertionError
+___ test_the_live_chain_comes_first_and_the_withdrawn_one_is_one_line_below ____
+
+page = '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,...ob/6666666666666666666666666666666666666666/frontier.json">frontier.json ↗</a></span>\n</footer>\n\n</body>\n</html>\n'
+
+    def test_the_live_chain_comes_first_and_the_withdrawn_one_is_one_line_below(page: str) -> None:
+        live = page.index("the proof reorders them")
+>       line = page.index("An earlier explainer (2 versions, by carol) was withdrawn")
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       ValueError: substring not found
+
+site/tests/test_f22_withdrawn_chain.py:71: ValueError
+_____________ test_a_lone_withdrawn_chain_says_so_without_earlier ______________
+
+tmp_path = PosixPath('/private/tmp/claude-501/-Users-mikehiggins-Desktop-repos-open-proof-network/2ffdfe54-d576-4a00-8850-e68de830c701/scratchpad/site-tmp/test_a_lone_withdrawn_chain_sa0')
+
+    def test_a_lone_withdrawn_chain_says_so_without_earlier(tmp_path: Path) -> None:
+        page = h3_shape(tmp_path, live=False)
+>       assert BARE not in page
+E       assert 'Every versi...is withdrawn' not in '<!DOCTYPE h...>\n</html>\n'
+E         
+E         'Every version of t...lainer is withdrawn' is contained here:
+E           ass="cue">Every version of this explainer is withdrawn; they are listed in its history below (D-3 v3.30).</p><details class="history" data-history="explainer"><summary>History: 2 versions on record, 2 withdrawn</summary><ol class="versions"><li class="version" data-version="7a9e1d6603c1aa7d84b3c7a9ab9df3790411816bd61c6169f9efa3a04a307d2d"><p class="version-facts">2026-10-01 · written by carol · not signed · <strong class="withdrawn">withdrawn</strong> · <a class="file" href="https://github.com/example/graph/...
+E         
+E         ...Full output truncated (19 lines hidden), use '-vv' to show
+
+site/tests/test_f22_withdrawn_chain.py:82: AssertionError
+=========================== short test summary info ============================
+FAILED site/tests/test_f22_withdrawn_chain.py::test_the_bare_sentence_is_gone
+FAILED site/tests/test_f22_withdrawn_chain.py::test_the_live_chain_comes_first_and_the_withdrawn_one_is_one_line_below
+FAILED site/tests/test_f22_withdrawn_chain.py::test_a_lone_withdrawn_chain_says_so_without_earlier
+3 failed in 2.98s

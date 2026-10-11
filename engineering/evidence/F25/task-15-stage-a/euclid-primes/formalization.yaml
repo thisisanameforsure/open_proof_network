@@ -1,0 +1,100 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/mathlib-initiative/formalization.yaml/main/schema/v0.4.schema.json
+version: v0.4
+project:
+  name: Euclid's theorem
+  description: For every natural number n there is a prime greater than n.
+  authors:
+  - euclid-root-27e3a5
+  license: Apache-2.0
+  responsible_maintainers:
+  - thisisanameforsure
+repository:
+  role: substantive-development
+classification:
+  arxiv:
+  - math.NT
+  msc2020:
+  - 11A41
+sources:
+- title: Euclid's theorem
+  type: other
+  note: Classical (Euclid, Elements IX.20; c. 300 BC) and not in dispute. Mathlib proves the same fact
+    as Nat.exists_infinite_primes about Nat.Prime; this target states it over the graph's own Divides,
+    IsPrime and fact (engineering/evidence/F11/selection.md, F11-R7), so the bridge to Mathlib's statement
+    is a lemma, not a citation. Chosen as the Stage 0 on-ramp for zero selection risk (F11-Q1). The result
+    is known; the network's proof is an independent one, and the published proof the catalog cites is
+    not on the network's record.
+  relationship: independently-proves
+status:
+  scope: Opn.infinitude_of_primes is proved in full; the development holds the 4 merged proof(s) its term
+    rests on and nothing else (F18).
+  sorry_count: 0
+  sorry_in_definitions: 0
+  axioms:
+  - propext
+  - Classical.choice
+  - Quot.sound
+  main_results:
+  - declaration: Opn.infinitude_of_primes
+    file: Solution.lean
+    sorry_count: 0
+    axioms:
+    - propext
+    - Classical.choice
+    - Quot.sound
+    comparator_config: comparator.json
+automation:
+  methods:
+  - method: other
+    models: []
+    prompting_notes: not reconstructed (the merge predates the structured disclosure, D-23 v3.37)
+  - method: other
+    models:
+    - claude-opus-5 claude-code
+    prompting_notes: not reconstructed (the merge predates the structured disclosure, D-23 v3.37)
+  spend_usd: subscription-based usage where disclosed; not reconstructed (the merge predates the structured
+    disclosure, D-23 v3.37)
+  notes: Each method is one merged proof's disclosure as its submitter declared it to the Open Proof Network
+    (never verified, D-1); the ledger on the graph at the exported commit is the record. The registering
+    curator (thisisanameforsure) prepared this wrapper with the network's export tool and wrote no Lean.
+fidelity:
+  divergences: The network's fidelity grade of the root statement is `mechanical-only` (D-9); no human
+    has read the formal statement against the informal one on the network's record. Challenge.lean is
+    the graph's Statement.lean with its headers rewritten for the module system; the export checks the
+    theorem text is identical.
+review:
+  status: agent-reviewed
+  reviewers: []
+  notes: The gate checked the proof mechanically at leanprover/lean4:v4.33.1 (kernel replay per module,
+    the three standard axioms, the statement's type by the kernel); fidelity grade mechanical-only. No
+    independent human has reviewed the proof unless named above.
+alignment:
+  namespace: OpnEuclidPrimes
+  statements:
+  - source: Euclid's theorem
+    lean: Opn.infinitude_of_primes
+    module: Solution
+    status: proved
+    note: the root statement; the node's Statement.lean on the graph
+  - source: node infinitude-of-primes--h1 on the graph
+    lean: infinitude_of_primes__h1
+    module: OpnEuclidPrimes.Nodes.infinitude_of_primes__h1
+    status: proved
+    note: a statement the root's proof term rests on
+  - source: node infinitude-of-primes--h2 on the graph
+    lean: infinitude_of_primes__h2
+    module: OpnEuclidPrimes.Nodes.infinitude_of_primes__h2
+    status: proved
+    note: a statement the root's proof term rests on
+  - source: node infinitude-of-primes--h3 on the graph
+    lean: infinitude_of_primes__h3
+    module: OpnEuclidPrimes.Nodes.infinitude_of_primes__h3
+    status: proved
+    note: a statement the root's proof term rests on
+  - source: node infinitude-of-primes--h4 on the graph
+    lean: infinitude_of_primes__h4
+    module: OpnEuclidPrimes.Nodes.infinitude_of_primes__h4
+    status: proved
+    note: a statement the root's proof term rests on
+acknowledgements: Mathlib and its authors; the Open Proof Network's contributors named above; the Formal
+  Conjectures authors where the statement was inherited.

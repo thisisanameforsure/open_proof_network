@@ -8,6 +8,7 @@ ambiguous root is a graph defect: ``GraphError`` names it and the caller writes 
 
 from __future__ import annotations
 
+import json
 import logging
 import re
 import subprocess
@@ -17,7 +18,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from opn_gate import config, layout, paths, records, schemas
+from opn_gate import config, layout, paths, proposed_for, records, schemas
 from opn_gate.bounce import TIMESTAMP_FORMAT
 from opn_gate.diagnostic import Diagnostic
 from opn_gate.records import StatusRecord
@@ -36,10 +37,14 @@ STATUS_FOR_ARTIFACT: dict[str, str] = {
 }
 CAUSE_DEP_REFUTED = "dep-refuted"  # R8: a dependent of a refuted node, for curator attention
 CAUSE_WITNESS_MISSING = "witness-missing"  # R6: a compiler-derived child with a stub witness
-#: F08-T17 (D-16): a merged circularity claim says the node is no easier than a node above it.
+#: F08-T17 (D-16) made a merged circularity claim the node's ``cause``; F08-T39 (D-12 v3.35)
+#: retired it: no derivation emits this value since ``graph/v6``, the claim being a label
+#: (``NodeFacts.circular``) and never a removal. The name stays for the readers of graphs rendered
+#: by an older pin (the api's claim refusal, the site's key), which may still meet the value.
 CAUSE_CIRCULAR = "circular"
-#: The statuses a circularity claim speaks of: an open node. A settled one is settled whatever it
-#: was no easier than, and a superseded or abandoned one is already off the frontier.
+#: The statuses a circularity claim's *path* mark speaks of (D-12 v3.22): an open node. Once the
+#: claimed hole is settled the route is no longer a route to warn about, and a superseded or
+#: abandoned one is already off the frontier.
 CIRCULAR_OPEN_STATUSES: tuple[str, ...] = ("ready", "blocked", "speculative")
 #: Origins whose nodes are created by the post-merge job with a witness slot, not a witness.
 HOLE_ORIGINS: tuple[str, ...] = ("compiler-derived", "skeleton-hole")
@@ -59,6 +64,11 @@ class GraphError(ValueError):
     """The dependency relation or the target's records are defective (R3)."""
 
 
+#: F08-T27: per target, the footprint of each merge attested before ``attestation/v6``, keyed by
+#: artifact hash and written once by ``opn-gate footprints`` (the same reading step 8 makes).
+FOOTPRINT_CACHE = ".footprint-cache.json"
+
+
 @dataclass(frozen=True)
 class Proof:
     """What an attestation proves: the merge commit and the trust base (F02-R9)."""
@@ -66,6 +76,56 @@ class Proof:
     merge_commit: str
     trust_base: str
     attestation: str  # file name, for the record
+
+
+@dataclass(frozen=True)
+class ProofRecord:
+    """F08-T27: one merged proof of a node — its ``Proof.lean`` or an alternate (D-25 v3.13) —
+    and the nodes its proof term rests on. ``used`` is ``None`` where no record says (an
+    attestation before ``attestation/v6`` with no cache entry): not measured, never empty."""
+
+    kind: str  # "proof" | "alternate"
+    path: str  # relative to the node directory
+    artifact_hash: str
+    attestation: str
+    merge_commit: str
+    submitter: str | None
+    used: tuple[str, ...] | None
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "kind": self.kind,
+            "path": self.path,
+            "artifact_hash": self.artifact_hash,
+            "attestation": self.attestation,
+            "merge_commit": self.merge_commit,
+            "submitter": self.submitter,
+            "used": None if self.used is None else list(self.used),
+        }
+
+
+@dataclass(frozen=True)
+class PartialRecord:
+    """F18-T4: a merged partial of the node, as its attestation names it: the file step 2 took
+    (``partial-submission``) and the holes step 4 found (``artifact-partial``)."""
+
+    path: str  # relative to the node directory
+    holes: tuple[str, ...]
+    attestation: str
+
+
+@dataclass(frozen=True)
+class CircularLabel:
+    """F08-T39 (D-12 v3.35): one merged ``circular-decomposition`` claim as a fact on a node — *a
+    proof of this node is a proof of* ``ancestor`` — naming the claim as ``<hole>/defects/<file>``
+    relative to the target's ``nodes/``, the shape ``graph/v6`` publishes. A label, never a
+    removal: nothing about the node's status, claimability or needs reads it."""
+
+    ancestor: str
+    claim: str
+
+    def as_dict(self) -> dict[str, str]:
+        return {"ancestor": self.ancestor, "claim": self.claim}
 
 
 @dataclass(frozen=True)
@@ -89,14 +149,19 @@ class NodeFacts:
     declared_deps: tuple[str, ...] = ()
     #: A ``stale`` override the gate's own evidence has lifted (see ``stale_lifted``).
     stale_lifted: bool = False
+    #: F08-T32 (D-18 v3.27): a ``disputed`` override whose claim a curator has withdrawn (see
+    #: ``dispute_withdrawn``). The record itself withdrawn is absent already (F08-T31).
+    dispute_withdrawn: bool = False
     #: D-12 v3.19 (F07-R22): the entries of ``deps`` that are this node's own hole children —
     #: written there by the post-merge job when a decomposition merged. The node may draw on
     #: one once it is proved; it never waits on one, so they are set aside when the node's
     #: status is derived (``blocked_because``).
     holes: tuple[str, ...] = ()
-    #: F08-T17 (D-16): the merged ``circular-decomposition`` claim under this node, as
-    #: ``defects/<file>``; the node is no easier than a node above it, so it is not work (R13).
-    circular: str | None = None
+    #: F08-R19: the nodes this node's merged ``Proof.lean`` uses beyond its deps — its use lines,
+    #: which step 8 held to the kernel term when the proof merged. Read from the tree; no record
+    #: is written for a use. No status is derived from them (a used node was proved before its
+    #: user could merge); they are what a revision marks stale and what a closure follows.
+    uses: tuple[str, ...] = ()
     #: F08-T20 (D-12 v3.22): the merged circularity claims that circle back to this node — each
     #: claim's ancestor is this node — as ``<hole>/defects/<file>``, relative to the target's
     #: ``nodes/``. The node stays open and claimable; its page names them.
@@ -104,6 +169,48 @@ class NodeFacts:
     #: F08-T20: every merged circularity claim under this node as ``(defects/<file>, ancestor)``,
     #: the ancestor read through its revision chain (``resolved_circular_claims``).
     circular_claims: tuple[tuple[str, str], ...] = ()
+    #: F08-T20 (D-12 v3.22), F08-T39: the claim ``circular_marks`` assigns a node strictly between
+    #: a claimed hole and its ancestor on an established path, as ``(<hole>/defects/<file>,
+    #: ancestor)``; set by ``with_circular_paths``. ``None`` for every other node.
+    circular_path: tuple[str, str] | None = None
+    #: F08-T27: the node's merged proofs, ``Proof.lean`` first and then its alternates in the
+    #: order their files sort, each with what its term used. Empty for a node with no merged
+    #: proof, and for one whose merged artifact is not a proof (a counterexample, a certificate).
+    proofs: tuple[ProofRecord, ...] = ()
+    #: F18-T4: the node's merged partials, in the order their attestations sort.
+    partials: tuple[PartialRecord, ...] = ()
+    #: F18-R8 (D-14 v3.26): the node this one was proposed for, from its latest
+    #: ``proposed-for/`` record, read through its revision chain as a dep is (D-8 v3.18): a
+    #: pointer at a node later superseded points at its successor, and no record is rewritten.
+    #: A pointer, not a dependency: no status, frontier entry or dep is derived from it.
+    proposed_for: str | None = None
+
+    @property
+    def circular(self) -> tuple[CircularLabel, ...]:
+        """F08-T39 (D-12 v3.35): what ``graph/v6`` publishes as ``circular`` — the node's own
+        merged claims (each a fact about this statement, whatever its status), then the claim a
+        circular path assigns it (``circular_path``, which speaks while the claimed hole is open,
+        v3.22) unless that claim is already named. A claim that names no ancestor (a shape the
+        schema refuses) labels nothing. Empty for every other node."""
+        own = tuple(
+            CircularLabel(ancestor, f"{self.node_id}/{ref}")
+            for ref, ancestor in self.circular_claims
+            if ancestor
+        )
+        if self.circular_path is None:
+            return own
+        named, ancestor = self.circular_path
+        if any(label.claim == named for label in own):
+            return own
+        return (*own, CircularLabel(ancestor, named))
+
+    @property
+    def rests_on(self) -> tuple[str, ...]:
+        """F08-T27: what a closure follows from this node — its first proof's term where the
+        record measured it, else everything it could rest on (its deps and its uses)."""
+        if self.proofs and self.proofs[0].used is not None:
+            return self.proofs[0].used
+        return (*self.deps, *self.uses)
 
 
 @dataclass(frozen=True)
@@ -173,6 +280,125 @@ def proof_for(
     return None
 
 
+def load_footprint_cache(target_dir: Path) -> dict[str, tuple[str, ...]]:
+    """``.footprint-cache.json``: artifact hash -> the nodes that proof's term used, for merges
+    attested before ``attestation/v6``. Absent is empty; a malformed one is a graph defect."""
+    path = target_dir / FOOTPRINT_CACHE
+    if not path.is_file():
+        return {}
+    try:
+        raw = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        msg = f"{path} is not JSON: {exc}"
+        raise GraphError(msg) from exc
+    if not isinstance(raw, dict) or not all(
+        isinstance(v, list) and all(isinstance(x, str) for x in v) for v in raw.values()
+    ):
+        msg = f"{path} must map artifact hashes to lists of node ids"
+        raise GraphError(msg)
+    return {str(k): tuple(sorted(v)) for k, v in raw.items()}
+
+
+def footprint_from(
+    doc: dict[str, Any], cache: dict[str, tuple[str, ...]]
+) -> tuple[str, ...] | None:
+    """F08-T27: the nodes an attested proof's term used — the attestation's own footprint
+    (``attestation/v6``) where it has one, else the cache's entry for its artifact, else
+    ``None``. A v6 record whose footprint is ``null`` was not measured either."""
+    if "footprint" in doc:
+        found = doc.get("footprint")
+        if isinstance(found, dict) and isinstance(found.get("nodes"), list):
+            return tuple(sorted(str(n) for n in found["nodes"]))
+        return None
+    artifact = doc.get("artifact_hash")
+    return cache.get(str(artifact)) if artifact else None
+
+
+def proofs_of(  # noqa: PLR0913 — one argument per fact the record is matched on
+    node_dir: Path,
+    node_id: str,
+    statement_hash: str,
+    proof: Proof | None,
+    *,
+    attestations: list[tuple[str, dict[str, Any]]],
+    cache: dict[str, tuple[str, ...]],
+) -> tuple[ProofRecord, ...]:
+    """F08-T27: the node's merged proofs with their footprints. ``Proof.lean``'s record is the
+    attestation ``proof_for`` chose; an alternate's is the merged passing attestation for this
+    statement whose ``artifact_hash`` is the alternate file's (F07-R15)."""
+    by_name = dict(attestations)
+    out: list[ProofRecord] = []
+    proof_file = node_dir / "Proof.lean"
+    if proof is not None and proof_file.is_file() and proof.attestation in by_name:
+        doc = by_name[proof.attestation]
+        out.append(
+            ProofRecord(
+                kind="proof",
+                path="Proof.lean",
+                artifact_hash=schemas.content_hash(proof_file.read_bytes()),
+                attestation=proof.attestation,
+                merge_commit=proof.merge_commit,
+                submitter=_optional_str(doc.get("submitter")),
+                used=footprint_from(doc, cache),
+            )
+        )
+    attempts = node_dir / "attempts"
+    alternates = sorted(attempts.glob(f"*{paths.ALTERNATE_SUFFIX}")) if attempts.is_dir() else []
+    for alt in (p for p in alternates if p.is_file()):
+        digest = schemas.content_hash(alt.read_bytes())
+        for name, doc in attestations:
+            if (
+                doc.get("node_id") == node_id
+                and doc.get("statement_hash") == statement_hash
+                and doc.get("verdict") == "pass"
+                and doc.get("merge_commit")
+                and doc.get("artifact_hash") == digest
+            ):
+                out.append(
+                    ProofRecord(
+                        kind="alternate",
+                        path=f"attempts/{alt.name}",
+                        artifact_hash=digest,
+                        attestation=name,
+                        merge_commit=str(doc["merge_commit"]),
+                        submitter=_optional_str(doc.get("submitter")),
+                        used=footprint_from(doc, cache),
+                    )
+                )
+                break
+    return tuple(out)
+
+
+def partials_of(
+    node_id: str, statement_hash: str, attestations: list[tuple[str, dict[str, Any]]]
+) -> tuple[PartialRecord, ...]:
+    """F18-T4: each merged partial of the node — a passing, merged attestation for its current
+    statement whose step 2 took a partial — with the holes its step 4 reported."""
+    out: list[PartialRecord] = []
+    for name, doc in attestations:
+        if not (
+            doc.get("node_id") == node_id
+            and doc.get("statement_hash") == statement_hash
+            and doc.get("verdict") == "pass"
+            and doc.get("merge_commit")
+        ):
+            continue
+        path: str | None = None
+        holes: tuple[str, ...] = ()
+        for step in doc.get("steps") or []:
+            d = step.get("diagnostic") if isinstance(step, dict) else None
+            if not isinstance(d, dict) or not isinstance(d.get("details"), dict):
+                continue
+            details = d["details"]
+            if d.get("code") == "partial-submission" and isinstance(details.get("path"), str):
+                path = details["path"]
+            if details.get("kind") == "partial" and isinstance(details.get("holes"), list):
+                holes = tuple(str(h) for h in details["holes"])
+        if path is not None:
+            out.append(PartialRecord(path=path, holes=holes, attestation=name))
+    return tuple(out)
+
+
 def recorded_hashes(node_dir: Path) -> tuple[str | None, frozenset[str]]:
     """The content hash of the node's ``Proof.lean`` (``None`` without one) and of each alternate
     under ``attempts/`` (D-25 v3.13): what ``proof_for`` tells the node's proof from them by."""
@@ -240,6 +466,7 @@ def load_nodes(
     graph_root: Path, target_id: str, attestations: list[tuple[str, dict[str, Any]]]
 ) -> dict[str, NodeFacts]:
     nodes_dir = layout.graph_nodes_dir(graph_root, target_id)
+    footprints = load_footprint_cache(nodes_dir.parent)
     facts: dict[str, NodeFacts] = {}
     for node_dir in sorted(p for p in nodes_dir.iterdir() if p.is_dir()):
         loaded = layout.load_node(node_dir, target_id)
@@ -253,6 +480,14 @@ def load_nodes(
         hashes = recorded_hashes(node_dir)
         override = records.load_node_status(node_dir)
         claims = resolved_circular_claims(nodes_dir, node_dir)
+        proof = proof_for(
+            loaded.node_id,
+            statement_hash,
+            attestations,
+            proof_hash=hashes[0],
+            alternate_hashes=hashes[1],
+        )
+        artifact = artifact_of(node_dir, loaded.statement.decl_name)
         facts[loaded.node_id] = NodeFacts(
             node_id=loaded.node_id,
             target_id=target_id,
@@ -267,22 +502,31 @@ def load_nodes(
                     graph_root, override.path, loaded.node_id, statement_hash, attestations
                 )
             ),
+            dispute_withdrawn=dispute_withdrawn(nodes_dir, loaded.node_id, override),
             origin=origin,
             tutorial=bool(loaded.meta.get("tutorial", False)),
             relation=relation_of(node_dir, origin),
-            proof=proof_for(
-                loaded.node_id,
-                statement_hash,
-                attestations,
-                proof_hash=hashes[0],
-                alternate_hashes=hashes[1],
-            ),
+            proof=proof,
             override=override,
-            artifact=artifact_of(node_dir, loaded.statement.decl_name),
+            artifact=artifact,
             witness_stub=witness_is_stub(node_dir),
             supersedes=_optional_str(loaded.meta.get("supersedes")),
-            circular=claims[0][0] if claims else None,
+            uses=layout.merged_uses(node_dir),
+            proposed_for=proposed_for_of(nodes_dir, node_dir),
             circular_claims=claims,
+            partials=partials_of(loaded.node_id, statement_hash, attestations),
+            proofs=(
+                proofs_of(
+                    node_dir,
+                    loaded.node_id,
+                    statement_hash,
+                    proof,
+                    attestations=attestations,
+                    cache=footprints,
+                )
+                if artifact == "proof"
+                else ()
+            ),
         )
     # D-12 v3.19: which of a node's deps are its own holes is a fact about two nodes, so it is
     # read once every node is loaded; a dep that is not a node is left for ``check_dag``.
@@ -293,6 +537,17 @@ def load_nodes(
         if holes:
             facts[node_id] = replace(node, holes=holes)
     return facts
+
+
+def proposed_for_of(nodes_dir: Path, node_dir: Path) -> str | None:
+    """F18-R8: the node ``node_dir``'s latest ``proposed-for/`` record names, as it is *now* —
+    the end of that node's revision chain (``current_id``), so a pointer written before its node
+    was revised shows the revision, the way a dependency does (D-8 v3.18). ``None`` without a
+    valid record."""
+    doc = proposed_for.latest(node_dir)
+    if doc is None:
+        return None
+    return current_id(nodes_dir, str(doc["for"]))
 
 
 def is_hole_of(parent: str, node_id: str, origin: str) -> bool:
@@ -387,7 +642,8 @@ def derive_statuses(nodes: dict[str, NodeFacts]) -> dict[str, str]:
     because only a proof discharges the obligation a dependent inherited. Two records yield to
     the tree's own evidence rather than override it: ``stale`` on a node the gate has re-run
     (``stale_is_void``) and ``speculative`` on a node an artifact has settled
-    (``speculative_is_void``, R14).
+    (``speculative_is_void``, R14). A third yields to the record: ``disputed`` once the claim it
+    rests on is withdrawn (``disputed_is_void``, F08-T32).
     """
     check_dag(nodes)
     statuses: dict[str, str] = {}
@@ -396,7 +652,9 @@ def derive_statuses(nodes: dict[str, NodeFacts]) -> dict[str, str]:
         if node_id in statuses:
             return statuses[node_id]
         node = nodes[node_id]
-        if node.override is not None and not stale_is_void(node) and not speculative_is_void(node):
+        if node.override is not None and not any(
+            void(node) for void in (stale_is_void, speculative_is_void, disputed_is_void)
+        ):
             result = node.override.status
         elif node.proof is not None and node.artifact in STATUS_FOR_ARTIFACT:
             # F03-Q7 (2026-09-12): settled only by an artifact that is *in the tree* — a
@@ -450,6 +708,42 @@ def stale_is_void(node: NodeFacts) -> bool:
     if node.override is None or node.override.status != "stale":
         return False
     return not settled(node) or node.stale_lifted
+
+
+def disputed_is_void(node: NodeFacts) -> bool:
+    """F08-T32 (D-18 v3.27): when a ``disputed`` record does not decide the status.
+
+    ``disputed`` says a claim against the node was accepted for adjudication, and names the claim
+    in its ``reference``. Once a listed curator has withdrawn that claim (F08-T31) the record
+    rests on nothing, and the status is derived again from the tree — the shape of
+    :func:`stale_is_void`. A withdrawn ``disputed`` record is absent already, so this covers the
+    claim. An upheld dispute ends in D-8's revision, as before; no record is written to lift
+    one, and no date is compared."""
+    if node.override is None or node.override.status != "disputed":
+        return False
+    return node.dispute_withdrawn
+
+
+#: How a ``disputed`` record's ``reference`` names a claim: ``defects/<file>`` of its own node, or
+#: the claim's path from the graph root.
+CLAIM_REF_RE = re.compile(
+    r"^(?:targets/(?P<target>[^/]+)/nodes/(?P<node>[^/]+)/)?defects/(?P<name>[^/]+\.ya?ml)$"
+)
+
+
+def dispute_withdrawn(nodes_dir: Path, node_id: str, override: StatusRecord | None) -> bool:
+    """Whether ``override`` is a ``disputed`` record whose ``reference`` names a defect claim a
+    merged withdrawal names (F08-T32). A reference that names no claim on this target — a free
+    dispute id, another target's path — is never withdrawn, so the record stands."""
+    if override is None or override.status != "disputed":
+        return False
+    m = CLAIM_REF_RE.match(str(override.doc.get("reference") or ""))
+    if m is None:
+        return False
+    if m.group("target") is not None and m.group("target") != nodes_dir.parent.name:
+        return False
+    holder = m.group("node") or node_id
+    return f"{records.DEFECTS_DIR}/{m.group('name')}" in records.withdrawn(nodes_dir / holder)
 
 
 def _git(graph_root: Path, *args: str) -> subprocess.CompletedProcess[str]:
@@ -538,21 +832,19 @@ def derive_causes(nodes: dict[str, NodeFacts], statuses: dict[str, str]) -> dict
     ``dep-refuted`` is the one the curator has to see: a node under a refuted one can never be
     proved as it stands, and nothing else in the products would say so.
     """
-    causes: dict[str, str | None] = {}
-    for node_id in sorted(nodes):
-        if is_circular(nodes[node_id], statuses[node_id]):
-            causes[node_id] = CAUSE_CIRCULAR  # F08-T17: the one reason it is not work
-            continue
-        _, cause = blocked_because(nodes[node_id], lambda n: statuses.get(n, "ready"))
-        causes[node_id] = cause if statuses[node_id] == "blocked" else None
-    return causes
+    return {
+        node_id: cause_of(nodes[node_id], statuses[node_id], lambda n: statuses.get(n, "ready"))
+        for node_id in sorted(nodes)
+    }
 
 
-def is_circular(node: NodeFacts, status: str) -> bool:
-    """F08-T17 (D-16): an open node under a merged circularity claim. Its status is untouched —
-    the statement did not change (D-3) and a proof of it is still a proof — but it is no easier
-    than a node above it, so the products do not offer it as work."""
-    return node.circular is not None and status in CIRCULAR_OPEN_STATUSES
+def cause_of(node: NodeFacts, status: str, status_of: Callable[[str], str]) -> str | None:
+    """One node's cause, as :func:`derive_causes` publishes it in ``graph.json`` and the frontier
+    entry repeats it (F03-T16): the mechanical reason a ``blocked`` node is blocked, else
+    ``None``. A merged circularity claim is not a cause (F08-T39, D-12 v3.35): it is the label
+    ``NodeFacts.circular`` carries, and F08-T17's ``circular`` is never emitted."""
+    _, cause = blocked_because(node, status_of)
+    return cause if status == "blocked" else None
 
 
 def resolved_circular_claims(nodes_dir: Path, node_dir: Path) -> tuple[tuple[str, str], ...]:
@@ -592,10 +884,14 @@ def circular_marks(
 
     ``claims`` maps a hole to its claims, each ``(defects/<file>, ancestor)`` with the ancestor
     already read through its revision chain. A claim speaks while its hole is open
-    (``CIRCULAR_OPEN_STATUSES``). The ancestor implies the hole; the hole, with every sibling on
-    the way proved, implies each node back up the path — so every open node *strictly between*
-    the two, on a path of :func:`circular_path_edge` edges, is the ancestor restated, and is no
-    more work than the ancestor is. The ancestor itself stays open: it is the problem.
+    (``CIRCULAR_OPEN_STATUSES``). The hole implies the ancestor (the exhibit, F08-T21); with
+    every sibling on the way proved, each node up the path implies its parent and so the ancestor
+    too — so every open node *strictly between* the two, on a path of :func:`circular_path_edge`
+    edges, is the ancestor restated by the claim's own measure: a proof of it would be a proof of
+    the ancestor. The ancestor itself is not marked: it is the problem.
+
+    F08-T39 (D-12 v3.35): a mark is a published fact and no longer a removal — the products carry
+    it as the node's ``circular`` label and the node stays on the frontier on its status alone.
 
     Returns ``(on_path, below)``: each such node mapped to the first claim (by hole, then file)
     that takes it, and each ancestor mapped to every claim that circles back to it. A claim is
@@ -648,20 +944,25 @@ def circular_marks(
 def with_circular_paths(
     nodes: dict[str, NodeFacts], statuses: Mapping[str, str]
 ) -> dict[str, NodeFacts]:
-    """``circular_marks`` over the loaded facts: a node on a circular path gets the claim as its
-    ``circular`` (unless a claim of its own already sits under it), an ancestor its
-    ``circular_below``. Statuses are not touched, and do not depend on either field."""
+    """``circular_marks`` over the loaded facts: a node on a circular path gets the claim that
+    takes it, with its ancestor, as ``circular_path``; an ancestor gets its ``circular_below``.
+    Statuses are not touched, and do not depend on either field (F08-T39: neither does the
+    frontier)."""
+    claims = {n: f.circular_claims for n, f in nodes.items() if f.circular_claims}
     on_path, below = circular_marks(
         {n: f.holes for n, f in nodes.items()},
         {n: f.deps for n, f in nodes.items()},
-        {n: f.circular_claims for n, f in nodes.items() if f.circular_claims},
+        claims,
         statuses,
     )
     out = dict(nodes)
     for node_id, node in nodes.items():
         changes: dict[str, Any] = {}
-        if node.circular is None and node_id in on_path:
-            changes["circular"] = on_path[node_id]
+        if node_id in on_path:
+            named = on_path[node_id]
+            hole, _, ref = named.partition("/")
+            ancestor = next(a for r, a in claims[hole] if r == ref)
+            changes["circular_path"] = (named, ancestor)
         if node_id in below:
             changes["circular_below"] = below[node_id]
         if changes:
@@ -747,21 +1048,44 @@ def current_id(nodes_dir: Path, node_id: str) -> str:
     survivor says nothing and is followed as before. An unsound step is not followed and is
     logged by name; the walk stops at the last node soundly reached, because one bad record
     must never decide whether a target has products (2026-09-17)."""
-    chain = [node_id]
-    while True:
-        here = nodes_dir / chain[-1]
+
+    def successor_of(current: str) -> str | None:
+        here = nodes_dir / current
         record = records.load_node_status(here) if here.is_dir() else None
         if record is None or record.status != "superseded":
-            return chain[-1]
-        successor = str(record.doc.get("reference") or "")
+            return None
+        return str(record.doc.get("reference") or "") or None
+
+    return follow_revisions(
+        node_id,
+        successor_of=successor_of,
+        is_node=lambda n: (nodes_dir / n).is_dir(),
+        supersedes_of=lambda n: _supersedes_of(nodes_dir / n),
+    )
+
+
+def follow_revisions(
+    node_id: str,
+    *,
+    successor_of: Callable[[str], str | None],
+    is_node: Callable[[str], bool],
+    supersedes_of: Callable[[str], str | None],
+) -> str:
+    """:func:`current_id`'s walk over three facts about a node — the successor its latest
+    ``superseded`` record names, whether a name is a node of the target, and what a node's own
+    record says it supersedes — so a reader that is not a directory (the bundle's host reader,
+    F08-T22) follows the same chain by the same soundness rules."""
+    chain = [node_id]
+    while True:
+        successor = successor_of(chain[-1])
         if not successor:
             return chain[-1]
-        if not (nodes_dir / successor).is_dir():
+        if not is_node(successor):
             problem = "which is not a node of this target"
         elif successor in chain:
             problem = "which loops"
         else:
-            named = _supersedes_of(nodes_dir / successor)
+            named = supersedes_of(successor)
             problem = (
                 f"whose own record says it supersedes {named}"
                 if named is not None and named != chain[-1]

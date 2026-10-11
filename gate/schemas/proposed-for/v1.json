@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openproof.network/schemas/proposed-for/v1.json",
+  "title": "proposed-for/v1",
+  "description": "nodes/<id>/proposed-for/<timestamp>-<pseudonym>.yaml (F18-R8; D-14 v3.26, D-3): which other node of the same target a statement was proposed for, written by the node's proposer or a listed curator. Append-only; the latest by file name is the one shown. A pointer, not a dependency: no status, frontier entry or dependency is derived from it. Versioned, never edited (D-34).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "for",
+    "author",
+    "date"
+  ],
+  "properties": {
+    "schema": {
+      "const": "proposed-for/v1"
+    },
+    "for": {
+      "description": "The node of the same target this statement was proposed for: a live node, never the record's own.",
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]*$"
+    },
+    "author": {
+      "description": "The pseudonym that wrote the record: the node's proposer (META.yaml provenance.author) or a listed curator.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100
+    },
+    "date": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+    },
+    "note": {
+      "description": "Why, in the author's words; contributor free text, untrusted downstream.",
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        }
+      ]
+    }
+  }
+}

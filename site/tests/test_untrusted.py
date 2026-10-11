@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import dataclasses
 import json
+import re
 from html.parser import HTMLParser
 from pathlib import Path
 from typing import Any
@@ -155,7 +156,12 @@ def test_acknowledgment_fields_are_escaped(tmp_path: Path) -> None:
     assert "<b>loc</b>" not in page and "&lt;b&gt;loc&lt;/b&gt;" in page
     assert f"<code>{ESCAPED}</code>" in page
     assert f"<p>because {ESCAPED}</p>" in page
-    assert '<div class="prose-block untrusted"><p class="label">Untrusted: acknowledgment' in page
+    # F19-R11: the block opens with its provenance line, then the label it always had.
+    assert re.search(
+        r'<div class="prose-block untrusted" data-block="acknowledgment">'
+        r'<p class="block-label"[^>]*>.*?</p><p class="label">Untrusted: acknowledgment',
+        page,
+    )
 
 
 def test_attestation_reviewer_and_review_kind_are_escaped(tmp_path: Path) -> None:

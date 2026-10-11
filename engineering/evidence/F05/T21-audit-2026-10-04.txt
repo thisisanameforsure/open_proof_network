@@ -1,0 +1,69 @@
+F05-T21 — the founder can revoke tokens (audit 2026-10-04)
+==========================================================
+
+Finding: F05 §7 promises "Tokens can be revoked by the founder via a CLI against the store", and
+both verifiers already refuse a TokenRecord marked revoked (auth.authenticate: 401
+invalid-token; mcp.auth.StoreTokenVerifier: None) — but nothing wrote the mark. A leaked or
+abused token could only be stopped by rotating OPN_API_TOKEN_SECRET, which logs out everyone.
+
+Fix:
+- Store.get_identity_by_pseudonym(pseudonym): MemoryStore scans its identities case-insensitively;
+  DynamoStore reads the `pseudonym#<lower>` uniqueness marker put_identity already writes (R4),
+  then the identity.
+- Store.revoke_tokens(identity_id) -> how many were newly revoked. MemoryStore replaces the
+  records. DynamoStore has no index by identity (three tables, R12), so it scans the tokens table
+  with FilterExpression `begins_with(#k, :prefix) AND identity_id = :id` (prefix `token#`),
+  following LastEvaluatedKey, and marks each match with `SET revoked = :yes`.
+- api/tools/tokens.py: `revoke --pseudonym X`. Settings from the environment only
+  (config.load(): OPN_API_STORE=dynamodb and the three OPN_API_TABLE_* names; AWS credentials as
+  boto3 finds them). Refuses a memory store (exit 2), names an unknown pseudonym (exit 1). Reads
+  no secret: tokens are found by identity, not by hash.
+- FakeTable (test_store_seam.py) learned the filter (applied per page, as DynamoDB does) and the
+  one SET expression, and its scan no longer mistakes any keyword argument for a start key.
+
+Not done, as instructed (they await the owner): token expiry, reserved pseudonyms, account-age
+rules.
+
+Operational note: the CLI's scan needs dynamodb:Scan and dynamodb:UpdateItem on the tokens
+table from the founder's credentials; the Lambda's role is unchanged (it never revokes). The scan
+reads the whole tokens table (counters, jobs, submissions, checks share it), which is fine for a
+rare founder act and would want an index if it ever became a route.
+
+Proposed ledger line (F05 §10 Tasks):
+  · T21 ✓ 2026-10-04 (audit; §7's revocation CLI; seam added at today's behaviour (a no-op)
+  first, red 4 failed on the defect (0 revoked, the token still writing), green 7 on both stores
+  plus two store-seam tests; api fast tier 1277 passed;
+  engineering/evidence/F05/T21-audit-2026-10-04.txt)
+
+Proposed Q entry (F05-Q21, renumber at merge):
+  F05-Q21 — Revocation is per identity, by pseudonym, from the founder's machine (T21, audit
+  2026-10-04). §7 promised a founder's CLI and both verifiers honoured TokenRecord.revoked, but
+  nothing set it. api/tools/tokens.py revoke --pseudonym <name> marks every token of that
+  identity revoked in the tokens table; the next request on either path is 401 invalid-token. It
+  revokes credentials only: the identity, its pseudonym, its claims and its pull requests stand,
+  and it can still mint a new token through the GitHub flow subject to tokens_per_login (R4) —
+  barring that is an identity-level decision this does not make. Per-token revocation and expiry
+  are not built; expiry, reserved pseudonyms and account-age rules await the owner.
+
+Red (after the seam, before the fix):
+E       AssertionError: assert 'revoked 1 token(s) of alice' in 'revoked 0 token(s) of alice (01M230M2G07ZWFGT25H6VDXWVQ)\n'
+E        +  where 'revoked 0 token(s) of alice (01M230M2G07ZWFGT25H6VDXWVQ)\n' = CaptureResult(out='revoked 0 token(s) of alice (01M230M2G07ZWFGT25H6VDXWVQ)\n', err='').out
+E        +    where CaptureResult(out='revoked 0 token(s) of alice (01M230M2G07ZWFGT25H6VDXWVQ)\n', err='') = readouterr()
+E       AssertionError: assert 'revoked 1 token(s) of alice' in 'revoked 0 token(s) of alice (01M230M2G0VP215W87MRSCYRNJ)\n'
+E        +  where 'revoked 0 token(s) of alice (01M230M2G0VP215W87MRSCYRNJ)\n' = CaptureResult(out='revoked 0 token(s) of alice (01M230M2G0VP215W87MRSCYRNJ)\n', err='').out
+E        +    where CaptureResult(out='revoked 0 token(s) of alice (01M230M2G0VP215W87MRSCYRNJ)\n', err='') = readouterr()
+E       assert 0 == 1
+E       assert 0 == 1
+FAILED api/tests/test_finding_token_revoke.py::test_a_revoked_token_is_refused_on_both_paths[memory]
+FAILED api/tests/test_finding_token_revoke.py::test_a_revoked_token_is_refused_on_both_paths[dynamodb]
+FAILED api/tests/test_finding_token_revoke.py::test_revoking_again_revokes_nothing_new[memory]
+FAILED api/tests/test_finding_token_revoke.py::test_revoking_again_revokes_nothing_new[dynamodb]
+4 failed, 3 passed, 2 warnings in 0.56s
+
+Green (after the fix):
+7 passed, 2 warnings in 0.74s
+
+api fast tier (api/tests, not lean/docker/network), including the two new store-seam tests:
+1277 passed, 2 warnings in 51.31s
+
+ruff format/check and mypy --strict clean on store.py, test_store_seam.py, tools/tokens.py and the new test.

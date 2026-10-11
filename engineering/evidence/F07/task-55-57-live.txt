@@ -1,0 +1,38 @@
+# F07-T55-T57 live, 2026-10-03: the owner's go-ahead ("you can do 1,2,3,4 and validate")
+#
+# 1. graph PR #321 (F07-T46, a draft) marked ready and merged: 719a59ca. Its push run: "touched no target;
+#    nothing to record". Graph PR #322, a second draft of T46 with another design, left open and untouched.
+# 2. network main pushed: 377a33d..186e1ad (F07-T55, T56, T57, docs, second reading).
+# 3. graph PR #361 (branch f07-t55-queue) merged: 6291385e. GitHub parsed both workflows: the new `cache` job
+#    showed on the pull request's run (skipped), and the merge actor's runs since are named
+#    "merge what the ruleset allows, one lane per target" and end "merge actor: nothing to do" (no service
+#    pull request open). 4. The sibling graph checkout fast-forwarded 65b748fa -> 6291385e (then 7f207c7f).
+#
+# Found live and fixed: #361's post-merge run replayed #321 ("replay=321"; the replay: "touched no target;
+# nothing to record"). A merge that touches no target never gets a gate commit, so every later plan found it
+# unrecorded. Red: test_a_merge_that_touched_no_target_is_not_replayed ({'replay': '2'}); fix merged as graph
+# PR #362 (7f207c7f); its own push run, with #321 and #361 both still uncredited behind it, read "replay=" and
+# dispatched nothing.
+#
+# The lane code against the live host (read-only; the shipped pick.py functions, gh as the owner):
+#   hypothetical pull requests based at real tips of main, staleness per lane:
+#   base = main~2  (gate: #360 pass): 2 commits since; erdos-402:2 erdos-69:2 erdos-1050:2 tutorial:2 no-lane:2
+#   base = main~6  (gate: #358 pass): 6 commits since; erdos-402:6 erdos-69:2 erdos-1050:2 tutorial:2 no-lane:6
+#   base = main~12 (gate: #355 pass): 12 commits since; erdos-402:10 erdos-69:2 erdos-1050:2 tutorial:2 no-lane:10
+#   base = main~25 (#348's merge):    25 commits since; erdos-402:23 erdos-69:2 erdos-1050:2 tutorial:2 no-lane:23
+#   base = main~39 (#341's merge):    39 commits since; erdos-402:32 erdos-69:4 erdos-1050:2 tutorial:2 no-lane:34
+#   (the 2 every lane counts are #321 and #361, workflow changes: shared inputs, as the rule says)
+#   59 host calls, 39 commits read; every commit's host file list equal to git's first-parent diff: 0 mismatches.
+#   The lanes of the last eleven merged service pull requests (#350-#360): all one target, erdos-402.
+#
+# The catch-up against a scratch copy of the live graph (6291385e), with the real step scripts from main's
+# gate.yml and the real pinned gate (network 3422bb40) rendering; nothing pushed to the host, gh a stub:
+#   #90001 (an annex on erdos-69) merged; its run renders. #90002 (an annex on erdos-1050) merges and its own
+#   run commits first: "postmerge: publish pushed", main = gate: #90002 pass.
+#   #90001's commit step: "postmerge: main moved (attempt 1); caught up on 298229252470", "postmerge: publish
+#   pushed"; main = gate: #90001 pass, gate: #90002 pass, #90002's merge, #90001's merge. No replay dispatched.
+#   A fresh render of main's tree at its parent by the real gate: exit 0, 0 lines of diff; graph.json
+#   rendered_from = #90002's gate commit.
+#
+# Not seen live yet, because no contribution has merged since: a refused push catching up on the host, a
+# run acting in two lanes, and the cache job on a building merge. The first contribution after this shows them.

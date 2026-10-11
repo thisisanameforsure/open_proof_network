@@ -1,0 +1,54 @@
+F08-T25 — red run, 2026-10-02, on commit 7086047 (F08-T24) with the tests of this task and no fix.
+No seam was needed: every name the tests use exists at T24; each failure is the behaviour.
+
+## fast tier (toolchain faked)
+$ uv run --frozen pytest gate/tests/test_uses_carried.py -q -p no:cacheprovider -rf --tb=line
+E   AssertionError: assert 'statement_meaning:Nodes.«and-swap-reassoc».Proof:OpnProp.and_swap_reassoc' in ['resolve:leanprover/lean4:v4.33.1:install=False', 'elaborate:Defs.Extra', 'elaborate:Nodes.«tutorial-and-swap».Contex...:Nodes.«tutorial-and-swap».Proof', 'elaborate:Nodes.«and-reassoc».Context', 'elaborate:Nodes.«and-reassoc».Proof', ...]
+/home/claude/opn-wt-imp/gate/tests/test_uses_carried.py:58: AssertionError: assert 'statement_meaning:Nodes.«and-swap-reassoc».Proof:OpnProp.and_swap_reassoc' in ['resolve:leanprover/lean4:v4.33.1:install=False', 'elaborate:Defs.Extra', 'elaborate:Nodes.«tutorial-and-swap».Contex...:Nodes.«tutorial-and-swap».Proof', 'elaborate:Nodes.«and-reassoc».Context', 'elaborate:Nodes.«and-reassoc».Proof', ..
+E   AssertionError: {'verdict': 'pass', 'first_failing_step': None, 'diagnostic': None, 'steps': [{'step': 1, 'name': 'toolchain', 'result...ds', 'result': 'pass', 'diagnostic': None}, {'step': 7, 'name': 'witness', 'result': 'pass', 'diagnostic': None}, ...]}
+/home/claude/opn-wt-imp/gate/tests/test_uses_carried.py:83: AssertionError: {'verdict': 'pass', 'first_failing_step': None, 'diagnostic': None, 'steps': [{'step': 1, 'name': 'toolchain', 'result...ds', 'result': 'pass', 'diagnostic': None}, {'step': 7, 'name': 'witness', 'result': 'pass', 'diagnostic': None}, ...]}
+E   AssertionError: assert 'statement_meaning:Nodes.«and-swap-reassoc».Proof:OpnProp.and_swap_reassoc' in ['resolve:leanprover/lean4:v4.33.1:install=False', 'elaborate:Defs.Extra', 'elaborate:Nodes.«tutorial-and-swap».Context', 'elaborate:Nodes.«tutorial-and-swap».Proof', 'elaborate:Nodes.«lemma».Context', 'elaborate:Nodes.«lemma».Proof', ...]
+/home/claude/opn-wt-imp/gate/tests/test_uses_carried.py:112: AssertionError: assert 'statement_meaning:Nodes.«and-swap-reassoc».Proof:OpnProp.and_swap_reassoc' in ['resolve:leanprover/lean4:v4.33.1:install=False', 'elaborate:Defs.Extra', 'elaborate:Nodes.«tutorial-and-swap».Context', 'elaborate:Nodes.«tutorial-and-swap».Proof', 'elaborate:Nodes.«lemma».Context', 'elaborate:Nodes.«lemma».Proof', ..
+E   AssertionError: assert None == {'and-reassoc': ['Defs.Extra']}
+/home/claude/opn-wt-imp/gate/tests/test_uses_carried.py:132: AssertionError: assert None == {'and-reassoc': ['Defs.Extra']}
+FAILED gate/tests/test_uses_carried.py::test_a_dependencys_use_line_brings_the_guard_to_a_proof_that_declares_none
+FAILED gate/tests/test_uses_carried.py::test_a_meaning_changed_by_a_dependencys_use_fails_step_4_and_names_the_carrier
+FAILED gate/tests/test_uses_carried.py::test_a_use_two_proofs_down_is_carried_as_well
+FAILED gate/tests/test_uses_carried.py::test_a_declared_use_and_a_carried_one_are_both_recorded
+4 failed, 2 passed in 0.37s
+The four failures are the defect: no statement module is built and nothing is compared for a
+proof that declares nothing itself, whatever the proofs beneath it declared. The two that pass
+pin what the fix must not change (no use line in the closure: nothing is asked).
+
+## lean tier (leanprover/lean4:v4.33.1), --runxfail so the held defect is seen as it is
+$ uv run --frozen pytest -m lean gate/tests/test_uses_carried_lean.py \
+    "gate/tests/test_uses_defs_lean.py::test_a_dependencys_proof_module_cannot_change_the_statement_of_an_artifact_with_uses" \
+    "gate/tests/test_uses_defs_lean.py::test_a_dependencys_proof_module_cannot_change_the_statement_of_any_artifact" \
+    -v -p no:cacheprovider -rf --tb=line --runxfail
+gate/tests/test_uses_carried_lean.py::test_the_carriers_own_proof_is_an_honest_merge PASSED
+gate/tests/test_uses_carried_lean.py::test_a_dependencys_declared_definition_cannot_change_a_dependents_statement FAILED
+gate/tests/test_uses_carried_lean.py::test_without_the_guard_the_dependent_proves_a_false_statement PASSED
+gate/tests/test_uses_defs_lean.py::test_a_dependencys_proof_module_cannot_change_the_statement_of_an_artifact_with_uses PASSED
+gate/tests/test_uses_defs_lean.py::test_a_dependencys_proof_module_cannot_change_the_statement_of_any_artifact FAILED
+/home/claude/opn-wt-imp/gate/tests/test_uses_carried_lean.py:98: AssertionError: {'verdict': 'pass', 'first_failing_step': None, 'diagnostic': None, 'steps': [{'step': 1, 'name': 'toolchain', 'result': 'pass', 'diagnostic': None}, {'step': 2, 'name': 'paths', 'result': 'pass', 'diagnostic': None}, {'step': 4, 'name': 'kernel-replay', 'result': 'pass', 'diagnostic': None}, {'step': 5, 'name': 'axioms', 'result': 'pass', 'diagnostic': None}, {'step': 6, 'name': 'hazards', 'result': 'pass', 'diagnostic': None}, {'step': 7, 'name': 'witness', 'result': 'pass', 'diagnostic': None}, ...]}
+/home/claude/opn-wt-imp/gate/tests/test_uses_defs_lean.py:379: AssertionError: {'verdict': 'pass', 'first_failing_step': None, 'diagnostic': None, 'steps': [{'step': 1, 'name': 'toolchain', 'result': 'pass', 'diagnostic': None}, {'step': 2, 'name': 'paths', 'result': 'pass', 'diagnostic': None}, {'step': 4, 'name': 'kernel-replay', 'result': 'pass', 'diagnostic': None}, {'step': 5, 'name': 'axioms', 'result': 'pass', 'diagnostic': None}, {'step': 6, 'name': 'hazards', 'result': 'pass', 'diagnostic': None}, {'step': 7, 'name': 'witness', 'result': 'pass', 'diagnostic': None}, ...]}
+FAILED gate/tests/test_uses_carried_lean.py::test_a_dependencys_declared_definition_cannot_change_a_dependents_statement
+FAILED gate/tests/test_uses_defs_lean.py::test_a_dependencys_proof_module_cannot_change_the_statement_of_any_artifact
+=================== 2 failed, 3 passed in 265.72s (0:04:25) ====================
+
+Reading it. test_the_carriers_own_proof_is_an_honest_merge passes: `carrier` (True), proved under
+`import Defs.Trap`, is a merge nothing can refuse. The next line is the defect on the real
+toolchain: `size-is-zero-dep` says ∀ n, Opn.Size.size n = 0, which is false as its own header
+reads it (the instance of Defs.Base is the identity); it depends on `carrier`; its "proof" has the
+statement's header exactly and no use line; and the gate at T24 answers 'verdict': 'pass' with
+steps 1, 2, 4, 5, 6, 7, 8 all passing. The "without the guard" twin passes for the same reason:
+at T24 the guard is not consulted for this artifact at all.
+
+The last line is F08-Q36's older defect (a command after a proof's body), run without its xfail
+mark. It fails on the verdict now. Before this task its strict xfail was failing on a fixture
+error instead: the first red run of this task's lean file, taken before the helpers were changed,
+ended
+  E   opn_gate.scaffold.ScaffoldError: size-is-zero-dep already exists; a statement is never edited in place (D-3, D-8)
+because with_carrier wrote the dependent's statement into the module global STATEMENTS, which
+the next test's context() then scaffolded before with_carrier tried to. A strict xfail that fails
+on its fixture holds nothing; the helpers read the tree now (test_uses_defs_lean.submit).

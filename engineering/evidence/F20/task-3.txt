@@ -1,0 +1,30 @@
+F20-T3 verification: uv run pytest gate/tests/test_explainer_schema.py
+Red run (explainer/v1 front matter unread): test_anchors_are_checked_against_the_outline failed on
+  assert check(root, unknown_step) == ["explainer-step-unknown"] -> [] == ["explainer-step-unknown"]
+  (and the partial-assembly test on ["explainer-unproved"] == [], the body tests on [] == ["explainer-invalid"])
+The two T5 tests are strict xfails until F20-T5 lands.
+Contract note: outline/v1's step-id pattern refuses "s2.1" (each dotted component must open with a
+letter) while its description and F20-Q2 write "s3.1"/"s4.1"; the fixture uses "s2.c1".
+Green run:
+
+============================= test session starts ==============================
+platform darwin -- Python 3.13.5, pytest-9.1.1, pluggy-1.6.0 -- /Users/mikehiggins/Desktop/repos/open_proof_network/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /Users/mikehiggins/Desktop/repos/open_proof_network/.claude/worktrees/agent-aba4293b49640e7d1
+configfile: pyproject.toml
+plugins: anyio-4.15.1
+collecting ... collected 8 items
+
+gate/tests/test_explainer_schema.py::test_anchors_are_checked_against_the_outline PASSED [ 12%]
+gate/tests/test_explainer_schema.py::test_an_alternate_without_anchors_and_a_partial_assembly_take_explainers PASSED [ 25%]
+gate/tests/test_explainer_schema.py::test_the_body_is_sections[Text before any section.\n\n## Intro\nx\n] PASSED [ 37%]
+gate/tests/test_explainer_schema.py::test_the_body_is_sections[] PASSED  [ 50%]
+gate/tests/test_explainer_schema.py::test_the_body_is_sections[# A level-one heading\nx\n] PASSED [ 62%]
+gate/tests/test_explainer_schema.py::test_front_matter_is_held_to_the_schema PASSED [ 75%]
+gate/tests/test_explainer_schema.py::test_unanchored_name_warns_and_passes XFAIL [ 87%]
+gate/tests/test_explainer_schema.py::test_the_name_warning_reads_names_not_code XFAIL [100%]
+
+=========================== short test summary info ============================
+XFAIL gate/tests/test_explainer_schema.py::test_unanchored_name_warns_and_passes - F20-T5: the cited-name warning is not built yet
+XFAIL gate/tests/test_explainer_schema.py::test_the_name_warning_reads_names_not_code - F20-T5: the cited-name warning is not built yet
+========================= 6 passed, 2 xfailed in 0.49s =========================

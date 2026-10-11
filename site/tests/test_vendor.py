@@ -67,11 +67,11 @@ def test_the_pages_with_record_prose_load_katex_same_origin(pages: dict[str, str
     ):
         page = pages[rel]
         assert render.MATH_HEAD in page and render.MATH_SCRIPTS in page, rel
-    for rel in (
-        f"nodes/{fixture.LISTED_TARGET}/{fixture.LISTED_ROOT}/index.html",
-        "docs/index.html",
-    ):
-        assert "katex" not in pages[rel], rel
+    # F20-T8 (R13, Q11): a root's record page shows its curated words beside its Lean, so it
+    # carries math and loads KaTeX like the other pages that show them; Docs carries none.
+    root_page = pages[f"nodes/{fixture.LISTED_TARGET}/{fixture.LISTED_ROOT}/index.html"]
+    assert render.MATH_HEAD in root_page and render.MATH_SCRIPTS in root_page
+    assert "katex" not in pages["docs/index.html"]
     for src in render.SCRIPTS:
         assert src.lstrip("/") in pages, src
     assert "vendor/katex/katex.min.css" in pages
@@ -86,7 +86,9 @@ def test_only_the_informal_text_is_marked_for_math(pages: dict[str, str]) -> Non
     assert f'<span class="math">{render.esc(fixture.PARAPHRASE)}</span>' in page
     assert page.count('class="math"') == 1  # the listed target's; the other has no record
     detail = pages[f"problems/{fixture.LISTED_TARGET}/index.html"]
-    assert detail.count('class="math"') == 2  # the header and the record section
+    # The header, the record section, and (F20-T8, R13) the root's selected-statement card, whose
+    # gloss slot opens with the curated words (Q11).
+    assert detail.count('class="math"') == 3
     assert '<pre class="lean statement' in detail and "math" not in detail.split("<pre", 1)[1][:200]
 
 

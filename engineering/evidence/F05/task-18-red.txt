@@ -1,0 +1,81 @@
+F05-T18 red, 2026-10-01 (branch svc-queue-heartbeats-hazards, before the fix).
+Seams in at today's behaviour: the host seam reads head_ref/base_ref/draft/same_repo from the open listing and merged_at/closed_at from a pull request (unused);
+the answers carry state/queue keys as null. So a feature test fails on the value it wants and a defect test fails on the defect.
+
+$ uv run --frozen pytest api/tests/test_finding_queue_position.py -q
+___________ test_a_submission_says_where_it_stands_and_what_is_ahead ___________
+E       AssertionError: no queue block
+E       assert None is not None
+______________ test_the_position_moves_when_the_one_ahead_merges _______________
+E       TypeError: 'NoneType' object is not subscriptable
+_______________ test_only_what_the_merge_actor_takes_is_counted ________________
+E       TypeError: 'NoneType' object is not subscriptable
+___________________ test_a_finished_submission_has_no_queue ____________________
+E       AssertionError: assert None == 'merged'
+________ test_the_listing_gives_every_entry_its_position_in_queue_order ________
+E       assert [3, 2, 1] == [1, 2, 3]
+E         
+E         At index 0 diff: 3 != 1
+E         Use -v to get more diff
+_____________ test_an_entry_is_the_per_id_document_plus_its_queue ______________
+E       TypeError: 'NoneType' object is not subscriptable
+___________________ test_the_queue_costs_no_read_per_record ____________________
+E       TypeError: 'NoneType' object is not subscriptable
+________ test_a_host_that_cannot_list_says_so_and_keeps_the_last_order _________
+E       TypeError: 'NoneType' object is not subscriptable
+______________ test_no_listing_at_all_is_no_position_not_an_error ______________
+E       TypeError: 'NoneType' object is not subscriptable
+________ test_the_record_names_its_artifact_type_as_the_write_routes_do ________
+E       AssertionError: assert (None == 'proof')
+E        +  where None = <built-in method get of dict object at 0x7fccd7f6cf40>('artifact_type')
+E        +    where <built-in method get of dict object at 0x7fccd7f6cf40> = {'id': '01M00000000000000000000007', 'kind': 'proof', 'node_id': 'tutorial-and-swap', 'target_id': 'propositional', ...}.get
+___________ test_a_merge_the_listing_has_seen_is_not_served_as_open ____________
+E       AssertionError: served open, stale: false, after the merge
+E       assert False is True
+_______________ test_a_branch_the_listing_saw_move_is_read_again _______________
+E       AssertionError: assert 'merge' == 'gate'
+E         
+E         - gate
+E         + merge
+_________ test_a_listing_that_lags_the_merge_costs_one_read_per_window _________
+E       assert [1] == [1, 1]
+E         
+E         Right contains one more item: 1
+E         Use -v to get more diff
+__________ test_a_merged_proof_waits_on_products_until_it_is_attested __________
+E       AssertionError: null while the post-merge job ran
+E       assert None == 'products'
+_______ test_a_record_is_closed_at_the_hosts_time_not_the_first_readers ________
+E       AssertionError: assert '2026-09-09T15:00:00Z' == '2026-09-09T10:19:10Z'
+E         
+E         - 2026-09-09T10:19:10Z
+E         ?               ^^^^
+E         + 2026-09-09T15:00:00Z
+E         ?             +++  ^
+_____ test_a_pull_request_closed_unmerged_is_closed_at_the_hosts_time_too ______
+E       AssertionError: assert '2026-09-09T13:00:00Z' == '2026-09-09T11:00:00Z'
+E         
+E         - 2026-09-09T11:00:00Z
+E         ?             ^
+E         + 2026-09-09T13:00:00Z
+E         ?             ^
+_________ test_the_tools_carry_the_same_fields_and_pass_their_schemas __________
+E       AssertionError: [TextContent(type='text', text="Output validation error: {'submission': {'id': '01M230M2G0PTGCP027A4EB457F', 'kind': 'annex', 'node_id': 'tutorial-and-swap', 'target_id': 'propositional', 'pr_number': 2, 'pr_url': 'h
+FAILED api/tests/test_finding_queue_position.py::test_a_submission_says_where_it_stands_and_what_is_ahead
+FAILED api/tests/test_finding_queue_position.py::test_the_position_moves_when_the_one_ahead_merges
+FAILED api/tests/test_finding_queue_position.py::test_only_what_the_merge_actor_takes_is_counted
+FAILED api/tests/test_finding_queue_position.py::test_a_finished_submission_has_no_queue
+FAILED api/tests/test_finding_queue_position.py::test_the_listing_gives_every_entry_its_position_in_queue_order
+FAILED api/tests/test_finding_queue_position.py::test_an_entry_is_the_per_id_document_plus_its_queue
+FAILED api/tests/test_finding_queue_position.py::test_the_queue_costs_no_read_per_record
+FAILED api/tests/test_finding_queue_position.py::test_a_host_that_cannot_list_says_so_and_keeps_the_last_order
+FAILED api/tests/test_finding_queue_position.py::test_no_listing_at_all_is_no_position_not_an_error
+FAILED api/tests/test_finding_queue_position.py::test_the_record_names_its_artifact_type_as_the_write_routes_do
+FAILED api/tests/test_finding_queue_position.py::test_a_merge_the_listing_has_seen_is_not_served_as_open
+FAILED api/tests/test_finding_queue_position.py::test_a_branch_the_listing_saw_move_is_read_again
+FAILED api/tests/test_finding_queue_position.py::test_a_listing_that_lags_the_merge_costs_one_read_per_window
+FAILED api/tests/test_finding_queue_position.py::test_a_merged_proof_waits_on_products_until_it_is_attested
+FAILED api/tests/test_finding_queue_position.py::test_a_record_is_closed_at_the_hosts_time_not_the_first_readers
+FAILED api/tests/test_finding_queue_position.py::test_a_pull_request_closed_unmerged_is_closed_at_the_hosts_time_too
+FAILED api/tests/test_finding_queue_position.py::test_the_tools_carry_the_same_fields_and_pass_their_schemas
+17 failed, 1 passed, 2 warnings in 0.92s

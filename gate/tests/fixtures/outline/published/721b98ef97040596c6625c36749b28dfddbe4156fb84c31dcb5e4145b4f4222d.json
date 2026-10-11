@@ -1,0 +1,12 @@
+{
+  "artifact": {
+    "hash": "721b98ef97040596c6625c36749b28dfddbe4156fb84c31dcb5e4145b4f4222d",
+    "kind": "proof",
+    "path": "Proof.lean"
+  },
+  "gate": "82834c4684b8e4130e5c23ad9d6afc6dad4dc1bb",
+  "node": "tutorial-and-swap",
+  "schema": "outline/v1",
+  "steps": [],
+  "target": "tutorial"
+}

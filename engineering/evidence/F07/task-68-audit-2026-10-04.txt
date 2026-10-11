@@ -1,0 +1,88 @@
+F07-T68 — every anonymous read that spends the App's installation budget is held at the reserve
+and cached (audit 2026-10-04). Built in worktree opn-audit-cb-reads; fast tier only (no Lean,
+no docker: nothing here touches either).
+
+== The finding ==
+F07-T47 held two reads (pending._live_state, pending._open_listing). Four more spent the App's
+installation budget on anonymous routes, unheld:
+  - mcp/reads.listing (Contents API) on every get_target / derived get_node; no cache at all;
+  - GET /precheck/<id> -> precheck.advance -> find_run on every poll of a non-terminal job;
+  - pending.gate_verdict: a failed artifact read was not cached, so each read of a refused
+    pull request asked again;
+  - pending._annex_unrendered: two list_dir calls per read, at immutable commits, uncached.
+
+== Seams added first, at today's behaviour (so the red run fails on the defect, not a name) ==
+Settings precheck_poll_min_s / verdict_retry_s (unused), Context.precheck_polls /
+Context.verdict_failures (empty, unread).
+
+== Red: api/tests/test_finding_unheld_host_reads.py (8 tests, all failing on the defect) ==
+E       Failed: DID NOT RAISE ToolError
+E       AssertionError: assert 2 == 1
+E       AssertionError: assert 'running' == 'queued'
+E       AssertionError: assert 5 == 1
+E       AssertionError: assert 4 == 1
+E       AssertionError: assert 1 == 0
+E       AssertionError: assert 6 == 2
+E       AssertionError: assert ['targets/pro...-swap/annex/'] == []
+8 failed, 2 warnings in 0.74s
+
+== The fix ==
+  - mcp/reads.listing: cached per path at the head of main (frontier.pin_head; when the head is
+    unknown, for frontier_max_stale_s and aged by the same freshness generation as the files).
+    Held: the last listing of the path is served; with none, a ToolError
+    {error: "host-budget-exhausted", message: <hostbudget.read_message>, source: "graph"}.
+  - precheck.advance(read=True) from GET /precheck/<id> only: at most one host read per job per
+    precheck_poll_min_s (default 10, OPN_API_PRECHECK_POLL_MIN_S), none while held; the record
+    is answered as it stands, and the route adds Retry-After (pending.retry_after) when the budget
+    is why — the shape the held submission reads already use. POST /submissions and POST /tokens
+    still advance unthrottled: their answer depends on the job's latest state.
+  - pending.gate_verdict: held -> null verdict, not cached; a failed read is remembered per head
+    sha for verdict_retry_s (default 60, OPN_API_VERDICT_RETRY_S).
+  - pending._annex_unrendered: kept per (merge sha, rendered sha, directory); held -> treated as
+    a host that cannot say (waiting_on_products leaves the pull request unchanged, C7).
+  - Tables are bounded (pending.MAX_REMEMBERED = 4096; forget_old drops entries past their
+    window first).
+
+== Existing tests restated (assertions kept, the new rule's setup added) ==
+  test_precheck.py (test_poll_to_done, test_lookup_failure_leaves_the_job_alone,
+  test_an_unreadable_key_does_not_burn_the_job) and test_rejections_precheck.py
+  (test_download_failure_leaves_the_job_unfinished_not_errored): a re-poll at once now forgets
+  the last poll (next_poll), i.e. the interval has passed.
+  mcp_client.seed_node and test_mcp_errors.test_partial_bundle_never_served: reseeding the graph
+  clears ctx.listings as it already cleared ctx.files (main moved).
+  test_finding_waiting_on_products_appends.test_it_clears_once_rendered: the old setup deleted a
+  file from the *same* rendered commit, which a real commit never does; restated as the post-merge
+  job rendering at a new commit, which is what clears it live.
+
+== Green ==
+api/tests/test_finding_unheld_host_reads.py::test_a_held_listing_with_nothing_cached_spends_nothing_and_says_why PASSED [ 12%]
+api/tests/test_finding_unheld_host_reads.py::test_a_listing_is_read_once_per_head_and_served_from_cache_when_held PASSED [ 25%]
+api/tests/test_finding_unheld_host_reads.py::test_a_held_precheck_poll_spends_nothing_and_carries_retry_after PASSED [ 37%]
+api/tests/test_finding_unheld_host_reads.py::test_a_precheck_is_polled_at_most_once_per_interval PASSED [ 50%]
+api/tests/test_finding_unheld_host_reads.py::test_a_verdict_read_that_failed_is_not_retried_inside_the_window PASSED [ 62%]
+api/tests/test_finding_unheld_host_reads.py::test_a_held_verdict_read_spends_nothing PASSED [ 75%]
+api/tests/test_finding_unheld_host_reads.py::test_the_annex_comparison_is_made_once_per_commit_pair PASSED [ 87%]
+api/tests/test_finding_unheld_host_reads.py::test_a_held_annex_comparison_spends_nothing_and_changes_nothing PASSED [100%]
+============================== 8 passed in 0.43s ===============================
+1248 passed in 51.45s
+(last line: the whole api fast tier, `pytest -m "not lean and not docker and not network" api/tests`)
+ruff check / ruff format / mypy (strict) clean on every touched file.
+
+== Proposed spec text (F07) ==
+Ledger line: T68 ✓ — the four unheld anonymous reads (MCP listing, precheck poll, gate verdict,
+annex comparison) held at the reserve and cached (audit 2026-10-04; evidence task-68-audit-2026-10-04.txt).
+
+Proposed Q (next free F07 Q): "Every anonymous read that spends the App's installation budget
+is held by budget_hold and cached, not only the two T47 named. A directory listing is kept per
+head of main; a precheck poll reaches the host at most once per precheck_poll_min_s per job
+(the write routes that stand on a job advance it unthrottled); a failed verdict read is
+remembered for verdict_retry_s; an annex comparison is kept per commit pair, since both commits
+are immutable. A held read answers what it last read, or its own 'cannot say' shape: an MCP
+error host-budget-exhausted, an unadvanced job with Retry-After, a null gate_verdict, an
+unchanged pull request. Not held: frontier.pin_head's head_sha (one call per
+frontier_max_stale_s for the whole process, and the writes read the same head)."
+
+== Not done / follow-ups ==
+  - frontier.pin_head (GET git/ref/heads/main as the App) is still unheld; it is one call per
+    window per process, not per request, and writes depend on it. Left for the owner's call.
+  - Caches are per process (per Lambda instance), as the existing T47 caches are.

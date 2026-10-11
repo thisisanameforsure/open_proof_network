@@ -1,0 +1,193 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openproof.network/schemas/ledger/v2.json",
+  "title": "ledger/v2",
+  "description": "v2 (2026-10-10, F25-R3; D-23 v3.37): each entry carries `automation`, the structured disclosure its merge's attestation recorded (attestation/v7), or null for an older merge or an undeclared one; `tooling` is unchanged beside it. A v1 ledger is read as v2 with null on every entry and is written as v2 the next time it gains a line. v1 could not be edited (D-34). ledger/<identity>.json (D-19): what one identity contributed, as artifacts rather than as a score. Append-only and bot-owned — every entry is written by the post-merge job from a merge that already happened, so the ledger is derived from the graph's history and never a second source of truth (D-35). Each entry names one of D-19's six lines, the artifact it is, and where it merged; F07 writes two of them, `proof` and `attempts`, and the rest arrive with the features that earn them. There is no weight, no score and no ranking: relative significance is assigned retrospectively at write-up (D-19, D-32), and a ledger that carried a number would be the prospective difficulty scalar D-25 refuses. `status` exists because all credit is versioned and revocable (D-18): revocation flips it and keeps the entry.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "identity",
+    "entries"
+  ],
+  "properties": {
+    "schema": {
+      "const": "ledger/v2"
+    },
+    "identity": {
+      "type": "string",
+      "description": "The pseudonym D-19 says the ledger shows; the network stores no other name",
+      "pattern": "^[A-Za-z0-9-]{1,39}$"
+    },
+    "entries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "line",
+          "target",
+          "node",
+          "artifact",
+          "merge_commit",
+          "date",
+          "tooling",
+          "status",
+          "automation"
+        ],
+        "properties": {
+          "line": {
+            "description": "Which of D-19's six lines this entry is on. F07 writes proof and attempts.",
+            "enum": [
+              "statement",
+              "proof",
+              "review",
+              "attempts",
+              "upstreaming",
+              "write-up"
+            ]
+          },
+          "target": {
+            "$ref": "#/$defs/identifier"
+          },
+          "node": {
+            "$ref": "#/$defs/identifier"
+          },
+          "artifact": {
+            "type": "string",
+            "description": "Path of the file this entry is for, relative to the node directory",
+            "minLength": 1
+          },
+          "merge_commit": {
+            "$ref": "#/$defs/sha1"
+          },
+          "date": {
+            "type": "string",
+            "description": "UTC, second precision, Z suffix",
+            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+          },
+          "tooling": {
+            "description": "Model and tooling as declared at submission (D-23); undeclared when the pull request carried no opn-submission block",
+            "type": "string",
+            "minLength": 1
+          },
+          "route_class": {
+            "description": "D-13's class, on an attempts entry only — what makes first-per-route-class checkable from the ledger itself",
+            "type": "string",
+            "minLength": 1
+          },
+          "status": {
+            "description": "All credit is versioned and revocable (D-18); a revoked entry is kept, not deleted",
+            "enum": [
+              "active",
+              "revoked"
+            ]
+          },
+          "automation": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/$defs/automation"
+              }
+            ],
+            "description": "D-23 v3.37: the structured disclosure the merge's attestation carried; null when none."
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]*$"
+    },
+    "sha1": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "automation": {
+      "type": "object",
+      "description": "D-23 v3.37: how the artifact was produced, declared by the submitter and never verified. `method`, `models` and `framework` are required of every proof, partial and alternate (the service refuses a submission without them before any pull request opens, F25-R2); the rest is optional, and cost is what an agent can count — wall time, tokens, hardware, a free spend string — never a dollar figure a subscription cannot give.",
+      "additionalProperties": false,
+      "required": [
+        "method",
+        "models",
+        "framework"
+      ],
+      "properties": {
+        "method": {
+          "enum": [
+            "manual",
+            "copilot",
+            "agent",
+            "autonomous",
+            "other"
+          ],
+          "description": "Palomar's vocabulary: `manual`, a person wrote it; `copilot`, a person wrote it with model suggestions; `agent`, an agent wrote it under a person's direction; `autonomous`, an agent ran unattended; `other`."
+        },
+        "models": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 20,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "description": "Every model that contributed, by the name its provider publishes (e.g. `claude-fable-5-1`)."
+        },
+        "framework": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "The harness or framework the models ran in, with its version where known (e.g. `Claude Code 2.1`)."
+        },
+        "tool_setup": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000,
+          "description": "Tools, plugins, orchestration, in prose."
+        },
+        "wall_time": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "How long the work took, in the submitter's words (e.g. `about 40 minutes`)."
+        },
+        "tokens": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "input",
+            "output"
+          ],
+          "properties": {
+            "input": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "output": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "description": "Total tokens the models consumed and produced, when the harness reports them."
+        },
+        "hardware": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "What it ran on (e.g. `one laptop; hosted models`)."
+        },
+        "spend": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "What it cost, in the submitter's words: `subscription`, `$12.40`, `unknown`."
+        }
+      }
+    }
+  }
+}

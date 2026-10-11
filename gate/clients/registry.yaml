@@ -300,6 +300,11 @@ entries:
       rpc: [initialize]
     profile:
       max_tools: 40
+      known_over:
+        max_tools: >-
+          The network's MCP surface is 42 tools and Cursor's documented cap is 40 across all
+          servers (unverified; F16-Q14). A Cursor user with this server alone loses whichever two
+          tools Cursor drops; fewer tools is a D-28 surface change and the owner's call.
       sources:
         - url: https://cursor.com/docs/mcp
           accessed: 2026-09-24

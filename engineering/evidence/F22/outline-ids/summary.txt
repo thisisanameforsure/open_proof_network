@@ -1,0 +1,10 @@
+pull exit=0
+erdos-1050 exit=1
+euclid-primes exit=0
+erdos-412 exit=1
+erdos-69 exit=1
+erdos-402 exit=1
+erdos-412 exit=0 (timeout 1800)
+erdos-1050 exit=1 (timeout 1800)
+erdos-69 exit=0 (timeout 1800)
+erdos-402 exit=1 (timeout 1800)

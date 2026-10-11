@@ -1,0 +1,6 @@
+$ uv run --frozen pytest api/tests/test_finding_guide_token_body.py -q
+# 2026-09-29T08:37:47Z at f11aba1
+    _PortalFactoryType = Callable[[], AbstractContextManager[anyio.abc.BlockingPortal]]
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+2 passed, 2 warnings in 0.52s

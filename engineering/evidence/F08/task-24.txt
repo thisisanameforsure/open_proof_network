@@ -1,0 +1,125 @@
+F08-T24 — a proof may use the merged proof of another node of its target (R18, R19; Q37, Q38); green
+date: 2026-10-02   toolchain: leanprover/lean4:v4.33.1 (GitHub release zip linked into elan, as the
+2026-09-24 log entry describes); docker tier not run (no daemon here)
+The task was built by one session and finished by a second (the first was interrupted after its
+green runs and before the commit). Everything below was re-run by the second session on the tree
+as committed; the red run is the first session's, kept as it was (task-24-red.txt).
+
+## the task's own tests
+$ uv run --frozen pytest gate/tests/test_uses_nodes.py gate/tests/test_layout.py -v -p no:cacheprovider
+gate/tests/test_uses_nodes.py::test_a_node_use_line_is_a_use PASSED
+gate/tests/test_uses_nodes.py::test_only_another_nodes_proof_module_is_a_use
+gate/tests/test_uses_nodes.py::test_only_another_nodes_proof_module_is_a_use
+gate/tests/test_uses_nodes.py::test_only_another_nodes_proof_module_is_a_use
+gate/tests/test_uses_nodes.py::test_only_another_nodes_proof_module_is_a_use
+gate/tests/test_uses_nodes.py::test_the_layout_takes_a_proof_that_imports_another_nodes_proof PASSED
+gate/tests/test_uses_nodes.py::test_the_layout_refuses_every_other_node_import
+gate/tests/test_uses_nodes.py::test_the_layout_refuses_every_other_node_import
+gate/tests/test_uses_nodes.py::test_the_layout_refuses_every_other_node_import
+gate/tests/test_uses_nodes.py::test_the_layout_refuses_every_other_node_import
+gate/tests/test_uses_nodes.py::test_the_layout_refuses_every_other_node_import
+gate/tests/test_uses_nodes.py::test_the_layout_refuses_every_other_node_import
+gate/tests/test_uses_nodes.py::test_a_line_shaped_like_a_use_anywhere_else_is_not_one PASSED
+gate/tests/test_uses_nodes.py::test_a_proof_uses_a_proved_node_it_does_not_depend_on PASSED
+gate/tests/test_uses_nodes.py::test_a_hole_uses_a_proved_node_of_its_target PASSED
+gate/tests/test_uses_nodes.py::test_an_alternate_and_a_partial_may_use_a_proved_node PASSED
+gate/tests/test_uses_nodes.py::test_a_node_without_uses_is_staged_and_checked_as_before PASSED
+gate/tests/test_uses_nodes.py::test_a_node_may_not_use_itself PASSED
+gate/tests/test_uses_nodes.py::test_a_node_that_does_not_exist_cannot_be_used PASSED
+gate/tests/test_uses_nodes.py::test_a_node_with_no_merged_proof_cannot_be_used PASSED
+gate/tests/test_uses_nodes.py::test_a_submission_cannot_bring_the_proof_it_uses PASSED
+gate/tests/test_uses_nodes.py::test_a_refuted_node_cannot_be_used PASSED
+gate/tests/test_uses_nodes.py::test_a_superseded_node_cannot_be_used_and_the_refusal_names_its_successor PASSED
+gate/tests/test_uses_nodes.py::test_a_superseded_node_with_no_sound_successor_is_still_refused PASSED
+gate/tests/test_uses_nodes.py::test_a_dependency_is_not_declared_a_second_time PASSED
+gate/tests/test_uses_nodes.py::test_a_node_cannot_use_a_node_that_depends_on_it PASSED
+gate/tests/test_uses_nodes.py::test_a_hole_is_never_proved_from_the_node_it_was_cut_from PASSED
+gate/tests/test_uses_nodes.py::test_an_ancestor_reached_through_a_merged_use_is_refused_too PASSED
+gate/tests/test_uses_nodes.py::test_an_alternate_cannot_use_a_node_whose_proof_uses_this_one PASSED
+gate/tests/test_uses_nodes.py::test_a_replaced_hole_is_still_not_proved_from_the_node_it_was_cut_from PASSED
+gate/tests/test_uses_nodes.py::test_a_node_of_another_target_cannot_be_named PASSED
+gate/tests/test_uses_nodes.py::test_an_open_node_has_no_proof_to_use_whatever_else_is_said_of_it PASSED
+gate/tests/test_uses_nodes.py::test_the_build_refuses_a_cycle_of_uses_whatever_step_2_saw PASSED
+gate/tests/test_uses_nodes.py::test_a_used_nodes_own_uses_are_staged_with_it PASSED
+gate/tests/test_uses_nodes.py::test_a_declared_use_the_proof_term_does_not_make_is_refused PASSED
+gate/tests/test_uses_nodes.py::test_one_use_made_and_one_not_is_refused_for_the_one_not_made PASSED
+gate/tests/test_uses_nodes.py::test_a_node_reachable_through_a_use_but_not_declared_is_still_refused PASSED
+gate/tests/test_uses_nodes.py::test_a_counterexample_declares_no_use PASSED
+gate/tests/test_uses_nodes.py::test_a_merged_use_is_a_fact_of_the_tree_and_nothing_is_written_for_it PASSED
+gate/tests/test_uses_nodes.py::test_revising_a_used_node_marks_its_proved_user_stale PASSED
+gate/tests/test_uses_nodes.py::test_a_user_with_no_merged_proof_is_not_marked PASSED
+gate/tests/test_uses_nodes.py::test_the_cache_builds_a_used_node_before_its_user_and_a_closure_follows_uses PASSED
+gate/tests/test_uses_nodes.py::test_the_cache_leaves_out_a_node_whose_used_node_is_not_built PASSED
+gate/tests/test_layout.py::test_fixture_nodes_valid PASSED
+gate/tests/test_layout.py::test_missing_and_extra_entries_named PASSED
+gate/tests/test_layout.py::test_misnamed_entries PASSED
+gate/tests/test_layout.py::test_load_node_reports_meta_and_hash_problems PASSED
+gate/tests/test_layout.py::test_undeclared_dep_named PASSED
+gate/tests/test_layout.py::test_parse_statement_shapes PASSED
+gate/tests/test_layout.py::test_missing_node_directory_is_named PASSED
+gate/tests/test_layout.py::test_meta_with_a_foreign_schema_is_refused PASSED
+gate/tests/test_layout.py::test_unparseable_meta_yaml_is_meta_invalid PASSED
+gate/tests/test_layout.py::test_load_node_reports_statement_shape PASSED
+gate/tests/test_layout.py::test_parse_statement_rejects_sorry_before_theorem_and_two_bodies PASSED
+gate/tests/test_layout.py::test_proof_and_witness_may_not_import_another_node PASSED
+gate/tests/test_layout.py::test_import_rule PASSED
+gate/tests/test_layout.py::test_mentions_sorry_reads_code_not_comments_or_identifiers PASSED
+gate/tests/test_layout.py::test_strip_comments_keeps_offsets_and_string_literals PASSED
+============================== 58 passed in 1.69s ==============================
+
+$ uv run --frozen pytest -m lean gate/tests/test_uses_nodes_lean.py -v -p no:cacheprovider -rxX
+gate/tests/test_uses_nodes_lean.py::test_a_proof_uses_a_proved_node_by_importing_its_proof PASSED
+gate/tests/test_uses_nodes_lean.py::test_a_use_line_over_a_proof_that_does_not_use_the_node_is_refused PASSED
+gate/tests/test_uses_nodes_lean.py::test_a_theorem_reachable_through_a_use_but_not_declared_is_refused PASSED
+gate/tests/test_uses_nodes_lean.py::test_a_node_whose_dependency_has_a_use_line_still_builds PASSED
+gate/tests/test_uses_nodes_lean.py::test_a_used_nodes_proof_module_cannot_change_what_the_statement_says PASSED
+gate/tests/test_uses_nodes_lean.py::test_without_the_guard_a_used_nodes_instance_proves_a_false_statement PASSED
+======================== 6 passed in 375.18s (0:06:15) =========================
+
+What the lean tier shows, in words. (1) A proof of and-reassoc that declares
+`import Nodes.«tutorial-and-swap».Proof` and goes through OpnProp.and_swap passes steps 1, 2, 4, 5,
+6, 7, 8; step 8 reads the use out of the kernel term (used == [tutorial-and-swap]) while the node's
+recorded deps stay empty, and the meaning guard answers identical. (2) The same header over a
+proof that does not name the theorem is refused at step 8, use-unused. (3) A theorem that the
+import merely makes reachable (a dependency of the used node) and the header does not declare is
+refused undeclared-dependency. (4) A node whose dependency's merged proof has a use line still
+builds: the closure is staged by what each proof imports. (5) A used node whose proof module
+carries a high-priority instance cannot change what the statement says
+(statement-meaning-changed at step 4), and (6) with the guard switched off the same false
+statement passes every step, which is why a node use is a guarded use.
+
+## read-only check against the live tree (sibling graph checkout at 1d98dcfb; nothing written)
+uses._node_problem over targets/erdos-69/nodes, the rules of step 2 for a node use:
+  erdos-69--h2-v2--h1-v2--h4 <- spec-7d098d5c (Mertens, proved)             usable
+  erdos-69--h2-v2--h1-v2--h4 <- erdos-69--h2-v2--h1-v2--h1 (proved sibling)  usable  (testers' C10)
+  erdos-69--h2-v2--h1-v2--h4 <- erdos-69--h2-v2--h1-v2 (its open parent)     use-unproved
+  erdos-69--h2-v2--h1-v2--h4 <- erdos-69--h1-v2 (proved)                    usable
+  erdos-69 <- erdos-69--h1-v2 (its own proved hole)                         use-redundant
+  uses.above(erdos-69--h2-v2--h1-v2--h4) = erdos-69, erdos-69--h2-v2, erdos-69--h2-v2--h1-v2
+So the testers' item B1 (b) is met on the live shape: a gate-written hole with deps: [] may cite
+the proved spec- nodes and its proved siblings, and never the nodes it was cut from.
+
+## mutants (in memory, pytest -p; no file touched)
+== above_empty: 5 failed, 53 passed in 1.42s
+== any_node_usable: 14 failed, 44 passed in 5.82s
+== graph_blind: 25 failed, 33 passed in 1.50s
+== uses_not_staged: 28 failed, 30 passed in 6.31s
+== unused_use_allowed: 2 failed, 56 passed in 6.62s
+Each of the five wrong implementations fails at least one test. (graph_blind also trips the
+layout, which reads a merged proof's uses through the same function.)
+
+## regression
+$ make lint       -> exit 0
+$ make types      -> exit 0 (3 of 3 packages: no issues)
+$ make test-fast  -> exit 2, the branch's seven known failures and nothing else:
+=========================== short test summary info ============================
+FAILED gate/tests/test_finding_merge_actor_stale_head.py::test_the_morning_of_306_moves_past_the_stale_head
+FAILED gate/tests/test_finding_merge_actor_stale_head.py::test_a_stale_head_is_passed_over_even_if_the_host_calls_it_clean
+FAILED gate/tests/test_finding_merge_actor_stale_head.py::test_a_branch_that_no_longer_exists_is_passed_over
+FAILED gate/tests/test_finding_merge_actor_stale_head.py::test_a_head_the_host_still_computes_is_held_for_as_before
+FAILED gate/tests/test_finding_merge_actor_stale_head.py::test_a_stale_append_never_ends_a_batch
+FAILED gate/tests/test_finding_merge_actor_stale_head.py::test_the_workflow_reads_each_branch_tip_and_survives_a_missing_one
+FAILED gate/tests/test_walkthrough.py::test_graph_copy_is_identical - Asserti...
+==== 7 failed, 3230 passed, 140 deselected, 2 warnings in 138.21s (0:02:18) ====
+The seven are the branch's baseline (task-23.txt explains each): all read the sibling graph
+checkout, which is one re-pin behind the network.

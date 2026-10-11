@@ -3,7 +3,8 @@ in-process HTTP client over the host application, and the two ways a call ends.
 
 ``Call.endpoint`` is how every route-backed tool reaches its plain path: a real HTTP request
 through the same ASGI application, middleware and handlers a curl would hit, carrying the
-caller's bearer and source address — so the tool result is the endpoint's response and nothing
+caller's bearer, from the caller's own source address (the in-process transport's client is the
+outer request's peer, F05-T19) — so the tool result is the endpoint's response and nothing
 else (R7), and the equivalence suite compares like with like (AC3, AC4).
 
 A tool ends by returning its structured result, or by raising ``ToolError`` with the
@@ -66,7 +67,6 @@ class Call:
     ctx: Context
     http: httpx.AsyncClient  # in-process, against the host application
     token: str | None = None  # the caller's verified bearer, forwarded and never logged (C8)
-    forwarded_for: str | None = None  # the caller's source address, for the identity layer's limits
     calls: list[tuple[str, str]] = field(default_factory=list)  # (method, path) made, for tests
 
     async def endpoint(
@@ -75,8 +75,6 @@ class Call:
         headers: dict[str, str] = {"Accept": "application/json"}
         if self.token:
             headers["Authorization"] = f"Bearer {self.token}"
-        if self.forwarded_for:
-            headers["X-Forwarded-For"] = self.forwarded_for
         self.calls.append((method, path))
         resp = await self.http.request(
             method, path, json=dict(json) if json else None, headers=headers
@@ -106,7 +104,8 @@ class Tool:
     handler, whether it changes state (``write``: not read-only, not idempotent) and who may
     call it (``access``). A write defaults to ``bearer`` and a read to ``anyone``, so an
     anonymous write is always declared, never a default (C7). A read may be declared ``bearer``
-    only when what it reads is the caller's own (``list_my_claims``, F05-T14, ruling D3(b)):
+    only when what it reads is the caller's own (``list_my_claims``, F05-T14, ruling D3(b);
+    ``get_my_submissions`` and ``get_check``, F09-T17):
     every read of the graph stays open (D-28)."""
 
     name: str
@@ -134,16 +133,37 @@ class Tool:
         return self.access != "anyone"
 
 
+#: F09-T21 (Q20): what a parameter that recurs across tools is, given to every property of that
+#: name that does not say for itself.
+PARAM_DOCS: Mapping[str, str] = {
+    "node_id": "A node's id, as list_frontier and get_target name it.",
+    "target_id": "A target's id, as list_targets names it.",
+    "submission_id": "A submission's ULID, or its pull request's number.",
+    "job_id": "The precheck job's id, as precheck_submission returned it.",
+    "check_id": "The check's id, as check_lean returned it.",
+    "claim_id": "The claim's id, from claim_node's receipt or list_my_claims.",
+    "licence": "The licence your text is offered under (D-23).",
+}
+
+
 def params(
     properties: Mapping[str, Mapping[str, Any]], required: tuple[str, ...] = ()
 ) -> dict[str, Any]:
-    """An input schema: named parameters, nothing else accepted."""
+    """An input schema: named parameters, nothing else accepted; a recurring name without a
+    description of its own takes ``PARAM_DOCS``'s."""
     return {
         "type": "object",
-        "properties": {k: dict(v) for k, v in properties.items()},
+        "properties": {k: described(k, v) for k, v in properties.items()},
         "required": list(required),
         "additionalProperties": False,
     }
+
+
+def described(name: str, prop: Mapping[str, Any]) -> dict[str, Any]:
+    out = dict(prop)
+    if "description" not in out and name in PARAM_DOCS:
+        out["description"] = PARAM_DOCS[name]
+    return out
 
 
 ID_PARAM: dict[str, Any] = {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$"}

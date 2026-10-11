@@ -1,0 +1,48 @@
+F20-T4 verification: uv run pytest gate/tests/test_gloss_chains.py
+Red run (seams at today's behaviour: classify(graph_root=) ignored, glosses.json listing subjects with no
+chains, the gloss-signature writer present for setup), each failing on the defect:
+  AC5  test_linear_chains_and_signed_supersede[gloss|explainer]: assert [] == ['record-not-head']
+  AC6  test_withdrawal_and_current_version[*]: assert ['curator-unlisted'] == [] (author/steward/curator)
+       and ['curator-unlisted'] == ['withdrawal-unauthorized'] (third party)
+       test_a_withdrawal_names_a_version_on_the_record: ['curator-unlisted'] == ['withdrawal-unknown-record']
+  R8   test_a_gloss_signature_is_a_stewards_or_curators: ['path-forbidden'] == []
+  AC2  test_a_gloss_of_changed_text_is_marked: GraphError "node and-reassoc: unexpected entry gloss" --
+       a found defect: the layout refused a gloss/ directory, so the first merged gloss would have
+       stopped every product (fixed: gloss/ is an optional node directory).
+  AC7  test_digestion_counts_explainers_only: explained after the head was superseded by an unsigned version.
+One test was wrong, not the code: the AC5 fork C stayed in the tree after its refusal; a refused file
+never merges, so the test now removes it before D.
+Also changed, restated to their rule: test_products' two product-file lists (+ glosses.json),
+test_finding_guide_curator_records (v1 is among the accepted withdrawal versions, no longer the only).
+Goldens: gate/tests/golden/products/*/info.json (schema index gains glosses: [1]) and a new
+targets/propositional/glosses.json per state (every subject, no chains). api and site: 1787 passed.
+Gate fast tier at this commit: 2112 passed (the one failure before the guide-test restatement above).
+Green run:
+
+============================= test session starts ==============================
+platform darwin -- Python 3.13.5, pytest-9.1.1, pluggy-1.6.0 -- /Users/mikehiggins/Desktop/repos/open_proof_network/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /Users/mikehiggins/Desktop/repos/open_proof_network/.claude/worktrees/agent-aba4293b49640e7d1
+configfile: pyproject.toml
+plugins: anyio-4.15.1
+collecting ... collected 17 items
+
+gate/tests/test_gloss_chains.py::test_a_gloss_of_changed_text_is_marked PASSED [  5%]
+gate/tests/test_gloss_chains.py::test_linear_chains_and_signed_supersede[gloss] PASSED [ 11%]
+gate/tests/test_gloss_chains.py::test_linear_chains_and_signed_supersede[explainer] PASSED [ 17%]
+gate/tests/test_gloss_chains.py::test_a_version_supersedes_its_own_subject_only PASSED [ 23%]
+gate/tests/test_gloss_chains.py::test_withdrawal_and_current_version[gloss-carol-carol-expected0] PASSED [ 29%]
+gate/tests/test_gloss_chains.py::test_withdrawal_and_current_version[gloss-alice-steward-alice-steward-expected1] PASSED [ 35%]
+gate/tests/test_gloss_chains.py::test_withdrawal_and_current_version[gloss-thisisanameforsure-thisisanameforsure-expected2] PASSED [ 41%]
+gate/tests/test_gloss_chains.py::test_withdrawal_and_current_version[gloss-mallory-mallory-expected3] PASSED [ 47%]
+gate/tests/test_gloss_chains.py::test_withdrawal_and_current_version[explainer-carol-carol-expected4] PASSED [ 52%]
+gate/tests/test_gloss_chains.py::test_withdrawal_and_current_version[explainer-mallory-mallory-expected5] PASSED [ 58%]
+gate/tests/test_gloss_chains.py::test_a_withdrawal_names_a_version_on_the_record PASSED [ 64%]
+gate/tests/test_gloss_chains.py::test_a_status_withdrawal_stays_a_curator_record PASSED [ 70%]
+gate/tests/test_gloss_chains.py::test_a_definition_gloss_chain_lives_at_the_target PASSED [ 76%]
+gate/tests/test_gloss_chains.py::test_a_gloss_signature_is_a_stewards_or_curators PASSED [ 82%]
+gate/tests/test_gloss_chains.py::test_digestion_counts_explainers_only PASSED [ 88%]
+gate/tests/test_gloss_chains.py::test_a_pre_f20_explainer_is_a_chain_of_one PASSED [ 94%]
+gate/tests/test_gloss_chains.py::test_the_product_lists_every_lean_file PASSED [100%]
+
+============================== 17 passed in 7.97s ==============================

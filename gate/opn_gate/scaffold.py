@@ -23,7 +23,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Literal
 
-from opn_gate import layout, paths, schemas
+from opn_gate import layout, paths, proposed_for, schemas
 
 #: The oldest META version that can express the node being built. `skeleton-hole` exists
 #: only from v3 (D-3 v3.12), `supersedes` only from v4 (F08-R9) and `proved_binders` only from
@@ -72,6 +72,10 @@ class Proposal:
     date: str | None = None
     model: str | None = None
     extra_meta: dict[str, Any] = field(default_factory=dict)
+    #: F18-R8 (D-14 v3.26): the node of the target this one is proposed for, written as the
+    #: node's first ``proposed-for/`` record by its author. Whether that node may be named is the
+    #: caller's and the gate's to check (``modes.check_proposed_for``).
+    proposed_for: str | None = None
 
     @property
     def is_variant(self) -> bool:
@@ -272,10 +276,18 @@ def files(
     if proposal.is_variant and proposal.relation_proof:
         assert proposal.relation is not None
         out[RELATION_FILE] = with_relation_label(proposal.relation_proof, proposal.relation)
+    # The same stamp shape as every other record, ``20260910T121314Z`` (curator.stamp).
+    stamp = (proposal.date or "1970-01-01T00:00:00Z").replace(":", "").replace("-", "")[:15] + "Z"
     if proposal.speculative:
-        stamp = (proposal.date or "1970-01-01T00:00:00Z").replace(":", "").replace("-", "")
-        # The same stamp shape as every other record, ``20260910T121314Z`` (curator.stamp).
-        out[f"status/{stamp[:15]}Z-{proposal.author}.yaml"] = _yaml(status_record(proposal))
+        out[f"status/{stamp}-{proposal.author}.yaml"] = _yaml(status_record(proposal))
+    if proposal.proposed_for is not None:
+        try:
+            record = proposed_for.document(
+                proposal.proposed_for, proposal.author, day(proposal.date or "") or "1970-01-01"
+            )
+        except schemas.SchemaError as exc:
+            raise ScaffoldError(str(exc)) from exc
+        out[f"{proposed_for.DIR}/{proposed_for.file_name(stamp, proposal.author)}"] = _yaml(record)
     return out
 
 

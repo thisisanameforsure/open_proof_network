@@ -1,0 +1,786 @@
+{
+ "commit": "3257eb5c053d2279ce6e065ff7f9ee0f1eeb5261",
+ "listing": {
+  "open": [
+   {
+    "kind": "gloss",
+    "target_id": "erdos-1050",
+    "node_id": "erdos-1050--h1-v2--h3",
+    "pr_number": 999,
+    "pr_url": "https://github.com/thisisanameforsure/open_proof_network_graph/pull/999",
+    "pseudonym": "f22-shoot"
+   },
+   {
+    "kind": "explainer",
+    "target_id": "erdos-1050",
+    "node_id": "erdos-1050--h1-v2--h3",
+    "pr_number": 1000,
+    "pr_url": "https://github.com/thisisanameforsure/open_proof_network_graph/pull/1000",
+    "pseudonym": "f22-shoot"
+   }
+  ]
+ },
+ "shots": [
+  {
+   "page": "problem",
+   "width": 1440,
+   "file": "shots-problem-desktop.png",
+   "ok": true,
+   "viewport": 1440,
+   "scrollWidth": 1440,
+   "math_spans": 527,
+   "mathml": 539,
+   "katex_errors": 0,
+   "lists_in_words": 13,
+   "literal_bold": 0,
+   "literal_dash_paragraphs": 0,
+   "bare_withdrawn": false,
+   "withdrawn_lines": 0,
+   "sorry_notes": 14,
+   "inputs": 2,
+   "in_review": [],
+   "sections_words_first": [],
+   "dag_label_px": 13
+  },
+  {
+   "page": "h3",
+   "width": 1440,
+   "file": "shots-h3-desktop.png",
+   "ok": true,
+   "viewport": 1440,
+   "scrollWidth": 1440,
+   "math_spans": 1707,
+   "mathml": 1707,
+   "katex_errors": 0,
+   "lists_in_words": 167,
+   "literal_bold": 0,
+   "literal_dash_paragraphs": 0,
+   "bare_withdrawn": false,
+   "withdrawn_lines": 1,
+   "sorry_notes": 1,
+   "inputs": 0,
+   "in_review": [
+    "In review: #999 by f22-shoot",
+    "In review: #1000 by f22-shoot"
+   ],
+   "sections_words_first": [
+    {
+     "beside": true,
+     "words_first": false
+    },
+    {
+     "beside": true,
+     "words_first": false
+    },
+    {
+     "beside": true,
+     "words_first": false
+    },
+    {
+     "beside": true,
+     "words_first": false
+    },
+    {
+     "beside": true,
+     "words_first": false
+    },
+    {
+     "beside": true,
+     "words_first": false
+    },
+    {
+     "beside": true,
+     "words_first": false
+    },
+    {
+     "beside": true,
+     "words_first": false
+    },
+    {
+     "beside": true,
+     "words_first": false
+    },
+    {
+     "beside": true,
+     "words_first": false
+    },
+    {
+     "beside": true,
+     "words_first": false
+    },
+    {
+     "beside": true,
+     "words_first": false
+    },
+    {
+     "beside": true,
+     "words_first": false
+    },
+    {
+     "beside": true,
+     "words_first": false
+    },
+    {
+     "beside": true,
+     "words_first": false
+    },
+    {
+     "beside": true,
+     "words_first": false
+    },
+    {
+     "beside": true,
+     "words_first": false
+    },
+    {
+     "beside": true,
+     "words_first": false
+    },
+    {
+     "beside": true,
+     "words_first": false
+    },
+    {
+     "beside": true,
+     "words_first": false
+    },
+    {
+     "beside": true,
+     "words_first": false
+    }
+   ]
+  },
+  {
+   "page": "h1v2",
+   "width": 1440,
+   "file": "shots-h1v2-desktop.png",
+   "ok": true,
+   "viewport": 1440,
+   "scrollWidth": 1440,
+   "math_spans": 528,
+   "mathml": 528,
+   "katex_errors": 0,
+   "lists_in_words": 10,
+   "literal_bold": 0,
+   "literal_dash_paragraphs": 0,
+   "bare_withdrawn": false,
+   "withdrawn_lines": 0,
+   "sorry_notes": 1,
+   "inputs": 0,
+   "in_review": [],
+   "sections_words_first": [
+    {
+     "beside": true,
+     "words_first": false
+    },
+    {
+     "beside": true,
+     "words_first": false
+    },
+    {
+     "beside": true,
+     "words_first": false
+    },
+    {
+     "beside": true,
+     "words_first": false
+    },
+    {
+     "beside": true,
+     "words_first": false
+    },
+    {
+     "beside": true,
+     "words_first": false
+    },
+    {
+     "beside": true,
+     "words_first": false
+    },
+    {
+     "beside": true,
+     "words_first": false
+    },
+    {
+     "beside": true,
+     "words_first": false
+    }
+   ]
+  },
+  {
+   "page": "reading",
+   "width": 1440,
+   "file": "shots-reading-desktop.png",
+   "ok": true,
+   "viewport": 1440,
+   "scrollWidth": 1440,
+   "math_spans": 2314,
+   "mathml": 2322,
+   "katex_errors": 0,
+   "lists_in_words": 169,
+   "literal_bold": 0,
+   "literal_dash_paragraphs": 0,
+   "bare_withdrawn": false,
+   "withdrawn_lines": 1,
+   "sorry_notes": 4,
+   "inputs": 0,
+   "in_review": [],
+   "sections_words_first": [
+    {
+     "beside": true,
+     "words_first": false
+    },
+    {
+     "beside": true,
+     "words_first": false
+    },
+    {
+     "beside": true,
+     "words_first": false
+    },
+    {
+     "beside": true,
+     "words_first": false
+    },
+    {
+     "beside": true,
+     "words_first": false
+    },
+    {
+     "beside": true,
+     "words_first": false
+    },
+    {
+     "beside": true,
+     "words_first": false
+    },
+    {
+     "beside": true,
+     "words_first": false
+    },
+    {
+     "beside": true,
+     "words_first": false
+    },
+    {
+     "beside": true,
+     "words_first": false
+    },
+    {
+     "beside": true,
+     "words_first": false
+    },
+    {
+     "beside": true,
+     "words_first": false
+    },
+    {
+     "beside": true,
+     "words_first": false
+    },
+    {
+     "beside": true,
+     "words_first": false
+    },
+    {
+     "beside": true,
+     "words_first": false
+    },
+    {
+     "beside": true,
+     "words_first": false
+    },
+    {
+     "beside": true,
+     "words_first": false
+    },
+    {
+     "beside": true,
+     "words_first": false
+    },
+    {
+     "beside": true,
+     "words_first": false
+    },
+    {
+     "beside": true,
+     "words_first": false
+    },
+    {
+     "beside": true,
+     "words_first": false
+    },
+    {
+     "beside": true,
+     "words_first": false
+    },
+    {
+     "beside": true,
+     "words_first": false
+    },
+    {
+     "beside": true,
+     "words_first": false
+    },
+    {
+     "beside": true,
+     "words_first": false
+    },
+    {
+     "beside": true,
+     "words_first": false
+    },
+    {
+     "beside": true,
+     "words_first": false
+    },
+    {
+     "beside": true,
+     "words_first": false
+    },
+    {
+     "beside": true,
+     "words_first": false
+    },
+    {
+     "beside": true,
+     "words_first": false
+    },
+    {
+     "beside": true,
+     "words_first": false
+    },
+    {
+     "beside": true,
+     "words_first": false
+    },
+    {
+     "beside": true,
+     "words_first": false
+    },
+    {
+     "beside": true,
+     "words_first": false
+    },
+    {
+     "beside": true,
+     "words_first": false
+    }
+   ]
+  },
+  {
+   "page": "spec",
+   "width": 1440,
+   "file": "shots-spec-desktop.png",
+   "ok": true,
+   "viewport": 1440,
+   "scrollWidth": 1440,
+   "math_spans": 115,
+   "mathml": 115,
+   "katex_errors": 0,
+   "lists_in_words": 0,
+   "literal_bold": 0,
+   "literal_dash_paragraphs": 0,
+   "bare_withdrawn": false,
+   "withdrawn_lines": 0,
+   "sorry_notes": 1,
+   "inputs": 0,
+   "in_review": [],
+   "sections_words_first": [
+    {
+     "beside": true,
+     "words_first": false
+    },
+    {
+     "beside": true,
+     "words_first": false
+    },
+    {
+     "beside": true,
+     "words_first": false
+    }
+   ]
+  },
+  {
+   "page": "problem",
+   "width": 390,
+   "file": "shots-problem-phone.png",
+   "ok": true,
+   "viewport": 390,
+   "scrollWidth": 390,
+   "math_spans": 527,
+   "mathml": 539,
+   "katex_errors": 0,
+   "lists_in_words": 13,
+   "literal_bold": 0,
+   "literal_dash_paragraphs": 0,
+   "bare_withdrawn": false,
+   "withdrawn_lines": 0,
+   "sorry_notes": 14,
+   "inputs": 2,
+   "in_review": [],
+   "sections_words_first": [],
+   "dag_label_px": 13
+  },
+  {
+   "page": "h3",
+   "width": 390,
+   "file": "shots-h3-phone.png",
+   "ok": true,
+   "viewport": 390,
+   "scrollWidth": 390,
+   "math_spans": 1707,
+   "mathml": 1707,
+   "katex_errors": 0,
+   "lists_in_words": 167,
+   "literal_bold": 0,
+   "literal_dash_paragraphs": 0,
+   "bare_withdrawn": false,
+   "withdrawn_lines": 1,
+   "sorry_notes": 1,
+   "inputs": 0,
+   "in_review": [
+    "In review: #999 by f22-shoot",
+    "In review: #1000 by f22-shoot"
+   ],
+   "sections_words_first": [
+    {
+     "beside": false,
+     "words_first": true
+    },
+    {
+     "beside": false,
+     "words_first": true
+    },
+    {
+     "beside": false,
+     "words_first": true
+    },
+    {
+     "beside": false,
+     "words_first": true
+    },
+    {
+     "beside": false,
+     "words_first": true
+    },
+    {
+     "beside": false,
+     "words_first": true
+    },
+    {
+     "beside": false,
+     "words_first": true
+    },
+    {
+     "beside": false,
+     "words_first": true
+    },
+    {
+     "beside": false,
+     "words_first": true
+    },
+    {
+     "beside": false,
+     "words_first": true
+    },
+    {
+     "beside": false,
+     "words_first": true
+    },
+    {
+     "beside": false,
+     "words_first": true
+    },
+    {
+     "beside": false,
+     "words_first": true
+    },
+    {
+     "beside": false,
+     "words_first": true
+    },
+    {
+     "beside": false,
+     "words_first": true
+    },
+    {
+     "beside": false,
+     "words_first": true
+    },
+    {
+     "beside": false,
+     "words_first": true
+    },
+    {
+     "beside": false,
+     "words_first": true
+    },
+    {
+     "beside": false,
+     "words_first": true
+    },
+    {
+     "beside": false,
+     "words_first": true
+    },
+    {
+     "beside": false,
+     "words_first": true
+    }
+   ]
+  },
+  {
+   "page": "h1v2",
+   "width": 390,
+   "file": "shots-h1v2-phone.png",
+   "ok": true,
+   "viewport": 390,
+   "scrollWidth": 390,
+   "math_spans": 528,
+   "mathml": 528,
+   "katex_errors": 0,
+   "lists_in_words": 10,
+   "literal_bold": 0,
+   "literal_dash_paragraphs": 0,
+   "bare_withdrawn": false,
+   "withdrawn_lines": 0,
+   "sorry_notes": 1,
+   "inputs": 0,
+   "in_review": [],
+   "sections_words_first": [
+    {
+     "beside": false,
+     "words_first": true
+    },
+    {
+     "beside": false,
+     "words_first": true
+    },
+    {
+     "beside": false,
+     "words_first": true
+    },
+    {
+     "beside": false,
+     "words_first": true
+    },
+    {
+     "beside": false,
+     "words_first": true
+    },
+    {
+     "beside": false,
+     "words_first": true
+    },
+    {
+     "beside": false,
+     "words_first": true
+    },
+    {
+     "beside": false,
+     "words_first": true
+    },
+    {
+     "beside": false,
+     "words_first": true
+    }
+   ]
+  },
+  {
+   "page": "reading",
+   "width": 390,
+   "file": "shots-reading-phone.png",
+   "ok": true,
+   "viewport": 390,
+   "scrollWidth": 390,
+   "math_spans": 2314,
+   "mathml": 2322,
+   "katex_errors": 0,
+   "lists_in_words": 169,
+   "literal_bold": 0,
+   "literal_dash_paragraphs": 0,
+   "bare_withdrawn": false,
+   "withdrawn_lines": 1,
+   "sorry_notes": 4,
+   "inputs": 0,
+   "in_review": [],
+   "sections_words_first": [
+    {
+     "beside": false,
+     "words_first": true
+    },
+    {
+     "beside": false,
+     "words_first": true
+    },
+    {
+     "beside": false,
+     "words_first": true
+    },
+    {
+     "beside": false,
+     "words_first": true
+    },
+    {
+     "beside": false,
+     "words_first": true
+    },
+    {
+     "beside": false,
+     "words_first": true
+    },
+    {
+     "beside": false,
+     "words_first": true
+    },
+    {
+     "beside": false,
+     "words_first": true
+    },
+    {
+     "beside": false,
+     "words_first": true
+    },
+    {
+     "beside": false,
+     "words_first": true
+    },
+    {
+     "beside": false,
+     "words_first": true
+    },
+    {
+     "beside": false,
+     "words_first": true
+    },
+    {
+     "beside": false,
+     "words_first": true
+    },
+    {
+     "beside": false,
+     "words_first": true
+    },
+    {
+     "beside": false,
+     "words_first": true
+    },
+    {
+     "beside": false,
+     "words_first": true
+    },
+    {
+     "beside": false,
+     "words_first": true
+    },
+    {
+     "beside": false,
+     "words_first": true
+    },
+    {
+     "beside": false,
+     "words_first": true
+    },
+    {
+     "beside": false,
+     "words_first": true
+    },
+    {
+     "beside": false,
+     "words_first": true
+    },
+    {
+     "beside": false,
+     "words_first": true
+    },
+    {
+     "beside": false,
+     "words_first": true
+    },
+    {
+     "beside": false,
+     "words_first": true
+    },
+    {
+     "beside": false,
+     "words_first": true
+    },
+    {
+     "beside": false,
+     "words_first": true
+    },
+    {
+     "beside": false,
+     "words_first": true
+    },
+    {
+     "beside": false,
+     "words_first": true
+    },
+    {
+     "beside": false,
+     "words_first": true
+    },
+    {
+     "beside": false,
+     "words_first": true
+    },
+    {
+     "beside": false,
+     "words_first": true
+    },
+    {
+     "beside": false,
+     "words_first": true
+    },
+    {
+     "beside": false,
+     "words_first": true
+    },
+    {
+     "beside": false,
+     "words_first": true
+    },
+    {
+     "beside": false,
+     "words_first": true
+    }
+   ]
+  },
+  {
+   "page": "spec",
+   "width": 390,
+   "file": "shots-spec-phone.png",
+   "ok": true,
+   "viewport": 390,
+   "scrollWidth": 390,
+   "math_spans": 115,
+   "mathml": 115,
+   "katex_errors": 0,
+   "lists_in_words": 0,
+   "literal_bold": 0,
+   "literal_dash_paragraphs": 0,
+   "bare_withdrawn": false,
+   "withdrawn_lines": 0,
+   "sorry_notes": 1,
+   "inputs": 0,
+   "in_review": [],
+   "sections_words_first": [
+    {
+     "beside": false,
+     "words_first": true
+    },
+    {
+     "beside": false,
+     "words_first": true
+    },
+    {
+     "beside": false,
+     "words_first": true
+    }
+   ]
+  }
+ ],
+ "ok": true
+}

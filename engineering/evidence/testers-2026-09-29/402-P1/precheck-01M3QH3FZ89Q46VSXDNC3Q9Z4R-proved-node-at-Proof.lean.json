@@ -1,0 +1,180 @@
+{
+ "id": "01M3QH3FZ89Q46VSXDNC3Q9Z4R",
+ "node_id": "variant-6bb50ad7",
+ "target_id": "erdos-402",
+ "state": "done",
+ "created": "2026-09-29T21:28:33Z",
+ "graph_commit": "571bd5564db21cf826cf67faa41c7d62a7d27bc0",
+ "bundle_digest": "4e49d043a63051ccb8e15e517403ed922bdddcc2b2717d42c6008f200831c85c",
+ "authenticated": true,
+ "result": {
+  "attestation": {
+   "artifact_hash": "b32fc782253dc15d25904829174b9b9801ab1b08f536da1341ae11d3a37cb05f",
+   "diagnostic": null,
+   "first_failing_step": null,
+   "gate_spec_hash": "d9af7df0959909beee872126fbcd11755d0220791923c4544e24f1abf2be865f",
+   "graph_commit": "571bd5564db21cf826cf67faa41c7d62a7d27bc0",
+   "graph_id": "erdos-402",
+   "lean_toolchain": "leanprover/lean4:v4.33.1",
+   "mathlib_sha": "0df444a360eaa60ab8c11dca51a86af692955474",
+   "merge_commit": null,
+   "model_and_tooling": "undeclared",
+   "network_commit": "3422bb401108f24a3006877a2af929894564a1c1",
+   "node_id": "variant-6bb50ad7",
+   "precheck_attestation": {
+    "hash": null,
+    "signature_kind": null
+   },
+   "review": null,
+   "runner": "hosted",
+   "schema": "attestation/v5",
+   "signature": {
+    "key_id": "SHA256:bJR39nO37EkRaxo4CPqdhcHk+WL+sEnAJ9ujpkF7LXo",
+    "kind": "service",
+    "timestamp": "2026-09-29T21:31:20Z",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAg4NVeR5WlT1J5vaHpDOmXNTurS+\nKqTYJTovSCpPj5G/IAAAAPb3BuLWF0dGVzdGF0aW9uAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQMyce0OI0qfwNJqh0pkt/5IjIeAR80Wx/Ftp6Ydcv2h+fiX+Bp\nEZIHrhxWbDwgKZSm5DkQqgZ2dZ8fZ6OkwEngw=\n-----END SSH SIGNATURE-----\n"
+   },
+   "statement_hash": "036eaa9104f0de4d20642d5a35f48a6ffba9aed687459af8403491281ef584d4",
+   "steps": [
+    {
+     "diagnostic": {
+      "code": "mathlib-pinned",
+      "details": {
+       "mathlib_sha": "0df444a360eaa60ab8c11dca51a86af692955474",
+       "packages": 8
+      },
+      "message": "Mathlib 0df444a360ea resolved from the pinned checkout"
+     },
+     "name": "toolchain",
+     "result": "pass",
+     "step": 1
+    },
+    {
+     "diagnostic": null,
+     "name": "paths",
+     "result": "pass",
+     "step": 2
+    },
+    {
+     "diagnostic": null,
+     "name": "kernel-replay",
+     "result": "pass",
+     "step": 4
+    },
+    {
+     "diagnostic": null,
+     "name": "axioms",
+     "result": "pass",
+     "step": 5
+    },
+    {
+     "diagnostic": {
+      "code": "hazards-acknowledged",
+      "details": {
+       "acknowledged": [
+        {
+         "checker": "div-zero",
+         "justification": "A.card = 8 is a hypothesis, so the rational division is by 8.",
+         "location": "\u2191a / \u2191A.card"
+        }
+       ]
+      },
+      "message": "1 hazard finding(s) acknowledged in META.yaml"
+     },
+     "name": "hazards",
+     "result": "pass",
+     "step": 6
+    },
+    {
+     "diagnostic": null,
+     "name": "witness",
+     "result": "pass",
+     "step": 7
+    },
+    {
+     "diagnostic": null,
+     "name": "deps",
+     "result": "pass",
+     "step": 8
+    }
+   ],
+   "submitter": null,
+   "toolchain_hash": "f54d0bc916bf76a7fae460ce9d078ccd1f74aeb4fd12c4b6546bca28b6aa1c63",
+   "tooling": {
+    "harness": null,
+    "model": null
+   },
+   "trust_base": "kernel",
+   "verdict": "pass"
+  },
+  "bundle_digest": "4e49d043a63051ccb8e15e517403ed922bdddcc2b2717d42c6008f200831c85c",
+  "first_failing_step": null,
+  "job_id": "01M3QH3FZ89Q46VSXDNC3Q9Z4R",
+  "node_id": "variant-6bb50ad7",
+  "steps": [
+   {
+    "diagnostic": {
+     "code": "mathlib-pinned",
+     "details": {
+      "mathlib_sha": "0df444a360eaa60ab8c11dca51a86af692955474",
+      "packages": 8
+     },
+     "message": "Mathlib 0df444a360ea resolved from the pinned checkout"
+    },
+    "name": "toolchain",
+    "result": "pass",
+    "step": 1
+   },
+   {
+    "diagnostic": null,
+    "name": "paths",
+    "result": "pass",
+    "step": 2
+   },
+   {
+    "diagnostic": null,
+    "name": "kernel-replay",
+    "result": "pass",
+    "step": 4
+   },
+   {
+    "diagnostic": null,
+    "name": "axioms",
+    "result": "pass",
+    "step": 5
+   },
+   {
+    "diagnostic": {
+     "code": "hazards-acknowledged",
+     "details": {
+      "acknowledged": [
+       {
+        "checker": "div-zero",
+        "justification": "A.card = 8 is a hypothesis, so the rational division is by 8.",
+        "location": "\u2191a / \u2191A.card"
+       }
+      ]
+     },
+     "message": "1 hazard finding(s) acknowledged in META.yaml"
+    },
+    "name": "hazards",
+    "result": "pass",
+    "step": 6
+   },
+   {
+    "diagnostic": null,
+    "name": "witness",
+    "result": "pass",
+    "step": 7
+   },
+   {
+    "diagnostic": null,
+    "name": "deps",
+    "result": "pass",
+    "step": 8
+   }
+  ],
+  "verdict": "pass"
+ },
+ "public": true
+}

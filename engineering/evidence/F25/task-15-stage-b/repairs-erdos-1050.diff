@@ -1,0 +1,12 @@
+507c507
+<           Finset.prod_le_one (fun i hi => by linarith [h1 i (Finset.mem_insert_of_mem hi)])
+---
+>           Finset.prod_le_one₀ (fun i hi => by linarith [h1 i (Finset.mem_insert_of_mem hi)])
+525c525
+<         have := Finset.prod_le_prod (s := Finset.Ioc n (2 * n)) (f := fun L => (2 : ℝ) ^ K - 2 ^ L) (g := fun _ => (2 : ℝ) ^ K)
+---
+>         have := Finset.prod_le_prod₀ (s := Finset.Ioc n (2 * n)) (f := fun L => (2 : ℝ) ^ K - 2 ^ L) (g := fun _ => (2 : ℝ) ^ K)
+624c624
+<               _ = 2 * (x / 2) ^ K := by ring
+---
+>               _ = 2 * (x / 2) ^ K := by rw [mul_assoc, ← mul_pow, one_div_mul_eq_div]

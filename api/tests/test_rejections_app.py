@@ -198,7 +198,9 @@ def test_no_error_response_or_log_line_carries_the_token_or_a_secret(
             h.client.post("/claims", json={"node_id": "no-such-node"}, headers=h.auth(token)),
             h.client.delete("/claims/NOPE", headers=h.auth(token)),
             h.client.post(
-                "/annexes", json={"node_id": "and-reassoc", "text": "x"}, headers=h.auth(token)
+                "/annexes",
+                json={"node_id": "and-reassoc", "text": "x", "licence": "CC-BY-4.0"},
+                headers=h.auth(token),
             ),
             h.client.post("/claims", json=CLAIM, headers=h.auth(token)),  # the store explodes
             h.client.post("/claims", json=CLAIM, headers=h.auth(other)),

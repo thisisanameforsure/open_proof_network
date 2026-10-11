@@ -86,6 +86,7 @@ EXTRA_DECLS = {
     "Clean": "OpnHazard.clean",
     "NegLiteral": "OpnHazard.neg_literal",
     "ArrowType": "OpnHazard.arrow_type",
+    "NatDivCast": "OpnHazard.nat_div_cast",
 }
 
 
@@ -186,6 +187,35 @@ def test_negative_literal_divisor(runner: Runner) -> None:
     assert code == 0 and doc["findings"] == [], doc
     code, doc = runner.on_fixture("NegLiteral", ["int-trunc"])
     assert code == 0 and [f["checker"] for f in doc["findings"]] == ["int-trunc"], doc
+
+
+def test_nat_div_flags_a_natural_division_and_not_a_cast_one(runner: Runner) -> None:
+    """F02-T9 (testers 2026-09-27, item 7): ``n / 2`` over the naturals truncates and passed
+    step 6 silently, ``int-trunc`` being the integers' checker; a sum written without its
+    ascription computes in truncated arithmetic, the trap the gate-written holes fell into on
+    2026-09-17. ``nat-div`` names the division at its location; the same division once the
+    operand is cast to the integers is not its business."""
+    code, doc = runner.on_fixture("NatDiv", ["nat-div"])
+    assert code == 0 and doc["ok"], doc
+    assert [(f["checker"], f["location"]) for f in doc["findings"]] == [("nat-div", "n / 2")]
+    assert "truncat" in doc["findings"][0]["message"], doc["findings"]
+    code, doc = runner.on_fixture("NatDivCast", ["nat-div"])
+    assert code == 0 and doc["findings"] == [], doc
+    code, doc = runner.on_fixture("NatDivCast", ["int-trunc"])
+    assert code == 0 and [f["checker"] for f in doc["findings"]] == ["int-trunc"], doc
+
+
+def test_auto_implicit_flags_an_undeclared_identifier(runner: Runner) -> None:
+    """F02-T9: an identifier the statement never declares is bound by ``autoImplicit`` as an
+    implicit binder (Lean core's default, on under the gate's elaboration) and hazards mode said
+    nothing. The checker elaborates the statement again with ``autoImplicit`` off and reports
+    each unknown identifier once, at its name; a statement that declares everything is clean."""
+    code, doc = runner.on_fixture("AutoImplicit", ["auto-implicit"])
+    assert code == 0 and doc["ok"], doc
+    assert [(f["checker"], f["location"]) for f in doc["findings"]] == [("auto-implicit", "n")]
+    assert "autoImplicit" in doc["findings"][0]["message"], doc["findings"]
+    code, doc = runner.on_fixture("UnusedBinder", ["auto-implicit"])
+    assert code == 0 and doc["findings"] == [], doc
 
 
 def test_a_function_type_is_not_an_unused_binder(runner: Runner) -> None:

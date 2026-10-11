@@ -1,0 +1,4 @@
+range 2.. 700
+no simple-window prime: [5, 8, 14, 18, 48, 61, 62, 63, 74, 105, 111, 153, 165, 270, 677, 678, 679, 680]
+no generalised prime without the q-exclusion: [678, 679, 680]
+no generalised prime (full hypotheses): []

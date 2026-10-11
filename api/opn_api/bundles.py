@@ -138,5 +138,16 @@ def validate(
     if problems:
         first = problems[0]
         return None, Rejection("path-forbidden", first.message, dict(first.details))
+    # F07-T53: step 2's rule above lets any flat file into an append-only directory; the
+    # classifier, which every pull request meets first, refuses one no role covers. So a bundle
+    # with such a file prechecked green and then opened a pull request that could only go red
+    # (a carried witness named `….1.witness.bak`, say). Refused here in the classifier's words.
+    for path in sorted(files):
+        if gate_paths.locate(path) is None:
+            return None, Rejection(
+                "path-forbidden",
+                f"{path} is not a path any submission may touch",
+                {"path": path, "status": "M" if path in existing else "A"},
+            )
 
     return Bundle(files=files, size=size, digest=digest_of(files)), None

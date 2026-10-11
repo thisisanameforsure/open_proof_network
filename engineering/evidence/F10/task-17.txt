@@ -1,0 +1,56 @@
+F10-T17 — publish the gate image with zstd layers (Q23), 2026-10-07
+
+All measurements on GitHub-hosted ubuntu-24.04 runners, from the throwaway branch exp/image-slim
+(network repo; never merged). Image: the one network 3422bb4 pinned,
+ghcr.io/thisisanameforsure/opn-gate@sha256:b8cae9f342dcf3d92177d6eb91316e6318508b5bc7b1c6a045546141d45a7880
+(Mathlib 0df444a360ea, Lean 4.33.1), and variants of it in the throwaway package opn-gate-exp.
+
+1. Where a pull's time goes (run 37625396611, two attempts; each row one fresh runner)
+   variant    download  decompress-only  decompress+write 177k files  docker pull
+   gzip       64.4 s    62.0 s           71.6 s                       148.8 s
+   gzip       61.7 s    62.1 s           71.4 s                       149.6 s
+   gzip       16.3 s    62.6 s           71.4 s                       104.5 s
+   gzip       59.2 s    62.0 s           71.8 s                       130.9 s
+   zstd       40.7 s    12.7 s           34.6 s                        94.3 s
+   zstd       43.5 s     7.8 s           72.0 s                        85.2 s
+   zstd       61.4 s    10.6 s           75.0 s                       120.7 s
+   zstd       60.3 s    10.4 s           78.3 s                       116.9 s
+   Unpacking is bound by writing 11 GB as files, not by decompression.
+
+2. Cold docker pull, all runs (run 37611904486 and the above)
+   gzip: 149.5 149.8 161.9 148.8 149.6 104.5 130.9  -> median 149.5 s
+   zstd: 140.5 141.0 141.3  94.3  85.2 120.7 116.9  -> median 120.7 s
+   Compressed: gzip 3605 MiB, zstd 3453 MiB.
+
+3. Verdicts unchanged (run 37611904486): gate/reproduce.sh --compare from a checkout at 3422bb4,
+   five merged proofs (attestations 000326 erdos-1050, 000319 erdos-1050--h1-v2,
+   000290 erdos-1050--h1-v2--h2, 000331 erdos-402--h3-v2--h1, 000300 erdos-69 variant-f592e3ab):
+   identical: True on all five, on the control and on the rebuilt image. zstd changes only
+   how the same layer bytes are compressed.
+
+4. Levers rejected
+   slim (no .ltar, no .c): 3146 MiB compressed, median pull 151.5 s (no gain); `lake build` in
+     the Mathlib checkout rebuilt Mathlib (1053/7026 modules in 600 s) where the original is a
+     5 s no-op ("Build completed successfully (8705 jobs)").
+   lazy loading: an `import Mathlib` check opened 52,504 files, 7371 MiB of 11600 MiB;
+     `import Mathlib.Tactic` 22,624 files, 3758 MiB (run 37625396611, readset jobs).
+     111 of 145 live Statement/Context files import Mathlib whole.
+
+5. Red, then green
+   red:   uv run --frozen pytest gate/tests/test_pins.py -k "zstd or shape"
+          FAILED test_publish_workflow_pushes_zstd_layers — assert 'docker buildx build' in ...
+          1 failed, 1 passed
+   green: uv run --frozen pytest gate/tests/test_pins.py  -> 10 passed
+
+6. The workflow itself (image-publish run 37628126848, dispatched on branch f10-zstd)
+   build and publish (mathlib none)              ✓ 2m32s
+   build and publish (mathlib 0df444a360ea...)   ✓ 10m32s
+   layer media types: ['application/vnd.oci.image.layer.v1.tar+zstd']   (both images)
+   published ghcr.io/thisisanameforsure/opn-gate@sha256:837aef02cd4dc7b9cb94802daf02717b745837468a28931108166a6de6353779
+   published ghcr.io/thisisanameforsure/opn-gate@sha256:85e2846cae237172df07e3abc77ff37f3ffdadd47ceeda61c40a331c786bafa1
+   opn_gate ok; mathlib 0df444a360eaa60ab8c11dca51a86af692955474 present
+   (tags named f10-zstd; nothing pins them)
+
+Not yet live: a graph pins an image by digest, so this reaches the gate at the next tag and
+re-pin. Before that re-pin, the owner's laptop needs Docker Engine 23+ (it runs 20.10.17,
+Docker Desktop 4.12), or pregate.sh and reproduce.sh cannot pull the pinned image.

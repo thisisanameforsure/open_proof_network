@@ -1,0 +1,16 @@
+# F08-T26 green run, 2026-10-03T10:04:14Z, branch f08-t26-service-uses
+$ uv run --frozen pytest api/tests/test_uses_service.py api/tests/test_checks.py -q
+warning: `VIRTUAL_ENV=/Users/mikehiggins/Desktop/repos/open_proof_network/.venv` does not match the project environment path `.venv` and will be ignored; use `--active` to target the active environment instead
+............................................................             [100%]
+60 passed in 23.09s
+
+$ make lint
+exit 0
+$ make types
+exit 0
+
+$ uv run --frozen pytest -m 'not lean and not docker and not network' -q
+FAILED gate/tests/test_walkthrough.py::test_graph_copy_is_identical - Asserti...
+1 failed, 3508 passed, 1 skipped, 158 deselected in 282.44s (0:04:42)
+# the one failure is the known pre-existing one: the graph's AGENTS.md copy rides the next re-pin (and this task edits gate/agents/AGENTS.md, which widens that same diff); every other test_walkthrough test passes.
+# not run here: one live POST /check through the deployed route (needs a deploy and OPN_API_USES_FROM set at the re-pin).

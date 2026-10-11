@@ -6,6 +6,10 @@ declared deps (R5). The repo's ``Context.lean`` must carry, for each declared de
 hash-equal to that dep's ``Statement.lean`` signature (R6) — the guarantee that makes the
 gate-time Context substitution (Q4) sound. A declared dep the proof never touches is a warning,
 never a failure (R7, Q3).
+
+F02-T12: the footprint is read from the compiled ``Proof`` module step 4 replayed, in the judging
+directory, read-only, by ``opn-used-constants`` with initializers off: nothing of the proof runs
+in the process that reports what it depends on.
 """
 
 from __future__ import annotations
@@ -16,7 +20,7 @@ import subprocess
 from pathlib import Path
 
 from opn_gate import graph as graphmod
-from opn_gate import layout, schemas
+from opn_gate import judging, layout, schemas, uses
 from opn_gate.steps.base import RunContext, StepResult
 from opn_gate.steps.replay import PROOF_MODULE
 from opn_gate.steps.witness import metaprogram_failure
@@ -78,6 +82,15 @@ def classify(
     return used_nodes, offences
 
 
+def used_defs_modules(constants: list[dict[str, object]]) -> set[str]:
+    """The ``Defs.*`` modules that contribute a constant to the proof term."""
+    return {
+        str(c.get("module"))
+        for c in constants
+        if c.get("module") is not None and layout.module_origin(str(c.get("module")))[0] == "defs"
+    }
+
+
 class DepsStep:
     number = 8
     name = "deps"
@@ -94,19 +107,19 @@ class DepsStep:
         if context_problem is not None:
             return context_problem
 
-        staged = ctx.data.get("staged")
-        proof = (
-            staged.node_dir(node.node_id) / "Proof.lean" if staged is not None else node.proof_path
-        )
+        judge = ctx.data.get(judging.KEY)
+        if not isinstance(judge, judging.Judge):
+            return StepResult.failed("step-order", "step 8 needs step 4 to have passed")
+        # F02-T12: the module step 4 compiled and replayed, read from the judging directory and
+        # never elaborated here; the proof's source is not an argument.
         req = UsedConstantsRequest(
-            file=proof,
+            file=None,
             module=layout.node_module(node.node_id, PROOF_MODULE),
             decl=node.statement.decl_name,
         )
+        reader = judging.confined(ctx.toolchain, read_only=[judge.modules])
         try:
-            result = ctx.toolchain.used_constants(
-                tc, req, [ctx.build_dir], timeout_s=ctx.wallclock_s
-            )
+            result = reader.used_constants(tc, req, [judge.modules], timeout_s=ctx.wallclock_s)
         except subprocess.TimeoutExpired:
             return StepResult.failed(
                 "timeout", f"step 8 exceeded the {ctx.wallclock_s:g}s wall-clock cap"
@@ -120,8 +133,18 @@ class DepsStep:
                 messages=[m.as_dict() for m in result.messages],
             )
 
+        # F08-R18: a declared node use is taken as a declared dep is; what is not declared in
+        # either place is still refused, whatever the imports happen to make reachable.
+        declared_uses = ctx.data.get(uses.USES_KEY)
+        node_uses = (
+            [str(n) for n in declared_uses.get("nodes") or []]
+            if isinstance(declared_uses, dict)
+            else []
+        )
         used_nodes, offences = classify(
-            result.doc.get("constants") or [], own=node.node_id, declared=declared
+            result.doc.get("constants") or [],
+            own=node.node_id,
+            declared=[*declared, *node_uses],
         )
         unused = [d for d in declared if d not in used_nodes]
         ctx.data["deps"] = {
@@ -132,6 +155,20 @@ class DepsStep:
                 f"declared dep {d!r} contributes no constant to the proof" for d in unused
             ],
         }
+        # F08-R18: what the declared uses came to, beside what the node already depended on. A
+        # definition module that contributes no constant may still be needed (a notation, an
+        # instance the proof elaborates through), so it is recorded and never refused.
+        if isinstance(declared_uses, dict):
+            used_defs = used_defs_modules(result.doc.get("constants") or [])
+            idle = [m for m in declared_uses.get("defs") or [] if m not in used_defs]
+            ctx.data["deps"]["uses"] = {
+                "defs": list(declared_uses.get("defs") or []),
+                "idle": idle,
+                "nodes": node_uses,
+            }
+            ctx.data["deps"]["warnings"].extend(
+                f"declared use {m} contributes no constant to the proof" for m in idle
+            )
         if offences:
             first = offences[0]
             return StepResult.failed(
@@ -140,6 +177,19 @@ class DepsStep:
                 f"(node {first['node']}), which META.yaml does not declare",
                 offences=offences,
                 declared=declared,
+            )
+        # F08-R18: the use lines of a merged proof are the graph's record of what it rests on
+        # beyond its deps, so they are held to the kernel term: a line the term does not bear
+        # out would draw an edge, and later credit, that the proof never earned.
+        unused_uses = [n for n in node_uses if n not in used_nodes]
+        if unused_uses:
+            return StepResult.failed(
+                "use-unused",
+                "the header declares a use the proof term does not make: "
+                + ", ".join(layout.node_module(n, layout.USED_STEM) for n in unused_uses)
+                + ". Remove the line; a use line is a record of what the proof rests on",
+                unused=unused_uses,
+                used=sorted(used_nodes),
             )
         for warning in ctx.data["deps"]["warnings"]:
             log.warning("step 8: %s", warning)

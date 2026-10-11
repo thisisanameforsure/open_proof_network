@@ -1,0 +1,58 @@
+# F04-T27 red: the site's steward-rule sentences against the record's policy switch
+# 2026-10-01T04:25:45Z
+
+site/tests/test_finding_steward_rule_wording.py:65: AssertionError
+=========================== short test summary info ============================
+ERROR site/tests/test_finding_steward_rule_wording.py::test_an_enforced_rule_is_stated
+FAILED site/tests/test_finding_steward_rule_wording.py::test_the_model_reads_the_switch
+FAILED site/tests/test_finding_steward_rule_wording.py::test_an_unenforced_rule_is_announced_not_stated
+FAILED site/tests/test_finding_steward_rule_wording.py::test_the_about_page_claims_only_the_signatures_the_record_shows
+3 failed, 1 error in 0.75s
+# F04-T27 red, second run: the model reads the switch (the seam), the wording still states the rule
+# 2026-10-01T04:26:13Z
+WARNING  opn_gate.records:records.py:80 attempt record /tmp/pytest-of-root/pytest-6/announced0/graph/targets/propositional/nodes/and-swap-reassoc/attempts/2026-09-02-b.yaml is invalid and counted as such: cannot read YAML /tmp/pytest-of-root/pytest-6/announced0/graph/targets/propositional/nodes/and-swap-reassoc/attempts/2026-09-02-b.yaml: while parsing a flow sequence
+  in "<unicode string>", line 1, column 8:
+    route: [oops
+           ^
+expected ',' or ']', but got '<stream end>'
+  in "<unicode string>", line 2, column 1:
+    
+    ^
+WARNING  opn_gate.products:products.py:489 propositional/and-swap-reassoc: attempt 2026-09-02-b.yaml does not validate (counted as invalid)
+WARNING  opn_gate.records:records.py:80 attempt record /tmp/pytest-of-root/pytest-6/announced0/graph/targets/propositional/nodes/and-swap-reassoc/attempts/2026-09-02-b.yaml is invalid and counted as such: cannot read YAML /tmp/pytest-of-root/pytest-6/announced0/graph/targets/propositional/nodes/and-swap-reassoc/attempts/2026-09-02-b.yaml: while parsing a flow sequence
+  in "<unicode string>", line 1, column 8:
+    route: [oops
+           ^
+expected ',' or ']', but got '<stream end>'
+  in "<unicode string>", line 2, column 1:
+    
+    ^
+_______ test_the_about_page_claims_only_the_signatures_the_record_shows ________
+announced = {'index.html': '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="widt...6666666666666666666666666666666666666/frontier.json">frontier.json ↗</a></span>\n</footer>\n\n</body>\n</html>\n', ...}
+    def test_the_about_page_claims_only_the_signatures_the_record_shows(announced: dict[str, str]) -> None:
+        """The fixture's statements carry no non-author signature; the page must not say they do."""
+        html = announced["about/index.html"]
+>       assert "is signed by someone who did not write it" not in html
+E       assert 'is signed b...not write it' not in '<!DOCTYPE h...>\n</html>\n'
+E         
+E         'is signed by someo...ho did not write it' is contained here:
+E           ure means is signed by someone who did not write it, and the
+E           signatures are counted and named. Every attempt, failed or not, is a published, typed record.
+E           When a proof merges the problem is marked proved and, in the same breath, unexplained, until a
+E           person who can explain the proof without the tool that produced it has signed the explainer and
+E           until a paper or note exists; the source registry hears "kernel-checked, not yet explained", not...
+E         
+E         ...Full output truncated (40 lines hidden), use '-vv' to show
+site/tests/test_finding_steward_rule_wording.py:65: AssertionError
+=========================== short test summary info ============================
+ERROR site/tests/test_finding_steward_rule_wording.py::test_an_enforced_rule_is_stated
+FAILED site/tests/test_finding_steward_rule_wording.py::test_the_model_reads_the_switch
+FAILED site/tests/test_finding_steward_rule_wording.py::test_an_unenforced_rule_is_announced_not_stated
+FAILED site/tests/test_finding_steward_rule_wording.py::test_the_about_page_claims_only_the_signatures_the_record_shows
+3 failed, 1 error in 0.71s
+
+# F04-T27 red, third run (ssh-keygen installed so the enforced fixture builds): the model reads the switch; the wording fails
+# 2026-10-01T04:27:04Z
+FAILED site/tests/test_finding_steward_rule_wording.py::test_an_unenforced_rule_is_announced_not_stated
+FAILED site/tests/test_finding_steward_rule_wording.py::test_the_about_page_claims_only_the_signatures_the_record_shows
+2 failed, 2 passed in 1.90s

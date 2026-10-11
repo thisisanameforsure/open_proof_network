@@ -289,6 +289,7 @@ def test_products_of_the_fixture(tmp_path: Path) -> None:
         "frontier.json",
         "info.json",
         "targets/index.json",
+        "targets/propositional/glosses.json",  # F20-R9
         "targets/propositional/graph.json",
         "targets/propositional/nodes/and-reassoc/CONTEXT.json",  # F10-R3
         "targets/propositional/nodes/and-swap-reassoc/CONTEXT.json",
@@ -311,8 +312,8 @@ def test_products_of_the_fixture(tmp_path: Path) -> None:
     assert idx["fidelity"] == "mechanical-only" and idx["mathlib_sha"] is None
     assert idx["node_counts"]["ready"] == 2 and idx["node_counts"]["blocked"] == 1
     info = loads(prod, "info.json")
-    assert info["protocol_version"] == "3.22"
-    assert info["schemas"]["attestation"] == [1, 2, 3, 4, 5] and info["schemas"]["meta"] == [
+    assert info["protocol_version"] == products.PROTOCOL_VERSION == "3.37"
+    assert info["schemas"]["attestation"] == [1, 2, 3, 4, 5, 6, 7] and info["schemas"]["meta"] == [
         1,
         2,
         3,
@@ -401,7 +402,7 @@ def test_a_merged_partial_is_an_attempt_on_the_frontier(tmp_path: Path) -> None:
     (att / "20260912T110722Z-bob-partial.lean").write_text("-- a partial\n", encoding="utf-8")
     (att / "20260914T000000Z-dave-alternate.lean").write_text("-- an alternate\n", encoding="utf-8")
     doc = loads(generate(root), "frontier.json")
-    assert doc["schema"] == "frontier/v3"
+    assert doc["schema"] == products.FRONTIER_SCHEMA  # v3's rule, carried into v4 (F03-T16)
     entry = next(e for e in doc["entries"] if e["node_id"] == "and-reassoc")
     assert entry["attempts"] == 2
     assert entry["refuted_route_classes"] == ["induction"]
@@ -445,6 +446,7 @@ def test_deterministic_and_valid(tmp_path: Path) -> None:
         "frontier.json",
         "info.json",
         "targets/index.json",
+        "targets/propositional/glosses.json",  # F20-R9
         "targets/propositional/graph.json",
         "targets/propositional/nodes/and-reassoc/CONTEXT.json",  # F10-R3
         "targets/propositional/nodes/and-reassoc/META.yaml",  # ready -> speculative (R2)
@@ -1010,6 +1012,9 @@ def test_signature_count(tmp_path: Path) -> None:
             "stewards",  # F15: v6
             "digestion",
             "calibration",
+            "panel",  # F24: v9
+            "writeups",
+            "registrations",  # F25: v10
         ):
             entry.pop(key, None)
         for key in ("refuted", "defective"):
@@ -1136,7 +1141,7 @@ def test_related_variant_needs_signature(tmp_path: Path) -> None:
         )
     prod = generate(root)
     doc = json.loads(prod.files[Path(f"targets/{TARGET}/graph.json")])
-    assert doc["schema"] == "graph/v3"
+    assert doc["schema"] == products.GRAPH_SCHEMA
     row = next(n for n in doc["nodes"] if n["node_id"] == "variant-related")
     assert row["relevance"] == {"pertinent": True, "signer": "mike", "date": "2026-09-12"}
     # The layout tolerates the file, and the gate knows whose it is.
@@ -1205,7 +1210,7 @@ def test_index_carries_the_qa_state_attempts_and_drift(tmp_path: Path) -> None:
     assert row["claimable"] is False and "upstream-drift" in row["not_claimable"]
     assert (
         schemas.violations(
-            json.loads(generate(root).files[Path("targets/index.json")]), "targets-index/v7"
+            json.loads(generate(root).files[Path("targets/index.json")]), products.INDEX_SCHEMA
         )
         == []
     )
@@ -1224,9 +1229,12 @@ def test_index_v6_fields(tmp_path: Path) -> None:
     harness.take_in(root)
     prod = generate(root)
     index = loads(prod, "targets/index.json")
-    assert schemas.violations(index, "targets-index/v7") == []  # v7 adds a step9 value only
-    assert index["schema"] == "targets-index/v7"
-    assert index["policy"] == {"steward_rule": {"enforced": False, "since": None, "evidence": None}}
+    # The index validates as the version the gate emits (v6's fields are in every later one;
+    # v8: F23-R14's steward fields; v9: F24-R6's panel, test_targets_index_v9).
+    assert index["schema"] == products.INDEX_SCHEMA == "targets-index/v10"
+    assert schemas.violations(index, products.INDEX_SCHEMA) == []
+    assert index["policy"]["steward_rule"] == {"enforced": False, "since": None, "evidence": None}
+    assert index["policy"]["panel"] == policymod.Policy().panel.as_dict()  # defaults, no file
     row = f11_row(root, prod)
     assert row["stewards"] == [] and row["calibration"] is False
     assert row["digestion"] == {
@@ -1238,8 +1246,9 @@ def test_index_v6_fields(tmp_path: Path) -> None:
     }
     info = loads(prod, "info.json")
     for name in ("steward", "explainer-signature", "writeup", "policy"):
-        assert info["schemas"][name] == [1], name
-    assert info["schemas"]["target"] == [1, 2] and info["schemas"]["targets-index"][-1] == 7
+        # F21 publishes explainer-signature/v2 beside v1; what this pins is that F15's are named
+        assert 1 in info["schemas"][name], name
+    assert info["schemas"]["target"] == [1, 2, 3] and 8 in info["schemas"]["targets-index"]
 
     # R3: the policy file, present and enforced, is published at the top; a malformed one is a
     # graph defect that stops the products (C7).

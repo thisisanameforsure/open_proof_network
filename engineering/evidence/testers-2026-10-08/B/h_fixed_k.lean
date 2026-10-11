@@ -1,0 +1,40 @@
+import Mathlib
+
+open scoped Nat
+
+theorem Opn.erdos_1094__h1 : ∀ k : ℕ, 0 < k →
+    {n : ℕ | k * k ≤ n ∧ (n.choose k).minFac > n / k}.Finite := by
+  intro k hk
+  refine (Set.finite_lt_nat (k ! + k)).subset ?_
+  intro n hn
+  simp only [Set.mem_setOf_eq] at hn ⊢
+  obtain ⟨hkn, hmin⟩ := hn
+  -- t = n / k ≥ k, and m = k * t is the multiple of k in (n - k, n]
+  have hkt : k ≤ n / k := (Nat.le_div_iff_mul_le hk).2 hkn
+  have htpos : 0 < n / k := lt_of_lt_of_le hk hkt
+  have hm_le : k * (n / k) ≤ n := Nat.mul_div_le n k
+  have hm_gt : n < k * (n / k) + k := by
+    have := Nat.lt_mul_div_succ n hk
+    linarith [this]
+  -- no prime p ≤ n / k divides C(n, k)
+  have hnd : ∀ p : ℕ, p.Prime → p ≤ n / k → ¬ p ∣ n.choose k := by
+    intro p hp hpt hpd
+    have := Nat.minFac_le_of_dvd hp.two_le hpd
+    omega
+  -- so m = k * (n / k) is coprime to C(n, k)
+  have hcop : Nat.Coprime (k * (n / k)) (n.choose k) := by
+    apply Nat.coprime_of_dvd
+    intro p hp hpm hpC
+    rcases (Nat.Prime.dvd_mul hp).1 hpm with h | h
+    · exact hnd p hp (le_trans (Nat.le_of_dvd hk h) hkt) hpC
+    · exact hnd p hp (Nat.le_of_dvd htpos h) hpC
+  -- m divides n.descFactorial k = k! * C(n, k)
+  have hm_dvd : k * (n / k) ∣ k ! * n.choose k := by
+    rw [← Nat.descFactorial_eq_factorial_mul_choose, Nat.descFactorial_eq_prod_range]
+    have hj : n - k * (n / k) ∈ Finset.range k := Finset.mem_range.2 (by omega)
+    have h1 := Finset.dvd_prod_of_mem (fun i => n - i) hj
+    have h2 : n - (n - k * (n / k)) = k * (n / k) := by omega
+    simpa only [h2] using h1
+  have hm_fact : k * (n / k) ∣ k ! := hcop.dvd_of_dvd_mul_right hm_dvd
+  have hle : k * (n / k) ≤ k ! := Nat.le_of_dvd (Nat.factorial_pos k) hm_fact
+  omega

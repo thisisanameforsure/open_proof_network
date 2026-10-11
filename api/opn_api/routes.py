@@ -18,6 +18,10 @@ class RouteSpec:
     d35: str | None  # the D-35 plain-path row, verbatim as the document writes it
     authenticated: bool = False  # R5: bearer required
     feature: str = "F05"
+    #: F23-R3: the route also accepts a web session from the site (the cookie, the site's exact
+    #: Origin and ``X-OPN-Web: 1``) and answers the site's credentialed CORS. Every other route
+    #: ignores the cookie.
+    web: bool = False
 
     @property
     def write(self) -> bool:
@@ -55,6 +59,42 @@ D35_OWNED_BY_F08: frozenset[str] = frozenset({D35_PROPOSAL_PR, D35_CLAIM_PR})
 # F13's row (D-35 v3.14): the fast check answers in the same response, so there is no polling read.
 D35_POST_CHECK = "POST /check"
 D35_OWNED_BY_F13: frozenset[str] = frozenset({D35_POST_CHECK})
+# F20's row (D-35 v3.30): submit_gloss and withdraw_gloss, each by the endpoint D-35 names.
+D35_POST_GLOSSES = "POST /glosses"
+D35_POST_GLOSS_WITHDRAWALS = "POST /glosses/withdrawals"
+D35_OWNED_BY_F20: frozenset[str] = frozenset({D35_POST_GLOSSES, D35_POST_GLOSS_WITHDRAWALS})
+# F23's row (D-35 v3.33): the web session's own routes, the steward form and approvals. No MCP
+# tool (v3.33: only a person may hold either role, and an agent cannot sign in with GitHub).
+D35_GET_SESSION = "GET /session"
+D35_POST_SESSION_END = "POST /session/end"
+D35_POST_STEWARDS = "POST /stewards"
+D35_POST_APPROVALS = "POST /approvals"
+D35_OWNED_BY_F23: frozenset[str] = frozenset(
+    {D35_GET_SESSION, D35_POST_SESSION_END, D35_POST_STEWARDS, D35_POST_APPROVALS}
+)
+# F24's row (D-35 v3.34): the panel. No MCP tool (only a person sits on a panel); the invitation
+# path is POST /stewards taking a motion, already F23's row.
+D35_POST_MOTIONS = "POST /motions"
+D35_POST_VOTES = "POST /votes"
+D35_POST_WRITEUPS = "POST /writeups"
+D35_OWNED_BY_F24: frozenset[str] = frozenset({D35_POST_MOTIONS, D35_POST_VOTES, D35_POST_WRITEUPS})
+# The literature row (D-35 v3.35; F05-T29, F23-T12): each opens a pull request that appends one
+# schema-checked ``literature/v1`` file under the node, by the endpoint D-35 names.
+D35_POST_LITERATURE = "POST /literature"
+D35_POST_LITERATURE_CONFIRM = "POST /literature/confirm"
+LITERATURE_ROUTES: frozenset[str] = frozenset({D35_POST_LITERATURE, D35_POST_LITERATURE_CONFIRM})
+# F25's row (D-35 v3.37): names and registrations. The first appends one ``display-name/v1`` file
+# at ``names/<pseudonym>.yaml`` for the bearer's own pseudonym, signed by the approval key; the
+# second, for a signed-in curator or a steward of the target, one ``registration/v1`` file under
+# the target. Neither talks to the registry.
+D35_POST_ME_NAME = "POST /me/name"
+D35_POST_REGISTRATIONS = "POST /registrations"
+#: F25-R16 (Q24; D-23, D-35 v3.37): a live identity accepts the current sign-off text again.
+D35_POST_DCO_ACCEPT = "POST /dco/accept"
+DCO_ACCEPT_HANDLER = "identity:post_dco_accept"
+D35_OWNED_BY_F25: frozenset[str] = frozenset(
+    {D35_POST_ME_NAME, D35_POST_REGISTRATIONS, D35_POST_DCO_ACCEPT}
+)
 
 ROUTES: tuple[RouteSpec, ...] = (
     # F05-T13, Q13: the index of this table, served at the root. Open, no D-35 row.
@@ -67,6 +107,28 @@ ROUTES: tuple[RouteSpec, ...] = (
     RouteSpec("GET", "/auth/github/start", "identity:github_start", D35_POST_TOKENS),
     RouteSpec("GET", "/auth/github/callback", "identity:github_callback", D35_POST_TOKENS),
     RouteSpec("POST", "/tokens", "identity:post_tokens", D35_POST_TOKENS),
+    # F23-R2 (D-35 v3.33): a first web sign-in's DCO tick. Sign-in under the D-19 identity rules,
+    # so D-35's token row, as the two auth routes above are; it makes the identity and a web
+    # session, never a token.
+    RouteSpec(
+        "POST", "/auth/web/accept", "identity:post_web_accept", D35_POST_TOKENS, feature="F23"
+    ),
+    # F05-T27, T29 (D-19 v3.29): optional rotation of a live token. Token issuance under the D-19
+    # identity rules, so D-35's token row (Q27, Q29).
+    RouteSpec("POST", "/tokens/renew", "identity:post_renew", D35_POST_TOKENS, authenticated=True),
+    # F25-R16 (Q24; D-23 v3.37): a live identity accepts the current sign-off text. Every other
+    # write of an identity whose recorded acceptance is older is refused ``dco-reaccept-required``
+    # by the app until this is called (or the text is accepted again through POST /tokens or the
+    # web form's tick). A bearer or a web session.
+    RouteSpec(
+        "POST",
+        "/dco/accept",
+        DCO_ACCEPT_HANDLER,
+        D35_POST_DCO_ACCEPT,
+        authenticated=True,
+        feature="F25",
+        web=True,
+    ),
     RouteSpec("POST", "/claims", "claims:post_claims", D35_POST_CLAIMS, authenticated=True),
     RouteSpec(
         "DELETE", "/claims/{claim_id}", "claims:delete_claim", D35_DELETE_CLAIM, authenticated=True
@@ -92,6 +154,17 @@ ROUTES: tuple[RouteSpec, ...] = (
     # F07-T16: reads, like /frontier.json — what the service opened and how it is doing. The plain
     # path is the pull request on the host and, once merged, attestations/<n>.json.
     RouteSpec("GET", "/submissions.json", "pending:get_submissions", None, feature="F07"),
+    # F07-T70 (the owner, 2026-10-04): the caller's own submissions, open and recently finished,
+    # as /claims/mine is for claims. A read with no D-35 row; matched before the route below,
+    # which would refuse "mine" as an id.
+    RouteSpec(
+        "GET",
+        "/submissions/mine",
+        "pending:get_my_submissions",
+        None,
+        authenticated=True,
+        feature="F07",
+    ),
     RouteSpec("GET", "/submissions/{submission_id}", "pending:get_submission", None, feature="F07"),
     # F07-T43 (ruling D5): the identity that opened a pull request closes it, unmerged.
     RouteSpec(
@@ -161,6 +234,129 @@ ROUTES: tuple[RouteSpec, ...] = (
         authenticated=True,
         feature="F08",
     ),
+    # F20-R10 (D-35 v3.30): a gloss or explainer, and a withdrawal of one version, each refused
+    # by the gate's own checks before any pull request opens.
+    RouteSpec(
+        "POST",
+        "/glosses",
+        "glosses:post_glosses",
+        D35_POST_GLOSSES,
+        authenticated=True,
+        feature="F20",
+        web=True,  # F23-R3
+    ),
+    RouteSpec(
+        "POST",
+        "/glosses/withdrawals",
+        "glosses:post_withdrawals",
+        D35_POST_GLOSS_WITHDRAWALS,
+        authenticated=True,
+        feature="F20",
+        web=True,  # F23-R3
+    ),
+    # F23-R4 (D-35 v3.33): who is signed in on the site and their roles, and signing out. Both
+    # read the web session alone, so the table asks no bearer of either.
+    RouteSpec("GET", "/session", "session:get_session", D35_GET_SESSION, feature="F23", web=True),
+    RouteSpec(
+        "POST",
+        "/session/end",
+        "session:post_session_end",
+        D35_POST_SESSION_END,
+        feature="F23",
+        web=True,
+    ),
+    # F23-R8: become a problem's steward, or step down, from the site; signed by the approval key.
+    RouteSpec(
+        "POST",
+        "/stewards",
+        "stewards:post_stewards",
+        D35_POST_STEWARDS,
+        authenticated=True,
+        feature="F23",
+        web=True,
+    ),
+    # F23-R10: a steward or curator approves sections of words; signed by the approval key.
+    RouteSpec(
+        "POST",
+        "/approvals",
+        "approvals:post_approvals",
+        D35_POST_APPROVALS,
+        authenticated=True,
+        feature="F23",
+        web=True,
+    ),
+    # F24-R8 (D-32, D-35 v3.34): the panel's motions, votes and write-up acts from the site,
+    # each signed by the approval key as the signed-in login and opened as an append.
+    RouteSpec(
+        "POST",
+        "/motions",
+        "panel:post_motions",
+        D35_POST_MOTIONS,
+        authenticated=True,
+        feature="F24",
+        web=True,
+    ),
+    RouteSpec(
+        "POST",
+        "/votes",
+        "panel:post_votes",
+        D35_POST_VOTES,
+        authenticated=True,
+        feature="F24",
+        web=True,
+    ),
+    RouteSpec(
+        "POST",
+        "/writeups",
+        "panel:post_writeups",
+        D35_POST_WRITEUPS,
+        authenticated=True,
+        feature="F24",
+        web=True,
+    ),
+    # F05-T29 (D-25 v3.35): any contributor proposes what the literature says of a statement;
+    # an unsigned append under the node, so D-35's append row.
+    RouteSpec(
+        "POST",
+        "/literature",
+        "literature:post_literature",
+        D35_POST_LITERATURE,
+        authenticated=True,
+        feature="F05",
+    ),
+    # F23-T12 (D-25, D-32 v3.35): a steward of the target or a curator confirms a proposed
+    # literature status, or states one, signed by the approval key; a web session or a bearer
+    # with a GitHub login. A signed append under the node, so D-35's append row.
+    RouteSpec(
+        "POST",
+        "/literature/confirm",
+        "literature:post_confirm",
+        D35_POST_LITERATURE_CONFIRM,
+        authenticated=True,
+        feature="F23",
+        web=True,
+    ),
+    # F25-R15 (D-3, D-19, D-35 v3.37): a bearer's display name for its own pseudonym and no other,
+    # signed by the approval key. A bearer alone: the pseudonym is the identity, however proved.
+    RouteSpec(
+        "POST",
+        "/me/name",
+        "names:post_me_name",
+        D35_POST_ME_NAME,
+        authenticated=True,
+        feature="F25",
+    ),
+    # F25-R15 (D-10, D-35 v3.37): a curator or a steward of the target records a registration;
+    # a web session or a bearer with a GitHub login, as POST /literature/confirm takes.
+    RouteSpec(
+        "POST",
+        "/registrations",
+        "registrations:post_registrations",
+        D35_POST_REGISTRATIONS,
+        authenticated=True,
+        feature="F25",
+        web=True,
+    ),
     # F13-R8, Q2: open like the tutorial precheck; a presented token is authenticated and charged
     # per identity, and an anonymous caller is charged per address, by the handler.
     RouteSpec("POST", "/check", "checks:post_check", D35_POST_CHECK, feature="F13"),
@@ -170,8 +366,14 @@ ROUTES: tuple[RouteSpec, ...] = (
         "GET", "/checks/{check_id}", "checks:get_check", None, authenticated=True, feature="F13"
     ),
     # F13-R11, Q12: which hosted environment serves each pin and each target. Network
-    # configuration, open like /dco.json; info.json stays the graph's product (info/v1).
+    # configuration, open like /dco.json; info.json stays the graph's product (info/v1, info/v2).
     RouteSpec("GET", "/hosted-checkers.json", "checks:get_hosted_checkers", None, feature="F13"),
+    # --- F05-T23, F05-T24 (audit 2026-10-04, owner-approved): documentation an agent reads ---
+    # Open reads with no D-35 row, like /hosted-checkers.json: the error-code catalog (F13-T29),
+    # and the two plain-text files an agent or a crawler asks a host for first.
+    RouteSpec("GET", "/errors.json", "errorcodes:get_errors", None),
+    RouteSpec("GET", "/llms.txt", "wayfinding:get_llms_txt", None),
+    RouteSpec("GET", "/robots.txt", "wayfinding:get_robots_txt", None),
 )
 
 #: F05-T13 (Q13): one sentence per route, keyed by its label and served by ``GET /``. A test
@@ -182,19 +384,30 @@ PURPOSES: dict[str, str] = {
     "GET /health": "Whether the service is configured and which store it runs on.",
     "GET /info.json": "The graph's info.json with the rate limits in force filled in.",
     "GET /dco.json": "The sign-off text a token is issued against, and its version.",
+    "POST /dco/accept": "Accept the current sign-off text with a live token, after it changes; "
+    "until then every write of the identity is refused dco-reaccept-required.",
     "GET /frontier.json": "The open statements, with the live claim counts laid over them.",
     "GET /claims.json": "The live claims registry alone, as the post-merge job commits it.",
     "GET /auth/github/start": "Begin the GitHub proof of identity for a token (browser).",
     "GET /auth/github/callback": "Finish the GitHub proof of identity and issue the token.",
     "POST /tokens": "Issue a token: from a passing tutorial precheck (no account) or GitHub.",
+    "POST /auth/web/accept": "Finish a first sign-in on the site: accept the DCO, then return "
+    "to the page with a web session (browser).",
+    "POST /tokens/renew": (
+        "Rotate a token (optional; one in use never lapses): a new token, the old one retired."
+    ),
     "POST /claims": "Claim an open statement for a time, so others can see it is being worked.",
     "DELETE /claims/{claim_id}": "Release a claim you hold.",
     "GET /claims/mine": "Your own active claims with their ids, and who else holds each node.",
     "POST /precheck": "Run the gate on a bundle in the hosted sandbox before submitting it.",
     "GET /precheck/{job_id}": "A precheck job's state, and its signed attestation when done.",
     "POST /submissions": "Open the pull request for a prechecked proof or partial proof.",
-    "GET /submissions.json": "Every pull request the service opened that is still open.",
-    "GET /submissions/{submission_id}": "One submission: its pull request and where it stands.",
+    "GET /submissions.json": "Every pull request the service opened that is still open, in "
+    "merge-queue order, each with its position.",
+    "GET /submissions/mine": "Your own submissions: the open ones with their place in the "
+    "queue, and the most recently merged or closed.",
+    "GET /submissions/{submission_id}": "One submission: its pull request, where it stands, "
+    "and its place in the merge queue with what is ahead.",
     "DELETE /submissions/{submission_id}": "Withdraw a pull request you opened, closed unmerged.",
     "POST /postmortems": "Record a failed attempt on a statement, by pull request.",
     "POST /annexes": "Attach informal mathematics to a statement, by pull request.",
@@ -204,8 +417,42 @@ PURPOSES: dict[str, str] = {
     "POST /proposals/witness": "Supply the witness a statement is waiting for, by pull request.",
     "POST /revision-requests": "Ask a curator to revise a statement, with the reason.",
     "POST /defect-claims": "Claim a statement is defective, with a Lean exhibit the gate checks.",
+    "POST /glosses": "Say in words what a Lean file or a merged proof says, or revise those "
+    "words, by pull request; refused first by the gate's own checks.",
+    "POST /glosses/withdrawals": "Withdraw one version of a gloss or explainer, by pull "
+    "request; the file stays and is read as absent.",
+    "GET /session": "Who is signed in on the site (web session), and their roles: curator, and "
+    "the problems they steward.",
+    "POST /session/end": "Sign out of the site: end the web session and clear its cookie.",
+    "POST /stewards": "Become a problem's steward, or step down, as your GitHub login: the "
+    "record is signed with the network's approval key and opened by pull request.",
+    "POST /approvals": "Approve sections of a gloss or explainer version as a steward of its "
+    "problem or a curator, signed with the network's approval key, by pull request.",
+    "POST /motions": "Open a motion before a problem's steward panel (invite a steward, verify "
+    "a write-up, set the authorship threshold), signed with the network's approval key, by pull "
+    "request.",
+    "POST /votes": "Vote yes or no on an open motion as a member of the problem's panel, signed "
+    "with the network's approval key, by pull request.",
+    "POST /writeups": "Record a write-up of a problem, or act on one as its author (sign, arXiv, "
+    "journal, withdraw), signed with the network's approval key, by pull request.",
+    "POST /literature": "Propose what the literature says of a statement (open, known or "
+    "elementary) with references, by pull request; a steward or curator confirms it.",
+    "POST /literature/confirm": "Confirm a proposed literature status, or state one, as a "
+    "steward of its problem or a curator: signed with the network's approval key, by pull request.",
+    "POST /me/name": "Record the display name your pseudonym is shown by where the network names "
+    "contributors outside itself (a registration's authors), or withdraw it with null; signed "
+    "with the network's approval key, by pull request.",
+    "POST /registrations": "Record a target's submission to, or registration in, Palomar as a "
+    "curator or a steward of the target: registry id, wrapper and graph commits, proof and "
+    "status, by pull request; the registry itself is never called.",
     "POST /check": "Check Lean text within 20 s on a hosted checker, or preview a witness's "
     "expected type for a node or a statement's text (mode witness); never authoritative.",
     "GET /checks/{check_id}": "The record of one of your own fast-check calls.",
     "GET /hosted-checkers.json": "Which hosted checker environment serves each pin and target.",
+    # --- F05-T23, F05-T24 ---
+    "GET /errors.json": "Every error code the gate and the service emit, what it means and what "
+    "to do about it; ?prefix= narrows it.",
+    "GET /llms.txt": "Where an agent starts, as full URLs: the guide, this index, info.json, the "
+    "error codes and the MCP endpoint.",
+    "GET /robots.txt": "Crawlers are welcome everywhere; it names no path.",
 }

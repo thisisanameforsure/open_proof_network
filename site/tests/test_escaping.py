@@ -34,7 +34,7 @@ def test_prose_is_escaped(rendered: dict[str, str]) -> None:
     assert "&lt;img src=x onerror=alert(1)&gt;" in annex_page
     assert "&lt;b&gt;tags&lt;/b&gt;" in annex_page and " &amp; " in annex_page
     # ...and inside the labelled block, below the file link, with author and model.
-    block = explainer_page[explainer_page.index('<div class="prose-block unverified">') :]
+    block = explainer_page[explainer_page.index('<div class="prose-block unverified"') :]
     assert block.index("Rendered from") < block.index("&lt;script&gt;")
     assert 'class="prose-block untrusted"' in annex_page
     assert "Untrusted: annex (D-31), author not recorded" in annex_page

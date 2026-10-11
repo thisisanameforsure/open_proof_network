@@ -13,6 +13,7 @@ file-sharing and of uid mismatches on hosted runners.
 
 from __future__ import annotations
 
+import copy
 import io
 import re
 import subprocess
@@ -201,14 +202,32 @@ class SandboxToolchain(LocalToolchain):
         self.read_write = [p.resolve() for p in read_write]
         self.docker = docker
 
+    def scoped(
+        self, *, read_only: Sequence[Path] = (), read_write: Sequence[Path] = ()
+    ) -> SandboxToolchain:
+        """The same image, caps and docker, with exactly these directories mounted (F02-T10):
+        a judging call is handed the judging directory and never the work directory that the
+        contributor's compile could write to. A shallow copy, so a subclass stays itself."""
+        other = copy.copy(self)
+        other.read_only = [p.resolve() for p in read_only]
+        other.read_write = [p.resolve() for p in read_write]
+        return other
+
     # -- container assembly -------------------------------------------------------------------
 
     def create_args(
-        self, name: str, *, cwd: Path | None, extra_env: dict[str, str] | None, wall: float
+        self,
+        name: str,
+        *,
+        cwd: Path | None,
+        extra_env: dict[str, str] | None,
+        wall: float,
+        interactive: bool = False,
     ) -> list[str]:
         args = [
             self.docker,
             "create",
+            *(["--interactive"] if interactive else []),
             "--name",
             name,
             "--network",
@@ -280,19 +299,33 @@ class SandboxToolchain(LocalToolchain):
         cwd: Path | None = None,
         extra_env: dict[str, str] | None = None,
         timeout_s: float | None = None,
+        stdin: str | None = None,
     ) -> subprocess.CompletedProcess[str]:
         wall = timeout_s if timeout_s is not None else float(self.caps.wallclock_s)
         name = f"opn-gate-{uuid.uuid4().hex[:12]}"
-        self._docker(*self.create_args(name, cwd=cwd, extra_env=extra_env, wall=wall)[1:], *cmd)
+        # F02-T11: a metaprogram's nonce reaches the process on its stdin, and only then is the
+        # container created with one open (``--interactive``) and started attached to it.
+        interactive = stdin is not None
+        create = self.create_args(
+            name, cwd=cwd, extra_env=extra_env, wall=wall, interactive=interactive
+        )
+        self._docker(*create[1:], *cmd)
         try:
             self._copy_in(name)
             try:
                 run = subprocess.run(
-                    [self.docker, "start", "--attach", name],
+                    [
+                        self.docker,
+                        "start",
+                        "--attach",
+                        *(["--interactive"] if interactive else []),
+                        name,
+                    ],
                     capture_output=True,
                     text=True,
                     timeout=wall + GRACE_S,
                     check=False,
+                    input=stdin if interactive else None,
                 )
             except subprocess.TimeoutExpired:
                 subprocess.run([self.docker, "kill", name], capture_output=True, check=False)

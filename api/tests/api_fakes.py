@@ -16,6 +16,7 @@ or an ``AxleError`` — so a route test never reaches the hosted checker.
 from __future__ import annotations
 
 import io
+import json
 import subprocess
 import threading
 import time
@@ -38,8 +39,11 @@ from opn_api.githost import (
     Fetched,
     GitHostError,
     GitHubUser,
+    HostBudget,
+    OpenPullRequest,
     PullRequest,
     PullRequestState,
+    RateLimitError,
     WorkflowRun,
 )
 from opn_api.store import MemoryStore
@@ -52,6 +56,8 @@ PRECHECK_KEY_PATH = "keys/precheck.pub"
 TUTORIAL_NODE = "tutorial-and-swap"
 PROOF_PREFIX = "targets/propositional/nodes/"
 TUTORIAL_PROOF = "import Nodes.X.Context\n\ntheorem x : True := trivial\n"
+#: F06-T14: the ``Statement.lean`` every fixture node carries in the fake tree.
+FIXTURE_STATEMENT = "theorem OpnFixture.{name} : True := by\n  sorry\n"
 
 
 @dataclass
@@ -95,6 +101,15 @@ class Dispatch:
 
 
 @dataclass
+class Comment:
+    repo: str
+    number: int
+    body: str
+    closed_before: list[int]
+    pushes_before: int
+
+
+@dataclass
 class FakeGitHost:
     users: dict[str, GitHubUser] = field(default_factory=dict)
     files: dict[str, bytes] = field(default_factory=dict)
@@ -109,6 +124,7 @@ class FakeGitHost:
     runs: dict[str, WorkflowRun] = field(default_factory=dict)  # branch -> run
     artifacts: dict[tuple[int, str], bytes] = field(default_factory=dict)  # (run, name) -> zip
     artifact_reads: int = 0  # latest_artifact calls (F07-T26: one per head commit)
+    artifact_prefixes: list[str] = field(default_factory=list)  # F22-T24: which artifact each read
     # F05-T13: where ``main`` is, per the API. Empty means the API cannot say, so the service
     # reads by branch name, which is what every test written before it expects.
     head: str = ""
@@ -139,16 +155,41 @@ class FakeGitHost:
     pulls_in_flight: int = 0
     pulls_max_in_flight: int = 0
     _pull_lock: threading.Lock = field(default_factory=threading.Lock, repr=False)
+    #: F07-T47: the budget the host last reported (what ``budget()`` answers); and, when set,
+    #: the budget every App call is refused with (``RateLimitError``, remaining 0) — GitHub's
+    #: 403/429 with ``X-RateLimit-Remaining: 0``, as the seam's own error kind.
+    budget_seen: HostBudget | None = None
+    rate_limited: HostBudget | None = None
+    #: F07-T47: every open-listing call, and a failure that makes only the listing raise.
+    listing_calls: int = 0
+    listing_failure: str | None = None
+    #: F08-T26: which network commits descend from which, as ``(ancestor, commit) -> bool``; a
+    #: pair the map does not hold is a host failure, and every question asked is recorded.
+    ancestry: dict[tuple[str, str], bool] = field(default_factory=dict)
+    ancestry_calls: list[tuple[str, str, str]] = field(default_factory=list)
+    #: F07-T64: every comment posted through the App, with how many closes and pushes the fake
+    #: had seen when it arrived, so a test can tell a comment made before an act from one after.
+    comments: list[Comment] = field(default_factory=list)
+    comment_failure: str | None = None  # when set, only a comment raises (C7: never blocks)
 
     @classmethod
     def with_fixtures(cls, **users: GitHubUser) -> FakeGitHost:
+        graph = (FIXTURES / "graph.json").read_bytes()
         return cls(
             users=dict(users),
             files={
                 "frontier.json": (FIXTURES / "frontier.json").read_bytes(),
                 "info.json": (FIXTURES / "info.json").read_bytes(),
                 "targets/index.json": (FIXTURES / "targets-index.json").read_bytes(),
-                "targets/propositional/graph.json": (FIXTURES / "graph.json").read_bytes(),
+                "targets/propositional/graph.json": graph,
+                # F06-T14: a node the products list is in the tree, as on the live graph, so a
+                # precheck job pinned to a commit can be checked to carry its node.
+                **{
+                    f"{PROOF_PREFIX}{node['node_id']}/Statement.lean": FIXTURE_STATEMENT.format(
+                        name=str(node["node_id"]).replace("-", "_")
+                    ).encode()
+                    for node in json.loads(graph)["nodes"]
+                },
             },
         )
 
@@ -191,6 +232,7 @@ class FakeGitHost:
         """The files directly under ``path`` (F09-R6); ``None`` when nothing lives there.
         A ``.gitkeep`` marks an empty directory the way the graph's layout does."""
         self.fetches.append((path + "/", None))
+        self.refs.append(ref)  # beside ``fetches``, so the two lists stay in step
         if self.unreachable:
             msg = f"listing {path} failed: ConnectError"
             raise GitHostError(msg)
@@ -208,9 +250,49 @@ class FakeGitHost:
             return None
         return [n for n in names if prefix + n in tree]
 
+    def is_ancestor(self, repo: str, ancestor: str, commit: str) -> bool:
+        """F08-T26: whether ``commit`` is ``ancestor`` or descends from it, from ``ancestry``."""
+        self.ancestry_calls.append((repo, ancestor, commit))
+        if (ancestor, commit) not in self.ancestry:
+            msg = f"GET /repos/{repo}/compare/{ancestor[:12]}...{commit[:12]} failed: ConnectError"
+            raise GitHostError(msg)
+        return self.ancestry[(ancestor, commit)]
+
     def _app_call(self) -> None:
         if self.app_failure:
             raise GitHostError(self.app_failure)
+        if self.rate_limited is not None:
+            self.budget_seen = self.rate_limited
+            raise RateLimitError(self.rate_limited)
+
+    def budget(self) -> HostBudget | None:
+        return self.budget_seen
+
+    def list_open_pull_requests(self, repo: str) -> list[OpenPullRequest]:
+        """Every number the fake opened or a test seeded whose state is open (F07-T47)."""
+        self.listing_calls += 1
+        self._app_call()
+        if self.listing_failure:
+            raise GitHostError(self.listing_failure)
+        numbers = set(self.pull_states) | set(range(1, len(self.pulls) + 1))
+        out: list[OpenPullRequest] = []
+        for number in sorted(numbers):
+            s = self.pull_states.get(number) or {}
+            if s.get("state", "open") == "open" and not s.get("merged", False):
+                opened = self.pulls[number - 1].head if 1 <= number <= len(self.pulls) else ""
+                out.append(
+                    OpenPullRequest(
+                        number,
+                        f"https://github.com/{repo}/pull/{number}",
+                        s.get("head_sha") or f"{number:040d}",
+                        # F05-T18: the branch the fake opened it from, or the one a test seeded
+                        head_ref=s.get("head_ref") or opened,
+                        base_ref=s.get("base_ref") or "main",
+                        draft=bool(s.get("draft")),
+                        same_repo=s.get("same_repo", True),
+                    )
+                )
+        return out
 
     def push_branch(
         self,
@@ -249,6 +331,12 @@ class FakeGitHost:
         self.pull_states[number] = {**seeded, "state": "closed", "merged": False}
         return self.pulls[number - 1].head if 1 <= number <= len(self.pulls) else None
 
+    def comment_on_pull_request(self, repo: str, number: int, body: str) -> None:
+        self._app_call()
+        if self.comment_failure:
+            raise GitHostError(self.comment_failure)
+        self.comments.append(Comment(repo, number, body, list(self.closed_pulls), len(self.pushes)))
+
     def delete_branch(self, repo: str, branch: str) -> bool:
         self._app_call()
         if branch in self.deleted_branches:
@@ -275,6 +363,7 @@ class FakeGitHost:
     def latest_artifact(self, repo: str, run_id: int, prefix: str) -> bytes | None:
         self._app_call()
         self.artifact_reads += 1
+        self.artifact_prefixes.append(prefix)
         if self.artifact_failure:
             raise GitHostError(self.artifact_failure)
         names = sorted(n for (r, n) in self.artifacts if r == run_id and n.startswith(prefix))
@@ -313,6 +402,8 @@ class FakeGitHost:
             merge_commit_sha=s.get("merge_commit_sha"),
             runs=tuple(s.get("runs") or ()),
             reviews=tuple(s.get("reviews") or ()),
+            merged_at=s.get("merged_at"),
+            closed_at=s.get("closed_at"),
         )
 
     # --- what a test sets up ---------------------------------------------------------------------
@@ -328,6 +419,10 @@ class FakeGitHost:
         merge_commit_sha: str | None = None,
         runs: list[dict[str, Any]] | None = None,
         reviews: list[dict[str, Any]] | None = None,
+        merged_at: str | None = None,
+        closed_at: str | None = None,
+        head_ref: str | None = None,
+        draft: bool = False,
     ) -> None:
         """What the host will say about pull request ``number`` from now on. Runs keep
         ``{name, status, conclusion, url, jobs}`` (``jobs`` ``[]`` unless given) and reviews
@@ -346,6 +441,11 @@ class FakeGitHost:
                 for r in runs or []
             ],
             "reviews": [{k: r.get(k) for k in ("login", "state")} for r in reviews or []],
+            # F05-T18: the host's own times, and what the open listing says of the branch
+            "merged_at": merged_at,
+            "closed_at": closed_at or merged_at,
+            "head_ref": head_ref,
+            "draft": draft,
         }
 
     def start_run(self, branch: str, run_id: int = 4242) -> WorkflowRun:
@@ -394,6 +494,8 @@ def result_zip(
     verdict: str = "pass",
     runner: str = "hosted",
     tamper: bool = False,
+    statement_hash: str | None = None,
+    holes: list[dict[str, Any]] | None = None,
 ) -> bytes:
     """The artifact zip the workflow uploads: one ``result.json`` whose attestation is signed by
     ``key`` as kind ``service``, through the very function the workflow calls (``precheck.sign``).
@@ -404,6 +506,8 @@ def result_zip(
     doc = samples.attestation(
         node_id=node_id, graph_commit=graph_commit, runner=runner, verdict=verdict
     )
+    if statement_hash is not None:  # F06-T10: the hash the run takes of the tree it checked out
+        doc["statement_hash"] = statement_hash
     if key is not None:
         doc = sign_service(doc, key.private)
     if tamper:
@@ -417,6 +521,8 @@ def result_zip(
         "steps": doc["steps"],
         "attestation": doc,
     }
+    if holes is not None:  # F06-T9: a partial's result names the holes its extractor found
+        result["holes"] = holes
     buffer = io.BytesIO()
     with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as archive:
         archive.writestr("result.json", schemas.canonical_json(result))
@@ -520,6 +626,14 @@ class Harness:
         self.githost.finish_run(f"job/{doc['id']}", artifact=(f"result-{doc['id']}", artifact))
         return doc
 
+
+#: F25-R2: the automation block POST /submissions requires of every artifact (D-23 v3.37), for
+#: every test whose subject is something else.
+AUTOMATION: dict[str, Any] = {
+    "method": "agent",
+    "models": ["claude-fable-5-1"],
+    "framework": "Claude Code 2.1",
+}
 
 #: What the fake checker answers when a test scripts nothing: a clean compile.
 AXLE_OKAY: dict[str, Any] = {

@@ -1,0 +1,185 @@
+# F07-T45 red: the new and restated tests against the graph branch f07-batch-appends at 3a3e0b89
+# (merge.yml as on main; gate.yml with the post-merge accounting extracted as a program at today's behaviour)
+# network: 1fc3c2a + the uncommitted tests; 2026-09-29T15:47:47Z
+$ uv run --frozen pytest gate/tests/test_finding_merge_actor_batch.py gate/tests/test_finding_postmerge_batch.py gate/tests/test_finding_merge_actor_workflow.py gate/tests/test_finding_merge_actor_queue.py gate/tests/test_finding_merge_actor_wakes.py gate/tests/test_finding_postmerge_replay.py gate/tests/test_finding_postmerge_push_race.py -p no:cacheprovider -q --tb=line
+F.FFFF..FFF.FFF.FFFFFFF.FFF..F.FFFF.................F........F.......... [ 79%]
+...................                                                      [100%]
+=================================== FAILURES ===================================
+E   AssertionError: the appends merged in 6 rounds: [445, 665, 885, 1105, 1325, 1545]; [(225, 'merge', '300'), (385, 'update', '301'), (445, 'merge', '301'), (605, 'update', '302'), (665, 'merge', '302'), (825, 'update', '303'), (885, 'merge', '303'), (1045, 'update', '304'), (1105, 'merge', '304'), (1265, 'update', '305'), (1325, 'merge', '305'), (1485, 'update', '306'), (1545, 'merge', '306'), (1705, 'update', '307'), (1925, 'merge', '307'), (1925, 'nothing', ''), (1970, 'nothing', ''), (2080, 'nothing', ''), (2190, 'nothing', ''), (2570, 'nothing', '')]
+    assert 6 == 1
+     +  where 6 = len([445, 665, 885, 1105, 1325, 1545])
+----------------------------- Captured stdout call -----------------------------
+/home/user/open_proof_network/gate/tests/test_finding_merge_actor_batch.py:143: AssertionError: the appends merged in 6 rounds: [445, 665, 885, 1105, 1325, 1545]; [(225, 'merge', '300'), (385, 'update', '301'), (445, 'merge', '301'), (605, 'update', '302'), (665, 'merge', '302'), (825, 'update', '303'), (885, 'merge', '303'), (1045, 'update', '304'), (1105, 'merge', '304'), (1265, 'update', '305'), (1325, 'merge', '305'), (1485, 'update', '306'), (1545, 'merge', '306'), (1705, 'update', '307'), (1925, 'merge', '307'), (1925, 'nothing', ''), (1970, 'nothing', ''), (2080, 'nothing', ''), (2190, 'nothing', ''), (2570, 'nothing', '')]
+E   AssertionError: 20 post-merge jobs for 20 merges: [(215, 'merge', '400'), (375, 'update', '401'), (435, 'merge', '401'), (595, 'update', '402'), (655, 'merge', '402'), (815, 'update', '403'), (875, 'merge', '403'), (1035, 'update', '404'), (1255, 'merge', '404'), (1415, 'update', '405'), (1475, 'merge', '405'), (1635, 'update', '406'), (1695, 'merge', '406'), (1855, 'update', '407'), (1915, 'merge', '407'), (2075, 'update', '408'), (2295, 'merge', '408'), (2455, 'update', '409'), (2515, 'merge', '409'), (2675, 'update', '410'), (2735, 'merge', '410'), (2895, 'update', '411'), (2955, 'merge', '411'), (3115, 'update', '412'), (3335, 'merge', '412'), (3495, 'update', '413'), (3555, 'merge', '413'), (3715, 'update', '414'), (3775, 'merge', '414'), (3935, 'update', '415'), (3995, 'merge', '415'), (4155, 'update', '416'), (4375, 'merge', '416'), (4535, 'update', '417'), (4595, 'merge', '417'), (4755, 'update', '418'), (4815, 'merge', '418'), (4975, 'update', '419'), (5035, 'merge', '419'), (5035, 'nothing', ''), (5190, 'nothing', ''), (5240, 'nothing', ''), (5460, 'nothing', ''), (5680, 'nothing', '')]
+    assert 20 <= 12
+     +  where 20 = len([PushRun(id=1, jobs_done=365, reported_done=854, commits=True), PushRun(id=2, jobs_done=585, reported_done=1074, commi...obs_done=1405, reported_done=1894, commits=True), PushRun(id=6, jobs_done=1625, reported_done=2114, commits=True), ...])
+----------------------------- Captured stdout call -----------------------------
+/home/user/open_proof_network/gate/tests/test_finding_merge_actor_batch.py:177: AssertionError: 20 post-merge jobs for 20 merges: [(215, 'merge', '400'), (375, 'update', '401'), (435, 'merge', '401'), (595, 'update', '402'), (655, 'merge', '402'), (815, 'update', '403'), (875, 'merge', '403'), (1035, 'update', '404'), (1255, 'merge', '404'), (1415, 'update', '405'), (1475, 'merge', '405'), (1635, 'update', '406'), (1695, 'merge', '406'), (1855, 'update', '407'), (1915, 'merge', '407'), (2075, 'update', '408'), (2295, 'merge', '408'), (2455, 'update', '409'), (2515, 'merge', '409'), (2675, 'update', '410'), (2735, 'merge', '410'), (2895, 'update', '411'), (2955, 'merge', '411'), (3115, 'update', '412'), (3335, 'merge', '412'), (3495, 'update', '413'), (3555, 'merge', '413'), (3715, 'update', '414'), (3775, 'merge', '414'), (3935, 'update', '415'), (3995, 'merge', '415'), (4155, 'update', '416'), (4375, 'merge', '416'), (4535, 'update', '417'), (4595, 'merge', '417'), (4755, 'update', '418'), (4815, 'merge', '418'), (4975, 'update', '419'), (5035, 'merge', '419'), (5035, 'nothing', ''), (5190, 'nothing', ''), (5240, 'nothing', ''), (5460, 'nothing', ''), (5680, 'nothing', '')]
+E   AssertionError: assert (1, '00000000...01', 'update') == ('1 2', '0000...'merge-batch')
+      
+      At index 0 diff: 1 != '1 2'
+      Use -v to get more diff
+/home/user/open_proof_network/gate/tests/test_finding_merge_actor_batch.py:188: AssertionError: assert (1, '00000000...01', 'update') == ('1 2', '0000...'merge-batch')
+E   AssertionError: ('submit/p', (1, '0000000000000000000000000000000000000001', 'update'))
+    assert (1, '00000000...01', 'update') == ('1', '000000...'merge-batch')
+      
+      At index 0 diff: 1 != '1'
+      Use -v to get more diff
+/home/user/open_proof_network/gate/tests/test_finding_merge_actor_batch.py:195: AssertionError: ('submit/p', (1, '0000000000000000000000000000000000000001', 'update'))
+E   AssertionError: assert (10, '0000000...10', 'update') == ('10 11 12 13...'merge-batch')
+      
+      At index 0 diff: 10 != '10 11 12 13 14 15 16 17'
+      Use -v to get more diff
+/home/user/open_proof_network/gate/tests/test_finding_merge_actor_batch.py:208: AssertionError: assert (10, '0000000...10', 'update') == ('10 11 12 13...'merge-batch')
+E   AssertionError: assert (1, '00000000...01', 'update') == ('1', '000000...'merge-batch')
+      
+      At index 0 diff: 1 != '1'
+      Use -v to get more diff
+/home/user/open_proof_network/gate/tests/test_finding_merge_actor_batch.py:230: AssertionError: assert (1, '00000000...01', 'update') == ('1', '000000...'merge-batch')
+E   AssertionError: assert (1, '00000000...01', 'update') == ('1 5', '0000...'merge-batch')
+      
+      At index 0 diff: 1 != '1 5'
+      Use -v to get more diff
+/home/user/open_proof_network/gate/tests/test_finding_merge_actor_batch.py:242: AssertionError: assert (1, '00000000...01', 'update') == ('1 5', '0000...'merge-batch')
+E   AssertionError: assert (1, '00000000...01', 'update') == ('1', '000000...'merge-batch')
+      
+      At index 0 diff: 1 != '1'
+      Use -v to get more diff
+/home/user/open_proof_network/gate/tests/test_finding_merge_actor_batch.py:249: AssertionError: assert (1, '00000000...01', 'update') == ('1', '000000...'merge-batch')
+E   AssertionError: assert ['api -X PUT ...method=merge'] == ['api -X PUT ...method=merge']
+      
+      At index 0 diff: 'api -X PUT repos/owner/graph/pulls/5 6 7/merge -f sha=a5 a6 a7 -f merge_method=merge' != 'api -X PUT repos/owner/graph/pulls/5/merge -f sha=a5 -f merge_method=merge'
+      Right contains 2 more items, first extra item: 'api -X PUT repos/owner/graph/pulls/6/merge -f sha=a6 -f merge_method=merge'
+      Use -v to get more diff
+/home/user/open_proof_network/gate/tests/test_finding_merge_actor_batch.py:304: AssertionError: assert ['api -X PUT ...method=merge'] == ['api -X PUT ...method=merge']
+E   AssertionError: assert ['api -X PUT ...method=merge'] == ['api -X PUT ...method=merge']
+      
+      At index 0 diff: 'api -X PUT repos/owner/graph/pulls/5 6 7/merge -f sha=a5 a6 a7 -f merge_method=merge' != 'api -X PUT repos/owner/graph/pulls/5/merge -f sha=a5 -f merge_method=merge'
+      Right contains one more item: 'api -X PUT repos/owner/graph/pulls/6/merge -f sha=a6 -f merge_method=merge'
+      Use -v to get more diff
+/home/user/open_proof_network/gate/tests/test_finding_merge_actor_batch.py:316: AssertionError: assert ['api -X PUT ...method=merge'] == ['api -X PUT ...method=merge']
+E   AssertionError: assert ['api -X PUT ...method=merge'] == ['api -X PUT ..._head_sha=a5']
+      
+      At index 0 diff: 'api -X PUT repos/owner/graph/pulls/5 6/merge -f sha=a5 a6 -f merge_method=merge' != 'api -X PUT repos/owner/graph/pulls/5/merge -f sha=a5 -f merge_method=merge'
+      Right contains one more item: 'api -X PUT repos/owner/graph/pulls/5/update-branch -f expected_head_sha=a5'
+      Use -v to get more diff
+/home/user/open_proof_network/gate/tests/test_finding_merge_actor_batch.py:330: AssertionError: assert ['api -X PUT ...method=merge'] == ['api -X PUT ..._head_sha=a5']
+E   assert 'merge-batch' in 'set -euo pipefail\nif [ -z "${GH_TOKEN:-}" ]; then\n  echo "::notice::dry run: would $ACTION #$NUMBER at $SHA; OPN_GR...ge >/dev/null\n  echo "merged #$NUMBER at $SHA; the post-merge job commits the products and wakes this workflow"\nfi\n'
+     +  where 'set -euo pipefail\nif [ -z "${GH_TOKEN:-}" ]; then\n  echo "::notice::dry run: would $ACTION #$NUMBER at $SHA; OPN_GR...ge >/dev/null\n  echo "merged #$NUMBER at $SHA; the post-merge job commits the products and wakes this workflow"\nfi\n' = act_step({'name': 'merge', True: {'workflow_run': {'workflows': ['gate'], 'types': ['completed']}, 'schedule': [{'cron': '*/15 ...*'}], 'workflow_dispatch': {}}, 'permissions': {}, 'concurrency': {'group': 'merge', 'cancel-in-progress': False}, ...})
+/home/user/open_proof_network/gate/tests/test_finding_merge_actor_batch.py:352: assert 'merge-batch' in 'set -euo pipefail\nif [ -z "${GH_TOKEN:-}" ]; then\n  echo "::notice::dry run: would $ACTION #$NUMBER at $SHA; OPN_GR...ge >/dev/null\n  echo "merged #$NUMBER at $SHA; the post-merge job commits the products and wakes this workflow"\nfi\n'
+E   assert [3] == [2, 3]
+      
+      At index 0 diff: 3 != 2
+      Right contains one more item: 3
+      Use -v to get more diff
+/home/user/open_proof_network/gate/tests/test_finding_postmerge_batch.py:188: assert [3] == [2, 3]
+E   assert [4] == [2, 4]
+      
+      At index 0 diff: 4 != 2
+      Right contains one more item: 4
+      Use -v to get more diff
+/home/user/open_proof_network/gate/tests/test_finding_postmerge_batch.py:203: assert [4] == [2, 4]
+E   assert [2] == [2, 3]
+      
+      Right contains one more item: 3
+      Use -v to get more diff
+/home/user/open_proof_network/gate/tests/test_finding_postmerge_batch.py:208: assert [2] == [2, 3]
+E   AssertionError: assert 1 == 0
+     +  where 1 = CompletedProcess(args=['/home/user/open_proof_network/.venv/bin/python', '/tmp/pytest-of-root/pytest-35/helper0/postmerge_batch.py', 'credited', 'HEAD', '3'], returncode=1, stdout='', stderr='').returncode
+     +    where CompletedProcess(args=['/home/user/open_proof_network/.venv/bin/python', '/tmp/pytest-of-root/pytest-35/helper0/postmerge_batch.py', 'credited', 'HEAD', '3'], returncode=1, stdout='', stderr='') = run_helper(PosixPath('/tmp/pytest-of-root/pytest-35/helper0/postmerge_batch.py'), <gate.tests.test_finding_postmerge_batch.Graph object at 0x7f1dd6a86710>, 'credited', 'HEAD', '3')
+/home/user/open_proof_network/gate/tests/test_finding_postmerge_batch.py:224: AssertionError: assert 1 == 0
+E   AssertionError: assert 1 == 0
+     +  where 1 = CompletedProcess(args=['/home/user/open_proof_network/.venv/bin/python', '/tmp/pytest-of-root/pytest-35/helper0/postmerge_batch.py', 'later-merge', 'fc1842800abbbb16d95161671abdfe7f6c564134', 'HEAD'], returncode=1, stdout='', stderr='').returncode
+     +    where CompletedProcess(args=['/home/user/open_proof_network/.venv/bin/python', '/tmp/pytest-of-root/pytest-35/helper0/postmerge_batch.py', 'later-merge', 'fc1842800abbbb16d95161671abdfe7f6c564134', 'HEAD'], returncode=1, stdout='', stderr='') = run_helper(PosixPath('/tmp/pytest-of-root/pytest-35/helper0/postmerge_batch.py'), <gate.tests.test_finding_postmerge_batch.Graph object at 0x7f1dd6ac3360>, 'later-merge', 'fc1842800abbbb16d95161671abdfe7f6c564134', 'HEAD')
+/home/user/open_proof_network/gate/tests/test_finding_postmerge_batch.py:237: AssertionError: assert 1 == 0
+E   AssertionError: assert {'batch': 'fa... 'replay': ''} == {'batch': 'tr... 't1 t2', ...}
+      
+      Omitting 1 identical items, use -vv to show
+      Differing items:
+      {'batch': 'false'} != {'batch': 'true'}
+      Right contains 5 more items:
+      {'merges': 'fc1842800abbbb16d95161671abdfe7f6c564134 '
+                 '36d6438ad046ea5fc5e629191b827af65b939df0 '...
+      
+      ...Full output truncated (6 lines hidden), use '-vv' to show
+/home/user/open_proof_network/gate/tests/test_finding_postmerge_batch.py:252: AssertionError: assert {'batch': 'fa... 'replay': ''} == {'batch': 'tr... 't1 t2', ...}
+E   AssertionError: assert {'batch': 'fa... 'replay': ''} == {'batch': 'fa...'replay': '2'}
+      
+      Omitting 1 identical items, use -vv to show
+      Differing items:
+      {'replay': ''} != {'replay': '2'}
+      Use -v to get more diff
+/home/user/open_proof_network/gate/tests/test_finding_postmerge_batch.py:280: AssertionError: assert {'batch': 'fa... 'replay': ''} == {'batch': 'fa...'replay': '2'}
+E   AssertionError: assert {'batch': 'fa... 'replay': ''} == {'batch': 'fa...'replay': '2'}
+      
+      Omitting 1 identical items, use -vv to show
+      Differing items:
+      {'replay': ''} != {'replay': '2'}
+      Use -v to get more diff
+/home/user/open_proof_network/gate/tests/test_finding_postmerge_batch.py:293: AssertionError: assert {'batch': 'fa... 'replay': ''} == {'batch': 'fa...'replay': '2'}
+E   KeyError: 'numbers'
+/home/user/open_proof_network/gate/tests/test_finding_postmerge_batch.py:304: KeyError: 'numbers'
+E   AssertionError: (2, {'run': 'true', 'number': '2', 'author': 'bot', 'target': 't1', ...}, 'postmerge: PR #2 by bot; target t1; pin aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+      ')
+    assert (0 == 0 and 'true' == 'false'
+      
+      - false
+      + true)
+/home/user/open_proof_network/gate/tests/test_finding_postmerge_batch.py:395: AssertionError: (2, {'run': 'true', 'number': '2', 'author': 'bot', 'target': 't1', ...}, 'postmerge: PR #2 by bot; target t1; pin aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+E   assert 'git fetch --quiet origin main' in 'set -euo pipefail\n# F07-T45: which merges this run records, and the gate-commit matcher, as one program the\n# netwo... "render_pin=$render_pin"\n} >> "$GITHUB_OUTPUT"\necho "postmerge: PR #$number by $author; target $target; pin $pin"\n'
+/home/user/open_proof_network/gate/tests/test_finding_postmerge_batch.py:425: assert 'git fetch --quiet origin main' in 'set -euo pipefail\n# F07-T45: which merges this run records, and the gate-commit matcher, as one program the\n# netwo... "render_pin=$render_pin"\n} >> "$GITHUB_OUTPUT"\necho "postmerge: PR #$number by $author; target $target; pin $pin"\n'
+E   assert '--base "${m}^" --head "$m"' in 'set -euo pipefail\nuv sync --frozen --project network --quiet\nuv run --frozen --project network python -m opn_gate.c...= doc.get(key, default)\n    print(f"{key}={json.dumps(value) if isinstance(value, bool) else (value or \'\')}")\nPY\n'
+/home/user/open_proof_network/gate/tests/test_finding_postmerge_batch.py:433: assert '--base "${m}^" --head "$m"' in 'set -euo pipefail\nuv sync --frozen --project network --quiet\nuv run --frozen --project network python -m opn_gate.c...= doc.get(key, default)\n    print(f"{key}={json.dumps(value) if isinstance(value, bool) else (value or \'\')}")\nPY\n'
+E   AssertionError: set -euo pipefail
+      uv run --frozen --project network-render python -m opn_gate.cli ledger \
+        --graph . --commit "$MERGE"
+      
+    assert None
+     +  where None = <function search at 0x7f1dd8839300>('for merge in \\$MERGES; do\\s+uv run', 'set -euo pipefail\nuv run --frozen --project network-render python -m opn_gate.cli ledger \\\n  --graph . --commit "$MERGE"\n')
+     +    where <function search at 0x7f1dd8839300> = re.search
+/home/user/open_proof_network/gate/tests/test_finding_postmerge_batch.py:442: AssertionError: set -euo pipefail
+E   assert 'git commit -m "gate: ${credits} ' in 'set -euo pipefail\numask 077\ntrap \'rm -f "$RUNNER_TEMP/deploy_key"\' EXIT  # C8: on every path out of this step\npr...error::PR #${{ steps.pr.outputs.number }}: the products commit could not be pushed after three attempts"; exit 1\nfi\n'
+/home/user/open_proof_network/gate/tests/test_finding_postmerge_batch.py:452: assert 'git commit -m "gate: ${credits} ' in 'set -euo pipefail\numask 077\ntrap \'rm -f "$RUNNER_TEMP/deploy_key"\' EXIT  # C8: on every path out of this step\npr...error::PR #${{ steps.pr.outputs.number }}: the products commit could not be pushed after three attempts"; exit 1\nfi\n'
+E   AssertionError: assert (6, '00000000...06', 'update') == ('6', '000000...'merge-batch')
+      
+      At index 0 diff: 6 != '6'
+      Use -v to get more diff
+/home/user/open_proof_network/gate/tests/test_finding_merge_actor_workflow.py:229: AssertionError: assert (6, '00000000...06', 'update') == ('6', '000000...'merge-batch')
+E   AssertionError: ('append/fast', (6, '0000000000000000000000000000000000000006', 'update'))
+    assert (6, '00000000...06', 'update') == ('6', '000000...'merge-batch')
+      
+      At index 0 diff: 6 != '6'
+      Use -v to get more diff
+----------------------------- Captured stdout call -----------------------------
+/home/user/open_proof_network/gate/tests/test_finding_merge_actor_queue.py:244: AssertionError: ('append/fast', (6, '0000000000000000000000000000000000000006', 'update'))
+=========================== short test summary info ============================
+FAILED gate/tests/test_finding_merge_actor_batch.py::test_the_appends_queued_behind_a_proof_merge_in_one_round
+FAILED gate/tests/test_finding_merge_actor_batch.py::test_a_steady_stream_of_appends_drains_faster_than_one_per_round
+FAILED gate/tests/test_finding_merge_actor_batch.py::test_a_batch_takes_every_green_append_up_to_the_first_green_building_one
+FAILED gate/tests/test_finding_merge_actor_batch.py::test_a_batch_never_includes_a_building_pull_request
+FAILED gate/tests/test_finding_merge_actor_batch.py::test_a_batch_stops_at_the_cap
+FAILED gate/tests/test_finding_merge_actor_batch.py::test_a_batch_ends_at_an_up_to_date_gating_pull_request
+FAILED gate/tests/test_finding_merge_actor_batch.py::test_red_behind_pending_and_conflicting_appends_are_passed_over
+FAILED gate/tests/test_finding_merge_actor_batch.py::test_a_batch_ends_where_the_host_is_still_computing_mergeability
+FAILED gate/tests/test_finding_merge_actor_batch.py::test_the_act_merges_a_batch_in_order_each_at_the_head_it_saw
+FAILED gate/tests/test_finding_merge_actor_batch.py::test_a_failed_merge_in_a_batch_stops_there_and_the_rest_wait
+FAILED gate/tests/test_finding_merge_actor_batch.py::test_a_refused_first_merge_falls_back_to_the_update_it_had_before
+FAILED gate/tests/test_finding_merge_actor_batch.py::test_the_pick_output_carries_a_batch_through_number_and_sha
+FAILED gate/tests/test_finding_postmerge_batch.py::test_the_run_at_the_head_records_every_merge_since_the_last_gate_commit
+FAILED gate/tests/test_finding_postmerge_batch.py::test_a_replay_between_is_walked_past_and_what_it_credits_left_out
+FAILED gate/tests/test_finding_postmerge_batch.py::test_the_matcher_reads_a_number_inside_a_multi_number_subject
+FAILED gate/tests/test_finding_postmerge_batch.py::test_the_replay_check_uses_the_matcher_on_mains_first_parent_line
+FAILED gate/tests/test_finding_postmerge_batch.py::test_a_later_merge_on_main_is_seen_and_a_bot_commit_is_not
+FAILED gate/tests/test_finding_postmerge_batch.py::test_a_batch_of_appends_is_one_run
+FAILED gate/tests/test_finding_postmerge_batch.py::test_a_building_merge_is_never_batched_and_the_others_are_replayed
+FAILED gate/tests/test_finding_postmerge_batch.py::test_merges_pinned_to_different_gates_are_not_batched
+FAILED gate/tests/test_finding_postmerge_batch.py::test_a_merge_the_batch_cannot_hold_is_replayed_not_dropped
+FAILED gate/tests/test_finding_postmerge_batch.py::test_the_runs_of_a_batch_leave_their_merges_to_the_last_and_it_records_them_all
+FAILED gate/tests/test_finding_postmerge_batch.py::test_a_run_checks_main_for_a_later_merge_before_it_plans
+FAILED gate/tests/test_finding_postmerge_batch.py::test_a_batch_is_classified_merge_by_merge_with_the_pinned_gate
+FAILED gate/tests/test_finding_postmerge_batch.py::test_the_ledger_credits_each_merge_in_order_and_the_products_render_once
+FAILED gate/tests/test_finding_postmerge_batch.py::test_one_commit_credits_the_batch_and_a_moved_main_is_left_to_the_later_run
+FAILED gate/tests/test_finding_merge_actor_workflow.py::test_it_takes_the_oldest_green_one_and_updates_before_it_merges
+FAILED gate/tests/test_finding_merge_actor_queue.py::test_nothing_is_updated_or_merged_while_a_post_merge_job_runs
+28 failed, 63 passed in 3.28s
+exit: 1

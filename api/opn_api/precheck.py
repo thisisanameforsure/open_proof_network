@@ -19,6 +19,7 @@ import io
 import json
 import logging
 import secrets
+import time
 import zipfile
 from dataclasses import dataclass, replace
 from datetime import datetime, timedelta
@@ -31,9 +32,9 @@ from starlette.responses import JSONResponse, Response
 from opn_api import auth, bundles, frontier, pending, ratelimit, sshsig
 from opn_api import clock as clockmod
 from opn_api import identity as identitymod
-from opn_api.app import ApiError
-from opn_api.githost import GitHostError, WorkflowRun
-from opn_gate import attestation, layout, postmerge, schemas, signer
+from opn_api.app import ApiError, host_budget_refusal
+from opn_api.githost import GitHostError, RateLimitError, WorkflowRun
+from opn_gate import attestation, context, layout, postmerge, schemas, signer
 from opn_gate import graph as graphmod
 from opn_gate.paths import Claim
 
@@ -75,6 +76,16 @@ class Job:
     run_url: str | None = None
     result: dict[str, Any] | None = None
     error: str | None = None
+    #: F06-T10: ``{pr_number, pr_url, head_sha}`` when the node exists only in an open proposal
+    #: whose gate is green and the job runs at that proposal's head; ``None`` for a node on main.
+    proposal: dict[str, Any] | None = None
+    #: F07-T53: ``[{path, sha256}]`` for each witness the bundle carried for a partial's holes
+    #: (path under the node), so the served result can say which of them the pinned gate did
+    #: not check; ``None`` for a bundle that carried none, and for a job stored before this.
+    carried: list[dict[str, str]] | None = None
+    #: F25-R3 (D-23 v3.37): the ``automation`` block offered with the request, validated, or
+    #: ``None`` — not required here (F25-Q14), required of the submission (F25-R2).
+    automation: dict[str, Any] | None = None
 
     @property
     def anonymous(self) -> bool:
@@ -102,9 +113,13 @@ class Job:
             "graph_commit": self.graph_commit,
             "bundle_digest": self.bundle_digest,
             "authenticated": not self.anonymous,
+            "automation": self.automation,
         }
         if state == "done":
             out["result"] = self.result
+            note = carried_note(self.result, self.carried)
+            if note is not None:
+                out["carried_witnesses"] = note
         if state == "error":
             out["error"] = self.error
             out["run_url"] = self.run_url
@@ -112,9 +127,63 @@ class Job:
             out["message"] = f"results are served for {RESULT_RETENTION_DAYS} days"
         if include_nonce and self.nonce:
             out["nonce"] = self.nonce
+        if self.proposal:
+            out["proposal"] = {**self.proposal, "message": proposal_message(self.proposal)}
         # The scratch repo is public, so a submitter learns that before they submit again (§7).
         out["public"] = True
         return out
+
+
+def unchecked_witnesses(result: Any, carried: list[dict[str, str]] | None) -> list[str]:
+    """F07-R23: of the witnesses a bundle carried (``[{path, sha256}]``), the paths the job's
+    result does not name as checked, byte for byte, on a hole (``holes[].witness``). A gate
+    pinned before R23 names none: it does not read the files."""
+    holes = result.get("holes") if isinstance(result, dict) else None
+    checked = {
+        str(found.get("path")): str(found.get("sha256"))
+        for found in (
+            hole.get("witness")
+            for hole in (holes if isinstance(holes, list) else [])
+            if isinstance(hole, dict)
+        )
+        if isinstance(found, dict) and found.get("checked") is True
+    }
+    return [w["path"] for w in carried or [] if checked.get(w["path"]) != w["sha256"]]
+
+
+def carried_note(result: Any, carried: list[dict[str, str]] | None) -> dict[str, Any] | None:
+    """F07-T53: what a passing precheck says of carried witnesses its gate did not check, or
+    ``None`` when there is nothing to say (none carried, all checked, or the verdict is not a
+    pass, whose diagnostic is the news). A target reaches R23 at its re-pin; until then its
+    gate passes the bundle without reading those files, and a ``pass`` with no word about them
+    would read as a pass of them."""
+    if not carried or not isinstance(result, dict) or result.get("verdict") != "pass":
+        return None
+    unchecked = unchecked_witnesses(result, carried)
+    if not unchecked:
+        return None
+    return {
+        "unchecked": unchecked,
+        "checked": [w["path"] for w in carried if w["path"] not in unchecked],
+        "message": (
+            "this precheck passed without checking the carried witness "
+            + ", ".join(unchecked)
+            + ": the gate this target pins does not read a partial's carried witnesses yet "
+            "(F07-R23 reaches a target at its re-pin). POST /submissions refuses this bundle "
+            "(400 hole-witness-unchecked); submit the partial without the witness files and "
+            "send each hole's witness through POST /proposals/witness once the hole exists"
+        ),
+    }
+
+
+def proposal_message(proposal: dict[str, Any]) -> str:
+    """F06-T10: what a job run at a proposal's head tells the contributor."""
+    return (
+        f"this precheck ran against pull request #{proposal.get('pr_number')}, which proposes "
+        f"the node, at its head commit {str(proposal.get('head_sha'))[:12]}; the node is not "
+        "on main yet, so submit with this job once that pull request has merged (the attestation "
+        "stays valid while the statement is unchanged and it is within the graph's age limit)"
+    )
 
 
 def new_nonce() -> str:
@@ -172,6 +241,46 @@ def node_facts(ctx: Context, node_id: str) -> dict[str, Any]:
     raise pending.unknown_node(ctx, node_id)
 
 
+def facts_or_proposal(
+    ctx: Context, node_id: str
+) -> tuple[dict[str, Any], pending.GreenProposal | None]:
+    """F06-T10: ``node_facts``, or — for a node that exists only in an open proposal whose gate
+    is green — the facts of the node as that proposal's head commit has it, with the proposal.
+    Every other answer ``node_facts`` gives stands, ``409 node-pending`` included."""
+    try:
+        return node_facts(ctx, node_id), None
+    except ApiError as exc:
+        if exc.code != "node-pending":
+            raise
+        found = pending.green_proposal(ctx, node_id)
+        if found is None:
+            raise
+    return proposal_facts(ctx, found), found
+
+
+def proposal_facts(ctx: Context, found: pending.GreenProposal) -> dict[str, Any]:
+    """A proposed node's facts, in ``facts_of``'s shape. It has no status yet; when a dependency
+    its ``META.yaml`` declares is not proved, it would merge ``blocked``, and says so, so the
+    precheck is refused as ``check_open`` refuses a blocked node on main (F06-T6)."""
+    try:
+        meta = yaml.safe_load(found.meta or "") or {}
+    except yaml.YAMLError:
+        meta = {}
+    deps = meta.get("deps") if isinstance(meta, dict) else None
+    facts: dict[str, Any] = {
+        "target_id": found.submission.target_id,
+        "statement_hash": found.statement_hash,
+        "tutorial": False,
+        "status": None,
+        "cause": None,
+        "deps": [str(d) for d in deps] if isinstance(deps, list) else [],
+        "proof_commit": None,
+    }
+    if facts["deps"] and unproved_deps(facts, graph_doc(ctx)):
+        facts["status"] = "blocked"
+    return facts
+
+
 TARGETS_INDEX = "targets/index.json"
 
 
@@ -192,6 +301,18 @@ def graph_doc(ctx: Context) -> dict[str, list[dict[str, Any]]]:
     return out
 
 
+def tutorial_nodes(ctx: Context) -> list[str]:
+    """The tutorial node of every graph as ``<target>/<node>`` (D-27), read from the committed
+    ``graph.json`` rows marked ``tutorial: true``. The frontier cannot say: it lists open nodes
+    only, and the tutorial node is normally proved."""
+    return sorted(
+        f"{target_id}/{node['node_id']}"
+        for target_id, nodes in graph_doc(ctx).items()
+        for node in nodes
+        if node.get("tutorial")
+    )
+
+
 def unproved_deps(facts: dict[str, Any], graph: dict[str, list[dict[str, Any]]]) -> list[str]:
     """The node's dependencies that are not ``proved`` in its target's graph — the ones that
     block it, as the gate derives ``blocked`` (a refuted dependency is one of them; a dependency
@@ -200,12 +321,33 @@ def unproved_deps(facts: dict[str, Any], graph: dict[str, list[dict[str, Any]]])
     return [dep for dep in facts.get("deps") or [] if statuses.get(dep) != "proved"]
 
 
+def open_witness(ctx: Context, node_id: str) -> dict[str, Any] | None:
+    """F06-T13 (testers 2026-10-01, A14): the open witness pull request the service opened for
+    ``node_id``, as ``details.pending`` names it, or ``None``. Found as ``annex-pending`` finds an
+    open annex (F06-T8): the service's own open records, no host call."""
+    for found in ctx.store.list_open_submissions():
+        if found.kind == "witness" and found.node_id == node_id:
+            return {
+                "kind": found.kind,
+                "id": found.id,
+                "pr_number": found.pr_number,
+                "pr_url": found.pr_url,
+            }
+    return None
+
+
 def blocked_error(
-    node_id: str, facts: dict[str, Any], graph: dict[str, list[dict[str, Any]]]
+    node_id: str,
+    facts: dict[str, Any],
+    graph: dict[str, list[dict[str, Any]]],
+    *,
+    pending_witness: dict[str, Any] | None = None,
 ) -> ApiError:
     """The one ``409 node-blocked`` every route gives a blocked node (F05-T9, F06-T6): the cause
     and the unproved dependencies, in the message and as ``details``, and the way out where the
-    service offers one — a hole blocked ``witness-missing`` takes ``POST /proposals/witness``."""
+    service offers one — a hole blocked ``witness-missing`` takes ``POST /proposals/witness``,
+    unless a witness for it is already open (``pending_witness``, F06-T13), which is named
+    instead, in the message and as ``details.pending``."""
     cause = facts.get("cause")
     unproved = unproved_deps(facts, graph)
     if unproved:
@@ -217,6 +359,12 @@ def blocked_error(
             )
         elif cause:
             why += f" (cause {cause})"
+    elif cause == graphmod.CAUSE_WITNESS_MISSING and pending_witness is not None:
+        why = (
+            f"cause {cause}: its witness slot is empty, and a witness for it is open as pull "
+            f"request #{pending_witness['pr_number']}; precheck again once it has merged and "
+            "the products are rendered"
+        )
     elif cause == graphmod.CAUSE_WITNESS_MISSING:
         why = (
             f"cause {cause}: its witness slot is empty, and a witness goes in through "
@@ -230,8 +378,33 @@ def blocked_error(
         409,
         "node-blocked",
         f"{node_id} is blocked: {why}",
-        details={"status": "blocked", "cause": cause, "unproved_deps": unproved},
+        details={
+            "status": "blocked",
+            "cause": cause,
+            "unproved_deps": unproved,
+            # F06-T13: only when there is one, so every other refusal keeps its shape
+            **(
+                {"pending": pending_witness} if pending_witness is not None and not unproved else {}
+            ),
+        },
     )
+
+
+class _GraphAtMain:
+    """``context.Reader`` over the graph at ``main``, for the one listing ``replacement_of``
+    needs; a host error propagates, and ``replacement_of`` turns it into ``None``."""
+
+    def __init__(self, ctx: Context) -> None:
+        self.ctx = ctx
+
+    def read(self, path: str) -> bytes | None:
+        return frontier.committed(self.ctx, path)
+
+    def listdir(self, path: str) -> list[str]:
+        settings = self.ctx.settings
+        return list(
+            self.ctx.githost.list_dir(settings.graph_repo, settings.graph_branch, path) or []
+        )
 
 
 def replacement_of(ctx: Context, target_id: str, node_id: str) -> str | None:
@@ -239,11 +412,17 @@ def replacement_of(ctx: Context, target_id: str, node_id: str) -> str | None:
     say. ``opn-gate revise`` writes it as ``reference`` on the old node's ``superseded`` status
     record (D-8), and no product carries it, so the service reads the newest such record at
     ``main``. Best effort by design: this only ever decorates a refusal that stands without it,
-    so a host that cannot list or serve the record yields ``None``, never an error."""
+    so a host that cannot list or serve the record yields ``None``, never an error.
+
+    F08-T33 (D-18 v3.27): a status record a curator has withdrawn is absent, as the gate reads it
+    (``records.load_node_status``), by the bundle's own rule (``context.withdrawn_names``)."""
     path = f"targets/{target_id}/nodes/{node_id}/status"
     try:
+        gone = context.withdrawn_names(_GraphAtMain(ctx), target_id, node_id, "status")
         names = ctx.githost.list_dir(ctx.settings.graph_repo, ctx.settings.graph_branch, path)
         for name in sorted((n for n in names or [] if n.endswith(".yaml")), reverse=True):
+            if name in gone:
+                continue
             doc = yaml.safe_load(frontier.committed(ctx, f"{path}/{name}"))
             if isinstance(doc, dict) and doc.get("status") == "superseded":
                 reference = doc.get("reference")
@@ -317,7 +496,12 @@ def check_open(ctx: Context, node_id: str, facts: dict[str, Any]) -> None:
     if facts.get("status") == "blocked":
         if witness_awaits_render(ctx, node_id, facts):
             raise awaits_render(node_id, f"{node_id}'s witness has merged")
-        raise blocked_error(node_id, facts, graph_doc(ctx))
+        waiting = (
+            open_witness(ctx, node_id)
+            if facts.get("cause") == graphmod.CAUSE_WITNESS_MISSING
+            else None
+        )
+        raise blocked_error(node_id, facts, graph_doc(ctx), pending_witness=waiting)
     if facts.get("status") == "superseded":
         raise superseded_error(ctx, node_id, facts)
 
@@ -339,6 +523,52 @@ def rendered_from(ctx: Context, target_id: str | None = None) -> str:
     if not isinstance(commit, str) or not commit:
         raise ApiError(503, "graph-unrendered", "the graph has no rendered_from commit to pin to")
     return commit
+
+
+#: The file whose presence at a commit says the node exists there (F06-T14): what the node states.
+NODE_STATEMENT = "Statement.lean"
+
+
+def carries_node(ctx: Context, commit: str, target_id: str, node_id: str) -> bool | None:
+    """F06-T14: whether the graph's tree at ``commit`` holds the node, read as its
+    ``Statement.lean`` at that immutable commit; ``None`` when the host cannot say."""
+    path = f"targets/{target_id}/nodes/{node_id}/{NODE_STATEMENT}"
+    try:
+        got = ctx.githost.fetch_raw(ctx.settings.graph_repo, commit, path, etag=None)
+    except GitHostError as exc:
+        log.warning("%s at %s: not probed: %s", path, commit[:12], exc)
+        return None
+    if got.status == 404:
+        return False
+    return True if got.status == 200 else None
+
+
+def job_commit(ctx: Context, node_id: str, target_id: str, rendered: str) -> str:
+    """F06-T14: the commit a job runs at, which must carry the node.
+
+    ``rendered`` (Q10, Q12) when it does, or when the host cannot say (C7). The post-merge job
+    writes a merged partial's holes in the same bot commit as the products that list them, and
+    those products name the merge as ``rendered_from``, so a hole is never in the commit its
+    products were rendered from. The service read the products at ``ctx.head`` (F05-T13), the bot
+    commit or a descendant of it, which carries the hole and the network pin Q10 reads. When
+    neither commit is known to carry the node, nothing is dispatched: ``409 products-pending``
+    saying what it waits for, at once, rather than a job that fails step 2 minutes later."""
+    if carries_node(ctx, rendered, target_id, node_id) is not False:
+        return rendered
+    read_at = ctx.head
+    if read_at and read_at != rendered and carries_node(ctx, read_at, target_id, node_id):
+        return read_at
+    raise ApiError(
+        409,
+        "products-pending",
+        f"{node_id} is not in graph commit {rendered[:12]}…, the commit its products were "
+        "rendered from (a hole is written after the render, in the commit that carries the "
+        "products), and the service has not yet read a commit of main that carries it, so a "
+        "precheck job would fail step 2 layout-missing. It waits for the service's next read of "
+        "main. Retry shortly.",
+        details={"node_id": node_id, "graph_commit": rendered},
+        headers={"Retry-After": str(pending.PRODUCTS_RETRY_AFTER_S)},
+    )
 
 
 def existing_paths(ctx: Context, node_id: str, target_id: str) -> frozenset[str]:
@@ -412,13 +642,14 @@ def check_cited_annex(
 #: F05-T8: the fields ``POST /precheck`` reads; any other top-level key is refused.
 #: ``artifact_type`` is optional (F14 bench finding): when given, the bundle's paths are held to
 #: the submission route's type-to-path rule before any job exists. It is not recorded on the job.
-PRECHECK_FIELDS: tuple[str, ...] = ("node_id", "bundle", "artifact_type")
+PRECHECK_FIELDS: tuple[str, ...] = ("node_id", "bundle", "artifact_type", "automation")
 
 
 async def post_precheck(ctx: Context, request: Request) -> Response:
     """R1, R2, R3, R10. Authentication is decided by the node: the tutorial one is open (Q2)."""
     # Imported here: ``submissions`` imports this module, and owns the type-to-path rule.
     from opn_api import submissions  # noqa: PLC0415
+    from opn_api import uses as usesmod  # noqa: PLC0415 — uses reads this module's products
 
     fields, _ = await identitymod.body_fields(request, PRECHECK_FIELDS)
     node_id = fields.get("node_id")
@@ -429,7 +660,10 @@ async def post_precheck(ctx: Context, request: Request) -> Response:
         if "artifact_type" in fields
         else None
     )
-    facts = node_facts(ctx, node_id)
+    # F25-R3, Q14: validated when offered, before any token is read or any job exists.
+    automation = submissions.check_automation(fields.get("automation"), required=False)
+    # F06-T10: a node that exists only in a proposal whose gate is green runs at its head
+    facts, proposal = facts_or_proposal(ctx, node_id)
     # F06-T6: a blocked node can only fail at the dependency check, so it is refused before any
     # token is read, any limit charged or any job exists. A proved node stays precheckable (D-19).
     check_open(ctx, node_id, facts)
@@ -454,8 +688,20 @@ async def post_precheck(ctx: Context, request: Request) -> Response:
     if artifact_type is not None:
         # A precheck that the submission would refuse by path is refused before it costs a job.
         submissions.check_artifact_path(claim, bundle.files, artifact_type)
+    # F07-R23: and so is a carried witness step 2 would refuse, whatever type was declared.
+    carried = submissions.check_carried(claim, bundle.files)
+    # F08-R21 (T26): and a use line step 2 would refuse, by the gate's code, on a target whose
+    # pinned gate reads use lines; before the job exists, so nothing is dispatched.
+    usesmod.check_bundle(ctx, claim, bundle.files)
 
-    graph_commit = rendered_from(ctx, claim.target_id if facts["status"] is not None else None)
+    if proposal is not None:
+        # F06-T10: the proposal's branch lives on the graph, so the workflow checks out its head
+        # and reads the network pin there, as it does at any rendered commit (Q10).
+        graph_commit = proposal.head_sha
+    else:
+        graph_commit = rendered_from(ctx, claim.target_id if facts["status"] is not None else None)
+        # F06-T14: and only where the node exists; a hole is not in the commit it was rendered at
+        graph_commit = job_commit(ctx, node_id, claim.target_id, graph_commit)
     check_cited_annex(ctx, claim, bundle, graph_commit)
     now = ctx.clock.now()
     job = Job(
@@ -470,6 +716,9 @@ async def post_precheck(ctx: Context, request: Request) -> Response:
         created=clockmod.render(now),
         identity_id=identity.id if identity else None,
         nonce=nonce,
+        proposal=proposal.reference() if proposal is not None else None,
+        carried=[{"path": w.path, "sha256": w.sha256} for w in carried] or None,
+        automation=automation,
     )
     save(ctx, job)
     dispatch(ctx, job, bundle)
@@ -491,7 +740,7 @@ def artifact_name(job_id: str) -> str:
 def branch_files(job: Job, bundle: Bundle) -> dict[str, str]:
     """The branch's contents: the job record at the root and the bundle under ``bundle/``,
     whose paths stay relative to the graph root so ``precheck.job`` can apply them (R3, R4)."""
-    record = {
+    record: dict[str, Any] = {
         "id": job.id,
         "node_id": job.node_id,
         "target_id": job.target_id,
@@ -500,6 +749,10 @@ def branch_files(job: Job, bundle: Bundle) -> dict[str, str]:
         "bundle_digest": job.bundle_digest,
         "created": job.created,
     }
+    if job.proposal:
+        record["proposal"] = job.proposal  # F06-T10: read by nobody in the run; for a reader
+    if job.automation is not None:
+        record["automation"] = job.automation  # F25-R3: echoed by the runner's result document
     files = {JOB_FILE: json.dumps(record, indent=2, sort_keys=True) + "\n"}
     for path, content in bundle.files.items():
         files[f"{BUNDLE_DIR}/{path}"] = content
@@ -531,6 +784,8 @@ def dispatch(ctx: Context, job: Job, bundle: Bundle) -> None:
         # more call that could itself fail is a worse answer than the retention rule (C7).
         log.warning("precheck %s could not be dispatched: %s", job.id, exc)
         save(ctx, replace(job, state="error", error=f"dispatch failed: {exc}"))
+        if isinstance(exc, RateLimitError):  # F07-T47: come back at the reset, not a bare 502
+            raise host_budget_refusal(ctx, exc) from exc
         raise ApiError(
             502, "dispatch-failed", f"the precheck job could not be started: {exc}"
         ) from exc
@@ -544,18 +799,27 @@ async def get_precheck(ctx: Context, request: Request) -> Response:
     job = load(ctx, str(request.path_params["job_id"]))
     if job is None:
         raise ApiError(404, "job-unknown", "no such precheck job")
-    job = advance(ctx, job)
-    return JSONResponse(job.as_dict(ctx.clock.now()))
+    job = advance(ctx, job, read=True)
+    return JSONResponse(job.as_dict(ctx.clock.now()), headers=pending.retry_after(ctx))
 
 
-def advance(ctx: Context, job: Job) -> Job:
+def advance(ctx: Context, job: Job, *, read: bool = False) -> Job:
     """R5, Q3: poll on read. Look up the run, and when it has finished, take its artifact,
     verify the signature and store the result. A terminal job never changes again.
 
     A host failure while polling leaves the job as it is and is logged: a transient GitHub
     outage must not turn a running job into a permanent error (C7).
+
+    F07-T68: ``read`` is the anonymous ``GET /precheck/<id>``. It asks the host about one job at
+    most once per ``precheck_poll_min_s`` and not at all while the App's budget is held at the
+    reserve, answering the record as it stands (the route adds ``Retry-After`` when the budget is
+    why). The write routes that stand on a job (``POST /submissions``, ``POST /tokens``) advance
+    it unthrottled, since their answer depends on the job's latest state.
     """
     if job.state in TERMINAL or job.expired_at(ctx.clock.now()):
+        ctx.precheck_polls.pop(job.id, None)
+        return job
+    if read and not _may_poll(ctx, job.id):
         return job
     try:
         run = ctx.githost.find_run(
@@ -569,6 +833,21 @@ def advance(ctx: Context, job: Job) -> Job:
     if not run.completed:
         return _store(ctx, job, replace(job, state="running", run_id=str(run.id), run_url=run.url))
     return _collect(ctx, job, run)
+
+
+def _may_poll(ctx: Context, job_id: str) -> bool:
+    """F07-T68: whether an anonymous poll of ``job_id`` may ask the host now — not inside
+    ``precheck_poll_min_s`` of the last one, and not while the budget is held — recording the
+    poll when it may."""
+    now = time.monotonic()
+    last = ctx.precheck_polls.get(job_id)
+    if last is not None and now - last < ctx.settings.precheck_poll_min_s:
+        return False
+    if pending.budget_hold(ctx) is not None:
+        return False
+    pending.forget_old(ctx.precheck_polls, ctx.settings.precheck_poll_min_s)
+    ctx.precheck_polls[job_id] = now
+    return True
 
 
 def _collect(ctx: Context, job: Job, run: WorkflowRun) -> Job:

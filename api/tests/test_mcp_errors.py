@@ -63,6 +63,7 @@ def test_partial_bundle_never_served(harness: Harness) -> None:
         return original(repo, ref, path)
 
     harness.githost.list_dir = failing  # type: ignore[method-assign]
+    harness.context.listings.clear()  # F07-T68: main moved, so the listings are read again
     doc = client.failed("get_node", {"node_id": NODE})
     assert doc["source"] == "graph"
     assert "attempts" not in doc

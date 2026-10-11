@@ -25,7 +25,7 @@ from test_finding_hole_restates_ancestor import (
     set_deps,
 )
 
-from opn_gate import layout, pipeline
+from opn_gate import judging, layout, pipeline
 from opn_gate.paths import Change
 from opn_gate.steps.base import RunContext
 from opn_gate.toolchain import LocalToolchain, ResolvedToolchain
@@ -109,8 +109,9 @@ def test_a_genuinely_new_hole_passes(
     assert hole["name"] == "fresh"
     assert hole["closed_type"] == "∀ (p q : Prop), p ∧ q → p ∧ True"
     assert hole["defeq_ancestor"] is None and hole["defeq_goal"] is False
-    # The question was asked: both ancestors were staged for the extractor to read.
-    assert sorted(p.name for p in ctx.workdir.rglob("Ancestor*.lean")) == [
+    # The question was asked: both ancestors were staged for the extractor to read, in the
+    # judging directory since F02-T13 (restated: it was the work directory).
+    assert sorted(p.name for p in judging.root_for(ctx.workdir).rglob("Ancestor*.lean")) == [
         "Ancestor0.lean",
         "Ancestor1.lean",
     ]

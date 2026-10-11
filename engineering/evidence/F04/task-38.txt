@@ -1,0 +1,237 @@
+F04-T38: literature status (D-25, D-32 v3.35) — evidence, 2026-10-08
+worktree branch worktree-agent-ac4d01386c9b917c0, on F04-T37 (cfd2a6b), from main 77e0acc
+
+== red (the new tests against the renderer as committed at F04-T37) ==
+$ uv run --frozen pytest site/tests/test_finding_literature_status.py -q      # site/opn_site reverted to cfd2a6b for this run (a diff file, then git apply)
+  11 failed, 2 passed in 4.18s
+  the two passes are vacuous before the change (a node with no record shows no block; a target with nothing to
+  confirm has no list); the eleven fail on the missing fields, the missing block, the missing /me/ list and the
+  script's missing route. A first run before that had 9 errors of "unexpected entry literature": the gate's node
+  layout (D-3) does not yet know literature/ in this worktree — see the assumption below.
+
+== green ==
+$ uv run --frozen pytest site -m "not lean and not docker" -q
+  546 passed, 1 skipped in 79.89s (0:01:19)
+$ uv run --frozen pytest site/tests/test_finding_literature_status.py -q
+  13 passed in 1.44s
+$ make lint
+  exit 0
+$ uv run --frozen mypy site
+  Success: no issues found in 80 source files
+
+== assumptions named ==
+1. D-3 v3.35 gives a node a literature/ directory; the gate's layout rule (opn_gate.layout.OPTIONAL_DIRS) learns it in
+   the gate agent's parallel task. Until that lands, the test module tells the rule under a MonkeyPatch context, and
+   the render below does the same (render_38.py); both are no-ops once the gate carries it. The site code itself has
+   no shim: a live build with literature/ in a node fails at layout until the gate's change is pinned.
+2. The /me/ Confirm control calls POST /literature/confirm with {node_id, record, status, references, summary} —
+   the proposal's own fields, `record` relative to the node as the products name it (literature/<file>.yaml). The
+   service route is the service agent's; the body the script actually sends is printed in the shots report below.
+
+== local render of the live graph (sibling clone at 9589f0d4195b01039a6adc4bd613c108ef672142) ==
+A scratch copy with the products rewritten as the v3.35 gate writes them (task-37-patch-live.py --literature): the
+T37 labels, plus a hand-made literature pair on erdos-1094 written into the tree as literature/v1 records:
+  --h2: a proposal by t1008-c, status open (Ecklund–Selfridge core), awaiting;
+  --h3: a proposal by t1008-c, status known (Konyagin 1999; Granville–Ramaré 1996), confirmed by thisisanameforsure
+        through the site (via approval-key), then a later proposal by t1008-a (elementary) awaiting.
+graph/v6 rows and frontier/v5 entries carry them; every document validated before writing.
+$ OPN_SITE_API_URL=https://api.openproofnetwork.org uv run --frozen python render_38.py render --graph <copy> \
+    --commit 9589f0d4195b01039a6adc4bd613c108ef672142 --out <dir>
+  layout.OPTIONAL_DIRS told about literature/ for this render
+
+== screenshots and measurements (engineering/evidence/F04/task-38-shoot.py; Playwright, Chromium; the service
+   stubbed at the browser: GET /session a signed-in curator stewarding erdos-1094, GET /submissions.json empty,
+   POST /literature/confirm answering 201) ==
+{
+ "h3-known@1440": {
+  "block": "LITERATURE STATUS Known: a proof is published and not formalised · confirmed by thisisanameforsure (record · confirmation, 2026-10-08T14:05:40Z). S. V. Konyagin, Numbers that become composite after changing one or two digits (1999) — The 1999 paper proving the bound this hole states; never formalised. A. Granville and O. Ramaré, Explicit bounds on exponential sums and the scarcity of squarefree binomial coefficients (1996) — The earlier partial result the hole generalises. Untrusted contributor text — a literature summary (D-25 v3.35): the contributor’s reading, not a verdict. Untrusted: summary by t1008-c, drafted with claude-fable-5-1. Rendered from targets/erdos-1094/nodes/erdos-1094--h3/literature/20261008T140540Z-t1008-c.yaml. Granville–Ramaré (1996) proved it for n ≥ k^2 up to a constant; Konyagin (1999) proved the stated bound in full. Neither proof is formalised in Lean. A later proposal by t1008-a (Elementary: a routine formalisation of a known fact) awaits confirmation: targets/erdos-1094/nodes/erdos-1094--h3/literature/20261008T162000Z-t1008-a.yaml.",
+  "refs": [
+   {
+    "text": "S. V. Konyagin, Numbers that become composite after changing",
+    "link": true,
+    "inside": true
+   },
+   {
+    "text": "A. Granville and O. Ramaré, Explicit bounds on exponential s",
+    "link": false,
+    "inside": true
+   }
+  ],
+  "scrollWidth": 1440
+ },
+ "h2-proposed@1440": {
+  "block": "LITERATURE STATUS Proposed by t1008-c, awaiting a steward or curator: Open problem: no proof is known (record, 2026-10-08T14:02:11Z). Erdős problem #1094 (erdosproblems.com) — Lists the core case as open. Untrusted contributor text — a literature summary (D-25 v3.35): the contributor’s reading, not a verdict. Untrusted: summary by t1008-c, drafted with claude-fable-5-1. Rendered from targets/erdos-1094/nodes/erdos-1094--h2/literature/20261008T140211Z-t1008-c.yaml. The Ecklund–Selfridge core: no proof is known for n < k^2; this is what remains open of #1094 once the literature theorem (--h3) is set aside. <b>Untrusted text</b> is shown escaped.",
+  "refs": [
+   {
+    "text": "Erdős problem #1094 (erdosproblems.com) — Lists the core cas",
+    "link": true,
+    "inside": true
+   }
+  ],
+  "scrollWidth": 1440
+ },
+ "panel@1440": {
+  "block": "LITERATURE STATUS Known: a proof is published and not formalised · confirmed by thisisanameforsure (record · confirmation, 2026-10-08T14:05:40Z). S. V. Konyagin, Numbers that become composite after changing one or two digits (1999) — The 1999 paper proving the bound this hole states; never formalised. A. Granville and O. Ramaré, Explicit bounds on exponential sums and the scarcity of squarefree binomial coefficients (1996) — The earlier partial result the hole generalises. Untrusted contributor text — a literature summary (D-25 v3.35): the contributor’s reading, not a verdict. Untrusted: summary by t1008-c, drafted with claude-fable-5-1. Rendered from targets/erdos-1094/nodes/erdos-1094--h3/literature/20261008T140540Z-t1008-c.yaml. Granville–Ramaré (1996) proved it for n ≥ k^2 up to a constant; Konyagin (1999) proved the stated bound in full. Neither proof is formalised in Lean. A later proposal by t1008-a (Elementary: a routine formalisation of a known fact) awaits confirmation: targets/erdos-1094/nodes/erdos-1094--h3/literature/20261008T162000Z-t1008-a.yaml.",
+  "scrollWidth": 1440
+ },
+ "me@1440": {
+  "static_buttons_in_html": 0,
+  "lists_shown": 1,
+  "targets": [
+   "erdos-1094"
+  ],
+  "rows": [
+   "erdos-1094--h2 · Open problem: no proof is known · proposed by t1008-c · 2026-10-08T14:02:11Z · record Confirm",
+   "erdos-1094--h3 · Elementary: a routine formalisation of a known fact · proposed by t1008-a · 2026-10-08T16:20:00Z · record Confirm"
+  ],
+  "scrollWidth": 1440,
+  "confirm_request_body": [
+   {
+    "node_id": "erdos-1094--h2",
+    "record": "literature/20261008T140211Z-t1008-c.yaml",
+    "status": "open",
+    "references": [
+     {
+      "title": "Erdős problem #1094 (erdosproblems.com)",
+      "url": "https://www.erdosproblems.com/1094",
+      "note": "Lists the core case as open."
+     }
+    ],
+    "summary": "The Ecklund–Selfridge core: no proof is known for n < k^2; this is what remains open of #1094 once the literature theorem (--h3) is set aside. <b>Untrusted text</b> is shown escaped."
+   }
+  ],
+  "receipt": "Confirmation filed: #999"
+ },
+ "h3-known@390": {
+  "block": "LITERATURE STATUS Known: a proof is published and not formalised · confirmed by thisisanameforsure (record · confirmation, 2026-10-08T14:05:40Z). S. V. Konyagin, Numbers that become composite after changing one or two digits (1999) — The 1999 paper proving the bound this hole states; never formalised. A. Granville and O. Ramaré, Explicit bounds on exponential sums and the scarcity of squarefree binomial coefficients (1996) — The earlier partial result the hole generalises. Untrusted contributor text — a literature summary (D-25 v3.35): the contributor’s reading, not a verdict. Untrusted: summary by t1008-c, drafted with claude-fable-5-1. Rendered from targets/erdos-1094/nodes/erdos-1094--h3/literature/20261008T140540Z-t1008-c.yaml. Granville–Ramaré (1996) proved it for n ≥ k^2 up to a constant; Konyagin (1999) proved the stated bound in full. Neither proof is formalised in Lean. A later proposal by t1008-a (Elementary: a routine formalisation of a known fact) awaits confirmation: targets/erdos-1094/nodes/erdos-1094--h3/literature/20261008T162000Z-t1008-a.yaml.",
+  "refs": [
+   {
+    "text": "S. V. Konyagin, Numbers that become composite after changing",
+    "link": true,
+    "inside": true
+   },
+   {
+    "text": "A. Granville and O. Ramaré, Explicit bounds on exponential s",
+    "link": false,
+    "inside": true
+   }
+  ],
+  "scrollWidth": 390
+ },
+ "h2-proposed@390": {
+  "block": "LITERATURE STATUS Proposed by t1008-c, awaiting a steward or curator: Open problem: no proof is known (record, 2026-10-08T14:02:11Z). Erdős problem #1094 (erdosproblems.com) — Lists the core case as open. Untrusted contributor text — a literature summary (D-25 v3.35): the contributor’s reading, not a verdict. Untrusted: summary by t1008-c, drafted with claude-fable-5-1. Rendered from targets/erdos-1094/nodes/erdos-1094--h2/literature/20261008T140211Z-t1008-c.yaml. The Ecklund–Selfridge core: no proof is known for n < k^2; this is what remains open of #1094 once the literature theorem (--h3) is set aside. <b>Untrusted text</b> is shown escaped.",
+  "refs": [
+   {
+    "text": "Erdős problem #1094 (erdosproblems.com) — Lists the core cas",
+    "link": true,
+    "inside": true
+   }
+  ],
+  "scrollWidth": 390
+ },
+ "panel@390": {
+  "block": "LITERATURE STATUS Known: a proof is published and not formalised · confirmed by thisisanameforsure (record · confirmation, 2026-10-08T14:05:40Z). S. V. Konyagin, Numbers that become composite after changing one or two digits (1999) — The 1999 paper proving the bound this hole states; never formalised. A. Granville and O. Ramaré, Explicit bounds on exponential sums and the scarcity of squarefree binomial coefficients (1996) — The earlier partial result the hole generalises. Untrusted contributor text — a literature summary (D-25 v3.35): the contributor’s reading, not a verdict. Untrusted: summary by t1008-c, drafted with claude-fable-5-1. Rendered from targets/erdos-1094/nodes/erdos-1094--h3/literature/20261008T140540Z-t1008-c.yaml. Granville–Ramaré (1996) proved it for n ≥ k^2 up to a constant; Konyagin (1999) proved the stated bound in full. Neither proof is formalised in Lean. A later proposal by t1008-a (Elementary: a routine formalisation of a known fact) awaits confirmation: targets/erdos-1094/nodes/erdos-1094--h3/literature/20261008T162000Z-t1008-a.yaml.",
+  "scrollWidth": 779
+ },
+ "me@390": {
+  "static_buttons_in_html": 0,
+  "lists_shown": 1,
+  "targets": [
+   "erdos-1094"
+  ],
+  "rows": [
+   "erdos-1094--h2 · Open problem: no proof is known · proposed by t1008-c · 2026-10-08T14:02:11Z · record Confirm",
+   "erdos-1094--h3 · Elementary: a routine formalisation of a known fact · proposed by t1008-a · 2026-10-08T16:20:00Z · record Confirm"
+  ],
+  "scrollWidth": 390,
+  "confirm_request_body": [
+   {
+    "node_id": "erdos-1094--h2",
+    "record": "literature/20261008T140211Z-t1008-c.yaml",
+    "status": "open",
+    "references": [
+     {
+      "title": "Erdős problem #1094 (erdosproblems.com)",
+      "url": "https://www.erdosproblems.com/1094",
+      "note": "Lists the core case as open."
+     }
+    ],
+    "summary": "The Ecklund–Selfridge core: no proof is known for n < k^2; this is what remains open of #1094 once the literature theorem (--h3) is set aside. <b>Untrusted text</b> is shown escaped."
+   }
+  ],
+  "receipt": "Confirmation filed: #999"
+ }
+}
+127.0.0.1 - - [08/Oct/2026 21:57:42] "GET /nodes/erdos-1094/erdos-1094--h3/ HTTP/1.1" 200 -
+127.0.0.1 - - [08/Oct/2026 21:57:42] "GET /site.css HTTP/1.1" 200 -
+127.0.0.1 - - [08/Oct/2026 21:57:42] "GET /session.js HTTP/1.1" 200 -
+127.0.0.1 - - [08/Oct/2026 21:57:42] "GET /in-review.js HTTP/1.1" 200 -
+127.0.0.1 - - [08/Oct/2026 21:57:42] "GET /words.js HTTP/1.1" 200 -
+127.0.0.1 - - [08/Oct/2026 21:57:46] "GET /nodes/erdos-1094/erdos-1094--h2/ HTTP/1.1" 200 -
+127.0.0.1 - - [08/Oct/2026 21:57:46] "GET /site.css HTTP/1.1" 200 -
+127.0.0.1 - - [08/Oct/2026 21:57:46] "GET /session.js HTTP/1.1" 200 -
+127.0.0.1 - - [08/Oct/2026 21:57:46] "GET /in-review.js HTTP/1.1" 200 -
+127.0.0.1 - - [08/Oct/2026 21:57:46] "GET /words.js HTTP/1.1" 200 -
+127.0.0.1 - - [08/Oct/2026 21:57:47] "GET /problems/erdos-1094/ HTTP/1.1" 200 -
+127.0.0.1 - - [08/Oct/2026 21:57:47] "GET /site.css HTTP/1.1" 200 -
+127.0.0.1 - - [08/Oct/2026 21:57:47] "GET /vendor/katex/katex.min.css HTTP/1.1" 200 -
+127.0.0.1 - - [08/Oct/2026 21:57:47] "GET /session.js HTTP/1.1" 200 -
+127.0.0.1 - - [08/Oct/2026 21:57:47] "GET /vendor/katex/katex.min.js HTTP/1.1" 200 -
+127.0.0.1 - - [08/Oct/2026 21:57:47] "GET /vendor/katex/auto-render.min.js HTTP/1.1" 200 -
+127.0.0.1 - - [08/Oct/2026 21:57:47] "GET /math.js HTTP/1.1" 200 -
+127.0.0.1 - - [08/Oct/2026 21:57:47] "GET /problem.js HTTP/1.1" 200 -
+127.0.0.1 - - [08/Oct/2026 21:57:47] "GET /words.js HTTP/1.1" 200 -
+127.0.0.1 - - [08/Oct/2026 21:57:48] "GET /vendor/katex/fonts/KaTeX_Main-Regular.woff2 HTTP/1.1" 200 -
+127.0.0.1 - - [08/Oct/2026 21:57:48] "GET /vendor/katex/fonts/KaTeX_Math-Italic.woff2 HTTP/1.1" 200 -
+127.0.0.1 - - [08/Oct/2026 21:57:48] "GET /vendor/katex/fonts/KaTeX_Size1-Regular.woff2 HTTP/1.1" 200 -
+127.0.0.1 - - [08/Oct/2026 21:57:49] "GET /me/ HTTP/1.1" 200 -
+127.0.0.1 - - [08/Oct/2026 21:57:49] "GET /site.css HTTP/1.1" 200 -
+127.0.0.1 - - [08/Oct/2026 21:57:49] "GET /session.js HTTP/1.1" 200 -
+127.0.0.1 - - [08/Oct/2026 21:57:49] "GET /me.js HTTP/1.1" 200 -
+127.0.0.1 - - [08/Oct/2026 21:57:50] "GET /nodes/erdos-1094/erdos-1094--h3/ HTTP/1.1" 200 -
+127.0.0.1 - - [08/Oct/2026 21:57:50] "GET /site.css HTTP/1.1" 200 -
+127.0.0.1 - - [08/Oct/2026 21:57:50] "GET /session.js HTTP/1.1" 200 -
+127.0.0.1 - - [08/Oct/2026 21:57:50] "GET /in-review.js HTTP/1.1" 200 -
+127.0.0.1 - - [08/Oct/2026 21:57:50] "GET /words.js HTTP/1.1" 200 -
+127.0.0.1 - - [08/Oct/2026 21:57:51] "GET /nodes/erdos-1094/erdos-1094--h2/ HTTP/1.1" 200 -
+127.0.0.1 - - [08/Oct/2026 21:57:51] "GET /site.css HTTP/1.1" 200 -
+127.0.0.1 - - [08/Oct/2026 21:57:51] "GET /session.js HTTP/1.1" 200 -
+127.0.0.1 - - [08/Oct/2026 21:57:51] "GET /in-review.js HTTP/1.1" 200 -
+127.0.0.1 - - [08/Oct/2026 21:57:51] "GET /words.js HTTP/1.1" 200 -
+127.0.0.1 - - [08/Oct/2026 21:57:52] "GET /problems/erdos-1094/ HTTP/1.1" 200 -
+127.0.0.1 - - [08/Oct/2026 21:57:52] "GET /site.css HTTP/1.1" 200 -
+127.0.0.1 - - [08/Oct/2026 21:57:52] "GET /vendor/katex/katex.min.css HTTP/1.1" 200 -
+127.0.0.1 - - [08/Oct/2026 21:57:52] "GET /session.js HTTP/1.1" 200 -
+127.0.0.1 - - [08/Oct/2026 21:57:52] "GET /vendor/katex/katex.min.js HTTP/1.1" 200 -
+127.0.0.1 - - [08/Oct/2026 21:57:52] "GET /vendor/katex/auto-render.min.js HTTP/1.1" 200 -
+127.0.0.1 - - [08/Oct/2026 21:57:52] "GET /math.js HTTP/1.1" 200 -
+127.0.0.1 - - [08/Oct/2026 21:57:52] "GET /problem.js HTTP/1.1" 200 -
+127.0.0.1 - - [08/Oct/2026 21:57:52] "GET /words.js HTTP/1.1" 200 -
+127.0.0.1 - - [08/Oct/2026 21:57:52] "GET /vendor/katex/fonts/KaTeX_Main-Regular.woff2 HTTP/1.1" 200 -
+127.0.0.1 - - [08/Oct/2026 21:57:52] "GET /vendor/katex/fonts/KaTeX_Math-Italic.woff2 HTTP/1.1" 200 -
+127.0.0.1 - - [08/Oct/2026 21:57:52] "GET /vendor/katex/fonts/KaTeX_Size1-Regular.woff2 HTTP/1.1" 200 -
+127.0.0.1 - - [08/Oct/2026 21:57:53] "GET /me/ HTTP/1.1" 200 -
+127.0.0.1 - - [08/Oct/2026 21:57:53] "GET /site.css HTTP/1.1" 200 -
+127.0.0.1 - - [08/Oct/2026 21:57:53] "GET /session.js HTTP/1.1" 200 -
+127.0.0.1 - - [08/Oct/2026 21:57:53] "GET /me.js HTTP/1.1" 200 -
+
+What each shot shows (looked at, not only measured):
+  task-38-h3-known-1440.png / -390.png: erdos-1094--h3's page, the Literature status block: "Known: a proof is
+    published and not formalised · confirmed by thisisanameforsure (record · confirmation, date)"; the two references
+    (Konyagin linked through the allowlist, Granville–Ramaré a title only, its url null); the summary as an
+    "Untrusted contributor text" block, labelled, escaped; beneath, "A later proposal by t1008-a (Elementary: ...)
+    awaits confirmation" with its record linked. Every reference link's box lies inside its list item.
+  task-38-h2-proposed-1440.png / -390.png: erdos-1094--h2's page: "Proposed by t1008-c, awaiting a steward or curator:
+    Open problem: no proof is known (record, date)", one reference, the summary demarcated; the record's "<b>" is
+    shown escaped.
+  task-38-panel-h3-1440.png / -390.png: the same block on erdos-1094's statement card for --h3.
+  task-38-me-1440.png / -390.png: /me/ once the stubbed session answers: the section "Literature statuses awaiting
+    your confirmation", erdos-1094's list shown with its two rows (node, status words, proposed by, date, record)
+    and a Confirm control per row, drawn by the script — the static HTML has no button (static_buttons_in_html 0).
+  task-38-me-confirmed-1440.png / -390.png: after one click, "Confirmation filed: #999" beside the row; the request
+    body the script sent is the confirm_request_body above.
+  scrollWidth: 390 at 390 on both node pages and on /me/. The problem page /problems/erdos-1094/ measures 779 at 390
+    on this render AND on the T37 render, which has no literature block. Measured (leaf elements past 392px, widest
+    first): the sources list's <a> "https://github.com/google-deepmind/formal-conjectures..." at right 779 (an
+    unwrapped url), then the statement-QA table's columns (screen-statement 765, screen-negation 679, ...). Both
+    predate this task; the literature block's own elements wrap (overflow-wrap: anywhere). Left for the lead.

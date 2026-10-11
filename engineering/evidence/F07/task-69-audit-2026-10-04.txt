@@ -1,0 +1,121 @@
+F07-T69 (audit 2026-10-04): queue position is counted per target lane.
+
+Finding: the merge actor has been strict per target since F07-T56 (one lane per target, lanes in
+parallel; a pull request in no single target is EVERY_LANE, waits until first, then holds every
+lane: graph .github/workflows/merge.yml, lane_of_paths / decide). The service's queue block
+(api/opn_api/pending.py queue_order / queue_block / entry_queue) counted every open pull request on
+the graph, and QUEUE_ORDER and the MCP get_submission / list_submissions descriptions described the
+whole-graph queue.
+
+Fix: lane_queue(order, lanes, number) restricts the actor's order to the pull request's lane. The
+lane is the one target the service's own record names (Submission.target_id; every route that opens
+a pull request records the target it touches). A pull request the actor takes that the service has
+no open record of has no known lane and is counted in every lane (EVERY_LANE = "*"), so the position
+stays an upper bound; one whose own lane is unknown counts the whole queue. queue.order at the top
+of GET /submissions.json stays the actor's order across every lane. No response field added (the
+MCP output schemas are closed; a `lane` field would be a schema change, not taken).
+
+Proposed ledger line: T69 ✓ (audit 2026-10-04) queue position per target lane;
+verification `uv run --frozen pytest api/tests/test_finding_queue_lanes.py api/tests/test_finding_queue_position.py`.
+
+Proposed Q entry (F07-Q-next): "A submission's queue position counts its own lane (T69, audit
+2026-10-04). Since T56 the actor runs one lane per target, but GET /submissions/<id> and
+/submissions.json counted every open pull request on the graph. The lane is the target the
+service's own record names; a pull request with no open record is counted in every lane, as the
+actor holds every lane for one it cannot place, so the position stays an upper bound. queue.order
+remains the whole order. Follow-up: gate/agents/AGENTS.md (the guide, around 'The order is
+pull-request number, oldest first, across every target') still says `of` counts the open pull
+requests the actor takes; it should say the position and `of` count the caller's own lane.
+Reversal: pending.lane_queue."
+
+Follow-up not done here (file not owned by this task): gate/agents/AGENTS.md lines ~735-745.
+
+--- red (before the fix) ---
+FFFF                                                                     [100%]
+=================================== FAILURES ===================================
+_______________ test_a_position_counts_only_its_own_targets_lane _______________
+
+harness = Harness(settings=Settings(store='memory', table_identities=None, table_tokens=None, table_claims=None, parameter_prefi...=<starlette.applications.Starlette object at 0x10d901d30>, axle=FakeAxle(calls=[], replies=[], hosted=['lean-4.33.0']))
+
+    def test_a_position_counts_only_its_own_targets_lane(harness: Harness) -> None:
+        three_annexes(harness)  # #1, #2, #3 on the tutorial target
+        move_to_other_target(harness, 2)
+        queue = get(harness, "3")["queue"]
+>       assert [a["pr_number"] for a in queue["ahead"]] == [1]
+E       assert [1, 2] == [1]
+E         
+E         Left contains one more item: 2
+E         Use -v to get more diff
+
+api/tests/test_finding_queue_lanes.py:39: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:74 the graph's head could not be read, serving the branch: no head configured
+______________ test_the_listing_counts_each_entry_in_its_own_lane ______________
+
+harness = Harness(settings=Settings(store='memory', table_identities=None, table_tokens=None, table_claims=None, parameter_prefi...=<starlette.applications.Starlette object at 0x10d31e0d0>, axle=FakeAxle(calls=[], replies=[], hosted=['lean-4.33.0']))
+
+    def test_the_listing_counts_each_entry_in_its_own_lane(harness: Harness) -> None:
+        three_annexes(harness)
+        move_to_other_target(harness, 2)
+        doc = listing(harness)
+        by_number = {e["pr_number"]: e["queue"] for e in doc["open"]}
+>       assert {n: (q["position"], q["of"]) for n, q in by_number.items()} == {
+            1: (1, 2),
+            2: (1, 1),
+            3: (2, 2),
+        }
+E       assert {1: (1, 3), 2...3), 3: (3, 3)} == {1: (1, 2), 2...1), 3: (2, 2)}
+E         
+E         Differing items:
+E         {1: (1, 3)} != {1: (1, 2)}
+E         {2: (2, 3)} != {2: (1, 1)}
+E         {3: (3, 3)} != {3: (2, 2)}
+E         Use -v to get more diff
+
+api/tests/test_finding_queue_lanes.py:50: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:74 the graph's head could not be read, serving the branch: no head configured
+_____________ test_an_unplaced_pull_request_is_ahead_in_every_lane _____________
+
+harness = Harness(settings=Settings(store='memory', table_identities=None, table_tokens=None, table_claims=None, parameter_prefi...=<starlette.applications.Starlette object at 0x10d95cb90>, axle=FakeAxle(calls=[], replies=[], hosted=['lean-4.33.0']))
+
+    def test_an_unplaced_pull_request_is_ahead_in_every_lane(harness: Harness) -> None:
+        """One the actor takes and the service has no record of: its lane is not known, so it is
+        counted in every lane (the actor holds every lane for one it cannot place)."""
+        three_annexes(harness)
+        move_to_other_target(harness, 2)
+        harness.githost.set_pull_request_state(22, head_ref="propose/unrecorded")
+        harness.githost.set_pull_request_state(23, head_ref="submit/unrecorded")
+        first = get(harness, "1")["queue"]
+>       assert (first["position"], first["of"]) == (1, 4)  # 22 and 23 are younger, still counted
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       assert (1, 5) == (1, 4)
+E         
+E         At index 1 diff: 5 != 4
+E         Use -v to get more diff
+
+api/tests/test_finding_queue_lanes.py:67: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:74 the graph's head could not be read, serving the branch: no head configured
+______________________ test_the_text_describes_the_lanes _______________________
+
+    def test_the_text_describes_the_lanes() -> None:
+>       assert "lane" in pending.QUEUE_ORDER and "target" in pending.QUEUE_ORDER
+E       AssertionError: assert ('lane' in 'pull-request number, oldest first, over the open pull requests the merge actor takes (non-draft, on a branch the serv... position is an upper bound on the merges ahead, not a count of them; consecutive green appends may merge as one batch')
+E        +  where 'pull-request number, oldest first, over the open pull requests the merge actor takes (non-draft, on a branch the serv... position is an upper bound on the merges ahead, not a count of them; consecutive green appends may merge as one batch' = pending.QUEUE_ORDER
+
+api/tests/test_finding_queue_lanes.py:73: AssertionError
+=============================== warnings summary ===============================
+api/tests/api_fakes.py:31
+  /Users/mikehiggins/Desktop/repos/opn-audit-g2-agentapi/api/tests/api_fakes.py:31: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient
+
+../open_proof_network/.venv/lib/python3.13/site-packages/starlette/testclient.py:53
+  /Users/mikehiggins/Desktop/repos/open_proof_network/.venv/lib/python3.13/site-packages/starlette/testclient.py:53: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.
+    _PortalFactoryType = Callable[[], AbstractContextManager[anyio.abc.BlockingPortal]]
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+4 failed, 2 warnings in 0.74s
+
+--- green (after the fix; queue, pending and MCP tests) ---
+107 passed, 2 warnings in 5.85s

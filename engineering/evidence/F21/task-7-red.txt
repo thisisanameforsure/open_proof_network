@@ -1,0 +1,42 @@
+F21-T7 red runs, each before its fix, each failing on an assertion (seams at today's behaviour:
+glosses.needed returning [], list_words_needed registered with an empty answer, the site
+unchanged). The two api tests that passed against the stub were the surface/bijection check and
+test_reads_at_mains_head; the latter was strengthened to assert the head's rows and re-run red
+(second block). One api failure (test_an_unrendered_or_older_product) is a ValueError unpacking
+`[unread] = out["unread"]` against the stub's empty list: the assertion that one target is
+named as unread.
+
+== gate: uv run pytest gate/tests/test_gloss_coverage.py -k needed ==
+E       AssertionError: assert [] == [{'target': '...a', ...}, ...]
+E         Right contains 10 more items, first extra item: {'target': 'euclid-primes', 'file': 'targets/euclid-primes/defs/Primes.lean', 'kind': 'definition', 'node': None, ...}
+FAILED gate/tests/test_gloss_coverage.py::test_needed_from_the_product_matches_coverage
+1 failed, 4 deselected
+
+== api: uv run pytest api/tests/test_mcp_words_needed.py ==
+E       AssertionError: assert [] == [{'target': '...a', ...}, ...]
+E         Right contains 16 more items, first extra item: {'target': 'euclid-primes', 'file': 'targets/euclid-primes/nodes/and-reassoc/Proof.lean', 'kind': 'proof', 'node': 'and-reassoc', ...}
+E       AssertionError: assert [] == [{'target': '...c', ...}, ...]
+E         Right contains 9 more items, first extra item: {'target': 'propositional', 'file': 'targets/propositional/nodes/and-reassoc/Proof.lean', 'kind': 'proof', 'node': 'and-reassoc', ...}
+E       AssertionError: {'read_at': 'main', 'target_id': None, 'kind': 'lemma', 'count': 0, 'subjects': [], 'unread': []}
+E       AssertionError: {'read_at': 'main', 'target_id': 'no-such-target', 'kind': None, 'count': 0, 'subjects': [], 'unread': []}
+E       ValueError: not enough values to unpack (expected 1, got 0)
+FAILED api/tests/test_mcp_words_needed.py::test_the_rows_equal_coverage
+FAILED api/tests/test_mcp_words_needed.py::test_filters_by_target_and_kind
+FAILED api/tests/test_mcp_words_needed.py::test_an_unknown_kind_is_named
+FAILED api/tests/test_mcp_words_needed.py::test_a_target_not_on_the_graph_is_named
+FAILED api/tests/test_mcp_words_needed.py::test_an_unrendered_or_older_product
+5 failed, 2 passed
+
+== api: test_reads_at_mains_head, strengthened ==
+E       AssertionError: assert [] == [{'target': '...iant-a', ...}]
+E         Right contains 6 more items, first extra item: {'target': 'euclid-primes', 'file': 'targets/euclid-primes/nodes/and-reassoc/Proof.lean', 'kind': 'proof', 'node': 'and-reassoc', ...}
+FAILED api/tests/test_mcp_words_needed.py::test_reads_at_mains_head
+1 failed, 6 deselected
+
+== site: uv run pytest site/tests/test_needs_words_filter.py ==
+E       assert 'data-words="11"' in '<article class="card problem" data-status="open" data-open="1" id="p-propositional">...'
+E       AssertionError: one 'needs words' segment
+E       assert 0 == 1
+FAILED site/tests/test_needs_words_filter.py::test_each_problem_shows_its_count
+FAILED site/tests/test_needs_words_filter.py::test_the_filter_keeps_exactly_the_problems_with_some
+2 failed

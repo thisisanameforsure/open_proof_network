@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any
 
 import httpx
-from api_fakes import TUTORIAL_NODE, Harness, make_harness, make_precheck_key
+from api_fakes import AUTOMATION, TUTORIAL_NODE, Harness, make_harness, make_precheck_key
 from mcp_client import NODE, TARGET, McpClient, seed_node
 
 from opn_api import routes
@@ -39,6 +39,15 @@ READS = {
     "get_hosted_checkers",
     # F05-T14 (ruling D3(b)), D-28's notation note of 2026-09-24: the caller's own claims.
     "list_my_claims",
+    # F07-T70, F09-T17, D-28's notation note of 2026-10-04: the caller's own submissions and
+    # fast-check records.
+    "get_my_submissions",
+    "get_check",
+    # F09-T15 (audit 2026-10-04, owner-approved), D-28's notation note of 2026-10-04.
+    "list_error_codes",
+    # F21-T7, D-28's notation note of 2026-10-05: the files that lack words.
+    "list_words_needed",
+    "list_registrations",  # F25-T4: D-28 v3.37, the registrations the products derive
 }
 WRITES = {
     "claim_node",
@@ -47,6 +56,7 @@ WRITES = {
     "check_lean",  # F13-T6: D-28 v3.14
     "get_token",  # F09-T6: D-28's notation note of 2026-09-14
     "propose_witness",  # F09-T6: idem
+    "renew_token",  # F05-T27 (D-19 v3.28), D-28's notation note of 2026-10-04 (D-19)
     "submit_proof",
     "submit_postmortem",
     "submit_informal_annex",
@@ -56,6 +66,12 @@ WRITES = {
     "propose_speculative_node",
     "propose_variant",
     "withdraw_submission",  # F07-T43 (ruling D5), D-28's notation note of 2026-09-24
+    "submit_gloss",  # F20-T6: D-28 v3.30
+    "withdraw_gloss",  # F20-T6: idem
+    "propose_literature",  # F09-T24: D-25 v3.35, the append row
+    "confirm_literature",  # F09-T24: D-25, D-32 v3.35, idem
+    "set_display_name",  # F25-T4: D-3, D-19, D-35 v3.37, the names-and-registrations row
+    "register_target",  # F25-T4: D-10, D-35 v3.37, idem
 }
 
 
@@ -73,7 +89,8 @@ def test_tool_surface_frozen(harness: Harness) -> None:
     declared = {t.name: t for t in TOOLS}
     assert set(declared) == READS | WRITES
     for tool in listed:
-        assert tool.outputSchema == results.load(tool.name)
+        # F09-T20 (Q19): the file without its annotations, which never constrain
+        assert tool.outputSchema == results.declared(tool.name)
         assert tool.inputSchema["additionalProperties"] is False
         assert tool.annotations is not None
         assert tool.annotations.readOnlyHint is (tool.name in READS)
@@ -137,9 +154,10 @@ def test_results_match_schemas(harness: Harness, tmp_path: Path) -> None:
             "artifact_type": "proof",
             "bundle": {},
             "attestation": {"id": job["id"]},
+            "automation": AUTOMATION,
         },
         "submit_postmortem": {"node_id": NODE, "yaml": {}},
-        "submit_informal_annex": {"node_id": NODE, "text": "prose"},
+        "submit_informal_annex": {"node_id": NODE, "text": "prose", "licence": "CC-BY-4.0"},
         "submit_approach_record": {"target_id": TARGET, "record": {}},
         "file_defect_claim": {
             "stmt_ref": TUTORIAL_NODE,
@@ -155,9 +173,34 @@ def test_results_match_schemas(harness: Harness, tmp_path: Path) -> None:
         "propose_speculative_node": {"target_id": TARGET, "stmt": "s", "witness": "w"},
         "propose_variant": {"target_id": TARGET, "stmt": "s", "witness": "w"},
         "withdraw_submission": {"submission_id": "000001"},
+        "propose_literature": {
+            "node_id": NODE,
+            "status": "known",
+            "references": [{"title": "A paper"}],
+            "summary": "s",
+        },
+        "confirm_literature": {
+            "node_id": NODE,
+            "record": None,
+            "status": "known",
+            "references": [{"title": "A paper"}],
+            "summary": "s",
+        },
+        "set_display_name": {"name": "Surface"},
+        "register_target": {
+            "target_id": TARGET,
+            "registry": "palomar",
+            "wrapper": {"repository": "o/r", "commit": "a" * 40},
+            "graph_commit": "b" * 40,
+            "proof": {"node": NODE, "attestation": "000001"},
+            "status": "submitted",
+        },
     }
+    # renew_token retires the token it is called with (F05-T27), so it is given one of its own.
+    own = {"renew_token": harness.token_for("code_bob", "bob")}
     for tool in TOOLS:
-        for arguments, tok in ((args.get(tool.name, {}), token), ({"bogus": 1}, None)):
+        mine = own.get(tool.name, token)
+        for arguments, tok in ((args.get(tool.name, {}), mine), ({"bogus": 1}, None)):
             result = client.call(tool.name, arguments, token=tok)
             assert result.structuredContent is not None, (tool.name, result.content)
             assert results.violations(tool.name, result.structuredContent) == [], (

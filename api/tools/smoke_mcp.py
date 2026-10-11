@@ -34,6 +34,9 @@ from mcp.client.session import ClientSession
 from mcp.client.streamable_http import streamable_http_client
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "gate"))
+sys.path.insert(
+    0, str(Path(__file__).resolve().parents[2] / "site")
+)  # opn_api.glosses reads opn_site.prose (F22-T5)
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "api"))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
@@ -140,9 +143,9 @@ def read_only(  # noqa: PLR0912, PLR0915 — a checklist: one branch per thing t
     if bundle.pop("__is_error__"):
         problems.append(f"get_node({tutorial}) is an error: {bundle}")
     else:
-        bare = demarcate.bare_strings(
-            {k: v for k, v in bundle.items() if k in ("context", "annexes", "explainers")}
-        )
+        # F20-T6: every gloss and explainer version's prose is served wrapped too.
+        prose_keys = ("context", "annexes", "explainers", "gloss_chains", "explainer_chains")
+        bare = demarcate.bare_strings({k: v for k, v in bundle.items() if k in prose_keys})
         # F09-AC6 over the F10-R3 bundle shape: contributor *prose* must be wrapped; the node's
         # Lean source (the statement's and witness's ``text``) is code the gate checked, served
         # bare on purpose (F10-Q6), and is the one ``.text`` the rule does not apply to.
@@ -168,10 +171,14 @@ def read_only(  # noqa: PLR0912, PLR0915 — a checklist: one branch per thing t
     anonymous = Client(base, None)
     unauthorized = anonymous.call("claim_node", {"node_id": tutorial})
     client.transcript.extend("(no token) " + line for line in anonymous.transcript)
-    if not unauthorized.pop("__is_error__") or unauthorized != {
-        "status": UNAUTHORIZED_STATUS,
-        "body": UNAUTHORIZED,
-    }:
+    # Since 2026-09-27 the message names the tutorial node, so the node found above must be in it.
+    body = unauthorized.get("body") or {}
+    if (
+        not unauthorized.pop("__is_error__")
+        or unauthorized.get("status") != UNAUTHORIZED_STATUS
+        or body.get("error") != UNAUTHORIZED["error"]
+        or f"/{tutorial}`" not in str(body.get("message"))
+    ):
         problems.append(
             f"claim_node without a token is not the unauthorized result: {unauthorized}"
         )

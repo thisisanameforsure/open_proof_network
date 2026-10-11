@@ -1,0 +1,92 @@
+import Mathlib
+
+theorem hQcint_test : ∀ (Qc : ℕ → ℕ → ℚ),
+  (Qc = fun (n k : ℕ) =>
+      ((-1 : ℚ) ^ k * (2 : ℚ) ^ (k * (k - (1 : ℕ)) / (2 : ℕ)) *
+          ∏ i ∈ Finset.range k, ((2 : ℚ) ^ (n - i) - (1 : ℚ)) / ((2 : ℚ) ^ (i + (1 : ℕ)) - (1 : ℚ))) *
+        ∏ i ∈ Finset.range n, ((2 : ℚ) ^ ((2 : ℕ) * n - k - i) - (1 : ℚ)) / ((2 : ℚ) ^ (i + (1 : ℕ)) - (1 : ℚ))) →
+    ∀ (Qx : ℕ → ℚ),
+      (Qx = fun (n : ℕ) => ∑ k ∈ Finset.range (n + (1 : ℕ)), Qc n k * ((3 : ℚ) / (2 : ℚ) ^ n) ^ k) →
+        ∀ (Aq : ℕ → ℚ),
+          (Aq = fun (n : ℕ) =>
+              ∑ k ∈ Finset.range (n + (1 : ℕ)),
+                  (∑ j ∈ Finset.range (k + (1 : ℕ)), Qc n j / ((2 : ℚ) ^ (k - j) - (1 : ℚ))) *
+                    ((3 : ℚ) / (2 : ℚ) ^ n) ^ k +
+                Qx n * ∑ j ∈ Finset.range n, (3 : ℚ) / ((2 : ℚ) ^ (j + (1 : ℕ)) - (3 : ℚ))) →
+            ∀ (n : ℕ) (M : ℕ → ℕ),
+              (M = fun (n : ℕ) => ∏ m ∈ Finset.Ioc (n / (2 : ℕ)) n, ((2 : ℕ) ^ m - (1 : ℕ))) →
+                ∀ (C : ℕ → ℕ),
+                  (C = fun (n : ℕ) => ∏ j ∈ Finset.Ico (2 : ℕ) n, ((2 : ℕ) ^ (j + (1 : ℕ)) - (3 : ℕ))) →
+                    ∀ k ≤ n, ∃ (z : ℤ), (↑z : ℚ) * (2 : ℚ) ^ (k * (k - (1 : ℕ)) / (2 : ℕ)) = Qc n k := by
+  intro Qc hQc Qx _ Aq _ n M _ C _ k _
+  -- Gaussian binomial integrality at q = 2 (the statement of spec-440db0f9), restated as a `have`
+  -- because a hole's proof cannot import another node; this block is agent 1050-A's, from annex
+  -- dc648f3f on this node's parent erdos-1050--h1-v2--h3.
+  have gauss : ∀ n k : ℕ,
+      ∃ z : ℤ, (z : ℚ) = ∏ i ∈ Finset.range k, ((2 : ℚ) ^ (n - i) - 1) / ((2 : ℚ) ^ (i + 1) - 1) := by
+    intro n k
+    have hD : ∀ j : ℕ, ((2 : ℚ) ^ (j + 1) - 1) ≠ 0 := by
+      intro j
+      have h1 : (1 : ℚ) < 2 ^ (j + 1) := one_lt_pow₀ (by norm_num) (by omega)
+      exact ne_of_gt (sub_pos.mpr h1)
+    have hDk : ∀ k : ℕ, (∏ i ∈ Finset.range k, ((2 : ℚ) ^ (i + 1) - 1)) ≠ 0 := by
+      intro k
+      exact Finset.prod_ne_zero_iff.mpr (fun i _ => hD i)
+    have key : ∀ m j : ℕ,
+        (∏ i ∈ Finset.range (j + 1), ((2 : ℚ) ^ (m + 1 - i) - 1) / ((2 : ℚ) ^ (i + 1) - 1)) =
+          (∏ i ∈ Finset.range j, ((2 : ℚ) ^ (m - i) - 1) / ((2 : ℚ) ^ (i + 1) - 1)) +
+          2 ^ (j + 1) *
+            ∏ i ∈ Finset.range (j + 1), ((2 : ℚ) ^ (m - i) - 1) / ((2 : ℚ) ^ (i + 1) - 1) := by
+      intro m j
+      simp only [Finset.prod_div_distrib]
+      rw [Finset.prod_range_succ' (fun i => (2 : ℚ) ^ (m + 1 - i) - 1)]
+      have hshift : ∀ i : ℕ, m + 1 - (i + 1) = m - i := fun i => by omega
+      simp only [hshift, Nat.sub_zero]
+      rw [Finset.prod_range_succ (fun i => (2 : ℚ) ^ (m - i) - 1),
+        Finset.prod_range_succ (fun i => (2 : ℚ) ^ (i + 1) - 1)]
+      have hDj := hDk j
+      have hj := hD j
+      by_cases hjm : j ≤ m
+      · have e : (2 : ℚ) ^ (m + 1) = 2 ^ (m - j) * 2 ^ (j + 1) := by
+          rw [← pow_add]
+          congr 1
+          omega
+        rw [e]
+        field_simp
+        ring
+      · have hz : (∏ i ∈ Finset.range j, ((2 : ℚ) ^ (m - i) - 1)) = 0 :=
+          Finset.prod_eq_zero (i := m) (Finset.mem_range.mpr (by omega)) (by simp)
+        rw [hz]
+        simp
+    have main : ∀ m j : ℕ, ∃ z : ℤ,
+        (z : ℚ) = ∏ i ∈ Finset.range j, ((2 : ℚ) ^ (m - i) - 1) / ((2 : ℚ) ^ (i + 1) - 1) := by
+      intro m
+      induction m with
+      | zero =>
+        intro j
+        cases j with
+        | zero => exact ⟨1, by simp⟩
+        | succ j =>
+          refine ⟨0, ?_⟩
+          rw [Finset.prod_eq_zero (i := 0) (by simp) (by simp)]
+          simp
+      | succ m ih =>
+        intro j
+        cases j with
+        | zero => exact ⟨1, by simp⟩
+        | succ j =>
+          obtain ⟨a, ha⟩ := ih j
+          obtain ⟨b, hb⟩ := ih (j + 1)
+          refine ⟨a + 2 ^ (j + 1) * b, ?_⟩
+          rw [key, ← ha, ← hb]
+          push_cast
+          ring
+    exact main n k
+  obtain ⟨a, ha⟩ := gauss n k
+  obtain ⟨b, hb⟩ := gauss (2 * n - k) n
+  refine ⟨(-1) ^ k * a * b, ?_⟩
+  rw [hQc]
+  simp only []
+  rw [← ha, ← hb]
+  push_cast
+  ring

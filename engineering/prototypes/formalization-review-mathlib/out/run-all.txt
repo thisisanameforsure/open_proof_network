@@ -1,0 +1,212 @@
+== erdos-1003
+  agent-a: live
+  agent-b: live
+  agent-c: live
+  alt-forall: live
+  bad-finite: live
+  bad-nonempty: live
+  bad-shift: live
+  bad-sigma: live
+  incumbent: live
+  ! HTTP 504: {"error":"check-timeout","message":"the check did not finish within the fast check's 20 s budget. Search tactics such as exact?, apply? and rw? rarely fit it: find the lemma another way and name it. The precheck (POST /precheck) has the gate's full budget","details":{"budget_s":20,"axle_request_id":
+  pair agent-a→agent-b:implies: open
+  pair agent-a→agent-b:contradicts: open
+  pair agent-a→agent-c:implies: open
+  pair agent-a→agent-c:contradicts: open
+  pair agent-a→alt-forall:implies: open
+  pair agent-a→alt-forall:contradicts: open
+  pair agent-a→bad-finite:implies: open
+  pair agent-a→bad-finite:contradicts: proved
+  pair agent-a→incumbent:implies: proved
+  pair agent-a→incumbent:contradicts: open
+  pair agent-b→agent-a:implies: open
+  pair agent-b→agent-a:contradicts: open
+  pair agent-b→agent-c:implies: open
+  pair agent-b→agent-c:contradicts: open
+  pair agent-b→alt-forall:implies: proved
+  pair agent-b→alt-forall:contradicts: open
+  pair agent-b→bad-finite:implies: open
+  pair agent-b→bad-finite:contradicts: open
+  pair agent-b→incumbent:implies: proved
+  pair agent-b→incumbent:contradicts: open
+  pair agent-c→agent-a:implies: open
+  pair agent-c→agent-a:contradicts: open
+  pair agent-c→agent-b:implies: open
+  pair agent-c→agent-b:contradicts: open
+  pair agent-c→alt-forall:implies: open
+  pair agent-c→alt-forall:contradicts: open
+  pair agent-c→bad-finite:implies: open
+  pair agent-c→bad-finite:contradicts: open
+  pair agent-c→incumbent:implies: proved
+  pair agent-c→incumbent:contradicts: open
+  pair alt-forall→agent-a:implies: open
+  pair alt-forall→agent-a:contradicts: open
+  pair alt-forall→agent-b:implies: open
+  pair alt-forall→agent-b:contradicts: open
+  pair alt-forall→agent-c:implies: open
+  pair alt-forall→agent-c:contradicts: open
+  pair alt-forall→bad-finite:implies: open
+  pair alt-forall→bad-finite:contradicts: open
+  pair alt-forall→incumbent:implies: proved
+  pair alt-forall→incumbent:contradicts: open
+  pair bad-finite→agent-a:implies: open
+  pair bad-finite→agent-a:contradicts: proved
+  pair bad-finite→agent-b:implies: open
+  pair bad-finite→agent-b:contradicts: open
+  pair bad-finite→agent-c:implies: open
+  pair bad-finite→agent-c:contradicts: open
+  pair bad-finite→alt-forall:implies: open
+  pair bad-finite→alt-forall:contradicts: open
+  pair bad-finite→incumbent:implies: open
+  pair bad-finite→incumbent:contradicts: proved
+  pair incumbent→agent-a:implies: proved
+  pair incumbent→agent-a:contradicts: open
+  pair incumbent→agent-b:implies: proved
+  pair incumbent→agent-b:contradicts: open
+  pair incumbent→agent-c:implies: proved
+  pair incumbent→agent-c:contradicts: open
+  pair incumbent→alt-forall:implies: proved
+  pair incumbent→alt-forall:contradicts: open
+  pair incumbent→bad-finite:implies: open
+  pair incumbent→bad-finite:contradicts: proved
+== erdos-727
+  agent-a: live
+  agent-b: live
+  agent-c: live
+  alt-sum: live
+  bad-exists: live
+  bad-k1: live
+  bad-nosq: live
+  bad-prec: live
+  incumbent: live
+  pair agent-a→agent-b:implies: open
+  pair agent-a→agent-b:contradicts: open
+  pair agent-a→agent-c:implies: proved
+  pair agent-a→agent-c:contradicts: open
+  pair agent-a→alt-sum:implies: open
+  pair agent-a→alt-sum:contradicts: open
+  pair agent-a→bad-exists:implies: open
+  pair agent-a→bad-exists:contradicts: open
+  pair agent-a→incumbent:implies: proved
+  pair agent-a→incumbent:contradicts: open
+  pair agent-b→agent-a:implies: open
+  pair agent-b→agent-a:contradicts: open
+  pair agent-b→agent-c:implies: open
+  pair agent-b→agent-c:contradicts: open
+  pair agent-b→alt-sum:implies: open
+  pair agent-b→alt-sum:contradicts: open
+  pair agent-b→bad-exists:implies: open
+  pair agent-b→bad-exists:contradicts: open
+  pair agent-b→incumbent:implies: proved
+  pair agent-b→incumbent:contradicts: open
+  pair agent-c→agent-a:implies: proved
+  pair agent-c→agent-a:contradicts: open
+  pair agent-c→agent-b:implies: open
+  pair agent-c→agent-b:contradicts: open
+  pair agent-c→alt-sum:implies: open
+  pair agent-c→alt-sum:contradicts: open
+  pair agent-c→bad-exists:implies: open
+  pair agent-c→bad-exists:contradicts: open
+  pair agent-c→incumbent:implies: proved
+  pair agent-c→incumbent:contradicts: open
+  pair alt-sum→agent-a:implies: open
+  pair alt-sum→agent-a:contradicts: open
+  pair alt-sum→agent-b:implies: open
+  pair alt-sum→agent-b:contradicts: open
+  pair alt-sum→agent-c:implies: open
+  pair alt-sum→agent-c:contradicts: open
+  pair alt-sum→bad-exists:implies: open
+  pair alt-sum→bad-exists:contradicts: open
+  pair alt-sum→incumbent:implies: proved
+  pair alt-sum→incumbent:contradicts: open
+  pair bad-exists→agent-a:implies: open
+  pair bad-exists→agent-a:contradicts: open
+  pair bad-exists→agent-b:implies: open
+  pair bad-exists→agent-b:contradicts: open
+  pair bad-exists→agent-c:implies: open
+  pair bad-exists→agent-c:contradicts: open
+  pair bad-exists→alt-sum:implies: open
+  pair bad-exists→alt-sum:contradicts: open
+  pair bad-exists→incumbent:implies: open
+  pair bad-exists→incumbent:contradicts: open
+  pair incumbent→agent-a:implies: proved
+  pair incumbent→agent-a:contradicts: open
+  pair incumbent→agent-b:implies: proved
+  pair incumbent→agent-b:contradicts: open
+  pair incumbent→agent-c:implies: proved
+  pair incumbent→agent-c:contradicts: open
+  pair incumbent→alt-sum:implies: proved
+  pair incumbent→alt-sum:contradicts: open
+  pair incumbent→bad-exists:implies: open
+  pair incumbent→bad-exists:contradicts: open
+== erdos-410
+  agent-a: live
+  agent-b: discarded
+  agent-c: live
+  alt-eps: live
+  bad-exists: live
+  bad-index: live
+  bad-natdiv: live
+  bad-nodomain: live
+  bad-sigma0: live
+  incumbent: live
+  pair agent-c→alt-eps:implies: open
+  pair agent-c→alt-eps:contradicts: open
+  pair agent-c→bad-exists:implies: open
+  pair agent-c→bad-exists:contradicts: open
+  pair agent-c→incumbent:implies: proved
+  pair agent-c→incumbent:contradicts: open
+  pair alt-eps→agent-c:implies: open
+  pair alt-eps→agent-c:contradicts: open
+  pair alt-eps→bad-exists:implies: open
+  pair alt-eps→bad-exists:contradicts: open
+  pair alt-eps→incumbent:implies: proved
+  pair alt-eps→incumbent:contradicts: open
+  pair bad-exists→agent-c:implies: open
+  pair bad-exists→agent-c:contradicts: open
+  pair bad-exists→alt-eps:implies: open
+  pair bad-exists→alt-eps:contradicts: open
+  pair bad-exists→incumbent:implies: open
+  pair bad-exists→incumbent:contradicts: open
+  pair incumbent→agent-c:implies: proved
+  pair incumbent→agent-c:contradicts: open
+  pair incumbent→alt-eps:implies: proved
+  pair incumbent→alt-eps:contradicts: open
+  pair incumbent→bad-exists:implies: open
+  pair incumbent→bad-exists:contradicts: open
+{
+ "erdos-1003": {
+  "agent-a": "live",
+  "agent-b": "live",
+  "agent-c": "live",
+  "alt-forall": "live",
+  "bad-finite": "live",
+  "bad-nonempty": "discarded@screen",
+  "bad-shift": "discarded@question (member)",
+  "bad-sigma": "discarded@question (member)",
+  "incumbent": "live"
+ },
+ "erdos-727": {
+  "agent-a": "live",
+  "agent-b": "live",
+  "agent-c": "live",
+  "alt-sum": "live",
+  "bad-exists": "live",
+  "bad-k1": "discarded@question (domain)",
+  "bad-nosq": "discarded@question (member)",
+  "bad-prec": "discarded@question (member)",
+  "incumbent": "live"
+ },
+ "erdos-410": {
+  "agent-a": "discarded@question (domain)",
+  "agent-b": "discarded@compile",
+  "agent-c": "live",
+  "alt-eps": "live",
+  "bad-exists": "live",
+  "bad-index": "discarded@question (iter)",
+  "bad-natdiv": "discarded@screen",
+  "bad-nodomain": "discarded@screen",
+  "bad-sigma0": "discarded@question (iter)",
+  "incumbent": "live"
+ }
+}

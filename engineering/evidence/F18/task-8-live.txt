@@ -1,0 +1,55 @@
+F18-T8: live on the record, 2026-10-04.
+
+Network 3a780d6 (main): CI run 37173870719 green (fast tier; lean and docker tiers, incl. the
+three Mathlib on-ramp tests the laptop cannot run); api-deploy 37173870831 green; tag
+gate-3a780d6 -> image-publish 37173910854 green:
+  plain   ghcr.io/thisisanameforsure/opn-gate@sha256:1c28d5afa20eabf2abcf511379c86e988466461d38a81c66ea136b27a91d29e5
+  mathlib ghcr.io/thisisanameforsure/opn-gate@sha256:9e41b959f7b97bffc45a4641587045b45d1fbcd541863217676f224adeb18335
+  (digests read from the registry by tag, not from the log)
+
+Api stack opn-api: change set f18-uses-annex-steps (the new template; every existing parameter
+UsePreviousValue; UsesFrom and AnnexStepsFrom = 3a780d6). Three resources modified, none
+replaced: the Function's environment (three variables) and two Dynamic re-evaluations of
+Function.Arn (DeployRole policy, Integration URI). UPDATE_COMPLETE; /health 200.
+
+Graph re-pin b3211a46 (owner push): 27 targets to network 3a780d6 and the two digests; the
+devcontainer kept on the Mathlib image (riemann-hypothesis pinned last); schemas seeded
+(annex/v2, attestation/v6, context/v2, graph/v4, proposed-for/v1); the guide's copy. Before the
+push: pin_image --check on all 27 (the tutorial's devcontainer mismatch is the same one main
+carried, one devcontainer for two images); pregate on tutorial-and-swap with the new gate, steps
+1-8 pass, attestation/v6 with footprint {"nodes": []}; products generated over the whole tree.
+
+Footprint backfill: workflow run 37179155094 (graph b3211a46): 74 merged proofs measured, 0
+failed (erdos-1050 12, erdos-402 28, erdos-69 21, euclid-primes 12, tutorial 1). A first
+dispatch with a mistyped ref failed at checkout and measured nothing (37179137121).
+
+Proposed-for records: graph PRs #363-#368, one per erdos-1050 crux, each rehearsed with the
+pinned gate's classify (mode proposed-for, no problems); the live gate passed each in ~16 s and
+each post-merge job wrote its gate: #N pass commit. The merge actor does not merge curator/
+branches (only the service's propose/, append/, submit/), so the curator merged them, one at a
+time, each brought up to date first.
+
+Curator commit 4b2daae8 (owner push, nothing in flight, main unmoved): the 27 caches and the
+products re-rendered from network 3a780d6 at graph 124b1d39, scanner-free (no tag cache would
+change). erdos-1050's first proof: closure [erdos-1050, erdos-1050--h1-v2,
+erdos-1050--h1-v2--h3], unmeasured []. euclid-primes: four proofs, all measured. Frontier 35
+entries -> 35, the same claimable set; the other changed files differ only in rendered_from.
+check_products.py from the pin reports four differences for erdos-1050 (graph.json, its root's
+CONTEXT.json, targets/index.json, META status) on this commit and identically on the bot's own
+commit before it (gate: #368): it regenerates over an exported tree with no .git, and the stale
+record on erdos-1050's root is lifted by commit ancestry (F08-T10), which an exported tree
+cannot answer. A limitation of the checker, not of the render (task-8-check-products.txt).
+
+Declared against used: three proofs declare deps their term does not use
+(task-8-declared-vs-used.txt): erdos-1050--h1-v2 (uses h3 of four), erdos-1050--h1-v2--h2 (uses
+none of one), variant-2a7919a9 on euclid-primes (uses none of two). Declaring an unused dep is
+allowed (F01-R7), so no record is wrong and nothing was revised; the drawing was what was wrong.
+
+Site: site-deploy 37184914517 green; the live erdos-1050 page reads "Proved 1 way" and
+"Showing proof 1 of 1: 3 statements highlighted". Screenshots task-8-live-*.png, measured by
+shoot.py (task-8-live-shots.json, ok: true): no horizontal scroll at 1440 or 390, no label out of
+its box; erdos-1050 on-proof = the three nodes above, two lines; euclid-primes four proofs, the
+root's five nodes and four lines, each variant alone. task-8-live-panel-*.png: erdos-1050--h1-v2's
+five outlines.
+
+The other ten specs, on the owner's approval (2026-10-04): graph PRs #369-#378, each rehearsed with classify, each merged with its gate: #N pass commit. erdos-69: spec-2e765953 -> erdos-69--h1-v2, spec-13f68833 -> erdos-69--h2-v2, six -> erdos-69; erdos-402: both -> erdos-402. Every spec on the graph now carries a pointer (erdos-1050 6, erdos-69 8, erdos-402 2).

@@ -12,10 +12,11 @@ from typing import Any
 
 import pytest
 import yaml
+from harness import GRAPH_CHECKOUT
 
 ROOT = Path(__file__).resolve().parents[2]
 FORM = ROOT / "gate" / "agents" / "problem-proposal.yml"
-GRAPH_COPY = ROOT.parent / "open_proof_network_graph" / ".github" / "ISSUE_TEMPLATE" / FORM.name
+GRAPH_COPY = GRAPH_CHECKOUT / ".github" / "ISSUE_TEMPLATE" / FORM.name
 #: R13's fields, by the id each block declares.
 REQUIRED_IDS: tuple[str, ...] = (
     "statement",

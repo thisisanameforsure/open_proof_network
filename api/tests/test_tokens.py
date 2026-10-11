@@ -158,7 +158,14 @@ def test_github_token_discarded(harness: Harness, caplog: pytest.LogCaptureFixtu
     assert FAKE_ACCESS_TOKEN not in caplog.text
     # The identity keeps only what §7 allows: pseudonym, proof kind, login, created.
     stored = next(iter(harness.store.identities.values()))
-    assert set(stored.__dict__) == {"id", "pseudonym", "proof_kind", "proof_reference", "created"}
+    assert set(stored.__dict__) == {
+        "id",
+        "pseudonym",
+        "proof_kind",
+        "proof_reference",
+        "created",
+        "dco_version",  # F25-R16: the sign-off accepted, never the token
+    }
 
 
 def test_state_is_single_use_and_expires(harness: Harness) -> None:

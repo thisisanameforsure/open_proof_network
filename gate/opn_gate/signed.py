@@ -23,6 +23,13 @@ from opn_gate.signer import Signer, SshKeygenSigner, public_key_for
 
 SIGNATURE_FIELD = "signature"
 KEY_FIELD = "key"
+#: D-3, D-32 v3.33: how a record's signature was made. ``ssh`` is the signer's own key;
+#: ``approval-key`` is the network's approval key, used by the service for a login signed in with
+#: GitHub on the site, whose public half the graph publishes at ``APPROVAL_KEY_PATH``.
+VIA_FIELD = "via"
+VIA_SSH = "ssh"
+VIA_APPROVAL_KEY = "approval-key"
+APPROVAL_KEY_PATH = "keys/approval.pub"
 
 
 def body(doc: dict[str, Any]) -> bytes:
@@ -48,6 +55,37 @@ def verifies(doc: dict[str, Any], signer: Signer) -> bool:
     if not isinstance(key, str) or not isinstance(signature, str) or not key or not signature:
         return False
     return signer.verify(body(doc), signature, key)
+
+
+def same_key(a: str, b: str) -> bool:
+    """Whether two one-line OpenSSH public keys are the same key: type and base64 body equal,
+    the trailing comment ignored."""
+    left, right = a.split()[:2], b.split()[:2]
+    return len(left) == 2 and left == right
+
+
+def published_key(data: bytes | None) -> str | None:
+    """The one-line public key a ``keys/*.pub`` file holds (its first non-blank line), or
+    ``None`` when there is no file or nothing in it."""
+    if data is None:
+        return None
+    text = data.decode("utf-8", errors="replace")
+    return next((line.strip() for line in text.splitlines() if line.strip()), None)
+
+
+def approval_key_problem(doc: dict[str, Any], published: str | None) -> str | None:
+    """D-3, D-32 v3.33: why a ``via: approval-key`` record's key is not the network's approval
+    key (``published``, read from ``APPROVAL_KEY_PATH`` in the merge's parent tree), or ``None``
+    when it is, or when the record is not made with the approval key. The signature itself is
+    ``verifies``'s question."""
+    if doc.get(VIA_FIELD) != VIA_APPROVAL_KEY:
+        return None
+    if published is None:
+        return f"the graph publishes no approval key ({APPROVAL_KEY_PATH}) in the merge's parent"
+    key = doc.get(KEY_FIELD)
+    if not isinstance(key, str) or not same_key(key, published):
+        return f"the record's key is not the approval key at {APPROVAL_KEY_PATH} in the parent"
+    return None
 
 
 def default_signer() -> Signer:

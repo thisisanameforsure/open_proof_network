@@ -1,0 +1,222 @@
+F02-T12 (with F08-T29b) — the judges that elaborated contributor files read compiled modules
+(audit 2026-10-04, finding A; decisions v3.27 §1; D-4 steps 4, 7, 8; D-30 admission)
+Branch audit-l-metaprograms.
+
+What was wrong
+  After F02-T11, four programs still elaborated a contributor's file in the process that prints the
+  verdict, with initializers on: opn-witness-type (step 7: Witness.lean and each witness a partial
+  carries), opn-used-constants (step 8: Proof.lean), opn-artifact-type (step 4's last word: a
+  counterexample's or vacuity certificate's type) and opn-relation-type (admission: Relation.lean).
+  #eval / run_cmd / macros / elaborators in the file ran there, after the nonce was read but in the
+  same address space (T11's stated residual: /proc/self/mem, a thread printing into the capture).
+  Steps 7 and 8 also read the staged copies under the work directory and had work/build on their
+  LEAN_PATH, i.e. the tree the step-4 contributor compile can write (the T10 hole, still open there).
+
+The design, per program: what is read, what is still elaborated, and from what
+  New module gate/lean/OpnGate/Compiled.lean:
+    readOlean   - a module's constants and import names from its olean (readModuleData), nothing run;
+    replayInto  - a port of Lean 4.33 Lean/Replay.lean onto Environment.addDeclCore (doCheck): each
+                  constant added through the kernel in dependency order, constructors/recursors
+                  compared with what the kernel generates, unsafe/partial left out. Lean's own
+                  Environment.replay answers a kernel environment the elaborator's find? cannot see
+                  (shown below), hence the port;
+    axiomsOf    - moved from AxiomsMain; localClosure/sameDeclaration/localMismatch - moved from
+                  StatementMeaningMain (both programs now import Compiled; behaviour unchanged).
+  Python, gate/opn_gate/judging.py:
+    area()               a fresh <work>.judge/<name>, never touching step 4's judging directory;
+    build_statements()   target defs + each node's Context.lean + Statement.lean from the files of
+                         record, by calls writable only there;
+    node_statement()     the node's own statement build, once per run, shared by the meaning guard,
+                         the artifact check and step 7;
+    header_imports(), with_header()
+                         a file's header import lines blanked and the gate's imports put first on
+                         line 1, so line numbers are kept;
+    compile_contributed() the contributor's file compiled in a call whose only writable directory is
+                         <area>/compile (holding a copy of the trusted build); only the module's own
+                         olean, a regular file, is copied by name into <area>/contributed, which is
+                         never on any LEAN_PATH and is read by the judge at its path.
+
+  1. opn-used-constants (step 8). Reads Nodes.«id».Proof from judge.modules (replayed by step 4):
+     importModules loadExts := false, initializers OFF; footprint = usedConstantsOwnedBy (the
+     module's own constants are recursed through and reported module: null, as before); axioms by
+     walk. Nothing elaborated, read-only mounts, no source argument. The --file form (initializers
+     on) stays for statements of record only: products' library tags and the statement QA
+     grounding; no gate step uses it.
+  2. opn-witness-type (step 7: the node's witness and each carried hole witness). The statement is
+     built from the node's own files in the judging directory (the node's own reuses step 4's
+     judge.statement). Witness.lean is compiled apart as Nodes.«id».Witness with its header replaced
+     by `import <Statement module>`; its own imports must be among the statement's (the rule the
+     elaborating program enforced, now checked in Python with the same message and code). The
+     program imports the Statement module WITH extensions (initializers on; only modules of record
+     are imported: toolchain, Mathlib, target Defs, the node's Context and Statement, all built by
+     the gate in the judging directory), then adds the witness olean's constants with replayInto.
+     Expected type, Meta.isDefEq at both transparencies, collectAxioms and printing are the old
+     code, unchanged, so verdicts and printed strings are identical. --statement/--witness are now
+     refused by the program. Step 7 reads node.path's files, never the staged copies.
+  3. opn-artifact-type, counterexample and vacuity (= F08-T29b). New --statement-olean form:
+     initializers OFF; the statement's type from the trusted Statement olean; the artifact's module
+     (replayed by step 4) imported loadExts := false; expected S / ¬S / ¬W (expectedWitnessType in
+     MetaM over the constant table); matches = the kernel's defeq and no local-declaration mismatch
+     (as opn-statement-meaning); axioms by walk. Types print without notations, as T28 accepted for
+     opn-statement-meaning (they are for a refusal's reader).
+  4. opn-relation-type (admission). Variant and root statements built from their files in the
+     judging directory (a failing root Context is still relation-root-context, F08-Q13); Relation.lean
+     compiled apart under the union of the three files' imports (a Nodes./Defs. import outside the
+     statements' own is refused: nothing else is built there). The program imports that union (+Init)
+     with extensions (modules of record only), takes each statement's type from its olean (or from
+     the union environment when a Context restates it, F08-T15/T21), adds the relation's constants
+     with replayInto; isDefEq and collectAxioms as before. The elaborating form stays only for the
+     defect-claim exhibits (exhibits.py, F08-T17), which this task did not own: follow-up below.
+
+  NOT converted, and why (precise remainder; proposed F02-T13)
+  - opn-artifact-type for partial/reduction (hole extraction). holeReport needs, in one process,
+    (a) the assembly's proof term (value? allowOpaque), (b) notations to print closed types
+    (ppRoundTrippable), (c) the parser and term elaborator to read them back (reElaboratesTo,
+    F07-R19), (d) isCasesOnRecursor (auxRecExt) and reducibility (structCases?, restatesGoal).
+    (b)-(d) need extensions, and importing the contributor's module with extensions executes it
+    (finalizeImport runs runInitAttrs). Design for T13: import with extensions only the assembly's
+    non-contributor closure (Init, Mathlib, target Defs from the trusted build, the node's repo
+    Context of signatures), then replayInto the contributor modules of the closure in dependency
+    order (each dep's and use's Proof olean from judge.modules - a duplicate theorem against its
+    signature is skipped as Lean's Replay skips it - then the assembly), and run holeReport
+    unchanged on the replayed value. To settle with the real toolchain on a Mathlib target: a
+    dep/use Proof importing a Mathlib module the statement does not (add every non-graph import of
+    the closure to the import set); judge.modules' generated Context is contributor-compiled and
+    must not be imported (use the repo Context); the siblings/ancestors probes are statement text
+    and stay elaborated. Today the partial path is the elaborating program behind T11's nonce; the
+    assembly's type is already guarded from compiled modules (T28), so what a forged report could
+    still change is the hole list (names, closed types, defeq_goal/sibling/ancestor, roundtrip).
+  - exhibits.py's circularity exhibit through opn-relation-type --relation <source>: convert the
+    same way as admission (compile_contributed + the compiled form).
+  - "Modules of record" for a proposal at admission include the proposal's own Statement.lean and
+    Context.lean, which layout.parse_statement checks by regex only (other commands are allowed),
+    so an initialize there runs in step 7's and the relation's judge, as it already runs in the
+    statement compile and in opn-hazards (the stance T11 took). Proposed: admission refuses any
+    command in a proposed Statement/Context but imports, open, namespace, doc comments and the
+    theorem (owner's call; a protocol surface).
+  - Residual for every judge (T10's, T11's and leanchecker's too): a contributor-produced .olean is
+    read by Lean's olean loader, which trusts the file's format (compacted region, no validation).
+
+Shown on the real toolchain (Lean 4.33.1; `lean --run` = the interpreter running each Main; scratch
+modules compiled with `lean -o`; no Lake build, no image, no Mathlib)
+  Wit.olean (compiled from `import Stmt theorem witness ...`, i.e. the with_header shape) declares a
+  structure, a def, `witness`, and `initialize IO.println "@opn-verdict FORGED {...}"`. WitBad:
+  `theorem witness : True` plus an initialize printing a passing verdict tagged with the nonce the
+  run then uses (n1), and an #eval printing one (it printed at compile time, in the compile only).
+  ArtWrong / RelWrong: the wrong type plus `initialize do IO.println <tagged passing verdict>;
+  IO.Process.exit 0`. Stmt: `def sq`; `theorem s (n : Nat) (h : 0 < n) : 0 < sq n := sorry`.
+  First, Lean's own Environment.replay versus replayInto, on the same constants:
+    kfind true find false contains false      <- Lean.Environment.replay: the elaborator cannot see it
+    kfind true find true contains true        <- replayInto
+    expected ∃ n, 0 < n witness ∃ n, 0 < n defeq true axioms #[]
+  Then the programs (nonce on stdin; each verdict is the one tagged line; no forged line printed, no
+  initializer ran, every exit 0):
+    ### OpnGate/WitnessTypeMain.lean --module Stmt --decl s --witness-olean <scratch>/build/Wit.olean
+    @opn-verdict n1 {"defeq":true,"expected":"∃ n, 0 < n","ok":true,"witness":"∃ n, 0 < n","witness_axioms":[]}
+    exit=0 stderr: 
+    ### OpnGate/WitnessTypeMain.lean --module Stmt --decl s --witness-olean <scratch>/build/WitBad.olean
+    @opn-verdict n1 {"defeq":false,"expected":"∃ n, 0 < n","ok":true,"witness":"True","witness_axioms":[]}
+    exit=0 stderr: 
+    ### OpnGate/UsedConstantsMain.lean --module Wit --decl witness
+    @opn-verdict n3 {"axioms":[],"constants":[{"module":"Init.Prelude","name":"Bool"},{"module":"Init.Prelude","name":"Bool.true"},{"module":"Init.Prelude","name":"Decidable.decide"},{"module":"Init.Prelude","name":"Eq"},{"module":"Init.Prelude","name":"Eq.refl"},{"module":"Init.Core","name":"Exists"},{"module":"Init.Core","name":"Exists.intro"},{"module":"Init.Prelude","name":"LT.lt"},{"module":"Init.Prelude","name":"Nat"},{"module":"Init.Prelude","name":"Nat.decLt"},{"module":"Init.Prelude","name":"OfNat.ofNat"},{"module":null,"name":"Pt"},{"module":null,"name":"Pt.mk"},{"module":null,"name":"Pt.pos"},{"module":null,"name":"Pt.x"},{"module":"Init.Prelude","name":"id"},{"module":"Init.Prelude","name":"instLTNat"},{"module":"Init.Prelude","name":"instOfNatNat"},{"module":null,"name":"mk"},{"module":null,"name":"mk._proof_1"},{"module":"Init.Prelude","name":"of_decide_eq_true"}],"decl":"witness","ok":true}
+    exit=0 stderr: 
+    ### OpnGate/UsedConstantsMain.lean --file <scratch>/src/Stmt.lean --module Stmt --decl s
+    @opn-verdict n3 {"axioms":["sorryAx"],"constants":[{"module":"Init.Prelude","name":"Bool.false"},{"module":"Init.Prelude","name":"HMul.hMul"},{"module":"Init.Prelude","name":"LT.lt"},{"module":"Init.Prelude","name":"Lean.Name"},{"module":"Init.Prelude","name":"Lean.Name.anonymous"},{"module":"Init.Prelude","name":"Lean.Name.num"},{"module":"Init.Prelude","name":"Lean.Name.str"},{"module":"Init.Prelude","name":"Nat"},{"module":"Init.Prelude","name":"OfNat.ofNat"},{"module":"Init.Prelude","name":"instHMul"},{"module":"Init.Prelude","name":"instLTNat"},{"module":"Init.Prelude","name":"instMulNat"},{"module":"Init.Prelude","name":"instOfNatNat"},{"module":"Init.Prelude","name":"sorryAx"},{"module":null,"name":"sq"}],"decl":"s","ok":true}
+    exit=0 stderr: 
+    ### OpnGate/ArtifactTypeMain.lean --statement-olean <scratch>/build/Stmt2.olean --decl t --artifact-module Art --artifact-decl t_refuted --kind counterexample
+    @opn-verdict n2 {"axioms":["propext"],"body_is_hole":false,"decl":"t_refuted","declared":"Not (∀ (n : Nat), Eq (instHAdd.hAdd n 0) (instHAdd.hAdd n 1))","expected":"Not (∀ (n : Nat), Eq (instHAdd.hAdd n 0) (instHAdd.hAdd n 1))","holes":[],"kind":"counterexample","local_mismatch":[],"matches":true,"ok":true,"unnamed":0}
+    exit=0 stderr: 
+    ### OpnGate/ArtifactTypeMain.lean --statement-olean <scratch>/build/Stmt2.olean --decl t --artifact-module ArtWrong --artifact-decl t_refuted --kind counterexample
+    @opn-verdict n2 {"axioms":[],"body_is_hole":false,"decl":"t_refuted","declared":"Not False","expected":"Not (∀ (n : Nat), Eq (instHAdd.hAdd n 0) (instHAdd.hAdd n 1))","holes":[],"kind":"counterexample","local_mismatch":[],"matches":false,"ok":true,"unnamed":0}
+    exit=0 stderr: 
+    ### OpnGate/ArtifactTypeMain.lean --statement-olean <scratch>/build/Stmt3.olean --decl v --artifact-module Vac --artifact-decl v_vacuous --kind vacuity
+    @opn-verdict n5 {"axioms":[],"body_is_hole":false,"decl":"v_vacuous","declared":"Not (Exists fun n => instLTNat.lt n 0)","expected":"Not (Exists fun n => instLTNat.lt n 0)","holes":[],"kind":"vacuity","local_mismatch":[],"matches":true,"ok":true,"unnamed":0}
+    exit=0 stderr: 
+    ### OpnGate/RelationTypeMain.lean --imports  --variant-olean <scratch>/build/VarS.olean --variant-decl vv --root-olean <scratch>/build/RootS.olean --root-decl rr --label resolves --relation-olean <scratch>/build/Rel.olean --relation-decl relation
+    @opn-verdict n4 {"axioms":[],"decl":"relation","declared":"(∀ (p : Prop), p → p) → ∀ (p : Prop), p ∧ True → p","expected":"(∀ (p : Prop), p → p) → ∀ (p : Prop), p ∧ True → p","label":"resolves","matches":true,"ok":true}
+    exit=0 stderr: 
+    ### OpnGate/RelationTypeMain.lean --imports  --variant-olean <scratch>/build/VarS.olean --variant-decl vv --root-olean <scratch>/build/RootS.olean --root-decl rr --label resolves --relation-olean <scratch>/build/RelWrong.olean --relation-decl relation
+    @opn-verdict n4 {"axioms":[],"decl":"relation","declared":"(∀ (p : Prop), p ∧ True → p) → ∀ (p : Prop), p → p","expected":"(∀ (p : Prop), p → p) → ∀ (p : Prop), p ∧ True → p","label":"resolves","matches":false,"ok":true}
+    exit=0 stderr: 
+    ALLDONE
+
+Red (fast tier, before the steps used the compiled forms; the request fields were added first so the
+red is the defect, not a missing name):
+  uv run --frozen pytest -q -m "not lean and not docker and not network" gate/tests/test_finding_compiled_judges.py
+    E           AssertionError: /opt/elan/bin/elan run leanprover/lean4:v4.33.1 /opt/opn/lean/.lake/build/bin/opn-witness-type --module Nodes.«and-swap-reassoc».Statement --decl OpnProp.and_swap_reassoc -
+    E           assert [PosixPath('/...s_han0/work')] == []
+    E             
+    E             Left contains one more item: PosixPath('<scratch>/l-meta-pt/test_no_judging_program_is_han0/work')
+    E             Use -v to get more diff
+    _____________ test_the_witness_is_compiled_apart_and_read_as_data ______________
+    E       AssertionError: ['/opt/elan/bin/elan toolchain list', '/opt/elan/bin/elan run leanprover/lean4:v4.33.1 lean --version', '/opt/elan/bin...est_the_witness_is_compiled_a0/work/build/Nodes/tutoria
+    E       assert 0 == 1
+    E        +  where 0 = len([])
+    ____________ test_a_counterexample_is_judged_from_compiled_modules _____________
+    E       AssertionError: assert (None is not None)
+    E        +  where None = ArtifactRequest(statement=PosixPath('/private/tmp/claude-501/-Users-mikehiggins-Desktop-repos-open-proof-network/c9a63...ct_decl='OpnProp.and_swap_reassoc_refuted', kind='coun
+    __________________ test_the_relation_proof_is_compiled_apart ___________________
+    E           AssertionError: RelationRequest(variant=PosixPath('/private/tmp/claude-501/-Users-mikehiggins-Desktop-repos-open-proof-network/c9a6316...nt-resolves».Relation', relation_decl='relation', i
+    E           assert (None is not None)
+    4 failed in 0.16s
+
+Green
+  gate/tests/test_finding_compiled_judges.py: 4 passed.
+  Sweep, every gate fast-tier file naming run_steps/run_submission/admit/witness/used_constants/
+  artifact_type/relation_type/judging/WitnessStep/DepsStep/exhibit (86 files):
+    1417 passed, 1 skipped, 1 deselected
+  ruff check/format and mypy (strict) clean on every changed Python file. Every changed Lean file
+  (Compiled, UsedConstants, Holes, UsedConstantsMain, WitnessTypeMain, ArtifactTypeMain,
+  RelationTypeMain, AxiomsMain, StatementMeaningMain) compiles with `lean -o` at 4.33.1.
+  WitnessType.lean and ArtifactType.lean, which the api inlines, are unchanged.
+
+Restated tests (kept; assertion changed to the new rule)
+  test_pipeline.py::test_root_node_stages_dependency_closure - the last elaboration is now step 7's
+    witness compile, after the statement's build.
+  test_finding_partial_carries_witnesses.py::test_every_carried_witness_is_held_to_step_7_and_recorded
+    - the program's search path is the child statement's build in the judging directory, not
+    work/holes/build + work/build.
+  test_finding_witness_proved_haves.py::test_the_request_is_unchanged_without_the_record - args are
+    --module/--decl, no source.
+  test_toolchain_install.py::test_request_records_carry_their_optional_arguments - the compiled forms.
+  Lean/docker tier, restated to compile then read: test_lean_pkg_lean.py (witness golden, defeq,
+    used-constants golden through the compiled Proof module), test_toolchain_lean.py::
+    test_witness_type_through_the_seam, test_sandbox_docker.py::test_lean_pkg_in_image.
+
+Lean tier (NOT run here: no Lake build of the package on this disk; CI must run it)
+  gate/tests/test_finding_compiled_judges_lean.py - a wrong witness with #eval + initialize forging a
+  passing verdict is witness-type-mismatch; a right one with forging code passes with the
+  notation-printed expected type; a proof whose #eval prints a footprint naming an undeclared node
+  passes with its real deps; RefutedWrong with forging code is artifact-type-mismatch (compiled form);
+  variant-backwards' relation with forging code is relation-direction.
+
+Expected cost (not measured; nothing run on Mathlib)
+  Step 7: the node's statement build is shared with step 4, so +1 lean call per run (the witness
+  compile: one Mathlib import). A carried hole witness: + Context + Statement + witness compile per
+  hole (defs once). The judge imports the Statement module with extensions: one Mathlib import, as
+  the elaborating program did. Step 8: none extra, and cheaper (constants only, no elaboration).
+  Counterexample/vacuity: the statement build when step 4's guard did not make it (+Context
+  +Statement); the judge imports without extensions (cheaper). Admission relation: two Contexts, two
+  Statements and the relation compile (about 5 Mathlib imports) where it was one root Context compile
+  and one elaborating program. Each is its own process: peak memory stays one import's (F02-T7).
+
+Proposed Q entry (F02-Q?)
+  The judges read compiled modules (T12; 2026-10-04; audit finding A). After T11 four programs still
+  elaborated a contributor's file in the process that prints the verdict. Now a witness or a relation
+  proof is compiled in a call of its own, writable only in a scratch area, under a header the gate
+  writes, and the judging program reads its olean as data and adds its constants through the kernel
+  into an environment imported only from modules of record, so printing and definitional equality
+  are what they were; step 8's footprint and a counterexample's or vacuity certificate's type
+  (F08-T29b) are read from the module step 4 replayed, imported without extensions. A partial's hole
+  extraction still elaborates its assembly (T13 proposed), and so do the defect-claim exhibits
+  (follow-up). Cost: one witness compile per gate run, about four more Mathlib imports per admitted
+  variant.
+
+Proposed ledger lines
+  F02: T12 ✓ 2026-10-04 (uv run pytest gate/tests/test_finding_compiled_judges.py: 4 passed; 86-file
+  sweep 1417 passed; the compiled forms shown at 4.33.1 with `lean --run`; the lean tier
+  test_finding_compiled_judges_lean.py and the restated lean/docker tests pending CI) — steps 7 and 8,
+  admission's relation and the hole-free artifacts are judged from compiled modules; partial hole
+  extraction remains (T13)
+  F08: T29b ✓ 2026-10-04 (with F02-T12) — a counterexample's ¬S and a vacuity certificate's ¬W are
+  compared from compiled modules

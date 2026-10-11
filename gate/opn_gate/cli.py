@@ -13,31 +13,40 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+import re
 import subprocess
 import sys
 import tempfile
 from collections.abc import Sequence
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
+
+import yaml
 
 from opn_gate import (
     admit,
     attestation,
     bounce,
     cache,
+    carried,
     config,
     curator,
     defs,
     exhibits,
     explainers,
     fidelity,
+    footprints,
+    glosses,
     intake,
     layout,
     ledger,
     models,
     modes,
     objectstore,
+    outline,
+    outline_graph,
     paths,
     pipeline,
     postmerge,
@@ -47,6 +56,7 @@ from opn_gate import (
     sandbox,
     scaffold,
     schemas,
+    sections,
     signed,
     signer,
     steward,
@@ -90,6 +100,7 @@ CURATOR_COMMANDS: frozenset[str] = frozenset(
         "evidence",
         "steward",
         "explainer",
+        "gloss",
         "writeup",
     }
 )
@@ -104,6 +115,7 @@ _REFUSALS: tuple[type[Exception], ...] = (
     qa.QaError,
     steward.StewardError,
     explainers.ExplainerError,
+    glosses.GlossError,
     writeup.WriteupError,
 )
 #: The gate's own error family, plus the OS's for a flag file that cannot be read: an input or
@@ -156,7 +168,84 @@ def build_parser() -> argparse.ArgumentParser:  # noqa: PLR0915 — one statemen
     rep.add_argument("--node", required=True, help="the node the commit proved")
     rep.add_argument("--target", help="target id (inferred when the graph has exactly one)")
     rep.add_argument("--compare", type=Path, help="committed attestation to compare against")
+    rep.add_argument(
+        "--allow-network-mismatch",
+        action="store_true",
+        help="run from a network checkout other than the spec's pin; the result is never "
+        "identical (F07-T65)",
+    )
     _add_sandbox_args(rep)
+
+    fpr = sub.add_parser(
+        "footprints",
+        help="measure the merged proofs attested before attestation/v6 (F08-T27), in the sandbox",
+    )
+    fpr.add_argument("--graph", required=True, type=Path, help="path to the graph checkout")
+    fpr.add_argument("--commit", default="HEAD", help="the graph commit to measure (default HEAD)")
+    fpr.add_argument("--target", required=True)
+    _add_sandbox_args(fpr)
+
+    pal = sub.add_parser(
+        "export-palomar",
+        help="write one resolved target as a wrapper repository in Palomar's shape (F25-R8); "
+        "--check elaborates, replays and judges it at the graph's pin (R11)",
+    )
+    pal.add_argument("--graph", required=True, type=Path, help="path to the graph checkout")
+    pal.add_argument("--commit", default="HEAD", help="the graph commit to export (default HEAD)")
+    pal.add_argument("--target", required=True)
+    pal.add_argument("--out", type=Path, help="output directory (default: a fresh temp dir)")
+    pal.add_argument(
+        "--licence",
+        help="the graph's licence as an SPDX id, for a graph commit with no root LICENSE yet "
+        "(F25-Q15; recorded in opn-export.json as supplied by flag)",
+    )
+    pal.add_argument("--check", action="store_true", help="run the local check at the pin (R11)")
+    pal.add_argument(
+        "--classification",
+        help="arxiv codes and MSC codes as `math.NT:11J72,11B25`, for a rehearsal on a target "
+        "whose "
+        "record carries none (recorded in opn-export.json as supplied by flag; the record is the "
+        "curator's to classify, F25-R4)",
+    )
+    pal.add_argument("--install", action="store_true", help="let elan install the pinned toolchain")
+
+    prt = sub.add_parser(
+        "palomar-port",
+        help="port an exported wrapper to the registry's toolchain and judge it with lake "
+        "comparator (F25-R12); the Challenge is frozen, proof bodies may be repaired between runs",
+    )
+    prt.add_argument(
+        "project", type=Path, help="the exported wrapper (export-palomar --out/<package>)"
+    )
+    prt.add_argument("--toolchain", default="leanprover/lean4:v4.35.0-rc2")
+    prt.add_argument("--mathlib-rev", default="v4.35.0-rc2")
+    prt.add_argument("--skip-update", action="store_true", help="keep the manifest as it is")
+    prt.add_argument(
+        "--repairs",
+        type=Path,
+        default=None,
+        help="a directory mirroring the wrapper: each file replaces the export's before the build "
+        "(proof bodies only; Challenge.lean is refused; an optional <file>.before.sha256 sidecar "
+        "names the exported file it was written against), recorded in port-report.json (Q34)",
+    )
+    prt.add_argument("--timeout", type=float, default=3600.0, help="seconds per step")
+
+    otl = sub.add_parser(
+        "outline",
+        help="extract the outline of every merged proof artifact that has none (F19-R5, R6), "
+        "in the sandbox",
+    )
+    otl.add_argument("--graph", required=True, type=Path, help="path to the graph checkout")
+    otl.add_argument("--commit", default="HEAD", help="the graph commit to read (default HEAD)")
+    which = otl.add_mutually_exclusive_group(required=True)
+    which.add_argument("--target", help="outline this target's artifacts")
+    which.add_argument("--all", action="store_true", help="outline every target's artifacts")
+    otl.add_argument(
+        "--dest",
+        type=Path,
+        help="where targets/<id>/outlines/ are written (default: the graph checkout itself)",
+    )
+    _add_sandbox_args(otl)
 
     gate = sub.add_parser("gate", help="the authoritative run on a pull request (gate.yml)")
     gate.add_argument("--graph", required=True, type=Path, help="checkout at the PR merge commit")
@@ -225,6 +314,7 @@ def build_parser() -> argparse.ArgumentParser:  # noqa: PLR0915 — one statemen
         _add_intake_parsers,
         _add_qa_parsers,
         _add_cache_parsers,
+        _add_gloss_parsers,
     ):
         add_parsers(sub)
 
@@ -247,6 +337,26 @@ def _add_graph_tool_parsers(sub: argparse._SubParsersAction[argparse.ArgumentPar
     exh.add_argument("--sandbox", action="store_true", help="elaborate inside the step-3 image")
     exh.add_argument("--image", help="sandbox image tag (default: built from gate/Dockerfile)")
     exh.add_argument("--no-build", action="store_true", help="fail if the image is not present")
+
+    feed = sub.add_parser(
+        "palomar-feed",
+        help="read the Palomar registry's feed, match entries to targets by problem number and "
+        "report candidates (F25-R14); --propose writes unsigned literature proposals into "
+        "--out, --drift compares every registration record with the registry; nothing is "
+        "written to the graph",
+    )
+    feed.add_argument("--graph", required=True, type=Path, help="path to the graph checkout")
+    feed.add_argument(
+        "--snapshot", type=Path, help="read a saved recent.json instead of the registry"
+    )
+    feed.add_argument(
+        "--propose", action="store_true", help="write a literature/v1 proposal per candidate"
+    )
+    feed.add_argument("--contributor", help="the proposals' contributor (with --propose)")
+    feed.add_argument("--out", type=Path, help="where the proposals are written (with --propose)")
+    feed.add_argument(
+        "--drift", action="store_true", help="compare registration records with the registry"
+    )
 
     adm = sub.add_parser("admit", help="may this node directory enter the graph? (F08-R1)")
     adm.add_argument("node_dir", type=Path, help="targets/<target>/nodes/<id> in a graph checkout")
@@ -317,11 +427,20 @@ def _add_curator_parsers(sub: argparse._SubParsersAction[argparse.ArgumentParser
     con.add_argument("--image", help="sandbox image tag (default: built from gate/Dockerfile)")
     con.add_argument("--no-build", action="store_true", help="fail if the image is not present")
 
-    st = sub.add_parser("status", help="an abandonment or dormancy record (F08-R11; D-14, D-33)")
+    st = sub.add_parser(
+        "status", help="an abandonment, dispute or dormancy record (F08-R11; D-14, D-18, D-33)"
+    )
     common(st)
-    st.add_argument("ref", help="a node id (abandoned) or the target id (dormant, active)")
+    st.add_argument(
+        "ref", help="a node id (abandoned, disputed) or the target id (dormant, active)"
+    )
     st.add_argument("status", choices=[*curator.NODE_STATUSES, *curator.TARGET_STATUSES])
     st.add_argument("--cause", required=True, help="the published reasoning (D-33 b)")
+    st.add_argument(
+        "--reference",
+        help="disputed only: the defect claim the curator accepts, as defects/<file> on the node "
+        "(D-18 v3.28)",
+    )
     st.add_argument(
         "--k", type=positive_int, default=curator.DEFAULT_K, help="D-33's K in force (at least 1)"
     )
@@ -421,6 +540,19 @@ def _add_intake_parsers(  # noqa: PLR0915 — one statement per flag
     new_t.add_argument("--author", required=True, help="the curator, on every record")
     new_t.add_argument("--date", help="UTC timestamp of the act (default: now)")
     new_t.add_argument("--branch", help="also commit what was written on this branch")
+    new_t.add_argument(
+        "--arxiv",
+        action="append",
+        metavar="CODE",
+        help="an arXiv category the mathematics belongs to, e.g. math.NT (one or two; with "
+        "--msc, writes the record's classification, F25-R4)",
+    )
+    new_t.add_argument(
+        "--msc",
+        action="append",
+        metavar="CODE",
+        help="an MSC 2020 code, e.g. 11A41 (one to eight; with --arxiv)",
+    )
     new_t.add_argument("--no-toolchain", action="store_true", help="skip admission (R2); testing")
     new_t.add_argument("--out", type=Path, help="work directory (default: a fresh temp dir)")
     new_t.add_argument("--install", action="store_true", help="let elan install the pin")
@@ -478,6 +610,82 @@ def _add_intake_parsers(  # noqa: PLR0915 — one statement per flag
     ev_add.add_argument("--branch", help="also commit what was written on this branch")
 
 
+SECTIONS_HELP = (
+    "approve only these sections, comma-separated keys as glosses.json lists them (whole; "
+    "overview, steps:s1,s2 ...): writes a v2 signature; omitted, a v1 signature approving every "
+    "section (F21-R13)"
+)
+
+
+def _section_keys(raw: str) -> list[str]:
+    """``--sections``: section keys, comma-separated. A ``steps:`` key holds commas of its own
+    (``steps:s1,s2``), so a part that is not a key of its own continues the ``steps:`` key
+    before it."""
+    keys: list[str] = []
+    for part in (p.strip() for p in raw.split(",")):
+        if not part:
+            continue
+        if keys and keys[-1].startswith(sections.STEPS) and not _starts_a_key(part):
+            keys[-1] = f"{keys[-1]},{part}"
+        else:
+            keys.append(part)
+    if not keys:
+        msg = "--sections names at least one section key"
+        raise argparse.ArgumentTypeError(msg)
+    return keys
+
+
+def _starts_a_key(part: str) -> bool:
+    return part in (sections.OVERVIEW, sections.WHOLE) or part.startswith(sections.STEPS)
+
+
+def _add_gloss_parsers(sub: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
+    """The steward's commands on glosses and explainers (F20-R12)."""
+    gl = sub.add_parser("gloss", help="revise, file and sign glosses and explainers (F20-R12)")
+    gl_acts = gl.add_subparsers(dest="action", required=True)
+    grev = gl_acts.add_parser(
+        "revise", help="write the current version of a gloss or explainer to an editable file"
+    )
+    grev.add_argument("target_id")
+    grev.add_argument(
+        "subject",
+        help="statement:<node>, witness:<node>, relation:<node>, definition:<module under defs/>, "
+        "or explainer:<node>[:<proof hash>] (default: the node's Proof.lean)",
+    )
+    grev.add_argument("--graph", required=True, type=Path, help="path to the graph checkout")
+    grev.add_argument("--by", required=True, help="the author of the new version")
+    grev.add_argument("--out", type=Path, help="where to write it (default: ./<subject>.md)")
+    grev.add_argument("--chain", help="a version hash naming the chain to revise, when several")
+    grev.add_argument("--licence", default="CC-BY-4.0", help="the licence of a new chain")
+    grev.add_argument("--date", help="UTC timestamp of the act (default: now)")
+    gfile = gl_acts.add_parser(
+        "file", help="check an edited gloss or explainer, name it by its hash and place it"
+    )
+    gfile.add_argument("path", type=Path)
+    gfile.add_argument("--graph", required=True, type=Path, help="path to the graph checkout")
+    gfile.add_argument(
+        "--author",
+        help="the login that will open the pull request (default: OPN_PR_AUTHOR); anyone may "
+        "supersede a signed version, and a change to verified words is pending (F21-R13)",
+    )
+    gfile.add_argument("--branch", help="also commit what was written on this branch")
+    gsign = gl_acts.add_parser(
+        "sign", help="I have read this against the Lean it names, and it says what the Lean says"
+    )
+    gsign.add_argument("target_id")
+    gsign.add_argument("gloss", help="the gloss's hash, its file name under gloss/")
+    gsign.add_argument("--graph", required=True, type=Path, help="path to the graph checkout")
+    gsign.add_argument("--by", required=True, dest="by", help="the signer's GitHub login")
+    gsign.add_argument("--key", required=True, type=Path, help="the signer's own SSH private key")
+    gsign.add_argument("--date", help="UTC timestamp of the act (default: now)")
+    gsign.add_argument("--branch", help="also commit what was written on this branch")
+    gsign.add_argument("--sections", type=_section_keys, help=SECTIONS_HELP)
+    gcov = gl_acts.add_parser(
+        "coverage", help="every Lean file and proof artifact, with its words or why none (R20)"
+    )
+    gcov.add_argument("--graph", required=True, type=Path, help="path to the graph checkout")
+
+
 def _add_steward_parsers(sub: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
     """The steward's two acts and the curator's check (F15-R2; D-32 v3.17)."""
     top = sub.add_parser("steward", help="a steward's signed commitment or step-down (F15-R1)")
@@ -527,6 +735,7 @@ def _add_steward_parsers(sub: argparse._SubParsersAction[argparse.ArgumentParser
     esign.add_argument("--key", required=True, type=Path, help="the signer's own SSH private key")
     esign.add_argument("--date", help="UTC timestamp of the act (default: now)")
     esign.add_argument("--branch", help="also commit what was written on this branch")
+    esign.add_argument("--sections", type=_section_keys, help=SECTIONS_HELP)
 
     wu = sub.add_parser("writeup", help="record a paper or a note about a target (F15-R6; D-32)")
     wu_acts = wu.add_subparsers(dest="action", required=True)
@@ -678,6 +887,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     commands = {
         "pregate": run_pregate,
         "reproduce": run_reproduce,
+        "footprints": run_footprints,
+        "export-palomar": run_export_palomar,
+        "palomar-port": run_palomar_port,
+        "palomar-feed": run_palomar_feed,
+        "outline": run_outline,
         "gate": run_gate,
         "classify": run_classify,
         "exhibits": run_exhibits,
@@ -694,6 +908,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         "evidence": run_evidence,
         "steward": run_steward,
         "explainer": run_explainer,
+        "gloss": run_gloss,
         "writeup": run_writeup,
         "postmerge": run_postmerge,
         "admit": run_admit,
@@ -888,8 +1103,89 @@ def emit(
 # --- reproduce ----------------------------------------------------------------------------------
 
 
+@dataclass(frozen=True)
+class RunningNetwork:
+    """The network checkout this process runs from (F07-T65): its ``HEAD``, ``None`` when it is
+    not a git checkout, and the paths under ``gate/`` that differ from that commit."""
+
+    commit: str | None
+    dirty: tuple[str, ...] = ()
+
+
+def running_network_commit() -> RunningNetwork:
+    """``git rev-parse HEAD`` and ``git status --porcelain -- gate`` on the repository this
+    module was loaded from: the gate that is actually running, whatever a spec says it should be."""
+    root = GATE_DIR.parent
+    head = _git(root, "rev-parse", "--verify", "--quiet", "HEAD^{commit}")
+    if head.returncode != 0 or not head.stdout.strip():
+        return RunningNetwork(None)
+    status = _git(root, "status", "--porcelain", "--", "gate")
+    dirty = tuple(line[3:] for line in status.stdout.splitlines() if line.strip())
+    return RunningNetwork(head.stdout.strip(), dirty)
+
+
+def pinned_network_commit(graph: Path, commit: str, target: str | None) -> str | None:
+    """The ``network_commit`` of the target's ``gate-spec.json`` at ``commit``, read from git
+    before any tree is exported; ``None`` when it cannot be read (the run then fails where it
+    always has, loading the spec)."""
+    if target is None:
+        listing = _git(graph, "ls-tree", "--name-only", "-d", f"{commit}:targets")
+        targets = listing.stdout.split() if listing.returncode == 0 else []
+        if len(targets) != 1:
+            return None
+        target = targets[0]
+    shown = _git(graph, "show", f"{commit}:targets/{target}/gate-spec.json")
+    if shown.returncode != 0:
+        return None
+    try:
+        pin = json.loads(shown.stdout).get("network_commit")
+    except (ValueError, AttributeError):
+        return None
+    return pin if isinstance(pin, str) else None
+
+
+def network_mismatch(
+    pinned: str | None, running: RunningNetwork, *, check_dirty: bool = True
+) -> Diagnostic | None:
+    """``network-mismatch`` when the running gate is not the one ``pinned`` names: another
+    commit, no git checkout at all, or (with ``check_dirty``) edits under ``gate/``. A pin that
+    could not be read is not judged here; loading the spec refuses it as it always has."""
+    if pinned is None:
+        return None
+    dirty = list(running.dirty) if check_dirty else []
+    if running.commit == pinned and not dirty:
+        return None
+    if running.commit is None:
+        why = "the gate is not running from a git checkout of the network repository"
+    elif running.commit != pinned:
+        why = f"the gate is running from network commit {running.commit}"
+    else:
+        why = f"the gate's own files differ from {pinned}: {', '.join(dirty)}"
+    return Diagnostic(
+        "network-mismatch",
+        f"the spec pins network commit {pinned}, but {why}; check the network repository out "
+        "at the pin (D-5: a record speaks for the pinned gate only)",
+        {"pinned": pinned, "running": running.commit, "dirty": dirty},
+    )
+
+
+def refuse_network_mismatch(mismatch: Diagnostic) -> int:
+    """Refuse before any tree is exported or image built: a gate other than the pinned one
+    cannot speak for the pin (D-5, F07-T65). Exit 2, an environment error, with the diagnostic."""
+    sys.stdout.write(json.dumps({"verdict": "refused", "diagnostic": mismatch.as_dict()}) + "\n")
+    sys.stderr.write(f"opn-gate: {mismatch.message}\n")
+    return EXIT_ERROR
+
+
 def run_reproduce(args: argparse.Namespace, settings: config.Settings) -> int:
     graph, commit = _checkout_and_commit(args.graph, args.commit)
+    mismatch = network_mismatch(
+        pinned_network_commit(graph, commit, args.target), running_network_commit()
+    )
+    if mismatch is not None:
+        if not args.allow_network_mismatch:
+            return refuse_network_mismatch(mismatch)
+        sys.stderr.write(f"opn-gate: --allow-network-mismatch: {mismatch.message}\n")
     committed: dict[str, Any] | None = None
     if args.compare is not None:  # read before the run, so a wrong path costs no sandbox
         try:
@@ -914,10 +1210,257 @@ def run_reproduce(args: argparse.Namespace, settings: config.Settings) -> int:
     if committed is not None:
         reproduction = with_declared(attestation.with_step9(doc, committed), committed)
         differing = attestation.compare(committed, reproduction)
-        result = {"identical": not differing, "differing_fields": differing}
+        result: dict[str, Any] = {
+            "identical": not differing and mismatch is None,
+            "differing_fields": differing,
+        }
+        if mismatch is not None:  # F07-T65: another gate's run is never the pinned gate's
+            result["network_mismatch"] = mismatch.as_dict()
         sys.stdout.write(json.dumps(result) + "\n")
-        return EXIT_PASS if not differing else EXIT_FAIL
+        return EXIT_PASS if result["identical"] else EXIT_FAIL
     return code
+
+
+def run_export_palomar(args: argparse.Namespace, settings: config.Settings) -> int:
+    """F25-R8, R11 (D-10 v3.37): export ``--target`` at ``--commit`` as a wrapper repository
+    under ``--out/<package>/``; with ``--check``, elaborate and judge it at the graph's pin and
+    write ``local-check.json`` beside it. Exit 1 on a refusal or a failed check, with the
+    diagnostic on stdout as JSON; nothing is written to the graph."""
+    from opn_gate import palomar, palomar_check, palomar_export  # noqa: PLC0415 — only here
+
+    graph, commit = _checkout_and_commit(args.graph, args.commit)
+    out_dir = _out_dir(args.out, "opn-palomar-")
+    # A checkout, not a bare tree: a parent whose revised child superseded a hole reads as
+    # `stale` until F08-T10's lifting by commit ancestry says otherwise, and that needs the
+    # history (the 2026-10-04 log; erdos-1050 at the first rehearsal, 2026-10-11).
+    tree = out_dir / "tree"
+    if not (tree / ".git").exists():
+        subprocess.run(
+            ["git", "-C", str(graph), "worktree", "add", "-q", "--detach", str(tree), commit],
+            check=True,
+            capture_output=True,
+            env=git_environment(),
+        )
+    classification = None
+    if args.classification:
+        arxiv, _, msc = args.classification.partition(":")
+        classification = {"arxiv": arxiv.split(","), "msc2020": [c for c in msc.split(",") if c]}
+    try:
+        exported = palomar_export.export(
+            tree,
+            args.target,
+            graph_commit=commit,
+            licence=args.licence,
+            classification=classification,
+        )
+    except palomar_export.ExportError as exc:
+        sys.stdout.write(json.dumps({"ok": False, "refused": exc.diagnostic.as_dict()}) + "\n")
+        return EXIT_FAIL
+    except graphmod.GraphError as exc:
+        raise CliError(str(exc)) from exc
+    project = out_dir / exported.package
+    exported.write(project)
+    summary: dict[str, Any] = {
+        "ok": True,
+        "target": args.target,
+        "commit": commit,
+        "package": exported.package,
+        "project": str(project),
+        "closure": list(exported.closure.order),
+        "pruned": exported.closure.pruned,
+        "check": None,
+    }
+    if args.check:
+        try:
+            tc_seam = toolchain.LocalToolchain.from_settings(settings)
+            spec = exported.record
+            tc = tc_seam.resolve(
+                str(spec["lean_toolchain"]),
+                install=bool(args.install),
+                mathlib_sha=spec.get("mathlib_sha"),
+            )
+        except (toolchain.ToolchainMissingError, toolchain.ToolchainError) as exc:
+            raise CliError(str(exc)) from exc
+        report = palomar_check.local_check(
+            tc_seam,
+            tc,
+            project,
+            package=exported.package,
+            decl=exported.decl,
+            allowlist=list(
+                exported.record.get("axiom_allowlist") or palomar.pins()["permitted_axioms"]
+            ),
+        )
+        summary["check"] = report.as_dict()
+        summary["ok"] = report.ok
+    sys.stdout.write(json.dumps(summary, ensure_ascii=False) + "\n")
+    return 0 if summary["ok"] else EXIT_FAIL
+
+
+def run_palomar_port(args: argparse.Namespace, settings: config.Settings) -> int:
+    """F25-R12: Stage B on a laptop or a runner with the registry's toolchain installed under
+    elan (``elan toolchain install <toolchain>`` first). Writes ``port-report.json`` beside the
+    project; exit 1 when a step failed, with the classified failures in the report."""
+    from opn_gate import palomar_port  # noqa: PLC0415 — only this command
+
+    project: Path = args.project.resolve()
+    if not (project / "lakefile.toml").is_file():
+        msg = f"{project} is not a Lake project"
+        raise CliError(msg)
+    try:
+        elan = toolchain.find_elan(path_env=None, elan_home=settings.elan_home)
+        prefix_proc = subprocess.run(
+            [str(elan), "run", args.toolchain, "lean", "--print-prefix"],
+            capture_output=True, text=True, check=False, timeout=600,
+        )  # fmt: skip
+    except toolchain.ToolchainMissingError as exc:
+        raise CliError(str(exc)) from exc
+    if prefix_proc.returncode != 0:
+        msg = f"lean under {args.toolchain} failed: {prefix_proc.stderr.strip()[:300]}"
+        raise CliError(msg)
+    try:
+        report = palomar_port.port(
+            project,
+            toolchain=args.toolchain,
+            mathlib_rev=args.mathlib_rev,
+            runner=palomar_port.ElanRunner(elan, args.toolchain),
+            prefix=Path(prefix_proc.stdout.strip()),
+            timeout_s=args.timeout,
+            skip_update=args.skip_update,
+            repairs=args.repairs.resolve() if args.repairs is not None else None,
+        )
+    except palomar_port.PortError as exc:
+        sys.stdout.write(json.dumps({"ok": False, "refused": exc.diagnostic.as_dict()}) + "\n")
+        return EXIT_FAIL
+    sys.stdout.write(json.dumps(report.as_dict(), ensure_ascii=False) + "\n")
+    return 0 if report.ok else EXIT_FAIL
+
+
+def run_palomar_feed(args: argparse.Namespace, settings: config.Settings) -> int:
+    """F25-R14 (D-10 v3.37): the feed watcher. Exit 0 with the report (candidates are
+    information), 1 when the registry could not be read (a warning; nothing written), 2 on a
+    usage error. Nothing is written to the graph: a proposal goes under ``--out``."""
+    from opn_gate import palomar_feed  # noqa: PLC0415 — only here
+
+    del settings
+    graph = args.graph.resolve()
+    if not (graph / "targets").is_dir():
+        msg = f"{graph} has no targets/ directory"
+        raise CliError(msg)
+    if args.propose and (not args.contributor or args.out is None):
+        msg = "--propose needs --contributor and --out"
+        raise CliError(msg)
+    if args.snapshot is not None and not args.snapshot.is_file():
+        msg = f"cannot read --snapshot {args.snapshot}"
+        raise CliError(msg)
+    try:
+        result = palomar_feed.run(
+            graph,
+            None if args.snapshot is not None and not args.drift else palomar_feed.default_host(),
+            snapshot=args.snapshot,
+            propose=args.propose,
+            contributor=args.contributor,
+            out=args.out,
+            drift=args.drift,
+        )
+    except palomar_feed.FeedError as exc:
+        raise CliError(str(exc)) from exc
+    sys.stdout.write(result.render())
+    return result.exit_code
+
+
+def run_footprints(args: argparse.Namespace, settings: config.Settings) -> int:
+    """F08-T27: measure each merged proof of ``--target`` whose record says nothing of what its
+    term used, by steps 1, 2, 4 and 8 in the step-3 sandbox, and write the target's
+    ``.footprint-cache.json`` into ``--out`` with what was there before. Nothing is written to
+    the graph: a curator commits the file with the products it completes. Exit 1 when any proof
+    could not be measured; the summary names each."""
+    graph, commit = _checkout_and_commit(args.graph, args.commit)
+    out_dir = _out_dir(args.out, "opn-footprints-")
+    tree = export_tree(graph, commit, out_dir / "tree")
+
+    def make(node_id: str, run_out: Path) -> RunContext:
+        ctx = _sandboxed_context(
+            graph,
+            commit,
+            run_out,
+            target=args.target,
+            node=node_id,
+            settings=settings,
+            image=args.image,
+            no_build=args.no_build,
+        )
+        ctx.changes = None  # the node's merged proof as the tree holds it, not the commit's diff
+        return ctx
+
+    try:
+        outcomes = footprints.measure(tree, args.target, make, out_dir / "runs")
+        existing = graphmod.load_footprint_cache(tree / "targets" / args.target)
+    except graphmod.GraphError as exc:
+        raise CliError(str(exc)) from exc
+    cache_path = out_dir / graphmod.FOOTPRINT_CACHE
+    cache_path.write_bytes(footprints.merged_cache(existing, outcomes))
+    failed = [o.as_dict() for o in outcomes if o.nodes is None]
+    summary = {
+        "target": args.target,
+        "commit": commit,
+        "measured": sum(1 for o in outcomes if o.nodes is not None),
+        "failed": failed,
+        "cache": str(cache_path),
+        "outcomes": [o.as_dict() for o in outcomes],
+    }
+    sys.stdout.write(json.dumps(summary, ensure_ascii=False) + "\n")
+    return EXIT_FAIL if failed else EXIT_PASS
+
+
+def run_outline(args: argparse.Namespace, settings: config.Settings) -> int:
+    """F19-T4, T5: outline every merged proof artifact of ``--target`` (or ``--all``) at
+    ``--commit`` that has no ``targets/<id>/outlines/<hash>.json`` in that tree or under
+    ``--dest`` (default: the checkout itself), building and extracting each in the step-3
+    sandbox (R6). One JSON report on stdout names every artifact written, already present, or
+    failed with its reason (R5); a failure writes nothing for that artifact and stops no other.
+    Exit 1 when the report names a failure, 0 otherwise. The image is resolved only for a target
+    with something to extract."""
+    graph, commit = _checkout_and_commit(args.graph, args.commit)
+    running = running_network_commit().commit
+    if running is None:
+        msg = "the running gate is not a git checkout, so no outline could name its gate commit"
+        raise CliError(msg)
+    out_dir = _out_dir(args.out, "opn-outline-")
+    tree = export_tree(graph, commit, out_dir / "tree")
+    if args.target is not None:
+        if not layout.gate_spec_path(tree, args.target).is_file():
+            msg = f"target {args.target!r} has no gate-spec.json at {commit[:12]}"
+            raise CliError(msg)
+        targets = [args.target]
+    else:
+        targets = outline_graph.target_ids(tree)
+    dest = (args.dest or graph).resolve()
+    images: dict[str, str] = {}
+
+    def toolchain_for(spec: Any, workdir: Path) -> toolchain.Toolchain:
+        key = json.dumps(
+            [spec.get("devcontainer_ref"), spec["lean_toolchain"], spec.get("mathlib_sha")]
+        )
+        if key not in images:
+            images[key] = args.image or ensure_image(dict(spec), build=not args.no_build)
+        workdir.mkdir(parents=True, exist_ok=True)
+        return sandbox.SandboxToolchain(
+            images[key], sandbox.Caps.from_spec(dict(spec)), read_write=[workdir]
+        )
+
+    report = outline_graph.run(
+        tree,
+        targets,
+        dest=dest,
+        work=out_dir / "work",
+        toolchain_for=toolchain_for,
+        gate=running,
+        caps=outline.Caps.from_settings(settings),
+    )
+    doc = {"commit": commit, "gate": running, "dest": str(dest), **report.as_dict()}
+    sys.stdout.write(json.dumps(doc, ensure_ascii=False) + "\n")
+    return EXIT_FAIL if report.failed else EXIT_PASS
 
 
 def run_gate(args: argparse.Namespace, settings: config.Settings) -> int:
@@ -984,6 +1527,10 @@ def run_classify(args: argparse.Namespace, settings: config.Settings) -> int:
         paths.changes_from_name_status(diff.stdout),
         author=args.author or settings.pr_author,
         curators=curators,
+        # F20-R7: what a withdrawal withdraws is read from the checkout; F20-T6: a pull request
+        # the service opened acts for the author its records name.
+        graph_root=graph,
+        service_login=settings.service_login,
     )
     # D-4 v3.11 (F07-T17): step 9 for a proof or a partial is the root's certificate or registry
     # provenance where it has one, read from this checkout; the workflow reads the two published
@@ -997,10 +1544,25 @@ def run_classify(args: argparse.Namespace, settings: config.Settings) -> int:
     summary = classification.as_dict()
     summary["problems"] = [d.as_dict(settings.diagnostic_max_bytes) for d in problems]
     summary["ok"] = classification.ok and not problems
+    # F20-R5: what the gate says without refusing; the workflow reads only ``ok``.
+    summary["warnings"] = (
+        [d.as_dict(settings.diagnostic_max_bytes) for d in modes.warnings(graph, classification)]
+        if classification.ok
+        else []
+    )
     # F08-R6, R7: an append that carries a Lean exhibit still needs the sandbox, for that alone.
     carrying = modes.exhibits(graph, classification) if classification.ok else []
     summary["exhibits"] = [loc.path for loc in carrying]
-    summary["needs_exhibits"] = bool(carrying)
+    # F11-R15: a definition added after intake is Lean nobody has elaborated, and no other step
+    # of a curator pull request starts a sandbox. It asks for the one the workflow already has
+    # (``exhibits``), so the route is closed on any pin that classifies it at all (Q35).
+    definitions = (
+        sorted(loc.path for loc in classification.located if loc.role == "definition")
+        if classification.mode == "curator"
+        else []
+    )
+    summary["definitions"] = definitions
+    summary["needs_exhibits"] = bool(carrying) or bool(definitions)
     # F12-T8: a QA record's claimed passes are re-run in the sandbox (``qa-rerun``). The workflow
     # reads the flag with a default, so a pin that predates it skips the step.
     records = qa_rerun.records_in(classification.located) if classification.ok else []
@@ -1026,14 +1588,19 @@ def run_exhibits(args: argparse.Namespace, settings: config.Settings) -> int:
         msg = f"unknown base {args.base!r}"
         raise CliError(msg)
     diff = _git(graph, "diff", "--name-status", "--no-renames", base, head)
-    classification = modes.classify(paths.changes_from_name_status(diff.stdout))
-    if classification.mode != "append" or classification.target_id is None:
+    changes = paths.changes_from_name_status(diff.stdout)
+    classification = modes.classify(changes)
+    # F11-R15: new definitions alone are the one other diff this sandbox step serves. The step
+    # is told no author, so the shape is read without one; ``classify`` has already asked who.
+    definitions = modes.definitions_added(changes)
+    if definitions is None and (classification.mode != "append" or not classification.target_id):
         msg = f"exhibits belong to append mode; this diff is {classification.mode!r}"
         raise CliError(msg)
-    records = modes.exhibits(graph, classification)
+    target_id = str(definitions[0].target_id if definitions else classification.target_id)
+    records = [] if definitions else modes.exhibits(graph, classification)
     out_dir = _out_dir(args.out, "opn-exhibits-")
     workdir = out_dir / "work"
-    spec_path = layout.gate_spec_path(graph, classification.target_id)
+    spec_path = layout.gate_spec_path(graph, target_id)
     try:
         spec = schemas.load_json(spec_path, "gate-spec/v1")
     except schemas.SchemaError as exc:
@@ -1050,7 +1617,7 @@ def run_exhibits(args: argparse.Namespace, settings: config.Settings) -> int:
             raise CliError(str(exc)) from exc
     ctx = RunContext(
         graph_root=graph,
-        claim=Claim(classification.target_id, classification.node_id or ""),
+        claim=Claim(target_id, classification.node_id or ""),
         spec=spec,
         gate_spec_hash=schemas.content_hash(spec_path.read_bytes()),
         changes=None,
@@ -1059,18 +1626,38 @@ def run_exhibits(args: argparse.Namespace, settings: config.Settings) -> int:
         settings=settings,
         install_toolchain=bool(args.install) and not args.sandbox,
     )
-    problems = exhibits.run(ctx, records)
-    summary = {
+    problems = (
+        _elaborate_definitions(ctx, spec_path.parent) if definitions else exhibits.run(ctx, records)
+    )
+    summary: dict[str, Any] = {
         "ok": not problems,
         "exhibits": [loc.path for loc in records],
         "sandboxed": bool(args.sandbox),
         "problems": [d.as_dict(settings.diagnostic_max_bytes) for d in problems],
     }
+    if definitions:
+        summary["definitions"] = sorted(loc.path for loc in definitions)
     (out_dir / "exhibits.json").write_bytes(schemas.canonical_json(summary))
     sys.stdout.write(json.dumps(summary, indent=2, ensure_ascii=False) + "\n")
     for d in problems:
         sys.stderr.write(f"opn-gate: {d.code}: {d.message}\n")
     return EXIT_PASS if not problems else EXIT_FAIL
+
+
+def _elaborate_definitions(ctx: RunContext, target_dir: Path) -> list[Diagnostic]:
+    """F11-R15: every definition of the target, on the merged tree, in import order — the same
+    build every later Context will start with (``defs.compile_all``), so a definition that merges
+    is one the target still builds with. The first failure is the answer, in the existing
+    ``defs-*`` diagnostics."""
+    resolved = ToolchainStep().run(ctx)
+    if not resolved.ok:
+        assert resolved.diagnostic is not None
+        return [resolved.diagnostic]
+    tc: toolchain.ResolvedToolchain = ctx.data["toolchain"]
+    problem = defs.compile_all(
+        ctx.toolchain, tc, target_dir, ctx.workdir, timeout_s=ctx.wallclock_s
+    )
+    return [] if problem is None else [problem]
 
 
 def run_qa_rerun(args: argparse.Namespace, settings: config.Settings) -> int:
@@ -1221,6 +1808,13 @@ def run_postmerge(args: argparse.Namespace, settings: config.Settings) -> int:
         raise CliError(str(exc)) from exc
     bodies = [_read_flag_file(p, "--approval-body-file") for p in args.approval_body_file]
     pr_body = _read_flag_file(args.pr_body_file, "--pr-body-file") if args.pr_body_file else ""
+    # F07-T65: the job that checked the network out at the pin says which commit that was; a
+    # job that does not say is not checked (the graph's workflow sets it from a later re-pin).
+    expected = config.load().network_commit
+    if expected:
+        mismatch = network_mismatch(expected, running_network_commit(), check_dirty=False)
+        if mismatch is not None:
+            return refuse_network_mismatch(mismatch)
     out_dir = _out_dir(args.out, "opn-postmerge-")
     ctx = _sandboxed_context(
         graph,
@@ -1304,9 +1898,29 @@ def apply_merged_partial(
             author=args.author,
             assembly_path=str(partial["path"]),
             model=submissionmod.tooling(block)["model"],  # R13: the block's declared model
+            witnesses=checked_witnesses(verdict, node_dir),
         )
     except postmerge.GraphWriteError as exc:
         raise CliError(str(exc)) from exc
+
+
+def checked_witnesses(verdict: pipeline.Verdict, node_dir: Path) -> dict[str, str]:
+    """F07-R23 (D-29 v3.24): hole name -> the witness the merged partial carried for it, for
+    exactly the witnesses this run's step 7 checked and nothing else. Read from the checkout
+    (the run used an export of the same commit) and held to the hash step 7 recorded, so what
+    is written into a child is what was checked, byte for byte."""
+    out: dict[str, str] = {}
+    for entry in verdict.data.get(carried.DATA_KEY) or []:
+        path = node_dir / str(entry["path"])
+        if not path.is_file():
+            msg = f"the carried witness {path} is not in the checkout"
+            raise CliError(msg)
+        text = carried.read_file(path)
+        if schemas.content_hash(text.encode("utf-8")) != entry["sha256"]:
+            msg = f"{path} is not the carried witness step 7 checked ({entry['sha256'][:12]}…)"
+            raise CliError(msg)
+        out[str(entry["hole"])] = text
+    return out
 
 
 def run_admit(args: argparse.Namespace, settings: config.Settings) -> int:
@@ -1714,6 +2328,7 @@ def run_status(args: argparse.Namespace, settings: config.Settings) -> int:
         last_merge=last_progress_merge(graph, target_id),
         k=args.k,
         n_days=args.n,
+        reference=args.reference,
     )
     written = [record.resolve().relative_to(graph).as_posix()]
     doc = {"ok": True, "ref": args.ref, "status": args.status, "written": written}
@@ -1876,7 +2491,11 @@ def run_intake(args: argparse.Namespace, settings: config.Settings) -> int:
         return _emit_curator(doc, graph, args.branch, f"intake: {args.target_id} active")
     if args.action == "import-fc":
         return run_import_fc(args, settings, graph)
-    record = intake.read_record(args.record.resolve())
+    record = intake.with_classification(
+        intake.read_record(args.record.resolve()),
+        arxiv=args.arxiv or (),
+        msc=args.msc or (),
+    )  # F25-R4: refused by name before anything is written
     checker: intake.Checker = (
         _fake_checker
         if args.no_toolchain
@@ -2150,6 +2769,7 @@ def run_explainer(args: argparse.Namespace, settings: config.Settings) -> int:
         date=_intake_date(args),
         key_path=args.key.resolve(),
         signer=signed.default_signer(),
+        approves=args.sections,
     )
     doc = {
         "ok": True,
@@ -2157,9 +2777,280 @@ def run_explainer(args: argparse.Namespace, settings: config.Settings) -> int:
         "node": args.node_id,
         "explainer": args.explainer,
         "signer": args.by,
+        "sections": args.sections,
         "written": [path.resolve().relative_to(graph.resolve()).as_posix()],
     }
     message = f"explainer: {args.by} signed {args.explainer[:12]} on {args.node_id}"
+    return _emit_curator(doc, graph, args.branch, message)
+
+
+def run_gloss(args: argparse.Namespace, settings: config.Settings) -> int:
+    """F20-R12: the steward's commands on glosses and explainers — ``revise`` writes the current
+    version to an editable file, ``file`` checks an edited one as the gate would and places it
+    under its hash, ``sign`` writes a gloss signature with the signer's own key. A refusal is
+    ``{"ok": false, ...}`` and exit 1 with nothing left behind (C7)."""
+    graph = _intake_graph(args)
+    if args.action == "revise":
+        return _gloss_revise(args, graph)
+    if args.action == "file":
+        return _gloss_file(args, graph, settings)
+    if args.action == "coverage":
+        return _gloss_coverage(graph)
+    return _gloss_sign(args, graph)
+
+
+def _gloss_coverage(graph: Path) -> int:
+    """R20: the coverage report as JSON; exit 0 exactly when it is complete, 1 otherwise. The
+    commit it was taken at is the checkout's HEAD, or null outside a git checkout."""
+    doc = glosses.coverage(graph)
+    top = _git(graph, "rev-parse", "--show-toplevel")
+    head = _git(graph, "rev-parse", "--verify", "HEAD")
+    own = top.returncode == 0 and Path(top.stdout.strip()).resolve() == graph.resolve()
+    doc = {"commit": head.stdout.strip() if own and head.returncode == 0 else None, **doc}
+    sys.stdout.write(json.dumps(doc, indent=2, ensure_ascii=False) + "\n")
+    return EXIT_PASS if doc["complete"] else EXIT_FAIL
+
+
+#: What ``gloss revise`` writes a new chain's body as: a prompt to the author, not prose.
+_NEW_GLOSS_BODY = "Say in words what the Lean says, every hypothesis included.\n"
+_NEW_EXPLAINER_BODY = "## The idea\n\nSay what the proof does and why it works.\n"
+
+
+def _gloss_subject(
+    graph: Path, target_id: str, subject: str
+) -> tuple[dict[str, Any], Path, str, list[glosses.Version]]:
+    """``gloss revise``'s subject: the front matter fields that name it, the directory its
+    versions sit in, that directory's name (``gloss`` or ``explainer``) and its versions."""
+    target_dir = layout.graph_nodes_dir(graph, target_id).parent
+    kind, _, rest = subject.partition(":")
+    if not target_dir.is_dir():
+        msg = f"{target_id} is not a target of {graph}"
+        raise glosses.GlossError(msg)
+    if kind in glosses.KIND_FILES:
+        node_dir = target_dir / "nodes" / rest
+        file = node_dir / glosses.KIND_FILES[kind]
+        if not rest or not file.is_file():
+            msg = f"{target_id} has no {glosses.KIND_FILES[kind]} of a node {rest!r}"
+            raise glosses.GlossError(msg)
+        lean = schemas.content_hash(file.read_bytes())
+        fields: dict[str, Any] = {
+            "subject": {"kind": kind, "node": rest, "module": None, "lean_hash": lean}
+        }
+        found = [v for v in glosses.load_versions(node_dir) if v.subject == (kind, rest, None)]
+        return fields, node_dir, glosses.GLOSS_DIR, found
+    if kind == glosses.DEFINITION:
+        file = target_dir / glosses.DEFS_DIR / rest
+        if not rest or not file.is_file():
+            msg = f"{target_id} has no definition module {rest!r} under defs/"
+            raise glosses.GlossError(msg)
+        lean = schemas.content_hash(file.read_bytes())
+        fields = {"subject": {"kind": kind, "node": None, "module": rest, "lean_hash": lean}}
+        found = [v for v in glosses.load_versions(target_dir) if v.subject == (kind, None, rest)]
+        return fields, target_dir, glosses.GLOSS_DIR, found
+    if kind == "explainer":
+        node, _, proof = rest.partition(":")
+        node_dir = target_dir / "nodes" / node
+        artifacts = explainers.merged_artifacts(node_dir) if node and node_dir.is_dir() else {}
+        proof = proof or (explainers.first_proof(node_dir) or "") if node else proof
+        if proof not in artifacts:
+            msg = (
+                f"{target_id}/{node or '?'} has no merged proof artifact {proof or '(none)'}; its "
+                f"artifacts are {', '.join(f'{p} {h}' for h, p in artifacts.items()) or 'none'}"
+            )
+            raise glosses.GlossError(msg)
+        fields = {"node": node, "proof": proof}
+        found = [v for v in explainers.versions(node_dir) if v.subject[2] == proof]
+        return fields, node_dir, explainers.EXPLAINER_DIR, found
+    msg = (
+        f"{subject!r} is not a subject: statement:<node>, witness:<node>, relation:<node>, "
+        "definition:<module> or explainer:<node>[:<proof hash>]"
+    )
+    raise glosses.GlossError(msg)
+
+
+def _gloss_revise(args: argparse.Namespace, graph: Path) -> int:
+    """R12: the head's text under new front matter — supersedes the head, the subject's current
+    ``lean_hash`` (or the proof), the reviser as author — or a fresh chain where there is none."""
+    fields, parent, directory, found = _gloss_subject(graph, args.target_id, args.subject)
+    chains = glosses.chains(found, glosses.withdrawn_versions(parent, directory))
+    if args.chain:
+        chain = glosses.chain_of(chains, args.chain)
+        if chain is None:
+            msg = f"no chain on {args.subject} holds a version {args.chain}"
+            raise glosses.GlossError(msg)
+        head = chain.current
+        if head is None:
+            msg = f"every version of the chain holding {args.chain[:12]}… is withdrawn"
+            raise glosses.GlossError(msg)
+    else:
+        live = [c.current for c in chains if c.current is not None]
+        if len(live) > 1:
+            msg = (
+                f"{args.subject} has {len(live)} chains, with heads "
+                f"{', '.join(v.hash for v in live)}; name one with --chain"
+            )
+            raise glosses.GlossError(msg)
+        head = live[0] if live else None
+    licence = args.licence
+    body = _NEW_GLOSS_BODY if directory == glosses.GLOSS_DIR else _NEW_EXPLAINER_BODY
+    if head is not None:
+        old, body = glosses.split_front_matter(head.path.read_text(encoding="utf-8"))
+        licence = str((old or {}).get("licence") or licence)
+        if directory != glosses.GLOSS_DIR and not body.lstrip().startswith("## "):
+            body = "## The idea\n\n" + body.lstrip()  # an explainer filed before F20
+    # F21-R6: the version the service writes; drafted_with is the person's to fill in when a
+    # model helped (D-23), null for their own words
+    schema = "gloss/v2" if directory == glosses.GLOSS_DIR else "explainer/v2"
+    doc: dict[str, Any] = {
+        "schema": schema,
+        "target": args.target_id,
+        **fields,
+        "supersedes": head.hash if head is not None else None,
+        "author": args.by,
+        "drafter": None,
+        "date": _intake_date(args)[:10],
+        "licence": licence,
+        "drafted_with": None,
+    }
+    text = "---\n" + yaml.safe_dump(doc, sort_keys=False, allow_unicode=True) + "---\n" + body
+    out: Path = args.out or Path.cwd() / f"{args.target_id}-{args.subject.replace(':', '-')}.md"
+    out.write_text(text, encoding="utf-8")
+    summary = {
+        "ok": True,
+        "target": args.target_id,
+        "subject": args.subject,
+        "supersedes": doc["supersedes"],
+        "out": str(out),
+        "next": f"edit it, then: opn-gate gloss file {out} --graph {graph}",
+    }
+    sys.stdout.write(json.dumps(summary, indent=2, ensure_ascii=False) + "\n")
+    return EXIT_PASS
+
+
+_ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
+
+
+def _gloss_destination(graph: Path, doc: dict[str, Any]) -> Path:
+    """Where an edited gloss or explainer is filed, from its front matter alone."""
+    target = doc.get("target")
+    if not isinstance(target, str) or not _ID_RE.match(target):
+        msg = "the front matter names no target"
+        raise glosses.GlossError(msg)
+    target_dir = graph / "targets" / target
+    if doc.get("schema") in glosses.SCHEMAS:
+        subject = doc.get("subject") if isinstance(doc.get("subject"), dict) else {}
+        assert isinstance(subject, dict)
+        if subject.get("kind") == glosses.DEFINITION:
+            return target_dir / glosses.GLOSS_DIR
+        node = subject.get("node")
+        directory = glosses.GLOSS_DIR
+    elif doc.get("schema") in explainers.RECORD_SCHEMAS:
+        node = doc.get("node")
+        directory = "explainer"
+    else:
+        msg = f"the front matter declares {doc.get('schema')!r}, not a gloss or explainer record"
+        raise glosses.GlossError(msg)
+    if not isinstance(node, str) or not _ID_RE.match(node):
+        msg = "the front matter names no node"
+        raise glosses.GlossError(msg)
+    return target_dir / "nodes" / node / directory
+
+
+def _gloss_file(args: argparse.Namespace, graph: Path, settings: config.Settings) -> int:
+    """R12: name the edited file by its hash, place it, and hold it to what the gate would
+    (R1 to R6) with the same classifier and checks; on any problem remove it again."""
+    text = _read_flag_file(args.path, "path")
+    try:
+        doc, _ = glosses.split_front_matter(text)
+    except ValueError as exc:
+        raise glosses.GlossError(str(exc)) from exc
+    if doc is None:
+        msg = f"{args.path} has no front matter; start from opn-gate gloss revise"
+        raise glosses.GlossError(msg)
+    directory = _gloss_destination(graph, doc)
+    data = text.encode("utf-8")
+    dest = directory / f"{schemas.content_hash(data)}.md"
+    if dest.exists():
+        msg = f"{dest.relative_to(graph).as_posix()} is already filed"
+        raise glosses.GlossError(msg)
+    try:
+        curators = modes.load_curators(graph)
+    except modes.CuratorsError as exc:
+        raise CliError(str(exc)) from exc
+    created = not directory.exists()
+    directory.mkdir(parents=True, exist_ok=True)
+    dest.write_bytes(data)
+    rel = dest.relative_to(graph).as_posix()
+    classification = modes.classify(
+        [Change("A", rel)],
+        author=args.author or settings.pr_author,
+        curators=curators,
+        graph_root=graph,
+        service_login=settings.service_login,
+    )
+    problems = list(classification.problems)
+    if classification.ok:
+        problems.extend(modes.check(graph, classification))
+    if problems:
+        dest.unlink()
+        if created:
+            directory.rmdir()
+        refused = {
+            "ok": False,
+            "path": rel,
+            "problems": [d.as_dict(settings.diagnostic_max_bytes) for d in problems],
+        }
+        sys.stdout.write(json.dumps(refused, indent=2, ensure_ascii=False) + "\n")
+        for d in problems:
+            sys.stderr.write(f"opn-gate: {d.code}: {d.message}\n")
+        return EXIT_FAIL
+    filed = {
+        "ok": True,
+        "written": [rel],
+        "hash": dest.stem,
+        "warnings": [d.as_dict() for d in modes.warnings(graph, classification)],
+    }
+    return _emit_curator(filed, graph, args.branch, f"gloss: file {rel}")
+
+
+def _gloss_sign(args: argparse.Namespace, graph: Path) -> int:
+    """R8, R12: a gloss signature, signed with the signer's own key, beside the gloss it signs —
+    found under the target or any of its nodes."""
+    target_dir = layout.graph_nodes_dir(graph, args.target_id).parent
+    if not target_dir.is_dir():
+        msg = f"{args.target_id} is not a target of {graph}"
+        raise CliError(msg)
+    nodes = target_dir / "nodes"
+    candidates = [target_dir, *sorted(p for p in nodes.iterdir() if p.is_dir())]
+    parent = next(
+        (p for p in candidates if (p / glosses.GLOSS_DIR / f"{args.gloss}.md").is_file()),
+        None,
+    )
+    if parent is None:
+        msg = f"no gloss {args.gloss[:12]}… is on {args.target_id}; nothing to sign"
+        raise glosses.GlossError(msg)
+    node_id = None if parent == target_dir else parent.name
+    path = glosses.sign(
+        parent,
+        args.gloss,
+        target_id=args.target_id,
+        node_id=node_id,
+        signer_login=args.by,
+        date=_intake_date(args),
+        key_path=args.key.resolve(),
+        signer=signed.default_signer(),
+        approves=args.sections,
+    )
+    doc = {
+        "ok": True,
+        "target": args.target_id,
+        "node": node_id,
+        "gloss": args.gloss,
+        "signer": args.by,
+        "sections": args.sections,
+        "written": [path.resolve().relative_to(graph.resolve()).as_posix()],
+    }
+    message = f"gloss: {args.by} signed {args.gloss[:12]} on {node_id or args.target_id}"
     return _emit_curator(doc, graph, args.branch, message)
 
 
@@ -2326,7 +3217,7 @@ def _model_client(settings: config.Settings) -> models.ModelClient:
     """The model seam, or a usage error before any work when no key is configured (C8)."""
     if not settings.model_api_key:
         msg = (
-            "OPN_MODEL_API_KEY is not set; the brief and the back-translation ask a model "
+            "OPENROUTER_API_KEY is not set; the brief and the back-translation ask a model "
             "(F12-R6, R7) and the key lives in the curator's .env (C8)"
         )
         raise CliError(msg)
@@ -2371,20 +3262,31 @@ def run_missing_library(args: argparse.Namespace, settings: config.Settings) -> 
     return EXIT_PASS
 
 
-def run_ledger(args: argparse.Namespace, settings: config.Settings) -> int:
+def run_ledger(  # noqa: PLR0911 — one return per kind of merge
+    args: argparse.Namespace, settings: config.Settings
+) -> int:
     """F07-R12, F08-R13: what a merge earns, written to the identity's ledger.
 
     The proof line for a merged proof or partial assembly, the attempts line for the first
     postmortem of each route class, the statement line for an admitted proposal (never a hole,
     D-31; never a revision, D-19). Nothing for an alternate proof (credited at write-up, D-25),
     the tutorial node (D-27), a curator's proof on their own target (D-21) or any other mode, and
-    every refusal says which decision refused it.
+    every refusal says which decision refused it. A merged gloss or explainer signature credits
+    the signed version's author with the write-up line (F21-R3, D-19 v3.31); the version itself
+    earns nothing (R4).
     """
     graph, commit = _checkout_and_commit(args.graph, args.commit)
-    classification = modes.classify(commit_changes(graph, commit), author=settings.pr_author)
+    changes = commit_changes(graph, commit)
+    corrections = _credit_corrections(changes)
+    if corrections:
+        return _apply_credit_corrections(graph, commit, corrections)
+    signatures = _added_signatures(changes)
+    if signatures:
+        return _credit_signed_versions(graph, commit, signatures)
+    classification = modes.classify(changes, author=settings.pr_author)
     mode = classification.mode
     nothing: dict[str, Any] = {"earned": False, "commit": commit}
-    if mode in ("proof", "partial", "append"):
+    if mode in ("proof", "partial", "append", "registration"):
         return _write_merge_entries(graph, commit, classification, nothing)
     if mode == "alternate":
         nothing["reason"] = "an alternate proof is credited at write-up, not when it merges (D-25)"
@@ -2403,6 +3305,7 @@ def run_ledger(args: argparse.Namespace, settings: config.Settings) -> int:
         origin=str(meta.get("origin")),
         merge_commit=commit,
         date=graphmod.commit_timestamp(graph, commit),
+        tooling=ledger.statement_tooling(meta),
         tutorial=bool(meta.get("tutorial", False)),
         supersedes=str(meta["supersedes"]) if meta.get("supersedes") else None,
     )
@@ -2426,6 +3329,166 @@ def run_ledger(args: argparse.Namespace, settings: config.Settings) -> int:
     }
     sys.stdout.write(json.dumps(doc, indent=2) + "\n")
     return EXIT_PASS
+
+
+def _credit_corrections(changes: list[Change]) -> list[paths.Located]:
+    """F07-T66: the credit corrections a merge added. Read from the paths, not from the mode: the
+    curator rule consults ``curators.json`` and the pull request's author, which this step is not
+    handed, and the merge has already passed that rule at its gate run."""
+    found = (paths.locate(c.path) for c in changes if c.status == "A")
+    return [loc for loc in found if loc is not None and loc.role == "credit-correction"]
+
+
+#: F21-R3: the signature records a write-up credit is read from, every version of each.
+_SIGNATURE_SCHEMAS: dict[str, tuple[str, ...]] = {
+    "explainer-signature": tuple(sorted(explainers.SCHEMAS)),
+    "gloss-signature": tuple(sorted(glosses.SIGNATURE_SCHEMAS)),
+}
+
+
+def _added_signatures(changes: list[Change]) -> list[paths.Located]:
+    """F21-R3: the gloss and explainer signatures a merge added, read from the paths."""
+    found = (paths.locate(c.path) for c in changes if c.status == "A")
+    return [loc for loc in found if loc is not None and loc.role in _SIGNATURE_SCHEMAS]
+
+
+def _signer_names(graph: Path, login: str) -> frozenset[str]:
+    """The names a signer is known by: the login, and the pseudonym ``curators.json`` pairs it
+    with, read in the direction ``modes.acting_names`` allows for a host login (login to its
+    pseudonym, never a login to a login). A steward has no pairing on the record (Stage 0), so
+    a steward is known by the login alone."""
+    try:
+        paired = modes.load_curators(graph).pseudonym_of(login)
+    except modes.CuratorsError:
+        paired = None
+    return frozenset({login, paired} if paired else {login})
+
+
+def _signed_version(
+    graph: Path, loc: paths.Located
+) -> tuple[dict[str, Any], glosses.Version | None, Path]:
+    """The signature record, the version it signs (``glosses.Version`` or ``None`` when absent)
+    and the directory holding the version's ``gloss/`` or ``explainer/``."""
+    doc = schemas.load_yaml(graph / loc.path)
+    if doc.get("schema") not in _SIGNATURE_SCHEMAS[loc.role]:
+        msg = f"{loc.path} is not one of {', '.join(_SIGNATURE_SCHEMAS[loc.role])}"
+        raise schemas.SchemaError(msg)
+    if loc.node_id is not None:
+        parent = layout.graph_nodes_dir(graph, loc.target_id) / loc.node_id
+    else:
+        parent = graph / "targets" / loc.target_id
+    if loc.role == "gloss-signature":
+        digest, versions = str(doc["gloss"]), glosses.load_versions(parent)
+    else:
+        digest, versions = str(doc["explainer"]), explainers.versions(parent)
+    return doc, next((v for v in versions if v.hash == digest), None), parent
+
+
+def _version_tooling(path: Path) -> str:
+    """The model and tooling a version's author declared (``drafted_with``, gloss/v2 and
+    explainer/v2, F21-R6), or ``undeclared``."""
+    try:
+        front, _ = glosses.split_front_matter(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, ValueError):
+        return ledger.UNDECLARED
+    declared = (front or {}).get("drafted_with")
+    return declared if isinstance(declared, str) and declared.strip() else ledger.UNDECLARED
+
+
+def _credit_signed_versions(graph: Path, commit: str, signatures: list[paths.Located]) -> int:
+    """F21-R3 (D-19 v3.31): each added signature credits the author of the version it signs with
+    one write-up line — not ``proposer_of``, who is the signer — unless the version is a draft,
+    the signer wrote it, or it is already credited (Q3). Signatures are taken one at a time and
+    each written before the next is read, so two signatures on one version in one merge credit
+    once, and a replay of the merge (F07-T33) writes nothing. Every signature not credited says
+    why."""
+    date = graphmod.commit_timestamp(graph, commit)
+    credited: list[dict[str, Any]] = []
+    skipped: list[str] = []
+    written: set[str] = set()
+    for loc in signatures:
+        try:
+            doc, version, parent = _signed_version(graph, loc)
+        except (schemas.SchemaError, KeyError) as exc:
+            skipped.append(f"{loc.path} cannot be read as a signature: {exc}")
+            continue
+        if version is None:
+            skipped.append(f"{loc.path} signs a version that is not on the record beside it")
+            continue
+        artifact = version.path.relative_to(parent).as_posix()
+        # ledger/v1's node is required: a definition module's gloss sits under its target, so
+        # its entry carries the target's id there (F21-T4).
+        node = loc.node_id or loc.target_id
+        try:
+            entry, why = ledger.writeup_entry(
+                author=version.author,
+                signer_names=_signer_names(graph, str(doc["signer"])),
+                target=loc.target_id,
+                node=node,
+                artifact=artifact,
+                merge_commit=commit,
+                date=date,
+                tooling=_version_tooling(version.path),
+                held_by=ledger.writeup_holder(
+                    graph, target=loc.target_id, node=node, artifact=artifact
+                ),
+            )
+            if entry is None:
+                skipped.append(why)
+                continue
+            assert version.author is not None  # writeup_entry credits only an authored version
+            path = ledger.record(graph, version.author, entry)
+        except schemas.SchemaError as exc:
+            skipped.append(f"identity {version.author!r} cannot hold a ledger: {exc}")
+            continue
+        assert path is not None
+        written.add(path.resolve().relative_to(graph.resolve()).as_posix())
+        credited.append(
+            {"identity": version.author, "line": entry.line, "node": node, "artifact": artifact,
+             "signature": loc.path, "why": why}
+        )  # fmt: skip
+    if not credited:
+        return _say(
+            {
+                "earned": False,
+                "commit": commit,
+                "reason": skipped[0] if skipped else "the merge added no signature (R3)",
+                "skipped": skipped,
+            }
+        )
+    first = credited[0]
+    return _say(
+        {
+            "earned": True,
+            "commit": commit,
+            "identity": first["identity"],
+            "node": first["node"],
+            "line": "write-up",
+            "entries": credited,
+            "skipped": skipped,
+            "written": sorted(written),
+        }
+    )
+
+
+def _apply_credit_corrections(graph: Path, commit: str, corrections: list[paths.Located]) -> int:
+    """F07-T66 (D-18, D-19 v3.27): apply each merged correction to the ledger. A curator's
+    correction earns no line itself (D-19: a correction is not an artifact); applying one twice
+    writes nothing, so a replay of this merge (F07-T33) is harmless."""
+    written: set[str] = set()
+    for loc in corrections:
+        doc = schemas.load_yaml(graph / loc.path, ledger.CORRECTION_SCHEMA)
+        for path in ledger.apply_correction(graph, doc, target=loc.target_id):
+            written.add(path.resolve().relative_to(graph.resolve()).as_posix())
+    return _say(
+        {
+            "earned": False,
+            "commit": commit,
+            "reason": "a credit correction earns no line; it moves one (D-19 v3.27)",
+            "corrected": [loc.path for loc in corrections],
+            "written": sorted(written),
+        }
+    )
 
 
 def run_stewards(args: argparse.Namespace, settings: config.Settings) -> int:
@@ -2458,6 +3521,7 @@ def _write_merge_entries(
     identity = proposer_of(graph, commit)
     date = graphmod.commit_timestamp(graph, commit)
     tooling = ledger.merge_tooling(graph, commit)
+    automation = ledger.merge_automation(graph, commit)  # F25-R3: the block, or None
     try:
         doc = ledger.load(graph, identity)
         earned, skipped, doc = _merge_entries(
@@ -2467,6 +3531,7 @@ def _write_merge_entries(
             commit=commit,
             date=date,
             tooling=tooling,
+            automation=automation,
             doc=doc,
         )
     except schemas.SchemaError as exc:
@@ -2498,7 +3563,7 @@ def _write_merge_entries(
     )
 
 
-def _merge_entries(  # noqa: PLR0913 — one argument per fact every entry records
+def _merge_entries(  # noqa: PLR0912, PLR0913 — one argument per fact every entry records
     graph: Path,
     classification: modes.Classification,
     *,
@@ -2507,12 +3572,36 @@ def _merge_entries(  # noqa: PLR0913 — one argument per fact every entry recor
     date: str,
     tooling: str,
     doc: dict[str, Any],
+    automation: dict[str, Any] | None = None,
 ) -> tuple[list[ledger.Entry], list[str], dict[str, Any]]:
     """The entries a proof, partial or append merge earns, the reasons for what it does not, and
     the ledger with the earned entries appended (validated as it grows, so a second postmortem of
-    a class in the same merge is refused against the first — D-13)."""
+    a class in the same merge is refused against the first — D-13). ``automation`` is what the
+    merge's attestation declared (F25-R3), carried on every entry the merge earns."""
     earned: list[ledger.Entry] = []
     skipped: list[str] = []
+    if classification.mode == "registration":
+        # F25 (D-19 v3.37): a merged registration record earns the upstreaming line for the
+        # curator or steward it names, who the gate held to be the pull request's actor.
+        for loc in classification.located:
+            if loc.role != "registration":
+                continue
+            record = schemas.load_yaml(graph / loc.path, "registration/v1")
+            if str(record["submitted_by"]) != identity:
+                skipped.append(
+                    f"{loc.path} names {record['submitted_by']}, not {identity}: nothing earned"
+                )
+                continue
+            credited = ledger.registration_entry(
+                identity=identity, target=loc.target_id, node=str(record["proof"]["node"]),
+                artifact=loc.path.split(f"targets/{loc.target_id}/", 1)[1],
+                merge_commit=commit, date=date,
+            )  # fmt: skip
+            doc = ledger.append(doc, credited)
+            earned.append(credited)
+        if not earned and not skipped:
+            skipped.append("a registration merge with no registration record earns nothing")
+        return earned, skipped, doc
     wanted = {"proof": ("proof",), "partial": ("partial",), "append": ("postmortem",)}
     roles = wanted[str(classification.mode)]
     located = [loc for loc in classification.located if loc.role in roles and loc.node_id]
@@ -2538,6 +3627,7 @@ def _merge_entries(  # noqa: PLR0913 — one argument per fact every entry recor
             entry = ledger.postmortem_entry(
                 doc, identity=identity, target=target_id, node=node_id, route_class=route_class,
                 artifact=artifact, merge_commit=commit, date=date, tooling=tooling,
+                automation=automation,
             )  # fmt: skip
             if entry is None:
                 skipped.append(
@@ -2557,7 +3647,7 @@ def _merge_entries(  # noqa: PLR0913 — one argument per fact every entry recor
                 identity=identity, target=target_id, node=node_id,
                 artifact_type="partial" if loc.role == "partial" else "proof",
                 artifact=artifact, merge_commit=commit, date=date, tooling=tooling,
-                curator=curator,
+                curator=curator, automation=automation,
             )  # fmt: skip
             if entry is None:
                 skipped.append(f"{node_id}'s {loc.role} earns no proof line (R12)")

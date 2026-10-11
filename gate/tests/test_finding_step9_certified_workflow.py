@@ -25,11 +25,12 @@ from typing import Any
 
 import pytest
 import yaml
+from harness import GRAPH_CHECKOUT
 
 from opn_gate import config
 
 ROOT = Path(__file__).resolve().parents[2]
-GRAPH_REPO = ROOT.parent / "open_proof_network_graph"
+GRAPH_REPO = GRAPH_CHECKOUT
 GATE_WORKFLOW = ".github/workflows/gate.yml"
 REASON = (
     "finding step9-certified-workflow (D-4 v3.11, F07-R16, F07-T17): the post-merge job records "

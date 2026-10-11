@@ -23,6 +23,7 @@ from typing import Any
 import pytest
 import samples
 from api_fakes import (
+    AUTOMATION,
     PROOF_PREFIX,
     TUTORIAL_NODE,
     TUTORIAL_PROOF,
@@ -101,6 +102,7 @@ def submissions(h: Harness, key: PrecheckKey) -> Prepared:
         "artifact_type": "proof",
         "bundle": BUNDLE,
         "precheck_job_id": job["id"],
+        "automation": AUTOMATION,
     }
     return body, h.auth(token)
 
@@ -129,6 +131,24 @@ def defect_claims(h: Harness, key: PrecheckKey) -> Prepared:
 
 def revision_requests(h: Harness, key: PrecheckKey) -> Prepared:
     body = {"node_id": TUTORIAL_NODE, "defect_class": "vacuity", "evidence": {"text": "both"}}
+    return body, h.auth(h.token_for("code_alice", "alice"))
+
+
+def glosses_(h: Harness, key: PrecheckKey) -> Prepared:
+    """F20-T6: a gloss of the tutorial node's statement, the file on the host."""
+    h.githost.files[TUTORIAL_DIR + "Statement.lean"] = b"theorem x : True := trivial\n"
+    h.context.files.clear()
+    body = {
+        "subject": {"kind": "statement", "node_id": TUTORIAL_NODE},
+        "text": "Truth holds.",
+        "licence": "CC-BY-4.0",
+    }
+    return body, h.auth(h.token_for("code_alice", "alice"))
+
+
+def gloss_withdrawals(h: Harness, key: PrecheckKey) -> Prepared:
+    """F20-T6: a withdrawal of one gloss version; the stray key is refused before any read."""
+    body = {"record": f"{TUTORIAL_DIR}gloss/{'a' * 64}.md", "reason": "It misreads the goal."}
     return body, h.auth(h.token_for("code_alice", "alice"))
 
 
@@ -169,14 +189,114 @@ def tokens(h: Harness, key: PrecheckKey) -> Prepared:
     return body, {}
 
 
+def renew(h: Harness, key: PrecheckKey) -> Prepared:
+    """F05-T27: ``POST /tokens/renew`` reads no field at all, so any key is a stray one."""
+    return {}, h.auth(h.token_for("code_alice", "alice"))
+
+
+def dco_accept(h: Harness, key: PrecheckKey) -> Prepared:
+    """F25-R16 (Q24): ``POST /dco/accept`` reads the ``dco`` object and nothing else."""
+    body = {"dco": {"version": identity.DCO_VERSION, "accepted": True}}
+    return body, h.auth(h.token_for("code_alice", "alice"))
+
+
 def check(h: Harness, key: PrecheckKey) -> Prepared:
     """F13-T3: anonymous; body_fields refuses before any graph read, so no pin need be seeded."""
     return {"target_id": TARGET, "content": "theorem x : True := trivial\n"}, {}
 
 
-#: Every POST route of ``routes.ROUTES`` that reads a JSON body (``DELETE /claims/<id>`` has none).
+def web_accept(h: Harness, key: PrecheckKey) -> Prepared:
+    """F23-T3: the first web sign-in's DCO tick; refused before the proof is read."""
+    body = {
+        "proof": "x",
+        "return": "/",
+        "dco": {"version": identity.DCO_VERSION, "accepted": True},
+    }
+    return body, {}
+
+
+def session_end(h: Harness, key: PrecheckKey) -> Prepared:
+    """F23-T4: signing out reads no field at all, so any key is a stray one."""
+    return {}, {}
+
+
+def stewards(h: Harness, key: PrecheckKey) -> Prepared:
+    """F23-T5: the steward form, refused before the approval key or the graph is read."""
+    body = {"target": TARGET, "action": "commit", "name": "A", "link": None, "accept": True}
+    return body, h.auth(h.token_for("code_alice", "alice"))
+
+
+def approvals(h: Harness, key: PrecheckKey) -> Prepared:
+    """F23-T6: an approval, refused before the approval key or the graph is read."""
+    body = {"target": TARGET, "node": NODE, "kind": "gloss", "version": "0" * 64, "sections": None}
+    return body, h.auth(h.token_for("code_alice", "alice"))
+
+
+def literature(h: Harness, key: PrecheckKey) -> Prepared:
+    """F05-T29: a literature proposal, refused before the graph is read."""
+    body = {
+        "node_id": TUTORIAL_NODE,
+        "status": "known",
+        "references": [{"title": "A paper", "url": None, "note": None}],
+        "summary": "Proved in 1996.",
+    }
+    return body, h.auth(h.token_for("code_alice", "alice"))
+
+
+def literature_confirm(h: Harness, key: PrecheckKey) -> Prepared:
+    """F23-T12: a confirmation, refused before the approval key or the graph is read."""
+    body = {
+        "node_id": TUTORIAL_NODE,
+        "record": None,
+        "status": "known",
+        "references": [{"title": "A paper", "url": None, "note": None}],
+        "summary": "Proved in 1996.",
+    }
+    return body, h.auth(h.token_for("code_alice", "alice"))
+
+
+def motions(h: Harness, key: PrecheckKey) -> Prepared:
+    """F24-T5: a motion, refused before the approval key or the graph is read."""
+    body = {"target": TARGET, "kind": "invite", "subject": {"login": "carol"}}
+    return body, h.auth(h.token_for("code_alice", "alice"))
+
+
+def votes(h: Harness, key: PrecheckKey) -> Prepared:
+    """F24-T5: a vote, refused before the approval key or the graph is read."""
+    body = {"target": TARGET, "motion": 1, "vote": "yes"}
+    return body, h.auth(h.token_for("code_alice", "alice"))
+
+
+def writeups(h: Harness, key: PrecheckKey) -> Prepared:
+    """F24-T5: a write-up act, refused before the approval key or the graph is read."""
+    body = {"target": TARGET, "action": "author-sign", "writeup": 1}
+    return body, h.auth(h.token_for("code_alice", "alice"))
+
+
+def me_name(h: Harness, key: PrecheckKey) -> Prepared:
+    """F25-T4: a display name, refused before the approval key is read."""
+    return {"name": "A", "link": None}, h.auth(h.token_for("code_alice", "alice"))
+
+
+def registrations(h: Harness, key: PrecheckKey) -> Prepared:
+    """F25-T4: a registration record, refused before the graph is read."""
+    body = {
+        "target_id": TARGET,
+        "registry": "palomar",
+        "wrapper": {"repository": "o/r", "commit": "a" * 40},
+        "graph_commit": "b" * 40,
+        "proof": {"node": TUTORIAL_NODE, "attestation": "000001"},
+        "status": "submitted",
+    }
+    return body, h.auth(h.token_for("code_alice", "alice"))
+
+
+#: Every POST route of ``routes.ROUTES`` that reads a JSON body (``DELETE /claims/<id>`` has none);
+#: ``/tokens/renew`` reads an empty one, refusing any key (F05-T27).
 WRITE_ROUTES: dict[str, Prepare] = {
     "/tokens": tokens,
+    "/tokens/renew": renew,
+    "/dco/accept": dco_accept,
     "/claims": claims,
     "/precheck": precheck,
     "/submissions": submissions,
@@ -189,6 +309,19 @@ WRITE_ROUTES: dict[str, Prepare] = {
     "/proposals/variant": variant,
     "/proposals/witness": witness,
     "/check": check,
+    "/glosses": glosses_,
+    "/glosses/withdrawals": gloss_withdrawals,
+    "/auth/web/accept": web_accept,  # F23-T3
+    "/session/end": session_end,  # F23-T4
+    "/stewards": stewards,  # F23-T5
+    "/approvals": approvals,  # F23-T6
+    "/literature": literature,  # F05-T29
+    "/literature/confirm": literature_confirm,  # F23-T12
+    "/motions": motions,  # F24-T5
+    "/votes": votes,  # F24-T5
+    "/writeups": writeups,  # F24-T5
+    "/me/name": me_name,  # F25-T4
+    "/registrations": registrations,  # F25-T4
 }
 
 

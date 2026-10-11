@@ -1,0 +1,208 @@
+{
+ "id": "01M4GCY6HG3EJ5FDDRAJSKC0SS",
+ "node_id": "erdos-1094--h2--h2",
+ "target_id": "erdos-1094",
+ "state": "done",
+ "created": "2026-10-09T13:16:46Z",
+ "graph_commit": "5b3fa00c02b6c775b376af1d9a7b7219cf4909d6",
+ "bundle_digest": "7e3f029e77a263f9bdefa1c204385f1293db24963849d1fb4f3a173106e4d276",
+ "authenticated": true,
+ "result": {
+  "attestation": {
+   "artifact_hash": "3bafef1d132dfc5e2707adf877f15c4ffa3bda10944cbfddad6bb7a136002b68",
+   "diagnostic": {
+    "code": "elaboration-failed",
+    "details": {
+     "messages": [
+      {
+       "column": 36,
+       "file": "Nodes/erdos-1094--h2--h2/Proof.lean",
+       "line": 10,
+       "severity": "error",
+       "text": "omega could not prove the goal:\na possible counterexample may satisfy the constraints\n  d ≥ 0\n  d - e ≥ 1\n  c ≥ 0\n  b ≥ 0\n  b - c ≥ 0\n  a ≥ 1\nwhere\n a := ↑k\n b := ↑n\n c := ↑(k * k) * ↑k\n d := ↑(n.choose k).minFac\n e := ↑n / ↑k"
+      }
+     ],
+     "module": "Nodes.«erdos-1094--h2--h2».Proof",
+     "node": "erdos-1094--h2--h2",
+     "stderr": ""
+    },
+    "message": "Nodes.«erdos-1094--h2--h2».Proof does not elaborate"
+   },
+   "first_failing_step": 4,
+   "footprint": null,
+   "gate_spec_hash": "29324429716c23877d36ce4405f2a1a8bfeb58aa679112fbd4312f597ae0fe00",
+   "graph_commit": "5b3fa00c02b6c775b376af1d9a7b7219cf4909d6",
+   "graph_id": "erdos-1094",
+   "lean_toolchain": "leanprover/lean4:v4.33.1",
+   "mathlib_sha": "0df444a360eaa60ab8c11dca51a86af692955474",
+   "merge_commit": null,
+   "model_and_tooling": "undeclared",
+   "network_commit": "b4e4817959d52854966c4d1c23eaa4afaec782da",
+   "node_id": "erdos-1094--h2--h2",
+   "precheck_attestation": {
+    "hash": null,
+    "signature_kind": null
+   },
+   "review": null,
+   "runner": "hosted",
+   "schema": "attestation/v6",
+   "signature": {
+    "key_id": "SHA256:bJR39nO37EkRaxo4CPqdhcHk+WL+sEnAJ9ujpkF7LXo",
+    "kind": "service",
+    "timestamp": "2026-10-09T13:18:54Z",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAg4NVeR5WlT1J5vaHpDOmXNTurS+\nKqTYJTovSCpPj5G/IAAAAPb3BuLWF0dGVzdGF0aW9uAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQDc0zq7OjAEEOG5Q0eNXGNWUMETFpWLgPrVhRqXceGQOs668wy\na25UcCymaQudFv7G3GmYZlj3+ybO+H9v8svAA=\n-----END SSH SIGNATURE-----\n"
+   },
+   "statement_hash": "f758468369e2bb928f1f2dc3cbf0816e47aeecd95ca83d46b9c8bbdb05d823b3",
+   "steps": [
+    {
+     "diagnostic": {
+      "code": "mathlib-pinned",
+      "details": {
+       "mathlib_sha": "0df444a360eaa60ab8c11dca51a86af692955474",
+       "packages": 8
+      },
+      "message": "Mathlib 0df444a360ea resolved from the pinned checkout"
+     },
+     "name": "toolchain",
+     "result": "pass",
+     "step": 1
+    },
+    {
+     "diagnostic": null,
+     "name": "paths",
+     "result": "pass",
+     "step": 2
+    },
+    {
+     "diagnostic": {
+      "code": "elaboration-failed",
+      "details": {
+       "messages": [
+        {
+         "column": 36,
+         "file": "Nodes/erdos-1094--h2--h2/Proof.lean",
+         "line": 10,
+         "severity": "error",
+         "text": "omega could not prove the goal:\na possible counterexample may satisfy the constraints\n  d ≥ 0\n  d - e ≥ 1\n  c ≥ 0\n  b ≥ 0\n  b - c ≥ 0\n  a ≥ 1\nwhere\n a := ↑k\n b := ↑n\n c := ↑(k * k) * ↑k\n d := ↑(n.choose k).minFac\n e := ↑n / ↑k"
+        }
+       ],
+       "module": "Nodes.«erdos-1094--h2--h2».Proof",
+       "node": "erdos-1094--h2--h2",
+       "stderr": ""
+      },
+      "message": "Nodes.«erdos-1094--h2--h2».Proof does not elaborate"
+     },
+     "name": "kernel-replay",
+     "result": "fail",
+     "step": 4
+    },
+    {
+     "diagnostic": null,
+     "name": "axioms",
+     "result": "skipped",
+     "step": 5
+    },
+    {
+     "diagnostic": null,
+     "name": "hazards",
+     "result": "skipped",
+     "step": 6
+    },
+    {
+     "diagnostic": null,
+     "name": "witness",
+     "result": "skipped",
+     "step": 7
+    },
+    {
+     "diagnostic": null,
+     "name": "deps",
+     "result": "skipped",
+     "step": 8
+    }
+   ],
+   "submitter": null,
+   "toolchain_hash": "f54d0bc916bf76a7fae460ce9d078ccd1f74aeb4fd12c4b6546bca28b6aa1c63",
+   "tooling": {
+    "harness": null,
+    "model": null
+   },
+   "trust_base": "kernel",
+   "verdict": "fail"
+  },
+  "bundle_digest": "7e3f029e77a263f9bdefa1c204385f1293db24963849d1fb4f3a173106e4d276",
+  "first_failing_step": 4,
+  "job_id": "01M4GCY6HG3EJ5FDDRAJSKC0SS",
+  "node_id": "erdos-1094--h2--h2",
+  "steps": [
+   {
+    "diagnostic": {
+     "code": "mathlib-pinned",
+     "details": {
+      "mathlib_sha": "0df444a360eaa60ab8c11dca51a86af692955474",
+      "packages": 8
+     },
+     "message": "Mathlib 0df444a360ea resolved from the pinned checkout"
+    },
+    "name": "toolchain",
+    "result": "pass",
+    "step": 1
+   },
+   {
+    "diagnostic": null,
+    "name": "paths",
+    "result": "pass",
+    "step": 2
+   },
+   {
+    "diagnostic": {
+     "code": "elaboration-failed",
+     "details": {
+      "messages": [
+       {
+        "column": 36,
+        "file": "Nodes/erdos-1094--h2--h2/Proof.lean",
+        "line": 10,
+        "severity": "error",
+        "text": "omega could not prove the goal:\na possible counterexample may satisfy the constraints\n  d ≥ 0\n  d - e ≥ 1\n  c ≥ 0\n  b ≥ 0\n  b - c ≥ 0\n  a ≥ 1\nwhere\n a := ↑k\n b := ↑n\n c := ↑(k * k) * ↑k\n d := ↑(n.choose k).minFac\n e := ↑n / ↑k"
+       }
+      ],
+      "module": "Nodes.«erdos-1094--h2--h2».Proof",
+      "node": "erdos-1094--h2--h2",
+      "stderr": ""
+     },
+     "message": "Nodes.«erdos-1094--h2--h2».Proof does not elaborate"
+    },
+    "name": "kernel-replay",
+    "result": "fail",
+    "step": 4
+   },
+   {
+    "diagnostic": null,
+    "name": "axioms",
+    "result": "skipped",
+    "step": 5
+   },
+   {
+    "diagnostic": null,
+    "name": "hazards",
+    "result": "skipped",
+    "step": 6
+   },
+   {
+    "diagnostic": null,
+    "name": "witness",
+    "result": "skipped",
+    "step": 7
+   },
+   {
+    "diagnostic": null,
+    "name": "deps",
+    "result": "skipped",
+    "step": 8
+   }
+  ],
+  "verdict": "fail"
+ },
+ "public": true
+}

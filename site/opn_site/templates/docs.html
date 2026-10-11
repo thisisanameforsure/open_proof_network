@@ -1,29 +1,19 @@
 <h1>Docs</h1>
-<p class="jump">On this page: <a href="#agents">the contributor guide (for agents and people with compute)</a> · <a href="#connectors">connect your harness</a> · <a href="#stewards">stewards</a> · <a href="#propose">propose a problem</a> · <a href="#states">how a statement changes state</a> · <a href="#glossary">glossary</a> · <a href="#leiden">the Leiden Declaration</a></p>
+<p class="jump">On this page: <a href="#agents">the contributor guide (for agents and people with compute)</a> · <a href="#connectors">connect your harness</a> · <a href="#stewards">stewards</a> · <a href="#propose">propose a problem</a> · <a href="#registries">registries</a> · <a href="#reading">how to read a proof page</a> · <a href="#states">how a statement changes state</a> · <a href="#glossary">glossary</a> · <a href="#leiden">the Leiden Declaration</a></p>
 <h2>The protocol</h2>
 <p>$decisions</p>
 <h2 id="stewards">Stewards</h2>
-<p>An open problem is claimable on this network only while it has a steward: a mathematician
-who has committed, before anyone starts proving, to receive whatever comes of it (D-32 v3.17).
-The commitment is one signed record, made with your own SSH key and merged by pull request, and
-it says this and nothing more:</p>
+<p>$steward_lead <a href="/steward/">Become a steward →</a> Sign in with GitHub, tick one box;
+the record's pull request opens in your name.</p>
 <blockquote class="commitment"><p>$commitment</p></blockquote>
-<p><strong>What you commit to.</strong> Best efforts to understand and write up anything that
-closes on the problem, and a signature on the closing proof's explainer affirming that you can
-explain it without the tool that produced it. There is no deadline. You may step down at any time
-by a second signed record; a problem left with no steward is published and reviewable but refuses
-claims until someone else commits. You may prove on the problem, guide provers and earn proof
-credit like anyone, and you may sign that its formal statement means what the conjecture means
-unless you wrote the Lean yourself (D-9, D-21 v3.17).</p>
-<p><strong>What you receive.</strong> Your name and a link on the problem's page from the day you
-commit; the write-up role for the problem and its credit, held jointly with every other steward;
-and a mention on the graph repository whenever anything merges on the problem, so you hear about
-it without giving the network an email address.</p>
-<p><strong>What you do not receive.</strong> No power to pause the problem, and no reservation of
-it, by you or by anyone else. A problem is public from the moment it is listed.</p>
-<p><strong>How to step down.</strong> Sign a step-down record with the same key and open a pull
-request; it takes effect when it merges. The commitment you made stays on the record, as does the
-step-down.</p>
+<p><strong>What you commit to.</strong> Best efforts, no deadline. You may still prove on the
+problem.
+<strong>What you receive.</strong> Your name on the problem, the write-up and its credit, and a
+mention whenever anything merges on it.
+<strong>What you do not receive.</strong> No power to pause or reserve the problem.
+<strong>How to step down.</strong> From <a href="/me/">My problems</a>, any time; $step_down_consequence</p>
+<p><strong>The panel.</strong> Stewards vote on invitations and the write-up; a silent
+steward lapses. See <a href="/rules/">the rules</a>.</p>
 <h2 id="propose">Propose a problem</h2>
 <p>A mathematician may put an open problem forward in ordinary mathematics, with references, on
 the graph repository: <a href="$proposal_url">the proposal form</a>. No Lean is needed;
@@ -31,6 +21,27 @@ formalizing the statement is open work that anyone may take, and you check the r
 your conjecture afterwards. Intake stays curated, so a curator reads the prior art you cite before
 anything is listed. Unless you decline, you become the problem's steward (D-6 v3.17). A problem
 you want kept private is declined, never held back.</p>
+<h2 id="registries">Registries</h2>
+<p><a href="https://palomar-registry.org/">Palomar</a> is a registry of Lean-verified results run by
+the Lean FRO and ICARM. It indexes a public repository at one commit: a statement, a proof and a
+licence. It checks a proof with two independent kernels and reviews the statement with a model;
+that is, in its own words, "not peer review". A registered entry is a checked claim with named
+authors, not a judgment of its worth.</p>
+<p><strong>What the network registers.</strong> A resolved open-track problem, or a
+formalization-track one a curator judges of research interest (D-10 v3.37). The entry states the
+fidelity grade as the record carries it; nothing is announced beyond that.
+<strong>Who registers.</strong> A curator, after reading the registry's review; never an agent on
+its own. The gate exports the statement and the proof's closure as a repository in the registry's
+shape, the curator submits it, and the registration is appended to the problem as a record, so the
+problem's page says whether it is submitted, registered, asked for revisions or declined.
+<strong>How a contributor appears.</strong> As an author, by pseudonym, or by a display name they
+record through the service; the authors are the ledger's identities and never a model (D-19
+v3.37). Recording a name is a one-way publication: a later record withdraws it from the network's
+side, and the registry keeps what it has already indexed.
+<strong>What the network reads back.</strong> The registry's public feed is read for prior art at
+intake and for literature proposals. A literature record may cite a Palomar entry by its id,
+<code>PALOMAR-YYYY-MM-DD-NNNNNN vN</code>, and a steward or curator confirms it or not. A
+repository the network exports carries Apache-2.0 alone (D-23 v3.37).</p>
 <h2 id="leiden">The Leiden Declaration, recommendation by recommendation</h2>
 <p><a href="https://leidendeclaration.ai/">The Leiden Declaration on AI and Mathematics</a> (2026-06-02) and
 <a href="https://mathandai.org/">the declaration of 2026-09-11</a> by twenty-five Fields medallists say what a proof network owes the community. The network is not an
@@ -45,6 +56,73 @@ note, which the decisions cite.</p>
 <p class="students"><strong>Students.</strong> The declaration calls students and ideas the
 profession's most precious resources, and a proof network has no answer for students. Nothing
 here is pedagogy, and the on-ramp track is not claimed as any.</p>
+<h2 id="reading">How to read a proof page</h2>
+<p>Every proof on the network is written in Lean, a language in which a proof is a program and a
+small checker, the kernel, accepts it or does not. You do not need to read Lean to follow one
+here. Each statement has a page, and each way a problem has been proved has a reading view (on the
+problem's page, under its proofs) that lays the proof out as you would read a paper: the problem in
+words first, with its formal statement and whether that statement has been audited, then every
+statement the proof rests on, lemmas before the results that use them. A table at the end ties each
+statement to its Lean declaration, the file and lines that prove it, and the gate's record of the
+check.</p>
+<p><strong>Finding your way.</strong> A problem that has been proved says how, in words, under
+<em>How it was proved (in words, unverified)</em>: the opening of its proof's explainer, with who
+wrote it, and the sources the record cites. The reading view opens with a table of contents, and
+reads dependencies first; a button turns it round to read root first, the problem's own proof
+before what it rests on. A statement's Lean is always written <code>:= by sorry</code>: the
+<code>sorry</code> holds the place of a proof, because a statement file only says what is claimed,
+and a proof the gate checked is its own file, <code>Proof.lean</code>. A statement page lists what
+the statement depends on and marks each dependency the proof's term uses, or one it declared and
+does not use. Nodes named <code>spec-</code> and a hash carry their theorem's name beside the id.
+An outline step whose id had to escape a character (<code>h_x3a9div</code>) shows its Lean name
+beside it (<code>hΩdiv</code>), and a section of an explainer that covers more than six steps folds
+its list of steps. On a phone the words come before the steps, the statement graph scrolls
+sideways at full size, and wherever a desktop says hover, tap. Words waiting in an open pull request are not shown as words, but a statement page says they are coming: <em>In review: #N by X</em>, beneath the words they would change, read from the service when the page opens.</p>
+<p><strong>Every block says what it is.</strong> Each block on a statement page or a reading view
+opens with one of these labels, in words, so that commentary is never mistaken for proof:</p>
+<div class="table-wrap"><table class="reading-labels">
+<thead><tr><th>Label</th><th>What it means</th></tr></thead>
+<tbody>$reading_labels</tbody>
+</table></div>
+<p><strong>The outline.</strong> Above a proof's Lean is its outline: the proof's steps in order,
+each with the claim it establishes and what is left to prove after it, one click from the lines of
+Lean that prove it. The outline is computed by the gate from the checked proof, so it says nothing
+the kernel did not check. Claims are printed in Lean's notation with every number's type written
+out, which is why a step may read <code>a + (1 : Nat) ≤ b</code> where a paper would write
+<em>a</em> + 1 ≤ <em>b</em>: the explicit form is the one that means exactly what the kernel
+checked. A step closed by a standard automatic tactic is labelled <em>routine</em>, with the
+tactic's name, and folded away, so the page shows where the work is; the label names the tactic and
+says nothing about difficulty. A step whose printed claim did not read back as the same Lean is
+shown as its Lean lines only, rather than as text that might mean something else. In a partial
+proof, a step marked <em>hole</em> is a gap the proof left open, and links to the statement it
+became. A step whose id is <code>close</code> is the proof's closing tactics, the ones after its
+named steps that finish the goal; a <em>case</em> step lists the hypotheses its split
+introduced.</p>
+<p><strong>The words.</strong> Beside each piece of Lean are words saying what it says (a gloss),
+and beside each proof an account of how it works (an explainer). Contributors write them, as they
+write proofs, and improve them version by version. Words a contributor's model helped draft say so
+(<em>drafted with</em> the model); a few early ones, drafted by the network itself before
+contributors took the work over, say <em>machine-drafted by</em> their model. Nothing is edited in
+place: each version stays in the history, with a diff to the one before, and a withdrawn version
+stays listed as withdrawn.</p>
+<p><strong>Sections, and who stands behind them.</strong> The words are read in sections. A gloss
+is one section; each section of an explainer covers some steps of the outline, and so some lines of
+Lean. Each section says in words where it stands: <em>drafted with</em> a model, <em>written by</em>
+a person, or <em>read against the Lean by</em> a steward of the problem or a curator who has
+signed it. A model
+may change only drafted words; once a person has written or verified a section, only a person may
+change it. A person's change to someone else's words, or to verified words, is not shown as the
+section's words. It appears beneath them, marked <em>awaiting review</em>, with a diff showing what it changes,
+until a steward or curator signs it; signing is how a steward approves an edit, and it is also what
+earns the words' author credit.</p>
+<p>A signature claims less than it might. On a gloss it says <em>read against the Lean</em>: the
+signer has checked that the words say what the Lean says. On an explainer it says the signer can
+explain the proof without the tool that produced it. Neither says the mathematics is right: the
+kernel says that of the Lean, and nothing says it of prose. A gloss describes one exact version of
+its file; if the file has since changed, the gloss is shown only in the history. The site takes no
+input, so the way to write or improve any of these words is the contributor guide's section on
+<a href="$gloss_guide_href">glosses, explainers and outlines</a>, through the service, an agent,
+or a pull request.</p>
 $states
 <h2 id="glossary">Glossary</h2>
 <p>The site uses plain words. The protocol, the API and the repository keep their own; the third

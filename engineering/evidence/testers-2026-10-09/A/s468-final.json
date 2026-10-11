@@ -1,0 +1,202 @@
+{
+ "submission": {
+  "id": "01M4GBRR9RXKGT8FYDN797VK5Q",
+  "kind": "partial",
+  "node_id": "erdos-1094--h3--h1",
+  "target_id": "erdos-1094",
+  "pr_number": 468,
+  "pr_url": "https://github.com/thisisanameforsure/open_proof_network_graph/pull/468",
+  "pseudonym": "t1009-a",
+  "precheck_job_id": "01M4GBH730HT9SCN1Y5EQG5GBC",
+  "created": "2026-10-09T12:56:21Z",
+  "closed": "2026-10-09T13:11:14Z",
+  "artifact_type": "partial"
+ },
+ "state": "merged",
+ "queue": null,
+ "pull_request": {
+  "merged": true,
+  "head_sha": "ecf515d08d15ff93e24cc5281f366a752cb043fd",
+  "reviews": [],
+  "url": "https://github.com/thisisanameforsure/open_proof_network_graph/pull/468",
+  "read_at": "2026-10-09T13:11:24Z",
+  "waiting_on": null,
+  "state": "closed",
+  "number": 468,
+  "stale": false,
+  "merge_commit_sha": "a2b7a97886a87586adc04aa9f69af62633363fea",
+  "mergeable_state": "unknown",
+  "runs": [
+   {
+    "url": "https://github.com/thisisanameforsure/open_proof_network_graph/actions/runs/37934464743",
+    "status": "completed",
+    "conclusion": "success",
+    "name": "gate",
+    "jobs": []
+   }
+  ]
+ },
+ "pull_request_error": null,
+ "gate_verdict": null,
+ "gate_report": {
+  "ok": true,
+  "warnings": [],
+  "problems": []
+ },
+ "attestation_path": "attestations/000468.json",
+ "attestation": {
+  "artifact_hash": null,
+  "diagnostic": null,
+  "first_failing_step": null,
+  "footprint": {
+   "nodes": []
+  },
+  "gate_spec_hash": "29324429716c23877d36ce4405f2a1a8bfeb58aa679112fbd4312f597ae0fe00",
+  "graph_commit": "a2b7a97886a87586adc04aa9f69af62633363fea",
+  "graph_id": "erdos-1094",
+  "lean_toolchain": "leanprover/lean4:v4.33.1",
+  "mathlib_sha": "0df444a360eaa60ab8c11dca51a86af692955474",
+  "merge_commit": "a2b7a97886a87586adc04aa9f69af62633363fea",
+  "model_and_tooling": "Claude Opus 5.5 (claude-opus-5-5) MCP over JSON-RPC (tester t1009-a)",
+  "network_commit": "b4e4817959d52854966c4d1c23eaa4afaec782da",
+  "node_id": "erdos-1094--h3--h1",
+  "precheck_attestation": {
+   "hash": "9c56376d7c3b2aba688705f5c0fc345e5cfe36f7e840ee9d1cac74fa1f2d0261",
+   "signature_kind": "service"
+  },
+  "review": {
+   "kind": "intermediate",
+   "reference": null,
+   "reviewer": null
+  },
+  "runner": "hosted",
+  "schema": "attestation/v6",
+  "signature": {
+   "key_id": "SHA256:XOd3xiS7BYG+uqfTlo5j3uEH96wPy5SCfmBWEsAKZLI",
+   "kind": "gate",
+   "timestamp": "2026-10-09T13:15:06Z",
+   "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAg/0CrS22AvUGT9mSnPoKDoPcVUP\niyEO8YoRslzDQ33+kAAAAPb3BuLWF0dGVzdGF0aW9uAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQA20NRWZCyJrEQburGfzTB6OdQu+azrD/zcTDn5PI5G03V/gb5\nCyAIAbeBzcPkJGkMEaXaOWr4CDCSopThP3GAk=\n-----END SSH SIGNATURE-----\n"
+  },
+  "statement_hash": "ed95258f3758b5ddc3ebf24feaf8dd9989b6284c3bc4cd6e772367a819d16399",
+  "steps": [
+   {
+    "diagnostic": {
+     "code": "mathlib-pinned",
+     "details": {
+      "mathlib_sha": "0df444a360eaa60ab8c11dca51a86af692955474",
+      "packages": 8
+     },
+     "message": "Mathlib 0df444a360ea resolved from the pinned checkout"
+    },
+    "name": "toolchain",
+    "result": "pass",
+    "step": 1
+   },
+   {
+    "diagnostic": {
+     "code": "partial-submission",
+     "details": {
+      "path": "attempts/20261009T125000Z-t1009-a-partial.lean"
+     },
+     "message": "a partial proof: attempts/20261009T125000Z-t1009-a-partial.lean (D-12 #5)"
+    },
+    "name": "paths",
+    "result": "pass",
+    "step": 2
+   },
+   {
+    "diagnostic": {
+     "code": "artifact-partial",
+     "details": {
+      "holes": [
+       "h_keven",
+       "h_odd"
+      ],
+      "kind": "partial"
+     },
+     "message": "partial: erdos_1094__h3__h1 declares ∃ K, ∀ (n k : ℕ), K < k → 2 * k ≤ n → n < k * k → ∃ p, Nat.Prime p ∧ p ≤ k ∧ n % p < k % p; 2 hole(s)"
+    },
+    "name": "kernel-replay",
+    "result": "pass",
+    "step": 4
+   },
+   {
+    "diagnostic": null,
+    "name": "axioms",
+    "result": "pass",
+    "step": 5
+   },
+   {
+    "diagnostic": {
+     "code": "hazards-derived-statement",
+     "details": {
+      "acknowledged": [],
+      "checkers": [
+       "div-zero",
+       "int-trunc",
+       "junk-value",
+       "nat-sub",
+       "off-by-one-range",
+       "unused-binder"
+      ],
+      "findings": [
+       {
+        "checker": "div-zero",
+        "location": "k % p",
+        "message": "modulo by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"
+       },
+       {
+        "checker": "div-zero",
+        "location": "n % p",
+        "message": "modulo by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"
+       }
+      ],
+      "origin": "compiler-derived"
+     },
+     "message": "2 hazard finding(s) on a statement the gate derived from a merged assembly, recorded and not refused; first: div-zero at k % p: modulo by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"
+    },
+    "name": "hazards",
+    "result": "pass",
+    "step": 6
+   },
+   {
+    "diagnostic": {
+     "code": "hole-witnesses",
+     "details": {
+      "witnesses": [
+       {
+        "hole": "h_keven",
+        "path": "attempts/20261009T125000Z-t1009-a-partial.1.witness",
+        "sha256": "7f742c3c3da0c21c8c6ef67f89c5f643eb5842349bb56db2c8619e9fa17398d5"
+       },
+       {
+        "hole": "h_odd",
+        "path": "attempts/20261009T125000Z-t1009-a-partial.2.witness",
+        "sha256": "b4e7a33ea2ff77bbaa7fe98db04b691d891185fc4b554d601ea83c66a5e21a3a"
+       }
+      ]
+     },
+     "message": "2 of 2 hole(s) carry a witness, each checked as step 7 checks a node's (F07-R23)"
+    },
+    "name": "witness",
+    "result": "pass",
+    "step": 7
+   },
+   {
+    "diagnostic": null,
+    "name": "deps",
+    "result": "pass",
+    "step": 8
+   }
+  ],
+  "submitter": "t1009-a",
+  "toolchain_hash": "f54d0bc916bf76a7fae460ce9d078ccd1f74aeb4fd12c4b6546bca28b6aa1c63",
+  "tooling": {
+   "harness": "MCP over JSON-RPC (tester t1009-a)",
+   "model": "Claude Opus 5.5 (claude-opus-5-5)"
+  },
+  "trust_base": "kernel",
+  "verdict": "pass"
+ },
+ "attestation_note": null
+}

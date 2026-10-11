@@ -90,6 +90,28 @@ TABLE: tuple[Row, ...] = (
     # F05-T14 (ruling D3(b)): D-28's read table, notation note of 2026-09-24 — the one read that
     # needs a bearer, because what it lists is the caller's own claims.
     Row("list_my_claims", "read", ("GET /claims/mine",), "GET /claims/mine"),
+    # F07-T70, F09-T17 (the owner, 2026-10-04): D-28's read table, notation note of 2026-10-04 —
+    # the caller's own submissions (a new route) and own check records (an existing one, F13-R10).
+    Row("get_my_submissions", "read", ("GET /submissions/mine",), "GET /submissions/mine"),
+    Row("get_check", "read", ("GET /checks/{check_id}",), "GET /checks/<id>"),
+    # F09-T15 (audit 2026-10-04, owner-approved): D-28's read table, notation note of 2026-10-04.
+    Row("list_error_codes", "read", ("GET /errors.json",), "GET /errors.json"),
+    # F21-T7: D-28's read table, notation note of 2026-10-05 — computed from two committed files
+    # per target (the index names the targets and their roots).
+    Row(
+        "list_words_needed",
+        "read",
+        ("targets/<id>/glosses.json", "targets/<id>/target.yaml", "targets/index.json"),
+        "targets/<id>/glosses.json and targets/<id>/target.yaml at main's head",
+    ),
+    # F25-T4: D-28's read table, v3.37 — the registrations the products derive per target.
+    Row(
+        "list_registrations",
+        "read",
+        ("targets/index.json",),
+        "every registration of a target in a public registry: registry, id, version, status, url, "
+        "derived from the target's registration records (D-3 v3.37); nothing is ranked",
+    ),
     # --- writes (D-35's plain-path table) -----------------------------------------------------
     Row("claim_node", "write", ("POST /claims",), "POST /claims"),
     Row("release_claim", "write", ("DELETE /claims/{claim_id}",), "DELETE /claims/<id>"),
@@ -98,6 +120,9 @@ TABLE: tuple[Row, ...] = (
     Row("check_lean", "write", ("POST /check",), "POST /check"),
     # F09-T6: D-28's write table, notation note of 2026-09-14 — both existing endpoints.
     Row("get_token", "write", ("POST /tokens",), "POST /tokens"),
+    # F05-T27 (D-19 v3.28): D-28's write table, notation note of 2026-10-04 (D-19); token
+    # issuance under D-19's rules, so the route names D-35's token row.
+    Row("renew_token", "write", ("POST /tokens/renew",), "POST /tokens/renew"),
     Row("submit_proof", "write", ("POST /submissions",), "POST /submissions opens that PR"),
     Row(
         "submit_postmortem",
@@ -116,6 +141,21 @@ TABLE: tuple[Row, ...] = (
         "write",
         ("POST /approach-records",),
         "a PR appending the schema-checked file under the node or target",
+    ),
+    # F20-T6: D-28 v3.30's write row and D-35 v3.30's plain path, one endpoint each.
+    Row(
+        "submit_gloss",
+        "write",
+        ("POST /glosses",),
+        "a PR appending the schema-checked gloss, explainer or withdrawal record, refused before "
+        "it opens when the record fails the checks a merge would apply",
+    ),
+    Row(
+        "withdraw_gloss",
+        "write",
+        ("POST /glosses/withdrawals",),
+        "a PR appending the schema-checked gloss, explainer or withdrawal record, refused before "
+        "it opens when the record fails the checks a merge would apply",
     ),
     Row(
         "file_defect_claim",
@@ -153,6 +193,33 @@ TABLE: tuple[Row, ...] = (
         "write",
         ("DELETE /submissions/{submission_id}",),
         "DELETE /submissions/<id>",
+    ),
+    # F09-T24 (D-25, D-32 v3.35): a literature record under the node, unsigned by anyone and
+    # signed by a steward or curator — D-35's append row, as the F07 appends are.
+    Row(
+        "propose_literature",
+        "write",
+        ("POST /literature",),
+        "a PR appending the schema-checked file under the node or target",
+    ),
+    Row(
+        "confirm_literature",
+        "write",
+        ("POST /literature/confirm",),
+        "a PR appending the schema-checked file under the node or target",
+    ),
+    # F25-T4 (D-3, D-10, D-35 v3.37): D-35's row "names and registrations", one endpoint each.
+    Row(
+        "set_display_name",
+        "write",
+        ("POST /me/name",),
+        "names and registrations: set_display_name, register_target (v3.37)",
+    ),
+    Row(
+        "register_target",
+        "write",
+        ("POST /registrations",),
+        "names and registrations: set_display_name, register_target (v3.37)",
     ),
 )
 
