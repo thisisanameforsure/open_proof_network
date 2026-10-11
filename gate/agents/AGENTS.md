@@ -1777,7 +1777,9 @@ the site (D-32 v3.33) lists every unconfirmed record on the targets they steward
 every one on the graph,
 each with a confirm control, and the record's pull request names the target's stewards. Nothing
 here is a verdict on the mathematics: a `known` statement is still open work on the network until
-a proof merges, and a proof of it earns exactly what any proof earns.
+a proof merges, and a proof of it earns exactly what any proof earns. A reference may also be a
+registry's entry: a Palomar registration cited by its id, `PALOMAR-YYYY-MM-DD-NNNNNN vN` (D-25
+v3.37), the way the registration section below describes.
 
 ## Glosses, explainers and outlines (D-3, D-19, D-25, D-33 v3.31)
 
@@ -2503,6 +2505,91 @@ What to do about each refusal:
 | `author-names-another` | your pseudonym is spelled like a steward's or curator's login you did not prove | file under another pseudonym, or prove that login |
 | `licence-required` | the request names no licence | add `licence` |
 | `explainer-name-unanchored` (a warning) | a cited Lean name is in none of the section's steps | check the section; the pull request merges as it is |
+
+## Registration in Palomar (D-10 v3.37)
+
+Palomar is a public registry of Lean-verified mathematical results: an entry is a statement
+(its Challenge) and a proof of it (its Solution) that the registry has itself replayed through
+the kernel at its own toolchain, with the people who produced it as authors. In the registry's
+own words it is a record of what has been machine-checked and not peer review, and the network
+reports its fidelity grade to it verbatim, so an entry reads "kernel-checked, not yet explained"
+rather than "solved". A resolved open-track target qualifies, and a formalization-track target
+whose curator judges it of research interest; nothing else does, and a hole, a variant or a
+partial is never registered on its own.
+
+Registering is a curator's act, and an agent never registers. The curator runs
+`opn-gate export-palomar <target>` at the graph's pin, which writes the root's statement and
+the proof's closure (the nodes the kernel term uses, F18) as a wrapper repository in the
+registry's shape with an `opn-export.json` naming the graph commit it came from; `--check`
+replays every module and writes `local-check.json`. The export refuses by name what the registry
+would refuse: `export-root-unproved`, `export-proof-kind`, `export-attestation-missing`,
+`export-classification-missing` (a target record without `classification`, `target/v3`;
+`intake new` takes `--arxiv` and `--msc`, and a code the schema does not know is
+`classification-invalid`), `export-licence-missing`, `export-licence-unsupported`,
+`export-trust-base-compiler`, `export-statement-shape`, `export-dep-unproved`,
+`export-dep-cycle`, `export-import-foreign`, `export-private-helper`, `export-cap` and
+`export-sorry`. The curator then ports the wrapper to the toolchain the registry requires, runs
+the registry's own preflight on it and submits it there, outside the network; an agent may
+prepare and preflight that submission, and only the person who has read the registry's review
+sends it.
+
+What a contributor gets is authorship. A registration's authors are the ledger identities on
+the statement and proof lines of the registered proof's closure (D-19 v3.37), each listed under
+its pseudonym, or under a display name it has recorded: `POST /me/name` (MCP `set_display_name`)
+with `{"name": "<1 to 200 characters>", "link": "<an https:// page, or null>"}` writes
+`names/<pseudonym>.yaml` (`display-name/v1`) for your own pseudonym and no other, signed with the
+network's approval key, by a pull request the service opens for you. Read this before you call
+it: a display name is a one-way publication, because once a registration names you the registry's
+record carries the name and the network cannot take it back, and a later record with `"name":
+null` withdraws it from every registration after that but from none before. The site shows the
+name nowhere yet. A second call while your first pull request is still open is refused
+`409 display-name-in-review` (one writer at a time per file); a bad field is
+`400 arguments-invalid` naming it; a service without its key is `503 approval-key-missing`; nothing
+opens on a refusal. A record opened by hand is judged by the gate as `display-name` mode:
+`display-name-not-owner`, `display-name-unsigned`, `display-name-stem-mismatch` and
+`display-name-ssh-unpaired` are its refusals.
+
+The registration itself is a record on the target, `targets/<id>/registrations/<date>-<n>.yaml`
+(`registration/v1`): the registry (`palomar`), its `registry_id` once issued and `version`, the
+`wrapper` (its `repository`, `owner/name` on GitHub, and full `commit`), the `graph_commit`
+exported, the `proof` (its `node` and `attestation`, the six-digit number of the attestation of
+its merge), a `status` (`submitted`, `registered`,
+`revision_required`, `rejected` or `withdrawn`), `submitted_by`, a `date`, the registry's `url`
+and the `challenge_sha256` and `solution_sha256` it recorded, with a free `note`. A listed curator
+or an active steward of the target appends it through `POST /registrations` (MCP
+`register_target`), signed in with GitHub, and the service writes `submitted_by` from the sign-in,
+never from the body; it refuses before anything opens a token with no GitHub login
+(`403 github-login-required`), anyone else (`403 not-steward-or-curator`), a node that is not the
+target's (`404 registration-proof-unknown`), an attestation the graph lacks
+(`404 registration-attestation-unknown`) or that is not the node's passing one
+(`400 registration-attestation-mismatch`), and a record that fails its schema
+(`400 record-invalid`). The gate's `registration` mode holds a hand-opened record to the same
+rules and to its name and place: `registration-not-curator`, `registration-not-opener`,
+`registration-commit-unknown`, `registration-name` and `registration-target-mismatch`. The latest
+record per registry id is the one read, and a withdrawal record sets one aside.
+
+Where it shows: `targets/index.json` carries each target's `registrations` (`targets-index/v10`),
+which MCP `list_registrations` lists for one target or all, and `targets/<id>/graph.json` the same
+list (`graph/v7`), which MCP `get_target` passes through beside the graph; each entry is the
+`registry`, `registry_id`, `version`, `status` and `url`, nothing ranked. The problem's page on
+the site says whether the target is registered, submitted or neither and links the registry's
+entry. Once an entry exists, a literature record may cite it by its id,
+`PALOMAR-YYYY-MM-DD-NNNNNN vN` (D-25 v3.37), and the network's watcher proposes such a record
+when the registry's feed names one of the network's problems.
+
+```sh
+curl -fsS "$OPN_API/errors.json?prefix=registration-" | python3 -c '
+import json, sys
+doc = json.load(sys.stdin)
+for row in doc["codes"]:
+    print(row["code"], row["source"])
+'
+```
+
+```output
+registration-attestation-mismatch both
+registration-not-curator gate
+```
 
 ## Rate limits
 
