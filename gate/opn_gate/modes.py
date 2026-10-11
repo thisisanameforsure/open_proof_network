@@ -71,6 +71,7 @@ import datetime
 import json
 import logging
 import re
+import subprocess
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass, replace
 from pathlib import Path, PurePosixPath
@@ -116,7 +117,15 @@ Mode = Literal[
     "fidelity",
     "steward",
     "proposed-for",
+    "registration",
+    "display-name",
 ]
+
+#: F25-R5, R6 (D-3, D-10 v3.37): the two records outside the node, each a mode of its own and
+#: nothing else's. Explicit rows, placed before every other test in ``classify``, so the mode
+#: table's fallthrough (``return "append"`` for whatever is left) can never absorb them — the
+#: shape that swallowed the first steward record (log, 2026-09-17).
+RECORD_MODES: dict[Role, Mode] = {"registration": "registration", "display-name": "display-name"}
 
 #: F15-R2, R6; F24-R2, R3: a steward's signed acts on a target, which merge as the steward mode
 #: alone or ride with a curator's records — one list, so a new act cannot fall through a mode.
@@ -489,6 +498,11 @@ def classify(  # noqa: PLR0911, PLR0912 — one return and one branch per reject
         )
     target_id = targets[0]
 
+    # F25-R5, R6: a registration or a display name is a pull request of its own.
+    roles_present = {loc.role for loc in located}
+    if roles_present & set(RECORD_MODES):
+        return _classify_record(located, target_id, roles_present, author, service_login)
+
     # A new node directory is one whose definition files are added; a status record outside
     # every new directory, or a versioned directory, is a curator's act (F08-R8).
     new_dirs = sorted({loc.node_id for loc in located if loc.role == "node" and loc.node_id})
@@ -613,6 +627,30 @@ def classify(  # noqa: PLR0911, PLR0912 — one return and one branch per reject
         replaced=replaced,
         author=who,
         by_service=mode == "explainer" and author is not None and author == service_login,
+    )
+
+
+def _classify_record(
+    located: list[Located],
+    target_id: str,
+    roles: set[Role],
+    author: str | None,
+    service_login: str | None,
+) -> Classification:
+    """F25-R5, R6: the one record role present is the mode, when nothing else rides with it. Who
+    the pull request acts for is the check's question (``check_registration``,
+    ``check_display_name``): the opener, or, when the service opened it, the record's own author
+    (F18-Q7's precedent, ``acting_names``)."""
+    if len(roles) > 1:
+        return Classification(None, target_id, None, tuple(located), (_mixed(roles),))
+    (role,) = roles
+    return Classification(
+        RECORD_MODES[role],
+        target_id,
+        None,
+        tuple(located),
+        author=author,
+        by_service=author is not None and author == service_login,
     )
 
 
@@ -1175,6 +1213,12 @@ def check(  # noqa: PLR0912, PLR0915 — one branch per role with a check of its
             problems.extend(check_withdrawal(graph_root, located, classification, signer=signer))
         elif located.role == "credit-correction":
             problems.extend(check_credit_correction(graph_root, located))
+        elif located.role == "registration":
+            problems.extend(check_registration(graph_root, located, classification, signer=signer))
+        elif located.role == "display-name":
+            problems.extend(
+                check_display_name(graph_root, located, classification, signer=signer, base=base)
+            )
         elif located.role in paths.CURATOR_ROLES:
             problems.extend(check_status_record(graph_root, located, classification))
         elif located.role == "target-record" and classification.mode == "curator":
@@ -2076,6 +2120,259 @@ def check_literature_record(  # noqa: PLR0911 — one return per rule
         key=str(doc.get(signed.KEY_FIELD) or ""),
         verifier=verifier,
     )
+
+
+#: F25-R5: ``registrations/<date>-<n>.yaml``, the date the record was filed and a number from 1.
+_REGISTRATION_NAME_RE = re.compile(r"^[0-9]{4}-[0-9]{2}-[0-9]{2}-[1-9][0-9]*\.ya?ml$")
+ATTESTATIONS_DIR = "attestations"
+OK_VERDICT = "pass"
+
+
+def check_registration(  # noqa: PLR0911 — one return per rule
+    graph_root: Path,
+    located: Located,
+    classification: Classification,
+    *,
+    signer: Signer | None = None,
+) -> list[Diagnostic]:
+    """F25-R5 (D-3, D-10 v3.37): a registration record validates, names the target it sits under
+    and is named ``<date>-<n>``; its ``submitted_by`` is a listed curator or an active steward of
+    the target (``real_identities``) and is who the pull request acts for — the opener, or the
+    record's own author when the service opened it (``acting_names``, F18-Q7); its ``proof.node``
+    is a node of the target and ``proof.attestation`` a passing attestation of that node; and its
+    ``graph_commit`` is in the checkout's history when the checkout is a repository with one
+    (``_commit_problem``). Nothing here is a verdict about the registry: the record says what the
+    curator was told, and the products derive the latest (``registrations.derive``)."""
+    data = _read(graph_root, located)
+    if isinstance(data, Diagnostic):
+        return [data]
+    problems = _check_schema(located, data, code="record-invalid")
+    if problems:
+        return problems
+    doc = _document(located, data)
+    if isinstance(doc, Diagnostic):
+        return [doc]
+    if doc.get("target") != located.target_id:
+        return [
+            Diagnostic(
+                "registration-target-mismatch",
+                f"{located.path} is a record for target {doc.get('target')!r}, and it sits under "
+                f"targets/{located.target_id}/ (F25-R5)",
+                {"path": located.path, "target": doc.get("target")},
+            )
+        ]
+    name = PurePosixPath(located.path).name
+    if not _REGISTRATION_NAME_RE.match(name):
+        return [
+            Diagnostic(
+                "registration-name",
+                f"{located.path}: a registration record is registrations/<date>-<n>.yaml, the date "
+                "it was filed and a number from 1 (F25-R5)",
+                {"path": located.path},
+            )
+        ]
+    submitted_by = str(doc.get("submitted_by"))
+    verifier = signer or signed.default_signer()
+    if submitted_by not in real_identities(graph_root, located.target_id, signer=verifier):
+        return [
+            Diagnostic(
+                "registration-not-curator",
+                f"{located.path}: submitted_by {submitted_by!r} is neither a listed curator nor an "
+                f"active steward of {located.target_id}; a registration is theirs to record "
+                "(D-10 v3.37)",
+                {"path": located.path, "submitted_by": submitted_by},
+            )
+        ]
+    names = acting_names(graph_root, classification, submitted_by)
+    if submitted_by not in names:
+        return [
+            Diagnostic(
+                "registration-not-opener",
+                f"{located.path}: submitted_by {submitted_by!r} did not open this pull request "
+                "(F25-R5); the service writes it from the sign-in that asked",
+                {"path": located.path, "submitted_by": submitted_by, "opened_by": sorted(names)},
+            )
+        ]
+    raw_proof = doc.get("proof")
+    proof: dict[str, Any] = raw_proof if isinstance(raw_proof, dict) else {}
+    node = str(proof.get("node"))
+    target_dir = graph_root / "targets" / located.target_id
+    if not (target_dir / "nodes" / node / "META.yaml").is_file():
+        return [
+            Diagnostic(
+                "registration-proof-unknown",
+                f"{located.path}: proof.node {node!r} is not a node of {located.target_id}",
+                {"path": located.path, "node": node},
+            )
+        ]
+    found = _attestation_problem(graph_root, located, str(proof.get("attestation")), node)
+    if found is not None:
+        return [found]
+    commit = str(doc.get("graph_commit"))
+    reason = _commit_problem(graph_root, commit)
+    if reason is not None:
+        return [
+            Diagnostic(
+                "registration-commit-unknown",
+                f"{located.path}: {reason}",
+                {"path": located.path, "graph_commit": commit},
+            )
+        ]
+    return []
+
+
+def _attestation_problem(
+    graph_root: Path, located: Located, number: str, node: str
+) -> Diagnostic | None:
+    """Why ``attestations/<number>.json`` is not a passing attestation of ``node``, or ``None``.
+    The attestation is the fact a registration rests on (F25-R5): what was registered is what
+    that merge proved."""
+    rel = f"{ATTESTATIONS_DIR}/{number}.json"
+    details = {"path": located.path, "node": node, "attestation": number}
+    path = graph_root / rel
+    if not path.is_file():
+        return Diagnostic(
+            "registration-attestation-unknown",
+            f"{located.path}: proof.attestation names {rel}, which is not on the graph",
+            details,
+        )
+    try:
+        att = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, ValueError):
+        return Diagnostic(
+            "registration-attestation-mismatch",
+            f"{located.path}: {rel} does not read as an attestation",
+            details,
+        )
+    if not isinstance(att, dict) or att.get("node_id") != node:
+        attested = att.get("node_id") if isinstance(att, dict) else None
+        return Diagnostic(
+            "registration-attestation-mismatch",
+            f"{located.path}: {rel} attests node {attested!r}, not proof.node {node!r}",
+            details,
+        )
+    if att.get("verdict") != OK_VERDICT:
+        return Diagnostic(
+            "registration-attestation-mismatch",
+            f"{located.path}: {rel} is not a passing attestation (verdict {att.get('verdict')!r})",
+            details,
+        )
+    return None
+
+
+def _commit_problem(graph_root: Path, commit: str) -> str | None:
+    """Why ``commit`` is not in the checkout's history, or ``None`` when it is — or when the
+    question cannot be asked: a plain tree (every fixture, the service's scratch copy) or a
+    shallow clone has no history to answer from, and a check that cannot run refuses nothing
+    (F25-Q, proposed). Child git calls drop the repository variables (log, 2026-09-11)."""
+    if not (graph_root / ".git").exists():
+        return None
+    env = config.child_environment(drop=config.GIT_REPO_VARIABLES)
+
+    def git(*args: str) -> subprocess.CompletedProcess[str]:
+        return subprocess.run(
+            ["git", "-C", str(graph_root), *args],
+            capture_output=True,
+            text=True,
+            check=False,
+            env=env,
+        )
+
+    shallow = git("rev-parse", "--is-shallow-repository")
+    if shallow.returncode != 0 or shallow.stdout.strip() != "false":
+        return None
+    if git("merge-base", "--is-ancestor", commit, "HEAD").returncode == 0:
+        return None
+    return (
+        f"graph_commit {commit[:12]}… is not in the graph's history; name the commit the wrapper "
+        "was exported from (opn-export.json)"
+    )
+
+
+def check_display_name(  # noqa: PLR0911 — one return per rule
+    graph_root: Path,
+    located: Located,
+    classification: Classification,
+    *,
+    signer: Signer | None = None,
+    base: BaseReader | None = None,
+) -> list[Diagnostic]:
+    """F25-R6 (D-3, D-19 v3.37): a display-name record validates, sits at
+    ``names/<pseudonym>.yaml`` for the pseudonym it carries, and its signature verifies under its
+    key. Written by the holder of the pseudonym and nobody else: through the service, the record
+    is signed with the approval key of the merge's parent tree (``check_approval_signature``) and
+    the service acts for the bearer it names; opened by hand, its pseudonym must be the one the
+    graph pairs with the opener's login (``curators.json``), whether the approval key or the
+    opener's own SSH key signed it — a login spelled like a pseudonym is never its holder
+    (``acting_names``'s rule). No pairing exists for an ordinary contributor, so a hand-opened
+    SSH record for one is refused by name: the route is ``POST /me/name`` (F25-Q, proposed)."""
+    data = _read(graph_root, located)
+    if isinstance(data, Diagnostic):
+        return [data]
+    problems = _check_schema(located, data, code="record-invalid")
+    if problems:
+        return problems
+    doc = _document(located, data)
+    if isinstance(doc, Diagnostic):
+        return [doc]
+    pseudonym = str(doc.get("pseudonym"))
+    if PurePosixPath(located.path).stem != pseudonym:
+        return [
+            Diagnostic(
+                "display-name-stem-mismatch",
+                f"{located.path} carries a record for {pseudonym!r}; a display name is "
+                f"{paths.NAMES_DIR}/<pseudonym>.yaml (F25-R6)",
+                {"path": located.path, "pseudonym": pseudonym},
+            )
+        ]
+    verifier = signer or signed.default_signer()
+    if not signed.verifies(doc, verifier):
+        return [
+            Diagnostic(
+                "display-name-unsigned",
+                f"{located.path}: the signature does not verify under the record's key",
+                {"path": located.path, "pseudonym": pseudonym},
+            )
+        ]
+    try:
+        curators = load_curators(graph_root)
+    except CuratorsError:
+        curators = Curators()
+    paired_to_opener = {p for p, login in curators.identities if login == classification.author}
+    if _by_approval_key(doc):
+        found = check_approval_signature(graph_root, located, doc, base)
+        if found:
+            return found
+        if classification.by_service or pseudonym in paired_to_opener:
+            return []  # the service acts for the bearer it names; a curator for her own pseudonym
+        return [
+            Diagnostic(
+                "display-name-not-owner",
+                f"{located.path}: a display name is written by the holder of {pseudonym!r} alone "
+                "(D-3 v3.37), and this pull request does not act for them",
+                {"path": located.path, "pseudonym": pseudonym, "opened_by": classification.author},
+            )
+        ]
+    if not classification.by_service and pseudonym in paired_to_opener:
+        return []
+    if not classification.by_service and any(p == pseudonym for p, _ in curators.identities):
+        return [
+            Diagnostic(
+                "display-name-not-owner",
+                f"{located.path}: {pseudonym!r} is paired with a login that did not open this pull "
+                "request (D-3 v3.37)",
+                {"path": located.path, "pseudonym": pseudonym, "opened_by": classification.author},
+            )
+        ]
+    return [
+        Diagnostic(
+            "display-name-ssh-unpaired",
+            f"{located.path}: an SSH-signed display name needs a login the graph pairs with "
+            f"{pseudonym!r}, and none is; the holder sets it through POST /me/name, which the "
+            "service signs with the approval key (F25-R6)",
+            {"path": located.path, "pseudonym": pseudonym, "opened_by": classification.author},
+        )
+    ]
 
 
 def check_formalization(graph_root: Path, located: Located) -> list[Diagnostic]:

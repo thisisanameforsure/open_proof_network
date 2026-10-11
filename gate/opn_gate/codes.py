@@ -736,6 +736,43 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "The precheck job could not be started on the hosted runner.",
         "Retry shortly; if it persists, the service's runner is down.",
     ),
+    "display-name-in-review": (
+        "api",
+        None,
+        "A pull request of yours that writes names/<pseudonym>.yaml is still open and may merge; "
+        "one writer at a time per file (D-3 v3.37).",
+        "Wait for it to merge, or withdraw it (DELETE /submissions/<id>, MCP withdraw_submission), "
+        "then send the name again.",
+    ),
+    "display-name-not-owner": (
+        "gate",
+        None,
+        "The display-name record is for a pseudonym this pull request does not act for: the "
+        "opener's GitHub login is not the one the graph pairs with that pseudonym.",
+        "A name is written only by the holder of its pseudonym (D-3 v3.37): set your own through "
+        "POST /me/name (MCP set_display_name) with your token.",
+    ),
+    "display-name-ssh-unpaired": (
+        "gate",
+        None,
+        "A hand-opened display-name record signed with an SSH key names a pseudonym the graph "
+        "pairs with no GitHub login (only curators.json pairs one), so the gate cannot tell that "
+        "the signer holds it.",
+        "Set the name through POST /me/name (MCP set_display_name) with the pseudonym's token; the "
+        "service signs it with the approval key.",
+    ),
+    "display-name-stem-mismatch": (
+        "gate",
+        None,
+        "The file under names/ is not named for the pseudonym its record carries.",
+        "File it at names/<pseudonym>.yaml; POST /me/name chooses the path for you.",
+    ),
+    "display-name-unsigned": (
+        "gate",
+        None,
+        "The display-name record's signature does not verify under the key it carries.",
+        "Send it again through POST /me/name; a record edited after it was signed stops verifying.",
+    ),
     "dispute-claim-unnamed": (
         "gate",
         None,
@@ -1890,6 +1927,63 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         9,
         "A variant's relation proof rests on axioms outside the allowlist.",
         "Prove the relation without them.",
+    ),
+    "registration-attestation-mismatch": (
+        "both",
+        None,
+        "The registration's proof.attestation is not a passing attestation of proof.node: it "
+        "attests another node, its verdict is not pass, or the file does not read.",
+        "Name the attestation of the merge that proved the node (attestations/<n>.json, the "
+        "number get_submission shows for that merge) with verdict pass.",
+    ),
+    "registration-attestation-unknown": (
+        "both",
+        None,
+        "No attestations/<n>.json on the graph carries the number the registration names.",
+        "Name the attestation of the merge that proved the node (get_submission shows its number "
+        "once merged); a merge whose products are still rendering has none yet.",
+    ),
+    "registration-commit-unknown": (
+        "gate",
+        None,
+        "The registration's graph_commit is not in the graph's history.",
+        "Name the commit the wrapper was exported from, as its opn-export.json records it.",
+    ),
+    "registration-name": (
+        "gate",
+        None,
+        "A registration record is registrations/<date>-<n>.yaml: the date it was filed and a "
+        "number from 1.",
+        "Name the file YYYY-MM-DD-<n>.yaml; POST /registrations chooses the name for you.",
+    ),
+    "registration-not-curator": (
+        "gate",
+        None,
+        "The registration's submitted_by is neither a listed curator nor an active steward of the "
+        "target (F25-R5).",
+        "A registration is a curator's or steward's record (D-10 v3.37): ask one of them, or "
+        "become the problem's steward first.",
+    ),
+    "registration-not-opener": (
+        "gate",
+        None,
+        "A hand-opened registration's submitted_by is not the GitHub login that opened the pull "
+        "request.",
+        "Open it from the login submitted_by names, or send it through POST /registrations, which "
+        "writes submitted_by from your sign-in.",
+    ),
+    "registration-proof-unknown": (
+        "both",
+        None,
+        "The registration's proof.node is not a node of the target it is filed under.",
+        "Name the node whose merged proof was exported (get_target lists the target's nodes).",
+    ),
+    "registration-target-mismatch": (
+        "gate",
+        None,
+        "The registration record's target is not the target directory it sits under.",
+        "File it under targets/<target>/registrations/ of the target it names; POST /registrations "
+        "does.",
     ),
     "relation-decl": (
         "both",
