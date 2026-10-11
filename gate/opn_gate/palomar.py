@@ -10,6 +10,7 @@ Nothing here talks to a host (``palomar_host``), runs Lean (``palomar_check``) o
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -18,6 +19,35 @@ import jsonschema
 import yaml
 
 PALOMAR_DIR = Path(__file__).resolve().parents[1] / "palomar"
+
+# --- the submission contract's input grammar (Q35; PalomarSubmission scripts/submission_contract.py
+# at the pinned commit): what a preflight or a submission may send. Read from the contract, not
+# from the README, after the first live preflight was refused at intake.
+#: ``SUBMISSION_ID_RE``: a request id is exactly twelve lowercase alphanumerics.
+REQUEST_ID_RE = re.compile(r"^[0-9a-z]{12}$")
+#: The relationship is the contract's own sentence (``AUTHORIZATION_RELATIONSHIPS`` keys); the
+#: short codes the data host serves ("maintainer") are its *values* and are refused as input.
+AUTHORIZATION_RELATIONSHIP = "I am a responsible author or maintainer"
+#: ``OPTIONAL_FIELDS``: the keys the ``options`` JSON object may carry.
+SUBMISSION_OPTION_KEYS = frozenset(
+    {
+        "existing_id",
+        "authorization_relationship",
+        "authorization_evidence",
+        "project_path",
+        "comparator_config_path",
+        "formalization_metadata_path",
+        "registry_correction",
+    }
+)
+
+
+def request_id(commit: str) -> str:
+    """The request id the preflight workflow sends for ``commit``: its first twelve hex characters,
+    which satisfy ``REQUEST_ID_RE`` and are the same for the same commit."""
+    return commit.lower()[:12]
+
+
 FORMALIZATION_SCHEMA_FILE = PALOMAR_DIR / "formalization.schema.v0.4.json"
 ENTRY_SCHEMA_FILE = PALOMAR_DIR / "entry.schema.json"
 PINS_FILE = PALOMAR_DIR / "PINS.json"
