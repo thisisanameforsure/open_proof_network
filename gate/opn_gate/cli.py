@@ -310,6 +310,26 @@ def _add_graph_tool_parsers(sub: argparse._SubParsersAction[argparse.ArgumentPar
     exh.add_argument("--image", help="sandbox image tag (default: built from gate/Dockerfile)")
     exh.add_argument("--no-build", action="store_true", help="fail if the image is not present")
 
+    feed = sub.add_parser(
+        "palomar-feed",
+        help="read the Palomar registry's feed, match entries to targets by problem number and "
+        "report candidates (F25-R14); --propose writes unsigned literature proposals into "
+        "--out, --drift compares every registration record with the registry; nothing is "
+        "written to the graph",
+    )
+    feed.add_argument("--graph", required=True, type=Path, help="path to the graph checkout")
+    feed.add_argument(
+        "--snapshot", type=Path, help="read a saved recent.json instead of the registry"
+    )
+    feed.add_argument(
+        "--propose", action="store_true", help="write a literature/v1 proposal per candidate"
+    )
+    feed.add_argument("--contributor", help="the proposals' contributor (with --propose)")
+    feed.add_argument("--out", type=Path, help="where the proposals are written (with --propose)")
+    feed.add_argument(
+        "--drift", action="store_true", help="compare registration records with the registry"
+    )
+
     adm = sub.add_parser("admit", help="may this node directory enter the graph? (F08-R1)")
     adm.add_argument("node_dir", type=Path, help="targets/<target>/nodes/<id> in a graph checkout")
     adm.add_argument("--out", type=Path, help="work directory (default: a fresh temp dir)")
@@ -841,6 +861,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         "reproduce": run_reproduce,
         "footprints": run_footprints,
         "export-palomar": run_export_palomar,
+        "palomar-feed": run_palomar_feed,
         "outline": run_outline,
         "gate": run_gate,
         "classify": run_classify,
@@ -1227,6 +1248,39 @@ def run_export_palomar(args: argparse.Namespace, settings: config.Settings) -> i
         summary["ok"] = report.ok
     sys.stdout.write(json.dumps(summary, ensure_ascii=False) + "\n")
     return 0 if summary["ok"] else EXIT_FAIL
+
+
+def run_palomar_feed(args: argparse.Namespace, settings: config.Settings) -> int:
+    """F25-R14 (D-10 v3.37): the feed watcher. Exit 0 with the report (candidates are
+    information), 1 when the registry could not be read (a warning; nothing written), 2 on a
+    usage error. Nothing is written to the graph: a proposal goes under ``--out``."""
+    from opn_gate import palomar_feed  # noqa: PLC0415 — only here
+
+    del settings
+    graph = args.graph.resolve()
+    if not (graph / "targets").is_dir():
+        msg = f"{graph} has no targets/ directory"
+        raise CliError(msg)
+    if args.propose and (not args.contributor or args.out is None):
+        msg = "--propose needs --contributor and --out"
+        raise CliError(msg)
+    if args.snapshot is not None and not args.snapshot.is_file():
+        msg = f"cannot read --snapshot {args.snapshot}"
+        raise CliError(msg)
+    try:
+        result = palomar_feed.run(
+            graph,
+            None if args.snapshot is not None and not args.drift else palomar_feed.default_host(),
+            snapshot=args.snapshot,
+            propose=args.propose,
+            contributor=args.contributor,
+            out=args.out,
+            drift=args.drift,
+        )
+    except palomar_feed.FeedError as exc:
+        raise CliError(str(exc)) from exc
+    sys.stdout.write(result.render())
+    return result.exit_code
 
 
 def run_footprints(args: argparse.Namespace, settings: config.Settings) -> int:
