@@ -78,3 +78,9 @@ No registration (J3).
     and sends the contract's sentence; palomar.REQUEST_ID_RE / AUTHORIZATION_RELATIONSHIP /
     SUBMISSION_OPTION_KEYS hold the grammar; test_the_preflight_workflow_sends_what_palomars_contract_accepts
     was red on the old template (jobs == {preflight}) and is green on the new one.
+14. Palomar's own preflight on the fixed wrapper (opn-erdos-1050 e750ff9, run 38162577931, 18:08Z-18:15Z): request,
+    profile and verify jobs success; the mechanical report (task-16-preflight-38162577931.json) says status pass,
+    stage complete, no errors, no warnings; licence declared and detected Apache-2.0 at LICENSE; submission id
+    e750ff9fa15f bound to the commit; kernels nanoda and con-ron at leanprover/lean4:v4.35.0-rc2. This is the
+    port's definition of done (F25-R12: "a local build or standalone Comparator run does not count"). Not
+    submitted (J3).
