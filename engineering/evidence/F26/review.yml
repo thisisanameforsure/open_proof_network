@@ -1,0 +1,194 @@
+# The review job, on dispatch and nightly (F26-R13; D-9 v3.39, D-35).
+#
+# The graph's copy of this file is .github/workflows/review.yml. It is kept here, in the network
+# repository's evidence for F26-T8, because the graph's history is mathematics only and a build
+# task does not push the graph (D-35); the owner copies it in at the re-pin that carries T5's
+# `opn-gate review run`, and a static test in this repository (gate/tests/test_postmerge_review.py)
+# holds this text to its rules: dispatch and schedule only, every action pinned to a full commit
+# with its tag, the same pins the network's own workflows use, and the deploy key in one step.
+#
+# What it does. The post-merge job runs the review job after a merge that adds a review record;
+# this runs it for every target whose review is still open (state neither `none` nor `complete`,
+# as `review.state_of` derives it from the records), so a review whose automated stages wait on
+# nothing a person will merge still moves. It checks out main, takes the network commit main pins
+# (every target agrees on one, or nothing runs), runs `opn-gate review run --target <t>` with that
+# gate for each open review, takes what the jobs wrote under targets/<t>/review/ as the record,
+# renders the products, and pushes one bot commit `gate: review <pin12>` through the post-merge
+# job's own publish loop (postmerge_batch.py, read out of gate.yml as render.yml reads it): if main
+# moves before the push, the record is laid again on main as it then is and the products rendered
+# again. A job that fails writes nothing for its target and is a warning; the others still commit
+# (2026-09-17: one target's defect never decides whether the graph has products). The job is
+# idempotent (R13), so a nightly run over records nothing changed pushes nothing.
+#
+# It credits nothing: `gate: review <pin12>` is read by no gate-commit matcher as a credit, it
+# writes no ledger line and no attestation, and the post-merge job skips the bot's own commits.
+#
+# Secrets (C8): no step before the push sees one; the write deploy key exists only in the push
+# step. The review job runs contributor Lean (candidates, tests) only inside the step-3 sandbox,
+# which `opn-gate review run` enters itself (R13), never on the runner.
+name: review
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "one target whose open review to run (empty: every open review)"
+        required: false
+        type: string
+  schedule:
+    - cron: "17 3 * * *" # nightly; Actions crons are a hope, not a schedule, and dispatch is the sure way
+
+permissions: {}
+
+concurrency:
+  group: review
+  cancel-in-progress: false
+
+env:
+  UV_VERSION: "0.12.10"
+
+jobs:
+  review:
+    name: run the review job for every open review (F26-R13)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Find the network commit main pins, and the publish loop (no secret)
+        id: pin
+        run: |
+          set -euo pipefail
+          python3 - <<'EXTRACT'
+          import json, os, pathlib, re, sys, textwrap
+          pins = {}
+          for spec in sorted(pathlib.Path("targets").glob("*/gate-spec.json")):
+              pins[spec.parent.name] = str(json.loads(spec.read_text(encoding="utf-8"))["network_commit"])
+          found = set(pins.values())
+          if len(found) != 1 or not re.fullmatch(r"[0-9a-f]{40}", next(iter(found))):
+              sys.exit(f"::error::main's targets do not agree on one network pin: {sorted(found)}")
+          lines = pathlib.Path(".github/workflows/gate.yml").read_text(encoding="utf-8").splitlines()
+          start = next(i for i, line in enumerate(lines) if line.rstrip().endswith("cat > \"$helper\" <<'PY'"))
+          end = next(i for i in range(start + 1, len(lines)) if lines[i].strip() == "PY")
+          helper = pathlib.Path(os.environ["RUNNER_TEMP"]) / "postmerge_batch.py"
+          helper.write_text(textwrap.dedent("\n".join(lines[start + 1 : end])) + "\n", encoding="utf-8")
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as out:
+              out.write(f"pin={found.pop()}\n")
+          EXTRACT
+          cat "$GITHUB_OUTPUT"
+
+      - name: Check out the network commit main pins, which runs the job
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          repository: thisisanameforsure/open_proof_network
+          ref: ${{ steps.pin.outputs.pin }}
+          path: network-render
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version: ${{ env.UV_VERSION }}
+
+      - name: List the open reviews (no secret)
+        id: open
+        env:
+          PYTHONPATH: network-render/gate
+          ONLY: ${{ inputs.target }}
+        run: |
+          set -euo pipefail
+          uv sync --frozen --project network-render --quiet
+          targets="$(uv run --frozen --project network-render python - <<'OPEN'
+          import os, pathlib, re
+          from opn_gate import review
+          only = (os.environ.get("ONLY") or "").strip()
+          if only and not re.fullmatch(r"[a-z0-9][a-z0-9-]*", only):
+              raise SystemExit(f"::error::'{only}' is not a target id")
+          for spec in sorted(pathlib.Path("targets").glob("*/gate-spec.json")):
+              target = spec.parent
+              if only and target.name != only:
+                  continue
+              if review.state_of(target)["state"] not in (review.NONE, review.COMPLETE):
+                  print(target.name)
+          OPEN
+          )"
+          targets="$(printf '%s' "$targets" | tr '\n' ' ')"
+          echo "targets=${targets% }" >> "$GITHUB_OUTPUT"
+          echo "review: open reviews: ${targets:-none}"
+
+      - name: Run the review job for each open review (no secret; contributor Lean only in the sandbox)
+        id: job
+        if: steps.open.outputs.targets != ''
+        env:
+          PYTHONPATH: network-render/gate
+          TARGETS: ${{ steps.open.outputs.targets }}
+        run: |
+          set -uo pipefail
+          for target in $TARGETS; do
+            if ! uv run --frozen --project network-render python -m opn_gate.cli review run \
+                --graph . --target "$target"; then
+              echo "::warning::review: the job for $target failed; nothing of its is committed (the pinned gate may predate opn-gate review run, F26-T5)"
+              git checkout -q -- "targets/$target/review" 2>/dev/null || true
+              git clean -q -fd -- "targets/$target/review"
+            fi
+          done
+          git add -A -- targets
+          # the job may write only review records; anything else is refused, not committed
+          if git diff --cached --name-only | grep -Ev '^targets/[a-z0-9][a-z0-9-]*/review/'; then
+            echo "::error::review: the job wrote outside targets/<t>/review/; nothing is committed"
+            exit 1
+          fi
+          git diff --cached --binary > "$RUNNER_TEMP/record.patch"
+          git reset -q
+          if [ -s "$RUNNER_TEMP/record.patch" ]; then
+            echo "wrote=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "review: the jobs wrote nothing new (idempotent, R13)"; echo "wrote=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Render the products from main's tree with the review records (F03; no secret)
+        if: steps.job.outputs.wrote == 'true'
+        env:
+          PYTHONPATH: network-render/gate
+          OPN_API_CLAIMS_URL: ${{ vars.OPN_API_CLAIMS_URL }}
+        run: |
+          set -euo pipefail
+          uv run --frozen --project network-render python -m opn_gate.cli products \
+            --graph . --commit "$(git rev-parse HEAD)" \
+            ${OPN_API_CLAIMS_URL:+--claims-url "$OPN_API_CLAIMS_URL"}
+
+      - name: Commit the review records and the products, crediting nothing, and push them (the deploy key's only step)
+        if: steps.job.outputs.wrote == 'true'
+        env:
+          OPN_GRAPH_DEPLOY_KEY: ${{ secrets.OPN_GRAPH_DEPLOY_KEY }}
+          RENDER_PIN: ${{ steps.pin.outputs.pin }}
+          TARGETS: ${{ steps.open.outputs.targets }}
+          PYTHONPATH: network-render/gate
+          OPN_API_CLAIMS_URL: ${{ vars.OPN_API_CLAIMS_URL }}
+          LEDGER_CMD: "false"
+          PRODUCTS_CMD: uv run --frozen --project network-render python -m opn_gate.cli products --graph . --commit "$COMMIT" ${OPN_API_CLAIMS_URL:+--claims-url "$OPN_API_CLAIMS_URL"}
+        run: |
+          set -euo pipefail
+          umask 077
+          trap 'rm -f "$RUNNER_TEMP/deploy_key"' EXIT  # C8: on every path out of this step
+          git config user.name "opn-gate"
+          git config user.email "gate@openproof.network"
+          git add -A -- attestations frontier.json info.json targets
+          for product in claims.json ledger THIRD_PARTY_NOTICES.md; do
+            [ -e "$product" ] && git add -A -- "$product"
+          done
+          if git diff --cached --quiet; then
+            echo "review: nothing to push"; exit 0
+          fi
+          subject="gate: review ${RENDER_PIN:0:12}"
+          git commit -q -m "$subject"
+          printf '%s\n' "$OPN_GRAPH_DEPLOY_KEY" > "$RUNNER_TEMP/deploy_key"
+          export GIT_SSH_COMMAND="ssh -i $RUNNER_TEMP/deploy_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new"
+          REMOTE="git@github.com:${GITHUB_REPOSITORY}.git" RECORD="$RUNNER_TEMP/record.patch" \
+            NUMBERS="" MERGES="" SUBJECT="$subject" RENDER=1 \
+            python3 "$RUNNER_TEMP/postmerge_batch.py" publish

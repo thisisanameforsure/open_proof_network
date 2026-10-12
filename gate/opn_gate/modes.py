@@ -75,7 +75,7 @@ import subprocess
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass, replace
 from pathlib import Path, PurePosixPath
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 import yaml
 
@@ -104,6 +104,9 @@ from opn_gate import graph as graphmod
 from opn_gate.diagnostic import Diagnostic
 from opn_gate.paths import Change, Located, Role
 from opn_gate.signer import Signer
+
+if TYPE_CHECKING:
+    from opn_gate.steps.review_step import Standing
 
 Mode = Literal[
     "proof",
@@ -284,6 +287,12 @@ class Classification:
     #: ``config.service_login``), which acts for the identity it wrote into the record's own
     #: ``author``. The host's fact, like ``author``; not published.
     by_service: bool = False
+    #: F26-R12 (D-4 v3.39): where the target's formalization review stands, in the words a verdict
+    #: names it by, for a proof or partial whose step 9 read it; ``None`` when no review was read.
+    review_state: str | None = None
+    #: F26-R12: why step 9 holds this proof — the review is incomplete and no catalog evidence
+    #: stands in. ``check`` reports it, so the pull request is refused before any sandbox.
+    review_held: Diagnostic | None = None
 
     @property
     def ok(self) -> bool:
@@ -348,6 +357,7 @@ class Classification:
             "review_reference": (
                 self.review_reference if self.review_kind in ("certificate", "provenance") else None
             ),
+            "review_state": self.review_state,
             "problems": [d.as_dict() for d in self.problems],
         }
 
@@ -378,7 +388,24 @@ def with_statement_review(
     target_dir = graph_root / "targets" / classification.target_id
     not_asked = step9_not_asked(graph_root, classification)
     if not_asked is not None:
+        # D-4 v3.39: intermediate work never waits, so the review is not even read
         return replace(classification, review_basis=not_asked, review_reference=None)
+    from opn_gate.steps import review_step  # noqa: PLC0415 — the steps package imports modes
+
+    review_standing = review_step.standing(target_dir)
+    if review_standing is not None:
+        return with_review(classification, target_dir, review_standing, minimum=minimum)
+    return without_review(classification, target_dir, minimum=minimum)
+
+
+def without_review(
+    classification: Classification,
+    target_dir: Path,
+    *,
+    minimum: int = config.DEFAULT_STEP9_MIN_SCORE,
+) -> Classification:
+    """F26-Q7: step 9 for a proof that would settle the root of a target with no review — the rule
+    it had before v3.39, exactly: the root's certificate, else catalog evidence, else a person."""
     certificate = root_certificate(target_dir)
     if certificate is not None:
         return replace(classification, review_basis="certificate", review_reference=certificate)
@@ -387,6 +414,43 @@ def with_statement_review(
         # F14-R6: recorded as provenance, so the attestation schema and an older pin still read it.
         return replace(classification, review_basis="provenance", review_reference=recorded)
     return classification
+
+
+def with_review(
+    classification: Classification,
+    target_dir: Path,
+    standing: Standing,
+    *,
+    minimum: int = config.DEFAULT_STEP9_MIN_SCORE,
+) -> Classification:
+    """F26-R12 (D-4 v3.39): step 9 for a proof that would settle the root of a target with a
+    review. Two bases, each its own function: the review complete at ``screened-and-signed`` or
+    above (``review_step.standing``, recorded as a ``certificate``: the review earns the D-9 grade),
+    else v3.15's catalog evidence (``step9_evidence``, recorded as ``provenance``, as F14-R6 does),
+    which the automated stages never hold. Neither: step 9 holds, and the verdict names the
+    review's state. A person's approval does not stand in for an incomplete review."""
+    from opn_gate.steps import review_step  # noqa: PLC0415 — the steps package imports modes
+
+    if standing.satisfies:
+        return replace(
+            classification,
+            review_basis="certificate",
+            review_reference=standing.reference,
+            review_state=standing.words,
+        )
+    recorded = step9_evidence(target_dir, minimum)
+    if recorded is not None:
+        return replace(
+            classification,
+            review_basis="provenance",
+            review_reference=recorded,
+            review_state=standing.words,
+        )
+    return replace(
+        classification,
+        review_state=standing.words,
+        review_held=review_step.held(target_dir.name, standing, minimum=minimum),
+    )
 
 
 def alternate_basis(graph_root: Path, classification: Classification) -> StatementBasis:
@@ -1170,7 +1234,10 @@ def check(  # noqa: PLR0912, PLR0915 — one branch per role with a check of its
     default the platform's ssh-keygen. The service passes its own verifier, since its runtime
     has no OpenSSH (F06-Q6, F20-T6).
     """
-    problems: list[Diagnostic] = []
+    # F26-R12: step 9 held by an incomplete review is a refusal before any sandbox
+    problems: list[Diagnostic] = (
+        [] if classification.review_held is None else [classification.review_held]
+    )
     added = frozenset(loc.path for loc in classification.located)
     for located in classification.located:
         if located.role == "literature":

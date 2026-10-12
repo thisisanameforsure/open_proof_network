@@ -2234,6 +2234,17 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "Submit to the review that exists (POST /reviews/<id>/candidates, MCP submit_candidate). "
         "A D-8 revision of the root is what opens a new one.",
     ),
+    "review-incomplete": (
+        "gate",
+        9,
+        "The proof would settle the target's root, and the target's formalization review is not "
+        "complete: a question waits, more than one reading survives, or the grade is below "
+        "screened-and-signed; no recorded catalog evidence scores five or more (D-4 v3.39, "
+        "F26-R12). Work that settles nothing never waits for the review.",
+        "Read the review's state in the verdict and on the review page (GET /reviews/<id>, MCP "
+        "get_review); answer or sign what waits if that is yours, then re-run the gate on the pull "
+        "request once the review is complete.",
+    ),
     "review-job-record": (
         "gate",
         None,
