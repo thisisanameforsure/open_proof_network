@@ -3029,12 +3029,6 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         ),
         "Report it to the operator (OPN_API_SITE_ORIGIN).",
     ),
-    "steward-already-active": (
-        "api",
-        None,
-        "This login is already an active steward of the target.",
-        "Nothing to do; to leave the role, step down instead.",
-    ),
     # --- F24-R8: the panel's routes refuse by name what the gate would refuse at the merge ---
     "already-signed": (
         "api",

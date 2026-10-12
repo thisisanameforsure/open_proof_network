@@ -1861,10 +1861,16 @@ class Renderer:
             else ""
         )
         if self.takes_steward(tv):
+            # F24-T7: the name and link each steward holds now, so a steward's form starts there.
+            held = json.dumps(
+                {str(s["login"]): {"name": s["name"], "link": s["link"]} for s in tv.stewards},
+                ensure_ascii=False,
+            )
             form = (
                 f'<div class="card steward-form-card"><div class="steward-form" '
                 f'data-target="{esc(tid)}" data-return="{esc(self.steward_path(tid))}" '
-                f'data-commitment="{esc(steward.COMMITMENT)}"></div></div>'
+                f'data-commitment="{esc(steward.COMMITMENT)}" data-stewards="{esc(held)}">'
+                "</div></div>"
             )
             script = (
                 f'<script src="/steward.js" data-api="{esc(self.api_url)}"></script>'

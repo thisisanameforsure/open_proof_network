@@ -1,0 +1,68 @@
+warning: `VIRTUAL_ENV=/Users/mikehiggins/Desktop/repos/open_proof_network/.venv` does not match the project environment path `.venv` and will be ignored; use `--active` to target the active environment instead
+F...FFF..                                                                [100%]
+=================================== FAILURES ===================================
+_________________ test_the_newest_commitment_names_the_steward _________________
+
+graph = <test_modes_panel.Graph object at 0x107fb0440>
+
+    def test_the_newest_commitment_names_the_steward(graph: Graph) -> None:
+        graph.commit("ann", on=-5)
+        restate(graph, "ann", "Ann Smith", link="https://example.org/ann")
+        [ann] = active(graph)
+>       assert (ann.name, ann.link) == ("Ann Smith", "https://example.org/ann")
+E       AssertionError: assert ('Ann', None) == ('Ann Smith',...mple.org/ann')
+E         
+E         At index 0 diff: 'Ann' != 'Ann Smith'
+E         Use -v to get more diff
+
+gate/tests/test_steward_restate.py:68: AssertionError
+_______ test_a_restatement_needs_no_invitation_when_the_panel_has_others _______
+
+graph = <test_modes_panel.Graph object at 0x107f57a80>
+
+    def test_a_restatement_needs_no_invitation_when_the_panel_has_others(graph: Graph) -> None:
+        graph.commit("ann", on=-60)
+        graph.commit("ben", on=-30, admitted_by=CURATOR)
+>       assert graph.codes(restate(graph, "ann", "Ann Smith")) == []
+E       AssertionError: assert ['steward-inv...ion-required'] == []
+E         
+E         Left contains one more item: 'steward-invitation-required'
+E         Use -v to get more diff
+
+gate/tests/test_steward_restate.py:113: AssertionError
+______________ test_a_restatement_needs_no_curator_under_reviewed ______________
+
+graph = <test_modes_panel.Graph object at 0x10807fe30>
+
+    def test_a_restatement_needs_no_curator_under_reviewed(graph: Graph) -> None:
+        graph.set_policy(admission=policy.REVIEWED)
+        graph.commit("ann", on=-60, admitted_by=CURATOR)
+>       assert graph.codes(restate(graph, "ann", "Ann Smith")) == []
+E       AssertionError: assert ['steward-admission'] == []
+E         
+E         Left contains one more item: 'steward-admission'
+E         Use -v to get more diff
+
+gate/tests/test_steward_restate.py:119: AssertionError
+____________ test_a_restatement_is_not_held_to_a_cap_lowered_since _____________
+
+graph = <test_modes_panel.Graph object at 0x1080f4160>
+
+    def test_a_restatement_is_not_held_to_a_cap_lowered_since(graph: Graph) -> None:
+        graph.commit("ann", on=-30)
+        for i in range(3):
+            graph.commit("ann", on=-30, admitted_by=CURATOR, target=f"cap-{i}")
+        graph.set_policy(settings=panel.Settings(cap=2))
+>       assert graph.codes(restate(graph, "ann", "Ann Smith")) == []
+E       AssertionError: assert ['steward-cap'] == []
+E         
+E         Left contains one more item: 'steward-cap'
+E         Use -v to get more diff
+
+gate/tests/test_steward_restate.py:127: AssertionError
+=========================== short test summary info ============================
+FAILED gate/tests/test_steward_restate.py::test_the_newest_commitment_names_the_steward
+FAILED gate/tests/test_steward_restate.py::test_a_restatement_needs_no_invitation_when_the_panel_has_others
+FAILED gate/tests/test_steward_restate.py::test_a_restatement_needs_no_curator_under_reviewed
+FAILED gate/tests/test_steward_restate.py::test_a_restatement_is_not_held_to_a_cap_lowered_since
+4 failed, 5 passed in 28.95s

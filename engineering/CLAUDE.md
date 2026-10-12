@@ -1508,3 +1508,15 @@ The law of the project:
   claim**: writing "its `GET /version`" about Aristotle's service tripped the test that holds every
   backticked route in the guide to one the network serves; the words were rephrased, not the test.
 
+- 2026-10-12 — A field the site shows needs a way to change it, and nothing had asked. The live
+  steward's display name was their GitHub login because the form pre-filled it, and no route could
+  change it: the service answered a second commitment 409 and the active set kept the first name.
+  F24-T7 made a re-commit by an active steward a *restatement* (newest name shows, the first date
+  and admission stay, no record edited). Two things worth keeping. **An exemption keyed on "already
+  active" re-reads every test that writes two records for one login**: four older tests had
+  stacked a second commitment by the same login in one tree to probe admission, and each silently
+  became a restatement; they were restated to use a second login or to judge each record alone.
+  **A restatement must carry its admission, not choose one**: an invited steward restating as
+  `self` would have dropped `motion:<n>` and seated them on the panels of earlier motions (F24-Q8),
+  so the gate holds a restatement to the admission it restates. The doc change is a Q entry
+  (F24-Q15) with drafted D-32 words, because v3.39 is already F26's.
