@@ -1204,9 +1204,17 @@ def step9_basis(tg: TargetGraph) -> str:
     non-author's review. Rendered with the default minimum, since the products are what the gate
     at this pin decides without configuration (F14-R5)."""
     from opn_gate import intake, modes  # noqa: PLC0415 — modes owns the rule; products reports it
+    from opn_gate.steps import review_step  # noqa: PLC0415 — the steps package imports modes
 
     if intake.is_calibration(intake.load_doc(tg.path)):
         return "calibration"  # D-4 v3.20: a known result asks no review, even of its root
+    standing = review_step.standing(tg.path)
+    if standing is not None:
+        # F26-R12 (D-4 v3.39): with a review, the review complete or the evidence; else it waits
+        # for the review, which no person's approval stands in for
+        if standing.satisfies:
+            return "certificate"
+        return "evidence" if modes.step9_evidence(tg.path) is not None else "review"
     if modes.root_certificate(tg.path) is not None:
         return "certificate"
     if modes.step9_evidence(tg.path) is not None:

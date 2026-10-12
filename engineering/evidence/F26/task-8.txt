@@ -1,0 +1,66 @@
+F26-T8 — step 9 reads the review (R12); the post-merge and review.yml callers (R13)
+Branch f26-t8 from origin/f26-wave1 (82d7404e). 2026-10-12.
+
+== Part 1: step 9 (R12, AC9) ==
+
+Where step 9 decides: gate/opn_gate/modes.py `with_statement_review`, called once, by
+`opn-gate classify` (cli.run_classify), before any sandbox. Order after this task:
+
+  alternate                         -> alternate_basis (unchanged)
+  not a proof/partial               -> unchanged
+  step9_not_asked (intermediate,    -> recorded, and the review is NOT read (AC9 c)
+    calibration)
+  review_step.standing(target) None -> without_review: certificate, else evidence, else a
+                                       person — today's rule exactly (F26-Q7)
+  review_step.standing(target) set  -> with_review:
+       standing.satisfies           -> kind `certificate`, reference
+                                       review:review/review.yaml@<root hash>:<grade>
+       step9_evidence >= minimum    -> kind `provenance`, the evidence reference (v3.15, unchanged)
+       neither                      -> review_held: Diagnostic `review-incomplete` (step 9), which
+                                       modes.check reports, so classify exits 1 before any sandbox
+
+Each basis is one named function (root_certificate, step9_evidence, review_step.standing), and
+the no-review path is its own function (without_review), so reversing v3.39 is a deletion of the
+`if review_standing is not None` branch. `review_state` (the words) is a new key of the
+classification JSON, null when no review was read.
+
+The product mirrors the rule: products.step9_basis (targets-index `step9`) reads the review too —
+`certificate` when the review is complete at screened-and-signed, `evidence` when catalog evidence
+stands in, `review` otherwise; no review, unchanged. No schema change (the enum already has the four).
+
+-- RED (review_step.standing at today's behaviour, always None): --
+$ uv run --frozen pytest gate/tests/test_step9_review.py -q
+FAILED ...test_ac9_an_incomplete_review_holds_a_proof_of_the_root[question]
+FAILED ...test_ac9_an_incomplete_review_holds_a_proof_of_the_root[two-readings]
+FAILED ...test_ac9_an_incomplete_review_holds_a_proof_of_the_root[no-survivor]
+FAILED ...test_ac9_an_incomplete_review_holds_a_proof_of_the_root[needs-intent-signer]
+FAILED ...test_ac9_a_root_certificate_does_not_stand_in_for_an_incomplete_review
+FAILED ...test_ac9_a_complete_review_below_screened_and_signed_holds
+FAILED ...test_a_complete_signed_review_satisfies_step9
+FAILED ...test_a_complete_review_keeps_a_held_grade
+FAILED ...test_ac9_catalog_evidence_at_five_approves_with_an_incomplete_review[5]
+FAILED ...test_ac9_catalog_evidence_at_five_approves_with_an_incomplete_review[8]
+FAILED ...test_evidence_below_five_does_not_stand_in
+11 failed, 6 passed
+  failing on the defect, not on a name: `assert (0 != 0)` (classify approved), `(True,
+  'pr-approval', None) == (False, 'certificate', ...)`, `'fidelity/root-2.yaml' !=
+  'review:review/review.yaml@22d574be...:screened-and-signed'`, `None == 'review open: 1 question
+  waiting'`. The six that passed are the intermediate, calibration and no-review cases, which
+  must pass before and after (Q7).
+
+-- RED (products.step9_basis without the review branch): --
+$ uv run --frozen pytest gate/tests/test_step9_review.py -q -k products_step9
+FAILED ...test_the_products_step9_field_follows_the_review[certified-review-open]
+FAILED ...test_the_products_step9_field_follows_the_review[review-complete]
+2 failed, 2 passed, 17 deselected
+
+-- GREEN --
+$ uv run --frozen pytest gate/tests/test_step9_review.py -q
+21 passed
+
+$ uv run --frozen pytest gate/tests/test_step9_review.py test_finding_step9_certified.py
+    test_finding_step9_root_only.py test_modes.py test_products.py test_evidence.py
+    test_lifecycle_f14.py test_error_codes.py test_review_state.py test_review_policy.py
+    test_postmerge.py -q -m "not lean and not docker"
+320 passed, 1 skipped (test_postmerge.py:655 reads the graph's gate.yml beside the repo; a
+worktree has none beside it)
