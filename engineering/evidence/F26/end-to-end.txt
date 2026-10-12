@@ -1,0 +1,12 @@
+F26 end to end, 2026-10-12 (lead): postmerge.run_review_job with the default runner (the shell-out to opn-gate review run) on a Legendre review of four candidates from the prototype (human-ref a person's; alt-mul, alt-closed, bad-two models'), real toolchain v4.33.1, laptop:
+"""End to end, real toolchain: the post-merge job's default runner drives `opn-gate review run`
+on a Legendre review built from the prototype's candidates; then the products show its state."""
+import json, sys, time
+runner result: True 42s
+exhibits 132
+tests 22
+questions 2
+pairs 6
+state: {"state": "open", "candidates": 4, "surviving": 4, "clusters": 3, "questions_waiting": 2, "open_pairs": 0, "grade_cap": null, "signers": {"intent": null, "independent": null}, "tracking": null}
+derive keys: ['candidates', 'clusters', 'grade_cap', 'questions_waiting', 'signers', 'state', 'tracking']
+second run wrote nothing: True True

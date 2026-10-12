@@ -405,10 +405,50 @@ are the reference implementation.</p>
     The section therefore shows the candidate body as illustrative JSON, and the guide-name tests hold every
     route, tool and code it names. An executed block becomes worth its cost once the first live review
     exists (T15) and the fixture can copy its shape.</td></tr>
+  <tr><td>F26-Q15</td><td><strong>The job as built (T5–T7).</strong> <code>opn-gate review run</code> writes only
+    exhibits, intent tests, questions and pair records, never overwrites, commits nothing (T8's callers do),
+    and every Lean it writes is the text that elaborated in that run. Exhibit ids hash what was asked (kind,
+    candidate, test, case, toolchain, Mathlib), not the answer or the run, so a rerun reuses results and a
+    moved pin re-runs everything. The case an exhibit or test is about is carried in a
+    <code>-- opn-review: {json}</code> header in its Lean, since the record's <code>case</code> is words; a test
+    written by hand must carry it or is noted as not runnable. Mutant exhibits: <code>fail</code> a test caught
+    it, <code>pass</code> it survived and became a question, <code>proved</code> equivalent and nothing asked,
+    <code>error</code> it does not elaborate (the pinned schema cannot carry this; the modules' docstrings do).
+    Answers are read by their first word, yes or no; anything else writes no test and is noted, the question
+    still closed by the record. Agreement tests need two survivors and use one fixed range of small cases for
+    every review where the prototype tuned them per conjecture. The negation screen is the kernel's
+    counterexample from the survey, so a "holds" disagreement between survivors cannot arise and holds
+    questions come only from mutants. Probes reach only concepts that are a predicate on one natural number;
+    other claims are compiled, screened and paired, and say "small cases do not apply" (the Mathlib targets'
+    named parts are not handled yet, Q11). AC3 and AC4 could not use the propositional root (a tautology the
+    statement screen discards); they use Legendre in words with the prototype's candidates. AC6 reproduces
+    the prototype exactly (5, 13 and 15 caught), and two more D-11 classes add mutants none of which survive.
+    The docker half of AC4 is not built: <code>--sandbox</code> exists, no docker-tier test drives it (T14).</td></tr>
+  <tr><td>F26-Q16</td><td><strong>Step 9 holds at classify, and holds certified roots once a review exists (T8)
+    &mdash; for the owner before T14.</strong> Step 9 reads the review as one more named basis beside the
+    certificate and the catalog evidence; a target with no review keeps today's rule exactly. A held root proof
+    is refused at classify (<code>review-incomplete</code>), because the graph's step-9 job can only ask a person
+    and would let any approval through; the cost is no sandbox feedback until the review completes, and nothing
+    re-runs the gate afterwards. A complete review is recorded as attestation kind <code>certificate</code> with a
+    <code>review:</code> reference (F14-R6's precedent; <code>attestation/v7</code> has no <code>review</code> kind). The
+    products' <code>step9</code> field reads the review too, so published and actual state agree. The consequence
+    the owner must confirm: once T14 opens background reviews, a root proof on a target with a screened-and-signed
+    certificate but no catalog evidence of five is held until its review completes, and with no steward most
+    reviews stop at "needs an intent signer". v3.39 says so; Q7 named grade, status and the frontier as
+    unmoved but not step 9. The post-merge caller is fail-soft; the graph's <code>gate.yml</code> needs one step
+    calling it, and <code>review.yml</code> is written as evidence for the graph (a build task does not push the
+    graph, D-35).</td></tr>
+  <tr><td>F26-Q17</td><td><strong>The notice has no schedule and no issue permission yet (T11) &mdash; for the
+    owner.</strong> <code>review_notice.run</code> posts one comment per batch and remembers the questions named in
+    the service's store, but the service has no periodic job and a notify route would be a D-35 change, so
+    nothing calls it yet (<code>python -m opn_gate.review_notice</code> runs it by hand). Commenting on a plain
+    issue needs the App's <code>issues: write</code>; a tracking pull request works today. The notice and the answer
+    route agree on who the intent signer is (the proposer, else the active stewards); <code>/me/</code> lists every
+    waiting question for the signed-in signer.</td></tr>
 </table>
 
 <h2>10. Status</h2>
-<div class="rule"><strong>status:</strong> building · <strong>Tasks:</strong> T0 ✓ 2026-10-12 (decisions v3.39 applied to D-6, D-9, D-28, D-30, D-35, D-36 and the glossary, with the version history; PROTOCOL_VERSION 3.39; goldens and the api fixture regenerated) · T1 ✓ 2026-10-12 (twelve schemas pinned; roles, modes, merge lines, codes; review.state_of; products at targets-index/v11, graph/v9, context/v7; policy/v4; every reader swept; 10 tests in test_review_schemas.py; fast tier 5782 passed) · T2 ✓ 2026-10-12 (agent, f26-t2: derive, state_of, grade_of, split_variants; 80 tests red first, 53 mutants all killed; Q8, Q9) · T3 ✓ 2026-10-12 (agent, f26-t3: check_review_opening, four codes, opn-gate review open --target|--all; 16 tests; Q12) · T4 ✓ 2026-10-12 (agent, f26-t4: review_format; 22 fast + 2 lean-tier tests; Q11) · T9 ✓ 2026-10-12 (agent, f26-t12: the floors without back-translation; 5 tests, four old assertions restated) · T12 ✓ 2026-10-12 (agent, f26-t12: the review page's six sections, the state line, the answer hook, the Docs anchor; 22 tests; screenshots read; Q10) · T10 ✓ 2026-10-12 (agent, f26-t10: four write routes, two reads with the blind rule, four MCP tools with result schemas, catalog rows; 60 tests, api 2033 passed; Q13) · T13 ✓ 2026-10-12 (lead, f26-t13: the guide's Formalization review section, the Docs page's paragraph for the proposer; guide-name and site tests green; Q14)</div>
+<div class="rule"><strong>status:</strong> building · <strong>Tasks:</strong> T0 ✓ 2026-10-12 (decisions v3.39 applied to D-6, D-9, D-28, D-30, D-35, D-36 and the glossary, with the version history; PROTOCOL_VERSION 3.39; goldens and the api fixture regenerated) · T1 ✓ 2026-10-12 (twelve schemas pinned; roles, modes, merge lines, codes; review.state_of; products at targets-index/v11, graph/v9, context/v7; policy/v4; every reader swept; 10 tests in test_review_schemas.py; fast tier 5782 passed) · T2 ✓ 2026-10-12 (agent, f26-t2: derive, state_of, grade_of, split_variants; 80 tests red first, 53 mutants all killed; Q8, Q9) · T3 ✓ 2026-10-12 (agent, f26-t3: check_review_opening, four codes, opn-gate review open --target|--all; 16 tests; Q12) · T4 ✓ 2026-10-12 (agent, f26-t4: review_format; 22 fast + 2 lean-tier tests; Q11) · T9 ✓ 2026-10-12 (agent, f26-t12: the floors without back-translation; 5 tests, four old assertions restated) · T12 ✓ 2026-10-12 (agent, f26-t12: the review page's six sections, the state line, the answer hook, the Docs anchor; 22 tests; screenshots read; Q10) · T10 ✓ 2026-10-12 (agent, f26-t10: four write routes, two reads with the blind rule, four MCP tools with result schemas, catalog rows; 60 tests, api 2033 passed; Q13) · T13 ✓ 2026-10-12 (lead, f26-t13: the guide's Formalization review section, the Docs page's paragraph for the proposer; guide-name and site tests green; Q14) · T5 ✓ T6 ✓ T7 ✓ 2026-10-12 (agent, f26-job: opn-gate review run, the filter, pairs with the degenerate guard, questions, answers into tests, mutation; 33 fast + 6 lean-tier tests; AC6 equals the prototype's 5/13/15; end to end through the post-merge runner on Legendre with the real toolchain, 132 exhibits, idempotent; Q15) · T8 ✓ 2026-10-12 (agent, f26-t8: step 9 reads the review, the fail-soft post-merge caller, review.yml as evidence; 32 tests; Q16) · T11 ✓ 2026-10-12 (agent, f26-t11: the notice and /me/; api 2054 passed; Q17)</div>
 
 <h2>Tasks</h2>
 <p class="status-note">Dependency-ordered. Red before green: each new test fails on the missing
