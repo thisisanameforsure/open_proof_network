@@ -1,0 +1,22 @@
+F04-T42 — guard: every statement panel carries its Lean (2026-10-12)
+
+A guard, not a red test. The report (three panels on the live erdos-1094 page with no Lean) did not
+reproduce: statement-panel.html writes <pre class="lean statement"> unconditionally and render.py fills it
+from the node's Statement.lean. The test is green on its first run, as expected.
+
+Verification command:
+  uv run --frozen pytest site/tests/test_statement_panel_lean.py -v
+
+=== First run (green) ===
+site/tests/test_statement_panel_lean.py::test_every_panel_carries_its_nodes_theorem PASSED [100%]
+============================== 1 passed in 0.29s ===============================
+
+=== Mutation check: the template's $statement removed by hand, then restored (git checkout) ===
+E           AssertionError: and-swap-reassoc: the Lean block is empty
+E           assert ''
+E            +  where '' = <built-in method strip of str object at 0x10567ec88>()
+E            +    where <built-in method strip of str object at 0x10567ec88> = ''.strip
+FAILED site/tests/test_statement_panel_lean.py::test_every_panel_carries_its_nodes_theorem
+1 failed in 0.33s
+
+The guard fails when the block is emptied, so it would catch the reported defect if it ever became real.
