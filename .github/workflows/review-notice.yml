@@ -28,6 +28,9 @@ concurrency:
 
 jobs:
   notice:
+    # Skipped (visibly, as a skipped job) until the stack carries NoticeRole and the repository
+    # variable names it; the infra README's "The review notice role" section is the procedure.
+    if: ${{ vars.OPN_API_NOTICE_ROLE_ARN != '' }}
     runs-on: ubuntu-24.04
     steps:
       - name: Assume the notice role (OIDC, no stored key)
