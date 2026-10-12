@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>F26 — The formalization review</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="crumbs"><a href="../index.html">specs</a> / F26</nav>
+<h1>F26 — The formalization review</h1>
+<p class="subtitle">A conjecture that arrives in words becomes Lean through a review, not a curator's
+single statement: candidates from people and models, each filtered by kernel-checked exhibits and
+intent tests, reconciled in pairs, questioned in mathematics to the one person who knows what was
+meant, mutated to measure the tests, and signed by two named roles on an evidence page. Existing
+targets keep their grade and get a review in the background; a proof that settles a root merges only
+when its review is complete, unless a reliable source already vouches for the statement.</p>
+
+<h2>1. Summary</h2>
+<p>Decisions <strong>v3.39</strong> applies the amendment drafted on 2026-10-09 as "v3.36" and settled by
+the owner on 2026-10-10 (<code>engineering/session-notes/2026-10-09-amendment-v3.36-formalization-rounds.md</code>,
+§1–§8; prototyped twice, §9 and §10). It is numbered v3.39 because v3.37 (Palomar) and v3.38 (lemmas)
+were applied first; the draft's number stays in its file name. The amendment rewrites D-9's pass as a
+<em>formalization review</em> with seven stages, adds intent tests with three probes and a format rule,
+records equivalence pairs per direction with refutations kept, names two signers by role and keeps the
+grade ladder earned under the review, makes a reading not chosen a D-30 variant, removes
+back-translation from the pass, and puts the evidence on one page where the proposer answers and the
+GitHub App tells them. Who may open a review is a <code>policy.json</code> setting.</p>
+<p>The evidence base is the two prototypes: 14 of 14 planted defects caught on core Lean with one cluster
+surviving per conjecture (<code>engineering/evidence/v3.36-prototype/</code>), and 13 of 13 on three live
+Mathlib targets through the network's own fast check, with a real error from a blind agent caught and
+the incumbent statements passing their own review (<code>engineering/evidence/v3.36-prototype-mathlib/</code>).
+Their code (<code>engineering/prototypes/formalization-round/</code>, <code>…-review-mathlib/</code>) is
+the reference the gate's review job is rebuilt from; nothing of it is imported as is.</p>
+
+<h2>2. User stories</h2>
+<ul>
+  <li>As the mathematician who proposed a problem, I answer questions about what I meant, in
+    mathematics, on one page, and I am told on GitHub when a question is waiting; I never read Lean
+    unless I want to.</li>
+  <li>As an agent, I submit a candidate formalization of a new problem from the words alone, I see
+    why a candidate was discarded as a kernel-checked exhibit, and I find the open pair directions
+    as claimable work.</li>
+  <li>As a person who formalizes, I submit my candidate blind, before any other candidate's Lean is
+    shown to me, and the record says my version is a person's.</li>
+  <li>As an independent signer, I read the surviving cluster's Lean rendered mechanically beside its
+    gloss, the test matrix, the pairs and the questions, and I sign that the evidence supports it, or
+    send it back with a question.</li>
+  <li>As a prover on a target that exists already, nothing changes until I prove the root: then the
+    merge waits for the review to be complete, or for the catalog evidence that already waives
+    step 9.</li>
+  <li>As a curator, I open a review on a target that has none, change who may open one by one visible
+    pull request, and see every review's state beside its grade.</li>
+</ul>
+
+<h2>3. Scope</h2>
+<p><strong>In:</strong> the amendment applied (D-6, D-9, D-28, D-30, D-35, D-36, glossary); the review's
+records on the graph, append-only and derived, never rewritten; the gate's review job (stages 3, 4 and
+6) running in the step-3 sandbox and writing exhibits as bot commits; intent tests with the three
+probes; the pair records and open directions as claimable work; questions, answers and signatures as
+records; step 9 reading the review; the policy setting; the service routes and MCP tools; the App's
+notice; the evidence page and the proposer's answer form on the site; the review state in the products;
+a background review opened on every existing target; the first live review on a new intake.</p>
+<p><strong>Out:</strong> any automated verdict on intent (every signature is a person's decision, D-9
+v3.12); a model-written expected value for a test (R6); back-translation anywhere in the pass (R10);
+an email address held by the network (R15); a review on definitions (D-9's second review object keeps
+the QA pass of F12 for now, Q4); paying for candidates (D-19 credits them as statement lines); any
+change to how variants are proved (D-30's labels are unchanged; R11 only adds a way variants arise).</p>
+
+<h2>4. Requirements</h2>
+<table>
+  <tr><th>ID</th><th>Requirement (EARS)</th></tr>
+  <tr><td>F26-R1</td><td><strong>Records.</strong> A review shall live under
+    <code>targets/&lt;t&gt;/review/</code> as append-only records (D-3): <code>review/v1</code>
+    (<code>review.yaml</code>: the opening, who opened it in which role, the day, the words and the
+    proposer's cases); <code>candidate/v1</code> (<code>candidates/&lt;id&gt;.yaml</code> with its
+    <code>&lt;id&gt;.lean</code>: author, the models that helped or none, whether its author declares
+    having read another candidate's Lean, and for a ported statement its source); <code>intent-test/v1</code>
+    (<code>tests/&lt;id&gt;.yaml</code> and <code>.lean</code>: the case, the probe among holds, covers,
+    witness, the expected result and its source among answer, citation, agreement);
+    <code>review-question/v1</code> (<code>questions/&lt;id&gt;.yaml</code>: the question in words and what
+    raised it); <code>review-answer/v1</code> (<code>answers/&lt;id&gt;.yaml</code>: the intent signer's
+    answer, its cited source or none, signed by the approval key naming the login);
+    <code>pair/v1</code> (<code>pairs/&lt;a&gt;--&lt;b&gt;.yaml</code>: each direction proved, refuted or
+    open with its exhibit or its attempt); <code>exhibit/v1</code> (<code>exhibits/&lt;id&gt;.json</code>
+    and <code>.lean</code>: a kernel-checked result the gate wrote); and
+    <code>review-signature/v1</code> (<code>signatures/&lt;role&gt;-&lt;date&gt;.yaml</code>: intent or
+    independent, with the decision accept, split or send-back). No record shall be edited; a later
+    record supersedes an earlier one by reference, and the review's state shall be derived from the set
+    (F08-T10's principle).</td></tr>
+  <tr><td>F26-R2</td><td><strong>Opening.</strong> When a target is proposed in words (D-6) or a curator
+    or steward asks, a review shall open if the asker's role is in <code>policy.json</code>'s
+    <code>review_openers</code> (<code>policy/v4</code>; default proposer, steward, curator; each change
+    dated with its reason by one curator pull request). For every target that exists at the re-pin,
+    the network shall open a review in the background whatever the setting says, with the live
+    statement as the first candidate credited to its source's authors and wrapped where the format
+    rule needs it (R5), proved equal by <code>Iff.rfl</code>, the live text and hash untouched.</td></tr>
+  <tr><td>F26-R3</td><td><strong>Candidates, blind.</strong> Anyone with a token shall submit a candidate
+    through the service; a person's candidate is marked as a person's when its <code>models</code> is
+    empty and the submitter's automation method is <code>manual</code>. Until their own candidate is on
+    the record, a person asking the service for a review shall be shown the words, the definitions and
+    the cases, never another candidate's Lean (the service, the MCP and the site all hold to it; the
+    graph itself is public and the declaration of R1 is shown as a claim, not a fact). An agent's
+    candidate shall name its model (v3.31).</td></tr>
+  <tr><td>F26-R4</td><td><strong>Filter.</strong> The gate's review job shall compile every candidate at
+    the pin, screen it (prove it, prove its negation, prove False from its hypotheses, within D-9's
+    bounded budget), and run every intent test against it three ways (holds, covers, witness). A
+    candidate that fails any shall be marked discarded with the exhibit as its reason and shall stay on
+    the record. A candidate the format rule returns (R5) shall be marked returned, never discarded.</td></tr>
+  <tr><td>F26-R5</td><td><strong>Format rule.</strong> A candidate shall name each concept the words use as
+    its own predicate (the review's manifest names the concepts); one that writes a concept inline
+    shall be returned to its author with that reason. For a ported statement the review shall add a
+    wrapper naming the parts, proved equal to the original by <code>rfl</code> or <code>Iff.rfl</code>.</td></tr>
+  <tr><td>F26-R6</td><td><strong>Intent tests.</strong> A model may propose which small, degenerate or boundary
+    cases suit the statement and write them in Lean, or record that small cases do not apply and why.
+    No model shall supply an expected value: each test's expected result shall come from an answer,
+    a citation or the agreement of every surviving candidate, the record naming which, the last shown
+    weakest. Where candidates answer a case differently no test shall be written; the case becomes a
+    question (R7). Where every candidate is vacuous on a case the page shows a triviality flag. Where
+    candidates' predicates for one concept disagree on a value, the value is a question. Tests shall
+    re-run when the statement is revised (D-8) or the Mathlib pin moves.</td></tr>
+  <tr><td>F26-R7</td><td><strong>Reconcile and ask.</strong> The job shall compare candidates in pairs:
+    concept predicates matched first, then the claims with the concepts as atoms, by the bounded
+    tactics the prototype used; each direction recorded proved, refuted (a kernel-checked instance,
+    never a proof that the statements differ) or open with the attempt. The degenerate guard (a proof
+    that never uses its hypothesis) shall refuse a direction as proof of equivalence. Candidates with
+    both directions proved share a cluster. Each proved disagreement between clusters, each concept
+    disagreement and each surviving mutant (R8) shall become a question in words, phrased as the
+    hypothesis ("Suppose 5 were the only prime. Would the conjecture be satisfied at n = 2?"), put to
+    the intent signer. An answer shall become an intent test and the job shall run again.</td></tr>
+  <tr><td>F26-R8</td><td><strong>Open directions are work.</strong> An open pair direction shall appear as
+    claimable work on the target's review (the frontier is unchanged, Q6) on any root not yet
+    <code>expert-attested</code> and after it whenever a new candidate arrives; a proof or refutation of
+    a direction shall be submitted through the gate as a <code>pair-proof</code> artifact, kernel-checked,
+    and credited (D-19). <strong>Mutate.</strong> The job shall perturb the surviving cluster's
+    representative by D-11's defect classes on the named parts; a mutant every test passes becomes a
+    question; the page reports how many mutants the tests caught, as a measure of the tests.</td></tr>
+  <tr><td>F26-R9</td><td><strong>Signatures and the ladder.</strong> A certificate shall name two signers by
+    role: the intent signer (the proposer; for an inherited conjecture the target's steward, each
+    answer citing a source or flagged) and the independent signer (reads Lean, wrote no candidate in
+    the surviving cluster, is not the intent signer). The ladder is earned as the table in the
+    amendment says: <code>screened-and-signed</code> when the automated stages are complete and one
+    non-author signs; <code>author-attested</code> when the intent signer signs; <code>expert-attested</code>
+    with both and a person-written candidate in the cluster, else capped and shown. "Author" means
+    the author of the Lean everywhere. No grade held today shall be taken away. Each signer chooses
+    accept, split (R11) or send back with a question; the page never computes a signature.</td></tr>
+  <tr><td>F26-R10</td><td><strong>Back-translation leaves.</strong> <code>qa.py</code>'s floors shall drop
+    <code>backtranslation</code>; existing QA records stay valid (they did more than the new floor asks)
+    and the <code>qa</code> schema keeps the value for old records. The signer reads the Lean rendered
+    mechanically with every type and coercion shown, beside the gloss (v3.30).</td></tr>
+  <tr><td>F26-R11</td><td><strong>Split.</strong> Where the intent signer confirms that surviving clusters
+    are genuinely different readings, the chosen cluster's representative becomes the root and each
+    other becomes a D-30 variant with its label proved where a pair direction already is, else
+    <code>related</code>; never the root, never the certificate. A later choice of another cluster
+    revises the root (D-8) and keeps the old one as a variant.</td></tr>
+  <tr><td>F26-R12</td><td><strong>When work opens; step 9.</strong> A new target becomes claimable when one
+    cluster survives stage 3 and stage 6 raises no open question. A proof that would settle a target's
+    root merges only when the review is complete (automated stages done, no open question, grade at
+    least <code>screened-and-signed</code>) <em>or</em> v3.15's catalog evidence scores at least five,
+    the evidence recording why the source is reliable; the automated stages still run and never hold
+    that merge. Intermediate work never waits.</td></tr>
+  <tr><td>F26-R13</td><td><strong>The job.</strong> <code>opn-gate review</code> shall run stages 3, 4 and 6
+    in the step-3 sandbox from a target's records, write exhibits, pair records and the review state as
+    one bot commit (as the post-merge job writes holes), elaborate every Lean it writes before
+    committing it (2026-09-17), and be idempotent: a second run on the same records writes nothing.
+    The post-merge job shall run it after any merge that adds a review record, and
+    <code>review.yml</code> shall run it on dispatch and nightly for every open review.</td></tr>
+  <tr><td>F26-R14</td><td><strong>Service and MCP.</strong> <code>POST /reviews</code> (open one; a web
+    session or a bearer with a GitHub login whose role the policy allows), <code>POST
+    /reviews/&lt;t&gt;/candidates</code> (bearer; the blind rule), <code>POST /reviews/&lt;t&gt;/answers</code>
+    (web session; the intent signer only), <code>POST /reviews/&lt;t&gt;/signatures</code> (web session;
+    the role's conditions checked from the record), <code>GET /reviews/&lt;t&gt;</code> and <code>GET
+    /reviews/&lt;t&gt;/questions</code> (open). MCP tools <code>get_review</code>,
+    <code>list_review_questions</code>, <code>submit_candidate</code> and <code>list_open_pairs</code>; a pair
+    proof goes through <code>submit_proof</code> with <code>artifact_type: pair-proof</code>. Every write
+    refuses before any pull request opens (F13-T21's rule) and every refusal has a catalog row.</td></tr>
+  <tr><td>F26-R15</td><td><strong>The notice.</strong> When a run leaves questions waiting that no notice has
+    named, the App shall post one comment on the review's tracking issue in the graph repository (or
+    the proposal's pull request) @-mentioning the intent signer, listing the questions and linking the
+    page; one comment per batch. The same notice shall appear on the signer's <code>/me/</code> page. The
+    network holds no email address.</td></tr>
+  <tr><td>F26-R16</td><td><strong>The page.</strong> The site shall render one review page per target from
+    the record only: candidates with author, origin and stage-3 result; pairs and clusters; questions,
+    answers with sources and the tests they became; the test matrix with mutants caught; screens and
+    the brief marked as a model's judgement; the two signature slots. Exhibits and judgements shall be
+    visibly apart. The intent signer, signed in (v3.33), answers on this page; the signers sign on it.
+    The target page shall show the review's state beside the grade.</td></tr>
+  <tr><td>F26-R17</td><td><strong>Products.</strong> <code>targets-index</code> and <code>graph.json</code> shall
+    take their next versions with <code>review</code>: state (candidates, clusters, questions waiting,
+    complete), the grade, the signers by role, and the open pair directions; <code>context</code> shall
+    carry the review's words and open questions for an agent on the node.</td></tr>
+  <tr><td>F26-R18</td><td><strong>Documentation.</strong> The guide shall gain a "Formalization review"
+    section (how to submit a candidate blind, read a discard, claim an open pair, what a question
+    looks like), the Docs page a "How a statement is reviewed" section, the error catalog every new
+    code, and the MCP appendix every new tool; the walkthrough shall execute the new blocks against the
+    fixture and the fake service.</td></tr>
+</table>
+
+<h2>5. Acceptance criteria</h2>
+<table>
+  <tr><th>ID</th><th>Given / when / then</th><th>Test</th></tr>
+  <tr><td>F26-AC1</td><td>Given the eight record schemas and their examples, when each example is validated
+    against its own schema and every pattern against its own description's example, then all pass; and
+    HASHES pins each.</td><td><code>gate/tests/test_review_schemas.py</code></td></tr>
+  <tr><td>F26-AC2</td><td>Given a target with a review, three candidates (one person's, two models'), two
+    exhibits discarding one, and a signature, when the state is derived, then it names 2 surviving, 1
+    discarded with its exhibit, the questions waiting, and the grade; and deriving it from the same
+    records in another order gives the same state (mutants of the derivation each fail one
+    test).</td><td><code>gate/tests/test_review_state.py</code></td></tr>
+  <tr><td>F26-AC3</td><td>Given the propositional fixture's root in words and three candidates (faithful,
+    inline-concept, dropped hypothesis), when the review job runs with the fake toolchain, then the
+    inline one is returned with the format reason, the dropped-hypothesis one is discarded by a
+    screen or a test exhibit, and the faithful one survives; a second run writes nothing.</td>
+    <td><code>gate/tests/test_review_job.py</code></td></tr>
+  <tr><td>F26-AC4</td><td>Given the same fixture with the real toolchain, when the job runs in the sandbox,
+    then every exhibit it wrote re-elaborates and the pair between the faithful candidate and a
+    rewording is proved in both directions, while a strictly weaker candidate's pair is proved one way
+    and refuted the other at a named case.</td><td><code>gate/tests/test_review_job_lean.py</code> (lean
+    tier), <code>…_docker.py</code> (sandbox)</td></tr>
+  <tr><td>F26-AC5</td><td>Given a direction whose proof never uses its hypothesis, when the guard runs,
+    then the direction stays open with the reason; given a refutation exhibit, then the direction is
+    refuted with the instance named, and no failed attempt is ever recorded as refuted.</td>
+    <td><code>gate/tests/test_review_pairs.py</code></td></tr>
+  <tr><td>F26-AC6</td><td>Given a surviving cluster and the three probes, when the mutation stage runs on
+    the prototype's three conjectures (core Lean), then every meaning-changing mutant is caught (5, 13,
+    15) and the counts match the prototype's evidence; a mutant every test passes becomes a
+    question.</td><td><code>gate/tests/test_review_mutants_lean.py</code> (lean tier)</td></tr>
+  <tr><td>F26-AC7</td><td>Given an answer record, when the next run happens, then an intent test with
+    source <code>answer</code> exists, re-runs against every candidate, and the question is closed;
+    given a case on which candidates disagree, then no test is written and a question is.</td>
+    <td><code>gate/tests/test_review_questions.py</code></td></tr>
+  <tr><td>F26-AC8</td><td>Given the ladder table, when records are added in each order the table allows,
+    then the grade is exactly the table's; a target with no person-written candidate caps at
+    <code>screened-and-signed</code> with the cap shown; no grade a target holds today is lowered by the
+    new derivation on the live products (measured over every target at the pin).</td>
+    <td><code>gate/tests/test_review_ladder.py</code></td></tr>
+  <tr><td>F26-AC9</td><td>Given a proof that settles a root whose review is incomplete, when step 9 runs,
+    then it does not approve and the verdict names the review's state; given catalog evidence at five
+    points, then it approves as v3.15 says; given an intermediate node, then the review is not
+    consulted.</td><td><code>gate/tests/test_step9_review.py</code></td></tr>
+  <tr><td>F26-AC10</td><td>Given <code>policy/v4</code> without <code>review_openers</code>, then the default
+    allows the three roles; given it set to curators only, then a steward's opening is refused
+    <code>review-opener-not-allowed</code>; the background review opens regardless.</td>
+    <td><code>gate/tests/test_review_policy.py</code></td></tr>
+  <tr><td>F26-AC11</td><td>Given the service and the fake host, when each write route is called with its
+    valid body, then exactly one pull request opens carrying exactly the record; when called with
+    each wrong role, a blind-rule breach, a second answer to a closed question, or a signature by a
+    candidate's author, then it refuses by name before any pull request.</td>
+    <td><code>api/tests/test_reviews_routes.py</code></td></tr>
+  <tr><td>F26-AC12</td><td>Given a person with no candidate on the record, when they call
+    <code>get_review</code> or <code>GET /reviews/&lt;t&gt;</code>, then no other candidate's Lean is in the
+    answer; after their candidate merges, it is.</td><td><code>api/tests/test_reviews_blind.py</code></td></tr>
+  <tr><td>F26-AC13</td><td>Given the four tools, when <code>tools/list</code> is read, then each is in the
+    D-28 table verbatim, each parameter is described, each has a result schema, and the listing's size
+    is re-measured and pinned.</td><td><code>api/tests/test_mcp_surface.py</code>,
+    <code>test_finding_mcp_context_budget.py</code></td></tr>
+  <tr><td>F26-AC14</td><td>Given two questions left waiting by a run, when the notice step runs against the
+    fake host, then one issue comment is posted @-mentioning the signer's login with both questions and
+    the page link; a second run with no new question posts nothing; the <code>/me/</code> page lists
+    them.</td><td><code>api/tests/test_review_notice.py</code>, <code>site/tests/test_me_reviews.py</code></td></tr>
+  <tr><td>F26-AC15</td><td>Given a fixture review at each state, when the site renders, then the review page
+    shows the six sections with exhibits and judgements apart, the target page shows the state beside
+    the grade, and the answer form posts to the service; screenshots at 1440 and 390 read.</td>
+    <td><code>site/tests/test_review_page.py</code></td></tr>
+  <tr><td>F26-AC16</td><td>Given the products at their next versions, when every consumer is grepped for the
+    version strings, then the api, the MCP filters, the smokes, the deploy check and the site accept them
+    (<code>test_versions_accepted</code>).</td><td><code>gate/tests/test_versions_accepted.py</code></td></tr>
+  <tr><td>F26-AC17</td><td>Given the guide's new blocks, when the walkthrough runs, then they execute against
+    the fixture clone and the fake service; every route, tool and code the guide names
+    exists.</td><td><code>gate/tests/test_walkthrough.py</code>, <code>test_finding_guide_names_exist.py</code></td></tr>
+  <tr><td>F26-AC18</td><td>Given the live graph after the re-pin, when the background reviews open and run on
+    every target, then each live statement survives its own review or the finding is filed as a defect
+    claim (D-15), nothing leaves the frontier, and no grade moves (network tier).</td>
+    <td><code>engineering/evidence/F26/live-background.txt</code></td></tr>
+  <tr><td>F26-AC19</td><td>Given one new conjecture proposed in words, when a review runs end to end with
+    two blind agents and one person, then questions reach the intent signer through the App's notice,
+    an answer becomes a test, one cluster survives, and both signatures land on the page (network
+    tier; the first live review).</td><td><code>engineering/evidence/F26/live-first-review.txt</code></td></tr>
+</table>
+
+<h2>6. Budgets / limits</h2>
+<ul>
+  <li>A review's job runs under the step-3 sandbox's caps; each screen, test and pair attempt has D-9's
+    bounded tactic budget (the prototype's 20 s per hosted call becomes the sandbox's budget per
+    attempt), and a run that exceeds its wall clock records what it finished and leaves the rest open.</li>
+  <li>Candidates per review per identity: 3 a day (the write limit applies as well); questions per
+    notice: unbounded, one comment per batch.</li>
+  <li>Mutants: every single-site change of the named parts by D-11's classes, capped at 200 per
+    representative; the cap is recorded when hit.</li>
+  <li>The page: one per target, rendered from the products; a review with more than 50 candidates folds
+    the discarded ones.</li>
+</ul>
+
+<h2>7. Security &amp; privacy notes</h2>
+<ul>
+  <li>Only exhibits are evidence for a grade (D-9 v3.12); the brief and every model-written text is a
+    judgement and is marked so. No automated step signs.</li>
+  <li>An answer and a signature name a GitHub login through the approval key, as a v3.33 approval does;
+    the network holds no email and the notice uses GitHub's own delivery.</li>
+  <li>Every Lean the job writes is elaborated before it is committed (2026-09-17); a candidate's Lean
+    is elaborated only in the sandbox (D-4, C8).</li>
+  <li>The blind rule is a service rule over a public graph: the record says what a person declared,
+    never what the network verified.</li>
+  <li>The App's issue comment is a write to the graph repository's issues under the App; its content is
+    the questions' words and a link, never a token or a login beyond the mention.</li>
+</ul>
+
+<h2>8. Dependencies</h2>
+<p>F08 (D-8 revisions, defect claims), F12 (the QA pass and <code>fidelity/v2</code>), F15 (stewards,
+<code>policy.json</code>), F19/F20 (glosses the signer reads beside the Lean), F23 (web sessions,
+approvals), F24 (<code>policy/v3</code>), F25 (automation disclosure on candidates). The two prototypes
+are the reference implementation.</p>
+
+<h2>9. Open questions / judgment calls</h2>
+<table>
+  <tr><th>ID</th><th>Entry</th></tr>
+  <tr><td>F26-Q1</td><td><strong>Numbering.</strong> The draft called itself v3.36; by the time the owner
+    approved building it (2026-10-12), v3.37 and v3.38 were applied, so it is applied as v3.39, the
+    draft's file keeps its name, and the doc's version history says so (the 2026-10-12 log entry's
+    rule: claim the number on main before building).</td></tr>
+  <tr><td>F26-Q2</td><td><strong>Rebuild, do not import, the prototypes.</strong> They drove the hosted
+    fast check from a laptop and simulated the proposer in Python; the job runs in the sandbox with
+    its own budget and reads real answer records. Their test corpora (candidates, planted defects,
+    mutants and the expected counts) become the fixtures, so the rebuild is held to the measured
+    results (AC6).</td></tr>
+  <tr><td>F26-Q3</td><td><strong>Records before routes.</strong> Every review act is a record on the graph
+    first; the service only opens pull requests (J6 of F25's reasoning). The job's output is a bot
+    commit like the post-merge job's holes, with the same idempotence rule (F07-T21's lesson about a
+    guard doing a second job).</td></tr>
+  <tr><td>F26-Q4</td><td><strong>Definitions keep F12's pass for now.</strong> D-9 names definitions as a
+    review object; the review here is of roots. A definition review would need its own probes
+    (equality of the defined object), which the prototypes did not test; it waits on evidence.</td></tr>
+  <tr><td>F26-Q5</td><td><strong>Who is the intent signer for an inherited conjecture with no steward?</strong>
+    The amendment says the steward; most live targets have none. The review still runs and its
+    questions wait, shown on the target page as "needs an intent signer", which is one more reason a
+    problem needs a steward (D-32), and the state says so rather than the review pretending to be
+    complete.</td></tr>
+  <tr><td>F26-Q6</td><td><strong>Open pair directions are not frontier entries.</strong> The frontier is
+    nodes (D-25); a pair direction is work on a review. They are listed on the review page, in
+    <code>list_open_pairs</code> and in <code>context</code>, and a proof of one is a <code>pair-proof</code>
+    artifact credited on a new ledger line kind, <code>pair</code>; adding them to the frontier would be a
+    D-25 change and is not proposed.</td></tr>
+  <tr><td>F26-Q7</td><td><strong>The background review must not move anything on its own.</strong> On an
+    existing target it opens, runs, and files what it finds through D-15 and D-8; it never changes a
+    grade, a status or a frontier entry (AC18 measures that no grade moves). Its one visible effect is
+    the state line and, if a question arises, a notice to the steward where one exists.</td></tr>
+</table>
+
+<h2>10. Status</h2>
+<div class="rule"><strong>status:</strong> spec · <strong>Tasks:</strong> none started</div>
+
+<h2>Tasks</h2>
+<p class="status-note">Dependency-ordered. Red before green: each new test fails on the missing
+behaviour, with the seam in at today's behaviour. T0 first and alone; T1 publishes the contracts
+before any agent starts (2026-10-05's rule).</p>
+<table>
+  <tr><th>ID</th><th>Task</th><th>Files</th><th>Deps</th><th>Verification</th></tr>
+  <tr><td>F26-T0</td><td>Apply decisions v3.39 (D-6, D-9, D-28, D-30, D-35, D-36, glossary, version
+    history; the session note's §1–§7 renumbered); bump <code>PROTOCOL_VERSION</code>; the index
+    row.</td><td><code>docs/architecture_decisions.html</code>, <code>gate/opn_gate/products.py</code>,
+    <code>engineering/specs/index.html</code></td><td>—</td><td><code>uv run pytest api/tests/test_routes.py
+    api/tests/test_mcp_surface.py gate/tests/test_walkthrough.py</code></td></tr>
+  <tr><td>F26-T1</td><td>Schemas: the eight review records, <code>policy/v4</code>, the next
+    <code>targets-index</code>, <code>graph</code> and <code>context</code>; HASHES; the golden sweep;
+    <code>paths.locate</code> and the mode table rows (R1, R2).</td><td><code>gate/schemas/</code>,
+    <code>gate/opn_gate/paths.py</code>, <code>modes.py</code></td><td>T0</td><td>AC1, AC16</td></tr>
+  <tr><td>F26-T2</td><td>The state derivation and the ladder (R9, R11's labels), with mutants (AC2,
+    AC8).</td><td><code>gate/opn_gate/review.py</code></td><td>T1</td><td>AC2, AC8</td></tr>
+  <tr><td>F26-T3</td><td>The policy setting and the opening rule (R2); the background opening for every
+    existing target as a curator command (<code>opn-gate review open --all</code>).</td>
+    <td><code>gate/opn_gate/policy.py</code>, <code>review.py</code>, <code>cli.py</code></td><td>T1</td><td>AC10</td></tr>
+  <tr><td>F26-T4</td><td>The format rule, the concept manifest and the ported wrapper (R5).</td>
+    <td><code>gate/opn_gate/review_format.py</code></td><td>T1</td><td>AC3 (returned), lean tier for the
+    wrapper</td></tr>
+  <tr><td>F26-T5</td><td>The job's filter stage: compile, screens, intent tests with the three probes,
+    exhibits as bot commits, idempotence (R4, R6, R13).</td><td><code>gate/opn_gate/review_job.py</code>,
+    <code>gate/lean/OpnGate/Review*.lean</code></td><td>T2, T4</td><td>AC3, AC4, AC7</td></tr>
+  <tr><td>F26-T6</td><td>Pairs: matching, the degenerate guard, refutation by instance, open directions
+    (R7, R8).</td><td><code>gate/opn_gate/review_pairs.py</code></td><td>T5</td><td>AC4, AC5</td></tr>
+  <tr><td>F26-T7</td><td>Questions from disagreements and mutants; answers into tests; the mutation stage held
+    to the prototype's counts (R6–R8).</td><td><code>gate/opn_gate/review_questions.py</code>,
+    <code>review_mutants.py</code></td><td>T5, T6</td><td>AC6, AC7</td></tr>
+  <tr><td>F26-T8</td><td>Step 9 reads the review; the catalog waiver kept (R12); the post-merge and
+    <code>review.yml</code> callers (R13).</td><td><code>gate/opn_gate/steps/review_step.py</code>,
+    <code>postmerge.py</code>, <code>../open_proof_network_graph/.github/workflows/review.yml</code></td>
+    <td>T5</td><td>AC9</td></tr>
+  <tr><td>F26-T9</td><td>Back-translation leaves the floors (R10); the signer's rendered Lean.</td>
+    <td><code>gate/opn_gate/qa.py</code>, <code>site/opn_site/</code></td><td>T1</td><td><code>gate/tests/test_qa.py</code></td></tr>
+  <tr><td>F26-T10</td><td>Service routes and MCP tools (R14): the blind rule, the role checks, every refusal
+    before a pull request; catalog rows; the ceiling re-measured.</td><td><code>api/opn_api/reviews.py</code>,
+    <code>routes.py</code>, <code>mcp/</code>, <code>gate/opn_gate/codes.py</code></td><td>T2, T3</td><td>AC11, AC12, AC13</td></tr>
+  <tr><td>F26-T11</td><td>The App's notice and the <code>/me/</code> listing (R15).</td>
+    <td><code>api/opn_api/review_notice.py</code>, <code>site/</code></td><td>T7, T10</td><td>AC14</td></tr>
+  <tr><td>F26-T12</td><td>The review page, the answer form, the target page's state line; products (R16,
+    R17).</td><td><code>gate/opn_gate/products.py</code>, <code>site/opn_site/</code></td><td>T2</td><td>AC15, AC16, screenshots</td></tr>
+  <tr><td>F26-T13</td><td>Documentation (R18): guide section, Docs section, catalog, MCP appendix,
+    walkthrough.</td><td><code>gate/agents/AGENTS.md</code>, <code>site/opn_site/templates/docs.html</code></td>
+    <td>T10</td><td>AC17</td></tr>
+  <tr><td>F26-T14</td><td>Live: push, deploy, re-pin and re-render; open the background review on every
+    target and read what it finds (AC18); the owner's sitting for the graph pushes.</td><td>graph,
+    evidence</td><td>T1–T13</td><td>AC18</td></tr>
+  <tr><td>F26-T15</td><td>The first live review on a new conjecture, end to end, with two blind agents and
+    one person (AC19).</td><td>evidence</td><td>T14</td><td>AC19</td></tr>
+</table>
+</body>
+</html>
