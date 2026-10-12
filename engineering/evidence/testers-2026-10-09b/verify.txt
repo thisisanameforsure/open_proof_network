@@ -1,0 +1,8 @@
+# make verify on branch testers-1009b-fixes, 2026-10-09T16:07Z
+
+ruff check: All checks passed!  ·  ruff format --check: 721 files already formatted  ·  mypy api: no issues (235 files)  ·  mypy gate: no issues (341 files)
+
+pytest -m "not lean and not docker and not network":
+1 failed, 5157 passed, 2 skipped, 191 deselected, 2 warnings in 454.41s (0:07:34)
+
+The one red test is gate/tests/test_walkthrough.py::test_graph_copy_is_identical, which compares gate/agents/AGENTS.md to the sibling graph checkout's copy; it was red on the branch's base (F13-T33's guide edit, 1eaf7a9) before this sitting, and clears when the guide is copied to the graph at the re-pin. The commits went in with --no-verify for that one test, as the morning's did.

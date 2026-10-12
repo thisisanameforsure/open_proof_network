@@ -48,7 +48,7 @@ def legend(html: str) -> str:
 #: too, shown when the drawing shows them; these tests are about the *status* part of the key.
 DRAWING_KEYS = frozenset(
     render.GLOSSARY_BY_KEY[k][0]
-    for k in ("on-proof", "not-needed", "use", "unmeasured", "proposed-for", "outline")
+    for k in ("on-proof", "not-needed", "use", "lemma", "unmeasured", "proposed-for", "outline")
 )
 
 

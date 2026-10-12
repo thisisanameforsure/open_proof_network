@@ -1,0 +1,271 @@
+{
+ "id": "01M4GH9NE0ARAH3C02140VH88V",
+ "node_id": "erdos-1094--h2--h1",
+ "target_id": "erdos-1094",
+ "state": "done",
+ "created": "2026-10-09T14:32:56Z",
+ "graph_commit": "7764688402b61591794cc7dbbd5bcb1a3c0628c1",
+ "bundle_digest": "7251eb42d9ffac3425d42a0797c293759b4a92790e1e48331f58c511b75607d8",
+ "authenticated": true,
+ "result": {
+  "attestation": {
+   "artifact_hash": null,
+   "diagnostic": null,
+   "first_failing_step": null,
+   "footprint": {
+    "nodes": []
+   },
+   "gate_spec_hash": "29324429716c23877d36ce4405f2a1a8bfeb58aa679112fbd4312f597ae0fe00",
+   "graph_commit": "7764688402b61591794cc7dbbd5bcb1a3c0628c1",
+   "graph_id": "erdos-1094",
+   "lean_toolchain": "leanprover/lean4:v4.33.1",
+   "mathlib_sha": "0df444a360eaa60ab8c11dca51a86af692955474",
+   "merge_commit": null,
+   "model_and_tooling": "undeclared",
+   "network_commit": "b4e4817959d52854966c4d1c23eaa4afaec782da",
+   "node_id": "erdos-1094--h2--h1",
+   "precheck_attestation": {
+    "hash": null,
+    "signature_kind": null
+   },
+   "review": null,
+   "runner": "hosted",
+   "schema": "attestation/v6",
+   "signature": {
+    "key_id": "SHA256:bJR39nO37EkRaxo4CPqdhcHk+WL+sEnAJ9ujpkF7LXo",
+    "kind": "service",
+    "timestamp": "2026-10-09T14:36:55Z",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAg4NVeR5WlT1J5vaHpDOmXNTurS+\nKqTYJTovSCpPj5G/IAAAAPb3BuLWF0dGVzdGF0aW9uAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQEjMj9RmiVDfbbT1uCtnVtO59fj5W8p6uGCuWb2zcseNGQjOTl\nMMvVa5Po0y59KkGNsqc9DYfWTjnkA/4XImKAk=\n-----END SSH SIGNATURE-----\n"
+   },
+   "statement_hash": "c926a7c69c19de8b32ba63d9172cb76be6b13d1e08e887166170b716e49992c4",
+   "steps": [
+    {
+     "diagnostic": {
+      "code": "mathlib-pinned",
+      "details": {
+       "mathlib_sha": "0df444a360eaa60ab8c11dca51a86af692955474",
+       "packages": 8
+      },
+      "message": "Mathlib 0df444a360ea resolved from the pinned checkout"
+     },
+     "name": "toolchain",
+     "result": "pass",
+     "step": 1
+    },
+    {
+     "diagnostic": {
+      "code": "partial-submission",
+      "details": {
+       "path": "attempts/20261009T143300Z-t1009-c-partial.lean"
+      },
+      "message": "a partial proof: attempts/20261009T143300Z-t1009-c-partial.lean (D-12 #5)"
+     },
+     "name": "paths",
+     "result": "pass",
+     "step": 2
+    },
+    {
+     "diagnostic": {
+      "code": "artifact-reduction",
+      "details": {
+       "holes": [
+        "h_good_below_cube"
+       ],
+       "kind": "partial"
+      },
+      "message": "partial: erdos_1094__h2__h1 declares \u2203 K, \u2200 (n k : \u2115), 0 < k \u2192 k * k \u2264 n \u2192 n < k * k * k \u2192 (n.choose k).minFac > n / k \u2192 k \u2264 K; 1 hole(s)"
+     },
+     "name": "kernel-replay",
+     "result": "pass",
+     "step": 4
+    },
+    {
+     "diagnostic": null,
+     "name": "axioms",
+     "result": "pass",
+     "step": 5
+    },
+    {
+     "diagnostic": {
+      "code": "hazards-derived-statement",
+      "details": {
+       "acknowledged": [],
+       "checkers": [
+        "div-zero",
+        "int-trunc",
+        "junk-value",
+        "nat-sub",
+        "off-by-one-range",
+        "unused-binder"
+       ],
+       "findings": [
+        {
+         "checker": "div-zero",
+         "location": "n / k",
+         "message": "division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"
+        }
+       ],
+       "origin": "skeleton-hole"
+      },
+      "message": "1 hazard finding(s) on a statement the gate derived from a merged assembly, recorded and not refused; first: div-zero at n / k: division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"
+     },
+     "name": "hazards",
+     "result": "pass",
+     "step": 6
+    },
+    {
+     "diagnostic": {
+      "code": "hole-witnesses",
+      "details": {
+       "witnesses": [
+        {
+         "hole": "h_good_below_cube",
+         "path": "attempts/20261009T143300Z-t1009-c-partial.1.witness",
+         "sha256": "e73e75b6b44140cc2cb43f7c1e984f1898fd18d0a2a2466be3b3d34e0451da50"
+        }
+       ]
+      },
+      "message": "1 of 1 hole(s) carry a witness, each checked as step 7 checks a node's (F07-R23)"
+     },
+     "name": "witness",
+     "result": "pass",
+     "step": 7
+    },
+    {
+     "diagnostic": null,
+     "name": "deps",
+     "result": "pass",
+     "step": 8
+    }
+   ],
+   "submitter": null,
+   "toolchain_hash": "f54d0bc916bf76a7fae460ce9d078ccd1f74aeb4fd12c4b6546bca28b6aa1c63",
+   "tooling": {
+    "harness": null,
+    "model": null
+   },
+   "trust_base": "kernel",
+   "verdict": "pass"
+  },
+  "bundle_digest": "7251eb42d9ffac3425d42a0797c293759b4a92790e1e48331f58c511b75607d8",
+  "first_failing_step": null,
+  "holes": [
+   {
+    "closed_type": "\u2203 (K : \u2115), \u2200 (n k : \u2115), (0 : \u2115) < k \u2192 (2 : \u2115) * k \u2264 n \u2192 n < k * k * k \u2192 (n.choose k).minFac > k \u2192 k \u2264 K",
+    "expected_witness": "True",
+    "name": "h_good_below_cube",
+    "proved_binders": [],
+    "restates": null,
+    "witness": {
+     "checked": true,
+     "path": "attempts/20261009T143300Z-t1009-c-partial.1.witness",
+     "sha256": "e73e75b6b44140cc2cb43f7c1e984f1898fd18d0a2a2466be3b3d34e0451da50"
+    }
+   }
+  ],
+  "job_id": "01M4GH9NE0ARAH3C02140VH88V",
+  "node_id": "erdos-1094--h2--h1",
+  "steps": [
+   {
+    "diagnostic": {
+     "code": "mathlib-pinned",
+     "details": {
+      "mathlib_sha": "0df444a360eaa60ab8c11dca51a86af692955474",
+      "packages": 8
+     },
+     "message": "Mathlib 0df444a360ea resolved from the pinned checkout"
+    },
+    "name": "toolchain",
+    "result": "pass",
+    "step": 1
+   },
+   {
+    "diagnostic": {
+     "code": "partial-submission",
+     "details": {
+      "path": "attempts/20261009T143300Z-t1009-c-partial.lean"
+     },
+     "message": "a partial proof: attempts/20261009T143300Z-t1009-c-partial.lean (D-12 #5)"
+    },
+    "name": "paths",
+    "result": "pass",
+    "step": 2
+   },
+   {
+    "diagnostic": {
+     "code": "artifact-reduction",
+     "details": {
+      "holes": [
+       "h_good_below_cube"
+      ],
+      "kind": "partial"
+     },
+     "message": "partial: erdos_1094__h2__h1 declares \u2203 K, \u2200 (n k : \u2115), 0 < k \u2192 k * k \u2264 n \u2192 n < k * k * k \u2192 (n.choose k).minFac > n / k \u2192 k \u2264 K; 1 hole(s)"
+    },
+    "name": "kernel-replay",
+    "result": "pass",
+    "step": 4
+   },
+   {
+    "diagnostic": null,
+    "name": "axioms",
+    "result": "pass",
+    "step": 5
+   },
+   {
+    "diagnostic": {
+     "code": "hazards-derived-statement",
+     "details": {
+      "acknowledged": [],
+      "checkers": [
+       "div-zero",
+       "int-trunc",
+       "junk-value",
+       "nat-sub",
+       "off-by-one-range",
+       "unused-binder"
+      ],
+      "findings": [
+       {
+        "checker": "div-zero",
+        "location": "n / k",
+        "message": "division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"
+       }
+      ],
+      "origin": "skeleton-hole"
+     },
+     "message": "1 hazard finding(s) on a statement the gate derived from a merged assembly, recorded and not refused; first: div-zero at n / k: division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"
+    },
+    "name": "hazards",
+    "result": "pass",
+    "step": 6
+   },
+   {
+    "diagnostic": {
+     "code": "hole-witnesses",
+     "details": {
+      "witnesses": [
+       {
+        "hole": "h_good_below_cube",
+        "path": "attempts/20261009T143300Z-t1009-c-partial.1.witness",
+        "sha256": "e73e75b6b44140cc2cb43f7c1e984f1898fd18d0a2a2466be3b3d34e0451da50"
+       }
+      ]
+     },
+     "message": "1 of 1 hole(s) carry a witness, each checked as step 7 checks a node's (F07-R23)"
+    },
+    "name": "witness",
+    "result": "pass",
+    "step": 7
+   },
+   {
+    "diagnostic": null,
+    "name": "deps",
+    "result": "pass",
+    "step": 8
+   }
+  ],
+  "verdict": "pass"
+ },
+ "public": true
+}

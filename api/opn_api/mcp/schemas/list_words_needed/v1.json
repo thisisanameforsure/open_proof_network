@@ -27,7 +27,7 @@
           "items": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["target", "file", "kind", "node", "module", "reason", "outline", "in_review", "node_status"],
+            "required": ["target", "file", "kind", "node", "module", "reason", "outline", "lean_hash", "in_review", "node_status"],
             "properties": {
               "target": {"type": "string"},
               "file": {
@@ -45,6 +45,11 @@
               "reason": {
                 "description": "Why no words cover it, as opn-gate gloss coverage names it.",
                 "enum": ["no-gloss", "describes-earlier-text", "all-withdrawn", "no-explainer", "root-without-informal"]
+              },
+              "lean_hash": {
+                "description": "The SHA-256 of the Lean text the words would describe: submit_gloss's `proof` for a proof, alternate or partial, its subject's optional `lean_hash` for a statement, witness or relation.",
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
               },
               "outline": {
                 "description": "For a proof, alternate or partial: the path of its outline (F19), targets/<id>/outlines/<artifact-hash>.json; null otherwise.",

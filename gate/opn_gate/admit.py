@@ -31,7 +31,7 @@ from opn_gate import judging, layout, records, schemas
 from opn_gate.diagnostic import Diagnostic
 from opn_gate.scaffold import LABELS_NEEDING_PROOF, RELATION_DECL, RELATION_FILE
 from opn_gate.steps.base import RunContext, Step, StepResult
-from opn_gate.steps.deps import check_context
+from opn_gate.steps.deps import check_context, required_signatures
 from opn_gate.steps.hazards import HazardsStep, StatementStep
 from opn_gate.steps.toolchain_step import ToolchainStep
 from opn_gate.steps.witness import WitnessStep
@@ -159,8 +159,9 @@ class ContextCheck:
         node = ctx.node
         if node is None:
             return StepResult.failed("check-order", "the context check needs the layout check")
-        declared = list(graphmod.effective_deps(node.path.parent, node.meta.get("deps")))
-        problem = check_context(node, declared)
+        # F07-T77: deps then lemmas, the one list step 8 reads (a proposal never has lemmas; a
+        # revision of a node that has them keeps the same rule).
+        problem = check_context(node, required_signatures(node))
         return problem if problem is not None else StepResult.passed()
 
 

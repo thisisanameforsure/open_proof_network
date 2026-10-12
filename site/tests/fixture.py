@@ -71,11 +71,22 @@ def attest(root: Path, node_id: str, n: int, **kw: object) -> None:
 WITNESS_STEP = {"step": 7, "name": "witness", "result": "pass", "diagnostic": None}
 
 
+#: F04-T39 (D-12 v3.38): the fixture's one lemma. A merged partial of the proved tutorial node
+#: restated ``and-reassoc`` (a sibling under the root, not a hole of the tutorial) as its hole
+#: ``h_reassoc``, so the tutorial node carries it as a lemma: drawn on once proved, never waited
+#: on, and not among its deps (D-3). The products are rewritten to ``graph/v8`` with it, since
+#: the fixture's tree holds no such partial for the gate to extract.
+LEMMA_PARENT = "tutorial-and-swap"
+LEMMA_NODE = "and-reassoc"
+LEMMA_HOLE = "h_reassoc"
+
+
 def build(tmp_path: Path) -> Path:
     """The graph in its curated state with products written; returns the checkout root."""
     root = curated(tmp_path)
     prod = products.generate(root, rendered_from=COMMIT, commit_time=NOW)
     prod.write(root)
+    publish_v336(root, lemmas={LEMMA_PARENT: [{"hole": LEMMA_HOLE, "node": LEMMA_NODE}]})
     return root
 
 
@@ -621,11 +632,13 @@ def publish_v335(
 
     graph_path = root / "targets" / target / "graph.json"
     graph = json.loads(graph_path.read_text(encoding="utf-8"))
-    graph["schema"] = "graph/v6"
-    graph.pop("registrations", None)  # F25-T1: v7 added it; a v6 snapshot has none
+    # F04-T39: the current contract is graph/v8 (lemmas over F25-T1's v7 with registrations),
+    # which also wants each row's ``lemmas``; a row the fixture already gave some keeps them.
+    graph["schema"] = "graph/v8"
     for row in graph["nodes"]:
         extend(row)
-    graph_path.write_text(json.dumps(schemas.validate(graph, "graph/v6"), indent=1) + "\n")
+        row.setdefault("lemmas", [])
+    graph_path.write_text(json.dumps(schemas.validate(graph, "graph/v8"), indent=1) + "\n")
 
     frontier_path = root / "frontier.json"
     frontier = json.loads(frontier_path.read_text(encoding="utf-8"))
@@ -638,3 +651,25 @@ def publish_v335(
             entry.setdefault("literature", None)
             entry.setdefault("literature_proposed", None)
     frontier_path.write_text(json.dumps(schemas.validate(frontier, "frontier/v5"), indent=1) + "\n")
+
+
+# --- Decisions v3.38 (F04-T39): lemmas, the products as the gate writes them since graph/v8 -------
+
+
+def publish_v336(
+    root: Path,
+    *,
+    lemmas: dict[str, list[dict[str, str]]] | None = None,
+    target: str = TARGET,
+) -> None:
+    """Rewrite the rendered ``graph.json`` as the v3.38 gate writes it: ``graph/v8``, every row
+    carrying ``lemmas`` (``[{hole, node}]``, D-12 v3.38) — the given ones on the named nodes,
+    none elsewhere. Idempotent over a document the gate already wrote at v7. The document is
+    validated against the schema, so a test feeds the site exactly the contract's shape."""
+    lemmas = lemmas or {}
+    graph_path = root / "targets" / target / "graph.json"
+    graph = json.loads(graph_path.read_text(encoding="utf-8"))
+    graph["schema"] = "graph/v8"
+    for row in graph["nodes"]:
+        row["lemmas"] = list(lemmas.get(str(row["node_id"]), row.get("lemmas") or []))
+    graph_path.write_text(json.dumps(schemas.validate(graph, "graph/v8"), indent=1) + "\n")

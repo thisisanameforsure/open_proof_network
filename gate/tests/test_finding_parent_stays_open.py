@@ -202,8 +202,12 @@ def test_next_child_index_counts_a_revised_hole_by_its_number(tmp_path: Path) ->
 
 def test_a_restated_hole_is_an_edge_and_a_restated_sibling_is_not(tmp_path: Path) -> None:
     """A later route's hole that restates one of the parent's own holes is that hole again (an
-    edge already on the record); one that restates any other sibling adds no edge, because an
-    edge the parent would wait on is what a decomposition must not add."""
+    edge already on the record); one that restates any other sibling adds no *dependency* —
+    an edge the parent would wait on is what a decomposition must not add — and is recorded as
+    a *lemma* under the hole's name (D-12 v3.38, F07-T77). Restated from v3.19 (Q29), which
+    gave way: it had said a restated sibling records nothing at all, so the merged assembly
+    could never be used (graph #479, erdos-1094). Here the restated sibling is a declared dep
+    of the root as well, which keeps blocking as a dep (D-3) whatever ``lemmas`` says."""
     root = decomposed(tmp_path)
     parent = root / "targets" / TARGET / "nodes" / PARENT
     own = replace(hole("again", HOLES[0].closed_type, local="r"), defeq_sibling=H1)
@@ -224,15 +228,24 @@ def test_a_restated_hole_is_an_edge_and_a_restated_sibling_is_not(tmp_path: Path
     placed = {p["name"]: p for p in result.holes}
     assert placed["again"] == {"name": "again", "child": None, "reused_node": H1}
     assert placed["borrowed"] == {"name": "borrowed", "child": None, "reused_node": DEP_A}
-    after = yaml.safe_load((parent / "META.yaml").read_text())["deps"]
-    assert after == [*before, f"{PARENT}--h5"]  # H1 was already there; DEP_A likewise
+    meta = yaml.safe_load((parent / "META.yaml").read_text())
+    assert meta["deps"] == [*before, f"{PARENT}--h5"]  # H1 was already there; DEP_A likewise
+    assert meta["lemmas"] == [{"hole": "borrowed", "node": DEP_A}]  # the sibling, as a lemma
+    assert result.lemmas == (("borrowed", DEP_A),)
     assert not (parent.parent / f"{PARENT}--h3").exists()
+    tg = graph.load_target(root, TARGET)
+    assert tg.nodes[ROOT_NODE].lemmas == (graph.Lemma("borrowed", DEP_A),)
+    assert tg.nodes[ROOT_NODE].holes == (H1, H2, f"{PARENT}--h5")
 
 
 @pytest.mark.parametrize("sibling", [DEP_B])
 def test_a_restated_sibling_that_was_not_a_dep_stays_off_the_deps(
     tmp_path: Path, sibling: str
 ) -> None:
+    """A sibling the root did not depend on, restated by a hole: still not a dep (the root must
+    not come to wait on it), and since D-12 v3.38 a lemma of the root with the hole's name,
+    whose signature the root's ``Context.lean`` carries (F07-T77). v3.19's "stays off the
+    record entirely" gave way to the lemma edge."""
     root = copy_graph(tmp_path)
     parent = root / "targets" / TARGET / "nodes" / PARENT
     meta = yaml.safe_load((parent / "META.yaml").read_text())
@@ -246,5 +259,8 @@ def test_a_restated_sibling_that_was_not_a_dep_stays_off_the_deps(
         parent, (borrowed,), partial_text=ASSEMBLY, pseudonym=PSEUDONYM, stamp=STAMP
     )
     assert result.children == ()
-    after = yaml.safe_load((parent / "META.yaml").read_text())["deps"]
-    assert sibling not in after
+    meta = yaml.safe_load((parent / "META.yaml").read_text())
+    assert sibling not in meta["deps"]
+    assert meta["lemmas"] == [{"hole": "borrowed", "node": sibling}]
+    context = (parent / "Context.lean").read_text(encoding="utf-8")
+    assert f"`{sibling}`" in context and "OpnProp.and_reassoc :" in context

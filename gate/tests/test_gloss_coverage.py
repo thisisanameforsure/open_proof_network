@@ -295,9 +295,10 @@ def _assert_parity(graph: Path, capsys: pytest.CaptureFixture[str]) -> list[dict
     expected = _uncovered(graph, capsys)
     assert expected, "guard: the state has subjects without words"
     by_file = sorted(rows, key=lambda r: str(r["file"]))
-    assert [{k: v for k, v in r.items() if k != "outline"} for r in by_file] == sorted(
-        expected, key=lambda r: str(r["file"])
-    )
+    # ``outline`` and ``lean_hash`` (testers 2026-10-09b, C3) are the subject's, beyond coverage's
+    assert [
+        {k: v for k, v in r.items() if k not in ("outline", "lean_hash")} for r in by_file
+    ] == sorted(expected, key=lambda r: str(r["file"]))
     return rows
 
 

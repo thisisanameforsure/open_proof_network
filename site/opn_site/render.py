@@ -409,6 +409,15 @@ GLOSSARY: tuple[tuple[str, str, str, str], ...] = (
         "beyond the dependencies its statement declared.",
         "use line, import Nodes.«id».Proof (D-12 v3.25)",
     ),
+    # F04-T39 (D-12 v3.38): the dash-dot line from a restated node under another branch.
+    (
+        "lemma",
+        "lemma from another branch",
+        "A dash-dot line runs up from a statement under another branch to one whose merged "
+        "decomposition restated it as a hole. The upper statement may draw on it once it is "
+        "proved and never waits on it: a hole's standing, without a hole's place in the tree.",
+        "lemmas (META.yaml, D-12 v3.38)",
+    ),
     (
         "outline",
         "has an outline",
@@ -1234,6 +1243,8 @@ class Renderer:
         line_keys = ("depends-on",) if "edge" in drawn else ()
         if "edge use" in drawn:
             line_keys = (*line_keys, "use")
+        if "edge lemma" in drawn:  # F04-T39 (D-12 v3.38)
+            line_keys = (*line_keys, "lemma")
         pointed = ("proposed-for",) if dag.pointers(tv.graph["nodes"]) else ()
         if any(nv.annexes for nv in tv.nodes.values()):
             pointed = ("outline", *pointed)
@@ -3482,7 +3493,7 @@ class Renderer:
             + self.in_review_slot("gloss"),
             in_review_explainer=self.in_review_slot("explainer"),
             statement_link=self.file_link(nv.statement_path),
-            deps=self.deps_list(tv, nv),
+            deps=self.deps_list(tv, nv) + self.lemmas_list(tv, nv),  # F04-T39: lemmas beside deps
             origin=esc(e["origin"]) + (f" ({esc(e['relation'])})" if e["relation"] else ""),
             proof=proof,
             witness=witness,
@@ -4967,6 +4978,32 @@ class Renderer:
             items.append(f"<li>{link}: {words}</li>")
         return (
             '<div class="deps"><p>Depends on, each in words where someone has written them:</p>'
+            f"<ul>{''.join(items)}</ul></div>"
+        )
+
+    def lemmas_list(self, tv: TargetView | None, nv: NodeView) -> str:
+        """F04-T39 (D-12 v3.38): the node's lemmas — nodes under other branches a merged partial
+        of it restated as holes — each linked with its state's dot and the hole it answered.
+        Nothing for a node with none (every node rendered before ``graph/v8``)."""
+        if not nv.lemmas:
+            return ""
+        items = []
+        for lemma in nv.lemmas:
+            other = tv.nodes.get(lemma.node) if tv is not None else None
+            if other is None:
+                state = f"{self.dot('blocked')}no statement on the record"
+            else:
+                word = self.node_state(other)
+                state = f"{self.dot(self.dot_state(word))}{esc(self.state_label(word))}"
+            hole = f" — hole <code>{esc(lemma.hole)}</code>" if lemma.hole else ""
+            items.append(
+                f'<li>{self.node_link(nv.target_id, lemma.node)} <span class="lemma-state">'
+                f"({state})</span>{hole}</li>"
+            )
+        return (
+            '<div class="lemmas"><p>Lemmas it may use: statements under other branches that a '
+            "merged decomposition of this one restated as holes. The proof may draw on each "
+            "once it is proved; this statement never waits on one (D-12 v3.38).</p>"
             f"<ul>{''.join(items)}</ul></div>"
         )
 

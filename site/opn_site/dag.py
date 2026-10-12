@@ -76,10 +76,19 @@ class Placed:
     w: int
 
 
+def lemmas_of(node: dict[str, Any]) -> list[str]:
+    """F04-T39 (D-12 v3.38): the nodes a row's ``lemmas`` name (``graph/v8``; an older row has
+    none) — restated nodes under other branches, with a hole's standing."""
+    raw = node.get("lemmas") or []
+    return [str(e["node"]) for e in raw if isinstance(e, dict) and e.get("node")]
+
+
 def below(node: dict[str, Any]) -> list[str]:
-    """What a node is drawn above: its deps and (F18-T2) the nodes its merged proof uses."""
+    """What a node is drawn above: its deps, (F18-T2) the nodes its merged proof uses and
+    (F04-T39) its lemmas, which it rests on as it rests on a hole child."""
     out = [str(d) for d in node["deps"]]
     out.extend(str(u) for u in node.get("uses") or [] if str(u) not in out)
+    out.extend(lemma for lemma in lemmas_of(node) if lemma not in out)
     return out
 
 
@@ -151,7 +160,9 @@ Line = tuple[str, str, str]
 
 def lines(nodes: list[dict[str, Any]]) -> list[Line]:
     """Every line the drawing makes, as ``(lower, upper, kind)``, in a fixed order: the deps,
-    the uses a dep does not already draw (F18-T2), and the cruxes' pointers (F18-R9)."""
+    the uses a dep does not already draw (F18-T2), the lemmas neither draws (F04-T39, D-12
+    v3.38: ``edge lemma``, from the restated node up to the parent), and the cruxes' pointers
+    (F18-R9)."""
     ids = {str(n["node_id"]) for n in nodes}
     pointed = pointers(nodes)
     out: list[Line] = []
@@ -161,6 +172,8 @@ def lines(nodes: list[dict[str, Any]]) -> list[Line]:
         kinds = {d: "edge" for d in deps}
         for u in n.get("uses") or []:
             kinds.setdefault(str(u), "edge use")
+        for lemma in lemmas_of(n):
+            kinds.setdefault(lemma, "edge lemma")
         for c in pointed.get(nid, []):
             kinds.setdefault(c, "edge proposed")
         out.extend((src, nid, kind) for src, kind in sorted(kinds.items()) if src in ids)

@@ -1,6 +1,6 @@
 {
  "graph_commit": "6d1b2bf84",
- "note": "F04-T33: the four live targets whose drawings crossed, trimmed to the fields the drawing reads. Regenerate with git show <commit>:targets/<t>/graph.json.",
+ "note": "F04-T33: the four live targets whose drawings crossed, trimmed to the fields the drawing reads. Regenerate with git show <commit>:targets/<t>/graph.json. erdos-1094 (F04-T39, 2026-10-10) is the live shape after decisions v3.38: --h3's merged partial restated --h2--h1--h1 as a hole, so it is a lemma of --h3 (graph/v8 lemmas), a line crossing branches; its rows carry lemmas, the older four need none.",
  "targets": {
   "erdos-69": {
    "root": "erdos-69",
@@ -757,6 +757,78 @@
      "uses": [],
      "proposed_for": null,
      "cause": null
+    }
+   ]
+  },
+  "erdos-1094": {
+   "root": "erdos-1094",
+   "nodes": [
+    {
+     "node_id": "erdos-1094",
+     "status": "blocked",
+     "deps": [
+      "erdos-1094--h1",
+      "erdos-1094--h2",
+      "erdos-1094--h3"
+     ],
+     "uses": [],
+     "proposed_for": null,
+     "cause": null,
+     "lemmas": []
+    },
+    {
+     "node_id": "erdos-1094--h1",
+     "status": "proved",
+     "deps": [],
+     "uses": [],
+     "proposed_for": null,
+     "cause": null,
+     "lemmas": []
+    },
+    {
+     "node_id": "erdos-1094--h2",
+     "status": "blocked",
+     "deps": [
+      "erdos-1094--h2--h1"
+     ],
+     "uses": [],
+     "proposed_for": null,
+     "cause": null,
+     "lemmas": []
+    },
+    {
+     "node_id": "erdos-1094--h2--h1",
+     "status": "blocked",
+     "deps": [
+      "erdos-1094--h2--h1--h1"
+     ],
+     "uses": [],
+     "proposed_for": null,
+     "cause": null,
+     "lemmas": []
+    },
+    {
+     "node_id": "erdos-1094--h2--h1--h1",
+     "status": "ready",
+     "deps": [],
+     "uses": [],
+     "proposed_for": null,
+     "cause": null,
+     "lemmas": []
+    },
+    {
+     "node_id": "erdos-1094--h3",
+     "status": "ready",
+     "deps": [],
+     "uses": [],
+     "proposed_for": null,
+     "cause": null,
+     "lemmas": [
+      {
+       "hole": "h_good_below_cube",
+       "node": "erdos-1094--h2--h1--h1"
+      }
+     ]
     }
    ]
   }

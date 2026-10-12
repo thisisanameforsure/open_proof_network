@@ -1,0 +1,13 @@
+# F13-T35: the guide explains lemmas (decisions v3.38, D-12; testers 2026-10-09b, C1)
+
+Documentation only: gate/agents/AGENTS.md gains a paragraph under the entry task (what a lemma is, how it arises, what it gives, that it never blocks, where it shows: META lemmas, CONTEXT.json lemmas, get_node, the statement graph's keyed edge, and that a proof may name a proved lemma by its theorem name because Context.lean carries it); the carried-witness bullet (~l.1328), the after-the-merge paragraph, the restates-ancestor bullet, the get_submission prose and the appendix rows for get_node and get_submission are made consistent with the rule. No executed block added.
+
+## Guide doc tests (2026-10-10T12:35Z)
+
+    uv run --frozen pytest gate/tests/test_walkthrough.py api/tests -k guide -q
+    10 passed, 1801 deselected
+
+    uv run --frozen pytest gate/tests/test_walkthrough.py -q   (the file whole)
+    4 passed, 1 failed, 1 deselected: test_graph_copy_is_identical compares against the sibling graph checkout's stale AGENTS.md copy (diff at byte 3843, far above these edits) and is red on the base commit b2f5f63 already; it goes green at the copy the re-pin pushes.
+
+Every mention of restates/restated in api/ and the guide was read: the remaining ones are a Context restating its dependencies with sorry bodies (F13-T12 lint) and the circular label's wording, both a different sense and consistent.

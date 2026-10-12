@@ -1,0 +1,18 @@
+# F07-T76: GET /submissions/mine reads what a never-read submission waits on (testers 2026-10-09b, C4)
+
+## Red first (2026-10-09, before the fix; from the first run of the new tests)
+
+    >       assert block["waiting_on"] == "gate", block
+    E       AssertionError: {'position': 1, 'of': 1, 'waiting_on': None, 'waiting_on_read_at': None}
+    api/tests/test_finding_mine_waiting_on.py:31: AssertionError
+    >       assert block["waiting_on"] == "gate", block
+    E       AssertionError: {'position': 1, 'of': 1, 'waiting_on': None, 'waiting_on_read_at': None}
+    api/tests/test_finding_mine_waiting_on.py:31: AssertionError
+    FAILED api/tests/test_finding_mine_waiting_on.py::test_mine_says_what_a_never_read_submission_waits_on[memory]
+    FAILED api/tests/test_finding_mine_waiting_on.py::test_mine_says_what_a_never_read_submission_waits_on[dynamodb]
+
+## Green (2026-10-09T16:02Z)
+
+    uv run --frozen pytest -q api/tests/test_finding_mine_waiting_on.py api/tests/test_finding_submissions_mine.py api/tests/test_finding_host_budget.py
+    -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+    34 passed, 2 warnings in 1.40s

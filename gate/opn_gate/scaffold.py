@@ -34,6 +34,9 @@ META_SCHEMA_FOR_ORIGIN: dict[str, str] = {"skeleton-hole": "meta/v3"}
 META_SCHEMA_SUPERSEDES = "meta/v4"
 #: D-29 v3.22 (F07-T44): a hole whose assembly proved some of its binders records them, from v5.
 META_SCHEMA_PROVED = "meta/v5"
+#: D-12 v3.38 (F07-T77): a node whose merged partial restated a node under another branch
+#: records it as a lemma, from v6. Written by the post-merge job only (``postmerge.add_lemmas``).
+META_SCHEMA_LEMMAS = "meta/v6"
 NODE_STATUS_SCHEMA = "node-status/v1"
 RELATION_FILE = "Relation.lean"
 RELATION_DECL = "relation"
@@ -122,26 +125,35 @@ def imports_of(texts: list[str]) -> list[str]:
     return seen
 
 
-def context_for(nodes_dir: Path, deps: tuple[str, ...]) -> str:
-    """``Context.lean`` from the deps' ``Statement.lean`` files in a checkout."""
+def context_for(nodes_dir: Path, deps: tuple[str, ...], lemmas: tuple[str, ...] = ()) -> str:
+    """``Context.lean`` from the deps' (and lemmas', D-12 v3.38) ``Statement.lean`` files in a
+    checkout."""
     statements: dict[str, str] = {}
-    for dep in deps:
-        statement = nodes_dir / dep / "Statement.lean"
-        if not statement.is_file():
-            msg = f"declared dep {dep!r} is not a node of this target"
-            raise ScaffoldError(msg)
-        statements[dep] = statement.read_text(encoding="utf-8")
-    return context_from(deps, statements)
+    for kind, node_ids in (("declared dep", deps), ("lemma", lemmas)):
+        for node_id in node_ids:
+            statement = nodes_dir / node_id / "Statement.lean"
+            if not statement.is_file():
+                msg = f"{kind} {node_id!r} is not a node of this target"
+                raise ScaffoldError(msg)
+            statements[node_id] = statement.read_text(encoding="utf-8")
+    return context_from(deps, statements, lemmas)
 
 
-def context_from(deps: tuple[str, ...], statements: dict[str, str]) -> str:
+def context_from(
+    deps: tuple[str, ...], statements: dict[str, str], lemmas: tuple[str, ...] = ()
+) -> str:
     """``Context.lean``: each declared dep's statement, verbatim, under the union of imports.
 
     Verbatim is the point — F01-R6 compares the signature here with the dep's own
     ``Statement.lean``, and anything but a copy risks differing by a space. The texts come in as
     a mapping so the service, which holds no checkout (D-35), can hand over what it fetched.
+
+    F07-T77 (D-12 v3.38): ``lemmas`` — the nodes under other branches that this node's merged
+    partials restated — follow the deps under their own heading, each statement verbatim for the
+    same byte check. A proof may then name a lemma as it names a dep; the derivation never waits
+    on one. A node with neither keeps the one-line file it always had.
     """
-    if not deps:
+    if not deps and not lemmas:
         return "/-! Declared dependencies (D-4 step 8): none. -/\n"
     texts: list[str] = []
     for dep in deps:
@@ -149,12 +161,41 @@ def context_from(deps: tuple[str, ...], statements: dict[str, str]) -> str:
             msg = f"declared dep {dep!r} is not a node of this target"
             raise ScaffoldError(msg)
         texts.append(statements[dep])
-    header = "/-! Declared dependencies (D-4 step 8): " + ", ".join(f"`{d}`" for d in deps) + ". -/"
+    lemma_texts: list[str] = []
+    for lemma in lemmas:
+        if lemma not in statements:
+            msg = f"lemma {lemma!r} is not a node of this target"
+            raise ScaffoldError(msg)
+        lemma_texts.append(statements[lemma])
+    header = (
+        "/-! Declared dependencies (D-4 step 8): "
+        + (", ".join(f"`{d}`" for d in deps) if deps else "none")
+        + ". -/"
+    )
     parts = [header, *(f"\n{strip_imports(t)}\n" for t in texts)]
-    lines = [f"import {m}" for m in imports_of(texts)]
+    if lemmas:
+        parts.append(
+            "\n/-! Lemmas (D-12 v3.38): "
+            + ", ".join(f"`{n}`" for n in lemmas)
+            + " — nodes under other branches a merged partial restated as holes; the proof may "
+            "draw on each once it is proved, and the node never waits on one. -/\n"
+        )
+        parts.extend(f"\n{strip_imports(t)}\n" for t in lemma_texts)
+    lines = [f"import {m}" for m in imports_of([*texts, *lemma_texts])]
     if lines:
         parts.insert(0, "\n".join(lines) + "\n")
     return "\n".join(parts).rstrip("\n") + "\n"
+
+
+def meta_version(schema: object) -> int:
+    """The number in ``meta/v<n>``, or 0 for anything else."""
+    text = str(schema)
+    if not text.startswith("meta/v"):
+        return 0
+    try:
+        return int(text[len("meta/v") :])
+    except ValueError:
+        return 0
 
 
 def meta_for(proposal: Proposal, statement_hash: str) -> dict[str, Any]:

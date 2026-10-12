@@ -42,6 +42,7 @@ from opn_gate import (
     intake,
     layout,
     ledger,
+    lemma_backfill,
     models,
     modes,
     objectstore,
@@ -185,6 +186,13 @@ def build_parser() -> argparse.ArgumentParser:  # noqa: PLR0915 — one statemen
     fpr.add_argument("--target", required=True)
     _add_sandbox_args(fpr)
 
+    lbf = sub.add_parser(
+        "lemmas-backfill",
+        help="write the lemma edges of partials merged before D-12 v3.38 (F08-T41), in the sandbox",
+    )
+    lbf.add_argument("--graph", required=True, type=Path, help="path to the graph checkout")
+    lbf.add_argument("--target", required=True)
+    _add_sandbox_args(lbf)
     pal = sub.add_parser(
         "export-palomar",
         help="write one resolved target as a wrapper repository in Palomar's shape (F25-R8); "
@@ -888,6 +896,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         "pregate": run_pregate,
         "reproduce": run_reproduce,
         "footprints": run_footprints,
+        "lemmas-backfill": run_lemmas_backfill,
         "export-palomar": run_export_palomar,
         "palomar-port": run_palomar_port,
         "palomar-feed": run_palomar_feed,
@@ -1411,6 +1420,37 @@ def run_footprints(args: argparse.Namespace, settings: config.Settings) -> int:
     }
     sys.stdout.write(json.dumps(summary, ensure_ascii=False) + "\n")
     return EXIT_FAIL if failed else EXIT_PASS
+
+
+def run_lemmas_backfill(args: argparse.Namespace, settings: config.Settings) -> int:
+    """F08-T41 (D-12 v3.38): re-extract every merged partial of ``--target`` at the checkout's
+    HEAD, by steps 1, 2 and 4 in the step-3 sandbox, and write into the *checkout* the lemma
+    edges the record lacks (``META.yaml``'s ``lemmas`` and the regenerated ``Context.lean``), as
+    the post-merge writer records them today. Prints ``{written, unchanged, failed}``; a curator
+    commits what was written. Exit 1 when any partial could not be re-extracted; nothing is
+    written for it. Idempotent: a second run reports every edge ``unchanged``."""
+    graph, commit = _checkout_and_commit(args.graph, "HEAD")
+    out_dir = _out_dir(args.out, "opn-lemmas-backfill-")
+
+    def make(node_id: str, run_out: Path) -> RunContext:
+        return _sandboxed_context(
+            graph,
+            commit,
+            run_out,
+            target=args.target,
+            node=node_id,
+            settings=settings,
+            image=args.image,
+            no_build=args.no_build,
+        )
+
+    try:
+        report = lemma_backfill.backfill(graph, args.target, make, out_dir / "runs")
+    except graphmod.GraphError as exc:
+        raise CliError(str(exc)) from exc
+    summary = {"target": args.target, "commit": commit, **report.as_dict()}
+    sys.stdout.write(json.dumps(summary, ensure_ascii=False) + "\n")
+    return EXIT_FAIL if report.failed else EXIT_PASS
 
 
 def run_outline(args: argparse.Namespace, settings: config.Settings) -> int:

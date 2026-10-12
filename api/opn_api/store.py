@@ -34,6 +34,7 @@ KEY_SUBMISSION = "submission#"
 KEY_SUBMISSION_PR = "submissionpr#"
 KEY_SUBMISSIONS_OPEN = "submissions#open"
 KEY_SUBMISSION_NODE = "submissionnode#"
+KEY_SUBMISSION_EXPECTING = "submissionexpecting#"
 #: F07-T70: every record one pseudonym opened, open or closed — a string set of ids per
 #: pseudonym (lower-cased, as the pseudonym is reserved), so ``GET /submissions/mine`` can name
 #: the caller's finished pull requests without a scan. Records put before the index existed
@@ -126,6 +127,10 @@ class Submission:
     #: F25-R2: the ``automation`` block ``POST /submissions`` accepted (D-23 v3.37), served on the
     #: record's row; ``None`` for every other kind and for a record made before the field existed.
     automation: dict[str, Any] | None = None
+    #: Testers 2026-10-09b (C6): the node ids a partial's holes are expected to become (the
+    #: precheck's ``expected_node_id`` where ``expected_new``, F06-T15), so a hole child answers
+    #: ``node-pending`` or ``products-pending`` naming the pull request, as a proposal does.
+    expected_nodes: tuple[str, ...] = ()
 
 
 def proposes(submission: Submission) -> bool:
@@ -256,6 +261,11 @@ class Store(Protocol):
         """The newest record that proposed ``node_id`` (``PROPOSAL_KINDS``), open or closed."""
         ...
 
+    def get_submission_expecting(self, node_id: str) -> Submission | None:
+        """The newest partial whose holes are expected to create ``node_id`` (testers
+        2026-10-09b, C6), open or closed."""
+        ...
+
     def list_open_submissions(self) -> list[Submission]:
         """Every record no live read has found finished, by id (ULIDs sort by time)."""
         ...
@@ -293,6 +303,7 @@ class MemoryStore:
     submissions: dict[str, Submission] = field(default_factory=dict)
     submissions_by_pr: dict[int, str] = field(default_factory=dict)
     submissions_by_node: dict[str, str] = field(default_factory=dict)
+    submissions_expecting: dict[str, str] = field(default_factory=dict)
     submissions_by_pseudonym: dict[str, set[str]] = field(default_factory=dict)
     open_submissions: set[str] = field(default_factory=set)
     checks: dict[str, CheckLog] = field(default_factory=dict)
@@ -415,6 +426,9 @@ class MemoryStore:
             str(submission.node_id), ""
         ):  # ULIDs sort by time: closing an older record never hides a newer proposal
             self.submissions_by_node[str(submission.node_id)] = submission.id
+        for expected in submission.expected_nodes:
+            if submission.id >= self.submissions_expecting.get(expected, ""):
+                self.submissions_expecting[expected] = submission.id
         self.submissions_by_pseudonym.setdefault(submission.pseudonym.lower(), set()).add(
             submission.id
         )
@@ -432,6 +446,10 @@ class MemoryStore:
 
     def get_submission_by_node(self, node_id: str) -> Submission | None:
         found = self.submissions_by_node.get(node_id)
+        return self.submissions.get(found) if found is not None else None
+
+    def get_submission_expecting(self, node_id: str) -> Submission | None:
+        found = self.submissions_expecting.get(node_id)
         return self.submissions.get(found) if found is not None else None
 
     def list_open_submissions(self) -> list[Submission]:
@@ -821,6 +839,15 @@ class DynamoStore:
                         "submission_id": submission.id,
                     }
                 )
+        for expected in submission.expected_nodes:
+            current = self.get_submission_expecting(expected)
+            if current is None or submission.id >= current.id:
+                self._tokens.put_item(
+                    Item={
+                        "key": KEY_SUBMISSION_EXPECTING + expected,
+                        "submission_id": submission.id,
+                    }
+                )
         self._open_index("DELETE" if submission.closed is not None else "ADD", submission.id)
         self._tokens.update_item(  # F07-T70: atomic, as the open index
             Key={"key": KEY_SUBMISSIONS_BY + submission.pseudonym.lower()},
@@ -851,6 +878,11 @@ class DynamoStore:
 
     def get_submission_by_node(self, node_id: str) -> Submission | None:
         item = self._tokens.get_item(Key={"key": KEY_SUBMISSION_NODE + node_id}).get("Item")
+        found = item.get("submission_id") if item else None
+        return self.get_submission(str(found)) if found else None
+
+    def get_submission_expecting(self, node_id: str) -> Submission | None:
+        item = self._tokens.get_item(Key={"key": KEY_SUBMISSION_EXPECTING + node_id}).get("Item")
         found = item.get("submission_id") if item else None
         return self.get_submission(str(found)) if found else None
 
@@ -944,6 +976,7 @@ def _submission(record: dict[str, Any]) -> Submission:
         automation=(
             dict(record["automation"]) if isinstance(record.get("automation"), dict) else None
         ),
+        expected_nodes=tuple(str(n) for n in record.get("expected_nodes") or ()),
     )
 
 

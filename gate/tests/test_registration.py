@@ -192,6 +192,6 @@ def test_the_products_publish_registrations(tmp_path: Path) -> None:
     other = next(r for r in index["targets"] if r["target_id"] != TARGET)
     assert other["registrations"] == []
     graph = json.loads(prod.files[Path(f"targets/{TARGET}/graph.json")])
-    assert graph["schema"] == "graph/v7"
-    assert schemas.violations(graph, "graph/v7") == []
+    assert graph["schema"] == products.GRAPH_SCHEMA  # graph/v7 when written (F25); v8 since lemmas
+    assert schemas.violations(graph, products.GRAPH_SCHEMA) == []
     assert graph["registrations"] == expected

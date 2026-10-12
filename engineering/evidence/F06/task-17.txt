@@ -1,0 +1,18 @@
+# F06-T17: the receipt's holes_note says a hole restating a node under another branch becomes a lemma (decisions v3.38, D-12; testers 2026-10-09b, C1)
+
+## Red first (2026-10-10T12:29Z): the hole_rows seam in place with F06-T15's note unchanged, so the red is on the words
+
+    E       assert 'lemma of this node' in "expected as planned at graph commit 5555555555555555555555555555555555555555: a hole restating an existing node is th...are new nodes numbered after the node's earlier holes; another decomposition of this node merging first renumbers them"
+    FAILED api/tests/test_finding_lemma_receipt_note.py::test_the_receipts_note_says_a_restating_hole_becomes_a_lemma
+    1 failed, 1 passed, 2 warnings in 0.47s
+
+## Green (2026-10-10T12:35Z)
+
+    uv run --frozen pytest api/tests/test_finding_lemma_receipt_note.py api/tests/test_finding_partial_receipt_holes.py
+    ======================== 4 passed, 2 warnings in 3.35s =========================
+
+The precheck result document is unchanged: expected_new is the gate's (plan_children); the receipt repeats name, expected_node_id, expected_new and the note gained its lemma sentence (asserted field for field in the test).
+
+## api fast tier (2026-10-10T12:35Z): uv run --frozen pytest api -m "not lean and not docker and not network"
+
+    1805 passed, 2 warnings in 78.98s (0:01:18)

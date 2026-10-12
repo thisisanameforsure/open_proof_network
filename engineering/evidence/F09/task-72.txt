@@ -1,0 +1,38 @@
+# F09-T72: get_node carries lemmas; get_submission says what each hole became (decisions v3.38, D-12; testers 2026-10-09b, C1)
+
+## Red first (2026-10-10T12:26Z, before the fix; the first run of api/tests/test_finding_lemmas_mcp.py)
+
+    E       AssertionError: [TextContent(type='text', text="Output validation error: 'context/v6' is not one of ['context/v1', 'context/v2', 'context/v3', 'context/v4', 'context/v5']", annotations=None, meta=None)]
+    E       KeyError: 'lemmas'
+    E       AssertionError: [TextContent(type='text', text="Output validation error: 'context/v6' is not one of ['context/v1', 'context/v2', 'context/v3', 'context/v4', 'context/v5']", annotations=None, meta=None)]
+    E       assert 'lemmas' in "A node's context bundle (nodes/<id>/CONTEXT.json: statement, deps' signatures, witness, status, gate-spec reference, ...er (all of them when omitted); `include: []` answers the Lean, the context, the claims and the open submissions alone."
+    E        +  where "A node's context bundle (nodes/<id>/CONTEXT.json: statement, deps' signatures, witness, status, gate-spec reference, ...er (all of them when omitted); `include: []` answers the Lean, the context, the claims and the open submissions alone." = Tool(name='get_node', description="A node's context bundle (nodes/<id>/CONTEXT.json: statement, deps' signatures, witn... ['node_id'], 'additionalProperties': False}, handler=<function get_node at 0x10b3d8b80>, write=False, access='anyone').description
+    E       KeyError: 'holes'
+    E       KeyError: 'holes'
+    E       KeyError: 'holes'
+    E       KeyError: 'holes'
+    E       KeyError: 'holes'
+    FAILED api/tests/test_finding_lemmas_mcp.py::test_get_node_carries_the_bundles_lemmas
+    FAILED api/tests/test_finding_lemmas_mcp.py::test_get_node_on_an_older_context_answers_no_lemmas
+    FAILED api/tests/test_finding_lemmas_mcp.py::test_get_node_lemmas_equal_the_plain_path
+    FAILED api/tests/test_finding_lemmas_mcp.py::test_the_tool_and_schema_name_lemmas
+    FAILED api/tests/test_finding_lemmas_mcp.py::test_get_submission_on_a_merged_partial_says_what_each_hole_became
+    FAILED api/tests/test_finding_lemmas_mcp.py::test_became_is_null_until_the_products_carry_the_decomposition
+    FAILED api/tests/test_finding_lemmas_mcp.py::test_became_is_null_while_the_partial_is_open
+    FAILED api/tests/test_finding_lemmas_mcp.py::test_a_later_decomposition_with_the_same_hole_names_is_not_this_ones
+    FAILED api/tests/test_finding_lemmas_mcp.py::test_get_submission_tool_equals_the_route
+    9 failed, 1 passed, 2 warnings in 0.93s
+
+## Green (2026-10-10T12:35Z)
+
+    uv run --frozen pytest api/tests/test_finding_lemmas_mcp.py api/tests/test_finding_mcp_context_budget.py api/tests/test_mcp_surface.py api/tests/test_mcp_equivalence.py api/tests/test_finding_hole_child_pending.py api/tests/test_finding_literature_mcp_products.py
+    ======================== 51 passed, 2 warnings in 6.93s ========================
+
+One existing pin restated: test_finding_mcp_context_budget.ALWAYS (what include: [] answers) gains lemmas, since what a proof may draw on is never prose.
+The v6 context and v7 graph documents in the tests are hand-written to gate/schemas/context/v6.json and gate/schemas/graph/v8.json and validated against them (schemas.violations == []). The tests tell reads.CONTEXT_SCHEMAS about context/v6 through a monkeypatch until the products task adds it (a no-op once it has).
+became is matched by the record's facts: the attestation's artifact_hash against the committed partial file plus the hole names, never a file name's pseudonym; the fourth test serves a same-named decomposition from another file and gets null.
+Lint: ruff check api gate/agents clean; ruff format clean; mypy api: Success: no issues found in 237 source files.
+
+## api fast tier (2026-10-10T12:35Z): uv run --frozen pytest api -m "not lean and not docker and not network"
+
+    1805 passed, 2 warnings in 78.98s (0:01:18)

@@ -49,10 +49,10 @@ NODE_FILES: tuple[tuple[str, bool], ...] = (  # (file, required): the raw files 
 #: an older document does not carry simply matches nothing (F11-R4).
 FRONTIER_SCHEMA = "frontier/v5"  # F09-T24: `circular`, `literature`, `literature_proposed` too
 #: The ``CONTEXT.json`` versions get_node serves: the gate module's own set, plus the version the
-#: v3.35 re-pin first renders (F09-T24), so the service accepts it whichever side of that
+#: v3.38 re-pin first renders (F10-T49), so the service accepts it whichever side of that
 #: re-pin it is deployed on (the deploy-window lesson of 2026-09-11).
 CONTEXT_SCHEMAS: tuple[str, ...] = tuple(
-    dict.fromkeys((*context.ACCEPTED, "context/v5"))  # ordered, without a repeat
+    dict.fromkeys((*context.ACCEPTED, "context/v6"))  # ordered, without a repeat
 )
 SCHEMA_NAME_RE = re.compile(r"^[a-z][a-z0-9-]*/v[1-9][0-9]*$")
 FRONT_MATTER_RE = re.compile(r"\A---[ \t]*\r?\n(?P<yaml>.*?)\r?\n---[ \t]*\r?\n", re.S)
@@ -426,7 +426,9 @@ def node_context(ctx: Context, target_id: str, node_id: str) -> tuple[dict[str, 
 
 def closing_route(node_id: str, statement: str | None) -> dict[str, Any]:
     """How this node is closed through its holes and dependencies (F00-T10). Their theorems
-    reach a proof through the node's own ``Context``; a statement written since 2026-09-20
+    reach a proof through the node's own ``Context``, and so does a proved lemma's (D-12
+    v3.38: a node another branch's hole restated, listed in ``lemmas``, which a direct proof may
+    name as it names a hole's); a statement written since 2026-09-20
     imports it, and a proof of an older one adds the line itself, which is the one import step 2
     allows. Two agents learned that a root could not be assembled from its holes at minute 37,
     by experiment; now it can, and the node says how. One function decides
@@ -559,6 +561,11 @@ async def get_node(call: Call, args: dict[str, Any]) -> dict[str, Any]:
         "closing": closing_route(node_id, files.get("Statement.lean")),
         "files": files,
         "claims": dict(entry["claims"]) if entry is not None else None,
+        # F09-T72 (D-12 v3.38): the lemmas the bundle lists — nodes under other branches a
+        # merged partial of this node restated as holes, usable once proved — lifted beside
+        # the bundle so an agent reads what a proof may draw on without knowing the version;
+        # a bundle older than context/v6 has no key and the answer says none.
+        "lemmas": list(bundle.get("lemmas") or []),
     }
     # A section not asked for is not read from the host either (T19).
     if "annexes" in wanted:
@@ -920,9 +927,10 @@ TOOLS: tuple[Tool, ...] = (
         "get_node",
         "A node's context bundle (nodes/<id>/CONTEXT.json: statement, deps' signatures, witness, "
         "status, gate-spec reference, attempt log, annex hashes) plus the raw Lean files, live "
-        "claim status, annexes, explainers and the submissions open on it. `include` names the "
-        "prose sections to answer (all of them when omitted); `include: []` answers the Lean, the "
-        "context, the claims and the open submissions alone.",
+        "claim status, `lemmas` (results from other branches this node may use once proved), "
+        "annexes, explainers and the submissions open on it. `include` names the prose sections "
+        "to answer (all of them when omitted); `include: []` answers the Lean, the context, the "
+        "claims, the lemmas and the open submissions alone.",
         params(
             {
                 "node_id": ID_PARAM,
@@ -962,7 +970,9 @@ TOOLS: tuple[Tool, ...] = (
             "diagnostic). `state` is open, merged or closed. While open, `queue` gives "
             "its `position` (from 1) `of` how many in its target's lane of the merge "
             "actor, and the pull requests `ahead`; a position is an upper bound on the "
-            'merges ahead. The guide\'s "Precheck and submit" says more.'
+            "merges ahead. For a partial, `holes[].became` is the node each hole became once "
+            "the products record it: a new child, or a lemma for a hole that restated a node "
+            'under another branch. The guide\'s "Precheck and submit" says more.'
         ),
         params({"submission_id": {"type": "string"}}, ("submission_id",)),
         get_submission,

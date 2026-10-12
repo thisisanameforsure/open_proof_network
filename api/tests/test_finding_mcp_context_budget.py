@@ -39,6 +39,7 @@ ALWAYS = {
     "files",
     "claims",
     "submissions",
+    "lemmas",  # F09-T72 (D-12 v3.38): what a proof may draw on is never prose
     "untrusted_note",
 }
 #: The longest a declared description may be, plain path included (T22).
@@ -277,7 +278,10 @@ def test_pin_a_tool_that_needs_a_token_refuses_inside_the_result(
 #: alone 44,024 → 47,509). A change that crosses the ceiling re-measures and says why.
 # F25-T3 measured 85,280 and pinned 86,000; T4 added three tools and get_target's field, and the
 # merge of both measured 93,190 (F25-Q26). The pin follows the measurement, never the other way.
-TOOLS_LIST_BUDGET = 94_000
+# The lemma amendment (D-12 v3.38, merged 2026-10-12) measured 94,385: get_node's output schema
+# gained `lemmas` and get_submission's `holes[].became` (structure, not prose; the served output
+# schemas carry no descriptions, so shortening one changed nothing). Pinned 95,000.
+TOOLS_LIST_BUDGET = 95_000
 
 
 def test_the_whole_tools_list_fits_its_budget(harness: Harness) -> None:

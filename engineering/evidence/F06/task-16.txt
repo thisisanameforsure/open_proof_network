@@ -1,0 +1,33 @@
+# F06-T16: a hole child answers node-pending or products-pending naming its partial (testers 2026-10-09b, C6)
+
+## Red first (2026-10-09, before the fix; from the first run of the new tests)
+
+    E       AssertionError: {"error":"node-unknown","message":"tutorial-and-swap--h3 is not a node of this graph; a node merged in the last few minutes appears once the post-merge job has rendered the products, usually three to six minutes after the merge"}
+    E       assert (404, 'node-unknown') == (409, 'node-pending')
+    api/tests/test_finding_hole_child_pending.py:56: AssertionError
+    E       AssertionError: {"error":"node-unknown","message":"tutorial-and-swap--h3 is not a node of this graph; a node merged in the last few minutes appears once the post-merge job has rendered the products, usually three to six minutes after the merge"}
+    E       assert (404, 'node-unknown') == (409, 'products-pending')
+    api/tests/test_finding_hole_child_pending.py:68: AssertionError
+    E       AssertionError: {"error":"node-unknown","message":"tutorial-and-swap--h1 is not a node of this graph; a node merged in the last few minutes appears once the post-merge job has rendered the products, usually three to six minutes after the merge"}
+    api/tests/test_finding_hole_child_pending.py:81: AssertionError
+    _________ test_both_stores_index_a_submissions_expected_nodes[memory] __________
+        def test_both_stores_index_a_submissions_expected_nodes(both: Store) -> None:  # noqa: F811
+                expected_nodes=(CHILD,),
+    E       TypeError: Submission.__init__() got an unexpected keyword argument 'expected_nodes'
+    api/tests/test_finding_hole_child_pending.py:92: TypeError
+    ________ test_both_stores_index_a_submissions_expected_nodes[dynamodb] _________
+        def test_both_stores_index_a_submissions_expected_nodes(both: Store) -> None:  # noqa: F811
+                expected_nodes=(CHILD,),
+    E       TypeError: Submission.__init__() got an unexpected keyword argument 'expected_nodes'
+    api/tests/test_finding_hole_child_pending.py:92: TypeError
+    FAILED api/tests/test_finding_hole_child_pending.py::test_a_hole_child_is_pending_while_its_partial_is_open
+    FAILED api/tests/test_finding_hole_child_pending.py::test_a_hole_child_is_products_pending_once_its_partial_merged
+    FAILED api/tests/test_finding_hole_child_pending.py::test_a_restated_node_is_not_claimed_by_the_partial
+    FAILED api/tests/test_finding_hole_child_pending.py::test_both_stores_index_a_submissions_expected_nodes[memory]
+    FAILED api/tests/test_finding_hole_child_pending.py::test_both_stores_index_a_submissions_expected_nodes[dynamodb]
+
+## Green (2026-10-09T16:02Z)
+
+    uv run --frozen pytest -q api/tests/test_finding_hole_child_pending.py api/tests/test_finding_partial_receipt_holes.py api/tests/test_store_seam.py
+    -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+    102 passed, 2 warnings in 0.71s

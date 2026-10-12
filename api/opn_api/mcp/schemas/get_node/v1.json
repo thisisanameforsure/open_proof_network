@@ -15,6 +15,7 @@
         "files",
         "claims",
         "submissions",
+        "lemmas",
         "untrusted_note"
       ],
       "additionalProperties": false,
@@ -27,7 +28,7 @@
         },
         "context": {
           "type": "object",
-          "description": "nodes/<id>/CONTEXT.json, a context/v5 document (F10-R3; F08-T22 added circular_below, the merged circularity claims that circle back to this node; F08-T36 added defect_claims, every defect claim filed against the node with its class and whether it stands, D-16 v3.28; F22-T13 added each dependency's cause; F10-T19 added circular, the claims that label this node, and literature and literature_proposed, D-12 and D-25 v3.35) — or the context/v1 to v4 document a graph rendered before that re-pin still carries",
+          "description": "nodes/<id>/CONTEXT.json, a context/v6 document (F10-R3; F08-T22 added circular_below, the merged circularity claims that circle back to this node; F08-T36 added defect_claims, every defect claim filed against the node with its class and whether it stands, D-16 v3.28; F22-T13 added each dependency's cause; F10-T19 added circular, the claims that label this node, and literature and literature_proposed, D-12 and D-25 v3.35; F10-T49 added lemmas, the restated nodes under other branches the proof may draw on once proved, D-12 v3.38) \u2014 or the context/v1 to v5 document a graph rendered before that re-pin still carries",
           "required": [
             "schema"
           ],
@@ -38,8 +39,50 @@
                 "context/v2",
                 "context/v3",
                 "context/v4",
-                "context/v5"
+                "context/v5",
+                "context/v6"
               ]
+            }
+          }
+        },
+        "lemmas": {
+          "type": "array",
+          "description": "D-12 v3.38: nodes under other branches that a merged partial of this node restated as holes, each with the hole's name, the lemma's Statement.lean and its status; a direct proof may name one once it is proved, and none is waited on. [] before context/v6.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "node_id",
+              "hole",
+              "status",
+              "statement_hash",
+              "signature",
+              "cause"
+            ],
+            "properties": {
+              "node_id": {
+                "type": "string",
+                "pattern": "^[a-z0-9][a-z0-9-]*$"
+              },
+              "hole": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string"
+              },
+              "statement_hash": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "signature": {
+                "type": "string"
+              },
+              "cause": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
             }
           }
         },

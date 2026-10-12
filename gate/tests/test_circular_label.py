@@ -99,13 +99,14 @@ def test_the_products_are_the_next_versions_and_literature_is_null(tmp_path: Pat
     gdoc = json.loads(prod.files[Path("targets") / TARGET / "graph.json"])
     fdoc = json.loads(prod.files[Path("frontier.json")])
     cdoc = bundle(prod, HOLE)
-    # graph/v7 since F25-T1 (registrations); v6 was F08-T39's.
+    # F03-T20 / F10-T49 (D-12 v3.38): graph and context took the next versions again for
+    # ``lemmas`` (graph/v8 after F25-T1's v7); the frontier did not.
     assert (gdoc["schema"], fdoc["schema"], cdoc["schema"]) == (
-        "graph/v7",
+        "graph/v8",
         "frontier/v5",
-        "context/v5",
+        "context/v6",
     )
-    for doc, schema in ((gdoc, "graph/v7"), (fdoc, "frontier/v5"), (cdoc, "context/v5")):
+    for doc, schema in ((gdoc, "graph/v8"), (fdoc, "frontier/v5"), (cdoc, "context/v6")):
         assert schemas.violations(doc, schema) == [], schema
     for row in gdoc["nodes"]:
         assert set(NEW_FIELDS) <= set(row), row["node_id"]

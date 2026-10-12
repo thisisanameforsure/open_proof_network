@@ -1404,6 +1404,19 @@ The law of the project:
   near-identical texts; 14 directions needed short agent proofs, all accepted first time. Also: a
   laptop shutdown stops background agents without a report, so check their files before resuming.
 
+- 2026-10-10 — Decisions v3.38 (lemmas) built in one sitting from the owner's call on tester C's
+  finding: a hole that restates a node under another branch now makes that node a *lemma* of the
+  parent (`META.yaml` `lemmas`, `meta/v6`), with exactly a hole's standing. Four worktree agents on
+  one committed contract (three schemas plus `NodeFacts.lemmas`), eight tasks, one merge conflict
+  (two agents each rewrote the same description sentence). Three things worth keeping. **A
+  deduplication rule must keep what the duplicate would have given**: the gate recognised the
+  restatement and dropped the only thing a second node would have carried, the edge, so the merged
+  assembly was dead and nothing was red. **The lean tier found the standing's real red**: the fast
+  tier's fake toolchain cannot see that an unstaged lemma makes a proof fail at step 4; the gate
+  agent's one real-toolchain test did, in five minutes. **A crashed agent's branch is its report**:
+  the gate agent died on a DNS error after its last commit; the evidence files and `git log` held
+  everything the merge needed, which is why "log as you go" is a rule for agents and not a courtesy.
+  Left for the owner: push, re-pin, run `lemmas-backfill.yml` on erdos-1094, commit the edge, re-render.
 - 2026-10-11 — F25 (registration in Palomar, decisions v3.37) built in one sitting on branch
   `f25-palomar` with five worktree agents, a draft pull request standing in for a dispatch (a new
   workflow cannot be dispatched until it is on the default branch; `pull_request` with a paths filter
@@ -1468,4 +1481,14 @@ The law of the project:
   pass (`profile.known_over`) and the test holds the breaches to the declaration, so a stale
   declaration fails too (F16-Q14). Merge the branch first and read the suite, before touching a
   conflict's content: the conflicts were the cheap half.
+- 2026-10-12 — Two sessions each took "the next" decisions number on the same day: the lemma
+  amendment (built 2026-10-10 on branch `testers-1009b-fixes`, unmerged) called itself v3.36 and
+  bumped `graph/v7`, while F25 was applied to main as v3.37 with its own `graph/v7`, and a third
+  session had reserved v3.36 for the formalization-review draft. The merge renumbered the lemma
+  amendment to v3.38 and its graph schema to v8 (composed from main's v7 plus the lemma fields,
+  because D-34 forbids editing a published v7), with every reference swept on the branch's own
+  added lines only, so main's draft mentions were untouched. Twenty-one conflicts, all both-added.
+  A session that starts an amendment should claim its number in the doc on main first, in one
+  tiny commit, before building against it — and a published schema version is a fact about the
+  graph, never about a branch.
 

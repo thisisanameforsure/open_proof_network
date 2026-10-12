@@ -1,0 +1,69 @@
+F04-T39: a lemma from another branch is drawn, keyed, listed and lit (D-12 v3.38) — evidence, 2026-10-10
+worktree /Users/mikehiggins/Desktop/repos/opn-lemma-site, branch lemma-site, from b2f5f63 (decisions v3.38, graph/v8 contract)
+
+== red (the new tests against the site as committed at b2f5f63; the fixture already rewritten to graph/v8) ==
+$ uv run --frozen pytest site/tests/test_finding_lemma_edge.py site/tests/test_finding_circular_key.py site/tests/test_finding_dag_layout.py -q -m "not lean and not docker and not network"
+  23 failed, 54 passed, 1 skipped in 2.60s
+  each red on the defect itself, not on a missing name:
+    E  AssertionError: assert 'graph/v8' in ('graph/v1', ..., 'graph/v6')                     (model accepts v7)
+    E  SiteError: product targets/propositional/graph.json is graph/v8, which this generator does not render
+    E  AssertionError: assert [] == ['a']                                                        (dag.below: a lemma is below its parent)
+    E  AssertionError: assert ('a', 'b', 'edge lemma') in [('a', 'r', 'edge'), ('b', 'r', 'edge')]   (dag.lines)
+    E  assert None  where None = re.search('<path class="edge lemma[^"]*" data-from="a" data-to="b"', ...)   (dag.svg)
+    E  AssertionError: assert [] == [('erdos-1094--h2--h1--h1', 'erdos-1094--h3')]              (the live shape's lemma line)
+    E  assert None is not None                                                                   (no .dag .edge.lemma rule in site.css)
+    E  KeyError: 'lemma'                                                                         (no glossary key)
+    E       AssertionError: dag no longer draws edge lemma; update this guard       (the key guard, test_every_output_class_has_a_key_entry)
+  the SiteError ("graph/v8, which this generator does not render") took every page-level test down with it; the dag
+  tests failed on the missing line, the key tests on the missing glossary key ('lemma'), the CSS test on the missing rule.
+  The old model refused the new contract outright: a live render at the re-pin would have had no site at all.
+
+== green ==
+$ uv run --frozen pytest site -p no:cacheprovider --basetemp=<scratchpad>/agents/site-pt -q -m "not lean and not docker and not network"
+  589 passed, 2 skipped in 57.32s        (the two skips: test_web_flows and the browser test below, both want Playwright)
+$ uv run --frozen --with playwright pytest site/tests/test_finding_lemma_edge.py -q
+  19 passed in 8.50s                     (the browser test ran: scrollWidth, getBBox, hover all asserted)
+$ uv run --frozen ruff check site           All checks passed!
+$ uv run --frozen ruff format --check site  83 files already formatted
+$ uv run --frozen mypy site                 Success: no issues found in 83 source files
+
+== goldens ==
+Regenerated with test_render.write_goldens() (PYTHONPATH as pyproject's pythonpath). Three files changed, read in full:
+  docs/index.html                                   — the glossary table gains the "lemma from another branch" row
+  nodes/propositional/tutorial-and-swap/index.html  — the lemma list under "Depends on: none." (and-reassoc, proved, hole h_reassoc)
+  problems/propositional/index.html                 — the key gains the lemma term; the drawing gains the dash-dot line
+                                                      and-reassoc → tutorial-and-swap (class "edge lemma"), and tutorial-and-swap
+                                                      moves to the middle row because it now rests on and-reassoc
+The fixture (site/tests/fixture.py, build → publish_v336) hand-writes one lemma into graph.json at graph/v8:
+tutorial-and-swap's merged partial restated and-reassoc as hole h_reassoc. Not in deps (D-3). publish_v335 now
+writes graph/v8 too (v6 refuses a row with lemmas); the one test that lowers a graph by hand pops lemmas with the v6 fields.
+
+== the fifth live shape ==
+site/tests/dag_live_shapes.json gains erdos-1094 after v3.38: --h3 carries lemmas [{h_good_below_cube, --h2--h1--h1}] with
+--h2--h1--h1 under --h2--h1 under --h2. The lemma line crosses branches; the layout draws the shape with zero crossings and
+no line behind a pill (test_the_lemma_crossing_branches_still_draws_with_no_crossing), and the four older shapes are unchanged.
+
+== screenshots (engineering/evidence/F04/task-39-*.png, made and measured by task-39-shoot.py on a render of the fixture) ==
+$ uv run --frozen --with playwright python engineering/evidence/F04/task-39-shoot.py --site <render> --out engineering/evidence/F04
+  task-39-graph-1440.png   the statement graph: root on top, tutorial-and-swap in the middle row, and-reassoc at the bottom;
+                           a dash-dot line from and-reassoc up to tutorial-and-swap, the solid and-reassoc → root line bending
+                           past it on the left. scrollWidth 1440. Every pill's label inside its rect (getBBox): three of three.
+  task-39-graph-390.png    the same drawing at phone width, scrollWidth 390 (no sideways scroll).
+  task-39-key-1440.png     the key on one row: proved · open · blocked · depends on · lemma from another branch · has an outline,
+                           the lemma swatch a dash and a dot. Every term's box inside the key's box: six of six.
+  task-39-key-390.png      the key wraps to two rows at 390; still six of six inside, nothing clipped.
+  task-39-node-lemmas-1440.png  the node page's "Lemmas it may use" paragraph and its one item:
+                           and-reassoc (proved, filled dot) — hole h_reassoc.
+  task-39-node-lemmas-390.png   the same list wrapped at 390, scrollWidth 390.
+  task-39-hover-1440.png   tutorial-and-swap hovered (scrolled into view first, then hovered, then measured): lit lines are
+                           exactly [tutorial-and-swap → and-swap-reassoc, "edge lit"] and [and-reassoc → tutorial-and-swap,
+                           "edge lemma lit"]; the and-reassoc → root line is dimmed; lit pills are all three.
+                           Computed stroke-dasharray of the lemma line 7px, 4px, 1.5px, 4px (the use line's is 7px, 4px).
+The script's report (measure()) is what test_measured_in_a_browser asserts on, so the shots and the assertions are one run.
+Looked at each PNG before writing this: what is described above is what they show. The drawing is small on a 1440 page
+(it is drawn at its own size, as before this task), and the dash-dot is subtle beside the solid line but distinct; in the
+hover shot the lit lemma line is clearly dash-dot against the lit solid one.
+
+== not done here ==
+- The spec (engineering/specs/features/F04.html) and index are the lead's: the proposed Q entry is in the report.
+- Only the fixture shows a lemma; the live graph will carry one after the gate's writer, the re-pin and --h3's backfill.

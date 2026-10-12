@@ -1,0 +1,50 @@
+F10-T49 — context/v6 carries each node's lemmas (D-12 v3.38). Worktree opn-lemma-products, branch lemma-products, base b2f5f63. 2026-10-10.
+
+== RED (gate/tests/test_finding_context_lemmas.py written first; context.py untouched) ==
+E       AssertionError: assert 'context/v5' == 'context/v6'
+E       Failed: DID NOT RAISE ContextError
+E       KeyError: 'lemmas'
+FAILED gate/tests/test_finding_context_lemmas.py::test_a_lemma_the_states_do_not_know_is_an_error
+FAILED gate/tests/test_finding_context_lemmas.py::test_a_node_without_lemmas_carries_an_empty_list
+FAILED gate/tests/test_finding_context_lemmas.py::test_a_revised_lemma_is_carried_as_its_revision
+FAILED gate/tests/test_finding_context_lemmas.py::test_graph_rows_without_lemmas_fall_back_to_the_record
+FAILED gate/tests/test_finding_context_lemmas.py::test_the_bundle_is_v6_and_carries_the_lemma_with_its_signature
+test_the_derived_document_equals_the_committed_one was GREEN before the fix: it pins F10-Q7 (one builder, two readers) and must not change — kept as the regression guard.
+
+== GREEN after context.py (SCHEMA context/v6, ACCEPTED + v6, NodeState.lemmas from graph/v8 rows, _lemmas like _deps with a META fallback through _current_id) ==
+..............                                                           [100%]
+14 passed in 1.11s
+
+== Accepted sets swept (grep 'context/v5' outside tests/goldens/site) ==
+gate/opn_gate/context.py ACCEPTED; api/opn_api/mcp/reads.py CONTEXT_SCHEMAS (+context/v6); api/opn_api/mcp/schemas/get_node/v1.json context.schema enum (+context/v6, description); .github/workflows/api-deploy.yml package check (+context/v6); gate/opn_gate/literature.py docstring. api/opn_api/frontier.py lists frontier versions only (unchanged, no bump). site/ left to the site agent.
+
+== Old-shape tests restated (build the old shape by hand) ==
+api/tests/test_finding_literature_mcp_products.py::test_get_node_serves_a_committed_v5_context drops 'lemmas' from the derived v6 before relabelling it v5; api/tests/test_finding_context_window.py asserts v6 and strips 'lemmas' with the other later fields to make its v1. Both were red on 'Additional properties (lemmas)' / 'context/v6' != 'context/v5' first.
+
+== Golden regeneration shared with F03-T20 (one regeneration; the 3.21/3.22 precedent) ==
+  18 + "lemmas": [],
+   9 - "schema": "context/v5",
+   9 + "schema": "context/v6",
+   3 - "schema": "graph/v6",
+   3 - "protocol_version": "3.35",
+   3 + "schema": "graph/v8",
+   3 + "protocol_version": "3.38",
+
+== Lint and types ==
+Success: no issues found in 343 source files
+mypy gate exit 0
+All checks passed!
+724 files already formatted
+
+== Fast tier, gate + api ==
+ERROR gate/tests/test_bench.py::test_serve_answers_on_both_urls - opn_site.mo...
+ERROR gate/tests/test_bench.py::test_replay_merges_an_explainer_and_the_page_changes
+ERROR gate/tests/test_bench.py::test_assert_fails_on_a_refused_push - opn_sit...
+ERROR gate/tests/test_bench.py::test_a_push_in_a_mode_with_problems_is_refused_not_skipped
+FAILED gate/tests/test_lifecycle_f14.py::test_the_whole_life - opn_site.model...
+FAILED gate/tests/test_lifecycle_f15.py::test_the_whole_life - opn_site.model...
+FAILED gate/tests/test_walkthrough.py::test_graph_copy_is_identical - Asserti...
+3 failed, 4601 passed, 1 skipped, 191 deselected, 2 warnings, 4 errors in 475.31s (0:07:55)
+gate: 2816/3007 tests collected (191 deselected) in 1.05s
+api: 1793 tests collected in 0.68s
+6 site reds are site/opn_site/model.py's accepted set (site agent's); test_walkthrough::test_graph_copy_is_identical is the sibling graph checkout's AGENTS.md drift, environmental. gate: 2808 passed / 1 skipped / 7 red; api: 1793 passed.

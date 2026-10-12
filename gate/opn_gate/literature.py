@@ -86,7 +86,7 @@ class Record:
 
 @dataclass(frozen=True)
 class Literature:
-    """What the products publish for one node (graph/v6, frontier/v5, context/v5)."""
+    """What the products publish for one node (graph/v6 on, frontier/v5, context/v5 on)."""
 
     confirmed: dict[str, Any] | None
     proposed: dict[str, Any] | None

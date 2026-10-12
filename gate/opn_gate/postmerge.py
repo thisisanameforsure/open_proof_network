@@ -509,6 +509,8 @@ class PartialMerge:
     holes: tuple[dict[str, str | None], ...] = ()
     #: F07-R23: the children created with a witness the partial carried, so born ``ready``.
     witnessed: tuple[str, ...] = ()
+    #: F07-T77 (D-12 v3.38): the lemma edges this merge recorded, ``(hole name, node)``.
+    lemmas: tuple[tuple[str, str], ...] = ()
 
     def as_dict(self) -> dict[str, Any]:
         doc: dict[str, Any] = {
@@ -520,6 +522,8 @@ class PartialMerge:
         }
         if self.witnessed:  # absent when nothing was carried: the document is what it was
             doc["witnessed"] = list(self.witnessed)
+        if self.lemmas:  # F07-T77: absent when no hole restated a node under another branch
+            doc["lemmas"] = [{"hole": h, "node": n} for h, n in self.lemmas]
         return doc
 
 
@@ -628,14 +632,20 @@ def apply_partial(  # noqa: PLR0913 — the merge's facts, each named
     placed: list[dict[str, str | None]] = []
     carried_witnesses = dict(witnesses or {})
     witnessed: list[str] = []
+    lemmas: list[tuple[str, str]] = []
     for hole, child, existing in plan_children(node_dir, holes):
         if existing is not None:
             # R22: a hole that restates one of the node's own holes is that hole again, and the
-            # edge is already on the record. One that restates any other sibling adds no edge:
-            # an edge the node would wait on is exactly what a decomposition must not add, so
-            # the restatement is recorded in the verdict's placement and nowhere else.
+            # edge is already on the record. One that restates a node under another branch is
+            # that node, and the parent gains it as a lemma (D-12 v3.38, F07-T77): never a dep —
+            # an edge the node would wait on is exactly what a decomposition must not add — but
+            # an entry of ``lemmas`` with a hole's standing, so the merged assembly can be used.
+            # Before v3.38 the restatement reached only the placement and the job's log, and the
+            # assembly could never be used (graph #479, erdos-1094, 2026-10-09).
             if graphmod.is_hole_child(nodes_dir, parent, existing):
                 edges.append(existing)
+            else:
+                lemmas.append((hole.name, existing))
             placed.append({"name": hole.name, "child": None, "reused_node": existing})
             continue
         assert child is not None
@@ -663,11 +673,21 @@ def apply_partial(  # noqa: PLR0913 — the merge's facts, each named
         placed.append({"name": hole.name, "child": child, "reused_node": None})
 
     add_deps(node_dir, edges)
+    if lemmas:
+        add_lemmas(node_dir, lemmas)
     regenerate_context(node_dir, nodes_dir)
     attempt = (
         str(assembly_path) if on_record else record_attempt(node_dir, attempt_file, partial_text)
     )
-    return PartialMerge(tuple(created), attempt, origin, annex, tuple(placed), tuple(witnessed))
+    return PartialMerge(
+        tuple(created),
+        attempt,
+        origin,
+        annex,
+        tuple(placed),
+        tuple(witnessed),
+        tuple(lemmas),
+    )
 
 
 def plan_children(node_dir: Path, holes: Sequence[Any]) -> list[tuple[Any, str | None, str | None]]:
@@ -811,6 +831,42 @@ def add_deps(node_dir: Path, children: Sequence[str]) -> list[str]:
     return deps
 
 
+def add_lemmas(node_dir: Path, lemmas: Sequence[tuple[str, str]]) -> list[dict[str, str]]:
+    """F07-T77 (D-12 v3.38): record ``(hole name, node)`` lemma edges on the parent's
+    ``META.yaml`` and return the list as it stands. Bot-owned and additive, like ``add_deps``: a
+    node already recorded is kept under the hole that first restated it, the statement hash is
+    untouched, and the file is rewritten only when something is new. ``lemmas`` exists from
+    ``meta/v6``, so an older META is bumped to it — ``scaffold.meta_for``'s rule, the oldest
+    version that can express the record — and a newer one keeps its version."""
+    import yaml  # noqa: PLC0415 — only the writing path needs it
+
+    from opn_gate import scaffold  # noqa: PLC0415 — scaffold imports layout, which imports schemas
+
+    meta_path = node_dir / "META.yaml"
+    meta = yaml.safe_load(meta_path.read_text(encoding="utf-8"))
+    recorded: list[dict[str, str]] = [
+        {"hole": str(entry.get("hole") or ""), "node": str(entry.get("node") or "")}
+        for entry in (meta.get("lemmas") or [])
+        if isinstance(entry, dict)
+    ]
+    added = False
+    for hole_name, node_id in lemmas:
+        if all(entry["node"] != node_id for entry in recorded):
+            recorded.append({"hole": hole_name, "node": node_id})
+            added = True
+    if not added:
+        return recorded
+    meta["lemmas"] = recorded
+    if scaffold.meta_version(meta.get("schema")) < scaffold.meta_version(
+        scaffold.META_SCHEMA_LEMMAS
+    ):
+        meta["schema"] = scaffold.META_SCHEMA_LEMMAS
+    meta_path.write_text(
+        yaml.safe_dump(meta, sort_keys=False, allow_unicode=True), encoding="utf-8"
+    )
+    return recorded
+
+
 def regenerate_context(node_dir: Path, nodes_dir: Path) -> str:
     """R6, Q2: rewrite the parent's ``Context.lean`` from its declared deps.
 
@@ -823,7 +879,10 @@ def regenerate_context(node_dir: Path, nodes_dir: Path) -> str:
 
     meta = yaml.safe_load((node_dir / "META.yaml").read_text(encoding="utf-8"))
     deps = graphmod.effective_deps(nodes_dir, meta.get("deps"))  # F08-T10: through any revision
-    text = scaffold.context_for(nodes_dir, deps)
+    # F07-T77 (D-12 v3.38): the lemmas' signatures too, each read through its revision the same
+    # way, so a proof may name a lemma as it names a dep.
+    lemmas = tuple(lm.node for lm in graphmod.effective_lemmas(nodes_dir, meta.get("lemmas")))
+    text = scaffold.context_for(nodes_dir, deps, lemmas)
     (node_dir / "Context.lean").write_text(text, encoding="utf-8")
     return text
 
@@ -833,7 +892,8 @@ def refresh_contexts(nodes_dir: Path) -> list[Path]:
     signatures, and return the files rewritten.
 
     ``Context.lean`` is generated, never authored (D-3: it is not a submission path), and step 8
-    holds it to each dep's ``Statement.lean`` byte for byte. A D-8 revision changes what a dep
+    holds it to each dep's — and, from D-12 v3.38, each lemma's — ``Statement.lean`` byte for
+    byte. A D-8 revision changes what a dep
     *is* without touching the dependent's record, so the dependent's context goes out of date
     and nothing a contributor may submit can mend it. This pass does, for every node whose
     context fails the gate's own check against its effective deps, and leaves a context that
@@ -847,8 +907,10 @@ def refresh_contexts(nodes_dir: Path) -> list[Path]:
         node = layout.load_node(node_dir, nodes_dir.parent.name)
         if not isinstance(node, layout.Node):
             continue  # a node the layout refuses is not this pass's to judge
-        declared = list(graphmod.effective_deps(nodes_dir, node.meta.get("deps")))
-        if not declared or depstep.check_context(node, declared) is None:
+        # F07-T77: the lemmas' signatures are held to the same check, so a lemma's revision
+        # regenerates its parent's context exactly as a dep's does.
+        wanted = depstep.required_signatures(node)
+        if not wanted or depstep.check_context(node, wanted) is None:
             continue
         try:
             regenerate_context(node_dir, nodes_dir)

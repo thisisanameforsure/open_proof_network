@@ -103,7 +103,9 @@ class DepsStep:
         # F08-T10 (D-8 v3.18): the declared deps as they stand now, read through any revision.
         declared = list(graphmod.effective_deps(node.path.parent, node.meta.get("deps")))
 
-        context_problem = self._check_context(node, declared)
+        # F07-T77 (D-12 v3.38): the lemmas' signatures are owed too (R6 reaches every signature
+        # a proof may name), though a lemma is never a declared dep.
+        context_problem = self._check_context(node, required_signatures(node))
         if context_problem is not None:
             return context_problem
 
@@ -141,16 +143,26 @@ class DepsStep:
             if isinstance(declared_uses, dict)
             else []
         )
+        # F08-T41 (D-12 v3.38): a proved lemma was staged and imported as a proved hole is, so
+        # its constants are a proved lemma's and accepted; an unproved lemma was not staged, so
+        # a constant of its module is still undeclared — it could only have come from somewhere
+        # the record does not vouch for. A lemma the proof never touches is not an unused dep.
+        lemmas = [
+            lm
+            for lm in graphmod.proved_lemmas(node.path.parent, node.meta.get("lemmas"))
+            if lm not in declared
+        ]
         used_nodes, offences = classify(
             result.doc.get("constants") or [],
             own=node.node_id,
-            declared=[*declared, *node_uses],
+            declared=[*declared, *node_uses, *lemmas],
         )
         unused = [d for d in declared if d not in used_nodes]
         ctx.data["deps"] = {
             "declared": declared,
             "used": sorted(used_nodes),
             "unused": unused,
+            "lemmas": lemmas,
             "warnings": [
                 f"declared dep {d!r} contributes no constant to the proof" for d in unused
             ],
@@ -197,6 +209,21 @@ class DepsStep:
 
     def _check_context(self, node: layout.Node, declared: list[str]) -> StepResult | None:
         return check_context(node, declared)
+
+
+def required_signatures(node: layout.Node) -> list[str]:
+    """The nodes whose signatures ``Context.lean`` must carry, in the file's order: the declared
+    deps, then the lemmas (D-12 v3.38, F07-T77), each read through any revision (F08-T10). One
+    list, read by step 8, by admission's context check and by the post-merge pass that mends a
+    stale context, so the three cannot disagree about what a Context owes."""
+    nodes_dir = node.path.parent
+    deps = list(graphmod.effective_deps(nodes_dir, node.meta.get("deps")))
+    lemmas = [
+        lm.node
+        for lm in graphmod.effective_lemmas(nodes_dir, node.meta.get("lemmas"))
+        if lm.node not in deps
+    ]
+    return [*deps, *lemmas]
 
 
 def check_context(node: layout.Node, declared: list[str]) -> StepResult | None:

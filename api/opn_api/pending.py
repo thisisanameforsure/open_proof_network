@@ -94,6 +94,7 @@ def record(  # noqa: PLR0913 — one opened pull request, described
     fingerprints: tuple[str, ...] | list[str] = (),
     defect_class: str | None = None,
     automation: dict[str, Any] | None = None,
+    expected_nodes: tuple[str, ...] | list[str] = (),
 ) -> Submission | None:
     """Remember a pull request the service just opened. The pull request exists whatever happens
     here, so a store failure is logged and the caller still answers 201 with its number: the
@@ -111,6 +112,7 @@ def record(  # noqa: PLR0913 — one opened pull request, described
         fingerprints=tuple(fingerprints),
         defect_class=defect_class,
         automation=automation,
+        expected_nodes=tuple(expected_nodes),
     )
     try:
         ctx.store.put_submission(submission)
@@ -132,6 +134,7 @@ def document(submission: Submission) -> dict[str, Any]:
     doc.pop("final_state")
     doc.pop("fingerprints")  # the service's own index, not part of the answer (F07-T35)
     doc.pop("defect_class")  # likewise (F08-T18): the claim's own file says its class
+    doc.pop("expected_nodes")  # likewise (testers 2026-10-09b, C6): the receipt's holes say it
     # F05-T18: the name every write route uses (``POST /submissions``, ``/precheck``, the
     # receipt). ``kind`` stays, and is the only one that speaks for a record that is not an
     # artifact of ``POST /submissions`` (an annex, a witness, a proposal): there this is null.
@@ -163,16 +166,35 @@ def unknown_node(ctx: Context, node_id: str, where: str = "") -> ApiError:
         404, "node-unknown", f"{node_id} is not a node of this graph{where}; {NOT_RENDERED}"
     )
     found = ctx.store.get_submission_by_node(node_id)
+    hole: str | None = None
     if found is None:
-        return unknown
+        # Testers 2026-10-09b (C6): a hole child is proposed by nobody; the partial whose hole
+        # is expected to become it (F06-T15) answers for it as a proposal answers for its node.
+        found = ctx.store.get_submission_expecting(node_id)
+        if found is None:
+            return unknown
+        hole = expected_hole_name(ctx, found, node_id)
     details: dict[str, Any] = {"pr_number": found.pr_number, "pr_url": found.pr_url}
+    if hole is not None:
+        details["hole"] = hole
+    what_it_is = (
+        f"{node_id} is the hole `{hole}` of pull request #{found.pr_number}"
+        if hole is not None
+        else f"{node_id} is proposed in pull request #{found.pr_number}"
+    )
     state = None if found.closed is not None else live_state(ctx, found.pr_number)[0]
     merged = (found.final_state or {}).get("merged") if state is None else state.merged
     if merged:
+        became = (
+            f"{node_id} is the hole `{hole}` of pull request #{found.pr_number}, merged, which "
+            "the post-merge job writes as a node"
+            if hole is not None
+            else f"{node_id} merged as pull request #{found.pr_number}"
+        )
         return ApiError(
             409,
             "products-pending",
-            f"{node_id} merged as pull request #{found.pr_number}; {NOT_RENDERED}. Retry shortly.",
+            f"{became}; {NOT_RENDERED}. Retry shortly.",
             details=details,
             headers={"Retry-After": str(PRODUCTS_RETRY_AFTER_S)},
         )
@@ -194,9 +216,20 @@ def unknown_node(ctx: Context, node_id: str, where: str = "") -> ApiError:
     return ApiError(
         409,
         "node-pending",
-        f"{node_id} is proposed in pull request #{found.pr_number}{what}; {after}",
+        f"{what_it_is}{what}; {after}",
         details={**details, "waiting_on": waiting},
     )
+
+
+def expected_hole_name(ctx: Context, found: Submission, node_id: str) -> str | None:
+    """The name of the hole of ``found``'s precheck that is expected to become ``node_id``, from
+    the job's result; ``None`` when the job cannot be read (the id still names the partial)."""
+    job = ctx.store.get_job(found.precheck_job_id) if found.precheck_job_id else None
+    result = (job or {}).get("result") or {}
+    for h in result.get("holes") or []:
+        if isinstance(h, dict) and h.get("expected_node_id") == node_id:
+            return str(h.get("name"))
+    return None
 
 
 #: F06-T10: the ``waiting_on`` values that mean the proposal's gate concluded success, so its head
@@ -993,7 +1026,75 @@ def answer(ctx: Context, raw: str) -> dict[str, Any]:
         out["proposed_statement"], out["proposed_statement_error"] = proposed_statement(
             ctx, found, pull
         )
+    out.update(hole_outcomes(ctx, found, attestation))
     return out
+
+
+# --- F09-T72 (D-12 v3.38): what a partial's holes became -----------------------------------------
+
+
+def hole_outcomes(
+    ctx: Context, found: Submission, attestation: dict[str, Any] | None
+) -> dict[str, Any]:
+    """A partial's holes as its receipt named them (F06-T15), each with ``became``: the node the
+    post-merge job made of it as the products record it — a new child, or for a hole that
+    restated a node under another branch, that node, now a lemma of this one (D-12 v3.38).
+
+    Testers 2026-10-09b (C1): the agent read "merged, pass" six times and had to infer from an
+    unchanged ``deps`` that its hole had been recognised as another branch's node. The products
+    say it: ``graph.json``'s ``decompositions[].holes[].node`` resolves a restating hole to the
+    lemma's node (graph/v8). The decomposition is this submission's by the record's own facts —
+    the attestation's ``artifact_hash`` against the committed partial file, and the hole names —
+    never by a file name's pseudonym. ``became`` is null while the pull request is open
+    (restatement is decided at the merge, by step 4 against the tree as it is then), and until
+    the products carry the decomposition. Only a partial whose precheck named its holes carries
+    the key, as only such a receipt does."""
+    from opn_api import submissions  # noqa: PLC0415 — submissions imports this module
+
+    if found.kind != "partial" or found.node_id is None or not found.precheck_job_id:
+        return {}
+    job = ctx.store.get_job(found.precheck_job_id)
+    if job is None:
+        return {}
+    block = submissions.hole_rows(job.get("result"), str(job.get("graph_commit")))
+    if not block:
+        return {}
+    names = [str(h["name"]) for h in block["holes"]]
+    became: dict[str, str | None] = {}
+    if attestation is not None:
+        try:
+            became = _decomposition_nodes(ctx, found, names, attestation)
+        except (ApiError, GitHostError, ValueError, KeyError, TypeError) as exc:
+            log.warning(
+                "pull request #%d: holes not matched to the products: %s", found.pr_number, exc
+            )
+    block["holes"] = [{**h, "became": became.get(str(h["name"]))} for h in block["holes"]]
+    return block
+
+
+def _decomposition_nodes(
+    ctx: Context, found: Submission, names: list[str], attestation: dict[str, Any]
+) -> dict[str, str | None]:
+    """Hole name to node for the one decomposition of the node whose partial file hashes to the
+    attestation's artifact and whose holes are these, in this order; empty when the products
+    carry none such (graph/v8 ``decompositions``; an older product has no key and matches
+    nothing)."""
+    digest = attestation.get("artifact_hash")
+    raw = optional_committed(ctx, f"targets/{found.target_id}/graph.json")
+    if not isinstance(digest, str) or raw is None:
+        return {}
+    doc = json.loads(raw)
+    row = next((n for n in doc.get("nodes", []) if n.get("node_id") == found.node_id), None)
+    for decomposition in (row or {}).get("decompositions") or []:
+        holes = decomposition.get("holes") or []
+        if [h.get("name") for h in holes] != names:
+            continue
+        where = f"targets/{found.target_id}/nodes/{found.node_id}/{decomposition['partial']}"
+        file = optional_committed(ctx, where)
+        if file is None or schemas.content_hash(file) != digest:
+            continue
+        return {str(h["name"]): h.get("node") for h in holes}
+    return {}
 
 
 #: F07-T41: how much of a proposed ``Statement.lean`` an answer carries. A statement is a few
@@ -1235,6 +1336,19 @@ def mine(ctx: Context, pseudonym: str) -> dict[str, Any]:
     wanted = pseudonym.lower()
     listed = snapshot(ctx)
     open_now = [e for e in listed["open"] if str(e["pseudonym"]).lower() == wanted]
+    for entry in open_now:
+        # Testers 2026-10-09b (C4): the caller's own open submissions are few, so one the service
+        # has never read by id is read now (cached for the window, as the by-id route reads it)
+        # rather than answered ``waiting_on: null``; the listing of everyone's still reads
+        # nothing of its own.
+        if entry["queue"]["waiting_on_read_at"] is None:
+            live_state(ctx, int(entry["pr_number"]))
+            waiting, read_at = last_read(ctx, int(entry["pr_number"]))
+            entry["queue"] = {
+                **entry["queue"],
+                "waiting_on": waiting,
+                "waiting_on_read_at": read_at,
+            }
     finished = [s for s in ctx.store.list_submissions_by(pseudonym) if s.closed is not None]
     # newest first: by when it finished, then by number (ULIDs made in one millisecond do not
     # sort by time; the host numbers pull requests in the order they were opened)

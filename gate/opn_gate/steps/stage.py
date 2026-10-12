@@ -7,7 +7,10 @@ signatures (which step 8 checks textually instead). Deps are staged recursively 
 them must already carry a ``Proof.lean``; a node whose deps are unproved is blocked (F03) and
 cannot pass steps 4-8. A node's own holes are the exception (D-12 v3.19, F07-R22): a proved one
 is staged and imported like a dep, an unproved one is left out and refuses nothing, because the
-node may draw on its holes and never waits on them.
+node may draw on its holes and never waits on them. A lemma — a node under another branch that a
+merged partial of this node restated (D-12 v3.38, F08-T41; ``META.yaml``'s ``lemmas``) — has
+exactly that standing: proved, it is staged and imported before the node; unproved, it is not
+staged and blocks nothing.
 """
 
 from __future__ import annotations
@@ -38,6 +41,8 @@ class Staged:
 
 
 def generated_context(deps: list[str]) -> str:
+    """``deps`` is what the node builds against: its effective deps (less its unproved holes)
+    and its proved lemmas (F08-T41), in that order."""
     lines = [f"import {layout.node_module(dep, 'Proof')}" for dep in deps]
     body = "\n".join(lines) + ("\n" if lines else "")
     return (
@@ -57,15 +62,20 @@ def stage(node: layout.Node, workdir: Path, *, proof_override: Path | None = Non
     seen: set[str] = set()
     nodes_dir = node.path.parent
 
-    def deps_of(node_dir: Path) -> list[str]:
+    def deps_of(node_dir: Path) -> tuple[list[str], list[str]]:
+        """The node's effective deps, and its proved lemmas (F08-T41)."""
         try:
             meta = schemas.load_yaml(node_dir / "META.yaml")
         except schemas.SchemaError as exc:
             problems.append(Diagnostic("dep-meta", f"{node_dir.name}: {exc}"))
-            return []
+            return [], []
         # F08-T10 (D-8 v3.18): a superseded dep is staged as the node that replaced it, so a
         # parent is built against its revised hole's proof, never against a dead statement.
-        return list(graphmod.effective_deps(nodes_dir, meta.get("deps")))
+        deps = list(graphmod.effective_deps(nodes_dir, meta.get("deps")))
+        lemmas = [
+            lm for lm in graphmod.proved_lemmas(nodes_dir, meta.get("lemmas")) if lm not in deps
+        ]
+        return deps, lemmas
 
     def uses_of(node_id: str) -> tuple[str, ...]:
         """F08-R18: the nodes whose proofs this node's own proof imports. For the node under
@@ -96,15 +106,19 @@ def stage(node: layout.Node, workdir: Path, *, proof_override: Path | None = Non
         if not src.is_dir():
             problems.append(Diagnostic("dep-missing", f"declared dep {node_id!r} is not a node"))
             return
+        declared, lemmas = deps_of(src)
         deps = [
             dep
-            for dep in deps_of(src)
+            for dep in declared
             # R22: an unproved hole of this node is not staged and blocks nothing.
             if not (
                 graphmod.is_hole_child(nodes_dir, node_id, dep)
                 and not (nodes_dir / dep / "Proof.lean").is_file()
             )
         ]
+        # F08-T41: a proved lemma is staged and imported after the deps, as a proved hole is;
+        # an unproved one was left out by ``proved_lemmas`` and refuses nothing.
+        deps.extend(lemmas)
         # The proof's uses are built before it, as its deps are; they reach it through its own
         # import lines, never through the generated Context.
         for dep in (*deps, *(u for u in uses_of(node_id) if u not in deps)):

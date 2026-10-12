@@ -1,0 +1,24 @@
+The lemma amendment (built 2026-10-10 on testers-1009b-fixes as decisions v3.36) merged with main on 2026-10-12 as v3.38.
+
+Why renumbered: main had applied v3.37 (Palomar) with its own graph/v7, and reserves v3.36 for the formalization-review draft; D-34 forbids editing a published schema, so the lemma graph schema became graph/v8 = main's v7 (registrations) + the lemma fields (node lemmas, decompositions' hole->lemma), context/v6 and meta/v6 unchanged in number, PROTOCOL_VERSION 3.38. Every reference was renumbered on the branch's own added lines only (75 files); main's draft mentions untouched.
+
+Twenty-one conflicts, all both-added at one spot (api store/submissions/pending fields; cli parsers; products constants; the decisions version block; three ledger lines; CLAUDE.md; HASHES; graph/v7 add/add; four tests; site model and fixture; three info goldens regenerated).
+
+Fast tier on the merge before fixes: 8 failed / 5760 passed:
+FAILED gate/tests/test_registration.py::test_the_products_publish_registrations
+FAILED gate/tests/test_walkthrough.py::test_graph_copy_is_identical - Asserti...
+FAILED api/tests/test_finding_lemmas_mcp.py::test_get_submission_on_a_merged_partial_says_what_each_hole_became
+FAILED api/tests/test_finding_lemmas_mcp.py::test_became_is_null_until_the_products_carry_the_decomposition
+FAILED api/tests/test_finding_lemmas_mcp.py::test_became_is_null_while_the_partial_is_open
+FAILED api/tests/test_finding_lemmas_mcp.py::test_a_later_decomposition_with_the_same_hole_names_is_not_this_ones
+FAILED api/tests/test_finding_lemmas_mcp.py::test_get_submission_tool_equals_the_route
+FAILED api/tests/test_finding_mcp_context_budget.py::test_the_whole_tools_list_fits_its_budget
+
+Fixes: test_registration reads products.GRAPH_SCHEMA; the lemmas MCP test's hand-written graph carries registrations (v7's required field); the tools-list ceiling re-measured 94,385 and pinned 95,000 per the test's own rule.
+
+After:
+FAILED gate/tests/test_walkthrough.py::test_graph_copy_is_identical - Asserti...
+= 1 failed, 5767 passed, 3 skipped, 224 deselected, 2 warnings in 502.00s (0:08:21) =
+(the one failure is the sibling-checkout guide copy, another session's uncommitted edit plus this merge's guide additions; the copy rides the next re-pin)
+Lean tier, local: 2 passed in 102.85s (0:01:42) (test_finding_lemma_standing_lean.py, elan toolchain)
+lint: All checks passed; mypy gate/api/site: no issues.
