@@ -39,7 +39,7 @@ log = logging.getLogger(__name__)
 #: ``literature_proposed`` as ``graph/v6`` does, beside v4's ``circular_below``.
 #: F10-T49 (D-12 v3.38): ``context/v6`` carries ``lemmas`` beside ``deps`` — each with the hole
 #: name, the signature the proof may use once the node is proved, its status and cause.
-SCHEMA = "context/v6"
+SCHEMA = "context/v7"  # v7 (F26-R17, D-9 v3.39): the review for the root; v6: lemmas
 ACCEPTED: tuple[str, ...] = (
     "context/v1",
     "context/v2",
@@ -47,6 +47,7 @@ ACCEPTED: tuple[str, ...] = (
     "context/v4",
     "context/v5",
     "context/v6",
+    "context/v7",
 )
 FILE = layout.CONTEXT_FILE
 CLAIMS_FILE = "claims.json"
@@ -757,6 +758,9 @@ def build(
         "literature_proposed": state.literature_proposed,
         # F10-T49 (D-12 v3.38): graph/v8's lemmas, each with the signature a proof may use.
         "lemmas": _lemmas(reader, target_id, meta, states, state.lemmas),
+        # F26-R17 (D-9 v3.39): the target's review for its root — the state, the words, the
+        # questions waiting — and null on any other node.
+        "review": _review(reader, target_id, node_id, states),
     }
     fit(doc)
     return schemas.validate(doc, SCHEMA)
@@ -786,3 +790,18 @@ def render(
     return schemas.canonical_json(
         build(reader, target_id, node_id, states=states, rendered_from=rendered_from)
     )
+
+
+def _review(reader: Any, target_id: str, node_id: str, states: Any) -> dict[str, Any] | None:
+    """F26-R17: ``review.for_context`` for the root node, read through the reader's tree when it
+    is a path; ``None`` elsewhere. A reader that is not a filesystem (the service's host reader)
+    answers ``None`` until the products carry the review (T10 lifts it from graph.json)."""
+    from opn_gate import review as reviewmod  # noqa: PLC0415 — only the root's bundle
+
+    root = getattr(states, "root", None)
+    if root is not None and root != node_id:
+        return None
+    base = getattr(reader, "root", None) or getattr(reader, "path", None)
+    if not isinstance(base, Path):
+        return None
+    return reviewmod.for_context(base / "targets" / target_id)

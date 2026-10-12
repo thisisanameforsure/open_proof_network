@@ -65,6 +65,14 @@ MERGE_LINES: dict[str, Line | None] = {
     "proposed-for": None,  # F18-R8: a pointer, not an artifact (D-14 v3.26)
     "registration": "upstreaming",  # F25-T4 (D-19 v3.37): the registering curator's line
     "display-name": None,  # F25-T4: a name is a label on an identity, not an artifact
+    # F26-T1 (D-9 v3.39): a review's records earn at merge nothing yet; a surviving candidate is
+    # credited as the root's statement line when the review completes (T2), an answer and a
+    # signature are judgements, and a job record is the gate's own.
+    "review": None,
+    "candidate": None,
+    "review-answer": None,
+    "review-signature": None,
+    "review-job": None,
 }
 #: D-21, F11 §7: the curator of a target earns no proof credit on it. They chose the statement,
 #: its decomposition and its difficulty, so a proof of one of its nodes is not a result they

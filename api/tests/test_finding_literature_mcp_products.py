@@ -225,7 +225,7 @@ def test_get_node_serves_a_committed_v5_context(harness: Harness, tmp_path: Path
     seed_graph(harness)
     derived = derived_bundle(harness, tmp_path / "tree")
     v5 = {
-        **{k: v for k, v in derived.items() if k != "lemmas"},
+        **{k: v for k, v in derived.items() if k not in ("lemmas", "review")},
         "schema": "context/v5",
         "circular": [],
         "literature": {

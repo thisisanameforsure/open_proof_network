@@ -37,6 +37,7 @@ from test_mcp_equivalence import derived_bundle, seed_graph
 
 from opn_api.mcp import reads, results
 from opn_api.mcp.server import TOOLS
+from opn_gate import review as review_mod
 from opn_gate import schemas
 
 LEMMA_NODE = "already-proved"
@@ -71,6 +72,7 @@ def context_v6(harness: Harness, tree: Path, lemmas: list[dict[str, Any]]) -> di
     """The fixture node's derived bundle lifted to context/v6 by hand, carrying ``lemmas``."""
     derived = derived_bundle(harness, tree)
     v6 = {**derived, "schema": "context/v6", "lemmas": lemmas}
+    v6.pop("review", None)  # F26-T1: context/v7 added it; a v6 snapshot has none
     for field, value in (("circular", []), ("literature", None), ("literature_proposed", None)):
         v6.setdefault(field, value)
     assert schemas.violations(v6, "context/v6") == [], "the hand-written v6 is not v6"
@@ -102,6 +104,7 @@ def test_get_node_on_an_older_context_answers_no_lemmas(harness: Harness, tmp_pa
     seed_graph(harness)
     v5 = {**derived_bundle(harness, tmp_path / "tree"), "schema": "context/v5"}
     v5.pop("lemmas", None)
+    v5.pop("review", None)  # F26-T1: context/v7 added it
     for field, value in (("circular", []), ("literature", None), ("literature_proposed", None)):
         v5.setdefault(field, value)
     assert schemas.violations(v5, "context/v5") == [], "the hand-written v5 is not v5"
@@ -137,7 +140,9 @@ def graph_v7(decompositions: list[dict[str, Any]], lemmas: list[dict[str, str]])
     """The fixture's graph/v1 lifted to graph/v8 by hand: every row with v8's fields, the
     tutorial node carrying the merged partial's decomposition and its lemma."""
     doc: dict[str, Any] = json.loads((FIXTURES / "graph.json").read_text())
-    doc["schema"] = "graph/v8"
+    doc["schema"] = "graph/v9"
+    doc["review"] = review_mod.state_of(Path("/nonexistent"))  # F26-T1: no review
+    doc["open_pairs"] = []
     doc["target_proofs"] = []
     doc["registrations"] = []  # F25-T1 (graph/v7): the target's registrations, none here
     for row in doc["nodes"]:
@@ -158,7 +163,7 @@ def graph_v7(decompositions: list[dict[str, Any]], lemmas: list[dict[str, str]])
         if row["node_id"] == TUTORIAL_NODE:
             row["decompositions"] = decompositions
             row["lemmas"] = lemmas
-    assert schemas.violations(doc, "graph/v8") == [], "the hand-written v8 is not v8"
+    assert schemas.violations(doc, "graph/v9") == [], "the hand-written v9 is not v9"
     return doc
 
 

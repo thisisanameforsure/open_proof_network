@@ -226,6 +226,15 @@ Role = Literal[
     "literature",  # nodes/<id>/literature/<ts>-<contributor>.yaml: a literature status (D-25 v3.35)
     "registration",  # targets/<id>/registrations/<date>-<n>.yaml: a registry record (D-10 v3.37)
     "display-name",  # names/<pseudonym>.yaml at the graph root: an opt-in display name (D-3 v3.37)
+    # F26-R1 (D-9 v3.39): the formalization review's records under targets/<id>/review/.
+    "review",  # review/review.yaml: the opening, the words, the cases, the concepts
+    "candidate",  # review/candidates/<id>.yaml beside <id>.lean: one formalization
+    "intent-test",  # review/tests/<id>.yaml beside <id>.lean: a test with its expected result
+    "review-question",  # review/questions/<id>.yaml: a question to the intent signer
+    "review-answer",  # review/answers/<id>.yaml: the intent signer's signed answer
+    "pair",  # review/pairs/<a>--<b>.yaml: two directions, each proved, refuted or open
+    "review-exhibit",  # review/exhibits/<id>.json beside <id>.lean: a kernel-checked result
+    "review-signature",  # review/signatures/<role>-<date>-<n>.yaml: a signer's decision
 ]
 
 #: Roles that claim nothing and merge on schema and path checks alone (F07-R9).
@@ -308,7 +317,7 @@ SCHEMAS_FOR_ROLE: dict[Role, tuple[str, ...]] = {
     # v2: via and admitted_by (F23-R9); v3: admitted_by may be motion:<n> (F24-R4)
     "steward": ("steward/v1", "steward/v2", "steward/v3"),
     # v2: steward_admission (F23-R9); v3: the panel's settings (F24-R1)
-    "policy": ("policy/v1", "policy/v2", "policy/v3"),
+    "policy": ("policy/v1", "policy/v2", "policy/v3", "policy/v4"),  # v4: review_openers (F26-R2)
     "explainer-signature": (
         "explainer-signature/v1",
         "explainer-signature/v2",
@@ -327,6 +336,15 @@ SCHEMAS_FOR_ROLE: dict[Role, tuple[str, ...]] = {
     "credit-correction": ("credit-correction/v1",),
     "literature": ("literature/v1",),  # F08-T40 (D-25 v3.35)
     "registration": ("registration/v1",),  # F25-R5 (D-10 v3.37)
+    # F26-R1 (D-9 v3.39): the review's records.
+    "review": ("review/v1",),
+    "candidate": ("candidate/v1",),
+    "intent-test": ("intent-test/v1",),
+    "review-question": ("review-question/v1",),
+    "review-answer": ("review-answer/v1",),
+    "pair": ("pair/v1",),
+    "review-exhibit": ("exhibit/v1",),
+    "review-signature": ("review-signature/v1",),
     "display-name": ("display-name/v1",),  # F25-R6 (D-3 v3.37)
 }
 
@@ -404,6 +422,20 @@ NAMES_DIR = "names"
 PSEUDONYM_RE = re.compile(r"^[A-Za-z0-9-]{1,39}$")
 #: F25-R5 (D-10 v3.37): a target's registry records, target-scoped like its approach records.
 REGISTRATIONS_DIR = "registrations"
+#: F26-R1 (D-9 v3.39): a target's formalization review, its records under one directory.
+REVIEW_DIR = "review"
+#: The review's sub-directories, each one role; review.yaml itself is the opening.
+REVIEW_ROLES_BY_DIR: dict[str, Role] = {
+    "candidates": "candidate",
+    "tests": "intent-test",
+    "questions": "review-question",
+    "answers": "review-answer",
+    "pairs": "pair",
+    "exhibits": "review-exhibit",
+    "signatures": "review-signature",
+}
+#: The review records that carry a Lean file beside the YAML (or JSON), named for the record.
+REVIEW_LEAN_ROLES: tuple[Role, ...] = ("candidate", "intent-test", "review-exhibit")
 
 
 def locate(path: str) -> Located | None:  # noqa: PLR0911, PLR0912 — one branch per D-3 entry
@@ -432,6 +464,23 @@ def locate(path: str) -> Located | None:  # noqa: PLR0911, PLR0912 — one branc
         # F25-R5 (D-10 v3.37): a registry record, by a curator or a steward of the target.
         if head == REGISTRATIONS_DIR and _is_flat(name, YAML_SUFFIXES):
             return Located("registration", path, target_match.group("target"), None)
+        # F26-R1 (D-9 v3.39): the review's records; a Lean file beside a candidate, a test or an
+        # exhibit takes that record's role, so one pull request carries both or neither.
+        if head == REVIEW_DIR:
+            if _is_flat(name, YAML_SUFFIXES) and PurePosixPath(name).stem == "review":
+                return Located("review", path, target_match.group("target"), None)
+            sub, _, leaf = name.partition("/")
+            role = REVIEW_ROLES_BY_DIR.get(sub)
+            if role is None or not leaf or "/" in leaf:
+                return None
+            suffixes = (
+                (*YAML_SUFFIXES, ".json", ".lean") if role in REVIEW_LEAN_ROLES else YAML_SUFFIXES
+            )
+            if role == "review-exhibit":
+                suffixes = (".json", ".lean")
+            if _is_flat(leaf, suffixes):
+                return Located(role, path, target_match.group("target"), None)
+            return None
         if head == "status" and _is_flat(name, YAML_SUFFIXES):
             return Located("target-status", path, target_match.group("target"), None)
         if head == "defs" and name.startswith("defects/") and _is_flat(name[8:], YAML_SUFFIXES):

@@ -1,0 +1,192 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openproof.network/schemas/pair/v1.json",
+  "title": "pair/v1",
+  "description": "targets/<id>/review/pairs/<a>--<b>.yaml (F26-R1, R7, R8; D-9 v3.39): the two directions between two candidates, each proved, refuted or open, with the exhibit or the attempt; a direction's proof never using its hypothesis is refused as a proof of equivalence (the degenerate guard). Both proved: one cluster. One proved and one refuted: one strictly stronger. Open directions are claimable work. Written by the gate's job and by merged pair-proof artifacts; a later record for the same pair supersedes. Versioned, never edited (D-34).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "target",
+    "a",
+    "b",
+    "forward",
+    "backward",
+    "date"
+  ],
+  "properties": {
+    "schema": {
+      "const": "pair/v1"
+    },
+    "target": {
+      "$ref": "#/$defs/identifier",
+      "description": "the target the record is filed under"
+    },
+    "a": {
+      "$ref": "#/$defs/id",
+      "description": "the first candidate (lexically smaller id)"
+    },
+    "b": {
+      "$ref": "#/$defs/id"
+    },
+    "forward": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "state",
+        "exhibit",
+        "attempt"
+      ],
+      "properties": {
+        "state": {
+          "enum": [
+            "proved",
+            "refuted",
+            "open"
+          ],
+          "description": "`proved`, a Lean proof of the implication; `refuted`, a kernel-checked instance where the first claim holds and the second fails, never a proof that the statements differ; `open`, attempted without a result"
+        },
+        "exhibit": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/id"
+            }
+          ],
+          "description": "the exhibit that proves or refutes it; null while open"
+        },
+        "attempt": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "who",
+                "tool",
+                "budget_s"
+              ],
+              "properties": {
+                "who": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "description": "the identity or `gate`"
+                },
+                "tool": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "description": "what was tried"
+                },
+                "budget_s": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            }
+          ],
+          "description": "the last attempt recorded while open; null once settled"
+        }
+      },
+      "description": "a implies b"
+    },
+    "backward": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "state",
+        "exhibit",
+        "attempt"
+      ],
+      "properties": {
+        "state": {
+          "enum": [
+            "proved",
+            "refuted",
+            "open"
+          ],
+          "description": "`proved`, a Lean proof of the implication; `refuted`, a kernel-checked instance where the first claim holds and the second fails, never a proof that the statements differ; `open`, attempted without a result"
+        },
+        "exhibit": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/id"
+            }
+          ],
+          "description": "the exhibit that proves or refutes it; null while open"
+        },
+        "attempt": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "who",
+                "tool",
+                "budget_s"
+              ],
+              "properties": {
+                "who": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "description": "the identity or `gate`"
+                },
+                "tool": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "description": "what was tried"
+                },
+                "budget_s": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            }
+          ],
+          "description": "the last attempt recorded while open; null once settled"
+        }
+      },
+      "description": "b implies a"
+    },
+    "date": {
+      "$ref": "#/$defs/day"
+    }
+  },
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]*$"
+    },
+    "day": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+    },
+    "login": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9](?:-?[A-Za-z0-9]){0,38}$"
+    },
+    "sshsig": {
+      "type": "string",
+      "pattern": "^-----BEGIN SSH SIGNATURE-----\\n[A-Za-z0-9+/=\\n]+-----END SSH SIGNATURE-----\\n?$",
+      "maxLength": 4000
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]{2,63}$",
+      "description": "the record's id, lowercase alphanumerics and hyphens; a candidate's is `c-<8 hex>` of its Lean's sha256, a test's `t-<8 hex>`, a question's `q-<n>`, an exhibit's `e-<8 hex>`"
+    }
+  }
+}

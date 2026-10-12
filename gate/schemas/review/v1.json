@@ -1,0 +1,183 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openproof.network/schemas/review/v1.json",
+  "title": "review/v1",
+  "description": "targets/<id>/review/review.yaml (F26-R1, R2; D-9 v3.39): the opening of a target's formalization review — the conjecture in words, the proposer's cases, the concepts a candidate must name as predicates (the format rule), who opened it in which role, and where the review is tracked. One per root version: a D-8 revision of the root opens a new review whose record names the old. Append-only; everything else about the review is derived from its other records (candidates, tests, questions, answers, pairs, exhibits, signatures) and never written here. Versioned, never edited (D-34).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "target",
+    "opened_by",
+    "date",
+    "words",
+    "cases",
+    "concepts",
+    "source",
+    "tracking",
+    "supersedes"
+  ],
+  "properties": {
+    "schema": {
+      "const": "review/v1"
+    },
+    "target": {
+      "$ref": "#/$defs/identifier",
+      "description": "the target the record is filed under"
+    },
+    "opened_by": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "identity",
+        "role"
+      ],
+      "properties": {
+        "identity": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "the ledger identity or login that opened the review; `network` for the background review of an existing target"
+        },
+        "role": {
+          "enum": [
+            "proposer",
+            "steward",
+            "curator",
+            "network"
+          ],
+          "description": "the role the opener acted in; policy.json's review_openers lists the roles allowed, and `network` is the background review the gate opens on every existing target (D-9 v3.39)"
+        }
+      }
+    },
+    "date": {
+      "$ref": "#/$defs/day",
+      "description": "the day the review opened"
+    },
+    "words": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 20000,
+      "description": "the conjecture in words, as proposed or as the source states it (for an Erdős problem, the erdosproblems.com statement), verbatim"
+    },
+    "cases": {
+      "type": "array",
+      "description": "what the proposer gave that pins the conjecture down: known special cases, small values, consequences, non-examples; may be empty",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "kind",
+          "text"
+        ],
+        "properties": {
+          "kind": {
+            "enum": [
+              "special-case",
+              "small-value",
+              "consequence",
+              "non-example",
+              "note"
+            ]
+          },
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4000,
+            "description": "the case in words, with a citation where it has one"
+          }
+        }
+      }
+    },
+    "concepts": {
+      "type": "array",
+      "description": "the concepts the words use that every candidate must name as its own predicate (F26-R5: `prime`, `divides`, …); a candidate that writes one inline is returned",
+      "items": {
+        "type": "string",
+        "pattern": "^[A-Za-z][A-Za-z0-9_]{0,63}$"
+      },
+      "uniqueItems": true
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "ref"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "proposal",
+            "registry",
+            "existing"
+          ],
+          "description": "where the review's first candidate comes from: a proposal in words (none), a registry statement (D-10) ported as the first candidate, or the live statement of an existing target"
+        },
+        "ref": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 500
+            }
+          ],
+          "description": "the proposal's pull request or issue, the registry entry, or the node id"
+        }
+      }
+    },
+    "tracking": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 50
+        }
+      ],
+      "description": "the graph repository's tracking issue or pull request the App's notices go to (`issue:<n>` or `pr:<n>`); null until one exists (F26-R15)"
+    },
+    "supersedes": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        }
+      ],
+      "description": "the review record this one replaces after a D-8 revision of the root (`review.yaml` of the superseded root's version), else null"
+    }
+  },
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]*$"
+    },
+    "day": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+    },
+    "login": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9](?:-?[A-Za-z0-9]){0,38}$"
+    },
+    "sshsig": {
+      "type": "string",
+      "pattern": "^-----BEGIN SSH SIGNATURE-----\\n[A-Za-z0-9+/=\\n]+-----END SSH SIGNATURE-----\\n?$",
+      "maxLength": 4000
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]{2,63}$",
+      "description": "the record's id, lowercase alphanumerics and hyphens; a candidate's is `c-<8 hex>` of its Lean's sha256, a test's `t-<8 hex>`, a question's `q-<n>`, an exhibit's `e-<8 hex>`"
+    }
+  }
+}

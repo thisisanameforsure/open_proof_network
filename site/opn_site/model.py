@@ -55,6 +55,7 @@ PRODUCT_SCHEMAS: dict[str, tuple[str, ...]] = {
         "targets-index/v8",  # F23-R14: stewards carry admitted_by and via; link may be null
         "targets-index/v9",  # F24-R6, R7: panel settings, lapse, motions, write-ups
         "targets-index/v10",  # F25-R7: registrations
+        "targets-index/v11",  # F26-R17 (D-9 v3.39): the review's state
     ),
     "graph.json": (
         "graph/v1",
@@ -65,6 +66,7 @@ PRODUCT_SCHEMAS: dict[str, tuple[str, ...]] = {
         "graph/v6",  # F08-T39 (D-12 v3.35): circular is a label; literature (D-25 v3.35)
         "graph/v7",  # F25-R7: registrations
         "graph/v8",  # F04-T39 (D-12 v3.38): each row's lemmas, restated nodes under other branches
+        "graph/v9",  # F26-R17 (D-9 v3.39): the review's state and the open pair directions
     ),
 }
 log = logging.getLogger(__name__)

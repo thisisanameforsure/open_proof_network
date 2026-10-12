@@ -632,13 +632,13 @@ def publish_v335(
 
     graph_path = root / "targets" / target / "graph.json"
     graph = json.loads(graph_path.read_text(encoding="utf-8"))
-    # F04-T39: the current contract is graph/v8 (lemmas over F25-T1's v7 with registrations),
+    # F26-T1: the current contract is graph/v9 (the review over v8's lemmas and v7's registrations),
     # which also wants each row's ``lemmas``; a row the fixture already gave some keeps them.
-    graph["schema"] = "graph/v8"
+    graph["schema"] = "graph/v9"
     for row in graph["nodes"]:
         extend(row)
         row.setdefault("lemmas", [])
-    graph_path.write_text(json.dumps(schemas.validate(graph, "graph/v8"), indent=1) + "\n")
+    graph_path.write_text(json.dumps(schemas.validate(graph, "graph/v9"), indent=1) + "\n")
 
     frontier_path = root / "frontier.json"
     frontier = json.loads(frontier_path.read_text(encoding="utf-8"))
@@ -669,7 +669,7 @@ def publish_v336(
     lemmas = lemmas or {}
     graph_path = root / "targets" / target / "graph.json"
     graph = json.loads(graph_path.read_text(encoding="utf-8"))
-    graph["schema"] = "graph/v8"
+    graph["schema"] = "graph/v9"
     for row in graph["nodes"]:
         row["lemmas"] = list(lemmas.get(str(row["node_id"]), row.get("lemmas") or []))
-    graph_path.write_text(json.dumps(schemas.validate(graph, "graph/v8"), indent=1) + "\n")
+    graph_path.write_text(json.dumps(schemas.validate(graph, "graph/v9"), indent=1) + "\n")

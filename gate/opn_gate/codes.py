@@ -2176,6 +2176,20 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "The registration's proof.node is not a node of the target it is filed under.",
         "Name the node whose merged proof was exported (get_target lists the target's nodes).",
     ),
+    "review-job-record": (
+        "gate",
+        None,
+        "A pull request carries a review record only the gate's review job writes (an intent test, "
+        "a question, a pair or an exhibit; F26-R13).",
+        "Remove it; a pull request may add a candidate, an answer or a signature, and the job "
+        "writes the rest from them.",
+    ),
+    "review-target-mismatch": (
+        "gate",
+        None,
+        "A review record names a target other than the one it sits under (F26-R1).",
+        "Set the record's target to the directory's target id.",
+    ),
     "registration-target-mismatch": (
         "gate",
         None,

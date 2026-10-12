@@ -119,13 +119,34 @@ Mode = Literal[
     "proposed-for",
     "registration",
     "display-name",
+    # F26-R1 (D-9 v3.39): the review's records, each a mode of its own.
+    "review",
+    "candidate",
+    "review-answer",
+    "review-signature",
+    "review-job",
 ]
 
 #: F25-R5, R6 (D-3, D-10 v3.37): the two records outside the node, each a mode of its own and
 #: nothing else's. Explicit rows, placed before every other test in ``classify``, so the mode
 #: table's fallthrough (``return "append"`` for whatever is left) can never absorb them — the
 #: shape that swallowed the first steward record (log, 2026-09-17).
-RECORD_MODES: dict[Role, Mode] = {"registration": "registration", "display-name": "display-name"}
+RECORD_MODES: dict[Role, Mode] = {
+    "registration": "registration",
+    "display-name": "display-name",
+    # F26-R1 (D-9 v3.39): a review's opening, a candidate, an answer and a signature are each a
+    # pull request of its own; a test, a question, a pair or an exhibit is the review job's to
+    # write (a bot commit, R13), so a pull request carrying one classifies as `review-job` and
+    # is refused by name — never absorbed as an append.
+    "review": "review",
+    "candidate": "candidate",
+    "review-answer": "review-answer",
+    "review-signature": "review-signature",
+    "intent-test": "review-job",
+    "review-question": "review-job",
+    "pair": "review-job",
+    "review-exhibit": "review-job",
+}
 
 #: F15-R2, R6; F24-R2, R3: a steward's signed acts on a target, which merge as the steward mode
 #: alone or ride with a curator's records — one list, so a new act cannot fall through a mode.
@@ -1215,6 +1236,8 @@ def check(  # noqa: PLR0912, PLR0915 — one branch per role with a check of its
             problems.extend(check_credit_correction(graph_root, located))
         elif located.role == "registration":
             problems.extend(check_registration(graph_root, located, classification, signer=signer))
+        elif located.role in REVIEW_RECORD_ROLES:
+            problems.extend(check_review_record(graph_root, located, classification))
         elif located.role == "display-name":
             problems.extend(
                 check_display_name(graph_root, located, classification, signer=signer, base=base)
@@ -2122,6 +2145,57 @@ def check_literature_record(  # noqa: PLR0911 — one return per rule
         key=str(doc.get(signed.KEY_FIELD) or ""),
         verifier=verifier,
     )
+
+
+#: F26-R1 (D-9 v3.39): the review records a pull request may carry, and the job's own.
+REVIEW_RECORD_ROLES: tuple[Role, ...] = (
+    "review",
+    "candidate",
+    "review-answer",
+    "review-signature",
+    "intent-test",
+    "review-question",
+    "pair",
+    "review-exhibit",
+)
+REVIEW_JOB_ROLES: tuple[Role, ...] = ("intent-test", "review-question", "pair", "review-exhibit")
+
+
+def check_review_record(
+    graph_root: Path, located: Located, classification: Classification
+) -> list[Diagnostic]:
+    """F26-T1: a review record validates against its schema and names the target it sits under;
+    a record only the review job writes (R13) is refused in any pull request. The roles'
+    further rules — the blind rule, who may open, who may answer or sign — are T3, T5 and T10's
+    and arrive beside this, never instead of it."""
+    if located.role in REVIEW_JOB_ROLES:
+        return [
+            Diagnostic(
+                "review-job-record",
+                f"{located.path}: a {located.role} record is written only by the gate's review job "
+                "(F26-R13); a pull request may add a candidate, an answer or a signature",
+                {"path": located.path, "role": located.role},
+            )
+        ]
+    if located.path.endswith(".lean"):
+        return []  # the Lean beside a candidate is checked with the record and by the job
+    data = _read(graph_root, located)
+    if isinstance(data, Diagnostic):
+        return [data]
+    problems = _check_schema(located, data, code="record-invalid")
+    doc = None if problems else _document(located, data)
+    if isinstance(doc, Diagnostic):
+        problems.append(doc)
+    elif doc is not None and doc.get("target") != located.target_id:
+        problems.append(
+            Diagnostic(
+                "review-target-mismatch",
+                f"{located.path} is a record for target {doc.get('target')!r}, and it sits under "
+                f"targets/{located.target_id}/ (F26-R1)",
+                {"path": located.path, "target": doc.get("target")},
+            )
+        )
+    return problems
 
 
 #: F25-R5: ``registrations/<date>-<n>.yaml``, the date the record was filed and a number from 1.

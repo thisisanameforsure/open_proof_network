@@ -1,0 +1,113 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openproof.network/schemas/review-signature/v1.json",
+  "title": "review-signature/v1",
+  "description": "targets/<id>/review/signatures/<role>-<date>-<n>.yaml (F26-R1, R9; D-9 v3.39): one signer's decision, by role — the intent signer that the surviving cluster says what the conjecture says, the independent signer that the evidence supports it — as accept, split (the clusters are genuinely different readings, D-30 v3.39) or send-back with a question. A signature is a decision written by a person; the page never computes one. Signed through the site by the approval key naming the login, or by the signer's own key. Versioned, never edited (D-34).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "target",
+    "role",
+    "decision",
+    "cluster",
+    "question",
+    "date",
+    "login",
+    "via",
+    "key",
+    "signature"
+  ],
+  "properties": {
+    "schema": {
+      "const": "review-signature/v1"
+    },
+    "target": {
+      "$ref": "#/$defs/identifier",
+      "description": "the target the record is filed under"
+    },
+    "role": {
+      "enum": [
+        "intent",
+        "independent"
+      ]
+    },
+    "decision": {
+      "enum": [
+        "accept",
+        "split",
+        "send-back"
+      ]
+    },
+    "cluster": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/id"
+        }
+      ],
+      "description": "the candidate representing the cluster accepted or chosen as the root; null for a send-back"
+    },
+    "question": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/id"
+        }
+      ],
+      "description": "the question a send-back raises; null otherwise"
+    },
+    "date": {
+      "$ref": "#/$defs/day"
+    },
+    "login": {
+      "$ref": "#/$defs/login",
+      "description": "the GitHub login the record names, as a v3.33 approval does"
+    },
+    "via": {
+      "enum": [
+        "approval-key",
+        "ssh"
+      ],
+      "description": "how the signature was made (D-3, D-32 v3.33): `approval-key` through the service for a login signed in on the site; `ssh` by the signer's own key"
+    },
+    "key": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4000,
+      "description": "the SSH public key the signature verifies under: the network's approval key (`via: approval-key`, equal to keys/approval.pub in the merge's parent tree) or the signer's own"
+    },
+    "signature": {
+      "$ref": "#/$defs/sshsig",
+      "description": "an OpenSSH SSHSIG armored signature over the record's canonical body (opn_gate.signed), made with the private half of `key`"
+    }
+  },
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]*$"
+    },
+    "day": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+    },
+    "login": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9](?:-?[A-Za-z0-9]){0,38}$"
+    },
+    "sshsig": {
+      "type": "string",
+      "pattern": "^-----BEGIN SSH SIGNATURE-----\\n[A-Za-z0-9+/=\\n]+-----END SSH SIGNATURE-----\\n?$",
+      "maxLength": 4000
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]{2,63}$",
+      "description": "the record's id, lowercase alphanumerics and hyphens; a candidate's is `c-<8 hex>` of its Lean's sha256, a test's `t-<8 hex>`, a question's `q-<n>`, an exhibit's `e-<8 hex>`"
+    }
+  }
+}
