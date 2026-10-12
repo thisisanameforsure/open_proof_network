@@ -1863,11 +1863,26 @@ class Renderer:
             if tv.stewards
             else ""
         )
+        # F04-T44 (D-32 v3.34, F24-R4): once the panel has a member, a new steward comes by a
+        # passed invitation or a curator, and the gate refuses a self-commitment; the page says
+        # so up front, and the slot (kept for a current steward's Step down) draws no form.
+        invited = self.takes_steward(tv) and bool(self.panel_logins(tv))
+        if invited:
+            panel_href = esc(self.target_path(tid) + "#panel")
+            current += (
+                '<p class="cue invitation-only">This problem has a steward, so a new steward '
+                "joins by invitation: a member of its panel invites you by your GitHub login and "
+                f'you accept in <a href="{panel_href}">the problem&rsquo;s Panel section</a>, or '
+                "a curator adds you directly (D-32). Co-stewards are welcome: to ask, write to a "
+                f'steward or <a href="{esc(self.repo_url)}/issues">open an issue</a>. '
+                f'<a href="{RULES_PATH}">The panel&rsquo;s rules →</a></p>'
+            )
         if self.takes_steward(tv):
+            flag = ' data-invitation="required"' if invited else ""  # the card stays hidden
             form = (
                 f'<div class="card steward-form-card"><div class="steward-form" '
                 f'data-target="{esc(tid)}" data-return="{esc(self.steward_path(tid))}" '
-                f'data-commitment="{esc(steward.COMMITMENT)}"></div></div>'
+                f'data-commitment="{esc(steward.COMMITMENT)}"{flag}></div></div>'
             )
             script = (
                 f'<script src="/steward.js" data-api="{esc(self.api_url)}"></script>'
@@ -2366,7 +2381,7 @@ class Renderer:
                 "Committed to understand and write up whatever the network produces here, and "
                 f"to sign the explainer of the proof that closes it. {since}."
             )
-            button = ""
+            button = self.co_steward_cue(tv)
         elif tv.calibration:
             names, words, button = (
                 "None needed",
@@ -2749,6 +2764,24 @@ class Renderer:
         return (
             f'<a class="btn btn-secondary" href="{esc(Renderer.steward_path(tv.target_id))}">'
             "Become its steward</a>"
+        )
+
+    @staticmethod
+    def panel_logins(tv: TargetView) -> list[str]:
+        """The problem's panel as the gate counts it for admission (F24-R4): its unlapsed
+        members, or before the panel index (targets-index/v9) its stewards."""
+        if tv.panel is not None:
+            return [str(m) for m in tv.panel.get("members") or []]
+        return [str(s["login"]) for s in tv.stewards]
+
+    def co_steward_cue(self, tv: TargetView) -> str:
+        """F04-T44 (D-32 v3.34): on a problem with a steward, a co-steward is welcome and joins by
+        the panel's invitation or a curator, which the steward form page explains."""
+        return (
+            '<p class="co-steward">Co-stewards are welcome. The problem&rsquo;s panel invites a '
+            "new steward, who accepts, or a curator adds one. "
+            f'<a href="{esc(self.steward_path(tv.target_id))}">How to join →</a> · '
+            f'<a href="{RULES_PATH}">the panel&rsquo;s rules</a></p>'
         )
 
     @staticmethod

@@ -105,6 +105,9 @@
   O.session.then(function (s) {
     if (!s.signed_in) { signedOut(); return; }
     if (s.stewards.indexOf(target) >= 0) { stepDown(s); return; }
+    // F04-T44: a problem with a panel takes a new steward by invitation (D-32 v3.34); the page
+    // says how, and a self-commitment would be refused at the gate, so no form is drawn.
+    if (slot.dataset.invitation === "required") { return; }
     form(s);
   }).catch(function () { /* no form: the read-only page */ });
 })();
