@@ -6,6 +6,7 @@ download, the check and the chain.
 from __future__ import annotations
 
 import hashlib
+import re
 from pathlib import Path
 
 import fixture
@@ -42,3 +43,26 @@ def test_docs_shows_the_chain(tmp_path: Path) -> None:
     assert f'href="/{render.PROVE_PATH}"' in card
     assert f'href="/{render.PROVE_SUMS}"' in card
     assert "https://" not in card, "the site names no host of its own"
+
+
+def test_every_path_the_site_links_is_one_the_cdn_serves(tmp_path: Path) -> None:
+    """Live finding 2026-10-12 (F17-Q12): the CDN's path function rewrites any request whose path
+    has no dot to ``<path>/index.html`` (the generator writes directories), so ``/tools/SHA256SUMS``
+    answered the 404 page while ``/tools/opn_prove.py`` beside it was served. Every same-site path
+    a page links must therefore be a directory (ending in ``/``) or a file with an extension, and
+    must be a file the site writes. Unlinked files (the vendored KaTeX LICENSE) are not held to
+    it."""
+
+    files = rendered(tmp_path)
+    linked: set[str] = set()
+    for path, text in files.items():
+        if path.endswith(".html"):
+            linked |= set(re.findall(r'(?:href|src)="(/[^"#?]*)', text))
+    assert linked, "no same-site links found"
+    for path in sorted(linked):
+        if path.endswith("/"):
+            assert path.lstrip("/") + "index.html" in files, path
+            continue
+        name = path.rsplit("/", 1)[-1]
+        assert "." in name, f"{path}: the CDN rewrites an extensionless path to a directory index"
+        assert path.lstrip("/") in files, f"{path}: linked but not written"

@@ -375,7 +375,7 @@ a target once its pinned gate reads them; on a target pinned earlier the lint st
 If you run a prover that takes a Lean file with `sorry` and returns a proof (Aristotle, or an
 open-weight model on your own GPU), `opn-prove` hands it a node and hands its answer back. It is
 one Python file with no dependencies: the site serves it at `/tools/opn_prove.py` with its
-checksum in `/tools/SHA256SUMS`, and the tooling clone has it at
+checksum in `/tools/SHA256SUMS.txt`, and the tooling clone has it at
 `gate/clients/prove/opn_prove.py`. `export` writes the node as the one file the fast check sees,
 definitions and Context inlined; `run` runs any command as the prover, with `{problem}` and
 `{answer}` in its arguments; `import` turns the answer (a whole file, a fenced block after a

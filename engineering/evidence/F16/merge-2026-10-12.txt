@@ -19,3 +19,8 @@ FAILED gate/tests/test_walkthrough.py::test_graph_copy_is_identical - Asserti...
 = 1 failed, 5671 passed, 2 skipped, 222 deselected, 2 warnings in 457.02s (0:07:37) =
 (test_graph_copy_is_identical reads the sibling graph checkout, which carries another session's uncommitted guide edit and predates this merge's guide copy; the copy rides the next re-pin.)
 lint: All checks passed; mypy gate/api/site: no issues.
+
+CI on PR #32 (run 38175506055): fast tier success 21:18Z, verify-harness success 21:15Z, Lean tier success 23:02Z.
+Merged 2026-10-12 03:46Z as main ddbab8e9 (#22 closed as superseded). api-deploy 38201098193 success; health ok.
+site-deploy 38201149072 (dispatched) success: the site serves /tools/opn_prove.py with /tools/SHA256SUMS and the
+Docs page's connector cards, Cursor's with its known limit.
