@@ -3242,6 +3242,10 @@ class Renderer:
                 f"{esc(standing)}; recorded by {esc(str(doc['recorded_by']))} on "
                 f"{esc(str(doc['date']))} from the catalog at "
                 f"<code>{esc(str(catalog['network_commit'])[:12])}</code>.</p>"
+                # F04-T43: a reason's "+2" is score points, not a count of attempts; said so,
+                # it no longer reads against the attempts line below.
+                f'<p class="reasons-head">Catalog score {esc(str(catalog["score"]))}: the '
+                "reasons, in score points (not counts of attempts):</p>"
                 f'<ul class="reasons">{reasons}</ul>'
                 f"<p>{issue_line}{history_line}{hazard_line}</p></div>"
             )
