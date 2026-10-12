@@ -59,9 +59,7 @@ from opn_gate.toolchain import ResolvedToolchain, Toolchain, UsedConstantsReques
 
 log = logging.getLogger(__name__)
 
-PROTOCOL_VERSION = (
-    "3.38"  # docs/architecture_decisions.html (v3.38: lemmas, 2026-10-12; v3.37: Palomar)
-)
+PROTOCOL_VERSION = "3.39"  # docs/architecture_decisions.html (v3.39: the formalization review)
 #: F03-T20 (D-12 v3.38): graph/v8 carries ``lemmas``, the nodes under other branches a merged
 #: partial restated as holes, and a decomposition's hole may resolve to one. v7 (F25-R7, D-10
 #: v3.37): registrations. F08-T39 (D-12 v3.35): v6 carries ``circular`` (the label),
