@@ -9,7 +9,7 @@ capability (D-28).
 |---|---|
 | `registry.yaml`, `registry.schema.json` | one entry per coding-agent harness; `opn_gate.clients` loads, validates and renders it |
 | `harness/` | the exact harness versions (`package.json`, `package-lock.json` with integrity hashes) and the image they run in |
-| `prove/opn_prove.py` | the single-file prover client; the site serves it at `/tools/opn_prove.py` with `/tools/SHA256SUMS.txt` |
+| `prove/opn_prove.py` | the single-file prover client (command backend; presets `whole-file` and `aristotle`); the site serves it at `/tools/opn_prove.py` with `/tools/SHA256SUMS.txt` |
 
 ## Adding a harness: the checklist (F16-R15)
 

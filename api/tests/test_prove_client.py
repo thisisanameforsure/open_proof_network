@@ -268,3 +268,160 @@ def test_whole_file_unreachable_endpoint_is_a_failed_run(
     record = prove.postmortem(found, run, "alice", "computational")
     schemas.validate(record, "postmortem/v1")
     assert record["outcome"] == "abandoned-early"
+
+
+# --- the aristotle preset (F17-R11, AC11; Q6 ruled 2026-10-12) ---------------------------------
+
+
+class _Version:
+    """Aristotle's ``GET /version`` on loopback: ``{"lean_toolchain_version": ...}``, the one
+    read the SDK makes before a submission (``local_file_utils.get_expected_toolchain``)."""
+
+    def __init__(self, toolchain: str) -> None:
+        import http.server  # noqa: PLC0415
+        import threading  # noqa: PLC0415
+
+        outer = self
+        self.requests: list[dict[str, Any]] = []
+
+        class Handler(http.server.BaseHTTPRequestHandler):
+            def do_GET(self) -> None:
+                outer.requests.append({"path": self.path, "key": self.headers.get("X-API-Key")})
+                payload = json.dumps({"lean_toolchain_version": toolchain}).encode()
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Length", str(len(payload)))
+                self.end_headers()
+                self.wfile.write(payload)
+
+            def log_message(self, *_a: Any) -> None:
+                return
+
+        self.server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+        self.url = f"http://127.0.0.1:{self.server.server_address[1]}/api/v3"
+        threading.Thread(target=self.server.serve_forever, daemon=True).start()
+
+    def close(self) -> None:
+        self.server.shutdown()
+
+
+def fake_aristotle(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, filled: str, status: str
+) -> Path:
+    """An ``aristotle`` executable on PATH that records its argv, writes the result archive
+    ``submit --wait --destination`` promises (the project back, Problem.lean filled), and prints
+    the task's status the way the real CLI's progress line does."""
+    bindir = tmp_path / "bin"
+    bindir.mkdir(exist_ok=True)
+    exe = bindir / "aristotle"
+    exe.write_text(
+        "#!/usr/bin/env python3\n"
+        "import json, sys, tarfile, io, pathlib\n"
+        "argv = sys.argv[1:]\n"
+        f"pathlib.Path({str(tmp_path / 'aristotle-argv.json')!r}).write_text(json.dumps(argv))\n"
+        "dest = argv[argv.index('--destination') + 1]\n"
+        "project = pathlib.Path(argv[argv.index('--project-dir') + 1])\n"
+        "with tarfile.open(dest, 'w:gz') as tar:\n"
+        "    for p in project.rglob('*'):\n"
+        "        if p.is_file() and p.name != 'Problem.lean':\n"
+        "            tar.add(p, arcname=str(p.relative_to(project)))\n"
+        f"    data = {filled!r}.encode()\n"
+        "    info = tarfile.TarInfo('Problem.lean'); info.size = len(data)\n"
+        "    tar.addfile(info, io.BytesIO(data))\n"
+        f"print('Task status: {status}')\n",
+        encoding="utf-8",
+    )
+    exe.chmod(0o755)
+    monkeypatch.setenv("PATH", f"{bindir}:{__import__('os').environ['PATH']}")
+    monkeypatch.setenv("ARISTOTLE_API_KEY", "arstl_test")
+    return exe
+
+
+def test_aristotle_preset_round_trip(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """AC11, R11: the preset writes the Lake project, reads the service's toolchain, submits
+    through the CLI with the project directory and a wait, and the archive's Problem.lean is the
+    answer, which imports as the node's real proof."""
+    graph = GRAPHS / "propositional"
+    found = prove.find_node(graph, TUTORIAL, TARGET)
+    filled = prove.export(found).replace("  sorry\n", "  intro p q h\n  exact ⟨h.2, h.1⟩\n")
+    fake_aristotle(tmp_path, monkeypatch, filled, "COMPLETE")
+    version = _Version("leanprover/lean4:v4.28.0")
+    monkeypatch.setenv("OPN_ARISTOTLE_API", version.url)
+    answer = tmp_path / "answer.txt"
+    try:
+        code = prove.main([
+            "run", "--preset", "aristotle", "--graph", str(graph), "--node", TUTORIAL,
+            "--problem", str(tmp_path / "problem.lean"), "--answer", str(answer),
+            "--record", str(tmp_path / "run.json"), "--timeout", "30",
+        ])  # fmt: skip
+    finally:
+        version.close()
+    captured = capsys.readouterr()
+    run = json.loads(captured.out)
+    assert code == 0 and run["answered"] and run["backend"] == "aristotle", run
+    assert run["service_toolchain"] == "leanprover/lean4:v4.28.0"
+    assert run["pinned_toolchain"] == "leanprover/lean4:v4.33.1"
+    assert run["task_status"] == "COMPLETE"
+    (req,) = version.requests
+    assert req["path"] == "/api/v3/version" and req["key"] == "arstl_test"
+    argv = json.loads((tmp_path / "aristotle-argv.json").read_text())
+    assert argv[0] == "submit" and "--wait" in argv and "--project-dir" in argv
+    assert "sorry" in argv[1] and "statement" in argv[1].lower()
+    project = Path(argv[argv.index("--project-dir") + 1])
+    assert (project / "lean-toolchain").read_text().strip() == "leanprover/lean4:v4.33.1"
+    assert (project / "Problem.lean").read_text() == prove.header_comment(found) + prove.export(
+        found
+    )
+    assert "v4.28.0" in captured.err and "v4.33.1" in captured.err  # R10, naming both
+    imported = prove.import_answer(found, answer.read_text(encoding="utf-8"))
+    assert imported.kind == "proof" and imported.text == PROOF
+
+
+def test_complete_with_errors_is_partial(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """AC11, R11: an archive from a COMPLETE_WITH_ERRORS task whose remaining sorry sits in a
+    have is a candidate partial, not a failure."""
+    graph = GRAPHS / "propositional"
+    found = prove.find_node(graph, TUTORIAL, TARGET)
+    filled = prove.export(found).replace(
+        "  sorry\n", "  intro p q h\n  have hq : q := by\n    sorry\n  exact ⟨hq, h.1⟩\n"
+    )
+    fake_aristotle(tmp_path, monkeypatch, filled, "COMPLETE_WITH_ERRORS")
+    version = _Version("leanprover/lean4:v4.28.0")
+    monkeypatch.setenv("OPN_ARISTOTLE_API", version.url)
+    answer = tmp_path / "answer.txt"
+    try:
+        code, run = cli(
+            capsys, "run", "--preset", "aristotle", "--graph", str(graph), "--node", TUTORIAL,
+            "--problem", str(tmp_path / "problem.lean"), "--answer", str(answer),
+            "--record", str(tmp_path / "run.json"), "--timeout", "30",
+        )  # fmt: skip
+    finally:
+        version.close()
+    assert code == 0 and run["answered"] and run["task_status"] == "COMPLETE_WITH_ERRORS", run
+    imported = prove.import_answer(found, answer.read_text(encoding="utf-8"))
+    assert imported.kind == "partial" and "have hq : q := by" in imported.text
+
+
+def test_aristotle_cli_missing_is_a_failed_run(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """No CLI on PATH, or no key: a run with no answer that drafts as a postmortem, never a
+    crash; the service's version is still read when it can be."""
+    graph = GRAPHS / "propositional"
+    monkeypatch.setenv("PATH", str(tmp_path / "empty"))
+    monkeypatch.delenv("ARISTOTLE_API_KEY", raising=False)
+    monkeypatch.setenv("OPN_ARISTOTLE_API", "http://127.0.0.1:9/api/v3")
+    code, run = cli(
+        capsys, "run", "--preset", "aristotle", "--graph", str(graph), "--node", TUTORIAL,
+        "--problem", str(tmp_path / "problem.lean"), "--answer", str(tmp_path / "answer.txt"),
+        "--record", str(tmp_path / "run.json"), "--timeout", "5",
+    )  # fmt: skip
+    assert code == 1 and run["answered"] is False and run["service_toolchain"] is None, run
+    assert "ARISTOTLE_API_KEY" in run["stderr_tail"] or "aristotle" in run["stderr_tail"]
+    found = prove.find_node(graph, TUTORIAL, TARGET)
+    record = prove.postmortem(found, run, "alice", "computational")
+    schemas.validate(record, "postmortem/v1")

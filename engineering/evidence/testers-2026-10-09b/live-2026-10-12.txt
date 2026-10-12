@@ -1,0 +1,22 @@
+Decisions v3.38 (the lemma amendment) live, 2026-10-12, on the owner's word ("ok tell me when its ready" ... "yeah you can push").
+
+1. PR #34 merged as network main 1e25fa83 08:24Z after CI 38212480388 (fast, Lean, harness all success).
+   api-deploy 38223446603: the function updated, then its smoke went red on claim_node's reworded refusal
+   (F09-T71's phrase names the node as the tools take it; the smoke looked for `/<node>`). Fix PR #35,
+   red first on the extracted predicate.
+2. Tag gate-1e25fa8; image-publish 38223460261 success:
+     plain  (1.29 GB)  ghcr.io/thisisanameforsure/opn-gate@sha256:423e5ed41d8b6695039544f7f41f76ca2f9115f498b9169c3dcb3abac15384e2
+     mathlib (3.76 GB) ghcr.io/thisisanameforsure/opn-gate@sha256:30534cc2ee4602e3ddc623a8febe80059050f55a72299086655bbe77bc636fe6
+3. Graph worktree at origin/main 733ab776a: schemas.publish wrote context/v6, graph/v8, meta/v6 ([] after);
+   AGENTS.md = main's guide; pin_image.py 27/27 name 1e25fa8, devcontainer diff the image line only.
+   Committed c19dc8ce9; pregate on it (tutorial): verdict pass; in-process render: targets-index/v10,
+   27 graph.json at graph/v8, info protocol 3.38, frontier/v5 47/44 unchanged. Pushed 08:38Z (no run in
+   flight); gate 38224812939 success dispatched render 38224830359 success -> 6d66ac774 "gate: render
+   1e25fa831597". site-deploy 38224976885 success; the site names 6d66ac774.
+4. lemmas-backfill.yml run 38224936523 (target erdos-1094, at 6d66ac774): written [{node erdos-1094--h3,
+   hole h_good_below_cube, lemma erdos-1094--h2--h1--h1}], unchanged [], failed []. The artifact's two
+   files (META.yaml meta/v2 -> meta/v6 with the lemmas list; Context.lean plus the lemma's signature
+   under a sorry) shown to the owner as a diff; on his word pushed as the curator commit d999f831c.
+5. The push's gate run 38228458147 success did not dispatch a render (the automatic render follows a
+   re-pin, not a curator commit); render.yml dispatched by hand -> 66166496d: erdos-1094--h3 lemmas
+   [{hole: h_good_below_cube, node: erdos-1094--h2--h1--h1}] in graph.json. Site redeployed on it.

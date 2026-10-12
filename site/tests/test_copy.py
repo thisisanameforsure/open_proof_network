@@ -100,8 +100,8 @@ def test_every_outbound_link_in_the_copy_is_on_the_allowlist(pages: dict[str, st
         cited=frozenset(),
     )
     assert any("external link https://mathandai.org/" in p for p in refused), refused
-    for url in render.COPY_LINKS:
-        assert url.startswith("https://") and url == url.strip()
+    for url in render.COPY_LINKS:  # F04-T40: the contact address is the one mailto
+        assert url.startswith(("https://", "mailto:")) and url == url.strip()
 
 
 def test_the_docs_page_has_the_steward_section_and_the_proposal_link(
