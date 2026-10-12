@@ -1,0 +1,111 @@
+F26-T7 — questions from disagreements and mutants; answers into tests; the mutation stage held to the prototype's counts (R6, R7, R8; AC6, AC7)
+
+2026-10-12, branch f26-job, leanprover/lean4:v4.33.1 under elan. Code: gate/opn_gate/review_questions.py, review_mutants.py (committed with T5); tests and fixtures here.
+
+== Red first (the red run of task-5.txt: the job runs nothing, mutants() returns none). 13 of 15 failed on missing records; test_yes_no (a pure parse) and test_a_mutant_changes_one_site_of_the_claim_only (vacuous over no mutants) passed.
+FAILED gate/tests/test_review_questions.py::test_a_disagreement_writes_no_test_and_one_question
+FAILED gate/tests/test_review_questions.py::test_ac7_an_answer_becomes_a_test_and_the_next_run_discards
+FAILED gate/tests/test_review_questions.py::test_an_answer_test_reruns_against_a_candidate_already_discarded
+FAILED gate/tests/test_review_questions.py::test_an_answer_that_is_neither_yes_nor_no_writes_no_test
+FAILED gate/tests/test_review_questions.py::test_a_concept_disagreement_is_a_concept_question
+FAILED gate/tests/test_review_questions.py::test_a_mutant_every_test_passes_becomes_a_question
+FAILED gate/tests/test_review_questions.py::test_the_mutant_cap_is_recorded
+FAILED gate/tests/test_review_questions.py::test_question_numbers_follow_the_record
+FAILED gate/tests/test_review_mutants.py::test_the_prototype_classes_give_the_prototype_mutants[goldbach-9]
+FAILED gate/tests/test_review_mutants.py::test_the_prototype_classes_give_the_prototype_mutants[legendre-15]
+FAILED gate/tests/test_review_mutants.py::test_the_prototype_classes_give_the_prototype_mutants[oppermann-19]
+FAILED gate/tests/test_review_mutants.py::test_the_added_classes_are_d11s - A...
+FAILED gate/tests/test_review_mutants.py::test_the_cap - assert (False)
+
+== Green, fast tier (AC7: an answer becomes an 'answer' test, re-runs against every candidate including one already discarded, the next run discards the drift and the question is closed; a disagreement writes no test and one question; a concept disagreement is a concept question; a surviving mutant becomes a question; the cap is recorded; the prototype's mutants are produced class for class)
+   uv run --frozen pytest gate/tests/test_review_questions.py gate/tests/test_review_mutants.py -q
+...............                                                          [100%]
+15 passed in 0.73s
+
+== Green, lean tier (AC6)
+   uv run --frozen pytest gate/tests/test_review_mutants_lean.py -m lean -q --basetemp=/tmp/opn-f26-job-pytest-t7
+....                                                                     [100%]
+4 passed in 122.41s (0:02:02)
+
+AC6 against the prototype (engineering/evidence/v3.36-prototype/results.json), matched mutant by mutant on the claim's text:
+   goldbach : prototype 9 mutants, 5 caught, 2 equivalent, 2 not elaborating -> job identical (fail 5, proved 2, error 2)
+   legendre : prototype 15, 13 caught, 0, 2 -> job identical (fail 13, error 2)
+   oppermann: prototype 19, 15 caught, 0, 4 -> job identical (fail 15, error 4)
+   The difference: the job also runs two D-11 classes the prototype did not (a hypothesis dropped; a quantifier swapped): +3, +2, +3 mutants, each caught or not elaborating, none surviving. With the prototype's final tests on record no mutant survives and no question is raised; with the proposer's seeds alone (last block below) 6 Legendre mutants survive and raise 4 questions (cases shared), the prototype's 'would raise a question'.
+
+== goldbach (test_ac6_every_meaning_changin0): 12 mutants {'error': 3, 'fail': 7, 'proved': 2}; 0 questions
+   fail   0 → 1 at 16 (constant): caught by test t-4f87dd8f at n = 4: does the conjecture say anything about it?
+   fail   2 → 1 at 12 (constant): caught by test t-b6f3b628 at n = 11: does the conjecture hold?
+   fail   2 → 3 at 12 (constant): caught by test t-4f87dd8f at n = 4: does the conjecture say anything about it?
+   proved 4 → 3 at 0 (constant): proved equivalent to the representative both ways; not a change of meaning
+   fail   4 → 5 at 0 (constant): caught by test t-4f87dd8f at n = 4: does the conjecture say anything about it?
+   fail   `4 ≤ n →` dropped at 0 (hypothesis): caught by test t-12bed018 at n = 2: does the conjecture say anything about it?
+   fail   `n % 2 = 0 →` dropped at 7 (hypothesis): caught by test t-b6f3b628 at n = 11: does the conjecture hold?
+   error  ∃ → ∀ at 20: does not elaborate
+   error  ∧ → ∨ at 31: does not elaborate
+   error  ∧ → ∨ at 41: does not elaborate
+   fail   ≤ → < at 2 (relation): caught by test t-4f87dd8f at n = 4: does the conjecture say anything about it?
+   proved ≤ → < at 27 (relation): proved equivalent to the representative both ways; not a change of meaning
+== legendre (test_ac6_every_meaning_changin1): 17 mutants {'error': 3, 'fail': 14}; 0 questions
+   fail   (n+1) → n at 17 (offset): caught by test t-150cc705 at n = 2: does the conjecture hold?
+   fail   (n+1)^2 → n^2 + 1 at 17 (exponent): caught by test t-150cc705 at n = 2: does the conjecture hold?
+   fail   1 → 0 at 0 (constant): caught by test t-c99ffd3e at n = 0: does the conjecture say anything about it?
+   fail   1 → 0 at 20 (constant): caught by test t-150cc705 at n = 2: does the conjecture hold?
+   fail   1 → 2 at 0 (constant): caught by test t-0fb88ebf at n = 1, supposing 1 were the only prime
+   fail   1 → 2 at 20 (constant): caught by test t-53619bb2 at n = 1, supposing 4 were the only prime
+   fail   2 → 1 at 23 (constant): caught by test t-150cc705 at n = 2: does the conjecture hold?
+   fail   2 → 1 at 29 (constant): caught by test t-b60087ac at n = 2, supposing 3 were the only prime
+   fail   2 → 3 at 23 (constant): caught by test t-53619bb2 at n = 1, supposing 4 were the only prime
+   fail   2 → 3 at 29 (constant): caught by test t-150cc705 at n = 2: does the conjecture hold?
+   fail   < → ≤ at 15 (relation): caught by test t-53619bb2 at n = 1, supposing 4 were the only prime
+   fail   < → ≤ at 31 (relation): caught by test t-0fb88ebf at n = 1, supposing 1 were the only prime
+   fail   `1 ≤ n →` dropped at 0 (hypothesis): caught by test t-c99ffd3e at n = 0: does the conjecture say anything about it?
+   error  ∃ → ∀ at 8: does not elaborate
+   error  ∧ → ∨ at 25: does not elaborate
+   error  ∧ → ∨ at 35: does not elaborate
+   fail   ≤ → < at 2 (relation): caught by test t-0fb88ebf at n = 1, supposing 1 were the only prime
+== oppermann (test_ac6_every_meaning_changin2): 22 mutants {'error': 6, 'fail': 16}; 0 questions
+   fail   (n+1) → n at 61 (offset): caught by test t-150cc705 at n = 2: does the conjecture hold?
+   fail   (n-1) → n at 26 (offset): caught by test t-150cc705 at n = 2: does the conjecture hold?
+   fail   1 → 0 at 29 (constant): caught by test t-150cc705 at n = 2: does the conjecture hold?
+   fail   1 → 0 at 64 (constant): caught by test t-150cc705 at n = 2: does the conjecture hold?
+   fail   1 → 2 at 29 (constant): caught by test t-1c178636 at n = 2, supposing 1 and 5 were the only primes
+   fail   1 → 2 at 64 (constant): caught by test t-c32b8167 at n = 2, supposing 3 and 6 were the only primes
+   fail   2 → 1 at 0 (constant): caught by test t-5d8e2757 at n = 1: does the conjecture hold?
+   fail   2 → 3 at 0 (constant): caught by test t-0878118a at n = 2, supposing 4 were the only prime
+   fail   < → ≤ at 16 (relation): caught by test t-7adc1cdd at n = 2, supposing 4 and 5 were the only primes
+   fail   < → ≤ at 32 (relation): caught by test t-99a516bc at n = 2, supposing 2 and 5 were the only primes
+   fail   < → ≤ at 57 (relation): caught by test t-c32b8167 at n = 2, supposing 3 and 6 were the only primes
+   fail   < → ≤ at 73 (relation): caught by test t-bcbae655 at n = 2, supposing 3 and 4 were the only primes
+   fail   `2 ≤ n →` dropped at 0 (hypothesis): caught by test t-5d8e2757 at n = 1: does the conjecture hold?
+   fail   n*(n-1) → n*n - 1 at 24 (product): caught by test t-150cc705 at n = 2: does the conjecture hold?
+   error  ∃ → ∀ at 50: does not elaborate
+   error  ∃ → ∀ at 9: does not elaborate
+   error  ∧ → ∨ at 22: does not elaborate
+   error  ∧ → ∨ at 36: does not elaborate
+   fail   ∧ → ∨ at 47 (connective): caught by test t-1c178636 at n = 2, supposing 1 and 5 were the only primes
+   error  ∧ → ∨ at 67: does not elaborate
+   error  ∧ → ∨ at 77: does not elaborate
+   fail   ≤ → < at 2 (relation): caught by test t-0878118a at n = 2, supposing 4 were the only prime
+== legendre (test_ac6_a_mutant_the_seeds_ca0): 17 mutants {'error': 3, 'fail': 8, 'pass': 6}; 4 questions
+   fail   (n+1) → n at 17 (offset): caught by test t-5d8e2757 at n = 1: does the conjecture hold?
+   fail   (n+1)^2 → n^2 + 1 at 17 (exponent): caught by test t-5d8e2757 at n = 1: does the conjecture hold?
+   fail   1 → 0 at 0 (constant): caught by test t-c99ffd3e at n = 0: does the conjecture say anything about it?
+   fail   1 → 0 at 20 (constant): caught by test t-5d8e2757 at n = 1: does the conjecture hold?
+   fail   1 → 2 at 0 (constant): caught by test t-b2fb0677 at n = 1: does the conjecture say anything about it?
+   pass   1 → 2 at 20 (constant): every test passes; it differs from the representative at n = 1, supposing 4 were the only prime
+   fail   2 → 1 at 23 (constant): caught by test t-5d8e2757 at n = 1: does the conjecture hold?
+   pass   2 → 1 at 29 (constant): every test passes; it differs from the representative at n = 2, supposing 3 were the only prime
+   pass   2 → 3 at 23 (constant): every test passes; it differs from the representative at n = 1, supposing 4 were the only prime
+   pass   2 → 3 at 29 (constant): every test passes; it differs from the representative at n = 2: does the conjecture hold?
+   pass   < → ≤ at 15 (relation): every test passes; it differs from the representative at n = 1, supposing 4 were the only prime
+   pass   < → ≤ at 31 (relation): every test passes; it differs from the representative at n = 1, supposing 1 were the only prime
+   fail   `1 ≤ n →` dropped at 0 (hypothesis): caught by test t-c99ffd3e at n = 0: does the conjecture say anything about it?
+   error  ∃ → ∀ at 8: does not elaborate
+   error  ∧ → ∨ at 25: does not elaborate
+   error  ∧ → ∨ at 35: does not elaborate
+   fail   ≤ → < at 2 (relation): caught by test t-b2fb0677 at n = 1: does the conjecture say anything about it?
+   Q q-4 mutant: Does the conjecture hold at n = 2?
+   Q q-3 mutant: Suppose 3 were the only prime. Would the conjecture be satisfied at n = 2?
+   Q q-2 mutant: Suppose 1 were the only prime. Would the conjecture be satisfied at n = 1?
+   Q q-1 mutant: Suppose 4 were the only prime. Would the conjecture be satisfied at n = 1?

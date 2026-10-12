@@ -1,0 +1,683 @@
+{
+ "_doc": "Copied from engineering/evidence/v3.36-prototype/results.json and engineering/prototypes/formalization-round/manifest.json (2026-10-12, F26-T7, AC6): per conjecture the words, the intent tests the prototype ended with (its seeds and every answered question; the values are its simulated proposer's), every mutant of human-ref with the prototype's result, and each candidate's provenance and expected outcome. The candidates beside this file are the prototype's, byte for byte.",
+ "goldbach": {
+  "words": "Every even integer greater than 2 is the sum of two primes.",
+  "tests": [
+   {
+    "probe": "holds",
+    "n": 2,
+    "set": null,
+    "concept": null,
+    "expected": true,
+    "origin": "proposer's seed"
+   },
+   {
+    "probe": "covers",
+    "n": 2,
+    "set": null,
+    "concept": null,
+    "expected": false,
+    "origin": "proposer's seed"
+   },
+   {
+    "probe": "holds",
+    "n": 3,
+    "set": null,
+    "concept": null,
+    "expected": true,
+    "origin": "proposer's seed"
+   },
+   {
+    "probe": "covers",
+    "n": 3,
+    "set": null,
+    "concept": null,
+    "expected": false,
+    "origin": "proposer's seed"
+   },
+   {
+    "probe": "holds",
+    "n": 4,
+    "set": null,
+    "concept": null,
+    "expected": true,
+    "origin": "proposer's seed"
+   },
+   {
+    "probe": "covers",
+    "n": 4,
+    "set": null,
+    "concept": null,
+    "expected": true,
+    "origin": "proposer's seed"
+   },
+   {
+    "probe": "holds",
+    "n": 28,
+    "set": null,
+    "concept": null,
+    "expected": true,
+    "origin": "proposer's seed"
+   },
+   {
+    "probe": "covers",
+    "n": 28,
+    "set": null,
+    "concept": null,
+    "expected": true,
+    "origin": "proposer's seed"
+   },
+   {
+    "probe": "holds",
+    "n": 11,
+    "set": null,
+    "concept": null,
+    "expected": true,
+    "origin": "question"
+   },
+   {
+    "probe": "concept",
+    "n": 1,
+    "set": null,
+    "concept": "prime",
+    "expected": false,
+    "origin": "question"
+   }
+  ],
+  "mutants": [
+   {
+    "label": "≤ → < at 3",
+    "result": "caught",
+    "claim": "def claim (n : Nat) : Prop := 4 < n → n % 2 = 0 → ∃ p, p ≤ n ∧ Prime p ∧ Prime (n - p)"
+   },
+   {
+    "label": "≤ → < at 28",
+    "result": "equivalent",
+    "claim": "def claim (n : Nat) : Prop := 4 ≤ n → n % 2 = 0 → ∃ p, p < n ∧ Prime p ∧ Prime (n - p)"
+   },
+   {
+    "label": "∧ → ∨ at 32",
+    "result": "does not elaborate",
+    "claim": "def claim (n : Nat) : Prop := 4 ≤ n → n % 2 = 0 → ∃ p, p ≤ n ∨ Prime p ∧ Prime (n - p)"
+   },
+   {
+    "label": "∧ → ∨ at 42",
+    "result": "does not elaborate",
+    "claim": "def claim (n : Nat) : Prop := 4 ≤ n → n % 2 = 0 → ∃ p, p ≤ n ∧ Prime p ∨ Prime (n - p)"
+   },
+   {
+    "label": "4 → 3 at 1",
+    "result": "equivalent",
+    "claim": "def claim (n : Nat) : Prop := 3 ≤ n → n % 2 = 0 → ∃ p, p ≤ n ∧ Prime p ∧ Prime (n - p)"
+   },
+   {
+    "label": "4 → 5 at 1",
+    "result": "caught",
+    "claim": "def claim (n : Nat) : Prop := 5 ≤ n → n % 2 = 0 → ∃ p, p ≤ n ∧ Prime p ∧ Prime (n - p)"
+   },
+   {
+    "label": "2 → 1 at 13",
+    "result": "caught",
+    "claim": "def claim (n : Nat) : Prop := 4 ≤ n → n % 1 = 0 → ∃ p, p ≤ n ∧ Prime p ∧ Prime (n - p)"
+   },
+   {
+    "label": "2 → 3 at 13",
+    "result": "caught",
+    "claim": "def claim (n : Nat) : Prop := 4 ≤ n → n % 3 = 0 → ∃ p, p ≤ n ∧ Prime p ∧ Prime (n - p)"
+   },
+   {
+    "label": "0 → 1 at 17",
+    "result": "caught",
+    "claim": "def claim (n : Nat) : Prop := 4 ≤ n → n % 2 = 1 → ∃ p, p ≤ n ∧ Prime p ∧ Prime (n - p)"
+   }
+  ],
+  "candidates": {
+   "human-ref": {
+    "author": "human",
+    "expect": "survive"
+   },
+   "agent-a": {
+    "author": "agent",
+    "model": "sonnet",
+    "expect": "survive"
+   },
+   "agent-b": {
+    "author": "agent",
+    "model": "haiku",
+    "expect": "discard-compile"
+   },
+   "agent-c": {
+    "author": "agent",
+    "model": "opus",
+    "expect": "survive"
+   },
+   "alt-dvd": {
+    "author": "human",
+    "expect": "survive"
+   },
+   "alt-pq": {
+    "author": "human",
+    "expect": "survive"
+   },
+   "bad-noeven": {
+    "author": "planted",
+    "defect": "missing hypothesis",
+    "expect": "discard-question"
+   },
+   "bad-domain": {
+    "author": "planted",
+    "defect": "wrong domain (2 ≤ n)",
+    "expect": "discard-question"
+   },
+   "bad-vacuous": {
+    "author": "planted",
+    "defect": "vacuity (contradictory hypotheses)",
+    "expect": "discard-screen"
+   },
+   "bad-lostconj": {
+    "author": "planted",
+    "defect": "lost conjunct (only one prime asked for)",
+    "expect": "discard-screen"
+   },
+   "bad-natsub": {
+    "author": "planted",
+    "defect": "junk value (p - n truncates to 0)",
+    "expect": "discard-question"
+   },
+   "bad-prime1": {
+    "author": "planted",
+    "defect": "definition mismatch (1 counted as prime)",
+    "expect": "flag"
+   }
+  }
+ },
+ "legendre": {
+  "words": "For every positive integer n, there is a prime strictly between n² and (n+1)².",
+  "tests": [
+   {
+    "probe": "holds",
+    "n": 0,
+    "set": null,
+    "concept": null,
+    "expected": true,
+    "origin": "proposer's seed"
+   },
+   {
+    "probe": "covers",
+    "n": 0,
+    "set": null,
+    "concept": null,
+    "expected": false,
+    "origin": "proposer's seed"
+   },
+   {
+    "probe": "holds",
+    "n": 1,
+    "set": null,
+    "concept": null,
+    "expected": true,
+    "origin": "proposer's seed"
+   },
+   {
+    "probe": "covers",
+    "n": 1,
+    "set": null,
+    "concept": null,
+    "expected": true,
+    "origin": "proposer's seed"
+   },
+   {
+    "probe": "witness",
+    "n": 1,
+    "set": [
+     1
+    ],
+    "concept": "prime",
+    "expected": false,
+    "origin": "question"
+   },
+   {
+    "probe": "witness",
+    "n": 1,
+    "set": [
+     2
+    ],
+    "concept": "prime",
+    "expected": true,
+    "origin": "question"
+   },
+   {
+    "probe": "witness",
+    "n": 1,
+    "set": [
+     4
+    ],
+    "concept": "prime",
+    "expected": false,
+    "origin": "question"
+   },
+   {
+    "probe": "witness",
+    "n": 2,
+    "set": [
+     3
+    ],
+    "concept": "prime",
+    "expected": false,
+    "origin": "question"
+   },
+   {
+    "probe": "holds",
+    "n": 2,
+    "set": null,
+    "concept": null,
+    "expected": true,
+    "origin": "question"
+   }
+  ],
+  "mutants": [
+   {
+    "label": "< → ≤ at 16",
+    "result": "caught",
+    "claim": "def claim (n : Nat) : Prop := 1 ≤ n → ∃ p, p ≤ (n+1)^2 ∧ n^2 < p ∧ Prime p"
+   },
+   {
+    "label": "< → ≤ at 32",
+    "result": "caught",
+    "claim": "def claim (n : Nat) : Prop := 1 ≤ n → ∃ p, p < (n+1)^2 ∧ n^2 ≤ p ∧ Prime p"
+   },
+   {
+    "label": "≤ → < at 3",
+    "result": "caught",
+    "claim": "def claim (n : Nat) : Prop := 1 < n → ∃ p, p < (n+1)^2 ∧ n^2 < p ∧ Prime p"
+   },
+   {
+    "label": "∧ → ∨ at 26",
+    "result": "does not elaborate",
+    "claim": "def claim (n : Nat) : Prop := 1 ≤ n → ∃ p, p < (n+1)^2 ∨ n^2 < p ∧ Prime p"
+   },
+   {
+    "label": "∧ → ∨ at 36",
+    "result": "does not elaborate",
+    "claim": "def claim (n : Nat) : Prop := 1 ≤ n → ∃ p, p < (n+1)^2 ∧ n^2 < p ∨ Prime p"
+   },
+   {
+    "label": "(n+1) → n at 18",
+    "result": "caught",
+    "claim": "def claim (n : Nat) : Prop := 1 ≤ n → ∃ p, p < n^2 ∧ n^2 < p ∧ Prime p"
+   },
+   {
+    "label": "(n+1)^2 → n^2 + 1 at 18",
+    "result": "caught",
+    "claim": "def claim (n : Nat) : Prop := 1 ≤ n → ∃ p, p < n^2 + 1 ∧ n^2 < p ∧ Prime p"
+   },
+   {
+    "label": "1 → 0 at 1",
+    "result": "caught",
+    "claim": "def claim (n : Nat) : Prop := 0 ≤ n → ∃ p, p < (n+1)^2 ∧ n^2 < p ∧ Prime p"
+   },
+   {
+    "label": "1 → 2 at 1",
+    "result": "caught",
+    "claim": "def claim (n : Nat) : Prop := 2 ≤ n → ∃ p, p < (n+1)^2 ∧ n^2 < p ∧ Prime p"
+   },
+   {
+    "label": "1 → 0 at 21",
+    "result": "caught",
+    "claim": "def claim (n : Nat) : Prop := 1 ≤ n → ∃ p, p < (n+0)^2 ∧ n^2 < p ∧ Prime p"
+   },
+   {
+    "label": "1 → 2 at 21",
+    "result": "caught",
+    "claim": "def claim (n : Nat) : Prop := 1 ≤ n → ∃ p, p < (n+2)^2 ∧ n^2 < p ∧ Prime p"
+   },
+   {
+    "label": "2 → 1 at 24",
+    "result": "caught",
+    "claim": "def claim (n : Nat) : Prop := 1 ≤ n → ∃ p, p < (n+1)^1 ∧ n^2 < p ∧ Prime p"
+   },
+   {
+    "label": "2 → 3 at 24",
+    "result": "caught",
+    "claim": "def claim (n : Nat) : Prop := 1 ≤ n → ∃ p, p < (n+1)^3 ∧ n^2 < p ∧ Prime p"
+   },
+   {
+    "label": "2 → 1 at 30",
+    "result": "caught",
+    "claim": "def claim (n : Nat) : Prop := 1 ≤ n → ∃ p, p < (n+1)^2 ∧ n^1 < p ∧ Prime p"
+   },
+   {
+    "label": "2 → 3 at 30",
+    "result": "caught",
+    "claim": "def claim (n : Nat) : Prop := 1 ≤ n → ∃ p, p < (n+1)^2 ∧ n^3 < p ∧ Prime p"
+   }
+  ],
+  "candidates": {
+   "human-ref": {
+    "author": "human",
+    "expect": "survive"
+   },
+   "agent-a": {
+    "author": "agent",
+    "model": "sonnet",
+    "expect": "survive"
+   },
+   "agent-b": {
+    "author": "agent",
+    "model": "haiku",
+    "expect": "discard-compile"
+   },
+   "agent-c": {
+    "author": "agent",
+    "model": "opus",
+    "expect": "survive"
+   },
+   "alt-mul": {
+    "author": "human",
+    "expect": "survive"
+   },
+   "alt-closed": {
+    "author": "human",
+    "expect": "discard-question"
+   },
+   "bad-zero": {
+    "author": "planted",
+    "defect": "wrong domain (n = 0 included)",
+    "expect": "discard-question"
+   },
+   "bad-plus1": {
+    "author": "planted",
+    "defect": "wrong bound (n² + 1 for (n+1)²)",
+    "expect": "discard-question"
+   },
+   "bad-two": {
+    "author": "planted",
+    "defect": "strength drift (two primes asked for)",
+    "expect": "flag"
+   },
+   "bad-paren": {
+    "author": "planted",
+    "defect": "parenthesization (n² < p → Prime p)",
+    "expect": "discard-screen"
+   },
+   "alt-inline": {
+    "author": "human",
+    "expect": "returned"
+   }
+  }
+ },
+ "oppermann": {
+  "words": "For every integer n > 1, there is at least one prime between n(n−1) and n², and at least one prime between n² and n(n+1).",
+  "tests": [
+   {
+    "probe": "holds",
+    "n": 0,
+    "set": null,
+    "concept": null,
+    "expected": true,
+    "origin": "proposer's seed"
+   },
+   {
+    "probe": "covers",
+    "n": 0,
+    "set": null,
+    "concept": null,
+    "expected": false,
+    "origin": "proposer's seed"
+   },
+   {
+    "probe": "holds",
+    "n": 1,
+    "set": null,
+    "concept": null,
+    "expected": true,
+    "origin": "proposer's seed"
+   },
+   {
+    "probe": "covers",
+    "n": 1,
+    "set": null,
+    "concept": null,
+    "expected": false,
+    "origin": "proposer's seed"
+   },
+   {
+    "probe": "holds",
+    "n": 2,
+    "set": null,
+    "concept": null,
+    "expected": true,
+    "origin": "proposer's seed"
+   },
+   {
+    "probe": "covers",
+    "n": 2,
+    "set": null,
+    "concept": null,
+    "expected": true,
+    "origin": "proposer's seed"
+   },
+   {
+    "probe": "witness",
+    "n": 2,
+    "set": [
+     4
+    ],
+    "concept": "prime",
+    "expected": false,
+    "origin": "question"
+   },
+   {
+    "probe": "witness",
+    "n": 2,
+    "set": [
+     5
+    ],
+    "concept": "prime",
+    "expected": false,
+    "origin": "question"
+   },
+   {
+    "probe": "witness",
+    "n": 2,
+    "set": [
+     4,
+     5
+    ],
+    "concept": "prime",
+    "expected": false,
+    "origin": "question"
+   },
+   {
+    "probe": "witness",
+    "n": 2,
+    "set": [
+     2,
+     5
+    ],
+    "concept": "prime",
+    "expected": false,
+    "origin": "question"
+   },
+   {
+    "probe": "witness",
+    "n": 2,
+    "set": [
+     3,
+     6
+    ],
+    "concept": "prime",
+    "expected": false,
+    "origin": "question"
+   },
+   {
+    "probe": "witness",
+    "n": 2,
+    "set": [
+     3,
+     4
+    ],
+    "concept": "prime",
+    "expected": false,
+    "origin": "question"
+   },
+   {
+    "probe": "witness",
+    "n": 2,
+    "set": [
+     1,
+     5
+    ],
+    "concept": "prime",
+    "expected": false,
+    "origin": "question"
+   }
+  ],
+  "mutants": [
+   {
+    "label": "< → ≤ at 17",
+    "result": "caught",
+    "claim": "def claim (n : Nat) : Prop := 2 ≤ n → (∃ p, p ≤ n*n ∧ n*(n-1) < p ∧ Prime p) ∧ (∃ p, p < n*(n+1) ∧ n*n < p ∧ Prime p)"
+   },
+   {
+    "label": "< → ≤ at 33",
+    "result": "caught",
+    "claim": "def claim (n : Nat) : Prop := 2 ≤ n → (∃ p, p < n*n ∧ n*(n-1) ≤ p ∧ Prime p) ∧ (∃ p, p < n*(n+1) ∧ n*n < p ∧ Prime p)"
+   },
+   {
+    "label": "< → ≤ at 58",
+    "result": "caught",
+    "claim": "def claim (n : Nat) : Prop := 2 ≤ n → (∃ p, p < n*n ∧ n*(n-1) < p ∧ Prime p) ∧ (∃ p, p ≤ n*(n+1) ∧ n*n < p ∧ Prime p)"
+   },
+   {
+    "label": "< → ≤ at 74",
+    "result": "caught",
+    "claim": "def claim (n : Nat) : Prop := 2 ≤ n → (∃ p, p < n*n ∧ n*(n-1) < p ∧ Prime p) ∧ (∃ p, p < n*(n+1) ∧ n*n ≤ p ∧ Prime p)"
+   },
+   {
+    "label": "≤ → < at 3",
+    "result": "caught",
+    "claim": "def claim (n : Nat) : Prop := 2 < n → (∃ p, p < n*n ∧ n*(n-1) < p ∧ Prime p) ∧ (∃ p, p < n*(n+1) ∧ n*n < p ∧ Prime p)"
+   },
+   {
+    "label": "∧ → ∨ at 23",
+    "result": "does not elaborate",
+    "claim": "def claim (n : Nat) : Prop := 2 ≤ n → (∃ p, p < n*n ∨ n*(n-1) < p ∧ Prime p) ∧ (∃ p, p < n*(n+1) ∧ n*n < p ∧ Prime p)"
+   },
+   {
+    "label": "∧ → ∨ at 37",
+    "result": "does not elaborate",
+    "claim": "def claim (n : Nat) : Prop := 2 ≤ n → (∃ p, p < n*n ∧ n*(n-1) < p ∨ Prime p) ∧ (∃ p, p < n*(n+1) ∧ n*n < p ∧ Prime p)"
+   },
+   {
+    "label": "∧ → ∨ at 48",
+    "result": "caught",
+    "claim": "def claim (n : Nat) : Prop := 2 ≤ n → (∃ p, p < n*n ∧ n*(n-1) < p ∧ Prime p) ∨ (∃ p, p < n*(n+1) ∧ n*n < p ∧ Prime p)"
+   },
+   {
+    "label": "∧ → ∨ at 68",
+    "result": "does not elaborate",
+    "claim": "def claim (n : Nat) : Prop := 2 ≤ n → (∃ p, p < n*n ∧ n*(n-1) < p ∧ Prime p) ∧ (∃ p, p < n*(n+1) ∨ n*n < p ∧ Prime p)"
+   },
+   {
+    "label": "∧ → ∨ at 78",
+    "result": "does not elaborate",
+    "claim": "def claim (n : Nat) : Prop := 2 ≤ n → (∃ p, p < n*n ∧ n*(n-1) < p ∧ Prime p) ∧ (∃ p, p < n*(n+1) ∧ n*n < p ∨ Prime p)"
+   },
+   {
+    "label": "(n+1) → n at 62",
+    "result": "caught",
+    "claim": "def claim (n : Nat) : Prop := 2 ≤ n → (∃ p, p < n*n ∧ n*(n-1) < p ∧ Prime p) ∧ (∃ p, p < n*n ∧ n*n < p ∧ Prime p)"
+   },
+   {
+    "label": "(n-1) → n at 27",
+    "result": "caught",
+    "claim": "def claim (n : Nat) : Prop := 2 ≤ n → (∃ p, p < n*n ∧ n*n < p ∧ Prime p) ∧ (∃ p, p < n*(n+1) ∧ n*n < p ∧ Prime p)"
+   },
+   {
+    "label": "n*(n-1) → n*n - 1 at 25",
+    "result": "caught",
+    "claim": "def claim (n : Nat) : Prop := 2 ≤ n → (∃ p, p < n*n ∧ n*n - 1 < p ∧ Prime p) ∧ (∃ p, p < n*(n+1) ∧ n*n < p ∧ Prime p)"
+   },
+   {
+    "label": "2 → 1 at 1",
+    "result": "caught",
+    "claim": "def claim (n : Nat) : Prop := 1 ≤ n → (∃ p, p < n*n ∧ n*(n-1) < p ∧ Prime p) ∧ (∃ p, p < n*(n+1) ∧ n*n < p ∧ Prime p)"
+   },
+   {
+    "label": "2 → 3 at 1",
+    "result": "caught",
+    "claim": "def claim (n : Nat) : Prop := 3 ≤ n → (∃ p, p < n*n ∧ n*(n-1) < p ∧ Prime p) ∧ (∃ p, p < n*(n+1) ∧ n*n < p ∧ Prime p)"
+   },
+   {
+    "label": "1 → 0 at 30",
+    "result": "caught",
+    "claim": "def claim (n : Nat) : Prop := 2 ≤ n → (∃ p, p < n*n ∧ n*(n-0) < p ∧ Prime p) ∧ (∃ p, p < n*(n+1) ∧ n*n < p ∧ Prime p)"
+   },
+   {
+    "label": "1 → 2 at 30",
+    "result": "caught",
+    "claim": "def claim (n : Nat) : Prop := 2 ≤ n → (∃ p, p < n*n ∧ n*(n-2) < p ∧ Prime p) ∧ (∃ p, p < n*(n+1) ∧ n*n < p ∧ Prime p)"
+   },
+   {
+    "label": "1 → 0 at 65",
+    "result": "caught",
+    "claim": "def claim (n : Nat) : Prop := 2 ≤ n → (∃ p, p < n*n ∧ n*(n-1) < p ∧ Prime p) ∧ (∃ p, p < n*(n+0) ∧ n*n < p ∧ Prime p)"
+   },
+   {
+    "label": "1 → 2 at 65",
+    "result": "caught",
+    "claim": "def claim (n : Nat) : Prop := 2 ≤ n → (∃ p, p < n*n ∧ n*(n-1) < p ∧ Prime p) ∧ (∃ p, p < n*(n+2) ∧ n*n < p ∧ Prime p)"
+   }
+  ],
+  "candidates": {
+   "human-ref": {
+    "author": "human",
+    "expect": "survive"
+   },
+   "agent-a": {
+    "author": "agent",
+    "model": "sonnet",
+    "expect": "survive"
+   },
+   "agent-b": {
+    "author": "agent",
+    "model": "haiku",
+    "expect": "discard-compile"
+   },
+   "agent-c": {
+    "author": "agent",
+    "model": "opus",
+    "expect": "survive"
+   },
+   "alt-sub": {
+    "author": "human",
+    "expect": "survive"
+   },
+   "alt-inclusive": {
+    "author": "human",
+    "expect": "discard-question"
+   },
+   "bad-one": {
+    "author": "planted",
+    "defect": "wrong domain (1 ≤ n)",
+    "expect": "discard-question"
+   },
+   "bad-half": {
+    "author": "planted",
+    "defect": "lost conjunct (second interval only)",
+    "expect": "flag"
+   },
+   "bad-or": {
+    "author": "planted",
+    "defect": "connective (∨ for ∧)",
+    "expect": "flag"
+   },
+   "bad-junk": {
+    "author": "planted",
+    "defect": "wrong bound (n² - 1 for n(n-1))",
+    "expect": "discard-question"
+   }
+  }
+ }
+}

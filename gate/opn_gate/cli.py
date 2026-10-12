@@ -55,6 +55,8 @@ from opn_gate import (
     products,
     qa,
     qa_rerun,
+    review_job,
+    review_lean,
     review_open,
     sandbox,
     scaffold,
@@ -714,6 +716,22 @@ def _add_review_parsers(sub: argparse._SubParsersAction[argparse.ArgumentParser]
         "--all", action="store_true", help="every target with a gate-spec.json, one line each"
     )
     op.add_argument("--date", help="the day of the opening, YYYY-MM-DD (default: today, UTC)")
+    rn = acts.add_parser(
+        "run",
+        help="run the review's automated stages 3, 4 and 6 (F26-R13): exhibits, intent tests, "
+        "questions and pair records written under targets/<id>/review/ in the checkout, nothing "
+        "committed; idempotent",
+    )
+    rn.add_argument("--graph", required=True, type=Path, help="path to the graph checkout")
+    rn.add_argument("--target", required=True, help="the target whose review runs")
+    rn.add_argument("--run", default="local", help="the run id the exhibits name (default: local)")
+    rn.add_argument("--date", help="the day the records carry, YYYY-MM-DD (default: today, UTC)")
+    rn.add_argument("--jobs", type=int, default=4, help="elaborations at a time (default: 4)")
+    rn.add_argument(
+        "--sandbox", action="store_true", help="elaborate every check inside the step-3 image"
+    )
+    rn.add_argument("--image", help="sandbox image tag (default: from the spec)")
+    rn.add_argument("--no-build", action="store_true", help="fail if the image is missing")
 
 
 def _add_steward_parsers(sub: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
@@ -2863,6 +2881,8 @@ def run_review(args: argparse.Namespace, settings: config.Settings) -> int:
     except ValueError:
         msg = f"--date must be a day like 2026-10-12, got {day!r}"
         raise CliError(msg) from None
+    if args.action == "run":
+        return _review_run(args, settings, graph, day)
     targets = [args.target] if args.target else review_open.target_ids(graph)
     failed = False
     for target_id in targets:
@@ -2870,6 +2890,48 @@ def run_review(args: argparse.Namespace, settings: config.Settings) -> int:
         failed = failed or not summary["ok"]
         sys.stdout.write(json.dumps(summary, ensure_ascii=False) + "\n")
     return EXIT_FAIL if failed else EXIT_PASS
+
+
+def _review_run(args: argparse.Namespace, settings: config.Settings, graph: Path, day: str) -> int:
+    """F26-R13: ``review run`` — stages 3, 4 and 6 of one target's review, every check
+    elaborated through the toolchain seam (in the step-3 image with ``--sandbox``), the records
+    written into the checkout and nothing committed. One JSON summary on stdout; ``written`` is
+    empty on a second run over the same records."""
+    spec_path = layout.gate_spec_path(graph, args.target)
+    try:
+        spec = schemas.load_json(spec_path, "gate-spec/v1")
+    except schemas.SchemaError as exc:
+        msg = f"cannot load {spec_path}: {exc}"
+        raise CliError(msg) from exc
+    workdir = Path(tempfile.mkdtemp(prefix="opn-review-run-"))
+    tc: toolchain.Toolchain
+    if args.sandbox:
+        tag = args.image or ensure_image(spec, build=not args.no_build)
+        tc = sandbox.SandboxToolchain(tag, sandbox.Caps.from_spec(spec), read_write=[workdir])
+    else:
+        try:
+            tc = toolchain.LocalToolchain.from_settings(settings)
+        except toolchain.ToolchainMissingError as exc:
+            raise CliError(str(exc)) from exc
+    raw_sha = spec.get("mathlib_sha")
+    try:
+        resolved = tc.resolve(
+            str(spec["lean_toolchain"]),
+            install=False,
+            mathlib_sha=str(raw_sha) if raw_sha else None,
+        )
+    except (toolchain.ToolchainMissingError, toolchain.ToolchainError) as exc:
+        raise CliError(str(exc)) from exc
+    runner = review_lean.Runner(
+        tc, resolved, workdir, budget_s=settings.qa_attempt_budget_s, jobs=max(1, args.jobs)
+    )
+    opts = review_job.Settings(
+        run_id=args.run, date=day, budget_s=settings.qa_attempt_budget_s, jobs=max(1, args.jobs)
+    )
+    summary = review_job.review_run(graph, args.target, runner, dict(spec), opts)
+    summary["sandboxed"] = bool(args.sandbox)
+    sys.stdout.write(json.dumps(summary, indent=2, ensure_ascii=False) + "\n")
+    return EXIT_PASS if summary.get("ok") else EXIT_FAIL
 
 
 def run_gloss(args: argparse.Namespace, settings: config.Settings) -> int:
