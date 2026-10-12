@@ -323,7 +323,8 @@ def test_the_target_page_shows_the_state_beside_the_grade_linking_the_review(
         )
     ]
     assert STATE_LINE in row
-    assert state_line(head) == "review: 4 candidates, 0 clusters, 1 question waiting"
+    # T2's derivation (merged after this test was written): two survivors in one cluster.
+    assert state_line(head) == "review: 4 candidates, 1 cluster, 1 question waiting"
     assert f'href="/problems/{TARGET}/review/"' in row
 
 
