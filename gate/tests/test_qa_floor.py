@@ -29,8 +29,17 @@ def target(tmp_path: Path) -> Path:
 
 
 def a_row(check: qa.Check, verdict: qa.Verdict = "pass") -> qa.Row:
-    extra = {"model": "fake-model", "model_version": "1"} if qa.KIND_OF[check] == "brief" else {}
-    return qa.row(check, verdict, tool=TOOL, tool_version="0.0.0", timestamp=WHEN, **extra)
+    if qa.KIND_OF[check] == "brief":
+        return qa.row(
+            check,
+            verdict,
+            tool=TOOL,
+            tool_version="0.0.0",
+            timestamp=WHEN,
+            model="fake-model",
+            model_version="1",
+        )
+    return qa.row(check, verdict, tool=TOOL, tool_version="0.0.0", timestamp=WHEN)
 
 
 def test_the_floors_no_longer_name_backtranslation() -> None:
