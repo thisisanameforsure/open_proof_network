@@ -171,20 +171,32 @@ def read_only(  # noqa: PLR0912, PLR0915 — a checklist: one branch per thing t
     anonymous = Client(base, None)
     unauthorized = anonymous.call("claim_node", {"node_id": tutorial})
     client.transcript.extend("(no token) " + line for line in anonymous.transcript)
-    # Since 2026-09-27 the message names the tutorial node, so the node found above must be in it.
-    body = unauthorized.get("body") or {}
-    if (
-        not unauthorized.pop("__is_error__")
-        or unauthorized.get("status") != UNAUTHORIZED_STATUS
-        or body.get("error") != UNAUTHORIZED["error"]
-        or f"/{tutorial}`" not in str(body.get("message"))
-    ):
+    if not is_unauthorized(unauthorized, tutorial):
         problems.append(
             f"claim_node without a token is not the unauthorized result: {unauthorized}"
         )
     else:
         print("claim_node (no token) -> 401 unauthenticated, the message naming get_token")
     return {"entries": entries, "tutorial": tutorial}
+
+
+def is_unauthorized(result: dict[str, Any], tutorial: str) -> bool:
+    """Whether a tool call made with no token answered the unauthorized result: the route's
+    status and error, and a message that names the way to a token (``get_token``) and the
+    tutorial node found above as the tools take it (```<node>```, F09-T71), or, when no graph could
+    be read, the generic words ``auth.UNAUTHORIZED`` carries. Held to the service's own phrase by
+    ``api/tests/test_finding_smoke_unauthorized_phrase.py``, since deploy 38223446603 went red on
+    a reworded message the service answered correctly."""
+    body = result.get("body") or {}
+    message = str(body.get("message"))
+    names_node = f"`{tutorial}`" in message or message == UNAUTHORIZED["message"]
+    return bool(
+        result.pop("__is_error__", False)
+        and result.get("status") == UNAUTHORIZED_STATUS
+        and body.get("error") == UNAUTHORIZED["error"]
+        and "get_token" in message
+        and names_node
+    )
 
 
 def round_trip(
