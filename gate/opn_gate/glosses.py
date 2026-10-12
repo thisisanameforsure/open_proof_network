@@ -56,6 +56,26 @@ DEFS_DIR = "defs"
 _FRONT_MATTER_RE = re.compile(r"\A---[ \t]*\r?\n(?P<yaml>.*?)\r?\n---[ \t]*\r?\n?", re.S)
 
 
+#: F20-T16 (Q21): a gloss body that opens with math — a ``$$…$$`` display with something in it,
+#: or ``$…$`` under the site's dollar rule (Pandoc's: a non-space after the opening dollar and
+#: before the closing one, no digit after it; ``opn_site.prose``).
+_OPENING_MATH_RE = re.compile(
+    r"\A\s*(?:\$\$(?P<display>.+?)\$\$|\$(?=[^\s$])[^$\n]*?(?<=[^\s$])\$(?!\d))", re.S
+)
+
+
+def opens_with_math(text: str) -> bool:
+    """F20-T16 (Q21): whether a gloss's body (no front matter) opens with its statement in LaTeX,
+    as the guidance asks: a non-empty ``$$…$$`` display or a ``$…$`` span before any other text.
+    Guidance, not a rule: nothing in the gate refuses a gloss for this (D-3: prose is
+    unverified)."""
+    m = _OPENING_MATH_RE.match(text)
+    if m is None:
+        return False
+    display = m.group("display")
+    return display is None or bool(display.strip())
+
+
 class GlossError(ValueError):
     """A gloss command cannot do what was asked. Nothing is written."""
 

@@ -75,7 +75,8 @@ def instructions(tutorial: str, *, guide: str | None = None, errors: str | None 
         "get_submission to follow its pull request. "
         # F21-T8 (R10): the second entry task, words rather than a proof (D-3 v3.31).
         "A contribution that needs no proof: list_words_needed for a Lean file that has no words "
-        "yet, get_node for its Lean, then submit_gloss with the words, naming in drafted_with "
+        "yet, get_node for its Lean, then submit_gloss with the words, opening with the "
+        "statement in LaTeX, naming in drafted_with "
         "the model that helped draft them, if one did; one writer per file at a time, and a "
         "steward's or curator's signature on your words is what earns credit. "
         "Every refusal names its rule by a code "

@@ -1,0 +1,132 @@
+F20-T16 — the gloss contract is math first (2026-10-12)
+
+Verification command:
+  uv run --frozen pytest gate/tests/test_gloss_form.py api/tests/test_finding_gloss_math_first.py site/tests/test_finding_gloss_math_row.py -v
+(plus api/tests/test_finding_mcp_context_budget.py, whose budgets the new words must fit)
+
+=== RED: guidance (before AGENTS.md, MCP, handshake, docs.html, cli placeholder changed; opens_with_math already in place so the example fails on its prose opening) ===
+api/tests/test_finding_gloss_math_first.py::test_the_guides_write_step_puts_the_math_first FAILED [ 16%]
+api/tests/test_finding_gloss_math_first.py::test_the_guides_worked_example_opens_with_math FAILED [ 33%]
+api/tests/test_finding_gloss_math_first.py::test_the_mcp_tool_says_it FAILED [ 50%]
+api/tests/test_finding_gloss_math_first.py::test_the_handshake_says_it FAILED [ 66%]
+api/tests/test_finding_gloss_math_first.py::test_the_docs_page_says_it FAILED [ 83%]
+api/tests/test_finding_gloss_math_first.py::test_a_new_gloss_file_starts_from_the_rule FAILED [100%]
+E           AssertionError: ('LaTeX', '3. **Write the words.** Say in plain words what the Lean says, every hypothesis included, and nothing it does not say. Do not say whether it is true, hard or important: a gloss describes a file. An explainer is sections under level-2 headings, each naming the o
+E           assert 'LaTeX' in '3. **Write the words.** Say in plain words what the Lean says, every hypothesis included, and nothing it does not say. Do not say whether it is true, hard or important: a gloss describes a file. An explainer is sections under level-2 headings, each naming the outline s
+E       AssertionError: For any two propositions p and q: if p and q both hold, then q and p both hold.
+E         
+E       assert False
+E        +  where False = <function opens_with_math at 0x107e1ee80>('For any two propositions p and q: if p and q both hold, then q and p both hold.\n')
+E        +    where <function opens_with_math at 0x107e1ee80> = glosses.opens_with_math
+E       AssertionError: Write the words for one Lean file (a gloss: subject.kind statement, witness or relation with node_id, or definition with target_id and module) or explain one merged proof (an explainer: kind proof, node_id, and proof, the hash get_node's outlines give). `supersedes` replaces 
+E       assert 'LaTeX' in 'Write the words for one Lean file (a gloss: subject.kind statement, witness or relation with node_id, or definition with target_id and module) or explain one merged proof (an explainer: kind proof, node_id, and proof, the hash get_node\'s outlines give). `supersedes` repla
+E       AssertionError: The Open Proof Network's reference MCP server (D-28). Every tool is a lens over plain git and HTTP and holds no state: reads need no token, except list_my_claims, get_my_submissions and get_check, which read your own; writes need `Authorization: Bearer <token>` and pass their
+E       assert ('submit_gloss' in "The Open Proof Network's reference MCP server (D-28). Every tool is a lens over plain git and HTTP and holds no state: reads need no token, except list_my_claims, get_my_submissions and get_check, which read your own; writes need `Authorization: Bearer <token>` and
+E           AssertionError: ('LaTeX', "The words. Beside each piece of Lean are words saying what it says (a gloss), and beside each proof an account of how it works (an explainer). Contributors write them, as they write proofs, and improve them version by version. Words a contributor's model helped
+E           assert 'LaTeX' in "The words. Beside each piece of Lean are words saying what it says (a gloss), and beside each proof an account of how it works (an explainer). Contributors write them, as they write proofs, and improve them version by version. Words a contributor's model helped draft s
+E           AssertionError: Say in words what the Lean says, every hypothesis included.
+E           assert 'LaTeX' in 'Say in words what the Lean says, every hypothesis included.'
+FAILED api/tests/test_finding_gloss_math_first.py::test_the_guides_write_step_puts_the_math_first
+FAILED api/tests/test_finding_gloss_math_first.py::test_the_guides_worked_example_opens_with_math
+FAILED api/tests/test_finding_gloss_math_first.py::test_the_mcp_tool_says_it
+FAILED api/tests/test_finding_gloss_math_first.py::test_the_handshake_says_it
+FAILED api/tests/test_finding_gloss_math_first.py::test_the_docs_page_says_it
+FAILED api/tests/test_finding_gloss_math_first.py::test_a_new_gloss_file_starts_from_the_rule
+
+=== RED: the Problems row (before prose.first_sentence changed) ===
+site/tests/test_finding_gloss_math_row.py::test_a_display_opening_is_the_rows_sentence_as_inline_math FAILED [ 33%]
+site/tests/test_finding_gloss_math_row.py::test_display_math_on_one_line_and_with_prose_after_it_in_the_paragraph FAILED [ 66%]
+site/tests/test_finding_gloss_math_row.py::test_a_dollar_pair_inside_a_prose_sentence_is_still_one_unit FAILED [100%]
+E       AssertionError: assert '$$ \\forall n \\ge 1,\\ n!' == '$\\forall n ...1,\\ n! > 0.$'
+E         
+E         - $\forall n \ge 1,\ n! > 0.$
+E         ?                      ------
+E         + $$ \forall n \ge 1,\ n!
+E         ?  ++
+E       AssertionError: assert '$$a + b = b ...all naturals.' == '$a + b = b + a$'
+E         
+E         - $a + b = b + a$
+E         + $$a + b = b + a$$ for all naturals.
+E       AssertionError: assert 'The sum $$x.' == 'The sum $$x....is symmetric.'
+E         
+E         - The sum $$x. y$$ is symmetric.
+E         + The sum $$x.
+FAILED site/tests/test_finding_gloss_math_row.py::test_a_display_opening_is_the_rows_sentence_as_inline_math
+FAILED site/tests/test_finding_gloss_math_row.py::test_display_math_on_one_line_and_with_prose_after_it_in_the_paragraph
+FAILED site/tests/test_finding_gloss_math_row.py::test_a_dollar_pair_inside_a_prose_sentence_is_still_one_unit
+
+=== RED: the audit tool (new; the file did not exist yet) ===
+gate/tests/test_gloss_form.py::test_opens_with_math[$$\n\\forall p\\, q : \\mathrm{Prop},\\ p \\land q \\to q \\land p\n$$\n\nSwapping sides.\n] PASSED [  5%]
+gate/tests/test_gloss_form.py::test_opens_with_math[$$\\forall n,\\ n + 0 = n$$] PASSED [ 11%]
+gate/tests/test_gloss_form.py::test_opens_with_math[  \n\n$$\nx\n$$\nthen words] PASSED [ 17%]
+gate/tests/test_gloss_form.py::test_opens_with_math[$n \\ge 1 \\to n! > 0$\n\nFor every n.] PASSED [ 23%]
+gate/tests/test_gloss_form.py::test_opens_with_math[$a = a$ holds.] PASSED [ 29%]
+gate/tests/test_gloss_form.py::test_does_not_open_with_math[For any two propositions p and q, if both hold then both hold the other way round.\n] PASSED [ 35%]
+gate/tests/test_gloss_form.py::test_does_not_open_with_math[] PASSED     [ 41%]
+gate/tests/test_gloss_form.py::test_does_not_open_with_math[   \n] PASSED [ 47%]
+gate/tests/test_gloss_form.py::test_does_not_open_with_math[$$ $$ nothing in it] PASSED [ 52%]
+gate/tests/test_gloss_form.py::test_does_not_open_with_math[$$\\forall n, unclosed] PASSED [ 58%]
+gate/tests/test_gloss_form.py::test_does_not_open_with_math[$ x$ has a space after the opening dollar] PASSED [ 64%]
+gate/tests/test_gloss_form.py::test_does_not_open_with_math[Costs $5 and $6.] PASSED [ 70%]
+gate/tests/test_gloss_form.py::test_does_not_open_with_math[**$x$** opens with emphasis] PASSED [ 76%]
+gate/tests/test_gloss_form.py::test_does_not_open_with_math[Words first, then $$x$$.] PASSED [ 82%]
+gate/tests/test_gloss_form.py::test_the_tool_names_each_current_gloss_that_does_not_open_with_math FAILED [ 88%]
+gate/tests/test_gloss_form.py::test_the_tool_passes_a_target_whose_glosses_all_open_with_math FAILED [ 94%]
+gate/tests/test_gloss_form.py::test_the_tool_refuses_a_target_without_glosses_json FAILED [100%]
+FAILED gate/tests/test_gloss_form.py::test_the_tool_names_each_current_gloss_that_does_not_open_with_math
+FAILED gate/tests/test_gloss_form.py::test_the_tool_passes_a_target_whose_glosses_all_open_with_math
+FAILED gate/tests/test_gloss_form.py::test_the_tool_refuses_a_target_without_glosses_json
+
+=== GREEN ===
+gate/tests/test_gloss_form.py::test_opens_with_math[$$\n\\forall p\\, q : \\mathrm{Prop},\\ p \\land q \\to q \\land p\n$$\n\nSwapping sides.\n] PASSED [  2%]
+gate/tests/test_gloss_form.py::test_opens_with_math[$$\\forall n,\\ n + 0 = n$$] PASSED [  4%]
+gate/tests/test_gloss_form.py::test_opens_with_math[  \n\n$$\nx\n$$\nthen words] PASSED [  6%]
+gate/tests/test_gloss_form.py::test_opens_with_math[$n \\ge 1 \\to n! > 0$\n\nFor every n.] PASSED [  9%]
+gate/tests/test_gloss_form.py::test_opens_with_math[$a = a$ holds.] PASSED [ 11%]
+gate/tests/test_gloss_form.py::test_does_not_open_with_math[For any two propositions p and q, if both hold then both hold the other way round.\n] PASSED [ 13%]
+gate/tests/test_gloss_form.py::test_does_not_open_with_math[] PASSED     [ 16%]
+gate/tests/test_gloss_form.py::test_does_not_open_with_math[   \n] PASSED [ 18%]
+gate/tests/test_gloss_form.py::test_does_not_open_with_math[$$ $$ nothing in it] PASSED [ 20%]
+gate/tests/test_gloss_form.py::test_does_not_open_with_math[$$\\forall n, unclosed] PASSED [ 23%]
+gate/tests/test_gloss_form.py::test_does_not_open_with_math[$ x$ has a space after the opening dollar] PASSED [ 25%]
+gate/tests/test_gloss_form.py::test_does_not_open_with_math[Costs $5 and $6.] PASSED [ 27%]
+gate/tests/test_gloss_form.py::test_does_not_open_with_math[**$x$** opens with emphasis] PASSED [ 30%]
+gate/tests/test_gloss_form.py::test_does_not_open_with_math[Words first, then $$x$$.] PASSED [ 32%]
+gate/tests/test_gloss_form.py::test_the_tool_names_each_current_gloss_that_does_not_open_with_math PASSED [ 34%]
+gate/tests/test_gloss_form.py::test_the_tool_passes_a_target_whose_glosses_all_open_with_math PASSED [ 37%]
+gate/tests/test_gloss_form.py::test_the_tool_refuses_a_target_without_glosses_json PASSED [ 39%]
+api/tests/test_finding_gloss_math_first.py::test_the_guides_write_step_puts_the_math_first PASSED [ 41%]
+api/tests/test_finding_gloss_math_first.py::test_the_guides_worked_example_opens_with_math PASSED [ 44%]
+api/tests/test_finding_gloss_math_first.py::test_the_mcp_tool_says_it PASSED [ 46%]
+api/tests/test_finding_gloss_math_first.py::test_the_handshake_says_it PASSED [ 48%]
+api/tests/test_finding_gloss_math_first.py::test_the_docs_page_says_it PASSED [ 51%]
+api/tests/test_finding_gloss_math_first.py::test_a_new_gloss_file_starts_from_the_rule PASSED [ 53%]
+site/tests/test_finding_gloss_math_row.py::test_a_display_opening_is_the_rows_sentence_as_inline_math PASSED [ 55%]
+site/tests/test_finding_gloss_math_row.py::test_display_math_on_one_line_and_with_prose_after_it_in_the_paragraph PASSED [ 58%]
+site/tests/test_finding_gloss_math_row.py::test_a_dollar_pair_inside_a_prose_sentence_is_still_one_unit PASSED [ 60%]
+api/tests/test_finding_mcp_context_budget.py::test_a_result_text_is_its_structured_content_as_compact_json PASSED [ 62%]
+api/tests/test_finding_mcp_context_budget.py::test_the_text_keeps_lean_symbols_as_they_are PASSED [ 65%]
+api/tests/test_finding_mcp_context_budget.py::test_get_node_declares_include PASSED [ 67%]
+api/tests/test_finding_mcp_context_budget.py::test_without_include_get_node_is_the_full_bundle PASSED [ 69%]
+api/tests/test_finding_mcp_context_budget.py::test_include_nothing_leaves_every_prose_section_out PASSED [ 72%]
+api/tests/test_finding_mcp_context_budget.py::test_include_names_the_sections_it_answers PASSED [ 74%]
+api/tests/test_finding_mcp_context_budget.py::test_an_unknown_section_is_refused_by_name PASSED [ 76%]
+api/tests/test_finding_mcp_context_budget.py::test_a_declared_output_schema_carries_no_prose PASSED [ 79%]
+api/tests/test_finding_mcp_context_budget.py::test_a_declared_output_schema_is_its_file_without_the_prose PASSED [ 81%]
+api/tests/test_finding_mcp_context_budget.py::test_get_schema_still_serves_the_file PASSED [ 83%]
+api/tests/test_finding_mcp_context_budget.py::test_every_input_parameter_is_described PASSED [ 86%]
+api/tests/test_finding_mcp_context_budget.py::test_the_frontier_filters_name_their_fields PASSED [ 88%]
+api/tests/test_finding_mcp_context_budget.py::test_every_description_fits_the_budget PASSED [ 90%]
+api/tests/test_finding_mcp_context_budget.py::test_every_tool_has_a_title PASSED [ 93%]
+api/tests/test_finding_mcp_context_budget.py::test_pin_a_tool_that_needs_a_token_refuses_inside_the_result[claim_node] PASSED [ 95%]
+api/tests/test_finding_mcp_context_budget.py::test_pin_a_tool_that_needs_a_token_refuses_inside_the_result[list_my_claims] PASSED [ 97%]
+api/tests/test_finding_mcp_context_budget.py::test_the_whole_tools_list_fits_its_budget PASSED [100%]
+======================== 43 passed, 2 warnings in 1.13s ========================
+
+=== MCP sizes (measured with the budget test's own client) ===
+tools/list compact JSON: 94,385 before, 94,609 after (pin 95,000)
+submit_gloss served description: 998 before, 997 after (budget 1,000)
+
+=== Full fast tier (make test-fast) on the T16 tree ===
+== 5545 passed, 269 skipped, 224 deselected, 2 warnings in 560.94s (0:09:20) ===
+(includes the AGENTS.md doc-command runner, which executes the changed worked example and the gloss revise placeholder replacement)

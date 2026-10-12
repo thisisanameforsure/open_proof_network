@@ -69,12 +69,20 @@ def inline_math(text: str) -> str:
     return words_inline(" ".join(text.split()))
 
 
+#: F20-T16: a paragraph that opens with a display block (its content in the group).
+_DISPLAY_OPENING_RE = re.compile(r"\$\$(.+?)\$\$")
+
+
 def first_sentence(text: str) -> str:
     """F20-T8 (R13): the first sentence of a gloss's prose, for the Problems page's row.
 
     The first paragraph that is not a heading, up to the first ``.``, ``!`` or ``?`` followed by
-    a space or the paragraph's end, never one inside ``$…$`` or a `code` span (a decimal point or
-    ``h.2`` ends nothing). A paragraph with no such stop is returned whole."""
+    a space or the paragraph's end, never one inside ``$…$``, ``$$…$$`` or a `code` span (a decimal
+    point or ``h.2`` ends nothing). A paragraph with no such stop is returned whole.
+
+    F20-T16 (Q21): a gloss opens with its statement in display math, so a paragraph that opens
+    with a non-empty ``$$…$$`` gives that block as inline math, ``$…$``: the row shows the
+    statement, rendered like any other inline math, and never a broken display."""
     paragraph: list[str] = []
     for line in text.splitlines():
         stripped = line.strip()
@@ -86,11 +94,18 @@ def first_sentence(text: str) -> str:
             continue
         paragraph.append(stripped)
     joined = " ".join(paragraph)
+    display = _DISPLAY_OPENING_RE.match(joined)
+    if display is not None and display.group(1).strip():
+        return "$" + " ".join(display.group(1).split()) + "$"
     math_open = code_open = False
-    for i, ch in enumerate(joined):
+    i = 0
+    while i < len(joined):
+        ch = joined[i]
         if ch == "`" and not math_open:
             code_open = not code_open
         elif ch == "$" and not code_open:
+            if joined.startswith("$$", i):
+                i += 1  # ``$$`` is one delimiter, not two that cancel
             math_open = not math_open
         elif (
             ch in ".!?"
@@ -99,6 +114,7 @@ def first_sentence(text: str) -> str:
             and (i + 1 == len(joined) or joined[i + 1] == " ")
         ):
             return joined[: i + 1]
+        i += 1
     return joined
 
 

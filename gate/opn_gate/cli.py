@@ -2852,7 +2852,11 @@ def _gloss_coverage(graph: Path) -> int:
 
 
 #: What ``gloss revise`` writes a new chain's body as: a prompt to the author, not prose.
-_NEW_GLOSS_BODY = "Say in words what the Lean says, every hypothesis included.\n"
+#: F20-T16 (Q21): the placeholder states the gloss contract, math first.
+_NEW_GLOSS_BODY = (
+    "Open with the statement in LaTeX, displayed, every hypothesis and quantifier as the Lean "
+    "has them; then any Lean convention that changes the meaning; prose last.\n"
+)
 _NEW_EXPLAINER_BODY = "## The idea\n\nSay what the proof does and why it works.\n"
 
 
