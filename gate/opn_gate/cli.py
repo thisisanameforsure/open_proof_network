@@ -19,7 +19,7 @@ import sys
 import tempfile
 from collections.abc import Sequence
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Any
 
@@ -31,6 +31,7 @@ from opn_gate import (
     bounce,
     cache,
     carried,
+    clock,
     config,
     curator,
     defs,
@@ -54,6 +55,7 @@ from opn_gate import (
     products,
     qa,
     qa_rerun,
+    review_open,
     sandbox,
     scaffold,
     schemas,
@@ -604,6 +606,7 @@ def _add_intake_parsers(  # noqa: PLR0915 — one statement per flag
     fid.add_argument("--no-build", action="store_true", help="fail if the image is not present")
 
     _add_steward_parsers(sub)
+    _add_review_parsers(sub)
 
     ev = sub.add_parser("evidence", help="record a root's catalog evidence (F14-R3, R4)")
     ev_acts = ev.add_subparsers(dest="action", required=True)
@@ -692,6 +695,25 @@ def _add_gloss_parsers(sub: argparse._SubParsersAction[argparse.ArgumentParser])
         "coverage", help="every Lean file and proof artifact, with its words or why none (R20)"
     )
     gcov.add_argument("--graph", required=True, type=Path, help="path to the graph checkout")
+
+
+def _add_review_parsers(sub: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
+    """The curator's commands on a target's formalization review (F26; D-9 v3.39)."""
+    top = sub.add_parser("review", help="a target's formalization review (F26; D-9 v3.39)")
+    acts = top.add_subparsers(dest="action", required=True)
+    op = acts.add_parser(
+        "open",
+        help="open the background review of a target that has none — review.yaml opened by the "
+        "network and the root's statement as the first candidate — into the checkout, for a "
+        "curator's direct commit (F26-R2); a target with a review is left alone",
+    )
+    op.add_argument("--graph", required=True, type=Path, help="path to the graph checkout")
+    which = op.add_mutually_exclusive_group(required=True)
+    which.add_argument("--target", help="one target id")
+    which.add_argument(
+        "--all", action="store_true", help="every target with a gate-spec.json, one line each"
+    )
+    op.add_argument("--date", help="the day of the opening, YYYY-MM-DD (default: today, UTC)")
 
 
 def _add_steward_parsers(sub: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
@@ -918,6 +940,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         "steward": run_steward,
         "explainer": run_explainer,
         "gloss": run_gloss,
+        "review": run_review,
         "writeup": run_writeup,
         "postmerge": run_postmerge,
         "admit": run_admit,
@@ -2822,6 +2845,31 @@ def run_explainer(args: argparse.Namespace, settings: config.Settings) -> int:
     }
     message = f"explainer: {args.by} signed {args.explainer[:12]} on {args.node_id}"
     return _emit_curator(doc, graph, args.branch, message)
+
+
+def run_review(args: argparse.Namespace, settings: config.Settings) -> int:
+    """F26-R2: ``review open`` writes the background review of ``--target``, or of every target
+    with a ``gate-spec.json`` under ``--all``, into the checkout: one JSON line per target naming
+    what was written, or that a review exists, or why nothing could be (no root, no words). Exit 1
+    when any target failed; nothing is committed or pushed — the curator commits what was
+    written, directly, since a ``network`` opening is never admitted by pull request."""
+    graph: Path = args.graph.resolve()
+    if not graph.is_dir():
+        msg = f"graph checkout not found: {graph}"
+        raise CliError(msg)
+    day = args.date or clock.today().isoformat()
+    try:
+        date.fromisoformat(day)
+    except ValueError:
+        msg = f"--date must be a day like 2026-10-12, got {day!r}"
+        raise CliError(msg) from None
+    targets = [args.target] if args.target else review_open.target_ids(graph)
+    failed = False
+    for target_id in targets:
+        summary = review_open.open_review(graph, target_id, day=day)
+        failed = failed or not summary["ok"]
+        sys.stdout.write(json.dumps(summary, ensure_ascii=False) + "\n")
+    return EXIT_FAIL if failed else EXIT_PASS
 
 
 def run_gloss(args: argparse.Namespace, settings: config.Settings) -> int:
