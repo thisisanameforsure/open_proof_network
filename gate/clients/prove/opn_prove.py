@@ -506,6 +506,109 @@ def run_whole_file(  # noqa: PLR0913 — one keyword per request parameter the e
     return record
 
 
+#: F17-R11 (Q6 ruled 2026-10-12): Aristotle, Harmonic's hosted prover, through its own CLI
+#: (``uv tool install aristotlelib``), which takes a Lake project directory and, with ``--wait``,
+#: writes the result archive. The service runs a fixed toolchain (its docs, read 2026-10-12:
+#: leanprover/lean4:v4.28.0 with a pinned Mathlib) and publishes it at ``GET /version``, which the
+#: preset reads first and records beside the graph's pin (R10). A contributor runs it with their
+#: own key (``ARISTOTLE_API_KEY``), never the network's: the terms forbid shared credentials and
+#: give the customer the output, which is what the DCO certifies (F17-Q6).
+ARISTOTLE_LEAN = "v4.28.0"
+ARISTOTLE_API = "https://aristotle.harmonic.fun/api/v3"
+ARISTOTLE_PROMPT = (
+    "Fill the sorry in Problem.lean with a verified proof. Keep the theorem statement, the "
+    "imports and every other declaration exactly as they are; add no axioms, no sorry outside a "
+    "have, and no native_decide. Return the complete file."
+)
+#: The task's terminal states, as the SDK names them; the CLI prints the one it ended in.
+ARISTOTLE_STATUSES = ("COMPLETE_WITH_ERRORS", "OUT_OF_BUDGET", "COMPLETE", "FAILED", "CANCELED")
+
+
+def aristotle_version(api: str | None = None) -> str | None:
+    """The toolchain Aristotle runs, from its ``GET /version`` (``lean_toolchain_version``), as
+    the SDK reads it before a submission; ``None`` when the service cannot be read, which is a
+    warning and never a refusal (R10: version drift is the prover's risk)."""
+    base = (api or os.environ.get("OPN_ARISTOTLE_API") or ARISTOTLE_API).rstrip("/")
+    if not base.startswith(("https://", "http://")):
+        return None
+    headers = {"User-Agent": f"{HARNESS}/{VERSION}"}
+    key = os.environ.get("ARISTOTLE_API_KEY")
+    if key:
+        headers["X-API-Key"] = key
+    request = urllib.request.Request(base + "/version", headers=headers)  # noqa: S310 — checked
+    try:
+        with urllib.request.urlopen(request, timeout=15) as response:  # noqa: S310
+            doc = json.loads(response.read() or b"{}")
+    except (urllib.error.URLError, ValueError, TimeoutError, OSError):
+        return None
+    value = doc.get("lean_toolchain_version") if isinstance(doc, dict) else None
+    return str(value) if value else None
+
+
+def run_aristotle(
+    answer: Path,
+    *,
+    project_dir: Path,
+    pinned: str | None,
+    timeout: float,
+    service_toolchain: str | None = None,
+) -> dict[str, Any]:
+    """Submit ``project_dir`` to Aristotle through its CLI and wait; the archive's ``Problem.lean``
+    is the answer (whole file, as the whole-file preset's is), and the task's terminal status is
+    recorded so ``import`` can offer a COMPLETE_WITH_ERRORS result as a partial (R11)."""
+    started = time.monotonic()
+    record: dict[str, Any] = {
+        "schema": "opn-prove-run/v1",
+        "backend": "aristotle",
+        "program": "aristotle",
+        "started": _dt.datetime.now(_dt.UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "timeout_s": timeout,
+        "service_toolchain": service_toolchain,  # read once by the caller (one GET /version)
+        "pinned_toolchain": pinned,
+        "task_status": None,
+    }
+    archive = answer.with_suffix(".aristotle.tar.gz")
+    if not os.environ.get("ARISTOTLE_API_KEY"):
+        record.update(
+            exit=None,
+            timed_out=False,
+            stderr_tail="ARISTOTLE_API_KEY is not set: the preset runs with the contributor's "
+            "own key (aristotle.harmonic.fun, Aristotle CLI > create a key)",
+        )
+    else:
+        args = [
+            "aristotle", "submit", ARISTOTLE_PROMPT, "--project-dir", str(project_dir),
+            "--wait", "--destination", str(archive),
+        ]  # fmt: skip
+        try:
+            done = subprocess.run(
+                args, capture_output=True, text=True, timeout=timeout, check=False
+            )
+            output = (done.stdout or "") + (done.stderr or "")
+            record.update(exit=done.returncode, timed_out=False, stderr_tail=output[-2000:])
+            record["task_status"] = next((s for s in ARISTOTLE_STATUSES if s in output), None)
+        except subprocess.TimeoutExpired:
+            record.update(exit=None, timed_out=True, stderr_tail="")
+        except OSError as exc:
+            record.update(exit=None, timed_out=False, stderr_tail=f"aristotle: {exc}")
+    if archive.is_file():
+        import tarfile  # noqa: PLC0415 — only this preset reads an archive
+
+        with tarfile.open(archive, "r:gz") as tar:
+            member = next(
+                (m for m in tar.getmembers() if m.isfile() and m.name.endswith("Problem.lean")),
+                None,
+            )
+            if member is not None:
+                extracted = tar.extractfile(member)
+                if extracted is not None:
+                    answer.write_bytes(extracted.read())
+        record["archive"] = str(archive)
+    record["elapsed_s"] = round(time.monotonic() - started, 3)
+    record["answered"] = answer.is_file() and bool(answer.read_text(encoding="utf-8").strip())
+    return record
+
+
 # --- the service ----------------------------------------------------------------------------------
 
 
@@ -684,9 +787,15 @@ def main(argv: Sequence[str] | None = None) -> int:  # noqa: PLR0911, PLR0912, P
         "--timeout", type=float, default=float(os.environ.get("OPN_PROVE_TIMEOUT_S", "1800"))
     )
     p.add_argument("--record", type=Path, default=Path("run.json"))
-    p.add_argument("--preset", choices=("command", "whole-file"), default="command")
+    p.add_argument("--preset", choices=("command", "whole-file", "aristotle"), default="command")
     p.add_argument("--endpoint", help="whole-file: an OpenAI-compatible base URL (vLLM, ...)")
     p.add_argument("--model", help="whole-file: the model name the endpoint serves")
+    p.add_argument(
+        "--project",
+        type=Path,
+        help="aristotle: the Lake project to submit (default: written beside --answer from "
+        "--graph/--node, as `export --project` writes it)",
+    )
     p.add_argument("--max-tokens", type=int, default=32768)
     p.add_argument("--graph", type=Path, help="for the Lean-version warning (F17-R10)")
     p.add_argument("--node")
@@ -746,7 +855,30 @@ def main(argv: Sequence[str] | None = None) -> int:  # noqa: PLR0911, PLR0912, P
             _print({"ok": True, "kind": imported.kind, "file": str(out), "notes": imported.notes})
             return 0
         if args.command == "run":
-            if args.preset == "whole-file":
+            if args.preset == "aristotle":
+                pinned: str | None = None
+                project_dir = args.project
+                served = aristotle_version()
+                if args.graph and args.node:
+                    node = find_node(args.graph, args.node, args.target)
+                    pinned = str(node.gate_spec().get("lean_toolchain") or "") or None
+                    if project_dir is None:
+                        project_dir = args.answer.parent / "aristotle-project"
+                        write_project(node, project_dir)
+                        args.problem.write_text(export(node), encoding="utf-8")
+                    warning = version_warning(node, served or ARISTOTLE_LEAN)
+                    if warning:
+                        print(f"warning: {warning}", file=sys.stderr)
+                elif project_dir is None:
+                    raise Refused("usage", "the aristotle preset needs --project or --graph/--node")
+                record = run_aristotle(
+                    args.answer,
+                    project_dir=project_dir,
+                    pinned=pinned,
+                    timeout=args.timeout,
+                    service_toolchain=served,
+                )
+            elif args.preset == "whole-file":
                 if not args.endpoint or not args.model:
                     raise Refused("usage", "the whole-file preset needs --endpoint and --model")
                 if args.graph and args.node:

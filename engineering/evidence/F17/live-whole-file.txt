@@ -1,0 +1,209 @@
+F17-T8 / AC10 — live run, whole-file preset, 2026-10-12 (the owner's OpenRouter key, $20 ceiling; the node tutorial/variant-93e79cb5, open and Lean-core-only, at graph 66166496d)
+
+endpoint https://openrouter.ai/api/v1, model deepseek/deepseek-v3.2 (deepseek/deepseek-prover-v2 is listed on OpenRouter with no serving endpoint today, F17-Q12); max_tokens 8192.
+
+# F17-T8 live run, whole-file preset through OpenRouter, 2026-10-12T10:38:42Z; graph 66166496d; node tutorial/variant-93e79cb5
+{
+  "ok": true,
+  "problem": "/private/tmp/claude-501/-Users-mikehiggins-Desktop-repos-open-proof-network/cc71ba06-efd6-4974-8300-d34944260a9e/scratchpad/live-whole-file/problem.lean"
+}
+exported        8 lines, sha256 139a4cf2c6c4ba40
+--- run
+warning: this prover targets Lean v4.9; the graph pins leanprover/lean4:v4.33.1. Renamed lemmas and changed syntax fail at the pin: run `check` before `submit`.
+{
+  "answered": true,
+  "backend": "whole-file",
+  "elapsed_s": 15.239,
+  "exit": 0,
+  "program": "deepseek/deepseek-v3.2",
+  "schema": "opn-prove-run/v1",
+  "started": "2026-10-12T10:38:42Z",
+  "stderr_tail": "",
+  "timed_out": false,
+  "timeout_s": 600.0
+}
+--- answer (    1581 bytes), head:
+### Proof Plan
+
+We are given the theorem:
+
+    `∀ p q : Prop, p ∧ q → p`
+
+This is a simple propositional logic statement that says: For any propositions `p` and `q`, if `p ∧ q` holds, then `p` holds.
+
+#### Step 1: Understand the Goal
+The goal is to prove `∀ p q : Prop, p ∧ q → p`. Breaking this down:
+.
+- We have universal quantifiers over propositions `p` and `q`.
+- The premise is `p ∧ q`, meaning both `p` and `q` are true.
+- The conclusion is just `p`.
+
+#### Step 2: Proof Strategy
+In Lean, we can prove this by:
+1. Introducing the propositions `p` and `q` (using `intro` for ∀).
+2. Assuming we have a proof `h : p ∧ q`.
+3. Extracting the left component from `h` (i.e., the proof of `p`).
+
+#### Step 3: Available Tactics/Constructs
+Since we are in Lean core (no Mathlib), we can use:
+1. `intro` to introduce ∀ variables and implications.
+2. `rcases` or `cases` to destruct the conjunction.
+3. Alternatively, `have` with `.left` or `.1` to extract the first component of a conjunction.
+
+#### Step 4: Possible Approaches
+- **Approach A:** Use `intro p q h`, then `exact h.left`.
+-
+- **Approach B:** Use `intro p q h`, then `cases h with | intro hp hq => exact hp`.
+.
+- **Approach C:** Use λ-abstractions: `λ p q h => h.left`.
+
+#### Step 5: Final Lean Code Structure
+We'll write:
+```
+  intro p q h
+  exact h.left
+```
+because `h : p ∧ q` has fields `.left` (or `.1`) for `p` and `.right` (or `.2`) for `q`.
+
+---
+
+### Complete Lean 4 Code
+```lean4
+theorem OpnProp.and_left_o
+--- import
+{
+  "file": "/private/tmp/claude-501/-Users-mikehiggins-Desktop-repos-open-proof-network/cc71ba06-efd6-4974-8300-d34944260a9e/scratchpad/live-whole-file/Proof.lean",
+  "kind": "proof",
+  "notes": [],
+  "ok": true
+}
+--- Proof.lean
+/-! A related variant of the tutorial node (D-30), proposed by the F08 smoke. -/
+
+theorem OpnProp.and_left_of_and_swap : ∀ p q : Prop, p ∧ q → p := by
+  intro p q h
+  exact h.left
+--- check
+usage: opn-prove [-h] {export,import,run,check,submit,postmortem} ...
+opn-prove: error: unrecognized arguments: --file
+
+--- check (rerun with the positional file)
+{
+  "authoritative": false,
+  "dropped_warnings": [],
+  "environment": "lean-4.33.1",
+  "exact": false,
+  "inlined_defs": [],
+  "lint": [],
+  "log_id": "01M4QV7XZGAPTSBXGVCVW0N9FS",
+  "mode": "verify",
+  "note": "a Lean-core-only statement is checked under the environment's `import Mathlib` header, so a name Mathlib also defines could elaborate differently there than in the gate",
+  "okay": true,
+  "result": {
+    "content": "import Mathlib\n\n/-! A related variant of the tutorial node (D-30), proposed by the F08 smoke. -/\n\ntheorem OpnProp.and_left_of_and_swap : \u2200 p q : Prop, p \u2227 q \u2192 p := by\n  intro p q h\n  exact h.left\n\n",
+    "failed_declarations": [],
+    "info": {
+      "_actual_env_warm_state": "warm",
+      
+      
+      
+      "_predicted_warmness": "warm",
+      "cached_response": false,
+      "environment": "lean-4.33.1",
+      "environment_pool_size": 64,
+      "environment_total_time_us": 1016408,
+      "environment_wait_time_us": 8,
+      "execution_time_ms": 1020,
+      "queue_time_ms": 4,
+      "request_id": "8c059b29-2177-4d74-8834-00ce35eb372a",
+      "total_request_time_ms": 1025
+    },
+    "lean_messages": {
+      "errors": [],
+      "infos": [],
+      "warnings": []
+    },
+    "negation": null,
+    "okay": true,
+    "timings": {
+      "candidate_ms": 139,
+      "declarations_ms": 8,
+      "formal_statement_ms": 803,
+      "total_ms": 952
+    },
+    "tool_messages": {
+      "errors": [],
+      "infos": [
+        "Imports mismatch detected. Overriding with default header. If this behavior is not desired, please turn `ignoreImports` off. Default header:\n\nimport Mathlib\n"
+      ],
+      "warnings": []
+    }
+  },
+  "service": "axle",
+  "status": 200,
+  "user_error": null
+}
+
+
+answer.txt (the model's reply, whole):
+-----
+### Proof Plan
+
+We are given the theorem:
+
+    `∀ p q : Prop, p ∧ q → p`
+
+This is a simple propositional logic statement that says: For any propositions `p` and `q`, if `p ∧ q` holds, then `p` holds.
+
+#### Step 1: Understand the Goal
+The goal is to prove `∀ p q : Prop, p ∧ q → p`. Breaking this down:
+.
+- We have universal quantifiers over propositions `p` and `q`.
+- The premise is `p ∧ q`, meaning both `p` and `q` are true.
+- The conclusion is just `p`.
+
+#### Step 2: Proof Strategy
+In Lean, we can prove this by:
+1. Introducing the propositions `p` and `q` (using `intro` for ∀).
+2. Assuming we have a proof `h : p ∧ q`.
+3. Extracting the left component from `h` (i.e., the proof of `p`).
+
+#### Step 3: Available Tactics/Constructs
+Since we are in Lean core (no Mathlib), we can use:
+1. `intro` to introduce ∀ variables and implications.
+2. `rcases` or `cases` to destruct the conjunction.
+3. Alternatively, `have` with `.left` or `.1` to extract the first component of a conjunction.
+
+#### Step 4: Possible Approaches
+- **Approach A:** Use `intro p q h`, then `exact h.left`.
+-
+- **Approach B:** Use `intro p q h`, then `cases h with | intro hp hq => exact hp`.
+.
+- **Approach C:** Use λ-abstractions: `λ p q h => h.left`.
+
+#### Step 5: Final Lean Code Structure
+We'll write:
+```
+  intro p q h
+  exact h.left
+```
+because `h : p ∧ q` has fields `.left` (or `.1`) for `p` and `.right` (or `.2`) for `q`.
+
+---
+
+### Complete Lean 4 Code
+```lean4
+theorem OpnProp.and_left_of_and_swap : ∀ p q : Prop, p ∧ q → p := by
+  intro p q h
+  exact h.left
+```-----
+
+--- the precheck (AC10: "for a success, a precheck pass"), 2026-10-12 10:44Z ---
+A token minted the guide's way: the tutorial node's committed Proof.lean through POST /precheck with no token
+(job 01M4QV9KP8J5CF85XRXFRB3BVA, verdict pass), then POST /tokens under the pseudonym opn-prove-live-1012
+(201, identity 01M4QVE65RNPZJXQVFSR1H5B1Y, idle_days 180, the current DCO accepted).
+POST /precheck for tutorial/variant-93e79cb5 with the imported Proof.lean, artifact_type proof and
+automation {method: agent, models: [deepseek/deepseek-v3.2], framework: opn-prove/whole-file}:
+job 01M4QVE93G75B8HHEP3NEA9XW0, authenticated, state done, verdict PASS, steps 1, 2, 4, 5, 6, 7, 8.
+Nothing submitted: the live run's end is the precheck, as AC10 says; the proof (intro p q h; exact h.left) is
+left for whoever claims the node. Cost: one chat completion of 1,581 bytes, 15 s, cents.

@@ -409,6 +409,21 @@ prechecks and submits it with the token in `OPN_TOKEN`, declaring `opn-prove/<ba
 harness (D-23). When the prover fails, `postmortem --run run.json` drafts the D-13 record from
 the run, for you to confirm and send.
 
+Two presets stand in for the command. `run --preset whole-file --endpoint <OpenAI-compatible
+base URL> --model <name>` sends the exported file in the prompt the open-weight provers share
+(DeepSeek-Prover, Goedel-Prover) to any endpoint that speaks the chat-completions shape, a vLLM
+you run or a hosted router, with the endpoint's key in `OPN_PROVER_API_KEY`; those models were
+trained on Lean 4.9, so `run` warns about the gap and `check` is where their proofs break.
+`run --preset aristotle --graph "$GRAPH" --node <node>` hands the node to Aristotle, Harmonic's
+hosted prover, through its own CLI (`uv tool install aristotlelib`) with your own key in
+`ARISTOTLE_API_KEY`: it writes the Lake project, reads the toolchain the service runs (its
+version endpoint said v4.28.0 when this was written, against the graph's 4.33.1, so the same
+warning applies), submits with `--wait`, and takes `Problem.lean` from the result archive as the answer;
+a task that ends `COMPLETE_WITH_ERRORS` with its remaining `sorry`s inside `have`s imports as a
+partial. Aristotle's terms give you its output and allow open-source use, forbid sharing a key,
+and let Harmonic train on what you submit unless you opt out in your account; the statement you
+send is public already, and the DCO certification stays yours.
+
 ## Claiming a node (D-25)
 
 The frontier is `frontier.json` at the root of this repository, regenerated on every merge, and
