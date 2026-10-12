@@ -896,3 +896,28 @@ def test_get_ephemeral_reads_without_spending_and_drop_deletes_in_both_stores(bo
     both.drop_ephemeral("websession#x")
     both.drop_ephemeral("websession#x")  # dropping an absent key is not an error
     assert both.get_ephemeral("websession#x", now) is None
+
+
+# --- review notices (F26-T11) ---------------------------------------------------------------------
+
+
+def test_review_notices_are_a_set_union_per_target_in_both_stores(both: Store) -> None:
+    """R15: what the App's notices have named, per target; a second add keeps the first's ids,
+    another target is untouched, and an empty add writes nothing (DynamoDB cannot store an
+    empty set, which the fake table refuses as DynamoDB does)."""
+    assert both.review_notified("erdos-1") == set()
+    both.add_review_notified("erdos-1", {"q-1", "q-2"})
+    both.add_review_notified("erdos-1", {"q-2", "q-3"})
+    both.add_review_notified("erdos-1", set())
+    both.add_review_notified("erdos-2", set())
+    assert both.review_notified("erdos-1") == {"q-1", "q-2", "q-3"}
+    assert both.review_notified("erdos-2") == set()
+
+
+def test_review_notices_are_one_string_set_under_their_prefix() -> None:
+    resource = fake_resource()
+    store = dynamo(resource)
+    store.add_review_notified("erdos-1", {"q-1"})
+    store.add_review_notified("erdos-2", set())
+    items = resource.Table(TABLES["tokens"]).items
+    assert items == {"reviewnotice#erdos-1": {"key": "reviewnotice#erdos-1", "ids": {"q-1"}}}
