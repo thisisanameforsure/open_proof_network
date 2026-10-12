@@ -146,7 +146,8 @@ async def get_session(ctx: Context, request: Request) -> Response:
         return JSONResponse(SIGNED_OUT, headers={"cache-control": "no-store"})
     record, held = found
     login = login_of(held)
-    from opn_api import panel  # noqa: PLC0415 — panel reads the roles from this module
+    # panel and review_notice read the roles from this module, so they are imported here.
+    from opn_api import panel, review_notice  # noqa: PLC0415
 
     doc = {
         "signed_in": True,
@@ -156,6 +157,8 @@ async def get_session(ctx: Context, request: Request) -> Response:
         "stewards": stewarded(ctx, login) if login else [],
         "expires": record.get("expires"),
         "awaiting": panel.awaiting(ctx, login),
+        # F26-T11 (R15): the review questions waiting for this login as the intent signer.
+        "reviews": review_notice.waiting_for(ctx, login),
     }
     return JSONResponse(doc, headers={"cache-control": "no-store"})
 
