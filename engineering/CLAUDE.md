@@ -1508,3 +1508,13 @@ The law of the project:
   claim**: writing "its `GET /version`" about Aristotle's service tripped the test that holds every
   backticked route in the guide to one the network serves; the words were rephrased, not the test.
 
+
+- 2026-10-13 — A hand-off is a set of claims about the record, and five of erdos-1094's were wrong
+  before a line was written. The "missing Lean" on three panels was a text extractor (the HTML had
+  it); "glosses need LaTeX rendering" was already true (F19-T6); the gloss "overclaiming" merged
+  assemblies was right; "replace the root witness" is impossible (a hypothesis-free statement's
+  witness is `True`); and the fidelity rung it asked to prepare is refused `pass-incomplete`. Three
+  read-only investigators against `origin/main` cost twenty minutes and moved half the plan. Two
+  smaller ones: every annex is drawn as an *outline* of its node, so numerical evidence goes in one
+  root annex rather than eight outline badges; and `Nat.minFac` is well-founded, so `decide` cannot
+  evaluate it — `norm_num` can. Re-run an agent's numerics from source before publishing them.
