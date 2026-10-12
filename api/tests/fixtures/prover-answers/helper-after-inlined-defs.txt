@@ -1,0 +1,24 @@
+import Mathlib.Tactic.Linarith
+
+-- inlined by the network from Defs.Fact (F13-R5)
+/-! The factorial, by recursion; `Nat.factorial`'s lemmas do not apply to it by name. -/
+
+def Opn.fact : Nat → Nat
+  | 0 => 1
+  | n + 1 => (n + 1) * Opn.fact n
+
+
+/-! `fact-pos` (F11-T1's lemma table): the factorial is positive. The statement carries the
+Mathlib import a prover may use beneath the local definition (F11-R7): a proof is the statement
+with its `sorry` replaced, header included (F00-R19). -/
+
+lemma fact_succ_pos (n : Nat) : 0 < Opn.fact (n + 1) := by
+  sorry
+
+theorem Opn.fact_pos : ∀ n : Nat, 0 < Opn.fact n := by
+  intro n
+  induction n with
+  | zero => simp [Opn.fact]
+  | succ n ih =>
+    simp only [Opn.fact]
+    nlinarith [ih]

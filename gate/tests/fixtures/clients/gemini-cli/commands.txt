@@ -1,0 +1,2 @@
+gemini mcp add --transport http http-server https://api.example.com/mcp/
+gemini mcp add --transport http --header "Authorization: Bearer abc123" secure-http https://api.example.com/mcp/

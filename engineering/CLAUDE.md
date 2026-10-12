@@ -1141,6 +1141,24 @@ The law of the project:
   elan's host and ghcr's blob host are refused too, but GitHub release downloads work, so the Lean tier ran here
   from the release zip linked into elan (`elan toolchain link`). The closed graph PRs #189, #195, #198, #202 were
   all opened hours before the refusals that now stop them were deployed.
+- 2026-09-25 — A harness's word is not a connection. Tested against the real binaries, `codex mcp list`
+  and `codex doctor` connect to nothing, `copilot mcp list` prints its config, and Claude Code exits 0
+  while it skips a malformed entry. So F16's level 2 decides on the server's own record of
+  `initialize` and `tools/list`, and a stand-in harness that prints "Connected" without connecting is
+  a fast-tier test that must fail. The same record answered a question no doc did: Claude Code,
+  Codex and Gemini all expand `$OPN_TOKEN` into the header. When a client's output is the only
+  evidence that something happened, move the assertion to the side that cannot lie about it.
+  Notes: `engineering/session-notes/2026-09-25-harness-connectors.md`.
+- 2026-09-25 — Check a lean-tier test's text assumptions in the fast tier before the first push. Two
+  were wrong in F17-T6's first draft, and CI would have found each after an hour. A node's export
+  carries one `sorry` per dependency its inlined Context restates, not one. And the statement is not
+  a substring of the export, whose `Defs` imports are removed. A third, an eager fixture resolving
+  the Mathlib toolchain for core-only nodes, showed up only when the Lean release zip, linked into
+  elan, ran the tier here.
+- 2026-09-25 — Research about your own system is a claim to check against the code. The report
+  writer said write tokens travel as a tool argument, and built a recommendation on it. The code
+  (`mcp/auth.py`) reads only the header. One grep before the commit caught it, and the corrected
+  version made F16-Q3 sharper, not softer.
 - 2026-09-29 — Six testers on the three Erdős targets (`engineering/session-notes/2026-09-27-erdos-testers.md`),
   run as background subagents of one session instead of six cloud sessions: no draft pull requests paying the
   Lean tier, reports straight to the lead, and a curl probe of the three hosts before launch. Twenty graph PRs,
@@ -1441,4 +1459,13 @@ The law of the project:
   stage locally before reporting anything upstream. Also: the ported wrapper's artifact had dropped
   `.github/` (upload-artifact skips dotfiles), so the wrapper repository was assembled from the local
   port, checked byte for byte against the runner's.
+- 2026-10-12 — A two-week-old green branch (#22, F16/F17) merged with seven conflicts and eight
+  red tests, none of them in the conflicted files. The conflicts were all both-added-here and
+  resolved by keeping both sides; the reds were the world moving under the branch: a mandatory
+  field the service grew (`automation`), a stricter guide-name scan, an action-pin rule, and a
+  tool count that passed a harness's cap (30 tools then, 42 now, Cursor caps at 40). The cap is a
+  fact to publish, not a test to silence: the registry declares what the surface is known to
+  pass (`profile.known_over`) and the test holds the breaches to the declaration, so a stale
+  declaration fails too (F16-Q14). Merge the branch first and read the suite, before touching a
+  conflict's content: the conflicts were the cheap half.
 

@@ -1,0 +1,8 @@
+$ uv run pytest api/tests/test_prove_client.py -q -k whole_file   # 2026-09-25T21:32:12Z
+api/tests/test_prove_client.py::test_whole_file_preset PASSED            [ 33%]
+api/tests/test_prove_client.py::test_whole_file_warns_about_the_lean_version PASSED [ 66%]
+api/tests/test_prove_client.py::test_whole_file_unreachable_endpoint_is_a_failed_run PASSED [100%]
+======================= 3 passed, 7 deselected in 1.11s ========================
+
+Live runs not attempted: no GPU-served open-weight prover is reachable from the cloud container,
+and the aristotle preset waits for the owner's reading of Aristotle's terms (F17-Q6).

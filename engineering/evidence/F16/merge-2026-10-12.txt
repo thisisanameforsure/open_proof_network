@@ -1,0 +1,21 @@
+F16/F17 (PR #22) merged with main on 2026-10-12, on the owner's word ("use your best judgement for 22, handle conflicts and tests").
+
+Seven conflicts, all both-added at one spot: engineering/CLAUDE.md, specs/index.html (F16/F17 rows from the branch, F18-F25 rows from main), gate/agents/AGENTS.md (main's use-lines paragraph, then the opn-prove section), site render.py (imports and two appended blocks), site.css, docs.html (jump line), the docs golden (regenerated).
+
+Fast tier on the merge before fixes: 8 failed / 5664 passed:
+FAILED gate/tests/test_finding_guide_names_exist.py::test_every_route_the_guide_names_is_served
+FAILED gate/tests/test_finding_guide_names_exist.py::test_every_other_kebab_name_exists_in_the_code
+FAILED gate/tests/test_finding_workflow_action_pins.py::test_every_action_is_pinned_to_a_full_commit_with_its_tag
+FAILED gate/tests/test_finding_workflow_action_pins.py::test_one_action_is_pinned_to_one_commit_everywhere
+FAILED gate/tests/test_walkthrough.py::test_graph_copy_is_identical - Asserti...
+FAILED api/tests/test_clients_profile.py::test_surface_fits[cursor] - Asserti...
+FAILED api/tests/test_prove_client.py::test_round_trip - AssertionError: {'er...
+FAILED site/tests/test_render.py::test_t2_golden_pages - AssertionError: docs...
+
+Fixes: opn_prove submit sends the automation block (D-23 v3.37); guide-name scans read gate/clients (registry ids, opn-prove) and the site's tools/ paths; ci.yml and harness-drift.yml pin checkout, setup-uv, setup-node and upload-artifact to commits; Cursor's 40-tool cap vs the 42-tool surface declared as profile.known_over (F16-Q14), the surface test holding the breaches to the declaration; goldens regenerated.
+
+Fast tier after: 
+FAILED gate/tests/test_walkthrough.py::test_graph_copy_is_identical - Asserti...
+= 1 failed, 5671 passed, 2 skipped, 222 deselected, 2 warnings in 457.02s (0:07:37) =
+(test_graph_copy_is_identical reads the sibling graph checkout, which carries another session's uncommitted guide edit and predates this merge's guide copy; the copy rides the next re-pin.)
+lint: All checks passed; mypy gate/api/site: no issues.

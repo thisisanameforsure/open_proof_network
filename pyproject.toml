@@ -49,6 +49,7 @@ markers = [
     "lean: needs the pinned Lean toolchain on PATH (make verify-lean)",
     "docker: needs the step-3 sandbox image (make verify-lean)",
     "network: hits a real external service; feature verification only",
+    "harness: runs a third-party harness binary from the harness image (make verify-harness)",
 ]
 
 [tool.ruff]

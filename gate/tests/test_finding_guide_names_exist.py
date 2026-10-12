@@ -72,7 +72,17 @@ def source_literals() -> str:
         for p in package.rglob("*.py")
     ]
     parts += [p.read_text(encoding="utf-8") for p in (ROOT / "gate" / "schemas").rglob("*.json")]
+    # F16, F17: the connector registry's harness ids and the prover client's names are code too
+    parts += [p.read_text(encoding="utf-8") for p in (ROOT / "gate" / "clients").rglob("*.py")]
+    parts += [p.read_text(encoding="utf-8") for p in (ROOT / "gate" / "clients").rglob("*.yaml")]
     return "\n".join(parts)
+
+
+def site_paths() -> set[str]:
+    """F17-R9: the files the *site* serves (the prover client and its checksum), which the guide
+    names as bare paths and no service route answers; read from the renderer's literals."""
+    text = (ROOT / "site" / "opn_site" / "render.py").read_text(encoding="utf-8")
+    return {"/" + m for m in re.findall(r'"(tools/[A-Za-z0-9_.-]+)"', text)}
 
 
 def schema(name: str) -> dict[str, object]:
@@ -93,7 +103,7 @@ def section(heading: str) -> str:
 
 def test_every_route_the_guide_names_is_served() -> None:
     known = served()
-    paths = {p for _, p in known} | {server.MCP_PATH}
+    paths = {p for _, p in known} | {server.MCP_PATH} | site_paths()
     stale: list[str] = []
     for span in SPANS:
         text = span.replace("$OPN_API", "")
@@ -127,8 +137,8 @@ def test_every_other_kebab_name_exists_in_the_code() -> None:
     literals = source_literals()
 
     def exists(name: str) -> bool:
-        if name in codes.CATALOG or f'"{name}"' in literals:
-            return True
+        if name in codes.CATALOG or f'"{name}"' in literals or f"id: {name}\n" in literals:
+            return True  # a quoted literal, or a registry entry's id (gate/clients/registry.yaml)
         # targets/index.json's reasons spell a D-33 status as f"status-{status}" (intake.py)
         return name.startswith("status-") and f'"{name.removeprefix("status-")}"' in literals
 

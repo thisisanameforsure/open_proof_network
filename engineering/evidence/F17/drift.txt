@@ -1,0 +1,94 @@
+$ uv run python engineering/evidence/F17/drift.py <minif2f-solutions> --every 3 --limit 80   # 2026-09-25T21:28:22Z
+# solutions: deepseek-ai/DeepSeek-Prover-V2 @ e598a57ea3284997d4a2a168a069fdd5064afbc8, minif2f-solutions.zip sha256 aa40d80045b6c9b4da34476aa8142fa5979c290970e50fc148077aa78a4ed6ce
+# (the zip is not copied here: it is the prover's publication, fetched by the command above)
+environments hosted: ['lean-4.34.0', 'lean-4.33.1', 'lean-4.32.2', 'lean-4.31.0', 'lean-4.30.0', 'lean-4.29.0', 'lean-4.28.0', 'lean-4.27.0', 'lean-4.26.0', 'lean-4.25.1', 'lean-4.24.0', 'lean-4.23.0', 'lean-4.22.0', 'lean-4.21.0']
+okay                                     aime_1983_p1
+fails: syntax-changed                    aime_1984_p1
+okay                                     aime_1988_p8
+fails: tactic-failed                     aime_1990_p4
+okay                                     aime_1997_p9
+fails: unknown-name                      algebra_9onxpypzleqsum2onxpy
+okay                                     algebra_absxm1pabsxpabsxp1eqxp2_0leqxleq1
+fails: unknown-name                      algebra_apbon2pownleqapownpbpowon2
+fails: unknown-name                      algebra_others_exirrpowirrrat
+okay                                     algebra_sqineq_unitcircatbpamblt1
+no-verdict: other                        amc12_2000_p12
+no-verdict: other                        amc12_2001_p21
+okay                                     amc12a_2002_p6
+fails: unknown-name                      amc12a_2009_p6
+fails: tactic-now-closes-more            amc12a_2019_p12
+okay                                     amc12a_2021_p18
+okay                                     amc12a_2021_p3
+okay                                     amc12b_2002_p19
+fails: other                             amc12b_2020_p13
+fails: unknown-name                      amc12b_2020_p22
+okay                                     amc12b_2021_p18
+okay                                     amc12b_2021_p9
+okay                                     imo_1962_p2
+okay                                     imo_1965_p2
+okay                                     imo_1983_p6
+okay                                     induction_12dvd4expnp1p20
+fails: syntax-changed                    induction_pord1p1on2powklt5on2
+fails: syntax-changed                    induction_sumkexp3eqsumksq
+okay                                     mathd_algebra_114
+okay                                     mathd_algebra_137
+okay                                     mathd_algebra_142
+okay                                     mathd_algebra_153
+okay                                     mathd_algebra_160
+okay                                     mathd_algebra_171
+okay                                     mathd_algebra_188
+okay                                     mathd_algebra_209
+okay                                     mathd_algebra_246
+okay                                     mathd_algebra_275
+fails: other                             mathd_algebra_289
+okay                                     mathd_algebra_302
+okay                                     mathd_algebra_314
+okay                                     mathd_algebra_33
+fails: syntax-changed                    mathd_algebra_342
+okay                                     mathd_algebra_359
+fails: tactic-now-closes-more            mathd_algebra_392
+okay                                     mathd_algebra_412
+okay                                     mathd_algebra_432
+okay                                     mathd_algebra_441
+okay                                     mathd_algebra_478
+okay                                     mathd_algebra_513
+okay                                     mathd_algebra_76
+fails: tactic-now-closes-more            mathd_numbertheory_1124
+okay                                     mathd_numbertheory_135
+okay                                     mathd_numbertheory_185
+fails: tactic-now-closes-more            mathd_numbertheory_222
+fails: unknown-name                      mathd_numbertheory_233
+fails: syntax-changed                    mathd_numbertheory_237
+okay                                     mathd_numbertheory_254
+fails: unknown-name                      mathd_numbertheory_296
+fails: tactic-now-closes-more            mathd_numbertheory_314
+okay                                     mathd_numbertheory_328
+okay                                     mathd_numbertheory_342
+fails: syntax-changed                    mathd_numbertheory_353
+fails: tactic-failed                     mathd_numbertheory_435
+okay                                     mathd_numbertheory_483
+okay                                     mathd_numbertheory_517
+okay                                     mathd_numbertheory_551
+okay                                     mathd_numbertheory_582
+fails: tactic-now-closes-more            mathd_numbertheory_711
+okay                                     mathd_numbertheory_769
+fails: unknown-name                      numbertheory_2pownm1prime_nprime
+okay                                     numbertheory_aoddbdiv4asqpbsqmod8eq1
+okay                                     numbertheory_x5neqy2p4
+{
+  "sample": 73,
+  "okay": 47,
+  "by_outcome": {
+    "okay": 47,
+    "fails: syntax-changed": 6,
+    "fails: tactic-failed": 2,
+    "fails: unknown-name": 8,
+    "no-verdict: other": 2,
+    "fails: tactic-now-closes-more": 6,
+    "fails: other": 2
+  }
+}
+47 of 73 published Lean 4.9 proofs elaborate unchanged at lean-4.33.1
+
+An earlier run on every 7th file (31) gave 17 of 31; the classes were then refined after reading
+the unclassified errors (Tactic `constructor` failed; No goals to be solved; unexpected token 'in').
