@@ -1,0 +1,37 @@
+<p class="crumbs"><a href="/problems/">Problems</a> / <a href="$target_href">$target_id</a> / review</p>
+<h1>Formalization review of <span class="mono">$target_id</span></h1>
+<p class="lead review-words">&ldquo;$words&rdquo;</p>
+<p class="cue">$opened $state_words. Built from the review&rsquo;s records only; every table below is derived from them, and nothing here is a verdict: the grade is what was signed. <a href="/docs/#review">How a statement is reviewed &rarr;</a></p>
+<div class="review-stats">$stats</div>
+$cases
+<section class="review-section exhibits">
+<h2 id="candidates">1 &middot; Candidates</h2>
+<p class="section-kind">Exhibits: kernel-checked results the gate&rsquo;s job wrote. Only these are evidence for a grade (D-9 v3.12). A candidate&rsquo;s Lean is shown as written, every type as its author typed it; nothing here was rendered by a model.</p>
+$candidates
+</section>
+<section class="review-section exhibits">
+<h2 id="pairs">2 &middot; Pairs and clusters</h2>
+<p class="section-kind">Exhibits: each direction between two candidates is proved, refuted (a kernel-checked instance) or open, as the pair records say. Both directions proved put two candidates in one cluster; an open direction is claimable work (F26-R8).</p>
+$pairs
+</section>
+<section class="review-section judgements">
+<h2 id="questions">3 &middot; Questions and answers</h2>
+<p class="section-kind">Judgements: a question is put to the intent signer in mathematics, and an answer is that person&rsquo;s word, signed through the site and naming their login. An answer becomes an intent test (section 4); an answer that cites no source is flagged. Never evidence for a grade on its own.</p>
+$questions
+$answer_ctl
+</section>
+<section class="review-section exhibits">
+<h2 id="tests">4 &middot; The test matrix</h2>
+<p class="section-kind">Exhibits: every intent test run against every candidate, kernel-checked, and the mutants of the surviving cluster&rsquo;s representative the tests caught, as a measure of the tests (F26-R8). No model supplied an expected value: each comes from an answer, a citation or the candidates&rsquo; agreement, named per test.</p>
+$tests
+</section>
+<section class="review-section exhibits">
+<h2 id="screens">5 &middot; Screens and the brief</h2>
+<p class="section-kind">Exhibits: the compile and the soundness screens the gate ran on each candidate (D-9 layer 2), kernel-checked. The brief beside them is a model&rsquo;s judgement and is marked so.</p>
+$screens
+</section>
+<section class="review-section judgements">
+<h2 id="signatures">6 &middot; Signatures</h2>
+<p class="section-kind">Judgements: a signature is a decision written by a person, by role; the page never computes one (D-9 v3.39). The intent signer answers the questions and signs that the surviving cluster says what the conjecture says; the independent signer reads the Lean and signs that the evidence supports it.</p>
+$signatures
+</section>

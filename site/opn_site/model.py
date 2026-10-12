@@ -352,6 +352,129 @@ class LemmaRef:
     node: str
 
 
+#: F26-R4: the exhibit kinds whose ``fail`` discards a candidate (a mutant's ``fail`` means the
+#: tests caught it; a pair's results are directions, never a candidate's standing).
+DISCARDING_KINDS = frozenset({"compile", "screen", "intent-test"})
+
+
+@dataclass(frozen=True)
+class ReviewView:
+    """F26-R16 (D-9 v3.39): a target's formalization review as its records say it, read from
+    ``targets/<t>/review/`` and validated against the eight record schemas. Everything the page
+    says is derived here from the records, in whatever order they were written: a candidate's
+    stage-3 result from the exhibits about it, the clusters from the pairs proved both ways, the
+    mutants caught from the mutant exhibits. Nothing is a verdict: the grade is what was signed."""
+
+    opening: dict[str, Any]
+    candidates: tuple[dict[str, Any], ...]
+    tests: tuple[dict[str, Any], ...]
+    questions: tuple[dict[str, Any], ...]
+    answers: tuple[dict[str, Any], ...]
+    pairs: tuple[dict[str, Any], ...]
+    exhibits: tuple[dict[str, Any], ...]
+    signatures: tuple[dict[str, Any], ...]
+    #: record id -> the Lean file beside the record, for candidates, tests and exhibits that
+    #: carry one (a returned or error exhibit carries none).
+    lean: dict[str, LeanFile] = field(default_factory=dict)
+
+    def exhibit(self, eid: str | None) -> dict[str, Any] | None:
+        return next((e for e in self.exhibits if e["id"] == eid), None) if eid else None
+
+    def exhibits_about(self, candidate: str, *kinds: str) -> list[dict[str, Any]]:
+        return [
+            e
+            for e in self.exhibits
+            if e["candidate"] == candidate and (not kinds or e["kind"] in kinds)
+        ]
+
+    def result_of(self, candidate: str) -> tuple[str, str | None]:
+        """The candidate's stage-3 result and the exhibit that decided it: ``returned`` by the
+        format rule (R5), ``discarded`` by a failing compile, screen or intent test (R4), else
+        ``surviving``. An ``error`` exhibit decides nothing."""
+        for e in self.exhibits_about(candidate, "format"):
+            if e["result"] == "returned":
+                return "returned", str(e["id"])
+        for e in self.exhibits_about(candidate, *DISCARDING_KINDS):
+            if e["result"] == "fail":
+                return "discarded", str(e["id"])
+        return "surviving", None
+
+    @property
+    def surviving(self) -> list[str]:
+        return [
+            str(c["id"]) for c in self.candidates if self.result_of(str(c["id"]))[0] == "surviving"
+        ]
+
+    def clusters(self) -> list[list[str]]:
+        """The surviving candidates grouped by pairs proved in both directions (R7), each
+        cluster sorted, the clusters in the order of their first member."""
+        alive = self.surviving
+        parent = {c: c for c in alive}
+
+        def find(x: str) -> str:
+            while parent[x] != x:
+                parent[x] = parent[parent[x]]
+                x = parent[x]
+            return x
+
+        for pr in self.pairs:
+            a, b = str(pr["a"]), str(pr["b"])
+            if (
+                a in parent
+                and b in parent
+                and all(pr[d]["state"] == "proved" for d in ("forward", "backward"))
+            ):
+                parent[find(a)] = find(b)
+        groups: dict[str, list[str]] = {}
+        for c in alive:
+            groups.setdefault(find(c), []).append(c)
+        return [sorted(g) for g in groups.values()]
+
+    def mutants_caught(self) -> tuple[int, int]:
+        """(caught, tried): a mutant exhibit the tests failed is caught; one every test passed is
+        the question the page shows (R8); an error decides nothing and is not tried."""
+        tried = [
+            e for e in self.exhibits if e["kind"] == "mutant" and e["result"] in ("pass", "fail")
+        ]
+        return sum(1 for e in tried if e["result"] == "fail"), len(tried)
+
+    def answer_to(self, question: str) -> dict[str, Any] | None:
+        return next((a for a in self.answers if a["question"] == question), None)
+
+    def test_from(self, answer: str) -> dict[str, Any] | None:
+        """The intent test an answer became (its expectation names the answer record)."""
+        return next(
+            (
+                t
+                for t in self.tests
+                if t["expected"]["source"] == "answer" and t["expected"]["ref"] == answer
+            ),
+            None,
+        )
+
+    def cell(self, candidate: str, test: str) -> dict[str, Any] | None:
+        """The intent-test exhibit of one candidate against one test, if the job ran it."""
+        return next(
+            (
+                e
+                for e in self.exhibits
+                if e["kind"] == "intent-test" and e["candidate"] == candidate and e["test"] == test
+            ),
+            None,
+        )
+
+    def accepted(self, role: str) -> dict[str, Any] | None:
+        """The role's accept signature, the latest by date and file order."""
+        return next(
+            (
+                s
+                for s in reversed(self.signatures)
+                if s["role"] == role and s["decision"] == "accept"
+            ),
+            None,
+        )
+
+
 @dataclass(frozen=True)
 class NodeView:
     target_id: str
@@ -475,6 +598,14 @@ class TargetView:
     words_needed: tuple[dict[str, Any], ...] | None = None
     #: F23-R14: login -> how its steward was admitted (``_steward_admissions``).
     admissions: dict[str, str] = field(default_factory=dict)
+    #: F26-R17 (D-9 v3.39): the review's derived state as ``graph/v9`` publishes it (state,
+    #: counts, the signers by role); ``None`` on an older graph, which did not carry it.
+    review: dict[str, Any] | None = None
+    #: F26-R8: the pair directions left open, as ``graph/v9`` lists them; none on an older graph.
+    open_pairs: list[dict[str, Any]] = field(default_factory=list)
+    #: F26-R16: the review's records under ``targets/<t>/review/``; ``None`` for a target with
+    #: no review (no ``review.yaml``).
+    review_records: ReviewView | None = None
 
     @property
     def root(self) -> str:
@@ -1088,6 +1219,76 @@ def _check_graph_rows(target_id: str, graph: dict[str, Any]) -> None:
         raise SiteError(msg)
 
 
+#: F26-R1: the review's sub-directories, each one record schema (``paths.REVIEW_ROLES_BY_DIR``
+#: names the roles; the schemas are the mode table's, ``paths.ROLE_SCHEMAS``).
+REVIEW_SCHEMAS: dict[str, str] = {
+    "candidates": "candidate/v1",
+    "tests": "intent-test/v1",
+    "questions": "review-question/v1",
+    "answers": "review-answer/v1",
+    "pairs": "pair/v1",
+    "exhibits": "exhibit/v1",
+    "signatures": "review-signature/v1",
+}
+
+
+def _review_record(root: Path, path: Path, schema: str) -> dict[str, Any]:
+    rel = path.relative_to(root).as_posix()
+    try:
+        doc = (
+            schemas.load_json(path, schema)
+            if path.suffix == ".json"
+            else schemas.validate(yaml.safe_load(path.read_text(encoding="utf-8")), schema)
+        )
+    except (schemas.SchemaError, yaml.YAMLError, OSError) as exc:
+        msg = f"{rel} does not validate against {schema}: {exc}"
+        raise SiteError(msg) from exc
+    return dict(doc)
+
+
+def _load_review(root: Path, target_dir: Path) -> ReviewView | None:
+    """F26-R16: the review's records, each validated against its schema (a malformed one is a
+    ``SiteError``, as any other graph record the page would state something from), with the
+    Lean beside the records that carry one; ``None`` for a target with no ``review.yaml``."""
+    base = target_dir / paths.REVIEW_DIR
+    head = base / "review.yaml"
+    if not head.is_file():
+        return None
+    opening = _review_record(root, head, "review/v1")
+    folders: dict[str, list[dict[str, Any]]] = {}
+    lean: dict[str, LeanFile] = {}
+    for folder, schema in REVIEW_SCHEMAS.items():
+        directory = base / folder
+        docs: list[dict[str, Any]] = []
+        if directory.is_dir():
+            for path in sorted(
+                p for p in directory.iterdir() if p.suffix in (".yaml", ".yml", ".json")
+            ):
+                doc = _review_record(root, path, schema)
+                docs.append(doc)
+                named = doc.get("lean_file")
+                if isinstance(named, str) and named:
+                    file = _lean_file(root, directory / named)
+                    if file is None:
+                        msg = (
+                            f"{path.relative_to(root).as_posix()} names {named}, which is not there"
+                        )
+                        raise SiteError(msg)
+                    lean[str(doc["id"])] = file
+        folders[folder] = docs
+    return ReviewView(
+        opening=opening,
+        candidates=tuple(folders["candidates"]),
+        tests=tuple(folders["tests"]),
+        questions=tuple(folders["questions"]),
+        answers=tuple(folders["answers"]),
+        pairs=tuple(folders["pairs"]),
+        exhibits=tuple(folders["exhibits"]),
+        signatures=tuple(folders["signatures"]),
+        lean=lean,
+    )
+
+
 def _load_evidence(target_dir: Path) -> dict[str, Any] | None:
     """F14-R10: the root's newest statement-evidence record, whose reasons the index does not
     carry. A record that does not read is unrenderable, like any other graph defect (R13)."""
@@ -1403,5 +1604,8 @@ def load_site(root: Path, commit: str) -> Site:
             subjects=_load_glosses(target_dir),
             definitions=_load_definitions(root, target_dir),
             words_needed=_load_words_needed(target_dir, str(graph["root"])),
+            review=dict(graph["review"]) if isinstance(graph.get("review"), dict) else None,
+            open_pairs=[dict(p) for p in graph.get("open_pairs") or []],
+            review_records=_load_review(root, target_dir),
         )
     return site
