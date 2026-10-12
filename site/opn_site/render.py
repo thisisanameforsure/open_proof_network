@@ -3869,7 +3869,7 @@ class Renderer:
             "OPN_TOKEN=… python3 opn_prove.py submit --api &quot;$OPN_API&quot; --graph "
             "&quot;$GRAPH&quot; --node &lt;node&gt; Proof.lean --model &lt;model&gt;</code></pre>"
             f'<p><a href="/{PROVE_PATH}">opn_prove.py</a> · '
-            f'<a href="/{PROVE_SUMS}">SHA256SUMS</a></p></section>'
+            f'<a href="/{PROVE_SUMS}">SHA256SUMS.txt</a></p></section>'
         )
         return (
             "<p>Any MCP client reaches the same tools; these are the harnesses the network tests "
@@ -5464,7 +5464,8 @@ def live_urls(api_url: str | None) -> frozenset[str]:
 #: and ships with its checksum.
 PROVE_CLIENT = Path(__file__).resolve().parents[2] / "gate" / "clients" / "prove" / "opn_prove.py"
 PROVE_PATH = "tools/opn_prove.py"
-PROVE_SUMS = "tools/SHA256SUMS"
+#: With an extension: the CDN maps a bare path to a directory index (F17-Q12).
+PROVE_SUMS = "tools/SHA256SUMS.txt"
 
 
 def prove_files() -> dict[str, str]:

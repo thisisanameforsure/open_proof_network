@@ -350,6 +350,13 @@ fix follows. The live runs (AC10) exist to capture those answers.</p>
     as Goedel-Prover-V2's self-correction does (or AXLE's <code>repair_proofs</code>), is the
     obvious next step, which the corpus should grow a case for first. For the owner: whether the
     preset ships with that caveat stated on the Docs page, or waits for the repair round.</td></tr>
+  <tr><td>F17-Q12</td><td><strong>The checksum file was unreachable on the live site (2026-10-12).</strong>
+    <code>/tools/opn_prove.py</code> served with the right bytes and <code>/tools/SHA256SUMS</code> beside
+    it answered the site's 404 page: the CDN's path function rewrites any request without a dot to
+    <code>&lt;path&gt;/index.html</code>, because the generator writes directories. The file is now
+    <code>tools/SHA256SUMS.txt</code>, and a site test holds every same-site path a page links to be a
+    directory or a file with an extension that the build writes (the vendored KaTeX LICENSE is not linked
+    and is not held to it). Found by reading the live response, not the build.</td></tr>
   <tr><td>F17-Q5</td><td>Delivery is a file on the site, not a PyPI package. A package would be a
     publishing credential, and so a new C8 door, for a file of a few hundred lines. Revisit if
     people ask for <code>pipx install</code>.</td></tr>
@@ -370,7 +377,7 @@ pull request carrying the real proof and <code>opn-prove/command</code>; drafted
 as <code>postmortem/v1</code>, Q10; AC9's warning for a preset's declared Lean waits for the
 presets, T8) &middot; T7 ✓ 2026-09-25
 (<code>task-7.txt</code>: the site serves <code>tools/opn_prove.py</code>, read from the tooling repository
-at build time and never copied into the static tree, with <code>tools/SHA256SUMS</code>; the Docs card
+at build time and never copied into the static tree, with <code>tools/SHA256SUMS.txt</code> (the extension because the CDN maps a bare path to a directory index, Q12); the Docs card
 shows the download, the check and the chain, with <code>$OPN_SITE</code> because the site names no host
 of its own; the guide's new section runs export, a stand-in prover, run and import, and its
 <code>cmp</code> shows the prover's proof is the hand-written one, executed by the walkthrough, which a
