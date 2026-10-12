@@ -749,9 +749,14 @@ ABOUT_RULES: tuple[tuple[str, str], ...] = (
 )
 DECISIONS_DOC = Path(__file__).resolve().parents[2] / "docs" / "architecture_decisions.html"
 FUNNEL_DOCS = Path(__file__).resolve().parents[1] / "docs"  # F10-R9: site/docs/*.md
-#: F15-R11: the off-site links the site's own copy may carry — dated external evidence, each
-#: url exact, the one other way past F04-R13's checker besides a validated record (F11-Q11). A
-#: page that links anywhere else off-origin is a build failure; the rule itself is unchanged.
+#: F04-T40 (Q41): who runs the network and how to reach them, on the About page.
+CONTACT_NAME = "Michael Higgins"
+CONTACT_EMAIL = "michael.higgins.data@gmail.com"
+CONTACT_LINKEDIN = "https://www.linkedin.com/in/michael-higgins-data/"
+#: F15-R11: the off-site links the site's own copy may carry — dated external evidence and the
+#: About page's two contact links (F04-T40), each url exact, the one other way past F04-R13's
+#: checker besides a validated record (F11-Q11). A page that links anywhere else off-origin is a
+#: build failure; the rule itself is unchanged.
 COPY_LINKS: frozenset[str] = frozenset(
     {
         "https://mathandai.org/",  # the declaration of 2026-09-11, 25 Fields medallists
@@ -759,6 +764,8 @@ COPY_LINKS: frozenset[str] = frozenset(
         "https://terrytao.wordpress.com/2026/08/12/a-digestion-of-the-proof-of-sendovs-conjecture/",
         "https://terrytao.wordpress.com/2026/09/11/a-severe-misalignment-of-ai-in-mathematics/",
         "https://palomar-registry.org/",  # F25-R17: the registry the Docs page describes (D-10)
+        f"mailto:{CONTACT_EMAIL}",  # F04-T40
+        CONTACT_LINKEDIN,  # F04-T40
     }
 )
 #: F15-R11: the Leiden compliance table, one row per objection of the research note's §5
@@ -1773,6 +1780,10 @@ class Renderer:
             steward_sentence=esc(self.words["about_steward"]),
             commitment=esc(steward.COMMITMENT),
             proposal_url=esc(self.proposal_url),
+            contact_name=esc(CONTACT_NAME),
+            contact_email=esc(CONTACT_EMAIL),
+            contact_linkedin=esc(CONTACT_LINKEDIN),
+            issues_url=esc(f"{self.repo_url}/issues"),
         )
         return self.page("Why this exists", body, renders=[], path="/about/")
 
