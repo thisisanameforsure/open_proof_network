@@ -1,0 +1,96 @@
+{
+  "target": "erdos-1094",
+  "glosses_schema": "glosses/v2",
+  "rendered_from": "d999f831c78d39e371661ec381c91cd64ee1de73",
+  "current": 11,
+  "not_math_first": [
+    {
+      "kind": "statement",
+      "node": "erdos-1094",
+      "module": null,
+      "hash": "0963b976a7a5762a3fa2b7eeddcddf2c4906907e2ab4a1ba90f2df000649e03f",
+      "path": "nodes/erdos-1094/gloss/0963b976a7a5762a3fa2b7eeddcddf2c4906907e2ab4a1ba90f2df000649e03f.md",
+      "opens": "The set of pairs (n, k) of natural numbers such that k is positive, n is at least 2k, and the least prime factor of the "
+    },
+    {
+      "kind": "witness",
+      "node": "erdos-1094",
+      "module": null,
+      "hash": "1b36cdea25d1e557c41cd7e9b9020e6f6b8505ba5e7c1f2a6081af206cfe0536",
+      "path": "nodes/erdos-1094/gloss/1b36cdea25d1e557c41cd7e9b9020e6f6b8505ba5e7c1f2a6081af206cfe0536.md",
+      "opens": "This file is the non-vacuity witness for the statement of Erdős problem 1094. The statement has no hypotheses: it assert"
+    },
+    {
+      "kind": "statement",
+      "node": "erdos-1094--h1",
+      "module": null,
+      "hash": "203b1ca6b684680e43cbfb800f9435c86e4f564785f65565d933dc1e363ec25c",
+      "path": "nodes/erdos-1094--h1/gloss/203b1ca6b684680e43cbfb800f9435c86e4f564785f65565d933dc1e363ec25c.md",
+      "opens": "For every positive natural number k, only finitely many natural numbers n satisfy both: n is at least k squared, and the"
+    },
+    {
+      "kind": "statement",
+      "node": "erdos-1094--h2",
+      "module": null,
+      "hash": "5ca80b78d9628e705a246132f2e49fff7023a78f568ac816051de607b62824d3",
+      "path": "nodes/erdos-1094--h2/gloss/5ca80b78d9628e705a246132f2e49fff7023a78f568ac816051de607b62824d3.md",
+      "opens": "There is a natural number K such that, for all natural numbers n and k with k positive and n at least k squared, if the "
+    },
+    {
+      "kind": "statement",
+      "node": "erdos-1094--h2--h1",
+      "module": null,
+      "hash": "210e708f05f734e491db61d155830686c72ebbc3dde01a176e93663d31eb0fef",
+      "path": "nodes/erdos-1094--h2--h1/gloss/210e708f05f734e491db61d155830686c72ebbc3dde01a176e93663d31eb0fef.md",
+      "opens": "There is a natural number K such that, for all natural numbers n and k with k positive and k squared at most n but n les"
+    },
+    {
+      "kind": "statement",
+      "node": "erdos-1094--h2--h1--h1",
+      "module": null,
+      "hash": "49820c58889a8ffb36b64b91f9dd59219c62e32efc4a4dc26500745892838808",
+      "path": "nodes/erdos-1094--h2--h1--h1/gloss/49820c58889a8ffb36b64b91f9dd59219c62e32efc4a4dc26500745892838808.md",
+      "opens": "There is a natural number K such that, for all natural numbers n and k with k positive, n at least 2k and n less than k "
+    },
+    {
+      "kind": "statement",
+      "node": "erdos-1094--h2--h2",
+      "module": null,
+      "hash": "3592449b9e7ddd0503eee8b5195bdbb0a3310ad308378cefaf6320a7e1ff97ff",
+      "path": "nodes/erdos-1094--h2--h2/gloss/3592449b9e7ddd0503eee8b5195bdbb0a3310ad308378cefaf6320a7e1ff97ff.md",
+      "opens": "There is a natural number K such that, for all natural numbers n and k with k positive and n at least k cubed, if the le"
+    },
+    {
+      "kind": "statement",
+      "node": "erdos-1094--h3",
+      "module": null,
+      "hash": "f814d9bc2fd66260e773ca0ded301470e09d12aabdc41bc0df58ab724039c888",
+      "path": "nodes/erdos-1094--h3/gloss/f814d9bc2fd66260e773ca0ded301470e09d12aabdc41bc0df58ab724039c888.md",
+      "opens": "There is a natural number K such that, for all natural numbers n and k with k positive, n at least 2k and n less than k "
+    },
+    {
+      "kind": "statement",
+      "node": "erdos-1094--h3--h1",
+      "module": null,
+      "hash": "cbbcffe506afc215ee007533c3bdf087f28f0f33b01df7ac010c9fc23b20a93a",
+      "path": "nodes/erdos-1094--h3--h1/gloss/cbbcffe506afc215ee007533c3bdf087f28f0f33b01df7ac010c9fc23b20a93a.md",
+      "opens": "There is a natural number K such that, for all natural numbers n and k with k greater than K, n at least 2k and n less t"
+    },
+    {
+      "kind": "statement",
+      "node": "erdos-1094--h3--h1--h1",
+      "module": null,
+      "hash": "bec9b1329d9b3fbbf89be3512b73a01e34bf6ddd6c4288f13adad3e86b590af3",
+      "path": "nodes/erdos-1094--h3--h1--h1/gloss/bec9b1329d9b3fbbf89be3512b73a01e34bf6ddd6c4288f13adad3e86b590af3.md",
+      "opens": "There is a natural number K₁ such that, for all natural numbers n and k with k greater than K₁, k even, n at least 2k an"
+    },
+    {
+      "kind": "statement",
+      "node": "erdos-1094--h3--h1--h2",
+      "module": null,
+      "hash": "a6faaba2dc6a15b038025ce21c713205f04fde73d860b8e5ad2514d831b48536",
+      "path": "nodes/erdos-1094--h3--h1--h2/gloss/a6faaba2dc6a15b038025ce21c713205f04fde73d860b8e5ad2514d831b48536.md",
+      "opens": "There is a natural number K₂ such that, for all natural numbers n and k with k greater than K₂, k odd, n odd, n at least"
+    }
+  ]
+}

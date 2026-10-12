@@ -1,0 +1,7 @@
+$$\exists K\ \forall n,k\in\mathbb{N}:\quad K<k,\ \ 2k\le n<k^2 \implies \exists\,p\le k \text{ prime with } n \bmod p < k \bmod p$$
+
+- Lean writes $k^2$ as `k * k`.
+- `n % p` is the least non-negative residue, so the condition reads $n \bmod p < k \bmod p$.
+- The guard is $K<k$, not $0<k$. The range $2k\le n<k^2$ is empty for $k\le 2$.
+
+By Kummer's theorem such a $p$ divides $\binom{n}{k}$, since subtracting $k$ from $n$ in base $p$ borrows at the last digit. The statement itself mentions no binomial coefficient.

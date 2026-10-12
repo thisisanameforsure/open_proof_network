@@ -1,0 +1,28 @@
+k=1: divisors of (k-1)! = 1, candidates n = 1
+k=2: divisors of (k-1)! = 1, candidates n = 0
+k=3: divisors of (k-1)! = 2, candidates n = 0
+k=4: divisors of (k-1)! = 4, candidates n = 4
+k=5: divisors of (k-1)! = 8, candidates n = 20
+k=6: divisors of (k-1)! = 16, candidates n = 66
+k=7: divisors of (k-1)! = 30, candidates n = 168
+k=8: divisors of (k-1)! = 60, candidates n = 424
+k=9: divisors of (k-1)! = 96, candidates n = 792
+k=10: divisors of (k-1)! = 160, candidates n = 1510
+k=11: divisors of (k-1)! = 270, candidates n = 2860
+k=12: divisors of (k-1)! = 540, candidates n = 6348
+k=13: divisors of (k-1)! = 792, candidates n = 10140
+k=14: divisors of (k-1)! = 1584, candidates n = 21994
+k=15: divisors of (k-1)! = 2592, candidates n = 38670
+k=16: divisors of (k-1)! = 4032, candidates n = 64272
+k=17: divisors of (k-1)! = 5376, candidates n = 91120
+k=18: divisors of (k-1)! = 10752, candidates n = 193230
+k=19: divisors of (k-1)! = 14688, candidates n = 278730
+k=20: divisors of (k-1)! = 29376, candidates n = 587140
+k=21: divisors of (k-1)! = 41040, candidates n = 861420
+k=22: divisors of (k-1)! = 60800, candidates n = 1337138
+k=23: divisors of (k-1)! = 96000, candidates n = 2207494
+k=24: divisors of (k-1)! = 192000, candidates n = 4607448
+k=25: divisors of (k-1)! = 242880, candidates n = 6071400
+k=26: divisors of (k-1)! = 340032, candidates n = 8840182
+exceptions with n >= k^2 (complete, no n cap): [(62, 6)]
+unresolved: []
