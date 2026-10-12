@@ -90,9 +90,9 @@ def test_each_key_item_defines_itself_on_hover(tmp_path: Path, status: str) -> N
     _word, meaning, proto = render.GLOSSARY_BY_KEY[status]
     item = (
         f'<span class="term" tabindex="0"><span class="dot dot-{status}"></span>{status}'
-        f'<span class="term-card" role="tooltip">{render.esc(meaning)}'
-        f'<span class="proto">protocol: {render.esc(proto)}</span></span></span>'
-    )
+        f'<span class="term-card" role="tooltip"> {render.esc(meaning)}'
+        f'<span class="proto"> protocol: {render.esc(proto)}</span> </span></span>'
+    )  # the card's spaces keep its words apart once the tags are stripped (F04-T41)
     assert item in html
 
 

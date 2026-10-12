@@ -13,6 +13,7 @@ Held as a strict xfail from f80151b until F04-T10 (2026-09-14).
 from __future__ import annotations
 
 import re
+from html.parser import HTMLParser
 from typing import Any
 
 from opn_site import dag
@@ -45,3 +46,50 @@ def test_hole_labels_are_distinct_and_keep_their_suffix() -> None:
         assert got[hole].endswith(f"--h{i}"), (hole, got[hole])
         assert len(got[hole]) <= LABEL_MAX, got[hole]
         assert f"<title>{hole}: blocked</title>" in out, "the whole id stays in the title"
+
+
+class _Strip(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__()
+        self.out: list[str] = []
+
+    def handle_data(self, data: str) -> None:
+        self.out.append(data)
+
+
+def pill_text(svg: str, node_id: str) -> str:
+    """One pill (its ``<a>``) as a tag-stripper reads it."""
+    start = svg.rindex("<a ", 0, svg.index(f'data-node="{node_id}"'))
+    p = _Strip()
+    p.feed(svg[start : svg.index("</a>", start)])
+    p.close()
+    return "".join(p.out)
+
+
+def test_no_pill_runs_its_label_into_its_badge_or_its_title() -> None:
+    """F04-T41 (b): a pill's label, its outline badge's count, its circularity glyph and its
+    title are separate words once the tags are stripped, so no pill reads
+    ``h2--h11erdos-1094--h2--h1`` as the live erdos-1094 page did."""
+    target = "erdos-1094"
+    ids = [target, f"{target}--h2", f"{target}--h2--h1"]
+    nodes: list[dict[str, Any]] = [
+        {"node_id": ids[0], "status": "blocked", "deps": [ids[1]]},
+        {"node_id": ids[1], "status": "blocked", "deps": [ids[2]]},
+        {"node_id": ids[2], "status": "ready", "deps": []},
+    ]
+    out = dag.svg(
+        nodes,
+        href={i: f"/nodes/{target}/{i}/" for i in ids},
+        outlines={ids[1]: 1, ids[2]: 2},
+        labelled={ids[2]},
+        root=target,
+        prefix=target,
+    )
+    for node_id in ids:
+        words = pill_text(out, node_id).split()
+        label = dag.label_of(node_id, (target, target))
+        assert label in words, (label, words)
+        assert f"{node_id}:" in words, ("the title's id is a word of its own", words)
+        assert not any(re.match(rf"{re.escape(label)}\d", w) for w in words), words
+    assert "1" in pill_text(out, ids[1]).split()
+    assert "⇒" in pill_text(out, ids[2]).split()

@@ -1176,18 +1176,21 @@ class Renderer:
     @staticmethod
     def hover(label: str, body: str, *, classes: str = "") -> str:
         """A term with its definition card: shown on hover or focus, plain CSS, no pointer
-        needed (``tabindex``). ``label`` and ``body`` are HTML already escaped by the caller."""
+        needed (``tabindex``). ``label`` and ``body`` are HTML already escaped by the caller.
+        The card opens and closes with a space (F04-T41): a block's edge whitespace collapses on
+        screen, and a reader who strips the tags gets ``open Listed, …`` rather than
+        ``openListed, …``."""
         cls = f"term {classes}".strip()
         return (
             f'<span class="{esc(cls)}" tabindex="0">{label}'
-            f'<span class="term-card" role="tooltip">{body}</span></span>'
+            f'<span class="term-card" role="tooltip"> {body} </span></span>'
         )
 
     def term(self, key: str, *, label: str | None = None, dot: bool = False) -> str:
         """A glossary word with its card; the legend's status chips carry a dot."""
         word, meaning, proto = self.words["by_key"][key]
         mark = self.dot(key) if dot else ""
-        body = f'{esc(meaning)}<span class="proto">protocol: {esc(proto)}</span>'
+        body = f'{esc(meaning)}<span class="proto"> protocol: {esc(proto)}</span>'
         return self.hover(mark + esc(label or word), body)
 
     @staticmethod
@@ -1468,7 +1471,7 @@ class Renderer:
         if not e.get("claimable") and str(e["status"]) != "resolved":
             reasons = [esc(intake.explain(str(r))) for r in e.get("not_claimable") or []]
             why = "; ".join(reasons) or esc(NO_RECORD_WORDS)
-            body += f'<span class="why">Not claimable: {why}.</span>'
+            body += f'<span class="why"> Not claimable: {why}.</span>'
         return self.hover(esc(status), body, classes="tag")
 
     def fidelity_tag(self, tv: TargetView) -> str:
@@ -1477,7 +1480,7 @@ class Renderer:
         if key is None:  # a grade this generator has no word for: shown as itself
             return f'<span class="tag tag-outline">{esc(grade)}</span>'
         word, meaning, proto = self.words["by_key"][key]
-        body = f'{esc(meaning)}<span class="proto">protocol: {esc(proto)}</span>'
+        body = f'{esc(meaning)}<span class="proto"> protocol: {esc(proto)}</span>'
         return self.hover(esc(word), body, classes="tag tag-outline")
 
     def stage_marks(self, tv: TargetView) -> str:
@@ -1580,7 +1583,7 @@ class Renderer:
         state = self.node_state(nv)
         if state in ("proved", *WORKABLE_STATES) or state in LEGEND_EXTRA:
             _word, meaning, proto = self.words["by_key"][state]
-            body = f'{esc(meaning)}<span class="proto">protocol: {esc(proto)}</span>'
+            body = f'{esc(meaning)}<span class="proto"> protocol: {esc(proto)}</span>'
         else:
             words = status_words(nv.status, nv.cause)
             meaning = self.words["by_key"]["blocked"][1] if nv.status == "blocked" else ""
@@ -2416,7 +2419,7 @@ class Renderer:
                 )
             if nv.superseded_cause:
                 parts.append(
-                    f'<span class="why">The curator\'s record: {esc(nv.superseded_cause)}</span>'
+                    f'<span class="why"> The curator\'s record: {esc(nv.superseded_cause)}</span>'
                 )
         if nv.supersedes:
             parts.append(f"Revises {link(nv.supersedes)}, which it replaced (D-8).")
@@ -2531,7 +2534,7 @@ class Renderer:
             return ""
         ancestors = ", ".join(esc(label.ancestor) for label in nv.circular)
         _word, meaning, proto = self.words["by_key"]["circular"]
-        body = f'{esc(meaning)}<span class="proto">protocol: {esc(proto)}</span>'
+        body = f'{esc(meaning)}<span class="proto"> protocol: {esc(proto)}</span>'
         chip = self.hover(f"{self.dot('circular')}proves <code>{ancestors}</code>", body)
         return f' <span class="proves">{chip}</span>'
 
