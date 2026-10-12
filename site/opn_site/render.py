@@ -3866,9 +3866,9 @@ class Renderer:
             "file the network's fast check sees, runs any command as the prover, turns its answer "
             "into the node's <code>Proof.lean</code> or refuses with the reason, and submits it "
             "(F17). Its harness id is <code>opn-prove/&lt;backend&gt;</code>. Two presets stand in "
-            "for the command: <code>whole-file</code> for any OpenAI-compatible endpoint serving an "
-            "open-weight prover, and <code>aristotle</code> for Harmonic's hosted prover through "
-            "its own CLI and your own key.</p>"
+            "for the command: <code>whole-file</code> for any OpenAI-compatible endpoint "
+            "serving an open-weight prover, and <code>aristotle</code> for Harmonic's hosted "
+            "prover through its own CLI and your own key.</p>"
             '<p class="snippet-title">Download it from this site and check it (<code>OPN_SITE'
             '</code> is this site\'s address)</p><pre class="snippet"><code>'
             f"curl -fsSO &quot;$OPN_SITE/{PROVE_PATH}&quot;\n"
