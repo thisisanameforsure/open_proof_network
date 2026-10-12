@@ -157,10 +157,16 @@ def test_a_failing_job_warns_and_the_products_render(
 
 
 def test_the_pinned_gate_without_review_run_fails_soft(
-    tmp_path: Path, caplog: pytest.LogCaptureFixture, capsys: pytest.CaptureFixture[str]
+    tmp_path: Path,
+    caplog: pytest.LogCaptureFixture,
+    capsys: pytest.CaptureFixture[str],
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """The default runner, for real: this branch's gate has no ``review run`` (T5 adds it), so
-    the command exits non-zero, the job is skipped with a warning, and the products render."""
+    """The default runner, for real, against a gate that has no such subcommand: written when
+    this branch's gate lacked ``review run`` (T5 adds it); restated at the wave merge to name a
+    command no gate has, which is what an older pinned gate looks like to the post-merge job. The
+    command exits non-zero, the job is skipped with a warning, and the products render."""
+    monkeypatch.setattr(postmerge, "REVIEW_JOB_COMMAND", ("review", "no-such-step"))
     g = Graph(tmp_path)
     merge_a_candidate(g)
     with caplog.at_level(logging.WARNING, logger="opn_gate.postmerge"):
