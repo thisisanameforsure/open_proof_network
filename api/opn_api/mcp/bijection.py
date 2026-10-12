@@ -112,6 +112,32 @@ TABLE: tuple[Row, ...] = (
         "every registration of a target in a public registry: registry, id, version, status, url, "
         "derived from the target's registration records (D-3 v3.37); nothing is ranked",
     ),
+    # F26-T10: D-28's read table, v3.39 — the review at main, under the blind rule.
+    Row(
+        "get_review",
+        "read",
+        ("targets/<id>/review/", "targets/<id>/graph.json", "GET /reviews/{target_id}"),
+        "a target's formalization review as the record holds it: the words and cases, the "
+        "candidates with their authors, origins and stage-3 results, the pairs and clusters, the "
+        "questions with their answers and the tests they became, the mutants caught, the "
+        "signatures and the derived state; to a caller with no candidate of their own on the "
+        "record, no other candidate's Lean (the blind rule, D-9 v3.39)",
+    ),
+    Row(
+        "list_review_questions",
+        "read",
+        ("targets/<id>/review/questions/", "GET /reviews/{target_id}/questions"),
+        "the questions waiting on a review, each in words with the case or probe that raised it "
+        "and who is asked; nothing is ranked",
+    ),
+    Row(
+        "list_open_pairs",
+        "read",
+        ("targets/<id>/review/pairs/",),
+        "the pair directions a review leaves open, each with the two candidates and the attempts "
+        "recorded; a proof or refutation of one is submitted as a pair-proof artifact through "
+        "submit_proof",
+    ),
     # --- writes (D-35's plain-path table) -----------------------------------------------------
     Row("claim_node", "write", ("POST /claims",), "POST /claims"),
     Row("release_claim", "write", ("DELETE /claims/{claim_id}",), "DELETE /claims/<id>"),
@@ -220,6 +246,15 @@ TABLE: tuple[Row, ...] = (
         "write",
         ("POST /registrations",),
         "names and registrations: set_display_name, register_target (v3.37)",
+    ),
+    # F26-T10 (D-9, D-35 v3.39): D-35's row "reviews", the candidate endpoint; the opening, the
+    # answer and the signature are a web session's or a GitHub login's acts with no tool (an
+    # agent proposes no problem, answers for nobody and signs nothing).
+    Row(
+        "submit_candidate",
+        "write",
+        ("POST /reviews/{target_id}/candidates",),
+        "reviews: submit_candidate, and the intent signer's and the signers' acts (v3.39)",
     ),
 )
 

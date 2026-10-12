@@ -362,6 +362,29 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "GitHub's callback arrived without its code and state parameters.",
         "Start the GitHub sign-in again from GET /auth/github/start.",
     ),
+    "candidate-exists": (
+        "api",
+        None,
+        "The review already holds a candidate with this Lean, byte for byte: a candidate's id is "
+        "c-<8 hex> of its Lean's sha256, and that id is on the record (F26-R1).",
+        "Nothing to add. To offer a different reading, change the Lean; to prove a pair "
+        "direction between candidates, use submit_proof with artifact_type pair-proof.",
+    ),
+    "candidate-not-blind": (
+        "api",
+        None,
+        "The candidate did not declare read_others: whether its author read another candidate's "
+        "Lean before writing it. The blind rule needs the declaration, true or false (F26-R3; "
+        "D-9 v3.39); it is recorded as the author's claim, never verified.",
+        "Send read_others: false if you wrote it from the words alone, true if you read another "
+        "candidate's Lean; the submission is refused until one is given.",
+    ),
+    "candidate-unknown": (
+        "api",
+        None,
+        "The signature names a cluster by a candidate id the review does not hold.",
+        "Name a candidate on the record: GET /reviews/<id> (MCP get_review) lists them by id.",
+    ),
     "certificate-attestor": (
         "gate",
         None,
@@ -2176,6 +2199,14 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "The registration's proof.node is not a node of the target it is filed under.",
         "Name the node whose merged proof was exported (get_target lists the target's nodes).",
     ),
+    "review-exists": (
+        "api",
+        None,
+        "The target has a review already, merged on the graph or opened in a pull request of the "
+        "service's that may still merge; a target has one review per root version (F26-R1).",
+        "Submit to the review that exists (POST /reviews/<id>/candidates, MCP submit_candidate). "
+        "A D-8 revision of the root is what opens a new one.",
+    ),
     "review-job-record": (
         "gate",
         None,
@@ -2183,6 +2214,55 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "a question, a pair or an exhibit; F26-R13).",
         "Remove it; a pull request may add a candidate, an answer or a signature, and the job "
         "writes the rest from them.",
+    ),
+    "review-not-intent-signer": (
+        "api",
+        None,
+        "The login is not the review's intent signer: the proposer the opening names, or, for a "
+        "review the network, a steward or a curator opened, an active steward of the target "
+        "(F26-R9; D-9 v3.39). Only the intent signer answers a question. The message says who it "
+        "is, or that the target has no steward yet (F26-Q5).",
+        "Leave the question to the intent signer; if the target has none, a steward is what it "
+        "needs (POST /stewards).",
+    ),
+    "review-not-signer": (
+        "api",
+        None,
+        "The login may not sign in the role it chose: intent is the intent signer's alone, and "
+        "the intent signer cannot also be the independent signer (F26-R9).",
+        "Sign in the role you hold, or leave the slot to the person who does.",
+    ),
+    "review-opener-not-allowed": (
+        "api",
+        None,
+        "The login may not open a review on the target: it holds no role that may (curator, "
+        "active steward, or the proposer saying role: proposer), it claimed a role it does not "
+        "hold, or policy.json's review_openers does not list the role (F26-R2; D-9 v3.39). The "
+        "details name the roles allowed.",
+        "Ask a curator or a steward of the target to open it, or, if you proposed the problem, "
+        "send role: proposer; a curator changes review_openers by pull request.",
+    ),
+    "review-question-answered": (
+        "api",
+        None,
+        "The question is answered already: an answer record on the graph names it, or a pull "
+        "request of the service's that may still merge does (F26-R7).",
+        "Nothing to do; the answer becomes an intent test at the next run. To change an answer, "
+        "ask the review for a new question through a send-back signature.",
+    ),
+    "review-question-unknown": (
+        "api",
+        None,
+        "The review has no question with that id.",
+        "Name a waiting question: GET /reviews/<id>/questions (MCP list_review_questions) lists "
+        "them.",
+    ),
+    "review-signer-wrote-candidate": (
+        "api",
+        None,
+        "The login authored a candidate on the record, by pseudonym or by login, and the "
+        "independent signer wrote no candidate (F26-R9). The details name the candidates.",
+        "Leave the independent slot to someone who wrote no candidate.",
     ),
     "review-target-mismatch": (
         "gate",
@@ -2196,6 +2276,14 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "The registration record's target is not the target directory it sits under.",
         "File it under targets/<target>/registrations/ of the target it names; POST /registrations "
         "does.",
+    ),
+    "review-unknown": (
+        "api",
+        None,
+        "The target has no review on the graph, so there is nothing to submit a candidate, an "
+        "answer or a signature to, and nothing to read.",
+        "Open one with POST /reviews if your role allows (curator, steward of the target, or the "
+        "proposer), or wait for the network's background review of the target (F26-R2).",
     ),
     "relation-decl": (
         "both",

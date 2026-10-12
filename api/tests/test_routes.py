@@ -42,6 +42,7 @@ def test_routes_match_d35() -> None:
     owned |= routes.LITERATURE_ROUTES  # F05-T29, F23-T12: D-35 v3.35's literature row
     owned |= routes.D35_OWNED_BY_F24  # F24-T5: D-35 v3.34's panel row
     owned |= routes.D35_OWNED_BY_F25  # F25-T4: D-35 v3.37's names-and-registrations row
+    owned |= routes.D35_OWNED_BY_F26  # F26-T10: D-35 v3.39's reviews row
     assert rows >= owned, rows
     # The append row names no endpoint: D-35's plain path for the three append tools is the
     # pull request itself, quoted here verbatim so a reworded decision fails this test.
@@ -57,13 +58,25 @@ def test_routes_match_d35() -> None:
         | routes.LITERATURE_ROUTES
         | routes.D35_OWNED_BY_F24
         | routes.D35_OWNED_BY_F25
+        | routes.D35_OWNED_BY_F26
     )
     assert routes.D35_PROPOSAL_PR in d35_text()  # F08's rows, verbatim like the append row
     assert routes.D35_CLAIM_PR in d35_text()
     pr_rows = {routes.D35_APPEND_PR, routes.D35_PROPOSAL_PR, routes.D35_CLAIM_PR}
     for r in routes.ROUTES:
         assert r.d35 is None or r.d35 in rows or r.d35 in pr_rows, r
-        assert r.feature in ("F05", "F06", "F07", "F08", "F13", "F20", "F23", "F24", "F25"), r
+        assert r.feature in (
+            "F05",
+            "F06",
+            "F07",
+            "F08",
+            "F13",
+            "F20",
+            "F23",
+            "F24",
+            "F25",
+            "F26",
+        ), r
 
 
 def test_web_sign_in_falls_under_the_token_row() -> None:
