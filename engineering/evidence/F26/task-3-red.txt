@@ -1,0 +1,373 @@
+warning: `VIRTUAL_ENV=/Users/mikehiggins/Desktop/repos/open_proof_network/.venv` does not match the project environment path `.venv` and will be ignored; use `--active` to target the active environment instead
+.FFFFFFFFFFFFFF.                                                         [100%]
+=================================== FAILURES ===================================
+_________________ test_curators_only_refuses_a_steward_by_name _________________
+
+tmp_path = PosixPath('/private/tmp/opn-f26-t3-pytest/test_curators_only_refuses_a_s0')
+keys = {'alice-steward': PosixPath('/private/tmp/opn-f26-t3-pytest/review-policy-keys0/alice-steward')}
+
+    def test_curators_only_refuses_a_steward_by_name(tmp_path: Path, keys: dict[str, Path]) -> None:
+        g = Graph(tmp_path, keys, roles=["curator"])
+>       assert g.check(g.opening(ALICE, "steward"), author=ALICE) == ["review-opener-not-allowed"]
+E       AssertionError: assert [] == ['review-opener-not-allowed']
+E         
+E         Right contains one more item: 'review-opener-not-allowed'
+E         Use -v to get more diff
+
+gate/tests/test_review_policy.py:155: AssertionError
+______ test_the_setting_is_read_from_the_parent_tree_not_the_pull_request ______
+
+tmp_path = PosixPath('/private/tmp/opn-f26-t3-pytest/test_the_setting_is_read_from_0')
+keys = {'alice-steward': PosixPath('/private/tmp/opn-f26-t3-pytest/review-policy-keys0/alice-steward')}
+
+    def test_the_setting_is_read_from_the_parent_tree_not_the_pull_request(
+        tmp_path: Path, keys: dict[str, Path]
+    ) -> None:
+        """A pull request cannot widen the setting for itself: the checkout says all three, the
+        base says curators only, and the base wins."""
+        g = Graph(tmp_path, keys, roles=None)
+        g.base_files[policy.FILE] = schemas.canonical_json(policy_doc(["curator"]))
+>       assert g.check(g.opening(ALICE, "steward"), author=ALICE) == ["review-opener-not-allowed"]
+E       AssertionError: assert [] == ['review-opener-not-allowed']
+E         
+E         Right contains one more item: 'review-opener-not-allowed'
+E         Use -v to get more diff
+
+gate/tests/test_review_policy.py:167: AssertionError
+____________________ test_a_curator_not_listed_is_not_held _____________________
+
+tmp_path = PosixPath('/private/tmp/opn-f26-t3-pytest/test_a_curator_not_listed_is_n0')
+keys = {'alice-steward': PosixPath('/private/tmp/opn-f26-t3-pytest/review-policy-keys0/alice-steward')}
+
+    def test_a_curator_not_listed_is_not_held(tmp_path: Path, keys: dict[str, Path]) -> None:
+        g = Graph(tmp_path, keys, roles=None)
+>       assert g.check(g.opening(STRANGER, "curator"), author=STRANGER) == ["review-opener-not-held"]
+E       AssertionError: assert [] == ['review-opener-not-held']
+E         
+E         Right contains one more item: 'review-opener-not-held'
+E         Use -v to get more diff
+
+gate/tests/test_review_policy.py:175: AssertionError
+____________________ test_a_steward_not_active_is_not_held _____________________
+
+tmp_path = PosixPath('/private/tmp/opn-f26-t3-pytest/test_a_steward_not_active_is_n0')
+keys = {'alice-steward': PosixPath('/private/tmp/opn-f26-t3-pytest/review-policy-keys0/alice-steward')}
+
+    def test_a_steward_not_active_is_not_held(tmp_path: Path, keys: dict[str, Path]) -> None:
+        g = Graph(tmp_path, keys, roles=None)
+>       assert g.check(g.opening(BOB, "steward"), author=BOB) == ["review-opener-not-held"]
+E       AssertionError: assert [] == ['review-opener-not-held']
+E         
+E         Right contains one more item: 'review-opener-not-held'
+E         Use -v to get more diff
+
+gate/tests/test_review_policy.py:180: AssertionError
+____________ test_the_opener_must_be_who_the_pull_request_acts_for _____________
+
+tmp_path = PosixPath('/private/tmp/opn-f26-t3-pytest/test_the_opener_must_be_who_th0')
+keys = {'alice-steward': PosixPath('/private/tmp/opn-f26-t3-pytest/review-policy-keys0/alice-steward')}
+
+    def test_the_opener_must_be_who_the_pull_request_acts_for(
+        tmp_path: Path, keys: dict[str, Path]
+    ) -> None:
+        """A listed curator's name in the record does not make a stranger's pull request theirs;
+        and a proposer is whoever the pull request acts for, nobody else (until F26-T10's proposal
+        record names one)."""
+        g = Graph(tmp_path, keys, roles=None)
+>       assert g.check(g.opening(CURATOR, "curator"), author=STRANGER) == ["review-opener-not-held"]
+E       AssertionError: assert [] == ['review-opener-not-held']
+E         
+E         Right contains one more item: 'review-opener-not-held'
+E         Use -v to get more diff
+
+gate/tests/test_review_policy.py:190: AssertionError
+__________ test_a_service_pull_request_acts_for_the_record_s_identity __________
+
+tmp_path = PosixPath('/private/tmp/opn-f26-t3-pytest/test_a_service_pull_request_ac0')
+keys = {'alice-steward': PosixPath('/private/tmp/opn-f26-t3-pytest/review-policy-keys0/alice-steward')}
+
+    def test_a_service_pull_request_acts_for_the_record_s_identity(
+        tmp_path: Path, keys: dict[str, Path]
+    ) -> None:
+        """F18-Q7's precedent: the service opens as itself and the record carries who asked."""
+        g = Graph(tmp_path, keys, roles=None)
+        service = modes.config.DEFAULT_SERVICE_LOGIN
+        assert g.check(g.opening(ALICE, "steward"), author=service) == []
+>       assert g.check(g.opening(BOB, "steward"), author=service) == ["review-opener-not-held"]
+E       AssertionError: assert [] == ['review-opener-not-held']
+E         
+E         Right contains one more item: 'review-opener-not-held'
+E         Use -v to get more diff
+
+gate/tests/test_review_policy.py:201: AssertionError
+_____ test_the_network_role_is_refused_in_a_pull_request_whoever_opens_it ______
+
+tmp_path = PosixPath('/private/tmp/opn-f26-t3-pytest/test_the_network_role_is_refus0')
+keys = {'alice-steward': PosixPath('/private/tmp/opn-f26-t3-pytest/review-policy-keys0/alice-steward')}
+
+    def test_the_network_role_is_refused_in_a_pull_request_whoever_opens_it(
+        tmp_path: Path, keys: dict[str, Path]
+    ) -> None:
+        g = Graph(tmp_path, keys, roles=None)
+>       assert g.check(g.opening("network", "network"), author=CURATOR) == ["review-network-by-hand"]
+E       AssertionError: assert [] == ['review-network-by-hand']
+E         
+E         Right contains one more item: 'review-network-by-hand'
+E         Use -v to get more diff
+
+gate/tests/test_review_policy.py:211: AssertionError
+_____________ test_a_second_opening_names_the_first_or_is_refused ______________
+
+tmp_path = PosixPath('/private/tmp/opn-f26-t3-pytest/test_a_second_opening_names_th0')
+keys = {'alice-steward': PosixPath('/private/tmp/opn-f26-t3-pytest/review-policy-keys0/alice-steward')}
+
+    def test_a_second_opening_names_the_first_or_is_refused(
+        tmp_path: Path, keys: dict[str, Path]
+    ) -> None:
+        g = Graph(tmp_path, keys, roles=None)
+        first = g.opening(CURATOR, "curator")
+        g.base_files[REVIEW] = yaml.safe_dump(first, sort_keys=False).encode()
+        again = g.opening(CURATOR, "curator", date="2026-10-13")
+>       assert g.check(again, author=CURATOR) == ["review-opened-twice"]
+E       AssertionError: assert [] == ['review-opened-twice']
+E         
+E         Right contains one more item: 'review-opened-twice'
+E         Use -v to get more diff
+
+gate/tests/test_review_policy.py:226: AssertionError
+_ test_the_background_opening_writes_the_review_and_the_live_statement_as_a_candidate _
+
+tmp_path = PosixPath('/private/tmp/opn-f26-t3-pytest/test_the_background_opening_wr0')
+keys = {'alice-steward': PosixPath('/private/tmp/opn-f26-t3-pytest/review-policy-keys0/alice-steward')}
+
+    def test_the_background_opening_writes_the_review_and_the_live_statement_as_a_candidate(
+        tmp_path: Path, keys: dict[str, Path]
+    ) -> None:
+        """Whatever the setting says (here: curators only), ``review open`` writes ``review.yaml``
+        opened by the network and the root's ``Statement.lean`` as a ported candidate, byte for
+        byte, named by its hash; both records validate."""
+        g = Graph(tmp_path, keys, roles=["curator"])
+        summary = review_open.open_review(g.root, TARGET, day=DAY)
+>       assert summary["ok"] is True and summary["root"] == ROOT
+E       assert (False is True)
+
+gate/tests/test_review_policy.py:247: AssertionError
+____ test_the_words_are_the_informal_statement_else_the_root_s_doc_comment _____
+
+tmp_path = PosixPath('/private/tmp/opn-f26-t3-pytest/test_the_words_are_the_informa0')
+keys = {'alice-steward': PosixPath('/private/tmp/opn-f26-t3-pytest/review-policy-keys0/alice-steward')}
+
+    def test_the_words_are_the_informal_statement_else_the_root_s_doc_comment(
+        tmp_path: Path, keys: dict[str, Path]
+    ) -> None:
+        g = Graph(tmp_path, keys, roles=None)
+        statement = g.target / "nodes" / ROOT / "Statement.lean"
+        statement.write_text(
+            "/-! Reassociating a conjunction and swapping its ends. -/\n" + statement.read_text(),
+            encoding="utf-8",
+        )
+        review_open.open_review(g.root, TARGET, day=DAY)
+        head = review.opening(g.target)
+>       assert head is not None
+E       assert None is not None
+
+gate/tests/test_review_policy.py:284: AssertionError
+________ test_the_candidate_is_credited_to_the_ledger_s_statement_line _________
+
+tmp_path = PosixPath('/private/tmp/opn-f26-t3-pytest/test_the_candidate_is_credited0')
+keys = {'alice-steward': PosixPath('/private/tmp/opn-f26-t3-pytest/review-policy-keys0/alice-steward')}
+
+    def test_the_candidate_is_credited_to_the_ledger_s_statement_line(
+        tmp_path: Path, keys: dict[str, Path]
+    ) -> None:
+        g = Graph(tmp_path, keys, roles=None)
+        ledger_dir = g.root / "ledger"
+        ledger_dir.mkdir()
+        (ledger_dir / "carol.json").write_text(
+            json.dumps(
+                {
+                    "schema": "ledger/v1",
+                    "identity": "carol",
+                    "entries": [
+                        {
+                            "line": "statement",
+                            "target": TARGET,
+                            "node": ROOT,
+                            "artifact": "Statement.lean",
+                            "merge_commit": "0" * 40,
+                            "date": "2026-09-08",
+                            "status": "active",
+                        }
+                    ],
+                }
+            ),
+            encoding="utf-8",
+        )
+        review_open.open_review(g.root, TARGET, day=DAY)
+>       (candidate,) = (g.target / "review" / "candidates").glob("*.yaml")
+        ^^^^^^^^^^^^
+E       ValueError: not enough values to unpack (expected 1, got 0)
+
+gate/tests/test_review_policy.py:326: ValueError
+__________________ test_a_target_with_a_review_is_left_alone ___________________
+
+tmp_path = PosixPath('/private/tmp/opn-f26-t3-pytest/test_a_target_with_a_review_is0')
+keys = {'alice-steward': PosixPath('/private/tmp/opn-f26-t3-pytest/review-policy-keys0/alice-steward')}
+
+    def test_a_target_with_a_review_is_left_alone(tmp_path: Path, keys: dict[str, Path]) -> None:
+        g = Graph(tmp_path, keys, roles=None)
+        first = review_open.open_review(g.root, TARGET, day=DAY)
+        before = {p: p.read_bytes() for p in (g.target / "review").rglob("*") if p.is_file()}
+        second = review_open.open_review(g.root, TARGET, day="2026-10-13")
+>       assert first["written"] and second["written"] == []
+E       assert ([])
+
+gate/tests/test_review_policy.py:335: AssertionError
+___________ test_a_target_whose_root_cannot_be_found_writes_nothing ____________
+
+tmp_path = PosixPath('/private/tmp/opn-f26-t3-pytest/test_a_target_whose_root_canno0')
+keys = {'alice-steward': PosixPath('/private/tmp/opn-f26-t3-pytest/review-policy-keys0/alice-steward')}
+
+    def test_a_target_whose_root_cannot_be_found_writes_nothing(
+        tmp_path: Path, keys: dict[str, Path]
+    ) -> None:
+        from harness import ADVERSARIAL  # noqa: PLC0415 — the one fixture with no single root
+    
+        root = copy_graph(tmp_path, ADVERSARIAL)
+        summary = review_open.open_review(root, "adversarial", day=DAY)
+>       assert summary["ok"] is False and "root" in summary["error"]
+E       AssertionError: assert (False is False and 'root' in 'not built')
+
+gate/tests/test_review_policy.py:347: AssertionError
+___________________ test_the_command_opens_every_target_once ___________________
+
+self = ArgumentParser(prog='opn-gate', usage=None, description="The gate's command line: one codebase, three invocations (D-4; F00-R11).", formatter_class=<class 'argparse.HelpFormatter'>, conflict_handler='error', add_help=True)
+args = ['review', 'open', '--graph', '/private/tmp/opn-f26-t3-pytest/test_the_command_opens_every_t0/graph', '--all', '--date', ...]
+namespace = Namespace(command=None), intermixed = False
+
+    def _parse_known_args2(self, args, namespace, intermixed):
+        if args is None:
+            # args default to the system args
+            args = _sys.argv[1:]
+        else:
+            # make sure that args are mutable
+            args = list(args)
+    
+        # default Namespace built from parser defaults
+        if namespace is None:
+            namespace = Namespace()
+    
+        # add any action defaults that aren't present
+        for action in self._actions:
+            if action.dest is not SUPPRESS:
+                if not hasattr(namespace, action.dest):
+                    if action.default is not SUPPRESS:
+                        setattr(namespace, action.dest, action.default)
+    
+        # add any parser defaults that aren't present
+        for dest in self._defaults:
+            if not hasattr(namespace, dest):
+                setattr(namespace, dest, self._defaults[dest])
+    
+        # parse the arguments and exit if there are any errors
+        if self.exit_on_error:
+            try:
+>               namespace, args = self._parse_known_args(args, namespace, intermixed)
+                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+../../../../../../.local/share/uv/python/cpython-3.13.15-macos-aarch64-none/lib/python3.13/argparse.py:1965: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+../../../../../../.local/share/uv/python/cpython-3.13.15-macos-aarch64-none/lib/python3.13/argparse.py:2197: in _parse_known_args
+    positionals_end_index = consume_positionals(start_index)
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../../../../.local/share/uv/python/cpython-3.13.15-macos-aarch64-none/lib/python3.13/argparse.py:2172: in consume_positionals
+    take_action(action, args)
+../../../../../../.local/share/uv/python/cpython-3.13.15-macos-aarch64-none/lib/python3.13/argparse.py:2026: in take_action
+    argument_values = self._get_values(action, argument_strings)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../../../../.local/share/uv/python/cpython-3.13.15-macos-aarch64-none/lib/python3.13/argparse.py:2556: in _get_values
+    self._check_value(action, value[0])
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = ArgumentParser(prog='opn-gate', usage=None, description="The gate's command line: one codebase, three invocations (D-4; F00-R11).", formatter_class=<class 'argparse.HelpFormatter'>, conflict_handler='error', add_help=True)
+action = _SubParsersAction(option_strings=[], dest='command', nargs='A...', const=None, default=None, type=None, choices={'preg...e.HelpFormatter'>, conflict_handler='error', add_help=True)}, required=True, help=None, metavar=None, deprecated=False)
+value = 'review'
+
+    def _check_value(self, action, value):
+        # converted value must be one of the choices (if specified)
+        choices = action.choices
+        if choices is not None:
+            if isinstance(choices, str):
+                choices = iter(choices)
+            if value not in choices:
+                args = {'value': str(value),
+                        'choices': ', '.join(repr(str(choice)) for choice in action.choices)}
+                msg = _('invalid choice: %(value)r (choose from %(choices)s)')
+>               raise ArgumentError(action, msg % args)
+E               argparse.ArgumentError: argument command: invalid choice: 'review' (choose from 'pregate', 'reproduce', 'footprints', 'lemmas-backfill', 'export-palomar', 'palomar-port', 'outline', 'gate', 'postmerge', 'classify', 'exhibits', 'palomar-feed', 'admit', 'hazards', 'products', 'revise', 'consolidate', 'status', 'missing-library', 'ledger', 'stewards', 'intake', 'fidelity', 'steward', 'explainer', 'writeup', 'evidence', 'qa', 'qa-rerun', 'cache', 'gloss', 'sign')
+
+../../../../../../.local/share/uv/python/cpython-3.13.15-macos-aarch64-none/lib/python3.13/argparse.py:2606: ArgumentError
+
+During handling of the above exception, another exception occurred:
+
+tmp_path = PosixPath('/private/tmp/opn-f26-t3-pytest/test_the_command_opens_every_t0')
+keys = {'alice-steward': PosixPath('/private/tmp/opn-f26-t3-pytest/review-policy-keys0/alice-steward')}
+capsys = <_pytest.capture.CaptureFixture object at 0x108083620>
+
+    def test_the_command_opens_every_target_once(
+        tmp_path: Path, keys: dict[str, Path], capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        """``opn-gate review open --graph <checkout> --all``: one JSON line per target with a
+        ``gate-spec.json``; a second run writes nothing and says so; nothing is pushed or committed."""
+        g = Graph(tmp_path, keys, roles=["curator"])
+>       code = cli.main(["review", "open", "--graph", str(g.root), "--all", "--date", DAY])
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+gate/tests/test_review_policy.py:357: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+gate/opn_gate/cli.py:889: in main
+    args = build_parser().parse_args(argv)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../../../../.local/share/uv/python/cpython-3.13.15-macos-aarch64-none/lib/python3.13/argparse.py:1926: in parse_args
+    args, argv = self.parse_known_args(args, namespace)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../../../../.local/share/uv/python/cpython-3.13.15-macos-aarch64-none/lib/python3.13/argparse.py:1936: in parse_known_args
+    return self._parse_known_args2(args, namespace, intermixed=False)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../../../../.local/share/uv/python/cpython-3.13.15-macos-aarch64-none/lib/python3.13/argparse.py:1967: in _parse_known_args2
+    self.error(str(err))
+../../../../../../.local/share/uv/python/cpython-3.13.15-macos-aarch64-none/lib/python3.13/argparse.py:2686: in error
+    self.exit(2, _('%(prog)s: error: %(message)s\n') % args)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = ArgumentParser(prog='opn-gate', usage=None, description="The gate's command line: one codebase, three invocations (D-4; F00-R11).", formatter_class=<class 'argparse.HelpFormatter'>, conflict_handler='error', add_help=True)
+status = 2
+message = "opn-gate: error: argument command: invalid choice: 'review' (choose from 'pregate', 'reproduce', 'footprints', 'lemma...s', 'intake', 'fidelity', 'steward', 'explainer', 'writeup', 'evidence', 'qa', 'qa-rerun', 'cache', 'gloss', 'sign')\n"
+
+    def exit(self, status=0, message=None):
+        if message:
+            self._print_message(message, _sys.stderr)
+>       _sys.exit(status)
+E       SystemExit: 2
+
+../../../../../../.local/share/uv/python/cpython-3.13.15-macos-aarch64-none/lib/python3.13/argparse.py:2673: SystemExit
+----------------------------- Captured stderr call -----------------------------
+usage: opn-gate [-h]
+                {pregate,reproduce,footprints,lemmas-backfill,export-palomar,palomar-port,outline,gate,postmerge,classify,exhibits,palomar-feed,admit,hazards,products,revise,consolidate,status,missing-library,ledger,stewards,intake,fidelity,steward,explainer,writeup,evidence,qa,qa-rerun,cache,gloss,sign} ...
+opn-gate: error: argument command: invalid choice: 'review' (choose from 'pregate', 'reproduce', 'footprints', 'lemmas-backfill', 'export-palomar', 'palomar-port', 'outline', 'gate', 'postmerge', 'classify', 'exhibits', 'palomar-feed', 'admit', 'hazards', 'products', 'revise', 'consolidate', 'status', 'missing-library', 'ledger', 'stewards', 'intake', 'fidelity', 'steward', 'explainer', 'writeup', 'evidence', 'qa', 'qa-rerun', 'cache', 'gloss', 'sign')
+=========================== short test summary info ============================
+FAILED gate/tests/test_review_policy.py::test_curators_only_refuses_a_steward_by_name
+FAILED gate/tests/test_review_policy.py::test_the_setting_is_read_from_the_parent_tree_not_the_pull_request
+FAILED gate/tests/test_review_policy.py::test_a_curator_not_listed_is_not_held
+FAILED gate/tests/test_review_policy.py::test_a_steward_not_active_is_not_held
+FAILED gate/tests/test_review_policy.py::test_the_opener_must_be_who_the_pull_request_acts_for
+FAILED gate/tests/test_review_policy.py::test_a_service_pull_request_acts_for_the_record_s_identity
+FAILED gate/tests/test_review_policy.py::test_the_network_role_is_refused_in_a_pull_request_whoever_opens_it
+FAILED gate/tests/test_review_policy.py::test_a_second_opening_names_the_first_or_is_refused
+FAILED gate/tests/test_review_policy.py::test_the_background_opening_writes_the_review_and_the_live_statement_as_a_candidate
+FAILED gate/tests/test_review_policy.py::test_the_words_are_the_informal_statement_else_the_root_s_doc_comment
+FAILED gate/tests/test_review_policy.py::test_the_candidate_is_credited_to_the_ledger_s_statement_line
+FAILED gate/tests/test_review_policy.py::test_a_target_with_a_review_is_left_alone
+FAILED gate/tests/test_review_policy.py::test_a_target_whose_root_cannot_be_found_writes_nothing
+FAILED gate/tests/test_review_policy.py::test_the_command_opens_every_target_once
+14 failed, 2 passed in 1.02s

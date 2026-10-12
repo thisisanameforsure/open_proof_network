@@ -1237,7 +1237,9 @@ def check(  # noqa: PLR0912, PLR0915 — one branch per role with a check of its
         elif located.role == "registration":
             problems.extend(check_registration(graph_root, located, classification, signer=signer))
         elif located.role in REVIEW_RECORD_ROLES:
-            problems.extend(check_review_record(graph_root, located, classification))
+            problems.extend(
+                check_review_record(graph_root, located, classification, signer=signer, base=base)
+            )
         elif located.role == "display-name":
             problems.extend(
                 check_display_name(graph_root, located, classification, signer=signer, base=base)
@@ -2161,13 +2163,25 @@ REVIEW_RECORD_ROLES: tuple[Role, ...] = (
 REVIEW_JOB_ROLES: tuple[Role, ...] = ("intent-test", "review-question", "pair", "review-exhibit")
 
 
+#: F26-R2: the opener role of the background review the gate opens on an existing target. It is
+#: never admitted by pull request: ``opn-gate review open`` writes into a checkout for a
+#: curator's direct commit (``review_open``).
+REVIEW_NETWORK_ROLE = "network"
+
+
 def check_review_record(
-    graph_root: Path, located: Located, classification: Classification
+    graph_root: Path,
+    located: Located,
+    classification: Classification,
+    *,
+    signer: Signer | None = None,
+    base: BaseReader | None = None,
 ) -> list[Diagnostic]:
     """F26-T1: a review record validates against its schema and names the target it sits under;
-    a record only the review job writes (R13) is refused in any pull request. The roles'
-    further rules — the blind rule, who may open, who may answer or sign — are T3, T5 and T10's
-    and arrive beside this, never instead of it."""
+    a record only the review job writes (R13) is refused in any pull request. F26-T3: the
+    opening (``review.yaml``) is admitted by the rule of R2 (``check_review_opening``). The
+    roles' further rules — the blind rule, who may answer or sign — are T5 and T10's and arrive
+    beside this, never instead of it."""
     if located.role in REVIEW_JOB_ROLES:
         return [
             Diagnostic(
@@ -2195,7 +2209,144 @@ def check_review_record(
                 {"path": located.path, "target": doc.get("target")},
             )
         )
+    elif doc is not None and located.role == "review":
+        problems.extend(
+            check_review_opening(graph_root, located, classification, doc, signer=signer, base=base)
+        )
     return problems
+
+
+def check_review_opening(  # noqa: PLR0911, PLR0913 — one return per rule; the record and its tree
+    graph_root: Path,
+    located: Located,
+    classification: Classification,
+    doc: dict[str, Any],
+    *,
+    signer: Signer | None = None,
+    base: BaseReader | None = None,
+) -> list[Diagnostic]:
+    """F26-R2 (D-9 v3.39): who may open a review, read from the merge's parent tree.
+
+    The opener's role is one ``policy.json``'s ``review_openers`` lists (``policy/v4``; the
+    default is all three, and a pull request cannot widen the setting for itself, since the
+    policy is read from the base). The opener holds that role: a ``curator`` is a half of a
+    ``curators.json`` pair, a ``steward`` an active steward of the target (F15-R1), and a
+    ``proposer`` is whoever the pull request acts for — F26-T10's proposal record will name the
+    proposer, and until it does the identity is held to ``acting_names`` alone. In every role the
+    opener is who the pull request acts for (the opener, or the record's own identity when the
+    service opened it, F18-Q7). ``network`` is never admitted by pull request: the background
+    opening is a curator's direct commit of what ``opn-gate review open`` wrote. And a root
+    version has one review: where the base already holds ``review.yaml``, the new record names
+    the old one in ``supersedes`` (by the old record's ``source.ref``, the root version it
+    reviewed) or is refused. Without ``base`` the checkout holds the record under check itself,
+    so the opened-twice rule is the gate run's and the local check's alone when a base is given.
+    """
+    raw = doc.get("opened_by")
+    opened_by: dict[str, Any] = raw if isinstance(raw, dict) else {}
+    identity = str(opened_by.get("identity"))
+    role = str(opened_by.get("role"))
+    details = {"path": located.path, "identity": identity, "role": role}
+    if role == REVIEW_NETWORK_ROLE:
+        return [
+            Diagnostic(
+                "review-network-by-hand",
+                f"{located.path}: a review opened by the network is the background review, "
+                "written by `opn-gate review open` into a checkout for a curator's direct commit, "
+                "never a pull request (F26-R2); open it as a proposer, steward or curator",
+                details,
+            )
+        ]
+    try:
+        rules = _parent_policy(graph_root, base)
+    except schemas.SchemaError as exc:
+        return [
+            Diagnostic(
+                "review-opener-not-allowed",
+                f"{located.path}: policy.json does not read, so no role may open a review: {exc}",
+                details,
+            )
+        ]
+    if role not in rules.review_openers:
+        return [
+            Diagnostic(
+                "review-opener-not-allowed",
+                f"{located.path}: policy.json lets {_roles_phrase(rules.review_openers)} open a "
+                f"review, and this one is opened as a {role} (F26-R2)",
+                {**details, "allowed": list(rules.review_openers)},
+            )
+        ]
+    names = acting_names(graph_root, classification, identity)
+    reason = _review_role_not_held(
+        graph_root, located.target_id, role, identity, names=names, signer=signer
+    )
+    if reason is not None:
+        return [
+            Diagnostic(
+                "review-opener-not-held",
+                f"{located.path}: {reason} (F26-R2)",
+                {**details, "opened_by": sorted(names)},
+            )
+        ]
+    if base is None:
+        return []
+    existing = parent_file(graph_root, base, located.path)
+    if existing is None:
+        return []
+    try:
+        old = yaml.safe_load(existing.decode("utf-8"))
+    except (UnicodeDecodeError, yaml.YAMLError):
+        old = None
+    old_source = old.get("source") if isinstance(old, dict) else None
+    old_ref = old_source.get("ref") if isinstance(old_source, dict) else None
+    supersedes = doc.get("supersedes")
+    if old_ref is None or supersedes != old_ref:
+        return [
+            Diagnostic(
+                "review-opened-twice",
+                f"{located.path}: a review of this target is already open on root "
+                f"{old_ref!r}; a second opening follows a D-8 revision of the root and names the "
+                f"review it replaces in `supersedes` (F26-R1), and this one names {supersedes!r}",
+                {**details, "existing": old_ref, "supersedes": supersedes},
+            )
+        ]
+    return []
+
+
+def _roles_phrase(roles: tuple[str, ...]) -> str:
+    return "nobody" if not roles else " or ".join(f"a {r}" for r in roles)
+
+
+def _review_role_not_held(  # noqa: PLR0913 — the role, who claims it, and what the tree says
+    graph_root: Path,
+    target_id: str,
+    role: str,
+    identity: str,
+    *,
+    names: frozenset[str],
+    signer: Signer | None,
+) -> str | None:
+    """Why ``identity`` does not hold ``role`` for this pull request, or ``None`` when they do."""
+    if identity not in names:
+        return (
+            f"opened_by.identity {identity!r} is not who this pull request acts for; a review is "
+            "opened by the one who asks, and the service writes the identity from the sign-in"
+        )
+    if role == "curator":
+        try:
+            listed = load_curators(graph_root)
+        except CuratorsError:
+            listed = Curators()
+        halves = {half for pair in listed.identities for half in pair}
+        if not (names & halves):
+            return f"{identity!r} is not a listed curator (curators.json)"
+    elif role == "steward":
+        verifier = signer or signed.default_signer()
+        active = set(steward.active_logins(graph_root / "targets" / target_id, verifier))
+        if not (names & active):
+            return f"{identity!r} is not an active steward of {target_id} (F15-R1)"
+    elif role != "proposer":
+        return f"{role!r} is not a role that opens a review"
+    return None
 
 
 #: F25-R5: ``registrations/<date>-<n>.yaml``, the date the record was filed and a number from 1.

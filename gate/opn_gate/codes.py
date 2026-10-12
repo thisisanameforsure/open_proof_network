@@ -2184,6 +2184,41 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "Remove it; a pull request may add a candidate, an answer or a signature, and the job "
         "writes the rest from them.",
     ),
+    "review-network-by-hand": (
+        "gate",
+        None,
+        "A review.yaml opened by the network arrived by pull request; the background review of an "
+        "existing target is written by `opn-gate review open` and committed by a curator directly "
+        "(F26-R2).",
+        "Open the review as a proposer, steward or curator, or ask a curator to run the command "
+        "and commit what it writes.",
+    ),
+    "review-opened-twice": (
+        "gate",
+        None,
+        "The target already has a review of this root version, and the new review.yaml does not "
+        "name it in `supersedes` (F26-R1, R2).",
+        "A second opening follows a D-8 revision of the root: set `supersedes` to the existing "
+        "review's source ref (the root it reviewed) and `source.ref` to the revised root; "
+        "otherwise add to the review that exists.",
+    ),
+    "review-opener-not-allowed": (
+        "gate",
+        None,
+        "The role the review was opened in is not one policy.json's `review_openers` lists "
+        "(F26-R2; the default lists proposer, steward and curator).",
+        "Ask one of the listed roles to open it, or change the setting by a curator pull request "
+        "on policy.json, dated with its reason.",
+    ),
+    "review-opener-not-held": (
+        "gate",
+        None,
+        "The opener does not hold the role the review names, or is not who the pull request acts "
+        "for: a curator is listed in curators.json, a steward is active on the target, a proposer "
+        "is the one asking (F26-R2).",
+        "Open the review from the identity that holds the role (the service writes it from your "
+        "sign-in), or name the role you do hold.",
+    ),
     "review-target-mismatch": (
         "gate",
         None,
