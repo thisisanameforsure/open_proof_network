@@ -1,0 +1,106 @@
+F26-T5 — the review job's filter stage: compile, screens, intent tests under their probes, agreement tests, exhibits, idempotence (R4, R5, R6, R13; AC3; AC7's second half)
+
+2026-10-12, branch f26-job from origin/f26-wave1, leanprover/lean4:v4.33.1 under elan, uv 'run --frozen'.
+Built: gate/opn_gate/review_job.py (the run, stage 3, agreement tests, the exhibit/test records, writing), review_lean.py (the Lean the job writes and checks, the Runner over the toolchain seam), and the 'opn-gate review run' subcommand in cli.py. The pair, question and mutation stages the run calls are T6's and T7's files, committed here because run() calls them; their tests and evidence are in task-6.txt and task-7.txt.
+
+== Red first: the seam at today's behaviour (review_job.run reads the records and runs nothing; review_mutants.mutants returns nothing)
+   uv run --frozen pytest gate/tests/test_review_job.py gate/tests/test_review_pairs.py gate/tests/test_review_questions.py gate/tests/test_review_mutants.py -q
+FAILED gate/tests/test_review_job.py::test_ac3_returned_discarded_surviving
+FAILED gate/tests/test_review_job.py::test_ac3_a_second_run_writes_nothing - ...
+FAILED gate/tests/test_review_job.py::test_compile_failure_discards_with_no_lean
+FAILED gate/tests/test_review_job.py::test_a_screen_that_fires_discards[provable-statement]
+FAILED gate/tests/test_review_job.py::test_a_screen_that_fires_discards[vacuous-false]
+FAILED gate/tests/test_review_job.py::test_a_test_on_record_discards_the_candidate_it_fails
+FAILED gate/tests/test_review_job.py::test_agreement_tests_are_written_where_every_survivor_agrees
+FAILED gate/tests/test_review_job.py::test_small_cases_do_not_apply_is_recorded
+FAILED gate/tests/test_review_job.py::test_the_cli_runs_the_job - assert []
+FAILED gate/tests/test_review_pairs.py::test_the_degenerate_guard_keeps_a_direction_open
+FAILED gate/tests/test_review_pairs.py::test_a_refutation_names_its_instance
+FAILED gate/tests/test_review_pairs.py::test_a_failed_attempt_is_never_refuted
+FAILED gate/tests/test_review_pairs.py::test_no_proof_and_no_instance_is_open
+FAILED gate/tests/test_review_pairs.py::test_both_directions_proved_make_one_cluster
+FAILED gate/tests/test_review_questions.py::test_a_disagreement_writes_no_test_and_one_question
+FAILED gate/tests/test_review_questions.py::test_ac7_an_answer_becomes_a_test_and_the_next_run_discards
+FAILED gate/tests/test_review_questions.py::test_an_answer_test_reruns_against_a_candidate_already_discarded
+FAILED gate/tests/test_review_questions.py::test_an_answer_that_is_neither_yes_nor_no_writes_no_test
+FAILED gate/tests/test_review_questions.py::test_a_concept_disagreement_is_a_concept_question
+FAILED gate/tests/test_review_questions.py::test_a_mutant_every_test_passes_becomes_a_question
+FAILED gate/tests/test_review_questions.py::test_the_mutant_cap_is_recorded
+FAILED gate/tests/test_review_questions.py::test_question_numbers_follow_the_record
+FAILED gate/tests/test_review_mutants.py::test_the_prototype_classes_give_the_prototype_mutants[goldbach-9]
+FAILED gate/tests/test_review_mutants.py::test_the_prototype_classes_give_the_prototype_mutants[legendre-15]
+FAILED gate/tests/test_review_mutants.py::test_the_prototype_classes_give_the_prototype_mutants[oppermann-19]
+FAILED gate/tests/test_review_mutants.py::test_the_added_classes_are_d11s - A...
+FAILED gate/tests/test_review_mutants.py::test_the_cap - assert (False)
+27 failed, 6 passed in 0.58s
+   the failures, by message (each a missing behaviour, none a missing name):
+     7 E       ValueError: not enough values to unpack (expected 1, got 0)
+     5 E        +  where 0 = len([])
+     4 E         + surviving
+     4 E         Use -v to get more diff
+     3 E       AssertionError: assert 'surviving' == 'discarded'
+     3 E         - discarded
+     2 E       assert []
+     1 E       AssertionError: assert 'surviving' == 'returned'
+     1 E         - returned
+     1 E       AssertionError: assert {'c-2e270312'...: 'surviving'} == {'c-f7f3f4aa'...: 'surviving'}
+     1 E         Omitting 1 identical items, use -vv to show
+     1 E         Differing items:
+     1 E         {'c-f7f3f4aa': 'surviving'} != {'c-f7f3f4aa': 'discarded'}
+     1 E       assert 0 == ((4 * 2) + 3)
+     1 E        +  and   4 = review_job.AGREEMENT_N
+     1 E        +  and   3 = review_job.CONCEPT_N
+     1 E       assert ([])
+     1 E       assert 0 == 1
+     1 E       assert False
+     1 E        +  where False = any(<generator object test_an_answer_that_is_neither_yes_nor_no_writes_no_test.<locals>.<genex
+
+== Green, fast tier
+   uv run --frozen pytest gate/tests/test_review_job.py -q --basetemp=/tmp/opn-f26-job-pytest
+............                                                             [100%]
+12 passed in 0.50s
+
+== Green, lean tier: AC3 under the pinned toolchain; the second run writes nothing; every Lean file written re-elaborates alone
+   uv run --frozen pytest gate/tests/test_review_job_lean.py -m lean -q -k ac3 --basetemp=/tmp/opn-f26-job-pytest
+.                                                                        [100%]
+1 passed, 1 deselected in 37.05s
+
+== What that lean run wrote under targets/legendre/review/ (one line per record)
+   faithful c-2e270312 survives; dropped hypothesis c-81bb2002 discarded by the negation screen (the kernel's counterexample at n = 0); inline concept c-af286d8c returned (format).
+   One survivor, so no agreement test (AGREEMENT_MIN = 2) and one cluster, so the mutation stage ran (T7): 7 questions of kind mutant, 3 mutants not elaborating.
+E e-2586ab13 compile     c-81bb2002 -           pass     elaborates at the pin
+E e-6f5a4267 compile     c-2e270312 -           pass     elaborates at the pin
+E e-40acc3c1 format      c-af286d8c -           returned returned: the concept `prime` is not named as the candidate's own predicate (no predicate named `prime` or `IsPrime` is 
+E e-0ea8d456 mutant      c-2e270312 -           pass     1 → 0 at 20 (constant): every test passes; it differs from the representative at n = 1: does the conjecture hold?
+E e-10fd170b mutant      c-2e270312 -           pass     2 → 3 at 23 (constant): every test passes; it differs from the representative at n = 1, supposing 4 were the only prime
+E e-184f1b91 mutant      c-2e270312 -           pass     (n+1) → n at 17 (offset): every test passes; it differs from the representative at n = 1: does the conjecture hold?
+E e-23913de1 mutant      c-2e270312 -           pass     ≤ → < at 2 (relation): every test passes; it differs from the representative at n = 1: does the conjecture say anything 
+E e-264e6596 mutant      c-2e270312 -           pass     2 → 1 at 23 (constant): every test passes; it differs from the representative at n = 1: does the conjecture hold?
+E e-2ceff980 mutant      c-2e270312 -           pass     `1 ≤ n →` dropped at 0 (hypothesis): every test passes; it differs from the representative at n = 0: does the conjecture
+E e-33145d85 mutant      c-2e270312 -           pass     (n+1)^2 → n^2 + 1 at 17 (exponent): every test passes; it differs from the representative at n = 1: does the conjecture 
+E e-52c77e3f mutant      c-2e270312 -           error    ∃ → ∀ at 8: does not elaborate
+E e-594ca679 mutant      c-2e270312 -           pass     < → ≤ at 15 (relation): every test passes; it differs from the representative at n = 1, supposing 4 were the only prime
+E e-81eb8738 mutant      c-2e270312 -           error    ∧ → ∨ at 25: does not elaborate
+E e-8407c8ae mutant      c-2e270312 -           pass     2 → 1 at 29 (constant): every test passes; it differs from the representative at n = 2, supposing 3 were the only prime
+E e-869e04bf mutant      c-2e270312 -           error    ∧ → ∨ at 35: does not elaborate
+E e-daf29fea mutant      c-2e270312 -           pass     1 → 2 at 0 (constant): every test passes; it differs from the representative at n = 1: does the conjecture say anything 
+E e-ddc75876 mutant      c-2e270312 -           pass     1 → 0 at 0 (constant): every test passes; it differs from the representative at n = 0: does the conjecture hold?
+E e-df56a449 mutant      c-2e270312 -           pass     < → ≤ at 31 (relation): every test passes; it differs from the representative at n = 1, supposing 1 were the only prime
+E e-eb9f1935 mutant      c-2e270312 -           pass     2 → 3 at 29 (constant): every test passes; it differs from the representative at n = 2: does the conjecture hold?
+E e-fefb72af mutant      c-2e270312 -           pass     1 → 2 at 20 (constant): every test passes; it differs from the representative at n = 1, supposing 4 were the only prime
+E e-14c5315c screen      c-2e270312 -           pass     false: nothing proved within the budget
+E e-812407b1 screen      c-2e270312 -           pass     statement: nothing proved within the budget
+E e-84bef56b screen      c-2e270312 -           pass     negation: no counterexample among n ≤ 40
+E e-ab1b6a9a screen      c-81bb2002 -           fail     negation: the claim's negation was proved within the bounded budget, so the candidate is not the open conjecture as stat
+E e-f4b34a16 screen      c-81bb2002 -           pass     statement: nothing proved within the budget
+Q q-1 {'kind': 'mutant', 'ref': 'e-594ca679'} Suppose 4 were the only prime. Would the conjecture be satisfied at n = 1?
+Q q-2 {'kind': 'mutant', 'ref': 'e-df56a449'} Suppose 1 were the only prime. Would the conjecture be satisfied at n = 1?
+Q q-3 {'kind': 'mutant', 'ref': 'e-23913de1'} Does the conjecture say anything about n = 1?
+Q q-4 {'kind': 'mutant', 'ref': 'e-184f1b91'} Does the conjecture hold at n = 1?
+Q q-5 {'kind': 'mutant', 'ref': 'e-ddc75876'} Does the conjecture hold at n = 0?
+Q q-6 {'kind': 'mutant', 'ref': 'e-8407c8ae'} Suppose 3 were the only prime. Would the conjecture be satisfied at n = 2?
+Q q-7 {'kind': 'mutant', 'ref': 'e-eb9f1935'} Does the conjecture hold at n = 2?
+
+== Checks before the commit
+   uv run --frozen ruff check gate: All checks passed!  ruff format gate: unchanged.  mypy gate: Success, no issues found in 405 source files.
+   The walkthrough test (test_agents_md_executes) fails in this shell on 'uv: command not found' at AGENTS.md line 617 (uv not on the bash PATH the runner starts), not on anything here.
