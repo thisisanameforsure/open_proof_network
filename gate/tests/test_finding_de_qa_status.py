@@ -111,7 +111,8 @@ def test_d_reader_holds_a_row_to_the_writers_coherence_rules(graph: Path) -> Non
     writer is the first reader"; the reader must not be laxer than the writer, or every rule
     the writer enforces is optional for a record committed by hand.
 
-    Expected: the two model-less brief rows do not count, so the pass is incomplete."""
+    Expected: the model-less brief row does not count, so the pass is incomplete (the floor
+    carries one brief row since F26-R10 took the back-translation out)."""
     target = target_of(graph)
     with pytest.raises(qa.QaError, match="records the model"):  # guard: the writer refuses it
         qa.row("brief", "pass", tool="hand", tool_version="hand", timestamp=WHEN)
@@ -119,7 +120,7 @@ def test_d_reader_holds_a_row_to_the_writers_coherence_rules(graph: Path) -> Non
 
     state = qa.pass_state(target, "root")
     assert not state.complete, "a model-less brief row counted toward a complete pass"
-    assert {"brief", "backtranslation"} <= set(state.missing)
+    assert "brief" in state.missing
 
 
 def test_d_a_rows_kind_is_its_checks_not_what_the_record_claims(tmp_path: Path) -> None:
@@ -226,10 +227,7 @@ def test_d_a_hand_typed_pass_is_refused_by_the_gate_on_its_pull_request(
     assert [(p["code"], p["details"]["check"]) for p in out["problems"]] == [
         (qa_rerun.CODE_DISAGREES, "screen-negation")
     ]
-    assert {n["check"]: n["reason"] for n in out["not_rerun"]} == {
-        "brief": qa_rerun.REASON_MODEL,
-        "backtranslation": qa_rerun.REASON_MODEL,
-    }
+    assert {n["check"]: n["reason"] for n in out["not_rerun"]} == {"brief": qa_rerun.REASON_MODEL}
     assert git("status", "--porcelain") == "", "the re-run wrote into the checkout"
 
 

@@ -159,17 +159,15 @@ def test_a_typed_record_whose_passes_the_rerun_reproduces_is_accepted(
     graph: Path, tmp_path: Path
 ) -> None:
     """The rule checks what a record *claims*, not who typed it: every compile and screen pass
-    is re-run once and agrees; the brief rows are named as not re-run, with the reason."""
+    is re-run once and agrees; the brief row is named as not re-run, with the reason (the
+    floor has no back-translation since F26-R10)."""
     rel = write_record(graph, floor())
     rerun = Seamed(graph, tmp_path, clean())
     report = qa_rerun.verify(graph, [rel], rerun)
     assert report.ok, report.problems
     assert [c.check for c in report.checked] == list(CLAIMED)
     assert all(c.agrees and c.rerun for c in report.checked)
-    assert [(n.check, n.reason) for n in report.not_rerun] == [
-        ("brief", qa_rerun.REASON_MODEL),
-        ("backtranslation", qa_rerun.REASON_MODEL),
-    ]
+    assert [(n.check, n.reason) for n in report.not_rerun] == [("brief", qa_rerun.REASON_MODEL)]
     assert rerun.asked == [(TARGET_ID, "root")]
 
 
@@ -181,7 +179,7 @@ def test_a_record_qa_screen_wrote_is_accepted(graph: Path, tmp_path: Path) -> No
     assert run.clean and run.record is not None
     report = qa_rerun.verify(graph, [run.record], Seamed(graph, tmp_path, clean()))
     assert report.ok and len(report.checked) == len(CLAIMED)
-    assert qa.pass_state(target, "root").missing == ("brief", "backtranslation")
+    assert qa.pass_state(target, "root").missing == ("brief",)
 
 
 # --- a pass the re-run does not reproduce is refused, naming the row ------------------------------

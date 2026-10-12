@@ -1,0 +1,140 @@
+{
+ "review@1440": {
+  "scrollWidth": 1440,
+  "clientWidth": 1440,
+  "sections": [
+   {
+    "id": "candidates",
+    "kind": "exhibits",
+    "label": "Exhibits: kernel-checked results the gat",
+    "left_border": "rgb(145, 132, 217)",
+    "border_style": "solid"
+   },
+   {
+    "id": "pairs",
+    "kind": "exhibits",
+    "label": "Exhibits: each direction between two can",
+    "left_border": "rgb(145, 132, 217)",
+    "border_style": "solid"
+   },
+   {
+    "id": "questions",
+    "kind": "judgements",
+    "label": "Judgements: a question is put to the int",
+    "left_border": "rgb(181, 171, 252)",
+    "border_style": "dashed"
+   },
+   {
+    "id": "tests",
+    "kind": "exhibits",
+    "label": "Exhibits: every intent test run against ",
+    "left_border": "rgb(145, 132, 217)",
+    "border_style": "solid"
+   },
+   {
+    "id": "screens",
+    "kind": "exhibits",
+    "label": "Exhibits: the compile and the soundness ",
+    "left_border": "rgb(145, 132, 217)",
+    "border_style": "solid"
+   },
+   {
+    "id": "signatures",
+    "kind": "judgements",
+    "label": "Judgements: a signature is a decision wr",
+    "left_border": "rgb(181, 171, 252)",
+    "border_style": "dashed"
+   }
+  ],
+  "pre_count": 10,
+  "matrix_cells": [
+   "cell pass",
+   "cell pass",
+   "cell not-run",
+   "cell fail",
+   "cell pass",
+   "cell pass",
+   "cell not-run",
+   "cell not-run"
+  ],
+  "slots": [
+   "signature-slot filled",
+   "signature-slot empty"
+  ]
+ },
+ "problem@1440": {
+  "scrollWidth": 1440,
+  "id_row": "propositionalopenListed, and its statements accept work.Not claimable: this target has no curated intake record (D-6).st",
+  "state_tag": "review: 4 candidates, 0 clusters, 1 question waiting",
+  "state_href": "/problems/propositional/review/"
+ },
+ "review@390": {
+  "scrollWidth": 390,
+  "clientWidth": 390,
+  "sections": [
+   {
+    "id": "candidates",
+    "kind": "exhibits",
+    "label": "Exhibits: kernel-checked results the gat",
+    "left_border": "rgb(145, 132, 217)",
+    "border_style": "solid"
+   },
+   {
+    "id": "pairs",
+    "kind": "exhibits",
+    "label": "Exhibits: each direction between two can",
+    "left_border": "rgb(145, 132, 217)",
+    "border_style": "solid"
+   },
+   {
+    "id": "questions",
+    "kind": "judgements",
+    "label": "Judgements: a question is put to the int",
+    "left_border": "rgb(181, 171, 252)",
+    "border_style": "dashed"
+   },
+   {
+    "id": "tests",
+    "kind": "exhibits",
+    "label": "Exhibits: every intent test run against ",
+    "left_border": "rgb(145, 132, 217)",
+    "border_style": "solid"
+   },
+   {
+    "id": "screens",
+    "kind": "exhibits",
+    "label": "Exhibits: the compile and the soundness ",
+    "left_border": "rgb(145, 132, 217)",
+    "border_style": "solid"
+   },
+   {
+    "id": "signatures",
+    "kind": "judgements",
+    "label": "Judgements: a signature is a decision wr",
+    "left_border": "rgb(181, 171, 252)",
+    "border_style": "dashed"
+   }
+  ],
+  "pre_count": 10,
+  "matrix_cells": [
+   "cell pass",
+   "cell pass",
+   "cell not-run",
+   "cell fail",
+   "cell pass",
+   "cell pass",
+   "cell not-run",
+   "cell not-run"
+  ],
+  "slots": [
+   "signature-slot filled",
+   "signature-slot empty"
+  ]
+ },
+ "problem@390": {
+  "scrollWidth": 390,
+  "id_row": "propositionalopenListed, and its statements accept work.Not claimable: this target has no curated intake record (D-6).st",
+  "state_tag": "review: 4 candidates, 0 clusters, 1 question waiting",
+  "state_href": "/problems/propositional/review/"
+ }
+}

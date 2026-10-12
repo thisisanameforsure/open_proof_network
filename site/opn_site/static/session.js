@@ -83,4 +83,62 @@
     }
     slot.hidden = false;
   }).catch(function () { /* the header stays empty: the read-only page */ });
+
+  // F26-T12 (R16): the review page's answer form. The static page carries one empty slot,
+  // .review-answer-ctl[data-review-answer], with the target and the questions waiting as data;
+  // nothing in it posts. Once the session answers, a signed-in login gets one box per question
+  // that posts to POST /reviews/<t>/answers (the service checks that the login is the intent
+  // signer and opens the record's pull request; every refusal is set as text); a visitor sees
+  // the sign-in link. No service, no session, no form (C7).
+  var answerSlot = document.querySelector(".review-answer-ctl[data-review-answer]");
+  if (answerSlot) {
+    var questions = [];
+    try { questions = JSON.parse(answerSlot.dataset.questions || "[]"); } catch (e) { questions = []; }
+    var target = answerSlot.dataset.target || "";
+    session.then(function (s) {
+      if (!questions.length) { return; }
+      if (!s.signed_in) {
+        var p = el("p", { "class": "cue" }, "The intent signer answers here, signed in: ");
+        p.appendChild(el("a", { href: signInHref() }, "Sign in"));
+        answerSlot.appendChild(p);
+        answerSlot.hidden = false;
+        return;
+      }
+      questions.forEach(function (q) {
+        var box = el("div", { "class": "ctl-box review-answer", "data-question": String(q.id) });
+        box.appendChild(el("h3", {}, "Answer " + String(q.id) + " as " + s.login));
+        box.appendChild(el("p", { "class": "cue" }, String(q.question)));
+        var answer = el("textarea", { "class": "input", "aria-label": "Your answer, in mathematics" });
+        var cites = el("input", { "class": "input", type: "text", placeholder: "Source cited (optional; an answer without one is flagged)" });
+        var out = el("p", { "class": "form-error", role: "alert" });
+        var button = el("button", { "class": "btn btn-secondary btn-small", type: "button" }, "Send the answer");
+        button.addEventListener("click", function () {
+          if (!answer.value.trim()) { out.textContent = "Write the answer first."; return; }
+          button.disabled = true;
+          out.textContent = "";
+          call("POST", "/reviews/" + encodeURIComponent(target) + "/answers", {
+            question: String(q.id), answer: answer.value, cites: cites.value.trim() || null
+          }).then(function (r) {
+            if (r.ok) {
+              var done = el("p", { "class": "receipt", role: "status" }, "Answer sent as a record; it reaches the page once its pull request merges.");
+              if (r.data && typeof r.data.pr_url === "string" && /^https:\/\//.test(r.data.pr_url)) {
+                done.appendChild(document.createTextNode(" "));
+                done.appendChild(el("a", { href: r.data.pr_url }, "Pull request #" + String(r.data.pr_number)));
+              }
+              box.parentNode.replaceChild(done, box);
+              return;
+            }
+            out.textContent = errorText(r);
+            button.disabled = false;
+          }, function () { out.textContent = errorText(null); button.disabled = false; });
+        });
+        box.appendChild(answer);
+        box.appendChild(cites);
+        box.appendChild(button);
+        box.appendChild(out);
+        answerSlot.appendChild(box);
+      });
+      answerSlot.hidden = false;
+    }).catch(function () { /* no session: the form stays hidden */ });
+  }
 })();
