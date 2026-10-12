@@ -299,11 +299,16 @@ fix follows. The live runs (AC10) exist to capture those answers.</p>
     routinely need top-level helper lemmas that cannot be moved into the body, the honest fix is a
     D-4 amendment letting <code>Proof.lean</code> carry declarations between the header and the
     theorem. Not built here. The corpus supplies the evidence.</td></tr>
-  <tr><td>F17-Q6</td><td><strong>For the owner.</strong> A submission certifies the DCO (D-19).
-    Whether Aristotle's terms let a user submit its output under that certification could not be
-    read: the site was unreachable from the research sandbox. The <code>aristotle</code> preset
-    waits for the owner to read the terms. The generic backend does not, because what a
-    contributor runs is their own certification.</td></tr>
+  <tr><td>F17-Q6</td><td><strong>Ruled 2026-10-12.</strong> The owner pasted Aristotle's terms (last modified
+    2026-09-24) and the preset is permitted. §5.4: the customer owns the output, Harmonic assigns its rights in it,
+    and output "may be incorporated into open-source or academic projects", which is what the DCO certifies.
+    §3(d), (e): no training datasets and no competing models from the service, and the definition of Data
+    Generation excludes "publishing outputs in good-faith research or open-source projects"; the network
+    publishes proofs and trains nothing. §2.2 forbids shared credentials, so the preset runs with the
+    contributor's own key and the network never holds one (D-23's own-credentials rule). §5.2 lets Harmonic train
+    on inputs unless the account opts out; the inputs are public statements. §4.2 disclaims validity; the gate is
+    the validation. Earlier text: a submission certifies the DCO (D-19), and whether Aristotle's terms let a user
+    submit its output under that certification could not be read from the research sandbox.</td></tr>
   <tr><td>F17-Q7</td><td>The fast inner loop is <code>/check</code>, which forwards to AXLE's
     hosted <code>lean-4.33.1</code>. The alternative is a local checker, and the research found
     that none pins cleanly to the graph today: the community REPL has tags v4.33.0 and v4.34.0
@@ -350,6 +355,18 @@ fix follows. The live runs (AC10) exist to capture those answers.</p>
     as Goedel-Prover-V2's self-correction does (or AXLE's <code>repair_proofs</code>), is the
     obvious next step, which the corpus should grow a case for first. For the owner: whether the
     preset ships with that caveat stated on the Docs page, or waits for the repair round.</td></tr>
+  <tr><td>F17-Q12</td><td><strong>The aristotle preset's shape (2026-10-12).</strong> Aristotle's SDK is async Python
+    with <code>httpx</code>; the client stays one standard-library file by driving the CLI the SDK ships
+    (<code>aristotle submit &lt;prompt&gt; --project-dir &lt;dir&gt; --wait --destination &lt;archive&gt;</code>) and taking
+    <code>Problem.lean</code> from the archive. The service's toolchain is read once from <code>GET /version</code>
+    (<code>lean_toolchain_version</code>, the read the SDK itself makes) with the contributor's key in
+    <code>X-API-Key</code>, recorded beside the graph's pin, and the R10 warning names both; the docs state
+    v4.28.0 and a pinned Mathlib, so a Mathlib target's answer will need the same port in the other direction
+    (Q11). The task's terminal status is read from the CLI's output, and <code>COMPLETE_WITH_ERRORS</code> is a
+    candidate partial (R11). Tested against a fake CLI on PATH and a loopback <code>/version</code>. On
+    OpenRouter, asked about for the live whole-file run: <code>deepseek/deepseek-prover-v2</code> is listed but
+    has no serving endpoint today, so the live run used <code>deepseek/deepseek-v3.2</code> through the same
+    preset; Claude Code and Codex can also be pointed at OpenRouter (F16, level 3), Gemini CLI cannot.</td></tr>
   <tr><td>F17-Q12</td><td><strong>The checksum file was unreachable on the live site (2026-10-12).</strong>
     <code>/tools/opn_prove.py</code> served with the right bytes and <code>/tools/SHA256SUMS</code> beside
     it answered the site's 404 page: the CDN's path function rewrites any request without a dot to
@@ -363,7 +380,7 @@ fix follows. The live runs (AC10) exist to capture those answers.</p>
 </table>
 
 <h2>10. Status</h2>
-<div class="rule"><strong>status:</strong> building &middot; <strong>Tasks:</strong> T1 ✓ 2026-09-24 · T2–T5 ✓ 2026-09-25 (opn-prove export, import corpus, chain against the real service, postmortems) · T6 ✓ 2026-09-25 (lean tier green in CI) · T7 ✓ 2026-09-25 (served from the site with its checksum; the guide runs the chain) · T9 ✓ 2026-09-25 (version drift measured, Q11) · T8 part (whole-file preset; aristotle waits on Q6) · merged to main 2026-10-12: submit sends the D-23 v3.37 automation block (F16-Q14)
+<div class="rule"><strong>status:</strong> building &middot; <strong>Tasks:</strong> T1 ✓ 2026-09-24 · T2–T5 ✓ 2026-09-25 (opn-prove export, import corpus, chain against the real service, postmortems) · T6 ✓ 2026-09-25 (lean tier green in CI) · T7 ✓ 2026-09-25 (served from the site with its checksum; the guide runs the chain) · T9 ✓ 2026-09-25 (version drift measured, Q11) · T8 2026-10-12: the whole-file preset's live run through OpenRouter (deepseek/deepseek-v3.2) on tutorial/variant-93e79cb5 — export, run (15 s), import as a proof, /check okay, precheck PASS under a freshly minted token, nothing submitted (live-whole-file.txt); the aristotle preset built against Harmonic's CLI with 3 tests (Q6 ruled, Q12), its live run waiting on the owner's key · merged to main 2026-10-12: submit sends the D-23 v3.37 automation block (F16-Q14)
 (<code>make verify</code>; <code>engineering/evidence/F17/task-1.txt</code>) &middot; T2 ✓ 2026-09-25
 (<code>task-2.txt</code>: 18 answer shapes, 9 complete proofs, 1 partial, 8 refusals; synthetic until
 T8 captures real ones) &middot; T3 ✓ 2026-09-25 (<code>task-3.txt</code>: export byte-equal to the
