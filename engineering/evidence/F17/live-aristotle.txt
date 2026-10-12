@@ -1,0 +1,54 @@
+F17-T8 / AC10 — live run, aristotle preset, 2026-10-12 (the owner's Aristotle key, read from .env by name; the node tutorial/variant-93e79cb5 at graph 66166496d; aristotlelib 2.1.0)
+
+# F17-T8 live run, aristotle preset, 2026-10-12T11:15:09Z; graph 66166496d; node tutorial/variant-93e79cb5; aristotlelib 2.1.0
+--- run
+warning: this prover targets Lean leanprover/lean4:v4.28.0; the graph pins leanprover/lean4:v4.33.1. Renamed lemmas and changed syntax fail at the pin: run `check` before `submit`.
+{
+  "answered": true,
+  "archive": "/private/tmp/claude-501/-Users-mikehiggins-Desktop-repos-open-proof-network/cc71ba06-efd6-4974-8300-d34944260a9e/scratchpad/live-aristotle/answer.aristotle.tar.gz",
+  "backend": "aristotle",
+  "elapsed_s": 180.878,
+  "exit": 0,
+  "pinned_toolchain": "leanprover/lean4:v4.33.1",
+  "program": "aristotle",
+  "schema": "opn-prove-run/v1",
+  "service_toolchain": "leanprover/lean4:v4.28.0",
+  "started": "2026-10-12T11:15:10Z",
+  "stderr_tail": " git log command, nothing to worry about.\n[\u2588\u2591\u2591\u2591\u2591\u2591\u2591\u2591\u2591\u2591\u2591\u2591\u2591\u2591\u2591\u2591\u2591\u2591\u2591\u2591\u2591\u2591\u2591\u2591\u2591\u2591\u2591\u2591\u2591\u2591] 1% (started 2m 15s ago)\nFill the sorry in Problem.lean with a verified ...\nTask: eefdf183-61f7-486a-a9d6-c0e183f76534\nProject: c9281af8-20e8-4bfe-95e9-d9e015f81b2f\nEDITING_FILE: Problem.lean\nTHINKING: That exit code 141 is just SIGPIPE from the git log command, nothing to worry about.\nREVIEWING: Checked for completion\nCOMPLETE (started 2m 58s ago)\nFill the sorry in Problem.lean with a verified ...\nTask: eefdf183-61f7-486a-a9d6-c0e183f76534\nProject: c9281af8-20e8-4bfe-95e9-d9e015f81b2f\nTHINKING: That exit code 141 is just SIGPIPE from the git log command, nothing to worry about.\nREVIEWING: Checked for completion\nSUMMARY: I replaced the `sorry` in `Problem.lean` with a proof, and the file builds without errors. Nothing else in the file was changed: the header comments, the statement and the declarations are as they were. There are no imports (it uses core Lean only), and the proof adds no axioms, no `sorry` and no `native_decide`.\n\nComplete file:\n\n```lean\n-- opn-prove export of tutorial/variant-93e79cb5\n-- toolchain: leanprover/lean4:v4.33.1; Mathlib: none (Lean core only)\n-- Replace the `sorry`. Do not change anything above it: the gate refuses a proof whose\n-- header or statement differs from the node's (D-3, F00-R19).\n/-! A related variant of the tutorial node (D-30), proposed by the F08 smoke. -/\n\ntheorem OpnProp.and_left_of_and_swap : \u2200 p q : Prop, p \u2227 q \u2192 p := by\n  intro p q h\n  exact h.1\n```\n\nThe proof introduces `p`, `q` and the hypothesis `p \u2227 q`, then returns its first part.\nWARNING: Your Lean toolchain version (leanprover/lean4:v4.33.1) does not match Aristotle's.\nAristotle works best with Lean Toolchain leanprover/lean4:v4.28.0\n\nWARNING: Your project contains .lean files but no .lake folder.\nAristotle works better with access to your project's dependencies.\nDid you forget to run `lake build`?\n\nProject created: c9281af8-20e8-4bfe-95e9-d9e015f81b2f\nTask complete!\n",
+  "task_status": "COMPLETE",
+  "timed_out": false,
+  "timeout_s": 3600.0
+}
+--- answer (     454 bytes):
+-- opn-prove export of tutorial/variant-93e79cb5
+-- toolchain: leanprover/lean4:v4.33.1; Mathlib: none (Lean core only)
+-- Replace the `sorry`. Do not change anything above it: the gate refuses a proof whose
+-- header or statement differs from the node's (D-3, F00-R19).
+/-! A related variant of the tutorial node (D-30), proposed by the F08 smoke. -/
+
+theorem OpnProp.and_left_of_and_swap : ∀ p q : Prop, p ∧ q → p := by
+  intro p q h
+  exact h.1
+--- import
+{
+  "file": "/private/tmp/claude-501/-Users-mikehiggins-Desktop-repos-open-proof-network/cc71ba06-efd6-4974-8300-d34944260a9e/scratchpad/live-aristotle/Proof.lean",
+  "kind": "proof",
+  "notes": [],
+  "ok": true
+}
+--- Proof.lean
+/-! A related variant of the tutorial node (D-30), proposed by the F08 smoke. -/
+
+theorem OpnProp.and_left_of_and_swap : ∀ p q : Prop, p ∧ q → p := by
+  intro p q h
+  exact h.1
+--- check
+{"okay": true, "mode": "verify", "environment": "lean-4.33.1", "exact": false, "lint": []}
+lean errors: []
+
+--- the precheck (AC10), 2026-10-12 11:3xZ ---
+POST /precheck under the token minted for the whole-file run (opn-prove-live-1012), artifact_type proof,
+automation {method: agent, models: [Aristotle (Harmonic, leanprover/lean4:v4.28.0)], framework: opn-prove/aristotle}:
+job 01M4QXE42GR00X8ENAWQS8T2PW, authenticated, state done, verdict PASS, steps 1, 2, 4, 5, 6, 7, 8. Nothing submitted.
+
+What the run showed: the service's /version answered leanprover/lean4:v4.28.0 and the record carries it beside the pin (R11); the task ran 181 s, status COMPLETE, the archive's Problem.lean was the whole file with the sorry replaced (exact h.1 where the OpenRouter model wrote exact h.left); the CLI warned that the project had no .lake folder (the preset submits the Lake project without a build) and that the toolchain differs — both advisory, both recorded in stderr_tail; the proof elaborates at the pin.

@@ -363,7 +363,7 @@ fix follows. The live runs (AC10) exist to capture those answers.</p>
     <code>X-API-Key</code>, recorded beside the graph's pin, and the R10 warning names both; the docs state
     v4.28.0 and a pinned Mathlib, so a Mathlib target's answer will need the same port in the other direction
     (Q11). The task's terminal status is read from the CLI's output, and <code>COMPLETE_WITH_ERRORS</code> is a
-    candidate partial (R11). Tested against a fake CLI on PATH and a loopback <code>/version</code>. On
+    candidate partial (R11). Tested against a fake CLI on PATH and a loopback <code>/version</code>; live, the CLI also warns that the submitted project has no <code>.lake</code> folder (the preset sends the Lake project unbuilt, since the service builds it) — advisory, recorded in the run's <code>stderr_tail</code>, and the task completed. On
     OpenRouter, asked about for the live whole-file run: <code>deepseek/deepseek-prover-v2</code> is listed but
     has no serving endpoint today, so the live run used <code>deepseek/deepseek-v3.2</code> through the same
     preset; Claude Code and Codex can also be pointed at OpenRouter (F16, level 3), Gemini CLI cannot.</td></tr>
@@ -380,7 +380,7 @@ fix follows. The live runs (AC10) exist to capture those answers.</p>
 </table>
 
 <h2>10. Status</h2>
-<div class="rule"><strong>status:</strong> building &middot; <strong>Tasks:</strong> T1 ✓ 2026-09-24 · T2–T5 ✓ 2026-09-25 (opn-prove export, import corpus, chain against the real service, postmortems) · T6 ✓ 2026-09-25 (lean tier green in CI) · T7 ✓ 2026-09-25 (served from the site with its checksum; the guide runs the chain) · T9 ✓ 2026-09-25 (version drift measured, Q11) · T8 2026-10-12: the whole-file preset's live run through OpenRouter (deepseek/deepseek-v3.2) on tutorial/variant-93e79cb5 — export, run (15 s), import as a proof, /check okay, precheck PASS under a freshly minted token, nothing submitted (live-whole-file.txt); the aristotle preset built against Harmonic's CLI with 3 tests (Q6 ruled, Q12), its live run waiting on the owner's key · merged to main 2026-10-12: submit sends the D-23 v3.37 automation block (F16-Q14)
+<div class="rule"><strong>status:</strong> building &middot; <strong>Tasks:</strong> T1 ✓ 2026-09-24 · T2–T5 ✓ 2026-09-25 (opn-prove export, import corpus, chain against the real service, postmortems) · T6 ✓ 2026-09-25 (lean tier green in CI) · T7 ✓ 2026-09-25 (served from the site with its checksum; the guide runs the chain) · T9 ✓ 2026-09-25 (version drift measured, Q11) · T8 2026-10-12: the whole-file preset's live run through OpenRouter (deepseek/deepseek-v3.2) on tutorial/variant-93e79cb5 — export, run (15 s), import as a proof, /check okay, precheck PASS under a freshly minted token, nothing submitted (live-whole-file.txt); the aristotle preset's live run on the same node (COMPLETE in 181 s, /version v4.28.0 recorded beside the pin, imported as a proof, /check okay, precheck PASS; live-aristotle.txt): T8 ✓ 2026-10-12 for both presets, AC10 met · merged to main 2026-10-12: submit sends the D-23 v3.37 automation block (F16-Q14)
 (<code>make verify</code>; <code>engineering/evidence/F17/task-1.txt</code>) &middot; T2 ✓ 2026-09-25
 (<code>task-2.txt</code>: 18 answer shapes, 9 complete proofs, 1 partial, 8 refusals; synthetic until
 T8 captures real ones) &middot; T3 ✓ 2026-09-25 (<code>task-3.txt</code>: export byte-equal to the
