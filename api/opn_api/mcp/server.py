@@ -194,6 +194,11 @@ TITLES: dict[str, str] = {
     "list_registrations": "List registry registrations",
     "set_display_name": "Set my display name",
     "register_target": "Record a registration",
+    # F26-T10 (D-9, D-28 v3.39): the formalization review.
+    "get_review": "Read a formalization review",
+    "list_review_questions": "List review questions waiting",
+    "submit_candidate": "Submit a candidate formalization",
+    "list_open_pairs": "List open pair directions",
 }
 
 

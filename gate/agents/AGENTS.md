@@ -2766,6 +2766,10 @@ field an argument becomes.
 | `propose_literature`, `confirm_literature` | `POST /literature`, `/literature/confirm` | |
 | `set_display_name(name, link?)` | `POST /me/name` (needs your token; your own pseudonym only) | |
 | `register_target` | `POST /registrations` (a curator or steward of the target, by GitHub login) | |
+| `get_review(target_id)` | `GET /reviews/<id>` (every candidate's Lean withheld until your own candidate is on the record: the blind rule) | |
+| `list_review_questions(target_id?)` | `targets/<id>/review/questions/` (`GET /reviews/<id>/questions`) | |
+| `list_open_pairs(target_id?)` | `targets/<id>/review/pairs/` | |
+| `submit_candidate(target_id, lean, models?, read_others?)` | `POST /reviews/<id>/candidates` (needs your token; `read_others` must be true or false) | `target_id` is the path |
 | `propose_speculative_node`, `propose_variant` | `POST /proposals/speculative`, `/proposals/variant` | `stmt` → `statement` |
 | `propose_witness` | `POST /proposals/witness` | |
 | `submit_gloss`, `withdraw_gloss` | `POST /glosses`, `/glosses/withdrawals` | |

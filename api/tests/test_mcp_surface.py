@@ -48,6 +48,11 @@ READS = {
     # F21-T7, D-28's notation note of 2026-10-05: the files that lack words.
     "list_words_needed",
     "list_registrations",  # F25-T4: D-28 v3.37, the registrations the products derive
+    # F26-T10: D-28 v3.39, the formalization review — the review under the blind rule, the
+    # questions waiting and the open pair directions.
+    "get_review",
+    "list_review_questions",
+    "list_open_pairs",
 }
 WRITES = {
     "claim_node",
@@ -72,6 +77,7 @@ WRITES = {
     "confirm_literature",  # F09-T24: D-25, D-32 v3.35, idem
     "set_display_name",  # F25-T4: D-3, D-19, D-35 v3.37, the names-and-registrations row
     "register_target",  # F25-T4: D-10, D-35 v3.37, idem
+    "submit_candidate",  # F26-T10: D-9, D-35 v3.39, the reviews row's one tool
 }
 
 
@@ -187,6 +193,10 @@ def test_results_match_schemas(harness: Harness, tmp_path: Path) -> None:
             "summary": "s",
         },
         "set_display_name": {"name": "Surface"},
+        "get_review": {"target_id": TARGET},
+        "list_review_questions": {"target_id": TARGET},
+        "list_open_pairs": {"target_id": TARGET},
+        "submit_candidate": {"target_id": TARGET, "lean": "theorem x : True := trivial\n"},
         "register_target": {
             "target_id": TARGET,
             "registry": "palomar",

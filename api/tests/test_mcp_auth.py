@@ -75,6 +75,9 @@ MINIMAL: dict[str, dict[str, Any]] = {
         "proof": {"node": NODE, "attestation": "000001"},
         "status": "submitted",
     },
+    # F26-T10: a candidate, refused review-unknown (no review on the fixture) once the bearer
+    # is checked; without one, the server's 401 before the endpoint.
+    "submit_candidate": {"target_id": "propositional", "lean": "l", "read_others": False},
 }
 
 

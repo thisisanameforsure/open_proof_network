@@ -344,10 +344,65 @@ are the reference implementation.</p>
     existing target it opens, runs, and files what it finds through D-15 and D-8; it never changes a
     grade, a status or a frontier entry (AC18 measures that no grade moves). Its one visible effect is
     the state line and, if a question arises, a notice to the steward where one exists.</td></tr>
+  <tr><td>F26-Q8</td><td><strong>The ladder is climbed in order (T2).</strong> R9's table read as rungs in sequence
+    (F24-Q7's rule): <code>screened-and-signed</code> needs the review complete and one accept from someone who
+    wrote no surviving candidate; <code>author-attested</code> adds the intent signer's accept;
+    <code>expert-attested</code> both roles and a person-written candidate in the cluster, the cap holding every
+    rung above two. So an intent signer who alone wrote the surviving candidate and is the only signer earns
+    nothing above the floor until a non-author signs, and then both rungs at once. One condition in
+    <code>review.earned</code> to reverse. <code>grade_of</code> never returns below the held grade; the live
+    measurement that no grade moves is T14's.</td></tr>
+  <tr><td>F26-Q9</td><td><strong>The latest signature per role decides (T2).</strong> A send-back after an accept
+    withdraws the acceptance from the products and the ladder, since a withdrawn acceptance still shown as a
+    signer would be published state unlike actual state; the held grade is never lowered by it. A split is
+    read only from the intent signer's latest signature. Pair records are read per (a, b) with the latest
+    date winning; exhibits are JSON (T1's YAML-only reader could never have seen them); a candidate that a
+    <code>format</code> exhibit returns outranks one an exhibit discards, and an <code>error</code> exhibit
+    decides nothing. AC2's "discarded with its exhibit" lives on <code>review.derive()</code>, which the page
+    reads; the product object carries counts only. Every rule has a mutant that kills it (53, all killed).</td></tr>
+  <tr><td>F26-Q10</td><td><strong>The brief has no record, and the page says so (T12).</strong> R16's "screens and
+    the brief" straddles the exhibit/judgement line: screens are exhibits, and the review's schemas carry no
+    brief (F12's lives under <code>qa/briefs/</code>). The page's fifth section is an exhibit section with the
+    brief as a marked judgement aside saying the review's records carry none; whether a brief ever belongs to
+    the review (the signer reads the Lean, R10) or a ninth record is wanted is the owner's. The page derives
+    survivors and clusters from the records itself ("from the record only"); the state line uses the
+    product's words, and since T2 the two agree. Mutant exhibits: <code>fail</code> means the tests caught it,
+    <code>pass</code> that it survived and became a question (the schema description now says so, T5).</td></tr>
+  <tr><td>F26-Q11</td><td><strong>Infix concepts cannot be wrapped automatically (T4).</strong> The wrapper delegates
+    a concept only when the original writes it as an identifier or a single-constant notation
+    (<code>Nat.Prime</code>, <code>φ</code>); <code>p ∧ q</code> or <code>a ∣ b</code> has no textual rewrite that
+    keeps precedence without a parser, and a wrapper the toolchain accepts on a wrong restatement is worse
+    than none, so such a concept is refused by name and the opener names it another way or writes the wrapper
+    by hand. The rule reads two candidate shapes (a sorry-bodied theorem, or a <code>Prop</code>-valued
+    <code>def</code> as the prototypes wrote); a declared predicate the claim never uses is returned too, since
+    the probes would have nothing to replace; the wrapper emits <code>Is&lt;Concept&gt;</code>, never the bare
+    name, because under <code>open Nat</code> a local <code>Prime</code> is ambiguous. The second prototype's
+    "format" named parts (<code>member</code>, <code>domain</code>), not concepts: which the manifest holds for
+    those targets is settled when their corpus becomes T5's fixtures (Q2).</td></tr>
+  <tr><td>F26-Q12</td><td><strong>Who opens, as built (T3).</strong> The policy is read from the merge's parent
+    tree, so a pull request cannot widen the setting for itself; <code>network</code> cannot be listed in
+    <code>review_openers</code> (the schema enumerates three roles) and a <code>network</code> opening by pull
+    request is refused by name. Opened-twice compares <code>supersedes</code> to the existing review's
+    <code>source.ref</code> (the root version), checkable only when a base is given; the words fall back
+    informal → the root's doc comment → the paraphrase → refuse (a live root with none of these is refused
+    by <code>--all</code>, to check before T14); the ported candidate's author is the root's statement-line
+    identity else the literal <code>curator</code>, and R2's "credited to the source's authors" for a registry
+    statement is one function to widen. <code>--date</code> takes a day because the record carries one.</td></tr>
+  <tr><td>F26-Q13</td><td><strong>The routes as built (T10).</strong> Opening, a candidate, an answer and a
+    signature each open one pull request carrying exactly the record and refuse by name before one
+    opens; the blind rule withholds every other candidate's Lean (<code>lean: null</code>,
+    <code>lean_withheld: "blind"</code>) from a caller whose pseudonym has no candidate on the record; a
+    candidate must declare <code>read_others</code> (<code>candidate-not-blind</code> otherwise).
+    <code>review-opener-not-allowed</code> is emitted by both the gate (policy, from the parent tree) and the
+    service (the login's roles), so its catalog row is <code>both</code>: the merge of T3 and T10 had defined
+    it twice, which a Python dict accepts silently, and the resolution is one row. The tools-list listing
+    grew from 94,398 to 105,034 characters with the four tools and is pinned at 106,000. The T10 agent
+    stopped on a spend limit after its evidence had run; the lead committed its worktree as it stood,
+    every check re-run first.</td></tr>
 </table>
 
 <h2>10. Status</h2>
-<div class="rule"><strong>status:</strong> building · <strong>Tasks:</strong> T0 ✓ 2026-10-12 (decisions v3.39 applied to D-6, D-9, D-28, D-30, D-35, D-36 and the glossary, with the version history; PROTOCOL_VERSION 3.39; goldens and the api fixture regenerated) · T1 ✓ 2026-10-12 (twelve schemas pinned; roles, modes, merge lines, codes; review.state_of; products at targets-index/v11, graph/v9, context/v7; policy/v4; every reader swept; 10 tests in test_review_schemas.py; fast tier 5782 passed)</div>
+<div class="rule"><strong>status:</strong> building · <strong>Tasks:</strong> T0 ✓ 2026-10-12 (decisions v3.39 applied to D-6, D-9, D-28, D-30, D-35, D-36 and the glossary, with the version history; PROTOCOL_VERSION 3.39; goldens and the api fixture regenerated) · T1 ✓ 2026-10-12 (twelve schemas pinned; roles, modes, merge lines, codes; review.state_of; products at targets-index/v11, graph/v9, context/v7; policy/v4; every reader swept; 10 tests in test_review_schemas.py; fast tier 5782 passed) · T2 ✓ 2026-10-12 (agent, f26-t2: derive, state_of, grade_of, split_variants; 80 tests red first, 53 mutants all killed; Q8, Q9) · T3 ✓ 2026-10-12 (agent, f26-t3: check_review_opening, four codes, opn-gate review open --target|--all; 16 tests; Q12) · T4 ✓ 2026-10-12 (agent, f26-t4: review_format; 22 fast + 2 lean-tier tests; Q11) · T9 ✓ 2026-10-12 (agent, f26-t12: the floors without back-translation; 5 tests, four old assertions restated) · T12 ✓ 2026-10-12 (agent, f26-t12: the review page's six sections, the state line, the answer hook, the Docs anchor; 22 tests; screenshots read; Q10) · T10 ✓ 2026-10-12 (agent, f26-t10: four write routes, two reads with the blind rule, four MCP tools with result schemas, catalog rows; 60 tests, api 2033 passed; Q13)</div>
 
 <h2>Tasks</h2>
 <p class="status-note">Dependency-ordered. Red before green: each new test fails on the missing

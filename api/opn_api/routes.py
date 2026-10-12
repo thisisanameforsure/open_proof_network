@@ -95,6 +95,22 @@ DCO_ACCEPT_HANDLER = "identity:post_dco_accept"
 D35_OWNED_BY_F25: frozenset[str] = frozenset(
     {D35_POST_ME_NAME, D35_POST_REGISTRATIONS, D35_POST_DCO_ACCEPT}
 )
+# F26's row (D-35 v3.39): the formalization review. The opening, for a web session or a bearer
+# with a GitHub login whose role policy.json allows; a candidate with its Lean, for the bearer's
+# identity under the blind rule; the intent signer's answer and a signer's decision, each signed
+# by the approval key naming the login. The document spells the target ``<id>``.
+D35_POST_REVIEWS = "POST /reviews"
+D35_POST_REVIEW_CANDIDATES = "POST /reviews/<id>/candidates"
+D35_POST_REVIEW_ANSWERS = "POST /reviews/<id>/answers"
+D35_POST_REVIEW_SIGNATURES = "POST /reviews/<id>/signatures"
+D35_OWNED_BY_F26: frozenset[str] = frozenset(
+    {
+        D35_POST_REVIEWS,
+        D35_POST_REVIEW_CANDIDATES,
+        D35_POST_REVIEW_ANSWERS,
+        D35_POST_REVIEW_SIGNATURES,
+    }
+)
 
 ROUTES: tuple[RouteSpec, ...] = (
     # F05-T13, Q13: the index of this table, served at the root. Open, no D-35 row.
@@ -357,6 +373,50 @@ ROUTES: tuple[RouteSpec, ...] = (
         feature="F25",
         web=True,
     ),
+    # F26-R14 (D-9, D-35 v3.39): the formalization review. The opening takes a web session or
+    # a bearer with a GitHub login; a candidate a bearer alone (the author is the token's
+    # identity); an answer and a signature a web session or a bearer with a GitHub login, as
+    # POST /approvals does. The two reads are open: the blind rule is applied by the handler
+    # to whatever bearer is presented (F26-R3, AC12), so the route table asks for none.
+    RouteSpec(
+        "POST",
+        "/reviews",
+        "reviews:post_reviews",
+        D35_POST_REVIEWS,
+        authenticated=True,
+        feature="F26",
+        web=True,
+    ),
+    RouteSpec("GET", "/reviews/{target_id}", "reviews:get_review", None, feature="F26"),
+    RouteSpec(
+        "GET", "/reviews/{target_id}/questions", "reviews:get_questions", None, feature="F26"
+    ),
+    RouteSpec(
+        "POST",
+        "/reviews/{target_id}/candidates",
+        "reviews:post_candidates",
+        D35_POST_REVIEW_CANDIDATES,
+        authenticated=True,
+        feature="F26",
+    ),
+    RouteSpec(
+        "POST",
+        "/reviews/{target_id}/answers",
+        "reviews:post_answers",
+        D35_POST_REVIEW_ANSWERS,
+        authenticated=True,
+        feature="F26",
+        web=True,
+    ),
+    RouteSpec(
+        "POST",
+        "/reviews/{target_id}/signatures",
+        "reviews:post_signatures",
+        D35_POST_REVIEW_SIGNATURES,
+        authenticated=True,
+        feature="F26",
+        web=True,
+    ),
     # F13-R8, Q2: open like the tutorial precheck; a presented token is authenticated and charged
     # per identity, and an anonymous caller is charged per address, by the handler.
     RouteSpec("POST", "/check", "checks:post_check", D35_POST_CHECK, feature="F13"),
@@ -445,6 +505,23 @@ PURPOSES: dict[str, str] = {
     "POST /registrations": "Record a target's submission to, or registration in, Palomar as a "
     "curator or a steward of the target: registry id, wrapper and graph commits, proof and "
     "status, by pull request; the registry itself is never called.",
+    "POST /reviews": "Open a target's formalization review as a curator, a steward of the "
+    "target or the problem's proposer (role: proposer), if policy.json allows the role: the "
+    "words, the cases and the concepts, by pull request on a review/ branch.",
+    "GET /reviews/{target_id}": "A target's review as the records hold it: the words, cases, "
+    "candidates, questions, answers, pairs, signatures and derived state; every candidate's "
+    "Lean is withheld until a candidate of your own is on the record (the blind rule).",
+    "GET /reviews/{target_id}/questions": "The questions waiting on a target's review, in "
+    "words, each with what raised it; no Lean.",
+    "POST /reviews/{target_id}/candidates": "Submit a candidate formalization of the review's "
+    "words as your identity, blind: your Lean, the models that helped (or none) and whether you "
+    "read another candidate's Lean (read_others, required), by pull request.",
+    "POST /reviews/{target_id}/answers": "Answer a waiting question of the review in words as "
+    "its intent signer (the proposer, or a steward of the target), citing a source or not; "
+    "signed with the network's approval key, by pull request.",
+    "POST /reviews/{target_id}/signatures": "Sign the review as its intent signer or as an "
+    "independent signer who wrote no candidate: accept, split or send-back with a question; "
+    "signed with the network's approval key, by pull request.",
     "POST /check": "Check Lean text within 20 s on a hosted checker, or preview a witness's "
     "expected type for a node or a statement's text (mode witness); never authoritative.",
     "GET /checks/{check_id}": "The record of one of your own fast-check calls.",

@@ -261,6 +261,33 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "the pull request as the author; to change another person's words, file under your own "
         "name and a steward or curator will review it.",
     ),
+    "review-network-by-hand": (
+        "gate",
+        None,
+        "A review.yaml opened by the network arrived by pull request; the background review of an "
+        "existing target is written by `opn-gate review open` and committed by a curator directly "
+        "(F26-R2).",
+        "Open the review as a proposer, steward or curator, or ask a curator to run the command "
+        "and commit what it writes.",
+    ),
+    "review-opened-twice": (
+        "gate",
+        None,
+        "The target already has a review of this root version, and the new review.yaml does not "
+        "name it in `supersedes` (F26-R1, R2).",
+        "A second opening follows a D-8 revision of the root: set `supersedes` to the existing "
+        "review's source ref (the root it reviewed) and `source.ref` to the revised root; "
+        "otherwise add to the review that exists.",
+    ),
+    "review-opener-not-held": (
+        "gate",
+        None,
+        "The opener does not hold the role the review names, or is not who the pull request acts "
+        "for: a curator is listed in curators.json, a steward is active on the target, a proposer "
+        "is the one asking (F26-R2).",
+        "Open the review from the identity that holds the role (the service writes it from your "
+        "sign-in), or name the role you do hold.",
+    ),
     "signer-not-opener": (
         "gate",
         None,
@@ -361,6 +388,29 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         None,
         "GitHub's callback arrived without its code and state parameters.",
         "Start the GitHub sign-in again from GET /auth/github/start.",
+    ),
+    "candidate-exists": (
+        "api",
+        None,
+        "The review already holds a candidate with this Lean, byte for byte: a candidate's id is "
+        "c-<8 hex> of its Lean's sha256, and that id is on the record (F26-R1).",
+        "Nothing to add. To offer a different reading, change the Lean; to prove a pair "
+        "direction between candidates, use submit_proof with artifact_type pair-proof.",
+    ),
+    "candidate-not-blind": (
+        "api",
+        None,
+        "The candidate did not declare read_others: whether its author read another candidate's "
+        "Lean before writing it. The blind rule needs the declaration, true or false (F26-R3; "
+        "D-9 v3.39); it is recorded as the author's claim, never verified.",
+        "Send read_others: false if you wrote it from the words alone, true if you read another "
+        "candidate's Lean; the submission is refused until one is given.",
+    ),
+    "candidate-unknown": (
+        "api",
+        None,
+        "The signature names a cluster by a candidate id the review does not hold.",
+        "Name a candidate on the record: GET /reviews/<id> (MCP get_review) lists them by id.",
     ),
     "certificate-attestor": (
         "gate",
@@ -2176,6 +2226,14 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "The registration's proof.node is not a node of the target it is filed under.",
         "Name the node whose merged proof was exported (get_target lists the target's nodes).",
     ),
+    "review-exists": (
+        "api",
+        None,
+        "The target has a review already, merged on the graph or opened in a pull request of the "
+        "service's that may still merge; a target has one review per root version (F26-R1).",
+        "Submit to the review that exists (POST /reviews/<id>/candidates, MCP submit_candidate). "
+        "A D-8 revision of the root is what opens a new one.",
+    ),
     "review-job-record": (
         "gate",
         None,
@@ -2184,40 +2242,56 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "Remove it; a pull request may add a candidate, an answer or a signature, and the job "
         "writes the rest from them.",
     ),
-    "review-network-by-hand": (
-        "gate",
+    "review-not-intent-signer": (
+        "api",
         None,
-        "A review.yaml opened by the network arrived by pull request; the background review of an "
-        "existing target is written by `opn-gate review open` and committed by a curator directly "
-        "(F26-R2).",
-        "Open the review as a proposer, steward or curator, or ask a curator to run the command "
-        "and commit what it writes.",
+        "The login is not the review's intent signer: the proposer the opening names, or, for a "
+        "review the network, a steward or a curator opened, an active steward of the target "
+        "(F26-R9; D-9 v3.39). Only the intent signer answers a question. The message says who it "
+        "is, or that the target has no steward yet (F26-Q5).",
+        "Leave the question to the intent signer; if the target has none, a steward is what it "
+        "needs (POST /stewards).",
     ),
-    "review-opened-twice": (
-        "gate",
+    "review-not-signer": (
+        "api",
         None,
-        "The target already has a review of this root version, and the new review.yaml does not "
-        "name it in `supersedes` (F26-R1, R2).",
-        "A second opening follows a D-8 revision of the root: set `supersedes` to the existing "
-        "review's source ref (the root it reviewed) and `source.ref` to the revised root; "
-        "otherwise add to the review that exists.",
+        "The login may not sign in the role it chose: intent is the intent signer's alone, and "
+        "the intent signer cannot also be the independent signer (F26-R9).",
+        "Sign in the role you hold, or leave the slot to the person who does.",
     ),
     "review-opener-not-allowed": (
-        "gate",
+        "both",
         None,
-        "The role the review was opened in is not one policy.json's `review_openers` lists "
-        "(F26-R2; the default lists proposer, steward and curator).",
-        "Ask one of the listed roles to open it, or change the setting by a curator pull request "
-        "on policy.json, dated with its reason.",
+        "The role the review was opened in may not open one: policy.json's `review_openers` does "
+        "not list it (F26-R2; the default lists proposer, steward and curator), or, at the "
+        "service, the login holds no role that may (curator, active steward, or the proposer "
+        "saying role: proposer) or claimed one it does not hold. The details name the roles "
+        "allowed.",
+        "Ask one of the listed roles to open it (a curator, a steward of the target, or, if you "
+        "proposed the problem, send role: proposer), or change the setting by a curator pull "
+        "request on policy.json, dated with its reason.",
     ),
-    "review-opener-not-held": (
-        "gate",
+    "review-question-answered": (
+        "api",
         None,
-        "The opener does not hold the role the review names, or is not who the pull request acts "
-        "for: a curator is listed in curators.json, a steward is active on the target, a proposer "
-        "is the one asking (F26-R2).",
-        "Open the review from the identity that holds the role (the service writes it from your "
-        "sign-in), or name the role you do hold.",
+        "The question is answered already: an answer record on the graph names it, or a pull "
+        "request of the service's that may still merge does (F26-R7).",
+        "Nothing to do; the answer becomes an intent test at the next run. To change an answer, "
+        "ask the review for a new question through a send-back signature.",
+    ),
+    "review-question-unknown": (
+        "api",
+        None,
+        "The review has no question with that id.",
+        "Name a waiting question: GET /reviews/<id>/questions (MCP list_review_questions) lists "
+        "them.",
+    ),
+    "review-signer-wrote-candidate": (
+        "api",
+        None,
+        "The login authored a candidate on the record, by pseudonym or by login, and the "
+        "independent signer wrote no candidate (F26-R9). The details name the candidates.",
+        "Leave the independent slot to someone who wrote no candidate.",
     ),
     "review-target-mismatch": (
         "gate",
@@ -2231,6 +2305,14 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "The registration record's target is not the target directory it sits under.",
         "File it under targets/<target>/registrations/ of the target it names; POST /registrations "
         "does.",
+    ),
+    "review-unknown": (
+        "api",
+        None,
+        "The target has no review on the graph, so there is nothing to submit a candidate, an "
+        "answer or a signature to, and nothing to read.",
+        "Open one with POST /reviews if your role allows (curator, steward of the target, or the "
+        "proposer), or wait for the network's background review of the target (F26-R2).",
     ),
     "relation-decl": (
         "both",

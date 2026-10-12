@@ -1,0 +1,130 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openproof.network/schemas/mcp/list_review_questions/v1.json",
+  "title": "mcp/list_review_questions/v1",
+  "description": "The result of the list_review_questions tool (F26-T10, R7; D-9, D-28 v3.39): the questions waiting on a review — every review-question/v1 record under targets/<id>/review/questions/ that no review-answer/v1 record names — each with its target_id, in the records' order: nothing is ranked (D-25). A question is written by the gate's review job from a kernel-checked exhibit, or raised by a signer's send-back; either way it is text an agent reads, so the answer carries the untrusted note. Or an error result naming the source that did not answer, or the filter refused (R10).",
+  "oneOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "read_at",
+        "target_id",
+        "count",
+        "questions",
+        "untrusted_note"
+      ],
+      "properties": {
+        "read_at": {
+          "description": "The commit of main the graph was read at, or the branch name when the service could not learn its head (F05-T13).",
+          "type": "string"
+        },
+        "target_id": {
+          "description": "The target filter as given; null for every target.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "questions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "target_id",
+              "id",
+              "question",
+              "raised_by",
+              "asked_to"
+            ],
+            "properties": {
+              "target_id": {
+                "type": "string"
+              },
+              "schema": {
+                "type": "string"
+              },
+              "target": {
+                "type": "string"
+              },
+              "id": {
+                "description": "The question's id, q-<n>; an answer names it.",
+                "type": "string"
+              },
+              "question": {
+                "description": "The question in words, phrased as the hypothesis it tests.",
+                "type": "string"
+              },
+              "raised_by": {
+                "description": "What raised it: a proved disagreement between clusters, a concept value candidates disagree on, a mutant every test passed, a shape the pairs could not settle, or a signer's send-back, with the record.",
+                "type": "object",
+                "required": [
+                  "kind",
+                  "ref"
+                ],
+                "properties": {
+                  "kind": {
+                    "enum": [
+                      "disagreement",
+                      "concept",
+                      "mutant",
+                      "shape",
+                      "signer"
+                    ]
+                  },
+                  "ref": {
+                    "type": "string"
+                  }
+                }
+              },
+              "asked_to": {
+                "description": "The role asked; only the intent signer answers.",
+                "enum": [
+                  "intent"
+                ]
+              },
+              "date": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "untrusted_note": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "description": "The plain path did not answer, or the arguments were refused (F09-R10)",
+      "required": [
+        "error",
+        "message",
+        "source"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "error": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "source": {
+          "enum": [
+            "graph",
+            "service",
+            "adapter"
+          ]
+        },
+        "status": {
+          "type": "integer"
+        }
+      }
+    }
+  ]
+}

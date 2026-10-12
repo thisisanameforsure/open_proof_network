@@ -319,6 +319,20 @@ def with_steward(h: Harness, token: str) -> dict[str, Any]:
     return {}
 
 
+def with_review(h: Harness, token: str) -> dict[str, Any]:
+    """F26-T10: a review open on the target, so a candidate has somewhere to go; the target
+    is the route's path."""
+    h.githost.files[f"targets/{TARGET}/review/review.yaml"] = (
+        b"schema: review/v1\ntarget: propositional\n"
+        b"opened_by: {identity: network, role: network}\ndate: '2026-09-01'\n"
+        b"words: In words.\ncases: []\nconcepts: []\n"
+        b"source: {kind: existing, ref: tutorial-and-swap}\ntracking: null\nsupersedes: null\n"
+    )
+    h.context.files.clear()
+    h.context.listings.clear()
+    return {"target_id": TARGET}
+
+
 def with_registration(h: Harness, token: str) -> dict[str, Any]:
     """F25-T4: alice an active steward of the target, and the passing attestation of the node's
     merge on the graph, so her login may record a registration naming it."""
@@ -473,6 +487,13 @@ WRITES: dict[str, tuple[dict[str, Any], str, dict[str, Any], Setup]] = {
         "POST /registrations",
         REGISTRATION,
         with_registration,
+    ),
+    # F26-T10 (D-9, D-35 v3.39): a candidate, body for body, the target in the path.
+    "submit_candidate": (
+        {"lean": "theorem OpnProp.c : True := trivial\n", "models": [], "read_others": False},
+        "POST /reviews/{target_id}/candidates",
+        {"lean": "theorem OpnProp.c : True := trivial\n", "models": [], "read_others": False},
+        with_review,
     ),
 }
 
