@@ -103,4 +103,4 @@ Q q-7 {'kind': 'mutant', 'ref': 'e-eb9f1935'} Does the conjecture hold at n = 2?
 
 == Checks before the commit
    uv run --frozen ruff check gate: All checks passed!  ruff format gate: unchanged.  mypy gate: Success, no issues found in 405 source files.
-   The walkthrough test (test_agents_md_executes) fails in this shell on 'uv: command not found' at AGENTS.md line 617 (uv not on the bash PATH the runner starts), not on anything here.
+   The walkthrough test (test_agents_md_executes) failed once in a shell without uv on PATH ('uv: command not found' at AGENTS.md line 617); with uv on PATH, gate/tests/test_walkthrough.py: 6 passed, 1 skipped (graph AGENTS.md not beside this worktree).
