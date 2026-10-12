@@ -135,7 +135,9 @@ def test_a_token_from_before_the_field_lapses_ninety_days_after_the_cutover() ->
     window from the deploy, never an instant lapse for every live agent. Restated (F05-T29): the
     window is the idle window, 180 days."""
     h = make_harness(env={"OPN_API_TOKEN_CUTOVER": "2026-10-10"})
-    held = Identity("01LEGACY", "old-hand", "github", "old-hand", "2026-09-01T00:00:00Z")
+    held = Identity(
+        "01LEGACY", "old-hand", "github", "old-hand", "2026-09-01T00:00:00Z", identity.DCO_VERSION
+    )
     h.store.put_identity(held)
     token = auth.new_token()
     h.store.put_token(
@@ -297,7 +299,9 @@ def test_a_revoked_identity_does_not_come_back_by_signing_in(harness: Harness) -
 
 def test_a_lapsed_identity_with_a_reserved_name_keeps_it(harness: Harness) -> None:
     """Reservation governs new identities (F05-T26): re-proving an existing one is not new."""
-    held = Identity("01ADMIN", "admin", "github", "alice", "2026-09-01T00:00:00Z")
+    held = Identity(
+        "01ADMIN", "admin", "github", "alice", "2026-09-01T00:00:00Z", identity.DCO_VERSION
+    )
     harness.store.put_identity(held)
     harness.store.put_token(
         TokenRecord(

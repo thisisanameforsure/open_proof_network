@@ -1,4 +1,4 @@
-# F13-T35: the guide explains lemmas (decisions v3.36, D-12; testers 2026-10-09b, C1)
+# F13-T35: the guide explains lemmas (decisions v3.38, D-12; testers 2026-10-09b, C1)
 
 Documentation only: gate/agents/AGENTS.md gains a paragraph under the entry task (what a lemma is, how it arises, what it gives, that it never blocks, where it shows: META lemmas, CONTEXT.json lemmas, get_node, the statement graph's keyed edge, and that a proof may name a proved lemma by its theorem name because Context.lean carries it); the carried-witness bullet (~l.1328), the after-the-merge paragraph, the restates-ancestor bullet, the get_submission prose and the appendix rows for get_node and get_submission are made consistent with the rule. No executed block added.
 

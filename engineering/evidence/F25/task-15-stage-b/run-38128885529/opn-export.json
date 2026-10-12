@@ -1,0 +1,65 @@
+{
+  "schema": "opn-export/v1",
+  "target_id": "erdos-1050",
+  "package": "OpnErdos1050",
+  "graph_commit": "5ff1734785078226f8a808b954f10a64145bbd3b",
+  "root": "erdos-1050",
+  "declaration": "Opn.erdos_1050",
+  "statement_hash": "679c2dd5b1400f16ae52bf3dcf9a26574e89e793eedd7fe5ff2e98a9fa7bd6c2",
+  "attestation": "000326.json",
+  "merge_commit": "e80916551a3013dd83cde70b4779df6460b8ca74",
+  "lean_toolchain": "leanprover/lean4:v4.33.1",
+  "mathlib_sha": "0df444a360eaa60ab8c11dca51a86af692955474",
+  "closure": [
+    "erdos-1050--h1-v2--h3",
+    "erdos-1050--h1-v2",
+    "erdos-1050"
+  ],
+  "pruned": {
+    "erdos-1050--h1-v2": {
+      "erdos-1050--h1-v2--h1": "declared, outside the proof term's footprint, and erdos_1050__h1_v2__h1 is not named in the proof's text (F18, F25-Q8)",
+      "erdos-1050--h1-v2--h2": "declared, outside the proof term's footprint, and erdos_1050__h1_v2__h2 is not named in the proof's text (F18, F25-Q8)",
+      "erdos-1050--h1-v2--h4": "declared, outside the proof term's footprint, and erdos_1050__h1_v2__h4 is not named in the proof's text (F18, F25-Q8)"
+    }
+  },
+  "kept_by_text": {},
+  "unmeasured": [],
+  "licence": {
+    "spdx": "Apache-2.0",
+    "source": "flag"
+  },
+  "classification": {
+    "arxiv": [
+      "math.NT"
+    ],
+    "msc2020": [
+      "11J72",
+      "11B25"
+    ],
+    "source": "flag"
+  },
+  "module_system": true,
+  "headers": "rewritten for the module system; every body byte-identical to the graph's (opn-export hashes_in are the graph's files, hashes_out the wrapper's)",
+  "hashes_in": {
+    "Challenge.lean": "679c2dd5b1400f16ae52bf3dcf9a26574e89e793eedd7fe5ff2e98a9fa7bd6c2",
+    "OpnErdos1050/Nodes/erdos_1050__h1_v2__h3.lean": "da8d67aab2f67610ce0da375db6019d53ff85895969dcf1830f5fab179a7b683",
+    "OpnErdos1050/Nodes/erdos_1050__h1_v2.lean": "41533dc1fe333e823c0aefa2d80c73a020d7e46f88412d2bfaae9386a128ffdb",
+    "Solution.lean": "7fce90cd718e05d5af54bfe13e0cd316c04769ef58e9db84010d91039bd603e9"
+  },
+  "hashes_out": {
+    ".github/workflows/palomar-preflight.yml": "5f0156541485712f553295ec8d3ddfef16dc4590296393f82cfe2bf64111454a",
+    "Challenge.lean": "197bbf1a43322a4b1d2b0d4d442e14ffe373ba7ca25abbca4cfced6d39a16beb",
+    "LICENSE": "b40930bbcf80744c86c46a12bc9da056641d722716c378f5659b9e555ef833e1",
+    "OpnErdos1050.lean": "d2865c88076c74e68156378d5314c39adff5b263541deefc2becbe74d461240c",
+    "OpnErdos1050/Nodes/erdos_1050__h1_v2.lean": "a64d9b895c4142cf7c6d39ac8ec837444a112050c1808f9cbb945cb41521bed8",
+    "OpnErdos1050/Nodes/erdos_1050__h1_v2__h3.lean": "402a314f686ca6a4ff540862ee7862f6c3395ebd36be2bd1c5c62480a7ce9369",
+    "README.md": "934bf0ff863be54d3ec445b4a60f23c13948d20aebb06a063305a9a5ed4c68f4",
+    "Solution.lean": "610b702b9d6e3fe0977494b0debf1fb60881af498f2610cdf318cdb5a9dcbf68",
+    "comparator.json": "23a63da0169e00ce17292e69fd0d8e23f393e178bdc799b624a970109a332b41",
+    "formalization.yaml": "b4da79d3c6fcbfecfeb1a65651b4fff089d9a1331b3e83ada56728c2d64ace14",
+    "lake-manifest.json": "95bfd6ccdaeaf1c8e23a35e0cc038dbc162f9234d39458994cfcc1dad8b6d356",
+    "lakefile.toml": "4bca9b156c14bb5d7eb5cea6350c9d0bfd883c847ab18ee2df75a35d62610529",
+    "lean-toolchain": "3aac669c7a910ec2389f4e4f921b605adf6ebf2d1e0c9b9cd0be4d33f3f5db71"
+  },
+  "registry_pins_observed": "2026-10-11"
+}

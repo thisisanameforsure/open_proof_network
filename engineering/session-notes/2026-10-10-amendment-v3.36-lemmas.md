@@ -1,7 +1,9 @@
-# Decisions amendment v3.36: a restated node under another branch is a lemma of its parent
+# Decisions amendment v3.38: a restated node under another branch is a lemma of its parent
+
+> Numbering note (2026-10-12): built and approved on 2026-10-10 as v3.36 (this file's name keeps that), merged to main on 2026-10-12 as **v3.38**, because v3.37 (registration in Palomar) was applied to main first and v3.36 stays reserved for the unapplied formalization-review draft. Every schema the amendment adds took the next free version at the merge: `graph/v8` (F25's `graph/v7`, registrations, had landed), `context/v6`, `meta/v6`; PROTOCOL_VERSION 3.38.
 
 **Status (2026-10-10): approved by the owner ("alright lets plan option B"; "ok sounds good. add lots
-of testing, and verify visually.") and applied as decisions v3.36.** Plan:
+of testing, and verify visually.") and applied as decisions v3.38.** Plan:
 `~/.claude/plans/option-b-restated-sibling-lemma.md`.
 
 Source: one tester told to solve erdos-1094 through the MCP (`engineering/evidence/testers-2026-10-09b/
@@ -42,7 +44,7 @@ has neither relation to this parent, and a *declared* dependency must keep block
 
 - `meta/v6`: optional `lemmas: [{hole, node}]`.
 - `context/v6`: `lemmas` beside `deps`, each with the hole name, signature, status and cause.
-- `graph/v7`: each node's `lemmas`; a decomposition's hole may resolve to a lemma's node.
+- `graph/v8`: each node's `lemmas`; a decomposition's hole may resolve to a lemma's node.
 - `graph.NodeFacts.lemmas` (`Lemma(hole, node)`, read through revisions as deps are), so the
   consumers below build on one accessor.
 
@@ -51,7 +53,7 @@ has neither relation to this parent, and a *declared* dependency must keep block
 Gate writer and readers (F07, F08, F03): `apply_partial` writes the edge and regenerates Context;
 `blocked_because`, `stage`, step 8 and `context_for` give it a hole's standing; the two tests that
 pinned "a restated sibling records no edge" are restated to the new rule. Products and context
-(F03, F10): `graph/v7` `lemmas`, `decompositions[].holes[].node` resolving to the lemma, `context/v6`,
+(F03, F10): `graph/v8` `lemmas`, `decompositions[].holes[].node` resolving to the lemma, `context/v6`,
 `PROTOCOL_VERSION` 3.36, goldens. Site (F04): a lemma edge drawn and keyed, listed on the node page,
 screenshots measured. Service and guide (F09, F13, F06): accepted versions, `get_node`, the receipt's
 note, the guide's sentence. Then the re-pin, a backfill of `--h3`'s edge in the footprint-backfill

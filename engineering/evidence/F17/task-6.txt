@@ -1,0 +1,28 @@
+$ uv run pytest -m lean gate/tests/test_prove_lean.py -rA -k 'not onramp and not echoes-inlined-defs'   # 2026-09-25T21:35:03Z
+# Lean 4.33.1 (commit 819816b2) from the GitHub release, linked into elan v4.2.4 (elan toolchain link);
+# the on-ramp cases need the pinned Mathlib checkout and run in CI's lean tier
+PASSED gate/tests/test_prove_lean.py::test_elaborates[propositional/propositional/and-reassoc]
+PASSED gate/tests/test_prove_lean.py::test_elaborates[propositional/propositional/and-swap-reassoc]
+PASSED gate/tests/test_prove_lean.py::test_elaborates[propositional/propositional/tutorial-and-swap]
+PASSED gate/tests/test_prove_lean.py::test_accepted_answers_elaborate[bare-tactics]
+PASSED gate/tests/test_prove_lean.py::test_accepted_answers_elaborate[by-block]
+PASSED gate/tests/test_prove_lean.py::test_accepted_answers_elaborate[comment-banner]
+PASSED gate/tests/test_prove_lean.py::test_accepted_answers_elaborate[crlf]
+PASSED gate/tests/test_prove_lean.py::test_accepted_answers_elaborate[plan-then-fence]
+PASSED gate/tests/test_prove_lean.py::test_accepted_answers_elaborate[renamed-theorem]
+PASSED gate/tests/test_prove_lean.py::test_accepted_answers_elaborate[trailing-prose]
+PASSED gate/tests/test_prove_lean.py::test_accepted_answers_elaborate[whole-file]
+11 passed, 3 deselected in 4.61s
+
+The first run errored at setup on all eleven: the module fixture resolved the Mathlib toolchain
+eagerly, which needs the checkout even for core-only nodes. Resolution is lazy now.
+
+CI, 2026-09-25: `make verify-lean` on 6c70506 (the commit carrying the lazy toolchain fixture),
+run 36192405224, job 108260363976:
+
+  gate/tests/test_prove_lean.py ..............                             [ 82%]
+  ======== 119 passed, 3145 deselected, 2 warnings in 3684.55s (1:01:24) =========
+
+14 of 14: the 11 core-only cases above plus the 3 on-ramp cases (the two on-ramp exports and the
+fact-pos corpus proof), elaborated against the pinned Mathlib checkout. Nothing in the run skipped.
+The earlier commit 89f4be2, with the eager fixture, was also green (run 36191768779).

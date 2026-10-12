@@ -83,9 +83,10 @@
       "uses": []
     }
   ],
+  "registrations": [],
   "rendered_from": "5555555555555555555555555555555555555555",
   "root": "and-swap-reassoc",
-  "schema": "graph/v7",
+  "schema": "graph/v8",
   "target_id": "propositional",
   "target_proofs": []
 }

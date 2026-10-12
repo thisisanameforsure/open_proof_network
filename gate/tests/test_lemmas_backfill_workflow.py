@@ -1,4 +1,4 @@
-"""F08-T41 (D-12 v3.36): the lemmas backfill workflow holds no authority and runs Lean only in
+"""F08-T41 (D-12 v3.38): the lemmas backfill workflow holds no authority and runs Lean only in
 the sandbox — the footprint backfill's shape (F18-T7).
 
 Asserted where it is enforced, in the YAML (engineering/CLAUDE.md, 2026-09-09): read-only

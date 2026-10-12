@@ -1,0 +1,12 @@
+[mcp_servers.docs]
+url = "https://example.com/mcp"
+bearer_token_env_var = "EXAMPLE_TOKEN"
+http_headers = { "X-Example" = "value" }
+env_http_headers = { "X-Example" = "EXAMPLE_ENV" }
+enabled = true
+required = false
+startup_timeout_sec = 30
+tool_timeout_sec = 300
+enabled_tools = ["a"]
+disabled_tools = ["b"]
+default_tools_approval_mode = "approve"

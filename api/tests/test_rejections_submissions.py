@@ -6,7 +6,14 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from api_fakes import TUTORIAL_NODE, TUTORIAL_PROOF, Harness, PrecheckKey, make_precheck_key
+from api_fakes import (
+    AUTOMATION,
+    TUTORIAL_NODE,
+    TUTORIAL_PROOF,
+    Harness,
+    PrecheckKey,
+    make_precheck_key,
+)
 
 from opn_api import precheck
 
@@ -24,6 +31,7 @@ def submit(h: Harness, token: str, **overrides: Any) -> Any:
         "node_id": TUTORIAL_NODE,
         "artifact_type": "proof",
         "bundle": {PROOF_PATH: TUTORIAL_PROOF},
+        "automation": AUTOMATION,
     }
     body.update(overrides)
     return h.client.post("/submissions", json=body, headers=h.auth(token))

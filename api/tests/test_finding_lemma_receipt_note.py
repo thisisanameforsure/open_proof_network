@@ -1,9 +1,9 @@
-"""F06-T17 (decisions v3.36, D-12; testers 2026-10-09b, C1): a partial's receipt says what a
+"""F06-T17 (decisions v3.38, D-12; testers 2026-10-09b, C1): a partial's receipt says what a
 hole that restates a node under another branch becomes.
 
 F06-T15's receipt named such a hole with ``expected_new: false`` and a note that read "a hole
 restating an existing node is that node", which to the agent of C1 meant nothing would happen —
-and under the old rule nothing did (F07-R22). Under v3.36 the node becomes a *lemma* of the
+and under the old rule nothing did (F07-R22). Under v3.38 the node becomes a *lemma* of the
 parent: usable once proved, never waited on, its theorem in the parent's ``Context.lean``. The
 note says so; the precheck's own result document is unchanged (the gate computes
 ``expected_new``).

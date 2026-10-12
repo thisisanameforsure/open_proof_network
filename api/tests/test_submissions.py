@@ -13,6 +13,7 @@ from typing import Any
 
 import pytest
 from api_fakes import (
+    AUTOMATION,
     TUTORIAL_NODE,
     TUTORIAL_PROOF,
     Harness,
@@ -43,6 +44,7 @@ def submit(h: Harness, token: str, **overrides: Any) -> Any:
         "artifact_type": "proof",
         "bundle": bundle(),
         "tooling": {"model": "claude-opus-5", "version": "2026-09", "harness": "claude-code"},
+        "automation": AUTOMATION,  # F25-R2: required of every artifact
     }
     body.update(overrides)
     return h.client.post("/submissions", json=body, headers=h.auth(token))

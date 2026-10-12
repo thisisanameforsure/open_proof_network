@@ -49,7 +49,7 @@ NODE_FILES: tuple[tuple[str, bool], ...] = (  # (file, required): the raw files 
 #: an older document does not carry simply matches nothing (F11-R4).
 FRONTIER_SCHEMA = "frontier/v5"  # F09-T24: `circular`, `literature`, `literature_proposed` too
 #: The ``CONTEXT.json`` versions get_node serves: the gate module's own set, plus the version the
-#: v3.36 re-pin first renders (F10-T49), so the service accepts it whichever side of that
+#: v3.38 re-pin first renders (F10-T49), so the service accepts it whichever side of that
 #: re-pin it is deployed on (the deploy-window lesson of 2026-09-11).
 CONTEXT_SCHEMAS: tuple[str, ...] = tuple(
     dict.fromkeys((*context.ACCEPTED, "context/v6"))  # ordered, without a repeat
@@ -229,11 +229,46 @@ async def get_target(call: Call, args: dict[str, Any]) -> dict[str, Any]:
         approaches.append(
             {"path": path, "record": demarcate.record(document(call.ctx, path), path)}
         )
+    # F25-R15 (D-3 v3.37): the target's registrations, as graph/v7 publishes them; a graph.json
+    # rendered before v7 carries none, and the answer says so with an empty list.
+    registrations = graph.get("registrations")
     return {
         "target_id": target_id,
         "graph": graph,
         "approaches": approaches,
+        "registrations": registrations if isinstance(registrations, list) else [],
         "untrusted_note": demarcate.UNTRUSTED_NOTE,
+    }
+
+
+async def list_registrations(call: Call, args: dict[str, Any]) -> dict[str, Any]:
+    """F25-R15 (D-3, D-10 v3.37): every registration the products derive per target, read from
+    ``targets/index.json``'s rows (``targets-index/v10``'s ``registrations``), in the index's
+    order: nothing is ranked (D-25) and nothing is recorded. An index rendered before v10 carries
+    the field on no row, so it lists none. Every value is an identifier, an enum or a url the
+    products built from validated records, so nothing is demarcated."""
+    ctx = call.ctx
+    target_id = args.get("target_id")
+    if target_id is not None:
+        target_id = check_id(target_id, "target_id")
+    index_path = "targets/index.json"
+    index = document(ctx, index_path)
+    entries = [e for e in index.get("targets") or [] if isinstance(e, dict)]
+    if target_id is not None:
+        entries = [e for e in entries if e.get("target_id") == target_id]
+        if not entries:
+            raise error("not-found", f"no target {target_id} in {index_path} at main", "graph")
+    found: list[dict[str, Any]] = []
+    for entry in entries:
+        rows = entry.get("registrations")
+        for row in rows if isinstance(rows, list) else []:
+            if isinstance(row, dict):
+                found.append({"target_id": str(entry.get("target_id")), **row})
+    return {
+        "read_at": ctx.head or ctx.settings.graph_branch,
+        "target_id": target_id,
+        "count": len(found),
+        "registrations": found,
     }
 
 
@@ -392,7 +427,7 @@ def node_context(ctx: Context, target_id: str, node_id: str) -> tuple[dict[str, 
 def closing_route(node_id: str, statement: str | None) -> dict[str, Any]:
     """How this node is closed through its holes and dependencies (F00-T10). Their theorems
     reach a proof through the node's own ``Context``, and so does a proved lemma's (D-12
-    v3.36: a node another branch's hole restated, listed in ``lemmas``, which a direct proof may
+    v3.38: a node another branch's hole restated, listed in ``lemmas``, which a direct proof may
     name as it names a hole's); a statement written since 2026-09-20
     imports it, and a proof of an older one adds the line itself, which is the one import step 2
     allows. Two agents learned that a root could not be assembled from its holes at minute 37,
@@ -526,7 +561,7 @@ async def get_node(call: Call, args: dict[str, Any]) -> dict[str, Any]:
         "closing": closing_route(node_id, files.get("Statement.lean")),
         "files": files,
         "claims": dict(entry["claims"]) if entry is not None else None,
-        # F09-T72 (D-12 v3.36): the lemmas the bundle lists — nodes under other branches a
+        # F09-T72 (D-12 v3.38): the lemmas the bundle lists — nodes under other branches a
         # merged partial of this node restated as holes, usable once proved — lifted beside
         # the bundle so an agent reads what a proof may draw on without knowing the version;
         # a bundle older than context/v6 has no key and the answer says none.
@@ -873,7 +908,7 @@ TOOLS: tuple[Tool, ...] = (
         params({}),
         list_targets,
     ),
-    Tool(
+    Tool(  # F25-R15: `registrations` rides beside the graph, as graph/v7 publishes them
         "get_target",
         "A target's graph structure and node statuses, with its approach records.",
         params({"target_id": ID_PARAM}, ("target_id",)),
@@ -1080,5 +1115,17 @@ TOOLS: tuple[Tool, ...] = (
             }
         ),
         list_words_needed,
+    ),
+    # F25-T4: D-28's read table, v3.37.
+    Tool(
+        "list_registrations",
+        "Every registration of a target in a public registry (Palomar), as the products derive "
+        "it from the target's registration records: registry, registry_id, version, status "
+        "(submitted, registered, revision_required, rejected) and url, with the target_id, in the "
+        "index's order and ranked by nothing. `target_id` keeps one target (not-found when the "
+        "index has no such target). Read from targets/index.json at main's head; an index "
+        "rendered before the field existed lists none. Plain path: targets/index.json.",
+        params({"target_id": {**ID_PARAM, "description": "Only this target's registrations."}}),
+        list_registrations,
     ),
 )

@@ -140,7 +140,7 @@ def test_every_output_class_has_a_key_entry() -> None:
         "off-proof": "not-needed",
         "edge use": "use",
         "edge proposed": "proposed-for",
-        "edge lemma": "lemma",  # F04-T39 (D-12 v3.36): a restated node under another branch
+        "edge lemma": "lemma",  # F04-T39 (D-12 v3.38): a restated node under another branch
         "outline-mark": "outline",
         "circular-mark": "circular",
     }

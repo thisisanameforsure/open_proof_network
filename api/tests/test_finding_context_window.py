@@ -28,7 +28,7 @@ def test_a_committed_v1_bundle_is_served_through_the_window(
     derived = derived_bundle(harness, tmp_path / "tree")
     # F08-T36: the bundle is context/v3 (defect_claims), since F22-T13 context/v4 (a cause on
     # each dep) and since F10-T19 context/v5 (circular, literature, literature_proposed; D-12
-    # and D-25 v3.35), since F10-T49 context/v6 (lemmas; D-12 v3.36); v1 is still served from
+    # and D-25 v3.35), since F10-T49 context/v6 (lemmas; D-12 v3.38); v1 is still served from
     # a file.
     assert derived["schema"] == "context/v6" and derived["circular_below"] == []
     assert derived["defect_claims"] == [] and derived["circular"] == []

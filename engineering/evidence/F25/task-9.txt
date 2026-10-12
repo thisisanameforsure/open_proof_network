@@ -1,0 +1,5 @@
+# F25-T9 — the port (R12): pins rewritten, Challenge frozen, build failures classified, the registry's preflight report read, steps over a runner seam; palomar-port command. 2026-10-11T05:35:16Z
+
+8 passed in 29.40s
+
+## the real port (lake update, cache, build, comparator at v4.35.0-rc2) is T15's live run; here: the fake runner's step order and the classification of a canned build

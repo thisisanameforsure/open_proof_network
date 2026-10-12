@@ -1,7 +1,7 @@
-# F08-T41 (D-12 v3.36): write the lemma edges of the partials merged before v3.36, and hand the
+# F08-T41 (D-12 v3.38): write the lemma edges of the partials merged before v3.38, and hand the
 # curator the files.
 #
-# Before v3.36 a hole that restated a node under another branch of its target recorded no edge
+# Before v3.38 a hole that restated a node under another branch of its target recorded no edge
 # (F07-R22, v3.19), so the merged assembly could never be used and the restatement reached only
 # the post-merge job's log. `opn-gate lemmas-backfill` re-extracts every merged partial of a target
 # by the same steps (1, 2 and 4 in the step-3 sandbox) and writes, into the checkout, the META.yaml
@@ -43,7 +43,7 @@ env:
 
 jobs:
   backfill:
-    name: lemma edges of the partials merged before v3.36
+    name: lemma edges of the partials merged before v3.38
     runs-on: ubuntu-24.04
     timeout-minutes: 300
     steps:

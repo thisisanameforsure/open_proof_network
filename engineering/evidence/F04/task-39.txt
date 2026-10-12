@@ -1,12 +1,12 @@
-F04-T39: a lemma from another branch is drawn, keyed, listed and lit (D-12 v3.36) — evidence, 2026-10-10
-worktree /Users/mikehiggins/Desktop/repos/opn-lemma-site, branch lemma-site, from b2f5f63 (decisions v3.36, graph/v7 contract)
+F04-T39: a lemma from another branch is drawn, keyed, listed and lit (D-12 v3.38) — evidence, 2026-10-10
+worktree /Users/mikehiggins/Desktop/repos/opn-lemma-site, branch lemma-site, from b2f5f63 (decisions v3.38, graph/v8 contract)
 
-== red (the new tests against the site as committed at b2f5f63; the fixture already rewritten to graph/v7) ==
+== red (the new tests against the site as committed at b2f5f63; the fixture already rewritten to graph/v8) ==
 $ uv run --frozen pytest site/tests/test_finding_lemma_edge.py site/tests/test_finding_circular_key.py site/tests/test_finding_dag_layout.py -q -m "not lean and not docker and not network"
   23 failed, 54 passed, 1 skipped in 2.60s
   each red on the defect itself, not on a missing name:
-    E  AssertionError: assert 'graph/v7' in ('graph/v1', ..., 'graph/v6')                     (model accepts v7)
-    E  SiteError: product targets/propositional/graph.json is graph/v7, which this generator does not render
+    E  AssertionError: assert 'graph/v8' in ('graph/v1', ..., 'graph/v6')                     (model accepts v7)
+    E  SiteError: product targets/propositional/graph.json is graph/v8, which this generator does not render
     E  AssertionError: assert [] == ['a']                                                        (dag.below: a lemma is below its parent)
     E  AssertionError: assert ('a', 'b', 'edge lemma') in [('a', 'r', 'edge'), ('b', 'r', 'edge')]   (dag.lines)
     E  assert None  where None = re.search('<path class="edge lemma[^"]*" data-from="a" data-to="b"', ...)   (dag.svg)
@@ -14,7 +14,7 @@ $ uv run --frozen pytest site/tests/test_finding_lemma_edge.py site/tests/test_f
     E  assert None is not None                                                                   (no .dag .edge.lemma rule in site.css)
     E  KeyError: 'lemma'                                                                         (no glossary key)
     E       AssertionError: dag no longer draws edge lemma; update this guard       (the key guard, test_every_output_class_has_a_key_entry)
-  the SiteError ("graph/v7, which this generator does not render") took every page-level test down with it; the dag
+  the SiteError ("graph/v8, which this generator does not render") took every page-level test down with it; the dag
   tests failed on the missing line, the key tests on the missing glossary key ('lemma'), the CSS test on the missing rule.
   The old model refused the new contract outright: a live render at the re-pin would have had no site at all.
 
@@ -34,12 +34,12 @@ Regenerated with test_render.write_goldens() (PYTHONPATH as pyproject's pythonpa
   problems/propositional/index.html                 — the key gains the lemma term; the drawing gains the dash-dot line
                                                       and-reassoc → tutorial-and-swap (class "edge lemma"), and tutorial-and-swap
                                                       moves to the middle row because it now rests on and-reassoc
-The fixture (site/tests/fixture.py, build → publish_v336) hand-writes one lemma into graph.json at graph/v7:
+The fixture (site/tests/fixture.py, build → publish_v336) hand-writes one lemma into graph.json at graph/v8:
 tutorial-and-swap's merged partial restated and-reassoc as hole h_reassoc. Not in deps (D-3). publish_v335 now
-writes graph/v7 too (v6 refuses a row with lemmas); the one test that lowers a graph by hand pops lemmas with the v6 fields.
+writes graph/v8 too (v6 refuses a row with lemmas); the one test that lowers a graph by hand pops lemmas with the v6 fields.
 
 == the fifth live shape ==
-site/tests/dag_live_shapes.json gains erdos-1094 after v3.36: --h3 carries lemmas [{h_good_below_cube, --h2--h1--h1}] with
+site/tests/dag_live_shapes.json gains erdos-1094 after v3.38: --h3 carries lemmas [{h_good_below_cube, --h2--h1--h1}] with
 --h2--h1--h1 under --h2--h1 under --h2. The lemma line crosses branches; the layout draws the shape with zero crossings and
 no line behind a pill (test_the_lemma_crossing_branches_still_draws_with_no_crossing), and the four older shapes are unchanged.
 

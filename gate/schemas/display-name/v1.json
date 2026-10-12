@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openproof.network/schemas/display-name/v1.json",
+  "title": "display-name/v1",
+  "description": "names/<pseudonym>.yaml at the graph root (F25-R6; D-3, D-19 v3.37): the display name, and optionally a link, a contributor chooses to be shown by where the network names its contributors outside itself — a registration's authors — in place of their pseudonym. Written only by the holder of the pseudonym, through the service, and signed by the approval key; the gate refuses any other writer. The latest record wins; a record whose `name` is null withdraws the name. Nothing on the site reads it in this version. A one-way publication of a name, which is why withdrawal exists from the first version. Versioned, never edited (D-34).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "pseudonym",
+    "name",
+    "link",
+    "date",
+    "via",
+    "key",
+    "signature"
+  ],
+  "properties": {
+    "schema": {
+      "const": "display-name/v1"
+    },
+    "pseudonym": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9-]{1,39}$",
+      "description": "the ledger identity the name is for; the file is named after it"
+    },
+    "name": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        }
+      ],
+      "description": "the display name; null withdraws an earlier one"
+    },
+    "link": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/url"
+        }
+      ],
+      "description": "an ORCID record or an institutional page, optional; rendered only through an allowlist built from validated records (F11-Q11)"
+    },
+    "date": {
+      "$ref": "#/$defs/day"
+    },
+    "via": {
+      "enum": [
+        "ssh",
+        "approval-key"
+      ],
+      "description": "how the signature was made: `approval-key`, by the network's approval key through the service for the bearer of the pseudonym's token; `ssh`, by the holder's own key, for a hand-opened pull request from the GitHub login the pseudonym is paired with"
+    },
+    "key": {
+      "$ref": "#/$defs/public_key",
+      "description": "the key the signature verifies under"
+    },
+    "signature": {
+      "$ref": "#/$defs/sshsig",
+      "description": "an OpenSSH SSHSIG armored signature over the record's canonical body (opn_gate.signed)"
+    }
+  },
+  "$defs": {
+    "day": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+    },
+    "url": {
+      "type": "string",
+      "pattern": "^https://",
+      "maxLength": 500
+    },
+    "public_key": {
+      "type": "string",
+      "pattern": "^ssh-ed25519 [A-Za-z0-9+/=]+( [^\\n]*)?$",
+      "maxLength": 1000
+    },
+    "sshsig": {
+      "type": "string",
+      "pattern": "^-----BEGIN SSH SIGNATURE-----\\n[A-Za-z0-9+/=\\n]+-----END SSH SIGNATURE-----\\n?$",
+      "maxLength": 4000
+    }
+  }
+}

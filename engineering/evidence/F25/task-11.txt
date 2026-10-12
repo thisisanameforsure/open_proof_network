@@ -1,0 +1,54 @@
+F25-T11 verification - 2026-10-11, branch f25-t11 from f25-palomar 1820b64c
+
+## Red first: gate/tests/test_finding_guide_f25_fields.py against HEAD's AGENTS.md and codes.py
+FAILED gate/tests/test_finding_guide_f25_fields.py::test_every_registration_field_is_named_in_the_guide
+FAILED gate/tests/test_finding_guide_f25_fields.py::test_every_registration_field_the_tool_takes_is_described
+FAILED gate/tests/test_finding_guide_f25_fields.py::test_the_display_name_fields_are_named_and_described
+FAILED gate/tests/test_finding_guide_f25_fields.py::test_every_f25_route_is_named_in_the_guide_and_has_a_purpose
+FAILED gate/tests/test_finding_guide_f25_fields.py::test_every_f25_code_is_named_in_the_guide
+FAILED gate/tests/test_finding_guide_f25_fields.py::test_the_shared_refusal_names_all_three_acts
+6 failed, 3 passed in 2.33s
+
+## Named verification command
+$ uv run --frozen pytest -q -p no:cacheprovider gate/tests/test_finding_guide_names_exist.py gate/tests/test_finding_guide_f25_fields.py gate/tests/test_walkthrough.py gate/tests/test_error_codes.py api/tests/test_finding_route_index.py api/tests/test_mcp_surface.py -m 'not lean and not docker'
+..........................s.....................                         [100%]
+api/tests/api_fakes.py:32
+
+.venv/lib/python3.13/site-packages/starlette/testclient.py:53
+
+=========================== short test summary info ============================
+SKIPPED [1] gate/tests/test_walkthrough.py:235: /Users/mikehiggins/Desktop/repos/open_proof_network/.claude/worktrees/open_proof_network_graph/AGENTS.md is not checked out beside this repo
+
+## The walkthrough's per-block report (test_agents_md_executes, -s): first lines, the new block, the total
+2:line   40 passed   test -d "$GRAPH/targets"
+3:line   59 passed   META="$(grep -l '^tutorial: true' "$GRAPH"/targets/*/nodes/*/META.yaml
+4:line   88 passed   cat "$NODE_DIR/Statement.lean"
+51:line 2580 passed   curl -fsS "$OPN_API/errors.json?prefix=registration-" | python3 -c '
+56:51 passed, 0 drifted, 0 failed, 3 skipped
+
+## The audit's other files (task-11-audit.md rows 5, 13-17)
+$ uv run --frozen pytest -q -p no:cacheprovider api/tests/test_dco.py api/tests/test_submission_automation.py api/tests/test_registrations.py api/tests/test_me_name.py gate/tests/test_registration.py api/tests/test_mcp_equivalence.py api/tests/test_finding_mcp_context_budget.py api/tests/test_finding_llms_txt.py
+123 passed, 2 warnings in 11.66s
+
+## make lint
+exit: 0
+uv run --frozen ruff format --check .
+743 files already formatted
+
+## make types
+exit: 0
+Success: no issues found in 359 source files
+Success: no issues found in 237 source files
+Success: no issues found in 82 source files
+
+## Smokes and deploy check: the greps behind audit rows 19 and 20
+$ grep -n 'targets-index/v\|graph/v\|attestation/v\|frontier/v\|/me/name\|/registrations' api/tools/smoke*.py
+(no matches)
+$ grep -n 'wanted = ' api/tools/smoke_mcp.py
+107:    wanted = sorted(t.name for t in TOOLS)
+$ grep -rn 'targets-index/v\|graph/v[0-9]\|attestation/v[0-9]' api/opn_api --include='*.py'
+api/opn_api/uses.py:27:  row carries one, its ``uses`` (graph/v4, T27). Until T27 publishes uses, a merged use the
+api/opn_api/mcp/reads.py:232:    # F25-R15 (D-3 v3.37): the target's registrations, as graph/v7 publishes them; a graph.json
+api/opn_api/mcp/reads.py:246:    ``targets/index.json``'s rows (``targets-index/v10``'s ``registrations``), in the index's
+api/opn_api/mcp/reads.py:904:    Tool(  # F25-R15: `registrations` rides beside the graph, as graph/v7 publishes them
+## Named verification command, its count line: 47 passed, 1 skipped, 1 deselected, 2 warnings in 11.42s

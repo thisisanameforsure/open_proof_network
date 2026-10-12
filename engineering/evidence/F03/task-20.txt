@@ -1,8 +1,8 @@
-F03-T20 — graph/v7 publishes each node's lemmas (D-12 v3.36). Worktree opn-lemma-products, branch lemma-products, base b2f5f63. 2026-10-10.
+F03-T20 — graph/v8 publishes each node's lemmas (D-12 v3.38). Worktree opn-lemma-products, branch lemma-products, base b2f5f63. 2026-10-10.
 
 == RED (tests written first; gate/tests/test_finding_graph_lemmas.py; products.py untouched) ==
 13 failed, 1 passed in 1.13s
-E       AssertionError: assert 'graph/v6' == 'graph/v7'
+E       AssertionError: assert 'graph/v6' == 'graph/v8'
 E       KeyError: 'lemmas'
 FAILED gate/tests/test_finding_graph_lemmas.py::test_a_decompositions_hole_resolves_to_the_lemma
 FAILED gate/tests/test_finding_graph_lemmas.py::test_a_hole_the_tree_does_not_hold_is_still_null
@@ -14,7 +14,7 @@ FAILED gate/tests/test_finding_graph_lemmas.py::test_lemmas_keep_the_records_ord
 FAILED gate/tests/test_finding_graph_lemmas.py::test_the_generated_products_validate_and_carry_the_lemma
 (the one 'revise' GraphError was the test helper's own bug — the -v2 copy kept the original's Context import and statement-hash — fixed in the helper before the implementation; every other red is the defect: schema v6 not v7, no 'lemmas' key)
 
-== GREEN after products.py (GRAPH_SCHEMA graph/v7, lemmas per row, decompositions_of resolving to a lemma, PROTOCOL_VERSION 3.36) ==
+== GREEN after products.py (GRAPH_SCHEMA graph/v8, lemmas per row, decompositions_of resolving to a lemma, PROTOCOL_VERSION 3.36) ==
 ..............                                                           [100%]
 14 passed in 1.11s
 
@@ -24,13 +24,13 @@ FAILED gate/tests/test_finding_graph_lemmas.py::test_the_generated_products_vali
    9 + "schema": "context/v6",
    3 - "schema": "graph/v6",
    3 - "protocol_version": "3.35",
-   3 + "schema": "graph/v7",
-   3 + "protocol_version": "3.36",
+   3 + "schema": "graph/v8",
+   3 + "protocol_version": "3.38",
 15 files: 3x info.json (protocol_version), 3x graph.json (schema const + 'lemmas': [] on each of 3 nodes), 9x CONTEXT.json (schema const + 'lemmas': []) — nothing else changed.
 api/tests/fixtures/info.json: protocol_version 3.11 -> 3.36 (its schema index already matched the curated golden since b2f5f63; F05-Q5).
 
 == Version-pinned tests restated ==
-gate/tests/test_products.py:315 protocol_version 3.36; gate/tests/test_node_proofs.py GRAPH_SCHEMA graph/v7; gate/tests/test_circular_label.py the next versions (graph/v7, frontier/v5, context/v6).
+gate/tests/test_products.py:315 protocol_version 3.36; gate/tests/test_node_proofs.py GRAPH_SCHEMA graph/v8; gate/tests/test_circular_label.py the next versions (graph/v8, frontier/v5, context/v6).
 
 == Lint and types ==
 Success: no issues found in 343 source files

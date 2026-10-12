@@ -1161,7 +1161,7 @@ def test_ledger_writes_the_proposers_statement_line_from_the_merge(
     assert code == cli.EXIT_PASS
     assert out["earned"] is True and out["identity"] == "alice" and out["node"] == "spec-one"
     assert out["line"] == "statement" and out["written"] == "ledger/alice.json"
-    doc = schemas.load_json(root / "ledger" / "alice.json", "ledger/v1")
+    doc = schemas.load_json(root / "ledger" / "alice.json", "ledger/v2")  # v2: F25-T1
     assert doc["entries"][0]["merge_commit"] == head
     assert doc["entries"][0]["artifact"] == "Statement.lean"
 

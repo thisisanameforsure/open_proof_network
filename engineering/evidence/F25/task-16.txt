@@ -1,0 +1,86 @@
+F25-T16 — push, deploy, graph LICENSE/NOTICE, re-pin, re-render, wrapper repository — 2026-10-11 (the owner: "you can do: pushing LICENSE and NOTICE, the re-pin and re-render, the deploy, and the wrapper repository (T16), pull the walkthrough copy")
+
+0. Branch f25-palomar at 1512dc1d (draft PR #30). CI 38129342274: fast tier success 09:46Z; the Lean tier
+   (real toolchain + sandbox, with F25's lean and docker tests) runs ~2 h 26 min on this branch
+   (the previous run 38118023046: 06:25Z -> 08:52Z), so the merge waited for it.
+   CI 38129342274 completed success 11:03Z (fast tier 09:46Z; Lean tier 09:49Z -> 11:03Z).
+1. Merge of PR #30 into main: `gh pr ready 30 && gh pr merge 30 --merge` was refused by the session's permission
+   classifier ("Merge Without Review"), so the merge, and with it the api deploy, is the owner's click. The
+   branch is a clean merge onto origin/main (origin/main had not moved since the branch merged it), so main's
+   tree after the merge is 1512dc1d's tree.
+2. Tag gate-1512dc1d pushed 11:04Z; image-publish 38134230742 (the pinned network commit is 1512dc1d, the
+   branch head CI tested, which the merge commit's tree equals).
+   image-publish 38134230742 success 11:13Z:
+     gate-1512dc1d (plain, 1.29 GB of layers)            ghcr.io/thisisanameforsure/opn-gate@sha256:d32abb270873893e78e339ddfa07343fe2e6ec824012902e69e15d2b68d147a2
+     gate-1512dc1d-mathlib-0df444a360ea (3.76 GB)        ghcr.io/thisisanameforsure/opn-gate@sha256:1eadd5cafec793527f8084dddebde7428ef634553791021e6707150c33d61dfb
+   (which is which read from the layer sizes with `docker buildx imagetools inspect --raw`, not from the job order).
+3. Graph worktree detached at origin/main 5ff173478: LICENSE = gate/palomar/LICENSE.apache-2.0; NOTICE names
+   CDLA-Permissive-2.0 for the non-code record and carries the SPDX text; README gains the licence paragraph;
+   AGENTS.md = gate/agents/AGENTS.md at 1512dc1d. schemas.unpublished was [attestation/v7, display-name/v1,
+   graph/v7, ledger/v2, registration/v1, submission-meta/v2, target/v3, targets-index/v10]; publish wrote them
+   and HASHES; [] after. pin_image.py: tutorial plain, 25 Mathlib, riemann-hypothesis last with --api-url;
+   27/27 name 1512dc1d; the devcontainer diff is the image line only. Committed c51214a2f (41 files).
+4. Pregate on the committed re-pin, gate code identical to the pin (opn-f25 at 1512dc1d):
+   gate/pregate.sh --graph <worktree> --target tutorial --node tutorial-and-swap -> verdict pass, exit 0
+   (task-16-pregate-tutorial.txt; olean cache hit).
+5. In-process render of c51214a2f (scanner=None): targets/index.json targets-index/v10, 27 targets, every
+   registrations list empty; 27 graph.json at graph/v7; info.json protocol 3.37 with 45 schemas; frontier/v5
+   47 entries / 44 claimable, identical to the committed frontier; 181 files.
+6. No gate run in flight, one open pull request (#322, a curator branch); pushed by fast-forward
+   5ff173478 -> c51214a2f (11:17Z). The graph's gate ran on the push (38135027810 success) and dispatched
+   render.yml itself (F07-T60); my own dispatch (38135038592) was a duplicate and was cancelled. Render
+   38135036605 committed 733ab776a "gate: render 1512dc1df770": 181 files; targets/index.json targets-index/v10
+   (27 targets, rendered_from c51214a2f), every graph.json graph/v7, frontier/v5 47 / 44 as before.
+   Live service after the render: /health 200, /frontier.json 200 at rendered_from 733ab776a, /info.json 200
+   (the service on main carries no accepted-version set for the index or graph.json, so nothing broke).
+7. site-deploy 38135080679 (dispatched by the graph's render) FAILED as expected, writing nothing: the site on
+   network main predates F25 and refuses `targets-index/v10` ("unknown schema"). The live site is unchanged
+   (its last deploy, 38135038417 success at 11:17:52Z, rendered the previous products). It deploys the new
+   products as soon as PR #30 is merged and site-deploy.yml is dispatched on main.
+8. Sibling graph checkout ../open_proof_network_graph pulled 9c3943e53 -> 733ab776a (fast-forward; the other
+   session's uncommitted AGENTS.md edit set aside with a tagged stash, re-applied cleanly, the entry dropped).
+   The walkthrough copy test now compares the pulled copy against the F25 guide: the committed copy is
+   identical, the working tree still carries that session's three hunks.
+9. Wrapper repository: the classifier refused `gh repo create ... --push` (a public upload), so the ported wrapper
+   is assembled as a local git repository at ~/Desktop/repos/opn-erdos-1050 (one commit b051c4c: the local port,
+   byte-identical to the runner's artifact file by file, plus .github/workflows/palomar-preflight.yml, which the
+   artifact had dropped as a dotfile, and port-report.json). Pushing it to a public repository is the owner's.
+
+Left for the owner, in order: (a) merge PR #30 (the classifier refused the merge; api-deploy follows the push to
+main), (b) `gh workflow run site-deploy.yml -R thisisanameforsure/open_proof_network --ref main`, (c) from
+~/Desktop/repos/opn-erdos-1050: `gh repo create thisisanameforsure/opn-erdos-1050 --public --source=. --remote=origin --push`
+(the preflight workflow runs on that push; its mechanical-report artifact is the port's definition of done, F25-R12).
+No registration (J3).
+
+--- the owner's sitting, 2026-10-11 17:48Z-17:55Z ---
+10. PR #30 merged by the owner -> main; api-deploy 38161170144 success (17:48Z); site-deploy 38161584112 success
+    (17:54Z, dispatched by the owner). Live: /health ok; /dco.json version 1b72bc16f46ab19b and the text names
+    CDLA-Permissive-2.0; GET / lists POST /dco/accept, POST /me/name and POST /registrations; errors.json carries
+    dco-reaccept-required; POST /dco/accept and POST /me/name without a bearer -> 401. The site's Docs page shows
+    the Registries section, palomar-registry.org and CDLA-Permissive-2.0; the footer names graph 733ab776a.
+11. Wrapper repository thisisanameforsure/opn-erdos-1050 created and pushed by the owner (b051c4c). Palomar's
+    preflight 38161625155: profile job success; verify job's "Parse and fetch immutable source" ran (0.17 s,
+    silent) and set ready != true, so every build step was skipped and "Finalize interrupted mechanical report"
+    wrote status error, diagnostic palomar.reporting_failed ("The mechanical report was malformed or did not
+    match the workflow inputs", owner palomar, retryable, repairable: false, next_action "report the workflow URL
+    to Palomar"). Investigated below.
+12. Open pull requests reviewed with the owner's question: network #25 and graph #322 (F07-T46, 2026-09-30) were
+    superseded by F07-T46/T55-T57 on main and conflicting; closed with a note, branches kept. Network #22 (F16/F17
+    harness connectors, 9 commits, 96 files, 2026-09-25) is real unmerged work with 7 conflicting files against
+    main; left open for the owner's decision.
+13. The preflight refusal, run down (Q35): the pinned pipeline cloned at d4e41c1 and its `prepare` step run
+    locally against b051c4c with the workflow's own inputs:
+      request_id "opn-erdos-1050-local"        -> fail intake: "Submission id must be twelve lowercase alphanumeric characters"
+      request_id "b051c4cff9c6", relationship "maintainer" -> fail intake: "Relationship to the substantive formalization is not recognized"
+      relationship "I am a responsible author or maintainer" -> stage preflight; the only error the licence
+        detector (Ruby bundler 2.7.2 absent on the laptop), which the runner installs.
+    Fix: gate/palomar/preflight.workflow.template.yml computes the id in a `request` job (${GITHUB_SHA:0:12})
+    and sends the contract's sentence; palomar.REQUEST_ID_RE / AUTHORIZATION_RELATIONSHIP /
+    SUBMISSION_OPTION_KEYS hold the grammar; test_the_preflight_workflow_sends_what_palomars_contract_accepts
+    was red on the old template (jobs == {preflight}) and is green on the new one.
+14. Palomar's own preflight on the fixed wrapper (opn-erdos-1050 e750ff9, run 38162577931, 18:08Z-18:15Z): request,
+    profile and verify jobs success; the mechanical report (task-16-preflight-38162577931.json) says status pass,
+    stage complete, no errors, no warnings; licence declared and detected Apache-2.0 at LICENSE; submission id
+    e750ff9fa15f bound to the commit; kernels nanoda and con-ron at leanprover/lean4:v4.35.0-rc2. This is the
+    port's definition of done (F25-R12: "a local build or standalone Comparator run does not count"). Not
+    submitted (J3).

@@ -1,4 +1,4 @@
-F08-T41 — a lemma has exactly a hole's standing: derivation, staging, step 8; the lemmas-backfill command (D-12 v3.36)
+F08-T41 — a lemma has exactly a hole's standing: derivation, staging, step 8; the lemmas-backfill command (D-12 v3.38)
 Date: 2026-10-10. Worktree: opn-lemma-gate (branch lemma-gate, on F07-T77 ace778c).
 
 == RED, fast tier (the standing; two guards green from the start are named in their docstrings: ready/listed/claimable, and refuted-lemma-is-no-dep-refuted — a lemma is not a dep, so blocked_because never saw it; the unproved-lemma-is-undeclared test was green too, as it must stay) ==
@@ -67,7 +67,7 @@ $ uv run --frozen pytest gate/tests/test_finding_lemma_standing_lean.py -q -m le
 2 passed in 70.78s (0:01:10)
 $ uv run --frozen pytest gate/tests/test_lemma_backfill.py gate/tests/test_finding_lemma_standing.py -q -m 'not lean and not docker and not network'
 14 passed in 1.84s
-$ uv run --frozen pytest gate/tests/test_finding_duplicate_hole.py -q   (third old-rule test, restated to v3.36)
+$ uv run --frozen pytest gate/tests/test_finding_duplicate_hole.py -q   (third old-rule test, restated to v3.38)
 9 passed in 7.51s
 
 == lint / types ==
@@ -81,6 +81,6 @@ Success: no issues found in 346 source files
 == the whole gate fast tier ==
 $ uv run --frozen pytest gate -q -m 'not lean and not docker and not network'
 3 failed, 2822 passed, 1 skipped, 193 deselected in 462.49s
-  - test_finding_duplicate_hole.py::test_a_hole_that_restates_a_sibling_becomes_a_dep_not_a_child: the third test that pinned v3.19's rule; restated to v3.36 while the run was in flight, green alone afterwards (9 passed, above).
+  - test_finding_duplicate_hole.py::test_a_hole_that_restates_a_sibling_becomes_a_dep_not_a_child: the third test that pinned v3.19's rule; restated to v3.38 while the run was in flight, green alone afterwards (9 passed, above).
   - test_finding_protocol_version.py: PROTOCOL_VERSION is 3.35 while the doc is 3.36 — the products/context task's bump (F03/F10), not this branch's; fails at b2f5f63 already.
   - test_walkthrough.py::test_graph_copy_is_identical: the sibling graph checkout's AGENTS.md has drifted from the repo's copy (byte 3843); reads the live graph, unrelated to this branch.

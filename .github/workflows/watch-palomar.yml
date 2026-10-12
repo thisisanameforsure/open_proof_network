@@ -1,0 +1,79 @@
+# The weekly Palomar feed watcher (F25-R14, T13; D-10 v3.37). Runs in this repo, not the graph:
+# a scheduled tooling run has no place in a history that is mathematics only (D-35). It saves the
+# registry's recent.json, checks out the graph read-only, matches every entry to the network's
+# targets by problem number, and compares every registration record with the registry's entry.
+#
+# A dry run only: the report and the feed it was read from are the run's artifact, and nobody
+# proposes or confirms from here. A candidate is information; a proposal is a person's act with
+# the propose flag on their own machine; confirmation is a steward's or curator's (F25-Q11, D-25).
+#
+# A registry that cannot be reached fails the run and writes nothing — red rather than an
+# all-clear (C7). The cron is a hope, not a schedule (2026-09-13): the dispatch is the real one.
+name: watch-palomar
+
+on:
+  schedule:
+    - cron: "23 5 * * 1"  # weekly, Monday; the minute is arbitrary and avoids the top of the hour
+  workflow_dispatch:
+    inputs:
+      graph_commit:
+        description: "graph commit to match against (default: main)"
+        required: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: watch-palomar
+  cancel-in-progress: false
+
+env:
+  UV_VERSION: "0.12.10"
+  GRAPH_REPO: thisisanameforsure/open_proof_network_graph
+  FEED_URL: https://data.palomar-registry.org/recent.json
+
+jobs:
+  watch:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
+        with:
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d  # v10.0.1
+        with:
+          version: ${{ env.UV_VERSION }}
+
+      - name: Check out the graph (read-only)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
+        with:
+          repository: ${{ env.GRAPH_REPO }}
+          ref: ${{ inputs.graph_commit || 'main' }}
+          path: graph
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Save the feed as the run read it (CC0)
+        run: |
+          set -euo pipefail
+          curl -sSf -A "opn-palomar (openproofnetwork.org)" -o palomar-recent.json "$FEED_URL"
+          python3 -c 'import json,sys; d=json.load(open("palomar-recent.json")); print(len(d["entries"]), "entries")'
+
+      - name: Match the feed against the targets and check every registration (AC13)
+        run: |
+          set -euo pipefail
+          uv sync --frozen --quiet
+          uv run --frozen python gate/tools/watch_palomar.py --graph graph \
+            --snapshot palomar-recent.json --drift --out-report palomar-report.json
+
+      - name: Keep the report and the feed
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
+        with:
+          name: palomar-watch
+          path: |
+            palomar-report.json
+            palomar-recent.json
+          retention-days: 90
+          if-no-files-found: error

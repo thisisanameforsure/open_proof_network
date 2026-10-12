@@ -8,7 +8,7 @@ them must already carry a ``Proof.lean``; a node whose deps are unproved is bloc
 cannot pass steps 4-8. A node's own holes are the exception (D-12 v3.19, F07-R22): a proved one
 is staged and imported like a dep, an unproved one is left out and refuses nothing, because the
 node may draw on its holes and never waits on them. A lemma — a node under another branch that a
-merged partial of this node restated (D-12 v3.36, F08-T41; ``META.yaml``'s ``lemmas``) — has
+merged partial of this node restated (D-12 v3.38, F08-T41; ``META.yaml``'s ``lemmas``) — has
 exactly that standing: proved, it is staged and imported before the node; unproved, it is not
 staged and blocks nothing.
 """

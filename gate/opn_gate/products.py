@@ -41,6 +41,7 @@ from opn_gate import (
     postmerge,
     qa,
     records,
+    registrations,
     schemas,
     sections,
     signed,
@@ -58,12 +59,15 @@ from opn_gate.toolchain import ResolvedToolchain, Toolchain, UsedConstantsReques
 
 log = logging.getLogger(__name__)
 
-PROTOCOL_VERSION = "3.36"  # docs/architecture_decisions.html (v3.36: lemmas)
-#: F03-T20 (D-12 v3.36): graph/v7 carries ``lemmas``, the nodes under other branches a merged
-#: partial restated as holes, and a decomposition's hole may resolve to one. F08-T39 (D-12
-#: v3.35): v6 carries ``circular`` (the label), ``literature`` and ``literature_proposed``
-#: (F08-T40); v5: every defect claim (F08-T36); v4: F08-T27, F18; v3: F12-R13.
-GRAPH_SCHEMA = "graph/v7"
+PROTOCOL_VERSION = (
+    "3.38"  # docs/architecture_decisions.html (v3.38: lemmas, 2026-10-12; v3.37: Palomar)
+)
+#: F03-T20 (D-12 v3.38): graph/v8 carries ``lemmas``, the nodes under other branches a merged
+#: partial restated as holes, and a decomposition's hole may resolve to one. v7 (F25-R7, D-10
+#: v3.37): registrations. F08-T39 (D-12 v3.35): v6 carries ``circular`` (the label),
+#: ``literature`` and ``literature_proposed`` (F08-T40); v5: every defect claim (F08-T36); v4:
+#: F08-T27, F18; v3: F12-R13.
+GRAPH_SCHEMA = "graph/v8"
 #: F03-T18 (D-12 v3.35): frontier/v5 repeats graph/v6's three fields on every entry, and a node
 #: under a circularity claim is an entry on its status alone; v4 (T16): status, cause, needs;
 #: v3 (T7): partials; v2: D-33 dormancy.
@@ -77,7 +81,7 @@ FRONTIER_SCHEMA = "frontier/v5"
 #: its counts, the calibration flag, and `no-steward` among the reasons: v6.
 #: v8 (F23-R14): stewards carry admitted_by, via; link nullable. v9 (F24-R6, R7): the panel
 #: settings, each steward's last act and lapse, each target's panel and write-ups.
-INDEX_SCHEMA = "targets-index/v9"
+INDEX_SCHEMA = "targets-index/v10"  # v10 (F25-R7): registrations
 INFO_SCHEMA = "info/v2"  # F05-T25: guide_url, errors_url (null here; the service fills them)
 CLAIMS_SCHEMA = "claims/v1"
 CLAIMS_FILE = "claims.json"
@@ -237,6 +241,8 @@ class TargetFacts:
     steward_rows: tuple[dict[str, Any], ...] = ()
     panel: dict[str, Any] = field(default_factory=lambda: {"members": [], "motions": []})
     writeups: dict[str, Any] = field(default_factory=lambda: {"official": None, "items": []})
+    #: F25-R7 (D-10 v3.37, targets-index/v10): the target's registrations in public registries.
+    registrations: tuple[dict[str, Any], ...] = ()
 
     @property
     def dormant(self) -> bool:
@@ -455,6 +461,7 @@ def target_facts(
         "steward_rows": seated.steward_rows,
         "panel": seated.panel,
         "writeups": seated.writeups,
+        "registrations": tuple(registrations.derive(tg.path)),
     }
     root_status = tg.statuses[tg.root]
     if doc is None:
@@ -522,7 +529,7 @@ def decompositions_of(tg: TargetGraph, node_id: str) -> list[dict[str, Any]]:
     child's header names its hole (``postmerge.hole_name``). A hole is matched to the first of
     the node's hole children (its holes, read through revisions, in the order the post-merge job
     recorded them) that carries its name and no earlier hole took; failing that, to the node a
-    lemma of the same hole name restated (D-12 v3.36, ``NodeFacts.lemmas``, read through
+    lemma of the same hole name restated (D-12 v3.38, ``NodeFacts.lemmas``, read through
     revisions too); one the tree does not hold is named with no node (C7)."""
     node = tg.nodes[node_id]
     names: dict[str, str | None] = {}
@@ -976,7 +983,7 @@ def graph_doc(
                 # proposal awaiting a steward or curator; null when none.
                 "literature": lit[node_id].confirmed,
                 "literature_proposed": lit[node_id].proposed,
-                # F03-T20 (D-12 v3.36): META.yaml's lemmas in the record's order, each node as
+                # F03-T20 (D-12 v3.38): META.yaml's lemmas in the record's order, each node as
                 # it is now — a hole's standing, drawn on once proved and never waited on.
                 "lemmas": [{"hole": x.hole, "node": x.node} for x in n.lemmas],
             }
@@ -988,6 +995,8 @@ def graph_doc(
         "rendered_from": rendered_from,
         "nodes": nodes,
         "target_proofs": target_proofs(tg),
+        # F25-R7 (D-10 v3.37): the same derivation targets-index/v10 carries on the row.
+        "registrations": registrations.derive(tg.path),
     }
 
 
@@ -1243,6 +1252,8 @@ def index_doc(
                 # F24-R6, R7: the panel and its motions; the write-ups and the official one.
                 "panel": facts.panel,
                 "writeups": facts.writeups,
+                # F25-R7 (D-10 v3.37): the registrations, derived from the records.
+                "registrations": list(facts.registrations),
             }
         )
     return {

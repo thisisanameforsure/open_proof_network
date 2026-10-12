@@ -312,14 +312,14 @@ def test_products_of_the_fixture(tmp_path: Path) -> None:
     assert idx["fidelity"] == "mechanical-only" and idx["mathlib_sha"] is None
     assert idx["node_counts"]["ready"] == 2 and idx["node_counts"]["blocked"] == 1
     info = loads(prod, "info.json")
-    assert info["protocol_version"] == "3.36"
-    assert info["schemas"]["attestation"] == [1, 2, 3, 4, 5, 6] and info["schemas"]["meta"] == [
+    assert info["protocol_version"] == products.PROTOCOL_VERSION == "3.38"
+    assert info["schemas"]["attestation"] == [1, 2, 3, 4, 5, 6, 7] and info["schemas"]["meta"] == [
         1,
         2,
         3,
         4,
         5,
-        6,  # v3.36: lemmas
+        6,  # v3.38: lemmas
     ]
     assert info["schemas"]["defect-claim"] == [1, 2, 3] and info["schemas"]["revision-request"] == [
         1,
@@ -1015,6 +1015,7 @@ def test_signature_count(tmp_path: Path) -> None:
             "calibration",
             "panel",  # F24: v9
             "writeups",
+            "registrations",  # F25: v10
         ):
             entry.pop(key, None)
         for key in ("refuted", "defective"):
@@ -1231,7 +1232,7 @@ def test_index_v6_fields(tmp_path: Path) -> None:
     index = loads(prod, "targets/index.json")
     # The index validates as the version the gate emits (v6's fields are in every later one;
     # v8: F23-R14's steward fields; v9: F24-R6's panel, test_targets_index_v9).
-    assert index["schema"] == products.INDEX_SCHEMA == "targets-index/v9"
+    assert index["schema"] == products.INDEX_SCHEMA == "targets-index/v10"
     assert schemas.violations(index, products.INDEX_SCHEMA) == []
     assert index["policy"]["steward_rule"] == {"enforced": False, "since": None, "evidence": None}
     assert index["policy"]["panel"] == policymod.Policy().panel.as_dict()  # defaults, no file
@@ -1248,7 +1249,7 @@ def test_index_v6_fields(tmp_path: Path) -> None:
     for name in ("steward", "explainer-signature", "writeup", "policy"):
         # F21 publishes explainer-signature/v2 beside v1; what this pins is that F15's are named
         assert 1 in info["schemas"][name], name
-    assert info["schemas"]["target"] == [1, 2] and 8 in info["schemas"]["targets-index"]
+    assert info["schemas"]["target"] == [1, 2, 3] and 8 in info["schemas"]["targets-index"]
 
     # R3: the policy file, present and enforced, is published at the top; a malformed one is a
     # graph defect that stops the products (C7).

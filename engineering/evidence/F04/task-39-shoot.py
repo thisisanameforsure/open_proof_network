@@ -1,4 +1,4 @@
-"""F04-T39 screenshots and measurements: the lemma line (D-12 v3.36) on a local render of the
+"""F04-T39 screenshots and measurements: the lemma line (D-12 v3.38) on a local render of the
 site's fixture graph, whose products carry one lemma (``tutorial-and-swap`` may use
 ``and-reassoc``, hole ``h_reassoc``; ``fixture.LEMMA_*``).
 

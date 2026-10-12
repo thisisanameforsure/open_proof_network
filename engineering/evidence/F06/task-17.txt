@@ -1,4 +1,4 @@
-# F06-T17: the receipt's holes_note says a hole restating a node under another branch becomes a lemma (decisions v3.36, D-12; testers 2026-10-09b, C1)
+# F06-T17: the receipt's holes_note says a hole restating a node under another branch becomes a lemma (decisions v3.38, D-12; testers 2026-10-09b, C1)
 
 ## Red first (2026-10-10T12:29Z): the hole_rows seam in place with F06-T15's note unchanged, so the red is on the words
 

@@ -1,4 +1,4 @@
-"""F08-T41 (D-12 v3.36), lean tier: a real proof of the parent uses the staged lemma.
+"""F08-T41 (D-12 v3.38), lean tier: a real proof of the parent uses the staged lemma.
 
 What only the real toolchain can show: the parent's regenerated ``Context.lean`` elaborates with
 the lemma's signature in it; with the lemma proved, step 4 builds the lemma's ``Proof`` module

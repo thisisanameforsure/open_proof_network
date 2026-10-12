@@ -1,0 +1,132 @@
+{
+  "schema": "harness-check/v1",
+  "results": [
+    {
+      "entry": "claude-code",
+      "auth": "none",
+      "state": "pass",
+      "reason": "the server saw initialize, tools/list",
+      "version": "2.1.282 (Claude Code)",
+      "rpc_seen": [
+        "server/discover",
+        "initialize",
+        "notifications/initialized",
+        "tools/list"
+      ],
+      "bearer": null,
+      "output_tail": "Checking MCP server health\u2026\n\nopen-proof-network: http://127.0.0.1:44573/mcp (HTTP) - \u2714 Connected\n"
+    },
+    {
+      "entry": "claude-code",
+      "auth": "bearer",
+      "state": "pass",
+      "reason": "the server saw initialize, tools/list",
+      "version": "2.1.282 (Claude Code)",
+      "rpc_seen": [
+        "server/discover",
+        "initialize",
+        "notifications/initialized",
+        "tools/list"
+      ],
+      "bearer": "expected",
+      "output_tail": "Checking MCP server health\u2026\n\nopen-proof-network: http://127.0.0.1:44573/mcp (HTTP) - \u2714 Connected\n"
+    },
+    {
+      "entry": "codex-cli",
+      "auth": "none",
+      "state": "pass",
+      "reason": "the server saw initialize, tools/list",
+      "version": "codex-cli 0.157.0",
+      "rpc_seen": [
+        "initialize",
+        "notifications/initialized",
+        "tools/list"
+      ],
+      "bearer": null,
+      "output_tail": " to websocket: URL error: Proxy connection failed: HTTP CONNECT failed with status 403, url: wss://api.openai.com/v1/responses\nERROR: Reconnecting... 3/5\n2026-09-25T20:57:25.663902Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: URL error: Proxy connection failed: HTTP CONNECT failed with status 403, url: wss://api.openai.com/v1/responses\nERROR: Reconnecting... 4/5\n2026-09-25T20:57:27.560056Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: URL error: Proxy connection failed: HTTP CONNECT failed with status 403, url: wss://api.openai.com/v1/responses\nERROR: Reconnecting... 5/5\n2026-09-25T20:57:31.301671Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: URL error: Proxy connection failed: HTTP CONNECT failed with status 403, url: wss://api.openai.com/v1/responses\nwarning: Falling back from WebSockets to HTTPS transport. stream disconnected before completion: URL error: Proxy connection failed: HTTP CONNECT failed with status 403\nERROR: Reconnecting... waiting for network\nERROR: Reconnecting... waiting for network\nERROR: Reconnecting... waiting for network\n\n[timed out: the check ignores it]"
+    },
+    {
+      "entry": "codex-cli",
+      "auth": "bearer",
+      "state": "pass",
+      "reason": "the server saw initialize, tools/list",
+      "version": "codex-cli 0.157.0",
+      "rpc_seen": [
+        "initialize",
+        "notifications/initialized",
+        "tools/list"
+      ],
+      "bearer": "expected",
+      "output_tail": " to websocket: URL error: Proxy connection failed: HTTP CONNECT failed with status 403, url: wss://api.openai.com/v1/responses\nERROR: Reconnecting... 3/5\n2026-09-25T20:58:06.180934Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: URL error: Proxy connection failed: HTTP CONNECT failed with status 403, url: wss://api.openai.com/v1/responses\nERROR: Reconnecting... 4/5\n2026-09-25T20:58:07.973109Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: URL error: Proxy connection failed: HTTP CONNECT failed with status 403, url: wss://api.openai.com/v1/responses\nERROR: Reconnecting... 5/5\n2026-09-25T20:58:11.220976Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: URL error: Proxy connection failed: HTTP CONNECT failed with status 403, url: wss://api.openai.com/v1/responses\nwarning: Falling back from WebSockets to HTTPS transport. stream disconnected before completion: URL error: Proxy connection failed: HTTP CONNECT failed with status 403\nERROR: Reconnecting... waiting for network\nERROR: Reconnecting... waiting for network\nERROR: Reconnecting... waiting for network\n\n[timed out: the check ignores it]"
+    },
+    {
+      "entry": "gemini-cli",
+      "auth": "none",
+      "state": "pass",
+      "reason": "the server saw initialize",
+      "version": "0.61.0",
+      "rpc_seen": [
+        "initialize",
+        "notifications/initialized",
+        "ping"
+      ],
+      "bearer": null,
+      "output_tail": "Configured MCP servers:\n\n\u2713 open-proof-network: http://127.0.0.1:44573/mcp (http) - Connected\n"
+    },
+    {
+      "entry": "gemini-cli",
+      "auth": "bearer",
+      "state": "pass",
+      "reason": "the server saw initialize",
+      "version": "0.61.0",
+      "rpc_seen": [
+        "initialize",
+        "notifications/initialized",
+        "ping"
+      ],
+      "bearer": "expected",
+      "output_tail": "Configured MCP servers:\n\n\u2713 open-proof-network: http://127.0.0.1:44573/mcp (http) - Connected\n"
+    },
+    {
+      "entry": "copilot",
+      "auth": "none",
+      "state": "not-attempted",
+      "reason": "needs COPILOT_GITHUB_TOKEN in the environment",
+      "version": null,
+      "rpc_seen": [],
+      "bearer": null,
+      "output_tail": ""
+    },
+    {
+      "entry": "copilot",
+      "auth": "bearer",
+      "state": "not-attempted",
+      "reason": "needs COPILOT_GITHUB_TOKEN in the environment",
+      "version": null,
+      "rpc_seen": [],
+      "bearer": null,
+      "output_tail": ""
+    },
+    {
+      "entry": "cursor",
+      "auth": "none",
+      "state": "not-attempted",
+      "reason": "agent is not installed",
+      "version": null,
+      "rpc_seen": [],
+      "bearer": null,
+      "output_tail": ""
+    },
+    {
+      "entry": "cursor",
+      "auth": "bearer",
+      "state": "not-attempted",
+      "reason": "agent is not installed",
+      "version": null,
+      "rpc_seen": [],
+      "bearer": null,
+      "output_tail": ""
+    }
+  ],
+  "pass": false
+}

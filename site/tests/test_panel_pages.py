@@ -63,9 +63,10 @@ def writeup(pages: dict[str, str]) -> str:
 
 
 def test_the_hand_built_index_is_a_valid_v9(root: Path) -> None:
+    """v9 lifted to v10 by F25-T1 (registrations on every row); the name stays for F24-AC10."""
     doc = json.loads((root / "targets" / "index.json").read_text(encoding="utf-8"))
-    assert doc["schema"] == "targets-index/v9"
-    schemas.validate(doc, "targets-index/v9")  # raises on any departure from the contract
+    assert doc["schema"] == "targets-index/v10"
+    schemas.validate(doc, "targets-index/v10")  # raises on any departure from the contract
 
 
 # --- the panel -----------------------------------------------------------------------------

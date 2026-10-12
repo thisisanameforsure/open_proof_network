@@ -18,7 +18,7 @@ from __future__ import annotations
 import json
 import logging
 from collections.abc import Iterator
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from datetime import timedelta
 from typing import TYPE_CHECKING, Any
 
@@ -231,6 +231,17 @@ APPEND_CHECKS: dict[str, str] = {
         "its path, its schema, its signature under the graph's approval key, and that its signer "
         "is an active steward of the target or a listed curator (D-25, D-32 v3.35)"
     ),
+    # F25-R5, R6 (D-3, D-10 v3.37): the two records outside the node.
+    "registration record": (
+        "its path, its schema, that its submitter is a listed curator or an active steward of the "
+        "target and is who the pull request acts for, that its proof names a node of the target "
+        "and that node's passing attestation, and that its graph commit is in the graph's "
+        "history (F25-R5)"
+    ),
+    "display name": (
+        "its path, its schema, its signature under the graph's approval key, and that it is for "
+        "the pseudonym the pull request acts for and no other (F25-R6, D-3 v3.37)"
+    ),
 }
 DEFAULT_CHECKS = "its path and its schema (F07-R9)"
 
@@ -269,6 +280,7 @@ def append_pr(  # noqa: PLR0913 — one pull request, described
     subject_slots: tuple[str, ...] = (),
     extra_body: str = "",
     branch_prefix: str = submissions.APPEND_BRANCH_PREFIX,
+    hold_name: bool = True,
 ) -> dict[str, Any]:
     """One appended file, one branch, one pull request (R11, R2), recorded as ``kind`` so its
     state can be watched through ``GET /submissions/{id}`` (F07-T16). F07-T35: an append
@@ -278,15 +290,18 @@ def append_pr(  # noqa: PLR0913 — one pull request, described
     slot arriving together cannot both open (F21-R5). ``extra_body`` follows the body's own lines
     (F22-T4: the gate's warnings to a gloss or explainer). ``branch_prefix`` is ``append/``, which
     the merge actor takes, except for a steward record under reviewed admission (F23-R8:
-    ``curate/``, left to a curator)."""
+    ``curate/``, left to a curator). ``hold_name`` is the same-second rule (``holding_name``),
+    written for files named ``<timestamp>-<pseudonym>``; a route whose file has one fixed path
+    and its own one-writer rule (``names/<pseudonym>.yaml``, F25-R6) turns it off, since a hold
+    on a path that never changes is a hold on every later write."""
     owner = node_id or target_id
     prints = duplicates.check_append(ctx, kind, owner, written or content)
     append_id = identitymod.new_ulid(ctx.clock.now())
     slots = [duplicates.slot(kind, owner, fp) for fp in prints] + list(subject_slots)
-    with (
-        duplicates.holding(ctx, slots, kind),
-        holding_name(ctx, identity, path, kind=kind, owner=owner),
-    ):
+    name_hold = (
+        holding_name(ctx, identity, path, kind=kind, owner=owner) if hold_name else nullcontext()
+    )
+    with duplicates.holding(ctx, slots, kind), name_hold:
         pr = submissions.open_pr(
             ctx,
             identity,

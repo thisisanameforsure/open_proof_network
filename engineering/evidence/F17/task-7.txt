@@ -1,0 +1,6 @@
+$ uv run pytest site/tests/test_prove_delivery.py gate/tests/test_walkthrough.py -q -m 'not lean and not docker'   # 2026-09-25T21:19:02Z
+SKIPPED [1] gate/tests/test_walkthrough.py:235: /home/user/open_proof_network_graph/AGENTS.md is not checked out beside this repo
+8 passed, 1 skipped, 1 deselected in 4.50s
+
+Mutation check: the guide's new block's expected output replaced by 'MUTANT OUTPUT' ->
+test_agents_md_executes FAILED (1 failed), so the block is executed, not skipped; restored.

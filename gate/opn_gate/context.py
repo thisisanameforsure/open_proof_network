@@ -37,7 +37,7 @@ log = logging.getLogger(__name__)
 #: F22-T13: ``context/v4`` gives each ``deps[]`` entry the dep's ``cause`` (testers 2026-10-06).
 #: F10-T19 (D-12 v3.35, D-25 v3.35): ``context/v5`` carries ``circular``, ``literature`` and
 #: ``literature_proposed`` as ``graph/v6`` does, beside v4's ``circular_below``.
-#: F10-T49 (D-12 v3.36): ``context/v6`` carries ``lemmas`` beside ``deps`` — each with the hole
+#: F10-T49 (D-12 v3.38): ``context/v6`` carries ``lemmas`` beside ``deps`` — each with the hole
 #: name, the signature the proof may use once the node is proved, its status and cause.
 SCHEMA = "context/v6"
 ACCEPTED: tuple[str, ...] = (
@@ -116,7 +116,7 @@ class NodeState:
     #: has no business repeating (F10-Q7). ``None`` when the document carries none or predates v6.
     literature: dict[str, Any] | None = None
     literature_proposed: dict[str, Any] | None = None
-    #: F10-T49 (D-12 v3.36): the node's lemmas as ``graph/v7`` publishes them, each
+    #: F10-T49 (D-12 v3.38): the node's lemmas as ``graph/v8`` publishes them, each
     #: ``(hole, node)`` with the node read through revisions; ``None`` when the document predates
     #: v7, in which case the builder reads ``META.yaml``'s record through ``_current_id``.
     lemmas: tuple[tuple[str, str], ...] | None = None
@@ -283,8 +283,8 @@ def _lemmas(
     states: Mapping[str, NodeState],
     effective: tuple[tuple[str, str], ...] | None,
 ) -> list[dict[str, Any]]:
-    """F10-T49 (D-12 v3.36): the lemmas a prover may draw on once proved — ``_deps``'s shape plus
-    the hole's name. ``effective`` is what ``graph/v7`` published; given rows from before v7 the
+    """F10-T49 (D-12 v3.38): the lemmas a prover may draw on once proved — ``_deps``'s shape plus
+    the hole's name. ``effective`` is what ``graph/v8`` published; given rows from before v7 the
     record (``META.yaml``'s ``lemmas``, ``meta/v6``) is read through revisions here, as
     ``graph.effective_lemmas`` reads it, a node two entries reach kept once."""
     pairs: list[tuple[str, str]]
@@ -755,7 +755,7 @@ def build(
         "circular": _circular(reader, target_id, node_id, states),
         "literature": state.literature,
         "literature_proposed": state.literature_proposed,
-        # F10-T49 (D-12 v3.36): graph/v7's lemmas, each with the signature a proof may use.
+        # F10-T49 (D-12 v3.38): graph/v8's lemmas, each with the signature a proof may use.
         "lemmas": _lemmas(reader, target_id, meta, states, state.lemmas),
     }
     fit(doc)

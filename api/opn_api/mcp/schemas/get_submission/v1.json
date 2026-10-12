@@ -178,7 +178,7 @@
         },
         "holes": {
           "type": "array",
-          "description": "F09-T72 (D-12 v3.36): a partial's holes as its receipt named them (F06-T15: name, the node each was expected to become, whether that node is new) and `became`, the node the post-merge job made of each hole as the products record it (graph.json's decompositions, read at main's sha): a new child, or for a hole that restated a node under another branch, that node, now a lemma of this one. Null until the products carry this partial's decomposition, and for every hole while the pull request is open. Only on a partial whose precheck named its holes.",
+          "description": "F09-T72 (D-12 v3.38): a partial's holes as its receipt named them (F06-T15: name, the node each was expected to become, whether that node is new) and `became`, the node the post-merge job made of each hole as the products record it (graph.json's decompositions, read at main's sha): a new child, or for a hole that restated a node under another branch, that node, now a lemma of this one. Null until the products carry this partial's decomposition, and for every hole while the pull request is open. Only on a partial whose precheck named its holes.",
           "items": {
             "type": "object",
             "additionalProperties": false,
@@ -369,7 +369,8 @@
         "precheck_job_id",
         "created",
         "closed",
-        "artifact_type"
+        "artifact_type",
+        "automation"
       ],
       "additionalProperties": false,
       "properties": {
@@ -418,6 +419,13 @@
             "null"
           ],
           "description": "The record's kind under the name the write routes use, when it is an artifact type of POST /submissions (proof, counterexample, vacuity, reduction, partial); null otherwise (F05-T18)"
+        },
+        "automation": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "description": "The automation block POST /submissions accepted for an artifact (D-23 v3.37, F25-R2): method, models, framework and optional cost fields, as declared; null for every other kind and for a record made before the field existed."
         }
       }
     },

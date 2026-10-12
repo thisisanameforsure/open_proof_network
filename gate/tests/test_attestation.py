@@ -64,7 +64,7 @@ def test_attestation_fields_and_schema(tmp_path: Path) -> None:
     }
     assert [s["result"] for s in doc["steps"]] == ["pass"] * 7
     assert doc["merge_commit"] is None and doc["review"] is None
-    assert doc["schema"] == "attestation/v6"
+    assert doc["schema"] == "attestation/v7"
     assert doc["trust_base"] == "kernel"  # F02-R9: no waiver, the kernel checked everything
 
 

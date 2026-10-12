@@ -1,0 +1,74 @@
+{
+  "bare-tactics": {
+    "expect": "proof",
+    "node": "tutorial"
+  },
+  "by-block": {
+    "expect": "proof",
+    "node": "tutorial"
+  },
+  "comment-banner": {
+    "expect": "proof",
+    "node": "tutorial"
+  },
+  "crlf": {
+    "expect": "proof",
+    "node": "tutorial"
+  },
+  "echoes-inlined-defs": {
+    "expect": "proof",
+    "node": "fact-pos"
+  },
+  "empty": {
+    "expect": "answer-empty",
+    "node": "tutorial"
+  },
+  "have-holes": {
+    "expect": "partial",
+    "node": "tutorial"
+  },
+  "helper-after-inlined-defs": {
+    "expect": "helper-declaration",
+    "node": "fact-pos"
+  },
+  "helper-lemma": {
+    "expect": "helper-declaration",
+    "node": "tutorial"
+  },
+  "open-added": {
+    "expect": "open-added",
+    "node": "tutorial"
+  },
+  "plan-then-fence": {
+    "expect": "proof",
+    "node": "tutorial"
+  },
+  "plan-then-fence-deepseek-header": {
+    "expect": "import-added",
+    "node": "tutorial"
+  },
+  "renamed-theorem": {
+    "expect": "proof",
+    "node": "tutorial"
+  },
+  "set-option-in": {
+    "expect": "option-outside-body",
+    "node": "tutorial"
+  },
+  "signature-changed": {
+    "expect": "signature-changed",
+    "node": "tutorial"
+  },
+  "sorry-left": {
+    "expect": "sorry-left",
+    "node": "tutorial"
+  },
+  "trailing-prose": {
+    "expect": "proof",
+    "node": "tutorial"
+  },
+  "whole-file": {
+    "expect": "proof",
+    "node": "tutorial"
+  }
+}

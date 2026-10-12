@@ -26,6 +26,7 @@ from typing import Any
 
 import pytest
 from api_fakes import (
+    AUTOMATION,
     PROOF_PREFIX,
     TUTORIAL_NODE,
     TUTORIAL_PROOF,
@@ -59,6 +60,7 @@ def submit_proof(h: Harness, key: PrecheckKey, token: str) -> dict[str, Any]:
             "artifact_type": "proof",
             "bundle": {f"{PROOF_PREFIX}{TUTORIAL_NODE}/Proof.lean": TUTORIAL_PROOF},
             "precheck_job_id": job["id"],
+            "automation": AUTOMATION,
         },
         headers=h.auth(token),
     )

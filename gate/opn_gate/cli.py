@@ -188,11 +188,55 @@ def build_parser() -> argparse.ArgumentParser:  # noqa: PLR0915 — one statemen
 
     lbf = sub.add_parser(
         "lemmas-backfill",
-        help="write the lemma edges of partials merged before D-12 v3.36 (F08-T41), in the sandbox",
+        help="write the lemma edges of partials merged before D-12 v3.38 (F08-T41), in the sandbox",
     )
     lbf.add_argument("--graph", required=True, type=Path, help="path to the graph checkout")
     lbf.add_argument("--target", required=True)
     _add_sandbox_args(lbf)
+    pal = sub.add_parser(
+        "export-palomar",
+        help="write one resolved target as a wrapper repository in Palomar's shape (F25-R8); "
+        "--check elaborates, replays and judges it at the graph's pin (R11)",
+    )
+    pal.add_argument("--graph", required=True, type=Path, help="path to the graph checkout")
+    pal.add_argument("--commit", default="HEAD", help="the graph commit to export (default HEAD)")
+    pal.add_argument("--target", required=True)
+    pal.add_argument("--out", type=Path, help="output directory (default: a fresh temp dir)")
+    pal.add_argument(
+        "--licence",
+        help="the graph's licence as an SPDX id, for a graph commit with no root LICENSE yet "
+        "(F25-Q15; recorded in opn-export.json as supplied by flag)",
+    )
+    pal.add_argument("--check", action="store_true", help="run the local check at the pin (R11)")
+    pal.add_argument(
+        "--classification",
+        help="arxiv codes and MSC codes as `math.NT:11J72,11B25`, for a rehearsal on a target "
+        "whose "
+        "record carries none (recorded in opn-export.json as supplied by flag; the record is the "
+        "curator's to classify, F25-R4)",
+    )
+    pal.add_argument("--install", action="store_true", help="let elan install the pinned toolchain")
+
+    prt = sub.add_parser(
+        "palomar-port",
+        help="port an exported wrapper to the registry's toolchain and judge it with lake "
+        "comparator (F25-R12); the Challenge is frozen, proof bodies may be repaired between runs",
+    )
+    prt.add_argument(
+        "project", type=Path, help="the exported wrapper (export-palomar --out/<package>)"
+    )
+    prt.add_argument("--toolchain", default="leanprover/lean4:v4.35.0-rc2")
+    prt.add_argument("--mathlib-rev", default="v4.35.0-rc2")
+    prt.add_argument("--skip-update", action="store_true", help="keep the manifest as it is")
+    prt.add_argument(
+        "--repairs",
+        type=Path,
+        default=None,
+        help="a directory mirroring the wrapper: each file replaces the export's before the build "
+        "(proof bodies only; Challenge.lean is refused; an optional <file>.before.sha256 sidecar "
+        "names the exported file it was written against), recorded in port-report.json (Q34)",
+    )
+    prt.add_argument("--timeout", type=float, default=3600.0, help="seconds per step")
 
     otl = sub.add_parser(
         "outline",
@@ -301,6 +345,26 @@ def _add_graph_tool_parsers(sub: argparse._SubParsersAction[argparse.ArgumentPar
     exh.add_argument("--sandbox", action="store_true", help="elaborate inside the step-3 image")
     exh.add_argument("--image", help="sandbox image tag (default: built from gate/Dockerfile)")
     exh.add_argument("--no-build", action="store_true", help="fail if the image is not present")
+
+    feed = sub.add_parser(
+        "palomar-feed",
+        help="read the Palomar registry's feed, match entries to targets by problem number and "
+        "report candidates (F25-R14); --propose writes unsigned literature proposals into "
+        "--out, --drift compares every registration record with the registry; nothing is "
+        "written to the graph",
+    )
+    feed.add_argument("--graph", required=True, type=Path, help="path to the graph checkout")
+    feed.add_argument(
+        "--snapshot", type=Path, help="read a saved recent.json instead of the registry"
+    )
+    feed.add_argument(
+        "--propose", action="store_true", help="write a literature/v1 proposal per candidate"
+    )
+    feed.add_argument("--contributor", help="the proposals' contributor (with --propose)")
+    feed.add_argument("--out", type=Path, help="where the proposals are written (with --propose)")
+    feed.add_argument(
+        "--drift", action="store_true", help="compare registration records with the registry"
+    )
 
     adm = sub.add_parser("admit", help="may this node directory enter the graph? (F08-R1)")
     adm.add_argument("node_dir", type=Path, help="targets/<target>/nodes/<id> in a graph checkout")
@@ -484,6 +548,19 @@ def _add_intake_parsers(  # noqa: PLR0915 — one statement per flag
     new_t.add_argument("--author", required=True, help="the curator, on every record")
     new_t.add_argument("--date", help="UTC timestamp of the act (default: now)")
     new_t.add_argument("--branch", help="also commit what was written on this branch")
+    new_t.add_argument(
+        "--arxiv",
+        action="append",
+        metavar="CODE",
+        help="an arXiv category the mathematics belongs to, e.g. math.NT (one or two; with "
+        "--msc, writes the record's classification, F25-R4)",
+    )
+    new_t.add_argument(
+        "--msc",
+        action="append",
+        metavar="CODE",
+        help="an MSC 2020 code, e.g. 11A41 (one to eight; with --arxiv)",
+    )
     new_t.add_argument("--no-toolchain", action="store_true", help="skip admission (R2); testing")
     new_t.add_argument("--out", type=Path, help="work directory (default: a fresh temp dir)")
     new_t.add_argument("--install", action="store_true", help="let elan install the pin")
@@ -820,6 +897,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         "reproduce": run_reproduce,
         "footprints": run_footprints,
         "lemmas-backfill": run_lemmas_backfill,
+        "export-palomar": run_export_palomar,
+        "palomar-port": run_palomar_port,
+        "palomar-feed": run_palomar_feed,
         "outline": run_outline,
         "gate": run_gate,
         "classify": run_classify,
@@ -1150,6 +1230,154 @@ def run_reproduce(args: argparse.Namespace, settings: config.Settings) -> int:
     return code
 
 
+def run_export_palomar(args: argparse.Namespace, settings: config.Settings) -> int:
+    """F25-R8, R11 (D-10 v3.37): export ``--target`` at ``--commit`` as a wrapper repository
+    under ``--out/<package>/``; with ``--check``, elaborate and judge it at the graph's pin and
+    write ``local-check.json`` beside it. Exit 1 on a refusal or a failed check, with the
+    diagnostic on stdout as JSON; nothing is written to the graph."""
+    from opn_gate import palomar, palomar_check, palomar_export  # noqa: PLC0415 — only here
+
+    graph, commit = _checkout_and_commit(args.graph, args.commit)
+    out_dir = _out_dir(args.out, "opn-palomar-")
+    # A checkout, not a bare tree: a parent whose revised child superseded a hole reads as
+    # `stale` until F08-T10's lifting by commit ancestry says otherwise, and that needs the
+    # history (the 2026-10-04 log; erdos-1050 at the first rehearsal, 2026-10-11).
+    tree = out_dir / "tree"
+    if not (tree / ".git").exists():
+        subprocess.run(
+            ["git", "-C", str(graph), "worktree", "add", "-q", "--detach", str(tree), commit],
+            check=True,
+            capture_output=True,
+            env=git_environment(),
+        )
+    classification = None
+    if args.classification:
+        arxiv, _, msc = args.classification.partition(":")
+        classification = {"arxiv": arxiv.split(","), "msc2020": [c for c in msc.split(",") if c]}
+    try:
+        exported = palomar_export.export(
+            tree,
+            args.target,
+            graph_commit=commit,
+            licence=args.licence,
+            classification=classification,
+        )
+    except palomar_export.ExportError as exc:
+        sys.stdout.write(json.dumps({"ok": False, "refused": exc.diagnostic.as_dict()}) + "\n")
+        return EXIT_FAIL
+    except graphmod.GraphError as exc:
+        raise CliError(str(exc)) from exc
+    project = out_dir / exported.package
+    exported.write(project)
+    summary: dict[str, Any] = {
+        "ok": True,
+        "target": args.target,
+        "commit": commit,
+        "package": exported.package,
+        "project": str(project),
+        "closure": list(exported.closure.order),
+        "pruned": exported.closure.pruned,
+        "check": None,
+    }
+    if args.check:
+        try:
+            tc_seam = toolchain.LocalToolchain.from_settings(settings)
+            spec = exported.record
+            tc = tc_seam.resolve(
+                str(spec["lean_toolchain"]),
+                install=bool(args.install),
+                mathlib_sha=spec.get("mathlib_sha"),
+            )
+        except (toolchain.ToolchainMissingError, toolchain.ToolchainError) as exc:
+            raise CliError(str(exc)) from exc
+        report = palomar_check.local_check(
+            tc_seam,
+            tc,
+            project,
+            package=exported.package,
+            decl=exported.decl,
+            allowlist=list(
+                exported.record.get("axiom_allowlist") or palomar.pins()["permitted_axioms"]
+            ),
+        )
+        summary["check"] = report.as_dict()
+        summary["ok"] = report.ok
+    sys.stdout.write(json.dumps(summary, ensure_ascii=False) + "\n")
+    return 0 if summary["ok"] else EXIT_FAIL
+
+
+def run_palomar_port(args: argparse.Namespace, settings: config.Settings) -> int:
+    """F25-R12: Stage B on a laptop or a runner with the registry's toolchain installed under
+    elan (``elan toolchain install <toolchain>`` first). Writes ``port-report.json`` beside the
+    project; exit 1 when a step failed, with the classified failures in the report."""
+    from opn_gate import palomar_port  # noqa: PLC0415 — only this command
+
+    project: Path = args.project.resolve()
+    if not (project / "lakefile.toml").is_file():
+        msg = f"{project} is not a Lake project"
+        raise CliError(msg)
+    try:
+        elan = toolchain.find_elan(path_env=None, elan_home=settings.elan_home)
+        prefix_proc = subprocess.run(
+            [str(elan), "run", args.toolchain, "lean", "--print-prefix"],
+            capture_output=True, text=True, check=False, timeout=600,
+        )  # fmt: skip
+    except toolchain.ToolchainMissingError as exc:
+        raise CliError(str(exc)) from exc
+    if prefix_proc.returncode != 0:
+        msg = f"lean under {args.toolchain} failed: {prefix_proc.stderr.strip()[:300]}"
+        raise CliError(msg)
+    try:
+        report = palomar_port.port(
+            project,
+            toolchain=args.toolchain,
+            mathlib_rev=args.mathlib_rev,
+            runner=palomar_port.ElanRunner(elan, args.toolchain),
+            prefix=Path(prefix_proc.stdout.strip()),
+            timeout_s=args.timeout,
+            skip_update=args.skip_update,
+            repairs=args.repairs.resolve() if args.repairs is not None else None,
+        )
+    except palomar_port.PortError as exc:
+        sys.stdout.write(json.dumps({"ok": False, "refused": exc.diagnostic.as_dict()}) + "\n")
+        return EXIT_FAIL
+    sys.stdout.write(json.dumps(report.as_dict(), ensure_ascii=False) + "\n")
+    return 0 if report.ok else EXIT_FAIL
+
+
+def run_palomar_feed(args: argparse.Namespace, settings: config.Settings) -> int:
+    """F25-R14 (D-10 v3.37): the feed watcher. Exit 0 with the report (candidates are
+    information), 1 when the registry could not be read (a warning; nothing written), 2 on a
+    usage error. Nothing is written to the graph: a proposal goes under ``--out``."""
+    from opn_gate import palomar_feed  # noqa: PLC0415 — only here
+
+    del settings
+    graph = args.graph.resolve()
+    if not (graph / "targets").is_dir():
+        msg = f"{graph} has no targets/ directory"
+        raise CliError(msg)
+    if args.propose and (not args.contributor or args.out is None):
+        msg = "--propose needs --contributor and --out"
+        raise CliError(msg)
+    if args.snapshot is not None and not args.snapshot.is_file():
+        msg = f"cannot read --snapshot {args.snapshot}"
+        raise CliError(msg)
+    try:
+        result = palomar_feed.run(
+            graph,
+            None if args.snapshot is not None and not args.drift else palomar_feed.default_host(),
+            snapshot=args.snapshot,
+            propose=args.propose,
+            contributor=args.contributor,
+            out=args.out,
+            drift=args.drift,
+        )
+    except palomar_feed.FeedError as exc:
+        raise CliError(str(exc)) from exc
+    sys.stdout.write(result.render())
+    return result.exit_code
+
+
 def run_footprints(args: argparse.Namespace, settings: config.Settings) -> int:
     """F08-T27: measure each merged proof of ``--target`` whose record says nothing of what its
     term used, by steps 1, 2, 4 and 8 in the step-3 sandbox, and write the target's
@@ -1195,7 +1423,7 @@ def run_footprints(args: argparse.Namespace, settings: config.Settings) -> int:
 
 
 def run_lemmas_backfill(args: argparse.Namespace, settings: config.Settings) -> int:
-    """F08-T41 (D-12 v3.36): re-extract every merged partial of ``--target`` at the checkout's
+    """F08-T41 (D-12 v3.38): re-extract every merged partial of ``--target`` at the checkout's
     HEAD, by steps 1, 2 and 4 in the step-3 sandbox, and write into the *checkout* the lemma
     edges the record lacks (``META.yaml``'s ``lemmas`` and the regenerated ``Context.lean``), as
     the post-merge writer records them today. Prints ``{written, unchanged, failed}``; a curator
@@ -2303,7 +2531,11 @@ def run_intake(args: argparse.Namespace, settings: config.Settings) -> int:
         return _emit_curator(doc, graph, args.branch, f"intake: {args.target_id} active")
     if args.action == "import-fc":
         return run_import_fc(args, settings, graph)
-    record = intake.read_record(args.record.resolve())
+    record = intake.with_classification(
+        intake.read_record(args.record.resolve()),
+        arxiv=args.arxiv or (),
+        msc=args.msc or (),
+    )  # F25-R4: refused by name before anything is written
     checker: intake.Checker = (
         _fake_checker
         if args.no_toolchain
@@ -3094,7 +3326,7 @@ def run_ledger(  # noqa: PLR0911 — one return per kind of merge
     classification = modes.classify(changes, author=settings.pr_author)
     mode = classification.mode
     nothing: dict[str, Any] = {"earned": False, "commit": commit}
-    if mode in ("proof", "partial", "append"):
+    if mode in ("proof", "partial", "append", "registration"):
         return _write_merge_entries(graph, commit, classification, nothing)
     if mode == "alternate":
         nothing["reason"] = "an alternate proof is credited at write-up, not when it merges (D-25)"
@@ -3329,6 +3561,7 @@ def _write_merge_entries(
     identity = proposer_of(graph, commit)
     date = graphmod.commit_timestamp(graph, commit)
     tooling = ledger.merge_tooling(graph, commit)
+    automation = ledger.merge_automation(graph, commit)  # F25-R3: the block, or None
     try:
         doc = ledger.load(graph, identity)
         earned, skipped, doc = _merge_entries(
@@ -3338,6 +3571,7 @@ def _write_merge_entries(
             commit=commit,
             date=date,
             tooling=tooling,
+            automation=automation,
             doc=doc,
         )
     except schemas.SchemaError as exc:
@@ -3369,7 +3603,7 @@ def _write_merge_entries(
     )
 
 
-def _merge_entries(  # noqa: PLR0913 — one argument per fact every entry records
+def _merge_entries(  # noqa: PLR0912, PLR0913 — one argument per fact every entry records
     graph: Path,
     classification: modes.Classification,
     *,
@@ -3378,12 +3612,36 @@ def _merge_entries(  # noqa: PLR0913 — one argument per fact every entry recor
     date: str,
     tooling: str,
     doc: dict[str, Any],
+    automation: dict[str, Any] | None = None,
 ) -> tuple[list[ledger.Entry], list[str], dict[str, Any]]:
     """The entries a proof, partial or append merge earns, the reasons for what it does not, and
     the ledger with the earned entries appended (validated as it grows, so a second postmortem of
-    a class in the same merge is refused against the first — D-13)."""
+    a class in the same merge is refused against the first — D-13). ``automation`` is what the
+    merge's attestation declared (F25-R3), carried on every entry the merge earns."""
     earned: list[ledger.Entry] = []
     skipped: list[str] = []
+    if classification.mode == "registration":
+        # F25 (D-19 v3.37): a merged registration record earns the upstreaming line for the
+        # curator or steward it names, who the gate held to be the pull request's actor.
+        for loc in classification.located:
+            if loc.role != "registration":
+                continue
+            record = schemas.load_yaml(graph / loc.path, "registration/v1")
+            if str(record["submitted_by"]) != identity:
+                skipped.append(
+                    f"{loc.path} names {record['submitted_by']}, not {identity}: nothing earned"
+                )
+                continue
+            credited = ledger.registration_entry(
+                identity=identity, target=loc.target_id, node=str(record["proof"]["node"]),
+                artifact=loc.path.split(f"targets/{loc.target_id}/", 1)[1],
+                merge_commit=commit, date=date,
+            )  # fmt: skip
+            doc = ledger.append(doc, credited)
+            earned.append(credited)
+        if not earned and not skipped:
+            skipped.append("a registration merge with no registration record earns nothing")
+        return earned, skipped, doc
     wanted = {"proof": ("proof",), "partial": ("partial",), "append": ("postmortem",)}
     roles = wanted[str(classification.mode)]
     located = [loc for loc in classification.located if loc.role in roles and loc.node_id]
@@ -3409,6 +3667,7 @@ def _merge_entries(  # noqa: PLR0913 — one argument per fact every entry recor
             entry = ledger.postmortem_entry(
                 doc, identity=identity, target=target_id, node=node_id, route_class=route_class,
                 artifact=artifact, merge_commit=commit, date=date, tooling=tooling,
+                automation=automation,
             )  # fmt: skip
             if entry is None:
                 skipped.append(
@@ -3428,7 +3687,7 @@ def _merge_entries(  # noqa: PLR0913 — one argument per fact every entry recor
                 identity=identity, target=target_id, node=node_id,
                 artifact_type="partial" if loc.role == "partial" else "proof",
                 artifact=artifact, merge_commit=commit, date=date, tooling=tooling,
-                curator=curator,
+                curator=curator, automation=automation,
             )  # fmt: skip
             if entry is None:
                 skipped.append(f"{node_id}'s {loc.role} earns no proof line (R12)")

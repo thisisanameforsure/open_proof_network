@@ -115,7 +115,9 @@ def test_the_published_list_is_a_file_in_the_repository() -> None:
 def test_an_identity_already_holding_a_reserved_name_is_untouched(harness: Harness) -> None:
     """Reservation governs new identities only: one created before a name was reserved keeps its
     name and its token (the owner checks the live table for such names; see the Q entry)."""
-    held = Identity("01HOLDER", "Admin", "github", "old-admin", "2026-09-01T00:00:00Z")
+    held = Identity(
+        "01HOLDER", "Admin", "github", "old-admin", "2026-09-01T00:00:00Z", identity.DCO_VERSION
+    )
     harness.store.put_identity(held)
     token = auth.new_token()
     harness.store.put_token(

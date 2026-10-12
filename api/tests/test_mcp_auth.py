@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from api_fakes import PROOF_PREFIX, TUTORIAL_NODE, TUTORIAL_PROOF, Harness, make_harness
+from api_fakes import AUTOMATION, PROOF_PREFIX, TUTORIAL_NODE, TUTORIAL_PROOF, Harness, make_harness
 from mcp_client import NODE, McpClient
 
 from opn_api.mcp import auth
@@ -24,7 +24,13 @@ MINIMAL: dict[str, dict[str, Any]] = {
     "propose_witness": {"node_id": NODE, "witness": "w"},
     "withdraw_submission": {"submission_id": "1"},
     "renew_token": {},  # F05-T27: a bearer write with no arguments
-    "submit_proof": {"node_id": NODE, "artifact_type": "proof", "bundle": {}, "attestation": {}},
+    "submit_proof": {
+        "node_id": NODE,
+        "artifact_type": "proof",
+        "bundle": {},
+        "attestation": {},
+        "automation": AUTOMATION,
+    },
     "submit_postmortem": {"node_id": NODE, "yaml": {}},
     "submit_informal_annex": {"node_id": NODE, "text": "t", "licence": "CC-BY-4.0"},
     "submit_approach_record": {"target_id": "propositional", "record": {}},
@@ -58,6 +64,16 @@ MINIMAL: dict[str, dict[str, Any]] = {
         "status": "known",
         "references": [{"title": "t"}],
         "summary": "s",
+    },
+    # F25-T4
+    "set_display_name": {"name": "A"},
+    "register_target": {
+        "target_id": "propositional",
+        "registry": "palomar",
+        "wrapper": {"repository": "o/r", "commit": "a" * 40},
+        "graph_commit": "b" * 40,
+        "proof": {"node": NODE, "attestation": "000001"},
+        "status": "submitted",
     },
 }
 

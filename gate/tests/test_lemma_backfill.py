@@ -1,4 +1,4 @@
-"""F08-T41 (D-12 v3.36): ``opn-gate lemmas-backfill`` writes the lemma edges of merges made
+"""F08-T41 (D-12 v3.38): ``opn-gate lemmas-backfill`` writes the lemma edges of merges made
 before the rule.
 
 The live record has a merged partial whose hole restated a node under another branch and whose
@@ -42,7 +42,7 @@ OLD_PARTIAL = "attempts/20261009T120000Z-carol-partial.lean"
 
 
 def old_merge(root: Path, *, n: int = 3, holes: list[str] | None = None) -> None:
-    """A partial merged under a pin before v3.36: the assembly under ``attempts/`` (the
+    """A partial merged under a pin before v3.38: the assembly under ``attempts/`` (the
     statement's header with a hole), its passing attestation naming the file and the hole, and
     no edge on the parent for what the hole restated."""
     parent = nodes_dir(root) / PARENT
@@ -124,7 +124,7 @@ class Factory:
 def test_the_backfill_writes_the_missing_edge_and_is_idempotent(tmp_path: Path) -> None:
     root = with_cross_branch_node(tmp_path / "g")
     old_merge(root)
-    assert "lemmas" not in meta_of(root), "guard: the pre-v3.36 record"
+    assert "lemmas" not in meta_of(root), "guard: the pre-v3.38 record"
     factory = Factory(root, reporting(X))
     report = lemma_backfill.backfill(root, TARGET, factory, tmp_path / "w")
     assert report.as_dict() == {
@@ -221,7 +221,7 @@ def test_the_command_runs_over_the_checkout_and_prints_the_report(
     old_merge(root)
     git(root, "init", "-q")
     git(root, "add", "-A")
-    git(root, "commit", "-q", "-m", "the record before v3.36")
+    git(root, "commit", "-q", "-m", "the record before v3.38")
     factory = Factory(root, reporting(X))
     seen: list[tuple[str, str]] = []
 

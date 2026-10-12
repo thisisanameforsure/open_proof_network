@@ -22,8 +22,9 @@ import samples
 import yaml
 from harness import TARGET, copy_graph, freeze_upstream, take_in
 
-from opn_gate import fidelity, intake, products, schemas
+from opn_gate import cli, fidelity, intake, modes, products, schemas
 from opn_gate.intake import IntakeError
+from opn_gate.paths import Change
 
 REPO = Path(__file__).resolve().parents[2]
 SELECTION = REPO / "engineering" / "evidence" / "F11" / "selection.md"
@@ -641,3 +642,158 @@ def test_calibration_only_on_the_formalization_track(tmp_path: Path) -> None:
     row = index_row(root, "known")
     assert row["calibration"] is True and row["track"] == "formalization"
     assert index_row(root, "known")["claimable"] is True
+
+
+# --- F25-T5: classification (R4; AC6) -------------------------------------------------------------
+
+
+def _intake_new_argv(root: Path, record: Path, *extra: str) -> list[str]:
+    node = root / "targets" / TARGET / "nodes" / "and-reassoc"
+    return [
+        "intake", "new", "classified",
+        "--graph", str(root), "--from", str(record), "--root", str(node),
+        "--author", "curator", "--date", "2026-10-11T00:00:00Z", "--no-toolchain",
+        "--spec", str(root / "targets" / TARGET / "gate-spec.json"),
+        *extra,
+    ]  # fmt: skip
+
+
+def _record_file(root: Path, **overrides: Any) -> Path:
+    path = root.parent / "classified.yaml"
+    path.write_text(yaml.safe_dump(samples.target_record(id="classified", **overrides)))
+    return path
+
+
+def _run(capsys: pytest.CaptureFixture[str], argv: list[str]) -> tuple[int, str, str]:
+    code = cli.main(argv)
+    captured = capsys.readouterr()
+    return code, captured.out, captured.err
+
+
+def test_classification_is_written_by_intake_new(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """AC6, happy path: ``intake new --arxiv math.NT --msc 11A41`` writes the block into
+    ``target.yaml``, the record validates at ``target/v3``, and ``intake.classification`` reads it
+    back as written (R4). Two arXiv codes and several MSC codes are kept in the order given."""
+    root = copy_graph(tmp_path)
+    record = _record_file(root)
+    flags = ("--arxiv", "math.NT", "--arxiv", "math.CO", "--msc", "11A41", "--msc", "05C35")
+    code, out, err = _run(capsys, _intake_new_argv(root, record, *flags))
+    assert code == cli.EXIT_PASS, err
+    assert json.loads(out)["ok"] is True
+    written = root / "targets" / "classified" / intake.TARGET_FILE
+    doc = intake.read_record(written)  # validates at the version the record declares
+    assert doc["schema"] == "target/v3"
+    assert doc["classification"] == {"arxiv": ["math.NT", "math.CO"], "msc2020": ["11A41", "05C35"]}
+    assert intake.classification(doc) == doc["classification"]
+    assert schemas.violations(doc, "target/v3") == []
+    assert intake.check_classification(doc) == []
+
+
+def test_classification_is_optional_at_intake(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """R4: with neither flag the record carries no ``classification`` key at all, and the reader
+    answers ``None`` — the export, not the intake, is what refuses a target without one."""
+    root = copy_graph(tmp_path)
+    code, _out, err = _run(capsys, _intake_new_argv(root, _record_file(root)))
+    assert code == cli.EXIT_PASS, err
+    doc = intake.read_record(root / "targets" / "classified" / intake.TARGET_FILE)
+    assert "classification" not in doc
+    assert intake.classification(doc) is None
+    assert intake.classification(None) is None
+    assert intake.check_classification(doc) == []
+
+
+@pytest.mark.parametrize(
+    ("given", "missing"),
+    [(("--arxiv", "math.NT"), "--msc"), (("--msc", "11A41"), "--arxiv")],
+)
+def test_classification_needs_both_flags(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], given: tuple[str, str], missing: str
+) -> None:
+    """One flag without the other is refused naming the one that is missing — the schema requires
+    both lists — and the refusal leaves no target behind (C7)."""
+    root = copy_graph(tmp_path)
+    code, _out, err = _run(capsys, _intake_new_argv(root, _record_file(root), *given))
+    assert code == cli.EXIT_FAIL, err  # a refusal, like every curator command's (cli._REFUSALS)
+    assert missing in err and "classification" in err
+    assert not (root / "targets" / "classified").exists()
+
+
+NINE_MSC = tuple(flag for n in range(9) for flag in ("--msc", f"11A{n:02d}"))
+
+
+@pytest.mark.parametrize(
+    "flags",
+    [
+        ("--arxiv", "math.nt", "--msc", "11A41"),  # lower-case archive class
+        ("--arxiv", "math.NT", "--msc", "11a41"),  # lower-case MSC letter
+        ("--arxiv", "math.NT", "--arxiv", "math.CO", "--arxiv", "math.PR", "--msc", "11A41"),
+        ("--arxiv", "math.NT", *NINE_MSC),
+        ("--arxiv", "math.NT", "--arxiv", "math.NT", "--msc", "11A41"),  # a duplicate
+    ],
+    ids=["arxiv-case", "msc-case", "three-arxiv", "nine-msc", "duplicate"],
+)
+def test_classification_invalid_codes_are_refused(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], flags: tuple[str, ...]
+) -> None:
+    """A code that is not an arXiv category or an MSC 2020 code, more codes than the schema
+    allows, or the same code twice: refused by name, no target written."""
+    root = copy_graph(tmp_path)
+    code, _out, err = _run(capsys, _intake_new_argv(root, _record_file(root), *flags))
+    assert code == cli.EXIT_FAIL, err
+    assert "classification-invalid" not in err  # the message, not the code, reaches stderr
+    assert "classification:" in err and "F25-R4" in err
+    assert not (root / "targets" / "classified").exists()
+
+
+def test_classification_check_names_each_problem() -> None:
+    """``check_classification`` is the one emitter: a diagnostic per violation, each coded
+    ``classification-invalid`` and naming the field; a valid block, or none, gives nothing."""
+    assert intake.check_classification(samples.target_record(schema="target/v3")) == []
+    good = samples.target_record(schema="target/v3", classification=samples.classification())
+    assert intake.check_classification(good) == []
+    bad = samples.target_record(
+        schema="target/v3",
+        classification={"arxiv": ["math.nt"], "msc2020": ["11A41", "nonsense"]},
+    )
+    found = intake.check_classification(bad)
+    assert len(found) == 2, found
+    assert {d.code for d in found} == {"classification-invalid"}
+    fields = sorted(d.details["field"] for d in found)
+    assert fields == ["$['classification']['arxiv'][0]", "$['classification']['msc2020'][1]"]
+    assert all("classification" in d.message for d in found)
+    half = samples.target_record(schema="target/v3", classification={"arxiv": ["math.NT"]})
+    found = intake.check_classification(half)
+    assert [d.code for d in found] == ["classification-invalid"] and "msc2020" in found[0].message
+
+
+def test_classification_is_checked_by_the_gate_on_an_intake(tmp_path: Path) -> None:
+    """The gate's side of R4: an intake pull request whose ``target.yaml`` carries a valid
+    classification passes ``modes.check`` with nothing to say, and one whose classification is
+    malformed is refused as ``record-invalid`` by the schema the record declares (D-34). The
+    second half writes the file by hand, since ``intake new`` would never write it."""
+    root = copy_graph(tmp_path)
+    take_in(root, "classified", schema="target/v3", classification=samples.classification())
+    target = root / "targets" / "classified"
+    (target / "nodes" / "and-reassoc" / "Proof.lean").unlink()  # a root enters unproved
+    changes = [
+        Change("A", p.relative_to(root).as_posix())
+        for p in sorted(target.rglob("*"))
+        if p.is_file()
+    ]
+    curators = modes.Curators(identities=(("curator", "curator"),))
+    c = modes.classify(changes, author="curator", curators=curators)
+    assert c.mode == "intake" and c.problems == (), c.as_dict()
+    assert modes.check(root, c) == []
+
+    record = target / intake.TARGET_FILE
+    doc = yaml.safe_load(record.read_text(encoding="utf-8"))
+    doc["classification"] = {"arxiv": ["math.nt"], "msc2020": ["11A41"]}
+    record.write_text(yaml.safe_dump(doc, sort_keys=False), encoding="utf-8")
+    found = modes.check(root, c)
+    assert [d.code for d in found] == ["record-invalid"], found
+    assert found[0].details["schema"] == "target/v3"
+    assert "classification" in found[0].details["field"]

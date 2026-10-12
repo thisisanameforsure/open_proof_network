@@ -1,0 +1,16 @@
+# F25-T6 — Palomar client seam (fake + http), vendored schema/pins/corpus, seven corpus fixtures, formalization.yaml and comparator readers and writers. 2026-10-10T21:22:59Z
+
+........................................................                 [100%]
+56 passed in 0.31s
+
+## lint + types
+uv run --frozen ruff format --check .
+723 files already formatted
+Success: no issues found in 348 source files
+Success: no issues found in 229 source files
+Success: no issues found in 82 source files
+
+## findings recorded in gate/palomar/corpus.json
+- 2026-10-11: the registry's current formalization.yaml v0.4 schema refuses PALOMAR-2026-09-05-000007, whose project.authors are {name, orcid} objects; the registry accepted it on 2026-09-05, so the schema moved under a registered entry (an earlier v0.4 allowed objects). The network's reader is strict to today's schema; this entry is the known exception.
+- 2026-10-11: the module system is used by every corpus entry registered from 2026-10-02, by the one of 2026-09-25, and not by those of 2026-09-05 and 2026-09-30: the rule arrived in late September 2026 and the export writes `module`.
+- 2026-10-11: entry records carry no mathlib_revision field; Mathlib is one of `formalization.project_dependencies`. `verification.kernels` are {name, argv} objects (nanoda, con-ron) and are absent on the oldest entry. `project_path` is `source.project_path`.

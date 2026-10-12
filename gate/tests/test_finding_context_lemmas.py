@@ -1,4 +1,4 @@
-"""F10-T49 (D-12 v3.36): ``CONTEXT.json`` (``context/v6``) carries the node's lemmas.
+"""F10-T49 (D-12 v3.38): ``CONTEXT.json`` (``context/v6``) carries the node's lemmas.
 
 Each lemma rides beside ``deps`` with the same shape plus the hole's name: the lemma node's
 ``Statement.lean`` verbatim (the signature the proof may use once it is proved), its hash, and

@@ -11,6 +11,7 @@ all of them rendered (R13).
 from __future__ import annotations
 
 import difflib
+import hashlib
 import json
 import re
 from dataclasses import replace
@@ -20,7 +21,7 @@ from string import Template
 from typing import Any
 from urllib.parse import quote
 
-from opn_gate import explainers, hosted, intake, layout, policy, products, schemas, steward
+from opn_gate import clients, explainers, hosted, intake, layout, policy, products, schemas, steward
 from opn_gate import graph as graphmod
 from opn_gate import ledger as ledgermod
 from opn_site import dag, links, prose
@@ -408,14 +409,14 @@ GLOSSARY: tuple[tuple[str, str, str, str], ...] = (
         "beyond the dependencies its statement declared.",
         "use line, import Nodes.«id».Proof (D-12 v3.25)",
     ),
-    # F04-T39 (D-12 v3.36): the dash-dot line from a restated node under another branch.
+    # F04-T39 (D-12 v3.38): the dash-dot line from a restated node under another branch.
     (
         "lemma",
         "lemma from another branch",
         "A dash-dot line runs up from a statement under another branch to one whose merged "
         "decomposition restated it as a hole. The upper statement may draw on it once it is "
         "proved and never waits on it: a hole's standing, without a hole's place in the tree.",
-        "lemmas (META.yaml, D-12 v3.36)",
+        "lemmas (META.yaml, D-12 v3.38)",
     ),
     (
         "outline",
@@ -757,6 +758,7 @@ COPY_LINKS: frozenset[str] = frozenset(
         "https://leidendeclaration.ai/",  # the Leiden Declaration, 2026-06-02
         "https://terrytao.wordpress.com/2026/08/12/a-digestion-of-the-proof-of-sendovs-conjecture/",
         "https://terrytao.wordpress.com/2026/09/11/a-severe-misalignment-of-ai-in-mathematics/",
+        "https://palomar-registry.org/",  # F25-R17: the registry the Docs page describes (D-10)
     }
 )
 #: F15-R11: the Leiden compliance table, one row per objection of the research note's §5
@@ -794,8 +796,10 @@ LEIDEN_ROWS: tuple[tuple[str, str, str], ...] = (
         "A prior-art search before listing, and a target found in the literature is relabelled "
         "a known result, never paid as novelty (D-6); statements are inherited from the public "
         "registry and resolutions reported back to it (D-10); every node records the human "
-        "operator, the model and the tooling (D-19, D-23); no machine authorship (D-32); an "
-        "upstream edit or a resolution elsewhere is watched for (D-10 v3.12).",
+        "operator, the model and the tooling (D-19, D-23); no machine authorship (D-32); a "
+        "registration's authors are the ledger's identities under their pseudonyms or recorded "
+        "names and never a model (D-19 v3.37); an upstream edit or a resolution elsewhere is "
+        "watched for (D-10 v3.12).",
         "The search performed at intake is recorded as its summary, not as the queries run.",
     ),
     (
@@ -1239,7 +1243,7 @@ class Renderer:
         line_keys = ("depends-on",) if "edge" in drawn else ()
         if "edge use" in drawn:
             line_keys = (*line_keys, "use")
-        if "edge lemma" in drawn:  # F04-T39 (D-12 v3.36)
+        if "edge lemma" in drawn:  # F04-T39 (D-12 v3.38)
             line_keys = (*line_keys, "lemma")
         pointed = ("proposed-for",) if dag.pointers(tv.graph["nodes"]) else ()
         if any(nv.annexes for nv in tv.nodes.values()):
@@ -2176,6 +2180,7 @@ class Renderer:
             stages=self.stage_marks(tv),
             claimable=self.target_claimable(tv),
             calibration=self.calibration_label(tv),
+            registrations=self.registration_lines(tv),
             steward_card=self.steward_card(tv),
             count_words=esc(f"{n} statement{'' if n == 1 else 's'}"),
             legend=self.graph_legend(tv),
@@ -2669,6 +2674,39 @@ class Renderer:
         digestion = tv.digestion
         state = str(digestion.get("state") or "") if digestion else ""
         return DIGESTION_WORDS.get(state, "")
+
+    def registration_lines(self, tv: TargetView) -> str:
+        """F25-R17 (D-10 v3.37): one line per registration of the target in a public registry,
+        in the header beside the other status lines; nothing when there is none. The registry
+        entry is linked only when the status is ``registered`` and the record carries a url —
+        that url is on the allowlist because the record validated (F11-Q11); a submission's url
+        is not a registry entry and is never linked. Every string is escaped."""
+        lines = []
+        for reg in tv.registrations:
+            if reg.get("registry") != "palomar":
+                continue  # the only registry the schema names; a later one gets its own words
+            rid, version, url = reg.get("registry_id"), reg.get("version"), reg.get("url")
+            ident = (
+                f"{esc(str(rid))}{' v' + esc(str(version)) if version is not None else ''}"
+                if rid
+                else ""
+            )
+            status = reg.get("status")
+            if status == "registered":
+                shown = ident or "an entry"
+                if url:
+                    shown = f'<a href="{esc(str(url))}">{shown}</a>'
+                words = f"Registered in Palomar as {shown}"
+            elif status == "submitted":
+                words = "Submitted to Palomar, under review"
+            elif status == "revision_required":
+                words = "Palomar asked for revisions" + (f" ({ident})" if ident else "")
+            elif status == "rejected":
+                words = "Palomar declined" + (f" ({ident})" if ident else "")
+            else:
+                continue  # not a status the schema publishes
+            lines.append(f'<p class="registration">{words}</p>')
+        return "".join(lines)
 
     def calibration_label(self, tv: TargetView) -> str:
         if not tv.calibration:
@@ -3721,17 +3759,24 @@ class Renderer:
             if funnel_items
             else "<p>No human-funnel documentation yet (D-27, F10).</p>"
         )
-        parts = []
+        # F25-R17 (D-23 v3.37): the two licences by name, before whatever text the graph carries.
+        parts = [
+            "<p>The code is Apache-2.0 and the non-code record — statements, proofs, prose, "
+            "attestations and every other record — is CDLA-Permissive-2.0 (D-23 v3.37): "
+            "<code>LICENSE</code> at the graph root names the first, <code>NOTICE</code> beside "
+            "it the second, and the sign-off text names both. Annex prose carries the licence "
+            f"its author chose: {', '.join(esc(x) for x in ANNEX_LICENCES)}.</p>"
+        ]
         for name, what in (("LICENSE", "license"), ("DCO", "sign-off (DCO)")):
             path = self.site.root / name
             if path.is_file():
                 text = path.read_text(encoding="utf-8")
                 parts.append(f'<h3>{esc(name)}</h3><pre class="prose">{esc(text)}</pre>')
             elif name == "LICENSE":
+                # The rule above is the decision's; this line says what the build found.
                 parts.append(
-                    "<p>No license text is committed to the graph yet (D-23). Annex prose "
-                    "carries the licence its author chose: "
-                    f"{', '.join(esc(x) for x in ANNEX_LICENCES)}.</p>"
+                    "<p>This build found no <code>LICENSE</code> file in the graph: the licence "
+                    "is the decision's until the file lands (D-23).</p>"
                 )
             elif self.api_url:
                 # T20: the page said no sign-off text existed while the service refused a token
@@ -3762,6 +3807,7 @@ class Renderer:
             steward_lead=esc(self.words["docs_steward"]),
             step_down_consequence=esc(self.words["docs_step_down"]),
             states=self.states(),
+            connectors=self.connectors(),
             agents=agents,
             funnel=funnel,
             license="".join(parts),
@@ -3779,6 +3825,73 @@ class Renderer:
         return self.page(
             "Docs", body, renders=renders, path="/docs/", **self.math_frame(body)
         ), extra
+
+    def connectors(self) -> str:
+        """F16-R3, AC6: one card per harness in the connector registry, alphabetical (D-1: no
+        order of preference), each snippet filled with this build's service URL. An entry shows a
+        version only for a level-2 run that passed (R10); until then it says so."""
+        registry = clients.load()
+        mcp_url = f"{self.api_url}/mcp" if self.api_url else "$OPN_API/mcp"
+        cards = []
+        for entry in sorted(registry.entries, key=lambda e: e.name.lower()):
+            if entry.verified is not None:
+                status = f"Tested with {esc(entry.verified.version)} on {esc(entry.verified.date)}."
+            else:
+                status = "Not yet verified against the harness itself."
+            for rule, why in sorted(entry.profile.known_over.items()):
+                status += f" Known limit ({esc(rule)}): {esc(why)}"
+            snippets = []
+            for r in clients.render(registry, entry, mcp_url):
+                where = f" <code>{esc(r.path)}</code> ({esc(r.scope)})" if r.path else ""
+                snippets.append(
+                    f'<p class="snippet-title">{esc(r.title)}{where}</p>'
+                    f'<pre class="snippet"><code>{esc(r.text.rstrip())}</code></pre>'
+                )
+            headless = clients.render_headless(registry, entry, mcp_url, "…")
+            cards.append(
+                f'<section class="connector" id="connector-{esc(entry.id)}">'
+                f"<h3>{esc(entry.name)} <code>{esc(entry.id)}</code></h3>"
+                f'<p class="connector-status">{status}</p>'
+                f"<p>{esc(entry.instructions)}</p>"
+                + "".join(snippets)
+                + '<p class="snippet-title">Headless</p>'
+                f'<pre class="snippet"><code>{esc(headless)}</code></pre>'
+                f"<p>{esc(entry.approve)}</p></section>"
+            )
+        prover = (
+            '<section class="connector" id="connector-opn-prove"><h3>Your own prover '
+            "<code>opn-prove</code></h3><p>For a prover that takes a Lean file with "
+            "<code>sorry</code> and returns a proof (Aristotle, or an open-weight model you run): "
+            "one Python file, standard library only, that exports a node as the self-contained "
+            "file the network's fast check sees, runs any command as the prover, turns its answer "
+            "into the node's <code>Proof.lean</code> or refuses with the reason, and submits it "
+            "(F17). Its harness id is <code>opn-prove/&lt;backend&gt;</code>.</p>"
+            '<p class="snippet-title">Download it from this site and check it (<code>OPN_SITE'
+            '</code> is this site\'s address)</p><pre class="snippet"><code>'
+            f"curl -fsSO &quot;$OPN_SITE/{PROVE_PATH}&quot;\n"
+            f"curl -fsS &quot;$OPN_SITE/{PROVE_SUMS}&quot; | sha256sum -c -</code></pre>"
+            '<p class="snippet-title">Hand a node to your prover</p><pre class="snippet"><code>'
+            "python3 opn_prove.py export --graph &quot;$GRAPH&quot; --node &lt;node&gt; "
+            "--out problem.lean\n"
+            "python3 opn_prove.py run --problem problem.lean --answer answer.txt -- "
+            "&lt;your prover&gt; {problem} {answer}\n"
+            "python3 opn_prove.py import --graph &quot;$GRAPH&quot; --node &lt;node&gt; "
+            "answer.txt\n"
+            "OPN_TOKEN=… python3 opn_prove.py submit --api &quot;$OPN_API&quot; --graph "
+            "&quot;$GRAPH&quot; --node &lt;node&gt; Proof.lean --model &lt;model&gt;</code></pre>"
+            f'<p><a href="/{PROVE_PATH}">opn_prove.py</a> · '
+            f'<a href="/{PROVE_SUMS}">SHA256SUMS.txt</a></p></section>'
+        )
+        return (
+            "<p>Any MCP client reaches the same tools; these are the harnesses the network tests "
+            "a connector for, generated from the tooling repository's "
+            "<code>gate/clients/registry.yaml</code>. None is preferred and none is required: "
+            "the gate cannot tell them apart (D-1). Writes carry your token as "
+            f"<code>Authorization: Bearer ${esc(registry.token_env)}</code>; most harnesses read "
+            "headers only when they start, so export the variable after <code>get_token</code> "
+            "and restart. Declare the harness's id as <code>tooling.harness</code> when you "
+            "submit; it is recorded, never checked (D-23).</p>" + "".join(cards) + prover
+        )
 
     def states(self) -> str:
         """F04-T21 (Q23): the Docs section that draws how a statement and a problem change state
@@ -4869,9 +4982,9 @@ class Renderer:
         )
 
     def lemmas_list(self, tv: TargetView | None, nv: NodeView) -> str:
-        """F04-T39 (D-12 v3.36): the node's lemmas — nodes under other branches a merged partial
+        """F04-T39 (D-12 v3.38): the node's lemmas — nodes under other branches a merged partial
         of it restated as holes — each linked with its state's dot and the hole it answered.
-        Nothing for a node with none (every node rendered before ``graph/v7``)."""
+        Nothing for a node with none (every node rendered before ``graph/v8``)."""
         if not nv.lemmas:
             return ""
         items = []
@@ -4890,7 +5003,7 @@ class Renderer:
         return (
             '<div class="lemmas"><p>Lemmas it may use: statements under other branches that a '
             "merged decomposition of this one restated as holes. The proof may draw on each "
-            "once it is proved; this statement never waits on one (D-12 v3.36).</p>"
+            "once it is proved; this statement never waits on one (D-12 v3.38).</p>"
             f"<ul>{''.join(items)}</ul></div>"
         )
 
@@ -5352,6 +5465,13 @@ def cited_urls(site: Site) -> frozenset[str]:
             for lit in (nv.literature, nv.literature_proposed):
                 if lit is not None:
                     urls.update(r.url for r in lit.references if r.url)
+        # F25-R17 (D-10 v3.37): a registry entry the target's validated registration records
+        # name, and only once registered — a submission's url is not an entry and is not linked.
+        urls.update(
+            str(reg["url"])
+            for reg in tv.registrations
+            if reg.get("status") == "registered" and reg.get("url")
+        )
         if tv.record is None:
             continue
         urls.update(str(s["url"]) for s in tv.record.get("sources") or [])
@@ -5374,6 +5494,21 @@ def live_urls(api_url: str | None) -> frozenset[str]:
         return frozenset()
     base = api_url.rstrip("/")
     return frozenset({base + CLAIMS_PATH, base + SUBMISSIONS_PATH, base + DCO_PATH})
+
+
+#: F17-R9: the prover client, served from the site because contributors clone only the graph.
+#: The file is read from the tooling repository at build time, never copied into the site tree,
+#: and ships with its checksum.
+PROVE_CLIENT = Path(__file__).resolve().parents[2] / "gate" / "clients" / "prove" / "opn_prove.py"
+PROVE_PATH = "tools/opn_prove.py"
+#: With an extension: the CDN maps a bare path to a directory index (F17-Q12).
+PROVE_SUMS = "tools/SHA256SUMS.txt"
+
+
+def prove_files() -> dict[str, str]:
+    text = PROVE_CLIENT.read_text(encoding="utf-8")
+    digest = hashlib.sha256(text.encode("utf-8")).hexdigest()
+    return {PROVE_PATH: text, PROVE_SUMS: f"{digest}  opn_prove.py\n"}
 
 
 # --- F04-T30 (audit 2026-10-04, owner-approved): llms.txt and robots.txt ------------------------
@@ -5440,6 +5575,7 @@ def render_site(
         "me/index.html": r.me(),  # F23-R13
         "rules/index.html": r.rules(),  # F24-R9
         **static_files()[0],
+        **prove_files(),
         **extra,
         "llms.txt": llms_txt(r),  # F04-T30
         "robots.txt": ROBOTS_TXT,

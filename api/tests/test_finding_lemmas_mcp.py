@@ -1,8 +1,8 @@
-"""F09-T72 (decisions v3.36, D-12; testers 2026-10-09b, C1): a lemma is legible through the MCP.
+"""F09-T72 (decisions v3.38, D-12; testers 2026-10-09b, C1): a lemma is legible through the MCP.
 
 A hole that restates a node under another branch of the target makes that node a *lemma* of
 the parent: META's ``lemmas`` (meta/v6), the parent's ``CONTEXT.json`` ``lemmas`` (context/v6),
-``graph.json``'s row and a decomposition's hole resolving to the lemma's node (graph/v7). The
+``graph.json``'s row and a decomposition's hole resolving to the lemma's node (graph/v8). The
 agent of C1 could see none of it: ``get_node`` served a bundle that said nothing, and
 ``get_submission`` on the merged partial said "pass" and nothing of what the post-merge job did.
 
@@ -97,7 +97,7 @@ def test_get_node_carries_the_bundles_lemmas(harness: Harness, tmp_path: Path) -
 
 
 def test_get_node_on_an_older_context_answers_no_lemmas(harness: Harness, tmp_path: Path) -> None:
-    """A graph rendered before the v3.36 re-pin commits context/v5, which has no ``lemmas``
+    """A graph rendered before the v3.38 re-pin commits context/v5, which has no ``lemmas``
     key: the answer says ``[]``, never a KeyError (the deploy-window rule of 2026-09-11)."""
     seed_graph(harness)
     v5 = {**derived_bundle(harness, tmp_path / "tree"), "schema": "context/v5"}
@@ -134,11 +134,12 @@ def test_the_tool_and_schema_name_lemmas() -> None:
 
 
 def graph_v7(decompositions: list[dict[str, Any]], lemmas: list[dict[str, str]]) -> dict[str, Any]:
-    """The fixture's graph/v1 lifted to graph/v7 by hand: every row with v7's fields, the
+    """The fixture's graph/v1 lifted to graph/v8 by hand: every row with v8's fields, the
     tutorial node carrying the merged partial's decomposition and its lemma."""
     doc: dict[str, Any] = json.loads((FIXTURES / "graph.json").read_text())
-    doc["schema"] = "graph/v7"
+    doc["schema"] = "graph/v8"
     doc["target_proofs"] = []
+    doc["registrations"] = []  # F25-T1 (graph/v7): the target's registrations, none here
     for row in doc["nodes"]:
         row.update(
             cause=None,
@@ -157,7 +158,7 @@ def graph_v7(decompositions: list[dict[str, Any]], lemmas: list[dict[str, str]])
         if row["node_id"] == TUTORIAL_NODE:
             row["decompositions"] = decompositions
             row["lemmas"] = lemmas
-    assert schemas.violations(doc, "graph/v7") == [], "the hand-written v7 is not v7"
+    assert schemas.violations(doc, "graph/v8") == [], "the hand-written v8 is not v8"
     return doc
 
 

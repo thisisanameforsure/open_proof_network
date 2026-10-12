@@ -204,7 +204,7 @@ def test_a_restated_hole_is_an_edge_and_a_restated_sibling_is_not(tmp_path: Path
     """A later route's hole that restates one of the parent's own holes is that hole again (an
     edge already on the record); one that restates any other sibling adds no *dependency* —
     an edge the parent would wait on is what a decomposition must not add — and is recorded as
-    a *lemma* under the hole's name (D-12 v3.36, F07-T77). Restated from v3.19 (Q29), which
+    a *lemma* under the hole's name (D-12 v3.38, F07-T77). Restated from v3.19 (Q29), which
     gave way: it had said a restated sibling records nothing at all, so the merged assembly
     could never be used (graph #479, erdos-1094). Here the restated sibling is a declared dep
     of the root as well, which keeps blocking as a dep (D-3) whatever ``lemmas`` says."""
@@ -243,7 +243,7 @@ def test_a_restated_sibling_that_was_not_a_dep_stays_off_the_deps(
     tmp_path: Path, sibling: str
 ) -> None:
     """A sibling the root did not depend on, restated by a hole: still not a dep (the root must
-    not come to wait on it), and since D-12 v3.36 a lemma of the root with the hole's name,
+    not come to wait on it), and since D-12 v3.38 a lemma of the root with the hole's name,
     whose signature the root's ``Context.lean`` carries (F07-T77). v3.19's "stays off the
     record entirely" gave way to the lemma edge."""
     root = copy_graph(tmp_path)

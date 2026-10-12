@@ -1,0 +1,36 @@
+# Palomar's own mechanical preflight (F25-R12): the registry's reusable workflow run on this
+# wrapper, mode full, pinned to the PalomarSubmission commit the network observed
+# ({{PINS_OBSERVED}}). "A local build or standalone Comparator run does not count" — the
+# registry's protocol — so this is the definition of a port's completion. Advisory: a later run
+# at submission can still differ. Needs no secret; contents: read only.
+name: palomar-preflight
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  # The registry's contract wants a request id of exactly twelve lowercase alphanumerics
+  # (SUBMISSION_ID_RE in its submission_contract.py); the commit's first twelve hex characters
+  # are that, and the same commit always gets the same id. Computed here because a reusable
+  # workflow's inputs are expressions and cannot slice a string. (opn-{{TARGET_ID}})
+  request:
+    runs-on: ubuntu-24.04
+    outputs:
+      request_id: ${{ steps.id.outputs.request_id }}
+    steps:
+      - id: id
+        run: echo "request_id=${GITHUB_SHA:0:12}" >> "$GITHUB_OUTPUT"
+  preflight:
+    needs: request
+    uses: PalomarRegistry/PalomarSubmission/.github/workflows/submission.yml@{{PIPELINE_SHA}}
+    with:
+      repository: ${{ github.repository }}
+      commit: ${{ github.sha }}
+      pipeline_commit: "{{PIPELINE_SHA}}"
+      request_id: ${{ needs.request.outputs.request_id }}
+      mode: full
+      execution_profile: palomar-standard-v1
+      # the relationship is the contract's own sentence; its short code ("maintainer") is refused
+      options: '{"comparator_config_path": "comparator.json", "authorization_relationship": "I am a responsible author or maintainer"}'

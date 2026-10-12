@@ -23,7 +23,7 @@ edge either, because an edge the parent would wait on is exactly what a route mu
 reuse is on the record in the job's ``holes`` block; the parent's deps and Context carry only
 its declared deps and its own holes.
 
-Revised 2026-10-10 (F07-T77, D-12 v3.36): the restated sibling is a *lemma* of the parent —
+Revised 2026-10-10 (F07-T77, D-12 v3.38): the restated sibling is a *lemma* of the parent —
 ``META.yaml``'s ``lemmas`` names it under the hole, the Context carries its signature, and the
 parent draws on it once it is proved without ever waiting on it. The deps are as v3.19 left them.
 """
@@ -134,7 +134,7 @@ def test_a_hole_that_restates_a_sibling_becomes_a_dep_not_a_child(
     tmp_path: Path, seam: Seam, capsys: pytest.CaptureFixture[str]
 ) -> None:
     """No ``--h1`` directory and, since T21, no *dependency* edge to the sibling either; since
-    F07-T77 (D-12 v3.36) the sibling is a *lemma* of the parent — in ``META.yaml``'s ``lemmas``
+    F07-T77 (D-12 v3.38) the sibling is a *lemma* of the parent — in ``META.yaml``'s ``lemmas``
     under the hole's name, its signature in the regenerated Context — so the merged assembly can
     be used (v3.19's "no edge at all" gave way: graph #479 on erdos-1094 could never use its
     assembly). The other hole still becomes ``--h2``; the postmerge JSON's ``partial`` block

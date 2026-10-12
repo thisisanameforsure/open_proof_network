@@ -28,6 +28,7 @@ from typing import Any
 
 import pytest
 from api_fakes import (
+    AUTOMATION,
     PROOF_PREFIX,
     TUTORIAL_NODE,
     TUTORIAL_PROOF,
@@ -126,6 +127,7 @@ def submit(h: Harness, token: str, bundle: dict[str, str], job: str, kind: str =
         "artifact_type": kind,
         "bundle": bundle,
         "precheck_job_id": job,
+        "automation": AUTOMATION,
     }
     return h.client.post("/submissions", json=body, headers=h.auth(token))
 

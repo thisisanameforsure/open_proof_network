@@ -509,7 +509,7 @@ class PartialMerge:
     holes: tuple[dict[str, str | None], ...] = ()
     #: F07-R23: the children created with a witness the partial carried, so born ``ready``.
     witnessed: tuple[str, ...] = ()
-    #: F07-T77 (D-12 v3.36): the lemma edges this merge recorded, ``(hole name, node)``.
+    #: F07-T77 (D-12 v3.38): the lemma edges this merge recorded, ``(hole name, node)``.
     lemmas: tuple[tuple[str, str], ...] = ()
 
     def as_dict(self) -> dict[str, Any]:
@@ -637,10 +637,10 @@ def apply_partial(  # noqa: PLR0913 — the merge's facts, each named
         if existing is not None:
             # R22: a hole that restates one of the node's own holes is that hole again, and the
             # edge is already on the record. One that restates a node under another branch is
-            # that node, and the parent gains it as a lemma (D-12 v3.36, F07-T77): never a dep —
+            # that node, and the parent gains it as a lemma (D-12 v3.38, F07-T77): never a dep —
             # an edge the node would wait on is exactly what a decomposition must not add — but
             # an entry of ``lemmas`` with a hole's standing, so the merged assembly can be used.
-            # Before v3.36 the restatement reached only the placement and the job's log, and the
+            # Before v3.38 the restatement reached only the placement and the job's log, and the
             # assembly could never be used (graph #479, erdos-1094, 2026-10-09).
             if graphmod.is_hole_child(nodes_dir, parent, existing):
                 edges.append(existing)
@@ -832,7 +832,7 @@ def add_deps(node_dir: Path, children: Sequence[str]) -> list[str]:
 
 
 def add_lemmas(node_dir: Path, lemmas: Sequence[tuple[str, str]]) -> list[dict[str, str]]:
-    """F07-T77 (D-12 v3.36): record ``(hole name, node)`` lemma edges on the parent's
+    """F07-T77 (D-12 v3.38): record ``(hole name, node)`` lemma edges on the parent's
     ``META.yaml`` and return the list as it stands. Bot-owned and additive, like ``add_deps``: a
     node already recorded is kept under the hole that first restated it, the statement hash is
     untouched, and the file is rewritten only when something is new. ``lemmas`` exists from
@@ -879,7 +879,7 @@ def regenerate_context(node_dir: Path, nodes_dir: Path) -> str:
 
     meta = yaml.safe_load((node_dir / "META.yaml").read_text(encoding="utf-8"))
     deps = graphmod.effective_deps(nodes_dir, meta.get("deps"))  # F08-T10: through any revision
-    # F07-T77 (D-12 v3.36): the lemmas' signatures too, each read through its revision the same
+    # F07-T77 (D-12 v3.38): the lemmas' signatures too, each read through its revision the same
     # way, so a proof may name a lemma as it names a dep.
     lemmas = tuple(lm.node for lm in graphmod.effective_lemmas(nodes_dir, meta.get("lemmas")))
     text = scaffold.context_for(nodes_dir, deps, lemmas)
@@ -892,7 +892,7 @@ def refresh_contexts(nodes_dir: Path) -> list[Path]:
     signatures, and return the files rewritten.
 
     ``Context.lean`` is generated, never authored (D-3: it is not a submission path), and step 8
-    holds it to each dep's — and, from D-12 v3.36, each lemma's — ``Statement.lean`` byte for
+    holds it to each dep's — and, from D-12 v3.38, each lemma's — ``Statement.lean`` byte for
     byte. A D-8 revision changes what a dep
     *is* without touching the dependent's record, so the dependent's context goes out of date
     and nothing a contributor may submit can mend it. This pass does, for every node whose

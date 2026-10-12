@@ -42,6 +42,7 @@ EMITTERS: dict[str, dict[str, tuple[int | None, tuple[str, ...]]]] = {
         "passed_with": (0, ("code",)),  # StepResult.passed_with: a pass that leaves a record
         "QaError": (0, ("code",)),
         "_check_schema": (None, ("code",)),
+        "refuse": (0, ("code",)),  # palomar_export.refuse: an ExportError around a Diagnostic
     },
     "api": {
         "ApiError": (1, ("code",)),
@@ -55,11 +56,12 @@ EMITTERS: dict[str, dict[str, tuple[int | None, tuple[str, ...]]]] = {
 NAME_ONLY = frozenset({"error"})
 #: The helpers whose code *parameter* is forwarded to an emitter; their call sites are walked.
 FORWARDERS = frozenset(
-    {"failed", "passed_with", "_check_schema", "api_error", "error", "refuse_axioms"}
+    {"failed", "passed_with", "_check_schema", "api_error", "error", "refuse_axioms", "refuse"}
 )
 
 #: (file, expression) -> what is relayed. Each object's own construction is collected.
 RELAYS: dict[tuple[str, str], str] = {
+    ("gate/opn_gate/palomar_export.py", "definitions.code"): "a defs.order Diagnostic",
     ("gate/opn_gate/qa.py", "problem.code"): "a Diagnostic from check_exhibit",
     ("gate/opn_gate/qa.py", "shape.code"): "a Diagnostic from signature_of",
     ("gate/opn_gate/qa.py", "state.refused[0].code"): "a refused row's Diagnostic",

@@ -1,4 +1,4 @@
-"""F08-T41 (D-12 v3.36): a lemma has exactly a hole's standing.
+"""F08-T41 (D-12 v3.38): a lemma has exactly a hole's standing.
 
 F07-T77 writes the edge (``test_finding_lemma_edge.py``); this file is what the gate makes of it.
 The derivation sets lemmas aside as it sets the node's own holes aside (an unproved lemma does not

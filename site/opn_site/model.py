@@ -54,6 +54,7 @@ PRODUCT_SCHEMAS: dict[str, tuple[str, ...]] = {
         "targets-index/v7",  # F07-T24: step9 may be `calibration`
         "targets-index/v8",  # F23-R14: stewards carry admitted_by and via; link may be null
         "targets-index/v9",  # F24-R6, R7: panel settings, lapse, motions, write-ups
+        "targets-index/v10",  # F25-R7: registrations
     ),
     "graph.json": (
         "graph/v1",
@@ -62,7 +63,8 @@ PRODUCT_SCHEMAS: dict[str, tuple[str, ...]] = {
         "graph/v4",
         "graph/v5",  # F08-T36: every defect claim
         "graph/v6",  # F08-T39 (D-12 v3.35): circular is a label; literature (D-25 v3.35)
-        "graph/v7",  # F04-T39 (D-12 v3.36): each row's lemmas, restated nodes under other branches
+        "graph/v7",  # F25-R7: registrations
+        "graph/v8",  # F04-T39 (D-12 v3.38): each row's lemmas, restated nodes under other branches
     ),
 }
 log = logging.getLogger(__name__)
@@ -341,7 +343,7 @@ class LiteratureView:
 
 @dataclass(frozen=True)
 class LemmaRef:
-    """F04-T39 (D-12 v3.36): one entry of a row's ``lemmas`` — the hole's name in the merged
+    """F04-T39 (D-12 v3.38): one entry of a row's ``lemmas`` — the hole's name in the merged
     partial and the node under another branch it restated."""
 
     hole: str
@@ -409,9 +411,9 @@ class NodeView:
 
     @property
     def lemmas(self) -> list[LemmaRef]:
-        """F04-T39 (D-12 v3.36): the nodes under other branches a merged partial of this node
-        restated as holes (``graph/v7`` ``lemmas``), each with the hole's name — drawn on once
-        proved, never waited on, and never among ``deps``. A row older than ``graph/v7`` has no
+        """F04-T39 (D-12 v3.38): the nodes under other branches a merged partial of this node
+        restated as holes (``graph/v8`` ``lemmas``), each with the hole's name — drawn on once
+        proved, never waited on, and never among ``deps``. A row older than ``graph/v8`` has no
         such key and reads as none (D-34)."""
         raw = self.graph_entry.get("lemmas")
         if not isinstance(raw, list):
@@ -528,6 +530,15 @@ class TargetView:
     @property
     def calibration(self) -> bool:
         return bool(self.index_entry.get("calibration", False))
+
+    @property
+    def registrations(self) -> list[dict[str, Any]]:
+        """F25-R17 (D-10 v3.37): the target's registrations in public registries as the row
+        publishes them (``targets-index/v10``: registry, id, version, status, url), derived by the
+        gate from the validated registration records; an older index, which has no key, reads as
+        none."""
+        raw = self.index_entry.get("registrations")
+        return [dict(r) for r in raw if isinstance(r, dict)] if isinstance(raw, list) else []
 
 
 @dataclass(frozen=True)

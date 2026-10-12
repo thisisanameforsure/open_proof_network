@@ -1,4 +1,4 @@
-# F09-T72: get_node carries lemmas; get_submission says what each hole became (decisions v3.36, D-12; testers 2026-10-09b, C1)
+# F09-T72: get_node carries lemmas; get_submission says what each hole became (decisions v3.38, D-12; testers 2026-10-09b, C1)
 
 ## Red first (2026-10-10T12:26Z, before the fix; the first run of api/tests/test_finding_lemmas_mcp.py)
 
@@ -29,7 +29,7 @@
     ======================== 51 passed, 2 warnings in 6.93s ========================
 
 One existing pin restated: test_finding_mcp_context_budget.ALWAYS (what include: [] answers) gains lemmas, since what a proof may draw on is never prose.
-The v6 context and v7 graph documents in the tests are hand-written to gate/schemas/context/v6.json and gate/schemas/graph/v7.json and validated against them (schemas.violations == []). The tests tell reads.CONTEXT_SCHEMAS about context/v6 through a monkeypatch until the products task adds it (a no-op once it has).
+The v6 context and v7 graph documents in the tests are hand-written to gate/schemas/context/v6.json and gate/schemas/graph/v8.json and validated against them (schemas.violations == []). The tests tell reads.CONTEXT_SCHEMAS about context/v6 through a monkeypatch until the products task adds it (a no-op once it has).
 became is matched by the record's facts: the attestation's artifact_hash against the committed partial file plus the hole names, never a file name's pseudonym; the fourth test serves a same-named decomposition from another file and gets null.
 Lint: ruff check api gate/agents clean; ruff format clean; mypy api: Success: no issues found in 237 source files.
 

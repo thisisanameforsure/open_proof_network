@@ -77,7 +77,7 @@ class Placed:
 
 
 def lemmas_of(node: dict[str, Any]) -> list[str]:
-    """F04-T39 (D-12 v3.36): the nodes a row's ``lemmas`` name (``graph/v7``; an older row has
+    """F04-T39 (D-12 v3.38): the nodes a row's ``lemmas`` name (``graph/v8``; an older row has
     none) — restated nodes under other branches, with a hole's standing."""
     raw = node.get("lemmas") or []
     return [str(e["node"]) for e in raw if isinstance(e, dict) and e.get("node")]
@@ -161,7 +161,7 @@ Line = tuple[str, str, str]
 def lines(nodes: list[dict[str, Any]]) -> list[Line]:
     """Every line the drawing makes, as ``(lower, upper, kind)``, in a fixed order: the deps,
     the uses a dep does not already draw (F18-T2), the lemmas neither draws (F04-T39, D-12
-    v3.36: ``edge lemma``, from the restated node up to the parent), and the cruxes' pointers
+    v3.38: ``edge lemma``, from the restated node up to the parent), and the cruxes' pointers
     (F18-R9)."""
     ids = {str(n["node_id"]) for n in nodes}
     pointed = pointers(nodes)

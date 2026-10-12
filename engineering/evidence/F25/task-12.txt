@@ -1,0 +1,223 @@
+F25-T12 — the site (R17; AC17): a target's registration on its page, the Registries section
+and the two licences on the Docs page, Palomar by name on the About page.  2026-10-11.
+Branch f25-t12 off origin/f25-palomar (1820b64c).
+
+VERIFICATION
+  uv run --frozen pytest -q -p no:cacheprovider site/tests   -> 577 passed, 1 skipped (test_web_flows: no playwright in the venv, by design)
+  uv run --frozen pytest -q -p no:cacheprovider site/tests/test_registration_copy.py -> 13 passed
+  make lint  -> exit 0 (ruff check + format: 743 files already formatted)
+  make types -> exit 0 (mypy gate, api, site: no issues)
+
+RED THEN GREEN
+  The test file was written first against the unchanged site: 11 failed, 2 passed. The two
+  passes were the two "nothing is rendered" cases (a target with no registration, an older
+  index), which pass trivially before the feature exists and are kept because they pin what
+  must stay absent. Of the eleven reds, the model test failed on a missing attribute
+  (TargetView.registrations); every page test failed on the missing words, the two allowlist
+  tests on the missing url, the Docs tests on the missing section/phrases/licence names, the
+  Leiden test on the missing clause, the About test on the missing name. After the
+  implementation two tests were still red for a reason of the test's own: the allowlist they
+  built lacked render.live_urls(API), which render_site passes beside COPY_LINKS, so the
+  service's /claims.json links were refused; the test now mirrors the renderer's allowlist.
+  The red run's summary is appended below (section RED RUN).
+
+WHAT CHANGED
+  site/opn_site/model.py       TargetView.registrations: the row's list (targets-index/v10),
+                               [] on an older index with no key.
+  site/opn_site/render.py      registration_lines(): one <p class="registration"> per row —
+                               "Registered in Palomar as <id> v<n>" (the id linked to the url,
+                               only for status registered and only when a url exists);
+                               "Submitted to Palomar, under review" (never linked; a submission's
+                               url is not a registry entry); "Palomar asked for revisions (<id>
+                               v<n>)"; "Palomar declined"; nothing for an empty list. Every
+                               string escaped (the fixture url carries & and quotes).
+                               cited_urls(): adds the url of every *registered* row, so the link
+                               passes links.check only because a validated record names it.
+                               COPY_LINKS: + https://palomar-registry.org/ (the Docs copy only).
+                               LEIDEN_ROWS "Attribution, plagiarism, scooping": + "a
+                               registration's authors are the ledger's identities under their
+                               pseudonyms or recorded names and never a model (D-19 v3.37)".
+                               docs(): the licence section opens with the two licences by name
+                               (Apache-2.0 for code, CDLA-Permissive-2.0 for the non-code
+                               record, D-23 v3.37); the existing LICENSE/DCO/dco.json parts stay.
+  site/opn_site/templates/target.html   $registrations after $claimable$calibration in the header.
+  site/opn_site/templates/docs.html     "Registries" section (#registries) between "Propose a
+                               problem" and the Leiden table; the jump line links it.
+  site/opn_site/templates/about.html    the report-back sentence gains one clause: "..., not
+                               "solved", and Palomar, the registry of Lean-verified results, is
+                               told the fidelity grade in the record's own words." The existing
+                               claim is untouched; the new clause states what the export writes
+                               (palomar_export.py states the fidelity grade), not the digestion
+                               words, which the export does not carry.
+  site/opn_site/static/site.css          .registration (14px, n300, overflow-wrap: anywhere).
+  site/tests/panel_fixture.py  registration(), with_registrations(), without_registrations():
+                               a v10 index with rows per target, validated against the schema;
+                               and the same index lowered to v9 with the key removed.
+  site/tests/test_registration_copy.py   13 tests (AC17).
+  site/tests/test_render.py    test_docs_bundle restated: it pinned "No license text" as the
+                               fixture's missing-LICENSE marker; it now asserts the rule sentence
+                               and the new "found no LICENSE file" line.
+  site/tests/golden/{about,docs}/index.html  regenerated (write_goldens).
+
+GOLDEN DIFF, READ BY EYE
+  about/index.html: one line split into two — the new clause after "not "solved"". Nothing else.
+  docs/index.html: (1) the jump line gains "registries"; (2) the Registries section, five
+  sentences on what Palomar is and four bold-led parts (what the network registers, who
+  registers, how a contributor appears, what the network reads back); (3) the Leiden
+  attribution row's cell gains the D-19 v3.37 clause; (4) the licence section's first paragraph
+  is the two licences by name, and the fixture's missing-LICENSE line now reads "This build found
+  no LICENSE file in the graph: the licence is the decision's until the file lands (D-23)". No
+  problem-page golden moved: the fixture's propositional target has no registration.
+
+SCREENSHOTS (engineering/evidence/F25/screens/, Playwright chromium via
+  `uv run --frozen --with playwright`, each at 1440 "desktop" and 390 "phone"; document
+  scrollWidth <= viewport asserted at both widths before every capture; each registration line
+  measured scrollWidth - clientWidth = 0 px at both widths — measurements appended below)
+  registration-registered-{desktop,phone}.png        the resolved target's header: id, proved +
+      statement-unchecked pills, informal statement, provenance, the stage marks, "Proved: a
+      proof is on the record...", then "Registered in Palomar as PALOMAR-2026-10-10-000001 v2"
+      with the id in the accent link colour. At 390 the id wraps once at a hyphen inside the
+      16px gutter; the steward card drops beneath. No clipping, no overflow.
+  registration-registered-page-{desktop,phone}.png   the same page at viewport height for context.
+  registration-submitted-{,page-}{desktop,phone}.png "Submitted to Palomar, under review", plain
+      text, no link, in the same slot.
+  registration-revisions-declined-{,page-}{desktop,phone}.png  two lines under the fidelity
+      line: "Palomar asked for revisions (PALOMAR-2026-09-30-000777 v1)" and "Palomar declined",
+      both plain text; at 390 the first wraps once.
+  docs-registries-{desktop,phone}.png   the Registries section from its heading to the Leiden
+      heading: "Palomar" is the one link; the quoted "not peer review"; the four bold leads; the
+      monospace id pattern; D-10/D-19/D-23 v3.37 citations. At 390 the paragraphs wrap inside
+      the gutter with no horizontal scroll.
+  docs-licence-{desktop,phone}.png      "License and sign-off": the rule sentence naming
+      Apache-2.0 and CDLA-Permissive-2.0, the fixture's "found no LICENSE file" line, and the
+      sign-off paragraph with the /dco.json link. (The first capture of this section, before the
+      wording fix, showed "The code is Apache-2.0, in LICENSE at the graph root" directly above
+      "No license text is committed to the graph yet" — a page contradicting itself in any build
+      without the file. Seen by eye, not by a test; fixed, re-shot, and test_docs_bundle restated.)
+
+RESTATED / JUDGMENT CALLS
+  - The brief's two lines on a submitted entry disagreed ("no link unless url" vs "the url is a
+    link only when ... the status is registered"). Built the stricter: a url is linked only on a
+    registered row. A submission's url is a review page, not a registry entry, and is not on the
+    allowlist either (asserted).
+  - The registry id is shown on revision_required/rejected rows when the record carries one
+    ("Palomar asked for revisions (<id> v<n>)"), so a reader can match the line to the entry;
+    the brief's bare phrases are the prefix the test asserts.
+  - The licence paragraph states D-23 v3.37's rule (LICENSE names Apache-2.0, NOTICE names
+    CDLA-Permissive-2.0, the DCO names both). Whether the live graph's LICENSE/NOTICE files
+    say so is F25's graph-side work, not the site's; the page says what the build found when
+    LICENSE is absent rather than asserting the file.
+  - test_web_flows.py still skips without playwright (no new browser flow was added; the
+    captures are a scratchpad script using the same server/viewport/scrollWidth pattern as
+    shoot_part).
+
+NOT DONE
+  - Nothing of the task. The Problems list page (cards) carries no registration mark — R17
+    names the target's page only.
+
+
+==== NEW TESTS (verbose) ====
+site/tests/test_registration_copy.py::test_the_model_reads_the_rows_registrations_and_an_older_index_as_none PASSED [  7%]
+site/tests/test_registration_copy.py::test_a_registered_target_names_its_id_and_version_and_links_the_entry PASSED [ 15%]
+site/tests/test_registration_copy.py::test_a_submitted_target_says_under_review_and_links_nothing PASSED [ 23%]
+site/tests/test_registration_copy.py::test_revisions_asked_and_declined_each_have_their_words_and_no_link PASSED [ 30%]
+site/tests/test_registration_copy.py::test_a_target_with_no_registration_has_no_line PASSED [ 38%]
+site/tests/test_registration_copy.py::test_an_older_index_without_the_key_renders_with_no_registration_line PASSED [ 46%]
+site/tests/test_registration_copy.py::test_the_registered_url_is_on_the_allowlist_only_because_the_record_names_it PASSED [ 53%]
+site/tests/test_registration_copy.py::test_an_invented_registry_url_is_a_build_failure PASSED [ 61%]
+site/tests/test_registration_copy.py::test_docs_has_a_registries_section_between_propose_and_leiden PASSED [ 69%]
+site/tests/test_registration_copy.py::test_the_registries_section_says_what_palomar_is_and_how_the_network_uses_it PASSED [ 76%]
+site/tests/test_registration_copy.py::test_the_licence_section_names_both_licences_and_keeps_the_sign_off_link PASSED [ 84%]
+site/tests/test_registration_copy.py::test_the_leiden_authorship_row_says_a_registrations_authors_are_people PASSED [ 92%]
+site/tests/test_registration_copy.py::test_about_names_palomar_in_the_report_back_sentence_without_linking_it PASSED [100%]
+============================== 13 passed in 5.79s ==============================
+
+
+==== FULL SITE SUITE ====
+warning: `VIRTUAL_ENV=/Users/mikehiggins/Desktop/repos/open_proof_network/.venv` does not match the project environment path `.venv` and will be ignored; use `--active` to target the active environment instead
+........................................................................ [ 12%]
+........................................................................ [ 24%]
+........................................................................ [ 37%]
+........................................................................ [ 49%]
+........................................................................ [ 62%]
+........................................................................ [ 74%]
+........................................................................ [ 87%]
+........................................................................ [ 99%]
+.                                                                        [100%]
+=========================== short test summary info ============================
+SKIPPED [1] site/tests/test_web_flows.py:44: could not import 'playwright.sync_api': No module named 'playwright'
+577 passed, 1 skipped in 43.44s
+
+
+==== make lint ====
+uv run --frozen ruff check .
+warning: `VIRTUAL_ENV=/Users/mikehiggins/Desktop/repos/open_proof_network/.venv` does not match the project environment path `.venv` and will be ignored; use `--active` to target the active environment instead
+All checks passed!
+uv run --frozen ruff format --check .
+warning: `VIRTUAL_ENV=/Users/mikehiggins/Desktop/repos/open_proof_network/.venv` does not match the project environment path `.venv` and will be ignored; use `--active` to target the active environment instead
+743 files already formatted
+
+
+==== make types ====
+uv run --frozen mypy gate
+warning: `VIRTUAL_ENV=/Users/mikehiggins/Desktop/repos/open_proof_network/.venv` does not match the project environment path `.venv` and will be ignored; use `--active` to target the active environment instead
+Success: no issues found in 358 source files
+uv run --frozen mypy api
+warning: `VIRTUAL_ENV=/Users/mikehiggins/Desktop/repos/open_proof_network/.venv` does not match the project environment path `.venv` and will be ignored; use `--active` to target the active environment instead
+Success: no issues found in 237 source files
+uv run --frozen mypy site
+warning: `VIRTUAL_ENV=/Users/mikehiggins/Desktop/repos/open_proof_network/.venv` does not match the project environment path `.venv` and will be ignored; use `--active` to target the active environment instead
+Success: no issues found in 83 source files
+
+
+==== SCREENSHOT MEASUREMENTS ====
+registration-registered @1440: document scrollWidth 1440 <= 1440
+  line 0: 'Registered in Palomar as PALOMAR-2026-10-10-000001 v2' box={'x': 22.390625, 'y': 359.25, 'width': 387.859375, 'height': 22.390625} overflow=0px links=['https://palomar-registry.org/entries/PALOMAR-2026-10-10-000001?v=2&q=%22x%22']
+registration-registered @390: document scrollWidth 390 <= 390
+  line 0: 'Registered in Palomar as PALOMAR-2026-10-10-000001 v2' box={'x': 16.796875, 'y': 463.59375, 'width': 356.40625, 'height': 44.78125} overflow=0px links=['https://palomar-registry.org/entries/PALOMAR-2026-10-10-000001?v=2&q=%22x%22']
+registration-submitted @1440: document scrollWidth 1440 <= 1440
+  line 0: 'Submitted to Palomar, under review' box={'x': 22.390625, 'y': 359.25, 'width': 229.703125, 'height': 22.390625} overflow=0px links=[]
+registration-submitted @390: document scrollWidth 390 <= 390
+  line 0: 'Submitted to Palomar, under review' box={'x': 16.796875, 'y': 440.34375, 'width': 229.703125, 'height': 22.390625} overflow=0px links=[]
+registration-revisions-declined @1440: document scrollWidth 1440 <= 1440
+  line 0: 'Palomar asked for revisions (PALOMAR-2026-09-30-000777 v1)' box={'x': 22.390625, 'y': 466.515625, 'width': 418.890625, 'height': 22.390625} overflow=0px links=[]
+  line 1: 'Palomar declined' box={'x': 22.390625, 'y': 500.09375, 'width': 111.125, 'height': 22.390625} overflow=0px links=[]
+registration-revisions-declined @390: document scrollWidth 390 <= 390
+  line 0: 'Palomar asked for revisions (PALOMAR-2026-09-30-000777 v1)' box={'x': 16.796875, 'y': 632.1875, 'width': 356.40625, 'height': 44.78125} overflow=0px links=[]
+  line 1: 'Palomar declined' box={'x': 16.796875, 'y': 688.15625, 'width': 111.125, 'height': 22.390625} overflow=0px links=[]
+docs-registries @1440: document scrollWidth 1440 <= 1440
+  registries section @1440: clip={'x': 0, 'y': 644.875, 'width': 1440, 'height': 286.5625}
+docs-registries @390: document scrollWidth 390 <= 390
+  registries section @390: clip={'x': 0, 'y': 1254.46875, 'width': 390, 'height': 867.8125}
+written:
+  docs-licence-desktop.png
+  docs-licence-phone.png
+  docs-registries-desktop.png
+  docs-registries-phone.png
+  registration-registered-desktop.png
+  registration-registered-page-desktop.png
+  registration-registered-page-phone.png
+  registration-registered-phone.png
+  registration-revisions-declined-desktop.png
+  registration-revisions-declined-page-desktop.png
+  registration-revisions-declined-page-phone.png
+  registration-revisions-declined-phone.png
+  registration-submitted-desktop.png
+  registration-submitted-page-desktop.png
+  registration-submitted-page-phone.png
+  registration-submitted-phone.png
+
+
+==== RED RUN (before any site change) ====
+FAILED site/tests/test_registration_copy.py::test_the_model_reads_the_rows_registrations_and_an_older_index_as_none
+FAILED site/tests/test_registration_copy.py::test_a_registered_target_names_its_id_and_version_and_links_the_entry
+FAILED site/tests/test_registration_copy.py::test_a_submitted_target_says_under_review_and_links_nothing
+FAILED site/tests/test_registration_copy.py::test_revisions_asked_and_declined_each_have_their_words_and_no_link
+FAILED site/tests/test_registration_copy.py::test_the_registered_url_is_on_the_allowlist_only_because_the_record_names_it
+FAILED site/tests/test_registration_copy.py::test_an_invented_registry_url_is_a_build_failure
+FAILED site/tests/test_registration_copy.py::test_docs_has_a_registries_section_between_propose_and_leiden
+FAILED site/tests/test_registration_copy.py::test_the_registries_section_says_what_palomar_is_and_how_the_network_uses_it
+FAILED site/tests/test_registration_copy.py::test_the_licence_section_names_both_licences_and_keeps_the_sign_off_link
+FAILED site/tests/test_registration_copy.py::test_the_leiden_authorship_row_says_a_registrations_authors_are_people
+FAILED site/tests/test_registration_copy.py::test_about_names_palomar_in_the_report_back_sentence_without_linking_it
+11 failed, 2 passed in 2.74s

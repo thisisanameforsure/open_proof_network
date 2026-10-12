@@ -130,7 +130,7 @@ class CircularLabel:
 
 @dataclass(frozen=True)
 class Lemma:
-    """D-12 v3.36: one entry of ``META.yaml``'s ``lemmas`` — the hole's name in the merged
+    """D-12 v3.38: one entry of ``META.yaml``'s ``lemmas`` — the hole's name in the merged
     partial, and the existing node it restated, as that node is *now* (``current_id``)."""
 
     hole: str
@@ -166,7 +166,7 @@ class NodeFacts:
     #: one once it is proved; it never waits on one, so they are set aside when the node's
     #: status is derived (``blocked_because``).
     holes: tuple[str, ...] = ()
-    #: D-12 v3.36 (F07-R22 revised): ``META.yaml``'s ``lemmas`` — the nodes under other branches
+    #: D-12 v3.38 (F07-R22 revised): ``META.yaml``'s ``lemmas`` — the nodes under other branches
     #: of the target that a merged partial of this node restated as holes, each read through its
     #: revision chain like a dep, with the hole's name. A hole's standing: the node may draw on
     #: one once it is proved (its signature is in ``Context.lean``) and never waits on one, so
@@ -818,7 +818,7 @@ def blocked_because(node: NodeFacts, status_of: Callable[[str], str]) -> tuple[b
     and the node stays open — provable directly, open to another decomposition — until one of
     the three closing artifacts settles it. A refuted hole is a dead route, not a dead node.
 
-    A lemma (D-12 v3.36, F08-T41) has the same standing and needs no clause here: it is never
+    A lemma (D-12 v3.38, F08-T41) has the same standing and needs no clause here: it is never
     in ``deps`` — ``NodeFacts.lemmas`` is its own record — so an unproved or refuted lemma is
     set aside by construction, exactly as a hole is set aside by name. A node that is both a
     declared dep and a lemma blocks as a dep (D-3).
@@ -1136,7 +1136,7 @@ def effective_deps(nodes_dir: Path, declared: object) -> tuple[str, ...]:
 
 
 def effective_lemmas(nodes_dir: Path, recorded: object) -> tuple[Lemma, ...]:
-    """D-12 v3.36: ``META.yaml``'s ``lemmas`` as the node has them *now* — each node read through
+    """D-12 v3.38: ``META.yaml``'s ``lemmas`` as the node has them *now* — each node read through
     its revision chain as ``effective_deps`` reads a dep, in the record's order, a node two
     entries reach kept once. Anything but a list of ``{hole, node}`` is no lemmas."""
     out: list[Lemma] = []
@@ -1150,7 +1150,7 @@ def effective_lemmas(nodes_dir: Path, recorded: object) -> tuple[Lemma, ...]:
 
 
 def proved_lemmas(nodes_dir: Path, recorded: object) -> tuple[str, ...]:
-    """F08-T41 (D-12 v3.36): the lemmas of a ``META.yaml`` that have a merged ``Proof.lean`` —
+    """F08-T41 (D-12 v3.38): the lemmas of a ``META.yaml`` that have a merged ``Proof.lean`` —
     the ones with a hole's standing *as a proved hole*: staged and imported before the node
     (``steps.stage``) and read by step 8 as declared. The predicate is the one staging applies
     to a hole (the artifact file is in the tree); an unproved lemma is left out everywhere and

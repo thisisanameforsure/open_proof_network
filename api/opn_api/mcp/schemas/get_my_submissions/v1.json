@@ -108,7 +108,8 @@
         "created",
         "closed",
         "artifact_type",
-        "queue"
+        "queue",
+        "automation"
       ],
       "additionalProperties": false,
       "properties": {
@@ -194,6 +195,13 @@
               ]
             }
           }
+        },
+        "automation": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "description": "The automation block POST /submissions accepted for an artifact (D-23 v3.37, F25-R2): method, models, framework and optional cost fields, as declared; null for every other kind and for a record made before the field existed."
         }
       }
     },

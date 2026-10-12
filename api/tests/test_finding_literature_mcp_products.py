@@ -221,7 +221,7 @@ def test_list_frontier_filters_on_the_new_fields(harness: Harness) -> None:
 def test_get_node_serves_a_committed_v5_context(harness: Harness, tmp_path: Path) -> None:
     """A graph re-rendered under the v3.35 pin commits context/v5; the service serves it as the
     file it is, and the tool's result schema admits it. The gate writes context/v6 since F10-T49
-    (lemmas, D-12 v3.36), so the v5 is built by hand from the derived document."""
+    (lemmas, D-12 v3.38), so the v5 is built by hand from the derived document."""
     seed_graph(harness)
     derived = derived_bundle(harness, tmp_path / "tree")
     v5 = {

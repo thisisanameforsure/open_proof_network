@@ -1,7 +1,7 @@
 {
   "errors_url": null,
   "guide_url": null,
-  "protocol_version": "3.36",
+  "protocol_version": "3.38",
   "rate_limit_policy": null,
   "rendered_from": "5555555555555555555555555555555555555555",
   "schema": "info/v2",
@@ -22,7 +22,8 @@
       3,
       4,
       5,
-      6
+      6,
+      7
     ],
     "claims": [
       1
@@ -42,6 +43,9 @@
       1,
       2,
       3
+    ],
+    "display-name": [
+      1
     ],
     "drift": [
       1
@@ -92,14 +96,16 @@
       4,
       5,
       6,
-      7
+      7,
+      8
     ],
     "info": [
       1,
       2
     ],
     "ledger": [
-      1
+      1,
+      2
     ],
     "literature": [
       1
@@ -139,6 +145,9 @@
       1,
       2
     ],
+    "registration": [
+      1
+    ],
     "relevance": [
       1
     ],
@@ -155,11 +164,13 @@
       3
     ],
     "submission-meta": [
-      1
+      1,
+      2
     ],
     "target": [
       1,
-      2
+      2,
+      3
     ],
     "target-status": [
       1,
@@ -174,7 +185,8 @@
       6,
       7,
       8,
-      9
+      9,
+      10
     ],
     "vote": [
       1

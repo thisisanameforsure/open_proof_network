@@ -1,0 +1,5 @@
+$ uv run pytest gate/tests/test_harness_check.py -q -k drift   # 2026-09-25T21:04:26Z
+2 passed, 10 deselected in 0.10s
+
+Workflows: .github/workflows/ci.yml (job verify-harness) and .github/workflows/harness-drift.yml (weekly, Monday 05:41 UTC).
+The first green scheduled run id is recorded here when it exists.

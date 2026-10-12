@@ -93,6 +93,7 @@ def record(  # noqa: PLR0913 — one opened pull request, described
     precheck_job_id: str | None = None,
     fingerprints: tuple[str, ...] | list[str] = (),
     defect_class: str | None = None,
+    automation: dict[str, Any] | None = None,
     expected_nodes: tuple[str, ...] | list[str] = (),
 ) -> Submission | None:
     """Remember a pull request the service just opened. The pull request exists whatever happens
@@ -110,6 +111,7 @@ def record(  # noqa: PLR0913 — one opened pull request, described
         created=clockmod.render(ctx.clock.now()),
         fingerprints=tuple(fingerprints),
         defect_class=defect_class,
+        automation=automation,
         expected_nodes=tuple(expected_nodes),
     )
     try:
@@ -1028,7 +1030,7 @@ def answer(ctx: Context, raw: str) -> dict[str, Any]:
     return out
 
 
-# --- F09-T72 (D-12 v3.36): what a partial's holes became -----------------------------------------
+# --- F09-T72 (D-12 v3.38): what a partial's holes became -----------------------------------------
 
 
 def hole_outcomes(
@@ -1036,12 +1038,12 @@ def hole_outcomes(
 ) -> dict[str, Any]:
     """A partial's holes as its receipt named them (F06-T15), each with ``became``: the node the
     post-merge job made of it as the products record it — a new child, or for a hole that
-    restated a node under another branch, that node, now a lemma of this one (D-12 v3.36).
+    restated a node under another branch, that node, now a lemma of this one (D-12 v3.38).
 
     Testers 2026-10-09b (C1): the agent read "merged, pass" six times and had to infer from an
     unchanged ``deps`` that its hole had been recognised as another branch's node. The products
     say it: ``graph.json``'s ``decompositions[].holes[].node`` resolves a restating hole to the
-    lemma's node (graph/v7). The decomposition is this submission's by the record's own facts —
+    lemma's node (graph/v8). The decomposition is this submission's by the record's own facts —
     the attestation's ``artifact_hash`` against the committed partial file, and the hole names —
     never by a file name's pseudonym. ``became`` is null while the pull request is open
     (restatement is decided at the merge, by step 4 against the tree as it is then), and until
@@ -1075,7 +1077,7 @@ def _decomposition_nodes(
 ) -> dict[str, str | None]:
     """Hole name to node for the one decomposition of the node whose partial file hashes to the
     attestation's artifact and whose holes are these, in this order; empty when the products
-    carry none such (graph/v7 ``decompositions``; an older product has no key and matches
+    carry none such (graph/v8 ``decompositions``; an older product has no key and matches
     nothing)."""
     digest = attestation.get("artifact_hash")
     raw = optional_committed(ctx, f"targets/{found.target_id}/graph.json")

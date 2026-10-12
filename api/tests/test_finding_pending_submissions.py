@@ -31,6 +31,7 @@ from typing import Any
 import pytest
 import samples
 from api_fakes import (
+    AUTOMATION,
     PROOF_PREFIX,
     TUTORIAL_NODE,
     TUTORIAL_PROOF,
@@ -93,6 +94,7 @@ def submit_proof(
             "artifact_type": "proof",
             "bundle": {f"{PROOF_PREFIX}{node}/Proof.lean": TUTORIAL_PROOF},
             "precheck_job_id": job["id"],
+            "automation": AUTOMATION,
         },
         headers=h.auth(token),
     )

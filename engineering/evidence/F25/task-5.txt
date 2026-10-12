@@ -1,0 +1,58 @@
+# F25-T5 — classification (R4; AC6). Worktree branched from f25-palomar at 99e5222a. 2026-10-10T21:23:46Z
+
+## Red run, before the fix (seams classification() and check_classification() added at today's behaviour first)
+E       SystemExit: 2
+E       AssertionError: opn-gate: no target in this graph is pinned to Mathlib aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa, so none names an image carrying its oleans (F11-R6); pass --spec
+E       SystemExit: 2
+E       SystemExit: 2
+E       SystemExit: 2
+E       SystemExit: 2
+E       SystemExit: 2
+E       SystemExit: 2
+E       SystemExit: 2
+E       AssertionError: []
+E       AssertionError: []
+FAILED gate/tests/test_intake.py::test_classification_is_written_by_intake_new
+FAILED gate/tests/test_intake.py::test_classification_is_optional_at_intake
+FAILED gate/tests/test_intake.py::test_classification_needs_both_flags[given0---msc]
+FAILED gate/tests/test_intake.py::test_classification_needs_both_flags[given1---arxiv]
+FAILED gate/tests/test_intake.py::test_classification_invalid_codes_are_refused[arxiv-case]
+FAILED gate/tests/test_intake.py::test_classification_invalid_codes_are_refused[msc-case]
+FAILED gate/tests/test_intake.py::test_classification_invalid_codes_are_refused[three-arxiv]
+FAILED gate/tests/test_intake.py::test_classification_invalid_codes_are_refused[nine-msc]
+FAILED gate/tests/test_intake.py::test_classification_invalid_codes_are_refused[duplicate]
+FAILED gate/tests/test_intake.py::test_classification_check_names_each_problem
+FAILED gate/tests/test_intake.py::test_classification_is_checked_by_the_gate_on_an_intake
+11 failed, 26 deselected in 1.16s
+(SystemExit: 2 is argparse refusing --arxiv/--msc as unrecognized arguments; check_classification
+ answered [] for a bad block; modes.check found nothing on a malformed intake record. The one
+ assertion on 'no target is pinned to Mathlib aaaa...' was the fixture wanting --spec, fixed before
+ the green run; that test, the neither-flag path, then passed on the unfixed code, as it should.)
+
+## Verification command as the spec names it
+$ uv run --frozen pytest -q -p no:cacheprovider gate/tests/test_intake.py -k classification gate/tests/test_error_codes.py gate/tests/test_calibration_pool.py
+warning: `VIRTUAL_ENV=/Users/mikehiggins/Desktop/repos/open_proof_network/.venv` does not match the project environment path `.venv` and will be ignored; use `--active` to target the active environment instead
+...........                                                              [100%]
+11 passed, 36 deselected in 0.88s
+
+## -k is global in pytest and deselects the other two files, so they run again without it, with the neighbours
+$ uv run --frozen pytest -q -p no:cacheprovider -m "not lean and not docker" gate/tests/test_error_codes.py gate/tests/test_calibration_pool.py gate/tests/test_intake.py gate/tests/test_intake_mode.py gate/tests/test_wave.py gate/tests/test_modes.py gate/tests/test_finding_fg_friction.py gate/tests/test_schemas_f25.py
+........................................................................ [ 93%]
+..............                                                           [100%]
+230 passed in 8.03s
+
+## make lint
+uv run --frozen ruff check .
+All checks passed!
+uv run --frozen ruff format --check .
+719 files already formatted
+make lint exit: 0
+
+## make types
+uv run --frozen mypy gate
+Success: no issues found in 344 source files
+uv run --frozen mypy api
+Success: no issues found in 229 source files
+uv run --frozen mypy site
+Success: no issues found in 82 source files
+make types exit: 0

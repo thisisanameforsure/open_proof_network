@@ -1,0 +1,19 @@
+### Detailed Proof Plan
+
+1. Introduce `p`, `q` and the hypothesis `h : p ∧ q`.
+2. The pair `⟨h.2, h.1⟩` proves `q ∧ p`.
+
+```lean4
+import Mathlib
+import Aesop
+
+set_option maxHeartbeats 400000
+
+open BigOperators Real Nat Topology Rat
+
+/-! The tutorial node (D-27): permanently open, off-ledger. Lean core only. -/
+
+theorem OpnProp.and_swap : ∀ p q : Prop, p ∧ q → q ∧ p := by
+  intro p q h
+  exact ⟨h.2, h.1⟩
+```

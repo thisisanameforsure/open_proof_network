@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://openproof.network/schemas/meta/v6.json",
   "title": "meta/v6",
-  "description": "v6 (2026-10-10, D-12 v3.36): optional lemmas, the nodes under other branches that this node's merged partials restated as holes; bot-written, a hole's standing. v5 (2026-09-24, D-29 v3.22, F07-T44): optional proved_binders on a hole. v4 (F08-R9): optional supersedes. v3 (2026-09-10, D-3 v3.12): origin gains skeleton-hole. v2 (2026-09-09, F02-R6): optional acknowledged_hazards. v1: the D-3 fields.",
+  "description": "v6 (2026-10-10, D-12 v3.38): optional lemmas, the nodes under other branches that this node's merged partials restated as holes; bot-written, a hole's standing. v5 (2026-09-24, D-29 v3.22, F07-T44): optional proved_binders on a hole. v4 (F08-R9): optional supersedes. v3 (2026-09-10, D-3 v3.12): origin gains skeleton-hole. v2 (2026-09-09, F02-R6): optional acknowledged_hazards. v1: the D-3 fields.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -138,7 +138,7 @@
       "type": "array",
       "uniqueItems": true,
       "minItems": 1,
-      "description": "D-12 v3.36 (F07-R22 revised): the existing nodes of this target, under other branches, that a merged partial's hole restated — each with the hole's name. A lemma has a hole's standing: the node may draw on it once it is proved (its signature is in Context.lean) and never waits on it (the derivation sets lemmas aside as it sets the node's own holes aside). Written by the post-merge job only, additive, never towards an ancestor (offload-restates-ancestor refuses that hole before any merge).",
+      "description": "D-12 v3.38 (F07-R22 revised): the existing nodes of this target, under other branches, that a merged partial's hole restated — each with the hole's name. A lemma has a hole's standing: the node may draw on it once it is proved (its signature is in Context.lean) and never waits on it (the derivation sets lemmas aside as it sets the node's own holes aside). Written by the post-merge job only, additive, never towards an ancestor (offload-restates-ancestor refuses that hole before any merge).",
       "items": {
         "type": "object",
         "additionalProperties": false,

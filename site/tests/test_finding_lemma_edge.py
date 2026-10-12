@@ -1,9 +1,9 @@
-"""F04-T39 (D-12 v3.36): a lemma — a node under another branch that a merged partial of this
+"""F04-T39 (D-12 v3.38): a lemma — a node under another branch that a merged partial of this
 node restated as a hole — is drawn, keyed, listed and lit.
 
 The finding (2026-10-09b, C1, erdos-1094): a partial on ``--h3`` restated ``--h2--h1--h1`` and
-the gate added no edge, so the merged assembly could never be used. Decisions v3.36 give the
-parent the node as a *lemma* (``graph/v7`` ``lemmas: [{hole, node}]``) with a hole's standing:
+the gate added no edge, so the merged assembly could never be used. Decisions v3.38 give the
+parent the node as a *lemma* (``graph/v8`` ``lemmas: [{hole, node}]``) with a hole's standing:
 drawn on once proved, never waited on. On the site that is one more kind of line (``edge
 lemma``, dash-dot, from the lemma up to the parent), a key entry whenever the drawing has one, a
 list on the node page beside the dependencies, a decomposition hole resolving to the lemma's
@@ -35,13 +35,13 @@ STATIC = Path(render.__file__).resolve().parent / "static"
 CSS = (STATIC / "site.css").read_text(encoding="utf-8")
 KEY_WORD = "lemma from another branch"
 
-#: The live erdos-1094 shape after v3.36: ``--h3`` points at ``--h2--h1--h1`` under ``--h2--h1``
+#: The live erdos-1094 shape after v3.38: ``--h3`` points at ``--h2--h1--h1`` under ``--h2--h1``
 #: under ``--h2`` — the lemma's line crosses from one branch to another.
 LIVE_1094 = "erdos-1094"
 
 
 def shape_nodes() -> list[dict[str, Any]]:
-    """Three statements with one lemma, as ``graph/v7`` rows: ``b`` rests on ``a`` as a lemma
+    """Three statements with one lemma, as ``graph/v8`` rows: ``b`` rests on ``a`` as a lemma
     and declares nothing."""
     return [
         {"node_id": "r", "status": "ready", "deps": ["a", "b"], "lemmas": []},
@@ -50,12 +50,12 @@ def shape_nodes() -> list[dict[str, Any]]:
     ]
 
 
-# --- 1. the model reads graph/v7 ----------------------------------------------------------------
+# --- 1. the model reads graph/v8 ----------------------------------------------------------------
 
 
 def test_the_site_accepts_graph_v7_and_every_older_version() -> None:
     accepted = model.PRODUCT_SCHEMAS["graph.json"]
-    assert "graph/v7" in accepted
+    assert "graph/v8" in accepted
     assert all(f"graph/v{n}" in accepted for n in range(1, 7))
 
 
@@ -63,7 +63,7 @@ def test_a_node_reads_its_lemmas_and_an_older_row_reads_none(tmp_path: Path) -> 
     root = fixture.build(tmp_path)
     site = model.load_site(root, fixture.COMMIT)
     tv = site.targets[TARGET]
-    assert tv.graph["schema"] == "graph/v7"
+    assert tv.graph["schema"] == "graph/v8"
     assert tv.nodes[PARENT].lemmas == [model.LemmaRef(hole=HOLE, node=LEMMA)]
     assert tv.nodes[ROOT].lemmas == []
     older = dataclasses.replace(
@@ -76,7 +76,7 @@ def test_a_node_reads_its_lemmas_and_an_older_row_reads_none(tmp_path: Path) -> 
 def test_the_fixture_graph_validates_as_graph_v7(tmp_path: Path) -> None:
     root = fixture.build(tmp_path)
     graph = json.loads((root / "targets" / TARGET / "graph.json").read_text(encoding="utf-8"))
-    schemas.validate(graph, "graph/v7")
+    schemas.validate(graph, "graph/v8")
     row = next(n for n in graph["nodes"] if n["node_id"] == PARENT)
     assert row["lemmas"] == [{"hole": HOLE, "node": LEMMA}]
     assert LEMMA not in row["deps"], "a lemma is not a declared dependency (D-3)"
@@ -184,7 +184,7 @@ def test_the_glossary_defines_the_lemma_line() -> None:
     word, meaning, proto = render.GLOSSARY_BY_KEY["lemma"]
     assert word == KEY_WORD
     assert "once it is proved" in meaning and "never waits" in meaning
-    assert "D-12 v3.36" in proto
+    assert "D-12 v3.38" in proto
 
 
 # --- 4. the node page ----------------------------------------------------------------------------
@@ -220,7 +220,7 @@ def test_a_node_with_no_lemma_lists_none(tmp_path: Path) -> None:
 
 
 def test_a_hole_that_became_a_lemma_links_the_lemma_node(tmp_path: Path) -> None:
-    """``graph/v7`` ``decompositions[].holes[].node`` may be the lemma's node; the outline and
+    """``graph/v8`` ``decompositions[].holes[].node`` may be the lemma's node; the outline and
     partial listings link it like any node the tree holds, with its state."""
     _site, tv, _html = page(tmp_path)
     r = render.Renderer(_site, repo_url=REPO, decisions_doc=None)

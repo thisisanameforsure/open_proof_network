@@ -1,7 +1,7 @@
-"""F08-T41 (D-12 v3.36): the lemma edges of merges made before the rule, written once more.
+"""F08-T41 (D-12 v3.38): the lemma edges of merges made before the rule, written once more.
 
 A hole of a merged partial that restated a node under another branch of the target is a lemma of
-the parent (``META.yaml``'s ``lemmas``, F07-T77). Before v3.36 the post-merge writer recognised
+the parent (``META.yaml``'s ``lemmas``, F07-T77). Before v3.38 the post-merge writer recognised
 the restatement — step 4's ``defeq_sibling`` — and recorded it in its log and nowhere else, so a
 live parent (``erdos-1094--h3``, graph #479) has a merged assembly it cannot use. An attestation
 is never edited (D-34) and the placement reached no record, so the reading is made once more: for

@@ -1,0 +1,21 @@
+$ uv run pytest api/tests/test_prove_import.py -rA -q -k corpus   # 2026-09-25T21:13:28Z
+PASSED api/tests/test_prove_import.py::test_corpus[bare-tactics]
+PASSED api/tests/test_prove_import.py::test_corpus[by-block]
+PASSED api/tests/test_prove_import.py::test_corpus[comment-banner]
+PASSED api/tests/test_prove_import.py::test_corpus[crlf]
+PASSED api/tests/test_prove_import.py::test_corpus[echoes-inlined-defs]
+PASSED api/tests/test_prove_import.py::test_corpus[empty]
+PASSED api/tests/test_prove_import.py::test_corpus[have-holes]
+PASSED api/tests/test_prove_import.py::test_corpus[helper-after-inlined-defs]
+PASSED api/tests/test_prove_import.py::test_corpus[helper-lemma]
+PASSED api/tests/test_prove_import.py::test_corpus[open-added]
+PASSED api/tests/test_prove_import.py::test_corpus[plan-then-fence]
+PASSED api/tests/test_prove_import.py::test_corpus[plan-then-fence-deepseek-header]
+PASSED api/tests/test_prove_import.py::test_corpus[renamed-theorem]
+PASSED api/tests/test_prove_import.py::test_corpus[set-option-in]
+PASSED api/tests/test_prove_import.py::test_corpus[signature-changed]
+PASSED api/tests/test_prove_import.py::test_corpus[sorry-left]
+PASSED api/tests/test_prove_import.py::test_corpus[trailing-prose]
+PASSED api/tests/test_prove_import.py::test_corpus[whole-file]
+PASSED api/tests/test_prove_import.py::test_corpus_has_every_shape
+19 passed, 2 deselected in 0.05s

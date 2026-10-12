@@ -1,4 +1,4 @@
-F07-T77 — a restated cross-branch node becomes a lemma of its parent (D-12 v3.36)
+F07-T77 — a restated cross-branch node becomes a lemma of its parent (D-12 v3.38)
 Date: 2026-10-10. Worktree: opn-lemma-gate (branch lemma-gate, from b2f5f63).
 
 == RED (seams added at today's behaviour first: PartialMerge.lemmas = (), add_lemmas a read-only no-op, required_signatures = deps; every failure is then on the defect) ==

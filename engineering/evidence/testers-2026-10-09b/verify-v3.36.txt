@@ -1,4 +1,4 @@
-# make verify on branch testers-1009b-fixes after the v3.36 merge, 2026-10-10T15:55Z
+# make verify on branch testers-1009b-fixes after the v3.38 merge, 2026-10-10T15:55Z
 
 ruff check: All checks passed!  ·  ruff format --check: 733 files already formatted  ·  mypy gate: no issues (348 files)  ·  mypy api: no issues (237 files)  ·  mypy site: no issues (83 files)
 

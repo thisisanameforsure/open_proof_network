@@ -34,7 +34,7 @@ META_SCHEMA_FOR_ORIGIN: dict[str, str] = {"skeleton-hole": "meta/v3"}
 META_SCHEMA_SUPERSEDES = "meta/v4"
 #: D-29 v3.22 (F07-T44): a hole whose assembly proved some of its binders records them, from v5.
 META_SCHEMA_PROVED = "meta/v5"
-#: D-12 v3.36 (F07-T77): a node whose merged partial restated a node under another branch
+#: D-12 v3.38 (F07-T77): a node whose merged partial restated a node under another branch
 #: records it as a lemma, from v6. Written by the post-merge job only (``postmerge.add_lemmas``).
 META_SCHEMA_LEMMAS = "meta/v6"
 NODE_STATUS_SCHEMA = "node-status/v1"
@@ -126,7 +126,7 @@ def imports_of(texts: list[str]) -> list[str]:
 
 
 def context_for(nodes_dir: Path, deps: tuple[str, ...], lemmas: tuple[str, ...] = ()) -> str:
-    """``Context.lean`` from the deps' (and lemmas', D-12 v3.36) ``Statement.lean`` files in a
+    """``Context.lean`` from the deps' (and lemmas', D-12 v3.38) ``Statement.lean`` files in a
     checkout."""
     statements: dict[str, str] = {}
     for kind, node_ids in (("declared dep", deps), ("lemma", lemmas)):
@@ -148,7 +148,7 @@ def context_from(
     ``Statement.lean``, and anything but a copy risks differing by a space. The texts come in as
     a mapping so the service, which holds no checkout (D-35), can hand over what it fetched.
 
-    F07-T77 (D-12 v3.36): ``lemmas`` — the nodes under other branches that this node's merged
+    F07-T77 (D-12 v3.38): ``lemmas`` — the nodes under other branches that this node's merged
     partials restated — follow the deps under their own heading, each statement verbatim for the
     same byte check. A proof may then name a lemma as it names a dep; the derivation never waits
     on one. A node with neither keeps the one-line file it always had.
@@ -175,7 +175,7 @@ def context_from(
     parts = [header, *(f"\n{strip_imports(t)}\n" for t in texts)]
     if lemmas:
         parts.append(
-            "\n/-! Lemmas (D-12 v3.36): "
+            "\n/-! Lemmas (D-12 v3.38): "
             + ", ".join(f"`{n}`" for n in lemmas)
             + " — nodes under other branches a merged partial restated as holes; the proof may "
             "draw on each once it is proved, and the node never waits on one. -/\n"

@@ -1,4 +1,4 @@
-"""F07-T77 (D-12 v3.36; F07-R22 revised): a hole that restates a node under another branch of the
+"""F07-T77 (D-12 v3.38; F07-R22 revised): a hole that restates a node under another branch of the
 target is that node, and the parent gains it as a *lemma*.
 
 The finding (graph #479, 2026-10-09, erdos-1094): a partial on ``--h3`` had one hole that restated

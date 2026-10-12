@@ -1,4 +1,4 @@
-"""F03-T20 (D-12 v3.36): ``graph/v7`` publishes each node's lemmas.
+"""F03-T20 (D-12 v3.38): ``graph/v8`` publishes each node's lemmas.
 
 A hole that restated a node under another branch of the target *is* that node, and the parent
 gains it as a lemma — ``META.yaml``'s ``lemmas`` (``meta/v6``, bot-written), read through
@@ -91,8 +91,8 @@ def revise(root: Path, node_id: str) -> str:
 def graph_rows(root: Path) -> dict[str, dict[str, Any]]:
     tg = graph.load_target(root, TARGET)
     doc = products.graph_doc(tg, None)
-    assert doc["schema"] == "graph/v7" == products.GRAPH_SCHEMA
-    assert schemas.violations(doc, "graph/v7") == [], "graph.json is not graph/v7"
+    assert doc["schema"] == "graph/v8" == products.GRAPH_SCHEMA
+    assert schemas.violations(doc, "graph/v8") == [], "graph.json is not graph/v8"
     return {n["node_id"]: n for n in doc["nodes"]}
 
 
@@ -178,4 +178,4 @@ def test_the_generated_products_validate_and_carry_the_lemma(tmp_path: Path) -> 
     [row] = [n for n in gdoc["nodes"] if n["node_id"] == ROOT_NODE]
     assert row["lemmas"] == [{"hole": LEMMA_HOLE, "node": LEMMA}]
     info = json.loads(built.files[Path("info.json")])
-    assert info["protocol_version"] == "3.36" == products.PROTOCOL_VERSION
+    assert info["protocol_version"] == "3.38" == products.PROTOCOL_VERSION

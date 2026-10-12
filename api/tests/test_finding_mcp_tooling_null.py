@@ -15,7 +15,7 @@ from typing import Any
 
 import jsonschema
 import pytest
-from api_fakes import Harness
+from api_fakes import AUTOMATION, Harness
 from mcp_client import NODE, McpClient, seed_node
 
 from opn_api import submissions
@@ -26,7 +26,13 @@ GUIDE_TOOLING = {"model": "the model you used", "version": None, "harness": "AGE
 
 
 def submit_args(tooling: Any) -> dict[str, Any]:
-    return {"node_id": NODE, "artifact_type": "proof", "bundle": {}, "tooling": tooling}
+    return {
+        "node_id": NODE,
+        "artifact_type": "proof",
+        "bundle": {},
+        "tooling": tooling,
+        "automation": AUTOMATION,
+    }
 
 
 def test_the_guides_own_tooling_reaches_the_endpoint(harness: Harness) -> None:
