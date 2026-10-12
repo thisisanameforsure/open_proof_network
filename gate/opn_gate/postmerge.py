@@ -14,7 +14,7 @@ import json
 import logging
 import re
 import urllib.request
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal
@@ -22,6 +22,7 @@ from typing import Any, Literal
 from opn_gate import attestation, carried, schemas
 from opn_gate import graph as graphmod
 from opn_gate.diagnostic import Diagnostic
+from opn_gate.paths import Change
 from opn_gate.signer import Signer
 
 log = logging.getLogger(__name__)
@@ -928,3 +929,132 @@ def record_alternate(node_dir: Path, proof_text: str, *, pseudonym: str, stamp: 
     ``Proof.lean`` is the first one that landed and this never touches it.
     """
     return record_attempt(node_dir, attempt_name(stamp, pseudonym, ALTERNATE_SUFFIX), proof_text)
+
+
+# --- F26-R13: the review job after a merge that adds a review record ----------------------------
+
+#: What runs the job for one target: ``(graph_root, target_id) -> exit code``. The job's command is
+#: F26-T5's (``opn-gate review run``); the default runner shells out to it.
+ReviewRunner = Callable[[Path, str], int]
+#: The command, after ``python -m opn_gate.cli``; ``--graph`` and ``--target`` follow.
+REVIEW_JOB_COMMAND: tuple[str, ...] = ("review", "run")
+
+
+def review_targets(changes: Iterable[Change]) -> list[str]:
+    """The targets whose review this merge added a record to, each once, sorted: every added or
+    modified path ``paths.locate`` gives a review role (F26-R1). A deletion adds nothing."""
+    from opn_gate import modes, paths  # noqa: PLC0415 — modes imports this module's neighbours
+
+    found: set[str] = set()
+    for change in changes:
+        if change.status == "D":
+            continue
+        located = paths.locate(change.path)
+        if located is not None and located.role in modes.REVIEW_RECORD_ROLES:
+            found.add(located.target_id)
+    return sorted(found)
+
+
+def default_review_runner(graph_root: Path, target_id: str) -> int:
+    """``python -m opn_gate.cli review run --graph <g> --target <t>``, the way the workflows call
+    the gate, with this checkout's ``opn_gate`` on the path; its output goes to the job's log."""
+    import subprocess  # noqa: PLC0415
+    import sys  # noqa: PLC0415
+
+    from opn_gate import config  # noqa: PLC0415
+
+    gate_dir = str(Path(__file__).resolve().parents[1])
+    argv = [sys.executable, "-m", "opn_gate.cli", *REVIEW_JOB_COMMAND]
+    argv += ["--graph", str(graph_root), "--target", target_id]
+    done = subprocess.run(
+        argv,
+        capture_output=True,
+        text=True,
+        check=False,
+        env=config.child_environment({"PYTHONPATH": gate_dir}, drop=config.GIT_REPO_VARIABLES),
+    )
+    for stream in (done.stdout, done.stderr):
+        if stream.strip():
+            log.info("review job %s: %s", target_id, stream.strip()[-2000:])
+    return done.returncode
+
+
+def run_review_job(graph_root: Path, target_id: str, runner: ReviewRunner | None = None) -> bool:
+    """Run the review job for one target; ``True`` when it ran clean. A failure — a non-zero exit,
+    or a command that is missing on the pinned gate — is a warning and never an exception, so the
+    products render whatever the job did (2026-09-17: one target's defect never decides whether the
+    graph has products)."""
+    run = runner if runner is not None else default_review_runner
+    try:
+        code = run(graph_root, target_id)
+    except (OSError, ValueError, RuntimeError) as exc:
+        log.warning(
+            "review job: %s did not run (%s); nothing is written for it, the products render",
+            target_id,
+            exc,
+        )
+        return False
+    if code != 0:
+        log.warning(
+            "review job: %s exited %d (a pin that predates `opn-gate review run` exits 2); "
+            "nothing is written for it, the products render",
+            target_id,
+            code,
+        )
+        return False
+    return True
+
+
+def merge_changes(graph_root: Path, base: str, head: str) -> list[Change] | None:
+    """``git diff --name-status base head`` on the checkout, or ``None`` when it cannot be read."""
+    import subprocess  # noqa: PLC0415
+
+    from opn_gate import config, paths  # noqa: PLC0415
+
+    done = subprocess.run(
+        ["git", "-C", str(graph_root), "diff", "--name-status", "--no-renames", base, head],
+        capture_output=True,
+        text=True,
+        check=False,
+        env=config.child_environment(drop=config.GIT_REPO_VARIABLES),
+    )
+    if done.returncode != 0:
+        log.warning(
+            "review job: the diff %s..%s does not read: %s", base, head, done.stderr.strip()
+        )
+        return None
+    return paths.changes_from_name_status(done.stdout)
+
+
+def review_after_merge(
+    graph_root: Path, base: str, head: str, runner: ReviewRunner | None = None
+) -> dict[str, bool]:
+    """F26-R13: the review job for every target whose review ``base..head`` added a record to,
+    once each; what ran clean, by target. Nothing here raises."""
+    changes = merge_changes(graph_root, base, head)
+    if changes is None:
+        return {}
+    return {t: run_review_job(graph_root, t, runner) for t in review_targets(changes)}
+
+
+def main(argv: Sequence[str] | None = None, *, runner: ReviewRunner | None = None) -> int:
+    """``python -m opn_gate.postmerge review-job --graph G --base B --head H``: the post-merge
+    job's call after a merge (F26-R13). Prints ``{"review_jobs": {target: ran_clean}}`` and exits 0
+    whatever the jobs did; the products step that follows renders regardless."""
+    import argparse  # noqa: PLC0415
+
+    parser = argparse.ArgumentParser(prog="python -m opn_gate.postmerge")
+    sub = parser.add_subparsers(dest="command", required=True)
+    job = sub.add_parser("review-job", help="run the review job for each target the merge touched")
+    job.add_argument("--graph", required=True, type=Path, help="path to the graph checkout")
+    job.add_argument("--base", required=True, help="the merge's first parent")
+    job.add_argument("--head", required=True, help="the merge commit")
+    args = parser.parse_args(argv)
+    ran = review_after_merge(args.graph, args.base, args.head, runner)
+    print(json.dumps({"review_jobs": ran}, sort_keys=True))
+    return 0
+
+
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
+    raise SystemExit(main())

@@ -1,0 +1,140 @@
+F26-T8 — step 9 reads the review (R12); the post-merge and review.yml callers (R13)
+Branch f26-t8 from origin/f26-wave1 (82d7404e). 2026-10-12.
+
+== Part 1: step 9 (R12, AC9) ==
+
+Where step 9 decides: gate/opn_gate/modes.py `with_statement_review`, called once, by
+`opn-gate classify` (cli.run_classify), before any sandbox. Order after this task:
+
+  alternate                         -> alternate_basis (unchanged)
+  not a proof/partial               -> unchanged
+  step9_not_asked (intermediate,    -> recorded, and the review is NOT read (AC9 c)
+    calibration)
+  review_step.standing(target) None -> without_review: certificate, else evidence, else a
+                                       person — today's rule exactly (F26-Q7)
+  review_step.standing(target) set  -> with_review:
+       standing.satisfies           -> kind `certificate`, reference
+                                       review:review/review.yaml@<root hash>:<grade>
+       step9_evidence >= minimum    -> kind `provenance`, the evidence reference (v3.15, unchanged)
+       neither                      -> review_held: Diagnostic `review-incomplete` (step 9), which
+                                       modes.check reports, so classify exits 1 before any sandbox
+
+Each basis is one named function (root_certificate, step9_evidence, review_step.standing), and
+the no-review path is its own function (without_review), so reversing v3.39 is a deletion of the
+`if review_standing is not None` branch. `review_state` (the words) is a new key of the
+classification JSON, null when no review was read.
+
+The product mirrors the rule: products.step9_basis (targets-index `step9`) reads the review too —
+`certificate` when the review is complete at screened-and-signed, `evidence` when catalog evidence
+stands in, `review` otherwise; no review, unchanged. No schema change (the enum already has the four).
+
+-- RED (review_step.standing at today's behaviour, always None): --
+$ uv run --frozen pytest gate/tests/test_step9_review.py -q
+FAILED ...test_ac9_an_incomplete_review_holds_a_proof_of_the_root[question]
+FAILED ...test_ac9_an_incomplete_review_holds_a_proof_of_the_root[two-readings]
+FAILED ...test_ac9_an_incomplete_review_holds_a_proof_of_the_root[no-survivor]
+FAILED ...test_ac9_an_incomplete_review_holds_a_proof_of_the_root[needs-intent-signer]
+FAILED ...test_ac9_a_root_certificate_does_not_stand_in_for_an_incomplete_review
+FAILED ...test_ac9_a_complete_review_below_screened_and_signed_holds
+FAILED ...test_a_complete_signed_review_satisfies_step9
+FAILED ...test_a_complete_review_keeps_a_held_grade
+FAILED ...test_ac9_catalog_evidence_at_five_approves_with_an_incomplete_review[5]
+FAILED ...test_ac9_catalog_evidence_at_five_approves_with_an_incomplete_review[8]
+FAILED ...test_evidence_below_five_does_not_stand_in
+11 failed, 6 passed
+  failing on the defect, not on a name: `assert (0 != 0)` (classify approved), `(True,
+  'pr-approval', None) == (False, 'certificate', ...)`, `'fidelity/root-2.yaml' !=
+  'review:review/review.yaml@22d574be...:screened-and-signed'`, `None == 'review open: 1 question
+  waiting'`. The six that passed are the intermediate, calibration and no-review cases, which
+  must pass before and after (Q7).
+
+-- RED (products.step9_basis without the review branch): --
+$ uv run --frozen pytest gate/tests/test_step9_review.py -q -k products_step9
+FAILED ...test_the_products_step9_field_follows_the_review[certified-review-open]
+FAILED ...test_the_products_step9_field_follows_the_review[review-complete]
+2 failed, 2 passed, 17 deselected
+
+-- GREEN --
+$ uv run --frozen pytest gate/tests/test_step9_review.py -q
+21 passed
+
+$ uv run --frozen pytest gate/tests/test_step9_review.py test_finding_step9_certified.py
+    test_finding_step9_root_only.py test_modes.py test_products.py test_evidence.py
+    test_lifecycle_f14.py test_error_codes.py test_review_state.py test_review_policy.py
+    test_postmerge.py -q -m "not lean and not docker"
+320 passed, 1 skipped (test_postmerge.py:655 reads the graph's gate.yml beside the repo; a
+worktree has none beside it)
+
+-- the pre-commit hook (make verify, the full fast tier) on commit 45dea342 --
+== 5747 passed, 269 skipped, 226 deselected, 2 warnings in 465.29s (0:07:45) ===
+
+
+== Part 2: the job's callers (R13) ==
+
+gate/opn_gate/postmerge.py, one seam and its callers:
+  review_targets(changes)                 the targets whose review a merge added a record to: every
+                                          non-deleted path paths.locate gives a role in
+                                          modes.REVIEW_RECORD_ROLES, each target once
+  run_review_job(graph, target, runner)   the seam; default_review_runner shells out to
+                                          `python -m opn_gate.cli review run --graph G --target T`
+                                          (T5's command, not on this branch). Never raises: an exit
+                                          != 0 or an OSError is a warning ending "the products render"
+  review_after_merge(graph, base, head)   the diff, then the job per target; nothing raises
+  main / `python -m opn_gate.postmerge review-job --graph . --base B --head H`
+                                          prints {"review_jobs": {target: ran_clean}}, exit 0 always
+
+-- RED (the seam at today's behaviour: no job is ever run) --
+$ uv run --frozen pytest gate/tests/test_postmerge_review.py -q
+FAILED ...test_a_merge_adding_a_candidate_runs_the_job_once_for_its_target
+    assert [] == [(PosixPath('.../graph'), 'propositional')]
+FAILED ...test_review_targets_reads_the_review_roles_of_each_target_once
+    assert [] == ['euclid-primes', 'propositional']
+FAILED ...test_a_failing_job_warns_and_the_products_render[exit-2]       assert {} == {'propositional': False}
+FAILED ...test_a_failing_job_warns_and_the_products_render[not-found]    assert {} == {'propositional': False}
+FAILED ...test_the_pinned_gate_without_review_run_fails_soft            assert {} == {'propositional': False}
+FAILED ...test_the_entry_point_exits_zero_and_says_what_ran             JSONDecodeError (nothing printed)
+FAILED ...test_a_bad_range_is_a_warning_not_a_failure                   JSONDecodeError (nothing printed)
+7 failed, 1 passed (the passing one: a merge with no review path runs nothing, before and after)
+
+-- GREEN --
+$ uv run --frozen pytest gate/tests/test_postmerge_review.py -q
+11 passed   (8 above + 3 static checks of review.yml)
+
+-- the default runner on this branch, for real (no `review run` yet: fails soft) --
+INFO:opn_gate.postmerge:review job propositional: usage: opn-gate review [-h] {open} ...
+opn-gate review: error: argument action: invalid choice: 'run' (choose from 'open')
+WARNING:opn_gate.postmerge:review job: propositional exited 2 (a pin that predates `opn-gate review
+  run` exits 2); nothing is written for it, the products render
+False
+
+-- review.yml --
+No graph workflow sources live in this repository (tests read the graph's copies from the sibling
+checkout), and the graph is not a build task's to push (D-35), so the workflow is
+engineering/evidence/F26/review.yml, for the owner to copy to the graph's
+.github/workflows/review.yml at the re-pin that carries T5. test_postmerge_review.py holds it to:
+on workflow_dispatch and schedule only; `permissions: {}` at the top; every `uses:` a full commit
+with its tag, and the same commit the network's own workflows pin for that action (checkout
+3d3c42e5 # v7, setup-uv 20cfd1bf # v10.0.1); the deploy key in the push step only. Each `run:`
+block passes `bash -n`. Shape: render.yml's (pin from main, publish loop read out of gate.yml,
+`gate: review <pin12>`, credits nothing), with the review records as the publish RECORD so a
+moved main gets them laid again; a job that fails is cleaned out and warned; anything written
+outside targets/<t>/review/ refuses the commit.
+
+-- the post-merge job's step (gate.yml, the graph's; proposed, not applied) --
+Before the step that snapshots the merge's record (so a catch-up keeps what the job wrote) and
+before "Regenerate the merge products":
+
+      # F26-R13: the review job after a merge that adds a review record. Fails soft: a pin that
+      # predates it (no `review-job`, or no `review run`) writes nothing and warns (2026-09-17).
+      - name: Run the review job for each target whose review the merge added to (F26-R13; no secret)
+        if: steps.pr.outputs.run == 'true'
+        env:
+          PYTHONPATH: network-render/gate
+          MERGES: ${{ steps.classify.outputs.merges }}
+        run: |
+          set -uo pipefail
+          for merge in $MERGES; do
+            uv run --frozen --project network-render python -m opn_gate.postmerge review-job \
+              --graph . --base "${merge}^1" --head "$merge" \
+              || echo "::warning::review job: the pinned gate has no review-job entry (F26-R13); nothing written"
+          done

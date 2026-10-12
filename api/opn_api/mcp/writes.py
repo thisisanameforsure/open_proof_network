@@ -287,6 +287,14 @@ async def register_target(call: Call, args: dict[str, Any]) -> dict[str, Any]:
     return await forward(call, "POST", "/registrations", body)
 
 
+async def submit_candidate(call: Call, args: dict[str, Any]) -> dict[str, Any]:
+    """F26-T10 (D-9, D-28 v3.39): ``POST /reviews/<id>/candidates``, body for body; the target
+    is the path, the author the bearer's identity, and ``read_others`` is the route's to refuse
+    when it is not declared (``candidate-not-blind``)."""
+    body = present("submit_candidate", args, "lean", "models", "read_others")
+    return await forward(call, "POST", f"/reviews/{args['target_id']}/candidates", body)
+
+
 #: What ``POST /registrations`` reads (``opn_api.registrations.FIELDS``), sent under their names.
 REGISTRATION_FIELDS: tuple[str, ...] = (
     "target_id",
@@ -1143,6 +1151,44 @@ TOOLS: tuple[Tool, ...] = (
             ("target_id", "registry", "wrapper", "graph_commit", "proof", "status"),
         ),
         register_target,
+        write=True,
+    ),
+    # F26-T10 (D-9, D-28, D-35 v3.39): one candidate formalization, blind, as a pull request.
+    Tool(
+        "submit_candidate",
+        "Submit one candidate formalization of a review's words (get_review shows the words, "
+        "cases and the concepts each candidate must name as its own predicate), as your "
+        "identity: written as candidate/v1 with its Lean under targets/<id>/review/candidates/, "
+        "by pull request on an append/ branch the merge actor takes. Submit it blind: "
+        "`read_others` must say whether you read another candidate's Lean first, and is recorded "
+        "as your claim. Name the models that helped, or none for a person's candidate; the "
+        "method is your last automation declaration (D-23). The gate's review job then "
+        "compiles, screens and tests it. Refused 400 candidate-not-blind without read_others; "
+        "404 review-unknown for a target with no review; 409 candidate-exists for Lean already "
+        "on the record; 429 after 3 candidates a day on one review; nothing opens on a refusal.",
+        params(
+            {
+                "target_id": ID_PARAM,
+                "lean": {
+                    **LEAN,
+                    "description": "The candidate's Lean file: the statement of the conjecture "
+                    "with each named concept as its own predicate (the format rule, F26-R5).",
+                },
+                "models": {
+                    "type": "array",
+                    "items": _SHORT,
+                    "description": "The models that helped write it, each named (D-23 v3.31); "
+                    "omit or [] for a person's candidate.",
+                },
+                "read_others": {
+                    "type": "boolean",
+                    "description": "Whether you read another candidate's Lean before writing "
+                    "this one; required (the blind rule), recorded as your claim.",
+                },
+            },
+            ("target_id", "lean"),
+        ),
+        submit_candidate,
         write=True,
     ),
 )

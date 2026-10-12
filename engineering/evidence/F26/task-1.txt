@@ -1,0 +1,12 @@
+F26-T1 — the contracts, 2026-10-12.
+
+Schemas added and pinned (gate/schemas/HASHES, 118 pins, verify_pins []): review/v1, candidate/v1, intent-test/v1, review-question/v1, review-answer/v1, pair/v1, exhibit/v1, review-signature/v1; policy/v4 (review_openers); targets-index/v11 (row.review), graph/v9 (review, open_pairs), context/v7 (review on the root). Each is a well-formed 2020-12 schema; every id example a description names matches the pattern beside it (test_review_schemas).
+
+Gate: paths.locate gives each review path its role (a .lean beside a candidate, a test or an exhibit shares the record's role); SCHEMAS_FOR_ROLE; modes.RECORD_MODES maps the eight roles to five modes (review, candidate, review-answer, review-signature, review-job) so none can fall through to append; check_review_record validates and holds the target, and refuses the job's own records in a pull request (review-job-record); ledger.MERGE_LINES names the five modes (nothing earned at merge); codes rows; review.state_of / open_pairs / for_context derive the published shape from records (T2 extends: survivors, clusters, the ladder); products emit targets-index/v11, graph/v9, context/v7; policy/v4 parses with the default openers.
+
+Readers swept: site model.PRODUCT_SCHEMAS, api reads.CONTEXT_SCHEMAS, the get_node result schema's context enum, the deploy package check, test_schemas' published set, every older-snapshot helper in the tests (pop review/open_pairs), the Docs actions table (five rows; test_docs_states holds it to modes.Mode).
+
+Goldens regenerated: gate products, api fixtures, site. Fast tier:
+FAILED gate/tests/test_walkthrough.py::test_graph_copy_is_identical - Asserti...
+= 1 failed, 5782 passed, 3 skipped, 224 deselected, 2 warnings in 565.02s (0:09:25) =
+(the one failure is the sibling-checkout guide copy, as before). Lint: All checks passed. mypy gate/api/site: no issues.

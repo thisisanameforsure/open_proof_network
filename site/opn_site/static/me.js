@@ -157,6 +157,23 @@
     });
     if (is.length) { invites.appendChild(ilist); }
 
+    // F26-T11 (R15; D-9 v3.39): the review questions waiting for the reader as a review's intent
+    // signer, from GET /session `reviews` — the same questions the App's notice names on GitHub.
+    // Each links to the review page, where the answer form is.
+    var asked = section("Questions waiting for your answer");
+    var qs = Array.isArray(s.reviews) ? s.reviews : [];
+    if (!qs.length) { asked.appendChild(el("p", { "class": "cue" }, "No review question waits for you.")); }
+    var qlist = el("ul", { "class": "me-reviews" });
+    qs.forEach(function (q) {
+      if (!q) { return; }
+      var item = el("li", {});
+      item.appendChild(el("a", { href: "/problems/" + encodeURIComponent(String(q.target)) + "/review/" },
+        String(q.target)));
+      item.appendChild(document.createTextNode(" · " + String(q.question || "") + ": " + String(q.text || "")));
+      qlist.appendChild(item);
+    });
+    if (qs.length) { asked.appendChild(qlist); }
+
     // F04-T38: the literature records waiting for a steward's or curator's confirmation — the
     // steward's problems, or for a curator every problem the shell carries a list for.
     var lit = section("Literature statuses awaiting your confirmation");

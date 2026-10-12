@@ -1,0 +1,93 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openproof.network/schemas/review-question/v1.json",
+  "title": "review-question/v1",
+  "description": "targets/<id>/review/questions/<id>.yaml (F26-R1, R7; D-9 v3.39): a question to the intent signer, in mathematics and never in Lean, phrased as the hypothesis it tests, with what raised it — a proved disagreement between clusters, a concept value candidates disagree on, a mutant every test passed, a shape the pairs could not settle, or a signer's send-back. Open until an answer record names it. Versioned, never edited (D-34).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "target",
+    "id",
+    "question",
+    "raised_by",
+    "asked_to",
+    "date"
+  ],
+  "properties": {
+    "schema": {
+      "const": "review-question/v1"
+    },
+    "target": {
+      "$ref": "#/$defs/identifier",
+      "description": "the target the record is filed under"
+    },
+    "id": {
+      "$ref": "#/$defs/id"
+    },
+    "question": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4000,
+      "description": "the question in words, phrased as the hypothesis (\"Suppose 5 were the only prime. Would the conjecture be satisfied at n = 2?\")"
+    },
+    "raised_by": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "ref"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "disagreement",
+            "concept",
+            "mutant",
+            "shape",
+            "signer"
+          ]
+        },
+        "ref": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500,
+          "description": "the exhibit, pair, mutant or signature record that raised it"
+        }
+      }
+    },
+    "asked_to": {
+      "enum": [
+        "intent"
+      ],
+      "description": "the role asked; only the intent signer answers"
+    },
+    "date": {
+      "$ref": "#/$defs/day"
+    }
+  },
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]*$"
+    },
+    "day": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+    },
+    "login": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9](?:-?[A-Za-z0-9]){0,38}$"
+    },
+    "sshsig": {
+      "type": "string",
+      "pattern": "^-----BEGIN SSH SIGNATURE-----\\n[A-Za-z0-9+/=\\n]+-----END SSH SIGNATURE-----\\n?$",
+      "maxLength": 4000
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]{2,63}$",
+      "description": "the record's id, lowercase alphanumerics and hyphens; a candidate's is `c-<8 hex>` of its Lean's sha256, a test's `t-<8 hex>`, a question's `q-<n>`, an exhibit's `e-<8 hex>`"
+    }
+  }
+}

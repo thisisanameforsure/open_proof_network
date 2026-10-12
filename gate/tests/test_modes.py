@@ -461,6 +461,7 @@ def test_classify_command(tmp_path: Path, capsys: pytest.CaptureFixture[str]) ->
         "review_waived": None,
         "review_kind": None,  # F07-T17: an append asks no step 9
         "review_reference": None,
+        "review_state": None,  # F26-R12: no review was read for an append
         "problems": [],
         "ok": True,
         "warnings": [],  # F20-R5: what the gate says without refusing

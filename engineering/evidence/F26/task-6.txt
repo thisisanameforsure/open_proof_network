@@ -1,0 +1,58 @@
+F26-T6 — pairs: two-layer matching, the degenerate guard, refutation by instance, open directions (R7, R8; AC4, AC5)
+
+2026-10-12, branch f26-job, leanprover/lean4:v4.33.1 under elan. Code: gate/opn_gate/review_pairs.py (committed with T5, since review_job.run calls it); tests here.
+
+== Red first (the red run of task-5.txt, the seam at today's behaviour: the job runs nothing). Five of six failed on a missing pair record; the sixth (test_pairs_are_not_attempted_again) passed vacuously, since nothing was attempted at all, and is an idempotence guard rather than a behaviour test.
+FAILED gate/tests/test_review_pairs.py::test_the_degenerate_guard_keeps_a_direction_open
+FAILED gate/tests/test_review_pairs.py::test_a_refutation_names_its_instance
+FAILED gate/tests/test_review_pairs.py::test_a_failed_attempt_is_never_refuted
+FAILED gate/tests/test_review_pairs.py::test_no_proof_and_no_instance_is_open
+FAILED gate/tests/test_review_pairs.py::test_both_directions_proved_make_one_cluster
+
+== Green, fast tier (AC5: the degenerate guard keeps a direction open with its reason; a refutation names its instance; a failed attempt is never refuted; settled and same-budget open directions are not attempted again)
+   uv run --frozen pytest gate/tests/test_review_pairs.py -q --basetemp=/tmp/opn-f26-job-pytest-t6
+......                                                                   [100%]
+6 passed in 0.54s
+
+== Green, lean tier (AC4): faithful (human-ref) and rewording (alt-mul) proved both ways; the weaker formula (alt-closed) proved one way and refuted the other at a named case; every exhibit and test re-elaborates alone; a second run writes nothing
+   uv run --frozen pytest gate/tests/test_review_job_lean.py -m lean -q -k ac4 --basetemp=/tmp/opn-f26-job-pytest-t6
+.                                                                        [100%]
+1 passed, 1 deselected in 125.39s (0:02:05)
+
+== What that run wrote, the 33 intent-test exhibits left out (11 agreement tests x 3 survivors, all pass)
+   c-8d2690b8 = faithful, c-2e270312 = rewording, c-f7f3f4aa = closed interval. Both refutations of the closed interval sit at one case, so one question.
+E e-6bfd7f55 compile     c-f7f3f4aa -           pass     elaborates at the pin
+E e-6f5a4267 compile     c-2e270312 -           pass     elaborates at the pin
+E e-72980c73 compile     c-8d2690b8 -           pass     elaborates at the pin
+E e-0de54248 pair        c-2e270312 c-f7f3f4aa  proved   c-2e270312 implies c-f7f3f4aa for every n (two-layer matching; the degenerate guard passed)
+E e-4f78346d pair        c-8d2690b8 c-f7f3f4aa  proved   c-8d2690b8 implies c-f7f3f4aa for every n (two-layer matching; the degenerate guard passed)
+E e-7fe83a4e pair        c-2e270312 c-8d2690b8  proved   c-2e270312 implies c-8d2690b8 for every n (two-layer matching; the degenerate guard passed)
+E e-93c26032 pair        c-f7f3f4aa c-2e270312  refuted  refuted at n = 1, supposing 1 were the only prime: c-f7f3f4aa holds and c-2e270312 fails there
+E e-c2d1984a pair        c-8d2690b8 c-2e270312  proved   c-8d2690b8 implies c-2e270312 for every n (two-layer matching; the degenerate guard passed)
+E e-dc24de90 pair        c-f7f3f4aa c-8d2690b8  refuted  refuted at n = 1, supposing 1 were the only prime: c-f7f3f4aa holds and c-8d2690b8 fails there
+E e-14c5315c screen      c-2e270312 -           pass     false: nothing proved within the budget
+E e-3ed269e0 screen      c-f7f3f4aa -           pass     negation: no counterexample among n ≤ 40
+E e-65d90e51 screen      c-f7f3f4aa -           pass     statement: nothing proved within the budget
+E e-812407b1 screen      c-2e270312 -           pass     statement: nothing proved within the budget
+E e-84bef56b screen      c-2e270312 -           pass     negation: no counterexample among n ≤ 40
+E e-bc888d32 screen      c-8d2690b8 -           pass     statement: nothing proved within the budget
+E e-be226f8f screen      c-8d2690b8 -           pass     negation: no counterexample among n ≤ 40
+E e-e838bbb0 screen      c-f7f3f4aa -           pass     false: nothing proved within the budget
+E e-f3879f67 screen      c-8d2690b8 -           pass     false: nothing proved within the budget
+P c-2e270312--c-8d2690b8.yaml fwd={'state': 'proved', 'exhibit': 'e-7fe83a4e', 'attempt': None} back={'state': 'proved', 'exhibit': 'e-c2d1984a', 'attempt': None}
+P c-2e270312--c-f7f3f4aa.yaml fwd={'state': 'proved', 'exhibit': 'e-0de54248', 'attempt': None} back={'state': 'refuted', 'exhibit': 'e-93c26032', 'attempt': None}
+P c-8d2690b8--c-f7f3f4aa.yaml fwd={'state': 'proved', 'exhibit': 'e-4f78346d', 'attempt': None} back={'state': 'refuted', 'exhibit': 'e-dc24de90', 'attempt': None}
+Q q-1 {'kind': 'disagreement', 'ref': 'e-93c26032'} Suppose 1 were the only prime. Would the conjecture be satisfied at n = 1?
+T t-5795b4b3 covers   n = 2: does the conjecture say anything about it? -> {'value': True, 'source': 'agreement', 'ref': 'agreement:3'}
+T t-57ac4019 holds    n = 2: does the conjecture hold? -> {'value': True, 'source': 'agreement', 'ref': 'agreement:3'}
+T t-9bcfea26 concept  is 2 prime, in the sense the conjecture means? -> {'value': True, 'source': 'agreement', 'ref': 'agreement:3'}
+T t-a92bb21c holds    n = 0: does the conjecture hold? -> {'value': True, 'source': 'agreement', 'ref': 'agreement:3'}
+T t-b44e369b holds    n = 3: does the conjecture hold? -> {'value': True, 'source': 'agreement', 'ref': 'agreement:3'}
+T t-bb879c0c covers   n = 1: does the conjecture say anything about it? -> {'value': True, 'source': 'agreement', 'ref': 'agreement:3'}
+T t-c21e14b7 concept  is 0 prime, in the sense the conjecture means? -> {'value': False, 'source': 'agreement', 'ref': 'agreement:3'}
+T t-cf886570 covers   n = 0: does the conjecture say anything about it? -> {'value': False, 'source': 'agreement', 'ref': 'agreement:3'}
+T t-d460a5ed concept  is 1 prime, in the sense the conjecture means? -> {'value': False, 'source': 'agreement', 'ref': 'agreement:3'}
+T t-e74419f8 covers   n = 3: does the conjecture say anything about it? -> {'value': True, 'source': 'agreement', 'ref': 'agreement:3'}
+T t-efeb2bf5 holds    n = 1: does the conjecture hold? -> {'value': True, 'source': 'agreement', 'ref': 'agreement:3'}
+
+Not run: AC4's sandbox half (the spec's test_review_job_docker.py) is outside this task's brief; 'review run --sandbox' builds a SandboxToolchain over the run's work directory, and no docker-tier test drives it yet.

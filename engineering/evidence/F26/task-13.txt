@@ -1,0 +1,11 @@
+F26-T13 — documentation (R18), 2026-10-12, by the lead on branch f26-t13 from f26-wave1.
+
+Guide (gate/agents/AGENTS.md): a 'Formalization review (D-9 v3.39)' section before 'Registration in Palomar' — reading a review and the blind rule, submitting a candidate (the JSON body, read_others required, models and the person's-candidate rule, the format rule and 'returned'), what the job does (compile, screens, holds/covers/witness, discarded with its exhibit, no model-supplied expected value), open pairs as work through submit_proof artifact_type pair-proof, the intent signer's questions/answers/signatures and the App's mention, opening a review (policy) and the curator's opn-gate review open. The MCP appendix's four rows came with T10.
+Docs page: the 'How a statement is reviewed' section (T12's paragraph) gains 'If you proposed the problem' — questions not Lean, answered signed in, the App's mention instead of email, existing problems keep their grade, where the contributor guide covers the rest.
+
+Not added as executed walkthrough blocks: the JSON body is illustrative; the review routes need a review on the fixture graph, which the walkthrough's fixture clone does not hold (Q14). Guide-name tests hold every route, tool and code the section names.
+
+$ uv run --frozen pytest gate/tests/test_finding_guide_names_exist.py gate/tests/test_finding_guide_f25_fields.py gate/tests/test_walkthrough.py site/tests/test_render.py site/tests/test_review_page.py site/tests/test_docs_states.py
+FAILED gate/tests/test_walkthrough.py::test_graph_copy_is_identical - Asserti...
+1 failed, 87 passed, 2 warnings in 138.85s (0:02:18)
+(test_graph_copy_is_identical: the sibling graph checkout; the guide copy rides the re-pin, T14)

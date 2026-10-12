@@ -19,7 +19,7 @@ import sys
 import tempfile
 from collections.abc import Sequence
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Any
 
@@ -31,6 +31,7 @@ from opn_gate import (
     bounce,
     cache,
     carried,
+    clock,
     config,
     curator,
     defs,
@@ -54,6 +55,9 @@ from opn_gate import (
     products,
     qa,
     qa_rerun,
+    review_job,
+    review_lean,
+    review_open,
     sandbox,
     scaffold,
     schemas,
@@ -604,6 +608,7 @@ def _add_intake_parsers(  # noqa: PLR0915 — one statement per flag
     fid.add_argument("--no-build", action="store_true", help="fail if the image is not present")
 
     _add_steward_parsers(sub)
+    _add_review_parsers(sub)
 
     ev = sub.add_parser("evidence", help="record a root's catalog evidence (F14-R3, R4)")
     ev_acts = ev.add_subparsers(dest="action", required=True)
@@ -692,6 +697,41 @@ def _add_gloss_parsers(sub: argparse._SubParsersAction[argparse.ArgumentParser])
         "coverage", help="every Lean file and proof artifact, with its words or why none (R20)"
     )
     gcov.add_argument("--graph", required=True, type=Path, help="path to the graph checkout")
+
+
+def _add_review_parsers(sub: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
+    """The curator's commands on a target's formalization review (F26; D-9 v3.39)."""
+    top = sub.add_parser("review", help="a target's formalization review (F26; D-9 v3.39)")
+    acts = top.add_subparsers(dest="action", required=True)
+    op = acts.add_parser(
+        "open",
+        help="open the background review of a target that has none — review.yaml opened by the "
+        "network and the root's statement as the first candidate — into the checkout, for a "
+        "curator's direct commit (F26-R2); a target with a review is left alone",
+    )
+    op.add_argument("--graph", required=True, type=Path, help="path to the graph checkout")
+    which = op.add_mutually_exclusive_group(required=True)
+    which.add_argument("--target", help="one target id")
+    which.add_argument(
+        "--all", action="store_true", help="every target with a gate-spec.json, one line each"
+    )
+    op.add_argument("--date", help="the day of the opening, YYYY-MM-DD (default: today, UTC)")
+    rn = acts.add_parser(
+        "run",
+        help="run the review's automated stages 3, 4 and 6 (F26-R13): exhibits, intent tests, "
+        "questions and pair records written under targets/<id>/review/ in the checkout, nothing "
+        "committed; idempotent",
+    )
+    rn.add_argument("--graph", required=True, type=Path, help="path to the graph checkout")
+    rn.add_argument("--target", required=True, help="the target whose review runs")
+    rn.add_argument("--run", default="local", help="the run id the exhibits name (default: local)")
+    rn.add_argument("--date", help="the day the records carry, YYYY-MM-DD (default: today, UTC)")
+    rn.add_argument("--jobs", type=int, default=4, help="elaborations at a time (default: 4)")
+    rn.add_argument(
+        "--sandbox", action="store_true", help="elaborate every check inside the step-3 image"
+    )
+    rn.add_argument("--image", help="sandbox image tag (default: from the spec)")
+    rn.add_argument("--no-build", action="store_true", help="fail if the image is missing")
 
 
 def _add_steward_parsers(sub: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
@@ -918,6 +958,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         "steward": run_steward,
         "explainer": run_explainer,
         "gloss": run_gloss,
+        "review": run_review,
         "writeup": run_writeup,
         "postmerge": run_postmerge,
         "admit": run_admit,
@@ -2822,6 +2863,75 @@ def run_explainer(args: argparse.Namespace, settings: config.Settings) -> int:
     }
     message = f"explainer: {args.by} signed {args.explainer[:12]} on {args.node_id}"
     return _emit_curator(doc, graph, args.branch, message)
+
+
+def run_review(args: argparse.Namespace, settings: config.Settings) -> int:
+    """F26-R2: ``review open`` writes the background review of ``--target``, or of every target
+    with a ``gate-spec.json`` under ``--all``, into the checkout: one JSON line per target naming
+    what was written, or that a review exists, or why nothing could be (no root, no words). Exit 1
+    when any target failed; nothing is committed or pushed — the curator commits what was
+    written, directly, since a ``network`` opening is never admitted by pull request."""
+    graph: Path = args.graph.resolve()
+    if not graph.is_dir():
+        msg = f"graph checkout not found: {graph}"
+        raise CliError(msg)
+    day = args.date or clock.today().isoformat()
+    try:
+        date.fromisoformat(day)
+    except ValueError:
+        msg = f"--date must be a day like 2026-10-12, got {day!r}"
+        raise CliError(msg) from None
+    if args.action == "run":
+        return _review_run(args, settings, graph, day)
+    targets = [args.target] if args.target else review_open.target_ids(graph)
+    failed = False
+    for target_id in targets:
+        summary = review_open.open_review(graph, target_id, day=day)
+        failed = failed or not summary["ok"]
+        sys.stdout.write(json.dumps(summary, ensure_ascii=False) + "\n")
+    return EXIT_FAIL if failed else EXIT_PASS
+
+
+def _review_run(args: argparse.Namespace, settings: config.Settings, graph: Path, day: str) -> int:
+    """F26-R13: ``review run`` — stages 3, 4 and 6 of one target's review, every check
+    elaborated through the toolchain seam (in the step-3 image with ``--sandbox``), the records
+    written into the checkout and nothing committed. One JSON summary on stdout; ``written`` is
+    empty on a second run over the same records."""
+    spec_path = layout.gate_spec_path(graph, args.target)
+    try:
+        spec = schemas.load_json(spec_path, "gate-spec/v1")
+    except schemas.SchemaError as exc:
+        msg = f"cannot load {spec_path}: {exc}"
+        raise CliError(msg) from exc
+    workdir = Path(tempfile.mkdtemp(prefix="opn-review-run-"))
+    tc: toolchain.Toolchain
+    if args.sandbox:
+        tag = args.image or ensure_image(spec, build=not args.no_build)
+        tc = sandbox.SandboxToolchain(tag, sandbox.Caps.from_spec(spec), read_write=[workdir])
+    else:
+        try:
+            tc = toolchain.LocalToolchain.from_settings(settings)
+        except toolchain.ToolchainMissingError as exc:
+            raise CliError(str(exc)) from exc
+    raw_sha = spec.get("mathlib_sha")
+    try:
+        resolved = tc.resolve(
+            str(spec["lean_toolchain"]),
+            install=False,
+            mathlib_sha=str(raw_sha) if raw_sha else None,
+        )
+    except (toolchain.ToolchainMissingError, toolchain.ToolchainError) as exc:
+        raise CliError(str(exc)) from exc
+    runner = review_lean.Runner(
+        tc, resolved, workdir, budget_s=settings.qa_attempt_budget_s, jobs=max(1, args.jobs)
+    )
+    opts = review_job.Settings(
+        run_id=args.run, date=day, budget_s=settings.qa_attempt_budget_s, jobs=max(1, args.jobs)
+    )
+    summary = review_job.review_run(graph, args.target, runner, dict(spec), opts)
+    summary["sandboxed"] = bool(args.sandbox)
+    sys.stdout.write(json.dumps(summary, indent=2, ensure_ascii=False) + "\n")
+    return EXIT_PASS if summary.get("ok") else EXIT_FAIL
 
 
 def run_gloss(args: argparse.Namespace, settings: config.Settings) -> int:

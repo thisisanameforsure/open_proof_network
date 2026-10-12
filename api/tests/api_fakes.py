@@ -107,6 +107,8 @@ class Comment:
     body: str
     closed_before: list[int]
     pushes_before: int
+    #: ``pull`` through comment_on_pull_request, ``issue`` through comment_on_issue (F26-Q17).
+    kind: str = "pull"
 
 
 @dataclass
@@ -336,6 +338,14 @@ class FakeGitHost:
         if self.comment_failure:
             raise GitHostError(self.comment_failure)
         self.comments.append(Comment(repo, number, body, list(self.closed_pulls), len(self.pushes)))
+
+    def comment_on_issue(self, repo: str, number: int, body: str) -> None:
+        self._app_call()
+        if self.comment_failure:
+            raise GitHostError(self.comment_failure)
+        self.comments.append(
+            Comment(repo, number, body, list(self.closed_pulls), len(self.pushes), kind="issue")
+        )
 
     def delete_branch(self, repo: str, branch: str) -> bool:
         self._app_call()

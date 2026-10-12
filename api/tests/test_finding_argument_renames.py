@@ -66,15 +66,24 @@ class RecordingCall(Call):
         return Answer(201, {"id": "01M00000000000000000000002"})
 
 
-def sent_body(tool: Tool, args: dict[str, Any]) -> dict[str, Any] | None:
+#: F26-T10: the arguments a tool sends in its endpoint's path rather than its body — the target
+#: of ``POST /reviews/<id>/candidates`` — so the body holds every other argument under its name.
+PATH_ARGUMENTS: dict[str, tuple[str, ...]] = {"submit_candidate": ("target_id",)}
+
+
+def sent(tool: Tool, args: dict[str, Any]) -> tuple[str, dict[str, Any] | None]:
     call = RecordingCall()
 
     async def go() -> None:
         await tool.handler(call, args)
 
     asyncio.run(go())
-    [(_, _, body)] = call.sent
-    return body
+    [(_, path, body)] = call.sent
+    return path, body
+
+
+def sent_body(tool: Tool, args: dict[str, Any]) -> dict[str, Any] | None:
+    return sent(tool, args)[1]
 
 
 def value_for(tool: str, name: str) -> Any:
@@ -106,12 +115,17 @@ def test_renames_is_what_the_handlers_send() -> None:
             if not (tool.name == "submit_proof" and n == "precheck_job_id")
         ]
         args = {n: value_for(tool.name, n) for n in names}
-        body = sent_body(tool, args)
+        path, body = sent(tool, args)
         if body is None:
             continue  # a path-only call (release_claim, withdraw_submission, renew_token)
         with_body += 1
         mapping = dict(renames.get(tool.name, {}))
-        assert body == {mapping.get(n, n): expected_value(tool.name, n) for n in names}, tool.name
+        in_path = PATH_ARGUMENTS.get(tool.name, ())
+        for n in in_path:
+            assert f"/{value_for(tool.name, n)}/" in path, (tool.name, n, path)
+        assert body == {
+            mapping.get(n, n): expected_value(tool.name, n) for n in names if n not in in_path
+        }, tool.name
     assert with_body == len(writes.TOOLS) - 3  # F05-T27 added renew_token, which sends no body
 
 

@@ -24,7 +24,11 @@ SCHEMA = "policy/v1"
 SCHEMA_V2 = "policy/v2"
 #: v3 (F24-R1; D-32 v3.34) adds ``panel``, the steward panel's settings.
 SCHEMA_V3 = "policy/v3"
-SCHEMAS: frozenset[str] = frozenset({SCHEMA, SCHEMA_V2, SCHEMA_V3})
+#: v4 (F26-R2; D-9 v3.39) adds ``review_openers``, who may open a formalization review.
+SCHEMA_V4 = "policy/v4"
+SCHEMAS: frozenset[str] = frozenset({SCHEMA, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4})
+#: The default: all three roles may open a review (D-9 v3.39).
+DEFAULT_REVIEW_OPENERS: tuple[str, ...] = ("proposer", "steward", "curator")
 OPEN = "open"
 REVIEWED = "reviewed"
 
@@ -40,6 +44,10 @@ class Policy:
     admission: str = OPEN
     #: v3 (F24-R1; D-32 v3.34): the panel's settings, or their defaults.
     panel: Settings = field(default_factory=Settings)
+    #: v4 (F26-R2; D-9 v3.39): the roles that may open a review; the default is all three.
+    review_openers: tuple[str, ...] = DEFAULT_REVIEW_OPENERS
+    review_openers_since: str | None = None
+    review_openers_evidence: str | None = None
 
     def as_dict(self) -> dict[str, Any]:
         """The shape ``targets/index.json`` publishes (``targets-index/v9``: v6's rule and the
@@ -97,6 +105,13 @@ def parse(data: bytes | None) -> Policy:
         present=True,
         admission=str(doc.get("steward_admission") or OPEN),
         panel=settings_of(doc["panel"]) if "panel" in doc else Settings(),
+        review_openers=(
+            tuple(str(r) for r in doc["review_openers"]["roles"])
+            if "review_openers" in doc
+            else DEFAULT_REVIEW_OPENERS
+        ),
+        review_openers_since=(doc.get("review_openers") or {}).get("since"),
+        review_openers_evidence=(doc.get("review_openers") or {}).get("evidence"),
     )
 
 

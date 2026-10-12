@@ -617,6 +617,42 @@ Resources:
                   - lambda:PublishVersion
                 Resource: !GetAtt Function.Arn
 
+  # F26-Q17 (the owner's ruling, 2026-10-12): the nightly review notice. The network repo's
+  # review-notice workflow assumes this role and invokes the function with a task event; the role
+  # can do that and nothing else, and is trusted exactly as DeployRole is (this repository's main
+  # branch through GitHub's OIDC). The App key and the tables stay with the function.
+  NoticeRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${AWS::StackName}-notice"
+      Description: assumed only by the network repo's review-notice workflow (F26-Q17)
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated: !If
+                - MakeProvider
+                - !Ref GitHubOidcProvider
+                - !Sub "arn:aws:iam::${AWS::AccountId}:oidc-provider/token.actions.githubusercontent.com"
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                token.actions.githubusercontent.com:aud: sts.amazonaws.com
+                token.actions.githubusercontent.com:sub: !Sub
+                  - "repo:${Owner}@${GitHubOwnerId}/${Repo}@${GitHubRepositoryId}:ref:refs/heads/${GitHubBranch}"
+                  - Owner: !Select [0, !Split ["/", !Ref GitHubRepository]]
+                    Repo: !Select [1, !Split ["/", !Ref GitHubRepository]]
+      Policies:
+        - PolicyName: invoke-function
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - lambda:InvokeFunction
+                Resource: !GetAtt Function.Arn
+
 Outputs:
   ApiUrl:
     Description: the service's origin (the domain when set, else the issued address)
@@ -637,6 +673,9 @@ Outputs:
     Value: !Ref Function
   DeployRoleArn:
     Value: !GetAtt DeployRole.Arn
+  NoticeRoleArn:
+    Description: what the network repo's OPN_API_NOTICE_ROLE_ARN variable holds (F26-Q17)
+    Value: !GetAtt NoticeRole.Arn
   ParameterPrefix:
     Value: !Ref ParameterPrefix
   IdentitiesTableName:

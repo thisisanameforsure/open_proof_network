@@ -48,6 +48,10 @@ KEY_CHECK = "check#"
 # F06-T11: a precheck job that has opened its pull request — a counter (``bump_counter``) whose
 # TTL is the job's retention, so taking it is one atomic add on either store.
 KEY_PRECHECK_USED = "precheckused#"
+#: F26-T11 (R15): the review questions the App's notice has already named, per target — a string
+#: set of question ids, no TTL, in the tokens table like the open-submissions index. The graph is
+#: never written to remember it: what the network has said on the host is the service's own fact.
+KEY_REVIEW_NOTICE = "reviewnotice#"
 
 
 class ConflictError(Exception):
@@ -287,6 +291,16 @@ class Store(Protocol):
 
     def get_check(self, check_id: str) -> CheckLog | None: ...
 
+    def review_notified(self, target_id: str) -> set[str]:
+        """The question ids of ``target_id``'s review a notice has named (F26-R15); empty when
+        none has."""
+        ...
+
+    def add_review_notified(self, target_id: str, question_ids: set[str]) -> None:
+        """Add ``question_ids`` to what the notices of ``target_id`` have named, atomically (a
+        set union, so two runs cannot lose each other's ids); an empty set writes nothing."""
+        ...
+
 
 # --- memory ------------------------------------------------------------------------------------
 
@@ -307,6 +321,7 @@ class MemoryStore:
     submissions_by_pseudonym: dict[str, set[str]] = field(default_factory=dict)
     open_submissions: set[str] = field(default_factory=set)
     checks: dict[str, CheckLog] = field(default_factory=dict)
+    review_notices: dict[str, set[str]] = field(default_factory=dict)
 
     def check(self) -> list[str]:
         return []
@@ -476,6 +491,13 @@ class MemoryStore:
         found = self.checks.get(check_id)
         return replace(found, lint=list(found.lint)) if found is not None else None
 
+    def review_notified(self, target_id: str) -> set[str]:
+        return set(self.review_notices.get(target_id, set()))
+
+    def add_review_notified(self, target_id: str, question_ids: set[str]) -> None:
+        if question_ids:
+            self.review_notices.setdefault(target_id, set()).update(question_ids)
+
 
 def _unique_keys(identity: Identity) -> list[tuple[str, str]]:
     return [
@@ -550,7 +572,8 @@ class DynamoStore:
     until it expires, unlike the single-use ephemeral items. Submissions (F07-T16) carry no
     TTL: ``submission#<ulid>`` is the record, ``submissionpr#<n>`` points a pull-request number at
     it, and ``submissions#open`` holds the open ids as a string set. Fast checks (F13-T4)
-    are ``check#<ulid>`` records, also without TTL.
+    are ``check#<ulid>`` records, also without TTL, and ``reviewnotice#<target>`` holds the
+    review questions a notice has named as a string set (F26-T11).
     claims: ``id`` — one row per claim; the registry is read by scan (Stage 0 volume).
     """
 
@@ -926,6 +949,22 @@ class DynamoStore:
         item = self._tokens.get_item(Key={"key": KEY_CHECK + check_id}).get("Item")
         record = item.get("check") if item else None
         return _check(plain(dict(record))) if isinstance(record, dict) else None
+
+    # --- review notices (F26-T11): one string set per target, no TTL ----------------------------
+
+    def review_notified(self, target_id: str) -> set[str]:
+        item = self._tokens.get_item(Key={"key": KEY_REVIEW_NOTICE + target_id}).get("Item") or {}
+        return {str(i) for i in item.get("ids") or ()}
+
+    def add_review_notified(self, target_id: str, question_ids: set[str]) -> None:
+        if not question_ids:  # DynamoDB stores no empty set
+            return
+        self._tokens.update_item(
+            Key={"key": KEY_REVIEW_NOTICE + target_id},
+            UpdateExpression="ADD #ids :one",
+            ExpressionAttributeNames={"#ids": "ids"},
+            ExpressionAttributeValues={":one": set(question_ids)},
+        )
 
 
 def _optional(value: Any) -> str | None:

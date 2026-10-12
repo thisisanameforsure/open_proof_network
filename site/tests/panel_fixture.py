@@ -133,7 +133,7 @@ def lift(index: dict[str, Any]) -> dict[str, Any]:
     """The fixture's v8 index as v9: the panel settings, each steward's last act, and per
     target its panel and write-ups (empty but for the stewarded target)."""
     out: dict[str, Any] = json.loads(json.dumps(index))
-    out["schema"] = "targets-index/v10"  # F25-T1: v9 plus registrations
+    out["schema"] = "targets-index/v11"  # F25-T1: v9 plus registrations; F26-T1: plus review
     out["policy"]["panel"] = PANEL_SETTINGS
     for row in out["targets"]:
         for s in row["stewards"]:
@@ -164,7 +164,7 @@ def build(tmp_path: Path) -> Path:
     root = build_with_stewards(tmp_path)
     path = root / "targets" / "index.json"
     doc = lift(json.loads(path.read_text(encoding="utf-8")))
-    schemas.validate(doc, "targets-index/v10")
+    schemas.validate(doc, "targets-index/v11")
     path.write_bytes(schemas.canonical_json(doc))
     return root
 
@@ -184,7 +184,7 @@ def registration(
     version: int | None = 2,
     url: str | None = PALOMAR_URL,
 ) -> dict[str, Any]:
-    """One row of ``registrations`` as ``targets-index/v10`` publishes it."""
+    """One row of ``registrations`` as ``targets-index/v10`` (and later) publishes it."""
     return {
         "registry": "palomar",
         "registry_id": registry_id,
@@ -201,7 +201,7 @@ def with_registrations(root: Path, rows: dict[str, list[dict[str, Any]]]) -> Pat
     doc = json.loads(path.read_text(encoding="utf-8"))
     for row in doc["targets"]:
         row["registrations"] = [dict(r) for r in rows.get(str(row["target_id"]), [])]
-    schemas.validate(doc, "targets-index/v10")
+    schemas.validate(doc, "targets-index/v11")
     path.write_bytes(schemas.canonical_json(doc))
     return root
 
@@ -213,6 +213,7 @@ def without_registrations(root: Path) -> Path:
     doc["schema"] = "targets-index/v9"
     for row in doc["targets"]:
         row.pop("registrations", None)
+        row.pop("review", None)  # F26-T1: targets-index/v11 added it
     schemas.validate(doc, "targets-index/v9")
     path.write_bytes(schemas.canonical_json(doc))
     return root

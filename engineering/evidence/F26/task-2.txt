@@ -1,0 +1,88 @@
+F26-T2: the review's derived state and the ladder (AC2, AC8) — evidence, 2026-10-12
+
+Files: gate/opn_gate/review.py (derive, state_of, grade_of, split_variants; one function per
+rule), gate/tests/test_review_state.py, gate/tests/test_review_ladder.py.
+
+## Red first
+
+The three seams went in at T1's behaviour (derive with every candidate surviving and no
+clusters, grade_of returning the held grade, split_variants returning []), then the tests:
+
+    uv run --frozen pytest gate/tests/test_review_state.py gate/tests/test_review_ladder.py -q
+    68 failed, 12 passed in 1.14s
+
+Every behaviour test failed on the derived value, not on a missing name — for example
+AC2: {'c-cccccccc': ('surviving', None)} != {'c-cccccccc': ('discarded', 'e-…')};
+transitivity: [['c-aaaaaaaa'], ['c-bbbbbbbb'], ['c-cccccccc']] != one cluster of three;
+the ladder: 'mechanical-only' == 'screened-and-signed';
+split: [] == [{'representative': 'c-cccccccc', 'members': [...], 'relation': 'resolves'}].
+(The in-file mutant tests erred on the seams they monkeypatch, which did not exist yet.)
+
+## Verification
+
+    uv run --frozen pytest gate/tests/test_review_state.py gate/tests/test_review_ladder.py \
+        gate/tests/test_review_schemas.py gate/tests/test_products.py -q \
+        --basetemp=/tmp/opn-f26-t2-pytest
+    144 passed in 12.30s
+
+    uv run --frozen ruff check gate          All checks passed!
+    uv run --frozen ruff format --check gate 410 files already formatted
+    uv run --frozen mypy gate                Success: no issues found in 389 source files
+
+Consumers of the module (CONTEXT.json's review, the api's lemmas fixture, the version sweep):
+
+    uv run --frozen pytest gate/tests/test_context.py gate/tests/test_finding_context_lemmas.py \
+        api/tests/test_finding_lemmas_mcp.py gate/tests/test_versions_accepted.py -q
+    25 passed
+
+## Mutants as pytest plugins (F11-T7's pattern)
+
+One plugin per mutant, each replacing exactly one rule of opn_gate.review in pytest_configure,
+run as `pytest -p mut_<name>` over the two test files with the in-file mutant tests deselected,
+so that every failure counted is a derivation test. A mutant that failed nothing would be a rule
+the tests do not hold.
+
+    baseline, no plugin:                  55 passed, 25 deselected
+    always_capped:                        12 failed, 43 passed
+    always_related:                        4 failed, 51 passed
+    any_accept_counts:                     7 failed, 48 passed
+    any_exhibit_discards:                  3 failed, 52 passed
+    any_kind_discards:                     1 failed, 54 passed
+    any_role_may_split:                    1 failed, 54 passed
+    any_signer_is_independent:             1 failed, 54 passed
+    cap_from_any_candidate:                2 failed, 53 passed
+    cap_only_holds_the_top:                2 failed, 53 passed
+    complete_ignores_questions:           13 failed, 42 passed
+    complete_with_any_cluster:             1 failed, 54 passed
+    either_role_attests:                  12 failed, 43 passed
+    error_discards:                        1 failed, 54 passed
+    first_signature_wins:                  2 failed, 53 passed
+    format_discards:                       1 failed, 54 passed
+    ignores_the_cap:                       4 failed, 51 passed
+    ignores_the_state:                     3 failed, 52 passed
+    lowers_the_held_grade:                 7 failed, 48 passed
+    needs_signer_ignores_role:             2 failed, 53 passed
+    needs_signer_ignores_who_can_answer:   2 failed, 53 passed
+    never_capped:                          8 failed, 47 passed
+    no_review_is_the_floor:                6 failed, 49 passed
+    no_transitivity:                       1 failed, 54 passed
+    nothing_is_returned:                   1 failed, 54 passed
+    one_direction_is_enough:               5 failed, 50 passed
+    relation_swapped:                      4 failed, 51 passed
+    role_blind_signers:                   13 failed, 42 passed
+    split_by_any_intent_signature:         1 failed, 54 passed
+    surviving mutants: none
+
+Twenty-five of the twenty-eight also run in-file on every `make verify` as
+test_each_rule_is_necessary (16 in test_review_state.py, 9 in test_review_ladder.py); the three
+plugin-only ones (cap_from_any_candidate, no_review_is_the_floor, split_by_any_intent_signature)
+are each killed by a direct test and replace a function the in-file pattern cannot wrap cleanly.
+The plugin sources and runner are reproducible from the table above (write_mutants.py /
+run_mutants.py in the session's scratchpad; not committed).
+
+## Not measured here
+
+AC8's last clause — "no grade a target holds today is lowered by the new derivation on the live
+products (measured over every target at the pin)" — is a network-tier measurement for F26-T14;
+the rule itself (grade_of never returns below existing_grade, for every rung and for a target
+with no review) is test_ac8_no_grade_held_today_is_lowered.

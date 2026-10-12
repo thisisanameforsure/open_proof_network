@@ -101,11 +101,14 @@ KIND_OF: dict[Check, Kind] = {
     "equivalence": "exhibit",
 }
 #: R9: what "the pass complete" means for the root — every layer but the bonus one (F12-Q3:
-#: equivalence needs a second formalization and is never part of the floor).
-FLOOR_ROOT: tuple[Check, ...] = ("compile", *SCREENS, "brief", "backtranslation")
+#: equivalence needs a second formalization and is never part of the floor) and, since D-9
+#: v3.39 (F26-R10), without the back-translation: a signer reads the Lean rendered mechanically
+#: beside the gloss, so no model-made text stands in the floor. The check stays in ``CHECKS`` and
+#: ``KIND_OF`` so a record written under the old floor still loads and still counts.
+FLOOR_ROOT: tuple[Check, ...] = ("compile", *SCREENS, "brief")
 #: A definition is not a proposition: it has nothing to negate and no hypotheses to close, so
-#: its pass is the compile, the brief and the back-translation (F12-Q10).
-FLOOR_DEFINITION: tuple[Check, ...] = ("compile", "brief", "backtranslation")
+#: its pass is the compile and the brief (F12-Q10; F26-R10 took the back-translation out).
+FLOOR_DEFINITION: tuple[Check, ...] = ("compile", "brief")
 
 CODE_MISSING = "exhibit-missing"
 CODE_HASH = "exhibit-hash-mismatch"
@@ -1100,7 +1103,7 @@ def screen(  # noqa: PLR0913 — one argument per budget and seam
     if subject != fidelity.ROOT_SUBJECT:
         msg = (
             f"the screens run on the root statement; {subject!r} is a definition and has nothing "
-            "to negate — its pass is compile, brief and backtranslation (F12-Q10)"
+            "to negate — its pass is compile and brief (F12-Q10, F26-R10)"
         )
         raise QaError("record", msg)
     target_dir = ctx.graph_root / "targets" / ctx.claim.target_id

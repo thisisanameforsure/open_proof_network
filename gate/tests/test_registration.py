@@ -176,8 +176,10 @@ def test_the_products_publish_registrations(tmp_path: Path) -> None:
     write(tdir, "2026-10-14-1", date="2026-10-14", status="registered", version=2)
     prod = products.generate(root, rendered_from="5" * 40, commit_time="2026-10-14T12:00:00Z")
     index = json.loads(prod.files[Path("targets/index.json")])
-    assert index["schema"] == "targets-index/v10"
-    assert schemas.violations(index, "targets-index/v10") == []
+    assert (
+        index["schema"] == products.INDEX_SCHEMA
+    )  # targets-index/v10 when written; v11 since F26-T1
+    assert schemas.violations(index, products.INDEX_SCHEMA) == []
     row = next(r for r in index["targets"] if r["target_id"] == TARGET)
     expected = [
         {

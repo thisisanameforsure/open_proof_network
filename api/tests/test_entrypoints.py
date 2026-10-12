@@ -53,12 +53,13 @@ def test_lambda_build_falls_back_to_the_environment_when_parameter_store_is_unre
     monkeypatch.setenv("OPN_API_PUBLIC_URL", "https://from-environ.example/")
     with caplog.at_level(logging.ERROR, logger="opn_api"):
         module = fresh()
-    assert isinstance(module.handler, Mangum)
+    # F26-Q17: the handler is a function that serves HTTP through Mangum (``_HTTP``) and a
+    # direct task invocation itself; the app it serves is ``APP``.
+    assert isinstance(module._HTTP, Mangum)
     (line,) = [r.getMessage() for r in caplog.records if "parameter store" in r.getMessage()]
     assert line == "parameter store unreadable under /opn/test/: RuntimeError"
     assert "arn:aws" not in caplog.text
-    app: Any = module.handler.app  # the isinstance above narrows .app to the ASGI protocol
-    settings = app.state.context.settings
+    settings = module.APP.state.context.settings
     assert settings.public_url == "https://from-environ.example"
 
 
@@ -80,7 +81,7 @@ def test_lambda_build_applies_the_parameters_over_the_environment(
     monkeypatch.setenv("OPN_API_PUBLIC_URL", "https://from-environ.example")
     module = fresh()
     assert seen == ["/opn/prod/"]
-    settings = module.handler.app.state.context.settings
+    settings = module.APP.state.context.settings
     assert settings.public_url == "https://from-parameters.example"
     assert settings.token_secret == "from-parameters"  # noqa: S105 — a sentinel, not a secret
 
@@ -110,6 +111,62 @@ def test_lambda_handler_serves_a_health_event(
     }
     response = module.handler(event, None)
     assert response["statusCode"] == 200, response
+
+
+# --- F26-Q17 (ruled 2026-10-12): the scheduled review notice, a direct invocation --------------
+
+
+def test_a_review_notice_task_runs_the_notice_and_answers_its_outcomes(
+    fresh: Callable[[], Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The nightly workflow invokes the function with ``{"opn_task": "review-notice"}`` through a
+    role allowed only lambda:InvokeFunction; the App key and the store stay inside the function.
+    The handler runs ``review_notice.run`` on the app's own context and answers its outcomes."""
+    monkeypatch.setattr(config, "environment_with_parameters", lambda prefix: dict(os.environ))
+    module = fresh()
+    seen: list[Any] = []
+
+    def fake_run(ctx: Any, target_ids: Any = None) -> list[dict[str, Any]]:
+        seen.append((ctx, target_ids))
+        return [{"target": "erdos-1", "outcome": "nothing-new", "questions": []}]
+
+    from opn_api import review_notice  # noqa: PLC0415 — after the fresh import
+
+    monkeypatch.setattr(review_notice, "run", fake_run)
+    answer = module.handler({"opn_task": "review-notice"}, None)
+    assert answer == {"task": "review-notice", "outcomes": fake_run(None)}
+    assert len(seen) == 2 and seen[0][0] is module.APP.state.context and seen[0][1] is None
+    answer = module.handler({"opn_task": "review-notice", "targets": ["erdos-1"]}, None)
+    assert seen[-1][1] == ["erdos-1"]
+
+
+def test_an_unknown_task_is_refused_and_an_http_event_never_reaches_a_task(
+    fresh: Callable[[], Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Only the one named task runs; anything else that is not an HTTP event is refused by name,
+    and an HTTP event carrying ``opn_task`` in its body is served as HTTP (a caller on the public
+    route cannot start a task — only IAM can invoke the function directly)."""
+    monkeypatch.setattr(config, "environment_with_parameters", lambda prefix: dict(os.environ))
+    module = fresh()
+    assert module.handler({"opn_task": "drop-tables"}, None) == {
+        "task": "drop-tables",
+        "error": "unknown-task",
+    }
+    http_event = {
+        "version": "2.0",
+        "routeKey": "$default",
+        "rawPath": "/health",
+        "rawQueryString": "",
+        "headers": {"host": "api.example"},
+        "requestContext": {
+            "http": {"method": "GET", "path": "/health", "protocol": "HTTP/1.1",
+                     "sourceIp": "127.0.0.1", "userAgent": "test"},
+            "stage": "$default",
+        },
+        "isBase64Encoded": False,
+        "opn_task": "review-notice",
+    }  # fmt: skip
+    assert module.handler(http_event, None)["statusCode"] == 200
 
 
 # --- the local runner's HTTP bridge ------------------------------------------------------------

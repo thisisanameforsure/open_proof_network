@@ -102,11 +102,11 @@ def test_the_products_are_the_next_versions_and_literature_is_null(tmp_path: Pat
     # F03-T20 / F10-T49 (D-12 v3.38): graph and context took the next versions again for
     # ``lemmas`` (graph/v8 after F25-T1's v7); the frontier did not.
     assert (gdoc["schema"], fdoc["schema"], cdoc["schema"]) == (
-        "graph/v8",
+        "graph/v9",
         "frontier/v5",
-        "context/v6",
+        "context/v7",
     )
-    for doc, schema in ((gdoc, "graph/v8"), (fdoc, "frontier/v5"), (cdoc, "context/v6")):
+    for doc, schema in ((gdoc, "graph/v9"), (fdoc, "frontier/v5"), (cdoc, "context/v7")):
         assert schemas.violations(doc, schema) == [], schema
     for row in gdoc["nodes"]:
         assert set(NEW_FIELDS) <= set(row), row["node_id"]

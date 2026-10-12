@@ -103,8 +103,8 @@ def test_record_is_written_once_per_run_and_read_back(target: Path) -> None:
 
 
 def test_a_definition_is_a_subject_with_a_smaller_floor(target: Path) -> None:
-    """A definition has nothing to negate: its pass is compile, brief and back-translation (Q10),
-    and its hash is the file's own."""
+    """A definition has nothing to negate: its pass is compile and brief (Q10; F26-R10 took
+    the back-translation out), and its hash is the file's own."""
     assert qa.subject_hash(target, "Primes") == schemas.content_hash(
         (target / "defs" / "Primes.lean").read_bytes()
     )
@@ -601,12 +601,12 @@ def test_a_routing_claim_must_name_a_real_finding(target: Path) -> None:
 
 def test_a_clean_run_writes_a_record_and_nothing_else(target: Path) -> None:
     """R3: three clean screens, a compile and a vacuous consequence pass; no exhibit, no claim,
-    and the pass state lacks only the two brief rows."""
+    and the pass state lacks only the brief (F26-R10: back-translation left the floor)."""
     run = run_screen(target, ScriptedToolchain(failing_modules=NOTHING_PROVES))
     assert run.clean and run.exhibits == [] and run.claims == []
     assert run.record == f"targets/{target.name}/qa/root-1.yaml"
     state = qa.pass_state(target, "root")
-    assert state.missing == ("brief", "backtranslation")
+    assert state.missing == ("brief",)
     consequence = next(r for r in run.rows if r.check == "screen-consequence")
     assert consequence.note == qa.NOTE_NO_CONSEQUENCES
 
@@ -656,7 +656,7 @@ def test_timeout_is_inconclusive_not_pass(target: Path) -> None:
     assert row.verdict == "inconclusive" and row.exhibit is None
     assert row.budget_s == 7.0 and row.note == qa.NOTE_TIMEOUT
     assert run.exhibits == [] and not run.clean
-    assert qa.pass_state(target, "root").missing == ("screen-negation", "brief", "backtranslation")
+    assert qa.pass_state(target, "root").missing == ("screen-negation", "brief")
 
 
 def test_subject_budget_marks_remaining_checks_inconclusive(target: Path) -> None:

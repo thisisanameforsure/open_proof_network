@@ -93,10 +93,25 @@
       "uses": []
     }
   ],
+  "open_pairs": [],
   "registrations": [],
   "rendered_from": "5555555555555555555555555555555555555555",
+  "review": {
+    "candidates": 0,
+    "clusters": 0,
+    "grade_cap": null,
+    "open_pairs": 0,
+    "questions_waiting": 0,
+    "signers": {
+      "independent": null,
+      "intent": null
+    },
+    "state": "none",
+    "surviving": 0,
+    "tracking": null
+  },
   "root": "and-swap-reassoc",
-  "schema": "graph/v8",
+  "schema": "graph/v9",
   "target_id": "propositional",
   "target_proofs": []
 }
