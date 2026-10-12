@@ -2795,6 +2795,14 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "The request has fields this route does not accept.",
         "Send only the fields the message lists.",
     ),
+    "unknown-task": (
+        "api",
+        None,
+        "A direct invocation of the service's function named a scheduled task it does not run "
+        "(F26-Q17); only `review-notice` exists. A direct invocation reaches the function only "
+        "through IAM, never through the public route.",
+        'Invoke it with {"opn_task": "review-notice"}, as review-notice.yml does.',
+    ),
     "unparseable": (
         "api",
         None,
