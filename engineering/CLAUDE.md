@@ -1491,4 +1491,13 @@ The law of the project:
   A session that starts an amendment should claim its number in the doc on main first, in one
   tiny commit, before building against it — and a published schema version is a fact about the
   graph, never about a branch.
+- 2026-10-12 — Two things from carrying v3.38 to the record. **The automatic render follows a re-pin,
+  not a curator commit**: the lemma edge pushed to erdos-1094 ran the gate and nothing rendered, so the
+  lemma was on the record and in no product until `render.yml` was dispatched by hand; a direct push
+  that changes what the products derive from needs its own dispatch, and the recipe says so now.
+  **A deploy's smoke is a test of the message, and the message had moved**: api-deploy updated the
+  function and then went red because F09-T71 had reworded the refusal the smoke greps for; the
+  predicate is a function held to `auth.unauthorized(ctx)` by a fast test now, which is where a
+  reworded phrase should fail. Grep the smokes for a phrase before rewording it (the 2026-09-12 rule,
+  paid again).
 
