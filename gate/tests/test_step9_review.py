@@ -50,8 +50,9 @@ def codes(out: dict[str, Any]) -> list[str]:
 def complete_review(repo: Repo, *, signed: bool = True) -> Review:
     """One model's candidate surviving alone, no question: the review is ``complete``; with
     ``signed``, an independent accept lifts it to screened-and-signed (the cap for a review with
-    no person's candidate)."""
-    r = Review(repo.target)
+    no person's candidate). Opened by a curator: the network's background review never decides
+    step 9 (F26-Q16), so a review that satisfies it is one a person opened."""
+    r = Review(repo.target, role="curator", identity="curator")
     r.candidate(A, "model-runner")
     if signed:
         r.signature("independent", "accept", INDEPENDENT)
@@ -98,12 +99,8 @@ def network_waiting(repo: Repo) -> None:
         pytest.param(question_waiting, "open", "review open: 1 question waiting", id="question"),
         pytest.param(two_readings, "open", "review open: 2 readings survive", id="two-readings"),
         pytest.param(no_survivor, "open", "review open: no candidate survives", id="no-survivor"),
-        pytest.param(
-            network_waiting,
-            "needs-intent-signer",
-            "review needs an intent signer: 2 questions waiting",
-            id="needs-intent-signer",
-        ),
+        # The network's background review waiting for an intent signer held here until the owner's
+        # ruling of 2026-10-12 (F26-Q16): a background review never holds step 9; see below.
     ],
 )
 def test_ac9_an_incomplete_review_holds_a_proof_of_the_root(
@@ -352,3 +349,62 @@ def test_the_products_step9_field_follows_the_review(
     build(repo)
     tg = graphmod.load_target(repo.root, TARGET_ID)
     assert products.step9_basis(tg) == expected
+
+
+# --- F26-Q16 (the owner's ruling, 2026-10-12): a background review never holds step 9 ----------
+
+
+def test_a_background_review_waiting_does_not_hold_a_certified_root(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """The network's review of an existing target informs and files defects; it never holds a
+    proof that settles the root. A screened-and-signed certificate approves as before v3.39, though
+    the review waits for an intent signer the target does not have."""
+    repo, proof = curated(tmp_path)
+    certificate(repo, "root-2.yaml")
+    network_waiting(repo)
+    repo.commit("base: certified, and the background review waiting for an intent signer")
+    submit_proof(repo, proof)
+    code, out = classify(repo, capsys)
+    assert code == 0 and codes(out) == [], out
+    assert step9(out) == (False, "certificate", "fidelity/root-2.yaml"), out
+
+
+def test_a_background_review_leaves_a_person_asked_as_before(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """With nothing standing in and only a background review, step 9 asks a person, as it did
+    before v3.39; the review is not consulted in either direction."""
+    repo, proof = curated(tmp_path)
+    network_waiting(repo)
+    repo.commit("base: a background review, nothing else")
+    submit_proof(repo, proof)
+    code, out = classify(repo, capsys)
+    assert code == 0 and codes(out) == [], out
+    assert step9(out) == (True, "pr-approval", None), out
+
+
+def test_the_products_step9_field_ignores_a_background_review(tmp_path: Path) -> None:
+    """Published state equals actual state: the targets-index ``step9`` field reads the same
+    standing the gate does, so a background review leaves it as the certificate says."""
+    repo, _proof = curated(tmp_path)
+    certificate(repo, "root-2.yaml")
+    network_waiting(repo)
+    repo.commit("base")
+    assert review_step.standing(repo.target) is None
+    tg = graphmod.load_target(repo.root, repo.target.name)
+    assert products.step9_basis(tg) == "certificate"
+
+
+def test_a_review_a_person_opened_still_holds(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """The carve-out is for the network's background review only: a review a curator opened on
+    a certified target still holds the root's proof until it completes (D-9 v3.39)."""
+    repo, proof = curated(tmp_path)
+    certificate(repo, "root-2.yaml")
+    question_waiting(repo)
+    repo.commit("base")
+    submit_proof(repo, proof)
+    code, out = classify(repo, capsys)
+    assert code != 0 and codes(out) == [HELD], out

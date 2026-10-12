@@ -151,7 +151,12 @@ def notify(ctx: Context, target_id: str) -> dict[str, Any]:  # noqa: PLR0911 —
         return outcome(target_id, NO_SIGNER, ids)
     body = comment_body(ctx, target_id, signers, new)
     try:
-        ctx.githost.comment_on_pull_request(ctx.settings.graph_repo, int(m.group("n")), body)
+        post = (
+            ctx.githost.comment_on_issue  # F26-Q17: a plain issue needs Issues: write
+            if m.group("kind") == "issue"
+            else ctx.githost.comment_on_pull_request
+        )
+        post(ctx.settings.graph_repo, int(m.group("n")), body)
     except GitHostError as exc:
         log.warning("review notice: %s: no comment posted on %s: %s", target_id, tracking, exc)
         return outcome(target_id, HOST_REFUSED, ids)

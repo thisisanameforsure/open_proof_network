@@ -424,8 +424,7 @@ are the reference implementation.</p>
     statement screen discards); they use Legendre in words with the prototype's candidates. AC6 reproduces
     the prototype exactly (5, 13 and 15 caught), and two more D-11 classes add mutants none of which survive.
     The docker half of AC4 is not built: <code>--sandbox</code> exists, no docker-tier test drives it (T14).</td></tr>
-  <tr><td>F26-Q16</td><td><strong>Step 9 holds at classify, and holds certified roots once a review exists (T8)
-    &mdash; for the owner before T14.</strong> Step 9 reads the review as one more named basis beside the
+  <tr><td>F26-Q16</td><td><strong>Step 9 holds at classify; a background review never holds (T8; ruled 2026-10-12).</strong> <em>The owner's ruling: a background review never holds step 9</em> &mdash; the network's review of an existing target informs and files defects, and step 9 there stays as before v3.39 (<code>review_step.background</code>, one condition in <code>standing</code>, which the products' <code>step9</code> field reads too); the doc's v3.39 paragraph says so, revised in place because v3.39 was not yet on main. The text below is what prompted the ruling. Step 9 reads the review as one more named basis beside the
     certificate and the catalog evidence; a target with no review keeps today's rule exactly. A held root proof
     is refused at classify (<code>review-incomplete</code>), because the graph's step-9 job can only ask a person
     and would let any approval through; the cost is no sandbox feedback until the review completes, and nothing
@@ -438,8 +437,7 @@ are the reference implementation.</p>
     unmoved but not step 9. The post-merge caller is fail-soft; the graph's <code>gate.yml</code> needs one step
     calling it, and <code>review.yml</code> is written as evidence for the graph (a build task does not push the
     graph, D-35).</td></tr>
-  <tr><td>F26-Q17</td><td><strong>The notice has no schedule and no issue permission yet (T11) &mdash; for the
-    owner.</strong> <code>review_notice.run</code> posts one comment per batch and remembers the questions named in
+  <tr><td>F26-Q17</td><td><strong>The notice's schedule and the issue permission (T11; ruled 2026-10-12).</strong> <em>The owner's ruling: a workflow</em> runs the notice nightly, and the owner grants the App <code>issues: write</code>. Built as a workflow in this repository that invokes the deployed function with a scheduled-task event (<code>{"opn_task": "review-notice"}</code>) through a role allowed only <code>lambda:InvokeFunction</code>, so the App key and the store stay inside AWS; and <code>githost.comment_on_issue</code> with a token scoped to <code>issues: write</code> for <code>tracking: issue:&lt;n&gt;</code>. The text below is what prompted the ruling. <code>review_notice.run</code> posts one comment per batch and remembers the questions named in
     the service's store, but the service has no periodic job and a notify route would be a D-35 change, so
     nothing calls it yet (<code>python -m opn_gate.review_notice</code> runs it by hand). Commenting on a plain
     issue needs the App's <code>issues: write</code>; a tracking pull request works today. The notice and the answer

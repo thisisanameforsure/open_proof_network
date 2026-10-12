@@ -5,7 +5,8 @@ the automated stages done, no question waiting, the grade at least ``screened-an
 when v3.15's recorded catalog evidence scores at least five points (``modes.step9_evidence``,
 unchanged). Intermediate work never consults the review: ``modes.step9_not_asked`` answers first.
 A target with no review keeps the rule it had before v3.39 exactly, so nothing live moves until
-reviews exist (F26-Q7).
+reviews exist (F26-Q7); and the network's background review of an existing target never decides
+step 9 either (``background``, the owner's ruling of 2026-10-12, F26-Q16).
 
 This module is the review's basis alone, beside the certificate and the evidence in
 ``modes.with_statement_review``: each is one named function, so reversing one is a deletion.
@@ -63,12 +64,25 @@ def standing(target_dir: Path) -> Standing | None:
     state = str(summary["state"])
     if state == review.NONE:
         return None
+    if background(target_dir):
+        return None  # F26-Q16: the network's background review informs; it never holds step 9
     if state != review.COMPLETE:
         return Standing(state, words(summary))
     grade = review_grade(target_dir)
     if not fidelity.meets(grade, STEP9_GRADE):
         return Standing(state, f"review complete at {grade}, below {STEP9_GRADE}")
     return Standing(state, f"review complete at {grade}", reference(target_dir, grade))
+
+
+def background(target_dir: Path) -> bool:
+    """Whether the target's review is the network's background review of an existing target
+    (``opened_by.role == "network"``, F26-R2). The owner's ruling of 2026-10-12 (F26-Q16): such a
+    review informs and files what it finds through D-15 and D-8, and never decides step 9 in either
+    direction, so a target that existed before reviews keeps the step 9 it had. A review a person
+    opened (proposer, steward, curator) holds as D-4 v3.39 says. Reversing the ruling is deleting
+    the one call in ``standing``."""
+    head = review.opening(target_dir)
+    return isinstance(head, dict) and (head.get("opened_by") or {}).get("role") == "network"
 
 
 def words(summary: dict[str, Any]) -> str:

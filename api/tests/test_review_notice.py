@@ -130,6 +130,16 @@ def test_a_pull_request_tracking_posts_on_that_pull_request(h: Harness, tree: Pa
     serve_tree(h, tree)
     run(h)
     assert [c.number for c in h.githost.comments] == [12]
+    assert [c.kind for c in h.githost.comments] == ["pull"]
+
+
+def test_an_issue_tracking_posts_as_an_issue_comment(h: Harness, tree: Path) -> None:
+    """F26-Q17: a plain issue takes the comment through the issues permission, never the pull
+    requests one (which GitHub refuses on an issue)."""
+    two_waiting(tree, tracked())
+    serve_tree(h, tree)
+    run(h)
+    assert [(c.number, c.kind) for c in h.githost.comments] == [(7, "issue")]
 
 
 def test_a_review_with_no_tracking_posts_nothing_and_says_why(

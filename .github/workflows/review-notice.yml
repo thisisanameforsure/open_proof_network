@@ -1,0 +1,66 @@
+# The nightly review notice (F26-R15, F26-Q17; the owner's ruling of 2026-10-12). When a
+# formalization review has questions waiting that no notice has named, the GitHub App posts one
+# comment on the review's tracking issue or pull request in the graph repository, @-mentioning
+# the intent signer, and remembers what it named in the service's store.
+#
+# The work runs inside the deployed function, which already holds the App key (SSM) and the
+# tables: this workflow only invokes it with a task event, through a role that may invoke the
+# function and do nothing else (api/infra/api.cfn.yaml, NoticeRole). No secret is read here.
+# A run that answers anything but outcomes goes red rather than reading as an all-clear (C7).
+name: review-notice
+
+on:
+  schedule:
+    - cron: "17 6 * * *"  # nightly; the minute is arbitrary and avoids the top of the hour
+  workflow_dispatch:
+    inputs:
+      targets:
+        description: "space-separated target ids (default: every target with a review)"
+        required: false
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: review-notice
+  cancel-in-progress: false
+
+jobs:
+  notice:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Assume the notice role (OIDC, no stored key)
+        uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a  # v4
+        with:
+          role-to-assume: ${{ vars.OPN_API_NOTICE_ROLE_ARN }}
+          aws-region: ${{ vars.OPN_AWS_REGION }}
+
+      - name: Invoke the function with the review-notice task
+        env:
+          FUNCTION: ${{ vars.OPN_API_FUNCTION_NAME }}
+          TARGETS: ${{ inputs.targets }}
+        run: |
+          set -euo pipefail
+          payload=$(python3 -c '
+          import json, os
+          event = {"opn_task": "review-notice"}
+          targets = os.environ.get("TARGETS", "").split()
+          if targets:
+              event["targets"] = targets
+          print(json.dumps(event))
+          ')
+          echo "event: $payload"
+          aws lambda invoke --function-name "$FUNCTION" \
+            --cli-binary-format raw-in-base64-out --payload "$payload" answer.json > meta.json
+          cat meta.json
+          python3 - <<'PY'
+          import json, sys
+          meta = json.load(open("meta.json"))
+          answer = json.load(open("answer.json"))
+          print(json.dumps(answer, indent=2))
+          if meta.get("FunctionError") or "outcomes" not in answer:
+              sys.exit("the function did not answer the notice's outcomes")
+          posted = [o for o in answer["outcomes"] if o.get("posted") is True]
+          print(f"{len(answer['outcomes'])} targets read, {len(posted)} notices posted")
+          PY
