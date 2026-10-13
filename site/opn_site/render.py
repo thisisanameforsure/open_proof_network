@@ -3249,8 +3249,17 @@ class Renderer:
         return f'<pre class="lean split-stmt">{esc(declaration_only(child.statement))}</pre>'
 
     def split_lean(self, pv: PartialView | None, rel: str) -> str:
-        """T47 (Q46): the partial's Lean from its theorem line on, closed by default."""
-        return ""
+        """T47 (Q46): the partial's Lean from its theorem line on (the statement panel's trim,
+        ``declaration_only``: imports, ``open`` lines and the module doc comment left to the
+        file), closed by default, with its link. Nothing when the tree does not hold the file."""
+        if pv is None:
+            return ""
+        return (
+            '<details class="split-lean"><summary>Read the partial proof (Lean)</summary>'
+            f'<pre class="lean">{esc(declaration_only(pv.file.text))}</pre>'
+            '<p class="split-link">The gate replayed this file at its merge, each hole a '
+            f"<code>sorry</code> (D-12 #5); the whole file: {self.file_link(rel)}</p></details>"
+        )
 
     def hole_origin(self, tv: TargetView, nv: NodeView) -> str:
         """T46: on a hole's panel, the parent whose merged partial made it, one line each (a
