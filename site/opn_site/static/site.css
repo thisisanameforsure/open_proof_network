@@ -285,6 +285,19 @@ main > .crumbs, main > h1:first-child { margin-top: calc(var(--s8) * 1.6); }
 .panel-outlines li { margin-bottom: var(--s2); overflow-wrap: anywhere; }
 .panel-outlines .untrusted-title { color: var(--n300); font-style: italic; }
 .panel-outlines .note-kind { font-family: var(--mono, monospace); font-size: 11px; color: var(--n300); border: 1px solid var(--n300); border-radius: 3px; padding: 0 4px; }
+/* F04-T46, T47: how a statement was split, at the top of its panel; a hole's origin line. */
+.split-into { width: 100%; font-size: 13px; border-left: 2px solid var(--accent-300); padding-left: var(--s4); }
+.split-into .split-by { font-size: 13px; color: var(--n300); margin: var(--s2) 0 0; overflow-wrap: anywhere; }
+.split-holes { list-style: none; margin: var(--s3) 0; padding: 0; display: flex; flex-direction: column; gap: var(--s3); }
+.split-hole { overflow-wrap: anywhere; }
+.split-hole .split-name { display: block; line-height: 1.6; }
+.split-hole .split-gloss { margin-top: var(--s1); color: var(--n200); }
+.split-hole .split-gloss p { margin: 0; font-size: 14px; }
+.panel .split-hole pre.lean.split-stmt, .panel .split-lean pre.lean { margin: var(--s2) 0 0; padding: var(--s2) var(--s3); font-size: 11px; }
+.split-lean { margin-top: var(--s2); }
+.split-lean summary { cursor: pointer; color: var(--accent-300); font-size: 13px; }
+.split-lean .split-link { margin: var(--s2) 0 0; font-size: 12px; }
+.hole-of { width: 100%; font-size: 13px; color: var(--n300); margin: 0; border-left: 2px solid var(--accent-300); padding-left: var(--s4); overflow-wrap: anywhere; }
 .dot-outline { border-radius: 3px; border-color: var(--accent-300); }
 .dag .edge.proposed { stroke: var(--accent-300); stroke-dasharray: 1.5 4; stroke-linecap: round; }
 /* F04-T39 (D-12 v3.38): a lemma's line is dash-dot — a dash, a gap, a dot, a gap — which neither the

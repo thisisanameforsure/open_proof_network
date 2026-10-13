@@ -22,6 +22,7 @@ from typing import Any
 from urllib.parse import quote
 
 from opn_gate import clients, explainers, hosted, intake, layout, policy, products, schemas, steward
+from opn_gate import glosses as glossesmod
 from opn_gate import graph as graphmod
 from opn_gate import ledger as ledgermod
 from opn_site import dag, links, prose
@@ -31,6 +32,7 @@ from opn_site.model import (
     LeanFile,
     LiteratureView,
     NodeView,
+    PartialView,
     Placed,
     Prose,
     ReviewView,
@@ -3154,6 +3156,8 @@ class Renderer:
             note=note,
             revision=self.revision_note(tid, nv, in_page=True),
             closing=self.closing_note(tv, nv),
+            hole_of=self.hole_origin(tv, nv),  # F04-T46
+            split=self.split_blocks(tv, nv),  # F04-T46
             outlines=self.outlines_block(tv, nv),
             literature=self.literature_block(nv),  # F04-T38
             statement=esc(declaration_only(nv.statement)),
@@ -3168,6 +3172,112 @@ class Renderer:
             files=" · ".join(files),
             action=action,
         )
+
+    # --- F04-T46, T47 (Q45, Q46): how a statement was split, self-contained -------------------
+    # Everything the "Split into" block and a hole's origin line need is read here, from the
+    # node's ``graph.json`` row (``decompositions``) and the tree, so the block can move to
+    # wherever the panel's layout puts it: the panel template only places ``$split``/``$hole_of``.
+
+    def split_blocks(self, tv: TargetView, nv: NodeView) -> str:
+        """T46: one "Split into" block per merged decomposition of the node, in record order."""
+        decomps = [d for d in nv.graph_entry.get("decompositions") or [] if isinstance(d, dict)]
+        return "".join(self.split_block(tv, nv, d) for d in decomps)
+
+    def partial_view(self, nv: NodeView, partial: str) -> PartialView | None:
+        """The ``attempts/`` file a decomposition names (node-relative), as the model read it."""
+        rel = f"{Path(nv.statement_path).parent.as_posix()}/{partial}"
+        return next((p for p in nv.partials if p.file.path == rel), None)
+
+    def split_block(self, tv: TargetView, nv: NodeView, d: dict[str, Any]) -> str:
+        """T46: the partial that split the node, that it merged (and its attestation when one
+        names it), then a row per hole; T47: the partial's Lean, folded."""
+        partial = str(d.get("partial") or "")
+        rel = f"{Path(nv.statement_path).parent.as_posix()}/{partial}"
+        name = Path(partial).name
+        pv = self.partial_view(nv, partial)
+        merged = "merged"
+        if pv is not None and pv.merge_commit:
+            merged += f" in <code>{esc(pv.merge_commit[:12])}</code>"
+        if pv is not None and pv.attestation_path:
+            stem = Path(pv.attestation_path).stem
+            merged += ", " + self.file_link(pv.attestation_path, label=f"attestation {stem}")
+        holes = [h for h in d.get("holes") or [] if isinstance(h, dict)]
+        rows = "".join(self.split_hole_row(tv, h) for h in holes)
+        noun = "hole" if len(holes) == 1 else "holes"
+        return (
+            f'<section class="split-into" data-partial="{esc(partial)}">'
+            '<span class="kicker">Split into</span>'
+            f'<p class="split-by">Proved from {"this" if len(holes) == 1 else "these"} {noun} by '
+            f"{self.file_link(rel, label=name)} ({merged}): the partial proof assumes "
+            f"{'it' if len(holes) == 1 else 'each'} and proves this statement from "
+            f"{'it' if len(holes) == 1 else 'them'}.</p>"
+            f'<ul class="split-holes">{rows}</ul>'
+            '<p class="cue">A hole&rsquo;s words are the opening math of its gloss, contributor '
+            "text not checked against the Lean (D-3); without one, its Lean.</p>"
+            f"{self.split_lean(pv, rel)}</section>"
+        )
+
+    def split_hole_row(self, tv: TargetView, hole: dict[str, Any]) -> str:
+        """T46: one hole — its name, the node it became as an in-page link with its state, and
+        what that node says."""
+        node_id = str(hole.get("node") or "")
+        child = tv.nodes.get(node_id) if node_id else None
+        name = f"<code>{esc(str(hole.get('name') or ''))}</code>"
+        if child is None:
+            return (
+                f'<li class="split-hole"><span class="split-name">{name}</span> '
+                "no statement on the record</li>"
+            )
+        state = self.node_state(child)
+        return (
+            f'<li class="split-hole" data-node="{esc(child.node_id)}">'
+            f'<span class="split-name">{name} → <a href="#node={esc(child.node_id)}">'
+            f"{esc(child.node_id)}</a> ({self.dot(self.dot_state(state))}"
+            f"{esc(self.state_label(state))})</span>"
+            f"{self.hole_statement(tv, child)}</li>"
+        )
+
+    def hole_statement(self, tv: TargetView, child: NodeView) -> str:
+        """T46: the first block of the child's current statement gloss when the gloss opens with
+        math (F20-T16's contract), rendered for the math renderer; otherwise its Lean
+        declaration."""
+        subject = tv.gloss_subject("statement", node=child.node_id)
+        for v in subject.describing() if subject is not None else []:
+            if glossesmod.opens_with_math(v.body):
+                first = v.body.strip().split("\n\n", 1)[0]
+                return f'<div class="prose split-gloss">{prose.render(first, math=True)}</div>'
+        return f'<pre class="lean split-stmt">{esc(declaration_only(child.statement))}</pre>'
+
+    def split_lean(self, pv: PartialView | None, rel: str) -> str:
+        """T47 (Q46): the partial's Lean from its theorem line on, closed by default."""
+        return ""
+
+    def hole_origin(self, tv: TargetView, nv: NodeView) -> str:
+        """T46: on a hole's panel, the parent whose merged partial made it, one line each (a
+        node a partial restated as a lemma hole is named by that parent too)."""
+        lines = []
+        for parent in tv.nodes.values():
+            for d in parent.graph_entry.get("decompositions") or []:
+                if not isinstance(d, dict):
+                    continue
+                for h in d.get("holes") or []:
+                    if not isinstance(h, dict) or h.get("node") != nv.node_id:
+                        continue
+                    partial = str(d.get("partial") or "")
+                    rel = f"{Path(parent.statement_path).parent.as_posix()}/{partial}"
+                    what = (
+                        "Hole"
+                        if graphmod.is_hole_of(
+                            parent.node_id, nv.node_id, str(nv.graph_entry.get("origin"))
+                        )
+                        else "Restated as hole"
+                    )
+                    lines.append(
+                        f'<p class="hole-of">{what} <code>{esc(str(h.get("name") or ""))}</code> '
+                        f'of <a href="#node={esc(parent.node_id)}">{esc(parent.node_id)}</a> '
+                        f"(split by {self.file_link(rel, label=Path(partial).name)}).</p>"
+                    )
+        return "".join(lines)
 
     # --- F15-R10: stewards, the digestion state, the calibration label ----------------------------
 
