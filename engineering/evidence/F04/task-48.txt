@@ -208,8 +208,9 @@ headline, its two convention notes, the "unverified · history" mark and the Lea
 Lean-only statements the Lean, the gloss's first sentence beside its mark on the live ones, and
 "Explain this →"; the how line; the Split into block with its rows; Closing it through its holes
 and References and summary folded; the notes and plans one line each; the record details last.
-scrollWidth 779 on the live page at 390 is the statement graph (T49), not the panel, whose width
-fits the viewport in both live shots.
+scrollWidth 779 on the live page at 390 is not the panel, whose width fits the viewport in both
+live shots. (Corrected after T49: this line first said the 779 was the statement graph, repeating
+Q46; measured, it is a source URL in "Where the statement comes from" — task-49.txt.)
 
 ----- make verify (by hand on this tree) -----
 lint, format and types clean (ruff check, ruff format --check, mypy gate/api/site);
