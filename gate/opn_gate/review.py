@@ -8,7 +8,9 @@ load-bearing:
 
 - a candidate is *discarded* by a compile, screen or intent-test exhibit whose result is ``fail``
   (``discards``), *returned* by a format exhibit (``returns``; a return is never a discard,
-  F26-R4), else *surviving*; an ``error`` exhibit decides nothing;
+  F26-R4), *surviving* once the job's compile has passed (``compiled``), else *pending*: stage 3
+  is the job's, so a candidate it has not compiled has not survived it (F26-T14); an ``error``
+  exhibit decides nothing;
 - surviving candidates proved equivalent in both directions share a *cluster* (``equivalent``,
   ``components``: the connected components, so equivalence is transitive);
 - the *signers* are the latest signature per role, counted when it is an accept
@@ -45,8 +47,8 @@ NONE, OPEN, NEEDS_INTENT, COMPLETE = "none", "open", "needs-intent-signer", "com
 DISCARDING_KINDS: tuple[str, ...] = ("compile", "screen", "intent-test")
 #: The rung a review with no person-written candidate in its surviving cluster caps at.
 CAP = "screened-and-signed"
-#: A candidate's three fates.
-SURVIVING, DISCARDED, RETURNED = "surviving", "discarded", "returned"
+#: A candidate's fates; ``pending`` until the job's compile has passed (F26-T14).
+SURVIVING, DISCARDED, RETURNED, PENDING = "surviving", "discarded", "returned", "pending"
 #: The two roles, in the order the ladder reads them.
 ROLES: tuple[str, ...] = ("intent", "independent")
 
@@ -117,6 +119,12 @@ def discards(exhibit: Record) -> bool:
 def returns(exhibit: Record) -> bool:
     """A format exhibit returns the candidate to its author; never a discard (F26-R4, R5)."""
     return exhibit.get("kind") == "format" and exhibit.get("result") == "returned"
+
+
+def compiled(exhibit: Record) -> bool:
+    """The job's compile passed: the first half of stage 3, without which no candidate survives
+    (F26-T14; D-9 v3.39's "one cluster survives stage 3")."""
+    return exhibit.get("kind") == "compile" and exhibit.get("result") == "pass"
 
 
 def equivalent(pair: Record) -> bool:
@@ -289,6 +297,8 @@ def derive(target_dir: Path) -> Record:
             status, exhibit = RETURNED, str(returned.get("id"))
         elif discarded is not None:
             status, exhibit = DISCARDED, str(discarded.get("id"))
+        elif not any(compiled(e) for e in mine):
+            status = PENDING
         candidates.append(
             {
                 "id": cid,

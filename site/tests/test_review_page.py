@@ -122,7 +122,7 @@ def test_the_model_reads_the_review_from_graph_v9_and_the_records(site: model.Si
     assert [t["id"] for t in rv.tests] == ["t-0000aaaa", "t-0000bbbb"]
     assert [q["id"] for q in rv.questions] == ["q-1", "q-2"]
     assert [a["id"] for a in rv.answers] == ["a-1"]
-    assert len(rv.pairs) == 2 and len(rv.exhibits) == 15 and len(rv.signatures) == 1
+    assert len(rv.pairs) == 2 and len(rv.exhibits) == 16 and len(rv.signatures) == 1
     # every candidate's Lean is read beside its record, from the file the record names
     assert rv.lean[REVIEW_IDS["person"]].text == CANDIDATE_LEAN["person"]
     assert rv.lean["e-0000cccc"].text.startswith("example : ¬ True")
@@ -140,6 +140,23 @@ def test_the_model_derives_each_candidates_stage_3_result_from_the_exhibits(
     assert rv.result_of(REVIEW_IDS["inline"]) == ("returned", "e-0000eeee")
     assert rv.clusters() == [sorted((REVIEW_IDS["person"], REVIEW_IDS["model"]))]
     assert rv.mutants_caught() == (2, 3)
+
+
+def test_a_candidate_the_job_has_not_compiled_reads_pending(
+    tmp_path_factory: pytest.TempPathFactory,
+) -> None:
+    """F26-T14: the gate's derivation and the page agree that stage 3 needs the job's passing
+    compile; without one the candidate is pending, not surviving, and in no cluster."""
+    root = fixture.build_with_review(tmp_path_factory.mktemp("pending"))
+    (root / "targets" / TARGET / "review" / "exhibits" / "e-0000ab04.json").unlink()
+    site = model.load_site(root, COMMIT)
+    rv = site.targets[TARGET].review_records
+    assert rv is not None
+    assert rv.result_of(REVIEW_IDS["model"]) == ("pending", None)
+    assert rv.result_of(REVIEW_IDS["person"]) == ("surviving", None)
+    assert rv.clusters() == [[REVIEW_IDS["person"]]]
+    page = render.render_site(site, repo_url=REPO, api_url=API)[PAGE]
+    assert "pending" in text_of(section(page, "candidates"))
 
 
 def test_a_target_with_no_review_has_none_and_an_older_graph_reads_as_none(

@@ -70,7 +70,14 @@ class Review:
             "review/v1",
         )
 
-    def candidate(self, cid: str, author: str, method: str = "agent") -> None:
+    def candidate(
+        self, cid: str, author: str, method: str = "agent", *, compiled: bool = True
+    ) -> None:
+        """A candidate on record; ``compiled`` also records the job's passing compile, which is
+        what stage 3 needs before a candidate can survive (F26-T14: a candidate the job has not
+        compiled is pending)."""
+        if compiled:
+            self.exhibit("compile", cid, "pass")
         _dump(
             self.base / "candidates" / f"{cid}.yaml",
             {
@@ -469,6 +476,33 @@ def scenario_open_pairs_and_context_still_work(d: Path) -> None:
     assert [q["id"] for q in ctx["questions_waiting"]] == ["q-1"]
 
 
+def scenario_a_candidate_the_job_has_not_compiled_is_pending(d: Path) -> None:
+    """F26-T14 (2026-10-13): the 27 background reviews opened on the live graph derived
+    ``complete`` with their one candidate surviving before the job had run, so review.yml found
+    no open review and never ran. Stage 3 is the job's: no passing compile, no survivor."""
+    r = Review(d)
+    r.candidate(A, "network", compiled=False)
+    assert fate(d) == {A: ("pending", None)}
+    state = review.state_of(d)
+    assert (state["state"], state["surviving"], state["clusters"]) == ("open", 0, 0)
+
+
+def scenario_a_compile_error_leaves_the_candidate_pending(d: Path) -> None:
+    """An ``error`` decides nothing: the candidate is neither discarded nor through stage 3."""
+    r = Review(d)
+    r.candidate(A, "alice", compiled=False)
+    r.exhibit("compile", A, "error")
+    assert fate(d) == {A: ("pending", None)}
+    assert review.state_of(d)["state"] == "open"
+
+
+def scenario_a_discard_needs_no_compile_pass(d: Path) -> None:
+    r = Review(d)
+    r.candidate(A, "alice", compiled=False)
+    eid = r.exhibit("compile", A, "fail")
+    assert fate(d) == {A: ("discarded", eid)}
+
+
 SCENARIOS: dict[str, Callable[[Path], None]] = {
     k[len("scenario_") :]: v for k, v in dict(globals()).items() if k.startswith("scenario_")
 }
@@ -593,6 +627,14 @@ def _mutant_always_capped(members: list[dict[str, Any]]) -> str | None:
     return review.CAP
 
 
+def _mutant_no_compile_needed(ex: dict[str, Any]) -> bool:
+    return True
+
+
+def _mutant_any_compile_exhibit_counts(ex: dict[str, Any]) -> bool:
+    return ex.get("kind") == "compile"
+
+
 @pytest.mark.parametrize(
     ("where", "attr", "mutant"),
     [
@@ -612,6 +654,8 @@ def _mutant_always_capped(members: list[dict[str, Any]]) -> str | None:
         (review, "latest_signatures", _mutant_role_blind_signers),
         (review, "cap_rule", _mutant_never_capped),
         (review, "cap_rule", _mutant_always_capped),
+        (review, "compiled", _mutant_no_compile_needed),
+        (review, "compiled", _mutant_any_compile_exhibit_counts),
     ],
     ids=[
         "any-exhibit-discards",
@@ -630,6 +674,8 @@ def _mutant_always_capped(members: list[dict[str, Any]]) -> str | None:
         "role-blind-signers",
         "never-capped",
         "always-capped",
+        "no-compile-needed",
+        "any-compile-exhibit-counts",
     ],
 )
 def test_each_rule_is_necessary(
