@@ -1518,3 +1518,7 @@ The law of the project:
   smaller ones: every annex is drawn as an *outline* of its node, so numerical evidence goes in one
   root annex rather than eight outline badges; and `Nat.minFac` is well-founded, so `decide` cannot
   evaluate it — `norm_num` can. Re-run an agent's numerics from source before publishing them.
+- 2026-10-13 — A cause written in a note is a claim: F04-Q46 blamed the statement graph for erdos-1094's
+  390 px sideways scroll; listing every element past the viewport outside a scrolling box found one long
+  source URL in a single call (and a second page, riemann-hypothesis, with the same defect). Measure the
+  layout before writing the cause down.

@@ -1,4 +1,4 @@
-**Numerical check, 2026-10-12.** The hypotheses of this statement were tested over a finite range. This is not a proof.
+Numerical check (2026-10-12, finite range, not a proof): smallest working $K$ in range $58$; pairs found: 301 failures.
 
 - **Range searched:** every $k\le 1000$, every $n$ with $2k\le n<k^2$ (complete in that range).
 - **Pairs $(n,k)$ found that force $K\ge k$:** 301 failures, the last $(773,58)$ and $(1579,58)$.
