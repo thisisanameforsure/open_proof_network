@@ -284,6 +284,20 @@ main > .crumbs, main > h1:first-child { margin-top: calc(var(--s8) * 1.6); }
 .panel-outlines ul, .panel-outlines ol { margin: var(--s2) 0; padding-left: 1.2em; line-height: 1.6; }
 .panel-outlines li { margin-bottom: var(--s2); overflow-wrap: anywhere; }
 .panel-outlines .untrusted-title { color: var(--n300); font-style: italic; }
+.panel-outlines .note-kind { font-family: var(--mono, monospace); font-size: 11px; color: var(--n300); border: 1px solid var(--n300); border-radius: 3px; padding: 0 4px; }
+/* F04-T46, T47: how a statement was split, at the top of its panel; a hole's origin line. */
+.split-into { width: 100%; font-size: 13px; border-left: 2px solid var(--accent-300); padding-left: var(--s4); }
+.split-into .split-by { font-size: 13px; color: var(--n300); margin: var(--s2) 0 0; overflow-wrap: anywhere; }
+.split-holes { list-style: none; margin: var(--s3) 0; padding: 0; display: flex; flex-direction: column; gap: var(--s3); }
+.split-hole { overflow-wrap: anywhere; }
+.split-hole .split-name { display: block; line-height: 1.6; }
+.split-hole .split-gloss { margin-top: var(--s1); color: var(--n200); }
+.split-hole .split-gloss p { margin: 0; font-size: 14px; }
+.panel .split-hole pre.lean.split-stmt, .panel .split-lean pre.lean { margin: var(--s2) 0 0; padding: var(--s2) var(--s3); font-size: 11px; }
+.split-lean { margin-top: var(--s2); }
+.split-lean summary { cursor: pointer; color: var(--accent-300); font-size: 13px; }
+.split-lean .split-link { margin: var(--s2) 0 0; font-size: 12px; }
+.hole-of { width: 100%; font-size: 13px; color: var(--n300); margin: 0; border-left: 2px solid var(--accent-300); padding-left: var(--s4); overflow-wrap: anywhere; }
 .dot-outline { border-radius: 3px; border-color: var(--accent-300); }
 .dag .edge.proposed { stroke: var(--accent-300); stroke-dasharray: 1.5 4; stroke-linecap: round; }
 /* F04-T39 (D-12 v3.38): a lemma's line is dash-dot — a dash, a gap, a dot, a gap — which neither the
@@ -311,6 +325,28 @@ main > .crumbs, main > h1:first-child { margin-top: calc(var(--s8) * 1.6); }
 .panel-facts dt { color: var(--n500); }
 .panel-facts dd { margin: 0; }
 .panel-note { font-size: 14px; line-height: 1.6; color: var(--n400); margin: 0; }
+/* F04-T48 (Q47): the panel as a summary — four sections, each under its kicker, then the
+   record details. The claim's math is the headline; everything explanatory is folded. */
+.panel-sec { width: 100%; display: flex; flex-direction: column; gap: var(--s3); padding-top: var(--s3); border-top: 1px solid var(--divider); }
+.panel-sec > h3.kicker { margin: 0; font-weight: 500; }
+.panel .claim-math { color: var(--text); font-size: 16px; overflow-x: auto; }
+.panel .claim-math p { margin: 0; color: var(--text); font-size: 16px; }
+.panel .claim-notes { font-size: 13px; color: var(--n300); }
+.panel .claim-notes ul { margin: 0; padding-left: 1.2em; line-height: 1.6; }
+.panel .claim-notes p, .panel .claim-notes li { font-size: 13px; margin: 0 0 var(--s1); overflow-wrap: anywhere; }
+.claim-mark, .claim-words, .explain, .how-line, .lit-line { font-size: 13px; }
+.panel .claim-words { color: var(--n300); overflow-wrap: anywhere; }
+.words-mark { font-size: 12px; color: var(--n400); border: 1px solid var(--divider); border-radius: 999px; padding: 0 8px; white-space: nowrap; }
+.panel-lean summary, .panel-small summary { cursor: pointer; color: var(--accent-300); font-size: 13px; }
+.panel-lean pre.lean { margin-top: var(--s2); }
+.panel-small { width: 100%; font-size: 13px; }
+.panel-small > *:not(summary) { margin-top: var(--s2); }
+.panel .sub { font-size: 12px; color: var(--n500); margin: 0; }
+.panel-list { margin: 0; padding-left: 1.2em; font-size: 13px; line-height: 1.6; color: var(--n300); }
+.panel-list li { margin-bottom: var(--s1); overflow-wrap: anywhere; }
+.record { width: 100%; }
+.record[open] > *:not(summary) { margin-top: var(--s3); }
+.how-to-read p { font-size: 13px; color: var(--n400); }
 .panel pre.lean { width: 100%; margin: 0; background: var(--bg); border: 1px solid var(--divider); border-radius: var(--radius-sm); padding: var(--s4); font-size: 11.5px; line-height: 1.7; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--n300); }
 .record summary { font-size: 12.5px; color: var(--n400); cursor: pointer; border-bottom: 1px dotted var(--n600); padding-bottom: 2px; list-style: none; display: inline; }
 .record summary::-webkit-details-marker { display: none; }
@@ -319,6 +355,9 @@ main > .crumbs, main > h1:first-child { margin-top: calc(var(--s8) * 1.6); }
 .record-grid dt { color: var(--n500); }
 .record-grid dd { margin: 0; }
 .detail { max-width: 80ch; }
+/* F04-T49 (Q48): a source's URL is shown whole and has no break opportunity; it breaks anywhere
+   rather than widening the page at 390 px (erdos-1094's was 98 characters). */
+ul.sources, .evidence .label, .evidence li { overflow-wrap: anywhere; }
 .detail h2 { padding-top: var(--s4); border-top: 1px solid var(--divider); }
 .flag { border-left: 3px solid var(--warn); padding-left: var(--s4); color: var(--n300); }
 .claimable { color: var(--n300); }
@@ -655,6 +694,10 @@ pre.diff .diff-hunk { color: var(--n500); }
   /* The statement graph keeps its drawn size and scrolls sideways, so its labels stay legible. */
   .dag { max-width: none; flex: none; }
   .gloss, .informal-block { padding-left: var(--s4); padding-right: var(--s4); }
+  /* F04-T49 (Q48): on a phone a panel's Lean keeps its lines and scrolls inside its block, so a
+     hypothesis is not broken mid-token and a proof's indentation stays readable; on a wider
+     screen it wraps, so the whole statement is in sight without scrolling. */
+  .panel pre.lean { white-space: pre; overflow-wrap: normal; overflow-x: auto; }
 }
 @media (max-width: 900px) {
   .stmt { flex-wrap: wrap; }

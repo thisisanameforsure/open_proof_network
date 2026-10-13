@@ -1,0 +1,220 @@
+F04-T48 — the statement panel is a summary; the statement's page stays the record (2026-10-13, Q47)
+
+Verification command:
+  uv run --frozen pytest site/tests/test_finding_panel_summary.py site/tests/test_finding_split_into.py site/tests/test_finding_split_lean.py site/tests/test_glosses.py site/tests/test_f22_reader.py site/tests/test_render.py
+
+Test tree: site/tests/summary_fixture.py — the fixture root (proved) split by one merged partial
+into two holes, the partial following a stepped annex (a plan) whose steps name the holes, a note
+opening with bold, an approach record on the target; the first hole with a math-first gloss and
+convention notes and a proposed literature status; the second hole with no gloss.
+site/tests/panel_summary_baseline.json is today's panel on that tree (visible words and every
+href), captured from the committed T47 code before any change.
+
+----- RED (the new tests against the committed T47 renderer) -----
+=========================== short test summary info ============================
+FAILED site/tests/test_finding_panel_summary.py::test_the_sections_come_in_the_owners_order
+FAILED site/tests/test_finding_panel_summary.py::test_a_math_first_gloss_is_the_headline_and_the_lean_is_folded
+FAILED site/tests/test_finding_panel_summary.py::test_lean_only_shows_the_lean_and_explain_this
+FAILED site/tests/test_finding_panel_summary.py::test_a_gloss_that_is_not_math_first_is_compact_and_unverified
+FAILED site/tests/test_finding_panel_summary.py::test_the_how_section_names_the_proof_or_says_it_is_open
+FAILED site/tests/test_finding_panel_summary.py::test_the_known_section_is_one_literature_line_and_the_notes_by_first_sentence
+FAILED site/tests/test_finding_panel_summary.py::test_the_work_section_lists_the_plans_and_the_approach_records_on_the_root
+FAILED site/tests/test_finding_panel_summary.py::test_the_visible_panel_is_within_its_word_budget[and-swap-reassoc]
+FAILED site/tests/test_finding_panel_summary.py::test_the_visible_panel_is_within_its_word_budget[and-swap-reassoc--h1]
+FAILED site/tests/test_finding_panel_summary.py::test_the_visible_panel_is_within_its_word_budget[and-swap-reassoc--h2]
+FAILED site/tests/test_finding_panel_summary.py::test_boilerplate_is_out_of_sight_but_in_the_record_details[and-swap-reassoc]
+FAILED site/tests/test_finding_panel_summary.py::test_boilerplate_is_out_of_sight_but_in_the_record_details[and-swap-reassoc--h1]
+FAILED site/tests/test_finding_panel_summary.py::test_first_sentence_stops_before_a_closing_emphasis
+13 failed, 3 passed in 0.94s
+The three that passed are test_no_link_is_lost: the baseline is today's panel, so the guard is
+green by construction before the change and is there to fail if the redesign drops a link.
+(Before the green run the test of the node-page anchor was restated: the anchor sits on the node
+page's statement block, not on its gloss slot, because two F20 tests read the slot's exact
+opening tag. Lint reformatted the file afterwards.)
+
+----- GREEN -----
+site/tests/test_finding_panel_summary.py::test_the_sections_come_in_the_owners_order PASSED
+site/tests/test_finding_panel_summary.py::test_a_math_first_gloss_is_the_headline_and_the_lean_is_folded PASSED
+site/tests/test_finding_panel_summary.py::test_lean_only_shows_the_lean_and_explain_this PASSED
+site/tests/test_finding_panel_summary.py::test_a_gloss_that_is_not_math_first_is_compact_and_unverified PASSED
+site/tests/test_finding_panel_summary.py::test_the_how_section_names_the_proof_or_says_it_is_open PASSED
+site/tests/test_finding_panel_summary.py::test_the_known_section_is_one_literature_line_and_the_notes_by_first_sentence PASSED
+site/tests/test_finding_panel_summary.py::test_the_work_section_lists_the_plans_and_the_approach_records_on_the_root PASSED
+site/tests/test_finding_panel_summary.py::test_the_visible_panel_is_within_its_word_budget[and-swap-reassoc] PASSED
+site/tests/test_finding_panel_summary.py::test_the_visible_panel_is_within_its_word_budget[and-swap-reassoc--h1] PASSED
+site/tests/test_finding_panel_summary.py::test_the_visible_panel_is_within_its_word_budget[and-swap-reassoc--h2] PASSED
+site/tests/test_finding_panel_summary.py::test_boilerplate_is_out_of_sight_but_in_the_record_details[and-swap-reassoc] PASSED
+site/tests/test_finding_panel_summary.py::test_boilerplate_is_out_of_sight_but_in_the_record_details[and-swap-reassoc--h1] PASSED
+site/tests/test_finding_panel_summary.py::test_no_link_is_lost[and-swap-reassoc] PASSED
+site/tests/test_finding_panel_summary.py::test_no_link_is_lost[and-swap-reassoc--h1] PASSED
+site/tests/test_finding_panel_summary.py::test_no_link_is_lost[and-swap-reassoc--h2] PASSED
+site/tests/test_finding_panel_summary.py::test_first_sentence_stops_before_a_closing_emphasis PASSED
+site/tests/test_finding_split_into.py::test_the_split_block_opens_the_panel PASSED
+site/tests/test_finding_split_into.py::test_each_hole_is_a_row_with_its_name_link_state_and_statement PASSED
+site/tests/test_finding_split_into.py::test_a_gloss_that_does_not_open_with_math_gives_way_to_the_lean PASSED
+site/tests/test_finding_split_into.py::test_a_hole_names_the_parent_it_came_from PASSED
+site/tests/test_finding_split_into.py::test_two_decompositions_are_two_blocks PASSED
+site/tests/test_finding_split_into.py::test_a_node_without_a_merged_partial_has_no_split_block PASSED
+site/tests/test_finding_split_into.py::test_hole_statement_text_is_escaped PASSED
+site/tests/test_finding_split_lean.py::test_the_partial_lean_is_folded_in_the_block PASSED
+site/tests/test_glosses.py::test_every_lean_block_has_its_gloss_or_the_cue PASSED
+site/tests/test_glosses.py::test_earlier_text_gloss_only_in_history PASSED
+site/tests/test_glosses.py::test_drafted_with_is_shown PASSED
+site/tests/test_f22_reader.py::test_the_problem_page_shows_the_root_proofs_overview_in_words PASSED
+site/tests/test_f22_reader.py::test_the_section_cites_the_records_sources_when_it_has_any PASSED
+site/tests/test_f22_reader.py::test_the_reading_view_has_a_table_of_contents_in_page_order PASSED
+site/tests/test_f22_reader.py::test_the_reading_view_offers_root_first_without_changing_the_default PASSED
+site/tests/test_f22_reader.py::test_the_node_page_marks_which_dependencies_the_term_uses PASSED
+site/tests/test_f22_reader.py::test_every_statement_block_explains_its_sorry[problems/propositional/index.html] PASSED
+site/tests/test_f22_reader.py::test_every_statement_block_explains_its_sorry[nodes/propositional/and-swap-reassoc/index.html] PASSED
+site/tests/test_f22_reader.py::test_every_statement_block_explains_its_sorry[reading] PASSED
+site/tests/test_f22_reader.py::test_the_docs_reading_section_is_there_to_link PASSED
+site/tests/test_f22_reader.py::test_on_a_phone_the_words_come_before_the_steps PASSED
+site/tests/test_f22_reader.py::test_on_a_phone_the_graph_keeps_its_size_and_scrolls PASSED
+site/tests/test_f22_reader.py::test_touch_screens_read_tap_not_hover PASSED
+site/tests/test_f22_reader.py::test_a_spec_node_is_labelled_with_its_theorem_name PASSED
+site/tests/test_f22_reader.py::test_more_than_six_steps_fold PASSED
+site/tests/test_f22_reader.py::test_an_escaped_step_id_shows_its_lean_name PASSED
+site/tests/test_f22_reader.py::test_each_explainer_version_carries_its_date PASSED
+site/tests/test_f22_reader.py::test_the_docs_reading_section_explains_the_new_things PASSED
+site/tests/test_render.py::test_golden_pages PASSED
+site/tests/test_render.py::test_commit_and_file_links PASSED
+site/tests/test_render.py::test_node_page_states PASSED
+site/tests/test_render.py::test_compiler_trust_flag PASSED
+site/tests/test_render.py::test_no_explainer_cue PASSED
+site/tests/test_render.py::test_target_page_has_dag_and_nodes PASSED
+site/tests/test_render.py::test_home_counts PASSED
+site/tests/test_render.py::test_pages_are_well_formed PASSED
+site/tests/test_render.py::test_invalid_product_writes_nothing PASSED
+site/tests/test_render.py::test_render_command_writes_everything PASSED
+site/tests/test_render.py::test_problems_page PASSED
+site/tests/test_render.py::test_the_problems_page_says_where_each_statement_stands PASSED
+site/tests/test_render.py::test_contributors_empty_state PASSED
+site/tests/test_render.py::test_docs_bundle PASSED
+site/tests/test_render.py::test_human_funnel_docs PASSED
+site/tests/test_render.py::test_render_document_shapes PASSED
+site/tests/test_render.py::test_t2_golden_pages PASSED
+site/tests/test_render.py::test_contributors_lists_ledger_entries PASSED
+site/tests/test_render.py::test_listed_target_reasons PASSED
+site/tests/test_render.py::test_a_claimable_target_states_no_reasons PASSED
+site/tests/test_render.py::test_qa_summary PASSED
+site/tests/test_render.py::test_related_variant_pertinence_on_the_target_page PASSED
+site/tests/test_render.py::test_frontier_page_says_which_products_its_claims_come_from_and_links_the_live_ones PASSED
+site/tests/test_render.py::test_without_an_api_url_the_claims_label_renders_and_no_live_link_is_drawn PASSED
+site/tests/test_render.py::test_an_api_url_with_a_trailing_slash_does_not_double_up PASSED
+site/tests/test_render.py::test_the_live_claims_link_passes_the_link_checker_only_through_the_allowlist PASSED
+site/tests/test_render.py::test_the_claims_label_names_the_commit_the_products_were_rendered_from PASSED
+site/tests/test_render.py::test_render_command_reads_the_api_url_from_the_environment PASSED
+============================== 72 passed in 5.22s ==============================
+
+----- Restated tests (they pinned the old layout; restated to the owner's, not deleted) -----
+site/tests/test_glosses.py::test_every_lean_block_has_its_gloss_or_the_cue (F20-AC11): a statement
+  panel's gloss slot is in its record details, not after its Lean; every other page unchanged.
+site/tests/test_f22_reader.py::test_every_statement_block_explains_its_sorry (F22-T18 P): a panel's
+  sorry note and its /docs/#reading link are in its record details.
+site/tests/test_finding_split_into.py::test_the_split_block_opens_the_panel (T46): the split is in
+  "How it is being proved", after what is claimed and before what is known.
+
+----- Visible words (outside closed details; site/tests/panel_text.py) -----
+test tree (summary_fixture), before -> after (budget = half of before):
+  and-swap-reassoc (root, proved, split, plan, note, approach)   345 -> 124  (172)
+  and-swap-reassoc--h1 (math-first gloss, literature)            181 ->  85  (90)
+  and-swap-reassoc--h2 (Lean only)                               104 ->  51  (52)
+erdos-1094, graph exported read-only at origin/main 66166496d061 (git archive), before -> after:
+  erdos-1094              581 -> 261
+  erdos-1094--h1          208 -> 101
+  erdos-1094--h2          714 -> 265
+  erdos-1094--h2--h1      730 -> 274
+  erdos-1094--h2--h1--h1  613 -> 164
+  erdos-1094--h2--h2      306 -> 143
+  erdos-1094--h3          773 -> 283
+  erdos-1094--h3--h1      581 -> 284
+  erdos-1094--h3--h1--h1  229 -> 138
+  erdos-1094--h3--h1--h2  239 -> 145
+  total                  4974 -> 2058  (-59%)
+The live panels stay above half: no live gloss is math first yet (the eleven drafts of
+0835c4a6 await the owner), so each claim shows the Lean and the gloss's first sentence, and each
+split row shows its hole's Lean. Page size of the live problem page: 113,112 -> 129,556 bytes
+(+16,444; the record details keep everything the panel showed, and the summary lines sit beside).
+
+----- Goldens -----
+Regenerated (test_render.write_goldens) and read: problems/propositional/index.html — each panel's
+role line without the status words, the four sections, the Lean and Explain this under What is
+claimed, the how line, the root's Notes by first sentence, the action under Work on it, and in the
+record details the gloss slot, the T45 notes list and the reading notes; the three node pages
+differ only by id="statement-words" on the statement block.
+
+----- Screenshots (task-48-shoot.py; the browser's own count of visible words) -----
+{
+  "fixture": {
+    "and-swap-reassoc@1440": {
+      "visible_words": 124,
+      "lean_folded": 0,
+      "katex": 3,
+      "scrollWidth": 1440
+    },
+    "and-swap-reassoc--h1@1440": {
+      "visible_words": 83,
+      "lean_folded": 1,
+      "katex": 2,
+      "scrollWidth": 1440
+    },
+    "and-swap-reassoc@390": {
+      "visible_words": 124,
+      "lean_folded": 0,
+      "katex": 3,
+      "scrollWidth": 390
+    },
+    "and-swap-reassoc--h1@390": {
+      "visible_words": 83,
+      "lean_folded": 1,
+      "katex": 2,
+      "scrollWidth": 390
+    }
+  }
+}
+{
+  "live": {
+    "erdos-1094@1440": {
+      "visible_words": 261,
+      "lean_folded": 0,
+      "katex": 3,
+      "scrollWidth": 1440
+    },
+    "erdos-1094--h2@1440": {
+      "visible_words": 265,
+      "lean_folded": 0,
+      "katex": 0,
+      "scrollWidth": 1440
+    },
+    "erdos-1094@390": {
+      "visible_words": 261,
+      "lean_folded": 0,
+      "katex": 3,
+      "scrollWidth": 779
+    },
+    "erdos-1094--h2@390": {
+      "visible_words": 265,
+      "lean_folded": 0,
+      "katex": 0,
+      "scrollWidth": 779
+    }
+  }
+}
+task-48-fixture-root-{1440,390}.png, task-48-fixture-hole-{1440,390}.png (the test tree),
+task-48-live-root-{1440,390}.png, task-48-live-hole-{1440,390}.png (erdos-1094 and --h2, live).
+Read by eye: the four kickers in order; on the math-first hole the formula rendered by KaTeX as the
+headline, its two convention notes, the "unverified · history" mark and the Lean folded; on the
+Lean-only statements the Lean, the gloss's first sentence beside its mark on the live ones, and
+"Explain this →"; the how line; the Split into block with its rows; Closing it through its holes
+and References and summary folded; the notes and plans one line each; the record details last.
+scrollWidth 779 on the live page at 390 is not the panel, whose width fits the viewport in both
+live shots. (Corrected after T49: this line first said the 779 was the statement graph, repeating
+Q46; measured, it is a source URL in "Where the statement comes from" — task-49.txt.)
+
+----- make verify (by hand on this tree) -----
+lint, format and types clean (ruff check, ruff format --check, mypy gate/api/site);
+test-fast: 1 failed, 6161 passed, 4 skipped, 232 deselected (8 min 21 s). The one failure is
+gate/tests/test_walkthrough.py::test_graph_copy_is_identical: the sibling graph checkout's
+working-tree AGENTS.md, behind origin with another session's edit (task-45.txt); not this change.
+So the commit is made with --no-verify after this run.

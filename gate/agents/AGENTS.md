@@ -1930,10 +1930,14 @@ need words; unread: []
    statement may name; MCP `get_node` returns both, with the words already filed on the node (next
    sections). For a proof, read the outline at the path the list gives, which names each step and
    its Lean lines ("Reading an outline" below), and the proof itself.
-3. **Write the words.** Say in plain words what the Lean says, every hypothesis included, and
-   nothing it does not say. Do not say whether it is true, hard or important: a gloss describes a
-   file. An explainer is sections under level-2 headings, each naming the outline steps it
-   describes ("Improving the words" below).
+3. **Write the words.** A gloss opens with the statement in standard mathematical notation,
+   in LaTeX (`$$…$$` displayed, or `$…$`), mirroring the Lean exactly: every hypothesis, every
+   quantifier and nothing the Lean does not say. Then, in at most a few short lines, any Lean
+   convention that changes the meaning: `n / k` is floor division, `a - b` on naturals is 0 when
+   `b ≥ a`, `%` is the remainder, `Nat.minFac` is 2 at 0 and 1 at 1, and a guard such as `0 < k`
+   is a hypothesis. Plain prose, if any, comes last. Do not say whether it is true, hard or
+   important: a gloss describes a file. An explainer is sections under level-2 headings, each
+   naming the outline steps it describes ("Improving the words" below).
 4. **Submit it** with `POST /glosses` (MCP `submit_gloss`). If a model drafted or helped draft the
    words, name it and the tooling in `drafted_with` (1 to 200 characters, D-23); leave it out for
    words you wrote yourself. The site will show "written by *you*, drafted with *model*".
@@ -1941,7 +1945,8 @@ need words; unread: []
 ```sh
 python3 - "$NODE" <<'PY' > "$WORK/gloss.json"
 import json, sys
-text = "For any two propositions p and q: if p and q both hold, then q and p both hold.\n"
+text = ("$$\\forall p\\, q : \\mathrm{Prop},\\ p \\land q \\to q \\land p$$\n\n"
+        "For any two propositions p and q: if p and q both hold, then q and p both hold.\n")
 print(json.dumps({"subject": {"kind": "statement", "node_id": sys.argv[1]}, "text": text,
                   "licence": "CC-BY-4.0", "drafted_with": "example-model-1 via an agent harness"}))
 PY
@@ -2141,7 +2146,8 @@ network's `drafter` instead (its `name`, the `model` and `model_version`, and th
 read) and no author; the site says "machine-drafted by" that model. There was never a draft of a
 root's statement: a root's words of record are its curated informal statement, against which its
 fidelity was graded (D-9). A gloss someone writes of a root is shown after the curated statement,
-labelled unverified.
+labelled unverified, and opens with the Lean statement in LaTeX like any other gloss: the curated
+words say what the problem is, the gloss what the Lean says.
 
 The site labels a gloss "In words, unverified" and an explainer "unverified prose about a
 kernel-checked proof", and says beside each section who wrote it and who verified it. A signature
@@ -2288,7 +2294,8 @@ echo
 "current":"
 ```
 
-**How the words are shown.** Prose is a small Markdown: paragraphs (a blank line between them),
+**How the words are shown.** A gloss opens with its math (step 3 of the entry task above); the
+Problems page's row shows that opening as inline math. Prose is a small Markdown: paragraphs (a blank line between them),
 lists (`-`, `*` or `1.` at the start of a line, nested by indenting two spaces), `**bold**`,
 `*italic*`, `` `code` `` and fenced code blocks. Math is TeX between `$…$` (inline) or `$$…$$`
 (displayed, on its own lines if you like), and works inside a list item or bold text; an opening
@@ -2397,8 +2404,11 @@ python3 - "$WORK/statement-gloss.md" <<'PY'
 import pathlib, sys
 path = pathlib.Path(sys.argv[1])
 text = path.read_text(encoding="utf-8")
-words = "For any two propositions p and q: if p and q both hold, then q and p both hold.\n"
-path.write_text(text.replace("Say in words what the Lean says, every hypothesis included.\n", words), encoding="utf-8")
+words = ("$$\\forall p\\, q : \\mathrm{Prop},\\ p \\land q \\to q \\land p$$\n\n"
+         "For any two propositions p and q: if p and q both hold, then q and p both hold.\n")
+placeholder = ("Open with the statement in LaTeX, displayed, every hypothesis and quantifier as the "
+               "Lean has them; then any Lean convention that changes the meaning; prose last.\n")
+path.write_text(text.replace(placeholder, words), encoding="utf-8")
 PY
 PYTHONPATH="$NETWORK/gate" uv run --frozen --project "$NETWORK" python -m opn_gate.cli gloss file \
   "$WORK/statement-gloss.md" --graph "$GRAPH" --author a-steward | tee "$WORK/gloss-file.json"

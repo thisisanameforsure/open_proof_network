@@ -10,14 +10,18 @@ Docs page.
 
 from __future__ import annotations
 
+import json
 import re
-from html import escape
+from html import escape, unescape
 
 import pytest
 from fixture import (
     CALIBRATION_TARGET,
     COMMIT,
     RESOLVED_TARGET,
+    STEWARD_LINK,
+    STEWARD_LOGIN,
+    STEWARD_NAME,
     STEWARDED_TARGET,
     STEWARDLESS_TARGET,
     build_with_stewards,
@@ -148,6 +152,22 @@ def test_the_steward_page_carries_what_the_form_needs_and_no_control(
     assert f'<script src="/steward.js" data-api="{API}"></script>' in page
     for tag in ("<button", "<form", "<textarea", "<select"):
         assert tag not in page.split("<main>")[1], tag
+
+
+def test_the_steward_page_carries_each_stewards_name_for_the_form(
+    pages: dict[str, str],
+) -> None:
+    """F24-T7: a steward changes the name the page shows by committing again, and the form
+    starts from the name and link they hold now, carried as data (escaped, read as text)."""
+    page = pages[f"steward/{STEWARDED_TARGET}/index.html"]
+    slot = re.search(r'<div class="steward-form"[^>]*data-stewards="([^"]*)"', page)
+    assert slot is not None
+    assert json.loads(unescape(slot.group(1))) == {
+        STEWARD_LOGIN: {"name": STEWARD_NAME, "link": STEWARD_LINK}
+    }
+    assert "<b>not bold</b>" not in slot.group(0)  # the name rides escaped
+    empty = re.search(r'data-stewards="([^"]*)"', pages[f"steward/{STEWARDLESS_TARGET}/index.html"])
+    assert empty is not None and json.loads(unescape(empty.group(1))) == {}
 
 
 def test_a_problem_that_takes_no_steward_says_so_and_draws_no_form(

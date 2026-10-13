@@ -134,8 +134,16 @@ def test_the_node_page_marks_which_dependencies_the_term_uses(pages: dict[str, s
 )
 def test_every_statement_block_explains_its_sorry(pages: dict[str, str], rel: str) -> None:
     page = reading_page(pages) if rel == "reading" else pages[rel]
+    # F04-T48 (Q47): a problem page's panel is a summary, and its sorry note sits in the panel's
+    # record details with the other reading notes, where every panel must carry it.
+    panels = re.findall(r'<div class="card panel" data-node=.*?\n</div>', page, re.S)
+    for p in panels:
+        details = p[p.index('<details class="record">') :]
+        assert '<p class="sorry-note">' in details and f'href="{DOCS_READING}"' in details
+        page = page.replace(p, "")
+    assert panels or rel != f"problems/{TARGET}/index.html"
     blocks = re.findall(r'<pre class="lean statement[^"]*">.*?</pre>(.{0,400})', page, re.S)
-    assert blocks
+    assert blocks or panels
     for after in blocks:
         assert after.startswith('<p class="sorry-note">'), after[:120]
         assert "sorry" in after and "Proof.lean" in after

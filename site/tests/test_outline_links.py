@@ -15,6 +15,8 @@ import re
 from pathlib import Path
 
 import fixture
+import samples
+import yaml
 from harness import TARGET, copy_graph
 from test_annex_steps import outline_annex
 from test_decompositions import HOLE_IDS, add_hole, merged_partial
@@ -28,19 +30,33 @@ CITED = "a" * 64
 OTHER = "b" * 64
 
 
-def page_of(root: Path) -> str:
+def page_of(root: Path, rel: str = f"problems/{TARGET}/index.html") -> str:
     products.generate(root, rendered_from=fixture.COMMIT, commit_time=fixture.NOW).write(root)
     site = model.load_site(root, fixture.COMMIT)
-    return render.render_site(site, repo_url=REPO)[f"problems/{TARGET}/index.html"]
+    return render.render_site(site, repo_url=REPO)[rel]
+
+
+def stepped(body: str, *ids: str) -> str:
+    """An ``annex/v2`` annex that names its steps: an outline (F04-T45, Q44)."""
+    doc = samples.annex_front_matter(node=ROOT_NODE, schema="annex/v2")
+    doc["steps"] = [{"id": i, "summary": f"gives {i}"} for i in ids]
+    head = str(yaml.safe_dump(doc, sort_keys=True, allow_unicode=True))
+    return "---\n" + head + "---\n" + body
 
 
 def two_outlines(tmp_path: Path) -> Path:
-    """The root carries two outlines; a merged skeleton followed one and made one hole."""
+    """The root carries two outlines; a merged skeleton followed one and made one hole.
+
+    F04-T45 (Q44): both are stepped annexes, since only a stepped annex is an outline; until
+    then the two were bare text and the tab counted them anyway."""
     root = copy_graph(tmp_path, publish=True)
     add_hole(root, HOLE_IDS[0], "hden")
     merged_partial(root, 7, ["hden"], annex=CITED)
-    (nodes_dir(root) / ROOT_NODE / "annex" / f"{OTHER}.md").write_text(
-        "# Another route <script>alert(1)</script>\n\nUntried.\n", encoding="utf-8"
+    annexes = nodes_dir(root) / ROOT_NODE / "annex"
+    (annexes / f"{CITED}.md").write_text(stepped("an outline\n", "hden"), encoding="utf-8")
+    (annexes / f"{OTHER}.md").write_text(
+        stepped("# Another route <script>alert(1)</script>\n\nUntried.\n", "hother"),
+        encoding="utf-8",
     )
     return root
 

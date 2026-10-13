@@ -103,20 +103,27 @@ def steward_records(ctx: Context, target_id: str) -> list[tuple[int, dict[str, A
     return out
 
 
-def active_stewards(records: list[tuple[int, dict[str, Any]]]) -> list[str]:
-    """The logins whose latest record is a commit naming the fixed sentence, in the order they
-    became active. Signatures are not checked here: that is the gate's, at the merge (R9)."""
-    current: dict[str, None] = {}
+def active_commitments(records: list[tuple[int, dict[str, Any]]]) -> dict[str, dict[str, Any]]:
+    """Each login whose latest record is a commit naming the fixed sentence, with the commitment
+    that made it active (a later one is a restatement, F24-T7), in the order they became active.
+    Signatures are not checked here: that is the gate's, at the merge (R9)."""
+    current: dict[str, dict[str, Any]] = {}
     for _, doc in records:
         login = str(doc.get("login", ""))
         action = doc.get("action")
         if doc.get("commitment") != steward.SENTENCE_FOR.get(str(action)):
             continue
         if action == steward.COMMIT:
-            current.setdefault(login, None)
+            current.setdefault(login, doc)
         elif action == steward.STEP_DOWN:
             current.pop(login, None)
-    return list(current)
+    return current
+
+
+def active_stewards(records: list[tuple[int, dict[str, Any]]]) -> list[str]:
+    """The logins whose latest record is a commit naming the fixed sentence, in the order they
+    became active."""
+    return list(active_commitments(records))
 
 
 def is_steward(ctx: Context, target_id: str, login: str) -> bool:

@@ -119,13 +119,86 @@ def test_commit_under_open_is_a_signed_self_admitted_append(
     assert h.githost.pulls[-1].head == body["branch"]
 
 
-def test_a_second_commit_is_409_and_so_is_an_active_v1_steward(h: Harness, tree: Path) -> None:
+def test_a_second_commit_restates_the_name(h: Harness, tree: Path) -> None:
+    """F24-T7 (F24-Q15): a commitment from an active steward is a restatement, not a 409: it
+    carries the new name and link and the admission of the commitment it restates, on an
+    ``append/`` branch, since it admits nobody. (Until F24-T7 this was ``steward-already-active``,
+    and a steward could never change the name the page shows.)"""
     carol = sign_in(h, "code_carol")
     merge(h, tree, post(h, carol))
+    again = post(h, carol, name="Carol Cole", link="https://example.org/carol")
+    assert again.status_code == 201, again.text
+    assert again.json()["branch"].startswith("append/")
+    doc = landed(h, tree, again)
+    assert (doc["name"], doc["link"]) == ("Carol Cole", "https://example.org/carol")
+    assert (doc["action"], doc["admitted_by"]) == ("commit", "self")
+
+
+def test_the_same_form_sent_twice_is_one_submission(h: Harness) -> None:
+    """The duplicate guard still holds a double click to one pull request, now that a
+    restatement with a new name is a submission of its own (F24-T7)."""
+    carol = sign_in(h, "code_carol")
+    assert post(h, carol).status_code == 201
     again = post(h, carol)
-    assert again.status_code == 409 and again.json()["error"] == "steward-already-active"
-    alice = post(h, sign_in(h, "code_alice"), name="Alice")
-    assert alice.status_code == 409 and alice.json()["error"] == "steward-already-active"
+    assert again.status_code == 409 and again.json()["error"] == "duplicate-submission"
+
+
+def test_an_active_v1_steward_restates_as_self(h: Harness, tree: Path) -> None:
+    """alice's ``steward/v1`` commitment names no admission; her restatement says ``self``,
+    which the gate accepts of a v1 one (F24-T7)."""
+    r = post(h, sign_in(h, "code_alice"), name="Alice A.")
+    doc = landed(h, tree, r)
+    assert (doc["login"], doc["name"], doc["admitted_by"]) == ("alice", "Alice A.", "self")
+
+
+def stand(tree: Path, n: int, login: str, admitted_by: str) -> None:
+    """A commitment already on ``main``: the service does not verify signatures (R9 is the
+    gate's), so the record's facts are enough."""
+    doc = {
+        "schema": "steward/v3",
+        "target": TARGET,
+        "action": "commit",
+        "login": login,
+        "name": login.title(),
+        "link": None,
+        "commitment": steward.COMMITMENT,
+        "date": "2026-09-01",
+        "via": "approval-key",
+        "admitted_by": admitted_by,
+    }
+    (tree / STEWARDS / f"{n}.yaml").write_text(yaml.safe_dump(doc), encoding="utf-8")
+
+
+def test_an_invited_stewards_restatement_names_the_invitation(h: Harness, tree: Path) -> None:
+    """The panel keeps an invited steward off motions put before the invitation by reading
+    ``motion:<n>`` (F24-T5 Q-a), so a restatement saying ``self`` would seat them there; it
+    carries the motion, which only ``steward/v3`` can say."""
+    stand(tree, 2, "carol", "motion:1")
+    serve(h, tree)
+    r = post(h, sign_in(h, "code_carol"), name="Carol Cole")
+    assert r.status_code == 201, r.text
+    path = tree / r.json()["path"]
+    path.write_text(h.githost.pushes[-1].files[r.json()["path"]], encoding="utf-8")
+    doc = schemas.load_yaml(path, "steward/v3")
+    assert (doc["admitted_by"], doc["name"]) == ("motion:1", "Carol Cole")
+
+
+def test_under_reviewed_a_restatement_needs_no_curator(
+    tree: Path, approval: tuple[str, str]
+) -> None:
+    """A restatement admits nobody, so it goes to ``append/`` for the merge actor, carrying the
+    curator who admitted the steward (F24-T7)."""
+    policy = {
+        "schema": "policy/v2",
+        "steward_rule": {"enforced": False, "since": None, "evidence": None},
+        "steward_admission": "reviewed",
+    }
+    (tree / "policy.json").write_text(json.dumps(policy), encoding="utf-8")
+    stand(tree, 2, "carol", CURATOR)
+    for h in harness_over(tree, {"OPN_API_APPROVAL_SIGNING_KEY": approval[0]}):
+        r = post(h, sign_in(h, "code_carol"), name="Carol Cole")
+        assert r.json()["branch"].startswith("append/")
+        assert landed(h, tree, r)["admitted_by"] == CURATOR
 
 
 def test_step_down_needs_an_active_commitment(h: Harness, tree: Path) -> None:
@@ -228,8 +301,8 @@ def test_without_the_approval_key_the_route_is_503(tree: Path) -> None:
 def test_five_a_day_per_login(h: Harness) -> None:
     """F23 §6: the sixth request of a day is 429, whatever became of the first five."""
     alice = sign_in(h, "code_alice")
-    for _ in range(5):
-        assert post(h, alice, name="Alice").status_code == 409  # already active
+    for i in range(5):  # restatements (F24-T7); refused or not, each is a request of the day
+        assert post(h, alice, name=f"Alice {i}").status_code != 429
     r = post(h, alice, name="Alice")
     assert r.status_code == 429 and "retry-after" in r.headers
 

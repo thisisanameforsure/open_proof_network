@@ -23,7 +23,7 @@ from __future__ import annotations
 
 import logging
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any, Literal
 
@@ -243,7 +243,9 @@ def check(records: list[Record], signer: Signer) -> list[Checked]:
 
 def active(target_dir: Path, signer: Signer) -> list[Steward]:
     """R1: the logins whose latest counting record is a commit, in the order they became active,
-    each ``since`` the commit that made them so (a re-commit while active keeps the date)."""
+    each ``since`` the commit that made them so. A re-commit while active is a restatement
+    (F24-T7, F24-Q15): it keeps the date, the admission and the signing route, and gives the
+    steward the name and link it carries."""
     current: dict[str, Steward] = {}
     for checked in check(load(target_dir), signer):
         if not checked.counts:
@@ -253,8 +255,12 @@ def active(target_dir: Path, signer: Signer) -> list[Steward]:
             continue
         r = checked.record
         if r.action == COMMIT:
-            if r.login not in current:
-                current[r.login] = Steward(r.login, r.name, r.link, r.date, r.admitted_by, r.via)
+            held = current.get(r.login)
+            current[r.login] = (
+                Steward(r.login, r.name, r.link, r.date, r.admitted_by, r.via)
+                if held is None
+                else replace(held, name=r.name, link=r.link)
+            )
         else:
             current.pop(r.login, None)
     return list(current.values())
@@ -272,6 +278,24 @@ def latest_commit(target_dir: Path, login: str, signer: Signer) -> Record | None
             continue
         current = checked.record if checked.record.action == COMMIT else None
     return current
+
+
+def restated(target_dir: Path, record: Record, signer: Signer) -> Record | None:
+    """When ``record`` is a commit by a login already active under the counting records before
+    it — a restatement, which admits nobody (F24-T7, F24-Q15) — the commitment that made the
+    login active; otherwise ``None``."""
+    if record.action != COMMIT:
+        return None
+    first: dict[str, Record] = {}
+    for checked in check([r for r in load(target_dir) if r.n < record.n], signer):
+        if not checked.counts:
+            continue
+        r = checked.record
+        if r.action == COMMIT:
+            first.setdefault(r.login, r)
+        else:
+            first.pop(r.login, None)
+    return first.get(record.login)
 
 
 def commit_key_of(target_dir: Path, login: str, signer: Signer) -> str | None:

@@ -1,0 +1,10 @@
+root exceptions, n < k^3, k <= 1000: 14 [(7, 3), (13, 4), (14, 4), (23, 5), (62, 6), (44, 8), (46, 10), (47, 10), (74, 10), (94, 10), (95, 10), (47, 11), (241, 16), (284, 28)]
+equals ELS 14: True
+h3 (2k<=n<k^2, lpf>k): 13 pairs; largest k = 28; last pairs [(47, 11), (241, 16), (284, 28)]
+h2--h1--h1 (2k<=n<k^3, lpf>k): 137 pairs; largest k = 35; last pairs [(21214, 28), (6459, 33), (37619, 35)]
+h2--h1 (k^2<=n<k^3, lpf>n/k): 1 pairs; largest k = 6; last pairs [(62, 6)]
+h3--h1 (residue form): 301 pairs; largest k = 58; last pairs [(1328, 52), (773, 58), (1579, 58)]
+h3--h1--h1 (k even): 208 pairs; largest k = 58; last pairs [(1328, 52), (773, 58), (1579, 58)]
+h3--h1--h2 (k odd, n odd): 93 pairs; largest k = 39; last pairs [(109, 39), (229, 39), (1469, 39)]
+residue failures with k odd and n even: []
+good pairs (h3 range) all among residue failures: True

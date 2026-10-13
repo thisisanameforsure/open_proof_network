@@ -227,11 +227,26 @@ checking a journal's decision against the journal.</p>
     reached only through write-up records, which anyone signed in may now make. They are not
     reached through a proof's explainer, which F20 and F21 already label. The index's stage is about
     papers and notes.</td></tr>
+  <tr><td>F24-Q15</td><td><strong>A steward changes their name by committing again (proposed clarification of D-32 v3.34; the owner's call, 2026-10-12).</strong>
+    The live erdos-1094 steward record carries the GitHub login as its display name, because the form pre-filled it, and
+    nothing could change it: the service answered a second commitment <code>409 steward-already-active</code>, and the active
+    set kept the first commitment's name whatever came after. The owner chose this over a step-down and re-commit (which
+    would put a false step-down on the record and reset "since") and over reading F25's <code>names/</code> display name on
+    the site (which D-3 v3.37 keeps off the site). The rule: a commitment from a login already active on the target is a
+    <em>restatement</em>. It admits nobody, so the gate asks it no invitation, curator or cap; it carries the admission of the
+    commitment it restates (<code>self</code> for a <code>steward/v1</code> one) and nothing else, so no restatement rewrites
+    how a steward was admitted, and an invited steward's restatement keeps <code>motion:&lt;n&gt;</code> and so stays off the
+    panels of earlier motions (Q8). The active set takes name and link from the newest counting commitment; "since",
+    admission and signing route stay the first's. No record is edited, and reverting the restatement restores the old name.
+    The service writes it on an <code>append/</code> branch under either admission. Drafted for D-32, to be folded into the
+    next decisions version (v3.39 is F26's): <em>"A steward who is already active may commit again to change the name and
+    link the page shows; such a restatement admits nobody and keeps the date and the admission of the commitment it
+    restates."</em></td></tr>
 </table>
 
 <h2>10. Status</h2>
 <div class="rule"><strong>status:</strong> live 2026-10-09 (network b4e4817, graph re-pin 76365d732, products c120d59e9, site deployed; deploy.txt) ·
-  <strong>Tasks:</strong> T0 ✓ 2026-10-08 (dc18815; D-35 row 5676c7b) · T1 ✓ (six schemas; AC1 51 cases) · T2 ✓ (red 24/26 on behaviour; six mutants killed; Q7; same-day invitation fix 02e99c8, Q8) · T3 ✓ (50496e5; red 29/45; 23 codes; four mutants killed; Q9–Q11) · T4 ✓ (b966cfd; targets-index/v9, render day, goldens and api fixtures; Q12, Q13) · T5 ✓ (8d247ca; three routes, the invitation path, <code>awaiting</code>; red 36/39) · T6 ✓ (e0bf58d; panel, write-up ladder, /rules/, /me/; 12 screenshots at 1440 and 390, looked at; Q14) · merged on branch <code>f24-panel</code> (0242cec): lint and types clean, fast tier 5133 passed, the one failure the graph-copy drift that also fails on main 547ed02; browser tests 15 passed; lean and docker tiers not run (no Lean or sandbox code changed). Not pushed, not deployed, graph not re-pinned.</div>
+  <strong>Tasks:</strong> T0 ✓ 2026-10-08 (dc18815; D-35 row 5676c7b) · T1 ✓ (six schemas; AC1 51 cases) · T2 ✓ (red 24/26 on behaviour; six mutants killed; Q7; same-day invitation fix 02e99c8, Q8) · T3 ✓ (50496e5; red 29/45; 23 codes; four mutants killed; Q9–Q11) · T4 ✓ (b966cfd; targets-index/v9, render day, goldens and api fixtures; Q12, Q13) · T5 ✓ (8d247ca; three routes, the invitation path, <code>awaiting</code>; red 36/39) · T6 ✓ (e0bf58d; panel, write-up ladder, /rules/, /me/; 12 screenshots at 1440 and 390, looked at; Q14) · merged on branch <code>f24-panel</code> (0242cec): lint and types clean, fast tier 5133 passed, the one failure the graph-copy drift that also fails on main 547ed02; browser tests 15 passed; lean and docker tiers not run (no Lean or sandbox code changed). Not pushed, not deployed, graph not re-pinned. · T7 ✓ 2026-10-12 (restatement, Q15; red gate 4/9, api 4/23, site 2 on the 409 and the missing form; fast tier 5526 passed; browser 26 passed; screenshots at 1440 and 390, looked at). Not pushed; live only after the re-pin, and the live name changes when the owner presses Update name.</div>
 
 <h2>Tasks</h2>
 <p class="status-note">Dependency-ordered. Red before green: each new test fails on the missing
@@ -245,6 +260,7 @@ behaviour, with the seam in at today's behaviour.</p>
   <tr><td>F24-T4</td><td>The products: <code>targets-index/v9</code>, lapse in claimability, and goldens.</td><td><code>gate/opn_gate/products.py</code>, goldens, api fixtures</td><td>T2</td><td>AC8</td></tr>
   <tr><td>F24-T5</td><td>The service routes and the invitation path (R8).</td><td><code>api/opn_api/panel.py</code>, <code>stewards.py</code>, <code>session.py</code>, <code>routes.py</code></td><td>T2</td><td>AC9</td></tr>
   <tr><td>F24-T6</td><td>The site: the panel and write-up sections, the controls, the rules page, <code>/me/</code>, and the Docs stewards text (R9).</td><td><code>site/opn_site/</code></td><td>T4</td><td>AC10, screenshots</td></tr>
+  <tr><td>F24-T7</td><td>A steward changes the name the page shows by restating their commitment (Q15): the active set reads the newest name and link, the gate asks a restatement no admission but its own, the service writes one instead of 409, and the steward page offers Update name.</td><td><code>gate/opn_gate/steward.py</code>, <code>modes.py</code>, <code>codes.py</code>, <code>api/opn_api/stewards.py</code>, <code>session.py</code>, <code>routes.py</code>, <code>site/opn_site/render.py</code>, <code>static/steward.js</code></td><td>T3, T5, T6</td><td><code>pytest gate/tests/test_steward_restate.py api/tests/test_stewards_route.py site/tests/test_steward_links.py</code>; <code>uv run --with playwright pytest site/tests/test_web_flows.py</code>; screenshots</td></tr>
 </table>
 </body>
 </html>

@@ -671,12 +671,13 @@ def proof_attrs(marks: Sequence[ProofMarks], on: Sequence[bool]) -> tuple[str, s
 
 def outline_mark(count: int, width: int) -> str:
     """F18-T4 (R5): a small numbered tab on a pill's top right corner when the node carries
-    informal outlines (annexes, D-31); its panel says which skeleton followed each."""
+    informal outlines (stepped annexes, D-31 v3.26; F04-T45 leaves notes uncounted); its panel
+    says which skeleton followed each."""
     if count <= 0:
         return ""
     return (
         f'<g class="outline-mark" transform="translate({width - 8},-7)">'
-        f'<rect width="15" height="14" rx="3"/><text x="7.5" y="10.5">{count}</text></g>'
+        f'<rect width="15" height="14" rx="3"/><text x="7.5" y="10.5">{count}</text></g> '
     )
 
 
@@ -688,7 +689,7 @@ def circular_mark(labelled: bool) -> str:
         return ""
     return (
         '<g class="circular-mark" transform="translate(4,-7)">'
-        '<rect width="15" height="14" rx="3"/><text x="7.5" y="10.5">⇒</text></g>'
+        '<rect width="15" height="14" rx="3"/><text x="7.5" y="10.5">⇒</text></g> '
     )
 
 
@@ -743,16 +744,20 @@ def svg(  # noqa: PLR0913 — the target's own names beside what the drawing mar
     for p in lay.placed:
         label = label_of(p.node_id, (prefix, root) if prefix and root else prefix)
         cls, data = proof_attrs(proofs, [p.node_id in m.nodes for m in proofs])
+        # F04-T41: the title comes first (the pill's accessible name) and a space separates the
+        # children, so a reader who strips the tags gets ``h2--h1 erdos-1094--h2--h1: ready``
+        # rather than ``h2--h11erdos-…``; whitespace between SVG elements draws nothing.
         parts.append(
             f'<a href="{escape(href[p.node_id])}"><g class="node status-{escape(p.status)}{cls}" '
             f'data-node="{escape(p.node_id)}"{data} transform="translate({p.x},{p.y})">'
+            f"<title>{escape(p.node_id)}{named(p.node_id)}: {escape(p.status)}</title> "
             f'<rect width="{p.w}" height="{NODE_H}" rx="8"/>'
             f'<circle cx="16" cy="{NODE_H // 2}" r="4"/>'
-            f'<text x="28" y="{NODE_H // 2 + 5}">{escape(label)}</text>'
+            f'<text x="28" y="{NODE_H // 2 + 5}">{escape(label)}</text> '
             f'<circle class="halo" cx="{p.w - 14}" cy="{NODE_H // 2}" r="3"/>'
             + outline_mark((outlines or {}).get(p.node_id, 0), p.w)
             + circular_mark(p.node_id in (labelled or set()))
-            + f"<title>{escape(p.node_id)}{named(p.node_id)}: {escape(p.status)}</title></g></a>"
+            + "</g></a>"
         )
     parts.append("</svg>")
     return "\n".join(parts)

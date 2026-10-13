@@ -1504,11 +1504,14 @@ def check_steward_admission(
       day (``steward-invitation-required``): every later steward comes by invitation.
 
     And no commitment takes its login over ``steward_cap`` unlapsed stewardships of *other*
-    targets (``steward-cap``). Which curator merges a pull request is not known until it has
-    merged, so under ``reviewed`` the gate holds the record to a listed curator; that the merger
-    is that curator is the merge actor's to leave alone (``curate/`` is never one of its
-    branches, F23-T7) and the curator's to honour. A step-down needs no admission: anyone may
-    stop being a steward."""
+    targets (``steward-cap``). A commitment from a login already active on the target is a
+    restatement, which changes only the name and link the page shows and admits nobody, so none
+    of this is asked of it; it carries the admission of the commitment it restates (``self`` for
+    a ``steward/v1`` one) and nothing else (F24-T7, F24-Q15). Which curator merges a pull request
+    is not known until it has merged, so under ``reviewed`` the gate holds the record to a listed
+    curator; that the merger is that curator is the merge actor's to leave alone (``curate/`` is
+    never one of its branches, F23-T7) and the curator's to honour. A step-down needs no
+    admission: anyone may stop being a steward."""
     found: list[Diagnostic] = []
     details = {"path": located.path, "login": record.login}
     problem = signed.approval_key_problem(record.doc, approval_key(graph_root, base))
@@ -1516,12 +1519,16 @@ def check_steward_admission(
         found.append(Diagnostic("steward-signature", f"{located.path}: {problem}", details))
     if record.action != steward.COMMIT:
         return found
+    verifier = signer or signed.default_signer()
+    target_dir = graph_root / "targets" / str(located.target_id)
+    prior = steward.restated(target_dir, record, verifier)
+    if prior is not None:  # F24-T7 (F24-Q15): a restatement admits nobody
+        return [*found, *_restatement_problems(located, record, prior, details)]
     try:
         rules = _parent_policy(graph_root, base)
     except schemas.SchemaError as exc:
         return [*found, Diagnostic("steward-admission", f"{located.path}: {exc}", details)]
     curators = _parent_curators(graph_root, base)
-    verifier = signer or signed.default_signer()
     today = clock.today()
     target_id = str(located.target_id)
     admitted = str(record.admitted_by)
@@ -1594,6 +1601,26 @@ def check_steward_admission(
             )
         )
     return found
+
+
+def _restatement_problems(
+    located: Located, record: steward.Record, prior: steward.Record, details: dict[str, Any]
+) -> list[Diagnostic]:
+    """F24-T7 (F24-Q15): a restatement carries the admission of the commitment it restates
+    (``self`` for a ``steward/v1`` one, which names none), so no restatement rewrites on the
+    record how its steward was admitted."""
+    claimed, carried = record.admitted_by, prior.admitted_by or steward.SELF
+    if claimed is None or claimed == carried:
+        return []
+    return [
+        Diagnostic(
+            "steward-admission",
+            f"{located.path}: {record.login} is already active, so this commitment restates "
+            f"the one that admitted them and carries its admission ({carried!r}), not "
+            f"{claimed!r} (F24-T7, F24-Q15)",
+            {**details, "admitted_by": claimed, "restates": carried},
+        )
+    ]
 
 
 def _invitation_problems(  # noqa: PLR0913 — the record, its tree, and how to read it

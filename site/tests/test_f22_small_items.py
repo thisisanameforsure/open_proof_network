@@ -105,4 +105,4 @@ def test_a_docstring_card_renders_its_code_spans() -> None:
     html = r.step_uses(None, step)  # type: ignore[arg-type]
     card = re.search(r'<span class="term-card" role="tooltip">(.*?)</span>', html, re.S)
     assert card is not None
-    assert card.group(1) == "<strong>Alias</strong> of <code>zero_lt_one</code>."
+    assert card.group(1).strip() == "<strong>Alias</strong> of <code>zero_lt_one</code>."

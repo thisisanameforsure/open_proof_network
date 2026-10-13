@@ -1,0 +1,185 @@
+F04-T41 — the problem page's extracted text keeps its words apart (2026-10-12)
+
+Verification command:
+  uv run --frozen pytest site/tests/test_finding_text_extraction.py site/tests/test_finding_dag_labels.py site/tests/test_graph_legend.py site/tests/test_f22_small_items.py site/tests/test_render.py -v
+
+=== RED (tests written first, run before render.py/dag.py changed) ===
+site/tests/test_finding_text_extraction.py::test_every_term_card_is_set_apart_from_its_label FAILED [ 33%]
+site/tests/test_finding_dag_labels.py::test_hole_labels_are_distinct_and_keep_their_suffix PASSED [ 66%]
+site/tests/test_finding_dag_labels.py::test_no_pill_runs_its_label_into_its_badge_or_its_title FAILED [100%]
+E       assert ['ropositional\npropositionalopen|Listed, and its statements ac', 'nd its statements accept work.|Not claimable: this target ha', 'o curated intake record (D-6).||statement unchecked|Nobody o', ' curated intake record (D-6).||statement unchecked|Nobody ot', 'rd (D-6).||statement unchecked|Nobody other than its author ', 'ot decide this; a person must.|protocol: fidelity: mechanica',
+E         
+E         Left contains 28 more items, first extra item: 'ropositional\npropositionalopen|Listed, and its statements ac'
+E         
+E         Full diff:
+E         - []
+E         + [
+E         +     'ropositional\n'
+E         +     'propositionalopen|Listed, and its statements ac',
+E         +     'nd its statements accept work.|Not claimable: this target ha',
+E         +     'o curated intake record (D-6).||statement unchecked|Nobody o',
+E         +     ' curated intake record (D-6).||statement unchecked|Nobody ot',
+E         +     'rd (D-6).||statement unchecked|Nobody other than its author ',
+E         +     'ot decide this; a person must.|protocol: fidelity: mechanica',
+E         +     'ne to see its record.\n'
+E         +     '\n'
+E         +     '\n'
+E         +     'proved|A proof passed all nine check',
+E         +     ' is not the same as explained.|protocol: proved||open|No pro',
+E         +     'as explained.|protocol: proved||open|No proof has closed thi',
+E         +     's explained.|protocol: proved||open|No proof has closed this',
+E         +     'lained.|protocol: proved||open|No proof has closed this stat',
+E         +     'it. Anyone may work on it now.|protocol: ready · on the fron',
+E         +     'tocol: ready · on the frontier||blocked|Waits on other state',
+E         +     'ocol: ready · on the frontier||blocked|Waits on other statem',
+E         +     'ady · on the frontier||blocked|Waits on other statements, or',
+E         +     'his sense: it needs a witness.|protocol: blocked||depends on',
+E         +     's a witness.|protocol: blocked||depends on|A solid line runs',
+E         +     ' a witness.|protocol: blocked||depends on|A solid line runs ',
+E         +     '|protocol: blocked||depends on|A solid line runs up from a s',
+E         +     'of may build on the lower one.|protocol: deps (META.yaml)||l',
+E         +     'ne.|protocol: deps (META.yaml)||lemma from another branch|A ',
+E         +     'e.|protocol: deps (META.yaml)||lemma from another branch|A d',
+E         +     'ml)||lemma from another branch|A dash-dot line runs up from ',
+E         +     "ut a hole's place in the tree.|protocol: lemmas (META.yaml, ",
+E         +     'lemmas (META.yaml, D-12 v3.38)||has an outline|A numbered ta',
+E         +     'emmas (META.yaml, D-12 v3.38)||has an outline|A numbered tab',
+
+=== GREEN (after) ===
+site/tests/test_finding_text_extraction.py::test_every_term_card_is_set_apart_from_its_label PASSED [  1%]
+site/tests/test_finding_dag_labels.py::test_hole_labels_are_distinct_and_keep_their_suffix PASSED [  3%]
+site/tests/test_finding_dag_labels.py::test_no_pill_runs_its_label_into_its_badge_or_its_title PASSED [  5%]
+site/tests/test_graph_legend.py::test_the_key_is_inside_the_graph_card PASSED [  7%]
+site/tests/test_graph_legend.py::test_the_key_always_names_the_three_base_states PASSED [  9%]
+site/tests/test_graph_legend.py::test_the_key_names_the_other_statuses_the_graph_shows PASSED [ 11%]
+site/tests/test_graph_legend.py::test_a_speculative_node_reads_open_in_the_key PASSED [ 13%]
+site/tests/test_graph_legend.py::test_each_key_item_defines_itself_on_hover[abandoned] PASSED [ 15%]
+site/tests/test_graph_legend.py::test_each_key_item_defines_itself_on_hover[defective] PASSED [ 17%]
+site/tests/test_graph_legend.py::test_each_key_item_defines_itself_on_hover[disputed] PASSED [ 19%]
+site/tests/test_graph_legend.py::test_each_key_item_defines_itself_on_hover[refuted] PASSED [ 21%]
+site/tests/test_graph_legend.py::test_each_key_item_defines_itself_on_hover[stale] PASSED [ 23%]
+site/tests/test_graph_legend.py::test_each_key_item_defines_itself_on_hover[superseded] PASSED [ 25%]
+site/tests/test_graph_legend.py::test_every_status_the_gate_can_derive_has_a_key_entry PASSED [ 27%]
+site/tests/test_graph_legend.py::test_the_selected_statement_panel_wears_its_own_dot PASSED [ 29%]
+site/tests/test_graph_legend.py::test_the_problems_page_row_defines_a_stale_statement PASSED [ 31%]
+site/tests/test_graph_legend.py::test_the_stylesheet_colours_every_key_entry PASSED [ 33%]
+site/tests/test_graph_legend.py::test_the_docs_glossary_carries_the_new_words PASSED [ 35%]
+site/tests/test_f22_small_items.py::test_an_authored_statement_does_not_claim_the_proof_needs_it PASSED [ 37%]
+site/tests/test_f22_small_items.py::test_the_reading_link_names_the_order_the_page_uses PASSED [ 39%]
+site/tests/test_f22_small_items.py::test_the_fidelity_badge_is_not_hidden_on_phones PASSED [ 41%]
+site/tests/test_f22_small_items.py::test_drafted_with_is_said_once_per_version PASSED [ 43%]
+site/tests/test_f22_small_items.py::test_a_docstring_card_renders_its_code_spans PASSED [ 45%]
+site/tests/test_render.py::test_golden_pages PASSED                      [ 47%]
+site/tests/test_render.py::test_commit_and_file_links PASSED             [ 49%]
+site/tests/test_render.py::test_node_page_states PASSED                  [ 50%]
+site/tests/test_render.py::test_compiler_trust_flag PASSED               [ 52%]
+site/tests/test_render.py::test_no_explainer_cue PASSED                  [ 54%]
+site/tests/test_render.py::test_target_page_has_dag_and_nodes PASSED     [ 56%]
+site/tests/test_render.py::test_home_counts PASSED                       [ 58%]
+site/tests/test_render.py::test_pages_are_well_formed PASSED             [ 60%]
+site/tests/test_render.py::test_invalid_product_writes_nothing PASSED    [ 62%]
+site/tests/test_render.py::test_render_command_writes_everything PASSED  [ 64%]
+site/tests/test_render.py::test_problems_page PASSED                     [ 66%]
+site/tests/test_render.py::test_the_problems_page_says_where_each_statement_stands PASSED [ 68%]
+site/tests/test_render.py::test_contributors_empty_state PASSED          [ 70%]
+site/tests/test_render.py::test_docs_bundle PASSED                       [ 72%]
+site/tests/test_render.py::test_human_funnel_docs PASSED                 [ 74%]
+site/tests/test_render.py::test_render_document_shapes PASSED            [ 76%]
+site/tests/test_render.py::test_t2_golden_pages PASSED                   [ 78%]
+site/tests/test_render.py::test_contributors_lists_ledger_entries PASSED [ 80%]
+site/tests/test_render.py::test_listed_target_reasons PASSED             [ 82%]
+site/tests/test_render.py::test_a_claimable_target_states_no_reasons PASSED [ 84%]
+site/tests/test_render.py::test_qa_summary PASSED                        [ 86%]
+site/tests/test_render.py::test_related_variant_pertinence_on_the_target_page PASSED [ 88%]
+site/tests/test_render.py::test_frontier_page_says_which_products_its_claims_come_from_and_links_the_live_ones PASSED [ 90%]
+site/tests/test_render.py::test_without_an_api_url_the_claims_label_renders_and_no_live_link_is_drawn PASSED [ 92%]
+site/tests/test_render.py::test_an_api_url_with_a_trailing_slash_does_not_double_up PASSED [ 94%]
+site/tests/test_render.py::test_the_live_claims_link_passes_the_link_checker_only_through_the_allowlist PASSED [ 96%]
+site/tests/test_render.py::test_the_claims_label_names_the_commit_the_products_were_rendered_from PASSED [ 98%]
+site/tests/test_render.py::test_render_command_reads_the_api_url_from_the_environment PASSED [100%]
+============================== 51 passed in 4.41s ==============================
+
+=== Screenshots: the fixture problem page before (525699ca, detached worktree) and after ===
+task-41-shoot.py --tag before / --tag after / --compare
+attempt record /var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/tmp9_fq0060/g/graph/targets/propositional/nodes/and-swap-reassoc/attempts/2026-09-02-b.yaml is invalid and counted as such: cannot read YAML /var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/tmp9_fq0060/g/graph/targets/propositional/nodes/and-swap-reassoc/attempts/2026-09-02-b.yaml: while parsing a flow sequence
+  in "<unicode string>", line 1, column 8:
+    route: [oops
+           ^
+expected ',' or ']', but got '<stream end>'
+  in "<unicode string>", line 2, column 1:
+    
+    ^
+propositional/and-swap-reassoc: attempt 2026-09-02-b.yaml does not validate (counted as invalid)
+attempt record /private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/tmp9_fq0060/g/graph/targets/propositional/nodes/and-swap-reassoc/attempts/2026-09-02-b.yaml is invalid and counted as such: cannot read YAML /private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/tmp9_fq0060/g/graph/targets/propositional/nodes/and-swap-reassoc/attempts/2026-09-02-b.yaml: while parsing a flow sequence
+  in "<unicode string>", line 1, column 8:
+    route: [oops
+           ^
+expected ',' or ']', but got '<stream end>'
+  in "<unicode string>", line 2, column 1:
+    
+    ^
+{
+  "before": {
+    "status_tag_textContent": "openListed, and its statements accept work.Not claimable: this target has no curated intake record (D-6).",
+    "status_tag_innerText": "open\nListed, and its statements accept work.\nNot claimable: this target has no curated intake record (D-6).",
+    "pill_textContent": "and-reassocand-reassoc: proved",
+    "scrollWidth": 1440
+  }
+}
+attempt record /var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/tmpcnwvede4/g/graph/targets/propositional/nodes/and-swap-reassoc/attempts/2026-09-02-b.yaml is invalid and counted as such: cannot read YAML /var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/tmpcnwvede4/g/graph/targets/propositional/nodes/and-swap-reassoc/attempts/2026-09-02-b.yaml: while parsing a flow sequence
+  in "<unicode string>", line 1, column 8:
+    route: [oops
+           ^
+expected ',' or ']', but got '<stream end>'
+  in "<unicode string>", line 2, column 1:
+    
+    ^
+propositional/and-swap-reassoc: attempt 2026-09-02-b.yaml does not validate (counted as invalid)
+attempt record /private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/tmpcnwvede4/g/graph/targets/propositional/nodes/and-swap-reassoc/attempts/2026-09-02-b.yaml is invalid and counted as such: cannot read YAML /private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/tmpcnwvede4/g/graph/targets/propositional/nodes/and-swap-reassoc/attempts/2026-09-02-b.yaml: while parsing a flow sequence
+  in "<unicode string>", line 1, column 8:
+    route: [oops
+           ^
+expected ',' or ']', but got '<stream end>'
+  in "<unicode string>", line 2, column 1:
+    
+    ^
+{
+  "after": {
+    "status_tag_textContent": "open Listed, and its statements accept work. Not claimable: this target has no curated intake record (D-6). ",
+    "status_tag_innerText": "open\nListed, and its statements accept work.\nNot claimable: this target has no curated intake record (D-6).",
+    "pill_textContent": "and-reassoc: proved and-reassoc ",
+    "scrollWidth": 1440
+  }
+}
+{
+  "pixel_compare_before_vs_after": {
+    "rest-1440": {
+      "same_size": true,
+      "size": [
+        1440,
+        2468
+      ],
+      "differing_pixels": 0
+    },
+    "card-1440": {
+      "same_size": true,
+      "size": [
+        1440,
+        900
+      ],
+      "differing_pixels": 0
+    },
+    "rest-390": {
+      "same_size": true,
+      "size": [
+        390,
+        3680
+      ],
+      "differing_pixels": 0
+    }
+  }
+}
+
+Zero differing pixels in all three shots: the separators change the extracted text and nothing on screen.
+innerText (what the browser lays out as text) is identical before and after; textContent (what a tag-stripper reads) now separates label, card, protocol line and pill title.
+Two older tests pinned the card's exact markup (test_graph_legend.py, test_f22_small_items.py) and were restated to the new spacing; goldens regenerated with write_goldens(); the diff is the added spaces and each pill's <title> moved first.

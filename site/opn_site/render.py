@@ -22,6 +22,7 @@ from typing import Any
 from urllib.parse import quote
 
 from opn_gate import clients, explainers, hosted, intake, layout, policy, products, schemas, steward
+from opn_gate import glosses as glossesmod
 from opn_gate import graph as graphmod
 from opn_gate import ledger as ledgermod
 from opn_site import dag, links, prose
@@ -31,6 +32,7 @@ from opn_site.model import (
     LeanFile,
     LiteratureView,
     NodeView,
+    PartialView,
     Placed,
     Prose,
     ReviewView,
@@ -92,6 +94,9 @@ LITERATURE_WORDS = {
 }
 #: The words a proposal awaits, and the service route the /me/ control confirms through (F23).
 LITERATURE_AWAITS = "awaiting a steward or curator"
+#: F04-T48 (Q47): the element id of a statement's words on its own page, which the panel's
+#: "Explain this" and its words mark link to.
+STATEMENT_WORDS_ID = "statement-words"
 LITERATURE_CONFIRM_PATH = "/literature/confirm"
 
 
@@ -422,10 +427,11 @@ GLOSSARY: tuple[tuple[str, str, str, str], ...] = (
     (
         "outline",
         "has an outline",
-        "A numbered tab: how many informal outlines (annexes) the statement carries. Its panel "
-        "lists each one, which merged skeleton followed it and the statements that skeleton "
-        "made, or that none has. An outline is the contributor's own text, unverified.",
-        "annex (D-31)",
+        "A numbered tab: how many outlines the statement carries, an outline being an annex "
+        "that names its steps. Its panel lists each one, which merged skeleton followed it and "
+        "the statements that skeleton made, or that none has; an annex with no steps is listed "
+        "under Notes and not counted. An outline is the contributor's own text, unverified.",
+        "annex/v2 steps (D-31 v3.26)",
     ),
     (
         "proposed-for",
@@ -991,6 +997,11 @@ def sorry_note(statement: str) -> str:
     return SORRY_NOTE if "sorry" in statement else ""
 
 
+def annex_anchor(a: Prose) -> str:
+    """F04-T45: the element id of an annex on its node's page, from its file name's digest."""
+    return f"annex-{Path(a.path).stem[:12]}"
+
+
 def theorem_name(statement: str) -> str | None:
     """F22-T18 (S): the name a statement declares, or None."""
     m = _THEOREM_RE.search(statement)
@@ -1177,18 +1188,21 @@ class Renderer:
     @staticmethod
     def hover(label: str, body: str, *, classes: str = "") -> str:
         """A term with its definition card: shown on hover or focus, plain CSS, no pointer
-        needed (``tabindex``). ``label`` and ``body`` are HTML already escaped by the caller."""
+        needed (``tabindex``). ``label`` and ``body`` are HTML already escaped by the caller.
+        The card opens and closes with a space (F04-T41): a block's edge whitespace collapses on
+        screen, and a reader who strips the tags gets ``open Listed, …`` rather than
+        ``openListed, …``."""
         cls = f"term {classes}".strip()
         return (
             f'<span class="{esc(cls)}" tabindex="0">{label}'
-            f'<span class="term-card" role="tooltip">{body}</span></span>'
+            f'<span class="term-card" role="tooltip"> {body} </span></span>'
         )
 
     def term(self, key: str, *, label: str | None = None, dot: bool = False) -> str:
         """A glossary word with its card; the legend's status chips carry a dot."""
         word, meaning, proto = self.words["by_key"][key]
         mark = self.dot(key) if dot else ""
-        body = f'{esc(meaning)}<span class="proto">protocol: {esc(proto)}</span>'
+        body = f'{esc(meaning)}<span class="proto"> protocol: {esc(proto)}</span>'
         return self.hover(mark + esc(label or word), body)
 
     @staticmethod
@@ -1254,7 +1268,7 @@ class Renderer:
         if "edge lemma" in drawn:  # F04-T39 (D-12 v3.38)
             line_keys = (*line_keys, "lemma")
         pointed = ("proposed-for",) if dag.pointers(tv.graph["nodes"]) else ()
-        if any(nv.annexes for nv in tv.nodes.values()):
+        if any(a.stepped for nv in tv.nodes.values() for a in nv.annexes):  # T45 (Q44)
             pointed = ("outline", *pointed)
         proofs = target_proofs(tv)
         if not proofs:
@@ -1339,49 +1353,93 @@ class Renderer:
         """F18-T4, T5 (R5, R7): the node's outlines (annexes, D-31) — each followed by the merged
         skeletons that cite it, with the holes they made, or not followed — and, for a stepped
         outline, the checklist of its steps against the nodes named after them. The title line
-        and the summaries are contributor text: escaped and labelled (C9, D-28)."""
+        and the summaries are contributor text: escaped and labelled (C9, D-28).
+
+        F04-T45 (Q44): only an annex that names its steps (``annex/v2``, D-31 v3.26) is an
+        outline; every other annex is listed beneath, under "Notes", labelled by its kind."""
         if not nv.annexes:
             return ""
         decomps = list(nv.graph_entry.get("decompositions") or [])
-        items = []
-        for a in nv.annexes:
-            digest = Path(a.path).stem
-            title = clip(
-                next(
-                    (
-                        line.strip().lstrip("#").strip()
-                        for line in a.text.splitlines()
-                        if line.strip()
-                    ),
-                    "untitled",
-                )
+        stepped = [self.annex_item(tv, nv, a, decomps) for a in nv.annexes if a.stepped]
+        notes = [
+            self.annex_item(tv, nv, a, decomps, kind=self.note_kind(a))
+            for a in nv.annexes
+            if not a.stepped
+        ]
+        out = ""
+        if stepped:
+            out += (
+                '<div class="panel-outlines"><span class="kicker">Outlines</span>'
+                '<p class="cue">Untrusted contributor text (D-31): an outline is an informal '
+                "argument in named steps, not a proof. The full text is on the statement&rsquo;s "
+                "record page.</p>"
+                f'<ul class="outlines">{"".join(stepped)}</ul>'
             )
-            by = f" by {esc(a.author)}" if a.author else ""
-            following = [d for d in decomps if d.get("annex") == digest]
-            node_dir = Path(nv.statement_path).parent.as_posix()
-            if following:
-                runs = "; ".join(
-                    self.file_link(f"{node_dir}/{d['partial']}", label=Path(d["partial"]).name)
-                    + (
-                        ": " + ", ".join(self.hole_link(tv, h) for h in d["holes"])
-                        if d["holes"]
-                        else ""
-                    )
-                    for d in following
-                )
-                state = f"followed by {runs}"
-            else:
-                state = "not followed by any merged decomposition"
-            items.append(
-                f'<li class="outline" data-annex="{esc(digest)}"><span class="untrusted-title">'
-                f"{esc(title)}</span>{by} — {state}</li>"
+            out += self.outline_checklist(tv, nv) + "</div>"
+        if notes:
+            out += (
+                '<div class="panel-outlines panel-notes"><span class="kicker">Notes</span>'
+                '<p class="cue">Untrusted contributor text (D-31): an annex that names no steps '
+                "is a note, an informal argument, not a proof and not an outline. The full text "
+                "is on the statement&rsquo;s record page.</p>"
+                f'<ul class="outlines notes">{"".join(notes)}</ul></div>'
             )
-        out = (
-            '<div class="panel-outlines"><span class="kicker">Outlines</span>'
-            '<p class="cue">Untrusted contributor text (D-31): an outline is an informal '
-            "argument, not a proof. The full text is on the statement&rsquo;s record page.</p>"
-            f'<ul class="outlines">{"".join(items)}</ul>'
+        return out
+
+    @staticmethod
+    def note_kind(a: Prose) -> str:
+        """F04-T45 (Q44): what a note is, by its record: the schema it was written under."""
+        if a.schema == "annex/v1":
+            return "annex/v1 note"
+        if a.schema:
+            return f"{a.schema} note, no steps"
+        return "note, no front matter"
+
+    def annex_item(
+        self,
+        tv: TargetView,
+        nv: NodeView,
+        a: Prose,
+        decomps: list[dict[str, Any]],
+        *,
+        kind: str | None = None,
+    ) -> str:
+        """One annex as the panel lists it: its title line, its author and the merged skeletons
+        that cite it (or none); a note carries its kind."""
+        digest = Path(a.path).stem
+        title = clip(
+            next(
+                (line.strip().lstrip("#").strip() for line in a.text.splitlines() if line.strip()),
+                "untitled",
+            )
         )
+        by = f" by {esc(a.author)}" if a.author else ""
+        following = [d for d in decomps if d.get("annex") == digest]
+        node_dir = Path(nv.statement_path).parent.as_posix()
+        if following:
+            runs = "; ".join(
+                self.file_link(f"{node_dir}/{d['partial']}", label=Path(d["partial"]).name)
+                + (
+                    ": " + ", ".join(self.hole_link(tv, h) for h in d["holes"])
+                    if d["holes"]
+                    else ""
+                )
+                for d in following
+            )
+            state = f"followed by {runs}"
+        else:
+            state = "not followed by any merged decomposition"
+        cls = "outline note" if kind is not None else "outline"
+        label = f'<span class="note-kind">{esc(kind)}</span> ' if kind is not None else ""
+        full = esc(f"{self.node_path(tv.target_id, nv.node_id)}#{annex_anchor(a)}")
+        return (
+            f'<li class="{cls}" data-annex="{esc(digest)}">{label}<span class="untrusted-title">'
+            f'{esc(title)}</span>{by} — {state} · <a href="{full}">full text →</a></li>'
+        )
+
+    def outline_checklist(self, tv: TargetView, nv: NodeView) -> str:
+        """F18-T5 (R7): the stepped outline the node's skeleton followed, step by step."""
+        out = ""
         outline = nv.graph_entry.get("outline")
         if isinstance(outline, dict) and outline.get("steps"):
             steps = []
@@ -1403,7 +1461,7 @@ class Renderer:
                 '<p class="cue">A matching name shows the structure was followed, not that the '
                 "Lean says what the prose says (D-31 v3.26).</p>"
             )
-        return out + "</div>"
+        return out
 
     def hole_link(self, tv: TargetView, hole: dict[str, Any], *, named: bool = True) -> str:
         """A hole as the outline names it: its name, the node it became (an in-page link that
@@ -1469,7 +1527,7 @@ class Renderer:
         if not e.get("claimable") and str(e["status"]) != "resolved":
             reasons = [esc(intake.explain(str(r))) for r in e.get("not_claimable") or []]
             why = "; ".join(reasons) or esc(NO_RECORD_WORDS)
-            body += f'<span class="why">Not claimable: {why}.</span>'
+            body += f'<span class="why"> Not claimable: {why}.</span>'
         return self.hover(esc(status), body, classes="tag")
 
     def fidelity_tag(self, tv: TargetView) -> str:
@@ -1478,7 +1536,7 @@ class Renderer:
         if key is None:  # a grade this generator has no word for: shown as itself
             return f'<span class="tag tag-outline">{esc(grade)}</span>'
         word, meaning, proto = self.words["by_key"][key]
-        body = f'{esc(meaning)}<span class="proto">protocol: {esc(proto)}</span>'
+        body = f'{esc(meaning)}<span class="proto"> protocol: {esc(proto)}</span>'
         return self.hover(esc(word), body, classes="tag tag-outline")
 
     def stage_marks(self, tv: TargetView) -> str:
@@ -1581,7 +1639,7 @@ class Renderer:
         state = self.node_state(nv)
         if state in ("proved", *WORKABLE_STATES) or state in LEGEND_EXTRA:
             _word, meaning, proto = self.words["by_key"][state]
-            body = f'{esc(meaning)}<span class="proto">protocol: {esc(proto)}</span>'
+            body = f'{esc(meaning)}<span class="proto"> protocol: {esc(proto)}</span>'
         else:
             words = status_words(nv.status, nv.cause)
             meaning = self.words["by_key"]["blocked"][1] if nv.status == "blocked" else ""
@@ -1861,11 +1919,32 @@ class Renderer:
             if tv.stewards
             else ""
         )
+        # F04-T44 (D-32 v3.34, F24-R4): once the panel has a member, a new steward comes by a
+        # passed invitation or a curator, and the gate refuses a self-commitment; the page says
+        # so up front, and the slot (kept for a current steward's Step down) draws no form.
+        invited = self.takes_steward(tv) and bool(self.panel_logins(tv))
+        if invited:
+            panel_href = esc(self.target_path(tid) + "#panel")
+            current += (
+                '<p class="cue invitation-only">This problem has a steward, so a new steward '
+                "joins by invitation: a member of its panel invites you by your GitHub login and "
+                f'you accept in <a href="{panel_href}">the problem&rsquo;s Panel section</a>, or '
+                "a curator adds you directly (D-32). Co-stewards are welcome: to ask, write to a "
+                f'steward or <a href="{esc(self.repo_url)}/issues">open an issue</a>. '
+                f'<a href="{RULES_PATH}">The panel&rsquo;s rules →</a></p>'
+            )
         if self.takes_steward(tv):
+            flag = ' data-invitation="required"' if invited else ""  # the card stays hidden
+            # F24-T7: the name and link each steward holds now, so a steward's form starts there.
+            held = json.dumps(
+                {str(s["login"]): {"name": s["name"], "link": s["link"]} for s in tv.stewards},
+                ensure_ascii=False,
+            )
             form = (
                 f'<div class="card steward-form-card"><div class="steward-form" '
                 f'data-target="{esc(tid)}" data-return="{esc(self.steward_path(tid))}" '
-                f'data-commitment="{esc(steward.COMMITMENT)}"></div></div>'
+                f'data-commitment="{esc(steward.COMMITMENT)}" data-stewards="{esc(held)}"{flag}>'
+                "</div></div>"
             )
             script = (
                 f'<script src="/steward.js" data-api="{esc(self.api_url)}"></script>'
@@ -2141,7 +2220,10 @@ class Renderer:
             else n
             for n in tv.graph["nodes"]
         ]
-        outlines = {nid: len(nv.annexes) for nid, nv in tv.nodes.items() if nv.annexes}
+        # T45 (Q44): the tab counts outlines, the annexes that name their steps; notes are not.
+        outlines = {
+            nid: n for nid, nv in tv.nodes.items() if (n := sum(a.stepped for a in nv.annexes))
+        }
         svg = dag.svg(
             drawn,
             href=href,
@@ -2792,7 +2874,7 @@ class Renderer:
                 "Committed to understand and write up whatever the network produces here, and "
                 f"to sign the explainer of the proof that closes it. {since}."
             )
-            button = ""
+            button = self.co_steward_cue(tv)
         elif tv.calibration:
             names, words, button = (
                 "None needed",
@@ -2845,7 +2927,7 @@ class Renderer:
                 )
             if nv.superseded_cause:
                 parts.append(
-                    f'<span class="why">The curator\'s record: {esc(nv.superseded_cause)}</span>'
+                    f'<span class="why"> The curator\'s record: {esc(nv.superseded_cause)}</span>'
                 )
         if nv.supersedes:
             parts.append(f"Revises {link(nv.supersedes)}, which it replaced (D-8).")
@@ -2960,7 +3042,7 @@ class Renderer:
             return ""
         ancestors = ", ".join(esc(label.ancestor) for label in nv.circular)
         _word, meaning, proto = self.words["by_key"]["circular"]
-        body = f'{esc(meaning)}<span class="proto">protocol: {esc(proto)}</span>'
+        body = f'{esc(meaning)}<span class="proto"> protocol: {esc(proto)}</span>'
         chip = self.hover(f"{self.dot('circular')}proves <code>{ancestors}</code>", body)
         return f' <span class="proves">{chip}</span>'
 
@@ -3044,59 +3126,380 @@ class Renderer:
 
     def statement_panel(self, tv: TargetView, nv: NodeView) -> str:
         """One "Selected statement" panel per node; the script shows the selected one and the
-        page without it shows the root's. Hashes, origin, pin and files sit behind a toggle."""
+        page without it shows the root's.
+
+        F04-T48 (Q47): a summary for a mathematician surveying the problem, in the owner's order —
+        the header (id, status, attempts, one line of role), what is claimed, how it is being
+        proved, what is known, work on it — and the record details, closed, holding the full
+        words, the outlines' checklists, the hashes and files and the reading notes. The
+        statement's own page stays the full record."""
         tid, nid = tv.target_id, nv.node_id
         e = nv.graph_entry
         state = self.node_state(nv)
-        words = status_words(nv.status, nv.cause)
-        note = esc(f"{self.node_role(tv, nv).capitalize()}; {words}.")
-        if state == "proved" and e.get("proof_commit"):
-            note += esc(f" Proof merged in {str(e['proof_commit'])[:12]}.")
-        note += self.pertinence(e)
         files = [self.file_link(nv.statement_path, label="Statement.lean ↗")]
         if nv.attestation_path:
             files.append(self.file_link(nv.attestation_path, label="attestation ↗"))
         if nv.proof_path and state == "proved":
             files.append(self.file_link(nv.proof_path, label="Proof.lean ↗"))
-        href = esc(self.node_path(tid, nid))
-        if state == "open":
-            action = (
-                f'<a class="btn btn-primary btn-block" href="{href}">Work on this statement</a>'
-            )
-        elif state == NEEDS_WITNESS:
-            action = f'<a class="btn btn-primary btn-block" href="{href}">Supply a witness →</a>'
-        elif state == "proved":
-            action = f'<a class="btn btn-primary btn-block" href="{href}">View the proof →</a>'
-        else:
-            action = f'<a class="btn btn-secondary btn-block" href="{href}">View the record →</a>'
         origin = str(e.get("origin", "")) + (f" ({e['relation']})" if e.get("relation") else "")
-        return _template(
-            "statement-panel.html"
-        ).substitute(
+        return _template("statement-panel.html").substitute(
             node_id=esc(nid),
             hidden="" if nid == tv.root else " hidden",
-            state=esc(state),
-            state_word=esc(self.state_label(state)),
             dot=self.dot(self.dot_state(state)),
+            state_word=esc(self.state_label(state)),
             attempts=esc(self.attempts_words(nv)),
             proof_row=self.proof_row(tv, nv),
-            note=note,
-            revision=self.revision_note(tid, nv, in_page=True),
-            closing=self.closing_note(tv, nv),
-            outlines=self.outlines_block(tv, nv),
-            literature=self.literature_block(nv),  # F04-T38
-            statement=esc(declaration_only(nv.statement)),
-            sorry_note=sorry_note(nv.statement),
             thm=self.thm_label(tid, nid),
+            role=self.panel_role(tv, nv),
+            claim=self.claim_block(tv, nv),
+            how=self.how_block(tv, nv),
+            known=self.known_section(tv, nv),
+            work=self.work_section(tv, nv),
             glosses=self.gloss_slot(
                 tv, "statement", f"nodes/{nid}/Statement.lean", node=nid, ids=f"p-{nid}-"
             ),
+            outlines=self.outlines_block(tv, nv),
+            boilerplate=self.panel_reading_notes(nv),
             hash=esc(str(e.get("statement_hash", ""))[:12]),
             origin=esc(origin),
             mathlib=esc(str(tv.index_entry.get("mathlib_sha") or "")[:12] or "Lean core only"),
             files=" · ".join(files),
-            action=action,
         )
+
+    # --- F04-T48 (Q47): the panel's sections, each a helper so the layout can move them ---------
+
+    def panel_role(self, tv: TargetView, nv: NodeView) -> str:
+        """The header's one line: a hole names the parent it came from (T46); any other node its
+        role, with a related variant's pertinence (D-30)."""
+        hole_of = self.hole_origin(tv, nv)
+        if hole_of:
+            return hole_of
+        role = esc(sentence(self.node_role(tv, nv).capitalize()))
+        return f'<p class="panel-note">{role}{self.pertinence(nv.graph_entry)}</p>'
+
+    def statement_words_href(self, tv: TargetView, nv: NodeView) -> str:
+        """Where a statement's words live in full: its page, at the words (``#statement-words``),
+        where the history, the controls and the cue for writing them are."""
+        return f"{self.node_path(tv.target_id, nv.node_id)}#{STATEMENT_WORDS_ID}"
+
+    def claim_block(self, tv: TargetView, nv: NodeView) -> str:
+        """What is claimed. A current statement gloss that opens with math (F20-T16) leads with
+        that math and its convention notes, one mark saying whether it is signed, and the Lean
+        folded; otherwise the Lean leads, a gloss that is not math first follows as its first
+        sentence, and "Explain this" goes to where the words are written."""
+        state = self.node_state(nv)
+        lean = (
+            f'<pre class="lean statement st-{esc(state)}">'
+            f"{esc(declaration_only(nv.statement))}</pre>"
+        )
+        href = esc(self.statement_words_href(tv, nv))
+        subject = tv.gloss_subject("statement", node=nv.node_id)
+        current = subject.describing() if subject is not None else []
+        v = current[0] if current else None
+        if v is not None and glossesmod.opens_with_math(v.body):
+            head, _, rest = v.body.strip().partition("\n\n")
+            notes = (
+                f'<div class="prose claim-notes">{prose.render(rest, math=True)}</div>'
+                if rest.strip()
+                else ""
+            )
+            return (
+                f'<div class="prose claim-math">{prose.render(head, math=True)}</div>{notes}'
+                f"{self.words_mark(v, href)}"
+                f'<details class="panel-lean"><summary>Lean</summary>{lean}</details>'
+            )
+        words = ""
+        if v is not None:
+            first = prose.first_sentence(v.body)
+            words = (
+                f'<p class="claim-words">{self.words_mark(v, href, inline=True)} '
+                f'<span class="gloss-line">{prose.inline_math(first)}</span></p>'
+            )
+        return (
+            f"{lean}{words}"
+            f'<p class="explain"><a class="explain-this" href="{href}">Explain this →</a></p>'
+        )
+
+    @staticmethod
+    def words_mark(v: VersionView, href: str, *, inline: bool = False) -> str:
+        """One compact mark for a gloss: signed by whom, or unverified, linked to its history."""
+        if v.signers:
+            word = "signed by " + ", ".join(esc(s) for s, _d, _f in v.signers)
+        else:
+            word = "unverified"
+        link = f'<a class="words-mark" href="{href}">{word} · history</a>'
+        return link if inline else f'<p class="claim-mark">{link}</p>'
+
+    @staticmethod
+    def open_line(*, has_holes: bool) -> str:
+        """An open statement's one line."""
+        if has_holes:
+            return "Open. A direct proof, or proofs of its holes, close it."
+        return "Open. A direct proof closes it."
+
+    def holes_of(self, tv: TargetView, nv: NodeView) -> list[str]:
+        return [
+            other
+            for other, ov in tv.nodes.items()
+            if graphmod.is_hole_of(nv.node_id, other, str(ov.graph_entry.get("origin")))
+            and ov.status != "superseded"
+        ]
+
+    def how_block(self, tv: TargetView, nv: NodeView) -> str:
+        """How it is being proved: a revision or circularity note (F04-T18, T37), one line — the
+        proof and its attestation, open, or the status in words — then the split (T46, T47), and
+        the Context-import note folded (2026-09-21)."""
+        e = nv.graph_entry
+        state = self.node_state(nv)
+        if state == "proved":
+            bits = []
+            if nv.proof_path:
+                bits.append(self.file_link(nv.proof_path, label="Proof.lean"))
+            line = "Proved" + (f" by {bits[0]}" if bits else "")
+            if e.get("proof_commit"):
+                line += f" (merged in <code>{esc(str(e['proof_commit'])[:12])}</code>)"
+            if nv.attestation_path:
+                stem = Path(nv.attestation_path).stem
+                line += " · " + self.file_link(nv.attestation_path, label=f"attestation {stem}")
+            line += "."
+        elif state == "open":
+            line = esc(self.open_line(has_holes=bool(self.holes_of(tv, nv))))
+        else:
+            line = esc(sentence(status_words(nv.status, nv.cause).capitalize()))
+        closing = self.closing_note(tv, nv)
+        if closing:
+            closing = (
+                '<details class="panel-small"><summary>Closing it through its holes</summary>'
+                f"{closing}</details>"
+            )
+        return (
+            f"{self.revision_note(tv.target_id, nv, in_page=True)}"
+            f'<p class="how-line">{line}</p>{self.split_blocks(tv, nv)}{closing}'
+        )
+
+    def first_sentence_of(self, a: Prose) -> str:
+        """An annex by its first sentence, as inline words with math (F04-T48)."""
+        return prose.inline_math(prose.first_sentence(a.text) or "untitled")
+
+    def known_section(self, tv: TargetView, nv: NodeView) -> str:
+        """What is known: the literature status in one line with its references and summary
+        folded (F04-T38), then the notes (unstepped annexes, T45) by their first sentence, each
+        linked to its full text on the statement's page. Nothing when neither exists."""
+        parts = []
+        confirmed, proposed = nv.literature, nv.literature_proposed
+        lit = confirmed or proposed
+        if lit is not None:
+            if confirmed is not None:
+                who = f"confirmed by <code>{esc(confirmed.confirmed_by or '')}</code>"
+            else:
+                who = f"proposed by <code>{esc(lit.contributor)}</code>, {LITERATURE_AWAITS}"
+            parts.append(
+                f'<p class="lit-line">Literature: <strong>{esc(literature_words(lit.status))}'
+                f"</strong> · {who}</p>"
+                '<details class="panel-small"><summary>References and summary</summary>'
+                f"{self.literature_block(nv)}</details>"
+            )
+        notes = [a for a in nv.annexes if not a.stepped]
+        if notes:
+            page = self.node_path(tv.target_id, nv.node_id)
+            items = "".join(
+                f'<li class="note" data-annex="{esc(Path(a.path).stem)}">'
+                f'<span class="math">{self.first_sentence_of(a)}</span> '
+                f'<a href="{esc(page)}#{annex_anchor(a)}">full text →</a></li>'
+                for a in notes
+            )
+            parts.append(f'<p class="sub">Notes</p><ul class="panel-list notes">{items}</ul>')
+        if not parts:
+            return ""
+        return (
+            '<section class="panel-sec" data-section="known"><h3 class="kicker">What is known'
+            f"</h3>{''.join(parts)}</section>\n"
+        )
+
+    def work_section(self, tv: TargetView, nv: NodeView) -> str:
+        """Work on it: the plans (stepped annexes, T45) by their first sentence, each saying which
+        merged decomposition followed it; on the root, the target's approach records (D-14),
+        which name no node (Q47); then the action."""
+        parts = []
+        decomps = list(nv.graph_entry.get("decompositions") or [])
+        node_dir = Path(nv.statement_path).parent.as_posix()
+        page = self.node_path(tv.target_id, nv.node_id)
+        plans = []
+        for a in (a for a in nv.annexes if a.stepped):
+            digest = Path(a.path).stem
+            following = [d for d in decomps if d.get("annex") == digest]
+            if following:
+                runs = ", ".join(
+                    self.file_link(f"{node_dir}/{d['partial']}", label=Path(d["partial"]).name)
+                    for d in following
+                )
+                state = f"followed by {runs}"
+            else:
+                state = "not followed by any merged decomposition"
+            plans.append(
+                f'<li class="plan" data-annex="{esc(digest)}">'
+                f'<span class="math">{self.first_sentence_of(a)}</span> — {state} · '
+                f'<a href="{esc(page)}#{annex_anchor(a)}">full text →</a></li>'
+            )
+        if plans:
+            parts.append(
+                f'<p class="sub">Plans</p><ul class="panel-list plans">{"".join(plans)}</ul>'
+            )
+        if nv.node_id == tv.root and tv.approaches:
+            where = f"targets/{tv.target_id}/approaches"
+            items = "".join(
+                f"<li>{self.file_link(f'{where}/{name}', label=name)}</li>"
+                for name in tv.approaches
+            )
+            parts.append(
+                '<p class="sub">Approaches recorded as tried (D-14)</p>'
+                f'<ul class="panel-list approaches">{items}</ul>'
+            )
+        parts.append(self.panel_action(tv, nv))
+        return (
+            '<section class="panel-sec" data-section="work"><h3 class="kicker">Work on it</h3>'
+            f"{''.join(parts)}</section>\n"
+        )
+
+    def panel_action(self, tv: TargetView, nv: NodeView) -> str:
+        state = self.node_state(nv)
+        href = esc(self.node_path(tv.target_id, nv.node_id))
+        if state == "open":
+            return (
+                f'<a class="btn btn-primary btn-block" href="{href}">Work on this statement →</a>'
+            )
+        if state == NEEDS_WITNESS:
+            return f'<a class="btn btn-primary btn-block" href="{href}">Supply a witness →</a>'
+        if state == "proved":
+            return f'<a class="btn btn-primary btn-block" href="{href}">View the proof →</a>'
+        return f'<a class="btn btn-secondary btn-block" href="{href}">View the record →</a>'
+
+    def panel_reading_notes(self, nv: NodeView) -> str:
+        """The explanatory sentences the panel used to show inline, kept in its record details:
+        the ``:= by sorry`` note (F22-T18), what a split's partial proof does and where a hole's
+        words come from (T46), and how to read the record."""
+        split = (
+            "<p>In a split, the partial proof assumes each and proves this statement from them. "
+            "A hole&rsquo;s words are the opening math of its gloss, contributor text not checked "
+            "against the Lean (D-3); without one, its Lean.</p>"
+            if nv.graph_entry.get("decompositions")
+            else ""
+        )
+        return (
+            f"{sorry_note(nv.statement)}{split}"
+            f'<p><a href="{READING_HREF}">How to read this →</a></p>'
+        )
+
+    # --- F04-T46, T47 (Q45, Q46): how a statement was split, self-contained -------------------
+    # Everything the "Split into" block and a hole's origin line need is read here, from the
+    # node's ``graph.json`` row (``decompositions``) and the tree, so the block can move to
+    # wherever the panel's layout puts it: the panel template only places ``$split``/``$hole_of``.
+
+    def split_blocks(self, tv: TargetView, nv: NodeView) -> str:
+        """T46: one "Split into" block per merged decomposition of the node, in record order."""
+        decomps = [d for d in nv.graph_entry.get("decompositions") or [] if isinstance(d, dict)]
+        return "".join(self.split_block(tv, nv, d) for d in decomps)
+
+    def partial_view(self, nv: NodeView, partial: str) -> PartialView | None:
+        """The ``attempts/`` file a decomposition names (node-relative), as the model read it."""
+        rel = f"{Path(nv.statement_path).parent.as_posix()}/{partial}"
+        return next((p for p in nv.partials if p.file.path == rel), None)
+
+    def split_block(self, tv: TargetView, nv: NodeView, d: dict[str, Any]) -> str:
+        """T46: the partial that split the node, that it merged (and its attestation when one
+        names it), then a row per hole; T47: the partial's Lean, folded."""
+        partial = str(d.get("partial") or "")
+        rel = f"{Path(nv.statement_path).parent.as_posix()}/{partial}"
+        name = Path(partial).name
+        pv = self.partial_view(nv, partial)
+        merged = "merged"
+        if pv is not None and pv.merge_commit:
+            merged += f" in <code>{esc(pv.merge_commit[:12])}</code>"
+        if pv is not None and pv.attestation_path:
+            stem = Path(pv.attestation_path).stem
+            merged += ", " + self.file_link(pv.attestation_path, label=f"attestation {stem}")
+        holes = [h for h in d.get("holes") or [] if isinstance(h, dict)]
+        rows = "".join(self.split_hole_row(tv, h) for h in holes)
+        noun = "hole" if len(holes) == 1 else "holes"
+        return (
+            f'<section class="split-into" data-partial="{esc(partial)}">'
+            '<span class="kicker">Split into</span>'
+            f'<p class="split-by">Proved from {"this" if len(holes) == 1 else "these"} {noun} by '
+            f"{self.file_link(rel, label=name)} ({merged}).</p>"
+            f'<ul class="split-holes">{rows}</ul>'
+            f"{self.split_lean(pv, rel)}</section>"
+        )
+
+    def split_hole_row(self, tv: TargetView, hole: dict[str, Any]) -> str:
+        """T46: one hole — its name, the node it became as an in-page link with its state, and
+        what that node says."""
+        node_id = str(hole.get("node") or "")
+        child = tv.nodes.get(node_id) if node_id else None
+        name = f"<code>{esc(str(hole.get('name') or ''))}</code>"
+        if child is None:
+            return (
+                f'<li class="split-hole"><span class="split-name">{name}</span> '
+                "no statement on the record</li>"
+            )
+        state = self.node_state(child)
+        return (
+            f'<li class="split-hole" data-node="{esc(child.node_id)}">'
+            f'<span class="split-name">{name} → <a href="#node={esc(child.node_id)}">'
+            f"{esc(child.node_id)}</a> ({self.dot(self.dot_state(state))}"
+            f"{esc(self.state_label(state))})</span>"
+            f"{self.hole_statement(tv, child)}</li>"
+        )
+
+    def hole_statement(self, tv: TargetView, child: NodeView) -> str:
+        """T46: the first block of the child's current statement gloss when the gloss opens with
+        math (F20-T16's contract), rendered for the math renderer; otherwise its Lean
+        declaration."""
+        subject = tv.gloss_subject("statement", node=child.node_id)
+        for v in subject.describing() if subject is not None else []:
+            if glossesmod.opens_with_math(v.body):
+                first = v.body.strip().split("\n\n", 1)[0]
+                return f'<div class="prose split-gloss">{prose.render(first, math=True)}</div>'
+        return f'<pre class="lean split-stmt">{esc(declaration_only(child.statement))}</pre>'
+
+    def split_lean(self, pv: PartialView | None, rel: str) -> str:
+        """T47 (Q46): the partial's Lean from its theorem line on (the statement panel's trim,
+        ``declaration_only``: imports, ``open`` lines and the module doc comment left to the
+        file), closed by default, with its link. Nothing when the tree does not hold the file."""
+        if pv is None:
+            return ""
+        return (
+            '<details class="split-lean"><summary>Read the partial proof (Lean)</summary>'
+            f'<pre class="lean">{esc(declaration_only(pv.file.text))}</pre>'
+            '<p class="split-link">The gate replayed this file at its merge, each hole a '
+            f"<code>sorry</code> (D-12 #5); the whole file: {self.file_link(rel)}</p></details>"
+        )
+
+    def hole_origin(self, tv: TargetView, nv: NodeView) -> str:
+        """T46: on a hole's panel, the parent whose merged partial made it, one line each (a
+        node a partial restated as a lemma hole is named by that parent too)."""
+        lines = []
+        for parent in tv.nodes.values():
+            for d in parent.graph_entry.get("decompositions") or []:
+                if not isinstance(d, dict):
+                    continue
+                for h in d.get("holes") or []:
+                    if not isinstance(h, dict) or h.get("node") != nv.node_id:
+                        continue
+                    partial = str(d.get("partial") or "")
+                    rel = f"{Path(parent.statement_path).parent.as_posix()}/{partial}"
+                    what = (
+                        "Hole"
+                        if graphmod.is_hole_of(
+                            parent.node_id, nv.node_id, str(nv.graph_entry.get("origin"))
+                        )
+                        else "Restated as hole"
+                    )
+                    lines.append(
+                        f'<p class="hole-of">{what} <code>{esc(str(h.get("name") or ""))}</code> '
+                        f'of <a href="#node={esc(parent.node_id)}">{esc(parent.node_id)}</a> '
+                        f"(split by {self.file_link(rel, label=Path(partial).name)}).</p>"
+                    )
+        return "".join(lines)
 
     # --- F15-R10: stewards, the digestion state, the calibration label ----------------------------
 
@@ -3175,6 +3578,24 @@ class Renderer:
         return (
             f'<a class="btn btn-secondary" href="{esc(Renderer.steward_path(tv.target_id))}">'
             "Become its steward</a>"
+        )
+
+    @staticmethod
+    def panel_logins(tv: TargetView) -> list[str]:
+        """The problem's panel as the gate counts it for admission (F24-R4): its unlapsed
+        members, or before the panel index (targets-index/v9) its stewards."""
+        if tv.panel is not None:
+            return [str(m) for m in tv.panel.get("members") or []]
+        return [str(s["login"]) for s in tv.stewards]
+
+    def co_steward_cue(self, tv: TargetView) -> str:
+        """F04-T44 (D-32 v3.34): on a problem with a steward, a co-steward is welcome and joins by
+        the panel's invitation or a curator, which the steward form page explains."""
+        return (
+            '<p class="co-steward">Co-stewards are welcome. The problem&rsquo;s panel invites a '
+            "new steward, who accepts, or a curator adds one. "
+            f'<a href="{esc(self.steward_path(tv.target_id))}">How to join →</a> · '
+            f'<a href="{RULES_PATH}">the panel&rsquo;s rules</a></p>'
         )
 
     @staticmethod
@@ -3668,6 +4089,10 @@ class Renderer:
                 f"{esc(standing)}; recorded by {esc(str(doc['recorded_by']))} on "
                 f"{esc(str(doc['date']))} from the catalog at "
                 f"<code>{esc(str(catalog['network_commit'])[:12])}</code>.</p>"
+                # F04-T43: a reason's "+2" is score points, not a count of attempts; said so,
+                # it no longer reads against the attempts line below.
+                f'<p class="reasons-head">Catalog score {esc(str(catalog["score"]))}: the '
+                "reasons, in score points (not counts of attempts):</p>"
                 f'<ul class="reasons">{reasons}</ul>'
                 f"<p>{issue_line}{history_line}{hazard_line}</p></div>"
             )
@@ -3876,6 +4301,7 @@ class Renderer:
                         "untrusted", "an annex (D-31): an informal argument, not a proof."
                     ),
                     block="annex",
+                    element_id=annex_anchor(a),
                 )
                 for a in nv.annexes
             )
@@ -5854,6 +6280,7 @@ class Renderer:
         provenance: str = "",
         block: str = "",
         anchors: str | None = None,
+        element_id: str = "",
     ) -> str:
         """R4: contributor text in a labelled block, with author and model when recorded. A
         document (the graph's AGENTS.md) goes through the document renderer, its level-2
@@ -5875,6 +6302,8 @@ class Renderer:
             by.append(f"licence {esc(prose_.licence)}")
         who = ", ".join(by) or "author not recorded"
         kind = f' data-block="{esc(block)}"' if block else ""
+        if element_id:  # F04-T45: a statement panel's annex item links here
+            kind += f' id="{esc(element_id)}"'
         return (
             f'<div class="prose-block {esc(label)}"{kind}>{provenance}<p class="label">'
             f"{esc(label.capitalize())}: {esc(what)}, {who}. "

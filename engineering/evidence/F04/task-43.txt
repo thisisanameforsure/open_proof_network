@@ -1,0 +1,33 @@
+F04-T43 — the catalog's reasons are labelled as score points (2026-10-12)
+
+Verification command:
+  uv run --frozen pytest site/tests/test_finding_catalog_points.py site/tests/test_render_evidence.py -v
+
+=== RED (test first, before render.py changed) ===
+site/tests/test_finding_catalog_points.py::test_the_reasons_are_headed_as_the_scores_points FAILED [100%]
+E       AssertionError: 
+E       assert 'Catalog score 6' in ''
+FAILED site/tests/test_finding_catalog_points.py::test_the_reasons_are_headed_as_the_scores_points
+
+=== GREEN ===
+site/tests/test_finding_catalog_points.py::test_the_reasons_are_headed_as_the_scores_points PASSED [ 12%]
+site/tests/test_render_evidence.py::test_the_target_page_shows_the_evidence PASSED [ 25%]
+site/tests/test_render_evidence.py::test_the_evidence_is_escaped PASSED  [ 37%]
+site/tests/test_render_evidence.py::test_the_target_page_says_a_proof_merges_on_the_gate PASSED [ 50%]
+site/tests/test_render_evidence.py::test_the_formalization_and_its_verdict_are_listed PASSED [ 62%]
+site/tests/test_render_evidence.py::test_the_problems_card_is_open_and_the_page_carries_the_review_sentence PASSED [ 75%]
+site/tests/test_render_evidence.py::test_a_root_without_evidence_waits_for_a_person PASSED [ 87%]
+site/tests/test_render_evidence.py::test_a_node_page_under_the_evidenced_target_is_claimable PASSED [100%]
+============================== 8 passed in 0.92s ===============================
+
+=== Screenshot (task-43-shoot.py): the evidence block at 1440 and 390, inner text and no sideways scroll ===
+{
+  "1440": {
+    "text": "Catalog evidence (F14): score 6 (A) for erdos:42, pinned to the root as it stands; recorded by curator on 2026-09-14 from the catalog at 111111111111.\n\nCatalog score 6: the reasons, in score points (not counts of attempts):\n\n+2 Bloom selected it for FrontierMath Erdős\n+2 attempted by AlphaProof Nexus (Feb 2026), not solved\n+1 no misformalization issue ever filed <script>alert('reason')</script>\n+1 Lean statement public for 180+ days\n\nNo misformalization issue on record. In the registry since 2025-04-26, last changed 2026-07-16, 13 commits. Wording hazards: density.",
+    "scrollWidth": 1440
+  },
+  "390": {
+    "text": "Catalog evidence (F14): score 6 (A) for erdos:42, pinned to the root as it stands; recorded by curator on 2026-09-14 from the catalog at 111111111111.\n\nCatalog score 6: the reasons, in score points (not counts of attempts):\n\n+2 Bloom selected it for FrontierMath Erdős\n+2 attempted by AlphaProof Nexus (Feb 2026), not solved\n+1 no misformalization issue ever filed <script>alert('reason')</script>\n+1 Lean statement public for 180+ days\n\nNo misformalization issue on record. In the registry since 2025-04-26, last changed 2026-07-16, 13 commits. Wording hazards: density.",
+    "scrollWidth": 390
+  }
+}

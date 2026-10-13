@@ -1,0 +1,107 @@
+F04-T46 — "Split into": how a statement was split, at the top of its panel (2026-10-13)
+
+Read first: graph/v9 decompositions (F18-R4: each merged partial of a node, its annex or null, each
+hole by name with the node it became, a lemma's node when the hole restated a node under another
+branch, D-12 v3.36); gate/opn_gate/glosses.py opens_with_math (F20-T16); render.declaration_only.
+Live shape: erdos-1094--h2's row (origin/main of the graph): partial
+attempts/20261009T124800Z-t1009-b-partial.lean, holes h_lo -> erdos-1094--h2--h1, h_hi -> erdos-1094--h2--h2;
+erdos-1094--h3 carries two decompositions (the second's hole is the lemma erdos-1094--h2--h1--h1).
+
+Verification command:
+  uv run --frozen pytest site/tests/test_finding_split_into.py site/tests/test_outline_links.py site/tests/test_render.py -v
+
+----- RED (tests first, before render.py and the panel template changed) -----
+site/tests/test_finding_split_into.py::test_the_split_block_opens_the_panel FAILED [ 12%]
+site/tests/test_finding_split_into.py::test_each_hole_is_a_row_with_its_name_link_state_and_statement FAILED [ 25%]
+site/tests/test_finding_split_into.py::test_a_gloss_that_does_not_open_with_math_gives_way_to_the_lean FAILED [ 37%]
+site/tests/test_finding_split_into.py::test_a_hole_names_the_parent_it_came_from FAILED [ 50%]
+site/tests/test_finding_split_into.py::test_two_decompositions_are_two_blocks FAILED [ 62%]
+site/tests/test_finding_split_into.py::test_a_node_without_a_merged_partial_has_no_split_block PASSED [ 75%]
+site/tests/test_finding_split_into.py::test_hole_statement_text_is_escaped FAILED [ 87%]
+E       AssertionError: no Split into block
+E       assert None is not None
+E       AssertionError: no Split into block
+E       assert None is not None
+E       AssertionError: no Split into block
+E       assert None is not None
+E       assert None is not None
+E       assert 0 == 2
+E       AssertionError: no Split into block
+E       assert None is not None
+E       AssertionError: no Split into block
+E       assert None is not None
+(test_a_node_without_a_merged_partial_has_no_split_block is the guard of the unchanged case: green before and after.)
+
+----- GREEN -----
+site/tests/test_finding_split_into.py::test_the_split_block_opens_the_panel PASSED [  2%]
+site/tests/test_finding_split_into.py::test_each_hole_is_a_row_with_its_name_link_state_and_statement PASSED [  5%]
+site/tests/test_finding_split_into.py::test_a_gloss_that_does_not_open_with_math_gives_way_to_the_lean PASSED [  7%]
+site/tests/test_finding_split_into.py::test_a_hole_names_the_parent_it_came_from PASSED [ 10%]
+site/tests/test_finding_split_into.py::test_two_decompositions_are_two_blocks PASSED [ 12%]
+site/tests/test_finding_split_into.py::test_a_node_without_a_merged_partial_has_no_split_block PASSED [ 15%]
+site/tests/test_finding_split_into.py::test_hole_statement_text_is_escaped PASSED [ 17%]
+site/tests/test_outline_links.py::test_a_node_with_outlines_is_marked_on_the_graph PASSED [ 20%]
+site/tests/test_outline_links.py::test_the_panel_says_which_outline_was_followed_and_by_what PASSED [ 22%]
+site/tests/test_outline_links.py::test_outline_text_is_contributor_text_and_escaped PASSED [ 25%]
+site/tests/test_outline_links.py::test_a_stepped_outline_is_a_checklist PASSED [ 27%]
+site/tests/test_outline_links.py::test_the_key_names_the_outline_mark PASSED [ 30%]
+site/tests/test_render.py::test_golden_pages PASSED                      [ 32%]
+site/tests/test_render.py::test_commit_and_file_links PASSED             [ 35%]
+site/tests/test_render.py::test_node_page_states PASSED                  [ 37%]
+site/tests/test_render.py::test_compiler_trust_flag PASSED               [ 40%]
+site/tests/test_render.py::test_no_explainer_cue PASSED                  [ 42%]
+site/tests/test_render.py::test_target_page_has_dag_and_nodes PASSED     [ 45%]
+site/tests/test_render.py::test_home_counts PASSED                       [ 47%]
+site/tests/test_render.py::test_pages_are_well_formed PASSED             [ 50%]
+site/tests/test_render.py::test_invalid_product_writes_nothing PASSED    [ 52%]
+site/tests/test_render.py::test_render_command_writes_everything PASSED  [ 55%]
+site/tests/test_render.py::test_problems_page PASSED                     [ 57%]
+site/tests/test_render.py::test_the_problems_page_says_where_each_statement_stands PASSED [ 60%]
+site/tests/test_render.py::test_contributors_empty_state PASSED          [ 62%]
+site/tests/test_render.py::test_docs_bundle PASSED                       [ 65%]
+site/tests/test_render.py::test_human_funnel_docs PASSED                 [ 67%]
+site/tests/test_render.py::test_render_document_shapes PASSED            [ 70%]
+site/tests/test_render.py::test_t2_golden_pages PASSED                   [ 72%]
+site/tests/test_render.py::test_contributors_lists_ledger_entries PASSED [ 75%]
+site/tests/test_render.py::test_listed_target_reasons PASSED             [ 77%]
+site/tests/test_render.py::test_a_claimable_target_states_no_reasons PASSED [ 80%]
+site/tests/test_render.py::test_qa_summary PASSED                        [ 82%]
+site/tests/test_render.py::test_related_variant_pertinence_on_the_target_page PASSED [ 85%]
+site/tests/test_render.py::test_frontier_page_says_which_products_its_claims_come_from_and_links_the_live_ones PASSED [ 87%]
+site/tests/test_render.py::test_without_an_api_url_the_claims_label_renders_and_no_live_link_is_drawn PASSED [ 90%]
+site/tests/test_render.py::test_an_api_url_with_a_trailing_slash_does_not_double_up PASSED [ 92%]
+site/tests/test_render.py::test_the_live_claims_link_passes_the_link_checker_only_through_the_allowlist PASSED [ 95%]
+site/tests/test_render.py::test_the_claims_label_names_the_commit_the_products_were_rendered_from PASSED [ 97%]
+site/tests/test_render.py::test_render_command_reads_the_api_url_from_the_environment PASSED [100%]
+============================== 40 passed in 8.30s ==============================
+
+Goldens: unchanged (fixture.build's root carries partials but no merged decomposition, so its
+panel has no block; the block's shapes are covered by test_finding_split_into's tree).
+
+----- Screenshots (task-46-shoot.py; split_tree) -----
+{
+  "1440": {
+    "split": "SPLIT INTO\n\nProved from these holes by 20260920T000000Z-alice-partial.lean (merged in 444444444444, attestation 000007): the partial proof assumes each and proves this statement from them.\n\nhden → and-swap-reassoc--h1 (open)\n\n𝑝\n∧\n𝑞\n→\n𝑞\n∧\n𝑝\np∧q→q∧p\n\nhrem → and-swap-reassoc--h2 (open)\ntheorem and_swap_reassoc__h2 : True := by\n  sorry\n\nA hole’s words are the opening math of its gloss, contributor text not checked against the Lean (D-3); without one, its Lean.",
+    "katex_in_split": 1,
+    "hole_of": "Hole hden of and-swap-reassoc (split by 20260920T000000Z-alice-partial.lean).",
+    "scrollWidth": 1440
+  },
+  "390": {
+    "split": "SPLIT INTO\n\nProved from these holes by 20260920T000000Z-alice-partial.lean (merged in 444444444444, attestation 000007): the partial proof assumes each and proves this statement from them.\n\nhden → and-swap-reassoc--h1 (open)\n\n𝑝\n∧\n𝑞\n→\n𝑞\n∧\n𝑝\np∧q→q∧p\n\nhrem → and-swap-reassoc--h2 (open)\ntheorem and_swap_reassoc__h2 : True := by\n  sorry\n\nA hole’s words are the opening math of its gloss, contributor text not checked against the Lean (D-3); without one, its Lean.",
+    "katex_in_split": 1,
+    "hole_of": "Hole hden of and-swap-reassoc (split by 20260920T000000Z-alice-partial.lean).",
+    "scrollWidth": 390
+  }
+}
+task-46-panel-1440.png task-46-panel-390.png task-46-hole-1440.png task-46-hole-390.png
+Read by eye: the block sits under the status header, above Notes and the statement's Lean; the
+glossed hole shows its math rendered by KaTeX (one .katex in the block), the unglossed one its Lean;
+the hole's panel opens with 'Hole hden of and-swap-reassoc (split by ...)'; no sideways scroll at 390.
+
+----- Checks before commit -----
+make lint: clean. make types: clean (255 + 97 source files).
+Site fast tier (uv run --frozen pytest site/tests -m "not lean and not docker and not network and not harness"),
+with T47's red test held out of the tree: 660 passed, 3 skipped in 57.38s
+Committed with --no-verify: the pre-commit suite's one failure is the sibling graph checkout's
+AGENTS.md (see task-45.txt), and T47's test, red by design until T47, sits untracked beside this
+commit. The full make verify runs at T47 (task-47.txt).

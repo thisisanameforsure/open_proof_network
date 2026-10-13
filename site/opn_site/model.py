@@ -17,6 +17,7 @@ from typing import Any
 import yaml
 
 from opn_gate import (
+    annex,
     evidence,
     explainers,
     glosses,
@@ -88,6 +89,15 @@ class Prose:
     model: str | None = None
     date: str | None = None
     licence: str | None = None  # F18-R10: annex/v1 records one
+    #: F04-T45 (Q44): the front matter's ``schema``, and an ``annex/v2`` annex's step ids
+    #: (``annex.steps_of``); ``None`` for an annex that names no steps — a note, not an outline.
+    schema: str | None = None
+    steps: tuple[str, ...] | None = None
+
+    @property
+    def stepped(self) -> bool:
+        """F04-T45: an outline (D-31 v3.26) is an annex that names its steps."""
+        return bool(self.steps)
 
 
 #: F18-T3 (R10): the front-matter keys each field is read from. Explainers write ``author`` and
@@ -806,6 +816,7 @@ def parse_prose(path: Path, root: Path) -> Prose:
     """A text file with optional YAML-style front matter naming author, model, date and licence
     (``PROSE_KEYS``: an explainer's names and an annex's)."""
     text = path.read_text(encoding="utf-8")
+    found = annex.steps_of(text)
     raw: dict[str, str] = {}
     m = _FRONT_MATTER_RE.match(text)
     if m:
@@ -822,6 +833,8 @@ def parse_prose(path: Path, root: Path) -> Prose:
         model=meta["model"],
         date=meta["date"],
         licence=meta["licence"],
+        schema=raw.get("schema") or None,
+        steps=tuple(st.id for st in found) if found is not None else None,
     )
 
 

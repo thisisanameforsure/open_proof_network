@@ -1,0 +1,68 @@
+F04-T44 — co-stewards: the problem page welcomes one and the form page says a new steward comes by invitation (2026-10-12)
+
+Rule read first: docs/architecture_decisions.html D-32 v3.34 'Who joins': once a target has a steward, a new one
+joins by a passed motion and their own acceptance, or by a curator adding them directly; a lone steward's
+invitation passes on the invitee's acceptance. Gate: gate/opn_gate/modes.py steward-invitation-required (F24-R4).
+
+Verification command:
+  uv run --frozen pytest site/tests/test_finding_co_stewards.py site/tests/test_steward_links.py site/tests/test_render_stewards.py -v
+
+=== RED (tests first, before render.py and steward.js changed) ===
+site/tests/test_finding_co_stewards.py::test_the_problem_page_welcomes_a_co_steward_and_says_how FAILED [ 25%]
+site/tests/test_finding_co_stewards.py::test_the_form_page_says_up_front_a_new_steward_comes_by_invitation FAILED [ 50%]
+site/tests/test_finding_co_stewards.py::test_a_problem_with_no_steward_keeps_the_self_commit_form PASSED [ 75%]
+site/tests/test_finding_co_stewards.py::test_the_script_draws_no_self_commit_form_where_an_invitation_is_required FAILED [100%]
+E       AssertionError: Steward Alice Steward &lt;b&gt;not bold&lt;/b&gt; admitted by curator Committed to understand and write up whatever the network produces here, and to sign the explainer of the proof that closes it. alice-steward since 2026-09-16.
+E       assert 'Co-stewards are welcome' in 'Steward Alice Steward &lt;b&gt;not bold&lt;/b&gt; admitted by curator Committed to understand and write up whatever the network produces here, and to sign the explainer of the proof that closes it. alice-steward since 2026-09-16.'
+E       AssertionError: Needs a steward / stewarded-target Steward stewarded-target For every natural number n there is a prime greater than n. The problem&rsquo;s page → Its steward: Alice Steward &lt;b&gt;not bold&lt;/b&gt; admitted by curator . A problem may have several, who hold the role jointly.
+E       assert ('by invitation' in 'Needs a steward / stewarded-target Steward stewarded-target For every natural number n there is a prime greater than n. The problem&rsquo;s page → Its steward: Alice Steward &lt;b&gt;not bold&lt;/b&gt; admitted by curator . A problem may have several, who hold the role jointly.')
+E       ValueError: substring not found
+FAILED site/tests/test_finding_co_stewards.py::test_the_problem_page_welcomes_a_co_steward_and_says_how
+FAILED site/tests/test_finding_co_stewards.py::test_the_form_page_says_up_front_a_new_steward_comes_by_invitation
+FAILED site/tests/test_finding_co_stewards.py::test_the_script_draws_no_self_commit_form_where_an_invitation_is_required
+
+=== GREEN ===
+site/tests/test_finding_co_stewards.py::test_the_problem_page_welcomes_a_co_steward_and_says_how PASSED [  5%]
+site/tests/test_finding_co_stewards.py::test_the_form_page_says_up_front_a_new_steward_comes_by_invitation PASSED [ 10%]
+site/tests/test_finding_co_stewards.py::test_a_problem_with_no_steward_keeps_the_self_commit_form PASSED [ 15%]
+site/tests/test_finding_co_stewards.py::test_the_script_draws_no_self_commit_form_where_an_invitation_is_required PASSED [ 20%]
+site/tests/test_steward_links.py::test_every_page_has_the_session_slot_and_script PASSED [ 25%]
+site/tests/test_steward_links.py::test_without_a_service_the_slot_stays_and_no_script_loads PASSED [ 30%]
+site/tests/test_steward_links.py::test_home_and_problems_link_needs_a_steward_with_its_count PASSED [ 35%]
+site/tests/test_steward_links.py::test_the_steward_index_lists_the_problems_without_one PASSED [ 40%]
+site/tests/test_steward_links.py::test_every_target_has_a_steward_page PASSED [ 45%]
+site/tests/test_steward_links.py::test_the_steward_page_carries_what_the_form_needs_and_no_control PASSED [ 50%]
+site/tests/test_steward_links.py::test_a_problem_that_takes_no_steward_says_so_and_draws_no_form PASSED [ 55%]
+site/tests/test_steward_links.py::test_steward_calls_to_action_go_to_the_form_never_the_docs PASSED [ 60%]
+site/tests/test_steward_links.py::test_no_static_page_has_a_session_control PASSED [ 65%]
+site/tests/test_render_stewards.py::test_the_stewarded_target_names_its_steward PASSED [ 70%]
+site/tests/test_render_stewards.py::test_the_stewardless_target_says_so_in_words PASSED [ 75%]
+site/tests/test_render_stewards.py::test_the_resolved_target_shows_its_digestion_state PASSED [ 80%]
+site/tests/test_render_stewards.py::test_the_calibration_target_is_labelled PASSED [ 85%]
+site/tests/test_render_stewards.py::test_the_signed_explainer_is_vouched_for_above_the_label PASSED [ 90%]
+site/tests/test_render_stewards.py::test_the_home_counts_lead_with_coverage PASSED [ 95%]
+site/tests/test_render_stewards.py::test_every_new_link_is_on_the_allowlist PASSED [100%]
+============================== 20 passed in 2.83s ==============================
+
+=== Screenshots (task-44-shoot.py): steward card and steward form page of the stewarded fixture target, 1440 and 390 ===
+{
+  "1440": {
+    "card": "STEWARD\nAlice Steward <b>not bold</b> admitted by curator\n\nCommitted to understand and write up whatever the network produces here, and to sign the explainer of the proof that closes it. alice-steward since 2026-09-16.\n\nCo-stewards are welcome. The problem’s panel invites a new steward, who accepts, or a curator adds one. How to join → · the panel’s rules",
+    "card_page_scrollWidth": 1440,
+    "form_head": "Needs a steward / stewarded-target\n\nSteward stewarded-target\n\nFor every natural number n there is a prime greater than n.\n\nThe problem’s page →\n\nIts steward: Alice Steward <b>not bold</b> admitted by curator. A problem may have several, who hold the role jointly.\n\nThis problem has a steward, so a new steward joins by invitation: a member of its panel invites you by your GitHub login and you accept in the problem’s Panel section, or a curator adds you directly (D-32). Co-stewards are welcome: to ask, write to a steward or open an issue. The panel’s rules →",
+    "form_card_visible": false,
+    "form_page_scrollWidth": 1440
+  },
+  "390": {
+    "card": "STEWARD\nAlice Steward <b>not bold</b> admitted by curator\n\nCommitted to understand and write up whatever the network produces here, and to sign the explainer of the proof that closes it. alice-steward since 2026-09-16.\n\nCo-stewards are welcome. The problem’s panel invites a new steward, who accepts, or a curator adds one. How to join → · the panel’s rules",
+    "card_page_scrollWidth": 390,
+    "form_head": "Needs a steward / stewarded-target\n\nSteward stewarded-target\n\nFor every natural number n there is a prime greater than n.\n\nThe problem’s page →\n\nIts steward: Alice Steward <b>not bold</b> admitted by curator. A problem may have several, who hold the role jointly.\n\nThis problem has a steward, so a new steward joins by invitation: a member of its panel invites you by your GitHub login and you accept in the problem’s Panel section, or a curator adds you directly (D-32). Co-stewards are welcome: to ask, write to a steward or open an issue. The panel’s rules →",
+    "form_card_visible": false,
+    "form_page_scrollWidth": 390
+  }
+}
+
+form_card_visible false: the form card hides itself while its slot is empty (site.css :has rule), so a visitor
+who is not a steward sees the explanation and no form; a current steward still gets Step down from steward.js.
+steward.js's new branch is checked statically (order of stepDown / invitation flag / form in the session handler);
+the playwright web-flow tier is not installed in this venv (test_web_flows.py skips).

@@ -187,11 +187,12 @@ def test_self_and_a_curator_are_the_admissions_under_open(
 ) -> None:
     """A policy/v1 file, or policy/v2 ``open``: ``self`` is admitted, and so is a listed
     curator's login (F24-R4, D-32 v3.34: "a listed curator's login at any time"; under v3.33 a
-    curator was refused here); any other login is not."""
+    curator was refused here); any other login is not. Each record is a different login's, since
+    a second commitment from an active login is a restatement (F24-T7)."""
     graph.set_policy(admission)
     assert graph.codes(graph.v2()) == []
-    assert graph.codes(graph.v2(admitted_by=CURATOR)) == []
-    assert "steward-admission" in graph.codes(graph.v2(admitted_by="not-a-curator"))
+    assert graph.codes(graph.v2(login="bob", admitted_by=CURATOR)) == []
+    assert "steward-admission" in graph.codes(graph.v2(login="cat", admitted_by="not-a-curator"))
 
 
 def test_self_under_reviewed_is_refused(graph: Graph) -> None:
@@ -203,7 +204,7 @@ def test_self_under_reviewed_is_refused(graph: Graph) -> None:
 def test_reviewed_admits_a_listed_curator_only(graph: Graph) -> None:
     graph.set_policy("reviewed")
     assert graph.codes(graph.v2(admitted_by=CURATOR)) == []
-    other = graph.v2(admitted_by="not-a-curator")
+    other = graph.v2(login="bob", admitted_by="not-a-curator")  # bob: not a restatement (F24-T7)
     assert "steward-admission" in graph.codes(other)
 
 

@@ -695,8 +695,8 @@ TOOLS: tuple[Tool, ...] = (
         (
             "Write the words for one Lean file (a gloss: subject.kind statement, witness "
             "or relation with node_id, or definition with target_id and module) or "
-            "explain one merged proof (an explainer: kind proof, node_id, and proof, the "
-            "hash get_node's outlines give). `supersedes` replaces a chain's current "
+            "explain one merged proof (an explainer: kind proof). A gloss opens with the "
+            "statement in LaTeX (see text). `supersedes` replaces a chain's current "
             "version. `licence` is required; `drafted_with` names the model that drafted "
             "the words, if one did. Refused by code before anything "
             "opens: gloss-subject-mismatch, explainer-proof-unknown, "
@@ -727,7 +727,13 @@ TOOLS: tuple[Tool, ...] = (
                     },
                     "required": ["kind"],
                 },
-                "text": {"type": "string", "description": "the prose, as Markdown"},
+                "text": {
+                    "type": "string",
+                    "description": "Markdown. A gloss opens with the statement in LaTeX ($$…$$ "
+                    "or $…$), every hypothesis and quantifier as the Lean has them; then a few "
+                    "lines on any Lean convention that changes its meaning (floor /, truncated "
+                    "-, %, Nat.minFac at 0 and 1); prose last",
+                },
                 "supersedes": {
                     "type": "string",
                     "pattern": "^[0-9a-f]{64}$",
