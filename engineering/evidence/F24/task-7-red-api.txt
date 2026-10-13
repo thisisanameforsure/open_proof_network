@@ -1,0 +1,112 @@
+warning: `VIRTUAL_ENV=/Users/mikehiggins/Desktop/repos/open_proof_network/.venv` does not match the project environment path `.venv` and will be ignored; use `--active` to target the active environment instead
+.FFFF..................                                                  [100%]
+=================================== FAILURES ===================================
+____________________ test_a_second_commit_restates_the_name ____________________
+
+h = Harness(settings=Settings(store='memory', table_identities=None, table_tokens=None, table_claims=None, parameter_prefi...=<starlette.applications.Starlette object at 0x1093de710>, axle=FakeAxle(calls=[], replies=[], hosted=['lean-4.33.0']))
+tree = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-113/test_a_second_commit_restates_0/graph')
+
+    def test_a_second_commit_restates_the_name(h: Harness, tree: Path) -> None:
+        """F24-T7 (D-32 v3.39): a commitment from an active steward is a restatement, not a 409: it
+        carries the new name and link and the admission of the commitment it restates, on an
+        ``append/`` branch, since it admits nobody. (Until F24-T7 this was ``steward-already-active``,
+        and a steward could never change the name the page shows.)"""
+        carol = sign_in(h, "code_carol")
+        merge(h, tree, post(h, carol))
+        again = post(h, carol, name="Carol Cole", link="https://example.org/carol")
+>       assert again.json()["branch"].startswith("append/")
+               ^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'branch'
+
+api/tests/test_stewards_route.py:130: KeyError
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:80 the graph's head could not be read, serving the branch: no head configured
+__________________ test_an_active_v1_steward_restates_as_self __________________
+
+h = Harness(settings=Settings(store='memory', table_identities=None, table_tokens=None, table_claims=None, parameter_prefi...=<starlette.applications.Starlette object at 0x109425090>, axle=FakeAxle(calls=[], replies=[], hosted=['lean-4.33.0']))
+tree = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-113/test_an_active_v1_steward_rest0/graph')
+
+    def test_an_active_v1_steward_restates_as_self(h: Harness, tree: Path) -> None:
+        """alice's ``steward/v1`` commitment names no admission; her restatement says ``self``,
+        which the gate accepts of a v1 one (F24-T7)."""
+        r = post(h, sign_in(h, "code_alice"), name="Alice A.")
+>       doc = landed(h, tree, r)
+              ^^^^^^^^^^^^^^^^^^
+
+api/tests/test_stewards_route.py:140: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+h = Harness(settings=Settings(store='memory', table_identities=None, table_tokens=None, table_claims=None, parameter_prefi...=<starlette.applications.Starlette object at 0x109425090>, axle=FakeAxle(calls=[], replies=[], hosted=['lean-4.33.0']))
+tree = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-113/test_an_active_v1_steward_rest0/graph')
+response = <Response [409 Conflict]>
+
+    def landed(h: Harness, tree: Path, response: Any) -> dict[str, Any]:
+        """The one pushed file, laid over a copy of the graph and read back through the schema."""
+>       assert response.status_code == 201, response.text
+E       AssertionError: {"error":"steward-already-active","message":"alice is already an active steward of propositional"}
+E       assert 409 == 201
+E        +  where 409 = <Response [409 Conflict]>.status_code
+
+api/tests/test_stewards_route.py:81: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:80 the graph's head could not be read, serving the branch: no head configured
+__________ test_an_invited_stewards_restatement_names_the_invitation ___________
+
+h = Harness(settings=Settings(store='memory', table_identities=None, table_tokens=None, table_claims=None, parameter_prefi...=<starlette.applications.Starlette object at 0x109409a70>, axle=FakeAxle(calls=[], replies=[], hosted=['lean-4.33.0']))
+tree = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-113/test_an_invited_stewards_resta0/graph')
+
+    def test_an_invited_stewards_restatement_names_the_invitation(h: Harness, tree: Path) -> None:
+        """The panel keeps an invited steward off motions put before the invitation by reading
+        ``motion:<n>`` (F24-T5 Q-a), so a restatement saying ``self`` would seat them there; it
+        carries the motion, which only ``steward/v3`` can say."""
+        stand(tree, 2, "carol", "motion:1")
+        serve(h, tree)
+        r = post(h, sign_in(h, "code_carol"), name="Carol Cole")
+>       assert r.status_code == 201, r.text
+E       AssertionError: {"error":"steward-already-active","message":"carol is already an active steward of propositional"}
+E       assert 409 == 201
+E        +  where 409 = <Response [409 Conflict]>.status_code
+
+api/tests/test_stewards_route.py:169: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:80 the graph's head could not be read, serving the branch: no head configured
+______________ test_under_reviewed_a_restatement_needs_no_curator ______________
+
+tree = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-113/test_under_reviewed_a_restatem0/graph')
+approval = ('-----BEGIN OPENSSH PRIVATE KEY-----\nb3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW\nQyNTUxO...ENSSH PRIVATE KEY-----\n', 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFjheqQB0chmYtTZ8RFl1QLtBv2xYmbLxVkjc/c+apDf approval')
+
+    def test_under_reviewed_a_restatement_needs_no_curator(tree: Path, approval: tuple[str, str]) -> None:
+        """A restatement admits nobody, so it goes to ``append/`` for the merge actor, carrying the
+        curator who admitted the steward (F24-T7)."""
+        policy = {
+            "schema": "policy/v2",
+            "steward_rule": {"enforced": False, "since": None, "evidence": None},
+            "steward_admission": "reviewed",
+        }
+        (tree / "policy.json").write_text(json.dumps(policy), encoding="utf-8")
+        stand(tree, 2, "carol", CURATOR)
+        for h in harness_over(tree, {"OPN_API_APPROVAL_SIGNING_KEY": approval[0]}):
+            r = post(h, sign_in(h, "code_carol"), name="Carol Cole")
+>           assert r.json()["branch"].startswith("append/")
+                   ^^^^^^^^^^^^^^^^^^
+E           KeyError: 'branch'
+
+api/tests/test_stewards_route.py:188: KeyError
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:80 the graph's head could not be read, serving the branch: no head configured
+=============================== warnings summary ===============================
+api/tests/api_fakes.py:32
+  /Users/mikehiggins/Desktop/repos/open_proof_network/.claude/worktrees/steward-rename/api/tests/api_fakes.py:32: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient
+
+.venv/lib/python3.13/site-packages/starlette/testclient.py:53
+  /Users/mikehiggins/Desktop/repos/open_proof_network/.claude/worktrees/steward-rename/.venv/lib/python3.13/site-packages/starlette/testclient.py:53: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.
+    _PortalFactoryType = Callable[[], AbstractContextManager[anyio.abc.BlockingPortal]]
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED api/tests/test_stewards_route.py::test_a_second_commit_restates_the_name
+FAILED api/tests/test_stewards_route.py::test_an_active_v1_steward_restates_as_self
+FAILED api/tests/test_stewards_route.py::test_an_invited_stewards_restatement_names_the_invitation
+FAILED api/tests/test_stewards_route.py::test_under_reviewed_a_restatement_needs_no_curator
+4 failed, 19 passed, 2 warnings in 1.68s

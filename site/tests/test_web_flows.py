@@ -58,6 +58,7 @@ class Fake:
     curators: set[str] = field(default_factory=set)
     stewards: dict[str, set[str]] = field(default_factory=dict)
     conflict: set[str] = field(default_factory=set)  # logins POST /stewards answers 409 for
+    # (a commit from a steward of the target is a restatement, F24-T7: 201 like any other)
     open_prs: list[dict[str, Any]] = field(default_factory=list)
     #: F24-T6: login -> GET /session's ``awaiting``; path -> a refusal the next POST answers.
     awaiting: dict[str, dict[str, Any]] = field(default_factory=dict)
@@ -171,9 +172,10 @@ class Handler(http.server.BaseHTTPRequestHandler):
         if url.path == "/stewards":
             held = self.fake.stewards.setdefault(who, set())
             target = body["target"]
-            if body["action"] == "commit" and (target in held or who in self.fake.conflict):
+            if body["action"] == "commit" and who in self.fake.conflict:
                 self.answer(
-                    409, {"error": "steward-already-active", "message": "already a steward"}
+                    409,
+                    {"error": "duplicate-submission", "message": "an identical steward is open"},
                 )
                 return
             if body["action"] == "commit":
@@ -366,14 +368,16 @@ def test_sign_in_then_steward_a_problem(bench: Bench, browser: Any) -> None:
     assert headers.get("X-OPN-Web") == "1" and headers.get("Origin") == bench.stewards_site
     shoot(page, bench, "steward-receipt")
 
-    # Back on the page, the service now lists the target among mira's: Step down, no form.
+    # Back on the page, the service now lists the target among mira's: Step down, and the name
+    # form becomes Update name (F24-T7), never Become steward.
     page.reload()
     page.wait_for_selector(".steward-form button:has-text('Step down')")
-    assert page.query_selector("#steward-name") is None
+    assert page.query_selector(".steward-form button:has-text('Update name')") is not None
+    assert page.query_selector(".steward-form button:has-text('Become steward')") is None
     page.context.close()
 
 
-def test_a_second_commit_says_already(bench: Bench, browser: Any) -> None:
+def test_a_refused_commit_shows_the_services_words(bench: Bench, browser: Any) -> None:
     page = new_page(browser)
     bench.fake.conflict.add("twice")
     _set_home(bench, bench.stewards_site)
@@ -383,8 +387,51 @@ def test_a_second_commit_says_already(bench: Bench, browser: Any) -> None:
     page.wait_for_selector("#steward-name")
     page.check("#steward-accept")
     page.click("button:has-text('Become steward')")
-    page.wait_for_selector(".steward-form .form-error:has-text('already')")
-    assert page.inner_text(".steward-form .form-error") == "You're already its steward."
+    page.wait_for_selector(".steward-form .form-error:has-text('identical')")
+    assert page.inner_text(".steward-form .form-error") == "an identical steward is open"
+    page.context.close()
+
+
+def test_a_steward_changes_the_name_the_page_shows(bench: Bench, browser: Any) -> None:
+    """F24-T7 (F24-Q15): signed in as a steward of the problem, the form starts from the name
+    and link the page shows now; Update name commits again with the new name, a restatement the
+    service writes as one record; Step down is still there."""
+    from fixture import STEWARD_LINK, STEWARD_LOGIN, STEWARD_NAME, STEWARDED_TARGET  # noqa: PLC0415
+
+    from opn_gate import steward  # noqa: PLC0415
+
+    page = new_page(browser)
+    bench.fake.stewards[STEWARD_LOGIN] = {STEWARDED_TARGET}
+    _set_home(bench, bench.stewards_site)
+    bench.fake.next_login = STEWARD_LOGIN
+    path = f"/steward/{STEWARDED_TARGET}/"
+    page.goto(bench.stewards_site + path)
+    page.click(".steward-form a.btn")
+    page.wait_for_url(bench.stewards_site + path)
+    name = page.wait_for_selector("#steward-name")
+    assert name.input_value() == STEWARD_NAME  # as text: the markup in it is not markup
+    assert page.input_value("#steward-link") == STEWARD_LINK
+    assert page.query_selector(".steward-form button:has-text('Step down')") is not None
+    assert page.text_content(".steward-form .kicker") == f"Signed in as {STEWARD_LOGIN}"
+    assert steward.COMMITMENT in page.inner_text(".steward-form .commitment")
+    update = page.locator("button", has_text="Update name")
+    assert update.is_disabled()  # the record restates the commitment, so it is ticked first
+    name.fill("Alice Steward")
+    page.check("#steward-accept")
+    shoot(page, bench, "steward-rename")
+    update.click()
+    receipt = page.wait_for_selector(".steward-form .receipt:has-text('updated')")
+    assert receipt.inner_text().startswith(
+        f"Your name on {STEWARDED_TARGET} is updated; the problem page shows it in a few minutes."
+    )
+    _headers, body = bench.fake.posted("/stewards")[-1]
+    assert body == {
+        "target": STEWARDED_TARGET,
+        "action": "commit",
+        "name": "Alice Steward",
+        "link": STEWARD_LINK,
+        "accept": True,
+    }
     page.context.close()
 
 

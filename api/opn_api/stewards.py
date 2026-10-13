@@ -205,25 +205,35 @@ async def post_stewards(ctx: Context, request: Request) -> Response:
         limit=ctx.settings.stewards_per_day,
         seconds=ratelimit.DAY_S,
     )
-    active = session.is_steward(ctx, target_id, login)
-    if action == steward.COMMIT and active:
-        raise ApiError(
-            409, "steward-already-active", f"{login} is already an active steward of {target_id}"
-        )
-    if action == steward.STEP_DOWN and not active:
+    restated = session.active_commitments(session.steward_records(ctx, target_id)).get(login)
+    if action == steward.STEP_DOWN and restated is None:
         raise ApiError(
             409, "steward-not-active", f"{login} is not an active steward of {target_id}"
         )
     mode = admission(ctx)
-    if action == steward.COMMIT:
+    if action == steward.COMMIT and restated is not None:
+        # F24-T7 (F24-Q15): a restatement changes the name and link the page shows and admits
+        # nobody, so it asks no admission, carries the one it restates and goes to append/.
+        if motion is not None:
+            raise bad(
+                f"{login} is already a steward of {target_id}: a restatement names no invitation",
+                field="motion",
+            )
+        admitted = str(restated.get("admitted_by") or SELF)
+        mode = OPEN
+    elif action == steward.COMMIT:
         from opn_api import panel  # noqa: PLC0415 — panel imports this module
 
         panel.admission_problem(
             ctx, target_id, login, motion, self_admitted=motion is None and mode == OPEN
         )
-    schema = SCHEMA if motion is None else SCHEMA_INVITED
-    if motion is not None:
-        mode = OPEN  # an invitation is admitted by the panel, on an append/ branch
+        if motion is not None:
+            admitted, mode = f"{steward.MOTION_PREFIX}{motion}", OPEN  # the panel admits it
+        else:
+            admitted = admitted_by(ctx, mode)
+    else:
+        admitted = admitted_by(ctx, mode)
+    schema = SCHEMA_INVITED if admitted.startswith(steward.MOTION_PREFIX) else SCHEMA
     doc = sign_record(
         {
             "schema": schema,
@@ -235,9 +245,7 @@ async def post_stewards(ctx: Context, request: Request) -> Response:
             "commitment": steward.SENTENCE_FOR[action],
             "date": ctx.clock.now().strftime("%Y-%m-%d"),
             "via": VIA,
-            "admitted_by": (
-                admitted_by(ctx, mode) if motion is None else f"{steward.MOTION_PREFIX}{motion}"
-            ),
+            "admitted_by": admitted,
         },
         private,
         public,
@@ -256,7 +264,9 @@ async def post_stewards(ctx: Context, request: Request) -> Response:
         kind="steward",
         target_id=target_id,
         node_id=None,
-        written=f"{target_id} {action} {login}",
+        # The name and link are in the key, so a restatement is not the commitment it follows
+        # (F24-T7) while the same form sent twice still is.
+        written=json.dumps([target_id, action, login, name, link]),
         branch_prefix=prefix,
     )
     return JSONResponse(receipt(body, prefix), status_code=201)

@@ -1,0 +1,19 @@
+    
+    ^
+WARNING  opn_gate.products:products.py:1132 propositional/and-swap-reassoc: attempt 2026-09-02-b.yaml does not validate (counted as invalid)
+WARNING  opn_gate.records:records.py:82 attempt record /private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-125/steward-links0/graph/targets/propositional/nodes/and-swap-reassoc/attempts/2026-09-02-b.yaml is invalid and counted as such: cannot read YAML /private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-125/steward-links0/graph/targets/propositional/nodes/and-swap-reassoc/attempts/2026-09-02-b.yaml: while parsing a flow sequence
+  in "<unicode string>", line 1, column 8:
+    route: [oops
+           ^
+expected ',' or ']', but got '<stream end>'
+  in "<unicode string>", line 2, column 1:
+    
+    ^
+WARNING  opn_site.model:model.py:887 resolved-lemma: Proof.lean is not the file attestation attestations/000009.json covers (attested dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd, found b378cb7cadba8366b22489d6e3b9b02875b08a5f4accb077e9466c5f74d90b66); its text is withheld from the page
+=========================== short test summary info ============================
+FAILED site/tests/test_steward_links.py::test_the_steward_page_carries_each_stewards_name_for_the_form
+1 failed, 9 deselected in 1.20s
+E           playwright._impl._errors.TimeoutError: Page.wait_for_selector: Timeout 30000ms exceeded.
+E           Call log:
+E             - waiting for locator("#steward-name") to be visible
+1 failed, 15 deselected in 60.01s (0:01:00)

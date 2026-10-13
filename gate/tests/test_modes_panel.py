@@ -475,7 +475,9 @@ def test_an_open_or_missing_invitation_admits_nobody(graph: Graph) -> None:
     graph.commit("ann", on=-60)
     graph.commit("dan", on=-60)
     graph.motion("ann", on=-1, subject={"login": "ben"})  # open: two members, a window to run
-    assert "steward-invitation" in graph.codes(graph.commit("ben", on=0, admitted_by="motion:1"))
+    first = graph.commit("ben", on=0, admitted_by="motion:1")
+    assert "steward-invitation" in graph.codes(first)
+    (graph.root / first.path).unlink()  # each judged alone: a refused record never merges
     assert "steward-invitation" in graph.codes(graph.commit("ben", on=0, admitted_by="motion:9"))
 
 
@@ -501,7 +503,9 @@ def test_a_fifth_stewardship_is_admitted(graph: Graph) -> None:
 
 def test_a_sixth_stewardship_is_refused(graph: Graph) -> None:
     stewarding(graph, "ann", 5)
-    assert "steward-cap" in graph.codes(graph.commit("ann", on=0))
+    first = graph.commit("ann", on=0)
+    assert "steward-cap" in graph.codes(first)
+    (graph.root / first.path).unlink()  # each judged alone: a refused record never merges
     assert "steward-cap" in graph.codes(graph.commit("ann", on=0, admitted_by=CURATOR))
 
 

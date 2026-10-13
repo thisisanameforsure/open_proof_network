@@ -73,9 +73,13 @@ def test_a_problem_with_no_steward_keeps_the_self_commit_form(pages: dict[str, s
 
 def test_the_script_draws_no_self_commit_form_where_an_invitation_is_required() -> None:
     """The slot's flag reaches steward.js: a signed-in visitor who is not yet a steward of such a
-    problem gets no commit form (a current steward still gets Step down)."""
+    problem gets no commit form (a current steward still gets Step down, and since F24-T7 the
+    Update name form beside it, which is ``form(s, now)``; a newcomer's form is
+    ``form(s, null)``)."""
     js = STEWARD_JS.read_text(encoding="utf-8")
     then = js[js.index("O.session.then") :]
     assert (
-        then.index("stepDown(s)") < then.index('invitation === "required"') < then.index("form(s)")
+        then.index("stepDown(s)")
+        < then.index('invitation === "required"')
+        < then.index("form(s, null)")
     ), then

@@ -484,8 +484,9 @@ PURPOSES: dict[str, str] = {
     "GET /session": "Who is signed in on the site (web session), and their roles: curator, and "
     "the problems they steward.",
     "POST /session/end": "Sign out of the site: end the web session and clear its cookie.",
-    "POST /stewards": "Become a problem's steward, or step down, as your GitHub login: the "
-    "record is signed with the network's approval key and opened by pull request.",
+    "POST /stewards": "Become a problem's steward, change the name and link the page shows for "
+    "you (commit again while a steward), or step down, as your GitHub login: the record is "
+    "signed with the network's approval key and opened by pull request.",
     "POST /approvals": "Approve sections of a gloss or explainer version as a steward of its "
     "problem or a curator, signed with the network's approval key, by pull request.",
     "POST /motions": "Open a motion before a problem's steward panel (invite a steward, verify "
