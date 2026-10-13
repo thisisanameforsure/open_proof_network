@@ -284,6 +284,7 @@ main > .crumbs, main > h1:first-child { margin-top: calc(var(--s8) * 1.6); }
 .panel-outlines ul, .panel-outlines ol { margin: var(--s2) 0; padding-left: 1.2em; line-height: 1.6; }
 .panel-outlines li { margin-bottom: var(--s2); overflow-wrap: anywhere; }
 .panel-outlines .untrusted-title { color: var(--n300); font-style: italic; }
+.panel-outlines .note-kind { font-family: var(--mono, monospace); font-size: 11px; color: var(--n300); border: 1px solid var(--n300); border-radius: 3px; padding: 0 4px; }
 .dot-outline { border-radius: 3px; border-color: var(--accent-300); }
 .dag .edge.proposed { stroke: var(--accent-300); stroke-dasharray: 1.5 4; stroke-linecap: round; }
 /* F04-T39 (D-12 v3.38): a lemma's line is dash-dot — a dash, a gap, a dot, a gap — which neither the

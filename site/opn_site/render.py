@@ -422,10 +422,11 @@ GLOSSARY: tuple[tuple[str, str, str, str], ...] = (
     (
         "outline",
         "has an outline",
-        "A numbered tab: how many informal outlines (annexes) the statement carries. Its panel "
-        "lists each one, which merged skeleton followed it and the statements that skeleton "
-        "made, or that none has. An outline is the contributor's own text, unverified.",
-        "annex (D-31)",
+        "A numbered tab: how many outlines the statement carries, an outline being an annex "
+        "that names its steps. Its panel lists each one, which merged skeleton followed it and "
+        "the statements that skeleton made, or that none has; an annex with no steps is listed "
+        "under Notes and not counted. An outline is the contributor's own text, unverified.",
+        "annex/v2 steps (D-31 v3.26)",
     ),
     (
         "proposed-for",
@@ -991,6 +992,11 @@ def sorry_note(statement: str) -> str:
     return SORRY_NOTE if "sorry" in statement else ""
 
 
+def annex_anchor(a: Prose) -> str:
+    """F04-T45: the element id of an annex on its node's page, from its file name's digest."""
+    return f"annex-{Path(a.path).stem[:12]}"
+
+
 def theorem_name(statement: str) -> str | None:
     """F22-T18 (S): the name a statement declares, or None."""
     m = _THEOREM_RE.search(statement)
@@ -1257,7 +1263,7 @@ class Renderer:
         if "edge lemma" in drawn:  # F04-T39 (D-12 v3.38)
             line_keys = (*line_keys, "lemma")
         pointed = ("proposed-for",) if dag.pointers(tv.graph["nodes"]) else ()
-        if any(nv.annexes for nv in tv.nodes.values()):
+        if any(a.stepped for nv in tv.nodes.values() for a in nv.annexes):  # T45 (Q44)
             pointed = ("outline", *pointed)
         proofs = target_proofs(tv)
         if not proofs:
@@ -1342,49 +1348,93 @@ class Renderer:
         """F18-T4, T5 (R5, R7): the node's outlines (annexes, D-31) — each followed by the merged
         skeletons that cite it, with the holes they made, or not followed — and, for a stepped
         outline, the checklist of its steps against the nodes named after them. The title line
-        and the summaries are contributor text: escaped and labelled (C9, D-28)."""
+        and the summaries are contributor text: escaped and labelled (C9, D-28).
+
+        F04-T45 (Q44): only an annex that names its steps (``annex/v2``, D-31 v3.26) is an
+        outline; every other annex is listed beneath, under "Notes", labelled by its kind."""
         if not nv.annexes:
             return ""
         decomps = list(nv.graph_entry.get("decompositions") or [])
-        items = []
-        for a in nv.annexes:
-            digest = Path(a.path).stem
-            title = clip(
-                next(
-                    (
-                        line.strip().lstrip("#").strip()
-                        for line in a.text.splitlines()
-                        if line.strip()
-                    ),
-                    "untitled",
-                )
+        stepped = [self.annex_item(tv, nv, a, decomps) for a in nv.annexes if a.stepped]
+        notes = [
+            self.annex_item(tv, nv, a, decomps, kind=self.note_kind(a))
+            for a in nv.annexes
+            if not a.stepped
+        ]
+        out = ""
+        if stepped:
+            out += (
+                '<div class="panel-outlines"><span class="kicker">Outlines</span>'
+                '<p class="cue">Untrusted contributor text (D-31): an outline is an informal '
+                "argument in named steps, not a proof. The full text is on the statement&rsquo;s "
+                "record page.</p>"
+                f'<ul class="outlines">{"".join(stepped)}</ul>'
             )
-            by = f" by {esc(a.author)}" if a.author else ""
-            following = [d for d in decomps if d.get("annex") == digest]
-            node_dir = Path(nv.statement_path).parent.as_posix()
-            if following:
-                runs = "; ".join(
-                    self.file_link(f"{node_dir}/{d['partial']}", label=Path(d["partial"]).name)
-                    + (
-                        ": " + ", ".join(self.hole_link(tv, h) for h in d["holes"])
-                        if d["holes"]
-                        else ""
-                    )
-                    for d in following
-                )
-                state = f"followed by {runs}"
-            else:
-                state = "not followed by any merged decomposition"
-            items.append(
-                f'<li class="outline" data-annex="{esc(digest)}"><span class="untrusted-title">'
-                f"{esc(title)}</span>{by} — {state}</li>"
+            out += self.outline_checklist(tv, nv) + "</div>"
+        if notes:
+            out += (
+                '<div class="panel-outlines panel-notes"><span class="kicker">Notes</span>'
+                '<p class="cue">Untrusted contributor text (D-31): an annex that names no steps '
+                "is a note, an informal argument, not a proof and not an outline. The full text "
+                "is on the statement&rsquo;s record page.</p>"
+                f'<ul class="outlines notes">{"".join(notes)}</ul></div>'
             )
-        out = (
-            '<div class="panel-outlines"><span class="kicker">Outlines</span>'
-            '<p class="cue">Untrusted contributor text (D-31): an outline is an informal '
-            "argument, not a proof. The full text is on the statement&rsquo;s record page.</p>"
-            f'<ul class="outlines">{"".join(items)}</ul>'
+        return out
+
+    @staticmethod
+    def note_kind(a: Prose) -> str:
+        """F04-T45 (Q44): what a note is, by its record: the schema it was written under."""
+        if a.schema == "annex/v1":
+            return "annex/v1 note"
+        if a.schema:
+            return f"{a.schema} note, no steps"
+        return "note, no front matter"
+
+    def annex_item(
+        self,
+        tv: TargetView,
+        nv: NodeView,
+        a: Prose,
+        decomps: list[dict[str, Any]],
+        *,
+        kind: str | None = None,
+    ) -> str:
+        """One annex as the panel lists it: its title line, its author and the merged skeletons
+        that cite it (or none); a note carries its kind."""
+        digest = Path(a.path).stem
+        title = clip(
+            next(
+                (line.strip().lstrip("#").strip() for line in a.text.splitlines() if line.strip()),
+                "untitled",
+            )
         )
+        by = f" by {esc(a.author)}" if a.author else ""
+        following = [d for d in decomps if d.get("annex") == digest]
+        node_dir = Path(nv.statement_path).parent.as_posix()
+        if following:
+            runs = "; ".join(
+                self.file_link(f"{node_dir}/{d['partial']}", label=Path(d["partial"]).name)
+                + (
+                    ": " + ", ".join(self.hole_link(tv, h) for h in d["holes"])
+                    if d["holes"]
+                    else ""
+                )
+                for d in following
+            )
+            state = f"followed by {runs}"
+        else:
+            state = "not followed by any merged decomposition"
+        cls = "outline note" if kind is not None else "outline"
+        label = f'<span class="note-kind">{esc(kind)}</span> ' if kind is not None else ""
+        full = esc(f"{self.node_path(tv.target_id, nv.node_id)}#{annex_anchor(a)}")
+        return (
+            f'<li class="{cls}" data-annex="{esc(digest)}">{label}<span class="untrusted-title">'
+            f'{esc(title)}</span>{by} — {state} · <a href="{full}">full text →</a></li>'
+        )
+
+    def outline_checklist(self, tv: TargetView, nv: NodeView) -> str:
+        """F18-T5 (R7): the stepped outline the node's skeleton followed, step by step."""
+        out = ""
         outline = nv.graph_entry.get("outline")
         if isinstance(outline, dict) and outline.get("steps"):
             steps = []
@@ -1406,7 +1456,7 @@ class Renderer:
                 '<p class="cue">A matching name shows the structure was followed, not that the '
                 "Lean says what the prose says (D-31 v3.26).</p>"
             )
-        return out + "</div>"
+        return out
 
     def hole_link(self, tv: TargetView, hole: dict[str, Any], *, named: bool = True) -> str:
         """A hole as the outline names it: its name, the node it became (an in-page link that
@@ -2159,7 +2209,10 @@ class Renderer:
             else n
             for n in tv.graph["nodes"]
         ]
-        outlines = {nid: len(nv.annexes) for nid, nv in tv.nodes.items() if nv.annexes}
+        # T45 (Q44): the tab counts outlines, the annexes that name their steps; notes are not.
+        outlines = {
+            nid: n for nid, nv in tv.nodes.items() if (n := sum(a.stepped for a in nv.annexes))
+        }
         svg = dag.svg(
             drawn,
             href=href,
@@ -3916,6 +3969,7 @@ class Renderer:
                         "untrusted", "an annex (D-31): an informal argument, not a proof."
                     ),
                     block="annex",
+                    element_id=annex_anchor(a),
                 )
                 for a in nv.annexes
             )
@@ -5894,6 +5948,7 @@ class Renderer:
         provenance: str = "",
         block: str = "",
         anchors: str | None = None,
+        element_id: str = "",
     ) -> str:
         """R4: contributor text in a labelled block, with author and model when recorded. A
         document (the graph's AGENTS.md) goes through the document renderer, its level-2
@@ -5915,6 +5970,8 @@ class Renderer:
             by.append(f"licence {esc(prose_.licence)}")
         who = ", ".join(by) or "author not recorded"
         kind = f' data-block="{esc(block)}"' if block else ""
+        if element_id:  # F04-T45: a statement panel's annex item links here
+            kind += f' id="{esc(element_id)}"'
         return (
             f'<div class="prose-block {esc(label)}"{kind}>{provenance}<p class="label">'
             f"{esc(label.capitalize())}: {esc(what)}, {who}. "

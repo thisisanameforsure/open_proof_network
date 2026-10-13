@@ -87,6 +87,8 @@ def test_every_term_card_is_set_apart_from_its_label(pages: dict[str, str]) -> N
     """(a): each ``.term`` on the problem page, its card, the card's protocol and reason lines,
     and whatever follows the card are separated by whitespace in the stripped text."""
     html = pages[PAGE]
-    assert html.count('class="term-card"') >= 8, "guard: the fixture page carries its terms"
+    # F04-T45 (Q44): 7, not 8 — the fixture's one annex names no steps, so it is a note and the
+    # key's "has an outline" term is (correctly) not drawn.
+    assert html.count('class="term-card"') >= 7, "guard: the fixture page carries its terms"
     text = extracted(html)
     assert joins(text) == []

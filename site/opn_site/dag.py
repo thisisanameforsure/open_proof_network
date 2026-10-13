@@ -671,7 +671,8 @@ def proof_attrs(marks: Sequence[ProofMarks], on: Sequence[bool]) -> tuple[str, s
 
 def outline_mark(count: int, width: int) -> str:
     """F18-T4 (R5): a small numbered tab on a pill's top right corner when the node carries
-    informal outlines (annexes, D-31); its panel says which skeleton followed each."""
+    informal outlines (stepped annexes, D-31 v3.26; F04-T45 leaves notes uncounted); its panel
+    says which skeleton followed each."""
     if count <= 0:
         return ""
     return (
