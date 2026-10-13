@@ -355,6 +355,9 @@ main > .crumbs, main > h1:first-child { margin-top: calc(var(--s8) * 1.6); }
 .record-grid dt { color: var(--n500); }
 .record-grid dd { margin: 0; }
 .detail { max-width: 80ch; }
+/* F04-T49 (Q48): a source's URL is shown whole and has no break opportunity; it breaks anywhere
+   rather than widening the page at 390 px (erdos-1094's was 98 characters). */
+ul.sources, .evidence .label, .evidence li { overflow-wrap: anywhere; }
 .detail h2 { padding-top: var(--s4); border-top: 1px solid var(--divider); }
 .flag { border-left: 3px solid var(--warn); padding-left: var(--s4); color: var(--n300); }
 .claimable { color: var(--n300); }
@@ -691,6 +694,10 @@ pre.diff .diff-hunk { color: var(--n500); }
   /* The statement graph keeps its drawn size and scrolls sideways, so its labels stay legible. */
   .dag { max-width: none; flex: none; }
   .gloss, .informal-block { padding-left: var(--s4); padding-right: var(--s4); }
+  /* F04-T49 (Q48): on a phone a panel's Lean keeps its lines and scrolls inside its block, so a
+     hypothesis is not broken mid-token and a proof's indentation stays readable; on a wider
+     screen it wraps, so the whole statement is in sight without scrolling. */
+  .panel pre.lean { white-space: pre; overflow-wrap: normal; overflow-x: auto; }
 }
 @media (max-width: 900px) {
   .stmt { flex-wrap: wrap; }

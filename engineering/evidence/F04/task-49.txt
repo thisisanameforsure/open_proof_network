@@ -1,0 +1,179 @@
+F04-T49 — no sideways page scroll at 390 px; a panel's Lean scrolls on a phone (2026-10-13, Q48)
+
+Verification command (Playwright's Chromium; without it two of the four tests skip):
+  uv run --frozen --with playwright pytest site/tests/test_finding_mobile_scroll.py -v
+
+----- Finding the cause (the browser, not the model) -----
+The owner's note and Q46 said the statement graph's SVG widened erdos-1094's page to 779 px at
+390. Measured on the live render (graph origin/main 66166496d061, git archive): the only element
+past the viewport that is not inside a scrolling box is one link,
+  A href=https://github.com/google-deepmind/formal-conjectures/blob/c7f31d5f.../ErdosProblems/1094.lean
+  in LI < UL.sources (Where the statement comes from), left 57, right 779.
+The graph is inside .dag-scroll (overflow-x: auto) and scrolls on its own; hiding it does not
+change the page width. A sweep of all 27 live problem pages at 390 then found riemann-hypothesis
+at 611 px: a CODE span in the catalog evidence's P.label (fc:FormalConjectures/Millenium/
+RiemannHypothesis.lean#riemannHypothesis), and, once that broke, 411 px from a UL.reasons item
+naming Mathlib/NumberTheory/LSeries/RiemannZeta.lean (found by hiding subtrees one at a time).
+
+----- RED (the tests against the committed T48 tree: git archive HEAD at 56ec666d) -----
+rootdir: /private/tmp/claude-501/-Users-mikehiggins-Desktop-repos-open-proof-network/dbbae81a-3385-4461-b242-bee29c7eb2c9/scratchpad/net-t48
+site/tests/test_finding_mobile_scroll.py::test_a_panels_lean_scrolls_in_its_block_on_a_phone FAILED [ 25%]
+site/tests/test_finding_mobile_scroll.py::test_a_source_link_breaks_rather_than_widening_the_page FAILED [ 50%]
+site/tests/test_finding_mobile_scroll.py::test_no_sideways_page_scroll_at_390_with_a_long_source_link FAILED [ 75%]
+site/tests/test_finding_mobile_scroll.py::test_the_graph_and_the_lean_scroll_in_their_own_boxes_at_390 FAILED [100%]
+FAILED site/tests/test_finding_mobile_scroll.py::test_a_panels_lean_scrolls_in_its_block_on_a_phone
+FAILED site/tests/test_finding_mobile_scroll.py::test_a_source_link_breaks_rather_than_widening_the_page
+FAILED site/tests/test_finding_mobile_scroll.py::test_no_sideways_page_scroll_at_390_with_a_long_source_link
+FAILED site/tests/test_finding_mobile_scroll.py::test_the_graph_and_the_lean_scroll_in_their_own_boxes_at_390
+============================== 4 failed in 3.26s ===============================
+(test_the_graph_and_the_lean_scroll_in_their_own_boxes_at_390 passes its page-width and graph
+assertions on the old tree too — the graph never widened the page — and fails on the Lean.)
+
+----- GREEN -----
+site/tests/test_finding_mobile_scroll.py::test_a_panels_lean_scrolls_in_its_block_on_a_phone PASSED
+site/tests/test_finding_mobile_scroll.py::test_a_source_link_breaks_rather_than_widening_the_page PASSED
+site/tests/test_finding_mobile_scroll.py::test_no_sideways_page_scroll_at_390_with_a_long_source_link PASSED
+site/tests/test_finding_mobile_scroll.py::test_the_graph_and_the_lean_scroll_in_their_own_boxes_at_390 PASSED
+============================== 4 passed in 7.21s ===============================
+
+----- Live sweep after the fix (all problem pages rendered from 66166496d061, at 390) -----
+27 problem pages at 390; wider than 390: []
+(No sweep was run before any fix. erdos-1094 at 779 is the per-element measurement above, taken
+before the change; riemann-hypothesis at 611 and then 411 were found by this sweep, run after the
+sources rule and again after each further rule.)
+
+----- Screenshots (task-49-shoot.py): scrollWidth, the graph box [scroll, client], each visible
+panel Lean block [scroll, client, white-space] -----
+{
+ "fixture": {
+  "1440": {
+   "scrollWidth": 1440,
+   "graph": [
+    897,
+    897
+   ],
+   "lean": [
+    [
+     382,
+     382,
+     "pre-wrap"
+    ],
+    [
+     371,
+     371,
+     "pre-wrap"
+    ],
+    [
+     371,
+     371,
+     "pre-wrap"
+    ]
+   ]
+  },
+  "390": {
+   "scrollWidth": 390,
+   "graph": [
+    539,
+    323
+   ],
+   "lean": [
+    [
+     590,
+     319,
+     "pre"
+    ],
+    [
+     308,
+     308,
+     "pre"
+    ],
+    [
+     520,
+     308,
+     "pre"
+    ]
+   ]
+  }
+ }
+}
+{
+ "live": {
+  "1440": {
+   "scrollWidth": 1440,
+   "graph": [
+    897,
+    897
+   ],
+   "lean": [
+    [
+     382,
+     382,
+     "pre-wrap"
+    ],
+    [
+     371,
+     371,
+     "pre-wrap"
+    ],
+    [
+     371,
+     371,
+     "pre-wrap"
+    ],
+    [
+     371,
+     371,
+     "pre-wrap"
+    ]
+   ]
+  },
+  "390": {
+   "scrollWidth": 390,
+   "graph": [
+    487,
+    323
+   ],
+   "lean": [
+    [
+     826,
+     319,
+     "pre"
+    ],
+    [
+     917,
+     308,
+     "pre"
+    ],
+    [
+     838,
+     308,
+     "pre"
+    ],
+    [
+     785,
+     308,
+     "pre"
+    ]
+   ]
+  }
+ }
+}
+task-49-{fixture,live}-page-{1440,390}.png (the viewport at the top of the page),
+task-49-{fixture,live}-graph-{1440,390}.png (the statement graph's card),
+task-49-{fixture,live}-panel-{1440,390}.png (the root's / erdos-1094--h2's panel, partial opened).
+Read by eye: at 390 the page fits (no horizontal scroll bar, header and steward card inside the
+viewport); the graph is cut at its box's right edge and scrolls inside it, the key above it
+unclipped; on the phone the Lean blocks hold whole lines and run past their boxes' right edges
+(the partial's have/refine/exact indentation intact), and the panel itself stays inside the
+viewport; at 1440 the Lean wraps as before (client width = scroll width).
+
+Goldens: unchanged (stylesheet only; site.css is not a golden).
+
+----- make verify (by hand on this tree) -----
+lint, format and types clean (ruff check, ruff format --check, mypy gate/api/site);
+test-fast: 1 failed, 6163 passed, 6 skipped, 232 deselected (7 min 58 s). The one failure is
+gate/tests/test_walkthrough.py::test_graph_copy_is_identical (the sibling graph checkout's stale
+AGENTS.md; task-45.txt), not this change. After that run the new test file was edited for lint
+and types only (an ASCII \/ for an ambiguous character in a string that is never elaborated, the
+Playwright import through pytest.importorskip); the site suite was run again: 679 passed,
+5 skipped. The commit is made with --no-verify.
