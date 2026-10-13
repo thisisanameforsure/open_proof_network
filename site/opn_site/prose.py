@@ -107,13 +107,14 @@ def first_sentence(text: str) -> str:
             if joined.startswith("$$", i):
                 i += 1  # ``$$`` is one delimiter, not two that cancel
             math_open = not math_open
-        elif (
-            ch in ".!?"
-            and not math_open
-            and not code_open
-            and (i + 1 == len(joined) or joined[i + 1] == " ")
-        ):
-            return joined[: i + 1]
+        elif ch in ".!?" and not math_open and not code_open:
+            # F04-T48: a stop inside emphasis (``**Numerical check.** The …``) ends the sentence
+            # with the emphasis that closes it.
+            end = i + 1
+            while end < len(joined) and joined[end] in "*_":
+                end += 1
+            if end == len(joined) or joined[end] == " ":
+                return joined[:end]
         i += 1
     return joined
 

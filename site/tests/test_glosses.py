@@ -74,7 +74,7 @@ def math(text: str) -> str:
     return re.sub(r"\$([^$]+)\$", r'<span class="math">$\1$</span>', escape(text, quote=True))
 
 
-def test_every_lean_block_has_its_gloss_or_the_cue(pages: dict[str, str]) -> None:
+def test_every_lean_block_has_its_gloss_or_the_cue(pages: dict[str, str]) -> None:  # noqa: PLR0915 — one walk of every page
     """AC11: every statement, witness, relation and definition block on every page is followed by
     its gloss slot, which holds the current gloss or the cue; the root shows its curated informal
     statement first; the frontier row shows a first sentence."""
@@ -82,7 +82,26 @@ def test_every_lean_block_has_its_gloss_or_the_cue(pages: dict[str, str]) -> Non
     for rel, page in pages.items():
         if not rel.endswith(".html"):
             continue
+        # F04-T48 (Q47): a problem page's statement panel is a summary; its gloss slot, the full
+        # words with their history and controls, sits in the panel's record details instead.
+        panels = [
+            (p.start(), p.end(), p.group(0))
+            for p in re.finditer(r'<div class="card panel" data-node=.*?\n</div>', page, re.S)
+        ]
         for m in GLOSSED_PRE.finditer(page):
+            inside = next((p for a, b, p in panels if a <= m.start() < b), None)
+            if inside is not None:
+                details = inside[inside.index('<details class="record">') :]
+                sm = SLOT.search(details)
+                assert sm is not None, (rel, "no gloss slot in the panel's record details")
+                file, slot = sm.group(1), details[sm.start() :]
+                seen.setdefault(m.group(1), set()).add(rel)
+                assert (
+                    'data-block="gloss"' in slot
+                    or "No gloss yet" in slot
+                    or 'data-block="informal"' in slot
+                ), (rel, file)
+                continue
             file, slot = slot_after(page, m.start())
             seen.setdefault(m.group(1), set()).add(rel)
             assert (

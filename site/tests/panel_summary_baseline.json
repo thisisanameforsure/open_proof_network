@@ -1,0 +1,43 @@
+{
+ "and-swap-reassoc": {
+  "hrefs": [
+   "#node=and-swap-reassoc--h1",
+   "#node=and-swap-reassoc--h2",
+   "/docs/#guide-glosses-explainers-and-outlines",
+   "/docs/#reading",
+   "/nodes/propositional/and-swap-reassoc/",
+   "/nodes/propositional/and-swap-reassoc/#annex-cccccccccccc",
+   "/nodes/propositional/and-swap-reassoc/#annex-dddddddddddd",
+   "https://github.com/example/graph/blob/6666666666666666666666666666666666666666/attestations/000007.json",
+   "https://github.com/example/graph/blob/6666666666666666666666666666666666666666/targets/propositional/nodes/and-swap-reassoc/Proof.lean",
+   "https://github.com/example/graph/blob/6666666666666666666666666666666666666666/targets/propositional/nodes/and-swap-reassoc/Statement.lean",
+   "https://github.com/example/graph/blob/6666666666666666666666666666666666666666/targets/propositional/nodes/and-swap-reassoc/attempts/20260920T000000Z-alice-partial.lean"
+  ],
+  "words": 345
+ },
+ "and-swap-reassoc--h1": {
+  "hrefs": [
+   "#node=and-swap-reassoc",
+   "/docs/#guide-glosses-explainers-and-outlines",
+   "/docs/#reading",
+   "/nodes/propositional/and-swap-reassoc--h1/",
+   "https://github.com/example/graph/blob/6666666666666666666666666666666666666666/targets/propositional/nodes/and-swap-reassoc--h1/Statement.lean",
+   "https://github.com/example/graph/blob/6666666666666666666666666666666666666666/targets/propositional/nodes/and-swap-reassoc--h1/gloss/c197cf079ce4bf4b3a420895f9e334d6168887156929bb898aa122d21b14fa3d.md",
+   "https://github.com/example/graph/blob/6666666666666666666666666666666666666666/targets/propositional/nodes/and-swap-reassoc--h1/literature/20261009T125137Z-t1009-b.yaml",
+   "https://github.com/example/graph/blob/6666666666666666666666666666666666666666/targets/propositional/nodes/and-swap-reassoc/attempts/20260920T000000Z-alice-partial.lean",
+   "https://www.erdosproblems.com/1094"
+  ],
+  "words": 181
+ },
+ "and-swap-reassoc--h2": {
+  "hrefs": [
+   "#node=and-swap-reassoc",
+   "/docs/#guide-glosses-explainers-and-outlines",
+   "/docs/#reading",
+   "/nodes/propositional/and-swap-reassoc--h2/",
+   "https://github.com/example/graph/blob/6666666666666666666666666666666666666666/targets/propositional/nodes/and-swap-reassoc--h2/Statement.lean",
+   "https://github.com/example/graph/blob/6666666666666666666666666666666666666666/targets/propositional/nodes/and-swap-reassoc/attempts/20260920T000000Z-alice-partial.lean"
+  ],
+  "words": 104
+ }
+}

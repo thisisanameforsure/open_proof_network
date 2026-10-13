@@ -325,6 +325,28 @@ main > .crumbs, main > h1:first-child { margin-top: calc(var(--s8) * 1.6); }
 .panel-facts dt { color: var(--n500); }
 .panel-facts dd { margin: 0; }
 .panel-note { font-size: 14px; line-height: 1.6; color: var(--n400); margin: 0; }
+/* F04-T48 (Q47): the panel as a summary — four sections, each under its kicker, then the
+   record details. The claim's math is the headline; everything explanatory is folded. */
+.panel-sec { width: 100%; display: flex; flex-direction: column; gap: var(--s3); padding-top: var(--s3); border-top: 1px solid var(--divider); }
+.panel-sec > h3.kicker { margin: 0; font-weight: 500; }
+.panel .claim-math { color: var(--text); font-size: 16px; overflow-x: auto; }
+.panel .claim-math p { margin: 0; color: var(--text); font-size: 16px; }
+.panel .claim-notes { font-size: 13px; color: var(--n300); }
+.panel .claim-notes ul { margin: 0; padding-left: 1.2em; line-height: 1.6; }
+.panel .claim-notes p, .panel .claim-notes li { font-size: 13px; margin: 0 0 var(--s1); overflow-wrap: anywhere; }
+.claim-mark, .claim-words, .explain, .how-line, .lit-line { font-size: 13px; }
+.panel .claim-words { color: var(--n300); overflow-wrap: anywhere; }
+.words-mark { font-size: 12px; color: var(--n400); border: 1px solid var(--divider); border-radius: 999px; padding: 0 8px; white-space: nowrap; }
+.panel-lean summary, .panel-small summary { cursor: pointer; color: var(--accent-300); font-size: 13px; }
+.panel-lean pre.lean { margin-top: var(--s2); }
+.panel-small { width: 100%; font-size: 13px; }
+.panel-small > *:not(summary) { margin-top: var(--s2); }
+.panel .sub { font-size: 12px; color: var(--n500); margin: 0; }
+.panel-list { margin: 0; padding-left: 1.2em; font-size: 13px; line-height: 1.6; color: var(--n300); }
+.panel-list li { margin-bottom: var(--s1); overflow-wrap: anywhere; }
+.record { width: 100%; }
+.record[open] > *:not(summary) { margin-top: var(--s3); }
+.how-to-read p { font-size: 13px; color: var(--n400); }
 .panel pre.lean { width: 100%; margin: 0; background: var(--bg); border: 1px solid var(--divider); border-radius: var(--radius-sm); padding: var(--s4); font-size: 11.5px; line-height: 1.7; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--n300); }
 .record summary { font-size: 12.5px; color: var(--n400); cursor: pointer; border-bottom: 1px dotted var(--n600); padding-bottom: 2px; list-style: none; display: inline; }
 .record summary::-webkit-details-marker { display: none; }

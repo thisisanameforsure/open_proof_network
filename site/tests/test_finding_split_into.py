@@ -61,8 +61,11 @@ def test_the_split_block_opens_the_panel(tmp_path: Path) -> None:
     assert "Split into" in block
     assert PARTIAL_NAME in block and "merged" in block
     assert "attestation" in block and "000007" in block
-    # Directly under the status header: before the Lean of the statement and before the notes.
-    assert body.index('<section class="split-into"') < body.index('<pre class="lean statement')
+    # F04-T48 (Q47): in the panel's "How it is being proved", after what is claimed and before
+    # what is known (the notes); the outlines' full list is in the record details, after it.
+    how = body.index('data-section="how"')
+    assert body.index('data-section="claim"') < how < body.index('<section class="split-into"')
+    assert body.index('<section class="split-into"') < body.index('data-section="known"')
     assert body.index('<section class="split-into"') < body.index("panel-outlines")
 
 

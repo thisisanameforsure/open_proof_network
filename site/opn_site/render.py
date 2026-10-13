@@ -94,6 +94,9 @@ LITERATURE_WORDS = {
 }
 #: The words a proposal awaits, and the service route the /me/ control confirms through (F23).
 LITERATURE_AWAITS = "awaiting a steward or curator"
+#: F04-T48 (Q47): the element id of a statement's words on its own page, which the panel's
+#: "Explain this" and its words mark link to.
+STATEMENT_WORDS_ID = "statement-words"
 LITERATURE_CONFIRM_PATH = "/literature/confirm"
 
 
@@ -3117,60 +3120,268 @@ class Renderer:
 
     def statement_panel(self, tv: TargetView, nv: NodeView) -> str:
         """One "Selected statement" panel per node; the script shows the selected one and the
-        page without it shows the root's. Hashes, origin, pin and files sit behind a toggle."""
+        page without it shows the root's.
+
+        F04-T48 (Q47): a summary for a mathematician surveying the problem, in the owner's order —
+        the header (id, status, attempts, one line of role), what is claimed, how it is being
+        proved, what is known, work on it — and the record details, closed, holding the full
+        words, the outlines' checklists, the hashes and files and the reading notes. The
+        statement's own page stays the full record."""
         tid, nid = tv.target_id, nv.node_id
         e = nv.graph_entry
         state = self.node_state(nv)
-        words = status_words(nv.status, nv.cause)
-        note = esc(f"{self.node_role(tv, nv).capitalize()}; {words}.")
-        if state == "proved" and e.get("proof_commit"):
-            note += esc(f" Proof merged in {str(e['proof_commit'])[:12]}.")
-        note += self.pertinence(e)
         files = [self.file_link(nv.statement_path, label="Statement.lean ↗")]
         if nv.attestation_path:
             files.append(self.file_link(nv.attestation_path, label="attestation ↗"))
         if nv.proof_path and state == "proved":
             files.append(self.file_link(nv.proof_path, label="Proof.lean ↗"))
-        href = esc(self.node_path(tid, nid))
-        if state == "open":
-            action = (
-                f'<a class="btn btn-primary btn-block" href="{href}">Work on this statement</a>'
-            )
-        elif state == NEEDS_WITNESS:
-            action = f'<a class="btn btn-primary btn-block" href="{href}">Supply a witness →</a>'
-        elif state == "proved":
-            action = f'<a class="btn btn-primary btn-block" href="{href}">View the proof →</a>'
-        else:
-            action = f'<a class="btn btn-secondary btn-block" href="{href}">View the record →</a>'
         origin = str(e.get("origin", "")) + (f" ({e['relation']})" if e.get("relation") else "")
-        return _template(
-            "statement-panel.html"
-        ).substitute(
+        return _template("statement-panel.html").substitute(
             node_id=esc(nid),
             hidden="" if nid == tv.root else " hidden",
-            state=esc(state),
-            state_word=esc(self.state_label(state)),
             dot=self.dot(self.dot_state(state)),
+            state_word=esc(self.state_label(state)),
             attempts=esc(self.attempts_words(nv)),
             proof_row=self.proof_row(tv, nv),
-            note=note,
-            revision=self.revision_note(tid, nv, in_page=True),
-            closing=self.closing_note(tv, nv),
-            hole_of=self.hole_origin(tv, nv),  # F04-T46
-            split=self.split_blocks(tv, nv),  # F04-T46
-            outlines=self.outlines_block(tv, nv),
-            literature=self.literature_block(nv),  # F04-T38
-            statement=esc(declaration_only(nv.statement)),
-            sorry_note=sorry_note(nv.statement),
             thm=self.thm_label(tid, nid),
+            role=self.panel_role(tv, nv),
+            claim=self.claim_block(tv, nv),
+            how=self.how_block(tv, nv),
+            known=self.known_section(tv, nv),
+            work=self.work_section(tv, nv),
             glosses=self.gloss_slot(
                 tv, "statement", f"nodes/{nid}/Statement.lean", node=nid, ids=f"p-{nid}-"
             ),
+            outlines=self.outlines_block(tv, nv),
+            boilerplate=self.panel_reading_notes(nv),
             hash=esc(str(e.get("statement_hash", ""))[:12]),
             origin=esc(origin),
             mathlib=esc(str(tv.index_entry.get("mathlib_sha") or "")[:12] or "Lean core only"),
             files=" · ".join(files),
-            action=action,
+        )
+
+    # --- F04-T48 (Q47): the panel's sections, each a helper so the layout can move them ---------
+
+    def panel_role(self, tv: TargetView, nv: NodeView) -> str:
+        """The header's one line: a hole names the parent it came from (T46); any other node its
+        role, with a related variant's pertinence (D-30)."""
+        hole_of = self.hole_origin(tv, nv)
+        if hole_of:
+            return hole_of
+        role = esc(sentence(self.node_role(tv, nv).capitalize()))
+        return f'<p class="panel-note">{role}{self.pertinence(nv.graph_entry)}</p>'
+
+    def statement_words_href(self, tv: TargetView, nv: NodeView) -> str:
+        """Where a statement's words live in full: its page, at the words (``#statement-words``),
+        where the history, the controls and the cue for writing them are."""
+        return f"{self.node_path(tv.target_id, nv.node_id)}#{STATEMENT_WORDS_ID}"
+
+    def claim_block(self, tv: TargetView, nv: NodeView) -> str:
+        """What is claimed. A current statement gloss that opens with math (F20-T16) leads with
+        that math and its convention notes, one mark saying whether it is signed, and the Lean
+        folded; otherwise the Lean leads, a gloss that is not math first follows as its first
+        sentence, and "Explain this" goes to where the words are written."""
+        state = self.node_state(nv)
+        lean = (
+            f'<pre class="lean statement st-{esc(state)}">'
+            f"{esc(declaration_only(nv.statement))}</pre>"
+        )
+        href = esc(self.statement_words_href(tv, nv))
+        subject = tv.gloss_subject("statement", node=nv.node_id)
+        current = subject.describing() if subject is not None else []
+        v = current[0] if current else None
+        if v is not None and glossesmod.opens_with_math(v.body):
+            head, _, rest = v.body.strip().partition("\n\n")
+            notes = (
+                f'<div class="prose claim-notes">{prose.render(rest, math=True)}</div>'
+                if rest.strip()
+                else ""
+            )
+            return (
+                f'<div class="prose claim-math">{prose.render(head, math=True)}</div>{notes}'
+                f"{self.words_mark(v, href)}"
+                f'<details class="panel-lean"><summary>Lean</summary>{lean}</details>'
+            )
+        words = ""
+        if v is not None:
+            first = prose.first_sentence(v.body)
+            words = (
+                f'<p class="claim-words">{self.words_mark(v, href, inline=True)} '
+                f'<span class="gloss-line">{prose.inline_math(first)}</span></p>'
+            )
+        return (
+            f"{lean}{words}"
+            f'<p class="explain"><a class="explain-this" href="{href}">Explain this →</a></p>'
+        )
+
+    @staticmethod
+    def words_mark(v: VersionView, href: str, *, inline: bool = False) -> str:
+        """One compact mark for a gloss: signed by whom, or unverified, linked to its history."""
+        if v.signers:
+            word = "signed by " + ", ".join(esc(s) for s, _d, _f in v.signers)
+        else:
+            word = "unverified"
+        link = f'<a class="words-mark" href="{href}">{word} · history</a>'
+        return link if inline else f'<p class="claim-mark">{link}</p>'
+
+    @staticmethod
+    def open_line(*, has_holes: bool) -> str:
+        """An open statement's one line."""
+        if has_holes:
+            return "Open. A direct proof, or proofs of its holes, close it."
+        return "Open. A direct proof closes it."
+
+    def holes_of(self, tv: TargetView, nv: NodeView) -> list[str]:
+        return [
+            other
+            for other, ov in tv.nodes.items()
+            if graphmod.is_hole_of(nv.node_id, other, str(ov.graph_entry.get("origin")))
+            and ov.status != "superseded"
+        ]
+
+    def how_block(self, tv: TargetView, nv: NodeView) -> str:
+        """How it is being proved: a revision or circularity note (F04-T18, T37), one line — the
+        proof and its attestation, open, or the status in words — then the split (T46, T47), and
+        the Context-import note folded (2026-09-21)."""
+        e = nv.graph_entry
+        state = self.node_state(nv)
+        if state == "proved":
+            bits = []
+            if nv.proof_path:
+                bits.append(self.file_link(nv.proof_path, label="Proof.lean"))
+            line = "Proved" + (f" by {bits[0]}" if bits else "")
+            if e.get("proof_commit"):
+                line += f" (merged in <code>{esc(str(e['proof_commit'])[:12])}</code>)"
+            if nv.attestation_path:
+                stem = Path(nv.attestation_path).stem
+                line += " · " + self.file_link(nv.attestation_path, label=f"attestation {stem}")
+            line += "."
+        elif state == "open":
+            line = esc(self.open_line(has_holes=bool(self.holes_of(tv, nv))))
+        else:
+            line = esc(sentence(status_words(nv.status, nv.cause).capitalize()))
+        closing = self.closing_note(tv, nv)
+        if closing:
+            closing = (
+                '<details class="panel-small"><summary>Closing it through its holes</summary>'
+                f"{closing}</details>"
+            )
+        return (
+            f"{self.revision_note(tv.target_id, nv, in_page=True)}"
+            f'<p class="how-line">{line}</p>{self.split_blocks(tv, nv)}{closing}'
+        )
+
+    def first_sentence_of(self, a: Prose) -> str:
+        """An annex by its first sentence, as inline words with math (F04-T48)."""
+        return prose.inline_math(prose.first_sentence(a.text) or "untitled")
+
+    def known_section(self, tv: TargetView, nv: NodeView) -> str:
+        """What is known: the literature status in one line with its references and summary
+        folded (F04-T38), then the notes (unstepped annexes, T45) by their first sentence, each
+        linked to its full text on the statement's page. Nothing when neither exists."""
+        parts = []
+        confirmed, proposed = nv.literature, nv.literature_proposed
+        lit = confirmed or proposed
+        if lit is not None:
+            if confirmed is not None:
+                who = f"confirmed by <code>{esc(confirmed.confirmed_by or '')}</code>"
+            else:
+                who = f"proposed by <code>{esc(lit.contributor)}</code>, {LITERATURE_AWAITS}"
+            parts.append(
+                f'<p class="lit-line">Literature: <strong>{esc(literature_words(lit.status))}'
+                f"</strong> · {who}</p>"
+                '<details class="panel-small"><summary>References and summary</summary>'
+                f"{self.literature_block(nv)}</details>"
+            )
+        notes = [a for a in nv.annexes if not a.stepped]
+        if notes:
+            page = self.node_path(tv.target_id, nv.node_id)
+            items = "".join(
+                f'<li class="note" data-annex="{esc(Path(a.path).stem)}">'
+                f'<span class="math">{self.first_sentence_of(a)}</span> '
+                f'<a href="{esc(page)}#{annex_anchor(a)}">full text →</a></li>'
+                for a in notes
+            )
+            parts.append(f'<p class="sub">Notes</p><ul class="panel-list notes">{items}</ul>')
+        if not parts:
+            return ""
+        return (
+            '<section class="panel-sec" data-section="known"><h3 class="kicker">What is known'
+            f"</h3>{''.join(parts)}</section>\n"
+        )
+
+    def work_section(self, tv: TargetView, nv: NodeView) -> str:
+        """Work on it: the plans (stepped annexes, T45) by their first sentence, each saying which
+        merged decomposition followed it; on the root, the target's approach records (D-14),
+        which name no node (Q47); then the action."""
+        parts = []
+        decomps = list(nv.graph_entry.get("decompositions") or [])
+        node_dir = Path(nv.statement_path).parent.as_posix()
+        page = self.node_path(tv.target_id, nv.node_id)
+        plans = []
+        for a in (a for a in nv.annexes if a.stepped):
+            digest = Path(a.path).stem
+            following = [d for d in decomps if d.get("annex") == digest]
+            if following:
+                runs = ", ".join(
+                    self.file_link(f"{node_dir}/{d['partial']}", label=Path(d["partial"]).name)
+                    for d in following
+                )
+                state = f"followed by {runs}"
+            else:
+                state = "not followed by any merged decomposition"
+            plans.append(
+                f'<li class="plan" data-annex="{esc(digest)}">'
+                f'<span class="math">{self.first_sentence_of(a)}</span> — {state} · '
+                f'<a href="{esc(page)}#{annex_anchor(a)}">full text →</a></li>'
+            )
+        if plans:
+            parts.append(
+                f'<p class="sub">Plans</p><ul class="panel-list plans">{"".join(plans)}</ul>'
+            )
+        if nv.node_id == tv.root and tv.approaches:
+            where = f"targets/{tv.target_id}/approaches"
+            items = "".join(
+                f"<li>{self.file_link(f'{where}/{name}', label=name)}</li>"
+                for name in tv.approaches
+            )
+            parts.append(
+                '<p class="sub">Approaches recorded as tried (D-14)</p>'
+                f'<ul class="panel-list approaches">{items}</ul>'
+            )
+        parts.append(self.panel_action(tv, nv))
+        return (
+            '<section class="panel-sec" data-section="work"><h3 class="kicker">Work on it</h3>'
+            f"{''.join(parts)}</section>\n"
+        )
+
+    def panel_action(self, tv: TargetView, nv: NodeView) -> str:
+        state = self.node_state(nv)
+        href = esc(self.node_path(tv.target_id, nv.node_id))
+        if state == "open":
+            return (
+                f'<a class="btn btn-primary btn-block" href="{href}">Work on this statement →</a>'
+            )
+        if state == NEEDS_WITNESS:
+            return f'<a class="btn btn-primary btn-block" href="{href}">Supply a witness →</a>'
+        if state == "proved":
+            return f'<a class="btn btn-primary btn-block" href="{href}">View the proof →</a>'
+        return f'<a class="btn btn-secondary btn-block" href="{href}">View the record →</a>'
+
+    def panel_reading_notes(self, nv: NodeView) -> str:
+        """The explanatory sentences the panel used to show inline, kept in its record details:
+        the ``:= by sorry`` note (F22-T18), what a split's partial proof does and where a hole's
+        words come from (T46), and how to read the record."""
+        split = (
+            "<p>In a split, the partial proof assumes each and proves this statement from them. "
+            "A hole&rsquo;s words are the opening math of its gloss, contributor text not checked "
+            "against the Lean (D-3); without one, its Lean.</p>"
+            if nv.graph_entry.get("decompositions")
+            else ""
+        )
+        return (
+            f"{sorry_note(nv.statement)}{split}"
+            f'<p><a href="{READING_HREF}">How to read this →</a></p>'
         )
 
     # --- F04-T46, T47 (Q45, Q46): how a statement was split, self-contained -------------------
@@ -3208,12 +3419,8 @@ class Renderer:
             f'<section class="split-into" data-partial="{esc(partial)}">'
             '<span class="kicker">Split into</span>'
             f'<p class="split-by">Proved from {"this" if len(holes) == 1 else "these"} {noun} by '
-            f"{self.file_link(rel, label=name)} ({merged}): the partial proof assumes "
-            f"{'it' if len(holes) == 1 else 'each'} and proves this statement from "
-            f"{'it' if len(holes) == 1 else 'them'}.</p>"
+            f"{self.file_link(rel, label=name)} ({merged}).</p>"
             f'<ul class="split-holes">{rows}</ul>'
-            '<p class="cue">A hole&rsquo;s words are the opening math of its gloss, contributor '
-            "text not checked against the Lean (D-3); without one, its Lean.</p>"
             f"{self.split_lean(pv, rel)}</section>"
         )
 
