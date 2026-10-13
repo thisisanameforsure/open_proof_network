@@ -75,7 +75,7 @@ import subprocess
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass, replace
 from pathlib import Path, PurePosixPath
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 import yaml
 
@@ -105,6 +105,9 @@ from opn_gate.diagnostic import Diagnostic
 from opn_gate.paths import Change, Located, Role
 from opn_gate.signer import Signer
 
+if TYPE_CHECKING:
+    from opn_gate.steps.review_step import Standing
+
 Mode = Literal[
     "proof",
     "partial",
@@ -119,13 +122,34 @@ Mode = Literal[
     "proposed-for",
     "registration",
     "display-name",
+    # F26-R1 (D-9 v3.39): the review's records, each a mode of its own.
+    "review",
+    "candidate",
+    "review-answer",
+    "review-signature",
+    "review-job",
 ]
 
 #: F25-R5, R6 (D-3, D-10 v3.37): the two records outside the node, each a mode of its own and
 #: nothing else's. Explicit rows, placed before every other test in ``classify``, so the mode
 #: table's fallthrough (``return "append"`` for whatever is left) can never absorb them — the
 #: shape that swallowed the first steward record (log, 2026-09-17).
-RECORD_MODES: dict[Role, Mode] = {"registration": "registration", "display-name": "display-name"}
+RECORD_MODES: dict[Role, Mode] = {
+    "registration": "registration",
+    "display-name": "display-name",
+    # F26-R1 (D-9 v3.39): a review's opening, a candidate, an answer and a signature are each a
+    # pull request of its own; a test, a question, a pair or an exhibit is the review job's to
+    # write (a bot commit, R13), so a pull request carrying one classifies as `review-job` and
+    # is refused by name — never absorbed as an append.
+    "review": "review",
+    "candidate": "candidate",
+    "review-answer": "review-answer",
+    "review-signature": "review-signature",
+    "intent-test": "review-job",
+    "review-question": "review-job",
+    "pair": "review-job",
+    "review-exhibit": "review-job",
+}
 
 #: F15-R2, R6; F24-R2, R3: a steward's signed acts on a target, which merge as the steward mode
 #: alone or ride with a curator's records — one list, so a new act cannot fall through a mode.
@@ -263,6 +287,12 @@ class Classification:
     #: ``config.service_login``), which acts for the identity it wrote into the record's own
     #: ``author``. The host's fact, like ``author``; not published.
     by_service: bool = False
+    #: F26-R12 (D-4 v3.39): where the target's formalization review stands, in the words a verdict
+    #: names it by, for a proof or partial whose step 9 read it; ``None`` when no review was read.
+    review_state: str | None = None
+    #: F26-R12: why step 9 holds this proof — the review is incomplete and no catalog evidence
+    #: stands in. ``check`` reports it, so the pull request is refused before any sandbox.
+    review_held: Diagnostic | None = None
 
     @property
     def ok(self) -> bool:
@@ -327,6 +357,7 @@ class Classification:
             "review_reference": (
                 self.review_reference if self.review_kind in ("certificate", "provenance") else None
             ),
+            "review_state": self.review_state,
             "problems": [d.as_dict() for d in self.problems],
         }
 
@@ -357,7 +388,24 @@ def with_statement_review(
     target_dir = graph_root / "targets" / classification.target_id
     not_asked = step9_not_asked(graph_root, classification)
     if not_asked is not None:
+        # D-4 v3.39: intermediate work never waits, so the review is not even read
         return replace(classification, review_basis=not_asked, review_reference=None)
+    from opn_gate.steps import review_step  # noqa: PLC0415 — the steps package imports modes
+
+    review_standing = review_step.standing(target_dir)
+    if review_standing is not None:
+        return with_review(classification, target_dir, review_standing, minimum=minimum)
+    return without_review(classification, target_dir, minimum=minimum)
+
+
+def without_review(
+    classification: Classification,
+    target_dir: Path,
+    *,
+    minimum: int = config.DEFAULT_STEP9_MIN_SCORE,
+) -> Classification:
+    """F26-Q7: step 9 for a proof that would settle the root of a target with no review — the rule
+    it had before v3.39, exactly: the root's certificate, else catalog evidence, else a person."""
     certificate = root_certificate(target_dir)
     if certificate is not None:
         return replace(classification, review_basis="certificate", review_reference=certificate)
@@ -366,6 +414,43 @@ def with_statement_review(
         # F14-R6: recorded as provenance, so the attestation schema and an older pin still read it.
         return replace(classification, review_basis="provenance", review_reference=recorded)
     return classification
+
+
+def with_review(
+    classification: Classification,
+    target_dir: Path,
+    standing: Standing,
+    *,
+    minimum: int = config.DEFAULT_STEP9_MIN_SCORE,
+) -> Classification:
+    """F26-R12 (D-4 v3.39): step 9 for a proof that would settle the root of a target with a
+    review. Two bases, each its own function: the review complete at ``screened-and-signed`` or
+    above (``review_step.standing``, recorded as a ``certificate``: the review earns the D-9 grade),
+    else v3.15's catalog evidence (``step9_evidence``, recorded as ``provenance``, as F14-R6 does),
+    which the automated stages never hold. Neither: step 9 holds, and the verdict names the
+    review's state. A person's approval does not stand in for an incomplete review."""
+    from opn_gate.steps import review_step  # noqa: PLC0415 — the steps package imports modes
+
+    if standing.satisfies:
+        return replace(
+            classification,
+            review_basis="certificate",
+            review_reference=standing.reference,
+            review_state=standing.words,
+        )
+    recorded = step9_evidence(target_dir, minimum)
+    if recorded is not None:
+        return replace(
+            classification,
+            review_basis="provenance",
+            review_reference=recorded,
+            review_state=standing.words,
+        )
+    return replace(
+        classification,
+        review_state=standing.words,
+        review_held=review_step.held(target_dir.name, standing, minimum=minimum),
+    )
 
 
 def alternate_basis(graph_root: Path, classification: Classification) -> StatementBasis:
@@ -1149,7 +1234,10 @@ def check(  # noqa: PLR0912, PLR0915 — one branch per role with a check of its
     default the platform's ssh-keygen. The service passes its own verifier, since its runtime
     has no OpenSSH (F06-Q6, F20-T6).
     """
-    problems: list[Diagnostic] = []
+    # F26-R12: step 9 held by an incomplete review is a refusal before any sandbox
+    problems: list[Diagnostic] = (
+        [] if classification.review_held is None else [classification.review_held]
+    )
     added = frozenset(loc.path for loc in classification.located)
     for located in classification.located:
         if located.role == "literature":
@@ -1215,6 +1303,10 @@ def check(  # noqa: PLR0912, PLR0915 — one branch per role with a check of its
             problems.extend(check_credit_correction(graph_root, located))
         elif located.role == "registration":
             problems.extend(check_registration(graph_root, located, classification, signer=signer))
+        elif located.role in REVIEW_RECORD_ROLES:
+            problems.extend(
+                check_review_record(graph_root, located, classification, signer=signer, base=base)
+            )
         elif located.role == "display-name":
             problems.extend(
                 check_display_name(graph_root, located, classification, signer=signer, base=base)
@@ -2122,6 +2214,206 @@ def check_literature_record(  # noqa: PLR0911 — one return per rule
         key=str(doc.get(signed.KEY_FIELD) or ""),
         verifier=verifier,
     )
+
+
+#: F26-R1 (D-9 v3.39): the review records a pull request may carry, and the job's own.
+REVIEW_RECORD_ROLES: tuple[Role, ...] = (
+    "review",
+    "candidate",
+    "review-answer",
+    "review-signature",
+    "intent-test",
+    "review-question",
+    "pair",
+    "review-exhibit",
+)
+REVIEW_JOB_ROLES: tuple[Role, ...] = ("intent-test", "review-question", "pair", "review-exhibit")
+
+
+#: F26-R2: the opener role of the background review the gate opens on an existing target. It is
+#: never admitted by pull request: ``opn-gate review open`` writes into a checkout for a
+#: curator's direct commit (``review_open``).
+REVIEW_NETWORK_ROLE = "network"
+
+
+def check_review_record(
+    graph_root: Path,
+    located: Located,
+    classification: Classification,
+    *,
+    signer: Signer | None = None,
+    base: BaseReader | None = None,
+) -> list[Diagnostic]:
+    """F26-T1: a review record validates against its schema and names the target it sits under;
+    a record only the review job writes (R13) is refused in any pull request. F26-T3: the
+    opening (``review.yaml``) is admitted by the rule of R2 (``check_review_opening``). The
+    roles' further rules — the blind rule, who may answer or sign — are T5 and T10's and arrive
+    beside this, never instead of it."""
+    if located.role in REVIEW_JOB_ROLES:
+        return [
+            Diagnostic(
+                "review-job-record",
+                f"{located.path}: a {located.role} record is written only by the gate's review job "
+                "(F26-R13); a pull request may add a candidate, an answer or a signature",
+                {"path": located.path, "role": located.role},
+            )
+        ]
+    if located.path.endswith(".lean"):
+        return []  # the Lean beside a candidate is checked with the record and by the job
+    data = _read(graph_root, located)
+    if isinstance(data, Diagnostic):
+        return [data]
+    problems = _check_schema(located, data, code="record-invalid")
+    doc = None if problems else _document(located, data)
+    if isinstance(doc, Diagnostic):
+        problems.append(doc)
+    elif doc is not None and doc.get("target") != located.target_id:
+        problems.append(
+            Diagnostic(
+                "review-target-mismatch",
+                f"{located.path} is a record for target {doc.get('target')!r}, and it sits under "
+                f"targets/{located.target_id}/ (F26-R1)",
+                {"path": located.path, "target": doc.get("target")},
+            )
+        )
+    elif doc is not None and located.role == "review":
+        problems.extend(
+            check_review_opening(graph_root, located, classification, doc, signer=signer, base=base)
+        )
+    return problems
+
+
+def check_review_opening(  # noqa: PLR0911, PLR0913 — one return per rule; the record and its tree
+    graph_root: Path,
+    located: Located,
+    classification: Classification,
+    doc: dict[str, Any],
+    *,
+    signer: Signer | None = None,
+    base: BaseReader | None = None,
+) -> list[Diagnostic]:
+    """F26-R2 (D-9 v3.39): who may open a review, read from the merge's parent tree.
+
+    The opener's role is one ``policy.json``'s ``review_openers`` lists (``policy/v4``; the
+    default is all three, and a pull request cannot widen the setting for itself, since the
+    policy is read from the base). The opener holds that role: a ``curator`` is a half of a
+    ``curators.json`` pair, a ``steward`` an active steward of the target (F15-R1), and a
+    ``proposer`` is whoever the pull request acts for — F26-T10's proposal record will name the
+    proposer, and until it does the identity is held to ``acting_names`` alone. In every role the
+    opener is who the pull request acts for (the opener, or the record's own identity when the
+    service opened it, F18-Q7). ``network`` is never admitted by pull request: the background
+    opening is a curator's direct commit of what ``opn-gate review open`` wrote. And a root
+    version has one review: where the base already holds ``review.yaml``, the new record names
+    the old one in ``supersedes`` (by the old record's ``source.ref``, the root version it
+    reviewed) or is refused. Without ``base`` the checkout holds the record under check itself,
+    so the opened-twice rule is the gate run's and the local check's alone when a base is given.
+    """
+    raw = doc.get("opened_by")
+    opened_by: dict[str, Any] = raw if isinstance(raw, dict) else {}
+    identity = str(opened_by.get("identity"))
+    role = str(opened_by.get("role"))
+    details = {"path": located.path, "identity": identity, "role": role}
+    if role == REVIEW_NETWORK_ROLE:
+        return [
+            Diagnostic(
+                "review-network-by-hand",
+                f"{located.path}: a review opened by the network is the background review, "
+                "written by `opn-gate review open` into a checkout for a curator's direct commit, "
+                "never a pull request (F26-R2); open it as a proposer, steward or curator",
+                details,
+            )
+        ]
+    try:
+        rules = _parent_policy(graph_root, base)
+    except schemas.SchemaError as exc:
+        return [
+            Diagnostic(
+                "review-opener-not-allowed",
+                f"{located.path}: policy.json does not read, so no role may open a review: {exc}",
+                details,
+            )
+        ]
+    if role not in rules.review_openers:
+        return [
+            Diagnostic(
+                "review-opener-not-allowed",
+                f"{located.path}: policy.json lets {_roles_phrase(rules.review_openers)} open a "
+                f"review, and this one is opened as a {role} (F26-R2)",
+                {**details, "allowed": list(rules.review_openers)},
+            )
+        ]
+    names = acting_names(graph_root, classification, identity)
+    reason = _review_role_not_held(
+        graph_root, located.target_id, role, identity, names=names, signer=signer
+    )
+    if reason is not None:
+        return [
+            Diagnostic(
+                "review-opener-not-held",
+                f"{located.path}: {reason} (F26-R2)",
+                {**details, "opened_by": sorted(names)},
+            )
+        ]
+    if base is None:
+        return []
+    existing = parent_file(graph_root, base, located.path)
+    if existing is None:
+        return []
+    try:
+        old = yaml.safe_load(existing.decode("utf-8"))
+    except (UnicodeDecodeError, yaml.YAMLError):
+        old = None
+    old_source = old.get("source") if isinstance(old, dict) else None
+    old_ref = old_source.get("ref") if isinstance(old_source, dict) else None
+    supersedes = doc.get("supersedes")
+    if old_ref is None or supersedes != old_ref:
+        return [
+            Diagnostic(
+                "review-opened-twice",
+                f"{located.path}: a review of this target is already open on root "
+                f"{old_ref!r}; a second opening follows a D-8 revision of the root and names the "
+                f"review it replaces in `supersedes` (F26-R1), and this one names {supersedes!r}",
+                {**details, "existing": old_ref, "supersedes": supersedes},
+            )
+        ]
+    return []
+
+
+def _roles_phrase(roles: tuple[str, ...]) -> str:
+    return "nobody" if not roles else " or ".join(f"a {r}" for r in roles)
+
+
+def _review_role_not_held(  # noqa: PLR0913 — the role, who claims it, and what the tree says
+    graph_root: Path,
+    target_id: str,
+    role: str,
+    identity: str,
+    *,
+    names: frozenset[str],
+    signer: Signer | None,
+) -> str | None:
+    """Why ``identity`` does not hold ``role`` for this pull request, or ``None`` when they do."""
+    if identity not in names:
+        return (
+            f"opened_by.identity {identity!r} is not who this pull request acts for; a review is "
+            "opened by the one who asks, and the service writes the identity from the sign-in"
+        )
+    if role == "curator":
+        try:
+            listed = load_curators(graph_root)
+        except CuratorsError:
+            listed = Curators()
+        halves = {half for pair in listed.identities for half in pair}
+        if not (names & halves):
+            return f"{identity!r} is not a listed curator (curators.json)"
+    elif role == "steward":
+        verifier = signer or signed.default_signer()
+        active = set(steward.active_logins(graph_root / "targets" / target_id, verifier))
+        if not (names & active):
+            return f"{identity!r} is not an active steward of {target_id} (F15-R1)"
+    elif role != "proposer":
+        return f"{role!r} is not a role that opens a review"
+    return None
 
 
 #: F25-R5: ``registrations/<date>-<n>.yaml``, the date the record was filed and a number from 1.

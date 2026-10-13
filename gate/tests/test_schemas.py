@@ -26,6 +26,7 @@ def test_known_schemas_are_the_published_set() -> None:
         "attestation/v5",
         "attestation/v6",
         "attestation/v7",  # F25-T1 (automation)
+        "candidate/v1",
         "claims/v1",
         "context/v1",
         "context/v2",
@@ -33,12 +34,14 @@ def test_known_schemas_are_the_published_set() -> None:
         "context/v4",  # F22-T13 (a cause on each dep)
         "context/v5",  # v3.35: circular, literature, literature_proposed
         "context/v6",  # v3.38: lemmas
+        "context/v7",  # F26-T1 (D-9 v3.39): the review for the root
         "credit-correction/v1",
         "defect-claim/v1",
         "defect-claim/v2",
         "defect-claim/v3",
         "display-name/v1",  # F25-T1
         "drift/v1",
+        "exhibit/v1",
         "explainer-signature/v1",
         "explainer-signature/v2",
         "explainer-signature/v3",  # F23-T1 (via: the approval key)
@@ -68,8 +71,10 @@ def test_known_schemas_are_the_published_set() -> None:
         "graph/v6",
         "graph/v7",  # F25-T1 (registrations)
         "graph/v8",  # v3.38: lemmas
+        "graph/v9",  # F26-T1 (D-9 v3.39): the review's state and open pairs
         "info/v1",
         "info/v2",
+        "intent-test/v1",
         "ledger/v1",
         "ledger/v2",  # F25-T1 (automation)
         "literature/v1",
@@ -82,9 +87,11 @@ def test_known_schemas_are_the_published_set() -> None:
         "motion/v1",
         "node-status/v1",
         "outline/v1",
+        "pair/v1",
         "policy/v1",
         "policy/v2",
         "policy/v3",  # F23-T1 (steward_admission)
+        "policy/v4",  # F26-T1 (review_openers)
         "postmortem/v1",
         "precheck-record/v1",
         "proposed-for/v1",
@@ -92,6 +99,10 @@ def test_known_schemas_are_the_published_set() -> None:
         "qa/v2",
         "registration/v1",  # F25-T1
         "relevance/v1",
+        "review-answer/v1",
+        "review-question/v1",
+        "review-signature/v1",
+        "review/v1",  # F26-T1 (D-9 v3.39): the review's records
         "revision-request/v1",
         "revision-request/v2",
         "statement-evidence/v1",
@@ -107,6 +118,7 @@ def test_known_schemas_are_the_published_set() -> None:
         "target/v3",  # F25-T1 (classification)
         "targets-index/v1",
         "targets-index/v10",  # F25-T1 (registrations)
+        "targets-index/v11",  # F26-T1 (the review's state)
         "targets-index/v2",
         "targets-index/v3",
         "targets-index/v4",

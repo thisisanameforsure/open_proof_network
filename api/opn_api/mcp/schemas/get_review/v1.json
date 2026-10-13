@@ -1,0 +1,293 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openproof.network/schemas/mcp/get_review/v1.json",
+  "title": "mcp/get_review/v1",
+  "description": "The result of the get_review tool (F26-T10, R3, R14; D-9, D-28 v3.39): GET /reviews/<id>, body for body — a target's formalization review as the records under targets/<id>/review/ hold it at main's head, with the state derived by the gate's own module (opn_gate.review, the derivation the products carry) and the candidates under the blind rule: to a caller with no candidate of their own on the record (no token, or a token whose identity authored none) every candidate's lean is null with lean_withheld blind; once the caller's candidate is merged, every Lean is shown. The words, cases, questions and answers are contributor text, so the answer carries the untrusted note. Or an error result: 404 review-unknown for a target with no review, target-unknown for no such target, or the source that did not answer (R10).",
+  "oneOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "target_id",
+        "read_at",
+        "caller",
+        "blind",
+        "review",
+        "state",
+        "candidates",
+        "tests",
+        "questions",
+        "answers",
+        "pairs",
+        "open_pairs",
+        "exhibits",
+        "signatures",
+        "untrusted_note"
+      ],
+      "properties": {
+        "target_id": {
+          "type": "string"
+        },
+        "read_at": {
+          "description": "The commit of main the graph was read at, or the branch name when the service could not learn its head (F05-T13).",
+          "type": "string"
+        },
+        "caller": {
+          "description": "The pseudonym of the bearer the blind rule was applied to; null for an anonymous read.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "blind": {
+          "description": "Whether every candidate's Lean was withheld: true until the caller's own candidate is on the record.",
+          "type": "boolean"
+        },
+        "review": {
+          "description": "review.yaml (review/v1): the opening — who opened it in which role, the day, the words, the cases, the concepts, the source, the tracking issue.",
+          "type": "object",
+          "required": [
+            "schema",
+            "target",
+            "opened_by",
+            "words",
+            "cases",
+            "concepts"
+          ],
+          "properties": {
+            "schema": {
+              "const": "review/v1"
+            },
+            "target": {
+              "type": "string"
+            },
+            "opened_by": {
+              "type": "object"
+            },
+            "words": {
+              "type": "string"
+            },
+            "cases": {
+              "type": "array"
+            },
+            "concepts": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "state": {
+          "description": "The derived review object targets-index and graph.json carry (F26-R17): state (none, open, needs-intent-signer, complete), candidates, surviving, clusters, questions_waiting, open_pairs, grade_cap, signers by role, tracking.",
+          "type": "object",
+          "required": [
+            "state",
+            "candidates",
+            "surviving",
+            "questions_waiting",
+            "open_pairs",
+            "signers"
+          ],
+          "properties": {
+            "state": {
+              "type": "string"
+            },
+            "candidates": {
+              "type": "integer"
+            },
+            "surviving": {
+              "type": "integer"
+            },
+            "questions_waiting": {
+              "type": "integer"
+            },
+            "open_pairs": {
+              "type": "integer"
+            },
+            "signers": {
+              "type": "object"
+            }
+          }
+        },
+        "candidates": {
+          "description": "Every candidate/v1 record, each with its Lean under the blind rule.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "author",
+              "method",
+              "models",
+              "read_others",
+              "origin",
+              "lean",
+              "lean_withheld"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "author": {
+                "type": "string"
+              },
+              "method": {
+                "type": "string"
+              },
+              "models": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "read_others": {
+                "description": "The author's declaration, shown as the claim it is (F26-R3); null where none was made.",
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              },
+              "origin": {
+                "enum": [
+                  "submitted",
+                  "ported",
+                  "wrapper"
+                ]
+              },
+              "lean": {
+                "description": "The candidate's Lean, or null while withheld.",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "lean_withheld": {
+                "description": "blind while the Lean is withheld by the blind rule; null when shown.",
+                "enum": [
+                  "blind",
+                  null
+                ]
+              }
+            }
+          }
+        },
+        "tests": {
+          "description": "Every intent-test/v1 record (the case, the probe, the expected result and its source).",
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "questions": {
+          "description": "Every review-question/v1 record, each with `waiting`: true while no answer names it.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "question",
+              "waiting"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "question": {
+                "type": "string"
+              },
+              "waiting": {
+                "type": "boolean"
+              }
+            }
+          }
+        },
+        "answers": {
+          "description": "Every review-answer/v1 record: the intent signer's answer, its cited source or null, the login, signed by the approval key.",
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "pairs": {
+          "description": "Every pair/v1 record: each direction proved, refuted or open with its exhibit or attempt.",
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "open_pairs": {
+          "description": "Each open direction (a, b, direction), as graph.json publishes them (F26-R8).",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "a",
+              "b",
+              "direction"
+            ],
+            "properties": {
+              "a": {
+                "type": "string"
+              },
+              "b": {
+                "type": "string"
+              },
+              "direction": {
+                "enum": [
+                  "forward",
+                  "backward"
+                ]
+              }
+            }
+          }
+        },
+        "exhibits": {
+          "description": "Every exhibit/v1 record the gate wrote: a kernel-checked result (a screen, a test, a pair direction, a mutant), the stage-3 evidence.",
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "signatures": {
+          "description": "Every review-signature/v1 record: a signer's decision by role, signed by the approval key.",
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "untrusted_note": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "description": "The plain path did not answer, or the arguments were refused (F09-R10)",
+      "required": [
+        "error",
+        "message",
+        "source"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "error": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "source": {
+          "enum": [
+            "graph",
+            "service",
+            "adapter"
+          ]
+        },
+        "status": {
+          "type": "integer"
+        }
+      }
+    }
+  ]
+}

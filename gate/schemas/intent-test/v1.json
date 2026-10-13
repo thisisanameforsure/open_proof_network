@@ -1,0 +1,134 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openproof.network/schemas/intent-test/v1.json",
+  "title": "intent-test/v1",
+  "description": "targets/<id>/review/tests/<id>.yaml beside <id>.lean (F26-R1, R6; D-9 v3.39): an intent test — a Lean statement about the conjecture any acceptable formalization must satisfy, run against every candidate by the gate as one of three probes (holds, covers, witness) or as a concept question. The expected result comes from the intent signer's answer, a cited source or the agreement of every surviving candidate, the record naming which; no model supplies one. Versioned, never edited (D-34).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "target",
+    "id",
+    "case",
+    "probe",
+    "concept",
+    "expected",
+    "author",
+    "lean_file",
+    "date"
+  ],
+  "properties": {
+    "schema": {
+      "const": "intent-test/v1"
+    },
+    "target": {
+      "$ref": "#/$defs/identifier",
+      "description": "the target the record is filed under"
+    },
+    "id": {
+      "$ref": "#/$defs/id"
+    },
+    "case": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2000,
+      "description": "the case in words: the value or instance the test is about"
+    },
+    "probe": {
+      "enum": [
+        "holds",
+        "covers",
+        "witness",
+        "concept"
+      ],
+      "description": "`holds`, the claim at the case against the expected answer; `covers`, the claim with every named concept made empty, telling holds-at from says-nothing-about; `witness`, the concept replaced by a small set, exposing the formula; `concept`, a value of one concept's predicate"
+    },
+    "concept": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        }
+      ],
+      "description": "the concept a `witness` or `concept` probe is about, from the review's concepts; null for `holds` and `covers`"
+    },
+    "expected": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "value",
+        "source",
+        "ref"
+      ],
+      "properties": {
+        "value": {
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "maxLength": 200
+            }
+          ],
+          "description": "the expected result: true or false for a claim, or a value for a concept probe"
+        },
+        "source": {
+          "enum": [
+            "answer",
+            "citation",
+            "agreement"
+          ],
+          "description": "where the expectation came from; `agreement` is the weakest, since candidates can share one mistake"
+        },
+        "ref": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500,
+          "description": "the answer record, the citation, or `agreement:<n candidates>`"
+        }
+      }
+    },
+    "author": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "description": "who wrote the test: an identity, or `gate` for one the job derived from an answer"
+    },
+    "lean_file": {
+      "type": "string",
+      "pattern": "^t-[0-9a-f]{8}\\.lean$"
+    },
+    "date": {
+      "$ref": "#/$defs/day"
+    }
+  },
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]*$"
+    },
+    "day": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+    },
+    "login": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9](?:-?[A-Za-z0-9]){0,38}$"
+    },
+    "sshsig": {
+      "type": "string",
+      "pattern": "^-----BEGIN SSH SIGNATURE-----\\n[A-Za-z0-9+/=\\n]+-----END SSH SIGNATURE-----\\n?$",
+      "maxLength": 4000
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]{2,63}$",
+      "description": "the record's id, lowercase alphanumerics and hyphens; a candidate's is `c-<8 hex>` of its Lean's sha256, a test's `t-<8 hex>`, a question's `q-<n>`, an exhibit's `e-<8 hex>`"
+    }
+  }
+}

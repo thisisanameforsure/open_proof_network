@@ -291,6 +291,29 @@ def registrations(h: Harness, key: PrecheckKey) -> Prepared:
     return body, h.auth(h.token_for("code_alice", "alice"))
 
 
+def reviews_open(h: Harness, key: PrecheckKey) -> Prepared:
+    """F26-T10: a review's opening, refused before any role or the graph is read."""
+    body = {"target_id": TARGET, "words": "In words.", "cases": [], "concepts": []}
+    return body, h.auth(h.token_for("code_alice", "alice"))
+
+
+def review_candidates(h: Harness, key: PrecheckKey) -> Prepared:
+    """F26-T10: a candidate, refused before the review is read."""
+    return {"lean": "l", "read_others": False}, h.auth(h.token_for("code_alice", "alice"))
+
+
+def review_answers(h: Harness, key: PrecheckKey) -> Prepared:
+    """F26-T10: an answer, refused before the approval key or the review is read."""
+    body = {"question": "q-1", "answer": "No.", "cites": None}
+    return body, h.auth(h.token_for("code_alice", "alice"))
+
+
+def review_signatures(h: Harness, key: PrecheckKey) -> Prepared:
+    """F26-T10: a signature, refused before the approval key or the review is read."""
+    body = {"role": "intent", "decision": "accept", "cluster": "c-00000000"}
+    return body, h.auth(h.token_for("code_alice", "alice"))
+
+
 #: Every POST route of ``routes.ROUTES`` that reads a JSON body (``DELETE /claims/<id>`` has none);
 #: ``/tokens/renew`` reads an empty one, refusing any key (F05-T27).
 WRITE_ROUTES: dict[str, Prepare] = {
@@ -322,6 +345,10 @@ WRITE_ROUTES: dict[str, Prepare] = {
     "/writeups": writeups,  # F24-T5
     "/me/name": me_name,  # F25-T4
     "/registrations": registrations,  # F25-T4
+    "/reviews": reviews_open,  # F26-T10
+    "/reviews/{target_id}/candidates": review_candidates,  # F26-T10
+    "/reviews/{target_id}/answers": review_answers,  # F26-T10
+    "/reviews/{target_id}/signatures": review_signatures,  # F26-T10
 }
 
 
@@ -353,7 +380,8 @@ def test_every_write_route_refuses_one_unknown_key(
     it, and nothing pushed, claimed or minted."""
     body, headers = WRITE_ROUTES[route](harness, key)
     pushes, claims_before = len(harness.githost.pushes), len(harness.store.list_claims())
-    r = harness.client.post(route, json={**body, STRAY: "stray"}, headers=headers)
+    path = route.format(target_id=TARGET)  # F26-T10: the review routes carry the target
+    r = harness.client.post(path, json={**body, STRAY: "stray"}, headers=headers)
     assert r.status_code == 400, f"{route} accepted the stray key: {r.status_code} {r.text}"
     assert r.json()["error"] == "unknown-field", r.text
     assert STRAY in r.json()["message"], r.text

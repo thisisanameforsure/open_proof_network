@@ -93,7 +93,7 @@ def test_onramp_screens_clean(
     }, [(r.check, r.verdict, r.note) for r in run.rows]
     assert run.clean and run.exhibits == [] and run.claims == []
     state = qa.pass_state(root / "targets" / ONRAMP_TARGET, "root")
-    assert state.missing == ("brief", "backtranslation")
+    assert state.missing == ("brief",)  # F26-R10: back-translation left the floor
 
 
 def test_a_tautology_is_found_and_its_exhibit_replays(

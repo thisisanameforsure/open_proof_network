@@ -1,0 +1,102 @@
+F26-T11 — the App's notice of review questions and the /me/ listing (R15; AC14)
+Branch f26-t11 from origin/f26-wave1 (82d7404e). 2026-10-12.
+
+== Entry point ==
+opn_api.review_notice.run(ctx, target_ids=None); also `python -m opn_api.review_notice [target ...]`
+with the service's configuration in the environment (prints each reviewed target's outcome as JSON).
+No route was added: the service has no periodic job (lambda_handler is Mangum over HTTP only;
+api/infra/api.cfn.yaml schedules nothing) and no internally authenticated route to copy, and a new
+route is a D-35 protocol surface, the owner's. What calls run() on a schedule is the owner's to wire
+(an EventBridge rule on the Lambda, or a cron workflow with the App key and the store's role).
+
+== Red first ==
+Seam at today's behaviour: run() -> [], waiting_for() -> [], intent_signers() -> [], both store
+halves' review_notified() -> set() and add_review_notified() a no-op; GET /session already carrying
+`reviews: []`. Every red is an assertion or an empty-output IndexError, never a missing name.
+
+uv run --frozen pytest api/tests/test_review_notice.py api/tests/test_store_seam.py \
+  -k "review_notice or review_notices" --basetemp=/tmp/opn-f26-t11-pytest
+FAILED api/tests/test_review_notice.py::test_two_waiting_questions_make_one_comment_naming_the_signer_both_and_the_page
+FAILED api/tests/test_review_notice.py::test_a_second_run_with_no_new_question_posts_nothing
+FAILED api/tests/test_review_notice.py::test_a_third_question_makes_one_comment_naming_only_it
+FAILED api/tests/test_review_notice.py::test_an_answered_question_is_not_named
+FAILED api/tests/test_review_notice.py::test_a_pull_request_tracking_posts_on_that_pull_request
+FAILED api/tests/test_review_notice.py::test_a_review_with_no_tracking_posts_nothing_and_says_why
+FAILED api/tests/test_review_notice.py::test_a_tracking_value_that_names_no_issue_posts_nothing
+FAILED api/tests/test_review_notice.py::test_a_network_review_mentions_every_active_steward
+FAILED api/tests/test_review_notice.py::test_a_network_review_with_no_steward_posts_nothing
+FAILED api/tests/test_review_notice.py::test_every_login_named_is_one_the_answer_route_accepts
+FAILED api/tests/test_review_notice.py::test_a_failed_post_is_not_remembered_and_the_next_run_posts
+FAILED api/tests/test_review_notice.py::test_a_mention_inside_a_question_does_not_ping
+FAILED api/tests/test_review_notice.py::test_the_signer_s_session_lists_the_waiting_questions
+FAILED api/tests/test_review_notice.py::test_a_network_review_lists_for_its_steward
+FAILED api/tests/test_store_seam.py::test_review_notices_are_a_set_union_per_target_in_both_stores[memory]
+FAILED api/tests/test_store_seam.py::test_review_notices_are_a_set_union_per_target_in_both_stores[dynamodb]
+FAILED api/tests/test_store_seam.py::test_review_notices_are_one_string_set_under_their_prefix
+17 failed, 3 passed, 94 deselected
+(The three green at the seam pin what must not change: a target with no review is not read further;
+a login that is not the signer sees nothing; with no steward the listing is empty for everyone.)
+
+Site, against the old me.js (both tests, the browser one timing out waiting for .me-reviews li):
+uv run --frozen --with playwright pytest site/tests/test_me_reviews.py
+2 failed in 33.73s
+
+== Green ==
+uv run --frozen pytest api/tests/test_review_notice.py api/tests/test_store_seam.py \
+  api/tests/test_session_roles.py -k "review_notice or review_notices or roles_exactly" -v
+test_review_notice.py::test_two_waiting_questions_make_one_comment_naming_the_signer_both_and_the_page PASSED
+test_review_notice.py::test_a_second_run_with_no_new_question_posts_nothing PASSED
+test_review_notice.py::test_a_third_question_makes_one_comment_naming_only_it PASSED
+test_review_notice.py::test_an_answered_question_is_not_named PASSED
+test_review_notice.py::test_a_pull_request_tracking_posts_on_that_pull_request PASSED
+test_review_notice.py::test_a_review_with_no_tracking_posts_nothing_and_says_why PASSED
+test_review_notice.py::test_a_tracking_value_that_names_no_issue_posts_nothing PASSED
+test_review_notice.py::test_a_network_review_mentions_every_active_steward PASSED
+test_review_notice.py::test_a_network_review_with_no_steward_posts_nothing PASSED
+test_review_notice.py::test_every_login_named_is_one_the_answer_route_accepts PASSED
+test_review_notice.py::test_a_failed_post_is_not_remembered_and_the_next_run_posts PASSED
+test_review_notice.py::test_the_module_entry_point_runs_once_and_prints_the_outcomes PASSED
+test_review_notice.py::test_a_target_with_no_review_is_not_read_further PASSED
+test_review_notice.py::test_a_mention_inside_a_question_does_not_ping PASSED
+test_review_notice.py::test_the_signer_s_session_lists_the_waiting_questions PASSED
+test_review_notice.py::test_a_login_that_is_not_the_signer_sees_none PASSED
+test_review_notice.py::test_a_network_review_lists_for_its_steward PASSED
+test_review_notice.py::test_with_no_steward_the_listing_is_empty_for_everyone PASSED
+test_store_seam.py::test_review_notices_are_a_set_union_per_target_in_both_stores[memory] PASSED
+test_store_seam.py::test_review_notices_are_a_set_union_per_target_in_both_stores[dynamodb] PASSED
+test_store_seam.py::test_review_notices_are_one_string_set_under_their_prefix PASSED
+test_session_roles.py::test_a_steward_session_answers_its_roles_exactly PASSED
+22 passed, 103 deselected
+
+uv run --frozen --with playwright pytest site/tests/test_me_reviews.py -v
+site/tests/test_me_reviews.py::test_me_script_draws_the_session_s_reviews_linking_the_review_page PASSED
+site/tests/test_me_reviews.py::test_me_lists_each_waiting_question_with_its_review_page PASSED
+2 passed
+Screenshots read: engineering/evidence/F26/screens/me-reviews-1440.png and me-reviews-390.png. The
+new "Questions waiting for your answer" section sits between "Invitations to accept" and
+"Literature statuses awaiting your confirmation"; each row is the target (linked to its review page),
+the question id and the words; the phone width wraps with no horizontal scroll (measured).
+
+== A notice as posted (fake host, the AC14 test's two questions) ==
+comment on thisisanameforsure/open_proof_network_graph #7:
+@carol: the formalization review of `propositional` has 2 new questions for its intent signer.
+
+1. Suppose p were always false. Would the conjecture still be meant to hold? (q-1)
+2. Is the conjecture meant for propositions only, or for any two statements? (q-2)
+
+Answer on the review page, signed in with GitHub: https://example.org/problems/propositional/review/
+
+== Full checks before the commit ==
+uv run --frozen ruff check api gate site            All checks passed!
+uv run --frozen ruff format api gate site           758 files left unchanged
+uv run --frozen mypy api                            Success: no issues found in 252 source files
+uv run --frozen pytest api/tests -q --basetemp=/tmp/opn-f26-t11-pytest
+                                                    2054 passed in 90.16s
+uv run --frozen pytest site/tests -m "not lean and not docker and not network and not harness"
+                                                    634 passed, 3 skipped (Playwright modules
+                                                    without --with playwright; run above)
+
+== One existing test restated ==
+api/tests/test_session_roles.py::test_a_steward_session_answers_its_roles_exactly pins GET
+/session's exact key set; it now names `reviews` (F26-T11) beside F24-T5's `awaiting`, and
+asserts it empty for a steward with no review.

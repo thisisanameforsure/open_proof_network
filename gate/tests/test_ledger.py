@@ -353,6 +353,13 @@ def test_merge_line_table() -> None:
         "proposed-for": None,  # F18-T6: a pointer, not an artifact (D-14 v3.26)
         "registration": "upstreaming",  # F25-T4 (D-19 v3.37): the registering curator
         "display-name": None,  # F25-T4: a name is not an artifact
+        # F26-T1 (D-9 v3.39): nothing at merge; a surviving candidate is credited when the review
+        # completes (T2); answers and signatures are judgements; the job's records are the gate's.
+        "review": None,
+        "candidate": None,
+        "review-answer": None,
+        "review-signature": None,
+        "review-job": None,
     }
     assert set(expected) == set(typing.get_args(modes.Mode))
     assert getattr(ledger, "MERGE_LINES", None) == expected

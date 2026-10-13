@@ -178,3 +178,44 @@ On the **graph** repository, set `OPN_API_CLAIMS_URL` to the stack's `ClaimsUrl`
 only once its `gate-spec.json` pins a `network` commit whose gate understands `--claims-url`
 (F05-R10). Until then the post-merge job simply omits the flag and the committed `claims.json`
 stands.
+
+## The review notice role (F26-Q17, 2026-10-12)
+
+`NoticeRole` lets the network repo's `review-notice.yml` invoke the function with
+`{"opn_task": "review-notice"}` and do nothing else; it is trusted exactly as `DeployRole` is.
+Adding it is a change set like the one above, with no new parameters:
+
+```sh
+set -a; . ./.env; set +a
+export AWS_ACCESS_KEY_ID="$AWS_ACCESS_KEY"
+export AWS_REGION=us-east-1
+PREVIOUS=$(aws cloudformation describe-stacks --stack-name opn-api \
+  --query 'Stacks[0].Parameters[].ParameterKey' --output text \
+  | tr '\t' '\n' | sed 's/.*/ParameterKey=&,UsePreviousValue=true/' | tr '\n' ' ')
+aws cloudformation create-change-set \
+  --stack-name opn-api --change-set-name f26-notice-role \
+  --template-body file://api/infra/api.cfn.yaml \
+  --capabilities CAPABILITY_NAMED_IAM \
+  --parameters $PREVIOUS
+aws cloudformation wait change-set-create-complete \
+  --stack-name opn-api --change-set-name f26-notice-role
+aws cloudformation describe-change-set \
+  --stack-name opn-api --change-set-name f26-notice-role \
+  --query 'Changes[].ResourceChange.[Action,LogicalResourceId,ResourceType,Replacement]' \
+  --output table
+```
+
+The read should show `Add NoticeRole AWS::IAM::Role` and nothing that says `Remove` or
+`Replacement True`. Then execute, wait, and give the workflow the role:
+
+```sh
+aws cloudformation execute-change-set --stack-name opn-api --change-set-name f26-notice-role
+aws cloudformation wait stack-update-complete --stack-name opn-api
+ARN=$(aws cloudformation describe-stacks --stack-name opn-api \
+  --query "Stacks[0].Outputs[?OutputKey=='NoticeRoleArn'].OutputValue" --output text)
+gh variable set OPN_API_NOTICE_ROLE_ARN -R thisisanameforsure/open_proof_network --body "$ARN"
+gh workflow run review-notice.yml -R thisisanameforsure/open_proof_network --ref main
+```
+
+Until the variable is set the workflow's job is skipped, never red.
+

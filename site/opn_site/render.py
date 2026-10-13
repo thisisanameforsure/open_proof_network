@@ -33,6 +33,7 @@ from opn_site.model import (
     NodeView,
     Placed,
     Prose,
+    ReviewView,
     Site,
     SiteError,
     SubjectView,
@@ -2204,6 +2205,7 @@ class Renderer:
             target_id=esc(tid),
             status_tag=self.status_tag(tv),
             fidelity_tag=self.fidelity_tag(tv),
+            review_state=self.review_state_tag(tv),
             informal=self.informal_words(tv),
             provenance=(f"{esc(sentence(title))} " if title else "") + self.source_line(tv),
             stages=self.stage_marks(tv),
@@ -2250,6 +2252,433 @@ class Renderer:
             + '<script src="/problem.js"></script>'
             + ('<script src="/panel.js"></script>' if self.api_url else ""),
         )
+
+    # -- F26-T12 (R16, R17; D-9 v3.39): the review's state line and its page ---------------
+
+    @staticmethod
+    def review_path(target_id: str) -> str:
+        return f"{PROBLEMS_PATH}{target_id}/review/"
+
+    @staticmethod
+    def review_state_words(review: dict[str, Any]) -> str:
+        """The review's state in words, from ``graph/v9``'s derived object: the counts while it
+        runs ("6 candidates, 1 cluster, 2 questions waiting"), "needs an intent signer" with the
+        counts when questions wait and nobody can answer them (F26-Q5), "complete" with the
+        candidates and the cluster. "" for a target with no review."""
+        state = str(review.get("state") or "none")
+        if state == "none":
+            return ""
+        c, k, q = (
+            int(review.get(key) or 0) for key in ("candidates", "clusters", "questions_waiting")
+        )
+        candidates = f"{c} candidate{'' if c == 1 else 's'}"
+        clusters = f"{k} cluster{'' if k == 1 else 's'}"
+        waiting = (
+            "no question waiting" if q == 0 else f"{q} question{'' if q == 1 else 's'} waiting"
+        )
+        if state == "complete":
+            return f"complete · {candidates}, {clusters}"
+        counts = f"{candidates}, {clusters}, {waiting}"
+        if state == "needs-intent-signer":
+            return f"needs an intent signer · {counts}"
+        return counts
+
+    def review_state_tag(self, tv: TargetView) -> str:
+        """The "Review" line beside the grade, linking the review page; nothing for a target
+        with no review or on a graph older than v9, which does not say."""
+        words = self.review_state_words(tv.review) if tv.review is not None else ""
+        if not words:
+            return ""
+        return (
+            f'<a class="tag tag-outline review-state" href="{esc(self.review_path(tv.target_id))}">'
+            f"review: {esc(words)}</a>"
+        )
+
+    @staticmethod
+    def pill(kind: str, words: str) -> str:
+        return f'<span class="pill pill-{esc(kind)}">{esc(words)}</span>'
+
+    def review_lean(self, rv: ReviewView, rid: str, *, open_: bool = False) -> str:
+        """A record's Lean, preformatted and escaped, as written (R10: the signer reads it
+        rendered mechanically), folded unless ``open_``; a link to the file beside it."""
+        lean = rv.lean.get(rid)
+        if lean is None:
+            return ""
+        state = " open" if open_ else ""
+        return (
+            f"<details{state}><summary>Lean · "
+            f"{self.file_link(lean.path, label=lean.path.rsplit('/', 1)[-1])}"
+            f" · sha256 <code>{esc(lean.content_hash[:12])}</code></summary>"
+            f'<pre class="lean">{esc(lean.text.rstrip())}</pre></details>'
+        )
+
+    def review_author_words(self, c: dict[str, Any]) -> str:
+        models = [str(m) for m in c.get("models") or []]
+        if c.get("method") == "manual" and not models:
+            who = f"<code>{esc(str(c['author']))}</code> — a person's"
+        else:
+            named = ", ".join(esc(m) for m in models) or "unnamed"
+            method = esc(str(c["method"]))
+            who = f"<code>{esc(str(c['author']))}</code> — a model's: {named} ({method})"
+        read = c.get("read_others")
+        if read is True:
+            who += "; declares having read another candidate's Lean (a claim, not a fact)"
+        elif read is False:
+            who += "; declares having read no other candidate's Lean (a claim, not a fact)"
+        return who
+
+    @staticmethod
+    def review_origin_words(c: dict[str, Any]) -> str:
+        origin = str(c.get("origin"))
+        src = c.get("source") or {}
+        if origin == "ported":
+            return f"ported from {esc(str(src.get('kind')))} {esc(str(src.get('ref')))}"
+        if origin == "wrapper":
+            return f"the review's wrapper of <code>{esc(str(src.get('ref')))}</code> (F26-R5)"
+        return "submitted through the service"
+
+    def review_candidates(self, tv: TargetView, rv: ReviewView) -> str:
+        tid = tv.target_id
+        rows = []
+        for c in rv.candidates:
+            cid = str(c["id"])
+            result, eid = rv.result_of(cid)
+            ex = rv.exhibit(eid)
+            if result == "surviving":
+                verdict = self.pill("ok", "surviving")
+            else:
+                kind = (
+                    f" · {esc(str(ex['kind']))}" if ex is not None and result == "discarded" else ""
+                )
+                verdict = self.pill("bad" if result == "discarded" else "warn", result) + kind
+                if ex is not None:
+                    detail = esc(str(ex["detail"]))
+                    link = ""
+                    if ex.get("lean_file"):
+                        rel = f"targets/{tid}/review/exhibits/{ex['lean_file']}"
+                        link = f" · {self.file_link(rel, label='the exhibit')}"
+                    verdict += (
+                        f'<div class="exhibit-detail">exhibit <code>{esc(str(ex["id"]))}</code>: '
+                        f"{detail}{link}</div>"
+                    )
+                    if result == "discarded":
+                        verdict += self.review_lean(rv, str(ex["id"]))
+            rows.append(
+                f'<tr data-candidate="{esc(cid)}" data-result="{esc(result)}">'
+                f"<td><code>{esc(cid)}</code> · {esc(str(c['date']))}"
+                f"{self.review_lean(rv, cid, open_=result == 'surviving')}</td>"
+                f"<td>{self.review_author_words(c)}</td>"
+                f"<td>{self.review_origin_words(c)}</td>"
+                f"<td>{verdict}</td></tr>"
+            )
+        if not rows:
+            return "<p>No candidate has been submitted yet.</p>"
+        return (
+            '<div class="table-wrap"><table class="review-candidates"><thead><tr>'
+            "<th>Candidate and its Lean</th><th>Author</th><th>Origin</th>"
+            "<th>Stage-3 result</th></tr></thead><tbody>" + "".join(rows) + "</tbody></table></div>"
+        )
+
+    def review_direction(self, rv: ReviewView, d: dict[str, Any], words: str) -> str:
+        state = str(d.get("state"))
+        out = f'<span class="pair-direction {esc(state)}">{esc(words)}: {esc(state)}</span>'
+        ex = rv.exhibit(d.get("exhibit"))
+        if ex is not None:
+            out += f" (exhibit <code>{esc(str(ex['id']))}</code>: {esc(str(ex['detail']))})"
+        att = d.get("attempt")
+        if isinstance(att, dict) and state == "open":
+            out += (
+                f" — last tried by <code>{esc(str(att['who']))}</code> with "
+                f"{esc(str(att['tool']))}, {esc(str(att['budget_s']))} s; claimable work"
+            )
+        return out
+
+    def review_pairs(self, rv: ReviewView) -> str:
+        clusters = rv.clusters()
+        n = len(clusters)
+        parts = [f"<p>{n} cluster{'' if n == 1 else 's'} among the surviving candidates"]
+        if clusters:
+            parts.append(
+                ": "
+                + "; ".join(
+                    "{" + ", ".join(f"<code>{esc(c)}</code>" for c in cl) + "}" for cl in clusters
+                )
+            )
+        parts.append(".</p>")
+        if not rv.pairs:
+            parts.append("<p>No pair has been compared yet.</p>")
+            return "".join(parts)
+        items = []
+        for pr in rv.pairs:
+            a, b = str(pr["a"]), str(pr["b"])
+            both = all(pr[d]["state"] == "proved" for d in ("forward", "backward"))
+            head = f"<code>{esc(a)}</code> and <code>{esc(b)}</code>"
+            head += " — proved both ways: one cluster" if both else ""
+            items.append(
+                f"<li>{head}<ul>"
+                f"<li>{self.review_direction(rv, pr['forward'], f'{a} implies {b}')}</li>"
+                f"<li>{self.review_direction(rv, pr['backward'], f'{b} implies {a}')}</li>"
+                "</ul></li>"
+            )
+        parts.append('<ul class="review-pairs">' + "".join(items) + "</ul>")
+        return "".join(parts)
+
+    @staticmethod
+    def intent_signer_words(tv: TargetView, rv: ReviewView) -> str:
+        """Who answers and signs as the intent signer: the proposer who opened the review, else
+        the target's steward; with none, "needs an intent signer" (F26-Q5)."""
+        opened = rv.opening.get("opened_by") or {}
+        if opened.get("role") == "proposer":
+            return f"the proposer, <code>{esc(str(opened.get('identity')))}</code>"
+        stewards = [str(s["login"]) for s in tv.stewards]
+        if stewards:
+            return "the steward, " + ", ".join(f"<code>{esc(x)}</code>" for x in stewards)
+        return (
+            "nobody yet: this problem has no steward, so the review needs an intent signer (D-32)"
+        )
+
+    def review_questions(self, tv: TargetView, rv: ReviewView) -> str:
+        if not rv.questions:
+            return "<p>No question has been raised.</p>"
+        items = []
+        for q in rv.questions:
+            qid = str(q["id"])
+            raised = q.get("raised_by") or {}
+            head = (
+                f'<p class="question-text"><code>{esc(qid)}</code> {esc(str(q["question"]))}</p>'
+                f'<p class="cue">raised by a {esc(str(raised.get("kind")))} '
+                f"(<code>{esc(str(raised.get('ref')))}</code>), {esc(str(q['date']))}</p>"
+            )
+            a = rv.answer_to(qid)
+            if a is None:
+                body = (
+                    f'<p class="waiting">Waiting for the intent signer: '
+                    f"{self.intent_signer_words(tv, rv)}.</p>"
+                )
+            else:
+                cites = a.get("cites")
+                source = (
+                    f"cites {esc(str(cites))}"
+                    if cites
+                    else '<span class="flag-inline">no source cited</span>'
+                )
+                became = rv.test_from(str(a["id"]))
+                test = (
+                    f" Became intent test <code>{esc(str(became['id']))}</code>."
+                    if became is not None
+                    else " No intent test has been built from it yet."
+                )
+                body = (
+                    f'<div class="answer"><p>Answered by <code>{esc(str(a["login"]))}</code> on '
+                    f"{esc(str(a['date']))} ({source}; signed via {esc(str(a['via']))}):</p>"
+                    f'<blockquote class="answer-text">{esc(str(a["answer"]))}</blockquote>'
+                    f"<p>{test}</p></div>"
+                )
+            items.append(f'<li class="question" data-question="{esc(qid)}">{head}{body}</li>')
+        return '<ol class="review-questions">' + "".join(items) + "</ol>"
+
+    def review_answer_ctl(self, tv: TargetView, rv: ReviewView) -> str:
+        """F26-R16: the answer form's placeholder, filled by session.js only once a session is
+        signed in (F23's pattern); nothing in the static page posts. No service, no control."""
+        if not self.api_url:
+            return ""
+        waiting = [
+            {"id": str(q["id"]), "question": str(q["question"])}
+            for q in rv.questions
+            if rv.answer_to(str(q["id"])) is None
+        ]
+        data = esc(json.dumps(waiting, ensure_ascii=False))
+        return (
+            f'<div class="review-answer-ctl" data-review-answer data-target="{esc(tv.target_id)}" '
+            f'data-questions="{data}" hidden></div>'
+        )
+
+    def review_tests(self, rv: ReviewView) -> str:
+        caught, tried = rv.mutants_caught()
+        parts = [
+            f'<p class="mutants">{caught} of {tried} mutants caught by the tests'
+            + (
+                "; a mutant every test passed became a question (section 3)."
+                if caught < tried
+                else "."
+            )
+            + "</p>"
+        ]
+        if not rv.tests:
+            parts.append("<p>No intent test has been written.</p>")
+            return "".join(parts)
+        rows = []
+        for t in rv.tests:
+            exp = t["expected"]
+            rows.append(
+                f"<tr><td><code>{esc(str(t['id']))}</code>{self.review_lean(rv, str(t['id']))}</td>"
+                f"<td>{esc(str(t['case']))}</td><td>{esc(str(t['probe']))}"
+                + (f" of {esc(str(t['concept']))}" if t.get("concept") else "")
+                + f"</td><td>{esc(str(exp['value']))} — from {esc(str(exp['source']))} "
+                f"(<code>{esc(str(exp['ref']))}</code>)</td></tr>"
+            )
+        parts.append(
+            '<div class="table-wrap"><table class="review-tests"><thead><tr><th>Test</th>'
+            "<th>Case</th><th>Probe</th><th>Expected, and its source</th></tr></thead><tbody>"
+            + "".join(rows)
+            + "</tbody></table></div>"
+        )
+        head = "".join(f"<th><code>{esc(str(c['id']))}</code></th>" for c in rv.candidates)
+        body = []
+        for t in rv.tests:
+            cells = []
+            for c in rv.candidates:
+                ex = rv.cell(str(c["id"]), str(t["id"]))
+                if ex is None:
+                    cells.append('<td class="cell not-run">—</td>')
+                else:
+                    r = str(ex["result"])
+                    cells.append(
+                        f'<td class="cell {esc(r)}" title="{esc(str(ex["detail"]))}">{esc(r)}</td>'
+                    )
+            body.append(f"<tr><th><code>{esc(str(t['id']))}</code></th>{''.join(cells)}</tr>")
+        parts.append(
+            '<div class="table-wrap"><table class="review-matrix"><thead><tr>'
+            "<th>test ↓ · candidate →</th>"
+            + head
+            + "</tr></thead><tbody>"
+            + "".join(body)
+            + "</tbody></table></div>"
+        )
+        return "".join(parts)
+
+    def review_screens(self, rv: ReviewView) -> str:
+        screens = [e for e in rv.exhibits if e["kind"] in ("compile", "screen")]
+        if screens:
+            rows = "".join(
+                f"<tr><td><code>{esc(str(e['candidate']))}</code></td><td>{esc(str(e['kind']))}</td>"
+                f'<td class="result-{esc(str(e["result"]))}">{esc(str(e["result"]))}</td>'
+                f"<td>{esc(str(e['detail']))}{self.review_lean(rv, str(e['id']))}</td></tr>"
+                for e in screens
+            )
+            table = (
+                '<div class="table-wrap"><table class="review-screens"><thead><tr>'
+                "<th>Candidate</th><th>Check</th><th>Result</th><th>Detail</th></tr></thead><tbody>"
+                + rows
+                + "</tbody></table></div>"
+            )
+        else:
+            table = "<p>No screen has run yet.</p>"
+        brief = (
+            '<aside class="judgement brief"><span class="kicker">Brief · '
+            "a model's judgement</span>"
+            "<p>A brief is a model's reading of a candidate beside the words. It is a judgement, "
+            "never evidence for a grade (D-9 v3.12), and the review's records carry none: the "
+            "signer reads the Lean above, rendered as written, and the questions in section 3.</p>"
+            "</aside>"
+        )
+        return table + brief
+
+    def review_signatures(self, tv: TargetView, rv: ReviewView) -> str:
+        slots = []
+        for role, title, may in (
+            ("intent", "Intent signer", self.intent_signer_words(tv, rv)),
+            (
+                "independent",
+                "Independent signer",
+                "anyone who reads Lean, wrote no candidate in the surviving cluster and is not the "
+                "intent signer",
+            ),
+        ):
+            sig = rv.accepted(role)
+            if sig is not None:
+                body = (
+                    f"<strong>{esc(title)}: <code>{esc(str(sig['login']))}</code></strong> — "
+                    f"accepted cluster <code>{esc(str(sig['cluster']))}</code> on "
+                    f"{esc(str(sig['date']))}, signed via {esc(str(sig['via']))}."
+                )
+                cls = "filled"
+            else:
+                body = f"<strong>{esc(title)}: empty</strong> — may sign: {may}."
+                cls = "empty"
+            others = [s for s in rv.signatures if s["role"] == role and s["decision"] != "accept"]
+            if others:
+                body += " Earlier: " + "; ".join(
+                    f"{esc(str(s['decision']))} by <code>{esc(str(s['login']))}</code> on "
+                    f"{esc(str(s['date']))}"
+                    + (
+                        f" (question <code>{esc(str(s['question']))}</code>)"
+                        if s.get("question")
+                        else ""
+                    )
+                    for s in others
+                )
+            slots.append(f'<div class="signature-slot {cls}"><p>{body}</p></div>')
+        return '<div class="signature-slots">' + "".join(slots) + "</div>"
+
+    def review_page(self, tv: TargetView) -> str:
+        """F26-R16: one page per target with a review, from the record only."""
+        rv = tv.review_records
+        assert rv is not None
+        tid = tv.target_id
+        head = rv.opening
+        opened_by = head.get("opened_by") or {}
+        opened = (
+            f"Opened {esc(str(head.get('date')))} by "
+            f"<code>{esc(str(opened_by.get('identity')))}</code> "
+            f"({esc(str(opened_by.get('role')))})"
+        )
+        if head.get("tracking"):
+            opened += f", tracked at <code>{esc(str(head['tracking']))}</code>"
+        state = self.review_state_words(tv.review) if tv.review is not None else ""
+        state_words = f"; state: {esc(state)}" if state else ""
+        caught, tried = rv.mutants_caught()
+        waiting = sum(1 for q in rv.questions if rv.answer_to(str(q["id"])) is None)
+        stats = "".join(
+            f'<div class="stat"><b>{esc(str(n))}</b><span>{esc(label)}</span></div>'
+            for n, label in (
+                (len(rv.candidates), "candidate" if len(rv.candidates) == 1 else "candidates"),
+                (len(rv.surviving), "surviving"),
+                (len(rv.clusters()), "cluster" if len(rv.clusters()) == 1 else "clusters"),
+                (waiting, "question waiting" if waiting == 1 else "questions waiting"),
+                (
+                    len(tv.open_pairs),
+                    "open pair direction" + ("" if len(tv.open_pairs) == 1 else "s"),
+                ),
+                (f"{caught} / {tried}", "mutants caught"),
+            )
+        )
+        cases = head.get("cases") or []
+        cases_html = (
+            '<div class="review-cases"><span class="kicker">The proposer\'s cases</span><ul>'
+            + "".join(
+                f"<li><em>{esc(str(c.get('kind')))}</em>: {esc(str(c.get('text')))}</li>"
+                for c in cases
+            )
+            + "</ul></div>"
+            if cases
+            else ""
+        )
+        concepts = [str(c) for c in head.get("concepts") or []]
+        if concepts:
+            cases_html += (
+                '<p class="cue">Concepts every candidate must name as its own predicate (F26-R5): '
+                + ", ".join(f"<code>{esc(c)}</code>" for c in concepts)
+                + ".</p>"
+            )
+        body = _template("review.html").substitute(
+            target_id=esc(tid),
+            target_href=esc(self.target_path(tid)),
+            words=esc(str(head.get("words") or "")),
+            opened=opened,
+            state_words=state_words,
+            stats=stats,
+            cases=cases_html,
+            candidates=self.review_candidates(tv, rv),
+            pairs=self.review_pairs(rv),
+            questions=self.review_questions(tv, rv),
+            answer_ctl=self.review_answer_ctl(tv, rv),
+            tests=self.review_tests(rv),
+            screens=self.review_screens(rv),
+            signatures=self.review_signatures(tv, rv),
+        )
+        renders = [f"targets/{tid}/review/review.yaml", f"targets/{tid}/graph.json"]
+        return self.page(f"{tid} · review", body, renders=renders, path=PROBLEMS_PATH)
 
     def proved_in_words(self, tv: TargetView) -> str:
         """F22-T18 (M): for a proved problem, the opening section of the explainer of its first
@@ -5640,6 +6069,8 @@ def render_site(
         files[f"problems/{tid}/index.html"] = r.target(tv)
         files[f"targets/{tid}/index.html"] = r.redirect(r.target_path(tid))
         files[f"steward/{tid}/index.html"] = r.steward_page(tv)  # F23-R7
+        if tv.review_records is not None:  # F26-R16: one review page per target with one
+            files[f"problems/{tid}/review/index.html"] = r.review_page(tv)
         for nid, nv in tv.nodes.items():
             files[f"nodes/{tid}/{nid}/index.html"] = r.node(nv)
         for k, entry in enumerate(target_proofs(tv)):  # F19-T8: one reading view per proof

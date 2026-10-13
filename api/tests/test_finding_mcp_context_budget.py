@@ -281,7 +281,12 @@ def test_pin_a_tool_that_needs_a_token_refuses_inside_the_result(
 # The lemma amendment (D-12 v3.38, merged 2026-10-12) measured 94,385: get_node's output schema
 # gained `lemmas` and get_submission's `holes[].became` (structure, not prose; the served output
 # schemas carry no descriptions, so shortening one changed nothing). Pinned 95,000.
-TOOLS_LIST_BUDGET = 95_000
+# F26-T10 (D-28 v3.39) added four tools — get_review, list_review_questions, submit_candidate,
+# list_open_pairs — and measured 94,398 before them (the same listing without the four) and
+# 105,034 with them (+10,636, 11.3%: get_review's output schema is 2,485 of it, the review's
+# fourteen sections declared; submit_candidate's input 745, its three parameters described).
+# Pinned 106,000.
+TOOLS_LIST_BUDGET = 106_000
 
 
 def test_the_whole_tools_list_fits_its_budget(harness: Harness) -> None:

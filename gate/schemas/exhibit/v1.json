@@ -1,0 +1,140 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openproof.network/schemas/exhibit/v1.json",
+  "title": "exhibit/v1",
+  "description": "targets/<id>/review/exhibits/<id>.json beside <id>.lean (F26-R1, R4, R13; D-9 v3.39): one kernel-checked result the gate's review job wrote — a compile, a screen, an intent test on a candidate, a pair direction, a mutant's result, or a format-rule return — with the toolchain and Mathlib it ran under and the run that wrote it. Only exhibits are evidence for a grade (D-9 v3.12); a brief is a judgement and never an exhibit. Written only by the job, never by hand. Versioned, never edited (D-34).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "target",
+    "id",
+    "kind",
+    "candidate",
+    "test",
+    "result",
+    "detail",
+    "lean_file",
+    "toolchain",
+    "mathlib_sha",
+    "run",
+    "date"
+  ],
+  "properties": {
+    "schema": {
+      "const": "exhibit/v1"
+    },
+    "target": {
+      "$ref": "#/$defs/identifier",
+      "description": "the target the record is filed under"
+    },
+    "id": {
+      "$ref": "#/$defs/id"
+    },
+    "kind": {
+      "enum": [
+        "compile",
+        "screen",
+        "intent-test",
+        "pair",
+        "mutant",
+        "format"
+      ]
+    },
+    "candidate": {
+      "$ref": "#/$defs/id",
+      "description": "the candidate (or the mutant's parent) the exhibit is about"
+    },
+    "test": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/id"
+        }
+      ],
+      "description": "the intent test, for an intent-test exhibit; the pair's other candidate for a pair exhibit; null otherwise"
+    },
+    "result": {
+      "enum": [
+        "pass",
+        "fail",
+        "proved",
+        "refuted",
+        "open",
+        "returned",
+        "error"
+      ],
+      "description": "what the kernel said: for a candidate, pass or fail (a fail discards it); for a direction, proved, refuted or open; `returned` for the format rule; `error` when the check could not run, which decides nothing"
+    },
+    "detail": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2000,
+      "description": "one line: the screen that fired, the case and probe, the instance that refuted, the concept written inline"
+    },
+    "lean_file": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string",
+          "pattern": "^e-[0-9a-f]{8}\\.lean$"
+        }
+      ],
+      "description": "the Lean the kernel checked; null for a `returned` or `error` exhibit"
+    },
+    "toolchain": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100,
+      "description": "leanprover/lean4:<version>"
+    },
+    "mathlib_sha": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        }
+      ]
+    },
+    "run": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100,
+      "description": "the job run that wrote it (a workflow run id or `local`)"
+    },
+    "date": {
+      "$ref": "#/$defs/day"
+    }
+  },
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]*$"
+    },
+    "day": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+    },
+    "login": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9](?:-?[A-Za-z0-9]){0,38}$"
+    },
+    "sshsig": {
+      "type": "string",
+      "pattern": "^-----BEGIN SSH SIGNATURE-----\\n[A-Za-z0-9+/=\\n]+-----END SSH SIGNATURE-----\\n?$",
+      "maxLength": 4000
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]{2,63}$",
+      "description": "the record's id, lowercase alphanumerics and hyphens; a candidate's is `c-<8 hex>` of its Lean's sha256, a test's `t-<8 hex>`, a question's `q-<n>`, an exhibit's `e-<8 hex>`"
+    }
+  }
+}

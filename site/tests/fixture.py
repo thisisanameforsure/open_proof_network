@@ -632,13 +632,13 @@ def publish_v335(
 
     graph_path = root / "targets" / target / "graph.json"
     graph = json.loads(graph_path.read_text(encoding="utf-8"))
-    # F04-T39: the current contract is graph/v8 (lemmas over F25-T1's v7 with registrations),
+    # F26-T1: the current contract is graph/v9 (the review over v8's lemmas and v7's registrations),
     # which also wants each row's ``lemmas``; a row the fixture already gave some keeps them.
-    graph["schema"] = "graph/v8"
+    graph["schema"] = "graph/v9"
     for row in graph["nodes"]:
         extend(row)
         row.setdefault("lemmas", [])
-    graph_path.write_text(json.dumps(schemas.validate(graph, "graph/v8"), indent=1) + "\n")
+    graph_path.write_text(json.dumps(schemas.validate(graph, "graph/v9"), indent=1) + "\n")
 
     frontier_path = root / "frontier.json"
     frontier = json.loads(frontier_path.read_text(encoding="utf-8"))
@@ -669,7 +669,290 @@ def publish_v336(
     lemmas = lemmas or {}
     graph_path = root / "targets" / target / "graph.json"
     graph = json.loads(graph_path.read_text(encoding="utf-8"))
-    graph["schema"] = "graph/v8"
+    graph["schema"] = "graph/v9"
     for row in graph["nodes"]:
         row["lemmas"] = list(lemmas.get(str(row["node_id"]), row.get("lemmas") or []))
+    graph_path.write_text(json.dumps(schemas.validate(graph, "graph/v9"), indent=1) + "\n")
+
+
+# --- F26-T12 (R16, R17; D-9 v3.39): a formalization review written by hand ---------------------
+
+#: The review's records as the service and the gate's job would file them (every one validated
+#: against its schema on the way in, so a test feeds the site the contract's shape): four
+#: candidates — a person's surviving, a model's surviving in the same cluster, one discarded by an
+#: intent test's exhibit, one the format rule returned — two tests, one question answered (with no
+#: source cited) and one waiting, one pair proved both ways and one open, and the intent signer's
+#: accept. Ids follow the id grammar (``c-<8 hex>`` of the Lean's sha256, ``t-``, ``e-``,
+#: ``q-<n>``).
+REVIEW_WORDS = "For all propositions p and q, p and q implies q and p. <b>&</b>"
+REVIEW_PROPOSER = "alice-proposer"
+REVIEW_INJECTION = "<script>alert('review')</script>"
+REVIEW_QUESTION_WAITING = "Suppose p were the only true proposition. Would q and p still hold?"
+REVIEW_QUESTION_ANSWERED = "Does the conjecture say anything when p is false?"
+REVIEW_ANSWER = f"Yes: the implication holds vacuously. {REVIEW_INJECTION}"
+REVIEW_TOOLCHAIN = "leanprover/lean4:v4.33.1"
+REVIEW_SIG = "-----BEGIN SSH SIGNATURE-----\nAAAA\n-----END SSH SIGNATURE-----\n"
+REVIEW_SIGNED = {"via": "approval-key", "key": "ssh-ed25519 AAAA", "signature": REVIEW_SIG}
+CANDIDATE_LEAN = {
+    "person": "theorem Opn.swap (p q : Prop) : p ∧ q → q ∧ p := by\n  sorry\n",
+    "model": "theorem Opn.swap' : ∀ (p q : Prop), p ∧ q → q ∧ p := by\n  sorry\n",
+    "dropped": "theorem Opn.swap_weak (p q : Prop) : p ∧ q → p := by\n  sorry\n",
+    "inline": "theorem Opn.swap_inline (p q : Prop) : (p ∧ q) → (q ∧ p) ∧ True := by\n  sorry\n",
+}
+
+
+def candidate_id(lean: str) -> str:
+    return "c-" + schemas.content_hash(lean.encode("utf-8"))[:8]
+
+
+REVIEW_IDS = {k: candidate_id(v) for k, v in CANDIDATE_LEAN.items()}
+TEST_LEAN = {
+    "t-0000aaaa": "example : True := trivial -- p = True, q = True\n",
+    "t-0000bbbb": "example : True := trivial -- p = False\n",
+}
+
+
+def _exhibit(
+    eid: str,
+    kind: str,
+    candidate: str,
+    result: str,
+    detail: str,
+    *,
+    test: str | None = None,
+    lean: str | None = "theorem OpnReview.exhibit : True := trivial\n",
+) -> dict[str, Any]:
+    return {
+        "schema": "exhibit/v1",
+        "target": TARGET,
+        "id": eid,
+        "kind": kind,
+        "candidate": candidate,
+        "test": test,
+        "result": result,
+        "detail": detail,
+        "lean_file": f"{eid}.lean" if lean is not None else None,
+        "toolchain": REVIEW_TOOLCHAIN,
+        "mathlib_sha": None,
+        "run": "local",
+        "date": "2026-10-12",
+        "_lean": lean,
+    }
+
+
+def review_records() -> dict[str, dict[str, Any]]:
+    """path under ``targets/<t>/review/`` -> the record (``_lean`` is the file beside it)."""
+    ids = REVIEW_IDS
+    day = "2026-10-12"
+    docs: dict[str, dict[str, Any]] = {
+        "review.yaml": {
+            "schema": "review/v1",
+            "target": TARGET,
+            "opened_by": {"identity": REVIEW_PROPOSER, "role": "proposer"},
+            "date": "2026-10-11",
+            "words": REVIEW_WORDS,
+            "cases": [{"kind": "small-value", "text": "p = q = True: the conclusion holds."}],
+            "concepts": ["And"],
+            "source": {"kind": "proposal", "ref": "issue:7"},
+            "tracking": "issue:7",
+            "supersedes": None,
+        },
+    }
+    for key, author, method, models in (
+        ("person", "alice", "manual", []),
+        ("model", "agent-two", "agent", ["claude-opus-5"]),
+        ("dropped", "agent-three", "agent", ["claude-haiku-5"]),
+        ("inline", "carol", "manual", []),
+    ):
+        lean = CANDIDATE_LEAN[key]
+        docs[f"candidates/{ids[key]}.yaml"] = {
+            "schema": "candidate/v1",
+            "target": TARGET,
+            "id": ids[key],
+            "author": author,
+            "method": method,
+            "models": models,
+            "read_others": False if key == "person" else None,
+            "origin": "submitted",
+            "source": None,
+            "lean_file": f"{ids[key]}.lean",
+            "statement_hash": schemas.content_hash(lean.encode("utf-8")),
+            "date": day,
+            "_lean": lean,
+        }
+    for tid, (case, source, ref) in {
+        "t-0000aaaa": ("p = True, q = True", "agreement", "agreement:2"),
+        "t-0000bbbb": ("p = False", "answer", "a-1"),
+    }.items():
+        docs[f"tests/{tid}.yaml"] = {
+            "schema": "intent-test/v1",
+            "target": TARGET,
+            "id": tid,
+            "case": case,
+            "probe": "holds",
+            "concept": None,
+            "expected": {"value": True, "source": source, "ref": ref},
+            "author": "gate",
+            "lean_file": f"{tid}.lean",
+            "date": day,
+            "_lean": TEST_LEAN[tid],
+        }
+    docs["questions/q-1.yaml"] = {
+        "schema": "review-question/v1",
+        "target": TARGET,
+        "id": "q-1",
+        "question": REVIEW_QUESTION_ANSWERED,
+        "raised_by": {"kind": "disagreement", "ref": "e-0000cccc"},
+        "asked_to": "intent",
+        "date": day,
+    }
+    docs["questions/q-2.yaml"] = {
+        "schema": "review-question/v1",
+        "target": TARGET,
+        "id": "q-2",
+        "question": REVIEW_QUESTION_WAITING,
+        "raised_by": {"kind": "mutant", "ref": "e-0000ffff"},
+        "asked_to": "intent",
+        "date": day,
+    }
+    docs["answers/a-1.yaml"] = {
+        "schema": "review-answer/v1",
+        "target": TARGET,
+        "id": "a-1",
+        "question": "q-1",
+        "answer": REVIEW_ANSWER,
+        "cites": None,
+        "date": day,
+        "login": REVIEW_PROPOSER,
+        **REVIEW_SIGNED,
+    }
+    a, b = sorted((ids["person"], ids["model"]))
+    docs[f"pairs/{a}--{b}.yaml"] = {
+        "schema": "pair/v1",
+        "target": TARGET,
+        "a": a,
+        "b": b,
+        "forward": {"state": "proved", "exhibit": "e-0000aaaa", "attempt": None},
+        "backward": {"state": "proved", "exhibit": "e-0000bbbb", "attempt": None},
+        "date": day,
+    }
+    a2, b2 = sorted((ids["person"], ids["dropped"]))
+    docs[f"pairs/{a2}--{b2}.yaml"] = {
+        "schema": "pair/v1",
+        "target": TARGET,
+        "a": a2,
+        "b": b2,
+        "forward": {"state": "proved", "exhibit": "e-0000dddd", "attempt": None},
+        "backward": {
+            "state": "open",
+            "exhibit": None,
+            "attempt": {"who": "gate", "tool": "grind", "budget_s": 20},
+        },
+        "date": day,
+    }
+    exhibits = [
+        _exhibit("e-0000aaaa", "pair", a, "proved", f"{a} implies {b}", test=b),
+        _exhibit("e-0000bbbb", "pair", b, "proved", f"{b} implies {a}", test=a),
+        _exhibit(
+            "e-0000cccc",
+            "intent-test",
+            ids["dropped"],
+            "fail",
+            "holds at p = True, q = True: expected true, the candidate says false "
+            + REVIEW_INJECTION,
+            test="t-0000aaaa",
+            lean="example : ¬ True := by\n  decide -- the kernel's decision on this candidate\n",
+        ),
+        _exhibit("e-0000dddd", "pair", a2, "proved", f"{a2} implies {b2}", test=b2),
+        _exhibit(
+            "e-0000eeee",
+            "format",
+            ids["inline"],
+            "returned",
+            "the concept And is written inline; name it as a predicate (F26-R5)",
+            lean=None,
+        ),
+        _exhibit("e-0000ffff", "mutant", ids["person"], "pass", "mutant: or for and in the goal"),
+        _exhibit("e-0000ff01", "mutant", ids["person"], "fail", "mutant: dropped hypothesis"),
+        _exhibit("e-0000ff02", "mutant", ids["person"], "fail", "mutant: q and q for q and p"),
+        _exhibit("e-0000ab01", "screen", ids["person"], "pass", "negation not proved"),
+        _exhibit("e-0000ab02", "screen", ids["model"], "pass", "negation not proved"),
+        _exhibit("e-0000ab03", "compile", ids["person"], "pass", "elaborates at the pin"),
+    ]
+    for hexes, cand in (("aa", "person"), ("bb", "model")):
+        for n, tid in enumerate(TEST_LEAN):
+            exhibits.append(
+                _exhibit(
+                    f"e-00{hexes}00{n:02d}",
+                    "intent-test",
+                    ids[cand],
+                    "pass",
+                    f"{tid} holds as expected",
+                    test=tid,
+                )
+            )
+    for ex in exhibits:
+        docs[f"exhibits/{ex['id']}.json"] = ex
+    docs["signatures/intent-2026-10-12-1.yaml"] = {
+        "schema": "review-signature/v1",
+        "target": TARGET,
+        "role": "intent",
+        "decision": "accept",
+        "cluster": ids["person"],
+        "question": None,
+        "date": day,
+        "login": REVIEW_PROPOSER,
+        **REVIEW_SIGNED,
+    }
+    return docs
+
+
+def write_review(root: Path, *, target: str = TARGET) -> Path:
+    """Write ``review_records`` under ``targets/<target>/review/``, each validated against its
+    schema first (the contract, not a guess), with its Lean beside it; returns the directory."""
+    base = root / "targets" / target / "review"
+    for rel, doc in review_records().items():
+        record = {k: v for k, v in doc.items() if k != "_lean"}
+        record["target"] = target
+        schemas.validate(record, str(record["schema"]))
+        path = base / rel
+        path.parent.mkdir(parents=True, exist_ok=True)
+        if path.suffix == ".json":
+            path.write_bytes(schemas.canonical_json(record))
+        else:
+            path.write_text(
+                yaml.safe_dump(record, sort_keys=False, allow_unicode=True), encoding="utf-8"
+            )
+        if doc.get("_lean") is not None:
+            path.with_suffix(".lean").write_text(str(doc["_lean"]), encoding="utf-8")
+    return base
+
+
+def build_with_review(tmp_path: Path) -> Path:
+    """The curated fixture with the review above on its target, products rendered by the gate
+    (``graph/v9`` carries the review's derived state and the open pair directions)."""
+    root = curated(tmp_path)
+    write_review(root)
+    prod = products.generate(root, rendered_from=COMMIT, commit_time=NOW)
+    prod.write(root)
+    publish_v336(root, lemmas={LEMMA_PARENT: [{"hole": LEMMA_HOLE, "node": LEMMA_NODE}]})
+    return root
+
+
+def publish_review_state(root: Path, state: dict[str, Any], *, target: str = TARGET) -> None:
+    """Rewrite the target's ``graph.json`` ``review`` object as the gate would publish it at a
+    later stage (T2's derivation), validated against ``graph/v9``; the records are untouched."""
+    graph_path = root / "targets" / target / "graph.json"
+    graph = json.loads(graph_path.read_text(encoding="utf-8"))
+    graph["review"] = {**graph["review"], **state}
+    graph_path.write_text(json.dumps(schemas.validate(graph, "graph/v9"), indent=1) + "\n")
+
+
+def publish_v8(root: Path, *, target: str = TARGET) -> None:
+    """The target's ``graph.json`` as the v3.38 gate wrote it: ``graph/v8``, no review fields."""
+    graph_path = root / "targets" / target / "graph.json"
+    graph = json.loads(graph_path.read_text(encoding="utf-8"))
+    graph["schema"] = "graph/v8"
+    graph.pop("review", None)
+    graph.pop("open_pairs", None)
     graph_path.write_text(json.dumps(schemas.validate(graph, "graph/v8"), indent=1) + "\n")

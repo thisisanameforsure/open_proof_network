@@ -370,6 +370,12 @@ class GitHost(Protocol):
         requests too)."""
         ...
 
+    def comment_on_issue(self, repo: str, number: int, body: str) -> None:
+        """Post ``body`` as a comment on issue ``number``, as the App (F26-Q17): a review's
+        tracking issue takes the notice of questions waiting. Issues: write, which the pull
+        requests permission does not cover on a plain issue."""
+        ...
+
 
 #: F06-T12: what each call's installation token may do. A token request names the one repository
 #: and exactly these permissions, so a read's token cannot write and no token reaches a repository
@@ -381,6 +387,7 @@ CONTENTS_READ: Permissions = (("contents", "read"),)  # refs, the Contents API, 
 CONTENTS_WRITE: Permissions = (("contents", "write"),)  # the Git Data API: trees, commits, refs
 PULLS_READ: Permissions = (("pull_requests", "read"),)  # the open listing
 PULLS_WRITE: Permissions = (("pull_requests", "write"),)  # open and close a pull request
+ISSUES_WRITE: Permissions = (("issues", "write"),)  # a review's tracking issue (F26-Q17)
 PULL_STATE: Permissions = (("actions", "read"), ("pull_requests", "read"))  # pull, reviews, runs
 ACTIONS_READ: Permissions = (("actions", "read"),)  # runs, jobs, artifacts
 ACTIONS_WRITE: Permissions = (("actions", "write"),)  # workflow_dispatch
@@ -953,6 +960,17 @@ class HttpxGitHost:
         """``POST /repos/{repo}/issues/{number}/comments`` as the App (F07-T64). Pull requests:
         write covers the issue-comments endpoint on a pull request (F06-T12's scoping)."""
         with self._api(repo, PULLS_WRITE) as http:
+            _send(
+                http,
+                "POST",
+                f"{GITHUB_API}/repos/{repo}/issues/{number}/comments",
+                json={"body": body},
+            )
+
+    def comment_on_issue(self, repo: str, number: int, body: str) -> None:
+        """``POST /repos/{repo}/issues/{number}/comments`` on a plain issue, as the App, with a
+        token scoped to Issues: write alone (F26-Q17; F06-T12's scoping)."""
+        with self._api(repo, ISSUES_WRITE) as http:
             _send(
                 http,
                 "POST",

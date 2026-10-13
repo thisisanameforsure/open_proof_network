@@ -1,0 +1,29 @@
+F26-T10 — the review's routes and tools (R14; AC11, AC12, AC13), 2026-10-12T13:03:58Z.
+Branch f26-t10 on origin/f26-t1 (d367de04).
+
+tools/list measured as compact JSON (scratchpad/measure_tools_list.py):
+  before (the same listing without the four tools): 94398
+  after (get_review, list_review_questions, submit_candidate, list_open_pairs): 105034
+  pinned TOOLS_LIST_BUDGET = 106_000 (was 95_000)
+
+$ uv run --frozen pytest api/tests -q --basetemp=/tmp/opn-f26-t10-pytest
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+2033 passed, 2 warnings in 141.60s (0:02:21)
+
+$ uv run --frozen pytest api/tests/test_reviews_routes.py api/tests/test_reviews_blind.py -q
+60 passed, 2 warnings in 7.71s
+
+$ uv run --frozen pytest gate/tests/test_error_codes.py gate/tests/test_finding_guide_names_exist.py gate/tests/test_review_schemas.py -q
+36 passed in 9.24s
+
+$ uv run --frozen pytest site/tests -q -m "not lean and not docker and not network"
+611 passed, 2 skipped in 104.12s (0:01:44)
+
+$ uv run --frozen ruff check api gate; uv run --frozen ruff format --check api gate
+All checks passed!
+660 files already formatted
+
+$ uv run --frozen mypy gate; uv run --frozen mypy api
+Success: no issues found in 387 source files
+Success: no issues found in 250 source files

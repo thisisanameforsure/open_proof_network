@@ -128,7 +128,11 @@ with its single home:
     app for GitHub-proof identities, F05) and the <strong>api token-signing secret</strong>: AWS
     Systems Manager Parameter Store (SecureString), read by the api function at startup.</li>
   <li><strong>Deploy credentials:</strong> none stored. CI assumes an AWS role via OIDC; the role
-    ARN is config, not a secret.</li>
+    ARN is config, not a secret. Since 2026-10-12 a second role is assumed the same way: the
+    review notice's (<code>NoticeRole</code>, F26-Q17), trusted exactly as the deploy role is and
+    allowed only <code>lambda:InvokeFunction</code> on the service's function, which the nightly
+    <code>review-notice.yml</code> uses to run the notice inside the function. The App key and the
+    tables stay with the function; the workflow reads no secret.</li>
   <li><strong>Founder bootstrap AWS credentials:</strong> the git-ignored <code>.env</code> on the
     founder's machine only — never in GitHub, never in any deployed environment.</li>
 </ol>

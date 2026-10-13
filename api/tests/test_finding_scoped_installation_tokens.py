@@ -115,6 +115,14 @@ CASES: list[Case] = [
         {"pull_requests": "write"},
     ),
     (
+        # F26-Q17 (ruled 2026-10-12): a review's tracking issue takes the App's notice, which
+        # needs Issues: write — never pull_requests on a plain issue.
+        "comment_on_issue",
+        lambda s: s.on("POST", f"{API}/issues/9/comments", json={"id": 2}),
+        lambda h: h.comment_on_issue(REPO, 9, "two questions wait"),
+        {"issues": "write"},
+    ),
+    (
         "list_open_pull_requests",
         lambda s: s.on("GET", f"{API}/pulls", json=[]),
         lambda h: h.list_open_pull_requests(REPO),

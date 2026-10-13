@@ -1,0 +1,146 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openproof.network/schemas/candidate/v1.json",
+  "title": "candidate/v1",
+  "description": "targets/<id>/review/candidates/<id>.yaml beside <id>.lean (F26-R1, R3; D-9 v3.39): one Lean formalization of the review's conjecture — a person's or a model's — with its author, the models that helped or none, and the author's declaration of having read another candidate's Lean, shown as a claim. Its stage-3 result lives in the exhibits the gate writes, never here. Append-only; never deleted, a discarded candidate stays on the record with its reason. Versioned, never edited (D-34).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "target",
+    "id",
+    "author",
+    "method",
+    "models",
+    "read_others",
+    "origin",
+    "source",
+    "lean_file",
+    "statement_hash",
+    "date"
+  ],
+  "properties": {
+    "schema": {
+      "const": "candidate/v1"
+    },
+    "target": {
+      "$ref": "#/$defs/identifier",
+      "description": "the target the record is filed under"
+    },
+    "id": {
+      "$ref": "#/$defs/id"
+    },
+    "author": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 500,
+      "description": "the ledger identity (pseudonym) credited as the candidate's author; for a ported statement the registry's authors joined by `; `"
+    },
+    "method": {
+      "enum": [
+        "manual",
+        "copilot",
+        "agent",
+        "autonomous",
+        "other"
+      ],
+      "description": "D-23 v3.37's vocabulary: `manual` is a person's candidate (and `models` is empty), the others a model's part"
+    },
+    "models": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 200
+      },
+      "description": "the models that helped, each named (v3.31); empty for a person's candidate"
+    },
+    "read_others": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "boolean"
+        }
+      ],
+      "description": "the author's declaration of having read another candidate's Lean before writing this one; null where the author made none; a claim the network shows and does not verify (F26-R3)"
+    },
+    "origin": {
+      "enum": [
+        "submitted",
+        "ported",
+        "wrapper"
+      ],
+      "description": "`submitted` through the service; `ported`, a registry's or the live statement entered as the first candidate; `wrapper`, the review's own wrapper naming a ported statement's parts, proved equal to it (F26-R5)"
+    },
+    "source": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "ref"
+          ],
+          "properties": {
+            "kind": {
+              "enum": [
+                "registry",
+                "existing",
+                "candidate"
+              ]
+            },
+            "ref": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 500,
+              "description": "the registry entry, the node id, or the candidate a wrapper wraps"
+            }
+          }
+        }
+      ],
+      "description": "what a ported candidate or a wrapper came from; null for a submitted one"
+    },
+    "lean_file": {
+      "type": "string",
+      "pattern": "^c-[0-9a-f]{8}\\.lean$",
+      "description": "the candidate's Lean beside this record"
+    },
+    "statement_hash": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$",
+      "description": "sha256 of the Lean file's bytes"
+    },
+    "date": {
+      "$ref": "#/$defs/day"
+    }
+  },
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]*$"
+    },
+    "day": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+    },
+    "login": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9](?:-?[A-Za-z0-9]){0,38}$"
+    },
+    "sshsig": {
+      "type": "string",
+      "pattern": "^-----BEGIN SSH SIGNATURE-----\\n[A-Za-z0-9+/=\\n]+-----END SSH SIGNATURE-----\\n?$",
+      "maxLength": 4000
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]{2,63}$",
+      "description": "the record's id, lowercase alphanumerics and hyphens; a candidate's is `c-<8 hex>` of its Lean's sha256, a test's `t-<8 hex>`, a question's `q-<n>`, an exhibit's `e-<8 hex>`"
+    }
+  }
+}

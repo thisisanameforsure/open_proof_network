@@ -49,7 +49,8 @@
     "trust_base": "kernel"
   },
   "rendered_from": "5555555555555555555555555555555555555555",
-  "schema": "context/v6",
+  "review": null,
+  "schema": "context/v7",
   "statement": {
     "decl": "OpnProp.and_swap",
     "hash": "749fdf4930d9a6c812065b01c54741fc473083a1dd036656dce09ee34426f14e",

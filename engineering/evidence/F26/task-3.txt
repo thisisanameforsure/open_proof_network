@@ -1,0 +1,16 @@
+warning: `VIRTUAL_ENV=/Users/mikehiggins/Desktop/repos/open_proof_network/.venv` does not match the project environment path `.venv` and will be ignored; use `--active` to target the active environment instead
+........................................................................ [ 53%]
+...............................................................          [100%]
+135 passed in 6.62s
+All checks passed!
+410 files already formatted
+Success: no issues found in 389 source files
+
+# F26-T3 verification. Above: the task's named command, then ruff check, ruff format --check, mypy.
+# Red first: engineering/evidence/F26/task-3-red.txt (14 failed, 2 passed, with review_open stubbed
+# at today's behaviour so no red was a missing name).
+# Gate fast tier, -m "not lean and not docker and not network", test_clients_harness deselected
+# (cursor "not loaded (needs approval)" on this machine): 1 failed, 2952 passed, 267 skipped.
+# The one failure, test_lifecycle_f15::test_the_whole_life, was its own 10 s wall-clock budget
+# (10.05 s) under the full run on a laptop; alone: 1 passed in 7.13 s (the 2026-10-05 shape).
+# make verify (lint, types, test-fast over gate, api and site) after the commit: 5533 passed, 269 skipped, 224 deselected in 721 s, exit 0.

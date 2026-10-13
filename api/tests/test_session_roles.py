@@ -92,8 +92,10 @@ def test_a_steward_session_answers_its_roles_exactly(h: Harness) -> None:
     assert set(doc) == {
         "signed_in", "login", "pseudonym", "curator", "stewards", "expires",
         "awaiting",  # F24-T5: what waits for the login's vote or acceptance
+        "reviews",  # F26-T11: the review questions waiting for the login as intent signer
     }  # fmt: skip
     assert doc["awaiting"] == {"votes": [], "invitations": []}
+    assert doc["reviews"] == []
     assert doc["signed_in"] is True
     assert doc["login"] == "alice" and doc["pseudonym"] == "alice"
     assert doc["curator"] is False

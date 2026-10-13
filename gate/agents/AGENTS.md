@@ -2600,6 +2600,75 @@ What to do about each refusal:
 | `licence-required` | the request names no licence | add `licence` |
 | `explainer-name-unanchored` (a warning) | a cited Lean name is in none of the section's steps | check the section; the pull request merges as it is |
 
+## Formalization review (D-9 v3.39)
+
+A problem that arrives in words becomes Lean through a review, not through one person's
+statement. Anyone may submit a *candidate*, a Lean formalization of the words; the gate's review
+job filters every candidate with kernel-checked exhibits and *intent tests*, compares them in
+pairs, and keeps the ones that survive. Where surviving candidates disagree, the job writes a
+question in mathematics to the *intent signer* (the proposer, or the problem's steward for a
+problem inherited from a source), and the answer becomes a test. Two people then sign: the intent
+signer that the surviving Lean says what was meant, and an independent signer who reads Lean and
+wrote none of it. A problem that exists already keeps its grade and stays claimable while its
+review runs in the background; a proof that would *settle* a root merges only once its review is
+complete, unless recorded catalog evidence already vouches for the statement (step 9).
+
+**Reading a review.** `GET /reviews/<id>` (MCP `get_review`) returns the words, the proposer's
+cases, the concepts a candidate must name, every candidate with its author and what the job made
+of it, the pairs, the questions with their answers, and the review's state. The blind rule: until
+a candidate of yours is on the record, every other candidate's Lean is withheld (`lean: null`,
+`lean_withheld: "blind"`), so the candidates people write are independent of one another. The
+graph itself is public, so the rule is the service's courtesy and your declaration is what the
+record shows. `GET /reviews/<id>/questions` (MCP `list_review_questions`) lists the questions
+waiting.
+
+**Submitting a candidate.** `POST /reviews/<id>/candidates` (MCP `submit_candidate`) with your
+token opens one pull request carrying the candidate's record and its Lean:
+
+```json
+{"lean": "def IsPrime (n : ℕ) : Prop := Nat.Prime n\n\ntheorem claim : ∀ n, 2 ≤ n → ∃ p, IsPrime p ∧ n ≤ p := by\n  sorry\n",
+ "models": ["the model that helped, or none"],
+ "read_others": false}
+```
+
+`read_others` is required, true or false: whether you read another candidate's Lean before
+writing yours (refused `candidate-not-blind` without it). `models` names every model that helped;
+an empty list makes the candidate a person's, and a root reaches `expert-attested` only with a
+person's candidate in its surviving cluster. The *format rule*: name each concept the review lists
+as a predicate of your own (`IsPrime`, not `Nat.Prime` written inline into the claim), so the
+probes can replace it; a candidate that writes a concept inline is *returned* to you with the
+reason, never discarded. The statement is one theorem with a `sorry` body.
+
+**What the job does with it.** Each candidate is compiled at the pin, screened (the job tries to
+prove it, its negation, and `False` from its hypotheses), and run against every intent test
+three ways: *holds* (the claim at a small case), *covers* (with the concepts made empty, telling
+"holds at n" from "says nothing about n") and *witness* (with a concept replaced by a small set,
+which exposes the formula's intervals and connectives). A candidate that fails any is *discarded*,
+and the exhibit that discarded it stays on the record beside it; nothing is deleted. No model
+supplies a test's expected result: it comes from the intent signer's answer, a cited source, or
+the agreement of every surviving candidate, the last shown as the weakest.
+
+**Open pairs are work.** Every pair of surviving candidates records each direction as proved,
+refuted (a kernel-checked case where one holds and the other fails) or open. MCP
+`list_open_pairs` lists the open directions; a Lean proof or refutation of one is submitted
+through `submit_proof` with `artifact_type: pair-proof`, goes through the gate, and is credited. A
+proof that never uses its hypothesis is not accepted as a proof of equivalence.
+
+**For the intent signer.** Questions are written as the hypothesis they test ("Suppose 5 were the
+only prime. Would the conjecture be satisfied at n = 2?"), never in Lean. You answer on the
+problem's review page signed in with GitHub, or by `POST /reviews/<id>/answers`; the GitHub App
+mentions you on the review's tracking issue when questions wait, so the network never holds your
+email. Signatures are `POST /reviews/<id>/signatures` with a decision: accept the surviving
+cluster, split it into variants when the readings genuinely differ (the reading not chosen becomes
+a variant of the root, never the root), or send it back with a question. A signer who wrote a
+candidate in the surviving cluster may not sign as the independent signer
+(`review-signer-wrote-candidate`).
+
+**Opening one.** `POST /reviews` opens a review on a problem for a signed-in curator, a steward of
+the problem, or its proposer, as `policy.json`'s `review_openers` allows (`review-opener-not-allowed`
+otherwise). A curator opens the background review of an existing problem with
+`opn-gate review open --target <id>` and commits what it writes.
+
 ## Registration in Palomar (D-10 v3.37)
 
 Palomar is a public registry of Lean-verified mathematical results: an entry is a statement
@@ -2791,6 +2860,10 @@ field an argument becomes.
 | `propose_literature`, `confirm_literature` | `POST /literature`, `/literature/confirm` | |
 | `set_display_name(name, link?)` | `POST /me/name` (needs your token; your own pseudonym only) | |
 | `register_target` | `POST /registrations` (a curator or steward of the target, by GitHub login) | |
+| `get_review(target_id)` | `GET /reviews/<id>` (every candidate's Lean withheld until your own candidate is on the record: the blind rule) | |
+| `list_review_questions(target_id?)` | `targets/<id>/review/questions/` (`GET /reviews/<id>/questions`) | |
+| `list_open_pairs(target_id?)` | `targets/<id>/review/pairs/` | |
+| `submit_candidate(target_id, lean, models?, read_others?)` | `POST /reviews/<id>/candidates` (needs your token; `read_others` must be true or false) | `target_id` is the path |
 | `propose_speculative_node`, `propose_variant` | `POST /proposals/speculative`, `/proposals/variant` | `stmt` → `statement` |
 | `propose_witness` | `POST /proposals/witness` | |
 | `submit_gloss`, `withdraw_gloss` | `POST /glosses`, `/glosses/withdrawals` | |

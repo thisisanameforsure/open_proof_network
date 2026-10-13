@@ -24,10 +24,11 @@ from urllib.parse import urlencode
 
 import yaml
 
-from opn_api import duplicates, frontier, pending, precheck, requests
+from opn_api import duplicates, frontier, pending, precheck, requests, reviews, session
 from opn_api import glosses as glossroutes
 from opn_api.app import ApiError, CachedDir, CachedFile
 from opn_api.githost import GitHostError
+from opn_api.mcp import auth as mcpauth
 from opn_api.mcp import demarcate, results
 from opn_api.mcp.calls import ID_PARAM, Call, Source, Tool, ToolError, error, params
 from opn_gate import context, explainers, glosses, layout, products, schemas
@@ -52,7 +53,7 @@ FRONTIER_SCHEMA = "frontier/v5"  # F09-T24: `circular`, `literature`, `literatur
 #: v3.38 re-pin first renders (F10-T49), so the service accepts it whichever side of that
 #: re-pin it is deployed on (the deploy-window lesson of 2026-09-11).
 CONTEXT_SCHEMAS: tuple[str, ...] = tuple(
-    dict.fromkeys((*context.ACCEPTED, "context/v6"))  # ordered, without a repeat
+    dict.fromkeys((*context.ACCEPTED, "context/v6", "context/v7"))  # ordered, without a repeat
 )
 SCHEMA_NAME_RE = re.compile(r"^[a-z][a-z0-9-]*/v[1-9][0-9]*$")
 FRONT_MATTER_RE = re.compile(r"\A---[ \t]*\r?\n(?P<yaml>.*?)\r?\n---[ \t]*\r?\n", re.S)
@@ -269,6 +270,86 @@ async def list_registrations(call: Call, args: dict[str, Any]) -> dict[str, Any]
         "target_id": target_id,
         "count": len(found),
         "registrations": found,
+    }
+
+
+# --- F26-T10 (D-9, D-28 v3.39): the formalization review ---------------------------------------
+
+
+async def get_review(call: Call, args: dict[str, Any]) -> dict[str, Any]:
+    """``GET /reviews/<id>``, body for body, with the caller's bearer forwarded when the
+    request carried one: the route applies the blind rule to it (F26-R3, AC12), so an anonymous
+    caller and a bearer with no candidate on the record see no candidate's Lean, and a
+    candidate's author sees every one. The read is open — the review is public — which is why
+    the tool is declared ``anyone`` and reads the verified bearer itself rather than requiring
+    one (a read tool is never ``endpoint``, ``calls.Tool``). The words, cases, questions and
+    answers are contributor text, so the answer carries the untrusted note."""
+    target_id = check_id(args.get("target_id"), "target_id")
+    with_bearer = Call(call.ctx, call.http, token=mcpauth.bearer(), calls=call.calls)
+    doc = service_answer(
+        await with_bearer.endpoint("GET", f"/reviews/{target_id}"), "/reviews/<id>"
+    )
+    return {**doc, "untrusted_note": demarcate.UNTRUSTED_NOTE}
+
+
+def _review_targets(ctx: Context, target_id: str | None) -> list[str]:
+    """The targets to read: the one named (``not-found`` when the index lacks it), else every
+    target the index lists, in its order."""
+    try:
+        listed = session.target_ids(ctx)
+    except ApiError as exc:
+        raise from_api_error(exc) from exc
+    if target_id is None:
+        return listed
+    if target_id not in listed:
+        raise error("not-found", f"no target {target_id} in targets/index.json at main", "graph")
+    return [target_id]
+
+
+async def list_review_questions(call: Call, args: dict[str, Any]) -> dict[str, Any]:
+    """The questions no answer names, per target, read from ``targets/<id>/review/questions/``
+    and ``answers/`` at ``main`` (F26-R7); in the records' order, ranked by nothing. A question
+    is contributor-facing text written by the gate's job from exhibits; the answer carries the
+    untrusted note all the same, since a send-back's question is a signer's words."""
+    ctx = call.ctx
+    target_id = args.get("target_id")
+    if target_id is not None:
+        target_id = check_id(target_id, "target_id")
+    found: list[dict[str, Any]] = []
+    try:
+        for target in _review_targets(ctx, target_id):
+            found.extend(reviews.waiting_questions(ctx, target))
+    except ApiError as exc:
+        raise from_api_error(exc) from exc
+    return {
+        "read_at": ctx.head or ctx.settings.graph_branch,
+        "target_id": target_id,
+        "count": len(found),
+        "questions": found,
+        "untrusted_note": demarcate.UNTRUSTED_NOTE,
+    }
+
+
+async def list_open_pairs(call: Call, args: dict[str, Any]) -> dict[str, Any]:
+    """Each open pair direction with its last attempt, read from ``targets/<id>/review/pairs/``
+    at ``main`` (F26-R8); a proof or refutation of one is a ``pair-proof`` artifact through
+    ``submit_proof``. In the records' order, ranked by nothing (D-25; F26-Q6: not a frontier
+    entry). Every value is an id, an enum or the gate's own attempt record."""
+    ctx = call.ctx
+    target_id = args.get("target_id")
+    if target_id is not None:
+        target_id = check_id(target_id, "target_id")
+    found: list[dict[str, Any]] = []
+    try:
+        for target in _review_targets(ctx, target_id):
+            found.extend(reviews.open_directions(ctx, target))
+    except ApiError as exc:
+        raise from_api_error(exc) from exc
+    return {
+        "read_at": ctx.head or ctx.settings.graph_branch,
+        "target_id": target_id,
+        "count": len(found),
+        "pairs": found,
     }
 
 
@@ -1127,5 +1208,42 @@ TOOLS: tuple[Tool, ...] = (
         "rendered before the field existed lists none. Plain path: targets/index.json.",
         params({"target_id": {**ID_PARAM, "description": "Only this target's registrations."}}),
         list_registrations,
+    ),
+    # F26-T10: D-28's read table, v3.39 — the formalization review.
+    Tool(
+        "get_review",
+        "A target's formalization review as the record holds it: the words, cases and "
+        "concepts, the candidates (author, method, models, origin, the read_others claim), "
+        "tests, questions (each `waiting` or not), answers, pairs and open directions, "
+        "exhibits, signatures, and the derived `state`. The blind rule (D-9 v3.39): with no "
+        "token, or one whose identity authored no candidate on the record, every candidate's "
+        "`lean` is null with `lean_withheld: blind`; once your candidate is merged, every Lean "
+        "is shown. 404 review-unknown for a target with no review. Read at main's head.",
+        params({"target_id": ID_PARAM}, ("target_id",)),
+        get_review,
+    ),
+    Tool(
+        "list_review_questions",
+        "The questions waiting on a review — those no answer record names — each in words "
+        "with its id, what raised it (`raised_by`: a disagreement, concept, mutant, shape or a "
+        "signer's send-back, with the record), who is asked (`asked_to`: intent) and its "
+        "target_id; in the records' order, ranked by nothing. `target_id` keeps one target "
+        "(not-found when the index has no such target); without it, every target's. Read from "
+        "targets/<id>/review/questions/ and answers/ at main's head. Plain path: "
+        "targets/<id>/review/questions/.",
+        params({"target_id": {**ID_PARAM, "description": "Only this target's questions."}}),
+        list_review_questions,
+    ),
+    Tool(
+        "list_open_pairs",
+        "The pair directions a review leaves open: each with its two candidates `a` and `b`, "
+        "the `direction` (forward: a implies b; backward: b implies a), the last `attempt` "
+        "recorded (who, tool, budget_s) or null, its target_id, and `submit_as: pair-proof` — "
+        "a proof or refutation of one goes through submit_proof with artifact_type pair-proof "
+        "and is credited (F26-R8). In the records' order, ranked by nothing; not a frontier "
+        "entry. `target_id` keeps one target. Read from targets/<id>/review/pairs/ at main's "
+        "head. Plain path: targets/<id>/review/pairs/.",
+        params({"target_id": {**ID_PARAM, "description": "Only this target's open pairs."}}),
+        list_open_pairs,
     ),
 )
