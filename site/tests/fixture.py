@@ -878,6 +878,8 @@ def review_records() -> dict[str, dict[str, Any]]:
         _exhibit("e-0000ab01", "screen", ids["person"], "pass", "negation not proved"),
         _exhibit("e-0000ab02", "screen", ids["model"], "pass", "negation not proved"),
         _exhibit("e-0000ab03", "compile", ids["person"], "pass", "elaborates at the pin"),
+        # the job compiles before it screens, so a screened candidate has a compile on record
+        _exhibit("e-0000ab04", "compile", ids["model"], "pass", "elaborates at the pin"),
     ]
     for hexes, cand in (("aa", "person"), ("bb", "model")):
         for n, tid in enumerate(TEST_LEAN):

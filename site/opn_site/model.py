@@ -389,15 +389,18 @@ class ReviewView:
 
     def result_of(self, candidate: str) -> tuple[str, str | None]:
         """The candidate's stage-3 result and the exhibit that decided it: ``returned`` by the
-        format rule (R5), ``discarded`` by a failing compile, screen or intent test (R4), else
-        ``surviving``. An ``error`` exhibit decides nothing."""
+        format rule (R5), ``discarded`` by a failing compile, screen or intent test (R4),
+        ``surviving`` once the job's compile has passed, else ``pending`` (F26-T14: the gate's
+        ``review.derive`` rule; stage 3 is the job's). An ``error`` exhibit decides nothing."""
         for e in self.exhibits_about(candidate, "format"):
             if e["result"] == "returned":
                 return "returned", str(e["id"])
         for e in self.exhibits_about(candidate, *DISCARDING_KINDS):
             if e["result"] == "fail":
                 return "discarded", str(e["id"])
-        return "surviving", None
+        if any(e["result"] == "pass" for e in self.exhibits_about(candidate, "compile")):
+            return "surviving", None
+        return "pending", None
 
     @property
     def surviving(self) -> list[str]:

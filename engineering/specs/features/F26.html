@@ -443,6 +443,7 @@ are the reference implementation.</p>
     issue needs the App's <code>issues: write</code>; a tracking pull request works today. The notice and the answer
     route agree on who the intent signer is (the proposer, else the active stewards); <code>/me/</code> lists every
     waiting question for the signed-in signer.</td></tr>
+  <tr><td>F26-Q18</td><td><strong>A candidate the job has not compiled is pending (T14; 2026-10-13).</strong> The first live run found it: the 27 background reviews opened at graph <code>2ae21253f</code> each derived <code>complete</code> with their one candidate surviving, before the job had touched them, because a candidate with no discarding exhibit read as surviving. <code>review.yml</code> lists only reviews that are neither <code>none</code> nor <code>complete</code>, so it found none and ran nothing (graph run 38456906468). D-9 v3.39 says a review completes when "one cluster survives stage 3", and stage 3 is the job's: a candidate now survives only once the job's compile has passed (<code>review.compiled</code>), and is <code>pending</code> until then; an <code>error</code> still decides nothing, so it leaves the candidate pending. The site's <code>ReviewView.result_of</code> applies the same rule. No schema changes (the products carry counts, not fates). Red first: two scenarios in <code>test_review_state.py</code> and one page test, plus two mutants of <code>compiled</code>.</td></tr>
 </table>
 
 <h2>10. Status</h2>

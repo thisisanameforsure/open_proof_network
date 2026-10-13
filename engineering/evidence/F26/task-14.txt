@@ -1,0 +1,55 @@
+F26-T14 — live: push, deploy, re-pin, render, open the background review on every target (AC18).
+2026-10-12/13, on the owner's word ("go ahead").
+
+1. Network PR #41 merged as main bf5c273b after CI 38307363449 (fast, Lean, harness all success;
+   the Lean tier's first run, 38293350733, failed on one assertion T9 had missed:
+   test_qa_lean.py::test_onramp_screens_clean still expected back-translation in the floor; the
+   run showed missing == ('brief',), restated in a14d217b). api-deploy 38319599235 success;
+   site-deploy dispatched on bf5c273b, success; /health ok.
+2. Tag gate-bf5c273; image-publish 38319858327 success:
+     plain   ghcr.io/thisisanameforsure/opn-gate@sha256:0c53784635f69117d5bf24cf2afd8fffd8ca1588767cde277fd24094a4450d4a
+     mathlib ghcr.io/thisisanameforsure/opn-gate@sha256:fec8804741a72d25fa8c09bb2343a6c2ce472cb7820f9bce6354acfc76816aa0
+3. Graph worktree at origin/main 66166496d: schemas.publish wrote twelve (candidate/v1, context/v7,
+   exhibit/v1, graph/v9, intent-test/v1, pair/v1, policy/v4, review-answer/v1, review-question/v1,
+   review-signature/v1, review/v1, targets-index/v11; [] on a second run); AGENTS.md = main's
+   guide; pin_image.py 27/27 at bf5c273 (26 mathlib, tutorial plain), each spec diff exactly
+   devcontainer_ref + network_commit, the devcontainer diff the image line only; gate.yml gains
+   T8's post-merge review step before the record snapshot; review.yml from
+   engineering/evidence/F26/review.yml with its header reworded for the graph.
+   Committed d379e1470. Checks before the push: pregate --target tutorial --node
+   tutorial-and-swap: verdict pass; products rendered in a second worktree: targets-index/v11,
+   27 graph.json at graph/v9, context/v7, info protocol 3.39, frontier/v5 47 entries / 44
+   claimable, the same ids as main. The owner pushed it (the classifier refused mine); gate
+   38456608319 success, render 38456626507 success -> 02701af02 "gate: render bf5c273b9bf9";
+   site-deploy followed.
+4. opn-gate review open --all on 02701af02: 27 rows, 27 ok, 81 files, all under
+   targets/<t>/review/, every opening dated 2026-10-13 with opened_by role network. Pushed as the
+   curator commit 2ae21253f (graph main had not moved; no run in flight).
+5. review.yml dispatched for tutorial, run 38456906468: success, and "open reviews: none".
+   Locally, review.state_of on tutorial, erdos-1094 and erdos-1050 each said
+   {'state': 'complete', 'candidates': 1, 'surviving': 1, 'clusters': 1, ...}: a candidate with
+   no exhibit read as surviving, so a review the job had never touched was complete and the job
+   skipped it. No products had been rendered since the openings, so nothing false was published.
+   F26-Q18.
+
+-- the fix, branch f26-t14-pending (red first) --
+RED  uv run pytest gate/tests/test_review_state.py
+     FAILED test_scenario[a_candidate_the_job_has_not_compiled_is_pending]
+       {'c-aaaaaaaa': ('surviving', None)} != {'c-aaaaaaaa': ('pending', None)}
+     FAILED test_scenario[a_compile_error_leaves_the_candidate_pending]
+     2 failed, 39 passed   (a_discard_needs_no_compile_pass passes before and after: it pins
+     what the fix must not change)
+GREEN 43 passed, including two new mutants of review.compiled (no-compile-needed,
+     any-compile-exhibit-counts), each failing at least one scenario.
+RED  uv run pytest site/tests/test_review_page.py
+     FAILED test_a_candidate_the_job_has_not_compiled_reads_pending
+       ('surviving', None) == ('pending', None)
+     (the fixture's model candidate had a passing screen and no compile, a record the job never
+     writes; it gains e-0000ab04, so the exhibit count is 16)
+GREEN 23 passed.
+Fast tier: 6110 passed, 3 failed, none in review code: test_graph_copy_is_identical (the sibling
+graph checkout is behind origin/main) and test_clients_harness.py::test_list_check[cursor-none,
+cursor-bearer] ("open-proof-network: not loaded (needs approval)", this laptop's Cursor CLI).
+make lint 0; make types 0.
+
+Next: merge, tag, re-pin the graph to the fix, dispatch review.yml per target, read the findings.
