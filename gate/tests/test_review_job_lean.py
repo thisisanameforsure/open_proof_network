@@ -129,3 +129,31 @@ def test_ac4_pairs_proved_and_refuted_at_a_named_case(
     before = tree(graph)
     assert run_real(graph, real_toolchain, pinned, tmp_path / "work2")["written"] == []
     assert tree(graph) == before
+
+
+def test_a_candidate_importing_the_graphs_modules_compiles_under_lean(
+    real_toolchain: LocalToolchain, pinned: ResolvedToolchain, tmp_path: Path
+) -> None:
+    """F26-Q21 under the real toolchain: a candidate that imports the target's definitions and
+    its node's Context (as euclid-primes' root does) compiles, and every check sees them."""
+    head = "import Defs.Small\nimport Nodes.«legendre».Context\n"
+    graph, ids = make_graph(
+        tmp_path, candidates={"c": head + prototype_lean("legendre", "human-ref")}
+    )
+    tdir = graph / "targets" / TARGET
+    (tdir / "defs").mkdir()
+    (tdir / "defs" / "Small.lean").write_text("def Opn.small (n : Nat) : Prop := n < 3\n")
+    (tdir / "nodes" / TARGET).mkdir(parents=True)
+    (tdir / "nodes" / TARGET / "Context.lean").write_text(
+        "import Defs.Small\ntheorem Opn.h : ∀ n, Opn.small n → n < 4 := by\n  sorry\n"
+    )
+    summary = run_real(graph, real_toolchain, pinned, tmp_path / "work")
+    assert summary["ok"] is True, summary
+    assert summary["candidates"][ids["c"]] == review.SURVIVING
+    folder = tdir / "review" / "exhibits"
+    compiled = [
+        json.loads(p.read_text())
+        for p in folder.glob("*.json")
+        if json.loads(p.read_text())["kind"] == "compile"
+    ]
+    assert [e["result"] for e in compiled] == ["pass"], compiled

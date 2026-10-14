@@ -36,13 +36,14 @@ import concurrent.futures as cf
 import hashlib
 import json
 import re
+import shutil
 import subprocess
 from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Any
 
 from opn_gate import layout, qa, review_format
-from opn_gate.toolchain import ResolvedToolchain, Toolchain
+from opn_gate.toolchain import ResolvedToolchain, Toolchain, module_output_path
 
 #: The first line of every file the job writes or checks.
 HEADER = "-- opn-review: "
@@ -593,6 +594,48 @@ class Checked:
         return self.error or next((m for m in self.messages if m), "")
 
 
+#: F26-Q21: the wall-clock cap for building one graph module a candidate imports; a Context that
+#: imports Mathlib loads it, which the per-check budget was not sized for.
+LOCAL_BUDGET_S = 600.0
+
+
+def graph_sources(target_dir: Path, imports: list[str]) -> list[tuple[str, Path]] | str:
+    """The graph's own modules among ``imports`` (``Defs.*`` from ``defs/``, ``Nodes.«id».Stem``
+    from ``nodes/<id>/``) and the graph modules they import in turn, dependencies first; a reason
+    when one names no file or the imports form a cycle (F26-Q21)."""
+    order: list[tuple[str, Path]] = []
+    state: dict[str, int] = {}
+
+    def visit(module: str) -> str | None:
+        kind, node = layout.module_origin(module)
+        if kind not in ("defs", "node"):
+            return None
+        if state.get(module) == 2:
+            return None
+        if state.get(module) == 1:
+            return f"the graph modules the candidates import form a cycle through {module}"
+        if kind == "defs":
+            path = target_dir / "defs" / f"{module.split('.', 1)[1]}.lean"
+        else:
+            path = target_dir / "nodes" / str(node) / f"{module.rsplit('.', 1)[1]}.lean"
+        if not path.is_file():
+            return f"{module} names no file in the target ({path.relative_to(target_dir)})"
+        state[module] = 1
+        for inner in layout.imports_of(path.read_text(encoding="utf-8")):
+            problem = visit(inner)
+            if problem is not None:
+                return problem
+        state[module] = 2
+        order.append((module, path))
+        return None
+
+    for module in imports:
+        problem = visit(module)
+        if problem is not None:
+            return problem
+    return order
+
+
 @dataclass
 class Runner:
     """Elaborates the job's files through ``toolchain`` in ``workdir`` (which the sandbox
@@ -605,6 +648,34 @@ class Runner:
     jobs: int = 4
     _seen: dict[tuple[str, int], Checked] = field(default_factory=dict)
     count: int = 0
+    #: the oleans of the graph modules the candidates import, laid beside every check (Q21)
+    graph_build: Path | None = None
+
+    def build_graph_modules(self, sources: list[tuple[str, Path]]) -> str | None:
+        """Build ``sources`` (``graph_sources``'s order) once into ``<workdir>/graph/build``; a
+        reason when one cannot be built. Each later check finds them on its search path."""
+        if not sources:
+            return None
+        src = self.workdir / "graph" / "src"
+        build = self.workdir / "graph" / "build"
+        build.mkdir(parents=True, exist_ok=True)
+        for module, path in sources:
+            dest = src / module_output_path(module, ".lean")
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy(path, dest)
+            try:
+                elab = self.toolchain.elaborate(
+                    self.resolved, dest, module, build, root=src, timeout_s=LOCAL_BUDGET_S
+                )
+            except subprocess.TimeoutExpired:
+                return f"{module} did not build within {LOCAL_BUDGET_S:g} s"
+            except (OSError, RuntimeError) as exc:
+                return f"{module} could not be built: {exc}"
+            if not elab.ok:
+                first = next((m.text for m in elab.errors), "") or elab.stderr.strip()
+                return f"{module} does not elaborate: {first[:300]}"
+        self.graph_build = build
+        return None
 
     def check(self, text: str, *, allowed_sorry: int = 0) -> Checked:
         key = (hashlib.sha256(text.encode()).hexdigest(), allowed_sorry)
@@ -626,6 +697,8 @@ class Runner:
         here.mkdir(parents=True, exist_ok=True)
         src = here / f"{MODULE}.lean"
         src.write_text(text, encoding="utf-8")
+        if self.graph_build is not None:
+            shutil.copytree(self.graph_build, here / "out", dirs_exist_ok=True)
         try:
             elab = self.toolchain.elaborate(
                 self.resolved, src, MODULE, here / "out", timeout_s=self.budget_s

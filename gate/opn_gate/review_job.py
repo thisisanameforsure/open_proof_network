@@ -72,7 +72,7 @@ from typing import Any
 
 import yaml
 
-from opn_gate import review, review_format, review_lean, schemas
+from opn_gate import layout, review, review_format, review_lean, schemas
 from opn_gate.paths import REVIEW_DIR
 from opn_gate.review_lean import Cand, Case, Checked, Runner
 
@@ -641,6 +641,15 @@ def open_job(
     if not asks_statement_screen(target_dir, head):
         job.screens = ("negation", "false")
     _load(job)
+    # F26-Q21: the graph modules the candidates import, built once before any check; a module
+    # that cannot be built stops the job with nothing written rather than discarding a candidate
+    imports = sorted({m for text in job.sources.values() for m in layout.imports_of(text)})
+    sources = review_lean.graph_sources(target_dir, imports)
+    if isinstance(sources, str):
+        return f"targets/{target_id}: {sources}"
+    problem = runner.build_graph_modules(sources)
+    if problem is not None:
+        return f"targets/{target_id}: {problem}"
     return job
 
 
