@@ -138,6 +138,13 @@ TABLE: tuple[Row, ...] = (
         "recorded; a proof or refutation of one is submitted as a pair-proof artifact through "
         "submit_proof",
     ),
+    # F27-T2: D-28's read table, v3.40 — derived from two published products (F27-Q1).
+    Row(
+        "list_sufficient_sets",
+        "read",
+        ("targets/<id>/graph.json", "GET /frontier.json"),
+        "targets/<id>/graph.json + frontier.json",
+    ),
     # --- writes (D-35's plain-path table) -----------------------------------------------------
     Row("claim_node", "write", ("POST /claims",), "POST /claims"),
     Row("release_claim", "write", ("DELETE /claims/{claim_id}",), "DELETE /claims/<id>"),

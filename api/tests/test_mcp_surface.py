@@ -53,6 +53,7 @@ READS = {
     "get_review",
     "list_review_questions",
     "list_open_pairs",
+    "list_sufficient_sets",  # F27-T2: D-28 v3.40
 }
 WRITES = {
     "claim_node",
@@ -196,6 +197,7 @@ def test_results_match_schemas(harness: Harness, tmp_path: Path) -> None:
         "get_review": {"target_id": TARGET},
         "list_review_questions": {"target_id": TARGET},
         "list_open_pairs": {"target_id": TARGET},
+        "list_sufficient_sets": {"target_id": TARGET},
         "submit_candidate": {"target_id": TARGET, "lean": "theorem x : True := trivial\n"},
         "register_target": {
             "target_id": TARGET,

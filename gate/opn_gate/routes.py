@@ -38,7 +38,7 @@ Cut = Literal["finest", "any"]
 CUTS: tuple[str, ...] = ("finest", "any")
 
 #: The most sets one enumeration returns (F27-R8). A documented default; the service may pass its
-#: own (``OPN_ROUTES_MAX_SETS``). The finest cuts of every live target number two or fewer
+#: own (``OPN_API_ROUTES_MAX_SETS``). The finest cuts of every live target number two or fewer
 #: (2026-10-15); the coarser cuts of erdos-1094 number 225.
 DEFAULT_MAX_SETS = 1000
 

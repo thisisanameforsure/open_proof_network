@@ -165,7 +165,7 @@ with an example filter; decisions v3.40.</p>
 <h2>6. Budgets / limits</h2>
 <ul>
   <li>The finest enumeration on every live target is under a second; the coarser enumeration is
-    capped at <code>OPN_ROUTES_MAX_SETS</code> (default 1000) sets.</li>
+    capped at the service setting <code>OPN_API_ROUTES_MAX_SETS</code> (default 1000) sets.</li>
   <li>The drawing colours at most eight sets by hue; further sets are listed in the table and drawn
     in a neutral grey, and the page says so.</li>
 </ul>
@@ -215,10 +215,23 @@ with an example filter; decisions v3.40.</p>
   <tr><td>F27-Q6</td><td><strong>A circularity label is shown, not acted on.</strong> A set
     holding a statement labelled circular (D-12 v3.35) keeps it; the table marks the set, because
     the label is a fact and excluding it would be the removal v3.35 withdrew.</td></tr>
+  <tr><td>F27-Q7</td><td><strong>The plain path is two files and a published rule, not an
+    endpoint.</strong> D-28's bijection asks that every tool be reproducible with plain git and
+    HTTP. <code>list_sufficient_sets</code> reads <code>targets/&lt;id&gt;/graph.json</code> and
+    <code>GET /frontier.json</code> and applies D-25 v3.40's rule, which
+    <code>opn_gate.routes</code> implements in the open network repository: the precedent of
+    <code>list_words_needed</code> and <code>get_submission</code>'s <code>became</code>, which
+    also derive from published files. The alternative, a service route
+    (<code>GET /targets/&lt;id&gt;/routes.json</code>), would make the plain path one call; it is a
+    D-35 row and the owner's call.</td></tr>
+  <tr><td>F27-Q8</td><td><strong>The tool listing grew 4%.</strong> <code>tools/list</code>
+    measured 105,255 characters without the tool and 109,474 with it, 2,803 of the difference its
+    output schema's structure; the budget test's pin moved from 106,000 to 110,000 with the
+    measurement recorded beside it, as its own rule asks.</td></tr>
 </table>
 
 <h2>10. Status</h2>
-<div class="rule"><strong>status:</strong> building · <strong>Tasks:</strong> T0, T1 done · T2&ndash;T5
+<div class="rule"><strong>status:</strong> building · <strong>Tasks:</strong> T0, T1, T2 done · T3&ndash;T5
 todo</div>
 
 <h2>Tasks</h2>

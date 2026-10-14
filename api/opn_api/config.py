@@ -35,6 +35,9 @@ Variables (prefix ``OPN_API_``):
 ``OPN_API_FRONTIER_MAX_STALE_S``
     How long a fetched ``frontier.json`` is reused before its ETag is rechecked (R9).
     Default ``60``.
+``OPN_API_ROUTES_MAX_SETS``
+    The most sufficient sets ``list_sufficient_sets`` returns in one answer (F27-R8). Default
+    ``opn_gate.routes.DEFAULT_MAX_SETS`` (1000).
 ``OPN_API_WRITES_PER_HOUR`` / ``OPN_API_ACTIVE_CLAIMS`` / ``OPN_API_TOKENS_PER_LOGIN``
     Per-identity limits (R6). Defaults ``120`` / ``20`` / ``1`` (Q2).
 ``OPN_API_TOKEN_IDLE_DAYS`` / ``OPN_API_TOKEN_CUTOVER``
@@ -140,6 +143,8 @@ from datetime import date
 from typing import Any, Literal
 from urllib.parse import urlsplit
 
+from opn_gate import routes
+
 StoreKind = Literal["memory", "dynamodb"]
 
 DEFAULT_PARAMETER_PREFIX = "/opn/api/"
@@ -173,6 +178,7 @@ DEFAULT_NETWORK_REPO = "thisisanameforsure/open_proof_network"  # F08-T26
 DEFAULT_USES_FROM = ""  # F08-T26: no target understands uses until a commit is named
 DEFAULT_ANNEX_STEPS_FROM = ""  # F18-T5: no target takes a stepped annex until a commit is named
 DEFAULT_FRONTIER_MAX_STALE_S = 60
+DEFAULT_ROUTES_MAX_SETS = routes.DEFAULT_MAX_SETS  # F27-R8
 DEFAULT_WRITES_PER_HOUR = 120
 DEFAULT_ACTIVE_CLAIMS = 20
 DEFAULT_TOKENS_PER_LOGIN = 1
@@ -266,6 +272,7 @@ class Settings:
     uses_from: str = DEFAULT_USES_FROM
     annex_steps_from: str = DEFAULT_ANNEX_STEPS_FROM
     frontier_max_stale_s: int = DEFAULT_FRONTIER_MAX_STALE_S
+    routes_max_sets: int = DEFAULT_ROUTES_MAX_SETS
     writes_per_hour: int = DEFAULT_WRITES_PER_HOUR
     active_claims: int = DEFAULT_ACTIVE_CLAIMS
     tokens_per_login: int = DEFAULT_TOKENS_PER_LOGIN
@@ -453,6 +460,7 @@ def load(environ: Mapping[str, str] | None = None) -> Settings:
         frontier_max_stale_s=_int(
             env, "OPN_API_FRONTIER_MAX_STALE_S", DEFAULT_FRONTIER_MAX_STALE_S
         ),
+        routes_max_sets=_int(env, "OPN_API_ROUTES_MAX_SETS", DEFAULT_ROUTES_MAX_SETS),
         writes_per_hour=_int(env, "OPN_API_WRITES_PER_HOUR", DEFAULT_WRITES_PER_HOUR),
         active_claims=_int(env, "OPN_API_ACTIVE_CLAIMS", DEFAULT_ACTIVE_CLAIMS),
         tokens_per_login=_int(env, "OPN_API_TOKENS_PER_LOGIN", DEFAULT_TOKENS_PER_LOGIN),
