@@ -2792,8 +2792,9 @@ class Renderer:
         if picked is None:
             parts.append(
                 '<p class="cue">No explainer of this proof yet: its Lean and outline are on '
-                f'<a href="{href}">its page</a>, and a plain-language account of it is the next '
-                f'thing a writer could add (D-3; <a href="{GLOSS_GUIDE_HREF}">how</a>).</p>'
+                f'<a href="{href}">its page</a>, and the proof written as a journal would print '
+                "it is the next thing a writer could add "
+                f'(D-3; <a href="{GLOSS_GUIDE_HREF}">how</a>).</p>'
             )
         else:
             sec, v = picked
@@ -4780,13 +4781,13 @@ class Renderer:
             )
         if nv.status == "proved":
             return (
-                '<p class="cue">No explainer yet. A plain-language account of this proof, '
+                '<p class="cue">No explainer yet. This proof written as a journal would print it, '
                 "labelled unverified, is the next thing a writer could add, by pull request "
                 f'(D-3, D-36; <a href="{GUIDE_HREF}">the guide</a> shows how).</p>'
             )
         return (
-            '<p class="cue">No explainer yet. An explainer is a plain-language account of a '
-            "merged proof, so there is nothing to explain until this statement is proved "
+            '<p class="cue">No explainer yet. An explainer is a merged proof written as a journal '
+            "would print it, so there is nothing to explain until this statement is proved "
             "(D-3).</p>"
         )
 

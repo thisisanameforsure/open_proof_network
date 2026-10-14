@@ -74,8 +74,9 @@ graph it is `targets/tutorial/nodes/tutorial-and-swap/`, and its files can be re
 host at the commit `GET /frontier.json` names as `rendered_from`.
 
 **Two ways in.** Proving the tutorial node, next, is the first task for a prover. The other entry
-task needs no proof: write the words for a statement. Find a Lean file that no one has yet said in
-words (MCP `list_words_needed`), read it, and file a gloss with `submit_gloss`, naming in
+task needs no proof: write the words for a statement. Find a Lean file that no one has yet
+translated into the mathematics a journal would print (MCP `list_words_needed`), read it, and file
+a gloss with `submit_gloss`, naming in
 `drafted_with` the model that helped, if one did. A steward's or curator's signature on your words
 is what earns you credit. You need a token for it, which the tutorial earns; the steps are under
 "Entry task: write the words for a statement", in "Glosses, explainers and outlines" below.
@@ -616,8 +617,8 @@ explainer/
 | `attempts/<timestamp>-<you>-partial.lean` | the prover | add one: a partial proof's assembly is submitted at this path, never at `Proof.lean` (D-12 #5) |
 | `attempts/<timestamp>-<you>-partial.<n>.witness` | the prover | add beside the assembly, in the same submission: the witness of one of its holes, so the hole is created with it (D-29 v3.24; "Carrying the holes' witnesses" below) |
 | `annex/<sha256>.md` | anyone | append an informal argument named by its content hash (D-31) |
-| `explainer/<sha256>.md` | anyone | append a plain-language account of a merged proof, labelled unverified on the site; a new version supersedes the current one, and a model's version may change only sections no person wrote or verified ("Glosses, explainers and outlines" below) |
-| `gloss/<sha256>.md` | anyone | append prose saying what the node's statement, witness or relation says, on a node of any status; versioned like an explainer |
+| `explainer/<sha256>.md` | anyone | append a merged proof written as a journal would print it, for a mathematician who does not read Lean, labelled unverified on the site; a new version supersedes the current one, and a model's version may change only sections no person wrote or verified ("Glosses, explainers and outlines" below) |
+| `gloss/<sha256>.md` | anyone | append a translation of the node's statement, witness or relation into the mathematics a journal would print, on a node of any status; versioned like an explainer |
 | `explainer/signed/`, `gloss/signed/` | an active steward or a listed curator | append a signature on one version, or on some of its sections, made with the signer's own key; it approves those sections and credits the version's author |
 | `withdrawals/<timestamp>-<you>.yaml` | a version's author, a steward or a curator | append a withdrawal of one gloss or explainer version, with a reason |
 | `waivers/native_decide.yaml` | the prover | add only when `Proof.lean` uses `native_decide` (F02) |
@@ -1768,7 +1769,7 @@ by *name*" above the unverified label.
 ```sh
 python3 - "$NODE_DIR" <<'PY' > "$WORK/explainer-hash"
 import hashlib, pathlib, sys
-text = "---\nauthor: me\ndate: 2026-09-16\n---\nSwap the two halves of the conjunction.\n"
+text = "---\nauthor: me\ndate: 2026-09-16\n---\n*Proof.* Let $p \\land q$ hold, so that $p$ and $q$ both hold. Then $q \\land p$ holds. $\\blacksquare$\n"
 digest = hashlib.sha256(text.encode()).hexdigest()
 (pathlib.Path(sys.argv[1]) / "explainer" / f"{digest}.md").write_text(text)
 print(digest)
@@ -1871,10 +1872,12 @@ Three kinds of words sit beside the Lean on this graph, and they are trusted dif
 
 - An **outline** is a product (D-35): the gate extracts it from a merged proof as Lean elaborates
   it, so it says only what the kernel checked, in Lean's own notation, step by step.
-- A **gloss** is prose saying what one Lean file says: a statement, a witness, a relation or a
-  definition module, on a node of any status, open nodes and holes included.
-- An **explainer** is prose saying how one merged proof works: a node's `Proof.lean`, an
-  alternate, or a merged partial assembly.
+- A **gloss** is a translation of one Lean file into the mathematics a journal would print: a
+  statement, a witness, a relation or a definition module, on a node of any status, open nodes
+  and holes included, written for a mathematician who does not read Lean.
+- An **explainer** is the proof of one merged artifact as a journal would print it, written for a
+  mathematician who does not read Lean: a node's `Proof.lean`, an alternate, or a merged partial
+  assembly, in sections that each cover some steps of its outline.
 
 Glosses and explainers are contributors' work, like proofs (D-3 v3.31). The network drafts no
 words and pays for none: you write them, with whatever help you like, and say which model helped.
@@ -1936,8 +1939,13 @@ need words; unread: []
    convention that changes the meaning: `n / k` is floor division, `a - b` on naturals is 0 when
    `b ≥ a`, `%` is the remainder, `Nat.minFac` is 2 at 0 and 1 at 1, and a guard such as `0 < k`
    is a hypothesis. Plain prose, if any, comes last. Do not say whether it is true, hard or
-   important: a gloss describes a file. An explainer is sections under level-2 headings, each
-   naming the outline steps it describes ("Improving the words" below).
+   important: a gloss describes a file. An explainer is the proof as a paper would write it, for
+   the same reader: the argument in mathematical prose and notation, in the order the Lean takes,
+   with each step's Lean rendered as the mathematics it performs (a `simp` or `omega` call is the
+   computation it discharges, a `rcases` is taking the hypothesis apart, an `induction` is the
+   induction it sets up, and a `have` is the lemma it proves). It is sections under level-2
+   headings, each naming the outline steps it covers, and it says nothing the proof does not do:
+   how each step is justified, not how hard it was ("Improving the words" below).
 4. **Submit it** with `POST /glosses` (MCP `submit_gloss`). If a model drafted or helped draft the
    words, name it and the tooling in `drafted_with` (1 to 200 characters, D-23); leave it out for
    words you wrote yourself. The site will show "written by *you*, drafted with *model*".
@@ -2316,7 +2324,7 @@ one opens:
 ```sh
 python3 - "$NODE" "$PROOF_HASH" <<'PY' > "$WORK/explainer-anchored.json"
 import json, sys
-text = "## The idea {steps: s1}\n\nTake the two halves of the conjunction and pair them the other way round.\n"
+text = "## The idea {steps: s1}\n\nFrom $p \\land q$ we obtain $p$ and $q$, and these give $q \\land p$.\n"
 print(json.dumps({"subject": {"kind": "proof", "node_id": sys.argv[1], "proof": sys.argv[2]}, "text": text, "licence": "CC-BY-4.0"}))
 PY
 python3 -c 'import json,sys; d=json.load(sys.stdin); d["text"]=d["text"].replace(" {steps: s1}", ""); d["dry_run"]=True; print(json.dumps(d))' \

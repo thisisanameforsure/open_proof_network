@@ -1,0 +1,17 @@
+F20-T17 (Q22): an explainer is the proof as a journal would print it (the owner's ruling, 2026-10-14)
+
+== The prompts the site now shows (goldens):
+the proof itself as a journal would print it (an explainer). Contributors write them, as they
+An explainer is the argument in
+No explainer yet. This proof written as a journal would print it, labelled unverified, is the next thing a writer could add, by pull request (D-3, D-36; 
+No explainer yet. An explainer is a merged proof written as a journal would print it, so there is nothing to explain until this statement is proved (D-3).
+
+== submit_gloss description: 1,023 characters with the new definition, trimmed to 994 under the 1,000 budget
+   (pointer to the guide shortened, 'Refused by code' -> 'Refused', dry_run phrasing).
+
+== make lint: exit 0; make types: exit 0
+== make test-fast (before the trim): 1 failed, 6231 passed, 8 skipped, 233 deselected; the failure was the description budget
+== after the trim: api/tests 2081 passed, 2 warnings in 127.81s (0:02:07)
+== the graph clone held this guide during the run, so test_graph_copy_is_identical passed
+
+== The 11 October draft this replaces is saved outside the repos as opn-agents-md-draft-2026-10-11.{network,graph,network-site}.patch
