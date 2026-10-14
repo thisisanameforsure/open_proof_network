@@ -281,11 +281,12 @@ def test_the_default_runner_says_local_outside_a_workflow(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     seen: list[list[str]] = []
-    monkeypatch.setattr(
-        subprocess,
-        "run",
-        lambda argv, **_: seen.append(list(argv)) or subprocess.CompletedProcess(argv, 0, "", ""),
-    )
+
+    def fake_run(argv: list[str], **_: object) -> subprocess.CompletedProcess[str]:
+        seen.append(list(argv))
+        return subprocess.CompletedProcess(argv, 0, "", "")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
     monkeypatch.delenv("GITHUB_RUN_ID", raising=False)
     postmerge.default_review_runner(tmp_path, "tutorial")
     assert seen[0][seen[0].index("--run") + 1] == "local"
