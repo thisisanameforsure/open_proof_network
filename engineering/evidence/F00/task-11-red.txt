@@ -1,0 +1,1433 @@
+FFFFFFFFF.FFFFFFFFFFFFFFFFFFFFFFFFFF...FF                                [100%]
+=================================== FAILURES ===================================
+_ test_private_helpers_before_the_declaration_pass_step_2[private theorem two : 1 + 1 = 2 := rfl\n\n] _
+
+helpers = 'private theorem two : 1 + 1 = 2 := rfl\n\n'
+
+    @pytest.mark.parametrize(
+        "helpers",
+        [
+            HELPER,
+            "private lemma two : 1 + 1 = 2 := rfl\n",
+            "/-- A helper with its own doc comment. -/\nprivate lemma two : 1 + 1 = 2 := by\n  rfl\n\n",
+            "-- a line comment\nprivate def k : Nat := 2\n\nprivate abbrev K : Type := Nat\n",
+            "noncomputable private def k : Nat := 2\n",
+            "private noncomputable def k : Nat := 2\n",
+            "/- a block comment\n   over two lines -/\nprivate theorem two : 1 + 1 = 2 := rfl\n",
+            "private theorem two : 1 + 1 = 2 := by\n  have h : 1 = 1 := rfl\n  rfl\n\n"
+            "private theorem three : 1 + 2 = 3 := rfl\n",
+        ],
+    )
+    def test_private_helpers_before_the_declaration_pass_step_2(helpers: str) -> None:
+        st = doc_statement()
+>       assert paths.check_proof_is_statement(st, with_helpers(st, helpers, " two\n")) is None
+E       AssertionError: assert Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 5 (header or signature)', details={'line': 5, 'expected': '/-- One and one. -/', 'got': 'private theorem two : 1 + 1 = 2 := rfl'}) is None
+E        +  where Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 5 (header or signature)', details={'line': 5, 'expected': '/-- One and one. -/', 'got': 'private theorem two : 1 + 1 = 2 := rfl'}) = <function check_proof_is_statement at 0x10b42ade0>(Statement(decl_name='Opn.one_one', text='import Std\n\nopen Nat\n\n/-- One and one. -/\ntheorem Opn.one_one : 1 + 1 = ...y\n  sorry\n', prefix='import Std\n\nopen Nat\n\n/-- One and one. -/\ntheorem Opn.one_one : 1 + 1 = 2 :=', suffix='\n'), 'import Std\n\nopen Nat\n\nprivate theorem two : 1 + 1 = 2 := rfl\n\n/-- One and one. -/\ntheorem Opn.one_one : 1 + 1 = 2 := two\n\n')
+E        +    where <function check_proof_is_statement at 0x10b42ade0> = paths.check_proof_is_statement
+E        +    and   'import Std\n\nopen Nat\n\nprivate theorem two : 1 + 1 = 2 := rfl\n\n/-- One and one. -/\ntheorem Opn.one_one : 1 + 1 = 2 := two\n\n' = with_helpers(Statement(decl_name='Opn.one_one', text='import Std\n\nopen Nat\n\n/-- One and one. -/\ntheorem Opn.one_one : 1 + 1 = ...y\n  sorry\n', prefix='import Std\n\nopen Nat\n\n/-- One and one. -/\ntheorem Opn.one_one : 1 + 1 = 2 :=', suffix='\n'), 'private theorem two : 1 + 1 = 2 := rfl\n\n', ' two\n')
+
+gate/tests/test_finding_helper_lemmas.py:86: AssertionError
+_ test_private_helpers_before_the_declaration_pass_step_2[private lemma two : 1 + 1 = 2 := rfl\n] _
+
+helpers = 'private lemma two : 1 + 1 = 2 := rfl\n'
+
+    @pytest.mark.parametrize(
+        "helpers",
+        [
+            HELPER,
+            "private lemma two : 1 + 1 = 2 := rfl\n",
+            "/-- A helper with its own doc comment. -/\nprivate lemma two : 1 + 1 = 2 := by\n  rfl\n\n",
+            "-- a line comment\nprivate def k : Nat := 2\n\nprivate abbrev K : Type := Nat\n",
+            "noncomputable private def k : Nat := 2\n",
+            "private noncomputable def k : Nat := 2\n",
+            "/- a block comment\n   over two lines -/\nprivate theorem two : 1 + 1 = 2 := rfl\n",
+            "private theorem two : 1 + 1 = 2 := by\n  have h : 1 = 1 := rfl\n  rfl\n\n"
+            "private theorem three : 1 + 2 = 3 := rfl\n",
+        ],
+    )
+    def test_private_helpers_before_the_declaration_pass_step_2(helpers: str) -> None:
+        st = doc_statement()
+>       assert paths.check_proof_is_statement(st, with_helpers(st, helpers, " two\n")) is None
+E       AssertionError: assert Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 5 (header or signature)', details={'line': 5, 'expected': '/-- One and one. -/', 'got': 'private lemma two : 1 + 1 = 2 := rfl'}) is None
+E        +  where Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 5 (header or signature)', details={'line': 5, 'expected': '/-- One and one. -/', 'got': 'private lemma two : 1 + 1 = 2 := rfl'}) = <function check_proof_is_statement at 0x10b42ade0>(Statement(decl_name='Opn.one_one', text='import Std\n\nopen Nat\n\n/-- One and one. -/\ntheorem Opn.one_one : 1 + 1 = ...y\n  sorry\n', prefix='import Std\n\nopen Nat\n\n/-- One and one. -/\ntheorem Opn.one_one : 1 + 1 = 2 :=', suffix='\n'), 'import Std\n\nopen Nat\n\nprivate lemma two : 1 + 1 = 2 := rfl\n/-- One and one. -/\ntheorem Opn.one_one : 1 + 1 = 2 := two\n\n')
+E        +    where <function check_proof_is_statement at 0x10b42ade0> = paths.check_proof_is_statement
+E        +    and   'import Std\n\nopen Nat\n\nprivate lemma two : 1 + 1 = 2 := rfl\n/-- One and one. -/\ntheorem Opn.one_one : 1 + 1 = 2 := two\n\n' = with_helpers(Statement(decl_name='Opn.one_one', text='import Std\n\nopen Nat\n\n/-- One and one. -/\ntheorem Opn.one_one : 1 + 1 = ...y\n  sorry\n', prefix='import Std\n\nopen Nat\n\n/-- One and one. -/\ntheorem Opn.one_one : 1 + 1 = 2 :=', suffix='\n'), 'private lemma two : 1 + 1 = 2 := rfl\n', ' two\n')
+
+gate/tests/test_finding_helper_lemmas.py:86: AssertionError
+_ test_private_helpers_before_the_declaration_pass_step_2[/-- A helper with its own doc comment. -/\nprivate lemma two : 1 + 1 = 2 := by\n  rfl\n\n] _
+
+helpers = '/-- A helper with its own doc comment. -/\nprivate lemma two : 1 + 1 = 2 := by\n  rfl\n\n'
+
+    @pytest.mark.parametrize(
+        "helpers",
+        [
+            HELPER,
+            "private lemma two : 1 + 1 = 2 := rfl\n",
+            "/-- A helper with its own doc comment. -/\nprivate lemma two : 1 + 1 = 2 := by\n  rfl\n\n",
+            "-- a line comment\nprivate def k : Nat := 2\n\nprivate abbrev K : Type := Nat\n",
+            "noncomputable private def k : Nat := 2\n",
+            "private noncomputable def k : Nat := 2\n",
+            "/- a block comment\n   over two lines -/\nprivate theorem two : 1 + 1 = 2 := rfl\n",
+            "private theorem two : 1 + 1 = 2 := by\n  have h : 1 = 1 := rfl\n  rfl\n\n"
+            "private theorem three : 1 + 2 = 3 := rfl\n",
+        ],
+    )
+    def test_private_helpers_before_the_declaration_pass_step_2(helpers: str) -> None:
+        st = doc_statement()
+>       assert paths.check_proof_is_statement(st, with_helpers(st, helpers, " two\n")) is None
+E       AssertionError: assert Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 5 (header or signature)', details={'line': 5, 'expected': '/-- One and one. -/', 'got': '/-- A helper with its own doc comment. -/'}) is None
+E        +  where Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 5 (header or signature)', details={'line': 5, 'expected': '/-- One and one. -/', 'got': '/-- A helper with its own doc comment. -/'}) = <function check_proof_is_statement at 0x10b42ade0>(Statement(decl_name='Opn.one_one', text='import Std\n\nopen Nat\n\n/-- One and one. -/\ntheorem Opn.one_one : 1 + 1 = ...y\n  sorry\n', prefix='import Std\n\nopen Nat\n\n/-- One and one. -/\ntheorem Opn.one_one : 1 + 1 = 2 :=', suffix='\n'), 'import Std\n\nopen Nat\n\n/-- A helper with its own doc comment. -/\nprivate lemma two : 1 + 1 = 2 := by\n  rfl\n\n/-- One and one. -/\ntheorem Opn.one_one : 1 + 1 = 2 := two\n\n')
+E        +    where <function check_proof_is_statement at 0x10b42ade0> = paths.check_proof_is_statement
+E        +    and   'import Std\n\nopen Nat\n\n/-- A helper with its own doc comment. -/\nprivate lemma two : 1 + 1 = 2 := by\n  rfl\n\n/-- One and one. -/\ntheorem Opn.one_one : 1 + 1 = 2 := two\n\n' = with_helpers(Statement(decl_name='Opn.one_one', text='import Std\n\nopen Nat\n\n/-- One and one. -/\ntheorem Opn.one_one : 1 + 1 = ...y\n  sorry\n', prefix='import Std\n\nopen Nat\n\n/-- One and one. -/\ntheorem Opn.one_one : 1 + 1 = 2 :=', suffix='\n'), '/-- A helper with its own doc comment. -/\nprivate lemma two : 1 + 1 = 2 := by\n  rfl\n\n', ' two\n')
+
+gate/tests/test_finding_helper_lemmas.py:86: AssertionError
+_ test_private_helpers_before_the_declaration_pass_step_2[-- a line comment\nprivate def k : Nat := 2\n\nprivate abbrev K : Type := Nat\n] _
+
+helpers = '-- a line comment\nprivate def k : Nat := 2\n\nprivate abbrev K : Type := Nat\n'
+
+    @pytest.mark.parametrize(
+        "helpers",
+        [
+            HELPER,
+            "private lemma two : 1 + 1 = 2 := rfl\n",
+            "/-- A helper with its own doc comment. -/\nprivate lemma two : 1 + 1 = 2 := by\n  rfl\n\n",
+            "-- a line comment\nprivate def k : Nat := 2\n\nprivate abbrev K : Type := Nat\n",
+            "noncomputable private def k : Nat := 2\n",
+            "private noncomputable def k : Nat := 2\n",
+            "/- a block comment\n   over two lines -/\nprivate theorem two : 1 + 1 = 2 := rfl\n",
+            "private theorem two : 1 + 1 = 2 := by\n  have h : 1 = 1 := rfl\n  rfl\n\n"
+            "private theorem three : 1 + 2 = 3 := rfl\n",
+        ],
+    )
+    def test_private_helpers_before_the_declaration_pass_step_2(helpers: str) -> None:
+        st = doc_statement()
+>       assert paths.check_proof_is_statement(st, with_helpers(st, helpers, " two\n")) is None
+E       AssertionError: assert Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 5 (header or signature)', details={'line': 5, 'expected': '/-- One and one. -/', 'got': '-- a line comment'}) is None
+E        +  where Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 5 (header or signature)', details={'line': 5, 'expected': '/-- One and one. -/', 'got': '-- a line comment'}) = <function check_proof_is_statement at 0x10b42ade0>(Statement(decl_name='Opn.one_one', text='import Std\n\nopen Nat\n\n/-- One and one. -/\ntheorem Opn.one_one : 1 + 1 = ...y\n  sorry\n', prefix='import Std\n\nopen Nat\n\n/-- One and one. -/\ntheorem Opn.one_one : 1 + 1 = 2 :=', suffix='\n'), 'import Std\n\nopen Nat\n\n-- a line comment\nprivate def k : Nat := 2\n\nprivate abbrev K : Type := Nat\n/-- One and one. -/\ntheorem Opn.one_one : 1 + 1 = 2 := two\n\n')
+E        +    where <function check_proof_is_statement at 0x10b42ade0> = paths.check_proof_is_statement
+E        +    and   'import Std\n\nopen Nat\n\n-- a line comment\nprivate def k : Nat := 2\n\nprivate abbrev K : Type := Nat\n/-- One and one. -/\ntheorem Opn.one_one : 1 + 1 = 2 := two\n\n' = with_helpers(Statement(decl_name='Opn.one_one', text='import Std\n\nopen Nat\n\n/-- One and one. -/\ntheorem Opn.one_one : 1 + 1 = ...y\n  sorry\n', prefix='import Std\n\nopen Nat\n\n/-- One and one. -/\ntheorem Opn.one_one : 1 + 1 = 2 :=', suffix='\n'), '-- a line comment\nprivate def k : Nat := 2\n\nprivate abbrev K : Type := Nat\n', ' two\n')
+
+gate/tests/test_finding_helper_lemmas.py:86: AssertionError
+_ test_private_helpers_before_the_declaration_pass_step_2[noncomputable private def k : Nat := 2\n] _
+
+helpers = 'noncomputable private def k : Nat := 2\n'
+
+    @pytest.mark.parametrize(
+        "helpers",
+        [
+            HELPER,
+            "private lemma two : 1 + 1 = 2 := rfl\n",
+            "/-- A helper with its own doc comment. -/\nprivate lemma two : 1 + 1 = 2 := by\n  rfl\n\n",
+            "-- a line comment\nprivate def k : Nat := 2\n\nprivate abbrev K : Type := Nat\n",
+            "noncomputable private def k : Nat := 2\n",
+            "private noncomputable def k : Nat := 2\n",
+            "/- a block comment\n   over two lines -/\nprivate theorem two : 1 + 1 = 2 := rfl\n",
+            "private theorem two : 1 + 1 = 2 := by\n  have h : 1 = 1 := rfl\n  rfl\n\n"
+            "private theorem three : 1 + 2 = 3 := rfl\n",
+        ],
+    )
+    def test_private_helpers_before_the_declaration_pass_step_2(helpers: str) -> None:
+        st = doc_statement()
+>       assert paths.check_proof_is_statement(st, with_helpers(st, helpers, " two\n")) is None
+E       AssertionError: assert Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 5 (header or signature)', details={'line': 5, 'expected': '/-- One and one. -/', 'got': 'noncomputable private def k : Nat := 2'}) is None
+E        +  where Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 5 (header or signature)', details={'line': 5, 'expected': '/-- One and one. -/', 'got': 'noncomputable private def k : Nat := 2'}) = <function check_proof_is_statement at 0x10b42ade0>(Statement(decl_name='Opn.one_one', text='import Std\n\nopen Nat\n\n/-- One and one. -/\ntheorem Opn.one_one : 1 + 1 = ...y\n  sorry\n', prefix='import Std\n\nopen Nat\n\n/-- One and one. -/\ntheorem Opn.one_one : 1 + 1 = 2 :=', suffix='\n'), 'import Std\n\nopen Nat\n\nnoncomputable private def k : Nat := 2\n/-- One and one. -/\ntheorem Opn.one_one : 1 + 1 = 2 := two\n\n')
+E        +    where <function check_proof_is_statement at 0x10b42ade0> = paths.check_proof_is_statement
+E        +    and   'import Std\n\nopen Nat\n\nnoncomputable private def k : Nat := 2\n/-- One and one. -/\ntheorem Opn.one_one : 1 + 1 = 2 := two\n\n' = with_helpers(Statement(decl_name='Opn.one_one', text='import Std\n\nopen Nat\n\n/-- One and one. -/\ntheorem Opn.one_one : 1 + 1 = ...y\n  sorry\n', prefix='import Std\n\nopen Nat\n\n/-- One and one. -/\ntheorem Opn.one_one : 1 + 1 = 2 :=', suffix='\n'), 'noncomputable private def k : Nat := 2\n', ' two\n')
+
+gate/tests/test_finding_helper_lemmas.py:86: AssertionError
+_ test_private_helpers_before_the_declaration_pass_step_2[private noncomputable def k : Nat := 2\n] _
+
+helpers = 'private noncomputable def k : Nat := 2\n'
+
+    @pytest.mark.parametrize(
+        "helpers",
+        [
+            HELPER,
+            "private lemma two : 1 + 1 = 2 := rfl\n",
+            "/-- A helper with its own doc comment. -/\nprivate lemma two : 1 + 1 = 2 := by\n  rfl\n\n",
+            "-- a line comment\nprivate def k : Nat := 2\n\nprivate abbrev K : Type := Nat\n",
+            "noncomputable private def k : Nat := 2\n",
+            "private noncomputable def k : Nat := 2\n",
+            "/- a block comment\n   over two lines -/\nprivate theorem two : 1 + 1 = 2 := rfl\n",
+            "private theorem two : 1 + 1 = 2 := by\n  have h : 1 = 1 := rfl\n  rfl\n\n"
+            "private theorem three : 1 + 2 = 3 := rfl\n",
+        ],
+    )
+    def test_private_helpers_before_the_declaration_pass_step_2(helpers: str) -> None:
+        st = doc_statement()
+>       assert paths.check_proof_is_statement(st, with_helpers(st, helpers, " two\n")) is None
+E       AssertionError: assert Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 5 (header or signature)', details={'line': 5, 'expected': '/-- One and one. -/', 'got': 'private noncomputable def k : Nat := 2'}) is None
+E        +  where Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 5 (header or signature)', details={'line': 5, 'expected': '/-- One and one. -/', 'got': 'private noncomputable def k : Nat := 2'}) = <function check_proof_is_statement at 0x10b42ade0>(Statement(decl_name='Opn.one_one', text='import Std\n\nopen Nat\n\n/-- One and one. -/\ntheorem Opn.one_one : 1 + 1 = ...y\n  sorry\n', prefix='import Std\n\nopen Nat\n\n/-- One and one. -/\ntheorem Opn.one_one : 1 + 1 = 2 :=', suffix='\n'), 'import Std\n\nopen Nat\n\nprivate noncomputable def k : Nat := 2\n/-- One and one. -/\ntheorem Opn.one_one : 1 + 1 = 2 := two\n\n')
+E        +    where <function check_proof_is_statement at 0x10b42ade0> = paths.check_proof_is_statement
+E        +    and   'import Std\n\nopen Nat\n\nprivate noncomputable def k : Nat := 2\n/-- One and one. -/\ntheorem Opn.one_one : 1 + 1 = 2 := two\n\n' = with_helpers(Statement(decl_name='Opn.one_one', text='import Std\n\nopen Nat\n\n/-- One and one. -/\ntheorem Opn.one_one : 1 + 1 = ...y\n  sorry\n', prefix='import Std\n\nopen Nat\n\n/-- One and one. -/\ntheorem Opn.one_one : 1 + 1 = 2 :=', suffix='\n'), 'private noncomputable def k : Nat := 2\n', ' two\n')
+
+gate/tests/test_finding_helper_lemmas.py:86: AssertionError
+_ test_private_helpers_before_the_declaration_pass_step_2[/- a block comment\n   over two lines -/\nprivate theorem two : 1 + 1 = 2 := rfl\n] _
+
+helpers = '/- a block comment\n   over two lines -/\nprivate theorem two : 1 + 1 = 2 := rfl\n'
+
+    @pytest.mark.parametrize(
+        "helpers",
+        [
+            HELPER,
+            "private lemma two : 1 + 1 = 2 := rfl\n",
+            "/-- A helper with its own doc comment. -/\nprivate lemma two : 1 + 1 = 2 := by\n  rfl\n\n",
+            "-- a line comment\nprivate def k : Nat := 2\n\nprivate abbrev K : Type := Nat\n",
+            "noncomputable private def k : Nat := 2\n",
+            "private noncomputable def k : Nat := 2\n",
+            "/- a block comment\n   over two lines -/\nprivate theorem two : 1 + 1 = 2 := rfl\n",
+            "private theorem two : 1 + 1 = 2 := by\n  have h : 1 = 1 := rfl\n  rfl\n\n"
+            "private theorem three : 1 + 2 = 3 := rfl\n",
+        ],
+    )
+    def test_private_helpers_before_the_declaration_pass_step_2(helpers: str) -> None:
+        st = doc_statement()
+>       assert paths.check_proof_is_statement(st, with_helpers(st, helpers, " two\n")) is None
+E       AssertionError: assert Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 5 (header or signature)', details={'line': 5, 'expected': '/-- One and one. -/', 'got': '/- a block comment'}) is None
+E        +  where Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 5 (header or signature)', details={'line': 5, 'expected': '/-- One and one. -/', 'got': '/- a block comment'}) = <function check_proof_is_statement at 0x10b42ade0>(Statement(decl_name='Opn.one_one', text='import Std\n\nopen Nat\n\n/-- One and one. -/\ntheorem Opn.one_one : 1 + 1 = ...y\n  sorry\n', prefix='import Std\n\nopen Nat\n\n/-- One and one. -/\ntheorem Opn.one_one : 1 + 1 = 2 :=', suffix='\n'), 'import Std\n\nopen Nat\n\n/- a block comment\n   over two lines -/\nprivate theorem two : 1 + 1 = 2 := rfl\n/-- One and one. -/\ntheorem Opn.one_one : 1 + 1 = 2 := two\n\n')
+E        +    where <function check_proof_is_statement at 0x10b42ade0> = paths.check_proof_is_statement
+E        +    and   'import Std\n\nopen Nat\n\n/- a block comment\n   over two lines -/\nprivate theorem two : 1 + 1 = 2 := rfl\n/-- One and one. -/\ntheorem Opn.one_one : 1 + 1 = 2 := two\n\n' = with_helpers(Statement(decl_name='Opn.one_one', text='import Std\n\nopen Nat\n\n/-- One and one. -/\ntheorem Opn.one_one : 1 + 1 = ...y\n  sorry\n', prefix='import Std\n\nopen Nat\n\n/-- One and one. -/\ntheorem Opn.one_one : 1 + 1 = 2 :=', suffix='\n'), '/- a block comment\n   over two lines -/\nprivate theorem two : 1 + 1 = 2 := rfl\n', ' two\n')
+
+gate/tests/test_finding_helper_lemmas.py:86: AssertionError
+_ test_private_helpers_before_the_declaration_pass_step_2[private theorem two : 1 + 1 = 2 := by\n  have h : 1 = 1 := rfl\n  rfl\n\nprivate theorem three : 1 + 2 = 3 := rfl\n] _
+
+helpers = 'private theorem two : 1 + 1 = 2 := by\n  have h : 1 = 1 := rfl\n  rfl\n\nprivate theorem three : 1 + 2 = 3 := rfl\n'
+
+    @pytest.mark.parametrize(
+        "helpers",
+        [
+            HELPER,
+            "private lemma two : 1 + 1 = 2 := rfl\n",
+            "/-- A helper with its own doc comment. -/\nprivate lemma two : 1 + 1 = 2 := by\n  rfl\n\n",
+            "-- a line comment\nprivate def k : Nat := 2\n\nprivate abbrev K : Type := Nat\n",
+            "noncomputable private def k : Nat := 2\n",
+            "private noncomputable def k : Nat := 2\n",
+            "/- a block comment\n   over two lines -/\nprivate theorem two : 1 + 1 = 2 := rfl\n",
+            "private theorem two : 1 + 1 = 2 := by\n  have h : 1 = 1 := rfl\n  rfl\n\n"
+            "private theorem three : 1 + 2 = 3 := rfl\n",
+        ],
+    )
+    def test_private_helpers_before_the_declaration_pass_step_2(helpers: str) -> None:
+        st = doc_statement()
+>       assert paths.check_proof_is_statement(st, with_helpers(st, helpers, " two\n")) is None
+E       AssertionError: assert Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 5 (header or signature)', details={'line': 5, 'expected': '/-- One and one. -/', 'got': 'private theorem two : 1 + 1 = 2 := by'}) is None
+E        +  where Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 5 (header or signature)', details={'line': 5, 'expected': '/-- One and one. -/', 'got': 'private theorem two : 1 + 1 = 2 := by'}) = <function check_proof_is_statement at 0x10b42ade0>(Statement(decl_name='Opn.one_one', text='import Std\n\nopen Nat\n\n/-- One and one. -/\ntheorem Opn.one_one : 1 + 1 = ...y\n  sorry\n', prefix='import Std\n\nopen Nat\n\n/-- One and one. -/\ntheorem Opn.one_one : 1 + 1 = 2 :=', suffix='\n'), 'import Std\n\nopen Nat\n\nprivate theorem two : 1 + 1 = 2 := by\n  have h : 1 = 1 := rfl\n  rfl\n\nprivate theorem three : 1 + 2 = 3 := rfl\n/-- One and one. -/\ntheorem Opn.one_one : 1 + 1 = 2 := two\n\n')
+E        +    where <function check_proof_is_statement at 0x10b42ade0> = paths.check_proof_is_statement
+E        +    and   'import Std\n\nopen Nat\n\nprivate theorem two : 1 + 1 = 2 := by\n  have h : 1 = 1 := rfl\n  rfl\n\nprivate theorem three : 1 + 2 = 3 := rfl\n/-- One and one. -/\ntheorem Opn.one_one : 1 + 1 = 2 := two\n\n' = with_helpers(Statement(decl_name='Opn.one_one', text='import Std\n\nopen Nat\n\n/-- One and one. -/\ntheorem Opn.one_one : 1 + 1 = ...y\n  sorry\n', prefix='import Std\n\nopen Nat\n\n/-- One and one. -/\ntheorem Opn.one_one : 1 + 1 = 2 :=', suffix='\n'), 'private theorem two : 1 + 1 = 2 := by\n  have h : 1 = 1 := rfl\n  rfl\n\nprivate theorem three : 1 + 2 = 3 := rfl\n', ' two\n')
+
+gate/tests/test_finding_helper_lemmas.py:86: AssertionError
+_____________ test_helpers_before_a_statement_with_no_doc_comment ______________
+
+    def test_helpers_before_a_statement_with_no_doc_comment() -> None:
+        node = tutorial()
+        good = node.proof_path.read_text(encoding="utf-8")
+        helped = good.replace(
+            "theorem OpnProp.and_swap",
+            "private theorem swap {p q : Prop} (h : p ∧ q) : q ∧ p := ⟨h.2, h.1⟩\n\n"
+            "theorem OpnProp.and_swap",
+        )
+        assert helped != good
+>       assert paths.check_proof_is_statement(node.statement, helped) is None
+E       AssertionError: assert Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 3 (header or signature..._swap : ∀ p q : Prop, p ∧ q → q ∧ p :=', 'got': 'private theorem swap {p q : Prop} (h : p ∧ q) : q ∧ p := ⟨h.2, h.1⟩'}) is None
+E        +  where Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 3 (header or signature..._swap : ∀ p q : Prop, p ∧ q → q ∧ p :=', 'got': 'private theorem swap {p q : Prop} (h : p ∧ q) : q ∧ p := ⟨h.2, h.1⟩'}) = <function check_proof_is_statement at 0x10b42ade0>(Statement(decl_name='OpnProp.and_swap', text='/-! The tutorial node (D-27): permanently open, off-ledger. Lean core on...nently open, off-ledger. Lean core only. -/\n\ntheorem OpnProp.and_swap : ∀ p q : Prop, p ∧ q → q ∧ p :=', suffix='\n'), '/-! The tutorial node (D-27): permanently open, off-ledger. Lean core only. -/\n\nprivate theorem swap {p q : Prop} (...∧ p := ⟨h.2, h.1⟩\n\ntheorem OpnProp.and_swap : ∀ p q : Prop, p ∧ q → q ∧ p := by\n  intro p q h\n  exact ⟨h.2, h.1⟩\n')
+E        +    where <function check_proof_is_statement at 0x10b42ade0> = paths.check_proof_is_statement
+E        +    and   Statement(decl_name='OpnProp.and_swap', text='/-! The tutorial node (D-27): permanently open, off-ledger. Lean core on...nently open, off-ledger. Lean core only. -/\n\ntheorem OpnProp.and_swap : ∀ p q : Prop, p ∧ q → q ∧ p :=', suffix='\n') = Node(node_id='tutorial-and-swap', target_id='propositional', path=PosixPath('/Users/mikehiggins/Desktop/repos/opn-cap/...ently open, off-ledger. Lean core only. -/\n\ntheorem OpnProp.and_swap : ∀ p q : Prop, p ∧ q → q ∧ p :=', suffix='\n')).statement
+
+gate/tests/test_finding_helper_lemmas.py:98: AssertionError
+_ test_the_block_refuses_what_could_change_the_cap_or_the_environment[theorem two : 1 + 1 = 2 := rfl\n-theorem] _
+
+helpers = 'theorem two : 1 + 1 = 2 := rfl\n', token = 'theorem'
+
+    @pytest.mark.parametrize(
+        ("helpers", "token"),
+        [
+            ("theorem two : 1 + 1 = 2 := rfl\n", "theorem"),
+            ("lemma two : 1 + 1 = 2 := rfl\n", "lemma"),
+            ("def k : Nat := 2\n", "def"),
+            ("  theorem two : 1 + 1 = 2 := rfl\n", "theorem"),
+            ("set_option maxHeartbeats 0 in\nprivate theorem two : 1 + 1 = 2 := rfl\n", "set_option"),
+            ("private theorem two : 1 + 1 = 2 := by\n  set_option maxHeartbeats 0 in rfl\n", "set_option"),
+            ("axiom cheat : False\n", "axiom"),
+            ("private axiom cheat : False\n", "axiom"),
+            ("instance : Inhabited Nat := ⟨3⟩\n", "instance"),
+            ("private instance : Inhabited Nat := ⟨3⟩\n", "instance"),
+            ('notation "two" => 2\n', "notation"),
+            ('macro "two" : term => `(2)\n', "macro"),
+            ('syntax "two" : term\n', "syntax"),
+            ("@[simp] private theorem two : 1 + 1 = 2 := rfl\n", "@["),
+            ("attribute [simp] Nat.add_comm\n", "attribute"),
+            ("open Lean\n", "open"),
+            ("variable (n : Nat)\n", "variable"),
+            ("namespace Foo\nprivate theorem two : 1 + 1 = 2 := rfl\nend Foo\n", "namespace"),
+            ("#eval 1\n", "#eval"),
+            ("private unsafe def k : Nat := 2\n", "unsafe"),
+            ("private opaque k : Nat\n", "opaque"),
+            ("private structure S where\n  x : Nat\n", "structure"),
+            ("initialize pure ()\n", "initialize"),
+            ("run_cmd pure ()\n", "run_cmd"),
+        ],
+    )
+    def test_the_block_refuses_what_could_change_the_cap_or_the_environment(
+        helpers: str, token: str
+    ) -> None:
+        st = doc_statement()
+        d = paths.check_proof_is_statement(st, with_helpers(st, helpers, " rfl\n"))
+>       assert d is not None and d.code == "helper-forbidden", d
+E       AssertionError: Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 5 (header or signature)', details={'line': 5, 'expected': '/-- One and one. -/', 'got': 'theorem two : 1 + 1 = 2 := rfl'})
+E       assert (Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 5 (header or signature)', details={'line': 5, 'expected': '/-- One and one. -/', 'got': 'theorem two : 1 + 1 = 2 := rfl'}) is not None and 'proof-not-statement' == 'helper-forbidden'
+E         
+E         - helper-forbidden
+E         + proof-not-statement)
+
+gate/tests/test_finding_helper_lemmas.py:143: AssertionError
+_ test_the_block_refuses_what_could_change_the_cap_or_the_environment[lemma two : 1 + 1 = 2 := rfl\n-lemma] _
+
+helpers = 'lemma two : 1 + 1 = 2 := rfl\n', token = 'lemma'
+
+    @pytest.mark.parametrize(
+        ("helpers", "token"),
+        [
+            ("theorem two : 1 + 1 = 2 := rfl\n", "theorem"),
+            ("lemma two : 1 + 1 = 2 := rfl\n", "lemma"),
+            ("def k : Nat := 2\n", "def"),
+            ("  theorem two : 1 + 1 = 2 := rfl\n", "theorem"),
+            ("set_option maxHeartbeats 0 in\nprivate theorem two : 1 + 1 = 2 := rfl\n", "set_option"),
+            ("private theorem two : 1 + 1 = 2 := by\n  set_option maxHeartbeats 0 in rfl\n", "set_option"),
+            ("axiom cheat : False\n", "axiom"),
+            ("private axiom cheat : False\n", "axiom"),
+            ("instance : Inhabited Nat := ⟨3⟩\n", "instance"),
+            ("private instance : Inhabited Nat := ⟨3⟩\n", "instance"),
+            ('notation "two" => 2\n', "notation"),
+            ('macro "two" : term => `(2)\n', "macro"),
+            ('syntax "two" : term\n', "syntax"),
+            ("@[simp] private theorem two : 1 + 1 = 2 := rfl\n", "@["),
+            ("attribute [simp] Nat.add_comm\n", "attribute"),
+            ("open Lean\n", "open"),
+            ("variable (n : Nat)\n", "variable"),
+            ("namespace Foo\nprivate theorem two : 1 + 1 = 2 := rfl\nend Foo\n", "namespace"),
+            ("#eval 1\n", "#eval"),
+            ("private unsafe def k : Nat := 2\n", "unsafe"),
+            ("private opaque k : Nat\n", "opaque"),
+            ("private structure S where\n  x : Nat\n", "structure"),
+            ("initialize pure ()\n", "initialize"),
+            ("run_cmd pure ()\n", "run_cmd"),
+        ],
+    )
+    def test_the_block_refuses_what_could_change_the_cap_or_the_environment(
+        helpers: str, token: str
+    ) -> None:
+        st = doc_statement()
+        d = paths.check_proof_is_statement(st, with_helpers(st, helpers, " rfl\n"))
+>       assert d is not None and d.code == "helper-forbidden", d
+E       AssertionError: Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 5 (header or signature)', details={'line': 5, 'expected': '/-- One and one. -/', 'got': 'lemma two : 1 + 1 = 2 := rfl'})
+E       assert (Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 5 (header or signature)', details={'line': 5, 'expected': '/-- One and one. -/', 'got': 'lemma two : 1 + 1 = 2 := rfl'}) is not None and 'proof-not-statement' == 'helper-forbidden'
+E         
+E         - helper-forbidden
+E         + proof-not-statement)
+
+gate/tests/test_finding_helper_lemmas.py:143: AssertionError
+_ test_the_block_refuses_what_could_change_the_cap_or_the_environment[def k : Nat := 2\n-def] _
+
+helpers = 'def k : Nat := 2\n', token = 'def'
+
+    @pytest.mark.parametrize(
+        ("helpers", "token"),
+        [
+            ("theorem two : 1 + 1 = 2 := rfl\n", "theorem"),
+            ("lemma two : 1 + 1 = 2 := rfl\n", "lemma"),
+            ("def k : Nat := 2\n", "def"),
+            ("  theorem two : 1 + 1 = 2 := rfl\n", "theorem"),
+            ("set_option maxHeartbeats 0 in\nprivate theorem two : 1 + 1 = 2 := rfl\n", "set_option"),
+            ("private theorem two : 1 + 1 = 2 := by\n  set_option maxHeartbeats 0 in rfl\n", "set_option"),
+            ("axiom cheat : False\n", "axiom"),
+            ("private axiom cheat : False\n", "axiom"),
+            ("instance : Inhabited Nat := ⟨3⟩\n", "instance"),
+            ("private instance : Inhabited Nat := ⟨3⟩\n", "instance"),
+            ('notation "two" => 2\n', "notation"),
+            ('macro "two" : term => `(2)\n', "macro"),
+            ('syntax "two" : term\n', "syntax"),
+            ("@[simp] private theorem two : 1 + 1 = 2 := rfl\n", "@["),
+            ("attribute [simp] Nat.add_comm\n", "attribute"),
+            ("open Lean\n", "open"),
+            ("variable (n : Nat)\n", "variable"),
+            ("namespace Foo\nprivate theorem two : 1 + 1 = 2 := rfl\nend Foo\n", "namespace"),
+            ("#eval 1\n", "#eval"),
+            ("private unsafe def k : Nat := 2\n", "unsafe"),
+            ("private opaque k : Nat\n", "opaque"),
+            ("private structure S where\n  x : Nat\n", "structure"),
+            ("initialize pure ()\n", "initialize"),
+            ("run_cmd pure ()\n", "run_cmd"),
+        ],
+    )
+    def test_the_block_refuses_what_could_change_the_cap_or_the_environment(
+        helpers: str, token: str
+    ) -> None:
+        st = doc_statement()
+        d = paths.check_proof_is_statement(st, with_helpers(st, helpers, " rfl\n"))
+>       assert d is not None and d.code == "helper-forbidden", d
+E       AssertionError: Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 5 (header or signature)', details={'line': 5, 'expected': '/-- One and one. -/', 'got': 'def k : Nat := 2'})
+E       assert (Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 5 (header or signature)', details={'line': 5, 'expected': '/-- One and one. -/', 'got': 'def k : Nat := 2'}) is not None and 'proof-not-statement' == 'helper-forbidden'
+E         
+E         - helper-forbidden
+E         + proof-not-statement)
+
+gate/tests/test_finding_helper_lemmas.py:143: AssertionError
+_ test_the_block_refuses_what_could_change_the_cap_or_the_environment[  theorem two : 1 + 1 = 2 := rfl\n-theorem] _
+
+helpers = '  theorem two : 1 + 1 = 2 := rfl\n', token = 'theorem'
+
+    @pytest.mark.parametrize(
+        ("helpers", "token"),
+        [
+            ("theorem two : 1 + 1 = 2 := rfl\n", "theorem"),
+            ("lemma two : 1 + 1 = 2 := rfl\n", "lemma"),
+            ("def k : Nat := 2\n", "def"),
+            ("  theorem two : 1 + 1 = 2 := rfl\n", "theorem"),
+            ("set_option maxHeartbeats 0 in\nprivate theorem two : 1 + 1 = 2 := rfl\n", "set_option"),
+            ("private theorem two : 1 + 1 = 2 := by\n  set_option maxHeartbeats 0 in rfl\n", "set_option"),
+            ("axiom cheat : False\n", "axiom"),
+            ("private axiom cheat : False\n", "axiom"),
+            ("instance : Inhabited Nat := ⟨3⟩\n", "instance"),
+            ("private instance : Inhabited Nat := ⟨3⟩\n", "instance"),
+            ('notation "two" => 2\n', "notation"),
+            ('macro "two" : term => `(2)\n', "macro"),
+            ('syntax "two" : term\n', "syntax"),
+            ("@[simp] private theorem two : 1 + 1 = 2 := rfl\n", "@["),
+            ("attribute [simp] Nat.add_comm\n", "attribute"),
+            ("open Lean\n", "open"),
+            ("variable (n : Nat)\n", "variable"),
+            ("namespace Foo\nprivate theorem two : 1 + 1 = 2 := rfl\nend Foo\n", "namespace"),
+            ("#eval 1\n", "#eval"),
+            ("private unsafe def k : Nat := 2\n", "unsafe"),
+            ("private opaque k : Nat\n", "opaque"),
+            ("private structure S where\n  x : Nat\n", "structure"),
+            ("initialize pure ()\n", "initialize"),
+            ("run_cmd pure ()\n", "run_cmd"),
+        ],
+    )
+    def test_the_block_refuses_what_could_change_the_cap_or_the_environment(
+        helpers: str, token: str
+    ) -> None:
+        st = doc_statement()
+        d = paths.check_proof_is_statement(st, with_helpers(st, helpers, " rfl\n"))
+>       assert d is not None and d.code == "helper-forbidden", d
+E       AssertionError: Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 5 (header or signature)', details={'line': 5, 'expected': '/-- One and one. -/', 'got': '  theorem two : 1 + 1 = 2 := rfl'})
+E       assert (Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 5 (header or signature)', details={'line': 5, 'expected': '/-- One and one. -/', 'got': '  theorem two : 1 + 1 = 2 := rfl'}) is not None and 'proof-not-statement' == 'helper-forbidden'
+E         
+E         - helper-forbidden
+E         + proof-not-statement)
+
+gate/tests/test_finding_helper_lemmas.py:143: AssertionError
+_ test_the_block_refuses_what_could_change_the_cap_or_the_environment[set_option maxHeartbeats 0 in\nprivate theorem two : 1 + 1 = 2 := rfl\n-set_option] _
+
+helpers = 'set_option maxHeartbeats 0 in\nprivate theorem two : 1 + 1 = 2 := rfl\n'
+token = 'set_option'
+
+    @pytest.mark.parametrize(
+        ("helpers", "token"),
+        [
+            ("theorem two : 1 + 1 = 2 := rfl\n", "theorem"),
+            ("lemma two : 1 + 1 = 2 := rfl\n", "lemma"),
+            ("def k : Nat := 2\n", "def"),
+            ("  theorem two : 1 + 1 = 2 := rfl\n", "theorem"),
+            ("set_option maxHeartbeats 0 in\nprivate theorem two : 1 + 1 = 2 := rfl\n", "set_option"),
+            ("private theorem two : 1 + 1 = 2 := by\n  set_option maxHeartbeats 0 in rfl\n", "set_option"),
+            ("axiom cheat : False\n", "axiom"),
+            ("private axiom cheat : False\n", "axiom"),
+            ("instance : Inhabited Nat := ⟨3⟩\n", "instance"),
+            ("private instance : Inhabited Nat := ⟨3⟩\n", "instance"),
+            ('notation "two" => 2\n', "notation"),
+            ('macro "two" : term => `(2)\n', "macro"),
+            ('syntax "two" : term\n', "syntax"),
+            ("@[simp] private theorem two : 1 + 1 = 2 := rfl\n", "@["),
+            ("attribute [simp] Nat.add_comm\n", "attribute"),
+            ("open Lean\n", "open"),
+            ("variable (n : Nat)\n", "variable"),
+            ("namespace Foo\nprivate theorem two : 1 + 1 = 2 := rfl\nend Foo\n", "namespace"),
+            ("#eval 1\n", "#eval"),
+            ("private unsafe def k : Nat := 2\n", "unsafe"),
+            ("private opaque k : Nat\n", "opaque"),
+            ("private structure S where\n  x : Nat\n", "structure"),
+            ("initialize pure ()\n", "initialize"),
+            ("run_cmd pure ()\n", "run_cmd"),
+        ],
+    )
+    def test_the_block_refuses_what_could_change_the_cap_or_the_environment(
+        helpers: str, token: str
+    ) -> None:
+        st = doc_statement()
+        d = paths.check_proof_is_statement(st, with_helpers(st, helpers, " rfl\n"))
+>       assert d is not None and d.code == "helper-forbidden", d
+E       AssertionError: Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 5 (header or signature)', details={'line': 5, 'expected': '/-- One and one. -/', 'got': 'set_option maxHeartbeats 0 in'})
+E       assert (Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 5 (header or signature)', details={'line': 5, 'expected': '/-- One and one. -/', 'got': 'set_option maxHeartbeats 0 in'}) is not None and 'proof-not-statement' == 'helper-forbidden'
+E         
+E         - helper-forbidden
+E         + proof-not-statement)
+
+gate/tests/test_finding_helper_lemmas.py:143: AssertionError
+_ test_the_block_refuses_what_could_change_the_cap_or_the_environment[private theorem two : 1 + 1 = 2 := by\n  set_option maxHeartbeats 0 in rfl\n-set_option] _
+
+helpers = 'private theorem two : 1 + 1 = 2 := by\n  set_option maxHeartbeats 0 in rfl\n'
+token = 'set_option'
+
+    @pytest.mark.parametrize(
+        ("helpers", "token"),
+        [
+            ("theorem two : 1 + 1 = 2 := rfl\n", "theorem"),
+            ("lemma two : 1 + 1 = 2 := rfl\n", "lemma"),
+            ("def k : Nat := 2\n", "def"),
+            ("  theorem two : 1 + 1 = 2 := rfl\n", "theorem"),
+            ("set_option maxHeartbeats 0 in\nprivate theorem two : 1 + 1 = 2 := rfl\n", "set_option"),
+            ("private theorem two : 1 + 1 = 2 := by\n  set_option maxHeartbeats 0 in rfl\n", "set_option"),
+            ("axiom cheat : False\n", "axiom"),
+            ("private axiom cheat : False\n", "axiom"),
+            ("instance : Inhabited Nat := ⟨3⟩\n", "instance"),
+            ("private instance : Inhabited Nat := ⟨3⟩\n", "instance"),
+            ('notation "two" => 2\n', "notation"),
+            ('macro "two" : term => `(2)\n', "macro"),
+            ('syntax "two" : term\n', "syntax"),
+            ("@[simp] private theorem two : 1 + 1 = 2 := rfl\n", "@["),
+            ("attribute [simp] Nat.add_comm\n", "attribute"),
+            ("open Lean\n", "open"),
+            ("variable (n : Nat)\n", "variable"),
+            ("namespace Foo\nprivate theorem two : 1 + 1 = 2 := rfl\nend Foo\n", "namespace"),
+            ("#eval 1\n", "#eval"),
+            ("private unsafe def k : Nat := 2\n", "unsafe"),
+            ("private opaque k : Nat\n", "opaque"),
+            ("private structure S where\n  x : Nat\n", "structure"),
+            ("initialize pure ()\n", "initialize"),
+            ("run_cmd pure ()\n", "run_cmd"),
+        ],
+    )
+    def test_the_block_refuses_what_could_change_the_cap_or_the_environment(
+        helpers: str, token: str
+    ) -> None:
+        st = doc_statement()
+        d = paths.check_proof_is_statement(st, with_helpers(st, helpers, " rfl\n"))
+>       assert d is not None and d.code == "helper-forbidden", d
+E       AssertionError: Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 5 (header or signature)', details={'line': 5, 'expected': '/-- One and one. -/', 'got': 'private theorem two : 1 + 1 = 2 := by'})
+E       assert (Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 5 (header or signature)', details={'line': 5, 'expected': '/-- One and one. -/', 'got': 'private theorem two : 1 + 1 = 2 := by'}) is not None and 'proof-not-statement' == 'helper-forbidden'
+E         
+E         - helper-forbidden
+E         + proof-not-statement)
+
+gate/tests/test_finding_helper_lemmas.py:143: AssertionError
+_ test_the_block_refuses_what_could_change_the_cap_or_the_environment[axiom cheat : False\n-axiom] _
+
+helpers = 'axiom cheat : False\n', token = 'axiom'
+
+    @pytest.mark.parametrize(
+        ("helpers", "token"),
+        [
+            ("theorem two : 1 + 1 = 2 := rfl\n", "theorem"),
+            ("lemma two : 1 + 1 = 2 := rfl\n", "lemma"),
+            ("def k : Nat := 2\n", "def"),
+            ("  theorem two : 1 + 1 = 2 := rfl\n", "theorem"),
+            ("set_option maxHeartbeats 0 in\nprivate theorem two : 1 + 1 = 2 := rfl\n", "set_option"),
+            ("private theorem two : 1 + 1 = 2 := by\n  set_option maxHeartbeats 0 in rfl\n", "set_option"),
+            ("axiom cheat : False\n", "axiom"),
+            ("private axiom cheat : False\n", "axiom"),
+            ("instance : Inhabited Nat := ⟨3⟩\n", "instance"),
+            ("private instance : Inhabited Nat := ⟨3⟩\n", "instance"),
+            ('notation "two" => 2\n', "notation"),
+            ('macro "two" : term => `(2)\n', "macro"),
+            ('syntax "two" : term\n', "syntax"),
+            ("@[simp] private theorem two : 1 + 1 = 2 := rfl\n", "@["),
+            ("attribute [simp] Nat.add_comm\n", "attribute"),
+            ("open Lean\n", "open"),
+            ("variable (n : Nat)\n", "variable"),
+            ("namespace Foo\nprivate theorem two : 1 + 1 = 2 := rfl\nend Foo\n", "namespace"),
+            ("#eval 1\n", "#eval"),
+            ("private unsafe def k : Nat := 2\n", "unsafe"),
+            ("private opaque k : Nat\n", "opaque"),
+            ("private structure S where\n  x : Nat\n", "structure"),
+            ("initialize pure ()\n", "initialize"),
+            ("run_cmd pure ()\n", "run_cmd"),
+        ],
+    )
+    def test_the_block_refuses_what_could_change_the_cap_or_the_environment(
+        helpers: str, token: str
+    ) -> None:
+        st = doc_statement()
+        d = paths.check_proof_is_statement(st, with_helpers(st, helpers, " rfl\n"))
+>       assert d is not None and d.code == "helper-forbidden", d
+E       AssertionError: Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 5 (header or signature)', details={'line': 5, 'expected': '/-- One and one. -/', 'got': 'axiom cheat : False'})
+E       assert (Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 5 (header or signature)', details={'line': 5, 'expected': '/-- One and one. -/', 'got': 'axiom cheat : False'}) is not None and 'proof-not-statement' == 'helper-forbidden'
+E         
+E         - helper-forbidden
+E         + proof-not-statement)
+
+gate/tests/test_finding_helper_lemmas.py:143: AssertionError
+_ test_the_block_refuses_what_could_change_the_cap_or_the_environment[private axiom cheat : False\n-axiom] _
+
+helpers = 'private axiom cheat : False\n', token = 'axiom'
+
+    @pytest.mark.parametrize(
+        ("helpers", "token"),
+        [
+            ("theorem two : 1 + 1 = 2 := rfl\n", "theorem"),
+            ("lemma two : 1 + 1 = 2 := rfl\n", "lemma"),
+            ("def k : Nat := 2\n", "def"),
+            ("  theorem two : 1 + 1 = 2 := rfl\n", "theorem"),
+            ("set_option maxHeartbeats 0 in\nprivate theorem two : 1 + 1 = 2 := rfl\n", "set_option"),
+            ("private theorem two : 1 + 1 = 2 := by\n  set_option maxHeartbeats 0 in rfl\n", "set_option"),
+            ("axiom cheat : False\n", "axiom"),
+            ("private axiom cheat : False\n", "axiom"),
+            ("instance : Inhabited Nat := ⟨3⟩\n", "instance"),
+            ("private instance : Inhabited Nat := ⟨3⟩\n", "instance"),
+            ('notation "two" => 2\n', "notation"),
+            ('macro "two" : term => `(2)\n', "macro"),
+            ('syntax "two" : term\n', "syntax"),
+            ("@[simp] private theorem two : 1 + 1 = 2 := rfl\n", "@["),
+            ("attribute [simp] Nat.add_comm\n", "attribute"),
+            ("open Lean\n", "open"),
+            ("variable (n : Nat)\n", "variable"),
+            ("namespace Foo\nprivate theorem two : 1 + 1 = 2 := rfl\nend Foo\n", "namespace"),
+            ("#eval 1\n", "#eval"),
+            ("private unsafe def k : Nat := 2\n", "unsafe"),
+            ("private opaque k : Nat\n", "opaque"),
+            ("private structure S where\n  x : Nat\n", "structure"),
+            ("initialize pure ()\n", "initialize"),
+            ("run_cmd pure ()\n", "run_cmd"),
+        ],
+    )
+    def test_the_block_refuses_what_could_change_the_cap_or_the_environment(
+        helpers: str, token: str
+    ) -> None:
+        st = doc_statement()
+        d = paths.check_proof_is_statement(st, with_helpers(st, helpers, " rfl\n"))
+>       assert d is not None and d.code == "helper-forbidden", d
+E       AssertionError: Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 5 (header or signature)', details={'line': 5, 'expected': '/-- One and one. -/', 'got': 'private axiom cheat : False'})
+E       assert (Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 5 (header or signature)', details={'line': 5, 'expected': '/-- One and one. -/', 'got': 'private axiom cheat : False'}) is not None and 'proof-not-statement' == 'helper-forbidden'
+E         
+E         - helper-forbidden
+E         + proof-not-statement)
+
+gate/tests/test_finding_helper_lemmas.py:143: AssertionError
+_ test_the_block_refuses_what_could_change_the_cap_or_the_environment[instance : Inhabited Nat := \u27e83\u27e9\n-instance] _
+
+helpers = 'instance : Inhabited Nat := ⟨3⟩\n', token = 'instance'
+
+    @pytest.mark.parametrize(
+        ("helpers", "token"),
+        [
+            ("theorem two : 1 + 1 = 2 := rfl\n", "theorem"),
+            ("lemma two : 1 + 1 = 2 := rfl\n", "lemma"),
+            ("def k : Nat := 2\n", "def"),
+            ("  theorem two : 1 + 1 = 2 := rfl\n", "theorem"),
+            ("set_option maxHeartbeats 0 in\nprivate theorem two : 1 + 1 = 2 := rfl\n", "set_option"),
+            ("private theorem two : 1 + 1 = 2 := by\n  set_option maxHeartbeats 0 in rfl\n", "set_option"),
+            ("axiom cheat : False\n", "axiom"),
+            ("private axiom cheat : False\n", "axiom"),
+            ("instance : Inhabited Nat := ⟨3⟩\n", "instance"),
+            ("private instance : Inhabited Nat := ⟨3⟩\n", "instance"),
+            ('notation "two" => 2\n', "notation"),
+            ('macro "two" : term => `(2)\n', "macro"),
+            ('syntax "two" : term\n', "syntax"),
+            ("@[simp] private theorem two : 1 + 1 = 2 := rfl\n", "@["),
+            ("attribute [simp] Nat.add_comm\n", "attribute"),
+            ("open Lean\n", "open"),
+            ("variable (n : Nat)\n", "variable"),
+            ("namespace Foo\nprivate theorem two : 1 + 1 = 2 := rfl\nend Foo\n", "namespace"),
+            ("#eval 1\n", "#eval"),
+            ("private unsafe def k : Nat := 2\n", "unsafe"),
+            ("private opaque k : Nat\n", "opaque"),
+            ("private structure S where\n  x : Nat\n", "structure"),
+            ("initialize pure ()\n", "initialize"),
+            ("run_cmd pure ()\n", "run_cmd"),
+        ],
+    )
+    def test_the_block_refuses_what_could_change_the_cap_or_the_environment(
+        helpers: str, token: str
+    ) -> None:
+        st = doc_statement()
+        d = paths.check_proof_is_statement(st, with_helpers(st, helpers, " rfl\n"))
+>       assert d is not None and d.code == "helper-forbidden", d
+E       AssertionError: Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 5 (header or signature)', details={'line': 5, 'expected': '/-- One and one. -/', 'got': 'instance : Inhabited Nat := ⟨3⟩'})
+E       assert (Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 5 (header or signature)', details={'line': 5, 'expected': '/-- One and one. -/', 'got': 'instance : Inhabited Nat := ⟨3⟩'}) is not None and 'proof-not-statement' == 'helper-forbidden'
+E         
+E         - helper-forbidden
+E         + proof-not-statement)
+
+gate/tests/test_finding_helper_lemmas.py:143: AssertionError
+_ test_the_block_refuses_what_could_change_the_cap_or_the_environment[private instance : Inhabited Nat := \u27e83\u27e9\n-instance] _
+
+helpers = 'private instance : Inhabited Nat := ⟨3⟩\n', token = 'instance'
+
+    @pytest.mark.parametrize(
+        ("helpers", "token"),
+        [
+            ("theorem two : 1 + 1 = 2 := rfl\n", "theorem"),
+            ("lemma two : 1 + 1 = 2 := rfl\n", "lemma"),
+            ("def k : Nat := 2\n", "def"),
+            ("  theorem two : 1 + 1 = 2 := rfl\n", "theorem"),
+            ("set_option maxHeartbeats 0 in\nprivate theorem two : 1 + 1 = 2 := rfl\n", "set_option"),
+            ("private theorem two : 1 + 1 = 2 := by\n  set_option maxHeartbeats 0 in rfl\n", "set_option"),
+            ("axiom cheat : False\n", "axiom"),
+            ("private axiom cheat : False\n", "axiom"),
+            ("instance : Inhabited Nat := ⟨3⟩\n", "instance"),
+            ("private instance : Inhabited Nat := ⟨3⟩\n", "instance"),
+            ('notation "two" => 2\n', "notation"),
+            ('macro "two" : term => `(2)\n', "macro"),
+            ('syntax "two" : term\n', "syntax"),
+            ("@[simp] private theorem two : 1 + 1 = 2 := rfl\n", "@["),
+            ("attribute [simp] Nat.add_comm\n", "attribute"),
+            ("open Lean\n", "open"),
+            ("variable (n : Nat)\n", "variable"),
+            ("namespace Foo\nprivate theorem two : 1 + 1 = 2 := rfl\nend Foo\n", "namespace"),
+            ("#eval 1\n", "#eval"),
+            ("private unsafe def k : Nat := 2\n", "unsafe"),
+            ("private opaque k : Nat\n", "opaque"),
+            ("private structure S where\n  x : Nat\n", "structure"),
+            ("initialize pure ()\n", "initialize"),
+            ("run_cmd pure ()\n", "run_cmd"),
+        ],
+    )
+    def test_the_block_refuses_what_could_change_the_cap_or_the_environment(
+        helpers: str, token: str
+    ) -> None:
+        st = doc_statement()
+        d = paths.check_proof_is_statement(st, with_helpers(st, helpers, " rfl\n"))
+>       assert d is not None and d.code == "helper-forbidden", d
+E       AssertionError: Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 5 (header or signature)', details={'line': 5, 'expected': '/-- One and one. -/', 'got': 'private instance : Inhabited Nat := ⟨3⟩'})
+E       assert (Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 5 (header or signature)', details={'line': 5, 'expected': '/-- One and one. -/', 'got': 'private instance : Inhabited Nat := ⟨3⟩'}) is not None and 'proof-not-statement' == 'helper-forbidden'
+E         
+E         - helper-forbidden
+E         + proof-not-statement)
+
+gate/tests/test_finding_helper_lemmas.py:143: AssertionError
+_ test_the_block_refuses_what_could_change_the_cap_or_the_environment[notation "two" => 2\n-notation] _
+
+helpers = 'notation "two" => 2\n', token = 'notation'
+
+    @pytest.mark.parametrize(
+        ("helpers", "token"),
+        [
+            ("theorem two : 1 + 1 = 2 := rfl\n", "theorem"),
+            ("lemma two : 1 + 1 = 2 := rfl\n", "lemma"),
+            ("def k : Nat := 2\n", "def"),
+            ("  theorem two : 1 + 1 = 2 := rfl\n", "theorem"),
+            ("set_option maxHeartbeats 0 in\nprivate theorem two : 1 + 1 = 2 := rfl\n", "set_option"),
+            ("private theorem two : 1 + 1 = 2 := by\n  set_option maxHeartbeats 0 in rfl\n", "set_option"),
+            ("axiom cheat : False\n", "axiom"),
+            ("private axiom cheat : False\n", "axiom"),
+            ("instance : Inhabited Nat := ⟨3⟩\n", "instance"),
+            ("private instance : Inhabited Nat := ⟨3⟩\n", "instance"),
+            ('notation "two" => 2\n', "notation"),
+            ('macro "two" : term => `(2)\n', "macro"),
+            ('syntax "two" : term\n', "syntax"),
+            ("@[simp] private theorem two : 1 + 1 = 2 := rfl\n", "@["),
+            ("attribute [simp] Nat.add_comm\n", "attribute"),
+            ("open Lean\n", "open"),
+            ("variable (n : Nat)\n", "variable"),
+            ("namespace Foo\nprivate theorem two : 1 + 1 = 2 := rfl\nend Foo\n", "namespace"),
+            ("#eval 1\n", "#eval"),
+            ("private unsafe def k : Nat := 2\n", "unsafe"),
+            ("private opaque k : Nat\n", "opaque"),
+            ("private structure S where\n  x : Nat\n", "structure"),
+            ("initialize pure ()\n", "initialize"),
+            ("run_cmd pure ()\n", "run_cmd"),
+        ],
+    )
+    def test_the_block_refuses_what_could_change_the_cap_or_the_environment(
+        helpers: str, token: str
+    ) -> None:
+        st = doc_statement()
+        d = paths.check_proof_is_statement(st, with_helpers(st, helpers, " rfl\n"))
+>       assert d is not None and d.code == "helper-forbidden", d
+E       AssertionError: Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 5 (header or signature)', details={'line': 5, 'expected': '/-- One and one. -/', 'got': 'notation "two" => 2'})
+E       assert (Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 5 (header or signature)', details={'line': 5, 'expected': '/-- One and one. -/', 'got': 'notation "two" => 2'}) is not None and 'proof-not-statement' == 'helper-forbidden'
+E         
+E         - helper-forbidden
+E         + proof-not-statement)
+
+gate/tests/test_finding_helper_lemmas.py:143: AssertionError
+_ test_the_block_refuses_what_could_change_the_cap_or_the_environment[macro "two" : term => `(2)\n-macro] _
+
+helpers = 'macro "two" : term => `(2)\n', token = 'macro'
+
+    @pytest.mark.parametrize(
+        ("helpers", "token"),
+        [
+            ("theorem two : 1 + 1 = 2 := rfl\n", "theorem"),
+            ("lemma two : 1 + 1 = 2 := rfl\n", "lemma"),
+            ("def k : Nat := 2\n", "def"),
+            ("  theorem two : 1 + 1 = 2 := rfl\n", "theorem"),
+            ("set_option maxHeartbeats 0 in\nprivate theorem two : 1 + 1 = 2 := rfl\n", "set_option"),
+            ("private theorem two : 1 + 1 = 2 := by\n  set_option maxHeartbeats 0 in rfl\n", "set_option"),
+            ("axiom cheat : False\n", "axiom"),
+            ("private axiom cheat : False\n", "axiom"),
+            ("instance : Inhabited Nat := ⟨3⟩\n", "instance"),
+            ("private instance : Inhabited Nat := ⟨3⟩\n", "instance"),
+            ('notation "two" => 2\n', "notation"),
+            ('macro "two" : term => `(2)\n', "macro"),
+            ('syntax "two" : term\n', "syntax"),
+            ("@[simp] private theorem two : 1 + 1 = 2 := rfl\n", "@["),
+            ("attribute [simp] Nat.add_comm\n", "attribute"),
+            ("open Lean\n", "open"),
+            ("variable (n : Nat)\n", "variable"),
+            ("namespace Foo\nprivate theorem two : 1 + 1 = 2 := rfl\nend Foo\n", "namespace"),
+            ("#eval 1\n", "#eval"),
+            ("private unsafe def k : Nat := 2\n", "unsafe"),
+            ("private opaque k : Nat\n", "opaque"),
+            ("private structure S where\n  x : Nat\n", "structure"),
+            ("initialize pure ()\n", "initialize"),
+            ("run_cmd pure ()\n", "run_cmd"),
+        ],
+    )
+    def test_the_block_refuses_what_could_change_the_cap_or_the_environment(
+        helpers: str, token: str
+    ) -> None:
+        st = doc_statement()
+        d = paths.check_proof_is_statement(st, with_helpers(st, helpers, " rfl\n"))
+>       assert d is not None and d.code == "helper-forbidden", d
+E       AssertionError: Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 5 (header or signature)', details={'line': 5, 'expected': '/-- One and one. -/', 'got': 'macro "two" : term => `(2)'})
+E       assert (Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 5 (header or signature)', details={'line': 5, 'expected': '/-- One and one. -/', 'got': 'macro "two" : term => `(2)'}) is not None and 'proof-not-statement' == 'helper-forbidden'
+E         
+E         - helper-forbidden
+E         + proof-not-statement)
+
+gate/tests/test_finding_helper_lemmas.py:143: AssertionError
+_ test_the_block_refuses_what_could_change_the_cap_or_the_environment[syntax "two" : term\n-syntax] _
+
+helpers = 'syntax "two" : term\n', token = 'syntax'
+
+    @pytest.mark.parametrize(
+        ("helpers", "token"),
+        [
+            ("theorem two : 1 + 1 = 2 := rfl\n", "theorem"),
+            ("lemma two : 1 + 1 = 2 := rfl\n", "lemma"),
+            ("def k : Nat := 2\n", "def"),
+            ("  theorem two : 1 + 1 = 2 := rfl\n", "theorem"),
+            ("set_option maxHeartbeats 0 in\nprivate theorem two : 1 + 1 = 2 := rfl\n", "set_option"),
+            ("private theorem two : 1 + 1 = 2 := by\n  set_option maxHeartbeats 0 in rfl\n", "set_option"),
+            ("axiom cheat : False\n", "axiom"),
+            ("private axiom cheat : False\n", "axiom"),
+            ("instance : Inhabited Nat := ⟨3⟩\n", "instance"),
+            ("private instance : Inhabited Nat := ⟨3⟩\n", "instance"),
+            ('notation "two" => 2\n', "notation"),
+            ('macro "two" : term => `(2)\n', "macro"),
+            ('syntax "two" : term\n', "syntax"),
+            ("@[simp] private theorem two : 1 + 1 = 2 := rfl\n", "@["),
+            ("attribute [simp] Nat.add_comm\n", "attribute"),
+            ("open Lean\n", "open"),
+            ("variable (n : Nat)\n", "variable"),
+            ("namespace Foo\nprivate theorem two : 1 + 1 = 2 := rfl\nend Foo\n", "namespace"),
+            ("#eval 1\n", "#eval"),
+            ("private unsafe def k : Nat := 2\n", "unsafe"),
+            ("private opaque k : Nat\n", "opaque"),
+            ("private structure S where\n  x : Nat\n", "structure"),
+            ("initialize pure ()\n", "initialize"),
+            ("run_cmd pure ()\n", "run_cmd"),
+        ],
+    )
+    def test_the_block_refuses_what_could_change_the_cap_or_the_environment(
+        helpers: str, token: str
+    ) -> None:
+        st = doc_statement()
+        d = paths.check_proof_is_statement(st, with_helpers(st, helpers, " rfl\n"))
+>       assert d is not None and d.code == "helper-forbidden", d
+E       AssertionError: Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 5 (header or signature)', details={'line': 5, 'expected': '/-- One and one. -/', 'got': 'syntax "two" : term'})
+E       assert (Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 5 (header or signature)', details={'line': 5, 'expected': '/-- One and one. -/', 'got': 'syntax "two" : term'}) is not None and 'proof-not-statement' == 'helper-forbidden'
+E         
+E         - helper-forbidden
+E         + proof-not-statement)
+
+gate/tests/test_finding_helper_lemmas.py:143: AssertionError
+_ test_the_block_refuses_what_could_change_the_cap_or_the_environment[@[simp] private theorem two : 1 + 1 = 2 := rfl\n-@[] _
+
+helpers = '@[simp] private theorem two : 1 + 1 = 2 := rfl\n', token = '@['
+
+    @pytest.mark.parametrize(
+        ("helpers", "token"),
+        [
+            ("theorem two : 1 + 1 = 2 := rfl\n", "theorem"),
+            ("lemma two : 1 + 1 = 2 := rfl\n", "lemma"),
+            ("def k : Nat := 2\n", "def"),
+            ("  theorem two : 1 + 1 = 2 := rfl\n", "theorem"),
+            ("set_option maxHeartbeats 0 in\nprivate theorem two : 1 + 1 = 2 := rfl\n", "set_option"),
+            ("private theorem two : 1 + 1 = 2 := by\n  set_option maxHeartbeats 0 in rfl\n", "set_option"),
+            ("axiom cheat : False\n", "axiom"),
+            ("private axiom cheat : False\n", "axiom"),
+            ("instance : Inhabited Nat := ⟨3⟩\n", "instance"),
+            ("private instance : Inhabited Nat := ⟨3⟩\n", "instance"),
+            ('notation "two" => 2\n', "notation"),
+            ('macro "two" : term => `(2)\n', "macro"),
+            ('syntax "two" : term\n', "syntax"),
+            ("@[simp] private theorem two : 1 + 1 = 2 := rfl\n", "@["),
+            ("attribute [simp] Nat.add_comm\n", "attribute"),
+            ("open Lean\n", "open"),
+            ("variable (n : Nat)\n", "variable"),
+            ("namespace Foo\nprivate theorem two : 1 + 1 = 2 := rfl\nend Foo\n", "namespace"),
+            ("#eval 1\n", "#eval"),
+            ("private unsafe def k : Nat := 2\n", "unsafe"),
+            ("private opaque k : Nat\n", "opaque"),
+            ("private structure S where\n  x : Nat\n", "structure"),
+            ("initialize pure ()\n", "initialize"),
+            ("run_cmd pure ()\n", "run_cmd"),
+        ],
+    )
+    def test_the_block_refuses_what_could_change_the_cap_or_the_environment(
+        helpers: str, token: str
+    ) -> None:
+        st = doc_statement()
+        d = paths.check_proof_is_statement(st, with_helpers(st, helpers, " rfl\n"))
+>       assert d is not None and d.code == "helper-forbidden", d
+E       AssertionError: Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 5 (header or signature)', details={'line': 5, 'expected': '/-- One and one. -/', 'got': '@[simp] private theorem two : 1 + 1 = 2 := rfl'})
+E       assert (Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 5 (header or signature)', details={'line': 5, 'expected': '/-- One and one. -/', 'got': '@[simp] private theorem two : 1 + 1 = 2 := rfl'}) is not None and 'proof-not-statement' == 'helper-forbidden'
+E         
+E         - helper-forbidden
+E         + proof-not-statement)
+
+gate/tests/test_finding_helper_lemmas.py:143: AssertionError
+_ test_the_block_refuses_what_could_change_the_cap_or_the_environment[attribute [simp] Nat.add_comm\n-attribute] _
+
+helpers = 'attribute [simp] Nat.add_comm\n', token = 'attribute'
+
+    @pytest.mark.parametrize(
+        ("helpers", "token"),
+        [
+            ("theorem two : 1 + 1 = 2 := rfl\n", "theorem"),
+            ("lemma two : 1 + 1 = 2 := rfl\n", "lemma"),
+            ("def k : Nat := 2\n", "def"),
+            ("  theorem two : 1 + 1 = 2 := rfl\n", "theorem"),
+            ("set_option maxHeartbeats 0 in\nprivate theorem two : 1 + 1 = 2 := rfl\n", "set_option"),
+            ("private theorem two : 1 + 1 = 2 := by\n  set_option maxHeartbeats 0 in rfl\n", "set_option"),
+            ("axiom cheat : False\n", "axiom"),
+            ("private axiom cheat : False\n", "axiom"),
+            ("instance : Inhabited Nat := ⟨3⟩\n", "instance"),
+            ("private instance : Inhabited Nat := ⟨3⟩\n", "instance"),
+            ('notation "two" => 2\n', "notation"),
+            ('macro "two" : term => `(2)\n', "macro"),
+            ('syntax "two" : term\n', "syntax"),
+            ("@[simp] private theorem two : 1 + 1 = 2 := rfl\n", "@["),
+            ("attribute [simp] Nat.add_comm\n", "attribute"),
+            ("open Lean\n", "open"),
+            ("variable (n : Nat)\n", "variable"),
+            ("namespace Foo\nprivate theorem two : 1 + 1 = 2 := rfl\nend Foo\n", "namespace"),
+            ("#eval 1\n", "#eval"),
+            ("private unsafe def k : Nat := 2\n", "unsafe"),
+            ("private opaque k : Nat\n", "opaque"),
+            ("private structure S where\n  x : Nat\n", "structure"),
+            ("initialize pure ()\n", "initialize"),
+            ("run_cmd pure ()\n", "run_cmd"),
+        ],
+    )
+    def test_the_block_refuses_what_could_change_the_cap_or_the_environment(
+        helpers: str, token: str
+    ) -> None:
+        st = doc_statement()
+        d = paths.check_proof_is_statement(st, with_helpers(st, helpers, " rfl\n"))
+>       assert d is not None and d.code == "helper-forbidden", d
+E       AssertionError: Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 5 (header or signature)', details={'line': 5, 'expected': '/-- One and one. -/', 'got': 'attribute [simp] Nat.add_comm'})
+E       assert (Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 5 (header or signature)', details={'line': 5, 'expected': '/-- One and one. -/', 'got': 'attribute [simp] Nat.add_comm'}) is not None and 'proof-not-statement' == 'helper-forbidden'
+E         
+E         - helper-forbidden
+E         + proof-not-statement)
+
+gate/tests/test_finding_helper_lemmas.py:143: AssertionError
+_ test_the_block_refuses_what_could_change_the_cap_or_the_environment[open Lean\n-open] _
+
+helpers = 'open Lean\n', token = 'open'
+
+    @pytest.mark.parametrize(
+        ("helpers", "token"),
+        [
+            ("theorem two : 1 + 1 = 2 := rfl\n", "theorem"),
+            ("lemma two : 1 + 1 = 2 := rfl\n", "lemma"),
+            ("def k : Nat := 2\n", "def"),
+            ("  theorem two : 1 + 1 = 2 := rfl\n", "theorem"),
+            ("set_option maxHeartbeats 0 in\nprivate theorem two : 1 + 1 = 2 := rfl\n", "set_option"),
+            ("private theorem two : 1 + 1 = 2 := by\n  set_option maxHeartbeats 0 in rfl\n", "set_option"),
+            ("axiom cheat : False\n", "axiom"),
+            ("private axiom cheat : False\n", "axiom"),
+            ("instance : Inhabited Nat := ⟨3⟩\n", "instance"),
+            ("private instance : Inhabited Nat := ⟨3⟩\n", "instance"),
+            ('notation "two" => 2\n', "notation"),
+            ('macro "two" : term => `(2)\n', "macro"),
+            ('syntax "two" : term\n', "syntax"),
+            ("@[simp] private theorem two : 1 + 1 = 2 := rfl\n", "@["),
+            ("attribute [simp] Nat.add_comm\n", "attribute"),
+            ("open Lean\n", "open"),
+            ("variable (n : Nat)\n", "variable"),
+            ("namespace Foo\nprivate theorem two : 1 + 1 = 2 := rfl\nend Foo\n", "namespace"),
+            ("#eval 1\n", "#eval"),
+            ("private unsafe def k : Nat := 2\n", "unsafe"),
+            ("private opaque k : Nat\n", "opaque"),
+            ("private structure S where\n  x : Nat\n", "structure"),
+            ("initialize pure ()\n", "initialize"),
+            ("run_cmd pure ()\n", "run_cmd"),
+        ],
+    )
+    def test_the_block_refuses_what_could_change_the_cap_or_the_environment(
+        helpers: str, token: str
+    ) -> None:
+        st = doc_statement()
+        d = paths.check_proof_is_statement(st, with_helpers(st, helpers, " rfl\n"))
+>       assert d is not None and d.code == "helper-forbidden", d
+E       AssertionError: Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 5 (header or signature)', details={'line': 5, 'expected': '/-- One and one. -/', 'got': 'open Lean'})
+E       assert (Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 5 (header or signature)', details={'line': 5, 'expected': '/-- One and one. -/', 'got': 'open Lean'}) is not None and 'proof-not-statement' == 'helper-forbidden'
+E         
+E         - helper-forbidden
+E         + proof-not-statement)
+
+gate/tests/test_finding_helper_lemmas.py:143: AssertionError
+_ test_the_block_refuses_what_could_change_the_cap_or_the_environment[variable (n : Nat)\n-variable] _
+
+helpers = 'variable (n : Nat)\n', token = 'variable'
+
+    @pytest.mark.parametrize(
+        ("helpers", "token"),
+        [
+            ("theorem two : 1 + 1 = 2 := rfl\n", "theorem"),
+            ("lemma two : 1 + 1 = 2 := rfl\n", "lemma"),
+            ("def k : Nat := 2\n", "def"),
+            ("  theorem two : 1 + 1 = 2 := rfl\n", "theorem"),
+            ("set_option maxHeartbeats 0 in\nprivate theorem two : 1 + 1 = 2 := rfl\n", "set_option"),
+            ("private theorem two : 1 + 1 = 2 := by\n  set_option maxHeartbeats 0 in rfl\n", "set_option"),
+            ("axiom cheat : False\n", "axiom"),
+            ("private axiom cheat : False\n", "axiom"),
+            ("instance : Inhabited Nat := ⟨3⟩\n", "instance"),
+            ("private instance : Inhabited Nat := ⟨3⟩\n", "instance"),
+            ('notation "two" => 2\n', "notation"),
+            ('macro "two" : term => `(2)\n', "macro"),
+            ('syntax "two" : term\n', "syntax"),
+            ("@[simp] private theorem two : 1 + 1 = 2 := rfl\n", "@["),
+            ("attribute [simp] Nat.add_comm\n", "attribute"),
+            ("open Lean\n", "open"),
+            ("variable (n : Nat)\n", "variable"),
+            ("namespace Foo\nprivate theorem two : 1 + 1 = 2 := rfl\nend Foo\n", "namespace"),
+            ("#eval 1\n", "#eval"),
+            ("private unsafe def k : Nat := 2\n", "unsafe"),
+            ("private opaque k : Nat\n", "opaque"),
+            ("private structure S where\n  x : Nat\n", "structure"),
+            ("initialize pure ()\n", "initialize"),
+            ("run_cmd pure ()\n", "run_cmd"),
+        ],
+    )
+    def test_the_block_refuses_what_could_change_the_cap_or_the_environment(
+        helpers: str, token: str
+    ) -> None:
+        st = doc_statement()
+        d = paths.check_proof_is_statement(st, with_helpers(st, helpers, " rfl\n"))
+>       assert d is not None and d.code == "helper-forbidden", d
+E       AssertionError: Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 5 (header or signature)', details={'line': 5, 'expected': '/-- One and one. -/', 'got': 'variable (n : Nat)'})
+E       assert (Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 5 (header or signature)', details={'line': 5, 'expected': '/-- One and one. -/', 'got': 'variable (n : Nat)'}) is not None and 'proof-not-statement' == 'helper-forbidden'
+E         
+E         - helper-forbidden
+E         + proof-not-statement)
+
+gate/tests/test_finding_helper_lemmas.py:143: AssertionError
+_ test_the_block_refuses_what_could_change_the_cap_or_the_environment[namespace Foo\nprivate theorem two : 1 + 1 = 2 := rfl\nend Foo\n-namespace] _
+
+helpers = 'namespace Foo\nprivate theorem two : 1 + 1 = 2 := rfl\nend Foo\n'
+token = 'namespace'
+
+    @pytest.mark.parametrize(
+        ("helpers", "token"),
+        [
+            ("theorem two : 1 + 1 = 2 := rfl\n", "theorem"),
+            ("lemma two : 1 + 1 = 2 := rfl\n", "lemma"),
+            ("def k : Nat := 2\n", "def"),
+            ("  theorem two : 1 + 1 = 2 := rfl\n", "theorem"),
+            ("set_option maxHeartbeats 0 in\nprivate theorem two : 1 + 1 = 2 := rfl\n", "set_option"),
+            ("private theorem two : 1 + 1 = 2 := by\n  set_option maxHeartbeats 0 in rfl\n", "set_option"),
+            ("axiom cheat : False\n", "axiom"),
+            ("private axiom cheat : False\n", "axiom"),
+            ("instance : Inhabited Nat := ⟨3⟩\n", "instance"),
+            ("private instance : Inhabited Nat := ⟨3⟩\n", "instance"),
+            ('notation "two" => 2\n', "notation"),
+            ('macro "two" : term => `(2)\n', "macro"),
+            ('syntax "two" : term\n', "syntax"),
+            ("@[simp] private theorem two : 1 + 1 = 2 := rfl\n", "@["),
+            ("attribute [simp] Nat.add_comm\n", "attribute"),
+            ("open Lean\n", "open"),
+            ("variable (n : Nat)\n", "variable"),
+            ("namespace Foo\nprivate theorem two : 1 + 1 = 2 := rfl\nend Foo\n", "namespace"),
+            ("#eval 1\n", "#eval"),
+            ("private unsafe def k : Nat := 2\n", "unsafe"),
+            ("private opaque k : Nat\n", "opaque"),
+            ("private structure S where\n  x : Nat\n", "structure"),
+            ("initialize pure ()\n", "initialize"),
+            ("run_cmd pure ()\n", "run_cmd"),
+        ],
+    )
+    def test_the_block_refuses_what_could_change_the_cap_or_the_environment(
+        helpers: str, token: str
+    ) -> None:
+        st = doc_statement()
+        d = paths.check_proof_is_statement(st, with_helpers(st, helpers, " rfl\n"))
+>       assert d is not None and d.code == "helper-forbidden", d
+E       AssertionError: Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 5 (header or signature)', details={'line': 5, 'expected': '/-- One and one. -/', 'got': 'namespace Foo'})
+E       assert (Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 5 (header or signature)', details={'line': 5, 'expected': '/-- One and one. -/', 'got': 'namespace Foo'}) is not None and 'proof-not-statement' == 'helper-forbidden'
+E         
+E         - helper-forbidden
+E         + proof-not-statement)
+
+gate/tests/test_finding_helper_lemmas.py:143: AssertionError
+_ test_the_block_refuses_what_could_change_the_cap_or_the_environment[#eval 1\n-#eval] _
+
+helpers = '#eval 1\n', token = '#eval'
+
+    @pytest.mark.parametrize(
+        ("helpers", "token"),
+        [
+            ("theorem two : 1 + 1 = 2 := rfl\n", "theorem"),
+            ("lemma two : 1 + 1 = 2 := rfl\n", "lemma"),
+            ("def k : Nat := 2\n", "def"),
+            ("  theorem two : 1 + 1 = 2 := rfl\n", "theorem"),
+            ("set_option maxHeartbeats 0 in\nprivate theorem two : 1 + 1 = 2 := rfl\n", "set_option"),
+            ("private theorem two : 1 + 1 = 2 := by\n  set_option maxHeartbeats 0 in rfl\n", "set_option"),
+            ("axiom cheat : False\n", "axiom"),
+            ("private axiom cheat : False\n", "axiom"),
+            ("instance : Inhabited Nat := ⟨3⟩\n", "instance"),
+            ("private instance : Inhabited Nat := ⟨3⟩\n", "instance"),
+            ('notation "two" => 2\n', "notation"),
+            ('macro "two" : term => `(2)\n', "macro"),
+            ('syntax "two" : term\n', "syntax"),
+            ("@[simp] private theorem two : 1 + 1 = 2 := rfl\n", "@["),
+            ("attribute [simp] Nat.add_comm\n", "attribute"),
+            ("open Lean\n", "open"),
+            ("variable (n : Nat)\n", "variable"),
+            ("namespace Foo\nprivate theorem two : 1 + 1 = 2 := rfl\nend Foo\n", "namespace"),
+            ("#eval 1\n", "#eval"),
+            ("private unsafe def k : Nat := 2\n", "unsafe"),
+            ("private opaque k : Nat\n", "opaque"),
+            ("private structure S where\n  x : Nat\n", "structure"),
+            ("initialize pure ()\n", "initialize"),
+            ("run_cmd pure ()\n", "run_cmd"),
+        ],
+    )
+    def test_the_block_refuses_what_could_change_the_cap_or_the_environment(
+        helpers: str, token: str
+    ) -> None:
+        st = doc_statement()
+        d = paths.check_proof_is_statement(st, with_helpers(st, helpers, " rfl\n"))
+>       assert d is not None and d.code == "helper-forbidden", d
+E       AssertionError: Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 5 (header or signature)', details={'line': 5, 'expected': '/-- One and one. -/', 'got': '#eval 1'})
+E       assert (Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 5 (header or signature)', details={'line': 5, 'expected': '/-- One and one. -/', 'got': '#eval 1'}) is not None and 'proof-not-statement' == 'helper-forbidden'
+E         
+E         - helper-forbidden
+E         + proof-not-statement)
+
+gate/tests/test_finding_helper_lemmas.py:143: AssertionError
+_ test_the_block_refuses_what_could_change_the_cap_or_the_environment[private unsafe def k : Nat := 2\n-unsafe] _
+
+helpers = 'private unsafe def k : Nat := 2\n', token = 'unsafe'
+
+    @pytest.mark.parametrize(
+        ("helpers", "token"),
+        [
+            ("theorem two : 1 + 1 = 2 := rfl\n", "theorem"),
+            ("lemma two : 1 + 1 = 2 := rfl\n", "lemma"),
+            ("def k : Nat := 2\n", "def"),
+            ("  theorem two : 1 + 1 = 2 := rfl\n", "theorem"),
+            ("set_option maxHeartbeats 0 in\nprivate theorem two : 1 + 1 = 2 := rfl\n", "set_option"),
+            ("private theorem two : 1 + 1 = 2 := by\n  set_option maxHeartbeats 0 in rfl\n", "set_option"),
+            ("axiom cheat : False\n", "axiom"),
+            ("private axiom cheat : False\n", "axiom"),
+            ("instance : Inhabited Nat := ⟨3⟩\n", "instance"),
+            ("private instance : Inhabited Nat := ⟨3⟩\n", "instance"),
+            ('notation "two" => 2\n', "notation"),
+            ('macro "two" : term => `(2)\n', "macro"),
+            ('syntax "two" : term\n', "syntax"),
+            ("@[simp] private theorem two : 1 + 1 = 2 := rfl\n", "@["),
+            ("attribute [simp] Nat.add_comm\n", "attribute"),
+            ("open Lean\n", "open"),
+            ("variable (n : Nat)\n", "variable"),
+            ("namespace Foo\nprivate theorem two : 1 + 1 = 2 := rfl\nend Foo\n", "namespace"),
+            ("#eval 1\n", "#eval"),
+            ("private unsafe def k : Nat := 2\n", "unsafe"),
+            ("private opaque k : Nat\n", "opaque"),
+            ("private structure S where\n  x : Nat\n", "structure"),
+            ("initialize pure ()\n", "initialize"),
+            ("run_cmd pure ()\n", "run_cmd"),
+        ],
+    )
+    def test_the_block_refuses_what_could_change_the_cap_or_the_environment(
+        helpers: str, token: str
+    ) -> None:
+        st = doc_statement()
+        d = paths.check_proof_is_statement(st, with_helpers(st, helpers, " rfl\n"))
+>       assert d is not None and d.code == "helper-forbidden", d
+E       AssertionError: Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 5 (header or signature)', details={'line': 5, 'expected': '/-- One and one. -/', 'got': 'private unsafe def k : Nat := 2'})
+E       assert (Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 5 (header or signature)', details={'line': 5, 'expected': '/-- One and one. -/', 'got': 'private unsafe def k : Nat := 2'}) is not None and 'proof-not-statement' == 'helper-forbidden'
+E         
+E         - helper-forbidden
+E         + proof-not-statement)
+
+gate/tests/test_finding_helper_lemmas.py:143: AssertionError
+_ test_the_block_refuses_what_could_change_the_cap_or_the_environment[private opaque k : Nat\n-opaque] _
+
+helpers = 'private opaque k : Nat\n', token = 'opaque'
+
+    @pytest.mark.parametrize(
+        ("helpers", "token"),
+        [
+            ("theorem two : 1 + 1 = 2 := rfl\n", "theorem"),
+            ("lemma two : 1 + 1 = 2 := rfl\n", "lemma"),
+            ("def k : Nat := 2\n", "def"),
+            ("  theorem two : 1 + 1 = 2 := rfl\n", "theorem"),
+            ("set_option maxHeartbeats 0 in\nprivate theorem two : 1 + 1 = 2 := rfl\n", "set_option"),
+            ("private theorem two : 1 + 1 = 2 := by\n  set_option maxHeartbeats 0 in rfl\n", "set_option"),
+            ("axiom cheat : False\n", "axiom"),
+            ("private axiom cheat : False\n", "axiom"),
+            ("instance : Inhabited Nat := ⟨3⟩\n", "instance"),
+            ("private instance : Inhabited Nat := ⟨3⟩\n", "instance"),
+            ('notation "two" => 2\n', "notation"),
+            ('macro "two" : term => `(2)\n', "macro"),
+            ('syntax "two" : term\n', "syntax"),
+            ("@[simp] private theorem two : 1 + 1 = 2 := rfl\n", "@["),
+            ("attribute [simp] Nat.add_comm\n", "attribute"),
+            ("open Lean\n", "open"),
+            ("variable (n : Nat)\n", "variable"),
+            ("namespace Foo\nprivate theorem two : 1 + 1 = 2 := rfl\nend Foo\n", "namespace"),
+            ("#eval 1\n", "#eval"),
+            ("private unsafe def k : Nat := 2\n", "unsafe"),
+            ("private opaque k : Nat\n", "opaque"),
+            ("private structure S where\n  x : Nat\n", "structure"),
+            ("initialize pure ()\n", "initialize"),
+            ("run_cmd pure ()\n", "run_cmd"),
+        ],
+    )
+    def test_the_block_refuses_what_could_change_the_cap_or_the_environment(
+        helpers: str, token: str
+    ) -> None:
+        st = doc_statement()
+        d = paths.check_proof_is_statement(st, with_helpers(st, helpers, " rfl\n"))
+>       assert d is not None and d.code == "helper-forbidden", d
+E       AssertionError: Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 5 (header or signature)', details={'line': 5, 'expected': '/-- One and one. -/', 'got': 'private opaque k : Nat'})
+E       assert (Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 5 (header or signature)', details={'line': 5, 'expected': '/-- One and one. -/', 'got': 'private opaque k : Nat'}) is not None and 'proof-not-statement' == 'helper-forbidden'
+E         
+E         - helper-forbidden
+E         + proof-not-statement)
+
+gate/tests/test_finding_helper_lemmas.py:143: AssertionError
+_ test_the_block_refuses_what_could_change_the_cap_or_the_environment[private structure S where\n  x : Nat\n-structure] _
+
+helpers = 'private structure S where\n  x : Nat\n', token = 'structure'
+
+    @pytest.mark.parametrize(
+        ("helpers", "token"),
+        [
+            ("theorem two : 1 + 1 = 2 := rfl\n", "theorem"),
+            ("lemma two : 1 + 1 = 2 := rfl\n", "lemma"),
+            ("def k : Nat := 2\n", "def"),
+            ("  theorem two : 1 + 1 = 2 := rfl\n", "theorem"),
+            ("set_option maxHeartbeats 0 in\nprivate theorem two : 1 + 1 = 2 := rfl\n", "set_option"),
+            ("private theorem two : 1 + 1 = 2 := by\n  set_option maxHeartbeats 0 in rfl\n", "set_option"),
+            ("axiom cheat : False\n", "axiom"),
+            ("private axiom cheat : False\n", "axiom"),
+            ("instance : Inhabited Nat := ⟨3⟩\n", "instance"),
+            ("private instance : Inhabited Nat := ⟨3⟩\n", "instance"),
+            ('notation "two" => 2\n', "notation"),
+            ('macro "two" : term => `(2)\n', "macro"),
+            ('syntax "two" : term\n', "syntax"),
+            ("@[simp] private theorem two : 1 + 1 = 2 := rfl\n", "@["),
+            ("attribute [simp] Nat.add_comm\n", "attribute"),
+            ("open Lean\n", "open"),
+            ("variable (n : Nat)\n", "variable"),
+            ("namespace Foo\nprivate theorem two : 1 + 1 = 2 := rfl\nend Foo\n", "namespace"),
+            ("#eval 1\n", "#eval"),
+            ("private unsafe def k : Nat := 2\n", "unsafe"),
+            ("private opaque k : Nat\n", "opaque"),
+            ("private structure S where\n  x : Nat\n", "structure"),
+            ("initialize pure ()\n", "initialize"),
+            ("run_cmd pure ()\n", "run_cmd"),
+        ],
+    )
+    def test_the_block_refuses_what_could_change_the_cap_or_the_environment(
+        helpers: str, token: str
+    ) -> None:
+        st = doc_statement()
+        d = paths.check_proof_is_statement(st, with_helpers(st, helpers, " rfl\n"))
+>       assert d is not None and d.code == "helper-forbidden", d
+E       AssertionError: Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 5 (header or signature)', details={'line': 5, 'expected': '/-- One and one. -/', 'got': 'private structure S where'})
+E       assert (Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 5 (header or signature)', details={'line': 5, 'expected': '/-- One and one. -/', 'got': 'private structure S where'}) is not None and 'proof-not-statement' == 'helper-forbidden'
+E         
+E         - helper-forbidden
+E         + proof-not-statement)
+
+gate/tests/test_finding_helper_lemmas.py:143: AssertionError
+_ test_the_block_refuses_what_could_change_the_cap_or_the_environment[initialize pure ()\n-initialize] _
+
+helpers = 'initialize pure ()\n', token = 'initialize'
+
+    @pytest.mark.parametrize(
+        ("helpers", "token"),
+        [
+            ("theorem two : 1 + 1 = 2 := rfl\n", "theorem"),
+            ("lemma two : 1 + 1 = 2 := rfl\n", "lemma"),
+            ("def k : Nat := 2\n", "def"),
+            ("  theorem two : 1 + 1 = 2 := rfl\n", "theorem"),
+            ("set_option maxHeartbeats 0 in\nprivate theorem two : 1 + 1 = 2 := rfl\n", "set_option"),
+            ("private theorem two : 1 + 1 = 2 := by\n  set_option maxHeartbeats 0 in rfl\n", "set_option"),
+            ("axiom cheat : False\n", "axiom"),
+            ("private axiom cheat : False\n", "axiom"),
+            ("instance : Inhabited Nat := ⟨3⟩\n", "instance"),
+            ("private instance : Inhabited Nat := ⟨3⟩\n", "instance"),
+            ('notation "two" => 2\n', "notation"),
+            ('macro "two" : term => `(2)\n', "macro"),
+            ('syntax "two" : term\n', "syntax"),
+            ("@[simp] private theorem two : 1 + 1 = 2 := rfl\n", "@["),
+            ("attribute [simp] Nat.add_comm\n", "attribute"),
+            ("open Lean\n", "open"),
+            ("variable (n : Nat)\n", "variable"),
+            ("namespace Foo\nprivate theorem two : 1 + 1 = 2 := rfl\nend Foo\n", "namespace"),
+            ("#eval 1\n", "#eval"),
+            ("private unsafe def k : Nat := 2\n", "unsafe"),
+            ("private opaque k : Nat\n", "opaque"),
+            ("private structure S where\n  x : Nat\n", "structure"),
+            ("initialize pure ()\n", "initialize"),
+            ("run_cmd pure ()\n", "run_cmd"),
+        ],
+    )
+    def test_the_block_refuses_what_could_change_the_cap_or_the_environment(
+        helpers: str, token: str
+    ) -> None:
+        st = doc_statement()
+        d = paths.check_proof_is_statement(st, with_helpers(st, helpers, " rfl\n"))
+>       assert d is not None and d.code == "helper-forbidden", d
+E       AssertionError: Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 5 (header or signature)', details={'line': 5, 'expected': '/-- One and one. -/', 'got': 'initialize pure ()'})
+E       assert (Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 5 (header or signature)', details={'line': 5, 'expected': '/-- One and one. -/', 'got': 'initialize pure ()'}) is not None and 'proof-not-statement' == 'helper-forbidden'
+E         
+E         - helper-forbidden
+E         + proof-not-statement)
+
+gate/tests/test_finding_helper_lemmas.py:143: AssertionError
+_ test_the_block_refuses_what_could_change_the_cap_or_the_environment[run_cmd pure ()\n-run_cmd] _
+
+helpers = 'run_cmd pure ()\n', token = 'run_cmd'
+
+    @pytest.mark.parametrize(
+        ("helpers", "token"),
+        [
+            ("theorem two : 1 + 1 = 2 := rfl\n", "theorem"),
+            ("lemma two : 1 + 1 = 2 := rfl\n", "lemma"),
+            ("def k : Nat := 2\n", "def"),
+            ("  theorem two : 1 + 1 = 2 := rfl\n", "theorem"),
+            ("set_option maxHeartbeats 0 in\nprivate theorem two : 1 + 1 = 2 := rfl\n", "set_option"),
+            ("private theorem two : 1 + 1 = 2 := by\n  set_option maxHeartbeats 0 in rfl\n", "set_option"),
+            ("axiom cheat : False\n", "axiom"),
+            ("private axiom cheat : False\n", "axiom"),
+            ("instance : Inhabited Nat := ⟨3⟩\n", "instance"),
+            ("private instance : Inhabited Nat := ⟨3⟩\n", "instance"),
+            ('notation "two" => 2\n', "notation"),
+            ('macro "two" : term => `(2)\n', "macro"),
+            ('syntax "two" : term\n', "syntax"),
+            ("@[simp] private theorem two : 1 + 1 = 2 := rfl\n", "@["),
+            ("attribute [simp] Nat.add_comm\n", "attribute"),
+            ("open Lean\n", "open"),
+            ("variable (n : Nat)\n", "variable"),
+            ("namespace Foo\nprivate theorem two : 1 + 1 = 2 := rfl\nend Foo\n", "namespace"),
+            ("#eval 1\n", "#eval"),
+            ("private unsafe def k : Nat := 2\n", "unsafe"),
+            ("private opaque k : Nat\n", "opaque"),
+            ("private structure S where\n  x : Nat\n", "structure"),
+            ("initialize pure ()\n", "initialize"),
+            ("run_cmd pure ()\n", "run_cmd"),
+        ],
+    )
+    def test_the_block_refuses_what_could_change_the_cap_or_the_environment(
+        helpers: str, token: str
+    ) -> None:
+        st = doc_statement()
+        d = paths.check_proof_is_statement(st, with_helpers(st, helpers, " rfl\n"))
+>       assert d is not None and d.code == "helper-forbidden", d
+E       AssertionError: Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 5 (header or signature)', details={'line': 5, 'expected': '/-- One and one. -/', 'got': 'run_cmd pure ()'})
+E       assert (Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 5 (header or signature)', details={'line': 5, 'expected': '/-- One and one. -/', 'got': 'run_cmd pure ()'}) is not None and 'proof-not-statement' == 'helper-forbidden'
+E         
+E         - helper-forbidden
+E         + proof-not-statement)
+
+gate/tests/test_finding_helper_lemmas.py:143: AssertionError
+_____________ test_a_forbidden_word_in_a_comment_is_not_a_command ______________
+
+    def test_a_forbidden_word_in_a_comment_is_not_a_command() -> None:
+        st = doc_statement()
+        helpers = "-- no set_option here, and no axiom\n/- instance notation -/\n" + HELPER
+>       assert paths.check_proof_is_statement(st, with_helpers(st, helpers, " two\n")) is None
+E       AssertionError: assert Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 5 (header or signature)', details={'line': 5, 'expected': '/-- One and one. -/', 'got': '-- no set_option here, and no axiom'}) is None
+E        +  where Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 5 (header or signature)', details={'line': 5, 'expected': '/-- One and one. -/', 'got': '-- no set_option here, and no axiom'}) = <function check_proof_is_statement at 0x10b42ade0>(Statement(decl_name='Opn.one_one', text='import Std\n\nopen Nat\n\n/-- One and one. -/\ntheorem Opn.one_one : 1 + 1 = ...y\n  sorry\n', prefix='import Std\n\nopen Nat\n\n/-- One and one. -/\ntheorem Opn.one_one : 1 + 1 = 2 :=', suffix='\n'), 'import Std\n\nopen Nat\n\n-- no set_option here, and no axiom\n/- instance notation -/\nprivate theorem two : 1 + 1 = 2 := rfl\n\n/-- One and one. -/\ntheorem Opn.one_one : 1 + 1 = 2 := two\n\n')
+E        +    where <function check_proof_is_statement at 0x10b42ade0> = paths.check_proof_is_statement
+E        +    and   'import Std\n\nopen Nat\n\n-- no set_option here, and no axiom\n/- instance notation -/\nprivate theorem two : 1 + 1 = 2 := rfl\n\n/-- One and one. -/\ntheorem Opn.one_one : 1 + 1 = 2 := two\n\n' = with_helpers(Statement(decl_name='Opn.one_one', text='import Std\n\nopen Nat\n\n/-- One and one. -/\ntheorem Opn.one_one : 1 + 1 = ...y\n  sorry\n', prefix='import Std\n\nopen Nat\n\n/-- One and one. -/\ntheorem Opn.one_one : 1 + 1 = 2 :=', suffix='\n'), '-- no set_option here, and no axiom\n/- instance notation -/\nprivate theorem two : 1 + 1 = 2 := rfl\n\n', ' two\n')
+
+gate/tests/test_finding_helper_lemmas.py:153: AssertionError
+____________ test_a_name_that_contains_a_forbidden_word_is_not_one _____________
+
+    def test_a_name_that_contains_a_forbidden_word_is_not_one() -> None:
+        st = doc_statement()
+        helpers = "private theorem two : Nat.succ 1 = 2 := Nat.Simple.rfl_open\n"
+        # ``rfl_open`` and ``Nat.Simple`` contain words of the list only as parts of names.
+>       assert paths.check_proof_is_statement(st, with_helpers(st, helpers, " two\n")) is None
+E       AssertionError: assert Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 5 (header or signature...s={'line': 5, 'expected': '/-- One and one. -/', 'got': 'private theorem two : Nat.succ 1 = 2 := Nat.Simple.rfl_open'}) is None
+E        +  where Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 5 (header or signature...s={'line': 5, 'expected': '/-- One and one. -/', 'got': 'private theorem two : Nat.succ 1 = 2 := Nat.Simple.rfl_open'}) = <function check_proof_is_statement at 0x10b42ade0>(Statement(decl_name='Opn.one_one', text='import Std\n\nopen Nat\n\n/-- One and one. -/\ntheorem Opn.one_one : 1 + 1 = ...y\n  sorry\n', prefix='import Std\n\nopen Nat\n\n/-- One and one. -/\ntheorem Opn.one_one : 1 + 1 = 2 :=', suffix='\n'), 'import Std\n\nopen Nat\n\nprivate theorem two : Nat.succ 1 = 2 := Nat.Simple.rfl_open\n/-- One and one. -/\ntheorem Opn.one_one : 1 + 1 = 2 := two\n\n')
+E        +    where <function check_proof_is_statement at 0x10b42ade0> = paths.check_proof_is_statement
+E        +    and   'import Std\n\nopen Nat\n\nprivate theorem two : Nat.succ 1 = 2 := Nat.Simple.rfl_open\n/-- One and one. -/\ntheorem Opn.one_one : 1 + 1 = 2 := two\n\n' = with_helpers(Statement(decl_name='Opn.one_one', text='import Std\n\nopen Nat\n\n/-- One and one. -/\ntheorem Opn.one_one : 1 + 1 = ...y\n  sorry\n', prefix='import Std\n\nopen Nat\n\n/-- One and one. -/\ntheorem Opn.one_one : 1 + 1 = 2 :=', suffix='\n'), 'private theorem two : Nat.succ 1 = 2 := Nat.Simple.rfl_open\n', ' two\n')
+
+gate/tests/test_finding_helper_lemmas.py:160: AssertionError
+_____________________ test_the_cap_is_a_million_heartbeats _____________________
+
+    def test_the_cap_is_a_million_heartbeats() -> None:
+>       assert config.MAX_HEARTBEATS == 1_000_000
+E       assert 200000 == 1000000
+E        +  where 200000 = config.MAX_HEARTBEATS
+
+gate/tests/test_finding_helper_lemmas.py:192: AssertionError
+_____________ test_every_lean_call_the_gate_makes_carries_the_cap ______________
+
+tmp_path = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-215/test_every_lean_call_the_gate_0')
+
+    def test_every_lean_call_the_gate_makes_carries_the_cap(tmp_path: Path) -> None:
+        from test_toolchain import PIN, scripted  # noqa: PLC0415 — the scripted toolchain
+    
+        lt = scripted(tmp_path)
+        tc = lt.resolve(PIN)
+        src = tmp_path / "src" / "Nodes" / "n" / "Proof.lean"
+        src.parent.mkdir(parents=True)
+        src.write_text("theorem t : True := trivial\n")
+        lt.elaborate(tc, src, "Nodes.«n».Proof", tmp_path / "build", root=tmp_path / "src")
+        cmd = lt.calls[-1][0]
+>       assert f"-DmaxHeartbeats={config.MAX_HEARTBEATS}" in cmd
+E       AssertionError: assert '-DmaxHeartbeats=200000' in ['/fake/elan', 'run', 'leanprover/lean4:v4.33.1', 'lean', '--json', '-o', ...]
+
+gate/tests/test_finding_helper_lemmas.py:205: AssertionError
+=========================== short test summary info ============================
+FAILED gate/tests/test_finding_helper_lemmas.py::test_private_helpers_before_the_declaration_pass_step_2[private theorem two : 1 + 1 = 2 := rfl\n\n]
+FAILED gate/tests/test_finding_helper_lemmas.py::test_private_helpers_before_the_declaration_pass_step_2[private lemma two : 1 + 1 = 2 := rfl\n]
+FAILED gate/tests/test_finding_helper_lemmas.py::test_private_helpers_before_the_declaration_pass_step_2[/-- A helper with its own doc comment. -/\nprivate lemma two : 1 + 1 = 2 := by\n  rfl\n\n]
+FAILED gate/tests/test_finding_helper_lemmas.py::test_private_helpers_before_the_declaration_pass_step_2[-- a line comment\nprivate def k : Nat := 2\n\nprivate abbrev K : Type := Nat\n]
+FAILED gate/tests/test_finding_helper_lemmas.py::test_private_helpers_before_the_declaration_pass_step_2[noncomputable private def k : Nat := 2\n]
+FAILED gate/tests/test_finding_helper_lemmas.py::test_private_helpers_before_the_declaration_pass_step_2[private noncomputable def k : Nat := 2\n]
+FAILED gate/tests/test_finding_helper_lemmas.py::test_private_helpers_before_the_declaration_pass_step_2[/- a block comment\n   over two lines -/\nprivate theorem two : 1 + 1 = 2 := rfl\n]
+FAILED gate/tests/test_finding_helper_lemmas.py::test_private_helpers_before_the_declaration_pass_step_2[private theorem two : 1 + 1 = 2 := by\n  have h : 1 = 1 := rfl\n  rfl\n\nprivate theorem three : 1 + 2 = 3 := rfl\n]
+FAILED gate/tests/test_finding_helper_lemmas.py::test_helpers_before_a_statement_with_no_doc_comment
+FAILED gate/tests/test_finding_helper_lemmas.py::test_the_block_refuses_what_could_change_the_cap_or_the_environment[theorem two : 1 + 1 = 2 := rfl\n-theorem]
+FAILED gate/tests/test_finding_helper_lemmas.py::test_the_block_refuses_what_could_change_the_cap_or_the_environment[lemma two : 1 + 1 = 2 := rfl\n-lemma]
+FAILED gate/tests/test_finding_helper_lemmas.py::test_the_block_refuses_what_could_change_the_cap_or_the_environment[def k : Nat := 2\n-def]
+FAILED gate/tests/test_finding_helper_lemmas.py::test_the_block_refuses_what_could_change_the_cap_or_the_environment[  theorem two : 1 + 1 = 2 := rfl\n-theorem]
+FAILED gate/tests/test_finding_helper_lemmas.py::test_the_block_refuses_what_could_change_the_cap_or_the_environment[set_option maxHeartbeats 0 in\nprivate theorem two : 1 + 1 = 2 := rfl\n-set_option]
+FAILED gate/tests/test_finding_helper_lemmas.py::test_the_block_refuses_what_could_change_the_cap_or_the_environment[private theorem two : 1 + 1 = 2 := by\n  set_option maxHeartbeats 0 in rfl\n-set_option]
+FAILED gate/tests/test_finding_helper_lemmas.py::test_the_block_refuses_what_could_change_the_cap_or_the_environment[axiom cheat : False\n-axiom]
+FAILED gate/tests/test_finding_helper_lemmas.py::test_the_block_refuses_what_could_change_the_cap_or_the_environment[private axiom cheat : False\n-axiom]
+FAILED gate/tests/test_finding_helper_lemmas.py::test_the_block_refuses_what_could_change_the_cap_or_the_environment[instance : Inhabited Nat := \u27e83\u27e9\n-instance]
+FAILED gate/tests/test_finding_helper_lemmas.py::test_the_block_refuses_what_could_change_the_cap_or_the_environment[private instance : Inhabited Nat := \u27e83\u27e9\n-instance]
+FAILED gate/tests/test_finding_helper_lemmas.py::test_the_block_refuses_what_could_change_the_cap_or_the_environment[notation "two" => 2\n-notation]
+FAILED gate/tests/test_finding_helper_lemmas.py::test_the_block_refuses_what_could_change_the_cap_or_the_environment[macro "two" : term => `(2)\n-macro]
+FAILED gate/tests/test_finding_helper_lemmas.py::test_the_block_refuses_what_could_change_the_cap_or_the_environment[syntax "two" : term\n-syntax]
+FAILED gate/tests/test_finding_helper_lemmas.py::test_the_block_refuses_what_could_change_the_cap_or_the_environment[@[simp] private theorem two : 1 + 1 = 2 := rfl\n-@[]
+FAILED gate/tests/test_finding_helper_lemmas.py::test_the_block_refuses_what_could_change_the_cap_or_the_environment[attribute [simp] Nat.add_comm\n-attribute]
+FAILED gate/tests/test_finding_helper_lemmas.py::test_the_block_refuses_what_could_change_the_cap_or_the_environment[open Lean\n-open]
+FAILED gate/tests/test_finding_helper_lemmas.py::test_the_block_refuses_what_could_change_the_cap_or_the_environment[variable (n : Nat)\n-variable]
+FAILED gate/tests/test_finding_helper_lemmas.py::test_the_block_refuses_what_could_change_the_cap_or_the_environment[namespace Foo\nprivate theorem two : 1 + 1 = 2 := rfl\nend Foo\n-namespace]
+FAILED gate/tests/test_finding_helper_lemmas.py::test_the_block_refuses_what_could_change_the_cap_or_the_environment[#eval 1\n-#eval]
+FAILED gate/tests/test_finding_helper_lemmas.py::test_the_block_refuses_what_could_change_the_cap_or_the_environment[private unsafe def k : Nat := 2\n-unsafe]
+FAILED gate/tests/test_finding_helper_lemmas.py::test_the_block_refuses_what_could_change_the_cap_or_the_environment[private opaque k : Nat\n-opaque]
+FAILED gate/tests/test_finding_helper_lemmas.py::test_the_block_refuses_what_could_change_the_cap_or_the_environment[private structure S where\n  x : Nat\n-structure]
+FAILED gate/tests/test_finding_helper_lemmas.py::test_the_block_refuses_what_could_change_the_cap_or_the_environment[initialize pure ()\n-initialize]
+FAILED gate/tests/test_finding_helper_lemmas.py::test_the_block_refuses_what_could_change_the_cap_or_the_environment[run_cmd pure ()\n-run_cmd]
+FAILED gate/tests/test_finding_helper_lemmas.py::test_a_forbidden_word_in_a_comment_is_not_a_command
+FAILED gate/tests/test_finding_helper_lemmas.py::test_a_name_that_contains_a_forbidden_word_is_not_one
+FAILED gate/tests/test_finding_helper_lemmas.py::test_the_cap_is_a_million_heartbeats
+FAILED gate/tests/test_finding_helper_lemmas.py::test_every_lean_call_the_gate_makes_carries_the_cap
+37 failed, 4 passed in 2.16s

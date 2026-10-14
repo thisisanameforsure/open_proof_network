@@ -229,7 +229,8 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "gate",
         2,
         "The file must declare exactly one theorem and declares another number.",
-        "Keep a single theorem in the file; helper lemmas go inside the proof as `have`.",
+        "Keep a single public theorem in the file; a helper is a `private` declaration before it "
+        "(F00-T11), or a `have` inside the proof.",
     ),
     "artifact-type-invalid": (
         "api",
@@ -1997,6 +1998,16 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "Retry shortly.",
     ),
     "proof-empty": ("gate", 2, "Proof.lean has no body after `:=`.", "Write the proof after `:=`."),
+    "helper-forbidden": (
+        "gate",
+        2,
+        "The lines before the statement's theorem are a helper block, and it holds something a "
+        "helper block may not: a public declaration, set_option, axiom, instance, notation or "
+        "macro, an attribute, open, variable, a # command, sorry or admit.",
+        "Declare each helper `private theorem`, `private lemma`, `private def` or `private "
+        "abbrev` directly before the statement's doc comment, and drop the rest; details name "
+        "the token and its line (F00-T11).",
+    ),
     "proof-invalid": (
         "api",
         None,

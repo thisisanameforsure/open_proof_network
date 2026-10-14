@@ -79,6 +79,7 @@ def test_check_sends_the_verified_wire_shape_and_returns_the_body_verbatim(scrip
         "content": "import Mathlib\n",
         "environment": "lean-4.33.0",
         "timeout_seconds": 60,
+        "global_options": {"maxHeartbeats": 1_000_000},  # F13-T36
     }
     assert "authorization" not in req.headers  # keyless at Stage 0 (Q5)
     assert got.body == ANSWER and got.request_id == "8d2d5549" and got.latency_ms >= 0
@@ -96,6 +97,7 @@ def test_verify_proof_sends_the_formal_statement(script: Script) -> None:
         "content": "proof",
         "environment": "lean-4.33.0",
         "timeout_seconds": 30,
+        "global_options": {"maxHeartbeats": 1_000_000},  # F13-T36
     }
     assert got.request_id is None  # an info block without an id is not an error
 
