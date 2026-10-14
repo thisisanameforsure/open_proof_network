@@ -231,7 +231,7 @@ with an example filter; decisions v3.40.</p>
 </table>
 
 <h2>10. Status</h2>
-<div class="rule"><strong>status:</strong> building · <strong>Tasks:</strong> T0, T1, T2 done · T3&ndash;T5
+<div class="rule"><strong>status:</strong> building · <strong>Tasks:</strong> T0, T1, T2, T4 done · T3, T5
 todo</div>
 
 <h2>Tasks</h2>
@@ -261,7 +261,7 @@ todo</div>
     <code>site/opn_site/static/site.css</code>, <code>site/tests/test_routes_view.py</code></td>
     <td>T1</td><td><code>uv run pytest site/tests/test_routes_view.py</code></td></tr>
   <tr><td>F27-T4</td><td>The guide's example filter for exploring a stalled route.</td>
-    <td>the guide's source</td><td>T2</td><td><code>uv run pytest api/tests/test_guide_runs.py</code> (or the guide's own test)</td></tr>
+    <td><code>gate/agents/AGENTS.md</code>, <code>../open_proof_network_graph/AGENTS.md</code> (the D-35 copy)</td><td>T2</td><td><code>OPN_GRAPH_CHECKOUT=../opn-f27-graph uv run pytest gate/tests/test_walkthrough.py gate/tests/test_finding_guide_names_exist.py</code></td></tr>
   <tr><td>F27-T5</td><td>Live check: every live target's routes and sets from the committed
     products; erdos-1094's page rendered and screenshotted.</td>
     <td><code>engineering/evidence/F27/</code></td><td>T1&ndash;T3</td>
