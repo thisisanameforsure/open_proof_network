@@ -1,0 +1,50 @@
+{
+ "after": {
+  "panels@1440": {
+   "formulas": 147,
+   "overflowing_cut_off": 0,
+   "overflowing_in_marked_scroll_box": 0,
+   "where": {}
+  },
+  "panels, folds open@1440": {
+   "formulas": 388,
+   "overflowing_cut_off": 0,
+   "overflowing_in_marked_scroll_box": 0,
+   "where": {}
+  },
+  "pages, folds open@1440": {
+   "formulas": 765,
+   "overflowing_cut_off": 0,
+   "overflowing_in_marked_scroll_box": 0,
+   "where": {}
+  },
+  "panels@390": {
+   "formulas": 147,
+   "overflowing_cut_off": 0,
+   "overflowing_in_marked_scroll_box": 0,
+   "where": {}
+  },
+  "panels, folds open@390": {
+   "formulas": 388,
+   "overflowing_cut_off": 0,
+   "overflowing_in_marked_scroll_box": 0,
+   "where": {}
+  },
+  "pages, folds open@390": {
+   "formulas": 765,
+   "overflowing_cut_off": 1,
+   "overflowing_in_marked_scroll_box": 0,
+   "where": {
+    "erdos-1094--h1": [
+     [
+      355,
+      319,
+      false,
+      "",
+      "\\forall k\\ge 1:\\quad k^2\\le n,\\ \\ \\operatorname{lpf}\\tbinom{"
+     ]
+    ]
+   }
+  }
+ }
+}

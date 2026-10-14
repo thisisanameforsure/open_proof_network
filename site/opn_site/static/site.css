@@ -513,6 +513,15 @@ main > h2 { padding-top: var(--s4); border-top: 1px solid var(--divider); }
 /* F04-T13: KaTeX output inside a record's informal text sits on the prose's own size. */
 .math .katex { font-size: 1.04em; }
 .math .katex-display { margin: var(--s2) 0; overflow-x: auto; overflow-y: hidden; }
+/* F04-T51 (Q50): a gloss's opening formula, shown under a statement, is inline math under
+   \displaystyle so KaTeX breaks it after a top-level relation or operator; a formula with no
+   break opportunity scrolls in its own box, and math.js marks the box .math-overflows when it does,
+   so the bar shows (macOS hides an unstyled one until scrolled). */
+.math-break { display: block; max-width: 100%; overflow-x: auto; overflow-y: hidden; margin: var(--s2) 0; line-height: 1.9; }
+.math-overflows { padding-bottom: 4px; }
+.math-overflows::-webkit-scrollbar { height: 6px; }
+.math-overflows::-webkit-scrollbar-thumb { background: var(--n600); border-radius: 3px; }
+.math-overflows::-webkit-scrollbar-track { background: var(--n800); border-radius: 3px; }
 
 /* — mobile — */
 @media (max-width: 900px) {
