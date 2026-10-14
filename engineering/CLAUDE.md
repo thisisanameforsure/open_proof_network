@@ -1554,3 +1554,14 @@ The law of the project:
   every scrollbar** (`--hide-scrollbars`), so a "visible bar" check reads 0 until launched with
   `ignore_default_args=["--hide-scrollbars"]`. And an "unbreakable" formula was not: `\Bigl\{…\Bigr\}`
   is delimiters, not a group; only `\left…\right` holds a line together.
+
+- 2026-10-14 — F26-T14: the first live run of a new job found three defects in a row that every tier
+  had passed, each visible only on the live graph: a review with no exhibits derived `complete`
+  (the job then skipped all 27), neither caller passed `--sandbox` ("elan not found"), and the job
+  compiled a candidate without the graph modules it imports (euclid-primes, the one root that
+  imports `Defs`, was published as discarded). Each was a re-pin cycle of about three hours. Two
+  things would have caught them earlier: run the new job once in the sandbox image on a copy of
+  the live graph before the first re-pin (the second and third both showed in a two-minute local
+  run), and look across the live targets for the one whose shape differs (here, the only root with
+  local imports). And a record the job finds again by id outlives the fix for it: the false exhibit
+  needed a curator deletion on the owner's word.
