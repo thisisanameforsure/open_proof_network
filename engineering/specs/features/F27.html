@@ -228,10 +228,21 @@ with an example filter; decisions v3.40.</p>
     measured 105,255 characters without the tool and 109,474 with it, 2,803 of the difference its
     output schema's structure; the budget test's pin moved from 106,000 to 110,000 with the
     measurement recorded beside it, as its own rule asks.</td></tr>
+  <tr><td>F27-Q9</td><td><strong>The drawing's calls (T3).</strong> The section shows when a route
+    is reachable from the root, not when any route exists. Open statements are drawn hollow, not
+    pale, because pale wedges turned blue and orange into navy and brown and the hues stopped
+    matching the table; a proved statement is a full pie with a solid ring outside it. A
+    <code>resolves</code> variant is drawn as an OR child of the root, and a line that would return
+    to a node on its own path is not drawn. The site has one theme (dark), so the eight set hues
+    (<code>--set-1</code> to <code>--set-8</code>) have no light variant. The table's columns read
+    Statements, Proved, Open, Shared, Assemblies. erdos-1094's drawing is 800 by 1186, because each
+    route adds a junction row; shortening junction-only rows is a larger change to
+    <code>dag.py</code>, left for review. <code>dag.layout</code> takes an optional
+    <code>widths</code> map; existing callers are unchanged.</td></tr>
 </table>
 
 <h2>10. Status</h2>
-<div class="rule"><strong>status:</strong> building · <strong>Tasks:</strong> T0, T1, T2, T4 done · T3, T5
+<div class="rule"><strong>status:</strong> built, unpushed · <strong>Tasks:</strong> T0&ndash;T5 done; awaiting the owner's review of Q1&ndash;Q9 and the push (network branch <code>f27-route-health</code>, graph branch <code>f27-guide-copy</code>); no re-pin needed
 todo</div>
 
 <h2>Tasks</h2>

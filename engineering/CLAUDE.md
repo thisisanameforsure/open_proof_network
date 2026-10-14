@@ -1565,3 +1565,18 @@ The law of the project:
   run), and look across the live targets for the one whose shape differs (here, the only root with
   local imports). And a record the job finds again by id outlives the fix for it: the false exhibit
   needed a curator deletion on the owner's word.
+
+- 2026-10-15 — F27 (routes and sufficient sets, decisions v3.40) built unattended overnight from the
+  owner's request after route lock-in on erdos-1094; branch `f27-route-health`, unpushed. Four
+  things worth keeping. **Count before you design a view**: the request defined a sufficient set by
+  "take it directly or expand" at every open node, and a ten-minute prototype over the live
+  products gave 225 minimal sets on erdos-1094 (2 as finest cuts), which no palette or table can
+  show; the published sets became the finest cuts and the tool returns the rest on request (Q2).
+  **Look for the facts before adding a field**: every fact a route needs was already in
+  `graph.json` and `frontier.json`, so one function derives it where it is read, with no schema
+  bump and no re-pin (Q1). **Test modules share one import namespace across `gate/`, `api/` and
+  `site/`**: a new `gate/tests/test_routes.py` broke `api/tests/test_mcp_bijection.py`, which
+  imports `d35_rows` from the api's `test_routes`; name a new test file uniquely. **ruff formats the
+  Python inside the guide's fences**, and the guide's copy test reads the graph checkout from
+  `OPN_GRAPH_CHECKOUT`: prepare the D-35 copy on a graph branch in its own worktree and point the
+  hook at it, rather than editing the shared graph checkout or skipping the hook.

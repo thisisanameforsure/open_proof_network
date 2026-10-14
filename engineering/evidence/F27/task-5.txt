@@ -1,0 +1,34 @@
+# F27-T5: live check, 2026-10-14T22:53Z, network branch f27-route-health after merging f27-t3-site (5360fa71)
+$ PYTHONPATH=gate uv run --frozen python engineering/evidence/F27/live_routes.py
+graph 6c3a338863240e7ac49fda50f1662d5041ededc2 (origin/main); frontier rendered_from 806f1f948eb337c43eb922e386b91db83202c892
+target               nodes routes unres finest   any trunc close     ms
+erdos-1003               1      0     0      1     1 False  True    0.3
+erdos-1050              14      5     0      1     1 False  True    0.3
+erdos-1065               1      0     0      1     1 False  True    0.2
+erdos-1094              27     16     0      2   225 False  True   12.7
+erdos-172                1      0     0      1     1 False  True    0.3
+erdos-212                1      0     0      1     1 False  True    0.3
+erdos-251                1      0     0      1     1 False  True    0.2
+erdos-257                1      0     0      1     1 False  True    0.2
+erdos-324                1      0     0      1     1 False  True    0.3
+erdos-376                1      0     0      1     1 False  True    0.3
+erdos-402               36      7     0      2     8 False  True    0.8
+erdos-406                1      0     0      1     1 False  True    0.3
+erdos-410                1      0     0      1     1 False  True    0.2
+erdos-412                3      1     0      1     2 False  True    0.3
+erdos-417                1      0     0      1     1 False  True    0.2
+erdos-51                 1      0     0      1     1 False  True    0.2
+erdos-52                 1      0     0      1     1 False  True    0.2
+erdos-68                 1      0     0      1     1 False  True    0.3
+erdos-69                23      3     0      1     4 False  True    0.4
+erdos-727                1      0     0      1     1 False  True    0.2
+erdos-849                1      0     0      1     1 False  True    0.2
+erdos-850                1      0     0      1     1 False  True    0.2
+erdos-931                1      0     0      1     1 False  True    0.2
+erdos-952                1      0     0      1     1 False  True    0.6
+euclid-primes           13      2     0      1     1 False  True    0.3
+riemann-hypothesis       1      0     0      1     1 False  True    0.2
+tutorial                 4      1     0      1     1 False  True    0.3
+targets whose sets do not all close the root, or that have no set: 0
+
+# erdos-1094 page rendered from the same graph commit: screenshots task-3-1440-dark.png, task-3-1440-selected.png, task-3-390.png (measurements in task-3.txt), read by the lead after the merge: AND dots and OR diamonds distinct, wedges match the table swatches, Set 1 selected lights its statements and lines to the root and dims the rest, 390 wide scrolls inside the drawing box with the root in view.
