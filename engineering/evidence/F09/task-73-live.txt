@@ -1,0 +1,18 @@
+F09-T73 live check, 2026-10-14, after network 73712fe1 (PR #50) deployed by api-deploy run 38590666903.
+Before the deploy, GET https://api.openproofnetwork.org/submissions/508 answered:
+    h_bhp -> None, h_vdt -> None, h_beyond -> None
+
+After the deploy (2026-10-14T15:38:11Z):
+#508 merged erdos-1094--h2--h2
+    h_bhp -> erdos-1094--h2--h2--h1
+    h_vdt -> erdos-1094--h2--h2--h2
+    h_beyond -> erdos-1094--h2--h2--h3
+#510 merged erdos-1094--h2--h1
+    h_bhp -> erdos-1094--h2--h2--h1
+    h_vdt -> erdos-1094--h2--h2--h2
+    h_strip -> erdos-1094--h2--h1--h4
+#519 merged erdos-1094--h2--h2--h2
+    h_small -> erdos-1094--h2--h2--h2--h1
+    h_medium -> erdos-1094--h2--h2--h2--h2
+    h_mediumlarge -> erdos-1094--h2--h2--h2--h3
+    h_large -> erdos-1094--h2--h2--h2--h4
