@@ -24,6 +24,9 @@ Variables (prefix ``OPN_``):
     ``gate/scripts/install-mathlib.sh`` made, with its built oleans (F11-R6; D-7). Consulted only
     when a graph's ``gate-spec.json`` pins ``mathlib_sha``. Default ``~/.opn/mathlib``; the
     step-3 image sets its own.
+``GITHUB_RUN_ID``
+    The Actions run the gate runs in, as the host sets it. The review job's exhibits name it
+    (F26-Q19); ``None`` outside a workflow, where they name ``local``.
 ``OPN_PR_AUTHOR``
     The login that opened the pull request under check, as the host reports it
     (``github.event.pull_request.user.login``). Consulted by ``classify`` for the curator mode
@@ -165,6 +168,8 @@ class Settings:
     #: F07-T65: the network commit the job checked out at the pin (``OPN_NETWORK_COMMIT``),
     #: when the job says.
     network_commit: str | None = None
+    #: F26-Q19: the Actions run id (``GITHUB_RUN_ID``), when the gate runs in one.
+    workflow_run: str | None = None
     model_api_key: str | None = field(default=None, repr=False)
     gate_signing_key: str | None = field(default=None, repr=False)
     precheck_signing_key: str | None = field(default=None, repr=False)
@@ -309,6 +314,7 @@ def load(environ: dict[str, str] | None = None) -> Settings:  # noqa: PLR0915 â€
         pr_author=env.get("OPN_PR_AUTHOR") or None,
         service_login=env.get("OPN_SERVICE_LOGIN", "").strip() or DEFAULT_SERVICE_LOGIN,
         network_commit=env.get("OPN_NETWORK_COMMIT", "").strip() or None,
+        workflow_run=env.get("GITHUB_RUN_ID", "").strip() or None,
         gate_signing_key=env.get("OPN_GATE_SIGNING_KEY") or None,
         precheck_signing_key=env.get("OPN_PRECHECK_SIGNING_KEY") or None,
     )

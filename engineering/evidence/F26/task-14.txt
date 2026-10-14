@@ -96,3 +96,8 @@ Local rerun at f1e304c2 (same worktree cleaned, the pinned plain image):
   dropped) with "every test passes and no case checked tells it from the representative";
   state_of -> needs-intent-signer, surviving 1, clusters 1, questions_waiting 4, grade_cap
   screened-and-signed. The questions are the designed answer to a review with no intent tests.
+CI 38505231550 and 38512254006 on #44: Lean and harness tiers success; the fast tier failed
+first on mypy (a lambda using list.append's value; replaced by a named fake), then on
+test_only_config_module_reads_the_environment (postmerge read GITHUB_RUN_ID itself). The run id is
+now config.Settings.workflow_run, documented, with its own test. Local fast tier after both:
+6197 passed, 3 failed (the stale sibling graph copy; this laptop's Cursor CLI, twice).
