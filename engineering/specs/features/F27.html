@@ -124,29 +124,29 @@ with an example filter; decisions v3.40.</p>
   <tr><th>ID</th><th>Given / When / Then</th><th>Test case</th></tr>
   <tr><td>F27-AC1</td><td>Given a root with two routes, one of which shares a hole with the other,
     when the sets are enumerated, then there is one set per route choice, the shared hole is in
-    both, and its shared count says so.</td><td><code>gate/tests/test_routes.py::test_or_gives_one_set_per_route</code></td></tr>
+    both, and its shared count says so.</td><td><code>gate/tests/test_target_routes.py::test_or_gives_one_set_per_route</code></td></tr>
   <tr><td>F27-AC2</td><td>Given a route whose hole is itself decomposed, when the sets are
     enumerated, then the set holds the grandchildren and names the hole as an assembly.</td>
-    <td><code>gate/tests/test_routes.py::test_and_expands_through_nested_routes</code></td></tr>
+    <td><code>gate/tests/test_target_routes.py::test_and_expands_through_nested_routes</code></td></tr>
   <tr><td>F27-AC3</td><td>Given an interior node proved directly, when the sets are enumerated, then
     its descendants are in no set and the node is a closed member.</td>
-    <td><code>gate/tests/test_routes.py::test_proved_interior_node_cuts_its_descendants</code></td></tr>
+    <td><code>gate/tests/test_target_routes.py::test_proved_interior_node_cuts_its_descendants</code></td></tr>
   <tr><td>F27-AC4</td><td>Given a route with a refuted hole, when the sets are enumerated, then the
     route contributes no set and its summary counts the hole as dead.</td>
-    <td><code>gate/tests/test_routes.py::test_dead_route_contributes_no_set</code></td></tr>
+    <td><code>gate/tests/test_target_routes.py::test_dead_route_contributes_no_set</code></td></tr>
   <tr><td>F27-AC5</td><td>Given an older product whose route names no hole nodes, when it is read,
     then the hole children are assigned where unambiguous and the route is unresolved where not.</td>
-    <td><code>gate/tests/test_routes.py::test_unnamed_holes_assigned_or_unresolved</code></td></tr>
+    <td><code>gate/tests/test_target_routes.py::test_unnamed_holes_assigned_or_unresolved</code></td></tr>
   <tr><td>F27-AC6</td><td>Given a resolves variant, when the sets are enumerated, then a set goes
     through it, and partial and related variants are in none.</td>
-    <td><code>gate/tests/test_routes.py::test_resolves_variant_is_an_alternative</code></td></tr>
+    <td><code>gate/tests/test_target_routes.py::test_resolves_variant_is_an_alternative</code></td></tr>
   <tr><td>F27-AC7</td><td>Given cut <code>any</code>, when the sets are enumerated, then the root
     taken directly is one of them, every set is minimal, and a cap below the count truncates and
-    says so.</td><td><code>gate/tests/test_routes.py::test_any_cut_adds_coarser_sets_up_to_cap</code></td></tr>
+    says so.</td><td><code>gate/tests/test_target_routes.py::test_any_cut_adds_coarser_sets_up_to_cap</code></td></tr>
   <tr><td>F27-AC8</td><td>Given erdos-1094's live <code>graph.json</code> and frontier, when its
     routes are read, then every route resolves, the finest sets are minimal and each set's
     statements close the root by an independent check.</td>
-    <td><code>gate/tests/test_routes.py::test_live_shape_sets_close_the_root</code></td></tr>
+    <td><code>gate/tests/test_target_routes.py::test_live_shape_sets_close_the_root</code></td></tr>
   <tr><td>F27-AC9</td><td>Given the tool surface, when a client lists tools and calls
     <code>list_sufficient_sets</code>, then the tool is listed read-only with its bijection row and
     its result validates against its schema, for a known target and for an unknown one.</td>
@@ -218,7 +218,7 @@ with an example filter; decisions v3.40.</p>
 </table>
 
 <h2>10. Status</h2>
-<div class="rule"><strong>status:</strong> building · <strong>Tasks:</strong> T0 done · T1&ndash;T5
+<div class="rule"><strong>status:</strong> building · <strong>Tasks:</strong> T0, T1 done · T2&ndash;T5
 todo</div>
 
 <h2>Tasks</h2>
@@ -233,9 +233,9 @@ todo</div>
     <td>&mdash;</td><td><code>uv run pytest gate/tests/test_products.py gate/tests/test_finding_graph_lemmas.py api/tests/test_mcp_surface.py site/tests -m "not lean and not docker and not network and not harness"</code></td></tr>
   <tr><td>F27-T1</td><td>The library: routes from a graph document, facts from frontier entries,
     the finest and coarser enumerations, minimality, ids and counts.</td>
-    <td><code>gate/opn_gate/routes.py</code>, <code>gate/opn_gate/config.py</code>,
-    <code>gate/tests/test_routes.py</code>, <code>gate/tests/fixtures/routes/</code></td>
-    <td>T0</td><td><code>uv run pytest gate/tests/test_routes.py</code></td></tr>
+    <td><code>gate/opn_gate/routes.py</code>,
+    <code>gate/tests/test_target_routes.py</code>, <code>gate/tests/fixtures/routes/</code></td>
+    <td>T0</td><td><code>uv run pytest gate/tests/test_target_routes.py</code></td></tr>
   <tr><td>F27-T2</td><td>The read tool <code>list_sufficient_sets</code>, its bijection row and
     result schema.</td>
     <td><code>api/opn_api/mcp/reads.py</code>, <code>api/opn_api/mcp/bijection.py</code>,
