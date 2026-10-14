@@ -307,3 +307,64 @@ def test_a_root_off_the_open_track_still_meets_the_false_screen(tmp_path: Path) 
     _existing(graph, "formalization")
     fake = ReviewFake(models={ids["c"]: Model(legendre(), vacuous=True)})
     assert run_job(graph, fake, tmp_path)["candidates"][ids["c"]] == review.DISCARDED
+
+
+# --- a candidate's graph imports are built for it (F26-Q21) ------------------------------------
+# 2026-10-14, the first full live run: euclid-primes' root imports the graph's own definitions
+# and its node's Context, and the job compiled it with neither on the search path. It recorded
+# "does not elaborate at the pin: unknown module prefix 'Defs'" and discarded a statement the gate
+# admits every day. The job now builds the graph modules its candidates import, once, before any
+# check; a module it cannot build stops the job with nothing written, never a discard.
+
+LOCAL_HEAD = "import Defs.Small\nimport Nodes.«legendre».Context\n"
+
+
+def _graph_modules(graph: Path, *, context: str | None = "import Defs.Small\n") -> None:
+    tdir = graph / "targets" / TARGET
+    (tdir / "defs").mkdir(parents=True, exist_ok=True)
+    (tdir / "defs" / "Small.lean").write_text("def Opn.small (n : Nat) : Prop := n < 3\n")
+    if context is not None:
+        node = tdir / "nodes" / TARGET
+        node.mkdir(parents=True, exist_ok=True)
+        (node / "Context.lean").write_text(
+            context + "theorem Opn.h : ∀ n, Opn.small n → n < 4 := by\n  sorry\n"
+        )
+
+
+def test_a_candidate_importing_the_graphs_modules_compiles(tmp_path: Path) -> None:
+    lean = LOCAL_HEAD + prototype_lean("legendre", "human-ref")
+    graph, ids = make_graph(tmp_path, candidates={"c": lean})
+    _graph_modules(graph)
+    fake = ReviewFake(models={ids["c"]: Model(legendre())}, resolve_imports=True)
+    summary = run_job(graph, fake, tmp_path)
+    assert summary["ok"] is True
+    assert summary["candidates"][ids["c"]] == review.SURVIVING
+    compiled = [e for e in exhibits(graph) if e["kind"] == "compile"]
+    assert [e["result"] for e in compiled] == ["pass"]
+
+
+def test_a_graph_import_with_no_file_stops_the_job_and_writes_nothing(tmp_path: Path) -> None:
+    lean = "import Defs.Missing\n" + prototype_lean("legendre", "human-ref")
+    graph, ids = make_graph(tmp_path, candidates={"c": lean})
+    before = tree(graph)
+    fake = ReviewFake(models={ids["c"]: Model(legendre())}, resolve_imports=True)
+    summary = run_job(graph, fake, tmp_path)
+    assert summary["ok"] is False and "Defs.Missing" in summary["error"]
+    assert tree(graph) == before
+
+
+def test_a_graph_module_that_does_not_build_stops_the_job_and_writes_nothing(
+    tmp_path: Path,
+) -> None:
+    lean = LOCAL_HEAD + prototype_lean("legendre", "human-ref")
+    graph, ids = make_graph(tmp_path, candidates={"c": lean})
+    _graph_modules(graph)
+    before = tree(graph)
+    fake = ReviewFake(
+        models={ids["c"]: Model(legendre())},
+        resolve_imports=True,
+        broken_modules={"Nodes.«legendre».Context"},
+    )
+    summary = run_job(graph, fake, tmp_path)
+    assert summary["ok"] is False and "Nodes.«legendre».Context" in summary["error"]
+    assert tree(graph) == before

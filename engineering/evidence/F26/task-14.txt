@@ -101,3 +101,33 @@ first on mypy (a lambda using list.append's value; replaced by a named fake), th
 test_only_config_module_reads_the_environment (postmerge read GITHUB_RUN_ID itself). The run id is
 now config.Settings.workflow_run, documented, with its own test. Local fast tier after both:
 6197 passed, 3 failed (the stale sibling graph copy; this laptop's Cursor CLI, twice).
+
+== 2026-10-14: the live runs ==
+9. PR #44 merged (f97b6921, CI 38520965647 all tiers success; it carries F04-T50 from another
+   session). Tag gate-f97b692, image-publish 38533834349:
+     plain   ghcr.io/thisisanameforsure/opn-gate@sha256:3aa31c8fad4ed56c2ad4e9cf17cabdd11a0f3d7c7d96853cc534882565c3748b
+     mathlib ghcr.io/thisisanameforsure/opn-gate@sha256:3a3fe88092e4afc6d62a4cfb2b6a79a775ed3f43ae45a52c390da020ced16fe5
+   Graph c96900073 on 59a868d22 (after #510's merge and outline): 27 pins, review.yml passes
+   --sandbox --run; pregate tutorial pass; trial render frontier 51/48, same ids, 27 reviews open.
+   Pushed (main unmoved, nothing in flight); render cdf01d7e5.
+10. review.yml, tutorial (run 38540459953, 109 s): fd6fac607 "gate: review f97b6921b55b";
+    targets-index review {state needs-intent-signer, surviving 1, questions_waiting 4}.
+    The commit's other 185 files are products (rendered_from moves).
+11. review.yml, erdos-1094 (run 38540752241, 304 s; the job step 3:25 with the Mathlib image
+    pull): f2864db98; surviving 1, 20 elaborations, 13 exhibits, 8 questions (each "A variant of
+    the statement agrees with it on every small case checked...", raised_by its mutant exhibit).
+12. review.yml, every open review (run 38541453841, 3098 s; the job step 50:51): b5b2976f1.
+    targets-index: needs-intent-signer 25, complete 1 (riemann-hypothesis, no question), open 1
+    (euclid-primes). Questions per target 2 to 16. euclid-primes' root discarded:
+      compile fail "does not elaborate at the pin: unknown module prefix 'Defs' ..." F26-Q21.
+
+-- F26-Q21, branch f26-t14-defs (red first) --
+RED  uv run pytest gate/tests/test_review_job.py -k graph
+     FAILED test_a_candidate_importing_the_graphs_modules_compiles  'discarded' == 'surviving'
+     FAILED test_a_graph_import_with_no_file_stops_the_job_and_writes_nothing  (True is False)
+     FAILED test_a_graph_module_that_does_not_build_stops_the_job_and_writes_nothing
+GREEN review job, questions, pairs, mutants, format, post-merge review: 76 passed.
+LEAN uv run pytest -m lean gate/tests/test_review_job_lean.py -k graphs_modules
+     with the fix: 1 passed (61 s); with main's review_job.py and review_lean.py:
+     AssertionError: assert 'discarded' == 'surviving'.
+Local fast tier: 6227 passed, 3 failed (the stale sibling graph copy; the laptop's Cursor CLI, twice). make lint 0, make types 0.

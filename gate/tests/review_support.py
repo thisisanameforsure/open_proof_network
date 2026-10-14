@@ -22,8 +22,8 @@ from typing import Any
 import yaml
 from fakes import FakeToolchain
 
-from opn_gate import review_lean
-from opn_gate.toolchain import ElabResult, Message, ResolvedToolchain
+from opn_gate import layout, review_lean
+from opn_gate.toolchain import ElabResult, Message, ResolvedToolchain, module_output_path
 
 ROOT = Path(__file__).resolve().parents[2]
 FIXTURES = ROOT / "gate" / "tests" / "fixtures" / "review"
@@ -94,6 +94,10 @@ class ReviewFake(FakeToolchain):
     mutant_models: dict[int, Model] = field(default_factory=dict)
     texts: list[str] = field(default_factory=list)
     accepted: set[str] = field(default_factory=set)
+    #: F26-Q21: resolve a graph import (``Defs.*``, ``Nodes.*``) as Lean does, by its olean on the
+    #: search path (here: the out directory); a graph module itself elaborates unless broken
+    resolve_imports: bool = False
+    broken_modules: set[str] = field(default_factory=set)
 
     def model(self, cid: str) -> Model | None:
         if cid in self.models:
@@ -116,6 +120,24 @@ class ReviewFake(FakeToolchain):
         self.texts.append(text)
         self.calls.append(f"elaborate:{module}")
         head = review_lean.header_of(text) or {}
+        if self.resolve_imports:
+            missing = [
+                m
+                for m in layout.imports_of(text)
+                if layout.module_origin(m)[0] in ("defs", "node")
+                and not (out_dir / module_output_path(m, ".olean")).is_file()
+            ]
+            if missing:
+                err = Message(str(source), 1, 0, "error", f"unknown module prefix {missing[0]}")
+                return ElabResult(ok=False, messages=(err,))
+            if not head:  # a graph module the job built for its candidates
+                if module in self.broken_modules:
+                    err = Message(str(source), 1, 0, "error", "fake: the module does not elaborate")
+                    return ElabResult(ok=False, messages=(err,))
+                olean = out_dir / module_output_path(module, ".olean")
+                olean.parent.mkdir(parents=True, exist_ok=True)
+                olean.write_bytes(b"fake")
+                return ElabResult(ok=True)
         ok, messages = self._decide(head)
         if ok:
             self.accepted.add(text)
