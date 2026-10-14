@@ -25,7 +25,7 @@ from opn_gate import clients, explainers, hosted, intake, layout, policy, produc
 from opn_gate import glosses as glossesmod
 from opn_gate import graph as graphmod
 from opn_gate import ledger as ledgermod
-from opn_site import dag, links, prose
+from opn_site import dag, links, prose, routes_view
 from opn_site.model import (
     ADMITTED_BY_CURATOR,
     ChainView,
@@ -179,6 +179,7 @@ SCRIPTS: tuple[str, ...] = (
     "/me.js",
     "/panel.js",
     "/node.js",
+    "/routes.js",
 )
 MATH_HEAD = '<link rel="stylesheet" href="/vendor/katex/katex.min.css">'
 #: F04-T50: opens the fold a link lands in on a statement's page.
@@ -2264,6 +2265,14 @@ class Renderer:
             },
         )
         panels = "".join(self.statement_panel(tv, nv) for nv in self.ordered_nodes(tv))
+        # F27-T3 (R10, R11): the routes and sufficient sets, read by the function the MCP tool
+        # reads (opn_gate.routes) from graph.json and this target's frontier.json entries.
+        routes_section = routes_view.section(
+            tv.graph,
+            [e for e in self.site.frontier.get("entries") or [] if e.get("target_id") == tid],
+            href=href,
+            prefix=tid,
+        )
         n = len(tv.nodes)
         if tv.approaches:
             approaches = (
@@ -2307,6 +2316,7 @@ class Renderer:
             proof_picker=self.proof_picker(tv),
             dag=svg,
             panels=panels,
+            routes=routes_section.html,
             digestion=self.digestion_section(tv),
             proved_in_words=self.proved_in_words(tv),
             stewards=self.stewards_section(tv),
@@ -2327,6 +2337,7 @@ class Renderer:
         glossed = [p for nid in tv.nodes for p in self.gloss_renders(tv, nid, kinds=("statement",))]
         renders = [
             f"targets/{tid}/graph.json",
+            *(["frontier.json"] if routes_section.html else []),
             *(f.path for f in tv.definitions),
             *self.gloss_renders(tv, None),
             *glossed,
@@ -2339,6 +2350,7 @@ class Renderer:
             head=MATH_HEAD,
             script=MATH_SCRIPTS
             + '<script src="/problem.js"></script>'
+            + ('<script src="/routes.js"></script>' if routes_section.html else "")
             + ('<script src="/panel.js"></script>' if self.api_url else ""),
         )
 
