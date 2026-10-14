@@ -823,8 +823,10 @@ table.rules code { color: var(--n500); font-size: 12px; }
 }
 
 /* F26-T12 (R16, R17; D-9 v3.39): the review page. Exhibits (kernel-checked) and judgements (a
-   person's or a model's) wear two distinct section styles; the state tag sits beside the grade. */
-.review-state { text-decoration: none; cursor: pointer; color: var(--accent-300); border-color: var(--accent-300); }
+   person's or a model's) wear two distinct section styles; the state tag sits beside the grade.
+   F04-T52 (Q51): unlike the one-word status pills, the state line carries counts and can be
+   longer than a phone is wide, so it wraps (the base .tag is nowrap) and never exceeds its row. */
+.review-state { text-decoration: none; cursor: pointer; color: var(--accent-300); border-color: var(--accent-300); white-space: normal; max-width: 100%; }
 .review-state:hover, .review-state:focus-visible { background: var(--n800); }
 .review-words { font-style: italic; overflow-wrap: anywhere; }
 .review-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: var(--s3); margin: var(--s4) 0 var(--s6); }
