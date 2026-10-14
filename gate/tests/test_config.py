@@ -182,3 +182,10 @@ def test_qa_budgets_default_and_read() -> None:
     assert (s.qa_attempt_budget_s, s.qa_subject_budget_s) == (60.0, 300.0)
     s = config.load({"OPN_QA_ATTEMPT_BUDGET_S": "7.5", "OPN_QA_SUBJECT_BUDGET_S": "40"})
     assert (s.qa_attempt_budget_s, s.qa_subject_budget_s) == (7.5, 40.0)
+
+
+def test_the_workflow_run_is_read_from_the_host_and_absent_outside_one() -> None:
+    """F26-Q19: the review job's exhibits name the Actions run; outside one they say ``local``."""
+    assert config.load({"GITHUB_RUN_ID": "38496615231"}).workflow_run == "38496615231"
+    assert config.load({}).workflow_run is None
+    assert config.load({"GITHUB_RUN_ID": "  "}).workflow_run is None

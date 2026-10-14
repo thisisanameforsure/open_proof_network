@@ -131,7 +131,7 @@ jobs:
           set -uo pipefail
           for target in $TARGETS; do
             if ! uv run --frozen --project network-render python -m opn_gate.cli review run \
-                --graph . --target "$target"; then
+                --graph . --target "$target" --sandbox --run "$GITHUB_RUN_ID"; then
               echo "::warning::review: the job for $target failed; nothing of its is committed (the pinned gate may predate opn-gate review run, F26-T5)"
               git checkout -q -- "targets/$target/review" 2>/dev/null || true
               git clean -q -fd -- "targets/$target/review"

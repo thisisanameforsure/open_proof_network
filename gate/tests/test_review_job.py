@@ -260,3 +260,50 @@ def test_the_cli_runs_the_job(
     assert code == 0, out
     assert out["candidates"][ids["faithful"]] == review.SURVIVING
     assert out["written"]
+
+
+# --- the statement screen asks about open conjectures only (F26-Q20; the owner's ruling) -------
+# 2026-10-14: in the pinned image the tutorial's background review discarded its root at the
+# statement screen ("the claim was proved for every n within the bounded budget"). That screen
+# catches an open conjecture formalized too weakly; on a root already proved it reports a fact,
+# not a defect. The owner's ruling: it runs only where the root is an open conjecture.
+
+
+def _existing(graph: Path, track: str | None) -> None:
+    """Make the review a background one on an existing target, with ``track`` in its record
+    (None: no record, as the tutorial has none)."""
+    tdir = graph / "targets" / TARGET
+    head = yaml.safe_load((tdir / "review" / "review.yaml").read_text())
+    head["opened_by"] = {"identity": "network", "role": "network"}
+    head["source"] = {"kind": "existing", "ref": TARGET}
+    (tdir / "review" / "review.yaml").write_text(yaml.safe_dump(head, sort_keys=False))
+    if track is not None:
+        (tdir / "target.yaml").write_text(yaml.safe_dump({"track": track}))
+
+
+@pytest.mark.parametrize("track", ["formalization", None])
+def test_a_root_off_the_open_track_is_not_discarded_for_being_provable(
+    tmp_path: Path, track: str | None
+) -> None:
+    graph, ids = make_graph(tmp_path, candidates={"c": prototype_lean("legendre", "human-ref")})
+    _existing(graph, track)
+    fake = ReviewFake(models={ids["c"]: Model(legendre(), provable=True)})
+    summary = run_job(graph, fake, tmp_path)
+    assert summary["candidates"][ids["c"]] == review.SURVIVING
+    kinds = [(e["kind"], e["detail"].split(":")[0]) for e in exhibits(graph)]
+    assert ("screen", "statement") not in kinds
+    assert ("screen", "negation") in kinds and ("screen", "false") in kinds
+
+
+def test_an_open_track_root_is_still_discarded_for_being_provable(tmp_path: Path) -> None:
+    graph, ids = make_graph(tmp_path, candidates={"c": prototype_lean("legendre", "human-ref")})
+    _existing(graph, "open")
+    fake = ReviewFake(models={ids["c"]: Model(legendre(), provable=True)})
+    assert run_job(graph, fake, tmp_path)["candidates"][ids["c"]] == review.DISCARDED
+
+
+def test_a_root_off_the_open_track_still_meets_the_false_screen(tmp_path: Path) -> None:
+    graph, ids = make_graph(tmp_path, candidates={"c": prototype_lean("legendre", "human-ref")})
+    _existing(graph, "formalization")
+    fake = ReviewFake(models={ids["c"]: Model(legendre(), vacuous=True)})
+    assert run_job(graph, fake, tmp_path)["candidates"][ids["c"]] == review.DISCARDED

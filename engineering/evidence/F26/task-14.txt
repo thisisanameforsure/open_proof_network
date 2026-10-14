@@ -53,3 +53,51 @@ cursor-bearer] ("open-proof-network: not loaded (needs approval)", this laptop's
 make lint 0; make types 0.
 
 Next: merge, tag, re-pin the graph to the fix, dispatch review.yml per target, read the findings.
+
+== 2026-10-14: the second re-pin, and the sandbox ==
+6. PR #43 merged (f14e6994, CI 38459111688 all tiers success). Network main had moved to
+   3cfcee78 (PR #42, F24-T7 + F20-T16, no schemas; agreed with the session that built it):
+   tag gate-3cfcee7, image-publish 38475862001 success, push CI 38474624091 all tiers success.
+     plain   ghcr.io/thisisanameforsure/opn-gate@sha256:e66a178ef52250336ee1c8ec87615e48eea564314450a0aede6615c5264428d3
+     mathlib ghcr.io/thisisanameforsure/opn-gate@sha256:747bb368b530806a4d2b5349520d9a7b112349232d21a36072c35b1785e35790
+   Graph 486348dd2: 27 pins (each spec diff the two fields), guide copy, no schemas; pregate
+   tutorial pass; trial render: review state open on all 27, surviving 0, frontier 47/44 same
+   ids. Pushed; gate success, render -> 560adb44a "gate: render 3cfcee786180".
+7. review.yml dispatched for tutorial, run 38496615231: "open reviews: tutorial", then
+   "opn-gate: elan not found on PATH ... the job for tutorial failed; nothing of its is
+   committed". F26-Q19.
+RED  uv run pytest gate/tests/test_postmerge_review.py
+     FAILED test_the_default_runner_runs_the_job_in_the_sandbox_and_names_the_run
+       assert '--sandbox' in [... 'opn_gate.cli', 'review', 'run', '--graph', ...]
+     FAILED test_the_default_runner_says_local_outside_a_workflow
+     FAILED test_review_yml_runs_the_job_in_the_sandbox_and_names_the_run
+       assert '--sandbox' in 'set -uo pipefail for target in $TARGETS; do if ! uv run ...'
+     3 failed, 11 passed
+GREEN 14 passed.
+Local, before any push (graph worktree at 560adb44a, docker, the pinned plain image):
+  opn-gate review run --graph <wt> --target tutorial --sandbox --run local-check
+  exit 0 in 2:01 (pull included); "sandboxed": true, 2 elaborations, written: two exhibits
+    compile pass  "elaborates at the pin; small cases do not apply: the claim is a closed proposition"
+    screen  fail  "statement: the claim was proved for every n within the bounded budget, so the
+                   candidate is not the open conjecture as stated"
+  state_of -> open, candidates 1, surviving 0: the tutorial's root is discarded by the screen
+  meant for an open conjecture that is accidentally trivial. Question for the owner (below).
+8. The owner's ruling on the question (2026-10-14): "Skip that screen there". F26-Q20.
+RED  uv run pytest gate/tests/test_review_job.py -k "track or screen"
+     FAILED test_a_root_off_the_open_track_is_not_discarded_for_being_provable[formalization]
+       AssertionError: assert 'discarded' == 'surviving'
+     FAILED test_a_root_off_the_open_track_is_not_discarded_for_being_provable[None]
+     2 failed, 4 passed (the open-track and False-screen tests pin what must not change)
+GREEN review job, questions, pairs, mutants, post-merge review: 51 passed.
+Local rerun at f1e304c2 (same worktree cleaned, the pinned plain image):
+  review run --target tutorial --sandbox: exit 0 in 0:43, sandboxed, 16 elaborations;
+  candidate c-749fdf49 surviving, one cluster; exhibits: compile pass, screen negation pass,
+  screen false pass (no statement screen), four mutants pass (∧→∨ twice, ∀→∃, a hypothesis
+  dropped) with "every test passes and no case checked tells it from the representative";
+  state_of -> needs-intent-signer, surviving 1, clusters 1, questions_waiting 4, grade_cap
+  screened-and-signed. The questions are the designed answer to a review with no intent tests.
+CI 38505231550 and 38512254006 on #44: Lean and harness tiers success; the fast tier failed
+first on mypy (a lambda using list.append's value; replaced by a named fake), then on
+test_only_config_module_reads_the_environment (postmerge read GITHUB_RUN_ID itself). The run id is
+now config.Settings.workflow_run, documented, with its own test. Local fast tier after both:
+6197 passed, 3 failed (the stale sibling graph copy; this laptop's Cursor CLI, twice).
