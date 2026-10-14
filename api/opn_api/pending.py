@@ -1075,26 +1075,39 @@ def hole_outcomes(
 def _decomposition_nodes(
     ctx: Context, found: Submission, names: list[str], attestation: dict[str, Any]
 ) -> dict[str, str | None]:
-    """Hole name to node for the one decomposition of the node whose partial file hashes to the
-    attestation's artifact and whose holes are these, in this order; empty when the products
-    carry none such (graph/v8 ``decompositions``; an older product has no key and matches
-    nothing)."""
-    digest = attestation.get("artifact_hash")
+    """Hole name to node for the one decomposition of the node whose partial file is the one the
+    attestation names and whose holes are these, in this order; empty when the products carry
+    none such (graph/v8 ``decompositions``; an older product has no key and matches nothing).
+
+    Testers 2026-10-14 (B1): the match was by ``artifact_hash``, which the gate writes only for a
+    ``Proof.lean`` or an alternate, so every partial's attestation carries null and no merged
+    partial ever resolved. Step 2's ``partial-submission`` diagnostic names the file, the same
+    fact the products' ``decompositions[].partial`` is written from (``graph.merged_partials``)."""
+    path = _partial_path(attestation)
     raw = optional_committed(ctx, f"targets/{found.target_id}/graph.json")
-    if not isinstance(digest, str) or raw is None:
+    if path is None or raw is None:
         return {}
     doc = json.loads(raw)
     row = next((n for n in doc.get("nodes", []) if n.get("node_id") == found.node_id), None)
     for decomposition in (row or {}).get("decompositions") or []:
         holes = decomposition.get("holes") or []
-        if [h.get("name") for h in holes] != names:
-            continue
-        where = f"targets/{found.target_id}/nodes/{found.node_id}/{decomposition['partial']}"
-        file = optional_committed(ctx, where)
-        if file is None or schemas.content_hash(file) != digest:
+        if decomposition.get("partial") != path or [h.get("name") for h in holes] != names:
             continue
         return {str(h["name"]): h.get("node") for h in holes}
     return {}
+
+
+def _partial_path(attestation: dict[str, Any]) -> str | None:
+    """The partial file an attestation's step 2 took, from its ``partial-submission`` diagnostic;
+    ``None`` for an attestation that is not a partial's."""
+    for step in attestation.get("steps") or []:
+        d = step.get("diagnostic") if isinstance(step, dict) else None
+        if isinstance(d, dict) and d.get("code") == "partial-submission":
+            details = d.get("details")
+            path = details.get("path") if isinstance(details, dict) else None
+            if isinstance(path, str):
+                return path
+    return None
 
 
 #: F07-T41: how much of a proposed ``Statement.lean`` an answer carries. A statement is a few

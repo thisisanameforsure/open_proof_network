@@ -1,0 +1,16 @@
+graph main 466c11deb503c645f4980f8293d6070c20284c88; the service's path lookup over every merged partial attestation
+#441 erdos-1094: h_fixed_k -> erdos-1094--h1, h_large_n -> erdos-1094--h2, h_small_n -> erdos-1094--h3
+#448 erdos-1094--h3: h_sieve -> erdos-1094--h3--h1
+#467 erdos-1094--h2: h_lo -> erdos-1094--h2--h1, h_hi -> erdos-1094--h2--h2
+#468 erdos-1094--h3--h1: h_keven -> erdos-1094--h3--h1--h1, h_odd -> erdos-1094--h3--h1--h2
+#478 erdos-1094--h2--h1: h_good_below_cube -> erdos-1094--h2--h1--h1
+#479 erdos-1094--h3: h_good_below_cube -> erdos-1094--h2--h1--h1
+#508 erdos-1094--h2--h2: h_bhp -> erdos-1094--h2--h2--h1, h_vdt -> erdos-1094--h2--h2--h2, h_beyond -> erdos-1094--h2--h2--h3
+#510 erdos-1094--h2--h1: h_bhp -> erdos-1094--h2--h2--h1, h_vdt -> erdos-1094--h2--h2--h2, h_strip -> erdos-1094--h2--h1--h4
+#514 erdos-1094--h2--h2--h3: h_gp -> erdos-1094--h2--h2--h3--h1
+#515 erdos-1094--h2--h1--h4: h_gp -> erdos-1094--h2--h1--h4--h1
+#516 erdos-1094--h2--h1--h1: h_gp -> erdos-1094--h2--h1--h1--h1
+#519 erdos-1094--h2--h2--h2: h_small -> erdos-1094--h2--h2--h2--h1, h_medium -> erdos-1094--h2--h2--h2--h2, h_mediumlarge -> erdos-1094--h2--h2--h2--h3, h_large -> erdos-1094--h2--h2--h2--h4
+#522 erdos-1094--h3--h1--h1: h_k6 -> erdos-1094--h3--h1--h1--h1, h_k3rest -> erdos-1094--h3--h1--h1--h2
+#523 erdos-1094--h3--h1--h2: h_odd_k3 -> erdos-1094--h3--h1--h2--h1, h_odd_rest -> erdos-1094--h3--h1--h2--h2
+merged partial attestations: 33; with an artifact_hash: 0; resolved by path: 33

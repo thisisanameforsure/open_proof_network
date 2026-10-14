@@ -171,13 +171,11 @@ def serve_products(
     harness: Harness, doc: dict[str, Any], pr_number: int, merged_file: str = TUTORIAL_PROOF
 ) -> None:
     """What the post-merge job's bot commit leaves on main for a merged partial: the products,
-    its attestation naming the artifact's hash, and the merged file itself."""
+    its attestation as the gate writes a partial's (no artifact hash, step 2 naming the file;
+    testers 2026-10-14, B1), and the merged file itself."""
     harness.githost.files[f"targets/{TARGET}/graph.json"] = json.dumps(doc).encode()
     harness.githost.files[f"attestations/{pr_number:06d}.json"] = json.dumps(
-        samples.attestation(
-            node_id=TUTORIAL_NODE,
-            artifact_hash=schemas.content_hash(TUTORIAL_PROOF.encode()),
-        )
+        live_partial_attestation(f"attempts/{STEM}.lean")
     ).encode()
     harness.githost.files[PARTIAL_PATH] = merged_file.encode()
     harness.context.files.clear()
@@ -241,9 +239,9 @@ def test_became_is_null_while_the_partial_is_open(harness: Harness, key: Prechec
 def test_a_later_decomposition_with_the_same_hole_names_is_not_this_ones(
     harness: Harness, key: PrecheckKey
 ) -> None:
-    """Two partials of one node may share hole names; the one whose file hashes to this
-    submission's attested artifact is read, and an unmatched decomposition leaves every hole
-    null rather than guessing."""
+    """Two partials of one node may share hole names; the one whose file this submission's
+    attestation names is read, and an unmatched decomposition leaves every hole null rather
+    than guessing."""
     receipt = submitted_partial(harness, key)
     harness.githost.set_pull_request_state(receipt["pr_number"], state="closed", merged=True)
     other = {**DECOMPOSITION, "partial": "attempts/20260101T000000Z-bob-partial.lean"}
@@ -253,6 +251,70 @@ def test_a_later_decomposition_with_the_same_hole_names_is_not_this_ones(
     ).encode()
     harness.context.files.clear()
     doc = harness.client.get(f"/submissions/{receipt['submission_id']}").json()
+    assert [h["became"] for h in doc["holes"]] == [None, None]
+
+
+def live_partial_attestation(partial: str) -> dict[str, Any]:
+    """A merged partial's attestation as the gate writes it, copied in shape from graph
+    ``attestations/000508.json`` (erdos-1094--h2--h2, merged 2026-10-14): ``artifact_hash`` is
+    null, since the gate hashes only a ``Proof.lean`` or an alternate, and step 2's diagnostic
+    names the partial file. All 33 partial attestations on the graph have this shape."""
+    doc = samples.attestation(node_id=TUTORIAL_NODE, artifact_hash=None)
+    doc["steps"][1]["diagnostic"] = {
+        "code": "partial-submission",
+        "details": {"path": partial},
+        "message": f"a partial proof: {partial} (D-12 #5)",
+    }
+    assert schemas.violations(doc, "attestation/v7") == [], "the live-shaped attestation is not v7"
+    return doc
+
+
+def merge_live_partial(harness: Harness, key: PrecheckKey, attestation: dict[str, Any]) -> str:
+    """A merged partial whose products carry DECOMPOSITION and whose attestation is
+    ``attestation``; answers the submission id."""
+    receipt = submitted_partial(harness, key)
+    harness.githost.set_pull_request_state(receipt["pr_number"], state="closed", merged=True)
+    serve_products(
+        harness,
+        graph_v7([DECOMPOSITION], [{"hole": "right", "node": EXISTING}]),
+        receipt["pr_number"],
+    )
+    harness.githost.files[f"attestations/{receipt['pr_number']:06d}.json"] = json.dumps(
+        attestation
+    ).encode()
+    return str(receipt["submission_id"])
+
+
+def test_a_live_shaped_partial_attestation_says_what_each_hole_became(
+    harness: Harness, key: PrecheckKey
+) -> None:
+    """Testers 2026-10-14 (B1): ``became`` was null for every merged partial on the live record,
+    #508 and #510 on erdos-1094 among them, because the service matched the decomposition by an
+    ``artifact_hash`` no partial attestation carries. The partial's own path, which step 2's
+    diagnostic records, is what names its decomposition."""
+    sid = merge_live_partial(harness, key, live_partial_attestation(f"attempts/{STEM}.lean"))
+    doc = harness.client.get(f"/submissions/{sid}").json()
+    assert doc["attestation"]["artifact_hash"] is None
+    assert [h["became"] for h in doc["holes"]] == [CHILD, EXISTING]
+
+
+def test_a_live_shaped_attestation_naming_another_partial_matches_nothing(
+    harness: Harness, key: PrecheckKey
+) -> None:
+    """The path must be this decomposition's: a partial filed under another name leaves every
+    hole null rather than guessing from the hole names."""
+    other = live_partial_attestation("attempts/20260101T000000Z-bob-partial.lean")
+    sid = merge_live_partial(harness, key, other)
+    doc = harness.client.get(f"/submissions/{sid}").json()
+    assert [h["became"] for h in doc["holes"]] == [None, None]
+
+
+def test_an_attestation_without_the_partial_diagnostic_matches_nothing(
+    harness: Harness, key: PrecheckKey
+) -> None:
+    """No ``partial-submission`` diagnostic, no path: the holes stay null (never a KeyError)."""
+    sid = merge_live_partial(harness, key, samples.attestation(node_id=TUTORIAL_NODE))
+    doc = harness.client.get(f"/submissions/{sid}").json()
     assert [h["became"] for h in doc["holes"]] == [None, None]
 
 
