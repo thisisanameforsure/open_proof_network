@@ -1543,3 +1543,14 @@ The law of the project:
   shared panel helper (R5), and a test's script check had read the wrong match object since it was written,
   invisible until every node page carried a script. Restate a sentence test to the element that now carries
   the fact, never delete it; read each failure before deciding which kind it is.
+
+- 2026-10-14 — A statement panel cut off its own conclusion (F04-T51, Q50): KaTeX never breaks a
+  display-mode formula, and a gloss opens with its statement as `$$…$$`; `$\displaystyle X$` is set
+  the same and breaks after top-level relations. Three measurement traps, each a wrong number before
+  it was a right one. **This KaTeX names its line boxes `.katex-base`**, not `.base`, so the first
+  probe saw no formulas at all; read the rendered DOM before writing a selector. **A closed
+  `<details>` still lays out**: its formulas have widths, `offsetParent` and `getClientRects`, so a
+  "visible" filter counted hidden ones; `el.checkVisibility()` is the test. **Headless Chromium hides
+  every scrollbar** (`--hide-scrollbars`), so a "visible bar" check reads 0 until launched with
+  `ignore_default_args=["--hide-scrollbars"]`. And an "unbreakable" formula was not: `\Bigl\{…\Bigr\}`
+  is delimiters, not a group; only `\left…\right` holds a line together.

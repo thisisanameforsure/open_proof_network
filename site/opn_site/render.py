@@ -1000,6 +1000,28 @@ def sorry_note(statement: str) -> str:
     return SORRY_NOTE if "sorry" in statement else ""
 
 
+#: F04-T51: rendered prose that opens with a display block (``prose.render(..., math=True)``).
+_OPENING_DISPLAY_RE = re.compile(r'^(\s*<p>)<span class="math">\$\$(.+?)\$\$</span>', re.S)
+
+
+def breakable_opening(html: str) -> str:
+    """F04-T51 (Q50): a gloss's opening ``$$X$$`` as ``$\\displaystyle X$``, marked ``.math-break``.
+
+    KaTeX never breaks a display-mode formula, so in a statement panel the end of a long one (the
+    statement's conclusion) was cut off. As inline math under ``\\displaystyle`` it is set the
+    same, and KaTeX breaks the line after a top-level relation or binary operator; what cannot
+    break scrolls in the ``.math-break`` box. Only the opening block changes, and only when it
+    opens the text; the text is already escaped, and a block holding a lone ``$`` is left as it
+    is, since it could not be delimited inline."""
+    m = _OPENING_DISPLAY_RE.match(html)
+    if m is None or "$" in m.group(2) or not m.group(2).strip():
+        return html
+    tex = " ".join(m.group(2).split())
+    return (
+        f'{m.group(1)}<span class="math math-break">$\\displaystyle {tex}$</span>' + html[m.end() :]
+    )
+
+
 def annex_anchor(a: Prose) -> str:
     """F04-T45: the element id of an annex on its node's page, from its file name's digest."""
     return f"annex-{Path(a.path).stem[:12]}"
@@ -3214,7 +3236,8 @@ class Renderer:
                 else ""
             )
             return (
-                f'<div class="prose claim-math">{prose.render(head, math=True)}</div>{notes}'
+                f'<div class="prose claim-math">{breakable_opening(prose.render(head, math=True))}'
+                f"</div>{notes}"
                 f"{self.words_mark(v, href)}"
                 f'<details class="panel-lean"><summary>Lean</summary>{lean}</details>'
             )
@@ -3487,7 +3510,8 @@ class Renderer:
         for v in subject.describing() if subject is not None else []:
             if glossesmod.opens_with_math(v.body):
                 first = v.body.strip().split("\n\n", 1)[0]
-                return f'<div class="prose split-gloss">{prose.render(first, math=True)}</div>'
+                html = breakable_opening(prose.render(first, math=True))
+                return f'<div class="prose split-gloss">{html}</div>'
         return f'<pre class="lean split-stmt">{esc(declaration_only(child.statement))}</pre>'
 
     def split_lean(self, pv: PartialView | None, rel: str) -> str:
@@ -6057,7 +6081,8 @@ class Renderer:
         return (
             f'<div class="gloss" data-block="gloss" data-gloss="{esc(v.hash)}">'
             f"{self.provenance('gloss', detail)}{state}"
-            f'<div class="prose gloss-prose">{prose.render(v.body, math=True)}</div>'
+            f'<div class="prose gloss-prose">{breakable_opening(prose.render(v.body, math=True))}'
+            "</div>"
             f'<p class="gloss-foot">Rendered from {self.version_link(v)} · '
             f'<a href="{GLOSS_GUIDE_HREF}">Improve these words →</a></p>{ctl}</div>'
         )
@@ -6232,9 +6257,10 @@ class Renderer:
     @staticmethod
     def version_words(v: VersionView) -> str:
         """A version's words as prose: an explainer's sections under their headings, anchors
-        named in text; a gloss or a pre-F20 explainer as paragraphs."""
+        named in text; a gloss or a pre-F20 explainer as paragraphs, its opening formula as
+        KaTeX can break it (T51)."""
         if not v.sections:
-            return prose.render(v.body, math=True)
+            return breakable_opening(prose.render(v.body, math=True))
         out = []
         for sec in v.sections:
             steps = f' <span class="po-id">({esc(" ".join(sec.steps))})</span>' if sec.steps else ""

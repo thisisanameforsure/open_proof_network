@@ -20,4 +20,18 @@
       strict: "ignore"
     });
   });
+  // F04-T51 (Q50): a .math-break box whose formula could not be broken scrolls; mark it so the
+  // stylesheet shows its bar. Re-measured whenever the box's size changes, which includes a
+  // hidden panel or fold being shown.
+  var boxes = document.querySelectorAll(".math-break");
+  function mark(el) {
+    el.classList.toggle("math-overflows", el.scrollWidth > el.clientWidth + 1);
+  }
+  Array.prototype.forEach.call(boxes, mark);
+  if (typeof ResizeObserver === "function") {
+    var ro = new ResizeObserver(function (entries) {
+      entries.forEach(function (e) { mark(e.target); });
+    });
+    Array.prototype.forEach.call(boxes, function (el) { ro.observe(el); });
+  }
 })();

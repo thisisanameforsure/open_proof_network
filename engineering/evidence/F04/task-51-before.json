@@ -1,0 +1,1256 @@
+{
+ "before": {
+  "panels@1440": {
+   "formulas": 147,
+   "overflowing_cut_off": 19,
+   "overflowing_in_marked_scroll_box": 0,
+   "where": {
+    "erdos-1094": [
+     [
+      481,
+      386,
+      false,
+      "prose claim-math",
+      "\\Bigl\\{(n,k)\\in\\mathbb{N}^2 \\;:\\; 0<k,\\ \\ 2k\\le n,\\ \\ \\opera"
+     ],
+     [
+      393,
+      373,
+      false,
+      "prose split-gloss",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ k^2\\le n,\\"
+     ],
+     [
+      398,
+      373,
+      false,
+      "prose split-gloss",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ 2k\\le n<k^"
+     ]
+    ],
+    "erdos-1094--h1": [
+     [
+      402,
+      386,
+      false,
+      "prose claim-math",
+      "\\forall k\\ge 1:\\quad \\Bigl\\{n\\in\\mathbb{N} \\;:\\; k^2\\le n,\\ "
+     ]
+    ],
+    "erdos-1094--h2": [
+     [
+      449,
+      386,
+      false,
+      "prose claim-math",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ k^2\\le n,\\"
+     ],
+     [
+      426,
+      373,
+      false,
+      "prose split-gloss",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ k^2\\le n<k"
+     ],
+     [
+      393,
+      373,
+      false,
+      "prose split-gloss",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ k^3\\le n,\\"
+     ]
+    ],
+    "erdos-1094--h2--h1": [
+     [
+      487,
+      386,
+      false,
+      "prose claim-math",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ k^2\\le n<k"
+     ],
+     [
+      398,
+      373,
+      false,
+      "prose split-gloss",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ 2k\\le n<k^"
+     ]
+    ],
+    "erdos-1094--h2--h1--h1": [
+     [
+      455,
+      386,
+      false,
+      "prose claim-math",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ 2k\\le n<k^"
+     ]
+    ],
+    "erdos-1094--h2--h2": [
+     [
+      449,
+      386,
+      false,
+      "prose claim-math",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ k^3\\le n,\\"
+     ]
+    ],
+    "erdos-1094--h3": [
+     [
+      455,
+      386,
+      false,
+      "prose claim-math",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ 2k\\le n<k^"
+     ],
+     [
+      526,
+      373,
+      false,
+      "prose split-gloss",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad K<k,\\ \\ 2k\\le n<k^"
+     ],
+     [
+      398,
+      373,
+      false,
+      "prose split-gloss",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ 2k\\le n<k^"
+     ]
+    ],
+    "erdos-1094--h3--h1": [
+     [
+      601,
+      386,
+      false,
+      "prose claim-math",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad K<k,\\ \\ 2k\\le n<k^"
+     ],
+     [
+      590,
+      373,
+      false,
+      "prose split-gloss",
+      "\\exists K_1\\ \\forall n,k\\in\\mathbb{N}:\\quad K_1<k,\\ \\ 2k\\le "
+     ],
+     [
+      634,
+      373,
+      false,
+      "prose split-gloss",
+      "\\exists K_2\\ \\forall n,k\\in\\mathbb{N}:\\quad K_2<k,\\ \\ 2k\\le "
+     ]
+    ],
+    "erdos-1094--h3--h1--h1": [
+     [
+      674,
+      386,
+      false,
+      "prose claim-math",
+      "\\exists K_1\\ \\forall n,k\\in\\mathbb{N}:\\quad K_1<k,\\ \\ 2k\\le "
+     ]
+    ],
+    "erdos-1094--h3--h1--h2": [
+     [
+      725,
+      386,
+      false,
+      "prose claim-math",
+      "\\exists K_2\\ \\forall n,k\\in\\mathbb{N}:\\quad K_2<k,\\ \\ 2k\\le "
+     ]
+    ]
+   }
+  },
+  "panels, folds open@1440": {
+   "formulas": 388,
+   "overflowing_cut_off": 37,
+   "overflowing_in_marked_scroll_box": 0,
+   "where": {
+    "erdos-1094": [
+     [
+      481,
+      386,
+      false,
+      "prose claim-math",
+      "\\Bigl\\{(n,k)\\in\\mathbb{N}^2 \\;:\\; 0<k,\\ \\ 2k\\le n,\\ \\ \\opera"
+     ],
+     [
+      393,
+      373,
+      false,
+      "prose split-gloss",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ k^2\\le n,\\"
+     ],
+     [
+      398,
+      373,
+      false,
+      "prose split-gloss",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ 2k\\le n<k^"
+     ],
+     [
+      421,
+      354,
+      false,
+      "prose gloss-prose",
+      "\\Bigl\\{(n,k)\\in\\mathbb{N}^2 \\;:\\; 0<k,\\ \\ 2k\\le n,\\ \\ \\opera"
+     ],
+     [
+      421,
+      356,
+      false,
+      "prose",
+      "\\Bigl\\{(n,k)\\in\\mathbb{N}^2 \\;:\\; 0<k,\\ \\ 2k\\le n,\\ \\ \\opera"
+     ]
+    ],
+    "erdos-1094--h1": [
+     [
+      402,
+      386,
+      false,
+      "prose claim-math",
+      "\\forall k\\ge 1:\\quad \\Bigl\\{n\\in\\mathbb{N} \\;:\\; k^2\\le n,\\ "
+     ]
+    ],
+    "erdos-1094--h2": [
+     [
+      449,
+      386,
+      false,
+      "prose claim-math",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ k^2\\le n,\\"
+     ],
+     [
+      426,
+      373,
+      false,
+      "prose split-gloss",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ k^2\\le n<k"
+     ],
+     [
+      393,
+      373,
+      false,
+      "prose split-gloss",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ k^3\\le n,\\"
+     ],
+     [
+      393,
+      354,
+      false,
+      "prose gloss-prose",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ k^2\\le n,\\"
+     ],
+     [
+      393,
+      356,
+      false,
+      "prose",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ k^2\\le n,\\"
+     ]
+    ],
+    "erdos-1094--h2--h1": [
+     [
+      487,
+      386,
+      false,
+      "prose claim-math",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ k^2\\le n<k"
+     ],
+     [
+      398,
+      373,
+      false,
+      "prose split-gloss",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ 2k\\le n<k^"
+     ],
+     [
+      426,
+      354,
+      false,
+      "prose gloss-prose",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ k^2\\le n<k"
+     ],
+     [
+      426,
+      356,
+      false,
+      "prose",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ k^2\\le n<k"
+     ]
+    ],
+    "erdos-1094--h2--h1--h1": [
+     [
+      455,
+      386,
+      false,
+      "prose claim-math",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ 2k\\le n<k^"
+     ],
+     [
+      398,
+      354,
+      false,
+      "prose gloss-prose",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ 2k\\le n<k^"
+     ],
+     [
+      398,
+      356,
+      false,
+      "prose",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ 2k\\le n<k^"
+     ]
+    ],
+    "erdos-1094--h2--h2": [
+     [
+      449,
+      386,
+      false,
+      "prose claim-math",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ k^3\\le n,\\"
+     ],
+     [
+      393,
+      354,
+      false,
+      "prose gloss-prose",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ k^3\\le n,\\"
+     ],
+     [
+      393,
+      356,
+      false,
+      "prose",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ k^3\\le n,\\"
+     ]
+    ],
+    "erdos-1094--h3": [
+     [
+      455,
+      386,
+      false,
+      "prose claim-math",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ 2k\\le n<k^"
+     ],
+     [
+      526,
+      373,
+      false,
+      "prose split-gloss",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad K<k,\\ \\ 2k\\le n<k^"
+     ],
+     [
+      398,
+      373,
+      false,
+      "prose split-gloss",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ 2k\\le n<k^"
+     ],
+     [
+      398,
+      354,
+      false,
+      "prose gloss-prose",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ 2k\\le n<k^"
+     ],
+     [
+      398,
+      356,
+      false,
+      "prose",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ 2k\\le n<k^"
+     ]
+    ],
+    "erdos-1094--h3--h1": [
+     [
+      601,
+      386,
+      false,
+      "prose claim-math",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad K<k,\\ \\ 2k\\le n<k^"
+     ],
+     [
+      590,
+      373,
+      false,
+      "prose split-gloss",
+      "\\exists K_1\\ \\forall n,k\\in\\mathbb{N}:\\quad K_1<k,\\ \\ 2k\\le "
+     ],
+     [
+      634,
+      373,
+      false,
+      "prose split-gloss",
+      "\\exists K_2\\ \\forall n,k\\in\\mathbb{N}:\\quad K_2<k,\\ \\ 2k\\le "
+     ],
+     [
+      526,
+      354,
+      false,
+      "prose gloss-prose",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad K<k,\\ \\ 2k\\le n<k^"
+     ],
+     [
+      526,
+      356,
+      false,
+      "prose",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad K<k,\\ \\ 2k\\le n<k^"
+     ]
+    ],
+    "erdos-1094--h3--h1--h1": [
+     [
+      674,
+      386,
+      false,
+      "prose claim-math",
+      "\\exists K_1\\ \\forall n,k\\in\\mathbb{N}:\\quad K_1<k,\\ \\ 2k\\le "
+     ],
+     [
+      590,
+      354,
+      false,
+      "prose gloss-prose",
+      "\\exists K_1\\ \\forall n,k\\in\\mathbb{N}:\\quad K_1<k,\\ \\ 2k\\le "
+     ],
+     [
+      590,
+      356,
+      false,
+      "prose",
+      "\\exists K_1\\ \\forall n,k\\in\\mathbb{N}:\\quad K_1<k,\\ \\ 2k\\le "
+     ]
+    ],
+    "erdos-1094--h3--h1--h2": [
+     [
+      725,
+      386,
+      false,
+      "prose claim-math",
+      "\\exists K_2\\ \\forall n,k\\in\\mathbb{N}:\\quad K_2<k,\\ \\ 2k\\le "
+     ],
+     [
+      634,
+      354,
+      false,
+      "prose gloss-prose",
+      "\\exists K_2\\ \\forall n,k\\in\\mathbb{N}:\\quad K_2<k,\\ \\ 2k\\le "
+     ],
+     [
+      634,
+      356,
+      false,
+      "prose",
+      "\\exists K_2\\ \\forall n,k\\in\\mathbb{N}:\\quad K_2<k,\\ \\ 2k\\le "
+     ]
+    ]
+   }
+  },
+  "pages, folds open@1440": {
+   "formulas": 765,
+   "overflowing_cut_off": 2,
+   "overflowing_in_marked_scroll_box": 0,
+   "where": {
+    "erdos-1094--h3--h1--h1": [
+     [
+      800,
+      756,
+      false,
+      "prose claim-math",
+      "\\exists K_1\\ \\forall n,k\\in\\mathbb{N}:\\quad K_1<k,\\ \\ 2k\\le "
+     ]
+    ],
+    "erdos-1094--h3--h1--h2": [
+     [
+      860,
+      756,
+      false,
+      "prose claim-math",
+      "\\exists K_2\\ \\forall n,k\\in\\mathbb{N}:\\quad K_2<k,\\ \\ 2k\\le "
+     ]
+    ]
+   }
+  },
+  "panels@390": {
+   "formulas": 147,
+   "overflowing_cut_off": 20,
+   "overflowing_in_marked_scroll_box": 0,
+   "where": {
+    "erdos-1094": [
+     [
+      481,
+      323,
+      false,
+      "prose claim-math",
+      "\\Bigl\\{(n,k)\\in\\mathbb{N}^2 \\;:\\; 0<k,\\ \\ 2k\\le n,\\ \\ \\opera"
+     ],
+     [
+      351,
+      310,
+      false,
+      "prose split-gloss",
+      "\\forall k\\ge 1:\\quad \\Bigl\\{n\\in\\mathbb{N} \\;:\\; k^2\\le n,\\ "
+     ],
+     [
+      393,
+      310,
+      false,
+      "prose split-gloss",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ k^2\\le n,\\"
+     ],
+     [
+      398,
+      310,
+      false,
+      "prose split-gloss",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ 2k\\le n<k^"
+     ]
+    ],
+    "erdos-1094--h1": [
+     [
+      402,
+      323,
+      false,
+      "prose claim-math",
+      "\\forall k\\ge 1:\\quad \\Bigl\\{n\\in\\mathbb{N} \\;:\\; k^2\\le n,\\ "
+     ]
+    ],
+    "erdos-1094--h2": [
+     [
+      449,
+      323,
+      false,
+      "prose claim-math",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ k^2\\le n,\\"
+     ],
+     [
+      426,
+      310,
+      false,
+      "prose split-gloss",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ k^2\\le n<k"
+     ],
+     [
+      393,
+      310,
+      false,
+      "prose split-gloss",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ k^3\\le n,\\"
+     ]
+    ],
+    "erdos-1094--h2--h1": [
+     [
+      487,
+      323,
+      false,
+      "prose claim-math",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ k^2\\le n<k"
+     ],
+     [
+      398,
+      310,
+      false,
+      "prose split-gloss",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ 2k\\le n<k^"
+     ]
+    ],
+    "erdos-1094--h2--h1--h1": [
+     [
+      455,
+      323,
+      false,
+      "prose claim-math",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ 2k\\le n<k^"
+     ]
+    ],
+    "erdos-1094--h2--h2": [
+     [
+      449,
+      323,
+      false,
+      "prose claim-math",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ k^3\\le n,\\"
+     ]
+    ],
+    "erdos-1094--h3": [
+     [
+      455,
+      323,
+      false,
+      "prose claim-math",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ 2k\\le n<k^"
+     ],
+     [
+      526,
+      310,
+      false,
+      "prose split-gloss",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad K<k,\\ \\ 2k\\le n<k^"
+     ],
+     [
+      398,
+      310,
+      false,
+      "prose split-gloss",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ 2k\\le n<k^"
+     ]
+    ],
+    "erdos-1094--h3--h1": [
+     [
+      601,
+      323,
+      false,
+      "prose claim-math",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad K<k,\\ \\ 2k\\le n<k^"
+     ],
+     [
+      590,
+      310,
+      false,
+      "prose split-gloss",
+      "\\exists K_1\\ \\forall n,k\\in\\mathbb{N}:\\quad K_1<k,\\ \\ 2k\\le "
+     ],
+     [
+      634,
+      310,
+      false,
+      "prose split-gloss",
+      "\\exists K_2\\ \\forall n,k\\in\\mathbb{N}:\\quad K_2<k,\\ \\ 2k\\le "
+     ]
+    ],
+    "erdos-1094--h3--h1--h1": [
+     [
+      674,
+      323,
+      false,
+      "prose claim-math",
+      "\\exists K_1\\ \\forall n,k\\in\\mathbb{N}:\\quad K_1<k,\\ \\ 2k\\le "
+     ]
+    ],
+    "erdos-1094--h3--h1--h2": [
+     [
+      725,
+      323,
+      false,
+      "prose claim-math",
+      "\\exists K_2\\ \\forall n,k\\in\\mathbb{N}:\\quad K_2<k,\\ \\ 2k\\le "
+     ]
+    ]
+   }
+  },
+  "panels, folds open@390": {
+   "formulas": 388,
+   "overflowing_cut_off": 40,
+   "overflowing_in_marked_scroll_box": 0,
+   "where": {
+    "erdos-1094": [
+     [
+      481,
+      323,
+      false,
+      "prose claim-math",
+      "\\Bigl\\{(n,k)\\in\\mathbb{N}^2 \\;:\\; 0<k,\\ \\ 2k\\le n,\\ \\ \\opera"
+     ],
+     [
+      351,
+      310,
+      false,
+      "prose split-gloss",
+      "\\forall k\\ge 1:\\quad \\Bigl\\{n\\in\\mathbb{N} \\;:\\; k^2\\le n,\\ "
+     ],
+     [
+      393,
+      310,
+      false,
+      "prose split-gloss",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ k^2\\le n,\\"
+     ],
+     [
+      398,
+      310,
+      false,
+      "prose split-gloss",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ 2k\\le n<k^"
+     ],
+     [
+      421,
+      296,
+      false,
+      "prose gloss-prose",
+      "\\Bigl\\{(n,k)\\in\\mathbb{N}^2 \\;:\\; 0<k,\\ \\ 2k\\le n,\\ \\ \\opera"
+     ],
+     [
+      421,
+      292,
+      false,
+      "prose",
+      "\\Bigl\\{(n,k)\\in\\mathbb{N}^2 \\;:\\; 0<k,\\ \\ 2k\\le n,\\ \\ \\opera"
+     ]
+    ],
+    "erdos-1094--h1": [
+     [
+      402,
+      323,
+      false,
+      "prose claim-math",
+      "\\forall k\\ge 1:\\quad \\Bigl\\{n\\in\\mathbb{N} \\;:\\; k^2\\le n,\\ "
+     ],
+     [
+      351,
+      296,
+      false,
+      "prose gloss-prose",
+      "\\forall k\\ge 1:\\quad \\Bigl\\{n\\in\\mathbb{N} \\;:\\; k^2\\le n,\\ "
+     ],
+     [
+      351,
+      292,
+      false,
+      "prose",
+      "\\forall k\\ge 1:\\quad \\Bigl\\{n\\in\\mathbb{N} \\;:\\; k^2\\le n,\\ "
+     ]
+    ],
+    "erdos-1094--h2": [
+     [
+      449,
+      323,
+      false,
+      "prose claim-math",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ k^2\\le n,\\"
+     ],
+     [
+      426,
+      310,
+      false,
+      "prose split-gloss",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ k^2\\le n<k"
+     ],
+     [
+      393,
+      310,
+      false,
+      "prose split-gloss",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ k^3\\le n,\\"
+     ],
+     [
+      393,
+      296,
+      false,
+      "prose gloss-prose",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ k^2\\le n,\\"
+     ],
+     [
+      393,
+      292,
+      false,
+      "prose",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ k^2\\le n,\\"
+     ]
+    ],
+    "erdos-1094--h2--h1": [
+     [
+      487,
+      323,
+      false,
+      "prose claim-math",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ k^2\\le n<k"
+     ],
+     [
+      398,
+      310,
+      false,
+      "prose split-gloss",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ 2k\\le n<k^"
+     ],
+     [
+      426,
+      296,
+      false,
+      "prose gloss-prose",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ k^2\\le n<k"
+     ],
+     [
+      426,
+      292,
+      false,
+      "prose",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ k^2\\le n<k"
+     ]
+    ],
+    "erdos-1094--h2--h1--h1": [
+     [
+      455,
+      323,
+      false,
+      "prose claim-math",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ 2k\\le n<k^"
+     ],
+     [
+      398,
+      296,
+      false,
+      "prose gloss-prose",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ 2k\\le n<k^"
+     ],
+     [
+      398,
+      292,
+      false,
+      "prose",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ 2k\\le n<k^"
+     ]
+    ],
+    "erdos-1094--h2--h2": [
+     [
+      449,
+      323,
+      false,
+      "prose claim-math",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ k^3\\le n,\\"
+     ],
+     [
+      393,
+      296,
+      false,
+      "prose gloss-prose",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ k^3\\le n,\\"
+     ],
+     [
+      393,
+      292,
+      false,
+      "prose",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ k^3\\le n,\\"
+     ]
+    ],
+    "erdos-1094--h3": [
+     [
+      455,
+      323,
+      false,
+      "prose claim-math",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ 2k\\le n<k^"
+     ],
+     [
+      526,
+      310,
+      false,
+      "prose split-gloss",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad K<k,\\ \\ 2k\\le n<k^"
+     ],
+     [
+      398,
+      310,
+      false,
+      "prose split-gloss",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ 2k\\le n<k^"
+     ],
+     [
+      398,
+      296,
+      false,
+      "prose gloss-prose",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ 2k\\le n<k^"
+     ],
+     [
+      398,
+      292,
+      false,
+      "prose",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ 2k\\le n<k^"
+     ]
+    ],
+    "erdos-1094--h3--h1": [
+     [
+      601,
+      323,
+      false,
+      "prose claim-math",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad K<k,\\ \\ 2k\\le n<k^"
+     ],
+     [
+      590,
+      310,
+      false,
+      "prose split-gloss",
+      "\\exists K_1\\ \\forall n,k\\in\\mathbb{N}:\\quad K_1<k,\\ \\ 2k\\le "
+     ],
+     [
+      634,
+      310,
+      false,
+      "prose split-gloss",
+      "\\exists K_2\\ \\forall n,k\\in\\mathbb{N}:\\quad K_2<k,\\ \\ 2k\\le "
+     ],
+     [
+      526,
+      296,
+      false,
+      "prose gloss-prose",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad K<k,\\ \\ 2k\\le n<k^"
+     ],
+     [
+      526,
+      292,
+      false,
+      "prose",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad K<k,\\ \\ 2k\\le n<k^"
+     ]
+    ],
+    "erdos-1094--h3--h1--h1": [
+     [
+      674,
+      323,
+      false,
+      "prose claim-math",
+      "\\exists K_1\\ \\forall n,k\\in\\mathbb{N}:\\quad K_1<k,\\ \\ 2k\\le "
+     ],
+     [
+      590,
+      296,
+      false,
+      "prose gloss-prose",
+      "\\exists K_1\\ \\forall n,k\\in\\mathbb{N}:\\quad K_1<k,\\ \\ 2k\\le "
+     ],
+     [
+      590,
+      292,
+      false,
+      "prose",
+      "\\exists K_1\\ \\forall n,k\\in\\mathbb{N}:\\quad K_1<k,\\ \\ 2k\\le "
+     ]
+    ],
+    "erdos-1094--h3--h1--h2": [
+     [
+      725,
+      323,
+      false,
+      "prose claim-math",
+      "\\exists K_2\\ \\forall n,k\\in\\mathbb{N}:\\quad K_2<k,\\ \\ 2k\\le "
+     ],
+     [
+      634,
+      296,
+      false,
+      "prose gloss-prose",
+      "\\exists K_2\\ \\forall n,k\\in\\mathbb{N}:\\quad K_2<k,\\ \\ 2k\\le "
+     ],
+     [
+      634,
+      292,
+      false,
+      "prose",
+      "\\exists K_2\\ \\forall n,k\\in\\mathbb{N}:\\quad K_2<k,\\ \\ 2k\\le "
+     ]
+    ]
+   }
+  },
+  "pages, folds open@390": {
+   "formulas": 765,
+   "overflowing_cut_off": 40,
+   "overflowing_in_marked_scroll_box": 0,
+   "where": {
+    "erdos-1094": [
+     [
+      571,
+      356,
+      false,
+      "prose claim-math",
+      "\\Bigl\\{(n,k)\\in\\mathbb{N}^2 \\;:\\; 0<k,\\ \\ 2k\\le n,\\ \\ \\opera"
+     ],
+     [
+      351,
+      343,
+      false,
+      "prose split-gloss",
+      "\\forall k\\ge 1:\\quad \\Bigl\\{n\\in\\mathbb{N} \\;:\\; k^2\\le n,\\ "
+     ],
+     [
+      393,
+      343,
+      false,
+      "prose split-gloss",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ k^2\\le n,\\"
+     ],
+     [
+      398,
+      343,
+      false,
+      "prose split-gloss",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ 2k\\le n<k^"
+     ],
+     [
+      421,
+      330,
+      false,
+      "prose gloss-prose",
+      "\\Bigl\\{(n,k)\\in\\mathbb{N}^2 \\;:\\; 0<k,\\ \\ 2k\\le n,\\ \\ \\opera"
+     ],
+     [
+      391,
+      326,
+      false,
+      "prose",
+      "\\Bigl\\{(n,k)\\in\\mathbb{N}^2 \\;:\\; 0<k,\\ \\ 2k\\le n,\\ \\ \\opera"
+     ]
+    ],
+    "erdos-1094--h1": [
+     [
+      477,
+      356,
+      false,
+      "prose claim-math",
+      "\\forall k\\ge 1:\\quad \\Bigl\\{n\\in\\mathbb{N} \\;:\\; k^2\\le n,\\ "
+     ],
+     [
+      355,
+      319,
+      false,
+      "",
+      "\\forall k\\ge 1:\\quad k^2\\le n,\\ \\ \\operatorname{lpf}\\tbinom{"
+     ],
+     [
+      351,
+      330,
+      false,
+      "prose gloss-prose",
+      "\\forall k\\ge 1:\\quad \\Bigl\\{n\\in\\mathbb{N} \\;:\\; k^2\\le n,\\ "
+     ]
+    ],
+    "erdos-1094--h2": [
+     [
+      533,
+      356,
+      false,
+      "prose claim-math",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ k^2\\le n,\\"
+     ],
+     [
+      426,
+      343,
+      false,
+      "prose split-gloss",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ k^2\\le n<k"
+     ],
+     [
+      393,
+      343,
+      false,
+      "prose split-gloss",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ k^3\\le n,\\"
+     ],
+     [
+      393,
+      330,
+      false,
+      "prose gloss-prose",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ k^2\\le n,\\"
+     ],
+     [
+      365,
+      326,
+      false,
+      "prose",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ k^2\\le n,\\"
+     ]
+    ],
+    "erdos-1094--h2--h1": [
+     [
+      578,
+      356,
+      false,
+      "prose claim-math",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ k^2\\le n<k"
+     ],
+     [
+      398,
+      343,
+      false,
+      "prose split-gloss",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ 2k\\le n<k^"
+     ],
+     [
+      426,
+      330,
+      false,
+      "prose gloss-prose",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ k^2\\le n<k"
+     ],
+     [
+      396,
+      326,
+      false,
+      "prose",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ k^2\\le n<k"
+     ]
+    ],
+    "erdos-1094--h2--h1--h1": [
+     [
+      541,
+      356,
+      false,
+      "prose claim-math",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ 2k\\le n<k^"
+     ],
+     [
+      398,
+      330,
+      false,
+      "prose gloss-prose",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ 2k\\le n<k^"
+     ],
+     [
+      370,
+      326,
+      false,
+      "prose",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ 2k\\le n<k^"
+     ]
+    ],
+    "erdos-1094--h2--h2": [
+     [
+      533,
+      356,
+      false,
+      "prose claim-math",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ k^3\\le n,\\"
+     ],
+     [
+      393,
+      330,
+      false,
+      "prose gloss-prose",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ k^3\\le n,\\"
+     ],
+     [
+      365,
+      326,
+      false,
+      "prose",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ k^3\\le n,\\"
+     ]
+    ],
+    "erdos-1094--h3": [
+     [
+      541,
+      356,
+      false,
+      "prose claim-math",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ 2k\\le n<k^"
+     ],
+     [
+      526,
+      343,
+      false,
+      "prose split-gloss",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad K<k,\\ \\ 2k\\le n<k^"
+     ],
+     [
+      398,
+      343,
+      false,
+      "prose split-gloss",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ 2k\\le n<k^"
+     ],
+     [
+      398,
+      330,
+      false,
+      "prose gloss-prose",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ 2k\\le n<k^"
+     ],
+     [
+      370,
+      326,
+      false,
+      "prose",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ 2k\\le n<k^"
+     ]
+    ],
+    "erdos-1094--h3--h1": [
+     [
+      714,
+      356,
+      false,
+      "prose claim-math",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad K<k,\\ \\ 2k\\le n<k^"
+     ],
+     [
+      590,
+      343,
+      false,
+      "prose split-gloss",
+      "\\exists K_1\\ \\forall n,k\\in\\mathbb{N}:\\quad K_1<k,\\ \\ 2k\\le "
+     ],
+     [
+      634,
+      343,
+      false,
+      "prose split-gloss",
+      "\\exists K_2\\ \\forall n,k\\in\\mathbb{N}:\\quad K_2<k,\\ \\ 2k\\le "
+     ],
+     [
+      526,
+      330,
+      false,
+      "prose gloss-prose",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad K<k,\\ \\ 2k\\le n<k^"
+     ],
+     [
+      488,
+      326,
+      false,
+      "prose",
+      "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad K<k,\\ \\ 2k\\le n<k^"
+     ]
+    ],
+    "erdos-1094--h3--h1--h1": [
+     [
+      800,
+      356,
+      false,
+      "prose claim-math",
+      "\\exists K_1\\ \\forall n,k\\in\\mathbb{N}:\\quad K_1<k,\\ \\ 2k\\le "
+     ],
+     [
+      590,
+      330,
+      false,
+      "prose gloss-prose",
+      "\\exists K_1\\ \\forall n,k\\in\\mathbb{N}:\\quad K_1<k,\\ \\ 2k\\le "
+     ],
+     [
+      548,
+      326,
+      false,
+      "prose",
+      "\\exists K_1\\ \\forall n,k\\in\\mathbb{N}:\\quad K_1<k,\\ \\ 2k\\le "
+     ]
+    ],
+    "erdos-1094--h3--h1--h2": [
+     [
+      860,
+      356,
+      false,
+      "prose claim-math",
+      "\\exists K_2\\ \\forall n,k\\in\\mathbb{N}:\\quad K_2<k,\\ \\ 2k\\le "
+     ],
+     [
+      634,
+      330,
+      false,
+      "prose gloss-prose",
+      "\\exists K_2\\ \\forall n,k\\in\\mathbb{N}:\\quad K_2<k,\\ \\ 2k\\le "
+     ],
+     [
+      589,
+      326,
+      false,
+      "prose",
+      "\\exists K_2\\ \\forall n,k\\in\\mathbb{N}:\\quad K_2<k,\\ \\ 2k\\le "
+     ]
+    ]
+   }
+  }
+ }
+}
