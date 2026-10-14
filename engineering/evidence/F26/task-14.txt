@@ -89,3 +89,10 @@ RED  uv run pytest gate/tests/test_review_job.py -k "track or screen"
      FAILED test_a_root_off_the_open_track_is_not_discarded_for_being_provable[None]
      2 failed, 4 passed (the open-track and False-screen tests pin what must not change)
 GREEN review job, questions, pairs, mutants, post-merge review: 51 passed.
+Local rerun at f1e304c2 (same worktree cleaned, the pinned plain image):
+  review run --target tutorial --sandbox: exit 0 in 0:43, sandboxed, 16 elaborations;
+  candidate c-749fdf49 surviving, one cluster; exhibits: compile pass, screen negation pass,
+  screen false pass (no statement screen), four mutants pass (∧→∨ twice, ∀→∃, a hypothesis
+  dropped) with "every test passes and no case checked tells it from the representative";
+  state_of -> needs-intent-signer, surviving 1, clusters 1, questions_waiting 4, grade_cap
+  screened-and-signed. The questions are the designed answer to a review with no intent tests.
