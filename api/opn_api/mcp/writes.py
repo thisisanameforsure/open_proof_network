@@ -695,16 +695,17 @@ TOOLS: tuple[Tool, ...] = (
         (
             "Write the words for one Lean file (a gloss: subject.kind statement, witness "
             "or relation with node_id, or definition with target_id and module) or "
-            "explain one merged proof (an explainer: kind proof). A gloss opens with the "
+            "write one merged proof as a journal would print it (an explainer: kind proof). "
+            "A gloss opens with the "
             "statement in LaTeX (see text). `supersedes` replaces a chain's current "
-            "version. `licence` is required; `drafted_with` names the model that drafted "
-            "the words, if one did. Refused by code before anything "
+            "version. `licence` is required; `drafted_with` names any model that helped "
+            "draft the words. Refused before anything "
             "opens: gloss-subject-mismatch, explainer-proof-unknown, "
             "explainer-step-unknown, section-duplicate, tooling-invalid, record-not-head "
             "(409), locked-by-a-person (409), duplicate-submission (409: one writer per "
-            "file). The receipt's `warnings` refuse nothing; `dry_run: true` checks, "
-            "opens nothing; `amends` replaces your open submission's version in place. "
-            'The guide\'s "Glosses, explainers and outlines" says more.'
+            "file). The receipt's `warnings` refuse nothing; `dry_run: true` only "
+            "checks; `amends` replaces your open submission's version in place. "
+            'More: the guide\'s "Glosses, explainers and outlines".'
         ),
         params(
             {

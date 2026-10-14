@@ -129,9 +129,10 @@ def test_an_unproved_statement_is_not_invited_to_explain_a_proof(
     _site, pages = built
     page = pages[f"nodes/{TARGET}/{fixture.HOLE}/index.html"]
     assert "No explainer yet." in page
-    assert "account of this proof" not in page and "until this statement is proved" in page
+    invitation = "This proof written as a journal would print it"
+    assert invitation not in page and "until this statement is proved" in page
     proved = pages[f"nodes/{TARGET}/and-reassoc/index.html"]
-    assert "account of this proof" in proved and "by pull request" in proved
+    assert invitation in proved and "by pull request" in proved
 
 
 def test_the_statement_page_leads_to_the_guide_and_the_pull_requests_in_flight(
