@@ -131,3 +131,21 @@ LEAN uv run pytest -m lean gate/tests/test_review_job_lean.py -k graphs_modules
      with the fix: 1 passed (61 s); with main's review_job.py and review_lean.py:
      AssertionError: assert 'discarded' == 'surviving'.
 Local fast tier: 6227 passed, 3 failed (the stale sibling graph copy; the laptop's Cursor CLI, twice). make lint 0, make types 0.
+
+== 2026-10-14: Q21 live, and AC18 ==
+13. PR #47 merged (15d1d464, CI 38554628433 all tiers success; main also carries #45, F04-T51).
+    Tag gate-15d1d46, image-publish 38564980431:
+      plain   ghcr.io/thisisanameforsure/opn-gate@sha256:18ce3f0f793be2747288ebc4e36f33094b9bcc5072298af2e5433b65a770d8fb
+      mathlib ghcr.io/thisisanameforsure/opn-gate@sha256:20223cc027156d024d9492c1a896ef5d17f67594f0464522975c7c30e0dc492f
+    Graph 1cc1e950b on b9d8308c7: 27 pins; pregate tutorial pass; trial render frontier 62/56 same
+    ids. Pushed; render ac8130e13.
+14. The owner's word on the false exhibit ("you can delete it"): curator commit bae0f8354 removes
+    targets/euclid-primes/review/exhibits/e-ebe0796b.json (compile fail, run 38541453841, written
+    in b5b2976f1); the message names Q21 and says a revert restores it.
+15. review.yml, euclid-primes (run 38567192367, 174 s): 466c11deb "gate: review 15d1d4647b94";
+    c-5b109e7f surviving, 11 elaborations, sandboxed; exhibits: compile pass, screen negation
+    pass, screen false pass (no statement screen: Q20), four mutants pass; review
+    needs-intent-signer with 4 questions.
+AC18, read off targets/index.json at 466c11deb: 27 reviews, 26 needs-intent-signer and 1 complete
+(riemann-hypothesis, no question raised); 27 candidates surviving; 191 questions waiting, 2 to 16
+per target. None is tracked (tracking: null), so the nightly notice has no issue to post them on.
