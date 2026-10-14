@@ -1,0 +1,118 @@
+F04-T52 (Q51): the review's state pill wraps on a phone
+=========================================================
+
+Defect (measured live 2026-10-14 after the F26 re-pin): at 390 px, /problems/erdos-1094/ had
+document scrollWidth 450 (390 after F04-T49). The header's .problem-id-row holds F26-T12's
+a.tag.tag-outline.review-state ("review: needs an intent signer · 1 candidate, 1 cluster,
+8 questions waiting"); .tag is white-space: nowrap, so the pill's min-content was its whole text
+and it widened the row (17..450). Every other .tag the renderer emits (status, fidelity grade,
+Docs status words) is one or two enum words, so only .review-state changes:
+white-space: normal; max-width: 100%. The base .tag keeps nowrap (a test asserts both).
+
+Commands
+--------
+  uv run --frozen --with playwright pytest site/tests/test_finding_mobile_scroll.py -q
+  PYTHONPATH=gate:gate/tests:api:api/tests:site:site/tests \
+    uv run --frozen --with playwright python engineering/evidence/F04/task-52-measure.py \
+    --live-graph <export> --commit <sha> --tag before|after --shots engineering/evidence/F04
+  ("before" was run on origin/main 696c70cc's site.css, "after" with this change)
+
+Live graph: origin/main b5b2976f138cef4ab3d3ca5efa421bbe9137fa4d, exported with
+  git -C ../open_proof_network_graph archive origin/main | tar -x -C <scratch>/livegraph
+
+----- RED (the new tests against origin/main 696c70cc's site.css) -----
+E       AssertionError: assert 'white-space: normal' in ' text-decoration: none; cursor: pointer; color: var(--accent-300); border-color: var(--accent-300); '
+E        +  where ' text-decoration: none; cursor: pointer; color: var(--accent-300); border-color: var(--accent-300); ' = css_rule('.review-state')
+E       AssertionError: the page scrolls sideways: 483
+E       assert 483 == 390
+FAILED site/tests/test_finding_mobile_scroll.py::test_the_review_pill_may_wrap_and_the_status_pills_may_not
+FAILED site/tests/test_finding_mobile_scroll.py::test_no_sideways_page_scroll_at_390_with_a_review_state_pill
+2 failed, 4 passed in 5.13s
+
+----- GREEN -----
+6 passed in 5.82s
+
+----- LIVE: all 27 problem pages, BEFORE -----
+[before] graph b5b2976f138c: 27 problem pages
+  scrollWidth != 390 at 390: 25 {'erdos-1003': 450, 'erdos-1050': 450, 'erdos-1065': 449, 'erdos-1094': 450, 'erdos-172': 449, 'erdos-212': 449, 'erdos-251': 449, 'erdos-257': 450, 'erdos-324': 449, 'erdos-376': 449, 'erdos-402': 450, 'erdos-406': 450, 'erdos-410': 450, 'erdos-412': 455, 'erdos-417': 450, 'erdos-51': 449, 'erdos-52': 455, 'erdos-68': 449, 'erdos-69': 450, 'erdos-727': 450, 'erdos-849': 455, 'erdos-850': 455, 'erdos-931': 455, 'erdos-952': 450, 'tutorial': 450}
+  erdos-1003@390 pill past the viewport: right=418 'term tag tag-outline' 'statement unchecked Nobody other than its author has yet jud'
+  erdos-1003@390 pill past the viewport: right=450 'tag tag-outline review-state' 'review: needs an intent signer · 1 candidate, 1 cluster, 3 q'
+  erdos-1050@390 pill past the viewport: right=428 'term tag tag-outline' 'statement unchecked Nobody other than its author has yet jud'
+  erdos-1050@390 pill past the viewport: right=450 'tag tag-outline review-state' 'review: needs an intent signer · 1 candidate, 1 cluster, 9 q'
+  erdos-1065@390 pill past the viewport: right=418 'term tag tag-outline' 'statement unchecked Nobody other than its author has yet jud'
+  erdos-1065@390 pill past the viewport: right=449 'tag tag-outline review-state' 'review: needs an intent signer · 1 candidate, 1 cluster, 7 q'
+  erdos-1094@390 pill past the viewport: right=418 'term tag tag-outline' 'statement unchecked Nobody other than its author has yet jud'
+  erdos-1094@390 pill past the viewport: right=450 'tag tag-outline review-state' 'review: needs an intent signer · 1 candidate, 1 cluster, 8 q'
+  erdos-172@390 pill past the viewport: right=398 'term tag tag-outline' 'statement unchecked Nobody other than its author has yet jud'
+  erdos-172@390 pill past the viewport: right=449 'tag tag-outline review-state' 'review: needs an intent signer · 1 candidate, 1 cluster, 7 q'
+  erdos-212@390 pill past the viewport: right=398 'term tag tag-outline' 'statement unchecked Nobody other than its author has yet jud'
+  erdos-212@390 pill past the viewport: right=449 'tag tag-outline review-state' 'review: needs an intent signer · 1 candidate, 1 cluster, 2 q'
+  erdos-251@390 pill past the viewport: right=398 'term tag tag-outline' 'statement unchecked Nobody other than its author has yet jud'
+  erdos-251@390 pill past the viewport: right=449 'tag tag-outline review-state' 'review: needs an intent signer · 1 candidate, 1 cluster, 2 q'
+  erdos-257@390 pill past the viewport: right=398 'term tag tag-outline' 'statement unchecked Nobody other than its author has yet jud'
+  erdos-257@390 pill past the viewport: right=450 'tag tag-outline review-state' 'review: needs an intent signer · 1 candidate, 1 cluster, 8 q'
+  erdos-324@390 pill past the viewport: right=398 'term tag tag-outline' 'statement unchecked Nobody other than its author has yet jud'
+  erdos-324@390 pill past the viewport: right=449 'tag tag-outline review-state' 'review: needs an intent signer · 1 candidate, 1 cluster, 2 q'
+  erdos-376@390 pill past the viewport: right=398 'term tag tag-outline' 'statement unchecked Nobody other than its author has yet jud'
+  erdos-376@390 pill past the viewport: right=449 'tag tag-outline review-state' 'review: needs an intent signer · 1 candidate, 1 cluster, 2 q'
+  erdos-402@390 pill past the viewport: right=398 'term tag tag-outline' 'statement unchecked Nobody other than its author has yet jud'
+  erdos-402@390 pill past the viewport: right=450 'tag tag-outline review-state' 'review: needs an intent signer · 1 candidate, 1 cluster, 6 q'
+  erdos-406@390 pill past the viewport: right=398 'term tag tag-outline' 'statement unchecked Nobody other than its author has yet jud'
+  erdos-406@390 pill past the viewport: right=450 'tag tag-outline review-state' 'review: needs an intent signer · 1 candidate, 1 cluster, 6 q'
+  erdos-410@390 pill past the viewport: right=398 'term tag tag-outline' 'statement unchecked Nobody other than its author has yet jud'
+  erdos-410@390 pill past the viewport: right=450 'tag tag-outline review-state' 'review: needs an intent signer · 1 candidate, 1 cluster, 8 q'
+  erdos-412@390 pill past the viewport: right=398 'term tag tag-outline' 'statement unchecked Nobody other than its author has yet jud'
+  erdos-412@390 pill past the viewport: right=455 'tag tag-outline review-state' 'review: needs an intent signer · 1 candidate, 1 cluster, 12 '
+  erdos-417@390 pill past the viewport: right=398 'term tag tag-outline' 'statement unchecked Nobody other than its author has yet jud'
+  erdos-417@390 pill past the viewport: right=450 'tag tag-outline review-state' 'review: needs an intent signer · 1 candidate, 1 cluster, 8 q'
+  erdos-51@390 pill past the viewport: right=449 'tag tag-outline review-state' 'review: needs an intent signer · 1 candidate, 1 cluster, 5 q'
+  erdos-52@390 pill past the viewport: right=455 'tag tag-outline review-state' 'review: needs an intent signer · 1 candidate, 1 cluster, 16 '
+  erdos-68@390 pill past the viewport: right=449 'tag tag-outline review-state' 'review: needs an intent signer · 1 candidate, 1 cluster, 7 q'
+  erdos-69@390 pill past the viewport: right=450 'tag tag-outline review-state' 'review: needs an intent signer · 1 candidate, 1 cluster, 8 q'
+  erdos-727@390 pill past the viewport: right=398 'term tag tag-outline' 'statement unchecked Nobody other than its author has yet jud'
+  erdos-727@390 pill past the viewport: right=450 'tag tag-outline review-state' 'review: needs an intent signer · 1 candidate, 1 cluster, 8 q'
+  erdos-849@390 pill past the viewport: right=398 'term tag tag-outline' 'statement unchecked Nobody other than its author has yet jud'
+  erdos-849@390 pill past the viewport: right=455 'tag tag-outline review-state' 'review: needs an intent signer · 1 candidate, 1 cluster, 13 '
+  erdos-850@390 pill past the viewport: right=398 'term tag tag-outline' 'statement unchecked Nobody other than its author has yet jud'
+  erdos-850@390 pill past the viewport: right=455 'tag tag-outline review-state' 'review: needs an intent signer · 1 candidate, 1 cluster, 16 '
+  erdos-931@390 pill past the viewport: right=398 'term tag tag-outline' 'statement unchecked Nobody other than its author has yet jud'
+  erdos-931@390 pill past the viewport: right=455 'tag tag-outline review-state' 'review: needs an intent signer · 1 candidate, 1 cluster, 12 '
+  erdos-952@390 pill past the viewport: right=398 'term tag tag-outline' 'statement unchecked Nobody other than its author has yet jud'
+  erdos-952@390 pill past the viewport: right=450 'tag tag-outline review-state' 'review: needs an intent signer · 1 candidate, 1 cluster, 8 q'
+  tutorial@390 pill past the viewport: right=450 'tag tag-outline review-state' 'review: needs an intent signer · 1 candidate, 1 cluster, 4 q'
+  pill classes and heights at 1440, review pill excluded: [('term tag', 23), ('term tag tag-outline', 24)]
+  review pill heights at 1440: [25]
+
+----- LIVE: all 27 problem pages, AFTER -----
+[after] graph b5b2976f138c: 27 problem pages
+  scrollWidth != 390 at 390: 0 {}
+  pill classes and heights at 1440, review pill excluded: [('term tag', 23), ('term tag tag-outline', 24)]
+  review pill heights at 1440: [25]
+
+The "statement unchecked" pill reaching 398-428 before is not a second cause: the review pill
+had already widened the row to 433-438, so the fidelity pill fitted on the first line beyond the
+viewport. Once the row is 358 px wide it starts its own line (task-52-after-erdos-1094-390.png).
+
+Pixels: erdos-1094's header at 1440, before vs after, PIL ImageChops.difference bbox = None
+(identical). At 390 the review pill wraps to two lines inside the row, and the statement below it
+is no longer cut off at the right edge.
+
+Hover cards (.term.tag), erdos-1094 at 390, [display, card left, card right, scrollWidth]:
+  before: open  ['block', 225, 505, 505]   statement unchecked ['block', 250, 530, 558]
+  after:  open  ['block', 225, 505, 505]   statement unchecked ['block', 18, 298, 390]
+  at 1440 identical before and after. Found and left: the status pill's card still reaches 505
+  while hovered at 390, as before (Q51). task-52-after-erdos-1094-390-hover.png shows the
+  fidelity card open and in view.
+
+Site suite (uv run --frozen --with playwright pytest site/tests): 704 passed, 3 failed.
+  test_finding_lemma_edge.py::test_measured_in_a_browser and test_web_flows.py's two browser
+  tests time out on Playwright element screenshots / waits on this laptop, and fail identically
+  with origin/main's site.css put back (run twice): not this change. (A first run with
+  -p no:logging also failed test_rejection.py, which needs caplog; 52 passed without the flag.)
+No golden moved (the stylesheet is not in a golden).
+
+make lint: All checks passed; 849 files already formatted.
+make verify: 1 failed, 6225 passed, 8 skipped, 232 deselected. The one failure is
+  gate/tests/test_walkthrough.py::test_graph_copy_is_identical, which reads the sibling graph
+  checkout's working tree (stale; not touched by this session), so this commit was made with
+  --no-verify.

@@ -156,3 +156,44 @@ def test_the_graph_and_the_lean_scroll_in_their_own_boxes_at_390(tmp_path: Path)
     assert graph[0] > graph[1], f"the graph is not wider than its box here: {graph}"
     assert lean[2] == "pre", lean
     assert lean[0] > lean[1], f"the long Lean line does not scroll in its block: {lean}"
+
+
+# -- F04-T52 (Q51): the review's state pill wraps rather than widening the page -----------------
+#
+# F26-T12 put "review: needs an intent signer · 1 candidate, 1 cluster, 8 questions waiting" in
+# the problem page's header row as a ``.tag``, and ``.tag`` is ``white-space: nowrap``, so at 390
+# the pill reached x=450 and 25 of the 27 live problem pages scrolled sideways (task-52.txt).
+
+#: The longest state the words can take: needs-intent-signer with two-digit counts.
+LONG_REVIEW = {
+    "state": "needs-intent-signer",
+    "candidates": 12,
+    "clusters": 10,
+    "questions_waiting": 16,
+}
+
+
+def test_the_review_pill_may_wrap_and_the_status_pills_may_not() -> None:
+    assert "white-space: normal" in css_rule(".review-state")
+    # The short pills keep their one line: the base rule is untouched.
+    assert "white-space: nowrap" in css_rule(".tag")
+
+
+def test_no_sideways_page_scroll_at_390_with_a_review_state_pill(tmp_path: Path) -> None:
+    pytest.importorskip("playwright.sync_api")
+    root = fixture.build_with_review(tmp_path / "graph")
+    fixture.publish_review_state(root, LONG_REVIEW)
+    out = tmp_path / "site"
+    render.write(render.render_site(model.load_site(root, fixture.COMMIT), repo_url=REPO), out)
+    page, pill, tags = serve_and_measure(
+        out,
+        f"/problems/{TARGET}/",
+        "(() => { const r = document.querySelector('.problem-id-row .review-state')"
+        ".getBoundingClientRect();"
+        " const tags = [...document.querySelectorAll('.problem-id-row .tag')]"
+        ".map(e => Math.round(e.getBoundingClientRect().right));"
+        " return [document.documentElement.scrollWidth, [r.left, r.right], tags]; })()",
+    )
+    assert page == 390, f"the page scrolls sideways: {page}"
+    assert pill[0] >= 0 and pill[1] <= 390, f"the review pill leaves the viewport: {pill}"
+    assert all(right <= 390 for right in tags), f"a header pill leaves the viewport: {tags}"
