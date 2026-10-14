@@ -82,3 +82,10 @@ Local, before any push (graph worktree at 560adb44a, docker, the pinned plain im
                    candidate is not the open conjecture as stated"
   state_of -> open, candidates 1, surviving 0: the tutorial's root is discarded by the screen
   meant for an open conjecture that is accidentally trivial. Question for the owner (below).
+8. The owner's ruling on the question (2026-10-14): "Skip that screen there". F26-Q20.
+RED  uv run pytest gate/tests/test_review_job.py -k "track or screen"
+     FAILED test_a_root_off_the_open_track_is_not_discarded_for_being_provable[formalization]
+       AssertionError: assert 'discarded' == 'surviving'
+     FAILED test_a_root_off_the_open_track_is_not_discarded_for_being_provable[None]
+     2 failed, 4 passed (the open-track and False-screen tests pin what must not change)
+GREEN review job, questions, pairs, mutants, post-merge review: 51 passed.

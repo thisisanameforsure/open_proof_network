@@ -127,6 +127,8 @@ class Job:
     raised: list[str] = field(default_factory=list)
     tests_written: list[str] = field(default_factory=list)
     mutants: dict[str, Any] = field(default_factory=dict)
+    #: the screens stage 3 runs, in order (F26-Q20: ``statement`` only on an open conjecture)
+    screens: tuple[str, ...] = ("statement", "negation", "false")
 
     @property
     def base(self) -> Path:
@@ -447,7 +449,7 @@ def filter_candidate(job: Job, cid: str) -> str:  # noqa: PLR0911 — one return
     if _compile(job, c) != "pass":
         return review.DISCARDED if _fate(job, cid) == review.DISCARDED else review.SURVIVING
     tables = survey(job, c)
-    for which in ("statement", "negation", "false"):
+    for which in job.screens:
         if _screen(job, c, which, tables) == "fail":
             return review.DISCARDED
     for tid in sorted(job.tests):
@@ -600,6 +602,23 @@ class Settings:
     mutant_cap: int = 200
 
 
+def asks_statement_screen(target_dir: Path, head: dict[str, Any]) -> bool:
+    """The statement screen discards a candidate the bounded tactics prove, which catches an open
+    conjecture formalized too weakly. It runs where the root is an open conjecture: a review opened
+    from a proposal, or a review of an existing target whose record is on the open track. A root
+    already proved (the tutorial, which has no record; a formalization-track target) is not a
+    conjecture, and a proof of it is a fact, not a defect (F26-Q20; the owner's ruling,
+    2026-10-14). The negation and False screens run everywhere."""
+    source = head.get("source")
+    if not isinstance(source, dict) or source.get("kind") != "existing":
+        return True
+    record = target_dir / "target.yaml"
+    if not record.is_file():
+        return False
+    doc = yaml.safe_load(record.read_text(encoding="utf-8"))
+    return isinstance(doc, dict) and str(doc.get("track")) == "open"
+
+
 def open_job(
     graph: Path, target_id: str, runner: Runner, spec: dict[str, Any], settings: Settings
 ) -> Job | str:
@@ -619,6 +638,8 @@ def open_job(
         date=settings.date,
         runner=runner,
     )
+    if not asks_statement_screen(target_dir, head):
+        job.screens = ("negation", "false")
     _load(job)
     return job
 
