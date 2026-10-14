@@ -1,0 +1,23 @@
+F09-T73 (testers 2026-10-14, B1): became by the partial's path, not artifact_hash
+
+== RED: the new tests against origin/main's pending.py (b3e646d8)
+E       AssertionError: assert [{'name': 'le...ecame': None}] == [{'name': 'le...eady-proved'}]
+E         
+E         At index 0 diff: {'name': 'left', 'expected_node_id': 'tutorial-and-swap--h3', 'expected_new': True, 'became': None} != {'name': 'left', 'expected_node_id': 'tutorial-and-swap--h3', 'expected_new': True, 'became': 'tutorial-and-swap--h3'}
+E         Use -v to get more diff
+E       AssertionError: assert [None, None] == ['tutorial-an...ready-proved']
+E         
+E         At index 0 diff: None != 'tutorial-and-swap--h3'
+E         Use -v to get more diff
+E       AssertionError: assert None == 'already-proved'
+3 failed, 10 passed, 2 warnings in 1.60s
+
+== GREEN: this branch
+13 passed, 2 warnings in 1.09s
+
+== lint, types: make lint exit 0, make types exit 0
+== make test-fast: 1 failed, 6231 passed, 8 skipped, 233 deselected in 683.29s
+   the one failure is test_graph_copy_is_identical, which reads the sibling graph checkout's working tree
+   (stale at 733ab776a); graph origin/main 466c11deb's AGENTS.md is byte-identical to gate/agents/AGENTS.md.
+
+== Live replay: engineering/evidence/F09/became-by-path-live-replay.txt
