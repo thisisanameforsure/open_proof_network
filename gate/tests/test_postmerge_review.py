@@ -252,3 +252,54 @@ def test_review_yml_names_the_deploy_key_in_the_push_step_only() -> None:
     assert len(with_secret) == 1 and "push" in with_secret[0], with_secret
     assert steps[-1]["env"]["OPN_GRAPH_DEPLOY_KEY"] == "${{ secrets.OPN_GRAPH_DEPLOY_KEY }}"
     assert "review run" in str(steps)
+
+
+# --- the job runs in the sandbox (F26-T14, 2026-10-14) ---------------------------------------
+# The first live dispatch (graph run 38496615231) found the review open and failed at once:
+# "opn-gate: elan not found on PATH". Neither caller passed --sandbox, and no runner installs
+# Lean outside the step-3 image: contributor Lean runs only in the sandbox (C9).
+
+
+def test_the_default_runner_runs_the_job_in_the_sandbox_and_names_the_run(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    seen: list[list[str]] = []
+
+    def fake_run(argv: list[str], **_: object) -> subprocess.CompletedProcess[str]:
+        seen.append(list(argv))
+        return subprocess.CompletedProcess(argv, 0, "", "")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.setenv("GITHUB_RUN_ID", "38496615231")
+    assert postmerge.default_review_runner(tmp_path, "tutorial") == 0
+    (argv,) = seen
+    assert "--sandbox" in argv
+    assert argv[argv.index("--run") + 1] == "38496615231"
+
+
+def test_the_default_runner_says_local_outside_a_workflow(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    seen: list[list[str]] = []
+    monkeypatch.setattr(
+        subprocess,
+        "run",
+        lambda argv, **_: seen.append(list(argv)) or subprocess.CompletedProcess(argv, 0, "", ""),
+    )
+    monkeypatch.delenv("GITHUB_RUN_ID", raising=False)
+    postmerge.default_review_runner(tmp_path, "tutorial")
+    assert seen[0][seen[0].index("--run") + 1] == "local"
+
+
+def test_review_yml_runs_the_job_in_the_sandbox_and_names_the_run() -> None:
+    doc = yaml.safe_load(REVIEW_YML.read_text(encoding="utf-8"))
+    runs = [
+        str(step.get("run", ""))
+        for job in doc["jobs"].values()
+        for step in job["steps"]
+        if "opn_gate.cli review run" in str(step.get("run", ""))
+    ]
+    assert len(runs) == 1
+    command = " ".join(runs[0].replace("\\\n", " ").split())
+    assert "--sandbox" in command
+    assert '--run "$GITHUB_RUN_ID"' in command

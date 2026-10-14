@@ -956,8 +956,11 @@ def review_targets(changes: Iterable[Change]) -> list[str]:
 
 
 def default_review_runner(graph_root: Path, target_id: str) -> int:
-    """``python -m opn_gate.cli review run --graph <g> --target <t>``, the way the workflows call
-    the gate, with this checkout's ``opn_gate`` on the path; its output goes to the job's log."""
+    """``python -m opn_gate.cli review run --graph <g> --target <t> --sandbox --run <id>``, the way
+    the workflows call the gate, with this checkout's ``opn_gate`` on the path; its output goes to
+    the job's log. Every check elaborates in the step-3 image (C9; no runner installs Lean outside
+    it, F26-T14), and the exhibits name the workflow run, or ``local`` outside one."""
+    import os  # noqa: PLC0415
     import subprocess  # noqa: PLC0415
     import sys  # noqa: PLC0415
 
@@ -965,7 +968,8 @@ def default_review_runner(graph_root: Path, target_id: str) -> int:
 
     gate_dir = str(Path(__file__).resolve().parents[1])
     argv = [sys.executable, "-m", "opn_gate.cli", *REVIEW_JOB_COMMAND]
-    argv += ["--graph", str(graph_root), "--target", target_id]
+    argv += ["--graph", str(graph_root), "--target", target_id, "--sandbox"]
+    argv += ["--run", os.environ.get("GITHUB_RUN_ID") or "local"]
     done = subprocess.run(
         argv,
         capture_output=True,
