@@ -1,0 +1,23 @@
+erdos-1094 readiness — live, 2026-10-14 (the owner's word: "commit, push, merge repin, deploy";
+"for suggested writings you can merge those into main").
+
+1. Network PR #42 (e1094-readiness, with F24-T7 steward-rename merged in) green on all three tiers
+   (Lean 2h03m), merged as 3cfcee78; api-deploy and site-deploy success at 3cfcee78.
+2. Graph re-pins were made by the F26 session (coordinated by message): 486348dd2 to 3cfcee78 (carrying
+   F24-T7 and the math-first guide), later c96900073 (f97b692) and 1cc1e950b (15d1d46).
+3. Submissions as thisisanameforsure through the live service (submit_1094.py; token from .env MY_TOKEN).
+   The owner authorised re-accepting the DCO (version 1b72bc16f46ab19b, which now names the licences, D-23),
+   and it was accepted. All 12 dry runs then passed. The explainer's backticked `Nat.descFactorial` drew
+   explainer-name-unanchored and was reworded to "Mathlib's descending factorial".
+   Real run: 11 glosses + 1 explainer + 9 annexes 201; the state-of-the-problem annex failed at the TLS
+   handshake (nothing sent) and was resent alone as #507. Graph PRs #484–#487, #489–#496, #498–#507
+   all merged by the merge actor (#488 is the owner's steward restatement; #497 another contributor's).
+4. check_gloss_form.py --target erdos-1094 on graph origin/main after the merges: exit 0,
+   current 11, not_math_first [] (check_gloss_form_after.txt).
+5. Live measurements (Playwright, live site):
+   - after #42: all ten panels carry the four sections; display formulas clipped (5 of 5 in h2's panel)
+     → F04-T51, PR #45, merged 696c70cc: 0 of 388 panel formulas overflow at 1440 and 390.
+   - after the F26 re-pin: page width 450 at 390 (the review pill, nowrap) → F04-T52, PR #46,
+     merged b3e646d8: erdos-1094 and three node anchors measure 390 at 390.
+Left for the owner: sign the h1 explainer (#496) if he can explain it without the tool; the fidelity
+reading (fidelity-review-sheet-erdos-1094.md), now through F26's review; Q50's explainer-math choice.

@@ -1,0 +1,7 @@
+{
+  "target": "erdos-1094",
+  "glosses_schema": "glosses/v2",
+  "rendered_from": "55a21929577e79fff931cce7c63ed7e6e34afddd",
+  "current": 11,
+  "not_math_first": []
+}
