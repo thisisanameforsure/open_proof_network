@@ -21,6 +21,7 @@ from html import escape
 import gloss_fixture as gf
 import pytest
 from harness import TARGET
+from node_parts import node_section
 
 from opn_site import model, render
 
@@ -52,8 +53,7 @@ def after(tmp_path_factory: pytest.TempPathFactory) -> dict[str, str]:
 
 def explainer_part(page: str) -> tuple[str, str]:
     """The node page's explainer section, split into what it shows and its history."""
-    start = page.index('<h2 id="explainer">Explainer</h2>')
-    section = page[start : page.index("<h2>Annex</h2>", start)]
+    section = node_section(page, "explainer")  # F04-T50: the explainer leads the page
     cut = section.index('<details class="history"')
     return section[:cut], section[cut:]
 

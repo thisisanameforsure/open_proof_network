@@ -178,8 +178,11 @@ SCRIPTS: tuple[str, ...] = (
     "/words.js",
     "/me.js",
     "/panel.js",
+    "/node.js",
 )
 MATH_HEAD = '<link rel="stylesheet" href="/vendor/katex/katex.min.css">'
+#: F04-T50: opens the fold a link lands in on a statement's page.
+NODE_SCRIPT = '<script src="/node.js"></script>'
 MATH_SCRIPTS = (
     '<script src="/vendor/katex/katex.min.js"></script>'
     '<script src="/vendor/katex/auto-render.min.js"></script>'
@@ -3168,10 +3171,11 @@ class Renderer:
 
     # --- F04-T48 (Q47): the panel's sections, each a helper so the layout can move them ---------
 
-    def panel_role(self, tv: TargetView, nv: NodeView) -> str:
+    def panel_role(self, tv: TargetView, nv: NodeView, *, page: bool = False) -> str:
         """The header's one line: a hole names the parent it came from (T46); any other node its
-        role, with a related variant's pertinence (D-30)."""
-        hole_of = self.hole_origin(tv, nv)
+        role, with a related variant's pertinence (D-30). ``page``: on the statement's own page,
+        where a link goes to the other statement's page rather than its panel (F04-T50)."""
+        hole_of = self.hole_origin(tv, nv, page=page)
         if hole_of:
             return hole_of
         role = esc(sentence(self.node_role(tv, nv).capitalize()))
@@ -3182,7 +3186,7 @@ class Renderer:
         where the history, the controls and the cue for writing them are."""
         return f"{self.node_path(tv.target_id, nv.node_id)}#{STATEMENT_WORDS_ID}"
 
-    def claim_block(self, tv: TargetView, nv: NodeView) -> str:
+    def claim_block(self, tv: TargetView, nv: NodeView, *, page: bool = False) -> str:
         """What is claimed. A current statement gloss that opens with math (F20-T16) leads with
         that math and its convention notes, one mark saying whether it is signed, and the Lean
         folded; otherwise the Lean leads, a gloss that is not math first follows as its first
@@ -3192,6 +3196,12 @@ class Renderer:
             f'<pre class="lean statement st-{esc(state)}">'
             f"{esc(declaration_only(nv.statement))}</pre>"
         )
+        note = sorry_note(nv.statement)
+        if page and note:  # F04-T50: on the statement's page the Lean says why, one click away
+            lean += (
+                '<details class="sorry-fold"><summary>Why does it end in <code>sorry</code>?'
+                f"</summary>{note}</details>"
+            )
         href = esc(self.statement_words_href(tv, nv))
         subject = tv.gloss_subject("statement", node=nv.node_id)
         current = subject.describing() if subject is not None else []
@@ -3245,7 +3255,14 @@ class Renderer:
             and ov.status != "superseded"
         ]
 
-    def how_block(self, tv: TargetView, nv: NodeView) -> str:
+    def node_href(self, tid: str, nid: str, *, page: bool) -> str:
+        """F04-T50: another statement, as the panel links it (``#node=``, selecting its panel) or as
+        a statement's own page does (its page)."""
+        return self.node_path(tid, nid) if page else f"#node={nid}"
+
+    def how_block(
+        self, tv: TargetView, nv: NodeView, *, page: bool = False, revision: bool = True
+    ) -> str:
         """How it is being proved: a revision or circularity note (F04-T18, T37), one line — the
         proof and its attestation, open, or the status in words — then the split (T46, T47), and
         the Context-import note folded (2026-09-21)."""
@@ -3272,9 +3289,9 @@ class Renderer:
                 '<details class="panel-small"><summary>Closing it through its holes</summary>'
                 f"{closing}</details>"
             )
+        note = self.revision_note(tv.target_id, nv, in_page=not page) if revision else ""
         return (
-            f"{self.revision_note(tv.target_id, nv, in_page=True)}"
-            f'<p class="how-line">{line}</p>{self.split_blocks(tv, nv)}{closing}'
+            f'{note}<p class="how-line">{line}</p>{self.split_blocks(tv, nv, page=page)}{closing}'
         )
 
     def first_sentence_of(self, a: Prose) -> str:
@@ -3285,6 +3302,16 @@ class Renderer:
         """What is known: the literature status in one line with its references and summary
         folded (F04-T38), then the notes (unstepped annexes, T45) by their first sentence, each
         linked to its full text on the statement's page. Nothing when neither exists."""
+        parts = self.known_parts(tv, nv)
+        if not parts:
+            return ""
+        return (
+            '<section class="panel-sec" data-section="known"><h3 class="kicker">What is known'
+            f"</h3>{''.join(parts)}</section>\n"
+        )
+
+    def known_parts(self, tv: TargetView, nv: NodeView) -> list[str]:
+        """The content of "What is known", shared by the panel and the statement's page."""
         parts = []
         confirmed, proposed = nv.literature, nv.literature_proposed
         lit = confirmed or proposed
@@ -3309,17 +3336,20 @@ class Renderer:
                 for a in notes
             )
             parts.append(f'<p class="sub">Notes</p><ul class="panel-list notes">{items}</ul>')
-        if not parts:
-            return ""
-        return (
-            '<section class="panel-sec" data-section="known"><h3 class="kicker">What is known'
-            f"</h3>{''.join(parts)}</section>\n"
-        )
+        return parts
 
     def work_section(self, tv: TargetView, nv: NodeView) -> str:
         """Work on it: the plans (stepped annexes, T45) by their first sentence, each saying which
         merged decomposition followed it; on the root, the target's approach records (D-14),
         which name no node (Q47); then the action."""
+        parts = [*self.work_parts(tv, nv), self.panel_action(tv, nv)]
+        return (
+            '<section class="panel-sec" data-section="work"><h3 class="kicker">Work on it</h3>'
+            f"{''.join(parts)}</section>\n"
+        )
+
+    def work_parts(self, tv: TargetView, nv: NodeView) -> list[str]:
+        """The plans and approach records of "Work on it", shared by the panel and the page."""
         parts = []
         decomps = list(nv.graph_entry.get("decompositions") or [])
         node_dir = Path(nv.statement_path).parent.as_posix()
@@ -3355,11 +3385,7 @@ class Renderer:
                 '<p class="sub">Approaches recorded as tried (D-14)</p>'
                 f'<ul class="panel-list approaches">{items}</ul>'
             )
-        parts.append(self.panel_action(tv, nv))
-        return (
-            '<section class="panel-sec" data-section="work"><h3 class="kicker">Work on it</h3>'
-            f"{''.join(parts)}</section>\n"
-        )
+        return parts
 
     def panel_action(self, tv: TargetView, nv: NodeView) -> str:
         state = self.node_state(nv)
@@ -3395,17 +3421,19 @@ class Renderer:
     # node's ``graph.json`` row (``decompositions``) and the tree, so the block can move to
     # wherever the panel's layout puts it: the panel template only places ``$split``/``$hole_of``.
 
-    def split_blocks(self, tv: TargetView, nv: NodeView) -> str:
+    def split_blocks(self, tv: TargetView, nv: NodeView, *, page: bool = False) -> str:
         """T46: one "Split into" block per merged decomposition of the node, in record order."""
         decomps = [d for d in nv.graph_entry.get("decompositions") or [] if isinstance(d, dict)]
-        return "".join(self.split_block(tv, nv, d) for d in decomps)
+        return "".join(self.split_block(tv, nv, d, page=page) for d in decomps)
 
     def partial_view(self, nv: NodeView, partial: str) -> PartialView | None:
         """The ``attempts/`` file a decomposition names (node-relative), as the model read it."""
         rel = f"{Path(nv.statement_path).parent.as_posix()}/{partial}"
         return next((p for p in nv.partials if p.file.path == rel), None)
 
-    def split_block(self, tv: TargetView, nv: NodeView, d: dict[str, Any]) -> str:
+    def split_block(
+        self, tv: TargetView, nv: NodeView, d: dict[str, Any], *, page: bool = False
+    ) -> str:
         """T46: the partial that split the node, that it merged (and its attestation when one
         names it), then a row per hole; T47: the partial's Lean, folded."""
         partial = str(d.get("partial") or "")
@@ -3419,7 +3447,7 @@ class Renderer:
             stem = Path(pv.attestation_path).stem
             merged += ", " + self.file_link(pv.attestation_path, label=f"attestation {stem}")
         holes = [h for h in d.get("holes") or [] if isinstance(h, dict)]
-        rows = "".join(self.split_hole_row(tv, h) for h in holes)
+        rows = "".join(self.split_hole_row(tv, h, page=page) for h in holes)
         noun = "hole" if len(holes) == 1 else "holes"
         return (
             f'<section class="split-into" data-partial="{esc(partial)}">'
@@ -3430,7 +3458,7 @@ class Renderer:
             f"{self.split_lean(pv, rel)}</section>"
         )
 
-    def split_hole_row(self, tv: TargetView, hole: dict[str, Any]) -> str:
+    def split_hole_row(self, tv: TargetView, hole: dict[str, Any], *, page: bool = False) -> str:
         """T46: one hole — its name, the node it became as an in-page link with its state, and
         what that node says."""
         node_id = str(hole.get("node") or "")
@@ -3444,7 +3472,8 @@ class Renderer:
         state = self.node_state(child)
         return (
             f'<li class="split-hole" data-node="{esc(child.node_id)}">'
-            f'<span class="split-name">{name} → <a href="#node={esc(child.node_id)}">'
+            f'<span class="split-name">{name} → '
+            f'<a href="{esc(self.node_href(tv.target_id, child.node_id, page=page))}">'
             f"{esc(child.node_id)}</a> ({self.dot(self.dot_state(state))}"
             f"{esc(self.state_label(state))})</span>"
             f"{self.hole_statement(tv, child)}</li>"
@@ -3474,7 +3503,7 @@ class Renderer:
             f"<code>sorry</code> (D-12 #5); the whole file: {self.file_link(rel)}</p></details>"
         )
 
-    def hole_origin(self, tv: TargetView, nv: NodeView) -> str:
+    def hole_origin(self, tv: TargetView, nv: NodeView, *, page: bool = False) -> str:
         """T46: on a hole's panel, the parent whose merged partial made it, one line each (a
         node a partial restated as a lemma hole is named by that parent too)."""
         lines = []
@@ -3494,9 +3523,10 @@ class Renderer:
                         )
                         else "Restated as hole"
                     )
+                    href = self.node_href(tv.target_id, parent.node_id, page=page)
                     lines.append(
                         f'<p class="hole-of">{what} <code>{esc(str(h.get("name") or ""))}</code> '
-                        f'of <a href="#node={esc(parent.node_id)}">{esc(parent.node_id)}</a> '
+                        f'of <a href="{esc(href)}">{esc(parent.node_id)}</a> '
                         f"(split by {self.file_link(rel, label=Path(partial).name)}).</p>"
                     )
         return "".join(lines)
@@ -4238,60 +4268,315 @@ class Renderer:
         return "".join(parts)
 
     def node(self, nv: NodeView) -> str:
+        """A statement's page (F04-T50, Q49): the record, read top down the way its panel reads.
+
+        A header carrying the claim; the explainer's overview when one exists, its steps folded;
+        how it was (or is being) proved, the outline and the Lean folded; what is known; work on
+        it; and the record, each part closed, holding everything else. Beside it a column states
+        each fact once: status, target, what it depends on and what uses it, the proof's merge,
+        the checks it passed and who submitted it. Every link and anchor of the old page is kept;
+        ``static/node.js`` opens a fold when a link lands inside one."""
         e = nv.graph_entry
         tid, nid = nv.target_id, nv.node_id
+        # A node rendered outside a loaded site (never the case for a built one) stands in a
+        # problem of its own, so the page states what the node carries and nothing more.
+        tv = self.site.targets.get(tid) or TargetView(
+            target_id=tid, graph={"root": nid}, index_entry={}, spec={}, nodes={nid: nv},
+            approaches=(),
+            note=None,
+        )  # fmt: skip
         renders = [nv.statement_path, f"targets/{tid}/nodes/{nid}/META.yaml"]
-        tv = self.site.targets.get(tid)  # None only for a node rendered outside a loaded site
         if nv.status == "proved" and e["proof_commit"] and nv.proof_path:
-            proof = (
-                "<p>Proof merged in commit "
-                f"<code>{esc(str(e['proof_commit'])[:12])}</code>: "
-                f"{self.file_link(nv.proof_path, commit=str(e['proof_commit']))}</p>"
-            )
-            if nv.proof is not None and nv.proof.mismatched:
-                # Q17: the bytes disagree with the attested hash, so they are not shown at all
-                # — a page that prints unverified Lean under a passing verdict is worse than a
-                # page that says it cannot. The rest of the record still renders.
-                proof += (
-                    '<p class="flag">The <code>Proof.lean</code> in this checkout is not the '
-                    "file the attestation covers: its sha256 is "
-                    f"<code>{esc(nv.proof.content_hash[:12])}</code> and the attestation names "
-                    f"<code>{esc(str(nv.proof.attested_hash)[:12])}</code>. Its text is "
-                    "withheld here; the file itself is linked above.</p>"
-                )
-            elif nv.proof is not None:
-                proof += self.proof_text(tv, nv, nv.proof)
             renders.append(nv.proof_path)
-        else:
-            proof = "<p>No proof merged yet.</p>"
-        attestation = self.attestation_block(nv)
-        if nv.attestation is not None and nv.attestation_path is not None:
-            attestation = (
-                '<div class="attestation-block" data-block="attestation">'
-                + self.kernel_label(nv, what="the gate&rsquo;s record of the run")
-                + attestation
-                + "</div>"
-            )
-        alternates = self.alternates_block(nv)
         renders.extend(alt.path for alt in nv.alternates)
         if nv.attestation_path:
             renders.append(nv.attestation_path)
-        trust = ""
-        if e.get("trust_base") == "compiler":
-            trust = (
-                '<p class="flag">This proof used <code>native_decide</code> under a recorded '
-                "waiver: its trust base is the compiler, not the kernel (D-4).</p>"
-            )
-        attempts = nv.attempts
-        hist = ", ".join(f"{k} {v}" for k, v in sorted(attempts.failure_class_histogram.items()))
-        refuted = ", ".join(attempts.refuted_route_classes)
-        explainer = self.explainer_block(nv, anchors=self.outline_anchors(tv, nv))
         if nv.explainer is not None:
             renders.append(nv.explainer.path)
             renders.extend(v.path for v in nv.signatures)
         renders.extend(self.gloss_renders(tv, nid))
-        annexes = (
-            "".join(
+        renders.extend(f.path for f in (nv.witness, nv.relation) if f is not None)
+        if nv.superseded_record is not None:
+            renders.append(nv.superseded_record)
+        # F04-T37: the claims the node's labels link; F08-T20: those its note names, circling back.
+        below = nv.circular_below if self.circular_below_note(nv) else ()
+        renders.extend((*(label.claim for label in nv.circular), *below))
+        renders.extend(self.literature_renders(nv))  # F04-T38
+        # F08-T36: the open claims the page links.
+        renders.extend(
+            f"targets/{tid}/nodes/{nid}/{c['file']}" for c in nv.open_claims if c.get("file")
+        )
+        for p in nv.partials:
+            renders.append(p.file.path)
+            if p.record_path is not None:
+                renders.append(p.record_path)
+
+        explainer = self.explainer_block(nv, anchors=self.outline_anchors(tv, nv), fold=True)
+        has_explainer = 'data-block="explainer"' in explainer
+        sections = []
+        if has_explainer:
+            sections.append(
+                self.node_sec(
+                    "explainer",
+                    "Explainer",
+                    self.in_review_slot("explainer") + explainer,
+                    element_id="explainer",
+                )
+            )
+        state = self.node_state(nv)
+        sections.append(
+            self.node_sec(
+                "how",
+                "How it was proved" if state == "proved" else "How it is being proved",
+                self.node_how(tv, nv),
+            )
+        )
+        known = [*self.known_parts(tv, nv), self.defect_claims_note(nv)]
+        if any(known):
+            sections.append(self.node_sec("known", "What is known", "".join(known)))
+        sections.append(
+            self.node_sec("work", "Work on it", self.node_work(tv, nv, explainer, has_explainer))
+        )
+        sections.append(self.node_sec("record", "Record", self.node_record(tv, nv, has_explainer)))
+        body = _template("node.html").substitute(
+            node_id=esc(nid),
+            target_id=esc(tid),
+            target_href=esc(self.target_path(tid)),
+            thm=self.thm_label(tid, nid),
+            status=self.status_mark(nv.status, nv.cause),
+            role=self.panel_role(tv, nv, page=True),
+            revision=self.revision_note(tid, nv, in_page=False),
+            tutorial=(
+                '<p class="cue">The tutorial node: permanently open and off the ledger (D-27).</p>'
+                if nv.tutorial
+                else ""
+            ),
+            claim=self.claim_block(tv, nv, page=True),
+            in_review_gloss=self.in_review_slot("gloss"),
+            facts=self.node_facts(tv, nv),
+            sections="\n".join(sections),
+        )
+        # F19-T6: KaTeX is loaded only by a page that carries math, so a record page whose prose
+        # has none stays script-free (F04-T13's rule for the statement record page).
+        has_math = 'class="math"' in body
+        return self.page(
+            nid,
+            body,
+            renders=list(dict.fromkeys(renders)),  # F20-T8: an explainer is listed once
+            path=PROBLEMS_PATH,
+            head=MATH_HEAD if has_math else "",
+            script=(MATH_SCRIPTS if has_math else "")
+            + NODE_SCRIPT
+            + self.in_review_script(tid, nid),
+        )
+
+    # --- F04-T50 (Q49): the parts of a statement's page ----------------------------------------
+
+    @staticmethod
+    def node_sec(name: str, title: str, inner: str, *, element_id: str = "") -> str:
+        """One section of a statement's page, closed by a comment naming it so the page's own
+        tests can find where it ends."""
+        ident = f' id="{esc(element_id)}"' if element_id else ""
+        return (
+            f'<section class="node-sec" data-section="{esc(name)}"{ident}>'
+            f'<h2 class="kicker">{esc(title)}</h2>{inner}</section><!--/{esc(name)}-->'
+        )
+
+    @staticmethod
+    def fold(summary: str, inner: str, *, element_id: str = "", cls: str = "fold") -> str:
+        """A closed part of a statement's page: ``summary`` is HTML the caller escaped."""
+        ident = f' id="{esc(element_id)}"' if element_id else ""
+        return (
+            f'<details class="{esc(cls)}"{ident}><summary>{summary}</summary>'
+            f'<div class="fold-body">{inner}</div></details>'
+        )
+
+    @staticmethod
+    def checks_words(doc: dict[str, Any]) -> str:
+        """An attestation in a few words: its verdict and how many of its checks passed."""
+        steps = list(doc.get("steps") or [])
+        passed = sum(1 for s in steps if s.get("result") == "pass")
+        return f"{doc.get('verdict')}, {passed} of {len(steps)} checks"
+
+    def node_how(self, tv: TargetView, nv: NodeView) -> str:
+        """How it was proved: one line naming the proof and its attestation (the merge commit is
+        the facts column's), then the outline, the Lean, the split and any alternate proofs, each
+        folded. Any other state: the panel's own section, its links going to statements' pages."""
+        e = nv.graph_entry
+        if nv.status == "proved" and not (e["proof_commit"] and nv.proof_path):
+            # Contradictory but valid (R5): the page invents no link to a proof.
+            return (
+                '<p class="how-line">Proved, by its status on the record. No proof merged yet: '
+                "the record names no proof commit, so no proof is shown.</p>"
+            )
+        if nv.status != "proved" or nv.proof_path is None:
+            return self.how_block(tv, nv, page=True, revision=False)
+        proof_path = nv.proof_path
+        att = (
+            " Its attestation, "
+            + self.file_link(nv.attestation_path, label=Path(nv.attestation_path).stem)
+            + ", records the gate&rsquo;s run."
+            if nv.attestation_path
+            else ""
+        )
+        parts = [
+            f'<p class="how-line">Proved by {self.file_link(proof_path, label="Proof.lean")}, '
+            f"checked by the kernel.{att}</p>"
+        ]
+        if e.get("trust_base") == "compiler":
+            parts.append(
+                '<p class="flag">This proof used <code>native_decide</code> under a recorded '
+                "waiver: its trust base is the compiler, not the kernel (D-4).</p>"
+            )
+        if nv.proof is not None and nv.proof.mismatched:
+            # Q17: the bytes disagree with the attested hash, so they are not shown at all
+            # — a page that prints unverified Lean under a passing verdict is worse than a
+            # page that says it cannot. The rest of the record still renders.
+            parts.append(
+                '<p class="flag">The <code>Proof.lean</code> in this checkout is not the '
+                "file the attestation covers: its sha256 is "
+                f"<code>{esc(nv.proof.content_hash[:12])}</code> and the attestation names "
+                f"<code>{esc(str(nv.proof.attested_hash)[:12])}</code>. Its text is "
+                f"withheld here; the file itself is "
+                f"{self.file_link(proof_path, commit=str(e['proof_commit']))}.</p>"
+            )
+        elif nv.proof is not None:
+            outline, source = self.proof_parts(tv, nv, nv.proof)
+            if outline:
+                parts.append(self.fold("The proof step by step (outline)", outline))
+            parts.append(self.fold("The proof in Lean (<code>Proof.lean</code>)", source))
+        split = self.split_blocks(tv, nv, page=True)
+        if split:
+            n = sum(1 for d in e.get("decompositions") or [] if isinstance(d, dict))
+            parts.append(
+                self.fold(f"How it was split ({n})" if n > 1 else "How it was split", split)
+            )
+        if nv.alternates:
+            parts.append(
+                self.fold(
+                    f"Alternate proofs ({len(nv.alternates)})",
+                    self.alternates_block(nv, heading=False),
+                )
+            )
+        return "".join(parts)
+
+    def node_work(self, tv: TargetView, nv: NodeView, explainer: str, has_explainer: bool) -> str:
+        """Work on it: why a claim cannot take it, the plans and approach records, the one thing
+        to do next, and where to go from here."""
+        why_not = self.node_not_claimable(nv)
+        parts = [why_not, *self.work_parts(tv, nv)]
+        state = self.node_state(nv)
+        if state == "open" and not why_not:  # a page that says "not claimable" offers no claim
+            parts.append(
+                f'<p><a class="btn btn-primary" href="{GUIDE_HREF}">'
+                "Work on this statement →</a></p>"
+            )
+        elif state == NEEDS_WITNESS:
+            parts.append(
+                '<p><a class="btn btn-primary" href="#witness">Supply a witness →</a> Its slot '
+                "is open; the witness is in the record below.</p>"
+            )
+        elif nv.status == "proved" and not has_explainer:
+            # The invitation stands where the work is; it carries the page's #explainer anchor.
+            parts.append(
+                f'<div id="explainer">{self.in_review_slot("explainer")}{explainer}</div>'
+                f'<p><a class="btn btn-primary" href="{GLOSS_GUIDE_HREF}">Write the explainer →'
+                "</a></p>"
+            )
+        graph = f"{self.target_path(nv.target_id)}#node={nv.node_id}"
+        parts.append(
+            f'<p class="wayfinding">{self.wayfinding()} · '
+            f'<a href="{esc(graph)}">See it in the problem&rsquo;s graph →</a></p>'
+        )
+        return "".join(parts)
+
+    def node_record(self, tv: TargetView, nv: NodeView, has_explainer: bool) -> str:
+        """The record: every part of the statement's record the page shows, each closed and named
+        by one line, the empty ones left out."""
+        e, nid = nv.graph_entry, nv.node_id
+        origin = esc(e["origin"]) + (f" ({esc(e['relation'])})" if e["relation"] else "")
+        subject = tv.gloss_subject("statement", node=nid)
+        versions = sum(len(c.versions) for c in subject.chains) if subject is not None else 0
+        words = (
+            f"its words ({versions} version{'s' if versions != 1 else ''})"
+            if versions
+            else "no words yet"
+        )
+        parts = [
+            self.fold(
+                f"Statement: the Lean file and {words}",
+                f"{self.statement_label(tv, nv)}"
+                f'<pre class="lean statement st-{esc(nv.status)}">'
+                f"{esc(nv.statement.rstrip(chr(10)))}</pre>{sorry_note(nv.statement)}"
+                + self.gloss_slot(tv, "statement", f"nodes/{nid}/Statement.lean", node=nid)
+                + f"<p>Rendered from {self.file_link(nv.statement_path)}. Origin: {origin}.</p>",
+                element_id=STATEMENT_WORDS_ID,
+                cls="fold rec",
+            )
+        ]
+        if nv.deps or nv.lemmas:
+            n = len(nv.deps)
+            parts.append(
+                self.fold(
+                    (f"Depends on ({n}), each in words" if n else "Depends on: none")
+                    + (f"; lemmas it may use ({len(nv.lemmas)})" if nv.lemmas else ""),
+                    self.deps_list(tv, nv) + self.lemmas_list(tv, nv),
+                    cls="fold rec",
+                )
+            )
+        if nv.attestation is not None and nv.attestation_path is not None:
+            parts.append(
+                self.fold(
+                    f"Attestation: {esc(self.checks_words(nv.attestation))}",
+                    '<div class="attestation-block" data-block="attestation">'
+                    + self.kernel_label(nv, what="the gate&rsquo;s record of the run")
+                    + self.attestation_block(nv)
+                    + "</div>",
+                    element_id="attestation",
+                    cls="fold rec",
+                )
+            )
+        elif any(p.attestation_path for p in nv.partials):
+            parts.append(
+                self.fold(
+                    "Attestation: none of a proof",
+                    self.attestation_block(nv),
+                    element_id="attestation",
+                    cls="fold rec",
+                )
+            )
+        if nv.witness is not None:
+            slot = " — its slot is open" if nv.witness_open else ""
+            parts.append(
+                self.fold(
+                    f"Witness{slot}", self.witness_block(nv), element_id="witness", cls="fold rec"
+                )
+            )
+        if nv.relation is not None:
+            parts.append(
+                self.fold(
+                    "Relation to the problem&rsquo;s statement",
+                    self.relation_block(tv, nv, heading=False),
+                    cls="fold rec",
+                )
+            )
+        attempts = nv.attempts
+        if attempts.count or nv.partials:
+            hist = ", ".join(
+                f"{k} {v}" for k, v in sorted(attempts.failure_class_histogram.items())
+            )
+            refuted = ", ".join(attempts.refuted_route_classes)
+            parts.append(
+                self.fold(
+                    f"Attempts ({attempts.count})",
+                    f"<p>{attempts.count} recorded. Routes refuted: {esc(refuted or 'none')}. "
+                    f"Failure classes: {esc(hist or 'none')}.</p>{self.partials_block(nv)}",
+                    element_id="attempts",
+                    cls="fold rec",
+                )
+            )
+        if nv.annexes:
+            annexes = "".join(
                 self.untrusted_block(
                     "untrusted",
                     a,
@@ -4305,86 +4590,79 @@ class Renderer:
                 )
                 for a in nv.annexes
             )
-            or "<p>No annex.</p>"
-        )
-        ack_label = self.provenance("untrusted", "the prover&rsquo;s justification for a finding.")
-        acks = "".join(
-            f'<div class="prose-block untrusted" data-block="acknowledgment">{ack_label}'
-            f'<p class="label">Untrusted: acknowledgment '
-            f"of a <code>{esc(a.get('checker', ''))}</code> finding at "
-            f"<code>{esc(a.get('location', ''))}</code></p>"
-            f'<div class="prose">{prose.render(a.get("justification", ""))}</div></div>'
-            for a in nv.acknowledgments
-        )
-        witness = self.witness_block(nv)
-        renders.extend(f.path for f in (nv.witness, nv.relation) if f is not None)
-        if nv.superseded_record is not None:
-            renders.append(nv.superseded_record)
-        # F04-T37: the claims the node's labels link; F08-T20: those its note names, circling back.
-        below = nv.circular_below if self.circular_below_note(nv) else ()
-        renders.extend((*(label.claim for label in nv.circular), *below))
-        renders.extend(self.literature_renders(nv))  # F04-T38
-        # F08-T36: the open claims the page links.
-        renders.extend(
-            f"targets/{tid}/nodes/{nid}/{c['file']}" for c in nv.open_claims if c.get("file")
-        )
-        partials = self.partials_block(nv)
-        for p in nv.partials:
-            renders.append(p.file.path)
-            if p.record_path is not None:
-                renders.append(p.record_path)
-        body = _template("node.html").substitute(
-            node_id=esc(nid),
-            target_id=esc(tid),
-            target_href=esc(self.target_path(tid)),
-            status=self.status_mark(nv.status, nv.cause),
-            status_class=esc(nv.status),
-            revision=self.revision_note(tid, nv, in_page=False),
-            wayfinding=self.wayfinding(),
-            claimable=self.node_not_claimable(nv),
-            defects=self.defect_claims_note(nv),
-            literature=self.literature_block(nv),  # F04-T38
-            tutorial=(
-                '<p class="cue">The tutorial node: permanently open and off the ledger (D-27).</p>'
-                if nv.tutorial
-                else ""
-            ),
-            statement=esc(nv.statement.rstrip("\n")),
-            sorry_note=sorry_note(nv.statement),
-            thm=self.thm_label(tid, nid),
-            statement_label=self.statement_label(tv, nv),
-            statement_glosses=self.gloss_slot(
-                tv, "statement", f"nodes/{nid}/Statement.lean", node=nid
+            parts.append(
+                self.fold(f"Annexes ({len(nv.annexes)}), in full", annexes, cls="fold rec")
             )
-            + self.in_review_slot("gloss"),
-            in_review_explainer=self.in_review_slot("explainer"),
-            statement_link=self.file_link(nv.statement_path),
-            deps=self.deps_list(tv, nv) + self.lemmas_list(tv, nv),  # F04-T39: lemmas beside deps
-            origin=esc(e["origin"]) + (f" ({esc(e['relation'])})" if e["relation"] else ""),
-            proof=proof,
-            witness=witness,
-            relation=self.relation_block(tv, nv),
-            partials=partials,
-            attestation=attestation,
-            alternates=alternates,
-            trust=trust,
-            attempt_count=attempts.count,
-            refuted=esc(refuted or "none"),
-            histogram=esc(hist or "none"),
-            explainer=explainer,
-            annexes=annexes,
-            acknowledgments=acks,
-        )
-        # F19-T6: KaTeX is loaded only by a page that carries math, so a record page whose prose
-        # has none stays script-free (F04-T13's rule for the statement record page).
-        has_math = 'class="math"' in body
-        return self.page(
-            nid,
-            body,
-            renders=list(dict.fromkeys(renders)),  # F20-T8: an explainer is listed once
-            path=PROBLEMS_PATH,
-            head=MATH_HEAD if has_math else "",
-            script=(MATH_SCRIPTS if has_math else "") + self.in_review_script(tid, nid),
+        if nv.acknowledgments:
+            ack_label = self.provenance(
+                "untrusted", "the prover&rsquo;s justification for a finding."
+            )
+            acks = "".join(
+                f'<div class="prose-block untrusted" data-block="acknowledgment">{ack_label}'
+                f'<p class="label">Untrusted: acknowledgment '
+                f"of a <code>{esc(a.get('checker', ''))}</code> finding at "
+                f"<code>{esc(a.get('location', ''))}</code></p>"
+                f'<div class="prose">{prose.render(a.get("justification", ""))}</div></div>'
+                for a in nv.acknowledgments
+            )
+            parts.append(
+                self.fold(
+                    f"Acknowledged findings ({len(nv.acknowledgments)})", acks, cls="fold rec"
+                )
+            )
+        cue = "" if has_explainer or nv.status == "proved" else self.explainer_block(nv)
+        reading = (
+            f'<div id="explainer">{self.in_review_slot("explainer")}{cue}</div>' if cue else ""
+        ) + f'<p><a href="{READING_HREF}">How to read a statement&rsquo;s page →</a></p>'
+        parts.append(self.fold("How to read this page", reading, cls="fold rec"))
+        return f'<div class="record-list">{"".join(parts)}</div>'
+
+    def node_facts(self, tv: TargetView, nv: NodeView) -> str:
+        """The facts column: each fact about the statement once, linked to where it is recorded."""
+        e, tid, nid = nv.graph_entry, nv.target_id, nv.node_id
+        state = self.node_state(nv)
+
+        def links(ids: list[str]) -> str:
+            return ", ".join(self.node_link(tid, x) for x in ids) or "none"
+
+        used_by = [
+            other for other, ov in tv.nodes.items() if nid in ov.deps and ov.status != "superseded"
+        ]
+        rows = [
+            ("status", f"{self.dot(self.dot_state(state))}{esc(self.state_label(state))}"),
+            ("target", f'<a href="{esc(self.target_path(tid))}">{esc(tid)}</a>'),
+            ("depends on", links(list(nv.deps))),
+        ]
+        if nv.lemmas:
+            rows.append(("lemmas", links([lemma.node for lemma in nv.lemmas])))
+        rows += [("used by", links(used_by)), ("attempts", esc(self.attempts_words(nv)))]
+        doc = nv.attestation
+        if nv.status == "proved" and e["proof_commit"] and nv.proof_path:
+            commit = str(e["proof_commit"])
+            rows.append(("proof", self.file_link(nv.proof_path, commit=commit, label=commit[:12])))
+        elif doc is None and not any(p.attestation_path for p in nv.partials):
+            rows.append(("proof", "none merged"))
+        if nv.status == "proved" and doc is None:  # contradictory but valid (R5): say so
+            rows.append(("checked", "no attestation on record"))
+        if doc is not None and nv.attestation_path is not None:
+            rows.append(
+                ("checked", self.file_link(nv.attestation_path, label=self.checks_words(doc)))
+            )
+            who = doc.get("submitter")
+            rows.append(("submitter", f"<code>{esc(who)}</code>" if who else "not recorded"))
+        origin = esc(e["origin"]) + (f" ({esc(e['relation'])})" if e["relation"] else "")
+        rows += [
+            ("origin", origin),
+            (
+                "mathlib",
+                esc(str(tv.index_entry.get("mathlib_sha") or "")[:12] or "Lean core only"),
+            ),
+            ("statement hash", f"<code>{esc(str(e.get('statement_hash', ''))[:12])}</code>"),
+        ]
+        items = "".join(f"<dt>{k}</dt><dd>{v}</dd>" for k, v in rows)
+        return (
+            '<aside class="node-facts card"><span class="kicker">Facts</span>'
+            f'<dl class="facts-list">{items}</dl></aside>'
         )
 
     def in_review_slot(self, kind: str) -> str:
@@ -4410,6 +4688,11 @@ class Renderer:
     def proof_text(self, tv: TargetView | None, nv: NodeView, lean: LeanFile) -> str:
         """The proof's outline (F19-T7, R9) above its source: the outline of these very bytes,
         when the products carry one; without one, the source alone, as before outlines."""
+        return "".join(self.proof_parts(tv, nv, lean))
+
+    def proof_parts(self, tv: TargetView | None, nv: NodeView, lean: LeanFile) -> tuple[str, str]:
+        """``proof_text``'s two parts, the outline ("" without one) and the source, so a page can
+        fold each on its own (F04-T50)."""
         commit = str(nv.graph_entry.get("proof_commit") or "") or None
         doc = self.outline_of(tv, nv.node_id, lean) if tv is not None and lean.verified else None
         outline = (
@@ -4423,7 +4706,7 @@ class Renderer:
             if tv is not None and doc is not None
             else ""
         )
-        return outline + self.lean_artifact(
+        return outline, self.lean_artifact(
             lean,
             what="Proof.lean",
             provenance=(
@@ -4440,7 +4723,9 @@ class Renderer:
             block="proof",
         )
 
-    def explainer_block(self, nv: NodeView, *, anchors: frozenset[str] = frozenset()) -> str:
+    def explainer_block(
+        self, nv: NodeView, *, anchors: frozenset[str] = frozenset(), fold: bool = False
+    ) -> str:
         """The explainer, or the cue in its place. T20: the cue invited "an account of this
         proof" on statements with no proof; an explainer needs a merged proof (D-3), so only a
         proved statement is invited, and told how one arrives.
@@ -4449,7 +4734,7 @@ class Renderer:
         explainer no chain lists (one filed before F20 under a name that is not its hash) renders
         exactly as before. ``anchors`` are the artifact hashes whose outline the page draws."""
         tv = self.site.targets.get(nv.target_id)
-        chained, listed = self.explainer_chains(tv, nv, anchors=anchors)
+        chained, listed = self.explainer_chains(tv, nv, anchors=anchors, fold=fold)
         legacy = nv.explainer is not None and Path(nv.explainer.path).stem not in listed
         if chained and not legacy:
             return chained
@@ -4778,9 +5063,10 @@ class Renderer:
             steward_consequence=esc(self.words["states_steward"]),
         )
 
-    def alternates_block(self, nv: NodeView) -> str:
+    def alternates_block(self, nv: NodeView, *, heading: bool = True) -> str:
         """D-25 v3.13: every later proof of the node, each linked at the commit that merged it.
-        Empty when there is none, so a node without alternates renders exactly as before."""
+        Empty when there is none, so a node without alternates renders exactly as before.
+        ``heading=False`` leaves the heading to a fold that names them (F04-T50)."""
         if not nv.alternates:
             return ""
         items = []
@@ -4792,8 +5078,8 @@ class Renderer:
             link = self.file_link(alt.path, commit=alt.merge_commit)
             items.append(f"<li>{link}{merged}{by}</li>")
         return (
-            "\n<h2>Alternate proofs</h2>\n"
-            "<p>Later proofs of the same statement, kept beside the first because a different "
+            ("\n<h2>Alternate proofs</h2>\n" if heading else "")
+            + "<p>Later proofs of the same statement, kept beside the first because a different "
             "proof can carry a different insight (D-25). Each passed the gate as a proof does; "
             "none changes this node's status or credit.</p>\n"
             f"<ul>{''.join(items)}</ul>"
@@ -4884,13 +5170,13 @@ class Renderer:
                     found.extend(path for _s, _d, path in v.signers)
         return found
 
-    def relation_block(self, tv: TargetView | None, nv: NodeView) -> str:
+    def relation_block(self, tv: TargetView | None, nv: NodeView, *, heading: bool = True) -> str:
         """F20-T8 (R13): a variant's ``Relation.lean`` — the implication to or from the root the
         gate checked when the variant was admitted (D-30) — with its gloss."""
         if nv.relation is None:
             return ""
         return (
-            "\n<h2>Relation</h2>\n"
+            ("\n<h2>Relation</h2>\n" if heading else "")
             + self.lean_artifact(
                 nv.relation,
                 what="Relation.lean",
@@ -6006,7 +6292,7 @@ class Renderer:
         return frozenset(found)
 
     def explainer_chains(
-        self, tv: TargetView | None, nv: NodeView, *, anchors: frozenset[str]
+        self, tv: TargetView | None, nv: NodeView, *, anchors: frozenset[str], fold: bool = False
     ) -> tuple[str, frozenset[str]]:
         """R14: each explainer chain's current version on each of the node's merged artifacts,
         then the chain's history; and the hashes of every version shown, so the caller can tell
@@ -6028,9 +6314,9 @@ class Renderer:
             for chain in live:
                 current = chain.current_version
                 if chain.sectioned and chain.shown:
-                    parts.append(self.explainer_shown(tv, s, chain, anchors=anchors))
+                    parts.append(self.explainer_shown(tv, s, chain, anchors=anchors, fold=fold))
                 elif current is not None:
-                    parts.append(self.explainer_version(tv, s, current, anchors=anchors))
+                    parts.append(self.explainer_version(tv, s, current, anchors=anchors, fold=fold))
             parts.extend(
                 self.withdrawn_chain(chain, earlier=bool(live))
                 for chain in s.chains
@@ -6065,6 +6351,7 @@ class Renderer:
         v: VersionView,
         *,
         anchors: frozenset[str],
+        fold: bool = False,
     ) -> str:
         """R14: one current explainer version under D-36's fixed label, with its provenance line
         and the F15 signatures on it above the label; each anchored section beside the outline
@@ -6094,11 +6381,18 @@ class Renderer:
             steps = explainers.outline_steps(outline) if outline is not None else {}
             linked = subject.lean_hash in anchors
             key = (subject.lean_hash or "")[:12]
-            body = "".join(
-                self.explainer_section(sec, steps, key=key, linked=linked) for sec in v.sections
+            body = self.fold_rest(
+                [self.explainer_section(sec, steps, key=key, linked=linked) for sec in v.sections],
+                fold=fold,
             )
         else:
-            body = f'<div class="prose">{prose.render(v.body, math=True)}</div>'
+            first, _, rest = v.body.strip().partition("\n\n")
+            parts = [first, rest] if fold and rest.strip() else [v.body]
+            body = self.fold_rest(
+                [f'<div class="prose">{prose.render(t, math=True)}</div>' for t in parts],
+                fold=fold,
+                summary="Read the rest",
+            )
         ctl = self.explainer_ctl(tv, subject, head=v.hash, path=v.path, text=v.body)
         approve = self.approve_slot(
             self.words_attrs(tv.target_id, subject.node, "explainer") if tv is not None else "",
@@ -6138,6 +6432,7 @@ class Renderer:
         chain: ChainView,
         *,
         anchors: frozenset[str],
+        fold: bool = False,
     ) -> str:
         """F21-R14: the words an explainer chain shows, section by section — each from the version
         the product names, under a label saying its state in text, still beside the outline steps
@@ -6211,9 +6506,22 @@ class Renderer:
             f'data-block="explainer" data-explainer="{esc(chain.current or "")}">'
             f"{self.provenance('unverified', detail)}"
             f'<p class="label">Unverified: explainer, its words from {sources}.</p>'
-            f"{''.join(body)}"
+            f"{self.fold_rest(body, fold=fold)}"
             f'<p class="gloss-foot"><a href="{GLOSS_GUIDE_HREF}">Improve these words →</a></p>'
             f"{ctl}</div>"
+        )
+
+    @staticmethod
+    def fold_rest(parts: list[str], *, fold: bool, summary: str = "Read it step by step") -> str:
+        """F04-T50: on a statement's page the explainer leads, so its first section (the
+        overview) stands open and the rest fold beneath it; anywhere else, every part in turn."""
+        if not fold or len(parts) < 2:
+            return "".join(parts)
+        n = len(parts) - 1
+        more = f" ({n} more section{'s' if n != 1 else ''})" if summary.endswith("step") else ""
+        return (
+            f'{parts[0]}<details class="ex-more"><summary>{esc(summary)}{more}</summary>'
+            f"{''.join(parts[1:])}</details>"
         )
 
     def explainer_section(  # noqa: PLR0913 — the section, its outline, and where it is shown

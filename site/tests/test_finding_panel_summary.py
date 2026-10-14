@@ -23,6 +23,7 @@ from pathlib import Path
 import pytest
 import summary_fixture as sf
 from harness import TARGET
+from node_parts import record_part
 from panel_text import hrefs, unhidden, visible_text, word_count
 from test_outline_links import panel
 
@@ -103,7 +104,8 @@ def test_lean_only_shows_the_lean_and_explain_this(files: dict[str, str]) -> Non
     node = sf.node_page(files, sf.H2)
     at = node.find('id="statement-words"')
     assert at != -1, "the node page has no #statement-words"
-    block = node[at : node.index("<h2>Proof</h2>", at)]
+    block = record_part(node, "Statement")  # F04-T50: the record's statement fold holds it
+    assert 'id="statement-words"' in block
     assert '<pre class="lean statement' in block
     assert "How to write one" in block and 'href="/docs/#guide-glosses' in block
 

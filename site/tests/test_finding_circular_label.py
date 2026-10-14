@@ -65,8 +65,8 @@ def built(tmp_path_factory: pytest.TempPathFactory) -> tuple[model.Site, dict[st
 
 
 def lead(page: str) -> str:
-    m = re.search(r'<p class="lead">(.*?)</p>', page, re.S)
-    assert m is not None, "the node page has no lead paragraph"
+    m = re.search(r'<p class="node-status">(.*?)</p>', page, re.S)  # F04-T50's header
+    assert m is not None, "the node page has no status line"
     return m.group(1)
 
 

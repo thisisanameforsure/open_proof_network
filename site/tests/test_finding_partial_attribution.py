@@ -22,6 +22,7 @@ from pathlib import Path
 import fixture
 import pytest
 import samples
+from node_parts import record_part
 
 from opn_gate import products, schemas
 from opn_site import model, render
@@ -226,9 +227,7 @@ def _live_shaped(tmp_path: Path) -> dict[str, str]:
 
 
 def _attestation_section(page: str) -> str:
-    m = re.search(r"<h2>Attestation</h2>(.*?)<h2>", page, re.S)
-    assert m is not None, "no Attestation section"
-    return m.group(1)
+    return record_part(page, "Attestation")  # F04-T50: the attestation is folded in the record
 
 
 def test_a_node_whose_only_merge_is_a_partial_does_not_say_nothing_merged(
@@ -253,5 +252,7 @@ def test_a_node_whose_only_merge_is_a_partial_is_still_not_proved(tmp_path: Path
 def test_a_node_with_nothing_merged_still_says_so(tmp_path: Path) -> None:
     root = fixture.curated(tmp_path)
     (fixture.nodes_dir(root) / PARENT / "Proof.lean").unlink()
-    section = _attestation_section(_page(_render(root), PARENT))
-    assert "No attestation: nothing has been merged for this statement." in section, section
+    page = _page(_render(root), PARENT)
+    # F04-T50 (Q49): nothing merged leaves no attestation to fold; the facts column says so.
+    assert "<dt>proof</dt><dd>none merged</dd>" in page
+    assert "Attestation:" not in page

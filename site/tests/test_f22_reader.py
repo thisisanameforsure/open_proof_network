@@ -144,7 +144,10 @@ def test_every_statement_block_explains_its_sorry(pages: dict[str, str], rel: st
     assert panels or rel != f"problems/{TARGET}/index.html"
     blocks = re.findall(r'<pre class="lean statement[^"]*">.*?</pre>(.{0,400})', page, re.S)
     assert blocks or panels
-    for after in blocks:
+    for block in blocks:
+        # F04-T50 (Q49): the claim at the top of a statement's page explains it one click away.
+        after = block.removeprefix('<details class="sorry-fold"><summary>')
+        after = re.sub(r"^Why does it end in <code>sorry</code>\?</summary>", "", after)
         assert after.startswith('<p class="sorry-note">'), after[:120]
         assert "sorry" in after and "Proof.lean" in after
         assert f'href="{DOCS_READING}"' in after

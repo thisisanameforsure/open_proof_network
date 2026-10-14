@@ -102,6 +102,15 @@ def test_every_lean_block_has_its_gloss_or_the_cue(pages: dict[str, str]) -> Non
                     or 'data-block="informal"' in slot
                 ), (rel, file)
                 continue
+            head = re.search(r'<header class="node-head">.*?</header>', page, re.S)
+            if head is not None and head.start() <= m.start() < head.end():
+                # F04-T50 (Q49): the claim atop a statement's page is the panel's summary; its
+                # gloss slot is in the record's statement fold.
+                sm = SLOT.search(page, page.index(f'id="{render.STATEMENT_WORDS_ID}"'))
+                assert sm is not None, (rel, "no gloss slot in the record's statement fold")
+                assert sm.group(1).endswith("/Statement.lean"), (rel, sm.group(1))
+                seen.setdefault(m.group(1), set()).add(rel)
+                continue
             file, slot = slot_after(page, m.start())
             seen.setdefault(m.group(1), set()).add(rel)
             assert (

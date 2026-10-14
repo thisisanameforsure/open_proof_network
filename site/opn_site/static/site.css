@@ -873,3 +873,48 @@ aside.judgement p { margin: var(--s2) 0 0; font-size: 14px; color: var(--n300); 
   .review-section { padding: var(--s3) var(--s4); }
   .review-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+
+/* F04-T50 (Q49): a statement's page reads top down — the claim, the explainer's overview, how it
+   was proved, what is known, work on it, the record folded — with a column of facts beside it. */
+.node-layout { display: grid; grid-template-columns: minmax(0, 1fr) 300px; grid-template-areas: "head facts" "body facts"; column-gap: calc(var(--s8) * 2); align-items: start; }
+.node-head { grid-area: head; display: flex; flex-direction: column; gap: var(--s3); min-width: 0; }
+.node-head > .crumbs { margin-top: calc(var(--s8) * 1.6); }
+.node-head h1 { font-size: 36px; margin: 0; overflow-wrap: anywhere; }
+.node-status { margin: 0; font-size: 15px; }
+.node-head .hole-of, .node-head .panel-note, .node-head .revision-note, .node-head .circular-label { margin: 0; font-size: 14px; color: var(--n400); max-width: 70ch; }
+.node-claim { display: flex; flex-direction: column; gap: var(--s3); max-width: 80ch; }
+.node-claim .claim-math, .node-claim .claim-math p { margin: 0; font-size: 19px; line-height: 1.5; color: var(--text); overflow-x: auto; }
+.node-claim .claim-notes { font-size: 14px; color: var(--n300); }
+.node-claim .claim-notes ul { margin: 0; padding-left: 1.2em; line-height: 1.6; }
+.node-claim .claim-mark, .node-claim .explain, .node-claim .claim-words { margin: 0; }
+.node-claim pre.lean { margin: var(--s2) 0 0; }
+.node-facts { grid-area: facts; position: sticky; top: var(--s8); margin-top: calc(var(--s8) * 1.6); font-size: 13px; }
+.facts-list { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--s2) var(--s5); margin: 0; }
+.facts-list dt { color: var(--n500); white-space: nowrap; }
+.facts-list dd { margin: 0; color: var(--n300); overflow-wrap: anywhere; }
+.node-body { grid-area: body; min-width: 0; }
+.node-sec { margin-top: calc(var(--s8) * 1.4); padding-top: var(--s5); border-top: 1px solid var(--divider); max-width: 90ch; }
+.node-sec > h2.kicker { margin: 0 0 var(--s4); font-weight: 500; }
+.node-sec > p, .node-sec .how-line { font-size: 15px; line-height: 1.6; margin: 0 0 var(--s3); }
+.node-sec .wayfinding { font-size: 13px; color: var(--n400); margin-top: var(--s4); }
+details.fold { margin: var(--s2) 0; }
+details.fold > summary, details.ex-more > summary, details.sorry-fold > summary { cursor: pointer; color: var(--accent-300); font-size: 14px; padding: var(--s1) 0; }
+details.fold > .fold-body { margin-top: var(--s3); }
+details.ex-more { margin: var(--s4) 0 var(--s2); }
+details.ex-more[open] > summary { margin-bottom: var(--s3); }
+details.sorry-fold > summary { font-size: 12.5px; color: var(--n400); }
+.record-list { display: flex; flex-direction: column; border-top: 1px solid var(--divider); }
+details.rec { margin: 0; padding: var(--s3) 0; border-bottom: 1px solid var(--divider); }
+details.rec > summary { color: var(--n300); }
+details.rec[open] > summary { color: var(--text); }
+@media (max-width: 900px) {
+  .node-layout { grid-template-columns: minmax(0, 1fr); grid-template-areas: "head" "facts" "body"; }
+  .node-facts { position: static; margin-top: var(--s6); }
+  .node-head h1 { font-size: 28px; }
+}
+.node-claim pre.lean, .node-sec .split-into pre.lean { white-space: pre-wrap; overflow-wrap: anywhere; }
+.node-sec .split-into { margin: var(--s4) 0; }
+@media (max-width: 700px) {
+  /* F04-Q48's rule on the page too: on a phone a Lean line stays whole and its block scrolls. */
+  .node-claim pre.lean, .node-sec .split-into pre.lean { white-space: pre; overflow-x: auto; overflow-wrap: normal; }
+}

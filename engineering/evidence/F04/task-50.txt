@@ -1,0 +1,94 @@
+F04-T50 (Q49): a statement's page reads top down, the way its panel does — 2026-10-14
+
+Owner, 2026-10-14, on https://openproofnetwork.org/nodes/erdos-1094/erdos-1094--h1/:
+"just like a wall of text, too much ... more like the problem page's panel ... put the explainer
+on top if it exists ... organize it, don't put so much redundant information, link/collapse to
+more detailed views." Layout agreed before code: facts column on the right (1: ok), explainer
+under the header (2: yes), the attestation's table of checks folded into the record (3: fold it in).
+
+Base: network origin/main 3cfcee78. Live graph rendered: graph origin/main 560adb44ac2dcf5bb2a9dc7a7ff550a3a527fa71.
+
+== Red first (today's renderer, the new test file, before any change) ==
+9 failed, 18 passed: no header, no sections, no facts column, no explainer fold, the attestation
+table not folded, "No annex" shown, and every page over its word budget
+(root 614 > 300, h1 347 > 170, h2 270 > 130, and-reassoc 265 > 130, tutorial 289 > 140).
+The link, anchor and inbound-link guards passed on today's page, as they must.
+Baseline (today's pages on the fixture tree, captured from origin/main code): site/tests/node_page_baseline.json
+
+== Green: uv run --frozen pytest site/tests/test_finding_node_page_summary.py ==
+site/tests/test_finding_node_page_summary.py::test_a_proved_node_with_an_explainer_leads_with_it PASSED [  3%]
+site/tests/test_finding_node_page_summary.py::test_an_open_node_leads_with_how_it_is_being_proved PASSED [  7%]
+site/tests/test_finding_node_page_summary.py::test_a_proved_node_without_an_explainer_invites_one_under_work PASSED [ 11%]
+site/tests/test_finding_node_page_summary.py::test_a_math_first_gloss_is_the_claim_and_the_lean_is_folded PASSED [ 14%]
+site/tests/test_finding_node_page_summary.py::test_without_math_words_the_lean_is_the_claim PASSED [ 18%]
+site/tests/test_finding_node_page_summary.py::test_the_explainer_shows_its_overview_and_folds_its_steps PASSED [ 22%]
+site/tests/test_finding_node_page_summary.py::test_the_facts_column_states_each_fact_once PASSED [ 25%]
+site/tests/test_finding_node_page_summary.py::test_an_open_node_has_no_proof_facts PASSED [ 29%]
+site/tests/test_finding_node_page_summary.py::test_the_attestation_table_is_folded_into_the_record PASSED [ 33%]
+site/tests/test_finding_node_page_summary.py::test_empty_parts_of_the_record_are_not_shown PASSED [ 37%]
+site/tests/test_finding_node_page_summary.py::test_the_page_loads_the_script_that_opens_a_linked_fold PASSED [ 40%]
+site/tests/test_finding_node_page_summary.py::test_the_page_shows_under_half_the_words[and-swap-reassoc] PASSED [ 44%]
+site/tests/test_finding_node_page_summary.py::test_the_page_shows_under_half_the_words[and-swap-reassoc--h1] PASSED [ 48%]
+site/tests/test_finding_node_page_summary.py::test_the_page_shows_under_half_the_words[and-swap-reassoc--h2] PASSED [ 51%]
+site/tests/test_finding_node_page_summary.py::test_the_page_shows_under_half_the_words[and-reassoc] PASSED [ 55%]
+site/tests/test_finding_node_page_summary.py::test_the_page_shows_under_half_the_words[tutorial-and-swap] PASSED [ 59%]
+site/tests/test_finding_node_page_summary.py::test_no_link_is_lost[and-swap-reassoc] PASSED [ 62%]
+site/tests/test_finding_node_page_summary.py::test_no_link_is_lost[and-swap-reassoc--h1] PASSED [ 66%]
+site/tests/test_finding_node_page_summary.py::test_no_link_is_lost[and-swap-reassoc--h2] PASSED [ 70%]
+site/tests/test_finding_node_page_summary.py::test_no_link_is_lost[and-reassoc] PASSED [ 74%]
+site/tests/test_finding_node_page_summary.py::test_no_link_is_lost[tutorial-and-swap] PASSED [ 77%]
+site/tests/test_finding_node_page_summary.py::test_no_anchor_is_lost[and-swap-reassoc] PASSED [ 81%]
+site/tests/test_finding_node_page_summary.py::test_no_anchor_is_lost[and-swap-reassoc--h1] PASSED [ 85%]
+site/tests/test_finding_node_page_summary.py::test_no_anchor_is_lost[and-swap-reassoc--h2] PASSED [ 88%]
+site/tests/test_finding_node_page_summary.py::test_no_anchor_is_lost[and-reassoc] PASSED [ 92%]
+site/tests/test_finding_node_page_summary.py::test_no_anchor_is_lost[tutorial-and-swap] PASSED [ 96%]
+site/tests/test_finding_node_page_summary.py::test_every_link_into_the_page_lands PASSED [100%]
+============================== 27 passed in 6.07s ==============================
+
+== Words shown before anything is opened (panel_text.word_count over <main>), live site vs this render ==
+node                               live    new
+erdos-1094--h1                     1646    373
+erdos-1094--h3                     3019    543
+erdos-1094                         4218    564
+erdos-1094--h2--h1--h1              803    241
+erdos-1050                         6143    389
+infinitude-of-primes               3451    309
+(task-50-measure.py; the live column is https://openproofnetwork.org as deployed today)
+
+== No sideways scroll (Playwright, document scrollWidth) ==
+erdos-1094--h1 1440 scrollWidth 1440 height 1727
+erdos-1094--h3 1440 scrollWidth 1440 height 2590
+erdos-1094 1440 scrollWidth 1440 height 2804
+erdos-1094--h1 390 scrollWidth 390 height 2713
+erdos-1094--h3 390 scrollWidth 390 height 3873
+erdos-1094 390 scrollWidth 390 height 3910
+
+== A link into a fold opens it (static/node.js), erdos-1094--h3 at 1440 ==
+load: statement fold open = True
+annex ids ['annex-2716b05e4d81']
+hashchange: annex visible = True scrollY 2947
+
+== Older tests restated to the new layout (each keeps what it checks) ==
+- explainer / pending-changes / partial attribution / lemma edge / panel summary / artifacts:
+  located by section or record fold (site/tests/node_parts.py) instead of the old <h2> headings.
+- status cause, circular label: the status line is <p class="node-status"> in the header.
+- render, rejection, artifacts, alternates: "Proof merged in commit X" and "No proof merged yet."
+  are the facts column's rows now (proof: <commit link> / none merged; checked: no attestation on
+  record for a proved row without one). "No partial assembly filed." became the attempts row.
+- reader (F22-T18 P): the header's Lean explains its sorry one click away (a "Why does it end in
+  sorry?" fold holding the same sorry-note); the gloss-slot test treats the header's claim as the
+  panel's (its slot is the record's statement fold).
+- escaping: its script check read the outer match's group; it surfaced once every node page loads
+  a script (node.js), and now reads the fullmatch's group.
+- One code fix the old tests found: a proved row with no proof commit had gained a Proof.lean link
+  through the panel's how line; it has its own line again and links nothing (R5).
+
+== make verify (before the phone Lean rule, a CSS-only change after it) ==
+Success: no issues found in 413 source files
+Success: no issues found in 255 source files
+Success: no issues found in 104 source files
+== 5946 passed, 272 skipped, 232 deselected, 2 warnings in 442.97s (0:07:22) ===
+
+Screenshots: task-50-erdos-1094--h1-{1440,390}.png, task-50-erdos-1094--h3-{1440,390}.png,
+task-50-erdos-1094-{1440,390}.png, task-50-anchor-annex-1440.png (the live graph rendered locally).
+task-50-shoot.py names this laptop's cached headless Chromium; set its executable path elsewhere.

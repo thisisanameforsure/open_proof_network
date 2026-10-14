@@ -1,25 +1,12 @@
+<div class="node-layout">
+<header class="node-head">
 <p class="crumbs"><a href="/problems/">Problems</a> / <a href="$target_href">$target_id</a> / $node_id</p>
 <h1 class="mono">$node_id$thm</h1>
-<p class="lead">$status</p>$revision
-<p class="wayfinding">$wayfinding</p>
-$claimable$tutorial$defects$literature
-<div class="statement-block" data-block="statement" id="statement-words">$statement_label
-<pre class="lean statement st-$status_class">$statement</pre>$sorry_note$statement_glosses
-<p>Rendered from $statement_link. Origin: $origin.</p>
-$deps
+<p class="node-status">$status</p>$role$revision$tutorial
+<div class="node-claim" data-block="statement">$claim</div>$in_review_gloss
+</header>
+$facts
+<div class="node-body">
+$sections
 </div>
-<h2>Proof</h2>
-$proof
-$trust
-<h2>Witness</h2>
-$witness$relation
-<h2>Attestation</h2>
-$attestation$alternates
-<h2>Attempts</h2>
-<p>$attempt_count recorded. Routes refuted: $refuted. Failure classes: $histogram.</p>
-$partials
-<h2 id="explainer">Explainer</h2>
-$in_review_explainer$explainer
-<h2>Annex</h2>
-$annexes
-$acknowledgments
+</div>

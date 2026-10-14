@@ -20,6 +20,7 @@ from typing import Any
 
 import fixture
 import pytest
+from node_parts import record_part
 from test_finding_dag_layout import SHAPES, behind_pills, crossings, drawn
 
 from opn_gate import schemas
@@ -205,9 +206,9 @@ def test_the_node_page_lists_the_lemmas_it_may_use(tmp_path: Path) -> None:
     assert f"/nodes/{TARGET}/{LEMMA}/" in block.group(1)
     assert f"<code>{HOLE}</code>" in block.group(1)
     assert '<span class="dot dot-proved"></span>' in block.group(1)  # the lemma's status pill
-    # The list sits beside the dependencies, inside the statement block.
-    assert html.index('<div class="lemmas">') > html.index('class="deps"')
-    assert html.index('<div class="lemmas">') < html.index("<h2>Proof</h2>")
+    # The list sits beside the dependencies, in the record's fold of them (F04-T50).
+    deps = record_part(html, "Depends on")
+    assert deps.index('<div class="lemmas">') > deps.index('class="deps"')
 
 
 def test_a_node_with_no_lemma_lists_none(tmp_path: Path) -> None:

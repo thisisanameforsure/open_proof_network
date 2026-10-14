@@ -8,6 +8,7 @@ the boundary"; these tests walk that boundary case by case.
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 from typing import Any
 
@@ -382,7 +383,10 @@ def test_proved_node_without_proof_commit_renders_without_a_proof_link(tmp_path:
     _write(root, f"targets/{TARGET}/graph.json", doc)
     files = render.render_site(model.load_site(root, fixture.COMMIT), repo_url=REPO)
     page = files["nodes/propositional/and-reassoc/index.html"]
-    assert "No proof merged yet." in page and "No attestation" in page
+    assert "No proof merged yet" in page
+    # F04-T50 (Q49): the facts column states the absence once.
+    assert "<dt>proof</dt><dd>none merged</dd>" in page
+    assert "<dt>checked</dt><dd>no attestation on record</dd>" in page
     assert "/Proof.lean" not in page
 
 
@@ -396,8 +400,10 @@ def test_attestation_for_another_commit_is_not_shown(tmp_path: Path) -> None:
     _write(root, f"targets/{TARGET}/graph.json", doc)
     files = render.render_site(model.load_site(root, fixture.COMMIT), repo_url=REPO)
     page = files["nodes/propositional/and-reassoc/index.html"]
-    assert "No attestation" in page and "attestations/000002.json" not in page
-    assert f"Proof merged in commit <code>{'5' * 12}</code>" in page
+    assert "<dt>checked</dt><dd>no attestation on record</dd>" in page
+    assert "attestations/000002.json" not in page
+    # F04-T50 (Q49): the merge commit is the facts column's, linked to the proof at that commit.
+    assert re.search(rf"<dt>proof</dt><dd><a [^>]*/blob/{'5' * 40}/[^>]*>{'5' * 12}</a></dd>", page)
 
 
 def test_rendering_is_deterministic(tmp_path: Path) -> None:

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from html import escape
 from html.parser import HTMLParser
 from pathlib import Path
@@ -82,11 +83,12 @@ def test_node_page_states(rendered: dict[str, str]) -> None:
     assert "Verdict <strong>pass</strong>" in proved
     assert "reviewer-one" in proved
     assert "<td>kernel-replay</td>" in proved and 'class="result-pass"' in proved
-    assert "Proof merged in commit" in proved and "/Proof.lean" in proved
+    # F04-T50 (Q49): the merge commit and the absence of a proof are the facts column's.
+    assert re.search(r"<dt>proof</dt><dd><a [^>]*/Proof\.lean\">[0-9a-f]{12}</a></dd>", proved)
     unproved = rendered["nodes/propositional/and-swap-reassoc/index.html"]
-    assert "No proof merged yet." in unproved
+    assert "<dt>proof</dt><dd>none merged</dd>" in unproved
     assert "/Proof.lean" not in unproved
-    assert "No attestation" in unproved
+    assert "Attestation:" not in unproved
     # attempts: two records (one invalid) plus the partial no record names (T14)
     assert "2 recorded" not in unproved and "3 recorded" in unproved
     assert "invalid 1" in unproved and "case-split" in unproved

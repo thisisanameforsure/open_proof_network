@@ -16,6 +16,7 @@ from html import escape
 import gloss_fixture as gf
 import pytest
 from harness import TARGET
+from node_parts import node_section
 
 from opn_site import model, render
 
@@ -30,8 +31,7 @@ def pages(tmp_path_factory: pytest.TempPathFactory) -> dict[str, str]:
 
 
 def explainer_section(page: str) -> str:
-    start = page.index('<h2 id="explainer">Explainer</h2>')
-    return page[start : page.index("<h2>Annex</h2>", start)]
+    return node_section(page, "explainer")  # F04-T50: the explainer leads the page
 
 
 def test_the_current_version_its_sections_history_and_no_form(pages: dict[str, str]) -> None:

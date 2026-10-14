@@ -66,7 +66,8 @@ def test_node_page_lists_alternates(tmp_path: Path) -> None:
         assert f"by <code>{who}</code>" in html, who
     assert html.index(FIRST) < html.index(SECOND)
     # The first merged proof is still the node's proof (the fixture merged it at MERGE).
-    assert f"Proof merged in commit <code>{fixture.MERGE[:12]}</code>" in html
+    # (F04-T50: the facts column names it.)
+    assert f">{fixture.MERGE[:12]}</a></dd>" in html
 
     plain = render.render_site(
         model.load_site(fixture.build(tmp_path / "plain"), fixture.COMMIT), repo_url=REPO

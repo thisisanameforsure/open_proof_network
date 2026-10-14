@@ -1533,3 +1533,13 @@ The law of the project:
   390 px sideways scroll; listing every element past the viewport outside a scrolling box found one long
   source URL in a single call (and a second page, riemann-hypothesis, with the same defect). Measure the
   layout before writing the cause down.
+
+- 2026-10-14 — The statement page redesign (F04-T50, Q49) from the owner's "wall of text". Two things
+  worth keeping. **Capture the guard from the old code before touching it**: today's links, anchors and
+  visible words on a fixture tree, taken from a detached worktree at `origin/main` (and retaken when the
+  fixture changed), are what let a page lose 77–94% of its visible words with nothing lost; the red run
+  then failed on structure, not on missing names. **A redesign breaks the tests that pinned sentences,
+  and two of the 29 were real**: a proved row with no proof commit regained a Proof.lean link through the
+  shared panel helper (R5), and a test's script check had read the wrong match object since it was written,
+  invisible until every node page carried a script. Restate a sentence test to the element that now carries
+  the fact, never delete it; read each failure before deciding which kind it is.

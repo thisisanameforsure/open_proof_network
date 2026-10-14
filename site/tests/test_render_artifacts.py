@@ -9,12 +9,14 @@ attestation is withheld rather than shown or crashed over (Q17).
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 import fixture
 import pytest
 import samples
 import yaml
+from node_parts import record_part
 
 from opn_gate import products, schemas
 from opn_site import links, model, render
@@ -62,7 +64,8 @@ def test_a_proved_node_shows_its_proof_text_not_only_a_link(rendered: dict[str, 
     assert "exact ⟨h.2, h.1⟩" in page
     assert '<pre class="lean">' in page
     # the link at the merge commit stays: the site shows the mathematics, the graph keeps it
-    assert "Proof merged in commit" in page and "/Proof.lean" in page
+    # (F04-T50: in the facts column, labelled with the commit)
+    assert re.search(r"<dt>proof</dt><dd><a [^>]*/Proof\.lean\">[0-9a-f]{12}</a></dd>", page)
 
 
 def test_the_proofs_caption_says_its_bytes_are_the_attested_ones(rendered: dict[str, str]) -> None:
@@ -74,7 +77,7 @@ def test_the_proofs_caption_says_its_bytes_are_the_attested_ones(rendered: dict[
 
 def test_an_unproved_node_shows_no_proof_and_no_proof_text(rendered: dict[str, str]) -> None:
     page = _page(rendered, UNPROVED)
-    assert "No proof merged yet." in page
+    assert "<dt>proof</dt><dd>none merged</dd>" in page  # F04-T50: the facts column
     assert "bytes the gate checked" not in page
 
 
@@ -112,7 +115,7 @@ def test_the_witness_is_shown_with_the_step_that_checked_it(rendered: dict[str, 
     """R14: a witness has no hash anywhere in the protocol, so the page names the step that
     checked it and never claims the bytes were attested."""
     page = _page(rendered, PROVED)
-    assert "<h2>Witness</h2>" in page
+    assert "theorem witness" in record_part(page, "Witness")  # F04-T50: folded in the record
     assert "theorem witness" in page
     assert "checked at step 7 of the run recorded below" in page
     assert "pass</span>" in page
@@ -242,7 +245,10 @@ def test_an_alternate_proof_is_not_counted_as_a_partial(tmp_path: Path) -> None:
 
 
 def test_a_node_with_no_partials_says_so(rendered: dict[str, str]) -> None:
-    assert "No partial assembly filed." in _page(rendered, "and-reassoc")
+    # F04-T50 (Q49): an empty part of the record is left out; the facts column counts attempts.
+    page = _page(rendered, "and-reassoc")
+    assert "<dt>attempts</dt><dd>0 attempts</dd>" in page
+    assert "Untrusted: partial assembly" not in page
 
 
 def test_an_invalid_postmortem_does_not_stop_the_page(tmp_path: Path) -> None:
