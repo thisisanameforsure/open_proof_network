@@ -1,0 +1,900 @@
+{
+ "frontier_entries": [
+  {
+   "attempts": 1,
+   "claimable": true,
+   "needs": "proof",
+   "node_id": "erdos-1094",
+   "ready_since": "2026-09-14T19:09:52Z",
+   "refuted_route_classes": [],
+   "status": "ready",
+   "target_id": "erdos-1094"
+  },
+  {
+   "attempts": 1,
+   "claimable": true,
+   "needs": "proof",
+   "node_id": "erdos-1094--h2",
+   "ready_since": "2026-10-08T13:15:38Z",
+   "refuted_route_classes": [],
+   "status": "ready",
+   "target_id": "erdos-1094"
+  },
+  {
+   "attempts": 2,
+   "claimable": true,
+   "needs": "proof",
+   "node_id": "erdos-1094--h2--h1",
+   "ready_since": "2026-10-09T13:00:58Z",
+   "refuted_route_classes": [],
+   "status": "ready",
+   "target_id": "erdos-1094"
+  },
+  {
+   "attempts": 1,
+   "claimable": true,
+   "needs": "proof",
+   "node_id": "erdos-1094--h2--h1--h1",
+   "ready_since": "2026-10-09T14:42:05Z",
+   "refuted_route_classes": [],
+   "status": "ready",
+   "target_id": "erdos-1094"
+  },
+  {
+   "attempts": 0,
+   "claimable": false,
+   "needs": "witness",
+   "node_id": "erdos-1094--h2--h1--h1--h1",
+   "ready_since": null,
+   "refuted_route_classes": [],
+   "status": "blocked",
+   "target_id": "erdos-1094"
+  },
+  {
+   "attempts": 1,
+   "claimable": true,
+   "needs": "proof",
+   "node_id": "erdos-1094--h2--h1--h4",
+   "ready_since": "2026-10-14T08:18:33Z",
+   "refuted_route_classes": [],
+   "status": "ready",
+   "target_id": "erdos-1094"
+  },
+  {
+   "attempts": 0,
+   "claimable": false,
+   "needs": "witness",
+   "node_id": "erdos-1094--h2--h1--h4--h1",
+   "ready_since": null,
+   "refuted_route_classes": [],
+   "status": "blocked",
+   "target_id": "erdos-1094"
+  },
+  {
+   "attempts": 1,
+   "claimable": true,
+   "needs": "proof",
+   "node_id": "erdos-1094--h2--h2",
+   "ready_since": "2026-10-09T13:00:58Z",
+   "refuted_route_classes": [],
+   "status": "ready",
+   "target_id": "erdos-1094"
+  },
+  {
+   "attempts": 0,
+   "claimable": true,
+   "needs": "proof",
+   "node_id": "erdos-1094--h2--h2--h1",
+   "ready_since": "2026-10-14T07:47:44Z",
+   "refuted_route_classes": [],
+   "status": "ready",
+   "target_id": "erdos-1094"
+  },
+  {
+   "attempts": 1,
+   "claimable": true,
+   "needs": "proof",
+   "node_id": "erdos-1094--h2--h2--h2",
+   "ready_since": "2026-10-14T07:47:44Z",
+   "refuted_route_classes": [],
+   "status": "ready",
+   "target_id": "erdos-1094"
+  },
+  {
+   "attempts": 1,
+   "claimable": true,
+   "needs": "proof",
+   "node_id": "erdos-1094--h2--h2--h2--h2",
+   "ready_since": "2026-10-14T12:07:23Z",
+   "refuted_route_classes": [],
+   "status": "ready",
+   "target_id": "erdos-1094"
+  },
+  {
+   "attempts": 1,
+   "claimable": true,
+   "needs": "proof",
+   "node_id": "erdos-1094--h2--h2--h2--h3",
+   "ready_since": "2026-10-14T12:07:23Z",
+   "refuted_route_classes": [],
+   "status": "ready",
+   "target_id": "erdos-1094"
+  },
+  {
+   "attempts": 1,
+   "claimable": true,
+   "needs": "proof",
+   "node_id": "erdos-1094--h2--h2--h2--h3--h1",
+   "ready_since": "2026-10-15T02:27:57Z",
+   "refuted_route_classes": [],
+   "status": "ready",
+   "target_id": "erdos-1094"
+  },
+  {
+   "attempts": 0,
+   "claimable": true,
+   "needs": "proof",
+   "node_id": "erdos-1094--h2--h2--h2--h3--h1--h1",
+   "ready_since": "2026-10-15T02:50:21Z",
+   "refuted_route_classes": [],
+   "status": "ready",
+   "target_id": "erdos-1094"
+  },
+  {
+   "attempts": 1,
+   "claimable": true,
+   "needs": "proof",
+   "node_id": "erdos-1094--h2--h2--h2--h4",
+   "ready_since": "2026-10-14T12:07:23Z",
+   "refuted_route_classes": [],
+   "status": "ready",
+   "target_id": "erdos-1094"
+  },
+  {
+   "attempts": 1,
+   "claimable": true,
+   "needs": "proof",
+   "node_id": "erdos-1094--h2--h2--h3",
+   "ready_since": "2026-10-14T07:47:44Z",
+   "refuted_route_classes": [],
+   "status": "ready",
+   "target_id": "erdos-1094"
+  },
+  {
+   "attempts": 0,
+   "claimable": false,
+   "needs": "witness",
+   "node_id": "erdos-1094--h2--h2--h3--h1",
+   "ready_since": null,
+   "refuted_route_classes": [],
+   "status": "blocked",
+   "target_id": "erdos-1094"
+  },
+  {
+   "attempts": 2,
+   "claimable": true,
+   "needs": "proof",
+   "node_id": "erdos-1094--h3",
+   "ready_since": "2026-10-08T13:15:38Z",
+   "refuted_route_classes": [],
+   "status": "ready",
+   "target_id": "erdos-1094"
+  },
+  {
+   "attempts": 2,
+   "claimable": true,
+   "needs": "proof",
+   "node_id": "erdos-1094--h3--h1",
+   "ready_since": "2026-10-08T13:40:22Z",
+   "refuted_route_classes": [],
+   "status": "ready",
+   "target_id": "erdos-1094"
+  },
+  {
+   "attempts": 1,
+   "claimable": true,
+   "needs": "proof",
+   "node_id": "erdos-1094--h3--h1--h1",
+   "ready_since": "2026-10-09T13:13:30Z",
+   "refuted_route_classes": [],
+   "status": "ready",
+   "target_id": "erdos-1094"
+  },
+  {
+   "attempts": 0,
+   "claimable": true,
+   "needs": "proof",
+   "node_id": "erdos-1094--h3--h1--h1--h1",
+   "ready_since": "2026-10-14T12:15:17Z",
+   "refuted_route_classes": [],
+   "status": "ready",
+   "target_id": "erdos-1094"
+  },
+  {
+   "attempts": 1,
+   "claimable": true,
+   "needs": "proof",
+   "node_id": "erdos-1094--h3--h1--h1--h2",
+   "ready_since": "2026-10-14T12:15:17Z",
+   "refuted_route_classes": [],
+   "status": "ready",
+   "target_id": "erdos-1094"
+  },
+  {
+   "attempts": 0,
+   "claimable": true,
+   "needs": "proof",
+   "node_id": "erdos-1094--h3--h1--h1--h2--h1",
+   "ready_since": "2026-10-14T18:25:10Z",
+   "refuted_route_classes": [],
+   "status": "ready",
+   "target_id": "erdos-1094"
+  },
+  {
+   "attempts": 1,
+   "claimable": true,
+   "needs": "proof",
+   "node_id": "erdos-1094--h3--h1--h2",
+   "ready_since": "2026-10-09T13:13:30Z",
+   "refuted_route_classes": [],
+   "status": "ready",
+   "target_id": "erdos-1094"
+  },
+  {
+   "attempts": 0,
+   "claimable": true,
+   "needs": "proof",
+   "node_id": "erdos-1094--h3--h1--h2--h1",
+   "ready_since": "2026-10-14T12:24:25Z",
+   "refuted_route_classes": [],
+   "status": "ready",
+   "target_id": "erdos-1094"
+  },
+  {
+   "attempts": 0,
+   "claimable": true,
+   "needs": "proof",
+   "node_id": "erdos-1094--h3--h1--h2--h2",
+   "ready_since": "2026-10-14T12:24:25Z",
+   "refuted_route_classes": [],
+   "status": "ready",
+   "target_id": "erdos-1094"
+  }
+ ],
+ "graph": {
+  "nodes": [
+   {
+    "cause": null,
+    "circular": [],
+    "decompositions": [
+     {
+      "holes": [
+       {
+        "name": "h_fixed_k",
+        "node": "erdos-1094--h1"
+       },
+       {
+        "name": "h_large_n",
+        "node": "erdos-1094--h2"
+       },
+       {
+        "name": "h_small_n",
+        "node": "erdos-1094--h3"
+       }
+      ],
+      "partial": "attempts/20261008T130306Z-t1008-a-partial.lean"
+     }
+    ],
+    "deps": [
+     "erdos-1094--h1",
+     "erdos-1094--h2",
+     "erdos-1094--h3"
+    ],
+    "lemmas": [],
+    "node_id": "erdos-1094",
+    "origin": "authored",
+    "relation": null,
+    "status": "ready"
+   },
+   {
+    "cause": null,
+    "circular": [],
+    "decompositions": [],
+    "deps": [],
+    "lemmas": [],
+    "node_id": "erdos-1094--h1",
+    "origin": "compiler-derived",
+    "relation": null,
+    "status": "proved"
+   },
+   {
+    "cause": null,
+    "circular": [],
+    "decompositions": [
+     {
+      "holes": [
+       {
+        "name": "h_lo",
+        "node": "erdos-1094--h2--h1"
+       },
+       {
+        "name": "h_hi",
+        "node": "erdos-1094--h2--h2"
+       }
+      ],
+      "partial": "attempts/20261009T124800Z-t1009-b-partial.lean"
+     }
+    ],
+    "deps": [
+     "erdos-1094--h2--h1",
+     "erdos-1094--h2--h2"
+    ],
+    "lemmas": [],
+    "node_id": "erdos-1094--h2",
+    "origin": "compiler-derived",
+    "relation": null,
+    "status": "ready"
+   },
+   {
+    "cause": null,
+    "circular": [],
+    "decompositions": [
+     {
+      "holes": [
+       {
+        "name": "h_good_below_cube",
+        "node": "erdos-1094--h2--h1--h1"
+       }
+      ],
+      "partial": "attempts/20261009T143300Z-t1009-c-partial.lean"
+     },
+     {
+      "holes": [
+       {
+        "name": "h_bhp",
+        "node": "erdos-1094--h2--h2--h1"
+       },
+       {
+        "name": "h_vdt",
+        "node": "erdos-1094--h2--h2--h2"
+       },
+       {
+        "name": "h_strip",
+        "node": "erdos-1094--h2--h1--h4"
+       }
+      ],
+      "partial": "attempts/20261014T075000Z-t1014-a-partial.lean"
+     }
+    ],
+    "deps": [
+     "erdos-1094--h2--h1--h1",
+     "erdos-1094--h2--h1--h4"
+    ],
+    "lemmas": [
+     {
+      "hole": "h_bhp",
+      "node": "erdos-1094--h2--h2--h1"
+     },
+     {
+      "hole": "h_vdt",
+      "node": "erdos-1094--h2--h2--h2"
+     }
+    ],
+    "node_id": "erdos-1094--h2--h1",
+    "origin": "skeleton-hole",
+    "relation": null,
+    "status": "ready"
+   },
+   {
+    "cause": null,
+    "circular": [
+     {
+      "ancestor": "erdos-1094--h2--h1",
+      "claim": "erdos-1094--h2--h1--h1/defects/20261009T144917Z-t1009-c.yaml"
+     }
+    ],
+    "decompositions": [
+     {
+      "holes": [
+       {
+        "name": "h_gp",
+        "node": "erdos-1094--h2--h1--h1--h1"
+       }
+      ],
+      "partial": "attempts/20261014T111741Z-t1014-y-partial.lean"
+     }
+    ],
+    "deps": [
+     "erdos-1094--h2--h1--h1--h1"
+    ],
+    "lemmas": [],
+    "node_id": "erdos-1094--h2--h1--h1",
+    "origin": "skeleton-hole",
+    "relation": null,
+    "status": "ready"
+   },
+   {
+    "cause": "witness-missing",
+    "circular": [],
+    "decompositions": [],
+    "deps": [],
+    "lemmas": [],
+    "node_id": "erdos-1094--h2--h1--h1--h1",
+    "origin": "compiler-derived",
+    "relation": null,
+    "status": "blocked"
+   },
+   {
+    "cause": null,
+    "circular": [],
+    "decompositions": [
+     {
+      "holes": [
+       {
+        "name": "h_gp",
+        "node": "erdos-1094--h2--h1--h4--h1"
+       }
+      ],
+      "partial": "attempts/20261014T111658Z-t1014-y-partial.lean"
+     }
+    ],
+    "deps": [
+     "erdos-1094--h2--h1--h4--h1"
+    ],
+    "lemmas": [],
+    "node_id": "erdos-1094--h2--h1--h4",
+    "origin": "skeleton-hole",
+    "relation": null,
+    "status": "ready"
+   },
+   {
+    "cause": "witness-missing",
+    "circular": [],
+    "decompositions": [],
+    "deps": [],
+    "lemmas": [],
+    "node_id": "erdos-1094--h2--h1--h4--h1",
+    "origin": "compiler-derived",
+    "relation": null,
+    "status": "blocked"
+   },
+   {
+    "cause": null,
+    "circular": [],
+    "decompositions": [
+     {
+      "holes": [
+       {
+        "name": "h_bhp",
+        "node": "erdos-1094--h2--h2--h1"
+       },
+       {
+        "name": "h_vdt",
+        "node": "erdos-1094--h2--h2--h2"
+       },
+       {
+        "name": "h_beyond",
+        "node": "erdos-1094--h2--h2--h3"
+       }
+      ],
+      "partial": "attempts/20261014T073500Z-t1014-a-partial.lean"
+     }
+    ],
+    "deps": [
+     "erdos-1094--h2--h2--h1",
+     "erdos-1094--h2--h2--h2",
+     "erdos-1094--h2--h2--h3"
+    ],
+    "lemmas": [],
+    "node_id": "erdos-1094--h2--h2",
+    "origin": "skeleton-hole",
+    "relation": null,
+    "status": "ready"
+   },
+   {
+    "cause": null,
+    "circular": [],
+    "decompositions": [],
+    "deps": [],
+    "lemmas": [],
+    "node_id": "erdos-1094--h2--h2--h1",
+    "origin": "skeleton-hole",
+    "relation": null,
+    "status": "ready"
+   },
+   {
+    "cause": null,
+    "circular": [],
+    "decompositions": [
+     {
+      "holes": [
+       {
+        "name": "h_small",
+        "node": "erdos-1094--h2--h2--h2--h1"
+       },
+       {
+        "name": "h_medium",
+        "node": "erdos-1094--h2--h2--h2--h2"
+       },
+       {
+        "name": "h_mediumlarge",
+        "node": "erdos-1094--h2--h2--h2--h3"
+       },
+       {
+        "name": "h_large",
+        "node": "erdos-1094--h2--h2--h2--h4"
+       }
+      ],
+      "partial": "attempts/20261014T111800Z-t1014-x-partial.lean"
+     }
+    ],
+    "deps": [
+     "erdos-1094--h2--h2--h2--h1",
+     "erdos-1094--h2--h2--h2--h2",
+     "erdos-1094--h2--h2--h2--h3",
+     "erdos-1094--h2--h2--h2--h4"
+    ],
+    "lemmas": [],
+    "node_id": "erdos-1094--h2--h2--h2",
+    "origin": "skeleton-hole",
+    "relation": null,
+    "status": "ready"
+   },
+   {
+    "cause": null,
+    "circular": [],
+    "decompositions": [],
+    "deps": [],
+    "lemmas": [],
+    "node_id": "erdos-1094--h2--h2--h2--h1",
+    "origin": "skeleton-hole",
+    "relation": null,
+    "status": "proved"
+   },
+   {
+    "cause": null,
+    "circular": [],
+    "decompositions": [
+     {
+      "holes": [
+       {
+        "name": "h_count",
+        "node": "erdos-1094--h2--h2--h2--h2--h1"
+       }
+      ],
+      "partial": "attempts/20261014T181000Z-t1014-r-partial.lean"
+     }
+    ],
+    "deps": [
+     "erdos-1094--h2--h2--h2--h2--h1"
+    ],
+    "lemmas": [],
+    "node_id": "erdos-1094--h2--h2--h2--h2",
+    "origin": "skeleton-hole",
+    "relation": null,
+    "status": "ready"
+   },
+   {
+    "cause": null,
+    "circular": [],
+    "decompositions": [],
+    "deps": [],
+    "lemmas": [],
+    "node_id": "erdos-1094--h2--h2--h2--h2--h1",
+    "origin": "compiler-derived",
+    "relation": null,
+    "status": "proved"
+   },
+   {
+    "cause": null,
+    "circular": [],
+    "decompositions": [
+     {
+      "holes": [
+       {
+        "name": "h_kon",
+        "node": "erdos-1094--h2--h2--h2--h3--h1"
+       }
+      ],
+      "partial": "attempts/20261015T021346Z-t1015-r-partial.lean"
+     }
+    ],
+    "deps": [
+     "erdos-1094--h2--h2--h2--h3--h1"
+    ],
+    "lemmas": [],
+    "node_id": "erdos-1094--h2--h2--h2--h3",
+    "origin": "skeleton-hole",
+    "relation": null,
+    "status": "ready"
+   },
+   {
+    "cause": null,
+    "circular": [],
+    "decompositions": [
+     {
+      "holes": [
+       {
+        "name": "h_thm",
+        "node": "erdos-1094--h2--h2--h2--h3--h1--h1"
+       }
+      ],
+      "partial": "attempts/20261015T023339Z-t1015-r-partial.lean"
+     }
+    ],
+    "deps": [
+     "erdos-1094--h2--h2--h2--h3--h1--h1"
+    ],
+    "lemmas": [],
+    "node_id": "erdos-1094--h2--h2--h2--h3--h1",
+    "origin": "compiler-derived",
+    "relation": null,
+    "status": "ready"
+   },
+   {
+    "cause": null,
+    "circular": [],
+    "decompositions": [],
+    "deps": [],
+    "lemmas": [],
+    "node_id": "erdos-1094--h2--h2--h2--h3--h1--h1",
+    "origin": "compiler-derived",
+    "relation": null,
+    "status": "ready"
+   },
+   {
+    "cause": null,
+    "circular": [],
+    "decompositions": [
+     {
+      "holes": [
+       {
+        "name": "h_kon",
+        "node": "erdos-1094--h2--h2--h2--h3--h1"
+       }
+      ],
+      "partial": "attempts/20261015T023100Z-t1015-q-partial.lean"
+     }
+    ],
+    "deps": [],
+    "lemmas": [
+     {
+      "hole": "h_kon",
+      "node": "erdos-1094--h2--h2--h2--h3--h1"
+     }
+    ],
+    "node_id": "erdos-1094--h2--h2--h2--h4",
+    "origin": "skeleton-hole",
+    "relation": null,
+    "status": "ready"
+   },
+   {
+    "cause": null,
+    "circular": [],
+    "decompositions": [
+     {
+      "holes": [
+       {
+        "name": "h_gp",
+        "node": "erdos-1094--h2--h2--h3--h1"
+       }
+      ],
+      "partial": "attempts/20261014T111449Z-t1014-y-partial.lean"
+     }
+    ],
+    "deps": [
+     "erdos-1094--h2--h2--h3--h1"
+    ],
+    "lemmas": [],
+    "node_id": "erdos-1094--h2--h2--h3",
+    "origin": "skeleton-hole",
+    "relation": null,
+    "status": "ready"
+   },
+   {
+    "cause": "witness-missing",
+    "circular": [],
+    "decompositions": [],
+    "deps": [],
+    "lemmas": [],
+    "node_id": "erdos-1094--h2--h2--h3--h1",
+    "origin": "compiler-derived",
+    "relation": null,
+    "status": "blocked"
+   },
+   {
+    "cause": null,
+    "circular": [],
+    "decompositions": [
+     {
+      "holes": [
+       {
+        "name": "h_sieve",
+        "node": "erdos-1094--h3--h1"
+       }
+      ],
+      "partial": "attempts/20261008T133001Z-t1008-a-partial.lean"
+     },
+     {
+      "holes": [
+       {
+        "name": "h_good_below_cube",
+        "node": "erdos-1094--h2--h1--h1"
+       }
+      ],
+      "partial": "attempts/20261009T143300Z-t1009-c-partial.lean"
+     }
+    ],
+    "deps": [
+     "erdos-1094--h3--h1"
+    ],
+    "lemmas": [
+     {
+      "hole": "h_good_below_cube",
+      "node": "erdos-1094--h2--h1--h1"
+     }
+    ],
+    "node_id": "erdos-1094--h3",
+    "origin": "compiler-derived",
+    "relation": null,
+    "status": "ready"
+   },
+   {
+    "cause": null,
+    "circular": [],
+    "decompositions": [
+     {
+      "holes": [
+       {
+        "name": "h_keven",
+        "node": "erdos-1094--h3--h1--h1"
+       },
+       {
+        "name": "h_odd",
+        "node": "erdos-1094--h3--h1--h2"
+       }
+      ],
+      "partial": "attempts/20261009T125000Z-t1009-a-partial.lean"
+     }
+    ],
+    "deps": [
+     "erdos-1094--h3--h1--h1",
+     "erdos-1094--h3--h1--h2"
+    ],
+    "lemmas": [],
+    "node_id": "erdos-1094--h3--h1",
+    "origin": "compiler-derived",
+    "relation": null,
+    "status": "ready"
+   },
+   {
+    "cause": null,
+    "circular": [],
+    "decompositions": [
+     {
+      "holes": [
+       {
+        "name": "h_k6",
+        "node": "erdos-1094--h3--h1--h1--h1"
+       },
+       {
+        "name": "h_k3rest",
+        "node": "erdos-1094--h3--h1--h1--h2"
+       }
+      ],
+      "partial": "attempts/20261014T112100Z-t1014-z-partial.lean"
+     }
+    ],
+    "deps": [
+     "erdos-1094--h3--h1--h1--h1",
+     "erdos-1094--h3--h1--h1--h2"
+    ],
+    "lemmas": [],
+    "node_id": "erdos-1094--h3--h1--h1",
+    "origin": "skeleton-hole",
+    "relation": null,
+    "status": "ready"
+   },
+   {
+    "cause": null,
+    "circular": [],
+    "decompositions": [],
+    "deps": [],
+    "lemmas": [],
+    "node_id": "erdos-1094--h3--h1--h1--h1",
+    "origin": "compiler-derived",
+    "relation": null,
+    "status": "ready"
+   },
+   {
+    "cause": null,
+    "circular": [],
+    "decompositions": [
+     {
+      "holes": [
+       {
+        "name": "h_p5to13",
+        "node": "erdos-1094--h3--h1--h1--h2--h1"
+       }
+      ],
+      "partial": "attempts/20261014T175700Z-t1014-q-partial.lean"
+     }
+    ],
+    "deps": [
+     "erdos-1094--h3--h1--h1--h2--h1"
+    ],
+    "lemmas": [],
+    "node_id": "erdos-1094--h3--h1--h1--h2",
+    "origin": "compiler-derived",
+    "relation": null,
+    "status": "ready"
+   },
+   {
+    "cause": null,
+    "circular": [],
+    "decompositions": [],
+    "deps": [],
+    "lemmas": [],
+    "node_id": "erdos-1094--h3--h1--h1--h2--h1",
+    "origin": "compiler-derived",
+    "relation": null,
+    "status": "ready"
+   },
+   {
+    "cause": null,
+    "circular": [],
+    "decompositions": [
+     {
+      "holes": [
+       {
+        "name": "h_odd_k3",
+        "node": "erdos-1094--h3--h1--h2--h1"
+       },
+       {
+        "name": "h_odd_rest",
+        "node": "erdos-1094--h3--h1--h2--h2"
+       }
+      ],
+      "partial": "attempts/20261014T112100Z-t1014-z-partial.lean"
+     }
+    ],
+    "deps": [
+     "erdos-1094--h3--h1--h2--h1",
+     "erdos-1094--h3--h1--h2--h2"
+    ],
+    "lemmas": [],
+    "node_id": "erdos-1094--h3--h1--h2",
+    "origin": "skeleton-hole",
+    "relation": null,
+    "status": "ready"
+   },
+   {
+    "cause": null,
+    "circular": [],
+    "decompositions": [],
+    "deps": [],
+    "lemmas": [],
+    "node_id": "erdos-1094--h3--h1--h2--h1",
+    "origin": "compiler-derived",
+    "relation": null,
+    "status": "ready"
+   },
+   {
+    "cause": null,
+    "circular": [],
+    "decompositions": [],
+    "deps": [],
+    "lemmas": [],
+    "node_id": "erdos-1094--h3--h1--h2--h2",
+    "origin": "compiler-derived",
+    "relation": null,
+    "status": "ready"
+   }
+  ],
+  "rendered_from": "d64a3b864afabd7238848fcc6f893aa816b594d8",
+  "root": "erdos-1094",
+  "schema": "graph/v9",
+  "target_id": "erdos-1094"
+ },
+ "graph_commit": "edadad318"
+}

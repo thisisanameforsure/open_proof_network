@@ -41,6 +41,9 @@ CUTS: tuple[str, ...] = ("finest", "any")
 #: own (``OPN_API_ROUTES_MAX_SETS``). The finest cuts of every live target number two or fewer
 #: (2026-10-15); the coarser cuts of erdos-1094 number 225.
 DEFAULT_MAX_SETS = 1000
+#: How many candidate options one node may gather, as a multiple of the cap, before the dominated
+#: ones are dropped (F27-T6); past it the answer says it was cut short.
+RAW_FACTOR = 10
 
 PROVED = "proved"
 #: A node in one of these closes nothing: a refutation or a vacuity certificate settled it the
@@ -391,14 +394,24 @@ class _Enumerator:
             )
 
     def bounded(self, options: Iterable[_Option]) -> list[_Option]:
-        """Deduplicated, and no more than the cap; past it the enumeration says it was cut."""
+        """The minimal options, deduplicated, and no more than the cap; past it the enumeration
+        says it was cut. F27-T6: dominated options are dropped here, at every node, before the
+        cap is applied: an option whose open statements strictly contain another's stays
+        dominated under any union with the same other parts, so dropping it early loses no
+        minimal set, and the cap then counts minimal sets rather than the combinations met on the
+        way (live erdos-1094, 2026-10-15: 293 minimal coarser sets, cut to 58 before this)."""
         out: dict[tuple[frozenset[str], frozenset[str]], _Option] = {}
+        ceiling = self.max_sets * RAW_FACTOR
         for o in options:
-            if len(out) >= self.max_sets:
+            if len(out) >= ceiling:
                 self.truncated = True
                 break
             out.setdefault(o.key(), o)
-        return list(out.values())
+        kept = _minimal(list(out.values()), self.rows)
+        if len(kept) > self.max_sets:
+            self.truncated = True
+            kept = kept[: self.max_sets]
+        return kept
 
     def close(self, node_id: str, path: frozenset[str]) -> tuple[list[_Option], bool]:
         """Every way to close ``node_id``, and whether a cycle was cut on the way (an answer that
@@ -509,8 +522,7 @@ def read(
                 options.extend(
                     _Option(o.members, o.assemblies, o.routes, o.variant or vid) for o in via
                 )
-    options = walker.bounded(options)
-    minimal = _minimal(options, rows)
+    minimal = walker.bounded(options)
     held: dict[str, int] = {}
     for o in minimal:
         for m in o.members:
