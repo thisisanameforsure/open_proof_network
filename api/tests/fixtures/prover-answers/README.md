@@ -10,3 +10,9 @@ DeepSeek-Prover-V2, Goedel-Prover-V2 and Pythagoras-Prover share), including tha
 `import Mathlib` header; a bare tactic block; the exported definitions echoed back. They are
 synthetic until F17-T8 captures real answers, which are added here, labelled by prover and date,
 and red first.
+
+Captured live:
+
+- `have-multiline` — Aristotle (Harmonic, aristotlelib 2.1.0), 2026-10-15, on
+  erdos-1094--h2--h2--h2--h3--h1--h1: its one hole's `have` states its type over fifteen lines, so
+  the `:= by` above the `sorry` is not on the `have` line (F17-T10). Reduced here to the tutorial.

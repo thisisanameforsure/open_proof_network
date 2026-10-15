@@ -219,6 +219,21 @@ infrastructure. The contributor runs the prover. The network runs only its gate 
     and a <code>/check</code> verdict. For a success, a precheck pass. For a failure, the drafted
     postmortem.</td>
     <td><code>engineering/evidence/F17/live-&lt;preset&gt;.txt</code> (network tier)</td></tr>
+  <tr><td>F17-AC13</td><td>Given a fake Aristotle CLI that behaves as the live one did on
+    2026-10-15, when <code>run --preset aristotle</code> runs: a connection dropped during the
+    task still ends in the downloaded answer, because no call waits on the task; a "too many
+    projects" refusal is recorded as <code>refused</code> and nothing is polled; a file returned
+    unchanged is not an answer, whatever the status; <code>--resume</code> polls and downloads
+    without submitting; and the archive's summary is what the draft postmortem quotes, with no
+    terminal escape. Given a partial whose <code>have</code> states its type over several lines,
+    <code>import</code> offers the partial.</td>
+    <td><code>api/tests/test_prove_client.py::test_aristotle_dropped_connection_still_gets_the_answer</code>,
+    <code>::test_aristotle_project_limit_is_a_refusal</code>,
+    <code>::test_aristotle_unchanged_file_is_not_an_answer</code>,
+    <code>::test_aristotle_resume_polls_without_submitting</code>,
+    <code>::test_aristotle_summary_reaches_the_postmortem</code>,
+    <code>::test_import_partial_with_a_multiline_have</code>;
+    <code>api/tests/test_prove_import.py::test_corpus[have-multiline]</code></td></tr>
 </table>
 
 <h3>5a. Why the corpus is the centre</h3>
@@ -374,13 +389,46 @@ fix follows. The live runs (AC10) exist to capture those answers.</p>
     <code>tools/SHA256SUMS.txt</code>, and a site test holds every same-site path a page links to be a
     directory or a file with an extension that the build writes (the vendored KaTeX LICENSE is not linked
     and is not held to it). Found by reading the live response, not the build.</td></tr>
+  <tr><td>F17-Q13</td><td><strong>What the first Mathlib runs of the aristotle preset met
+    (2026-10-15).</strong> Five runs: four erdos-1094 leaves and <code>erdos-69--h1-v2</code>,
+    a proved calibration node.
+    <ul>
+      <li><strong>A wait is not a task.</strong> Aristotle runs the task on its own side. The
+        CLI's <code>submit --wait</code> lost its connection about a minute in, exited 0 and left
+        an archive of the project as sent; the record said <code>answered: true</code> with no
+        status. The task ran another 25 minutes and ended in a real partial. The preset now
+        submits without waiting, keeps the project id (beside the answer, the moment it is
+        known), polls <code>aristotle tasks</code> with short calls and downloads. An
+        interrupted or timed-out run is taken up with <code>--resume &lt;project-id&gt;</code>.</li>
+      <li><strong>The CLI refuses with exit 0.</strong> "You have too many projects in progress"
+        came back at the fifth concurrent project. It came back again with one task running and three
+        idle, whose tasks had ended <code>COMPLETE_WITH_ERRORS</code> and could not be cancelled
+        ("Agent task cannot be canceled"). A refusal is recorded as <code>refused:
+        project-limit</code>, never as a run. What the limit counts is not documented; the
+        calibration run got in on its fifth try (06:08 UTC, 26 minutes after the first
+        refusal), after the long task had ended.</li>
+      <li><strong>Unchanged is not answered.</strong> Three tasks ended
+        <code>COMPLETE_WITH_ERRORS</code> with <code>Problem.lean</code> exactly as sent. A run is
+        answered only at a terminal status with a file that differs from the one sent.</li>
+      <li><strong>The summary is the account.</strong> The archive carries
+        <code>ARISTOTLE_SUMMARY.md</code>, the prover's own report: numerical thresholds, the
+        routes tried and why each failed. The draft postmortem quoted the last 2000 characters
+        of a progress display, terminal escapes included. It now quotes the summary.</li>
+      <li><strong>A multi-line <code>have</code> is still a hole.</strong> The partial stated its one
+        hole over fifteen lines, and the importer looked for <code>have</code> on the line above the
+        <code>sorry</code> only, so it refused a partial the gate then passed. Added to the corpus.</li>
+      <li><strong>The port was one line.</strong> Aristotle reports <code>v4.28.0</code>. The
+        calibration proof elaborated at <code>v4.33.1</code> unchanged. The partial needed one
+        <code>simp only</code> with no progress made tolerant (Q11's third class, a tactic that
+        now does more).</li>
+    </ul></td></tr>
   <tr><td>F17-Q5</td><td>Delivery is a file on the site, not a PyPI package. A package would be a
     publishing credential, and so a new C8 door, for a file of a few hundred lines. Revisit if
     people ask for <code>pipx install</code>.</td></tr>
 </table>
 
 <h2>10. Status</h2>
-<div class="rule"><strong>status:</strong> building &middot; <strong>Tasks:</strong> T1 ✓ 2026-09-24 · T2–T5 ✓ 2026-09-25 (opn-prove export, import corpus, chain against the real service, postmortems) · T6 ✓ 2026-09-25 (lean tier green in CI) · T7 ✓ 2026-09-25 (served from the site with its checksum; the guide runs the chain) · T9 ✓ 2026-09-25 (version drift measured, Q11) · T8 2026-10-12: the whole-file preset's live run through OpenRouter (deepseek/deepseek-v3.2) on tutorial/variant-93e79cb5 — export, run (15 s), import as a proof, /check okay, precheck PASS under a freshly minted token, nothing submitted (live-whole-file.txt); the aristotle preset's live run on the same node (COMPLETE in 181 s, /version v4.28.0 recorded beside the pin, imported as a proof, /check okay, precheck PASS; live-aristotle.txt): T8 ✓ 2026-10-12 for both presets, AC10 met · merged to main 2026-10-12: submit sends the D-23 v3.37 automation block (F16-Q14)
+<div class="rule"><strong>status:</strong> building &middot; <strong>Tasks:</strong> T1 ✓ 2026-09-24 · T2–T5 ✓ 2026-09-25 (opn-prove export, import corpus, chain against the real service, postmortems) · T6 ✓ 2026-09-25 (lean tier green in CI) · T7 ✓ 2026-09-25 (served from the site with its checksum; the guide runs the chain) · T9 ✓ 2026-09-25 (version drift measured, Q11) · T8 2026-10-12: the whole-file preset's live run through OpenRouter (deepseek/deepseek-v3.2) on tutorial/variant-93e79cb5 — export, run (15 s), import as a proof, /check okay, precheck PASS under a freshly minted token, nothing submitted (live-whole-file.txt); the aristotle preset's live run on the same node (COMPLETE in 181 s, /version v4.28.0 recorded beside the pin, imported as a proof, /check okay, precheck PASS; live-aristotle.txt): T8 ✓ 2026-10-12 for both presets, AC10 met · merged to main 2026-10-12: submit sends the D-23 v3.37 automation block (F16-Q14) · <strong>AC10 corrected 2026-10-15:</strong> the 10-12 runs took only the tutorial variant (Lean core); neither took the proved calibration node AC10 names. The aristotle preset's calibration half is shown on <code>erdos-69--h1-v2</code> (COMPLETE in 257 s, imported as a proof, <code>/check</code> okay at the pin unchanged, precheck PASS, not submitted: the node is proved; <code>live-aristotle-2026-10-15.txt</code>). The whole-file preset's calibration half is still open · T10 ✓ 2026-10-15 (<code>task-10.txt</code>: six red tests from the day's live runs, then green, AC13; the preset submits, keeps the project id, polls and downloads, with <code>--resume</code>; refusals and unchanged files recorded as what they are; the summary in the postmortem; the multi-line <code>have</code> in the corpus; Q13. Live on the same projects: <code>--resume</code> downloaded the 25-minute partial in 2.3 s. That partial, ported by one line, went in as graph PR #534 with its hole's witness carried; the three failed runs went in as postmortems #531 to #533)
 (<code>make verify</code>; <code>engineering/evidence/F17/task-1.txt</code>) &middot; T2 ✓ 2026-09-25
 (<code>task-2.txt</code>: 18 answer shapes, 9 complete proofs, 1 partial, 8 refusals; synthetic until
 T8 captures real ones) &middot; T3 ✓ 2026-09-25 (<code>task-3.txt</code>: export byte-equal to the
@@ -461,6 +509,14 @@ them.</p>
     because its result decides whether that preset ships.</td>
     <td><code>engineering/evidence/F17/drift.txt</code></td><td>T5</td>
     <td>the sample through <code>opn_prove.py check</code>, output captured</td></tr>
+  <tr><td>F17-T10</td><td>The aristotle preset holds no connection open: submit, keep the
+    project id, poll, download, <code>--resume</code>; refusals and unchanged files recorded as
+    what they are; the summary kept for the postmortem; the importer reads a multi-line
+    <code>have</code> (AC13, Q13). Red first, from the 2026-10-15 live runs.</td>
+    <td><code>gate/clients/prove/opn_prove.py</code>, <code>api/tests/test_prove_client.py</code>,
+    <code>api/tests/fixtures/prover-answers/**</code>,
+    <code>engineering/evidence/F17/live-aristotle-2026-10-15.txt</code></td><td>T8</td>
+    <td><code>uv run pytest api/tests/test_prove_client.py api/tests/test_prove_import.py -q</code></td></tr>
 </table>
 
 <footer>Open Proof Network · F17 spec v0 · 2026-09-24 · drafted from the owner's "hobbyists first,
