@@ -1,0 +1,55 @@
+$ uv run pytest gate/tests/test_target_routes.py -v
+gate/tests/test_target_routes.py::test_a_root_with_no_routes_is_its_own_set PASSED [  4%]
+gate/tests/test_target_routes.py::test_and_takes_every_hole_of_a_route PASSED   [  8%]
+gate/tests/test_target_routes.py::test_or_gives_one_set_per_route PASSED        [ 13%]
+gate/tests/test_target_routes.py::test_and_expands_through_nested_routes PASSED [ 17%]
+gate/tests/test_target_routes.py::test_proved_interior_node_cuts_its_descendants PASSED [ 21%]
+gate/tests/test_target_routes.py::test_dead_route_contributes_no_set PASSED     [ 26%]
+gate/tests/test_target_routes.py::test_every_route_dead_falls_back_to_a_direct_proof PASSED [ 30%]
+gate/tests/test_target_routes.py::test_direct_proof_needs_its_declared_dependencies PASSED [ 34%]
+gate/tests/test_target_routes.py::test_cycle_through_a_lemma_is_dropped PASSED  [ 39%]
+gate/tests/test_target_routes.py::test_resolves_variant_is_an_alternative PASSED [ 43%]
+gate/tests/test_target_routes.py::test_proved_root_is_one_closed_set PASSED     [ 47%]
+gate/tests/test_target_routes.py::test_every_statement_proved_leaves_the_assemblies PASSED [ 52%]
+gate/tests/test_target_routes.py::test_a_set_containing_another_is_dropped PASSED [ 56%]
+gate/tests/test_target_routes.py::test_unnamed_holes_assigned_or_unresolved PASSED [ 60%]
+gate/tests/test_target_routes.py::test_a_superseded_hole_is_followed_to_its_revision PASSED [ 65%]
+gate/tests/test_target_routes.py::test_route_summary_aggregates_the_frontier_facts PASSED [ 69%]
+gate/tests/test_target_routes.py::test_entries_of_another_target_are_ignored PASSED [ 73%]
+gate/tests/test_target_routes.py::test_circular_member_is_marked_not_removed PASSED [ 78%]
+gate/tests/test_target_routes.py::test_any_cut_adds_coarser_sets_up_to_cap PASSED [ 82%]
+gate/tests/test_target_routes.py::test_unknown_cut_is_refused PASSED            [ 86%]
+gate/tests/test_target_routes.py::test_as_dict_round_trips_through_json PASSED  [ 91%]
+gate/tests/test_target_routes.py::test_live_shape_sets_close_the_root PASSED    [ 95%]
+gate/tests/test_target_routes.py::test_live_shape_with_unnamed_holes PASSED     [100%]
+============================== 23 passed in 0.06s ==============================
+
+# Mutants (engineering/evidence/F27/mutants_t1.py, loaded with -p): each must turn a test red
+== no-minimal
+FAILED gate/tests/test_target_routes.py::test_a_set_containing_another_is_dropped
+FAILED gate/tests/test_target_routes.py::test_live_shape_sets_close_the_root
+2 failed, 21 passed in 0.05s
+== always-direct
+FAILED gate/tests/test_target_routes.py::test_and_takes_every_hole_of_a_route
+FAILED gate/tests/test_target_routes.py::test_or_gives_one_set_per_route
+FAILED gate/tests/test_target_routes.py::test_and_expands_through_nested_routes
+FAILED gate/tests/test_target_routes.py::test_proved_interior_node_cuts_its_descendants
+FAILED gate/tests/test_target_routes.py::test_dead_route_contributes_no_set
+FAILED gate/tests/test_target_routes.py::test_cycle_through_a_lemma_is_dropped
+FAILED gate/tests/test_target_routes.py::test_a_set_containing_another_is_dropped
+FAILED gate/tests/test_target_routes.py::test_unnamed_holes_assigned_or_unresolved
+FAILED gate/tests/test_target_routes.py::test_a_superseded_hole_is_followed_to_its_revision
+FAILED gate/tests/test_target_routes.py::test_circular_member_is_marked_not_removed
+FAILED gate/tests/test_target_routes.py::test_any_cut_adds_coarser_sets_up_to_cap
+FAILED gate/tests/test_target_routes.py::test_live_shape_sets_close_the_root
+FAILED gate/tests/test_target_routes.py::test_live_shape_with_unnamed_holes
+13 failed, 10 passed in 0.12s
+== no-fallback
+FAILED gate/tests/test_target_routes.py::test_unnamed_holes_assigned_or_unresolved
+FAILED gate/tests/test_target_routes.py::test_live_shape_with_unnamed_holes
+2 failed, 21 passed in 0.07s
+
+# erdos-1094 at graph 6c3a33886: coarser and finest counts
+cut any: 225 sets, truncated False | finest: 2 sets
+  s-b9e6eded8d total 8 closed 2 remaining 6 shared 7 assemblies 9
+  s-91094117fc total 12 closed 2 remaining 10 shared 7 assemblies 13

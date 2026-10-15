@@ -1,0 +1,397 @@
+{
+ "frontier_entries": [
+  {
+   "attempts": 2,
+   "claimable": true,
+   "needs": "proof",
+   "node_id": "erdos-69",
+   "ready_since": "2026-09-19T17:53:14Z",
+   "refuted_route_classes": [],
+   "status": "ready",
+   "target_id": "erdos-69"
+  },
+  {
+   "attempts": 1,
+   "claimable": true,
+   "needs": "proof",
+   "node_id": "erdos-69--h2-v2",
+   "ready_since": "2026-10-08T20:31:36Z",
+   "refuted_route_classes": [],
+   "status": "ready",
+   "target_id": "erdos-69"
+  },
+  {
+   "attempts": 2,
+   "claimable": true,
+   "needs": "proof",
+   "node_id": "erdos-69--h2-v2--h1-v2",
+   "ready_since": "2026-10-08T20:31:36Z",
+   "refuted_route_classes": [
+    "reduction-to-known"
+   ],
+   "status": "ready",
+   "target_id": "erdos-69"
+  },
+  {
+   "attempts": 1,
+   "claimable": true,
+   "needs": "proof",
+   "node_id": "erdos-69--h2-v2--h1-v2--h4",
+   "ready_since": "2026-10-08T20:31:36Z",
+   "refuted_route_classes": [
+    "computational"
+   ],
+   "status": "ready",
+   "target_id": "erdos-69"
+  }
+ ],
+ "graph": {
+  "nodes": [
+   {
+    "cause": null,
+    "circular": [],
+    "decompositions": [
+     {
+      "holes": [
+       {
+        "name": "h_lambert",
+        "node": null
+       },
+       {
+        "name": "h_irr",
+        "node": null
+       }
+      ],
+      "partial": "attempts/20260917T141558Z-agent-erdos69-1b25-partial.lean"
+     }
+    ],
+    "deps": [
+     "erdos-69--h1-v2",
+     "erdos-69--h2-v2"
+    ],
+    "lemmas": [],
+    "node_id": "erdos-69",
+    "origin": "authored",
+    "relation": null,
+    "status": "ready"
+   },
+   {
+    "cause": null,
+    "circular": [],
+    "decompositions": [],
+    "deps": [],
+    "lemmas": [],
+    "node_id": "erdos-69--h1",
+    "origin": "skeleton-hole",
+    "relation": null,
+    "status": "superseded"
+   },
+   {
+    "cause": null,
+    "circular": [],
+    "decompositions": [],
+    "deps": [],
+    "lemmas": [],
+    "node_id": "erdos-69--h1-v2",
+    "origin": "skeleton-hole",
+    "relation": null,
+    "status": "proved"
+   },
+   {
+    "cause": null,
+    "circular": [],
+    "decompositions": [],
+    "deps": [],
+    "lemmas": [],
+    "node_id": "erdos-69--h2",
+    "origin": "skeleton-hole",
+    "relation": null,
+    "status": "superseded"
+   },
+   {
+    "cause": null,
+    "circular": [
+     {
+      "ancestor": "erdos-69",
+      "claim": "erdos-69--h2-v2/defects/20260924T123353Z-t0924-69m-8709.yaml"
+     },
+     {
+      "ancestor": "erdos-69",
+      "claim": "erdos-69--h2-v2--h1-v2/defects/20260924T124042Z-agent-e69h-0d8d.yaml"
+     }
+    ],
+    "decompositions": [
+     {
+      "holes": [
+       {
+        "name": "hB",
+        "node": "erdos-69--h2-v2--h1-v2"
+       }
+      ],
+      "partial": "attempts/20260917T180404Z-agent-erdos69-1b25-partial.lean"
+     }
+    ],
+    "deps": [
+     "erdos-69--h2-v2--h1-v2"
+    ],
+    "lemmas": [],
+    "node_id": "erdos-69--h2-v2",
+    "origin": "skeleton-hole",
+    "relation": null,
+    "status": "ready"
+   },
+   {
+    "cause": null,
+    "circular": [],
+    "decompositions": [],
+    "deps": [],
+    "lemmas": [],
+    "node_id": "erdos-69--h2-v2--h1",
+    "origin": "compiler-derived",
+    "relation": null,
+    "status": "superseded"
+   },
+   {
+    "cause": null,
+    "circular": [
+     {
+      "ancestor": "erdos-69--h2-v2",
+      "claim": "erdos-69--h2-v2--h1-v2/defects/20260924T123349Z-t0924-69m-8709.yaml"
+     },
+     {
+      "ancestor": "erdos-69",
+      "claim": "erdos-69--h2-v2--h1-v2/defects/20260924T124042Z-agent-e69h-0d8d.yaml"
+     },
+     {
+      "ancestor": "erdos-69",
+      "claim": "erdos-69--h2-v2--h1-v2--h4/defects/20260924T123647Z-agent-e69h-0d8d.yaml"
+     }
+    ],
+    "decompositions": [
+     {
+      "holes": [
+       {
+        "name": "hsplit",
+        "node": "erdos-69--h2-v2--h1-v2--h1"
+       },
+       {
+        "name": "hpos",
+        "node": "erdos-69--h2-v2--h1-v2--h2"
+       },
+       {
+        "name": "hbound",
+        "node": "erdos-69--h2-v2--h1-v2--h3"
+       },
+       {
+        "name": "hcrux",
+        "node": "erdos-69--h2-v2--h1-v2--h4"
+       }
+      ],
+      "partial": "attempts/20260921T064112Z-agent-e69x-d614-partial.lean"
+     }
+    ],
+    "deps": [
+     "erdos-69--h2-v2--h1-v2--h1",
+     "erdos-69--h2-v2--h1-v2--h2",
+     "erdos-69--h2-v2--h1-v2--h3",
+     "erdos-69--h2-v2--h1-v2--h4"
+    ],
+    "lemmas": [],
+    "node_id": "erdos-69--h2-v2--h1-v2",
+    "origin": "compiler-derived",
+    "relation": null,
+    "status": "ready"
+   },
+   {
+    "cause": null,
+    "circular": [],
+    "decompositions": [],
+    "deps": [],
+    "lemmas": [],
+    "node_id": "erdos-69--h2-v2--h1-v2--h1",
+    "origin": "skeleton-hole",
+    "relation": null,
+    "status": "proved"
+   },
+   {
+    "cause": null,
+    "circular": [],
+    "decompositions": [],
+    "deps": [],
+    "lemmas": [],
+    "node_id": "erdos-69--h2-v2--h1-v2--h2",
+    "origin": "skeleton-hole",
+    "relation": null,
+    "status": "proved"
+   },
+   {
+    "cause": null,
+    "circular": [],
+    "decompositions": [],
+    "deps": [],
+    "lemmas": [],
+    "node_id": "erdos-69--h2-v2--h1-v2--h3",
+    "origin": "skeleton-hole",
+    "relation": null,
+    "status": "proved"
+   },
+   {
+    "cause": null,
+    "circular": [
+     {
+      "ancestor": "erdos-69--h2-v2--h1-v2",
+      "claim": "erdos-69--h2-v2--h1-v2--h4/defects/20260924T123205Z-t0924-69m-8709.yaml"
+     },
+     {
+      "ancestor": "erdos-69",
+      "claim": "erdos-69--h2-v2--h1-v2--h4/defects/20260924T123647Z-agent-e69h-0d8d.yaml"
+     }
+    ],
+    "decompositions": [],
+    "deps": [],
+    "lemmas": [],
+    "node_id": "erdos-69--h2-v2--h1-v2--h4",
+    "origin": "skeleton-hole",
+    "relation": null,
+    "status": "ready"
+   },
+   {
+    "cause": null,
+    "circular": [],
+    "decompositions": [],
+    "deps": [],
+    "lemmas": [],
+    "node_id": "spec-13f68833",
+    "origin": "authored",
+    "relation": null,
+    "status": "proved"
+   },
+   {
+    "cause": null,
+    "circular": [],
+    "decompositions": [],
+    "deps": [],
+    "lemmas": [],
+    "node_id": "spec-2e765953",
+    "origin": "authored",
+    "relation": null,
+    "status": "proved"
+   },
+   {
+    "cause": null,
+    "circular": [],
+    "decompositions": [],
+    "deps": [],
+    "lemmas": [],
+    "node_id": "spec-7d098d5c",
+    "origin": "authored",
+    "relation": null,
+    "status": "proved"
+   },
+   {
+    "cause": null,
+    "circular": [],
+    "decompositions": [],
+    "deps": [],
+    "lemmas": [],
+    "node_id": "spec-7f0efe19",
+    "origin": "authored",
+    "relation": null,
+    "status": "proved"
+   },
+   {
+    "cause": null,
+    "circular": [],
+    "decompositions": [],
+    "deps": [],
+    "lemmas": [],
+    "node_id": "spec-84446025",
+    "origin": "authored",
+    "relation": null,
+    "status": "proved"
+   },
+   {
+    "cause": null,
+    "circular": [],
+    "decompositions": [],
+    "deps": [],
+    "lemmas": [],
+    "node_id": "spec-9f8cb4ea",
+    "origin": "authored",
+    "relation": null,
+    "status": "proved"
+   },
+   {
+    "cause": null,
+    "circular": [],
+    "decompositions": [],
+    "deps": [],
+    "lemmas": [],
+    "node_id": "spec-c390279b",
+    "origin": "authored",
+    "relation": null,
+    "status": "proved"
+   },
+   {
+    "cause": null,
+    "circular": [],
+    "decompositions": [],
+    "deps": [],
+    "lemmas": [],
+    "node_id": "spec-e0b917d1",
+    "origin": "authored",
+    "relation": null,
+    "status": "proved"
+   },
+   {
+    "cause": null,
+    "circular": [],
+    "decompositions": [],
+    "deps": [],
+    "lemmas": [],
+    "node_id": "variant-09e95e7a",
+    "origin": "variant",
+    "relation": "related",
+    "status": "proved"
+   },
+   {
+    "cause": null,
+    "circular": [],
+    "decompositions": [],
+    "deps": [],
+    "lemmas": [],
+    "node_id": "variant-14c6c771",
+    "origin": "variant",
+    "relation": "related",
+    "status": "proved"
+   },
+   {
+    "cause": null,
+    "circular": [],
+    "decompositions": [],
+    "deps": [],
+    "lemmas": [],
+    "node_id": "variant-3a1bcb9a",
+    "origin": "variant",
+    "relation": "related",
+    "status": "proved"
+   },
+   {
+    "cause": null,
+    "circular": [],
+    "decompositions": [],
+    "deps": [],
+    "lemmas": [],
+    "node_id": "variant-f592e3ab",
+    "origin": "variant",
+    "relation": "related",
+    "status": "proved"
+   }
+  ],
+  "rendered_from": "806f1f948eb337c43eb922e386b91db83202c892",
+  "root": "erdos-69",
+  "schema": "graph/v9",
+  "target_id": "erdos-69"
+ },
+ "graph_commit": "6c3a33886"
+}

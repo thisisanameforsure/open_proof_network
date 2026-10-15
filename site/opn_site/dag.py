@@ -14,7 +14,7 @@ structure is testable and the colours come from the stylesheet, never from the d
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from html import escape
 from itertools import pairwise
@@ -62,7 +62,14 @@ def label_of(node_id: str, prefix: Prefix = None) -> str:
     return short_label(node_id)
 
 
-def node_width(node_id: str, prefix: Prefix = None) -> int:
+#: F27-T3: a drawing may give some of its boxes their own widths (the routes drawing's junctions
+#: are a dot, not a pill); every other box is sized by ``node_width``.
+Widths = Mapping[str, int] | None
+
+
+def node_width(node_id: str, prefix: Prefix = None, widths: Widths = None) -> int:
+    if widths is not None and node_id in widths:
+        return widths[node_id]
     return PILL_PAD + round(CHAR_W * len(label_of(node_id, prefix)))
 
 
@@ -180,13 +187,13 @@ def lines(nodes: list[dict[str, Any]]) -> list[Line]:
     return out
 
 
-def wrap(ids: list[str], prefix: Prefix = None) -> list[list[str]]:
+def wrap(ids: list[str], prefix: Prefix = None, widths: Widths = None) -> list[list[str]]:
     """One layer's nodes, in order, split into rows no wider than ``MAX_ROW_W`` (F04-T24). A
     single pill wider than that still gets a row of its own."""
     rows: list[list[str]] = [[]]
     used = 0
     for node_id in ids:
-        w = node_width(node_id, prefix)
+        w = node_width(node_id, prefix, widths)
         extra = w if not rows[-1] else GAP_X + w
         if rows[-1] and used + extra > MAX_ROW_W:
             rows.append([])
@@ -196,33 +203,33 @@ def wrap(ids: list[str], prefix: Prefix = None) -> list[list[str]]:
     return rows
 
 
-def balanced_wrap(ids: list[str], prefix: Prefix = None) -> list[list[str]]:
+def balanced_wrap(ids: list[str], prefix: Prefix = None, widths: Widths = None) -> list[list[str]]:
     """F04-T33: as many rows as ``wrap`` needs, in the same order, with the widths evened out so
     the last row is not a stub. Each row still fits ``MAX_ROW_W``."""
-    greedy = wrap(ids, prefix)
+    greedy = wrap(ids, prefix, widths)
     k = len(greedy)
     if k <= 1:
         return greedy
-    total = row_width(ids, prefix)
+    total = row_width(ids, prefix, widths)
     for slack in range(0, MAX_ROW_W, 8):
         target = min(MAX_ROW_W, total / k + slack)
         rows: list[list[str]] = [[]]
         used = 0.0
         for node_id in ids:
-            w = node_width(node_id, prefix)
+            w = node_width(node_id, prefix, widths)
             extra = w if not rows[-1] else GAP_X + w
             if rows[-1] and used + extra > target and len(rows) < k:
                 rows.append([])
                 used, extra = 0.0, w
             rows[-1].append(node_id)
             used += extra
-        if all(row_width(r, prefix) <= MAX_ROW_W for r in rows):
+        if all(row_width(r, prefix, widths) <= MAX_ROW_W for r in rows):
             return rows
     return greedy
 
 
-def row_width(ids: list[str], prefix: Prefix = None) -> int:
-    return sum(node_width(n, prefix) for n in ids) + max(len(ids) - 1, 0) * GAP_X
+def row_width(ids: list[str], prefix: Prefix = None, widths: Widths = None) -> int:
+    return sum(node_width(n, prefix, widths) for n in ids) + max(len(ids) - 1, 0) * GAP_X
 
 
 @dataclass(frozen=True)
@@ -475,7 +482,7 @@ def _loose(status: dict[str, str], edges: list[Line], root: str | None) -> tuple
 
 
 def _rows(
-    layer_of: dict[str, int], edges: list[Line], names: Prefix
+    layer_of: dict[str, int], edges: list[Line], names: Prefix, widths: Widths = None
 ) -> tuple[_Ranks, dict[str, int]]:
     """The ordered rows. Pass one orders one row per layer; each layer is then wrapped in that
     order (T24), what rests on nothing in its upper rows and what has lines down in its lower
@@ -489,7 +496,7 @@ def _rows(
     seed = {v: float(i) for row in first.rows for i, v in enumerate(row) if not _is_bend(v)}
     rests_on = {dst for _src, dst, _k in edges}
     rows_of_layer = {
-        k: balanced_wrap(sorted(ids, key=lambda v: (v in rests_on, seed[v])), names)
+        k: balanced_wrap(sorted(ids, key=lambda v: (v in rests_on, seed[v])), names, widths)
         for k, ids in by_layer.items()
     }
     ranks, rank_of = _ranks(rows_of_layer, edges, seed)
@@ -535,7 +542,8 @@ def _route(
     port: dict[tuple[str, int], float] = {}
     for key, items in beyond.items():
         p = at[key.split(_BEND, 1)[1]]
-        step = min(8.0, (p.w - 40) / max(len(items), 1))
+        # F27-T3: a box narrower than a pill (a junction dot) takes every line at its centre.
+        step = max(0.0, min(8.0, (p.w - 40) / max(len(items), 1)))
         for k, (_x, i) in enumerate(sorted(items)):
             port[(key, i)] = p.x + p.w / 2 + (k - (len(items) - 1) / 2) * step
     out: list[Edge] = []
@@ -549,26 +557,30 @@ def _route(
 
 
 def layout(
-    nodes: list[dict[str, Any]], *, root: str | None = None, prefix: str | None = None
+    nodes: list[dict[str, Any]],
+    *,
+    root: str | None = None,
+    prefix: str | None = None,
+    widths: Widths = None,
 ) -> Layout:
     """Coordinates for every statement and every line (F04-T33). With ``prefix`` (the target
-    id) a label also drops the root's own name."""
+    id) a label also drops the root's own name; ``widths`` (F27-T3) sizes the boxes it names."""
     names: Prefix = (prefix, root) if prefix and root else prefix
     nodes = sorted(nodes, key=lambda n: str(n["node_id"]))
     status = {str(n["node_id"]): str(n["status"]) for n in nodes}
     edges = lines(nodes)
     loose = _loose(status, edges, root)
     layer_of = raised({v: k for v, k in layers(nodes).items() if v not in loose}, edges)
-    ranks, rank_of = _rows(layer_of, edges, names)
-    wid: dict[str, float] = {v: float(node_width(v, names)) for v in status}
+    ranks, rank_of = _rows(layer_of, edges, names, widths)
+    wid: dict[str, float] = {v: float(node_width(v, names, widths)) for v in status}
     wid.update({v: 0.0 for row in ranks.rows for v in row if _is_bend(v)})
     left, span = _balance(ranks, wid)
     tops = _tops(ranks, layer_of)
     tree_h = max(tops.values()) + NODE_H if tops else float(PAD)
 
     # The group no line joins, wrapped and centred under the tree.
-    group_rows = wrap(list(loose), names) if loose else []
-    width = max(span, float(max((row_width(r, names) for r in group_rows), default=0)))
+    group_rows = wrap(list(loose), names, widths) if loose else []
+    width = max(span, float(max((row_width(r, names, widths) for r in group_rows), default=0)))
     x0 = (width - span) / 2 + PAD
     placed = [
         Placed(v, status[v], layer_of[v], round(left[v] + x0), round(tops[r]), int(wid[v]))
@@ -582,7 +594,7 @@ def layout(
         gy = tree_h + GROUP_HEAD - NODE_H - WRAP_GAP_Y
         for row in group_rows:
             gy += NODE_H + WRAP_GAP_Y
-            x = PAD + (width - row_width(row, names)) / 2
+            x = PAD + (width - row_width(row, names, widths)) / 2
             for v in row:
                 placed.append(Placed(v, status[v], -1, round(x), round(gy), int(wid[v])))
                 x += wid[v] + GAP_X

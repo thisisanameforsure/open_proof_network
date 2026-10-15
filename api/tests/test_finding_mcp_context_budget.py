@@ -286,7 +286,10 @@ def test_pin_a_tool_that_needs_a_token_refuses_inside_the_result(
 # 105,034 with them (+10,636, 11.3%: get_review's output schema is 2,485 of it, the review's
 # fourteen sections declared; submit_candidate's input 745, its three parameters described).
 # Pinned 106,000.
-TOOLS_LIST_BUDGET = 106_000
+# F27-T2 (D-28 v3.40) added list_sufficient_sets and measured 105,255 without it and 109,474 with
+# it (+4,219, 4.0%: its output schema is 2,803 of it, a route's holes and summary and a set's
+# fields declared as structure; its description 858, its input 354). Pinned 110,000.
+TOOLS_LIST_BUDGET = 110_000
 
 
 def test_the_whole_tools_list_fits_its_budget(harness: Harness) -> None:

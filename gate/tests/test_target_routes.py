@@ -1,0 +1,456 @@
+"""F27-T1: routes and sufficient sets read from a target's products (D-25 v3.40).
+
+Synthetic graph documents carry only the fields the reader uses (``graph/v4`` on). The two live
+fixtures in ``fixtures/routes/`` are erdos-1094 and erdos-69 as the graph published them at
+commit 6c3a33886 (2026-10-14): ``graph.json`` with each node's ``node_id``, ``status``, ``cause``,
+``deps``, ``origin``, ``relation``, ``decompositions`` (annex dropped), ``circular`` and
+``lemmas``, and the target's ``frontier.json`` entries with their counts and ``ready_since``.
+"""
+
+from __future__ import annotations
+
+import json
+from pathlib import Path
+from typing import Any
+
+import pytest
+
+from opn_gate import routes
+
+FIXTURES = Path(__file__).parent / "fixtures" / "routes"
+
+
+def node(
+    node_id: str,
+    status: str = "ready",
+    *,
+    deps: list[str] | None = None,
+    origin: str = "authored",
+    relation: str | None = None,
+    decompositions: list[list[str | None]] | None = None,
+    circular: list[dict[str, str]] | None = None,
+) -> dict[str, Any]:
+    return {
+        "node_id": node_id,
+        "status": status,
+        "deps": deps or [],
+        "origin": origin,
+        "relation": relation,
+        "decompositions": [
+            {
+                "partial": f"attempts/2026101{k}T000000Z-a-partial.lean",
+                "annex": None,
+                "holes": [{"name": f"h{i + 1}", "node": h} for i, h in enumerate(holes)],
+            }
+            for k, holes in enumerate(decompositions or [])
+        ],
+        "circular": circular or [],
+    }
+
+
+def hole(node_id: str, status: str = "ready", **kw: Any) -> dict[str, Any]:
+    return node(node_id, status, origin="skeleton-hole", **kw)
+
+
+def doc(*nodes: dict[str, Any], root: str = "t") -> dict[str, Any]:
+    return {"schema": "graph/v9", "target_id": "t", "root": root, "nodes": list(nodes)}
+
+
+def open_sets(result: routes.Routes) -> list[list[str]]:
+    return [list(s.open) for s in result.sets]
+
+
+def closes_root(graph: dict[str, Any], members: set[str]) -> bool:
+    """An independent check of R5: forward-chain from the set's statements taken as proved (with
+    every node the graph already proves) through routes, direct proofs with their declared
+    dependencies, and resolves variants, and ask whether the root closes. Assemblies are assumed
+    submitted, which is what a set's ``assemblies`` names."""
+    rows = {str(n["node_id"]): n for n in graph["nodes"]}
+    closed = {k for k, n in rows.items() if n["status"] == "proved"} | set(members)
+    changed = True
+    while changed:
+        changed = False
+        for k, n in rows.items():
+            if k in closed:
+                continue
+            for d in n.get("decompositions") or []:
+                hs = [h["node"] for h in d["holes"]]
+                if hs and all(h is not None and h in closed for h in hs):
+                    closed.add(k)
+                    changed = True
+                    break
+    root = str(graph["root"])
+    if root in closed:
+        return True
+    return any(
+        n.get("relation") == "resolves" and k in closed for k, n in rows.items() if k != root
+    )
+
+
+# --- R5: the AND-OR enumeration ------------------------------------------------------------
+
+
+def test_a_root_with_no_routes_is_its_own_set() -> None:
+    result = routes.read(doc(node("t")))
+    assert result.routes == ()
+    assert open_sets(result) == [["t"]]
+    assert result.sets[0].assemblies == ()
+
+
+def test_and_takes_every_hole_of_a_route() -> None:
+    g = doc(
+        node("t", deps=["t--h1", "t--h2"], decompositions=[["t--h1", "t--h2"]]),
+        hole("t--h1"),
+        hole("t--h2", "proved"),
+    )
+    result = routes.read(g)
+    (s,) = result.sets
+    assert s.open == ("t--h1",)
+    assert s.proved == ("t--h2",)
+    assert s.statements == ("t--h1", "t--h2")
+    assert s.assemblies == ("t",)
+    assert s.routes == ("t@1",)
+    assert (s.total, s.closed, s.remaining) == (2, 1, 1)
+
+
+def test_or_gives_one_set_per_route() -> None:
+    """AC1: two routes of the root share a hole; one set each, the shared hole in both."""
+    g = doc(
+        node(
+            "t",
+            deps=["t--h1", "t--h2", "t--h3"],
+            decompositions=[["t--h1", "t--h2"], ["t--h1", "t--h3"]],
+        ),
+        hole("t--h1"),
+        hole("t--h2"),
+        hole("t--h3"),
+    )
+    result = routes.read(g)
+    assert open_sets(result) == [["t--h1", "t--h2"], ["t--h1", "t--h3"]]
+    assert [s.routes for s in result.sets] == [("t@1",), ("t@2",)]
+    assert [s.shared for s in result.sets] == [1, 1]
+    assert result.sets[0].id != result.sets[1].id
+
+
+def test_and_expands_through_nested_routes() -> None:
+    """AC2: a decomposed hole is expanded; the set holds the grandchildren and names the hole
+    an assembly beside the root."""
+    g = doc(
+        node("t", deps=["t--h1", "t--h2"], decompositions=[["t--h1", "t--h2"]]),
+        hole("t--h1", deps=["t--h1--h1", "t--h1--h2"], decompositions=[["t--h1--h1", "t--h1--h2"]]),
+        hole("t--h1--h1"),
+        hole("t--h1--h2", "proved"),
+        hole("t--h2"),
+    )
+    (s,) = routes.read(g).sets
+    assert s.open == ("t--h1--h1", "t--h2")
+    assert s.proved == ("t--h1--h2",)
+    assert s.assemblies == ("t", "t--h1")
+    assert s.routes == ("t@1", "t--h1@1")
+    assert closes_root(g, set(s.statements))
+
+
+def test_proved_interior_node_cuts_its_descendants() -> None:
+    """AC3: a decomposed hole proved directly ends the cut; its own holes are in no set."""
+    g = doc(
+        node("t", deps=["t--h1", "t--h2"], decompositions=[["t--h1", "t--h2"]]),
+        hole("t--h1", "proved", deps=["t--h1--h1"], decompositions=[["t--h1--h1"]]),
+        hole("t--h1--h1"),
+        hole("t--h2"),
+    )
+    (s,) = routes.read(g).sets
+    assert s.statements == ("t--h1", "t--h2")
+    assert s.proved == ("t--h1",)
+    assert "t--h1--h1" not in s.statements
+    assert s.assemblies == ("t",)
+
+
+def test_dead_route_contributes_no_set() -> None:
+    """AC4: a refuted hole kills its route; the other route stands; the summary counts it."""
+    g = doc(
+        node(
+            "t",
+            deps=["t--h1", "t--h2", "t--h3"],
+            decompositions=[["t--h1", "t--h2"], ["t--h3"]],
+        ),
+        hole("t--h1", "refuted"),
+        hole("t--h2"),
+        hole("t--h3"),
+    )
+    result = routes.read(g)
+    assert open_sets(result) == [["t--h3"]]
+    first = result.routes[0]
+    assert first.id == "t@1"
+    assert first.live is False
+    assert (first.summary.holes, first.summary.dead, first.summary.open) == (2, 1, 1)
+
+
+def test_every_route_dead_falls_back_to_a_direct_proof() -> None:
+    g = doc(
+        node("t", deps=["t--h1"], decompositions=[["t--h1"]]),
+        hole("t--h1", "abandoned"),
+    )
+    (s,) = routes.read(g).sets
+    assert s.open == ("t",)
+    assert s.assemblies == ()
+
+
+def test_direct_proof_needs_its_declared_dependencies() -> None:
+    """A node taken directly brings its non-hole deps, which a proof of it waits on (D-3)."""
+    g = doc(node("t", deps=["lemma"]), node("lemma"))
+    (s,) = routes.read(g).sets
+    assert s.open == ("lemma", "t")
+
+
+def test_cycle_through_a_lemma_is_dropped() -> None:
+    g = doc(
+        node("t", deps=["t--h1"], decompositions=[["t--h1"]]),
+        hole("t--h1", decompositions=[["t"]]),
+    )
+    (s,) = routes.read(g).sets
+    assert s.open == ("t--h1",)
+
+
+def test_resolves_variant_is_an_alternative() -> None:
+    """AC6 (Q5): a resolves variant closes the target; partial and related variants do not."""
+    g = doc(
+        node("t"),
+        node("v-res", origin="variant", relation="resolves"),
+        node("v-part", origin="variant", relation="partial"),
+        node("v-rel", origin="variant", relation="related"),
+    )
+    result = routes.read(g)
+    assert open_sets(result) == [["t"], ["v-res"]]
+    assert [s.variant for s in result.sets] == [None, "v-res"]
+
+
+def test_proved_root_is_one_closed_set() -> None:
+    g = doc(node("t", "proved", deps=["t--h1"], decompositions=[["t--h1"]]), hole("t--h1"))
+    (s,) = routes.read(g).sets
+    assert (s.statements, s.open, s.remaining) == (("t",), (), 0)
+
+
+def test_every_statement_proved_leaves_the_assemblies() -> None:
+    """Q3: holes proved do not close the parent (D-12 v3.19); the set names what to submit."""
+    g = doc(
+        node("t", deps=["t--h1"], decompositions=[["t--h1"]]),
+        hole("t--h1", "proved"),
+    )
+    (s,) = routes.read(g).sets
+    assert (s.remaining, s.assemblies) == (0, ("t",))
+
+
+# --- R6: minimality -------------------------------------------------------------------------
+
+
+def test_a_set_containing_another_is_dropped() -> None:
+    """Choosing the second route of h2 needs strictly more than the first: one set survives."""
+    g = doc(
+        node("t", deps=["t--h1", "t--h2"], decompositions=[["t--h1", "t--h2"]]),
+        hole("t--h1"),
+        hole(
+            "t--h2",
+            deps=["t--h2--h1", "t--h2--h2"],
+            decompositions=[["t--h1"], ["t--h2--h1", "t--h2--h2"]],
+        ),
+        hole("t--h2--h1"),
+        hole("t--h2--h2"),
+    )
+    assert open_sets(routes.read(g)) == [["t--h1"]]
+
+
+# --- R2, R3: reading the record ---------------------------------------------------------------
+
+
+def test_unnamed_holes_assigned_or_unresolved() -> None:
+    """AC5: one route with unnamed holes takes the untaken hole children; two cannot."""
+    one = doc(
+        node("t", deps=["t--h1-v2", "t--h2"], decompositions=[[None, None]]),
+        hole("t--h1-v2", "proved"),
+        hole("t--h2"),
+    )
+    result = routes.read(one)
+    assert result.routes[0].resolved is True
+    assert [h.node for h in result.routes[0].holes] == ["t--h1-v2", "t--h2"]
+    assert open_sets(result) == [["t--h2"]]
+
+    two = doc(
+        node("t", deps=["t--h1", "t--h2"], decompositions=[[None], [None]]),
+        hole("t--h1"),
+        hole("t--h2"),
+    )
+    result = routes.read(two)
+    assert [r.resolved for r in result.routes] == [False, False]
+    assert [r.summary.unresolved for r in result.routes] == [1, 1]
+    assert open_sets(result) == [["t"]]  # neither route is used; the root is taken directly
+
+
+def test_a_superseded_hole_is_followed_to_its_revision() -> None:
+    g = doc(
+        node("t", deps=["t--h1-v2"], decompositions=[["t--h1"]]),
+        hole("t--h1", "superseded"),
+        hole("t--h1-v2"),
+    )
+    result = routes.read(g)
+    assert result.routes[0].holes[0].node == "t--h1-v2"
+    assert open_sets(result) == [["t--h1-v2"]]
+
+
+# --- R4: route facts ------------------------------------------------------------------------
+
+
+def test_route_summary_aggregates_the_frontier_facts() -> None:
+    g = doc(
+        node(
+            "t",
+            deps=["t--h1", "t--h2", "t--h3"],
+            decompositions=[["t--h1", "t--h2", "t--h3"]],
+        ),
+        hole("t--h1", "proved"),
+        hole("t--h2", deps=["t--h2--h1"], decompositions=[["t--h2--h1"]]),
+        hole("t--h2--h1"),
+        hole("t--h3"),
+    )
+    entries = [
+        {
+            "node_id": "t--h2",
+            "attempts": 3,
+            "refuted_route_classes": ["sieve"],
+            "ready_since": "2026-10-09T12:00:00Z",
+        },
+        {
+            "node_id": "t--h3",
+            "attempts": 0,
+            "refuted_route_classes": [],
+            "ready_since": "2026-10-08T13:03:06Z",
+        },
+        {
+            "node_id": "t--h2--h1",
+            "attempts": 5,
+            "refuted_route_classes": ["induction"],
+            "ready_since": "2026-10-10T00:00:00Z",
+        },
+    ]
+    result = routes.read(g, entries)
+    top = result.routes[0]
+    s = top.summary
+    assert (s.holes, s.proved, s.open, s.dead, s.unresolved) == (3, 1, 2, 0, 0)
+    assert (s.attempts, s.unattempted) == (3, 1)
+    assert s.refuted_route_classes == ("sieve",)
+    assert s.oldest_open_since == "2026-10-08T13:03:06Z"
+    h2 = next(h for h in top.holes if h.node == "t--h2")
+    assert (h2.status, h2.attempts, h2.routes) == ("ready", 3, 1)
+    proved = next(h for h in top.holes if h.node == "t--h1")
+    assert proved.attempts is None  # not on the frontier: nothing published to repeat
+
+
+def test_entries_of_another_target_are_ignored() -> None:
+    g = doc(node("t", deps=["t--h1"], decompositions=[["t--h1"]]), hole("t--h1"))
+    entries = [
+        {
+            "node_id": "t--h1",
+            "target_id": "other",
+            "attempts": 9,
+            "refuted_route_classes": [],
+            "ready_since": None,
+        }
+    ]
+    assert routes.read(g, entries).routes[0].summary.attempts == 0
+
+
+def test_circular_member_is_marked_not_removed() -> None:
+    """Q6: a set holding a statement labelled circular keeps it and says so."""
+    g = doc(
+        node("t", deps=["t--h1"], decompositions=[["t--h1"]]),
+        hole("t--h1", circular=[{"ancestor": "t", "claim": "t--h1/defects/x.yaml"}]),
+    )
+    (s,) = routes.read(g).sets
+    assert s.circular == ("t--h1",)
+
+
+# --- R8: the coarser cuts ------------------------------------------------------------------
+
+
+def test_any_cut_adds_coarser_sets_up_to_cap() -> None:
+    """AC7: with cut ``any`` the root taken directly is a set, so is the hole taken directly in
+    place of its route; every set minimal; a cap below the count truncates and says so."""
+    g = doc(
+        node("t", deps=["t--h1", "t--h2"], decompositions=[["t--h1", "t--h2"]]),
+        hole("t--h1", deps=["t--h1--h1"], decompositions=[["t--h1--h1"]]),
+        hole("t--h1--h1"),
+        hole("t--h2"),
+    )
+    finest = routes.read(g)
+    assert open_sets(finest) == [["t--h1--h1", "t--h2"]]
+    coarse = routes.read(g, cut="any")
+    assert coarse.cut == "any"
+    assert sorted(open_sets(coarse)) == [["t"], ["t--h1", "t--h2"], ["t--h1--h1", "t--h2"]]
+    assert coarse.truncated is False
+    capped = routes.read(g, cut="any", max_sets=2)
+    assert capped.truncated is True
+    assert len(capped.sets) <= 2
+
+
+def test_unknown_cut_is_refused() -> None:
+    with pytest.raises(ValueError, match="cut"):
+        routes.read(doc(node("t")), cut="widest")
+
+
+def test_as_dict_round_trips_through_json() -> None:
+    g = doc(node("t", deps=["t--h1"], decompositions=[["t--h1"]]), hole("t--h1"))
+    out = routes.read(g).as_dict()
+    assert json.loads(json.dumps(out)) == out
+    assert set(out) == {"target_id", "root", "cut", "truncated", "routes", "sets"}
+    assert set(out["sets"][0]) >= {
+        "id",
+        "statements",
+        "open",
+        "proved",
+        "assemblies",
+        "routes",
+        "variant",
+        "total",
+        "closed",
+        "remaining",
+        "shared",
+        "circular",
+    }
+
+
+# --- AC8: the live shapes -------------------------------------------------------------------
+
+
+def live(name: str) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    data = json.loads((FIXTURES / f"{name}.json").read_text(encoding="utf-8"))
+    return data["graph"], data["frontier_entries"]
+
+
+def test_live_shape_sets_close_the_root() -> None:
+    """AC8: erdos-1094 as published on 2026-10-14 — every route resolves, the finest sets are
+    minimal, and each closes the root by the independent check."""
+    graph, entries = live("erdos-1094")
+    result = routes.read(graph, entries)
+    assert len(result.routes) == 16
+    assert all(r.resolved for r in result.routes)
+    assert len(result.sets) == 2
+    opens = [set(s.open) for s in result.sets]
+    assert not any(a < b for a in opens for b in opens)
+    for s in result.sets:
+        assert closes_root(graph, set(s.statements)), s.id
+    coarse = routes.read(graph, entries, cut="any")
+    assert len(coarse.sets) > len(result.sets)
+    for s in coarse.sets:
+        assert closes_root(graph, set(s.statements)), s.id
+
+
+def test_live_shape_with_unnamed_holes() -> None:
+    """erdos-69's root decomposition predates named holes (its holes read ``node: null``); the
+    two hole children, both revisions, are its holes."""
+    graph, entries = live("erdos-69")
+    result = routes.read(graph, entries)
+    root_route = next(r for r in result.routes if r.node == "erdos-69")
+    assert root_route.resolved
+    assert {h.node for h in root_route.holes} == {"erdos-69--h1-v2", "erdos-69--h2-v2"}
+    (s,) = result.sets
+    assert s.open == ("erdos-69--h2-v2--h1-v2--h4",)
+    assert s.assemblies == ("erdos-69", "erdos-69--h2-v2", "erdos-69--h2-v2--h1-v2")

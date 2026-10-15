@@ -1,0 +1,17 @@
+$ uv run pytest api/tests/test_routes_mcp.py api/tests/test_mcp_surface.py -v
+api/tests/test_routes_mcp.py::test_list_sufficient_sets_round_trip PASSED [ 10%]
+api/tests/test_routes_mcp.py::test_cut_any_adds_the_coarser_sets_up_to_the_cap PASSED [ 20%]
+api/tests/test_routes_mcp.py::test_unknown_target_and_bad_cut_are_refused PASSED [ 30%]
+api/tests/test_routes_mcp.py::test_a_target_with_no_routes_is_its_own_set PASSED [ 40%]
+api/tests/test_mcp_surface.py::test_tool_surface_frozen PASSED           [ 50%]
+api/tests/test_mcp_surface.py::test_bijection_table_complete PASSED      [ 60%]
+api/tests/test_mcp_surface.py::test_d28_rows_verbatim PASSED             [ 70%]
+api/tests/test_mcp_surface.py::test_results_match_schemas PASSED         [ 80%]
+api/tests/test_mcp_surface.py::test_lifespan_owns_the_session_manager PASSED [ 90%]
+api/tests/test_mcp_surface.py::test_server_identity PASSED               [100%]
+======================== 10 passed, 2 warnings in 2.43s ========================
+
+# tools/list size (test_finding_mcp_context_budget): 105,255 characters without list_sufficient_sets, 109,474 with it (+4,219: output schema 2,803, description 858, input 354); budget re-pinned 106,000 -> 110,000
+
+$ uv run pytest api/tests -m "not lean and not docker and not network and not harness"
+2085 passed, 2 warnings in 90.19s (0:01:30)

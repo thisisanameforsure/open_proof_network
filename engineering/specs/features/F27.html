@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>F27 — Routes and sufficient sets</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="crumbs"><a href="../index.html">specs</a> / F27</nav>
+<h1>F27 — Routes and sufficient sets</h1>
+<p class="subtitle">A target read as an AND-OR graph: each merged decomposition is a route with its
+holes' facts aggregated, and every set of statements whose proofs would close the root is listed,
+through one read tool and a drawing on the problem page, so a stalled route is visible without
+anyone ranking anything (decisions v3.40).</p>
+
+<h2>1. Summary</h2>
+<p>Route lock-in was seen on erdos-1094: an early skeleton merged, its assembly type-checked, and
+every later agent self-selected onto its open holes, because <code>list_frontier</code> shows a flat
+list of open statements and nothing on it asks whether the route those statements belong to is
+moving. A checked assembly proves the route's architecture is sound, not that its holes are
+provable. This feature publishes the structure the frontier flattens (D-25 v3.40). A merged
+decomposition of a node (D-12 #5, D-31) is a <em>route</em>, all of whose holes are needed; a
+node's routes, a direct proof of it, and at the root each <code>resolves</code> variant (D-30) are
+alternatives. For every route the network publishes its holes' facts aggregated (D-13: attempts,
+refuted route classes; status; how long the oldest open hole has been ready), and for the target
+every <em>sufficient set</em>: statements whose proofs, with the closing proofs of the nodes the
+set's routes pass through, would close the root. All of it is derived where it is read, by one
+function in <code>opn_gate.routes</code> that the MCP tool and the site share, from
+<code>graph.json</code> and <code>frontier.json</code>; nothing new is recorded, no product schema
+changes and no re-pin is needed for it to go live (D-35, D-36).</p>
+<p>It does not allocate work. The explore-or-exploit choice, sending a share of agents to propose a
+route instead of claiming a hole on a stalled one, belongs to the operator's filter policy (D-25);
+the guide shows one, and the network keeps no share and directs no agent.</p>
+
+<h2>2. User stories</h2>
+<ul>
+  <li>As an operator, I want each route's facts (holes, proved, attempts, refuted classes, how long
+    it has stood open) so that my filter policy can tell a stalled route from a moving one and send
+    some agents to propose an alternative.</li>
+  <li>As an agent, I want the sufficient sets of a target, each with what it still needs, so that I
+    can see which open statements matter to many ways of closing the root and which belong to one.</li>
+  <li>As a reader of the problem page, I want the routes drawn with AND and OR joins visibly
+    different, each statement coloured by the sets it belongs to, and a table of the sets I can sort
+    and hover, so that I can see at a glance where the problem stands.</li>
+</ul>
+
+<h2>3. Scope</h2>
+<p><strong>In:</strong> <code>gate/opn_gate/routes.py</code> (the structure, the facts, the
+enumeration); the read tool <code>list_sufficient_sets</code> and its bijection row; a "Routes"
+section on the problem page with its drawing, its table and a small script; one guide paragraph
+with an example filter; decisions v3.40.</p>
+<p><strong>Non-goals:</strong></p>
+<ul>
+  <li>No product, schema or record changes; no field added to <code>get_target</code> or
+    <code>list_frontier</code>. Both could carry these facts later; that is a schema bump and a
+    re-pin, and nothing here needs one.</li>
+  <li>No difficulty estimate, score or ranking: sets are listed in the record's order, and sorting
+    the table is the reader's act on counts.</li>
+  <li>No standing explore share kept by the network or the service (D-25: selection lives in the
+    operator's filter).</li>
+  <li>The existing statement graph (F04-T33) is unchanged; the routes drawing is a separate
+    section.</li>
+</ul>
+
+<h2>4. Requirements</h2>
+<table>
+  <tr><th>ID</th><th>Requirement (EARS)</th></tr>
+  <tr><td>F27-R1</td><td>The system shall read a target's routes from its <code>graph.json</code>:
+    one route per entry of a node's <code>decompositions</code>, in the record's order, each with
+    its node, its partial's path and its holes as the nodes they became.</td></tr>
+  <tr><td>F27-R2</td><td>If a route's hole names no node (an older product, F09-T73), then the
+    system shall assign the node's hole children (<code>graph.is_hole_of</code>) that no other route
+    of the node took to the route's unnamed holes when exactly one route of the node has unnamed
+    holes and the counts are equal; otherwise it shall publish the route as
+    <code>unresolved</code> and use it in no set (C7).</td></tr>
+  <tr><td>F27-R3</td><td>The system shall follow a superseded hole to the statement that now
+    carries it, the dep of the parent that revises it (D-8 v3.18), and treat a hole it cannot
+    follow as unresolved.</td></tr>
+  <tr><td>F27-R4</td><td>The system shall publish, per route, each hole's status, attempts,
+    refuted route classes and how many routes of its own it has, and a summary: holes, proved,
+    open, dead (refuted, defective, abandoned), unresolved, attempts on its open holes, open holes
+    never attempted, the union of refuted route classes, and the earliest <code>ready_since</code>
+    among its open holes (D-13, D-25; the frontier's own facts, repeated).</td></tr>
+  <tr><td>F27-R5</td><td>The system shall enumerate the sufficient sets of a target from its root:
+    a proved node ends a cut as a closed member; a refuted, defective, abandoned or superseded node
+    closes nothing; an open node is expanded into each of its live routes (AND over the route's
+    holes) and taken directly, with its declared non-hole dependencies, only where no route of it
+    is live; the root also offers each <code>resolves</code> variant (D-30); a route that returns
+    to a node already on the path is dropped.</td></tr>
+  <tr><td>F27-R6</td><td>The system shall publish only minimal sets: a set whose open statements
+    strictly contain another set's is dropped, and sets with the same open statements are one set,
+    the first in record order.</td></tr>
+  <tr><td>F27-R7</td><td>The system shall publish, per set: an id derived from its statements, its
+    statements, the proved and open ones, the assemblies (interior nodes its routes pass through,
+    each still needing its closing proof), the routes it uses, the variant it goes through if any,
+    and the counts total, closed, remaining and shared (statements of the set that another set also
+    holds); in record order, never ranked.</td></tr>
+  <tr><td>F27-R8</td><td>When asked for <code>cut: any</code>, the system shall also enumerate the
+    coarser cuts, any open node of a set taken directly in place of what it was expanded into, with
+    the same minimality, up to a cap read from configuration (C6), and say whether the cap cut the
+    list short.</td></tr>
+  <tr><td>F27-R9</td><td>The MCP server shall offer <code>list_sufficient_sets(target_id, cut?)</code>,
+    a read tool whose plain path is <code>targets/&lt;id&gt;/graph.json</code> plus
+    <code>GET /frontier.json</code> (D-28 bijection), answering the routes and the sets for one
+    target and <code>not-found</code> for a target the graph does not hold.</td></tr>
+  <tr><td>F27-R10</td><td>The problem page shall carry a Routes section for a target whose graph
+    has at least one route: a drawing whose layout depends only on the graph, never on what is
+    selected, in which a route's join (AND) and a node's choice between routes (OR) have different
+    marks, each statement is a pie with one wedge per set it belongs to, coloured by set, and proved
+    statements are filled while open ones are outlined.</td></tr>
+  <tr><td>F27-R11</td><td>The Routes section shall carry a table with one row per set (holes total,
+    closed, remaining, shared), sortable by each column, and a toggle that selects the set with the
+    fewest open statements; selecting or hovering a row shall light that set's statements and their
+    lines up to the root and dim everything else, and clearing the selection shall restore every
+    wedge. Without the script the drawing and the table are still complete.</td></tr>
+  <tr><td>F27-R12</td><td>The guide shall show an operator's filter that uses route facts to send a
+    share of agents to propose a route instead of claiming a hole on a stalled one, and say that the
+    share is the operator's (D-25).</td></tr>
+</table>
+
+<h2>5. Acceptance criteria</h2>
+<table>
+  <tr><th>ID</th><th>Given / When / Then</th><th>Test case</th></tr>
+  <tr><td>F27-AC1</td><td>Given a root with two routes, one of which shares a hole with the other,
+    when the sets are enumerated, then there is one set per route choice, the shared hole is in
+    both, and its shared count says so.</td><td><code>gate/tests/test_target_routes.py::test_or_gives_one_set_per_route</code></td></tr>
+  <tr><td>F27-AC2</td><td>Given a route whose hole is itself decomposed, when the sets are
+    enumerated, then the set holds the grandchildren and names the hole as an assembly.</td>
+    <td><code>gate/tests/test_target_routes.py::test_and_expands_through_nested_routes</code></td></tr>
+  <tr><td>F27-AC3</td><td>Given an interior node proved directly, when the sets are enumerated, then
+    its descendants are in no set and the node is a closed member.</td>
+    <td><code>gate/tests/test_target_routes.py::test_proved_interior_node_cuts_its_descendants</code></td></tr>
+  <tr><td>F27-AC4</td><td>Given a route with a refuted hole, when the sets are enumerated, then the
+    route contributes no set and its summary counts the hole as dead.</td>
+    <td><code>gate/tests/test_target_routes.py::test_dead_route_contributes_no_set</code></td></tr>
+  <tr><td>F27-AC5</td><td>Given an older product whose route names no hole nodes, when it is read,
+    then the hole children are assigned where unambiguous and the route is unresolved where not.</td>
+    <td><code>gate/tests/test_target_routes.py::test_unnamed_holes_assigned_or_unresolved</code></td></tr>
+  <tr><td>F27-AC6</td><td>Given a resolves variant, when the sets are enumerated, then a set goes
+    through it, and partial and related variants are in none.</td>
+    <td><code>gate/tests/test_target_routes.py::test_resolves_variant_is_an_alternative</code></td></tr>
+  <tr><td>F27-AC7</td><td>Given cut <code>any</code>, when the sets are enumerated, then the root
+    taken directly is one of them, every set is minimal, and a cap below the count truncates and
+    says so.</td><td><code>gate/tests/test_target_routes.py::test_any_cut_adds_coarser_sets_up_to_cap</code></td></tr>
+  <tr><td>F27-AC8</td><td>Given erdos-1094's live <code>graph.json</code> and frontier, when its
+    routes are read, then every route resolves, the finest sets are minimal and each set's
+    statements close the root by an independent check.</td>
+    <td><code>gate/tests/test_target_routes.py::test_live_shape_sets_close_the_root</code></td></tr>
+  <tr><td>F27-AC9</td><td>Given the tool surface, when a client lists tools and calls
+    <code>list_sufficient_sets</code>, then the tool is listed read-only with its bijection row and
+    its result validates against its schema, for a known target and for an unknown one.</td>
+    <td><code>api/tests/test_routes_mcp.py::test_list_sufficient_sets_round_trip</code></td></tr>
+  <tr><td>F27-AC10</td><td>Given a target with routes, when the site renders, then the problem page
+    carries the drawing with AND and OR marks, one wedge per set membership, proved statements
+    filled, and a table row per set; a target without routes has no section.</td>
+    <td><code>site/tests/test_routes_view.py::test_routes_section_structure</code></td></tr>
+  <tr><td>F27-AC11</td><td>Given the rendered page in a browser, when a row is hovered or selected,
+    then that set's statements and lines are lit and the rest dimmed, the node positions do not
+    move, and clearing restores every wedge.</td>
+    <td><code>site/tests/test_routes_view.py::test_selection_lights_one_set_and_layout_is_fixed</code>
+    (Playwright; screenshots in <code>engineering/evidence/F27/</code>)</td></tr>
+</table>
+
+<h2>6. Budgets / limits</h2>
+<ul>
+  <li>The finest enumeration on every live target is under a second; the coarser enumeration is
+    capped at the service setting <code>OPN_API_ROUTES_MAX_SETS</code> (default 1000) sets.</li>
+  <li>The drawing colours at most eight sets by hue; further sets are listed in the table and drawn
+    in a neutral grey, and the page says so.</li>
+</ul>
+
+<h2>7. Security &amp; privacy notes</h2>
+<ul>
+  <li>Reads only: no secret, no write, no new route on the service. Node ids are escaped in the
+    page and in the script's data (C9). The tool serves no contributor free text.</li>
+</ul>
+
+<h2>8. Dependencies</h2>
+<ul>
+  <li><strong>F03</strong> (required): <code>graph.json</code> and <code>frontier.json</code> as
+    published (graph/v3 on; decompositions from F18-R4, graph/v4).</li>
+  <li><strong>F09</strong> (required): the MCP surface and its bijection table.</li>
+  <li><strong>F04</strong> (required): the problem page and <code>dag.layout</code>.</li>
+  <li><strong>Packages:</strong> none.</li>
+</ul>
+
+<h2>9. Open questions / judgment calls</h2>
+<table>
+  <tr><th>ID</th><th>Call made — for review</th></tr>
+  <tr><td>F27-Q1</td><td><strong>Derived at read, not recorded.</strong> The request said "publish
+    as a fact"; every fact a route needs is already in <code>graph.json</code> and
+    <code>frontier.json</code>, so the routes are derived by one shared function where they are
+    read. No schema bump, no golden regeneration, and the feature goes live with a network push and
+    a site deploy, without a re-pin. The alternative, a <code>routes</code> field in
+    <code>graph/v10</code>, would give the route's merge time exactly; the earliest
+    <code>ready_since</code> of its open holes stands in for it, and is the stall signal that
+    matters.</td></tr>
+  <tr><td>F27-Q2</td><td><strong>The published sets are the finest cuts.</strong> The request
+    defined a set by "take it directly or expand" at every open node. On erdos-1094 on 2026-10-15
+    that gives 225 minimal sets, which no palette or table can show; the finest cuts (expand
+    wherever a live route exists) give two. Every coarser set is one of these with an open node
+    taken directly, which proving that node does anyway; the page says so, and the tool returns the
+    coarser cuts with <code>cut: any</code>. Revert by making <code>any</code> the default.</td></tr>
+  <tr><td>F27-Q3</td><td><strong>Holes proved do not close their parent.</strong> D-12 v3.19 keeps
+    a decomposed node open until a closing artifact merges, so a set lists its
+    <em>assemblies</em>, the interior nodes whose closing proof is still to be submitted. A set with
+    no open statement left is "every statement proved; N assemblies to submit", not done.</td></tr>
+  <tr><td>F27-Q4</td><td><strong>"Closest to done" is a count, so it is named as one.</strong> The
+    toggle reads "Fewest open first": it sorts the table by remaining statements and selects the
+    first row. Nothing is called closer, easier or better (D-25).</td></tr>
+  <tr><td>F27-Q5</td><td><strong>Only <code>resolves</code> variants are routes to a target.</strong>
+    A partial or related variant proves something else (D-30), so it closes no set; it stays on the
+    frontier as its own work.</td></tr>
+  <tr><td>F27-Q6</td><td><strong>A circularity label is shown, not acted on.</strong> A set
+    holding a statement labelled circular (D-12 v3.35) keeps it; the table marks the set, because
+    the label is a fact and excluding it would be the removal v3.35 withdrew.</td></tr>
+  <tr><td>F27-Q7</td><td><strong>The plain path is two files and a published rule, not an
+    endpoint.</strong> D-28's bijection asks that every tool be reproducible with plain git and
+    HTTP. <code>list_sufficient_sets</code> reads <code>targets/&lt;id&gt;/graph.json</code> and
+    <code>GET /frontier.json</code> and applies D-25 v3.40's rule, which
+    <code>opn_gate.routes</code> implements in the open network repository: the precedent of
+    <code>list_words_needed</code> and <code>get_submission</code>'s <code>became</code>, which
+    also derive from published files. The alternative, a service route
+    (<code>GET /targets/&lt;id&gt;/routes.json</code>), would make the plain path one call; it is a
+    D-35 row and the owner's call.</td></tr>
+  <tr><td>F27-Q8</td><td><strong>The tool listing grew 4%.</strong> <code>tools/list</code>
+    measured 105,255 characters without the tool and 109,474 with it, 2,803 of the difference its
+    output schema's structure; the budget test's pin moved from 106,000 to 110,000 with the
+    measurement recorded beside it, as its own rule asks.</td></tr>
+  <tr><td>F27-Q9</td><td><strong>The drawing's calls (T3).</strong> The section shows when a route
+    is reachable from the root, not when any route exists. Open statements are drawn hollow, not
+    pale, because pale wedges turned blue and orange into navy and brown and the hues stopped
+    matching the table; a proved statement is a full pie with a solid ring outside it. A
+    <code>resolves</code> variant is drawn as an OR child of the root, and a line that would return
+    to a node on its own path is not drawn. The site has one theme (dark), so the eight set hues
+    (<code>--set-1</code> to <code>--set-8</code>) have no light variant. The table's columns read
+    Statements, Proved, Open, Shared, Assemblies. erdos-1094's drawing is 800 by 1186, because each
+    route adds a junction row; shortening junction-only rows is a larger change to
+    <code>dag.py</code>, left for review. <code>dag.layout</code> takes an optional
+    <code>widths</code> map; existing callers are unchanged.</td></tr>
+</table>
+
+<h2>10. Status</h2>
+<div class="rule"><strong>status:</strong> built, unpushed · <strong>Tasks:</strong> T0&ndash;T5 done; awaiting the owner's review of Q1&ndash;Q9 and the push (network branch <code>f27-route-health</code>, graph branch <code>f27-guide-copy</code>); no re-pin needed
+todo</div>
+
+<h2>Tasks</h2>
+<table>
+  <tr><th>ID</th><th>Task</th><th>Files</th><th>Deps</th><th>Verification</th></tr>
+  <tr><td>F27-T0</td><td>Decisions v3.40 applied (D-25, the D-28 row, the D-36 Target row, two
+    glossary entries, the version history); <code>PROTOCOL_VERSION</code> 3.40; goldens; this
+    spec and its index row.</td>
+    <td><code>docs/architecture_decisions.html</code>, <code>gate/opn_gate/products.py</code>,
+    <code>gate/tests/golden/products/*/info.json</code>, <code>gate/tests/test_products.py</code>,
+    <code>gate/tests/test_finding_graph_lemmas.py</code>, <code>engineering/specs/</code></td>
+    <td>&mdash;</td><td><code>uv run pytest gate/tests/test_products.py gate/tests/test_finding_graph_lemmas.py api/tests/test_mcp_surface.py site/tests -m "not lean and not docker and not network and not harness"</code></td></tr>
+  <tr><td>F27-T1</td><td>The library: routes from a graph document, facts from frontier entries,
+    the finest and coarser enumerations, minimality, ids and counts.</td>
+    <td><code>gate/opn_gate/routes.py</code>,
+    <code>gate/tests/test_target_routes.py</code>, <code>gate/tests/fixtures/routes/</code></td>
+    <td>T0</td><td><code>uv run pytest gate/tests/test_target_routes.py</code></td></tr>
+  <tr><td>F27-T2</td><td>The read tool <code>list_sufficient_sets</code>, its bijection row and
+    result schema.</td>
+    <td><code>api/opn_api/mcp/reads.py</code>, <code>api/opn_api/mcp/bijection.py</code>,
+    <code>api/opn_api/mcp/schemas/list_sufficient_sets/</code>, <code>api/tests/test_routes_mcp.py</code>,
+    <code>api/tests/test_mcp_surface.py</code></td>
+    <td>T1</td><td><code>uv run pytest api/tests/test_routes_mcp.py api/tests/test_mcp_surface.py</code></td></tr>
+  <tr><td>F27-T3</td><td>The Routes section on the problem page: drawing, table, script, styles.</td>
+    <td><code>site/opn_site/routes_view.py</code>, <code>site/opn_site/render.py</code>,
+    <code>site/opn_site/templates/target.html</code>, <code>site/opn_site/static/routes.js</code>,
+    <code>site/opn_site/static/site.css</code>, <code>site/tests/test_routes_view.py</code></td>
+    <td>T1</td><td><code>uv run pytest site/tests/test_routes_view.py</code></td></tr>
+  <tr><td>F27-T4</td><td>The guide's example filter for exploring a stalled route.</td>
+    <td><code>gate/agents/AGENTS.md</code>, <code>../open_proof_network_graph/AGENTS.md</code> (the D-35 copy)</td><td>T2</td><td><code>OPN_GRAPH_CHECKOUT=../opn-f27-graph uv run pytest gate/tests/test_walkthrough.py gate/tests/test_finding_guide_names_exist.py</code></td></tr>
+  <tr><td>F27-T5</td><td>Live check: every live target's routes and sets from the committed
+    products; erdos-1094's page rendered and screenshotted.</td>
+    <td><code>engineering/evidence/F27/</code></td><td>T1&ndash;T3</td>
+    <td><code>uv run python engineering/evidence/F27/live_routes.py</code></td></tr>
+</table>
+
+<footer>Open Proof Network · F27 spec v1 · 2026-10-15 · drafted and built unattended from the
+owner's feature request of the same day</footer>
+</body>
+</html>

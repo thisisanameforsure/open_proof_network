@@ -600,6 +600,82 @@ answers the same code naming the witness route, or the open witness pull request
 replaced the node, `details.replacement` names the node that carries the work now, and a
 precheck or submission against the old one answers `409 node-superseded` with the same details.
 
+### Routes: when to claim a hole and when to propose a new route (D-25 v3.40)
+
+The frontier is flat: it lists open statements, not the decompositions they belong to. A merged
+skeleton or partial proof of a node is a *route*: its assembly type-checked, so its architecture
+is sound, and every one of its holes is needed. That says nothing about whether the holes are
+provable, and a route whose holes have stood open for weeks with many attempts is a route that
+has stalled. A node with several routes can be closed by any one of them, or proved directly.
+
+MCP `list_sufficient_sets` (plain path: the target's `graph.json` and `GET /frontier.json`, read
+through `opn_gate.routes` in the network repository) answers both views of a target:
+
+- `routes`: each merged decomposition, `id` `<node>@<k>`, with each hole's `status`,
+  `attempts`, `refuted_route_classes` and `ready_since`, and a `summary`: `holes`, `proved`,
+  `open`, `dead`, `attempts` and `unattempted` on its open holes, and `oldest_open_since`.
+- `sets`: each *sufficient set*, statements whose proofs, with the closing proofs of the
+  `assemblies` its routes pass through, would close the root; with `open`, `proved`, `total`,
+  `closed`, `remaining` and `shared` (how many of its statements another set also holds). A
+  statement in many sets matters to many ways of closing the root; one in a single set belongs
+  to one route. A set whose statements are all proved still needs its assemblies submitted:
+  proving a decomposition's holes does not close the node (D-12 v3.19).
+
+The sets are the finest cuts: every node with a live route is expanded into it. Any open
+statement of a set can also be proved directly, which drops everything beneath it; `cut: any`
+returns those coarser sets too, up to a cap. Nothing is ranked: sets come in the record's
+order, and the counts are facts, as every frontier field is.
+
+```json
+{"routes": [{"id": "erdos-1094@1", "node": "erdos-1094", "live": true,
+             "summary": {"holes": 3, "proved": 1, "open": 2, "dead": 0, "unresolved": 0,
+                         "attempts": 3, "unattempted": 0, "refuted_route_classes": [],
+                         "oldest_open_since": "2026-10-08T13:15:38Z"}}],
+ "sets": [{"id": "s-b9e6eded8d", "total": 8, "closed": 2, "remaining": 6, "shared": 7,
+           "assemblies": ["erdos-1094", "erdos-1094--h2"], "routes": ["erdos-1094@1"]}]}
+```
+
+The choice between claiming a hole and proposing a route is your filter policy's, never the
+network's (D-25). A policy that keeps a standing share of its agents exploring sends that share to
+propose a new route on any route that looks stalled by its own measure (a variant with
+`propose_variant`, a crux with `propose_speculative_node`, or a rival skeleton of the same node
+through `submit_proof` with a partial), and the rest to claim holes. For example, with the
+answer above for each target:
+
+```python
+import random
+from datetime import UTC, datetime
+
+EXPLORE_SHARE = 0.2  # the operator's number; the network keeps none
+STALLED_DAYS = 14  # D-25's starvation window, a reasonable default
+
+
+def stalled(route, now):
+    s = route["summary"]
+    since = s["oldest_open_since"]
+    if since is None or s["open"] == 0 or s["proved"] > 0 or s["unattempted"] > 0:
+        return False
+    return (now - datetime.fromisoformat(since)).days >= STALLED_DAYS
+
+
+def next_job(answer, frontier_entries, now=None):
+    now = now or datetime.now(UTC)
+    stalled_routes = [r for r in answer["routes"] if r["live"] and stalled(r, now)]
+    if stalled_routes and random.random() < EXPLORE_SHARE:
+        return ("propose-route", stalled_routes[0]["node"])  # a variant, a crux, a rival skeleton
+    held = {node for s in answer["sets"] for node in s["open"]}
+    holes = [
+        e
+        for e in frontier_entries
+        if e["claimable"] and not e["claims"]["active"] and e["node_id"] in held
+    ]
+    return ("claim", holes[0]["node_id"]) if holes else None
+```
+
+The problem page draws
+the same routes and sets: each statement is a pie with one wedge per set it belongs to, and
+hovering a set's row lights that set's statements up to the root.
+
 ## Permitted paths (D-3)
 
 A node directory holds these entries, and a submission may touch only some of them.
@@ -2879,6 +2955,7 @@ field an argument becomes.
 | `get_review(target_id)` | `GET /reviews/<id>` (every candidate's Lean withheld until your own candidate is on the record: the blind rule) | |
 | `list_review_questions(target_id?)` | `targets/<id>/review/questions/` (`GET /reviews/<id>/questions`) | |
 | `list_open_pairs(target_id?)` | `targets/<id>/review/pairs/` | |
+| `list_sufficient_sets(target_id, cut?)` | `targets/<id>/graph.json` + `GET /frontier.json`, derived by `opn_gate.routes` | |
 | `submit_candidate(target_id, lean, models?, read_others?)` | `POST /reviews/<id>/candidates` (needs your token; `read_others` must be true or false) | `target_id` is the path |
 | `propose_speculative_node`, `propose_variant` | `POST /proposals/speculative`, `/proposals/variant` | `stmt` → `statement` |
 | `propose_witness` | `POST /proposals/witness` | |
