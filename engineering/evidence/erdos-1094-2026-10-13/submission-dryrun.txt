@@ -1,0 +1,13 @@
+200 gloss erdos-1094: {"warnings": [], "dry_run": true}
+200 gloss erdos-1094--h1: {"warnings": [], "dry_run": true}
+200 gloss erdos-1094--h2: {"warnings": [], "dry_run": true}
+200 gloss erdos-1094--h2--h1: {"warnings": [], "dry_run": true}
+200 gloss erdos-1094--h2--h1--h1: {"warnings": [], "dry_run": true}
+200 gloss erdos-1094--h2--h2: {"warnings": [], "dry_run": true}
+200 gloss erdos-1094--h3: {"warnings": [], "dry_run": true}
+200 gloss erdos-1094--h3--h1: {"warnings": [], "dry_run": true}
+200 gloss erdos-1094--h3--h1--h1: {"warnings": [], "dry_run": true}
+200 gloss erdos-1094--h3--h1--h2: {"warnings": [], "dry_run": true}
+200 witness gloss erdos-1094: {"warnings": [], "dry_run": true}
+200 explainer erdos-1094--h1: {"warnings": [], "dry_run": true}
+annexes queued: 10 (sent only with --real)
