@@ -1,0 +1,14 @@
+# F27 live, 2026-10-15 (05:35 UTC)
+network: PR #54 (merge 3c106c0d) and PR #55 (T6) merged; api-deploy succeeded for both; site-deploy dispatched and succeeded.
+graph: guide copy pushed as 64b3c3318 (F27-T4), on edadad318.
+
+MCP (https://api.openproofnetwork.org/mcp), read at 64b3c3318:
+  list_sufficient_sets listed, readOnlyHint true
+  erdos-1094 finest: 19 routes, 2 sets (s-7ea9fa71c3 total 7 closed 3 remaining 4 shared 6; s-d44afe14f7 total 11 closed 3 remaining 8 shared 6)
+  erdos-1094 any: 293 sets, truncated false (58 and truncated before T6)
+  erdos-69 finest: 3 routes, 1 set (total 5 closed 4 remaining 1)
+  unknown target: isError true, not-found
+
+Site: https://openproofnetwork.org/problems/erdos-1094/ carries id="routes" (a fetch inside CloudFront's 60 s window first served the previous page).
+  Playwright at 1440: 2 table rows, 48 drawn nodes (statements and junctions), 18 wedges; selecting row 1 lit 31 nodes; page scrollWidth 1440.
+  Screenshot: live-erdos-1094-routes.png (Set 1 selected).
