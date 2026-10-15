@@ -1585,7 +1585,6 @@ The law of the project:
   (and is why every `parse_declaration` reader kept working untouched). **Allowing text in a partial is
   allowing a hole**: the extractor reads the main theorem only, so a helper resting on `sorry` would be
   an unreported hole; the block refuses `sorry` and `admit`.
-
 - 2026-10-15 — F27 (routes and sufficient sets, decisions v3.40) built unattended overnight from the
   owner's request after route lock-in on erdos-1094; branch `f27-route-health`, live the same morning (below). Four
   things worth keeping. **Count before you design a view**: the request defined a sufficient set by
@@ -1600,3 +1599,10 @@ The law of the project:
   Python inside the guide's fences**, and the guide's copy test reads the graph checkout from
   `OPN_GRAPH_CHECKOUT`: prepare the D-35 copy on a graph branch in its own worktree and point the
   hook at it, rather than editing the shared graph checkout or skipping the hook.
+- 2026-10-15 — The second hole-filler hour, on the new rules (`engineering/evidence/testers-2026-10-15/`): one
+  complete proof (#527, vdT's `med_card_bound`, six minutes from claim to submission on yesterday's Lean
+  unchanged) and three partials that put the mediumlarge and large cases on one node, `konyagin_thm`. **What
+  the change bought was the per-declaration count, not the bigger number**: 328k inlined became 91k at most as
+  helpers, and only one helper (`konyagin_application`, 271k) needed the new cap. **A parent whose holes are all
+  proved is not proved**: `--h2--h2--h2--h2` still reads `ready` because nobody submitted its closing proof,
+  and an agent reported the case "closed". Read `graph.json`'s status before repeating a claim of closure.
