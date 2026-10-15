@@ -28,9 +28,10 @@ from opn_gate.toolchain import ResolvedToolchain, UsedConstantsRequest
 
 log = logging.getLogger(__name__)
 
-_CONTEXT_DECL_RE = re.compile(
-    r"^(?:theorem|lemma)\s+(?P<name>[^\s:({\[]+)(?P<sig>.*?):=", re.M | re.S
-)
+_DECL_START_RE = re.compile(r"^(?:theorem|lemma)\s+(?P<name>[^\s:({\[]+)", re.M)
+# A signature ends at its sorry body, as a Statement's does (``layout.parse_statement``), never at
+# the first ``:=``: a ``let x :=`` inside the type is part of the signature (F01-T7).
+_SORRY_BODY_RE = re.compile(r":=\s*(?:by\s+)?sorry\b")
 _WS = re.compile(r"\s+")
 
 
@@ -41,18 +42,27 @@ def normalize_signature(text: str) -> str:
 def statement_signature(statement: layout.Statement) -> str:
     """The theorem's signature text from ``theorem`` up to (not including) ``:=``."""
     prefix = statement.prefix
-    start = _CONTEXT_DECL_RE.search(prefix)
+    start = _DECL_START_RE.search(prefix)
     if not start:
         return normalize_signature(prefix.rstrip(":= \n"))
     return normalize_signature(prefix[start.start() : len(prefix) - 2])
 
 
 def context_signatures(text: str) -> dict[str, str]:
-    """Every ``theorem NAME <sig> :=`` in a Context.lean, keyed by full declaration name."""
+    """Every ``theorem NAME <sig> := sorry`` in a Context.lean, keyed by full declaration name.
+
+    A declaration with no sorry body before the next one is left out, so step 8 reports it
+    missing rather than reading a signature that runs into its neighbour.
+    """
     out: dict[str, str] = {}
-    for m in _CONTEXT_DECL_RE.finditer(text):
+    starts = list(_DECL_START_RE.finditer(text))
+    for i, m in enumerate(starts):
+        end = starts[i + 1].start() if i + 1 < len(starts) else len(text)
+        body = _SORRY_BODY_RE.search(text, m.end(), end)
+        if body is None:
+            continue
         name = m.group("name")
-        out[name] = normalize_signature("theorem " + name + m.group("sig"))
+        out[name] = normalize_signature("theorem " + name + text[m.end() : body.start()])
     return out
 
 

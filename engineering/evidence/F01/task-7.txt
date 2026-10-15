@@ -1,0 +1,40 @@
+F01-T7 — a Context signature ends at its sorry body (Q6). 2026-10-15, worktree f01-context-let off origin/main 067497e7.
+
+== RED: new tests against origin/main's deps.py ==
+$ uv run --frozen pytest gate/tests/test_finding_context_let.py -q -p no:cacheprovider
+E       AssertionError: assert 'theorem let_...) ≤ W → let X' == 'theorem let_...ℝ) * (↑r : ℝ)'
+E         - ≤ W → let X := (W ^ (2 : ℕ)) ^ ((2 : ℝ) * (↑r : ℝ))⁻¹; (0 : ℝ) ≤ X + (2 : ℝ) * (↑r : ℝ)
+E         + ≤ W → let X
+E       assert StepResult(ok=False, diagnostic=Diagnostic(code='context-signature-mismatch', message="Context.lean's signature for de...d4b5d1d253b28b85ac91cb4bf2c5e', 'statement_hash': '70bd13453b573e7e12095ecbb8f3be853cb7bf530f432a3d068207b92ee8298f'})) is None
+E        +  where StepResult(ok=False, diagnostic=Diagnostic(code='context-signature-mismatch', message="Context.lean's signature for de...d4b5d1d253b28b85ac91cb4bf2c5e', 'statement_hash': '70bd13453b573e7e12095ecbb8f3be853cb7bf530f432a3d068207b92ee8298f'})) = check_context(Node(node_id='let-parent', target_id='t', path=PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pyt...e='let_parent', text='theorem let_parent : True := by\n  sorry\n', prefix='theorem let_parent : True :=', suffix='\n')), ['let-dep'])
+FAILED gate/tests/test_finding_context_let.py::test_context_signature_reads_past_a_let
+FAILED gate/tests/test_finding_context_let.py::test_identical_context_with_a_let_passes
+2 failed, 1 passed in 34.86s
+
+== GREEN: with the fix ==
+$ uv run --frozen pytest gate/tests/test_finding_context_let.py -v -p no:cacheprovider
+gate/tests/test_finding_context_let.py::test_context_signature_reads_past_a_let PASSED [ 33%]
+gate/tests/test_finding_context_let.py::test_identical_context_with_a_let_passes PASSED [ 66%]
+gate/tests/test_finding_context_let.py::test_a_change_inside_the_let_still_fails PASSED [100%]
+============================== 3 passed in 0.94s ===============================
+
+== LIVE: check_context over the live parent at graph 016ae41ad ==
+origin/main: context-signature-mismatch
+fix: pass
+
+== Regression gate (pre-commit make verify) ==
+ruff check, ruff format, mypy: pass.
+pytest (fast tier): 1 failed, 6366 passed, 9 skipped, 262 deselected in 543 s.
+The one failure, gate/tests/test_walkthrough.py::test_graph_copy_is_identical, reads the sibling graph
+checkout's AGENTS.md, which sat 183 commits behind origin; against a fresh worktree of graph origin/main:
+$ OPN_GRAPH_CHECKOUT=<graph origin/main worktree> uv run --frozen pytest gate/tests/test_walkthrough.py::test_graph_copy_is_identical
+1 passed. Committed with --no-verify on that basis (as 2026-10-02 did for the same stale checkout).
+
+== Live (2026-10-15) ==
+Network PR #64 merged as f878b4d; tag gate-f878b4d published the images
+(plain sha256:674905ae…d8a0, Mathlib 0df444a sha256:b8bada6a…1df7); api-deploy success.
+Graph re-pinned to f878b4d at 9020d71f6 (27 targets + devcontainer, pin_image.py --check passed for each);
+gate run on the push passed, render dispatched and succeeded, site-deploy success.
+The closing proof of erdos-1094--h2--h2--h2--h3--h1--h1 that was refused context-signature-mismatch
+(precheck 01M50B1BBRNH7MZE1P32BES5S1, network 067497e) passed precheck 01M50N5MA8J4TB6JWW4N1CWM0E under the
+new pin and was submitted as graph PR #568.
