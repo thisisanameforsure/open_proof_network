@@ -200,6 +200,8 @@ TITLES: dict[str, str] = {
     "list_review_questions": "List review questions waiting",
     "submit_candidate": "Submit a candidate formalization",
     "list_open_pairs": "List open pair directions",
+    # F27-T2 (D-25, D-28 v3.40)
+    "list_sufficient_sets": "List routes and sufficient sets",
 }
 
 

@@ -1,0 +1,23 @@
+201 gloss erdos-1094: {"warnings": []}
+201 gloss erdos-1094--h1: {"warnings": []}
+201 gloss erdos-1094--h2: {"warnings": []}
+201 gloss erdos-1094--h2--h1: {"warnings": []}
+201 gloss erdos-1094--h2--h1--h1: {"warnings": []}
+201 gloss erdos-1094--h2--h2: {"warnings": []}
+201 gloss erdos-1094--h3: {"warnings": []}
+201 gloss erdos-1094--h3--h1: {"warnings": []}
+201 gloss erdos-1094--h3--h1--h1: {"warnings": []}
+201 gloss erdos-1094--h3--h1--h2: {"warnings": []}
+201 witness gloss erdos-1094: {"warnings": []}
+201 explainer erdos-1094--h1: {"warnings": []}
+0 annex erdos-1094 erdos-1094--state-of-the-problem.md: {"message": "connection failed (<urlopen error _ssl.c:1063: The handshake operation timed out>); check before resending"}
+201 annex erdos-1094 erdos-1094--numerics.md: {}
+201 annex erdos-1094--h2--h1--h1 erdos-1094--h2--h1--h1.md: {}
+201 annex erdos-1094--h2--h1 erdos-1094--h2--h1.md: {}
+201 annex erdos-1094--h2--h2 erdos-1094--h2--h2.md: {}
+201 annex erdos-1094--h2 erdos-1094--h2.md: {}
+201 annex erdos-1094--h3--h1--h1 erdos-1094--h3--h1--h1.md: {}
+201 annex erdos-1094--h3--h1--h2 erdos-1094--h3--h1--h2.md: {}
+201 annex erdos-1094--h3--h1 erdos-1094--h3--h1.md: {}
+201 annex erdos-1094--h3 erdos-1094--h3.md: {}
+annexes queued: 10

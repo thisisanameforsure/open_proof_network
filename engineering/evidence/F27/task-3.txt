@@ -1,0 +1,133 @@
+F27-T3 — the Routes section on the problem page (R10, R11; AC10, AC11)
+Built on branch f27-t3-site from 10539e86. Run 2026-10-14T22:39:27Z on macOS (laptop).
+
+== 1. Verification command: uv run pytest site/tests/test_routes_view.py (fast tier; the Playwright test skips here)
+site/tests/test_routes_view.py::test_routes_section_structure PASSED     [ 14%]
+site/tests/test_routes_view.py::test_ids_are_escaped PASSED              [ 28%]
+site/tests/test_routes_view.py::test_more_than_eight_sets_are_grey_and_the_section_says_so PASSED [ 42%]
+site/tests/test_routes_view.py::test_a_target_with_no_route_has_no_section PASSED [ 57%]
+site/tests/test_routes_view.py::test_the_problem_page_carries_the_section_after_the_statement_graph PASSED [ 71%]
+site/tests/test_routes_view.py::test_a_problem_page_without_routes_has_no_section PASSED [ 85%]
+site/tests/test_routes_view.py::test_selection_lights_one_set_and_layout_is_fixed SKIPPED [100%]
+SKIPPED [1] site/tests/test_routes_view.py:269: could not import 'playwright.sync_api': No module named 'playwright'
+========================= 6 passed, 1 skipped in 0.77s =========================
+
+== 2. The same file with Playwright present, so AC11's browser test runs:
+   uv run --frozen --with playwright python -m pytest site/tests/test_routes_view.py
+site/tests/test_routes_view.py::test_routes_section_structure PASSED     [ 14%]
+site/tests/test_routes_view.py::test_ids_are_escaped PASSED              [ 28%]
+site/tests/test_routes_view.py::test_more_than_eight_sets_are_grey_and_the_section_says_so PASSED [ 42%]
+site/tests/test_routes_view.py::test_a_target_with_no_route_has_no_section PASSED [ 57%]
+site/tests/test_routes_view.py::test_the_problem_page_carries_the_section_after_the_statement_graph PASSED [ 71%]
+site/tests/test_routes_view.py::test_a_problem_page_without_routes_has_no_section PASSED [ 85%]
+site/tests/test_routes_view.py::test_selection_lights_one_set_and_layout_is_fixed PASSED [100%]
+============================== 7 passed in 3.89s ===============================
+
+   Can it fail? With routes.js's refresh() changed to show(null) (selection lights nothing),
+   the browser test failed at: assert sorted(snap['lit']) == sorted(members); file restored after.
+
+== 3. The whole site fast tier: uv run pytest site/tests -m 'not lean and not docker and not network and not harness'
+720 passed, 8 skipped in 64.68s (0:01:04)
+   (8 skips are the site's Playwright tests, which need --with playwright.) No golden changed:
+   a problem page with no route is byte for byte what it was.
+
+== 4. The site's Playwright tests with Playwright present (dag, mobile scroll, lemma edge, panel math, reviews, web flows, routes):
+FAILED site/tests/test_web_flows.py::test_a_stranger_sees_edit_and_no_approve
+FAILED site/tests/test_web_flows.py::test_a_curator_sees_withdraw - playwrigh...
+3 failed, 120 passed in 140.23s (0:02:20)
+   The three failures are not this task's: at the base commit 10539e86, in a detached worktree,
+   test_web_flows.py gives the same 2 failures (Locator.click timeout, 'element is not visible')
+   and test_finding_lemma_edge.py::test_measured_in_a_browser the same Locator.screenshot timeout.
+
+== 5. make lint / make types
+All checks passed!
+853 files already formatted
+Success: no issues found in 415 source files
+Success: no issues found in 255 source files
+Success: no issues found in 107 source files
+
+== 6. erdos-1094 from the live graph: measurements (engineering/evidence/F27/task-3-shoot.py)
+   Graph: git archive of open_proof_network_graph at 6c3a338863240e7ac49fda50f1662d5041ededc2 (origin/main).
+   labels: every statement's text getBBox against its pill, and the ring's right edge against the text's left;
+   tightest = smallest gap (px, drawing units) between a label's right end and its pill's right edge.
+   moved_*: every [data-node] bounding box compared before and after; false = nothing moved.
+{
+ "graph_commit": "6c3a338863240e7ac49fda50f1662d5041ededc2",
+ "pages_with_routes": [
+  "erdos-1050",
+  "erdos-1094",
+  "erdos-402",
+  "erdos-412",
+  "erdos-69",
+  "euclid-primes"
+ ],
+ "labels": {
+  "count": 27,
+  "overflowing": [],
+  "tightest": 11.099999999999994
+ },
+ "selected_set_1": {
+  "lit": 26,
+  "nodes": 43,
+  "lines_lit": 26,
+  "lines": 45,
+  "wedges_off": 12,
+  "wedges": 20,
+  "picking": true
+ },
+ "moved_on_select": false,
+ "hover_set_2_while_1_selected": {
+  "lit": 38,
+  "nodes": 43,
+  "lines_lit": 39,
+  "lines": 45,
+  "wedges_off": 8,
+  "wedges": 20,
+  "picking": true
+ },
+ "cleared": {
+  "lit": 0,
+  "nodes": 43,
+  "lines_lit": 0,
+  "lines": 45,
+  "wedges_off": 0,
+  "wedges": 20,
+  "picking": false
+ },
+ "moved_after_clear": false,
+ "fewest_open_first": {
+  "order": [
+   "1",
+   "2"
+  ],
+  "selected": [
+   "1"
+  ]
+ },
+ "at_390": {
+  "page_scroll_width": 390,
+  "drawing_scroll_left": 128,
+  "root_in_view": true,
+  "drawing_box": [
+   800,
+   334
+  ],
+  "table_box": [
+   412,
+   356
+  ]
+ }
+}
+
+== 7. Screenshots (looked at, each)
+   task-3-1440-dark.png      the section at 1440, prefers-color-scheme dark
+   task-3-1440-light.png     the same, prefers-color-scheme light: pixel-identical to the dark capture,
+                             because the site has one (dark) theme and no light variant (see report)
+   task-3-1440-selected.png  Set 1 selected: its statements, junctions and lines lit, the rest dimmed,
+                             Set 2's wedges faded
+   task-3-390.png            390 wide: page scroll width 390, the drawing scrolls in its box opened on the root,
+                             the table scrolls in its own box
+   Fixed after looking: open pies drawn pale made blue and orange read as navy and brown (now a hollow
+   centre keeps the hue); a dashed ring over the wedges looked like a gear (now outside the pie); the Set
+   cell broke mid-word at 390 (now nowrap); the phone drawing opened on its left edge, root cut off (now
+   centred on the root by routes.js).

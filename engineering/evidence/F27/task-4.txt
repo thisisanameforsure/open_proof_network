@@ -1,0 +1,38 @@
+$ OPN_GRAPH_CHECKOUT=../opn-f27-graph uv run pytest gate/tests/test_walkthrough.py gate/tests/test_finding_guide_names_exist.py site/tests/test_finding_docs_agents_md.py -m "not lean and not docker"
+gate/tests/test_walkthrough.py::test_required_sections PASSED            [  3%]
+gate/tests/test_walkthrough.py::test_graph_copy_is_identical PASSED      [  7%]
+gate/tests/test_walkthrough.py::test_connectors_section_is_rendered PASSED [ 11%]
+gate/tests/test_walkthrough.py::test_manual_blocks_are_the_known_two PASSED [ 14%]
+gate/tests/test_walkthrough.py::test_fast_check_section PASSED           [ 18%]
+gate/tests/test_walkthrough.py::test_agents_md_executes PASSED           [ 22%]
+gate/tests/test_finding_guide_names_exist.py::test_every_route_the_guide_names_is_served PASSED [ 25%]
+gate/tests/test_finding_guide_names_exist.py::test_every_tool_the_guide_names_is_a_tool PASSED [ 29%]
+gate/tests/test_finding_guide_names_exist.py::test_the_appendix_has_a_row_for_every_tool PASSED [ 33%]
+gate/tests/test_finding_guide_names_exist.py::test_every_status_and_code_the_guide_names_is_in_the_catalog PASSED [ 37%]
+gate/tests/test_finding_guide_names_exist.py::test_every_other_kebab_name_exists_in_the_code PASSED [ 40%]
+gate/tests/test_finding_guide_names_exist.py::test_the_queue_is_one_lane_per_target PASSED [ 44%]
+gate/tests/test_finding_guide_names_exist.py::test_the_open_pull_request_caps_are_the_services PASSED [ 48%]
+gate/tests/test_finding_guide_names_exist.py::test_a_precheck_backs_one_pull_request PASSED [ 51%]
+gate/tests/test_finding_guide_names_exist.py::test_a_spent_check_budget_refuses_the_pre_flight PASSED [ 55%]
+gate/tests/test_finding_guide_names_exist.py::test_the_error_catalog_and_the_wayfinding_routes PASSED [ 59%]
+gate/tests/test_finding_guide_names_exist.py::test_the_frontier_says_status_cause_and_needs PASSED [ 62%]
+gate/tests/test_finding_guide_names_exist.py::test_an_agents_own_submissions_and_checks PASSED [ 66%]
+gate/tests/test_finding_guide_names_exist.py::test_check_mode_reads_the_texts_own_sorry PASSED [ 70%]
+gate/tests/test_finding_guide_names_exist.py::test_withdrawal_and_racer_moves_comment_first PASSED [ 74%]
+site/tests/test_finding_docs_agents_md.py::test_agents_md_renders_as_a_document PASSED [ 77%]
+site/tests/test_finding_docs_agents_md.py::test_output_fence_is_labelled_exactly_and_sh_fence_gets_a_class PASSED [ 81%]
+site/tests/test_finding_docs_agents_md.py::test_an_info_string_that_is_not_a_plain_word_gives_no_class PASSED [ 85%]
+site/tests/test_finding_docs_agents_md.py::test_a_pipe_inside_backticks_stays_in_its_cell PASSED [ 88%]
+site/tests/test_finding_docs_agents_md.py::test_a_short_row_is_padded_and_a_pipe_line_without_a_rule_is_a_paragraph PASSED [ 92%]
+site/tests/test_finding_docs_agents_md.py::test_an_unclosed_fence_keeps_its_info_and_its_text PASSED [ 96%]
+site/tests/test_finding_docs_agents_md.py::test_a_heading_inside_a_fence_is_not_a_heading PASSED [100%]
+================ 27 passed, 1 deselected, 2 warnings in 43.21s =================
+
+# The guide example, run against erdos-1094 at graph 6c3a33886 (task-4-guide-example.py: the block as the guide prints it, then the driver)
+stalled at 2026-11-15: ['erdos-1094--h2@1', 'erdos-1094--h2--h1@1', 'erdos-1094--h3@1', 'erdos-1094--h3@2', 'erdos-1094--h3--h1@1']
+jobs at 2026-11-15: [('claim', 'erdos-1094--h2--h2--h1'), ('claim', 'erdos-1094--h2--h2--h1'), ('claim', 'erdos-1094--h2--h2--h1'), ('claim', 'erdos-1094--h2--h2--h1'), ('claim', 'erdos-1094--h2--h2--h1'), ('claim', 'erdos-1094--h2--h2--h1')]
+job on 2026-10-15: ('claim', 'erdos-1094--h2--h2--h1')
+1000 draws at 2026-11-15: Counter({'claim': 820, 'propose-route': 180})
+
+# The graph copy (D-35): graph branch f27-guide-copy, worktree ../opn-f27-graph, AGENTS.md byte-identical
+identical

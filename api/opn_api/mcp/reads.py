@@ -31,7 +31,7 @@ from opn_api.githost import GitHostError
 from opn_api.mcp import auth as mcpauth
 from opn_api.mcp import demarcate, results
 from opn_api.mcp.calls import ID_PARAM, Call, Source, Tool, ToolError, error, params
-from opn_gate import context, explainers, glosses, layout, products, schemas
+from opn_gate import context, explainers, glosses, layout, products, routes, schemas
 
 if TYPE_CHECKING:
     from opn_api.app import Context
@@ -351,6 +351,26 @@ async def list_open_pairs(call: Call, args: dict[str, Any]) -> dict[str, Any]:
         "count": len(found),
         "pairs": found,
     }
+
+
+async def list_sufficient_sets(call: Call, args: dict[str, Any]) -> dict[str, Any]:
+    """F27-R9 (D-25, D-28 v3.40): a target's routes and sufficient sets, derived from its
+    ``graph.json`` at main and the frontier the service serves by ``opn_gate.routes.read``, the
+    function the site renders from (F27-Q1). The finest cuts by default; ``cut: any`` adds the
+    coarser ones up to the service's cap (``routes_max_sets``). In the record's order, ranked by
+    nothing (D-25). Every value is an id, a count, an enum or a frontier timestamp, so nothing is
+    demarcated."""
+    ctx = call.ctx
+    target_id = check_id(args.get("target_id"), "target_id")
+    cut = args.get("cut", "finest")
+    if cut not in routes.CUTS:
+        raise error("arguments-invalid", f"cut must be one of {', '.join(routes.CUTS)}", "adapter")
+    graph = document(ctx, f"targets/{target_id}/graph.json")
+    served = service_answer(await call.endpoint("GET", "/frontier.json"), "/frontier.json")
+    found = routes.read(
+        graph, served.get("entries") or [], cut=cut, max_sets=ctx.settings.routes_max_sets
+    )
+    return {"read_at": ctx.head or ctx.settings.graph_branch, **found.as_dict()}
 
 
 def _entry_fields() -> dict[str, Any]:
@@ -1245,5 +1265,31 @@ TOOLS: tuple[Tool, ...] = (
         "head. Plain path: targets/<id>/review/pairs/.",
         params({"target_id": {**ID_PARAM, "description": "Only this target's open pairs."}}),
         list_open_pairs,
+    ),
+    Tool(  # F27-T2: D-28's read table, v3.40
+        "list_sufficient_sets",
+        "A target as an AND-OR graph (D-25 v3.40). `routes`: each merged decomposition "
+        "(id `<node>@<k>`), all of whose holes are needed, with each hole's status, attempts and "
+        "refuted route classes and a `summary` (holes, proved, open, dead, attempts, "
+        "unattempted, `oldest_open_since`), so a stalled route shows. `sets`: statements whose "
+        "proofs, with the closing proofs of their `assemblies`, would close the root; each with "
+        "`open`, `proved`, `routes`, `total`, `closed`, `remaining`, `shared`. `cut: finest` "
+        "(default) expands every node with a live route; `cut: any` adds the coarser cuts up to "
+        "a cap (`truncated`). Record order, never ranked. Whether to claim a hole or propose a "
+        "route (propose_variant, propose_speculative_node) is the operator's choice. "
+        "Plain path: targets/<id>/graph.json + GET /frontier.json.",
+        params(
+            {
+                "target_id": ID_PARAM,
+                "cut": {
+                    "type": "string",
+                    "enum": list(routes.CUTS),
+                    "description": "finest (default): every node with a live route expanded; "
+                    "any: the coarser cuts too.",
+                },
+            },
+            ("target_id",),
+        ),
+        list_sufficient_sets,
     ),
 )
