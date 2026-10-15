@@ -36,8 +36,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from opn_gate import closure, layout, records, schemas
 from opn_gate import graph as graphmod
-from opn_gate import layout, records, schemas
 from opn_gate.diagnostic import Diagnostic
 
 #: ``ctx.data`` key: the uses step 2 read off the artifact, as ``Uses.as_dict`` gives them.
@@ -174,6 +174,10 @@ def _node_problem(node: layout.Node, used: str) -> Diagnostic | None:  # noqa: P
         if proof.is_file() and isinstance(statement, layout.Statement)
         else None
     )
+    # F28-T8 (D-12 v3.42): a node proved by closure has no Proof.lean; its module is the join,
+    # which staging builds, so it may be used like a merged proof.
+    if kind is None and not proof.is_file() and closure.path_for(used_dir).is_file():
+        kind = "proof"
     if kind != "proof":
         return Diagnostic(
             "use-unproved",

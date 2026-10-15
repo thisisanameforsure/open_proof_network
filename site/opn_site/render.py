@@ -3296,6 +3296,23 @@ class Renderer:
         a statement's own page does (its page)."""
         return self.node_path(tid, nid) if page else f"#node={nid}"
 
+    def closure_line(self, tv: Any, nv: Any) -> str:
+        """F28-T8 (D-12 v3.42): a node proved by closure — what the gate joined, the inputs whose
+        proofs it joined them with, and the signed record. Proved exactly while every input is."""
+        c = nv.closure
+        kind = {
+            "route": "its merged decomposition",
+            "claim": "its own circularity claim&rsquo;s exhibit",
+            "variant": "a resolving variant&rsquo;s relation",
+        }.get(str(c["kind"]), "a merged link")
+        inputs = ", ".join(self.node_link(tv.target_id, str(i)) for i in c["inputs"])
+        record = self.file_link(f"targets/{tv.target_id}/nodes/{c['record']}", label="closure.json")
+        return (
+            f'<p class="how-line">Proved by closure: the gate joined {kind} with the proofs of '
+            f"{inputs}, and the kernel checked the result ({record}). It stays proved exactly "
+            "while each of those does; no proof file was written for it.</p>"
+        )
+
     def how_block(
         self, tv: TargetView, nv: NodeView, *, page: bool = False, revision: bool = True
     ) -> str:
@@ -4440,6 +4457,8 @@ class Renderer:
         the facts column's), then the outline, the Lean, the split and any alternate proofs, each
         folded. Any other state: the panel's own section, its links going to statements' pages."""
         e = nv.graph_entry
+        if nv.status == "proved" and nv.closure is not None and nv.proof_path is None:
+            return self.closure_line(tv, nv)
         if nv.status == "proved" and not (e["proof_commit"] and nv.proof_path):
             # Contradictory but valid (R5): the page invents no link to a proof.
             return (

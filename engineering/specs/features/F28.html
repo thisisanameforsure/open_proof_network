@@ -11,7 +11,7 @@
 <h1>F28 — Closing proofs</h1>
 <p class="subtitle">When a node's merged decomposition has every hole proved, the network writes the
 proof that joins them and submits it through the gate, so one proof climbs the target one checked
-merge at a time (decisions v3.41).</p>
+merge at a time (decisions v3.41, rebuilt as v3.42: proved by closure).</p>
 
 <h2>1. Summary</h2>
 <p>On 2026-10-15 the owner asked why erdos-1094--h2--h2--h2--h2 still read <code>ready</code>: its
@@ -226,13 +226,30 @@ v3.23, D-30.</p>
     <code>:= sorry</code>; none wrote the live shape. Fixed red first (C20, C20b): such a hole's goal
     and local context are read from the <code>sorry</code> tactic's record. Nothing was opened: the
     failure stopped before any pull request, as R10 says.</td></tr>
+  <tr><td>F28-Q11</td><td><strong>Proved by construction, not by a pull request per level (the
+    owner's ruling, 2026-10-15, decisions v3.42).</strong> "By construction you should be able to close
+    parent nodes. It makes an AND/OR graph. We know that structure. Why do we have to go through this
+    whole thing, one node at a time?" The answer was that v3.41, written at Claude's suggestion,
+    allowed a status only from a merged <code>Proof.lean</code>, which forced each join to be printed
+    as source and sent through a pull request, one level per merge; printing source was where every
+    bug of that day lived (Q6, Q7, Q10, and the live <code>∀</code>-hole and rewritten-premise
+    failures on erdos-1094). Built instead (T7&ndash;T9): the join at the level of terms, kernel-checked,
+    written as the node's compiled module; a <code>closure.json</code> record signed in the post-merge
+    job's one key step; the status derived from it while every input is proved; the whole chain in one
+    run. The owner's two follow-up questions, answered from the code: step 9 is already waived for a
+    root with a certificate, catalog evidence or a completed review (<code>modes.root_vouched</code>
+    applies exactly those rules); and no closure can prove less than the node's own statement, because
+    every link is kernel-checked — the one real exposure, a revised hole weaker than its gap, makes the
+    join fail rather than succeed, which is why the kernel check is required and not optional. The
+    closer workflow, its pull requests, the source composer and the ledger rule were removed.</td></tr>
 </table>
 
 <h2>10. Status</h2>
-<div class="rule"><strong>status:</strong> built, going live · <strong>Tasks:</strong> T0 done
-(decisions v3.41 applied on the owner's approval, PROTOCOL_VERSION 3.41); T1&ndash;T4 done; T5 done
-(the closer, <code>close.yml</code> on graph branch <code>f28-close</code>; the ledger's rule for a join;
-the sweep; 12 tests); T6 is the first live run, after the re-pin.</div>
+<div class="rule"><strong>status:</strong> rebuilt 2026-10-15 (v3.42) · <strong>Tasks:</strong> T0&ndash;T4
+done; T5 and T6 (the closer's pull requests) superseded by T7&ndash;T9 on the owner's ruling (Q11): T7
+the term-level join (<code>opn-close</code>, 30 lean-tier cases incl. a three-level chain), T8 closure
+records, status, staging and products (<code>closure/v1</code>, <code>graph/v10</code>), T9 the
+post-merge step (graph branch <code>f28-closure</code>). Live after push and re-pin.</div>
 
 <h2>Tasks</h2>
 <table>
@@ -282,6 +299,29 @@ the sweep; 12 tests); T6 is the first live run, after the re-pin.</div>
   <tr><td>F28-T6</td><td>Live: the closing proof of erdos-1094--h2--h2--h2--h2 through the gate (C19).
     An act on the record: the owner's.</td>
     <td><code>engineering/evidence/F28/</code></td><td>T2</td><td>live evidence</td></tr>
+  <tr><td>F28-T7</td><td>The join: <code>opn-close</code> rewritten to join at the level of terms,
+    have the kernel accept the theorem and write the node's module.</td>
+    <td><code>gate/lean/OpnGate/Close.lean</code>, <code>gate/lean/OpnGate/CloseMain.lean</code>,
+    <code>gate/opn_gate/toolchain.py</code>, <code>gate/tests/test_close_compose.py</code></td>
+    <td>T2</td><td><code>uv run pytest gate/tests/test_close_compose.py -m lean</code></td></tr>
+  <tr><td>F28-T8</td><td>Closure records (<code>closure/v1</code>), the derived status, the root's
+    vouching, staging and step 4 for a dependency proved by closure, uses, <code>graph/v10</code>,
+    the node page.</td>
+    <td><code>gate/opn_gate/closure.py</code>, <code>gate/opn_gate/graph.py</code>,
+    <code>gate/opn_gate/modes.py</code>, <code>gate/opn_gate/steps/stage.py</code>,
+    <code>gate/opn_gate/steps/replay.py</code>, <code>gate/opn_gate/outline_graph.py</code>,
+    <code>gate/opn_gate/uses.py</code>, <code>gate/opn_gate/layout.py</code>,
+    <code>gate/opn_gate/products.py</code>, <code>gate/schemas/</code>, <code>site/opn_site/</code></td>
+    <td>T7</td><td><code>uv run pytest gate/tests/test_closure_status.py gate/tests/test_stage_closure.py site/tests/test_closure_page.py</code></td></tr>
+  <tr><td>F28-T9</td><td>The sweep (<code>opn-gate close --all</code>), <code>sign</code> for closure
+    records, the post-merge join step; the closer workflow, its pull requests and the ledger rule
+    removed.</td>
+    <td><code>gate/opn_gate/close.py</code>, <code>gate/opn_gate/cli.py</code>,
+    <code>../open_proof_network_graph/.github/workflows/gate.yml</code>,
+    <code>../open_proof_network_graph/.github/workflows/merge.yml</code>,
+    <code>gate/tests/test_close.py</code>, <code>gate/tests/test_close_cli.py</code>,
+    <code>gate/tests/test_finding_closure_step.py</code></td>
+    <td>T8</td><td><code>uv run pytest gate/tests/test_close.py gate/tests/test_close_cli.py gate/tests/test_finding_closure_step.py</code></td></tr>
 </table>
 </body>
 </html>

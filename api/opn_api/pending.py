@@ -489,9 +489,8 @@ def attestation_doc(raw: bytes, path: str) -> dict[str, Any]:
 
 #: The branches the service opens pull requests from, which are the ones the merge actor takes
 #: (``SERVICE_PREFIXES`` in the graph's ``merge.yml``; held equal by
-#: ``gate/tests/test_finding_queue_order_is_the_actors.py``). F28-T5: and the closer's ``close/``
-#: branches, which wait in the same queue, so a position counts them.
-SERVICE_PREFIXES: tuple[str, ...] = ("propose/", "append/", "submit/", "close/")
+#: ``gate/tests/test_finding_queue_order_is_the_actors.py``).
+SERVICE_PREFIXES: tuple[str, ...] = ("propose/", "append/", "submit/")
 QUEUE_BASE = "main"
 #: How the position is to be read, said in the answer because the position alone overstates it.
 QUEUE_ORDER = (

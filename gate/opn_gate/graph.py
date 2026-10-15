@@ -18,7 +18,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from opn_gate import config, layout, paths, proposed_for, records, schemas
+from opn_gate import closure, config, layout, paths, proposed_for, records, schemas
 from opn_gate.bounce import TIMESTAMP_FORMAT
 from opn_gate.diagnostic import Diagnostic
 from opn_gate.records import StatusRecord
@@ -161,6 +161,10 @@ class NodeFacts:
     #: F08-T32 (D-18 v3.27): a ``disputed`` override whose claim a curator has withdrawn (see
     #: ``dispute_withdrawn``). The record itself withdrawn is absent already (F08-T31).
     dispute_withdrawn: bool = False
+    #: F28-T8 (D-12 v3.42): the node's closure record (``closure.json``), validated, or None: a
+    #: kernel-checked join of its decomposition (or claim, or variant) with its inputs' proofs.
+    #: The node derives proved from it while every input is proved (``derive_statuses``).
+    closure: dict[str, Any] | None = None
     #: D-12 v3.19 (F07-R22): the entries of ``deps`` that are this node's own hole children —
     #: written there by the post-merge job when a decomposition merged. The node may draw on
     #: one once it is proved; it never waits on one, so they are set aside when the node's
@@ -525,6 +529,7 @@ def load_nodes(
             override=override,
             artifact=artifact,
             witness_stub=witness_is_stub(node_dir),
+            closure=closure.load(node_dir),
             supersedes=_optional_str(loaded.meta.get("supersedes")),
             lemmas=effective_lemmas(nodes_dir, loaded.meta.get("lemmas")),
             uses=layout.merged_uses(node_dir),
@@ -572,6 +577,13 @@ def is_hole_of(parent: str, node_id: str, origin: str) -> bool:
     origin is a hole's. Only that pair is a child; a dep the author declared, or a sibling a
     hole restated, is a dependency the parent waits on."""
     return node_id.startswith(parent + HOLE_SEPARATOR) and origin in HOLE_ORIGINS
+
+
+def has_proof(nodes_dir: Path, node_id: str) -> bool:
+    """A merged ``Proof.lean`` or a closure record (F28-T8): what staging takes as a proved node
+    whose module it can build — compiled from the file, or joined from the record's source."""
+    node_dir = nodes_dir / node_id
+    return (node_dir / "Proof.lean").is_file() or closure.path_for(node_dir).is_file()
 
 
 def is_hole_child(nodes_dir: Path, parent: str, node_id: str) -> bool:
@@ -649,7 +661,9 @@ def check_dag(nodes: dict[str, NodeFacts]) -> None:
         raise GraphError(msg)
 
 
-def derive_statuses(nodes: dict[str, NodeFacts]) -> dict[str, str]:
+def derive_statuses(
+    nodes: dict[str, NodeFacts], *, root: str | None = None, root_vouched: bool = False
+) -> dict[str, str]:
     """R1, F07-R8: resolved > blocked > ready from the facts; a status record overrides all three.
 
     A merged artifact resolves its node, and *which* resolution it is comes from what the
@@ -667,6 +681,9 @@ def derive_statuses(nodes: dict[str, NodeFacts]) -> dict[str, str]:
     def status_of(node_id: str) -> str:
         if node_id in statuses:
             return statuses[node_id]
+        statuses[node_id] = (
+            "ready"  # a closure that reaches back to a node in progress proves nothing
+        )
         node = nodes[node_id]
         if node.override is not None and not any(
             void(node) for void in (stale_is_void, speculative_is_void, disputed_is_void)
@@ -680,6 +697,11 @@ def derive_statuses(nodes: dict[str, NodeFacts]) -> dict[str, str]:
             # leaves no Proof.lean behind, so a parent with an attestation and no artifact is
             # blocked on its holes like any other node, not proved (D-12 #5, D-29, D-35).
             result = STATUS_FOR_ARTIFACT[node.artifact]
+        elif closure_proves(node, nodes, status_of, root=root, root_vouched=root_vouched):
+            # F28-T8 (D-12 v3.42): proved by closure — the gate joined the node's decomposition
+            # (or claim, or variant) with its inputs' proofs and the kernel accepted the theorem;
+            # it stays proved exactly while every input is.
+            result = "proved"
         else:
             blocked, _ = blocked_because(node, status_of)
             result = "blocked" if blocked else "ready"
@@ -689,6 +711,26 @@ def derive_statuses(nodes: dict[str, NodeFacts]) -> dict[str, str]:
     for node_id in sorted(nodes):
         status_of(node_id)
     return dict(sorted(statuses.items()))
+
+
+def closure_proves(
+    node: NodeFacts,
+    nodes: Mapping[str, NodeFacts],
+    status_of: Callable[[str], str],
+    *,
+    root: str | None,
+    root_vouched: bool,
+) -> bool:
+    """F28-T8 (D-12 v3.42): whether the node's closure record proves it now: the record is for
+    the statement as it stands, every input of its link is a node of the target that derives
+    proved, and, for the root, its statement is vouched as step 9 would have it."""
+    record = node.closure
+    if record is None or record.get("statement_hash") != node.statement_hash:
+        return False
+    if node.node_id == root and not root_vouched:
+        return False
+    inputs = [str(i) for i in record["link"]["inputs"]]
+    return bool(inputs) and all(i in nodes and status_of(i) == "proved" for i in inputs)
 
 
 def settled(node: NodeFacts) -> bool:
@@ -1156,9 +1198,7 @@ def proved_lemmas(nodes_dir: Path, recorded: object) -> tuple[str, ...]:
     to a hole (the artifact file is in the tree); an unproved lemma is left out everywhere and
     refuses nothing. Each node is read through its revision chain (``effective_lemmas``)."""
     return tuple(
-        lm.node
-        for lm in effective_lemmas(nodes_dir, recorded)
-        if (nodes_dir / lm.node / "Proof.lean").is_file()
+        lm.node for lm in effective_lemmas(nodes_dir, recorded) if has_proof(nodes_dir, lm.node)
     )
 
 
@@ -1206,7 +1246,16 @@ def load_target(graph_root: Path, target_id: str) -> TargetGraph:
         msg = f"target {target_id!r} has no nodes"
         raise GraphError(msg)
     declaration = records.load_target_status(target_dir)
-    statuses = derive_statuses(nodes)
+    check_dag(nodes)  # a cycle is reported as one before the root is looked for
+    root = find_root(nodes, declaration)
+    # F28-T8: a root proved by closure also needs its statement vouched, by step 9's own rules;
+    # asked only when the root carries a closure record, since only then can it matter.
+    vouched = False
+    if nodes[root].closure is not None:
+        from opn_gate import modes  # noqa: PLC0415 — modes imports this module
+
+        vouched = modes.root_vouched(target_dir) is not None
+    statuses = derive_statuses(nodes, root=root, root_vouched=vouched)
     nodes = with_circular_paths(nodes, statuses)  # F08-T20: read after statuses, never into them
     return TargetGraph(
         target_id=target_id,
@@ -1214,7 +1263,7 @@ def load_target(graph_root: Path, target_id: str) -> TargetGraph:
         spec=spec,
         nodes=nodes,
         statuses=statuses,
-        root=find_root(nodes, declaration),
+        root=root,
         declaration=declaration,
     )
 

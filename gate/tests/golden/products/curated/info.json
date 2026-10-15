@@ -1,7 +1,7 @@
 {
   "errors_url": null,
   "guide_url": null,
-  "protocol_version": "3.41",
+  "protocol_version": "3.42",
   "rate_limit_policy": null,
   "rendered_from": "5555555555555555555555555555555555555555",
   "schema": "info/v2",
@@ -29,6 +29,9 @@
       1
     ],
     "claims": [
+      1
+    ],
+    "closure": [
       1
     ],
     "context": [
@@ -105,7 +108,8 @@
       6,
       7,
       8,
-      9
+      9,
+      10
     ],
     "info": [
       1,

@@ -1,0 +1,7 @@
+# F28-T7..T9: proved by closure (decisions v3.42) — 2026-10-15T19:04:52Z
+## lean tier: uv run pytest gate/tests/test_close_compose.py -m lean
+30 passed in 34.13s
+  (27 C-cases joined at term level on the first run after the rewrite; C21 and C22, the two shapes that failed live under the source composer, passed on their first run; the three-level chain: the root rests on propext/choice/Quot.sound alone)
+## fast: closure status, staging, close, CLI, join step, site
+42 passed in 34.93s
+## the end-to-end site test caught a gap no unit test could: the layout refused closure.json as an unexpected node entry (fixed: an optional, bot-only file like CONTEXT.json).

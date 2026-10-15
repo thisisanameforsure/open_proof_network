@@ -634,11 +634,11 @@ def publish_v335(
     graph = json.loads(graph_path.read_text(encoding="utf-8"))
     # F26-T1: the current contract is graph/v9 (the review over v8's lemmas and v7's registrations),
     # which also wants each row's ``lemmas``; a row the fixture already gave some keeps them.
-    graph["schema"] = "graph/v9"
+    graph["schema"] = "graph/v10"
     for row in graph["nodes"]:
         extend(row)
         row.setdefault("lemmas", [])
-    graph_path.write_text(json.dumps(schemas.validate(graph, "graph/v9"), indent=1) + "\n")
+    graph_path.write_text(json.dumps(schemas.validate(graph, "graph/v10"), indent=1) + "\n")
 
     frontier_path = root / "frontier.json"
     frontier = json.loads(frontier_path.read_text(encoding="utf-8"))
@@ -669,10 +669,10 @@ def publish_v336(
     lemmas = lemmas or {}
     graph_path = root / "targets" / target / "graph.json"
     graph = json.loads(graph_path.read_text(encoding="utf-8"))
-    graph["schema"] = "graph/v9"
+    graph["schema"] = "graph/v10"
     for row in graph["nodes"]:
         row["lemmas"] = list(lemmas.get(str(row["node_id"]), row.get("lemmas") or []))
-    graph_path.write_text(json.dumps(schemas.validate(graph, "graph/v9"), indent=1) + "\n")
+    graph_path.write_text(json.dumps(schemas.validate(graph, "graph/v10"), indent=1) + "\n")
 
 
 # --- F26-T12 (R16, R17; D-9 v3.39): a formalization review written by hand ---------------------
@@ -947,7 +947,7 @@ def publish_review_state(root: Path, state: dict[str, Any], *, target: str = TAR
     graph_path = root / "targets" / target / "graph.json"
     graph = json.loads(graph_path.read_text(encoding="utf-8"))
     graph["review"] = {**graph["review"], **state}
-    graph_path.write_text(json.dumps(schemas.validate(graph, "graph/v9"), indent=1) + "\n")
+    graph_path.write_text(json.dumps(schemas.validate(graph, "graph/v10"), indent=1) + "\n")
 
 
 def publish_v8(root: Path, *, target: str = TARGET) -> None:
@@ -957,4 +957,6 @@ def publish_v8(root: Path, *, target: str = TARGET) -> None:
     graph["schema"] = "graph/v8"
     graph.pop("review", None)
     graph.pop("open_pairs", None)
+    for row in graph["nodes"]:
+        row.pop("closure", None)  # graph/v10 (F28-T8)
     graph_path.write_text(json.dumps(schemas.validate(graph, "graph/v8"), indent=1) + "\n")

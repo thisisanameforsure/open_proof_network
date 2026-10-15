@@ -1,4 +1,4 @@
-"""F28-T2 / AC10: ``opn-close`` against the real toolchain, one assembly shape per case.
+"""F28-T7 / AC10: ``opn-close``, the join, against the real toolchain, one assembly shape per case.
 
 The case letters are the catalog's, section C of
 ``engineering/session-notes/2026-10-15-proof-propagation-cases.md``. Each case is an assembly
@@ -6,13 +6,14 @@ over Lean core. The bench does what the record does, with the gate's own program
 
 1. the statement is the assembly's theorem with its proof replaced by ``sorry``;
 2. ``opn-artifact-type`` (the elaborating form) extracts the holes, and each hole's
-   ``closed_type`` is written as a child theorem the way the post-merge job writes a hole node's
+   ``closed_type`` is the child's statement, the way the post-merge job writes a hole node's
    statement — so the children are the extractor's, never the test's guess;
-3. the children are declared above the assembly, where a node's ``Context.lean`` puts them, and
-   ``opn-close`` composes the closing proof.
+3. the children are declared above the assembly as axioms, standing for proofs merged elsewhere
+   (in the graph they are imported proof modules), and ``opn-close`` joins the assembly with them
+   at the level of terms, has the kernel check the theorem and writes its module.
 
-A case passes when the composer says ``ok`` (it elaborates the composed file whole before it
-does) and the composed file contains no ``sorry`` in the theorem.
+A case passes when the join says ``ok``, every hole was joined to a child, the module was written,
+and the theorem rests on nothing but the standard axioms and the children (never ``sorryAx``).
 """
 
 from __future__ import annotations
@@ -40,9 +41,9 @@ class Case:
     body: str
     prelude: str = ""
     decl: str = "t"
-    #: Substrings the replacement texts must contain (what the case is about).
+    #: Kept from the source-composing era (F28-T2) as notes on what each case exercises; the join
+    #: works on terms, so nothing here is asserted against printed text any more.
     expect: tuple[str, ...] = field(default_factory=tuple)
-    #: Substrings the composed file must contain outside the replacements.
     composed_has: tuple[str, ...] = field(default_factory=tuple)
 
 
@@ -139,6 +140,15 @@ CASES: dict[str, Case] = {
         "theorem t : ∀ (a b : Nat), a + b = b + a ∧ True :=",
         "by\n  intro a b\n  have h1 : a + b = b + a := by sorry\n  exact ⟨h1, trivial⟩",
     ),
+    "C21_premise_rewritten_then_cleared": Case(
+        "theorem t (x : Nat) (h : ¬(1 ≤ x)) : x = 0 ∧ True :=",
+        "by\n  have h' : x < 1 := Nat.lt_of_not_le h\n  clear h\n"
+        "  have hole : x = 0 := sorry\n  exact ⟨hole, trivial⟩",
+    ),
+    "C22_hole_is_a_forall": Case(
+        "theorem t (n : Nat) (hn : 0 < n) : (∀ m : Nat, m < m + n) ∧ True :=",
+        "by\n  have core : ∀ m : Nat, m < m + n := by\n    sorry\n  exact ⟨core, trivial⟩",
+    ),
     "C18_opens_and_namespace": Case(
         "theorem Foo.t (n : Nat) : double n = n + n ∧ True :=",
         "by\n  have h : double n = n + n := sorry\n  exact ⟨h, trivial⟩",
@@ -200,15 +210,14 @@ class Bench:
         """Step 3: the children declared where Context.lean would put them, then opn-close."""
         holes = self.holes(name, case)
         children = [{"node": f"t--h{i + 1}", "decl": f"t_h{i + 1}"} for i in range(len(holes))]
-        decls = "".join(
-            f"theorem t_h{i + 1} : {h['closed_type']} := sorry\n\n" for i, h in enumerate(holes)
-        )
+        decls = "".join(f"axiom t_h{i + 1} : {h['closed_type']}\n\n" for i, h in enumerate(holes))
         path = self.root / f"{name}.lean"
         path.write_text(f"{case.prelude}{decls}{case.header} {case.body}\n", encoding="utf-8")
         spec = self.root / f"{name}.children.json"
         spec.write_text(json.dumps(children[::-1] if reverse else children), encoding="utf-8")
         args = ["--file", str(path), "--module", f"Case.{name}", "--decl", case.decl]
-        return self.run("opn-close", [*args, "--children", str(spec)])
+        out = self.root / "out" / f"{name}.olean"
+        return self.run("opn-close", [*args, "--children", str(spec), "--out-olean", str(out)])
 
 
 @pytest.fixture(scope="module")
@@ -224,17 +233,18 @@ def bench(
 
 @pytest.mark.parametrize("name", sorted(CASES))
 def test_composed_proof_checks(bench: Bench, name: str) -> None:
-    """AC10: every shape composes, the composed file elaborates whole, and no hole is left."""
+    """AC10: every shape joins, each hole to a child, the kernel accepts the theorem, and it rests
+    on the standard axioms and the children alone."""
     case = CASES[name]
+    holes = bench.holes(name, case)
     doc = bench.compose(name, case)
     assert doc["ok"], json.dumps(doc, indent=1, ensure_ascii=False)
-    texts = [s["text"] for s in doc["sites"]]
-    assert all(texts), doc
-    for want in case.expect:
-        assert any(want in t for t in texts), (want, texts)
-    for want in case.composed_has:
-        assert want in doc["composed"], (want, doc["composed"])
-    assert "sorry" not in doc["composed"].split(case.header, 1)[1]
+    assert len(doc["holes"]) == len(holes)
+    assert all(h["child"].startswith("t--h") for h in doc["holes"])
+    assert Path(doc["olean"]).is_file()
+    allowed = {"propext", "Classical.choice", "Quot.sound"}
+    assert set(doc["axioms"]) - allowed <= {f"t_h{i + 1}" for i in range(len(holes))}
+    assert "sorryAx" not in doc["axioms"]
 
 
 def test_route_order_does_not_matter(bench: Bench) -> None:
@@ -243,7 +253,7 @@ def test_route_order_does_not_matter(bench: Bench) -> None:
     case = CASES["C8_hole_ignores_earlier_hole"]
     doc = bench.compose("C8_reversed", case, reverse=True)
     assert doc["ok"], doc
-    assert [s["child"] for s in doc["sites"]] == ["t--h1", "t--h2"]
+    assert [h["child"] for h in doc["holes"]] == ["t--h1", "t--h2"]
 
 
 def test_a_hole_no_child_closes_is_reported(bench: Bench) -> None:
@@ -251,20 +261,22 @@ def test_a_hole_no_child_closes_is_reported(bench: Bench) -> None:
     composes nothing and says which hole failed (F28-R10)."""
     path = bench.root / "Wrong.lean"
     path.write_text(
-        "theorem t_h1 : ∀ (a b : Nat), a * b = b * a := sorry\n\n"
+        "axiom t_h1 : ∀ (a b : Nat), a * b = b * a\n\n"
         "theorem t : ∀ (a b : Nat), a + b = b + a ∧ True := by\n"
         "  intro a b\n  have h1 : a + b = b + a := sorry\n  exact ⟨h1, trivial⟩\n",
         encoding="utf-8",
     )
     spec = bench.root / "Wrong.children.json"
     spec.write_text(json.dumps([{"node": "t--h1", "decl": "t_h1"}]), encoding="utf-8")
+    out = bench.root / "out" / "Wrong.olean"
     doc = bench.run(
         "opn-close",
-        ["--file", str(path), "--module", "Case.Wrong", "--decl", "t", "--children", str(spec)],
-    )
+        ["--file", str(path), "--module", "Case.Wrong", "--decl", "t", "--children", str(spec),
+         "--out-olean", str(out)],
+    )  # fmt: skip
     assert doc["ok"] is False
-    assert doc["sites"][0]["problem"] == "no child's statement closes this hole"
-    assert doc["sites"][0]["line"] == 5
+    assert "hole h1: no child closes it" in doc["error"]
+    assert not out.exists()
 
 
 def test_a_sibling_by_definitional_equality(bench: Bench) -> None:
@@ -281,10 +293,11 @@ def test_a_sibling_by_definitional_equality(bench: Bench) -> None:
     spec.write_text(json.dumps([{"node": "s", "decl": "s"}]), encoding="utf-8")
     doc = bench.run(
         "opn-close",
-        ["--file", str(path), "--module", "Case.Sibling", "--decl", "t", "--children", str(spec)],
-    )
+        ["--file", str(path), "--module", "Case.Sibling", "--decl", "t", "--children", str(spec),
+         "--out-olean", str(bench.root / "out" / "Sibling.olean")],
+    )  # fmt: skip
     assert doc["ok"], doc
-    assert doc["sites"][0]["child"] == "s"
+    assert doc["holes"] == [{"hole": "h1", "child": "s"}]
 
 
 def test_the_seam_runs_the_program(bench: Bench) -> None:
@@ -292,7 +305,7 @@ def test_the_seam_runs_the_program(bench: Bench) -> None:
     its one JSON document back (the wiring ``close.compose`` uses)."""
     path = bench.root / "Seam.lean"
     path.write_text(
-        "theorem t_h1 : ∀ (a b : Nat), a + b = b + a := sorry\n\n"
+        "axiom t_h1 : ∀ (a b : Nat), a + b = b + a\n\n"
         "theorem t : ∀ (a b : Nat), a + b = b + a ∧ True := by\n"
         "  intro a b\n  have h1 : a + b = b + a := sorry\n  exact ⟨h1, trivial⟩\n",
         encoding="utf-8",
@@ -300,9 +313,12 @@ def test_the_seam_runs_the_program(bench: Bench) -> None:
     spec = bench.root / "Seam.children.json"
     spec.write_text(json.dumps([{"node": "t--h1", "decl": "t_h1"}]), encoding="utf-8")
     seam = LocalToolchain(bench.tc.elan, bench.bin)
-    got = seam.close(bench.pinned, CloseRequest(path, "Case.Seam", "t", spec), [], timeout_s=300)
+    out = bench.root / "out" / "Seam.olean"
+    req = CloseRequest(path, "Case.Seam", "t", spec, out)
+    got = seam.close(bench.pinned, req, [], timeout_s=300)
     assert got.ok, got.output
-    assert got.doc["ok"] and "(@_root_.t_h1 a b)" in got.doc["composed"]
+    assert got.doc["ok"] and out.is_file()
+    assert got.doc["holes"] == [{"hole": "h1", "child": "t--h1"}]
 
 
 LINK_STATEMENT = "/-- The ancestor. -/\ntheorem a_thm : ∃ K : Nat, K + 0 = K := by\n  sorry\n"
@@ -346,3 +362,51 @@ def test_a_link_proof_elaborates(bench: Bench, kind: str) -> None:
     assert proc.returncode == 0, proc.stdout + proc.stderr
     assert "sorry" not in proc.stdout + proc.stderr
     assert "(opn_closing_link @_root_.h_thm)" in text
+
+
+def test_a_chain_joins_level_by_level_and_the_root_is_kernel_checked(bench: Bench) -> None:
+    """The owner's question of 2026-10-15: a proved grandchild closes its parent and that closes
+    the root, with no intermediate source anywhere. The grandchild is a compiled proof; the
+    middle node is joined into a module the root's assembly imports; the root is joined on that
+    module, and rests on the standard axioms alone."""
+    out = bench.root / "chain"
+    (out / "Case").mkdir(parents=True, exist_ok=True)
+    sysroot = bench.pinned.libdir.parent.parent
+    env = {
+        "LEAN_PATH": f"{bench.pinned.libdir}:{out}",
+        "LEAN_SYSROOT": str(sysroot),
+        "ELAN_HOME": str(bench.tc.elan.parent.parent),
+        "PATH": f"{sysroot / 'bin'}:/usr/bin:/bin",
+        "HOME": str(bench.root),
+    }
+    g = out / "Case" / "G.lean"
+    g.write_text("theorem g : ∀ n : Nat, n + 0 = n := fun _ => rfl\n", encoding="utf-8")
+    made = subprocess.run(
+        [str(bench.tc.elan), "run", bench.pinned.name, "lean", "-R", str(out),
+         "-o", str(out / "Case" / "G.olean"), str(g)],
+        env=env, capture_output=True, text=True, check=False, timeout=300,
+    )  # fmt: skip
+    assert made.returncode == 0, made.stdout + made.stderr
+    levels = [
+        ("C", "Case.G", "c", "(n + 0 = n) ∧ True", "g"),
+        ("R", "Case.C", "r", "((n + 0 = n) ∧ True) ∧ True", "c"),
+    ]
+    for stem, imported, decl, body, child in levels:
+        src = out / f"{stem}.lean"
+        src.write_text(
+            f"import {imported}\n\ntheorem {decl} : ∀ n : Nat, {body} := by\n  intro n\n"
+            f"  have h : {body.rsplit(' ∧ True', 1)[0]} := sorry\n  exact ⟨h, trivial⟩\n",
+            encoding="utf-8",
+        )
+        spec = out / f"{stem}.children.json"
+        spec.write_text(json.dumps([{"node": child, "decl": child}]), encoding="utf-8")
+        proc = subprocess.run(
+            [str(bench.tc.elan), "run", bench.pinned.name, str(bench.bin / "opn-close"),
+             "--file", str(src), "--module", f"Case.{stem}", "--decl", decl,
+             "--children", str(spec), "--out-olean", str(out / "Case" / f"{stem}.olean")],
+            env=env, capture_output=True, text=True, check=False, timeout=300,
+        )  # fmt: skip
+        doc = json.loads(proc.stdout.strip().splitlines()[-1])
+        assert doc["ok"], doc
+    assert set(doc["axioms"]) <= {"propext", "Classical.choice", "Quot.sound"}
+    assert (out / "Case" / "R.olean").is_file()

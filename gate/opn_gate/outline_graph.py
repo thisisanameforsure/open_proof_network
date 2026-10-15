@@ -199,6 +199,13 @@ def build(  # noqa: PLR0913 — one argument per fact the build needs
             module = layout.node_module(node_id, stem)
             if (staged.build / module_output_path(module, ".olean")).is_file():
                 continue
+            if stem == "Proof" and node_id in staged.joined:
+                # F28-T8: a node proved by closure — its module is the join.
+                joined = staging.join_module(toolchain, tc, staged, node_id, timeout_s=timeout_s)
+                if not (joined.ok and joined.doc.get("ok")):
+                    msg = f"{module} did not join: {joined.doc.get('error') or joined.output}"
+                    raise BuildError(msg[:_DETAIL_CAP])
+                continue
             elab = toolchain.elaborate(
                 tc,
                 staged.root / staged.rel(node_id, stem),

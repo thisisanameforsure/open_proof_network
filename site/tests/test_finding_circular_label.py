@@ -184,7 +184,7 @@ def test_an_older_graph_derives_the_label_from_the_tree(tmp_path: object) -> Non
     graph.pop("review", None)  # graph/v9 (F26-T1)
     graph.pop("open_pairs", None)
     for row in graph["nodes"]:
-        for field in ("circular", "literature", "literature_proposed", "lemmas"):
+        for field in ("circular", "literature", "literature_proposed", "lemmas", "closure"):
             row.pop(field, None)
     graph_path.write_text(json.dumps(graph), encoding="utf-8")
     site = model.load_site(root, fixture.COMMIT)

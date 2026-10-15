@@ -504,6 +504,33 @@ def step9_not_asked(graph_root: Path, classification: Classification) -> Stateme
     return None if settles else NOT_ASKED_INTERMEDIATE
 
 
+def root_vouched(target_dir: Path, *, minimum: int = config.DEFAULT_STEP9_MIN_SCORE) -> str | None:
+    """F28-T8 (D-12 v3.42): what vouches for the root's statement, by step 9's own rules, or
+    ``None``: a calibration target is never asked (``calibration``); a target with a review needs
+    it complete (``certificate``) or catalog evidence (``provenance``); one without needs the
+    root's certificate (``certificate``) or catalog evidence (``provenance``). A root proved by
+    closure reads proved only with one of these, since that is the moment the conjecture would
+    read settled; a person vouches by the same records (a certificate, a completed review)."""
+    from opn_gate import intake  # noqa: PLC0415 — intake imports modes
+    from opn_gate.steps import review_step  # noqa: PLC0415 — the steps package imports modes
+
+    try:
+        if intake.is_calibration(intake.load_doc(target_dir)):
+            return "calibration"
+    except (ValueError, OSError) as exc:
+        log.warning("root vouching: %s does not load: %s", target_dir.name, exc)
+    standing = review_step.standing(target_dir)
+    if standing is not None:
+        if standing.satisfies:
+            return "certificate"
+        return "provenance" if step9_evidence(target_dir, minimum) is not None else None
+    if root_certificate(target_dir) is not None:
+        return "certificate"
+    if step9_evidence(target_dir, minimum) is not None:
+        return "provenance"
+    return None
+
+
 def root_certificate(target_dir: Path) -> str | None:
     """The newest counting signature on the root, as ``fidelity/<file>``, when the root's grade is
     at least ``screened-and-signed`` — counting as F11-R3 counts: ``fidelity/v2`` pinned to the

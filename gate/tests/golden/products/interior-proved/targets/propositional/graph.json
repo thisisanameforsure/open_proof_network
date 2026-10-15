@@ -3,6 +3,7 @@
     {
       "cause": null,
       "circular": [],
+      "closure": null,
       "decompositions": [],
       "defect_claims": [],
       "deps": [],
@@ -36,6 +37,7 @@
     {
       "cause": null,
       "circular": [],
+      "closure": null,
       "decompositions": [],
       "defect_claims": [],
       "deps": [
@@ -62,6 +64,7 @@
     {
       "cause": null,
       "circular": [],
+      "closure": null,
       "decompositions": [],
       "defect_claims": [],
       "deps": [],
@@ -111,7 +114,7 @@
     "tracking": null
   },
   "root": "and-swap-reassoc",
-  "schema": "graph/v9",
+  "schema": "graph/v10",
   "target_id": "propositional",
   "target_proofs": []
 }

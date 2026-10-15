@@ -28,6 +28,7 @@ def test_known_schemas_are_the_published_set() -> None:
         "attestation/v7",  # F25-T1 (automation)
         "candidate/v1",
         "claims/v1",
+        "closure/v1",  # F28-T8 (D-12 v3.42): proved by closure
         "context/v1",
         "context/v2",
         "context/v3",
@@ -64,6 +65,7 @@ def test_known_schemas_are_the_published_set() -> None:
         "glosses/v1",
         "glosses/v2",
         "graph/v1",
+        "graph/v10",  # F28-T8 (D-12 v3.42): each node's closure
         "graph/v2",
         "graph/v3",
         "graph/v4",

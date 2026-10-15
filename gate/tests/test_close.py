@@ -1,8 +1,9 @@
-"""F28-T2: composing a node's closing proof, the Python half (fast tier).
+"""F28-T7, T9: closing by construction, the Python half (fast tier).
 
-The composer itself is the lean tier's (``test_close_compose.py``); here the fake toolchain stands
-in for it, and the staging (``outline_graph.build``, the outline job's, already tested there) is
-replaced by a recorder, so these tests are about what ``close.compose`` decides and sends.
+The join itself is the lean tier's (``test_close_compose.py``); here the fake toolchain stands in
+for it, and the staging (``outline_graph.build``, the outline job's, tested there) is replaced by
+a recorder, so these tests are about what ``close`` decides, sends and records, and that one sweep
+climbs a whole chain.
 """
 
 from __future__ import annotations
@@ -15,11 +16,32 @@ import pytest
 from fakes import FAKE_RESOLVED, FakeToolchain
 from harness import GRAPH, TARGET, TUTORIAL
 
-from opn_gate import close, layout, outline, outline_graph, paths
+from opn_gate import (
+    close,
+    closing,
+    closure,
+    graph,
+    layout,
+    outline,
+    outline_graph,
+    paths,
+    products,
+    schemas,
+)
 from opn_gate.toolchain import MetaprogramResult
 
 TC = FAKE_RESOLVED
 PARTIAL = "attempts/20261014T181000Z-a-partial.lean"
+FACTS = close.Facts(
+    graph_commit="c" * 40,
+    network_commit="d" * 40,
+    lean_toolchain="leanprover/lean4:v4.33.1",
+    mathlib_sha=None,
+    timestamp="2026-10-15T12:00:00Z",
+)
+JOINED = MetaprogramResult(
+    ok=True, doc={"ok": True, "holes": [{"hole": "h1", "child": "x"}], "axioms": ["propext"]}
+)
 
 
 def row(
@@ -33,30 +55,31 @@ def row(
         "relation": None,
         "decompositions": [
             {
-                "partial": PARTIAL if k == 0 else f"attempts/2026101{k}T000000Z-b-partial.lean",
+                "partial": PARTIAL,
                 "annex": None,
                 "holes": [{"name": f"h{i + 1}", "node": h} for i, h in enumerate(holes)],
             }
-            for k, holes in enumerate(routes or [])
+            for holes in (routes or [])
         ],
         "circular": [],
     }
 
 
-def tree_with(tmp_path: Path, *rows: dict[str, Any], root: str = "p") -> Path:
+def tree_of(tmp_path: Path, *nodes: str) -> Path:
+    """A scratch tree with a Statement.lean and an assembly for each node."""
     tree = tmp_path / "tree"
-    target = tree / "targets" / "t"
-    (target / "nodes" / "p" / "attempts").mkdir(parents=True)
-    (target / "nodes" / "p" / PARTIAL).write_text("theorem p : True := by\n  sorry\n")
-    doc = {"schema": "graph/v9", "target_id": "t", "root": root, "nodes": list(rows)}
-    (target / "graph.json").write_text(json.dumps(doc), encoding="utf-8")
+    for n in nodes:
+        d = tree / "targets" / "t" / "nodes" / n
+        (d / "attempts").mkdir(parents=True)
+        (d / "Statement.lean").write_text(f"theorem {n} : True := by\n  sorry\n")
+        (d / PARTIAL).write_text(f"theorem {n} : True := by\n  have h : True := sorry\n  exact h\n")
     return tree
 
 
 @pytest.fixture
 def staged(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> list[outline_graph.Found]:
     """Replace the staging with a recorder that answers a Job, and the children's statements with
-    a fixed reading, so a test sees exactly what reaches the composer."""
+    a fixed reading, so a test sees exactly what reaches the join."""
     seen: list[outline_graph.Found] = []
 
     def build(*args: Any, **kw: Any) -> outline.Job:
@@ -67,8 +90,8 @@ def staged(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> list[outline_grap
             node=found.node,
             artifact=found.artifact,
             file=tmp_path / "Proof.lean",
-            module="Nodes.«p».Proof",
-            decl="p",
+            module=f"Nodes.«{found.node}».Proof",
+            decl=found.node,
             holes={},
             search_path=(tmp_path / "build",),
         )
@@ -82,105 +105,108 @@ def staged(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> list[outline_grap
     return seen
 
 
-def test_a_node_that_is_not_closable_is_refused_before_anything_runs(
+def ready(node: str, *inputs: str) -> closing.Closable:
+    return closing.Closable(node, closing.Link("route", f"{node}@1", inputs), True)
+
+
+def test_a_route_join_sends_its_assembly_children_and_module_path(
     tmp_path: Path, staged: list[outline_graph.Found]
 ) -> None:
-    tree = tree_with(tmp_path, row("p", routes=[["p--h1"]]), row("p--h1"))
-    fake = FakeToolchain()
-    got = close.compose(fake, TC, tree, "t", "p", tmp_path / "w", timeout_s=60)
-    assert (got.ok, got.reason, got.link) == (False, close.NOT_CLOSABLE, None)
-    assert staged == [] and fake.close_requests == []
-
-
-def test_a_node_waiting_on_a_closable_child_is_not_ready(
-    tmp_path: Path, staged: list[outline_graph.Found]
-) -> None:
-    """A10's middle level: closable, but its closing proof waits on the child's."""
-    tree = tree_with(
-        tmp_path,
-        row("p", routes=[["p--h1"]]),
-        row("p--h1", routes=[["p--h1--h1"]]),
-        row("p--h1--h1", "proved"),
-    )
-    got = close.compose(FakeToolchain(), TC, tree, "t", "p", tmp_path / "w", timeout_s=60)
-    assert (got.reason, got.detail) == (close.NOT_READY, "waits on p--h1")
-    assert staged == []
-
-
-def test_a_claim_link_on_a_node_that_does_not_load_is_named(
-    tmp_path: Path, staged: list[outline_graph.Found]
-) -> None:
-    """A claim link goes to ``compose_link`` (T3); a node the gate cannot load is a build
-    failure before anything is staged."""
-    hole = row("p--h1", "proved")
-    hole["circular"] = [{"ancestor": "p", "claim": "p--h1/defects/x.yaml"}]
-    tree = tree_with(tmp_path, row("p"), hole)
-    got = close.compose(FakeToolchain(), TC, tree, "t", "p", tmp_path / "w", timeout_s=60)
-    assert got.reason == close.BUILD_FAILED
-    assert got.link is not None and got.link.kind == "claim"
-    assert staged == []
-
-
-def test_a_ready_route_stages_its_own_assembly_and_sends_its_children(
-    tmp_path: Path, staged: list[outline_graph.Found]
-) -> None:
-    """The route chosen (the second here, the first being open) names the assembly staged, and
-    the children file lists that route's holes in its order."""
-    tree = tree_with(
-        tmp_path,
-        row("p", routes=[["p--h1"], ["p--h2", "p--h3"]]),
-        row("p--h1"),
-        row("p--h2", "proved"),
-        row("p--h3", "proved"),
-    )
-    fake = FakeToolchain(
-        close_doc=MetaprogramResult(
-            ok=True,
-            doc={"ok": True, "sites": [{"child": "p--h2"}], "composed": "theorem p : True := x"},
-        )
-    )
-    got = close.compose(fake, TC, tree, "t", "p", tmp_path / "w", timeout_s=60)
-    assert got.ok and got.proof == "theorem p : True := x"
-    assert got.link is not None and got.link.id == "p@2"
-    assert [f.artifact.path for f in staged] == ["attempts/20261011T000000Z-b-partial.lean"]
+    tree = tree_of(tmp_path, "p")
+    gdoc = {"nodes": [row("p", routes=[["p--h1", "p--h2"]])]}
+    fake = FakeToolchain(close_doc=JOINED)
+    got = close.join_route(
+        fake, TC, tree, "t", ready("p", "p--h1", "p--h2"), tmp_path / "w",
+        gdoc=gdoc, facts=FACTS, timeout_s=60,
+    )  # fmt: skip
+    assert got.ok and got.record is not None
     [req] = fake.close_requests
     assert (req.module, req.decl) == ("Nodes.«p».Proof", "p")
+    assert req.out_olean.name == "Proof.olean"
+    assert req.out_olean.is_relative_to(tmp_path / "build")
     assert json.loads(req.children.read_text(encoding="utf-8")) == [
+        {"node": "p--h1", "decl": "p__h1"},
         {"node": "p--h2", "decl": "p__h2"},
-        {"node": "p--h3", "decl": "p__h3"},
     ]
+    assert [f.artifact.path for f in staged] == [PARTIAL]
+    record = got.record
+    assert schemas.violations(record, closure.SCHEMA) == []
+    assert record["link"] == {"kind": "route", "id": "p@1", "inputs": ["p--h1", "p--h2"]}
+    assert record["source"]["path"] == PARTIAL and record["source"]["text"] is None
+    assert record["axioms"] == ["propext"]
+    assert record["signature"]["kind"] == "none"  # signed later, by the post-merge job
 
 
-def test_a_composer_failure_is_reported_with_its_sites(
-    tmp_path: Path, staged: list[outline_graph.Found]
-) -> None:
-    """F28-R10's first half: a hole no child closes is a named failure, the sites kept."""
-    tree = tree_with(tmp_path, row("p", routes=[["p--h1"]]), row("p--h1", "proved"))
-    site = {"line": 5, "problem": "no child's statement closes this hole", "tried": ["x"]}
+def test_a_failed_join_writes_no_record(tmp_path: Path, staged: list[outline_graph.Found]) -> None:
+    tree = tree_of(tmp_path, "p")
+    gdoc = {"nodes": [row("p", routes=[["p--h1"]])]}
     fake = FakeToolchain(
         close_doc=MetaprogramResult(
-            ok=True, doc={"ok": False, "error": "a hole could not be closed", "sites": [site]}
+            ok=True, doc={"ok": False, "error": "hole h1: no child closes it"}
         )
     )
-    got = close.compose(fake, TC, tree, "t", "p", tmp_path / "w", timeout_s=60)
+    got = close.join_route(
+        fake, TC, tree, "t", ready("p", "p--h1"), tmp_path / "w",
+        gdoc=gdoc, facts=FACTS, timeout_s=60,
+    )  # fmt: skip
     assert (got.ok, got.reason, got.detail) == (
         False,
-        close.COMPOSE_FAILED,
-        "a hole could not be closed",
+        close.JOIN_FAILED,
+        "hole h1: no child closes it",
     )
-    assert got.sites == (site,)
-    assert json.loads(json.dumps(got.as_dict()))["sites"] == [site]
 
 
 def test_a_build_failure_is_named(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
-    tree = tree_with(tmp_path, row("p", routes=[["p--h1"]]), row("p--h1", "proved"))
+    tree = tree_of(tmp_path, "p")
 
     def broken(*args: Any, **kw: Any) -> outline.Job:
         raise outline_graph.BuildError("Nodes.«p».Context does not elaborate")
 
     monkeypatch.setattr(outline_graph, "build", broken)
-    got = close.compose(FakeToolchain(), TC, tree, "t", "p", tmp_path / "w", timeout_s=60)
+    got = close.join_route(
+        FakeToolchain(), TC, tree, "t", ready("p", "p--h1"), tmp_path / "w",
+        gdoc={"nodes": [row("p", routes=[["p--h1"]])]}, facts=FACTS, timeout_s=60,
+    )  # fmt: skip
     assert (got.reason, got.detail) == (close.BUILD_FAILED, "Nodes.«p».Context does not elaborate")
+
+
+def test_one_sweep_climbs_the_chain_and_never_retries_a_failure(
+    tmp_path: Path, staged: list[outline_graph.Found], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """r <- [a], a <- [b], b proved; and s <- [q], q proved, whose join fails. One sweep joins a,
+    then r (once a's record is in the tree), tries s once, and stops."""
+    tree = tree_of(tmp_path, "r", "a", "b", "s", "q")
+    nodes = layout.graph_nodes_dir(tree, "t")
+
+    def has(n: str) -> bool:
+        return closure.path_for(nodes / n).is_file()
+
+    def doc() -> dict[str, Any]:
+        st = {"b": "proved", "q": "proved", "a": "proved" if has("a") else "ready"}
+        st["r"] = "proved" if has("r") else "ready"
+        return {
+            "root": "r",
+            "nodes": [
+                row("r", st["r"], [["a"]]), row("a", st["a"], [["b"]]), row("b", "proved"),
+                row("s", "ready", [["q"]]), row("q", "proved"),
+            ],
+        }  # fmt: skip
+
+    monkeypatch.setattr(graph, "load_target", lambda tree, target: None)
+    monkeypatch.setattr(products, "graph_doc", lambda tg, rendered: doc())
+
+    class Fake(FakeToolchain):
+        def close(self, tc: Any, req: Any, search_path: Any, *, timeout_s: Any = None) -> Any:
+            self.close_requests.append(req)
+            if req.decl == "s":
+                return MetaprogramResult(ok=True, doc={"ok": False, "error": "no child closes it"})
+            return JOINED
+
+    fake = Fake()
+    results = close.sweep(fake, TC, tree, "t", tmp_path / "w", facts=FACTS, timeout_s=60)
+    assert [(r.node, r.ok) for r in results] == [("a", True), ("s", False), ("r", True)]
+    assert [req.decl for req in fake.close_requests] == ["a", "s", "r"]
+    assert closure.path_for(nodes / "r").is_file() and not closure.path_for(nodes / "s").is_file()
 
 
 def test_children_read_each_statement_s_theorem() -> None:

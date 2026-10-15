@@ -2,11 +2,13 @@ import OpnGate.Frontend
 import OpnGate.Close
 
 /-!
-`opn-close --file <assembly.lean> --module <Name> --decl <Name> --children <children.json>`
+`opn-close --file <assembly.lean> --module <Name> --decl <Name> --children <children.json>
+          --out-olean <path>`
 
-Prints `{"ok": true, "sites": [...], "composed": "<the closing proof>"}`, or `"ok": false` with
-the sites and the reason (F28-R4). `children.json` is an array of `{"node", "decl"}`: the route's
-hole nodes in the route's order, each with its theorem's name. Runs only in the step-3 sandbox.
+Joins a node's merged assembly with its children's proofs at the level of terms, has the kernel
+check the result, and writes the node's `Proof` module to `--out-olean` (F28-T7, decisions v3.42).
+Prints `{"ok": true, "decl", "holes": [{"hole", "child"}], "axioms", "olean"}`, or an error
+document. `children.json` is an array of `{"node", "decl"}`. Runs only in the step-3 sandbox.
 -/
 open Lean OpnGate
 
@@ -25,6 +27,7 @@ unsafe def main (args : List String) : IO UInt32 :=
     let some modStr := getArg kv "module" | fail "missing --module"
     let some declStr := getArg kv "decl" | fail "missing --decl"
     let some childrenPath := getArg kv "children" | fail "missing --children"
+    let some out := getArg kv "out-olean" | fail "missing --out-olean"
     let children ← readChildren childrenPath
-    printJson (← Close.compose file modStr.toName declStr.toName children)
+    printJson (← Close.run file modStr.toName declStr.toName children out)
     return 0

@@ -28,6 +28,7 @@ from typing import Any
 
 from opn_gate import annex as annexmod
 from opn_gate import (
+    closure,
     context,
     defs,
     evidence,
@@ -62,14 +63,16 @@ from opn_gate.toolchain import ResolvedToolchain, Toolchain, UsedConstantsReques
 
 log = logging.getLogger(__name__)
 
-#: docs/architecture_decisions.html (v3.41: closing proofs; v3.40: routes and sufficient sets)
-PROTOCOL_VERSION = "3.41"
+#: docs/architecture_decisions.html (v3.42: proved by closure; v3.41: closing proofs)
+PROTOCOL_VERSION = "3.42"
 #: F03-T20 (D-12 v3.38): graph/v8 carries ``lemmas``, the nodes under other branches a merged
 #: partial restated as holes, and a decomposition's hole may resolve to one. v7 (F25-R7, D-10
 #: v3.37): registrations. F08-T39 (D-12 v3.35): v6 carries ``circular`` (the label),
 #: ``literature`` and ``literature_proposed`` (F08-T40); v5: every defect claim (F08-T36); v4:
 #: F08-T27, F18; v3: F12-R13.
-GRAPH_SCHEMA = "graph/v9"  # v9 (F26-R17, D-9 v3.39): review state and open pairs; v8: lemmas
+#: v10 (F28-T8, D-12 v3.42): closure; v9 (F26-R17, D-9 v3.39): review state and open pairs;
+#: v8: lemmas
+GRAPH_SCHEMA = "graph/v10"
 #: F03-T18 (D-12 v3.35): frontier/v5 repeats graph/v6's three fields on every entry, and a node
 #: under a circularity claim is an entry on its status alone; v4 (T16): status, cause, needs;
 #: v3 (T7): partials; v2: D-33 dormancy.
@@ -935,6 +938,20 @@ def literature_states(
     return out
 
 
+def closure_entry(n: graphmod.NodeFacts) -> dict[str, Any] | None:
+    """F28-T8: the node's closure as ``graph/v10`` publishes it — the link, its inputs and the
+    record's path under the target's nodes — or None."""
+    if n.closure is None:
+        return None
+    link = n.closure["link"]
+    return {
+        "kind": link["kind"],
+        "id": link["id"],
+        "inputs": list(link["inputs"]),
+        "record": f"{n.node_id}/{closure.FILE}",
+    }
+
+
 def graph_doc(
     tg: TargetGraph,
     rendered_from: str | None,
@@ -991,6 +1008,8 @@ def graph_doc(
                 # F03-T20 (D-12 v3.38): META.yaml's lemmas in the record's order, each node as
                 # it is now — a hole's standing, drawn on once proved and never waited on.
                 "lemmas": [{"hole": x.hole, "node": x.node} for x in n.lemmas],
+                # F28-T8 (D-12 v3.42): the closure the gate joined and signed, or null.
+                "closure": closure_entry(n),
             }
         )
     return {

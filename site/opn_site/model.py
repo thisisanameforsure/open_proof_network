@@ -68,6 +68,7 @@ PRODUCT_SCHEMAS: dict[str, tuple[str, ...]] = {
         "graph/v7",  # F25-R7: registrations
         "graph/v8",  # F04-T39 (D-12 v3.38): each row's lemmas, restated nodes under other branches
         "graph/v9",  # F26-R17 (D-9 v3.39): the review's state and the open pair directions
+        "graph/v10",  # F28-T8 (D-12 v3.42): each node's closure
     ),
 }
 log = logging.getLogger(__name__)
@@ -546,6 +547,13 @@ class NodeView:
     @property
     def deps(self) -> list[str]:
         return [str(d) for d in self.graph_entry["deps"]]
+
+    @property
+    def closure(self) -> dict[str, Any] | None:
+        """F28-T8 (D-12 v3.42): how the node is proved by closure (``graph/v10``): the link the
+        gate joined, its inputs and the record's path, or None (and None on an older graph)."""
+        raw = self.graph_entry.get("closure")
+        return raw if isinstance(raw, dict) else None
 
     @property
     def lemmas(self) -> list[LemmaRef]:

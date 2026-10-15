@@ -1,20 +1,17 @@
-"""A node's closing proof, composed from its merged assembly and its proved holes (F28-T2;
-draft decisions v3.41).
+"""Closing by construction (F28-T7, T9; decisions v3.42).
 
-``closing`` says which nodes are closable and by which link; this module writes the proof for one
-of them. For a route (F28-R4, R6) that is the route's merged assembly with each hole's ``sorry``
-replaced by the hole node's theorem, composed by ``opn-close`` in the step-3 sandbox over the
-same staging the outline job uses (``outline_graph.build``: the assembly staged as the node's
-``Proof`` module, everything it imports compiled, the node's own ``Context`` with its children's
-signatures among them). The composed text is a proposal: the gate judges it like any proof
-(D-12 v3.41), so nothing here is trusted and nothing here writes to the graph.
+``closing`` says which nodes are closable and by which link; this module closes them. For a route
+it stages the node's merged assembly as its ``Proof`` module, has every module beneath it built
+(a child proved by closure is joined in turn, ``steps.stage.join_module``), and runs ``opn-close``,
+which replaces each hole of the assembly's elaborated term by the child's theorem, has the kernel
+accept the node's theorem and writes its module. A circularity claim or a ``resolves`` variant
+joins through a short composed proof (the implication as a private helper applied to the input's
+theorem), compiled like any proof. Either way the result is a ``closure`` record for the node.
 
-For a circularity claim or a ``resolves`` variant (F28-R5, T3) the closing proof is the node's
-statement with its ``sorry`` replaced by the link's implication applied to the input's theorem:
-the implication (the claim's exhibit, the variant's ``Relation.lean``) goes in as a private helper
-lemma directly before the theorem (F00-T11), and the input's merged proof comes in through a use
-line (v3.25) unless the input is already a dependency, whose theorem ``Context`` carries. That
-file is staged and elaborated whole before it is returned.
+``sweep`` closes a whole target in one run: it re-derives the target from the tree, joins every
+node whose inputs are all proved, writes each record into the tree, and repeats, so a proof at the
+bottom of a chain climbs to the top in one post-merge job. Every join runs in the step-3 sandbox;
+nothing here writes to the graph but the records, which the post-merge job signs and commits.
 """
 
 from __future__ import annotations
@@ -22,47 +19,51 @@ from __future__ import annotations
 import json
 import re
 from collections.abc import Mapping
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 import yaml
 
-from opn_gate import closing, layout, outline, outline_graph, paths, schemas
+from opn_gate import closing, closure, layout, outline, outline_graph, paths, products, schemas
 from opn_gate import graph as graphmod
-from opn_gate.toolchain import CloseRequest, ResolvedToolchain, Toolchain
+from opn_gate.toolchain import CloseRequest, ResolvedToolchain, Toolchain, module_output_path
 
 #: Why no proof was composed. Each is a fact about the record or the run, never a guess.
-NOT_CLOSABLE = "not-closable"
-NOT_READY = "not-ready"
 LINK_REFUSED = "link-refused"
 BUILD_FAILED = "build-failed"
-COMPOSE_FAILED = "compose-failed"
+JOIN_FAILED = "join-failed"
 
 _DETAIL_CAP = 2000
-#: The identity a closing proof's commit is authored by: the gate's own reserved name, which no
-#: contributor can hold (D-19 v3.28), so the ledger can tell a join from a contribution.
-CLOSING_AUTHOR = "opn-gate"
 #: Where a link's composed file is written in the (scratch) tree, to be staged as the node's proof.
 LINK_FILE = ".opn-closing.lean"
 
 
 @dataclass(frozen=True)
+class Facts:
+    """What every record of one run carries: the commit joined, and the pinned tooling."""
+
+    graph_commit: str
+    network_commit: str | None
+    lean_toolchain: str
+    mathlib_sha: str | None
+    timestamp: str
+
+
+@dataclass(frozen=True)
 class Result:
-    """One node's closing proof, or the named reason there is none. ``sites`` are the
-    composer's, one per hole of the assembly."""
+    """One node's closure record, or the named reason there is none."""
 
     target: str
     node: str
     link: closing.Link | None
-    proof: str | None = None
+    record: dict[str, Any] | None = None
     reason: str | None = None
     detail: str = ""
-    sites: tuple[Mapping[str, Any], ...] = field(default_factory=tuple)
 
     @property
     def ok(self) -> bool:
-        return self.proof is not None
+        return self.record is not None
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -70,10 +71,8 @@ class Result:
             "node": self.node,
             "link": self.link.as_dict() if self.link else None,
             "ok": self.ok,
-            "proof": self.proof,
             "reason": self.reason,
             "detail": self.detail,
-            "sites": [dict(s) for s in self.sites],
         }
 
 
@@ -82,18 +81,6 @@ def graph_doc(tree: Path, target_id: str) -> dict[str, Any]:
     path = tree / "targets" / target_id / "graph.json"
     doc: dict[str, Any] = json.loads(path.read_text(encoding="utf-8"))
     return doc
-
-
-def ready_nodes(graph: Mapping[str, Any]) -> list[str]:
-    """The nodes whose closing proof can be written now, in the record's order (F28-R7): every
-    input proved. A node closable only through another closable node waits for that one's merge,
-    whose post-merge run wakes the closer again."""
-    return [c.node for c in closing.closable(graph) if c.ready]
-
-
-def find(graph: Mapping[str, Any], node_id: str) -> closing.Closable | None:
-    """The node's closable entry, or ``None`` when it is not closable."""
-    return next((c for c in closing.closable(graph) if c.node == node_id), None)
 
 
 def route_partial(graph: Mapping[str, Any], link: closing.Link) -> str:
@@ -200,7 +187,29 @@ def link_text(st: layout.Statement, helper: str, input_decl: str, use: str | Non
     return prefix[:at] + line + prefix[at:start] + helper + prefix[start:] + body + st.suffix
 
 
-def compose_link(  # noqa: PLR0913, PLR0917 — the run's seam, the record, the link, where it works
+def _record(
+    tree: Path, target_id: str, node_id: str, link: closing.Link, facts: Facts, **source: Any
+) -> dict[str, Any]:
+    node_dir = layout.graph_nodes_dir(tree, target_id) / node_id
+    statement = (node_dir / "Statement.lean").read_bytes()
+    return closure.build(
+        target_id=target_id,
+        node_id=node_id,
+        statement_hash=schemas.content_hash(statement),
+        link=closure.Link(link.kind, link.id, link.inputs),
+        source_path=source.get("path"),
+        source_text=source.get("text"),
+        source_hash=str(source["hash"]),
+        axioms=list(source.get("axioms") or []),
+        graph_commit=facts.graph_commit,
+        network_commit=facts.network_commit,
+        lean_toolchain=facts.lean_toolchain,
+        mathlib_sha=facts.mathlib_sha,
+        timestamp=facts.timestamp,
+    )
+
+
+def join_link(  # noqa: PLR0913, PLR0917 — the run's seam, the record, the link, where it works, the facts
     toolchain: Toolchain,
     tc: ResolvedToolchain,
     tree: Path,
@@ -208,10 +217,11 @@ def compose_link(  # noqa: PLR0913, PLR0917 — the run's seam, the record, the 
     found: closing.Closable,
     workdir: Path,
     *,
+    facts: Facts,
     timeout_s: float,
 ) -> Result:
-    """F28-R5: the closing proof through a claim or a variant, staged and elaborated whole.
-    ``tree`` is a scratch export: the composed file is written into it to be staged."""
+    """F28-R5: the closure through a claim or a variant, staged and compiled as a proof whose text
+    the record keeps. ``tree`` is a scratch export: the composed file is written into it."""
     link = found.link
     node_id = found.node
     nodes_dir = layout.graph_nodes_dir(tree, target_id)
@@ -249,6 +259,8 @@ def compose_link(  # noqa: PLR0913, PLR0917 — the run's seam, the record, the 
         )
     except outline_graph.BuildError as exc:
         return Result(target_id, node_id, link, reason=BUILD_FAILED, detail=str(exc)[:_DETAIL_CAP])
+    finally:
+        (node_dir / LINK_FILE).unlink(missing_ok=True)
     elab = toolchain.elaborate(
         tc, job.file, job.module, job.search_path[0], root=job.file.parents[2],
         timeout_s=timeout_s,
@@ -256,31 +268,29 @@ def compose_link(  # noqa: PLR0913, PLR0917 — the run's seam, the record, the 
     if not elab.ok:
         first = elab.errors[0].as_dict() if elab.errors else elab.stderr
         detail = f"the composed proof does not elaborate: {first}"
-        return Result(target_id, node_id, link, reason=COMPOSE_FAILED, detail=detail[:_DETAIL_CAP])
-    return Result(target_id, node_id, link, proof=text)
+        return Result(target_id, node_id, link, reason=JOIN_FAILED, detail=detail[:_DETAIL_CAP])
+    record = _record(
+        tree, target_id, node_id, link, facts,
+        path=None, text=text, hash=schemas.content_hash(text.encode()),
+    )  # fmt: skip
+    return Result(target_id, node_id, link, record=record)
 
 
-def compose(  # noqa: PLR0913, PLR0917 — the run's seam, the record, the node, where it works
+def join_route(  # noqa: PLR0913, PLR0917 — the run's seam, the record, the node, where it works, the facts
     toolchain: Toolchain,
     tc: ResolvedToolchain,
     tree: Path,
     target_id: str,
-    node_id: str,
+    found: closing.Closable,
     workdir: Path,
     *,
+    gdoc: Mapping[str, Any],
+    facts: Facts,
     timeout_s: float,
 ) -> Result:
-    """The closing proof of ``node_id`` at ``tree``, or why there is none."""
-    graph = graph_doc(tree, target_id)
-    found = find(graph, node_id)
-    if found is None:
-        return Result(target_id, node_id, None, reason=NOT_CLOSABLE)
-    if not found.ready:
-        detail = "waits on " + ", ".join(found.link.inputs)
-        return Result(target_id, node_id, found.link, reason=NOT_READY, detail=detail)
-    if found.link.kind != "route":
-        return compose_link(toolchain, tc, tree, target_id, found, workdir, timeout_s=timeout_s)
-    partial = route_partial(graph, found.link)
+    """F28-T7: the closure through a route: the assembly joined with its children by the kernel."""
+    node_id, link = found.node, found.link
+    partial = route_partial(gdoc, link)
     node_dir = layout.graph_nodes_dir(tree, target_id) / node_id
     file = node_dir / partial
     digest = schemas.content_hash(file.read_bytes()) if file.is_file() else ""
@@ -295,25 +305,66 @@ def compose(  # noqa: PLR0913, PLR0917 — the run's seam, the record, the node,
         )
         workdir.mkdir(parents=True, exist_ok=True)
         spec = workdir / "children.json"
-        spec.write_text(json.dumps(children(tree, target_id, found.link.inputs)), encoding="utf-8")
+        spec.write_text(json.dumps(children(tree, target_id, link.inputs)), encoding="utf-8")
     except outline_graph.BuildError as exc:
-        return Result(
-            target_id, node_id, found.link, reason=BUILD_FAILED, detail=str(exc)[:_DETAIL_CAP]
-        )
+        return Result(target_id, node_id, link, reason=BUILD_FAILED, detail=str(exc)[:_DETAIL_CAP])
+    out = job.search_path[0] / module_output_path(job.module, ".olean")
     result = toolchain.close(
-        tc, CloseRequest(job.file, job.module, job.decl, spec), job.search_path,
+        tc, CloseRequest(job.file, job.module, job.decl, spec, out), job.search_path,
         timeout_s=timeout_s,
     )  # fmt: skip
     doc = result.doc or {}
-    sites = tuple(doc.get("sites") or ())
-    if not result.ok or not doc.get("ok") or not isinstance(doc.get("composed"), str):
-        detail = str(doc.get("error") or result.output or "the composer gave no proof")
-        return Result(
-            target_id,
-            node_id,
-            found.link,
-            reason=COMPOSE_FAILED,
-            detail=detail[:_DETAIL_CAP],
-            sites=sites,
-        )
-    return Result(target_id, node_id, found.link, proof=str(doc["composed"]), sites=sites)
+    if not result.ok or not doc.get("ok"):
+        detail = str(doc.get("error") or result.output or "the join gave no module")
+        return Result(target_id, node_id, link, reason=JOIN_FAILED, detail=detail[:_DETAIL_CAP])
+    record = _record(
+        tree, target_id, node_id, link, facts,
+        path=partial, text=None, hash=digest, axioms=doc.get("axioms"),
+    )  # fmt: skip
+    return Result(target_id, node_id, link, record=record)
+
+
+def sweep(  # noqa: PLR0913 — the run's seam, the tree, the target, where it works, the facts
+    toolchain: Toolchain,
+    tc: ResolvedToolchain,
+    tree: Path,
+    target_id: str,
+    workdir: Path,
+    *,
+    facts: Facts,
+    timeout_s: float,
+) -> list[Result]:
+    """Close every node of the target whose inputs are all proved, writing each record into
+    ``tree`` (a scratch export) as it goes, and repeat until nothing more is ready: one run climbs
+    the whole chain. A node with a record already, or whose join failed in this run, is not tried
+    again; a failure is reported and changes nothing."""
+    results: list[Result] = []
+    tried: set[str] = set()
+    nodes_dir = layout.graph_nodes_dir(tree, target_id)
+    while True:
+        tg = graphmod.load_target(tree, target_id)
+        gdoc = products.graph_doc(tg, None)
+        ready = [
+            c
+            for c in closing.closable(gdoc)
+            if c.ready
+            and c.node not in tried
+            and not closure.path_for(nodes_dir / c.node).is_file()
+        ]
+        if not ready:
+            return results
+        for found in ready:
+            tried.add(found.node)
+            work = workdir / found.node
+            if found.link.kind == "route":
+                result = join_route(
+                    toolchain, tc, tree, target_id, found, work,
+                    gdoc=gdoc, facts=facts, timeout_s=timeout_s,
+                )  # fmt: skip
+            else:
+                result = join_link(
+                    toolchain, tc, tree, target_id, found, work, facts=facts, timeout_s=timeout_s
+                )
+            if result.record is not None:
+                closure.write(nodes_dir / found.node, result.record)
+            results.append(result)
