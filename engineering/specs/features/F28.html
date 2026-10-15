@@ -242,6 +242,17 @@ v3.23, D-30.</p>
     every link is kernel-checked — the one real exposure, a revised hole weaker than its gap, makes the
     join fail rather than succeed, which is why the kernel check is required and not optional. The
     closer workflow, its pull requests, the source composer and the ledger rule were removed.</td></tr>
+  <tr><td>F28-Q12</td><td><strong>The circularity claim is no link (the owner's ruling, 2026-10-15,
+    taken in the F08-T42 session; carried here before v3.42 shipped).</strong> F28-T1 took a proved
+    hole's own circularity claim as a link to the ancestor it named, and where the hole's siblings were
+    open that link carried real mathematics. Asked whether to keep it, the owner chose one rule: the
+    claim, its label and the link all go, and a proved hole closes what it was cut from only through a
+    route, its siblings proved beside it. This branch carries the link half: <code>closing.links</code>
+    yields routes and variants only, <code>close.LINK_DECLS</code> names the variant's relation only,
+    and <code>closure/v1</code> and <code>graph/v10</code> list the kinds route and variant. Red first:
+    <code>test_a_circularity_claim_is_no_link</code> (from F08-T42's branch) failed on this branch's
+    <code>closing.py</code> with the claim link. The claim and its label are retired by F08-T42,
+    which lands after this as decisions v3.43 with the next graph schema.</td></tr>
 </table>
 
 <h2>10. Status</h2>

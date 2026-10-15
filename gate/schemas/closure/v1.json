@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://openproof.network/schemas/closure/v1.json",
   "title": "closure/v1",
-  "description": "D-12 v3.42 (F28-T8): the gate's record that a node is proved by closure — its merged decomposition (a route), its own circularity claim or (at the root) a resolves variant joined with the proofs of its inputs, and the result accepted by the kernel. Written by the post-merge job and signed with the gate key, beside the node as targets/<id>/nodes/<node>/closure.json. A node with a closure record is proved while every input is proved (derived each render, so reverting an input re-opens it); the root also needs the statement vouching step 9 accepts.",
+  "description": "D-12 v3.42 (F28-T8): the gate's record that a node is proved by closure — its merged decomposition (a route) or (at the root) a resolves variant joined with the proofs of its inputs, and the result accepted by the kernel. Written by the post-merge job and signed with the gate key, beside the node as targets/<id>/nodes/<node>/closure.json. A node with a closure record is proved while every input is proved (derived each render, so reverting an input re-opens it); the root also needs the statement vouching step 9 accepts.",
   "type": "object",
   "additionalProperties": false,
   "required": ["schema", "target_id", "node_id", "statement_hash", "link", "source", "axioms", "graph_commit", "network_commit", "lean_toolchain", "mathlib_sha", "signature"],
@@ -16,13 +16,13 @@
       "additionalProperties": false,
       "required": ["kind", "id", "inputs"],
       "properties": {
-        "kind": {"enum": ["route", "claim", "variant"]},
+        "kind": {"enum": ["route", "variant"]},
         "id": {"type": "string", "minLength": 1, "maxLength": 300},
         "inputs": {"type": "array", "minItems": 1, "items": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$"}}
       }
     },
     "source": {
-      "description": "What was joined: for a route, the merged assembly (its path under the node and content hash); for a claim or a variant, the composed proof text (the implication as a private helper applied to the input's theorem), kept here because no file in the tree holds it.",
+      "description": "What was joined: for a route, the merged assembly (its path under the node and content hash); for a variant, the composed proof text (the implication as a private helper applied to the input's theorem), kept here because no file in the tree holds it.",
       "type": "object",
       "additionalProperties": false,
       "required": ["path", "hash", "text"],

@@ -3302,7 +3302,6 @@ class Renderer:
         c = nv.closure
         kind = {
             "route": "its merged decomposition",
-            "claim": "its own circularity claim&rsquo;s exhibit",
             "variant": "a resolving variant&rsquo;s relation",
         }.get(str(c["kind"]), "a merged link")
         inputs = ", ".join(self.node_link(tv.target_id, str(i)) for i in c["inputs"])

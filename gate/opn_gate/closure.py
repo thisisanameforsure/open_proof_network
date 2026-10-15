@@ -4,8 +4,8 @@ A node whose merged decomposition has every hole proved is proved: the assembly 
 the children it wrote as exactly the gaps, and the children's proofs are the whole proof. The
 post-merge job joins them at the level of terms (``opn-close``), the kernel accepts the node's
 theorem, and the job writes this record beside the node as ``closure.json``, signed with the gate
-key in the one step that holds it. A circularity claim's exhibit or a ``resolves`` variant's
-relation joins the same way, with the composed proof text kept in the record.
+key in the one step that holds it. A ``resolves`` variant's relation joins the same way,
+with the composed proof text kept in the record.
 
 Nothing here is a status. ``graph.derive_statuses`` reads the record and derives *proved* while
 every input of its link is proved, so a reverted input re-opens the node on the next render and
@@ -29,7 +29,8 @@ FILE = "closure.json"
 
 @dataclass(frozen=True)
 class Link:
-    """What the record joined: ``kind`` (route, claim, variant), its id, its inputs."""
+    """What the record joined: ``kind`` (route or variant; the claim link retired, F28-Q11),
+    its id, its inputs."""
 
     kind: str
     id: str

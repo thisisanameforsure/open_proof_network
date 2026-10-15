@@ -4,9 +4,10 @@
 it stages the node's merged assembly as its ``Proof`` module, has every module beneath it built
 (a child proved by closure is joined in turn, ``steps.stage.join_module``), and runs ``opn-close``,
 which replaces each hole of the assembly's elaborated term by the child's theorem, has the kernel
-accept the node's theorem and writes its module. A circularity claim or a ``resolves`` variant
-joins through a short composed proof (the implication as a private helper applied to the input's
-theorem), compiled like any proof. Either way the result is a ``closure`` record for the node.
+accept the node's theorem and writes its module. A ``resolves`` variant joins through a short
+composed proof (its relation as a private helper applied to the variant's theorem), compiled like
+any proof; the circularity claim is no link (D-12 v3.42, F28-Q11). Either way the result is
+a ``closure`` record for the node.
 
 ``sweep`` closes a whole target in one run: it re-derives the target from the tree, joins every
 node whose inputs are all proved, writes each record into the tree, and repeats, so a proof at the
@@ -22,8 +23,6 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
-
-import yaml
 
 from opn_gate import closing, closure, layout, outline, outline_graph, paths, products, schemas
 from opn_gate import graph as graphmod
@@ -104,14 +103,14 @@ def children(tree: Path, target_id: str, inputs: tuple[str, ...]) -> list[dict[s
     return out
 
 
-# --- claims and variants (F28-R5, T3) -------------------------------------------------------------
+# --- variants (F28-R5, T3; the claim link retired, F28-Q11) -----------------------------------
 
 #: The helper a link's implication becomes in the closing proof: private, so it never reaches an
 #: importer (F00-T11), and named so that no statement's theorem can collide with it.
 LINK_HELPER = "opn_closing_link"
-#: The implication's own name in the file it comes from: a circularity exhibit declares
-#: ``circular`` (D-16 v3.23), a variant's ``Relation.lean`` declares ``relation`` (D-30).
-LINK_DECLS: Mapping[str, str] = {"claim": "circular", "variant": "relation"}
+#: The implication's own name in the file it comes from: a variant's ``Relation.lean`` declares
+#: ``relation`` (D-30). The circularity claim's ``circular`` went with the claim link (F28-Q11).
+LINK_DECLS: Mapping[str, str] = {"variant": "relation"}
 _HEADER_LINE_RE = re.compile(r"^(?:import\s+\S+|open\s.*|\s*)$")
 _DECL_RE = re.compile(
     r"^(?P<mods>(?:@\[[^\]]*\]\s*)?(?:(?:private|protected|noncomputable)\s+)*)"
@@ -125,16 +124,8 @@ class LinkError(ValueError):
 
 
 def implication_source(tree: Path, target_id: str, link: closing.Link) -> str:
-    """The Lean text of the implication a claim or a variant link proves: a claim's exhibit
-    (``defect-claim``'s ``exhibit``, under the claiming node) or a variant's ``Relation.lean``."""
+    """The Lean text of the implication a variant link proves: its ``Relation.lean``."""
     nodes_dir = layout.graph_nodes_dir(tree, target_id)
-    if link.kind == "claim":
-        doc = yaml.safe_load((nodes_dir / link.id).read_text(encoding="utf-8"))
-        exhibit = doc.get("exhibit") if isinstance(doc, Mapping) else None
-        if not isinstance(exhibit, str):
-            msg = f"{link.id} carries no exhibit"
-            raise LinkError(msg)
-        return exhibit
     return (nodes_dir / link.id / "Relation.lean").read_text(encoding="utf-8")
 
 
@@ -220,7 +211,7 @@ def join_link(  # noqa: PLR0913, PLR0917 — the run's seam, the record, the lin
     facts: Facts,
     timeout_s: float,
 ) -> Result:
-    """F28-R5: the closure through a claim or a variant, staged and compiled as a proof whose text
+    """F28-R5: the closure through a ``resolves`` variant, staged and compiled as a proof whose text
     the record keeps. ``tree`` is a scratch export: the composed file is written into it."""
     link = found.link
     node_id = found.node
@@ -238,7 +229,7 @@ def join_link(  # noqa: PLR0913, PLR0917 — the run's seam, the record, the lin
         problem = paths.helper_problem(helper, first_line=1)
         if problem is not None:
             raise LinkError(problem.message)
-    except (LinkError, OSError, yaml.YAMLError) as exc:
+    except (LinkError, OSError) as exc:
         return Result(target_id, node_id, link, reason=LINK_REFUSED, detail=str(exc)[:_DETAIL_CAP])
     deps = graphmod.effective_deps(nodes_dir, loaded.meta.get("deps"))
     use = None if source_node in deps else layout.node_module(source_node, "Proof")

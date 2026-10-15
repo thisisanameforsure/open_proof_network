@@ -323,8 +323,6 @@ def test_the_seam_runs_the_program(bench: Bench) -> None:
 
 LINK_STATEMENT = "/-- The ancestor. -/\ntheorem a_thm : ∃ K : Nat, K + 0 = K := by\n  sorry\n"
 LINK_SOURCES = {
-    "claim": "theorem circular : (∃ K : Nat, K = K) → ∃ K : Nat, K + 0 = K := by\n"
-    "  intro ⟨K, _⟩\n  exact ⟨K, rfl⟩\n",
     "variant": "-- relation: resolves\n\n"
     "theorem relation : (∃ K : Nat, K = K) → ∃ K : Nat, K + 0 = K :=\n"
     "  fun ⟨K, _⟩ => ⟨K, rfl⟩\n",
@@ -333,9 +331,9 @@ LINK_SOURCES = {
 
 @pytest.mark.parametrize("kind", sorted(LINK_SOURCES))
 def test_a_link_proof_elaborates(bench: Bench, kind: str) -> None:
-    """F28-T3 / AC7, AC8: the closing proof through a claim's exhibit or a variant's relation,
-    as ``close.link_text`` writes it, elaborates whole with no ``sorry``. The input's theorem is
-    declared at the top, where its use line's import would put it."""
+    """F28-T3 / AC7, AC8: the closing proof through a variant's relation (the claim link
+    retired, F28-Q11), as ``close.link_text`` writes it, elaborates whole with no ``sorry``. The
+    input's theorem is declared at the top, where its use line's import would put it."""
     st = layout.parse_statement(LINK_STATEMENT)
     assert isinstance(st, layout.Statement)
     helper = close.as_helper(LINK_SOURCES[kind], kind, st.prefix)

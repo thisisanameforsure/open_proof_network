@@ -610,7 +610,7 @@
             }
           },
           "closure": {
-            "description": "D-12 v3.42 (F28-T8): how the node is proved by closure, or null: the link the gate joined (a route of its merged decomposition, its own circularity claim, or at the root a resolves variant), its inputs, and the signed record beside the node. The node reads proved from it only while every input is proved, and a root only with its statement vouched as step 9 accepts; a record on a node that does not read proved is shown here all the same, so a reader sees what is waiting.",
+            "description": "D-12 v3.42 (F28-T8): how the node is proved by closure, or null: the link the gate joined (a route of its merged decomposition, or at the root a resolves variant), its inputs, and the signed record beside the node. The node reads proved from it only while every input is proved, and a root only with its statement vouched as step 9 accepts; a record on a node that does not read proved is shown here all the same, so a reader sees what is waiting.",
             "oneOf": [
               {
                 "type": "null"
@@ -628,7 +628,6 @@
                   "kind": {
                     "enum": [
                       "route",
-                      "claim",
                       "variant"
                     ]
                   },

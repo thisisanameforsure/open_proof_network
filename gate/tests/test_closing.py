@@ -232,20 +232,18 @@ def test_lemma_hole_counts_the_node_it_names() -> None:
     assert got["t"] == ("route", "t@1", ("t--h1", "t--h2"), False)
 
 
-def test_circularity_claim_is_an_upward_link() -> None:
-    """A20: ``t <- [m]``, ``m <- [h, g]``, ``h`` carries its own claim that it implies ``t``. With
-    ``h`` proved and ``g`` open, ``t`` is closable through the claim, ready, and ``m`` is not. The
-    claim with ``h`` open closes nothing (v3.35). A claim listed on a node that is not its own (the
-    v3.22 path label, here on ``g``) is not a link from that node (F28-Q5)."""
+def test_a_circularity_claim_is_no_link() -> None:
+    """A20, restated for D-12 v3.42 (F08-T42): ``t <- [m]``, ``m <- [h, g]``, ``h`` carries a
+    merged claim that it implies ``t``. F28-T1 made ``t`` closable through the claim once ``h`` was
+    proved with ``g`` still open; the claim is retired with that link, so ``t`` closes only through
+    a route, which needs ``g`` too. Nothing is closable in any of the three shapes."""
     graph = doc(
         node("t", decompositions=[["t--h1"]]),
         hole("t--h1", decompositions=[["t--h1--h1", "t--h1--h2"]]),
         hole("t--h1--h1", "proved", circular=[claim("t--h1--h1", "t")]),
         hole("t--h1--h2"),
     )
-    assert found(graph) == {
-        "t": ("claim", "t--h1--h1/defects/20261015T000000Z-x.json", ("t--h1--h1",), True)
-    }
+    assert found(graph) == {}
     open_hole = doc(
         node("t", decompositions=[["t--h1"]]),
         hole("t--h1", decompositions=[["t--h1--h1", "t--h1--h2"]]),

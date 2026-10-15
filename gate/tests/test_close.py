@@ -216,11 +216,11 @@ def test_children_read_each_statement_s_theorem() -> None:
     ]
 
 
-# --- claims and variants (F28-T3) ---------------------------------------------------------------
+# --- variants (F28-T3; the claim link retired, F28-Q11) ------------------------------------------
 
 EXHIBIT = (
     "import Mathlib\n\nopen scoped Nat\n\n"
-    "theorem circular : (∃ K : Nat, K = K) → (∃ K : Nat, K + 0 = K) := by\n"
+    "theorem relation : (∃ K : Nat, K = K) → (∃ K : Nat, K + 0 = K) := by\n"
     "  rintro ⟨K, _⟩\n  exact ⟨K, rfl⟩\n"
 )
 STATEMENT = (
@@ -230,36 +230,39 @@ STATEMENT = (
 
 
 def test_an_exhibit_becomes_a_private_helper() -> None:
-    got = close.as_helper(EXHIBIT, "claim", STATEMENT)
+    got = close.as_helper(EXHIBIT, "variant", STATEMENT)
     assert got.startswith("private theorem opn_closing_link : (∃ K")
     assert "import" not in got and "open" not in got
-    assert "circular" not in got
+    assert "theorem relation" not in got
 
 
 def test_every_declaration_of_the_implication_is_made_private() -> None:
     src = (
         "import Mathlib\n\nlemma aux : True := trivial\n\n"
-        "theorem circular : True → True := fun _ => aux\n"
+        "theorem relation : True → True := fun _ => aux\n"
     )
-    got = close.as_helper(src, "claim", STATEMENT)
+    got = close.as_helper(src, "variant", STATEMENT)
     assert "private lemma aux" in got and "private theorem opn_closing_link" in got
 
 
 def test_an_open_the_statement_lacks_is_refused() -> None:
-    src = "import Mathlib\n\nopen Real\n\ntheorem circular : True → True := id\n"
+    src = "import Mathlib\n\nopen Real\n\ntheorem relation : True → True := id\n"
     with pytest.raises(close.LinkError, match="open Real"):
-        close.as_helper(src, "claim", STATEMENT)
+        close.as_helper(src, "variant", STATEMENT)
 
 
 def test_an_implication_under_another_name_is_refused() -> None:
+    """A circularity exhibit's ``circular`` is no link since D-12 v3.42 (F28-Q11)."""
     with pytest.raises(close.LinkError, match="no `relation`"):
-        close.as_helper(EXHIBIT, "variant", STATEMENT)
+        close.as_helper(
+            EXHIBIT.replace("theorem relation", "theorem circular"), "variant", STATEMENT
+        )
 
 
 def test_the_link_proof_is_the_statement_with_helper_and_use() -> None:
     st = layout.parse_statement(STATEMENT)
     assert isinstance(st, layout.Statement)
-    helper = close.as_helper(EXHIBIT, "claim", STATEMENT)
+    helper = close.as_helper(EXHIBIT, "variant", STATEMENT)
     text = close.link_text(st, helper, "h_thm", "Nodes.«a--h1--h1».Proof")
     lines = text.splitlines()
     assert lines[:3] == [
@@ -278,5 +281,5 @@ def test_the_link_proof_is_the_statement_with_helper_and_use() -> None:
 def test_a_dependency_needs_no_use_line() -> None:
     st = layout.parse_statement(STATEMENT)
     assert isinstance(st, layout.Statement)
-    text = close.link_text(st, close.as_helper(EXHIBIT, "claim", STATEMENT), "h_thm", None)
+    text = close.link_text(st, close.as_helper(EXHIBIT, "variant", STATEMENT), "h_thm", None)
     assert "Proof" not in text.splitlines()[2]

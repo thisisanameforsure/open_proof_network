@@ -179,7 +179,7 @@ def stage(  # noqa: PLR0915 — one walk, every kind of staged node in it
 
 
 def stage_closure(src: Path, dest: Path) -> Joined | None:
-    """F28-T8: stage a node proved by closure. A claim or a variant carries its composed proof in
+    """F28-T8: stage a node proved by closure. A variant carries its composed proof in
     the record, staged as ``Proof.lean`` and compiled like any proof (``None``). A route's merged
     assembly is staged as ``Proof.lean`` and its module joined (``Joined``)."""
     from opn_gate import closure  # noqa: PLC0415 — a light module; kept beside its one use
