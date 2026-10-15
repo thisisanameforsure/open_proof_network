@@ -296,11 +296,12 @@ def svg(
     lay = dag.layout(nodes, root=result.root, prefix=prefix, widths=widths)
     index = {s.id: k for k, s in enumerate(result.sets, start=1)}
     on_node, on_line = lit_sets(d, result)
+    # F27-T8 (the owner): a statement's wedges are the sets whose plan uses it, as a leaf or as an
+    # interior node the plan passes through; no separate mark says which, since the drawing does.
     members: dict[str, list[str]] = {}
     for s in result.sets:
-        for m in s.statements:
+        for m in dict.fromkeys((*s.statements, *s.assemblies)):
             members.setdefault(m, []).append(s.id)
-    assemblies = {a for s in result.sets for a in s.assemblies}
     top = min((p.y for p in lay.placed), default=dag.PAD)
     column_h = top + len(result.sets) * (SET_LABEL_H + SET_LABEL_GAP)
     width, height = lay.width + LABEL_COLUMN, max(lay.height, round(column_h + dag.PAD))
@@ -332,22 +333,12 @@ def svg(
             continue
         status = str(d.rows[p.node_id].get("status"))
         mine = members.get(p.node_id, [])
-        role = "member" if mine else "assembly" if p.node_id in assemblies else "none"
-        if mine:
-            said = ", ".join(f"set {index[s]}" for s in mine)
-        elif role == "assembly":
-            said = "an assembly: its route closes it once its closing proof is submitted"
-        else:
-            said = "in no set"
+        role = "member" if mine else "none"
+        said = ", ".join(f"set {index[s]}" for s in mine) if mine else "in no set"
         or_mark = (
             f'<path class="or-mark" d="M{p.w / 2:g} {dag.NODE_H - DIAMOND}'
             f'l{DIAMOND} {DIAMOND}l-{DIAMOND} {DIAMOND}l-{DIAMOND} -{DIAMOND}Z"/>'
             if d.alternatives.get(p.node_id, 0) >= 2
-            else ""
-        )
-        asm = (
-            f'<rect class="asm" x="{PIE_X - 3}" y="{dag.NODE_H // 2 - 3}" width="6" height="6"/>'
-            if role == "assembly"
             else ""
         )
         label = dag.label_of(p.node_id, names)
@@ -359,15 +350,17 @@ def svg(
             else ""
         )
         root = " root" if p.node_id == result.root else ""
+        # F28 (v3.41): a closable statement keeps its open look and gains the accent square; no
+        # other statement carries a square (F27-T8: an interior node has no mark of its own).
+        asm = ""
         joins = closable.get(p.node_id)
         if joins is not None:
             root += " closable"
             said += "; " + closable_words(joins, closable)
-            if role != "assembly":
-                asm = (
-                    f'<rect class="asm" x="{PIE_X - 3}" y="{dag.NODE_H // 2 - 3}" '
-                    'width="6" height="6"/>'
-                )
+            asm = (
+                f'<rect class="asm" x="{PIE_X - 3}" y="{dag.NODE_H // 2 - 3}" '
+                'width="6" height="6"/>'
+            )
         parts.append(
             f'<a href="{escape(href.get(p.node_id, "#"))}">'
             f'<g class="rnode st-{state_of(status)} {role}{root}" '
@@ -504,13 +497,6 @@ def legend(result: routes.Routes) -> str:
         ),
         (
             _swatch(
-                f'<g class="st-open"><circle class="ring" {ring}/>'
-                '<rect class="asm" x="8" y="8" width="6" height="6"/></g>'
-            ),
-            "assembly: its closing proof still to submit",
-        ),
-        (
-            _swatch(
                 f'<g class="st-open closable"><circle class="ring" {ring}/>'
                 '<rect class="asm" x="8" y="8" width="6" height="6"/></g>'
             ),
@@ -529,8 +515,8 @@ def legend(result: routes.Routes) -> str:
     body = "".join(f'<span class="routes-key-item">{mark}{words}</span>' for mark, words in items)
     return (
         f'<div class="routes-legend">{body}'
-        f'<p class="routes-key-note">A statement&rsquo;s wedges are the sets that hold it, one '
-        f"colour per set as in the table.{more}</p></div>"
+        f'<p class="routes-key-note">A statement&rsquo;s wedges are the sets whose plan uses '
+        f"it, as a leaf or on the way to one, one colour per set as in the table.{more}</p></div>"
     )
 
 

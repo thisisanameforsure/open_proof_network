@@ -1,0 +1,74 @@
+$ uv run --with playwright pytest site/tests/test_routes_view.py -v
+site/tests/test_routes_view.py::test_routes_section_structure PASSED     [ 12%]
+site/tests/test_routes_view.py::test_ids_are_escaped PASSED              [ 25%]
+site/tests/test_routes_view.py::test_more_than_eight_sets_are_grey_and_the_section_says_so PASSED [ 37%]
+site/tests/test_routes_view.py::test_a_target_with_no_route_has_no_section PASSED [ 50%]
+site/tests/test_routes_view.py::test_the_problem_page_carries_the_section_after_the_statement_graph PASSED [ 62%]
+site/tests/test_routes_view.py::test_a_problem_page_without_routes_has_no_section PASSED [ 75%]
+site/tests/test_routes_view.py::test_selection_lights_one_set_and_layout_is_fixed PASSED [ 87%]
+site/tests/test_routes_view.py::test_set_labels_are_inside_the_drawing PASSED [100%]
+============================== 8 passed in 4.42s ===============================
+
+# red before the change: test_routes_section_structure (class "rnode st-open assembly root", no wedges on t or t--c)
+
+# task-8-shoot.py on erdos-1094 at graph b80e17ee7
+{
+ "graph_commit": "b80e17ee7ba522b6d22be2051f01645d30421d43",
+ "labels_on_load": [
+  [
+   "Set 1",
+   true
+  ],
+  [
+   "Set 2",
+   false
+  ],
+  [
+   "Set 3",
+   false
+  ],
+  [
+   "Set 4",
+   false
+  ]
+ ],
+ "state_on_load": {
+  "lit": 45,
+  "nodes": 50,
+  "lines_lit": 45,
+  "lines": 53,
+  "wedges_off": 70,
+  "wedges": 98,
+  "picking": true
+ },
+ "labels_overlapping_nodes": 0,
+ "labels_after_clicking_set_3": [
+  [
+   "Set 1",
+   false
+  ],
+  [
+   "Set 2",
+   false
+  ],
+  [
+   "Set 3",
+   true
+  ],
+  [
+   "Set 4",
+   false
+  ]
+ ],
+ "state_set_3": {
+  "lit": 45,
+  "nodes": 50,
+  "lines_lit": 47,
+  "lines": 53,
+  "wedges_off": 70,
+  "wedges": 98,
+  "picking": true
+ },
+ "moved": false,
+ "page_scroll_width_390": 390
+}
