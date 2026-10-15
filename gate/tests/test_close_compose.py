@@ -25,6 +25,7 @@ from typing import Any
 
 import pytest
 
+from opn_gate import close, layout
 from opn_gate.toolchain import CloseRequest, LocalToolchain, ResolvedToolchain
 
 pytestmark = pytest.mark.lean
@@ -294,3 +295,46 @@ def test_the_seam_runs_the_program(bench: Bench) -> None:
     got = seam.close(bench.pinned, CloseRequest(path, "Case.Seam", "t", spec), [], timeout_s=300)
     assert got.ok, got.output
     assert got.doc["ok"] and "(@_root_.t_h1 a b)" in got.doc["composed"]
+
+
+LINK_STATEMENT = "/-- The ancestor. -/\ntheorem a_thm : ∃ K : Nat, K + 0 = K := by\n  sorry\n"
+LINK_SOURCES = {
+    "claim": "theorem circular : (∃ K : Nat, K = K) → ∃ K : Nat, K + 0 = K := by\n"
+    "  intro ⟨K, _⟩\n  exact ⟨K, rfl⟩\n",
+    "variant": "-- relation: resolves\n\n"
+    "theorem relation : (∃ K : Nat, K = K) → ∃ K : Nat, K + 0 = K :=\n"
+    "  fun ⟨K, _⟩ => ⟨K, rfl⟩\n",
+}
+
+
+@pytest.mark.parametrize("kind", sorted(LINK_SOURCES))
+def test_a_link_proof_elaborates(bench: Bench, kind: str) -> None:
+    """F28-T3 / AC7, AC8: the closing proof through a claim's exhibit or a variant's relation,
+    as ``close.link_text`` writes it, elaborates whole with no ``sorry``. The input's theorem is
+    declared at the top, where its use line's import would put it."""
+    st = layout.parse_statement(LINK_STATEMENT)
+    assert isinstance(st, layout.Statement)
+    helper = close.as_helper(LINK_SOURCES[kind], kind, st.prefix)
+    text = "theorem h_thm : ∃ K : Nat, K = K := ⟨0, rfl⟩\n\n" + close.link_text(
+        st, helper, "h_thm", None
+    )
+    path = bench.root / f"Link_{kind}.lean"
+    path.write_text(text, encoding="utf-8")
+    sysroot = bench.pinned.libdir.parent.parent
+    proc = subprocess.run(
+        [str(bench.tc.elan), "run", bench.pinned.name, "lean", str(path)],
+        cwd=bench.root,
+        env={
+            "LEAN_PATH": str(bench.pinned.libdir),
+            "ELAN_HOME": str(bench.tc.elan.parent.parent),
+            "PATH": f"{sysroot / 'bin'}:/usr/bin:/bin",
+            "HOME": str(bench.root),
+        },
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=300,
+    )
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    assert "sorry" not in proc.stdout + proc.stderr
+    assert "(opn_closing_link @_root_.h_thm)" in text

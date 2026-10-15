@@ -1,0 +1,16 @@
+# F28-T3: closing through a circularity claim or a resolves variant — 2026-10-15T08:21:47Z
+
+## The finding, red first: a proof with use lines and a helper block was refused at step 2
+uv run pytest gate/tests/test_finding_uses_with_helpers.py, before the fix in layout.split_uses:
+  FAILED test_a_proof_with_a_use_and_a_helper_is_the_statement  (proof-not-statement at the use line)
+  FAILED test_the_use_is_read_beside_a_helper                    (split_uses read no use)
+  1 passed (each alone)
+A comment block before the theorem already passed step 2 with no use; the guard was rewritten to
+what step 2 does refuse (an open in the block -> helper-forbidden; a changed theorem -> proof-not-statement).
+
+## After:
+16 passed in 0.08s
+## Existing uses / helpers / step-2 / staging tests:
+190 passed, 24 deselected in 3.35s
+## Lean tier, uv run pytest gate/tests/test_close_compose.py -m lean:
+25 passed in 45.60s

@@ -15,7 +15,7 @@ import pytest
 from fakes import FAKE_RESOLVED, FakeToolchain
 from harness import GRAPH, TARGET, TUTORIAL
 
-from opn_gate import close, outline, outline_graph
+from opn_gate import close, layout, outline, outline_graph, paths
 from opn_gate.toolchain import MetaprogramResult
 
 TC = FAKE_RESOLVED
@@ -107,15 +107,16 @@ def test_a_node_waiting_on_a_closable_child_is_not_ready(
     assert staged == []
 
 
-def test_a_claim_link_is_not_composed_yet(
+def test_a_claim_link_on_a_node_that_does_not_load_is_named(
     tmp_path: Path, staged: list[outline_graph.Found]
 ) -> None:
-    """F28-T3 composes claims and variants; until then they are named, not attempted."""
+    """A claim link goes to ``compose_link`` (T3); a node the gate cannot load is a build
+    failure before anything is staged."""
     hole = row("p--h1", "proved")
-    hole["circular"] = [{"ancestor": "p", "claim": "p--h1/defects/x.json"}]
+    hole["circular"] = [{"ancestor": "p", "claim": "p--h1/defects/x.yaml"}]
     tree = tree_with(tmp_path, row("p"), hole)
     got = close.compose(FakeToolchain(), TC, tree, "t", "p", tmp_path / "w", timeout_s=60)
-    assert got.reason == close.LINK_UNSUPPORTED
+    assert got.reason == close.BUILD_FAILED
     assert got.link is not None and got.link.kind == "claim"
     assert staged == []
 
@@ -187,3 +188,69 @@ def test_children_read_each_statement_s_theorem() -> None:
     assert close.children(GRAPH, TARGET, (TUTORIAL,)) == [
         {"node": TUTORIAL, "decl": "OpnProp.and_swap"}
     ]
+
+
+# --- claims and variants (F28-T3) ---------------------------------------------------------------
+
+EXHIBIT = (
+    "import Mathlib\n\nopen scoped Nat\n\n"
+    "theorem circular : (∃ K : Nat, K = K) → (∃ K : Nat, K + 0 = K) := by\n"
+    "  rintro ⟨K, _⟩\n  exact ⟨K, rfl⟩\n"
+)
+STATEMENT = (
+    "import Mathlib\nimport Nodes.«a».Context\n\nopen scoped Nat\n\n"
+    "/-- The ancestor. -/\ntheorem a_thm : ∃ K : Nat, K + 0 = K := by\n  sorry\n"
+)
+
+
+def test_an_exhibit_becomes_a_private_helper() -> None:
+    got = close.as_helper(EXHIBIT, "claim", STATEMENT)
+    assert got.startswith("private theorem opn_closing_link : (∃ K")
+    assert "import" not in got and "open" not in got
+    assert "circular" not in got
+
+
+def test_every_declaration_of_the_implication_is_made_private() -> None:
+    src = (
+        "import Mathlib\n\nlemma aux : True := trivial\n\n"
+        "theorem circular : True → True := fun _ => aux\n"
+    )
+    got = close.as_helper(src, "claim", STATEMENT)
+    assert "private lemma aux" in got and "private theorem opn_closing_link" in got
+
+
+def test_an_open_the_statement_lacks_is_refused() -> None:
+    src = "import Mathlib\n\nopen Real\n\ntheorem circular : True → True := id\n"
+    with pytest.raises(close.LinkError, match="open Real"):
+        close.as_helper(src, "claim", STATEMENT)
+
+
+def test_an_implication_under_another_name_is_refused() -> None:
+    with pytest.raises(close.LinkError, match="no `relation`"):
+        close.as_helper(EXHIBIT, "variant", STATEMENT)
+
+
+def test_the_link_proof_is_the_statement_with_helper_and_use() -> None:
+    st = layout.parse_statement(STATEMENT)
+    assert isinstance(st, layout.Statement)
+    helper = close.as_helper(EXHIBIT, "claim", STATEMENT)
+    text = close.link_text(st, helper, "h_thm", "Nodes.«a--h1--h1».Proof")
+    lines = text.splitlines()
+    assert lines[:3] == [
+        "import Mathlib",
+        "import Nodes.«a».Context",
+        "import Nodes.«a--h1--h1».Proof",
+    ]
+    assert text.index("private theorem opn_closing_link") < text.index("/-- The ancestor. -/")
+    assert text.rstrip().endswith(":= (opn_closing_link @_root_.h_thm)")
+    # step 2's own readings: the use line is a use, the rest the statement with a helper block
+    assert layout.split_uses(st.prefix, text, "a")[1] == ("Nodes.«a--h1--h1».Proof",)
+    assert paths.check_proof_is_statement(st, text, node_id="a") is None
+    assert paths.helper_problem(helper, first_line=1) is None
+
+
+def test_a_dependency_needs_no_use_line() -> None:
+    st = layout.parse_statement(STATEMENT)
+    assert isinstance(st, layout.Statement)
+    text = close.link_text(st, close.as_helper(EXHIBIT, "claim", STATEMENT), "h_thm", None)
+    assert "Proof" not in text.splitlines()[2]

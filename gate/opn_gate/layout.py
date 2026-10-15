@@ -300,9 +300,22 @@ def split_uses(prefix: str, text: str, node_id: str | None) -> tuple[str, tuple[
             modules.append(line.group("module"))
             pos = end + 1
         rest = base[:at] + text[pos:]
-        if modules and rest.startswith(base):
+        if modules and (rest.startswith(base) or _with_block(base, rest)):
             return rest, tuple(modules)
     return text, ()
+
+
+def _with_block(base: str, rest: str) -> bool:
+    """Whether ``rest`` is ``base`` with a block of lines before its declaration: the place
+    F00-T11's helpers go (``declaration_start``). A proof may declare uses and helpers at once
+    (F28-T3's finding); whether the block is a legal helper block is step 2's question
+    (``paths.helper_problem``), asked of the same text after the uses are out."""
+    start = declaration_start(base)
+    preamble, declaration = base[:start], base[start:]
+    if not rest.startswith(preamble):
+        return False
+    found = rest.find(declaration, len(preamble))
+    return found > len(preamble) and rest[found - 1] == "\n"
 
 
 def node_uses(statement: Statement | Diagnostic, text: str, own: str) -> tuple[str, ...]:

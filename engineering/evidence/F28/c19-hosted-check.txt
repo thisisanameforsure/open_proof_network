@@ -1,0 +1,53 @@
+# F28 C19 (live erdos-1094--h2--h2--h2--h2), 2026-10-15: the closing proof through the hosted fast check
+# NOT the composer's output: opn-close needs Mathlib, which this laptop has neither as a checkout nor as a
+# pullable image. The text applies the composer's rule by hand: the hole h_count's child statement has no
+# binders (it begins ∃ k₀), so its value 'by sorry' becomes the child's theorem by name and nothing else moves.
+# Assembly: graph origin/main 64b3c3318, attempts/20261014T181000Z-t1014-r-partial.lean
+# The one change (diff assembly closing):
+#   37,38c37  := by / sorry   ->   := (@_root_.erdos_1094__h2__h2__h2__h2__h1)
+# POST https://api.openproofnetwork.org/check  mode=verify  node_id=erdos-1094--h2--h2--h2--h2  (no token)
+# HTTP200 connect 0.330576s total 9.744334s
+{
+ "okay": false,
+ "mode": "verify",
+ "exact": true,
+ "environment": "lean-4.33.1",
+ "service": "axle",
+ "log_id": "01M4Z9QD0GK7BSZ6A5K6V4MWY0",
+ "inlined_defs": [
+  "Nodes.«erdos-1094--h2--h2--h2--h2».Context"
+ ],
+ "lint": [
+  {
+   "code": "context-restated",
+   "message": "this node's Context (or a used node's statement, F08-T26) restates what the proof uses with sorry bodies, so verify reports a proof that uses one as incomplete whatever its merit; use mode check for it, and the precheck for the verdict"
+  },
+  {
+   "code": "sorry-reported",
+   "message": "the checker reports that the declaration uses sorry (an admit, a sorry, or a search tactic such as apply? that found nothing and admitted the goal); the gate's axiom step refuses sorryAx (D-4 step 5)"
+  }
+ ],
+ "authoritative": false,
+ "result": {
+  "okay": false,
+  "failed_declarations": [
+   "erdos_1094__h2__h2__h2__h2__h1",
+   "erdos_1094__h2__h2__h2__h2"
+  ],
+  "timings": {
+   "candidate_ms": 4062,
+   "declarations_ms": 142,
+   "formal_statement_ms": 70,
+   "total_ms": 4281
+  },
+  "lean_messages.errors": [],
+  "tool_messages.errors": [
+   "Declaration 'erdos_1094__h2__h2__h2__h2__h1' is incomplete (uses 'sorry' or has errors)",
+   "Declaration 'erdos_1094__h2__h2__h2__h2' is incomplete (uses 'sorry' or has errors)"
+  ]
+ }
+}
+# Reading: no Lean error; exact=true (the file is the node's statement with its sorry replaced). okay=false
+# because the inlined Context restates the child with a sorry body (lint context-restated); in the gate,
+# step 4 imports the child's merged proof (#527) in that signature's place. The authoritative check is the
+# gate run on a pull request, which is F28-T6 and the owner's act.
