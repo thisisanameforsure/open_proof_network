@@ -1758,3 +1758,15 @@ The law of the project:
   both share, and the parity test lives on each side. **The sibling graph checkout is stale and fails the
   guide-copy test on its own**: run the suite with `OPN_GRAPH_CHECKOUT` at a detached worktree of graph
   `origin/main` and say so in the commit, rather than skipping the hook silently.
+
+- 2026-10-15 — F06-T18 (Q23): a skeleton's precheck planned its holes against `rendered_from`, which never
+  carries the holes the latest bot commit wrote, so a restating hole read `expected_new: true`. Q19 had fixed
+  only the case where the job's *own* node was missing; the fix is to pin the commit that **wrote** the
+  products, found by list-commits on `targets/<t>/graph.json`, and to refuse a hole-making bundle while a
+  later commit has touched `targets/<t>/nodes/` (its render is in flight). Two things worth keeping.
+  **"Main is ahead of rendered_from" is the steady state, not a signal**: the bot commit always follows the
+  commit it was rendered from, so the first-draft rule ("products-pending when main is ahead") would have
+  refused forever. Count what a rule keys on in the record before adopting it: 400 commits showed only PR
+  merges and one direct push touch `nodes/` without products. **Never `source .env`**: an unquoted
+  continuation line ran as a command and the shell echoed part of a secret into the session; read only the
+  keys a probe needs with `dotenv_values`, and print nothing from them.

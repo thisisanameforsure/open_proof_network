@@ -182,6 +182,11 @@ class FakeGitHost:
     #: pair the map does not hold is a host failure, and every question asked is recorded.
     ancestry: dict[tuple[str, str], bool] = field(default_factory=dict)
     ancestry_calls: list[tuple[str, str, str]] = field(default_factory=list)
+    #: F06-T18: the newest commit that touched a path, as ``(ref, path) -> sha | None``; a pair
+    #: the map does not hold is a host failure, as for ``ancestry``, so every test written
+    #: before it sees the host unable to say.
+    history: dict[tuple[str, str], str | None] = field(default_factory=dict)
+    history_calls: list[tuple[str, str]] = field(default_factory=list)
     #: F07-T64: every comment posted through the App, with how many closes and pushes the fake
     #: had seen when it arrived, so a test can tell a comment made before an act from one after.
     comments: list[Comment] = field(default_factory=list)
@@ -264,6 +269,14 @@ class FakeGitHost:
         if not names:
             return None
         return [n for n in names if prefix + n in tree]
+
+    def last_commit(self, repo: str, ref: str, path: str) -> str | None:
+        """F06-T18: the newest commit at ``ref`` that touched ``path``, from ``history``."""
+        self.history_calls.append((ref, path))
+        if self.unreachable or (ref, path) not in self.history:
+            msg = f"GET /repos/{repo}/commits?path={path} failed: ConnectError"
+            raise GitHostError(msg)
+        return self.history[(ref, path)]
 
     def is_ancestor(self, repo: str, ancestor: str, commit: str) -> bool:
         """F08-T26: whether ``commit`` is ``ancestor`` or descends from it, from ``ancestry``."""
