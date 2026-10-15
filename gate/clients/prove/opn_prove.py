@@ -374,9 +374,7 @@ def import_answer(node: Node, answer: str) -> Imported:
         lines = stripped.splitlines()
         for pos in tokens:
             line_no = stripped.count("\n", 0, pos)
-            here = lines[line_no]
-            above = lines[line_no - 1] if line_no else ""
-            if not (re.search(r"\bhave\b", here) or re.search(r"\bhave\b.*:=\s*by\s*$", above)):
+            if not _sorry_in_have(lines, line_no):
                 raise Refused(
                     "sorry-left",
                     f"the answer leaves `sorry` outside a `have` (line {line_no + 1} of the proof)",
@@ -389,6 +387,35 @@ def import_answer(node: Node, answer: str) -> Imported:
     suffix = statement.suffix.rstrip()
     text = text.rstrip() + ("\n" + suffix.lstrip("\n") if suffix.strip() else "") + "\n"
     return Imported(kind, text, notes)
+
+
+def _indent(line: str) -> int:
+    return len(line) - len(line.lstrip())
+
+
+def _sorry_in_have(lines: list[str], line_no: int) -> bool:
+    """Whether the ``sorry`` on ``line_no`` is the body of a ``have``: on the have's own line, or
+    alone under a ``:= by`` that ends the have's statement. The statement may run over several
+    lines (F17-T10: Aristotle states a hole over fifteen), so walk up from the ``:= by`` to the
+    ``have`` that opens it, through lines indented deeper than that ``have``."""
+    if re.search(r"\bhave\b", lines[line_no]):
+        return True
+    above = line_no - 1
+    while above >= 0 and not lines[above].strip():
+        above -= 1
+    if above < 0 or not re.search(r":=\s*by\s*$", lines[above]):
+        return False
+    depth = _indent(lines[line_no])
+    for i in range(above, -1, -1):
+        line = lines[i]
+        if not line.strip():
+            continue
+        if _indent(line) < depth and re.match(r"\s*(?:·\s*)?have\b", line):
+            statement = [rest for rest in lines[i + 1 : above + 1] if rest.strip()]
+            return all(_indent(rest) > _indent(line) for rest in statement)
+        if _indent(line) < depth and i != above:
+            return False
+    return False
 
 
 def _strip_comments(text: str) -> str:
@@ -522,6 +549,11 @@ ARISTOTLE_PROMPT = (
 )
 #: The task's terminal states, as the SDK names them; the CLI prints the one it ended in.
 ARISTOTLE_STATUSES = ("COMPLETE_WITH_ERRORS", "OUT_OF_BUDGET", "COMPLETE", "FAILED", "CANCELED")
+#: F17-T10: what the CLI prints when it refuses a submission, which it does with exit 0. Seen
+#: live 2026-10-15; a project whose task ended COMPLETE_WITH_ERRORS kept counting against it.
+ARISTOTLE_REFUSALS = {"too many projects in progress": "project-limit"}
+ARISTOTLE_PROJECT_RE = re.compile(r"Project created:\s*(?P<id>[0-9a-fA-F-]{8,})")
+ANSI_RE = re.compile(r"\x1b\[[0-9;?]*[A-Za-z]")
 
 
 def aristotle_version(api: str | None = None) -> str | None:
@@ -545,18 +577,73 @@ def aristotle_version(api: str | None = None) -> str | None:
     return str(value) if value else None
 
 
-def run_aristotle(
+def _aristotle(args: list[str], timeout: float) -> tuple[int | None, str]:
+    """One short call of the CLI; its output with the progress display's escapes removed."""
+    try:
+        done = subprocess.run(
+            ["aristotle", *args], capture_output=True, text=True, timeout=timeout, check=False
+        )
+    except subprocess.TimeoutExpired:
+        return None, f"aristotle {args[0]}: no answer in {timeout:g} s"
+    except OSError as exc:
+        return None, f"aristotle: {exc}"
+    return done.returncode, ANSI_RE.sub("", (done.stdout or "") + (done.stderr or ""))
+
+
+def aristotle_task_status(project_id: str, timeout: float = 60) -> str | None:
+    """The status of the project's newest task, the last column of ``aristotle tasks``' first
+    row; ``None`` when the call fails, which the caller retries rather than reads as an end."""
+    code, out = _aristotle(["tasks", project_id, "--limit", "1"], timeout)
+    if code != 0:
+        return None
+    lines = out.splitlines()
+    rule = next((i for i, line in enumerate(lines) if line.strip().startswith("---")), None)
+    rows = [line for line in lines[(rule + 1 if rule is not None else 1) :] if line.strip()]
+    last = rows[0].split()[-1] if rows else ""
+    return last if re.fullmatch(r"[A-Z_]+", last) else None
+
+
+def _read_archive(archive: Path, answer: Path) -> Path | None:
+    """The archive's ``Problem.lean`` into ``answer``; its ``ARISTOTLE_SUMMARY.md`` beside it,
+    whose path is returned (the prover's own account of the run, for the postmortem)."""
+    import tarfile  # noqa: PLC0415 — only this preset reads an archive
+
+    summary_path = None
+    with tarfile.open(archive, "r:gz") as tar:
+        for member in tar.getmembers():
+            if not member.isfile():
+                continue
+            if member.name.endswith("Problem.lean"):
+                target = answer
+            elif member.name.endswith("ARISTOTLE_SUMMARY.md"):
+                target = summary_path = answer.with_suffix(".summary.md")
+            else:
+                continue
+            extracted = tar.extractfile(member)
+            if extracted is not None:
+                target.write_bytes(extracted.read())
+    return summary_path
+
+
+def run_aristotle(  # noqa: PLR0913 — one argument per thing a run is told
     answer: Path,
     *,
     project_dir: Path,
     pinned: str | None,
     timeout: float,
     service_toolchain: str | None = None,
+    resume: str | None = None,
 ) -> dict[str, Any]:
-    """Submit ``project_dir`` to Aristotle through its CLI and wait; the archive's ``Problem.lean``
-    is the answer (whole file, as the whole-file preset's is), and the task's terminal status is
-    recorded so ``import`` can offer a COMPLETE_WITH_ERRORS result as a partial (R11)."""
+    """Submit ``project_dir`` to Aristotle, or take up the project ``resume`` names, and hold no
+    connection open while it works (F17-T10): the task runs on Aristotle's side whatever happens
+    to this process, so the run keeps the project id, asks for the task's status with short
+    calls until it ends, and downloads the result. The archive's ``Problem.lean`` is the answer
+    (whole file, as the whole-file preset's is) only if it differs from the file sent, and the
+    terminal status is recorded so ``import`` can offer a COMPLETE_WITH_ERRORS result as a
+    partial (R11). A refusal to accept the submission is a refusal, never a run."""
     started = time.monotonic()
+    deadline = started + timeout
+    poll_s = float(os.environ.get("OPN_ARISTOTLE_POLL_S", "60"))
     record: dict[str, Any] = {
         "schema": "opn-prove-run/v1",
         "backend": "aristotle",
@@ -566,47 +653,68 @@ def run_aristotle(
         "service_toolchain": service_toolchain,  # read once by the caller (one GET /version)
         "pinned_toolchain": pinned,
         "task_status": None,
+        "project_id": resume,
+        "refused": None,
+        "exit": None,
+        "timed_out": False,
+        "stderr_tail": "",
     }
-    archive = answer.with_suffix(".aristotle.tar.gz")
-    if not os.environ.get("ARISTOTLE_API_KEY"):
-        record.update(
-            exit=None,
-            timed_out=False,
-            stderr_tail="ARISTOTLE_API_KEY is not set: the preset runs with the contributor's "
-            "own key (aristotle.harmonic.fun, Aristotle CLI > create a key)",
-        )
-    else:
-        args = [
-            "aristotle", "submit", ARISTOTLE_PROMPT, "--project-dir", str(project_dir),
-            "--wait", "--destination", str(archive),
-        ]  # fmt: skip
-        try:
-            done = subprocess.run(
-                args, capture_output=True, text=True, timeout=timeout, check=False
-            )
-            output = (done.stdout or "") + (done.stderr or "")
-            record.update(exit=done.returncode, timed_out=False, stderr_tail=output[-2000:])
-            record["task_status"] = next((s for s in ARISTOTLE_STATUSES if s in output), None)
-        except subprocess.TimeoutExpired:
-            record.update(exit=None, timed_out=True, stderr_tail="")
-        except OSError as exc:
-            record.update(exit=None, timed_out=False, stderr_tail=f"aristotle: {exc}")
-    if archive.is_file():
-        import tarfile  # noqa: PLC0415 — only this preset reads an archive
+    sent = project_dir / "Problem.lean"
+    sent_text = sent.read_text(encoding="utf-8") if sent.is_file() else None
+    answer.unlink(missing_ok=True)
 
-        with tarfile.open(archive, "r:gz") as tar:
-            member = next(
-                (m for m in tar.getmembers() if m.isfile() and m.name.endswith("Problem.lean")),
-                None,
-            )
-            if member is not None:
-                extracted = tar.extractfile(member)
-                if extracted is not None:
-                    answer.write_bytes(extracted.read())
-        record["archive"] = str(archive)
-    record["elapsed_s"] = round(time.monotonic() - started, 3)
-    record["answered"] = answer.is_file() and bool(answer.read_text(encoding="utf-8").strip())
-    return record
+    def done() -> dict[str, Any]:
+        record["elapsed_s"] = round(time.monotonic() - started, 3)
+        text = answer.read_text(encoding="utf-8") if answer.is_file() else ""
+        changed = bool(text.strip()) and (sent_text is None or text.strip() != sent_text.strip())
+        record["answered"] = record["task_status"] in ARISTOTLE_STATUSES and changed
+        return record
+
+    if not os.environ.get("ARISTOTLE_API_KEY"):
+        record["stderr_tail"] = (
+            "ARISTOTLE_API_KEY is not set: the preset runs with the contributor's "
+            "own key (aristotle.harmonic.fun, Aristotle CLI > create a key)"
+        )
+        return done()
+    if resume is None:
+        code, out = _aristotle(
+            ["submit", ARISTOTLE_PROMPT, "--project-dir", str(project_dir)], min(timeout, 600)
+        )
+        record.update(exit=code, stderr_tail=out[-2000:])
+        lowered = out.lower()
+        refused = next((v for k, v in ARISTOTLE_REFUSALS.items() if k in lowered), None)
+        if refused:
+            record["refused"] = refused
+            return done()
+        found = ARISTOTLE_PROJECT_RE.search(out)
+        if found is None:
+            return done()
+        record["project_id"] = found.group("id")
+        # kept beside the answer the moment it is known, so a run killed here can --resume
+        answer.with_suffix(".aristotle-project").write_text(record["project_id"] + "\n")
+    project_id = str(record["project_id"])
+    while True:
+        status = aristotle_task_status(project_id)
+        if status is not None:
+            record["task_status"] = status
+        if status in ARISTOTLE_STATUSES:
+            break
+        if time.monotonic() + poll_s > deadline:
+            record["timed_out"] = True  # the task runs on: --resume picks it up
+            return done()
+        time.sleep(poll_s)
+    archive = answer.with_suffix(".aristotle.tar.gz")
+    code, out = _aristotle(
+        ["download", project_id, "--destination", str(archive)], min(timeout, 600)
+    )
+    if code != 0 or not archive.is_file():
+        record["stderr_tail"] = (record["stderr_tail"] + "\n" + out)[-2000:]
+        return done()
+    record["archive"] = str(archive)
+    summary = _read_archive(archive, answer)
+    if summary is not None:
+        record["summary"] = str(summary)
+    return done()
 
 
 # --- the service ----------------------------------------------------------------------------------
@@ -747,8 +855,12 @@ def postmortem(  # noqa: PLR0913 — one argument per field the record requires
     detail = [f"{HARNESS} run: exit {run.get('exit')}, {elapsed} s of {budget} s"]
     if refusal is not None:
         detail.append(f"import refused: {refusal.get('error')}: {refusal.get('message')}")
-    if run.get("stderr_tail"):
-        detail.append("prover output (untrusted): " + str(run["stderr_tail"]))
+    summary = Path(str(run["summary"])) if run.get("summary") else None
+    if summary is not None and summary.is_file():
+        # the prover's own account of the run (Aristotle's ARISTOTLE_SUMMARY.md), not its display
+        detail.append("prover's summary (untrusted): " + summary.read_text(encoding="utf-8"))
+    elif run.get("stderr_tail"):
+        detail.append("prover output (untrusted): " + ANSI_RE.sub("", str(run["stderr_tail"])))
     record["detail"] = "\n".join(detail)[:DETAIL_MAX]
     if key == "helper-declaration" and refusal is not None:
         name = str(refusal.get("message", "")).split(" outside the proof")[0].split()[-1:]
@@ -795,6 +907,11 @@ def main(argv: Sequence[str] | None = None) -> int:  # noqa: PLR0911, PLR0912, P
         type=Path,
         help="aristotle: the Lake project to submit (default: written beside --answer from "
         "--graph/--node, as `export --project` writes it)",
+    )
+    p.add_argument(
+        "--resume",
+        metavar="PROJECT_ID",
+        help="aristotle: poll and download an existing project instead of submitting a new one",
     )
     p.add_argument("--max-tokens", type=int, default=32768)
     p.add_argument("--graph", type=Path, help="for the Lean-version warning (F17-R10)")
@@ -877,6 +994,7 @@ def main(argv: Sequence[str] | None = None) -> int:  # noqa: PLR0911, PLR0912, P
                     pinned=pinned,
                     timeout=args.timeout,
                     service_toolchain=served,
+                    resume=args.resume,
                 )
             elif args.preset == "whole-file":
                 if not args.endpoint or not args.model:

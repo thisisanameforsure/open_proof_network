@@ -24,7 +24,7 @@ from __future__ import annotations
 
 import math
 from collections.abc import Iterable, Mapping
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from html import escape
 from typing import Any
 
@@ -48,6 +48,12 @@ LABEL_X = 36
 #: Room for the label after its text (the box is ``LABEL_X`` + the text + this).
 LABEL_END = 12
 DIAMOND = 6
+#: F27-T7: the column down the drawing's left edge that holds one clickable label per set; the
+#: statements and lines are drawn to its right, so no label covers one.
+LABEL_COLUMN = 96
+SET_LABEL_W = 80
+SET_LABEL_H = 28
+SET_LABEL_GAP = 8
 
 DEAD = routes.DEAD_STATUSES
 
@@ -295,10 +301,23 @@ def svg(
         for m in s.statements:
             members.setdefault(m, []).append(s.id)
     assemblies = {a for s in result.sets for a in s.assemblies}
+    top = min((p.y for p in lay.placed), default=dag.PAD)
+    column_h = top + len(result.sets) * (SET_LABEL_H + SET_LABEL_GAP)
+    width, height = lay.width + LABEL_COLUMN, max(lay.height, round(column_h + dag.PAD))
     parts = [
-        f'<svg class="routes-svg" viewBox="0 0 {lay.width} {lay.height}" width="{lay.width}" '
-        f'height="{lay.height}" role="img" aria-label="routes and sufficient sets">'
+        f'<svg class="routes-svg" viewBox="0 0 {width} {height}" width="{width}" '
+        f'height="{height}" role="img" aria-label="routes and sufficient sets">',
+        set_labels(result, top),
     ]
+    # The tree sits right of the label column (F27-T7): every point moves by its width.
+    lay = dag.Layout(
+        [replace(p, x=p.x + LABEL_COLUMN) for p in lay.placed],
+        [replace(e, points=tuple((x + LABEL_COLUMN, y) for x, y in e.points)) for e in lay.edges],
+        width,
+        height,
+        lay.loose,
+        lay.group_y,
+    )
     for e in sorted(lay.edges, key=lambda e: (e.dst, e.src)):
         dead = any(x in d.junctions and not d.junctions[x].live for x in (e.src, e.dst))
         sets = " ".join(on_line.get((e.src, e.dst), []))
@@ -363,6 +382,25 @@ def svg(
         )
     parts.append("</svg>")
     return "\n".join(parts)
+
+
+def set_labels(result: routes.Routes, top: float) -> str:
+    """F27-T7: one label per set, stacked down the left edge in the table's order, each a button
+    (``routes.js`` makes it select the set) with the set's hue as its swatch."""
+    out = ['<g class="set-labels">']
+    for k, s in enumerate(result.sets, start=1):
+        y = round(top + (k - 1) * (SET_LABEL_H + SET_LABEL_GAP))
+        noun = "statement" if s.remaining == 1 else "statements"
+        out.append(
+            f'<g class="set-label" data-set="{escape(s.id)}" role="button" tabindex="0" '
+            f'aria-pressed="false" transform="translate(8,{y})">'
+            f"<title>Set {k}: {s.remaining} open {noun} of {s.total}</title>"
+            f'<rect width="{SET_LABEL_W}" height="{SET_LABEL_H}" rx="6"/>'
+            f'<circle class="swatch {hue(k)}" cx="14" cy="{SET_LABEL_H // 2}" r="6"/>'
+            f'<text x="26" y="{SET_LABEL_H // 2 + 5}">Set {k}</text></g>'
+        )
+    out.append("</g>")
+    return "".join(out)
 
 
 def junction(r: routes.Route, p: dag.Placed, sets: str) -> str:
@@ -570,7 +608,8 @@ def table(result: routes.Routes, prefix: str | None) -> str:
         "Fewest open first</button></p>"
         f'<table class="routes-table"><thead><tr>{th}</tr></thead>'
         f"<tbody>{''.join(rows)}</tbody></table>{truncated}"
-        '<p class="routes-hint" hidden>Select a row to light its statements and the lines up '
-        "to the problem&rsquo;s own statement; select it again, or press Escape, to clear.</p>"
+        '<p class="routes-hint" hidden>The first set comes selected. Select a set&rsquo;s label '
+        "in the drawing, or its row, to light its statements and the lines up to the "
+        "problem&rsquo;s own statement; select it again, or press Escape, to clear.</p>"
         "</div>"
     )

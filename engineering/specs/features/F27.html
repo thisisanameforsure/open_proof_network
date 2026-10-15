@@ -88,9 +88,10 @@ with an example filter; decisions v3.40.</p>
     holes) and taken directly, with its declared non-hole dependencies, only where no route of it
     is live; the root also offers each <code>resolves</code> variant (D-30); a route that returns
     to a node already on the path is dropped.</td></tr>
-  <tr><td>F27-R6</td><td>The system shall publish only minimal sets: a set whose open statements
-    strictly contain another set's is dropped, and sets with the same open statements are one set,
-    the first in record order.</td></tr>
+  <tr><td>F27-R6</td><td>The system shall publish every finest set, one per choice of routes, even one whose
+    open statements strictly contain another's (F27-T7, the owner's ruling); among the coarser cuts it shall
+    publish only minimal sets: one whose open statements strictly contain another's is dropped, and sets
+    with the same open statements are one set, the first in record order.</td></tr>
   <tr><td>F27-R7</td><td>The system shall publish, per set: an id derived from its statements, its
     statements, the proved and open ones, the assemblies (interior nodes its routes pass through,
     each still needing its closing proof), the routes it uses, the variant it goes through if any,
@@ -242,7 +243,7 @@ with an example filter; decisions v3.40.</p>
 </table>
 
 <h2>10. Status</h2>
-<div class="rule"><strong>status:</strong> live 2026-10-15 · <strong>Tasks:</strong> T0&ndash;T6 done; network PR #54 deployed, T6 by its own pull request, the guide copy pushed to the graph, the site deployed; no re-pin needed (Q1). Q1&ndash;Q9 stand for the owner's review.
+<div class="rule"><strong>status:</strong> live 2026-10-15 · <strong>Tasks:</strong> T0&ndash;T7 done; network PR #54 deployed, T6 by its own pull request, the guide copy pushed to the graph, the site deployed; no re-pin needed (Q1). Q1&ndash;Q9 stand for the owner's review.
 todo</div>
 
 <h2>Tasks</h2>
@@ -277,6 +278,15 @@ todo</div>
     products; erdos-1094's page rendered and screenshotted.</td>
     <td><code>engineering/evidence/F27/</code></td><td>T1&ndash;T3</td>
     <td><code>uv run python engineering/evidence/F27/live_routes.py</code></td></tr>
+  <tr><td>F27-T7</td><td>The owner's rulings of 2026-10-15: every set that goes all the way to the leaves
+    is shown (erdos-1094: 4, not 2; the two dropped needed everything another set needs and more), and the
+    set labels sit inside the drawing, stacked down its left edge, each a button that selects its set and is
+    highlighted while selected, the first set selected when the page loads.</td>
+    <td><code>gate/opn_gate/routes.py</code>, <code>site/opn_site/routes_view.py</code>,
+    <code>site/opn_site/static/routes.js</code>, <code>site/opn_site/static/site.css</code>,
+    <code>gate/tests/test_target_routes.py</code>, <code>site/tests/test_routes_view.py</code>,
+    <code>api/tests/test_routes_mcp.py</code>, <code>docs/architecture_decisions.html</code></td><td>T3, T6</td>
+    <td><code>uv run --with playwright pytest site/tests/test_routes_view.py gate/tests/test_target_routes.py api/tests/test_routes_mcp.py</code></td></tr>
   <tr><td>F27-T6</td><td>Found live within minutes of the deploy: <code>cut: any</code> on erdos-1094
     (graph edadad318) answered 58 sets and <code>truncated</code>, because the cap counted the
     combinations met on the way; there are 293. Dominated options are now dropped at every node

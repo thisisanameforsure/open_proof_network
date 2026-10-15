@@ -1,0 +1,78 @@
+F17-T10 / AC10 / AC13 — the aristotle preset on Mathlib targets, 2026-10-15
+
+The owner's Aristotle key (read from .env by name), aristotlelib 2.1.0, graph at origin/main
+64b3c3318, network at origin/main b4c25bb7 (opn-prove before T10) in a detached worktree. The
+service's GET /version answered leanprover/lean4:v4.28.0; the graph pins leanprover/lean4:v4.33.1.
+
+--- the runs (opn-prove run --preset aristotle, export --project first) ---
+
+node                                          started   elapsed  task status            project
+erdos-1094--h3--h1--h1--h1                    05:42:03  231 s    COMPLETE_WITH_ERRORS   eeb0ed13-bf42-4343-a522-840314651aaf
+erdos-1094--h3--h1--h2--h2                    05:42:03  226 s    COMPLETE_WITH_ERRORS   6de10452-7587-4b9e-aab5-44f9b76c4154
+erdos-1094--h3--h1--h1--h2--h1                05:42:03  281 s    COMPLETE_WITH_ERRORS   e8a29cfc-2dd3-4645-b0d7-f89a5da9511e
+erdos-1094--h2--h2--h2--h3--h1--h1            05:42:03  549 s    (connection dropped)   150e6cec-a333-4d70-b94f-486f1c4b6dfa
+erdos-69--h1-v2 (proved calibration node)     06:08:46  257 s    COMPLETE               383c0e79-6a63-411f-af15-54ca6e8cf344
+
+What the pre-T10 record said, and what was true:
+- The three COMPLETE_WITH_ERRORS runs were recorded answered: true. Each Problem.lean came back
+  byte for byte as sent (sorry in place); `import` refused each `sorry-left`.
+- erdos-1094--h2--h2--h2--h3--h1--h1: the CLI printed "ERROR - Connection to server was
+  interrupted" a minute in and exited 0; the archive held the project as sent; recorded
+  answered: true, task_status null. Polling `aristotle tasks` by hand: IN_PROGRESS at 05:51,
+  05:55, 05:59, 06:03, then COMPLETE_WITH_ERRORS; `aristotle download` gave a 265-line partial,
+  one sorry inside `have core` (stated over fifteen lines).
+- erdos-69--h1-v2 was refused four times and accepted on the fifth (05:42:51, 05:47:11, 05:48:35,
+  05:53:37, 05:58:39, 06:03:45 refused; 06:08:46 accepted): "ERROR - You have too many projects
+  in progress", exit 0, recorded as an ordinary unanswered run. At the 05:47 refusal `aristotle
+  list` showed one project RUNNING and three IDLE (their tasks COMPLETE_WITH_ERRORS);
+  `aristotle cancel` on one answered 404 "Agent task cannot be canceled".
+
+--- the calibration node (AC10's second half, aristotle preset) ---
+
+import: kind proof, no notes (77 lines; the committed proof on record is 154).
+/check at the pin: okay true, environment lean-4.33.1, no errors, no lint (log 01M4Z33JP803XXHC27VFN05M1F).
+precheck under the pilot's token (pseudonym opn-prove-aristotle-1015), artifact_type proof,
+automation {method: agent, models: [Aristotle (Harmonic, leanprover/lean4:v4.28.0)],
+framework: opn-prove/aristotle}: job 01M4Z3V0P8H4Z468FGGTRX2DB3, done, verdict PASS.
+Not submitted: the node is already proved (the owner's call, 2026-10-15).
+
+--- the partial on erdos-1094--h2--h2--h2--h3--h1--h1 ---
+
+import (pre-T10): refused sorry-left at the multi-line have. Assembled by hand instead: the
+node's Statement.lean with Aristotle's body in place of the sorry.
+/check at the pin: one error, "`simp` made no progress" (line 151: `simp only at h2`), a tactic
+Lean 4.33.1 no longer needs (log 01M4Z327Q8DN9515ZGSE3CXNWP). Made `try simp only at h2`: no
+errors, only the expected sorry lint (log 01M4Z3313RE6DN8Q5FSKMWCZ2V).
+precheck, artifact_type partial: job 01M4Z3V5JGD1SHKBCNP3TN60W6, verdict PASS, steps 1, 2, 4-8
+pass; one hole, `core`, expected_new, expected node erdos-1094--h2--h2--h2--h3--h1--h1--h1.
+Aristotle's summary of the hole: the same bound with the scale lam in [1, 2) and 65536·X < 1;
+proved around it: |S| <= N + 1, the case 65536·X >= 1, and the reduction of lam to [1, 2) by
+residue classes mod floor(lam) with the rescaling g(t) = f(c + q t).
+The hole's witness (r = 2, N = W = delta = lam = 1, D_r = 2, D_r1 = 1, f x = x^2, S empty) was
+checked with POST /check mode witness against the hole's closed_type: okay true, matches true.
+The partial with that witness carried (attempts/20261015T063320Z-opn-prove-aristotle-1015-partial.lean
+and .1.witness): precheck job 01M4Z47VTGW32SDHB3A8MB9A9T, verdict PASS, holes[0].witness checked
+(sha256 81ecdb36c879b41bd1ffa76e37dc6aba990482a7def49fa99664fc47a9e8ec2e). Submitted through
+POST /submissions (artifact_type partial, automation {method: agent, models: [Aristotle (Harmonic,
+leanprover/lean4:v4.28.0), claude-opus-5-5], framework: opn-prove/aristotle; one line ported to
+Lean 4.33.1 and the hole's witness by Claude Code}): submission 01M4Z4HFE8V47AH4EGKDEBGSNB,
+graph PR #534.
+
+--- after T10, against the same live projects ---
+
+import of Aristotle's raw answer: kind partial; equal to the hand-assembled Proof.lean except the
+one ported line.
+run --preset aristotle --resume 150e6cec-a333-4d70-b94f-486f1c4b6dfa (real CLI, poll 5 s):
+answered true, task_status COMPLETE_WITH_ERRORS, summary kept, 2.3 s; the answer is byte-equal to
+the one downloaded by hand.
+
+--- postmortems (D-13), from the three summaries, filed through POST /postmortems ---
+
+erdos-1094--h3--h1--h1--h1       reduction-to-known  blocked    missing-library   graph PR #531
+erdos-1094--h3--h1--h2--h2       direct-estimate     exhausted  route-dead-ends   graph PR #532
+erdos-1094--h3--h1--h1--h2--h1   direct-estimate     exhausted  route-dead-ends   graph PR #533
+Each names the numerical thresholds the run found (K = 36 for 6 | k to k = 1200; K = 35 for the
+odd/odd mod-3 class to k = 599; 58 for the even class, matching the annex), and each records that
+the record's annex on erdos-1094--h3--h1 reads the n < k^2 range as plausibly Granville–Ramaré /
+Konyagin where Aristotle called it open.
+All three merged (append mode) the same morning.

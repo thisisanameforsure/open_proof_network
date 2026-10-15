@@ -1620,3 +1620,16 @@ The law of the project:
   still a binder of the gate-written child, and a proved `have` reaches it as a `let` the tactic forgot.
   Composing against the child's statement, with Lean deciding every argument, found all of it in
   core-only fixtures before any Mathlib run.
+- 2026-10-15 — Aristotle on erdos-1094 through `opn-prove` (F17-T10, Q13): four leaves and a
+  proved calibration node. Graph PR #534 is a 250-line partial that went in with its hole's
+  witness; #531–#533 are postmortems. Three things worth keeping. **A ledger line can claim more
+  than its evidence shows**: F17-T8 said "AC10 met for both presets", but both runs had taken only
+  the tutorial variant (Lean core), and AC10 names a proved calibration node. That is exactly
+  where Aristotle's v4.28.0 meets the v4.33.1 pin. Read an AC's own words before closing a
+  feature on a ledger. **A hosted prover's wait is not its task**: `submit --wait` lost its
+  connection a minute in, exited 0 and left the input as the "answer", while the task ran 25 more
+  minutes to a real partial. The CLI also refuses with exit 0 ("too many projects in progress"),
+  and finished-with-errors projects seemed to keep their slots. So key a run on the project id,
+  poll with short calls, and treat an unchanged file as no answer. **The real CLI is the test of
+  the fake**: `--resume` against the live project downloaded the same bytes in 2.3 s, which no
+  fixture could show.

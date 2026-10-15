@@ -305,38 +305,6 @@ class _Version:
         self.server.shutdown()
 
 
-def fake_aristotle(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, filled: str, status: str
-) -> Path:
-    """An ``aristotle`` executable on PATH that records its argv, writes the result archive
-    ``submit --wait --destination`` promises (the project back, Problem.lean filled), and prints
-    the task's status the way the real CLI's progress line does."""
-    bindir = tmp_path / "bin"
-    bindir.mkdir(exist_ok=True)
-    exe = bindir / "aristotle"
-    exe.write_text(
-        "#!/usr/bin/env python3\n"
-        "import json, sys, tarfile, io, pathlib\n"
-        "argv = sys.argv[1:]\n"
-        f"pathlib.Path({str(tmp_path / 'aristotle-argv.json')!r}).write_text(json.dumps(argv))\n"
-        "dest = argv[argv.index('--destination') + 1]\n"
-        "project = pathlib.Path(argv[argv.index('--project-dir') + 1])\n"
-        "with tarfile.open(dest, 'w:gz') as tar:\n"
-        "    for p in project.rglob('*'):\n"
-        "        if p.is_file() and p.name != 'Problem.lean':\n"
-        "            tar.add(p, arcname=str(p.relative_to(project)))\n"
-        f"    data = {filled!r}.encode()\n"
-        "    info = tarfile.TarInfo('Problem.lean'); info.size = len(data)\n"
-        "    tar.addfile(info, io.BytesIO(data))\n"
-        f"print('Task status: {status}')\n",
-        encoding="utf-8",
-    )
-    exe.chmod(0o755)
-    monkeypatch.setenv("PATH", f"{bindir}:{__import__('os').environ['PATH']}")
-    monkeypatch.setenv("ARISTOTLE_API_KEY", "arstl_test")
-    return exe
-
-
 def test_aristotle_preset_round_trip(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
@@ -346,7 +314,9 @@ def test_aristotle_preset_round_trip(
     graph = GRAPHS / "propositional"
     found = prove.find_node(graph, TUTORIAL, TARGET)
     filled = prove.export(found).replace("  sorry\n", "  intro p q h\n  exact ⟨h.2, h.1⟩\n")
-    fake_aristotle(tmp_path, monkeypatch, filled, "COMPLETE")
+    calls = fake_aristotle_service(
+        tmp_path, monkeypatch, filled=filled, statuses=["IN_PROGRESS", "COMPLETE"]
+    )
     version = _Version("leanprover/lean4:v4.28.0")
     monkeypatch.setenv("OPN_ARISTOTLE_API", version.url)
     answer = tmp_path / "answer.txt"
@@ -366,8 +336,10 @@ def test_aristotle_preset_round_trip(
     assert run["task_status"] == "COMPLETE"
     (req,) = version.requests
     assert req["path"] == "/api/v3/version" and req["key"] == "arstl_test"
-    argv = json.loads((tmp_path / "aristotle-argv.json").read_text())
-    assert argv[0] == "submit" and "--wait" in argv and "--project-dir" in argv
+    argv = aristotle_calls(calls)[0]
+    # F17-T10: submitted without --wait, then polled and downloaded; no connection held open
+    assert argv[0] == "submit" and "--wait" not in argv and "--project-dir" in argv
+    assert [a[0] for a in aristotle_calls(calls)[1:]] == ["tasks", "tasks", "download"]
     assert "sorry" in argv[1] and "statement" in argv[1].lower()
     project = Path(argv[argv.index("--project-dir") + 1])
     assert (project / "lean-toolchain").read_text().strip() == "leanprover/lean4:v4.33.1"
@@ -389,7 +361,7 @@ def test_complete_with_errors_is_partial(
     filled = prove.export(found).replace(
         "  sorry\n", "  intro p q h\n  have hq : q := by\n    sorry\n  exact ⟨hq, h.1⟩\n"
     )
-    fake_aristotle(tmp_path, monkeypatch, filled, "COMPLETE_WITH_ERRORS")
+    fake_aristotle_service(tmp_path, monkeypatch, filled=filled, statuses=["COMPLETE_WITH_ERRORS"])
     version = _Version("leanprover/lean4:v4.28.0")
     monkeypatch.setenv("OPN_ARISTOTLE_API", version.url)
     answer = tmp_path / "answer.txt"
@@ -425,3 +397,212 @@ def test_aristotle_cli_missing_is_a_failed_run(
     found = prove.find_node(graph, TUTORIAL, TARGET)
     record = prove.postmortem(found, run, "alice", "computational")
     schemas.validate(record, "postmortem/v1")
+
+
+# --- F17-T10: the aristotle preset survives what the live runs of 2026-10-15 met ------------------
+#
+# The real CLI was seen to: drop its connection a minute into ``submit --wait`` while the task ran
+# on (and still exit 0, leaving an archive of the unchanged project); refuse a submission with
+# "too many projects in progress", exit 0; and return the problem file unchanged from a task that
+# ended COMPLETE_WITH_ERRORS. Its ``tasks`` table and ``download`` archive are as below.
+
+FAKE_PROJECT = "150e6cec-a333-4d70-b94f-486f1c4b6dfa"
+ANSI = "\x1b[2J\x1b[H"
+
+
+def fake_aristotle_service(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    *,
+    filled: str,
+    statuses: list[str],
+    summary: str = "I filled the sorry.",
+    refuse: bool = False,
+    wait_drops: bool = False,
+) -> Path:
+    """An ``aristotle`` on PATH with the subcommands the preset may call: ``submit`` (with or
+    without ``--wait``), ``tasks <id>`` (one status per call, the last repeated) and
+    ``download <id> --destination`` (the project as ``project_aristotle/`` with the summary).
+    Every argv is appended to ``aristotle-calls.jsonl``."""
+    bindir = tmp_path / "bin"
+    bindir.mkdir(exist_ok=True)
+    state = tmp_path / "aristotle-state.json"
+    state.write_text(json.dumps({"statuses": statuses}), encoding="utf-8")
+    calls = tmp_path / "aristotle-calls.jsonl"
+    exe = bindir / "aristotle"
+    exe.write_text(
+        "#!/usr/bin/env python3\n"
+        "import io, json, pathlib, sys, tarfile\n"
+        f"STATE = pathlib.Path({str(state)!r}); CALLS = pathlib.Path({str(calls)!r})\n"
+        f"PID = {FAKE_PROJECT!r}; ANSI = {ANSI!r}\n"
+        f"FILLED = {filled!r}; SUMMARY = {summary!r}\n"
+        f"REFUSE = {refuse!r}; WAIT_DROPS = {wait_drops!r}\n"
+        "argv = sys.argv[1:]\n"
+        "with CALLS.open('a') as f: f.write(json.dumps(argv) + '\\n')\n"
+        "st = json.loads(STATE.read_text())\n"
+        "def archive(dest, problem, summary):\n"
+        "    with tarfile.open(dest, 'w:gz') as tar:\n"
+        "        files = (('Problem.lean', problem), ('ARISTOTLE_SUMMARY.md', summary))\n"
+        "        for name, text in files:\n"
+        "            if text is None: continue\n"
+        "            data = text.encode(); info = tarfile.TarInfo('project_aristotle/' + name)\n"
+        "            info.size = len(data); tar.addfile(info, io.BytesIO(data))\n"
+        "cmd = argv[0]\n"
+        "if cmd == 'submit':\n"
+        "    print('WARNING: Your Lean toolchain version does not match Aristotle\\'s.')\n"
+        "    if REFUSE:\n"
+        "        print('ERROR - You have too many projects in progress. Cancel a running '\n"
+        "              'task or '\n"
+        "              'wait for one to complete before starting another.'); sys.exit(0)\n"
+        "    project = pathlib.Path(argv[argv.index('--project-dir') + 1])\n"
+        "    st['problem'] = (project / 'Problem.lean').read_text()\n"
+        "    STATE.write_text(json.dumps(st))\n"
+        "    print(ANSI + 'QUEUED (started 0s ago)'); print('Project created: ' + PID)\n"
+        "    if '--wait' in argv:\n"
+        "        if WAIT_DROPS:\n"
+        "            if '--destination' in argv:\n"
+        "                archive(argv[argv.index('--destination') + 1], st['problem'], None)\n"
+        "            print('ERROR - Connection to server was interrupted. Use \\'aristotle show '\n"
+        "                  + PID + '\\' to try again.'); sys.exit(0)\n"
+        "        archive(argv[argv.index('--destination') + 1], FILLED, SUMMARY)\n"
+        "        print(ANSI + st['statuses'][-1]); print('Task complete!')\n"
+        "    sys.exit(0)\n"
+        "if cmd == 'tasks':\n"
+        "    status = st['statuses'][0]\n"
+        "    if len(st['statuses']) > 1: st['statuses'].pop(0); STATE.write_text(json.dumps(st))\n"
+        "    print('ID                                   CREATED     NAME            STATUS')\n"
+        "    print('-' * 80)\n"
+        "    print('02772399-4ffd-4f4c-b58e-e0f1a790f258 1 min ago   Fill the sorry  ' + status)\n"
+        "    sys.exit(0)\n"
+        "if cmd == 'download':\n"
+        "    archive(argv[argv.index('--destination') + 1], FILLED, SUMMARY); sys.exit(0)\n"
+        "sys.exit(2)\n",
+        encoding="utf-8",
+    )
+    exe.chmod(0o755)
+    monkeypatch.setenv("PATH", f"{bindir}:{__import__('os').environ['PATH']}")
+    monkeypatch.setenv("ARISTOTLE_API_KEY", "arstl_test")
+    monkeypatch.setenv("OPN_ARISTOTLE_API", "http://127.0.0.1:9/api/v3")  # no /version: a warning
+    monkeypatch.setenv("OPN_ARISTOTLE_POLL_S", "0")
+    return calls
+
+
+def aristotle_calls(calls: Path) -> list[list[str]]:
+    if not calls.exists():
+        return []
+    return [json.loads(line) for line in calls.read_text().splitlines()]
+
+
+def run_preset(
+    capsys: pytest.CaptureFixture[str], tmp_path: Path, *extra: str
+) -> tuple[int, dict[str, Any]]:
+    return cli(
+        capsys, "run", "--preset", "aristotle", "--graph", str(GRAPHS / "propositional"),
+        "--node", TUTORIAL, "--problem", str(tmp_path / "problem.lean"),
+        "--answer", str(tmp_path / "answer.txt"), "--record", str(tmp_path / "run.json"),
+        "--timeout", "30", *extra,
+    )  # fmt: skip
+
+
+def test_aristotle_dropped_connection_still_gets_the_answer(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """2026-10-15: the CLI lost its connection a minute into ``submit --wait`` and the task ran on
+    for 25 minutes. The preset holds no connection open: it submits, keeps the project id, polls
+    ``tasks`` until a terminal status and downloads the result, so a drop costs nothing."""
+    found = prove.find_node(GRAPHS / "propositional", TUTORIAL, TARGET)
+    filled = prove.export(found).replace("  sorry\n", "  intro p q h\n  exact ⟨h.2, h.1⟩\n")
+    calls = fake_aristotle_service(
+        tmp_path, monkeypatch, filled=filled,
+        statuses=["QUEUED", "IN_PROGRESS", "IN_PROGRESS", "COMPLETE"], wait_drops=True,
+    )  # fmt: skip
+    code, run = run_preset(capsys, tmp_path)
+    assert code == 0 and run["answered"] and run["task_status"] == "COMPLETE", run
+    assert run["project_id"] == FAKE_PROJECT
+    assert not any("--wait" in argv for argv in aristotle_calls(calls))
+    imported = prove.import_answer(found, (tmp_path / "answer.txt").read_text(encoding="utf-8"))
+    assert imported.kind == "proof" and imported.text == PROOF
+
+
+def test_aristotle_project_limit_is_a_refusal(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """2026-10-15: "too many projects in progress", and the CLI still exits 0. That is not a run
+    that found nothing: it is a refusal to retry later, and nothing is polled or downloaded."""
+    calls = fake_aristotle_service(
+        tmp_path, monkeypatch, filled="", statuses=["COMPLETE"], refuse=True
+    )
+    code, run = run_preset(capsys, tmp_path)
+    assert code == 1 and run["answered"] is False, run
+    assert run.get("refused") == "project-limit", run
+    assert [argv[0] for argv in aristotle_calls(calls)] == ["submit"]
+
+
+def test_aristotle_unchanged_file_is_not_an_answer(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """2026-10-15: three tasks ended COMPLETE_WITH_ERRORS with Problem.lean exactly as sent. The
+    file sent back unchanged is not an answer, whatever the status."""
+    found = prove.find_node(GRAPHS / "propositional", TUTORIAL, TARGET)
+    unchanged = prove.header_comment(found) + prove.export(found)
+    fake_aristotle_service(
+        tmp_path, monkeypatch, filled=unchanged, statuses=["COMPLETE_WITH_ERRORS"]
+    )
+    code, run = run_preset(capsys, tmp_path)
+    assert code == 1 and run["answered"] is False, run
+    assert run["task_status"] == "COMPLETE_WITH_ERRORS"
+
+
+def test_aristotle_resume_polls_without_submitting(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A run that was interrupted, or timed out on this side, is picked up by its project id:
+    ``--resume`` polls and downloads and never submits a second task."""
+    found = prove.find_node(GRAPHS / "propositional", TUTORIAL, TARGET)
+    filled = prove.export(found).replace("  sorry\n", "  intro p q h\n  exact ⟨h.2, h.1⟩\n")
+    calls = fake_aristotle_service(
+        tmp_path, monkeypatch, filled=filled, statuses=["IN_PROGRESS", "COMPLETE"]
+    )
+    code, run = run_preset(capsys, tmp_path, "--resume", FAKE_PROJECT)
+    assert "submit" not in [argv[0] for argv in aristotle_calls(calls)]
+    assert code == 0 and run["answered"] and run.get("project_id") == FAKE_PROJECT, run
+    assert aristotle_calls(calls)[-1][:2] == ["download", FAKE_PROJECT]
+
+
+def test_aristotle_summary_reaches_the_postmortem(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """The archive's ARISTOTLE_SUMMARY.md is the prover's account of what it tried; the draft
+    postmortem quotes it rather than the last 2000 characters of a progress display, and no
+    terminal escape reaches the record."""
+    found = prove.find_node(GRAPHS / "propositional", TUTORIAL, TARGET)
+    unchanged = prove.header_comment(found) + prove.export(found)
+    summary = "I could not fill the sorry. The case split only rules out p = 2 and p = 3."
+    fake_aristotle_service(
+        tmp_path, monkeypatch, filled=unchanged, statuses=["COMPLETE_WITH_ERRORS"],
+        summary=summary,
+    )  # fmt: skip
+    _, run = run_preset(capsys, tmp_path)
+    record = prove.postmortem(found, run, "alice", "case-split")
+    schemas.validate(record, "postmortem/v1")
+    assert summary in record["detail"] and "\x1b" not in record["detail"], record["detail"]
+    assert Path(run["summary"]).read_text(encoding="utf-8") == summary, run
+
+
+def test_import_partial_with_a_multiline_have(tmp_path: Path) -> None:
+    """2026-10-15: Aristotle's partial on erdos-1094--h2--h2--h2--h3--h1--h1 states its one hole
+    over fifteen lines, so the line above the sorry is the hole's type, not ``have``. The sorry
+    is still the whole body of a have, which is what a partial is (D-12)."""
+    found = prove.find_node(GRAPHS / "propositional", TUTORIAL, TARGET)
+    body = (
+        "  intro p q h\n"
+        "  have hq :\n"
+        "      q ∧\n"
+        "        True := by\n"
+        "    sorry\n"
+        "  exact ⟨hq.1, h.1⟩\n"
+    )
+    answer = prove.export(found).replace("  sorry\n", body)
+    imported = prove.import_answer(found, answer)
+    assert imported.kind == "partial"
+    assert "have hq :\n      q ∧\n        True := by" in imported.text

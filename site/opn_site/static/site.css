@@ -1030,3 +1030,16 @@ th[aria-sort="descending"] .routes-sort::after { content: " ↓"; }
   .routes-wrap { padding: var(--s4); }
   .routes-table-wrap { overflow-x: auto; }
 }
+/* F27-T7: the set labels inside the routes drawing, one per set down its left edge. */
+.routes-svg .set-label { cursor: pointer; }
+.routes-svg .set-label rect { fill: var(--bg); stroke: var(--divider); stroke-width: 1; }
+.routes-svg .set-label text { font-family: var(--sans, inherit); font-size: 13px; }
+.routes-svg .set-label:hover rect, .routes-svg .set-label:focus-visible rect { stroke: var(--accent); }
+.routes-svg .set-label:focus { outline: none; }
+.routes-svg .set-label.selected rect { stroke: var(--accent); stroke-width: 2; fill: var(--n800, var(--bg)); }
+.routes-svg .set-label.selected text { font-weight: 600; }
+.routes-svg .swatch.set-1 { fill: var(--set-1); } .routes-svg .swatch.set-2 { fill: var(--set-2); }
+.routes-svg .swatch.set-3 { fill: var(--set-3); } .routes-svg .swatch.set-4 { fill: var(--set-4); }
+.routes-svg .swatch.set-5 { fill: var(--set-5); } .routes-svg .swatch.set-6 { fill: var(--set-6); }
+.routes-svg .swatch.set-7 { fill: var(--set-7); } .routes-svg .swatch.set-8 { fill: var(--set-8); }
+.routes-svg .swatch.set-more { fill: var(--set-more); }

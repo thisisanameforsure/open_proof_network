@@ -3,6 +3,9 @@
 // first" sorts by the open count and selects the first row, and hovering or selecting a row lights
 // that set's statements, junctions and lines and dims the rest. Selecting changes classes only,
 // never a position. Selecting the row again, or Escape, clears it and every wedge comes back.
+// F27-T7: each set also has a label inside the drawing, down its left edge; clicking a label (or
+// Enter or Space on it) selects its set and highlights the label, clicking it again clears, and
+// the first set is selected when the page loads.
 (function () {
   "use strict";
   var section = document.querySelector(".routes-section");
@@ -14,6 +17,7 @@
   var rows = Array.prototype.slice.call(tbody.querySelectorAll("tr.set-row"));
   var marks = Array.prototype.slice.call(svg.querySelectorAll("[data-sets]"));
   var wedges = Array.prototype.slice.call(svg.querySelectorAll(".wedge[data-set]"));
+  var labels = Array.prototype.slice.call(svg.querySelectorAll(".set-label[data-set]"));
   var fewest = section.querySelector("button.routes-fewest");
   var hint = section.querySelector(".routes-hint");
   var state = { selected: null, hover: null, col: null, desc: false };
@@ -39,6 +43,11 @@
     rows.forEach(function (r) {
       r.setAttribute("aria-selected", r.getAttribute("data-set") === id ? "true" : "false");
     });
+    labels.forEach(function (l) {
+      var on = l.getAttribute("data-set") === id;
+      l.classList.toggle("selected", on);
+      l.setAttribute("aria-pressed", on ? "true" : "false");
+    });
     refresh();
   }
 
@@ -53,6 +62,16 @@
       select(state.selected === id ? null : id);
     });
     r.addEventListener("keydown", function (ev) {
+      if (ev.key === "Enter" || ev.key === " ") {
+        ev.preventDefault();
+        select(state.selected === id ? null : id);
+      }
+    });
+  });
+  labels.forEach(function (l) {
+    var id = l.getAttribute("data-set");
+    l.addEventListener("click", function () { select(state.selected === id ? null : id); });
+    l.addEventListener("keydown", function (ev) {
       if (ev.key === "Enter" || ev.key === " ") {
         ev.preventDefault();
         select(state.selected === id ? null : id);
@@ -109,6 +128,8 @@
     });
   }
   if (hint) { hint.hidden = false; }
+  // F27-T7: the first set listed comes selected, its routes lit.
+  if (rows.length) { select(rows[0].getAttribute("data-set")); }
   // On a narrow screen the drawing scrolls in its own box; open it on the problem's own
   // statement rather than on the drawing's left edge.
   var scroller = section.querySelector(".routes-scroll");

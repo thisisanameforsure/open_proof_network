@@ -427,9 +427,16 @@ trained on Lean 4.9, so `run` warns about the gap and `check` is where their pro
 hosted prover, through its own CLI (`uv tool install aristotlelib`) with your own key in
 `ARISTOTLE_API_KEY`: it writes the Lake project, reads the toolchain the service runs (its
 version endpoint said v4.28.0 when this was written, against the graph's 4.33.1, so the same
-warning applies), submits with `--wait`, and takes `Problem.lean` from the result archive as the answer;
-a task that ends `COMPLETE_WITH_ERRORS` with its remaining `sorry`s inside `have`s imports as a
-partial. Aristotle's terms give you its output and allow open-source use, forbid sharing a key,
+warning applies), submits, and holds no connection open while the task runs on Aristotle's side:
+it keeps the project id (in `answer.aristotle-project` and the run record), asks `aristotle tasks`
+for the status every `OPN_ARISTOTLE_POLL_S` seconds (60 by default), downloads the result and takes
+`Problem.lean` from it as the answer, with Aristotle's `ARISTOTLE_SUMMARY.md` kept beside it for
+the postmortem. A run cut short on your side picks the task up again with
+`--resume <project-id>`, which never submits a second one. A file that comes back as it was sent is
+not an answer, whatever the status, and a submission Aristotle refuses ("too many projects in
+progress", which the CLI answers with exit 0) is recorded as `refused: project-limit`, to try
+later. A task that ends `COMPLETE_WITH_ERRORS` with its remaining `sorry`s inside `have`s imports
+as a partial. Aristotle's terms give you its output and allow open-source use, forbid sharing a key,
 and let Harmonic train on what you submit unless you opt out in your account; the statement you
 send is public already, and the DCO certification stays yours.
 

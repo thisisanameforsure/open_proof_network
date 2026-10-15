@@ -243,8 +243,10 @@ def test_every_statement_proved_leaves_the_assemblies() -> None:
 # --- R6: minimality -------------------------------------------------------------------------
 
 
-def test_a_set_containing_another_is_dropped() -> None:
-    """Choosing the second route of h2 needs strictly more than the first: one set survives."""
+def test_finest_keeps_every_full_expansion_any_drops_the_dominated() -> None:
+    """F27-T7 (the owner, 2026-10-15: show every set that goes all the way to the leaves): each
+    choice of routes is a finest set, even one needing strictly more than another; only the
+    coarser cuts (``cut: any``) drop a dominated set."""
     g = doc(
         node("t", deps=["t--h1", "t--h2"], decompositions=[["t--h1", "t--h2"]]),
         hole("t--h1"),
@@ -256,7 +258,8 @@ def test_a_set_containing_another_is_dropped() -> None:
         hole("t--h2--h1"),
         hole("t--h2--h2"),
     )
-    assert open_sets(routes.read(g)) == [["t--h1"]]
+    assert open_sets(routes.read(g)) == [["t--h1"], ["t--h1", "t--h2--h1", "t--h2--h2"]]
+    assert ["t--h1", "t--h2--h1", "t--h2--h2"] not in open_sets(routes.read(g, cut="any"))
 
 
 # --- R2, R3: reading the record ---------------------------------------------------------------
@@ -432,9 +435,8 @@ def test_live_shape_sets_close_the_root() -> None:
     result = routes.read(graph, entries)
     assert len(result.routes) == 16
     assert all(r.resolved for r in result.routes)
-    assert len(result.sets) == 2
-    opens = [set(s.open) for s in result.sets]
-    assert not any(a < b for a in opens for b in opens)
+    assert len(result.sets) == 4  # two statements with two live routes each: 2 x 2
+    assert len({s.id for s in result.sets}) == 4
     for s in result.sets:
         assert closes_root(graph, set(s.statements)), s.id
     coarse = routes.read(graph, entries, cut="any")
@@ -468,4 +470,17 @@ def test_cap_counts_minimal_sets_not_intermediate_combinations() -> None:
     assert default.truncated is False
     assert [s.id for s in default.sets] == [s.id for s in unbounded.sets]
     for s in default.sets:
+        assert closes_root(graph, set(s.statements)), s.id
+
+
+def test_finest_sets_reach_the_leaves() -> None:
+    """F27-T7: on erdos-1094 of 2026-10-15 every finest set is a full expansion — each of its
+    open statements has no live route of its own, so nothing in it could be expanded further —
+    and there is one per combination of route choices (h2--h1 and h3 have two live routes each)."""
+    graph, entries = live("erdos-1094-20261015")
+    result = routes.read(graph, entries)
+    expandable = {r.node for r in result.routes if r.live}
+    assert len(result.sets) == 4
+    for s in result.sets:
+        assert not set(s.open) & expandable, s.id
         assert closes_root(graph, set(s.statements)), s.id
