@@ -73,6 +73,21 @@ _SORRY_BODY_RE = re.compile(r":=\s*(?:by\s+)?sorry\b")
 _SORRY_TOKEN_RE = re.compile(r"(?<![\w'.!?])sorry(?![\w'.!?])")
 
 
+def declaration_start(prefix: str) -> int:
+    """Where a statement's declaration begins in ``prefix``: its ``theorem`` line, or the line
+    of the doc comment directly above it (F00-T11: helpers go before this offset)."""
+    theorems = list(_THEOREM_RE.finditer(prefix))
+    if not theorems:
+        return len(prefix)
+    at = theorems[-1].start()
+    before = prefix[:at].rstrip()
+    if before.endswith("-/"):
+        doc = before.rfind("/--")
+        if doc != -1 and "-/" not in before[doc:-2]:
+            at = prefix.rfind("\n", 0, doc) + 1
+    return at
+
+
 def strip_comments(text: str) -> str:
     """``text`` with every Lean comment and string-literal body blanked: ``--`` to the end of
     its line, ``/- -/`` blocks — nested, and including the ``/-!`` and ``/--`` doc forms — and

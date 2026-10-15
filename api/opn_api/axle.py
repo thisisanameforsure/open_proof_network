@@ -23,7 +23,12 @@ from typing import Any, Protocol
 
 import httpx
 
+from opn_gate import config as gate_config
+
 CHECK_PATH = "/api/v1/check"
+#: F13-T36: the gate's heartbeat cap (F02-T15), as AXLE takes Lean options on check and
+#: verify_proof (its tool docs, read 2026-10-14), so the text sent is never edited for it.
+GLOBAL_OPTIONS: dict[str, Any] = {"maxHeartbeats": gate_config.MAX_HEARTBEATS}
 VERIFY_PATH = "/api/v1/verify_proof"
 ENVIRONMENTS_PATH = "/v1/environments"
 CONNECT_TIMEOUT_S = 3.0
@@ -71,7 +76,12 @@ class HttpxAxle:
         self._api_key = api_key  # none at Stage 0 (F13-Q5); never logged, never in a message
 
     def check(self, content: str, *, environment: str, timeout_s: float) -> AxleAnswer:
-        body = {"content": content, "environment": environment, "timeout_seconds": timeout_s}
+        body = {
+            "content": content,
+            "environment": environment,
+            "timeout_seconds": timeout_s,
+            "global_options": GLOBAL_OPTIONS,
+        }
         return self._post(CHECK_PATH, body, "check", timeout_s)
 
     def verify_proof(
@@ -82,6 +92,7 @@ class HttpxAxle:
             "content": content,
             "environment": environment,
             "timeout_seconds": timeout_s,
+            "global_options": GLOBAL_OPTIONS,
         }
         return self._post(VERIFY_PATH, body, "verify_proof", timeout_s)
 

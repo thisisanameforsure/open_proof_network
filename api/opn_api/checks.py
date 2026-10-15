@@ -43,6 +43,7 @@ from opn_api import clock as clockmod
 from opn_api import uses as usesmod
 from opn_api.axle import AxleAnswer, AxleError
 from opn_api.store import CheckLog
+from opn_gate import config as gate_config
 from opn_gate import exhibits, hosted, layout, paths, scaffold, schemas
 
 if TYPE_CHECKING:
@@ -199,17 +200,16 @@ def heartbeats_field(fields: dict[str, Any], mode: str) -> bool:
 
 def too_large(ctx: Context, what: str, size: int) -> Exception:
     """F13-T19: the size refusal says what to do, since a text this long rarely fits the gate
-    either (testers 2026-09-24: a 657 kB case tree). Splitting it into lemmas is refused, and a
-    ``set_option`` inside the proof does not raise Lean's heartbeat budget."""
+    either (testers 2026-09-24: a 657 kB case tree). A ``set_option`` inside the proof does not
+    raise the gate's heartbeat cap; private helper lemmas each get their own (F00-T11)."""
     limit = ctx.settings.check_max_bytes
     return api_error(
         413,
         "content-too-large",
         f"{what} is {size} bytes; the limit is {limit}. A proof this long rarely fits the gate "
-        "either: Lean's heartbeat budget (maxHeartbeats, 200000 by default) counts per "
-        "declaration, a set_option inside the proof does not lift it, and a proof may declare "
-        "nothing but the statement's theorem, so helper lemmas are refused (F00-R19). Make the "
-        "proof cheaper (one `have` per case with `exact` at the leaves, named lemmas instead of "
+        f"either: the gate's heartbeat cap ({gate_config.MAX_HEARTBEATS}) counts per "
+        "declaration and a set_option does not lift it. Split the work into private helper "
+        "lemmas before the theorem (F00-T11), make the proof cheaper (named lemmas instead of "
         "search tactics), or decompose the node with a skeleton",
         details={"bytes": size, "limit_bytes": limit},
     )
@@ -467,6 +467,8 @@ GATE_REFUSALS: frozenset[str] = frozenset(
     {
         "imports-differ",
         "helper-declarations",
+        # F00-T11 / F13-T36: what a helper block may not hold, by the gate's own rule
+        "helper-forbidden",
         "header-diverges",
         "signature-diverges",
         "proof-empty",
@@ -534,6 +536,8 @@ def lint(
             f"{m.group('kind')} {m.group('name')}".strip()
             for m in DECLARATION_RE.finditer(layout.strip_comments(content))
             if not (m.group("kind") in ("theorem", "lemma") and m.group("name") == written)
+            # F13-T36: a private helper is the gate's to judge (F00-T11), by its own rule below
+            and "private" not in m.group(0).split()
         ]
         if extra:
             warnings.append(
@@ -585,7 +589,7 @@ def lint(
     return warnings
 
 
-def proof_divergence(
+def proof_divergence(  # noqa: PLR0911 — one return per kind of divergence
     diagnostic: Any,
     statement: layout.Statement,
     content: str,
@@ -602,6 +606,22 @@ def proof_divergence(
     details = dict(diagnostic.details)
     if diagnostic.code == "proof-empty":
         return {"code": "proof-empty", "message": f"{diagnostic.message} (F00-R19)"}
+    if diagnostic.code == "helper-forbidden":
+        # F13-T36: a public declaration is already named as helper-declarations
+        if "helper-declarations" in named and details.get("token") in (
+            "theorem",
+            "lemma",
+            "def",
+            "abbrev",
+        ):
+            return None
+        return {
+            "code": "helper-forbidden",
+            "message": f"{diagnostic.message} (F00-T11); the gate refuses this at step 2",
+            "line": int(details.get("line") or 0),
+            "token": str(details.get("token") or ""),
+            "got": str(details.get("got") or ""),
+        }
     line = int(details.get("line") or 0)
     expected, got = str(details.get("expected") or ""), str(details.get("got") or "")
     if "imports-differ" in named and (expected.startswith("import ") or got.startswith("import ")):

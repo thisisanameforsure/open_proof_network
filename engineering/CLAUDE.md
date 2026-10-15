@@ -1565,9 +1565,29 @@ The law of the project:
   run), and look across the live targets for the one whose shape differs (here, the only root with
   local imports). And a record the job finds again by id outlives the fix for it: the false exhibit
   needed a curator deletion on the owner's word.
+- 2026-10-14 (evening) — Three MCP-only agents, one hour, "fill a hole, your choice" on erdos-1094
+  (`engineering/evidence/testers-2026-10-14b/`): #524 proved van Doorn–Tang's small case outright,
+  and #525 and #526 merged as partials, all with no human. **On a ported development the binding
+  constraint is the cap, not Lean 4.33.1**: one theorem at 200k heartbeats with no helper
+  declarations turned a chain of 221k as separate lemmas into 328k inlined, because every `at *`
+  walks every earlier `have`. Clearing unused `have`s at the start of each body and replacing heavy
+  `nlinarith` took P from 247k to 122k. Whether to allow helpers, or cap per declaration, is the
+  owner's call. Also: a hole whose Finset set-builder was fully typed was refused
+  `hole-not-roundtrip`, because the printer drops the binder's type, while the hint blamed the
+  contributor's text.
+- 2026-10-15 — The owner's ruling on that finding: "raise the cap to 1000k. allow for helper lemmas"
+  (F00-T11, F02-T15, F13-T36). Three things worth keeping. **The cap was never the gate's**: 200000 was
+  Lean's default, written nowhere, so raising it was one `-DmaxHeartbeats` on the gate's single `lean`
+  call and AXLE's documented `global_options`; probe both before believing a number you cannot find
+  in the code (`(← readThe Core.Context).maxHeartbeats` reads it). **A helper rule is a cap rule**: a
+  command-level `set_option maxHeartbeats 5 in` measurably changes the limit, so the helper block
+  refuses `set_option` outright, and `private` is what keeps helper names away from F08-T24's importers
+  (and is why every `parse_declaration` reader kept working untouched). **Allowing text in a partial is
+  allowing a hole**: the extractor reads the main theorem only, so a helper resting on `sorry` would be
+  an unreported hole; the block refuses `sorry` and `admit`.
 
 - 2026-10-15 — F27 (routes and sufficient sets, decisions v3.40) built unattended overnight from the
-  owner's request after route lock-in on erdos-1094; branch `f27-route-health`, unpushed. Four
+  owner's request after route lock-in on erdos-1094; branch `f27-route-health`, live the same morning (below). Four
   things worth keeping. **Count before you design a view**: the request defined a sufficient set by
   "take it directly or expand" at every open node, and a ten-minute prototype over the live
   products gave 225 minimal sets on erdos-1094 (2 as finest cuts), which no palette or table can

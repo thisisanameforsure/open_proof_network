@@ -210,12 +210,19 @@ that elaborates it in its own sandbox against the Mathlib nearest your target's 
 usually comes back in a few seconds with Lean's errors by line and column and the goal at each
 error. The budget is 20 seconds: a check that outlasts it answers `504 check-timeout`, and search
 tactics (`exact?`, `apply?`, `rw?`) are the usual cause, so find the lemma another way and name
-it. The text may be at most 200 kB (`413 content-too-large` otherwise). Lean also caps the work
-in one declaration at 200000 heartbeats, counted over the whole proof: a
-`set_option maxHeartbeats` inside the proof does not lift it, a `set_option` before the theorem
-is refused at the gate as `proof-not-statement`, and helper declarations are refused, so a long
-case split must be made cheaper instead, for instance one `have` per case with `exact` at the
-leaves. To see how close you are, add `"heartbeats": true` to the request (modes `check` and
+it. The text may be at most 200 kB (`413 content-too-large` otherwise). The gate caps the work
+in one declaration at 1000000 heartbeats, and the fast check runs at the same cap: a
+`set_option maxHeartbeats` inside the proof does not lift it, and a `set_option` before the
+theorem is refused at the gate as `helper-forbidden`. The cap counts each declaration on its
+own, so a long development is cheapest as **helper lemmas**: declare each one `private theorem`,
+`private lemma`, `private def` or `private abbrev`, directly before the statement's theorem (and
+before its doc comment, when it has one), and use them in the proof. Everything else in the
+file is still the statement with its `sorry` replaced. The helper block may not hold a public
+declaration, `set_option`, `axiom`, `instance`, notation or a macro, an attribute (`@[simp]`),
+`open`, `variable`, a `#` command, `sorry` or `admit`; any of them is refused as
+`helper-forbidden`, naming the token and its line. Inlining a chain of lemmas into one theorem
+costs more than the lemmas did, because every `at *` walks every earlier `have`. To see how
+close you are, add `"heartbeats": true` to the request (modes `check` and
 `verify`): the answer then carries `heartbeats.declarations`, one entry per top-level theorem
 and lemma of your text with the `heartbeats` it used, the `cap`, and `over_cap`. The hosted
 checker reports no such figure itself, so the service measures it: it puts Mathlib's
@@ -349,8 +356,9 @@ A pass there can still fail the gate in three ways, and the answer's `lint` name
 (the first two compare your text with a node's statement, so they need a `node_id`; without
 one only `sorry-present` can fire).
 `imports-differ`: AXLE substitutes `import Mathlib`, while the gate wants the statement's header
-exactly. `helper-declarations`: the file declares something besides the statement's theorem, such
-as a lemma above it; write helpers as `have` steps inside the proof, or submit a skeleton.
+exactly. `helper-declarations`: the file declares something public besides the statement's
+theorem, such as a lemma above it without `private`; `helper-forbidden`: the helper block holds
+something the gate refuses there (see above).
 `sorry-present`: a `sorry` is still in the text. `okay` is `false` in `check` mode too when your
 own text carries `sorry` or `admit` (`sorry-present`, `admit-present`), because the gate would
 refuse it; a skeleton sent to `check` mode therefore reads `okay: false`, and `result.okay` still

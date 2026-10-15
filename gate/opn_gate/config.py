@@ -101,6 +101,10 @@ DEFAULT_RUNNER: Runner = "local"
 DEFAULT_LOG_LEVEL = "INFO"
 DEFAULT_ELAN_HOME = Path.home() / ".elan"
 DEFAULT_DIAGNOSTIC_MAX_BYTES = 8192
+#: F02-T15: Lean's ``maxHeartbeats`` for every ``lean`` call the gate makes, one declaration at a
+#: time. A contributor cannot raise it: the gate passes it on the command line, and step 2
+#: refuses a ``set_option`` outside a proof's body (F00-T11).
+MAX_HEARTBEATS = 1_000_000
 #: F11-R9 §6's count, config rather than a constant; F14-R12 raised the default from 5 for wave one.
 DEFAULT_LISTED_TARGETS_MAX = 64
 DEFAULT_GRAPH_REPO_URL = "https://github.com/thisisanameforsure/open_proof_network_graph"

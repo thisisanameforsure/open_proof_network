@@ -880,7 +880,18 @@ class LocalToolchain:
         olean.parent.mkdir(parents=True, exist_ok=True)
         proc = self._run(
             tc.name,
-            ["lean", "--json", "-o", str(olean), "-i", str(ilean), str(source.relative_to(cwd))],
+            [
+                "lean",
+                "--json",
+                # F02-T15: the gate's cap, never the file's (a set_option outside a proof's body
+                # is refused at step 2, F00-T11).
+                f"-DmaxHeartbeats={config.MAX_HEARTBEATS}",
+                "-o",
+                str(olean),
+                "-i",
+                str(ilean),
+                str(source.relative_to(cwd)),
+            ],
             cwd=cwd,
             lean_path=tc.search_path(out_dir),
             timeout_s=timeout_s,
