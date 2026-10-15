@@ -1606,3 +1606,17 @@ The law of the project:
   helpers, and only one helper (`konyagin_application`, 271k) needed the new cap. **A parent whose holes are all
   proved is not proved**: `--h2--h2--h2--h2` still reads `ready` because nobody submitted its closing proof,
   and an agent reported the case "closed". Read `graph.json`'s status before repeating a claim of closure.
+
+- 2026-10-15 — F28 (closing proofs, draft v3.41) built test first on branch `f28-closing-proofs`, from the
+  owner's question why a node with its only hole proved still read `ready`. Three things worth keeping.
+  **A mutant the same size as the original is not a mutant**: Python reuses a cached `.pyc` when a source's
+  size and modified-second match, so two same-length edits ran the previous mutant's bytecode and reported
+  its count. Run mutation checks with `PYTHONDONTWRITEBYTECODE=1` and the module's `__pycache__` cleared.
+  **Two allowances tested alone can refuse each other**: v3.25's use lines and F00-T11's helper block each
+  passed step 2, but `layout.split_uses` only took uses out when the rest began with the whole statement
+  prefix, which a helper block interrupts, so every proof with both was `proof-not-statement` (F28-Q8).
+  When a feature adds an allowance to a shared check, test it beside every other allowance that check has.
+  **The extractor reads the term, the tactic context does not**: a premise `obtain`/`rcases` cleared is
+  still a binder of the gate-written child, and a proved `have` reaches it as a `let` the tactic forgot.
+  Composing against the child's statement, with Lean deciding every argument, found all of it in
+  core-only fixtures before any Mathlib run.
