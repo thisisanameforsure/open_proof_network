@@ -11,7 +11,7 @@
 <h1>F28 — Closing proofs</h1>
 <p class="subtitle">When a node's merged decomposition has every hole proved, the network writes the
 proof that joins them and submits it through the gate, so one proof climbs the target one checked
-merge at a time (draft decisions v3.41).</p>
+merge at a time (decisions v3.41).</p>
 
 <h2>1. Summary</h2>
 <p>On 2026-10-15 the owner asked why erdos-1094--h2--h2--h2--h2 still read <code>ready</code>: its
@@ -84,17 +84,21 @@ actor's handling of its branches; decisions v3.41.</p>
     <code>let</code> (F28-Q7), so that it is the statement with its <code>sorry</code> replaced
     (step 2). A route's children need no use line: they are the node's declared dependencies, their
     signatures in its own <code>Context.lean</code>, and step 4 imports their proofs in place.</td></tr>
-  <tr><td>F28-R7</td><td>When a merge makes a node ready-closable, the post-merge workflow shall
-    compose its closing proof in the step-3 sandbox with no secret and submit it as a proof pull
-    request on a <code>close/&lt;node&gt;</code> branch, the network as submitter, the assembly's
-    author and the hole provers credited.</td></tr>
+  <tr><td>F28-R7</td><td>When a merge makes a node ready to close, the graph's closing workflow
+    (<code>close.yml</code>, woken by the post-merge job, by hand and hourly) shall compose its closing
+    proof and precheck it in the step-3 sandbox with no secret, the precheck being the precheck job's
+    own unsigned run (D-4's kind <code>none</code>); and its one step that reads the merge token shall
+    push each passing proof to a <code>close/&lt;node&gt;</code> branch as one commit authored
+    <code>opn-gate</code> and open its pull request with the attestation and a submission block naming
+    <code>opn-gate</code>. The merge actor merges <code>close/</code> branches as the service's.</td></tr>
   <tr><td>F28-R8</td><td>The workflow shall open at most one closing pull request per node: a re-run
     on the same merge, or a second merge while one is open, opens none.</td></tr>
   <tr><td>F28-R9</td><td>If a direct proof of the node merges while its closing pull request is open,
     then the closing pull request shall be closed; the network shall never submit a closing proof for
     a node already proved (ruling 2).</td></tr>
-  <tr><td>F28-R10</td><td>If a closing proof fails the gate, then the system shall leave the pull
-    request red, record a defect naming the hole whose join failed, and not resubmit it.</td></tr>
+  <tr><td>F28-R10</td><td>If a closing proof fails its precheck, then the system shall not submit
+    it and shall report it, naming the node, in the closing workflow's run; it is composed again on
+    the next run, and fails again until the record changes.</td></tr>
   <tr><td>F28-R11</td><td>A closing proof that settles the root shall be asked step 9 as any proof of
     the root is (v3.20); every other closing proof merges with steps 1&ndash;8.</td></tr>
   <tr><td>F28-R12</td><td>The MCP's <code>list_sufficient_sets</code> and the problem page's Routes
@@ -158,11 +162,20 @@ v3.23, D-30.</p>
 <h2>9. Open questions / judgment calls</h2>
 <table>
   <tr><th>ID</th><th>Call made — for review</th></tr>
-  <tr><td>F28-Q1</td><td><strong>Which credential submits.</strong> Proposed: the post-merge job pushes
-    a <code>close/&lt;node&gt;</code> branch with the deploy key it already holds, and the merge actor,
-    whose token already has pull-request write, opens and merges it. No new secret, but C8's text for
-    both grows by one duty. The alternative is a service token for a "network" pseudonym, which is a
-    new secret. The owner's call.</td></tr>
+  <tr><td>F28-Q1</td><td><strong>Which credential submits: the merge token alone (owner's approval,
+    2026-10-15, "ok approval, merge, repin, deploy").</strong> Proposed as the deploy key for the push
+    and the merge token for the pull request; built with the merge token for both, since it already
+    holds contents and pull-request write, so one credential gains one reader instead of two gaining a
+    duty each, and the deploy key is untouched. C8 records the new reader. The token cannot start
+    workflows, so the closer does not dispatch the merge actor: each closing pull request's gate run
+    wakes it, as every gate run does.</td></tr>
+  <tr><td>F28-Q9</td><td><strong>The precheck a closing proof carries.</strong> The bounce rule (D-4)
+    requires an attached passing precheck attestation, and only the service signs one of kind
+    <code>service</code>. A bounce exemption for a file the gate composes itself was built and taken out
+    again the same hour: every target's <code>gate-spec.json</code> already accepts kind
+    <code>none</code>, the unsigned attestation any plain-git contributor may attach, so the closer
+    runs the precheck job's own code in the sandbox and attaches what it writes. No change to D-4, and
+    a closing proof that fails its precheck is never opened (R10).</td></tr>
   <tr><td>F28-Q2</td><td><strong>Derived at read, no schema.</strong> Like F27-Q1, the fact is computed
     from <code>graph.json</code> by one function the MCP and the site share, so it goes live without
     a re-pin. A product field can follow if a consumer needs it in the file.</td></tr>
@@ -208,14 +221,10 @@ v3.23, D-30.</p>
 </table>
 
 <h2>10. Status</h2>
-<div class="rule"><strong>status:</strong> in progress · <strong>Tasks:</strong> T1 done (the fact;
-10 tests red first, then green, six wrong versions each caught); T2 done (the composer and
-<code>opn-gate close</code>; 23 lean-tier cases, 5 red on the first run and fixed, Q6, Q7; 7 fast).
-T3 done (claims and variants: the exhibit or relation as a private helper, the input's proof as
-a use; Q8's step-2 defect fixed red first; 2 lean-tier cases). T0 waits on the owner's approval of
-the amendment's wording; T5 on Q1; T6 is the owner's act. T4 done (closable on
-<code>list_sufficient_sets</code> and the Routes section: an accent ring kept dashed, an accent
-border, a line naming each closable statement; red first; screenshots).</div>
+<div class="rule"><strong>status:</strong> built, going live · <strong>Tasks:</strong> T0 done
+(decisions v3.41 applied on the owner's approval, PROTOCOL_VERSION 3.41); T1&ndash;T4 done; T5 done
+(the closer, <code>close.yml</code> on graph branch <code>f28-close</code>; the ledger's rule for a join;
+the sweep; 12 tests); T6 is the first live run, after the re-pin.</div>
 
 <h2>Tasks</h2>
 <table>
@@ -257,8 +266,11 @@ border, a line naming each closable statement; red first; screenshots).</div>
     branches, the race and failure rules. Waits on Q1.</td>
     <td><code>../open_proof_network_graph/.github/workflows/gate.yml</code>,
     <code>../open_proof_network_graph/.github/workflows/merge.yml</code>,
-    <code>gate/opn_gate/</code>, <code>gate/tests/test_close_workflow.py</code></td>
-    <td>T2, Q1</td><td><code>uv run pytest gate/tests/test_close_workflow.py</code></td></tr>
+    <code>../open_proof_network_graph/.github/workflows/close.yml</code>,
+    <code>gate/opn_gate/cli.py</code>, <code>gate/opn_gate/close.py</code>,
+    <code>gate/tests/test_finding_close_job.py</code>, <code>gate/tests/test_close_admission.py</code>,
+    <code>engineering/specs/constitution.html</code></td>
+    <td>T2, Q1</td><td><code>uv run pytest gate/tests/test_finding_close_job.py gate/tests/test_close_admission.py</code></td></tr>
   <tr><td>F28-T6</td><td>Live: the closing proof of erdos-1094--h2--h2--h2--h2 through the gate (C19).
     An act on the record: the owner's.</td>
     <td><code>engineering/evidence/F28/</code></td><td>T2</td><td>live evidence</td></tr>

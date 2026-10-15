@@ -1,0 +1,12 @@
+# F28-T5: the closer — 2026-10-15T09:24:27Z
+  # F28-T5 red run (gate side), 2026-10-15T09:10:40Z: seams at today's behaviour
+  FAILED gate/tests/test_close_admission.py::test_no_block_is_bounced_unless_the_gate_composed_the_proof
+  FAILED gate/tests/test_close_admission.py::test_admission_compares_the_submission_with_what_the_gate_composes
+  FAILED gate/tests/test_close_admission.py::test_a_closing_proof_earns_no_ledger_line
+  3 failed, 1 passed in 36.49s
+  FAILED gate/tests/test_close_admission.py::test_gate_runs_a_closing_proof_without_a_precheck
+  1 failed, 6 passed in 3.20s
+The red run above includes tests of a bounce exemption that was then taken out (F28-Q9); the ledger test was red on the behaviour (the join was credited to opn-gate).
+## uv run pytest gate/tests/test_finding_close_job.py gate/tests/test_close_admission.py (graph branch f28-close)
+12 passed in 3.91s
+# Pre-commit make verify: 6354 passed, 1 failed (test_walkthrough::test_graph_copy_is_identical): the graph's AGENTS.md moved to b80e17ee7 (F17-T10's guide copy) while this branch's copy predates it; resolved by merging origin/main next.

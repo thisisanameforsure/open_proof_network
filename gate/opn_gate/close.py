@@ -40,6 +40,9 @@ BUILD_FAILED = "build-failed"
 COMPOSE_FAILED = "compose-failed"
 
 _DETAIL_CAP = 2000
+#: The identity a closing proof's commit is authored by: the gate's own reserved name, which no
+#: contributor can hold (D-19 v3.28), so the ledger can tell a join from a contribution.
+CLOSING_AUTHOR = "opn-gate"
 #: Where a link's composed file is written in the (scratch) tree, to be staged as the node's proof.
 LINK_FILE = ".opn-closing.lean"
 
@@ -79,6 +82,13 @@ def graph_doc(tree: Path, target_id: str) -> dict[str, Any]:
     path = tree / "targets" / target_id / "graph.json"
     doc: dict[str, Any] = json.loads(path.read_text(encoding="utf-8"))
     return doc
+
+
+def ready_nodes(graph: Mapping[str, Any]) -> list[str]:
+    """The nodes whose closing proof can be written now, in the record's order (F28-R7): every
+    input proved. A node closable only through another closable node waits for that one's merge,
+    whose post-merge run wakes the closer again."""
+    return [c.node for c in closing.closable(graph) if c.ready]
 
 
 def find(graph: Mapping[str, Any], node_id: str) -> closing.Closable | None:

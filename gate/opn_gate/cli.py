@@ -268,8 +268,16 @@ def build_parser() -> argparse.ArgumentParser:  # noqa: PLR0915 — one statemen
     cls.add_argument("--graph", required=True, type=Path, help="path to the graph checkout")
     cls.add_argument("--commit", default="HEAD", help="the graph commit to read (default HEAD)")
     cls.add_argument("--target", required=True)
-    cls.add_argument("--node", required=True)
-    cls.add_argument("--write", type=Path, help="also write the composed proof to this file")
+    cls.add_argument(
+        "--node", help="the node to close; without it, every node of --target ready to close"
+    )
+    cls.add_argument("--write", type=Path, help="with --node: also write the proof to this file")
+    cls.add_argument(
+        "--dest", type=Path, help="without --node: write each proof as <dest>/<target>/<node>.lean"
+    )
+    cls.add_argument(
+        "--skip", default="", help="without --node: comma-separated nodes not to compose"
+    )
     _add_sandbox_args(cls)
 
     gate = sub.add_parser("gate", help="the authoritative run on a pull request (gate.yml)")
@@ -1559,10 +1567,13 @@ def run_outline(args: argparse.Namespace, settings: config.Settings) -> int:
 
 
 def run_close(args: argparse.Namespace, settings: config.Settings) -> int:
-    """F28-T2: the closing proof of ``--node`` at ``--commit``, composed in the step-3 sandbox
-    from its merged assembly and its proved holes. One JSON document on stdout (``close.Result``);
-    with ``--write``, the proof is also written there. Exit 1 when no proof was composed. Writes
-    nothing to the graph: the proof is a proposal the gate judges (D-12 v3.41)."""
+    """F28-T2, T5: closing proofs at ``--commit``, composed in the step-3 sandbox from merged
+    assemblies (or links) and proved inputs. With ``--node``, that node's: one ``close.Result`` on
+    stdout, and with ``--write`` the proof written there. Without it, every node of ``--target``
+    that is ready to close, less ``--skip`` (the closing workflow's open pull requests): one
+    report ``{"commit", "target", "results"}``, each proof written to ``--dest``. No sandbox is
+    started when nothing is ready. Exit 1 when a node asked for got no proof. Writes nothing to
+    the graph: each proof is a proposal the gate judges (D-12 v3.41)."""
     del settings
     graph, commit = _checkout_and_commit(args.graph, args.commit)
     out_dir = _out_dir(args.out, "opn-close-")
@@ -1572,28 +1583,52 @@ def run_close(args: argparse.Namespace, settings: config.Settings) -> int:
         msg = f"target {args.target!r} has no gate-spec.json at {commit[:12]}"
         raise CliError(msg)
     spec = schemas.load_json(spec_path, "gate-spec/v1")
-    workdir = out_dir / "work"
-    workdir.mkdir(parents=True, exist_ok=True)
-    image = args.image or ensure_image(dict(spec), build=not args.no_build)
-    seam = sandbox.SandboxToolchain(image, sandbox.Caps.from_spec(dict(spec)), read_write=[workdir])
-    tc = seam.resolve(
-        str(spec["lean_toolchain"]),
-        mathlib_sha=str(spec["mathlib_sha"]) if spec.get("mathlib_sha") else None,
-    )
-    result = close.compose(
-        seam,
-        tc,
-        tree,
-        args.target,
-        args.node,
-        workdir,
-        timeout_s=float(spec["step3_caps"]["wallclock_s"]),
-    )
-    if args.write is not None and result.proof is not None:
-        args.write.write_text(result.proof, encoding="utf-8")
-    doc = {"commit": commit, **result.as_dict()}
-    sys.stdout.write(json.dumps(doc, ensure_ascii=False) + "\n")
-    return EXIT_PASS if result.ok else EXIT_FAIL
+    skip = {s for s in args.skip.split(",") if s}
+    if args.node is not None:
+        nodes = [args.node]
+    else:
+        ready = close.ready_nodes(close.graph_doc(tree, args.target))
+        nodes = [n for n in ready if n not in skip]
+    results: list[close.Result] = []
+    if nodes:
+        workdir = out_dir / "work"
+        workdir.mkdir(parents=True, exist_ok=True)
+        image = args.image or ensure_image(dict(spec), build=not args.no_build)
+        seam = sandbox.SandboxToolchain(
+            image, sandbox.Caps.from_spec(dict(spec)), read_write=[workdir]
+        )
+        tc = seam.resolve(
+            str(spec["lean_toolchain"]),
+            mathlib_sha=str(spec["mathlib_sha"]) if spec.get("mathlib_sha") else None,
+        )
+        timeout_s = float(spec["step3_caps"]["wallclock_s"])
+        for node in nodes:
+            results.append(
+                close.compose(
+                    seam, tc, tree, args.target, node, workdir / node, timeout_s=timeout_s
+                )
+            )
+    if args.node is not None:
+        [result] = results
+        if args.write is not None and result.proof is not None:
+            args.write.write_text(result.proof, encoding="utf-8")
+        doc: dict[str, Any] = {"commit": commit, **result.as_dict()}
+        sys.stdout.write(json.dumps(doc, ensure_ascii=False) + "\n")
+        return EXIT_PASS if result.ok else EXIT_FAIL
+    if args.dest is not None:
+        for r in results:
+            if r.proof is not None:
+                path = args.dest / args.target / f"{r.node}.lean"
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text(r.proof, encoding="utf-8")
+    report = {
+        "commit": commit,
+        "target": args.target,
+        "skipped": sorted(skip),
+        "results": [r.as_dict() for r in results],
+    }
+    sys.stdout.write(json.dumps(report, ensure_ascii=False) + "\n")
+    return EXIT_PASS if all(r.ok for r in results) else EXIT_FAIL
 
 
 def run_gate(args: argparse.Namespace, settings: config.Settings) -> int:
@@ -3725,6 +3760,13 @@ def _write_merge_entries(
 ) -> int:
     """R12 for the building modes and appends: every entry the merge earns, written once."""
     identity = proposer_of(graph, commit)
+    if identity == close.CLOSING_AUTHOR:
+        # F28-T5 (D-12 v3.41): a closing proof is a join; the assembly and the holes' proofs it
+        # joins earned their own lines, and the network is never an author.
+        nothing["reason"] = (
+            f"a closing proof by {close.CLOSING_AUTHOR} is a join and earns no line (D-12 v3.41)"
+        )
+        return _say(nothing)
     date = graphmod.commit_timestamp(graph, commit)
     tooling = ledger.merge_tooling(graph, commit)
     automation = ledger.merge_automation(graph, commit)  # F25-R3: the block, or None
