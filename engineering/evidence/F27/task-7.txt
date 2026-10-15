@@ -1,0 +1,103 @@
+$ uv run --with playwright pytest site/tests/test_routes_view.py gate/tests/test_target_routes.py api/tests/test_routes_mcp.py -v
+site/tests/test_routes_view.py::test_routes_section_structure PASSED     [  2%]
+site/tests/test_routes_view.py::test_ids_are_escaped PASSED              [  5%]
+site/tests/test_routes_view.py::test_more_than_eight_sets_are_grey_and_the_section_says_so PASSED [  8%]
+site/tests/test_routes_view.py::test_a_target_with_no_route_has_no_section PASSED [ 10%]
+site/tests/test_routes_view.py::test_the_problem_page_carries_the_section_after_the_statement_graph PASSED [ 13%]
+site/tests/test_routes_view.py::test_a_problem_page_without_routes_has_no_section PASSED [ 16%]
+site/tests/test_routes_view.py::test_selection_lights_one_set_and_layout_is_fixed PASSED [ 18%]
+site/tests/test_routes_view.py::test_set_labels_are_inside_the_drawing PASSED [ 21%]
+gate/tests/test_target_routes.py::test_a_root_with_no_routes_is_its_own_set PASSED [ 24%]
+gate/tests/test_target_routes.py::test_and_takes_every_hole_of_a_route PASSED [ 27%]
+gate/tests/test_target_routes.py::test_or_gives_one_set_per_route PASSED [ 29%]
+gate/tests/test_target_routes.py::test_and_expands_through_nested_routes PASSED [ 32%]
+gate/tests/test_target_routes.py::test_proved_interior_node_cuts_its_descendants PASSED [ 35%]
+gate/tests/test_target_routes.py::test_dead_route_contributes_no_set PASSED [ 37%]
+gate/tests/test_target_routes.py::test_every_route_dead_falls_back_to_a_direct_proof PASSED [ 40%]
+gate/tests/test_target_routes.py::test_direct_proof_needs_its_declared_dependencies PASSED [ 43%]
+gate/tests/test_target_routes.py::test_cycle_through_a_lemma_is_dropped PASSED [ 45%]
+gate/tests/test_target_routes.py::test_resolves_variant_is_an_alternative PASSED [ 48%]
+gate/tests/test_target_routes.py::test_proved_root_is_one_closed_set PASSED [ 51%]
+gate/tests/test_target_routes.py::test_every_statement_proved_leaves_the_assemblies PASSED [ 54%]
+gate/tests/test_target_routes.py::test_finest_keeps_every_full_expansion_any_drops_the_dominated PASSED [ 56%]
+gate/tests/test_target_routes.py::test_unnamed_holes_assigned_or_unresolved PASSED [ 59%]
+gate/tests/test_target_routes.py::test_a_superseded_hole_is_followed_to_its_revision PASSED [ 62%]
+gate/tests/test_target_routes.py::test_route_summary_aggregates_the_frontier_facts PASSED [ 64%]
+gate/tests/test_target_routes.py::test_entries_of_another_target_are_ignored PASSED [ 67%]
+gate/tests/test_target_routes.py::test_circular_member_is_marked_not_removed PASSED [ 70%]
+gate/tests/test_target_routes.py::test_any_cut_adds_coarser_sets_up_to_cap PASSED [ 72%]
+gate/tests/test_target_routes.py::test_unknown_cut_is_refused PASSED     [ 75%]
+gate/tests/test_target_routes.py::test_as_dict_round_trips_through_json PASSED [ 78%]
+gate/tests/test_target_routes.py::test_live_shape_sets_close_the_root PASSED [ 81%]
+gate/tests/test_target_routes.py::test_live_shape_with_unnamed_holes PASSED [ 83%]
+gate/tests/test_target_routes.py::test_cap_counts_minimal_sets_not_intermediate_combinations PASSED [ 86%]
+gate/tests/test_target_routes.py::test_finest_sets_reach_the_leaves PASSED [ 89%]
+api/tests/test_routes_mcp.py::test_list_sufficient_sets_round_trip PASSED [ 91%]
+api/tests/test_routes_mcp.py::test_cut_any_adds_the_coarser_sets_up_to_the_cap PASSED [ 94%]
+api/tests/test_routes_mcp.py::test_unknown_target_and_bad_cut_are_refused PASSED [ 97%]
+api/tests/test_routes_mcp.py::test_a_target_with_no_routes_is_its_own_set PASSED [100%]
+======================== 37 passed, 2 warnings in 5.00s ========================
+
+# red before the change: 4 library tests (assert 2 == 4; [[t--h1]] == [[t--h1], [...]]) and 2 site tests (no .set-label in the drawing)
+
+# task-7-shoot.py on erdos-1094 at graph aa8802fad: positions relative to the drawing
+{
+ "graph_commit": "aa8802fadd333bc7e09d6b109e12c6feca5848e8",
+ "labels_on_load": [
+  [
+   "Set 1",
+   true
+  ],
+  [
+   "Set 2",
+   false
+  ],
+  [
+   "Set 3",
+   false
+  ],
+  [
+   "Set 4",
+   false
+  ]
+ ],
+ "state_on_load": {
+  "lit": 45,
+  "nodes": 50,
+  "lines_lit": 45,
+  "lines": 53,
+  "wedges_off": 26,
+  "wedges": 37,
+  "picking": true
+ },
+ "labels_overlapping_nodes": 0,
+ "labels_after_clicking_set_3": [
+  [
+   "Set 1",
+   false
+  ],
+  [
+   "Set 2",
+   false
+  ],
+  [
+   "Set 3",
+   true
+  ],
+  [
+   "Set 4",
+   false
+  ]
+ ],
+ "state_set_3": {
+  "lit": 45,
+  "nodes": 50,
+  "lines_lit": 47,
+  "lines": 53,
+  "wedges_off": 26,
+  "wedges": 37,
+  "picking": true
+ },
+ "moved": false,
+ "page_scroll_width_390": 390
+}

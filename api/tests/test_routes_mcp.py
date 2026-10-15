@@ -54,7 +54,7 @@ def test_list_sufficient_sets_round_trip(harness: Harness) -> None:
     assert {k: v for k, v in got.items() if k != "read_at"} == expected
     assert got["cut"] == "finest"
     assert len(got["routes"]) == 16
-    assert len(got["sets"]) == 2
+    assert len(got["sets"]) == 4  # every full expansion (F27-T7)
     assert isinstance(got["read_at"], str)
 
 

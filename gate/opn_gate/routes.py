@@ -16,8 +16,10 @@ documents and cannot disagree (F27-Q1).
 The published sets are the *finest* cuts: an open node is expanded into each of its live routes
 and taken directly only where none is live; a proved node ends the cut as a closed member. With
 ``cut="any"`` an open node is also taken directly in place of its routes, which yields every
-coarser cut (F27-Q2). Either way only minimal sets are kept: a set whose open statements strictly
-contain another's says nothing the smaller one does not. Sets are listed in the order the record
+coarser cut (F27-Q2). The finest cuts are every full expansion, one per choice of routes, even
+one whose open statements strictly contain another's (F27-T7, the owner's ruling); among the
+coarser cuts only minimal sets are kept, since a set containing another says nothing the smaller
+one does not. Sets are listed in the order the record
 gives them — the root's routes in their merge order, then a direct proof, then the variants — and
 never ranked (D-25).
 """
@@ -407,7 +409,10 @@ class _Enumerator:
                 self.truncated = True
                 break
             out.setdefault(o.key(), o)
-        kept = _minimal(list(out.values()), self.rows)
+        # F27-T7 (the owner, 2026-10-15): the finest cuts keep every full expansion, one per
+        # choice of routes, even one that needs strictly more than another; only the coarser cuts,
+        # which number in the hundreds, keep the minimal ones alone.
+        kept = _minimal(list(out.values()), self.rows) if self.cut == "any" else list(out.values())
         if len(kept) > self.max_sets:
             self.truncated = True
             kept = kept[: self.max_sets]

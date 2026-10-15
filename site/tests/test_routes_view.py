@@ -264,12 +264,31 @@ SNAPSHOT = """() => {
 }"""
 
 
-def test_selection_lights_one_set_and_layout_is_fixed(tmp_path: Path) -> None:
-    """AC11."""
+def test_selection_lights_one_set_and_layout_is_fixed(tmp_path: Path) -> None:  # noqa: PLR0915 — one browser session, each state it passes through
+    """AC11, F27-T7: the first set is selected when the page loads, its label highlighted and its
+    statements and lines lit; clicking another set's label in the drawing selects that one;
+    clicking it again, or Escape, clears; a row still previews and selects; nothing moves."""
     sync_api = pytest.importorskip("playwright.sync_api")
     out = tmp_path / "site"
     render.write(render_tree(two_routes(tmp_path / "g")), out)
     handler = functools.partial(Quiet, directory=str(out))
+
+    def members(pg: Any, set_id: str) -> list[str]:
+        found: list[str] = pg.evaluate(
+            "id => [...document.querySelectorAll('svg.routes-svg [data-node]')]"
+            ".filter(g => (g.getAttribute('data-sets') || '').split(' ').includes(id))"
+            ".map(g => g.getAttribute('data-node'))",
+            set_id,
+        )
+        return found
+
+    def pressed(pg: Any) -> list[str]:
+        found: list[str] = pg.evaluate(
+            "() => [...document.querySelectorAll('svg.routes-svg .set-label.selected')]"
+            ".map(g => g.getAttribute('data-set'))"
+        )
+        return found
+
     with socketserver.TCPServer(("127.0.0.1", 0), handler) as srv:
         threading.Thread(target=srv.serve_forever, daemon=True).start()
         with sync_api.sync_playwright() as p:
@@ -279,38 +298,79 @@ def test_selection_lights_one_set_and_layout_is_fixed(tmp_path: Path) -> None:
             pg.goto(f"http://127.0.0.1:{srv.server_address[1]}/problems/{TARGET}/")
             pg.wait_for_load_state("networkidle")
             pg.locator(".routes-section").scroll_into_view_if_needed()
-            before = pg.evaluate(SNAPSHOT)
-            assert before["dim"] == [] and before["wedgesOff"] == 0
-            rows = pg.locator("tr.set-row")
-            first = rows.nth(0)
-            set_id = first.get_attribute("data-set")
-            # Hover previews; clicking selects; the mouse then leaves and the selection holds.
-            first.hover()
-            hovered = pg.evaluate(SNAPSHOT)
-            first.click()
-            pg.mouse.move(5, 5)
-            selected = pg.evaluate(SNAPSHOT)
-            members = pg.evaluate(
-                "id => [...document.querySelectorAll('svg.routes-svg [data-node]')]"
-                ".filter(g => (g.getAttribute('data-sets') || '').split(' ').includes(id))"
-                ".map(g => g.getAttribute('data-node'))",
-                set_id,
-            )
+            labels = pg.locator("svg.routes-svg .set-label")
+            first_id = labels.nth(0).get_attribute("data-set")
+            second_id = labels.nth(1).get_attribute("data-set")
+            assert first_id and second_id
+            loaded = pg.evaluate(SNAPSHOT)
+            loaded_pressed = pressed(pg)
+            first_members = members(pg, first_id)
             lit_lines = pg.evaluate(
                 "() => document.querySelectorAll('svg.routes-svg .rline.lit').length"
             )
-            assert first.get_attribute("aria-selected") == "true"
-            pg.keyboard.press("Escape")
+            row_selected = pg.locator("tr.set-row").nth(0).get_attribute("aria-selected")
+            labels.nth(1).click()
+            pg.mouse.move(5, 5)
+            second = pg.evaluate(SNAPSHOT)
+            second_pressed = pressed(pg)
+            second_members = members(pg, second_id)
+            labels.nth(1).click()
+            pg.mouse.move(5, 5)
             cleared = pg.evaluate(SNAPSHOT)
+            cleared_pressed = pressed(pg)
+            # A row still previews on hover and selects on click; Escape clears.
+            rows = pg.locator("tr.set-row")
+            rows.nth(0).hover()
+            hovered = pg.evaluate(SNAPSHOT)
+            rows.nth(0).click()
+            pg.mouse.move(5, 5)
+            by_row = pressed(pg)
+            pg.keyboard.press("Escape")
+            escaped = pg.evaluate(SNAPSHOT)
             b.close()
-    for snap in (hovered, selected):
-        assert sorted(snap["lit"]) == sorted(members), snap
-        assert snap["dim"], "nothing was dimmed"
-        assert snap["boxes"] == before["boxes"], "a node moved"
-        assert snap["wedgesOff"] > 0, "no other set's wedge was dimmed"
+    assert loaded_pressed == [first_id]
+    assert row_selected == "true"
+    assert sorted(loaded["lit"]) == sorted(first_members)
+    assert loaded["dim"], "nothing was dimmed on load"
+    assert loaded["wedgesOff"] > 0
     # The first set is [h1, h2] with the root's first route: h3 and the second route are dimmed.
-    assert HOLE_IDS[0] in members and HOLE_IDS[1] in members and THIRD not in members
-    assert f"{ROOT_NODE}@1" in members and f"{ROOT_NODE}@2" not in members
+    assert HOLE_IDS[0] in first_members and HOLE_IDS[1] in first_members
+    assert THIRD not in first_members
+    assert f"{ROOT_NODE}@1" in first_members and f"{ROOT_NODE}@2" not in first_members
     assert lit_lines == 3  # root to junction, junction to h1 and to h2
-    assert cleared["dim"] == [] and cleared["wedgesOff"] == 0
-    assert cleared["boxes"] == before["boxes"]
+    assert second_pressed == [second_id]
+    assert sorted(second["lit"]) == sorted(second_members)
+    assert THIRD in second_members
+    assert cleared_pressed == [] and cleared["dim"] == [] and cleared["wedgesOff"] == 0
+    assert sorted(hovered["lit"]) == sorted(first_members)
+    assert by_row == [first_id]
+    assert escaped["dim"] == [] and escaped["wedgesOff"] == 0
+    for snap in (second, cleared, hovered, escaped):
+        assert snap["boxes"] == loaded["boxes"], "a node moved"
+
+
+def test_set_labels_are_inside_the_drawing() -> None:
+    """F27-T7: one label per set, stacked down the drawing's left edge inside the SVG, in the
+    table's order, each naming its set and a button a keyboard can reach; the statements sit to
+    the right of the column, so no label covers one."""
+    html = routes_view.section(doc(), [], href={}, prefix="t").html
+    start = html.index('<svg class="routes-svg"')
+    drawing = html[start : html.index("</svg>", start)]
+    tags = re.findall(r'<g class="set-label[^"]*"[^>]*>.*?</g>', drawing, re.S)
+    rows = re.findall(r'<tr class="set-row[^"]*" data-set="([^"]+)"', html)
+    assert len(tags) == len(rows) >= 2
+    ys = []
+    for k, (tag, sid) in enumerate(zip(tags, rows, strict=True), start=1):
+        assert f'data-set="{sid}"' in tag
+        assert 'role="button"' in tag and 'tabindex="0"' in tag
+        assert f">Set {k}<" in tag
+        m = re.search(r'transform="translate\(([\d.]+),([\d.]+)\)"', tag)
+        assert m is not None
+        assert float(m.group(1)) < routes_view.LABEL_COLUMN
+        ys.append(float(m.group(2)))
+    assert ys == sorted(ys) and len(set(ys)) == len(ys), "labels are not stacked vertically"
+    xs = [
+        float(x)
+        for x in re.findall(r'<g class="rnode[^"]*"[^>]*transform="translate\(([\d.]+),', drawing)
+    ]
+    assert xs and min(xs) >= routes_view.LABEL_COLUMN, "a statement sits under the label column"
