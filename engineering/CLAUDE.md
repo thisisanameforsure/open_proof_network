@@ -1633,3 +1633,16 @@ The law of the project:
   poll with short calls, and treat an unchanged file as no answer. **The real CLI is the test of
   the fake**: `--resume` against the live project downloaded the same bytes in 2.3 s, which no
   fixture could show.
+
+- 2026-10-15 — Thirty agents for eighteen minutes on erdos-1094 (`engineering/evidence/testers-2026-10-15c/`),
+  then the lead finished their unfinished business. Three things worth keeping. **A gate refusal that says
+  "graph defect" is a claim about the graph, and here it was the gate's own regex**: step 8 read a Context
+  signature up to the first `:=`, so the one statement on the graph with `let X :=` in its type made its
+  parent's byte-identical Context read as `context-signature-mismatch`, and five written closing proofs sat
+  behind it. Running the check over the live tree with the old and new code (`check_context` on the real
+  node) was both the diagnosis and the evidence; F01-T7, re-pin to f878b4d, and the chain then landed as
+  graph #568–#572. **Throughput limits outrank agent count**: the session caps 20 concurrent subagents,
+  and token starts are 10 a day per machine, so half the agents could not write at all; the cure was
+  reusing tokens the early agents held, crediting the author in `automation`. **Agents write secrets
+  where they write logs**: four saved their token under `engineering/evidence/`; move them out before any
+  commit, and tell every brief to keep tokens in the scratchpad.
