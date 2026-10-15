@@ -1,0 +1,16 @@
+-- hole: h_kon
+
+import Mathlib
+
+open scoped Nat
+
+theorem witness : ∃ (lam : ℝ) (n : ℤ) (k : ℕ) (r : ℕ),
+  (1 : ℝ) ≤ lam ∧ (↑k : ℤ) < n ∧ (2 : ℕ) ≤ r ∧ (↑r : ℝ) ≤ (1 / 2 : ℝ) * (↑k : ℝ) ^ ((1 : ℝ) - (21 / 40 : ℝ)) := by
+  refine ⟨1, 2 ^ 40 + 1, 2 ^ 40, 2, le_refl _, ?_, le_refl _, ?_⟩
+  · norm_num
+  · have h : ((2 ^ 40 : ℕ) : ℝ) ^ ((1 : ℝ) - (21 / 40 : ℝ)) = (2 : ℝ) ^ (19 : ℕ) := by
+      rw [show (1 : ℝ) - 21 / 40 = 19 / 40 by norm_num, Nat.cast_pow, Nat.cast_ofNat,
+        ← Real.rpow_natCast (2 : ℝ) 40, ← Real.rpow_mul (by norm_num)]
+      rw [show ((40 : ℕ) : ℝ) * (19 / 40) = ((19 : ℕ) : ℝ) by norm_num, Real.rpow_natCast]
+    rw [h]
+    norm_num

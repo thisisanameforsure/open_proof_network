@@ -1,0 +1,296 @@
+{
+ "id": "01M4YNPJ5RZP5VS0F3PMHC3PGZ",
+ "node_id": "erdos-1094--h2--h2--h2--h3",
+ "target_id": "erdos-1094",
+ "state": "done",
+ "created": "2026-10-15T02:19:15Z",
+ "graph_commit": "14c4ddbade6fee4b7db7c366bba742084781c2d1",
+ "bundle_digest": "6b0d5bcd3cf1fe0aefd45c18b241f6bc2be010e55fcf9968651fc8b7cfcfab7f",
+ "authenticated": true,
+ "automation": null,
+ "result": {
+  "attestation": {
+   "artifact_hash": null,
+   "automation": null,
+   "diagnostic": null,
+   "first_failing_step": null,
+   "footprint": {
+    "nodes": []
+   },
+   "gate_spec_hash": "d1ba804785bd7d0b3d74c2692b423f5bd464b297123cbc64f6f128dd181178bd",
+   "graph_commit": "14c4ddbade6fee4b7db7c366bba742084781c2d1",
+   "graph_id": "erdos-1094",
+   "lean_toolchain": "leanprover/lean4:v4.33.1",
+   "mathlib_sha": "0df444a360eaa60ab8c11dca51a86af692955474",
+   "merge_commit": null,
+   "model_and_tooling": "undeclared",
+   "network_commit": "7e153a12f0cef18386e0c783dfa76674adbbc32b",
+   "node_id": "erdos-1094--h2--h2--h2--h3",
+   "precheck_attestation": {
+    "hash": null,
+    "signature_kind": null
+   },
+   "review": null,
+   "runner": "hosted",
+   "schema": "attestation/v7",
+   "signature": {
+    "key_id": "SHA256:bJR39nO37EkRaxo4CPqdhcHk+WL+sEnAJ9ujpkF7LXo",
+    "kind": "service",
+    "timestamp": "2026-10-15T02:23:13Z",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAg4NVeR5WlT1J5vaHpDOmXNTurS+\nKqTYJTovSCpPj5G/IAAAAPb3BuLWF0dGVzdGF0aW9uAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQBaDwt5bYZgJTyu0MH0Twe9Svz/2Q2MgQBHqBh5u/ykp9agMky\n9rdUAr/yOiPAg31tWN7/kl3mCk6O2Rpifn/Qk=\n-----END SSH SIGNATURE-----\n"
+   },
+   "statement_hash": "aa1d8846a942bf64236808bee080184644e83aeae9507d2437e4fa74bd06259c",
+   "steps": [
+    {
+     "diagnostic": {
+      "code": "mathlib-pinned",
+      "details": {
+       "mathlib_sha": "0df444a360eaa60ab8c11dca51a86af692955474",
+       "packages": 8
+      },
+      "message": "Mathlib 0df444a360ea resolved from the pinned checkout"
+     },
+     "name": "toolchain",
+     "result": "pass",
+     "step": 1
+    },
+    {
+     "diagnostic": {
+      "code": "partial-submission",
+      "details": {
+       "path": "attempts/20261015T021346Z-t1015-r-partial.lean"
+      },
+      "message": "a partial proof: attempts/20261015T021346Z-t1015-r-partial.lean (D-12 #5)"
+     },
+     "name": "paths",
+     "result": "pass",
+     "step": 2
+    },
+    {
+     "diagnostic": {
+      "code": "artifact-reduction",
+      "details": {
+       "holes": [
+        "h_kon"
+       ],
+       "kind": "partial"
+      },
+      "message": "partial: erdos_1094__h2__h2__h2__h3 declares (¬∃ C,\n      0 < C ∧\n        ∃ k₀,\n          ∀ (k : ℕ),\n            k₀ ≤ k →\n              C * ↑k ^ (21 / 40) / Real.log ↑k ≤\n                ↑{p ∈ Finset.Ioo ⌊↑k⌋ ⌈↑k + ↑k ^ (21 / 40)⌉ |\n                      0 < p ∧ Nat.Prime p.natAbs ∧ ↑k < ↑p ∧ ↑p < ↑k + ↑k ^ (21 / 40)}.card) ∨\n  ∃ k₀,\n    ∀ (k : ℕ),\n      k₀ ≤ k →\n        ∀ (n : ℤ),\n          ↑k ^ 2 / Real.log ↑k ^ 2 < ↑n →\n            ↑n ≤ 1 / 2 * ↑k ^ (2 + 21 / 40) →\n              ∃ p, Nat.Prime p ∧ ↑k < ↑p ∧ ↑p < ↑k + 3 * ↑k ^ (21 / 40) ∧ ↑p ∣ ∏ i ∈ Finset.Icc 1 k, (n - ↑i); 1 hole(s)"
+     },
+     "name": "kernel-replay",
+     "result": "pass",
+     "step": 4
+    },
+    {
+     "diagnostic": null,
+     "name": "axioms",
+     "result": "pass",
+     "step": 5
+    },
+    {
+     "diagnostic": {
+      "code": "hazards-derived-statement",
+      "details": {
+       "acknowledged": [],
+       "checkers": [
+        "div-zero",
+        "int-trunc",
+        "junk-value",
+        "nat-sub",
+        "off-by-one-range",
+        "unused-binder"
+       ],
+       "findings": [
+        {
+         "checker": "div-zero",
+         "location": "C * ↑k ^ (21 / 40) / Real.log ↑k",
+         "message": "division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"
+        },
+        {
+         "checker": "div-zero",
+         "location": "↑k ^ 2 / Real.log ↑k ^ 2",
+         "message": "division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"
+        },
+        {
+         "checker": "off-by-one-range",
+         "location": "Finset.Icc 1 k",
+         "message": "Finset.Icc with a literal-adjusted bound: check whether the endpoint is included"
+        }
+       ],
+       "origin": "skeleton-hole"
+      },
+      "message": "3 hazard finding(s) on a statement the gate derived from a merged assembly, recorded and not refused; first: div-zero at C * ↑k ^ (21 / 40) / Real.log ↑k: division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"
+     },
+     "name": "hazards",
+     "result": "pass",
+     "step": 6
+    },
+    {
+     "diagnostic": {
+      "code": "hole-witnesses",
+      "details": {
+       "witnesses": [
+        {
+         "hole": "h_kon",
+         "path": "attempts/20261015T021346Z-t1015-r-partial.1.witness",
+         "sha256": "b47c6efd53c9a962827265483160343993a0ab86575a34bba7d5c006ef8a07fa"
+        }
+       ]
+      },
+      "message": "1 of 1 hole(s) carry a witness, each checked as step 7 checks a node's (F07-R23)"
+     },
+     "name": "witness",
+     "result": "pass",
+     "step": 7
+    },
+    {
+     "diagnostic": null,
+     "name": "deps",
+     "result": "pass",
+     "step": 8
+    }
+   ],
+   "submitter": null,
+   "toolchain_hash": "f54d0bc916bf76a7fae460ce9d078ccd1f74aeb4fd12c4b6546bca28b6aa1c63",
+   "tooling": {
+    "harness": null,
+    "model": null
+   },
+   "trust_base": "kernel",
+   "verdict": "pass"
+  },
+  "automation": null,
+  "bundle_digest": "6b0d5bcd3cf1fe0aefd45c18b241f6bc2be010e55fcf9968651fc8b7cfcfab7f",
+  "first_failing_step": null,
+  "holes": [
+   {
+    "closed_type": "∀ (lam : ℝ),\n  (1 : ℝ) ≤ lam →\n    ∀ (n : ℤ) (k r : ℕ),\n      (↑k : ℤ) < n →\n        (2 : ℕ) ≤ r →\n          (↑r : ℝ) ≤ (1 / 2 : ℝ) * (↑k : ℝ) ^ ((1 : ℝ) - (21 / 40 : ℝ)) →\n            (↑{m ∈ Finset.Ioo (↑k : ℤ) ((↑k : ℤ) + ⌊(↑k : ℝ) ^ (21 / 40 : ℝ)⌋ + (2 : ℤ)) |\n                      (↑k : ℤ) < m ∧\n                        (↑m : ℝ) < (↑k : ℝ) + (↑k : ℝ) ^ (21 / 40 : ℝ) ∧\n                          |(↑n : ℝ) / (↑m : ℝ) - (↑(round ((↑n : ℝ) / (↑m : ℝ))) : ℝ)| <\n                            (1 : ℝ) / (↑k : ℝ) ^ ((1 : ℝ) - (21 / 40 : ℝ))}.card :\n                ℝ) <\n              (65536 : ℝ) * (↑k : ℝ) ^ (21 / 40 : ℝ) *\n                  (((↑n : ℝ) * (↑r.factorial : ℝ) * lam ^ r / (↑k : ℝ) ^ (r + (1 : ℕ))) ^\n                        ((2 : ℝ) * (↑r : ℝ) - (1 : ℝ))⁻¹ +\n                      ((↑k : ℝ) ^ ((↑r : ℝ) + (21 / 40 : ℝ)) / ((↑n : ℝ) * (↑r.factorial : ℝ) * lam ^ r)) ^\n                        ((↑r : ℝ) - (1 : ℝ))⁻¹ +\n                    (((↑r : ℝ) + (1 : ℝ)) * lam / (↑k : ℝ)) ^ ((2 : ℝ) * (↑r : ℝ))⁻¹) +\n                (2 : ℝ) * (↑r : ℝ) * lam",
+    "expected_new": true,
+    "expected_node_id": "erdos-1094--h2--h2--h2--h3--h1",
+    "expected_witness": "∃ (lam : ℝ) (n : ℤ) (k : ℕ) (r : ℕ),\n  (1 : ℝ) ≤ lam ∧ (↑k : ℤ) < n ∧ (2 : ℕ) ≤ r ∧ (↑r : ℝ) ≤ (1 / 2 : ℝ) * (↑k : ℝ) ^ ((1 : ℝ) - (21 / 40 : ℝ))",
+    "name": "h_kon",
+    "proved_binders": [],
+    "restates": null,
+    "witness": {
+     "checked": true,
+     "path": "attempts/20261015T021346Z-t1015-r-partial.1.witness",
+     "sha256": "b47c6efd53c9a962827265483160343993a0ab86575a34bba7d5c006ef8a07fa"
+    }
+   }
+  ],
+  "job_id": "01M4YNPJ5RZP5VS0F3PMHC3PGZ",
+  "node_id": "erdos-1094--h2--h2--h2--h3",
+  "steps": [
+   {
+    "diagnostic": {
+     "code": "mathlib-pinned",
+     "details": {
+      "mathlib_sha": "0df444a360eaa60ab8c11dca51a86af692955474",
+      "packages": 8
+     },
+     "message": "Mathlib 0df444a360ea resolved from the pinned checkout"
+    },
+    "name": "toolchain",
+    "result": "pass",
+    "step": 1
+   },
+   {
+    "diagnostic": {
+     "code": "partial-submission",
+     "details": {
+      "path": "attempts/20261015T021346Z-t1015-r-partial.lean"
+     },
+     "message": "a partial proof: attempts/20261015T021346Z-t1015-r-partial.lean (D-12 #5)"
+    },
+    "name": "paths",
+    "result": "pass",
+    "step": 2
+   },
+   {
+    "diagnostic": {
+     "code": "artifact-reduction",
+     "details": {
+      "holes": [
+       "h_kon"
+      ],
+      "kind": "partial"
+     },
+     "message": "partial: erdos_1094__h2__h2__h2__h3 declares (¬∃ C,\n      0 < C ∧\n        ∃ k₀,\n          ∀ (k : ℕ),\n            k₀ ≤ k →\n              C * ↑k ^ (21 / 40) / Real.log ↑k ≤\n                ↑{p ∈ Finset.Ioo ⌊↑k⌋ ⌈↑k + ↑k ^ (21 / 40)⌉ |\n                      0 < p ∧ Nat.Prime p.natAbs ∧ ↑k < ↑p ∧ ↑p < ↑k + ↑k ^ (21 / 40)}.card) ∨\n  ∃ k₀,\n    ∀ (k : ℕ),\n      k₀ ≤ k →\n        ∀ (n : ℤ),\n          ↑k ^ 2 / Real.log ↑k ^ 2 < ↑n →\n            ↑n ≤ 1 / 2 * ↑k ^ (2 + 21 / 40) →\n              ∃ p, Nat.Prime p ∧ ↑k < ↑p ∧ ↑p < ↑k + 3 * ↑k ^ (21 / 40) ∧ ↑p ∣ ∏ i ∈ Finset.Icc 1 k, (n - ↑i); 1 hole(s)"
+    },
+    "name": "kernel-replay",
+    "result": "pass",
+    "step": 4
+   },
+   {
+    "diagnostic": null,
+    "name": "axioms",
+    "result": "pass",
+    "step": 5
+   },
+   {
+    "diagnostic": {
+     "code": "hazards-derived-statement",
+     "details": {
+      "acknowledged": [],
+      "checkers": [
+       "div-zero",
+       "int-trunc",
+       "junk-value",
+       "nat-sub",
+       "off-by-one-range",
+       "unused-binder"
+      ],
+      "findings": [
+       {
+        "checker": "div-zero",
+        "location": "C * ↑k ^ (21 / 40) / Real.log ↑k",
+        "message": "division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"
+       },
+       {
+        "checker": "div-zero",
+        "location": "↑k ^ 2 / Real.log ↑k ^ 2",
+        "message": "division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"
+       },
+       {
+        "checker": "off-by-one-range",
+        "location": "Finset.Icc 1 k",
+        "message": "Finset.Icc with a literal-adjusted bound: check whether the endpoint is included"
+       }
+      ],
+      "origin": "skeleton-hole"
+     },
+     "message": "3 hazard finding(s) on a statement the gate derived from a merged assembly, recorded and not refused; first: div-zero at C * ↑k ^ (21 / 40) / Real.log ↑k: division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"
+    },
+    "name": "hazards",
+    "result": "pass",
+    "step": 6
+   },
+   {
+    "diagnostic": {
+     "code": "hole-witnesses",
+     "details": {
+      "witnesses": [
+       {
+        "hole": "h_kon",
+        "path": "attempts/20261015T021346Z-t1015-r-partial.1.witness",
+        "sha256": "b47c6efd53c9a962827265483160343993a0ab86575a34bba7d5c006ef8a07fa"
+       }
+      ]
+     },
+     "message": "1 of 1 hole(s) carry a witness, each checked as step 7 checks a node's (F07-R23)"
+    },
+    "name": "witness",
+    "result": "pass",
+    "step": 7
+   },
+   {
+    "diagnostic": null,
+    "name": "deps",
+    "result": "pass",
+    "step": 8
+   }
+  ],
+  "verdict": "pass"
+ },
+ "public": true
+}
