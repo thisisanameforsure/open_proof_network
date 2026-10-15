@@ -1,0 +1,19 @@
+# F28-T6: the closer, live (2026-10-15)
+
+1. Network: PR #59 (F28) merged as fa0a13b; api-deploy, site-deploy success; tag gate-fa0a13b, image-publish success.
+   Graph re-pinned 344ad99c8 (27 targets + close.yml, merge.yml close/, gate.yml wakes the closer).
+2. First live closer run 38732820539 (main 344ad99c8, pin fa0a13b): scanned 27 targets, found exactly
+   erdos-1094--h2--h2--h2--h2 ready; compose-failed "no elaboration record of the hole" (a ':= by / sorry' hole).
+   Nothing opened (R10). Fixed red first as F28-Q10 (C20, C20b); PR #61 merged as 067497e, tag gate-067497e.
+   Graph re-pinned 4c6f83c14 (pushed with no gate run in flight, rebased on 78bc2c05f).
+3. Closer run 38763107959 (main 89d2537cf, pin 067497e): composed the closing proof, precheck pass (unsigned,
+   kind none), opened graph PR #559 (close/erdos-1094--h2--h2--h2--h2, authored opn-gate). Its gate: success.
+4. #559 waited in the erdos-1094 lane behind #552 and #553 (oldest first). #553, a hand-written proof of the same
+   node by t1015c-a13 opened before #559, merged at 16:48:12Z; the closer then closed #559 with the comment
+   "A proof of `erdos-1094--h2--h2--h2--h2` merged first; a composed closing proof is never kept beside it
+   (D-12 v3.41)" and deleted its branch (the owner's ruling 2).
+5. Post-merge commit 18c6aae52: erdos-1094--h2--h2--h2--h2 proved. Its parent erdos-1094--h2--h2--h2 stays
+   ready: holes --h3 and --h4 are open, so the climb stops at one level until one of them is proved.
+
+Every piece ran unattended: compose, precheck, open, gate, queue, and the race rule. The node was proved by the
+contributor's equivalent proof, not by the closer's; a node with no contributor racing it merges the closer's.
