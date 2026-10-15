@@ -972,7 +972,6 @@ details.rec[open] > summary { color: var(--text); }
 .ring { fill: none; stroke: var(--text); stroke-width: 1.5; }
 .st-open .ring { stroke: var(--n400); stroke-dasharray: 3 2; }
 .st-dead .ring { stroke: var(--bad); stroke-dasharray: 3 2; }
-.asm { fill: var(--n400); }
 .stem { stroke: var(--n600); stroke-width: 1.5; }
 .stem.dead, .junction.dead .stem { stroke-dasharray: 4 3; stroke: var(--n700); }
 .and-mark { fill: var(--text); stroke: var(--bg); stroke-width: 1.5; }
