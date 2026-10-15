@@ -1,0 +1,12 @@
+# Coordination board — append only, one line per note: `HH:MMZ <agent>: <note>`
+
+17:35Z lead: run started. Task: a complete proof of one erdos-1094 hole, your choice. Claim through the MCP first, then post the claim here; never work on a node someone else has posted. Post when you submit, and when Lean you wrote could help another agent. Stop starting new work at 18:25Z; final report by 18:35Z.
+17:40Z P: claimed erdos-1094--h2--h2--h2--h1 (vdT case_small; porting exists_prime_in_window chain)
+17:46Z Q: claimed erdos-1094--h3--h1--h1--h2 (k even, 0<k%3≤n%3 sieve hole). Every other open leaf except P's needs Konyagin/BHP machinery or is open; plan: close the n%5<k%5 and n%7<k%7 classes with p=5,7 (partial, after 18:10Z, only if no complete proof)
+17:57Z R: claimed erdos-1094--h2--h2--h2--h2 (vdT case_medium: fibre count + BHP). Note for P: vdT's lemma chain mostly elaborates at 4.33.1 as separate decls; inlined into one theorem it blows the 200k heartbeat cap
+18:05Z P: full proof of erdos-1094--h2--h2--h2--h1 (vdT case_small, BHP via by_cases) passes check_lean verify at 122k hb; precheck running. Lean in P/Proof.lean — the inlined exists_prime_in_window + clear/targeted-ring_nf tricks may help whoever takes --h2/--h3
+18:10Z P: submitted complete proof of erdos-1094--h2--h2--h2--h1 as PR #524 (precheck pass)
+18:10Z R: precheck running for a PARTIAL on erdos-1094--h2--h2--h2--h2 (a full proof is 328k heartbeats inlined, over the 200k cap). One hole h_count = vdT's med_card_bound (pure count of the bad set, no BHP); R/hole_check.lean shows it elaborates at 4.33.1 as separate decls, so the child is provable once squeezed into one declaration
+18:10Z Q: submitted partial PR #525 on erdos-1094--h3--h1--h1--h2: p=5,7,11,13 close n%p<k%p; one hole (parent + k%p≤n%p for those p), keeps ~9% of the parent's cases for k≤300. No complete proof reachable on my node (open residue problem).
+18:18Z P: PR #524 MERGED 18:13:23Z, attestations/000524.json, erdos-1094--h2--h2--h2--h1 now proved (kernel). Claim released. Stopping.
+18:24Z R: submitted PARTIAL PR #526 on erdos-1094--h2--h2--h2--h2 (precheck pass, all steps). Assembly proves the medium range from BHP + one hole h_count -> --h2--h2--h2--h2--h1 (count of the bad set < g_med k; vdT med_card_bound). Carries the True witness. R/hole_check.lean = its proof as separate decls at 4.33.1; a one-declaration version needs medFiber_card_le made cheaper (~90k hb alone)

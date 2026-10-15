@@ -132,11 +132,20 @@ def check_proof_is_statement(
     prefix = statement.prefix
     # F08-R16: use lines are the artifact's declaration, not part of the statement's text; with
     # them taken out, the rule below is the one it always was.
+    written = proof_text
     proof_text, _declared = uses.split(prefix, proof_text, node_id)
     if node_id is not None and not proof_text.startswith(prefix):
         allowed = layout.with_own_context(prefix, node_id)
-        if allowed != prefix and proof_text.startswith(allowed):
+        if allowed != prefix and _without_helpers(allowed, proof_text)[0].startswith(allowed):
             prefix = allowed
+    # F00-T11: private helpers directly before the declaration are the artifact's own; with the
+    # block taken out, the rule below is again the one it always was.
+    proof_text, helpers = _without_helpers(prefix, proof_text)
+    if helpers is not None:
+        shift = written.count("\n") - proof_text.count("\n") - helpers[1].count("\n")
+        problem = helper_problem(helpers[1], first_line=helpers[0] + shift)
+        if problem is not None:
+            return problem
     if not proof_text.startswith(prefix):
         line = _first_divergent_line(prefix, proof_text)
         return Diagnostic(
@@ -156,6 +165,72 @@ def check_proof_is_statement(
     body = body_and_suffix[: len(body_and_suffix) - len(suffix)] if suffix else body_and_suffix
     if not body.strip():
         return Diagnostic("proof-empty", "Proof.lean has no body after `:=`")
+    return None
+
+
+#: F00-T11: what a helper block may not hold, as whole tokens outside comments and strings —
+#: anything that could raise the heartbeat cap, add to the environment beyond private
+#: declarations, change how the statement after it parses, or leave an unextracted ``sorry``.
+HELPER_FORBIDDEN_RE = re.compile(
+    r"(?<![\w.'!?])(?P<word>set_option|axiom|instance|notation|infix|infixl|infixr|prefix|"
+    r"postfix|macro|macro_rules|syntax|declare_syntax_cat|elab|elab_rules|attribute|open|"
+    r"export|variable|universe|namespace|section|end|initialize|builtin_initialize|run_cmd|"
+    r"run_elab|run_meta|unsafe|opaque|structure|inductive|class|mutual|local|scoped|deriving|"
+    r"sorry|admit)(?![\w'!?])"
+    r"|(?P<attr>@\[)|(?P<hash>#[A-Za-z_]\w*)"
+)
+#: A declaration keyword in a helper block, and the modifiers it may carry.
+HELPER_DECL_RE = re.compile(
+    r"(?<![\w.'!?])(?P<mods>(?:(?:private|noncomputable|protected)\s+)*)"
+    r"(?P<kind>theorem|lemma|def|abbrev)(?![\w'!?])"
+)
+
+
+def _without_helpers(prefix: str, text: str) -> tuple[str, tuple[int, str] | None]:
+    """``text`` with a helper block taken out, and the block with its first line number: the
+    lines between the statement's preamble and its declaration (``layout.declaration_start``).
+    ``None`` when ``text`` has no such block, so the caller's comparison is the old one."""
+    at = layout.declaration_start(prefix)
+    preamble, declaration = prefix[:at], prefix[at:]
+    if not text.startswith(preamble) or text.startswith(prefix):
+        return text, None
+    rest = text[len(preamble) :]
+    found = rest.find(declaration)
+    if found <= 0 or rest[found - 1] != "\n":
+        return text, None
+    return preamble + rest[found:], (preamble.count("\n") + 1, rest[:found])
+
+
+def helper_problem(block: str, *, first_line: int) -> Diagnostic | None:
+    """F00-T11: a helper block holds private ``theorem``/``lemma``/``def``/``abbrev``
+    declarations and nothing in ``HELPER_FORBIDDEN_RE``."""
+    code = layout.strip_comments(block)
+
+    def refusal(offset: int, token: str, reason: str) -> Diagnostic:
+        line = first_line + code.count("\n", 0, offset)
+        return Diagnostic(
+            "helper-forbidden",
+            f"Proof.lean's helper block may not hold `{token}` (line {line}): {reason}",
+            {"line": line, "token": token, "got": block.splitlines()[line - first_line]},
+        )
+
+    bad = HELPER_FORBIDDEN_RE.search(code)
+    decls = [m for m in HELPER_DECL_RE.finditer(code) if "private" not in m.group("mods")]
+    if decls and (bad is None or decls[0].start("kind") < bad.start()):
+        m = decls[0]
+        return refusal(
+            m.start("kind"),
+            m.group("kind"),
+            "a helper is declared `private`, so its name never reaches an importer",
+        )
+    if bad is not None:
+        token = bad.group("word") or bad.group("attr") or bad.group("hash")
+        return refusal(
+            bad.start(),
+            token,
+            "helpers are private theorem, lemma, def or abbrev declarations, and nothing that "
+            "sets an option, adds to the environment or changes how the statement parses",
+        )
     return None
 
 

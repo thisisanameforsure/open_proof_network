@@ -1,0 +1,105 @@
+FFFFF                                                                    [100%]
+=================================== FAILURES ===================================
+___________________ test_check_asks_axle_for_the_gate_s_cap ____________________
+
+script = Script(replies=deque([]), requests=[<Request('POST', 'https://axle.example.test/api/v1/check')>])
+
+    def test_check_asks_axle_for_the_gate_s_cap(script: Script) -> None:  # noqa: F811
+        script.answer(json={"okay": True, "info": {}})
+        HttpxAxle(base_url=BASE).check("import Mathlib\n", environment="lean-4.33.1", timeout_s=60)
+>       assert json.loads(script.requests[0].content)["global_options"] == OPTIONS
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'global_options'
+
+api/tests/test_finding_check_cap_helpers.py:30: KeyError
+___________________ test_verify_asks_axle_for_the_gate_s_cap ___________________
+
+script = Script(replies=deque([]), requests=[<Request('POST', 'https://axle.example.test/api/v1/verify_proof')>])
+
+    def test_verify_asks_axle_for_the_gate_s_cap(script: Script) -> None:  # noqa: F811
+        script.answer(json={"okay": True, "info": {}})
+        HttpxAxle(base_url=BASE).verify_proof(
+            "proof", formal_statement="stmt", environment="lean-4.33.1", timeout_s=30
+        )
+>       assert json.loads(script.requests[0].content)["global_options"] == OPTIONS
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'global_options'
+
+api/tests/test_finding_check_cap_helpers.py:38: KeyError
+______________ test_a_private_helper_is_not_a_gate_refusal[check] ______________
+
+mode = 'check'
+
+    @pytest.mark.parametrize("mode", ["check", "verify"])
+    def test_a_private_helper_is_not_a_gate_refusal(mode: str) -> None:
+        h = harness_with()
+        seed(h)
+        r = post(h, {"target_id": TARGET, "node_id": NODE, "content": HELPED, "mode": mode})
+        assert r.status_code == 200, r.text
+>       assert r.json()["lint"] == [], r.json()["lint"]
+E       AssertionError: [{'code': 'helper-declarations', 'message': 'a proof is the statement with its sorry replaced (F00-R19); move helpers inside the proof as `have`, or submit a skeleton', 'declarations': ['theorem t']}]
+E       assert [{'code': 'he...'theorem t']}] == []
+E         
+E         Left contains one more item: {'code': 'helper-declarations', 'message': 'a proof is the statement with its sorry replaced (F00-R19); move helpers inside the proof as `have`, or submit a skeleton', 'declarations': ['theorem t']}
+E         Use -v to get more diff
+
+api/tests/test_finding_check_cap_helpers.py:53: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:80 the graph's head could not be read, serving the branch: no head configured
+_____________ test_a_private_helper_is_not_a_gate_refusal[verify] ______________
+
+mode = 'verify'
+
+    @pytest.mark.parametrize("mode", ["check", "verify"])
+    def test_a_private_helper_is_not_a_gate_refusal(mode: str) -> None:
+        h = harness_with()
+        seed(h)
+        r = post(h, {"target_id": TARGET, "node_id": NODE, "content": HELPED, "mode": mode})
+        assert r.status_code == 200, r.text
+>       assert r.json()["lint"] == [], r.json()["lint"]
+E       AssertionError: [{'code': 'helper-declarations', 'message': 'a proof is the statement with its sorry replaced (F00-R19); move helpers inside the proof as `have`, or submit a skeleton', 'declarations': ['theorem t']}]
+E       assert [{'code': 'he...'theorem t']}] == []
+E         
+E         Left contains one more item: {'code': 'helper-declarations', 'message': 'a proof is the statement with its sorry replaced (F00-R19); move helpers inside the proof as `have`, or submit a skeleton', 'declarations': ['theorem t']}
+E         Use -v to get more diff
+
+api/tests/test_finding_check_cap_helpers.py:53: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:80 the graph's head could not be read, serving the branch: no head configured
+________________ test_a_forbidden_helper_is_the_gate_s_refusal _________________
+
+    def test_a_forbidden_helper_is_the_gate_s_refusal() -> None:
+        h = harness_with()
+        seed(h)
+        content = "set_option maxHeartbeats 0 in\n" + HELPED
+        r = post(h, {"target_id": TARGET, "node_id": NODE, "content": content, "mode": "verify"})
+        assert r.status_code == 200, r.text
+        lint = r.json()["lint"]
+>       assert [w["code"] for w in lint] == ["helper-forbidden"], lint
+E       AssertionError: [{'code': 'helper-declarations', 'message': 'a proof is the statement with its sorry replaced (F00-R19); move helpers ... proof as the statement with its sorry replaced (F00-R19) and refuses this at step 2", 'line': 1, 'expected': '', ...}]
+E       assert ['helper-decl...der-diverges'] == ['helper-forbidden']
+E         
+E         At index 0 diff: 'helper-declarations' != 'helper-forbidden'
+E         Left contains one more item: 'header-diverges'
+E         Use -v to get more diff
+
+api/tests/test_finding_check_cap_helpers.py:64: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:80 the graph's head could not be read, serving the branch: no head configured
+=============================== warnings summary ===============================
+api/tests/api_fakes.py:32
+  /Users/mikehiggins/Desktop/repos/opn-cap/api/tests/api_fakes.py:32: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient
+
+.venv/lib/python3.13/site-packages/starlette/testclient.py:53
+  /Users/mikehiggins/Desktop/repos/opn-cap/.venv/lib/python3.13/site-packages/starlette/testclient.py:53: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.
+    _PortalFactoryType = Callable[[], AbstractContextManager[anyio.abc.BlockingPortal]]
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED api/tests/test_finding_check_cap_helpers.py::test_check_asks_axle_for_the_gate_s_cap
+FAILED api/tests/test_finding_check_cap_helpers.py::test_verify_asks_axle_for_the_gate_s_cap
+FAILED api/tests/test_finding_check_cap_helpers.py::test_a_private_helper_is_not_a_gate_refusal[check]
+FAILED api/tests/test_finding_check_cap_helpers.py::test_a_private_helper_is_not_a_gate_refusal[verify]
+FAILED api/tests/test_finding_check_cap_helpers.py::test_a_forbidden_helper_is_the_gate_s_refusal
+5 failed, 2 warnings in 1.14s

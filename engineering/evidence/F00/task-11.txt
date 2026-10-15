@@ -1,0 +1,35 @@
+F00-T11 / F02-T15 / F13-T36, 2026-10-15: helper lemmas and the 1000000-heartbeat cap (the owner, 2026-10-14).
+
+Red first (gate, before the change; MAX_HEARTBEATS seam at today's 200000):
+37 failed, 4 passed in 2.16s
+  24 E         - helper-forbidden
+  24 E         + proof-not-statement)
+  24 E         
+  11 E        +    where <function check_proof_is_statement at 0x10b42ade0> = paths.check_proof_is_statement
+
+Red first (service):
+5 failed, 2 warnings in 1.14s
+   3 E       AssertionError: [{'code': 'helper-declarations', 'message': 'a proof is the statement with its sorry replaced (F00-R19); move helper
+   2 E       KeyError: 'global_options'
+
+Green, fast tier, the new files:
+48 passed, 2 warnings in 8.86s
+
+Lean tier (local 4.33.1, no Mathlib checkout on this laptop): -m 'lean and not docker' over gate and api:
+FAILED gate/tests/test_onramp_lean.py::test_the_on_ramp_node_passes_on_the_pinned_mathlib
+FAILED gate/tests/test_onramp_lean.py::test_skeleton_admits - AssertionError: {
+FAILED gate/tests/test_prove_lean.py::test_elaborates[onramp/euclid-primes/fact-pos]
+FAILED gate/tests/test_prove_lean.py::test_elaborates[onramp/euclid-primes/infinitude-of-primes]
+FAILED gate/tests/test_prove_lean.py::test_accepted_answers_elaborate[echoes-inlined-defs]
+FAILED gate/tests/test_qa_lean.py::test_onramp_screens_clean - opn_gate.toolc...
+6 failed, 188 passed, 5608 deselected, 2 warnings in 6842.44s (1:54:02)
+The six failures all say: no Mathlib checkout for 0df444a3... under ~/.opn/mathlib (environment; CI has one).
+Both new lean tests passed (test_lean_runs_at_the_gate_s_cap, test_the_gate_takes_a_proof_with_private_helpers);
+the probe was shown red at Lean's default: 'error: maxHeartbeats is 200000', green with -DmaxHeartbeats=1000000.
+
+AXLE: live probe 2026-10-14, check with global_options {maxHeartbeats: 1000000}: 'Used 29 heartbeats, which is less than the current maximum of 1000000.'
+Its tool docs (axle.axiommath.ai/v1/docs/tools/check, /verify_proof) list global_options on both.
+
+Fast tier, full: 6278 passed before the codes row and the restated tests; after them the guide, codes and lint suites 1210 passed;
+test_walkthrough::test_graph_copy_is_identical fails until the graph's AGENTS.md copy lands with the re-pin (CI skips it).
+Final fast tier (make verify's markers): 1 failed, 6279 passed, 8 skipped in 579.92s; the one is test_graph_copy_is_identical (the sibling graph checkout's AGENTS.md, refreshed by the re-pin).

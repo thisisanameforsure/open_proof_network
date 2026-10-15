@@ -116,16 +116,18 @@ def test_the_checkers_sorry_warning_is_a_warning_in_check_mode() -> None:
 
 
 def test_a_set_option_before_the_theorem_diverges_from_the_statement() -> None:
+    """Since F00-T11 the lines before the theorem are a helper block, which may not set an
+    option: still refused at step 2, now named by the token (helper-forbidden)."""
     _, doc = verify("set_option maxHeartbeats 400000 in\n" + PROOF)
-    [found] = [w for w in doc["lint"] if w["code"] == "header-diverges"]
-    assert found["line"] == 1
-    assert found["got"].startswith("set_option") and found["expected"].startswith("theorem")
+    [found] = [w for w in doc["lint"] if w["code"] == "helper-forbidden"]
+    assert found["line"] == 1 and found["token"] == "set_option"  # noqa: S105 — a Lean token
+    assert found["got"].startswith("set_option")
     assert doc["okay"] is False
 
 
 def test_an_extra_open_line_diverges_from_the_statement() -> None:
     _, doc = verify("open Nat\n\n" + PROOF)
-    assert "header-diverges" in codes(doc), doc["lint"]
+    assert "helper-forbidden" in codes(doc), doc["lint"]
     assert doc["okay"] is False
 
 

@@ -36,8 +36,8 @@ PRESENT = {
     "the hazard pre-flight refuses": "`422 hazard-unacknowledged`",
     "the hazards mode": '`"mode": "hazards"`',
     "a held theorem name is refused": "`409 declaration-clash`",
-    "the heartbeat cap and its remedy": "200000 heartbeats",
-    "set_option before the theorem is refused": "`proof-not-statement`",
+    "the heartbeat cap and its remedy": "1000000 heartbeats",  # F02-T15
+    "set_option before the theorem is refused": "`helper-forbidden`",  # F00-T11
     "the dropped naming warning": "`dropped_warnings`",
     "claiming twice returns the same claim": "returns the same claim",
     "the receipt's other holders": "`others`",
