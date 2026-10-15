@@ -972,7 +972,6 @@ details.rec[open] > summary { color: var(--text); }
 .ring { fill: none; stroke: var(--text); stroke-width: 1.5; }
 .st-open .ring { stroke: var(--n400); stroke-dasharray: 3 2; }
 .st-dead .ring { stroke: var(--bad); stroke-dasharray: 3 2; }
-.asm { fill: var(--n400); }
 /* F28: closable — still open (the ring stays dashed), drawn in the accent: the closing proof is pending */
 .closable .asm { fill: var(--accent-300); }
 .closable .ring { stroke: var(--accent-300); }

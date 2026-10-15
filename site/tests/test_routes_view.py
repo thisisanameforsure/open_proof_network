@@ -107,24 +107,26 @@ def test_routes_section_structure(tmp_path: Path) -> None:
     # OR: only the root has two or more alternatives (three routes and a variant).
     assert drawing.count('class="or-mark"') == 1
     assert 'class="or-mark"' in g_of(drawing, "t")
-    assert 'class="rnode st-open assembly root"' in g_of(drawing, "t")
+    assert 'class="rnode st-open member root"' in g_of(drawing, "t")
     # Drawn: every statement on a way to the root, live or dead, and the resolves variant; not the
     # related variant.
     for v in ("t", "t--a", "t--b", "t--c", "t--c--h1", "t--d", "v"):
         assert f'data-node="{v}"' in drawing, v
     assert 'data-node="u"' not in drawing
-    # Wedges: one per set holding the statement.
+    # Wedges: one per set whose plan uses the statement, as a leaf or as an interior node it
+    # passes through (F27-T8, the owner: no separate mark for an interior node; whether it is a
+    # leaf is read from the drawing). The root is interior to the two route sets, not to {v}.
     wedges = {
         v: len(re.findall(r'class="wedge [^"]*" data-set=', g_of(drawing, v)))
-        for v in ("t--a", "t--b", "t--c", "t--c--h1", "t--d", "v")
+        for v in ("t", "t--a", "t--b", "t--c", "t--c--h1", "t--d", "v")
     }
-    assert wedges == {"t--a": 1, "t--b": 2, "t--c": 0, "t--c--h1": 1, "t--d": 0, "v": 1}
-    # Proved, open, dead on their own classes; the assembly says so.
+    assert wedges == {"t": 2, "t--a": 1, "t--b": 2, "t--c": 1, "t--c--h1": 1, "t--d": 0, "v": 1}
+    # Proved, open, dead on their own classes; an interior node looks like any other.
     assert 'class="rnode st-proved member"' in g_of(drawing, "t--b")
     assert 'class="rnode st-open member"' in g_of(drawing, "t--a")
     assert 'class="rnode st-dead none"' in g_of(drawing, "t--d")
-    assert 'class="rnode st-open assembly"' in g_of(drawing, "t--c")
-    assert 'class="asm"' in g_of(drawing, "t--c")
+    assert 'class="rnode st-open member"' in g_of(drawing, "t--c")
+    assert 'class="asm"' not in drawing
     # Every line names its two ends.
     for m in re.finditer(r"<path class=\"rline[^\"]*\"([^>]*)>", drawing):
         assert 'data-from="' in m.group(1) and 'data-to="' in m.group(1)
@@ -143,6 +145,7 @@ def test_routes_section_structure(tmp_path: Path) -> None:
     assert "goes through the variant" in rows[2]
     # The legend names every mark the drawing can show, inside the drawing's card.
     legend = html[html.index('class="routes-legend"') : html.index('class="routes-scroll"')]
+    assert "assembly" not in legend
     for words in (
         "(AND)",
         "(OR)",
@@ -150,7 +153,6 @@ def test_routes_section_structure(tmp_path: Path) -> None:
         "proved",
         "open",
         "refuted",
-        "assembly",
         "no set",
     ):
         assert words in legend, words
@@ -184,7 +186,8 @@ def test_more_than_eight_sets_are_grey_and_the_section_says_so() -> None:
     }
     html = routes_view.section(d, [], href={}, prefix="t").html
     assert html.count('<tr class="set-row"') == 10
-    assert html.count('class="wedge set-more"') == 2
+    # Sets 9 and 10 are grey on their holes and on the root they pass through (F27-T8).
+    assert html.count('class="wedge set-more"') == 4
     assert 'class="set-swatch set-8"' in html and 'class="set-swatch set-more"' in html
     assert "beyond the 8th are drawn grey" in html
 
