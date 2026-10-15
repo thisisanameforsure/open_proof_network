@@ -1,0 +1,36 @@
+-- hole: h_thm
+
+import Mathlib
+
+open scoped Nat
+
+theorem witness : ∃ (r : ℕ) (N : ℝ) (W : ℝ) (δ : ℝ) (lam : ℝ) (D_r : ℝ) (D_r1 : ℝ) (f : ℝ → ℝ) (S : Finset ℤ),
+  (2 : ℕ) ≤ r ∧
+    (0 : ℝ) < N ∧
+      (1 : ℝ) ≤ W ∧
+        (0 : ℝ) < δ ∧
+          (1 : ℝ) ≤ lam ∧
+            (0 : ℝ) < D_r ∧
+              (0 : ℝ) < D_r1 ∧
+                ContDiff ℝ (↑(↑(r + (1 : ℕ)) : ℕ∞) : WithTop ℕ∞) f ∧
+                  (∀ x ∈ Set.Icc (0 : ℝ) N, D_r / (2 : ℝ) ≤ |iteratedDeriv r f x|) ∧
+                    (∀ x ∈ Set.Icc (0 : ℝ) N, |iteratedDeriv r f x| ≤ D_r) ∧
+                      (∀ x ∈ Set.Icc (0 : ℝ) N, |iteratedDeriv (r + (1 : ℕ)) f x| ≤ D_r1) ∧
+                        (∀ u ∈ S, (0 : ℤ) ≤ u ∧ u ≤ ⌊N⌋) ∧
+                          ∀ u ∈ S,
+                            ∃ (v : ℤ) (w : ℕ), (0 : ℕ) < w ∧ (↑w : ℝ) ≤ W ∧ |f (↑u : ℝ) - (↑v : ℝ) / (↑w : ℝ)| < δ := by
+  have t1 : deriv (fun x : ℝ => x ^ 2) = fun x => 2 * x := by
+    funext x; simp
+  have t2 : deriv (fun x : ℝ => 2 * x) = fun _ => 2 := by
+    funext x; simp
+  have t3 : deriv (fun _ : ℝ => (2:ℝ)) = fun _ => 0 := by
+    funext x; simp
+  have d2 : iteratedDeriv 2 (fun x : ℝ => x ^ 2) = fun _ => 2 := by
+    rw [iteratedDeriv_succ, iteratedDeriv_one, t1, t2]
+  have d3 : iteratedDeriv (2 + 1) (fun x : ℝ => x ^ 2) = fun _ => 0 := by
+    rw [iteratedDeriv_succ, d2, t3]
+  refine ⟨2, 1, 1, 1, 1, 2, 1, fun x => x ^ 2, ∅, le_refl _, one_pos, le_refl _, one_pos, le_refl _,
+    two_pos, one_pos, by fun_prop, ?_, ?_, ?_, by simp, by simp⟩
+  · intro x _; rw [d2]; norm_num
+  · intro x _; rw [d2]; norm_num
+  · intro x _; rw [d3]; norm_num

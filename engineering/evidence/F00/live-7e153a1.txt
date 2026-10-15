@@ -1,0 +1,37 @@
+Live 2026-10-15: PR #52 merged as network 7e153a12 (CI fast, lean 2h1m, harness all pass); api-deploy 38666878335 success;
+tag gate-7e153a1, image-publish 38666906636 success: plain d50af7cd8147... / mathlib sha256:491cbbcd...;
+graph re-pinned 232e76e96 (27/27 targets, guide copy), pregate tutorial-and-swap at it: pass 1,2,4,5,6,7,8; render 38668090839 success -> d23f6c1fc.
+
+Live POST /check (verify, heartbeats: true) on tutorial-and-swap:
+{
+ "helper": {
+  "okay": true,
+  "lint": [],
+  "heartbeats": [
+   {
+    "declaration": "swap_one",
+    "heartbeats": 9,
+    "cap": 1000000,
+    "over_cap": false
+   },
+   {
+    "declaration": "OpnProp.and_swap",
+    "heartbeats": 11,
+    "cap": 1000000,
+    "over_cap": false
+   }
+  ],
+  "other": {}
+ },
+ "set_option": {
+  "okay": false,
+  "lint": [
+   [
+    "helper-forbidden",
+    "set_option"
+   ]
+  ],
+  "heartbeats": [],
+  "other": {}
+ }
+}

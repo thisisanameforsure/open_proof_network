@@ -1,0 +1,356 @@
+{
+ "id": "01M4YPXEA8WNMFYD391X8BFP1G",
+ "node_id": "erdos-1094--h2--h2--h2--h3--h1",
+ "target_id": "erdos-1094",
+ "state": "done",
+ "created": "2026-10-15T02:40:29Z",
+ "graph_commit": "dafbf4ff3a3ad891ec1d81e3ace3a35ca826aa5f",
+ "bundle_digest": "1225993577adea293ac958854ff03f11e442f571248598742f6442c0b105816c",
+ "authenticated": true,
+ "automation": null,
+ "result": {
+  "attestation": {
+   "artifact_hash": null,
+   "automation": null,
+   "diagnostic": null,
+   "first_failing_step": null,
+   "footprint": {
+    "nodes": []
+   },
+   "gate_spec_hash": "d1ba804785bd7d0b3d74c2692b423f5bd464b297123cbc64f6f128dd181178bd",
+   "graph_commit": "dafbf4ff3a3ad891ec1d81e3ace3a35ca826aa5f",
+   "graph_id": "erdos-1094",
+   "lean_toolchain": "leanprover/lean4:v4.33.1",
+   "mathlib_sha": "0df444a360eaa60ab8c11dca51a86af692955474",
+   "merge_commit": null,
+   "model_and_tooling": "undeclared",
+   "network_commit": "7e153a12f0cef18386e0c783dfa76674adbbc32b",
+   "node_id": "erdos-1094--h2--h2--h2--h3--h1",
+   "precheck_attestation": {
+    "hash": null,
+    "signature_kind": null
+   },
+   "review": null,
+   "runner": "hosted",
+   "schema": "attestation/v7",
+   "signature": {
+    "key_id": "SHA256:bJR39nO37EkRaxo4CPqdhcHk+WL+sEnAJ9ujpkF7LXo",
+    "kind": "service",
+    "timestamp": "2026-10-15T02:44:16Z",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAg4NVeR5WlT1J5vaHpDOmXNTurS+\nKqTYJTovSCpPj5G/IAAAAPb3BuLWF0dGVzdGF0aW9uAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQA3hX33yOQFvI8LXQGyKP77Hso+esspJ6EjZlwg2+oxQt9wcl2\nEVRv9+sjnZiZKcWubMe9/OU9J18PeG6miAYwQ=\n-----END SSH SIGNATURE-----\n"
+   },
+   "statement_hash": "f06573494aeca7bb1f1446595687f66093a18143b66b8ecae7c84d58dd387878",
+   "steps": [
+    {
+     "diagnostic": {
+      "code": "mathlib-pinned",
+      "details": {
+       "mathlib_sha": "0df444a360eaa60ab8c11dca51a86af692955474",
+       "packages": 8
+      },
+      "message": "Mathlib 0df444a360ea resolved from the pinned checkout"
+     },
+     "name": "toolchain",
+     "result": "pass",
+     "step": 1
+    },
+    {
+     "diagnostic": {
+      "code": "partial-submission",
+      "details": {
+       "path": "attempts/20261015T023339Z-t1015-r-partial.lean"
+      },
+      "message": "a partial proof: attempts/20261015T023339Z-t1015-r-partial.lean (D-12 #5)"
+     },
+     "name": "paths",
+     "result": "pass",
+     "step": 2
+    },
+    {
+     "diagnostic": {
+      "code": "artifact-reduction",
+      "details": {
+       "holes": [
+        "h_thm"
+       ],
+       "kind": "partial"
+      },
+      "message": "partial: erdos_1094__h2__h2__h2__h3__h1 declares ∀ (lam : ℝ),\n  1 ≤ lam →\n    ∀ (n : ℤ) (k r : ℕ),\n      ↑k < n →\n        2 ≤ r →\n          ↑r ≤ 1 / 2 * ↑k ^ (1 - 21 / 40) →\n            ↑{m ∈ Finset.Ioo (↑k) (↑k + ⌊↑k ^ (21 / 40)⌋ + 2) |\n                    ↑k < m ∧ ↑m < ↑k + ↑k ^ (21 / 40) ∧ |↑n / ↑m - ↑(round (↑n / ↑m))| < 1 / ↑k ^ (1 - 21 / 40)}.card <\n              65536 * ↑k ^ (21 / 40) *\n                  ((↑n * ↑r.factorial * lam ^ r / ↑k ^ (r + 1)) ^ (2 * ↑r - 1)⁻¹ +\n                      (↑k ^ (↑r + 21 / 40) / (↑n * ↑r.factorial * lam ^ r)) ^ (↑r - 1)⁻¹ +\n                    ((↑r + 1) * lam / ↑k) ^ (2 * ↑r)⁻¹) +\n                2 * ↑r * lam; 1 hole(s)"
+     },
+     "name": "kernel-replay",
+     "result": "pass",
+     "step": 4
+    },
+    {
+     "diagnostic": null,
+     "name": "axioms",
+     "result": "pass",
+     "step": 5
+    },
+    {
+     "diagnostic": {
+      "code": "hazards-derived-statement",
+      "details": {
+       "acknowledged": [],
+       "checkers": [
+        "div-zero",
+        "int-trunc",
+        "junk-value",
+        "nat-sub",
+        "off-by-one-range",
+        "unused-binder"
+       ],
+       "findings": [
+        {
+         "checker": "div-zero",
+         "location": "(↑r + 1) * lam / ↑k",
+         "message": "division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"
+        },
+        {
+         "checker": "div-zero",
+         "location": "1 / ↑k ^ (1 - 21 / 40)",
+         "message": "division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"
+        },
+        {
+         "checker": "div-zero",
+         "location": "↑k ^ (↑r + 21 / 40) / (↑n * ↑r ! * lam ^ r)",
+         "message": "division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"
+        },
+        {
+         "checker": "div-zero",
+         "location": "↑n * ↑r ! * lam ^ r / ↑k ^ (r + 1)",
+         "message": "division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"
+        },
+        {
+         "checker": "div-zero",
+         "location": "↑n / ↑a",
+         "message": "division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"
+        },
+        {
+         "checker": "div-zero",
+         "location": "↑n / ↑m",
+         "message": "division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"
+        },
+        {
+         "checker": "off-by-one-range",
+         "location": "1 ≤ lam",
+         "message": "comparison against an explicit literal: check whether the boundary is inclusive or exclusive"
+        },
+        {
+         "checker": "off-by-one-range",
+         "location": "2 ≤ r",
+         "message": "comparison against an explicit literal: check whether the boundary is inclusive or exclusive"
+        },
+        {
+         "checker": "off-by-one-range",
+         "location": "Finset.Ioo (↑k) (↑k + ⌊↑k ^ (21 / 40)⌋ + 2)",
+         "message": "Finset.Ioo with a literal-adjusted bound: check whether the endpoint is included"
+        }
+       ],
+       "origin": "compiler-derived"
+      },
+      "message": "9 hazard finding(s) on a statement the gate derived from a merged assembly, recorded and not refused; first: div-zero at (↑r + 1) * lam / ↑k: division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"
+     },
+     "name": "hazards",
+     "result": "pass",
+     "step": 6
+    },
+    {
+     "diagnostic": {
+      "code": "hole-witnesses",
+      "details": {
+       "witnesses": [
+        {
+         "hole": "h_thm",
+         "path": "attempts/20261015T023339Z-t1015-r-partial.1.witness",
+         "sha256": "aeed43fb7629bc0dc258fe49e66990b22cb09281f0919843b2af206b80bbeb46"
+        }
+       ]
+      },
+      "message": "1 of 1 hole(s) carry a witness, each checked as step 7 checks a node's (F07-R23)"
+     },
+     "name": "witness",
+     "result": "pass",
+     "step": 7
+    },
+    {
+     "diagnostic": null,
+     "name": "deps",
+     "result": "pass",
+     "step": 8
+    }
+   ],
+   "submitter": null,
+   "toolchain_hash": "f54d0bc916bf76a7fae460ce9d078ccd1f74aeb4fd12c4b6546bca28b6aa1c63",
+   "tooling": {
+    "harness": null,
+    "model": null
+   },
+   "trust_base": "kernel",
+   "verdict": "pass"
+  },
+  "automation": null,
+  "bundle_digest": "1225993577adea293ac958854ff03f11e442f571248598742f6442c0b105816c",
+  "first_failing_step": null,
+  "holes": [
+   {
+    "closed_type": "∀ (r : ℕ),\n  (2 : ℕ) ≤ r →\n    ∀ (N : ℝ),\n      (0 : ℝ) < N →\n        ∀ (W : ℝ),\n          (1 : ℝ) ≤ W →\n            ∀ (δ : ℝ),\n              (0 : ℝ) < δ →\n                ∀ (lam : ℝ),\n                  (1 : ℝ) ≤ lam →\n                    ∀ (D_r : ℝ),\n                      (0 : ℝ) < D_r →\n                        ∀ (D_r1 : ℝ),\n                          (0 : ℝ) < D_r1 →\n                            ∀ (f : ℝ → ℝ),\n                              ContDiff ℝ (↑(↑(r + (1 : ℕ)) : ℕ∞) : WithTop ℕ∞) f →\n                                (∀ x ∈ Set.Icc (0 : ℝ) N, D_r / (2 : ℝ) ≤ |iteratedDeriv r f x|) →\n                                  (∀ x ∈ Set.Icc (0 : ℝ) N, |iteratedDeriv r f x| ≤ D_r) →\n                                    (∀ x ∈ Set.Icc (0 : ℝ) N, |iteratedDeriv (r + (1 : ℕ)) f x| ≤ D_r1) →\n                                      ∀ (S : Finset ℤ),\n                                        (∀ u ∈ S, (0 : ℤ) ≤ u ∧ u ≤ ⌊N⌋) →\n                                          (∀ u ∈ S,\n                                              ∃ (v : ℤ) (w : ℕ),\n                                                (0 : ℕ) < w ∧ (↑w : ℝ) ≤ W ∧ |f (↑u : ℝ) - (↑v : ℝ) / (↑w : ℝ)| < δ) →\n                                            (↑S.card : ℝ) <\n                                              (65536 : ℝ) * N *\n                                                  ((D_r * lam ^ r * W ^ (2 : ℕ)) ^ ((2 : ℝ) * (↑r : ℝ) - (1 : ℝ))⁻¹ +\n                                                      (δ * W ^ (2 : ℕ) / (D_r * lam ^ r)) ^ ((↑r : ℝ) - (1 : ℝ))⁻¹ +\n                                                    (D_r1 * lam * W ^ (2 : ℕ) / D_r) ^ ((2 : ℝ) * (↑r : ℝ))⁻¹) +\n                                                (2 : ℝ) * (↑r : ℝ) * lam",
+    "expected_new": true,
+    "expected_node_id": "erdos-1094--h2--h2--h2--h3--h1--h1",
+    "expected_witness": "∃ (r : ℕ) (N : ℝ) (W : ℝ) (δ : ℝ) (lam : ℝ) (D_r : ℝ) (D_r1 : ℝ) (f : ℝ → ℝ) (S : Finset ℤ),\n  (2 : ℕ) ≤ r ∧\n    (0 : ℝ) < N ∧\n      (1 : ℝ) ≤ W ∧\n        (0 : ℝ) < δ ∧\n          (1 : ℝ) ≤ lam ∧\n            (0 : ℝ) < D_r ∧\n              (0 : ℝ) < D_r1 ∧\n                ContDiff ℝ (↑(↑(r + (1 : ℕ)) : ℕ∞) : WithTop ℕ∞) f ∧\n                  (∀ x ∈ Set.Icc (0 : ℝ) N, D_r / (2 : ℝ) ≤ |iteratedDeriv r f x|) ∧\n                    (∀ x ∈ Set.Icc (0 : ℝ) N, |iteratedDeriv r f x| ≤ D_r) ∧\n                      (∀ x ∈ Set.Icc (0 : ℝ) N, |iteratedDeriv (r + (1 : ℕ)) f x| ≤ D_r1) ∧\n                        (∀ u ∈ S, (0 : ℤ) ≤ u ∧ u ≤ ⌊N⌋) ∧\n                          ∀ u ∈ S,\n                            ∃ (v : ℤ) (w : ℕ), (0 : ℕ) < w ∧ (↑w : ℝ) ≤ W ∧ |f (↑u : ℝ) - (↑v : ℝ) / (↑w : ℝ)| < δ",
+    "name": "h_thm",
+    "proved_binders": [],
+    "restates": null,
+    "witness": {
+     "checked": true,
+     "path": "attempts/20261015T023339Z-t1015-r-partial.1.witness",
+     "sha256": "aeed43fb7629bc0dc258fe49e66990b22cb09281f0919843b2af206b80bbeb46"
+    }
+   }
+  ],
+  "job_id": "01M4YPXEA8WNMFYD391X8BFP1G",
+  "node_id": "erdos-1094--h2--h2--h2--h3--h1",
+  "steps": [
+   {
+    "diagnostic": {
+     "code": "mathlib-pinned",
+     "details": {
+      "mathlib_sha": "0df444a360eaa60ab8c11dca51a86af692955474",
+      "packages": 8
+     },
+     "message": "Mathlib 0df444a360ea resolved from the pinned checkout"
+    },
+    "name": "toolchain",
+    "result": "pass",
+    "step": 1
+   },
+   {
+    "diagnostic": {
+     "code": "partial-submission",
+     "details": {
+      "path": "attempts/20261015T023339Z-t1015-r-partial.lean"
+     },
+     "message": "a partial proof: attempts/20261015T023339Z-t1015-r-partial.lean (D-12 #5)"
+    },
+    "name": "paths",
+    "result": "pass",
+    "step": 2
+   },
+   {
+    "diagnostic": {
+     "code": "artifact-reduction",
+     "details": {
+      "holes": [
+       "h_thm"
+      ],
+      "kind": "partial"
+     },
+     "message": "partial: erdos_1094__h2__h2__h2__h3__h1 declares ∀ (lam : ℝ),\n  1 ≤ lam →\n    ∀ (n : ℤ) (k r : ℕ),\n      ↑k < n →\n        2 ≤ r →\n          ↑r ≤ 1 / 2 * ↑k ^ (1 - 21 / 40) →\n            ↑{m ∈ Finset.Ioo (↑k) (↑k + ⌊↑k ^ (21 / 40)⌋ + 2) |\n                    ↑k < m ∧ ↑m < ↑k + ↑k ^ (21 / 40) ∧ |↑n / ↑m - ↑(round (↑n / ↑m))| < 1 / ↑k ^ (1 - 21 / 40)}.card <\n              65536 * ↑k ^ (21 / 40) *\n                  ((↑n * ↑r.factorial * lam ^ r / ↑k ^ (r + 1)) ^ (2 * ↑r - 1)⁻¹ +\n                      (↑k ^ (↑r + 21 / 40) / (↑n * ↑r.factorial * lam ^ r)) ^ (↑r - 1)⁻¹ +\n                    ((↑r + 1) * lam / ↑k) ^ (2 * ↑r)⁻¹) +\n                2 * ↑r * lam; 1 hole(s)"
+    },
+    "name": "kernel-replay",
+    "result": "pass",
+    "step": 4
+   },
+   {
+    "diagnostic": null,
+    "name": "axioms",
+    "result": "pass",
+    "step": 5
+   },
+   {
+    "diagnostic": {
+     "code": "hazards-derived-statement",
+     "details": {
+      "acknowledged": [],
+      "checkers": [
+       "div-zero",
+       "int-trunc",
+       "junk-value",
+       "nat-sub",
+       "off-by-one-range",
+       "unused-binder"
+      ],
+      "findings": [
+       {
+        "checker": "div-zero",
+        "location": "(↑r + 1) * lam / ↑k",
+        "message": "division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"
+       },
+       {
+        "checker": "div-zero",
+        "location": "1 / ↑k ^ (1 - 21 / 40)",
+        "message": "division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"
+       },
+       {
+        "checker": "div-zero",
+        "location": "↑k ^ (↑r + 21 / 40) / (↑n * ↑r ! * lam ^ r)",
+        "message": "division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"
+       },
+       {
+        "checker": "div-zero",
+        "location": "↑n * ↑r ! * lam ^ r / ↑k ^ (r + 1)",
+        "message": "division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"
+       },
+       {
+        "checker": "div-zero",
+        "location": "↑n / ↑a",
+        "message": "division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"
+       },
+       {
+        "checker": "div-zero",
+        "location": "↑n / ↑m",
+        "message": "division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"
+       },
+       {
+        "checker": "off-by-one-range",
+        "location": "1 ≤ lam",
+        "message": "comparison against an explicit literal: check whether the boundary is inclusive or exclusive"
+       },
+       {
+        "checker": "off-by-one-range",
+        "location": "2 ≤ r",
+        "message": "comparison against an explicit literal: check whether the boundary is inclusive or exclusive"
+       },
+       {
+        "checker": "off-by-one-range",
+        "location": "Finset.Ioo (↑k) (↑k + ⌊↑k ^ (21 / 40)⌋ + 2)",
+        "message": "Finset.Ioo with a literal-adjusted bound: check whether the endpoint is included"
+       }
+      ],
+      "origin": "compiler-derived"
+     },
+     "message": "9 hazard finding(s) on a statement the gate derived from a merged assembly, recorded and not refused; first: div-zero at (↑r + 1) * lam / ↑k: division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"
+    },
+    "name": "hazards",
+    "result": "pass",
+    "step": 6
+   },
+   {
+    "diagnostic": {
+     "code": "hole-witnesses",
+     "details": {
+      "witnesses": [
+       {
+        "hole": "h_thm",
+        "path": "attempts/20261015T023339Z-t1015-r-partial.1.witness",
+        "sha256": "aeed43fb7629bc0dc258fe49e66990b22cb09281f0919843b2af206b80bbeb46"
+       }
+      ]
+     },
+     "message": "1 of 1 hole(s) carry a witness, each checked as step 7 checks a node's (F07-R23)"
+    },
+    "name": "witness",
+    "result": "pass",
+    "step": 7
+   },
+   {
+    "diagnostic": null,
+    "name": "deps",
+    "result": "pass",
+    "step": 8
+   }
+  ],
+  "verdict": "pass"
+ },
+ "public": true
+}

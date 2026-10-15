@@ -1,0 +1,124 @@
+== c00.lean status 200 okay False nerr 5 
+  top hb [('int_vector_primitive_extends_unimodular', 88996), ('gramDet_unimodular_change', 58119), ('hadamard_inequality', 39656), ('dvd_from_far', 18767)]
+   None | -:38:102-38:109: error: `ring_nf` made no progress on the goal 
+   None | -:75:4-76:27: error: unsolved goals n : ℕ A : Matrix (Fin n) (Fin n) ℝ M : Matrix (Fin n) (Fin n) ℝ := A * A.transpose hM_def : M = A * A.transpose hM_pos_semid
+   None | -:89:6-89:119: error: Type mismatch: After simplification, term   congr_arg (fun m => m i i)     (have this :=       Eq.mpr (id (congrArg (fun _a => _a) (Eq.sym
+   None | -:113:2-114:33: error: unsolved goals case e'_2 m s : ℕ v : Fin m → Fin s → ℝ B : Matrix (Fin m) (Fin s) ℝ := Matrix.of fun i j => v i j hB_def : B = Matrix.of 
+   None | -:173:51-173:98: error: invalid `▸` notation, expected result type of cast is    c i ∈ Ideal.span {d} however, the equality    hd of type    Ideal.span (Set.ran
+== c01.lean status 200 okay False nerr 0 
+  top hb [('gramDet_projected_identity', 128300), ('primitive_extends_to_basis', 42119), ('projected_int_vectors_indep', 25699), ('add_monotone', 15180)]
+== c02.lean status 504 okay None nerr 0 
+  top hb []
+== c03.lean status 200 okay False nerr 6 
+  top hb [('gramDet_product_is_square', 136469), ('int_linearIndependent_implies_real', 45548), ('gramDet_int_ge_one', 29964), ('kernel_has_complement', 23691)]
+   None | -:88:27-89:5: error: unexpected token 'lemma'; expected term 
+   None | -:94:27-95:5: error: unexpected token 'lemma'; expected term 
+   None | -:112:27-113:5: error: unexpected token 'lemma'; expected term 
+   None | -:176:18-176:36: error: `simp` made no progress  Note: The target expression is not type-correct under the `implicit` transparency level, which may have trigger
+   None | -:176:18-176:36: error: `simp` made no progress  Note: The target expression is not type-correct under the `implicit` transparency level, which may have trigger
+   None | -:176:18-176:36: error: `simp` made no progress  Note: The target expression is not type-correct under the `implicit` transparency level, which may have trigger
+== c04.lean status 504 okay None nerr 0 
+  top hb []
+== c05.lean status 200 okay False nerr 7 
+  top hb [('excess_zero_among_independent', 78460), ('orthogonal_lattice_short_vectors', 32576), ('integer_kernel_has_r_independent_vectors', 30780), ('weighted_vandermonde_trivial_kernel', 9702)]
+   None | -:88:27-89:5: error: unexpected token 'lemma'; expected term 
+   None | -:94:27-95:5: error: unexpected token 'lemma'; expected term 
+   None | -:112:27-113:5: error: unexpected token 'lemma'; expected term 
+   None | -:154:49-155:5: error: unexpected token 'lemma'; expected term 
+   None | -:185:62-186:5: error: unexpected token 'lemma'; expected term 
+   None | -:327:75-327:79: error: `ring_nf` made no progress on the goal 
+   None | -:352:255-353:52: error: unsolved goals case e'_2 r : ℕ hr : 2 ≤ r s : ℕ hs : s = 2 * r u : Fin s → ℤ w : Fin s → ℕ hu_strict : StrictMono u hw_pos : ∀ (i : Fin
+== c06.lean status 200 okay False nerr 7 
+  top hb [('annihilator_short_vectors', 141913), ('successive_minima_in_kernel', 57962), ('succ_min_product_le_basis_product', 29025), ('min_norm_kernel_vector_exists', 11630)]
+   None | -:88:27-89:5: error: unexpected token 'lemma'; expected term 
+   None | -:94:27-95:5: error: unexpected token 'lemma'; expected term 
+   None | -:112:27-113:5: error: unexpected token 'lemma'; expected term 
+   None | -:154:49-155:5: error: unexpected token 'lemma'; expected term 
+   None | -:185:62-186:5: error: unexpected token 'lemma'; expected term 
+   None | -:347:25-347:56: error: Type mismatch: After simplification, term   hij  has type   i ≤ j but is expected to have type   i.castLT ⋯ ≤ j.castLT ⋯ 
+   None | -:404:6-404:33: error: Type mismatch   Subtype.coe_injective has type   Function.Injective fun a => ↑a but is expected to have type   ↑(y (↑x✝¹) x✝) = ((fun k i
+== c07.lean status 200 okay False nerr 9 
+  top hb [('excess_product_bound', 61152), ('kernel_high_excess_count', 51217), ('binomial_multiply_moment', 43710), ('kernel_binomial_multiply', 41972)]
+   None | -:88:27-89:5: error: unexpected token 'lemma'; expected term 
+   None | -:94:27-95:5: error: unexpected token 'lemma'; expected term 
+   None | -:112:27-113:5: error: unexpected token 'lemma'; expected term 
+   None | -:154:49-155:5: error: unexpected token 'lemma'; expected term 
+   None | -:185:62-186:5: error: unexpected token 'lemma'; expected term 
+   None | -:482:4-482:15: error: unsolved goals r s e : ℕ hs : s = 2 * r he : e ≤ r u : Fin s → ℤ w : Fin s → ℕ hu_strict : StrictMono u hw_pos : ∀ (i : Fin s), 0 < w i t
+   None | -:483:11-483:22: error: Failed to rewrite using equation theorems for `Matrix.rank` 
+   None | -:462:122-492:46: error: unsolved goals case e'_3 r s e : ℕ hs : s = 2 * r he : e ≤ r u : Fin s → ℤ w : Fin s → ℕ hu_strict : StrictMono u hw_pos : ∀ (i : Fin s
+   None | -:524:96-525:133: error: unsolved goals s : ℕ u : Fin s → ℤ w : Fin s → ℕ v : Fin s → ℤ hu_nonneg : ∀ (i : Fin s), 0 ≤ u i e : ℕ ih :   ∀ (r : ℕ),     (∀ t < r 
+== c08.lean status 200 okay False nerr 15 
+  top hb [('comparison_with_vanishing', 104984), ('excess_zero_with_comparison_bound', 14053), ('dim_constraint_from_vanishing', 12668), ('multiply_comparison_bounds', 3958)]
+   None | -:88:27-89:5: error: unexpected token 'lemma'; expected term 
+   None | -:94:27-95:5: error: unexpected token 'lemma'; expected term 
+   None | -:112:27-113:5: error: unexpected token 'lemma'; expected term 
+   None | -:154:49-155:5: error: unexpected token 'lemma'; expected term 
+   None | -:185:62-186:5: error: unexpected token 'lemma'; expected term 
+   None | -:479:14-479:15: error: Tactic `introN` failed: There are no additional binders or `let` bindings in the goal to introduce  r : ℕ hr : 2 ≤ r s : ℕ hs : s = 2 * 
+   None | -:481:8-481:67: error: Type mismatch: After simplification, term   ht.right.right.left  has type   ¬∑ i, ↑(v k i) * ↑(w i) * ↑(u i) ^ t = 0 but is expected to h
+   None | -:478:4-481:68: error: unsolved goals case refine'_4.convert_2 r : ℕ hr : 2 ≤ r s : ℕ hs : s = 2 * r M : ℝ u : Fin s → ℤ w : Fin s → ℕ hu_range : ∀ (i : Fin s),
+   None | -:490:2-491:13: error: unsolved goals case e'_3 r : ℕ hr : 2 ≤ r s : ℕ hs : s = 2 * r M : ℝ u : Fin s → ℤ w : Fin s → ℕ hu_range : ∀ (i : Fin s), 0 ≤ u i ∧ ↑(u 
+   None | -:533:9-533:18: error: Tactic `rewrite` failed: Did not find an occurrence of the pattern   ?a ^ ?m * ?a ^ ?n in the target expression   Real.instLE = Real.inst
+   None | -:534:9-534:32: error: Tactic `rewrite` failed: Did not find an occurrence of the pattern   ∏ x ∈ ?m.377, ?m.379 x * ?m.380 x in the target expression   N m ^ r
+   None | -:548:21-548:32: error: unsolved goals r : ℕ N : Fin r → ℝ hN_nonneg : ∀ (k : Fin r), 0 ≤ N k N_mono : Monotone N m : Fin r f : Fin ↑m → ℝ hf_nonneg : ∀ (k : Fi
+   None | -:549:4-549:38: error: Type mismatch   pow_nonneg (hN_nonneg ?m.413) ?m.414 has type   0 ≤ N ?m.413 ^ ?m.414 but is expected to have type   N m ^ ↑m ≤ ∏ k, f k 
+   None | -:527:61-549:38: error: unsolved goals case convert_2 r : ℕ N : Fin r → ℝ hN_nonneg : ∀ (k : Fin r), 0 ≤ N k N_mono : Monotone N m : Fin r f : Fin ↑m → ℝ hf_non
+   None | -:604:9-604:24: error: Tactic `rewrite` failed: Did not find an occurrence of the pattern   ∏ x ∈ ?s, ?f x ^ ?n in the target expression   Real.instPreorder.toL
+== c09.lean status 200 okay False nerr 13 
+  top hb [('factorial_product_lower_bound', 42966), ('block_subdivision_count', 17479), ('small_integer_linear_relation_proof', 12577), ('silr_lattice_case', 5734)]
+   None | -:88:27-89:5: error: unexpected token 'lemma'; expected term 
+   None | -:94:27-95:5: error: unexpected token 'lemma'; expected term 
+   None | -:112:27-113:5: error: unexpected token 'lemma'; expected term 
+   None | -:154:49-155:5: error: unexpected token 'lemma'; expected term 
+   None | -:185:62-186:5: error: unexpected token 'lemma'; expected term 
+   None | -:526:2-526:81: error: unsolved goals case pos.«23» r : ℕ ih : 2 ≤ 23 → (↑23 / 64) ^ (23 * (23 - 1) / 2) ≤ ∏ j ∈ range 23, ↑j ! hr✝ : 2 ≤ 23 + 1 hr : 23 ≤ 64 ⊢ 
+   None | -:539:171-539:178: error: `ring_nf` made no progress on the goal 
+   None | -:557:7-557:30: error: Tactic `rewrite` failed: Did not find an occurrence of the pattern   ∏ x ∈ ?m.197, ?f x / ?g x in the target expression   Real.instLE = R
+   None | -:568:130-568:137: error: `ring_nf` made no progress on the goal 
+   None | -:571:91-571:95: error: `ring_nf` made no progress on the goal 
+   None | -:573:96-573:103: error: `ring_nf` made no progress on the goal 
+   None | -:575:142-575:146: error: `ring_nf` made no progress on the goal 
+   None | -:714:31-714:37: error: Tactic `rewrite` failed: Did not find an occurrence of the pattern   ↑j in the target expression   ↑j = ↑?convert_5 ↔ IsGood f W δ u  f 
+== c10.lean status 200 okay False nerr 11 
+  top hb [('taylor_degree_r_remainder', 26613), ('block_count_to_C0_bound', 18941), ('constant_ineq_i', 18836), ('constant_ineq_ii', 14005)]
+   None | -:88:27-89:5: error: unexpected token 'lemma'; expected term 
+   None | -:94:27-95:5: error: unexpected token 'lemma'; expected term 
+   None | -:112:27-113:5: error: unexpected token 'lemma'; expected term 
+   None | -:154:49-155:5: error: unexpected token 'lemma'; expected term 
+   None | -:185:62-186:5: error: unexpected token 'lemma'; expected term 
+   None | -:691:9-691:16: error: Tactic `rewrite` failed: Did not find an occurrence of the pattern   (?a * ?b) ^ ?n in the target expression   Real.instLE = Real.instPre
+   None | -:706:174-706:182: error: `ring_nf` made no progress on the goal 
+   None | -:729:9-729:16: error: Tactic `rewrite` failed: Did not find an occurrence of the pattern   (?a * ?b) ^ ?n in the target expression   Real.instLE = Real.instPre
+   None | -:747:84-747:91: error: `ring_nf` made no progress on the goal 
+   None | -:762:23-762:74: error: Type mismatch   this has type   0 < x but is expected to have type   ?m.288 ≠ ?m.287 
+   None | -:767:8-767:64: error: Type mismatch   congr rfl (sum_congr rfl fun i hi => ?m.579) has type   ?m.567 (Finset.sum ?m.576 ?m.573) = ?m.567 (Finset.sum ?m.576 ?m.
+== c11.lean status 200 okay False nerr 15 
+  top hb [('short_interval', 155847), ('Z0_nonzero_integer', 25604), ('block_count_to_C0_bound', 1090), ('excess_zero_with_comparison_bound', 773)]
+   None | -:88:27-89:5: error: unexpected token 'lemma'; expected term 
+   None | -:94:27-95:5: error: unexpected token 'lemma'; expected term 
+   None | -:112:27-113:5: error: unexpected token 'lemma'; expected term 
+   None | -:154:49-155:5: error: unexpected token 'lemma'; expected term 
+   None | -:185:62-186:5: error: unexpected token 'lemma'; expected term 
+   None | -:797:228-797:232: error: `ring_nf` made no progress on the goal 
+   None | -:802:84-802:88: error: `ring_nf` made no progress on the goal 
+   None | -:811:115-811:119: error: `ring_nf` made no progress on the goal 
+   None | -:814:6-814:10: error: `ring_nf` made no progress on the goal 
+   None | -:815:6-815:224: error: Type mismatch   LE.le.trans hM_le     (mul_le_mul_of_nonneg_left       (le_trans         (min_le_left (min ((D_r * W ^ 2) ^ (-1 / (2 * ↑
+   None | -:785:35-815:224: error: unsolved goals r : ℕ hr : 2 ≤ r M : ℝ hM : 0 < M W : ℝ hW : 1 ≤ W δ : ℝ hδ : 0 < δ D_r : ℝ hDr : 0 < D_r D_r1 : ℝ hDr1 : 0 < D_r1 f : ℝ
+   None | -:837:160-837:164: error: `ring_nf` made no progress on the goal 
+   None | -:850:12-850:22: error: `field_simp` made no progress on the goal 
+   None | -:852:12-852:26: error: type class instance expected   |↑(a_fn x✝)| * ↑(w_fn x✝) * |f ↑(u_fn x✝) - ↑(v_fn x✝) / ↑(w_fn x✝)| =     |↑(a_fn x✝) * (↑(v_fn x✝) - ↑(
+   None | -:848:119-852:27: error: unsolved goals case convert_5 r : ℕ hr : 2 ≤ r M : ℝ hM : 0 < M W : ℝ hW : 1 ≤ W δ : ℝ hδ : 0 < δ D_r : ℝ hDr : 0 < D_r D_r1 : ℝ hDr1 :
+== c12.lean status 200 okay False nerr 10 
+  top hb [('per_block_bound', 122592), ('residue_class_sum_bound', 109239), ('algebraic_comparison', 22143), ('term2_comparison', 6909)]
+   None | -:88:27-89:5: error: unexpected token 'lemma'; expected term 
+   None | -:94:27-95:5: error: unexpected token 'lemma'; expected term 
+   None | -:112:27-113:5: error: unexpected token 'lemma'; expected term 
+   None | -:154:49-155:5: error: unexpected token 'lemma'; expected term 
+   None | -:185:62-186:5: error: unexpected token 'lemma'; expected term 
+   None | -:838:98-838:102: error: `ring_nf` made no progress on the goal 
+   None | -:844:9-844:28: error: Tactic `rewrite` failed: Did not find an occurrence of the pattern   ?x ^ ?n in the target expression   Real.instPreorder.toLE = Real.ins
+   None | -:928:56-928:63: error: `ring_nf` made no progress on the goal 
+   None | -:929:56-929:63: error: `ring_nf` made no progress on the goal 
+   None | -:930:56-930:63: error: `ring_nf` made no progress on the goal 
