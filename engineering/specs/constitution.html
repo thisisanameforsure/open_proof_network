@@ -76,7 +76,13 @@ with its single home:
   token on the graph repository alone, with contents and pull requests read and write and nothing
   else, an Actions secret on the graph repo, read by the one acting step of
   <code>merge.yml</code> (F07-T25, F07-Q33; added 2026-09-20, expiring 2026-12-31). It presses the
-  merge and update-branch buttons D-4 says no person should have to press. Checked with inert
+  merge and update-branch buttons D-4 says no person should have to press. Since 2026-10-15 one
+  more step reads it, the last step of the graph's <code>close.yml</code> (F28-T5, F28-Q1, the
+  owner's approval): it pushes each composed closing proof to a <code>close/&lt;node&gt;</code>
+  branch, opens that branch's pull request, and closes a closing pull request whose node a direct
+  proof reached first. That step runs no gate and no contributor code; the composing and
+  prechecking before it hold no secret. It never pushes <code>main</code>, and what it opens is
+  gated like any proof. Checked with inert
   calls before it was installed: it can update a branch and merge on the graph, and it cannot
   write to any other repository or read the graph's secrets. <strong>It can bypass the
   <code>main</code> ruleset</strong>, because it is the owner's and the ruleset lets the admin

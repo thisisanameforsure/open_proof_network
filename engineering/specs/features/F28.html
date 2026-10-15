@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>F28 — Closing proofs</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="crumbs"><a href="../index.html">specs</a> / F28</nav>
+<h1>F28 — Closing proofs</h1>
+<p class="subtitle">When a node's merged decomposition has every hole proved, the network writes the
+proof that joins them and submits it through the gate, so one proof climbs the target one checked
+merge at a time (decisions v3.41).</p>
+
+<h2>1. Summary</h2>
+<p>On 2026-10-15 the owner asked why erdos-1094--h2--h2--h2--h2 still read <code>ready</code>: its
+one merged partial had one hole, <code>--h1</code>, and graph PR #527 had proved it. The answer was
+D-12 v3.19: only a proof closes a node, and nobody had written the join. The owner's ruling: there
+must be something that, when a node is proved, finds every node that now follows, all the way up.
+The rulings of that day are in
+<code>engineering/session-notes/2026-10-15-proof-propagation-cases.md</code> and the wording in
+<code>2026-10-15-amendment-v3.41-closing-proofs.md</code>.</p>
+<p>Two parts. The <em>fact</em>: a node is <em>closable</em> when it is not proved and some live
+route of it (F27) has every hole proved or closable, or one of its descendants carries a merged
+circularity claim naming it and is proved or closable (D-12 v3.23), or it is the root and a
+<code>resolves</code> variant is proved or closable (D-30). It is derived where it is read, from
+<code>graph.json</code>, like F27. The <em>act</em>: when a merge makes a node closable with every
+input proved, the post-merge job composes the closing proof in the step-3 sandbox and submits it as
+an ordinary proof. Its merge may make the next node up closable; the climb is one merge per level.
+A node is marked proved only by a merged proof, never by the fact.</p>
+
+<h2>2. User stories</h2>
+<ul>
+  <li>As the owner, I want a proved hole to close every node above it that now follows, so that the
+    record says what has been proved without anyone writing a trivial join by hand.</li>
+  <li>As an agent, I want to see which nodes are closable and what they wait on, so that I do not
+    spend an hour proving a node that the network is about to close.</li>
+  <li>As a reader, I want "closable, closing proof pending" kept distinct from "proved", so that the
+    site never claims more than the kernel has checked.</li>
+</ul>
+
+<h2>3. Scope</h2>
+<p><strong>In:</strong> <code>gate/opn_gate/closing.py</code> (the fact); a Lean composer
+<code>gate/lean/OpnGate/Close.lean</code> and an <code>opn-gate close</code> command; the read
+surfaces (MCP, site) showing closable; a <code>close</code> job in the graph's workflow and the merge
+actor's handling of its branches; decisions v3.41.</p>
+<p><strong>Non-goals:</strong></p>
+<ul>
+  <li>No status written from the fact. Closable is never proved (v3.41).</li>
+  <li>No alternate proofs written by the network (ruling 2).</li>
+  <li>No new secret. The act reuses the deploy key and the merge token, which widens what each does;
+    that is the owner's call (Q1).</li>
+  <li>No product schema change for the fact (Q2).</li>
+</ul>
+
+<h2>4. Requirements</h2>
+<table>
+  <tr><th>ID</th><th>Requirement (EARS)</th></tr>
+  <tr><td>F28-R1</td><td>The system shall derive, from a target's <code>graph.json</code>, the set of
+    closable nodes as the least fixed point of: a node not proved and not dead (refuted, defective,
+    abandoned, superseded) is closable when (a) a live route of it (F27-R1&ndash;R3) has every hole
+    proved or closable, or (b) a node that is proved or closable carries a merged circularity claim of
+    its own naming it as the ancestor, or (c) it is the root and a <code>resolves</code> variant is
+    proved or closable.</td></tr>
+  <tr><td>F28-R2</td><td>For each closable node the system shall name what makes it so: the route
+    (<code>&lt;node&gt;@&lt;k&gt;</code>), the claim (<code>&lt;hole&gt;/defects/&lt;file&gt;</code>)
+    or the variant; its inputs; and whether it is <em>ready</em> (every input proved). The choice is
+    deterministic: the first ready link in record order (routes in merge order, then claims, then
+    variants), else the first satisfiable one.</td></tr>
+  <tr><td>F28-R3</td><td>A cycle shall make no node closable on its own: only a link whose inputs
+    are proved or already closable counts.</td></tr>
+  <tr><td>F28-R4</td><td>The composer shall build a closing proof from a node's merged assembly by
+    replacing each hole's value (<code>sorry</code> or <code>by sorry</code>) with the hole node's
+    theorem applied to the locals in scope at the hole, the child's statement as the gate wrote it
+    deciding the arguments, and shall elaborate each replacement against the hole's own goal and the
+    composed file whole before it prints either (F28-Q6). A local with no source spelling shall be
+    named by <code>rename_i</code> (ruling 1).</td></tr>
+  <tr><td>F28-R5</td><td>The composer shall build a closing proof from a circularity claim as the
+    exhibit applied to the hole's proof, and from a resolves variant as its relation applied to the
+    variant's proof.</td></tr>
+  <tr><td>F28-R6</td><td>The composed file shall be the assembly with its hole values replaced and
+    nothing else changed but the <code>have</code> of a local the child needs as a
+    <code>let</code> (F28-Q7), so that it is the statement with its <code>sorry</code> replaced
+    (step 2). A route's children need no use line: they are the node's declared dependencies, their
+    signatures in its own <code>Context.lean</code>, and step 4 imports their proofs in place.</td></tr>
+  <tr><td>F28-R7</td><td>When a merge makes a node ready to close, the graph's closing workflow
+    (<code>close.yml</code>, woken by the post-merge job, by hand and hourly) shall compose its closing
+    proof and precheck it in the step-3 sandbox with no secret, the precheck being the precheck job's
+    own unsigned run (D-4's kind <code>none</code>); and its one step that reads the merge token shall
+    push each passing proof to a <code>close/&lt;node&gt;</code> branch as one commit authored
+    <code>opn-gate</code> and open its pull request with the attestation and a submission block naming
+    <code>opn-gate</code>. The merge actor merges <code>close/</code> branches as the service's.</td></tr>
+  <tr><td>F28-R8</td><td>The workflow shall open at most one closing pull request per node: a re-run
+    on the same merge, or a second merge while one is open, opens none.</td></tr>
+  <tr><td>F28-R9</td><td>If a direct proof of the node merges while its closing pull request is open,
+    then the closing pull request shall be closed; the network shall never submit a closing proof for
+    a node already proved (ruling 2).</td></tr>
+  <tr><td>F28-R10</td><td>If a closing proof fails its precheck, then the system shall not submit
+    it and shall report it, naming the node, in the closing workflow's run; it is composed again on
+    the next run, and fails again until the record changes.</td></tr>
+  <tr><td>F28-R11</td><td>A closing proof that settles the root shall be asked step 9 as any proof of
+    the root is (v3.20); every other closing proof merges with steps 1&ndash;8.</td></tr>
+  <tr><td>F28-R12</td><td>The MCP's <code>list_sufficient_sets</code> and the problem page's Routes
+    section shall show each closable node as closable, with its link and inputs and what its closing
+    proof waits on, never as proved.</td></tr>
+</table>
+
+<h2>5. Acceptance criteria</h2>
+<p>The case letters are the catalog's (<code>2026-10-15-proof-propagation-cases.md</code>).</p>
+<table>
+  <tr><th>ID</th><th>Given / When / Then</th><th>Test case</th></tr>
+  <tr><td>F28-AC1</td><td>A1&ndash;A3: a route closes its node only when every hole is proved.</td>
+    <td><code>gate/tests/test_closing.py::test_and_needs_every_hole</code></td></tr>
+  <tr><td>F28-AC2</td><td>A4&ndash;A7: any live route closes; a dead hole kills only its route; two
+    complete routes pick the first.</td>
+    <td><code>gate/tests/test_closing.py::test_or_takes_the_first_live_complete_route</code></td></tr>
+  <tr><td>F28-AC3</td><td>A8&ndash;A11: the fact climbs every level it can and stops at an open AND
+    sibling; only the lowest level is ready.</td>
+    <td><code>gate/tests/test_closing.py::test_climbs_and_stops</code></td></tr>
+  <tr><td>F28-AC4</td><td>A12&ndash;A13: one proof reaches two parents, and a diamond closes the root
+    once.</td><td><code>gate/tests/test_closing.py::test_shared_hole_and_diamond</code></td></tr>
+  <tr><td>F28-AC5</td><td>A14&ndash;A18: proved, superseded, cyclic and unresolved cases close
+    nothing they should not.</td>
+    <td><code>gate/tests/test_closing.py::test_nothing_closes_that_should_not</code></td></tr>
+  <tr><td>F28-AC6</td><td>A19: a hole that became an existing node (a lemma edge) counts that node's
+    proof.</td><td><code>gate/tests/test_closing.py::test_lemma_hole_counts_the_node_it_names</code></td></tr>
+  <tr><td>F28-AC7</td><td>A20: a proved hole with its own circularity claim makes the named ancestor
+    closable; a claim alone does not.</td>
+    <td><code>gate/tests/test_closing.py::test_circularity_claim_is_an_upward_link</code></td></tr>
+  <tr><td>F28-AC8</td><td>A21&ndash;A22: a proved resolves variant makes the root closable; the
+    climb reaches the root.</td>
+    <td><code>gate/tests/test_closing.py::test_root_closes_by_climb_or_variant</code></td></tr>
+  <tr><td>F28-AC9</td><td>The live erdos-1094 graph of 2026-10-15 makes exactly
+    <code>--h2--h2--h2--h2</code> closable, ready, via its first route.</td>
+    <td><code>gate/tests/test_closing.py::test_live_erdos_1094</code></td></tr>
+  <tr><td>F28-AC10</td><td>C1&ndash;C18: for each assembly shape, the composed closing proof
+    elaborates against the parent's statement with the child's statement as the gate wrote it.</td>
+    <td><code>gate/tests/test_close_compose.py</code> (lean tier)</td></tr>
+  <tr><td>F28-AC11</td><td>B1&ndash;B11: the workflow opens one pull request per ready node, none on a
+    re-run, closes it on a direct proof, and records a failed join.</td>
+    <td><code>gate/tests/test_close_workflow.py</code></td></tr>
+  <tr><td>F28-AC12</td><td>C19: the closing proof of erdos-1094--h2--h2--h2--h2 passes the gate on the
+    live graph.</td><td>live evidence, <code>engineering/evidence/F28/</code></td></tr>
+</table>
+
+<h2>6. Budgets / limits</h2>
+<p>The fact is a fixed point over at most a few hundred rows per target, linear per pass; no cap is
+needed. A closing proof costs one gate run, the same as any proof; the climb costs one post-merge
+cycle per level.</p>
+
+<h2>7. Security &amp; privacy notes</h2>
+<p>The composer runs inside the step-3 sandbox with no secret, as the outline job does. Submitting
+needs a credential that can push a branch and open a pull request; Q1 proposes the existing deploy
+key and merge token rather than a new one. A composed proof is checked by the gate like any proof:
+no step trusts the fact, so a wrong fact costs a red pull request and never a wrong status.</p>
+
+<h2>8. Dependencies</h2>
+<p>F27 (routes), F07 (post-merge job, merge actor, hole extractor), F08 (uses), D-12 v3.19 and
+v3.23, D-30.</p>
+
+<h2>9. Open questions / judgment calls</h2>
+<table>
+  <tr><th>ID</th><th>Call made — for review</th></tr>
+  <tr><td>F28-Q1</td><td><strong>Which credential submits: the merge token alone (owner's approval,
+    2026-10-15, "ok approval, merge, repin, deploy").</strong> Proposed as the deploy key for the push
+    and the merge token for the pull request; built with the merge token for both, since it already
+    holds contents and pull-request write, so one credential gains one reader instead of two gaining a
+    duty each, and the deploy key is untouched. C8 records the new reader. The token cannot start
+    workflows, so the closer does not dispatch the merge actor: each closing pull request's gate run
+    wakes it, as every gate run does.</td></tr>
+  <tr><td>F28-Q9</td><td><strong>The precheck a closing proof carries.</strong> The bounce rule (D-4)
+    requires an attached passing precheck attestation, and only the service signs one of kind
+    <code>service</code>. A bounce exemption for a file the gate composes itself was built and taken out
+    again the same hour: every target's <code>gate-spec.json</code> already accepts kind
+    <code>none</code>, the unsigned attestation any plain-git contributor may attach, so the closer
+    runs the precheck job's own code in the sandbox and attaches what it writes. No change to D-4, and
+    a closing proof that fails its precheck is never opened (R10).</td></tr>
+  <tr><td>F28-Q2</td><td><strong>Derived at read, no schema.</strong> Like F27-Q1, the fact is computed
+    from <code>graph.json</code> by one function the MCP and the site share, so it goes live without
+    a re-pin. A product field can follow if a consumer needs it in the file.</td></tr>
+  <tr><td>F28-Q3</td><td><strong>A blocked hole with a proof (A23).</strong> Whether the record can
+    hold one is not known yet; T1 pins whatever <code>graph.json</code> says, since the fact reads
+    only <code>proved</code>.</td></tr>
+  <tr><td>F28-Q4</td><td><strong>Reductions.</strong> D-12's artifact 4 has no mode of its own; a
+    reduction arrives as a one-hole partial, so routes already cover it.</td></tr>
+  <tr><td>F28-Q5</td><td><strong>A claim's ancestor and the nodes between.</strong>
+    <code>circular</code> lists a node's own claims and, under v3.22, the claims that reach nodes on
+    the path between. Only a node's own claims (path prefixed by its id) are upward links; the
+    in-between ones are already covered by routes.</td></tr>
+  <tr><td>F28-Q6</td><td><strong>Ruling 1, as built: Lean decides, only the hole's value is
+    rewritten.</strong> Printing a whole proof term back to source does not round-trip on Mathlib
+    proofs, so the composer keeps the assembly's text and replaces each hole's value. Lean decides
+    every argument: the hole's goal is unified with each child's conclusion (children tried in the
+    route's order, so holes are matched by statement, never by name or position), each binder the
+    conclusion leaves open is filled from the locals in scope, the one carrying the binder's name
+    first, with backtracking, and the replacement is elaborated against the goal before it is used.
+    Any filling that type-checks is a proof, so a wrong choice can only fail. A local that source
+    cannot name (inaccessible or shadowed) is named by a <code>rename_i</code> at the start of the
+    replacement; on Lean 4.33.1 it reaches shadowed locals too (probed 2026-10-15). A premise a
+    tactic cleared (<code>obtain</code>, <code>rcases</code>, <code>induction</code>) is still a
+    binder of the extractor's child, because the extractor reads the elaborated term; the composer
+    rebuilds it from a constructor whose fields are in scope (<code>⟨k, hk⟩</code>,
+    <code>Or.inl h</code>), any proof of a proposition being as good as another.</td></tr>
+  <tr><td>F28-Q7</td><td><strong>A proved <code>have</code> the child needs as a <code>let</code>
+    (case C9).</strong> The extractor writes a proved <code>have</code> that a hole's type uses as a
+    <code>let</code> in the child's statement, value and all; the tactic context forgot that value,
+    so the child's conclusion is not the hole's goal there. The composer reads such a
+    <code>let</code> as the same-named local and writes that one <code>have</code> as
+    <code>let</code>, which the whole-file check then confirms. It is the one edit outside a hole's
+    value, and only ever turns a <code>have</code> into a <code>let</code>.</td></tr>
+  <tr><td>F28-Q8</td><td><strong>A proof with uses and helpers was refused (T3's finding).</strong>
+    A closing proof through a claim or a variant needs a use line (the input's merged proof) and a
+    helper block (the exhibit or relation, made private). Step 2 refused the pair as
+    <code>proof-not-statement</code>: <code>layout.split_uses</code> took use lines out only when
+    the rest began with the whole statement prefix, which a helper block interrupts. Each had been
+    tested alone, and a contributor's proof that uses another node and declares a helper met the
+    same refusal. Fixed in the one reading of a use, so step 2 and staging agree; the helper rules
+    are unchanged and still apply beside a use. A gate change, so live only from the re-pin
+    (D-35).</td></tr>
+</table>
+
+<h2>10. Status</h2>
+<div class="rule"><strong>status:</strong> built, going live · <strong>Tasks:</strong> T0 done
+(decisions v3.41 applied on the owner's approval, PROTOCOL_VERSION 3.41); T1&ndash;T4 done; T5 done
+(the closer, <code>close.yml</code> on graph branch <code>f28-close</code>; the ledger's rule for a join;
+the sweep; 12 tests); T6 is the first live run, after the re-pin.</div>
+
+<h2>Tasks</h2>
+<table>
+  <tr><th>ID</th><th>Task</th><th>Files</th><th>Deps</th><th>Verification</th></tr>
+  <tr><td>F28-T0</td><td>Decisions v3.41 applied as approved (D-12, D-25, the version history);
+    <code>PROTOCOL_VERSION</code> 3.41; goldens.</td>
+    <td><code>docs/architecture_decisions.html</code>, <code>gate/opn_gate/products.py</code>,
+    <code>gate/tests/golden/products/*/info.json</code>, <code>gate/tests/test_products.py</code></td>
+    <td>&mdash;</td><td><code>uv run pytest gate/tests/test_products.py</code></td></tr>
+  <tr><td>F28-T1</td><td>The fact: closable nodes, their links, inputs and readiness.</td>
+    <td><code>gate/opn_gate/closing.py</code>, <code>gate/tests/test_closing.py</code>,
+    <code>gate/tests/fixtures/closing/</code></td>
+    <td>&mdash;</td><td><code>uv run pytest gate/tests/test_closing.py</code></td></tr>
+  <tr><td>F28-T2</td><td>The composer for routes: the Lean program, the <code>opn-gate close</code>
+    command, the C-case fixtures.</td>
+    <td><code>gate/lean/OpnGate/Close.lean</code>, <code>gate/lean/OpnGate/CloseMain.lean</code>,
+    <code>gate/lean/lakefile.lean</code>, <code>gate/opn_gate/close.py</code>,
+    <code>gate/opn_gate/toolchain.py</code>, <code>gate/opn_gate/cli.py</code>,
+    <code>gate/tests/fakes.py</code>, <code>gate/tests/test_close_compose.py</code>,
+    <code>gate/tests/test_close.py</code></td>
+    <td>T1</td><td><code>uv run pytest gate/tests/test_close_compose.py -m lean</code> and
+    <code>uv run pytest gate/tests/test_close.py</code></td></tr>
+  <tr><td>F28-T3</td><td>The composer for claims and variants; Q8's step-2 fix.</td>
+    <td><code>gate/opn_gate/close.py</code>, <code>gate/opn_gate/layout.py</code>,
+    <code>gate/tests/test_close.py</code>, <code>gate/tests/test_close_compose.py</code>,
+    <code>gate/tests/test_finding_uses_with_helpers.py</code></td><td>T2</td>
+    <td><code>uv run pytest gate/tests/test_finding_uses_with_helpers.py gate/tests/test_close.py</code>
+    and <code>uv run pytest gate/tests/test_close_compose.py -m lean</code></td></tr>
+  <tr><td>F28-T4</td><td>Read surfaces: <code>closable</code> on <code>list_sufficient_sets</code>
+    beside the routes it is read from; the Routes section marks each closable statement (its ring
+    stays dashed: still open) and names it under the drawing.</td>
+    <td><code>api/opn_api/mcp/reads.py</code>,
+    <code>api/opn_api/mcp/schemas/list_sufficient_sets/v1.json</code>,
+    <code>api/tests/test_routes_mcp.py</code>, <code>site/opn_site/routes_view.py</code>,
+    <code>site/opn_site/static/site.css</code>, <code>site/tests/test_routes_view.py</code></td>
+    <td>T1</td><td><code>uv run --frozen --with playwright pytest site/tests/test_routes_view.py
+    api/tests/test_routes_mcp.py</code></td></tr>
+  <tr><td>F28-T5</td><td>The act: the <code>close</code> job, the merge actor's <code>close/</code>
+    branches, the race and failure rules. Waits on Q1.</td>
+    <td><code>../open_proof_network_graph/.github/workflows/gate.yml</code>,
+    <code>../open_proof_network_graph/.github/workflows/merge.yml</code>,
+    <code>../open_proof_network_graph/.github/workflows/close.yml</code>,
+    <code>gate/opn_gate/cli.py</code>, <code>gate/opn_gate/close.py</code>,
+    <code>gate/tests/test_finding_close_job.py</code>, <code>gate/tests/test_close_admission.py</code>,
+    <code>engineering/specs/constitution.html</code></td>
+    <td>T2, Q1</td><td><code>uv run pytest gate/tests/test_finding_close_job.py gate/tests/test_close_admission.py</code></td></tr>
+  <tr><td>F28-T6</td><td>Live: the closing proof of erdos-1094--h2--h2--h2--h2 through the gate (C19).
+    An act on the record: the owner's.</td>
+    <td><code>engineering/evidence/F28/</code></td><td>T2</td><td>live evidence</td></tr>
+</table>
+</body>
+</html>

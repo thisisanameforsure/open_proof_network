@@ -14,6 +14,7 @@ from opn_gate.models import Completion, ModelError
 from opn_gate.toolchain import (
     ArtifactRequest,
     AxiomResult,
+    CloseRequest,
     ElabResult,
     HazardsRequest,
     MeaningRequest,
@@ -215,6 +216,11 @@ class FakeToolchain:
     #: F19: what ``opn-outline`` answers; every request is kept in ``outline_requests``.
     outline_doc: MetaprogramResult = field(default_factory=lambda: outline_result([]))
     outline_requests: list[OutlineRequest] = field(default_factory=list)
+    #: F28: what ``opn-close`` answers; every request is kept in ``close_requests``.
+    close_doc: MetaprogramResult = field(
+        default_factory=lambda: MetaprogramResult(ok=True, doc={"ok": True, "sites": []})
+    )
+    close_requests: list[CloseRequest] = field(default_factory=list)
     missing: bool = False
     raise_on: str | None = None  # name of the method that should raise an unexpected error
     calls: list[str] = field(default_factory=list)
@@ -382,6 +388,19 @@ class FakeToolchain:
         self.outline_requests.append(req)
         self._maybe_raise("outline")
         return self.outline_doc
+
+    def close(
+        self,
+        tc: ResolvedToolchain,
+        req: CloseRequest,
+        search_path: Sequence[Path],
+        *,
+        timeout_s: float | None = None,
+    ) -> MetaprogramResult:
+        self.calls.append(f"close:{req.module}:{req.decl}")
+        self.close_requests.append(req)
+        self._maybe_raise("close")
+        return self.close_doc
 
 
 # --- the Model seam (F12-R6, R7) -----------------------------------------------------------------

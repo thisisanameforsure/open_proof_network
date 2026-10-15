@@ -178,4 +178,4 @@ def test_the_generated_products_validate_and_carry_the_lemma(tmp_path: Path) -> 
     [row] = [n for n in gdoc["nodes"] if n["node_id"] == ROOT_NODE]
     assert row["lemmas"] == [{"hole": LEMMA_HOLE, "node": LEMMA}]
     info = json.loads(built.files[Path("info.json")])
-    assert info["protocol_version"] == "3.40" == products.PROTOCOL_VERSION
+    assert info["protocol_version"] == "3.41" == products.PROTOCOL_VERSION
