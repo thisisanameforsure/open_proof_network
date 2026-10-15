@@ -18,7 +18,7 @@ from api_fakes import Harness
 from mcp_client import McpClient
 
 from opn_api.mcp import bijection, results
-from opn_gate import routes
+from opn_gate import closing, routes
 
 LIVE = Path(__file__).resolve().parents[2] / "gate" / "tests" / "fixtures" / "routes"
 TARGET = "erdos-1094"
@@ -51,7 +51,8 @@ def test_list_sufficient_sets_round_trip(harness: Harness) -> None:
     got = client.ok("list_sufficient_sets", {"target_id": TARGET})
     assert results.violations("list_sufficient_sets", got) == []
     expected = routes.read(graph, served_entries(client)).as_dict()
-    assert {k: v for k, v in got.items() if k != "read_at"} == expected
+    assert {k: v for k, v in got.items() if k not in {"read_at", "closable"}} == expected
+    assert got["closable"] == [c.as_dict() for c in closing.closable(graph)]
     assert got["cut"] == "finest"
     assert len(got["routes"]) == 16
     assert len(got["sets"]) == 2
@@ -104,3 +105,27 @@ def test_a_target_with_no_routes_is_its_own_set(harness: Harness) -> None:
     assert got["routes"] == []
     assert [s["open"] for s in got["sets"]] == [["lemma", "plain"]]
     assert results.violations("list_sufficient_sets", got) == []
+
+
+def test_closable_nodes_ride_with_the_routes(harness: Harness) -> None:
+    """F28-T4 (R12): the graph of 2026-10-15 (graph edadad318), whose node the owner asked about
+    is closable through its one route; the answer names it, its link and that it is ready, the
+    library's own reading, and validates."""
+    graph: dict[str, Any] = json.loads((LIVE / f"{TARGET}-20261015.json").read_text("utf-8"))[
+        "graph"
+    ]
+    harness.githost.files[f"targets/{TARGET}/graph.json"] = json.dumps(graph).encode()
+    harness.context.files.clear()
+    got = McpClient(harness).ok("list_sufficient_sets", {"target_id": TARGET})
+    assert results.violations("list_sufficient_sets", got) == []
+    assert got["closable"] == [
+        {
+            "node": "erdos-1094--h2--h2--h2--h2",
+            "link": {
+                "kind": "route",
+                "id": "erdos-1094--h2--h2--h2--h2@1",
+                "inputs": ["erdos-1094--h2--h2--h2--h2--h1"],
+            },
+            "ready": True,
+        }
+    ]

@@ -28,7 +28,7 @@ from dataclasses import dataclass, field
 from html import escape
 from typing import Any
 
-from opn_gate import routes
+from opn_gate import closing, routes
 from opn_gate.graph import HOLE_ORIGINS, HOLE_SEPARATOR
 from opn_site import dag
 
@@ -252,13 +252,16 @@ def section(
     d = drawn(graph, result)
     if not d.junctions:
         return Section("", 0)
+    ready = {c.node: c for c in closing.closable(graph)}
     return Section(
         '<section class="routes-section" id="routes">'
         '<div class="section-head"><div><h2>Routes</h2>'
         f'<p class="cue">{INTRO}</p></div></div>'
         '<div class="routes-grid">'
         f'<div class="routes-wrap card">{legend(result)}'
-        f'<div class="routes-scroll">{svg(d, result, href=href, prefix=prefix)}</div></div>'
+        '<div class="routes-scroll">'
+        f"{svg(d, result, href=href, prefix=prefix, closable=ready)}</div>"
+        f"{closable_line(ready, href, prefix, result.root)}</div>"
         f"{table(result, prefix)}"
         "</div></section>",
         len(result.sets),
@@ -271,8 +274,11 @@ def svg(
     *,
     href: Mapping[str, str],
     prefix: str | None = None,
+    closable: Mapping[str, closing.Closable] | None = None,
 ) -> str:
-    """The drawing: statements as pies, routes as junctions, laid out by ``dag.layout``."""
+    """The drawing: statements as pies, routes as junctions, laid out by ``dag.layout``. A
+    closable statement (F28, v3.41) keeps its open look and gains the filled assembly mark."""
+    closable = closable or {}
     names: dag.Prefix = (prefix, result.root) if prefix else None
     widths: dict[str, int] = {j: JUNCTION_W for j in d.junctions}
     for v in d.statements:
@@ -334,6 +340,15 @@ def svg(
             else ""
         )
         root = " root" if p.node_id == result.root else ""
+        joins = closable.get(p.node_id)
+        if joins is not None:
+            root += " closable"
+            said += "; " + closable_words(joins, closable)
+            if role != "assembly":
+                asm = (
+                    f'<rect class="asm" x="{PIE_X - 3}" y="{dag.NODE_H // 2 - 3}" '
+                    'width="6" height="6"/>'
+                )
         parts.append(
             f'<a href="{escape(href.get(p.node_id, "#"))}">'
             f'<g class="rnode st-{state_of(status)} {role}{root}" '
@@ -382,6 +397,35 @@ def _swatch(inner: str, w: int = 26) -> str:
     )
 
 
+def closable_words(c: closing.Closable, found: Mapping[str, closing.Closable]) -> str:
+    """What a closable statement waits on: nothing but its own closing proof when it is ready,
+    else the closable inputs whose closing proofs come first."""
+    if c.ready:
+        return "closable: its closing proof is pending"
+    waiting = [i for i in c.link.inputs if i in found]
+    return "closable once the closing proof of " + ", ".join(waiting) + " merges"
+
+
+def closable_line(
+    found: Mapping[str, closing.Closable],
+    href: Mapping[str, str],
+    prefix: str | None,
+    root: str,
+) -> str:
+    """The closable statements named under the drawing, or nothing when there are none."""
+    if not found:
+        return ""
+    names: dag.Prefix = (prefix, root) if prefix else None
+    items = ", ".join(
+        f'<a href="{escape(href.get(n, "#"))}">{escape(dag.label_of(n, names))}</a>' for n in found
+    )
+    return (
+        f'<p class="routes-closable">Closable: {items}. Each one&rsquo;s proof exists in parts, '
+        "its merged decomposition and the proofs of what it needs; nothing is proved until the "
+        "closing proof that joins them passes the gate.</p>"
+    )
+
+
 def legend(result: routes.Routes) -> str:
     """The key, inside the drawing's card: every mark and every state the drawing can show."""
     c = 'cx="11" cy="11" r="7"'
@@ -426,6 +470,13 @@ def legend(result: routes.Routes) -> str:
                 '<rect class="asm" x="8" y="8" width="6" height="6"/></g>'
             ),
             "assembly: its closing proof still to submit",
+        ),
+        (
+            _swatch(
+                f'<g class="st-open closable"><circle class="ring" {ring}/>'
+                '<rect class="asm" x="8" y="8" width="6" height="6"/></g>'
+            ),
+            "closable: its proof exists in parts, the closing proof is pending",
         ),
         (
             _swatch(f'<g class="st-open"><circle class="ring" {ring}/></g>'),

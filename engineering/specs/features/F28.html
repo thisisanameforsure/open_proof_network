@@ -97,8 +97,9 @@ actor's handling of its branches; decisions v3.41.</p>
     request red, record a defect naming the hole whose join failed, and not resubmit it.</td></tr>
   <tr><td>F28-R11</td><td>A closing proof that settles the root shall be asked step 9 as any proof of
     the root is (v3.20); every other closing proof merges with steps 1&ndash;8.</td></tr>
-  <tr><td>F28-R12</td><td>The MCP target read and the site shall show each closable node as
-    "closable, closing proof pending" with its link and inputs, never as proved.</td></tr>
+  <tr><td>F28-R12</td><td>The MCP's <code>list_sufficient_sets</code> and the problem page's Routes
+    section shall show each closable node as closable, with its link and inputs and what its closing
+    proof waits on, never as proved.</td></tr>
 </table>
 
 <h2>5. Acceptance criteria</h2>
@@ -212,7 +213,9 @@ v3.23, D-30.</p>
 <code>opn-gate close</code>; 23 lean-tier cases, 5 red on the first run and fixed, Q6, Q7; 7 fast).
 T3 done (claims and variants: the exhibit or relation as a private helper, the input's proof as
 a use; Q8's step-2 defect fixed red first; 2 lean-tier cases). T0 waits on the owner's approval of
-the amendment's wording; T5 on Q1; T6 is the owner's act.</div>
+the amendment's wording; T5 on Q1; T6 is the owner's act. T4 done (closable on
+<code>list_sufficient_sets</code> and the Routes section: an accent ring kept dashed, an accent
+border, a line naming each closable statement; red first; screenshots).</div>
 
 <h2>Tasks</h2>
 <table>
@@ -241,9 +244,15 @@ the amendment's wording; T5 on Q1; T6 is the owner's act.</div>
     <code>gate/tests/test_finding_uses_with_helpers.py</code></td><td>T2</td>
     <td><code>uv run pytest gate/tests/test_finding_uses_with_helpers.py gate/tests/test_close.py</code>
     and <code>uv run pytest gate/tests/test_close_compose.py -m lean</code></td></tr>
-  <tr><td>F28-T4</td><td>Read surfaces: closable on the MCP target read and the site.</td>
-    <td><code>api/opn_api/mcp/reads.py</code>, <code>site/opn_site/</code></td>
-    <td>T1</td><td>named when the task starts</td></tr>
+  <tr><td>F28-T4</td><td>Read surfaces: <code>closable</code> on <code>list_sufficient_sets</code>
+    beside the routes it is read from; the Routes section marks each closable statement (its ring
+    stays dashed: still open) and names it under the drawing.</td>
+    <td><code>api/opn_api/mcp/reads.py</code>,
+    <code>api/opn_api/mcp/schemas/list_sufficient_sets/v1.json</code>,
+    <code>api/tests/test_routes_mcp.py</code>, <code>site/opn_site/routes_view.py</code>,
+    <code>site/opn_site/static/site.css</code>, <code>site/tests/test_routes_view.py</code></td>
+    <td>T1</td><td><code>uv run --frozen --with playwright pytest site/tests/test_routes_view.py
+    api/tests/test_routes_mcp.py</code></td></tr>
   <tr><td>F28-T5</td><td>The act: the <code>close</code> job, the merge actor's <code>close/</code>
     branches, the race and failure rules. Waits on Q1.</td>
     <td><code>../open_proof_network_graph/.github/workflows/gate.yml</code>,

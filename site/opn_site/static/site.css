@@ -973,6 +973,10 @@ details.rec[open] > summary { color: var(--text); }
 .st-open .ring { stroke: var(--n400); stroke-dasharray: 3 2; }
 .st-dead .ring { stroke: var(--bad); stroke-dasharray: 3 2; }
 .asm { fill: var(--n400); }
+/* F28: closable — still open (the ring stays dashed), drawn in the accent: the closing proof is pending */
+.closable .asm { fill: var(--accent-300); }
+.closable .ring { stroke: var(--accent-300); }
+.routes-svg .closable .pill { stroke: var(--accent-300); }
 .stem { stroke: var(--n600); stroke-width: 1.5; }
 .stem.dead, .junction.dead .stem { stroke-dasharray: 4 3; stroke: var(--n700); }
 .and-mark { fill: var(--text); stroke: var(--bg); stroke-width: 1.5; }
@@ -986,6 +990,7 @@ details.rec[open] > summary { color: var(--text); }
 .routes-svg .wedge.off { opacity: .15; }
 /* the table */
 .routes-table-wrap { min-width: 0; position: sticky; top: var(--s6); }
+.routes-closable { font-size: 13.5px; color: var(--n300); margin: var(--s3) 0 0; }
 .routes-count { font-size: 13.5px; color: var(--n400); display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2) var(--s4); }
 .routes-fewest { font: inherit; font-size: 12.5px; color: var(--n300); background: var(--bg); border: 1px solid var(--divider); border-radius: 999px; padding: 2px 12px; cursor: pointer; }
 .routes-fewest:hover, .routes-fewest:focus-visible { border-color: var(--accent); }

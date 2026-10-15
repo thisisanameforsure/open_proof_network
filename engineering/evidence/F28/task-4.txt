@@ -1,0 +1,18 @@
+# F28-T4: closable on the MCP tool and the problem page's Routes section — 2026-10-15T08:36:27Z
+
+## Red first (engineering/evidence/F28/task-4-red.txt): 3 failed — no closable key on the tool, no mark on the page
+
+## uv run --frozen --with playwright pytest site/tests/test_routes_view.py api/tests/test_routes_mcp.py api/tests/test_mcp_surface.py api/tests/test_finding_mcp_context_budget.py
+37 passed, 2 warnings in 6.92s
+
+## The live erdos-1094 graph of 2026-10-15 (graph edadad318), rendered with site.css, measured in Chromium:
+closable drawn: 1 ['erdos-1094--h2--h2--h2--h2']
+title: erdos-1094--h2--h2--h2--h2: ready; an assembly: its route closes it once its closing proof is submitted; closable: its closing proof is pending
+line: Closable: h2--h2--h2--h2. Each one’s proof exists in parts, its merged decomposition and the proofs of what it needs; nothing is proved until the closing proof that joins them passes the gate.
+fill: rgb(210, 206, 253) ring dash: 3px, 2px
+page overflow x: False
+pill stroke: rgb(210, 206, 253) other pill: rgba(233, 233, 237, 0.16)
+
+## Screenshots: task-4-routes.png (the whole section), task-4-routes-zoom.png (the closable statement among its neighbours).
+The first capture used only a filled square and was indistinguishable from an assembly in the zoom; the
+cue was strengthened to an accent ring (still dashed: open) and an accent border. The site is dark-only.
