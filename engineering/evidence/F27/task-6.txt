@@ -1,0 +1,60 @@
+$ uv run pytest gate/tests/test_target_routes.py -v
+gate/tests/test_target_routes.py::test_a_root_with_no_routes_is_its_own_set PASSED [  4%]
+gate/tests/test_target_routes.py::test_and_takes_every_hole_of_a_route PASSED [  8%]
+gate/tests/test_target_routes.py::test_or_gives_one_set_per_route PASSED [ 12%]
+gate/tests/test_target_routes.py::test_and_expands_through_nested_routes PASSED [ 16%]
+gate/tests/test_target_routes.py::test_proved_interior_node_cuts_its_descendants PASSED [ 20%]
+gate/tests/test_target_routes.py::test_dead_route_contributes_no_set PASSED [ 25%]
+gate/tests/test_target_routes.py::test_every_route_dead_falls_back_to_a_direct_proof PASSED [ 29%]
+gate/tests/test_target_routes.py::test_direct_proof_needs_its_declared_dependencies PASSED [ 33%]
+gate/tests/test_target_routes.py::test_cycle_through_a_lemma_is_dropped PASSED [ 37%]
+gate/tests/test_target_routes.py::test_resolves_variant_is_an_alternative PASSED [ 41%]
+gate/tests/test_target_routes.py::test_proved_root_is_one_closed_set PASSED [ 45%]
+gate/tests/test_target_routes.py::test_every_statement_proved_leaves_the_assemblies PASSED [ 50%]
+gate/tests/test_target_routes.py::test_a_set_containing_another_is_dropped PASSED [ 54%]
+gate/tests/test_target_routes.py::test_unnamed_holes_assigned_or_unresolved PASSED [ 58%]
+gate/tests/test_target_routes.py::test_a_superseded_hole_is_followed_to_its_revision PASSED [ 62%]
+gate/tests/test_target_routes.py::test_route_summary_aggregates_the_frontier_facts PASSED [ 66%]
+gate/tests/test_target_routes.py::test_entries_of_another_target_are_ignored PASSED [ 70%]
+gate/tests/test_target_routes.py::test_circular_member_is_marked_not_removed PASSED [ 75%]
+gate/tests/test_target_routes.py::test_any_cut_adds_coarser_sets_up_to_cap PASSED [ 79%]
+gate/tests/test_target_routes.py::test_unknown_cut_is_refused PASSED     [ 83%]
+gate/tests/test_target_routes.py::test_as_dict_round_trips_through_json PASSED [ 87%]
+gate/tests/test_target_routes.py::test_live_shape_sets_close_the_root PASSED [ 91%]
+gate/tests/test_target_routes.py::test_live_shape_with_unnamed_holes PASSED [ 95%]
+gate/tests/test_target_routes.py::test_cap_counts_minimal_sets_not_intermediate_combinations PASSED [100%]
+============================== 24 passed in 0.11s ==============================
+
+# red before the fix (same test, routes.py at 3c106c0d): AssertionError: truncated True is False
+
+$ PYTHONPATH=gate uv run python engineering/evidence/F27/live_routes.py
+graph edadad318dbbc9fe9f0b316b9923f6b742d47d26 (origin/main); frontier rendered_from d64a3b864afabd7238848fcc6f893aa816b594d8
+target               nodes routes unres finest   any trunc close     ms
+erdos-1003               1      0     0      1     1 False  True    0.4
+erdos-1050              14      5     0      1     1 False  True    0.3
+erdos-1065               1      0     0      1     1 False  True    0.3
+erdos-1094              29     19     0      2   293 False  True   28.3
+erdos-172                1      0     0      1     1 False  True    0.3
+erdos-212                1      0     0      1     1 False  True    0.2
+erdos-251                1      0     0      1     1 False  True    0.2
+erdos-257                1      0     0      1     1 False  True    0.2
+erdos-324                1      0     0      1     1 False  True    0.2
+erdos-376                1      0     0      1     1 False  True    0.2
+erdos-402               36      7     0      2     8 False  True    0.7
+erdos-406                1      0     0      1     1 False  True    0.2
+erdos-410                1      0     0      1     1 False  True    0.2
+erdos-412                3      1     0      1     2 False  True    0.3
+erdos-417                1      0     0      1     1 False  True    0.2
+erdos-51                 1      0     0      1     1 False  True    0.2
+erdos-52                 1      0     0      1     1 False  True    0.2
+erdos-68                 1      0     0      1     1 False  True    0.2
+erdos-69                23      3     0      1     4 False  True    0.4
+erdos-727                1      0     0      1     1 False  True    0.3
+erdos-849                1      0     0      1     1 False  True    0.2
+erdos-850                1      0     0      1     1 False  True    0.2
+erdos-931                1      0     0      1     1 False  True    0.2
+erdos-952                1      0     0      1     1 False  True    0.2
+euclid-primes           13      2     0      1     1 False  True    0.2
+riemann-hypothesis       1      0     0      1     1 False  True    0.2
+tutorial                 4      1     0      1     1 False  True    0.2
+targets whose sets do not all close the root, or that have no set: 0

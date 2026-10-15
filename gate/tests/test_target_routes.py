@@ -454,3 +454,18 @@ def test_live_shape_with_unnamed_holes() -> None:
     (s,) = result.sets
     assert s.open == ("erdos-69--h2-v2--h1-v2--h4",)
     assert s.assemblies == ("erdos-69", "erdos-69--h2-v2", "erdos-69--h2-v2--h1-v2")
+
+
+def test_cap_counts_minimal_sets_not_intermediate_combinations() -> None:
+    """F27-T6: erdos-1094 as published on 2026-10-15 (graph edadad318) has 293 minimal coarser
+    sets, but the combinations met on the way exceed the default cap; the live tool answered 58
+    and ``truncated``. Dominated options are dropped at every node, which is safe because a
+    dominated option stays dominated under any union, so the cap meets only minimal sets."""
+    graph, entries = live("erdos-1094-20261015")
+    unbounded = routes.read(graph, entries, cut="any", max_sets=10**6)
+    assert (len(unbounded.sets), unbounded.truncated) == (293, False)
+    default = routes.read(graph, entries, cut="any")
+    assert default.truncated is False
+    assert [s.id for s in default.sets] == [s.id for s in unbounded.sets]
+    for s in default.sets:
+        assert closes_root(graph, set(s.statements)), s.id

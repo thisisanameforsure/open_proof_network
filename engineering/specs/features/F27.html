@@ -242,7 +242,7 @@ with an example filter; decisions v3.40.</p>
 </table>
 
 <h2>10. Status</h2>
-<div class="rule"><strong>status:</strong> built, unpushed · <strong>Tasks:</strong> T0&ndash;T5 done; awaiting the owner's review of Q1&ndash;Q9 and the push (network branch <code>f27-route-health</code>, graph branch <code>f27-guide-copy</code>); no re-pin needed
+<div class="rule"><strong>status:</strong> live 2026-10-15 · <strong>Tasks:</strong> T0&ndash;T6 done; network PR #54 deployed, T6 by its own pull request, the guide copy pushed to the graph, the site deployed; no re-pin needed (Q1). Q1&ndash;Q9 stand for the owner's review.
 todo</div>
 
 <h2>Tasks</h2>
@@ -277,6 +277,13 @@ todo</div>
     products; erdos-1094's page rendered and screenshotted.</td>
     <td><code>engineering/evidence/F27/</code></td><td>T1&ndash;T3</td>
     <td><code>uv run python engineering/evidence/F27/live_routes.py</code></td></tr>
+  <tr><td>F27-T6</td><td>Found live within minutes of the deploy: <code>cut: any</code> on erdos-1094
+    (graph edadad318) answered 58 sets and <code>truncated</code>, because the cap counted the
+    combinations met on the way; there are 293. Dominated options are now dropped at every node
+    before the cap, which loses no minimal set since domination survives any union.</td>
+    <td><code>gate/opn_gate/routes.py</code>, <code>gate/tests/test_target_routes.py</code>,
+    <code>gate/tests/fixtures/routes/erdos-1094-20261015.json</code></td><td>T1</td>
+    <td><code>uv run pytest gate/tests/test_target_routes.py</code></td></tr>
 </table>
 
 <footer>Open Proof Network · F27 spec v1 · 2026-10-15 · drafted and built unattended from the
