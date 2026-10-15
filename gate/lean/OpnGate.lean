@@ -5,6 +5,7 @@ import OpnGate.ArtifactType
 import OpnGate.Holes
 import OpnGate.UsedConstants
 import OpnGate.Outline
+import OpnGate.Close
 import OpnGate.Hazards
 import OpnGate.Hazards.NatSub
 import OpnGate.Hazards.DivZero

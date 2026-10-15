@@ -31,7 +31,7 @@ from opn_api.githost import GitHostError
 from opn_api.mcp import auth as mcpauth
 from opn_api.mcp import demarcate, results
 from opn_api.mcp.calls import ID_PARAM, Call, Source, Tool, ToolError, error, params
-from opn_gate import context, explainers, glosses, layout, products, routes, schemas
+from opn_gate import closing, context, explainers, glosses, layout, products, routes, schemas
 
 if TYPE_CHECKING:
     from opn_api.app import Context
@@ -370,7 +370,14 @@ async def list_sufficient_sets(call: Call, args: dict[str, Any]) -> dict[str, An
     found = routes.read(
         graph, served.get("entries") or [], cut=cut, max_sets=ctx.settings.routes_max_sets
     )
-    return {"read_at": ctx.head or ctx.settings.graph_branch, **found.as_dict()}
+    # F28-T4 (R12, v3.41): the nodes whose proof exists in parts, read from the same graph; a
+    # closable node is still open until its closing proof merges.
+    closable = [c.as_dict() for c in closing.closable(graph)]
+    return {
+        "read_at": ctx.head or ctx.settings.graph_branch,
+        **found.as_dict(),
+        "closable": closable,
+    }
 
 
 def _entry_fields() -> dict[str, Any]:

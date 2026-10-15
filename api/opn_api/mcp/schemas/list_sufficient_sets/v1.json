@@ -14,7 +14,8 @@
         "cut",
         "truncated",
         "routes",
-        "sets"
+        "sets",
+        "closable"
       ],
       "properties": {
         "read_at": {
@@ -281,6 +282,54 @@
                   "type": "string"
                 },
                 "description": "Its statements carrying a circularity label (D-12 v3.35): shown, never removed."
+              }
+            }
+          }
+        },
+        "closable": {
+          "type": "array",
+          "description": "F28 (draft decisions v3.41): the nodes whose proof exists in parts, in the record's order: each with the link that would close it (a route, a circularity claim of its own or, at the root, a resolves variant), that link's inputs, and whether every input is proved (ready) or one is itself closable. A closable node is still open until its closing proof merges.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "node",
+              "link",
+              "ready"
+            ],
+            "properties": {
+              "node": {
+                "type": "string"
+              },
+              "ready": {
+                "type": "boolean"
+              },
+              "link": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "kind",
+                  "id",
+                  "inputs"
+                ],
+                "properties": {
+                  "kind": {
+                    "enum": [
+                      "route",
+                      "claim",
+                      "variant"
+                    ]
+                  },
+                  "id": {
+                    "type": "string"
+                  },
+                  "inputs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
               }
             }
           }

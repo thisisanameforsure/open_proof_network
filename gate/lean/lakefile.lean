@@ -55,6 +55,13 @@ lean_exe «opn-outline» where
   root := `OpnGate.OutlineMain
   supportInterpreter := true
 
+-- F28-R4: the closing proof of a node whose decomposition is proved; elaborates the merged
+-- assembly (step-3 sandbox only), so it runs the interpreter.
+@[default_target]
+lean_exe «opn-close» where
+  root := `OpnGate.CloseMain
+  supportInterpreter := true
+
 -- F02-T11: reads compiled modules only, with initializers off; nothing of the module it imports
 -- is executed, so it is built without the interpreter's support.
 @[default_target]

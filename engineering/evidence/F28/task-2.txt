@@ -1,0 +1,37 @@
+# F28-T2: opn-close, the composer — 2026-10-15T08:06:45Z, Lean 4.33.1, core only
+
+## First run of test_close_compose.py (tests written before the fixes): 17 passed, 5 failed
+C9  proved have used     — the child is 'let k := 5; k > 3', the tactic context forgot k's value (have)
+C11 obtain named          — obtain cleared h; the child still takes h : ∃ n, n > 0 as a premise
+C11b obtain anonymous     — the same, with inaccessible fields
+C12 rcases two branches   — rcases replaced h : p ∨ q; the child still takes it
+C14 dependent binders     — the composer's telescope used the reducing form and unfolded S ≠ [] into S = [] → False
+Fixes: a non-reducing telescope; a cleared premise rebuilt from a constructor whose fields are in scope;
+a let in the child's spine read as the same-named local, whose 'have' is then written 'let'.
+
+## Each case's replacement as composed now (extractor-written children):
+  C10_proved_have_unused True [('(@_root_.t_h1 n)', [])]
+  C11_obtain_named True [('(@_root_.t_h1 (@_root_.Exists.intro _ _ k hk) k hk)', [])]
+  C11b_obtain_anonymous True [('(by rename_i opn_l1 opn_l2; exact @_root_.t_h1 (@_root_.Exists.intro _ _ opn_l1 opn_l2) opn_l1 opn_l2)', [])]
+  C12_two_branches True [('(@_root_.t_h1 p q (@_root_.Or.inl p q h) h)', []), ('(@_root_.t_h2 p q (@_root_.Or.inr p q h) h)', [])]
+  C13_induction True [('(@_root_.t_h1 m m ih)', [])]
+  C14_dependent True [('(@_root_.t_h1 S x hx)', [])]
+  C15_term_mode_fun True [('(@_root_.t_h1 n)', [])]
+  C16_coercions True [('(@_root_.t_h1 n m)', [])]
+  C18_opens_and_namespace True [('(@_root_.t_h1 n)', [])]
+  C1_binders True [('(@_root_.t_h1 a b)', [])]
+  C2_same_type_second_only True [('(@_root_.t_h1 x y)', [])]
+  C3_mention_order True [('(@_root_.t_h1 x y)', [])]
+  C4_implicit_and_instance True [('(by rename_i opn_l1; exact @_root_.t_h1 A opn_l1 xs)', [])]
+  C5_intro_inside True [('(@_root_.t_h1 n m)', [])]
+  C6_inaccessible_intro True [('(by rename_i opn_l1; exact @_root_.t_h1 opn_l1 b)', [])]
+  C6b_shadowed True [('(by rename_i opn_l1; exact @_root_.t_h1 opn_l1 x)', [])]
+  C7_hole_mentions_earlier_hole True [('(@_root_.t_h1)', []), ('(@_root_.t_h2 h1)', [])]
+  C8_hole_ignores_earlier_hole True [('(@_root_.t_h1 p q hpq hp)', []), ('(@_root_.t_h2 p q hpq hp)', [])]
+  C9_proved_have_used True [('(@_root_.t_h1)', [])]
+
+## uv run pytest gate/tests/test_close_compose.py -m lean
+23 passed in 27.11s
+
+## uv run pytest gate/tests/test_close.py
+7 passed in 0.05s

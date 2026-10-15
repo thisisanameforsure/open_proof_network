@@ -1,0 +1,4 @@
+# F28-T0: decisions v3.41 applied on the owner's approval (2026-10-15) — 2026-10-15T09:23:24Z
+D-12 'v3.41 — closing proofs', D-25 'v3.41 — closable', the version line and history; PROTOCOL_VERSION 3.41; three goldens.
+## uv run pytest gate/tests/test_products.py gate/tests/test_finding_graph_lemmas.py api/tests/test_mcp_surface.py site/tests
+785 passed, 8 skipped, 2 warnings in 62.34s (0:01:02)

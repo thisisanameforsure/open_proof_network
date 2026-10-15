@@ -1,0 +1,5 @@
+# F28-T4 red run, 2026-10-15T08:33:20Z: site and MCP before the change
+FAILED site/tests/test_routes_view.py::test_a_closable_statement_is_marked_never_as_proved
+FAILED api/tests/test_routes_mcp.py::test_list_sufficient_sets_round_trip - K...
+FAILED api/tests/test_routes_mcp.py::test_closable_nodes_ride_with_the_routes
+3 failed, 10 passed, 1 skipped, 2 warnings in 1.15s

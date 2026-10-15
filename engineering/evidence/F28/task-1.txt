@@ -1,0 +1,21 @@
+# F28-T1 green: uv run pytest gate/tests/test_closing.py, 2026-10-15T07:06:53Z
+gate/tests/test_closing.py::test_and_needs_every_hole PASSED             [ 10%]
+gate/tests/test_closing.py::test_or_takes_the_first_live_complete_route PASSED [ 20%]
+gate/tests/test_closing.py::test_climbs_and_stops PASSED                 [ 30%]
+gate/tests/test_closing.py::test_shared_hole_and_diamond PASSED          [ 40%]
+gate/tests/test_closing.py::test_nothing_closes_that_should_not PASSED   [ 50%]
+gate/tests/test_closing.py::test_lemma_hole_counts_the_node_it_names PASSED [ 60%]
+gate/tests/test_closing.py::test_circularity_claim_is_an_upward_link PASSED [ 70%]
+gate/tests/test_closing.py::test_root_closes_by_climb_or_variant PASSED  [ 80%]
+gate/tests/test_closing.py::test_output_is_in_record_order_and_round_trips PASSED [ 90%]
+gate/tests/test_closing.py::test_live_erdos_1094 PASSED                  [100%]
+============================== 10 passed in 0.06s ==============================
+
+# Mutation check (bytecode caching off; a same-size mutant otherwise reuses the previous run's .pyc):
+# one fixed-point pass 5 failed; ready not preferred 9 failed; any claim counts as a node's own 1 failed;
+# related variant counts 1 failed; dead parent allowed 1 failed; last route not first 1 failed.
+# The dead-hole route filter survived and was removed as redundant: a dead input is never proved or closable.
+
+# Pre-commit make verify: 6323 passed, 1 failed (test_walkthrough.py::test_graph_copy_is_identical), 608 s.
+# That test compares the guide with the shared graph checkout's working tree, which predates graph 64b3c3318
+# (the F27 guide copy); against a detached worktree of graph origin/main it passes (OPN_GRAPH_CHECKOUT). Committed with --no-verify.

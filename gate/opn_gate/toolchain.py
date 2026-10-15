@@ -411,7 +411,32 @@ class MetaprogramResult:
 
 METAPROGRAM_OUTPUT_CAP = 8192
 
+
 #: F02-T11: the tag a metaprogram's verdict line carries, ``@opn-verdict <nonce> <json>``.
+@dataclass(frozen=True)
+class CloseRequest:
+    """Inputs of ``opn-close`` (F28-R4): a node's merged assembly, elaborated as ``module``, the
+    declaration it proves, and ``children``: a JSON file naming the route's hole nodes and their
+    theorems. The assembly is elaborated: the program runs only in the step-3 sandbox (D-4)."""
+
+    file: Path
+    module: str
+    decl: str
+    children: Path
+
+    def args(self) -> list[str]:
+        return [
+            "--file",
+            str(self.file.resolve()),
+            "--module",
+            self.module,
+            "--decl",
+            self.decl,
+            "--children",
+            str(self.children.resolve()),
+        ]
+
+
 VERDICT_TAG = "@opn-verdict"
 
 #: The executables the Lake package builds (F01-R1, F02-R1, F07-R4).
@@ -424,6 +449,7 @@ METAPROGRAMS: tuple[str, ...] = (
     "opn-statement-meaning",
     "opn-axioms",
     "opn-outline",
+    "opn-close",
 )
 
 
@@ -583,6 +609,16 @@ class Toolchain(Protocol):
         timeout_s: float | None = None,
     ) -> MetaprogramResult:
         """F19: ``opn-outline`` — the step tree of a proof artifact, with its constants."""
+
+    def close(
+        self,
+        tc: ResolvedToolchain,
+        req: CloseRequest,
+        search_path: Sequence[Path],
+        *,
+        timeout_s: float | None = None,
+    ) -> MetaprogramResult:
+        """F28: ``opn-close`` — the closing proof of a node whose decomposition is proved."""
 
 
 # --- helpers shared by the real implementation and its tests --------------------------------
@@ -1052,6 +1088,16 @@ class LocalToolchain:
         timeout_s: float | None = None,
     ) -> MetaprogramResult:
         return self._metaprogram_run(tc, "opn-outline", req.args(), search_path, timeout_s)
+
+    def close(
+        self,
+        tc: ResolvedToolchain,
+        req: CloseRequest,
+        search_path: Sequence[Path],
+        *,
+        timeout_s: float | None = None,
+    ) -> MetaprogramResult:
+        return self._metaprogram_run(tc, "opn-close", req.args(), search_path, timeout_s)
 
 
 def _env_with(extra: dict[str, str] | None) -> dict[str, str] | None:

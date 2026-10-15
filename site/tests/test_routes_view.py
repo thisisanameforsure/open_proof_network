@@ -374,3 +374,35 @@ def test_set_labels_are_inside_the_drawing() -> None:
         for x in re.findall(r'<g class="rnode[^"]*"[^>]*transform="translate\(([\d.]+),', drawing)
     ]
     assert xs and min(xs) >= routes_view.LABEL_COLUMN, "a statement sits under the label column"
+
+
+def test_a_closable_statement_is_marked_never_as_proved() -> None:
+    """F28-T4 (R12; v3.41): with ``t--c--h1`` proved, ``t--c`` is closable now and the root once
+    ``t--c``'s closing proof merges. Each is marked closable, says what its closing proof waits
+    on, keeps the open look (never the proved one), and is named under the drawing; the key
+    names the mark. A statement that is not closable carries no mark."""
+    d = doc()
+    for n in d["nodes"]:
+        if n["node_id"] == "t--c--h1":
+            n["status"] = "proved"
+    html = routes_view.section(d, [], href={}, prefix="t").html
+    c = g_of(html, "t--c")
+    assert "closable" in c.split('"')[1] and "st-open" in c.split('"')[1]
+    assert "closable: its closing proof is pending" in c
+    root = g_of(html, "t")
+    assert "closable" in root.split('"')[1]
+    assert "closable once the closing proof of t--c merges" in root
+    for other in ("t--a", "t--b", "t--c--h1", "t--d"):
+        assert "closable" not in g_of(html, other).split('"')[1], other
+    assert "closable: its proof exists in parts" in html
+    listed = re.search(r'<p class="routes-closable">.*?</p>', html, re.S)
+    assert listed is not None
+    # named with the drawing's own short labels: the root ``t`` and ``c`` for ``t--c``
+    assert '>t</a>, <a href="#">c</a>' in listed.group(0)
+    assert "nothing is proved until" in listed.group(0)
+
+
+def test_nothing_closable_means_no_mark_and_no_line() -> None:
+    html = routes_view.section(doc(), [], href={}, prefix="t").html
+    assert 'class="routes-closable"' not in html
+    assert not re.search(r'<g class="rnode[^"]*closable', html)
