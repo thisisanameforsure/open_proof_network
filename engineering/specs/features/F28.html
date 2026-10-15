@@ -218,6 +218,14 @@ v3.23, D-30.</p>
     same refusal. Fixed in the one reading of a use, so step 2 and staging agree; the helper rules
     are unchanged and still apply beside a use. A gate change, so live only from the re-pin
     (D-35).</td></tr>
+  <tr><td>F28-Q10</td><td><strong>A hole written <code>:= by sorry</code> had no record (the first live
+    run, 2026-10-15).</strong> After the re-pin to fa0a13b the closer found exactly
+    erdos-1094--h2--h2--h2--h2 ready and the composer answered "no elaboration record of the hole":
+    for a <code>by</code> value the elaborator records no term info with the block's exact range, only
+    tactic info for the <code>sorry</code> inside it. Twenty-five of the lean tier's cases wrote
+    <code>:= sorry</code>; none wrote the live shape. Fixed red first (C20, C20b): such a hole's goal
+    and local context are read from the <code>sorry</code> tactic's record. Nothing was opened: the
+    failure stopped before any pull request, as R10 says.</td></tr>
 </table>
 
 <h2>10. Status</h2>

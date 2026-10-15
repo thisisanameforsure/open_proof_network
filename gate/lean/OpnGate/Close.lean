@@ -107,6 +107,38 @@ def termInfoFor (infos : Array (ContextInfo × Info)) (stx : Syntax) :
     | .ofTermInfo ti => if rangeOf ti.stx == some r then some (ci, ti) else none
     | _ => none
 
+/-- The `sorry` tactic inside a `by sorry` value, if that is what the value is. -/
+partial def sorryTactic? (stx : Syntax) : Option Syntax :=
+  if kindIs stx ``Lean.Parser.Tactic.tacticSorry then some stx
+  else stx.getArgs.findSome? sorryTactic?
+
+/-- The tactic info the elaborator recorded for exactly this tactic syntax. -/
+def tacticInfoFor (infos : Array (ContextInfo × Info)) (stx : Syntax) :
+    Option (ContextInfo × TacticInfo) := do
+  let r ← rangeOf stx
+  infos.findSome? fun (ci, info) => match info with
+    | .ofTacticInfo ti =>
+      if ti.stx.getKind == stx.getKind && rangeOf ti.stx == some r then some (ci, ti) else none
+    | _ => none
+
+/-- Where a hole's goal and local context come from: the term the value elaborated as (a bare
+`sorry`), or, for `by sorry`, the goal the `sorry` tactic closed — the elaborator records no term
+info with the `by` block's exact range (found on the live erdos-1094 assembly, 2026-10-15). -/
+def holeGoal (infos : Array (ContextInfo × Info)) (v : Syntax) :
+    Option (ContextInfo × LocalContext × MetaM Expr) :=
+  match termInfoFor infos v with
+  | some (ci, ti) =>
+    some (ci, ti.lctx, do
+      match ti.expectedType? with
+      | some t => instantiateMVars t
+      | none => instantiateMVars (← inferType ti.expr))
+  | none => do
+    let tac ← sorryTactic? v
+    let (ci, ti) ← tacticInfoFor infos tac
+    let g ← ti.goalsBefore.head?
+    let decl ← ti.mctxBefore.findDecl? g
+    some ({ ci with mctx := ti.mctxBefore }, decl.lctx, instantiateMVars decl.type)
+
 /-- A local that source text cannot name: inaccessible, or shadowed by a later local. -/
 def unwritable (lctx : LocalContext) (d : LocalDecl) : Bool :=
   d.userName.hasMacroScopes || d.userName.isInaccessibleUserName ||
@@ -395,14 +427,12 @@ def compose (path : System.FilePath) (moduleName decl : Name) (children : Array 
   for v in values do
     let some r := rangeOf v | throw <| IO.userError "a hole has no source position"
     let base : Site := { start := r.start, stop := r.stop, line := (fileMap.toPosition r.start).line }
-    match termInfoFor infos v with
+    match holeGoal infos v with
     | none => sites := sites.push { base with problem := some "no elaboration record of the hole" }
-    | some (ci, ti) =>
-      let res ← ci.runMetaM ti.lctx do
-        let goal ← match ti.expectedType? with
-          | some t => instantiateMVars t
-          | none => do instantiateMVars (← inferType ti.expr)
-        (composeSite ti.lctx goal children).run' {}
+    | some (ci, lctx, goalM) =>
+      let res ← ci.runMetaM lctx do
+        let goal ← goalM
+        (composeSite lctx goal children).run' {}
       match res with
       | .ok c =>
         sites := sites.push { base with child := some c.node, text := some c.text }

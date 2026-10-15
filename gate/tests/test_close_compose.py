@@ -131,6 +131,14 @@ CASES: dict[str, Case] = {
         "theorem t (n : Nat) (m : Int) : (n : Int) + m = m + (n : Int) ∧ True :=",
         "by\n  have h : (n : Int) + m = m + (n : Int) := sorry\n  exact ⟨h, trivial⟩",
     ),
+    "C20_by_sorry_on_its_own_line": Case(
+        "theorem t : ∀ (a b : Nat), a + b = b + a ∧ True :=",
+        "by\n  intro a b\n  have h1 : a + b = b + a := by\n    sorry\n  exact ⟨h1, trivial⟩",
+    ),
+    "C20b_by_sorry_inline": Case(
+        "theorem t : ∀ (a b : Nat), a + b = b + a ∧ True :=",
+        "by\n  intro a b\n  have h1 : a + b = b + a := by sorry\n  exact ⟨h1, trivial⟩",
+    ),
     "C18_opens_and_namespace": Case(
         "theorem Foo.t (n : Nat) : double n = n + n ∧ True :=",
         "by\n  have h : double n = n + n := sorry\n  exact ⟨h, trivial⟩",
