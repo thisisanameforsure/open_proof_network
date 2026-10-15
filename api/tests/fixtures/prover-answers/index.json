@@ -27,6 +27,10 @@
     "expect": "partial",
     "node": "tutorial"
   },
+  "have-multiline": {
+    "expect": "partial",
+    "node": "tutorial"
+  },
   "helper-after-inlined-defs": {
     "expect": "helper-declaration",
     "node": "fact-pos"

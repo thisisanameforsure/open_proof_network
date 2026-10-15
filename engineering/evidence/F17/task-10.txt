@@ -1,0 +1,23 @@
+F17-T10 verification, 2026-10-15T06:39:08Z, branch f17-t10-aristotle on origin/main aa64d410
+
+--- red first: the six new tests against the pre-T10 opn_prove.py (seam: --resume parsed, unused)
+test_aristotle_dropped_connection_still_gets_the_answer  assert (0 == 0 and True and None == 'COMPLETE')   [answered with the file as sent, no status]
+test_aristotle_project_limit_is_a_refusal                 assert None == 'project-limit'
+test_aristotle_unchanged_file_is_not_an_answer            assert (0 == 1)   [an unchanged file counted as answered]
+test_aristotle_resume_polls_without_submitting            assert 'submit' not in ['submit']
+test_aristotle_summary_reaches_the_postmortem             the draft quoted the progress display, escapes included
+test_import_partial_with_a_multiline_have                 Refused: sorry-left (line 6 of the proof)
+test_corpus[have-multiline] (old opn_prove.py)            FAILED
+
+--- green: uv run pytest api/tests/test_prove_client.py api/tests/test_prove_import.py -q
+41 passed, 2 warnings in 44.88s
+
+--- uv run pytest api/tests/test_prove_export.py site/tests/test_prove_delivery.py -q -m 'not lean and not docker'
+22 passed, 2 warnings in 0.87s
+
+--- make lint
+uv run --frozen ruff format --check .
+857 files already formatted
+--- mypy gate / api
+Success: no issues found in 417 source files
+Success: no issues found in 257 source files
