@@ -47,12 +47,14 @@ def test_the_record_no_longer_waits_for_the_cache(gate_doc: dict[Any, Any]) -> N
 
 
 def test_after_the_push_the_job_only_dispatches(gate_doc: dict[Any, Any]) -> None:
-    """The site and the merge actor hear of the merge as soon as its record lands."""
+    """The site, the merge actor and the closer (F28-T5) hear of the merge as soon as its record
+    lands."""
     names = [str(s.get("name", "")) for s in steps(gate_doc, POSTMERGE)]
     commit = next(i for i, n in enumerate(names) if n.startswith("Commit the attestation"))
     assert [n.split(" ", 3)[:3] for n in names[commit + 1 :]] == [
         ["Ask", "the", "site"],
         ["Wake", "the", "merge"],
+        ["Wake", "the", "closer"],
     ], names[commit:]
 
 

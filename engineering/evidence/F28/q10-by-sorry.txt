@@ -1,0 +1,5 @@
+# F28-Q10: the first live run of the closer (graph close.yml run 38732820539, main 344ad99c8, network fa0a13b)
+found erdos-1094--h2--h2--h2--h2 ready; compose-failed: 'no elaboration record of the hole' (line 37: ':= by / sorry')
+red: C20 (by sorry on its own line), C20b (by sorry inline) both 'no elaboration record of the hole'
+## after the fix: uv run pytest gate/tests/test_close_compose.py -m lean
+27 passed in 149.04s (0:02:29)
