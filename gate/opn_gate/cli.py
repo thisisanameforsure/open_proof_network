@@ -32,6 +32,7 @@ from opn_gate import (
     cache,
     carried,
     clock,
+    close,
     config,
     curator,
     defs,
@@ -258,6 +259,18 @@ def build_parser() -> argparse.ArgumentParser:  # noqa: PLR0915 — one statemen
         help="where targets/<id>/outlines/ are written (default: the graph checkout itself)",
     )
     _add_sandbox_args(otl)
+
+    cls = sub.add_parser(
+        "close",
+        help="compose the closing proof of a node whose decomposition is proved (F28-R4), "
+        "in the sandbox",
+    )
+    cls.add_argument("--graph", required=True, type=Path, help="path to the graph checkout")
+    cls.add_argument("--commit", default="HEAD", help="the graph commit to read (default HEAD)")
+    cls.add_argument("--target", required=True)
+    cls.add_argument("--node", required=True)
+    cls.add_argument("--write", type=Path, help="also write the composed proof to this file")
+    _add_sandbox_args(cls)
 
     gate = sub.add_parser("gate", help="the authoritative run on a pull request (gate.yml)")
     gate.add_argument("--graph", required=True, type=Path, help="checkout at the PR merge commit")
@@ -941,6 +954,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         "palomar-port": run_palomar_port,
         "palomar-feed": run_palomar_feed,
         "outline": run_outline,
+        "close": run_close,
         "gate": run_gate,
         "classify": run_classify,
         "exhibits": run_exhibits,
@@ -1542,6 +1556,44 @@ def run_outline(args: argparse.Namespace, settings: config.Settings) -> int:
     doc = {"commit": commit, "gate": running, "dest": str(dest), **report.as_dict()}
     sys.stdout.write(json.dumps(doc, ensure_ascii=False) + "\n")
     return EXIT_FAIL if report.failed else EXIT_PASS
+
+
+def run_close(args: argparse.Namespace, settings: config.Settings) -> int:
+    """F28-T2: the closing proof of ``--node`` at ``--commit``, composed in the step-3 sandbox
+    from its merged assembly and its proved holes. One JSON document on stdout (``close.Result``);
+    with ``--write``, the proof is also written there. Exit 1 when no proof was composed. Writes
+    nothing to the graph: the proof is a proposal the gate judges (D-12 v3.41)."""
+    del settings
+    graph, commit = _checkout_and_commit(args.graph, args.commit)
+    out_dir = _out_dir(args.out, "opn-close-")
+    tree = export_tree(graph, commit, out_dir / "tree")
+    spec_path = layout.gate_spec_path(tree, args.target)
+    if not spec_path.is_file():
+        msg = f"target {args.target!r} has no gate-spec.json at {commit[:12]}"
+        raise CliError(msg)
+    spec = schemas.load_json(spec_path, "gate-spec/v1")
+    workdir = out_dir / "work"
+    workdir.mkdir(parents=True, exist_ok=True)
+    image = args.image or ensure_image(dict(spec), build=not args.no_build)
+    seam = sandbox.SandboxToolchain(image, sandbox.Caps.from_spec(dict(spec)), read_write=[workdir])
+    tc = seam.resolve(
+        str(spec["lean_toolchain"]),
+        mathlib_sha=str(spec["mathlib_sha"]) if spec.get("mathlib_sha") else None,
+    )
+    result = close.compose(
+        seam,
+        tc,
+        tree,
+        args.target,
+        args.node,
+        workdir,
+        timeout_s=float(spec["step3_caps"]["wallclock_s"]),
+    )
+    if args.write is not None and result.proof is not None:
+        args.write.write_text(result.proof, encoding="utf-8")
+    doc = {"commit": commit, **result.as_dict()}
+    sys.stdout.write(json.dumps(doc, ensure_ascii=False) + "\n")
+    return EXIT_PASS if result.ok else EXIT_FAIL
 
 
 def run_gate(args: argparse.Namespace, settings: config.Settings) -> int:

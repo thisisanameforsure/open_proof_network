@@ -71,16 +71,19 @@ actor's handling of its branches; decisions v3.41.</p>
   <tr><td>F28-R3</td><td>A cycle shall make no node closable on its own: only a link whose inputs
     are proved or already closable counts.</td></tr>
   <tr><td>F28-R4</td><td>The composer shall build a closing proof from a node's merged assembly by
-    replacing each hole's <code>sorry</code> with the hole node's theorem applied to exactly the
-    locals the extractor closed it over (F07-T48), in the extractor's order, at the term level, and
-    print it with the round-trip printer; a local with an inaccessible name shall be handled the same
-    as any other (ruling 1).</td></tr>
+    replacing each hole's value (<code>sorry</code> or <code>by sorry</code>) with the hole node's
+    theorem applied to the locals in scope at the hole, the child's statement as the gate wrote it
+    deciding the arguments, and shall elaborate each replacement against the hole's own goal and the
+    composed file whole before it prints either (F28-Q6). A local with no source spelling shall be
+    named by <code>rename_i</code> (ruling 1).</td></tr>
   <tr><td>F28-R5</td><td>The composer shall build a closing proof from a circularity claim as the
     exhibit applied to the hole's proof, and from a resolves variant as its relation applied to the
     variant's proof.</td></tr>
-  <tr><td>F28-R6</td><td>The composed file shall declare each proof it draws on as a use (v3.25) and
-    otherwise be the node's statement with its <code>sorry</code> replaced, so that step 2's
-    proof-is-statement check and step 4 apply unchanged.</td></tr>
+  <tr><td>F28-R6</td><td>The composed file shall be the assembly with its hole values replaced and
+    nothing else changed but the <code>have</code> of a local the child needs as a
+    <code>let</code> (F28-Q7), so that it is the statement with its <code>sorry</code> replaced
+    (step 2). A route's children need no use line: they are the node's declared dependencies, their
+    signatures in its own <code>Context.lean</code>, and step 4 imports their proofs in place.</td></tr>
   <tr><td>F28-R7</td><td>When a merge makes a node ready-closable, the post-merge workflow shall
     compose its closing proof in the step-3 sandbox with no secret and submit it as a proof pull
     request on a <code>close/&lt;node&gt;</code> branch, the network as submitter, the assembly's
@@ -171,12 +174,34 @@ v3.23, D-30.</p>
     <code>circular</code> lists a node's own claims and, under v3.22, the claims that reach nodes on
     the path between. Only a node's own claims (path prefixed by its id) are upward links; the
     in-between ones are already covered by routes.</td></tr>
+  <tr><td>F28-Q6</td><td><strong>Ruling 1, as built: Lean decides, only the hole's value is
+    rewritten.</strong> Printing a whole proof term back to source does not round-trip on Mathlib
+    proofs, so the composer keeps the assembly's text and replaces each hole's value. Lean decides
+    every argument: the hole's goal is unified with each child's conclusion (children tried in the
+    route's order, so holes are matched by statement, never by name or position), each binder the
+    conclusion leaves open is filled from the locals in scope, the one carrying the binder's name
+    first, with backtracking, and the replacement is elaborated against the goal before it is used.
+    Any filling that type-checks is a proof, so a wrong choice can only fail. A local that source
+    cannot name (inaccessible or shadowed) is named by a <code>rename_i</code> at the start of the
+    replacement; on Lean 4.33.1 it reaches shadowed locals too (probed 2026-10-15). A premise a
+    tactic cleared (<code>obtain</code>, <code>rcases</code>, <code>induction</code>) is still a
+    binder of the extractor's child, because the extractor reads the elaborated term; the composer
+    rebuilds it from a constructor whose fields are in scope (<code>⟨k, hk⟩</code>,
+    <code>Or.inl h</code>), any proof of a proposition being as good as another.</td></tr>
+  <tr><td>F28-Q7</td><td><strong>A proved <code>have</code> the child needs as a <code>let</code>
+    (case C9).</strong> The extractor writes a proved <code>have</code> that a hole's type uses as a
+    <code>let</code> in the child's statement, value and all; the tactic context forgot that value,
+    so the child's conclusion is not the hole's goal there. The composer reads such a
+    <code>let</code> as the same-named local and writes that one <code>have</code> as
+    <code>let</code>, which the whole-file check then confirms. It is the one edit outside a hole's
+    value, and only ever turns a <code>have</code> into a <code>let</code>.</td></tr>
 </table>
 
 <h2>10. Status</h2>
 <div class="rule"><strong>status:</strong> in progress · <strong>Tasks:</strong> T1 done (the fact;
-10 tests red first, then green, six wrong versions each caught). T0 waits on the owner's approval
-of the amendment's wording; T5 on Q1; T6 is the owner's act.</div>
+10 tests red first, then green, six wrong versions each caught); T2 done (the composer and
+<code>opn-gate close</code>; 23 lean-tier cases, 5 red on the first run and fixed, Q6, Q7; 7 fast).
+T0 waits on the owner's approval of the amendment's wording; T5 on Q1; T6 is the owner's act.</div>
 
 <h2>Tasks</h2>
 <table>
@@ -192,10 +217,13 @@ of the amendment's wording; T5 on Q1; T6 is the owner's act.</div>
     <td>&mdash;</td><td><code>uv run pytest gate/tests/test_closing.py</code></td></tr>
   <tr><td>F28-T2</td><td>The composer for routes: the Lean program, the <code>opn-gate close</code>
     command, the C-case fixtures.</td>
-    <td><code>gate/lean/OpnGate/Close.lean</code>, <code>gate/opn_gate/close.py</code>,
-    <code>gate/opn_gate/cli.py</code>, <code>gate/tests/test_close_compose.py</code>,
-    <code>gate/tests/fixtures/close/</code></td>
-    <td>T1</td><td><code>uv run pytest gate/tests/test_close_compose.py -m lean</code></td></tr>
+    <td><code>gate/lean/OpnGate/Close.lean</code>, <code>gate/lean/OpnGate/CloseMain.lean</code>,
+    <code>gate/lean/lakefile.lean</code>, <code>gate/opn_gate/close.py</code>,
+    <code>gate/opn_gate/toolchain.py</code>, <code>gate/opn_gate/cli.py</code>,
+    <code>gate/tests/fakes.py</code>, <code>gate/tests/test_close_compose.py</code>,
+    <code>gate/tests/test_close.py</code></td>
+    <td>T1</td><td><code>uv run pytest gate/tests/test_close_compose.py -m lean</code> and
+    <code>uv run pytest gate/tests/test_close.py</code></td></tr>
   <tr><td>F28-T3</td><td>The composer for claims and variants.</td>
     <td>as T2</td><td>T2</td><td><code>uv run pytest gate/tests/test_close_compose.py -m lean</code></td></tr>
   <tr><td>F28-T4</td><td>Read surfaces: closable on the MCP target read and the site.</td>
