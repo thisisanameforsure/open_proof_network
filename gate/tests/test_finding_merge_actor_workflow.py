@@ -36,9 +36,9 @@ PATH = ".github/workflows/merge.yml"
 #: branch; F07-T46 and T55-T57 merged 2026-10-03. F22-T20 to T24 (graph branch
 #: ``f22-workflows``) merged 2026-10-06 as graph #438; ``repin-readable`` came out then too, a
 #: merged branch 155 commits behind that shadowed ``origin/main`` once main's workflows moved.
-#: ``f28-closure`` (F28-T9: the join step, close.yml removed) first while it is a graph branch.
+#: ``f28-closure`` (F28-T9: the join step, close.yml removed) reached main 2026-10-16 with the
+#: re-pin to network 4d59d35, and came out then.
 REFS = (
-    "f28-closure",
     "audit-b-workflows",
     "origin/main",
     "f07-t25-merge-actor",
