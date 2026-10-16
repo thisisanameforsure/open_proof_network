@@ -1633,3 +1633,10 @@ The law of the project:
   poll with short calls, and treat an unchanged file as no answer. **The real CLI is the test of
   the fake**: `--resume` against the live project downloaded the same bytes in 2.3 s, which no
   fixture could show.
+- 2026-10-16 — Two sessions took decisions v3.42 and `graph/v10` again (F28's closure, and the
+  circularity retirement, unpushed), the 2026-10-12 collision paid a second time. The overlap was
+  worse than the number: the later branch carried an owner's ruling (the claim link goes) that the
+  first-to-ship branch still violated, so F28 took the ruling's link half in before release (Q12,
+  red first with the other branch's own test) rather than publish a retired rule. Before merging
+  an amendment, `grep` every other worktree's decisions doc for the version you are about to
+  publish, and read what the other branch rules, not only what it numbers.

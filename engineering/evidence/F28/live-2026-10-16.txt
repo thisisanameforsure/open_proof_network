@@ -1,0 +1,57 @@
+F28 v3.42 live, 2026-10-16
+
+network PR #63 merged as 4d59d35 after CI on c5068abd:
+make verify (fast tier)	pass	5m34s
+make verify-harness (connectors against real harness binaries)	pass	1m58s
+make verify-lean (real toolchain + sandbox)	pass	2h3m1s
+
+tag gate-4d59d35, image-publish run 38837395221 (success); api-deploy run 38837391052 (success)
+images:
+opn-gate:gate-4d59d35-mathlib-0df444a360ea@sha256:cfcde67cd324984f07f219b6a5526dc50abfcba10d8544e67580b876d90ce198
+opn-gate:gate-4d59d35@sha256:a912e6ef08c9b1d3666ae508625967988ac38027db68474d1456d0d22f4264d6
+
+graph commits (pushed with no gate run in flight):
+7fe5a13eb gate: render 4d59d35cca94
+9af5e470c F28-T9: re-pin to network 4d59d35 (decisions v3.42: a node whose inputs are proved is proved by closure, joined by the post-merge job)
+456ba812c F28-T9: publish closure/v1 and graph/v10
+319bffc0b F28-T9: close by construction in the post-merge job — every node whose inputs are proved is kernel-joined in the sandbox and its closure record signed with the merge's attestation; close.yml and its pull requests removed
+
+graph gate run 38838430234 on the push: success; render run 38838444198: success
+
+pin checks (pin_image.py --check) over all 27 targets: 26 clean; tutorial reports the single devcontainer runs the Mathlib image, the same problem on graph main before this re-pin (one devcontainer per graph, named for riemann-hypothesis)
+
+info.json protocol_version at 7fe5a13eb: 3.42
+status lines changed between the re-pin and its render: 0
+
+closure per target at 7fe5a13eb (schema, nodes carrying the field, nodes with a record):
+  erdos-1003 graph/v10 1 0
+  erdos-1050 graph/v10 14 0
+  erdos-1065 graph/v10 1 0
+  erdos-1094 graph/v10 54 0
+  erdos-172 graph/v10 1 0
+  erdos-212 graph/v10 1 0
+  erdos-251 graph/v10 1 0
+  erdos-257 graph/v10 1 0
+  erdos-324 graph/v10 1 0
+  erdos-376 graph/v10 1 0
+  erdos-402 graph/v10 36 0
+  erdos-406 graph/v10 1 0
+  erdos-410 graph/v10 1 0
+  erdos-412 graph/v10 3 0
+  erdos-417 graph/v10 1 0
+  erdos-51 graph/v10 1 0
+  erdos-52 graph/v10 1 0
+  erdos-68 graph/v10 1 0
+  erdos-69 graph/v10 23 0
+  erdos-727 graph/v10 1 0
+  erdos-849 graph/v10 1 0
+  erdos-850 graph/v10 1 0
+  erdos-931 graph/v10 1 0
+  erdos-952 graph/v10 1 0
+  euclid-primes graph/v10 13 0
+  riemann-hypothesis graph/v10 1 0
+  tutorial graph/v10 4 0
+
+closable on erdos-1094 now (closing.closable over graph.json at origin/main):
+   [] — every open node has an open leaf; the --h2--h2--h2 chain was proved by direct proofs (#553, #568)
+closable across all 27 targets: 0
