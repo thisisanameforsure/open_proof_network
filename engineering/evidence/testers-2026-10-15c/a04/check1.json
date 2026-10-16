@@ -1,0 +1,12 @@
+{
+ "status": 504,
+ "body": {
+  "error": "check-timeout",
+  "message": "the check did not finish within the fast check's 20 s budget. Search tactics such as exact?, apply? and rw? rarely fit it: find the lemma another way and name it. The precheck (POST /precheck) has the gate's full budget",
+  "details": {
+   "budget_s": 20,
+   "axle_request_id": "e7fe6420-88e8-47ed-b5e8-56a3fcbfb1a5",
+   "log_id": "01M500FZF0TV24Q229679GD4Y1"
+  }
+ }
+}

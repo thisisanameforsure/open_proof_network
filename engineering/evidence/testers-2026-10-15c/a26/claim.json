@@ -1,0 +1,14 @@
+{
+ "status": 201,
+ "body": {
+  "id": "01M500R74GX3YCQF900FSBF8R7",
+  "node_id": "erdos-1094--h2--h2--h2",
+  "target_id": "erdos-1094",
+  "pseudonym": "t1015c-a26",
+  "created": "2026-10-15T14:51:38Z",
+  "expires": "2026-10-15T15:51:38Z",
+  "released": null,
+  "others": [],
+  "open_submissions": []
+ }
+}

@@ -1650,3 +1650,16 @@ The law of the project:
   leaves out. Also: a copied schema keeps its old `"schema": {"const": "<name>/vN"}`, so a v10 that
   still demands v9 refuses every document (251 failures from one line); rewrite `$id`, `title` and
   the const together.
+
+- 2026-10-15 — Thirty agents for eighteen minutes on erdos-1094 (`engineering/evidence/testers-2026-10-15c/`),
+  then the lead finished their unfinished business. Three things worth keeping. **A gate refusal that says
+  "graph defect" is a claim about the graph, and here it was the gate's own regex**: step 8 read a Context
+  signature up to the first `:=`, so the one statement on the graph with `let X :=` in its type made its
+  parent's byte-identical Context read as `context-signature-mismatch`, and five written closing proofs sat
+  behind it. Running the check over the live tree with the old and new code (`check_context` on the real
+  node) was both the diagnosis and the evidence; F01-T7, re-pin to f878b4d, and the chain then landed as
+  graph #568–#572. **Throughput limits outrank agent count**: the session caps 20 concurrent subagents,
+  and token starts are 10 a day per machine, so half the agents could not write at all; the cure was
+  reusing tokens the early agents held, crediting the author in `automation`. **Agents write secrets
+  where they write logs**: six saved their token under `engineering/evidence/` (two as whole token responses that a pattern scan missed; read the field names); move them out before any
+  commit, and tell every brief to keep tokens in the scratchpad.

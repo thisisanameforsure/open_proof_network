@@ -1,0 +1,302 @@
+{
+ "id": "01M50B1BBRNH7MZE1P32BES5S1",
+ "node_id": "erdos-1094--h2--h2--h2--h3--h1--h1",
+ "target_id": "erdos-1094",
+ "state": "done",
+ "created": "2026-10-15T17:51:23Z",
+ "graph_commit": "49bbfabd0d6054250c9e0aa9cc3a25a111bb7f04",
+ "bundle_digest": "a6656a4d36c8e50b544cedd731668c56e676434a4d88cb37b2e9c834453afa36",
+ "authenticated": true,
+ "automation": {
+  "framework": "Claude Code (subagent)",
+  "method": "autonomous",
+  "models": [
+   "claude-opus-5-5"
+  ],
+  "tool_setup": "Proof authored by pseudonym t1015c-a07; submitted by finisher-chain helper under this token after its dependency merged."
+ },
+ "result": {
+  "attestation": {
+   "artifact_hash": "9b838fd9509713767934d38fd9d3c9a4f5cac1037e14d555ea9bc522a16c6244",
+   "automation": null,
+   "diagnostic": {
+    "code": "context-signature-mismatch",
+    "details": {
+     "context_hash": "dc69f9c4694f0389cf87f8bd84e27929bb8430e91dd5451fbe952d77c7f69f50",
+     "dep": "erdos-1094--h2--h2--h2--h3--h1--h1--h1",
+     "statement_hash": "c3019a13bd13dacb4e625f64696cebc104c97cbf2b3c05a6668ead7a9bac680b"
+    },
+    "message": "Context.lean's signature for dep 'erdos-1094--h2--h2--h2--h3--h1--h1--h1' differs from its Statement.lean; Context.lean is not a submission path (D-3), so this is a graph defect"
+   },
+   "first_failing_step": 8,
+   "footprint": null,
+   "gate_spec_hash": "e918f6412c9f8c090dc8a2388e7c284699d6751aadd3dff85697c7e45d8657e2",
+   "graph_commit": "49bbfabd0d6054250c9e0aa9cc3a25a111bb7f04",
+   "graph_id": "erdos-1094",
+   "lean_toolchain": "leanprover/lean4:v4.33.1",
+   "mathlib_sha": "0df444a360eaa60ab8c11dca51a86af692955474",
+   "merge_commit": null,
+   "model_and_tooling": "undeclared",
+   "network_commit": "067497e74a8b7bcc9569581586df742db8246174",
+   "node_id": "erdos-1094--h2--h2--h2--h3--h1--h1",
+   "precheck_attestation": {
+    "hash": null,
+    "signature_kind": null
+   },
+   "review": null,
+   "runner": "hosted",
+   "schema": "attestation/v7",
+   "signature": {
+    "key_id": "SHA256:bJR39nO37EkRaxo4CPqdhcHk+WL+sEnAJ9ujpkF7LXo",
+    "kind": "service",
+    "timestamp": "2026-10-15T17:59:02Z",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAg4NVeR5WlT1J5vaHpDOmXNTurS+\nKqTYJTovSCpPj5G/IAAAAPb3BuLWF0dGVzdGF0aW9uAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQCBmhnpX9kxcSnoqUKdO4DoXq8d1TPFuZDILBafV8p5cO4/v7s\nc/VY+rgHooAciRL9Kmj3CiqNN4gDa9+O80YQw=\n-----END SSH SIGNATURE-----\n"
+   },
+   "statement_hash": "d204fab277af14bd4b0e46f5f8b52ff08650af62b3ef74ca553b2b21b9a6a329",
+   "steps": [
+    {
+     "diagnostic": {
+      "code": "mathlib-pinned",
+      "details": {
+       "mathlib_sha": "0df444a360eaa60ab8c11dca51a86af692955474",
+       "packages": 8
+      },
+      "message": "Mathlib 0df444a360ea resolved from the pinned checkout"
+     },
+     "name": "toolchain",
+     "result": "pass",
+     "step": 1
+    },
+    {
+     "diagnostic": null,
+     "name": "paths",
+     "result": "pass",
+     "step": 2
+    },
+    {
+     "diagnostic": null,
+     "name": "kernel-replay",
+     "result": "pass",
+     "step": 4
+    },
+    {
+     "diagnostic": null,
+     "name": "axioms",
+     "result": "pass",
+     "step": 5
+    },
+    {
+     "diagnostic": {
+      "code": "hazards-derived-statement",
+      "details": {
+       "acknowledged": [],
+       "checkers": [
+        "div-zero",
+        "int-trunc",
+        "junk-value",
+        "nat-sub",
+        "off-by-one-range",
+        "unused-binder"
+       ],
+       "findings": [
+        {
+         "checker": "div-zero",
+         "location": "D_r1 * lam * W ^ 2 / D_r",
+         "message": "division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"
+        },
+        {
+         "checker": "div-zero",
+         "location": "\u03b4 * W ^ 2 / (D_r * lam ^ r)",
+         "message": "division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"
+        },
+        {
+         "checker": "div-zero",
+         "location": "\u2191v / \u2191w",
+         "message": "division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"
+        },
+        {
+         "checker": "off-by-one-range",
+         "location": "1 \u2264 W",
+         "message": "comparison against an explicit literal: check whether the boundary is inclusive or exclusive"
+        },
+        {
+         "checker": "off-by-one-range",
+         "location": "1 \u2264 lam",
+         "message": "comparison against an explicit literal: check whether the boundary is inclusive or exclusive"
+        },
+        {
+         "checker": "off-by-one-range",
+         "location": "2 \u2264 r",
+         "message": "comparison against an explicit literal: check whether the boundary is inclusive or exclusive"
+        },
+        {
+         "checker": "off-by-one-range",
+         "location": "Set.Icc 0 N",
+         "message": "Set.Icc with a literal-adjusted bound: check whether the endpoint is included"
+        }
+       ],
+       "origin": "compiler-derived"
+      },
+      "message": "7 hazard finding(s) on a statement the gate derived from a merged assembly, recorded and not refused; first: div-zero at D_r1 * lam * W ^ 2 / D_r: division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"
+     },
+     "name": "hazards",
+     "result": "pass",
+     "step": 6
+    },
+    {
+     "diagnostic": null,
+     "name": "witness",
+     "result": "pass",
+     "step": 7
+    },
+    {
+     "diagnostic": {
+      "code": "context-signature-mismatch",
+      "details": {
+       "context_hash": "dc69f9c4694f0389cf87f8bd84e27929bb8430e91dd5451fbe952d77c7f69f50",
+       "dep": "erdos-1094--h2--h2--h2--h3--h1--h1--h1",
+       "statement_hash": "c3019a13bd13dacb4e625f64696cebc104c97cbf2b3c05a6668ead7a9bac680b"
+      },
+      "message": "Context.lean's signature for dep 'erdos-1094--h2--h2--h2--h3--h1--h1--h1' differs from its Statement.lean; Context.lean is not a submission path (D-3), so this is a graph defect"
+     },
+     "name": "deps",
+     "result": "fail",
+     "step": 8
+    }
+   ],
+   "submitter": null,
+   "toolchain_hash": "f54d0bc916bf76a7fae460ce9d078ccd1f74aeb4fd12c4b6546bca28b6aa1c63",
+   "tooling": {
+    "harness": null,
+    "model": null
+   },
+   "trust_base": "kernel",
+   "verdict": "fail"
+  },
+  "automation": {
+   "framework": "Claude Code (subagent)",
+   "method": "autonomous",
+   "models": [
+    "claude-opus-5-5"
+   ],
+   "tool_setup": "Proof authored by pseudonym t1015c-a07; submitted by finisher-chain helper under this token after its dependency merged."
+  },
+  "bundle_digest": "a6656a4d36c8e50b544cedd731668c56e676434a4d88cb37b2e9c834453afa36",
+  "first_failing_step": 8,
+  "job_id": "01M50B1BBRNH7MZE1P32BES5S1",
+  "node_id": "erdos-1094--h2--h2--h2--h3--h1--h1",
+  "steps": [
+   {
+    "diagnostic": {
+     "code": "mathlib-pinned",
+     "details": {
+      "mathlib_sha": "0df444a360eaa60ab8c11dca51a86af692955474",
+      "packages": 8
+     },
+     "message": "Mathlib 0df444a360ea resolved from the pinned checkout"
+    },
+    "name": "toolchain",
+    "result": "pass",
+    "step": 1
+   },
+   {
+    "diagnostic": null,
+    "name": "paths",
+    "result": "pass",
+    "step": 2
+   },
+   {
+    "diagnostic": null,
+    "name": "kernel-replay",
+    "result": "pass",
+    "step": 4
+   },
+   {
+    "diagnostic": null,
+    "name": "axioms",
+    "result": "pass",
+    "step": 5
+   },
+   {
+    "diagnostic": {
+     "code": "hazards-derived-statement",
+     "details": {
+      "acknowledged": [],
+      "checkers": [
+       "div-zero",
+       "int-trunc",
+       "junk-value",
+       "nat-sub",
+       "off-by-one-range",
+       "unused-binder"
+      ],
+      "findings": [
+       {
+        "checker": "div-zero",
+        "location": "D_r1 * lam * W ^ 2 / D_r",
+        "message": "division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"
+       },
+       {
+        "checker": "div-zero",
+        "location": "\u03b4 * W ^ 2 / (D_r * lam ^ r)",
+        "message": "division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"
+       },
+       {
+        "checker": "div-zero",
+        "location": "\u2191v / \u2191w",
+        "message": "division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"
+       },
+       {
+        "checker": "off-by-one-range",
+        "location": "1 \u2264 W",
+        "message": "comparison against an explicit literal: check whether the boundary is inclusive or exclusive"
+       },
+       {
+        "checker": "off-by-one-range",
+        "location": "1 \u2264 lam",
+        "message": "comparison against an explicit literal: check whether the boundary is inclusive or exclusive"
+       },
+       {
+        "checker": "off-by-one-range",
+        "location": "2 \u2264 r",
+        "message": "comparison against an explicit literal: check whether the boundary is inclusive or exclusive"
+       },
+       {
+        "checker": "off-by-one-range",
+        "location": "Set.Icc 0 N",
+        "message": "Set.Icc with a literal-adjusted bound: check whether the endpoint is included"
+       }
+      ],
+      "origin": "compiler-derived"
+     },
+     "message": "7 hazard finding(s) on a statement the gate derived from a merged assembly, recorded and not refused; first: div-zero at D_r1 * lam * W ^ 2 / D_r: division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"
+    },
+    "name": "hazards",
+    "result": "pass",
+    "step": 6
+   },
+   {
+    "diagnostic": null,
+    "name": "witness",
+    "result": "pass",
+    "step": 7
+   },
+   {
+    "diagnostic": {
+     "code": "context-signature-mismatch",
+     "details": {
+      "context_hash": "dc69f9c4694f0389cf87f8bd84e27929bb8430e91dd5451fbe952d77c7f69f50",
+      "dep": "erdos-1094--h2--h2--h2--h3--h1--h1--h1",
+      "statement_hash": "c3019a13bd13dacb4e625f64696cebc104c97cbf2b3c05a6668ead7a9bac680b"
+     },
+     "message": "Context.lean's signature for dep 'erdos-1094--h2--h2--h2--h3--h1--h1--h1' differs from its Statement.lean; Context.lean is not a submission path (D-3), so this is a graph defect"
+    },
+    "name": "deps",
+    "result": "fail",
+    "step": 8
+   }
+  ],
+  "verdict": "fail"
+ },
+ "public": true
+}

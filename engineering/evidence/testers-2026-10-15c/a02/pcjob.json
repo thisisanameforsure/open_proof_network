@@ -1,0 +1,23 @@
+{
+ "status": 202,
+ "body": {
+  "id": "01M500X3CGZZZDG2B3SNK5STWZ",
+  "node_id": "erdos-1094--h3--h3--h2",
+  "target_id": "erdos-1094",
+  "state": "queued",
+  "created": "2026-10-15T14:54:18Z",
+  "graph_commit": "ce10304b0c25662291339639e5336290ed6cc62d",
+  "bundle_digest": "daf7cb0b6d5a874776f8a77f55856e39ce689110b8ad34a043585a71239a8ea2",
+  "authenticated": true,
+  "automation": {
+   "method": "agent",
+   "models": [
+    "claude-opus-5-5"
+   ],
+   "framework": "Claude Code"
+  },
+  "public": true
+ },
+ "job_id": "01M500X3CGZZZDG2B3SNK5STWZ",
+ "poll": "poll get_precheck with job_id until state is done or error; a precheck takes minutes"
+}

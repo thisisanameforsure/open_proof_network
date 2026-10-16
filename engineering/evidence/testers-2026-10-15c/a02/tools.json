@@ -1,0 +1,7129 @@
+{
+ "jsonrpc": "2.0",
+ "id": 1,
+ "result": {
+  "tools": [
+   {
+    "name": "server_info",
+    "title": "Server info",
+    "description": "Protocol version, gate-spec hashes, schema index and the rate-limit policy in force. Plain path: GET /info.json (repo-served static).",
+    "inputSchema": {
+     "type": "object",
+     "properties": {},
+     "required": [],
+     "additionalProperties": false
+    },
+    "outputSchema": {
+     "$schema": "https://json-schema.org/draft/2020-12/schema",
+     "$id": "https://openproof.network/schemas/mcp/server_info/v1.json",
+     "oneOf": [
+      {
+       "type": "object",
+       "required": [
+        "schema"
+       ],
+       "properties": {
+        "schema": {
+         "type": "string",
+         "pattern": "^info/v[1-9][0-9]*$"
+        }
+       }
+      },
+      {
+       "type": "object",
+       "required": [
+        "error",
+        "message",
+        "source"
+       ],
+       "additionalProperties": false,
+       "properties": {
+        "error": {
+         "type": "string"
+        },
+        "message": {
+         "type": "string"
+        },
+        "source": {
+         "enum": [
+          "graph",
+          "service",
+          "adapter"
+         ]
+        },
+        "status": {
+         "type": "integer"
+        }
+       }
+      }
+     ]
+    },
+    "annotations": {
+     "readOnlyHint": true,
+     "destructiveHint": false,
+     "idempotentHint": true
+    }
+   },
+   {
+    "name": "list_targets",
+    "title": "List targets",
+    "description": "Every graph: id, root statement hash, fidelity, status and pinned Mathlib SHA. Plain path: targets/index.json.",
+    "inputSchema": {
+     "type": "object",
+     "properties": {},
+     "required": [],
+     "additionalProperties": false
+    },
+    "outputSchema": {
+     "$schema": "https://json-schema.org/draft/2020-12/schema",
+     "$id": "https://openproof.network/schemas/mcp/list_targets/v1.json",
+     "oneOf": [
+      {
+       "type": "object",
+       "required": [
+        "schema"
+       ],
+       "properties": {
+        "schema": {
+         "type": "string",
+         "pattern": "^targets-index/v[1-9][0-9]*$"
+        }
+       }
+      },
+      {
+       "type": "object",
+       "required": [
+        "error",
+        "message",
+        "source"
+       ],
+       "additionalProperties": false,
+       "properties": {
+        "error": {
+         "type": "string"
+        },
+        "message": {
+         "type": "string"
+        },
+        "source": {
+         "enum": [
+          "graph",
+          "service",
+          "adapter"
+         ]
+        },
+        "status": {
+         "type": "integer"
+        }
+       }
+      }
+     ]
+    },
+    "annotations": {
+     "readOnlyHint": true,
+     "destructiveHint": false,
+     "idempotentHint": true
+    }
+   },
+   {
+    "name": "get_target",
+    "title": "Read a target",
+    "description": "A target's graph structure and node statuses, with its approach records. Plain path: targets/<id>/graph.json + targets/<id>/approaches/.",
+    "inputSchema": {
+     "type": "object",
+     "properties": {
+      "target_id": {
+       "type": "string",
+       "pattern": "^[a-z0-9][a-z0-9-]*$",
+       "description": "A target's id, as list_targets names it."
+      }
+     },
+     "required": [
+      "target_id"
+     ],
+     "additionalProperties": false
+    },
+    "outputSchema": {
+     "$schema": "https://json-schema.org/draft/2020-12/schema",
+     "$id": "https://openproof.network/schemas/mcp/get_target/v1.json",
+     "oneOf": [
+      {
+       "type": "object",
+       "required": [
+        "target_id",
+        "graph",
+        "approaches",
+        "untrusted_note",
+        "registrations"
+       ],
+       "additionalProperties": false,
+       "properties": {
+        "target_id": {
+         "type": "string"
+        },
+        "graph": {
+         "type": "object",
+         "required": [
+          "schema"
+         ],
+         "properties": {
+          "schema": {
+           "type": "string",
+           "pattern": "^graph/v[1-9][0-9]*$"
+          }
+         }
+        },
+        "approaches": {
+         "type": "array",
+         "items": {
+          "type": "object",
+          "required": [
+           "path",
+           "record"
+          ],
+          "additionalProperties": false,
+          "properties": {
+           "path": {
+            "type": "string"
+           },
+           "record": {
+            "type": "object"
+           }
+          }
+         }
+        },
+        "untrusted_note": {
+         "type": "string"
+        },
+        "registrations": {
+         "type": "array",
+         "items": {
+          "type": "object"
+         }
+        }
+       }
+      },
+      {
+       "type": "object",
+       "required": [
+        "error",
+        "message",
+        "source"
+       ],
+       "additionalProperties": false,
+       "properties": {
+        "error": {
+         "type": "string"
+        },
+        "message": {
+         "type": "string"
+        },
+        "source": {
+         "enum": [
+          "graph",
+          "service",
+          "adapter"
+         ]
+        },
+        "status": {
+         "type": "integer"
+        }
+       }
+      }
+     ],
+     "$defs": {
+      "untrusted": {
+       "type": "object",
+       "required": [
+        "untrusted",
+        "source",
+        "text"
+       ],
+       "additionalProperties": false,
+       "properties": {
+        "untrusted": {
+         "const": true
+        },
+        "source": {
+         "type": "string"
+        },
+        "text": {
+         "type": "string"
+        }
+       }
+      }
+     }
+    },
+    "annotations": {
+     "readOnlyHint": true,
+     "destructiveHint": false,
+     "idempotentHint": true
+    }
+   },
+   {
+    "name": "list_frontier",
+    "title": "List open nodes",
+    "description": "The open nodes with D-25's observed facts and live claim status. `filters` is an object of frontier field to value (dotted for nested, e.g. `tags.library`): equality on a scalar field, containment on a list field; results keep the file's order and carry no ranking. Plain path: frontier.json, regenerated on every merge.",
+    "inputSchema": {
+     "type": "object",
+     "properties": {
+      "filters": {
+       "type": "object",
+       "description": "Field: value pairs, all of which an entry must match: equality on a scalar field, containment on a list field, a dotted path into an object field (`tags.library`). The fields: `annex_present`, `attempts`, `bounty`, `cause`, `circular`, `claimable`, `claims`, `dormant`, `failure_class_histogram`, `literature`, `literature_proposed`, `needs`, `node_id`, `origin`, `ready_since`, `refuted_route_classes`, `relation`, `statement_hash`, `status`, `tags`, `target_id`, `tutorial`."
+      }
+     },
+     "required": [],
+     "additionalProperties": false
+    },
+    "outputSchema": {
+     "$schema": "https://json-schema.org/draft/2020-12/schema",
+     "$id": "https://openproof.network/schemas/mcp/list_frontier/v1.json",
+     "oneOf": [
+      {
+       "type": "object",
+       "required": [
+        "schema",
+        "entries"
+       ],
+       "properties": {
+        "schema": {
+         "type": "string",
+         "pattern": "^frontier/v[1-9][0-9]*$"
+        },
+        "entries": {
+         "type": "array",
+         "items": {
+          "type": "object"
+         }
+        }
+       }
+      },
+      {
+       "type": "object",
+       "required": [
+        "error",
+        "message",
+        "source"
+       ],
+       "additionalProperties": false,
+       "properties": {
+        "error": {
+         "type": "string"
+        },
+        "message": {
+         "type": "string"
+        },
+        "source": {
+         "enum": [
+          "graph",
+          "service",
+          "adapter"
+         ]
+        },
+        "status": {
+         "type": "integer"
+        }
+       }
+      }
+     ]
+    },
+    "annotations": {
+     "readOnlyHint": true,
+     "destructiveHint": false,
+     "idempotentHint": true
+    }
+   },
+   {
+    "name": "get_node",
+    "title": "Read a node",
+    "description": "A node's context bundle (nodes/<id>/CONTEXT.json: statement, deps' signatures, witness, status, gate-spec reference, attempt log, annex hashes) plus the raw Lean files, live claim status, `lemmas` (results from other branches this node may use once proved), annexes, explainers and the submissions open on it. `include` names the prose sections to answer (all of them when omitted); `include: []` answers the Lean, the context, the claims, the lemmas and the open submissions alone. Plain path: raw files under nodes/<id>/.",
+    "inputSchema": {
+     "type": "object",
+     "properties": {
+      "node_id": {
+       "type": "string",
+       "pattern": "^[a-z0-9][a-z0-9-]*$",
+       "description": "A node's id, as list_frontier and get_target name it."
+      },
+      "include": {
+       "type": "array",
+       "items": {
+        "enum": [
+         "annexes",
+         "explainers",
+         "outlines",
+         "gloss_chains",
+         "explainer_chains"
+        ]
+       },
+       "uniqueItems": true,
+       "description": "The prose sections to answer; every one when omitted, none with []."
+      }
+     },
+     "required": [
+      "node_id"
+     ],
+     "additionalProperties": false
+    },
+    "outputSchema": {
+     "$schema": "https://json-schema.org/draft/2020-12/schema",
+     "$id": "https://openproof.network/schemas/mcp/get_node/v1.json",
+     "oneOf": [
+      {
+       "type": "object",
+       "required": [
+        "node_id",
+        "target_id",
+        "context",
+        "context_source",
+        "closing",
+        "files",
+        "claims",
+        "submissions",
+        "lemmas",
+        "untrusted_note"
+       ],
+       "additionalProperties": false,
+       "properties": {
+        "node_id": {
+         "type": "string"
+        },
+        "target_id": {
+         "type": "string"
+        },
+        "context": {
+         "type": "object",
+         "required": [
+          "schema"
+         ],
+         "properties": {
+          "schema": {
+           "enum": [
+            "context/v1",
+            "context/v2",
+            "context/v3",
+            "context/v4",
+            "context/v5",
+            "context/v6",
+            "context/v7"
+           ]
+          }
+         }
+        },
+        "lemmas": {
+         "type": "array",
+         "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+           "node_id",
+           "hole",
+           "status",
+           "statement_hash",
+           "signature",
+           "cause"
+          ],
+          "properties": {
+           "node_id": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]*$"
+           },
+           "hole": {
+            "type": "string"
+           },
+           "status": {
+            "type": "string"
+           },
+           "statement_hash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+           },
+           "signature": {
+            "type": "string"
+           },
+           "cause": {
+            "type": [
+             "string",
+             "null"
+            ]
+           }
+          }
+         }
+        },
+        "context_source": {
+         "enum": [
+          "file",
+          "derived"
+         ]
+        },
+        "closing": {
+         "type": "object",
+         "additionalProperties": false,
+         "required": [
+          "through_holes",
+          "context_import",
+          "import_line"
+         ],
+         "properties": {
+          "through_holes": {
+           "type": "boolean"
+          },
+          "context_import": {
+           "enum": [
+            "statement",
+            "proof"
+           ]
+          },
+          "import_line": {
+           "type": "string"
+          }
+         }
+        },
+        "files": {
+         "type": "object",
+         "required": [
+          "Statement.lean",
+          "Context.lean",
+          "Witness.lean",
+          "Proof.lean"
+         ],
+         "additionalProperties": false,
+         "properties": {
+          "Statement.lean": {
+           "type": "string"
+          },
+          "Context.lean": {
+           "type": "string"
+          },
+          "Witness.lean": {
+           "type": [
+            "string",
+            "null"
+           ]
+          },
+          "Proof.lean": {
+           "type": [
+            "string",
+            "null"
+           ]
+          }
+         }
+        },
+        "claims": {
+         "type": [
+          "object",
+          "null"
+         ],
+         "required": [
+          "active",
+          "history_count"
+         ],
+         "properties": {
+          "active": {
+           "type": "array"
+          },
+          "history_count": {
+           "type": "integer"
+          }
+         }
+        },
+        "annexes": {
+         "type": "array",
+         "items": {
+          "type": "object",
+          "required": [
+           "path",
+           "front",
+           "text"
+          ],
+          "additionalProperties": false,
+          "properties": {
+           "path": {
+            "type": "string"
+           },
+           "front": {
+            "type": "object"
+           },
+           "text": {
+            "$ref": "#/$defs/untrusted"
+           }
+          }
+         }
+        },
+        "explainers": {
+         "type": "array",
+         "items": {
+          "type": "object",
+          "required": [
+           "path",
+           "front",
+           "text"
+          ],
+          "additionalProperties": false,
+          "properties": {
+           "path": {
+            "type": "string"
+           },
+           "front": {
+            "type": "object"
+           },
+           "text": {
+            "$ref": "#/$defs/untrusted"
+           }
+          }
+         }
+        },
+        "submissions": {
+         "type": "object",
+         "required": [
+          "open"
+         ],
+         "additionalProperties": false,
+         "properties": {
+          "open": {
+           "type": "array",
+           "items": {
+            "$ref": "#/$defs/submission"
+           }
+          }
+         }
+        },
+        "outlines": {
+         "type": "array",
+         "items": {
+          "type": "object",
+          "required": [
+           "proof",
+           "file",
+           "path",
+           "outline"
+          ],
+          "additionalProperties": false,
+          "properties": {
+           "proof": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+           },
+           "file": {
+            "type": [
+             "string",
+             "null"
+            ]
+           },
+           "path": {
+            "type": "string"
+           },
+           "outline": {
+            "type": [
+             "object",
+             "null"
+            ]
+           }
+          }
+         }
+        },
+        "gloss_chains": {
+         "type": "array",
+         "items": {
+          "$ref": "#/$defs/chained_subject"
+         }
+        },
+        "explainer_chains": {
+         "type": "array",
+         "items": {
+          "$ref": "#/$defs/chained_subject"
+         }
+        },
+        "chains_source": {
+         "enum": [
+          "file",
+          "derived"
+         ]
+        },
+        "untrusted_note": {
+         "type": "string"
+        }
+       }
+      },
+      {
+       "type": "object",
+       "required": [
+        "error",
+        "message",
+        "source"
+       ],
+       "additionalProperties": false,
+       "properties": {
+        "error": {
+         "type": "string"
+        },
+        "message": {
+         "type": "string"
+        },
+        "source": {
+         "enum": [
+          "graph",
+          "service",
+          "adapter"
+         ]
+        },
+        "status": {
+         "type": "integer"
+        }
+       }
+      }
+     ],
+     "$defs": {
+      "chained_subject": {
+       "type": "object",
+       "required": [
+        "kind",
+        "record",
+        "node",
+        "file",
+        "lean_hash",
+        "chains"
+       ],
+       "properties": {
+        "chains": {
+         "type": "array",
+         "items": {
+          "type": "object",
+          "required": [
+           "current",
+           "versions"
+          ],
+          "properties": {
+           "versions": {
+            "type": "array",
+            "items": {
+             "type": "object",
+             "required": [
+              "hash",
+              "path",
+              "author",
+              "drafter",
+              "withdrawn",
+              "signatures",
+              "text"
+             ],
+             "properties": {
+              "text": {
+               "oneOf": [
+                {
+                 "type": "null"
+                },
+                {
+                 "$ref": "#/$defs/untrusted"
+                }
+               ]
+              },
+              "drafted_with": {
+               "oneOf": [
+                {
+                 "type": "null"
+                },
+                {
+                 "$ref": "#/$defs/untrusted"
+                }
+               ]
+              },
+              "sections": {
+               "type": "array",
+               "items": {
+                "type": "object",
+                "required": [
+                 "key",
+                 "state"
+                ],
+                "properties": {
+                 "key": {
+                  "type": "string"
+                 },
+                 "state": {
+                  "enum": [
+                   "drafted",
+                   "written",
+                   "verified",
+                   "pending",
+                   "unchanged"
+                  ]
+                 }
+                }
+               }
+              },
+              "signatures": {
+               "type": "array",
+               "items": {
+                "type": "object",
+                "required": [
+                 "signer",
+                 "date"
+                ],
+                "properties": {
+                 "signer": {
+                  "type": "string"
+                 },
+                 "date": {
+                  "type": "string"
+                 },
+                 "sections": {
+                  "oneOf": [
+                   {
+                    "type": "null"
+                   },
+                   {
+                    "type": "array",
+                    "items": {
+                     "type": "string"
+                    }
+                   }
+                  ]
+                 }
+                }
+               }
+              }
+             }
+            }
+           },
+           "shown": {
+            "type": "array",
+            "items": {
+             "type": "object",
+             "required": [
+              "key",
+              "version",
+              "state"
+             ],
+             "properties": {
+              "key": {
+               "type": "string"
+              },
+              "version": {
+               "type": "string"
+              },
+              "state": {
+               "enum": [
+                "drafted",
+                "written",
+                "verified",
+                "pending"
+               ]
+              }
+             }
+            }
+           },
+           "pending": {
+            "type": "array",
+            "items": {
+             "type": "object",
+             "required": [
+              "key",
+              "version",
+              "state"
+             ],
+             "properties": {
+              "key": {
+               "type": "string"
+              },
+              "version": {
+               "type": "string"
+              },
+              "state": {
+               "enum": [
+                "drafted",
+                "written",
+                "verified",
+                "pending"
+               ]
+              }
+             }
+            }
+           }
+          }
+         }
+        }
+       }
+      },
+      "untrusted": {
+       "type": "object",
+       "required": [
+        "untrusted",
+        "source",
+        "text"
+       ],
+       "additionalProperties": false,
+       "properties": {
+        "untrusted": {
+         "const": true
+        },
+        "source": {
+         "type": "string"
+        },
+        "text": {
+         "type": "string"
+        }
+       }
+      },
+      "submission": {
+       "type": "object",
+       "required": [
+        "id",
+        "kind",
+        "node_id",
+        "target_id",
+        "pr_number",
+        "pr_url",
+        "pseudonym",
+        "precheck_job_id",
+        "created",
+        "closed",
+        "artifact_type",
+        "queue",
+        "automation"
+       ],
+       "additionalProperties": false,
+       "properties": {
+        "id": {
+         "type": "string"
+        },
+        "kind": {
+         "type": "string"
+        },
+        "node_id": {
+         "type": [
+          "string",
+          "null"
+         ]
+        },
+        "target_id": {
+         "type": "string"
+        },
+        "pr_number": {
+         "type": "integer"
+        },
+        "pr_url": {
+         "type": "string"
+        },
+        "pseudonym": {
+         "type": "string"
+        },
+        "precheck_job_id": {
+         "type": [
+          "string",
+          "null"
+         ]
+        },
+        "created": {
+         "type": "string"
+        },
+        "closed": {
+         "type": [
+          "string",
+          "null"
+         ]
+        },
+        "artifact_type": {
+         "type": [
+          "string",
+          "null"
+         ]
+        },
+        "queue": {
+         "type": "object",
+         "required": [
+          "position",
+          "of",
+          "waiting_on",
+          "waiting_on_read_at"
+         ],
+         "additionalProperties": false,
+         "properties": {
+          "position": {
+           "type": [
+            "integer",
+            "null"
+           ]
+          },
+          "of": {
+           "type": [
+            "integer",
+            "null"
+           ]
+          },
+          "waiting_on": {
+           "type": [
+            "string",
+            "null"
+           ]
+          },
+          "waiting_on_read_at": {
+           "type": [
+            "string",
+            "null"
+           ]
+          }
+         }
+        },
+        "automation": {
+         "type": [
+          "object",
+          "null"
+         ]
+        }
+       }
+      }
+     }
+    },
+    "annotations": {
+     "readOnlyHint": true,
+     "destructiveHint": false,
+     "idempotentHint": true
+    }
+   },
+   {
+    "name": "get_defs",
+    "title": "Read shared definitions",
+    "description": "A target's shared-definition tier with content hashes. Plain path: targets/<id>/defs/.",
+    "inputSchema": {
+     "type": "object",
+     "properties": {
+      "target_id": {
+       "type": "string",
+       "pattern": "^[a-z0-9][a-z0-9-]*$",
+       "description": "A target's id, as list_targets names it."
+      }
+     },
+     "required": [
+      "target_id"
+     ],
+     "additionalProperties": false
+    },
+    "outputSchema": {
+     "$schema": "https://json-schema.org/draft/2020-12/schema",
+     "$id": "https://openproof.network/schemas/mcp/get_defs/v1.json",
+     "oneOf": [
+      {
+       "type": "object",
+       "required": [
+        "target_id",
+        "defs",
+        "certificates"
+       ],
+       "additionalProperties": false,
+       "properties": {
+        "target_id": {
+         "type": "string"
+        },
+        "defs": {
+         "type": "array",
+         "items": {
+          "type": "object",
+          "required": [
+           "path",
+           "sha256",
+           "content"
+          ],
+          "additionalProperties": false,
+          "properties": {
+           "path": {
+            "type": "string"
+           },
+           "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+           },
+           "content": {
+            "type": "string"
+           }
+          }
+         }
+        },
+        "certificates": {
+         "type": "array",
+         "items": {
+          "type": "object",
+          "required": [
+           "path",
+           "record"
+          ],
+          "additionalProperties": false,
+          "properties": {
+           "path": {
+            "type": "string"
+           },
+           "record": {
+            "type": "object"
+           }
+          }
+         }
+        }
+       }
+      },
+      {
+       "type": "object",
+       "required": [
+        "error",
+        "message",
+        "source"
+       ],
+       "additionalProperties": false,
+       "properties": {
+        "error": {
+         "type": "string"
+        },
+        "message": {
+         "type": "string"
+        },
+        "source": {
+         "enum": [
+          "graph",
+          "service",
+          "adapter"
+         ]
+        },
+        "status": {
+         "type": "integer"
+        }
+       }
+      }
+     ]
+    },
+    "annotations": {
+     "readOnlyHint": true,
+     "destructiveHint": false,
+     "idempotentHint": true
+    }
+   },
+   {
+    "name": "get_gate_spec",
+    "title": "Read a gate spec",
+    "description": "A target's pinned toolchain, Mathlib SHA, axiom allowlist, hazard checkers, network commit and precheck-attestation policy. Plain path: gate-spec.json per graph.",
+    "inputSchema": {
+     "type": "object",
+     "properties": {
+      "target_id": {
+       "type": "string",
+       "pattern": "^[a-z0-9][a-z0-9-]*$",
+       "description": "A target's id, as list_targets names it."
+      }
+     },
+     "required": [
+      "target_id"
+     ],
+     "additionalProperties": false
+    },
+    "outputSchema": {
+     "$schema": "https://json-schema.org/draft/2020-12/schema",
+     "$id": "https://openproof.network/schemas/mcp/get_gate_spec/v1.json",
+     "oneOf": [
+      {
+       "type": "object",
+       "required": [
+        "schema"
+       ],
+       "properties": {
+        "schema": {
+         "type": "string",
+         "pattern": "^gate-spec/v[1-9][0-9]*$"
+        }
+       }
+      },
+      {
+       "type": "object",
+       "required": [
+        "error",
+        "message",
+        "source"
+       ],
+       "additionalProperties": false,
+       "properties": {
+        "error": {
+         "type": "string"
+        },
+        "message": {
+         "type": "string"
+        },
+        "source": {
+         "enum": [
+          "graph",
+          "service",
+          "adapter"
+         ]
+        },
+        "status": {
+         "type": "integer"
+        }
+       }
+      }
+     ]
+    },
+    "annotations": {
+     "readOnlyHint": true,
+     "destructiveHint": false,
+     "idempotentHint": true
+    }
+   },
+   {
+    "name": "get_submission",
+    "title": "Follow a submission",
+    "description": "A submission or proposal by its ULID or pull-request number (padded or not): the record, the pull request's live state and, once merged, the attestation it earned or why there is none. `pull_request.waiting_on` names the one thing it waits for (gate, step9-review, branch-update, merge, products, or gate-failed, when `gate_verdict` carries the gate's own diagnostic). `state` is open, merged or closed. While open, `queue` gives its `position` (from 1) `of` how many in its target's lane of the merge actor, and the pull requests `ahead`; a position is an upper bound on the merges ahead. For a partial, `holes[].became` is the node each hole became once the products record it: a new child, or a lemma for a hole that restated a node under another branch. The guide's \"Precheck and submit\" says more. Plain path: attestations/<id>.json.",
+    "inputSchema": {
+     "type": "object",
+     "properties": {
+      "submission_id": {
+       "type": "string",
+       "description": "A submission's ULID, or its pull request's number."
+      }
+     },
+     "required": [
+      "submission_id"
+     ],
+     "additionalProperties": false
+    },
+    "outputSchema": {
+     "$schema": "https://json-schema.org/draft/2020-12/schema",
+     "$id": "https://openproof.network/schemas/mcp/get_submission/v1.json",
+     "oneOf": [
+      {
+       "type": "object",
+       "required": [
+        "submission",
+        "pull_request",
+        "pull_request_error",
+        "attestation_path",
+        "attestation",
+        "attestation_note",
+        "state",
+        "queue"
+       ],
+       "additionalProperties": false,
+       "properties": {
+        "submission": {
+         "oneOf": [
+          {
+           "type": "null"
+          },
+          {
+           "$ref": "#/$defs/submission"
+          }
+         ]
+        },
+        "pull_request": {
+         "oneOf": [
+          {
+           "type": "null"
+          },
+          {
+           "$ref": "#/$defs/pull_request"
+          }
+         ]
+        },
+        "pull_request_error": {
+         "type": [
+          "string",
+          "null"
+         ]
+        },
+        "attestation_path": {
+         "type": [
+          "string",
+          "null"
+         ]
+        },
+        "attestation": {
+         "oneOf": [
+          {
+           "type": "null"
+          },
+          {
+           "type": "object",
+           "required": [
+            "schema"
+           ],
+           "properties": {
+            "schema": {
+             "type": "string",
+             "pattern": "^attestation/v[1-9][0-9]*$"
+            }
+           }
+          }
+         ]
+        },
+        "attestation_note": {
+         "enum": [
+          null,
+          "not-merged",
+          "no-attestation-for-mode",
+          "attestation-pending",
+          "pull-request-unavailable"
+         ]
+        },
+        "gate_report": {
+         "oneOf": [
+          {
+           "type": "null"
+          },
+          {
+           "type": "object",
+           "additionalProperties": false,
+           "required": [
+            "ok",
+            "warnings",
+            "problems"
+           ],
+           "properties": {
+            "ok": {
+             "type": [
+              "boolean",
+              "null"
+             ]
+            },
+            "warnings": {
+             "type": "array",
+             "items": {
+              "type": "object"
+             }
+            },
+            "problems": {
+             "type": "array",
+             "items": {
+              "type": "object"
+             }
+            }
+           }
+          }
+         ]
+        },
+        "gate_verdict": {
+         "oneOf": [
+          {
+           "type": "null"
+          },
+          {
+           "type": "object",
+           "additionalProperties": false,
+           "required": [
+            "verdict",
+            "first_failing",
+            "diagnostic"
+           ],
+           "properties": {
+            "verdict": {
+             "type": [
+              "string",
+              "null"
+             ]
+            },
+            "first_failing": {
+             "type": [
+              "string",
+              "integer",
+              "null"
+             ]
+            },
+            "diagnostic": {
+             "type": [
+              "object",
+              "null"
+             ]
+            }
+           }
+          }
+         ]
+        },
+        "proposed_statement": {
+         "oneOf": [
+          {
+           "type": "null"
+          },
+          {
+           "type": "object",
+           "additionalProperties": false,
+           "required": [
+            "path",
+            "head_sha",
+            "text",
+            "truncated"
+           ],
+           "properties": {
+            "path": {
+             "type": "string"
+            },
+            "head_sha": {
+             "type": "string"
+            },
+            "text": {
+             "type": "string"
+            },
+            "truncated": {
+             "type": "boolean"
+            }
+           }
+          }
+         ]
+        },
+        "proposed_statement_error": {
+         "type": [
+          "string",
+          "null"
+         ]
+        },
+        "holes": {
+         "type": "array",
+         "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+           "name",
+           "expected_node_id",
+           "expected_new",
+           "became"
+          ],
+          "properties": {
+           "name": {
+            "type": "string"
+           },
+           "expected_node_id": {
+            "type": "string"
+           },
+           "expected_new": {
+            "type": "boolean"
+           },
+           "became": {
+            "type": [
+             "string",
+             "null"
+            ]
+           }
+          }
+         }
+        },
+        "holes_note": {
+         "type": "string"
+        },
+        "state": {
+         "enum": [
+          "open",
+          "merged",
+          "closed",
+          null
+         ]
+        },
+        "queue": {
+         "oneOf": [
+          {
+           "type": "null"
+          },
+          {
+           "type": "object",
+           "required": [
+            "position",
+            "of",
+            "ahead",
+            "order",
+            "read_at",
+            "stale"
+           ],
+           "additionalProperties": false,
+           "properties": {
+            "position": {
+             "type": [
+              "integer",
+              "null"
+             ]
+            },
+            "of": {
+             "type": [
+              "integer",
+              "null"
+             ]
+            },
+            "ahead": {
+             "type": "array",
+             "items": {
+              "type": "object",
+              "required": [
+               "pr_number",
+               "id",
+               "kind",
+               "node_id",
+               "target_id",
+               "waiting_on",
+               "waiting_on_read_at"
+              ],
+              "additionalProperties": false,
+              "properties": {
+               "pr_number": {
+                "type": "integer"
+               },
+               "id": {
+                "type": [
+                 "string",
+                 "null"
+                ]
+               },
+               "kind": {
+                "type": [
+                 "string",
+                 "null"
+                ]
+               },
+               "node_id": {
+                "type": [
+                 "string",
+                 "null"
+                ]
+               },
+               "target_id": {
+                "type": [
+                 "string",
+                 "null"
+                ]
+               },
+               "waiting_on": {
+                "type": [
+                 "string",
+                 "null"
+                ]
+               },
+               "waiting_on_read_at": {
+                "type": [
+                 "string",
+                 "null"
+                ]
+               }
+              }
+             }
+            },
+            "order": {
+             "type": "string"
+            },
+            "read_at": {
+             "type": [
+              "string",
+              "null"
+             ]
+            },
+            "stale": {
+             "type": "boolean"
+            }
+           }
+          }
+         ]
+        }
+       }
+      },
+      {
+       "type": "object",
+       "required": [
+        "error",
+        "message",
+        "source"
+       ],
+       "additionalProperties": false,
+       "properties": {
+        "error": {
+         "type": "string"
+        },
+        "message": {
+         "type": "string"
+        },
+        "source": {
+         "enum": [
+          "graph",
+          "service",
+          "adapter"
+         ]
+        },
+        "status": {
+         "type": "integer"
+        }
+       }
+      }
+     ],
+     "$defs": {
+      "submission": {
+       "type": "object",
+       "required": [
+        "id",
+        "kind",
+        "node_id",
+        "target_id",
+        "pr_number",
+        "pr_url",
+        "pseudonym",
+        "precheck_job_id",
+        "created",
+        "closed",
+        "artifact_type",
+        "automation"
+       ],
+       "additionalProperties": false,
+       "properties": {
+        "id": {
+         "type": "string"
+        },
+        "kind": {
+         "type": "string"
+        },
+        "node_id": {
+         "type": [
+          "string",
+          "null"
+         ]
+        },
+        "target_id": {
+         "type": "string"
+        },
+        "pr_number": {
+         "type": "integer"
+        },
+        "pr_url": {
+         "type": "string"
+        },
+        "pseudonym": {
+         "type": "string"
+        },
+        "precheck_job_id": {
+         "type": [
+          "string",
+          "null"
+         ]
+        },
+        "created": {
+         "type": "string"
+        },
+        "closed": {
+         "type": [
+          "string",
+          "null"
+         ]
+        },
+        "artifact_type": {
+         "type": [
+          "string",
+          "null"
+         ]
+        },
+        "automation": {
+         "type": [
+          "object",
+          "null"
+         ]
+        }
+       }
+      },
+      "pull_request": {
+       "type": "object",
+       "required": [
+        "number",
+        "url",
+        "state",
+        "merged",
+        "mergeable_state",
+        "head_sha",
+        "merge_commit_sha",
+        "runs",
+        "reviews",
+        "read_at",
+        "stale"
+       ],
+       "additionalProperties": false,
+       "properties": {
+        "number": {
+         "type": "integer"
+        },
+        "url": {
+         "type": "string"
+        },
+        "state": {
+         "type": "string"
+        },
+        "merged": {
+         "type": "boolean"
+        },
+        "mergeable_state": {
+         "type": "string"
+        },
+        "head_sha": {
+         "type": "string"
+        },
+        "merge_commit_sha": {
+         "type": [
+          "string",
+          "null"
+         ]
+        },
+        "runs": {
+         "type": "array",
+         "items": {
+          "type": "object",
+          "required": [
+           "name",
+           "status",
+           "conclusion",
+           "url",
+           "jobs"
+          ],
+          "properties": {
+           "name": {
+            "type": [
+             "string",
+             "null"
+            ]
+           },
+           "status": {
+            "type": [
+             "string",
+             "null"
+            ]
+           },
+           "conclusion": {
+            "type": [
+             "string",
+             "null"
+            ]
+           },
+           "url": {
+            "type": [
+             "string",
+             "null"
+            ]
+           },
+           "jobs": {
+            "type": "array",
+            "items": {
+             "type": "object",
+             "required": [
+              "name",
+              "status",
+              "conclusion"
+             ],
+             "properties": {
+              "name": {
+               "type": [
+                "string",
+                "null"
+               ]
+              },
+              "status": {
+               "type": [
+                "string",
+                "null"
+               ]
+              },
+              "conclusion": {
+               "type": [
+                "string",
+                "null"
+               ]
+              }
+             }
+            }
+           }
+          }
+         }
+        },
+        "reviews": {
+         "type": "array",
+         "items": {
+          "type": "object",
+          "required": [
+           "login",
+           "state"
+          ],
+          "properties": {
+           "login": {
+            "type": [
+             "string",
+             "null"
+            ]
+           },
+           "state": {
+            "type": [
+             "string",
+             "null"
+            ]
+           }
+          }
+         }
+        },
+        "waiting_on": {
+         "type": [
+          "string",
+          "null"
+         ]
+        },
+        "read_at": {
+         "type": [
+          "string",
+          "null"
+         ]
+        },
+        "stale": {
+         "type": "boolean"
+        }
+       }
+      }
+     }
+    },
+    "annotations": {
+     "readOnlyHint": true,
+     "destructiveHint": false,
+     "idempotentHint": true
+    }
+   },
+   {
+    "name": "list_submissions",
+    "title": "List open submissions",
+    "description": "Every pull request the service opened on the graph that no live read has yet found merged or closed: id, kind, node, target, pull-request number and URL, pseudonym, in the merge actor's order. Each entry's `queue` gives its `position` `of` how many in its own target's lane (the actor runs one lane per target in parallel) and the `waiting_on` the service last read for it (null: not read, ask get_submission); the top-level `queue.order` is the queue's pull-request numbers across every lane. get_submission gives one with its checks and reviews; get_node lists a node's own. `target_id`, `node_id` and `kind` filter by equality; `kind: words` keeps glosses and explainers (F22-T8). Plain path: GET /submissions.json.",
+    "inputSchema": {
+     "type": "object",
+     "properties": {
+      "target_id": {
+       "type": "string",
+       "pattern": "^[a-z0-9][a-z0-9-]*$",
+       "description": "A target's id, as list_targets names it."
+      },
+      "node_id": {
+       "type": "string",
+       "pattern": "^[a-z0-9][a-z0-9-]*$",
+       "description": "A node's id, as list_frontier and get_target name it."
+      },
+      "kind": {
+       "type": "string",
+       "description": "words (a gloss or explainer), or one submission kind"
+      }
+     },
+     "required": [],
+     "additionalProperties": false
+    },
+    "outputSchema": {
+     "$schema": "https://json-schema.org/draft/2020-12/schema",
+     "$id": "https://openproof.network/schemas/mcp/list_submissions/v1.json",
+     "oneOf": [
+      {
+       "type": "object",
+       "required": [
+        "snapshot_at",
+        "open",
+        "host",
+        "queue"
+       ],
+       "additionalProperties": false,
+       "properties": {
+        "snapshot_at": {
+         "type": "string"
+        },
+        "open": {
+         "type": "array",
+         "items": {
+          "$ref": "#/$defs/submission"
+         }
+        },
+        "host": {
+         "type": "object",
+         "required": [
+          "read_at",
+          "stale",
+          "error"
+         ],
+         "additionalProperties": false,
+         "properties": {
+          "read_at": {
+           "type": [
+            "string",
+            "null"
+           ]
+          },
+          "stale": {
+           "type": "boolean"
+          },
+          "error": {
+           "type": [
+            "string",
+            "null"
+           ]
+          }
+         }
+        },
+        "queue": {
+         "type": "object",
+         "required": [
+          "order",
+          "description",
+          "note"
+         ],
+         "additionalProperties": false,
+         "properties": {
+          "order": {
+           "type": [
+            "array",
+            "null"
+           ],
+           "items": {
+            "type": "integer"
+           }
+          },
+          "description": {
+           "type": "string"
+          },
+          "note": {
+           "type": "string"
+          }
+         }
+        }
+       }
+      },
+      {
+       "type": "object",
+       "required": [
+        "error",
+        "message",
+        "source"
+       ],
+       "additionalProperties": false,
+       "properties": {
+        "error": {
+         "type": "string"
+        },
+        "message": {
+         "type": "string"
+        },
+        "source": {
+         "enum": [
+          "graph",
+          "service",
+          "adapter"
+         ]
+        },
+        "status": {
+         "type": "integer"
+        }
+       }
+      }
+     ],
+     "$defs": {
+      "submission": {
+       "type": "object",
+       "required": [
+        "id",
+        "kind",
+        "node_id",
+        "target_id",
+        "pr_number",
+        "pr_url",
+        "pseudonym",
+        "precheck_job_id",
+        "created",
+        "closed",
+        "artifact_type",
+        "queue",
+        "automation"
+       ],
+       "additionalProperties": false,
+       "properties": {
+        "id": {
+         "type": "string"
+        },
+        "kind": {
+         "type": "string"
+        },
+        "node_id": {
+         "type": [
+          "string",
+          "null"
+         ]
+        },
+        "target_id": {
+         "type": "string"
+        },
+        "pr_number": {
+         "type": "integer"
+        },
+        "pr_url": {
+         "type": "string"
+        },
+        "pseudonym": {
+         "type": "string"
+        },
+        "precheck_job_id": {
+         "type": [
+          "string",
+          "null"
+         ]
+        },
+        "created": {
+         "type": "string"
+        },
+        "closed": {
+         "type": [
+          "string",
+          "null"
+         ]
+        },
+        "artifact_type": {
+         "type": [
+          "string",
+          "null"
+         ]
+        },
+        "queue": {
+         "type": "object",
+         "required": [
+          "position",
+          "of",
+          "waiting_on",
+          "waiting_on_read_at"
+         ],
+         "additionalProperties": false,
+         "properties": {
+          "position": {
+           "type": [
+            "integer",
+            "null"
+           ]
+          },
+          "of": {
+           "type": [
+            "integer",
+            "null"
+           ]
+          },
+          "waiting_on": {
+           "type": [
+            "string",
+            "null"
+           ]
+          },
+          "waiting_on_read_at": {
+           "type": [
+            "string",
+            "null"
+           ]
+          }
+         }
+        },
+        "automation": {
+         "type": [
+          "object",
+          "null"
+         ]
+        }
+       }
+      }
+     }
+    },
+    "annotations": {
+     "readOnlyHint": true,
+     "destructiveHint": false,
+     "idempotentHint": true
+    }
+   },
+   {
+    "name": "get_schema",
+    "title": "Read a schema",
+    "description": "A JSON Schema by name: a protocol record's (`postmortem/v1`, `defect-claim/v1`, ...) or a tool result's (`mcp/<tool>/v1`). A defect claim of class `circular-decomposition` is written as `defect-claim/v3`, every other class as `defect-claim/v1`. Plain path: schemas/<name>.json.",
+    "inputSchema": {
+     "type": "object",
+     "properties": {
+      "name": {
+       "type": "string",
+       "description": "A record schema as a record's `schema` field spells it, <name>/v<n>, or a tool's result schema, mcp/<tool>/v1."
+      }
+     },
+     "required": [
+      "name"
+     ],
+     "additionalProperties": false
+    },
+    "outputSchema": {
+     "$schema": "https://json-schema.org/draft/2020-12/schema",
+     "$id": "https://openproof.network/schemas/mcp/get_schema/v1.json",
+     "oneOf": [
+      {
+       "type": "object",
+       "required": [
+        "$schema"
+       ],
+       "properties": {
+        "$schema": {
+         "type": "string"
+        },
+        "$id": {
+         "type": "string"
+        }
+       }
+      },
+      {
+       "type": "object",
+       "required": [
+        "error",
+        "message",
+        "source"
+       ],
+       "additionalProperties": false,
+       "properties": {
+        "error": {
+         "type": "string"
+        },
+        "message": {
+         "type": "string"
+        },
+        "source": {
+         "enum": [
+          "graph",
+          "service",
+          "adapter"
+         ]
+        },
+        "status": {
+         "type": "integer"
+        }
+       }
+      }
+     ]
+    },
+    "annotations": {
+     "readOnlyHint": true,
+     "destructiveHint": false,
+     "idempotentHint": true
+    }
+   },
+   {
+    "name": "get_precheck",
+    "title": "Poll a precheck",
+    "description": "A precheck job's state, diagnostics and signed attestation; poll after precheck_submission until the state is done or error. A pass that carries `carried_witnesses` did not check the witness files its `unchecked` lists (the target's pinned gate predates carried witnesses): it is a pass of the skeleton alone. Plain path: GET /precheck/<id>.",
+    "inputSchema": {
+     "type": "object",
+     "properties": {
+      "job_id": {
+       "type": "string",
+       "description": "The precheck job's id, as precheck_submission returned it."
+      }
+     },
+     "required": [
+      "job_id"
+     ],
+     "additionalProperties": false
+    },
+    "outputSchema": {
+     "$schema": "https://json-schema.org/draft/2020-12/schema",
+     "$id": "https://openproof.network/schemas/mcp/get_precheck/v1.json",
+     "oneOf": [
+      {
+       "type": "object",
+       "required": [
+        "id",
+        "node_id",
+        "target_id",
+        "state"
+       ],
+       "properties": {
+        "id": {
+         "type": "string"
+        },
+        "node_id": {
+         "type": "string"
+        },
+        "target_id": {
+         "type": "string"
+        },
+        "state": {
+         "enum": [
+          "queued",
+          "running",
+          "done",
+          "error",
+          "expired"
+         ]
+        }
+       }
+      },
+      {
+       "type": "object",
+       "required": [
+        "error",
+        "message",
+        "source"
+       ],
+       "additionalProperties": false,
+       "properties": {
+        "error": {
+         "type": "string"
+        },
+        "message": {
+         "type": "string"
+        },
+        "source": {
+         "enum": [
+          "graph",
+          "service",
+          "adapter"
+         ]
+        },
+        "status": {
+         "type": "integer"
+        }
+       }
+      }
+     ]
+    },
+    "annotations": {
+     "readOnlyHint": true,
+     "destructiveHint": false,
+     "idempotentHint": true
+    }
+   },
+   {
+    "name": "get_dco",
+    "title": "Read the DCO",
+    "description": "The Developer Certificate of Origin and the version a write token must accept: get_token refuses any other version, and nothing else publishes it. Plain path: GET /dco.json. Plain path: GET /dco.json.",
+    "inputSchema": {
+     "type": "object",
+     "properties": {},
+     "required": [],
+     "additionalProperties": false
+    },
+    "outputSchema": {
+     "$schema": "https://json-schema.org/draft/2020-12/schema",
+     "$id": "https://openproof.network/schemas/mcp/get_dco/v1.json",
+     "oneOf": [
+      {
+       "type": "object",
+       "required": [
+        "version",
+        "text"
+       ],
+       "properties": {
+        "version": {
+         "type": "string",
+         "minLength": 1
+        },
+        "text": {
+         "type": "string",
+         "minLength": 1
+        }
+       }
+      },
+      {
+       "type": "object",
+       "required": [
+        "error",
+        "message",
+        "source"
+       ],
+       "additionalProperties": false,
+       "properties": {
+        "error": {
+         "type": "string"
+        },
+        "message": {
+         "type": "string"
+        },
+        "source": {
+         "enum": [
+          "graph",
+          "service",
+          "adapter"
+         ]
+        },
+        "status": {
+         "type": "integer"
+        }
+       }
+      }
+     ]
+    },
+    "annotations": {
+     "readOnlyHint": true,
+     "destructiveHint": false,
+     "idempotentHint": true
+    }
+   },
+   {
+    "name": "list_routes",
+    "title": "List HTTP routes",
+    "description": "The service's own index: every plain HTTP route with its method, whether it needs a bearer and what it is for, beside the guide's and this adapter's addresses. Every tool here has a plain path in it. Plain path: GET /. Plain path: GET /.",
+    "inputSchema": {
+     "type": "object",
+     "properties": {},
+     "required": [],
+     "additionalProperties": false
+    },
+    "outputSchema": {
+     "$schema": "https://json-schema.org/draft/2020-12/schema",
+     "$id": "https://openproof.network/schemas/mcp/list_routes/v1.json",
+     "oneOf": [
+      {
+       "type": "object",
+       "required": [
+        "service",
+        "routes"
+       ],
+       "properties": {
+        "service": {
+         "type": "string"
+        },
+        "guide": {
+         "type": [
+          "string",
+          "null"
+         ]
+        },
+        "mcp": {
+         "type": [
+          "string",
+          "null"
+         ]
+        },
+        "authoritative_for": {},
+        "routes": {
+         "type": "array",
+         "items": {
+          "type": "object",
+          "required": [
+           "method",
+           "path",
+           "auth",
+           "purpose"
+          ],
+          "properties": {
+           "method": {
+            "type": "string"
+           },
+           "path": {
+            "type": "string"
+           },
+           "auth": {
+            "type": "string"
+           },
+           "purpose": {
+            "type": "string"
+           }
+          }
+         }
+        }
+       }
+      },
+      {
+       "type": "object",
+       "required": [
+        "error",
+        "message",
+        "source"
+       ],
+       "additionalProperties": false,
+       "properties": {
+        "error": {
+         "type": "string"
+        },
+        "message": {
+         "type": "string"
+        },
+        "source": {
+         "enum": [
+          "graph",
+          "service",
+          "adapter"
+         ]
+        },
+        "status": {
+         "type": "integer"
+        }
+       }
+      }
+     ]
+    },
+    "annotations": {
+     "readOnlyHint": true,
+     "destructiveHint": false,
+     "idempotentHint": true
+    }
+   },
+   {
+    "name": "get_hosted_checkers",
+    "title": "List hosted checkers",
+    "description": "Which targets check_lean can serve: each pinned Mathlib commit mapped to the hosted checker's environment, whether that match is exact, and the environment for a Mathlib-free target. Plain path: GET /hosted-checkers.json. Plain path: GET /hosted-checkers.json.",
+    "inputSchema": {
+     "type": "object",
+     "properties": {},
+     "required": [],
+     "additionalProperties": false
+    },
+    "outputSchema": {
+     "$schema": "https://json-schema.org/draft/2020-12/schema",
+     "$id": "https://openproof.network/schemas/mcp/get_hosted_checkers/v1.json",
+     "oneOf": [
+      {
+       "type": "object",
+       "required": [
+        "service",
+        "targets"
+       ],
+       "properties": {
+        "service": {
+         "type": "string"
+        },
+        "authoritative": {
+         "type": "boolean"
+        },
+        "schema": {
+         "type": "string"
+        },
+        "endpoint": {
+         "type": [
+          "string",
+          "null"
+         ]
+        },
+        "core": {},
+        "pins": {},
+        "targets": {
+         "type": "object",
+         "additionalProperties": {
+          "type": "object"
+         }
+        }
+       }
+      },
+      {
+       "type": "object",
+       "required": [
+        "error",
+        "message",
+        "source"
+       ],
+       "additionalProperties": false,
+       "properties": {
+        "error": {
+         "type": "string"
+        },
+        "message": {
+         "type": "string"
+        },
+        "source": {
+         "enum": [
+          "graph",
+          "service",
+          "adapter"
+         ]
+        },
+        "status": {
+         "type": "integer"
+        }
+       }
+      }
+     ]
+    },
+    "annotations": {
+     "readOnlyHint": true,
+     "destructiveHint": false,
+     "idempotentHint": true
+    }
+   },
+   {
+    "name": "list_my_claims",
+    "title": "List my claims",
+    "description": "Your own active claims with their ids (what release_claim takes), oldest first, each with `others`: who else holds that node. Needs your token, since the list is yours; the public claims registry names pseudonyms and expiry times only. Plain path: GET /claims/mine. Plain path: GET /claims/mine.",
+    "inputSchema": {
+     "type": "object",
+     "properties": {},
+     "required": [],
+     "additionalProperties": false
+    },
+    "outputSchema": {
+     "$schema": "https://json-schema.org/draft/2020-12/schema",
+     "$id": "https://openproof.network/schemas/mcp/list_my_claims/v1.json",
+     "oneOf": [
+      {
+       "type": "object",
+       "required": [
+        "pseudonym",
+        "snapshot_at",
+        "claims"
+       ],
+       "additionalProperties": false,
+       "properties": {
+        "pseudonym": {
+         "type": "string"
+        },
+        "snapshot_at": {
+         "type": "string"
+        },
+        "claims": {
+         "type": "array",
+         "items": {
+          "type": "object",
+          "required": [
+           "id",
+           "node_id",
+           "target_id",
+           "pseudonym",
+           "created",
+           "expires",
+           "released",
+           "others"
+          ],
+          "properties": {
+           "id": {
+            "type": "string"
+           },
+           "node_id": {
+            "type": "string"
+           },
+           "target_id": {
+            "type": "string"
+           },
+           "pseudonym": {
+            "type": "string"
+           },
+           "created": {
+            "type": "string"
+           },
+           "expires": {
+            "type": "string"
+           },
+           "released": {
+            "type": [
+             "string",
+             "null"
+            ]
+           },
+           "others": {
+            "type": "array",
+            "items": {
+             "type": "object",
+             "required": [
+              "pseudonym",
+              "expires"
+             ],
+             "properties": {
+              "pseudonym": {
+               "type": "string"
+              },
+              "expires": {
+               "type": "string"
+              }
+             }
+            }
+           }
+          }
+         }
+        }
+       }
+      },
+      {
+       "type": "object",
+       "required": [
+        "error",
+        "message",
+        "source"
+       ],
+       "additionalProperties": false,
+       "properties": {
+        "error": {
+         "type": "string"
+        },
+        "message": {
+         "type": "string"
+        },
+        "source": {
+         "enum": [
+          "graph",
+          "service",
+          "adapter"
+         ]
+        },
+        "status": {
+         "type": "integer"
+        }
+       }
+      }
+     ]
+    },
+    "annotations": {
+     "readOnlyHint": true,
+     "destructiveHint": false,
+     "idempotentHint": true
+    }
+   },
+   {
+    "name": "get_my_submissions",
+    "title": "List my submissions",
+    "description": "Your own submissions, by your token: `open`, each as list_submissions gives it (the record and its `queue` place in its own target's lane), and `recent`, the most recently merged or closed, newest first, each with `state` (merged or closed). Finds a pull request again after its receipt was lost; get_submission gives one in full. Plain path: GET /submissions/mine. Plain path: GET /submissions/mine.",
+    "inputSchema": {
+     "type": "object",
+     "properties": {},
+     "required": [],
+     "additionalProperties": false
+    },
+    "outputSchema": {
+     "$schema": "https://json-schema.org/draft/2020-12/schema",
+     "$id": "https://openproof.network/schemas/mcp/get_my_submissions/v1.json",
+     "oneOf": [
+      {
+       "type": "object",
+       "required": [
+        "pseudonym",
+        "snapshot_at",
+        "open",
+        "recent",
+        "host"
+       ],
+       "additionalProperties": false,
+       "properties": {
+        "pseudonym": {
+         "type": "string"
+        },
+        "snapshot_at": {
+         "type": "string"
+        },
+        "open": {
+         "type": "array",
+         "items": {
+          "$ref": "#/$defs/submission"
+         }
+        },
+        "recent": {
+         "type": "array",
+         "items": {
+          "$ref": "#/$defs/finished"
+         }
+        },
+        "host": {
+         "type": "object",
+         "required": [
+          "read_at",
+          "stale",
+          "error"
+         ],
+         "additionalProperties": false,
+         "properties": {
+          "read_at": {
+           "type": [
+            "string",
+            "null"
+           ]
+          },
+          "stale": {
+           "type": "boolean"
+          },
+          "error": {
+           "type": [
+            "string",
+            "null"
+           ]
+          }
+         }
+        }
+       }
+      },
+      {
+       "type": "object",
+       "required": [
+        "error",
+        "message",
+        "source"
+       ],
+       "additionalProperties": false,
+       "properties": {
+        "error": {
+         "type": "string"
+        },
+        "message": {
+         "type": "string"
+        },
+        "source": {
+         "enum": [
+          "graph",
+          "service",
+          "adapter"
+         ]
+        },
+        "status": {
+         "type": "integer"
+        }
+       }
+      }
+     ],
+     "$defs": {
+      "submission": {
+       "type": "object",
+       "required": [
+        "id",
+        "kind",
+        "node_id",
+        "target_id",
+        "pr_number",
+        "pr_url",
+        "pseudonym",
+        "precheck_job_id",
+        "created",
+        "closed",
+        "artifact_type",
+        "queue",
+        "automation"
+       ],
+       "additionalProperties": false,
+       "properties": {
+        "id": {
+         "type": "string"
+        },
+        "kind": {
+         "type": "string"
+        },
+        "node_id": {
+         "type": [
+          "string",
+          "null"
+         ]
+        },
+        "target_id": {
+         "type": "string"
+        },
+        "pr_number": {
+         "type": "integer"
+        },
+        "pr_url": {
+         "type": "string"
+        },
+        "pseudonym": {
+         "type": "string"
+        },
+        "precheck_job_id": {
+         "type": [
+          "string",
+          "null"
+         ]
+        },
+        "created": {
+         "type": "string"
+        },
+        "closed": {
+         "type": [
+          "string",
+          "null"
+         ]
+        },
+        "artifact_type": {
+         "type": [
+          "string",
+          "null"
+         ]
+        },
+        "queue": {
+         "type": "object",
+         "required": [
+          "position",
+          "of",
+          "waiting_on",
+          "waiting_on_read_at"
+         ],
+         "additionalProperties": false,
+         "properties": {
+          "position": {
+           "type": [
+            "integer",
+            "null"
+           ]
+          },
+          "of": {
+           "type": [
+            "integer",
+            "null"
+           ]
+          },
+          "waiting_on": {
+           "type": [
+            "string",
+            "null"
+           ]
+          },
+          "waiting_on_read_at": {
+           "type": [
+            "string",
+            "null"
+           ]
+          }
+         }
+        },
+        "automation": {
+         "type": [
+          "object",
+          "null"
+         ]
+        }
+       }
+      },
+      "finished": {
+       "type": "object",
+       "required": [
+        "id",
+        "kind",
+        "node_id",
+        "target_id",
+        "pr_number",
+        "pr_url",
+        "pseudonym",
+        "precheck_job_id",
+        "created",
+        "closed",
+        "artifact_type",
+        "state"
+       ],
+       "additionalProperties": false,
+       "properties": {
+        "id": {
+         "type": "string"
+        },
+        "kind": {
+         "type": "string"
+        },
+        "node_id": {
+         "type": [
+          "string",
+          "null"
+         ]
+        },
+        "target_id": {
+         "type": "string"
+        },
+        "pr_number": {
+         "type": "integer"
+        },
+        "pr_url": {
+         "type": "string"
+        },
+        "pseudonym": {
+         "type": "string"
+        },
+        "precheck_job_id": {
+         "type": [
+          "string",
+          "null"
+         ]
+        },
+        "created": {
+         "type": "string"
+        },
+        "closed": {
+         "type": "string"
+        },
+        "artifact_type": {
+         "type": [
+          "string",
+          "null"
+         ]
+        },
+        "state": {
+         "type": [
+          "string",
+          "null"
+         ]
+        }
+       }
+      }
+     }
+    },
+    "annotations": {
+     "readOnlyHint": true,
+     "destructiveHint": false,
+     "idempotentHint": true
+    }
+   },
+   {
+    "name": "get_check",
+    "title": "Read a fast check",
+    "description": "Your own record of one check_lean call, by the `log_id` it returned: target, node, mode, environment, the content's hash and size (never the text), the outcome, `okay`, the error count and the lint codes. Only the identity that made the call can read it; anyone else's answers not-found. Plain path: GET /checks/{check_id}. Plain path: GET /checks/<id>.",
+    "inputSchema": {
+     "type": "object",
+     "properties": {
+      "check_id": {
+       "type": "string",
+       "description": "The check's id, as check_lean returned it."
+      }
+     },
+     "required": [
+      "check_id"
+     ],
+     "additionalProperties": false
+    },
+    "outputSchema": {
+     "$schema": "https://json-schema.org/draft/2020-12/schema",
+     "$id": "https://openproof.network/schemas/mcp/get_check/v1.json",
+     "oneOf": [
+      {
+       "type": "object",
+       "required": [
+        "id",
+        "created",
+        "caller_kind",
+        "caller",
+        "target_id",
+        "node_id",
+        "mode",
+        "environment",
+        "content_sha256",
+        "content_bytes",
+        "outcome",
+        "okay",
+        "error_count",
+        "lint",
+        "axle_request_id",
+        "upstream_status",
+        "latency_ms"
+       ],
+       "additionalProperties": false,
+       "properties": {
+        "id": {
+         "type": "string"
+        },
+        "created": {
+         "type": "string"
+        },
+        "caller_kind": {
+         "type": "string"
+        },
+        "caller": {
+         "type": "string"
+        },
+        "target_id": {
+         "type": "string"
+        },
+        "node_id": {
+         "type": [
+          "string",
+          "null"
+         ]
+        },
+        "mode": {
+         "type": "string"
+        },
+        "environment": {
+         "type": [
+          "string",
+          "null"
+         ]
+        },
+        "content_sha256": {
+         "type": "string"
+        },
+        "content_bytes": {
+         "type": "integer"
+        },
+        "outcome": {
+         "type": "string"
+        },
+        "okay": {
+         "type": [
+          "boolean",
+          "null"
+         ]
+        },
+        "error_count": {
+         "type": [
+          "integer",
+          "null"
+         ]
+        },
+        "lint": {
+         "type": "array",
+         "items": {
+          "type": "string"
+         }
+        },
+        "axle_request_id": {
+         "type": [
+          "string",
+          "null"
+         ]
+        },
+        "upstream_status": {
+         "type": [
+          "integer",
+          "null"
+         ]
+        },
+        "latency_ms": {
+         "type": "integer"
+        }
+       }
+      },
+      {
+       "type": "object",
+       "required": [
+        "error",
+        "message",
+        "source"
+       ],
+       "additionalProperties": false,
+       "properties": {
+        "error": {
+         "type": "string"
+        },
+        "message": {
+         "type": "string"
+        },
+        "source": {
+         "enum": [
+          "graph",
+          "service",
+          "adapter"
+         ]
+        },
+        "status": {
+         "type": "integer"
+        }
+       }
+      }
+     ]
+    },
+    "annotations": {
+     "readOnlyHint": true,
+     "destructiveHint": false,
+     "idempotentHint": true
+    }
+   },
+   {
+    "name": "list_error_codes",
+    "title": "List error codes",
+    "description": "Every error code the gate and the service emit: where it is met (gate, api or both), the D-4 step that emits it, what it means and what to do about it. `prefix` keeps the codes that start with it (`witness-`, `relation-`). Look a refusal's `error` or a verdict's diagnostic `code` up here. Plain path: GET /errors.json. Plain path: GET /errors.json.",
+    "inputSchema": {
+     "type": "object",
+     "properties": {
+      "prefix": {
+       "type": "string",
+       "pattern": "^[a-z0-9_-]{0,64}$",
+       "description": "Only the codes that start with this."
+      }
+     },
+     "required": [],
+     "additionalProperties": false
+    },
+    "outputSchema": {
+     "$schema": "https://json-schema.org/draft/2020-12/schema",
+     "$id": "https://openproof.network/schemas/mcp/list_error_codes/v1.json",
+     "oneOf": [
+      {
+       "type": "object",
+       "required": [
+        "count",
+        "codes"
+       ],
+       "properties": {
+        "about": {
+         "type": "string"
+        },
+        "prefix": {
+         "type": [
+          "string",
+          "null"
+         ]
+        },
+        "count": {
+         "type": "integer",
+         "minimum": 0
+        },
+        "codes": {
+         "type": "array",
+         "items": {
+          "type": "object",
+          "required": [
+           "code",
+           "source",
+           "step",
+           "meaning",
+           "remedy"
+          ],
+          "properties": {
+           "code": {
+            "type": "string"
+           },
+           "source": {
+            "enum": [
+             "gate",
+             "api",
+             "both"
+            ]
+           },
+           "step": {
+            "type": [
+             "integer",
+             "null"
+            ]
+           },
+           "meaning": {
+            "type": "string"
+           },
+           "remedy": {
+            "type": "string"
+           }
+          }
+         }
+        }
+       }
+      },
+      {
+       "type": "object",
+       "required": [
+        "error",
+        "message",
+        "source"
+       ],
+       "additionalProperties": false,
+       "properties": {
+        "error": {
+         "type": "string"
+        },
+        "message": {
+         "type": "string"
+        },
+        "source": {
+         "enum": [
+          "graph",
+          "service",
+          "adapter"
+         ]
+        },
+        "status": {
+         "type": "integer"
+        }
+       }
+      }
+     ]
+    },
+    "annotations": {
+     "readOnlyHint": true,
+     "destructiveHint": false,
+     "idempotentHint": true
+    }
+   },
+   {
+    "name": "list_words_needed",
+    "title": "List files needing words",
+    "description": "Every Lean file and merged proof that still lacks words (a gloss for a statement, witness, relation or definition; an explainer for a proof, alternate or partial), with its target, file, kind, node, the reason none covers it and, for a proof, the path of its outline, `in_review` (the open pull request already writing it, {pr_number, author}, or null) and `node_status` (superseded nodes come last: skip them). `target_id` keeps one target; `kind` keeps one kind. Read from each target's glosses.json and target.yaml at main's head; in the record's order, ranked by nothing. A target whose files could not be read is named under `unread`. Plain path: targets/<id>/glosses.json and targets/<id>/target.yaml. Plain path: targets/<id>/glosses.json and targets/<id>/target.yaml at main's head.",
+    "inputSchema": {
+     "type": "object",
+     "properties": {
+      "target_id": {
+       "type": "string",
+       "pattern": "^[a-z0-9][a-z0-9-]*$",
+       "description": "Only this target's files."
+      },
+      "kind": {
+       "type": "string",
+       "description": "Only this kind: statement, witness, relation, definition, proof, alternate or partial."
+      }
+     },
+     "required": [],
+     "additionalProperties": false
+    },
+    "outputSchema": {
+     "$schema": "https://json-schema.org/draft/2020-12/schema",
+     "$id": "https://openproof.network/schemas/mcp/list_words_needed/v1.json",
+     "oneOf": [
+      {
+       "type": "object",
+       "additionalProperties": false,
+       "required": [
+        "read_at",
+        "target_id",
+        "kind",
+        "count",
+        "subjects",
+        "unread"
+       ],
+       "properties": {
+        "read_at": {
+         "type": "string"
+        },
+        "target_id": {
+         "type": [
+          "string",
+          "null"
+         ]
+        },
+        "kind": {
+         "type": [
+          "string",
+          "null"
+         ]
+        },
+        "count": {
+         "type": "integer",
+         "minimum": 0
+        },
+        "subjects": {
+         "type": "array",
+         "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+           "target",
+           "file",
+           "kind",
+           "node",
+           "module",
+           "reason",
+           "outline",
+           "lean_hash",
+           "in_review",
+           "node_status"
+          ],
+          "properties": {
+           "target": {
+            "type": "string"
+           },
+           "file": {
+            "type": "string"
+           },
+           "kind": {
+            "enum": [
+             "statement",
+             "witness",
+             "relation",
+             "definition",
+             "proof",
+             "alternate",
+             "partial"
+            ]
+           },
+           "node": {
+            "type": [
+             "string",
+             "null"
+            ]
+           },
+           "module": {
+            "type": [
+             "string",
+             "null"
+            ]
+           },
+           "reason": {
+            "enum": [
+             "no-gloss",
+             "describes-earlier-text",
+             "all-withdrawn",
+             "no-explainer",
+             "root-without-informal"
+            ]
+           },
+           "lean_hash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+           },
+           "outline": {
+            "type": [
+             "string",
+             "null"
+            ]
+           },
+           "in_review": {
+            "oneOf": [
+             {
+              "type": "null"
+             },
+             {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+               "pr_number",
+               "author"
+              ],
+              "properties": {
+               "pr_number": {
+                "type": "integer"
+               },
+               "author": {
+                "type": "string"
+               }
+              }
+             }
+            ]
+           },
+           "node_status": {
+            "type": [
+             "string",
+             "null"
+            ]
+           }
+          }
+         }
+        },
+        "unread": {
+         "type": "array",
+         "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+           "target",
+           "path",
+           "error",
+           "message"
+          ],
+          "properties": {
+           "target": {
+            "type": "string"
+           },
+           "path": {
+            "type": "string"
+           },
+           "error": {
+            "type": "string"
+           },
+           "message": {
+            "type": "string"
+           }
+          }
+         }
+        }
+       }
+      },
+      {
+       "type": "object",
+       "required": [
+        "error",
+        "message",
+        "source"
+       ],
+       "additionalProperties": false,
+       "properties": {
+        "error": {
+         "type": "string"
+        },
+        "message": {
+         "type": "string"
+        },
+        "source": {
+         "enum": [
+          "graph",
+          "service",
+          "adapter"
+         ]
+        },
+        "status": {
+         "type": "integer"
+        }
+       }
+      }
+     ]
+    },
+    "annotations": {
+     "readOnlyHint": true,
+     "destructiveHint": false,
+     "idempotentHint": true
+    }
+   },
+   {
+    "name": "list_registrations",
+    "title": "List registry registrations",
+    "description": "Every registration of a target in a public registry (Palomar), as the products derive it from the target's registration records: registry, registry_id, version, status (submitted, registered, revision_required, rejected) and url, with the target_id, in the index's order and ranked by nothing. `target_id` keeps one target (not-found when the index has no such target). Read from targets/index.json at main's head; an index rendered before the field existed lists none. Plain path: targets/index.json. Plain path: every registration of a target in a public registry: registry, id, version, status, url, derived from the target's registration records (D-3 v3.37); nothing is ranked.",
+    "inputSchema": {
+     "type": "object",
+     "properties": {
+      "target_id": {
+       "type": "string",
+       "pattern": "^[a-z0-9][a-z0-9-]*$",
+       "description": "Only this target's registrations."
+      }
+     },
+     "required": [],
+     "additionalProperties": false
+    },
+    "outputSchema": {
+     "$schema": "https://json-schema.org/draft/2020-12/schema",
+     "$id": "https://openproof.network/schemas/mcp/list_registrations/v1.json",
+     "oneOf": [
+      {
+       "type": "object",
+       "additionalProperties": false,
+       "required": [
+        "read_at",
+        "target_id",
+        "count",
+        "registrations"
+       ],
+       "properties": {
+        "read_at": {
+         "type": "string"
+        },
+        "target_id": {
+         "type": [
+          "string",
+          "null"
+         ]
+        },
+        "count": {
+         "type": "integer",
+         "minimum": 0
+        },
+        "registrations": {
+         "type": "array",
+         "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+           "target_id",
+           "registry",
+           "registry_id",
+           "version",
+           "status",
+           "url"
+          ],
+          "properties": {
+           "target_id": {
+            "type": "string"
+           },
+           "registry": {
+            "type": "string"
+           },
+           "registry_id": {
+            "type": [
+             "string",
+             "null"
+            ]
+           },
+           "version": {
+            "type": [
+             "integer",
+             "null"
+            ]
+           },
+           "status": {
+            "enum": [
+             "submitted",
+             "registered",
+             "revision_required",
+             "rejected"
+            ]
+           },
+           "url": {
+            "type": [
+             "string",
+             "null"
+            ]
+           }
+          }
+         }
+        }
+       }
+      },
+      {
+       "type": "object",
+       "required": [
+        "error",
+        "message",
+        "source"
+       ],
+       "additionalProperties": false,
+       "properties": {
+        "error": {
+         "type": "string"
+        },
+        "message": {
+         "type": "string"
+        },
+        "source": {
+         "enum": [
+          "graph",
+          "service",
+          "adapter"
+         ]
+        },
+        "status": {
+         "type": "integer"
+        }
+       }
+      }
+     ]
+    },
+    "annotations": {
+     "readOnlyHint": true,
+     "destructiveHint": false,
+     "idempotentHint": true
+    }
+   },
+   {
+    "name": "get_review",
+    "title": "Read a formalization review",
+    "description": "A target's formalization review as the record holds it: the words, cases and concepts, the candidates (author, method, models, origin, the read_others claim), tests, questions (each `waiting` or not), answers, pairs and open directions, exhibits, signatures, and the derived `state`. The blind rule (D-9 v3.39): with no token, or one whose identity authored no candidate on the record, every candidate's `lean` is null with `lean_withheld: blind`; once your candidate is merged, every Lean is shown. 404 review-unknown for a target with no review. Read at main's head. Plain path: a target's formalization review as the record holds it: the words and cases, the candidates with their authors, origins and stage-3 results, the pairs and clusters, the questions with their answers and the tests they became, the mutants caught, the signatures and the derived state; to a caller with no candidate of their own on the record, no other candidate's Lean (the blind rule, D-9 v3.39).",
+    "inputSchema": {
+     "type": "object",
+     "properties": {
+      "target_id": {
+       "type": "string",
+       "pattern": "^[a-z0-9][a-z0-9-]*$",
+       "description": "A target's id, as list_targets names it."
+      }
+     },
+     "required": [
+      "target_id"
+     ],
+     "additionalProperties": false
+    },
+    "outputSchema": {
+     "$schema": "https://json-schema.org/draft/2020-12/schema",
+     "$id": "https://openproof.network/schemas/mcp/get_review/v1.json",
+     "oneOf": [
+      {
+       "type": "object",
+       "additionalProperties": false,
+       "required": [
+        "target_id",
+        "read_at",
+        "caller",
+        "blind",
+        "review",
+        "state",
+        "candidates",
+        "tests",
+        "questions",
+        "answers",
+        "pairs",
+        "open_pairs",
+        "exhibits",
+        "signatures",
+        "untrusted_note"
+       ],
+       "properties": {
+        "target_id": {
+         "type": "string"
+        },
+        "read_at": {
+         "type": "string"
+        },
+        "caller": {
+         "type": [
+          "string",
+          "null"
+         ]
+        },
+        "blind": {
+         "type": "boolean"
+        },
+        "review": {
+         "type": "object",
+         "required": [
+          "schema",
+          "target",
+          "opened_by",
+          "words",
+          "cases",
+          "concepts"
+         ],
+         "properties": {
+          "schema": {
+           "const": "review/v1"
+          },
+          "target": {
+           "type": "string"
+          },
+          "opened_by": {
+           "type": "object"
+          },
+          "words": {
+           "type": "string"
+          },
+          "cases": {
+           "type": "array"
+          },
+          "concepts": {
+           "type": "array",
+           "items": {
+            "type": "string"
+           }
+          }
+         }
+        },
+        "state": {
+         "type": "object",
+         "required": [
+          "state",
+          "candidates",
+          "surviving",
+          "questions_waiting",
+          "open_pairs",
+          "signers"
+         ],
+         "properties": {
+          "state": {
+           "type": "string"
+          },
+          "candidates": {
+           "type": "integer"
+          },
+          "surviving": {
+           "type": "integer"
+          },
+          "questions_waiting": {
+           "type": "integer"
+          },
+          "open_pairs": {
+           "type": "integer"
+          },
+          "signers": {
+           "type": "object"
+          }
+         }
+        },
+        "candidates": {
+         "type": "array",
+         "items": {
+          "type": "object",
+          "required": [
+           "id",
+           "author",
+           "method",
+           "models",
+           "read_others",
+           "origin",
+           "lean",
+           "lean_withheld"
+          ],
+          "properties": {
+           "id": {
+            "type": "string"
+           },
+           "author": {
+            "type": "string"
+           },
+           "method": {
+            "type": "string"
+           },
+           "models": {
+            "type": "array",
+            "items": {
+             "type": "string"
+            }
+           },
+           "read_others": {
+            "type": [
+             "boolean",
+             "null"
+            ]
+           },
+           "origin": {
+            "enum": [
+             "submitted",
+             "ported",
+             "wrapper"
+            ]
+           },
+           "lean": {
+            "type": [
+             "string",
+             "null"
+            ]
+           },
+           "lean_withheld": {
+            "enum": [
+             "blind",
+             null
+            ]
+           }
+          }
+         }
+        },
+        "tests": {
+         "type": "array",
+         "items": {
+          "type": "object"
+         }
+        },
+        "questions": {
+         "type": "array",
+         "items": {
+          "type": "object",
+          "required": [
+           "id",
+           "question",
+           "waiting"
+          ],
+          "properties": {
+           "id": {
+            "type": "string"
+           },
+           "question": {
+            "type": "string"
+           },
+           "waiting": {
+            "type": "boolean"
+           }
+          }
+         }
+        },
+        "answers": {
+         "type": "array",
+         "items": {
+          "type": "object"
+         }
+        },
+        "pairs": {
+         "type": "array",
+         "items": {
+          "type": "object"
+         }
+        },
+        "open_pairs": {
+         "type": "array",
+         "items": {
+          "type": "object",
+          "required": [
+           "a",
+           "b",
+           "direction"
+          ],
+          "properties": {
+           "a": {
+            "type": "string"
+           },
+           "b": {
+            "type": "string"
+           },
+           "direction": {
+            "enum": [
+             "forward",
+             "backward"
+            ]
+           }
+          }
+         }
+        },
+        "exhibits": {
+         "type": "array",
+         "items": {
+          "type": "object"
+         }
+        },
+        "signatures": {
+         "type": "array",
+         "items": {
+          "type": "object"
+         }
+        },
+        "untrusted_note": {
+         "type": "string"
+        }
+       }
+      },
+      {
+       "type": "object",
+       "required": [
+        "error",
+        "message",
+        "source"
+       ],
+       "additionalProperties": false,
+       "properties": {
+        "error": {
+         "type": "string"
+        },
+        "message": {
+         "type": "string"
+        },
+        "source": {
+         "enum": [
+          "graph",
+          "service",
+          "adapter"
+         ]
+        },
+        "status": {
+         "type": "integer"
+        }
+       }
+      }
+     ]
+    },
+    "annotations": {
+     "readOnlyHint": true,
+     "destructiveHint": false,
+     "idempotentHint": true
+    }
+   },
+   {
+    "name": "list_review_questions",
+    "title": "List review questions waiting",
+    "description": "The questions waiting on a review — those no answer record names — each in words with its id, what raised it (`raised_by`: a disagreement, concept, mutant, shape or a signer's send-back, with the record), who is asked (`asked_to`: intent) and its target_id; in the records' order, ranked by nothing. `target_id` keeps one target (not-found when the index has no such target); without it, every target's. Read from targets/<id>/review/questions/ and answers/ at main's head. Plain path: targets/<id>/review/questions/. Plain path: the questions waiting on a review, each in words with the case or probe that raised it and who is asked; nothing is ranked.",
+    "inputSchema": {
+     "type": "object",
+     "properties": {
+      "target_id": {
+       "type": "string",
+       "pattern": "^[a-z0-9][a-z0-9-]*$",
+       "description": "Only this target's questions."
+      }
+     },
+     "required": [],
+     "additionalProperties": false
+    },
+    "outputSchema": {
+     "$schema": "https://json-schema.org/draft/2020-12/schema",
+     "$id": "https://openproof.network/schemas/mcp/list_review_questions/v1.json",
+     "oneOf": [
+      {
+       "type": "object",
+       "additionalProperties": false,
+       "required": [
+        "read_at",
+        "target_id",
+        "count",
+        "questions",
+        "untrusted_note"
+       ],
+       "properties": {
+        "read_at": {
+         "type": "string"
+        },
+        "target_id": {
+         "type": [
+          "string",
+          "null"
+         ]
+        },
+        "count": {
+         "type": "integer",
+         "minimum": 0
+        },
+        "questions": {
+         "type": "array",
+         "items": {
+          "type": "object",
+          "required": [
+           "target_id",
+           "id",
+           "question",
+           "raised_by",
+           "asked_to"
+          ],
+          "properties": {
+           "target_id": {
+            "type": "string"
+           },
+           "schema": {
+            "type": "string"
+           },
+           "target": {
+            "type": "string"
+           },
+           "id": {
+            "type": "string"
+           },
+           "question": {
+            "type": "string"
+           },
+           "raised_by": {
+            "type": "object",
+            "required": [
+             "kind",
+             "ref"
+            ],
+            "properties": {
+             "kind": {
+              "enum": [
+               "disagreement",
+               "concept",
+               "mutant",
+               "shape",
+               "signer"
+              ]
+             },
+             "ref": {
+              "type": "string"
+             }
+            }
+           },
+           "asked_to": {
+            "enum": [
+             "intent"
+            ]
+           },
+           "date": {
+            "type": "string"
+           }
+          }
+         }
+        },
+        "untrusted_note": {
+         "type": "string"
+        }
+       }
+      },
+      {
+       "type": "object",
+       "required": [
+        "error",
+        "message",
+        "source"
+       ],
+       "additionalProperties": false,
+       "properties": {
+        "error": {
+         "type": "string"
+        },
+        "message": {
+         "type": "string"
+        },
+        "source": {
+         "enum": [
+          "graph",
+          "service",
+          "adapter"
+         ]
+        },
+        "status": {
+         "type": "integer"
+        }
+       }
+      }
+     ]
+    },
+    "annotations": {
+     "readOnlyHint": true,
+     "destructiveHint": false,
+     "idempotentHint": true
+    }
+   },
+   {
+    "name": "list_open_pairs",
+    "title": "List open pair directions",
+    "description": "The pair directions a review leaves open: each with its two candidates `a` and `b`, the `direction` (forward: a implies b; backward: b implies a), the last `attempt` recorded (who, tool, budget_s) or null, its target_id, and `submit_as: pair-proof` — a proof or refutation of one goes through submit_proof with artifact_type pair-proof and is credited (F26-R8). In the records' order, ranked by nothing; not a frontier entry. `target_id` keeps one target. Read from targets/<id>/review/pairs/ at main's head. Plain path: targets/<id>/review/pairs/. Plain path: the pair directions a review leaves open, each with the two candidates and the attempts recorded; a proof or refutation of one is submitted as a pair-proof artifact through submit_proof.",
+    "inputSchema": {
+     "type": "object",
+     "properties": {
+      "target_id": {
+       "type": "string",
+       "pattern": "^[a-z0-9][a-z0-9-]*$",
+       "description": "Only this target's open pairs."
+      }
+     },
+     "required": [],
+     "additionalProperties": false
+    },
+    "outputSchema": {
+     "$schema": "https://json-schema.org/draft/2020-12/schema",
+     "$id": "https://openproof.network/schemas/mcp/list_open_pairs/v1.json",
+     "oneOf": [
+      {
+       "type": "object",
+       "additionalProperties": false,
+       "required": [
+        "read_at",
+        "target_id",
+        "count",
+        "pairs"
+       ],
+       "properties": {
+        "read_at": {
+         "type": "string"
+        },
+        "target_id": {
+         "type": [
+          "string",
+          "null"
+         ]
+        },
+        "count": {
+         "type": "integer",
+         "minimum": 0
+        },
+        "pairs": {
+         "type": "array",
+         "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+           "target_id",
+           "a",
+           "b",
+           "direction",
+           "attempt",
+           "submit_as"
+          ],
+          "properties": {
+           "target_id": {
+            "type": "string"
+           },
+           "a": {
+            "type": "string"
+           },
+           "b": {
+            "type": "string"
+           },
+           "direction": {
+            "enum": [
+             "forward",
+             "backward"
+            ]
+           },
+           "attempt": {
+            "type": [
+             "object",
+             "null"
+            ],
+            "properties": {
+             "who": {
+              "type": "string"
+             },
+             "tool": {
+              "type": "string"
+             },
+             "budget_s": {
+              "type": "integer"
+             }
+            }
+           },
+           "submit_as": {
+            "enum": [
+             "pair-proof"
+            ]
+           }
+          }
+         }
+        }
+       }
+      },
+      {
+       "type": "object",
+       "required": [
+        "error",
+        "message",
+        "source"
+       ],
+       "additionalProperties": false,
+       "properties": {
+        "error": {
+         "type": "string"
+        },
+        "message": {
+         "type": "string"
+        },
+        "source": {
+         "enum": [
+          "graph",
+          "service",
+          "adapter"
+         ]
+        },
+        "status": {
+         "type": "integer"
+        }
+       }
+      }
+     ]
+    },
+    "annotations": {
+     "readOnlyHint": true,
+     "destructiveHint": false,
+     "idempotentHint": true
+    }
+   },
+   {
+    "name": "list_sufficient_sets",
+    "title": "List routes and sufficient sets",
+    "description": "A target as an AND-OR graph (D-25 v3.40). `routes`: each merged decomposition (id `<node>@<k>`), all of whose holes are needed, with each hole's status, attempts and refuted route classes and a `summary` (holes, proved, open, dead, attempts, unattempted, `oldest_open_since`), so a stalled route shows. `sets`: statements whose proofs, with the closing proofs of their `assemblies`, would close the root; each with `open`, `proved`, `routes`, `total`, `closed`, `remaining`, `shared`. `cut: finest` (default) expands every node with a live route; `cut: any` adds the coarser cuts up to a cap (`truncated`). Record order, never ranked. Whether to claim a hole or propose a route (propose_variant, propose_speculative_node) is the operator's choice. Plain path: targets/<id>/graph.json + GET /frontier.json. Plain path: targets/<id>/graph.json + frontier.json.",
+    "inputSchema": {
+     "type": "object",
+     "properties": {
+      "target_id": {
+       "type": "string",
+       "pattern": "^[a-z0-9][a-z0-9-]*$",
+       "description": "A target's id, as list_targets names it."
+      },
+      "cut": {
+       "type": "string",
+       "enum": [
+        "finest",
+        "any"
+       ],
+       "description": "finest (default): every node with a live route expanded; any: the coarser cuts too."
+      }
+     },
+     "required": [
+      "target_id"
+     ],
+     "additionalProperties": false
+    },
+    "outputSchema": {
+     "$schema": "https://json-schema.org/draft/2020-12/schema",
+     "$id": "https://openproof.network/schemas/mcp/list_sufficient_sets/v1.json",
+     "oneOf": [
+      {
+       "type": "object",
+       "additionalProperties": false,
+       "required": [
+        "read_at",
+        "target_id",
+        "root",
+        "cut",
+        "truncated",
+        "routes",
+        "sets",
+        "closable"
+       ],
+       "properties": {
+        "read_at": {
+         "type": "string"
+        },
+        "target_id": {
+         "type": "string"
+        },
+        "root": {
+         "type": "string"
+        },
+        "cut": {
+         "enum": [
+          "finest",
+          "any"
+         ]
+        },
+        "truncated": {
+         "type": "boolean"
+        },
+        "routes": {
+         "type": "array",
+         "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+           "id",
+           "node",
+           "partial",
+           "resolved",
+           "live",
+           "holes",
+           "summary"
+          ],
+          "properties": {
+           "id": {
+            "type": "string"
+           },
+           "node": {
+            "type": "string"
+           },
+           "partial": {
+            "type": "string"
+           },
+           "resolved": {
+            "type": "boolean"
+           },
+           "live": {
+            "type": "boolean"
+           },
+           "holes": {
+            "type": "array",
+            "items": {
+             "type": "object",
+             "additionalProperties": false,
+             "required": [
+              "name",
+              "node",
+              "status",
+              "attempts",
+              "refuted_route_classes",
+              "ready_since",
+              "routes"
+             ],
+             "properties": {
+              "name": {
+               "type": "string"
+              },
+              "node": {
+               "type": [
+                "string",
+                "null"
+               ]
+              },
+              "status": {
+               "type": [
+                "string",
+                "null"
+               ]
+              },
+              "attempts": {
+               "type": [
+                "integer",
+                "null"
+               ],
+               "minimum": 0
+              },
+              "refuted_route_classes": {
+               "type": "array",
+               "items": {
+                "type": "string"
+               }
+              },
+              "ready_since": {
+               "type": [
+                "string",
+                "null"
+               ]
+              },
+              "routes": {
+               "type": "integer",
+               "minimum": 0
+              }
+             }
+            }
+           },
+           "summary": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+             "holes",
+             "proved",
+             "open",
+             "dead",
+             "unresolved",
+             "attempts",
+             "unattempted",
+             "refuted_route_classes",
+             "oldest_open_since"
+            ],
+            "properties": {
+             "holes": {
+              "type": "integer",
+              "minimum": 0
+             },
+             "proved": {
+              "type": "integer",
+              "minimum": 0
+             },
+             "open": {
+              "type": "integer",
+              "minimum": 0
+             },
+             "dead": {
+              "type": "integer",
+              "minimum": 0
+             },
+             "unresolved": {
+              "type": "integer",
+              "minimum": 0
+             },
+             "attempts": {
+              "type": "integer",
+              "minimum": 0
+             },
+             "unattempted": {
+              "type": "integer",
+              "minimum": 0
+             },
+             "refuted_route_classes": {
+              "type": "array",
+              "items": {
+               "type": "string"
+              }
+             },
+             "oldest_open_since": {
+              "type": [
+               "string",
+               "null"
+              ]
+             }
+            }
+           }
+          }
+         }
+        },
+        "sets": {
+         "type": "array",
+         "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+           "id",
+           "statements",
+           "proved",
+           "open",
+           "assemblies",
+           "routes",
+           "variant",
+           "total",
+           "closed",
+           "remaining",
+           "shared",
+           "circular"
+          ],
+          "properties": {
+           "id": {
+            "type": "string"
+           },
+           "statements": {
+            "type": "array",
+            "items": {
+             "type": "string"
+            }
+           },
+           "proved": {
+            "type": "array",
+            "items": {
+             "type": "string"
+            }
+           },
+           "open": {
+            "type": "array",
+            "items": {
+             "type": "string"
+            }
+           },
+           "assemblies": {
+            "type": "array",
+            "items": {
+             "type": "string"
+            }
+           },
+           "routes": {
+            "type": "array",
+            "items": {
+             "type": "string"
+            }
+           },
+           "variant": {
+            "type": [
+             "string",
+             "null"
+            ]
+           },
+           "total": {
+            "type": "integer",
+            "minimum": 0
+           },
+           "closed": {
+            "type": "integer",
+            "minimum": 0
+           },
+           "remaining": {
+            "type": "integer",
+            "minimum": 0
+           },
+           "shared": {
+            "type": "integer",
+            "minimum": 0
+           },
+           "circular": {
+            "type": "array",
+            "items": {
+             "type": "string"
+            }
+           }
+          }
+         }
+        },
+        "closable": {
+         "type": "array",
+         "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+           "node",
+           "link",
+           "ready"
+          ],
+          "properties": {
+           "node": {
+            "type": "string"
+           },
+           "ready": {
+            "type": "boolean"
+           },
+           "link": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+             "kind",
+             "id",
+             "inputs"
+            ],
+            "properties": {
+             "kind": {
+              "enum": [
+               "route",
+               "claim",
+               "variant"
+              ]
+             },
+             "id": {
+              "type": "string"
+             },
+             "inputs": {
+              "type": "array",
+              "items": {
+               "type": "string"
+              }
+             }
+            }
+           }
+          }
+         }
+        }
+       }
+      },
+      {
+       "type": "object",
+       "required": [
+        "error",
+        "message",
+        "source"
+       ],
+       "additionalProperties": false,
+       "properties": {
+        "error": {
+         "type": "string"
+        },
+        "message": {
+         "type": "string"
+        },
+        "source": {
+         "enum": [
+          "graph",
+          "service",
+          "adapter"
+         ]
+        },
+        "status": {
+         "type": "integer"
+        }
+       }
+      }
+     ]
+    },
+    "annotations": {
+     "readOnlyHint": true,
+     "destructiveHint": false,
+     "idempotentHint": true
+    }
+   },
+   {
+    "name": "claim_node",
+    "title": "Claim a node",
+    "description": "Register an advisory, non-exclusive claim on a frontier node; returns the receipt. `ttl` is in hours, within the published flat caps; undeclared means the minimum. Claiming a node you already hold returns that same claim (status 200, same id, TTL unchanged); after release or expiry a new claim gets a new id. The receipt's `others` lists who else holds the node (pseudonym, expires), and its `open_submissions` the pull requests already open on the node (pr_number, pr_url, kind, pseudonym, created), claimed or not: read both before starting, since racing is allowed and a claim reserves nothing. list_my_claims finds your claim ids again. Plain path: POST /claims.",
+    "inputSchema": {
+     "type": "object",
+     "properties": {
+      "node_id": {
+       "type": "string",
+       "pattern": "^[a-z0-9][a-z0-9-]*$",
+       "description": "A node's id, as list_frontier and get_target name it."
+      },
+      "ttl": {
+       "type": "integer",
+       "minimum": 1,
+       "description": "Hours to hold the claim, within the published caps; the minimum when omitted (D-25)."
+      },
+      "target_id": {
+       "type": "string",
+       "pattern": "^[a-z0-9][a-z0-9-]*$",
+       "description": "The node's target; needed only when the node id is not unique across targets."
+      }
+     },
+     "required": [
+      "node_id"
+     ],
+     "additionalProperties": false
+    },
+    "outputSchema": {
+     "$schema": "https://json-schema.org/draft/2020-12/schema",
+     "$id": "https://openproof.network/schemas/mcp/claim_node/v1.json",
+     "oneOf": [
+      {
+       "type": "object",
+       "required": [
+        "status",
+        "body"
+       ],
+       "properties": {
+        "status": {
+         "type": "integer"
+        },
+        "body": {
+         "type": [
+          "object",
+          "array",
+          "string",
+          "number",
+          "boolean",
+          "null"
+         ]
+        },
+        "retry_after": {
+         "type": "string"
+        }
+       }
+      },
+      {
+       "type": "object",
+       "required": [
+        "error",
+        "message",
+        "source"
+       ],
+       "additionalProperties": false,
+       "properties": {
+        "error": {
+         "type": "string"
+        },
+        "message": {
+         "type": "string"
+        },
+        "source": {
+         "enum": [
+          "graph",
+          "service",
+          "adapter"
+         ]
+        },
+        "status": {
+         "type": "integer"
+        }
+       }
+      }
+     ]
+    },
+    "annotations": {
+     "readOnlyHint": false,
+     "destructiveHint": false,
+     "idempotentHint": false
+    }
+   },
+   {
+    "name": "release_claim",
+    "title": "Release a claim",
+    "description": "Release a claim early; only its holder may. Plain path: DELETE /claims/<id>.",
+    "inputSchema": {
+     "type": "object",
+     "properties": {
+      "claim_id": {
+       "type": "string",
+       "pattern": "^[0-9A-Z]{26}$",
+       "description": "The claim's id, from claim_node's receipt or list_my_claims."
+      }
+     },
+     "required": [
+      "claim_id"
+     ],
+     "additionalProperties": false
+    },
+    "outputSchema": {
+     "$schema": "https://json-schema.org/draft/2020-12/schema",
+     "$id": "https://openproof.network/schemas/mcp/release_claim/v1.json",
+     "oneOf": [
+      {
+       "type": "object",
+       "required": [
+        "status",
+        "body"
+       ],
+       "properties": {
+        "status": {
+         "type": "integer"
+        },
+        "body": {
+         "type": [
+          "object",
+          "array",
+          "string",
+          "number",
+          "boolean",
+          "null"
+         ]
+        },
+        "retry_after": {
+         "type": "string"
+        }
+       }
+      },
+      {
+       "type": "object",
+       "required": [
+        "error",
+        "message",
+        "source"
+       ],
+       "additionalProperties": false,
+       "properties": {
+        "error": {
+         "type": "string"
+        },
+        "message": {
+         "type": "string"
+        },
+        "source": {
+         "enum": [
+          "graph",
+          "service",
+          "adapter"
+         ]
+        },
+        "status": {
+         "type": "integer"
+        }
+       }
+      }
+     ]
+    },
+    "annotations": {
+     "readOnlyHint": false,
+     "destructiveHint": false,
+     "idempotentHint": false
+    }
+   },
+   {
+    "name": "precheck_submission",
+    "title": "Precheck a submission",
+    "description": "Run the gate's steps 1-2 and 4-8 on a bundle server-side, as pregate.sh does, and get a job id to poll with get_precheck; a passing precheck yields the signed attestation submit_proof needs. On the tutorial node no token is needed, and the passing job's {id, nonce} is the proof get_token takes. A node that exists only in an open proposal whose gate is green can be prechecked at the proposal's head (`proposal`). A partial's bundle may carry a hole's witness as attempts/<assembly name without .lean>.<n>.witness, with a line `-- hole: <name>`; the result names it on its hole (`holes[].witness`). A proof may add use lines (`import Defs.<Name>`, `import Nodes.«<id>».Proof`) after the statement's imports; a use the gate would refuse is refused by its use-* code before anything opens. The guide's \"Iterating fast\" says more. Plain path: POST /precheck with the bundle.",
+    "inputSchema": {
+     "type": "object",
+     "properties": {
+      "node_id": {
+       "type": "string",
+       "pattern": "^[a-z0-9][a-z0-9-]*$",
+       "description": "A node's id, as list_frontier and get_target name it."
+      },
+      "bundle": {
+       "type": "object",
+       "description": "graph-relative path -> file content, the node's files being submitted",
+       "additionalProperties": {
+        "type": "string"
+       }
+      },
+      "artifact_type": {
+       "enum": [
+        "proof",
+        "counterexample",
+        "vacuity",
+        "reduction",
+        "partial"
+       ],
+       "description": "optional: the type this bundle will be submitted as; a bundle at the wrong path for it is refused before any job starts"
+      },
+      "automation": {
+       "type": "object",
+       "description": "optional here, required by submit_proof: the same block, validated when offered (400 automation-invalid) and echoed on the job",
+       "additionalProperties": false,
+       "required": [
+        "method",
+        "models",
+        "framework"
+       ],
+       "properties": {
+        "method": {
+         "enum": [
+          "manual",
+          "copilot",
+          "agent",
+          "autonomous",
+          "other"
+         ],
+         "description": "manual: a person wrote it; copilot: a person with model suggestions; agent: an agent under a person's direction; autonomous: unattended; other"
+        },
+        "models": {
+         "type": "array",
+         "minItems": 1,
+         "maxItems": 20,
+         "items": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+         },
+         "description": "every model that contributed, by its provider's published name"
+        },
+        "framework": {
+         "type": "string",
+         "minLength": 1,
+         "maxLength": 200,
+         "description": "the harness the models ran in, with its version where known"
+        },
+        "tool_setup": {
+         "type": "string",
+         "minLength": 1,
+         "maxLength": 2000,
+         "description": "tools, plugins, orchestration, in prose (optional)"
+        },
+        "wall_time": {
+         "type": "string",
+         "minLength": 1,
+         "maxLength": 200,
+         "description": "how long the work took, in your words (optional)"
+        },
+        "tokens": {
+         "type": "object",
+         "additionalProperties": false,
+         "required": [
+          "input",
+          "output"
+         ],
+         "description": "total tokens consumed and produced, when the harness reports them (optional)",
+         "properties": {
+          "input": {
+           "type": "integer",
+           "minimum": 0,
+           "description": "input tokens"
+          },
+          "output": {
+           "type": "integer",
+           "minimum": 0,
+           "description": "output tokens"
+          }
+         }
+        },
+        "hardware": {
+         "type": "string",
+         "minLength": 1,
+         "maxLength": 200,
+         "description": "what it ran on (optional)"
+        },
+        "spend": {
+         "type": "string",
+         "minLength": 1,
+         "maxLength": 200,
+         "description": "what it cost, in your words: subscription, $12.40, unknown (optional)"
+        }
+       }
+      }
+     },
+     "required": [
+      "node_id",
+      "bundle"
+     ],
+     "additionalProperties": false
+    },
+    "outputSchema": {
+     "$schema": "https://json-schema.org/draft/2020-12/schema",
+     "$id": "https://openproof.network/schemas/mcp/precheck_submission/v1.json",
+     "oneOf": [
+      {
+       "type": "object",
+       "required": [
+        "status",
+        "body"
+       ],
+       "properties": {
+        "status": {
+         "type": "integer"
+        },
+        "body": {
+         "type": [
+          "object",
+          "array",
+          "string",
+          "number",
+          "boolean",
+          "null"
+         ]
+        },
+        "retry_after": {
+         "type": "string"
+        },
+        "job_id": {
+         "type": [
+          "string",
+          "null"
+         ]
+        },
+        "poll": {
+         "type": "string"
+        }
+       }
+      },
+      {
+       "type": "object",
+       "required": [
+        "error",
+        "message",
+        "source"
+       ],
+       "additionalProperties": false,
+       "properties": {
+        "error": {
+         "type": "string"
+        },
+        "message": {
+         "type": "string"
+        },
+        "source": {
+         "enum": [
+          "graph",
+          "service",
+          "adapter"
+         ]
+        },
+        "status": {
+         "type": "integer"
+        }
+       }
+      }
+     ]
+    },
+    "annotations": {
+     "readOnlyHint": false,
+     "destructiveHint": false,
+     "idempotentHint": false
+    }
+   },
+   {
+    "name": "check_lean",
+    "title": "Fast-check Lean",
+    "description": "Check Lean text within 20 s on the hosted checker (AXLE) matched to the target's pinned Mathlib: errors, goals, `okay` (null with `user_error` when no verdict) and `lint` where the gate would refuse what the checker accepts. Defs and the node's Context are inlined; `target_id` is derived from the node if omitted. Modes: check (default, and for a proof using a dependency); verify, against the node's statement; witness, with a node_id or a `statement` and `deps`: the `expected` type step 7 holds a witness to and, with content, whether it `matches`. Mode hazards, with a node_id or a `statement`, runs step 6's checkers: send no content (400 content-not-used); a finding META.yaml acknowledges has `acknowledged: true`. Never authoritative. A proof may add use lines (`import Defs.<Name>`, `import Nodes.«<id>».Proof`) after the statement's imports; a use the gate would refuse is refused by its use-* code before anything opens. The guide's \"Iterating fast\" says more. Plain path: POST /check.",
+    "inputSchema": {
+     "type": "object",
+     "properties": {
+      "target_id": {
+       "type": "string",
+       "pattern": "^[a-z0-9][a-z0-9-]*$",
+       "description": "optional with a node_id (derived from the node); required without one"
+      },
+      "node_id": {
+       "type": "string",
+       "pattern": "^[a-z0-9][a-z0-9-]*$",
+       "description": "A node's id, as list_frontier and get_target name it."
+      },
+      "content": {
+       "type": "string",
+       "description": "the text of a Lean file"
+      },
+      "mode": {
+       "enum": [
+        "check",
+        "verify",
+        "witness",
+        "hazards"
+       ],
+       "description": "verify needs node_id; witness and hazards need node_id or statement; hazards takes no content"
+      },
+      "statement": {
+       "type": "string",
+       "description": "modes witness and hazards only, instead of node_id: the text of a statement that is not a node yet (one sorry-bodied theorem)"
+      },
+      "deps": {
+       "type": "array",
+       "items": {
+        "type": "string",
+        "pattern": "^[a-z0-9][a-z0-9-]*$"
+       },
+       "description": "with statement: the node ids its proposal would declare"
+      },
+      "heartbeats": {
+       "type": "boolean",
+       "description": "modes check and verify: also measure each theorem's heartbeats on a copy of the text (a second hosted check, charged as one)"
+      }
+     },
+     "required": [],
+     "additionalProperties": false
+    },
+    "outputSchema": {
+     "$schema": "https://json-schema.org/draft/2020-12/schema",
+     "$id": "https://openproof.network/schemas/mcp/check_lean/v1.json",
+     "oneOf": [
+      {
+       "type": "object",
+       "required": [
+        "status",
+        "body"
+       ],
+       "properties": {
+        "status": {
+         "type": "integer"
+        },
+        "body": {
+         "type": [
+          "object",
+          "array",
+          "string",
+          "number",
+          "boolean",
+          "null"
+         ]
+        },
+        "retry_after": {
+         "type": "string"
+        }
+       }
+      },
+      {
+       "type": "object",
+       "required": [
+        "error",
+        "message",
+        "source"
+       ],
+       "additionalProperties": false,
+       "properties": {
+        "error": {
+         "type": "string"
+        },
+        "message": {
+         "type": "string"
+        },
+        "source": {
+         "enum": [
+          "graph",
+          "service",
+          "adapter"
+         ]
+        },
+        "status": {
+         "type": "integer"
+        }
+       }
+      }
+     ]
+    },
+    "annotations": {
+     "readOnlyHint": false,
+     "destructiveHint": false,
+     "idempotentHint": false
+    }
+   },
+   {
+    "name": "get_token",
+    "title": "Get a write token",
+    "description": "Mint a write token (D-19); no token needed, since this is how an identity starts. `proof` is {kind: tutorial, job_id, nonce} from a passing precheck_submission of the tutorial node made without a token (or a GitHub proof); `pseudonym` is the name your contributions carry; `dco` is {version, accepted: true} with the version GET /dco.json publishes. The token is shown once: send it as `Authorization: Bearer <token>`. Plain path: POST /tokens.",
+    "inputSchema": {
+     "type": "object",
+     "properties": {
+      "proof": {
+       "type": "object",
+       "description": "{kind: tutorial, job_id, nonce}"
+      },
+      "pseudonym": {
+       "type": "string",
+       "description": "The public name your work is credited under (D-19)."
+      },
+      "dco": {
+       "type": "object",
+       "description": "{version, accepted: true}"
+      }
+     },
+     "required": [
+      "proof",
+      "pseudonym",
+      "dco"
+     ],
+     "additionalProperties": false
+    },
+    "outputSchema": {
+     "$schema": "https://json-schema.org/draft/2020-12/schema",
+     "$id": "https://openproof.network/schemas/mcp/get_token/v1.json",
+     "oneOf": [
+      {
+       "type": "object",
+       "required": [
+        "status",
+        "body"
+       ],
+       "properties": {
+        "status": {
+         "type": "integer"
+        },
+        "body": {
+         "type": [
+          "object",
+          "array",
+          "string",
+          "number",
+          "boolean",
+          "null"
+         ]
+        },
+        "retry_after": {
+         "type": "string"
+        }
+       }
+      },
+      {
+       "type": "object",
+       "required": [
+        "error",
+        "message",
+        "source"
+       ],
+       "additionalProperties": false,
+       "properties": {
+        "error": {
+         "type": "string"
+        },
+        "message": {
+         "type": "string"
+        },
+        "source": {
+         "enum": [
+          "graph",
+          "service",
+          "adapter"
+         ]
+        },
+        "status": {
+         "type": "integer"
+        }
+       }
+      }
+     ]
+    },
+    "annotations": {
+     "readOnlyHint": false,
+     "destructiveHint": false,
+     "idempotentHint": false
+    }
+   },
+   {
+    "name": "renew_token",
+    "title": "Renew a write token",
+    "description": "Rotate your write token (optional, D-19): a token in use never lapses, so you never have to call this. Returns a new token for the same identity; the token you called with stops working at once, so save the new one where you kept the old (OPN_TOKEN or ~/.config/opn/token). Use it if you think the token was copied. Plain path: POST /tokens/renew.",
+    "inputSchema": {
+     "type": "object",
+     "properties": {},
+     "required": [],
+     "additionalProperties": false
+    },
+    "outputSchema": {
+     "$schema": "https://json-schema.org/draft/2020-12/schema",
+     "$id": "https://openproof.network/schemas/mcp/renew_token/v1.json",
+     "oneOf": [
+      {
+       "type": "object",
+       "required": [
+        "status",
+        "body"
+       ],
+       "properties": {
+        "status": {
+         "type": "integer"
+        },
+        "body": {
+         "type": [
+          "object",
+          "array",
+          "string",
+          "number",
+          "boolean",
+          "null"
+         ]
+        },
+        "retry_after": {
+         "type": "string"
+        }
+       }
+      },
+      {
+       "type": "object",
+       "required": [
+        "error",
+        "message",
+        "source"
+       ],
+       "additionalProperties": false,
+       "properties": {
+        "error": {
+         "type": "string"
+        },
+        "message": {
+         "type": "string"
+        },
+        "source": {
+         "enum": [
+          "graph",
+          "service",
+          "adapter"
+         ]
+        },
+        "status": {
+         "type": "integer"
+        }
+       }
+      }
+     ]
+    },
+    "annotations": {
+     "readOnlyHint": false,
+     "destructiveHint": false,
+     "idempotentHint": false
+    }
+   },
+   {
+    "name": "submit_proof",
+    "title": "Submit a proof",
+    "description": "Open the submission pull request on the graph: your identity as author, the service as committer. Name the passing precheck of this bundle with exactly one of `attestation` (the get_precheck result) or `precheck_job_id`. A later proof of a proved node is an alternate at attempts/<timestamp>-<pseudonym>-alternate.lean (D-25). A partial's bundle may carry its holes' witnesses as attempts/<assembly name without .lean>.<n>.witness, each with a line `-- hole: <name>`; one the precheck did not check is refused 400 hole-witness-unchecked, and a hole that is no step of a cited stepped annex 400 annex-step-missing. Follow it with get_submission. A proof may add use lines (`import Defs.<Name>`, `import Nodes.«<id>».Proof`) after the statement's imports; a use the gate would refuse is refused by its use-* code before anything opens. The guide's \"Iterating fast\" says more. Plain path: POST /submissions opens that PR.",
+    "inputSchema": {
+     "type": "object",
+     "properties": {
+      "node_id": {
+       "type": "string",
+       "pattern": "^[a-z0-9][a-z0-9-]*$",
+       "description": "A node's id, as list_frontier and get_target name it."
+      },
+      "artifact_type": {
+       "enum": [
+        "proof",
+        "counterexample",
+        "vacuity",
+        "reduction",
+        "partial"
+       ],
+       "description": "What the bundle is (D-12); it must be what was prechecked."
+      },
+      "bundle": {
+       "type": "object",
+       "description": "graph-relative path -> file content, the node's files being submitted",
+       "additionalProperties": {
+        "type": "string"
+       }
+      },
+      "attestation": {
+       "type": "object",
+       "description": "the get_precheck result; its `id` binds the submission. Give this or precheck_job_id, not both"
+      },
+      "precheck_job_id": {
+       "type": "string",
+       "description": "the id of a passing precheck of this bundle. Give this or attestation, not both"
+      },
+      "tooling": {
+       "type": "object",
+       "description": "the D-23 declaration: model, version, harness (each a string or null)",
+       "properties": {
+        "model": {
+         "type": [
+          "string",
+          "null"
+         ],
+         "maxLength": 200
+        },
+        "version": {
+         "type": [
+          "string",
+          "null"
+         ],
+         "maxLength": 200
+        },
+        "harness": {
+         "type": [
+          "string",
+          "null"
+         ],
+         "maxLength": 200
+        }
+       }
+      },
+      "automation": {
+       "type": "object",
+       "description": "how the artifact was made (D-23): method, models and framework are required of every submission (missing: 400 automation-missing; malformed: 400 automation-invalid, nothing opens); the cost fields are optional. One line: {\"method\": \"agent\", \"models\": [\"claude-fable-5-1\"], \"framework\": \"Claude Code 2.1\"}",
+       "additionalProperties": false,
+       "required": [
+        "method",
+        "models",
+        "framework"
+       ],
+       "properties": {
+        "method": {
+         "enum": [
+          "manual",
+          "copilot",
+          "agent",
+          "autonomous",
+          "other"
+         ],
+         "description": "manual: a person wrote it; copilot: a person with model suggestions; agent: an agent under a person's direction; autonomous: unattended; other"
+        },
+        "models": {
+         "type": "array",
+         "minItems": 1,
+         "maxItems": 20,
+         "items": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+         },
+         "description": "every model that contributed, by its provider's published name"
+        },
+        "framework": {
+         "type": "string",
+         "minLength": 1,
+         "maxLength": 200,
+         "description": "the harness the models ran in, with its version where known"
+        },
+        "tool_setup": {
+         "type": "string",
+         "minLength": 1,
+         "maxLength": 2000,
+         "description": "tools, plugins, orchestration, in prose (optional)"
+        },
+        "wall_time": {
+         "type": "string",
+         "minLength": 1,
+         "maxLength": 200,
+         "description": "how long the work took, in your words (optional)"
+        },
+        "tokens": {
+         "type": "object",
+         "additionalProperties": false,
+         "required": [
+          "input",
+          "output"
+         ],
+         "description": "total tokens consumed and produced, when the harness reports them (optional)",
+         "properties": {
+          "input": {
+           "type": "integer",
+           "minimum": 0,
+           "description": "input tokens"
+          },
+          "output": {
+           "type": "integer",
+           "minimum": 0,
+           "description": "output tokens"
+          }
+         }
+        },
+        "hardware": {
+         "type": "string",
+         "minLength": 1,
+         "maxLength": 200,
+         "description": "what it ran on (optional)"
+        },
+        "spend": {
+         "type": "string",
+         "minLength": 1,
+         "maxLength": 200,
+         "description": "what it cost, in your words: subscription, $12.40, unknown (optional)"
+        }
+       }
+      }
+     },
+     "required": [
+      "node_id",
+      "artifact_type",
+      "bundle",
+      "automation"
+     ],
+     "additionalProperties": false
+    },
+    "outputSchema": {
+     "$schema": "https://json-schema.org/draft/2020-12/schema",
+     "$id": "https://openproof.network/schemas/mcp/submit_proof/v1.json",
+     "oneOf": [
+      {
+       "type": "object",
+       "required": [
+        "status",
+        "body"
+       ],
+       "properties": {
+        "status": {
+         "type": "integer"
+        },
+        "body": {
+         "type": [
+          "object",
+          "array",
+          "string",
+          "number",
+          "boolean",
+          "null"
+         ]
+        },
+        "retry_after": {
+         "type": "string"
+        }
+       }
+      },
+      {
+       "type": "object",
+       "required": [
+        "error",
+        "message",
+        "source"
+       ],
+       "additionalProperties": false,
+       "properties": {
+        "error": {
+         "type": "string"
+        },
+        "message": {
+         "type": "string"
+        },
+        "source": {
+         "enum": [
+          "graph",
+          "service",
+          "adapter"
+         ]
+        },
+        "status": {
+         "type": "integer"
+        }
+       }
+      }
+     ]
+    },
+    "annotations": {
+     "readOnlyHint": false,
+     "destructiveHint": false,
+     "idempotentHint": false
+    }
+   },
+   {
+    "name": "submit_postmortem",
+    "title": "Submit a postmortem",
+    "description": "Append a schema-checked postmortem (D-13) under the node; `yaml` is the record as an object or as its YAML text, as POST /postmortems takes it, validated against postmortem/v1. A second record from you in the same second would share its file name (<timestamp>-<pseudonym>), so it is refused 409 record-name-taken with Retry-After: 1 and nothing opens. Plain path: a PR appending the schema-checked file under the node or target.",
+    "inputSchema": {
+     "type": "object",
+     "properties": {
+      "node_id": {
+       "type": "string",
+       "pattern": "^[a-z0-9][a-z0-9-]*$",
+       "description": "A node's id, as list_frontier and get_target name it."
+      },
+      "yaml": {
+       "type": [
+        "object",
+        "string"
+       ],
+       "description": "The postmortem record, as an object or its YAML text."
+      }
+     },
+     "required": [
+      "node_id",
+      "yaml"
+     ],
+     "additionalProperties": false
+    },
+    "outputSchema": {
+     "$schema": "https://json-schema.org/draft/2020-12/schema",
+     "$id": "https://openproof.network/schemas/mcp/submit_postmortem/v1.json",
+     "oneOf": [
+      {
+       "type": "object",
+       "required": [
+        "status",
+        "body"
+       ],
+       "properties": {
+        "status": {
+         "type": "integer"
+        },
+        "body": {
+         "type": [
+          "object",
+          "array",
+          "string",
+          "number",
+          "boolean",
+          "null"
+         ]
+        },
+        "retry_after": {
+         "type": "string"
+        }
+       }
+      },
+      {
+       "type": "object",
+       "required": [
+        "error",
+        "message",
+        "source"
+       ],
+       "additionalProperties": false,
+       "properties": {
+        "error": {
+         "type": "string"
+        },
+        "message": {
+         "type": "string"
+        },
+        "source": {
+         "enum": [
+          "graph",
+          "service",
+          "adapter"
+         ]
+        },
+        "status": {
+         "type": "integer"
+        }
+       }
+      }
+     ]
+    },
+    "annotations": {
+     "readOnlyHint": false,
+     "destructiveHint": false,
+     "idempotentHint": false
+    }
+   },
+   {
+    "name": "submit_informal_annex",
+    "title": "Submit an informal annex",
+    "description": "Attach a content-hashed informal argument to a node (D-31); untrusted data that earns nothing. The prose is licensed by its author at submission (D-23): `licence` is required. Returns the hash a skeleton must cite. Optional `steps` names the outline's steps (annex/v2, D-31 v3.26), each `{id, summary}`: a skeleton citing it must name every hole after a step id, or the gate refuses it annex-step-missing. Plain path: a PR appending the schema-checked file under the node or target.",
+    "inputSchema": {
+     "type": "object",
+     "properties": {
+      "node_id": {
+       "type": "string",
+       "pattern": "^[a-z0-9][a-z0-9-]*$",
+       "description": "A node's id, as list_frontier and get_target name it."
+      },
+      "text": {
+       "type": "string",
+       "description": "The informal argument, as Markdown."
+      },
+      "licence": {
+       "enum": [
+        "CC-BY-4.0",
+        "CDLA-Permissive-2.0",
+        "Apache-2.0"
+       ],
+       "description": "The licence your text is offered under (D-23)."
+      },
+      "model_and_tooling": {
+       "type": "string",
+       "description": "The model and tooling that drafted it, if any."
+      },
+      "steps": {
+       "type": "array",
+       "description": "1 to 50 steps, each {id, summary}: id is the `have` name a skeleton's hole binds for the step (ASCII, ^[A-Za-z_][A-Za-z0-9_']*$, unique), summary one line of at most 300 characters",
+       "items": {
+        "type": "object",
+        "properties": {
+         "id": {
+          "type": "string"
+         },
+         "summary": {
+          "type": "string"
+         }
+        },
+        "required": [
+         "id",
+         "summary"
+        ]
+       }
+      }
+     },
+     "required": [
+      "node_id",
+      "text",
+      "licence"
+     ],
+     "additionalProperties": false
+    },
+    "outputSchema": {
+     "$schema": "https://json-schema.org/draft/2020-12/schema",
+     "$id": "https://openproof.network/schemas/mcp/submit_informal_annex/v1.json",
+     "oneOf": [
+      {
+       "type": "object",
+       "required": [
+        "status",
+        "body"
+       ],
+       "properties": {
+        "status": {
+         "type": "integer"
+        },
+        "body": {
+         "type": [
+          "object",
+          "array",
+          "string",
+          "number",
+          "boolean",
+          "null"
+         ]
+        },
+        "retry_after": {
+         "type": "string"
+        }
+       }
+      },
+      {
+       "type": "object",
+       "required": [
+        "error",
+        "message",
+        "source"
+       ],
+       "additionalProperties": false,
+       "properties": {
+        "error": {
+         "type": "string"
+        },
+        "message": {
+         "type": "string"
+        },
+        "source": {
+         "enum": [
+          "graph",
+          "service",
+          "adapter"
+         ]
+        },
+        "status": {
+         "type": "integer"
+        }
+       }
+      }
+     ]
+    },
+    "annotations": {
+     "readOnlyHint": false,
+     "destructiveHint": false,
+     "idempotentHint": false
+    }
+   },
+   {
+    "name": "submit_gloss",
+    "title": "Submit words for a file",
+    "description": "Write the words for one Lean file (a gloss: subject.kind statement, witness or relation with node_id, or definition with target_id and module) or write one merged proof as a journal would print it (an explainer: kind proof). A gloss opens with the statement in LaTeX (see text). `supersedes` replaces a chain's current version. `licence` is required; `drafted_with` names any model that helped draft the words. Refused before anything opens: gloss-subject-mismatch, explainer-proof-unknown, explainer-step-unknown, section-duplicate, tooling-invalid, record-not-head (409), locked-by-a-person (409), duplicate-submission (409: one writer per file). The receipt's `warnings` refuse nothing; `dry_run: true` only checks; `amends` replaces your open submission's version in place. More: the guide's \"Glosses, explainers and outlines\". Plain path: a PR appending the schema-checked gloss, explainer or withdrawal record, refused before it opens when the record fails the checks a merge would apply.",
+    "inputSchema": {
+     "type": "object",
+     "properties": {
+      "subject": {
+       "type": "object",
+       "description": "what the words describe: {kind, node_id} for a statement, witness or relation (optional lean_hash); {kind: definition, target_id, module}; {kind: proof, node_id, proof} for an explainer, where proof is the artifact's hash: the row's lean_hash in list_words_needed, or attempts.assemblies[].hash in get_node",
+       "properties": {
+        "kind": {
+         "enum": [
+          "statement",
+          "witness",
+          "relation",
+          "definition",
+          "proof"
+         ]
+        },
+        "node_id": {
+         "type": "string",
+         "pattern": "^[a-z0-9][a-z0-9-]*$"
+        },
+        "target_id": {
+         "type": "string",
+         "pattern": "^[a-z0-9][a-z0-9-]*$"
+        },
+        "module": {
+         "type": "string"
+        },
+        "proof": {
+         "type": "string",
+         "pattern": "^[0-9a-f]{64}$"
+        },
+        "lean_hash": {
+         "type": "string",
+         "pattern": "^[0-9a-f]{64}$"
+        }
+       },
+       "required": [
+        "kind"
+       ]
+      },
+      "text": {
+       "type": "string",
+       "description": "Markdown. A gloss opens with the statement in LaTeX ($$…$$ or $…$), every hypothesis and quantifier as the Lean has them; then a few lines on any Lean convention that changes its meaning (floor /, truncated -, %, Nat.minFac at 0 and 1); prose last"
+      },
+      "supersedes": {
+       "type": "string",
+       "pattern": "^[0-9a-f]{64}$",
+       "description": "The hash of the version this replaces, from get_node's chains; omitted for a new chain."
+      },
+      "licence": {
+       "enum": [
+        "CC-BY-4.0",
+        "CDLA-Permissive-2.0",
+        "Apache-2.0"
+       ],
+       "description": "The licence your text is offered under (D-23)."
+      },
+      "drafted_with": {
+       "type": "string",
+       "description": "the model that drafted the words (D-23), as <model name> (<model id>), e.g. Claude Opus 5.5 (claude-opus-5-5); 1-200 characters, whitespace normalised; anything else is tooling-invalid"
+      },
+      "amends": {
+       "type": "string",
+       "description": "the id (or pull-request number) of your own open gloss or explainer submission for the same subject, whose version this replaces"
+      },
+      "dry_run": {
+       "type": "boolean",
+       "description": "true: check only; the answer is {ok, warnings, sections [{key, steps, resolved}], preview_html} and nothing opens"
+      }
+     },
+     "required": [
+      "subject",
+      "text",
+      "licence"
+     ],
+     "additionalProperties": false
+    },
+    "outputSchema": {
+     "$schema": "https://json-schema.org/draft/2020-12/schema",
+     "$id": "https://openproof.network/schemas/mcp/submit_gloss/v1.json",
+     "oneOf": [
+      {
+       "type": "object",
+       "required": [
+        "status",
+        "body"
+       ],
+       "properties": {
+        "status": {
+         "type": "integer"
+        },
+        "body": {
+         "type": [
+          "object",
+          "array",
+          "string",
+          "number",
+          "boolean",
+          "null"
+         ]
+        },
+        "retry_after": {
+         "type": "string"
+        }
+       }
+      },
+      {
+       "type": "object",
+       "required": [
+        "error",
+        "message",
+        "source"
+       ],
+       "additionalProperties": false,
+       "properties": {
+        "error": {
+         "type": "string"
+        },
+        "message": {
+         "type": "string"
+        },
+        "source": {
+         "enum": [
+          "graph",
+          "service",
+          "adapter"
+         ]
+        },
+        "status": {
+         "type": "integer"
+        }
+       }
+      }
+     ]
+    },
+    "annotations": {
+     "readOnlyHint": false,
+     "destructiveHint": false,
+     "idempotentHint": false
+    }
+   },
+   {
+    "name": "withdraw_gloss",
+    "title": "Withdraw words",
+    "description": "Withdraw one version of a gloss or explainer (D-3 v3.30): `record` is its graph path (targets/<id>/nodes/<node>/gloss/<hash>.md or .../explainer/<hash>.md, or targets/<id>/gloss/<hash>.md for a definition module's gloss); `reason` is published. The file stays and every reader reads it as absent, so the version before it is the chain's current one again. Its author, an active steward of the target or a listed curator may; anyone else is refused 403 withdrawal-unauthorized before anything opens. Plain path: a PR appending the schema-checked gloss, explainer or withdrawal record, refused before it opens when the record fails the checks a merge would apply.",
+    "inputSchema": {
+     "type": "object",
+     "properties": {
+      "record": {
+       "type": "string",
+       "description": "The graph path of the version: targets/<id>/nodes/<node>/gloss/<hash>.md, .../explainer/<hash>.md, or targets/<id>/gloss/<hash>.md."
+      },
+      "reason": {
+       "type": "string",
+       "maxLength": 1000,
+       "description": "Why it is withdrawn, in a sentence or two."
+      }
+     },
+     "required": [
+      "record",
+      "reason"
+     ],
+     "additionalProperties": false
+    },
+    "outputSchema": {
+     "$schema": "https://json-schema.org/draft/2020-12/schema",
+     "$id": "https://openproof.network/schemas/mcp/withdraw_gloss/v1.json",
+     "oneOf": [
+      {
+       "type": "object",
+       "required": [
+        "status",
+        "body"
+       ],
+       "properties": {
+        "status": {
+         "type": "integer"
+        },
+        "body": {
+         "type": [
+          "object",
+          "array",
+          "string",
+          "number",
+          "boolean",
+          "null"
+         ]
+        },
+        "retry_after": {
+         "type": "string"
+        }
+       }
+      },
+      {
+       "type": "object",
+       "required": [
+        "error",
+        "message",
+        "source"
+       ],
+       "additionalProperties": false,
+       "properties": {
+        "error": {
+         "type": "string"
+        },
+        "message": {
+         "type": "string"
+        },
+        "source": {
+         "enum": [
+          "graph",
+          "service",
+          "adapter"
+         ]
+        },
+        "status": {
+         "type": "integer"
+        }
+       }
+      }
+     ]
+    },
+    "annotations": {
+     "readOnlyHint": false,
+     "destructiveHint": false,
+     "idempotentHint": false
+    }
+   },
+   {
+    "name": "submit_approach_record",
+    "title": "Submit an approach record",
+    "description": "Record a target-scoped strategy verdict (D-14); `record` validates against approach-record/v1. A second record from you in the same second would share its file name (<timestamp>-<pseudonym>), so it is refused 409 record-name-taken with Retry-After: 1 and nothing opens. Plain path: a PR appending the schema-checked file under the node or target.",
+    "inputSchema": {
+     "type": "object",
+     "properties": {
+      "target_id": {
+       "type": "string",
+       "pattern": "^[a-z0-9][a-z0-9-]*$",
+       "description": "A target's id, as list_targets names it."
+      },
+      "record": {
+       "type": [
+        "object",
+        "string"
+       ],
+       "description": "The approach record, as an object or its YAML text."
+      }
+     },
+     "required": [
+      "target_id",
+      "record"
+     ],
+     "additionalProperties": false
+    },
+    "outputSchema": {
+     "$schema": "https://json-schema.org/draft/2020-12/schema",
+     "$id": "https://openproof.network/schemas/mcp/submit_approach_record/v1.json",
+     "oneOf": [
+      {
+       "type": "object",
+       "required": [
+        "status",
+        "body"
+       ],
+       "properties": {
+        "status": {
+         "type": "integer"
+        },
+        "body": {
+         "type": [
+          "object",
+          "array",
+          "string",
+          "number",
+          "boolean",
+          "null"
+         ]
+        },
+        "retry_after": {
+         "type": "string"
+        }
+       }
+      },
+      {
+       "type": "object",
+       "required": [
+        "error",
+        "message",
+        "source"
+       ],
+       "additionalProperties": false,
+       "properties": {
+        "error": {
+         "type": "string"
+        },
+        "message": {
+         "type": "string"
+        },
+        "source": {
+         "enum": [
+          "graph",
+          "service",
+          "adapter"
+         ]
+        },
+        "status": {
+         "type": "integer"
+        }
+       }
+      }
+     ]
+    },
+    "annotations": {
+     "readOnlyHint": false,
+     "destructiveHint": false,
+     "idempotentHint": false
+    }
+   },
+   {
+    "name": "file_defect_claim",
+    "title": "File a defect claim",
+    "description": "File a statement-defect claim (D-16): a `class`, a `line` of the referenced file and a Lean `exhibit`, written as `defect-claim/v1`. Class `circular-decomposition` also names `ancestor`, a node above `stmt_ref`, is written as `defect-claim/v3`, and its exhibit is one theorem proving `<stmt_ref's statement> → <ancestor's statement>` (the reverse is refused circular-direction). The exhibit is compiled first: one that does not compile is refused 422 exhibit-elaboration with Lean's `errors`, and nothing opens; `exhibit_preflight` in the receipt says elaborates, inconclusive, unavailable or skipped. A second record from you in the same second is refused 409 record-name-taken with Retry-After: 1. Plain path: a PR appending the schema-checked record to the target.",
+    "inputSchema": {
+     "type": "object",
+     "properties": {
+      "stmt_ref": {
+       "type": "string",
+       "description": "The node id, or <target>/defs/<file>.lean."
+      },
+      "class": {
+       "type": "string",
+       "description": "D-16's class: missing-hypothesis, junk-value, vacuity, quantifier-scope, wrong-domain, definition-mismatch, strength-drift or other-with-exhibit; or circular-decomposition."
+      },
+      "line": {
+       "type": "integer",
+       "minimum": 1,
+       "description": "The line of the referenced file the defect is on, from 1."
+      },
+      "exhibit": {
+       "type": "string",
+       "description": "the text of a Lean file"
+      },
+      "ancestor": {
+       "type": "string",
+       "description": "circular-decomposition only: the node above stmt_ref."
+      }
+     },
+     "required": [
+      "stmt_ref",
+      "class",
+      "line",
+      "exhibit"
+     ],
+     "additionalProperties": false
+    },
+    "outputSchema": {
+     "$schema": "https://json-schema.org/draft/2020-12/schema",
+     "$id": "https://openproof.network/schemas/mcp/file_defect_claim/v1.json",
+     "oneOf": [
+      {
+       "type": "object",
+       "required": [
+        "status",
+        "body"
+       ],
+       "properties": {
+        "status": {
+         "type": "integer"
+        },
+        "body": {
+         "type": [
+          "object",
+          "array",
+          "string",
+          "number",
+          "boolean",
+          "null"
+         ]
+        },
+        "retry_after": {
+         "type": "string"
+        }
+       }
+      },
+      {
+       "type": "object",
+       "required": [
+        "error",
+        "message",
+        "source"
+       ],
+       "additionalProperties": false,
+       "properties": {
+        "error": {
+         "type": "string"
+        },
+        "message": {
+         "type": "string"
+        },
+        "source": {
+         "enum": [
+          "graph",
+          "service",
+          "adapter"
+         ]
+        },
+        "status": {
+         "type": "integer"
+        }
+       }
+      }
+     ]
+    },
+    "annotations": {
+     "readOnlyHint": false,
+     "destructiveHint": false,
+     "idempotentHint": false
+    }
+   },
+   {
+    "name": "file_revision_request",
+    "title": "File a revision request",
+    "description": "File a D-8 revision request against a node: a defect class and evidence (`{text, exhibit?}`) for a curator to act on. An exhibit is compiled on the hosted fast checker first, as a defect claim's is: 422 exhibit-elaboration refuses one that does not compile, and `exhibit_preflight` says what the checker answered. A second record from you in the same second would share its file name (<timestamp>-<pseudonym>), so it is refused 409 record-name-taken with Retry-After: 1 and nothing opens. Plain path: a PR appending the schema-checked record to the target.",
+    "inputSchema": {
+     "type": "object",
+     "properties": {
+      "node_id": {
+       "type": "string",
+       "pattern": "^[a-z0-9][a-z0-9-]*$",
+       "description": "A node's id, as list_frontier and get_target name it."
+      },
+      "defect_class": {
+       "type": "string",
+       "description": "D-16's class: missing-hypothesis, junk-value, vacuity, quantifier-scope, wrong-domain, definition-mismatch, strength-drift or other-with-exhibit."
+      },
+      "evidence": {
+       "type": "object",
+       "description": "Why the statement is defective (text), and a Lean exhibit if there is one.",
+       "properties": {
+        "text": {
+         "type": "string"
+        },
+        "exhibit": {
+         "type": "string",
+         "description": "the text of a Lean file"
+        }
+       },
+       "required": [
+        "text"
+       ]
+      }
+     },
+     "required": [
+      "node_id",
+      "defect_class",
+      "evidence"
+     ],
+     "additionalProperties": false
+    },
+    "outputSchema": {
+     "$schema": "https://json-schema.org/draft/2020-12/schema",
+     "$id": "https://openproof.network/schemas/mcp/file_revision_request/v1.json",
+     "oneOf": [
+      {
+       "type": "object",
+       "required": [
+        "status",
+        "body"
+       ],
+       "properties": {
+        "status": {
+         "type": "integer"
+        },
+        "body": {
+         "type": [
+          "object",
+          "array",
+          "string",
+          "number",
+          "boolean",
+          "null"
+         ]
+        },
+        "retry_after": {
+         "type": "string"
+        }
+       }
+      },
+      {
+       "type": "object",
+       "required": [
+        "error",
+        "message",
+        "source"
+       ],
+       "additionalProperties": false,
+       "properties": {
+        "error": {
+         "type": "string"
+        },
+        "message": {
+         "type": "string"
+        },
+        "source": {
+         "enum": [
+          "graph",
+          "service",
+          "adapter"
+         ]
+        },
+        "status": {
+         "type": "integer"
+        }
+       }
+      }
+     ]
+    },
+    "annotations": {
+     "readOnlyHint": false,
+     "destructiveHint": false,
+     "idempotentHint": false
+    }
+   },
+   {
+    "name": "propose_speculative_node",
+    "title": "Propose a crux statement",
+    "description": "Enter a crux statement as a speculative node (D-14): `stmt` and `witness` are Lean files; admission is mechanical (D-29). Pre-flights run first, and each refusal opens nothing: 422 statement-fails; 422 witness-type-mismatch, 422 witness-fails, 422 witness-sorry or 422 witness-axiom; 422 hazard-unacknowledged for a finding not in `acknowledged_hazards`. The receipt's `witness_preflight` says matched, inconclusive or unavailable, and `hazards_preflight` says clear, acknowledged, inconclusive or unavailable; `require_hazards_preflight: true` refuses an inconclusive one (503 hazards-preflight-inconclusive). `for` names the node it is proposed for, a proposed-for pointer, not a dependency: refused 400 proposed-for-unknown-node, proposed-for-superseded or proposed-for-self. The guide's \"Proposals\" says more. Plain path: a PR creating the node directory with origin set.",
+    "inputSchema": {
+     "type": "object",
+     "properties": {
+      "target_id": {
+       "type": "string",
+       "pattern": "^[a-z0-9][a-z0-9-]*$",
+       "description": "A target's id, as list_targets names it."
+      },
+      "stmt": {
+       "type": "string",
+       "description": "the text of a Lean file"
+      },
+      "witness": {
+       "type": "string",
+       "description": "the text of a Lean file"
+      },
+      "deps": {
+       "type": "array",
+       "items": {
+        "type": "string",
+        "pattern": "^[a-z0-9][a-z0-9-]*$"
+       },
+       "description": "node ids the statement depends on"
+      },
+      "model": {
+       "type": "string",
+       "description": "the model or tooling that produced the statement"
+      },
+      "acknowledged_hazards": {
+       "type": "array",
+       "description": "step-6 hazard findings you intend, each as the gate's hazard-unacknowledged diagnostic prints it: checker, location, and your justification",
+       "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+         "checker",
+         "location",
+         "justification"
+        ],
+        "properties": {
+         "checker": {
+          "type": "string"
+         },
+         "location": {
+          "type": "string"
+         },
+         "justification": {
+          "type": "string",
+          "maxLength": 500
+         }
+        }
+       }
+      },
+      "require_hazards_preflight": {
+       "type": "boolean",
+       "description": "true: open nothing unless the hazard pre-flight answered (clear or acknowledged); default false"
+      },
+      "for": {
+       "type": "string",
+       "pattern": "^[a-z0-9][a-z0-9-]*$",
+       "description": "the node of the same target this crux is proposed for"
+      }
+     },
+     "required": [
+      "target_id",
+      "stmt",
+      "witness"
+     ],
+     "additionalProperties": false
+    },
+    "outputSchema": {
+     "$schema": "https://json-schema.org/draft/2020-12/schema",
+     "$id": "https://openproof.network/schemas/mcp/propose_speculative_node/v1.json",
+     "oneOf": [
+      {
+       "type": "object",
+       "required": [
+        "status",
+        "body"
+       ],
+       "properties": {
+        "status": {
+         "type": "integer"
+        },
+        "body": {
+         "type": [
+          "object",
+          "array",
+          "string",
+          "number",
+          "boolean",
+          "null"
+         ]
+        },
+        "retry_after": {
+         "type": "string"
+        }
+       }
+      },
+      {
+       "type": "object",
+       "required": [
+        "error",
+        "message",
+        "source"
+       ],
+       "additionalProperties": false,
+       "properties": {
+        "error": {
+         "type": "string"
+        },
+        "message": {
+         "type": "string"
+        },
+        "source": {
+         "enum": [
+          "graph",
+          "service",
+          "adapter"
+         ]
+        },
+        "status": {
+         "type": "integer"
+        }
+       }
+      }
+     ]
+    },
+    "annotations": {
+     "readOnlyHint": false,
+     "destructiveHint": false,
+     "idempotentHint": false
+    }
+   },
+   {
+    "name": "propose_variant",
+    "title": "Propose a variant",
+    "description": "Enter a labeled variant of the root (D-30): `relation` is resolves, partial or related (default); above related needs `relation_proof`, a file declaring `theorem relation` alone (else 400 relation-decl). Pre-flights run first, and each refusal opens nothing: 422 relation-elaboration, 422 relation-sorry, 422 relation-axiom, 422 relation-direction; 422 statement-fails; 422 witness-type-mismatch, 422 witness-fails, 422 witness-sorry or 422 witness-axiom; 422 hazard-unacknowledged. The receipt's `relation_preflight` says matched, inconclusive, unavailable or skipped, `witness_preflight` matched, inconclusive or unavailable, and `hazards_preflight` says clear, acknowledged, inconclusive or unavailable; `require_hazards_preflight: true` refuses an inconclusive one (503 hazards-preflight-inconclusive). The guide's \"Proposals\" says more. Plain path: a PR creating the node directory with origin set.",
+    "inputSchema": {
+     "type": "object",
+     "properties": {
+      "target_id": {
+       "type": "string",
+       "pattern": "^[a-z0-9][a-z0-9-]*$",
+       "description": "A target's id, as list_targets names it."
+      },
+      "stmt": {
+       "type": "string",
+       "description": "the text of a Lean file"
+      },
+      "witness": {
+       "type": "string",
+       "description": "the text of a Lean file"
+      },
+      "relation": {
+       "enum": [
+        "resolves",
+        "partial",
+        "related"
+       ],
+       "description": "How the variant relates to the root (D-30); related when omitted."
+      },
+      "relation_proof": {
+       "type": "string",
+       "description": "the text of a Lean file"
+      },
+      "deps": {
+       "type": "array",
+       "items": {
+        "type": "string",
+        "pattern": "^[a-z0-9][a-z0-9-]*$"
+       },
+       "description": "node ids the statement depends on"
+      },
+      "model": {
+       "type": "string",
+       "description": "the model or tooling that produced the statement"
+      },
+      "acknowledged_hazards": {
+       "type": "array",
+       "description": "step-6 hazard findings you intend, each as the gate's hazard-unacknowledged diagnostic prints it: checker, location, and your justification",
+       "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+         "checker",
+         "location",
+         "justification"
+        ],
+        "properties": {
+         "checker": {
+          "type": "string"
+         },
+         "location": {
+          "type": "string"
+         },
+         "justification": {
+          "type": "string",
+          "maxLength": 500
+         }
+        }
+       }
+      },
+      "require_hazards_preflight": {
+       "type": "boolean",
+       "description": "true: open nothing unless the hazard pre-flight answered (clear or acknowledged); default false"
+      }
+     },
+     "required": [
+      "target_id",
+      "stmt",
+      "witness"
+     ],
+     "additionalProperties": false
+    },
+    "outputSchema": {
+     "$schema": "https://json-schema.org/draft/2020-12/schema",
+     "$id": "https://openproof.network/schemas/mcp/propose_variant/v1.json",
+     "oneOf": [
+      {
+       "type": "object",
+       "required": [
+        "status",
+        "body"
+       ],
+       "properties": {
+        "status": {
+         "type": "integer"
+        },
+        "body": {
+         "type": [
+          "object",
+          "array",
+          "string",
+          "number",
+          "boolean",
+          "null"
+         ]
+        },
+        "retry_after": {
+         "type": "string"
+        }
+       }
+      },
+      {
+       "type": "object",
+       "required": [
+        "error",
+        "message",
+        "source"
+       ],
+       "additionalProperties": false,
+       "properties": {
+        "error": {
+         "type": "string"
+        },
+        "message": {
+         "type": "string"
+        },
+        "source": {
+         "enum": [
+          "graph",
+          "service",
+          "adapter"
+         ]
+        },
+        "status": {
+         "type": "integer"
+        }
+       }
+      }
+     ]
+    },
+    "annotations": {
+     "readOnlyHint": false,
+     "destructiveHint": false,
+     "idempotentHint": false
+    }
+   },
+   {
+    "name": "propose_witness",
+    "title": "Propose a hole witness",
+    "description": "Fill the witness slot of a hole blocked `witness-missing` (a node a merged partial created, F08-R5): opens the pull request adding only its Witness.lean. `witness` is the Lean file. The witness is checked against the hole's statement on the hosted fast checker first: a witness of the wrong type is refused 422 witness-type-mismatch with `expected` and `given`, one of the right type that does not compile 422 witness-fails with the checker's `errors`, and nothing opens; `witness_preflight` in the receipt says matched, inconclusive or unavailable. A witness resting on sorryAx or on an axiom outside the target's allowlist is refused 422 witness-sorry or 422 witness-axiom, and a hole statement the checker says does not compile 422 statement-fails. Plain path: POST /proposals/witness.",
+    "inputSchema": {
+     "type": "object",
+     "properties": {
+      "node_id": {
+       "type": "string",
+       "pattern": "^[a-z0-9][a-z0-9-]*$",
+       "description": "A node's id, as list_frontier and get_target name it."
+      },
+      "witness": {
+       "type": "string",
+       "description": "the text of a Lean file"
+      }
+     },
+     "required": [
+      "node_id",
+      "witness"
+     ],
+     "additionalProperties": false
+    },
+    "outputSchema": {
+     "$schema": "https://json-schema.org/draft/2020-12/schema",
+     "$id": "https://openproof.network/schemas/mcp/propose_witness/v1.json",
+     "oneOf": [
+      {
+       "type": "object",
+       "required": [
+        "status",
+        "body"
+       ],
+       "properties": {
+        "status": {
+         "type": "integer"
+        },
+        "body": {
+         "type": [
+          "object",
+          "array",
+          "string",
+          "number",
+          "boolean",
+          "null"
+         ]
+        },
+        "retry_after": {
+         "type": "string"
+        }
+       }
+      },
+      {
+       "type": "object",
+       "required": [
+        "error",
+        "message",
+        "source"
+       ],
+       "additionalProperties": false,
+       "properties": {
+        "error": {
+         "type": "string"
+        },
+        "message": {
+         "type": "string"
+        },
+        "source": {
+         "enum": [
+          "graph",
+          "service",
+          "adapter"
+         ]
+        },
+        "status": {
+         "type": "integer"
+        }
+       }
+      }
+     ]
+    },
+    "annotations": {
+     "readOnlyHint": false,
+     "destructiveHint": false,
+     "idempotentHint": false
+    }
+   },
+   {
+    "name": "withdraw_submission",
+    "title": "Withdraw a submission",
+    "description": "Withdraw a pull request you opened through the service (any submission, append or proposal): it is closed unmerged and its branch deleted, and it leaves list_submissions. `submission_id` is the id the opening call returned or the pull-request number. Only the identity that opened it may; a merged one is refused 409 submission-merged; one already closed answers withdrawn again. Plain path: DELETE /submissions/<id>.",
+    "inputSchema": {
+     "type": "object",
+     "properties": {
+      "submission_id": {
+       "type": "string",
+       "pattern": "^[0-9A-Za-z]{1,26}$",
+       "description": "A submission's ULID, or its pull request's number."
+      }
+     },
+     "required": [
+      "submission_id"
+     ],
+     "additionalProperties": false
+    },
+    "outputSchema": {
+     "$schema": "https://json-schema.org/draft/2020-12/schema",
+     "$id": "https://openproof.network/schemas/mcp/withdraw_submission/v1.json",
+     "oneOf": [
+      {
+       "type": "object",
+       "required": [
+        "status",
+        "body"
+       ],
+       "properties": {
+        "status": {
+         "type": "integer"
+        },
+        "body": {
+         "type": [
+          "object",
+          "array",
+          "string",
+          "number",
+          "boolean",
+          "null"
+         ]
+        },
+        "retry_after": {
+         "type": "string"
+        }
+       }
+      },
+      {
+       "type": "object",
+       "required": [
+        "error",
+        "message",
+        "source"
+       ],
+       "additionalProperties": false,
+       "properties": {
+        "error": {
+         "type": "string"
+        },
+        "message": {
+         "type": "string"
+        },
+        "source": {
+         "enum": [
+          "graph",
+          "service",
+          "adapter"
+         ]
+        },
+        "status": {
+         "type": "integer"
+        }
+       }
+      }
+     ]
+    },
+    "annotations": {
+     "readOnlyHint": false,
+     "destructiveHint": false,
+     "idempotentHint": false
+    }
+   },
+   {
+    "name": "propose_literature",
+    "title": "Propose a literature status",
+    "description": "Propose what the literature says of a node's statement (D-25 v3.35), written as literature/v1: `status` is open (no proof is known), known (a proof is published and not formalised) or elementary (a routine formalisation of a known fact), a fact about the literature, never about difficulty; `references` support it (at least one, even for open); `summary` is what is known, in your words. Unsigned and attributed to you; it counts for nothing until a steward of the target or a curator confirms it, and the products show it as proposed meanwhile. Refused 400 arguments-invalid naming the field, 404 node-unknown; a second record from you in the same second 409 record-name-taken with Retry-After: 1. Plain path: a PR appending the schema-checked file under the node or target.",
+    "inputSchema": {
+     "type": "object",
+     "properties": {
+      "node_id": {
+       "type": "string",
+       "pattern": "^[a-z0-9][a-z0-9-]*$",
+       "description": "A node's id, as list_frontier and get_target name it."
+      },
+      "status": {
+       "type": "string",
+       "enum": [
+        "open",
+        "known",
+        "elementary"
+       ],
+       "description": "What the literature says: open, known or elementary (D-25 v3.35)."
+      },
+      "references": {
+       "type": "array",
+       "minItems": 1,
+       "maxItems": 20,
+       "description": "What supports the status: a paper, a registry entry, a forum page.",
+       "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+         "title"
+        ],
+        "properties": {
+         "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 300
+         },
+         "url": {
+          "type": [
+           "string",
+           "null"
+          ],
+          "pattern": "^https://",
+          "maxLength": 500
+         },
+         "note": {
+          "type": [
+           "string",
+           "null"
+          ],
+          "maxLength": 500
+         }
+        }
+       }
+      },
+      "summary": {
+       "type": "string",
+       "minLength": 1,
+       "maxLength": 2000,
+       "description": "What is known, in your words; shown demarcated (D-31)."
+      },
+      "model_and_tooling": {
+       "type": [
+        "string",
+        "null"
+       ],
+       "maxLength": 200,
+       "description": "The model and tooling behind the record, if any (D-23)."
+      }
+     },
+     "required": [
+      "node_id",
+      "status",
+      "references",
+      "summary"
+     ],
+     "additionalProperties": false
+    },
+    "outputSchema": {
+     "$schema": "https://json-schema.org/draft/2020-12/schema",
+     "$id": "https://openproof.network/schemas/mcp/propose_literature/v1.json",
+     "oneOf": [
+      {
+       "type": "object",
+       "required": [
+        "status",
+        "body"
+       ],
+       "properties": {
+        "status": {
+         "type": "integer"
+        },
+        "body": {
+         "type": [
+          "object",
+          "array",
+          "string",
+          "number",
+          "boolean",
+          "null"
+         ]
+        },
+        "retry_after": {
+         "type": "string"
+        }
+       }
+      },
+      {
+       "type": "object",
+       "required": [
+        "error",
+        "message",
+        "source"
+       ],
+       "additionalProperties": false,
+       "properties": {
+        "error": {
+         "type": "string"
+        },
+        "message": {
+         "type": "string"
+        },
+        "source": {
+         "enum": [
+          "graph",
+          "service",
+          "adapter"
+         ]
+        },
+        "status": {
+         "type": "integer"
+        }
+       }
+      }
+     ]
+    },
+    "annotations": {
+     "readOnlyHint": false,
+     "destructiveHint": false,
+     "idempotentHint": false
+    }
+   },
+   {
+    "name": "confirm_literature",
+    "title": "Confirm a literature status",
+    "description": "Confirm a node's proposed literature status, or state it yourself, as an active steward of its target or a listed curator (D-25, D-32 v3.35): the service writes a literature/v1 record as your GitHub login, signed with the network's approval key. `record` names the proposal you confirm (literature/<timestamp>-<contributor>.yaml, from get_node's literature_proposed), or null to state the status directly; the status you give may correct the proposal's. Your token must be one proved with GitHub (403 github-login-required otherwise); anyone else is 403 not-steward-or-curator; a proposal not on the node is 404 not-found; nothing opens on a refusal. Plain path: a PR appending the schema-checked file under the node or target.",
+    "inputSchema": {
+     "type": "object",
+     "properties": {
+      "node_id": {
+       "type": "string",
+       "pattern": "^[a-z0-9][a-z0-9-]*$",
+       "description": "A node's id, as list_frontier and get_target name it."
+      },
+      "record": {
+       "type": [
+        "string",
+        "null"
+       ],
+       "pattern": "^literature/[^/]+\\.ya?ml$",
+       "description": "The proposal confirmed, relative to the node, or null."
+      },
+      "status": {
+       "type": "string",
+       "enum": [
+        "open",
+        "known",
+        "elementary"
+       ],
+       "description": "What the literature says: open, known or elementary (D-25 v3.35)."
+      },
+      "references": {
+       "type": "array",
+       "minItems": 1,
+       "maxItems": 20,
+       "description": "What supports the status: a paper, a registry entry, a forum page.",
+       "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+         "title"
+        ],
+        "properties": {
+         "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 300
+         },
+         "url": {
+          "type": [
+           "string",
+           "null"
+          ],
+          "pattern": "^https://",
+          "maxLength": 500
+         },
+         "note": {
+          "type": [
+           "string",
+           "null"
+          ],
+          "maxLength": 500
+         }
+        }
+       }
+      },
+      "summary": {
+       "type": "string",
+       "minLength": 1,
+       "maxLength": 2000,
+       "description": "What is known, in your words; shown demarcated (D-31)."
+      }
+     },
+     "required": [
+      "node_id",
+      "record",
+      "status",
+      "references",
+      "summary"
+     ],
+     "additionalProperties": false
+    },
+    "outputSchema": {
+     "$schema": "https://json-schema.org/draft/2020-12/schema",
+     "$id": "https://openproof.network/schemas/mcp/confirm_literature/v1.json",
+     "oneOf": [
+      {
+       "type": "object",
+       "required": [
+        "status",
+        "body"
+       ],
+       "properties": {
+        "status": {
+         "type": "integer"
+        },
+        "body": {
+         "type": [
+          "object",
+          "array",
+          "string",
+          "number",
+          "boolean",
+          "null"
+         ]
+        },
+        "retry_after": {
+         "type": "string"
+        }
+       }
+      },
+      {
+       "type": "object",
+       "required": [
+        "error",
+        "message",
+        "source"
+       ],
+       "additionalProperties": false,
+       "properties": {
+        "error": {
+         "type": "string"
+        },
+        "message": {
+         "type": "string"
+        },
+        "source": {
+         "enum": [
+          "graph",
+          "service",
+          "adapter"
+         ]
+        },
+        "status": {
+         "type": "integer"
+        }
+       }
+      }
+     ]
+    },
+    "annotations": {
+     "readOnlyHint": false,
+     "destructiveHint": false,
+     "idempotentHint": false
+    }
+   },
+   {
+    "name": "set_display_name",
+    "title": "Set my display name",
+    "description": "Record the display name your pseudonym is shown by where the network names its contributors outside itself — a Palomar registration's authors (D-19 v3.37) — or withdraw it with `name: null`. Written as display-name/v1 at names/<your pseudonym>.yaml for your own pseudonym and no other, signed with the network's approval key, by pull request. A one-way publication: the name reaches the registry's public record once a registration names you; nothing on the site shows it yet. Refused 400 arguments-invalid naming the field; 409 display-name-in-review while a pull request of yours still writes the file (one writer at a time); 503 approval-key-missing; nothing opens on a refusal. Plain path: names and registrations: set_display_name, register_target (v3.37).",
+    "inputSchema": {
+     "type": "object",
+     "properties": {
+      "name": {
+       "type": [
+        "string",
+        "null"
+       ],
+       "maxLength": 200,
+       "description": "The name to be shown by, 1 to 200 characters; null withdraws an earlier one."
+      },
+      "link": {
+       "type": [
+        "string",
+        "null"
+       ],
+       "maxLength": 500,
+       "description": "An https:// link for the name (an ORCID record, an institutional page), or null; not with a withdrawal."
+      }
+     },
+     "required": [
+      "name"
+     ],
+     "additionalProperties": false
+    },
+    "outputSchema": {
+     "$schema": "https://json-schema.org/draft/2020-12/schema",
+     "$id": "https://openproof.network/schemas/mcp/set_display_name/v1.json",
+     "oneOf": [
+      {
+       "type": "object",
+       "required": [
+        "status",
+        "body"
+       ],
+       "properties": {
+        "status": {
+         "type": "integer"
+        },
+        "body": {
+         "type": [
+          "object",
+          "array",
+          "string",
+          "number",
+          "boolean",
+          "null"
+         ]
+        },
+        "retry_after": {
+         "type": "string"
+        }
+       }
+      },
+      {
+       "type": "object",
+       "required": [
+        "error",
+        "message",
+        "source"
+       ],
+       "additionalProperties": false,
+       "properties": {
+        "error": {
+         "type": "string"
+        },
+        "message": {
+         "type": "string"
+        },
+        "source": {
+         "enum": [
+          "graph",
+          "service",
+          "adapter"
+         ]
+        },
+        "status": {
+         "type": "integer"
+        }
+       }
+      }
+     ]
+    },
+    "annotations": {
+     "readOnlyHint": false,
+     "destructiveHint": false,
+     "idempotentHint": false
+    }
+   },
+   {
+    "name": "register_target",
+    "title": "Record a registration",
+    "description": "Record a target's submission to, or registration in, Palomar (D-10 v3.37) as a listed curator or an active steward of the target: written as registration/v1 under targets/<id>/registrations/ with `submitted_by` your GitHub login, by pull request. The registry itself is never called: the submission is your act outside the network, and this records what it answered. Your token must be one proved with GitHub (403 github-login-required otherwise); anyone else is 403 not-steward-or-curator; a node that is not the target's is 404 registration-proof-unknown; an attestation the graph lacks 404 registration-attestation-unknown, one that is not the node's passing one 400 registration-attestation-mismatch; a record that fails its schema 400 record-invalid; nothing opens on a refusal. Plain path: names and registrations: set_display_name, register_target (v3.37).",
+    "inputSchema": {
+     "type": "object",
+     "properties": {
+      "target_id": {
+       "type": "string",
+       "pattern": "^[a-z0-9][a-z0-9-]*$",
+       "description": "A target's id, as list_targets names it."
+      },
+      "registry": {
+       "enum": [
+        "palomar"
+       ],
+       "description": "Which registry; palomar is the one so far."
+      },
+      "registry_id": {
+       "type": [
+        "string",
+        "null"
+       ],
+       "description": "The registry's id once issued, PALOMAR-YYYY-MM-DD-NNNNNN; null while a submission has none."
+      },
+      "version": {
+       "type": [
+        "integer",
+        "null"
+       ],
+       "minimum": 1,
+       "description": "The registry's version of the record; null before registration."
+      },
+      "wrapper": {
+       "type": "object",
+       "description": "The wrapper repository the export wrote and you submitted: `repository` (owner/name on GitHub) and `commit` (its full sha).",
+       "properties": {
+        "repository": {
+         "type": "string"
+        },
+        "commit": {
+         "type": "string",
+         "pattern": "^[0-9a-f]{40}$"
+        }
+       },
+       "required": [
+        "repository",
+        "commit"
+       ],
+       "additionalProperties": false
+      },
+      "graph_commit": {
+       "type": "string",
+       "pattern": "^[0-9a-f]{40}$",
+       "description": "The graph commit the wrapper was exported from (opn-export.json)."
+      },
+      "proof": {
+       "type": "object",
+       "description": "Which proof: `node` (a node of the target) and `attestation` (the six-digit number of the attestation of its merge, attestations/<n>.json, as get_submission shows it).",
+       "properties": {
+        "node": {
+         "type": "string",
+         "pattern": "^[a-z0-9][a-z0-9-]*$"
+        },
+        "attestation": {
+         "type": "string",
+         "pattern": "^[0-9]{6}$"
+        }
+       },
+       "required": [
+        "node",
+        "attestation"
+       ],
+       "additionalProperties": false
+      },
+      "status": {
+       "enum": [
+        "submitted",
+        "registered",
+        "revision_required",
+        "rejected",
+        "withdrawn"
+       ],
+       "description": "As the registry last answered; withdrawn sets the registration aside."
+      },
+      "url": {
+       "type": [
+        "string",
+        "null"
+       ],
+       "maxLength": 500,
+       "description": "The registry's page for the entry once registered, https://; null before."
+      },
+      "challenge_sha256": {
+       "type": [
+        "string",
+        "null"
+       ],
+       "pattern": "^[0-9a-f]{64}$",
+       "description": "The wrapper's Challenge.lean as the registry recorded it, or null before registration."
+      },
+      "solution_sha256": {
+       "type": [
+        "string",
+        "null"
+       ],
+       "pattern": "^[0-9a-f]{64}$",
+       "description": "Likewise for Solution.lean."
+      },
+      "note": {
+       "type": [
+        "string",
+        "null"
+       ],
+       "maxLength": 1000,
+       "description": "Your words about the registration, if any."
+      }
+     },
+     "required": [
+      "target_id",
+      "registry",
+      "wrapper",
+      "graph_commit",
+      "proof",
+      "status"
+     ],
+     "additionalProperties": false
+    },
+    "outputSchema": {
+     "$schema": "https://json-schema.org/draft/2020-12/schema",
+     "$id": "https://openproof.network/schemas/mcp/register_target/v1.json",
+     "oneOf": [
+      {
+       "type": "object",
+       "required": [
+        "status",
+        "body"
+       ],
+       "properties": {
+        "status": {
+         "type": "integer"
+        },
+        "body": {
+         "type": [
+          "object",
+          "array",
+          "string",
+          "number",
+          "boolean",
+          "null"
+         ]
+        },
+        "retry_after": {
+         "type": "string"
+        }
+       }
+      },
+      {
+       "type": "object",
+       "required": [
+        "error",
+        "message",
+        "source"
+       ],
+       "additionalProperties": false,
+       "properties": {
+        "error": {
+         "type": "string"
+        },
+        "message": {
+         "type": "string"
+        },
+        "source": {
+         "enum": [
+          "graph",
+          "service",
+          "adapter"
+         ]
+        },
+        "status": {
+         "type": "integer"
+        }
+       }
+      }
+     ]
+    },
+    "annotations": {
+     "readOnlyHint": false,
+     "destructiveHint": false,
+     "idempotentHint": false
+    }
+   },
+   {
+    "name": "submit_candidate",
+    "title": "Submit a candidate formalization",
+    "description": "Submit one candidate formalization of a review's words (get_review shows the words, cases and the concepts each candidate must name as its own predicate), as your identity: written as candidate/v1 with its Lean under targets/<id>/review/candidates/, by pull request on an append/ branch the merge actor takes. Submit it blind: `read_others` must say whether you read another candidate's Lean first, and is recorded as your claim. Name the models that helped, or none for a person's candidate; the method is your last automation declaration (D-23). The gate's review job then compiles, screens and tests it. Refused 400 candidate-not-blind without read_others; 404 review-unknown for a target with no review; 409 candidate-exists for Lean already on the record; 429 after 3 candidates a day on one review; nothing opens on a refusal. Plain path: reviews: submit_candidate, and the intent signer's and the signers' acts (v3.39).",
+    "inputSchema": {
+     "type": "object",
+     "properties": {
+      "target_id": {
+       "type": "string",
+       "pattern": "^[a-z0-9][a-z0-9-]*$",
+       "description": "A target's id, as list_targets names it."
+      },
+      "lean": {
+       "type": "string",
+       "description": "The candidate's Lean file: the statement of the conjecture with each named concept as its own predicate (the format rule, F26-R5)."
+      },
+      "models": {
+       "type": "array",
+       "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 200
+       },
+       "description": "The models that helped write it, each named (D-23 v3.31); omit or [] for a person's candidate."
+      },
+      "read_others": {
+       "type": "boolean",
+       "description": "Whether you read another candidate's Lean before writing this one; required (the blind rule), recorded as your claim."
+      }
+     },
+     "required": [
+      "target_id",
+      "lean"
+     ],
+     "additionalProperties": false
+    },
+    "outputSchema": {
+     "$schema": "https://json-schema.org/draft/2020-12/schema",
+     "$id": "https://openproof.network/schemas/mcp/submit_candidate/v1.json",
+     "oneOf": [
+      {
+       "type": "object",
+       "required": [
+        "status",
+        "body"
+       ],
+       "properties": {
+        "status": {
+         "type": "integer"
+        },
+        "body": {
+         "type": [
+          "object",
+          "array",
+          "string",
+          "number",
+          "boolean",
+          "null"
+         ]
+        },
+        "retry_after": {
+         "type": "string"
+        }
+       }
+      },
+      {
+       "type": "object",
+       "required": [
+        "error",
+        "message",
+        "source"
+       ],
+       "additionalProperties": false,
+       "properties": {
+        "error": {
+         "type": "string"
+        },
+        "message": {
+         "type": "string"
+        },
+        "source": {
+         "enum": [
+          "graph",
+          "service",
+          "adapter"
+         ]
+        },
+        "status": {
+         "type": "integer"
+        }
+       }
+      }
+     ]
+    },
+    "annotations": {
+     "readOnlyHint": false,
+     "destructiveHint": false,
+     "idempotentHint": false
+    }
+   }
+  ]
+ }
+}

@@ -1,0 +1,199 @@
+{
+ "id": "01M500Q6X8X44JD9C4161GX02N",
+ "node_id": "erdos-1094--h3--h3--h1",
+ "target_id": "erdos-1094",
+ "state": "done",
+ "created": "2026-10-15T14:51:05Z",
+ "graph_commit": "ce10304b0c25662291339639e5336290ed6cc62d",
+ "bundle_digest": "03f0a5802922efd036d4661201e6227f2ad9db6a44580773675cffac07006d8e",
+ "authenticated": true,
+ "automation": null,
+ "result": {
+  "attestation": {
+   "artifact_hash": "74e2c99e7d972bfb058bceac3a8cd49df464fc99ce02dab4c5223de64261e63c",
+   "automation": null,
+   "diagnostic": {
+    "code": "axiom-not-allowed",
+    "details": {
+     "allowlist": [
+      "Classical.choice",
+      "Quot.sound",
+      "propext"
+     ],
+     "axioms": [
+      "sorryAx"
+     ]
+    },
+    "message": "the proof depends on axioms outside the allowlist: sorryAx"
+   },
+   "first_failing_step": 5,
+   "footprint": null,
+   "gate_spec_hash": "cfe31e69729e1e93a0015e913cff65ff9e09862e625c4ab5ac1c94a27c811246",
+   "graph_commit": "ce10304b0c25662291339639e5336290ed6cc62d",
+   "graph_id": "erdos-1094",
+   "lean_toolchain": "leanprover/lean4:v4.33.1",
+   "mathlib_sha": "0df444a360eaa60ab8c11dca51a86af692955474",
+   "merge_commit": null,
+   "model_and_tooling": "undeclared",
+   "network_commit": "fa0a13ba270d7b399ed9c075cb531bdaeb2776fe",
+   "node_id": "erdos-1094--h3--h3--h1",
+   "precheck_attestation": {
+    "hash": null,
+    "signature_kind": null
+   },
+   "review": null,
+   "runner": "hosted",
+   "schema": "attestation/v7",
+   "signature": {
+    "key_id": "SHA256:bJR39nO37EkRaxo4CPqdhcHk+WL+sEnAJ9ujpkF7LXo",
+    "kind": "service",
+    "timestamp": "2026-10-15T14:53:47Z",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAg4NVeR5WlT1J5vaHpDOmXNTurS+\nKqTYJTovSCpPj5G/IAAAAPb3BuLWF0dGVzdGF0aW9uAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQHGGh2noKta16AoASrpbGnMIb5cdIcf1kDn+Ion3f9f5HaXHnk\nEiOVs0Je5+veJTpHWhtuZyPV5IK6puBTMZGA8=\n-----END SSH SIGNATURE-----\n"
+   },
+   "statement_hash": "eb2d28cd33766cb6681723740bf3194ce2d3f990e77c766b7c8ceed619b928aa",
+   "steps": [
+    {
+     "diagnostic": {
+      "code": "mathlib-pinned",
+      "details": {
+       "mathlib_sha": "0df444a360eaa60ab8c11dca51a86af692955474",
+       "packages": 8
+      },
+      "message": "Mathlib 0df444a360ea resolved from the pinned checkout"
+     },
+     "name": "toolchain",
+     "result": "pass",
+     "step": 1
+    },
+    {
+     "diagnostic": null,
+     "name": "paths",
+     "result": "pass",
+     "step": 2
+    },
+    {
+     "diagnostic": null,
+     "name": "kernel-replay",
+     "result": "pass",
+     "step": 4
+    },
+    {
+     "diagnostic": {
+      "code": "axiom-not-allowed",
+      "details": {
+       "allowlist": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+       ],
+       "axioms": [
+        "sorryAx"
+       ]
+      },
+      "message": "the proof depends on axioms outside the allowlist: sorryAx"
+     },
+     "name": "axioms",
+     "result": "fail",
+     "step": 5
+    },
+    {
+     "diagnostic": null,
+     "name": "hazards",
+     "result": "skipped",
+     "step": 6
+    },
+    {
+     "diagnostic": null,
+     "name": "witness",
+     "result": "skipped",
+     "step": 7
+    },
+    {
+     "diagnostic": null,
+     "name": "deps",
+     "result": "skipped",
+     "step": 8
+    }
+   ],
+   "submitter": null,
+   "toolchain_hash": "f54d0bc916bf76a7fae460ce9d078ccd1f74aeb4fd12c4b6546bca28b6aa1c63",
+   "tooling": {
+    "harness": null,
+    "model": null
+   },
+   "trust_base": "kernel",
+   "verdict": "fail"
+  },
+  "automation": null,
+  "bundle_digest": "03f0a5802922efd036d4661201e6227f2ad9db6a44580773675cffac07006d8e",
+  "first_failing_step": 5,
+  "job_id": "01M500Q6X8X44JD9C4161GX02N",
+  "node_id": "erdos-1094--h3--h3--h1",
+  "steps": [
+   {
+    "diagnostic": {
+     "code": "mathlib-pinned",
+     "details": {
+      "mathlib_sha": "0df444a360eaa60ab8c11dca51a86af692955474",
+      "packages": 8
+     },
+     "message": "Mathlib 0df444a360ea resolved from the pinned checkout"
+    },
+    "name": "toolchain",
+    "result": "pass",
+    "step": 1
+   },
+   {
+    "diagnostic": null,
+    "name": "paths",
+    "result": "pass",
+    "step": 2
+   },
+   {
+    "diagnostic": null,
+    "name": "kernel-replay",
+    "result": "pass",
+    "step": 4
+   },
+   {
+    "diagnostic": {
+     "code": "axiom-not-allowed",
+     "details": {
+      "allowlist": [
+       "Classical.choice",
+       "Quot.sound",
+       "propext"
+      ],
+      "axioms": [
+       "sorryAx"
+      ]
+     },
+     "message": "the proof depends on axioms outside the allowlist: sorryAx"
+    },
+    "name": "axioms",
+    "result": "fail",
+    "step": 5
+   },
+   {
+    "diagnostic": null,
+    "name": "hazards",
+    "result": "skipped",
+    "step": 6
+   },
+   {
+    "diagnostic": null,
+    "name": "witness",
+    "result": "skipped",
+    "step": 7
+   },
+   {
+    "diagnostic": null,
+    "name": "deps",
+    "result": "skipped",
+    "step": 8
+   }
+  ],
+  "verdict": "fail"
+ },
+ "public": true
+}
