@@ -15,6 +15,7 @@ staged and blocks nothing.
 
 from __future__ import annotations
 
+import json
 import shutil
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -22,8 +23,25 @@ from pathlib import Path
 from opn_gate import graph as graphmod
 from opn_gate import layout, schemas
 from opn_gate.diagnostic import Diagnostic
+from opn_gate.toolchain import (
+    CloseRequest,
+    MetaprogramResult,
+    ResolvedToolchain,
+    Toolchain,
+    module_output_path,
+)
 
 NODE_FILES: tuple[str, ...] = ("Statement.lean", "Proof.lean", "Witness.lean")
+
+
+@dataclass(frozen=True)
+class Joined:
+    """F28-T8: a staged node proved by closure through a route: its staged ``Proof.lean`` is the
+    merged assembly, and its module is built by the join (``opn-close``) from these children —
+    ``(node, theorem)`` in the route's order — never compiled as it stands (it has holes)."""
+
+    decl: str
+    children: tuple[tuple[str, str], ...]
 
 
 @dataclass(frozen=True)
@@ -32,6 +50,8 @@ class Staged:
     build: Path  # where oleans go, mirroring the module paths
     order: tuple[str, ...]  # node ids in build order (deps first, the node last)
     problems: tuple[Diagnostic, ...] = field(default_factory=tuple)
+    #: F28-T8: the staged nodes whose Proof module is joined rather than compiled.
+    joined: dict[str, Joined] = field(default_factory=dict)
 
     def node_dir(self, node_id: str) -> Path:
         return self.root / "Nodes" / node_id
@@ -51,7 +71,9 @@ def generated_context(deps: list[str]) -> str:
     )
 
 
-def stage(node: layout.Node, workdir: Path, *, proof_override: Path | None = None) -> Staged:
+def stage(  # noqa: PLR0915 — one walk, every kind of staged node in it
+    node: layout.Node, workdir: Path, *, proof_override: Path | None = None
+) -> Staged:
     """Copy the node and its dependency closure into the build layout. ``proof_override`` is a
     partial's assembly (F07-R5): it is staged as the node's own ``Proof.lean``, since it declares
     the statement's theorem and is built and replayed exactly as a proof is."""
@@ -59,6 +81,7 @@ def stage(node: layout.Node, workdir: Path, *, proof_override: Path | None = Non
     build = workdir / "build"
     problems: list[Diagnostic] = []
     order: list[str] = []
+    joined: dict[str, Joined] = {}
     seen: set[str] = set()
     nodes_dir = node.path.parent
 
@@ -83,6 +106,8 @@ def stage(node: layout.Node, workdir: Path, *, proof_override: Path | None = Non
         chosen = nodes_dir / node_id / "Proof.lean"
         if node_id == node.node_id and proof_override is not None:
             chosen = proof_override
+        if not chosen.is_file():
+            chosen = closure_source(nodes_dir / node_id) or chosen  # F28-T8: a joined assembly
         if not chosen.is_file():
             return ()
         statement = nodes_dir / node_id / "Statement.lean"
@@ -113,7 +138,7 @@ def stage(node: layout.Node, workdir: Path, *, proof_override: Path | None = Non
             # R22: an unproved hole of this node is not staged and blocks nothing.
             if not (
                 graphmod.is_hole_child(nodes_dir, node_id, dep)
-                and not (nodes_dir / dep / "Proof.lean").is_file()
+                and not graphmod.has_proof(nodes_dir, dep)
             )
         ]
         # F08-T41: a proved lemma is staged and imported after the deps, as a proved hole is;
@@ -123,7 +148,7 @@ def stage(node: layout.Node, workdir: Path, *, proof_override: Path | None = Non
         # import lines, never through the generated Context.
         for dep in (*deps, *(u for u in uses_of(node_id) if u not in deps)):
             visit(dep, (*chain, node_id))
-        if node_id != node.node_id and not (src / "Proof.lean").is_file():
+        if node_id != node.node_id and not graphmod.has_proof(nodes_dir, node_id):
             problems.append(
                 Diagnostic(
                     "dep-unproved",
@@ -138,10 +163,80 @@ def stage(node: layout.Node, workdir: Path, *, proof_override: Path | None = Non
                 shutil.copy(src / name, dest / name)
         if node_id == node.node_id and proof_override is not None:
             shutil.copy(proof_override, dest / "Proof.lean")
+        elif node_id != node.node_id and not (src / "Proof.lean").is_file():
+            closed = stage_closure(src, dest)
+            if closed is not None:
+                joined[node_id] = closed
         (dest / "Context.lean").write_text(generated_context(deps), encoding="utf-8")
         (build / "Nodes" / node_id).mkdir(parents=True, exist_ok=True)
         seen.add(node_id)
         order.append(node_id)
 
     visit(node.node_id, ())
-    return Staged(root=root, build=build, order=tuple(order), problems=tuple(problems))
+    return Staged(
+        root=root, build=build, order=tuple(order), problems=tuple(problems), joined=joined
+    )
+
+
+def stage_closure(src: Path, dest: Path) -> Joined | None:
+    """F28-T8: stage a node proved by closure. A variant carries its composed proof in
+    the record, staged as ``Proof.lean`` and compiled like any proof (``None``). A route's merged
+    assembly is staged as ``Proof.lean`` and its module joined (``Joined``)."""
+    from opn_gate import closure  # noqa: PLC0415 — a light module; kept beside its one use
+
+    record = closure.load(src)
+    if record is None:
+        return None
+    text = record["source"]["text"]
+    if text is not None:
+        (dest / "Proof.lean").write_text(str(text), encoding="utf-8")
+        return None
+    shutil.copy(src / str(record["source"]["path"]), dest / "Proof.lean")
+    nodes_dir = src.parent
+    children: list[tuple[str, str]] = []
+    for child in record["link"]["inputs"]:
+        statement = layout.parse_statement(
+            (nodes_dir / child / "Statement.lean").read_text(encoding="utf-8")
+        )
+        if isinstance(statement, layout.Statement):
+            children.append((str(child), statement.decl_name))
+    statement = layout.parse_statement((src / "Statement.lean").read_text(encoding="utf-8"))
+    decl = statement.decl_name if isinstance(statement, layout.Statement) else ""
+    return Joined(decl=decl, children=tuple(children))
+
+
+def closure_source(node_dir: Path) -> Path | None:
+    """F28-T8: the merged assembly a route closure joins, as a file in the tree, or ``None``."""
+    from opn_gate import closure  # noqa: PLC0415
+
+    record = closure.load(node_dir)
+    if record is None or record["source"]["path"] is None:
+        return None
+    return node_dir / str(record["source"]["path"])
+
+
+def join_module(
+    toolchain: Toolchain,
+    tc: ResolvedToolchain,
+    staged: Staged,
+    node_id: str,
+    *,
+    timeout_s: float | None,
+) -> MetaprogramResult:
+    """F28-T8: build a route closure's ``Proof`` module by the join, into the staged build, from
+    its staged assembly and its children (whose modules were built before it, in order)."""
+    spec = staged.joined[node_id]
+    children = staged.root.parent / "joins" / f"{node_id}.children.json"
+    children.parent.mkdir(parents=True, exist_ok=True)
+    children.write_text(
+        json.dumps([{"node": n, "decl": d} for n, d in spec.children]), encoding="utf-8"
+    )
+    module = layout.node_module(node_id, "Proof")
+    request = CloseRequest(
+        staged.root / staged.rel(node_id, "Proof"),
+        module,
+        spec.decl,
+        children,
+        staged.build / module_output_path(module, ".olean"),
+    )
+    return toolchain.close(tc, request, [staged.build], timeout_s=timeout_s)

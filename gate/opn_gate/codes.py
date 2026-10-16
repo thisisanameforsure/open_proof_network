@@ -947,6 +947,13 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "A declared dependency is not a node of this target.",
         "Declare only node ids that exist in the target (get_target lists them).",
     ),
+    "closure-join-failed": (
+        "gate",
+        4,
+        "A dependency proved by closure did not join: its assembly and its inputs' proofs no "
+        "longer make the kernel-checked theorem its closure record says they do.",
+        "Report it to a curator: the record or an input changed under it (F28-T8).",
+    ),
     "dep-unproved": (
         "gate",
         4,

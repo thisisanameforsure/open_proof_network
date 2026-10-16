@@ -47,14 +47,13 @@ def test_the_record_no_longer_waits_for_the_cache(gate_doc: dict[Any, Any]) -> N
 
 
 def test_after_the_push_the_job_only_dispatches(gate_doc: dict[Any, Any]) -> None:
-    """The site, the merge actor and the closer (F28-T5) hear of the merge as soon as its record
-    lands."""
+    """The site and the merge actor hear of the merge as soon as its record lands. (Closing by
+    construction, F28-T9, happens inside the job before the record, not after it.)"""
     names = [str(s.get("name", "")) for s in steps(gate_doc, POSTMERGE)]
     commit = next(i for i, n in enumerate(names) if n.startswith("Commit the attestation"))
     assert [n.split(" ", 3)[:3] for n in names[commit + 1 :]] == [
         ["Ask", "the", "site"],
         ["Wake", "the", "merge"],
-        ["Wake", "the", "closer"],
     ], names[commit:]
 
 
@@ -98,7 +97,14 @@ def test_the_cache_job_builds_exactly_the_merge_commit_with_the_rendering_gate(
 
 
 def test_the_verdict_is_re_derived_only_for_a_merge_that_builds(gate_doc: dict[Any, Any]) -> None:
-    for prefix in ("Re-derive the verdict", "Sign with the gate key"):
-        assert named(gate_doc, POSTMERGE, prefix)["if"] == (
-            "steps.classify.outputs.needs_gate == 'true'"
-        ), prefix
+    assert named(gate_doc, POSTMERGE, "Re-derive the verdict")["if"] == (
+        "steps.classify.outputs.needs_gate == 'true'"
+    )
+    # F28-T9: the key step also runs to sign closure records, but the merge's attestation is
+    # signed only for a merge that builds, under the same condition inside the step.
+    sign = named(gate_doc, POSTMERGE, "Sign with the gate key")
+    assert sign["if"] == (
+        "steps.classify.outputs.needs_gate == 'true' || steps.join.outputs.closed == 'true'"
+    )
+    assert sign["env"]["NEEDS_GATE"] == "${{ steps.classify.outputs.needs_gate }}"
+    assert 'if [ "$NEEDS_GATE" = "true" ]; then' in sign["run"]

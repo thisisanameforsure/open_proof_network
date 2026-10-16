@@ -1,19 +1,17 @@
 """Closable nodes, read from a target's ``graph.json`` (F28-T1; draft decisions v3.41).
 
 A node is *closable* when its proof exists in parts and only their join is missing. Three kinds of
-link join a node to the proofs that would prove it, each kernel-checked already:
+link joined a node to the proofs that would prove it; two remain since D-12 v3.42 retired the
+circularity claim (F08-T42), each kernel-checked already:
 
 * a **route** (F27): a merged decomposition of the node, every hole of which is needed (D-12 #5);
-* a node's own **circularity claim** (D-12 v3.23), whose exhibit proves that the claiming node
-  implies the ancestor it names; the claim alone closes nothing (v3.35), a proof of the claiming
-  node with it does;
 * at the root, a **resolves variant** (D-30), whose ``Relation.lean`` takes a proof of the variant
   to a proof of the root.
 
 The closable set is the least fixed point of "not proved, not dead, and some link has every input
 proved or closable", so a cycle never supports itself (F28-R3). Each closable node names the link
 the closing proof would use: the first *ready* one (every input proved) in record order — routes
-in merge order, then claims, then variants — else the first satisfiable one (F28-R2).
+in merge order, then variants — else the first satisfiable one (F28-R2).
 
 Nothing here is a status. A closable node is still open until its closing proof merges (v3.41);
 this only says which joins exist. Derived where it is read, like F27, so it needs no product field
@@ -31,18 +29,16 @@ from typing import Any, Literal
 # disagree about what a route is.
 from opn_gate.routes import DEAD_STATUSES, PROVED, RESOLVES, _hole_nodes, _rows
 
-LinkKind = Literal["route", "claim", "variant"]
+LinkKind = Literal["route", "variant"]
 
-#: A circularity claim is named ``<hole>/defects/<file>`` (``graph/v9``'s ``circular``); a node's
-#: own claims are the ones under its own id. The others in its list are v3.22's path labels
-#: (F28-Q5).
-DEFECTS_DIR = "/defects/"
+#: F08-T42 (D-12 v3.42) retired the circularity claim, and with it F28's claim link: a proved hole
+#: closes what it was cut from through a route (its parent's assembly), never through an exhibit.
 
 
 @dataclass(frozen=True)
 class Link:
-    """What joins a node to the proofs that prove it: a route (``<node>@<k>``, F27), a node's own
-    circularity claim (``<hole>/defects/<file>``, D-12 v3.23) or a ``resolves`` variant (D-30)."""
+    """What joins a node to the proofs that prove it: a route (``<node>@<k>``, F27) or a
+    ``resolves`` variant (D-30)."""
 
     kind: LinkKind
     id: str
@@ -71,8 +67,8 @@ def _status(rows: Mapping[str, Mapping[str, Any]], node_id: str) -> str | None:
 
 
 def links(graph: Mapping[str, Any]) -> dict[str, list[Link]]:
-    """Every link of every node, in record order: routes in merge order, then claims, then
-    variants. A route with an unresolved hole is not a link (F27-R2)."""
+    """Every link of every node, in record order: routes in merge order, then variants. A route
+    with an unresolved hole is not a link (F27-R2)."""
     rows = _rows(graph)
     root = str(graph.get("root"))
     out: dict[str, list[Link]] = {node_id: [] for node_id in rows}
@@ -85,11 +81,6 @@ def links(graph: Mapping[str, Any]) -> dict[str, list[Link]]:
             # so the fixed point can never satisfy it, and no separate filter is needed.
             inputs = tuple(dict.fromkeys(str(n) for n in nodes))
             out[node_id].append(Link("route", f"{node_id}@{k}", inputs))
-    for node_id, row in rows.items():
-        for c in row.get("circular") or []:
-            name, ancestor = str(c.get("claim")), str(c.get("ancestor"))
-            if name.startswith(node_id + DEFECTS_DIR) and ancestor in out:
-                out[ancestor].append(Link("claim", name, (node_id,)))
     if root in out:
         for node_id, row in rows.items():
             if node_id != root and row.get("relation") == RESOLVES:
