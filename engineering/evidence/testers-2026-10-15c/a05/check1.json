@@ -1,0 +1,80 @@
+{
+ "status": 200,
+ "body": {
+  "authoritative": false,
+  "service": "axle",
+  "environment": "lean-4.33.1",
+  "exact": true,
+  "note": null,
+  "mode": "check",
+  "lint": [
+   {
+    "code": "header-diverges",
+    "message": "Proof.lean diverges from Statement.lean at line 6 (header or signature): the gate takes a proof as the statement with its sorry replaced (F00-R19) and refuses this at step 2",
+    "line": 6,
+    "expected": "/-! Hole `h_gp` of a merged partial proof, as a node (D-12 #5, D-29).",
+    "got": "theorem erdos_1094__h2__h1__h1__h1 : ∃ (K : ℕ),"
+   },
+   {
+    "code": "sorry-present",
+    "message": "the text still uses sorry; a proof with sorry fails the axiom step, and a skeleton is submitted as a partial"
+   }
+  ],
+  "inlined_defs": [
+   "Nodes.«erdos-1094--h2--h1--h1--h1».Context"
+  ],
+  "okay": false,
+  "user_error": null,
+  "result": {
+   "content": "import Mathlib\n\n-- inlined by the network from Nodes.«erdos-1094--h2--h1--h1--h1».Context (F13-R5)\n/-! Declared dependencies (D-4 step 8): none. -/\n\n\nopen scoped Nat\n\ntheorem erdos_1094__h2__h1__h1__h1 : ∃ (K : ℕ),\n  ∀ (n k : ℕ),\n    (0 : ℕ) < k → (2 : ℕ) * k ≤ n → n < k * k * k → (n.choose k).minFac > k → (n / n.gcd k).minFac > k → k ≤ K := by\n  -- Split the range 2k ≤ n < k³ at n = k²: the lower band (n < k², Sylvester–Schur/Ecklund\n  -- regime) and the upper band (k² ≤ n < k³). Each hole carries a stronger hypothesis.\n  have h_low : ∃ (K : ℕ), ∀ (n k : ℕ), (0 : ℕ) < k → (2 : ℕ) * k ≤ n → n < k * k →\n      (n.choose k).minFac > k → (n / n.gcd k).minFac > k → k ≤ K := by\n    sorry\n  have h_high : ∃ (K : ℕ), ∀ (n k : ℕ), (0 : ℕ) < k → k * k ≤ n → n < k * k * k →\n      (n.choose k).minFac > k → (n / n.gcd k).minFac > k → k ≤ K := by\n    sorry\n  obtain ⟨K1, hK1⟩ := h_low\n  obtain ⟨K2, hK2⟩ := h_high\n  refine ⟨max K1 K2, fun n k hk hn hn3 hc hg => ?_⟩\n  rcases lt_or_ge n (k * k) with h | h\n  · exact le_max_of_le_left (hK1 n k hk hn h hc hg)\n  · exact le_max_of_le_right (hK2 n k hk h hn3 hc hg)\n\n",
+   "failed_declarations": [
+    "erdos_1094__h2__h1__h1__h1"
+   ],
+   "lean_messages": {
+    "errors": [],
+    "infos": [],
+    "warnings": [
+     "-:9:8-9:34: warning: declaration uses `sorry`\n"
+    ]
+   },
+   "okay": true,
+   "timings": {
+    "parse_ms": 33,
+    "total_ms": 39
+   },
+   "tool_messages": {
+    "errors": [],
+    "infos": [
+     "-:16:4: info: unsolved goals at sorry:\n⊢ ∃ K, ∀ (n k : ℕ), 0 < k → 2 * k ≤ n → n < k * k → (n.choose k).minFac > k → (n / n.gcd k).minFac > k → k ≤ K",
+     "-:19:4: info: unsolved goals at sorry:\nh_low : ∃ K, ∀ (n k : ℕ), 0 < k → 2 * k ≤ n → n < k * k → (n.choose k).minFac > k → (n / n.gcd k).minFac > k → k ≤ K\n⊢ ∃ K, ∀ (n k : ℕ), 0 < k → k * k ≤ n → n < k * k * k → (n.choose k).minFac > k → (n / n.gcd k).minFac > k → k ≤ K"
+    ],
+    "warnings": [
+     "Declaration 'erdos_1094__h2__h1__h1__h1' is incomplete (uses 'sorry' or has errors)"
+    ]
+   },
+   "info": {
+    "request_id": "c13a32bd-81c2-445f-a24e-82cb6ccc4f14",
+    "environment": "lean-4.33.1",
+    "total_request_time_ms": 88,
+    "queue_time_ms": 1,
+    "execution_time_ms": 87,
+    "cached_response": false,
+    "_executor_commit_sha": "a1c7cfcab0a878791ac3fbae13ec37d0bc73c4e2",
+    "_executor_docker_image_id": "sha256:c92973993b3292a8095e1245ef33dc02542d78584fb4a2fa2cccfaad563ae10b",
+    "_executor_artifact_sha256": "0b8b537747bad179ee2a15c495377ea62acd2440bc172cb97834b6fd68c80939",
+    "environment_wait_time_us": 7,
+    "environment_total_time_us": 85658,
+    "environment_pool_size": 64,
+    "_predicted_warmness": "warm",
+    "_actual_env_warm_state": "warm"
+   }
+  },
+  "dropped_warnings": [
+   {
+    "linter": "linter.style.nameCheck",
+    "declaration": "erdos_1094__h2__h1__h1__h1"
+   }
+  ],
+  "log_id": "01M500MZM0VE781R8PZ4XDMWW5"
+ }
+}

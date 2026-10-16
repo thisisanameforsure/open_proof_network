@@ -1,0 +1,12 @@
+{
+ "status": 409,
+ "body": {
+  "error": "duplicate-submission",
+  "message": "this is, comments and whitespace aside, the proof already open for erdos-1094--h2--h2--h2--h3--h1--h1--h1--h1 as pull request #550; a different proof may race it, a copy may not (D-25)",
+  "details": {
+   "pr_number": 550,
+   "pr_url": "https://github.com/thisisanameforsure/open_proof_network_graph/pull/550",
+   "submission_id": "01M5013KCREFAKA4VS9BJHANT8"
+  }
+ }
+}

@@ -1,0 +1,312 @@
+{
+ "id": "01M500PPA0MK63P6T6SBR8E2EE",
+ "node_id": "erdos-1094--h3--h1--h1--h1",
+ "target_id": "erdos-1094",
+ "state": "done",
+ "created": "2026-10-15T14:50:48Z",
+ "graph_commit": "ce10304b0c25662291339639e5336290ed6cc62d",
+ "bundle_digest": "923066e8d2601d8fd6fa8f3c61c0c7157238675ee568241ce12f9c99d00b94fd",
+ "authenticated": true,
+ "automation": null,
+ "result": {
+  "attestation": {
+   "artifact_hash": null,
+   "automation": null,
+   "diagnostic": null,
+   "first_failing_step": null,
+   "footprint": {
+    "nodes": []
+   },
+   "gate_spec_hash": "cfe31e69729e1e93a0015e913cff65ff9e09862e625c4ab5ac1c94a27c811246",
+   "graph_commit": "ce10304b0c25662291339639e5336290ed6cc62d",
+   "graph_id": "erdos-1094",
+   "lean_toolchain": "leanprover/lean4:v4.33.1",
+   "mathlib_sha": "0df444a360eaa60ab8c11dca51a86af692955474",
+   "merge_commit": null,
+   "model_and_tooling": "undeclared",
+   "network_commit": "fa0a13ba270d7b399ed9c075cb531bdaeb2776fe",
+   "node_id": "erdos-1094--h3--h1--h1--h1",
+   "precheck_attestation": {
+    "hash": null,
+    "signature_kind": null
+   },
+   "review": null,
+   "runner": "hosted",
+   "schema": "attestation/v7",
+   "signature": {
+    "key_id": "SHA256:bJR39nO37EkRaxo4CPqdhcHk+WL+sEnAJ9ujpkF7LXo",
+    "kind": "service",
+    "timestamp": "2026-10-15T14:54:21Z",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAg4NVeR5WlT1J5vaHpDOmXNTurS+\nKqTYJTovSCpPj5G/IAAAAPb3BuLWF0dGVzdGF0aW9uAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQCajtb54LPp9FgC8vpyUscNXVlGP2kAkw0L9dO3Jk3kfMcO2Ud\nR9JHjHER6RbZZHs4H/jqMDYTL33x847HaPDgs=\n-----END SSH SIGNATURE-----\n"
+   },
+   "statement_hash": "01cf8cc0e289904af3e49be8c30c6396d8d180e9fbff689fae475426d88292ea",
+   "steps": [
+    {
+     "diagnostic": {
+      "code": "mathlib-pinned",
+      "details": {
+       "mathlib_sha": "0df444a360eaa60ab8c11dca51a86af692955474",
+       "packages": 8
+      },
+      "message": "Mathlib 0df444a360ea resolved from the pinned checkout"
+     },
+     "name": "toolchain",
+     "result": "pass",
+     "step": 1
+    },
+    {
+     "diagnostic": {
+      "code": "partial-submission",
+      "details": {
+       "path": "attempts/20261015T145000Z-t1015c-a12-partial.lean"
+      },
+      "message": "a partial proof: attempts/20261015T145000Z-t1015c-a12-partial.lean (D-12 #5)"
+     },
+     "name": "paths",
+     "result": "pass",
+     "step": 2
+    },
+    {
+     "diagnostic": {
+      "code": "artifact-partial",
+      "details": {
+       "holes": [
+        "h_k30",
+        "h_k6rest"
+       ],
+       "kind": "partial"
+      },
+      "message": "partial: erdos_1094__h3__h1__h1__h1 declares ∃ K₁, ∀ (n k : ℕ), K₁ < k → 2 * k ≤ n → n < k * k → k % 2 = 0 → k % 3 = 0 → ∃ p, Nat.Prime p ∧ p ≤ k ∧ n % p < k % p; 2 hole(s)"
+     },
+     "name": "kernel-replay",
+     "result": "pass",
+     "step": 4
+    },
+    {
+     "diagnostic": null,
+     "name": "axioms",
+     "result": "pass",
+     "step": 5
+    },
+    {
+     "diagnostic": {
+      "code": "hazards-derived-statement",
+      "details": {
+       "acknowledged": [],
+       "checkers": [
+        "div-zero",
+        "int-trunc",
+        "junk-value",
+        "nat-sub",
+        "off-by-one-range",
+        "unused-binder"
+       ],
+       "findings": [
+        {
+         "checker": "div-zero",
+         "location": "k % p",
+         "message": "modulo by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"
+        },
+        {
+         "checker": "div-zero",
+         "location": "n % p",
+         "message": "modulo by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"
+        }
+       ],
+       "origin": "compiler-derived"
+      },
+      "message": "2 hazard finding(s) on a statement the gate derived from a merged assembly, recorded and not refused; first: div-zero at k % p: modulo by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"
+     },
+     "name": "hazards",
+     "result": "pass",
+     "step": 6
+    },
+    {
+     "diagnostic": {
+      "code": "hole-witnesses",
+      "details": {
+       "witnesses": [
+        {
+         "hole": "h_k30",
+         "path": "attempts/20261015T145000Z-t1015c-a12-partial.1.witness",
+         "sha256": "2efbb1410784b5e1cb7f08b76839598f55c845576fcafbdc7ab33d83e0cb415d"
+        },
+        {
+         "hole": "h_k6rest",
+         "path": "attempts/20261015T145000Z-t1015c-a12-partial.2.witness",
+         "sha256": "16976aa66329f69855ef929d43c603e54a97f8c0b97ee42739c7e289a52d4182"
+        }
+       ]
+      },
+      "message": "2 of 2 hole(s) carry a witness, each checked as step 7 checks a node's (F07-R23)"
+     },
+     "name": "witness",
+     "result": "pass",
+     "step": 7
+    },
+    {
+     "diagnostic": null,
+     "name": "deps",
+     "result": "pass",
+     "step": 8
+    }
+   ],
+   "submitter": null,
+   "toolchain_hash": "f54d0bc916bf76a7fae460ce9d078ccd1f74aeb4fd12c4b6546bca28b6aa1c63",
+   "tooling": {
+    "harness": null,
+    "model": null
+   },
+   "trust_base": "kernel",
+   "verdict": "pass"
+  },
+  "automation": null,
+  "bundle_digest": "923066e8d2601d8fd6fa8f3c61c0c7157238675ee568241ce12f9c99d00b94fd",
+  "first_failing_step": null,
+  "holes": [
+   {
+    "closed_type": "∃ (K₁ : ℕ),\n  ∀ (n k : ℕ),\n    K₁ < k →\n      (2 : ℕ) * k ≤ n →\n        n < k * k →\n          k % (2 : ℕ) = (0 : ℕ) →\n            k % (3 : ℕ) = (0 : ℕ) → k % (5 : ℕ) = (0 : ℕ) → ∃ (p : ℕ), Nat.Prime p ∧ p ≤ k ∧ n % p < k % p",
+    "expected_new": true,
+    "expected_node_id": "erdos-1094--h3--h1--h1--h1--h1",
+    "expected_witness": "True",
+    "name": "h_k30",
+    "proved_binders": [],
+    "restates": null,
+    "witness": {
+     "checked": true,
+     "path": "attempts/20261015T145000Z-t1015c-a12-partial.1.witness",
+     "sha256": "2efbb1410784b5e1cb7f08b76839598f55c845576fcafbdc7ab33d83e0cb415d"
+    }
+   },
+   {
+    "closed_type": "∃ (K₂ : ℕ),\n  ∀ (n k : ℕ),\n    K₂ < k →\n      (2 : ℕ) * k ≤ n →\n        n < k * k →\n          k % (2 : ℕ) = (0 : ℕ) →\n            k % (3 : ℕ) = (0 : ℕ) →\n              (0 : ℕ) < k % (5 : ℕ) → k % (5 : ℕ) ≤ n % (5 : ℕ) → ∃ (p : ℕ), Nat.Prime p ∧ p ≤ k ∧ n % p < k % p",
+    "expected_new": true,
+    "expected_node_id": "erdos-1094--h3--h1--h1--h1--h2",
+    "expected_witness": "True",
+    "name": "h_k6rest",
+    "proved_binders": [],
+    "restates": null,
+    "witness": {
+     "checked": true,
+     "path": "attempts/20261015T145000Z-t1015c-a12-partial.2.witness",
+     "sha256": "16976aa66329f69855ef929d43c603e54a97f8c0b97ee42739c7e289a52d4182"
+    }
+   }
+  ],
+  "job_id": "01M500PPA0MK63P6T6SBR8E2EE",
+  "node_id": "erdos-1094--h3--h1--h1--h1",
+  "steps": [
+   {
+    "diagnostic": {
+     "code": "mathlib-pinned",
+     "details": {
+      "mathlib_sha": "0df444a360eaa60ab8c11dca51a86af692955474",
+      "packages": 8
+     },
+     "message": "Mathlib 0df444a360ea resolved from the pinned checkout"
+    },
+    "name": "toolchain",
+    "result": "pass",
+    "step": 1
+   },
+   {
+    "diagnostic": {
+     "code": "partial-submission",
+     "details": {
+      "path": "attempts/20261015T145000Z-t1015c-a12-partial.lean"
+     },
+     "message": "a partial proof: attempts/20261015T145000Z-t1015c-a12-partial.lean (D-12 #5)"
+    },
+    "name": "paths",
+    "result": "pass",
+    "step": 2
+   },
+   {
+    "diagnostic": {
+     "code": "artifact-partial",
+     "details": {
+      "holes": [
+       "h_k30",
+       "h_k6rest"
+      ],
+      "kind": "partial"
+     },
+     "message": "partial: erdos_1094__h3__h1__h1__h1 declares ∃ K₁, ∀ (n k : ℕ), K₁ < k → 2 * k ≤ n → n < k * k → k % 2 = 0 → k % 3 = 0 → ∃ p, Nat.Prime p ∧ p ≤ k ∧ n % p < k % p; 2 hole(s)"
+    },
+    "name": "kernel-replay",
+    "result": "pass",
+    "step": 4
+   },
+   {
+    "diagnostic": null,
+    "name": "axioms",
+    "result": "pass",
+    "step": 5
+   },
+   {
+    "diagnostic": {
+     "code": "hazards-derived-statement",
+     "details": {
+      "acknowledged": [],
+      "checkers": [
+       "div-zero",
+       "int-trunc",
+       "junk-value",
+       "nat-sub",
+       "off-by-one-range",
+       "unused-binder"
+      ],
+      "findings": [
+       {
+        "checker": "div-zero",
+        "location": "k % p",
+        "message": "modulo by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"
+       },
+       {
+        "checker": "div-zero",
+        "location": "n % p",
+        "message": "modulo by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"
+       }
+      ],
+      "origin": "compiler-derived"
+     },
+     "message": "2 hazard finding(s) on a statement the gate derived from a merged assembly, recorded and not refused; first: div-zero at k % p: modulo by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"
+    },
+    "name": "hazards",
+    "result": "pass",
+    "step": 6
+   },
+   {
+    "diagnostic": {
+     "code": "hole-witnesses",
+     "details": {
+      "witnesses": [
+       {
+        "hole": "h_k30",
+        "path": "attempts/20261015T145000Z-t1015c-a12-partial.1.witness",
+        "sha256": "2efbb1410784b5e1cb7f08b76839598f55c845576fcafbdc7ab33d83e0cb415d"
+       },
+       {
+        "hole": "h_k6rest",
+        "path": "attempts/20261015T145000Z-t1015c-a12-partial.2.witness",
+        "sha256": "16976aa66329f69855ef929d43c603e54a97f8c0b97ee42739c7e289a52d4182"
+       }
+      ]
+     },
+     "message": "2 of 2 hole(s) carry a witness, each checked as step 7 checks a node's (F07-R23)"
+    },
+    "name": "witness",
+    "result": "pass",
+    "step": 7
+   },
+   {
+    "diagnostic": null,
+    "name": "deps",
+    "result": "pass",
+    "step": 8
+   }
+  ],
+  "verdict": "pass"
+ },
+ "public": true
+}
