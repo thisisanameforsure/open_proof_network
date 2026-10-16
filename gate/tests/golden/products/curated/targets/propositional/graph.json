@@ -2,7 +2,6 @@
   "nodes": [
     {
       "cause": null,
-      "circular": [],
       "closure": null,
       "decompositions": [],
       "defect_claims": [],
@@ -26,7 +25,6 @@
     },
     {
       "cause": null,
-      "circular": [],
       "closure": null,
       "decompositions": [],
       "defect_claims": [],
@@ -53,7 +51,6 @@
     },
     {
       "cause": null,
-      "circular": [],
       "closure": null,
       "decompositions": [],
       "defect_claims": [],
@@ -104,7 +101,7 @@
     "tracking": null
   },
   "root": "and-swap-reassoc",
-  "schema": "graph/v10",
+  "schema": "graph/v11",
   "target_id": "propositional",
   "target_proofs": []
 }

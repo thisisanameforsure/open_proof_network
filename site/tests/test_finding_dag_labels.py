@@ -67,9 +67,9 @@ def pill_text(svg: str, node_id: str) -> str:
 
 
 def test_no_pill_runs_its_label_into_its_badge_or_its_title() -> None:
-    """F04-T41 (b): a pill's label, its outline badge's count, its circularity glyph and its
-    title are separate words once the tags are stripped, so no pill reads
-    ``h2--h11erdos-1094--h2--h1`` as the live erdos-1094 page did."""
+    """F04-T41 (b): a pill's label, its outline badge's count and its title are separate words
+    once the tags are stripped, so no pill reads ``h2--h11erdos-1094--h2--h1`` as the live
+    erdos-1094 page did. (Its circularity glyph, retired by F04-T53, was the third.)"""
     target = "erdos-1094"
     ids = [target, f"{target}--h2", f"{target}--h2--h1"]
     nodes: list[dict[str, Any]] = [
@@ -81,7 +81,6 @@ def test_no_pill_runs_its_label_into_its_badge_or_its_title() -> None:
         nodes,
         href={i: f"/nodes/{target}/{i}/" for i in ids},
         outlines={ids[1]: 1, ids[2]: 2},
-        labelled={ids[2]},
         root=target,
         prefix=target,
     )
@@ -92,4 +91,3 @@ def test_no_pill_runs_its_label_into_its_badge_or_its_title() -> None:
         assert f"{node_id}:" in words, ("the title's id is a word of its own", words)
         assert not any(re.match(rf"{re.escape(label)}\d", w) for w in words), words
     assert "1" in pill_text(out, ids[1]).split()
-    assert "⇒" in pill_text(out, ids[2]).split()

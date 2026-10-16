@@ -1,0 +1,22 @@
+.F                                                                       [100%]
+=================================== FAILURES ===================================
+___________ test_a_retired_class_claim_is_history_not_an_open_claim ____________
+
+current = {'index.html': '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="widt...6666666666666666666666666666666666666/frontier.json">frontier.json ↗</a></span>\n</footer>\n\n</body>\n</html>\n', ...}
+
+    def test_a_retired_class_claim_is_history_not_an_open_claim(current: dict[str, str]) -> None:
+        """D-12 v3.42: a merged claim of the retired class says nothing about the statement, so the
+        page lists it as history and never as a claim open against the statement."""
+        page = current[f"nodes/{TARGET}/{HOLE}/index.html"]
+        listed = page.split('class="defect-claims"', 1)[1].split("</div>", 1)[0]
+>       assert "open against this statement" not in listed
+E       assert 'open agains...is statement' not in '><p>A defec...a></li></ul>'
+E         
+E         'open against this statement' is contained here:
+E           ><p>A defect claim is open against this statement (D-16). A claim says the statement may not mean what it should; it blocks nothing until a curator accepts it.</p><ul><li><code>circular-decomposition</code> · claim open · <a class="file" href="https://github.com/example/graph/blob/6666666666666666666666666666666666666666/targets/propositional/nodes/and-swap-reassoc--h1/defects/20260923T120000Z-alice.yaml">targets/propositional/nodes/and-swap-reassoc--h1/defects/20260923T120000Z-alice.yaml</a></li></ul>
+E         ?                       +++++++++++++++++++++++++++
+
+site/tests/test_finding_circularity_retired_site.py:238: AssertionError
+=========================== short test summary info ============================
+FAILED site/tests/test_finding_circularity_retired_site.py::test_a_retired_class_claim_is_history_not_an_open_claim
+1 failed, 1 passed, 22 deselected in 0.89s

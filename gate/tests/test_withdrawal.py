@@ -183,17 +183,19 @@ def test_a_withdrawal_of_a_withdrawal_is_refused(tmp_path: Path) -> None:
 # --- every reader reads a withdrawn record as absent ----------------------------------------------
 
 
-def test_a_withdrawn_circularity_claim_removes_the_holes_label(tmp_path: Path) -> None:
-    """Restated for D-12 v3.35 (F08-T39): a merged claim no longer takes the hole off the
-    frontier, it labels it; a withdrawal reads the claim as absent, so the label goes."""
+def test_a_withdrawn_claim_is_listed_as_withdrawn(tmp_path: Path) -> None:
+    """Restated for D-12 v3.43 (F08-T42): a merged claim of the retired circularity class labels
+    nothing and moves nothing, so what a withdrawal changes is the claim's own standing in the
+    list every reader shows (F08-T36); the hole is on the frontier throughout."""
     root = copy_graph(tmp_path, publish=True)
     file_claim(root)
-    assert HOLE in frontier_ids(root), "the claim is a label, not a removal (D-12 v3.35)"
-    assert graph.load_target(root, TARGET).nodes[HOLE].circular != (), "guard: labelled"
+    assert HOLE in frontier_ids(root)
+    [before] = records.defect_claims(root / NODE_DIR)
+    assert not before.withdrawn, "guard: standing"
     file_withdrawal(root)
     assert HOLE in frontier_ids(root)
-    node = graph.load_target(root, TARGET).nodes[HOLE]
-    assert node.circular == () and node.circular_claims == ()
+    [after] = records.defect_claims(root / NODE_DIR)
+    assert after.withdrawn
     assert (root / CLAIM).is_file(), "the withdrawn file stays in the tree"
 
 
@@ -234,7 +236,8 @@ def test_a_malformed_withdrawal_withdraws_nothing(tmp_path: Path) -> None:
     root = copy_graph(tmp_path)
     file_claim(root)
     write_yaml(root, WITHDRAWAL, {**withdrawal_doc(), "reason": ""})
-    assert records.circular_claim(root / NODE_DIR) == f"defects/{CLAIM_NAME}"
+    [claim] = records.defect_claims(root / NODE_DIR)
+    assert claim.file == f"defects/{CLAIM_NAME}" and not claim.withdrawn
 
 
 def test_withdrawing_rewrites_nothing_and_a_revert_restores_the_products(tmp_path: Path) -> None:

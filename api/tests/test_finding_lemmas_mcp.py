@@ -67,13 +67,22 @@ def _accept_v6(monkeypatch: pytest.MonkeyPatch) -> None:
 
 # --- get_node -------------------------------------------------------------------------------------
 
+#: The fields a context/v5 or v6 snapshot requires that today's derived bundle may lack: v5's
+#: three, and ``circular_below`` (context/v2 to v7), which F08-T42 dropped at context/v8.
+SNAPSHOT_FIELDS: tuple[tuple[str, Any], ...] = (
+    ("circular", []),
+    ("circular_below", []),
+    ("literature", None),
+    ("literature_proposed", None),
+)
+
 
 def context_v6(harness: Harness, tree: Path, lemmas: list[dict[str, Any]]) -> dict[str, Any]:
     """The fixture node's derived bundle lifted to context/v6 by hand, carrying ``lemmas``."""
     derived = derived_bundle(harness, tree)
     v6 = {**derived, "schema": "context/v6", "lemmas": lemmas}
     v6.pop("review", None)  # F26-T1: context/v7 added it; a v6 snapshot has none
-    for field, value in (("circular", []), ("literature", None), ("literature_proposed", None)):
+    for field, value in SNAPSHOT_FIELDS:
         v6.setdefault(field, value)
     assert schemas.violations(v6, "context/v6") == [], "the hand-written v6 is not v6"
     return v6
@@ -105,7 +114,7 @@ def test_get_node_on_an_older_context_answers_no_lemmas(harness: Harness, tmp_pa
     v5 = {**derived_bundle(harness, tmp_path / "tree"), "schema": "context/v5"}
     v5.pop("lemmas", None)
     v5.pop("review", None)  # F26-T1: context/v7 added it
-    for field, value in (("circular", []), ("literature", None), ("literature_proposed", None)):
+    for field, value in SNAPSHOT_FIELDS:
         v5.setdefault(field, value)
     assert schemas.violations(v5, "context/v5") == [], "the hand-written v5 is not v5"
     commit_context(harness, v5)

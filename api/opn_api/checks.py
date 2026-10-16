@@ -2430,7 +2430,7 @@ async def preflight_relation(  # noqa: PLR0911, PLR0912, PLR0913, PLR0915 — on
 #: What a defect claim's or revision request's receipt says of its exhibit (F13-T22): the checker
 #: compiled it; it answered without a verdict or with no Lean error to name; it could not be
 #: asked; or the exhibit was not sent, because what the gate checks of it is not a compile the
-#: service can reproduce (a circularity claim's relation, a module only the gate's staging holds).
+#: service can reproduce (a module only the gate's staging holds).
 PREFLIGHT_ELABORATES = "elaborates"
 PREFLIGHT_SKIPPED = "skipped"
 #: The node modules an exhibit may import: the gate's own tuple, the modules its staging compiles
@@ -2507,16 +2507,14 @@ async def preflight_exhibit(  # noqa: PLR0913 — the caller, the node, the text
     node_id: str | None,
     exhibit: str,
     *,
-    relational: bool = False,
     reservation: Charge | None = None,
 ) -> str:
     """F13-T22: the gate's exhibit check (``opn-gate exhibits``: the exhibit elaborates, against
     the node it is about) on the hosted checker, before the append's pull request exists. One
     refusal, 422 ``exhibit-elaboration`` with Lean's ``errors``, when the checker answers that the
     text does not compile and names why; anything else is an outcome word and the append opens,
-    because the gate's sandbox is the authority (C9, D-4 v3.14). ``relational`` is a circularity
-    claim, whose exhibit the gate also holds to an implication by a program the checker is not
-    sent, so it is skipped rather than half-checked. Charged and logged as a check (R8, R9)."""
+    because the gate's sandbox is the authority (C9, D-4 v3.14). Charged and logged as a check
+    (R8, R9). (F08-T42: its ``relational`` switch, for the retired circularity claim, is gone.)"""
     from opn_api.app import ApiError  # noqa: PLC0415 — app imports the routes that import this
 
     if reservation is None:  # F13-T28: on its own, it reserves its own check
@@ -2530,13 +2528,12 @@ async def preflight_exhibit(  # noqa: PLR0913 — the caller, the node, the text
                     target_id,
                     node_id,
                     exhibit,
-                    relational=relational,
                     reservation=r,
                 )
             ],
         )
         return word
-    found = None if relational else exhibit_imports(exhibit, node_id)
+    found = exhibit_imports(exhibit, node_id)
     if found is None:
         return PREFLIGHT_SKIPPED
     reservation.take()  # F13-T28: reserved up front, so a spent budget never reaches here

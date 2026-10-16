@@ -71,8 +71,8 @@ CAUSE_WORDS = {
     "dep-refuted": "blocked: a dependency was refuted",
 }
 #: F04-T37 (D-12 v3.35): the cause F08-T17 wrote under a merged circularity claim, retired with
-#: ``graph/v6``: the claim is a label on the row (``circular``), never a state. An older snapshot
-#: (D-34) still carries the word; it changes no words and no state here.
+#: ``graph/v6`` and, with the claim itself, by D-12 v3.43 (F04-T53). ``graph/v3``-``v5`` take any
+#: cause word, so an older snapshot (D-34) may still carry it; it changes no words and no state.
 RETIRED_CIRCULAR_CAUSE = "circular"
 
 
@@ -84,8 +84,6 @@ def status_words(status: str, cause: str | None) -> str:
     return STATUS_WORDS.get(status, status)
 
 
-#: F04-T37 (D-12 v3.35): the label's words, for the key, the panel and the row.
-CIRCULAR_LABEL_WORD = "proves an ancestor"
 #: F04-T38 (D-25 v3.35): a literature status's words — what is known, never how hard it is.
 LITERATURE_WORDS = {
     "open": "Open problem: no proof is known",
@@ -375,17 +373,6 @@ GLOSSARY: tuple[tuple[str, str, str, str], ...] = (
         "A proof that the statement is vacuous passed the checks and was merged. A curator "
         "repairs it with a new version; nobody edits a statement.",
         "defective (D-12, D-8)",
-    ),
-    # F04-T26 (Q28), restated by F04-T37 (D-12 v3.35): a label a merged claim puts on a
-    # statement, never a state; the pill carries a small mark and keeps its status.
-    (
-        "circular",
-        CIRCULAR_LABEL_WORD,
-        "A merged circularity claim proves, in Lean, that this statement implies a statement it "
-        "was cut from, so a proof of this one is also a proof of that ancestor. A fact about the "
-        "route, shown so a reader can choose: the statement keeps its status and stays open to "
-        "work, and nothing ranks it.",
-        "circular[] on the row · circular-decomposition claim (D-16, D-12 v3.35)",
     ),
     # F04-T33 (Q34): the solid line, which every drawing with a dependency shows.
     (
@@ -1263,10 +1250,8 @@ class Renderer:
         status a statement in this graph has, each a glossary hover card with its dot."""
         present = {self.node_state(nv) for nv in tv.nodes.values()}
         keys = (*LEGEND_BASE, *(k for k in (NEEDS_WITNESS, *LEGEND_EXTRA) if k in present))
-        # F04-T37 (D-12 v3.35): the label's mark, when a statement of this problem carries one.
-        marks = ("circular",) if any(nv.circular for nv in tv.nodes.values()) else ()
         return "".join(
-            self.term(k, dot=True) for k in (*keys, *marks, *self.proof_legend(tv))
+            self.term(k, dot=True) for k in (*keys, *self.proof_legend(tv))
         ) + self.superseded_toggle(tv)
 
     @staticmethod
@@ -1840,8 +1825,6 @@ class Renderer:
         return _template("problem-row.html").substitute(
             state=esc(state),
             workable="1" if state in WORKABLE_STATES else "0",
-            circular="1" if nv.circular else "0",  # F04-T37: the label, for a filter
-            label=self.circular_chip(nv),
             dot=self.state_hover(nv),
             node=self.node_link(tv.target_id, nv.node_id),
             role=esc(self.node_role(tv, nv)),
@@ -2239,7 +2222,6 @@ class Renderer:
         tid = tv.target_id
         href = {nid: self.node_path(tid, nid) for nid in tv.nodes}
         # T17: the pill wears the state the key and the rows name, not the bare graph status.
-        # T37 (D-12 v3.35): a circularity label is a mark on the pill, never its state.
         drawn = [
             {**n, "status": NEEDS_WITNESS}
             if n.get("status") == "blocked" and n.get("cause") == WITNESS_CAUSE
@@ -2255,7 +2237,6 @@ class Renderer:
             href=href,
             proofs=self.proof_marks(tv),
             outlines=outlines,
-            labelled={nid for nid, nv in tv.nodes.items() if nv.circular},
             root=tv.root,
             prefix=tid,
             names={
@@ -2970,30 +2951,7 @@ class Renderer:
         if nv.supersedes:
             parts.append(f"Revises {link(nv.supersedes)}, which it replaced (D-8).")
         note = f'<p class="revision-note">{" ".join(parts)}</p>' if parts else ""
-        label = self.circular_label_note(tid, nv, in_page=in_page)
-        return note + label + self.circular_below_note(nv)
-
-    def circular_label_note(self, tid: str, nv: NodeView, *, in_page: bool) -> str:
-        """F04-T37 (D-12 v3.35): the circularity labels the row carries, one neutral line per
-        entry: *a proof of this statement is a proof of <ancestor>*, the claim linked at the
-        commit. A fact, not a state: it says nothing of claimability or progress. The ancestor
-        links to its panel on the problem page and to its page on the node's own."""
-        if not nv.circular:
-            return ""
-        target = self.site.targets.get(tid)
-        known = target.nodes if target is not None else {}
-        lines = []
-        for label in nv.circular:
-            if label.ancestor in known:
-                href = f"#node={label.ancestor}" if in_page else self.node_path(tid, label.ancestor)
-                ancestor = f'<a href="{esc(href)}">{esc(label.ancestor)}</a>'
-            else:
-                ancestor = f"<code>{esc(label.ancestor)}</code>"
-            lines.append(
-                f"A proof of this statement is a proof of {ancestor} (claim "
-                f"{self.file_link(label.claim)}; D-12, D-16)."
-            )
-        return f'<p class="circular-label">{" ".join(lines)}</p>'
+        return note
 
     def literature_block(self, nv: NodeView) -> str:
         """F04-T38 (D-25, D-32 v3.35): what the literature says of the statement. A confirmed
@@ -3072,28 +3030,17 @@ class Renderer:
                     found.append(lit.confirmation)
         return found
 
-    def circular_chip(self, nv: NodeView) -> str:
-        """F04-T37: the row's form of the label — the key's mark and "proves <ancestor>", with
-        the glossary card on hover — so the listing says it and a filter can key on
-        ``data-circular``."""
-        if not nv.circular:
-            return ""
-        ancestors = ", ".join(esc(label.ancestor) for label in nv.circular)
-        _word, meaning, proto = self.words["by_key"]["circular"]
-        body = f'{esc(meaning)}<span class="proto"> protocol: {esc(proto)}</span>'
-        chip = self.hover(f"{self.dot('circular')}proves <code>{ancestors}</code>", body)
-        return f' <span class="proves">{chip}</span>'
-
     def defect_claims_note(self, nv: NodeView) -> str:
         """F08-T36 (D-16 v3.28): every open defect claim against the statement — its class, its
         file at the rendered commit and the words "claim open"; "disputed" beside the one a
         curator's record accepts for adjudication (D-18 v3.28). A filed claim blocks nothing, so
         the page says so; a withdrawn claim is not open and is not shown. Nothing at all for a
         statement with no open claim, so such a page is unchanged."""
+        node_dir = f"targets/{nv.target_id}/nodes/{nv.node_id}"
+        history = self.retired_claims_note(nv, node_dir)
         claims = nv.open_claims
         if not claims:
-            return ""
-        node_dir = f"targets/{nv.target_id}/nodes/{nv.node_id}"
+            return f'<div class="defect-claims">{history}</div>' if history else ""
         items = []
         for c in claims:
             accepted = (
@@ -3113,23 +3060,27 @@ class Renderer:
             f"{'A defect claim is' if one else f'{len(claims)} defect claims are'} open against "
             "this statement (D-16). A claim says the statement may not mean what it should; it "
             "blocks nothing until a curator accepts it.</p>"
-            f"<ul>{''.join(items)}</ul></div>"
+            f"<ul>{''.join(items)}</ul>{history}</div>"
         )
 
-    def circular_below_note(self, nv: NodeView) -> str:
-        """F08-T20 (D-12 v3.22): a statement a circularity claim circles back to stays open and
-        claimable — it is the problem, and the claim says only that one route to it made no
-        progress. Its page and its panel name each claim and invite the other two routes."""
-        if not nv.circular_below or nv.status in ("proved", "superseded"):
+    def retired_claims_note(self, nv: NodeView, node_dir: str) -> str:
+        """F04-T53 (D-12 v3.43): claims of the retired circularity class, as history. Each said a
+        proof of this statement would prove one above it, which holds of every hole by its
+        assembly; so they say nothing about the statement and are not open against it."""
+        claims = nv.retired_claims
+        if not claims:
             return ""
-        claims = ", ".join(self.file_link(c) for c in nv.circular_below)
-        one = len(nv.circular_below) == 1
+        items = "".join(
+            f"<li><code>{esc(str(c.get('class', '')))}</code> · "
+            + self.file_link(f"{node_dir}/{c.get('file', '')}")
+            + "</li>"
+            for c in claims
+        )
         return (
-            '<p class="circular-note">'
-            f"{'A merged circularity claim shows' if one else 'Merged circularity claims show'} "
-            "that a statement cut from this one implies it, so a proof of that one is a proof "
-            f"of this one too (D-12, D-16): {claims}. This statement stays open: a direct proof, "
-            "or a different decomposition, is welcome.</p>"
+            "<p>Filed before its class was retired (D-12 v3.43), kept as history: a claim of "
+            "this class said a proof of this statement would prove one above it, which is true "
+            "of every hole, so it says nothing about this statement.</p>"
+            f"<ul>{items}</ul>"
         )
 
     def closing_note(self, tv: TargetView, nv: NodeView) -> str:
@@ -3315,7 +3266,7 @@ class Renderer:
     def how_block(
         self, tv: TargetView, nv: NodeView, *, page: bool = False, revision: bool = True
     ) -> str:
-        """How it is being proved: a revision or circularity note (F04-T18, T37), one line — the
+        """How it is being proved: a revision note (F04-T18), one line — the
         proof and its attestation, open, or the status in words — then the split (T46, T47), and
         the Context-import note folded (2026-09-21)."""
         e = nv.graph_entry
@@ -4351,9 +4302,6 @@ class Renderer:
         renders.extend(f.path for f in (nv.witness, nv.relation) if f is not None)
         if nv.superseded_record is not None:
             renders.append(nv.superseded_record)
-        # F04-T37: the claims the node's labels link; F08-T20: those its note names, circling back.
-        below = nv.circular_below if self.circular_below_note(nv) else ()
-        renders.extend((*(label.claim for label in nv.circular), *below))
         renders.extend(self.literature_renders(nv))  # F04-T38
         # F08-T36: the open claims the page links.
         renders.extend(

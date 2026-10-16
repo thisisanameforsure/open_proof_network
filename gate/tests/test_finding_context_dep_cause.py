@@ -9,9 +9,9 @@ node (``null`` when it has none). Both builders go through ``context.build`` and
 ``graph_states``, which already read ``cause`` (F10-Q7), so the service derives the same bytes.
 
 Restated for D-12 v3.35 (F08-T39): a circularity claim is no longer a cause at all, so the dep
-entry's ``cause`` is the hole's own mechanical one (``witness-missing`` for an unwitnessed hole)
-and the claim is read from the dependency's own row and bundle as its ``circular`` label. What this
-file still pins is the rule: every dep entry repeats ``graph.json``'s cause, whatever it is.
+entry's ``cause`` is the hole's own mechanical one (``witness-missing`` for an unwitnessed hole).
+D-12 v3.43 (F08-T42) retired the label too, so a merged claim of that class is history only. What
+this file still pins is the rule: every dep entry repeats ``graph.json``'s cause, whatever it is.
 """
 
 from __future__ import annotations
@@ -21,8 +21,15 @@ from pathlib import Path
 from typing import Any
 
 from harness import TARGET
-from test_finding_circular_decomposition import generate
-from test_finding_circular_path import DEEP, LOW, claimed
+from test_finding_circularity_retired import (
+    DEEP,
+    LOW,
+    PATH_CLAIM,
+    ROOT,
+    chain,
+    file_claim,
+    generate,
+)
 
 from opn_gate import context, products, schemas
 
@@ -36,18 +43,25 @@ def graph_rows(prod: products.Products) -> dict[str, dict[str, Any]]:
     return {str(n["node_id"]): n for n in doc["nodes"]}
 
 
-def test_a_dependency_under_a_claim_carries_its_own_cause_and_label(tmp_path: Path) -> None:
-    """D-12 v3.35: the dep entry's ``cause`` is graph.json's — the hole's unfilled slot, never
-    ``circular`` — and the claim is the dependency's ``circular`` label in its own bundle."""
+def claimed(tmp_path: Path) -> Path:
+    """erdos-69's live shape with a merged claim of the retired class on the deepest hole."""
+    root = chain(tmp_path)
+    file_claim(root, PATH_CLAIM, stmt_ref=DEEP, ancestor=ROOT)
+    return root
+
+
+def test_a_dependency_under_a_claim_carries_its_own_cause(tmp_path: Path) -> None:
+    """The dep entry's ``cause`` is graph.json's — the hole's unfilled slot, never ``circular`` —
+    and neither the row nor any bundle carries a circularity field (D-12 v3.43)."""
     prod = generate(claimed(tmp_path))
     rows = graph_rows(prod)
     assert rows[DEEP]["cause"] == "witness-missing"  # the fact the products derive
-    assert rows[DEEP]["circular"] != []  # the claim, as a label
+    assert "circular" not in rows[DEEP]
     doc = bundle(prod, LOW)
     assert schemas.violations(doc, doc["schema"]) == []
     [dep] = [d for d in doc["deps"] if d["node_id"] == DEEP]
     assert dep.get("cause", "<absent>") == "witness-missing", dep
-    assert bundle(prod, DEEP)["circular"] == rows[DEEP]["circular"]
+    assert "circular" not in bundle(prod, DEEP)
 
 
 def test_every_dependency_carries_the_cause_graph_json_records(tmp_path: Path) -> None:

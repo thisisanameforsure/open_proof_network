@@ -1,0 +1,78 @@
+F...FF.FF                                                                [100%]
+=================================== FAILURES ===================================
+__________ test_the_products_are_the_next_versions_without_the_field ___________
+
+tmp_path = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-363/test_the_products_are_the_next0')
+
+    def test_the_products_are_the_next_versions_without_the_field(tmp_path: Path) -> None:
+        root = chain(tmp_path)
+        file_claim(root, PATH_CLAIM, stmt_ref=DEEP, ancestor=ROOT)
+        gdoc, fdoc, bundles = docs(generate(root))
+>       assert (gdoc["schema"], fdoc["schema"]) == ("graph/v10", "frontier/v6")
+E       AssertionError: assert ('graph/v9', 'frontier/v5') == ('graph/v10', 'frontier/v6')
+E         
+E         At index 0 diff: 'graph/v9' != 'graph/v10'
+E         Use -v to get more diff
+
+gate/tests/test_finding_circularity_retired.py:186: AssertionError
+______________ test_a_new_circularity_claim_is_refused_as_retired ______________
+
+tmp_path = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-363/test_a_new_circularity_claim_i0')
+
+    def test_a_new_circularity_claim_is_refused_as_retired(tmp_path: Path) -> None:
+        root = copy_graph(tmp_path)
+        rel = file_claim(root)
+>       assert check_codes(root, rel) == [RETIRED]
+E       AssertionError: assert [] == ['defect-class-retired']
+E         
+E         Right contains one more item: 'defect-class-retired'
+E         Use -v to get more diff
+
+gate/tests/test_finding_circularity_retired.py:230: AssertionError
+_____________ test_an_ancestor_on_any_claim_is_refused_as_retired ______________
+
+tmp_path = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-363/test_an_ancestor_on_any_claim_0')
+
+    def test_an_ancestor_on_any_claim_is_refused_as_retired(tmp_path: Path) -> None:
+        """``ancestor`` belonged to the retired class alone; on any other class it claims something
+        nobody checks."""
+        root = copy_graph(tmp_path)
+        rel = file_claim(root, **{"class": "missing-hypothesis"})
+>       assert check_codes(root, rel) == [RETIRED]
+E       AssertionError: assert ['circular-ancestor'] == ['defect-class-retired']
+E         
+E         At index 0 diff: 'circular-ancestor' != 'defect-class-retired'
+E         Use -v to get more diff
+
+gate/tests/test_finding_circularity_retired.py:238: AssertionError
+_________________ test_the_exhibit_step_judges_no_implication __________________
+
+tmp_path = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-363/test_the_exhibit_step_judges_n0')
+
+    def test_the_exhibit_step_judges_no_implication(tmp_path: Path) -> None:
+        """The exhibit step refuses the class too, and asks the toolchain nothing about it."""
+        root = copy_graph(tmp_path)
+        rel = file_claim(root)
+        fake = FakeToolchain()
+>       assert exhibit_codes(root, rel, fake) == [RETIRED]
+E       AssertionError: assert [] == ['defect-class-retired']
+E         
+E         Right contains one more item: 'defect-class-retired'
+E         Use -v to get more diff
+
+gate/tests/test_finding_circularity_retired.py:252: AssertionError
+________ test_the_retired_codes_are_gone_and_the_new_one_is_registered _________
+
+    def test_the_retired_codes_are_gone_and_the_new_one_is_registered() -> None:
+        known = set(codes.CATALOG)
+>       assert RETIRED in known
+E       AssertionError: assert 'defect-class-retired' in {'acknowledged-hazards-invalid', 'activation-refused', 'active-claims-cap', 'affirmation-differs', 'already-signed', 'alternate-duplicate', ...}
+
+gate/tests/test_finding_circularity_retired.py:261: AssertionError
+=========================== short test summary info ============================
+FAILED gate/tests/test_finding_circularity_retired.py::test_the_products_are_the_next_versions_without_the_field
+FAILED gate/tests/test_finding_circularity_retired.py::test_a_new_circularity_claim_is_refused_as_retired
+FAILED gate/tests/test_finding_circularity_retired.py::test_an_ancestor_on_any_claim_is_refused_as_retired
+FAILED gate/tests/test_finding_circularity_retired.py::test_the_exhibit_step_judges_no_implication
+FAILED gate/tests/test_finding_circularity_retired.py::test_the_retired_codes_are_gone_and_the_new_one_is_registered
+5 failed, 4 passed in 1.53s

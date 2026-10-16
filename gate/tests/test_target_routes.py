@@ -361,14 +361,16 @@ def test_entries_of_another_target_are_ignored() -> None:
     assert routes.read(g, entries).routes[0].summary.attempts == 0
 
 
-def test_circular_member_is_marked_not_removed() -> None:
-    """Q6: a set holding a statement labelled circular keeps it and says so."""
+def test_an_older_graphs_circular_field_marks_nothing() -> None:
+    """Q6 restated for D-12 v3.43 (F08-T42): a graph rendered before graph/v11 may carry a row's
+    ``circular`` label; a set keeps the statement and says nothing of it."""
     g = doc(
         node("t", deps=["t--h1"], decompositions=[["t--h1"]]),
         hole("t--h1", circular=[{"ancestor": "t", "claim": "t--h1/defects/x.yaml"}]),
     )
     (s,) = routes.read(g).sets
-    assert s.circular == ("t--h1",)
+    assert s.open == ("t--h1",)
+    assert "circular" not in s.as_dict()
 
 
 # --- R8: the coarser cuts ------------------------------------------------------------------
@@ -416,8 +418,8 @@ def test_as_dict_round_trips_through_json() -> None:
         "closed",
         "remaining",
         "shared",
-        "circular",
     }
+    assert "circular" not in out["sets"][0]  # F08-T42 (D-12 v3.43)
 
 
 # --- AC8: the live shapes -------------------------------------------------------------------
