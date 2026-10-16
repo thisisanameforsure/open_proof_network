@@ -91,8 +91,8 @@ def revise(root: Path, node_id: str) -> str:
 def graph_rows(root: Path) -> dict[str, dict[str, Any]]:
     tg = graph.load_target(root, TARGET)
     doc = products.graph_doc(tg, None)
-    assert doc["schema"] == "graph/v10" == products.GRAPH_SCHEMA  # v10 since F28-T8
-    assert schemas.violations(doc, "graph/v10") == [], "graph.json is not graph/v10"
+    assert doc["schema"] == "graph/v11" == products.GRAPH_SCHEMA  # v11 F08-T42; v10 F28-T8
+    assert schemas.violations(doc, "graph/v11") == [], "graph.json is not graph/v11"
     return {n["node_id"]: n for n in doc["nodes"]}
 
 
@@ -178,4 +178,4 @@ def test_the_generated_products_validate_and_carry_the_lemma(tmp_path: Path) -> 
     [row] = [n for n in gdoc["nodes"] if n["node_id"] == ROOT_NODE]
     assert row["lemmas"] == [{"hole": LEMMA_HOLE, "node": LEMMA}]
     info = json.loads(built.files[Path("info.json")])
-    assert info["protocol_version"] == "3.42" == products.PROTOCOL_VERSION
+    assert info["protocol_version"] == "3.43" == products.PROTOCOL_VERSION

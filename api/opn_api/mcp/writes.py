@@ -164,7 +164,7 @@ async def submit_approach_record(call: Call, args: dict[str, Any]) -> dict[str, 
 
 
 async def file_defect_claim(call: Call, args: dict[str, Any]) -> dict[str, Any]:
-    body = present("file_defect_claim", args, "stmt_ref", "class", "line", "exhibit", "ancestor")
+    body = present("file_defect_claim", args, "stmt_ref", "class", "line", "exhibit")
     return await forward(call, "POST", "/defect-claims", body)
 
 
@@ -814,11 +814,8 @@ TOOLS: tuple[Tool, ...] = (
         "file_defect_claim",
         (
             "File a statement-defect claim (D-16): a `class`, a `line` of the referenced "
-            f"file and a Lean `exhibit`, written as `{requests.DEFECT_SCHEMA}`. Class "
-            f"`{requests.CIRCULAR_CLASS}` also names `ancestor`, a node above `stmt_ref`, "
-            f"is written as `{requests.CIRCULAR_SCHEMA}`, and its exhibit is one theorem "
-            "proving `<stmt_ref's statement> → <ancestor's statement>` (the reverse is "
-            "refused circular-direction). The exhibit is compiled first: one that does "
+            f"file and a Lean `exhibit`, written as `{requests.DEFECT_SCHEMA}`. "
+            "The exhibit is compiled first: one that does "
             "not compile is refused 422 exhibit-elaboration with Lean's `errors`, and "
             "nothing opens; `exhibit_preflight` in the receipt says elaborates, "
             "inconclusive, unavailable or skipped. A second record from you in the same "
@@ -832,8 +829,7 @@ TOOLS: tuple[Tool, ...] = (
                 },
                 "class": {
                     "type": "string",
-                    "description": f"D-16's class: {DEFECT_CLASS_TEXT}; or "
-                    f"{requests.CIRCULAR_CLASS}.",
+                    "description": f"D-16's class: {DEFECT_CLASS_TEXT}.",
                 },
                 "line": {
                     "type": "integer",
@@ -841,10 +837,6 @@ TOOLS: tuple[Tool, ...] = (
                     "description": "The line of the referenced file the defect is on, from 1.",
                 },
                 "exhibit": LEAN,
-                "ancestor": {
-                    "type": "string",
-                    "description": "circular-decomposition only: the node above stmt_ref.",
-                },
             },
             ("stmt_ref", "class", "line", "exhibit"),
         ),

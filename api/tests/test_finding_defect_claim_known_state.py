@@ -10,15 +10,13 @@ its own contributor, date and exhibit). By D-25 these are not copies, so the own
 as defects (D2, 2026-09-24): a defect claim of the same class is **refused** when one has merged,
 and **named in the receipt** when one is open.
 
-The products record one class's merge, and only one: a merged ``circular-decomposition`` claim puts
-``cause: circular`` on the node (F08-T17). So:
+F08-T42 (D-12, D-16 v3.43) retired the circularity class, and with it the one merge the products
+recorded and the refusal built on it (``409 node-circular``); a claim of the class is now refused
+``defect-class-retired`` (``test_finding_circularity_retired_api``). What stands, for every class:
 
-* a circularity claim on a node whose cause is ``circular`` answers ``409 node-circular`` in
-  ``claims.circular()``'s words, naming the merged claim's path, and opens nothing;
 * while a claim of the same class is open on the node, the 201 body carries
   ``also_open: [{pr_number, pseudonym}]``; the key is absent when nothing of that class is open;
-* a different class on a circular node is still accepted (a circular node may have other defects);
-* a claim on another node sees neither.
+* a claim of another class, or on another node, sees neither.
 
 Red run: ``engineering/evidence/F08/task-18.txt``.
 """
@@ -27,25 +25,16 @@ from __future__ import annotations
 
 from dataclasses import replace
 
-import yaml
 from api_fakes import TUTORIAL_NODE, Harness
 from mcp_client import McpClient
 from test_claims_defect import commit_statement, post
-from test_finding_circular_claim import (
-    ANCESTOR,
-    HOLE,
-    TARGET,
-    VALID,
-    add_ancestor,
-    commit_graph,
-    graph_rows,
-)
+from test_finding_circularity_retired_api import HOLE, ORDINARY, commit_hole
 from test_pending_submissions import record, store  # noqa: F401 — store: a both-stores fixture
 
 from opn_api import pending
 from opn_api.store import Store
 
-MERGED_CLAIM = f"targets/{TARGET}/nodes/{HOLE}/defects/20260924T090000Z-carol.yaml"
+VALID = ORDINARY  # class junk-value, on the hole
 OTHER_EXHIBIT = (
     "theorem circular' :\n"
     "    (∀ p q r : Prop, (p ∧ q) ∧ r → r ∧ (q ∧ p)) →\n"
@@ -55,46 +44,9 @@ OTHER_EXHIBIT = (
 )
 
 
-def make_circular(h: Harness) -> None:
-    add_ancestor(h)
-    mark_circular(h)
-
-
-def mark_circular(h: Harness) -> None:
-    """The state a merged circularity claim leaves: the claim file on ``main`` and the node's
-    ``graph.json`` row reading ``cause: circular`` (status untouched, F08-T17)."""
-    rows = [{**r, "cause": "circular"} if r["node_id"] == HOLE else r for r in graph_rows(h)]
-    commit_graph(h, rows)
-    merged = {
-        "schema": "defect-claim/v3",
-        "stmt_ref": HOLE,
-        "class": "circular-decomposition",
-        "ancestor": ANCESTOR,
-        "line": 1,
-        "exhibit": VALID["exhibit"],
-        "contributor": "carol",
-        "date": "2026-09-24",
-    }
-    h.githost.files[MERGED_CLAIM] = yaml.safe_dump(merged, sort_keys=True).encode()
-
-
-def test_a_circularity_claim_on_a_circular_node_is_refused_with_the_merged_claims_path(
-    harness: Harness,
-) -> None:
-    make_circular(harness)
-    token = harness.token_for("code_alice", "alice")
-    r = post(harness, "/defect-claims", token, VALID)
-    body = r.json()
-    assert (r.status_code, body.get("error")) == (409, "node-circular"), body
-    assert "circular" in body["message"] and "D-16" in body["message"], body["message"]
-    assert MERGED_CLAIM in body["message"], body["message"]
-    assert body["details"]["cause"] == "circular"
-    assert harness.githost.pushes == [], "a refused claim opens nothing"
-
-
 def test_an_open_same_class_claim_is_named_in_the_receipt(harness: Harness) -> None:
     """#187 then #194: the second is accepted and told the first is open."""
-    add_ancestor(harness)
+    commit_hole(harness)
     alice = harness.token_for("code_alice", "alice")
     bob = harness.token_for("code_bob", "bob")
     first = post(harness, "/defect-claims", alice, VALID)
@@ -107,10 +59,9 @@ def test_an_open_same_class_claim_is_named_in_the_receipt(harness: Harness) -> N
     ], second.json()
 
 
-def test_the_mcp_tool_carries_the_receipt_and_the_refusal(harness: Harness) -> None:
-    """D-28: ``file_defect_claim`` passes the route's body through, ``also_open`` included, and
-    the refusal arrives as the route's 409."""
-    add_ancestor(harness)
+def test_the_mcp_tool_carries_the_receipt(harness: Harness) -> None:
+    """D-28: ``file_defect_claim`` passes the route's body through, ``also_open`` included."""
+    commit_hole(harness)
     alice = harness.token_for("code_alice", "alice")
     bob = harness.token_for("code_bob", "bob")
     first = post(harness, "/defect-claims", alice, VALID)
@@ -118,41 +69,25 @@ def test_the_mcp_tool_carries_the_receipt_and_the_refusal(harness: Harness) -> N
     assert got["body"]["also_open"] == [
         {"pr_number": first.json()["pr_number"], "pseudonym": "alice"}
     ], got
-    mark_circular(harness)
-    refused = McpClient(harness).call("file_defect_claim", VALID, token=bob).structuredContent
-    assert refused is not None and refused["status"] == 409, refused
-    assert refused["body"]["error"] == "node-circular"
 
 
 def test_an_open_claim_of_another_class_is_not_named(harness: Harness) -> None:
-    add_ancestor(harness)
+    commit_hole(harness)
     alice = harness.token_for("code_alice", "alice")
     bob = harness.token_for("code_bob", "bob")
-    junk = {k: v for k, v in VALID.items() if k != "ancestor"} | {"class": "junk-value"}
-    assert post(harness, "/defect-claims", alice, junk).status_code == 201
-    second = post(harness, "/defect-claims", bob, VALID)
+    assert post(harness, "/defect-claims", alice, VALID).status_code == 201
+    second = post(harness, "/defect-claims", bob, {**VALID, "class": "vacuity"})
     assert second.status_code == 201, second.text
     assert "also_open" not in second.json(), second.json()
 
 
-def test_a_different_class_on_a_circular_node_is_still_accepted(harness: Harness) -> None:
-    make_circular(harness)
-    token = harness.token_for("code_alice", "alice")
-    body = {k: v for k, v in VALID.items() if k != "ancestor"} | {"class": "vacuity"}
-    r = post(harness, "/defect-claims", token, body)
-    assert r.status_code == 201, r.text
-    assert "also_open" not in r.json()
-
-
 def test_a_claim_on_another_node_sees_nothing(harness: Harness) -> None:
-    """A circularity claim open on the hole says nothing to one on its sibling, and the hole's
-    merged claim refuses nothing there."""
-    add_ancestor(harness)
+    """A claim open on the hole says nothing to one of the same class on its sibling."""
+    commit_hole(harness)
     commit_statement(harness)
     alice = harness.token_for("code_alice", "alice")
     bob = harness.token_for("code_bob", "bob")
     assert post(harness, "/defect-claims", alice, VALID).status_code == 201
-    mark_circular(harness)
     sibling = post(harness, "/defect-claims", bob, {**VALID, "stmt_ref": TUTORIAL_NODE})
     assert sibling.status_code == 201, sibling.text
     assert "also_open" not in sibling.json(), sibling.json()

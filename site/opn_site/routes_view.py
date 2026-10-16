@@ -525,17 +525,12 @@ def table(result: routes.Routes, prefix: str | None) -> str:
     ``data-sort``; the script adds the sorting and the toggle, which are rendered hidden."""
     names: dag.Prefix = (prefix, result.root) if prefix else None
     rows = []
-    any_notes = any(s.variant or s.circular for s in result.sets)
+    any_notes = any(s.variant for s in result.sets)
     for k, s in enumerate(result.sets, start=1):
         notes = []
         if s.variant:
             notes.append(
                 f"goes through the variant <code>{escape(dag.label_of(s.variant, names))}</code>"
-            )
-        if s.circular:
-            ids = ", ".join(f"<code>{escape(dag.label_of(c, names))}</code>" for c in s.circular)
-            notes.append(
-                f'<span class="circular-note">holds a statement labelled circular: {ids}</span>'
             )
         open_ids = "".join(
             f"<li><code>{escape(dag.label_of(m, names))}</code></li>" for m in s.open

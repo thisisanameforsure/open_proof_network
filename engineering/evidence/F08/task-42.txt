@@ -1,0 +1,8 @@
+F08-T42 gate side, green — 2026-10-15T13:04:56Z
+red first: engineering/evidence/F08/task-42-red.txt (5 failed on the defect, 4 guards passed)
+$ OPN_GRAPH_CHECKOUT=<detached graph worktree at origin/main> uv run --frozen pytest -q -p no:cacheprovider <the 14 files below> -m "not lean and not docker and not network and not harness"
+files: test_finding_circularity_retired test_withdrawal test_target_routes test_finding_context_dep_cause test_finding_guide_tester_0924 test_finding_guide_names_exist test_products test_schemas test_finding_graph_lemmas test_finding_context_lemmas test_finding_frontier_needs test_node_proofs test_exhibits test_finding_hole_restates_ancestor
+301 passed in 17.88s
+
+deleted (only the retired mechanism): test_circular_label, test_finding_circular_below_context, test_finding_circular_decomposition(+_lean), test_finding_circular_direction_lean, test_finding_circular_path, test_finding_compiled_exhibits(+_lean); generic exhibit-node / exhibit-timeout stay covered in test_exhibits.py
+goldens: write_goldens(); diff = circular/circular_below lines removed, schema versions, protocol 3.42, info.json index counts

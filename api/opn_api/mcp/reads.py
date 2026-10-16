@@ -48,12 +48,12 @@ NODE_FILES: tuple[tuple[str, bool], ...] = (  # (file, required): the raw files 
 #: The frontier version whose entry fields the filters are drawn from. The newest known
 #: one: its field set is a superset of the older versions', and a filter naming a field
 #: an older document does not carry simply matches nothing (F11-R4).
-FRONTIER_SCHEMA = "frontier/v5"  # F09-T24: `circular`, `literature`, `literature_proposed` too
+FRONTIER_SCHEMA = "frontier/v6"  # F08-T42 (D-12 v3.43): v5's fields less `circular`
 #: The ``CONTEXT.json`` versions get_node serves: the gate module's own set, plus the version the
 #: v3.38 re-pin first renders (F10-T49), so the service accepts it whichever side of that
-#: re-pin it is deployed on (the deploy-window lesson of 2026-09-11).
+#: re-pin it is deployed on (the deploy-window lesson of 2026-09-11). F08-T42: ``context/v8``.
 CONTEXT_SCHEMAS: tuple[str, ...] = tuple(
-    dict.fromkeys((*context.ACCEPTED, "context/v6", "context/v7"))  # ordered, without a repeat
+    dict.fromkeys((*context.ACCEPTED, "context/v6", "context/v7", "context/v8"))
 )
 SCHEMA_NAME_RE = re.compile(r"^[a-z][a-z0-9-]*/v[1-9][0-9]*$")
 FRONT_MATTER_RE = re.compile(r"\A---[ \t]*\r?\n(?P<yaml>.*?)\r?\n---[ \t]*\r?\n", re.S)
@@ -1111,9 +1111,8 @@ TOOLS: tuple[Tool, ...] = (
     Tool(
         "get_schema",
         "A JSON Schema by name: a protocol record's (`postmortem/v1`, `defect-claim/v1`, ...) "
-        "or a tool result's (`mcp/<tool>/v1`). A defect claim of class "
-        f"`{requests.CIRCULAR_CLASS}` is written as `{requests.CIRCULAR_SCHEMA}`, every other "
-        f"class as `{requests.DEFECT_SCHEMA}`.",
+        "or a tool result's (`mcp/<tool>/v1`). A defect claim is written as "
+        f"`{requests.DEFECT_SCHEMA}`.",
         params(
             {
                 "name": {

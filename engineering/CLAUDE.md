@@ -1633,3 +1633,20 @@ The law of the project:
   poll with short calls, and treat an unchanged file as no answer. **The real CLI is the test of
   the fake**: `--resume` against the live project downloaded the same bytes in 2.3 s, which no
   fixture could show.
+
+- 2026-10-15 — The circularity claim and its label retired (decisions v3.43, F08-T42, F04-T53) from
+  the owner asking what the label meant. Three things worth keeping. **A simplifying argument needs
+  its exceptions checked before the owner rules on it**: "`hole → ancestor` holds of every hole by
+  its assembly" is true only once the hole's siblings are proved; where they are open, an exhibit
+  proving it is real mathematics, and F28 (landed the same afternoon) used exactly that as a closing
+  link. The merge found it, not the reasoning; the owner retired the link too (F28-Q12), but the
+  question should have been asked before the amendment, not after. **Grep `origin/main` for every
+  consumer of what you remove at each merge, not once at the start**: main moved three times in one
+  session, and each time brought a new reader of the field (F28's `closing.links`) or new test
+  expectations (F28-Q10), so a suite green before the merge was red after it for reasons that were
+  not this task's. **The pre-commit hook tests the working tree, not the commit**: committing the
+  amendment alone with three new schema files uncommitted beside it failed on the goldens' schema
+  index; fold the doc and the code into one commit, or keep the tree clean of what the commit
+  leaves out. Also: a copied schema keeps its old `"schema": {"const": "<name>/vN"}`, so a v10 that
+  still demands v9 refuses every document (251 failures from one line); rewrite `$id`, `title` and
+  the const together.

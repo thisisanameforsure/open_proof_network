@@ -552,12 +552,9 @@ whose witness slot is empty), `dependencies` (it waits on unproved dependencies)
 (nothing a contributor sends moves it; a curator acts). Only an entry that needs a proof can be
 `claimable`.
 
-Two more fields on every entry (`frontier/v5`, D-12 and D-25 v3.35). `circular`: merged claims
-saying a proof of this node is a proof of `ancestor`, each `{"ancestor", "claim"}`; a label, never
-a removal — the node stays claimable; choose by it if you wish, nothing ranks it ("The circular
-label" under Skeletonization). `literature` and `literature_proposed`: what the literature says of
-the statement, confirmed by a steward or curator, or proposed and awaiting one ("Literature
-records" below); `null` when nobody has said.
+Two more fields on every entry (D-25 v3.35). `literature` and `literature_proposed`: what the
+literature says of the statement, confirmed by a steward or curator, or proposed and awaiting one
+("Literature records" below); `null` when nobody has said.
 
 A hole that needs its witness is listed with `needs: witness`, `claimable: false`,
 `status: blocked` and `cause: witness-missing`. Do not claim it: send the witness, through
@@ -713,7 +710,7 @@ explainer/
 | `explainer/signed/`, `gloss/signed/` | an active steward or a listed curator | append a signature on one version, or on some of its sections, made with the signer's own key; it approves those sections and credits the version's author |
 | `withdrawals/<timestamp>-<you>.yaml` | a version's author, a steward or a curator | append a withdrawal of one gloss or explainer version, with a reason |
 | `waivers/native_decide.yaml` | the prover | add only when `Proof.lean` uses `native_decide` (F02) |
-| `revisions/`, `defects/` | anyone | append a revision request (D-8) or a defect claim (D-16); a defect claim's `exhibit` is Lean the gate elaborates, not prose, and the service compiles it on the hosted fast checker first: one that does not compile is refused `422 exhibit-elaboration` with Lean's `errors` and opens nothing (the receipt's `exhibit_preflight` says `elaborates`, `inconclusive`, `unavailable` or `skipped`, the last for a `circular-decomposition` exhibit, which only the gate checks); a merged `circular-decomposition` claim labels the node under `circular` and takes nothing off the frontier (D-12 v3.35), and the receipt's `also_open` names any claim of the same class still open on the node |
+| `revisions/`, `defects/` | anyone | append a revision request (D-8) or a defect claim (D-16); a defect claim's `exhibit` is Lean the gate elaborates, not prose, and the service compiles it on the hosted fast checker first: one that does not compile is refused `422 exhibit-elaboration` with Lean's `errors` and opens nothing (the receipt's `exhibit_preflight` says `elaborates`, `inconclusive`, `unavailable` or `skipped`, the last for an exhibit importing a module only the gate's staging holds); the class `circular-decomposition` and the field `ancestor` are retired (D-12 v3.43, refused `defect-class-retired`), and the receipt's `also_open` names any claim of the same class still open on the node |
 | `literature/<timestamp>-<you>.yaml` | anyone; a steward or curator to confirm | append what the literature says of the statement (`open`, `known`, `elementary`) with references and a summary — a proposal until an active steward of the target or a listed curator confirms it by a signed record of their own ("Literature records" below); the site shows a confirmed status as a fact and a proposal as awaiting; read `literature` and `literature_proposed` on the row |
 | `Statement.lean`, `META.yaml`, `Context.lean`, `Witness.lean` | intake or the gate | **never**: statements are immutable (D-8); a defect is a revision request |
 | `status/`, `CONTEXT.json`, `defs/`, `schemas/`, the products | curators and the gate | **never** |
@@ -751,8 +748,7 @@ names `status/<file>` or `defects/<file>` of that same node, with a `reason`, `a
 `date`. It is a curator record, reviewed by the other listed curators, and a file that names
 nothing on the node is refused `withdrawal-unknown-record`. The withdrawn file stays in the tree
 and every product reads it as absent: the latest remaining status record decides, a withdrawn
-circularity claim no longer labels its hole, and a `disputed` record resting on a withdrawn claim
-lifts. Reverting the withdrawal restores everything.
+defect claim is listed as withdrawn, and a `disputed` record resting on a withdrawn claim lifts. Reverting the withdrawal restores everything.
 
 **For curators: correcting a ledger line (D-19 v3.27).** A listed curator moves credit by adding
 `targets/<id>/credit-corrections/<stamp>-<curator>.yaml` (`credit-correction/v1`) naming the
@@ -1332,7 +1328,7 @@ hypotheses of a hole to be satisfied by some example, so the hole of a proof by 
 conclusion: not `have h : ¬ A → ¬ B → False := sorry` but `have h : A ∨ B ∨ R := sorry`, with
 `R` the remaining case as its own statement, and let the assembly do the case split.
 
-Four rules the gate enforces mechanically, and one it leaves to a claim:
+Four rules the gate enforces mechanically:
 
 - **Prose attaches as an annex, never as a claim.** Submit the informal argument first; it is
   content-hashed into `annex/<sha256>.md`, served only as demarcated untrusted data, and earns
@@ -1367,56 +1363,17 @@ Four rules the gate enforces mechanically, and one it leaves to a claim:
   that depends on the node however indirectly (read through revisions). Step 4 fails with
   `offload-restates-ancestor` naming the hole and the ancestor. Restating a statement beside the
   node, not above it, is still allowed, and makes that node a lemma of yours (above).
-- **A cycle behind a proof is a claim, not a refusal.** A hole that is an ancestor again only
-  after a reindexing or a real argument (on erdos-1050 a grandchild hole was the root with its
-  first two terms cancelled) is not caught by definitional equality. Anyone may show it: file a
-  defect claim with class `circular-decomposition`, `ancestor` set to the node it restates, and
-  an `exhibit` declaring exactly one theorem whose type is `<hole's statement> → <ancestor's
-  statement>`: the hole implies what it was cut from, so any proof of the hole is a proof of the
-  ancestor and the route from the ancestor leads straight back to it. A hole that is the ancestor
-  restated passes by `exact`; a hole that is genuinely easier cannot, unless you prove the
-  ancestor. (The reverse, `<ancestor> → <hole>`, says only that the hole is no harder, which every
-  provable hole satisfies; the gate refuses it as `circular-direction`, naming what the exhibit
-  proved.) The gate checks that type in the sandbox and refuses the reverse direction, any
-  other theorem and a proof resting on `sorry`. Once merged, the claim is a **label, not a
-  removal** (D-12 v3.35): the hole stays on the frontier, claimable on its status alone, its
-  `status` and `cause` are what they would be without the claim, and `graph.json`, the frontier
-  entry and `CONTEXT.json` carry it under `circular` as `[{ancestor, claim}]` — *a proof of this
-  node is a proof of `ancestor`*. Nothing else in the record changes, and a proof of the hole is
-  still accepted, since it proves the ancestor too. A node's `CONTEXT.json` (`get_node`, the
-  precheck bundle) lists under `circular_below` every merged claim that circles back to it, so
-  you can see which routes beneath it were tried before choosing one. "The circular label" below
-  says what the fact means and how to filter on it.
 
-### The circular label (D-12 v3.35)
-
-A merged `circular-decomposition` claim on a hole proves, in Lean, that a proof of the hole is a
-proof of the node it was cut from. Until v3.35 that took the hole off the frontier; the erdos-1094
-run showed the same exhibit exists for every one-hole decomposition the moment it merges and for
-the last open hole of any decomposition once its siblings are proved — that is what a reduction
-(D-12 #4, "converts an open problem into strictly sharper open problems") *is* — so the removal hid
-honest progress. Whether a route is a loop or a reduction is a judgment no program makes.
-
-Now the claim is a published fact and nothing else. On the hole, and on every node strictly between
-it and the ancestor whose other holes are all proved (the path rule of v3.22), `graph.json`, the
-frontier entry and `CONTEXT.json` carry
-
-```json
-"circular": [{"ancestor": "erdos-69", "claim": "erdos-69--h2-v2--h1-v2--h4/defects/20260924T123647Z-agent-e69h-0d8d.yaml"}]
-```
-
-— *a proof of this node is a proof of `ancestor`*, naming the merged claim relative to the
-target's `nodes/`; `[]` on every other node. The node's `status`, `cause`, `needs` and `claimable`
-are what they would be without the claim (`cause` is never `circular` since `graph/v6`), and the
-ancestor stays open and carries the claim under `circular_below` instead. A proof of a labelled node
-is still accepted and still proves the ancestor; a skeleton whose new hole is strictly stronger
-than its parent now reads as the reduction it is, labelled, rather than as a defect.
-
-To skip labelled nodes, filter on the field: `list_frontier` with `{"filters": {"circular": []}}`
-lists the unlabelled entries, and reading `circular` on a `get_node` bundle tells you what a proof
-of the node would settle before you start. Choosing to work on a labelled node is yours to make
-(D-25): it may be the open core restated, or the shortest route to the ancestor. Deleting the claim
-file (a curator's withdrawal) removes every label; no record is rewritten.
+**That is the whole circularity rule (D-12 v3.43).** A hole implies its parent given its sibling
+holes, because the merged assembly is that proof: every hole of a one-hole skeleton, and the
+last open hole of any skeleton once its siblings are proved, is one whose proof would prove its
+parent. That is what a hole is, so nothing labels it, and there is no claim to file about it: a
+defect claim of class `circular-decomposition`, or one that names an `ancestor`, is refused
+`defect-class-retired`. A hole that is an ancestor again only after a reindexing or a real
+argument is not caught by definitional equality; it stays on the frontier as an ordinary hole,
+and a proof of it is welcome, because it proves the ancestor. Claims of that class merged before
+v3.43 stay under the hole's `defects/` and in its `defect_claims` list, as history; nothing
+is derived from them.
 
 **An annex may name its steps, and a skeleton that cites it follows them.** Send `steps` with
 the annex: a list of 1 to 50 `{"id", "summary"}`, where `id` is the name the skeleton's `have`

@@ -1,0 +1,110 @@
+F04-T53 (D-12, D-16, D-25 v3.42): the site half of retiring the circularity claim and its label
+Branch circ-site, base 9e66cb42 ("WIP F08-T42 gate side"), 2026-10-15.
+
+== Log ==
+1. Base: the gate already writes graph/v10 and frontier/v6 with no `circular`, and deleted
+   graph.resolved_circular_claims, graph.circular_marks and routes.SufficientSet.circular. The site
+   on base accepted neither version, and site/tests/fixture.py validated the gate's output against
+   graph/v9 (which requires `circular`), so the site fast tier on base was 210 failed, 218 passed,
+   293 errors (test_finding_circular_path_note.py could not even be collected: it imported two gate
+   test modules F08-T42 deleted).
+2. Seam (so the red fails on the defect, not on an AttributeError): model.py stopped calling the two
+   deleted gate readers (no tree fallback, no path labels) and routes_view.py read
+   `SufficientSet.circular` with getattr; rendering otherwise as on base (a v6-v9 row's `circular`
+   still drawn). Fixture: publish_v335 writes the current contract (graph/v10, frontier/v6) with the
+   literature fields only; publish_v336 / publish_review_state validate against graph/v10; new
+   publish_circular_snapshot lowers to graph/v9 + frontier/v5 with `circular` rows (an older snapshot).
+3. Red: task-53-red.txt — 9 failed, 3 passed, 11 errors, every one on the defect:
+   graph/v10 / frontier/v6 not accepted ("frontier.json is frontier/v6, which this generator does
+   not render"), circularity marks found on four pages of the older snapshot, NodeView still carrying
+   circular/circular_below, the glossary/key still naming "circular". The 3 that passed pin what
+   must not change (the retired cause changes no state; the routes table on an old row; the ancestor's
+   page, which the seam had already stopped annotating).
+4. Fix (site/ only): model accepts graph/v10 and frontier/v6; CircularLabel, NodeView.circular,
+   .circular_below, .circular_claim, _circular_labels, _with_circular_paths removed. render.py: the
+   glossary/key entry and CIRCULAR_LABEL_WORD, graph_legend's mark, circular_chip,
+   circular_label_note, circular_below_note, the row's data-circular and label, the footer's claim
+   renders via the label (the claim is still listed through open_claims), the pill's `labelled` set.
+   dag.py: circular_mark and svg's `labelled`. routes_view.py: the "labelled circular" note.
+   problem-row.html: data-circular and $label. site.css: .dot-circular, .dag .circular-mark,
+   .circular-note (twice), .circular-label, .stmt .proves, and .circular-label in the node-head rule.
+   site/docs/defect-claim.md (the Docs "Filing a defect claim" page): the class list and the
+   "A circularity claim" section, which told contributors to file a claim the gate now refuses, are
+   replaced by "No circularity claim (D-12, D-16 v3.42)".
+   RETIRED_CIRCULAR_CAUSE kept: graph/v3-v5's `cause` is a free pattern (^[a-z][a-z0-9-]*$), and
+   F08-T17's gates wrote `cause: circular` there, so a snapshot the site still accepts can carry it.
+5. Tests: test_finding_circular_label.py, _key.py, _path_note.py deleted (they pinned the retired
+   label only); their two still-true guards (every state a node can take is keyed; every mark the
+   drawing makes is keyed, F18-AC5) and the retired-cause guard are restated in
+   test_finding_circularity_retired_site.py. Restated: test_routes_view (an older row's label draws
+   no note), test_finding_dag_labels (no glyph, no `labelled`), test_finding_lemma_edge (graph/v10),
+   fixture.publish_v8 (v8 rows carry `circular`). Goldens regenerated with test_render.write_goldens:
+   the diff is exactly the glossary row "proves an ancestor" on docs/index.html and three
+   ` data-circular="0"` attributes on problems/index.html (no version strings appear in pages).
+6. Green: task-53-green.txt —
+   uv run --frozen pytest -q -p no:cacheprovider site/tests gate/tests/test_versions_accepted.py
+     gate/tests/test_lifecycle_f15.py -m "not lean and not docker and not network and not harness"
+   730 passed, 8 skipped (the playwright-dependent tests; playwright is not in the venv).
+   ruff check site: all passed; ruff format: clean. mypy site: 3 errors, all in api/opn_api
+   (claims.py:192, 226; requests.py:224 — `graph.CAUSE_CIRCULAR`, deleted by the gate side); none in
+   site/. Those are the api agent's.
+
+7. Merged circularity-retire (53f91f0b, the api half) into circ-site: no conflicts. On the merged tree:
+   uv run --frozen pytest -q -p no:cacheprovider site/tests gate/tests/test_bench.py
+     gate/tests/test_lifecycle_f14.py gate/tests/test_lifecycle_f15.py
+     gate/tests/test_versions_accepted.py gate/tests/test_schemas.py
+     -m "not lean and not docker and not network and not harness"
+   839 passed, 8 skipped. mypy site: Success, no issues in 105 source files (the api errors of
+   step 6 are gone with the api half). ruff check/format site: clean.
+
+== Screenshots ==
+Rendered by task-53-render.py from the site fixture's revised-hole tree plus one merged
+circular-decomposition claim on and-swap-reassoc--h1 naming and-swap-reassoc: "before" with
+origin/main's gate and site in a detached scratch worktree (products then given the v3.35 label on
+the hole's row, as the live gate published it), "after" with this branch. Shot and measured by
+task-53-shoot.py (Playwright, fresh browser context per site and width; scrollWidth measured, not
+--window-size). Raw report summarised:
+
+  key words, before: proved · open · blocked · needs a witness · superseded · proves an ancestor · depends on
+  key words, after:  proved · open · blocked · needs a witness · superseded · depends on
+  circularity elements in the DOM, before: node page 1 (.circular-label); problem page 6
+    (pill mark, ⇒ in the svg, panel label, routes note, key swatch, "proves an ancestor" text);
+    listing 8 (one ⇒ swatch, one "proves" chip, data-circular on all six rows)
+  circularity elements in the DOM, after: 0 on every page, at both widths
+  scrollWidth at 390: problem page 390, listing 390 (before and after);
+    node page 780 before AND after — see "Not mine" below.
+
+task-53-{before,after}-problem-graph-{1440,390}.png  the statement graph: before, h1's pill carries
+  the ⇒ tab at its top left; after, the same pill with nothing on it. Layout otherwise identical.
+task-53-{before,after}-problem-key-{1440,390}.png    the key: before lists "⇒ proves an ancestor"
+  between superseded and depends on; after it is gone and the toggle moves up a line at 390.
+task-53-{before,after}-problem-panel-{1440,390}.png  h1's selected panel: before, "How it is being
+  proved" reads "A proof of this statement is a proof of and-swap-reassoc (claim …)"; after it reads
+  the status line, "Needs a witness: …".
+task-53-{before,after}-listing-row-{1440,390}.png    the listing's row for h1: before, a second line
+  "⇒ proves and-swap-reassoc" under "needs a witness"; after, one line.
+task-53-{before,after}-node-head-{1440,390}.png      h1's page head: before, the bordered label line
+  between "Left open by a proof skeleton." and the Lean; after, none.
+task-53-{before,after}-node-claims-{1440,390}.png    h1's defect-claims block, identical before and
+  after: "circular-decomposition · claim open · <file link>" — the claim stays as history.
+
+== Not mine, seen while measuring ==
+- The node page scrolls sideways at 390 (scrollWidth 780) on origin/main as well as here: the one
+  element past the viewport is the head's status span (`span.status.status-blocked`) carrying the long
+  cause sentence "needs a witness: nothing else blocks it, …" without wrapping. Unrelated to
+  circularity; left alone.
+- The defect-claims block says "claim open … it blocks nothing until a curator accepts it" of a
+  claim of the retired class; the brief keeps that list as is.
+
+## Lead, after merging (2026-10-15)
+The defect-claims block still introduced a retired-class claim as "A defect claim is open against
+this statement ... claim open", which contradicts D-12 v3.42 (history, says nothing about the
+statement). Red first: test_a_retired_class_claim_is_history_not_an_open_claim failed on that
+sentence (task-53-history-red.txt). Fix: NodeView.open_claims leaves out a standing claim of the
+retired class unless a curator's record accepted it (then the record says it is disputed, and it
+stays open); NodeView.retired_claims lists the rest; render.retired_claims_note shows them as
+history in the same block. Green: site/tests/test_finding_circularity_retired_site.py and
+test_render_defect_claims.py, 26 passed. The "after" screenshots were re-shot over the final code
+(task-53-render.py, task-53-shoot.py): task-53-after-node-claims-{1440,390}.png now show the history
+line; every circularity element count is 0 on all pages; problem and listing pages 390 = 390 wide;
+the node page is 780 wide at 390 as on origin/main (the head's status sentence, not this task).

@@ -160,7 +160,6 @@ class SufficientSet:
     routes: tuple[str, ...]
     variant: str | None
     shared: int
-    circular: tuple[str, ...]
 
     @property
     def total(self) -> int:
@@ -187,7 +186,6 @@ class SufficientSet:
             "closed": self.closed,
             "remaining": self.remaining,
             "shared": self.shared,
-            "circular": list(self.circular),
         }
 
 
@@ -542,7 +540,6 @@ def read(
             routes=o.routes,
             variant=o.variant,
             shared=sum(1 for m in o.members if held[m] > 1),
-            circular=tuple(sorted(m for m in o.members if rows[m].get("circular"))),
         )
         for o in minimal
     )

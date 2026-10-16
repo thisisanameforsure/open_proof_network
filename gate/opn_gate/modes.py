@@ -3390,6 +3390,9 @@ def check_defect_claim(  # noqa: PLR0911 — one return per rule
     schema_problems = _check_schema(located, data, code="record-invalid")
     if schema_problems:
         return schema_problems
+    retired = check_retired_class(located, doc)
+    if retired:
+        return retired
     finding_problems = check_screen_finding(graph_root, located, doc, mode=mode)
     if finding_problems:
         return finding_problems
@@ -3424,51 +3427,26 @@ def check_defect_claim(  # noqa: PLR0911 — one return per rule
                 {"path": located.path, "line": line, "lines": len(lines), "file": path},
             )
         ]
-    return check_circular_claim(graph_root, located, doc)
-
-
-def check_circular_claim(
-    graph_root: Path, located: Located, doc: dict[str, Any]
-) -> list[Diagnostic]:
-    """F08-T17 (D-16): a ``circular-decomposition`` claim names an ancestor, and the ancestor is a
-    node that depends on this claim's node transitively, read through revisions — the one fact the
-    implication the sandbox checks is about (``exhibits.check_circular``). An ``ancestor`` on any
-    other class claims something nobody checks, so it is refused rather than carried."""
-    ancestor = doc.get("ancestor")
-    if doc.get("class") != records.CIRCULAR_CLASS:
-        if ancestor is None:
-            return []
-        return [
-            Diagnostic(
-                "circular-ancestor",
-                f"{located.path}: `ancestor` belongs to a {records.CIRCULAR_CLASS} claim; a "
-                f"{doc.get('class')!r} claim names none (F08-T17)",
-                {"path": located.path, "class": doc.get("class"), "ancestor": ancestor},
-            )
-        ]
-    if located.node_id is None or not isinstance(ancestor, str):
-        lacks = "a node's defects/" if located.node_id is None else "an ancestor"
-        return [
-            Diagnostic(
-                "circular-ancestor",
-                f"{located.path}: a {records.CIRCULAR_CLASS} claim sits under a node and names "
-                f"a node above it; this one lacks {lacks} (F08-T17)",
-                {"path": located.path, "ancestor": ancestor},
-            )
-        ]
-    nodes_dir = layout.graph_nodes_dir(graph_root, located.target_id)
-    above = graphmod.ancestors(nodes_dir, located.node_id)
-    if ancestor not in above:
-        return [
-            Diagnostic(
-                "circular-ancestor",
-                f"{located.path}: {ancestor!r} does not depend on {located.node_id}, even through "
-                "revisions, so the claim relates the node to nothing it was meant to reduce; name "
-                f"one of: {', '.join(sorted(above)) or 'none (nothing depends on this node)'}",
-                {"path": located.path, "ancestor": ancestor, "ancestors": sorted(above)},
-            )
-        ]
     return []
+
+
+def check_retired_class(located: Located, doc: dict[str, Any]) -> list[Diagnostic]:
+    """F08-T42 (D-12, D-16 v3.43): the ``circular-decomposition`` class is retired, and with it
+    ``ancestor``, which only that class carried. The implication its exhibit proved holds of every
+    hole by its merged assembly, so the claim separated nothing; a hole definitionally equal to an
+    ancestor is refused where the hole is made (``offload-restates-ancestor``). A merged claim of
+    the class stays in the record as history and nothing reads it."""
+    if doc.get("class") != records.CIRCULAR_CLASS and doc.get("ancestor") is None:
+        return []
+    return [
+        Diagnostic(
+            "defect-class-retired",
+            f"{located.path}: the {records.CIRCULAR_CLASS} class and its `ancestor` field were "
+            "retired in decisions v3.43 (D-12, D-16): every hole implies its parent by its "
+            "assembly, so the claim records nothing a hole does not already say",
+            {"path": located.path, "class": doc.get("class"), "ancestor": doc.get("ancestor")},
+        )
+    ]
 
 
 SCREEN_FINDING = "screen-finding"

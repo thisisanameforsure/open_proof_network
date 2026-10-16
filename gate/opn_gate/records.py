@@ -226,56 +226,10 @@ def declared_root(target_dir: Path) -> str | None:
     return str(root) if root else None
 
 
-#: F08-T17 (D-16): the defect class that says a node is no easier than a node above it.
+#: F08-T17 (D-16); retired by F08-T42 (D-16 v3.43): the gate refuses a new claim of this class,
+#: and a merged one stays in the record as history that no product reads.
 CIRCULAR_CLASS = "circular-decomposition"
 DEFECTS_DIR = "defects"
-
-
-def circular_claim(node_dir: Path) -> str | None:
-    """The merged circularity claim that takes this node off the frontier, as ``defects/<file>``
-    relative to the node — the first by file name, so the oldest (D-13's stamp) — or ``None``.
-
-    Derive, never rewrite (F08-T10): the claim file is the fact, merged only once the gate had
-    checked its ancestor and elaborated its exhibit as ``node → ancestor`` in the sandbox, so
-    nothing here re-checks the mathematics. A file that does not read as a valid
-    ``circular-decomposition`` claim is logged and passed over: defect claims are appends anyone
-    files, and one bad file must never decide whether the graph has products (2026-09-17).
-    """
-    claims = circular_claims(node_dir)
-    return claims[0][0] if claims else None
-
-
-def circular_claims(node_dir: Path) -> list[tuple[str, str]]:
-    """Every merged circularity claim under this node, oldest first, as ``(defects/<file>,
-    ancestor)`` — the ancestor as the claim names it, before any revision chain is followed.
-
-    F08-T20 (D-12 v3.22): each claim is a path of its own, from its ancestor down to this node,
-    so all of them are read, not only the first; a file that does not validate is passed over
-    as :func:`circular_claim` passes it over. A claim a curator has withdrawn is absent (F08-T31,
-    D-18 v3.27).
-    """
-    directory = node_dir / DEFECTS_DIR
-    if not directory.is_dir():
-        return []
-    accepted = paths.SCHEMAS_FOR_ROLE["defect-claim"]
-    gone = withdrawn_names(node_dir, DEFECTS_DIR)  # F08-T31: a withdrawn claim is absent
-    found: list[tuple[str, str]] = []
-    for path in sorted(p for p in directory.iterdir() if p.suffix in ATTEMPT_SUFFIXES):
-        if path.name in gone:
-            continue
-        try:
-            doc = schemas.load_yaml(path)
-        except schemas.SchemaError as exc:
-            log.warning("%s: a defect claim that does not read is passed over: %s", path, exc)
-            continue
-        if doc.get("class") != CIRCULAR_CLASS:
-            continue
-        schema_id = str(doc.get("schema"))
-        if schema_id not in accepted or schemas.violations(doc, schema_id):
-            log.warning("%s: a circularity claim that does not validate is passed over", path)
-            continue
-        found.append((f"{DEFECTS_DIR}/{path.name}", str(doc.get("ancestor") or "")))
-    return found
 
 
 @dataclass(frozen=True)
@@ -299,9 +253,8 @@ class DefectClaim:
 def defect_claims(node_dir: Path) -> list[DefectClaim]:
     """Every defect claim under the node, oldest first (D-13's stamp sorts), withdrawn ones
     included and marked so (D-16 v3.28: every claim is shown). A file that does not validate
-    against the version it declares is logged and passed over, as :func:`circular_claims` passes
-    one over: the gate refused it at merge, and one bad file must never decide what the products
-    say (2026-09-17)."""
+    against the version it declares is logged and passed over: the gate refused it at merge,
+    and one bad file must never decide what the products say (2026-09-17)."""
     directory = node_dir / DEFECTS_DIR
     if not directory.is_dir():
         return []

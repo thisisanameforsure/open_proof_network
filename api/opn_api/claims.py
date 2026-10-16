@@ -167,41 +167,6 @@ def blocked(
     return precheck.blocked_error(node_id, facts, graph, pending_witness=waiting)
 
 
-def circular(
-    node_id: str,
-    facts: dict[str, Any],
-    *,
-    lead: str | None = None,
-    merged: tuple[str, ...] = (),
-) -> ApiError:
-    """F08-T17 (D-16): a node under a merged circularity claim is off the frontier by design. Its
-    status is untouched (a proof of it is still a proof), so "ready and not on the frontier"
-    would be true and useless; this names the reason and where the claim lives.
-
-    F08-T18: ``POST /defect-claims`` refuses a second circularity claim in the same words, with
-    its own ``lead`` and, when it could list them, the ``merged`` claims' paths."""
-    where = (
-        f"The claim and its Lean exhibit: {', '.join(merged)}."
-        if merged
-        else (
-            f"The claim and its Lean exhibit are under nodes/{node_id}/defects/, or, when the "
-            f"claim was filed on a hole below it and reaches it along an established path "
-            f"(D-12 v3.22), under that hole's defects/."
-        )
-    )
-    details: dict[str, Any] = {"status": facts["status"], "cause": graphmod.CAUSE_CIRCULAR}
-    if merged:
-        details["claims"] = list(merged)
-    return ApiError(
-        409,
-        "node-circular",
-        f"{lead or f'{node_id} is not claimable'}: it is circular — a merged circularity claim "
-        f"(D-16) proves a node above it implies it, so it is no easier than what it was meant to "
-        f"reduce. {where}",
-        details=details,
-    )
-
-
 def ambiguous(node_id: str) -> ApiError:
     return ApiError(409, "node-ambiguous", f"{node_id} exists in several targets; pass target_id")
 
@@ -223,8 +188,6 @@ def off_frontier(ctx: Context, node_id: str, target_id: str | None) -> ApiError:
     if len(rows) > 1:
         return ambiguous(node_id)
     facts = precheck.facts_of(*rows[0])
-    if facts["cause"] == graphmod.CAUSE_CIRCULAR:
-        return circular(node_id, facts)
     if facts["status"] == "blocked":
         if precheck.witness_awaits_render(ctx, node_id, facts):  # F06-T8: one state, one answer
             return precheck.awaits_render(node_id, f"{node_id}'s witness has merged")
