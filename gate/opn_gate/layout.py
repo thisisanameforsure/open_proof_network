@@ -11,6 +11,7 @@ A node directory is::
       Relation.lean    optional: variants only (D-30, F08)
       relevance.yaml   optional: a related variant's one signature (D-30 v3.12, F12-R13)
       CONTEXT.json     optional: the bot-owned context bundle (F10-R3, Q2); never a submission path
+      closure.json     optional: the gate's closure record (F28-T8); never a submission path
       attempts/  annex/  explainer/   required directories (may hold only .gitkeep)
       waivers/         optional (F02)
       status/          optional: curator and adjudication records (F03); never a submission path
@@ -38,7 +39,16 @@ REQUIRED_FILES: tuple[str, ...] = ("META.yaml", "Statement.lean", "Witness.lean"
 CONTEXT_FILE = "CONTEXT.json"
 #: relevance.yaml is a related variant's one signature (F12-R13, D-30 v3.12), a curator's record.
 RELEVANCE_FILE = "relevance.yaml"
-OPTIONAL_FILES: tuple[str, ...] = ("Proof.lean", "Relation.lean", CONTEXT_FILE, RELEVANCE_FILE)
+#: closure.json is the gate's signed record that the node is proved by closure (F28-T8, D-12
+#: v3.42), written by the post-merge job; like CONTEXT.json, never a submission path.
+CLOSURE_FILE = "closure.json"
+OPTIONAL_FILES: tuple[str, ...] = (
+    "Proof.lean",
+    "Relation.lean",
+    CONTEXT_FILE,
+    RELEVANCE_FILE,
+    CLOSURE_FILE,
+)
 REQUIRED_DIRS: tuple[str, ...] = ("attempts", "annex", "explainer")
 #: status/: curator records (F03-Q3); revisions/ and defects/: D-8 and D-16 records (F08);
 #: proposed-for/: F18-R8's pointer records (D-3 v3.26); withdrawals/: F08-T31's (D-18 v3.27);

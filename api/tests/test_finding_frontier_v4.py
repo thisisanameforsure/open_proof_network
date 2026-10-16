@@ -1,5 +1,6 @@
 """F03-T16 (audit 2026-10-04): the service serves ``frontier/v4`` and still serves ``frontier/v3``;
-F03-T18 (D-12 v3.35): it serves ``frontier/v5`` and still both older ones.
+F03-T18 (D-12 v3.35): it serves ``frontier/v5`` and still both older ones; F08-T42 (D-12 v3.43):
+``frontier/v6``, v5 less ``circular``.
 
 The live graph's products stay on the version its pinned gate renders until the re-pin, so the
 service accepts the old version and the new one side by side (D-34: a consumer parses by version).
@@ -40,12 +41,12 @@ def test_a_v3_frontier_is_still_served(harness: Harness) -> None:
 
 
 def test_the_current_frontier_is_served_with_what_each_node_needs(harness: Harness) -> None:
-    """v4's fields, on the version the gate writes now (v5 since F03-T18)."""
+    """v4's fields, on the version the gate writes now (v5 since F03-T18, v6 since F08-T42)."""
     serve(harness, "frontier-listed.json")
     r = harness.client.get("/frontier.json")
     assert r.status_code == 200, r.text
     doc = r.json()
-    assert doc["schema"] == "frontier/v5"
+    assert doc["schema"] == "frontier/v6"
     assert schemas.violations(doc) == []
     entry = next(e for e in doc["entries"] if e["node_id"] == LISTED_NODE)
     assert (entry["status"], entry["cause"], entry["needs"], entry["claimable"]) == (
@@ -54,7 +55,7 @@ def test_the_current_frontier_is_served_with_what_each_node_needs(harness: Harne
         "proof",
         True,
     )
-    assert entry["circular"] == [] and entry["literature"] is None
+    assert "circular" not in entry and entry["literature"] is None  # F08-T42 (D-12 v3.43)
 
 
 def test_list_frontier_filters_on_needs(harness: Harness) -> None:

@@ -44,6 +44,7 @@ def node(
     deps: list[str] | None = None,
     circular: bool = False,
 ) -> dict[str, Any]:
+    """``circular`` gives the row an older snapshot's ``graph/v9`` label (F04-T53: ignored)."""
     holes = [h for r in routes or [] for h in r]
     return {
         "node_id": node_id,
@@ -66,7 +67,8 @@ def node(
 def doc() -> dict[str, Any]:
     """Root ``t`` with three routes: ``[a, b]``, ``[b, c]`` (``b`` proved, ``c`` decomposed into
     ``c--h1``) and ``[d]`` with ``d`` refuted (dead); and a ``resolves`` variant ``v``. The sets
-    are ``{a, b}``, ``{b, c--h1}`` (assembly ``c``) and ``{v}``."""
+    are ``{a, b}``, ``{b, c--h1}`` (assembly ``c``) and ``{v}``. ``c--h1`` carries an older
+    snapshot's circularity label, which the section ignores (F04-T53, D-12 v3.43)."""
     return {
         "schema": "graph/v9",
         "target_id": "t",
@@ -141,7 +143,7 @@ def test_routes_section_structure(tmp_path: Path) -> None:
     assert counts(rows[0]) == [2, 1, 1, 1, 1]
     assert counts(rows[1]) == [2, 1, 1, 1, 2]
     assert counts(rows[2]) == [1, 0, 1, 0, 0]
-    assert "labelled circular" in rows[1]
+    assert "circular" not in rows[1]  # F04-T53 (D-12 v3.43): no label, no note
     assert "goes through the variant" in rows[2]
     # The legend names every mark the drawing can show, inside the drawing's card.
     legend = html[html.index('class="routes-legend"') : html.index('class="routes-scroll"')]

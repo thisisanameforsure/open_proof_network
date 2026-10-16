@@ -28,6 +28,7 @@ from typing import Any
 
 from opn_gate import annex as annexmod
 from opn_gate import (
+    closure,
     context,
     defs,
     evidence,
@@ -62,18 +63,21 @@ from opn_gate.toolchain import ResolvedToolchain, Toolchain, UsedConstantsReques
 
 log = logging.getLogger(__name__)
 
-#: docs/architecture_decisions.html (v3.41: closing proofs; v3.40: routes and sufficient sets)
-PROTOCOL_VERSION = "3.41"
+#: docs/architecture_decisions.html (v3.43: circularity retired; v3.42: proved by closure)
+PROTOCOL_VERSION = "3.43"
+#: F08-T42 (D-12 v3.43): graph/v11 drops ``circular``, the retired circularity label.
 #: F03-T20 (D-12 v3.38): graph/v8 carries ``lemmas``, the nodes under other branches a merged
 #: partial restated as holes, and a decomposition's hole may resolve to one. v7 (F25-R7, D-10
 #: v3.37): registrations. F08-T39 (D-12 v3.35): v6 carries ``circular`` (the label),
 #: ``literature`` and ``literature_proposed`` (F08-T40); v5: every defect claim (F08-T36); v4:
 #: F08-T27, F18; v3: F12-R13.
-GRAPH_SCHEMA = "graph/v9"  # v9 (F26-R17, D-9 v3.39): review state and open pairs; v8: lemmas
+#: v11 (F08-T42, D-12 v3.43): no circular; v10 (F28-T8, D-12 v3.42): closure; v9 (F26-R17):
+#: review state and open pairs; v8: lemmas
+GRAPH_SCHEMA = "graph/v11"
 #: F03-T18 (D-12 v3.35): frontier/v5 repeats graph/v6's three fields on every entry, and a node
 #: under a circularity claim is an entry on its status alone; v4 (T16): status, cause, needs;
-#: v3 (T7): partials; v2: D-33 dormancy.
-FRONTIER_SCHEMA = "frontier/v5"
+#: v3 (T7): partials; v2: D-33 dormancy. F08-T42 (D-12 v3.43): frontier/v6 drops ``circular``.
+FRONTIER_SCHEMA = "frontier/v6"
 #: F11-R12 renames D-9's second rung and F11-R3/R4 add the derived fields. v2 was already spent
 #: on F07-R8's node counts and D-34 forbids editing it, so the rename lands at v3 (F11-Q9).
 #: F12-R14 adds the QA pass state per subject, the counted attempts and the drift flag: v4.
@@ -935,6 +939,20 @@ def literature_states(
     return out
 
 
+def closure_entry(n: graphmod.NodeFacts) -> dict[str, Any] | None:
+    """F28-T8: the node's closure as ``graph/v10`` publishes it — the link, its inputs and the
+    record's path under the target's nodes — or None."""
+    if n.closure is None:
+        return None
+    link = n.closure["link"]
+    return {
+        "kind": link["kind"],
+        "id": link["id"],
+        "inputs": list(link["inputs"]),
+        "record": f"{n.node_id}/{closure.FILE}",
+    }
+
+
 def graph_doc(
     tg: TargetGraph,
     rendered_from: str | None,
@@ -981,9 +999,6 @@ def graph_doc(
                 "defect_claims": context.defect_claims(
                     reader, tg.target_id, node_id, status=tg.statuses[node_id]
                 ),
-                # F08-T39 (D-12 v3.35): the merged circularity claims as a label — the node's own
-                # and the one a circular path assigns it — never a removal and never a cause.
-                "circular": [label.as_dict() for label in n.circular],
                 # F08-T40 (D-25 v3.35): the latest confirmed literature status and the latest
                 # proposal awaiting a steward or curator; null when none.
                 "literature": lit[node_id].confirmed,
@@ -991,6 +1006,8 @@ def graph_doc(
                 # F03-T20 (D-12 v3.38): META.yaml's lemmas in the record's order, each node as
                 # it is now — a hole's standing, drawn on once proved and never waited on.
                 "lemmas": [{"hole": x.hole, "node": x.node} for x in n.lemmas],
+                # F28-T8 (D-12 v3.42): the closure the gate joined and signed, or null.
+                "closure": closure_entry(n),
             }
         )
     return {
@@ -1023,8 +1040,7 @@ def workable(status: str, node: NodeFacts, status_of: Callable[[str], str]) -> b
     ``cause`` and the api's witness route keys off; and a superseded node is refused on the fact
     itself (D-8), whatever its slot says. Found live 2026-09-17: ``erdos-69--h2``, replaced by a
     D-8 revision, was still ``claimable: true`` because the hole clause asked only about the
-    slot. A merged circularity claim excludes nothing here (F08-T39, D-12 v3.35): it is the
-    label the entry carries, and choosing to work past it is the operator's filter (D-25)."""
+    slot."""
     if graphmod.is_superseded(node):
         return False
     if status in graphmod.FRONTIER_STATUSES:
@@ -1046,8 +1062,7 @@ def needs_of(status: str, node: NodeFacts, status_of: Callable[[str], str]) -> s
     slot (``POST /proposals/witness`` takes it, D-29); ``dependencies`` for a node blocked on
     dependencies nobody has proved yet (an open variant, which R5 lists whatever it waits on);
     ``None`` when no contributor's submission moves it — a refuted dependency (a curator has to
-    act, D-12), a curator's ``stale`` or ``disputed`` record, a superseded node. A circularity
-    claim changes nothing here (F08-T39, D-12 v3.35).
+    act, D-12), a curator's ``stale`` or ``disputed`` record, a superseded node.
     """
     if graphmod.is_superseded(node):
         return None
@@ -1082,11 +1097,6 @@ def in_frontier(status: str, node: NodeFacts, status_of: Callable[[str], str]) -
     first hole on an open Erdős target took its whole target off the frontier). The witness is
     work anyone can do — ``POST /proposals/witness`` takes exactly this node — so it belongs
     here, while a node waiting on an unproved dependency does not.
-
-    F08-T17 and F08-T20 took a node under a merged circularity claim off here; F08-T39 (D-12
-    v3.35) stopped that, because the claim's exhibit is met by every honest reduction (D-12 #4)
-    and by the last open hole of any decomposition, so the removal hid genuine progress. The
-    claim is the entry's ``circular`` label now, and membership asks nothing about it.
     """
     if graphmod.is_superseded(node):
         return False  # R13: its successor carries the question, variant or not
@@ -1171,9 +1181,8 @@ def frontier_entry(
         "status": status,
         "cause": graphmod.cause_of(node, status, status_of),
         "needs": needs,
-        # F03-T18 (D-12 v3.35, D-25 v3.35): graph/v6's label and literature status, repeated so
-        # an agent filtering the frontier needs no second fetch; F08-T40 fills the latter two.
-        "circular": [label.as_dict() for label in node.circular],
+        # F03-T18 (D-25 v3.35): graph/v6's literature status, repeated so an agent filtering
+        # the frontier needs no second fetch (F08-T40).
         "literature": lit.confirmed,
         "literature_proposed": lit.proposed,
     }

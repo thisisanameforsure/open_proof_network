@@ -1634,6 +1634,23 @@ The law of the project:
   the fake**: `--resume` against the live project downloaded the same bytes in 2.3 s, which no
   fixture could show.
 
+- 2026-10-15 — The circularity claim and its label retired (decisions v3.43, F08-T42, F04-T53) from
+  the owner asking what the label meant. Three things worth keeping. **A simplifying argument needs
+  its exceptions checked before the owner rules on it**: "`hole → ancestor` holds of every hole by
+  its assembly" is true only once the hole's siblings are proved; where they are open, an exhibit
+  proving it is real mathematics, and F28 (landed the same afternoon) used exactly that as a closing
+  link. The merge found it, not the reasoning; the owner retired the link too (F28-Q12), but the
+  question should have been asked before the amendment, not after. **Grep `origin/main` for every
+  consumer of what you remove at each merge, not once at the start**: main moved three times in one
+  session, and each time brought a new reader of the field (F28's `closing.links`) or new test
+  expectations (F28-Q10), so a suite green before the merge was red after it for reasons that were
+  not this task's. **The pre-commit hook tests the working tree, not the commit**: committing the
+  amendment alone with three new schema files uncommitted beside it failed on the goldens' schema
+  index; fold the doc and the code into one commit, or keep the tree clean of what the commit
+  leaves out. Also: a copied schema keeps its old `"schema": {"const": "<name>/vN"}`, so a v10 that
+  still demands v9 refuses every document (251 failures from one line); rewrite `$id`, `title` and
+  the const together.
+
 - 2026-10-15 — Thirty agents for eighteen minutes on erdos-1094 (`engineering/evidence/testers-2026-10-15c/`),
   then the lead finished their unfinished business. Three things worth keeping. **A gate refusal that says
   "graph defect" is a claim about the graph, and here it was the gate's own regex**: step 8 read a Context
@@ -1644,5 +1661,5 @@ The law of the project:
   graph #568–#572. **Throughput limits outrank agent count**: the session caps 20 concurrent subagents,
   and token starts are 10 a day per machine, so half the agents could not write at all; the cure was
   reusing tokens the early agents held, crediting the author in `automation`. **Agents write secrets
-  where they write logs**: four saved their token under `engineering/evidence/`; move them out before any
+  where they write logs**: six saved their token under `engineering/evidence/` (two as whole token responses that a pattern scan missed; read the field names); move them out before any
   commit, and tell every brief to keep tokens in the scratchpad.

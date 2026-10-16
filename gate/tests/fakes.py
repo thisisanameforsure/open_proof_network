@@ -218,7 +218,9 @@ class FakeToolchain:
     outline_requests: list[OutlineRequest] = field(default_factory=list)
     #: F28: what ``opn-close`` answers; every request is kept in ``close_requests``.
     close_doc: MetaprogramResult = field(
-        default_factory=lambda: MetaprogramResult(ok=True, doc={"ok": True, "sites": []})
+        default_factory=lambda: MetaprogramResult(
+            ok=True, doc={"ok": True, "holes": [], "axioms": []}
+        )
     )
     close_requests: list[CloseRequest] = field(default_factory=list)
     missing: bool = False

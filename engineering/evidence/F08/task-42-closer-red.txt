@@ -1,0 +1,42 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+__________________ test_the_closer_takes_no_link_from_a_claim __________________
+
+    def test_the_closer_takes_no_link_from_a_claim() -> None:
+        """F28 (v3.41) closed an ancestor through a merged claim's exhibit once the claimed hole was
+        proved. v3.42 retires that link with the class: an older graph's ``circular`` rows join
+        nothing, and a proved hole closes what it was cut from only through a route."""
+        from opn_gate import closing  # noqa: PLC0415 — the one test that reads it
+    
+        graph_doc = {
+            "schema": "graph/v9",
+            "target_id": "t",
+            "root": "p",
+            "nodes": [
+                {
+                    "node_id": "p",
+                    "status": "ready",
+                    "deps": [],
+                    "origin": "authored",
+                    "decompositions": [],
+                },
+                {
+                    "node_id": "q",
+                    "status": "proved",
+                    "deps": [],
+                    "origin": "authored",
+                    "decompositions": [],
+                    "circular": [{"ancestor": "p", "claim": "q/defects/x.yaml"}],
+                },
+            ],
+        }
+>       assert closing.links(graph_doc)["p"] == []
+E       AssertionError: assert [Link(kind='c...nputs=('q',))] == []
+E         
+E         Left contains one more item: Link(kind='claim', id='q/defects/x.yaml', inputs=('q',))
+E         Use -v to get more diff
+
+gate/tests/test_finding_circularity_retired.py:305: AssertionError
+=========================== short test summary info ============================
+FAILED gate/tests/test_finding_circularity_retired.py::test_the_closer_takes_no_link_from_a_claim
+1 failed, 9 deselected in 0.12s

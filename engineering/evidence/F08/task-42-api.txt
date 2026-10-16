@@ -1,0 +1,85 @@
+F08-T42 (service half): retire the circularity claim in the api (decisions v3.42; D-12, D-16, D-25)
+Branch circ-api, from circularity-retire 9e66cb42 (the gate side). Running log, newest last.
+
+Baseline on 9e66cb42, api fast tier, api untouched (the gate side had already removed the names
+the service read, so the service was broken before this task began):
+  $ uv run --frozen pytest -q -p no:cacheprovider api/tests -m "not lean and not docker and not network and not harness"
+  61 failed, 2036 passed in 110.41s
+  The failures are this task's: AttributeError on graphmod.CAUSE_CIRCULAR in /claims and
+  /defect-claims, get_node refusing context/v8, the golden frontier fixtures at v5,
+  list_sufficient_sets' result schema requiring `circular`, the circular-claim tests themselves.
+
+Red: api/tests/test_finding_circularity_retired_api.py, 9 failed / 1 passed, each on the defect
+(engineering/evidence/F08/task-42-api-red.txt).
+
+Changes:
+- api/opn_api/requests.py: the class is no longer offered (DEFECT_CLAIM_CLASSES = D-16's taxonomy);
+  refuse_retired() answers 400 defect-class-retired for class circular-decomposition or any
+  non-null `ancestor`, before any other field is read (`ancestor` stays in DEFECT_FIELDS so it is
+  refused by name rather than as an unknown key). CIRCULAR_SCHEMA, check_ancestor, ancestors_in,
+  merged_claims_of and known_state's merged-circular refusal removed; every claim is written at
+  defect-claim/v1; the `relational` preflight argument is gone. RETIRED_CLASS keeps the name.
+- api/opn_api/claims.py: claims.circular() and off_frontier's cause == circular branch removed, so
+  node-circular is never answered.
+- api/opn_api/checks.py: preflight_exhibit's `relational` parameter removed (`skipped` remains for
+  an exhibit importing a module only the gate's staging holds).
+- api/opn_api/frontier.py: FRONTIER_SCHEMAS gains frontier/v6 (v1 to v5 still served).
+- api/opn_api/mcp/reads.py: list_frontier's filter fields from frontier/v6 (so no `circular`
+  filter); get_node accepts context/v8; get_schema's description names defect-claim/v1 only.
+- api/opn_api/mcp/writes.py: file_defect_claim neither advertises the class nor takes `ancestor`
+  (an `ancestor` argument is refused by the input schema, additionalProperties false); the class
+  itself reaches the route and comes back 400 defect-class-retired.
+- api/opn_api/mcp/schemas/get_node/v1.json: context enum gains context/v8, description restated.
+- api/opn_api/mcp/schemas/list_sufficient_sets/v1.json: a set no longer carries `circular`
+  (routes.SufficientSet lost it on the gate side). Both edited in place: every mcp result schema
+  is v1 and edited in place (results.VERSION), as F10-T19 and F27 did.
+- .github/workflows/api-deploy.yml: the package check also requires frontier/v6 and context/v8.
+
+Fixtures (F05-Q5 golden copies): regenerated with the recipe the golden test carries,
+  $ PYTHONPATH=gate:gate/tests:api:api/tests:site:site/tests uv run --frozen python -c \
+      "import test_fixture_is_golden as t; t.write_fixtures()"
+  Diff: frontier-{listed,frozen,stewardless}.json each lose three `"circular": []` lines and say
+  frontier/v6; targets-index-*.json unchanged. frontier-listed-v3.json and frontier.json (v1)
+  are hand-kept older versions and untouched.
+
+Tests restated (not deleted) where they pinned more than the retired mechanism:
+- test_finding_defect_claim_known_state.py: also_open, the MCP receipt, another class, another
+  node and the both-stores parity now run on class junk-value; the merged-circular 409
+  node-circular cases went with the class (their successor is test_a_node_with_an_old_circular_
+  cause_takes_ordinary_claims and the retired-class refusals in the new test).
+- test_finding_exhibit_preflight.py: "a circularity claim's exhibit is skipped" became "a
+  circularity claim spends no check" (400 defect-class-retired, no AXLE call, no pull request).
+- test_finding_mcp_schema_versions.py: file_defect_claim names exactly defect-claim/v1;
+  get_schema names it and not the retired class.
+- test_finding_context_window.py: the derived bundle is context/v8, without circular or
+  circular_below; the v1 lowering no longer removes them.
+- test_finding_lemmas_mcp.py, test_finding_literature_mcp_products.py: hand-built v5/v6 snapshots
+  add `circular_below` (and v5 frontier `circular`) by hand, since the generator no longer emits
+  them; the filter test asserts literature and literature_proposed are filterable and circular
+  is not. test_claims.py, test_finding_frontier_v4.py: the golden frontier is v6.
+Deleted: test_finding_circular_claim.py (it existed only for the retired claim: filing at v3,
+the ancestor rules, node-circular, claims.circular's wording).
+
+Green:
+  $ uv run --frozen pytest -q -p no:cacheprovider api/tests/test_finding_circularity_retired_api.py -m "not lean and not docker and not network and not harness"
+  10 passed
+  $ uv run --frozen pytest -q -p no:cacheprovider api/tests -m "not lean and not docker and not network and not harness"
+  2099 passed in 87.15s
+  $ uv run --frozen ruff check . ; uv run --frozen ruff format --check .   -> clean (850 files)
+  $ uv run --frozen mypy api   -> Success: no issues found in 257 source files
+
+Gate tests that start the api (OPN_GRAPH_CHECKOUT=/Users/mikehiggins/Desktop/repos/opn-graph-circ):
+  $ uv run --frozen pytest -q -p no:cacheprovider gate/tests/test_rehearsal.py gate/tests/test_bench.py \
+      gate/tests/test_walkthrough.py gate/tests/test_lifecycle_f14.py gate/tests/test_error_codes.py \
+      -m "not lean and not docker and not network and not harness"
+  18 passed, 1 deselected, 5 errors
+  test_rehearsal, test_walkthrough and test_error_codes pass (defect-class-retired is now emitted
+  by both the gate and the api, as its `both` source says). The five errors are no longer the
+  api's GET /frontier.json -> 500; they are the site's, past the api:
+    test_bench.py x4: opn_site.model.SiteError: product frontier.json is frontier/v6, which this
+      generator does not render (site/opn_site/model.py)
+    test_lifecycle_f14.py::test_the_whole_life: site/tests/fixture.py:675 publish_v336 builds a
+      graph/v9 document without `circular` (SchemaError)
+  Both belong to the site agent's half.
+  Also green: gate/tests/test_finding_guide_route_preflights.py, test_finding_guide_names_exist.py,
+  test_finding_circularity_retired.py (47 passed with test_error_codes).

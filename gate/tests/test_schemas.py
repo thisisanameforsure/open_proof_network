@@ -28,6 +28,7 @@ def test_known_schemas_are_the_published_set() -> None:
         "attestation/v7",  # F25-T1 (automation)
         "candidate/v1",
         "claims/v1",
+        "closure/v1",  # F28-T8 (D-12 v3.42): proved by closure
         "context/v1",
         "context/v2",
         "context/v3",
@@ -35,6 +36,7 @@ def test_known_schemas_are_the_published_set() -> None:
         "context/v5",  # v3.35: circular, literature, literature_proposed
         "context/v6",  # v3.38: lemmas
         "context/v7",  # F26-T1 (D-9 v3.39): the review for the root
+        "context/v8",  # F08-T42 (D-12 v3.43): no circularity fields
         "credit-correction/v1",
         "defect-claim/v1",
         "defect-claim/v2",
@@ -55,6 +57,7 @@ def test_known_schemas_are_the_published_set() -> None:
         "frontier/v3",
         "frontier/v4",
         "frontier/v5",
+        "frontier/v6",  # F08-T42 (D-12 v3.43): no circular
         "gate-spec/v1",
         "gloss-signature/v1",
         "gloss-signature/v2",
@@ -64,6 +67,8 @@ def test_known_schemas_are_the_published_set() -> None:
         "glosses/v1",
         "glosses/v2",
         "graph/v1",
+        "graph/v10",  # F28-T8 (D-12 v3.42): each node's closure
+        "graph/v11",  # F08-T42 (D-12 v3.43): no circular
         "graph/v2",
         "graph/v3",
         "graph/v4",

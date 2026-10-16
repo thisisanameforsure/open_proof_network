@@ -64,7 +64,7 @@ def test_a_node_reads_its_lemmas_and_an_older_row_reads_none(tmp_path: Path) -> 
     root = fixture.build(tmp_path)
     site = model.load_site(root, fixture.COMMIT)
     tv = site.targets[TARGET]
-    assert tv.graph["schema"] == "graph/v9"  # v8 when written; F26-T1 added the review
+    assert tv.graph["schema"] == "graph/v11"  # v8 when written; F28-T8 v10; F08-T42 v11
     assert tv.nodes[PARENT].lemmas == [model.LemmaRef(hole=HOLE, node=LEMMA)]
     assert tv.nodes[ROOT].lemmas == []
     older = dataclasses.replace(
@@ -77,7 +77,7 @@ def test_a_node_reads_its_lemmas_and_an_older_row_reads_none(tmp_path: Path) -> 
 def test_the_fixture_graph_validates_as_graph_v7(tmp_path: Path) -> None:
     root = fixture.build(tmp_path)
     graph = json.loads((root / "targets" / TARGET / "graph.json").read_text(encoding="utf-8"))
-    schemas.validate(graph, "graph/v9")  # v8 when written; F26-T1 added the review
+    schemas.validate(graph, "graph/v11")  # v8 when written; F26-T1 review; F28-T8 v10; F08-T42 v11
     row = next(n for n in graph["nodes"] if n["node_id"] == PARENT)
     assert row["lemmas"] == [{"hole": HOLE, "node": LEMMA}]
     assert LEMMA not in row["deps"], "a lemma is not a declared dependency (D-3)"
