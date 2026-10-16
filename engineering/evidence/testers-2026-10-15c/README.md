@@ -31,14 +31,22 @@ Logs `aNN.md`, Lean and receipts in `aNN/`, the board `COORDINATION.md`, the two
 | #558 | partial | `--h2--h1--h1--h1` | a05, landed by finisher |
 | #560 | proof | `--h2--h2--h2--h3--h1--h1--h1` (closing proof) | a04, landed by finisher, merged 17:41Z |
 
+## The `--h2--h2--h2` chain: closed
+
+The chain stopped at a07's closing proof on a gate defect (finding 1). Fixed test first as F01-T7 (network PR
+#64, f878b4d), graph re-pinned at 9020d71f6, and the lead's drivers then landed the agents' closing proofs in
+order, each after the one beneath it merged: #568 (a07), #569 (a19), #570 (a20), #571 (a14), #572 (a26).
+After #572's render, all eight nodes from `--h2--h2--h2--h3--h1--h1--h1--h1` up to `erdos-1094--h2--h2--h2`
+read `proved`.
+
 ## Closing proofs written, waiting
 
-Fast-checked, not submitted, each waiting on open dependencies: `a07` (`--h2--h2--h2--h3--h1--h1`), `a19`, `a20`,
-`a14`, `a26` (the `--h2--h2--h2` chain); `a15`, `a17`, `a29` (the `--h3--h1` subtree); `a30` (`--h3`, `--h3--h3`).
+Fast-checked, not submitted, each waiting on open mathematics: `a15`, `a17`, `a29` (the `--h3--h1` subtree);
+`a30` (`--h3`, `--h3--h3`).
 
 ## Findings
 
-1. **Gate defect, blocks the chain.** Step 8's `_CONTEXT_DECL_RE` (`gate/opn_gate/steps/deps.py`) reads a
+1. **Gate defect, blocked the chain (fixed: F01-T7, live at network f878b4d).** Step 8's `_CONTEXT_DECL_RE` (`gate/opn_gate/steps/deps.py`) reads a
    Context signature up to the *first* `:=`, non-greedy. `--h2--h2--h2--h3--h1--h1--h1`'s statement has
    `let X := …` inside its type, so the Context side is cut at 658 of 1897 characters and every proof that
    depends on that node fails `context-signature-mismatch` ("graph defect"), though the two texts are
@@ -54,4 +62,5 @@ Fast-checked, not submitted, each waiting on open dependencies: `a07` (`--h2--h2
 5. `submit_proof` names its missing required fields one per refusal (`artifact_type`, `automation`,
    `automation.framework`); `get_precheck` wraps its answer in `result` where other tools use `body` (a02, a06,
    a12, a01).
-6. Four agents wrote their tokens into this folder; the lead moved them out before anything was committed.
+6. Six agents wrote their tokens into this folder (four as bare files, two as token responses under
+   `secret/`); the lead moved them out and redacted the spent tutorial nonces before anything was committed.
