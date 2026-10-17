@@ -31,6 +31,7 @@ from api_fakes import (
     AUTOMATION,
     PROOF_PREFIX,
     TUTORIAL_NODE,
+    TUTORIAL_PARTIAL,
     TUTORIAL_PROOF,
     Harness,
     PrecheckKey,
@@ -52,7 +53,7 @@ def witness(hole: str, body: str = "trivial") -> str:
     return f"-- hole: {hole}\n\ntheorem witness : True := {body}\n"
 
 
-CARRYING = {PARTIAL_PATH: TUTORIAL_PROOF, W1: witness("left"), W2: witness("right")}
+CARRYING = {PARTIAL_PATH: TUTORIAL_PARTIAL, W1: witness("left"), W2: witness("right")}
 
 
 @pytest.fixture(scope="module")
@@ -169,7 +170,7 @@ def test_pin_a_partial_without_witnesses_needs_no_holes_in_its_result(
     """**PIN.** A bundle that carries nothing binds to any passing precheck of it, whatever its
     result says of holes: the new refusal reads carried witnesses and nothing else."""
     token = harness.token_for("code_alice", "alice")
-    bundle = {PARTIAL_PATH: TUTORIAL_PROOF}
+    bundle = {PARTIAL_PATH: TUTORIAL_PARTIAL}
     job = passing_job(harness, key, token, bundle, None)
     assert submit(harness, token, bundle, job).status_code == 201
 
@@ -207,15 +208,15 @@ def test_a_carried_witness_the_precheck_did_not_check_opens_nothing(
 @pytest.mark.parametrize(
     ("bundle", "kind", "code"),
     [
-        ({PARTIAL_PATH: TUTORIAL_PROOF, W1: "theorem witness : True := trivial\n"}, "partial",
+        ({PARTIAL_PATH: TUTORIAL_PARTIAL, W1: "theorem witness : True := trivial\n"}, "partial",
          "hole-witness-unnamed"),
-        ({PARTIAL_PATH: TUTORIAL_PROOF, W1: witness("left"), W2: witness("left")}, "partial",
+        ({PARTIAL_PATH: TUTORIAL_PARTIAL, W1: witness("left"), W2: witness("left")}, "partial",
          "hole-witness-duplicate"),
-        ({PARTIAL_PATH: TUTORIAL_PROOF, W1: witness("left", "by sorry")}, "partial",
+        ({PARTIAL_PATH: TUTORIAL_PARTIAL, W1: witness("left", "by sorry")}, "partial",
          "hole-witness-sorry"),
-        ({PARTIAL_PATH: TUTORIAL_PROOF, f"{NODE}attempts/other.1.witness": witness("left")},
+        ({PARTIAL_PATH: TUTORIAL_PARTIAL, f"{NODE}attempts/other.1.witness": witness("left")},
          "partial", "hole-witness-unattached"),
-        ({PARTIAL_PATH: TUTORIAL_PROOF, W1: witness("left")}, None, None),
+        ({PARTIAL_PATH: TUTORIAL_PARTIAL, W1: witness("left")}, None, None),
         ({PROOF_PATH: TUTORIAL_PROOF, W1: witness("left")}, "proof",
          "hole-witness-without-partial"),
         ({PROOF_PATH: TUTORIAL_PROOF, W1: witness("left")}, None, "hole-witness-without-partial"),
@@ -242,7 +243,7 @@ def test_a_malformed_carried_witness_is_refused_at_submission_too(
     harness: Harness, key: PrecheckKey
 ) -> None:
     token = harness.token_for("code_alice", "alice")
-    bad = {PARTIAL_PATH: TUTORIAL_PROOF, W1: "theorem witness : True := trivial\n"}
+    bad = {PARTIAL_PATH: TUTORIAL_PARTIAL, W1: "theorem witness : True := trivial\n"}
     r = submit(harness, token, bad, "01JXYZABCDEFGHJKMNPQRSTVWX")
     assert r.status_code == 400 and r.json()["error"] == "hole-witness-unnamed", r.text
     assert harness.githost.pulls == []
@@ -284,7 +285,7 @@ def test_a_bundle_path_the_gate_gives_no_role_costs_no_job_and_opens_nothing(
     passes: the service used to spend a job on such a bundle and then open a pull request that
     could only go red. A carried witness with its name slightly wrong is exactly that file."""
     token = harness.token_for("code_alice", "alice")
-    bundle = {PARTIAL_PATH: TUTORIAL_PROOF, extra: witness("left")}
+    bundle = {PARTIAL_PATH: TUTORIAL_PARTIAL, extra: witness("left")}
     pushed = len(harness.githost.pushes)
     r = precheck(harness, token, bundle)
     assert r.status_code == 400, f"a job was spent on it: {r.status_code} {r.text}"
@@ -324,7 +325,7 @@ def test_pin_a_precheck_that_checked_every_carried_witness_adds_nothing(
     holes = [hole("left", W1, CARRYING[W1]), hole("right", W2, CARRYING[W2])]
     job = passing_job(harness, key, token, CARRYING, holes)
     assert "carried_witnesses" not in harness.client.get(f"/precheck/{job}").json()
-    plain = passing_job(harness, key, token, {PARTIAL_PATH: TUTORIAL_PROOF}, None)
+    plain = passing_job(harness, key, token, {PARTIAL_PATH: TUTORIAL_PARTIAL}, None)
     assert "carried_witnesses" not in harness.client.get(f"/precheck/{plain}").json()
 
 

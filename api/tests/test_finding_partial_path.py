@@ -24,6 +24,7 @@ from api_fakes import (
     AUTOMATION,
     PROOF_PREFIX,
     TUTORIAL_NODE,
+    TUTORIAL_PARTIAL,
     TUTORIAL_PROOF,
     Harness,
     PrecheckKey,
@@ -95,10 +96,10 @@ def test_a_proof_may_not_be_filed_under_attempts(harness: Harness, key: Precheck
     """A proof is ``nodes/<id>/Proof.lean`` (D-3): a bundle under ``attempts/`` with
     ``artifact_type: proof`` is a 400 naming ``Proof.lean``, and nothing is pushed."""
     token = harness.token_for("code_alice", "alice")
-    job = passing_job(harness, key, token, {PARTIAL_PATH: TUTORIAL_PROOF})
+    job = passing_job(harness, key, token, {PARTIAL_PATH: TUTORIAL_PARTIAL})
     pushed = len(harness.githost.pushes)  # the precheck's own job branch (F06-R3)
     r = submit(
-        harness, token, artifact_type="proof", bundle={PARTIAL_PATH: TUTORIAL_PROOF}, job=job
+        harness, token, artifact_type="proof", bundle={PARTIAL_PATH: TUTORIAL_PARTIAL}, job=job
     )
     assert r.status_code == 400, f"a proof under attempts/ was accepted: {r.status_code} {r.text}"
     assert "Proof.lean" in r.json()["message"], r.text
@@ -111,15 +112,15 @@ def test_pin_a_partial_under_attempts_is_accepted(harness: Harness, key: Prechec
     ``attempts/<ts>-<pseudonym>-partial.lean`` opens the pull request today, with exactly that
     file in the diff (F11-Q28: the submission *is* the attempts file)."""
     token = harness.token_for("code_alice", "alice")
-    job = passing_job(harness, key, token, {PARTIAL_PATH: TUTORIAL_PROOF})
+    job = passing_job(harness, key, token, {PARTIAL_PATH: TUTORIAL_PARTIAL})
     r = submit(
-        harness, token, artifact_type="partial", bundle={PARTIAL_PATH: TUTORIAL_PROOF}, job=job
+        harness, token, artifact_type="partial", bundle={PARTIAL_PATH: TUTORIAL_PARTIAL}, job=job
     )
     assert r.status_code == 201, r.text
     assert r.json()["artifact_type"] == "partial"
     push = harness.githost.pushes[-1]  # the one before it is the precheck's job branch
     assert push.repo == harness.settings.graph_repo
-    assert push.files == {PARTIAL_PATH: TUTORIAL_PROOF}
+    assert push.files == {PARTIAL_PATH: TUTORIAL_PARTIAL}
     [pr] = harness.githost.pulls
     assert pr.head == push.branch and pr.title == f"partial: {TUTORIAL_NODE}"
 
@@ -137,7 +138,7 @@ def test_a_two_file_partial_carrying_proof_lean_is_refused(
     (``modes._mode_for``: a proof role beside a partial is no mode), so it is refused like the
     single-file case, naming where a partial goes."""
     token = harness.token_for("code_alice", "alice")
-    two = {PARTIAL_PATH: TUTORIAL_PROOF, PROOF_PATH: TUTORIAL_PROOF}
+    two = {PARTIAL_PATH: TUTORIAL_PARTIAL, PROOF_PATH: TUTORIAL_PROOF}
     job = passing_job(harness, key, token, two)
     pushed = len(harness.githost.pushes)
     r = submit(harness, token, artifact_type="partial", bundle=two, job=job)
@@ -152,7 +153,7 @@ def test_a_two_file_partial_with_an_append_is_accepted(harness: Harness, key: Pr
     """**PIN.** The gate's partial mode takes appends beside the assembly; the service must not be
     stricter than the gate, so the assembly plus a postmortem opens the pull request."""
     token = harness.token_for("code_alice", "alice")
-    two = {PARTIAL_PATH: TUTORIAL_PROOF, POSTMORTEM_PATH: POSTMORTEM_TEXT}
+    two = {PARTIAL_PATH: TUTORIAL_PARTIAL, POSTMORTEM_PATH: POSTMORTEM_TEXT}
     job = passing_job(harness, key, token, two)
     r = submit(harness, token, artifact_type="partial", bundle=two, job=job)
     assert r.status_code == 201, r.text
@@ -171,8 +172,9 @@ def test_the_other_kinds_follow_their_path(
     harness: Harness, key: PrecheckKey, artifact_type: str, path: str, names: str
 ) -> None:
     token = harness.token_for("code_alice", "alice")
-    job = passing_job(harness, key, token, {path: TUTORIAL_PROOF})
-    r = submit(harness, token, artifact_type=artifact_type, bundle={path: TUTORIAL_PROOF}, job=job)
+    text = TUTORIAL_PARTIAL if path == PARTIAL_PATH else TUTORIAL_PROOF  # F29-R5: declared
+    job = passing_job(harness, key, token, {path: text})
+    r = submit(harness, token, artifact_type=artifact_type, bundle={path: text}, job=job)
     assert r.status_code == 400, r.text
     assert names in r.json()["message"], r.text
     assert harness.githost.pulls == []

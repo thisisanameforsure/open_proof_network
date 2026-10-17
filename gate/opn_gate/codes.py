@@ -1853,6 +1853,16 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "Not an error: the submission was read as a partial proof.",
         "Nothing to do.",
     ),
+    # F29-T3 emits it in the service; F29-T2 at step 4 makes it ``both`` with step 4.
+    "partial-unlabelled": (
+        "api",
+        None,
+        "The partial does not declare its words (D-12 v3.44): one `-- approach:` line before "
+        "its first hole, one `-- licence:` line, and above each hole's `have` a `-- label:` and "
+        "a `-- claim: $…$` line; the details name each missing or malformed line with its hole.",
+        "Add the named lines to the partial's comments (the guide's Skeletonization section "
+        "shows the grammar) and precheck it again; the service refuses it before any job runs.",
+    ),
     "partial-without-holes": (
         "gate",
         4,

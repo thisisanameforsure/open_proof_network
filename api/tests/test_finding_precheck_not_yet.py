@@ -33,10 +33,14 @@ ANNEX_TEXT = "Split the sum at N, bound the tail, and the crux is arithmetic.\n"
 
 
 def partial(digest: str) -> str:
-    return (
-        f"-- annex: {digest}\n"
-        "theorem OpnProp.and_reassoc : True := by\n  have h : True := sorry\n  exact h\n"
-    )
+    return f"-- annex: {digest}\ntheorem OpnProp.and_reassoc : True := by\n" + HOLE_BODY
+
+
+#: F29-R5: a partial declares its approach, its licence and each hole's label and claim.
+HOLE_BODY = (
+    "  -- approach: one hole\n  -- licence: CC-BY-4.0\n"
+    "  -- label: the hole\n  -- claim: $\\top$\n  have h : True := sorry\n  exact h\n"
+)
 
 
 def rendered_from(h: Harness) -> str:
@@ -123,7 +127,7 @@ def test_a_cited_annex_that_is_rendered_is_prechecked(harness: Harness) -> None:
 def test_a_partial_that_cites_nothing_is_prechecked(harness: Harness) -> None:
     seed_node(harness)
     token = harness.token_for("code_alice", "alice")
-    text = "theorem OpnProp.and_reassoc : True := by\n  have h : True := sorry\n  exact h\n"
+    text = "theorem OpnProp.and_reassoc : True := by\n" + HOLE_BODY
     assert precheck(harness, token, NODE, {PARTIAL_PATH: text}).status_code == 202
 
 

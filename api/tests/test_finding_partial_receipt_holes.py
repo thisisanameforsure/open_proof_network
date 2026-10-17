@@ -12,10 +12,10 @@ receipt as it was.
 from __future__ import annotations
 
 import pytest
-from api_fakes import TUTORIAL_PROOF, Harness, PrecheckKey, make_precheck_key
+from api_fakes import TUTORIAL_PARTIAL, Harness, PrecheckKey, make_precheck_key
 from test_finding_partial_witnesses import PARTIAL_PATH, hole, passing_job, submit
 
-BUNDLE = {PARTIAL_PATH: TUTORIAL_PROOF}
+BUNDLE = {PARTIAL_PATH: TUTORIAL_PARTIAL}
 
 
 @pytest.fixture(scope="module")

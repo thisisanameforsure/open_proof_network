@@ -34,7 +34,7 @@ from opn_api.app import ApiError, host_budget_refusal
 from opn_api.githost import Author, GitHostError, PullRequest, RateLimitError
 from opn_api.store import KEY_PRECHECK_USED
 from opn_gate import annex as annexmod
-from opn_gate import bounce, carried, postmerge, schemas, submission
+from opn_gate import bounce, carried, labels, postmerge, schemas, submission
 from opn_gate import paths as gate_paths
 from opn_gate.paths import ALTERNATE_SUFFIX, Claim
 from opn_gate.postmerge import PARTIAL_SUFFIX
@@ -421,6 +421,34 @@ def check_artifact_path(claim: Claim, files: Mapping[str, str], artifact_type: s
         )
 
 
+def check_declarations(files: Mapping[str, str], artifact_type: str | None = None) -> None:
+    """F29-R5 (D-12 v3.44): a partial names its approach, a licence and each hole's label and
+    claim in its own comments (``opn_gate.labels``); one that does not is refused
+    ``partial-unlabelled`` naming each problem, before any precheck job is saved or dispatched
+    and before anything is pushed — the gate refuses the same partial at step 4 by the same name
+    (F29-T2), so the omission is caught where it costs nothing. The partial is the bundle's one
+    file in the gate's ``partial`` role, whatever type was declared (the precheck's
+    ``artifact_type`` is optional, and the path check has already refused a mismatch); a bundle
+    with several assemblies is left to the gate (``partial-multiple``). The text scan reads the
+    holes the ``have … := sorry`` shape shows; step 4 holds the extractor's names to the rule."""
+    if artifact_type is not None and artifact_type not in PARTIAL_TYPES:
+        return
+    assemblies = roles_of(files).get("partial") or []
+    if len(assemblies) != 1:
+        return
+    found = labels.problems(files[assemblies[0]])
+    if not found:
+        return
+    raise ApiError(
+        400,
+        "partial-unlabelled",
+        "a partial names its approach, a licence and each hole's label and claim in its "
+        "comments (D-12 v3.44; the guide's Skeletonization section): "
+        + "; ".join(p.message for p in found),
+        details={"problems": [p.as_dict() for p in found]},
+    )
+
+
 def check_placement(
     claim: Claim,
     files: Mapping[str, str],
@@ -591,6 +619,7 @@ async def post_submissions(ctx: Context, request: Request) -> Response:
         proved=proved,
         tutorial=bool(facts["tutorial"]),
     )
+    check_declarations(bundle.files, artifact_type)  # F29-R5: a partial's words, before any host
     witnesses = check_carried(claim, bundle.files)  # F07-R23: step 2's refusals, first
     # F08-R21 (T26): a use line step 2 would refuse, by the gate's code, before anything opens.
     # Asked again here: a job prechecked before the target's re-pin ran no such pre-flight.
