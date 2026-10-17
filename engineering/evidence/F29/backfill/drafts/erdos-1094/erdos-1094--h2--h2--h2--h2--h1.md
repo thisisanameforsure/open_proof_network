@@ -1,0 +1,9 @@
+---
+label: "medium range: few m with n/m near an integer"
+supersedes: null
+drafted_with: Claude Fable 5.1 (claude-fable-5-1)
+licence: CC-BY-4.0
+---
+$$\exists k_0\in\mathbb{N}\ \forall k\ge k_0\ \forall n\in\mathbb{Z}:\ \ \tfrac12\,k^{2-21/40}<n\le\frac{k^2}{(\log k)^2}\ \Longrightarrow\ \#\Bigl\{m\in\mathbb{Z}:\ k<m<k+k^{21/40},\ \Bigl|\frac{n}{m}-\operatorname{round}\!\Bigl(\frac{n}{m}\Bigr)\Bigr|<\frac{1}{k^{1-21/40}}\Bigr\}<3+56\,k^{2\cdot 21/40-1}+\frac{k^{21/40}}{(\log k)^{2}}$$
+
+For all large $k$ and every integer $n$ with $\tfrac12 k^{2-21/40}<n\le k^2/(\log k)^2$, fewer than $3+56\,k^{2\cdot 21/40-1}+k^{21/40}(\log k)^{-2}$ integers $m$ in $(k,\,k+k^{21/40})$ have $n/m$ within $1/k^{1-21/40}$ of an integer. In the Lean the set is a finite set of integers $m$ in the open interval $(k,\,k+\lfloor k^{21/40}\rfloor+2)$ filtered by $k<m$, $m<k+k^{21/40}$ over the reals and the closeness condition; `round` is the nearest integer, the quotient $n/m$ and the powers are real, and the count is cast to $\mathbb{R}$; $(\log k)^{-2}$ is the real power `Real.log k ^ (-2 : ℝ)` and $\log$ is the natural logarithm.

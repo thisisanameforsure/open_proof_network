@@ -237,12 +237,44 @@ version; a steward's or curator's own is final; a person's change over verified 
 until signed). The owner chose it over a steward-only rule.</p>
 <p><strong>F29-Q7 — The table stays, filtered.</strong> The owner: keep the table; put the tree in
 the drawing where the set list was, boxed and headed "Sufficient sets".</p>
+<p><strong>F29-Q9 — A route's approach is correctable by a gloss of the partial (T9).</strong> Twenty-one of
+the live graph's routes carry no approach line, no leading comment and no annex sentence, and a merged
+partial is immutable, so the selector would have read "route 1 of h_small_n" for them forever. A
+<code>gloss/v3</code> may describe a merged partial (<code>subject.kind: partial</code>, <code>module</code>
+its path under <code>attempts/</code>); the approach's precedence is the declared line, then the current
+partial gloss's first sentence, then the leading comment, then the annex. The gloss outranks an old
+comment but not the author's own declared line. <code>list_words_needed</code> does not list routes:
+an approach is a correction, not coverage. The D-3 v3.44 text gained one sentence for it.</p>
+<p><strong>F29-Q10 — Two contract details settled by the builders.</strong> The refusal's problems ride
+<code>details.missing</code> (gate and service alike), since <code>problems</code> is the step result's own
+key; a bulleted hole (<code>· have … := sorry</code>, the shape every fixture uses) is read by the
+declaration scan; the declaration lines sit after <code>:= by</code>, because a proof's header is held byte
+for byte (F00-R19) and <code>uses</code> lines must follow the imports. A partial with no holes is still
+asked for its approach and licence; a precheck without <code>artifact_type</code> is held by the bundle's
+role.</p>
+<p><strong>F29-Q11 — <code>glosses/v3</code>.</strong> The site agent found that <code>glosses/v2</code>
+enumerates <code>gloss/v1</code> and <code>v2</code> only, so the products refused any tree holding a v3
+record, which the hole writer and the backfill both produce. <code>glosses/v3</code> admits it and carries
+each version's <code>label</code>; <code>gloss/v3</code> and <code>glosses/v3</code> were then edited again
+in place for T9 before publication (D-34 forbids editing a published version only; both say so).</p>
+<p><strong>F29-Q12 — The reach of R5.</strong> Step 4's rule refused every fixture partial in the suite
+(43 sites in 20 files); each now declares its words through one test helper. The same reach applies live:
+after the re-pin a partial from an older agent or a hand-opened pull request is refused until it carries
+the lines, which is R5's intent; the guide (T7) lands before the re-pin.</p>
+<p><strong>F29-Q13 — The backfill's path.</strong> Five agents drafted the 140 non-root statement
+glosses (115 new, 25 superseding) and one the 28 route glosses, each validated locally against the
+gate's own checks (<code>scratchpad/backfill/validate.py</code>); they go through <code>POST /glosses</code>
+under one pseudonym after the deploy and re-pin, as Q5 rules, with <code>dry_run</code> first. Roots take
+their title's head as label (e.g. "Erdős problem 1094"), since live titles are sentences with notation.</p>
+<p><strong>F29-Q14 — The drawing's width.</strong> The selector box grows to its longest row (approach text
+cut at 40 characters, the full text in the row's title), so on erdos-1094 the drawing is about a quarter
+narrower at 1440px than with F27-T7's fixed 96px column. Accepted for now.</p>
 <p><strong>F29-Q8 — <code>label_source</code> has no <code>proposal</code> value.</strong> The
 amendment's first draft named a variant's "proposal name"; no proposal carries one, and an enum
 value nothing emits is a live bug (2026-09-10). A variant falls back to its id.</p>
 
 <h2>10. Status</h2>
-<div class="rule"><strong>status:</strong> in progress · <strong>Tasks:</strong> T0, T1 done 2026-10-17 (branch <code>f29-labels</code>, unpushed); T2–T8 todo.</div>
+<div class="rule"><strong>status:</strong> built, not live · <strong>Tasks:</strong> T0–T7, T9 done 2026-10-17 on branch <code>f29-labels</code> (unpushed; full <code>make verify</code> 6152 passed after the merges, evidence <code>task-merge.txt</code>); T8 (push, deploy, re-pin, re-render, backfill) is the owner&rsquo;s sitting, the 140 statement glosses and 28 route glosses drafted and validated, the submission script ready (Q13). Q1&ndash;Q14 stand for the owner&rsquo;s review.</div>
 
 <h2>Tasks</h2>
 <table>
@@ -302,6 +334,15 @@ value nothing emits is a live bug (2026-09-10). A variant falls back to its id.<
     <td><code>site/opn_site/templates/docs.html</code> or the guide source, <code>AGENTS.md</code>,
     <code>../open_proof_network_graph/AGENTS.md</code></td><td>T2, T3</td>
     <td><code>uv run --frozen pytest gate/tests/test_walkthrough.py site/tests/test_docs_page.py</code></td></tr>
+  <tr><td>F29-T9</td><td>A gloss may describe a merged partial, its route's approach (Q9): the
+    <code>partial</code> subject kind in <code>gloss/v3</code>, the gate's subject rule, the products'
+    precedence, the service's subject check, the site reading it through <code>graph.json</code>.</td>
+    <td><code>gate/schemas/gloss/v3.json</code>, <code>gate/opn_gate/glosses.py</code>,
+    <code>gate/opn_gate/labels.py</code>, <code>gate/opn_gate/products.py</code>,
+    <code>api/opn_api/glosses.py</code>, <code>gate/tests/test_finding_route_gloss.py</code>,
+    <code>api/tests/test_finding_route_gloss_service.py</code>,
+    <code>site/tests/test_finding_route_gloss_site.py</code></td><td>T1</td>
+    <td><code>uv run --frozen pytest gate/tests/test_finding_route_gloss.py api/tests/test_finding_route_gloss_service.py site/tests/test_finding_route_gloss_site.py</code></td></tr>
   <tr><td>F29-T8</td><td>Live: push, deploy, re-pin, re-render; the backfill of every live node by
     agents through the service (R12); coverage at the final commit.</td>
     <td><code>engineering/evidence/F29/</code>, the graph's pins</td><td>T2–T7</td>

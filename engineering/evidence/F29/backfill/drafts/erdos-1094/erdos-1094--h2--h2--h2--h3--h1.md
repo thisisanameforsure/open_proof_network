@@ -1,0 +1,9 @@
+---
+label: "Konyagin's bound on m with n/m near an integer"
+supersedes: null
+drafted_with: Claude Fable 5.1 (claude-fable-5-1)
+licence: CC-BY-4.0
+---
+$$\#\Bigl\{m\in\mathbb{Z}:\ k<m<k+k^{21/40},\ \Bigl|\frac{n}{m}-\operatorname{round}\!\Bigl(\frac{n}{m}\Bigr)\Bigr|<\frac{1}{k^{1-21/40}}\Bigr\}<65536\,k^{21/40}\Bigl[\Bigl(\frac{n\,r!\,\lambda^r}{k^{r+1}}\Bigr)^{\frac{1}{2r-1}}+\Bigl(\frac{k^{r+21/40}}{n\,r!\,\lambda^r}\Bigr)^{\frac{1}{r-1}}+\Bigl(\frac{(r+1)\lambda}{k}\Bigr)^{\frac{1}{2r}}\Bigr]+2r\lambda$$
+
+For every real $\lambda\ge 1$, every integer $n$ and naturals $k,r$ with $k<n$, $r\ge 2$ and $r\le\tfrac12 k^{1-21/40}$, the number of integers $m$ in $(k,\,k+k^{21/40})$ with $n/m$ within $1/k^{1-21/40}$ of an integer is bounded as displayed. In the Lean the set is a finite set of integers $m$ in the open interval $(k,\,k+\lfloor k^{21/40}\rfloor+2)$ filtered by $k<m$, $m<k+k^{21/40}$ over the reals and the closeness condition; `round` is the nearest integer, the quotient $n/m$ and the powers are real, and the count is cast to $\mathbb{R}$; the Lean names $\lambda$ `lam`, $n$, $r!$ and $k$ are cast to $\mathbb{R}$, the exponents $\tfrac{1}{2r-1}$, $\tfrac{1}{r-1}$, $\tfrac{1}{2r}$ and $k^{r+21/40}$ are real powers, and $k^{r+1}$ is a natural power.

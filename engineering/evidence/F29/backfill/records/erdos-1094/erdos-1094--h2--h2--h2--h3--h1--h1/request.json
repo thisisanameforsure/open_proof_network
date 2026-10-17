@@ -1,0 +1,13 @@
+{
+ "subject": {
+  "kind": "statement",
+  "node": "erdos-1094--h2--h2--h2--h3--h1--h1",
+  "module": null,
+  "lean_hash": "d204fab277af14bd4b0e46f5f8b52ff08650af62b3ef74ca553b2b21b9a6a329"
+ },
+ "text": "$$|S|<65536\\,N\\Bigl[(D_r\\lambda^rW^2)^{\\frac{1}{2r-1}}+\\Bigl(\\frac{\\delta W^2}{D_r\\lambda^r}\\Bigr)^{\\frac{1}{r-1}}+\\Bigl(\\frac{D_{r+1}\\lambda W^2}{D_r}\\Bigr)^{\\frac{1}{2r}}\\Bigr]+2r\\lambda$$\n\nFor every $r\\ge 2$, $N>0$, $W\\ge 1$, $\\delta>0$, $\\lambda\\ge 1$, $D_r>0$, $D_{r+1}>0$ and every $f:\\mathbb{R}\\to\\mathbb{R}$ of class $C^{r+1}$ with $D_r/2\\le|f^{(r)}(x)|\\le D_r$ and $|f^{(r+1)}(x)|\\le D_{r+1}$ for all $x\\in[0,N]$, every finite set $S$ of integers in $[0,\\lfloor N\\rfloor]$ each of whose points $u$ has $|f(u)-v/w|<\\delta$ for some integer $v$ and natural $w$ with $0<w\\le W$ satisfies the displayed bound: Konyagin's theorem on the integer points at which a function with controlled $r$-th and $(r+1)$-th derivatives is close to a rational of bounded denominator. The Lean names $\\lambda$ `lam`, $D_{r+1}$ `D_r1` and the derivatives `iteratedDeriv`; $|S|$ is cast to $\\mathbb{R}$, the exponents $\\tfrac{1}{2r-1}$, $\\tfrac{1}{r-1}$, $\\tfrac{1}{2r}$ are real powers and $W^2$ a natural one.\n",
+ "supersedes": null,
+ "licence": "CC-BY-4.0",
+ "drafted_with": "Claude Fable 5.1 (claude-fable-5-1)",
+ "label": "Konyagin's theorem: points where f is near a rational"
+}

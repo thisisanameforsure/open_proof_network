@@ -1,0 +1,13 @@
+{
+ "subject": {
+  "kind": "statement",
+  "node": "spec-7f0efe19",
+  "module": null,
+  "lean_hash": "5bbfd2e593728f80919706cfd1d046bde9db134ec3b87d1c91c590deba8dd374"
+ },
+ "text": "$$\\forall k\\in\\mathbb{N},\\ \\forall c:\\mathbb{N}\\to\\mathbb{N}\\ \\ \\exists N\\in\\mathbb{N}\\ \\ \\forall j<k:\\quad c(j) \\le \\omega(N+1+j)$$\n\nFor every length k and every sequence of naturals c there is a natural N with c(j) ≤ ω(N+1+j) for each j < k, where ω(n) is the number of distinct prime factors of n.\n",
+ "supersedes": null,
+ "licence": "CC-BY-4.0",
+ "drafted_with": "Claude Fable 5.1 (claude-fable-5-1)",
+ "label": "Prescribed lower bounds for omega on a window"
+}

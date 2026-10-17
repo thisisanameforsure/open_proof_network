@@ -1,0 +1,13 @@
+{
+ "subject": {
+  "kind": "statement",
+  "node": "erdos-1094--h3--h1--h1",
+  "module": null,
+  "lean_hash": "a2855351dc766d6505d56107bb3d9c3b57ed69d786d21346f6b6dc409e2be96f"
+ },
+ "text": "$$\\exists K_1\\ \\forall n,k\\in\\mathbb{N}:\\quad K_1<k,\\ \\ 2k\\le n<k^2,\\ \\ k \\text{ even} \\implies \\exists\\,p\\le k \\text{ prime with } n \\bmod p < k \\bmod p$$\n\n- Lean writes $k^2$ as `k * k` and \"$k$ even\" as `k % 2 = 0`.\n- `n % p` is the least non-negative residue, so the condition reads $n \\bmod p < k \\bmod p$.\n- Nothing is said about odd $k$.\n\nBy Kummer's theorem such a $p$ divides $\\binom{n}{k}$, since subtracting $k$ from $n$ in base $p$ borrows at the last digit. The statement itself mentions no binomial coefficient.\n",
+ "supersedes": "8a9d9e741c86024d214ae4b70a0966f7f6b3b9ef81622d784c350e31ed87ab8d",
+ "licence": "CC-BY-4.0",
+ "drafted_with": "Claude Fable 5.1 (claude-fable-5-1)",
+ "label": "Residue form, k even"
+}

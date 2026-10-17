@@ -1,0 +1,9 @@
+---
+label: Irrationality of the level sets of omega in base 2
+supersedes: null
+drafted_with: Claude Fable 5.1 (claude-fable-5-1)
+licence: CC-BY-4.0
+---
+$$\forall m\in\mathbb{N},\ m\ge 1:\quad \sum_{n=0}^{\infty}\bigl[\omega(n)=m\bigr]\Bigl(\frac{1}{2}\Bigr)^{n} \notin\mathbb{Q}$$
+
+For every natural m ≥ 1, the real number with a binary 1 in place n exactly when n has m distinct prime factors, the sum over n ≥ 0 of (1/2)^n when ω(n) = m and 0 otherwise, is irrational. The series is a tsum over ℝ (0 when not summable), and `Irrational x` means x is not the cast of a rational.

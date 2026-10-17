@@ -1,0 +1,13 @@
+{
+ "subject": {
+  "kind": "statement",
+  "node": "erdos-1094--h3--h3--h2",
+  "module": null,
+  "lean_hash": "28c0347c4f3c6c3ba59e73302d705ffcedb23dd1cf4dcf2eb85ca8a728d40a2e"
+ },
+ "text": "$$\\forall C\\in\\mathbb{N},\\ \\varepsilon>0\\ \\exists K_4\\ \\forall n,k\\in\\mathbb{N}:\\quad K_4<k,\\ \\ k^2\\le C\\cdot n\\cdot\\lfloor\\log_2 k\\rfloor,\\ \\ n<k^2 \\implies \\Bigl|\\sum_{\\substack{p \\text{ prime}\\\\ k/2<p<11k/20}} \\Bigl(\\Bigl\\{\\frac{n}{p}\\Bigr\\}-\\frac12\\Bigr)\\log p\\Bigr| \\le \\varepsilon k$$\n\nFor every constant $C$ and every real $\\varepsilon>0$ there is a threshold $K_4$ such that for all $k>K_4$ and all $n<k^2$ with $k^2\\le C\\,n\\lfloor\\log_2 k\\rfloor$, the sum over primes $p$ with $k<2p$ and $20p<11k$ of $(\\{n/p\\}-\\tfrac12)\\log p$ has absolute value at most $\\varepsilon k$. Here $\\{n/p\\}$ is `Int.fract` of the real quotient of the casts, $\\log$ is `Real.log`, the sum runs over `Finset.range k` filtered by the three conditions, and the range hypotheses are in $\\mathbb{N}$ where `Nat.log 2 k` is $\\lfloor\\log_2 k\\rfloor$ (and $0$ for $k\\le 1$), a natural number, so the right-hand side is a product of naturals.\n",
+ "supersedes": null,
+ "licence": "CC-BY-4.0",
+ "drafted_with": "Claude Fable 5.1 (claude-fable-5-1)",
+ "label": "Sander equidistribution: Σ({n/p} − 1/2) log p = o(k)"
+}
