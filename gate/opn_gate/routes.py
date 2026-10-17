@@ -71,10 +71,12 @@ class Hole:
     refuted_route_classes: tuple[str, ...]
     ready_since: str | None
     routes: int  # how many routes of its own the hole's node has
+    label: str | None = None  # F29-R8: the node's label as graph.json carries it (v12)
 
     def as_dict(self) -> dict[str, Any]:
         return {
             "name": self.name,
+            "label": self.label,
             "node": self.node,
             "status": self.status,
             "attempts": self.attempts,
@@ -123,6 +125,7 @@ class Route:
     partial: str
     holes: tuple[Hole, ...]
     summary: Summary
+    approach: str | None = None  # F29-R8: the decomposition's approach (graph/v12, R4)
 
     @property
     def resolved(self) -> bool:
@@ -138,6 +141,7 @@ class Route:
             "id": self.id,
             "node": self.node,
             "partial": self.partial,
+            "approach": self.approach,
             "resolved": self.resolved,
             "live": self.live,
             "holes": [h.as_dict() for h in self.holes],
@@ -264,11 +268,22 @@ def _follow(
     return pick[0] if len(pick) == 1 else None
 
 
+def _text_or_none(raw: Any) -> str | None:
+    return str(raw) if isinstance(raw, str) and raw else None
+
+
+def _approaches(node_id: str, rows: Mapping[str, Mapping[str, Any]]) -> list[str | None]:
+    """F29-R8: each decomposition's ``approach`` as graph/v12 carries it (R4), in the record's
+    order, ``None`` on a product rendered before it; one per route ``_hole_nodes`` answers."""
+    row = rows[node_id]
+    return [_text_or_none(d.get("approach")) for d in row.get("decompositions") or []]
+
+
 def _hole_nodes(
     node_id: str, rows: Mapping[str, Mapping[str, Any]]
 ) -> list[tuple[str, list[tuple[str, str | None]]]]:
     """Each route of ``node_id`` as ``(partial, [(hole name, node or None)])``, with F27-R2's
-    assignment of unnamed holes applied where it is unambiguous."""
+    assignment of unnamed holes applied where it is unambiguous. ``closing.links`` reads it too."""
     row = rows[node_id]
     out: list[tuple[str, list[tuple[str, str | None]]]] = []
     for d in row.get("decompositions") or []:
@@ -301,9 +316,10 @@ def _route_of(  # noqa: PLR0913 — the route's place, its holes and the facts i
     *,
     k: int,
     partial: str,
-    holes: list[tuple[str, str | None]],
+    holes: Sequence[tuple[str, str | None]],
     rows: Mapping[str, Mapping[str, Any]],
     entries: Mapping[str, Mapping[str, Any]],
+    approach: str | None = None,
 ) -> Route:
     made: list[Hole] = []
     for name, nid in holes:
@@ -313,6 +329,8 @@ def _route_of(  # noqa: PLR0913 — the route's place, its holes and the facts i
             Hole(
                 name=name,
                 node=nid,
+                # F29-R8: the label graph/v12 publishes for the hole's node (R3); None before it
+                label=_text_or_none(row.get("label")) if row is not None else None,
                 status=str(row.get("status")) if row is not None else None,
                 attempts=int(entry.get("attempts") or 0) if entry is not None else None,
                 refuted_route_classes=tuple(
@@ -345,7 +363,7 @@ def _route_of(  # noqa: PLR0913 — the route's place, its holes and the facts i
         refuted_route_classes=tuple(sorted({c for h in made for c in h.refuted_route_classes})),
         oldest_open_since=since[0] if since else None,
     )
-    return Route(f"{node_id}@{k}", node_id, partial, tuple(made), summary)
+    return Route(f"{node_id}@{k}", node_id, partial, tuple(made), summary, approach)
 
 
 # --- the enumeration ---------------------------------------------------------------------------
@@ -507,9 +525,18 @@ def read(
     entries = _entries(frontier_entries, target_id)
     by_node: dict[str, list[Route]] = {}
     for node_id in rows:
+        approaches = _approaches(node_id, rows)
         for k, (partial, holes) in enumerate(_hole_nodes(node_id, rows), start=1):
             by_node.setdefault(node_id, []).append(
-                _route_of(node_id, k=k, partial=partial, holes=holes, rows=rows, entries=entries)
+                _route_of(
+                    node_id,
+                    k=k,
+                    partial=partial,
+                    holes=holes,
+                    rows=rows,
+                    entries=entries,
+                    approach=approaches[k - 1],
+                )
             )
     # The record's order: the products list nodes sorted, and each node's routes in merge order.
     all_routes = tuple(r for node_id in rows for r in by_node.get(node_id, ()))
