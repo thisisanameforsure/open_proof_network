@@ -163,4 +163,5 @@ def test_step_4_reads_the_assembly_step_2_recorded(tmp_path: Path) -> None:
 
 def test_the_code_is_catalogued_at_step_4() -> None:
     row = codes.CATALOG["partial-unlabelled"]
-    assert row.source == "gate" and row.step == 4
+    # F29-T3: the service emits it too, before any precheck, so the source is both.
+    assert row.source == "both" and row.step == 4

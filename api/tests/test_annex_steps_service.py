@@ -173,7 +173,13 @@ def assembly(digest: str) -> str:
     return (
         "theorem OpnProp.and_reassoc : True := by\n"
         f"  -- annex: {digest}\n"
+        "  -- approach: the two halves, each its own hole\n"
+        "  -- licence: CC-BY-4.0\n"
+        "  -- label: the right half\n"
+        "  -- claim: $\\top$\n"
         "  have right : True := sorry\n"
+        "  -- label: the left half\n"
+        "  -- claim: $\\top$\n"
         "  have left : True := sorry\n"
         "  trivial\n"
     )

@@ -97,7 +97,26 @@ def test_submit_gloss_carries_drafted_with(h: Harness) -> None:
     out = McpClient(h).ok("submit_gloss", args, token=h.token_for("code_bob", "bob"))
     assert out["status"] == 201, out
     doc, _ = glosses.split_front_matter(next(iter(h.githost.pushes[-1].files.values())))
-    assert doc is not None and doc["schema"] == "gloss/v2" and doc["drafted_with"] == model
+    assert doc is not None and doc["schema"] == "gloss/v3" and doc["drafted_with"] == model
+
+
+def test_submit_gloss_forwards_the_label(h: Harness) -> None:
+    """F29-T3b (R1): ``label`` is a parameter of the tool, described, forwarded unchanged to the
+    route, which writes it into the v3 record; a bad one is the route's label-invalid."""
+    client = McpClient(h)
+    (tool,) = [t for t in client.list_tools() if t.name == "submit_gloss"]
+    label = tool.inputSchema["properties"]["label"]
+    assert label["type"] == "string" and label["description"]
+    token = h.token_for("code_bob", "bob")
+    out = client.ok(
+        "submit_gloss", statement_gloss() | {"label": "the two-prime lemma"}, token=token
+    )
+    assert out["status"] == 201, out
+    doc, _ = glosses.split_front_matter(next(iter(h.githost.pushes[-1].files.values())))
+    assert doc is not None and doc["schema"] == "gloss/v3" and doc["label"] == "the two-prime lemma"
+    refused = client.failed("submit_gloss", statement_gloss() | {"label": "$x$"}, token=token)
+    assert refused["status"] == 400 and refused["body"]["error"] == "label-invalid"
+    assert len(h.githost.pushes) == 1
 
 
 def test_withdraw_gloss_is_the_route(h: Harness, tree: Path) -> None:

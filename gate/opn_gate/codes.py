@@ -1478,6 +1478,15 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "implemented_by) and remove them; details carries the replay output.",
     ),
     # --- l ------------------------------------------------------------------------------------
+    "label-invalid": (
+        "api",
+        None,
+        "A gloss's label is not a statement's short name as gloss/v3 publishes it: at most 60 "
+        "characters, one line, plain text with no dollar sign; or it was sent on a gloss of a "
+        "witness, relation or definition, which carries none (D-3 v3.44).",
+        "Send a short plain-text name on a statement gloss, or leave label out; the notation "
+        "belongs in the gloss's opening display.",
+    ),
     "layout-extra": (
         "gate",
         2,
@@ -1853,14 +1862,17 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "Not an error: the submission was read as a partial proof.",
         "Nothing to do.",
     ),
+    # F29-T2 emits it at step 4, F29-T3 in the service before any precheck: both, step 4.
     "partial-unlabelled": (
-        "gate",
+        "both",
         4,
         "The partial does not name its approach, its licence, or a hole's label and claim in its "
-        "comments (D-12 v3.44); details.problems names each missing or malformed line.",
+        "comments (D-12 v3.44); details.missing names each missing or malformed line with its "
+        "hole.",
         "Add one `-- approach:` line and one `-- licence:` line before the first hole, and a "
         "`-- label:` line and a `-- claim: $…$` line in the comment block directly above each "
-        "hole's `have`; the extractor's hole names are the ones held to the rule.",
+        "hole's `have` (the guide's Skeletonization section shows the grammar); the extractor's "
+        "hole names are the ones held to the rule, and the service refuses it before any job runs.",
     ),
     "partial-without-holes": (
         "gate",

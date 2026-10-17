@@ -27,7 +27,14 @@ from __future__ import annotations
 from typing import Any
 
 import pytest
-from api_fakes import AUTOMATION, PROOF_PREFIX, Harness, PrecheckKey, make_precheck_key
+from api_fakes import (
+    AUTOMATION,
+    PARTIAL_HEADER,
+    PROOF_PREFIX,
+    Harness,
+    PrecheckKey,
+    make_precheck_key,
+)
 from mcp_client import McpClient
 from test_finding_duplicate_submissions import GATE_FAILED, OTHER_PROOF, PROOF
 from test_submissions_alternate import mark_proved, passing_job, submit
@@ -89,7 +96,10 @@ def test_a_partial_on_a_proved_node_is_told_the_node_is_proved_and_nothing_more(
     """``becomes`` is the alternate path a proof takes; a partial lands where it always does."""
     bob = harness.token_for("code_bob", "bob")
     proved, _node = mark_proved(harness)
-    bundle = {f"{PROOF_PREFIX}{proved}/attempts/20260924T120000Z-bob-partial.lean": OTHER_PROOF}
+    bundle = {
+        f"{PROOF_PREFIX}{proved}/attempts/20260924T120000Z-bob-partial.lean": PARTIAL_HEADER
+        + OTHER_PROOF
+    }
     job = passing_job(harness, key, bob, proved, bundle)
     body = {"node_id": proved, "artifact_type": "partial", "bundle": bundle, "precheck_job_id": job}
     body["automation"] = AUTOMATION

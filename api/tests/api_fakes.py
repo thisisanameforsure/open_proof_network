@@ -56,6 +56,19 @@ PRECHECK_KEY_PATH = "keys/precheck.pub"
 TUTORIAL_NODE = "tutorial-and-swap"
 PROOF_PREFIX = "targets/propositional/nodes/"
 TUTORIAL_PROOF = "import Nodes.X.Context\n\ntheorem x : True := trivial\n"
+#: F29-R5 (D-12 v3.44): the declarations every partial opens with — its approach and the licence
+#: of its words — which the service holds a partial to before any precheck (``partial-unlabelled``).
+#: Prefixed to a fixture partial whose subject is something else.
+PARTIAL_HEADER = (
+    "-- approach: the tutorial's own proof, filed as a partial\n-- licence: CC-BY-4.0\n"
+)
+#: The lines sit inside the proof body: a proof restates the statement's header byte for byte
+#: (F00-R19), and a use line is read only directly after the imports (``layout.split_uses``).
+TUTORIAL_PARTIAL = (
+    "import Nodes.X.Context\n\ntheorem x : True := by\n"
+    + "".join(f"  {line}\n" for line in PARTIAL_HEADER.splitlines())
+    + "  trivial\n"
+)
 #: F06-T14: the ``Statement.lean`` every fixture node carries in the fake tree.
 FIXTURE_STATEMENT = "theorem OpnFixture.{name} : True := by\n  sorry\n"
 

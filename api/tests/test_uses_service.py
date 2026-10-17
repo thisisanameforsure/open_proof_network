@@ -28,7 +28,15 @@ from typing import Any
 
 import pytest
 import samples
-from api_fakes import AUTOMATION, Harness, PrecheckKey, make_harness, make_precheck_key, result_zip
+from api_fakes import (
+    AUTOMATION,
+    PARTIAL_HEADER,
+    Harness,
+    PrecheckKey,
+    make_harness,
+    make_precheck_key,
+    result_zip,
+)
 from mcp_client import NODE, NODE_DIR, TARGET, seed_node
 
 from opn_gate import schemas
@@ -43,6 +51,10 @@ NODES = f"targets/{TARGET}/nodes/"
 GRAPH_JSON = f"targets/{TARGET}/graph.json"
 STATEMENT = "import Init\n\ntheorem OpnProp.and_reassoc : True := by\n  sorry\n"
 BODY = "\ntheorem OpnProp.and_reassoc : True := by\n  exact OpnProp.lemma_a\n"
+#: F29-R5: a partial declares its words; inside the body, after the use lines are read.
+PARTIAL_BODY = BODY.replace(
+    ":= by\n", ":= by\n" + "".join(f"  {line}\n" for line in PARTIAL_HEADER.splitlines())
+)
 LEMMA_A = "import Init\n\ntheorem OpnProp.lemma_a : True := by\n  sorry\n"
 FACT = "def Opn.fact : Nat := 1\n"
 
@@ -311,7 +323,13 @@ def test_precheck_on_an_older_pin_dispatches_as_before() -> None:
     "case",
     [
         (NODE, PROOF_PATH, "proof", proof("Nodes.«open-c».Proof"), "use-unproved"),
-        (NODE, PARTIAL_PATH, "partial", proof("Nodes.«above-e».Proof"), "use-ancestor"),
+        (
+            NODE,
+            PARTIAL_PATH,
+            "partial",
+            proof("Nodes.«above-e».Proof", body=PARTIAL_BODY),
+            "use-ancestor",
+        ),
         ("lemma-a", ALTERNATE_PATH, "proof", LEMMA_A_ALTERNATE, "use-self"),
     ],
     ids=["proof", "partial", "alternate"],

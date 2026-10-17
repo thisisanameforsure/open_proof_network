@@ -234,6 +234,7 @@ async def submit_gloss(call: Call, args: dict[str, Any]) -> dict[str, Any]:
         "drafted_with",
         "dry_run",
         "amends",
+        "label",
     )
     return await forward(call, "POST", "/glosses", body)
 
@@ -757,6 +758,14 @@ TOOLS: tuple[Tool, ...] = (
                     "type": "boolean",
                     "description": "true: check only; the answer is {ok, warnings, sections "
                     "[{key, steps, resolved}], preview_html} and nothing opens",
+                },
+                "label": {
+                    "type": "string",
+                    "description": "a statement gloss only: the statement's short name, "
+                    "shown on the problem page's drawings and panels (D-3 v3.44); at most 60 "
+                    "characters, one line, plain text with no $ (the claim, the gloss's "
+                    "opening display, carries the notation); anything else, or a label on a "
+                    "witness, relation or definition gloss, is label-invalid",
                 },
             },
             ("subject", "text", "licence"),

@@ -53,7 +53,7 @@ from opn_api import identity as identitymod
 from opn_api.app import ApiError
 from opn_api.githost import GitHostError
 from opn_gate import config as gate_config
-from opn_gate import explainers, glosses, modes, products, schemas
+from opn_gate import explainers, glosses, labels, modes, products, schemas
 from opn_gate import sections as sectionsmod
 from opn_gate.diagnostic import Diagnostic
 from opn_gate.paths import Change
@@ -78,12 +78,14 @@ GLOSS_FIELDS: tuple[str, ...] = (
     "drafted_with",
     "dry_run",
     "amends",
+    "label",
 )
 #: F21-R6: the record versions the service writes — v1 plus ``drafted_with`` — always, with the
 #: field null when the request names no model. The gate keeps reading v1 (D-34), and its own
 #: ``glosses.SCHEMA`` and ``explainers.RECORD_SCHEMA`` stay the v1 strings its readers compare
-#: against; these two are what lands.
-GLOSS_SCHEMA = "gloss/v2"
+#: against; these two are what lands. F29-T3b (R1; D-3 v3.44): a gloss is ``gloss/v3``, v2
+#: plus ``label``, the statement's short name, null when the request names none.
+GLOSS_SCHEMA = "gloss/v3"
 EXPLAINER_SCHEMA = "explainer/v2"
 #: D-23's cap on a declared model and tooling, as ``gloss/v2`` and ``explainer/v2`` publish it.
 DRAFTED_WITH_MAX_CHARS = 200
@@ -94,6 +96,7 @@ WITHDRAWAL_FIELDS: tuple[str, ...] = ("record", "reason")
 #: text a gloss describes, the file as it stands when omitted.
 SUBJECT_KEYS: tuple[str, ...] = ("kind", "node_id", "target_id", "module", "proof", "lean_hash")
 PROOF_KIND = "proof"
+STATEMENT_KIND = "statement"  # the one gloss kind a label may ride (F29-R1)
 GLOSS_KINDS: tuple[str, ...] = (*glosses.KIND_FILES, glosses.DEFINITION)
 TEXT_MAX_BYTES = appends.ANNEX_MAX_BYTES  # the cap an annex's prose has (F07 §6)
 WITHDRAWAL_SCHEMA = "withdrawal/v2"
@@ -386,6 +389,48 @@ def text_of(raw: Any) -> str:
     return raw
 
 
+def check_label(raw: Any, kind: str) -> str | None:
+    """F29-R1 (D-3 v3.44): a statement's short name, as ``gloss/v3`` publishes it — at most
+    ``LABEL_MAX`` characters, one line, plain text with no dollar sign (the claim carries the
+    notation) — or ``None`` when the request names none. Anything else is ``label-invalid``
+    with a one-line reason; so is a label on a gloss of anything but a statement, since a label
+    names a statement and the products read it from the statement gloss alone (F29-R3)."""
+    if raw is None:
+        return None
+    if kind != STATEMENT_KIND:
+        raise ApiError(
+            400,
+            "label-invalid",
+            f"a label names a statement; a gloss of a {kind} carries none (D-3 v3.44): leave "
+            "label out",
+            details={"kind": kind},
+        )
+    if not isinstance(raw, str) or not raw.strip():
+        raise ApiError(
+            400,
+            "label-invalid",
+            f"label is a non-empty string of at most {labels.LABEL_MAX} characters, one line, "
+            "no dollar sign",
+        )
+    if len(raw) > labels.LABEL_MAX:
+        raise ApiError(
+            400,
+            "label-invalid",
+            f"label is {len(raw)} characters; at most {labels.LABEL_MAX}",
+            details={"length": len(raw), "max": labels.LABEL_MAX},
+        )
+    if "\n" in raw or "\r" in raw:
+        raise ApiError(400, "label-invalid", "label is one line")
+    if "$" in raw:
+        raise ApiError(
+            400,
+            "label-invalid",
+            "label is plain text with no dollar sign; the notation goes in the gloss's opening "
+            "display (the claim), not the label",
+        )
+    return raw
+
+
 def front_matter(  # noqa: PLR0913 — one argument per fact the record carries
     target_dir: Path,
     subject: dict[str, Any],
@@ -397,10 +442,13 @@ def front_matter(  # noqa: PLR0913 — one argument per fact the record carries
     date: str,
     licence: str,
     drafted_with: str | None = None,
+    label: str | None = None,
 ) -> tuple[dict[str, Any], str]:
-    """``(front matter, schema)`` of the record: ``gloss/v2`` or ``explainer/v2`` (F21-R6). The
-    author is always a person, the token's identity; the service files no draft (F21-R1), so
-    ``drafter`` is always null, and a model that helped is named in ``drafted_with``."""
+    """``(front matter, schema)`` of the record: ``gloss/v3`` or ``explainer/v2`` (F21-R6,
+    F29-T3b). The author is always a person, the token's identity; the service files no draft
+    (F21-R1), so ``drafter`` is always null, and a model that helped is named in
+    ``drafted_with``. ``label`` rides a gloss (null when none was given; ``check_label`` has
+    refused one on anything but a statement)."""
     common = {"supersedes": supersedes, "author": author, "drafter": None}
     if subject["kind"] == PROOF_KIND:
         doc = {
@@ -437,6 +485,7 @@ def front_matter(  # noqa: PLR0913 — one argument per fact the record carries
         "date": date,
         "licence": licence,
         "drafted_with": drafted_with,
+        "label": label,
     }
     return doc, GLOSS_SCHEMA
 
@@ -695,6 +744,7 @@ async def post_glosses(ctx: Context, request: Request) -> Response:
     identity: Identity = request.state.identity
     fields, _ = await identitymod.body_fields(request, GLOSS_FIELDS)
     subject = subject_of(fields.get("subject"))
+    label = check_label(fields.get("label"), str(subject["kind"]))  # F29-R1: before any read
     target_id, node_id = where(ctx, subject)
     text = text_of(fields.get("text"))
     licence = appends.check_licence(
@@ -727,6 +777,7 @@ async def post_glosses(ctx: Context, request: Request) -> Response:
             date=ctx.clock.now().strftime("%Y-%m-%d"),
             licence=licence,
             drafted_with=drafted_with,
+            label=label,
         )
         appends.validated(front, schema)
         content = record_file(front, text)
