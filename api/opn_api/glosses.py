@@ -90,14 +90,16 @@ EXPLAINER_SCHEMA = "explainer/v2"
 #: D-23's cap on a declared model and tooling, as ``gloss/v2`` and ``explainer/v2`` publish it.
 DRAFTED_WITH_MAX_CHARS = 200
 WITHDRAWAL_FIELDS: tuple[str, ...] = ("record", "reason")
-#: What ``subject`` may hold. ``kind`` is a gloss's (statement, witness, relation, definition)
-#: or ``proof`` for an explainer; ``node_id`` names the node, ``target_id`` and ``module`` a
-#: definition module; ``proof`` the merged artifact an explainer describes; ``lean_hash`` the
-#: text a gloss describes, the file as it stands when omitted.
+#: What ``subject`` may hold. ``kind`` is a gloss's (statement, witness, relation, definition,
+#: partial) or ``proof`` for an explainer; ``node_id`` names the node, ``target_id`` and
+#: ``module`` a definition module — or, for a partial (F29-T9), ``node_id`` and ``module`` the
+#: merged partial's path under the node; ``proof`` the merged artifact an explainer describes;
+#: ``lean_hash`` the text a gloss describes, the file as it stands when omitted.
 SUBJECT_KEYS: tuple[str, ...] = ("kind", "node_id", "target_id", "module", "proof", "lean_hash")
 PROOF_KIND = "proof"
 STATEMENT_KIND = "statement"  # the one gloss kind a label may ride (F29-R1)
-GLOSS_KINDS: tuple[str, ...] = (*glosses.KIND_FILES, glosses.DEFINITION)
+PARTIAL_KIND = glosses.PARTIAL  # a merged partial's route words (F29-T9, R4)
+GLOSS_KINDS: tuple[str, ...] = (*glosses.KIND_FILES, glosses.DEFINITION, PARTIAL_KIND)
 TEXT_MAX_BYTES = appends.ANNEX_MAX_BYTES  # the cap an annex's prose has (F07 §6)
 WITHDRAWAL_SCHEMA = "withdrawal/v2"
 #: The login the scratch classification is opened as, and the login the gate treats as the
@@ -311,13 +313,14 @@ def check_own_name(identity: Identity, root: Path, target_id: str, verifier: Hos
 
 
 def subject_of(raw: Any) -> dict[str, Any]:
-    """The ``subject`` object, its keys within ``SUBJECT_KEYS`` and its kind one of the five."""
+    """The ``subject`` object, its keys within ``SUBJECT_KEYS`` and its kind one of the six."""
     if not isinstance(raw, dict):
         raise ApiError(
             400,
             "subject-invalid",
             "subject is an object: {kind, node_id} for a statement, witness or relation; "
-            "{kind: definition, target_id, module} for a definition module; {kind: proof, "
+            "{kind: definition, target_id, module} for a definition module; {kind: partial, "
+            "node_id, module} for a merged partial (its route's approach words); {kind: proof, "
             "node_id, proof} for an explainer of a merged proof artifact",
         )
     unknown = sorted(k for k in raw if k not in SUBJECT_KEYS)
@@ -365,6 +368,18 @@ def where(ctx: Context, subject: dict[str, Any]) -> tuple[str, str | None]:
                 "digits and _, segments joined by /, ending .lean)",
             )
         return target_id, None
+    if subject["kind"] == PARTIAL_KIND and (
+        glosses.PARTIAL_MODULE_RE.match(str(subject.get("module") or "")) is None
+        or ".." in str(subject.get("module"))
+    ):
+        # F29-T9: checked before anything is read, so a path cannot leave the node.
+        raise ApiError(
+            400,
+            "subject-invalid",
+            "a partial's subject names the merged partial by its path under the node: "
+            "attempts/<stamp>-<pseudonym>-partial.lean (as get_node's attempts list it)",
+            details={"module": subject.get("module")},
+        )
     node_id, target_id = appends.node_target(ctx, {"node_id": subject.get("node_id")})
     named = subject.get("target_id")
     if named is not None and named != target_id:
@@ -431,6 +446,16 @@ def check_label(raw: Any, kind: str) -> str | None:
     return raw
 
 
+def module_of(subject: dict[str, Any], node_id: str | None) -> str | None:
+    """The record's ``subject.module``: a definition module's path (no node), or for a partial
+    (F29-T9) the merged partial's path under its node; ``None`` for a node's statement,
+    witness or relation."""
+    if node_id is None or subject["kind"] == PARTIAL_KIND:
+        value = subject.get("module")
+        return str(value) if value is not None else None
+    return None
+
+
 def front_matter(  # noqa: PLR0913 — one argument per fact the record carries
     target_dir: Path,
     subject: dict[str, Any],
@@ -462,7 +487,7 @@ def front_matter(  # noqa: PLR0913 — one argument per fact the record carries
             "drafted_with": drafted_with,
         }
         return doc, EXPLAINER_SCHEMA
-    module = subject.get("module") if node_id is None else None
+    module = module_of(subject, node_id)
     file = glosses.subject_file(
         target_dir, {"kind": subject["kind"], "node": node_id, "module": module}
     )
@@ -503,7 +528,7 @@ def words_key(target_id: str, node_id: str | None, subject: dict[str, Any]) -> s
     ``defs/<module>``)."""
     if subject["kind"] == PROOF_KIND:
         return duplicates.words_key(target_id, str(subject["proof"]))
-    module = subject.get("module") if node_id is None else None
+    module = module_of(subject, node_id)
     file = glosses.subject_file(
         Path(), {"kind": subject["kind"], "node": node_id, "module": module}
     )

@@ -558,13 +558,19 @@ def decompositions_of(tg: TargetGraph, node_id: str) -> list[dict[str, Any]]:
             )
         except postmerge.MalformedCitationError:
             annex = None  # step 2 refuses one, so a merged partial cannot carry it
-        # F29-R4 (D-12 v3.44): the route's approach — the partial's own line, else what an older
-        # partial's leading comment or its annex says.
+        # F29-R4 (D-12 v3.44): the route's approach — the partial's own line, else the words of
+        # its current partial gloss (F29-T9: the one thing about a merged partial's route a
+        # contributor can still write), else what an older partial's leading comment or its
+        # annex says.
         annex_text: str | None = None
         if annex is not None and (node.path / "annex" / f"{annex}.md").is_file():
             annex_text = (node.path / "annex" / f"{annex}.md").read_text(encoding="utf-8")
         approach = (
-            labels.approach_of(file.read_text(encoding="utf-8"), annex=annex_text)
+            labels.approach_of(
+                file.read_text(encoding="utf-8"),
+                gloss=partial_gloss_words(node.path, node_id, partial.path),
+                annex=annex_text,
+            )
             if file.is_file()
             else None
         )
@@ -579,6 +585,29 @@ def decompositions_of(tg: TargetGraph, node_id: str) -> list[dict[str, Any]]:
             holes.append({"name": hole, "node": found})
         out.append({"partial": partial.path, "annex": annex, "holes": holes, "approach": approach})
     return out
+
+
+def partial_gloss_words(node_path: Path, node_id: str, partial: str) -> str | None:
+    """F29-T9 (R4): the body of the current version of the first gloss chain filed on the
+    node's merged partial at ``partial`` (a ``gloss/v3`` of kind ``partial``, keyed by that
+    path), in record order as ``node_words`` reads a statement gloss; ``None`` when none."""
+    versions = [
+        v
+        for v in glosses.load_versions(node_path)
+        if v.subject == (glosses.PARTIAL, node_id, partial)
+    ]
+    if not versions:
+        return None
+    withdrawn = glosses.withdrawn_versions(node_path, glosses.GLOSS_DIR)
+    found = glosses.chains(versions, withdrawn)
+    current = found[0].current if found else None
+    if current is None:
+        return None
+    try:
+        _, body = glosses.split_front_matter(current.path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, ValueError):
+        return None
+    return body
 
 
 def node_words(n: Any, node_id: str, *, title: str | None) -> dict[str, Any]:
@@ -772,6 +801,19 @@ def lean_subjects(tg: GlossScope) -> list[dict[str, Any]]:
             )
             subject["lean_hash"] = digest
             out.append(subject)
+            if kind == glosses.PARTIAL:
+                # F29-T9 (R4): a merged partial takes a gloss too — its route's approach words
+                # — listed beside its explainer subject, keyed by the partial's path.
+                words = _subject(
+                    tg,
+                    glosses.PARTIAL,
+                    "gloss",
+                    node=node_id,
+                    module=rel,
+                    file=f"nodes/{node_id}/{rel}",
+                )
+                words["lean_hash"] = digest
+                out.append(words)
     defs_dir = tg.path / glosses.DEFS_DIR
     if defs_dir.is_dir():
         for path in sorted(p for p in defs_dir.rglob("*.lean") if p.is_file()):
@@ -856,6 +898,8 @@ def _gloss_chains(
             file = (
                 f"{glosses.DEFS_DIR}/{module}"
                 if kind == glosses.DEFINITION
+                else f"nodes/{node}/{module}"
+                if kind == glosses.PARTIAL
                 else f"nodes/{node}/{glosses.KIND_FILES[kind]}"
             )
             subject = by_key[key] = _subject(tg, kind, "gloss", node=node, module=module, file=file)

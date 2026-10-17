@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://openproof.network/schemas/glosses/v3.json",
   "title": "glosses/v3",
-  "description": "v3 (2026-10-17, F29-T1; D-3 v3.44): a version may be a gloss/v3 record (a statement gloss carrying a label); the shape is v2's, with gloss/v3 admitted to the version schema enum and each version carrying its label (null when none). targets/<id>/glosses.json (F20-R9; D-3 v3.30, D-35): a product listing, for every Lean file of the target that takes a gloss (each node's statement, witness and relation, each definition module) and every merged proof artifact that takes an explainer, the chains of versions filed on it. Chains are in record order and versions in chain order, ranked by nothing (D-25). Derived from the tree: the records are the gloss and explainer files, their signatures and withdrawals; nothing here is model text. v2 (F21-R14; D-3 v3.31): every version carries drafted_with and its sections with their states; every chain carries the words it shows, section by section, and the pending sections awaiting approval. Versioned, never edited (D-34).",
+  "description": "v3 (2026-10-17, F29-T1; D-3 v3.44): a version may be a gloss/v3 record (a statement gloss carrying a label); the shape is v2's, with gloss/v3 admitted to the version schema enum and each version carrying its label (null when none). F29-T9 (the same day, edited in place before this version was published — D-34 forbids editing a published version only): a merged partial is listed twice, as the explainer's subject (record explainer, module null) and as a gloss subject (record gloss, kind partial, module the partial's path under the node), the gloss chains being the route's approach words (F29-R4). targets/<id>/glosses.json (F20-R9; D-3 v3.30, D-35): a product listing, for every Lean file of the target that takes a gloss (each node's statement, witness and relation, each definition module) and every merged proof artifact that takes an explainer, the chains of versions filed on it. Chains are in record order and versions in chain order, ranked by nothing (D-25). Derived from the tree: the records are the gloss and explainer files, their signatures and withdrawals; nothing here is model text. v2 (F21-R14; D-3 v3.31): every version carries drafted_with and its sections with their states; every chain carries the words it shows, section by section, and the pending sections awaiting approval. Versioned, never edited (D-34).",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -59,7 +59,7 @@
       ],
       "properties": {
         "kind": {
-          "description": "statement, witness, relation or definition for a gloss's subject; proof, alternate or partial for a merged proof artifact; absent for an artifact the explainers name that is not in the tree.",
+          "description": "statement, witness, relation or definition for a gloss's subject, and partial for a gloss of a merged partial (record gloss, F29-T9); proof, alternate or partial for a merged proof artifact (record explainer); absent for an artifact the explainers name that is not in the tree.",
           "enum": [
             "statement",
             "witness",
@@ -89,7 +89,7 @@
           ]
         },
         "module": {
-          "description": "The definition module's path under defs/, for a definition; null otherwise.",
+          "description": "The definition module's path under defs/, for a definition; for a gloss subject of kind partial, the partial's path under the node (attempts/<stamp>-<pseudonym>-partial.lean, F29-T9); null otherwise.",
           "oneOf": [
             {
               "type": "null"

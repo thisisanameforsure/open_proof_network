@@ -55,6 +55,11 @@ KIND_FILES: dict[str, str] = {
 }
 DEFINITION = "definition"
 DEFS_DIR = "defs"
+#: F29-T9 (R4): a gloss of one merged partial of the node — its route. The subject's ``module``
+#: is the partial's path under the node, which this rule holds to ``attempts/`` and the partial
+#: suffix before anything is read, so a path can never leave the node (``..`` is not a name).
+PARTIAL = "partial"
+PARTIAL_MODULE_RE = re.compile(r"^attempts/[A-Za-z0-9_.-]+-partial\.lean$")
 _FRONT_MATTER_RE = re.compile(r"\A---[ \t]*\r?\n(?P<yaml>.*?)\r?\n---[ \t]*\r?\n?", re.S)
 
 
@@ -113,6 +118,14 @@ def subject_file(target_dir: Path, subject: dict[str, Any]) -> Path | None:
         if node is not None or not isinstance(module, str):
             return None
         return target_dir / DEFS_DIR / module
+    if kind == PARTIAL:
+        well_formed = (
+            isinstance(node, str)
+            and isinstance(module, str)
+            and PARTIAL_MODULE_RE.match(module) is not None
+            and ".." not in module
+        )
+        return target_dir / "nodes" / str(node) / str(module) if well_formed else None
     if kind in KIND_FILES and isinstance(node, str) and module is None:
         return target_dir / "nodes" / node / KIND_FILES[str(kind)]
     return None
@@ -214,7 +227,8 @@ def check_gloss(graph_root: Path, located: Located) -> list[Diagnostic]:  # noqa
             _invalid(
                 located,
                 "a statement, witness or relation names its node and no module; a definition "
-                "names its module and no node",
+                "names its module and no node; a partial names its node and its module, the "
+                "merged partial's path under the node (attempts/<stamp>-<pseudonym>-partial.lean)",
             )
         ]
     if not file.is_file():
@@ -809,6 +823,8 @@ def _artifact_rows(graph_root: Path, target_id: str, node_dir: Path) -> list[dic
 
     withdrawn = withdrawn_versions(node_dir, explainers.EXPLAINER_DIR)
     everything = explainers.versions(node_dir)
+    glossed = load_versions(node_dir)
+    gloss_withdrawn = withdrawn_versions(node_dir, GLOSS_DIR)
     out: list[dict[str, Any]] = []
     for digest, rel in explainers.merged_artifacts(node_dir).items():
         kind = (
@@ -816,7 +832,7 @@ def _artifact_rows(graph_root: Path, target_id: str, node_dir: Path) -> list[dic
             if rel == "Proof.lean"
             else "alternate"
             if rel.endswith(paths.ALTERNATE_SUFFIX)
-            else "partial"
+            else PARTIAL
         )
         r = _row(graph_root, target_id, node_dir / rel, kind, node=node_dir.name)
         found = chains([v for v in everything if v.subject[2] == digest], withdrawn)
@@ -825,6 +841,12 @@ def _artifact_rows(graph_root: Path, target_id: str, node_dir: Path) -> list[dic
             r.update(covered=True, by={"explainer": current[0].hash})
         else:
             r["reason"] = ALL_WITHDRAWN if found else NO_EXPLAINER
+        if kind == PARTIAL:
+            # F29-T9 (R4): whether the route has approach words — a partial gloss with a current
+            # version. Words about the route, not about the proof: ``covered`` is the explainer's
+            # alone, so ``complete`` does not read this.
+            same = [v for v in glossed if v.subject == (PARTIAL, node_dir.name, rel)]
+            r["approach_words"] = any(c.current is not None for c in chains(same, gloss_withdrawn))
         out.append(r)
     return out
 
@@ -915,6 +937,11 @@ def needed(doc: dict[str, Any], *, root: str | None, curated: str | None) -> lis
     for subject in doc["subjects"]:
         kind, file, lean_hash = subject["kind"], subject["file"], subject["lean_hash"]
         if file is None or lean_hash is None or kind == "absent":
+            continue
+        if subject["record"] == "gloss" and kind == PARTIAL:
+            # F29-T9: a merged partial's gloss subject (its route's approach words) is not a
+            # file needing words here: the artifact is listed once, under its explainer row,
+            # and this list is not widened to route approaches.
             continue
         chains_ = subject["chains"]
         current = [c["current"] for c in chains_ if c["current"] is not None]

@@ -11,9 +11,11 @@ and claim as that hole's first statement gloss, authored by the partial's author
 A node's label is its current statement gloss's, else the name its hole bore in the route that
 made it, else the target's title (a root), else its id (``label_of``); its claim is the display
 its current statement gloss opens with (``claim_of``). A route's approach is the partial's own
-line, else for an older partial its leading comment paragraph, else the first sentence of the
-annex it cites (``approach_of``). All derived at render; nothing recorded beyond the gloss and the
-partial. Every string here is contributor text, untrusted downstream (D-28).
+line, else the first sentence of the partial's current gloss (a ``gloss/v3`` of kind ``partial``,
+F29-T9: the correction path for a merged, immutable partial), else for an older partial its
+leading comment paragraph, else the first sentence of the annex it cites (``approach_of``). All
+derived at render; nothing recorded beyond the gloss and the partial. Every string here is
+contributor text, untrusted downstream (D-28).
 """
 
 from __future__ import annotations
@@ -347,10 +349,12 @@ def leading_comment(partial_text: str) -> str | None:
     return " ".join(found) if found else None
 
 
-def annex_first_sentence(annex_text: str | None) -> str | None:
-    if not annex_text:
+def first_sentence(text: str | None) -> str | None:
+    """The first sentence of a Markdown body's first paragraph (front matter left out), or
+    ``None`` for no words at all."""
+    if not text:
         return None
-    body = _FRONT_MATTER_RE.sub("", annex_text, count=1).strip()
+    body = _FRONT_MATTER_RE.sub("", text, count=1).strip()
     if not body:
         return None
     paragraph = " ".join(body.split("\n\n", 1)[0].split())
@@ -358,11 +362,24 @@ def annex_first_sentence(annex_text: str | None) -> str | None:
     return sentence or None
 
 
-def approach_of(partial_text: str, *, annex: str | None = None) -> str | None:
-    """The route's approach: declared, else the leading comment, else the annex's first
-    sentence, else ``None``; never longer than the schema's width."""
+def annex_first_sentence(annex_text: str | None) -> str | None:
+    return first_sentence(annex_text)
+
+
+def approach_of(
+    partial_text: str, *, gloss: str | None = None, annex: str | None = None
+) -> str | None:
+    """The route's approach: declared, else the first sentence of the partial's current gloss
+    (``gloss`` is that version's body, F29-T9), else the leading comment, else the annex's first
+    sentence, else ``None``; never longer than the schema's width. A merged partial is immutable
+    and the gloss is the one thing about its route a contributor can still write."""
     d = declarations(partial_text)
-    for candidate in (d.approach, leading_comment(partial_text), annex_first_sentence(annex)):
+    for candidate in (
+        d.approach,
+        first_sentence(gloss),
+        leading_comment(partial_text),
+        annex_first_sentence(annex),
+    ):
         if candidate:
             return _cut(candidate, APPROACH_MAX)
     return None

@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://openproof.network/schemas/gloss/v3.json",
   "title": "gloss/v3",
-  "description": "v3 (2026-10-17, F29-R1; D-3 v3.44): optional label, the statement's short name (at most 60 characters, plain text, one line), carried by a statement gloss; a node's label is its current statement gloss's. The body of a gloss that carries a label opens with the claim in notation as a display ($$...$$), the convention F20-T16 asks of every statement gloss. The YAML front matter of nodes/<id>/gloss/<hash>.md or targets/<id>/gloss/<hash>.md (F20-R1; D-3 v3.30): prose saying what one Lean file says — a statement, witness or relation of a node of any status, or a definition module — naming the hash of the exact text described. The body is Markdown, contributor or model text, untrusted downstream. Content-hashed, attributed, unverified, versioned by supersedes, withdrawn by a withdrawal record. Exactly one of author and drafter is set. v2 adds drafted_with (F21-R6; D-3 v3.31, D-23): the model a contributor's agent drafted with. No new version may carry a drafter block (F21-R2). Versioned, never edited (D-34).",
+  "description": "v3 (2026-10-17, F29-R1; D-3 v3.44): optional label, the statement's short name (at most 60 characters, plain text, one line), carried by a statement gloss; a node's label is its current statement gloss's. The body of a gloss that carries a label opens with the claim in notation as a display ($$...$$), the convention F20-T16 asks of every statement gloss. Also in v3 (F29-T9, the same day, edited in place before this version was published — D-34 forbids editing a published version only): subject.kind partial, a gloss of one merged partial of the node (its route), whose module is the partial's path under the node, attempts/<stamp>-<pseudonym>-partial.lean, with node set; its current version's first sentence is the route's approach when the partial declared none (F29-R4), and it carries no label. The YAML front matter of nodes/<id>/gloss/<hash>.md or targets/<id>/gloss/<hash>.md (F20-R1; D-3 v3.30): prose saying what one Lean file says — a statement, witness or relation of a node of any status, a merged partial of a node, or a definition module — naming the hash of the exact text described. The body is Markdown, contributor or model text, untrusted downstream. Content-hashed, attributed, unverified, versioned by supersedes, withdrawn by a withdrawal record. Exactly one of author and drafter is set. v2 adds drafted_with (F21-R6; D-3 v3.31, D-23): the model a contributor's agent drafted with. No new version may carry a drafter block (F21-R2). Versioned, never edited (D-34).",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -38,11 +38,12 @@
             "statement",
             "witness",
             "relation",
-            "definition"
+            "definition",
+            "partial"
           ]
         },
         "node": {
-          "description": "The node, for a statement, witness or relation; null for a definition module.",
+          "description": "The node, for a statement, witness, relation or partial; null for a definition module.",
           "oneOf": [
             {
               "type": "null"
@@ -54,14 +55,14 @@
           ]
         },
         "module": {
-          "description": "The definition module's path under targets/<id>/defs/, for a definition; null otherwise.",
+          "description": "The definition module's path under targets/<id>/defs/, for a definition; for a partial, the merged partial's path under the node (attempts/<stamp>-<pseudonym>-partial.lean, F29-T9); null otherwise.",
           "oneOf": [
             {
               "type": "null"
             },
             {
               "type": "string",
-              "pattern": "^[A-Za-z0-9_/]+\\.lean$",
+              "pattern": "^[A-Za-z0-9_/.-]+\\.lean$",
               "maxLength": 300
             }
           ]
@@ -156,7 +157,7 @@
       ]
     },
     "label": {
-      "description": "The statement's short name (D-3 v3.44): at most 60 characters, no newline, plain text (no $). Contributor text, untrusted downstream. Absent or null on a gloss of a witness, relation or definition module, and on one that names none.",
+      "description": "The statement's short name (D-3 v3.44): at most 60 characters, no newline, plain text (no $). Contributor text, untrusted downstream. Absent or null on a gloss of a witness, relation, partial or definition module, and on one that names none.",
       "oneOf": [
         {
           "type": "null"

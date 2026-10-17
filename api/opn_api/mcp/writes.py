@@ -714,12 +714,23 @@ TOOLS: tuple[Tool, ...] = (
                     "type": "object",
                     "description": "what the words describe: {kind, node_id} for a statement, "
                     "witness or relation (optional lean_hash); {kind: definition, target_id, "
-                    "module}; {kind: proof, node_id, proof} for an explainer, where proof is "
+                    "module}; {kind: partial, node_id, module} for a merged partial, where "
+                    "module is its path under the node (attempts/<stamp>-<pseudonym>-"
+                    "partial.lean): the words' first sentence is the route's approach on the "
+                    "problem page when the partial declared none (F29-R4); {kind: proof, "
+                    "node_id, proof} for an explainer, where proof is "
                     "the artifact's hash: the row's lean_hash in list_words_needed, or "
                     "attempts.assemblies[].hash in get_node",
                     "properties": {
                         "kind": {
-                            "enum": ["statement", "witness", "relation", "definition", "proof"]
+                            "enum": [
+                                "statement",
+                                "witness",
+                                "relation",
+                                "definition",
+                                "partial",
+                                "proof",
+                            ]
                         },
                         "node_id": ID_PARAM,
                         "target_id": ID_PARAM,
