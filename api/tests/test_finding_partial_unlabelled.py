@@ -112,7 +112,7 @@ def host_writes(h: Harness) -> tuple[int, int, int]:
 
 
 def problems_of(doc: dict[str, Any]) -> list[dict[str, Any]]:
-    found: list[dict[str, Any]] = doc["details"]["problems"]
+    found: list[dict[str, Any]] = doc["details"]["missing"]
     return found
 
 
@@ -254,5 +254,5 @@ def test_the_precheck_tool_answers_the_same_code(harness: Harness) -> None:
         token=token,
     )
     assert doc["status"] == 400 and doc["body"]["error"] == CODE, doc
-    problems = doc["body"]["details"]["problems"]
+    problems = doc["body"]["details"]["missing"]
     assert {p["hole"] for p in problems if p["hole"]} == {"h_left", "h_right"}

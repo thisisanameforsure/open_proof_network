@@ -445,7 +445,7 @@ def check_declarations(files: Mapping[str, str], artifact_type: str | None = Non
         "a partial names its approach, a licence and each hole's label and claim in its "
         "comments (D-12 v3.44; the guide's Skeletonization section): "
         + "; ".join(p.message for p in found),
-        details={"problems": [p.as_dict() for p in found]},
+        details={"missing": [p.as_dict() for p in found]},  # the gate's step-4 key too
     )
 
 
