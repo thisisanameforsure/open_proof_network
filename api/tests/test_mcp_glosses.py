@@ -235,7 +235,7 @@ def test_every_glosses_version_the_graph_may_carry_is_accepted() -> None:
     """2026-10-18: ``GLOSSES_SCHEMAS`` was derived from the current constant, so bumping it to v3
     dropped v2 and every live get_node answered glosses-invalid until the re-pin. The set names
     every version explicitly and holds the current one."""
-    assert reads.GLOSSES_SCHEMAS == {"glosses/v1", "glosses/v2", "glosses/v3"}
+    assert {"glosses/v1", "glosses/v2", "glosses/v3"} == reads.GLOSSES_SCHEMAS
     assert products.GLOSSES_SCHEMA in reads.GLOSSES_SCHEMAS
 
 
