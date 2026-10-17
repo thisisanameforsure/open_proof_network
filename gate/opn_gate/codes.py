@@ -1853,6 +1853,15 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "Not an error: the submission was read as a partial proof.",
         "Nothing to do.",
     ),
+    "partial-unlabelled": (
+        "gate",
+        4,
+        "The partial does not name its approach, its licence, or a hole's label and claim in its "
+        "comments (D-12 v3.44); details.problems names each missing or malformed line.",
+        "Add one `-- approach:` line and one `-- licence:` line before the first hole, and a "
+        "`-- label:` line and a `-- claim: $…$` line in the comment block directly above each "
+        "hole's `have`; the extractor's hole names are the ones held to the rule.",
+    ),
     "partial-without-holes": (
         "gate",
         4,

@@ -41,9 +41,11 @@ from opn_gate.signer import Signer
 log = logging.getLogger(__name__)
 
 SCHEMA = "gloss/v1"
+#: F29-R1 (D-3 v3.44): the version that carries ``label``; what the hole writer files (R7).
+SCHEMA_V3 = "gloss/v3"
 #: Every gloss record version the gate reads, each validated against its own ``schema`` (D-34):
-#: v2 adds ``drafted_with`` (F21-R6; D-3 v3.31, D-23).
-SCHEMAS: frozenset[str] = frozenset({"gloss/v1", "gloss/v2", "gloss/v3"})
+#: v2 adds ``drafted_with`` (F21-R6; D-3 v3.31, D-23); v3 adds ``label``.
+SCHEMAS: frozenset[str] = frozenset({"gloss/v1", "gloss/v2", SCHEMA_V3})
 GLOSS_DIR = "gloss"
 #: The Lean file a node-level gloss of each kind describes (R1).
 KIND_FILES: dict[str, str] = {
@@ -716,9 +718,18 @@ def coverage(graph_root: Path) -> dict[str, Any]:
             continue
         rows.extend(_target_rows(graph_root, tg))
     covered = sum(1 for r in rows if r["covered"])
+    # F29-R11: how many statements carry a label and how many do not (statements only; a label
+    # is not required for coverage, so ``complete`` does not read them).
+    statements = [r for r in rows if r["kind"] == "statement"]
+    labelled = sum(1 for r in statements if r.get("label"))
     return {
         "complete": not problems and covered == len(rows),
-        "counts": {"subjects": len(rows), "covered": covered},
+        "counts": {
+            "subjects": len(rows),
+            "covered": covered,
+            "labelled": labelled,
+            "unlabelled": len(statements) - labelled,
+        },
         "problems": problems,
         "subjects": rows,
     }
@@ -775,7 +786,13 @@ def _lean_rows(graph_root: Path, tg: Any, node_id: str, words: str | None) -> li
             continue
         r = _row(graph_root, tg.target_id, file, kind, node=node_id)
         same = [v for v in versions if v.subject == (kind, node_id, None)]
-        _cover_by_gloss(r, file, same, withdrawn)
+        found = _cover_by_gloss(r, file, same, withdrawn)
+        if kind == "statement":
+            # F29-R11 (D-3 v3.44): the statement's label is its current gloss's — the first
+            # chain's, as the products read it (``products.node_words``) — or null; a label is
+            # not required for coverage, so ``covered`` is what it was.
+            current = found[0].current if found else None
+            r["label"] = current.label if current is not None else None
         if kind == "statement" and node_id == tg.root and not r["covered"]:
             if words is not None:
                 r.update(covered=True, by={words: "target.yaml"}, reason=None)
@@ -830,8 +847,9 @@ def _definition_rows(graph_root: Path, target_id: str, target_dir: Path) -> list
 
 def _cover_by_gloss(
     row: dict[str, Any], file: Path, versions: list[Version], withdrawn: frozenset[str]
-) -> None:
-    """Covered when a chain's current version describes the file as it stands."""
+) -> list[Chain]:
+    """Covered when a chain's current version describes the file as it stands. Returns the
+    chains it read, in record order, for a caller that reads the current version's label."""
     found = chains(versions, withdrawn)
     current = [c.current for c in found if c.current is not None]
     text = schemas.content_hash(file.read_bytes())
@@ -844,6 +862,7 @@ def _cover_by_gloss(
         row["reason"] = ALL_WITHDRAWN
     else:
         row["reason"] = NO_GLOSS
+    return found
 
 
 def _curated_words(target_dir: Path) -> str | None:

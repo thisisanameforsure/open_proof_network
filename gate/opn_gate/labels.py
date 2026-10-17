@@ -30,7 +30,10 @@ CLAIM_MAX = 4000
 
 _COMMENT_RE = re.compile(r"^\s*--\s?(?P<text>.*)$")
 _KEY_RE = re.compile(r"^(?P<key>approach|licence|label|claim|annex):\s*(?P<value>.*)$", re.S)
-_HAVE_RE = re.compile(r"^(?P<indent>\s*)have\s+(?P<name>[^\s:(]+)\s*(?:\(.*?\)\s*)*:")
+#: A hole's ``have``, at the start of its line or after a focusing bullet (``· have …``): the
+#: extractor reports a bulleted hole like any other (F07's carried-witness fixtures and the live
+#: graph both write them), so the scan must read its block or the hole could never be declared.
+_HAVE_RE = re.compile(r"^(?P<indent>\s*)(?:·\s*)?have\s+(?P<name>[^\s:(]+)\s*(?:\(.*?\)\s*)*:")
 _ASSIGN_RE = re.compile(r":=\s*(?P<rest>.*)$")
 _SENTENCE_END_RE = re.compile(r"(?<=[.!?])\s+(?=[A-Z(\\$])")
 _FRONT_MATTER_RE = re.compile(r"\A---[ \t]*\r?\n.*?\r?\n---[ \t]*\r?\n?", re.S)
