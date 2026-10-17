@@ -1,0 +1,17 @@
+# F29-T8 — deploy, re-pin, backfill (2026-10-18, the owner: "backfill merge repin deploy please")
+
+1. PR #70 CI run 39061219882: fast, harness and Lean tiers success (the first Lean run 39032839064 found
+   two fixture partials without declarations; fixed as b4b9ab0e). Merged as main 32961c76.
+2. api-deploy 39073712811 FAILED on its MCP smoke: get_node answered glosses-invalid for every target,
+   "declares 'glosses/v2', not one of glosses/v1, glosses/v3" — reads.GLOSSES_SCHEMAS was derived from the
+   current schema constant, so bumping to v3 dropped v2. Hotfix e34cc561 (explicit set + a test holding the
+   current constant inside it), api-deploy 39076379670 success; lint follow-up 281e355e.
+3. Tag gate-32961c76; image-publish 39073743138 success:
+     gate-32961c76                        sha256:5c722af6e5df7fe123edbc4dff0fe866d066f57e32a281a03f1c824964a3262f
+     gate-32961c76-mathlib-0df444a360ea   sha256:25c14155d01ecd275930dfbcaf66608274266cf5b2a15c7cf39c5f3a536e5da4
+4. Graph worktree detached at origin/main d6100d937: schemas.unpublished [gloss/v3, glosses/v3, graph/v12] -> []
+   after publish; guide copied; pin_image.py over 27 targets (tutorial plain, 26 Mathlib, riemann-hypothesis
+   last with --api-url so the devcontainer runs the Mathlib image); 27/27 name 32961c76; --check passes 26
+   (the tutorial one says the devcontainer runs the Mathlib image, as before). No local pregate: this laptop's
+   Docker cannot pull zstd images (F10-T17), the hosted gate is the check. Committed c831a1962 (33 files),
+   pushed to graph main with no gate run in flight.
