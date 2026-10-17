@@ -112,6 +112,9 @@ def test_a_merged_skeleton_names_its_annex_and_its_holes(tmp_path: Path) -> None
             "partial": PARTIAL,
             "annex": ANNEX,
             "holes": [{"name": "hden", "node": HOLE_IDS[0]}, {"name": "hrem", "node": HOLE_IDS[1]}],
+            # F29-R4: an older partial's approach is read from its leading comment (here the
+            # fixture's one comment line), since it declares none.
+            "approach": "an outline",
         }
     ]
 

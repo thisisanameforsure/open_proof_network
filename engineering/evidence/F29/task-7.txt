@@ -1,0 +1,4 @@
+# F29-T7 — the guide documents the partial's header grammar (2026-10-17)
+$ pytest <every test reading gate/agents/AGENTS.md> (walkthrough, guide defects/skeleton/pending-work/bench, docs page, llms.txt, names-exist, mcp-renames, tester-1008)
+33 passed, 1 skipped (graph copy: sibling checkout not beside the worktree); 87 passed; after the T2 merge: test_finding_guide_names_exist 47 passed (partial-unlabelled now exists in code)
+The D-35 copy to the graph's AGENTS.md rides the re-pin (T8).

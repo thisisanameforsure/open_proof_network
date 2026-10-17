@@ -15,14 +15,14 @@ from __future__ import annotations
 from typing import Any
 
 import pytest
-from api_fakes import TUTORIAL_NODE, TUTORIAL_PROOF, Harness, PrecheckKey, make_precheck_key
+from api_fakes import TUTORIAL_NODE, TUTORIAL_PARTIAL, Harness, PrecheckKey, make_precheck_key
 from mcp_client import McpClient
 from test_finding_partial_witnesses import PARTIAL_PATH, hole, passing_job, submit
 from test_store_seam import both  # noqa: F401 — the fixture, by name
 
 from opn_api.store import Store, Submission
 
-BUNDLE = {PARTIAL_PATH: TUTORIAL_PROOF}
+BUNDLE = {PARTIAL_PATH: TUTORIAL_PARTIAL}
 CHILD = f"{TUTORIAL_NODE}--h3"
 EXISTING = "already-proved"  # a node of the fixture graph a hole may restate
 

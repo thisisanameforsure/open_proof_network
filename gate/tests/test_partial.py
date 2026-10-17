@@ -13,18 +13,18 @@ from __future__ import annotations
 from pathlib import Path
 
 from fakes import FakeToolchain, artifact_result, witness_result
-from harness import TARGET, make_context, node_dir
+from harness import TARGET, declared, make_context, node_dir
 
 from opn_gate import pipeline, schemas
 from opn_gate.paths import Change
 from opn_gate.steps.artifact import ARTIFACT_KEY, PARTIAL_KEY
 
 ROOT = "and-swap-reassoc"  # the fixture's unproved root: no Proof.lean
-BODY = """  intro p q r h
+BODY = declared("""  intro p q r h
   have right : r := sorry
   have left : q ∧ p := sorry
   exact ⟨right, left⟩
-"""
+""")
 
 
 def assembly_for(ctx) -> str:  # type: ignore[no-untyped-def]

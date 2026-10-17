@@ -24,7 +24,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-from harness import TARGET, make_context
+from harness import TARGET, declared, make_context
 from test_finding_hole_roundtrip_lean import ROOT, SKELETON
 
 from opn_gate import layout, pipeline
@@ -36,7 +36,7 @@ pytestmark = pytest.mark.lean
 #: Four holes. ``h4`` does not mention ``h3``; ``h5`` mentions ``h3`` in its type and not ``h4``;
 #: ``h6`` mentions only ``c``, whose sibling field ``hc`` is typed over ``h3`` — so ``h6`` keeps
 #: ``h3`` through ``hc``'s type and nothing else.
-BODY = (
+BODY = declared(
     "  intro p q r h\n"
     "  have h3 : ∃ x : Nat, 0 < x := sorry\n"
     "  have h4 : q ∧ p := sorry\n"

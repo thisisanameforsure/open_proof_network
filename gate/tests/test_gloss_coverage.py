@@ -178,7 +178,8 @@ def test_coverage_lists_every_file_and_why(root: Path, capsys: pytest.CaptureFix
     assert by_file[f"{base}/nodes/{ROOT}/{PARTIAL}"]["covered"] is True
     assert by_file[f"{base}/defs/{MODULE}"]["covered"] is True
     uncovered = sorted(f for f, r in by_file.items() if not r["covered"])
-    assert doc["counts"] == {"subjects": len(expected), "covered": len(expected) - len(uncovered)}
+    assert doc["counts"]["subjects"] == len(expected)
+    assert doc["counts"]["covered"] == len(expected) - len(uncovered)
 
     # A Context that restates an uncovered statement is uncovered, and says which.
     meta_path = nodes(root) / VARIANT / "META.yaml"
@@ -241,6 +242,81 @@ def test_a_missing_graph_is_a_usage_error(tmp_path: Path) -> None:
     assert cli.main(["gloss", "coverage", "--graph", str(tmp_path / "nope")]) == 2
 
 
+def test_coverage_counts_the_statements_without_a_label(
+    root: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """F29-R11 (D-3 v3.44): each statement row says its current gloss's label, or null, and the
+    counts say how many statements carry one and how many do not. A label is not required for
+    coverage: ``complete`` is what it was."""
+    gloss(root, "statement", VARIANT)  # a v1 gloss: covered, no label
+    labelled = put(
+        nodes(root) / HOLE / "gloss",
+        {
+            "schema": "gloss/v3",
+            "target": TARGET,
+            "subject": {
+                "kind": "statement",
+                "node": HOLE,
+                "module": None,
+                "lean_hash": schemas.content_hash(
+                    (nodes(root) / HOLE / "Statement.lean").read_bytes()
+                ),
+            },
+            "supersedes": None,
+            "author": "carol",
+            "drafter": None,
+            "date": "2026-10-17",
+            "licence": "CC-BY-4.0",
+            "drafted_with": None,
+            "label": "the hole",
+        },
+        "$$\\top$$\n",
+    )
+    _, doc = report(root, capsys)
+    by_file = rows(doc)
+    base = f"targets/{TARGET}/nodes"
+    assert by_file[f"{base}/{HOLE}/Statement.lean"]["label"] == "the hole"
+    assert by_file[f"{base}/{HOLE}/Statement.lean"]["by"] == {"gloss": labelled}
+    assert by_file[f"{base}/{VARIANT}/Statement.lean"]["label"] is None
+    assert by_file[f"{base}/{ROOT}/Statement.lean"]["label"] is None  # curated words, no gloss
+    assert "label" not in by_file[f"{base}/{HOLE}/Witness.lean"]  # statements only
+    statements = [r for r in doc["subjects"] if r["kind"] == "statement"]
+    assert len(statements) == 3
+    assert doc["counts"]["labelled"] == 1
+    assert doc["counts"]["unlabelled"] == 2
+    assert doc["complete"] is False  # as before: the witnesses and artifacts lack words
+
+    # A superseding version that drops the label leaves the statement unlabelled again, and a
+    # withdrawn label counts for nothing: the label is the *current* version's.
+    unlabelled = put(
+        nodes(root) / HOLE / "gloss",
+        {
+            "schema": "gloss/v3",
+            "target": TARGET,
+            "subject": {
+                "kind": "statement",
+                "node": HOLE,
+                "module": None,
+                "lean_hash": schemas.content_hash(
+                    (nodes(root) / HOLE / "Statement.lean").read_bytes()
+                ),
+            },
+            "supersedes": labelled,
+            "author": "carol",
+            "drafter": None,
+            "date": "2026-10-18",
+            "licence": "CC-BY-4.0",
+            "drafted_with": None,
+            "label": None,
+        },
+        "Words without a name.\n",
+    )
+    _, doc = report(root, capsys)
+    row = rows(doc)[f"{base}/{HOLE}/Statement.lean"]
+    assert row["label"] is None and row["by"] == {"gloss": unlabelled}
+    assert doc["counts"]["labelled"] == 0 and doc["counts"]["unlabelled"] == 3
+
+
 # --- F21-T7 / AC7: words needed, from the product (R8; Q6) --------------------------------------
 
 
@@ -256,6 +332,7 @@ def _as_v1(doc: dict[str, Any]) -> dict[str, Any]:
             for version in chain["versions"]:
                 version.pop("drafted_with")
                 version.pop("sections")
+                version.pop("label")  # glosses/v3 (F29-T1)
                 for sig in version["signatures"]:
                     sig.pop("sections", None)
     return schemas.validate(old, "glosses/v1")

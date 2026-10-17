@@ -18,6 +18,12 @@ Every node is a ``<g>`` with ``data-node`` (a junction's with ``data-route``), e
 and line lists in ``data-sets`` the sets it belongs to, so ``routes.js`` lights a set without
 knowing the graph, and the tests can read the structure. Without the script the drawing and the
 table are complete.
+
+F29-T6 (R10; D-25 v3.44): the selector tree (``routes.selector_tree``, built from the sets) is
+boxed as "Sufficient sets" down the drawing's left edge, where F27-T7's set labels stood: one row
+per node of the tree in depth-first order, indented by depth, a branch naming the statement its
+route is a route of and the route's approach, a leaf one set with its swatch. Every row carries
+in ``data-sets`` the sets beneath it, so the script lights a branch as it lights a set.
 """
 
 from __future__ import annotations
@@ -48,12 +54,21 @@ LABEL_X = 36
 #: Room for the label after its text (the box is ``LABEL_X`` + the text + this).
 LABEL_END = 12
 DIAMOND = 6
-#: F27-T7: the column down the drawing's left edge that holds one clickable label per set; the
-#: statements and lines are drawn to its right, so no label covers one.
+#: F27-T7: the column down the drawing's left edge that holds the selector (F29-T6, where one
+#: label per set stood); the statements and lines are drawn to its right, so no row covers one.
+#: This is its least width; the box grows to its longest row (``selector_width``).
 LABEL_COLUMN = 96
 SET_LABEL_W = 80
 SET_LABEL_H = 28
 SET_LABEL_GAP = 8
+#: F29-T6: the selector's rows — indented this much per depth, the words in the sans face at
+#: about this width a character, cut at this many characters (the whole text stays in the
+#: row's ``<title>``), under a heading this tall, inside a box with this much padding.
+SEL_INDENT = 14
+SEL_CHAR_W = 6.6
+SEL_TEXT_MAX = 40
+SEL_HEAD_H = 26
+SEL_PAD = 8
 
 DEAD = routes.DEAD_STATUSES
 
@@ -286,9 +301,10 @@ def svg(
     closable statement (F28, v3.41) keeps its open look and gains the filled assembly mark."""
     closable = closable or {}
     names: dag.Prefix = (prefix, result.root) if prefix else None
+    labels = dag.labels_of(d.rows.values())  # F29-T5 (R9): pills by label, ids in titles
     widths: dict[str, int] = {j: JUNCTION_W for j in d.junctions}
     for v in d.statements:
-        widths[v] = LABEL_X + round(dag.CHAR_W * len(dag.label_of(v, names))) + LABEL_END
+        widths[v] = LABEL_X + round(dag.CHAR_W * len(dag.label_of(v, names, labels))) + LABEL_END
     nodes = [
         {"node_id": v, "status": str(d.rows[v].get("status")), "deps": d.below.get(v, [])}
         for v in d.statements
@@ -303,17 +319,19 @@ def svg(
         for m in dict.fromkeys((*s.statements, *s.assemblies)):
             members.setdefault(m, []).append(s.id)
     top = min((p.y for p in lay.placed), default=dag.PAD)
-    column_h = top + len(result.sets) * (SET_LABEL_H + SET_LABEL_GAP)
-    width, height = lay.width + LABEL_COLUMN, max(lay.height, round(column_h + dag.PAD))
+    sel_rows = selector_rows(result, d.rows, names, labels)
+    column = selector_width(sel_rows)
+    column_h = top + SEL_HEAD_H + len(sel_rows) * (SET_LABEL_H + SET_LABEL_GAP) + SEL_PAD
+    width, height = lay.width + column, max(lay.height, round(column_h + dag.PAD))
     parts = [
         f'<svg class="routes-svg" viewBox="0 0 {width} {height}" width="{width}" '
         f'height="{height}" role="img" aria-label="routes and sufficient sets">',
-        set_labels(result, top),
+        selector_box(sel_rows, column, top),
     ]
-    # The tree sits right of the label column (F27-T7): every point moves by its width.
+    # The tree sits right of the selector's column (F27-T7): every point moves by its width.
     lay = dag.Layout(
-        [replace(p, x=p.x + LABEL_COLUMN) for p in lay.placed],
-        [replace(e, points=tuple((x + LABEL_COLUMN, y) for x, y in e.points)) for e in lay.edges],
+        [replace(p, x=p.x + column) for p in lay.placed],
+        [replace(e, points=tuple((x + column, y) for x, y in e.points)) for e in lay.edges],
         width,
         height,
         lay.loose,
@@ -341,7 +359,8 @@ def svg(
             if d.alternatives.get(p.node_id, 0) >= 2
             else ""
         )
-        label = dag.label_of(p.node_id, names)
+        label = dag.label_of(p.node_id, names, labels)
+        named = f" ({escape(label)})" if p.node_id in labels else ""
         # Open is a second channel, never a hue: the wedges keep their colour and the pie is
         # hollow in the middle (proved is a full pie).
         core = (
@@ -366,7 +385,7 @@ def svg(
             f'<g class="rnode st-{state_of(status)} {role}{root}" '
             f'data-node="{escape(p.node_id)}" '
             f'data-sets="{sets}" transform="translate({p.x},{p.y})">'
-            f"<title>{escape(p.node_id)}: {escape(status)}; {escape(said)}</title> "
+            f"<title>{escape(p.node_id)}{named}: {escape(status)}; {escape(said)}</title> "
             f'<rect class="pill" width="{p.w}" height="{dag.NODE_H}" rx="8"/>'
             f"{pie(mine, index)}{core}"
             f'<circle class="ring" cx="{PIE_X}" cy="{dag.NODE_H // 2}" r="{RING_R}"/>{asm}'
@@ -377,20 +396,145 @@ def svg(
     return "\n".join(parts)
 
 
-def set_labels(result: routes.Routes, top: float) -> str:
-    """F27-T7: one label per set, stacked down the left edge in the table's order, each a button
-    (``routes.js`` makes it select the set) with the set's hue as its swatch."""
-    out = ['<g class="set-labels">']
-    for k, s in enumerate(result.sets, start=1):
-        y = round(top + (k - 1) * (SET_LABEL_H + SET_LABEL_GAP))
-        noun = "statement" if s.remaining == 1 else "statements"
+@dataclass(frozen=True)
+class SelRow:
+    """One row of the selector box (F29-T6): a branch (an interior node of the tree, ``set``
+    ``None``) or a leaf (one set, ``index`` its number from 1). ``sets`` are the ids of every
+    set beneath it in the record's order; ``words`` the row's text (the statement the row's
+    route is a route of and the route's approach; nothing at a leaf that chose no route); and
+    ``title`` the full words for the row's ``<title>``."""
+
+    depth: int
+    sets: tuple[str, ...]
+    set: str | None
+    index: int
+    words: str
+    title: str
+
+
+def _approach(rid: str, rows: Mapping[str, Mapping[str, Any]], label: str) -> str:
+    """A route's approach (``graph/v12``, F29-R4): the declared line of its decomposition, else
+    "route k of <label>"."""
+    node_id, _, k = rid.rpartition("@")
+    row = rows.get(node_id) or {}
+    try:
+        found = (row.get("decompositions") or [])[int(k) - 1].get("approach")
+    except (IndexError, ValueError, AttributeError):
+        found = None
+    return str(found) if found else f"route {k} of {label}"
+
+
+def _cut(text: str, width: int = SEL_TEXT_MAX) -> str:
+    return text if len(text) <= width else text[: width - 1].rstrip() + "…"
+
+
+def selector_rows(
+    result: routes.Routes,
+    rows: Mapping[str, Mapping[str, Any]],
+    names: dag.Prefix,
+    labels: dag.Labels,
+) -> list[SelRow]:
+    """The selector tree flattened depth-first (R10). The top node is the box itself (its
+    heading stands for every set); its children start at depth 0. A child's words name the
+    statement its parent splits on (by its label) and the route it chose there, or that it took
+    the statement directly; a leaf that is the top node (one set) has no words."""
+    index = {s.id: k for k, s in enumerate(result.sets, start=1)}
+    out: list[SelRow] = []
+
+    def leaves(sel: routes.Selector) -> tuple[str, ...]:
+        if sel.set is not None:
+            return (sel.set,)
+        return tuple(sid for c in sel.children for sid in leaves(c))
+
+    def visit(sel: routes.Selector, split_on: str | None, depth: int) -> None:
+        if split_on is None:
+            words = full = ""
+        else:
+            label = dag.label_of(split_on, names, labels)
+            if sel.route is None:
+                words = full = f"{label}: taken directly"
+            else:
+                full = f"{label}: {_approach(sel.route, rows, label)}"
+                words = _cut(full)
+        beneath = leaves(sel)
+        if sel.set is not None:
+            k = index[sel.set]
+            s = result.sets[k - 1]
+            noun = "statement" if s.remaining == 1 else "statements"
+            title = f"Set {k}: {s.remaining} open {noun} of {s.total}" + (
+                f"; {full}" if full else ""
+            )
+            out.append(SelRow(depth, beneath, sel.set, k, words, title))
+            return
+        n = len(beneath)
+        title = f"{full} ({n} set{'' if n == 1 else 's'})" if full else f"{n} sets"
+        out.append(SelRow(depth, beneath, None, 0, words, title))
+        for c in sel.children:
+            visit(c, sel.node, depth + 1)
+
+    tree = routes.selector_tree(result)
+    if tree.sets == 0:
+        return out
+    if tree.set is not None:
+        visit(tree, None, 0)
+    else:
+        for c in tree.children:
+            visit(c, tree.node, 0)
+    return out
+
+
+def _row_w(r: SelRow) -> int:
+    text = f"Set {r.index}" + (f"   {r.words}" if r.words else "") if r.set else r.words
+    swatch = 18 if r.set else 0
+    return r.depth * SEL_INDENT + 12 + swatch + round(SEL_CHAR_W * len(text)) + 12
+
+
+def selector_width(sel_rows: list[SelRow]) -> int:
+    """The column the box takes: its widest row, the heading, or F27-T7's least width."""
+    widest = max((_row_w(r) for r in sel_rows), default=0)
+    head = 12 + round(SEL_CHAR_W * len("Sufficient sets")) + 12
+    return max(LABEL_COLUMN, widest + 2 * SEL_PAD + 8, head + 2 * SEL_PAD + 8)
+
+
+def selector_box(sel_rows: list[SelRow], column: int, top: float) -> str:
+    """F29-T6 (R10): the box headed "Sufficient sets", one row per node of the selector tree,
+    each a button (``routes.js`` makes it select the sets beneath it) carrying ``data-sets``;
+    a leaf keeps ``data-set`` and its hue as a swatch, as F27-T7's labels did. Complete and
+    readable without the script."""
+    box_w = column - 8 - SEL_PAD
+    box_h = SEL_HEAD_H + len(sel_rows) * (SET_LABEL_H + SET_LABEL_GAP) + SEL_PAD
+    y0 = round(top)
+    out = [
+        f'<g class="selector" transform="translate(8,{y0})">'
+        f'<rect class="selector-box" width="{box_w}" height="{box_h}" rx="8"/>'
+        f'<text class="selector-head" x="{SEL_PAD + 4}" y="18">Sufficient sets</text>'
+    ]
+    for i, r in enumerate(sel_rows):
+        x = SEL_PAD + r.depth * SEL_INDENT
+        y = SEL_HEAD_H + i * (SET_LABEL_H + SET_LABEL_GAP)
+        w = box_w - x - SEL_PAD
+        sets = escape(" ".join(r.sets))
+        if r.set is not None:
+            kind = "leaf set-label"
+            own = f' data-set="{escape(r.set)}"'
+            body = (
+                f'<circle class="swatch {hue(r.index)}" cx="14" cy="{SET_LABEL_H // 2}" r="6"/>'
+                f'<text x="26" y="{SET_LABEL_H // 2 + 5}">Set {r.index}</text>'
+            )
+            if r.words:
+                wx = 26 + round(SEL_CHAR_W * len(f"Set {r.index}")) + 10
+                body += (
+                    f'<text class="sel-words" x="{wx}" y="{SET_LABEL_H // 2 + 5}">'
+                    f"{escape(r.words)}</text>"
+                )
+        else:
+            kind, own = "branch", ""
+            body = f'<text x="10" y="{SET_LABEL_H // 2 + 5}">{escape(r.words)}</text>'
         out.append(
-            f'<g class="set-label" data-set="{escape(s.id)}" role="button" tabindex="0" '
-            f'aria-pressed="false" transform="translate(8,{y})">'
-            f"<title>Set {k}: {s.remaining} open {noun} of {s.total}</title>"
-            f'<rect width="{SET_LABEL_W}" height="{SET_LABEL_H}" rx="6"/>'
-            f'<circle class="swatch {hue(k)}" cx="14" cy="{SET_LABEL_H // 2}" r="6"/>'
-            f'<text x="26" y="{SET_LABEL_H // 2 + 5}">Set {k}</text></g>'
+            f'<g class="sel-row {kind}"{own} data-sets="{sets}" role="button" tabindex="0" '
+            f'aria-pressed="false" transform="translate({x},{y})">'
+            f"<title>{escape(r.title)}</title>"
+            f'<rect width="{w}" height="{SET_LABEL_H}" rx="6"/>{body}</g>'
         )
     out.append("</g>")
     return "".join(out)
@@ -585,12 +729,14 @@ def table(result: routes.Routes, prefix: str | None) -> str:
         '<div class="routes-table-wrap">'
         f'<p class="routes-count">{count} sufficient set{"" if count == 1 else "s"}, in the '
         "record&rsquo;s order. "
+        '<span class="routes-showing" hidden></span>'
         '<button type="button" class="routes-fewest" aria-pressed="false" hidden>'
         "Fewest open first</button></p>"
         f'<table class="routes-table"><thead><tr>{th}</tr></thead>'
         f"<tbody>{''.join(rows)}</tbody></table>{truncated}"
-        '<p class="routes-hint" hidden>The first set comes selected. Select a set&rsquo;s label '
-        "in the drawing, or its row, to light its statements and the lines up to the "
-        "problem&rsquo;s own statement; select it again, or press Escape, to clear.</p>"
+        '<p class="routes-hint" hidden>The first set comes selected. Select a set in the '
+        "drawing&rsquo;s box, or its row, to light its statements and the lines up to the "
+        "problem&rsquo;s own statement; a branch of the box selects every set beneath it, and "
+        "the table shows the selected sets; select again, or press Escape, to clear.</p>"
         "</div>"
     )

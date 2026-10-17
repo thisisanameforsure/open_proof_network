@@ -1,0 +1,13 @@
+{
+ "subject": {
+  "kind": "statement",
+  "node": "variant-a5969ff3",
+  "module": null,
+  "lean_hash": "40b0dc50fc5bf6b91552cbd4ddac424fa09c80480259e1e9489c53ff14c8dce2"
+ },
+ "text": "$$\\forall A \\subset \\mathbb{N}\\ \\text{finite}:\\ 0 \\notin A,\\ |A| = 10 \\Rightarrow \\exists\\, a, b \\in A:\\ \\gcd(a,b) \\le \\frac{a}{|A|}$$\n\nEvery set A of exactly ten positive integers has a, b ∈ A (possibly equal) with gcd(a, b) ≤ a/|A|. The division is in ℚ.\n",
+ "supersedes": null,
+ "licence": "CC-BY-4.0",
+ "drafted_with": "Claude Fable 5.1 (claude-fable-5-1)",
+ "label": "Graham's bound for |A| = 10"
+}

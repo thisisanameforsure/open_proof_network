@@ -24,7 +24,7 @@ from typing import Any
 
 import pytest
 import yaml
-from harness import TARGET, copy_graph, make_context
+from harness import TARGET, copy_graph, declared, make_context
 from test_finding_hole_roundtrip_lean import ROOT, SKELETON
 from test_finding_witness_proved_haves_lean import BODY as NARROWED_BODY
 from test_finding_witness_proved_haves_lean import (
@@ -47,7 +47,7 @@ pytestmark = pytest.mark.lean
 STEM = SKELETON[: -len(".lean")]
 #: ``second`` states ``first`` as its premise; ``third`` and ``fourth`` each sit in their own
 #: bullet, after both, and name neither.
-BODY = (
+BODY = declared(
     "  intro p q r h\n"
     "  have first : q ∧ p := sorry\n"
     "  have second : q ∧ p → r ∧ q := sorry\n"
@@ -309,7 +309,7 @@ DEFS_STATEMENT = (
     "theorem OpnProp.uses_def : ∀ n : Nat, n = OpnProp.two → n + n = 4 := by\n  sorry\n"
 )
 DEFS_NODE_WITNESS = "import Defs.Two\n\ntheorem witness : ∃ n : Nat, n = OpnProp.two := ⟨2, rfl⟩\n"
-DEFS_BODY = (
+DEFS_BODY = declared(
     "  intro n h\n"
     "  have dbl : n + n = 2 * n := sorry\n"
     "  have four : 2 * n = 4 := sorry\n"
@@ -433,7 +433,7 @@ GUIDE_STATEMENT = (
     "theorem OpnProp.divides_twelve : ∀ n : Nat, 0 < n → n \u2223 12 → n ≤ 12 := by\n  sorry\n"
 )
 #: ``\\u2223`` is Lean's divides bar, spelled out for the linter (RUF001).
-GUIDE_BODY = (
+GUIDE_BODY = declared(
     "  intro n hpos hdvd\n"
     "  have h₁ : n \u2223 24 := sorry\n"  # the one hole
     "  exact Nat.le_of_dvd (by decide) hdvd\n"

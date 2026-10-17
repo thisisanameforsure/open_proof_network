@@ -35,7 +35,7 @@ from pathlib import Path
 from typing import Any, Literal
 
 from opn_gate import graph as graphmod
-from opn_gate import judging, layout, records, schemas
+from opn_gate import judging, labels, layout, records, schemas
 from opn_gate.diagnostic import Diagnostic
 from opn_gate.steps.base import RunContext, StepResult
 from opn_gate.toolchain import (
@@ -226,8 +226,12 @@ def declared_kind(statement_decl: str, proof_text: str) -> tuple[Kind | None, Di
 # --- what the report has to say -------------------------------------------------------------------
 
 
-def check(artifact: Artifact, *, max_holes: int = MAX_HOLES) -> list[Diagnostic]:
-    """R4, R5: every reason this artifact is not what it claims to be."""
+def check(
+    artifact: Artifact, *, max_holes: int = MAX_HOLES, partial_text: str | None = None
+) -> list[Diagnostic]:
+    """R4, R5: every reason this artifact is not what it claims to be. ``partial_text`` is the
+    assembly's own text when the caller has it (step 4 does): what a partial declares in its
+    comments is read from it (F29-R5)."""
     problems: list[Diagnostic] = []
     if not artifact.matches:
         problems.append(
@@ -244,12 +248,15 @@ def check(artifact: Artifact, *, max_holes: int = MAX_HOLES) -> list[Diagnostic]
         )
     if artifact.kind in PROOF_FILE_KINDS:
         return problems
-    problems.extend(_partial_problems(artifact, max_holes))
+    problems.extend(_partial_problems(artifact, max_holes, partial_text))
     return problems
 
 
-def _partial_problems(artifact: Artifact, max_holes: int) -> list[Diagnostic]:
-    """D-12's offload rule and the rest of what a partial has to be (R5)."""
+def _partial_problems(
+    artifact: Artifact, max_holes: int, partial_text: str | None = None
+) -> list[Diagnostic]:
+    """D-12's offload rule and the rest of what a partial has to be (R5), and — given the
+    assembly's text — what it declares about its work (F29-R5; D-12 v3.44)."""
     problems: list[Diagnostic] = []
     if artifact.body_is_hole:
         problems.append(
@@ -327,6 +334,28 @@ def _partial_problems(artifact: Artifact, max_holes: int) -> list[Diagnostic]:
                 {"unnamed": artifact.unnamed},
             )
         )
+    # F29-R5 (D-12 v3.44): a partial names its approach, its licence and each hole's label and
+    # claim in its own comments, so the decomposition is legible to the next reader without a
+    # second submission. The service refuses one that does not before any precheck (F29-T3);
+    # here the same rule meets a hand-opened pull request, held to the *extractor's* hole names
+    # rather than the text scan's, so a hole the scan missed is still asked for its words. A
+    # reduction is not asked: its one hole is the node restated under another name.
+    if artifact.kind == "partial" and partial_text is not None:
+        found = labels.problems(partial_text, hole_names=[h.name for h in artifact.holes])
+        if found:
+            problems.append(
+                Diagnostic(
+                    "partial-unlabelled",
+                    "a partial names its approach, its licence and each hole's label and claim "
+                    "in its comments (D-12 v3.44): one `-- approach:` line and one `-- licence:` "
+                    "line before the first hole, and a `-- label:` line and a `-- claim: $…$` "
+                    "line in the comment block directly above each hole's `have`. Missing or "
+                    "malformed: " + "; ".join(p.message for p in found),
+                    # ``missing``, not ``problems``: the step's own ``problems`` is every
+                    # diagnostic's message (``run``), and a details key may not shadow it.
+                    {"missing": [p.as_dict() for p in found]},
+                )
+            )
     if not artifact.holes and not artifact.body_is_hole:
         problems.append(
             Diagnostic(
@@ -546,7 +575,7 @@ def run(  # noqa: PLR0913 — the request, and where it is read from
     if failure is not None:
         return None, failure
     artifact = Artifact.of(kind, result.doc)
-    problems = check(artifact)
+    problems = check(artifact, partial_text=_partial_text(ctx) if kind == "partial" else None)
     ctx.data["artifact"] = artifact.as_dict()
     if problems:
         first = problems[0]
@@ -586,15 +615,24 @@ ALTERNATE_KEY = "alternate"
 ARTIFACT_KEY = "artifact"
 
 
+def _partial_text(ctx: RunContext) -> str | None:
+    """The assembly step 2 took (``ctx.data['partial']['file']``), as text; ``None`` when step 2
+    recorded no assembly — a caller driving the extractor alone, which then asks nothing of the
+    words (F29-R5)."""
+    chosen = ctx.data.get(PARTIAL_KEY)
+    if not isinstance(chosen, dict) or not chosen.get("file"):
+        return None
+    return Path(str(chosen["file"])).read_text(encoding="utf-8")
+
+
 def _annex_steps_problem(ctx: RunContext, node_dir: Path, artifact: Artifact) -> Diagnostic | None:
     """F18-R6: ``postmerge.check_annex_steps`` over the assembly step 2 took and the holes the
     extractor just named; ``None`` when step 2 recorded no assembly."""
     from opn_gate import postmerge  # noqa: PLC0415 — postmerge imports the steps
 
-    chosen = ctx.data.get(PARTIAL_KEY)
-    if not isinstance(chosen, dict) or not chosen.get("file"):
+    text = _partial_text(ctx)
+    if text is None:
         return None
-    text = Path(str(chosen["file"])).read_text(encoding="utf-8")
     return postmerge.check_annex_steps(node_dir, text, [h.name for h in artifact.holes])
 
 

@@ -1,0 +1,13 @@
+{
+ "subject": {
+  "kind": "statement",
+  "node": "variant-77918742",
+  "module": null,
+  "lean_hash": "75a0cca36bf72b69ff89cd744e39e681b419dfcb4ca25a9d5b93ac684027eb8c"
+ },
+ "text": "$$\\forall A \\subset \\mathbb{N}\\ \\text{finite}:\\ 0 \\notin A,\\ A \\ne \\emptyset,\\ |A| \\le 24 \\Rightarrow \\exists\\, a, b \\in A:\\ \\gcd(a,b) \\le \\frac{a}{|A|}$$\n\nEvery nonempty set A of at most 24 positive integers has a, b ∈ A (possibly equal) with gcd(a, b) ≤ a/|A|. The division is in ℚ.\n",
+ "supersedes": null,
+ "licence": "CC-BY-4.0",
+ "drafted_with": "Claude Fable 5.1 (claude-fable-5-1)",
+ "label": "Graham's bound for |A| ≤ 24"
+}

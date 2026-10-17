@@ -1,0 +1,13 @@
+{
+ "subject": {
+  "kind": "statement",
+  "node": "erdos-1094--h3--h3",
+  "module": null,
+  "lean_hash": "e26d55df4fee05d3b3358d5d47f73e19232f45e7a44ed2730d550a1768eb20e1"
+ },
+ "text": "$$\\forall C\\in\\mathbb{N}\\ \\exists K_2\\ \\forall n,k\\in\\mathbb{N}:\\quad K_2<k,\\ \\ k^2\\le C\\cdot n\\cdot\\lfloor\\log_2 k\\rfloor,\\ \\ n<k^2 \\implies \\exists\\,p \\text{ prime},\\ \\tfrac{k}{2}<p<\\tfrac{11k}{20},\\ \\ n \\bmod p < k \\bmod p$$\n\nFor every constant $C$ there is a threshold $K_2$ such that for all $k>K_2$ and all $n<k^2$ with $k^2\\le C\\,n\\lfloor\\log_2 k\\rfloor$ (the range $n\\gg k^2/\\log k$ that the ELS bound leaves), some prime $p$ with $k<2p$ and $20p<11k$ has $n \\bmod p<k \\bmod p$, a carry at the last base-$p$ digit. Everything is in $\\mathbb{N}$: `Nat.log 2 k` is $\\lfloor\\log_2 k\\rfloor$ (and $0$ for $k\\le 1$), a natural number, so the right-hand side is a product of naturals, and `n % p` is the least non-negative residue.\n",
+ "supersedes": null,
+ "licence": "CC-BY-4.0",
+ "drafted_with": "Claude Fable 5.1 (claude-fable-5-1)",
+ "label": "Granville–Ramaré: a carry at some prime p in (k/2, 11k/20)"
+}

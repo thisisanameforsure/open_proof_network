@@ -15,7 +15,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-from harness import TARGET, make_context
+from harness import TARGET, declared, make_context
 from test_finding_hole_restates_ancestor import (
     LEAF,
     LEAF_STATEMENT,
@@ -61,13 +61,16 @@ def leaf_partial(tmp_path: Path, toolchain: LocalToolchain | None, body: str) ->
     ("body", "ancestor"),
     [
         # The grandchild's hole is the root's statement, stated before any binder.
-        (f"  have up : {ROOT_SOURCE} := sorry\n" + FRESH + ASSEMBLE, ROOT),
+        (declared(f"  have up : {ROOT_SOURCE} := sorry\n" + FRESH + ASSEMBLE), ROOT),
         # The same, one level up: the parent is an ancestor too, not only the root.
-        (f"  have up : {PARENT_SOURCE} := sorry\n" + FRESH + ASSEMBLE, PARENT),
+        (declared(f"  have up : {PARENT_SOURCE} := sorry\n" + FRESH + ASSEMBLE), PARENT),
         # Written under the leaf's own binders: the closed form carries them and is not the
         # root's statement, but the type where it sits is — and is still the root restated.
         (
-            FRESH + f"  intro p q h\n  have up : {ROOT_SOURCE} := sorry\n  exact (fresh p q h).1\n",
+            declared(
+                FRESH
+                + f"  intro p q h\n  have up : {ROOT_SOURCE} := sorry\n  exact (fresh p q h).1\n"
+            ),
             ROOT,
         ),
     ],
@@ -102,7 +105,7 @@ def test_a_genuinely_new_hole_passes(
 ) -> None:
     """The negative: the same chain, the ancestors staged and asked, and a hole that is new work."""
     del pinned, lean_pkg
-    ctx = leaf_partial(tmp_path, real_toolchain, FRESH + ASSEMBLE)
+    ctx = leaf_partial(tmp_path, real_toolchain, declared(FRESH + ASSEMBLE))
     verdict = pipeline.run_submission(ctx)
     assert verdict.verdict == "pass", verdict.as_dict()
     [hole] = verdict.data["artifact"]["holes"]

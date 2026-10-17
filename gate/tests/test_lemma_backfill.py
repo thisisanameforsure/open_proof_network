@@ -19,7 +19,7 @@ import pytest
 import samples
 import yaml
 from fakes import FakeToolchain, artifact_result
-from harness import TARGET
+from harness import TARGET, declared
 from test_finding_lemma_edge import (
     X_SIGNATURE,
     X_TYPE,
@@ -51,7 +51,8 @@ def old_merge(root: Path, *, n: int = 3, holes: list[str] | None = None) -> None
         f"  intro p q r h\n  have borrowed : {X_TYPE} := sorry\n"
         "  exact ⟨h.2, borrowed p q r h, h.1.1⟩\n"
     )
-    (parent / OLD_PARTIAL).write_text(head + ":= by\n" + body, encoding="utf-8")
+    # F29-R5: a partial on the record declares its words; the fixture's does too (step 4).
+    (parent / OLD_PARTIAL).write_text(head + ":= by\n" + declared(body), encoding="utf-8")
     steps = [
         {"step": 1, "name": "toolchain", "result": "pass", "diagnostic": None},
         {

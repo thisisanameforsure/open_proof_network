@@ -17,7 +17,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-from harness import TARGET, make_context
+from harness import TARGET, declared, make_context
 
 from opn_gate import layout, pipeline
 from opn_gate.paths import Change
@@ -29,7 +29,7 @@ ROOT = "and-swap-reassoc"
 SKELETON = "20260917T000000Z-tester-partial.lean"
 #: The hole is a coercion identity that has nothing to do with the goal, which is the point: it is
 #: there to be printed. It is closed over the root's binders, as every hole is.
-SKELETON_BODY = (
+SKELETON_BODY = declared(
     "  intro p q r h\n"
     "  have cast_step : ((2 : Nat) : Int) + 0 = ((2 : Nat) : Int) := sorry\n"
     "  exact ⟨h.2, ⟨h.1.2, h.1.1⟩⟩\n"

@@ -1,0 +1,13 @@
+{
+ "subject": {
+  "kind": "statement",
+  "node": "spec-84446025",
+  "module": null,
+  "lean_hash": "075a1d3e6cb4dbebc668df287cf1c4f34647ff12b393adf56005f2a024cbb69b"
+ },
+ "text": "$$\\frac{1}{T}\\sum_{t=0}^{T-1}\\Bigl\\lvert q\\,D_a(b+Qt) - \\operatorname{round}\\bigl(q\\,D_a(b+Qt)\\bigr)\\Bigr\\rvert \\le q\\sum_{p\\mid a}\\Bigl(\\frac{1}{p}+\\frac{1}{T}\\Bigr),\\qquad D_a(m) = \\sum_{k=0}^{\\infty}\\frac{\\omega\\bigl(a(m+k+1)\\bigr)}{2^{k+1}}$$\n\nFor naturals q and an integer z with q·∑_{n≥0} ω(n)/2^n = z, and for naturals a, Q, b, T with a ≠ 0, T > 0 and every prime factor p of a coprime to Q, the average over t < T of the distance from q·D_a(b+Qt) to its nearest integer is at most q times the sum over the prime factors p of a of 1/p + 1/T. Everything is in ℝ: ω(n) is the number of distinct prime factors of n, `round` is Mathlib's rounding (half rounds up), the sum over p ∣ a runs over `a.primeFactors`, and each series is a tsum (0 when not summable).\n",
+ "supersedes": null,
+ "licence": "CC-BY-4.0",
+ "drafted_with": "Claude Fable 5.1 (claude-fable-5-1)",
+ "label": "A rational series puts dilated tails near integers"
+}

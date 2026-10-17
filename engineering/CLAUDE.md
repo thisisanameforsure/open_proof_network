@@ -1663,3 +1663,24 @@ The law of the project:
   reusing tokens the early agents held, crediting the author in `automation`. **Agents write secrets
   where they write logs**: six saved their token under `engineering/evidence/` (two as whole token responses that a pattern scan missed; read the field names); move them out before any
   commit, and tell every brief to keep tokens in the scratchpad.
+
+- 2026-10-17 — F29 (labels, claims in notation, route approaches, the selector tree; decisions
+  v3.44) built in one sitting from the owner's reading of erdos-1094's frontier as illegible:
+  lead wrote the contracts, four worktree agents built gate, service, site and the route gloss,
+  five drafted the 140 statement glosses and one the 28 route glosses. Four things worth keeping.
+  **The record already had the object the request asked for**: a one-line description of an
+  open node *is* the statement gloss (F20), and every hole already carried its author's name in
+  the partial, so the label became one gloss field and the claim the gloss's opening display,
+  and "generate at creation" became "the author writes it in the partial's comments, refused
+  before any precheck without it". **The unrolled OR tree over-counts on a shared hole**, and a
+  live target showed it (a lemma under `h3@2` restating `h2--h1`'s hole); under F27-T7's ruling
+  the finest sets are one per route choice, so the sets and the tree agree on today's targets,
+  and the selector is built from the sets so that stays true when they do not (F29-Q1). **An
+  immutable file needs a correction path the day it gets a derived field**: 21 of 34 live routes
+  had no approach text and a merged partial cannot be edited, so a gloss may describe a partial
+  (T9), the same shape as a label. **A product schema's enum is a consumer too**: `glosses/v2`
+  named gloss/v1 and v2 only, so the products refused any tree holding a v3 record; the site
+  agent found it, not the schema's author. Also: a verify run that overlaps your own edits
+  reports your edits as failures (three "failures" were goldens changing under the run); and a
+  root's title on the live record is a sentence with TeX, so a root's label is the head before
+  its colon or its id, not the title.

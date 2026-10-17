@@ -2244,6 +2244,7 @@ class Renderer:
                 for nid, nv in tv.nodes.items()
                 if nid.startswith("spec-") and (name := theorem_name(nv.statement))
             },
+            labels=dag.labels_of(tv.graph["nodes"]),  # F29-T5 (R9): pills by label
         )
         panels = "".join(self.statement_panel(tv, nv) for nv in self.ordered_nodes(tv))
         # F27-T3 (R10, R11): the routes and sufficient sets, read by the function the MCP tool
@@ -3122,7 +3123,7 @@ class Renderer:
         proved, what is known, work on it — and the record details, closed, holding the full
         words, the outlines' checklists, the hashes and files and the reading notes. The
         statement's own page stays the full record."""
-        tid, nid = tv.target_id, nv.node_id
+        nid = nv.node_id
         e = nv.graph_entry
         state = self.node_state(nv)
         files = [self.file_link(nv.statement_path, label="Statement.lean ↗")]
@@ -3131,14 +3132,17 @@ class Renderer:
         if nv.proof_path and state == "proved":
             files.append(self.file_link(nv.proof_path, label="Proof.lean ↗"))
         origin = str(e.get("origin", "")) + (f" ({e['relation']})" if e.get("relation") else "")
+        title, id_line = self.panel_heading(tv, nv)
         return _template("statement-panel.html").substitute(
             node_id=esc(nid),
+            title=title,
+            id_line=id_line,
+            rename=esc(self.statement_words_href(tv, nv)),
             hidden="" if nid == tv.root else " hidden",
             dot=self.dot(self.dot_state(state)),
             state_word=esc(self.state_label(state)),
             attempts=esc(self.attempts_words(nv)),
             proof_row=self.proof_row(tv, nv),
-            thm=self.thm_label(tid, nid),
             role=self.panel_role(tv, nv),
             claim=self.claim_block(tv, nv),
             how=self.how_block(tv, nv),
@@ -3166,6 +3170,38 @@ class Renderer:
             return hole_of
         role = esc(sentence(self.node_role(tv, nv).capitalize()))
         return f'<p class="panel-note">{role}{self.pertinence(nv.graph_entry)}</p>'
+
+    def node_label(self, nv: NodeView) -> str | None:
+        """F29-R3 (D-3 v3.44): the statement's label when the record gives it one — a gloss's,
+        a hole's own name or the target's title; ``None`` when the label is the id (or the
+        products predate labels), so the id is shown as before."""
+        e = nv.graph_entry
+        label = e.get("label")
+        if label and e.get("label_source") not in (None, "id"):
+            return str(label)
+        return None
+
+    def panel_heading(self, tv: TargetView, nv: NodeView) -> tuple[str, str]:
+        """F29-T5 (R9): the panel's heading and the line beneath it. Headed by the label, the id
+        beneath in the ``panel-id`` style; where the label is the id, the id is the heading and
+        there is no second line."""
+        ident = esc(nv.node_id) + self.thm_label(tv.target_id, nv.node_id)
+        label = self.node_label(nv)
+        if label is None:
+            return f'<span class="panel-title mono">{ident}</span>', ""
+        return (
+            f'<span class="panel-title">{esc(label)}</span>',
+            f'<span class="panel-id">{ident}</span>',
+        )
+
+    def node_heading(self, tv: TargetView, nv: NodeView) -> str:
+        """The statement's own page, headed the same way (F29-T5): ``<h1>`` the label with the
+        id beneath, or the id alone as before."""
+        ident = esc(nv.node_id) + self.thm_label(tv.target_id, nv.node_id)
+        label = self.node_label(nv)
+        if label is None:
+            return f'<h1 class="mono">{ident}</h1>'
+        return f'<h1>{esc(label)}</h1>\n<p class="panel-id">{ident}</p>'
 
     def statement_words_href(self, tv: TargetView, nv: NodeView) -> str:
         """Where a statement's words live in full: its page, at the words (``#statement-words``),
@@ -4343,7 +4379,7 @@ class Renderer:
             node_id=esc(nid),
             target_id=esc(tid),
             target_href=esc(self.target_path(tid)),
-            thm=self.thm_label(tid, nid),
+            heading=self.node_heading(tv, nv),
             status=self.status_mark(nv.status, nv.cause),
             role=self.panel_role(tv, nv, page=True),
             revision=self.revision_note(tid, nv, in_page=False),

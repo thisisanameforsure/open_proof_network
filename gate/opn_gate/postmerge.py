@@ -19,7 +19,9 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal
 
-from opn_gate import attestation, carried, schemas
+import yaml
+
+from opn_gate import attestation, carried, glosses, labels, schemas
 from opn_gate import graph as graphmod
 from opn_gate.diagnostic import Diagnostic
 from opn_gate.paths import Change
@@ -512,6 +514,10 @@ class PartialMerge:
     witnessed: tuple[str, ...] = ()
     #: F07-T77 (D-12 v3.38): the lemma edges this merge recorded, ``(hole name, node)``.
     lemmas: tuple[tuple[str, str], ...] = ()
+    #: F29-R7 (D-12 v3.44): the statement glosses this merge filed beside its created children,
+    #: as paths under the target directory (``nodes/<child>/gloss/<hash>.md``); empty when the
+    #: partial declared no words (an older pin) or when no child was created.
+    glosses: tuple[str, ...] = ()
 
     def as_dict(self) -> dict[str, Any]:
         doc: dict[str, Any] = {
@@ -525,6 +531,8 @@ class PartialMerge:
             doc["witnessed"] = list(self.witnessed)
         if self.lemmas:  # F07-T77: absent when no hole restated a node under another branch
             doc["lemmas"] = [{"hole": h, "node": n} for h, n in self.lemmas]
+        if self.glosses:  # F29-R7: absent when the partial declared no words
+            doc["glosses"] = list(self.glosses)
         return doc
 
 
@@ -634,6 +642,11 @@ def apply_partial(  # noqa: PLR0913 — the merge's facts, each named
     carried_witnesses = dict(witnesses or {})
     witnessed: list[str] = []
     lemmas: list[tuple[str, str]] = []
+    # F29-R7 (D-12 v3.44): the words the partial declared for each hole, filed as the child's
+    # first statement gloss once the child is written. A partial that declares none (an older
+    # pin) files none; the writer never writes words of its own.
+    declared = labels.declarations(partial_text)
+    filed_glosses: list[str] = []
     for hole, child, existing in plan_children(node_dir, holes):
         if existing is not None:
             # R22: a hole that restates one of the node's own holes is that hole again, and the
@@ -667,6 +680,17 @@ def apply_partial(  # noqa: PLR0913 — the merge's facts, each named
             partial_text=partial_text,
         )
         scaffold.write(nodes_dir, proposal)
+        gloss_path = write_hole_gloss(
+            nodes_dir,
+            child,
+            declared,
+            hole.name,
+            author=pseudonym or author or "",
+            date=stamp_to_date(stamp),
+            model=model,
+        )
+        if gloss_path is not None:
+            filed_glosses.append(gloss_path)
         if hole.name in carried_witnesses:
             witnessed.append(child)
         created.append(child)
@@ -688,7 +712,98 @@ def apply_partial(  # noqa: PLR0913 — the merge's facts, each named
         tuple(placed),
         tuple(witnessed),
         tuple(lemmas),
+        tuple(filed_glosses),
     )
+
+
+def hole_gloss(  # noqa: PLR0913 — the record's facts, each named
+    child_statement_bytes: bytes,
+    words: labels.HoleWords,
+    *,
+    target_id: str,
+    child: str,
+    author: str,
+    date: str,
+    licence: str,
+    model: str | None,
+) -> str | None:
+    """F29-R7 (D-12 v3.44): the ``gloss/v3`` statement gloss of a hole's child, as the file lands
+    — front matter in the service's YAML style (``api.appends.annex_file``), then the claim as a
+    display, then the block's prose. The words are the partial's author's under the licence the
+    partial named; the job writes none of its own. ``None`` when the hole declared no label or
+    claim, or when what it declared does not validate (a partial merged under a pin that did not
+    hold it to the grammar): the child is then labelled by its hole name, as before."""
+    if not words.label or not words.claim:
+        return None
+    doc: dict[str, Any] = {
+        "schema": glosses.SCHEMA_V3,
+        "target": target_id,
+        "subject": {
+            "kind": "statement",
+            "node": child,
+            "module": None,
+            "lean_hash": schemas.content_hash(child_statement_bytes),
+        },
+        "supersedes": None,
+        "author": author or None,
+        "drafter": None,
+        "date": date,
+        "licence": licence,
+        "drafted_with": (model[:200] or None) if model else None,
+        "label": words.label,
+    }
+    violations = schemas.violations(doc, glosses.SCHEMA_V3)
+    if violations or doc["author"] is None:
+        log.warning(
+            "hole %s of %s: its declared words do not validate as a gloss and are not filed: %s",
+            words.name,
+            child,
+            violations[0].message if violations else "no author",
+        )
+        return None
+    body = f"$${words.claim}$$\n"
+    if words.prose:
+        body += f"\n{words.prose}\n"
+    head = yaml.safe_dump(doc, sort_keys=True, allow_unicode=True)
+    return f"---\n{head}---\n{body}"
+
+
+def write_hole_gloss(  # noqa: PLR0913 — the record's facts, each named
+    nodes_dir: Path,
+    child: str,
+    declared: labels.Declarations,
+    hole_name: str,
+    *,
+    author: str,
+    date: str,
+    model: str | None,
+) -> str | None:
+    """File the child's first statement gloss from the partial's declarations (R7), named for
+    its own content under ``nodes/<child>/gloss/``; the path under the target directory, or
+    ``None`` when nothing is filed — no words declared for the hole, or no licence the network
+    accepts (``labels.LICENCES``; the writer never chooses one, F05-T17)."""
+    words = declared.holes.get(hole_name)
+    if words is None or declared.licence not in labels.LICENCES:
+        return None
+    statement = nodes_dir / child / "Statement.lean"
+    text = hole_gloss(
+        statement.read_bytes(),
+        words,
+        target_id=nodes_dir.parent.name,
+        child=child,
+        author=author,
+        date=date,
+        licence=declared.licence,
+        model=model,
+    )
+    if text is None:
+        return None
+    data = text.encode("utf-8")
+    directory = nodes_dir / child / glosses.GLOSS_DIR
+    directory.mkdir(parents=True, exist_ok=True)
+    path = directory / f"{schemas.content_hash(data)}.md"
+    path.write_bytes(data)
+    return path.relative_to(nodes_dir.parent).as_posix()
 
 
 def plan_children(node_dir: Path, holes: Sequence[Any]) -> list[tuple[Any, str | None, str | None]]:

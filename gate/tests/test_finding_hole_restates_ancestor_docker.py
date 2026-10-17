@@ -13,7 +13,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-from harness import node_dir
+from harness import declared, node_dir
 from test_finding_hole_restates_ancestor import ROOT
 from test_finding_hole_restates_ancestor_lean import (
     ASSEMBLE,
@@ -31,7 +31,7 @@ pytestmark = pytest.mark.docker
 def test_the_sandboxed_gate_refuses_a_grandchild_hole_that_restates_the_root(
     sandbox_image: str, tmp_path: Path
 ) -> None:
-    body = f"  have up : {ROOT_SOURCE} := sorry\n" + FRESH + ASSEMBLE
+    body = declared(f"  have up : {ROOT_SOURCE} := sorry\n" + FRESH + ASSEMBLE)
     ctx = leaf_partial(tmp_path, None, body)
     ctx.toolchain = SandboxToolchain(
         sandbox_image,

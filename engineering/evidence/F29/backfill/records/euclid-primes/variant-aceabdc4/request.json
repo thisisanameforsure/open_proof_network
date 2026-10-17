@@ -1,0 +1,13 @@
+{
+ "subject": {
+  "kind": "statement",
+  "node": "variant-aceabdc4",
+  "module": null,
+  "lean_hash": "7e754150c037415462a082477b348b27e4e98f2d57663e0ed0a661f47f720eee"
+ },
+ "text": "$$\\forall n\\in\\mathbb{N}\\ \\ \\exists p\\in\\mathbb{N}:\\quad n<p\\ \\wedge\\ 100\\le p\\ \\wedge\\ p\\ \\text{prime}$$\n\nFor every natural number $n$ there is a prime $p$ with $p>n$ and $p\\ge 100$. Prime is the problem's own `Opn.IsPrime`: $2\\le p$ and every $d$ with $p=d\\cdot c$ for some natural $c$ is $1$ or $p$.\n",
+ "supersedes": null,
+ "licence": "CC-BY-4.0",
+ "drafted_with": "Claude Fable 5.1 (claude-fable-5-1)",
+ "label": "Infinitely many primes at least 100"
+}

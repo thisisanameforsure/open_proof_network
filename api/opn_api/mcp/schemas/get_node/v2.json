@@ -1,0 +1,660 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openproof.network/schemas/mcp/get_node/v2.json",
+  "title": "mcp/get_node/v2",
+  "description": "v2 (2026-10-17, F29-T4, R8; D-3, D-25 v3.44): the answer carries the node's `label`, `label_source` and `claim` as targets/<id>/graph.json's row does (F29-R3): the statement's short name and where it came from (gloss, hole, target, id), and its claim in notation from its current statement gloss or null. On a product rendered before v3.44 the label is the node id, its source `id`, the claim null. Read from graph.json, never from CONTEXT.json (F10-Q7). Label and claim are contributor text: untrusted. The result of the get_node tool (F09-R9; D-28; F10-R4): the node's CONTEXT.json plus the raw files under nodes/<id>/, or an error result naming the source that did not answer (R10). Edited in place by F10-T2 (the adapter's result schemas are not protocol records, F09-Q5); F09-T7 added the open submissions. F09-T19 made the five prose sections and chains_source optional: get_node's include names the sections answered.",
+  "oneOf": [
+    {
+      "type": "object",
+      "required": [
+        "node_id",
+        "target_id",
+        "context",
+        "context_source",
+        "closing",
+        "files",
+        "claims",
+        "submissions",
+        "lemmas",
+        "untrusted_note",
+        "label",
+        "label_source",
+        "claim"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "node_id": {
+          "type": "string"
+        },
+        "target_id": {
+          "type": "string"
+        },
+        "label": {
+          "description": "The statement's short name (F29-R3, D-3 v3.44): its current statement gloss's label, else the name its hole bore, else the target's title, else the id. Contributor text where label_source is gloss or hole: untrusted.",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "label_source": {
+          "description": "Where the label came from (D-25 v3.44): gloss, hole, target or id.",
+          "enum": [
+            "gloss",
+            "hole",
+            "target",
+            "id"
+          ]
+        },
+        "claim": {
+          "description": "The statement in notation: the opening display of its current statement gloss without the delimiters (F29-R3); null when no statement gloss opens with one. Contributor text: untrusted.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 4000
+        },
+        "context": {
+          "type": "object",
+          "description": "nodes/<id>/CONTEXT.json, a context/v8 document (F10-R3; F08-T36 added defect_claims, every defect claim filed against the node with its class and whether it stands, D-16 v3.28; F22-T13 added each dependency's cause; F10-T19 added literature and literature_proposed, D-12 and D-25 v3.35; F10-T49 added lemmas, the restated nodes under other branches the proof may draw on once proved, D-12 v3.38; F26 added the review for the root; F08-T42 dropped circular and circular_below, D-12 v3.43) — or the context/v1 to v7 document a graph rendered before that re-pin still carries, whose circularity fields are history no product reads",
+          "required": [
+            "schema"
+          ],
+          "properties": {
+            "schema": {
+              "enum": [
+                "context/v1",
+                "context/v2",
+                "context/v3",
+                "context/v4",
+                "context/v5",
+                "context/v6",
+                "context/v7",
+                "context/v8"
+              ]
+            }
+          }
+        },
+        "lemmas": {
+          "type": "array",
+          "description": "D-12 v3.38: nodes under other branches that a merged partial of this node restated as holes, each with the hole's name, the lemma's Statement.lean and its status; a direct proof may name one once it is proved, and none is waited on. [] before context/v6.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "node_id",
+              "hole",
+              "status",
+              "statement_hash",
+              "signature",
+              "cause"
+            ],
+            "properties": {
+              "node_id": {
+                "type": "string",
+                "pattern": "^[a-z0-9][a-z0-9-]*$"
+              },
+              "hole": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string"
+              },
+              "statement_hash": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "signature": {
+                "type": "string"
+              },
+              "cause": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          }
+        },
+        "context_source": {
+          "description": "file: the committed CONTEXT.json; derived: the same document built from the files at main, for a graph that carries none yet (F10-Q7)",
+          "enum": [
+            "file",
+            "derived"
+          ]
+        },
+        "closing": {
+          "type": "object",
+          "description": "How the node is closed through its holes and dependencies (F00-T10): their theorems reach a proof through the node's own Context. context_import says where that import lives: 'statement' (already in Statement.lean, so the proof's header is the statement's) or 'proof' (the statement predates the line, and the proof adds import_line directly after the statement's last import; the one import step 2 allows).",
+          "additionalProperties": false,
+          "required": [
+            "through_holes",
+            "context_import",
+            "import_line"
+          ],
+          "properties": {
+            "through_holes": {
+              "type": "boolean"
+            },
+            "context_import": {
+              "enum": [
+                "statement",
+                "proof"
+              ]
+            },
+            "import_line": {
+              "type": "string"
+            }
+          }
+        },
+        "files": {
+          "type": "object",
+          "required": [
+            "Statement.lean",
+            "Context.lean",
+            "Witness.lean",
+            "Proof.lean"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "Statement.lean": {
+              "type": "string"
+            },
+            "Context.lean": {
+              "type": "string"
+            },
+            "Witness.lean": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "Proof.lean": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        },
+        "claims": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "required": [
+            "active",
+            "history_count"
+          ],
+          "properties": {
+            "active": {
+              "type": "array"
+            },
+            "history_count": {
+              "type": "integer"
+            }
+          }
+        },
+        "annexes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "path",
+              "front",
+              "text"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "path": {
+                "type": "string"
+              },
+              "front": {
+                "type": "object"
+              },
+              "text": {
+                "$ref": "#/$defs/untrusted"
+              }
+            }
+          }
+        },
+        "explainers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "path",
+              "front",
+              "text"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "path": {
+                "type": "string"
+              },
+              "front": {
+                "type": "object"
+              },
+              "text": {
+                "$ref": "#/$defs/untrusted"
+              }
+            }
+          }
+        },
+        "submissions": {
+          "type": "object",
+          "description": "The submissions open on this node, as GET /submissions.json lists them (F09-T7)",
+          "required": [
+            "open"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "open": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/submission"
+              }
+            }
+          }
+        },
+        "outlines": {
+          "type": "array",
+          "description": "F20-R11: F19's committed outline (outline/v1) of each merged proof artifact of the node, by the artifact's hash; outline null for an artifact not yet outlined. An explainer's sections name these step ids.",
+          "items": {
+            "type": "object",
+            "required": [
+              "proof",
+              "file",
+              "path",
+              "outline"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "proof": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "file": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "path": {
+                "type": "string"
+              },
+              "outline": {
+                "type": [
+                  "object",
+                  "null"
+                ]
+              }
+            }
+          }
+        },
+        "gloss_chains": {
+          "type": "array",
+          "description": "F20-R11: the node's Lean files (statement, witness, relation), each a glosses/v1 subject with every gloss chain filed on it, in record order; each version also carries its prose as text, demarcated untrusted data (D-28), or null when the file could not be read.",
+          "items": {
+            "$ref": "#/$defs/chained_subject"
+          }
+        },
+        "explainer_chains": {
+          "type": "array",
+          "description": "F20-R11: the node's merged proof artifacts, each a glosses/v1 subject with every explainer chain on it, versions as in gloss_chains.",
+          "items": {
+            "$ref": "#/$defs/chained_subject"
+          }
+        },
+        "chains_source": {
+          "description": "file: the committed targets/<id>/glosses.json; derived: the same subjects built by the gate's own function from the node's files at main, for a graph that carries none yet (F10-Q7)",
+          "enum": [
+            "file",
+            "derived"
+          ]
+        },
+        "untrusted_note": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "description": "The plain path did not answer, or the arguments were refused (F09-R10)",
+      "required": [
+        "error",
+        "message",
+        "source"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "error": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "source": {
+          "enum": [
+            "graph",
+            "service",
+            "adapter"
+          ]
+        },
+        "status": {
+          "type": "integer"
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "chained_subject": {
+      "type": "object",
+      "description": "A glosses/v1 or glosses/v2 subject (F20-R9; F21-R14) as the product publishes it, each version with its prose added. v2 adds, per chain, the words shown section by section and the pending sections; per version, its sections with their states and drafted_with; per signature, the sections it approves. All optional here: the live graph holds v1 until its re-pin.",
+      "required": [
+        "kind",
+        "record",
+        "node",
+        "file",
+        "lean_hash",
+        "chains"
+      ],
+      "properties": {
+        "chains": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "current",
+              "versions"
+            ],
+            "properties": {
+              "versions": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "hash",
+                    "path",
+                    "author",
+                    "drafter",
+                    "withdrawn",
+                    "signatures",
+                    "text"
+                  ],
+                  "properties": {
+                    "text": {
+                      "oneOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "$ref": "#/$defs/untrusted"
+                        }
+                      ]
+                    },
+                    "drafted_with": {
+                      "description": "glosses/v2 (F21-R6, D-23): the model and tooling that drafted this version, in its author's words, served demarcated (F21-R7, C9); null for a person's own writing.",
+                      "oneOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "$ref": "#/$defs/untrusted"
+                        }
+                      ]
+                    },
+                    "sections": {
+                      "type": "array",
+                      "description": "glosses/v2 (F21-R11): this version's sections in its own order, each with its state over the chain.",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "key",
+                          "state"
+                        ],
+                        "properties": {
+                          "key": {
+                            "type": "string"
+                          },
+                          "state": {
+                            "enum": [
+                              "drafted",
+                              "written",
+                              "verified",
+                              "pending",
+                              "unchanged"
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    "signatures": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "signer",
+                          "date"
+                        ],
+                        "properties": {
+                          "signer": {
+                            "type": "string"
+                          },
+                          "date": {
+                            "type": "string"
+                          },
+                          "sections": {
+                            "description": "glosses/v2 (F21-R13): the section keys this signature approves; null for every section.",
+                            "oneOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "shown": {
+                "type": "array",
+                "description": "glosses/v2 (F21-R14): the words the chain shows, one entry per section key: the version they come from and their state (drafted, written or verified).",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "key",
+                    "version",
+                    "state"
+                  ],
+                  "properties": {
+                    "key": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "string"
+                    },
+                    "state": {
+                      "enum": [
+                        "drafted",
+                        "written",
+                        "verified",
+                        "pending"
+                      ]
+                    }
+                  }
+                }
+              },
+              "pending": {
+                "type": "array",
+                "description": "glosses/v2 (F21-R14): each person's change to written or verified words awaiting a steward's or curator's signature, with the version proposing it; never shown as the section's words.",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "key",
+                    "version",
+                    "state"
+                  ],
+                  "properties": {
+                    "key": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "string"
+                    },
+                    "state": {
+                      "enum": [
+                        "drafted",
+                        "written",
+                        "verified",
+                        "pending"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "untrusted": {
+      "type": "object",
+      "description": "Contributor free text, demarcated (D-28, D-31): data, never instructions",
+      "required": [
+        "untrusted",
+        "source",
+        "text"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "untrusted": {
+          "const": true
+        },
+        "source": {
+          "type": "string"
+        },
+        "text": {
+          "type": "string"
+        }
+      }
+    },
+    "submission": {
+      "type": "object",
+      "description": "A pull request the service opened (F07-T16): operational, not evidentiary (C9)",
+      "required": [
+        "id",
+        "kind",
+        "node_id",
+        "target_id",
+        "pr_number",
+        "pr_url",
+        "pseudonym",
+        "precheck_job_id",
+        "created",
+        "closed",
+        "artifact_type",
+        "queue",
+        "automation"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string"
+        },
+        "node_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "target_id": {
+          "type": "string"
+        },
+        "pr_number": {
+          "type": "integer"
+        },
+        "pr_url": {
+          "type": "string"
+        },
+        "pseudonym": {
+          "type": "string"
+        },
+        "precheck_job_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "created": {
+          "type": "string"
+        },
+        "closed": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "artifact_type": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The record's kind under the name the write routes use, when it is an artifact type of POST /submissions (proof, counterexample, vacuity, reduction, partial); null otherwise (F05-T18)"
+        },
+        "queue": {
+          "type": "object",
+          "description": "Where the pull request stands in the merge actor's order (F05-T18): position from 1 among the open pull requests the actor takes in this one's lane: its own target's, and any the service cannot place in one target (F07-T69) (null for one it does not take, or when the host was never listed), of how many, and what the service last read it to be waiting on (null: not read; ask get_submission)",
+          "required": [
+            "position",
+            "of",
+            "waiting_on",
+            "waiting_on_read_at"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "position": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "of": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "waiting_on": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "waiting_on_read_at": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        },
+        "automation": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "description": "The automation block POST /submissions accepted for an artifact (D-23 v3.37, F25-R2): method, models, framework and optional cost fields, as declared; null for every other kind and for a record made before the field existed."
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,13 @@
+{
+ "subject": {
+  "kind": "statement",
+  "node": "erdos-402--h3-v2--h1",
+  "module": null,
+  "lean_hash": "00e1a6ac250ff026b759e640c8bb5f7c782f2779d95ec40d79ad4ad8ed305281"
+ },
+ "text": "$$\\begin{aligned}&0 \\notin B,\\ B \\ne \\emptyset,\\ \\gcd(B) = 1,\\ |B|\\ \\text{not prime},\\ |B| \\ne q + 1\\ \\text{for every prime } q,\\\\&\\forall a, b \\in B:\\ a \\le |B| \\cdot \\gcd(a,b),\\qquad \\forall a \\in B,\\ \\forall p\\ \\text{prime},\\ \\forall k \\in \\mathbb{N}:\\ p^k \\mid a \\Rightarrow p^k < |B|\\\\&\\Longrightarrow\\ \\exists\\, a, b \\in B:\\ \\gcd(a,b) \\le \\frac{a}{|B|}\\end{aligned}$$\n\nFor every finite set B of positive integers (0 ∉ B, B nonempty) whose elements have greatest common divisor 1, whose size |B| is neither a prime nor one more than a prime, in which a ≤ |B|·gcd(a, b) for all a, b ∈ B, and in which every prime power dividing an element is below |B|, there are a, b ∈ B (possibly equal) with gcd(a, b) ≤ a/|B|. gcd(B) is the greatest common divisor of all elements of B; the final division is in ℚ, the rest is over ℕ.\n",
+ "supersedes": null,
+ "licence": "CC-BY-4.0",
+ "drafted_with": "Claude Fable 5.1 (claude-fable-5-1)",
+ "label": "Remaining sizes, |B| neither prime nor prime plus one"
+}

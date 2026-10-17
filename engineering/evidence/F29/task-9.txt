@@ -1,0 +1,76 @@
+E       assert [Violation(pa...ven schemas")] == []
+E         
+E         Left contains 2 more items, first extra item: Violation(path="$['subject']['kind']", message="'partial' is not one of ['statement', 'witness', 'relation', 'definition']")
+E         Use -v to get more diff
+E       AssertionError: assert 'gloss-invalid' == 'gloss-subject-unknown'
+E         
+E         - gloss-subject-unknown
+E         + gloss-invalid
+E       TypeError: approach_of() got an unexpected keyword argument 'gloss'
+E       AssertionError: assert None == 'Bound the density of the set first.'
+WARNING  opn_gate.glosses:glosses.py:397 /private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-525/test_decompositions_read_the_a0/graph/targets/propositional/nodes/and-swap-reassoc/gloss/4a306bfc67cd4fcccedbe39ae3906ee0ba849b0772bbf799764cdf32beb12d34.md does not validate as a gloss record and is passed over
+E       AssertionError: assert None == 'Count the small cases directly!'
+WARNING  opn_gate.glosses:glosses.py:397 /private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-525/test_a_superseding_version_rep0/graph/targets/propositional/nodes/and-swap-reassoc/gloss/4a306bfc67cd4fcccedbe39ae3906ee0ba849b0772bbf799764cdf32beb12d34.md does not validate as a gloss record and is passed over
+WARNING  opn_gate.glosses:glosses.py:397 /private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-525/test_a_superseding_version_rep0/graph/targets/propositional/nodes/and-swap-reassoc/gloss/7d1f4fd8eb0c50adb523c6dc7df179c0c91ade696c029c2222f98c1c6ef51c21.md does not validate as a gloss record and is passed over
+E       AssertionError: assert [('explainer'...artial.lean')] == [('explainer'...artial.lean')]
+E         
+E         Right contains one more item: ('gloss', 'attempts/20260920T000000Z-alice-partial.lean', 'nodes/and-swap-reassoc/attempts/20260920T000000Z-alice-partial.lean')
+E         Use -v to get more diff
+WARNING  opn_gate.glosses:glosses.py:397 /private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-525/test_glosses_json_lists_the_pa0/graph/targets/propositional/nodes/and-swap-reassoc/gloss/4a306bfc67cd4fcccedbe39ae3906ee0ba849b0772bbf799764cdf32beb12d34.md does not validate as a gloss record and is passed over
+E       KeyError: 'approach_words'
+FAILED gate/tests/test_finding_route_gloss.py::test_a_partial_gloss_validates_and_the_gate_accepts_it_on_its_node
+FAILED gate/tests/test_finding_route_gloss.py::test_a_partial_gloss_of_a_path_not_in_the_tree_is_subject_unknown
+FAILED gate/tests/test_finding_route_gloss.py::test_the_approach_reads_the_declared_line_then_the_gloss_then_the_comment_then_the_annex
+FAILED gate/tests/test_finding_route_gloss.py::test_decompositions_read_the_approach_from_the_partial_gloss
+FAILED gate/tests/test_finding_route_gloss.py::test_a_superseding_version_replaces_the_approach
+FAILED gate/tests/test_finding_route_gloss.py::test_glosses_json_lists_the_partial_as_a_gloss_subject_with_its_chain
+FAILED gate/tests/test_finding_route_gloss.py::test_coverage_says_whether_a_merged_partial_has_approach_words
+7 failed, 1 passed in 0.63s
+E       AssertionError: {"error":"subject-invalid","message":"subject.kind is one of statement, witness, relation, definition, proof","details":{"kind":"partial"}}
+E       assert 400 == 201
+E        +  where 400 = <Response [400 Bad Request]>.status_code
+E       AssertionError: {"error":"subject-invalid","message":"subject.kind is one of statement, witness, relation, definition, proof","details":{"kind":"partial"}}
+E       assert (400 == 400 and 'subject-invalid' == 'gloss-subject-unknown'
+E        +  where 400 = <Response [400 Bad Request]>.status_code
+E         
+E         - gloss-subject-unknown
+E         + subject-invalid)
+E       AssertionError: {"error":"subject-invalid","message":"subject.kind is one of statement, witness, relation, definition, proof","details":{"kind":"partial"}}
+E       assert (400 == 400 and 'subject-invalid' == 'label-invalid'
+E        +  where 400 = <Response [400 Bad Request]>.status_code
+E         
+E         - label-invalid
+E         + subject-invalid)
+E       AssertionError: assert 'partial' in ['statement', 'witness', 'relation', 'definition', 'proof']
+FAILED api/tests/test_finding_route_gloss_service.py::test_a_partial_gloss_lands_as_gloss_v3_and_passes_the_preflight
+FAILED api/tests/test_finding_route_gloss_service.py::test_a_partial_whose_path_is_not_in_the_tree_is_subject_unknown
+FAILED api/tests/test_finding_route_gloss_service.py::test_a_label_on_a_partial_gloss_is_refused
+FAILED api/tests/test_finding_route_gloss_service.py::test_submit_gloss_forwards_a_partial_subject
+4 failed, 5 passed, 2 warnings in 1.89s
+
+=== F29-T9: notes on the red runs above ===
+Gate: 7 of 8 red on the defect (gloss/v3 refused kind partial; approach_of had no gloss argument;
+decompositions_of read no gloss; glosses.json listed no partial gloss subject; coverage had no
+approach_words). The eighth (module not under attempts/) passed only because the old schema
+refused every partial subject; after the fix it exercises gloss-invalid on "Proof.lean".
+Service: 4 of 9 red on the defect (subject.kind partial refused; submit_gloss's enum lacked it).
+The five subject-invalid path cases passed for the wrong reason (the kind) and are held to the
+path rule after the fix.
+Site: green by construction once the gate carried the approach (the site reads
+decompositions[].approach from graph.json, F29-R4); its red state was the gate's
+test_decompositions_read_the_approach_from_the_partial_gloss.
+One pre-existing failure at my branch point (test_needed_from_the_product_matches_coverage:
+_as_v1 did not pop the v3 label) was fixed upstream in f29-labels b85c34dd; branch rebased onto it.
+
+=== final green runs, rebased on f29-labels b85c34dd, 2026-10-17 ===
+gate (test_finding_route_gloss, test_gloss_schema, test_gloss_chains, test_gloss_coverage,
+      test_products, test_decompositions, test_labels, test_schemas): 232 passed
+api  (test_finding_route_gloss_service, test_glosses_route, test_mcp_glosses, test_mcp_bijection,
+      test_finding_mcp_context_budget): 78 passed, 2 warnings
+site (test_finding_route_gloss_site, test_glosses, test_routes_view): 16 passed, 2 skipped (browser)
+ruff check .: All checks passed!
+ruff format --check .: 874 files already formatted
+mypy gate: Success: no issues found in 428 source files
+mypy api:  Success: no issues found in 260 source files
+mypy site: Success: no issues found in 108 source files
+Goldens: unchanged (no golden fixture holds a merged partial; test_products green without regeneration).

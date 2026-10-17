@@ -71,10 +71,12 @@ class Hole:
     refuted_route_classes: tuple[str, ...]
     ready_since: str | None
     routes: int  # how many routes of its own the hole's node has
+    label: str | None = None  # F29-R8: the node's label as graph.json carries it (v12)
 
     def as_dict(self) -> dict[str, Any]:
         return {
             "name": self.name,
+            "label": self.label,
             "node": self.node,
             "status": self.status,
             "attempts": self.attempts,
@@ -123,6 +125,7 @@ class Route:
     partial: str
     holes: tuple[Hole, ...]
     summary: Summary
+    approach: str | None = None  # F29-R8: the decomposition's approach (graph/v12, R4)
 
     @property
     def resolved(self) -> bool:
@@ -138,6 +141,7 @@ class Route:
             "id": self.id,
             "node": self.node,
             "partial": self.partial,
+            "approach": self.approach,
             "resolved": self.resolved,
             "live": self.live,
             "holes": [h.as_dict() for h in self.holes],
@@ -264,11 +268,22 @@ def _follow(
     return pick[0] if len(pick) == 1 else None
 
 
+def _text_or_none(raw: Any) -> str | None:
+    return str(raw) if isinstance(raw, str) and raw else None
+
+
+def _approaches(node_id: str, rows: Mapping[str, Mapping[str, Any]]) -> list[str | None]:
+    """F29-R8: each decomposition's ``approach`` as graph/v12 carries it (R4), in the record's
+    order, ``None`` on a product rendered before it; one per route ``_hole_nodes`` answers."""
+    row = rows[node_id]
+    return [_text_or_none(d.get("approach")) for d in row.get("decompositions") or []]
+
+
 def _hole_nodes(
     node_id: str, rows: Mapping[str, Mapping[str, Any]]
 ) -> list[tuple[str, list[tuple[str, str | None]]]]:
     """Each route of ``node_id`` as ``(partial, [(hole name, node or None)])``, with F27-R2's
-    assignment of unnamed holes applied where it is unambiguous."""
+    assignment of unnamed holes applied where it is unambiguous. ``closing.links`` reads it too."""
     row = rows[node_id]
     out: list[tuple[str, list[tuple[str, str | None]]]] = []
     for d in row.get("decompositions") or []:
@@ -301,9 +316,10 @@ def _route_of(  # noqa: PLR0913 — the route's place, its holes and the facts i
     *,
     k: int,
     partial: str,
-    holes: list[tuple[str, str | None]],
+    holes: Sequence[tuple[str, str | None]],
     rows: Mapping[str, Mapping[str, Any]],
     entries: Mapping[str, Mapping[str, Any]],
+    approach: str | None = None,
 ) -> Route:
     made: list[Hole] = []
     for name, nid in holes:
@@ -313,6 +329,8 @@ def _route_of(  # noqa: PLR0913 — the route's place, its holes and the facts i
             Hole(
                 name=name,
                 node=nid,
+                # F29-R8: the label graph/v12 publishes for the hole's node (R3); None before it
+                label=_text_or_none(row.get("label")) if row is not None else None,
                 status=str(row.get("status")) if row is not None else None,
                 attempts=int(entry.get("attempts") or 0) if entry is not None else None,
                 refuted_route_classes=tuple(
@@ -345,7 +363,7 @@ def _route_of(  # noqa: PLR0913 — the route's place, its holes and the facts i
         refuted_route_classes=tuple(sorted({c for h in made for c in h.refuted_route_classes})),
         oldest_open_since=since[0] if since else None,
     )
-    return Route(f"{node_id}@{k}", node_id, partial, tuple(made), summary)
+    return Route(f"{node_id}@{k}", node_id, partial, tuple(made), summary, approach)
 
 
 # --- the enumeration ---------------------------------------------------------------------------
@@ -507,9 +525,18 @@ def read(
     entries = _entries(frontier_entries, target_id)
     by_node: dict[str, list[Route]] = {}
     for node_id in rows:
+        approaches = _approaches(node_id, rows)
         for k, (partial, holes) in enumerate(_hole_nodes(node_id, rows), start=1):
             by_node.setdefault(node_id, []).append(
-                _route_of(node_id, k=k, partial=partial, holes=holes, rows=rows, entries=entries)
+                _route_of(
+                    node_id,
+                    k=k,
+                    partial=partial,
+                    holes=holes,
+                    rows=rows,
+                    entries=entries,
+                    approach=approaches[k - 1],
+                )
             )
     # The record's order: the products list nodes sorted, and each node's routes in merge order.
     all_routes = tuple(r for node_id in rows for r in by_node.get(node_id, ()))
@@ -544,3 +571,66 @@ def read(
         for o in minimal
     )
     return Routes(target_id, root, cut, walker.truncated, all_routes, sets)
+
+
+# --- the selector tree (F29-R6; D-25 v3.44) ----------------------------------------------------
+
+
+@dataclass(frozen=True)
+class Selector:
+    """One node of the selector tree over a target's sufficient sets. A leaf (``set`` set) is one
+    published set; an interior node is the family of sets that share every choice above it,
+    split on ``node``, the next statement on which they choose different routes, one child per
+    route in the record's order. ``sets`` counts the leaves beneath. Built from the enumerated
+    sets alone, never from the graph (F29-Q1): a hole shared between branches makes the
+    unrolled OR tree over-count, and the sets already know."""
+
+    route: str | None  # the route this branch chose, None at the top
+    node: str | None  # the statement the children choose on, None at a leaf
+    set: str | None  # the one set a leaf is
+    sets: int
+    children: tuple[Selector, ...] = ()
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "route": self.route,
+            "node": self.node,
+            "set": self.set,
+            "sets": self.sets,
+            "children": [c.as_dict() for c in self.children],
+        }
+
+
+def _choice_at(s: SufficientSet, node_id: str) -> str | None:
+    return next((r for r in s.routes if r.rsplit("@", 1)[0] == node_id), None)
+
+
+def _split(members: Sequence[SufficientSet], route: str | None) -> Selector:
+    if len(members) == 1:
+        return Selector(route, None, members[0].id, 1)
+    # The first statement, in the order the record gives the routes of the first member, on
+    # which the family does not all choose alike; a set that passes through no route of that
+    # statement at all (it is proved on that set's path, or taken directly) is its own branch.
+    for rid in members[0].routes:
+        node_id = rid.rsplit("@", 1)[0]
+        choices = [_choice_at(s, node_id) for s in members]
+        if len(set(choices)) < 2:
+            continue
+        groups: dict[str | None, list[SufficientSet]] = {}
+        for s, c in zip(members, choices, strict=True):
+            groups.setdefault(c, []).append(s)
+        children = tuple(_split(g, c) for c, g in groups.items())
+        return Selector(route, node_id, None, len(members), children)
+    # Members that differ in no route choice (several sets through the same routes: a variant,
+    # or the same open statements reached two ways): list each as a leaf of this family.
+    return Selector(
+        route, None, None, len(members), tuple(Selector(None, None, s.id, 1) for s in members)
+    )
+
+
+def selector_tree(result: Routes) -> Selector:
+    """The selector tree of ``result``'s sets (F29-R6). Every leaf is one set and every set one
+    leaf, in the record's order; ``sets`` on the top node is the number of sets."""
+    if not result.sets:
+        return Selector(None, None, None, 0)
+    return _split(list(result.sets), None)

@@ -1,7 +1,7 @@
 {
   "errors_url": null,
   "guide_url": null,
-  "protocol_version": "3.43",
+  "protocol_version": "3.44",
   "rate_limit_policy": null,
   "rendered_from": "5555555555555555555555555555555555555555",
   "schema": "info/v2",
@@ -90,7 +90,8 @@
     ],
     "gloss": [
       1,
-      2
+      2,
+      3
     ],
     "gloss-signature": [
       1,
@@ -99,7 +100,8 @@
     ],
     "glosses": [
       1,
-      2
+      2,
+      3
     ],
     "graph": [
       1,
@@ -112,7 +114,8 @@
       8,
       9,
       10,
-      11
+      11,
+      12
     ],
     "info": [
       1,
