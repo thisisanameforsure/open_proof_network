@@ -182,3 +182,17 @@ def test_label_of_prefers_the_gloss_then_the_hole_then_the_target_then_the_id() 
         "target",
     )
     assert labels.label_of("t--v1", gloss_label=None, hole_name=None) == ("t--v1", "id")
+
+
+def test_a_root_takes_the_head_of_a_sentence_title_or_keeps_its_id() -> None:
+    # Live titles read "Erdős problem 1094: For all $n\\ge 2k$ …": a statement, not a name.
+    sentence = (
+        "Erdős problem 1094: For all $n\\ge 2k$ the least prime factor of $\\binom{n}{k}$ is small."
+    )
+    assert labels.label_of("erdos-1094", gloss_label=None, hole_name=None, title=sentence) == (
+        "Erdős problem 1094",
+        "target",
+    )
+    long_plain = "x" * 61
+    assert labels.label_of("t", gloss_label=None, hole_name=None, title=long_plain) == ("t", "id")
+    assert labels.label_of("t", gloss_label=None, hole_name=None, title="$x$: y") == ("t", "id")

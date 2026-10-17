@@ -382,6 +382,24 @@ def claim_of(body: str) -> str | None:
     return inner or None
 
 
+def root_label(title: str | None) -> str | None:
+    """A root's label from its target's title (D-3 v3.44): the title when it is a name (at most
+    ``LABEL_MAX`` characters, plain), else the head before its first colon when that is one
+    (live titles read "Erdős problem 1094: For all n ≥ 2k …", a sentence with notation, which
+    is a statement and not a name), else ``None`` and the root keeps its id."""
+    if not title:
+        return None
+    text = " ".join(title.split())
+
+    def plain(s: str) -> bool:
+        return 0 < len(s) <= LABEL_MAX and "$" not in s and "\\" not in s
+
+    if plain(text):
+        return text
+    head = text.split(":", 1)[0].strip()
+    return head if ":" in text and plain(head) else None
+
+
 def label_of(
     node_id: str,
     *,
@@ -389,12 +407,13 @@ def label_of(
     hole_name: str | None,
     title: str | None = None,
 ) -> tuple[str, str]:
-    """``(label, source)``: the gloss's label, else the hole's name, else the target's title,
-    else the id (D-3 v3.44)."""
+    """``(label, source)``: the gloss's label, else the hole's name, else the target's title
+    (``root_label``), else the id (D-3 v3.44)."""
     if gloss_label:
         return _cut(gloss_label, 200), "gloss"
     if hole_name:
         return _cut(hole_name, 200), "hole"
-    if title:
-        return _cut(title, 200), "target"
+    named = root_label(title)
+    if named:
+        return named, "target"
     return node_id, "id"
