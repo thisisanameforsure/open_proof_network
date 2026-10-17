@@ -698,6 +698,35 @@ def publish_v336(
     graph_path.write_text(json.dumps(schemas.validate(graph, "graph/v12"), indent=1) + "\n")
 
 
+# --- F29-T5 (R3, R9): labels on the rendered rows, as a gloss/v3 would give them ------------------
+
+
+def publish_labels(
+    root: Path,
+    labels: dict[str, tuple[str, str]],
+    *,
+    claims: dict[str, str | None] | None = None,
+    approaches: dict[str, list[str | None]] | None = None,
+    target: str = TARGET,
+) -> None:
+    """Rewrite the rendered ``graph.json``'s ``label`` / ``label_source`` on the named rows
+    (``{node: (label, source)}``), ``claim`` on ``claims``' rows and each named node's
+    ``decompositions[k].approach`` from ``approaches``, validated against ``graph/v12``
+    (F29-T1), so a test feeds the site exactly the contract's shape. Every other row keeps what
+    the gate derived (a hole's own name, the target's title, the id)."""
+    graph_path = root / "targets" / target / "graph.json"
+    graph = json.loads(graph_path.read_text(encoding="utf-8"))
+    for row in graph["nodes"]:
+        nid = str(row["node_id"])
+        if nid in labels:
+            row["label"], row["label_source"] = labels[nid]
+        if claims and nid in claims:
+            row["claim"] = claims[nid]
+        for k, text in enumerate((approaches or {}).get(nid, [])):
+            row["decompositions"][k]["approach"] = text
+    graph_path.write_text(json.dumps(schemas.validate(graph, "graph/v12"), indent=1) + "\n")
+
+
 # --- F26-T12 (R16, R17; D-9 v3.39): a formalization review written by hand ---------------------
 
 #: The review's records as the service and the gate's job would file them (every one validated

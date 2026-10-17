@@ -1,0 +1,64 @@
+# F29-T5 labels on the drawings and the panel heading — 2026-10-17T11:39Z — branch f29-t5-site at b1d1fb75
+
+## red (before the change)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+doc = {'schema': 'glosses/v2', 'target': 'propositional', 'rendered_from': '6666666666666666666666666666666666666666', 'subj...module': None, ...}, {'kind': 'partial', 'record': 'explainer', 'node': 'and-swap-reassoc', 'module': None, ...}, ...]}
+schema_id = 'glosses/v2'
+
+    def validate(doc: object, schema_id: str | None = None) -> JsonDoc:
+        """Return ``doc`` if it validates, else raise ``SchemaError`` listing every violation."""
+        found = violations(doc, schema_id)
+        if found:
+            what = schema_id or (doc.get("schema") if isinstance(doc, dict) else None)
+            lines = "; ".join(f"{v.path}: {v.message}" for v in found)
+            msg = f"document does not satisfy {what!r}: {lines}"
+>           raise SchemaError(msg)
+E           opn_gate.schemas.SchemaError: document does not satisfy 'glosses/v2': $['subjects'][6]['chains'][0]['versions'][0]['schema']: 'gloss/v3' is not valid under any of the given schemas
+
+gate/opn_gate/schemas.py:96: SchemaError
+=========================== short test summary info ============================
+ERROR site/tests/test_finding_labels_site.py::test_a_statement_is_drawn_by_its_label_and_the_id_stays_in_the_title[dag]
+ERROR site/tests/test_finding_labels_site.py::test_a_statement_is_drawn_by_its_label_and_the_id_stays_in_the_title[routes-svg]
+ERROR site/tests/test_finding_labels_site.py::test_the_panel_is_headed_by_the_label_with_the_id_beneath_and_a_rename_link
+ERROR site/tests/test_finding_labels_site.py::test_an_id_labelled_statement_is_headed_by_its_id_once
+FAILED site/tests/test_finding_labels_site.py::test_a_long_label_gets_a_pill_measured_from_it
+FAILED site/tests/test_finding_labels_site.py::test_the_label_channel_leaves_an_unlabelled_drawing_unchanged
+FAILED site/tests/test_finding_labels_site.py::test_node_page_is_headed_by_the_label_too
+3 failed, 4 errors in 34.32s
+>       assert pill_text(svg, GLOSSED) == LABEL
+E       AssertionError: assert 'h1' == 'Density of the sum'
+site/tests/test_finding_labels_site.py:89: AssertionError
+>       assert pill_text(svg, GLOSSED) == LABEL
+E       AssertionError: assert 'h1' == 'Density of the sum'
+site/tests/test_finding_labels_site.py:89: AssertionError
+>       assert title is not None and title.group(1) == LABEL
+E       assert (None is not None)
+site/tests/test_finding_labels_site.py:106: AssertionError
+>       assert title is not None and title.group(1) == ROOT_NODE
+E       assert (None is not None)
+site/tests/test_finding_labels_site.py:118: AssertionError
+        assert len(long) == 60
+E       TypeError: svg() got an unexpected keyword argument 'labels'
+site/tests/test_finding_labels_site.py:130: TypeError
+>       assert dag.svg(nodes, href=href, prefix="t") == dag.svg(nodes, href=href, prefix="t", labels={})
+E       TypeError: svg() got an unexpected keyword argument 'labels'
+site/tests/test_finding_labels_site.py:141: TypeError
+>       assert f"<h1>{LABEL}</h1>" in node_page
+E       assert '<h1>Density of the sum</h1>' in '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,...66666666666/frontier.json">frontier.json ↗</a></span>\n</footer>\n<script src="/node.js"></script>\n</body>\n</html>\n'
+
+## verification: pytest site/tests/test_finding_labels_site.py site/tests/test_dag.py site/tests/test_finding_dag_layout.py site/tests/test_finding_dag_labels.py site/tests/test_routes_view.py
+........s...                                                             [100%]
+=========================== short test summary info ============================
+SKIPPED [1] site/tests/test_routes_view.py:276: could not import 'playwright.sync_api': No module named 'playwright'
+83 passed, 1 skipped in 5.19s
+
+## whole site fast tier: pytest site/tests -m 'not lean and not docker'
+SKIPPED [1] site/tests/test_me_reviews.py:127: could not import 'playwright.sync_api': No module named 'playwright'
+SKIPPED [1] site/tests/test_routes_view.py:276: could not import 'playwright.sync_api': No module named 'playwright'
+739 passed, 8 skipped in 94.56s (0:01:34)
+
+## ruff check site / ruff format --check site / mypy site
+All checks passed!
+107 files already formatted
+Success: no issues found in 107 source files
