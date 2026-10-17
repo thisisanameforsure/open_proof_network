@@ -315,6 +315,14 @@ main > .crumbs, main > h1:first-child { margin-top: calc(var(--s8) * 1.6); }
 .panels { display: flex; flex-direction: column; }
 .panel { gap: var(--s4); align-items: flex-start; }
 .panel-id { font-family: var(--mono); font-size: 18px; overflow-wrap: anywhere; }
+/* F29-T5 (R9): the panel is headed by the statement's label (its id when that is all the record
+   has, in mono as before); the id and the link to the gloss's controls sit beneath. */
+.panel-title { font-size: 19px; font-weight: 600; line-height: 1.25; overflow-wrap: anywhere; }
+.panel-title.mono { font-family: var(--mono); font-weight: 400; font-size: 18px; }
+.panel-sub { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--s2) var(--s4); margin: calc(-1 * var(--s2)) 0 0; font-size: 13px; }
+.panel-sub .panel-id { font-size: 13px; color: var(--n400); }
+.panel-rename { font-size: 12.5px; color: var(--accent-300); white-space: nowrap; }
+.node-head h1 + .panel-id { font-size: 15px; color: var(--n400); margin: 0 0 var(--s3); }
 .panel-facts { display: grid; grid-template-columns: auto 1fr; gap: var(--s2) var(--s6); font-size: 13px; width: 100%; margin: 0; }
 .panel-facts dt { color: var(--n500); }
 .panel-facts dd { margin: 0; }

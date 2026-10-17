@@ -286,9 +286,10 @@ def svg(
     closable statement (F28, v3.41) keeps its open look and gains the filled assembly mark."""
     closable = closable or {}
     names: dag.Prefix = (prefix, result.root) if prefix else None
+    labels = dag.labels_of(d.rows.values())  # F29-T5 (R9): pills by label, ids in titles
     widths: dict[str, int] = {j: JUNCTION_W for j in d.junctions}
     for v in d.statements:
-        widths[v] = LABEL_X + round(dag.CHAR_W * len(dag.label_of(v, names))) + LABEL_END
+        widths[v] = LABEL_X + round(dag.CHAR_W * len(dag.label_of(v, names, labels))) + LABEL_END
     nodes = [
         {"node_id": v, "status": str(d.rows[v].get("status")), "deps": d.below.get(v, [])}
         for v in d.statements
@@ -341,7 +342,8 @@ def svg(
             if d.alternatives.get(p.node_id, 0) >= 2
             else ""
         )
-        label = dag.label_of(p.node_id, names)
+        label = dag.label_of(p.node_id, names, labels)
+        named = f" ({escape(label)})" if p.node_id in labels else ""
         # Open is a second channel, never a hue: the wedges keep their colour and the pie is
         # hollow in the middle (proved is a full pie).
         core = (
@@ -366,7 +368,7 @@ def svg(
             f'<g class="rnode st-{state_of(status)} {role}{root}" '
             f'data-node="{escape(p.node_id)}" '
             f'data-sets="{sets}" transform="translate({p.x},{p.y})">'
-            f"<title>{escape(p.node_id)}: {escape(status)}; {escape(said)}</title> "
+            f"<title>{escape(p.node_id)}{named}: {escape(status)}; {escape(said)}</title> "
             f'<rect class="pill" width="{p.w}" height="{dag.NODE_H}" rx="8"/>'
             f"{pie(mine, index)}{core}"
             f'<circle class="ring" cx="{PIE_X}" cy="{dag.NODE_H // 2}" r="{RING_R}"/>{asm}'
