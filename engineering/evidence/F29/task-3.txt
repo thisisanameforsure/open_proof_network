@@ -33,3 +33,42 @@ api/tests/api_fakes.py:32
 ../../../.venv/lib/python3.13/site-packages/starlette/testclient.py:53
 -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
 196 passed, 2 warnings in 9.07s
+E       AssertionError: assert 'gloss/v2' == 'gloss/v3'
+E         
+E        
+E         ?        ^
+E         + gloss/v2
+E         ?        ^
+E       AssertionError: assert ({'schema': 'gloss/v2', 'target': 'propositional', 'subject': {'kind': 'statement', 'node': 'and-reassoc', 'module': None, 'lean_hash': '22d574bed0997f637bac7a12d70f61acadd44c2f2f65812f8e7d94915a4bf6e7'}, 'supersedes': None, ...} is not None and 'gloss/v2' == 'gloss/v3'
+E         
+E        
+E         ?        ^
+E         + gloss/v2
+E         ?        ^)
+E       AssertionError: {"error":"unknown-field","message":"unknown field label; this route accepts amends, drafted_with, dry_run, licence, subject, supersedes, text","details":{"unknown":["label"],"accepted":["amends","drafted_with","dry_run","licence","subject","supersedes","text"]}}
+E       assert 400 == 201
+E        +  where 400 = <Response [400 Bad Request]>.status_code
+E       AssertionError: assert ({'schema': 'gloss/v2', 'target': 'propositional', 'subject': {'kind': 'statement', 'node': 'and-reassoc', 'module': None, 'lean_hash': '22d574bed0997f637bac7a12d70f61acadd44c2f2f65812f8e7d94915a4bf6e7'}, 'supersedes': None, ...} is not None and 'gloss/v2' == 'gloss/v3'
+E         
+E        
+E         ?        ^
+E         + gloss/v2
+E         ?        ^)
+E       AssertionError: {"error":"unknown-field","message":"unknown field label; this route accepts amends, drafted_with, dry_run, licence, subject, supersedes, text","details":{"unknown":["label"],"accepted":["amends","drafted_with","dry_run","licence","subject","supersedes","text"]}}
+E       assert 'unknown-field' == 'label-invalid'
+E         
+E        
+E         + unknown-field
+E       AssertionError: {"error":"unknown-field","message":"unknown field label; this route accepts amends, drafted_with, dry_run, licence, subject, supersedes, text","details":{"unknown":["label"],"accepted":["amends","drafted_with","dry_run","licence","subject","supersedes","text"]}}
+E       assert 'unknown-field' == 'label-invalid'
+E         
+E        
+
+=== F29-T3b green run (label on POST /glosses and submit_gloss) ===
+........................................................................ [ 76%]
+......................                                                   [100%]
+=============================== warnings summary ===============================
+api/tests/api_fakes.py:32
+../../../.venv/lib/python3.13/site-packages/starlette/testclient.py:53
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+94 passed, 2 warnings in 25.33s

@@ -1478,6 +1478,15 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "implemented_by) and remove them; details carries the replay output.",
     ),
     # --- l ------------------------------------------------------------------------------------
+    "label-invalid": (
+        "api",
+        None,
+        "A gloss's label is not a statement's short name as gloss/v3 publishes it: at most 60 "
+        "characters, one line, plain text with no dollar sign; or it was sent on a gloss of a "
+        "witness, relation or definition, which carries none (D-3 v3.44).",
+        "Send a short plain-text name on a statement gloss, or leave label out; the notation "
+        "belongs in the gloss's opening display.",
+    ),
     "layout-extra": (
         "gate",
         2,
