@@ -553,7 +553,10 @@ def closing_route(node_id: str, statement: str | None) -> dict[str, Any]:
 
 #: The ``glosses.json`` versions get_node reads (F21-R6): v1 until a graph's re-pin renders v2,
 #: which adds sections, shown and pending words and ``drafted_with``; the gate writes v2.
-GLOSSES_SCHEMAS: frozenset[str] = frozenset({"glosses/v1", products.GLOSSES_SCHEMA})
+#: Every glosses product version the live graph may carry: the current one and every older one
+#: still committed until each target is re-rendered. Named explicitly, never derived from the
+#: current constant: deriving it dropped v2 the day v3 shipped and broke get_node live (2026-10-18).
+GLOSSES_SCHEMAS: frozenset[str] = frozenset({"glosses/v1", "glosses/v2", "glosses/v3"})
 
 
 def node_chains(ctx: Context, target_id: str, node_id: str) -> tuple[list[dict[str, Any]], str]:

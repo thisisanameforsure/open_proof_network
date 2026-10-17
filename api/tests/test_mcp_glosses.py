@@ -38,7 +38,7 @@ from test_glosses_route import (
 from test_mcp_demarcation import bare_hits, wrapped_hits
 
 from opn_api import routes
-from opn_api.mcp import bijection, demarcate, results
+from opn_api.mcp import bijection, demarcate, reads, results
 from opn_gate import glosses, products, schemas
 from opn_gate import graph as graphmod
 
@@ -229,6 +229,14 @@ def as_v1(doc: dict[str, Any]) -> dict[str, Any]:
                     sig.pop("sections")
     assert schemas.violations(old, "glosses/v1") == []
     return old
+
+
+def test_every_glosses_version_the_graph_may_carry_is_accepted() -> None:
+    """2026-10-18: ``GLOSSES_SCHEMAS`` was derived from the current constant, so bumping it to v3
+    dropped v2 and every live get_node answered glosses-invalid until the re-pin. The set names
+    every version explicitly and holds the current one."""
+    assert reads.GLOSSES_SCHEMAS == {"glosses/v1", "glosses/v2", "glosses/v3"}
+    assert products.GLOSSES_SCHEMA in reads.GLOSSES_SCHEMAS
 
 
 def test_a_committed_v1_product_is_still_served(
