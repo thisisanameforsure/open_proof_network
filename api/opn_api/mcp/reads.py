@@ -890,7 +890,7 @@ WORD_KINDS: tuple[str, ...] = (
 
 
 #: The products ``glosses.needed`` reads: the live graph holds v1 until its re-pin (F21-R6).
-GLOSSES_VERSIONS = frozenset({"glosses/v1", "glosses/v2"})
+GLOSSES_VERSIONS = frozenset({"glosses/v1", "glosses/v2", "glosses/v3"})
 
 
 class _UnreadError(Exception):

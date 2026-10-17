@@ -224,6 +224,7 @@ def as_v1(doc: dict[str, Any]) -> dict[str, Any]:
             chain.pop("shown"), chain.pop("pending")
             for version in chain["versions"]:
                 version.pop("sections"), version.pop("drafted_with")
+                version.pop("label")  # glosses/v3 (F29-T1)
                 for sig in version["signatures"]:
                     sig.pop("sections")
     assert schemas.violations(old, "glosses/v1") == []

@@ -41,3 +41,5 @@ $ uv run --frozen pytest gate/tests/test_labels.py gate/tests/test_products.py -
 66 passed in 29.52s
 $ opn-gate products --graph <copy of graph d6100d937> --no-build --no-meta  -> {"ok": true}; erdos-1094 root label "Erdős problem 1094" (target)
 $ opn-site render -> {"ok": true, "pages": 340}
+
+# F29-T1 follow-up (glosses/v3): the site agent found glosses/v2 enumerates gloss/v1 and v2 only, so the products refused any tree holding a gloss/v3 record. glosses/v3 admits it and carries each version's label; GLOSSES_SCHEMA v3; goldens regenerated; consumers swept (site accepted versions, MCP GLOSSES_VERSIONS, four gate tests, the guide's output block, the api v1-downgrade helper).

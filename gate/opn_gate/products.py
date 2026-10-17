@@ -720,7 +720,7 @@ def proof_closure(
     return sorted(seen), sorted(unmeasured)
 
 
-GLOSSES_SCHEMA = "glosses/v2"  # v2: drafted_with, sections, shown, pending (F21-R6, R14)
+GLOSSES_SCHEMA = "glosses/v3"  # v3 (F29-T1): gloss/v3 versions, each with its label; v2: F21
 GLOSSES_FILE = "glosses.json"
 
 
@@ -940,6 +940,8 @@ def _chains_doc(
                         "withdrawn": v.hash in withdrawn,
                         "signatures": list(sigs.get(v.hash, [])),
                         "drafted_with": v.drafted_with,
+                        # F29-R1 (D-3 v3.44): a statement gloss's label, null elsewhere.
+                        "label": v.label,
                         "sections": [
                             {"key": key, "state": state} for key, state in derived.states[v.hash]
                         ],

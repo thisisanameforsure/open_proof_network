@@ -760,7 +760,7 @@ def _load_record(target_dir: Path) -> dict[str, Any] | None:
 
 #: F21-T7: the ``glosses.json`` versions ``glosses.needed`` reads (the live graph holds v1 until
 #: its re-pin).
-WORDS_GLOSSES_SCHEMAS = frozenset({"glosses/v1", "glosses/v2"})
+WORDS_GLOSSES_SCHEMAS = frozenset({"glosses/v1", "glosses/v2", "glosses/v3"})
 
 
 def _load_words_needed(target_dir: Path, root: str) -> tuple[dict[str, Any], ...] | None:
@@ -1343,7 +1343,7 @@ def _load_outlines(target_dir: Path) -> dict[str, dict[str, Any]]:
 #: F20-R9: the gloss and explainer chains per subject, and the versions this generator renders:
 #: v1 as whole versions (the live graph until its re-pin), v2 section by section (F21-R14).
 GLOSSES_FILE = "glosses.json"
-GLOSSES_SCHEMAS: tuple[str, ...] = ("glosses/v1", "glosses/v2")
+GLOSSES_SCHEMAS: tuple[str, ...] = ("glosses/v1", "glosses/v2", "glosses/v3")
 #: A signer, the signature's date, its file, and the section keys it approves (None: all).
 _Sig = tuple[str, str, str, frozenset[str] | None]
 

@@ -2168,7 +2168,7 @@ key.s2 show: x + (0 : Nat) = x
 
 ### Reading the words on a node
 
-`targets/<id>/glosses.json` (`glosses/v2`; a graph not yet re-pinned still carries `glosses/v1`,
+`targets/<id>/glosses.json` (`glosses/v3`, each version with its `label`; a graph not yet re-pinned may still carry `glosses/v1` or `v2`,
 without the section fields) lists, for every Lean file that takes a gloss and every merged proof
 artifact that takes an explainer, the chains of versions filed on it. MCP `get_node` returns the
 same for one node as `gloss_chains` and `explainer_chains`, with each version's text as
@@ -2214,7 +2214,7 @@ echo "proof: $PROOF_HASH"
 ```
 
 ```output
-glosses/v2
+glosses/v3
 gloss of statement nodes/tutorial-and-swap/Statement.lean
 explainer of proof nodes/tutorial-and-swap/Proof.lean
 proof:

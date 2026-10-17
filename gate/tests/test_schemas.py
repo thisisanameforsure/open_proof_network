@@ -67,6 +67,7 @@ def test_known_schemas_are_the_published_set() -> None:
         "gloss/v3",  # F29-T1 (D-3 v3.44): label
         "glosses/v1",
         "glosses/v2",
+        "glosses/v3",  # F29-T1 (D-3 v3.44): gloss/v3 versions, each with its label
         "graph/v1",
         "graph/v10",  # F28-T8 (D-12 v3.42): each node's closure
         "graph/v11",  # F08-T42 (D-12 v3.43): no circular
