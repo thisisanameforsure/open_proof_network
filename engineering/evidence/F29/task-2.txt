@@ -81,3 +81,5 @@ exit=0
 $ ruff check .          -> All checks passed!
 $ ruff format .         -> 868 files left unchanged
 $ mypy gate             -> Success: no issues found in 427 source files
+
+# CI lean tier on PR #70 (run 39032839064): 3 failed — two fixture partials without declarations (test_onramp_lean skeleton, test_finding_hole_restates_ancestor_lean genuinely-new hole). Fixed: the on-ramp skeleton fixture declares its words; the leaf partial goes through harness.declared. Local real-toolchain run: ancestor test and the Mathlib-free skeleton test pass; test_skeleton_admits cannot run here (no Mathlib checkout under ~/.opn/mathlib), CI decides.

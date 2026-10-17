@@ -105,7 +105,7 @@ def test_a_genuinely_new_hole_passes(
 ) -> None:
     """The negative: the same chain, the ancestors staged and asked, and a hole that is new work."""
     del pinned, lean_pkg
-    ctx = leaf_partial(tmp_path, real_toolchain, FRESH + ASSEMBLE)
+    ctx = leaf_partial(tmp_path, real_toolchain, declared(FRESH + ASSEMBLE))
     verdict = pipeline.run_submission(ctx)
     assert verdict.verdict == "pass", verdict.as_dict()
     [hole] = verdict.data["artifact"]["holes"]
