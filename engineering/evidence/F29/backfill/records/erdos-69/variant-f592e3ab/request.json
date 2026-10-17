@@ -1,0 +1,13 @@
+{
+ "subject": {
+  "kind": "statement",
+  "node": "variant-f592e3ab",
+  "module": null,
+  "lean_hash": "daa63d936808636a9a390525c85e55438ba7643a7608d136b9bd681d864e9e35"
+ },
+ "text": "$$\\forall b\\in\\mathbb{N},\\ b\\ge 2:\\quad \\sum_{p\\ \\text{prime}}\\frac{1}{b^{p}} \\notin\\mathbb{Q}$$\n\nFor every natural base b ≥ 2, the sum over the primes p of 1/b^p, in ℝ, is irrational. The series is a tsum over ℝ (0 when not summable), and `Irrational x` means x is not the cast of a rational.\n",
+ "supersedes": null,
+ "licence": "CC-BY-4.0",
+ "drafted_with": "Claude Fable 5.1 (claude-fable-5-1)",
+ "label": "Irrationality of the prime indicator in any base"
+}

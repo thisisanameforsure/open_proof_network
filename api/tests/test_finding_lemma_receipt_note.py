@@ -12,12 +12,12 @@ note says so; the precheck's own result document is unchanged (the gate computes
 from __future__ import annotations
 
 import pytest
-from api_fakes import TUTORIAL_PROOF, Harness, PrecheckKey, make_precheck_key
+from api_fakes import TUTORIAL_PARTIAL, Harness, PrecheckKey, make_precheck_key
 from test_finding_partial_witnesses import PARTIAL_PATH, hole, passing_job, submit
 
 from opn_api import submissions
 
-BUNDLE = {PARTIAL_PATH: TUTORIAL_PROOF}
+BUNDLE = {PARTIAL_PATH: TUTORIAL_PARTIAL}
 EXISTING = "already-proved"
 
 

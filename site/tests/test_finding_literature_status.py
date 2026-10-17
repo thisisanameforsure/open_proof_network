@@ -166,8 +166,13 @@ def test_an_older_graph_reads_no_literature(tmp_path: Path) -> None:
             "literature_proposed",
             "lemmas",
             "closure",
-        ):  # lemmas: v7
+            "label",
+            "label_source",
+            "claim",
+        ):  # lemmas: v7; label, label_source, claim: v12 (F29-T1)
             row.pop(field, None)
+        for d in row.get("decompositions") or []:
+            d.pop("approach", None)  # graph/v12
     graph_path.write_text(json.dumps(graph), encoding="utf-8")
     site = model.load_site(root, fixture.COMMIT)
     nv = site.targets[TARGET].nodes[ROOT]

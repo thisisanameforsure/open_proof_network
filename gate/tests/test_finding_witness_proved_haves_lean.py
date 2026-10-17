@@ -32,7 +32,7 @@ from pathlib import Path
 
 import pytest
 import yaml
-from harness import TARGET, copy_graph, make_context
+from harness import TARGET, copy_graph, declared, make_context
 from test_finding_hole_roundtrip_lean import ROOT, SKELETON
 
 from opn_api import checks
@@ -46,7 +46,7 @@ pytestmark = pytest.mark.lean
 
 #: One proved ``have`` (a let, absent from every closed type), one destructuring of it (two
 #: binders the assembly proved), then a hole, then a hole that states that hole as its premise.
-BODY = (
+BODY = declared(
     "  intro p q r h\n"
     "  have pq : p ∧ q := h.1\n"
     "  obtain ⟨hp, hq⟩ := pq\n"
@@ -270,7 +270,7 @@ def test_the_fast_check_asks_the_same_narrowed_type(
 #: An ``obtain`` of an existential (data ``s`` and its equation, both the assembly's), then a case
 #: split on ``q ∨ ¬q``: ``hq`` holds only in its branch, so it is not a fact the assembly proved,
 #: and a witness must still show the branch can be reached.
-BRANCH_BODY = (
+BRANCH_BODY = declared(
     "  intro p q r h\n"
     "  obtain ⟨s, hs⟩ : ∃ s : Prop, s = p := ⟨p, rfl⟩\n"
     "  rcases Classical.em q with hq | hq\n"

@@ -1,0 +1,58 @@
+# Route glosses — running log
+
+- erdos-1050/erdos-1050--h1-v2--h2 — 20260929T194647Z-t0929-1-partial.lean — already worded: "E(n) = beta0(n) * z - alpha0(n) by partial fractions in x = …"
+- erdos-1050/erdos-1050--h1-v2 — 20260921T064200Z-tester-1050-2045-partial.lean — already worded: "Dirichlet: an irrational real has integer approximants b n *…"
+- erdos-1050/erdos-1050--h1-v2 — 20260924T123700Z-t0924-1050-mcp-partial.lean — written (175 chars)
+- erdos-1050/erdos-1050--h1-v2 — 20260924T123718Z-h0924-1050-http-partial.lean — already worded: "Informal account: annex f593a93a8960 (graph PR #185) on this…"
+- erdos-1050/erdos-1050 — 20260917T141921Z-calib-1050-fable-partial.lean — already worded: "Borwein's theorem for the tail T = ∑_{n ≥ 3} 1/(2^n − 3), in…"
+- erdos-1094/erdos-1094--h2--h1--h1--h1 — 20261015T151456Z-t1015c-a06-partial.lean — already worded: "Split the range 2k ≤ n < k³ at n = k²: the lower band (n < k…"
+- erdos-1094/erdos-1094--h2--h1--h1 — 20261014T111741Z-t1014-y-partial.lean — already worded: "Proved here (assembly): n / gcd(n,k) divides C(n,k) (from k*…"
+- erdos-1094/erdos-1094--h2--h1--h4--h1 — 20261015T145300Z-t1015c-a06-partial.lean — written (119 chars)
+- erdos-1094/erdos-1094--h2--h1--h4 — 20261014T111658Z-t1014-y-partial.lean — already worded: "Proved here (assembly): under k*k ≤ n and minFac C(n,k) > n/…"
+- erdos-1094/erdos-1094--h2--h1 — 20261009T143300Z-t1009-c-partial.lean — already worded: "Konyagin's theorem, g(k) > k^3 for all large k, in the netwo…"
+- erdos-1094/erdos-1094--h2--h1 — 20261014T075000Z-t1014-a-partial.lean — already worded: "Baker, Harman and Pintz (2001): for large k the interval (k,…"
+- erdos-1094/erdos-1094--h2--h2--h2--h2 — 20261014T181000Z-t1014-r-partial.lean — written (137 chars)
+- erdos-1094/erdos-1094--h2--h2--h2--h3--h1--h1--h1 — 20261015T130229Z-t1015b-s-partial.lean — written (183 chars)
+- erdos-1094/erdos-1094--h2--h2--h2--h3--h1--h1 — 20261015T063320Z-opn-prove-aristotle-1015-partial.lean — written (175 chars)
+- erdos-1094/erdos-1094--h2--h2--h2--h3--h1 — 20261015T023339Z-t1015-r-partial.lean — written (161 chars)
+- erdos-1094/erdos-1094--h2--h2--h2--h3 — 20261015T021346Z-t1015-r-partial.lean — written (156 chars)
+- erdos-1094/erdos-1094--h2--h2--h2--h4 — 20261015T023100Z-t1015-q-partial.lean — written (167 chars)
+- erdos-1094/erdos-1094--h2--h2--h2 — 20261014T111800Z-t1014-x-partial.lean — already worded: "Partial port of van Doorn–Tang (arXiv 2606.19863), `main_the…"
+- erdos-1094/erdos-1094--h2--h2--h3--h1 — 20261015T144930Z-t1015c-a08-partial.lean — already worded: "Proved here: if k ∣ n then gcd(n,k) = k, so p := n/k is prim…"
+- erdos-1094/erdos-1094--h2--h2--h3 — 20261014T111449Z-t1014-y-partial.lean — already worded: "Proved here (assembly): under k*k ≤ n and minFac C(n,k) > n/…"
+- erdos-1094/erdos-1094--h2--h2 — 20261014T073500Z-t1014-a-partial.lean — already worded: "Baker, Harman and Pintz (2001): for large k the interval (k,…"
+- erdos-1094/erdos-1094--h2 — 20261009T124800Z-t1009-b-partial.lean — written (92 chars)
+- erdos-1094/erdos-1094--h3--h1--h1--h1 — 20261015T145000Z-t1015c-a12-partial.lean — written (126 chars)
+- erdos-1094/erdos-1094--h3--h1--h1--h2--h1 — 20261015T145026Z-t1015c-a09-partial.lean — written (122 chars)
+- erdos-1094/erdos-1094--h3--h1--h1--h2 — 20261014T175700Z-t1014-q-partial.lean — written (146 chars)
+- erdos-1094/erdos-1094--h3--h1--h1 — 20261014T112100Z-t1014-z-partial.lean — written (123 chars)
+- erdos-1094/erdos-1094--h3--h1--h1 — 20261015T145000Z-t1015c-a16-partial.lean — written (174 chars)
+- erdos-1094/erdos-1094--h3--h1--h2--h1 — 20261015T145000Z-t1015c-a10-partial.lean — written (139 chars)
+- erdos-1094/erdos-1094--h3--h1--h2--h2 — 20261015T145200Z-t1015c-a11-partial.lean — written (99 chars)
+- erdos-1094/erdos-1094--h3--h1--h2 — 20261014T112100Z-t1014-z-partial.lean — written (128 chars)
+- erdos-1094/erdos-1094--h3--h1 — 20261009T125000Z-t1009-a-partial.lean — written (125 chars)
+- erdos-1094/erdos-1094--h3--h2 — 20261015T132800Z-t1015b-h-partial.lean — already worded: "Partial proof along Erdős–Lacampagne–Selfridge, "Estimates o…"
+- erdos-1094/erdos-1094--h3--h3--h1 — 20261015T145500Z-t1015c-a03-partial.lean — written (142 chars)
+- erdos-1094/erdos-1094--h3--h3--h2 — 20261015T145123Z-t1015c-a02-partial.lean — written (170 chars)
+- erdos-1094/erdos-1094--h3--h3 — 20261015T132200Z-t1015b-g-partial.lean — already worded: "Second level of Granville–Ramaré, Mathematika 43 (1996) 73–1…"
+- erdos-1094/erdos-1094--h3 — 20261008T133001Z-t1008-a-partial.lean — written (130 chars)
+- erdos-1094/erdos-1094--h3 — 20261009T143300Z-t1009-c-partial.lean — already worded: "Konyagin's theorem, g(k) > k^3 for all large k, in the netwo…"
+- erdos-1094/erdos-1094--h3 — 20261015T125200Z-t1015b-g-partial.lean — already worded: "Skeleton of Granville–Ramaré, Mathematika 43 (1996) 73–107, …"
+- erdos-1094/erdos-1094 — 20261008T130306Z-t1008-a-partial.lean — written (160 chars)
+- erdos-402/erdos-402--h3-v2--h1--h1--h1--h2 — 20261001T170100Z-t1001-402a-partial.lean — already worded: "Split of `hgen` by size n = |B| (agent 402-R6-a; statements …"
+- erdos-402/erdos-402--h3-v2--h1--h1--h1 — 20261001T154750Z-t1001-402a-partial.lean — already worded: "Informal argument: the annex appended to this node on 2026-1…"
+- erdos-402/erdos-402--h3-v2--h1--h1--h1 — 20261001T163302Z-t1001-402a-partial.lean — already worded: "Second route on this node (the first is the merged window-cr…"
+- erdos-402/erdos-402--h3-v2--h1--h1 — 20261001T143056Z-t1001-402a-partial.lean — already worded: "Informal argument and the Lean of each lemma: annex eb2314a2…"
+- erdos-402/erdos-402--h3-v2--h1 — 20261001T115500Z-t1001-402a-partial.lean — already worded: "Informal argument: annex 6a64518f9cd863c9abea3114b518f3172f4…"
+- erdos-402/erdos-402--h3-v2 — 20260929T200020Z-t0929-6-partial.lean — already worded: "Informal argument: annex f5450271cb4865766831f2e6b153cb53293…"
+- erdos-402/erdos-402 — 20260917T141927Z-calib-402-f480-partial.lean — already worded: "Skeleton of the Balasubramanian–Soundararajan / Szegedy argu…"
+- erdos-412/erdos-412 — 20260916T080157Z-agent-sigma-4f1d-partial.lean — already worded: "Write x ~ y for "the forward σ-orbits of x and y meet", the …"
+- erdos-69/erdos-69--h2-v2--h1-v2 — 20260921T064112Z-agent-e69x-d614-partial.lean — written (179 chars)
+- erdos-69/erdos-69--h2-v2 — 20260917T180404Z-agent-erdos69-1b25-partial.lean — written (150 chars)
+- erdos-69/erdos-69 — 20260917T141558Z-agent-erdos69-1b25-partial.lean — already worded: "Hole 1 (Tao's remark under Erdős 257): the Lambert-series id…"
+- euclid-primes/infinitude-of-primes — 20260912T110722Z-thisisanameforsure-partial.lean — written (137 chars)
+- euclid-primes/infinitude-of-primes — 20260912T123001Z-thisisanameforsure-partial.lean — written (137 chars)
+- euclid-primes/variant-2a7919a9 — 20260919T185907Z-euclid-list-61d1ea-partial.lean — written (103 chars)
+- tutorial/variant-93e79cb5 — 20260913T160600Z-agent-4b1f4d-partial.lean — written (89 chars)
+
+28 glosses written; 54 partials indexed.

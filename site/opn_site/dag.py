@@ -14,7 +14,7 @@ structure is testable and the colours come from the stylesheet, never from the d
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from html import escape
 from itertools import pairwise
@@ -50,10 +50,30 @@ GROUP_HEAD = 44
 Prefix = str | tuple[str, ...] | None
 
 
-def label_of(node_id: str, prefix: Prefix = None) -> str:
+#: F29-T5 (R9): the labels a drawing shows in place of ids, keyed by node id — each row's
+#: ``label`` where ``label_source`` is not ``id`` (``labels_of``). ``None`` or an id not in the
+#: mapping draws the short id as before.
+Labels = Mapping[str, str] | None
+
+
+def labels_of(nodes: Iterable[Mapping[str, Any]]) -> dict[str, str]:
+    """The pill labels of ``graph.json`` rows (``graph/v12``, F29-R3): a row's ``label`` unless
+    its ``label_source`` is ``id`` (or the row predates labels), when the id is drawn as before."""
+    out: dict[str, str] = {}
+    for n in nodes:
+        label = n.get("label")
+        if label and n.get("label_source") not in (None, "id"):
+            out[str(n["node_id"])] = str(label)
+    return out
+
+
+def label_of(node_id: str, prefix: Prefix = None, labels: Labels = None) -> str:
     """F04-T33: a pill's text. On a problem's page a hole starts with the problem's own name or
     its root's, so the longest ``<prefix>--`` that matches is dropped (the whole id stays in the
-    pill's title)."""
+    pill's title). F29-T5: a node with a label in ``labels`` shows that, whole (a label is at
+    most 60 characters, D-3 v3.44)."""
+    if labels and node_id in labels:
+        return labels[node_id]
     names = (prefix,) if isinstance(prefix, str) else (prefix or ())
     for name in sorted(names, key=len, reverse=True):
         if name and node_id.startswith(name + "--") and len(node_id) > len(name) + 2:
@@ -67,10 +87,12 @@ def label_of(node_id: str, prefix: Prefix = None) -> str:
 Widths = Mapping[str, int] | None
 
 
-def node_width(node_id: str, prefix: Prefix = None, widths: Widths = None) -> int:
+def node_width(
+    node_id: str, prefix: Prefix = None, widths: Widths = None, labels: Labels = None
+) -> int:
     if widths is not None and node_id in widths:
         return widths[node_id]
-    return PILL_PAD + round(CHAR_W * len(label_of(node_id, prefix)))
+    return PILL_PAD + round(CHAR_W * len(label_of(node_id, prefix, labels)))
 
 
 @dataclass(frozen=True)
@@ -187,13 +209,15 @@ def lines(nodes: list[dict[str, Any]]) -> list[Line]:
     return out
 
 
-def wrap(ids: list[str], prefix: Prefix = None, widths: Widths = None) -> list[list[str]]:
+def wrap(
+    ids: list[str], prefix: Prefix = None, widths: Widths = None, labels: Labels = None
+) -> list[list[str]]:
     """One layer's nodes, in order, split into rows no wider than ``MAX_ROW_W`` (F04-T24). A
     single pill wider than that still gets a row of its own."""
     rows: list[list[str]] = [[]]
     used = 0
     for node_id in ids:
-        w = node_width(node_id, prefix, widths)
+        w = node_width(node_id, prefix, widths, labels)
         extra = w if not rows[-1] else GAP_X + w
         if rows[-1] and used + extra > MAX_ROW_W:
             rows.append([])
@@ -203,33 +227,37 @@ def wrap(ids: list[str], prefix: Prefix = None, widths: Widths = None) -> list[l
     return rows
 
 
-def balanced_wrap(ids: list[str], prefix: Prefix = None, widths: Widths = None) -> list[list[str]]:
+def balanced_wrap(
+    ids: list[str], prefix: Prefix = None, widths: Widths = None, labels: Labels = None
+) -> list[list[str]]:
     """F04-T33: as many rows as ``wrap`` needs, in the same order, with the widths evened out so
     the last row is not a stub. Each row still fits ``MAX_ROW_W``."""
-    greedy = wrap(ids, prefix, widths)
+    greedy = wrap(ids, prefix, widths, labels)
     k = len(greedy)
     if k <= 1:
         return greedy
-    total = row_width(ids, prefix, widths)
+    total = row_width(ids, prefix, widths, labels)
     for slack in range(0, MAX_ROW_W, 8):
         target = min(MAX_ROW_W, total / k + slack)
         rows: list[list[str]] = [[]]
         used = 0.0
         for node_id in ids:
-            w = node_width(node_id, prefix, widths)
+            w = node_width(node_id, prefix, widths, labels)
             extra = w if not rows[-1] else GAP_X + w
             if rows[-1] and used + extra > target and len(rows) < k:
                 rows.append([])
                 used, extra = 0.0, w
             rows[-1].append(node_id)
             used += extra
-        if all(row_width(r, prefix, widths) <= MAX_ROW_W for r in rows):
+        if all(row_width(r, prefix, widths, labels) <= MAX_ROW_W for r in rows):
             return rows
     return greedy
 
 
-def row_width(ids: list[str], prefix: Prefix = None, widths: Widths = None) -> int:
-    return sum(node_width(n, prefix, widths) for n in ids) + max(len(ids) - 1, 0) * GAP_X
+def row_width(
+    ids: list[str], prefix: Prefix = None, widths: Widths = None, labels: Labels = None
+) -> int:
+    return sum(node_width(n, prefix, widths, labels) for n in ids) + max(len(ids) - 1, 0) * GAP_X
 
 
 @dataclass(frozen=True)
@@ -482,7 +510,11 @@ def _loose(status: dict[str, str], edges: list[Line], root: str | None) -> tuple
 
 
 def _rows(
-    layer_of: dict[str, int], edges: list[Line], names: Prefix, widths: Widths = None
+    layer_of: dict[str, int],
+    edges: list[Line],
+    names: Prefix,
+    widths: Widths = None,
+    labels: Labels = None,
 ) -> tuple[_Ranks, dict[str, int]]:
     """The ordered rows. Pass one orders one row per layer; each layer is then wrapped in that
     order (T24), what rests on nothing in its upper rows and what has lines down in its lower
@@ -496,7 +528,7 @@ def _rows(
     seed = {v: float(i) for row in first.rows for i, v in enumerate(row) if not _is_bend(v)}
     rests_on = {dst for _src, dst, _k in edges}
     rows_of_layer = {
-        k: balanced_wrap(sorted(ids, key=lambda v: (v in rests_on, seed[v])), names, widths)
+        k: balanced_wrap(sorted(ids, key=lambda v: (v in rests_on, seed[v])), names, widths, labels)
         for k, ids in by_layer.items()
     }
     ranks, rank_of = _ranks(rows_of_layer, edges, seed)
@@ -562,25 +594,29 @@ def layout(
     root: str | None = None,
     prefix: str | None = None,
     widths: Widths = None,
+    labels: Labels = None,
 ) -> Layout:
     """Coordinates for every statement and every line (F04-T33). With ``prefix`` (the target
-    id) a label also drops the root's own name; ``widths`` (F27-T3) sizes the boxes it names."""
+    id) a label also drops the root's own name; ``widths`` (F27-T3) sizes the boxes it names;
+    ``labels`` (F29-T5) are the names the pills show, which every box is measured from."""
     names: Prefix = (prefix, root) if prefix and root else prefix
     nodes = sorted(nodes, key=lambda n: str(n["node_id"]))
     status = {str(n["node_id"]): str(n["status"]) for n in nodes}
     edges = lines(nodes)
     loose = _loose(status, edges, root)
     layer_of = raised({v: k for v, k in layers(nodes).items() if v not in loose}, edges)
-    ranks, rank_of = _rows(layer_of, edges, names, widths)
-    wid: dict[str, float] = {v: float(node_width(v, names, widths)) for v in status}
+    ranks, rank_of = _rows(layer_of, edges, names, widths, labels)
+    wid: dict[str, float] = {v: float(node_width(v, names, widths, labels)) for v in status}
     wid.update({v: 0.0 for row in ranks.rows for v in row if _is_bend(v)})
     left, span = _balance(ranks, wid)
     tops = _tops(ranks, layer_of)
     tree_h = max(tops.values()) + NODE_H if tops else float(PAD)
 
     # The group no line joins, wrapped and centred under the tree.
-    group_rows = wrap(list(loose), names, widths) if loose else []
-    width = max(span, float(max((row_width(r, names, widths) for r in group_rows), default=0)))
+    group_rows = wrap(list(loose), names, widths, labels) if loose else []
+    width = max(
+        span, float(max((row_width(r, names, widths, labels) for r in group_rows), default=0))
+    )
     x0 = (width - span) / 2 + PAD
     placed = [
         Placed(v, status[v], layer_of[v], round(left[v] + x0), round(tops[r]), int(wid[v]))
@@ -594,7 +630,7 @@ def layout(
         gy = tree_h + GROUP_HEAD - NODE_H - WRAP_GAP_Y
         for row in group_rows:
             gy += NODE_H + WRAP_GAP_Y
-            x = PAD + (width - row_width(row, names, widths)) / 2
+            x = PAD + (width - row_width(row, names, widths, labels)) / 2
             for v in row:
                 placed.append(Placed(v, status[v], -1, round(x), round(gy), int(wid[v])))
                 x += wid[v] + GAP_X
@@ -706,12 +742,15 @@ def svg(  # noqa: PLR0913 — the target's own names beside what the drawing mar
     root: str | None = None,
     prefix: str | None = None,
     names: dict[str, str] | None = None,
+    labels: Labels = None,
 ) -> str:
     """The SVG markup; ``href`` maps node ids to page paths (every id must be present). With
     ``proofs`` (F18-T2) every node and edge says which proofs of the target it is on; ``root``
     keeps the root in the tree and ``prefix`` (the target id) is dropped from labels (T33).
-    ``names`` (F22-T18, S) gives a pill's title the theorem name of an id that names nothing."""
-    lay = layout(nodes, root=root, prefix=prefix)
+    ``names`` (F22-T18, S) gives a pill's title the theorem name of an id that names nothing.
+    ``labels`` (F29-T5, R9) are the statements' labels: a pill shows its label and its title
+    keeps the id, with the label beside it."""
+    lay = layout(nodes, root=root, prefix=prefix, labels=labels)
     status = {p.node_id: p.status for p in lay.placed}
     parts = [
         f'<svg class="dag" viewBox="0 0 {lay.width} {lay.height}" width="{lay.width}" '
@@ -736,11 +775,11 @@ def svg(  # noqa: PLR0913 — the target's own names beside what the drawing mar
     # F04-T12: each node is a pill — a status dot and the monospace label — with a halo dot the
     # page's script shows on the selected one; the colours come from the stylesheet.
     def named(node_id: str) -> str:
-        name = (names or {}).get(node_id)
+        name = (names or {}).get(node_id) or (labels or {}).get(node_id)
         return f" ({escape(name)})" if name else ""
 
     for p in lay.placed:
-        label = label_of(p.node_id, (prefix, root) if prefix and root else prefix)
+        label = label_of(p.node_id, (prefix, root) if prefix and root else prefix, labels)
         cls, data = proof_attrs(proofs, [p.node_id in m.nodes for m in proofs])
         # F04-T41: the title comes first (the pill's accessible name) and a space separates the
         # children, so a reader who strips the tags gets ``h2--h1 erdos-1094--h2--h1: ready``

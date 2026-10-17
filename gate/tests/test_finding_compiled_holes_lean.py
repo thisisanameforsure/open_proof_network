@@ -27,7 +27,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from harness import GRAPH, TARGET
+from harness import GRAPH, TARGET, declared
 from test_finding_compiled_judges_lean import forging
 from test_partial import ROOT, partial_context
 
@@ -83,10 +83,10 @@ def test_a_partial_cannot_answer_its_own_hole_extraction(
     assert verdict.data["artifact"]["declared"] == "∀ (p q r : Prop), (p ∧ q) ∧ r → r ∧ q ∧ p"
 
 
-MATCH_BODY = """  intro p q r h
+MATCH_BODY = declared("""  intro p q r h
   have m : match (2 : Nat) with | 0 => False | _ + 1 => True := sorry
   exact ⟨h.2, ⟨h.1.2, h.1.1⟩⟩
-"""
+""")
 
 
 def test_a_hole_naming_the_assemblys_own_constant_is_no_round_trip(

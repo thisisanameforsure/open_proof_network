@@ -16,7 +16,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-from harness import TARGET
+from harness import TARGET, declared
 from test_finding_partial_carries_witnesses_lean import admit_as_written
 from test_finding_witness_proved_haves_lean import witness_check
 from test_uses_defs_lean import context
@@ -35,7 +35,7 @@ CHILD = f"{NODE}--h1"
 STEM = "attempts/20261001T000000Z-prover-partial"
 SKELETON = f"{STEM}.lean"
 #: One hole over the declared definition; the proved node's theorem is in the proof term.
-BODY = (
+BODY = declared(
     " by\n"
     "  intro n\n"
     "  have swapped := OpnProp.and_swap True True ⟨trivial, trivial⟩\n"

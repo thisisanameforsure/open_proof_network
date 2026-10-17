@@ -13,7 +13,7 @@ from pathlib import Path
 
 import pytest
 import yaml
-from harness import TARGET, TUTORIAL, make_context
+from harness import TARGET, TUTORIAL, declared, make_context
 from test_annex_steps import place_annex
 
 from opn_gate import layout, pipeline, schemas
@@ -63,7 +63,7 @@ def write_variant(root: Path, annex: bytes) -> None:
         (dest / d / layout.KEEP_FILE).write_text("")
     digest = place_annex(dest, annex)
     head, _, _ = VARIANT_STATEMENT.partition(":= by\n  sorry")
-    body = (
+    body = declared(
         f"  -- annex: {digest}\n"
         "  intro p q h\n"
         "  have swapped : q ∧ p := sorry\n"

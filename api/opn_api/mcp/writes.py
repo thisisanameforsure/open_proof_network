@@ -234,6 +234,7 @@ async def submit_gloss(call: Call, args: dict[str, Any]) -> dict[str, Any]:
         "drafted_with",
         "dry_run",
         "amends",
+        "label",
     )
     return await forward(call, "POST", "/glosses", body)
 
@@ -713,12 +714,23 @@ TOOLS: tuple[Tool, ...] = (
                     "type": "object",
                     "description": "what the words describe: {kind, node_id} for a statement, "
                     "witness or relation (optional lean_hash); {kind: definition, target_id, "
-                    "module}; {kind: proof, node_id, proof} for an explainer, where proof is "
+                    "module}; {kind: partial, node_id, module} for a merged partial, where "
+                    "module is its path under the node (attempts/<stamp>-<pseudonym>-"
+                    "partial.lean): the words' first sentence is the route's approach on the "
+                    "problem page when the partial declared none (F29-R4); {kind: proof, "
+                    "node_id, proof} for an explainer, where proof is "
                     "the artifact's hash: the row's lean_hash in list_words_needed, or "
                     "attempts.assemblies[].hash in get_node",
                     "properties": {
                         "kind": {
-                            "enum": ["statement", "witness", "relation", "definition", "proof"]
+                            "enum": [
+                                "statement",
+                                "witness",
+                                "relation",
+                                "definition",
+                                "partial",
+                                "proof",
+                            ]
                         },
                         "node_id": ID_PARAM,
                         "target_id": ID_PARAM,
@@ -757,6 +769,14 @@ TOOLS: tuple[Tool, ...] = (
                     "type": "boolean",
                     "description": "true: check only; the answer is {ok, warnings, sections "
                     "[{key, steps, resolved}], preview_html} and nothing opens",
+                },
+                "label": {
+                    "type": "string",
+                    "description": "a statement gloss only: the statement's short name, "
+                    "shown on the problem page's drawings and panels (D-3 v3.44); at most 60 "
+                    "characters, one line, plain text with no $ (the claim, the gloss's "
+                    "opening display, carries the notation); anything else, or a label on a "
+                    "witness, relation or definition gloss, is label-invalid",
                 },
             },
             ("subject", "text", "licence"),

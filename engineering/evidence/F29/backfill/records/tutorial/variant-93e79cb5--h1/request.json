@@ -1,0 +1,13 @@
+{
+ "subject": {
+  "kind": "statement",
+  "node": "variant-93e79cb5--h1",
+  "module": null,
+  "lean_hash": "c03c6e2e82acd0e17eebe7c9919ba432a0c491f9203e40c4f69667aa5f9ba538"
+ },
+ "text": "$$\\forall\\, p\\,q:\\operatorname{Prop},\\quad p\\wedge q\\ \\Rightarrow\\ q\\wedge p$$\n\nFor any two propositions $p$ and $q$, if $p$ and $q$ both hold then $q$ and $p$ both hold. There are no other hypotheses.\n",
+ "supersedes": null,
+ "licence": "CC-BY-4.0",
+ "drafted_with": "Claude Fable 5.1 (claude-fable-5-1)",
+ "label": "Swapping a conjunction"
+}

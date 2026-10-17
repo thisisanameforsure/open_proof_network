@@ -315,6 +315,14 @@ main > .crumbs, main > h1:first-child { margin-top: calc(var(--s8) * 1.6); }
 .panels { display: flex; flex-direction: column; }
 .panel { gap: var(--s4); align-items: flex-start; }
 .panel-id { font-family: var(--mono); font-size: 18px; overflow-wrap: anywhere; }
+/* F29-T5 (R9): the panel is headed by the statement's label (its id when that is all the record
+   has, in mono as before); the id and the link to the gloss's controls sit beneath. */
+.panel-title { font-size: 19px; font-weight: 600; line-height: 1.25; overflow-wrap: anywhere; }
+.panel-title.mono { font-family: var(--mono); font-weight: 400; font-size: 18px; }
+.panel-sub { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--s2) var(--s4); margin: calc(-1 * var(--s2)) 0 0; font-size: 13px; }
+.panel-sub .panel-id { font-size: 13px; color: var(--n400); }
+.panel-rename { font-size: 12.5px; color: var(--accent-300); white-space: nowrap; }
+.node-head h1 + .panel-id { font-size: 15px; color: var(--n400); margin: 0 0 var(--s3); }
 .panel-facts { display: grid; grid-template-columns: auto 1fr; gap: var(--s2) var(--s6); font-size: 13px; width: 100%; margin: 0; }
 .panel-facts dt { color: var(--n500); }
 .panel-facts dd { margin: 0; }
@@ -1014,14 +1022,22 @@ th[aria-sort="descending"] .routes-sort::after { content: " ↓"; }
   .routes-wrap { padding: var(--s4); }
   .routes-table-wrap { overflow-x: auto; }
 }
-/* F27-T7: the set labels inside the routes drawing, one per set down its left edge. */
-.routes-svg .set-label { cursor: pointer; }
-.routes-svg .set-label rect { fill: var(--bg); stroke: var(--divider); stroke-width: 1; }
-.routes-svg .set-label text { font-family: var(--sans, inherit); font-size: 13px; }
-.routes-svg .set-label:hover rect, .routes-svg .set-label:focus-visible rect { stroke: var(--accent); }
-.routes-svg .set-label:focus { outline: none; }
-.routes-svg .set-label.selected rect { stroke: var(--accent); stroke-width: 2; fill: var(--n800, var(--bg)); }
-.routes-svg .set-label.selected text { font-weight: 600; }
+/* F27-T7, F29-T6: the "Sufficient sets" box inside the routes drawing, down its left edge: the
+   selector tree, one row per branch or set. A pressed row is outlined; a row whose sets are all
+   lit (a hover, or a leaf under a pressed branch) is tinted. */
+.routes-svg .selector-box { fill: var(--bg); stroke: var(--divider); stroke-width: 1; }
+.routes-svg .selector-head { font-family: var(--sans, inherit); font-size: 11.5px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; fill: var(--n400); }
+.routes-svg .sel-row { cursor: pointer; }
+.routes-svg .sel-row rect { fill: var(--bg); stroke: var(--divider); stroke-width: 1; transition: fill .12s, stroke .12s; }
+.routes-svg .sel-row text { font-family: var(--sans, inherit); font-size: 13px; }
+.routes-svg .sel-row.branch text { fill: var(--n300); }
+.routes-svg .sel-row .sel-words { font-size: 11.5px; fill: var(--n400); }
+.routes-svg .sel-row:hover rect, .routes-svg .sel-row:focus-visible rect { stroke: var(--accent); }
+.routes-svg .sel-row:focus { outline: none; }
+.routes-svg .sel-row.previewed rect { fill: rgba(145, 132, 217, .10); }
+.routes-svg .sel-row.selected rect { stroke: var(--accent); stroke-width: 2; fill: var(--n800, var(--bg)); }
+.routes-svg .sel-row.selected text { font-weight: 600; fill: var(--text); }
+.routes-svg .sel-row.selected .sel-words { font-weight: 400; }
 .routes-svg .swatch.set-1 { fill: var(--set-1); } .routes-svg .swatch.set-2 { fill: var(--set-2); }
 .routes-svg .swatch.set-3 { fill: var(--set-3); } .routes-svg .swatch.set-4 { fill: var(--set-4); }
 .routes-svg .swatch.set-5 { fill: var(--set-5); } .routes-svg .swatch.set-6 { fill: var(--set-6); }

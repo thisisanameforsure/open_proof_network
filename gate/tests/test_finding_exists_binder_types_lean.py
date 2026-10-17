@@ -17,7 +17,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-from harness import TARGET, make_context
+from harness import TARGET, declared, make_context
 from test_finding_hole_roundtrip_lean import ROOT, SKELETON
 
 from opn_gate import layout, pipeline
@@ -28,7 +28,7 @@ pytestmark = pytest.mark.lean
 
 #: The agent's shape in core Lean: three binders under ``∃``, one of them visible in the body only
 #: through a coercion, behind a hypothesis so the expected witness type binds them too.
-BODY = (
+BODY = declared(
     "  intro p q r h\n"
     "  have crux : ∀ b : Nat, 0 < b → ∃ N k : Nat, ∃ m : Nat, "
     "((m : Int)) * 2 ≤ (N : Int) + k := sorry\n"

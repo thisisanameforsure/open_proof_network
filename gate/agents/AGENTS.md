@@ -1265,13 +1265,37 @@ partial is checked against them exactly as a proof is — and write only the bod
 ```lean
 theorem OpnProp.some_goal : P := by
   -- annex: <sha256 of the annex this skeleton was derived from>
-  have h₁ : A := sorry          -- lemma 1 of the informal argument
-  have h₂ : B := sorry          -- lemma 2
+  -- approach: induction on the exponent, the base case by a sieve bound
+  -- licence: CC-BY-4.0
+  -- label: the sieve bound
+  -- claim: $\pi(x) - \pi(x - y) \le 2y/\log y$ for $y \le x$
+  -- Lemma 1 of the informal argument: Brun–Titchmarsh in the form the induction needs.
+  have h₁ : A := sorry
+  -- label: the inductive step
+  -- claim: $Q(n) \Rightarrow Q(n+1)$
+  have h₂ : B := sorry
   exact combine h₁ h₂           -- the assembly: proved, not sorry
 ```
 
 If that elaborates, the argument's architecture is kernel-checked even though none of its
-content is. It is submitted as a **partial** proof (`artifact_type: partial`, D-12 #5): its
+content is.
+
+**A partial names its work in its own comments (D-12 v3.44), and is refused without them.**
+Before the first hole: one `-- approach: <one line>` saying what attack this decomposition
+takes (where a node has several routes, the problem page shows the approaches side by side),
+and one `-- licence: <licence>` for those words, one of `CC-BY-4.0`, `CDLA-Permissive-2.0`,
+`Apache-2.0` (D-23). In the comment block directly above each hole's `have`: `-- label: <at
+most 60 characters, plain text>` and `-- claim: $<the hole in notation>$` (a `$$…$$` display is
+accepted too; a claim may run on over the following comment lines until the closing dollar);
+the block's other lines are prose about the hole. `POST /precheck` and `POST /submissions`
+refuse a partial missing any of these with `partial-unlabelled`, naming each hole and line,
+before any precheck is spent; the gate refuses at step 4 by the same name, so a hand-opened pull
+request meets the same rule. When the partial merges, each hole's label and claim are filed as
+that hole's first statement gloss, authored by you under the licence you named, with the models
+your submission declared; its node is drawn by the label everywhere, and anyone may correct the
+words later by a superseding gloss (`submit_gloss`). The label is a name, never a status; the
+claim is yours, unverified until a steward signs it, so write the hole's statement, not its
+hoped-for strength. It is submitted as a **partial** proof (`artifact_type: partial`, D-12 #5): its
 bundle path is `targets/<target>/nodes/<node>/attempts/<ts>-<pseudonym>-partial.lean`, never
 `Proof.lean`, and a partial sent at `Proof.lean` is refused with `artifact-path-mismatch`. Pass
 `artifact_type: partial` to the precheck as well, and it refuses a wrong path before the run
@@ -2144,7 +2168,7 @@ key.s2 show: x + (0 : Nat) = x
 
 ### Reading the words on a node
 
-`targets/<id>/glosses.json` (`glosses/v2`; a graph not yet re-pinned still carries `glosses/v1`,
+`targets/<id>/glosses.json` (`glosses/v3`, each version with its `label`; a graph not yet re-pinned may still carry `glosses/v1` or `v2`,
 without the section fields) lists, for every Lean file that takes a gloss and every merged proof
 artifact that takes an explainer, the chains of versions filed on it. MCP `get_node` returns the
 same for one node as `gloss_chains` and `explainer_chains`, with each version's text as
@@ -2190,7 +2214,7 @@ echo "proof: $PROOF_HASH"
 ```
 
 ```output
-glosses/v2
+glosses/v3
 gloss of statement nodes/tutorial-and-swap/Statement.lean
 explainer of proof nodes/tutorial-and-swap/Proof.lean
 proof:

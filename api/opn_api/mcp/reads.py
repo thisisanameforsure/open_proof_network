@@ -377,6 +377,8 @@ async def list_sufficient_sets(call: Call, args: dict[str, Any]) -> dict[str, An
         "read_at": ctx.head or ctx.settings.graph_branch,
         **found.as_dict(),
         "closable": closable,
+        # F29-R8 (D-25 v3.44): the selector tree over the sets, built from them alone (R6)
+        "selector": routes.selector_tree(found).as_dict(),
     }
 
 
@@ -636,6 +638,35 @@ PROSE_SECTIONS: tuple[str, ...] = (
 CHAIN_SECTIONS = frozenset({"outlines", "gloss_chains", "explainer_chains"})
 
 
+def node_labels(ctx: Context, target_id: str, node_id: str) -> dict[str, Any]:
+    """F29-R8: ``label``, ``label_source`` and ``claim`` from the node's ``graph.json`` row
+    (graph/v12, F29-R3). On an older product, or a row without them: the id, ``id``, null.
+    Read from the product, never from ``CONTEXT.json`` (its two builders must agree, F10-Q7)."""
+    graph = document(ctx, f"targets/{target_id}/graph.json")
+    row = next(
+        (
+            n
+            for n in graph.get("nodes") or []
+            if isinstance(n, dict) and n.get("node_id") == node_id
+        ),
+        {},
+    )
+    label = row.get("label")
+    source = row.get("label_source")
+    claim = row.get("claim")
+    if not isinstance(label, str) or not label or source not in LABEL_SOURCES:
+        label, source = node_id, "id"
+    return {
+        "label": label,
+        "label_source": source,
+        "claim": claim if isinstance(claim, str) and claim else None,
+    }
+
+
+#: graph/v12's ``label_source`` values (D-25 v3.44).
+LABEL_SOURCES: frozenset[str] = frozenset({"gloss", "hole", "target", "id"})
+
+
 async def get_node(call: Call, args: dict[str, Any]) -> dict[str, Any]:
     node_id = check_id(args.get("node_id"), "node_id")
     # T19: every prose section unless the caller names the ones it wants (the owner's ruling:
@@ -664,6 +695,10 @@ async def get_node(call: Call, args: dict[str, Any]) -> dict[str, Any]:
     out: dict[str, Any] = {
         "node_id": node_id,
         "target_id": target_id,
+        # F29-R8 (D-3, D-25 v3.44): the node's label, where it came from and its claim, as
+        # graph.json carries them (R3); a product rendered before v3.44 has none, and the
+        # answer falls back as the generator would with nothing on the record: the id.
+        **node_labels(call.ctx, target_id, node_id),
         "context": bundle,
         "context_source": source,
         "closing": closing_route(node_id, files.get("Statement.lean")),
@@ -753,7 +788,7 @@ async def get_schema(call: Call, args: dict[str, Any]) -> dict[str, Any]:
     tool = results.tool_of(name)
     if tool is not None:
         try:
-            return results.load(tool)
+            return results.load(tool, results.version_named(name))
         except KeyError as exc:
             raise error("not-found", f"no adapter schema {name}", "adapter") from exc
     if not SCHEMA_NAME_RE.match(name):
@@ -855,7 +890,7 @@ WORD_KINDS: tuple[str, ...] = (
 
 
 #: The products ``glosses.needed`` reads: the live graph holds v1 until its re-pin (F21-R6).
-GLOSSES_VERSIONS = frozenset({"glosses/v1", "glosses/v2"})
+GLOSSES_VERSIONS = frozenset({"glosses/v1", "glosses/v2", "glosses/v3"})
 
 
 class _UnreadError(Exception):
@@ -1036,9 +1071,11 @@ TOOLS: tuple[Tool, ...] = (
         "A node's context bundle (nodes/<id>/CONTEXT.json: statement, deps' signatures, witness, "
         "status, gate-spec reference, attempt log, annex hashes) plus the raw Lean files, live "
         "claim status, `lemmas` (results from other branches this node may use once proved), "
+        "its `label` (the statement's short name, with `label_source`: gloss, hole, target or "
+        "id) and `claim` (the statement in notation from its gloss, or null), "
         "annexes, explainers and the submissions open on it. `include` names the prose sections "
         "to answer (all of them when omitted); `include: []` answers the Lean, the context, the "
-        "claims, the lemmas and the open submissions alone.",
+        "claims, the lemmas, the label and the open submissions alone.",
         params(
             {
                 "node_id": ID_PARAM,
@@ -1275,15 +1312,17 @@ TOOLS: tuple[Tool, ...] = (
     Tool(  # F27-T2: D-28's read table, v3.40
         "list_sufficient_sets",
         "A target as an AND-OR graph (D-25 v3.40). `routes`: each merged decomposition "
-        "(id `<node>@<k>`), all of whose holes are needed, with each hole's status, attempts and "
-        "refuted route classes and a `summary` (holes, proved, open, dead, attempts, "
-        "unattempted, `oldest_open_since`), so a stalled route shows. `sets`: statements whose "
-        "proofs, with the closing proofs of their `assemblies`, would close the root; each with "
-        "`open`, `proved`, `routes`, `total`, `closed`, `remaining`, `shared`. `cut: finest` "
-        "(default) expands every node with a live route; `cut: any` adds the coarser cuts up to "
-        "a cap (`truncated`). Record order, never ranked. Whether to claim a hole or propose a "
-        "route (propose_variant, propose_speculative_node) is the operator's choice. "
-        "Plain path: targets/<id>/graph.json + GET /frontier.json.",
+        "(id `<node>@<k>`), all of whose holes are needed, with its `approach` (the partial's "
+        "one-line attack), each hole's `label`, status, attempts and refuted route classes, "
+        "and a `summary` (holes, proved, open, dead, attempts, unattempted, "
+        "`oldest_open_since`). `sets`: statements whose proofs, with the closing proofs of "
+        "their `assemblies`, would close the root; each with `open`, `proved`, `routes`, "
+        "`total`, `closed`, `remaining`, `shared`. `selector`: the tree of route choices over "
+        "the sets (an interior node names the statement chosen on, each child its route; a "
+        "leaf is one set). `cut: finest` (default) expands "
+        "every node with a live route; `cut: any` adds the coarser cuts up to a cap "
+        "(`truncated`). Record order, never ranked; claiming a hole or proposing a route is "
+        "the operator's choice. Plain path: targets/<id>/graph.json + GET /frontier.json.",
         params(
             {
                 "target_id": ID_PARAM,

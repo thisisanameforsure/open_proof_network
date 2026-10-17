@@ -50,9 +50,13 @@ def test_list_sufficient_sets_round_trip(harness: Harness) -> None:
 
     got = client.ok("list_sufficient_sets", {"target_id": TARGET})
     assert results.violations("list_sufficient_sets", got) == []
-    expected = routes.read(graph, served_entries(client)).as_dict()
-    assert {k: v for k, v in got.items() if k not in {"read_at", "closable"}} == expected
+    found = routes.read(graph, served_entries(client))
+    expected = found.as_dict()
+    assert {
+        k: v for k, v in got.items() if k not in {"read_at", "closable", "selector"}
+    } == expected
     assert got["closable"] == [c.as_dict() for c in closing.closable(graph)]
+    assert got["selector"] == routes.selector_tree(found).as_dict()  # F29-T4
     assert got["cut"] == "finest"
     assert len(got["routes"]) == 16
     assert len(got["sets"]) == 4  # every full expansion (F27-T7)

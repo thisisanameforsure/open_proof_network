@@ -1,0 +1,13 @@
+{
+ "subject": {
+  "kind": "statement",
+  "node": "erdos-1094--h3--h1--h1--h1--h2",
+  "module": null,
+  "lean_hash": "3eed3917e2d4616512988e34f3519054d3c41e40d5a57cfdcdb9a1ab2d75f591"
+ },
+ "text": "$$\\exists K_2\\ \\forall n,k\\in\\mathbb{N}:\\quad K_2<k,\\ \\ 2k\\le n<k^2,\\ \\ 2\\mid k,\\ \\ 3\\mid k,\\ \\ 5\\nmid k,\\ \\ k \\bmod 5 \\le n \\bmod 5 \\implies \\exists\\,p\\le k \\text{ prime with } n \\bmod p < k \\bmod p$$\n\nFor all large $k$ divisible by $6$ but not by $5$, every $n$ with $2k\\le n<k^2$ whose residue mod $5$ is at least that of $k$ (so $p=5$ itself gives no carry) has a prime $p\\le k$ whose residue of $n$ is smaller than its residue of $k$. Lean writes $5\\nmid k$ as `0 < k % 5` and $k^2$ as `k * k`. `n % p` is the least non-negative residue, so the condition reads $n \\bmod p < k \\bmod p$, a carry at the last base-$p$ digit when $k$ is subtracted from $n$ (hence $p \\mid \\binom{n}{k}$ by Kummer's theorem, though the statement names no binomial coefficient).\n",
+ "supersedes": null,
+ "licence": "CC-BY-4.0",
+ "drafted_with": "Claude Fable 5.1 (claude-fable-5-1)",
+ "label": "Residue form, 6 | k, 5 ∤ k, no carry at 5"
+}

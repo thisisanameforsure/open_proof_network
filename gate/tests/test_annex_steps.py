@@ -18,9 +18,9 @@ import pytest
 import samples
 import yaml
 from fakes import FakeToolchain, artifact_result
-from harness import TARGET, copy_graph, node_dir
+from harness import TARGET, copy_graph, declared, node_dir
 from test_decompositions import HOLE_IDS, add_hole, merged_partial
-from test_partial import HOLES, WITNESS, cite, partial_context
+from test_partial import BODY, HOLES, WITNESS, cite, partial_context
 from test_products import ROOT_NODE, nodes_dir
 
 from opn_gate import annex, graph, modes, postmerge, products, schemas
@@ -127,6 +127,17 @@ def test_every_missing_hole_is_named_in_extraction_order(tmp_path: Path) -> None
     ctx, stamp = partial_context(tmp_path, toolchain=fake)
     digest = place_annex(node_dir(ctx), stepped("a", "z"))
     cite(ctx, stamp, digest)
+    # F29-R5: step 4 holds the extractor's hole names to the declaration rule before the annex
+    # rule, so the assembly on disk names and declares the holes the fake reports.
+    path = node_dir(ctx) / "attempts" / stamp
+    named = declared(
+        "  intro p q r h\n"
+        "  have c : True := sorry\n"
+        "  have a : True := sorry\n"
+        "  have b : True := sorry\n"
+        "  exact ⟨h.2, ⟨h.1.2, h.1.1⟩⟩\n"
+    )
+    path.write_text(path.read_text(encoding="utf-8").replace(BODY, named), encoding="utf-8")
     verdict = pipeline.run_steps(ctx)
     assert verdict.diagnostic is not None and verdict.diagnostic.code == "annex-step-missing"
     assert verdict.diagnostic.details["missing"] == ["c", "b"]

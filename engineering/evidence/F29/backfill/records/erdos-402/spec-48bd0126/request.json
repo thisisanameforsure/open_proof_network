@@ -1,0 +1,13 @@
+{
+ "subject": {
+  "kind": "statement",
+  "node": "spec-48bd0126",
+  "module": null,
+  "lean_hash": "c015ba04387e53ddc0c60934f838fdbf0b231b4d443a4a7fb75b40f0953c0cbd"
+ },
+ "text": "$$\\forall n \\in \\mathbb{N},\\ \\forall A \\subset \\mathbb{N}\\ \\text{finite}\\ \\text{nonempty},\\ M = \\max A:\\ 0 \\notin A,\\ \\bigl(\\forall x \\in A,\\ M < \\gcd(M, x) \\cdot n\\bigr) \\Rightarrow \\forall x \\in A \\setminus \\{M\\}\\ \\exists\\, j, k \\in \\mathbb{N}:\\ 1 \\le j < k < n,\\ k x = j M$$\n\nFor a finite nonempty set A of positive integers with largest element M and any n ∈ ℕ: if M < n·gcd(M, x) for every x ∈ A, then every element other than M is (j/k)·M for some 1 ≤ j < k < n, written as the equation k·x = j·M over ℕ.\n",
+ "supersedes": null,
+ "licence": "CC-BY-4.0",
+ "drafted_with": "Claude Fable 5.1 (claude-fable-5-1)",
+ "label": "Max-fraction form of the elements below max A"
+}

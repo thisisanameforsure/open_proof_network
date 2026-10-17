@@ -1,0 +1,13 @@
+{
+ "subject": {
+  "kind": "statement",
+  "node": "erdos-1050--h1-v2",
+  "module": null,
+  "lean_hash": "6bf5394c24b826382dac374a04979a068af8b3f3042f6e0725a6897d7d7598f3"
+ },
+ "text": "$$\\exists\\, a,b:\\mathbb{N}\\to\\mathbb{Z}\\ \\ \\bigl(\\forall n\\in\\mathbb{N},\\ b_n\\,T-a_n\\neq 0\\bigr)\\ \\wedge\\ \\lim_{n\\to\\infty}\\bigl(b_n\\,T-a_n\\bigr)=0,\\qquad T=\\sum_{m=0}^{\\infty}\\frac{1}{2^{m+3}-3}$$\n\nThere are two sequences of integers $a_n$, $b_n$ such that $b_n T - a_n$ is never zero and converges to $0$ in $\\mathbb{R}$ (`Filter.Tendsto … Filter.atTop (nhds 0)`), where $T$ is the real number $\\sum_{m\\ge 0} 1/(2^{m+3}-3) = \\tfrac15+\\tfrac1{13}+\\tfrac1{29}+\\cdots$. The sum is Lean's `∑'` over all natural numbers (the file also calls the summation variable `n`; it is a separate bound variable), which is $0$ for a non-summable family, and $a_n$, $b_n$ are read as real numbers; no hypothesis is assumed and irrationality is not mentioned.\n",
+ "supersedes": "181e0dc24de276250b569be24195d8b6c08a93a47d40b0e65b8f38c3936d2b97",
+ "licence": "CC-BY-4.0",
+ "drafted_with": "Claude Fable 5.1 (claude-fable-5-1)",
+ "label": "Borwein approximants to T"
+}

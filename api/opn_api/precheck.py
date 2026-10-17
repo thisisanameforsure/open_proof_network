@@ -688,6 +688,9 @@ async def post_precheck(ctx: Context, request: Request) -> Response:
     if artifact_type is not None:
         # A precheck that the submission would refuse by path is refused before it costs a job.
         submissions.check_artifact_path(claim, bundle.files, artifact_type)
+    # F29-R5: a partial without its declarations is refused before the job exists or anything
+    # further is read from the host.
+    submissions.check_declarations(bundle.files, artifact_type)
     # F07-R23: and so is a carried witness step 2 would refuse, whatever type was declared.
     carried = submissions.check_carried(claim, bundle.files)
     # F08-R21 (T26): and a use line step 2 would refuse, by the gate's code, on a target whose

@@ -33,8 +33,10 @@ BASELINE = json.loads(
     (Path(__file__).parent / "panel_summary_baseline.json").read_text(encoding="utf-8")
 )
 #: Visible words (outside closed details) on today's panel, measured on this tree before the
-#: change (task-48.txt): root 345, first hole 181, second hole 104. The budget is half.
-BUDGET = {sf.ROOT: 172, sf.H1: 90, sf.H2: 52}
+#: change (task-48.txt): root 345, first hole 181, second hole 104. The budget is half, plus
+#: the four words of the heading line F29-T5 (R9) added: the id beneath the label and the
+#: "Rename or correct" link to the gloss's controls.
+BUDGET = {sf.ROOT: 176, sf.H1: 94, sf.H2: 56}
 SECTIONS = ("claim", "how", "known", "work")
 
 

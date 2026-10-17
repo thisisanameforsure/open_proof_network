@@ -42,6 +42,37 @@ def proof_only_changes(node_id: str = TUTORIAL) -> list[Change]:
     return [Change("A", f"targets/{TARGET}/nodes/{node_id}/Proof.lean")]
 
 
+def declared(
+    text: str, *, approach: str = "the fixture's route", licence: str = "CC-BY-4.0"
+) -> str:
+    """F29-R5 (D-12 v3.44): ``text`` — a partial, or the body fragment of one — with the
+    declarations step 4 now asks of every partial filled in wherever they are missing: a
+    ``-- label:``/``-- claim:`` block above each hole the scan sees, named after the hole, and
+    one ``-- approach:``/``-- licence:`` pair above the first hole. Comments are inert to Lean,
+    so a fixture labelled this way means what it meant; a test about the words themselves writes
+    its own."""
+    from opn_gate import labels  # noqa: PLC0415 — the harness is imported before the gate is
+
+    lines = text.splitlines(keepends=True)
+    found = labels.declarations(text)
+    holes = sorted(found.holes.values(), key=lambda h: h.line)
+    for h in reversed(holes):
+        idx = h.line - 1
+        indent = lines[idx][: len(lines[idx]) - len(lines[idx].lstrip())]
+        block = []
+        if h is holes[0]:
+            if not found.approach:
+                block.append(f"{indent}-- approach: {approach}\n")
+            if not found.licence:
+                block.append(f"{indent}-- licence: {licence}\n")
+        if not h.label:
+            block.append(f"{indent}-- label: {h.name}\n")
+        if not h.claim:
+            block.append(f"{indent}-- claim: ${h.name}$\n")
+        lines[idx:idx] = block
+    return "".join(lines)
+
+
 def make_context(
     tmp_path: Path,
     *,

@@ -17,6 +17,7 @@ from pathlib import Path
 import pytest
 import yaml
 from fakes import FakeToolchain, artifact_result, witness_result
+from harness import declared
 from test_cli_sandboxed import NODES, Seam, git_repo, run
 
 from opn_gate import cli, layout, schemas, submission
@@ -25,11 +26,11 @@ from opn_gate.paths import Change
 ROOT = "and-swap-reassoc"
 TARGET = "propositional"
 STAMP_FILE = "20260912T100000Z-someone-partial.lean"
-BODY = """  intro p q r h
+BODY = declared("""  intro p q r h
   have right : r := sorry
   have left : q ∧ p := sorry
   exact ⟨right, left⟩
-"""
+""")
 HOLES = [
     ("right", "∀ (p q r : Prop), (p ∧ q) ∧ r → r", False),
     ("left", "∀ (p q r : Prop), (p ∧ q) ∧ r → r → q ∧ p", False),
