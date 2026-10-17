@@ -1,0 +1,83 @@
+# F29-T2 — the gate: step 4 refuses `partial-unlabelled` (R5, AC8); the hole writer files each
+# child's gloss (R7, AC9); coverage counts the statements without a label (R11).
+# Branch f29-t2-gate on f29-labels (b1d1fb75), 2026-10-17. Fast tier only on this laptop; the
+# lean and docker tiers were collected (53 tests), not run.
+#
+# Every command below is prefixed `uv run --project /Users/mikehiggins/Desktop/repos/open_proof_network --frozen`.
+
+## Red 1 — step 4 (the seam `check(..., partial_text=)` added at today's behaviour first, so the
+## failures are the defect, not a missing name)
+$ pytest gate/tests/test_finding_partial_unlabelled_gate.py -q -p no:cacheprovider -m "not lean and not docker"
+>       assert found is not None and failure is not None and failure.diagnostic is not None
+E       AssertionError: assert (Artifact(kind='partial', ...) is not None and None is not None)
+gate/tests/test_finding_partial_unlabelled_gate.py:113: AssertionError
+____________________ test_the_code_is_catalogued_at_step_4 _____________________
+>       row = codes.CATALOG["partial-unlabelled"]
+E       KeyError: 'partial-unlabelled'
+FAILED gate/tests/test_finding_partial_unlabelled_gate.py::test_an_unlabelled_partial_is_refused_naming_each_hole
+FAILED gate/tests/test_finding_partial_unlabelled_gate.py::test_the_extractors_hole_names_are_the_ones_held_to_the_rule
+FAILED gate/tests/test_finding_partial_unlabelled_gate.py::test_the_refusal_sits_after_hole_unnamed_and_before_partial_without_holes
+FAILED gate/tests/test_finding_partial_unlabelled_gate.py::test_step_4_reads_the_assembly_step_2_recorded
+FAILED gate/tests/test_finding_partial_unlabelled_gate.py::test_the_code_is_catalogued_at_step_4
+5 failed, 3 passed in 154.69s (0:02:34)
+
+## Red 2 — the hole writer (`PartialMerge.glosses` added at today's behaviour first; failed on
+## zero gloss files written)
+$ pytest gate/tests/test_finding_hole_gloss_filed.py -q -p no:cacheprovider -m "not lean and not docker"
+>       assert len(merged.glosses) == 1 and merged.glosses[0].startswith(f"nodes/{H2}/gloss/")
+E       AssertionError: assert (0 == 1)
+E        +  where 0 = len(())
+>       text = gloss_files(root, H1)[0].read_text(encoding="utf-8")
+E       IndexError: list index out of range
+FAILED gate/tests/test_finding_hole_gloss_filed.py::test_each_created_child_carries_one_gloss_the_gate_accepts
+FAILED gate/tests/test_finding_hole_gloss_filed.py::test_the_written_paths_are_on_the_merge_record
+FAILED gate/tests/test_finding_hole_gloss_filed.py::test_the_products_read_the_label_from_the_gloss
+FAILED gate/tests/test_finding_hole_gloss_filed.py::test_a_hole_that_became_an_existing_node_gets_no_gloss
+FAILED gate/tests/test_finding_hole_gloss_filed.py::test_the_yaml_style_is_the_services
+5 failed, 2 passed in 130.05s (0:02:10)
+(The two that passed pin what must not change: no declarations, or a licence the network does
+not accept, files nothing.)
+
+## Red 3 — coverage
+$ pytest gate/tests/test_gloss_coverage.py -q -p no:cacheprovider -m "not lean and not docker" -k label
+>       assert by_file[f"{base}/{HOLE}/Statement.lean"]["label"] == "the hole"
+E       KeyError: 'label'
+FAILED gate/tests/test_gloss_coverage.py::test_coverage_counts_the_statements_without_a_label
+1 failed, 5 deselected in 0.31s
+
+## First green attempt, and what it found
+The task's verification set went 11 failed / 83 passed: the diagnostic's details key `problems`
+collided with `StepResult.failed(..., problems=[every message])` in `artifact.run` (TypeError), and
+the step-4 rule refused every fixture partial in the suite, because none declares anything. A
+reach measurement over every fast-tier file that drives the pipeline on a partial:
+  43 failed, 229 passed — all 43 `partial-unlabelled` (two of them tests expecting a *later*
+  refusal, `annex-step-missing` and `witness-type-mismatch`, that now met this one first).
+Fixes: details key renamed `missing`; `harness.declared(text)` labels a fixture partial; applied
+at 6 fast-tier sites and 17 lean/docker-tier sites (12 files); two tests whose fake extractor
+names holes the text does not have now write an assembly naming those holes. One contract
+defect found on the way: `labels._HAVE_RE` could not see a bulleted hole (`· have … := sorry`),
+so such a partial could never be declared; probe:
+  declarations(bulleted).holes == {} ; problems(..., hole_names=['third']) -> approach, licence, label, claim
+Fixed in labels.py, tested in test_finding_partial_unlabelled_gate.py.
+
+## Reach set after the fixes (every fast-tier file that merges a partial, plus products/labels)
+$ pytest gate/tests/test_finding_partial_unlabelled_gate.py gate/tests/test_finding_hole_gloss_filed.py gate/tests/test_gloss_coverage.py gate/tests/test_postmerge_apply.py gate/tests/test_postmerge.py gate/tests/test_error_codes.py gate/tests/test_artifacts.py gate/tests/test_alternate.py gate/tests/test_annex_steps.py gate/tests/test_finding_hole_restates_ancestor.py gate/tests/test_finding_lemma_standing.py gate/tests/test_finding_meaning_every_proof.py gate/tests/test_finding_partial_carries_witnesses.py gate/tests/test_partial.py gate/tests/test_uses_defs.py gate/tests/test_uses_nodes.py gate/tests/test_finding_duplicate_hole.py gate/tests/test_finding_witness_slot.py gate/tests/test_finding_witness_slot_header.py gate/tests/test_finding_ledger_credits_merges.py gate/tests/test_labels.py gate/tests/test_decompositions.py gate/tests/test_products.py -q -p no:cacheprovider -m "not lean and not docker"
+366 passed, 1 skipped in 62.00s (0:01:01)
+
+$ pytest --collect-only -q -p no:cacheprovider <the 12 lean/docker files edited>
+53 tests collected in 0.76s
+
+$ pytest api/tests/test_mcp_words_needed.py api/tests/test_dco.py api/tests/test_finding_error_catalog.py -q -p no:cacheprovider -m "not lean and not docker"
+27 passed, 2 warnings in 15.99s
+
+## Final run — the task's verification command
+$ pytest gate/tests/test_finding_partial_unlabelled_gate.py gate/tests/test_finding_hole_gloss_filed.py gate/tests/test_gloss_coverage.py gate/tests/test_postmerge_apply.py gate/tests/test_postmerge.py gate/tests/test_error_codes.py gate/tests/test_artifacts.py -q -p no:cacheprovider -m "not lean and not docker"
+...................................................................s.... [ 75%]
+........................                                                 [100%]
+SKIPPED [1] gate/tests/test_postmerge.py:655: .../open_proof_network_graph/.github/workflows/gate.yml is not checked out beside this repo
+95 passed, 1 skipped in 33.80s
+exit=0
+
+$ ruff check .          -> All checks passed!
+$ ruff format .         -> 868 files left unchanged
+$ mypy gate             -> Success: no issues found in 427 source files

@@ -32,7 +32,7 @@ from pathlib import Path
 import pytest
 import yaml
 from fakes import LIBRARY_CONSTANTS, FakeToolchain, artifact_result, used_constants_result
-from harness import TARGET, copy_graph, make_context
+from harness import TARGET, copy_graph, declared, make_context
 from test_curator import DATE, NEW_STATEMENT, attest_proved, write_request
 
 from opn_gate import cache, curator, graph, layout, paths, pipeline, products, scaffold, uses
@@ -303,7 +303,7 @@ def test_an_alternate_and_a_partial_may_use_a_proved_node(tmp_path: Path) -> Non
         use_line(TUTORIAL)
         + "\n"
         + st.prefix
-        + " by\n  intro p q r h\n  have h : p ∧ q ∧ r := sorry\n  exact h\n",
+        + declared(" by\n  intro p q r h\n  have h : p ∧ q ∧ r := sorry\n  exact h\n"),
         encoding="utf-8",
     )
     ctx2.changes = [Change("A", f"targets/{TARGET}/nodes/{INTERIOR}/{rel2}")]

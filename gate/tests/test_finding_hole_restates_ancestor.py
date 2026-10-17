@@ -31,7 +31,7 @@ from pathlib import Path
 import pytest
 import yaml
 from fakes import FakeToolchain, artifact_result, witness_result
-from harness import TARGET, TUTORIAL, make_context
+from harness import TARGET, TUTORIAL, declared, make_context
 
 from opn_gate import curator, judging, layout, pipeline
 from opn_gate.paths import Change
@@ -105,7 +105,7 @@ def leaf_partial(tmp_path: Path, fake: FakeToolchain) -> RunContext:
     leaf = add_node(nodes, LEAF, LEAF_STATEMENT, deps=[])
     set_deps(nodes, PARENT, [LEAF])
     head, _, _ = LEAF_STATEMENT.partition(":= by\n  sorry")
-    body = (
+    body = declared(
         f"  have up : {ROOT_TYPE} := sorry\n"
         "  have fresh : ∀ p q : Prop, p ∧ q → p ∧ True := sorry\n"
         "  intro p q h\n  exact (fresh p q h).1\n"
