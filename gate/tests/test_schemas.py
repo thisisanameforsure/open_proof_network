@@ -64,11 +64,13 @@ def test_known_schemas_are_the_published_set() -> None:
         "gloss-signature/v3",  # F23-T1
         "gloss/v1",
         "gloss/v2",
+        "gloss/v3",  # F29-T1 (D-3 v3.44): label
         "glosses/v1",
         "glosses/v2",
         "graph/v1",
         "graph/v10",  # F28-T8 (D-12 v3.42): each node's closure
         "graph/v11",  # F08-T42 (D-12 v3.43): no circular
+        "graph/v12",  # F29-T1 (D-25 v3.44): label, label_source, claim; approach
         "graph/v2",
         "graph/v3",
         "graph/v4",

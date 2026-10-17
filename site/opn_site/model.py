@@ -71,6 +71,7 @@ PRODUCT_SCHEMAS: dict[str, tuple[str, ...]] = {
         "graph/v9",  # F26-R17 (D-9 v3.39): the review's state and the open pair directions
         "graph/v10",  # F28-T8 (D-12 v3.42): each node's closure
         "graph/v11",  # F08-T42 (D-12 v3.43): circular retired; the site ignores it on v6-v10
+        "graph/v12",  # F29-T1 (D-25 v3.44): label, label_source, claim; approach
     ),
 }
 log = logging.getLogger(__name__)

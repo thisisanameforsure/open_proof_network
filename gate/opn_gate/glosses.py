@@ -43,7 +43,7 @@ log = logging.getLogger(__name__)
 SCHEMA = "gloss/v1"
 #: Every gloss record version the gate reads, each validated against its own ``schema`` (D-34):
 #: v2 adds ``drafted_with`` (F21-R6; D-3 v3.31, D-23).
-SCHEMAS: frozenset[str] = frozenset({"gloss/v1", "gloss/v2"})
+SCHEMAS: frozenset[str] = frozenset({"gloss/v1", "gloss/v2", "gloss/v3"})
 GLOSS_DIR = "gloss"
 #: The Lean file a node-level gloss of each kind describes (R1).
 KIND_FILES: dict[str, str] = {
@@ -273,6 +273,9 @@ class Version:
     #: F21-R6 (D-23): the model a contributor's agent drafted with, in their words; ``None`` for
     #: a person's own writing and for every v1 record.
     drafted_with: str | None = None
+    #: F29-R1 (D-3 v3.44): a statement gloss's label, the statement's short name; ``None`` on a
+    #: gloss that names none and on every v1 and v2 record.
+    label: str | None = None
 
     @property
     def by_model(self) -> bool:
@@ -367,6 +370,7 @@ def gloss_version(path: Path, doc: dict[str, Any]) -> Version:
         schema=str(doc["schema"]),
         lean_hash=str(subject["lean_hash"]),
         drafted_with=doc.get("drafted_with"),
+        label=doc.get("label"),
     )
 
 

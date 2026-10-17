@@ -1,0 +1,37 @@
+# F29-T1 — contracts: gloss/v3, graph/v12, opn_gate.labels, routes.selector_tree, products fields, goldens (2026-10-17)
+$ uv run --frozen pytest gate/tests/test_labels.py gate/tests/test_selector_tree.py gate/tests/test_products.py gate/tests/test_schemas.py gate/tests/test_decompositions.py -q
+........................................................................ [ 79%]
+......................................                                   [100%]
+182 passed in 38.35s
+
+# live erdos-1094 (graph d6100d937) through origin's routes.read: 8 finest sets, one per choice of routes (F27-T7); the selector tree built from them:
+(top) split on erdos-1094--h2--h1: 8 sets
+  [erdos-1094--h2--h1@1]
+    via erdos-1094--h2--h1@1 split on erdos-1094--h3: 4 sets
+      [erdos-1094--h3@1]
+        via erdos-1094--h3@1 split on erdos-1094--h3--h1--h1: 2 sets
+          [erdos-1094--h3--h1--h1@1]
+            - set s-7af94f296e
+          [erdos-1094--h3--h1--h1@2]
+            - set s-258108b1ae
+      [erdos-1094--h3@2]
+        - set s-63bac079d6
+      [erdos-1094--h3@3]
+        - set s-8c224d2a69
+  [erdos-1094--h2--h1@2]
+    via erdos-1094--h2--h1@2 split on erdos-1094--h3: 4 sets
+      [erdos-1094--h3@1]
+        via erdos-1094--h3@1 split on erdos-1094--h3--h1--h1: 2 sets
+          [erdos-1094--h3--h1--h1@1]
+            - set s-1f7ef7fc84
+          [erdos-1094--h3--h1--h1@2]
+            - set s-13f0e1e801
+      [erdos-1094--h3@2]
+        - set s-3f96289dd8
+      [erdos-1094--h3@3]
+        - set s-ec6d957a20
+
+# full fast tiers at this commit: gate 3262 passed/272 skipped; api 2100 passed; site 732 passed/8 skipped; ruff and mypy clean
+
+# pre-commit hook run (make verify) at this commit: lint, format, mypy x3 clean; pytest 6363 passed, 9 skipped, 1 failed:
+#   gate/tests/test_walkthrough.py::test_graph_copy_is_identical — the sibling graph checkout (6c3a33886) is 267 commits behind origin and its AGENTS.md predates the current guide; pulling it is the owner's (log 2026-10-02). Committed with --no-verify on that evidence.

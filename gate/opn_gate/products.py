@@ -36,6 +36,7 @@ from opn_gate import (
     formalizations,
     glosses,
     intake,
+    labels,
     layout,
     panel,
     paths,
@@ -64,7 +65,7 @@ from opn_gate.toolchain import ResolvedToolchain, Toolchain, UsedConstantsReques
 log = logging.getLogger(__name__)
 
 #: docs/architecture_decisions.html (v3.43: circularity retired; v3.42: proved by closure)
-PROTOCOL_VERSION = "3.43"
+PROTOCOL_VERSION = "3.44"
 #: F08-T42 (D-12 v3.43): graph/v11 drops ``circular``, the retired circularity label.
 #: F03-T20 (D-12 v3.38): graph/v8 carries ``lemmas``, the nodes under other branches a merged
 #: partial restated as holes, and a decomposition's hole may resolve to one. v7 (F25-R7, D-10
@@ -73,7 +74,7 @@ PROTOCOL_VERSION = "3.43"
 #: F08-T27, F18; v3: F12-R13.
 #: v11 (F08-T42, D-12 v3.43): no circular; v10 (F28-T8, D-12 v3.42): closure; v9 (F26-R17):
 #: review state and open pairs; v8: lemmas
-GRAPH_SCHEMA = "graph/v11"
+GRAPH_SCHEMA = "graph/v12"  # F29-T1 (D-25 v3.44): label, label_source, claim; approach
 #: F03-T18 (D-12 v3.35): frontier/v5 repeats graph/v6's three fields on every entry, and a node
 #: under a circularity claim is an entry on its status alone; v4 (T16): status, cause, needs;
 #: v3 (T7): partials; v2: D-33 dormancy. F08-T42 (D-12 v3.43): frontier/v6 drops ``circular``.
@@ -557,6 +558,16 @@ def decompositions_of(tg: TargetGraph, node_id: str) -> list[dict[str, Any]]:
             )
         except postmerge.MalformedCitationError:
             annex = None  # step 2 refuses one, so a merged partial cannot carry it
+        # F29-R4 (D-12 v3.44): the route's approach — the partial's own line, else what an older
+        # partial's leading comment or its annex says.
+        annex_text: str | None = None
+        if annex is not None and (node.path / "annex" / f"{annex}.md").is_file():
+            annex_text = (node.path / "annex" / f"{annex}.md").read_text(encoding="utf-8")
+        approach = (
+            labels.approach_of(file.read_text(encoding="utf-8"), annex=annex_text)
+            if file.is_file()
+            else None
+        )
         holes: list[dict[str, str | None]] = []
         for hole in partial.holes:
             found = next((c for c in node.holes if names.get(c) == hole and c not in taken), None)
@@ -566,8 +577,40 @@ def decompositions_of(tg: TargetGraph, node_id: str) -> list[dict[str, Any]]:
                 # A lemma is the same node whichever partial restated it, so it is never taken.
                 found = next((x.node for x in node.lemmas if x.hole == hole), None)
             holes.append({"name": hole, "node": found})
-        out.append({"partial": partial.path, "annex": annex, "holes": holes})
+        out.append({"partial": partial.path, "annex": annex, "holes": holes, "approach": approach})
     return out
+
+
+def node_words(n: Any, node_id: str, *, title: str | None) -> dict[str, Any]:
+    """F29-R3 (D-3 v3.44): a node's ``label``, ``label_source`` and ``claim`` from the record:
+    the current version of the first statement gloss chain filed on it (record order, as the
+    site reads it, F20-Q4), else the name its hole bore (the child's own header, which
+    ``decompositions_of`` matches holes by), else the target's title for a root, else its id."""
+    gloss_label: str | None = None
+    claim: str | None = None
+    versions = [
+        v for v in glosses.load_versions(n.path) if v.subject == ("statement", node_id, None)
+    ]
+    if versions:
+        withdrawn = glosses.withdrawn_versions(n.path, glosses.GLOSS_DIR)
+        found = glosses.chains(versions, withdrawn)
+        current = found[0].current if found else None
+        if current is not None:
+            gloss_label = current.label
+            try:
+                _, body = glosses.split_front_matter(current.path.read_text(encoding="utf-8"))
+            except (OSError, UnicodeDecodeError, ValueError):
+                body = ""
+            claim = labels.claim_of(body)
+    hole_name: str | None = None
+    if n.origin in graphmod.HOLE_ORIGINS:
+        statement = n.path / "Statement.lean"
+        if statement.is_file():
+            hole_name = postmerge.hole_name(statement.read_text(encoding="utf-8"))
+    label, source = labels.label_of(
+        node_id, gloss_label=gloss_label, hole_name=hole_name, title=title
+    )
+    return {"label": label, "label_source": source, "claim": claim}
 
 
 def outline_doc(tg: TargetGraph, node_id: str) -> dict[str, Any] | None:
@@ -965,6 +1008,8 @@ def graph_doc(
     lit = literature_states(tg, signer=signer) if literature is None else literature
     # F08-T36: the reader CONTEXT.json's builders share, so the two lists cannot disagree.
     reader = context.DiskReader(tg.path.parents[1])
+    record = intake.load_doc(tg.path)
+    title = str(record["title"]) if record and record.get("title") else None
     for node_id in tg.order:
         n = tg.nodes[node_id]
         # A refuted or defective node has a merged artifact too, and the commit that carries it
@@ -1008,6 +1053,9 @@ def graph_doc(
                 "lemmas": [{"hole": x.hole, "node": x.node} for x in n.lemmas],
                 # F28-T8 (D-12 v3.42): the closure the gate joined and signed, or null.
                 "closure": closure_entry(n),
+                # F29-R3 (D-3, D-25 v3.44): the statement's short name, where it came from, and
+                # its claim in notation; the root alone takes the target's title.
+                **node_words(n, node_id, title=title if node_id == tg.root else None),
             }
         )
     return {

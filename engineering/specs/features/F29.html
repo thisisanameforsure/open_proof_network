@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>F29 — Labels, claims and the selector tree</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="crumbs"><a href="../index.html">specs</a> / F29</nav>
+<h1>F29 — Labels, claims and the selector tree</h1>
+<p class="subtitle">Every statement gets a short name and its claim in notation, every route its
+approach, all written by the contributor who made it and filed as the gloss the record already
+has; the sufficient sets are navigated by a tree of the route choices, built from the sets and never
+from the graph (decisions v3.44, the owner's request of 2026-10-17).</p>
+
+<h2>1. Summary</h2>
+<p>On 2026-10-17 the owner read erdos-1094's frontier as an illegible mess: 43 open nodes against
+11 proved, named <code>erdos-1094--h2--h1--h4--h1--h2</code>, with the sufficient-sets view lighting
+routes correctly and nothing saying what any route or node was doing. He asked for three things:
+a label and a one-line description per node, generated at creation and distinct from the explainer;
+intent notes at the branch points, readable by walking down the tree; and a condensed OR-only tree
+as the selector over the sets, each leaf one set, each interior node a family.</p>
+<p>What the record already held settled most of the design. A one-line description of an open node
+<em>is</em> the statement gloss (<code>gloss/v2</code>, F20; D-3 v3.30): prose about one Lean file,
+on a node of any status, attributed, unverified, chained by <code>supersedes</code>, signed by a
+steward or curator, with F20-T16's convention that it opens with the statement in notation. Every
+hole already carries an author-chosen name in the partial that made it (<code>h_bhp</code>,
+<code>h_strip</code>: 90 holes across the graph, 5 generic) and the post-merge job already writes
+that name into the child's header. So the label rides the gloss as one new field, the claim is the
+gloss's opening display, and both are given at creation by the partial's own comments, which the
+service refuses before any precheck when they are missing. The OR fork's note cannot be written at
+creation, because a node's second route is written by someone who did not write the first; each
+route states its own <em>approach</em> and the fork shows them side by side (Q2). The selector tree
+is built from the enumerated sets rather than the unrolled graph, because a hole shared between
+branches (a lemma, D-12 v3.38) makes the unrolled OR tree over-count (Q1); under F27-T7's ruling the
+finest sets are one per choice of routes, so on a tree-shaped target the two agree, and on erdos-1094
+both give 8.</p>
+<p>The owner's rulings the same day: backfill by agents through the service with no human
+sign-off, stewards editing later; labels changed under the existing gloss rule; the table kept
+beneath the tree, the tree boxed as "Sufficient sets" inside the drawing where the set labels stood.</p>
+
+<h2>2. User stories</h2>
+<ul>
+  <li>As a reader of a problem page, I want every statement drawn by a name and its claim in
+    notation one click away, so that I can follow a decomposition without reading Lean or ids.</li>
+  <li>As an agent writing a skeleton, I want to say what each hole is and what attack I am taking
+    where I write the Lean, and to be refused at once if I forget, so that my decomposition is
+    legible to the next agent without a second submission.</li>
+  <li>As a steward, I want to rename a statement or correct its claim with the controls the gloss
+    already has, so that no new record and no new permission is needed.</li>
+  <li>As an operator choosing where to send agents, I want to select "everything through the
+    Granville–Ramaré approach" and see the sets beneath it lit on the full graph, coarse to fine.</li>
+</ul>
+
+<h2>3. Scope</h2>
+<p><strong>In:</strong> decisions v3.44; <code>gloss/v3</code> (label) and <code>graph/v12</code>
+(label, label_source, claim; approach); <code>gate/opn_gate/labels.py</code> (the partial's header
+grammar, the fallbacks, the node's label); the gate's step-4 refusal and the hole writer filing each
+hole's gloss; the service's quick-fail; the selector tree in <code>opn_gate.routes</code>, the MCP
+tool fields and the problem page's drawing and panel; the guide; the backfill of every live node.</p>
+<p><strong>Non-goals:</strong></p>
+<ul>
+  <li>No note on an edge, no record on a fork (Q2).</li>
+  <li>No label or claim derived from the Lean by the network: a Lean-to-notation translation is the
+    unverified step the fidelity evidence is about, so the words are a contributor's, attributed,
+    and the gloss carries the hash of the Lean it describes (D-3 v3.44).</li>
+  <li>No new write tool, route or record kind: a label is changed by <code>submit_gloss</code>.</li>
+  <li>No change to <code>CONTEXT.json</code>, which has two builders that must agree (F10-Q7): the
+    tool reads label and claim from <code>graph.json</code>.</li>
+  <li>No change to which sets are published or their order (F27-R6, R7).</li>
+</ul>
+
+<h2>4. Requirements</h2>
+<table>
+  <tr><th>ID</th><th>Requirement (EARS)</th></tr>
+  <tr><td>F29-R1</td><td>The system shall accept a statement gloss carrying <code>label</code>
+    (<code>gloss/v3</code>): at most 60 characters, one line, plain text with no dollar sign; a
+    node's label and claim are those of the current version of the first statement gloss chain filed
+    on it, the claim being the display the body opens with (F20-T16), and are changed by a
+    superseding version under the rules of D-3 v3.31 and v3.33, nothing else.</td></tr>
+  <tr><td>F29-R2</td><td>The system shall read a partial's declarations from its comments
+    (<code>opn_gate.labels.declarations</code>): one <code>-- approach:</code> line before the first
+    hole, one <code>-- licence:</code> line naming one of the accepted licences, and in the comment
+    block directly above each hole's <code>have</code> a <code>-- label:</code> line and a
+    <code>-- claim: $…$</code> line, the remaining lines of the block being prose; and shall name
+    each missing or malformed line with its hole (<code>problems</code>).</td></tr>
+  <tr><td>F29-R3</td><td>Each node of <code>graph.json</code> shall carry <code>label</code>,
+    <code>label_source</code> (<code>gloss</code>, <code>hole</code>, <code>target</code>,
+    <code>id</code>) and <code>claim</code>: the gloss's label, else the name the hole bore in the
+    route that made it (the child's own header), else the target's title for the root, else the id;
+    the claim null when no statement gloss opens with a display.</td></tr>
+  <tr><td>F29-R4</td><td>Each decomposition of <code>graph.json</code> shall carry
+    <code>approach</code>: the partial's declared line; for a partial merged before v3.44, its first
+    comment paragraph after the assembly opens (keyed lines aside), else the first sentence of the
+    annex it cites, else null; never longer than 300 characters.</td></tr>
+  <tr><td>F29-R5</td><td>When a partial is prechecked or submitted through the service, the service
+    shall refuse one whose declarations are incomplete with <code>partial-unlabelled</code>, naming
+    each problem, before any precheck job is created, dispatched or any host read; and the gate shall
+    refuse such a partial at step 4 by the same name, against the extractor's hole names, so a
+    hand-opened pull request meets the same rule.</td></tr>
+  <tr><td>F29-R6</td><td>The system shall build the selector tree of a target's sufficient sets
+    (<code>opn_gate.routes.selector_tree</code>) from the enumerated sets alone: the list is split, in
+    record order, on the first statement on which its members choose different routes, one child per
+    route, recursively; every leaf is one set and every set one leaf, in the record's order; an
+    interior node carries the statement split on and the number of sets beneath it.</td></tr>
+  <tr><td>F29-R7</td><td>When the post-merge job writes a hole's child node from a partial that
+    declares its words, it shall file beside the child a <code>gloss/v3</code> statement gloss of the
+    child's <code>Statement.lean</code> carrying the hole's label, a body that opens with the claim as a
+    display followed by the block's prose, the partial's author as author, the partial's licence, and
+    the submission's declared models as <code>drafted_with</code>; a partial without declarations
+    (an older pin) files none.</td></tr>
+  <tr><td>F29-R8</td><td><code>list_sufficient_sets</code> shall carry, per route, its
+    <code>approach</code> and per hole its <code>label</code>, and the <code>selector</code> tree
+    (R6); <code>get_node</code> shall carry the node's <code>label</code>, <code>label_source</code>
+    and <code>claim</code> as <code>graph.json</code> does.</td></tr>
+  <tr><td>F29-R9</td><td>The site shall draw every statement on the statement graph and the routes
+    drawing by its label, the id in the title and the panel; the statement panel shall be headed by
+    the label with the claim first, the id beneath, and a link to the gloss's controls for a rename or
+    correction.</td></tr>
+  <tr><td>F29-R10</td><td>The Routes section shall carry the selector tree in a box headed
+    "Sufficient sets" inside the drawing, where the set labels stood: each branch labelled by its
+    route's approach and the statement's label, each leaf one set; selecting a leaf lights its set
+    as a row does, selecting an interior node lights every set beneath it; the table remains beneath,
+    filtered to the selection. The drawing's layout never moves on selection (F27-R10).</td></tr>
+  <tr><td>F29-R11</td><td>The guide shall show the partial's header grammar with a worked example,
+    and the gate's coverage report shall count the statements without a label.</td></tr>
+  <tr><td>F29-R12</td><td>Every live node shall receive a statement gloss carrying a label and a
+    claim (a superseding version where a gloss exists), written by agents through the service,
+    attributed to each agent's pseudonym with its model named, unverified until a steward signs.</td></tr>
+</table>
+
+<h2>5. Acceptance criteria</h2>
+<table>
+  <tr><th>ID</th><th>Given / When / Then</th><th>Test case</th></tr>
+  <tr><td>F29-AC1</td><td>Given a partial declaring approach, licence and each hole's label and
+    claim, when it is read, then every field is found, a proved <code>have</code> is not a hole, and
+    nothing is missing.</td>
+    <td><code>gate/tests/test_labels.py::test_declarations_read_the_approach_the_licence_and_each_hole</code>,
+    <code>::test_a_complete_partial_has_no_problems</code></td></tr>
+  <tr><td>F29-AC2</td><td>Given a partial missing a line, when its problems are read, then each is
+    named with its hole in fixing order; a malformed label or claim is refused by its own name; the
+    extractor's hole names are the ones held to the rule.</td>
+    <td><code>test_labels.py::test_each_missing_line_is_named_with_its_hole</code>,
+    <code>::test_a_malformed_line_is_refused_by_name</code>,
+    <code>::test_the_extractors_hole_names_are_the_ones_held_to_the_rule</code></td></tr>
+  <tr><td>F29-AC3</td><td>Given two independent route choices, when the selector tree is built, then
+    it nests the second under each branch of the first and its leaves are the sets in record order.</td>
+    <td><code>gate/tests/test_selector_tree.py::test_a_tree_shaped_target_matches_the_product_of_its_choices</code></td></tr>
+  <tr><td>F29-AC4</td><td>Given a route that restates another branch's hole (a lemma), when the tree
+    is built, then every leaf is a set and every set one leaf, read from the sets.</td>
+    <td><code>test_selector_tree.py::test_a_shared_hole_is_read_from_the_sets_not_the_graph</code></td></tr>
+  <tr><td>F29-AC5</td><td>Given erdos-1094's live products, when the tree is built, then its leaves
+    are exactly the published sets and every interior node splits on a statement with two or more
+    routes in its family.</td>
+    <td><code>test_selector_tree.py::test_live_erdos_1094_every_leaf_is_a_set_and_the_first_split_is_the_records</code></td></tr>
+  <tr><td>F29-AC6</td><td>Given the generated products, when a node has a gloss with a label, a hole
+    name, a title or nothing, then its label and source are the gloss's, the hole's, the target's or
+    its id; and a merged partial's approach is read from its leading comment.</td>
+    <td><code>test_labels.py::test_label_of_prefers_the_gloss_then_the_hole_then_the_target_then_the_id</code>,
+    <code>gate/tests/test_decompositions.py::test_a_merged_skeleton_names_its_annex_and_its_holes</code>,
+    <code>gate/tests/test_products.py::test_golden</code></td></tr>
+  <tr><td>F29-AC7</td><td>Given a partial without declarations, when it is prechecked or submitted
+    through the service, then the answer is 400 <code>partial-unlabelled</code> naming each problem,
+    no job is saved or dispatched and the host received no call.</td>
+    <td><code>api/tests/test_finding_partial_unlabelled.py</code></td></tr>
+  <tr><td>F29-AC8</td><td>Given a partial without declarations at step 4, when the gate checks it,
+    then it is refused <code>partial-unlabelled</code> against the extractor's hole names.</td>
+    <td><code>gate/tests/test_finding_partial_unlabelled_gate.py</code></td></tr>
+  <tr><td>F29-AC9</td><td>Given a merged partial with declarations, when the post-merge job writes
+    its holes, then each child carries a <code>gloss/v3</code> statement gloss with the label, the
+    claim display first, the author, licence and models; the gate's own gloss check accepts it; a
+    partial without declarations files none.</td>
+    <td><code>gate/tests/test_finding_hole_gloss_filed.py</code></td></tr>
+  <tr><td>F29-AC10</td><td>Given the tool surface, when <code>list_sufficient_sets</code> and
+    <code>get_node</code> are called, then the answers carry the fields of R8 and validate against
+    their result schemas; the bijection holds.</td>
+    <td><code>api/tests/test_finding_routes_selector_mcp.py</code>,
+    <code>api/tests/test_mcp_bijection.py</code></td></tr>
+  <tr><td>F29-AC11</td><td>Given a rendered problem page, when a node has a label, then the statement
+    graph's pill and the routes drawing show the label and the id stays in the title; the panel is
+    headed by the label with the claim first.</td>
+    <td><code>site/tests/test_finding_labels_site.py</code></td></tr>
+  <tr><td>F29-AC12</td><td>Given the rendered Routes section in a browser, when an interior node of
+    the selector is selected, then every set beneath it is lit and the table shows those rows; a leaf
+    lights one set; nothing moved; Escape clears.</td>
+    <td><code>site/tests/test_routes_view.py</code> (selector tests, Playwright)</td></tr>
+  <tr><td>F29-AC13</td><td>Given the live graph after the re-pin and the backfill, when the coverage
+    report runs, then every statement has a label; the problem page of erdos-1094 shows names and the
+    selector.</td>
+    <td>live evidence, <code>engineering/evidence/F29/</code></td></tr>
+</table>
+
+<h2>6. Budgets / limits</h2>
+<p>A label is at most 60 characters, an approach 300, a claim 4000. The selector is linear in the
+number of sets times the depth of the longest route list; the finest sets number in the tens. The
+text scan of a partial is one pass over its lines and runs before any host call.</p>
+
+<h2>7. Security &amp; privacy notes</h2>
+<p>Every label, claim and approach is contributor text: demarcated untrusted data on the MCP
+(D-28), escaped on the site, rendered as math only inside the one element class the renderer may
+touch (F04-R10's KaTeX rule, trust off). The hole writer files words the author wrote under the
+licence the author named; it writes none of its own. No new secret, route or permission.</p>
+
+<h2>8. Dependencies</h2>
+<p>F20 (glosses), F27 (routes and sets), F18 (decompositions in the products), F07 (the hole writer),
+F13 (the service's pre-flight refusals), F04 (the site). Live after a network deploy and a graph
+re-pin; the backfill follows the re-pin, since only then may a gloss carry a label.</p>
+
+<h2>9. Open questions / judgment calls</h2>
+<p><strong>F29-Q1 — The selector is built from the sets, not the graph.</strong> The request
+described an OR-only collapse of the AND-OR graph. On erdos-1094 route <code>h3@2</code> restates
+<code>h2--h1@1</code>'s hole as a lemma, so under the unrolled tree the shared subtree appears twice
+and the leaves over-count what the sets are; had the shared node its own routes, the copies could be
+chosen differently, a plan nobody executes. Splitting the published sets on their first differing
+choice gives a tree whose leaves are the sets by construction, whatever the sharing. Under F27-T7's
+ruling (every choice of routes is a set) the two constructions coincide on today's live targets,
+which is why the request's picture was right and the construction still had to change.</p>
+<p><strong>F29-Q2 — No edge notes; the fork is derived.</strong> An OR fork's "A vs B" cannot be
+written at creation, because B does not exist when A is written and a note on B goes stale at C.
+Each route declares its own approach; the fork shows them side by side; an AND fork is its route's
+hole labels. The owner raised the doubt about edge-level notes and agreed with this reading.</p>
+<p><strong>F29-Q3 — The claim is written, never translated.</strong> A Lean-to-notation translation
+by the network would be exactly the unverified step the 2026 fidelity evidence is about (D-9
+v3.12). The author writes the claim beside the Lean; the gloss carries the Lean's hash; a steward
+signs.</p>
+<p><strong>F29-Q4 — The licence rides the partial.</strong> The service refuses an absent licence
+rather than defaulting one (F05-T17), and a plain-git partial has no request parameters, so the one
+home for the words' licence is a <code>-- licence:</code> line in the partial, beside the annex
+citation. <code>opn_gate.labels.LICENCES</code> is the one list; the service reads it.</p>
+<p><strong>F29-Q5 — Backfill through the service, no human sign-off.</strong> The owner's ruling:
+the backfill fills the labels and claims; a human approving them is not necessary; stewards edit
+later. Glosses are appends with no step 9, so the merge actor merges them unattended; each is
+attributed to its agent's pseudonym with <code>drafted_with</code>, unverified until signed.</p>
+<p><strong>F29-Q6 — Who renames.</strong> The existing gloss rule (anyone proposes a superseding
+version; a steward's or curator's own is final; a person's change over verified words is pending
+until signed). The owner chose it over a steward-only rule.</p>
+<p><strong>F29-Q7 — The table stays, filtered.</strong> The owner: keep the table; put the tree in
+the drawing where the set list was, boxed and headed "Sufficient sets".</p>
+<p><strong>F29-Q8 — <code>label_source</code> has no <code>proposal</code> value.</strong> The
+amendment's first draft named a variant's "proposal name"; no proposal carries one, and an enum
+value nothing emits is a live bug (2026-09-10). A variant falls back to its id.</p>
+
+<h2>10. Status</h2>
+<div class="rule"><strong>status:</strong> in progress · <strong>Tasks:</strong> T0, T1 done 2026-10-17 (branch <code>f29-labels</code>, unpushed); T2–T8 todo.</div>
+
+<h2>Tasks</h2>
+<table>
+  <tr><th>ID</th><th>Task</th><th>Files</th><th>Deps</th><th>Verification</th></tr>
+  <tr><td>F29-T0</td><td>Decisions v3.44 applied (D-3, D-12, D-25, D-28, D-36, two glossary
+    entries, the version history); <code>PROTOCOL_VERSION</code> 3.44; this spec and its index row.</td>
+    <td><code>docs/architecture_decisions.html</code>, <code>gate/opn_gate/products.py</code>,
+    <code>engineering/specs/</code></td><td>—</td>
+    <td><code>uv run --frozen pytest gate/tests/test_products.py -k protocol</code></td></tr>
+  <tr><td>F29-T1</td><td>The contracts: <code>gloss/v3</code>, <code>graph/v12</code>, HASHES;
+    <code>opn_gate.labels</code> (R2, R3, R4); the products' fields; <code>routes.selector_tree</code>
+    (R6); goldens; the version sweep.</td>
+    <td><code>gate/schemas/gloss/v3.json</code>, <code>gate/schemas/graph/v12.json</code>,
+    <code>gate/schemas/HASHES</code>, <code>gate/opn_gate/labels.py</code>,
+    <code>gate/opn_gate/routes.py</code>, <code>gate/opn_gate/products.py</code>,
+    <code>gate/opn_gate/glosses.py</code>, <code>gate/tests/test_labels.py</code>,
+    <code>gate/tests/test_selector_tree.py</code>, <code>gate/tests/golden/products/</code>,
+    <code>site/opn_site/model.py</code>, <code>site/tests/fixture.py</code>, version pins in tests</td>
+    <td>T0</td>
+    <td><code>uv run --frozen pytest gate/tests/test_labels.py gate/tests/test_selector_tree.py gate/tests/test_products.py gate/tests/test_schemas.py gate/tests/test_decompositions.py</code></td></tr>
+  <tr><td>F29-T2</td><td>The gate: step 4 refuses <code>partial-unlabelled</code> against the
+    extractor's hole names (R5); the hole writer files each child's gloss (R7); coverage counts
+    statements without a label (R11).</td>
+    <td><code>gate/opn_gate/steps/artifact.py</code>, <code>gate/opn_gate/postmerge.py</code>,
+    <code>gate/opn_gate/glosses.py</code>, <code>gate/opn_gate/codes.py</code>,
+    <code>gate/tests/test_finding_partial_unlabelled_gate.py</code>,
+    <code>gate/tests/test_finding_hole_gloss_filed.py</code></td><td>T1</td>
+    <td><code>uv run --frozen pytest gate/tests/test_finding_partial_unlabelled_gate.py gate/tests/test_finding_hole_gloss_filed.py gate/tests/test_gloss_coverage.py gate/tests/test_postmerge_apply.py</code></td></tr>
+  <tr><td>F29-T3</td><td>The service: the quick-fail in <code>POST /precheck</code> and
+    <code>POST /submissions</code> right after the bundle validates, before any host read or job
+    (R5); the licence list read from the gate; the error catalogued.</td>
+    <td><code>api/opn_api/precheck.py</code>, <code>api/opn_api/submissions.py</code>,
+    <code>api/opn_api/appends.py</code>, <code>api/opn_api/errors.py</code> or its catalogue,
+    <code>api/tests/test_finding_partial_unlabelled.py</code></td><td>T1</td>
+    <td><code>uv run --frozen pytest api/tests/test_finding_partial_unlabelled.py api/tests/test_precheck.py api/tests/test_submissions.py api/tests/test_error_catalog.py</code></td></tr>
+  <tr><td>F29-T4</td><td>The MCP: <code>list_sufficient_sets</code> carries approach, hole labels and
+    the selector; <code>get_node</code> carries label, label_source, claim (R8); result schemas
+    versioned; the bijection row.</td>
+    <td><code>api/opn_api/mcp/reads.py</code>, <code>api/opn_api/mcp/schemas/list_sufficient_sets/</code>,
+    <code>api/opn_api/mcp/schemas/get_node/</code>, <code>api/opn_api/mcp/bijection.py</code>,
+    <code>gate/opn_gate/routes.py</code> (as_dict), <code>api/tests/test_finding_routes_selector_mcp.py</code></td><td>T1</td>
+    <td><code>uv run --frozen pytest api/tests/test_finding_routes_selector_mcp.py api/tests/test_routes_mcp.py api/tests/test_mcp_bijection.py api/tests/test_mcp_surface.py</code></td></tr>
+  <tr><td>F29-T5</td><td>The site: labels on the statement graph's pills and the routes drawing, the
+    id in titles; the panel headed by the label, claim first, id beneath, the rename link (R9).</td>
+    <td><code>site/opn_site/dag.py</code>, <code>site/opn_site/render.py</code>,
+    <code>site/opn_site/routes_view.py</code>, <code>site/opn_site/templates/statement-panel.html</code>,
+    <code>site/opn_site/static/site.css</code>, <code>site/tests/test_finding_labels_site.py</code></td><td>T1</td>
+    <td><code>uv run --frozen pytest site/tests/test_finding_labels_site.py site/tests/test_dag_layout.py site/tests/test_routes_view.py</code></td></tr>
+  <tr><td>F29-T6</td><td>The site: the selector tree boxed as "Sufficient sets" inside the drawing,
+    coarse-to-fine selection, the table filtered (R10); screenshots on a full render of the live
+    graph.</td>
+    <td><code>site/opn_site/routes_view.py</code>, <code>site/opn_site/static/routes.js</code>,
+    <code>site/opn_site/static/site.css</code>, <code>site/tests/test_routes_view.py</code></td><td>T5</td>
+    <td><code>uv run --frozen --with playwright pytest site/tests/test_routes_view.py</code></td></tr>
+  <tr><td>F29-T7</td><td>The guide: the partial's header grammar with a worked example; the D-35
+    copy on the graph.</td>
+    <td><code>site/opn_site/templates/docs.html</code> or the guide source, <code>AGENTS.md</code>,
+    <code>../open_proof_network_graph/AGENTS.md</code></td><td>T2, T3</td>
+    <td><code>uv run --frozen pytest gate/tests/test_walkthrough.py site/tests/test_docs_page.py</code></td></tr>
+  <tr><td>F29-T8</td><td>Live: push, deploy, re-pin, re-render; the backfill of every live node by
+    agents through the service (R12); coverage at the final commit.</td>
+    <td><code>engineering/evidence/F29/</code>, the graph's pins</td><td>T2–T7</td>
+    <td><code>opn-gate gloss coverage --graph ../open_proof_network_graph</code>; live pages</td></tr>
+</table>
+</body>
+</html>
