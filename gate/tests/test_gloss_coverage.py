@@ -332,6 +332,7 @@ def _as_v1(doc: dict[str, Any]) -> dict[str, Any]:
             for version in chain["versions"]:
                 version.pop("drafted_with")
                 version.pop("sections")
+                version.pop("label")  # glosses/v3 (F29-T1)
                 for sig in version["signatures"]:
                     sig.pop("sections", None)
     return schemas.validate(old, "glosses/v1")
