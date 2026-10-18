@@ -25,7 +25,7 @@ from opn_gate import clients, explainers, hosted, intake, layout, policy, produc
 from opn_gate import glosses as glossesmod
 from opn_gate import graph as graphmod
 from opn_gate import ledger as ledgermod
-from opn_site import dag, links, prose, routes_view
+from opn_site import dag, links, one_view, prose
 from opn_site.model import (
     ADMITTED_BY_CURATOR,
     ChainView,
@@ -381,22 +381,36 @@ GLOSSARY: tuple[tuple[str, str, str, str], ...] = (
         "upper statement's proof may build on the lower one.",
         "deps (META.yaml)",
     ),
-    # F18-T2: the marks a proof's drawing makes; the key shows them when the problem is proved.
+    # F30-T2 (R2): the route marks the merged drawing shows (F27's AND and OR), the dead route,
+    # and the closable statement (F28), each keyed when the drawing has one.
     (
-        "on-proof",
-        "on this proof",
-        "The statement is part of the proof the problem page has selected: the proof's own "
-        "statement and every statement its Lean term rests on, as the gate read the term when it "
-        "checked it.",
-        "target_proofs[].closure (D-25 v3.26, from step 8's footprint)",
+        "route-and",
+        "route: all of its holes",
+        "A dot on the way down from a statement to the holes of one merged decomposition of it: "
+        "the route closes the statement only when every hole beneath the dot is proved (AND).",
+        "decompositions[] (D-12), routes (D-25 v3.40)",
     ),
     (
-        "not-needed",
-        "not needed by this proof",
-        "On the record and not part of the selected proof: a dependency its author declared and "
-        "the proof did not use, a decomposition another route took, or work that came later. "
-        "Nothing is wrong with it; it is just not what this proof rests on.",
-        "not in target_proofs[].closure",
+        "route-or",
+        "any one route closes it",
+        "A diamond under a statement that two or more routes, or a resolving variant, could "
+        "close: any one of them suffices (OR), and so would a direct proof.",
+        "routes (D-25 v3.40)",
+    ),
+    (
+        "route-dead",
+        "a route that closes nothing",
+        "A crossed ring: a merged decomposition one of whose holes is refuted, defective, "
+        "abandoned, superseded or not traced, so no proof can come through it.",
+        "routes[].live false (D-25 v3.40)",
+    ),
+    (
+        "closable",
+        "closable",
+        "A small square: the statement's proof exists in parts, its merged decomposition and "
+        "the proofs of what it needs, and nothing is proved until the closing proof that joins "
+        "them passes the gate.",
+        "closable (D-12 v3.41, F28)",
     ),
     (
         "use",
@@ -542,6 +556,8 @@ LEGEND_BASE = ("proved", "open", "blocked")
 #: The keys that wear a status dot wherever a legend shows them.
 DOTTED_KEYS = (*LEGEND_BASE, NEEDS_WITNESS)
 LEGEND_EXTRA = ("stale", "disputed", "superseded", "abandoned", "refuted", "defective")
+#: F30-T2 (R2): the drawing's route marks, in key order, each shown when the drawing has one.
+ROUTE_MARK_KEYS = ("route-and", "route-or", "route-dead", "closable")
 #: F04-T21 (Q23): the Docs state map's keys. Every status ``graph.json`` can publish, as the
 #: site's word (F03-Q8: ``speculative`` reads open, so nine words for ten statuses), and the seven
 #: words a problem's status tag can wear; each key item is the hover card those pages use.
@@ -1244,14 +1260,18 @@ class Renderer:
         """The dot a state wears: its own when the key has one (T14), the neutral ring else."""
         return state if state in (*DOTTED_KEYS, *LEGEND_EXTRA) else "blocked"
 
-    def graph_legend(self, tv: TargetView) -> str:
+    def graph_legend(self, tv: TargetView, drawn: one_view.Drawing | None = None) -> str:
         """The statement graph's key (F04-T14, Q16): the three base states, then every other
         status a statement in this graph has, each a glossary hover card with its dot."""
         present = {self.node_state(nv) for nv in tv.nodes.values()}
         keys = (*LEGEND_BASE, *(k for k in (NEEDS_WITNESS, *LEGEND_EXTRA) if k in present))
-        return "".join(
-            self.term(k, dot=True) for k in (*keys, *self.proof_legend(tv))
-        ) + self.superseded_toggle(tv)
+        # F30-T2 (R2): the route marks the merged drawing shows, each only when it has one.
+        marks = tuple(k for k in ROUTE_MARK_KEYS if k in (drawn.marks if drawn else ()))
+        return (
+            "".join(self.term(k, dot=True) for k in (*keys, *marks, *self.proof_legend(tv)))
+            + self.superseded_toggle(tv)
+            + (drawn.toggle if drawn else "")
+        )
 
     @staticmethod
     def superseded_toggle(tv: TargetView) -> str:
@@ -1280,32 +1300,24 @@ class Renderer:
         pointed = ("proposed-for",) if dag.pointers(tv.graph["nodes"]) else ()
         if any(a.stepped for nv in tv.nodes.values() for a in nv.annexes):  # T45 (Q44)
             pointed = ("outline", *pointed)
-        proofs = target_proofs(tv)
-        if not proofs:
-            return (*line_keys, *pointed)
-        keys = [*line_keys, "on-proof", "not-needed", *pointed]
-        if any(p.get("unmeasured") for p in proofs):
-            keys.append("unmeasured")
-        return tuple(keys)
+        # F30 (Q4): a proof is a leaf of the selector, so the drawing no longer marks "on this
+        # proof" or "not needed"; an unmeasured closure is said in the proof's note.
+        return (*line_keys, *pointed)
 
-    def proof_picker(self, tv: TargetView) -> str:
-        """F18-T2 (R3): one entry per way the problem is proved, the first selected, and under it
-        what the selected proof is drawn from. Nothing for a problem nobody has proved."""
+    def proof_notes(self, tv: TargetView) -> str:
+        """F18-T2 (R3), restated by F30 (Q4): one note per way the problem is proved, each
+        keyed by its proof view and shown when that leaf of the selector is selected; nothing
+        for a problem nobody has proved."""
         proofs = target_proofs(tv)
         if not proofs:
             return ""
-        buttons, notes = [], []
+        notes = []
         for k, p in enumerate(proofs):
             label = self.proof_label(k, p)
-            pressed = "true" if k == 0 else "false"
-            buttons.append(
-                f'<button type="button" class="chip" data-proof="{k}" aria-pressed="{pressed}">'
-                f"{esc(label)}</button>"
-            )
             n = len(p["closure"])
             words = (
-                f"Showing proof {k + 1} of {len(proofs)}: {n} statement{'' if n == 1 else 's'} "
-                "highlighted, the rest of the record dimmed."
+                f"{label}: {n} statement{'' if n == 1 else 's'}, the proof's own and what its "
+                "Lean term rests on."
             )
             if p.get("unmeasured"):
                 words += (
@@ -1313,18 +1325,14 @@ class Renderer:
                     + ", ".join(str(u) for u in p["unmeasured"])
                     + ", so those are drawn through what they declared."
                 )
-            hidden = "" if k == 0 else " hidden"
             read = (
                 f' <a href="{esc(self.reading_path(tv.target_id, p))}">Read proof {k + 1}, '
                 "dependencies first, every step beside its Lean →</a>"
             )
-            notes.append(f'<p class="proof-note" data-proof="{k}"{hidden}>{esc(words)}{read}</p>')
-        lead = f"Proved {len(proofs)} way{'' if len(proofs) == 1 else 's'}:"
-        return (
-            f'<div class="proof-picker" role="group" aria-label="Proofs of this problem">'
-            f'<span class="proof-picker-lead">{esc(lead)}</span>{"".join(buttons)}</div>'
-            + "".join(notes)
-        )
+            notes.append(
+                f'<p class="proof-note" data-view="proof/{k}" hidden>{esc(words)}{read}</p>'
+            )
+        return "".join(notes)
 
     @staticmethod
     def proof_label(k: int, p: dict[str, Any]) -> str:
@@ -2231,29 +2239,39 @@ class Renderer:
         outlines = {
             nid: n for nid, nv in tv.nodes.items() if (n := sum(a.stepped for a in nv.annexes))
         }
-        svg = dag.svg(
-            drawn,
-            href=href,
-            proofs=self.proof_marks(tv),
-            outlines=outlines,
-            root=tv.root,
-            prefix=tid,
-            names={
-                nid: name
-                for nid, nv in tv.nodes.items()
-                if nid.startswith("spec-") and (name := theorem_name(nv.statement))
-            },
-            labels=dag.labels_of(tv.graph["nodes"]),  # F29-T5 (R9): pills by label
-        )
-        panels = "".join(self.statement_panel(tv, nv) for nv in self.ordered_nodes(tv))
-        # F27-T3 (R10, R11): the routes and sufficient sets, read by the function the MCP tool
-        # reads (opn_gate.routes) from graph.json and this target's frontier.json entries.
-        routes_section = routes_view.section(
+        # F30-T2 (R1): one drawing — the statements, the route junctions, the selector and the
+        # sets table — read by the function the MCP tool reads (opn_gate.routes) from graph.json
+        # and this target's frontier.json entries (F27-Q1). F22-T18 (S): a spec pill's title
+        # carries the theorem name of an id that names nothing.
+        proofs = target_proofs(tv)
+        spec_names = {
+            nid: name
+            for nid, nv in tv.nodes.items()
+            if nid.startswith("spec-") and (name := theorem_name(nv.statement))
+        }
+        picture = one_view.drawing(
             tv.graph,
             [e for e in self.site.frontier.get("entries") or [] if e.get("target_id") == tid],
             href=href,
             prefix=tid,
+            nodes=drawn,
+            proofs=self.proof_marks(tv),
+            proof_labels=[self.proof_label(k, p) for k, p in enumerate(proofs)],
+            outlines=outlines,
+            titles={
+                nid: f"{nid} ({name}): {tv.nodes[nid].status}" for nid, name in spec_names.items()
+            },
         )
+        svg = picture.svg
+        panels = "".join(self.statement_panel(tv, nv) for nv in self.ordered_nodes(tv))
+        sets_block = (
+            '<div class="sets-grid">'
+            '<div class="selector-wrap card"><h3 class="kicker">Sufficient sets</h3>'
+            f"{picture.selector}{self.proof_notes(tv)}</div>"
+            f"{picture.table}</div>"
+            if picture.selector
+            else ""
+        ) + picture.layouts_json
         n = len(tv.nodes)
         if tv.approaches:
             approaches = (
@@ -2293,11 +2311,10 @@ class Renderer:
             registrations=self.registration_lines(tv),
             steward_card=self.steward_card(tv),
             count_words=esc(f"{n} statement{'' if n == 1 else 's'}"),
-            legend=self.graph_legend(tv),
-            proof_picker=self.proof_picker(tv),
+            legend=self.graph_legend(tv, picture),
             dag=svg,
             panels=panels,
-            routes=routes_section.html,
+            sets=sets_block,
             digestion=self.digestion_section(tv),
             proved_in_words=self.proved_in_words(tv),
             stewards=self.stewards_section(tv),
@@ -2318,7 +2335,7 @@ class Renderer:
         glossed = [p for nid in tv.nodes for p in self.gloss_renders(tv, nid, kinds=("statement",))]
         renders = [
             f"targets/{tid}/graph.json",
-            *(["frontier.json"] if routes_section.html else []),
+            *(["frontier.json"] if picture.sets else []),
             *(f.path for f in tv.definitions),
             *self.gloss_renders(tv, None),
             *glossed,

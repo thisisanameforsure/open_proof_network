@@ -79,7 +79,7 @@ def panel(page: str, node_id: str) -> str:
     return str(hit)
 
 
-@pytest.mark.parametrize("cls", ["dag", "routes-svg"])
+@pytest.mark.parametrize("cls", ["dag"])  # F30: one drawing (the routes drawing is gone)
 def test_a_statement_is_drawn_by_its_label_and_the_id_stays_in_the_title(
     page: str, cls: str
 ) -> None:
