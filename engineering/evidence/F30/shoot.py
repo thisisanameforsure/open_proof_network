@@ -28,11 +28,14 @@ class Quiet(http.server.SimpleHTTPRequestHandler):
         pass
 
 
+#: Each visible node's place in layout units (its translate), so a scroll of the page or a
+#: rescale of the svg between views cannot read as movement.
 BOXES = """() => {
   const out = {};
   document.querySelectorAll('svg.dag [data-node]').forEach(g => {
-    const r = g.getBoundingClientRect();
-    if (getComputedStyle(g).display !== 'none') out[g.getAttribute('data-node')] = [r.x, r.y, r.width, r.height];
+    if (getComputedStyle(g).display === 'none') return;
+    const m = /translate\\(([-\\d.]+),\\s*([-\\d.]+)\\)/.exec(g.getAttribute('transform') || '');
+    if (m) out[g.getAttribute('data-node')] = [parseFloat(m[1]), parseFloat(m[2])];
   });
   return out;
 }"""
@@ -41,9 +44,10 @@ BOXES = """() => {
 def displacement(a: dict[str, list[float]], b: dict[str, list[float]]) -> dict[str, float]:
     shared = sorted(set(a) & set(b))
     if not shared:
-        return {"shared": 0, "median": 0.0, "max": 0.0}
+        return {"shared": 0, "still": 0, "median": 0.0, "max": 0.0}
     moves = sorted(abs(a[k][0] - b[k][0]) + abs(a[k][1] - b[k][1]) for k in shared)
-    return {"shared": len(shared), "median": moves[len(moves) // 2], "max": moves[-1]}
+    still = sum(1 for m in moves if m < 1)
+    return {"shared": len(shared), "still": still, "median": moves[len(moves) // 2], "max": moves[-1]}
 
 
 def main() -> None:  # noqa: PLR0915

@@ -169,8 +169,8 @@ F30-R6 (Q4).</p>
     layout, the selector and the full table are present and every pill is a link.</td>
     <td><code>test_one_view_markup.py::test_complete_without_the_script</code></td></tr>
   <tr><td>F30-AC9</td><td>Given a full render of the live graph, when erdos-1094's page is captured at
-    1440 and 390 in both themes, with a set selected and mid-transition, then the captures and the
-    measured displacement between neighbouring sets are in the evidence.</td>
+    1440 and 390 (the site has one theme), with a set selected, an edge selected and mid-transition, then
+    the captures and the measured displacement between neighbouring sets are in the evidence.</td>
     <td>evidence, <code>engineering/evidence/F30/</code></td></tr>
 </table>
 
@@ -216,8 +216,30 @@ is the panel's.</p>
 diamonds; a set's view therefore holds its assemblies and route junctions, so the tree reads as the proof
 skeleton rather than a bag of leaves.</p>
 
+<p><strong>F30-Q7 — The approach rides the child, not the edge.</strong> R5 said each selector edge is
+labelled by its route's approach. On the live erdos-1094 the two edges out of a fork share a midpoint
+and their labels were written over each other; since every child has exactly one incoming edge, the
+approach is the child pill's second line (<code>text.sel-approach</code>), the full text in its
+title, and the pill's width is measured from it so the layout spaces siblings apart. Measured on the
+live render: no selector text leaves its pill.</p>
+<p><strong>F30-Q8 — The loose group follows the layout that has it.</strong> The divider and label of
+the statements no line joins were rendered only when the opening layout had such a group; the
+toggle's own case (every variant off-route) had none to move. They are rendered from the first layout
+that has a group, hidden until the script moves to it (the script builder's finding).</p>
+<p><strong>F30-Q9 — The hash on load.</strong> <code>problem.js</code> never wrote the hash on load and
+wrote <code>node=</code> for the selected panel on every change; <code>graph.js</code> keeps both,
+adding <code>view=</code> only when the view is not <code>routes</code>, so a bookmarked page opens
+as it did.</p>
+<p><strong>F30-Q10 — Three browser tests fail before and after.</strong> With Playwright installed,
+<code>test_web_flows.py</code>'s two gloss-control tests and <code>test_finding_lemma_edge.py</code>'s
+record-page measurement time out on <code>origin/main</code> exactly as on this branch (run in a
+detached worktree with the same Playwright 1.64.0); they are not F30's and are left as found.</p>
+<p><strong>F30-Q11 — The selector scrolls on a phone.</strong> At 390px the selector shrank to its
+card and its words became unreadable; it now scrolls sideways inside its card, as the drawing
+does (the routes drawing had the same rule).</p>
+
 <h2>10. Status</h2>
-<div class="rule"><strong>status:</strong> in progress · <strong>Tasks:</strong> T0, T1 done (13 tests, <code>engineering/evidence/F30/task-1.txt</code>); T2 done (site suite 762 passed, <code>task-2.txt</code>); T3–T5 open.</div>
+<div class="rule"><strong>status:</strong> built 2026-10-18, awaiting the owner&rsquo;s push and site deploy · <strong>Tasks:</strong> T0–T4 done (T1 13 tests, <code>engineering/evidence/F30/task-1.txt</code>; T2 site suite 762 passed, <code>task-2.txt</code>; T3 browser tests 28 passed, <code>task-3.txt</code>; T4 captures and displacement on the live erdos-1094, <code>task-4.txt</code>); full <code>make verify</code> on the branch: 6191 passed, 282 skipped. T5 (push, merge, site deploy) is the owner&rsquo;s. Branch <code>f30-one-graph</code>, unpushed.</div>
 
 <h2>Tasks</h2>
 <table>
@@ -244,7 +266,7 @@ skeleton rather than a bag of leaves.</p>
     <code>site/tests/test_one_view.py</code></td><td>T2</td>
     <td><code>uv run --frozen --with playwright pytest site/tests/test_one_view.py</code></td></tr>
   <tr><td>F30-T4</td><td>Evidence on a full render of the live graph (AC9): captures at 1440 and 390,
-    both themes, selected and mid-transition; the displacement table; the JSON size.</td>
+    selected (a set, an edge) and mid-transition; the displacement table; the JSON size.</td>
     <td><code>engineering/evidence/F30/</code></td><td>T3</td>
     <td><code>uv run --frozen --with playwright python engineering/evidence/F30/shoot.py</code></td></tr>
   <tr><td>F30-T5</td><td>Live: push, merge, site deploy (the owner's).</td>

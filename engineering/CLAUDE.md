@@ -1698,3 +1698,21 @@ The law of the project:
   service drops reads mid-poll, so any client here retries; and a merged partial's words can be
   written after the fact only because a gloss may now describe a partial (F29-Q9), which is where
   21 wordless routes got their approach.
+
+- 2026-10-18 — F30 (one statement graph) built in one sitting from the owner's request: the statement graph and
+  the routes drawing merged, proved as a filled pill, the OR-tree selector drawn as nodes and edges, a selection
+  that fades and compacts into a tree, and a selector *edge* as a zoom into the committed segment. Four things
+  worth keeping. **Order preservation and crossing-free layouts conflict, and the measurement said where**: seeding
+  every view's row order from the full layout took the disagreeing shared pairs on erdos-1094 from 191 to 1, and
+  the one left swaps two pills to avoid a crossing; R10 was tightened to "except to avoid a crossing" and the
+  test proves the crossing by pinning the order with the sweeps off, rather than inventing a pixel budget.
+  **An edge label is a node label in disguise**: sibling edges out of a fork share a midpoint, so their approach
+  texts were written over each other on the live render; every child has one incoming edge, so the words moved
+  into the child's pill and the pill's width is measured from them. **Measure displacement in layout units**:
+  the first displacement table read viewport boxes and reported 2860 px of "movement" that was the page scrolling
+  and the svg rescaling between views; each node's translate is the number. **A hidden-by-default class needs
+  its elements rendered**: the loose group's divider existed only when the opening layout had one, so the
+  toggle's own case (every variant off-route) had nothing to move; the script builder found it, not a test.
+  Also: three Playwright tests fail on origin/main as on the branch (gloss controls, the lemma record page);
+  checked in a detached worktree before believing they were ours.
+

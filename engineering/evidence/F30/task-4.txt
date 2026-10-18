@@ -1,0 +1,40 @@
+F30-T4 (AC9): captures and measurements on a full render of the live graph.
+
+Graph: ../open_proof_network_graph at origin/main a3c9833fd (detached worktree), rendered with
+  PYTHONPATH=gate:site uv run --frozen python site/opn_site/cli.py render --graph <wt> --commit a3c9833fd --out <dir>
+  (339 pages). Shot with: uv run --frozen --with playwright python engineering/evidence/F30/shoot.py <dir> erdos-1094
+
+erdos-1094: 54 statements, 34 live junctions, 0 dead, 3 OR diamonds, 8 sets, 14 selector nodes, 13 selector edges,
+  28 views; the embedded layouts JSON is 186058 bytes (budget §6: a few hundred KB).
+
+Captures (the site has one theme, so the 'light' run of the script is identical and is not kept):
+  erdos-1094-1440-dark-opening.png      the routes layout as the page opens, the selector and table beneath
+  erdos-1094-1440-dark-mid-transition.png  ~350 ms into the move to Set 1
+  erdos-1094-1440-dark-set-selected.png  Set 1's tree (showing 1 of 8 in the table)
+  erdos-1094-1440-dark-edge-selected.png the trunk edge: root to the first split, with the route's other holes (Q3)
+  erdos-1094-390-dark-*.png              the same at phone width; the selector scrolls in its card (Q11)
+
+Displacement between views, in layout units (each node's translate; a scroll or a rescale cannot read as movement):
+  set1-to-set2-erdos-1094-1440-dark: shared 37, still 10, median 45, max 291
+  routes-to-set1-erdos-1094-1440-dark: shared 48, still 4, median 834, max 1201
+  restored-equals-opening-erdos-1094-1440-dark: True
+  scrollWidth-dark: [390, 390]
+  set1-to-set2-erdos-1094-390-dark: shared 37, still 10, median 45, max 291
+  routes-to-set1-erdos-1094-390-dark: shared 48, still 4, median 834, max 1201
+  restored-equals-opening-erdos-1094-390-dark: True
+  set1-to-set2-erdos-1094-1440-light: shared 37, still 10, median 45, max 291
+  routes-to-set1-erdos-1094-1440-light: shared 48, still 4, median 834, max 1201
+  restored-equals-opening-erdos-1094-1440-light: True
+  scrollWidth-light: [390, 390]
+  set1-to-set2-erdos-1094-390-light: shared 37, still 10, median 45, max 291
+  routes-to-set1-erdos-1094-390-light: shared 48, still 4, median 834, max 1201
+  restored-equals-opening-erdos-1094-390-light: True
+
+  Reading: Set 1 and Set 2 share 37 nodes and the median shared node moves 45 units (a pill's height is 36), ten do not
+  move at all; routes → Set 1 compacts the tree, so shared nodes move by the rows that left (median 834). Escape
+  restores the opening layout exactly at both widths. No page overflow at 390 (scrollWidth 390).
+
+Browser tests: uv run --frozen --with playwright pytest site/tests -m 'not lean and not docker' → 785 passed, 3 failed;
+  the 3 (test_web_flows.py::test_a_stranger_sees_edit_and_no_approve, ::test_a_curator_sees_withdraw,
+  test_finding_lemma_edge.py::test_measured_in_a_browser) fail identically on origin/main in a detached worktree
+  with Playwright 1.64.0 installed (3 failed in 107.86s): pre-existing, not F30's (Q10).
