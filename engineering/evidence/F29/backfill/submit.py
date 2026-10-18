@@ -29,10 +29,7 @@ HERE = Path(__file__).resolve().parent
 LOG = HERE / "submit-log.jsonl"
 FM = re.compile(r"\A---\n(?P<yaml>.*?)\n---\n(?P<body>.*)\Z", re.S)
 TUTORIAL = "tutorial-and-swap"
-TUTORIAL_PROOF = (
-    "theorem OpnProp.and_swap : ∀ p q : Prop, p ∧ q → q ∧ p := by\n"
-    "  intro p q hpq\n  exact ⟨hpq.right, hpq.left⟩\n"
-)
+TUTORIAL_PROOF = '/-! The tutorial node (D-27): permanently open, off-ledger. Lean core only. -/\n\ntheorem OpnProp.and_swap : ∀ p q : Prop, p ∧ q → q ∧ p := by\n  intro p q hpq\n  exact ⟨hpq.right, hpq.left⟩\n'
 
 
 def call(api: str, method: str, path: str, body: dict | None, token: str | None) -> tuple[int, dict]:
@@ -41,14 +38,20 @@ def call(api: str, method: str, path: str, body: dict | None, token: str | None)
     req.add_header("Content-Type", "application/json")
     if token:
         req.add_header("Authorization", f"Bearer {token}")
-    try:
-        with urllib.request.urlopen(req, timeout=120) as r:
-            return r.status, json.loads(r.read() or b"{}")
-    except urllib.error.HTTPError as e:
+    last: Exception | None = None
+    for attempt in range(5):  # this laptop's path to the service drops reads (2026-09-21)
         try:
-            return e.code, json.loads(e.read() or b"{}")
-        except json.JSONDecodeError:
-            return e.code, {}
+            with urllib.request.urlopen(req, timeout=120) as r:
+                return r.status, json.loads(r.read() or b"{}")
+        except urllib.error.HTTPError as e:
+            try:
+                return e.code, json.loads(e.read() or b"{}")
+            except json.JSONDecodeError:
+                return e.code, {}
+        except (urllib.error.URLError, TimeoutError, OSError) as e:
+            last = e
+            time.sleep(5 * (attempt + 1))
+    raise RuntimeError(f"{method} {path}: no answer after 5 attempts: {last}")
 
 
 def mint(api: str, pseudonym: str) -> str:
@@ -139,12 +142,13 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--api", required=True)
     ap.add_argument("--token")
+    ap.add_argument("--token-file", type=Path)
     ap.add_argument("--pseudonym", default="f29-words")
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--only", choices=["statements", "routes"])
     ap.add_argument("--pause", type=float, default=3.0)
     a = ap.parse_args()
-    token = a.token or mint(a.api, a.pseudonym)
+    token = a.token or (a.token_file.read_text().strip() if a.token_file else None) or mint(a.api, a.pseudonym)
     done = set()
     if LOG.is_file():
         for ln in LOG.read_text(encoding="utf-8").splitlines():
@@ -163,7 +167,14 @@ def main() -> int:
                 continue
             if a.dry_run:
                 body = {**body, "dry_run": True}
-            status, ans = call(a.api, "POST", "/glosses", body, token)
+            while True:
+                status, ans = call(a.api, "POST", "/glosses", body, token)
+                if status != 429:
+                    break
+                # D-25's flat write cap (120 per hour per identity): wait for the window, then
+                # retry the same record rather than spend the rest of the list on refusals.
+                print(f"429 on {key}: {(ans.get('message') or '')[:80]}; waiting 10 min", flush=True)
+                time.sleep(600)
             ok = status in (200, 201, 202)
             accepted += ok
             refused += not ok
@@ -184,7 +195,7 @@ def main() -> int:
                 + "\n"
             )
             log.flush()
-            print(f"{'ok ' if ok else 'NO '} {status} {key} {ans.get('error') or ans.get('code') or ''}")
+            print(f"{'ok ' if ok else 'NO '} {status} {key} {ans.get('error') or ans.get('code') or ''}", flush=True)
             time.sleep(a.pause)
     print(f"accepted {accepted}, refused {refused}, skipped {len(done)}")
     return 0 if refused == 0 else 1

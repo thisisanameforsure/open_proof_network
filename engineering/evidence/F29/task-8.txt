@@ -27,3 +27,12 @@
    40-minute cap; the two euclid drafts over a person's gloss now keep the words and add only the label.
    Real submission of 168 records (140 statement, 28 route) started 2026-10-18 ~04:10Z, log
    engineering/evidence/F29/backfill/submit-log.jsonl.
+7. Backfill done 2026-10-18 ~07:30Z: 167 of 168 records accepted through POST /glosses under f29-words
+   (the one refusal, record-name-taken, was a record the first run had already landed); the service's cap
+   of 120 writes per hour per identity paced it (the dry-run had spent most of the first hour's budget;
+   the submitter now waits ten minutes on a 429 and retries the same record). Graph PRs #619–#756 merged
+   by the merge actor, no human. Coverage at graph 5130083b0 (coverage-final.json): 140 statements
+   labelled, 27 unlabelled — exactly the 27 roots, whose label is the target's title by design (D-3 v3.44);
+   27 of 53 merged partials carry approach words (the 28th route gloss is the duplicate euclid partial that
+   is in no decomposition). erdos-1094 graph.json: label_source gloss ×53, target ×1; --h3's three routes now
+   read "Small range through a last-digit carry…", "Konyagin's theorem…", "Skeleton of Granville–Ramaré…".

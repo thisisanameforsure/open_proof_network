@@ -1684,3 +1684,17 @@ The law of the project:
   reports your edits as failures (three "failures" were goldens changing under the run); and a
   root's title on the live record is a sentence with TeX, so a root's label is the head before
   its colon or its id, not the title.
+- 2026-10-18 — F29 carried to the record on the owner's word ("backfill merge repin deploy please"):
+  merge, hotfix, images, 27 pins, render, 167 glosses through the service. Three things worth keeping.
+  **A version set derived from the current constant is a time bomb**: `GLOSSES_SCHEMAS = {v1,
+  current}` dropped v2 the day v3 shipped, and every live `get_node` answered glosses-invalid until
+  the hotfix; api-deploy's own MCP smoke caught it in minutes, which is what the smoke is for. Name
+  every version the live graph may still carry, and hold the current constant inside the set by test.
+  **A dry run spends the same write budget as the real run**: 136 dry-run calls ate the hour's cap
+  of 120 writes, and the first real run then burned 18 records on 429s because it moved on instead of
+  waiting; a submitter waits out a rate limit on the same record. **The tutorial proof is the
+  statement byte for byte**, doc comment included: a proof built from memory of the guide failed
+  step 2 twice before being built from the live `Statement.lean`. Also: this laptop's path to the
+  service drops reads mid-poll, so any client here retries; and a merged partial's words can be
+  written after the fact only because a gloss may now describe a partial (F29-Q9), which is where
+  21 wordless routes got their approach.
