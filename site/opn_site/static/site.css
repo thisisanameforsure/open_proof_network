@@ -1043,3 +1043,64 @@ th[aria-sort="descending"] .routes-sort::after { content: " ↓"; }
 .routes-svg .swatch.set-5 { fill: var(--set-5); } .routes-svg .swatch.set-6 { fill: var(--set-6); }
 .routes-svg .swatch.set-7 { fill: var(--set-7); } .routes-svg .swatch.set-8 { fill: var(--set-8); }
 .routes-svg .swatch.set-more { fill: var(--set-more); }
+
+/* F30-T2: one statement graph. Proved is a filled pill (R2); the route junctions and the OR
+   diamond come from the routes drawing; what the opening layout does not show is off-view; the
+   selector is drawn as pills and lines below the drawing beside the sets table (R5, R9). */
+.dag .node.proved rect.pill { fill: var(--accent); fill-opacity: .22; stroke: var(--accent); stroke-width: 1.5; }
+.dag .node.proved text { fill: var(--text); }
+.dag .node.proved circle:not(.halo) { fill: var(--accent); stroke: var(--accent); }
+.dag .off-view { display: none; }
+.dag .junction .stem { stroke: var(--n600); stroke-width: 1.5; }
+.dag .junction.dead .stem { stroke-dasharray: 4 3; stroke: var(--n700); }
+.dag .and-mark { fill: var(--text); stroke: var(--bg); stroke-width: 1.5; }
+.dag .or-mark { fill: var(--bg); stroke: var(--text); stroke-width: 1.5; }
+.dag .dead-mark { fill: var(--bg); stroke: var(--bad); stroke-width: 1.5; stroke-dasharray: 2 2; }
+.dag .dead-cross { stroke: var(--bad); stroke-width: 1.5; fill: none; }
+.dag .node.closable rect.pill { stroke: var(--accent-300); }
+.dag .node .asm { fill: var(--accent-300); stroke: none; }
+.dag .node.closable circle:not(.halo):not(.asm) { display: none; }
+.dot-route-and { border: 0; background: var(--text); width: 9px; height: 9px; border-radius: 50%; }
+.dot-route-or { border: 1.5px solid var(--text); border-radius: 1px; transform: rotate(45deg); width: 8px; height: 8px; }
+.dot-route-dead { border: 1.5px dashed var(--bad); }
+.dot-closable { border: 0; background: var(--accent-300); border-radius: 1px; width: 8px; height: 8px; }
+.view-toggle { font: inherit; font-size: 12px; color: var(--n300); background: var(--bg); border: 1px solid var(--divider); border-radius: 999px; padding: 2px 10px; cursor: pointer; }
+.view-toggle:hover, .view-toggle:focus-visible { border-color: var(--accent); }
+.view-toggle[aria-pressed="true"] { border-color: var(--accent); color: var(--text); }
+.sets-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 480px); gap: calc(var(--s8) * 1.5); align-items: start; }
+.selector-wrap { padding: var(--s6); min-width: 0; overflow-x: auto; }
+.selector-wrap .kicker { margin: 0 0 var(--s4); }
+.selector { display: block; max-width: 100%; height: auto; }
+.selector text { fill: var(--text); font-family: var(--sans, inherit); font-size: 13px; }
+.selector .pill { fill: var(--bg); stroke: var(--divider); stroke-width: 1; }
+.selector .sel-node { cursor: pointer; }
+.selector .kind-root .pill { stroke-dasharray: 3 3; }
+.selector .kind-root text { fill: var(--n400); }
+.selector .kind-leaf .pill { stroke: var(--accent-300); }
+.selector .kind-proof .pill { fill: var(--accent); fill-opacity: .22; stroke: var(--accent); }
+.selector .sel-node:hover .pill, .selector .sel-node:focus-visible .pill, .selector .sel-node.previewed .pill { stroke: var(--accent); }
+.selector .sel-node[aria-pressed="true"] .pill { stroke: var(--accent); stroke-width: 2; fill: rgba(145, 132, 217, .14); }
+.selector .sel-edge { stroke: var(--n600); stroke-width: 1.5; fill: none; cursor: pointer; }
+.selector .sel-edge:hover, .selector .sel-edge:focus-visible, .selector .sel-edge.previewed { stroke: var(--accent); stroke-width: 2.5; }
+.selector .sel-edge[aria-pressed="true"] { stroke: var(--accent); stroke-width: 3; }
+.selector .sel-head { font-size: 12.5px; }
+.selector .sel-approach { font-size: 10.5px; fill: var(--n400); }
+.proof-note { font-size: 12.5px; color: var(--n400); margin: var(--s4) 0 0; line-height: 1.5; }
+@media (max-width: 960px) {
+  .sets-grid { grid-template-columns: minmax(0, 1fr); }
+  /* T4: on a narrow screen the selector scrolls in its card, as the drawing does, rather than shrinking to it. */
+  .selector { max-width: none; }
+}
+
+/* F30-T3 */
+/* The script's states (R7, R8): a preview lights a view's nodes and lines and dims the rest
+   without moving anything; a transition fades what leaves (200 ms), slides what stays, and
+   fades in what arrives (200 ms); a table row previews and selects like a selector leaf. */
+.dag .node, .dag .edge, .dag .junction { transition: opacity .2s; }
+.dag .fading { opacity: 0 !important; }
+.dag.picking .node:not(.lit), .dag.picking .junction:not(.lit) { opacity: .25; }
+.dag.picking .edge:not(.lit) { opacity: .12; }
+.dag.hovering .junction:not(.lit) { opacity: .35; }
+.selector .sel-node .pill, .selector .sel-edge { transition: stroke .12s, stroke-width .12s; }
+tr.set-row { cursor: pointer; }
+tr.set-row.previewed td { background: rgba(128, 128, 128, .12); }

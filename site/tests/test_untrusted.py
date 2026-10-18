@@ -51,7 +51,13 @@ def _assert_clean(page: str) -> None:
     p.feed(page)
     for tag, attrs in p.tags:
         assert tag not in ("img", "iframe", "object", "embed"), (tag, attrs)
-        assert tag != "script" or attrs.get("src") in render.SCRIPTS, attrs
+        # F30-T2: the page embeds its layouts as ``<script type="application/json">``, data the
+        # browser never executes; every other script is one of the site's own files.
+        assert (
+            tag != "script"
+            or attrs.get("src") in render.SCRIPTS
+            or (attrs.get("type") == "application/json" and attrs.get("src") is None)
+        ), attrs
         assert not any(k.lower().startswith("on") for k in attrs), (tag, attrs)
         for k in ("href", "src"):
             v = (attrs.get(k) or "").strip().lower()

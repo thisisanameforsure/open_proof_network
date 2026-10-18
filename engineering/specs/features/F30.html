@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>F30 — One statement graph</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="crumbs"><a href="../index.html">specs</a> / F30</nav>
+<h1>F30 — One statement graph</h1>
+<p class="subtitle">The problem page's two drawings (the statement graph of F04 and the routes drawing
+of F27/F29) become one: every statement and every route junction in one picture, proved read from the
+pill itself, the sufficient sets chosen on a small OR tree drawn as nodes and edges, and a selection
+that fades what it drops and slides what it keeps into a tree, so a reader zooms into one piece of the
+proof skeleton (the owner's request of 2026-10-18).</p>
+
+<h2>1. Summary</h2>
+<p>On 2026-10-18 the owner asked for the two graphs on a problem page to be one view. From the
+statement graph (F04-T12, T33): clicking a statement shows its record in the side panel, and
+hovering lights its lines and the statements they join. From the routes drawing (F27-T3, F29-T6):
+the sufficient sets and the choosing of them. Three things change shape. The selector stops being an
+indented list and becomes the OR tree itself, nodes and edges, where a leaf is one set, an interior
+node is a family of sets (every set beneath it) and an edge is the commitment "close this statement
+by this route", which fixes the skeleton down to the next decision. Proved reads from the pill: a
+proved statement is a solid filled pill, an open one is outlined, and the set colours, pies and wedges
+go. And a selection moves the drawing: what is not in the selection fades, then what remains closes
+its gaps into a tree; moving from one set to a neighbour slides little, because every layout orders
+rows from the full graph's own order and every node keeps one identity across layouts.</p>
+<p>The owner's rulings, taken in the planning conversation: the selector's nodes and edges never
+touch the side panel, and only a click on the main drawing does; the one view holds everything the
+statement graph held, with the statements on no route hidden behind a toggle; faded nodes leave and
+the tree compacts; proved is a filled pill; hover anywhere on the selector previews on the main
+drawing with no movement, and only a click transitions; clicking a selector edge shows the committed
+part (the holes the route fixes that lead nowhere else are included, Q3), cut above at the statement
+the edge is a route of and below at the next fork; the AND dots and OR diamonds stay. Left to the
+builder and taken as follows: the F18 proof buttons fold into the selector as proof leaves (Q4); the
+sets table keeps its sorting and "Fewest open first" and sits below the drawing (Q5); a set's tree
+shows its assemblies and junctions (Q6).</p>
+
+<h2>2. User stories</h2>
+<ul>
+  <li>As a reader of a problem page, I want one drawing of the problem's statements in which proved
+    and unproved are told apart at a glance, so that I do not read two pictures of the same graph.</li>
+  <li>As a reader, I want to click a statement and read its record beside the drawing, and to hover
+    one and see what rests on it and what it rests on, as the page does today.</li>
+  <li>As an operator choosing where to send agents, I want to pick a sufficient set, or a family of
+    sets, or one commitment, on a small tree of the choices, and watch the drawing become the tree of
+    just that work, so that I can zoom into one piece of the skeleton and compare neighbours without
+    the picture jumping.</li>
+  <li>As a reader on a phone or without JavaScript, I want the drawing, the selector and the table to be
+    complete and still, with every statement a link to its record.</li>
+</ul>
+
+<h2>3. Scope</h2>
+<p><strong>In:</strong> <code>site/opn_site/one_view.py</code> (the merged drawing, the selector
+drawing, the layouts, the table), one change to <code>dag.layout</code> (an order hint), the page's
+script <code>static/graph.js</code> replacing <code>problem.js</code> and <code>routes.js</code>,
+the stylesheet, the template, the key, the restated tests, screenshots on a full render of the live
+graph. Spec amendments: F27-R10 and F29-R10 are superseded by F30-R5 to R9 (Q1); F18-R3's buttons by
+F30-R6 (Q4).</p>
+<p><strong>Non-goals:</strong></p>
+<ul>
+  <li>No change to which sets exist, their order, or the selector tree's construction
+    (<code>opn_gate.routes</code>, F27-R6, R7, F29-R6): the page draws what the tool returns.</li>
+  <li>No change to any product, schema or MCP tool; nothing to re-pin.</li>
+  <li>No ranking of sets or statements (D-25).</li>
+  <li>No new layout algorithm: every layout is <code>dag.layout</code> over a subset, seeded with the
+    full layout's order (Q2).</li>
+</ul>
+
+<h2>4. Requirements</h2>
+<table>
+  <tr><th>ID</th><th>Requirement (EARS)</th></tr>
+  <tr><td>F30-R1</td><td>The problem page shall carry one drawing of the target (<code>svg.dag</code>):
+    every statement of <code>graph.json</code> as a pill and, for every route, a junction between the
+    decomposed statement and its holes (an AND dot; a dead route a crossed ring), with the OR diamond
+    on a statement that two or more routes or variants could close, laid out by <code>dag.layout</code>.
+    The Routes section, its own drawing and the proof buttons shall not be rendered.</td></tr>
+  <tr><td>F30-R2</td><td>A proved statement shall be drawn as a solid filled pill and an open one as an
+    outlined pill; blocked, needs-witness, stale, disputed, superseded, abandoned, refuted and defective
+    keep a muted treatment named in the key; the key sits inside the drawing's card and names every
+    state and mark the drawing can show.</td></tr>
+  <tr><td>F30-R3</td><td>When a statement's pill is clicked, the page shall show its panel beside the
+    drawing and record it in the hash (<code>#node=</code>); when a pill is hovered or focused, its
+    lines and the statements they join shall be lit and the rest dimmed, with no coordinate changed;
+    without the script every pill is a link to the statement's page and the root's panel is shown.</td></tr>
+  <tr><td>F30-R4</td><td>The drawing shall open on the <em>routes</em> layout, the statements on a way to
+    close the root (F27's <code>drawn</code>) plus the root; a toggle shall show every other statement
+    (variants, specs, superseded, unjoined) in the <em>all</em> layout, and the toggle names how many it
+    adds. "Hide superseded" remains within the all layout.</td></tr>
+  <tr><td>F30-R5</td><td>The page shall carry a selector drawing (<code>svg.selector</code>) of
+    <code>routes.selector_tree</code> as nodes and edges: the root statement as its top when the top
+    split is not the root, one node per tree node labelled by the statement it splits (interior) or
+    "Set <i>k</i>" (leaf), one edge per parent–child pair labelled by the child's route approach;
+    and, for a target with proofs, one leaf per proof (Q4). Every selector node and edge carries a
+    <code>data-view</code> key and the sets beneath it in <code>data-sets</code>.</td></tr>
+  <tr><td>F30-R6</td><td>The page shall embed one layout per view, built at render time by
+    <code>dag.layout</code> over the view's nodes and lines with the full layout's order as the seed
+    (<code>#graph-layouts</code>, JSON): <em>all</em>; <em>routes</em>; per selector node, the union of
+    the sets beneath it (statements, assemblies, junctions, the lines between them); per leaf, its one
+    set; per proof leaf, the proof's closure and the edges its term follows (F18's marks); per selector
+    edge, the <em>segment</em>: the statements, assemblies and junctions that every set beneath the child
+    shares, lying under the statement the edge is a route of, through that route, cut at the child's
+    split statement, both ends included; the trunk edge's segment runs from the root to the top split.
+    Each layout lists its nodes with coordinates and width, its lines with their bend points, and the
+    drawing's size.</td></tr>
+  <tr><td>F30-R7</td><td>When a selector node or edge is clicked, the drawing shall move to that view:
+    nodes and lines not in the view fade out, then every node and line in both views slides to its new
+    place and the drawing resizes, then nodes and lines new to the view fade in; clicking the selected
+    element again, or Escape, returns to the routes layout the same way; the hash carries the view
+    (<code>view=</code>); under <code>prefers-reduced-motion</code> the drawing changes in one step.
+    The side panel is not changed by any selector click.</td></tr>
+  <tr><td>F30-R8</td><td>When a selector node or edge, or a table row, is hovered or focused, the main
+    drawing shall light every node and line of that view and dim the rest, with no coordinate changed
+    and no fade; leaving restores the selection's state. A node absent from the current layout is not
+    drawn and so not lit.</td></tr>
+  <tr><td>F30-R9</td><td>The sets table (F27-R11, with its sorting and "Fewest open first") shall sit
+    below the drawing beside the selector, filtered to the selected view's sets and saying "showing
+    <i>n</i> of <i>m</i>"; a row click selects that set's leaf view.</td></tr>
+  <tr><td>F30-R10</td><td>Across every pair of views the statements shared by both shall keep their
+    left-to-right order within each layer, except where keeping it would make two lines cross in
+    that view; and a view's layout shall have no overlapping pills and every node one layer below the
+    lowest node that rests on it (F04-T33's properties).</td></tr>
+  <tr><td>F30-R11</td><td>Without the script the page shall show the routes layout, the selector and
+    the full table, every pill and selector node a link; with it, nothing is rendered twice.</td></tr>
+</table>
+
+<h2>5. Acceptance criteria</h2>
+<table>
+  <tr><th>ID</th><th>Given / When / Then</th><th>Test case</th></tr>
+  <tr><td>F30-AC1</td><td>Given a target with two routes at the root and one beneath, when the page
+    renders, then there is one <code>svg.dag</code>, no Routes section, no proof buttons, a junction per
+    route, an OR diamond on the root, and each proved statement carries the proved class on its pill.</td>
+    <td><code>site/tests/test_one_view_markup.py::test_one_drawing_with_junctions_and_no_routes_section</code>,
+    <code>::test_proved_is_the_filled_pill</code>, <code>::test_the_key_names_the_route_marks_when_the_drawing_has_them</code></td></tr>
+  <tr><td>F30-AC2</td><td>Given the embedded layouts, when read, then <em>all</em> holds every statement,
+    <em>routes</em> the on-route ones, a leaf view exactly its set's statements, assemblies and junctions,
+    an interior view the union beneath it, and every line of a view joins two nodes of it.</td>
+    <td><code>test_one_view.py::test_layout_membership_per_view</code></td></tr>
+  <tr><td>F30-AC3</td><td>Given a selector edge from a split on X by route r to a child splitting on Y,
+    when its segment is read, then it holds X, r's junction, the holes of r that every set beneath shares,
+    down to and including Y, and nothing beneath Y; the trunk edge's segment runs root to the top split.</td>
+    <td><code>test_one_view.py::test_an_edge_view_is_the_committed_part_between_two_forks</code>,
+    <code>::test_the_trunk_edge_runs_from_the_root_to_the_first_split</code></td></tr>
+  <tr><td>F30-AC4</td><td>Given every pair of views, when their layouts are compared, then shared
+    statements keep their order within a layer; and each layout has no overlap and keeps a node one
+    layer below what rests on it.</td>
+    <td><code>test_one_view.py::test_shared_statements_keep_their_order_across_views</code>,
+    <code>::test_every_view_is_a_tidy_layout</code></td></tr>
+  <tr><td>F30-AC5</td><td>Given the page in a browser, when a selector leaf is clicked, then after the
+    transition only its view's nodes are visible, at the view's coordinates; clicking a selector edge
+    leaves only the segment; clicking the selected element again restores the routes layout; the hash
+    carries the view; the panel did not change.</td>
+    <td><code>test_one_view.py::test_selecting_a_leaf_an_edge_and_clearing_moves_the_drawing</code>
+    (Playwright)</td></tr>
+  <tr><td>F30-AC6</td><td>Given the page in a browser, when a selector node, edge or table row is
+    hovered, then the view's nodes are lit and the rest dimmed and no node moved; when a pill is
+    hovered, its lines are lit and no node moved; when a pill is clicked, its panel shows and no node
+    moved.</td>
+    <td><code>test_one_view.py::test_hover_previews_without_moving</code>,
+    <code>::test_a_pill_click_opens_the_panel_and_moves_nothing</code> (Playwright)</td></tr>
+  <tr><td>F30-AC7</td><td>Given a target with hidden off-route statements, when the toggle is pressed,
+    then the all layout is shown with them; a target with a proof shows a proof leaf whose view is the
+    proof's closure.</td>
+    <td><code>test_one_view.py::test_the_toggle_shows_every_statement</code>,
+    <code>test_one_view_markup.py::test_a_proof_is_a_leaf_of_the_selector</code></td></tr>
+  <tr><td>F30-AC8</td><td>Given the rendered page without JavaScript, when read, then the routes
+    layout, the selector and the full table are present and every pill is a link.</td>
+    <td><code>test_one_view_markup.py::test_complete_without_the_script</code></td></tr>
+  <tr><td>F30-AC9</td><td>Given a full render of the live graph, when erdos-1094's page is captured at
+    1440 and 390 (the site has one theme), with a set selected, an edge selected and mid-transition, then
+    the captures and the measured displacement between neighbouring sets are in the evidence.</td>
+    <td>evidence, <code>engineering/evidence/F30/</code></td></tr>
+</table>
+
+<h2>6. Budgets / limits</h2>
+<p>Views number the selector's nodes plus edges plus proofs plus two; on erdos-1094 about thirty.
+The layouts JSON carries each node once per view and each line's bend points (not its sampled curve),
+so it stays under a few hundred kilobytes on the largest live target; the test records the size. The
+transition is 200 ms fade, 400 ms move, 200 ms fade, zero under reduced motion.</p>
+
+<h2>7. Security &amp; privacy notes</h2>
+<p>Labels and approaches are contributor text, escaped in markup and in the JSON (which carries ids and
+numbers only, never words). No external resource (F04-R10). No new route, record or permission.</p>
+
+<h2>8. Dependencies</h2>
+<p>F04 (the page and the layout), F27 and F29 (routes, sets, the selector tree), F18 (proofs and their
+marks), F28 (closable). Live after a network deploy of the site; no graph change.</p>
+
+<h2>9. Open questions / judgment calls</h2>
+<p><strong>F30-Q1 — F27-R10 and F29-R10 give way.</strong> Both say the drawing's layout never depends on
+what is selected, and R10 made each statement a pie of set colours. The owner asked for the opposite: a
+selection becomes a tree. Those two lines are superseded by R5 to R9 here; the rest of F27 and F29 stand.
+What that rule protected, that a reader can find a statement where it was, is kept by R10's order
+property and by the return to the routes layout on clearing.</p>
+<p><strong>F30-Q2 — No new layout; a seed.</strong> A tidy tree per view is <code>dag.layout</code> over the
+view's nodes, which is already a layered layout with crossing minimisation. What keeps shared nodes still
+is the initial order of every rank: seeded from the full layout's x-order instead of lexical ids, so the
+trunk and shared subtrees come out in the same order in every view. R10 tests the property, not a pixel
+budget (2026-10-04: a distance proxy measured the wrong thing). On the live erdos-1094 the seed took
+the disagreeing pairs from 191 to 1, and the one left is a view that swaps two pills to avoid a
+crossing of its own; crossing-free outranks still, so R10 allows exactly that, and the test shows the
+crossing by pinning the shared order.</p>
+<p><strong>F30-Q3 — A segment is the committed part, not the bare chain.</strong> A route may have holes
+that lead to no further choice; choosing the route commits to them, so the segment includes them. The
+owner's ruling.</p>
+<p><strong>F30-Q4 — Proofs are leaves.</strong> A proof of a resolved root is a fully proved sufficient
+set, so it is one more leaf of the selector rather than a row of buttons above the drawing. Its view is
+F18's closure with the edges the term follows; the proof note and the reading link show beneath the
+selector when it is selected.</p>
+<p><strong>F30-Q5 — The table stays, below.</strong> Sorting, "Fewest open first" and the "which" lists
+are kept; it moves from the right column to under the drawing, beside the selector, since the right column
+is the panel's.</p>
+<p><strong>F30-Q6 — A set's tree keeps its junctions.</strong> The owner asked to keep the AND dots and OR
+diamonds; a set's view therefore holds its assemblies and route junctions, so the tree reads as the proof
+skeleton rather than a bag of leaves.</p>
+
+<p><strong>F30-Q7 — The approach rides the child, not the edge.</strong> R5 said each selector edge is
+labelled by its route's approach. On the live erdos-1094 the two edges out of a fork share a midpoint
+and their labels were written over each other; since every child has exactly one incoming edge, the
+approach is the child pill's second line (<code>text.sel-approach</code>), the full text in its
+title, and the pill's width is measured from it so the layout spaces siblings apart. Measured on the
+live render: no selector text leaves its pill.</p>
+<p><strong>F30-Q8 — The loose group follows the layout that has it.</strong> The divider and label of
+the statements no line joins were rendered only when the opening layout had such a group; the
+toggle's own case (every variant off-route) had none to move. They are rendered from the first layout
+that has a group, hidden until the script moves to it (the script builder's finding).</p>
+<p><strong>F30-Q9 — The hash on load.</strong> <code>problem.js</code> never wrote the hash on load and
+wrote <code>node=</code> for the selected panel on every change; <code>graph.js</code> keeps both,
+adding <code>view=</code> only when the view is not <code>routes</code>, so a bookmarked page opens
+as it did.</p>
+<p><strong>F30-Q10 — Three browser tests fail before and after.</strong> With Playwright installed,
+<code>test_web_flows.py</code>'s two gloss-control tests and <code>test_finding_lemma_edge.py</code>'s
+record-page measurement time out on <code>origin/main</code> exactly as on this branch (run in a
+detached worktree with the same Playwright 1.64.0); they are not F30's and are left as found.</p>
+<p><strong>F30-Q11 — The selector scrolls on a phone.</strong> At 390px the selector shrank to its
+card and its words became unreadable; it now scrolls sideways inside its card, as the drawing
+does (the routes drawing had the same rule).</p>
+
+<h2>10. Status</h2>
+<div class="rule"><strong>status:</strong> built 2026-10-18, awaiting the owner&rsquo;s push and site deploy · <strong>Tasks:</strong> T0–T4 done (T1 13 tests, <code>engineering/evidence/F30/task-1.txt</code>; T2 site suite 762 passed, <code>task-2.txt</code>; T3 browser tests 28 passed, <code>task-3.txt</code>; T4 captures and displacement on the live erdos-1094, <code>task-4.txt</code>); full <code>make verify</code> on the branch: 6191 passed, 282 skipped. T5 (push, merge, site deploy) is the owner&rsquo;s. Branch <code>f30-one-graph</code>, unpushed.</div>
+
+<h2>Tasks</h2>
+<table>
+  <tr><th>ID</th><th>Task</th><th>Files</th><th>Deps</th><th>Verification</th></tr>
+  <tr><td>F30-T0</td><td>This spec, its index row, the superseded lines noted in F27, F29 and F18.</td>
+    <td><code>engineering/specs/</code></td><td>—</td><td>—</td></tr>
+  <tr><td>F30-T1</td><td>The views and their layouts (R6, R10): <code>one_view.views</code> (routes,
+    all, selector nodes, edges, leaves, proofs, segments) and <code>one_view.layouts</code>; the order
+    seed in <code>dag.layout</code>; the JSON shape.</td>
+    <td><code>site/opn_site/one_view.py</code>, <code>site/opn_site/dag.py</code>,
+    <code>site/tests/test_one_view.py</code></td><td>T0</td>
+    <td><code>uv run --frozen pytest site/tests/test_one_view.py -k "layout or view or edge or trunk or order"</code></td></tr>
+  <tr><td>F30-T2</td><td>The markup (R1, R2, R4, R5, R9, R11): the merged drawing with junctions and
+    diamonds, the filled pill, the key, the toggle, the selector drawing, the table below; the page wired
+    and the Routes section and proof buttons removed; the tests that asserted the old sections restated.</td>
+    <td><code>site/opn_site/one_view.py</code>, <code>site/opn_site/render.py</code>,
+    <code>site/opn_site/templates/target.html</code>, <code>site/opn_site/static/site.css</code>,
+    <code>site/tests/test_one_view_markup.py</code>, the restated tests</td><td>T1</td>
+    <td><code>uv run --frozen pytest site/tests -m "not lean and not docker"</code></td></tr>
+  <tr><td>F30-T3</td><td>The script (R3, R7, R8): <code>graph.js</code> — panel select, pill hover, selector
+    hover and click, the three-phase transition over the embedded layouts, the toggle, the table filter and
+    sort, the hash.</td>
+    <td><code>site/opn_site/static/graph.js</code>, <code>site/opn_site/static/site.css</code>,
+    <code>site/tests/test_one_view.py</code></td><td>T2</td>
+    <td><code>uv run --frozen --with playwright pytest site/tests/test_one_view.py</code></td></tr>
+  <tr><td>F30-T4</td><td>Evidence on a full render of the live graph (AC9): captures at 1440 and 390,
+    selected (a set, an edge) and mid-transition; the displacement table; the JSON size.</td>
+    <td><code>engineering/evidence/F30/</code></td><td>T3</td>
+    <td><code>uv run --frozen --with playwright python engineering/evidence/F30/shoot.py</code></td></tr>
+  <tr><td>F30-T5</td><td>Live: push, merge, site deploy (the owner's).</td>
+    <td>—</td><td>T4</td><td>live page</td></tr>
+</table>
+</body>
+</html>
