@@ -1083,7 +1083,8 @@ th[aria-sort="descending"] .routes-sort::after { content: " ↓"; }
 .selector .sel-edge { stroke: var(--n600); stroke-width: 1.5; fill: none; cursor: pointer; }
 .selector .sel-edge:hover, .selector .sel-edge:focus-visible, .selector .sel-edge.previewed { stroke: var(--accent); stroke-width: 2.5; }
 .selector .sel-edge[aria-pressed="true"] { stroke: var(--accent); stroke-width: 3; }
-.selector .sel-edge-label { font-size: 11px; fill: var(--n400); pointer-events: none; }
+.selector .sel-head { font-size: 12.5px; }
+.selector .sel-approach { font-size: 10.5px; fill: var(--n400); }
 .proof-note { font-size: 12.5px; color: var(--n400); margin: var(--s4) 0 0; line-height: 1.5; }
 @media (max-width: 960px) {
   .sets-grid { grid-template-columns: minmax(0, 1fr); }

@@ -20,14 +20,14 @@ from test_routes_view import render_tree, two_routes
 
 
 def test_the_selector_names_the_glossed_route_by_its_gloss(tmp_path: Path) -> None:
-    """F30-T2: the selector's edges are labelled by their route's approach (R5)."""
+    """F30-T2: a selector child carries the approach of the route its edge chose (R5)."""
     root = two_routes(tmp_path)
     put_gloss(root, partial_doc(root, module=PARTIAL), GLOSS_WORDS + "\n")
     page = render_tree(root)[f"problems/{TARGET}/index.html"]
     selector = page[page.index('<svg class="selector"') :]
     selector = selector[: selector.index("</svg>")]
-    labels = re.findall(r'<text class="sel-edge-label"[^>]*>(.*?)</text>', selector, re.S)
-    assert len(labels) == 2, "two routes on the root, two edges"
+    labels = re.findall(r'<text class="sel-approach"[^>]*>(.*?)</text>', selector, re.S)
+    assert len(labels) == 2, "two routes on the root, two children"
     first, second = sorted(labels, key=lambda t: "route 2 of" in t)
     assert "Bound the density of the set first." in first
     assert "Then the rest follows" not in first, "the first sentence only"
