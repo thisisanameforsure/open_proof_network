@@ -47,3 +47,45 @@ leaf view sel/and-swap-reassoc@1 ... leaf at layout: ok ... edge at layout: ok .
 page errors: []
 Defect found and fixed by the first drive: the initial settle() wrote #node=<root> on load; the
 load now keeps the hash (settle(to, keepHash)), as problem.js did.
+
+== T2 merged (f30-one-graph 6f387334, then 3e7446e5); the real page in the browser
+First run: 3 failures, all in the tests, none in the script —
+  test_the_toggle_shows_every_statement: the related variant made two sinks (root ambiguous,
+    F08-Q19); the fixture now declares the root in a target-status/v2 record.
+  test_hover_previews_without_moving: "a node moved" — every box shifted by the same 860 px,
+    because hovering a table row scrolls the page; boxes are measured relative to the svg now.
+  test_a_proof_is_a_leaf_of_the_selector: dropped with test_complete_without_the_script — both
+    already exist in site/tests/test_one_view_markup.py (the lead's, T2).
+$ uv run --frozen ruff check site/tests/test_one_view.py site/opn_site/static
+All checks passed!
+$ uv run --frozen --with playwright pytest site/tests/test_one_view.py -q --tb=short
+.................                                                        [100%]
+17 passed in 11.52s
+(13 of T1; test_selecting_a_leaf_an_edge_and_clearing_moves_the_drawing — reduced motion and the
+animated three phases; test_hover_previews_without_moving; test_a_pill_click_opens_the_panel_and_moves_nothing;
+test_the_toggle_shows_every_statement)
+
+== site fast tier with Playwright present
+$ uv run --frozen --with playwright pytest site/tests -m "not lean and not docker" -q -x
+FAILED site/tests/test_finding_lemma_edge.py::test_measured_in_a_browser
+1 failed, 266 passed in 59.62s
+The one failure is engineering/evidence/F04/task-39-shoot.py line 115, shot(page, ".lemmas", ...)
+on the statement's *record* page (Locator.screenshot: element is not visible): not the problem
+page, not graph.js; it runs only when Playwright is installed, which make verify does not do.
+Reported to the lead, not fixed here.
+
+== the group divider
+one_view draws line.dag-divider and text.dag-group only when the opening (routes) layout has a
+loose group, so on a target whose variants are all off-route the `all` view has a group_y and no
+element to move. graph.js moves them when present (placeGroup); the toggle test holds it to that
+and records the gap for T2.
+
+== final run (the task's verification command, plus the lead's markup tests on the same page)
+$ uv run --frozen ruff format --check site/tests/test_one_view.py
+1 file already formatted
+$ uv run --frozen --with playwright pytest site/tests/test_one_view.py site/tests/test_one_view_markup.py -q --tb=short
+............................                                             [100%]
+28 passed in 13.51s
+(test_one_view.py: 17 — T1's 13 and the four browser tests, none skipped, Chromium 156;
+ test_one_view_markup.py: 11, the lead's, including test_complete_without_the_script and
+ test_a_proof_is_a_leaf_of_the_selector)

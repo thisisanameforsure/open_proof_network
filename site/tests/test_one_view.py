@@ -23,7 +23,9 @@ from typing import Any
 
 import fixture
 import pytest
-from harness import TARGET, copy_graph
+import samples
+import yaml
+from harness import TARGET
 from test_finding_dag_layout import crossings
 from test_products import ROOT_NODE
 from test_routes_view import doc, nested_doc, node, render_tree, two_routes
@@ -308,69 +310,13 @@ def off_route(tmp_path: Path) -> Path:
     )
     scaffold.validate(proposal)
     scaffold.write(fixture.nodes_dir(root), proposal)
+    # A variant has no dependents, so the root is declared (F08-Q19).
+    status = root / "targets" / TARGET / "status"
+    status.mkdir(exist_ok=True)
+    (status / "2026-10-01-curator.yaml").write_text(
+        yaml.safe_dump(samples.target_status(root=ROOT_NODE)), encoding="utf-8"
+    )
     return root
-
-
-def embedded_layouts(page: str) -> dict[str, Any]:
-    m = re.search(r'<script type="application/json" id="graph-layouts">(.*?)</script>', page, re.S)
-    assert m is not None, "no #graph-layouts"
-    parsed: dict[str, Any] = json.loads(m.group(1))
-    return parsed
-
-
-def dag_markup(page: str) -> str:
-    start = page.index('<svg class="dag"')
-    return page[start : page.index("</svg>", start)]
-
-
-def test_complete_without_the_script(tmp_path: Path) -> None:
-    """AC8 (R11): read without JavaScript, the page shows the ``routes`` layout at its own
-    coordinates, the selector and the full table; every pill is a link; the buttons the script
-    needs are rendered hidden; no element is positioned by script (every position is a
-    ``transform`` attribute in the markup, none a style)."""
-    page = render_tree(two_routes(tmp_path))[f"problems/{TARGET}/index.html"]
-    assert '<script src="/graph.js"></script>' in page
-    assert "/problem.js" not in page and "/routes.js" not in page
-    drawing = dag_markup(page)
-    assert 'class="dag" data-view="routes"' in drawing
-    lays = embedded_layouts(page)
-    assert {"all", "routes"} <= set(lays)
-    # Every statement drawn is a link, at the routes layout's coordinates.
-    pills = re.findall(r'<a href="([^"]+)"><g class="node[^"]*" data-node="([^"]+)"', drawing)
-    assert len(pills) == drawing.count('<g class="node')
-    assert len(pills) == drawing.count("data-node=") - drawing.count('<g class="junction')
-    for g in re.finditer(
-        r'<g class="(?P<cls>[^"]*)" data-node="(?P<id>[^"]+)"[^>]*'
-        r'transform="translate\((?P<x>[-\d.]+),(?P<y>[-\d.]+)\)"',
-        drawing,
-    ):
-        at = lays["routes"]["nodes"].get(g["id"])
-        if "off-view" in g["cls"]:
-            assert at is None, g["id"]
-            continue
-        assert at is not None, g["id"]
-        assert (float(g["x"]), float(g["y"])) == pytest.approx(at[:2], abs=0.01), g["id"]
-    assert 'style="transform' not in page and 'style="translate' not in page
-    # The selector and the whole table, the rows carrying their views.
-    assert '<svg class="selector"' in page
-    rows = re.findall(r'<tr class="set-row"[^>]*>', page)
-    assert len(rows) == 2 and all("hidden" not in r and 'data-view="' in r for r in rows)
-    for sel in ("dag-toggle", "view-toggle", "routes-fewest"):
-        for tag in re.findall(rf'<button[^>]*class="[^"]*\b{sel}\b[^"]*"[^>]*>', page):
-            assert "hidden" in tag, tag
-
-
-def test_a_proof_is_a_leaf_of_the_selector(tmp_path: Path) -> None:
-    """AC7 (Q4): a target with a proof has a proof leaf whose view is the proof's closure, and
-    its note is rendered hidden for the script to show."""
-    page = render_tree(copy_graph(tmp_path, publish=True))[f"problems/{TARGET}/index.html"]
-    leaf = re.search(r'<g class="sel-node kind-proof"[^>]*data-view="proof/0"', page)
-    assert leaf is not None
-    lays = embedded_layouts(page)
-    assert "proof/0" in lays and ROOT_NODE in lays["proof/0"]["nodes"]
-    note = re.search(r'<p class="proof-note"[^>]*data-view="proof/0"[^>]*>', page)
-    assert note is not None and "hidden" in note.group(0)
-    assert "proof-picker" not in page
 
 
 #: Every node's box, translate, display and lit state; every line's ``d`` and state; the svg's
@@ -393,6 +339,8 @@ SNAPSHOT = """() => {
     showing: (document.querySelector('.routes-showing') || {textContent: ''}).textContent,
     toggle: (b => b ? b.getAttribute('aria-pressed') : null)(
       document.querySelector('button.view-toggle')),
+    group: (t => t ? {y: parseFloat(t.getAttribute('y')), shown: vis(t)} : null)(
+      svg.querySelector('text.dag-group')),
   };
   svg.querySelectorAll('[data-node]').forEach(g => {
     const r = g.getBoundingClientRect();
@@ -667,6 +615,13 @@ def test_the_toggle_shows_every_statement(tmp_path: Path) -> None:
     assert label and "1" in label
     assert on_all["view"] == "all" and on_all["toggle"] == "true"
     assert_at_layout(on_all, lays["all"])
+    # The variants' divider and label, when the markup carries them (T2 draws them only when the
+    # opening layout has a loose group), follow each layout's group_y and are not drawn without one.
+    if on_all["group"] is not None:
+        assert on_all["group"]["shown"] == isinstance(lays["all"]["group_y"], (int, float))
+        if on_all["group"]["shown"]:
+            assert on_all["group"]["y"] == pytest.approx(lays["all"]["group_y"])
+        assert back["group"]["shown"] == isinstance(lays["routes"]["group_y"], (int, float))
     assert "view=all" in on_all["hash"]
     assert all_label != label
     assert back["view"] == "routes" and back["toggle"] == "false"

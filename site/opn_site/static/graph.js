@@ -170,6 +170,29 @@
     svg.setAttribute("viewBox", "0 0 " + w + " " + h);
   }
 
+  // The "variants and specs" divider and label (dag.GROUP_LABEL), drawn for the opening layout
+  // when it has a loose group: moved to a layout's group_y, or not drawn when it has none.
+  var divider = svg.querySelector("line.dag-divider");
+  var groupLabel = svg.querySelector("text.dag-group");
+  function placeGroup(lay) {
+    var on = typeof lay.group_y === "number";
+    if (divider) {
+      divider.classList.toggle("off-view", !on);
+      if (on) {
+        divider.setAttribute("y1", lay.group_y - 22);
+        divider.setAttribute("y2", lay.group_y - 22);
+        divider.setAttribute("x2", lay.w - parseFloat(divider.getAttribute("x1")));
+      }
+    }
+    if (groupLabel) {
+      groupLabel.classList.toggle("off-view", !on);
+      if (on) {
+        groupLabel.setAttribute("x", Math.floor(lay.w / 2));
+        groupLabel.setAttribute("y", lay.group_y);
+      }
+    }
+  }
+
   // -- the transition (R7) ----------------------------------------------------------------------
 
   var anim = { to: null, raf: 0, timers: [] };
@@ -205,6 +228,7 @@
       e.classList.remove("fading");
     });
     size(lay.w, lay.h);
+    placeGroup(lay);
     svg.classList.remove("moving");
   }
 
@@ -286,6 +310,7 @@
         el.classList.remove("off-view");
       });
       size(B.w, B.h);
+      placeGroup(B);
       void svg.getBoundingClientRect();  // flush, so the fade runs from 0
       entering.forEach(function (el) { el.classList.remove("fading"); });
       anim.timers.push(setTimeout(function () {
