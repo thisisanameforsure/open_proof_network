@@ -668,8 +668,21 @@ def test_hovering_a_selector_node_lights_its_parent_and_children_in_the_selector
             " document.querySelector('svg.selector').classList.contains('hovering'),"
             " (t => t ? t.hidden : true)(document.querySelector('.sel-tip'))]"
         )
+        # T9 (the owner): the neighbour lighting is for nodes only; an edge hover keeps the
+        # drawing's preview and its own stroke, lights nothing else and shows no tooltip.
+        pg.locator("svg.selector path.sel-edge[data-view]").nth(0).hover()
+        on_edge = pg.evaluate(
+            "() => [document.querySelectorAll('svg.selector .lit').length,"
+            " document.querySelector('svg.selector').classList.contains('hovering'),"
+            " (t => t ? t.hidden : true)(document.querySelector('.sel-tip')),"
+            " document.querySelector('svg.dag').classList.contains('picking')]"
+        )
+        on_edge, edge_picking = on_edge[:3], on_edge[3]
+        pg.mouse.move(5, 5)
+    assert edge_picking
     leaves = {"sel/" + k for k in ("and-swap-reassoc@1", "and-swap-reassoc@2")}
     assert set(state["lit"]) == {"sel", *leaves}
+    assert on_edge == [0, False, True], "an edge hover previews the drawing but lights no neighbour"
     assert set(state["litEdges"]) == {"edge/" + k for k in leaves}
     assert state["hovering"] and state["dim"] == 0  # every node of this small tree is a neighbour
     assert state["picking"], "the preview on the drawing still runs"

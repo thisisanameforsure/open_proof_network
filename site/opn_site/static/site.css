@@ -1071,12 +1071,15 @@ th[aria-sort="descending"] .routes-sort::after { content: " ↓"; }
 /* T7: the selector is a small tree pinned at the top of the drawing's card, so it is in view
    while the drawing scrolls past; words on hover only (the tooltip), a dot per node. */
 .selector-wrap { position: sticky; top: 0; z-index: 3; display: flex; align-items: flex-start; gap: var(--s4); margin: var(--s4) 0 0; padding: var(--s3) var(--s4); background: var(--surface); border: 1px solid var(--divider); border-radius: var(--radius-sm); width: max-content; max-width: 100%; overflow-x: auto; }
+.selector-wrap .sel-head { max-width: 220px; }
 .selector-wrap .kicker { margin: 2px 0 0; white-space: nowrap; }
+.selector-wrap .kicker .term { color: inherit; border-bottom-color: var(--accent-300); }
+.selector-wrap .sel-cue { margin: var(--s2) 0 0; font-size: 12px; line-height: 1.45; color: var(--n400); }
 .selector { display: block; flex: none; }
 .selector .dot { fill: var(--bg); stroke: var(--n500); stroke-width: 1.5; }
 .selector text { fill: var(--text); font-family: var(--sans, inherit); font-size: 9.5px; font-weight: 600; text-anchor: middle; pointer-events: none; }
 .selector .sel-node { cursor: pointer; }
-.selector .kind-node .dot { fill: var(--n500); stroke: var(--n500); r: 5px; }
+.selector .kind-node .dot { fill: var(--bg); stroke: var(--n400); r: 5px; }  /* T9: hollow, so nothing here reads as proved */
 .selector .kind-root .dot { stroke-dasharray: 2 2; }
 .selector .kind-leaf .dot { stroke: var(--accent-300); }
 .selector .kind-proof .dot { fill: var(--accent); fill-opacity: .25; stroke: var(--accent); }

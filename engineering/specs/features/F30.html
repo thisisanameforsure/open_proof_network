@@ -130,9 +130,14 @@ F30-R6 (Q4).</p>
     drawing's card, in view while the drawing scrolls: a dot per node, straight lines, leaves
     numbered by set, the root statement above the top split when they differ, no words drawn;
     a node's words (what it is and the route its edge chose) show on hover and in its title.</td></tr>
-  <tr><td>F30-R14</td><td>When a selector node or edge is hovered or focused, the selector shall
-    light it, its lines and the nodes they join and dim the rest of the selector, beside the
-    preview it casts on the drawing (R8); leaving clears both.</td></tr>
+  <tr><td>F30-R14</td><td>When a selector node is hovered or focused, the selector shall light
+    it, its lines and the nodes they join and dim the rest of the selector, beside the preview it
+    casts on the drawing (R8); leaving clears both. An edge keeps its own hover stroke and the
+    preview and lights no neighbour (T9).</td></tr>
+  <tr><td>F30-R15</td><td>The selector's panel shall say it is the navigation device (select a
+    node or an edge to filter the drawing) and its heading shall carry the glossary's hover card
+    for a sufficient set; no mark in the selector shall be a filled dot, which the drawing uses
+    for proved.</td></tr>
   <tr><td>F30-R11</td><td>Without the script the page shall show the routes layout, the selector and
     the full table, every pill and selector node a link; with it, nothing is rendered twice.</td></tr>
 </table>
@@ -191,6 +196,11 @@ F30-R6 (Q4).</p>
     its lines and their other ends are lit in the selector, the drawing's preview runs, the tooltip
     shows the words; leaving clears both (R14).</td>
     <td><code>test_one_view.py::test_hovering_a_selector_node_lights_its_parent_and_children_in_the_selector</code></td></tr>
+  <tr><td>F30-AC13</td><td>Given a rendered page, when the selector panel is read, then it says
+    to select a node or an edge to filter, and its heading carries the sufficient-set card; in
+    a browser an edge hover lights no selector neighbour while the drawing's preview runs (R15, R14).</td>
+    <td><code>test_one_view_markup.py::test_the_selector_says_it_is_the_navigation_and_explains_a_sufficient_set</code>,
+    <code>test_one_view.py::test_hovering_a_selector_node_lights_its_parent_and_children_in_the_selector</code></td></tr>
   <tr><td>F30-AC9</td><td>Given a full render of the live graph, when erdos-1094's page is captured at
     1440 and 390 (the site has one theme), with a set selected, an edge selected and mid-transition, then
     the captures and the measured displacement between neighbouring sets are in the evidence.</td>
@@ -268,8 +278,12 @@ T6 to T8 are that reading. The selector's layout is no longer <code>dag.layout</
 tree (leaves spaced in depth-first order, parents centred, a row per depth), pinned with
 <code>position: sticky</code> inside the drawing's card; the sets table stays beneath the drawing.</p>
 
+<p><strong>F30-Q13 — The owner's third reading (2026-10-18).</strong> Say that the tree is the
+navigation device and explain a sufficient set on hover; light neighbours for nodes only, not edges;
+and no filled dot in the selector, since the drawing's filled pill means proved. R15 and T9.</p>
+
 <h2>10. Status</h2>
-<div class="rule"><strong>status:</strong> live 2026-10-18 (network PR #71 merged as eea12801, site-deploy run 39149988129; the live erdos-1094 page checked in a browser: a leaf click moves the drawing to its tree, the hash carries the view) · <strong>Tasks:</strong> T0–T4 done (T1 13 tests, <code>engineering/evidence/F30/task-1.txt</code>; T2 site suite 762 passed, <code>task-2.txt</code>; T3 browser tests 28 passed, <code>task-3.txt</code>; T4 captures and displacement on the live erdos-1094, <code>task-4.txt</code>); full <code>make verify</code> on the branch: 6191 passed, 282 skipped. T5 done: pushed, merged (#71), deployed and checked live. T6–T8 built 2026-10-18 from the owner&rsquo;s second reading (Q12): the hover through junctions, the small selector tree at the top, its own hover (<code>engineering/evidence/F30/task-6-*.png</code>, <code>task-7-*.png</code>, <code>task-8-*.png</code>); site suite with the browser 788 passed, the three pre-existing failures of Q10 aside.</div>
+<div class="rule"><strong>status:</strong> live 2026-10-18 (network PR #71 merged as eea12801, site-deploy run 39149988129; the live erdos-1094 page checked in a browser: a leaf click moves the drawing to its tree, the hash carries the view) · <strong>Tasks:</strong> T0–T4 done (T1 13 tests, <code>engineering/evidence/F30/task-1.txt</code>; T2 site suite 762 passed, <code>task-2.txt</code>; T3 browser tests 28 passed, <code>task-3.txt</code>; T4 captures and displacement on the live erdos-1094, <code>task-4.txt</code>); full <code>make verify</code> on the branch: 6191 passed, 282 skipped. T5 done: pushed, merged (#71), deployed and checked live. T6–T8 built 2026-10-18 from the owner&rsquo;s second reading (Q12): the hover through junctions, the small selector tree at the top, its own hover (<code>engineering/evidence/F30/task-6-*.png</code>, <code>task-7-*.png</code>, <code>task-8-*.png</code>); T9 (Q13) built the same evening; site suite with the browser 788 passed, the three pre-existing failures of Q10 aside.</div>
 
 <h2>Tasks</h2>
 <table>
@@ -314,6 +328,11 @@ tree (leaves spaced in depth-first order, parents centred, a row per depth), pin
     <td><code>site/opn_site/static/graph.js</code>, <code>site/opn_site/static/site.css</code>,
     <code>site/tests/test_one_view.py</code></td><td>T6, T7</td>
     <td><code>uv run --frozen --with playwright pytest site/tests/test_one_view.py -k parent_and_children</code></td></tr>
+  <tr><td>F30-T9</td><td>The panel's words and the glossary card; node-only neighbour lighting;
+    hollow interior dots (R15, R14).</td>
+    <td><code>site/opn_site/render.py</code>, <code>site/opn_site/static/graph.js</code>,
+    <code>site/opn_site/static/site.css</code>, <code>site/tests/</code></td><td>T8</td>
+    <td><code>uv run --frozen --with playwright pytest site/tests/test_one_view_markup.py site/tests/test_one_view.py</code></td></tr>
 </table>
 </body>
 </html>
