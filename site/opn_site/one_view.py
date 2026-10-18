@@ -659,9 +659,14 @@ def _selector_svg(  # noqa: PLR0913, PLR0912, PLR0915 — the selector, nodes an
                 f' data-view="{escape(key)}" data-sets="{escape(" ".join(nv.sets))}" '
                 'role="button" tabindex="0" aria-pressed="false"'
             )
-        mark = f'<circle class="dot" r="{SEL_R}"/>'
+        # T10 (the owner): a set is a numbered circle; a fork is a small square and the root a
+        # dashed one, so no mark here is the circle the drawing uses for a statement.
         if key in glyph:
-            mark += f'<text y="3.5">{escape(glyph[key])}</text>'
+            mark = f'<circle class="dot" r="{SEL_R}"/><text y="3.5">{escape(glyph[key])}</text>'
+        elif kinds[key] == "kind-root":
+            mark = '<rect class="dot" x="-7" y="-7" width="14" height="14" rx="3"/>'
+        else:
+            mark = '<rect class="dot" x="-5" y="-5" width="10" height="10" rx="1.5"/>'
         parts.append(
             f'<a href="#"><g class="sel-node {kinds[key]}"{own} data-key="{escape(key)}" '
             f'data-words="{escape(words[key])}" '
