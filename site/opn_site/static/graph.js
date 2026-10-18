@@ -413,15 +413,28 @@
 
   // F04-T33: hovering or focusing a statement lights its lines and the statements they join,
   // and dims the rest of the drawing; nothing moves.
+  // A route's junction is a dot on the way, not a statement: the hover reaches through it (the
+  // owner, 2026-10-18), so a parent's hover lights its holes and a hole's hover its parent.
+  var junction = {};
+  marks.forEach(function (g) { if (g.hasAttribute("data-route")) { junction[idOf(g)] = true; } });
   function light(id) {
-    var near = {};
+    var near = {}, on = {}, seen = {}, queue = [id];
     near[id] = true;
-    edges.forEach(function (e) {
-      var from = e.getAttribute("data-from"), to = e.getAttribute("data-to");
-      var on = !e.classList.contains("off-view") && (from === id || to === id);
-      e.classList.toggle("lit", on);
-      if (on) { near[from] = true; near[to] = true; }
-    });
+    while (queue.length) {
+      var v = queue.shift();
+      if (seen[v]) { continue; }
+      seen[v] = true;
+      edges.forEach(function (e) {
+        if (e.classList.contains("off-view")) { return; }
+        var from = e.getAttribute("data-from"), to = e.getAttribute("data-to");
+        if (from !== v && to !== v) { return; }
+        on[keyOf(e)] = true;
+        var other = from === v ? to : from;
+        near[other] = true;
+        if (junction[other] && !seen[other]) { queue.push(other); }
+      });
+    }
+    edges.forEach(function (e) { e.classList.toggle("lit", !!on[keyOf(e)]); });
     marks.forEach(function (g) { g.classList.toggle("lit", !!near[idOf(g)]); });
     svg.classList.add("hovering");
   }
@@ -465,6 +478,57 @@
   }
 
   choices.forEach(function (c) { pressable(c, c.getAttribute("data-view")); });
+
+  // T8 (the owner, 2026-10-18): the selector has the drawing's own hover — the node, its lines
+  // and the nodes they join lit, the rest of the selector dimmed — and its words in a tooltip,
+  // since the tree draws none. The preview on the drawing (above) runs beside it.
+  var selNodes = selector ? slice(selector.querySelectorAll("g.sel-node")) : [];
+  var selEdges = selector ? slice(selector.querySelectorAll("path.sel-edge")) : [];
+  var selWrap = selector ? selector.parentNode : null;
+  var tip = selWrap ? selWrap.querySelector(".sel-tip") : null;
+  function selKey(g) { return g.getAttribute("data-key"); }
+  function selLight(keys, words, anchor) {
+    var near = {};
+    keys.forEach(function (k) { near[k] = true; });
+    selEdges.forEach(function (e) {
+      var from = e.getAttribute("data-from"), to = e.getAttribute("data-to");
+      var on = keys.indexOf(from) !== -1 || keys.indexOf(to) !== -1;
+      e.classList.toggle("lit", on);
+      if (on) { near[from] = true; near[to] = true; }
+    });
+    selNodes.forEach(function (g) { g.classList.toggle("lit", !!near[selKey(g)]); });
+    selector.classList.add("hovering");
+    if (tip && words) {
+      tip.textContent = words;
+      tip.hidden = false;
+      // To the right of the tree, level with the node, so it never covers the tree itself.
+      var w = selWrap.getBoundingClientRect(), a = anchor.getBoundingClientRect();
+      var sv = selector.getBoundingClientRect();
+      tip.style.left = (sv.right - w.left + 10) + "px";
+      tip.style.top = Math.max(0, a.top - w.top - 4) + "px";
+    }
+  }
+  function selUnlight() {
+    selector.classList.remove("hovering");
+    selNodes.forEach(function (g) { g.classList.remove("lit"); });
+    selEdges.forEach(function (e) { e.classList.remove("lit"); });
+    if (tip) { tip.hidden = true; }
+  }
+  selNodes.forEach(function (g) {
+    var hit = g.parentNode && g.parentNode.tagName.toLowerCase() === "a" ? g.parentNode : g;
+    hit.addEventListener("mouseenter", function () { selLight([selKey(g)], g.getAttribute("data-words"), g); });
+    hit.addEventListener("mouseleave", selUnlight);
+    hit.addEventListener("focusin", function () { selLight([selKey(g)], g.getAttribute("data-words"), g); });
+    hit.addEventListener("focusout", selUnlight);
+  });
+  selEdges.forEach(function (e) {
+    var ends = [e.getAttribute("data-from"), e.getAttribute("data-to")];
+    var child = selNodes.filter(function (g) { return selKey(g) === ends[1]; })[0];
+    e.addEventListener("mouseenter", function () { selLight(ends, child ? child.getAttribute("data-words") : "", e); });
+    e.addEventListener("mouseleave", selUnlight);
+    e.addEventListener("focusin", function () { selLight(ends, child ? child.getAttribute("data-words") : "", e); });
+    e.addEventListener("focusout", selUnlight);
+  });
 
   rows.forEach(function (r) {
     var view = r.getAttribute("data-view");

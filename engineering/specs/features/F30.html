@@ -122,6 +122,17 @@ F30-R6 (Q4).</p>
     left-to-right order within each layer, except where keeping it would make two lines cross in
     that view; and a view's layout shall have no overlapping pills and every node one layer below the
     lowest node that rests on it (F04-T33's properties).</td></tr>
+  <tr><td>F30-R12</td><td>When a pill is hovered, the lighting shall reach through every route
+    junction it touches: a statement's hover lights its junctions, the lines beyond them and the
+    holes they lead to, and a hole's hover its junction and parent (the owner, 2026-10-18: the
+    hover "stopped at the intermediate nodes").</td></tr>
+  <tr><td>F30-R13</td><td>The selector shall be a small, typical tree diagram at the top of the
+    drawing's card, in view while the drawing scrolls: a dot per node, straight lines, leaves
+    numbered by set, the root statement above the top split when they differ, no words drawn;
+    a node's words (what it is and the route its edge chose) show on hover and in its title.</td></tr>
+  <tr><td>F30-R14</td><td>When a selector node or edge is hovered or focused, the selector shall
+    light it, its lines and the nodes they join and dim the rest of the selector, beside the
+    preview it casts on the drawing (R8); leaving clears both.</td></tr>
   <tr><td>F30-R11</td><td>Without the script the page shall show the routes layout, the selector and
     the full table, every pill and selector node a link; with it, nothing is rendered twice.</td></tr>
 </table>
@@ -168,6 +179,18 @@ F30-R6 (Q4).</p>
   <tr><td>F30-AC8</td><td>Given the rendered page without JavaScript, when read, then the routes
     layout, the selector and the full table are present and every pill is a link.</td>
     <td><code>test_one_view_markup.py::test_complete_without_the_script</code></td></tr>
+  <tr><td>F30-AC10</td><td>Given the page in a browser, when the root is hovered, then its two
+    junctions, the lines beyond them and the holes they lead to are lit (R12).</td>
+    <td><code>test_one_view.py::test_a_pill_click_opens_the_panel_and_moves_nothing</code></td></tr>
+  <tr><td>F30-AC11</td><td>Given a rendered page, when read, then the selector precedes the drawing
+    in its card, is at most a few hundred units wide, draws dots and straight lines and no words,
+    and every node carries its words; leaves are numbered in record order under their parents (R13).</td>
+    <td><code>test_one_view_markup.py::test_the_selector_is_a_small_tree_above_the_drawing</code>,
+    <code>::test_selector_leaves_are_numbered_in_record_order_under_their_parents</code></td></tr>
+  <tr><td>F30-AC12</td><td>Given the page in a browser, when a selector node is hovered, then it,
+    its lines and their other ends are lit in the selector, the drawing's preview runs, the tooltip
+    shows the words; leaving clears both (R14).</td>
+    <td><code>test_one_view.py::test_hovering_a_selector_node_lights_its_parent_and_children_in_the_selector</code></td></tr>
   <tr><td>F30-AC9</td><td>Given a full render of the live graph, when erdos-1094's page is captured at
     1440 and 390 (the site has one theme), with a set selected, an edge selected and mid-transition, then
     the captures and the measured displacement between neighbouring sets are in the evidence.</td>
@@ -238,8 +261,15 @@ detached worktree with the same Playwright 1.64.0); they are not F30's and are l
 card and its words became unreadable; it now scrolls sideways inside its card, as the drawing
 does (the routes drawing had the same rule).</p>
 
+<p><strong>F30-Q12 — The owner's second reading (2026-10-18, after the first deploy).</strong> The
+selector should be the top graphic, much smaller, in view while reading the dependency graph, more like
+a typical tree, with the words on hover; and the pill hover stopped at the junction dots. R12 to R14 and
+T6 to T8 are that reading. The selector's layout is no longer <code>dag.layout</code> but a plain tidy
+tree (leaves spaced in depth-first order, parents centred, a row per depth), pinned with
+<code>position: sticky</code> inside the drawing's card; the sets table stays beneath the drawing.</p>
+
 <h2>10. Status</h2>
-<div class="rule"><strong>status:</strong> live 2026-10-18 (network PR #71 merged as eea12801, site-deploy run 39149988129; the live erdos-1094 page checked in a browser: a leaf click moves the drawing to its tree, the hash carries the view) · <strong>Tasks:</strong> T0–T4 done (T1 13 tests, <code>engineering/evidence/F30/task-1.txt</code>; T2 site suite 762 passed, <code>task-2.txt</code>; T3 browser tests 28 passed, <code>task-3.txt</code>; T4 captures and displacement on the live erdos-1094, <code>task-4.txt</code>); full <code>make verify</code> on the branch: 6191 passed, 282 skipped. T5 done: pushed, merged (#71), deployed and checked live.</div>
+<div class="rule"><strong>status:</strong> live 2026-10-18 (network PR #71 merged as eea12801, site-deploy run 39149988129; the live erdos-1094 page checked in a browser: a leaf click moves the drawing to its tree, the hash carries the view) · <strong>Tasks:</strong> T0–T4 done (T1 13 tests, <code>engineering/evidence/F30/task-1.txt</code>; T2 site suite 762 passed, <code>task-2.txt</code>; T3 browser tests 28 passed, <code>task-3.txt</code>; T4 captures and displacement on the live erdos-1094, <code>task-4.txt</code>); full <code>make verify</code> on the branch: 6191 passed, 282 skipped. T5 done: pushed, merged (#71), deployed and checked live. T6–T8 built 2026-10-18 from the owner&rsquo;s second reading (Q12): the hover through junctions, the small selector tree at the top, its own hover (<code>engineering/evidence/F30/task-6-*.png</code>, <code>task-7-*.png</code>, <code>task-8-*.png</code>); site suite with the browser 788 passed, the three pre-existing failures of Q10 aside.</div>
 
 <h2>Tasks</h2>
 <table>
@@ -271,6 +301,19 @@ does (the routes drawing had the same rule).</p>
     <td><code>uv run --frozen --with playwright python engineering/evidence/F30/shoot.py</code></td></tr>
   <tr><td>F30-T5</td><td>Live: push, merge, site deploy (the owner's).</td>
     <td>—</td><td>T4</td><td>live page</td></tr>
+  <tr><td>F30-T6</td><td>The pill hover reaches through junctions (R12).</td>
+    <td><code>site/opn_site/static/graph.js</code>, <code>site/tests/test_one_view.py</code></td><td>T5</td>
+    <td><code>uv run --frozen --with playwright pytest site/tests/test_one_view.py -k pill_click</code></td></tr>
+  <tr><td>F30-T7</td><td>The selector as a small tree at the top of the drawing's card, words on hover
+    (R13); the table stays beneath the drawing.</td>
+    <td><code>site/opn_site/one_view.py</code>, <code>site/opn_site/render.py</code>,
+    <code>site/opn_site/templates/target.html</code>, <code>site/opn_site/static/site.css</code>,
+    <code>site/tests/test_one_view_markup.py</code></td><td>T5</td>
+    <td><code>uv run --frozen pytest site/tests/test_one_view_markup.py</code></td></tr>
+  <tr><td>F30-T8</td><td>The selector's own hover and tooltip (R14).</td>
+    <td><code>site/opn_site/static/graph.js</code>, <code>site/opn_site/static/site.css</code>,
+    <code>site/tests/test_one_view.py</code></td><td>T6, T7</td>
+    <td><code>uv run --frozen --with playwright pytest site/tests/test_one_view.py -k parent_and_children</code></td></tr>
 </table>
 </body>
 </html>

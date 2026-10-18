@@ -2264,13 +2264,17 @@ class Renderer:
         )
         svg = picture.svg
         panels = "".join(self.statement_panel(tv, nv) for nv in self.ordered_nodes(tv))
-        sets_block = (
-            '<div class="sets-grid">'
-            '<div class="selector-wrap card"><h3 class="kicker">Sufficient sets</h3>'
-            f"{picture.selector}{self.proof_notes(tv)}</div>"
-            f"{picture.table}</div>"
+        # T7: the selector sits at the top of the drawing's card and stays in view; the table
+        # keeps its place beneath the drawing.
+        selector_block = (
+            '<div class="selector-wrap"><span class="kicker">Sufficient sets</span>'
+            f"{picture.selector}{self.proof_notes(tv)}"
+            '<p class="sel-tip" hidden></p></div>'
             if picture.selector
             else ""
+        )
+        sets_block = (
+            f'<div class="sets-grid">{picture.table}</div>' if picture.table else ""
         ) + picture.layouts_json
         n = len(tv.nodes)
         if tv.approaches:
@@ -2313,6 +2317,7 @@ class Renderer:
             count_words=esc(f"{n} statement{'' if n == 1 else 's'}"),
             legend=self.graph_legend(tv, picture),
             dag=svg,
+            selector=selector_block,
             panels=panels,
             sets=sets_block,
             digestion=self.digestion_section(tv),
