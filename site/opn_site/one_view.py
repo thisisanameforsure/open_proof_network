@@ -359,6 +359,9 @@ def layouts_document(lays: Mapping[str, dag.Layout]) -> dict[str, Any]:
 #: The selector's edge labels are cut here; the full approach is in the edge's ``<title>``.
 APPROACH_MAX = 40
 SEL_PREFIX = "sel"
+#: A selector pill's side padding, and the sans face's width per character for its words.
+SEL_PAD_X = 12
+SEL_CHAR_W = 6.6
 
 
 @dataclass(frozen=True)
@@ -541,8 +544,10 @@ def _selector_svg(  # noqa: PLR0913, PLR0912, PLR0915 — the selector, nodes an
 ) -> str:
     """R5: the selector tree as pills and lines, laid out by ``dag.layout`` (a parent rests on
     its children, so the top is on top): the root statement above the top split when they
-    differ, one node per selector node, one per proof, an edge per parent-child pair labelled
-    by the child's route approach."""
+    differ, one node per selector node, one per proof, an edge per parent-child pair. A child's
+    pill carries two lines: what it is (the statement it splits, or "Set k") and the approach of
+    the route its edge chose (T4: an edge label at the midpoint piled up with its siblings', so
+    the words sit in the one node the edge reaches; the full text is in the pill's title)."""
     sel = {k: v for k, v in vs.items() if k == SEL_PREFIX or k.startswith(SEL_PREFIX + "/")}
     proofs = [k for k in vs if k.startswith(PROOF)]
     if not sel and not proofs:
@@ -561,6 +566,7 @@ def _selector_svg(  # noqa: PLR0913, PLR0912, PLR0915 — the selector, nodes an
         if hang is not None:
             children.setdefault(hang, []).append(k)
     words: dict[str, str] = {}
+    second: dict[str, str] = {}
     kinds: dict[str, str] = {}
     titles: dict[str, str] = {}
     for key, v in sel.items():
@@ -576,6 +582,16 @@ def _selector_svg(  # noqa: PLR0913, PLR0912, PLR0915 — the selector, nodes an
             kinds[key] = "kind-node"
             n = len(v.sets)
             titles[key] = f"{words[key]}: {n} set{'' if n == 1 else 's'} choose a route here"
+        if v.parent is not None and v.split is not None:
+            # The route this node's edge chose at the statement its parent split on.
+            at = dag.label_of(v.split, names, labels)
+            full = (
+                routes_view.approach_of(v.route, rows, at)
+                if v.route is not None
+                else f"{at}: taken directly"
+            )
+            second[key] = routes_view.cut(full, APPROACH_MAX)
+            titles[key] += f"; {full}"
     if has_root:
         words["root"] = dag.label_of(root, names, labels)
         kinds["root"] = "kind-root"
@@ -585,8 +601,15 @@ def _selector_svg(  # noqa: PLR0913, PLR0912, PLR0915 — the selector, nodes an
         kinds[k] = "kind-proof"
         titles[k] = label
     ids = [*(["root"] if has_root else []), *sel, *proofs]
+    widths = {
+        i: max(
+            dag.node_width(i, labels=words),
+            SEL_PAD_X * 2 + round(SEL_CHAR_W * len(second.get(i, ""))),
+        )
+        for i in ids
+    }
     nodes = [{"node_id": i, "status": "ready", "deps": children.get(i, [])} for i in ids]
-    lay = dag.layout(nodes, root=hang, labels=words)
+    lay = dag.layout(nodes, root=hang, labels=words, widths=widths)
     parts = [
         f'<svg class="selector" viewBox="0 0 {lay.width} {lay.height}" width="{lay.width}" '
         f'height="{lay.height}" role="img" aria-label="sufficient sets">'
@@ -602,26 +625,11 @@ def _selector_svg(  # noqa: PLR0913, PLR0912, PLR0915 — the selector, nodes an
                 f' data-view="{escape(view_key)}" data-sets="{escape(sets)}" role="button" '
                 'tabindex="0" aria-pressed="false"'
             )
+        inner = f"<title>{escape(titles[child])}</title>" if child in second else ""
         parts.append(
             f'<path class="sel-edge" data-from="{escape(parent)}" data-to="{escape(child)}"'
-            f'{attrs} d="{dag.path_d(e)}"/>'
+            f'{attrs} d="{dag.path_d(e)}">{inner}</path>'
         )
-        if ev is not None and ev.route is not None:
-            split = ev.split or root
-            full = routes_view.approach_of(ev.route, rows, dag.label_of(split, names, labels))
-            short = routes_view.cut(full, APPROACH_MAX)
-            (x0, y0), (x1, y1) = e.points[0], e.points[-1]
-            parts.append(
-                f'<text class="sel-edge-label" data-for="{escape(view_key)}" '
-                f'x="{(x0 + x1) / 2 + 6:g}" y="{(y0 + y1) / 2 + 4:g}">'
-                f"<title>{escape(full)}</title>{escape(short)}</text>"
-            )
-        elif ev is not None and ev.kind == "edge" and child != top:
-            (x0, y0), (x1, y1) = e.points[0], e.points[-1]
-            parts.append(
-                f'<text class="sel-edge-label" data-for="{escape(view_key)}" '
-                f'x="{(x0 + x1) / 2 + 6:g}" y="{(y0 + y1) / 2 + 4:g}">taken directly</text>'
-            )
     for p in lay.placed:
         key = p.node_id
         nv: View | None = vs.get(key)
@@ -631,11 +639,17 @@ def _selector_svg(  # noqa: PLR0913, PLR0912, PLR0915 — the selector, nodes an
                 f' data-view="{escape(key)}" data-sets="{escape(" ".join(nv.sets))}" '
                 'role="button" tabindex="0" aria-pressed="false"'
             )
+        if key in second:
+            text = (
+                f'<text class="sel-head" x="{SEL_PAD_X}" y="15">{escape(words[key])}</text>'
+                f'<text class="sel-approach" x="{SEL_PAD_X}" y="29">{escape(second[key])}</text>'
+            )
+        else:
+            text = f'<text x="{SEL_PAD_X}" y="{dag.NODE_H // 2 + 5}">{escape(words[key])}</text>'
         parts.append(
             f'<a href="#"><g class="sel-node {kinds[key]}"{own} '
             f'transform="translate({p.x},{p.y})"><title>{escape(titles[key])}</title> '
-            f'<rect class="pill" width="{p.w}" height="{dag.NODE_H}" rx="8"/>'
-            f'<text x="14" y="{dag.NODE_H // 2 + 5}">{escape(words[key])}</text></g></a>'
+            f'<rect class="pill" width="{p.w}" height="{dag.NODE_H}" rx="8"/>{text}</g></a>'
         )
     parts.append("</svg>")
     return "\n".join(parts)

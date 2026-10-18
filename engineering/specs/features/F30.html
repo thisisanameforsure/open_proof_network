@@ -132,8 +132,8 @@ F30-R6 (Q4).</p>
   <tr><td>F30-AC1</td><td>Given a target with two routes at the root and one beneath, when the page
     renders, then there is one <code>svg.dag</code>, no Routes section, no proof buttons, a junction per
     route, an OR diamond on the root, and each proved statement carries the proved class on its pill.</td>
-    <td><code>site/tests/test_one_view.py::test_one_drawing_with_junctions_and_no_routes_section</code>,
-    <code>::test_proved_is_the_filled_pill</code></td></tr>
+    <td><code>site/tests/test_one_view_markup.py::test_one_drawing_with_junctions_and_no_routes_section</code>,
+    <code>::test_proved_is_the_filled_pill</code>, <code>::test_the_key_names_the_route_marks_when_the_drawing_has_them</code></td></tr>
   <tr><td>F30-AC2</td><td>Given the embedded layouts, when read, then <em>all</em> holds every statement,
     <em>routes</em> the on-route ones, a leaf view exactly its set's statements, assemblies and junctions,
     an interior view the union beneath it, and every line of a view joins two nodes of it.</td>
@@ -164,10 +164,10 @@ F30-R6 (Q4).</p>
     then the all layout is shown with them; a target with a proof shows a proof leaf whose view is the
     proof's closure.</td>
     <td><code>test_one_view.py::test_the_toggle_shows_every_statement</code>,
-    <code>::test_a_proof_is_a_leaf_of_the_selector</code></td></tr>
+    <code>test_one_view_markup.py::test_a_proof_is_a_leaf_of_the_selector</code></td></tr>
   <tr><td>F30-AC8</td><td>Given the rendered page without JavaScript, when read, then the routes
     layout, the selector and the full table are present and every pill is a link.</td>
-    <td><code>test_one_view.py::test_complete_without_the_script</code></td></tr>
+    <td><code>test_one_view_markup.py::test_complete_without_the_script</code></td></tr>
   <tr><td>F30-AC9</td><td>Given a full render of the live graph, when erdos-1094's page is captured at
     1440 and 390 in both themes, with a set selected and mid-transition, then the captures and the
     measured displacement between neighbouring sets are in the evidence.</td>
@@ -235,7 +235,7 @@ skeleton rather than a bag of leaves.</p>
     and the Routes section and proof buttons removed; the tests that asserted the old sections restated.</td>
     <td><code>site/opn_site/one_view.py</code>, <code>site/opn_site/render.py</code>,
     <code>site/opn_site/templates/target.html</code>, <code>site/opn_site/static/site.css</code>,
-    <code>site/tests/</code></td><td>T1</td>
+    <code>site/tests/test_one_view_markup.py</code>, the restated tests</td><td>T1</td>
     <td><code>uv run --frozen pytest site/tests -m "not lean and not docker"</code></td></tr>
   <tr><td>F30-T3</td><td>The script (R3, R7, R8): <code>graph.js</code> — panel select, pill hover, selector
     hover and click, the three-phase transition over the embedded layouts, the toggle, the table filter and
