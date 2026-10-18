@@ -242,9 +242,9 @@ def table(result: routes.Routes, prefix: str | None, views: Mapping[str, str] | 
         "Fewest open first</button></p>"
         f'<table class="routes-table"><thead><tr>{th}</tr></thead>'
         f"<tbody>{''.join(rows)}</tbody></table>{truncated}"
-        '<p class="routes-hint" hidden>The first set comes selected. Select a set in the '
-        "drawing&rsquo;s box, or its row, to light its statements and the lines up to the "
-        "problem&rsquo;s own statement; a branch of the box selects every set beneath it, and "
-        "the table shows the selected sets; select again, or press Escape, to clear.</p>"
+        '<p class="routes-hint" hidden>Hover a set, a branch or an edge of the tree, or a row, to '
+        "light what it holds on the drawing; select it and the drawing becomes that tree. A "
+        "branch is every set beneath it, an edge the part a route choice commits to. The table "
+        "shows the selected sets; select again, or press Escape, to come back.</p>"
         "</div>"
     )

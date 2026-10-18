@@ -499,11 +499,15 @@ def _dag_svg(  # noqa: PLR0913 — the whole drawing, every element once
             f'<path class="{cls}" data-from="{escape(src)}" data-to="{escape(dst)}" '
             f'data-key="{escape(_line_key(src, dst))}" d="{dag.path_d(e)}"/>'
         )
-    if opening.loose:
+    # The group no line joins: drawn from the opening layout, or from the first layout that has
+    # one and hidden until the script moves to it (T3's finding: the toggle's own case).
+    grouped = opening if opening.loose else next((lay for lay in lays.values() if lay.loose), None)
+    if grouped is not None:
+        off = "" if grouped is opening else " off-view"
         parts.append(
-            f'<line class="dag-divider" x1="{dag.PAD}" y1="{opening.group_y - 22}" '
-            f'x2="{opening.width - dag.PAD}" y2="{opening.group_y - 22}"/>'
-            f'<text class="dag-group" x="{opening.width // 2}" y="{opening.group_y}">'
+            f'<line class="dag-divider{off}" x1="{dag.PAD}" y1="{grouped.group_y - 22}" '
+            f'x2="{grouped.width - dag.PAD}" y2="{grouped.group_y - 22}"/>'
+            f'<text class="dag-group{off}" x="{grouped.width // 2}" y="{grouped.group_y}">'
             f"{escape(dag.GROUP_LABEL)}</text>"
         )
     for nid in vs[ALL].nodes:
