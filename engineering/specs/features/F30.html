@@ -282,8 +282,13 @@ tree (leaves spaced in depth-first order, parents centred, a row per depth), pin
 navigation device and explain a sufficient set on hover; light neighbours for nodes only, not edges;
 and no filled dot in the selector, since the drawing's filled pill means proved. R15 and T9.</p>
 
+<p><strong>F30-Q14 — The owner's fourth reading (2026-10-18).</strong> An open circle at a fork of
+the selector read as the drawing's open statement: a fork is a small square now, the root a dashed
+square, a set its numbered circle; and a selected node or edge wears amber (<code>--select</code>),
+a colour nothing else on the page uses, so the selection is told from the hover's accent. T10.</p>
+
 <h2>10. Status</h2>
-<div class="rule"><strong>status:</strong> live 2026-10-18 (network PR #71 merged as eea12801, site-deploy run 39149988129; the live erdos-1094 page checked in a browser: a leaf click moves the drawing to its tree, the hash carries the view) · <strong>Tasks:</strong> T0–T4 done (T1 13 tests, <code>engineering/evidence/F30/task-1.txt</code>; T2 site suite 762 passed, <code>task-2.txt</code>; T3 browser tests 28 passed, <code>task-3.txt</code>; T4 captures and displacement on the live erdos-1094, <code>task-4.txt</code>); full <code>make verify</code> on the branch: 6191 passed, 282 skipped. T5 done: pushed, merged (#71), deployed and checked live. T6–T8 built 2026-10-18 from the owner&rsquo;s second reading (Q12): the hover through junctions, the small selector tree at the top, its own hover (<code>engineering/evidence/F30/task-6-*.png</code>, <code>task-7-*.png</code>, <code>task-8-*.png</code>); T9 (Q13) built the same evening; site suite with the browser 788 passed, the three pre-existing failures of Q10 aside.</div>
+<div class="rule"><strong>status:</strong> live 2026-10-18 (network PR #71 merged as eea12801, site-deploy run 39149988129; the live erdos-1094 page checked in a browser: a leaf click moves the drawing to its tree, the hash carries the view) · <strong>Tasks:</strong> T0–T4 done (T1 13 tests, <code>engineering/evidence/F30/task-1.txt</code>; T2 site suite 762 passed, <code>task-2.txt</code>; T3 browser tests 28 passed, <code>task-3.txt</code>; T4 captures and displacement on the live erdos-1094, <code>task-4.txt</code>); full <code>make verify</code> on the branch: 6191 passed, 282 skipped. T5 done: pushed, merged (#71), deployed and checked live. T6–T8 built 2026-10-18 from the owner&rsquo;s second reading (Q12): the hover through junctions, the small selector tree at the top, its own hover (<code>engineering/evidence/F30/task-6-*.png</code>, <code>task-7-*.png</code>, <code>task-8-*.png</code>); T9 (Q13) and T10 (Q14) built the same evening; site suite with the browser 788 passed, the three pre-existing failures of Q10 aside.</div>
 
 <h2>Tasks</h2>
 <table>
@@ -333,6 +338,10 @@ and no filled dot in the selector, since the drawing's filled pill means proved.
     <td><code>site/opn_site/render.py</code>, <code>site/opn_site/static/graph.js</code>,
     <code>site/opn_site/static/site.css</code>, <code>site/tests/</code></td><td>T8</td>
     <td><code>uv run --frozen --with playwright pytest site/tests/test_one_view_markup.py site/tests/test_one_view.py</code></td></tr>
+  <tr><td>F30-T10</td><td>Square forks, a dashed-square root, an amber selection (Q14).</td>
+    <td><code>site/opn_site/one_view.py</code>, <code>site/opn_site/static/site.css</code>,
+    <code>site/tests/test_one_view_markup.py</code></td><td>T9</td>
+    <td><code>uv run --frozen pytest site/tests/test_one_view_markup.py</code></td></tr>
 </table>
 </body>
 </html>

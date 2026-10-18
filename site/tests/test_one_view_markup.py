@@ -216,7 +216,13 @@ def test_the_selector_is_a_small_tree_above_the_drawing(tmp_path: Path) -> None:
     assert 'class="pill"' not in sel and "sel-approach" not in sel
     nodes = re.findall(r'<g class="sel-node [^"]*"[^>]*>', sel)
     assert nodes and all('data-words="' in n for n in nodes), nodes
-    assert all("<circle" in part for part in re.findall(r'<g class="sel-node .*?</g>', sel, re.S))
+    # T10 (the owner): a fork is a small square and the root a dashed square, never a circle,
+    # which the drawing below uses for a statement; a set keeps its numbered circle.
+    for part in re.findall(r'<g class="sel-node .*?</g>', sel, re.S):
+        if "kind-leaf" in part or "kind-proof" in part:
+            assert '<circle class="dot"' in part, part
+        else:
+            assert '<rect class="dot"' in part and "<circle" not in part, part
     assert sel.count('class="sel-edge"') == 2
     for e in re.findall(r'<path class="sel-edge"[^>]*d="([^"]+)"', sel):
         assert "C" not in e and "Q" not in e, e  # straight lines, a typical tree
@@ -264,3 +270,17 @@ def test_the_selector_says_it_is_the_navigation_and_explains_a_sufficient_set(
         "sufficient-set" in render.GLOSSARY_BY_KEY
         and "sufficient set" in render.GLOSSARY_BY_KEY["sufficient-set"][0]
     )
+
+
+def test_a_selected_selector_mark_is_amber_not_the_accent() -> None:
+    """T10 (the owner): the pressed node or edge wears a colour of its own (amber), so a
+    selection is told apart from the accent the hover and the drawing use."""
+    css = (Path(render.__file__).resolve().parent / "static" / "site.css").read_text()
+    assert "--select:" in css
+    pressed = [
+        ln
+        for ln in css.splitlines()
+        if 'aria-pressed="true"' in ln and ".selector" in ln and " text " not in ln
+    ]
+    assert len(pressed) == 2 and all("var(--select)" in ln for ln in pressed), pressed
+    assert "var(--accent)" not in " ".join(pressed)

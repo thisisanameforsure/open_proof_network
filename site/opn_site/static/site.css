@@ -24,6 +24,7 @@
   --section-glow: #353b80;
   --warn: #d9a441;
   --bad: #e07a7a;
+  --select: #f2b544; /* F30-T10: a selected node or edge in the sufficient-sets tree */
   --proved: var(--accent);
   --ready: var(--accent-300);
   --blocked: var(--n600);
@@ -1079,16 +1080,16 @@ th[aria-sort="descending"] .routes-sort::after { content: " ↓"; }
 .selector .dot { fill: var(--bg); stroke: var(--n500); stroke-width: 1.5; }
 .selector text { fill: var(--text); font-family: var(--sans, inherit); font-size: 9.5px; font-weight: 600; text-anchor: middle; pointer-events: none; }
 .selector .sel-node { cursor: pointer; }
-.selector .kind-node .dot { fill: var(--bg); stroke: var(--n400); r: 5px; }  /* T9: hollow, so nothing here reads as proved */
+.selector .kind-node .dot { fill: var(--bg); stroke: var(--n400); }  /* T9, T10: a hollow square, neither proved nor a statement */
 .selector .kind-root .dot { stroke-dasharray: 2 2; }
 .selector .kind-leaf .dot { stroke: var(--accent-300); }
 .selector .kind-proof .dot { fill: var(--accent); fill-opacity: .25; stroke: var(--accent); }
 .selector .sel-node:hover .dot, .selector .sel-node:focus-visible .dot, .selector .sel-node.previewed .dot { stroke: var(--accent); stroke-width: 2.5; }
-.selector .sel-node[aria-pressed="true"] .dot { fill: var(--accent); stroke: var(--accent); }
+.selector .sel-node[aria-pressed="true"] .dot { fill: var(--select); stroke: var(--select); }
 .selector .sel-node[aria-pressed="true"] text { fill: var(--bg); }
 .selector .sel-edge { stroke: var(--n600); stroke-width: 1.5; fill: none; cursor: pointer; }
 .selector .sel-edge[data-view]:hover, .selector .sel-edge:focus-visible, .selector .sel-edge.previewed { stroke: var(--accent); stroke-width: 3; }
-.selector .sel-edge[aria-pressed="true"] { stroke: var(--accent); stroke-width: 3.5; }
+.selector .sel-edge[aria-pressed="true"] { stroke: var(--select); stroke-width: 3.5; }
 /* T8: the selector's own hover — the node, its lines and their other ends lit, the rest dimmed */
 .selector .sel-node, .selector .sel-edge { transition: opacity .12s; }
 .selector.hovering .sel-node:not(.lit) { opacity: .3; }
