@@ -15,3 +15,15 @@
    (the tutorial one says the devcontainer runs the Mathlib image, as before). No local pregate: this laptop's
    Docker cannot pull zstd images (F10-T17), the hosted gate is the check. Committed c831a1962 (33 files),
    pushed to graph main with no gate run in flight.
+5. Graph push c831a1962: gate run 39077494275 success; render 39077503367 success -> 611d61206 "gate: render
+   32961c7678e9": erdos-1094 graph.json graph/v12 (root label "Erdős problem 1094" (target), holes labelled by
+   their hole names, approaches from the partials' leading comments), glosses.json glosses/v3, frontier/v6
+   81 entries / 78 claimable. site-deploy 39077581755 success: /problems/erdos-1094/ carries "Sufficient sets",
+   the labels (h_good_below_cube ×14) and "Rename or correct" ×54; GET /health ok.
+6. Backfill: token minted under pseudonym f29-words (tutorial precheck 01M56... pass; the first two mints
+   failed — a lost read on this laptop's path, then a proof built without the statement's doc comment,
+   proof-not-statement). Dry-run (POST /glosses dry_run): 136 accepted, 1 refused locked-by-a-person
+   (infinitude-of-primes--h1: a model's version may not change a person's words, D-3 v3.31) before the
+   40-minute cap; the two euclid drafts over a person's gloss now keep the words and add only the label.
+   Real submission of 168 records (140 statement, 28 route) started 2026-10-18 ~04:10Z, log
+   engineering/evidence/F29/backfill/submit-log.jsonl.
