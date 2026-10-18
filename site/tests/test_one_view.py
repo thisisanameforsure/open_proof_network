@@ -10,6 +10,7 @@ statements shared by two views keep their left-to-right order.
 from __future__ import annotations
 
 import functools
+import http.server
 import json
 import re
 import socketserver
@@ -25,7 +26,7 @@ import pytest
 from harness import TARGET, copy_graph
 from test_finding_dag_layout import crossings
 from test_products import ROOT_NODE
-from test_routes_view import Quiet, doc, nested_doc, node, render_tree, two_routes
+from test_routes_view import doc, nested_doc, node, render_tree, two_routes
 from test_target_routes import live
 
 from opn_gate import routes, scaffold
@@ -377,6 +378,7 @@ def test_a_proof_is_a_leaf_of_the_selector(tmp_path: Path) -> None:
 SNAPSHOT = """() => {
   const svg = document.querySelector('svg.dag');
   const vis = el => getComputedStyle(el).display !== 'none';
+  const origin = svg.getBoundingClientRect();  // boxes relative to the drawing: a hover may scroll
   const out = {
     view: svg.getAttribute('data-view'), viewBox: svg.getAttribute('viewBox'),
     width: svg.getAttribute('width'), height: svg.getAttribute('height'),
@@ -396,7 +398,8 @@ SNAPSHOT = """() => {
     const r = g.getBoundingClientRect();
     const m = /translate\\(([-\\d.]+),([-\\d.]+)\\)/.exec(g.getAttribute('transform') || '');
     out.nodes[g.getAttribute('data-node')] = {
-      box: [r.x, r.y, r.width, r.height], at: m ? [parseFloat(m[1]), parseFloat(m[2])] : null,
+      box: [r.x - origin.x, r.y - origin.y, r.width, r.height],
+      at: m ? [parseFloat(m[1]), parseFloat(m[2])] : null,
       shown: vis(g), lit: g.classList.contains('lit'),
       opacity: parseFloat(getComputedStyle(g).opacity),
     };
@@ -409,6 +412,11 @@ SNAPSHOT = """() => {
   });
   return out;
 }"""
+
+
+class Quiet(http.server.SimpleHTTPRequestHandler):
+    def log_message(self, format: str, *args: object) -> None:
+        pass
 
 
 @contextmanager
