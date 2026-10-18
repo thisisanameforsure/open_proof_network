@@ -26,9 +26,10 @@ import pytest
 import samples
 import yaml
 from harness import TARGET
+from test_decompositions import HOLE_IDS
 from test_finding_dag_layout import crossings
 from test_products import ROOT_NODE
-from test_routes_view import doc, nested_doc, node, render_tree, two_routes
+from test_routes_view import THIRD, doc, nested_doc, node, render_tree, two_routes
 from test_target_routes import live
 
 from opn_gate import routes, scaffold
@@ -576,9 +577,16 @@ def test_a_pill_click_opens_the_panel_and_moves_nothing(tmp_path: Path) -> None:
         href = pg.locator(f'svg.dag a:has(> g.node[data-node="{hole}"])').get_attribute("href")
     assert loaded["panel"] == [ROOT_NODE]
     assert hovered["hovering"] and not hovered["picking"]
-    touching = {f"{s}>{d}" for s, d, _k, _p in lays["routes"]["lines"] if ROOT_NODE in (s, d)}
-    assert lit_edges(hovered) == touching
-    assert ROOT_NODE in lit_nodes(hovered) and len(lit_nodes(hovered)) > 1
+    # The owner (2026-10-18): a hover reaches through the route junctions, so the root's hover
+    # lights its two junctions, the lines beyond them and the three holes they lead to.
+    lines = [(s, d) for s, d, _k, _p in lays["routes"]["lines"]]
+    touching = {(s, d) for s, d in lines if ROOT_NODE in (s, d)}
+    junctions = {x for s, d in touching for x in (s, d) if "@" in x}
+    beyond = {(s, d) for s, d in lines if s in junctions or d in junctions}
+    assert junctions == {f"{ROOT_NODE}@1", f"{ROOT_NODE}@2"}
+    assert lit_edges(hovered) == {f"{s}>{d}" for s, d in touching | beyond}
+    assert lit_nodes(hovered) == {x for s, d in touching | beyond for x in (s, d)}
+    assert {*HOLE_IDS, THIRD} <= lit_nodes(hovered)  # the holes beyond the junctions
     assert boxes(hovered) == boxes(loaded)
     assert clicked["panel"] == [hole]
     assert clicked["hash"] == f"#node={hole}"
@@ -629,3 +637,41 @@ def test_the_toggle_shows_every_statement(tmp_path: Path) -> None:
     assert on_leaf["toggle"] == "false" and on_leaf["pressed"]
     assert from_leaf["view"] == "all" and from_leaf["pressed"] == []
     assert from_leaf["toggle"] == "true"
+
+
+def test_hovering_a_selector_node_lights_its_parent_and_children_in_the_selector(
+    tmp_path: Path,
+) -> None:
+    """T8 (the owner, 2026-10-18): the selector has the drawing's own hover — the hovered node,
+    its lines and the nodes they join are lit and the rest of the selector dimmed — beside the
+    preview it already casts on the drawing; its words show in a tooltip; leaving clears both."""
+    with browser(two_routes(tmp_path / "g"), tmp_path / "site") as pg:
+        top = pg.locator('svg.selector g.sel-node[data-view="sel"]')
+        top.hover()
+        state = pg.evaluate(
+            """() => {
+              const s = document.querySelector('svg.selector');
+              const view = el => el.getAttribute('data-view');
+              const lit = [...s.querySelectorAll('.sel-node.lit')].map(view);
+              const litEdges = [...s.querySelectorAll('.sel-edge.lit')].map(view);
+              const faint = g => parseFloat(getComputedStyle(g).opacity) < 0.9;
+              const dim = [...s.querySelectorAll('.sel-node')].filter(faint).length;
+              const tip = document.querySelector('.sel-tip');
+              return {lit, litEdges, dim, hovering: s.classList.contains('hovering'),
+                      tip: tip && !tip.hidden ? tip.textContent : null,
+                      picking: document.querySelector('svg.dag').classList.contains('picking')};
+            }"""
+        )
+        pg.mouse.move(5, 5)
+        after = pg.evaluate(
+            "() => [document.querySelectorAll('svg.selector .lit').length,"
+            " document.querySelector('svg.selector').classList.contains('hovering'),"
+            " (t => t ? t.hidden : true)(document.querySelector('.sel-tip'))]"
+        )
+    leaves = {"sel/" + k for k in ("and-swap-reassoc@1", "and-swap-reassoc@2")}
+    assert set(state["lit"]) == {"sel", *leaves}
+    assert set(state["litEdges"]) == {"edge/" + k for k in leaves}
+    assert state["hovering"] and state["dim"] == 0  # every node of this small tree is a neighbour
+    assert state["picking"], "the preview on the drawing still runs"
+    assert state["tip"] and "set" in state["tip"].lower()
+    assert after == [0, False, True]

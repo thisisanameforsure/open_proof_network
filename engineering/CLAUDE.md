@@ -1715,4 +1715,15 @@ The law of the project:
   toggle's own case (every variant off-route) had nothing to move; the script builder found it, not a test.
   Also: three Playwright tests fail on origin/main as on the branch (gloss controls, the lemma record page);
   checked in a detached worktree before believing they were ours.
+- 2026-10-18 (later) — The owner's first look at the live F30 page sent three things back (F30-Q12): the hover
+  stopped at the junction dots, and the selector should be a much smaller typical tree at the top that stays
+  in view. Two things worth keeping. **A test can pin the defect it should have caught**: the pill-hover test
+  asserted exactly the lines touching the hovered statement, which is the junction bug written as an
+  expectation; the restated test walks through junctions, and failed first on my own expected set, which had
+  forgotten the root's plain dependencies. **A layered layout is the wrong tool for a selector**: the
+  general layout wrapped the leaves into stacked rows and bent lines around them, which no reader sees as a
+  tree; a thirty-line tidy tree (leaves spaced depth-first, parents centred, a row per depth) with dots
+  instead of pills and words only on hover was a quarter the size and read at a glance. Also: "pushed and
+  deployed" was not "merged" — the deploy rebuilt old main for hours because my hand-off listed the merge
+  in prose and the owner ran the two commands; run the merge and the deploy yourself and check the live page.
 

@@ -64,9 +64,9 @@ def test_one_drawing_with_junctions_and_no_routes_section(tmp_path: Path) -> Non
     svg = drawing_of(page)
     assert svg.count('<g class="junction live"') == 2 and 'class="or-mark"' in g_of(svg, ROOT_NODE)
     assert 'data-view="routes"' in svg[: svg.index(">")]
-    # The selector and the table sit below the drawing, after the panels.
+    # T7: the selector sits in the drawing's card above the drawing; the table below the grid.
     assert page.index('<div class="graph-grid">') < page.index('<div class="sets-grid">')
-    assert page.index('class="panels"') < page.index('<svg class="selector"')
+    assert page.index('<svg class="selector"') < page.index('<svg class="dag"')
     assert page.count('<tr class="set-row"') == 2
     for row in re.findall(r'<tr class="set-row"[^>]*>', page):
         assert 'data-view="sel' in row, row
@@ -193,3 +193,58 @@ def test_the_markup_escapes_ids_and_words(make: object) -> None:
     d = one_view.drawing(g, [], href={n["node_id"]: "#" for n in g["nodes"]}, prefix="t")
     assert "<b>" not in d.svg and "&lt;b&gt;" in d.svg
     assert "<b>" not in d.selector
+
+
+# -- T7 (the owner, 2026-10-18): the selector is a small tree at the top of the drawing's card ----
+
+
+def test_the_selector_is_a_small_tree_above_the_drawing(tmp_path: Path) -> None:
+    """The selector sits in the drawing's card before the drawing, is a compact tree (dots and
+    straight lines, no pills, no visible words), and every node carries its words for the hover."""
+    page = render_tree(two_routes(tmp_path))[PAGE]
+    card = page.index('<div class="dag-wrap card">')
+    assert card < page.index('<svg class="selector"') < page.index('<svg class="dag"')
+    assert "sets-grid" not in page or page.index("sets-grid") > page.index(
+        "</svg>", page.index('<svg class="dag"')
+    )
+    sel = page[page.index('<svg class="selector"') :]
+    sel = sel[: sel.index("</svg>")]
+    head = sel[: sel.index(">")]
+    m = re.search(r'viewBox="0 0 ([\d.]+) ([\d.]+)"', head)
+    assert m is not None
+    assert float(m.group(1)) <= 160 and float(m.group(2)) <= 140, head  # two leaves, two rows
+    assert 'class="pill"' not in sel and "sel-approach" not in sel
+    nodes = re.findall(r'<g class="sel-node [^"]*"[^>]*>', sel)
+    assert nodes and all('data-words="' in n for n in nodes), nodes
+    assert all("<circle" in part for part in re.findall(r'<g class="sel-node .*?</g>', sel, re.S))
+    assert sel.count('class="sel-edge"') == 2
+    for e in re.findall(r'<path class="sel-edge"[^>]*d="([^"]+)"', sel):
+        assert "C" not in e and "Q" not in e, e  # straight lines, a typical tree
+
+
+def test_selector_leaves_are_numbered_in_record_order_under_their_parents() -> None:
+    g = nested_doc()
+    d = one_view.drawing(g, [], href={n["node_id"]: "#" for n in g["nodes"]}, prefix="t")
+    leaves = re.findall(
+        r'<g class="sel-node kind-leaf"[^>]*transform="translate\(([\d.]+),([\d.]+)\)"[^>]*>'
+        r".*?<text[^>]*>(\d)</text>",
+        d.selector,
+        re.S,
+    )
+    assert [n for _x, _y, n in leaves] == ["1", "2", "3"]
+    xs = [float(x) for x, _y, _n in leaves]
+    assert xs == sorted(xs) and len(set(xs)) == 3
+    # Sets 1 and 2 are siblings under t@1 and share a row; their parent sits one row above,
+    # centred over them; Set 3 hangs from the top directly, so it is a row higher (a typical
+    # tree, leaves at their own depths).
+    ys = [float(y) for _x, y, _n in leaves]
+    assert ys[0] == ys[1] and ys[2] < ys[0]
+    parent = re.search(
+        r'<g class="sel-node kind-node"[^>]*data-view="sel/t@1"[^>]*'
+        r'transform="translate\(([\d.]+),([\d.]+)\)"',
+        d.selector,
+    )
+    assert parent is not None
+    px, py = float(parent.group(1)), float(parent.group(2))
+    assert py < ys[0] and py == ys[2]
+    assert abs(px - (xs[0] + xs[1]) / 2) < 0.6

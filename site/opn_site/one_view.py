@@ -359,9 +359,6 @@ def layouts_document(lays: Mapping[str, dag.Layout]) -> dict[str, Any]:
 #: The selector's edge labels are cut here; the full approach is in the edge's ``<title>``.
 APPROACH_MAX = 40
 SEL_PREFIX = "sel"
-#: A selector pill's side padding, and the sans face's width per character for its words.
-SEL_PAD_X = 12
-SEL_CHAR_W = 6.6
 
 
 @dataclass(frozen=True)
@@ -537,6 +534,39 @@ def _dag_svg(  # noqa: PLR0913 — the whole drawing, every element once
     return "\n".join(parts)
 
 
+#: T7: the selector's geometry — a leaf column, a row per depth, a node's radius, the margins.
+SEL_COL = 26
+SEL_ROW = 30
+SEL_R = 8
+SEL_MARGIN = 14
+
+
+def _tidy(
+    children: Mapping[str, Sequence[str]], top: str
+) -> tuple[dict[str, tuple[float, float]], float, float]:
+    """A typical tree: leaves evenly spaced along the bottom in depth-first order, every parent
+    centred over its children, one row per depth. Returns each node's centre and the size."""
+    at: dict[str, tuple[float, float]] = {}
+    slot = [0]
+
+    def place(key: str, depth: int) -> float:
+        kids = children.get(key, ())
+        x: float
+        if not kids:
+            x = SEL_MARGIN + slot[0] * SEL_COL
+            slot[0] += 1
+        else:
+            xs = [place(k, depth + 1) for k in kids]
+            x = (xs[0] + xs[-1]) / 2
+        at[key] = (x, SEL_MARGIN + depth * SEL_ROW)
+        return x
+
+    place(top, 0)
+    width = SEL_MARGIN * 2 + max(slot[0] - 1, 0) * SEL_COL
+    height = SEL_MARGIN * 2 + max(y for _x, y in at.values()) - SEL_MARGIN
+    return at, width, height
+
+
 def _selector_svg(  # noqa: PLR0913, PLR0912, PLR0915 — the selector, nodes and edges
     vs: Mapping[str, View],
     result: routes.Routes,
@@ -546,12 +576,10 @@ def _selector_svg(  # noqa: PLR0913, PLR0912, PLR0915 — the selector, nodes an
     labels: dag.Labels,
     proof_labels: Sequence[str],
 ) -> str:
-    """R5: the selector tree as pills and lines, laid out by ``dag.layout`` (a parent rests on
-    its children, so the top is on top): the root statement above the top split when they
-    differ, one node per selector node, one per proof, an edge per parent-child pair. A child's
-    pill carries two lines: what it is (the statement it splits, or "Set k") and the approach of
-    the route its edge chose (T4: an edge label at the midpoint piled up with its siblings', so
-    the words sit in the one node the edge reaches; the full text is in the pill's title)."""
+    """R5, restated by T7 (the owner, 2026-10-18): the selector tree as a small, typical tree
+    diagram — a dot per node, straight lines, leaves numbered, the root statement above the top
+    split when they differ, one leaf per proof — with every node's words (what it is, the route
+    its edge chose) in ``data-words`` and its ``<title>`` for the hover, none drawn."""
     sel = {k: v for k, v in vs.items() if k == SEL_PREFIX or k.startswith(SEL_PREFIX + "/")}
     proofs = [k for k in vs if k.startswith(PROOF)]
     if not sel and not proofs:
@@ -569,91 +597,76 @@ def _selector_svg(  # noqa: PLR0913, PLR0912, PLR0915 — the selector, nodes an
     for k in proofs:
         if hang is not None:
             children.setdefault(hang, []).append(k)
-    words: dict[str, str] = {}
-    second: dict[str, str] = {}
+    assert hang is not None
     kinds: dict[str, str] = {}
-    titles: dict[str, str] = {}
+    words: dict[str, str] = {}
+    glyph: dict[str, str] = {}
     for key, v in sel.items():
         if v.kind == "leaf":
-            words[key] = f"Set {v.index}"
             kinds[key] = "kind-leaf"
             s = result.sets[v.index - 1]
             noun = "statement" if s.remaining == 1 else "statements"
-            titles[key] = f"Set {v.index}: {s.remaining} open {noun} of {s.total}"
+            words[key] = f"Set {v.index}: {s.remaining} open {noun} of {s.total}"
+            glyph[key] = str(v.index)
         else:
             split = v.split or root
-            words[key] = dag.label_of(split, names, labels)
+            label = dag.label_of(split, names, labels)
             kinds[key] = "kind-node"
             n = len(v.sets)
-            titles[key] = f"{words[key]}: {n} set{'' if n == 1 else 's'} choose a route here"
+            words[key] = f"{label}: {n} set{'' if n == 1 else 's'} choose a route here"
         if v.parent is not None and v.split is not None:
-            # The route this node's edge chose at the statement its parent split on.
-            at = dag.label_of(v.split, names, labels)
-            full = (
-                routes_view.approach_of(v.route, rows, at)
+            at_label = dag.label_of(v.split, names, labels)
+            how = (
+                routes_view.approach_of(v.route, rows, at_label)
                 if v.route is not None
-                else f"{at}: taken directly"
+                else f"{at_label}: taken directly"
             )
-            second[key] = routes_view.cut(full, APPROACH_MAX)
-            titles[key] += f"; {full}"
+            words[key] += f" — via {how}"
     if has_root:
-        words["root"] = dag.label_of(root, names, labels)
         kinds["root"] = "kind-root"
-        titles["root"] = f"{root}: the problem's own statement"
+        words["root"] = f"{dag.label_of(root, names, labels)}: the problem's own statement"
     for k, label in zip(proofs, proof_labels, strict=False):
-        words[k] = f"Proof {vs[k].index + 1}"
         kinds[k] = "kind-proof"
-        titles[k] = label
-    ids = [*(["root"] if has_root else []), *sel, *proofs]
-    widths = {
-        i: max(
-            dag.node_width(i, labels=words),
-            SEL_PAD_X * 2 + round(SEL_CHAR_W * len(second.get(i, ""))),
-        )
-        for i in ids
-    }
-    nodes = [{"node_id": i, "status": "ready", "deps": children.get(i, [])} for i in ids]
-    lay = dag.layout(nodes, root=hang, labels=words, widths=widths)
+        words[k] = label
+        glyph[k] = "P"
+    pos, width, height = _tidy(children, hang)
     parts = [
-        f'<svg class="selector" viewBox="0 0 {lay.width} {lay.height}" width="{lay.width}" '
-        f'height="{lay.height}" role="img" aria-label="sufficient sets">'
+        f'<svg class="selector" viewBox="0 0 {width:g} {height:g}" width="{width:g}" '
+        f'height="{height:g}" role="img" aria-label="sufficient sets">'
     ]
-    for e in sorted(lay.edges, key=lambda e: (e.dst, e.src)):
-        child, parent = e.src, e.dst
-        view_key = EDGE + child
-        ev: View | None = vs.get(view_key)
-        attrs = ""
-        if ev is not None:
-            sets = " ".join(ev.sets)
-            attrs = (
-                f' data-view="{escape(view_key)}" data-sets="{escape(sets)}" role="button" '
-                'tabindex="0" aria-pressed="false"'
+    for parent, kids in children.items():
+        for child in kids:
+            (x0, y0), (x1, y1) = pos[parent], pos[child]
+            view_key = EDGE + child
+            ev = vs.get(view_key)
+            attrs = ""
+            inner = ""
+            if ev is not None:
+                attrs = (
+                    f' data-view="{escape(view_key)}" data-sets="{escape(" ".join(ev.sets))}" '
+                    'role="button" tabindex="0" aria-pressed="false"'
+                )
+                inner = f"<title>{escape(words[child])}</title>"
+            parts.append(
+                f'<path class="sel-edge" data-from="{escape(parent)}" data-to="{escape(child)}"'
+                f'{attrs} d="M{x0:g} {y0:g}L{x1:g} {y1:g}">{inner}</path>'
             )
-        inner = f"<title>{escape(titles[child])}</title>" if child in second else ""
-        parts.append(
-            f'<path class="sel-edge" data-from="{escape(parent)}" data-to="{escape(child)}"'
-            f'{attrs} d="{dag.path_d(e)}">{inner}</path>'
-        )
-    for p in lay.placed:
-        key = p.node_id
-        nv: View | None = vs.get(key)
+    for key, (x, y) in pos.items():
+        nv = vs.get(key)
         own = ""
         if nv is not None:
             own = (
                 f' data-view="{escape(key)}" data-sets="{escape(" ".join(nv.sets))}" '
                 'role="button" tabindex="0" aria-pressed="false"'
             )
-        if key in second:
-            text = (
-                f'<text class="sel-head" x="{SEL_PAD_X}" y="15">{escape(words[key])}</text>'
-                f'<text class="sel-approach" x="{SEL_PAD_X}" y="29">{escape(second[key])}</text>'
-            )
-        else:
-            text = f'<text x="{SEL_PAD_X}" y="{dag.NODE_H // 2 + 5}">{escape(words[key])}</text>'
+        mark = f'<circle class="dot" r="{SEL_R}"/>'
+        if key in glyph:
+            mark += f'<text y="3.5">{escape(glyph[key])}</text>'
         parts.append(
-            f'<a href="#"><g class="sel-node {kinds[key]}"{own} '
-            f'transform="translate({p.x},{p.y})"><title>{escape(titles[key])}</title> '
-            f'<rect class="pill" width="{p.w}" height="{dag.NODE_H}" rx="8"/>{text}</g></a>'
+            f'<a href="#"><g class="sel-node {kinds[key]}"{own} data-key="{escape(key)}" '
+            f'data-words="{escape(words[key])}" '
+            f'transform="translate({x:g},{y:g})"><title>{escape(words[key])}</title> '
+            f"{mark}</g></a>"
         )
     parts.append("</svg>")
     return "\n".join(parts)
