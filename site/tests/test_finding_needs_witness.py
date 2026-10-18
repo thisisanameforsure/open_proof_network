@@ -131,4 +131,4 @@ def test_the_graph_key_names_the_state_when_a_statement_has_it(
     after = pages[PROBLEM].split('<div class="dag-legend">', 1)[1]
     legend = after.split('<div class="dag-scroll">')[0]
     assert "needs a witness" in legend and 'class="dot dot-needs-witness"' in legend
-    assert 'class="node status-needs-witness"' in pages[PROBLEM]
+    assert re.search(r'class="node status-needs-witness( [a-z-]+)*"', pages[PROBLEM])

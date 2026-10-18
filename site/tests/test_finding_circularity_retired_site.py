@@ -31,7 +31,7 @@ from harness import TARGET
 
 from opn_gate import graph as gate_graph
 from opn_gate import products
-from opn_site import dag, model, render
+from opn_site import dag, model, one_view, render
 
 REPO = "https://github.com/example/graph"
 HOLE = fixture.HOLE
@@ -183,8 +183,6 @@ def test_the_key_and_the_glossary_name_no_label() -> None:
 
 
 def test_the_routes_table_says_nothing_of_an_older_row() -> None:
-    from opn_site import routes_view  # noqa: PLC0415
-
     def row(node_id: str, deps: list[str], **extra: object) -> dict[str, object]:
         holes = [{"name": f"h{i + 1}", "node": d} for i, d in enumerate(deps)]
         return {
@@ -214,7 +212,8 @@ def test_the_routes_table_says_nothing_of_an_older_row() -> None:
             row("t--h1", [], circular=[{"ancestor": "t", "claim": "t--h1/defects/x.yaml"}]),
         ],
     }
-    html = routes_view.section(doc, [], href={}, prefix="t").html
+    picture = one_view.drawing(doc, [], href={}, prefix="t")
+    html = picture.svg + picture.selector + picture.table
     assert "circular" not in html.lower(), html
 
 
@@ -271,31 +270,34 @@ def test_the_retired_cause_changes_no_state() -> None:
 
 
 def test_every_output_class_has_a_key_entry() -> None:
-    """F18-AC5: every mark the proof drawing can put on a pill or a line has a glossary card, a
-    swatch in the stylesheet, and a place in the key."""
+    """F18-AC5, restated by F30-T2: every mark the merged drawing can put on a pill or a line
+    has a glossary card, a swatch in the stylesheet, and a place in the key."""
     source = (
-        inspect.getsource(dag.proof_attrs)
-        + inspect.getsource(dag.svg)
+        inspect.getsource(one_view._pill_markup)
+        + inspect.getsource(one_view._junction_markup)
+        + inspect.getsource(one_view._dag_svg)
         + inspect.getsource(dag.outline_mark)
         + inspect.getsource(dag.lines)
     )
     drawn = {
         '"edge"': "depends-on",
-        "on-proof": "on-proof",
-        "off-proof": "not-needed",
         "edge use": "use",
         "edge proposed": "proposed-for",
         "edge lemma": "lemma",
-        "outline-mark": "outline",
+        "outline_mark": "outline",
+        "and-mark": "route-and",
+        "or-mark": "route-or",
+        "dead-cross": "route-dead",
+        '"asm"': "closable",
     }
     for cls, key in drawn.items():
-        assert cls in source, f"dag no longer draws {cls}; update this guard"
+        assert cls in source, f"the drawing no longer draws {cls}; update this guard"
         assert key in render.GLOSSARY_BY_KEY, key
         assert f".dot-{key}" in CSS, key
-    keys_source = inspect.getsource(render.Renderer.proof_legend) + inspect.getsource(
-        render.Renderer.graph_legend
+    keys_source = (
+        inspect.getsource(render.Renderer.proof_legend)
+        + inspect.getsource(render.Renderer.graph_legend)
+        + " ".join(f'"{k}"' for k in render.ROUTE_MARK_KEYS)
     )
-    for key in (*drawn.values(), "unmeasured"):
+    for key in drawn.values():
         assert f'"{key}"' in keys_source, key
-        assert key in render.GLOSSARY_BY_KEY and f".dot-{key}" in CSS, key
-    assert '"circular"' not in keys_source

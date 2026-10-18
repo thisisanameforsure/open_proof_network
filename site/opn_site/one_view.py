@@ -24,11 +24,13 @@ without a choice), ``edge/<child key>``, ``proof/<k>``.
 
 from __future__ import annotations
 
+import json
 from collections.abc import Iterable, Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
+from html import escape
 from typing import Any
 
-from opn_gate import routes
+from opn_gate import closing, routes
 from opn_site import dag, routes_view
 
 #: A junction is a dot in a box this wide (as the routes drawing drew it, F27-T3).
@@ -350,3 +352,378 @@ def layouts_document(lays: Mapping[str, dag.Layout]) -> dict[str, Any]:
         }
         for key, lay in lays.items()
     }
+
+
+# -- the markup (T2) ----------------------------------------------------------------------------
+
+#: The selector's edge labels are cut here; the full approach is in the edge's ``<title>``.
+APPROACH_MAX = 40
+SEL_PREFIX = "sel"
+
+
+@dataclass(frozen=True)
+class Drawing:
+    """What the page embeds (the contract is the session note of 2026-10-18): the merged
+    drawing, the selector with the proof notes, the sets table, the layouts as a
+    (``marks``: ``route-and``, ``route-or``, ``route-dead``, ``closable``)."""
+
+    svg: str
+    selector: str
+    table: str
+    layouts_json: str
+    toggle: str
+    marks: frozenset[str]
+    sets: int
+    hidden: int
+
+
+def _line_key(src: str, dst: str) -> str:
+    return f"{src}>{dst}"
+
+
+def _status_of(rows: Mapping[str, Mapping[str, Any]], nid: str) -> str:
+    return str(rows[nid].get("status")) if nid in rows else "route"
+
+
+def _junction_markup(r: routes.Route, x: int, y: int, hidden: bool) -> str:
+    holes = r.summary.holes
+    words = (
+        f"route {r.id}: {holes} hole{'' if holes == 1 else 's'}, all needed"
+        if r.live
+        else f"route {r.id}: closes nothing (a hole is refuted, defective, abandoned, "
+        "superseded or not traced)"
+    )
+    cx, cy = JUNCTION_W // 2, dag.NODE_H // 2
+    mark = (
+        f'<circle class="and-mark" cx="{cx}" cy="{cy}" r="5"/>'
+        if r.live
+        else f'<circle class="dead-mark" cx="{cx}" cy="{cy}" r="5"/>'
+        f'<path class="dead-cross" d="M{cx - 3} {cy - 3}l6 6m0 -6l-6 6"/>'
+    )
+    off = " off-view" if hidden else ""
+    return (
+        f'<g class="junction {"live" if r.live else "dead"}{off}" data-route="{escape(r.id)}" '
+        f'data-node="{escape(r.id)}" data-w="{JUNCTION_W}" transform="translate({x},{y})">'
+        f"<title>{escape(words)}; from {escape(r.partial)}</title> "
+        f'<path class="stem" d="M{cx} 0V{dag.NODE_H}"/>{mark}</g>'
+    )
+
+
+def _pill_markup(  # noqa: PLR0913 — one pill, every mark it may carry
+    nid: str,
+    p: dag.Placed,
+    *,
+    status: str,
+    label: str,
+    title: str,
+    href: str,
+    hidden: bool,
+    proved: bool,
+    closable: bool,
+    or_mark: bool,
+    outline: int,
+) -> str:
+    cls = f"node status-{escape(status)}"
+    if proved:
+        cls += " proved"
+    if closable:
+        cls += " closable"
+    if hidden:
+        cls += " off-view"
+    diamond = (
+        f'<path class="or-mark" d="M{p.w / 2:g} {dag.NODE_H - routes_view.DIAMOND}'
+        f"l{routes_view.DIAMOND} {routes_view.DIAMOND}l-{routes_view.DIAMOND} "
+        f'{routes_view.DIAMOND}l-{routes_view.DIAMOND} -{routes_view.DIAMOND}Z"/>'
+        if or_mark
+        else ""
+    )
+    asm = (
+        f'<rect class="asm" x="12" y="{dag.NODE_H // 2 - 4}" width="8" height="8"/>'
+        if closable
+        else ""
+    )
+    return (
+        f'<a href="{escape(href)}"><g class="{cls}" data-node="{escape(nid)}" '
+        f'data-w="{p.w}" transform="translate({p.x},{p.y})">'
+        f"<title>{escape(title)}</title> "
+        f'<rect class="pill" width="{p.w}" height="{dag.NODE_H}" rx="8"/>'
+        f'<circle cx="16" cy="{dag.NODE_H // 2}" r="4"/>{asm}'
+        f'<text x="28" y="{dag.NODE_H // 2 + 5}">{escape(label)}</text> '
+        f'<circle class="halo" cx="{p.w - 14}" cy="{dag.NODE_H // 2}" r="3"/>'
+        + dag.outline_mark(outline, p.w)
+        + f"{diamond}</g></a>"
+    )
+
+
+def _dag_svg(  # noqa: PLR0913 — the whole drawing, every element once
+    vs: Mapping[str, View],
+    lays: Mapping[str, dag.Layout],
+    d: routes_view.Drawn,
+    rows: Mapping[str, Mapping[str, Any]],
+    *,
+    href: Mapping[str, str],
+    names: dag.Prefix,
+    labels: dag.Labels,
+    titles: Mapping[str, str],
+    outlines: Mapping[str, int],
+    closable: Mapping[str, Any],
+) -> str:
+    opening = lays[ROUTES]
+    shown_nodes = set(vs[ROUTES].nodes)
+    shown_lines = {(s, t) for s, t, _k in vs[ROUTES].lines}
+    # Every node's place: the opening layout's, else the first layout that has it.
+    at: dict[str, dag.Placed] = {p.node_id: p for p in opening.placed}
+    edge_at: dict[tuple[str, str], dag.Edge] = {(e.src, e.dst): e for e in opening.edges}
+    for key, lay in lays.items():
+        if key == ROUTES:
+            continue
+        for p in lay.placed:
+            at.setdefault(p.node_id, p)
+        for e in lay.edges:
+            edge_at.setdefault((e.src, e.dst), e)
+    parts = [
+        f'<svg class="dag" data-view="{ROUTES}" viewBox="0 0 {opening.width} {opening.height}" '
+        f'width="{opening.width}" height="{opening.height}" role="img" '
+        'aria-label="statement graph">'
+    ]
+    for (src, dst), e in sorted(edge_at.items(), key=lambda kv: (kv[0][1], kv[0][0])):
+        cls = e.kind
+        if (src, dst) not in shown_lines:
+            cls += " off-view"
+        if "superseded" in (_status_of(rows, src), _status_of(rows, dst)):
+            cls += " touches-superseded"
+        parts.append(
+            f'<path class="{cls}" data-from="{escape(src)}" data-to="{escape(dst)}" '
+            f'data-key="{escape(_line_key(src, dst))}" d="{dag.path_d(e)}"/>'
+        )
+    if opening.loose:
+        parts.append(
+            f'<line class="dag-divider" x1="{dag.PAD}" y1="{opening.group_y - 22}" '
+            f'x2="{opening.width - dag.PAD}" y2="{opening.group_y - 22}"/>'
+            f'<text class="dag-group" x="{opening.width // 2}" y="{opening.group_y}">'
+            f"{escape(dag.GROUP_LABEL)}</text>"
+        )
+    for nid in vs[ALL].nodes:
+        p = at[nid]
+        hidden = nid not in shown_nodes
+        if nid in d.junctions:
+            parts.append(_junction_markup(d.junctions[nid], p.x, p.y, hidden))
+            continue
+        status = _status_of(rows, nid)
+        label = dag.label_of(nid, names, labels)
+        parts.append(
+            _pill_markup(
+                nid,
+                p,
+                status=status,
+                label=label,
+                title=titles.get(nid, f"{nid}: {status}"),
+                href=href.get(nid, "#"),
+                hidden=hidden,
+                proved=status == routes.PROVED,
+                closable=nid in closable,
+                or_mark=d.alternatives.get(nid, 0) >= 2,
+                outline=outlines.get(nid, 0),
+            )
+        )
+    parts.append("</svg>")
+    return "\n".join(parts)
+
+
+def _selector_svg(  # noqa: PLR0913, PLR0912, PLR0915 — the selector, nodes and edges
+    vs: Mapping[str, View],
+    result: routes.Routes,
+    rows: Mapping[str, Mapping[str, Any]],
+    *,
+    names: dag.Prefix,
+    labels: dag.Labels,
+    proof_labels: Sequence[str],
+) -> str:
+    """R5: the selector tree as pills and lines, laid out by ``dag.layout`` (a parent rests on
+    its children, so the top is on top): the root statement above the top split when they
+    differ, one node per selector node, one per proof, an edge per parent-child pair labelled
+    by the child's route approach."""
+    sel = {k: v for k, v in vs.items() if k == SEL_PREFIX or k.startswith(SEL_PREFIX + "/")}
+    proofs = [k for k in vs if k.startswith(PROOF)]
+    if not sel and not proofs:
+        return ""
+    children: dict[str, list[str]] = {}
+    for key, v in sel.items():
+        if v.parent is not None:
+            children.setdefault(v.parent, []).append(key)
+    top = SEL_PREFIX if SEL_PREFIX in sel else None
+    root = result.root
+    has_root = (EDGE + SEL_PREFIX) in vs or (top is None and proofs)
+    hang = "root" if has_root else top
+    if has_root and top is not None:
+        children.setdefault("root", []).append(top)
+    for k in proofs:
+        if hang is not None:
+            children.setdefault(hang, []).append(k)
+    words: dict[str, str] = {}
+    kinds: dict[str, str] = {}
+    titles: dict[str, str] = {}
+    for key, v in sel.items():
+        if v.kind == "leaf":
+            words[key] = f"Set {v.index}"
+            kinds[key] = "kind-leaf"
+            s = result.sets[v.index - 1]
+            noun = "statement" if s.remaining == 1 else "statements"
+            titles[key] = f"Set {v.index}: {s.remaining} open {noun} of {s.total}"
+        else:
+            split = v.split or root
+            words[key] = dag.label_of(split, names, labels)
+            kinds[key] = "kind-node"
+            n = len(v.sets)
+            titles[key] = f"{words[key]}: {n} set{'' if n == 1 else 's'} choose a route here"
+    if has_root:
+        words["root"] = dag.label_of(root, names, labels)
+        kinds["root"] = "kind-root"
+        titles["root"] = f"{root}: the problem's own statement"
+    for k, label in zip(proofs, proof_labels, strict=False):
+        words[k] = f"Proof {vs[k].index + 1}"
+        kinds[k] = "kind-proof"
+        titles[k] = label
+    ids = [*(["root"] if has_root else []), *sel, *proofs]
+    nodes = [{"node_id": i, "status": "ready", "deps": children.get(i, [])} for i in ids]
+    lay = dag.layout(nodes, root=hang, labels=words)
+    parts = [
+        f'<svg class="selector" viewBox="0 0 {lay.width} {lay.height}" width="{lay.width}" '
+        f'height="{lay.height}" role="img" aria-label="sufficient sets">'
+    ]
+    for e in sorted(lay.edges, key=lambda e: (e.dst, e.src)):
+        child, parent = e.src, e.dst
+        view_key = EDGE + child
+        ev: View | None = vs.get(view_key)
+        attrs = ""
+        if ev is not None:
+            sets = " ".join(ev.sets)
+            attrs = (
+                f' data-view="{escape(view_key)}" data-sets="{escape(sets)}" role="button" '
+                'tabindex="0" aria-pressed="false"'
+            )
+        parts.append(
+            f'<path class="sel-edge" data-from="{escape(parent)}" data-to="{escape(child)}"'
+            f'{attrs} d="{dag.path_d(e)}"/>'
+        )
+        if ev is not None and ev.route is not None:
+            split = ev.split or root
+            full = routes_view.approach_of(ev.route, rows, dag.label_of(split, names, labels))
+            short = routes_view.cut(full, APPROACH_MAX)
+            (x0, y0), (x1, y1) = e.points[0], e.points[-1]
+            parts.append(
+                f'<text class="sel-edge-label" data-for="{escape(view_key)}" '
+                f'x="{(x0 + x1) / 2 + 6:g}" y="{(y0 + y1) / 2 + 4:g}">'
+                f"<title>{escape(full)}</title>{escape(short)}</text>"
+            )
+        elif ev is not None and ev.kind == "edge" and child != top:
+            (x0, y0), (x1, y1) = e.points[0], e.points[-1]
+            parts.append(
+                f'<text class="sel-edge-label" data-for="{escape(view_key)}" '
+                f'x="{(x0 + x1) / 2 + 6:g}" y="{(y0 + y1) / 2 + 4:g}">taken directly</text>'
+            )
+    for p in lay.placed:
+        key = p.node_id
+        nv: View | None = vs.get(key)
+        own = ""
+        if nv is not None:
+            own = (
+                f' data-view="{escape(key)}" data-sets="{escape(" ".join(nv.sets))}" '
+                'role="button" tabindex="0" aria-pressed="false"'
+            )
+        parts.append(
+            f'<a href="#"><g class="sel-node {kinds[key]}"{own} '
+            f'transform="translate({p.x},{p.y})"><title>{escape(titles[key])}</title> '
+            f'<rect class="pill" width="{p.w}" height="{dag.NODE_H}" rx="8"/>'
+            f'<text x="14" y="{dag.NODE_H // 2 + 5}">{escape(words[key])}</text></g></a>'
+        )
+    parts.append("</svg>")
+    return "\n".join(parts)
+
+
+def _toggle(hidden: int) -> str:
+    if not hidden:
+        return ""
+    noun = "statement" if hidden == 1 else "statements"
+    return (
+        f'<button type="button" class="chip view-toggle" data-view="{ALL}" aria-pressed="false" '
+        f'data-shown-label="Hide the {hidden} {noun} on no route" hidden>'
+        f"Show {hidden} more {noun}</button>"
+    )
+
+
+def drawing(  # noqa: PLR0913 — the page's inputs
+    graph: Mapping[str, Any],
+    frontier_entries: Iterable[Mapping[str, Any]],
+    *,
+    href: Mapping[str, str],
+    prefix: str | None = None,
+    nodes: Sequence[Mapping[str, Any]] | None = None,
+    proofs: Sequence[dag.ProofMarks] = (),
+    proof_labels: Sequence[str] = (),
+    outlines: Mapping[str, int] | None = None,
+    titles: Mapping[str, str] | None = None,
+) -> Drawing:
+    """The page's drawing. ``nodes`` (the page's view of the rows, a status renamed for the
+    key) stands in for ``graph["nodes"]`` in the drawing and the layouts; the routes and sets
+    are read from ``graph`` as the MCP tool reads them (F27-Q1)."""
+    result = routes.read(graph, list(frontier_entries))
+    drawn_graph: dict[str, Any] = dict(graph)
+    if nodes is not None:
+        drawn_graph["nodes"] = list(nodes)
+    rows = {str(n["node_id"]): n for n in drawn_graph["nodes"] if isinstance(n, Mapping)}
+    d = routes_view.drawn(drawn_graph, result)
+    vs = views(drawn_graph, result, proofs=proofs)
+    labels = dag.labels_of(rows.values())
+    root = str(graph.get("root"))
+    names: dag.Prefix = (prefix, root) if prefix else None
+    lays = layouts(rows.values(), vs, root=root, prefix=prefix, labels=labels)
+    ready = {c.node: c for c in closing.closable(graph)}
+    full_titles = {
+        nid: f"{nid}{' (' + labels[nid] + ')' if nid in labels else ''}: {_status_of(rows, nid)}"
+        + (f"; {routes_view.closable_words(ready[nid], ready)}" if nid in ready else "")
+        for nid in vs[ALL].nodes
+        if nid not in d.junctions
+    }
+    full_titles.update(titles or {})
+    svg = _dag_svg(
+        vs,
+        lays,
+        d,
+        rows,
+        href=href,
+        names=names,
+        labels=labels,
+        titles=full_titles,
+        outlines=outlines or {},
+        closable=ready,
+    )
+    # A target with no route has no sets worth choosing (its one "set" is the root taken
+    # directly): no selector and no table, unless it has proofs to list.
+    if not d.junctions:
+        vs = {k: v for k, v in vs.items() if not (k == TOP or k.startswith((TOP + "/", EDGE)))}
+        result = replace(result, sets=())
+    leaf_of = {v.sets[0]: k for k, v in vs.items() if v.kind == "leaf"}
+    marks: set[str] = set()
+    if any(r.live for r in d.junctions.values()):
+        marks.add("route-and")
+    if any(not r.live for r in d.junctions.values()):
+        marks.add("route-dead")
+    if any(n >= 2 for n in d.alternatives.values()):
+        marks.add("route-or")
+    if ready:
+        marks.add("closable")
+    hidden = len(vs[ALL].nodes) - len(vs[ROUTES].nodes)
+    doc = json.dumps(layouts_document(lays), separators=(",", ":")).replace("</", "<\\/")
+    return Drawing(
+        svg=svg,
+        selector=_selector_svg(
+            vs, result, rows, names=names, labels=labels, proof_labels=proof_labels
+        ),
+        table=routes_view.table(result, prefix, views=leaf_of) if result.sets else "",
+        layouts_json=f'<script type="application/json" id="graph-layouts">{doc}</script>',
+        toggle=_toggle(hidden),
+        marks=frozenset(marks),
+        sets=len(result.sets),
+        hidden=hidden,
+    )

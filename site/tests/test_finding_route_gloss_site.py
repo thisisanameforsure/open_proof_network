@@ -16,18 +16,19 @@ from pathlib import Path
 from harness import TARGET
 from test_decompositions import PARTIAL
 from test_finding_route_gloss import GLOSS_WORDS, partial_doc, put_gloss
-from test_routes_view import render_tree, selector_rows, two_routes
+from test_routes_view import render_tree, two_routes
 
 
 def test_the_selector_names_the_glossed_route_by_its_gloss(tmp_path: Path) -> None:
+    """F30-T2: the selector's edges are labelled by their route's approach (R5)."""
     root = two_routes(tmp_path)
     put_gloss(root, partial_doc(root, module=PARTIAL), GLOSS_WORDS + "\n")
     page = render_tree(root)[f"problems/{TARGET}/index.html"]
-    drawing = page[page.index('<svg class="routes-svg"') :]
-    drawing = drawing[: drawing.index("</svg>")]
-    rows = selector_rows(drawing)
-    assert len(rows) == 2, "two routes on the root, two leaves"
-    first, second = rows
+    selector = page[page.index('<svg class="selector"') :]
+    selector = selector[: selector.index("</svg>")]
+    labels = re.findall(r'<text class="sel-edge-label"[^>]*>(.*?)</text>', selector, re.S)
+    assert len(labels) == 2, "two routes on the root, two edges"
+    first, second = sorted(labels, key=lambda t: "route 2 of" in t)
     assert "Bound the density of the set first." in first
     assert "Then the rest follows" not in first, "the first sentence only"
     assert re.search(r"route 2 of ", second), "the unglossed route falls back to its number"
