@@ -521,14 +521,8 @@
     hit.addEventListener("focusin", function () { selLight([selKey(g)], g.getAttribute("data-words"), g); });
     hit.addEventListener("focusout", selUnlight);
   });
-  selEdges.forEach(function (e) {
-    var ends = [e.getAttribute("data-from"), e.getAttribute("data-to")];
-    var child = selNodes.filter(function (g) { return selKey(g) === ends[1]; })[0];
-    e.addEventListener("mouseenter", function () { selLight(ends, child ? child.getAttribute("data-words") : "", e); });
-    e.addEventListener("mouseleave", selUnlight);
-    e.addEventListener("focusin", function () { selLight(ends, child ? child.getAttribute("data-words") : "", e); });
-    e.addEventListener("focusout", selUnlight);
-  });
+  // T9 (the owner): the neighbour lighting is for nodes only; an edge keeps its own hover
+  // stroke and the preview it casts on the drawing.
 
   rows.forEach(function (r) {
     var view = r.getAttribute("data-view");

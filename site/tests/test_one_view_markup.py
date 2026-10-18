@@ -23,7 +23,7 @@ from test_routes_view import THIRD, doc, nested_doc, render_tree, two_routes
 from test_target_proofs import resolves_variant
 
 from opn_gate import routes
-from opn_site import one_view
+from opn_site import one_view, render
 
 PAGE = f"problems/{TARGET}/index.html"
 
@@ -248,3 +248,19 @@ def test_selector_leaves_are_numbered_in_record_order_under_their_parents() -> N
     px, py = float(parent.group(1)), float(parent.group(2))
     assert py < ys[0] and py == ys[2]
     assert abs(px - (xs[0] + xs[1]) / 2) < 0.6
+
+
+def test_the_selector_says_it_is_the_navigation_and_explains_a_sufficient_set(
+    tmp_path: Path,
+) -> None:
+    """T9 (the owner, 2026-10-18): a short line tells the reader to select a node or an edge to
+    filter the drawing, and the heading's words carry a hover card defining a sufficient set."""
+    page = render_tree(two_routes(tmp_path))[PAGE]
+    wrap = page[page.index('<div class="selector-wrap">') : page.index('<svg class="selector"')]
+    assert "Select a node or an edge" in wrap and "filter" in wrap.lower()
+    assert 'class="term' in wrap and "sufficient set" in wrap.lower()
+    assert render.esc(render.GLOSSARY_BY_KEY["sufficient-set"][1]) in wrap
+    assert (
+        "sufficient-set" in render.GLOSSARY_BY_KEY
+        and "sufficient set" in render.GLOSSARY_BY_KEY["sufficient-set"][0]
+    )

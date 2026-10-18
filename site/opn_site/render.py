@@ -381,6 +381,16 @@ GLOSSARY: tuple[tuple[str, str, str, str], ...] = (
         "upper statement's proof may build on the lower one.",
         "deps (META.yaml)",
     ),
+    # F30-T9: the selector's heading word.
+    (
+        "sufficient-set",
+        "sufficient set",
+        "A set of statements whose proofs would close the problem's own statement, with the "
+        "closing proofs of the decomposed statements on the way still to submit: one choice of "
+        "route at every fork. The tree under this heading is the navigation device: select a "
+        "set, a family of sets or one route choice and the drawing shows just that part.",
+        "sufficient sets (D-25 v3.40, F27)",
+    ),
     # F30-T2 (R2): the route marks the merged drawing shows (F27's AND and OR), the dead route,
     # and the closable statement (F28), each keyed when the drawing has one.
     (
@@ -2267,7 +2277,10 @@ class Renderer:
         # T7: the selector sits at the top of the drawing's card and stays in view; the table
         # keeps its place beneath the drawing.
         selector_block = (
-            '<div class="selector-wrap"><span class="kicker">Sufficient sets</span>'
+            '<div class="selector-wrap"><div class="sel-head">'
+            f'<span class="kicker">{self.term("sufficient-set", label="Sufficient sets")}</span>'
+            '<p class="sel-cue">Select a node or an edge to filter the drawing to that part of '
+            "the proof; select it again to come back.</p></div>"
             f"{picture.selector}{self.proof_notes(tv)}"
             '<p class="sel-tip" hidden></p></div>'
             if picture.selector
