@@ -1043,3 +1043,28 @@ th[aria-sort="descending"] .routes-sort::after { content: " ↓"; }
 .routes-svg .swatch.set-5 { fill: var(--set-5); } .routes-svg .swatch.set-6 { fill: var(--set-6); }
 .routes-svg .swatch.set-7 { fill: var(--set-7); } .routes-svg .swatch.set-8 { fill: var(--set-8); }
 .routes-svg .swatch.set-more { fill: var(--set-more); }
+
+/* F30-T3 */
+/* One statement graph (F30, R7, R8): an element outside the shown view is not drawn; a preview
+   lights a view's nodes and lines and dims the rest without moving anything; a transition fades
+   what leaves (200 ms), slides what stays, and fades in what arrives (200 ms). */
+.dag .off-view { display: none; }
+.dag .node, .dag .edge, .dag .junction { transition: opacity .2s; }
+.dag .fading { opacity: 0 !important; }
+.dag.picking .node:not(.lit), .dag.picking .junction:not(.lit) { opacity: .25; }
+.dag.picking .edge:not(.lit) { opacity: .12; }
+.dag.hovering .junction:not(.lit) { opacity: .35; }
+/* The selector (R5): a pressed node or edge is the view shown; a previewed one is under the pointer. */
+.selector .sel-node, .selector .sel-edge { cursor: pointer; }
+.selector .sel-node rect, .selector .sel-edge { transition: stroke .12s, stroke-width .12s; }
+.selector a:hover .sel-node rect, .selector .sel-node:focus-visible rect, .selector .sel-node.previewed rect { stroke: var(--accent-300); }
+.selector .sel-node[aria-pressed="true"] rect { stroke: var(--accent); stroke-width: 2; }
+.selector .sel-edge:hover, .selector .sel-edge:focus-visible, .selector .sel-edge.previewed { stroke: var(--accent-300); stroke-width: 2.5; }
+.selector .sel-edge[aria-pressed="true"] { stroke: var(--accent); stroke-width: 2.5; }
+.selector a:focus { outline: none; }
+/* The sets below the drawing (Q5): the selector beside the table; one column on a narrow screen. */
+.sets-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: var(--s6); align-items: start; margin-top: var(--s6); }
+.sets-grid .routes-table-wrap { min-width: 0; overflow-x: auto; }
+tr.set-row { cursor: pointer; }
+tr.set-row.previewed td { background: rgba(128, 128, 128, .12); }
+@media (max-width: 900px) { .sets-grid { grid-template-columns: minmax(0, 1fr); } }

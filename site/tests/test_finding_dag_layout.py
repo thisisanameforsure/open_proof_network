@@ -313,7 +313,7 @@ def test_superseded_statements_are_faded_and_the_toggle_hides_them() -> None:
     assert re.search(r"\.dag \.node\.status-superseded \{[^}]*opacity", css)
     assert re.search(r"\.dag\.hide-superseded \.status-superseded[^{]*\{[^}]*display: none", css)
     assert re.search(r"\.dag\.hide-superseded \.touches-superseded[^{]*\{[^}]*display: none", css)
-    js = (STATIC / "problem.js").read_text(encoding="utf-8")
+    js = (STATIC / "graph.js").read_text(encoding="utf-8")
     assert "hide-superseded" in js and "data-hide" in js
 
 
@@ -321,7 +321,7 @@ def test_superseded_statements_are_faded_and_the_toggle_hides_them() -> None:
 
 
 def test_hovering_a_statement_lights_its_lines() -> None:
-    js = (STATIC / "problem.js").read_text(encoding="utf-8")
+    js = (STATIC / "graph.js").read_text(encoding="utf-8")
     assert "mouseenter" in js and "focusin" in js and "hovering" in js
     css = (STATIC / "site.css").read_text(encoding="utf-8")
     assert re.search(r"\.dag\.hovering \.edge:not\(\.lit\)[^{]*\{[^}]*opacity", css)

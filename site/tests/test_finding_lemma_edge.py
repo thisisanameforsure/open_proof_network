@@ -239,7 +239,7 @@ def test_a_hole_that_became_a_lemma_links_the_lemma_node(tmp_path: Path) -> None
 
 def test_hovering_lights_the_lemma_line_too() -> None:
     """The script lights every ``path.edge``; a lemma's line is one (class ``edge lemma``)."""
-    js = (STATIC / "problem.js").read_text(encoding="utf-8")
+    js = (STATIC / "graph.js").read_text(encoding="utf-8")
     assert 'querySelectorAll("path.edge")' in js
     nodes = shape_nodes()
     out = dag.svg(nodes, href={n["node_id"]: "/x/" for n in nodes}, root="r")

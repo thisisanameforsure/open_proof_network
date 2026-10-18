@@ -72,7 +72,7 @@ def test_the_panel_a_deep_link_selects_points_at_the_live_statement(
     old = panel(pages[PROBLEM], OLD)
     assert f'Superseded by <a href="#node={NEW}">{NEW}</a>' in old
     assert f'Revises <a href="#node={OLD}">{OLD}</a>' in panel(pages[PROBLEM], NEW)
-    script = (render.STATIC / "problem.js").read_text(encoding="utf-8")
+    script = (render.STATIC / "graph.js").read_text(encoding="utf-8")
     assert "hashchange" in script  # an in-page #node= link has to reselect
 
 

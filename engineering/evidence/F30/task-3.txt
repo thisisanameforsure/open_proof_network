@@ -1,0 +1,49 @@
+F30-T3 — graph.js (R3, R7, R8; AC5–AC8). Running log, written as the work went.
+
+== 2026-10-18 setup
+branch f30-t3-script from f30-one-graph @ 0f7ad8f6 (T2 not yet landed: tip is the contract note)
+$ uv run --frozen --with playwright python -c "...chromium.launch()..."
+playwright ok
+chromium 156.0.8078.4
+
+== fixture probe (scratchpad/views_probe.py): the view keys the test fixtures produce
+two_routes root and-swap-reassoc nodes ['and-reassoc', 'and-swap-reassoc', 'and-swap-reassoc--h1', 'and-swap-reassoc--h2', 'and-swap-reassoc--h3', 'tutorial-and-swap']
+  keys ['all', 'routes', 'sel', 'sel/and-swap-reassoc@1', 'edge/sel/and-swap-reassoc@1', 'sel/and-swap-reassoc@2', 'edge/sel/and-swap-reassoc@2']
+  all-routes set()            <- no off-route statement: no view-toggle on this fixture, so the
+                                 toggle test adds a `related` variant (off every route)
+  sets ['s-8b51b4cea6', 's-96ab721065']
+proved root and-swap-reassoc nodes ['and-reassoc', 'and-swap-reassoc', 'tutorial-and-swap']
+  keys ['all', 'routes', 'sel']   <- proof/0 appears only when the page passes F18's marks (T2)
+
+== red run (tests written first, before graph.js existed; T2 markup not yet on f30-one-graph)
+$ uv run --frozen --with playwright pytest site/tests/test_one_view.py -k "complete_without or proof_is_a_leaf or selecting_a_leaf or hover_previews or pill_click or toggle_shows" -x -q
+>       assert '<script src="/graph.js"></script>' in page
+E       assert '<script src="/graph.js"></script>' in '<!DOCTYPE html>... <script src="/problem.js"></script><script src="/routes.js"></script>\n</body>\n</html>\n'
+FAILED site/tests/test_one_view.py::test_complete_without_the_script - assert...
+1 failed, 13 deselected in 9.69s
+(red on the behaviour — the page still loads problem.js — not on a fixture or an import)
+
+== graph.js driven on a contract-shaped mock page while T2 is pending
+(scratchpad/mock_page.py builds the contract's markup from the two_routes fixture's real one_view
+layouts; scratchpad/drive.py runs the AC5/AC6 sequence with the test module's own SNAPSHOT and
+assert_at_layout; node --check graph.js ok)
+$ python drive.py site            (prefers-reduced-motion: reduce)
+loaded view routes hash '' panel ['and-reassoc']
+loaded at routes layout: ok
+hover leaf: picking True lit True boxes same True
+leaf view sel/and-swap-reassoc@1 hash #node=and-reassoc&view=sel%2Fand-swap-reassoc%401 pressed ['sel/and-swap-reassoc@1'] rows ['sel/and-swap-reassoc@1'] showing 'showing 1 of 2'
+leaf at layout: ok; shown ['and-swap-reassoc', 'and-swap-reassoc--h1', 'and-swap-reassoc--h2', 'and-swap-reassoc@1']
+edge view edge/sel/and-swap-reassoc@2 pressed ['edge/sel/and-swap-reassoc@2']
+edge at layout: ok
+cleared view routes hash '#node=and-reassoc' pressed [] rows 2
+cleared at layout: ok
+pill click: panel ['and-swap-reassoc'] hash #node=and-swap-reassoc view routes boxes same True
+fewest: view sel/and-swap-reassoc@2 rows ['sel/and-swap-reassoc@2']
+escape: view routes fewest pressed false
+page errors: []
+$ python drive.py site --animate  (the three phases, requestAnimationFrame)
+mid view routes                    <- right after the click the svg has not taken the view
+leaf view sel/and-swap-reassoc@1 ... leaf at layout: ok ... edge at layout: ok ... cleared at layout: ok
+page errors: []
+Defect found and fixed by the first drive: the initial settle() wrote #node=<root> on load; the
+load now keeps the hash (settle(to, keepHash)), as problem.js did.

@@ -165,7 +165,7 @@ ANNEX_LICENCES = ("CC-BY-4.0", "CDLA-Permissive-2.0", "Apache-2.0")
 #: pinned by its MANIFEST.txt, rendering only inside ``.math`` with trust off (math.js).
 SCRIPTS: tuple[str, ...] = (
     "/problems.js",
-    "/problem.js",
+    "/graph.js",
     "/vendor/katex/katex.min.js",
     "/vendor/katex/auto-render.min.js",
     "/math.js",
@@ -177,7 +177,6 @@ SCRIPTS: tuple[str, ...] = (
     "/me.js",
     "/panel.js",
     "/node.js",
-    "/routes.js",
 )
 MATH_HEAD = '<link rel="stylesheet" href="/vendor/katex/katex.min.css">'
 #: F04-T50: opens the fold a link lands in on a statement's page.
@@ -2331,8 +2330,7 @@ class Renderer:
             path=PROBLEMS_PATH,
             head=MATH_HEAD,
             script=MATH_SCRIPTS
-            + '<script src="/problem.js"></script>'
-            + ('<script src="/routes.js"></script>' if routes_section.html else "")
+            + '<script src="/graph.js"></script>'
             + ('<script src="/panel.js"></script>' if self.api_url else ""),
         )
 
