@@ -509,21 +509,24 @@ def _loose(status: dict[str, str], edges: list[Line], root: str | None) -> tuple
     return tuple(sorted(alone, key=lambda v: (status[v] == "superseded", v)))
 
 
-def _rows(
+def _rows(  # noqa: PLR0913, PLR0917 — the ordering's inputs (F30-T1 added the seed)
     layer_of: dict[str, int],
     edges: list[Line],
     names: Prefix,
     widths: Widths = None,
     labels: Labels = None,
+    order: Mapping[str, float] | None = None,
 ) -> tuple[_Ranks, dict[str, int]]:
     """The ordered rows. Pass one orders one row per layer; each layer is then wrapped in that
     order (T24), what rests on nothing in its upper rows and what has lines down in its lower
     ones, nearest the statements those lines reach; pass two orders the wrapped rows as rows of
-    their own, so a line passes between them."""
+    their own, so a line passes between them. F30-T1 (Q2): ``order`` seeds pass one (each
+    node's x in a reference layout), so a subset keeps the reference's order where the sweeps
+    have no reason to change it."""
     by_layer: dict[int, list[str]] = {}
     for v in sorted(layer_of):
         by_layer.setdefault(layer_of[v], []).append(v)
-    first, _ = _ranks({k: [ids] for k, ids in by_layer.items()}, edges, {})
+    first, _ = _ranks({k: [ids] for k, ids in by_layer.items()}, edges, dict(order or {}))
     first.order()
     seed = {v: float(i) for row in first.rows for i, v in enumerate(row) if not _is_bend(v)}
     rests_on = {dst for _src, dst, _k in edges}
@@ -588,24 +591,26 @@ def _route(
     return out
 
 
-def layout(
+def layout(  # noqa: PLR0913 — the drawing's inputs (F30-T1 added the seed)
     nodes: list[dict[str, Any]],
     *,
     root: str | None = None,
     prefix: str | None = None,
     widths: Widths = None,
     labels: Labels = None,
+    order: Mapping[str, float] | None = None,
 ) -> Layout:
     """Coordinates for every statement and every line (F04-T33). With ``prefix`` (the target
     id) a label also drops the root's own name; ``widths`` (F27-T3) sizes the boxes it names;
-    ``labels`` (F29-T5) are the names the pills show, which every box is measured from."""
+    ``labels`` (F29-T5) are the names the pills show, which every box is measured from;
+    ``order`` (F30-T1) seeds each row's order from a reference layout's x positions."""
     names: Prefix = (prefix, root) if prefix and root else prefix
     nodes = sorted(nodes, key=lambda n: str(n["node_id"]))
     status = {str(n["node_id"]): str(n["status"]) for n in nodes}
     edges = lines(nodes)
     loose = _loose(status, edges, root)
     layer_of = raised({v: k for v, k in layers(nodes).items() if v not in loose}, edges)
-    ranks, rank_of = _rows(layer_of, edges, names, widths, labels)
+    ranks, rank_of = _rows(layer_of, edges, names, widths, labels, order)
     wid: dict[str, float] = {v: float(node_width(v, names, widths, labels)) for v in status}
     wid.update({v: 0.0 for row in ranks.rows for v in row if _is_bend(v)})
     left, span = _balance(ranks, wid)

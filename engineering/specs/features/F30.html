@@ -119,8 +119,9 @@ F30-R6 (Q4).</p>
     below the drawing beside the selector, filtered to the selected view's sets and saying "showing
     <i>n</i> of <i>m</i>"; a row click selects that set's leaf view.</td></tr>
   <tr><td>F30-R10</td><td>Across every pair of views the statements shared by both shall keep their
-    left-to-right order within each layer, and a view's layout shall have no overlapping pills and
-    every node one layer below the lowest node that rests on it (F04-T33's properties).</td></tr>
+    left-to-right order within each layer, except where keeping it would make two lines cross in
+    that view; and a view's layout shall have no overlapping pills and every node one layer below the
+    lowest node that rests on it (F04-T33's properties).</td></tr>
   <tr><td>F30-R11</td><td>Without the script the page shall show the routes layout, the selector and
     the full table, every pill and selector node a link; with it, nothing is rendered twice.</td></tr>
 </table>
@@ -197,7 +198,10 @@ property and by the return to the routes layout on clearing.</p>
 view's nodes, which is already a layered layout with crossing minimisation. What keeps shared nodes still
 is the initial order of every rank: seeded from the full layout's x-order instead of lexical ids, so the
 trunk and shared subtrees come out in the same order in every view. R10 tests the property, not a pixel
-budget (2026-10-04: a distance proxy measured the wrong thing).</p>
+budget (2026-10-04: a distance proxy measured the wrong thing). On the live erdos-1094 the seed took
+the disagreeing pairs from 191 to 1, and the one left is a view that swaps two pills to avoid a
+crossing of its own; crossing-free outranks still, so R10 allows exactly that, and the test shows the
+crossing by pinning the shared order.</p>
 <p><strong>F30-Q3 — A segment is the committed part, not the bare chain.</strong> A route may have holes
 that lead to no further choice; choosing the route commits to them, so the segment includes them. The
 owner's ruling.</p>
@@ -213,7 +217,7 @@ diamonds; a set's view therefore holds its assemblies and route junctions, so th
 skeleton rather than a bag of leaves.</p>
 
 <h2>10. Status</h2>
-<div class="rule"><strong>status:</strong> in progress · <strong>Tasks:</strong> T0 done; T1–T5 open.</div>
+<div class="rule"><strong>status:</strong> in progress · <strong>Tasks:</strong> T0, T1 done (13 tests, <code>engineering/evidence/F30/task-1.txt</code>); T2–T5 open.</div>
 
 <h2>Tasks</h2>
 <table>
