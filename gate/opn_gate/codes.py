@@ -1505,12 +1505,21 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "The literature record names a different node from the directory it sits in.",
         "File it under nodes/<id>/literature/ of the node its `node` field names (D-25 v3.35).",
     ),
+    "literature-record-conflict": (
+        "gate",
+        None,
+        "The signed literature record names a proposal in both `confirms` and `disputes`.",
+        "A signed record confirms a proposal or disputes one, never both (D-25 v3.45): set one "
+        "of the two and leave the other null.",
+    ),
     "literature-record-unknown": (
         "gate",
         None,
-        "The confirmation's `confirms` names no literature record on the node.",
-        "Name an existing literature/<file> of the node, or state the status yourself with "
-        "`confirms: null`.",
+        "The confirmation's `confirms` names no literature record on the node, or its `disputes` "
+        "names something that is not an unsigned proposal on the node (a missing file, the record "
+        "itself, or a signed record).",
+        "Name an existing unsigned literature/<file> of the node, or state the status yourself "
+        "with `confirms: null` and `disputes: null`.",
     ),
     "literature-signature": (
         "gate",

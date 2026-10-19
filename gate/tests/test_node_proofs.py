@@ -132,4 +132,6 @@ def test_the_graph_product_is_the_next_version() -> None:
     (D-12 v3.35, the circular label and the literature status) the one after; F25-T1
     (registrations, D-10 v3.37) the one after that; F03-T20 (D-12 v3.38, lemmas) the one after
     that."""
-    assert products.GRAPH_SCHEMA == "graph/v12"  # F29-T1: labels; F08-T42 (v11): no circular
+    assert (
+        products.GRAPH_SCHEMA == "graph/v13"
+    )  # F08-T43: literature.disputes; F29-T1 (v12): labels

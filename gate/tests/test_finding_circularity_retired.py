@@ -181,8 +181,8 @@ def test_the_products_are_the_next_versions_without_the_field(tmp_path: Path) ->
     root = chain(tmp_path)
     file_claim(root, PATH_CLAIM, stmt_ref=DEEP, ancestor=ROOT)
     gdoc, fdoc, bundles = docs(generate(root))
-    assert (gdoc["schema"], fdoc["schema"]) == ("graph/v12", "frontier/v6")
-    assert {b["schema"] for b in bundles} == {"context/v8"}
+    assert (gdoc["schema"], fdoc["schema"]) == ("graph/v13", "frontier/v7")
+    assert {b["schema"] for b in bundles} == {"context/v9"}
     for doc in (gdoc, fdoc, *bundles):
         assert schemas.violations(doc, doc["schema"]) == [], doc["schema"]
     for row in (*gdoc["nodes"], *fdoc["entries"], *bundles):
@@ -190,7 +190,7 @@ def test_the_products_are_the_next_versions_without_the_field(tmp_path: Path) ->
 
 
 def test_the_new_schemas_publish_no_circularity_field() -> None:
-    for schema_id in ("graph/v12", "frontier/v6", "context/v8"):
+    for schema_id in ("graph/v13", "frontier/v7", "context/v9"):
         text = json.dumps(schemas.load_schema(schema_id)["properties"])
         assert '"circular"' not in text and '"circular_below"' not in text, schema_id
 

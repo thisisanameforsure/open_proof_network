@@ -1,8 +1,9 @@
 """Literature records (F08-T40; D-3, D-25, D-32 v3.35): what the literature says of a statement.
 
-``nodes/<id>/literature/<timestamp>-<contributor>.yaml`` (``literature/v1``) says the statement is
-``open`` (no proof is known), ``known`` (a proof is published and not formalised) or ``elementary``
-(a routine formalisation of a known fact), with references and a summary. Unsigned, it is anyone's
+``nodes/<id>/literature/<timestamp>-<contributor>.yaml`` (``literature/v2``; v1 records stay
+readable) says the statement is ``open`` (no proof is known), ``known`` (a proof is published and
+not formalised) or ``elementary`` (a routine formalisation of a known fact), with references and a
+summary. Unsigned, it is anyone's
 proposal, attributed like an annex (D-23); signed by an active steward of the target or a listed
 curator — ``via: ssh`` under their own key, or ``via: approval-key`` by the service for a login
 signed in on the site — it is a confirmation, of the proposal it names in ``confirms`` or of the
@@ -29,7 +30,9 @@ from opn_gate.signer import Signer
 
 log = logging.getLogger(__name__)
 
-SCHEMA = "literature/v1"
+SCHEMA = "literature/v2"  # F08-T43 (D-25 v3.45): `disputes`
+#: Every version a record may carry; v1 records on the graph stay readable (D-34).
+SCHEMAS: tuple[str, ...] = ("literature/v1", "literature/v2")
 DIR = "literature"
 STATUSES: tuple[str, ...] = ("open", "known", "elementary")
 SUFFIXES: tuple[str, ...] = (".yaml", ".yml")
@@ -37,7 +40,7 @@ SUFFIXES: tuple[str, ...] = (".yaml", ".yml")
 
 @dataclass(frozen=True)
 class Record:
-    """One literature record as written, validated against ``literature/v1``."""
+    """One literature record as written, validated against one of ``SCHEMAS``."""
 
     name: str  # the file name under literature/
     doc: dict[str, Any]
@@ -62,6 +65,13 @@ class Record:
     @property
     def confirms(self) -> str | None:
         named = self.doc.get("confirms")
+        return str(named) if named else None
+
+    @property
+    def disputes(self) -> str | None:
+        """F08-T43 (D-25 v3.45): the proposal a signed record rejects, or None (v1 records
+        carry no such field)."""
+        named = self.doc.get("disputes")
         return str(named) if named else None
 
     @property
@@ -94,8 +104,9 @@ class Literature:
 
 def load(node_dir: Path) -> list[Record]:
     """Every record under the node's ``literature/``, oldest first (by ``date``, then name). A
-    file that does not validate against ``literature/v1`` is logged and passed over: the gate
-    refused it at merge, and one bad file must never decide what the graph says (2026-09-17)."""
+    file that does not validate against its own version in ``SCHEMAS`` is logged and passed over:
+    the gate refused it at merge, and one bad file must never decide what the graph says
+    (2026-09-17)."""
     directory = node_dir / DIR
     if not directory.is_dir():
         return []
@@ -106,7 +117,8 @@ def load(node_dir: Path) -> list[Record]:
         except schemas.SchemaError as exc:
             log.warning("%s: a literature record that does not read is passed over: %s", path, exc)
             continue
-        if doc.get("schema") != SCHEMA or schemas.violations(doc, SCHEMA):
+        version = doc.get("schema")
+        if version not in SCHEMAS or schemas.violations(doc, str(version)):
             log.warning("%s: a literature record that does not validate is passed over", path)
             continue
         found.append(Record(path.name, doc))
@@ -177,12 +189,29 @@ def derive(
             basis = latest
         else:
             covered_name = basis.name
+        # F08-T43 (D-25 v3.45): a confirmation that disputes a proposal states the status itself
+        # and covers the proposal it rejects, which the products publish beside it.
+        disputes: dict[str, Any] | None = None
+        rejected_name = latest.disputes
+        rejected = (
+            proposals.get(rejected_name[len(DIR) + 1 :])
+            if rejected_name and rejected_name.startswith(f"{DIR}/")
+            else None
+        )
+        if rejected is not None and basis is latest:
+            covered_name = rejected.name
+            disputes = {
+                "status": rejected.status,
+                "record": rejected.path,
+                "contributor": rejected.contributor,
+            }
         confirmed = {
             "status": basis.status,
             "record": basis.path,
             "contributor": basis.contributor,
             "confirmed_by": latest.contributor,
             "confirmation": latest.path,
+            "disputes": disputes,
         }
         since = latest.sort_key()
     open_proposals = [

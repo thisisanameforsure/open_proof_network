@@ -18,7 +18,7 @@ from dataclasses import replace
 from html import escape
 from pathlib import Path
 from string import Template
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from urllib.parse import quote
 
 from opn_gate import clients, explainers, hosted, intake, layout, policy, products, schemas, steward
@@ -43,6 +43,9 @@ from opn_site.model import (
     VersionView,
     WordsSection,
 )
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
 
 TEMPLATES = Path(__file__).resolve().parent / "templates"
 STATIC = Path(__file__).resolve().parent / "static"
@@ -100,6 +103,33 @@ LITERATURE_CONFIRM_PATH = "/literature/confirm"
 
 def literature_words(status: str) -> str:
     return LITERATURE_WORDS.get(status, status)
+
+
+#: F04-T54 (D-25 v3.45): the two phases a literature mark can be in, proposed before confirmed.
+LITERATURE_PHASES = (False, True)
+#: The key's words for each phase of a mark.
+LITERATURE_PHASE_WORDS = {
+    False: f"proposed by a contributor, {LITERATURE_AWAITS}",
+    True: "confirmed by a steward or curator, by a signed record",
+}
+LITERATURE_MARK_NOTE = (
+    "A fact about the literature, never about difficulty: it earns nothing, changes no status, "
+    "blocks nothing and ranks nothing (D-25 v3.45)."
+)
+
+
+def lit_mark_of(
+    confirmed: LiteratureView | None, proposed: LiteratureView | None
+) -> dag.LitMark | None:
+    """F04-T54: the mark a node's pill wears: its confirmed status when a steward or curator has
+    signed one (a later proposal is said in the block, not drawn), else the proposal awaiting
+    one, else nothing. Only a status the key can name is drawn (C7: an unknown value is left to
+    the block, which shows it as itself)."""
+    if confirmed is not None and confirmed.status in LITERATURE_WORDS:
+        return dag.LitMark(confirmed.status, True, confirmed.confirmed_by or "")
+    if proposed is not None and proposed.status in LITERATURE_WORDS:
+        return dag.LitMark(proposed.status, False, proposed.contributor)
+    return None
 
 
 #: F04-T15 (Q17): the statuses that owe nobody a witness. A node with an unfilled slot is
@@ -177,10 +207,15 @@ SCRIPTS: tuple[str, ...] = (
     "/me.js",
     "/panel.js",
     "/node.js",
+    "/literature.js",
 )
 MATH_HEAD = '<link rel="stylesheet" href="/vendor/katex/katex.min.css">'
 #: F04-T50: opens the fold a link lands in on a statement's page.
 NODE_SCRIPT = '<script src="/node.js"></script>'
+#: F04-T54: draws Confirm and Dispute on an awaiting literature proposal, on ``/me/`` and on a
+#: node's page, after ``session.js`` has answered; ``$repo`` is the graph repository, so a pull
+#: request is linked only when it is on it.
+LITERATURE_SCRIPT = '<script src="/literature.js" data-repo="$repo"></script>'
 MATH_SCRIPTS = (
     '<script src="/vendor/katex/katex.min.js"></script>'
     '<script src="/vendor/katex/auto-render.min.js"></script>'
@@ -1279,9 +1314,57 @@ class Renderer:
         marks = tuple(k for k in ROUTE_MARK_KEYS if k in (drawn.marks if drawn else ()))
         return (
             "".join(self.term(k, dot=True) for k in (*keys, *marks, *self.proof_legend(tv)))
+            + self.literature_key(self.literature_marks(tv).values())
             + self.superseded_toggle(tv)
             + (drawn.toggle if drawn else "")
         )
+
+    # -- F04-T54 (D-25 v3.45): the literature mark ------------------------------------------
+
+    @staticmethod
+    def literature_marks(tv: TargetView) -> dict[str, dag.LitMark]:
+        """The mark each of the target's pills wears, keyed by node id; nodes with no record are
+        absent. Read from the views alone, so the drawing and the badge agree."""
+        marks = {
+            nid: lit_mark_of(nv.literature, nv.literature_proposed) for nid, nv in tv.nodes.items()
+        }
+        return {nid: m for nid, m in marks.items() if m is not None}
+
+    @staticmethod
+    def lit_badge_html(mark: dag.LitMark | None) -> str:
+        """The inline badge (the listing row, the node page's head, the key): the same classes
+        as the drawing's mark, its words in the title. Nothing for no mark."""
+        if mark is None:
+            return ""
+        return (
+            f'<span class="lit-badge lit-{esc(mark.status)} {mark.phase}" '
+            f'title="{esc(mark.words)}"></span>'
+        )
+
+    def lit_badge(self, nv: NodeView) -> str:
+        return self.lit_badge_html(lit_mark_of(nv.literature, nv.literature_proposed))
+
+    @classmethod
+    def literature_key(cls, marks: Iterable[dag.LitMark]) -> str:
+        """One key item per state the drawing shows — a status and a phase, in the words'
+        order, proposed before confirmed — each a hover card naming the status's words and
+        what the phase means. The drawing's key names every state its marks can take (Q16)."""
+        present = {(m.status, m.confirmed) for m in marks}
+        items = []
+        for status in LITERATURE_WORDS:
+            for confirmed in LITERATURE_PHASES:
+                if (status, confirmed) not in present:
+                    continue
+                mark = dag.LitMark(status, confirmed, "")
+                badge = f'<span class="lit-badge lit-{esc(status)} {mark.phase}"></span>'
+                body = (
+                    f"Literature: {esc(literature_words(status))} &mdash; "
+                    f"{esc(LITERATURE_PHASE_WORDS[confirmed])}. {esc(LITERATURE_MARK_NOTE)}"
+                )
+                items.append(
+                    cls.hover(badge + esc(f"{status}, {mark.phase}"), body, classes="lit-term")
+                )
+        return "".join(items)
 
     @staticmethod
     def superseded_toggle(tv: TargetView) -> str:
@@ -1846,6 +1929,7 @@ class Renderer:
             node=self.node_link(tv.target_id, nv.node_id),
             role=esc(self.node_role(tv, nv)),
             state_word=esc(self.state_label(state)),
+            lit=self.lit_badge(nv),  # F04-T54: the literature mark beside the state
             attempts=esc(self.attempts_words(nv)),
             action=self.node_action(tv, nv),
             # F20-T8 (R13): a statement's words, first sentence; a root's are the card's own.
@@ -2049,33 +2133,63 @@ class Renderer:
         status, the references and the summary the proposal gave), hidden until me.js shows the
         list to a steward of the target or a curator and adds the Confirm control (R15). Empty
         when nothing waits, so the page carries no list for the target."""
-        rows = []
-        for nid, nv in sorted(tv.nodes.items()):
-            lit = nv.literature_proposed
-            if lit is None:
-                continue
-            node_dir = f"targets/{tv.target_id}/nodes/{nid}/"
-            rel = lit.record[len(node_dir) :] if lit.record.startswith(node_dir) else lit.record
-            refs = json.dumps(
-                [{"title": r.title, "url": r.url, "note": r.note} for r in lit.references],
-                ensure_ascii=False,
-            )
-            rows.append(
-                f'<li class="lit-row" data-node="{esc(nid)}" data-record="{esc(rel)}" '
-                f'data-status="{esc(lit.status)}" data-references="{esc(refs)}" '
-                f'data-summary="{esc(lit.summary or "")}">'
-                f'<a href="{esc(self.node_path(tv.target_id, nid))}">{esc(nid)}</a> · '
-                f"{esc(literature_words(lit.status))} · proposed by "
-                f"<code>{esc(lit.contributor)}</code>"
-                + (f" · {esc(lit.date)}" if lit.date else "")
-                + f" · {self.file_link(lit.record, label='record')}</li>"
-            )
+        rows = [
+            self.lit_row(tv, nid, nv.literature_proposed)
+            for nid, nv in sorted(tv.nodes.items())
+            if nv.literature_proposed is not None
+        ]
         if not rows:
             return ""
         return (
             f'<ul class="literature-waiting" data-target="{esc(tv.target_id)}" hidden>'
             f"{''.join(rows)}</ul>"
         )
+
+    def lit_row(self, tv: TargetView, nid: str, lit: LiteratureView) -> str:
+        """One awaiting proposal as a row carrying what a confirmation or a dispute needs as
+        data (F04-T54: the same row on ``/me/`` and on the node's page, so ``literature.js``
+        draws the controls from one function). ``data-record`` is the proposal relative to the
+        node, as ``POST /literature/confirm`` takes ``record`` and ``disputes``."""
+        node_dir = f"targets/{tv.target_id}/nodes/{nid}/"
+        rel = lit.record[len(node_dir) :] if lit.record.startswith(node_dir) else lit.record
+        refs = json.dumps(
+            [{"title": r.title, "url": r.url, "note": r.note} for r in lit.references],
+            ensure_ascii=False,
+        )
+        return (
+            f'<li class="lit-row" data-node="{esc(nid)}" data-record="{esc(rel)}" '
+            f'data-status="{esc(lit.status)}" data-references="{esc(refs)}" '
+            f'data-summary="{esc(lit.summary or "")}">'
+            f'<a href="{esc(self.node_path(tv.target_id, nid))}">{esc(nid)}</a> · '
+            f"{esc(literature_words(lit.status))} · proposed by "
+            f"<code>{esc(lit.contributor)}</code>"
+            + (f" · {esc(lit.date)}" if lit.date else "")
+            + f" · {self.file_link(lit.record, label='record')}</li>"
+        )
+
+    def literature_act(self, tv: TargetView, nv: NodeView) -> str:
+        """F04-T54 (D-25 v3.45): on the node's page, the proposal awaiting a steward or curator
+        as a hidden row with its data; ``literature.js`` shows it with Confirm and Dispute to a
+        signed-in steward of the target or a curator once ``GET /session`` answers (F23-R15),
+        and to nobody else. Nothing without a service address, a confirmed-only node or no
+        record. Every value is an escaped attribute; the contributor's text never reaches the
+        page unescaped (C9)."""
+        lit = nv.literature_proposed
+        if not self.api_url or lit is None:
+            return ""
+        return (
+            f'<div class="lit-act" data-target="{esc(tv.target_id)}" '
+            f'data-node="{esc(nv.node_id)}" hidden>'
+            '<p class="cue">As a steward of this problem or a curator, you may confirm this '
+            "proposal, or dispute it with your own reading of the literature (D-25 v3.45).</p>"
+            f'<ul class="literature-waiting">{self.lit_row(tv, nv.node_id, lit)}</ul></div>'
+        )
+
+    def literature_script(self, tv: TargetView, nv: NodeView) -> str:
+        """The script that draws the controls, included only where there is a row to draw."""
+        if not self.literature_act(tv, nv):
+            return ""
+        return LITERATURE_SCRIPT.replace("$repo", esc(self.repo_url))
 
     def me(self) -> str:
         """R13: a static shell. Every problem's waiting sections are in it, hidden; me.js shows
@@ -2100,7 +2214,12 @@ class Renderer:
             "requests.</p></div></section>"
             f'<div class="me" data-me data-repo="{esc(self.repo_url)}">{"".join(lists)}</div>'
         )
-        script = '<script src="/me.js"></script>' if self.api_url else ""
+        script = (
+            LITERATURE_SCRIPT.replace("$repo", esc(self.repo_url))
+            + '<script src="/me.js"></script>'
+            if self.api_url
+            else ""
+        )
         return self.page("My problems", body, renders=["targets/index.json"], script=script)
 
     # --- F11-R10: why a listed target cannot be claimed, and under what licence it is quoted ---
@@ -2271,6 +2390,7 @@ class Renderer:
             titles={
                 nid: f"{nid} ({name}): {tv.nodes[nid].status}" for nid, name in spec_names.items()
             },
+            literature=self.literature_marks(tv),  # F04-T54 (D-25 v3.45)
         )
         svg = picture.svg
         panels = "".join(self.statement_panel(tv, nv) for nv in self.ordered_nodes(tv))
@@ -3004,7 +3124,17 @@ class Renderer:
                 f"<strong>{esc(literature_words(confirmed.status))}</strong> &middot; confirmed by "
                 f"<code>{esc(confirmed.confirmed_by or '')}</code>"
             )
-            parts.append(self.literature_entry(confirmed, lead))
+            dispute = ""
+            if confirmed.disputes is not None:  # F04-T54 (D-25 v3.45)
+                rejected = confirmed.disputes
+                dispute = (
+                    f'<p class="literature-dispute"><code>{esc(confirmed.confirmed_by or "")}'
+                    f"</code> disputed <code>{esc(rejected.contributor)}</code>&rsquo;s proposal "
+                    f"({esc(literature_words(rejected.status))}; "
+                    f"{self.file_link(rejected.record, label='record')}) and reads the statement "
+                    f"as <strong>{esc(literature_words(confirmed.status))}</strong>.</p>"
+                )
+            parts.append(self.literature_entry(confirmed, lead, after=dispute))
             if proposed is not None:
                 parts.append(
                     '<p class="literature-later">A later proposal by '
@@ -3023,13 +3153,14 @@ class Renderer:
             f"status</span>{''.join(parts)}</div>"
         )
 
-    def literature_entry(self, lit: LiteratureView, lead: str) -> str:
-        """One status's fact line, its references and its demarcated summary."""
+    def literature_entry(self, lit: LiteratureView, lead: str, *, after: str = "") -> str:
+        """One status's fact line (``after`` follows it: F04-T54's dispute sentence), its
+        references and its demarcated summary."""
         records = [self.file_link(lit.record, label="record")]
         if lit.confirmation and lit.confirmation != lit.record:
             records.append(self.file_link(lit.confirmation, label="confirmation"))
         when = f", {esc(lit.date)}" if lit.date else ""
-        head = f'<p class="literature-fact">{lead} ({" · ".join(records)}{when}).</p>'
+        head = f'<p class="literature-fact">{lead} ({" · ".join(records)}{when}).</p>{after}'
         if not lit.readable:
             return head + (
                 '<p class="cue">Its record could not be read at this commit; only what the '
@@ -3064,6 +3195,8 @@ class Renderer:
                 found.append(lit.record)
                 if lit.confirmation:
                     found.append(lit.confirmation)
+                if lit.disputes is not None:  # F04-T54: the rejected proposal, linked too
+                    found.append(lit.disputes.record)
         return found
 
     def defect_claims_note(self, nv: NodeView) -> str:
@@ -4403,7 +4536,11 @@ class Renderer:
                 self.node_how(tv, nv),
             )
         )
-        known = [*self.known_parts(tv, nv), self.defect_claims_note(nv)]
+        known = [
+            *self.known_parts(tv, nv),
+            self.literature_act(tv, nv),  # F04-T54
+            self.defect_claims_note(nv),
+        ]
         if any(known):
             sections.append(self.node_sec("known", "What is known", "".join(known)))
         sections.append(
@@ -4415,7 +4552,7 @@ class Renderer:
             target_id=esc(tid),
             target_href=esc(self.target_path(tid)),
             heading=self.node_heading(tv, nv),
-            status=self.status_mark(nv.status, nv.cause),
+            status=self.status_mark(nv.status, nv.cause) + self.lit_badge(nv),  # F04-T54
             role=self.panel_role(tv, nv, page=True),
             revision=self.revision_note(tid, nv, in_page=False),
             tutorial=(
@@ -4439,7 +4576,8 @@ class Renderer:
             head=MATH_HEAD if has_math else "",
             script=(MATH_SCRIPTS if has_math else "")
             + NODE_SCRIPT
-            + self.in_review_script(tid, nid),
+            + self.in_review_script(tid, nid)
+            + self.literature_script(tv, nv),
         )
 
     # --- F04-T50 (Q49): the parts of a statement's page ----------------------------------------

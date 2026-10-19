@@ -1,0 +1,62 @@
+$ uv run --frozen pytest api/tests/test_finding_literature_dispute_route.py -m "not lean and not docker and not network and not harness" -q   # with the seam at today's behaviour (disputes accepted by the route and ignored; the MCP parameter declared and forwarded): the honest red
+E           opn_gate.schemas.SchemaError: document does not satisfy 'literature/v2': $: 'disputes' is a required property; $['schema']: 'literature/v2' was expected
+E           opn_gate.schemas.SchemaError: document does not satisfy 'literature/v2': $: 'disputes' is a required property; $['schema']: 'literature/v2' was expected
+E           opn_gate.schemas.SchemaError: document does not satisfy 'literature/v2': $: 'disputes' is a required property; $['schema']: 'literature/v2' was expected
+E           opn_gate.schemas.SchemaError: document does not satisfy 'literature/v2': $: 'disputes' is a required property; $['schema']: 'literature/v2' was expected
+E           opn_gate.schemas.SchemaError: document does not satisfy 'literature/v2': $: 'disputes' is a required property; $['schema']: 'literature/v2' was expected
+E       AssertionError: {"pr_number":1,"pr_url":"https://github.com/thisisanameforsure/open_proof_network_graph/pull/1","branch":"append/01M230M2G0TCQSDTYT19T7RTRQ","path":"targets/propositional/nodes/and-reassoc/literat
+E       assert 201 == 400
+E        +  where 201 = <Response [201 Created]>.status_code
+E       AssertionError: {"pr_number":1,"pr_url":"https://github.com/thisisanameforsure/open_proof_network_graph/pull/1","branch":"append/01M230M2G0KMTP1WAS1Y9B9TC6","path":"targets/propositional/nodes/and-reassoc/literat
+E       assert 201 == 404
+E        +  where 201 = <Response [201 Created]>.status_code
+E       assert (201 == 400)
+E        +  where 201 = <Response [201 Created]>.status_code
+E       AssertionError: {"pr_number":1,"pr_url":"https://github.com/thisisanameforsure/open_proof_network_graph/pull/1","branch":"append/01M230M2G0GQNPWC48XFYQ30KR","path":"targets/propositional/nodes/and-reassoc/literat
+E       assert 201 == 400
+E        +  where 201 = <Response [201 Created]>.status_code
+E       AssertionError: ('attempts/x.yaml', '{"pr_number":1,"pr_url":"https://github.com/thisisanameforsure/open_proof_network_graph/pull/1",".../01M230M2G07R3HPETTC7BBCB4S","path":"targets/propositional/nodes/and-reasso
+E       assert 201 == 400
+E        +  where 201 = <Response [201 Created]>.status_code
+E       AssertionError: ('literature/../x.yaml', '{"pr_number":1,"pr_url":"https://github.com/thisisanameforsure/open_proof_network_graph/pull.../01M230M2G0N26JSMTBEX4K242N","path":"targets/propositional/nodes/and-reasso
+E       assert 201 == 400
+E        +  where 201 = <Response [201 Created]>.status_code
+E       AssertionError: (7, '{"pr_number":1,"pr_url":"https://github.com/thisisanameforsure/open_proof_network_graph/pull/1","branch":"append/01M230M2G0J6N6KX5EVXKES1PB","path":"targets/propositional/nodes/and-reassoc/li
+E       assert 201 == 400
+E        +  where 201 = <Response [201 Created]>.status_code
+E       AssertionError: ('', '{"pr_number":1,"pr_url":"https://github.com/thisisanameforsure/open_proof_network_graph/pull/1","branch":"append/01M230M2G0YSVDV3KH1QS09PP4","path":"targets/propositional/nodes/and-reassoc/l
+E       assert 201 == 400
+E        +  where 201 = <Response [201 Created]>.status_code
+E       AssertionError: ('literature/x.txt', '{"pr_number":1,"pr_url":"https://github.com/thisisanameforsure/open_proof_network_graph/pull/1",.../01M230M2G0SRKJYKW02BVCMHBX","path":"targets/propositional/nodes/and-reasso
+E       assert 201 == 400
+E        +  where 201 = <Response [201 Created]>.status_code
+E       AssertionError: assert 'literature/v1' == 'literature/v2'
+E         - literature/v2
+E         ?             ^
+E         + literature/v1
+E         ?             ^
+E       assert ('dispute' in "Confirm a node's proposed literature status, or state it yourself, as an active steward of its target or a listed cur...); anyone else is 403 not-steward-or-curator; a proposal not on the no
+E        +  where "Confirm a node's proposed literature status, or state it yourself, as an active steward of its target or a listed cur...); anyone else is 403 not-steward-or-curator; a proposal not on the node is 404 n
+E           assert [Violation(pa...as expected")] == []
+E             Left contains 2 more items, first extra item: Violation(path='$', message="'disputes' is a required property")
+E             Use -v to get more diff
+E       assert ('disputes' in "A node's context bundle (nodes/<id>/CONTEXT.json: statement, deps' signatures, witness, status, gate-spec reference, ...itted); `include: []` answers the Lean, the context, the claims, the 
+FAILED api/tests/test_finding_literature_dispute_route.py::test_a_steward_disputes_a_proposal[literature/v1]
+FAILED api/tests/test_finding_literature_dispute_route.py::test_a_steward_disputes_a_proposal[literature/v2]
+FAILED api/tests/test_finding_literature_dispute_route.py::test_a_curator_disputes_too
+FAILED api/tests/test_finding_literature_dispute_route.py::test_a_confirmation_is_the_mirror_and_still_takes_what_the_site_posts
+FAILED api/tests/test_finding_literature_dispute_route.py::test_a_statement_of_ones_own_names_neither
+FAILED api/tests/test_finding_literature_dispute_route.py::test_record_and_disputes_together_are_400_naming_both
+FAILED api/tests/test_finding_literature_dispute_route.py::test_disputing_a_file_that_is_not_on_the_node_is_404
+FAILED api/tests/test_finding_literature_dispute_route.py::test_disputing_a_file_that_is_not_a_literature_record_is_400
+FAILED api/tests/test_finding_literature_dispute_route.py::test_disputing_a_signed_record_is_400
+FAILED api/tests/test_finding_literature_dispute_route.py::test_a_malformed_disputes_is_400_naming_the_field[attempts/x.yaml]
+FAILED api/tests/test_finding_literature_dispute_route.py::test_a_malformed_disputes_is_400_naming_the_field[literature/../x.yaml]
+FAILED api/tests/test_finding_literature_dispute_route.py::test_a_malformed_disputes_is_400_naming_the_field[7]
+FAILED api/tests/test_finding_literature_dispute_route.py::test_a_malformed_disputes_is_400_naming_the_field[]
+FAILED api/tests/test_finding_literature_dispute_route.py::test_a_malformed_disputes_is_400_naming_the_field[literature/x.txt]
+FAILED api/tests/test_finding_literature_dispute_route.py::test_the_proposal_route_writes_literature_v2
+FAILED api/tests/test_finding_literature_dispute_route.py::test_confirm_literature_declares_disputes_and_says_so
+FAILED api/tests/test_finding_literature_dispute_route.py::test_confirm_literature_with_disputes_reaches_the_route
+FAILED api/tests/test_finding_literature_dispute_route.py::test_the_read_tools_say_what_the_literature_fields_carry
+18 failed, 4 passed, 2 warnings in 2.45s

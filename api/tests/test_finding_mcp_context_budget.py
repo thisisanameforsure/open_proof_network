@@ -297,6 +297,9 @@ def test_pin_a_tool_that_needs_a_token_refuses_inside_the_result(
 # before them and 110,731 with them (+997, 0.9%: the selector's recursive node declared once
 # under $defs; get_node's output grew 5,598 to 5,744; the two descriptions a sentence each).
 # Pinned 112,000.
+# F23-T13 and F09-T74 (D-25 v3.45) measured 111,005 before and 111,561 after (+556, 0.5%):
+# confirm_literature's `disputes` parameter (+168 of input schema) and one clause each on
+# confirm_literature, get_node and list_frontier. Pin unchanged.
 TOOLS_LIST_BUDGET = 112_000
 
 

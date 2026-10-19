@@ -1,0 +1,50 @@
+
+==================================== ERRORS ====================================
+_________ ERROR collecting site/tests/test_finding_literature_marks.py _________
+site/tests/test_finding_literature_marks.py:38: in <module>
+    dag.LitMark(status, confirmed, "someone") for status in STATUSES for confirmed in (False, True)
+    ^^^^^^^^^^^
+E   AttributeError: module 'opn_site.dag' has no attribute 'LitMark'
+=========================== short test summary info ============================
+ERROR site/tests/test_finding_literature_marks.py - AttributeError: module 'o...
+!!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
+1 error in 0.63s
+>       assert 'class="lit-mark lit-known confirmed"' in pills[ROOT]
+E       assert 'class="lit-mark lit-known confirmed"' in ' data-w="171" transform="translate(16,16)"><title>and-swap-reassoc: ready</title> <rect class="pill" width="171" heig...ircle cx="16" cy="18" r="4"/><text x="28" y="23">and-swap-reassoc</text> <circle class="halo" cx="157" cy="18" r="3"/>'
+site/tests/test_finding_literature_marks.py:110: AssertionError
+>       assert "<title>Literature: known (confirmed by mike)</title>" in svg
+E       assert '<title>Literature: known (confirmed by mike)</title>' in '<svg class="dag" data-view="routes" viewBox="0 0 259 252" width="259" height="252" role="img" aria-label="statement g..."18" r="4"/><text x="28" y="23">tutorial-and-swap</text> <circle class="halo" cx="165" cy="18" r="3"/></g></a>\n</svg>'
+site/tests/test_finding_literature_marks.py:118: AssertionError
+        assert dag.layout(rows, root=tv.root, prefix=TARGET) == dag.layout(bare, root=tv.root, prefix=TARGET)
+E       AttributeError: 'Renderer' object has no attribute 'literature_marks'. Did you mean: 'literature_block'?
+site/tests/test_finding_literature_marks.py:165: AttributeError
+E       AttributeError: 'Renderer' object has no attribute 'literature_marks'. Did you mean: 'literature_block'?
+site/tests/test_finding_literature_marks.py:193: AttributeError
+>       assert sorted(items) == [("known", "confirmed"), ("open", "proposed")]
+E       AssertionError: assert [] == [('known', 'c..., 'proposed')]
+site/tests/test_finding_literature_marks.py:224: AssertionError
+E       AttributeError: type object 'Renderer' has no attribute 'literature_key'. Did you mean: 'literature_entry'?
+site/tests/test_finding_literature_marks.py:242: AttributeError
+>       assert all(tokens.values()), tokens
+E       AssertionError: {'open': None, 'known': None, 'elementary': None}
+E       assert False
+site/tests/test_finding_literature_marks.py:263: AssertionError
+>       assert re.search(
+E       assert None
+site/tests/test_finding_literature_marks.py:286: AssertionError
+E       AttributeError: 'Renderer' object has no attribute 'lit_badge'
+site/tests/test_finding_literature_marks.py:312: AttributeError
+>       assert render.lit_mark_of(confirmed, later) == dag.LitMark("known", True, "mike")
+E       AttributeError: module 'opn_site.render' has no attribute 'lit_mark_of'
+site/tests/test_finding_literature_marks.py:322: AttributeError
+FAILED site/tests/test_finding_literature_marks.py::test_a_pill_carries_a_mark_for_its_status_and_phase_and_none_without_a_record
+FAILED site/tests/test_finding_literature_marks.py::test_the_marks_title_says_the_status_who_and_whether_it_awaits
+FAILED site/tests/test_finding_literature_marks.py::test_the_layout_is_identical_with_and_without_the_marks
+FAILED site/tests/test_finding_literature_marks.py::test_the_views_selector_table_and_layouts_are_byte_identical_without_the_fields
+FAILED site/tests/test_finding_literature_marks.py::test_the_key_names_each_state_the_drawing_shows_with_the_literature_words
+FAILED site/tests/test_finding_literature_marks.py::test_every_mark_the_renderer_can_emit_is_named_in_the_key
+FAILED site/tests/test_finding_literature_marks.py::test_the_stylesheet_colours_every_status_apart_from_the_proof_colours
+FAILED site/tests/test_finding_literature_marks.py::test_the_listing_row_and_the_node_head_carry_the_same_badge
+FAILED site/tests/test_finding_literature_marks.py::test_the_badge_escapes_the_contributors_name
+FAILED site/tests/test_finding_literature_marks.py::test_marks_are_read_from_the_views_the_confirmed_status_first
+10 failed, 4 passed in 3.64s
