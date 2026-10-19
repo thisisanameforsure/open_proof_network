@@ -1727,6 +1727,19 @@ The law of the project:
   deployed" was not "merged" — the deploy rebuilt old main for hours because my hand-off listed the merge
   in prose and the owner ran the two commands; run the merge and the deploy yourself and check the live page.
 
+- 2026-10-19 — The stop-at-proved toggle (F27-T9, T10; R13, Q10) from the owner's wish that stewards
+  can follow the proof: unticked, each proved statement of a set shows what its proof's term rests
+  on. Three things worth keeping. **Expand a proved node along its proof, never its routes**: a
+  proof that used one hole as a lemma went past its decomposition, and drawing the route would
+  have shown an assembly the proof never made; F18's `proofs[].used` gives exactly one expansion
+  per proved node, so the sets, their ids and the selector tree are the same under both readings,
+  which is what let one page carry both. **The checkout was 80 commits behind origin**: the routes
+  section I first read had been replaced by F30's one drawing, so "the box that holds the graph"
+  meant the selector panel; `git fetch` before reading any file a plan rests on. **A view key that
+  carries its mode is a bookmark and a toggle at once**: `follow/` twins of every set view, the
+  selector and table keeping the plain keys, so the hash records the reading and the tree never
+  moves (measured: selector positions equal under both). Cost: erdos-1094's layouts JSON 186 KB to
+  485 KB. The mutant run that disabled the script's mode switch is what proved the browser test bites.
 - 2026-10-19 — Mike asked whether erdos-1094 reduces to known results; the answer, measured by walking every
   decomposition with proved and literature-`known` nodes counted as closed, is no: one chain to
   `--h2--h2--h3--h1--h1` (Ecklund's conjecture for n beyond van Doorn–Tang's range) has no known result, and

@@ -1103,6 +1103,15 @@ th[aria-sort="descending"] .routes-sort::after { content: " ↓"; }
 .selector-wrap .kicker { margin: 2px 0 0; white-space: nowrap; }
 .selector-wrap .kicker .term { color: inherit; border-bottom-color: var(--accent-300); }
 .selector-wrap .sel-cue { margin: var(--s2) 0 0; font-size: 12px; line-height: 1.45; color: var(--n400); }
+/* F27-R13: the "Stop at proved statements" toggle, in the panel that holds the tree; unticked, the
+   sets table shows its followed reading (.v-follow in place of .v-stop) and each set view is its
+   follow/ twin. */
+.selector-wrap .sel-follow { display: block; margin: var(--s2) 0 0; font-size: 12px; line-height: 1.45; color: var(--n300); cursor: pointer; white-space: nowrap; }
+.selector-wrap .sel-follow input { margin: 0 var(--s2) 0 0; vertical-align: -1px; accent-color: var(--accent); }
+.sets-grid .v-follow { display: none; }
+.sets-grid.follow-proved .v-follow { display: inline; }
+.sets-grid.follow-proved ul.v-follow { display: block; }
+.sets-grid.follow-proved .v-stop { display: none; }
 .selector { display: block; flex: none; }
 .selector .dot { fill: var(--bg); stroke: var(--n500); stroke-width: 1.5; }
 .selector text { fill: var(--text); font-family: var(--sans, inherit); font-size: 9.5px; font-weight: 600; text-anchor: middle; pointer-events: none; }

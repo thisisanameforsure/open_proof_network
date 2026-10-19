@@ -19,7 +19,11 @@ Every view is laid out by ``dag.layout`` seeded with the ``all`` layout's order 
 statements two views share keep their left-to-right order (R10) and a transition slides little.
 Keys: ``all``, ``routes``, ``sel`` (the top), ``sel/<route>/...`` (a child per route chosen,
 ``direct`` where a family takes the statement directly, ``set:<id>`` for a leaf a family lists
-without a choice), ``edge/<child key>``, ``proof/<k>``.
+without a choice), ``edge/<child key>``, ``proof/<k>``; and, F27-R13, ``follow/<key>`` for every
+selector node, leaf and edge: the same view read with ``at_proved: follow``, so beneath each
+proved statement it also holds what that statement's proof rests on, the routes the proof went
+through and the direct lines it took (``routes.followed``). The selector is built from the
+plain keys alone; the page's toggle swaps a view for its twin.
 """
 
 from __future__ import annotations
@@ -41,6 +45,8 @@ TOP = "sel"
 EDGE = "edge/"
 PROOF = "proof/"
 DIRECT = "direct"
+#: F27-R13: the prefix of a set view's followed twin.
+FOLLOW = "follow/"
 
 
 @dataclass(frozen=True)
@@ -92,24 +98,42 @@ def _subset(merged: Mapping[str, Mapping[str, Any]], ids: Iterable[str]) -> list
     return [dict(merged[i]) for i in keep]
 
 
+def _lines(
+    rows: Sequence[dict[str, Any]], extra: Iterable[tuple[str, str]] = ()
+) -> tuple[dag.Line, ...]:
+    """The lines among ``rows`` (``dag.lines``) and, F27-R13, the direct lines a followed proof
+    took that the merged rows do not draw (a hole used as a lemma rather than through its
+    route), each once, both ends in the view."""
+    ids = {str(r["node_id"]) for r in rows}
+    out = list(dag.lines(list(rows)))
+    drawn = {(src, dst) for src, dst, _k in out}
+    for src, dst in extra:
+        if src in ids and dst in ids and (src, dst) not in drawn:
+            out.append((src, dst, "edge"))
+            drawn.add((src, dst))
+    return tuple(out)
+
+
 def _view(
     key: str,
     kind: str,
     merged: Mapping[str, Mapping[str, Any]],
     ids: Iterable[str],
+    extra: Iterable[tuple[str, str]] = (),
     **facts: Any,
 ) -> View:
     rows = _subset(merged, ids)
-    return View(key, kind, tuple(r["node_id"] for r in rows), tuple(dag.lines(rows)), **facts)
+    return View(key, kind, tuple(r["node_id"] for r in rows), _lines(rows, extra), **facts)
 
 
 def _on(s: routes.SufficientSet, root: str, d: routes_view.Drawn) -> set[str]:
     """What a set lights (F27's ``lit_sets``): the root, its statements, assemblies, variant,
-    and the junctions of the routes it uses."""
+    and the junctions of the routes it uses — and, when read with ``at_proved: follow``, of the
+    routes its proved statements' proofs went through (``proof_routes``, F27-R13)."""
     on = {root, *s.statements, *s.assemblies}
     if s.variant:
         on.add(s.variant)
-    on.update(rid for rid in s.routes if rid in d.junctions)
+    on.update(rid for rid in (*s.routes, *s.proof_routes) if rid in d.junctions)
     return on
 
 
@@ -150,8 +174,11 @@ def views(
     result: routes.Routes,
     *,
     proofs: Sequence[dag.ProofMarks] = (),
+    follow: routes.Routes | None = None,
 ) -> dict[str, View]:
-    """Every view of a target, keyed (see the module), the selector's in depth-first order."""
+    """Every view of a target, keyed (see the module), the selector's in depth-first order.
+    ``follow`` (F27-R13), the same target read with ``at_proved: follow``, adds a ``follow/``
+    twin of every set view."""
     d = routes_view.drawn(graph, result)
     rows = [n for n in graph.get("nodes") or [] if isinstance(n, Mapping)]
     merged = merged_nodes(rows, d)
@@ -159,8 +186,56 @@ def views(
     out: dict[str, View] = {}
     out[ALL] = _view(ALL, ALL, merged, merged)
     out[ROUTES] = _view(ROUTES, ROUTES, merged, [*d.statements, *d.junctions] or [root])
+    out.update(_set_views(graph, result, d, merged, prefix=""))
+    if follow is not None:
+        out.update(_set_views(graph, follow, d, merged, prefix=FOLLOW))
+    for k, m in enumerate(proofs):
+        ids = sorted(m.nodes)
+        by_dst: dict[str, list[str]] = {}
+        for src, dst in sorted(m.edges):
+            by_dst.setdefault(dst, []).append(src)
+        prows = [
+            {
+                "node_id": i,
+                "status": str(merged.get(i, {}).get("status", "proved")),
+                "deps": by_dst.get(i, []),
+            }
+            for i in ids
+        ]
+        out[f"{PROOF}{k}"] = View(
+            f"{PROOF}{k}", "proof", tuple(ids), tuple(dag.lines(prows)), index=k
+        )
+    return out
+
+
+def _set_views(
+    graph: Mapping[str, Any],
+    result: routes.Routes,
+    d: routes_view.Drawn,
+    merged: Mapping[str, Mapping[str, Any]],
+    *,
+    prefix: str,
+) -> dict[str, View]:
+    """The selector's views over ``result``'s sets — a node, a leaf, an edge each — keyed under
+    ``prefix`` (``""`` for the published reading, ``FOLLOW`` for its twin). Under ``follow`` a
+    set's proved statements carry the lines their proofs took (``routes.followed``)."""
+    root = result.root
+    out: dict[str, View] = {}
     index = {s.id: k for k, s in enumerate(result.sets, start=1)}
     on = {s.id: _on(s, root, d) for s in result.sets}
+    taken: dict[str, tuple[tuple[str, str], ...]] = {}
+    extra: dict[str, list[tuple[str, str]]] = {}
+    if result.at_proved == "follow":
+        for s in result.sets:
+            lines: list[tuple[str, str]] = []
+            for m in s.proved:
+                if m not in taken:
+                    taken[m] = routes.followed(result, graph, m).lines
+                lines.extend(taken[m])
+            extra[s.id] = lines
+
+    def lines_of(sids: Sequence[str]) -> list[tuple[str, str]]:
+        return [pair for sid in sids for pair in extra.get(sid, [])]
 
     def family(sel: routes.Selector) -> set[str]:
         nodes: set[str] = set()
@@ -178,42 +253,44 @@ def views(
     def visit(sel: routes.Selector, key: str, parent: str | None, split_on: str | None) -> None:
         beneath = _leaves(sel)
         if sel.set is not None:
-            out[key] = _view(
-                key,
+            out[prefix + key] = _view(
+                prefix + key,
                 "leaf",
                 merged,
                 sorted(on[sel.set]),
+                lines_of(beneath),
                 sets=beneath,
                 route=sel.route,
                 split=split_on,
                 index=index[sel.set],
-                parent=parent,
+                parent=prefix + parent if parent is not None else None,
             )
         else:
-            out[key] = _view(
-                key,
+            out[prefix + key] = _view(
+                prefix + key,
                 "node",
                 merged,
                 sorted(family(sel)),
+                lines_of(beneath),
                 sets=beneath,
                 route=sel.route,
                 split=sel.node,
-                parent=parent,
+                parent=prefix + parent if parent is not None else None,
             )
         if split_on is not None:
             # The edge into this node: from the statement its parent split on, through the
             # route it chose (or that statement alone when taken directly), over what every
             # set beneath shares, down to and including this node's own split (Q3).
             seg = _segment(split_on, sel.route, sel.node, common(sel), d)
-            out[EDGE + key] = View(
-                EDGE + key,
+            out[prefix + EDGE + key] = View(
+                prefix + EDGE + key,
                 "edge",
                 tuple(seg),
-                tuple(dag.lines(_subset(merged, seg))),
+                _lines(_subset(merged, seg), lines_of(beneath)),
                 sets=beneath,
                 route=sel.route,
                 split=split_on,
-                parent=key,
+                parent=prefix + key,
             )
         for c in sel.children:
             if c.route is not None:
@@ -232,31 +309,15 @@ def views(
             shared = common(tree)
             first = next((rid for rid in d.below.get(root, []) if rid in shared), None)
             seg = _segment(root, first, tree.node, shared, d)
-            out[EDGE + TOP] = View(
-                EDGE + TOP,
+            out[prefix + EDGE + TOP] = View(
+                prefix + EDGE + TOP,
                 "edge",
                 tuple(seg),
-                tuple(dag.lines(_subset(merged, seg))),
+                _lines(_subset(merged, seg), lines_of(_leaves(tree))),
                 sets=_leaves(tree),
                 split=root,
-                parent=TOP,
+                parent=prefix + TOP,
             )
-    for k, m in enumerate(proofs):
-        ids = sorted(m.nodes)
-        by_dst: dict[str, list[str]] = {}
-        for src, dst in sorted(m.edges):
-            by_dst.setdefault(dst, []).append(src)
-        prows = [
-            {
-                "node_id": i,
-                "status": str(merged.get(i, {}).get("status", "proved")),
-                "deps": by_dst.get(i, []),
-            }
-            for i in ids
-        ]
-        out[f"{PROOF}{k}"] = View(
-            f"{PROOF}{k}", "proof", tuple(ids), tuple(dag.lines(prows)), index=k
-        )
     return out
 
 
@@ -375,6 +436,9 @@ class Drawing:
     marks: frozenset[str]
     sets: int
     hidden: int
+    #: F27-R13: the "Stop at proved statements" toggle for the selector panel (``""`` without
+    #: a selector); rendered hidden, since only the script can act on it.
+    follow_toggle: str = ""
 
 
 def _line_key(src: str, dst: str) -> str:
@@ -681,6 +745,23 @@ def _selector_svg(  # noqa: PLR0913, PLR0912, PLR0915 — the selector, nodes an
     return "\n".join(parts)
 
 
+#: F27-R13: the toggle's words. Ticked (the default) the sets stop at a proved statement; unticked
+#: each proved statement shows what its proof rests on.
+FOLLOW_LABEL = "Stop at proved statements"
+FOLLOW_TITLE = (
+    "Ticked: a proved statement ends a set. Unticked: beneath each proved statement, what its "
+    "proof rests on, as the gate measured it; the sets and their open statements are the same."
+)
+
+
+def _follow_toggle() -> str:
+    return (
+        f'<label class="sel-follow" title="{escape(FOLLOW_TITLE)}" hidden>'
+        '<input type="checkbox" class="follow-proved" checked> '
+        f"{escape(FOLLOW_LABEL)}</label>"
+    )
+
+
 def _toggle(hidden: int) -> str:
     if not hidden:
         return ""
@@ -710,13 +791,16 @@ def drawing(  # noqa: PLR0913 — the page's inputs
     are read from ``graph`` as the MCP tool reads them (F27-Q1). ``literature`` (F04-T54) marks
     the named pills with their literature status and feeds nothing else: the views, layouts,
     selector and table are the same with or without it."""
-    result = routes.read(graph, list(frontier_entries))
+    entries = list(frontier_entries)
+    result = routes.read(graph, entries)
+    # F27-R13: the same sets read past their proved statements, for the page's toggle
+    follow = routes.read(graph, entries, at_proved="follow")
     drawn_graph: dict[str, Any] = dict(graph)
     if nodes is not None:
         drawn_graph["nodes"] = list(nodes)
     rows = {str(n["node_id"]): n for n in drawn_graph["nodes"] if isinstance(n, Mapping)}
     d = routes_view.drawn(drawn_graph, result)
-    vs = views(drawn_graph, result, proofs=proofs)
+    vs = views(drawn_graph, result, proofs=proofs, follow=follow)
     labels = dag.labels_of(rows.values())
     root = str(graph.get("root"))
     names: dag.Prefix = (prefix, root) if prefix else None
@@ -745,9 +829,12 @@ def drawing(  # noqa: PLR0913 — the page's inputs
     # A target with no route has no sets worth choosing (its one "set" is the root taken
     # directly): no selector and no table, unless it has proofs to list.
     if not d.junctions:
-        vs = {k: v for k, v in vs.items() if not (k == TOP or k.startswith((TOP + "/", EDGE)))}
+        vs = {
+            k: v for k, v in vs.items() if not (k == TOP or k.startswith((TOP + "/", EDGE, FOLLOW)))
+        }
         result = replace(result, sets=())
-    leaf_of = {v.sets[0]: k for k, v in vs.items() if v.kind == "leaf"}
+        follow = replace(follow, sets=())
+    leaf_of = {v.sets[0]: k for k, v in vs.items() if v.kind == "leaf" and not k.startswith(FOLLOW)}
     marks: set[str] = set()
     if any(r.live for r in d.junctions.values()):
         marks.add("route-and")
@@ -764,10 +851,13 @@ def drawing(  # noqa: PLR0913 — the page's inputs
         selector=_selector_svg(
             vs, result, rows, names=names, labels=labels, proof_labels=proof_labels
         ),
-        table=routes_view.table(result, prefix, views=leaf_of) if result.sets else "",
+        table=routes_view.table(result, prefix, views=leaf_of, follow=follow)
+        if result.sets
+        else "",
         layouts_json=f'<script type="application/json" id="graph-layouts">{doc}</script>',
         toggle=_toggle(hidden),
         marks=frozenset(marks),
         sets=len(result.sets),
         hidden=hidden,
+        follow_toggle=_follow_toggle() if result.sets else "",
     )

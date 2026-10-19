@@ -18,7 +18,7 @@ in ``data-sets`` the sets beneath it, so the script lights a branch as it lights
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from html import escape
 from typing import Any
@@ -168,40 +168,65 @@ def closable_words(c: closing.Closable, found: Mapping[str, closing.Closable]) -
     return "closable once the closing proof of " + ", ".join(waiting) + " merges"
 
 
-def table(result: routes.Routes, prefix: str | None, views: Mapping[str, str] | None = None) -> str:
+def _ids(members: Sequence[str], names: dag.Prefix) -> str:
+    return "".join(f"<li><code>{escape(dag.label_of(m, names))}</code></li>" for m in members)
+
+
+def _count(stop: int, follow: int | None) -> str:
+    """A count cell: its number in ``data-sort``; with a followed reading (F27-R13) that number
+    too, in ``data-sort-follow`` and a second span the stylesheet shows in its place."""
+    if follow is None:
+        return f'<td class="num" data-sort="{stop}">{stop}</td>'
+    return (
+        f'<td class="num" data-sort="{stop}" data-sort-follow="{follow}">'
+        f'<span class="v-stop">{stop}</span><span class="v-follow">{follow}</span></td>'
+    )
+
+
+def table(
+    result: routes.Routes,
+    prefix: str | None,
+    views: Mapping[str, str] | None = None,
+    follow: routes.Routes | None = None,
+) -> str:
     """One row per set in the record's order (R11). Each count cell carries its number in
-    ``data-sort``; the script adds the sorting and the toggle, which are rendered hidden."""
+    ``data-sort``; the script adds the sorting and the toggle, which are rendered hidden.
+    ``follow`` (F27-R13), the same sets read past their proved statements, gives each row its
+    second reading: the statement, proved and shared counts and the list of proved statements
+    under ``v-follow``, shown when the page's toggle is unticked."""
     names: dag.Prefix = (prefix, result.root) if prefix else None
     rows = []
     any_notes = any(s.variant for s in result.sets)
+    twin = {s.id: s for s in follow.sets} if follow is not None else {}
     for k, s in enumerate(result.sets, start=1):
+        f = twin.get(s.id)
         notes = []
         if s.variant:
             notes.append(
                 f"goes through the variant <code>{escape(dag.label_of(s.variant, names))}</code>"
             )
-        open_ids = "".join(
-            f"<li><code>{escape(dag.label_of(m, names))}</code></li>" for m in s.open
-        )
-        proved_ids = "".join(
-            f"<li><code>{escape(dag.label_of(m, names))}</code></li>" for m in s.proved
-        )
-        asm_ids = "".join(
-            f"<li><code>{escape(dag.label_of(m, names))}</code></li>" for m in s.assemblies
-        )
+        open_ids = _ids(s.open, names)
+        proved_ids = _ids(s.proved, names)
+        asm_ids = _ids(s.assemblies, names)
+        if f is None:
+            proved_list = f"<p>Proved</p><ul>{proved_ids}</ul>" if proved_ids else ""
+        else:
+            proved_list = (
+                f'<p>Proved</p><ul class="v-stop">{proved_ids}</ul>' if proved_ids else ""
+            ) + f'<ul class="v-follow">{_ids(f.proved, names)}</ul>'
         listing = (
             '<details class="set-which"><summary>which</summary>'
             + (f"<p>Open</p><ul>{open_ids}</ul>" if open_ids else "")
-            + (f"<p>Proved</p><ul>{proved_ids}</ul>" if proved_ids else "")
+            + proved_list
             + (f"<p>Assemblies</p><ul>{asm_ids}</ul>" if asm_ids else "")
             + "</details>"
         )
         cells = [
             f'<td data-sort="{k}"><span class="set-swatch {hue(k)}"></span>Set {k}{listing}</td>',
-            f'<td class="num" data-sort="{s.total}">{s.total}</td>',
-            f'<td class="num" data-sort="{s.closed}">{s.closed}</td>',
+            _count(s.total, f.total if f else None),
+            _count(s.closed, f.closed if f else None),
             f'<td class="num" data-sort="{s.remaining}">{s.remaining}</td>',
-            f'<td class="num" data-sort="{s.shared}">{s.shared}</td>',
+            _count(s.shared, f.shared if f else None),
             f'<td class="num" data-sort="{len(s.assemblies)}">{len(s.assemblies)}</td>',
         ]
         if any_notes:

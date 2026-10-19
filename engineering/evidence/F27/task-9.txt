@@ -1,0 +1,25 @@
+F27-T9 (R13, AC12, AC13): the library and the tool follow a proved statement's proof on request.
+Branch f27-follow-proved on origin/main df23cb8e; graph fixture erdos-1094-20261019.json from graph origin/main 00f4bc884.
+Command: OPN_GRAPH_CHECKOUT=../opn-f27-graph-follow uv run --frozen pytest gate/tests/test_target_routes.py api/tests/test_routes_mcp.py api/tests/test_finding_routes_selector_mcp.py api/tests/test_finding_mcp_context_budget.py gate/tests/test_walkthrough.py
+
+....................................................................     [100%]
+=============================== warnings summary ===============================
+api/tests/api_fakes.py:32
+    from starlette.testclient import TestClient
+
+.venv/lib/python3.13/site-packages/starlette/testclient.py:53
+    _PortalFactoryType = Callable[[], AbstractContextManager[anyio.abc.BlockingPortal]]
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+68 passed, 2 warnings in 109.69s (0:01:49)
+
+Live erdos-1094 (graph 00f4bc884), stop vs follow, per set:
+  s-ced509e0ee: statements 17->26, proved 2->11, open 15->15, proof_routes 7, selector equal: True
+  s-aa67570842: statements 14->23, proved 2->11, open 12->12, proof_routes 7, selector equal: True
+  s-30ca80228e: statements 8->17, proved 2->11, open 6->6, proof_routes 7, selector equal: True
+  s-2659ef1e7f: statements 14->23, proved 2->11, open 12->12, proof_routes 7, selector equal: True
+  s-6108df9a0a: statements 15->24, proved 2->11, open 13->13, proof_routes 7, selector equal: True
+  s-f214731946: statements 12->21, proved 2->11, open 10->10, proof_routes 7, selector equal: True
+  s-cdde386b1f: statements 10->19, proved 2->11, open 8->8, proof_routes 7, selector equal: True
+  s-2cbed75a2d: statements 12->21, proved 2->11, open 10->10, proof_routes 7, selector equal: True
+  added beneath every set: ['erdos-1094--h2--h2--h2--h1', 'erdos-1094--h2--h2--h2--h2', 'erdos-1094--h2--h2--h2--h2--h1', 'erdos-1094--h2--h2--h2--h3', 'erdos-1094--h2--h2--h2--h3--h1', 'erdos-1094--h2--h2--h2--h3--h1--h1', 'erdos-1094--h2--h2--h2--h3--h1--h1--h1', 'erdos-1094--h2--h2--h2--h3--h1--h1--h1--h1', 'erdos-1094--h2--h2--h2--h4']

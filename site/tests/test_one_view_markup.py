@@ -16,7 +16,7 @@ from typing import Any
 import pytest
 from harness import TARGET, copy_graph
 from test_decompositions import HOLE_IDS
-from test_one_view import trunk_doc
+from test_one_view import followed_doc, trunk_doc
 from test_products import ROOT_NODE
 from test_proof_selector import erdos_shape
 from test_routes_view import THIRD, doc, nested_doc, render_tree, two_routes
@@ -166,6 +166,37 @@ def test_a_proof_is_a_leaf_of_the_selector(tmp_path: Path) -> None:
     assert re.search(r'<p class="proof-note" data-view="proof/0"[^>]*>', page)
     lays = layouts_in(page)
     assert set(lays["proof/0"]["nodes"]) == {ROOT_NODE, "tutorial-and-swap"}
+
+
+def test_the_follow_toggle_sits_in_the_selector_panel_with_both_counts(tmp_path: Path) -> None:
+    """F27-AC14 (R13): the "Stop at proved statements" toggle is rendered once, inside the
+    selector's panel, ticked and hidden (only the script can act on it); every set view has its
+    ``follow/`` twin among the layouts; each count the reading changes carries both numbers in
+    the cell, and the proved list both lists."""
+    page = render_tree(two_routes(tmp_path))[PAGE]
+    head = page.index('<div class="selector-wrap">')
+    wrap = page[head : page.index('<svg class="selector"', head)]
+    assert re.search(
+        r'<label class="sel-follow" title="[^"]+" hidden>'
+        r'<input type="checkbox" class="follow-proved" checked> Stop at proved statements</label>',
+        wrap,
+    )
+    assert page.count('class="sel-follow"') == 1
+    lays = layouts_in(page)
+    set_keys = [k for k in lays if k == "sel" or k.startswith(("sel/", "edge/"))]
+    assert set_keys and all(one_view.FOLLOW + k in lays for k in set_keys)
+    both = re.findall(
+        r'<td class="num" data-sort="(\d+)" data-sort-follow="(\d+)">'
+        r'<span class="v-stop">\1</span><span class="v-follow">\2</span></td>',
+        page,
+    )
+    assert len(both) == 3 * page.count('<tr class="set-row"')  # Statements, Proved, Shared
+    # On a document whose proofs rest on something, the second reading differs.
+    d = one_view.drawing(followed_doc(), [], href={})
+    assert d.follow_toggle.startswith('<label class="sel-follow"')
+    assert 'data-sort="2" data-sort-follow="3"' in d.table  # set 1's statements: a, p (+ p--h1)
+    assert 'data-sort="1" data-sort-follow="3"' in d.table  # set 2's statements: q (+ both holes)
+    assert '<ul class="v-follow"><li><code>' in d.table
 
 
 # -- AC8: complete without the script -----------------------------------------------------------
