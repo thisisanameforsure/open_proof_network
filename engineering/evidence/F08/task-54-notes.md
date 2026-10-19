@@ -53,3 +53,29 @@ no schema path behind it; an agent reading `GET /errors.json` gets a remedy spec
    as expected (the graph copy is the lead's at the re-pin); every other guide test is green.
 5. `palomar_feed.propose` validates as `literature/v2` with `disputes: None` (its test is in the
    green run). Green run: 197 passed (`task-54-green.txt`); lint and mypy --strict clean.
+
+### F10-T50
+
+1. `gate/tests/test_finding_context_literature_inline.py` (unique name): the record's words reach
+   `literature_proposed` and `literature` (confirming a proposal inlines the proposal's words, a
+   steward stating the status inlines her own); a missing record and four unreadable shapes
+   (not UTF-8, not YAML, not a literature record, empty summary) yield the fallback and the
+   bundle validates as `context/v9`; the bundle is byte-identical through `DiskReader` and a
+   `BytesReader` serving a snapshot of the same tree (F10-Q7), with a dispute on the node; an
+   oversize record served by the reader is cut to 2000 / 20 / 300; two records at the caps are
+   under a quarter of `MAX_BYTES`.
+2. The tests name seams that did not exist (`SUMMARY_MAX_CHARS`, `REFERENCES_MAX`,
+   `TITLE_MAX_CHARS`, `UNREADABLE_SUMMARY`, `UNREADABLE_REFERENCE`); a red on a missing name is
+   not red, so the constants went into `context.py` at today's literal values and
+   `_literature_inline` reads them. First run: 11 passed — the behaviour shipped with the
+   contract (`task-50-first-run.txt`), so these are pins. To show they bite, two in-memory mutants
+   (`task-50-mutants.txt`, a `-p` plugin from the scratchpad, nothing on disk changed): A (no
+   caps, no fallback) fails the five fallback tests and the cap test; B (inline through
+   `DiskReader` only, the F10-Q7 hazard) fails the parity test and the cap test. The three
+   words-reach-the-bundle pins survive both, as they should: both mutants still inline the real
+   words through the gate's own reader.
+3. Size budget: measured, not estimated — two records at every cap canonicalise to under
+   `MAX_BYTES // 4` (the test asserts it), so no cap below the schema's is needed and the §6
+   budget is untouched.
+4. Green run: 106 passed over the context, literature and products files
+   (`task-50-green.txt`); lint and mypy --strict clean.
