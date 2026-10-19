@@ -1,8 +1,9 @@
 """Literature records (F08-T40; D-3, D-25, D-32 v3.35): what the literature says of a statement.
 
-``nodes/<id>/literature/<timestamp>-<contributor>.yaml`` (``literature/v1``) says the statement is
-``open`` (no proof is known), ``known`` (a proof is published and not formalised) or ``elementary``
-(a routine formalisation of a known fact), with references and a summary. Unsigned, it is anyone's
+``nodes/<id>/literature/<timestamp>-<contributor>.yaml`` (``literature/v2``; v1 records stay
+readable) says the statement is ``open`` (no proof is known), ``known`` (a proof is published and
+not formalised) or ``elementary`` (a routine formalisation of a known fact), with references and a
+summary. Unsigned, it is anyone's
 proposal, attributed like an annex (D-23); signed by an active steward of the target or a listed
 curator — ``via: ssh`` under their own key, or ``via: approval-key`` by the service for a login
 signed in on the site — it is a confirmation, of the proposal it names in ``confirms`` or of the
@@ -39,7 +40,7 @@ SUFFIXES: tuple[str, ...] = (".yaml", ".yml")
 
 @dataclass(frozen=True)
 class Record:
-    """One literature record as written, validated against ``literature/v1``."""
+    """One literature record as written, validated against one of ``SCHEMAS``."""
 
     name: str  # the file name under literature/
     doc: dict[str, Any]
@@ -103,8 +104,9 @@ class Literature:
 
 def load(node_dir: Path) -> list[Record]:
     """Every record under the node's ``literature/``, oldest first (by ``date``, then name). A
-    file that does not validate against ``literature/v1`` is logged and passed over: the gate
-    refused it at merge, and one bad file must never decide what the graph says (2026-09-17)."""
+    file that does not validate against its own version in ``SCHEMAS`` is logged and passed over:
+    the gate refused it at merge, and one bad file must never decide what the graph says
+    (2026-09-17)."""
     directory = node_dir / DIR
     if not directory.is_dir():
         return []

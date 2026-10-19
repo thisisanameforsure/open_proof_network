@@ -106,6 +106,7 @@ from opn_gate.paths import Change, Located, Role
 from opn_gate.signer import Signer
 
 if TYPE_CHECKING:
+    from opn_gate.literature import Record as LiteratureRecord
     from opn_gate.steps.review_step import Standing
 
 Mode = Literal[
@@ -2230,6 +2231,16 @@ def check_literature_record(  # noqa: PLR0911 — one return per rule
                     {"path": located.path, "confirms": record.confirms},
                 )
             ]
+        if record.disputes is not None:
+            # F08-T54 (D-25 v3.45): a dispute is a signed act, as a confirmation is.
+            return [
+                Diagnostic(
+                    "literature-signature",
+                    f"{located.path}: an unsigned record is a proposal and disputes nothing; a "
+                    "dispute is signed by a steward of the target or a curator (D-25 v3.45)",
+                    {"path": located.path, "disputes": record.disputes},
+                )
+            ]
         return []
     verifier = signer or signed.default_signer()
     assert located.target_id is not None
@@ -2246,18 +2257,8 @@ def check_literature_record(  # noqa: PLR0911 — one return per rule
         if code == "literature-signer-unlisted":
             return [Diagnostic("literature-signer-unlisted", message, details)]
         return [Diagnostic("literature-signature", message, details)]
-    found: list[Diagnostic] = []
-    named = record.confirms
-    if named is not None:
-        node_dir = graph_root / "targets" / located.target_id / "nodes" / str(located.node_id)
-        if not (node_dir / named).is_file():
-            found.append(
-                Diagnostic(
-                    "literature-record-unknown",
-                    f"{located.path}: confirms {named!r}, which is not a record on the node",
-                    {"path": located.path, "confirms": named},
-                )
-            )
+    node_dir = graph_root / "targets" / located.target_id / "nodes" / str(located.node_id)
+    found = _literature_named_problems(located, record, node_dir)
     if found or _by_approval_key(doc):
         return found  # an approval-key signature is the service's act for the login it names
     return check_signer_opener(
@@ -2268,6 +2269,66 @@ def check_literature_record(  # noqa: PLR0911 — one return per rule
         key=str(doc.get(signed.KEY_FIELD) or ""),
         verifier=verifier,
     )
+
+
+def _literature_named_problems(
+    located: Located, record: LiteratureRecord, node_dir: Path
+) -> list[Diagnostic]:
+    """What a signed record names: ``confirms`` is a record on the node; ``disputes`` (F08-T54,
+    D-25 v3.45) is an unsigned proposal on the node — not a missing file, not the record itself,
+    not a signed record (a later signed record supersedes one by date, with nothing to dispute);
+    and never both, a conflict returned alone."""
+    named = record.confirms
+    rejected = record.disputes
+    if named is not None and rejected is not None:
+        return [
+            Diagnostic(
+                "literature-record-conflict",
+                f"{located.path}: confirms {named!r} and disputes {rejected!r}; a signed record "
+                "names the proposal it confirms or the one it disputes, never both (D-25 v3.45)",
+                {"path": located.path, "confirms": named, "disputes": rejected},
+            )
+        ]
+    found: list[Diagnostic] = []
+    if named is not None and not (node_dir / named).is_file():
+        found.append(
+            Diagnostic(
+                "literature-record-unknown",
+                f"{located.path}: confirms {named!r}, which is not a record on the node",
+                {"path": located.path, "confirms": named},
+            )
+        )
+    if rejected is not None:
+        why = _not_a_proposal(node_dir, rejected, own=record.path)
+        if why is not None:
+            found.append(
+                Diagnostic(
+                    "literature-record-unknown",
+                    f"{located.path}: disputes {rejected!r}, which {why}",
+                    {"path": located.path, "disputes": rejected},
+                )
+            )
+    return found
+
+
+def _not_a_proposal(node_dir: Path, named: str, *, own: str) -> str | None:
+    """F08-T54 (D-25 v3.45): why ``named`` (relative to the node) is not an unsigned proposal a
+    signed record may dispute, or ``None`` when it is one."""
+    from opn_gate import literature  # noqa: PLC0415 — only the literature checks read it
+
+    if named == own:
+        return "is this record itself"
+    path = node_dir / named
+    if not path.is_file():
+        return "is not a record on the node"
+    try:
+        doc = schemas.load_yaml(path)
+    except schemas.SchemaError:
+        return "is not a record that reads"
+    other = literature.Record(path.name, doc)
+    if other.signed or other.half_signed:
+        return "is a signed record, not a proposal"
+    return None
 
 
 #: F26-R1 (D-9 v3.39): the review records a pull request may carry, and the job's own.

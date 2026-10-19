@@ -4,7 +4,7 @@ Over the fixture feed (``fixtures/palomar/recent-2026-10-10.json``, trimmed from
 ``recent.json`` of 2026-10-10) and a fixture graph carrying the network's live target ids:
 E257 is an *inferred* candidate for erdos-257 and nothing else in the feed matches it; every
 other target has no candidate; a bare ``257`` inside ``1257`` or ``2570`` is never a match;
-``propose`` writes a ``literature/v1`` proposal into the output directory and nothing without the
+``propose`` writes a ``literature/v2`` proposal into the output directory and nothing without the
 flag; ``drift`` reports a changed hash and a changed status and nothing for an identical record;
 an unreachable host writes nothing and the command exits 1.
 """

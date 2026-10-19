@@ -34,7 +34,7 @@ import yaml
 from harness import copy_graph, take_in
 from test_modes import CURATOR, write_curators
 
-from opn_gate import context, layout, modes, products, schemas, signed, steward
+from opn_gate import context, layout, literature, modes, products, schemas, signed, steward
 from opn_gate.paths import Change
 from opn_gate.signer import SshKeygenSigner, public_key_for
 
@@ -99,6 +99,9 @@ class Graph:
         return self.base_files.get(path)
 
     def document(self, **overrides: Any) -> dict[str, Any]:
+        """A ``literature/v1`` record by default, so every test here that does not dispute is a
+        regression over the v1 shape still on the graph (D-34); ``disputes=`` or
+        ``schema="literature/v2"`` makes it a v2 record (F08-T54, D-25 v3.45)."""
         doc: dict[str, Any] = {
             "schema": "literature/v1",
             "node": self.node,
@@ -119,6 +122,9 @@ class Graph:
             "key": None,
             "signature": None,
         }
+        if "disputes" in overrides or overrides.get("schema") == literature.SCHEMA:
+            doc["schema"] = literature.SCHEMA
+            doc["disputes"] = None
         doc.update(overrides)
         return doc
 
@@ -198,6 +204,18 @@ def test_a_node_carrying_a_literature_directory_passes_layout(graph: Graph) -> N
 
 def test_an_unsigned_record_is_accepted_from_anyone(graph: Graph) -> None:
     assert graph.codes(graph.proposal(), opened_by=STRANGER) == []
+
+
+def test_a_v2_proposal_and_a_v2_dispute_pass_the_path_rule_and_the_check(graph: Graph) -> None:
+    """F08-T54: the per-directory schema rule (``paths.SCHEMAS_FOR_ROLE``) accepts
+    ``literature/v2``, so a v2 record the service writes reaches ``check_literature_record`` and
+    an ordinary one is refused nothing, end to end."""
+    change = graph.proposal(schema=literature.SCHEMA)
+    doc = yaml.safe_load((graph.root / change.path).read_text(encoding="utf-8"))
+    assert doc["schema"] == "literature/v2" and doc["disputes"] is None
+    assert graph.codes(change, opened_by=STRANGER) == []
+    dispute = graph.signed_by(ALICE, status="open", disputes=f"literature/{Path(change.path).name}")
+    assert graph.codes(dispute) == []
 
 
 def test_a_proposal_is_published_as_proposed_and_confirms_nothing(graph: Graph) -> None:
@@ -371,6 +389,124 @@ def test_the_approval_key_is_read_from_the_parent_tree(graph: Graph) -> None:
 def test_an_approval_key_record_for_a_stranger_is_refused(graph: Graph) -> None:
     change = graph.signed_by(STRANGER, key="approval", via=signed.VIA_APPROVAL_KEY)
     assert graph.codes(change, opened_by=SERVICE) == ["literature-signer-unlisted"]
+
+
+# --- a dispute is a signed act (F08-T54, D-25 v3.45) ---------------------------------------------
+
+PROPOSAL = f"literature/20261008T100000Z-{BOB}.yaml"  # Bob's `known`, 10:00
+DISPUTE = f"literature/20261008T110000Z-{ALICE}.yaml"  # Alice's `open`, 11:00
+
+
+def strip_inlined(fact: dict[str, Any]) -> dict[str, Any]:
+    return {k: v for k, v in fact.items() if k not in ("summary", "references")}
+
+
+def test_a_steward_disputes_a_proposal_and_her_own_reading_is_published(graph: Graph) -> None:
+    graph.proposal()
+    change = graph.signed_by(ALICE, status="open", disputes=PROPOSAL)
+    assert graph.codes(change, opened_by=STRANGER) == []
+    prod = graph.render()
+    expected = {
+        "status": "open",
+        "record": DISPUTE,
+        "contributor": ALICE,
+        "confirmed_by": ALICE,
+        "confirmation": DISPUTE,
+        "disputes": {"status": "known", "record": PROPOSAL, "contributor": BOB},
+    }
+    assert graph.row(prod)["literature"] == expected
+    assert graph.entry(prod)["literature"] == expected
+    assert strip_inlined(graph.bundle(prod)["literature"]) == expected
+    assert graph.row(prod)["literature_proposed"] is None, "the rejected proposal is covered"
+    assert graph.entry(prod)["literature_proposed"] is None
+    assert graph.bundle(prod)["literature_proposed"] is None
+    assert schemas.violations(json.loads(prod.files[Path("frontier.json")])) == []
+    assert schemas.violations(graph.bundle(prod), context.SCHEMA) == []
+
+
+def test_a_proposal_after_a_dispute_is_proposed_again(graph: Graph) -> None:
+    graph.proposal()
+    graph.signed_by(ALICE, status="open", disputes=PROPOSAL)
+    graph.proposal(stamp="20261008T120000Z", status="elementary", date="2026-10-08T12:00:00Z")
+    row = graph.row(graph.render())
+    assert row["literature"]["status"] == "open"
+    assert row["literature"]["disputes"]["record"] == PROPOSAL
+    assert row["literature_proposed"] == {
+        "status": "elementary",
+        "record": f"literature/20261008T120000Z-{BOB}.yaml",
+        "contributor": BOB,
+    }
+
+
+def test_a_dispute_changes_no_status_claimability_or_needs(graph: Graph) -> None:
+    """D-25: a fact about the literature, never about difficulty."""
+    before = graph.render()
+    graph.proposal()
+    graph.signed_by(ALICE, status="open", disputes=PROPOSAL)
+    after = graph.render()
+    assert graph.row(after)["status"] == graph.row(before)["status"]
+    assert graph.entry(after)["claimable"] == graph.entry(before)["claimable"]
+    assert graph.entry(after)["needs"] == graph.entry(before)["needs"]
+
+
+def test_an_unsigned_record_may_not_dispute(graph: Graph) -> None:
+    graph.proposal()
+    change = graph.proposal(stamp="20261008T103000Z", status="open", disputes=PROPOSAL)
+    assert graph.codes(change, opened_by=BOB) == ["literature-signature"]
+    assert graph.row(graph.render())["literature"] is None
+
+
+def test_a_record_may_not_both_confirm_and_dispute(graph: Graph) -> None:
+    graph.proposal()
+    change = graph.signed_by(ALICE, confirms=PROPOSAL, disputes=PROPOSAL)
+    assert graph.codes(change) == ["literature-record-conflict"]
+
+
+def test_a_dispute_must_name_a_proposal_on_the_node(graph: Graph) -> None:
+    change = graph.signed_by(ALICE, status="open", disputes="literature/20261001T000000Z-x.yaml")
+    assert graph.codes(change) == ["literature-record-unknown"]
+    assert graph.row(graph.render())["literature"]["disputes"] is None
+
+
+def test_a_record_may_not_dispute_itself(graph: Graph) -> None:
+    change = graph.signed_by(ALICE, status="open", disputes=DISPUTE)
+    assert graph.codes(change) == ["literature-record-unknown"]
+
+
+def test_a_record_may_not_dispute_a_signed_record(graph: Graph) -> None:
+    graph.signed_by(ALICE, status="known", stamp="20261008T110000Z")
+    change = graph.signed_by(ALICE, status="open", stamp="20261008T130000Z", disputes=DISPUTE)
+    assert graph.codes(change) == ["literature-record-unknown"]
+    row = graph.row(graph.render())
+    assert row["literature"]["status"] == "open" and row["literature"]["disputes"] is None
+
+
+def test_a_dispute_by_a_non_steward_is_refused(graph: Graph) -> None:
+    graph.proposal()
+    change = graph.signed_by(STRANGER, status="open", disputes=PROPOSAL)
+    assert graph.codes(change, opened_by=STRANGER) == ["literature-signer-unlisted"]
+    row = graph.row(graph.render())
+    assert row["literature"] is None
+    assert row["literature_proposed"]["record"] == PROPOSAL, "nothing covered Bob's proposal"
+
+
+def test_a_v1_record_still_reads_and_derives_as_before(graph: Graph) -> None:
+    """D-34: a v1 record on the graph carries no `disputes` field and derives exactly as before."""
+    graph.proposal()
+    change = graph.signed_by(ALICE, confirms=PROPOSAL)
+    doc = yaml.safe_load((graph.root / change.path).read_text(encoding="utf-8"))
+    assert doc["schema"] == "literature/v1" and "disputes" not in doc
+    assert graph.codes(change) == []
+    records = literature.load(graph.node_dir)
+    assert [r.disputes for r in records] == [None, None]
+    assert graph.row(graph.render())["literature"] == {
+        "status": "known",
+        "record": PROPOSAL,
+        "contributor": BOB,
+        "confirmed_by": ALICE,
+        "confirmation": DISPUTE,
+        "disputes": None,
+    }
 
 
 # --- derive, never rewrite -----------------------------------------------------------------------

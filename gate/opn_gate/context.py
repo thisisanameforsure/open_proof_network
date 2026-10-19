@@ -62,6 +62,16 @@ DETAIL_MAX_CHARS = 500  # R3: no detail longer than this reaches a bundle
 DETAIL_FIELD = "detail"
 RECORD_LIMIT = 50  # §6: the newest records
 MAX_BYTES = 256 * 1024  # §6
+#: F10-T50 (D-25 v3.45): the caps ``context/v9`` puts on an inlined literature record, the same
+#: as ``literature/v2``'s own, so a record the host serves can never make a bundle invalid; two
+#: records at the caps are about 56 KB, far inside ``MAX_BYTES``.
+SUMMARY_MAX_CHARS = 2000
+REFERENCES_MAX = 20
+TITLE_MAX_CHARS = 300
+#: What the bundle says of a record it cannot read (missing, not UTF-8, not YAML, not a
+#: literature record): the fact stays as the products published it.
+UNREADABLE_SUMMARY = "(the literature record could not be read)"
+UNREADABLE_REFERENCE: dict[str, Any] = {"title": "(unreadable record)", "url": None, "note": None}
 ELLIPSIS = "…"
 KEEP_FILE = ".gitkeep"
 YAML_SUFFIXES: tuple[str, ...] = (".yaml", ".yml")
@@ -603,13 +613,13 @@ def _literature_inline(
         if isinstance(parsed, dict) and parsed.get("schema") in literature.SCHEMAS:
             doc = parsed
     if doc is None or not isinstance(doc.get("references"), list) or not doc.get("summary"):
-        out["summary"] = "(the literature record could not be read)"
-        out["references"] = [{"title": "(unreadable record)", "url": None, "note": None}]
+        out["summary"] = UNREADABLE_SUMMARY
+        out["references"] = [dict(UNREADABLE_REFERENCE)]
         return out
-    out["summary"] = str(doc["summary"])[:2000]
+    out["summary"] = str(doc["summary"])[:SUMMARY_MAX_CHARS]
     out["references"] = [
-        {"title": str(r.get("title"))[:300], "url": r.get("url"), "note": r.get("note")}
-        for r in doc["references"][:20]
+        {"title": str(r.get("title"))[:TITLE_MAX_CHARS], "url": r.get("url"), "note": r.get("note")}
+        for r in doc["references"][:REFERENCES_MAX]
         if isinstance(r, dict)
     ]
     return out

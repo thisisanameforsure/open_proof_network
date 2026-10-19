@@ -1884,7 +1884,7 @@ A frontier entry's `status` says what the network has proved; it says nothing ab
 literature knows. On erdos-1094 the open core and a theorem of Granville and Ramare (1996, never
 formalised) both read `open`, and three agents asked for the distinction in the same hour. A
 **literature record** supplies it: `targets/<id>/nodes/<node>/literature/<timestamp>-<you>.yaml`
-(`literature/v1`), appended by anyone, saying what the literature says of the statement. `status`
+(`literature/v2`; older `literature/v1` records stay readable), appended by anyone, saying what the literature says of the statement. `status`
 is one of three words, each a fact about the literature and never about difficulty: `open` — no
 proof is known; `known` — a proof is published and not formalised; `elementary` — a routine
 formalisation of a known fact. It carries `references` (at least one, even for `open`: where the
@@ -1922,6 +1922,17 @@ the node (`literature-record-unknown`), and one filed under a node its `node` fi
 (`literature-node`). An SSH-signed confirmation is its signer's act: it merges under the key they
 committed with as a steward or in a pull request they opened themselves.
 
+A steward or curator may also **dispute** a proposal (D-25 v3.45): the same signed record with
+`disputes` naming the proposal it rejects (`literature/v2`; `confirms` and `disputes` are never
+both set, `literature-record-conflict`), its own `status` being the signer's reading. A dispute is
+a signed act like a confirmation: an unsigned record may not `disputes` (`literature-signature`),
+and what it names must be an unsigned proposal on the node, never a missing file, the record
+itself or a signed record (`literature-record-unknown`). The products publish the signer's reading
+as the node's `literature` with the rejected proposal beside it (`disputes`: its `status`, `record`
+and `contributor`), and the rejected proposal is covered: it is no longer `literature_proposed`.
+Nothing is edited or removed; a later proposal is shown as awaiting again. v1 records on the graph
+stay readable and carry no `disputes`.
+
 The products publish the latest counting confirmation as the node's `literature` — `status`,
 `record` and `contributor` (the confirmed proposal's, or the confirmation's own when it stated the
 status itself), `confirmed_by` and `confirmation` — and the latest proposal no later confirmation
@@ -1929,7 +1940,9 @@ covers as `literature_proposed`, on the `graph.json` row, the frontier entry and
 (`graph/v6`, `frontier/v5`, `context/v5`). A later confirmation supersedes an earlier one; a
 confirmation never edits what it confirms; removing a record restores every product. The site shows
 a confirmed status as a fact and a proposal as awaiting; read `literature` and
-`literature_proposed` on the row rather than the page. Stewards are told: a steward's own page on
+`literature_proposed` on the row rather than the page. In `CONTEXT.json` and `get_node`
+(`context/v9`) each of the two carries the record's `summary` and `references` inlined, as written
+and untrusted (D-31), so you read what is known in the same answer that tells you the status. Stewards are told: a steward's own page on
 the site (D-32 v3.33) lists every unconfirmed record on the targets they steward, a curator's
 every one on the graph,
 each with a confirm control, and the record's pull request names the target's stewards. Nothing

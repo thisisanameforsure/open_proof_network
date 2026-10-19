@@ -1,0 +1,14 @@
+$ uv run --frozen pytest gate/tests/test_literature.py gate/tests/test_palomar_feed.py gate/tests/test_catalog.py gate/tests/test_error_codes.py gate/tests/test_finding_guide_names_exist.py gate/tests/test_modes.py gate/tests/test_walkthrough.py -m "not lean and not docker and not network and not harness" -q -k "not graph_copy_is_identical"
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+197 passed, 2 deselected, 2 warnings in 29.93s
+
+$ make lint
+uv run --frozen ruff check .
+All checks passed!
+uv run --frozen ruff format --check .
+879 files already formatted
+exit=0
+$ uv run --frozen mypy --strict gate
+Success: no issues found in 428 source files
+exit=0
