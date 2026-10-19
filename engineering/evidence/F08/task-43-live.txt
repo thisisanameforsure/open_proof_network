@@ -1,0 +1,29 @@
+# F08-T43 and company, live (2026-10-19, the owner: "you can do 1-4")
+
+1. Network PR #76 (lit-marks): main had moved (F27-T10, 192ddd62); merged in, two conflicts resolved
+   (one_view.sets_view: both sides' lines kept; the log). CI run 39244493030: fast, harness and Lean
+   tiers success (Lean 1h29m). Merged as main f824b6fc.
+2. api-deploy 39255744148 success; GET /health ok; the live MCP tools/list carries confirm_literature
+   with `disputes` (47 tools).
+3. Tag gate-f824b6fc; image-publish 39255747731 success:
+     plain    ghcr.io/thisisanameforsure/opn-gate@sha256:f2d0200484cfce15e7b8b8db7128720eb84adbf4f98f0672e297be3a3d98a265
+     mathlib  ghcr.io/thisisanameforsure/opn-gate@sha256:2d9c3361a8922725ce7855b8a97252b5589fc327f3abd97da81d75023328dab6
+   (which is which read from the job names in the run log).
+4. Graph worktree on branch lit-guide (graph main d75db0fae merged in; the AGENTS.md copy already equal
+   after #771): schemas.unpublished [context/v9, frontier/v7, graph/v13, literature/v2] -> [] after
+   publish; pin_image.py over 27 targets (tutorial plain, 26 Mathlib, riemann-hypothesis last with
+   --api-url); 27/27 name f824b6fc; --check passes 26 (the tutorial's devcontainer runs the Mathlib image,
+   as before); devcontainer diff is the image digest alone, OPN_API kept. Committed ee9f7b1ee (33 files),
+   pushed to graph main with no run in flight.
+5. Graph push: gate run 39257330368 success (18 s); it dispatched render 39257355152 success ->
+   d2ef5fc65 "gate: render f824b6fc425c": graph/v13, frontier/v7 (92 entries, 88 claimable), context/v9
+   with each literature record's summary and references inlined (erdos-1094--h2--h1--h1: three
+   references, Konyagin first), info.json protocol_version 3.45. Live MCP get_node on that node serves
+   context/v9 with the summary.
+6. site-deploy 39257538589 success. Live /problems/erdos-1094/: 12 .lit-mark, titles of the form
+   "Literature: known (proposed by t1009-c, awaits confirmation)", key carries "open, proposed" and
+   "known, proposed", scrollWidth 1440 at 1440 and 390 at 390. Node page
+   /nodes/erdos-1094/erdos-1094--h2--h1--h1/: one badge in the head, the literature block with the
+   record's references and demarcated summary, the act slot present and hidden signed out (0 visible
+   buttons). Captures: engineering/evidence/F04/task-54-live-*.png.
+   No dispute exists on the record yet, so no dispute sentence can be shown live until a steward files one.
