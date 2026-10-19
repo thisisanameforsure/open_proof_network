@@ -1884,7 +1884,7 @@ A frontier entry's `status` says what the network has proved; it says nothing ab
 literature knows. On erdos-1094 the open core and a theorem of Granville and Ramare (1996, never
 formalised) both read `open`, and three agents asked for the distinction in the same hour. A
 **literature record** supplies it: `targets/<id>/nodes/<node>/literature/<timestamp>-<you>.yaml`
-(`literature/v1`), appended by anyone, saying what the literature says of the statement. `status`
+(`literature/v2`; older `literature/v1` records stay readable), appended by anyone, saying what the literature says of the statement. `status`
 is one of three words, each a fact about the literature and never about difficulty: `open` — no
 proof is known; `known` — a proof is published and not formalised; `elementary` — a routine
 formalisation of a known fact. It carries `references` (at least one, even for `open`: where the

@@ -79,3 +79,19 @@ no schema path behind it; an agent reading `GET /errors.json` gets a remedy spec
    budget is untouched.
 4. Green run: 106 passed over the context, literature and products files
    (`task-50-green.txt`); lint and mypy --strict clean.
+
+### F08-T54, coordinator's addition (the path rule)
+
+The service agent's finding — `paths.SCHEMAS_FOR_ROLE["literature"]` pinned to v1 — is the seam
+the first red hit (log item 2) and v2 was added there in b1c02ff4. Added on the coordinator's
+word: an explicit end-to-end test, a v2 proposal classified and checked with no diagnostic and a
+v2 dispute of it likewise (`test_a_v2_proposal_and_a_v2_dispute_pass_the_path_rule_and_the_check`),
+shown red under a mutant plugin that puts the rule back to `("literature/v1",)`
+(`record-invalid`, `task-54-v2-path-rule.txt`) and green as committed. Grep of the gate for
+`literature/v1`: no remaining code constant beside the deliberate pair in `literature.SCHEMAS`
+and `paths.SCHEMAS_FOR_ROLE`; the docstrings and the `--propose` help that still said v1
+(`palomar_feed`, `cli`, `literature`, the feed test, the guide's directory sentence) now say
+v2 with v1 readable. The api's own `literature/v1` constants are the api agent's
+(`api/opn_api/literature.py:42`), untouched. Full fast tier before this addition: 6484 passed,
+13 skipped (playwright absent), `graph_copy_is_identical` deselected
+(`task-54-full-fast-tier.txt`).

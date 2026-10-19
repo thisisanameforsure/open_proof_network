@@ -377,7 +377,7 @@ def _add_graph_tool_parsers(sub: argparse._SubParsersAction[argparse.ArgumentPar
         "--snapshot", type=Path, help="read a saved recent.json instead of the registry"
     )
     feed.add_argument(
-        "--propose", action="store_true", help="write a literature/v1 proposal per candidate"
+        "--propose", action="store_true", help="write a literature/v2 proposal per candidate"
     )
     feed.add_argument("--contributor", help="the proposals' contributor (with --propose)")
     feed.add_argument("--out", type=Path, help="where the proposals are written (with --propose)")

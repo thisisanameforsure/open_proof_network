@@ -206,6 +206,18 @@ def test_an_unsigned_record_is_accepted_from_anyone(graph: Graph) -> None:
     assert graph.codes(graph.proposal(), opened_by=STRANGER) == []
 
 
+def test_a_v2_proposal_and_a_v2_dispute_pass_the_path_rule_and_the_check(graph: Graph) -> None:
+    """F08-T54: the per-directory schema rule (``paths.SCHEMAS_FOR_ROLE``) accepts
+    ``literature/v2``, so a v2 record the service writes reaches ``check_literature_record`` and
+    an ordinary one is refused nothing, end to end."""
+    change = graph.proposal(schema=literature.SCHEMA)
+    doc = yaml.safe_load((graph.root / change.path).read_text(encoding="utf-8"))
+    assert doc["schema"] == "literature/v2" and doc["disputes"] is None
+    assert graph.codes(change, opened_by=STRANGER) == []
+    dispute = graph.signed_by(ALICE, status="open", disputes=f"literature/{Path(change.path).name}")
+    assert graph.codes(dispute) == []
+
+
 def test_a_proposal_is_published_as_proposed_and_confirms_nothing(graph: Graph) -> None:
     graph.proposal()
     prod = graph.render()
