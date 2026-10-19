@@ -13,7 +13,10 @@
 //     and lines lit, the rest dimmed, no coordinate changed (R8);
 //   - the view-toggle shows the statements on no route (the all layout) and the superseded
 //     toggle hides superseded statements; the table sorts, filters to the shown view's sets
-//     ("showing n of m") and "Fewest open first" selects the first row's view (R4, R9).
+//     ("showing n of m") and "Fewest open first" selects the first row's view (R4, R9);
+//   - F27-R13: "Stop at proved statements" (in the selector's panel, ticked by default) unticked
+//     swaps every set view for its follow/ twin, which also holds what each proved statement's
+//     proof rests on, and the table shows its followed counts; the hash carries the twin's key.
 // Every position written here is a coordinate from #graph-layouts, and a line's final d is built
 // the way dag.path_d builds the markup's, so the drawing at rest is always a layout as rendered.
 (function () {
@@ -44,16 +47,31 @@
   var showing = document.querySelector(".routes-showing");
   var fewest = document.querySelector("button.routes-fewest");
   var viewToggle = document.querySelector("button.view-toggle[data-view]");
+  var FOLLOW = "follow/";
+  var followBox = document.querySelector("input.follow-proved");
+  var setsGrid = document.querySelector(".sets-grid");
   var state = {
     node: null,
     view: svg.getAttribute("data-view") || ROUTES,
     hover: null,
     fewestView: null,
     col: null,
-    desc: false
+    desc: false,
+    follow: false
   };
 
   function has(view) { return !!(view && layouts && layouts[view]); }
+  // F27-R13: a set view (a selector node, leaf or edge) has a follow/ twin; the selector and the
+  // table carry the plain keys, and the reading in force picks which of the two is shown.
+  function base(view) { return view && view.indexOf(FOLLOW) === 0 ? view.slice(FOLLOW.length) : view; }
+  function isSetView(view) {
+    var b = base(view);
+    return !!b && (b === "sel" || b.indexOf("sel/") === 0 || b.indexOf("edge/") === 0);
+  }
+  function withMode(view) {
+    var b = base(view);
+    return state.follow && isSetView(b) && has(FOLLOW + b) ? FOLLOW + b : b;
+  }
   function nodeIn(lay, id) { return Object.prototype.hasOwnProperty.call(lay.nodes, id); }
   function linesOf(lay) {
     var out = {};
@@ -325,6 +343,7 @@
   // The sets a view covers: its selector element's data-sets, or a table row's one set; null
   // for routes and all (no filter).
   function setsOf(view) {
+    view = base(view);
     for (var i = 0; i < choices.length; i++) {
       if (choices[i].getAttribute("data-view") === view) {
         var raw = choices[i].getAttribute("data-sets") || "";
@@ -342,9 +361,9 @@
   function settle(to, keepHash) {
     state.view = to;
     svg.setAttribute("data-view", to);
-    var sets = setsOf(to), shown = 0;
+    var sets = setsOf(to), shown = 0, plain = base(to);
     choices.forEach(function (c) {
-      var on = c.getAttribute("data-view") === to;
+      var on = c.getAttribute("data-view") === plain;
       c.setAttribute("aria-pressed", on ? "true" : "false");
       c.classList.toggle("selected", on);
     });
@@ -374,6 +393,7 @@
 
   // Press: the view, or routes again when it is the one shown.
   function choose(view) {
+    view = withMode(view);
     if (!has(view)) { return; }
     transition(view === state.view ? ROUTES : view);
   }
@@ -388,7 +408,7 @@
   function refreshLit() {
     var v = state.hover;
     choices.forEach(function (c) {
-      c.classList.toggle("previewed", !!v && c.getAttribute("data-view") === v && !c.classList.contains("selected"));
+      c.classList.toggle("previewed", !!v && c.getAttribute("data-view") === base(v) && !c.classList.contains("selected"));
     });
     var sets = v ? setsOf(v) : null;
     rows.forEach(function (r) {
@@ -407,6 +427,7 @@
   }
 
   function preview(view) {
+    view = withMode(view);
     state.hover = has(view) ? view : null;
     refreshLit();
   }
@@ -577,10 +598,16 @@
 
   // -- the table (F27-R11, R9): sorting, and "Fewest open first" -----------------------------------
 
+  function sortKey(cell) {
+    // F27-R13: a count cell carries its followed reading too, used while the toggle is unticked.
+    var attr = state.follow && cell.hasAttribute("data-sort-follow") ? "data-sort-follow" : "data-sort";
+    return parseFloat(cell.getAttribute(attr));
+  }
+
   function sortBy(col, desc) {
     var sorted = rows.slice().sort(function (a, b) {
-      var x = parseFloat(a.cells[col].getAttribute("data-sort"));
-      var y = parseFloat(b.cells[col].getAttribute("data-sort"));
+      var x = sortKey(a.cells[col]);
+      var y = sortKey(b.cells[col]);
       if (x !== y) { return desc ? y - x : x - y; }
       return parseInt(a.getAttribute("data-index"), 10) - parseInt(b.getAttribute("data-index"), 10);
     });
@@ -614,7 +641,7 @@
       var on = fewest.getAttribute("aria-pressed") !== "true";
       if (on) {
         sortBy(3, false);  // the Open column
-        var first = tbody.rows.length ? tbody.rows[0].getAttribute("data-view") : null;
+        var first = tbody.rows.length ? withMode(tbody.rows[0].getAttribute("data-view")) : null;
         if (has(first)) {
           state.fewestView = first;
           fewest.setAttribute("aria-pressed", "true");
@@ -629,9 +656,31 @@
     });
   }
 
+  // -- F27-R13: "Stop at proved statements" ---------------------------------------------------------
+
+  function setFollow(on) {
+    state.follow = !!on;
+    if (followBox) { followBox.checked = !state.follow; }
+    if (setsGrid) { setsGrid.classList.toggle("follow-proved", state.follow); }
+    if (state.col !== null) { sortBy(state.col, state.desc); }
+    if (isSetView(state.view)) { transition(withMode(state.view)); }
+    else { refreshLit(); }
+  }
+
+  if (followBox) {
+    var followLabel = followBox.closest ? followBox.closest("label") : followBox.parentNode;
+    if (followLabel) { followLabel.hidden = false; }
+    followBox.addEventListener("change", function () { setFollow(!followBox.checked); });
+  }
+
   // -- the start, and the hash ---------------------------------------------------------------------
 
   var initial = fromHash();
+  if (initial.view && initial.view.indexOf(FOLLOW) === 0 && has(initial.view)) {
+    state.follow = true;
+    if (followBox) { followBox.checked = false; }
+    if (setsGrid) { setsGrid.classList.add("follow-proved"); }
+  }
   if (!select(initial.node || (panels.length ? panels[0].getAttribute("data-node") : null)) && panels.length) {
     select(panels[0].getAttribute("data-node"));
   }
@@ -646,6 +695,9 @@
     var h = fromHash();
     if (h.node) { select(h.node); }
     var view = h.view || ROUTES;
-    if (has(view) && view !== state.view) { transition(view); }
+    if (has(view) && view !== state.view) {
+      if (isSetView(view) && (view.indexOf(FOLLOW) === 0) !== state.follow) { setFollow(view.indexOf(FOLLOW) === 0); }
+      transition(view);
+    }
   });
 })();

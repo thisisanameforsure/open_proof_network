@@ -28,7 +28,8 @@ import yaml
 from harness import TARGET
 from test_decompositions import HOLE_IDS
 from test_finding_dag_layout import crossings
-from test_products import ROOT_NODE
+from test_products import ROOT_NODE, nodes_dir
+from test_products import attest as gate_attest
 from test_routes_view import THIRD, doc, nested_doc, node, render_tree, two_routes
 from test_target_routes import live
 
@@ -62,7 +63,93 @@ def trunk_doc() -> dict[str, Any]:
     }
 
 
+def with_proof(row: dict[str, Any], used: list[str]) -> dict[str, Any]:
+    """The row with one merged proof whose term ``used`` these nodes (graph/v4's ``proofs``)."""
+    row["proofs"] = [
+        {
+            "kind": "proof",
+            "path": "Proof.lean",
+            "artifact_hash": "0" * 64,
+            "attestation": "000001.json",
+            "merge_commit": "0" * 40,
+            "submitter": None,
+            "used": used,
+        }
+    ]
+    return row
+
+
+def followed_doc() -> dict[str, Any]:
+    """F27-R13: root ``t`` with two routes, ``[a, p]`` and ``[q]``. ``p`` is proved past its
+    route (its term used ``p--h1`` alone, as a lemma); ``q`` is proved as its route's assembly
+    (its term used both holes). The published sets are ``{a, p}`` and ``{q}``; followed, they
+    also hold ``p--h1`` and ``q--h1, q--h2``."""
+    return {
+        "schema": "graph/v12",
+        "target_id": "t",
+        "root": "t",
+        "nodes": [
+            node(
+                "t",
+                origin="authored",
+                routes=[["t--a", "t--p"], ["t--q"]],
+                approaches=["through p", "through q"],
+            ),
+            node("t--a"),
+            with_proof(node("t--p", "proved", routes=[["t--p--h1", "t--p--h2"]]), ["t--p--h1"]),
+            with_proof(node("t--p--h1", "proved"), []),
+            with_proof(node("t--p--h2", "proved"), []),
+            with_proof(
+                node("t--q", "proved", routes=[["t--q--h1", "t--q--h2"]]),
+                ["t--q--h1", "t--q--h2"],
+            ),
+            with_proof(node("t--q--h1", "proved"), []),
+            with_proof(node("t--q--h2", "proved"), []),
+        ],
+    }
+
+
 # -- views: which nodes and lines ---------------------------------------------------------------
+
+
+def test_follow_views_add_what_proved_members_rest_on() -> None:
+    """F27-AC14 (R13): every set view has a ``follow/`` twin — the same kind, sets, split, route
+    and index, its parent the twin of its parent — whose nodes add what each proved statement's
+    proof rests on: a proof that went past its route adds the hole it used and the direct line
+    it took, no junction; a proof that is its route's assembly adds the route's junction and
+    both holes. The plain views are untouched."""
+    g = followed_doc()
+    stop = routes.read(g, [])
+    follow = routes.read(g, [], at_proved="follow")
+    plain = one_view.views(g, stop)
+    vs = one_view.views(g, stop, follow=follow)
+    assert {k: v for k, v in vs.items() if not k.startswith(one_view.FOLLOW)} == plain
+    set_keys = [k for k in plain if k == "sel" or k.startswith(("sel/", "edge/"))]
+    assert set_keys
+    assert sum(1 for k in vs if k.startswith(one_view.FOLLOW)) == len(set_keys)
+    for k in set_keys:
+        a, b = vs[k], vs[one_view.FOLLOW + k]
+        assert (b.kind, b.sets, b.route, b.split, b.index) == (
+            a.kind,
+            a.sets,
+            a.route,
+            a.split,
+            a.index,
+        )
+        assert b.parent == (one_view.FOLLOW + a.parent if a.parent else None)
+        assert set(a.nodes) <= set(b.nodes)
+    assert set(vs["sel/t@1"].nodes) == {"t", "t@1", "t--a", "t--p"}
+    past = vs[one_view.FOLLOW + "sel/t@1"]
+    assert set(past.nodes) == {"t", "t@1", "t--a", "t--p", "t--p--h1"}
+    assert ("t--p--h1", "t--p", "edge") in past.lines
+    assert set(vs["sel/t@2"].nodes) == {"t", "t@2", "t--q"}
+    assembly = vs[one_view.FOLLOW + "sel/t@2"]
+    assert set(assembly.nodes) == {"t", "t@2", "t--q", "t--q@1", "t--q--h1", "t--q--h2"}
+    assert {(src, dst) for src, dst, _k in assembly.lines} >= {
+        ("t--q@1", "t--q"),
+        ("t--q--h1", "t--q@1"),
+        ("t--q--h2", "t--q@1"),
+    }
 
 
 def test_layout_membership_per_view() -> None:
@@ -319,6 +406,33 @@ def off_route(tmp_path: Path) -> Path:
     )
     return root
 
+
+def followed_tree(tmp_path: Path) -> Path:
+    """``two_routes`` with its second route's hole proved by a proof whose term rests on the
+    root's proved dependency ``and-reassoc``: followed, that set adds ``and-reassoc``."""
+    root = two_routes(tmp_path)
+    gate_attest(root, DEP, n=11, footprint={"nodes": []})
+    hole = nodes_dir(root) / THIRD
+    statement = (hole / "Statement.lean").read_text(encoding="utf-8")
+    (hole / "Proof.lean").write_text(statement.replace("sorry", "exact trivial"), encoding="utf-8")
+    gate_attest(root, THIRD, n=12, footprint={"nodes": [DEP]})
+    return root
+
+
+DEP = "and-reassoc"
+
+#: The selector's node positions, keyed; the toggle must not move the tree (R13).
+SELECTOR_AT = """() => {
+  const out = {};
+  document.querySelectorAll('svg.selector g.sel-node').forEach(g => {
+    out[g.getAttribute('data-key')] = g.getAttribute('transform');
+  });
+  return out;
+}"""
+
+#: The visible table rows' cells as read (the first line of each cell: the count shown).
+ROW_TEXT = """() => [...document.querySelectorAll('tr.set-row')].filter(r => !r.hidden)
+  .map(r => [...r.cells].map(c => c.innerText.trim().split('\\n')[0]))"""
 
 #: Every node's box, translate, display and lit state; every line's ``d`` and state; the svg's
 #: view and size; the open panel; the pressed selector elements; the table's shown rows.
@@ -637,6 +751,46 @@ def test_the_toggle_shows_every_statement(tmp_path: Path) -> None:
     assert on_leaf["toggle"] == "false" and on_leaf["pressed"]
     assert from_leaf["view"] == "all" and from_leaf["pressed"] == []
     assert from_leaf["toggle"] == "true"
+
+
+def test_unticking_stop_at_proved_shows_the_followed_set(tmp_path: Path) -> None:
+    """F27-AC14 (R13): the toggle is ticked on load; with a set selected, unticking it moves the
+    drawing to the set's ``follow/`` twin (the proved dependency the hole's proof rests on
+    appears, at the twin's coordinates), the selector's plain node stays pressed and nothing in
+    the selector moves, the table row stays and its counts change, the hash carries the twin;
+    ticking again returns to the set."""
+    with browser(followed_tree(tmp_path / "g"), tmp_path / "site") as pg:
+        lays = layouts_in(pg)
+        key = next(k for k, lay in lays.items() if k.startswith("sel/") and THIRD in lay["nodes"])
+        twin = one_view.FOLLOW + key
+        box = pg.locator("input.follow-proved")
+        assert box.is_visible() and box.is_checked()
+        pg.locator(f'svg.selector [data-view="{key}"]').click()
+        pg.mouse.move(5, 5)
+        at_stop = pg.evaluate(SNAPSHOT)
+        sel_stop = pg.evaluate(SELECTOR_AT)
+        rows_stop = pg.evaluate(ROW_TEXT)
+        box.uncheck()
+        pg.mouse.move(5, 5)
+        at_follow = pg.evaluate(SNAPSHOT)
+        sel_follow = pg.evaluate(SELECTOR_AT)
+        rows_follow = pg.evaluate(ROW_TEXT)
+        box.check()
+        pg.mouse.move(5, 5)
+        back = pg.evaluate(SNAPSHOT)
+    assert DEP in lays[twin]["nodes"] and DEP not in lays[key]["nodes"]
+    assert at_stop["view"] == key and DEP not in shown_nodes(at_stop)
+    assert at_follow["view"] == twin and DEP in shown_nodes(at_follow)
+    assert_at_layout(at_follow, lays[twin])
+    assert at_follow["pressed"] == [key] and at_follow["rows"] == [key]
+    assert sel_follow == sel_stop
+    assert "view=follow" in at_follow["hash"]
+    # Statements and Proved each grew by one (and-reassoc); Open did not.
+    (stop_row,), (follow_row,) = rows_stop, rows_follow
+    assert (int(follow_row[1]), int(follow_row[2])) == (int(stop_row[1]) + 1, int(stop_row[2]) + 1)
+    assert follow_row[3] == stop_row[3]
+    assert back["view"] == key and DEP not in shown_nodes(back)
+    assert_at_layout(back, lays[key])
 
 
 def test_hovering_a_selector_node_lights_its_parent_and_children_in_the_selector(

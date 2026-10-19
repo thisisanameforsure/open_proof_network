@@ -2280,7 +2280,9 @@ class Renderer:
             '<div class="selector-wrap"><div class="sel-head">'
             f'<span class="kicker">{self.term("sufficient-set", label="Sufficient sets")}</span>'
             '<p class="sel-cue">Select a node or an edge to filter the drawing to that part of '
-            "the proof; select it again to come back.</p></div>"
+            "the proof; select it again to come back.</p>"
+            # F27-R13: the owner's toggle lives in the box that holds the sufficient-set tree
+            f"{picture.follow_toggle}</div>"
             f"{picture.selector}{self.proof_notes(tv)}"
             '<p class="sel-tip" hidden></p></div>'
             if picture.selector
