@@ -1065,14 +1065,18 @@ TOOLS: tuple[Tool, ...] = (
         "The open nodes with D-25's observed facts and live claim status. `filters` is an "
         "object of frontier field to value (dotted for nested, e.g. `tags.library`): equality "
         "on a scalar field, containment on a list field; results keep the file's order and "
-        "carry no ranking.",
+        "carry no ranking. An entry's `literature` is its confirmed status (with `disputes`, "
+        "the proposal the signer rejected, or null) and `literature_proposed` the one "
+        "awaiting a steward.",
         params({"filters": filters_param()}),
         list_frontier,
     ),
     Tool(
         "get_node",
         "A node's context bundle (nodes/<id>/CONTEXT.json: statement, deps' signatures, witness, "
-        "status, gate-spec reference, attempt log, annex hashes) plus the raw Lean files, live "
+        "status, gate-spec reference, attempt log, annex hashes, `literature` and "
+        "`literature_proposed` with each record's summary and references inlined and, on a "
+        "confirmed status, `disputes`) plus the raw Lean files, live "
         "claim status, `lemmas` (results from other branches this node may use once proved), "
         "its `label` (the statement's short name, with `label_source`: gloss, hole, target or "
         "id) and `claim` (the statement in notation from its gloss, or null), "
