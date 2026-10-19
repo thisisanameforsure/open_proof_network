@@ -1,7 +1,8 @@
 """F05-T29: ``POST /literature`` (D-3, D-25, D-32 v3.35; the amendment of 2026-10-08 §2).
 
 Any contributor proposes what the literature says of a statement: the service writes an
-unsigned ``literature/v1`` record as the token's identity, dated now, and opens it on the node's
+unsigned ``literature/v2`` record (F23-T41) as the token's identity, dated now, and opens it on
+the node's
 ``literature/<ts>-<contributor>.yaml`` through the append machinery (one target, same-second
 rule, duplicate rule). The pull request names the target's current stewards as the people whose
 confirmation it awaits, and says a curator may confirm too: that is the notification the
@@ -15,6 +16,7 @@ from typing import Any
 import yaml
 from api_fakes import TUTORIAL_NODE, Harness
 
+from opn_api import literature
 from opn_gate import schemas, steward
 
 TARGET = "propositional"
@@ -80,16 +82,16 @@ def only_file(h: Harness) -> tuple[str, str]:
 
 
 def test_a_proposal_lands_as_an_unsigned_literature_record_by_the_caller(harness: Harness) -> None:
-    """The record is literature/v1, attributed to the token's identity, dated now, with every
-    signature field null; it sits at the node's literature/<ts>-<contributor>.yaml."""
+    """The record is literature/v2 (F23-T41), attributed to the token's identity, dated now,
+    with every signature field null; it sits at the node's literature/<ts>-<contributor>.yaml."""
     token = harness.token_for("code_alice", "alice")
     r = post(harness, token, proposal())
     assert r.status_code == 201, r.text
     path, content = only_file(harness)
     assert path == NODE_DIR + "literature/20260909T120000Z-alice.yaml"
     doc = yaml.safe_load(content)
-    assert schemas.violations(doc, "literature/v1") == []
-    assert doc["schema"] == "literature/v1"
+    assert schemas.violations(doc, literature.SCHEMA) == []
+    assert doc["schema"] == literature.SCHEMA == "literature/v2"  # F23-T41 (D-25 v3.45)
     assert (doc["node"], doc["contributor"], doc["date"]) == (NODE, "alice", "2026-09-09T12:00:00Z")
     assert doc["status"] == "known"
     assert doc["references"] == proposal()["references"]

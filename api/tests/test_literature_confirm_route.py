@@ -2,7 +2,8 @@
 
 A steward of the node's target, or a curator, confirms a proposed literature record — or states
 the status themselves — from the site (the F23 web session) or with a bearer whose identity is a
-GitHub login. The service writes a signed ``literature/v1`` record as that login: ``confirms``
+GitHub login. The service writes a signed ``literature/v2`` record (F23-T41) as that login:
+``confirms``
 names the proposal (or is null), ``via: approval-key``, ``key`` the approval key's public half
 and ``signature`` by the approval key over the canonical body, exactly as ``POST /stewards`` and
 ``POST /approvals`` sign. What lands is what is tested: the pushed file laid over the graph,
@@ -25,7 +26,7 @@ from test_glosses_route import CURATOR, NODE, NODE_DIR, make_keys, make_tree
 from test_glosses_route import serve as serve_tree
 from test_web_session import ENV, sign_in, web_headers
 
-from opn_api import auth, identity, sshsig
+from opn_api import auth, identity, literature, sshsig
 from opn_api.githost import GitHubUser
 from opn_api.store import Identity
 from opn_gate import schemas, signed
@@ -121,7 +122,7 @@ def landed(h: Harness, tree: Path, response: Any) -> dict[str, Any]:
     shutil.copytree(tree, over)
     (over / path).parent.mkdir(parents=True, exist_ok=True)
     (over / path).write_text(push.files[path], encoding="utf-8")
-    return dict(schemas.load_yaml(over / path, "literature/v1"))
+    return dict(schemas.load_yaml(over / path, literature.SCHEMA))  # literature/v2 since F23-T41
 
 
 def verifies(doc: dict[str, Any], public: str) -> None:
