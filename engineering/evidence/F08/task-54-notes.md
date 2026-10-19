@@ -95,3 +95,33 @@ v2 with v1 readable. The api's own `literature/v1` constants are the api agent's
 (`api/opn_api/literature.py:42`), untouched. Full fast tier before this addition: 6484 passed,
 13 skipped (playwright absent), `graph_copy_is_identical` deselected
 (`task-54-full-fast-tier.txt`).
+
+## Proposed ledger lines (for the lead; nothing under engineering/specs/ was edited)
+
+- **F08-T54** ✓ (gate) — a dispute is a signed act: `check_literature_record` refuses an unsigned
+  record carrying `disputes` (`literature-signature`), a signed record with both `confirms` and
+  `disputes` (`literature-record-conflict`, new catalog code), and a `disputes` naming anything
+  but an unsigned proposal on the node — missing, itself, or signed (`literature-record-unknown`);
+  `paths.SCHEMAS_FOR_ROLE` accepts `literature/v2`; the products publish the signer's reading with
+  the rejected proposal beside it and cover it; status, claimable and needs untouched (D-25); v1
+  records derive as before; guide updated. Tests: `gate/tests/test_literature.py` (+11).
+  Verify: `uv run --frozen pytest gate/tests/test_literature.py gate/tests/test_palomar_feed.py
+  gate/tests/test_catalog.py gate/tests/test_error_codes.py
+  gate/tests/test_finding_guide_names_exist.py -q`. Evidence: `engineering/evidence/F08/task-54-*.txt`.
+  Commits b1c02ff4, 04671899.
+- **F10-T50** ✓ (bundle) — `context/v9`'s inlined `summary` and `references` pinned: the record's
+  words for `literature_proposed` and `literature`, byte-identical through `DiskReader` and a
+  host-shaped reader (F10-Q7), the fixed fallback for a missing or unreadable record (bundle still
+  validates), the schema's caps as `context.SUMMARY_MAX_CHARS` / `REFERENCES_MAX` /
+  `TITLE_MAX_CHARS`, two records at the caps under a quarter of the §6 budget (budget unchanged).
+  Tests: `gate/tests/test_finding_context_literature_inline.py` (11). Verify: `uv run --frozen
+  pytest gate/tests/test_finding_context_literature_inline.py -q`. Evidence:
+  `engineering/evidence/F10/task-50-*.txt`. Commit ba220974.
+
+Proposed Q entry (F08): **Q — `literature-record-conflict` rather than `record-invalid`** for a
+signed record naming both `confirms` and `disputes`: the schema cannot express the exclusivity
+(two independent `oneOf`s, no `dependentSchemas`), so the refusal is a gate rule with its own
+catalog remedy, not a schema-shape error.
+
+Not done, by rule: the graph's `AGENTS.md` copy (`test_graph_copy_is_identical` red; the lead's at
+the re-pin); the api's `literature/v1` constant (`api/opn_api/literature.py:42`, the api agent's).
