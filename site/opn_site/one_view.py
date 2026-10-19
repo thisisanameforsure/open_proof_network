@@ -707,7 +707,7 @@ def drawing(  # noqa: PLR0913 — the page's inputs
 ) -> Drawing:
     """The page's drawing. ``nodes`` (the page's view of the rows, a status renamed for the
     key) stands in for ``graph["nodes"]`` in the drawing and the layouts; the routes and sets
-    are read from ``graph`` as the MCP tool reads them (F27-Q1). ``literature`` (F04-T63) marks
+    are read from ``graph`` as the MCP tool reads them (F27-Q1). ``literature`` (F04-T54) marks
     the named pills with their literature status and feeds nothing else: the views, layouts,
     selector and table are the same with or without it."""
     result = routes.read(graph, list(frontier_entries))

@@ -101,7 +101,7 @@ class Graph:
     def document(self, **overrides: Any) -> dict[str, Any]:
         """A ``literature/v1`` record by default, so every test here that does not dispute is a
         regression over the v1 shape still on the graph (D-34); ``disputes=`` or
-        ``schema="literature/v2"`` makes it a v2 record (F08-T54, D-25 v3.45)."""
+        ``schema="literature/v2"`` makes it a v2 record (F08-T43, D-25 v3.45)."""
         doc: dict[str, Any] = {
             "schema": "literature/v1",
             "node": self.node,
@@ -207,7 +207,7 @@ def test_an_unsigned_record_is_accepted_from_anyone(graph: Graph) -> None:
 
 
 def test_a_v2_proposal_and_a_v2_dispute_pass_the_path_rule_and_the_check(graph: Graph) -> None:
-    """F08-T54: the per-directory schema rule (``paths.SCHEMAS_FOR_ROLE``) accepts
+    """F08-T43: the per-directory schema rule (``paths.SCHEMAS_FOR_ROLE``) accepts
     ``literature/v2``, so a v2 record the service writes reaches ``check_literature_record`` and
     an ordinary one is refused nothing, end to end."""
     change = graph.proposal(schema=literature.SCHEMA)
@@ -391,7 +391,7 @@ def test_an_approval_key_record_for_a_stranger_is_refused(graph: Graph) -> None:
     assert graph.codes(change, opened_by=SERVICE) == ["literature-signer-unlisted"]
 
 
-# --- a dispute is a signed act (F08-T54, D-25 v3.45) ---------------------------------------------
+# --- a dispute is a signed act (F08-T43, D-25 v3.45) ---------------------------------------------
 
 PROPOSAL = f"literature/20261008T100000Z-{BOB}.yaml"  # Bob's `known`, 10:00
 DISPUTE = f"literature/20261008T110000Z-{ALICE}.yaml"  # Alice's `open`, 11:00

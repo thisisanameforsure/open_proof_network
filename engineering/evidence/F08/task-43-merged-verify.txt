@@ -1,0 +1,7 @@
+# lit-marks merged (gate+service+site): make verify, OPN_GRAPH_CHECKOUT at graph worktree origin/main 00f4bc8
+Mon Oct 19 09:37:08 UTC 2026
+= 1 failed, 6533 passed, 15 skipped, 257 deselected, 2 warnings in 633.10s (0:10:33) =
+make: *** [test-fast] Error 1
+EXIT=2
+# the one failure is the guide-copy test against the unchanged graph; against the graph branch lit-guide (861aca8b0, the copy):
+6 passed, 1 deselected

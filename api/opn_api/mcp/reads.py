@@ -48,7 +48,7 @@ NODE_FILES: tuple[tuple[str, bool], ...] = (  # (file, required): the raw files 
 #: The frontier version whose entry fields the filters are drawn from. The newest known
 #: one: its field set is a superset of the older versions', and a filter naming a field
 #: an older document does not carry simply matches nothing (F11-R4).
-FRONTIER_SCHEMA = "frontier/v7"  # F03-T40 (D-25 v3.45): v6's fields plus literature.disputes
+FRONTIER_SCHEMA = "frontier/v7"  # F03-T21 (D-25 v3.45): v6's fields plus literature.disputes
 #: The ``CONTEXT.json`` versions get_node serves: the gate module's own set, plus the version the
 #: v3.38 re-pin first renders (F10-T49), so the service accepts it whichever side of that
 #: re-pin it is deployed on (the deploy-window lesson of 2026-09-11). F08-T42: ``context/v8``.

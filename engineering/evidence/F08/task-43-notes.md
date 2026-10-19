@@ -1,4 +1,4 @@
-# F08-T54 / F10-T50 — running notes (agent, worktree `opn-lit-gate`, branch `lit-gate`)
+# F08-T43 / F10-T50 — running notes (agent, worktree `opn-lit-gate`, branch `lit-gate`)
 
 Base: 8f33c2d0 (the lead's contract: literature/v2, graph/v13, frontier/v7, context/v9, v3.45).
 
@@ -31,7 +31,7 @@ no schema path behind it; an agent reading `GET /errors.json` gets a remedy spec
 
 ## Log
 
-### F08-T54
+### F08-T43
 
 1. Wrote ten tests in `gate/tests/test_literature.py` (harness: `document()` stays v1 by default so
    every older test is a v1 regression; `disputes=` or `schema="literature/v2"` makes a v2 record).
@@ -39,7 +39,7 @@ no schema path behind it; an agent reading `GET /errors.json` gets a remedy spec
    `paths.SCHEMAS_FOR_ROLE["literature"]` still pinned `("literature/v1",)` and the gate refused
    every v2 record at the schema step. Added v2 to the accepted set (a seam at today's behaviour,
    no rule) and re-ran: five honest reds, each `assert [] == [<code>]` — the gate accepted what it
-   must refuse (`task-54-red.txt`). The products-side tests (dispute published on row / entry /
+   must refuse (`task-43-red.txt`). The products-side tests (dispute published on row / entry /
    bundle, proposed-again, no status change, non-steward, v1 regression) were green already: the
    contract commit shipped `derive`.
 3. Rule: `check_literature_record` refuses an unsigned record carrying `disputes`
@@ -52,7 +52,7 @@ no schema path behind it; an agent reading `GET /errors.json` gets a remedy spec
    summary and references in `CONTEXT.json`/`get_node`). `test_graph_copy_is_identical` is red
    as expected (the graph copy is the lead's at the re-pin); every other guide test is green.
 5. `palomar_feed.propose` validates as `literature/v2` with `disputes: None` (its test is in the
-   green run). Green run: 197 passed (`task-54-green.txt`); lint and mypy --strict clean.
+   green run). Green run: 197 passed (`task-43-green.txt`); lint and mypy --strict clean.
 
 ### F10-T50
 
@@ -80,25 +80,25 @@ no schema path behind it; an agent reading `GET /errors.json` gets a remedy spec
 4. Green run: 106 passed over the context, literature and products files
    (`task-50-green.txt`); lint and mypy --strict clean.
 
-### F08-T54, coordinator's addition (the path rule)
+### F08-T43, coordinator's addition (the path rule)
 
 The service agent's finding — `paths.SCHEMAS_FOR_ROLE["literature"]` pinned to v1 — is the seam
 the first red hit (log item 2) and v2 was added there in b1c02ff4. Added on the coordinator's
 word: an explicit end-to-end test, a v2 proposal classified and checked with no diagnostic and a
 v2 dispute of it likewise (`test_a_v2_proposal_and_a_v2_dispute_pass_the_path_rule_and_the_check`),
 shown red under a mutant plugin that puts the rule back to `("literature/v1",)`
-(`record-invalid`, `task-54-v2-path-rule.txt`) and green as committed. Grep of the gate for
+(`record-invalid`, `task-43-v2-path-rule.txt`) and green as committed. Grep of the gate for
 `literature/v1`: no remaining code constant beside the deliberate pair in `literature.SCHEMAS`
 and `paths.SCHEMAS_FOR_ROLE`; the docstrings and the `--propose` help that still said v1
 (`palomar_feed`, `cli`, `literature`, the feed test, the guide's directory sentence) now say
 v2 with v1 readable. The api's own `literature/v1` constants are the api agent's
 (`api/opn_api/literature.py:42`), untouched. Full fast tier before this addition: 6484 passed,
 13 skipped (playwright absent), `graph_copy_is_identical` deselected
-(`task-54-full-fast-tier.txt`).
+(`task-43-full-fast-tier.txt`).
 
 ## Proposed ledger lines (for the lead; nothing under engineering/specs/ was edited)
 
-- **F08-T54** ✓ (gate) — a dispute is a signed act: `check_literature_record` refuses an unsigned
+- **F08-T43** ✓ (gate) — a dispute is a signed act: `check_literature_record` refuses an unsigned
   record carrying `disputes` (`literature-signature`), a signed record with both `confirms` and
   `disputes` (`literature-record-conflict`, new catalog code), and a `disputes` naming anything
   but an unsigned proposal on the node — missing, itself, or signed (`literature-record-unknown`);
@@ -107,7 +107,7 @@ v2 with v1 readable. The api's own `literature/v1` constants are the api agent's
   records derive as before; guide updated. Tests: `gate/tests/test_literature.py` (+11).
   Verify: `uv run --frozen pytest gate/tests/test_literature.py gate/tests/test_palomar_feed.py
   gate/tests/test_catalog.py gate/tests/test_error_codes.py
-  gate/tests/test_finding_guide_names_exist.py -q`. Evidence: `engineering/evidence/F08/task-54-*.txt`.
+  gate/tests/test_finding_guide_names_exist.py -q`. Evidence: `engineering/evidence/F08/task-43-*.txt`.
   Commits b1c02ff4, 04671899.
 - **F10-T50** ✓ (bundle) — `context/v9`'s inlined `summary` and `references` pinned: the record's
   words for `literature_proposed` and `literature`, byte-identical through `DiskReader` and a

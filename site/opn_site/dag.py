@@ -736,7 +736,7 @@ def outline_mark(count: int, width: int) -> str:
 
 @dataclass(frozen=True)
 class LitMark:
-    """F04-T63 (D-25 v3.45): a node's literature status as the drawing marks it — the status
+    """F04-T54 (D-25 v3.45): a node's literature status as the drawing marks it — the status
     word (``open``, ``known``, ``elementary``), whether a steward or curator has confirmed it
     (else it is a contributor's proposal awaiting one) and who: the confirmer, or the proposer.
     A fact about the literature, never about difficulty: the mark changes nothing else."""
@@ -768,7 +768,7 @@ Literature = Mapping[str, LitMark] | None
 
 
 def literature_mark(mark: LitMark | None, width: int) -> str:
-    """F04-T63: the small square on a pill that carries a literature status: hollow and dashed
+    """F04-T54: the small square on a pill that carries a literature status: hollow and dashed
     while only proposed, filled once confirmed, coloured by status through the stylesheet
     (``lit-<status>``), with its own title. Nothing for a node with no record. Markup only: the
     layout never reads it."""
@@ -805,7 +805,7 @@ def svg(  # noqa: PLR0913 — the target's own names beside what the drawing mar
     keeps the root in the tree and ``prefix`` (the target id) is dropped from labels (T33).
     ``names`` (F22-T18, S) gives a pill's title the theorem name of an id that names nothing.
     ``labels`` (F29-T5, R9) are the statements' labels: a pill shows its label and its title
-    keeps the id, with the label beside it. ``literature`` (F04-T63) marks the pills it names
+    keeps the id, with the label beside it. ``literature`` (F04-T54) marks the pills it names
     with their literature status; the layout is the same with or without it."""
     lay = layout(nodes, root=root, prefix=prefix, labels=labels)
     status = {p.node_id: p.status for p in lay.placed}

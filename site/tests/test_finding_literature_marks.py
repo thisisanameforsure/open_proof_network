@@ -1,4 +1,4 @@
-"""F04-T63 (D-25 v3.45), part 1: a node's literature status is drawn on every statement graph
+"""F04-T54 (D-25 v3.45), part 1: a node's literature status is drawn on every statement graph
 as a mark distinct from the proof status, keyed in the drawing's own key, and feeds nothing.
 
 The owner read erdos-1094 against the literature (2026-10-19): eleven statements carry a

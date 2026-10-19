@@ -1,4 +1,4 @@
-"""The literature routes (D-3, D-25, D-32 v3.35, v3.45; F05-T29, F23-T12, F23-T41).
+"""The literature routes (D-3, D-25, D-32 v3.35, v3.45; F05-T29, F23-T12, F23-T13).
 
 ``POST /literature`` lets any contributor say what the literature says of a statement — ``open``,
 ``known`` or ``elementary``, with the references that support it and a summary — as an unsigned
@@ -12,7 +12,7 @@ person it waits for sees it next time they sign in.
 ``POST /literature/confirm`` is the signed half (F23-T12): an active steward of the node's target
 or a listed curator — signed in on the site, or a bearer whose identity is a GitHub login —
 confirms a proposal by naming it in ``confirms``, or states the status themselves (``confirms``
-null), or — F23-T41 (D-25 v3.45) — *disputes* a proposal by naming it in ``disputes``, the
+null), or — F23-T13 (D-25 v3.45) — *disputes* a proposal by naming it in ``disputes``, the
 record's own ``status`` being the signer's reading. ``record`` and ``disputes`` are exclusive, and
 only an unsigned proposal can be disputed. The service writes the record as that login and signs
 it with the network's approval key over the canonical body the gate verifies, exactly as
@@ -42,7 +42,7 @@ if TYPE_CHECKING:
     from opn_api.app import Context
     from opn_api.store import Identity
 
-SCHEMA = "literature/v2"  # F23-T41 (D-25 v3.45): `disputes`
+SCHEMA = "literature/v2"  # F23-T13 (D-25 v3.45): `disputes`
 #: What a record on the node may declare: v1 proposals on the graph stay confirmable (D-34).
 SCHEMAS: tuple[str, ...] = ("literature/v1", "literature/v2")
 DIR = "literature"
@@ -219,7 +219,7 @@ def may_confirm(ctx: Context, target_id: str, login: str) -> None:
 def checked_record(
     ctx: Context, target_id: str, node_id: str, raw: Any, *, field: str = "record"
 ) -> str | None:
-    """``record`` as ``confirms`` will carry it — or, F23-T41, ``disputes`` as ``disputes`` will:
+    """``record`` as ``confirms`` will carry it — or, F23-T13, ``disputes`` as ``disputes`` will:
     null, or ``literature/<file>`` that is on the node at the commit the service reads (404
     ``not-found`` naming the path otherwise) and is a literature record of any version (400
     otherwise). A dispute may name only an unsigned proposal (D-25 v3.45): a signed record is a

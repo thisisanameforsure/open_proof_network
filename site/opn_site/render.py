@@ -105,7 +105,7 @@ def literature_words(status: str) -> str:
     return LITERATURE_WORDS.get(status, status)
 
 
-#: F04-T63 (D-25 v3.45): the two phases a literature mark can be in, proposed before confirmed.
+#: F04-T54 (D-25 v3.45): the two phases a literature mark can be in, proposed before confirmed.
 LITERATURE_PHASES = (False, True)
 #: The key's words for each phase of a mark.
 LITERATURE_PHASE_WORDS = {
@@ -121,7 +121,7 @@ LITERATURE_MARK_NOTE = (
 def lit_mark_of(
     confirmed: LiteratureView | None, proposed: LiteratureView | None
 ) -> dag.LitMark | None:
-    """F04-T63: the mark a node's pill wears: its confirmed status when a steward or curator has
+    """F04-T54: the mark a node's pill wears: its confirmed status when a steward or curator has
     signed one (a later proposal is said in the block, not drawn), else the proposal awaiting
     one, else nothing. Only a status the key can name is drawn (C7: an unknown value is left to
     the block, which shows it as itself)."""
@@ -212,7 +212,7 @@ SCRIPTS: tuple[str, ...] = (
 MATH_HEAD = '<link rel="stylesheet" href="/vendor/katex/katex.min.css">'
 #: F04-T50: opens the fold a link lands in on a statement's page.
 NODE_SCRIPT = '<script src="/node.js"></script>'
-#: F04-T63: draws Confirm and Dispute on an awaiting literature proposal, on ``/me/`` and on a
+#: F04-T54: draws Confirm and Dispute on an awaiting literature proposal, on ``/me/`` and on a
 #: node's page, after ``session.js`` has answered; ``$repo`` is the graph repository, so a pull
 #: request is linked only when it is on it.
 LITERATURE_SCRIPT = '<script src="/literature.js" data-repo="$repo"></script>'
@@ -1319,7 +1319,7 @@ class Renderer:
             + (drawn.toggle if drawn else "")
         )
 
-    # -- F04-T63 (D-25 v3.45): the literature mark ------------------------------------------
+    # -- F04-T54 (D-25 v3.45): the literature mark ------------------------------------------
 
     @staticmethod
     def literature_marks(tv: TargetView) -> dict[str, dag.LitMark]:
@@ -1929,7 +1929,7 @@ class Renderer:
             node=self.node_link(tv.target_id, nv.node_id),
             role=esc(self.node_role(tv, nv)),
             state_word=esc(self.state_label(state)),
-            lit=self.lit_badge(nv),  # F04-T63: the literature mark beside the state
+            lit=self.lit_badge(nv),  # F04-T54: the literature mark beside the state
             attempts=esc(self.attempts_words(nv)),
             action=self.node_action(tv, nv),
             # F20-T8 (R13): a statement's words, first sentence; a root's are the card's own.
@@ -2147,7 +2147,7 @@ class Renderer:
 
     def lit_row(self, tv: TargetView, nid: str, lit: LiteratureView) -> str:
         """One awaiting proposal as a row carrying what a confirmation or a dispute needs as
-        data (F04-T63: the same row on ``/me/`` and on the node's page, so ``literature.js``
+        data (F04-T54: the same row on ``/me/`` and on the node's page, so ``literature.js``
         draws the controls from one function). ``data-record`` is the proposal relative to the
         node, as ``POST /literature/confirm`` takes ``record`` and ``disputes``."""
         node_dir = f"targets/{tv.target_id}/nodes/{nid}/"
@@ -2168,7 +2168,7 @@ class Renderer:
         )
 
     def literature_act(self, tv: TargetView, nv: NodeView) -> str:
-        """F04-T63 (D-25 v3.45): on the node's page, the proposal awaiting a steward or curator
+        """F04-T54 (D-25 v3.45): on the node's page, the proposal awaiting a steward or curator
         as a hidden row with its data; ``literature.js`` shows it with Confirm and Dispute to a
         signed-in steward of the target or a curator once ``GET /session`` answers (F23-R15),
         and to nobody else. Nothing without a service address, a confirmed-only node or no
@@ -2390,7 +2390,7 @@ class Renderer:
             titles={
                 nid: f"{nid} ({name}): {tv.nodes[nid].status}" for nid, name in spec_names.items()
             },
-            literature=self.literature_marks(tv),  # F04-T63 (D-25 v3.45)
+            literature=self.literature_marks(tv),  # F04-T54 (D-25 v3.45)
         )
         svg = picture.svg
         panels = "".join(self.statement_panel(tv, nv) for nv in self.ordered_nodes(tv))
@@ -3123,7 +3123,7 @@ class Renderer:
                 f"<code>{esc(confirmed.confirmed_by or '')}</code>"
             )
             dispute = ""
-            if confirmed.disputes is not None:  # F04-T63 (D-25 v3.45)
+            if confirmed.disputes is not None:  # F04-T54 (D-25 v3.45)
                 rejected = confirmed.disputes
                 dispute = (
                     f'<p class="literature-dispute"><code>{esc(confirmed.confirmed_by or "")}'
@@ -3152,7 +3152,7 @@ class Renderer:
         )
 
     def literature_entry(self, lit: LiteratureView, lead: str, *, after: str = "") -> str:
-        """One status's fact line (``after`` follows it: F04-T63's dispute sentence), its
+        """One status's fact line (``after`` follows it: F04-T54's dispute sentence), its
         references and its demarcated summary."""
         records = [self.file_link(lit.record, label="record")]
         if lit.confirmation and lit.confirmation != lit.record:
@@ -3193,7 +3193,7 @@ class Renderer:
                 found.append(lit.record)
                 if lit.confirmation:
                     found.append(lit.confirmation)
-                if lit.disputes is not None:  # F04-T63: the rejected proposal, linked too
+                if lit.disputes is not None:  # F04-T54: the rejected proposal, linked too
                     found.append(lit.disputes.record)
         return found
 
@@ -4536,7 +4536,7 @@ class Renderer:
         )
         known = [
             *self.known_parts(tv, nv),
-            self.literature_act(tv, nv),  # F04-T63
+            self.literature_act(tv, nv),  # F04-T54
             self.defect_claims_note(nv),
         ]
         if any(known):
@@ -4550,7 +4550,7 @@ class Renderer:
             target_id=esc(tid),
             target_href=esc(self.target_path(tid)),
             heading=self.node_heading(tv, nv),
-            status=self.status_mark(nv.status, nv.cause) + self.lit_badge(nv),  # F04-T63
+            status=self.status_mark(nv.status, nv.cause) + self.lit_badge(nv),  # F04-T54
             role=self.panel_role(tv, nv, page=True),
             revision=self.revision_note(tid, nv, in_page=False),
             tutorial=(

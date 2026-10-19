@@ -232,7 +232,7 @@ APPEND_CHECKS: dict[str, str] = {
         "its path, its schema, its signature under the graph's approval key, and that its signer "
         "is an active steward of the target or a listed curator (D-25, D-32 v3.35)"
     ),
-    # F23-T41 (D-25 v3.45): the same signed record, naming the proposal it rejects.
+    # F23-T13 (D-25 v3.45): the same signed record, naming the proposal it rejects.
     "literature dispute": (
         "its path, its schema, its signature under the graph's approval key, that its signer "
         "is an active steward of the target or a listed curator, and that the record it "

@@ -63,7 +63,7 @@ def test_the_two_tools_are_bearer_writes_with_rows_titles_and_schemas() -> None:
         assert bijection.BY_TOOL[name].kind == "write"
         assert name in results.known(), name
         assert name in TITLES, name
-        # F23-T41 (D-25 v3.45): both tools write literature/v2 now, the version with `disputes`
+        # F23-T13 (D-25 v3.45): both tools write literature/v2 now, the version with `disputes`
         assert "literature/v2" in tool.description, name
         assert tool.input_schema["additionalProperties"] is False
     assert set(BY_NAME[PROPOSE].input_schema["required"]) == {
@@ -93,7 +93,7 @@ def test_propose_literature_forwards_to_its_route(harness: Harness) -> None:
     assert out["body"]["path"].endswith("/literature/20260909T120000Z-alice.yaml")
     [push] = harness.githost.pushes
     doc = yaml.safe_load(next(iter(push.files.values())))
-    assert schemas.violations(doc, literature.SCHEMA) == []  # literature/v2 since F23-T41
+    assert schemas.violations(doc, literature.SCHEMA) == []  # literature/v2 since F23-T13
     assert doc["contributor"] == "alice" and doc["signature"] is None
     assert results.violations(PROPOSE, out) == []
 
@@ -129,7 +129,7 @@ def test_confirm_literature_forwards_with_a_stewards_bearer(approval: tuple[str,
         assert out["body"]["path"].endswith("/literature/20260909T120000Z-alice.yaml")
         [push] = h.githost.pushes
         doc = yaml.safe_load(next(iter(push.files.values())))
-        assert schemas.violations(doc, literature.SCHEMA) == []  # literature/v2 since F23-T41
+        assert schemas.violations(doc, literature.SCHEMA) == []  # literature/v2 since F23-T13
         assert (doc["contributor"], doc["via"], doc["confirms"]) == ("alice", "approval-key", None)
         assert doc["key"].split()[:2] == approval[1].split()[:2]
         assert results.violations(CONFIRM, out) == []
@@ -157,7 +157,7 @@ def frontier_v5() -> dict[str, Any]:
     # The golden copy is v5 since F08-T39 regenerated it (merged after this test was written);
     # a v4 copy is lifted by hand so the test holds on either side of that commit. Since F08-T42
     # it is v6, without `circular`, so it is lowered to v5 by hand.
-    if doc["schema"] == "frontier/v7":  # F03-T40: literature.disputes; the fixture has none
+    if doc["schema"] == "frontier/v7":  # F03-T21: literature.disputes; the fixture has none
         doc["schema"] = "frontier/v6"
     if doc["schema"] == "frontier/v6":
         doc["schema"] = "frontier/v5"

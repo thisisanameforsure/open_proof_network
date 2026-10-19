@@ -1,4 +1,4 @@
-"""F04-T63 (D-25 v3.45), part 2: a disputed proposal is shown, and a signed-in steward of the
+"""F04-T54 (D-25 v3.45), part 2: a disputed proposal is shown, and a signed-in steward of the
 target or a curator can confirm or dispute an awaiting proposal from the node's own page.
 
 v3.45 lets a steward's or curator's signed literature record name in ``disputes`` the proposal

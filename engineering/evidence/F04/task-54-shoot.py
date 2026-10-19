@@ -1,4 +1,4 @@
-"""F04-T63 screenshots and measurements: the literature marks (D-25 v3.45) on a local render of
+"""F04-T54 screenshots and measurements: the literature marks (D-25 v3.45) on a local render of
 the live graph (``/Users/mikehiggins/Desktop/repos/opn-lit-graph`` at origin/main, read-only),
 rendered with ``python -m opn_site.cli render`` and served from a directory.
 
@@ -11,7 +11,7 @@ rect sits inside its pill's rect (getBBox, SVG units); the key's words and the m
 name every state the drawing shows; no page scrolls sideways at 390; the signed-out node page
 shows no control. Prints a JSON report, which is also written beside the shots.
 
-    uv run --frozen --with playwright python engineering/evidence/F04/task-63-shoot.py \
+    uv run --frozen --with playwright python engineering/evidence/F04/task-54-shoot.py \
         --site <rendered dir> --out engineering/evidence/F04
 """
 
@@ -130,9 +130,9 @@ def main() -> int:
                 "marks_on_outline_tab": [m for m in marks if not m["clear_of_tab"]],
                 "marks_hidden_off_view": sum(1 for m in marks if m["hidden"]),
             }
-            shot(page, ".dag-legend", args.out / f"task-63-problem-key-{width}.png")
-            shot(page, ".dag", args.out / f"task-63-problem-graph-{width}.png")
-            shot(page, ".dag-wrap", args.out / f"task-63-problem-card-{width}.png")
+            shot(page, ".dag-legend", args.out / f"task-54-problem-key-{width}.png")
+            shot(page, ".dag", args.out / f"task-54-problem-graph-{width}.png")
+            shot(page, ".dag-wrap", args.out / f"task-54-problem-card-{width}.png")
             if width == 1440:
                 # The key item hovered: scroll first, then hover, then capture (2026-10-04).
                 item = page.locator(".dag-legend .lit-term").first
@@ -143,27 +143,27 @@ def main() -> int:
                 # (an element screenshot scrolls, and the hover is lost — 2026-10-04).
                 box = page.locator(".dag-legend").bounding_box()
                 page.screenshot(
-                    path=str(args.out / "task-63-problem-key-hover-1440.png"),
+                    path=str(args.out / "task-54-problem-key-hover-1440.png"),
                     clip={"x": box["x"] - 8, "y": box["y"] - 8, "width": box["width"] + 16,
                           "height": box["height"] + 200},
                 )
             for label, nid in (("known", KNOWN), ("bare", BARE)):
                 page.goto(f"{base}/nodes/{TARGET}/{nid}/", wait_until="networkidle")
                 r = {**page.evaluate(OVERFLOW), **page.evaluate(NODE_DOM)}
-                r["head"] = shot(page, ".node-head", args.out / f"task-63-node-{label}-head-{width}.png")
+                r["head"] = shot(page, ".node-head", args.out / f"task-54-node-{label}-head-{width}.png")
                 if r["block"]:
                     page.evaluate(
                         "document.querySelectorAll('[data-section=known] details').forEach(d => d.open = true)"
                     )
                     r["block_text"] = shot(
-                        page, '[data-block="literature"]', args.out / f"task-63-node-{label}-block-{width}.png"
+                        page, '[data-block="literature"]', args.out / f"task-54-node-{label}-block-{width}.png"
                     )
                 report[f"node-{label}@{width}"] = r
             ctx.close()
         browser.close()
     server.shutdown()
     out = json.dumps(report, indent=1, ensure_ascii=False)
-    (args.out / "task-63-measure.json").write_text(out + "\n", encoding="utf-8")
+    (args.out / "task-54-measure.json").write_text(out + "\n", encoding="utf-8")
     print(out)
     return 0
 

@@ -1,4 +1,4 @@
-$ uv run --frozen python measure_tools_list.py   # after F23-T41 (the disputes parameter, the confirm/dispute wording) and F09-T74 (the get_node and list_frontier clauses)
+$ uv run --frozen python measure_tools_list.py   # after F23-T13 (the disputes parameter, the confirm/dispute wording) and F09-T74 (the get_node and list_frontier clauses)
 get_node description 817 input 432
 list_frontier description 483 input 584
 confirm_literature description 823 input 1254

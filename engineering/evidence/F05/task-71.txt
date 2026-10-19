@@ -1,7 +1,0 @@
-$ uv run --frozen pytest api/tests/test_literature_route.py "api/tests/test_finding_literature_dispute_route.py::test_the_proposal_route_writes_literature_v2" api/tests/test_finding_literature_mcp_products.py -m "not lean and not docker and not network and not harness" -q   # F05-T71: POST /literature writes literature/v2 (disputes: null); the MCP propose/confirm tools say v2
-............................                                             [100%]
-=============================== warnings summary ===============================
-api/tests/api_fakes.py:32
-
-
-28 passed, 2 warnings in 7.08s

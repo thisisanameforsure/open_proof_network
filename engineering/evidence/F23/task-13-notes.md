@@ -1,15 +1,15 @@
-# F23-T41 / F05-T71 / F09-T74 — running notes (branch `lit-service`, worktree `opn-lit-service`)
+# F23-T13 / F05-T31 / F09-T74 — running notes (branch `lit-service`, worktree `opn-lit-service`)
 
 Base: 8f33c2d0 (the lead's contract: `literature/v2`, `graph/v13`, `frontier/v7`, `context/v9`; decisions v3.45).
 
 ## What was done
 
-1. **F23-T41 (with F05-T71), commit 1ca0a0be.** `api/opn_api/literature.py`:
+1. **F23-T13 (with F05-T31), commit 1ca0a0be.** `api/opn_api/literature.py`:
    - `SCHEMA = "literature/v2"`; new `SCHEMAS = ("literature/v1", "literature/v2")` for what a record *on the
      node* may declare — the live graph's proposals are v1 and must stay confirmable and disputable (D-34).
      Before this, `checked_record` compared the file's schema to `SCHEMA`, so bumping the constant alone would
      have refused every v1 proposal on the record; the parametrised happy-path test covers both versions.
-   - `POST /literature` writes `disputes: None` (F05-T71; one constant serves both routes, so the bump is in
+   - `POST /literature` writes `disputes: None` (F05-T31; one constant serves both routes, so the bump is in
      this commit rather than its own).
    - `POST /literature/confirm`: `CONFIRM_FIELDS` gains `disputes`; `checked_named` refuses `record` and
      `disputes` together (400 `arguments-invalid`, message naming both, `field: disputes`); `checked_record`
@@ -44,11 +44,11 @@ Base: 8f33c2d0 (the lead's contract: `literature/v2`, `graph/v13`, `frontier/v7`
 
 ## Test counts
 
-- Red (seam missing, mostly `unknown-field`): 21 failed, 1 passed — `task-41-red-seam-missing.txt`.
+- Red (seam missing, mostly `unknown-field`): 21 failed, 1 passed — `task-13-red-seam-missing.txt`.
 - Red (seam at today's behaviour: `disputes` accepted and ignored, MCP parameter forwarded): 18 failed,
   4 passed — the route opened a confirmation-shaped v1 record for a dispute and refused nothing —
-  `task-41-red.txt`.
-- Green: the new file 22 passed; the nine literature/MCP suites 122 passed (`task-41.txt`); the whole api
+  `task-13-red.txt`.
+- Green: the new file 22 passed; the nine literature/MCP suites 122 passed (`task-13.txt`); the whole api
   fast tier 2,163 passed; F05 slice 28 passed (`F05/task-71.txt`); T74 slice 25 passed
   (`F09/task-74-after.txt`). `make lint` exit 0; `mypy --strict api` clean (262 files).
 
@@ -73,7 +73,7 @@ Base: 8f33c2d0 (the lead's contract: `literature/v2`, `graph/v13`, `frontier/v7`
 - F23 **T41** ✓ 2026-10-19 (D-25, D-32 v3.45; worktree agent; red first 21 failed on `unknown-field` with
   the seam missing, then 18 failed on the defect with `disputes` accepted and ignored; green 22 in
   `test_finding_literature_dispute_route.py`, 122 across the literature and MCP suites, api fast tier 2,163;
-  `engineering/evidence/F23/task-41*.txt`) — `POST /literature/confirm` takes `disputes` beside `record`,
+  `engineering/evidence/F23/task-13*.txt`) — `POST /literature/confirm` takes `disputes` beside `record`,
   exclusive (400 naming both), an unsigned proposal on the node only (404 `not-found`; 400 for a non-record
   or a signed file); the signed record is `literature/v2` with the signer's own reading; v1 proposals on the
   record stay confirmable and disputable; the pull request says it is a dispute; `me.js`'s five fields confirm
@@ -104,5 +104,5 @@ stay on the graph), and writes v2 only.
 - `make lint` exit 2 (F811 from importing fixtures by name, five E501); rebuilt the fixtures locally over
   `harness_over`/`make_tree`, wrapped lines; lint 0, mypy 0. One scripted replace aborted on a substring
   that matched twice (the 2026-09-09 lesson) — redone with the Edit tool.
-- Full api fast tier 2,163 passed. Committed 1ca0a0be (T41 + F05-T71).
+- Full api fast tier 2,163 passed. Committed 1ca0a0be (T41 + F05-T31).
 - Moved the T74 words test to its own file so each commit is green alone; measured after: 111,561.

@@ -91,7 +91,7 @@ def revise(root: Path, node_id: str) -> str:
 def graph_rows(root: Path) -> dict[str, dict[str, Any]]:
     tg = graph.load_target(root, TARGET)
     doc = products.graph_doc(tg, None)
-    assert doc["schema"] == "graph/v13" == products.GRAPH_SCHEMA  # v13 F08-T54; v12 F29-T1
+    assert doc["schema"] == "graph/v13" == products.GRAPH_SCHEMA  # v13 F08-T43; v12 F29-T1
     assert schemas.violations(doc, "graph/v13") == [], "graph.json is not graph/v13"
     return {n["node_id"]: n for n in doc["nodes"]}
 

@@ -104,7 +104,7 @@ def built(tmp_path_factory: pytest.TempPathFactory) -> tuple[model.Site, dict[st
                 "contributor": "t1008-c",
                 "confirmed_by": "mike",
                 "confirmation": confirmation,
-                "disputes": None,  # graph/v13 (F08-T54)
+                "disputes": None,  # graph/v13 (F08-T43)
             },
         },
         literature_proposed={
@@ -342,7 +342,7 @@ def test_the_script_confirms_through_the_service_with_the_proposals_fields() -> 
     """The control calls ``POST /literature/confirm`` with ``{node_id, record, status,
     references, summary}`` copied from the row, for a steward's targets and, for a curator,
     every target's list (``data-role``-free: the role comes from the session, the lists from the
-    page). F04-T63 restated this test to the rule: the control itself lives in
+    page). F04-T54 restated this test to the rule: the control itself lives in
     ``literature.js`` (one function for ``/me/`` and the node's page); ``me.js`` reaches it
     through ``OPN.literature.confirmButton`` and still chooses the lists by role."""
     static = Path(render.__file__).resolve().parent / "static"

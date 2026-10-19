@@ -30,7 +30,7 @@ from opn_gate.signer import Signer
 
 log = logging.getLogger(__name__)
 
-SCHEMA = "literature/v2"  # F08-T54 (D-25 v3.45): `disputes`
+SCHEMA = "literature/v2"  # F08-T43 (D-25 v3.45): `disputes`
 #: Every version a record may carry; v1 records on the graph stay readable (D-34).
 SCHEMAS: tuple[str, ...] = ("literature/v1", "literature/v2")
 DIR = "literature"
@@ -69,7 +69,7 @@ class Record:
 
     @property
     def disputes(self) -> str | None:
-        """F08-T54 (D-25 v3.45): the proposal a signed record rejects, or None (v1 records
+        """F08-T43 (D-25 v3.45): the proposal a signed record rejects, or None (v1 records
         carry no such field)."""
         named = self.doc.get("disputes")
         return str(named) if named else None
@@ -189,7 +189,7 @@ def derive(
             basis = latest
         else:
             covered_name = basis.name
-        # F08-T54 (D-25 v3.45): a confirmation that disputes a proposal states the status itself
+        # F08-T43 (D-25 v3.45): a confirmation that disputes a proposal states the status itself
         # and covers the proposal it rejects, which the products publish beside it.
         disputes: dict[str, Any] | None = None
         rejected_name = latest.disputes

@@ -1,0 +1,12 @@
+$ uv run --frozen pytest api/tests/test_finding_literature_dispute_route.py api/tests/test_literature_confirm_route.py api/tests/test_literature_route.py api/tests/test_finding_literature_mcp_products.py api/tests/test_mcp_surface.py api/tests/test_mcp_auth.py api/tests/test_mcp_equivalence.py api/tests/test_finding_unknown_fields.py api/tests/test_finding_context_window.py -m "not lean and not docker and not network and not harness" -q   # F23-T13 green (the red runs are task-13-red-seam-missing.txt and task-13-red.txt)
+======================= 122 passed, 2 warnings in 17.53s =======================
+
+$ make lint; echo exit $?
+uv run --frozen ruff format --check .
+881 files already formatted
+exit 0
+$ uv run --frozen mypy --strict api
+Success: no issues found in 262 source files
+
+$ uv run --frozen pytest api/tests -m "not lean and not docker and not network and not harness" -q   # the whole api fast tier
+2163 passed, 2 warnings in 135.26s (0:02:15)

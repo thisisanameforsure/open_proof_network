@@ -2232,7 +2232,7 @@ def check_literature_record(  # noqa: PLR0911 — one return per rule
                 )
             ]
         if record.disputes is not None:
-            # F08-T54 (D-25 v3.45): a dispute is a signed act, as a confirmation is.
+            # F08-T43 (D-25 v3.45): a dispute is a signed act, as a confirmation is.
             return [
                 Diagnostic(
                     "literature-signature",
@@ -2274,7 +2274,7 @@ def check_literature_record(  # noqa: PLR0911 — one return per rule
 def _literature_named_problems(
     located: Located, record: LiteratureRecord, node_dir: Path
 ) -> list[Diagnostic]:
-    """What a signed record names: ``confirms`` is a record on the node; ``disputes`` (F08-T54,
+    """What a signed record names: ``confirms`` is a record on the node; ``disputes`` (F08-T43,
     D-25 v3.45) is an unsigned proposal on the node — not a missing file, not the record itself,
     not a signed record (a later signed record supersedes one by date, with nothing to dispute);
     and never both, a conflict returned alone."""
@@ -2312,7 +2312,7 @@ def _literature_named_problems(
 
 
 def _not_a_proposal(node_dir: Path, named: str, *, own: str) -> str | None:
-    """F08-T54 (D-25 v3.45): why ``named`` (relative to the node) is not an unsigned proposal a
+    """F08-T43 (D-25 v3.45): why ``named`` (relative to the node) is not an unsigned proposal a
     signed record may dispute, or ``None`` when it is one."""
     from opn_gate import literature  # noqa: PLC0415 — only the literature checks read it
 

@@ -1,4 +1,4 @@
-"""F23-T41, F05-T71, F09-T74 (D-25, D-32 v3.45): a steward or curator *disputes* a proposed
+"""F23-T13, F05-T31, F09-T74 (D-25, D-32 v3.45): a steward or curator *disputes* a proposed
 literature status as well as confirming it.
 
 ``POST /literature/confirm`` takes ``disputes`` beside ``record`` — the same grammar, exclusive
@@ -260,7 +260,7 @@ def test_a_dispute_without_the_signers_own_reading_is_400(h: Harness) -> None:
     assert h.githost.pushes == []
 
 
-# --- F05-T71: the proposal route writes v2 ---------------------------------------------------
+# --- F05-T31: the proposal route writes v2 ---------------------------------------------------
 
 
 def test_the_proposal_route_writes_literature_v2(harness: Harness) -> None:

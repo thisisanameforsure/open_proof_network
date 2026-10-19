@@ -44,7 +44,7 @@ PRODUCT_SCHEMAS: dict[str, tuple[str, ...]] = {
         "frontier/v4",  # F03-T16: status, cause, needs
         "frontier/v5",  # F03-T18 (D-12 v3.35): circular, literature, literature_proposed
         "frontier/v6",  # F08-T42 (D-12 v3.43): circular retired; the site ignores it on v5
-        "frontier/v7",  # F03-T40 (D-25 v3.45): literature.disputes
+        "frontier/v7",  # F03-T21 (D-25 v3.45): literature.disputes
     ),
     "info.json": ("info/v1", "info/v2"),  # v2: F05-T25
     "targets/index.json": (
@@ -73,7 +73,7 @@ PRODUCT_SCHEMAS: dict[str, tuple[str, ...]] = {
         "graph/v10",  # F28-T8 (D-12 v3.42): each node's closure
         "graph/v11",  # F08-T42 (D-12 v3.43): circular retired; the site ignores it on v6-v10
         "graph/v12",  # F29-T1 (D-25 v3.44): label, label_source, claim; approach
-        "graph/v13",  # F08-T54 (D-25 v3.45): literature.disputes
+        "graph/v13",  # F08-T43 (D-25 v3.45): literature.disputes
     ),
 }
 log = logging.getLogger(__name__)
@@ -326,7 +326,7 @@ class Reference:
 
 @dataclass(frozen=True)
 class DisputedProposal:
-    """F04-T63 (D-25 v3.45): the proposal a signed literature record rejected, as the products
+    """F04-T54 (D-25 v3.45): the proposal a signed literature record rejected, as the products
     publish it beside the signer's reading (``graph/v13`` ``literature.disputes``): what it
     said, its record (relative to the graph root) and who filed it."""
 
@@ -354,7 +354,7 @@ class LiteratureView:
     summary: str | None = None
     model: str | None = None
     readable: bool = True
-    #: F04-T63 (v3.45): the proposal this confirmed reading rejected; ``None`` when the signer
+    #: F04-T54 (v3.45): the proposal this confirmed reading rejected; ``None`` when the signer
     #: confirmed a proposal or stated the status unprompted, and for every proposal.
     disputes: DisputedProposal | None = None
 
@@ -1115,7 +1115,7 @@ def _literature_for(root: Path, node_dir: Path, raw: object) -> LiteratureView |
     rel = str(raw.get("record") or "")
     prefix = node_dir.relative_to(root).as_posix()
     confirmation = raw.get("confirmation")
-    rejected = raw.get("disputes")  # graph/v13 (F08-T54); absent or null before
+    rejected = raw.get("disputes")  # graph/v13 (F08-T43); absent or null before
     view = LiteratureView(
         status=str(raw.get("status") or ""),
         record=f"{prefix}/{rel}",

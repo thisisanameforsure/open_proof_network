@@ -134,4 +134,4 @@ def test_the_graph_product_is_the_next_version() -> None:
     that."""
     assert (
         products.GRAPH_SCHEMA == "graph/v13"
-    )  # F08-T54: literature.disputes; F29-T1 (v12): labels
+    )  # F08-T43: literature.disputes; F29-T1 (v12): labels

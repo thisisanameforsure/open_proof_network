@@ -2,7 +2,7 @@
 
 A steward of the node's target, or a curator, confirms a proposed literature record — or states
 the status themselves — from the site (the F23 web session) or with a bearer whose identity is a
-GitHub login. The service writes a signed ``literature/v2`` record (F23-T41) as that login:
+GitHub login. The service writes a signed ``literature/v2`` record (F23-T13) as that login:
 ``confirms``
 names the proposal (or is null), ``via: approval-key``, ``key`` the approval key's public half
 and ``signature`` by the approval key over the canonical body, exactly as ``POST /stewards`` and
@@ -122,7 +122,7 @@ def landed(h: Harness, tree: Path, response: Any) -> dict[str, Any]:
     shutil.copytree(tree, over)
     (over / path).parent.mkdir(parents=True, exist_ok=True)
     (over / path).write_text(push.files[path], encoding="utf-8")
-    return dict(schemas.load_yaml(over / path, literature.SCHEMA))  # literature/v2 since F23-T41
+    return dict(schemas.load_yaml(over / path, literature.SCHEMA))  # literature/v2 since F23-T13
 
 
 def verifies(doc: dict[str, Any], public: str) -> None:

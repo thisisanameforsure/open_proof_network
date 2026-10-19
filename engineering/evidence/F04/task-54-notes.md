@@ -1,4 +1,4 @@
-# F04-T63 — literature marks, disputes, confirm/dispute on the node page (running notes)
+# F04-T54 — literature marks, disputes, confirm/dispute on the node page (running notes)
 
 Worktree `/Users/mikehiggins/Desktop/repos/opn-lit-site`, branch `lit-site`, from `8f33c2d0`
 (the lead's contract commit: `graph/v13`, `frontier/v7`, decisions v3.45).
@@ -45,7 +45,7 @@ Part 3 (evidence): render the live graph read-only, shoot and measure with Playw
 
 ### Part 1 — the mark (2026-10-19)
 
-- Red first: `task-63-part1-red.txt`. With the renderer untouched, the page tests failed on the
+- Red first: `task-54-part1-red.txt`. With the renderer untouched, the page tests failed on the
   defect (no `lit-mark` on any pill, no title, an empty literature key, no `--lit-*` token); the
   seam tests failed on missing names only after the drawing seam (`dag.LitMark`,
   `dag.literature_mark`, the `literature` argument of `dag.svg`, `one_view._pill_markup`,
@@ -75,7 +75,7 @@ Part 3 (evidence): render the live graph read-only, shoot and measure with Playw
 
 ### Part 2 — disputes and the node-page controls
 
-- Red first: `task-63-part2-red.txt`: the block showed no dispute sentence, the panel none, the
+- Red first: `task-54-part2-red.txt`: the block showed no dispute sentence, the panel none, the
   node page no slot, `literature.js` did not exist; two model tests failed on the missing
   `disputes` attribute (names, not red).
 - `model.DisputedProposal` + `LiteratureView.disputes` (read from `graph/v13`'s
@@ -96,7 +96,7 @@ Part 3 (evidence): render the live graph read-only, shoot and measure with Playw
   in process) drove a steward session: Confirm and Dispute drawn, the dispute form filled and
   posted (body asserted), Confirm's body asserted equal to the proposal's fields, a signed-out
   reader and a steward of another target see no control, a curator sees both; shots
-  `task-63-node-act-*.png`. So the signed-in state *was* captured, through the fake service,
+  `task-54-node-act-*.png`. So the signed-in state *was* captured, through the fake service,
   not the live one.
 
 ### Part 3 — the live render
@@ -104,15 +104,15 @@ Part 3 (evidence): render the live graph read-only, shoot and measure with Playw
 - `PYTHONPATH=gate:site OPN_SITE_API_URL=https://api.example.test uv run --frozen python -m
   opn_site.cli render --graph /Users/mikehiggins/Desktop/repos/opn-lit-graph --commit
   00f4bc884917ca439772c6b72186ba5438c3f715 --out <scratch>` → 351 pages; the graph checkout
-  stayed clean (`git status` empty). `task-63-shoot.py` served it and measured
-  (`task-63-measure.json`): 12 marks on erdos-1094 (11 `known, proposed`, 1 `open, proposed`
+  stayed clean (`git status` empty). `task-54-shoot.py` served it and measured
+  (`task-54-measure.json`): 12 marks on erdos-1094 (11 `known, proposed`, 1 `open, proposed`
   on the open core `--h2`), every mark inside its pill's rect, clear of its label and clear of
   the outline tab (checked against the tab's own bbox), key items inside the key's box at 1440
   and 390, `scrollWidth == innerWidth` on all three pages at 390, the signed-out node page with
   the slot hidden and zero controls in `main`, the head badge's title on `--h2--h1--h1` and no
   badge, block or slot on `--h2--h2--h3--h1--h1`.
-- Looked at: `task-63-problem-graph-1440.png` (marks read as small orange/blue squares at the
-  pills' top right; the one blue one is the open core), `task-63-problem-key-hover-1440.png`
+- Looked at: `task-54-problem-graph-1440.png` (marks read as small orange/blue squares at the
+  pills' top right; the one blue one is the open core), `task-54-problem-key-hover-1440.png`
   (the key's two new items, the hovered card with the words), the head and block shots, the 390
   key (wraps to five rows inside the card) and graph (the drawing scrolls inside `.dag-scroll`
   as before; the page itself does not). Nothing in them looked wrong after the tab move; the
@@ -127,7 +127,7 @@ and key with the drawing seam in place, then 8 on the dispute sentence, slot and
 browser; site tier counts in the notes; the live graph `00f4bc884` rendered read-only: 12 marks,
 all inside their pills and clear of labels and outline tabs, key items in the key at 1440 and
 390, no sideways scroll; the steward's Confirm and Dispute driven against a fake service;
-`engineering/evidence/F04/task-63-*`; on the site at the next deploy, the dispute sentence once
+`engineering/evidence/F04/task-54-*`; on the site at the next deploy, the dispute sentence once
 the re-pin publishes `graph/v13`).
 
 ## Proposed Q entry (F04-Q53)
@@ -167,4 +167,4 @@ the same function. Reversal: `dag.literature_mark`, `render.literature_key`, `li
 - `uv run --frozen pytest site/tests -m "not lean and not docker and not network and not
   harness" -q`: **790 passed, 14 skipped** (the skips are Playwright; the two new browser tests
   ran green under `--with playwright`, shots in the evidence). `make lint` exit 0.
-  `uv run --frozen mypy --strict site`: no issues in 113 files. `task-63.txt`.
+  `uv run --frozen mypy --strict site`: no issues in 113 files. `task-54.txt`.

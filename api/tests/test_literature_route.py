@@ -1,7 +1,7 @@
 """F05-T29: ``POST /literature`` (D-3, D-25, D-32 v3.35; the amendment of 2026-10-08 §2).
 
 Any contributor proposes what the literature says of a statement: the service writes an
-unsigned ``literature/v2`` record (F23-T41) as the token's identity, dated now, and opens it on
+unsigned ``literature/v2`` record (F23-T13) as the token's identity, dated now, and opens it on
 the node's
 ``literature/<ts>-<contributor>.yaml`` through the append machinery (one target, same-second
 rule, duplicate rule). The pull request names the target's current stewards as the people whose
@@ -82,7 +82,7 @@ def only_file(h: Harness) -> tuple[str, str]:
 
 
 def test_a_proposal_lands_as_an_unsigned_literature_record_by_the_caller(harness: Harness) -> None:
-    """The record is literature/v2 (F23-T41), attributed to the token's identity, dated now,
+    """The record is literature/v2 (F23-T13), attributed to the token's identity, dated now,
     with every signature field null; it sits at the node's literature/<ts>-<contributor>.yaml."""
     token = harness.token_for("code_alice", "alice")
     r = post(harness, token, proposal())
@@ -91,7 +91,7 @@ def test_a_proposal_lands_as_an_unsigned_literature_record_by_the_caller(harness
     assert path == NODE_DIR + "literature/20260909T120000Z-alice.yaml"
     doc = yaml.safe_load(content)
     assert schemas.violations(doc, literature.SCHEMA) == []
-    assert doc["schema"] == literature.SCHEMA == "literature/v2"  # F23-T41 (D-25 v3.45)
+    assert doc["schema"] == literature.SCHEMA == "literature/v2"  # F23-T13 (D-25 v3.45)
     assert (doc["node"], doc["contributor"], doc["date"]) == (NODE, "alice", "2026-09-09T12:00:00Z")
     assert doc["status"] == "known"
     assert doc["references"] == proposal()["references"]

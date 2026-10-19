@@ -8,7 +8,7 @@
 // F04-T38 (D-25, D-32 v3.35): each problem's unconfirmed literature records are in the shell too
 // (.literature-waiting, one .lit-row per record carrying what a confirmation needs as data); a
 // steward sees their problems' lists, a curator every problem's, each row with Confirm, drawn by
-// literature.js (F04-T63: the same control as the node page's), which calls
+// literature.js (F04-T54: the same control as the node page's), which calls
 // POST /literature/confirm with the proposal's own fields.
 (function () {
   "use strict";
@@ -50,7 +50,7 @@
     li.appendChild(out);
   }
 
-  // F04-T63: Confirm is literature.js's (one function for /me/ and the node's page).
+  // F04-T54: Confirm is literature.js's (one function for /me/ and the node's page).
   var confirmButton = O.literature && O.literature.confirmButton;
 
   O.session.then(function (s) {

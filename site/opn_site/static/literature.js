@@ -1,4 +1,4 @@
-// Confirm or dispute a literature proposal (F04-T63; D-25 v3.45, D-36 v3.33). A page is static:
+// Confirm or dispute a literature proposal (F04-T54; D-25 v3.45, D-36 v3.33). A page is static:
 // an awaiting proposal is a .lit-row carrying what a signed record needs as data (the node, the
 // proposal's record relative to the node, its status, references and summary). On /me/ the rows
 // sit in per-problem lists me.js shows to a steward or a curator; on a statement's page one row

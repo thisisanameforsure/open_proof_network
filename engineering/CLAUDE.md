@@ -1727,3 +1727,21 @@ The law of the project:
   deployed" was not "merged" — the deploy rebuilt old main for hours because my hand-off listed the merge
   in prose and the owner ran the two commands; run the merge and the deploy yourself and check the live page.
 
+- 2026-10-19 — Mike asked whether erdos-1094 reduces to known results; the answer, measured by walking every
+  decomposition with proved and literature-`known` nodes counted as closed, is no: one chain to
+  `--h2--h2--h3--h1--h1` (Ecklund's conjecture for n beyond van Doorn–Tang's range) has no known result, and
+  the two known inputs (Konyagin 1999, BHP 2001) are not in Lean. Then on his word, decisions v3.45: a steward
+  or curator may **dispute** a proposed literature status (a signed `literature/v2` record naming the
+  proposal it rejects, the signer's reading published with the rejection beside it), the context bundle
+  inlines each record's summary and references, and the site draws the status as a mark on the pill with
+  Confirm and Dispute on the node page. Built on branch `lit-marks` (contract first, three worktree agents).
+  Four things worth keeping. **Take task ids from the spec's own ledger, not from a grep of `T\d+`**: my
+  first count read other features' task mentions (F07-T62 in F04's spec) as F04's own, so three agents were
+  briefed with ids five to twenty-eight too high and every file and commit message had to be renumbered at
+  merge. **A per-directory schema rule is a second place a version lives**: `paths.SCHEMAS_FOR_ROLE` listed
+  `literature/v1` alone, so every v2 record would have been `record-invalid` before the new check ever ran;
+  the service agent found it by reading, the gate agent by its first red. **Inline through the reader, not
+  the disk**: the bundle has two builders (F10-Q7), so the record's words are read through the `Reader`
+  both share, and the parity test lives on each side. **The sibling graph checkout is stale and fails the
+  guide-copy test on its own**: run the suite with `OPN_GRAPH_CHECKOUT` at a detached worktree of graph
+  `origin/main` and say so in the commit, rather than skipping the hook silently.

@@ -409,7 +409,7 @@ SCHEMAS_FOR_ROLE: dict[Role, tuple[str, ...]] = {
     "proposed-for": ("proposed-for/v1",),
     "withdrawal": ("withdrawal/v1", "withdrawal/v2"),  # v2: gloss and explainer versions (F20)
     "credit-correction": ("credit-correction/v1",),
-    # F08-T40 (D-25 v3.35); v2: disputes (F08-T54, D-25 v3.45).
+    # F08-T40 (D-25 v3.35); v2: disputes (F08-T43, D-25 v3.45).
     "literature": ("literature/v1", "literature/v2"),
     "registration": ("registration/v1",),  # F25-R5 (D-10 v3.37)
     # F26-R1 (D-9 v3.39): the review's records.

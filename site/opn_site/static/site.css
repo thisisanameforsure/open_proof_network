@@ -25,7 +25,7 @@
   --warn: #d9a441;
   --bad: #e07a7a;
   --select: #f2b544; /* F30-T10: a selected node or edge in the sufficient-sets tree */
-  /* F04-T63 (D-25 v3.45): the literature mark's three statuses — none a proof-status colour,
+  /* F04-T54 (D-25 v3.45): the literature mark's three statuses — none a proof-status colour,
      each reading on this dark ground and on a white one. */
   --lit-open: #4fa3e3;
   --lit-known: #e8913a;
@@ -592,7 +592,7 @@ main > h2 { padding-top: var(--s4); border-top: 1px solid var(--divider); }
 .literature .prose-block { margin: var(--s3) 0 var(--s2); }
 .literature-waiting { padding-left: 1.2em; }
 .literature-waiting .lit-row { margin-bottom: var(--s2); overflow-wrap: anywhere; }
-/* F04-T63 (D-25 v3.45): the dispute sentence, and the node page's confirm/dispute slot. */
+/* F04-T54 (D-25 v3.45): the dispute sentence, and the node page's confirm/dispute slot. */
 .literature-dispute { margin: var(--s2) 0; overflow-wrap: anywhere; }
 .lit-act { margin: var(--s4) 0; font-size: 14px; color: var(--n300); }
 .lit-act .cue { margin: 0 0 var(--s2); font-size: 13px; }
@@ -1077,7 +1077,7 @@ th[aria-sort="descending"] .routes-sort::after { content: " ↓"; }
 .dot-route-or { border: 1.5px solid var(--text); border-radius: 1px; transform: rotate(45deg); width: 8px; height: 8px; }
 .dot-route-dead { border: 1.5px dashed var(--bad); }
 .dot-closable { border: 0; background: var(--accent-300); border-radius: 1px; width: 8px; height: 8px; }
-/* F04-T63 (D-25 v3.45): the literature mark — a small square inside a pill's top-right corner and
+/* F04-T54 (D-25 v3.45): the literature mark — a small square inside a pill's top-right corner and
    the same square inline as a badge (the key, the listing row, the node page's head). The colour
    is the status (--lit); hollow and dashed while only proposed, filled once confirmed. It never
    touches the pill's own status: no rule here keys on .node.lit-*, nothing is muted. */
