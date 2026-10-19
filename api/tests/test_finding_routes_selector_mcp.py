@@ -119,16 +119,18 @@ def test_list_sufficient_sets_carries_each_routes_approach_and_each_holes_label(
     assert by_id["t--h1@1"]["holes"][0]["label"] == "t--h1--h1"  # the id, as graph.json has it
 
 
-def test_the_answer_is_versioned_v2(harness: Harness) -> None:
-    """The result schema moved to v2 for the three fields; v1 is still served by name."""
-    assert results.schema_id("list_sufficient_sets") == "mcp/list_sufficient_sets/v2"
+def test_the_answer_is_versioned(harness: Harness) -> None:
+    """The result schema moved to v2 for the three fields and to v3 for ``at_proved`` and
+    ``proof_routes`` (F27-T9); v2 and v1 are still served by name."""
+    assert results.schema_id("list_sufficient_sets") == "mcp/list_sufficient_sets/v3"
     client = McpClient(harness)
-    assert client.ok("get_schema", {"name": "mcp/list_sufficient_sets/v2"}) == results.load(
+    assert client.ok("get_schema", {"name": "mcp/list_sufficient_sets/v3"}) == results.load(
         "list_sufficient_sets"
     )
-    assert client.ok("get_schema", {"name": "mcp/list_sufficient_sets/v1"}) == results.load(
-        "list_sufficient_sets", "v1"
-    )
+    for older in ("v2", "v1"):
+        assert client.ok("get_schema", {"name": f"mcp/list_sufficient_sets/{older}"}) == (
+            results.load("list_sufficient_sets", older)
+        )
     seed_routes(harness, labelled_graph())
     got = client.ok("list_sufficient_sets", {"target_id": ROUTES_TARGET})
     assert results.violations("list_sufficient_sets", got) == []

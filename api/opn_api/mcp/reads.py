@@ -365,10 +365,22 @@ async def list_sufficient_sets(call: Call, args: dict[str, Any]) -> dict[str, An
     cut = args.get("cut", "finest")
     if cut not in routes.CUTS:
         raise error("arguments-invalid", f"cut must be one of {', '.join(routes.CUTS)}", "adapter")
+    # F27-T9 (R13): stop at a proved statement (the default) or follow what its proof rests on
+    at_proved = args.get("at_proved", "stop")
+    if at_proved not in routes.AT_PROVED:
+        raise error(
+            "arguments-invalid",
+            f"at_proved must be one of {', '.join(routes.AT_PROVED)}",
+            "adapter",
+        )
     graph = document(ctx, f"targets/{target_id}/graph.json")
     served = service_answer(await call.endpoint("GET", "/frontier.json"), "/frontier.json")
     found = routes.read(
-        graph, served.get("entries") or [], cut=cut, max_sets=ctx.settings.routes_max_sets
+        graph,
+        served.get("entries") or [],
+        cut=cut,
+        max_sets=ctx.settings.routes_max_sets,
+        at_proved=at_proved,
     )
     # F28-T4 (R12, v3.41): the nodes whose proof exists in parts, read from the same graph; a
     # closable node is still open until its closing proof merges.
@@ -1315,17 +1327,17 @@ TOOLS: tuple[Tool, ...] = (
     Tool(  # F27-T2: D-28's read table, v3.40
         "list_sufficient_sets",
         "A target as an AND-OR graph (D-25 v3.40). `routes`: each merged decomposition "
-        "(id `<node>@<k>`), all of whose holes are needed, with its `approach` (the partial's "
-        "one-line attack), each hole's `label`, status, attempts and refuted route classes, "
-        "and a `summary` (holes, proved, open, dead, attempts, unattempted, "
-        "`oldest_open_since`). `sets`: statements whose proofs, with the closing proofs of "
-        "their `assemblies`, would close the root; each with `open`, `proved`, `routes`, "
-        "`total`, `closed`, `remaining`, `shared`. `selector`: the tree of route choices over "
-        "the sets (an interior node names the statement chosen on, each child its route; a "
-        "leaf is one set). `cut: finest` (default) expands "
-        "every node with a live route; `cut: any` adds the coarser cuts up to a cap "
-        "(`truncated`). Record order, never ranked; claiming a hole or proposing a route is "
-        "the operator's choice. Plain path: targets/<id>/graph.json + GET /frontier.json.",
+        "(id `<node>@<k>`), all of whose holes are needed, with its `approach`, each hole's "
+        "`label`, status, attempts and refuted route classes, and a `summary` (holes, proved, "
+        "open, dead, attempts, unattempted, `oldest_open_since`), so a stalled route shows. "
+        "`sets`: statements whose proofs, with the closing proofs of their `assemblies`, would "
+        "close the root; each with `open`, `proved`, `routes`, `total`, `closed`, `remaining`, "
+        "`shared`. `selector`: the tree of route choices over the sets (a leaf: one set). "
+        "`cut: any` adds the coarser cuts up to a cap (`truncated`). `at_proved: follow` also "
+        "lists what each proved statement's proof rests on (`proof_routes`: the assemblies it "
+        "went through); the sets and ids are the same. Record order, never ranked; "
+        "claiming a hole or proposing a route is the operator's choice. Plain path: "
+        "targets/<id>/graph.json + GET /frontier.json.",
         params(
             {
                 "target_id": ID_PARAM,
@@ -1334,6 +1346,12 @@ TOOLS: tuple[Tool, ...] = (
                     "enum": list(routes.CUTS),
                     "description": "finest (default): every node with a live route expanded; "
                     "any: the coarser cuts too.",
+                },
+                "at_proved": {
+                    "type": "string",
+                    "enum": list(routes.AT_PROVED),
+                    "description": "stop (default): a proved statement ends the set; follow: "
+                    "what its proof rests on is listed beneath it too.",
                 },
             },
             ("target_id",),

@@ -26,7 +26,7 @@ VERSION = "v1"
 #: F29-T4: a tool whose result schema has moved on names its current version here; every other
 #: tool's is ``VERSION``. An older version stays served by name (``get_schema``), never declared.
 VERSIONS: dict[str, str] = {
-    "list_sufficient_sets": "v2",  # approach, label, selector (F29-R8)
+    "list_sufficient_sets": "v3",  # at_proved, proof_routes (F27-R13); v2 added the selector
     "get_node": "v2",  # label, label_source, claim (F29-R8)
 }
 NAME_RE = re.compile(r"^mcp/(?P<tool>[a-z][a-z_]*)/(?P<version>v[1-9][0-9]*)$")
