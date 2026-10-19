@@ -1,0 +1,16 @@
+# F04-T63 verification (2026-10-19), worktree lit-site
+
+$ uv run --frozen pytest site/tests -m "not lean and not docker and not network and not harness" -q
+SKIPPED [1] site/tests/test_me_reviews.py:127: could not import 'playwright.sync_api': No module named 'playwright'
+SKIPPED [5] site/tests/test_one_view.py:374: could not import 'playwright.sync_api': No module named 'playwright'
+790 passed, 14 skipped in 91.49s (0:01:31)
+pytest exit 
+lint exit 0
+Success: no issues found in 113 source files
+mypy exit 
+
+$ OPN_F04_T63_SHOTS=engineering/evidence/F04 uv run --frozen --with playwright pytest site/tests/test_finding_literature_dispute.py -k "steward or reader"
+2 passed, 10 deselected (the browser tests against the fake service)
+
+$ uv run --frozen --with playwright python engineering/evidence/F04/task-63-shoot.py --site <live render of opn-lit-graph 00f4bc884> --out engineering/evidence/F04
+exit 0; report in task-63-measure.json

@@ -734,6 +734,56 @@ def outline_mark(count: int, width: int) -> str:
     )
 
 
+@dataclass(frozen=True)
+class LitMark:
+    """F04-T63 (D-25 v3.45): a node's literature status as the drawing marks it — the status
+    word (``open``, ``known``, ``elementary``), whether a steward or curator has confirmed it
+    (else it is a contributor's proposal awaiting one) and who: the confirmer, or the proposer.
+    A fact about the literature, never about difficulty: the mark changes nothing else."""
+
+    status: str
+    confirmed: bool
+    by: str
+
+    @property
+    def phase(self) -> str:
+        return "confirmed" if self.confirmed else "proposed"
+
+    @property
+    def words(self) -> str:
+        """The mark's title: ``Literature: known (proposed by t1009-c, awaits confirmation)``."""
+        if self.confirmed:
+            return f"Literature: {self.status} (confirmed by {self.by})"
+        return f"Literature: {self.status} (proposed by {self.by}, awaits confirmation)"
+
+
+#: The literature mark's geometry: a 7px square inside the pill's top-right corner, clear of
+#: the label (which ends at ``w - 18`` and starts below ``y = 11``), the halo (``y`` 15 to 21
+#: at ``w - 14``) and the outline tab (``x`` from ``w - 8``, ``y`` -7 to 7, outside the pill).
+LIT_MARK = 7
+LIT_MARK_TOP = 4
+LIT_MARK_RIGHT = 9
+#: What the mark may carry as data: the statuses ``graph.json`` can publish (D-25 v3.35).
+Literature = Mapping[str, LitMark] | None
+
+
+def literature_mark(mark: LitMark | None, width: int) -> str:
+    """F04-T63: the small square on a pill that carries a literature status: hollow and dashed
+    while only proposed, filled once confirmed, coloured by status through the stylesheet
+    (``lit-<status>``), with its own title. Nothing for a node with no record. Markup only: the
+    layout never reads it."""
+    if mark is None:
+        return ""
+    x = width - LIT_MARK_RIGHT - LIT_MARK
+    return (
+        f'<g class="lit-mark lit-{escape(mark.status)} {mark.phase}" '
+        f'data-literature="{escape(mark.status)}" data-phase="{mark.phase}" '
+        f'transform="translate({x},{LIT_MARK_TOP})">'
+        f"<title>{escape(mark.words)}</title> "
+        f'<rect width="{LIT_MARK}" height="{LIT_MARK}" rx="1.5"/></g> '
+    )
+
+
 #: F04-T33: the label over the statements no line joins.
 GROUP_LABEL = "Statements no line joins to the rest"
 
@@ -748,13 +798,15 @@ def svg(  # noqa: PLR0913 — the target's own names beside what the drawing mar
     prefix: str | None = None,
     names: dict[str, str] | None = None,
     labels: Labels = None,
+    literature: Literature = None,
 ) -> str:
     """The SVG markup; ``href`` maps node ids to page paths (every id must be present). With
     ``proofs`` (F18-T2) every node and edge says which proofs of the target it is on; ``root``
     keeps the root in the tree and ``prefix`` (the target id) is dropped from labels (T33).
     ``names`` (F22-T18, S) gives a pill's title the theorem name of an id that names nothing.
     ``labels`` (F29-T5, R9) are the statements' labels: a pill shows its label and its title
-    keeps the id, with the label beside it."""
+    keeps the id, with the label beside it. ``literature`` (F04-T63) marks the pills it names
+    with their literature status; the layout is the same with or without it."""
     lay = layout(nodes, root=root, prefix=prefix, labels=labels)
     status = {p.node_id: p.status for p in lay.placed}
     parts = [
@@ -798,6 +850,7 @@ def svg(  # noqa: PLR0913 — the target's own names beside what the drawing mar
             f'<text x="28" y="{NODE_H // 2 + 5}">{escape(label)}</text> '
             f'<circle class="halo" cx="{p.w - 14}" cy="{NODE_H // 2}" r="3"/>'
             + outline_mark((outlines or {}).get(p.node_id, 0), p.w)
+            + literature_mark((literature or {}).get(p.node_id), p.w)
             + "</g></a>"
         )
     parts.append("</svg>")

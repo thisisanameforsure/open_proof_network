@@ -325,6 +325,17 @@ class Reference:
 
 
 @dataclass(frozen=True)
+class DisputedProposal:
+    """F04-T63 (D-25 v3.45): the proposal a signed literature record rejected, as the products
+    publish it beside the signer's reading (``graph/v13`` ``literature.disputes``): what it
+    said, its record (relative to the graph root) and who filed it."""
+
+    status: str
+    record: str
+    contributor: str
+
+
+@dataclass(frozen=True)
 class LiteratureView:
     """F04-T38 (D-25, D-32 v3.35): what the literature says of a statement, as the products
     publish it (status, record, contributor; the confirming steward or curator and their record
@@ -343,6 +354,9 @@ class LiteratureView:
     summary: str | None = None
     model: str | None = None
     readable: bool = True
+    #: F04-T63 (v3.45): the proposal this confirmed reading rejected; ``None`` when the signer
+    #: confirmed a proposal or stated the status unprompted, and for every proposal.
+    disputes: DisputedProposal | None = None
 
     @property
     def confirmed(self) -> bool:
@@ -1101,12 +1115,20 @@ def _literature_for(root: Path, node_dir: Path, raw: object) -> LiteratureView |
     rel = str(raw.get("record") or "")
     prefix = node_dir.relative_to(root).as_posix()
     confirmation = raw.get("confirmation")
+    rejected = raw.get("disputes")  # graph/v13 (F08-T54); absent or null before
     view = LiteratureView(
         status=str(raw.get("status") or ""),
         record=f"{prefix}/{rel}",
         contributor=str(raw.get("contributor") or ""),
         confirmed_by=str(raw["confirmed_by"]) if raw.get("confirmed_by") else None,
         confirmation=f"{prefix}/{confirmation}" if confirmation else None,
+        disputes=DisputedProposal(
+            status=str(rejected.get("status") or ""),
+            record=f"{prefix}/{rejected.get('record') or ''}",
+            contributor=str(rejected.get("contributor") or ""),
+        )
+        if isinstance(rejected, dict)
+        else None,
     )
     try:
         doc = schemas.load_yaml(node_dir / rel, "literature/v1")
