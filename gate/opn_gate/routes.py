@@ -38,6 +38,14 @@ from opn_gate.graph import HOLE_ORIGINS, HOLE_SEPARATOR
 
 Cut = Literal["finest", "any"]
 CUTS: tuple[str, ...] = ("finest", "any")
+#: F27-R13: what the enumeration does at a proved statement. ``stop`` (the default, R5): the
+#: statement is a closed member and nothing beneath it is listed. ``follow``: the statement is
+#: expanded along what its proof's term rests on (F18-R2, ``proofs[0].used``), transitively, so
+#: the set also lists the proved structure the proof already stands on. The sets are the same
+#: either way — the same ids, open statements, assemblies, routes and order — because the cut is
+#: still made at the proved statement; ``follow`` only adds what is beneath it.
+AtProved = Literal["stop", "follow"]
+AT_PROVED: tuple[str, ...] = ("stop", "follow")
 
 #: The most sets one enumeration returns (F27-R8). A documented default; the service may pass its
 #: own (``OPN_API_ROUTES_MAX_SETS``). The finest cuts of every live target number two or fewer
@@ -164,6 +172,10 @@ class SufficientSet:
     routes: tuple[str, ...]
     variant: str | None
     shared: int
+    #: F27-R13: the routes the proofs of its proved statements went through, when followed
+    #: (``at_proved: follow``); empty when the enumeration stopped at them. Never a choice the
+    #: set makes, so never read by the selector tree.
+    proof_routes: tuple[str, ...] = ()
 
     @property
     def total(self) -> int:
@@ -185,6 +197,7 @@ class SufficientSet:
             "open": list(self.open),
             "assemblies": list(self.assemblies),
             "routes": list(self.routes),
+            "proof_routes": list(self.proof_routes),
             "variant": self.variant,
             "total": self.total,
             "closed": self.closed,
@@ -201,12 +214,14 @@ class Routes:
     truncated: bool
     routes: tuple[Route, ...]
     sets: tuple[SufficientSet, ...]
+    at_proved: str = "stop"
 
     def as_dict(self) -> dict[str, Any]:
         return {
             "target_id": self.target_id,
             "root": self.root,
             "cut": self.cut,
+            "at_proved": self.at_proved,
             "truncated": self.truncated,
             "routes": [r.as_dict() for r in self.routes],
             "sets": [s.as_dict() for s in self.sets],
@@ -366,18 +381,103 @@ def _route_of(  # noqa: PLR0913 — the route's place, its holes and the facts i
     return Route(f"{node_id}@{k}", node_id, partial, tuple(made), summary, approach)
 
 
+# --- following a proof (F27-R13) ---------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class Followed:
+    """What a proved statement's proof rests on, as the page draws it beneath the statement:
+    ``nodes``, every node its term rests on, transitively (sorted, the statement itself left
+    out); ``routes``, the routes the proofs went through — a route of a followed node every
+    hole of which is among what that node's proof used, so the proof is the route's assembly
+    — in the order met; and ``lines``, each ``(used, user)`` pair a followed route does not
+    already carry, so a proof that went past a route (it used one hole as a lemma, not the
+    assembly) is drawn as the direct line it is."""
+
+    nodes: tuple[str, ...]
+    routes: tuple[str, ...]
+    lines: tuple[tuple[str, str], ...]
+
+
+def rests_on(row: Mapping[str, Any]) -> tuple[str, ...]:
+    """What a node's first merged proof rests on, as ``graph.json`` publishes it: the nodes its
+    term ``used`` (F18-R2) where the gate measured them, else — an older merge, ``used: null``
+    — everything it could rest on: its deps, its uses and its lemmas (``NodeFacts.rests_on``,
+    which the products' closure follows the same way)."""
+    proofs = row.get("proofs") or []
+    first = proofs[0] if proofs and isinstance(proofs[0], Mapping) else None
+    used = first.get("used") if first is not None else None
+    if used is not None:
+        return tuple(dict.fromkeys(str(u) for u in used))
+    return tuple(
+        dict.fromkeys(
+            [
+                *(str(d) for d in row.get("deps") or []),
+                *(str(u) for u in row.get("uses") or []),
+                *(str(lm.get("node")) for lm in row.get("lemmas") or [] if isinstance(lm, Mapping)),
+            ]
+        )
+    )
+
+
+def _followed(
+    node_id: str,
+    rows: Mapping[str, Mapping[str, Any]],
+    routes_by_node: Mapping[str, Sequence[Route]],
+) -> Followed:
+    """``Followed`` for ``node_id``: the walk of ``products.proof_closure`` over the published
+    rows, each node seen once (a hand-made product may cite in a circle), unknown ids skipped."""
+    seen = {node_id}
+    nodes: list[str] = []
+    followed_routes: list[str] = []
+    lines: list[tuple[str, str]] = []
+    stack = [node_id]
+    while stack:
+        current = stack.pop(0)
+        rests = [r for r in rests_on(rows[current]) if r in rows]
+        carried: set[str] = set()
+        for route in routes_by_node.get(current, ()):
+            holes = [str(h.node) for h in route.holes if h.node is not None]
+            if route.resolved and holes and all(h in rests for h in holes):
+                followed_routes.append(route.id)
+                carried.update(holes)
+        lines.extend((r, current) for r in rests if r not in carried)
+        for r in rests:
+            if r not in seen:
+                seen.add(r)
+                nodes.append(r)
+                stack.append(r)
+    return Followed(tuple(sorted(nodes)), tuple(followed_routes), tuple(sorted(lines)))
+
+
+def followed(result: Routes, graph: Mapping[str, Any], node_id: str) -> Followed:
+    """R13: what the proof of ``node_id`` rests on, over ``result``'s routes and ``graph``'s
+    rows — the one walk the enumeration (``at_proved: follow``) and the page share."""
+    rows = _rows(graph)
+    if node_id not in rows:
+        return Followed((), (), ())
+    by_node: dict[str, list[Route]] = {}
+    for r in result.routes:
+        by_node.setdefault(r.node, []).append(r)
+    return _followed(node_id, rows, by_node)
+
+
 # --- the enumeration ---------------------------------------------------------------------------
 
 
 @dataclass(frozen=True)
 class _Option:
     """One way to close a node: the statements taken (proved or open), the nodes assembled on the
-    way, the routes used (the outermost first) and the resolves variant gone through, if any."""
+    way, the routes used (the outermost first) and the resolves variant gone through, if any.
+    ``beneath`` and ``proof_routes`` (R13) are what following its proved members' proofs adds —
+    never part of ``key``, so the option is the same option whichever way it was read."""
 
     members: frozenset[str]
     assemblies: tuple[str, ...] = ()
     routes: tuple[str, ...] = ()
     variant: str | None = None
+    beneath: frozenset[str] = frozenset()
+    proof_routes: tuple[str, ...] = ()
 
     def key(self) -> tuple[frozenset[str], frozenset[str]]:
         return self.members, frozenset(self.assemblies)
@@ -393,8 +493,10 @@ class _Enumerator:
     routes_by_node: Mapping[str, Sequence[Route]]
     cut: str
     max_sets: int
+    at_proved: str = "stop"
     truncated: bool = False
     memo: dict[str, list[_Option]] = field(default_factory=dict)
+    follows: dict[str, Followed] = field(default_factory=dict)
 
     def status(self, node_id: str) -> str:
         return str(self.rows[node_id].get("status"))
@@ -409,7 +511,19 @@ class _Enumerator:
                 assemblies=_ordered(*(o.assemblies for o in combo)),
                 routes=_ordered(*(o.routes for o in combo)),
                 variant=variants[0] if variants else None,
+                beneath=frozenset().union(*(o.beneath for o in combo)),
+                proof_routes=_ordered(*(o.proof_routes for o in combo)),
             )
+
+    def proved(self, node_id: str) -> _Option:
+        """A proved statement as a closed member (R5), and with ``follow`` what its proof rests
+        on beneath it (R13); the walk is remembered per statement."""
+        if self.at_proved != "follow":
+            return _Option(frozenset([node_id]))
+        if node_id not in self.follows:
+            self.follows[node_id] = _followed(node_id, self.rows, self.routes_by_node)
+        f = self.follows[node_id]
+        return _Option(frozenset([node_id]), beneath=frozenset(f.nodes), proof_routes=f.routes)
 
     def bounded(self, options: Iterable[_Option]) -> list[_Option]:
         """The minimal options, deduplicated, and no more than the cap; past it the enumeration
@@ -441,7 +555,7 @@ class _Enumerator:
             return [], False
         status = self.status(node_id)
         if status == PROVED:
-            return [_Option(frozenset([node_id]))], False
+            return [self.proved(node_id)], False
         if status in DEAD_STATUSES:
             return [], False
         if node_id in path:
@@ -466,6 +580,8 @@ class _Enumerator:
                     _ordered((node_id,), o.assemblies),
                     _ordered((route.id,), o.routes),
                     o.variant,
+                    o.beneath,
+                    o.proof_routes,
                 )
                 for o in self.combine(parts)
             )
@@ -514,10 +630,16 @@ def read(
     *,
     cut: str = "finest",
     max_sets: int = DEFAULT_MAX_SETS,
+    at_proved: str = "stop",
 ) -> Routes:
-    """A target's routes and sufficient sets from its ``graph.json`` and its frontier entries."""
+    """A target's routes and sufficient sets from its ``graph.json`` and its frontier entries.
+    ``at_proved`` (R13): ``stop`` ends a cut at a proved statement; ``follow`` also lists what
+    its proof rests on."""
     if cut not in CUTS:
         msg = f"unknown cut {cut!r}: expected one of {', '.join(CUTS)}"
+        raise ValueError(msg)
+    if at_proved not in AT_PROVED:
+        msg = f"unknown at_proved {at_proved!r}: expected one of {', '.join(AT_PROVED)}"
         raise ValueError(msg)
     rows = _rows(graph)
     target_id = str(graph.get("target_id"))
@@ -540,7 +662,7 @@ def read(
             )
     # The record's order: the products list nodes sorted, and each node's routes in merge order.
     all_routes = tuple(r for node_id in rows for r in by_node.get(node_id, ()))
-    walker = _Enumerator(rows, by_node, cut, max(1, max_sets))
+    walker = _Enumerator(rows, by_node, cut, max(1, max_sets), at_proved)
     options: list[_Option] = []
     if root in rows:
         options, _ = walker.close(root, frozenset())
@@ -550,27 +672,39 @@ def read(
                     continue
                 via, _ = walker.close(vid, frozenset())
                 options.extend(
-                    _Option(o.members, o.assemblies, o.routes, o.variant or vid) for o in via
+                    _Option(
+                        o.members,
+                        o.assemblies,
+                        o.routes,
+                        o.variant or vid,
+                        o.beneath,
+                        o.proof_routes,
+                    )
+                    for o in via
                 )
     minimal = walker.bounded(options)
+    # R13: a set's statements are its members and, when followed, what their proofs rest on;
+    # its id is its members' alone, so a set has one id whichever way it was read.
+    listed = {id(o): o.members | o.beneath for o in minimal}
     held: dict[str, int] = {}
     for o in minimal:
-        for m in o.members:
+        for m in listed[id(o)]:
             held[m] = held.get(m, 0) + 1
     sets = tuple(
         SufficientSet(
             id=_set_id(o),
-            statements=tuple(sorted(o.members)),
-            proved=tuple(sorted(m for m in o.members if str(rows[m].get("status")) == PROVED)),
-            open=tuple(sorted(m for m in o.members if str(rows[m].get("status")) != PROVED)),
+            statements=tuple(sorted(listed[id(o)])),
+            proved=tuple(sorted(m for m in listed[id(o)] if str(rows[m].get("status")) == PROVED)),
+            open=tuple(sorted(m for m in listed[id(o)] if str(rows[m].get("status")) != PROVED)),
             assemblies=o.assemblies,
             routes=o.routes,
             variant=o.variant,
-            shared=sum(1 for m in o.members if held[m] > 1),
+            shared=sum(1 for m in listed[id(o)] if held[m] > 1),
+            proof_routes=o.proof_routes,
         )
         for o in minimal
     )
-    return Routes(target_id, root, cut, walker.truncated, all_routes, sets)
+    return Routes(target_id, root, cut, walker.truncated, all_routes, sets, at_proved)
 
 
 # --- the selector tree (F29-R6; D-25 v3.44) ----------------------------------------------------

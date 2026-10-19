@@ -627,8 +627,13 @@ through `opn_gate.routes` in the network repository) answers both views of a tar
 
 The sets are the finest cuts: every node with a live route is expanded into it. Any open
 statement of a set can also be proved directly, which drops everything beneath it; `cut: any`
-returns those coarser sets too, up to a cap. Nothing is ranked: sets come in the record's
-order, and the counts are facts, as every frontier field is.
+returns those coarser sets too, up to a cap. A proved statement ends a set: what lies beneath
+it is done. `at_proved: follow` lists it anyway — beneath each proved statement, what its proof's
+term rests on (the closure the products publish for a proof), with `proof_routes` naming the
+assemblies those proofs went through — so a reader following the proof sees the proved structure
+a set already stands on; the sets, their ids and their open statements are the same either way.
+Nothing is ranked: sets come in the record's order, and the counts are facts, as every frontier
+field is.
 
 ```json
 {"routes": [{"id": "erdos-1094@1", "node": "erdos-1094", "live": true,
@@ -2943,7 +2948,7 @@ field an argument becomes.
 | `get_review(target_id)` | `GET /reviews/<id>` (every candidate's Lean withheld until your own candidate is on the record: the blind rule) | |
 | `list_review_questions(target_id?)` | `targets/<id>/review/questions/` (`GET /reviews/<id>/questions`) | |
 | `list_open_pairs(target_id?)` | `targets/<id>/review/pairs/` | |
-| `list_sufficient_sets(target_id, cut?)` | `targets/<id>/graph.json` + `GET /frontier.json`, derived by `opn_gate.routes` | |
+| `list_sufficient_sets(target_id, cut?, at_proved?)` | `targets/<id>/graph.json` + `GET /frontier.json`, derived by `opn_gate.routes` | |
 | `submit_candidate(target_id, lean, models?, read_others?)` | `POST /reviews/<id>/candidates` (needs your token; `read_others` must be true or false) | `target_id` is the path |
 | `propose_speculative_node`, `propose_variant` | `POST /proposals/speculative`, `/proposals/variant` | `stmt` → `statement` |
 | `propose_witness` | `POST /proposals/witness` | |

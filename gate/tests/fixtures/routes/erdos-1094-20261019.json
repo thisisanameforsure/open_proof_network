@@ -1,0 +1,4646 @@
+{
+ "frontier_entries": [
+  {
+   "annex_present": true,
+   "attempts": 2,
+   "bounty": false,
+   "cause": null,
+   "claimable": true,
+   "claims": {
+    "active": [],
+    "history_count": 2
+   },
+   "dormant": false,
+   "failure_class_histogram": {
+    "missing-library": 1
+   },
+   "literature": null,
+   "literature_proposed": null,
+   "needs": "proof",
+   "node_id": "erdos-1094",
+   "origin": "authored",
+   "ready_since": "2026-09-14T19:09:52Z",
+   "refuted_route_classes": [],
+   "relation": null,
+   "statement_hash": "bbeff8af9bb8437ed30cba3479c4e69ee3dd365230cbd78083baf56b10acb8e2",
+   "status": "ready",
+   "tags": {
+    "deps": [
+     "erdos-1094--h1",
+     "erdos-1094--h2",
+     "erdos-1094--h3"
+    ],
+    "library": [
+     "Data"
+    ]
+   },
+   "target_id": "erdos-1094",
+   "tutorial": false
+  },
+  {
+   "annex_present": true,
+   "attempts": 1,
+   "bounty": false,
+   "cause": null,
+   "claimable": true,
+   "claims": {
+    "active": [],
+    "history_count": 1
+   },
+   "dormant": false,
+   "failure_class_histogram": {},
+   "literature": null,
+   "literature_proposed": {
+    "contributor": "t1009-b",
+    "record": "literature/20261009T125137Z-t1009-b.yaml",
+    "status": "open"
+   },
+   "needs": "proof",
+   "node_id": "erdos-1094--h2",
+   "origin": "compiler-derived",
+   "ready_since": "2026-10-08T13:15:38Z",
+   "refuted_route_classes": [],
+   "relation": null,
+   "statement_hash": "f15d9f4d5612ab61028478f73ebc518fabaccb5d90958c7be30069f1dadd2d6e",
+   "status": "ready",
+   "tags": {
+    "deps": [
+     "erdos-1094--h2--h1",
+     "erdos-1094--h2--h2"
+    ],
+    "library": [
+     "Data"
+    ]
+   },
+   "target_id": "erdos-1094",
+   "tutorial": false
+  },
+  {
+   "annex_present": true,
+   "attempts": 2,
+   "bounty": false,
+   "cause": null,
+   "claimable": true,
+   "claims": {
+    "active": [],
+    "history_count": 1
+   },
+   "dormant": false,
+   "failure_class_histogram": {},
+   "literature": null,
+   "literature_proposed": {
+    "contributor": "t1009-b",
+    "record": "literature/20261009T130904Z-t1009-b.yaml",
+    "status": "known"
+   },
+   "needs": "proof",
+   "node_id": "erdos-1094--h2--h1",
+   "origin": "skeleton-hole",
+   "ready_since": "2026-10-09T13:00:58Z",
+   "refuted_route_classes": [],
+   "relation": null,
+   "statement_hash": "c926a7c69c19de8b32ba63d9172cb76be6b13d1e08e887166170b716e49992c4",
+   "status": "ready",
+   "tags": {
+    "deps": [
+     "erdos-1094--h2--h1--h1",
+     "erdos-1094--h2--h1--h4"
+    ],
+    "library": [
+     "Data"
+    ]
+   },
+   "target_id": "erdos-1094",
+   "tutorial": false
+  },
+  {
+   "annex_present": true,
+   "attempts": 1,
+   "bounty": false,
+   "cause": null,
+   "claimable": true,
+   "claims": {
+    "active": [],
+    "history_count": 1
+   },
+   "dormant": false,
+   "failure_class_histogram": {},
+   "literature": null,
+   "literature_proposed": {
+    "contributor": "t1009-c",
+    "record": "literature/20261009T144817Z-t1009-c.yaml",
+    "status": "known"
+   },
+   "needs": "proof",
+   "node_id": "erdos-1094--h2--h1--h1",
+   "origin": "skeleton-hole",
+   "ready_since": "2026-10-09T14:42:05Z",
+   "refuted_route_classes": [],
+   "relation": null,
+   "statement_hash": "f7ea16d04f6bb7a656597b72d243ea648ad31e68639145d798f3108cba425386",
+   "status": "ready",
+   "tags": {
+    "deps": [
+     "erdos-1094--h2--h1--h1--h1"
+    ],
+    "library": [
+     "Data"
+    ]
+   },
+   "target_id": "erdos-1094",
+   "tutorial": false
+  },
+  {
+   "annex_present": false,
+   "attempts": 2,
+   "bounty": false,
+   "cause": null,
+   "claimable": true,
+   "claims": {
+    "active": [],
+    "history_count": 1
+   },
+   "dormant": false,
+   "failure_class_histogram": {
+    "missing-library": 1
+   },
+   "literature": null,
+   "literature_proposed": null,
+   "needs": "proof",
+   "node_id": "erdos-1094--h2--h1--h1--h1",
+   "origin": "compiler-derived",
+   "ready_since": "2026-10-15T07:56:36Z",
+   "refuted_route_classes": [],
+   "relation": null,
+   "statement_hash": "68d57ebd646ac7933aeb73aa17f35b1d5ff44c372e8d5391208ddc4002536246",
+   "status": "ready",
+   "tags": {
+    "deps": [
+     "erdos-1094--h2--h1--h1--h1--h1",
+     "erdos-1094--h2--h1--h1--h1--h2"
+    ],
+    "library": [
+     "Data"
+    ]
+   },
+   "target_id": "erdos-1094",
+   "tutorial": false
+  },
+  {
+   "annex_present": false,
+   "attempts": 2,
+   "bounty": false,
+   "cause": null,
+   "claimable": true,
+   "claims": {
+    "active": [],
+    "history_count": 1
+   },
+   "dormant": false,
+   "failure_class_histogram": {
+    "budget-exhausted": 1
+   },
+   "literature": null,
+   "literature_proposed": null,
+   "needs": "proof",
+   "node_id": "erdos-1094--h2--h1--h1--h1--h1",
+   "origin": "compiler-derived",
+   "ready_since": "2026-10-16T12:18:13Z",
+   "refuted_route_classes": [],
+   "relation": null,
+   "statement_hash": "5afe4d106f3b591e748c6b99959e117d365c6abccf6a0a6c71f3f58a89e3724d",
+   "status": "ready",
+   "tags": {
+    "deps": [
+     "erdos-1094--h2--h1--h1--h1--h1--h1",
+     "erdos-1094--h2--h1--h1--h1--h1--h2"
+    ],
+    "library": [
+     "Data"
+    ]
+   },
+   "target_id": "erdos-1094",
+   "tutorial": false
+  },
+  {
+   "annex_present": false,
+   "attempts": 0,
+   "bounty": false,
+   "cause": null,
+   "claimable": true,
+   "claims": {
+    "active": [],
+    "history_count": 0
+   },
+   "dormant": false,
+   "failure_class_histogram": {},
+   "literature": null,
+   "literature_proposed": null,
+   "needs": "proof",
+   "node_id": "erdos-1094--h2--h1--h1--h1--h1--h1",
+   "origin": "compiler-derived",
+   "ready_since": "2026-10-18T20:05:34Z",
+   "refuted_route_classes": [],
+   "relation": null,
+   "statement_hash": "e51efe16b2a15c20a596549d9233130420d1719a5e11607e9086a3aa7c2bfb55",
+   "status": "ready",
+   "tags": {
+    "deps": [],
+    "library": [
+     "Data"
+    ]
+   },
+   "target_id": "erdos-1094",
+   "tutorial": false
+  },
+  {
+   "annex_present": false,
+   "attempts": 0,
+   "bounty": false,
+   "cause": null,
+   "claimable": true,
+   "claims": {
+    "active": [],
+    "history_count": 0
+   },
+   "dormant": false,
+   "failure_class_histogram": {},
+   "literature": null,
+   "literature_proposed": null,
+   "needs": "proof",
+   "node_id": "erdos-1094--h2--h1--h1--h1--h1--h2",
+   "origin": "compiler-derived",
+   "ready_since": "2026-10-18T20:05:34Z",
+   "refuted_route_classes": [],
+   "relation": null,
+   "statement_hash": "745cc901807010556becf6ab675f1da609b830ed6977bd4ccc06186d1245b5b9",
+   "status": "ready",
+   "tags": {
+    "deps": [],
+    "library": [
+     "Data"
+    ]
+   },
+   "target_id": "erdos-1094",
+   "tutorial": false
+  },
+  {
+   "annex_present": false,
+   "attempts": 2,
+   "bounty": false,
+   "cause": null,
+   "claimable": true,
+   "claims": {
+    "active": [],
+    "history_count": 1
+   },
+   "dormant": false,
+   "failure_class_histogram": {
+    "budget-exhausted": 1
+   },
+   "literature": null,
+   "literature_proposed": null,
+   "needs": "proof",
+   "node_id": "erdos-1094--h2--h1--h1--h1--h2",
+   "origin": "compiler-derived",
+   "ready_since": "2026-10-16T12:18:13Z",
+   "refuted_route_classes": [],
+   "relation": null,
+   "statement_hash": "5da1fd2a2b28d1ea1254f9df43737268d47fa8bc5ad5da427fe574cee4792e1d",
+   "status": "ready",
+   "tags": {
+    "deps": [
+     "erdos-1094--h2--h1--h1--h1--h2--h1",
+     "erdos-1094--h2--h1--h1--h1--h2--h2"
+    ],
+    "library": [
+     "Data"
+    ]
+   },
+   "target_id": "erdos-1094",
+   "tutorial": false
+  },
+  {
+   "annex_present": false,
+   "attempts": 0,
+   "bounty": false,
+   "cause": null,
+   "claimable": true,
+   "claims": {
+    "active": [],
+    "history_count": 0
+   },
+   "dormant": false,
+   "failure_class_histogram": {},
+   "literature": null,
+   "literature_proposed": null,
+   "needs": "proof",
+   "node_id": "erdos-1094--h2--h1--h1--h1--h2--h1",
+   "origin": "compiler-derived",
+   "ready_since": "2026-10-18T20:41:02Z",
+   "refuted_route_classes": [],
+   "relation": null,
+   "statement_hash": "05c4814da69909454b8594cd9dd1fa8ac8bbc31f8256393f2a13ef5f372e0e62",
+   "status": "ready",
+   "tags": {
+    "deps": [],
+    "library": [
+     "Data"
+    ]
+   },
+   "target_id": "erdos-1094",
+   "tutorial": false
+  },
+  {
+   "annex_present": false,
+   "attempts": 0,
+   "bounty": false,
+   "cause": null,
+   "claimable": true,
+   "claims": {
+    "active": [],
+    "history_count": 0
+   },
+   "dormant": false,
+   "failure_class_histogram": {},
+   "literature": null,
+   "literature_proposed": null,
+   "needs": "proof",
+   "node_id": "erdos-1094--h2--h1--h1--h1--h2--h2",
+   "origin": "compiler-derived",
+   "ready_since": "2026-10-18T20:41:02Z",
+   "refuted_route_classes": [],
+   "relation": null,
+   "statement_hash": "1d9c7b4c4c52abe8989784b1ff33f9fb4f39e7a0844853ea147305dadddb36c2",
+   "status": "ready",
+   "tags": {
+    "deps": [],
+    "library": [
+     "Data"
+    ]
+   },
+   "target_id": "erdos-1094",
+   "tutorial": false
+  },
+  {
+   "annex_present": false,
+   "attempts": 1,
+   "bounty": false,
+   "cause": null,
+   "claimable": true,
+   "claims": {
+    "active": [],
+    "history_count": 1
+   },
+   "dormant": false,
+   "failure_class_histogram": {},
+   "literature": null,
+   "literature_proposed": {
+    "contributor": "t1014-z",
+    "record": "literature/20261014T112002Z-t1014-z.yaml",
+    "status": "known"
+   },
+   "needs": "proof",
+   "node_id": "erdos-1094--h2--h1--h4",
+   "origin": "skeleton-hole",
+   "ready_since": "2026-10-14T08:18:33Z",
+   "refuted_route_classes": [],
+   "relation": null,
+   "statement_hash": "57989e9a2d366e5c584c82b0f51b1128bb1cd2e6775147afbdda3e906b1869f1",
+   "status": "ready",
+   "tags": {
+    "deps": [
+     "erdos-1094--h2--h1--h4--h1"
+    ],
+    "library": [
+     "Algebra",
+     "Analysis",
+     "Data"
+    ]
+   },
+   "target_id": "erdos-1094",
+   "tutorial": false
+  },
+  {
+   "annex_present": false,
+   "attempts": 2,
+   "bounty": false,
+   "cause": null,
+   "claimable": true,
+   "claims": {
+    "active": [],
+    "history_count": 1
+   },
+   "dormant": false,
+   "failure_class_histogram": {
+    "route-dead-ends": 1
+   },
+   "literature": null,
+   "literature_proposed": null,
+   "needs": "proof",
+   "node_id": "erdos-1094--h2--h1--h4--h1",
+   "origin": "compiler-derived",
+   "ready_since": "2026-10-15T08:03:44Z",
+   "refuted_route_classes": [],
+   "relation": null,
+   "statement_hash": "631d324b5e234f0675e51ac2dc45075f4fc341c695e8807f76b280e4d5eb9acc",
+   "status": "ready",
+   "tags": {
+    "deps": [
+     "erdos-1094--h2--h1--h4--h1--h1",
+     "erdos-1094--h2--h1--h4--h1--h2"
+    ],
+    "library": [
+     "Algebra",
+     "Analysis",
+     "Data"
+    ]
+   },
+   "target_id": "erdos-1094",
+   "tutorial": false
+  },
+  {
+   "annex_present": false,
+   "attempts": 0,
+   "bounty": false,
+   "cause": null,
+   "claimable": true,
+   "claims": {
+    "active": [],
+    "history_count": 0
+   },
+   "dormant": false,
+   "failure_class_histogram": {},
+   "literature": null,
+   "literature_proposed": null,
+   "needs": "proof",
+   "node_id": "erdos-1094--h2--h1--h4--h1--h1",
+   "origin": "compiler-derived",
+   "ready_since": "2026-10-16T12:22:21Z",
+   "refuted_route_classes": [],
+   "relation": null,
+   "statement_hash": "b7e5adcbac8f191de54639a55e5f395de0ef1cebbdb5753eeae1fda3d8832a3c",
+   "status": "ready",
+   "tags": {
+    "deps": [],
+    "library": [
+     "Algebra",
+     "Analysis",
+     "Data"
+    ]
+   },
+   "target_id": "erdos-1094",
+   "tutorial": false
+  },
+  {
+   "annex_present": false,
+   "attempts": 2,
+   "bounty": false,
+   "cause": null,
+   "claimable": true,
+   "claims": {
+    "active": [],
+    "history_count": 1
+   },
+   "dormant": false,
+   "failure_class_histogram": {
+    "route-dead-ends": 1
+   },
+   "literature": null,
+   "literature_proposed": null,
+   "needs": "proof",
+   "node_id": "erdos-1094--h2--h1--h4--h1--h2",
+   "origin": "compiler-derived",
+   "ready_since": "2026-10-16T12:36:45Z",
+   "refuted_route_classes": [],
+   "relation": null,
+   "statement_hash": "21b41f165340175f730ffec3c5222c19e162bf86d3a3e81b86f0eb9967289510",
+   "status": "ready",
+   "tags": {
+    "deps": [
+     "erdos-1094--h2--h1--h4--h1--h2--h1"
+    ],
+    "library": [
+     "Algebra",
+     "Analysis",
+     "Data"
+    ]
+   },
+   "target_id": "erdos-1094",
+   "tutorial": false
+  },
+  {
+   "annex_present": false,
+   "attempts": 0,
+   "bounty": false,
+   "cause": null,
+   "claimable": true,
+   "claims": {
+    "active": [],
+    "history_count": 0
+   },
+   "dormant": false,
+   "failure_class_histogram": {},
+   "literature": null,
+   "literature_proposed": null,
+   "needs": "proof",
+   "node_id": "erdos-1094--h2--h1--h4--h1--h2--h1",
+   "origin": "compiler-derived",
+   "ready_since": "2026-10-18T19:47:42Z",
+   "refuted_route_classes": [],
+   "relation": null,
+   "statement_hash": "21021294e89e0e8c9dceec28cb78c5da808a2aa2e9f41c89fd743d273ffbc8a1",
+   "status": "ready",
+   "tags": {
+    "deps": [],
+    "library": [
+     "Algebra",
+     "Analysis",
+     "Data"
+    ]
+   },
+   "target_id": "erdos-1094",
+   "tutorial": false
+  },
+  {
+   "annex_present": true,
+   "attempts": 1,
+   "bounty": false,
+   "cause": null,
+   "claimable": true,
+   "claims": {
+    "active": [],
+    "history_count": 1
+   },
+   "dormant": false,
+   "failure_class_histogram": {},
+   "literature": null,
+   "literature_proposed": null,
+   "needs": "proof",
+   "node_id": "erdos-1094--h2--h2",
+   "origin": "skeleton-hole",
+   "ready_since": "2026-10-09T13:00:58Z",
+   "refuted_route_classes": [],
+   "relation": null,
+   "statement_hash": "f758468369e2bb928f1f2dc3cbf0816e47aeecd95ca83d46b9c8bbdb05d823b3",
+   "status": "ready",
+   "tags": {
+    "deps": [
+     "erdos-1094--h2--h2--h1",
+     "erdos-1094--h2--h2--h2",
+     "erdos-1094--h2--h2--h3"
+    ],
+    "library": [
+     "Data"
+    ]
+   },
+   "target_id": "erdos-1094",
+   "tutorial": false
+  },
+  {
+   "annex_present": false,
+   "attempts": 1,
+   "bounty": false,
+   "cause": null,
+   "claimable": true,
+   "claims": {
+    "active": [],
+    "history_count": 0
+   },
+   "dormant": false,
+   "failure_class_histogram": {
+    "missing-library": 1
+   },
+   "literature": null,
+   "literature_proposed": {
+    "contributor": "t1014-z",
+    "record": "literature/20261014T111914Z-t1014-z.yaml",
+    "status": "known"
+   },
+   "needs": "proof",
+   "node_id": "erdos-1094--h2--h2--h1",
+   "origin": "skeleton-hole",
+   "ready_since": "2026-10-14T07:47:44Z",
+   "refuted_route_classes": [],
+   "relation": null,
+   "statement_hash": "239d5513abf6882610032313dab3f1fdca865fe2887a806a6e017d86b30bb728",
+   "status": "ready",
+   "tags": {
+    "deps": [],
+    "library": [
+     "Algebra",
+     "Analysis",
+     "Data",
+     "Order"
+    ]
+   },
+   "target_id": "erdos-1094",
+   "tutorial": false
+  },
+  {
+   "annex_present": false,
+   "attempts": 1,
+   "bounty": false,
+   "cause": null,
+   "claimable": true,
+   "claims": {
+    "active": [],
+    "history_count": 1
+   },
+   "dormant": false,
+   "failure_class_histogram": {},
+   "literature": null,
+   "literature_proposed": null,
+   "needs": "proof",
+   "node_id": "erdos-1094--h2--h2--h3",
+   "origin": "skeleton-hole",
+   "ready_since": "2026-10-14T07:47:44Z",
+   "refuted_route_classes": [],
+   "relation": null,
+   "statement_hash": "c2bbfeb8142945c37fea4b5903af64ab8511c8da4c8536ba21970d0db1797f57",
+   "status": "ready",
+   "tags": {
+    "deps": [
+     "erdos-1094--h2--h2--h3--h1"
+    ],
+    "library": [
+     "Algebra",
+     "Analysis",
+     "Data"
+    ]
+   },
+   "target_id": "erdos-1094",
+   "tutorial": false
+  },
+  {
+   "annex_present": false,
+   "attempts": 2,
+   "bounty": false,
+   "cause": null,
+   "claimable": true,
+   "claims": {
+    "active": [],
+    "history_count": 1
+   },
+   "dormant": false,
+   "failure_class_histogram": {
+    "missing-library": 1
+   },
+   "literature": null,
+   "literature_proposed": null,
+   "needs": "proof",
+   "node_id": "erdos-1094--h2--h2--h3--h1",
+   "origin": "compiler-derived",
+   "ready_since": "2026-10-15T07:48:24Z",
+   "refuted_route_classes": [],
+   "relation": null,
+   "statement_hash": "4242ce524ed11238824d21c96ade96245d7776524a96ea0184c54f9fd178b991",
+   "status": "ready",
+   "tags": {
+    "deps": [
+     "erdos-1094--h2--h2--h3--h1--h1"
+    ],
+    "library": [
+     "Algebra",
+     "Analysis",
+     "Data"
+    ]
+   },
+   "target_id": "erdos-1094",
+   "tutorial": false
+  },
+  {
+   "annex_present": false,
+   "attempts": 0,
+   "bounty": false,
+   "cause": null,
+   "claimable": true,
+   "claims": {
+    "active": [],
+    "history_count": 0
+   },
+   "dormant": false,
+   "failure_class_histogram": {},
+   "literature": null,
+   "literature_proposed": null,
+   "needs": "proof",
+   "node_id": "erdos-1094--h2--h2--h3--h1--h1",
+   "origin": "compiler-derived",
+   "ready_since": "2026-10-15T15:09:50Z",
+   "refuted_route_classes": [],
+   "relation": null,
+   "statement_hash": "7cf0749d22184710b3dc90717991ee28bb1525f6bbb08d8c27eef10264b5e6b5",
+   "status": "ready",
+   "tags": {
+    "deps": [],
+    "library": [
+     "Algebra",
+     "Analysis",
+     "Data"
+    ]
+   },
+   "target_id": "erdos-1094",
+   "tutorial": false
+  },
+  {
+   "annex_present": true,
+   "attempts": 3,
+   "bounty": false,
+   "cause": null,
+   "claimable": true,
+   "claims": {
+    "active": [],
+    "history_count": 3
+   },
+   "dormant": false,
+   "failure_class_histogram": {},
+   "literature": null,
+   "literature_proposed": {
+    "contributor": "t1009-a",
+    "record": "literature/20261009T125700Z-t1009-a.yaml",
+    "status": "known"
+   },
+   "needs": "proof",
+   "node_id": "erdos-1094--h3",
+   "origin": "compiler-derived",
+   "ready_since": "2026-10-08T13:15:38Z",
+   "refuted_route_classes": [],
+   "relation": null,
+   "statement_hash": "ea8c2bd908e4a56d2b703223b839ff4664882ab9c1fbd85e71ed4eb05e2da99b",
+   "status": "ready",
+   "tags": {
+    "deps": [
+     "erdos-1094--h3--h1",
+     "erdos-1094--h3--h2",
+     "erdos-1094--h3--h3"
+    ],
+    "library": [
+     "Data"
+    ]
+   },
+   "target_id": "erdos-1094",
+   "tutorial": false
+  },
+  {
+   "annex_present": true,
+   "attempts": 2,
+   "bounty": false,
+   "cause": null,
+   "claimable": true,
+   "claims": {
+    "active": [],
+    "history_count": 1
+   },
+   "dormant": false,
+   "failure_class_histogram": {
+    "missing-library": 1
+   },
+   "literature": null,
+   "literature_proposed": null,
+   "needs": "proof",
+   "node_id": "erdos-1094--h3--h1",
+   "origin": "compiler-derived",
+   "ready_since": "2026-10-08T13:40:22Z",
+   "refuted_route_classes": [],
+   "relation": null,
+   "statement_hash": "ed95258f3758b5ddc3ebf24feaf8dd9989b6284c3bc4cd6e772367a819d16399",
+   "status": "ready",
+   "tags": {
+    "deps": [
+     "erdos-1094--h3--h1--h1",
+     "erdos-1094--h3--h1--h2"
+    ],
+    "library": [
+     "Data"
+    ]
+   },
+   "target_id": "erdos-1094",
+   "tutorial": false
+  },
+  {
+   "annex_present": true,
+   "attempts": 2,
+   "bounty": false,
+   "cause": null,
+   "claimable": true,
+   "claims": {
+    "active": [],
+    "history_count": 1
+   },
+   "dormant": false,
+   "failure_class_histogram": {},
+   "literature": null,
+   "literature_proposed": null,
+   "needs": "proof",
+   "node_id": "erdos-1094--h3--h1--h1",
+   "origin": "skeleton-hole",
+   "ready_since": "2026-10-09T13:13:30Z",
+   "refuted_route_classes": [],
+   "relation": null,
+   "statement_hash": "a2855351dc766d6505d56107bb3d9c3b57ed69d786d21346f6b6dc409e2be96f",
+   "status": "ready",
+   "tags": {
+    "deps": [
+     "erdos-1094--h3--h1--h1--h1",
+     "erdos-1094--h3--h1--h1--h2",
+     "erdos-1094--h3--h1--h1--h3"
+    ],
+    "library": [
+     "Data"
+    ]
+   },
+   "target_id": "erdos-1094",
+   "tutorial": false
+  },
+  {
+   "annex_present": false,
+   "attempts": 2,
+   "bounty": false,
+   "cause": null,
+   "claimable": true,
+   "claims": {
+    "active": [],
+    "history_count": 1
+   },
+   "dormant": false,
+   "failure_class_histogram": {
+    "missing-library": 1
+   },
+   "literature": null,
+   "literature_proposed": null,
+   "needs": "proof",
+   "node_id": "erdos-1094--h3--h1--h1--h1",
+   "origin": "compiler-derived",
+   "ready_since": "2026-10-14T12:15:17Z",
+   "refuted_route_classes": [],
+   "relation": null,
+   "statement_hash": "01cf8cc0e289904af3e49be8c30c6396d8d180e9fbff689fae475426d88292ea",
+   "status": "ready",
+   "tags": {
+    "deps": [
+     "erdos-1094--h3--h1--h1--h1--h1",
+     "erdos-1094--h3--h1--h1--h1--h2"
+    ],
+    "library": [
+     "Data"
+    ]
+   },
+   "target_id": "erdos-1094",
+   "tutorial": false
+  },
+  {
+   "annex_present": false,
+   "attempts": 0,
+   "bounty": false,
+   "cause": null,
+   "claimable": true,
+   "claims": {
+    "active": [],
+    "history_count": 0
+   },
+   "dormant": false,
+   "failure_class_histogram": {},
+   "literature": null,
+   "literature_proposed": null,
+   "needs": "proof",
+   "node_id": "erdos-1094--h3--h1--h1--h1--h1",
+   "origin": "compiler-derived",
+   "ready_since": "2026-10-15T16:26:04Z",
+   "refuted_route_classes": [],
+   "relation": null,
+   "statement_hash": "a772da9b7cc2f75b0343648d7f5e226441dd7c0e7390fbb4d3ceec2a0f81d66f",
+   "status": "ready",
+   "tags": {
+    "deps": [],
+    "library": [
+     "Data"
+    ]
+   },
+   "target_id": "erdos-1094",
+   "tutorial": false
+  },
+  {
+   "annex_present": false,
+   "attempts": 0,
+   "bounty": false,
+   "cause": null,
+   "claimable": true,
+   "claims": {
+    "active": [],
+    "history_count": 0
+   },
+   "dormant": false,
+   "failure_class_histogram": {},
+   "literature": null,
+   "literature_proposed": null,
+   "needs": "proof",
+   "node_id": "erdos-1094--h3--h1--h1--h1--h2",
+   "origin": "compiler-derived",
+   "ready_since": "2026-10-15T16:26:04Z",
+   "refuted_route_classes": [],
+   "relation": null,
+   "statement_hash": "3eed3917e2d4616512988e34f3519054d3c41e40d5a57cfdcdb9a1ab2d75f591",
+   "status": "ready",
+   "tags": {
+    "deps": [],
+    "library": [
+     "Data"
+    ]
+   },
+   "target_id": "erdos-1094",
+   "tutorial": false
+  },
+  {
+   "annex_present": false,
+   "attempts": 1,
+   "bounty": false,
+   "cause": null,
+   "claimable": true,
+   "claims": {
+    "active": [],
+    "history_count": 1
+   },
+   "dormant": false,
+   "failure_class_histogram": {},
+   "literature": null,
+   "literature_proposed": null,
+   "needs": "proof",
+   "node_id": "erdos-1094--h3--h1--h1--h2",
+   "origin": "compiler-derived",
+   "ready_since": "2026-10-14T12:15:17Z",
+   "refuted_route_classes": [],
+   "relation": null,
+   "statement_hash": "d24c2dceee5c94ec8c2d3e453ad61f6ffa2a38047faae6148d7dc2c077887211",
+   "status": "ready",
+   "tags": {
+    "deps": [
+     "erdos-1094--h3--h1--h1--h2--h1"
+    ],
+    "library": [
+     "Data"
+    ]
+   },
+   "target_id": "erdos-1094",
+   "tutorial": false
+  },
+  {
+   "annex_present": false,
+   "attempts": 2,
+   "bounty": false,
+   "cause": null,
+   "claimable": true,
+   "claims": {
+    "active": [],
+    "history_count": 1
+   },
+   "dormant": false,
+   "failure_class_histogram": {
+    "route-dead-ends": 1
+   },
+   "literature": null,
+   "literature_proposed": null,
+   "needs": "proof",
+   "node_id": "erdos-1094--h3--h1--h1--h2--h1",
+   "origin": "compiler-derived",
+   "ready_since": "2026-10-14T18:25:10Z",
+   "refuted_route_classes": [],
+   "relation": null,
+   "statement_hash": "44a3c2214f65315db837bfbe80cd89ba6f2e5853f82150f78d245fe89bdd72af",
+   "status": "ready",
+   "tags": {
+    "deps": [
+     "erdos-1094--h3--h1--h1--h2--h1--h1",
+     "erdos-1094--h3--h1--h1--h2--h1--h2"
+    ],
+    "library": [
+     "Data"
+    ]
+   },
+   "target_id": "erdos-1094",
+   "tutorial": false
+  },
+  {
+   "annex_present": false,
+   "attempts": 0,
+   "bounty": false,
+   "cause": null,
+   "claimable": true,
+   "claims": {
+    "active": [],
+    "history_count": 0
+   },
+   "dormant": false,
+   "failure_class_histogram": {},
+   "literature": null,
+   "literature_proposed": null,
+   "needs": "proof",
+   "node_id": "erdos-1094--h3--h1--h1--h2--h1--h1",
+   "origin": "compiler-derived",
+   "ready_since": "2026-10-16T12:52:06Z",
+   "refuted_route_classes": [],
+   "relation": null,
+   "statement_hash": "72a78468e9251cac10e95f771017774ba05caf32ba610c9d633b13492a2e44f5",
+   "status": "ready",
+   "tags": {
+    "deps": [],
+    "library": [
+     "Data"
+    ]
+   },
+   "target_id": "erdos-1094",
+   "tutorial": false
+  },
+  {
+   "annex_present": false,
+   "attempts": 0,
+   "bounty": false,
+   "cause": null,
+   "claimable": true,
+   "claims": {
+    "active": [],
+    "history_count": 0
+   },
+   "dormant": false,
+   "failure_class_histogram": {},
+   "literature": null,
+   "literature_proposed": null,
+   "needs": "proof",
+   "node_id": "erdos-1094--h3--h1--h1--h2--h1--h2",
+   "origin": "compiler-derived",
+   "ready_since": "2026-10-16T12:52:06Z",
+   "refuted_route_classes": [],
+   "relation": null,
+   "statement_hash": "668f5c5abbec25060e0d4383da1eb5d21db78e713eb3999e3287ce214335de7f",
+   "status": "ready",
+   "tags": {
+    "deps": [],
+    "library": [
+     "Data"
+    ]
+   },
+   "target_id": "erdos-1094",
+   "tutorial": false
+  },
+  {
+   "annex_present": false,
+   "attempts": 0,
+   "bounty": false,
+   "cause": null,
+   "claimable": true,
+   "claims": {
+    "active": [],
+    "history_count": 0
+   },
+   "dormant": false,
+   "failure_class_histogram": {},
+   "literature": null,
+   "literature_proposed": null,
+   "needs": "proof",
+   "node_id": "erdos-1094--h3--h1--h1--h3",
+   "origin": "compiler-derived",
+   "ready_since": "2026-10-15T15:22:00Z",
+   "refuted_route_classes": [],
+   "relation": null,
+   "statement_hash": "3bf439440dcf0077eedce7a129b0dd4e8e6733871ec0caebe288973c1df23d38",
+   "status": "ready",
+   "tags": {
+    "deps": [],
+    "library": [
+     "Data"
+    ]
+   },
+   "target_id": "erdos-1094",
+   "tutorial": false
+  },
+  {
+   "annex_present": true,
+   "attempts": 1,
+   "bounty": false,
+   "cause": null,
+   "claimable": true,
+   "claims": {
+    "active": [],
+    "history_count": 1
+   },
+   "dormant": false,
+   "failure_class_histogram": {},
+   "literature": null,
+   "literature_proposed": null,
+   "needs": "proof",
+   "node_id": "erdos-1094--h3--h1--h2",
+   "origin": "skeleton-hole",
+   "ready_since": "2026-10-09T13:13:30Z",
+   "refuted_route_classes": [],
+   "relation": null,
+   "statement_hash": "bb23909deea3639943cb14a4293d3f819003c1b14d723d0e5c2c19976abbee33",
+   "status": "ready",
+   "tags": {
+    "deps": [
+     "erdos-1094--h3--h1--h2--h1",
+     "erdos-1094--h3--h1--h2--h2"
+    ],
+    "library": [
+     "Data"
+    ]
+   },
+   "target_id": "erdos-1094",
+   "tutorial": false
+  },
+  {
+   "annex_present": false,
+   "attempts": 2,
+   "bounty": false,
+   "cause": null,
+   "claimable": true,
+   "claims": {
+    "active": [],
+    "history_count": 1
+   },
+   "dormant": false,
+   "failure_class_histogram": {
+    "missing-library": 1
+   },
+   "literature": null,
+   "literature_proposed": null,
+   "needs": "proof",
+   "node_id": "erdos-1094--h3--h1--h2--h1",
+   "origin": "compiler-derived",
+   "ready_since": "2026-10-14T12:24:25Z",
+   "refuted_route_classes": [],
+   "relation": null,
+   "statement_hash": "8d20eaa6af6e1444021a3ebedfc6845c0c40c0f33aa27fb3bc91f5c954dfef49",
+   "status": "ready",
+   "tags": {
+    "deps": [
+     "erdos-1094--h3--h1--h2--h1--h1",
+     "erdos-1094--h3--h1--h2--h1--h2"
+    ],
+    "library": [
+     "Data"
+    ]
+   },
+   "target_id": "erdos-1094",
+   "tutorial": false
+  },
+  {
+   "annex_present": false,
+   "attempts": 0,
+   "bounty": false,
+   "cause": null,
+   "claimable": true,
+   "claims": {
+    "active": [],
+    "history_count": 0
+   },
+   "dormant": false,
+   "failure_class_histogram": {},
+   "literature": null,
+   "literature_proposed": null,
+   "needs": "proof",
+   "node_id": "erdos-1094--h3--h1--h2--h1--h1",
+   "origin": "compiler-derived",
+   "ready_since": "2026-10-15T15:34:37Z",
+   "refuted_route_classes": [],
+   "relation": null,
+   "statement_hash": "8087d3b5ff1ba823f6f981824f526014da1e9f2e3df6569c75bd039dfa075be1",
+   "status": "ready",
+   "tags": {
+    "deps": [],
+    "library": [
+     "Data"
+    ]
+   },
+   "target_id": "erdos-1094",
+   "tutorial": false
+  },
+  {
+   "annex_present": false,
+   "attempts": 0,
+   "bounty": false,
+   "cause": null,
+   "claimable": true,
+   "claims": {
+    "active": [],
+    "history_count": 0
+   },
+   "dormant": false,
+   "failure_class_histogram": {},
+   "literature": null,
+   "literature_proposed": null,
+   "needs": "proof",
+   "node_id": "erdos-1094--h3--h1--h2--h1--h2",
+   "origin": "compiler-derived",
+   "ready_since": "2026-10-15T15:34:37Z",
+   "refuted_route_classes": [],
+   "relation": null,
+   "statement_hash": "82000acd1313e3861ca7163bee8b51e12b0a134007c8445c762d369afe69aff8",
+   "status": "ready",
+   "tags": {
+    "deps": [],
+    "library": [
+     "Data"
+    ]
+   },
+   "target_id": "erdos-1094",
+   "tutorial": false
+  },
+  {
+   "annex_present": false,
+   "attempts": 2,
+   "bounty": false,
+   "cause": null,
+   "claimable": true,
+   "claims": {
+    "active": [],
+    "history_count": 1
+   },
+   "dormant": false,
+   "failure_class_histogram": {
+    "route-dead-ends": 1
+   },
+   "literature": null,
+   "literature_proposed": null,
+   "needs": "proof",
+   "node_id": "erdos-1094--h3--h1--h2--h2",
+   "origin": "compiler-derived",
+   "ready_since": "2026-10-14T12:24:25Z",
+   "refuted_route_classes": [],
+   "relation": null,
+   "statement_hash": "052047044fad57f415de5cebb111ad8a4955316f1903e6d9479241ebeb59df35",
+   "status": "ready",
+   "tags": {
+    "deps": [
+     "erdos-1094--h3--h1--h2--h2--h1",
+     "erdos-1094--h3--h1--h2--h2--h2"
+    ],
+    "library": [
+     "Data"
+    ]
+   },
+   "target_id": "erdos-1094",
+   "tutorial": false
+  },
+  {
+   "annex_present": false,
+   "attempts": 0,
+   "bounty": false,
+   "cause": null,
+   "claimable": true,
+   "claims": {
+    "active": [],
+    "history_count": 0
+   },
+   "dormant": false,
+   "failure_class_histogram": {},
+   "literature": null,
+   "literature_proposed": null,
+   "needs": "proof",
+   "node_id": "erdos-1094--h3--h1--h2--h2--h1",
+   "origin": "compiler-derived",
+   "ready_since": "2026-10-16T13:09:18Z",
+   "refuted_route_classes": [],
+   "relation": null,
+   "statement_hash": "902c30278c325b9ef25f73069f45a3549e5405fb4278eb730acf07eb79aea61d",
+   "status": "ready",
+   "tags": {
+    "deps": [],
+    "library": [
+     "Data"
+    ]
+   },
+   "target_id": "erdos-1094",
+   "tutorial": false
+  },
+  {
+   "annex_present": false,
+   "attempts": 2,
+   "bounty": false,
+   "cause": null,
+   "claimable": true,
+   "claims": {
+    "active": [],
+    "history_count": 1
+   },
+   "dormant": false,
+   "failure_class_histogram": {
+    "route-dead-ends": 1
+   },
+   "literature": null,
+   "literature_proposed": null,
+   "needs": "proof",
+   "node_id": "erdos-1094--h3--h1--h2--h2--h2",
+   "origin": "compiler-derived",
+   "ready_since": "2026-10-16T13:09:18Z",
+   "refuted_route_classes": [],
+   "relation": null,
+   "statement_hash": "1e303ea7f974dc73a6666184b5701df07912961eb8554b430594e9dddb794f83",
+   "status": "ready",
+   "tags": {
+    "deps": [
+     "erdos-1094--h3--h1--h2--h2--h2--h1",
+     "erdos-1094--h3--h1--h2--h2--h2--h2"
+    ],
+    "library": [
+     "Data"
+    ]
+   },
+   "target_id": "erdos-1094",
+   "tutorial": false
+  },
+  {
+   "annex_present": false,
+   "attempts": 0,
+   "bounty": false,
+   "cause": null,
+   "claimable": true,
+   "claims": {
+    "active": [],
+    "history_count": 0
+   },
+   "dormant": false,
+   "failure_class_histogram": {},
+   "literature": null,
+   "literature_proposed": null,
+   "needs": "proof",
+   "node_id": "erdos-1094--h3--h1--h2--h2--h2--h1",
+   "origin": "compiler-derived",
+   "ready_since": "2026-10-18T20:19:35Z",
+   "refuted_route_classes": [],
+   "relation": null,
+   "statement_hash": "468051a35176b06e816ce97c248ed468fd7da1112a58965a5d9ac1346e220b50",
+   "status": "ready",
+   "tags": {
+    "deps": [],
+    "library": [
+     "Data"
+    ]
+   },
+   "target_id": "erdos-1094",
+   "tutorial": false
+  },
+  {
+   "annex_present": false,
+   "attempts": 0,
+   "bounty": false,
+   "cause": null,
+   "claimable": true,
+   "claims": {
+    "active": [],
+    "history_count": 0
+   },
+   "dormant": false,
+   "failure_class_histogram": {},
+   "literature": null,
+   "literature_proposed": null,
+   "needs": "proof",
+   "node_id": "erdos-1094--h3--h1--h2--h2--h2--h2",
+   "origin": "compiler-derived",
+   "ready_since": "2026-10-18T20:19:35Z",
+   "refuted_route_classes": [],
+   "relation": null,
+   "statement_hash": "1587ab05c81f78028c3dd0175d6d5dcc82709925c1d96818e40cbbb34cd707ba",
+   "status": "ready",
+   "tags": {
+    "deps": [],
+    "library": [
+     "Data"
+    ]
+   },
+   "target_id": "erdos-1094",
+   "tutorial": false
+  },
+  {
+   "annex_present": false,
+   "attempts": 1,
+   "bounty": false,
+   "cause": null,
+   "claimable": true,
+   "claims": {
+    "active": [],
+    "history_count": 2
+   },
+   "dormant": false,
+   "failure_class_histogram": {},
+   "literature": null,
+   "literature_proposed": null,
+   "needs": "proof",
+   "node_id": "erdos-1094--h3--h2",
+   "origin": "skeleton-hole",
+   "ready_since": "2026-10-15T13:05:34Z",
+   "refuted_route_classes": [],
+   "relation": null,
+   "statement_hash": "b2cf277043bdccab7cf2197439da6f5a768d72b9a6349041eaf331c3ac18f4dd",
+   "status": "ready",
+   "tags": {
+    "deps": [
+     "erdos-1094--h3--h2--h1",
+     "erdos-1094--h3--h2--h2",
+     "erdos-1094--h3--h2--h3"
+    ],
+    "library": [
+     "Data"
+    ]
+   },
+   "target_id": "erdos-1094",
+   "tutorial": false
+  },
+  {
+   "annex_present": false,
+   "attempts": 2,
+   "bounty": false,
+   "cause": null,
+   "claimable": true,
+   "claims": {
+    "active": [],
+    "history_count": 1
+   },
+   "dormant": false,
+   "failure_class_histogram": {
+    "missing-library": 1
+   },
+   "literature": null,
+   "literature_proposed": {
+    "contributor": "t1016-lit",
+    "record": "literature/20261016T121434Z-t1016-lit.yaml",
+    "status": "known"
+   },
+   "needs": "proof",
+   "node_id": "erdos-1094--h3--h2--h1",
+   "origin": "compiler-derived",
+   "ready_since": "2026-10-15T17:09:10Z",
+   "refuted_route_classes": [],
+   "relation": null,
+   "statement_hash": "4e7c5ffb6e5ea75572612c41180c96d57550b146143c9898c6bb0ae6d5cef72a",
+   "status": "ready",
+   "tags": {
+    "deps": [
+     "erdos-1094--h3--h2--h1--h1"
+    ],
+    "library": [
+     "Analysis",
+     "Data"
+    ]
+   },
+   "target_id": "erdos-1094",
+   "tutorial": false
+  },
+  {
+   "annex_present": false,
+   "attempts": 0,
+   "bounty": false,
+   "cause": "witness-missing",
+   "claimable": false,
+   "claims": {
+    "active": [],
+    "history_count": 0
+   },
+   "dormant": false,
+   "failure_class_histogram": {},
+   "literature": null,
+   "literature_proposed": null,
+   "needs": "witness",
+   "node_id": "erdos-1094--h3--h2--h1--h1",
+   "origin": "compiler-derived",
+   "ready_since": null,
+   "refuted_route_classes": [],
+   "relation": null,
+   "statement_hash": "a59cec8d03a9fa98bacc874281cb63835f41965ffb74224124cece4578002b35",
+   "status": "blocked",
+   "tags": {
+    "deps": [],
+    "library": [
+     "Analysis",
+     "Data"
+    ]
+   },
+   "target_id": "erdos-1094",
+   "tutorial": false
+  },
+  {
+   "annex_present": false,
+   "attempts": 0,
+   "bounty": false,
+   "cause": null,
+   "claimable": true,
+   "claims": {
+    "active": [],
+    "history_count": 0
+   },
+   "dormant": false,
+   "failure_class_histogram": {},
+   "literature": null,
+   "literature_proposed": {
+    "contributor": "t1016-lit",
+    "record": "literature/20261016T121438Z-t1016-lit.yaml",
+    "status": "known"
+   },
+   "needs": "proof",
+   "node_id": "erdos-1094--h3--h2--h2",
+   "origin": "compiler-derived",
+   "ready_since": "2026-10-15T17:18:03Z",
+   "refuted_route_classes": [],
+   "relation": null,
+   "statement_hash": "dea3c705e0a06112d181978fde2dec47aed43e7e2417226ea21340820e2ff5b1",
+   "status": "ready",
+   "tags": {
+    "deps": [],
+    "library": [
+     "Algebra",
+     "Analysis",
+     "Data"
+    ]
+   },
+   "target_id": "erdos-1094",
+   "tutorial": false
+  },
+  {
+   "annex_present": false,
+   "attempts": 0,
+   "bounty": false,
+   "cause": null,
+   "claimable": true,
+   "claims": {
+    "active": [],
+    "history_count": 0
+   },
+   "dormant": false,
+   "failure_class_histogram": {},
+   "literature": null,
+   "literature_proposed": {
+    "contributor": "t1016-lit",
+    "record": "literature/20261016T121503Z-t1016-lit.yaml",
+    "status": "known"
+   },
+   "needs": "proof",
+   "node_id": "erdos-1094--h3--h2--h3",
+   "origin": "compiler-derived",
+   "ready_since": "2026-10-15T17:23:15Z",
+   "refuted_route_classes": [],
+   "relation": null,
+   "statement_hash": "9e3a1f24a3fc98f4ea18541f399316d6780d2e9504f5cf1f62e126285517d903",
+   "status": "ready",
+   "tags": {
+    "deps": [],
+    "library": [
+     "Algebra",
+     "Analysis",
+     "Data"
+    ]
+   },
+   "target_id": "erdos-1094",
+   "tutorial": false
+  },
+  {
+   "annex_present": true,
+   "attempts": 1,
+   "bounty": false,
+   "cause": null,
+   "claimable": true,
+   "claims": {
+    "active": [],
+    "history_count": 1
+   },
+   "dormant": false,
+   "failure_class_histogram": {},
+   "literature": null,
+   "literature_proposed": null,
+   "needs": "proof",
+   "node_id": "erdos-1094--h3--h3",
+   "origin": "skeleton-hole",
+   "ready_since": "2026-10-15T13:05:34Z",
+   "refuted_route_classes": [],
+   "relation": null,
+   "statement_hash": "e26d55df4fee05d3b3358d5d47f73e19232f45e7a44ed2730d550a1768eb20e1",
+   "status": "ready",
+   "tags": {
+    "deps": [
+     "erdos-1094--h3--h3--h1",
+     "erdos-1094--h3--h3--h2"
+    ],
+    "library": [
+     "Data"
+    ]
+   },
+   "target_id": "erdos-1094",
+   "tutorial": false
+  },
+  {
+   "annex_present": false,
+   "attempts": 1,
+   "bounty": false,
+   "cause": null,
+   "claimable": true,
+   "claims": {
+    "active": [],
+    "history_count": 1
+   },
+   "dormant": false,
+   "failure_class_histogram": {},
+   "literature": null,
+   "literature_proposed": null,
+   "needs": "proof",
+   "node_id": "erdos-1094--h3--h3--h1",
+   "origin": "skeleton-hole",
+   "ready_since": "2026-10-15T13:38:48Z",
+   "refuted_route_classes": [],
+   "relation": null,
+   "statement_hash": "eb2d28cd33766cb6681723740bf3194ce2d3f990e77c766b7c8ceed619b928aa",
+   "status": "ready",
+   "tags": {
+    "deps": [
+     "erdos-1094--h3--h3--h1--h1"
+    ],
+    "library": [
+     "Algebra",
+     "Analysis",
+     "Data"
+    ]
+   },
+   "target_id": "erdos-1094",
+   "tutorial": false
+  },
+  {
+   "annex_present": false,
+   "attempts": 2,
+   "bounty": false,
+   "cause": null,
+   "claimable": true,
+   "claims": {
+    "active": [],
+    "history_count": 1
+   },
+   "dormant": false,
+   "failure_class_histogram": {
+    "missing-library": 1
+   },
+   "literature": null,
+   "literature_proposed": {
+    "contributor": "t1016-lit",
+    "record": "literature/20261016T121425Z-t1016-lit.yaml",
+    "status": "known"
+   },
+   "needs": "proof",
+   "node_id": "erdos-1094--h3--h3--h1--h1",
+   "origin": "compiler-derived",
+   "ready_since": "2026-10-16T12:36:45Z",
+   "refuted_route_classes": [],
+   "relation": null,
+   "statement_hash": "7cc22d4e8709d1f4c07f02cb74aeb659f7ebae2ba0787456594d1bd99485071a",
+   "status": "ready",
+   "tags": {
+    "deps": [
+     "erdos-1094--h3--h3--h1--h1--h1"
+    ],
+    "library": [
+     "Algebra",
+     "Data",
+     "NumberTheory"
+    ]
+   },
+   "target_id": "erdos-1094",
+   "tutorial": false
+  },
+  {
+   "annex_present": false,
+   "attempts": 2,
+   "bounty": false,
+   "cause": null,
+   "claimable": true,
+   "claims": {
+    "active": [
+     {
+      "expires": "2026-10-18T21:02:02Z",
+      "pseudonym": "t1018-e"
+     }
+    ],
+    "history_count": 1
+   },
+   "dormant": false,
+   "failure_class_histogram": {
+    "missing-library": 1
+   },
+   "literature": null,
+   "literature_proposed": null,
+   "needs": "proof",
+   "node_id": "erdos-1094--h3--h3--h1--h1--h1",
+   "origin": "compiler-derived",
+   "ready_since": "2026-10-18T19:48:47Z",
+   "refuted_route_classes": [],
+   "relation": null,
+   "statement_hash": "e424e4e5dec0126bc19e9caa4e9850147842054f66935eb0a31985aa75ec4a0a",
+   "status": "ready",
+   "tags": {
+    "deps": [
+     "erdos-1094--h3--h3--h1--h1--h1--h1",
+     "erdos-1094--h3--h3--h1--h1--h1--h2"
+    ],
+    "library": [
+     "Algebra",
+     "Data",
+     "NumberTheory"
+    ]
+   },
+   "target_id": "erdos-1094",
+   "tutorial": false
+  },
+  {
+   "annex_present": false,
+   "attempts": 0,
+   "bounty": false,
+   "cause": null,
+   "claimable": true,
+   "claims": {
+    "active": [],
+    "history_count": 0
+   },
+   "dormant": false,
+   "failure_class_histogram": {},
+   "literature": null,
+   "literature_proposed": null,
+   "needs": "proof",
+   "node_id": "erdos-1094--h3--h3--h1--h1--h1--h1",
+   "origin": "compiler-derived",
+   "ready_since": "2026-10-18T20:50:04Z",
+   "refuted_route_classes": [],
+   "relation": null,
+   "statement_hash": "547213b75f62806c55f33471eb9a672734c8b13d1066ad0842e1402ebd34648a",
+   "status": "ready",
+   "tags": {
+    "deps": [],
+    "library": [
+     "Algebra",
+     "Analysis",
+     "Data",
+     "NumberTheory",
+     "Order",
+     "Topology"
+    ]
+   },
+   "target_id": "erdos-1094",
+   "tutorial": false
+  },
+  {
+   "annex_present": false,
+   "attempts": 0,
+   "bounty": false,
+   "cause": null,
+   "claimable": true,
+   "claims": {
+    "active": [],
+    "history_count": 0
+   },
+   "dormant": false,
+   "failure_class_histogram": {},
+   "literature": null,
+   "literature_proposed": null,
+   "needs": "proof",
+   "node_id": "erdos-1094--h3--h3--h1--h1--h1--h2",
+   "origin": "compiler-derived",
+   "ready_since": "2026-10-18T20:50:04Z",
+   "refuted_route_classes": [],
+   "relation": null,
+   "statement_hash": "f7840dfb9cac157bda69d779fe23d6910f466f0a5a3576dbafb750b5307b9a9b",
+   "status": "ready",
+   "tags": {
+    "deps": [],
+    "library": [
+     "Algebra",
+     "Analysis",
+     "Data",
+     "NumberTheory",
+     "Topology"
+    ]
+   },
+   "target_id": "erdos-1094",
+   "tutorial": false
+  },
+  {
+   "annex_present": false,
+   "attempts": 1,
+   "bounty": false,
+   "cause": null,
+   "claimable": true,
+   "claims": {
+    "active": [],
+    "history_count": 2
+   },
+   "dormant": false,
+   "failure_class_histogram": {},
+   "literature": null,
+   "literature_proposed": null,
+   "needs": "proof",
+   "node_id": "erdos-1094--h3--h3--h2",
+   "origin": "skeleton-hole",
+   "ready_since": "2026-10-15T13:38:48Z",
+   "refuted_route_classes": [],
+   "relation": null,
+   "statement_hash": "28c0347c4f3c6c3ba59e73302d705ffcedb23dd1cf4dcf2eb85ca8a728d40a2e",
+   "status": "ready",
+   "tags": {
+    "deps": [
+     "erdos-1094--h3--h3--h2--h1"
+    ],
+    "library": [
+     "Algebra",
+     "Analysis",
+     "Data"
+    ]
+   },
+   "target_id": "erdos-1094",
+   "tutorial": false
+  },
+  {
+   "annex_present": false,
+   "attempts": 0,
+   "bounty": false,
+   "cause": null,
+   "claimable": true,
+   "claims": {
+    "active": [],
+    "history_count": 0
+   },
+   "dormant": false,
+   "failure_class_histogram": {},
+   "literature": null,
+   "literature_proposed": {
+    "contributor": "t1016-lit",
+    "record": "literature/20261016T121430Z-t1016-lit.yaml",
+    "status": "known"
+   },
+   "needs": "proof",
+   "node_id": "erdos-1094--h3--h3--h2--h1",
+   "origin": "compiler-derived",
+   "ready_since": "2026-10-16T13:21:06Z",
+   "refuted_route_classes": [],
+   "relation": null,
+   "statement_hash": "88d5ad0d14eb001c17513312f65673997c8416c14301ceb25abab875336c9c67",
+   "status": "ready",
+   "tags": {
+    "deps": [],
+    "library": [
+     "Algebra",
+     "Analysis",
+     "Data"
+    ]
+   },
+   "target_id": "erdos-1094",
+   "tutorial": false
+  }
+ ],
+ "graph": {
+  "nodes": [
+   {
+    "cause": null,
+    "claim": "\\Bigl\\{(n,k)\\in\\mathbb{N}^2 \\;:\\; 0<k,\\ \\ 2k\\le n,\\ \\ \\operatorname{lpf}\\tbinom{n}{k} > \\max\\bigl(\\lfloor n/k\\rfloor,\\,k\\bigr)\\Bigr\\}\\ \\text{ is finite}",
+    "closure": null,
+    "decompositions": [
+     {
+      "annex": null,
+      "approach": "Split the exceptional pairs at n = k\u00b2: for n \u2265 k\u00b2 the bound is n/k (finitely many n for each k, and k bounded), for 2k \u2264 n < k\u00b2 the bound is k and k is bounded.",
+      "holes": [
+       {
+        "name": "h_fixed_k",
+        "node": "erdos-1094--h1"
+       },
+       {
+        "name": "h_large_n",
+        "node": "erdos-1094--h2"
+       },
+       {
+        "name": "h_small_n",
+        "node": "erdos-1094--h3"
+       }
+      ],
+      "partial": "attempts/20261008T130306Z-t1008-a-partial.lean"
+     }
+    ],
+    "defect_claims": [],
+    "deps": [
+     "erdos-1094--h1",
+     "erdos-1094--h2",
+     "erdos-1094--h3"
+    ],
+    "label": "Erd\u0151s problem 1094",
+    "label_source": "target",
+    "lemmas": [],
+    "literature": null,
+    "literature_proposed": null,
+    "node_id": "erdos-1094",
+    "origin": "authored",
+    "outline": null,
+    "proof_commit": null,
+    "proofs": [],
+    "proposed_for": null,
+    "relation": null,
+    "relevance": null,
+    "statement_hash": "bbeff8af9bb8437ed30cba3479c4e69ee3dd365230cbd78083baf56b10acb8e2",
+    "status": "ready",
+    "trust_base": null,
+    "tutorial": false,
+    "uses": []
+   },
+   {
+    "cause": null,
+    "claim": "\\forall k\\ge 1:\\quad \\Bigl\\{n\\in\\mathbb{N} \\;:\\; k^2\\le n,\\ \\ \\operatorname{lpf}\\tbinom{n}{k} > \\lfloor n/k\\rfloor\\Bigr\\}\\ \\text{ is finite}",
+    "closure": null,
+    "decompositions": [],
+    "defect_claims": [],
+    "deps": [],
+    "label": "Fixed k: finitely many n at or above k\u00b2",
+    "label_source": "gloss",
+    "lemmas": [],
+    "literature": null,
+    "literature_proposed": null,
+    "node_id": "erdos-1094--h1",
+    "origin": "compiler-derived",
+    "outline": null,
+    "proof_commit": "0f714037487c199474aa2a401558ff494589ae85",
+    "proofs": [
+     {
+      "artifact_hash": "a5d0f2882f4949b0fd5894dd5cf59e1e10cee1215dc174db6635d2bda53307a1",
+      "attestation": "000450.json",
+      "kind": "proof",
+      "merge_commit": "0f714037487c199474aa2a401558ff494589ae85",
+      "path": "Proof.lean",
+      "submitter": "t1008-b",
+      "used": []
+     }
+    ],
+    "proposed_for": null,
+    "relation": null,
+    "relevance": null,
+    "statement_hash": "78721bacb7e3c7576d8be6e52ef14f23d619d52d67e51c5e07acec7dc3f1782e",
+    "status": "proved",
+    "trust_base": "kernel",
+    "tutorial": false,
+    "uses": []
+   },
+   {
+    "cause": null,
+    "claim": "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ k^2\\le n,\\ \\ \\operatorname{lpf}\\tbinom{n}{k} > \\lfloor n/k\\rfloor \\implies k\\le K",
+    "closure": null,
+    "decompositions": [
+     {
+      "annex": "301ade26e4fe34edb5cfb1186ec23735a245ff1d1027f281d716cb784fa2458c",
+      "approach": "Split n \u2265 k\u00b2 at n = k\u00b3: bounded k on k\u00b2 \u2264 n < k\u00b3 and bounded k on n \u2265 k\u00b3, each its own hole.",
+      "holes": [
+       {
+        "name": "h_lo",
+        "node": "erdos-1094--h2--h1"
+       },
+       {
+        "name": "h_hi",
+        "node": "erdos-1094--h2--h2"
+       }
+      ],
+      "partial": "attempts/20261009T124800Z-t1009-b-partial.lean"
+     }
+    ],
+    "defect_claims": [],
+    "deps": [
+     "erdos-1094--h2--h1",
+     "erdos-1094--h2--h2"
+    ],
+    "label": "bounded k on n \u2265 k\u00b2",
+    "label_source": "gloss",
+    "lemmas": [],
+    "literature": null,
+    "literature_proposed": {
+     "contributor": "t1009-b",
+     "record": "literature/20261009T125137Z-t1009-b.yaml",
+     "status": "open"
+    },
+    "node_id": "erdos-1094--h2",
+    "origin": "compiler-derived",
+    "outline": {
+     "annex": "301ade26e4fe34edb5cfb1186ec23735a245ff1d1027f281d716cb784fa2458c",
+     "partial": "attempts/20261009T124800Z-t1009-b-partial.lean",
+     "steps": [
+      {
+       "node": "erdos-1094--h2--h1",
+       "status": "ready",
+       "step": "h_lo",
+       "summary": "exceptions with k^2 <= n < k^3 have bounded k (from Konyagin's lower bound on g(k), which exceeds k^3 for large k)"
+      },
+      {
+       "node": "erdos-1094--h2--h2",
+       "status": "ready",
+       "step": "h_hi",
+       "summary": "exceptions with n >= k^3 have bounded k (the open part: Ecklund's conjecture where n/k >= k^2)"
+      }
+     ]
+    },
+    "proof_commit": null,
+    "proofs": [],
+    "proposed_for": null,
+    "relation": null,
+    "relevance": null,
+    "statement_hash": "f15d9f4d5612ab61028478f73ebc518fabaccb5d90958c7be30069f1dadd2d6e",
+    "status": "ready",
+    "trust_base": null,
+    "tutorial": false,
+    "uses": []
+   },
+   {
+    "cause": null,
+    "claim": "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ k^2\\le n<k^3,\\ \\ \\operatorname{lpf}\\tbinom{n}{k} > \\lfloor n/k\\rfloor \\implies k\\le K",
+    "closure": null,
+    "decompositions": [
+     {
+      "annex": "97a5239b102766886507b6fe000e0eef718bea41808d9a5b73090dd6a5b26865",
+      "approach": "Konyagin's theorem, g(k) > k^3 for all large k, in the network's \"bounded k\" shape: a binomial coefficient C(n, k) with 2k \u2264 n < k^3 whose prime factors all exceed k occurs only for bounded k. This is the one literature input the h_lo range needs.",
+      "holes": [
+       {
+        "name": "h_good_below_cube",
+        "node": "erdos-1094--h2--h1--h1"
+       }
+      ],
+      "partial": "attempts/20261009T143300Z-t1009-c-partial.lean"
+     },
+     {
+      "annex": "6c7d3be4efeecc319f87dc55a1638245a01739d8f2167e05b11ba9d9d31853b7",
+      "approach": "Baker, Harman and Pintz (2001): for large k the interval (k, k + k^(21/40)) holds at least C k^(21/40) / log k primes. Stated exactly as `axiom bhp` in van Doorn and Tang's formalisation (github.com/Woett/ChatGPT-s-note-on-Erdos451), with `primeCard` unfolded.",
+      "holes": [
+       {
+        "name": "h_bhp",
+        "node": "erdos-1094--h2--h2--h1"
+       },
+       {
+        "name": "h_vdt",
+        "node": "erdos-1094--h2--h2--h2"
+       },
+       {
+        "name": "h_strip",
+        "node": "erdos-1094--h2--h1--h4"
+       }
+      ],
+      "partial": "attempts/20261014T075000Z-t1014-a-partial.lean"
+     }
+    ],
+    "defect_claims": [],
+    "deps": [
+     "erdos-1094--h2--h1--h1",
+     "erdos-1094--h2--h1--h4"
+    ],
+    "label": "bounded k on k\u00b2 \u2264 n < k\u00b3",
+    "label_source": "gloss",
+    "lemmas": [
+     {
+      "hole": "h_bhp",
+      "node": "erdos-1094--h2--h2--h1"
+     },
+     {
+      "hole": "h_vdt",
+      "node": "erdos-1094--h2--h2--h2"
+     }
+    ],
+    "literature": null,
+    "literature_proposed": {
+     "contributor": "t1009-b",
+     "record": "literature/20261009T130904Z-t1009-b.yaml",
+     "status": "known"
+    },
+    "node_id": "erdos-1094--h2--h1",
+    "origin": "skeleton-hole",
+    "outline": {
+     "annex": "6c7d3be4efeecc319f87dc55a1638245a01739d8f2167e05b11ba9d9d31853b7",
+     "partial": "attempts/20261014T075000Z-t1014-a-partial.lean",
+     "steps": [
+      {
+       "node": "erdos-1094--h2--h2--h1",
+       "status": "ready",
+       "step": "h_bhp",
+       "summary": "Baker-Harman-Pintz, as on erdos-1094--h2--h2 (the same statement, erdos-1094--h2--h2--h1)"
+      },
+      {
+       "node": "erdos-1094--h2--h2--h2",
+       "status": "proved",
+       "step": "h_vdt",
+       "summary": "BHP fails, or van Doorn-Tang Theorem 1.1 holds, as on erdos-1094--h2--h2 (the same statement, erdos-1094--h2--h2--h2)"
+      },
+      {
+       "node": "erdos-1094--h2--h1--h4",
+       "status": "ready",
+       "step": "h_strip",
+       "summary": "for large k no exception has k^2 <= n < k(k + 3k^(21/40)), given k*(n/k) divides k!; follows from g(k) > k^2 + 3k^(61/40)"
+      }
+     ]
+    },
+    "proof_commit": null,
+    "proofs": [],
+    "proposed_for": null,
+    "relation": null,
+    "relevance": null,
+    "statement_hash": "c926a7c69c19de8b32ba63d9172cb76be6b13d1e08e887166170b716e49992c4",
+    "status": "ready",
+    "trust_base": null,
+    "tutorial": false,
+    "uses": []
+   },
+   {
+    "cause": null,
+    "claim": "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ 2k\\le n<k^3,\\ \\ \\operatorname{lpf}\\tbinom{n}{k} > k \\implies k\\le K",
+    "closure": null,
+    "decompositions": [
+     {
+      "annex": null,
+      "approach": "Proved here (assembly): n / gcd(n,k) divides C(n,k) (from k*C(n,k) = n*C(n-1,k-1) and coprimality of n/g and k/g), and n/g \u2265 n/k \u2265 2, so its least prime factor is at least minFac C(n,k) > k: every prime factor of n / gcd(n,k) exceeds k.",
+      "holes": [
+       {
+        "name": "h_gp",
+        "node": "erdos-1094--h2--h1--h1--h1"
+       }
+      ],
+      "partial": "attempts/20261014T111741Z-t1014-y-partial.lean"
+     }
+    ],
+    "defect_claims": [
+     {
+      "accepted": false,
+      "class": "circular-decomposition",
+      "file": "defects/20261009T144917Z-t1009-c.yaml",
+      "state": "standing"
+     }
+    ],
+    "deps": [
+     "erdos-1094--h2--h1--h1--h1"
+    ],
+    "label": "C(n,k) with no prime factor \u2264 k, 2k \u2264 n < k\u00b3",
+    "label_source": "gloss",
+    "lemmas": [],
+    "literature": null,
+    "literature_proposed": {
+     "contributor": "t1009-c",
+     "record": "literature/20261009T144817Z-t1009-c.yaml",
+     "status": "known"
+    },
+    "node_id": "erdos-1094--h2--h1--h1",
+    "origin": "skeleton-hole",
+    "outline": null,
+    "proof_commit": null,
+    "proofs": [],
+    "proposed_for": null,
+    "relation": null,
+    "relevance": null,
+    "statement_hash": "f7ea16d04f6bb7a656597b72d243ea648ad31e68639145d798f3108cba425386",
+    "status": "ready",
+    "trust_base": null,
+    "tutorial": false,
+    "uses": []
+   },
+   {
+    "cause": null,
+    "claim": "\\exists K\\in\\mathbb{N}\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ 2k\\le n<k^3,\\ \\ \\operatorname{minFac}\\tbinom{n}{k}>k,\\ \\ \\operatorname{minFac}\\!\\Bigl(\\frac{n}{\\gcd(n,k)}\\Bigr)>k\\ \\Longrightarrow\\ k\\le K",
+    "closure": null,
+    "decompositions": [
+     {
+      "annex": null,
+      "approach": "Split the range 2k \u2264 n < k\u00b3 at n = k\u00b2: the lower band (n < k\u00b2, Sylvester\u2013Schur/Ecklund regime) and the upper band (k\u00b2 \u2264 n < k\u00b3). Each hole carries a stronger hypothesis.",
+      "holes": [
+       {
+        "name": "h_low",
+        "node": "erdos-1094--h2--h1--h1--h1--h1"
+       },
+       {
+        "name": "h_high",
+        "node": "erdos-1094--h2--h1--h1--h1--h2"
+       }
+      ],
+      "partial": "attempts/20261015T151456Z-t1015c-a06-partial.lean"
+     }
+    ],
+    "defect_claims": [],
+    "deps": [
+     "erdos-1094--h2--h1--h1--h1--h1",
+     "erdos-1094--h2--h1--h1--h1--h2"
+    ],
+    "label": "2k \u2264 n < k\u00b3 with n/gcd(n,k) free of primes \u2264 k",
+    "label_source": "gloss",
+    "lemmas": [],
+    "literature": null,
+    "literature_proposed": null,
+    "node_id": "erdos-1094--h2--h1--h1--h1",
+    "origin": "compiler-derived",
+    "outline": null,
+    "proof_commit": null,
+    "proofs": [],
+    "proposed_for": null,
+    "relation": null,
+    "relevance": null,
+    "statement_hash": "68d57ebd646ac7933aeb73aa17f35b1d5ff44c372e8d5391208ddc4002536246",
+    "status": "ready",
+    "trust_base": null,
+    "tutorial": false,
+    "uses": []
+   },
+   {
+    "cause": null,
+    "claim": "\\exists K\\in\\mathbb{N}\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ 2k\\le n<k^2,\\ \\ \\operatorname{minFac}\\tbinom{n}{k}>k,\\ \\ \\operatorname{minFac}\\!\\Bigl(\\frac{n}{\\gcd(n,k)}\\Bigr)>k\\ \\Longrightarrow\\ k\\le K",
+    "closure": null,
+    "decompositions": [
+     {
+      "annex": null,
+      "approach": "m = n/gcd(n,k) has minFac > k and m < k^2, so m is a prime q > k; split n = q (n prime) from n = g*q with 2 <= g | k",
+      "holes": [
+       {
+        "name": "h_prime",
+        "node": "erdos-1094--h2--h1--h1--h1--h1--h1"
+       },
+       {
+        "name": "h_comp",
+        "node": "erdos-1094--h2--h1--h1--h1--h1--h2"
+       }
+      ],
+      "partial": "attempts/20261018T192600Z-t1018-a-partial.lean"
+     }
+    ],
+    "defect_claims": [],
+    "deps": [
+     "erdos-1094--h2--h1--h1--h1--h1--h1",
+     "erdos-1094--h2--h1--h1--h1--h1--h2"
+    ],
+    "label": "2k \u2264 n < k\u00b2 with n/gcd(n,k) free of primes \u2264 k",
+    "label_source": "gloss",
+    "lemmas": [],
+    "literature": null,
+    "literature_proposed": null,
+    "node_id": "erdos-1094--h2--h1--h1--h1--h1",
+    "origin": "compiler-derived",
+    "outline": null,
+    "proof_commit": null,
+    "proofs": [],
+    "proposed_for": null,
+    "relation": null,
+    "relevance": null,
+    "statement_hash": "5afe4d106f3b591e748c6b99959e117d365c6abccf6a0a6c71f3f58a89e3724d",
+    "status": "ready",
+    "trust_base": null,
+    "tutorial": false,
+    "uses": []
+   },
+   {
+    "cause": null,
+    "claim": "\\exists K\\ \\forall n,k:\\ 2k\\le n<k^2,\\ n \\text{ prime},\\ \\operatorname{minFac}\\binom nk>k \\Rightarrow k\\le K",
+    "closure": null,
+    "decompositions": [],
+    "defect_claims": [],
+    "deps": [],
+    "label": "n prime in [2k, k^2)",
+    "label_source": "gloss",
+    "lemmas": [],
+    "literature": null,
+    "literature_proposed": null,
+    "node_id": "erdos-1094--h2--h1--h1--h1--h1--h1",
+    "origin": "compiler-derived",
+    "outline": null,
+    "proof_commit": null,
+    "proofs": [],
+    "proposed_for": null,
+    "relation": null,
+    "relevance": null,
+    "statement_hash": "e51efe16b2a15c20a596549d9233130420d1719a5e11607e9086a3aa7c2bfb55",
+    "status": "ready",
+    "trust_base": null,
+    "tutorial": false,
+    "uses": []
+   },
+   {
+    "cause": null,
+    "claim": "\\exists K\\ \\forall n,k,q:\\ 2k\\le n<k^2,\\ n=\\gcd(n,k)\\,q,\\ q>k \\text{ prime},\\ \\gcd(n,k)\\ge2,\\ \\operatorname{minFac}\\binom nk>k \\Rightarrow k\\le K",
+    "closure": null,
+    "decompositions": [],
+    "defect_claims": [],
+    "deps": [],
+    "label": "n = g q with 2 <= g | k and q > k prime",
+    "label_source": "gloss",
+    "lemmas": [],
+    "literature": null,
+    "literature_proposed": null,
+    "node_id": "erdos-1094--h2--h1--h1--h1--h1--h2",
+    "origin": "compiler-derived",
+    "outline": null,
+    "proof_commit": null,
+    "proofs": [],
+    "proposed_for": null,
+    "relation": null,
+    "relevance": null,
+    "statement_hash": "745cc901807010556becf6ab675f1da609b830ed6977bd4ccc06186d1245b5b9",
+    "status": "ready",
+    "trust_base": null,
+    "tutorial": false,
+    "uses": []
+   },
+   {
+    "cause": null,
+    "claim": "\\exists K\\in\\mathbb{N}\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ k^2\\le n<k^3,\\ \\ \\operatorname{minFac}\\tbinom{n}{k}>k,\\ \\ \\operatorname{minFac}\\!\\Bigl(\\frac{n}{\\gcd(n,k)}\\Bigr)>k\\ \\Longrightarrow\\ k\\le K",
+    "closure": null,
+    "decompositions": [
+     {
+      "annex": null,
+      "approach": "m = n/gcd(n,k) has every prime factor > k and m < k^3, so m is a prime q or a product p*q of two primes > k",
+      "holes": [
+       {
+        "name": "h_one",
+        "node": "erdos-1094--h2--h1--h1--h1--h2--h1"
+       },
+       {
+        "name": "h_two",
+        "node": "erdos-1094--h2--h1--h1--h1--h2--h2"
+       }
+      ],
+      "partial": "attempts/20261018T193800Z-t1018-a-partial.lean"
+     }
+    ],
+    "defect_claims": [],
+    "deps": [
+     "erdos-1094--h2--h1--h1--h1--h2--h1",
+     "erdos-1094--h2--h1--h1--h1--h2--h2"
+    ],
+    "label": "k\u00b2 \u2264 n < k\u00b3 with n/gcd(n,k) free of primes \u2264 k",
+    "label_source": "gloss",
+    "lemmas": [],
+    "literature": null,
+    "literature_proposed": null,
+    "node_id": "erdos-1094--h2--h1--h1--h1--h2",
+    "origin": "compiler-derived",
+    "outline": null,
+    "proof_commit": null,
+    "proofs": [],
+    "proposed_for": null,
+    "relation": null,
+    "relevance": null,
+    "statement_hash": "5da1fd2a2b28d1ea1254f9df43737268d47fa8bc5ad5da427fe574cee4792e1d",
+    "status": "ready",
+    "trust_base": null,
+    "tutorial": false,
+    "uses": []
+   },
+   {
+    "cause": null,
+    "claim": "\\exists K\\ \\forall n,k,q:\\ k^2\\le n<k^3,\\ n=\\gcd(n,k)\\,q,\\ q>k \\text{ prime},\\ \\operatorname{minFac}\\binom nk>k \\Rightarrow k\\le K",
+    "closure": null,
+    "decompositions": [],
+    "defect_claims": [],
+    "deps": [],
+    "label": "n = gcd(n,k) times one prime q > k",
+    "label_source": "gloss",
+    "lemmas": [],
+    "literature": null,
+    "literature_proposed": null,
+    "node_id": "erdos-1094--h2--h1--h1--h1--h2--h1",
+    "origin": "compiler-derived",
+    "outline": null,
+    "proof_commit": null,
+    "proofs": [],
+    "proposed_for": null,
+    "relation": null,
+    "relevance": null,
+    "statement_hash": "05c4814da69909454b8594cd9dd1fa8ac8bbc31f8256393f2a13ef5f372e0e62",
+    "status": "ready",
+    "trust_base": null,
+    "tutorial": false,
+    "uses": []
+   },
+   {
+    "cause": null,
+    "claim": "\\exists K\\ \\forall n,k,p,q:\\ k^2\\le n<k^3,\\ n=\\gcd(n,k)\\,pq,\\ p,q>k \\text{ prime},\\ \\operatorname{minFac}\\binom nk>k \\Rightarrow k\\le K",
+    "closure": null,
+    "decompositions": [],
+    "defect_claims": [],
+    "deps": [],
+    "label": "n = gcd(n,k) times p q, two primes > k",
+    "label_source": "gloss",
+    "lemmas": [],
+    "literature": null,
+    "literature_proposed": null,
+    "node_id": "erdos-1094--h2--h1--h1--h1--h2--h2",
+    "origin": "compiler-derived",
+    "outline": null,
+    "proof_commit": null,
+    "proofs": [],
+    "proposed_for": null,
+    "relation": null,
+    "relevance": null,
+    "statement_hash": "1d9c7b4c4c52abe8989784b1ff33f9fb4f39e7a0844853ea147305dadddb36c2",
+    "status": "ready",
+    "trust_base": null,
+    "tutorial": false,
+    "uses": []
+   },
+   {
+    "cause": null,
+    "claim": "\\exists K\\in\\mathbb N\\ \\forall n,k\\in\\mathbb N:\\ 0<k,\\ k^2\\le n,\\ n<k\\bigl(k+3k^{21/40}\\bigr),\\ k\\lfloor n/k\\rfloor \\mid k!,\\ \\operatorname{minFac}\\binom nk>\\lfloor n/k\\rfloor\\ \\Longrightarrow\\ k\\le K.",
+    "closure": null,
+    "decompositions": [
+     {
+      "annex": null,
+      "approach": "Proved here (assembly): under k*k \u2264 n and minFac C(n,k) > n/k, the number n / gcd(n,k) is prime. Reason: n/gcd(n,k) divides C(n,k) (from k*C(n,k) = n*C(n-1,k-1) and coprimality), so all its prime factors exceed n/k \u2265 k; a composite would be \u2265 (n/k+1)^2 > n.",
+      "holes": [
+       {
+        "name": "h_gp",
+        "node": "erdos-1094--h2--h1--h4--h1"
+       }
+      ],
+      "partial": "attempts/20261014T111658Z-t1014-y-partial.lean"
+     }
+    ],
+    "defect_claims": [],
+    "deps": [
+     "erdos-1094--h2--h1--h4--h1"
+    ],
+    "label": "the thin strip above k\u00b2",
+    "label_source": "gloss",
+    "lemmas": [],
+    "literature": null,
+    "literature_proposed": {
+     "contributor": "t1014-z",
+     "record": "literature/20261014T112002Z-t1014-z.yaml",
+     "status": "known"
+    },
+    "node_id": "erdos-1094--h2--h1--h4",
+    "origin": "skeleton-hole",
+    "outline": null,
+    "proof_commit": null,
+    "proofs": [],
+    "proposed_for": null,
+    "relation": null,
+    "relevance": null,
+    "statement_hash": "57989e9a2d366e5c584c82b0f51b1128bb1cd2e6775147afbdda3e906b1869f1",
+    "status": "ready",
+    "trust_base": null,
+    "tutorial": false,
+    "uses": []
+   },
+   {
+    "cause": null,
+    "claim": "\\exists K\\in\\mathbb{N}\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ k^2\\le n,\\ \\ n<k\\bigl(k+3k^{21/40}\\bigr),\\ \\ k\\lfloor n/k\\rfloor\\mid k!,\\ \\ \\operatorname{minFac}\\tbinom{n}{k}>\\lfloor n/k\\rfloor,\\ \\ \\frac{n}{\\gcd(n,k)}\\text{ prime}\\ \\Longrightarrow\\ k\\le K",
+    "closure": null,
+    "decompositions": [
+     {
+      "annex": null,
+      "approach": "On the thin strip with n/gcd(n,k) prime, split by gcd(n,k): either n itself is prime and coprime to k, or gcd(n,k) \u2265 2.",
+      "holes": [
+       {
+        "name": "h_cop",
+        "node": "erdos-1094--h2--h1--h4--h1--h1"
+       },
+       {
+        "name": "h_div",
+        "node": "erdos-1094--h2--h1--h4--h1--h2"
+       }
+      ],
+      "partial": "attempts/20261015T145300Z-t1015c-a06-partial.lean"
+     }
+    ],
+    "defect_claims": [],
+    "deps": [
+     "erdos-1094--h2--h1--h4--h1--h1",
+     "erdos-1094--h2--h1--h4--h1--h2"
+    ],
+    "label": "the thin strip with n/gcd(n,k) prime",
+    "label_source": "gloss",
+    "lemmas": [],
+    "literature": null,
+    "literature_proposed": null,
+    "node_id": "erdos-1094--h2--h1--h4--h1",
+    "origin": "compiler-derived",
+    "outline": null,
+    "proof_commit": null,
+    "proofs": [],
+    "proposed_for": null,
+    "relation": null,
+    "relevance": null,
+    "statement_hash": "631d324b5e234f0675e51ac2dc45075f4fc341c695e8807f76b280e4d5eb9acc",
+    "status": "ready",
+    "trust_base": null,
+    "tutorial": false,
+    "uses": []
+   },
+   {
+    "cause": null,
+    "claim": "\\exists K\\in\\mathbb{N}\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ k^2\\le n,\\ \\ n<k\\bigl(k+3k^{21/40}\\bigr),\\ \\ k\\lfloor n/k\\rfloor\\mid k!,\\ \\ \\operatorname{minFac}\\tbinom{n}{k}>\\lfloor n/k\\rfloor,\\ \\ n\\text{ prime},\\ \\ \\gcd(n,k)=1\\ \\Longrightarrow\\ k\\le K",
+    "closure": null,
+    "decompositions": [],
+    "defect_claims": [],
+    "deps": [],
+    "label": "the thin strip with n prime and coprime to k",
+    "label_source": "gloss",
+    "lemmas": [],
+    "literature": null,
+    "literature_proposed": null,
+    "node_id": "erdos-1094--h2--h1--h4--h1--h1",
+    "origin": "compiler-derived",
+    "outline": null,
+    "proof_commit": null,
+    "proofs": [],
+    "proposed_for": null,
+    "relation": null,
+    "relevance": null,
+    "statement_hash": "b7e5adcbac8f191de54639a55e5f395de0ef1cebbdb5753eeae1fda3d8832a3c",
+    "status": "ready",
+    "trust_base": null,
+    "tutorial": false,
+    "uses": []
+   },
+   {
+    "cause": null,
+    "claim": "\\exists K\\in\\mathbb{N}\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ k^2\\le n,\\ \\ n<k\\bigl(k+3k^{21/40}\\bigr),\\ \\ k\\lfloor n/k\\rfloor\\mid k!,\\ \\ \\operatorname{minFac}\\tbinom{n}{k}>\\lfloor n/k\\rfloor,\\ \\ \\frac{n}{\\gcd(n,k)}\\text{ prime},\\ \\ 2\\le\\gcd(n,k)\\ \\Longrightarrow\\ k\\le K",
+    "closure": null,
+    "decompositions": [
+     {
+      "annex": null,
+      "approach": "split on whether gcd(n,k) = k; that case is impossible (it forces n = k\u00b2, k prime, and k\u00b2 \u2224 k!)",
+      "holes": [
+       {
+        "name": "h_proper",
+        "node": "erdos-1094--h2--h1--h4--h1--h2--h1"
+       }
+      ],
+      "partial": "attempts/20261018T192800Z-t1018-b-partial.lean"
+     }
+    ],
+    "defect_claims": [],
+    "deps": [
+     "erdos-1094--h2--h1--h4--h1--h2--h1"
+    ],
+    "label": "the thin strip with n/gcd(n,k) prime, gcd(n,k) \u2265 2",
+    "label_source": "gloss",
+    "lemmas": [],
+    "literature": null,
+    "literature_proposed": null,
+    "node_id": "erdos-1094--h2--h1--h4--h1--h2",
+    "origin": "compiler-derived",
+    "outline": null,
+    "proof_commit": null,
+    "proofs": [],
+    "proposed_for": null,
+    "relation": null,
+    "relevance": null,
+    "statement_hash": "21b41f165340175f730ffec3c5222c19e162bf86d3a3e81b86f0eb9967289510",
+    "status": "ready",
+    "trust_base": null,
+    "tutorial": false,
+    "uses": []
+   },
+   {
+    "cause": null,
+    "claim": "\\exists K\\ \\forall n,k:\\ \\text{(the node's hypotheses)} \\wedge 2 \\le \\gcd(n,k) < k \\Rightarrow k \\le K",
+    "closure": null,
+    "decompositions": [],
+    "defect_claims": [],
+    "deps": [],
+    "label": "proper common divisor case",
+    "label_source": "gloss",
+    "lemmas": [],
+    "literature": null,
+    "literature_proposed": null,
+    "node_id": "erdos-1094--h2--h1--h4--h1--h2--h1",
+    "origin": "compiler-derived",
+    "outline": null,
+    "proof_commit": null,
+    "proofs": [],
+    "proposed_for": null,
+    "relation": null,
+    "relevance": null,
+    "statement_hash": "21021294e89e0e8c9dceec28cb78c5da808a2aa2e9f41c89fd743d273ffbc8a1",
+    "status": "ready",
+    "trust_base": null,
+    "tutorial": false,
+    "uses": []
+   },
+   {
+    "cause": null,
+    "claim": "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ k^3\\le n,\\ \\ \\operatorname{lpf}\\tbinom{n}{k} > \\lfloor n/k\\rfloor \\implies k\\le K",
+    "closure": null,
+    "decompositions": [
+     {
+      "annex": "f583ead924aad6b032168aa46c489604b9fff8546bc6f85de05ac8e143a5582f",
+      "approach": "Baker, Harman and Pintz (2001): for large k the interval (k, k + k^(21/40)) holds at least C k^(21/40) / log k primes. Stated exactly as `axiom bhp` in van Doorn and Tang's formalisation (github.com/Woett/ChatGPT-s-note-on-Erdos451), with `primeCard` unfolded.",
+      "holes": [
+       {
+        "name": "h_bhp",
+        "node": "erdos-1094--h2--h2--h1"
+       },
+       {
+        "name": "h_vdt",
+        "node": "erdos-1094--h2--h2--h2"
+       },
+       {
+        "name": "h_beyond",
+        "node": "erdos-1094--h2--h2--h3"
+       }
+      ],
+      "partial": "attempts/20261014T073500Z-t1014-a-partial.lean"
+     }
+    ],
+    "defect_claims": [],
+    "deps": [
+     "erdos-1094--h2--h2--h1",
+     "erdos-1094--h2--h2--h2",
+     "erdos-1094--h2--h2--h3"
+    ],
+    "label": "bounded k on n \u2265 k\u00b3",
+    "label_source": "gloss",
+    "lemmas": [],
+    "literature": null,
+    "literature_proposed": null,
+    "node_id": "erdos-1094--h2--h2",
+    "origin": "skeleton-hole",
+    "outline": {
+     "annex": "f583ead924aad6b032168aa46c489604b9fff8546bc6f85de05ac8e143a5582f",
+     "partial": "attempts/20261014T073500Z-t1014-a-partial.lean",
+     "steps": [
+      {
+       "node": "erdos-1094--h2--h2--h1",
+       "status": "ready",
+       "step": "h_bhp",
+       "summary": "Baker-Harman-Pintz: for large k, (k, k + k^(21/40)) holds at least C k^(21/40) / log k primes; exactly van Doorn and Tang's axiom bhp"
+      },
+      {
+       "node": "erdos-1094--h2--h2--h2",
+       "status": "proved",
+       "step": "h_vdt",
+       "summary": "BHP fails, or van Doorn-Tang Theorem 1.1 holds (for large k and 2k < n <= exp(log^2 k/(20 log log k)) a prime in (k, k+3k^(21/40)) divides (n-k)...(n-1)); their Lean file proves this"
+      },
+      {
+       "node": "erdos-1094--h2--h2--h3",
+       "status": "ready",
+       "step": "h_beyond",
+       "summary": "the open core that remains: for large k no exception has n >= k^3 and n+1 > exp(log^2 k/(20 log log k)), given k*(n/k) divides k!"
+      }
+     ]
+    },
+    "proof_commit": null,
+    "proofs": [],
+    "proposed_for": null,
+    "relation": null,
+    "relevance": null,
+    "statement_hash": "f758468369e2bb928f1f2dc3cbf0816e47aeecd95ca83d46b9c8bbdb05d823b3",
+    "status": "ready",
+    "trust_base": null,
+    "tutorial": false,
+    "uses": []
+   },
+   {
+    "cause": null,
+    "claim": "\\exists C>0\\ \\ \\exists k_0\\in\\mathbb{N}\\ \\ \\forall k\\ge k_0:\\qquad \\frac{C\\,k^{21/40}}{\\log k}\\ \\le\\ \\#\\bigl\\{p\\text{ prime}:\\ k<p<k+k^{21/40}\\bigr\\}",
+    "closure": null,
+    "decompositions": [],
+    "defect_claims": [],
+    "deps": [],
+    "label": "BHP short-interval primes",
+    "label_source": "gloss",
+    "lemmas": [],
+    "literature": null,
+    "literature_proposed": {
+     "contributor": "t1014-z",
+     "record": "literature/20261014T111914Z-t1014-z.yaml",
+     "status": "known"
+    },
+    "node_id": "erdos-1094--h2--h2--h1",
+    "origin": "skeleton-hole",
+    "outline": null,
+    "proof_commit": null,
+    "proofs": [],
+    "proposed_for": null,
+    "relation": null,
+    "relevance": null,
+    "statement_hash": "239d5513abf6882610032313dab3f1fdca865fe2887a806a6e017d86b30bb728",
+    "status": "ready",
+    "trust_base": null,
+    "tutorial": false,
+    "uses": []
+   },
+   {
+    "cause": null,
+    "claim": "\\neg\\,\\text{BHP}\\ \\ \\lor\\ \\ \\exists k_0\\in\\mathbb{N}\\ \\forall k\\ge k_0\\ \\forall n\\in\\mathbb{Z}:\\ \\ 2k<n\\le\\exp\\!\\Bigl(\\frac{(\\log k)^2}{20\\log\\log k}\\Bigr)\\ \\Longrightarrow\\ \\exists p\\text{ prime},\\ k<p<k+3k^{21/40},\\ \\ p\\mid\\prod_{i=1}^{k}(n-i)",
+    "closure": null,
+    "decompositions": [
+     {
+      "annex": "9fe3bccd5b4ff1910617d3e44edf386ecfedd3cbfc8d00ce61f3bd45ae1dcce3",
+      "approach": "Partial port of van Doorn\u2013Tang (arXiv 2606.19863), `main_theorem` of github.com/Woett/ChatGPT-s-note-on-Erdos451: its four range cases, each as \u00acBHP \u2228 case.",
+      "holes": [
+       {
+        "name": "h_small",
+        "node": "erdos-1094--h2--h2--h2--h1"
+       },
+       {
+        "name": "h_medium",
+        "node": "erdos-1094--h2--h2--h2--h2"
+       },
+       {
+        "name": "h_mediumlarge",
+        "node": "erdos-1094--h2--h2--h2--h3"
+       },
+       {
+        "name": "h_large",
+        "node": "erdos-1094--h2--h2--h2--h4"
+       }
+      ],
+      "partial": "attempts/20261014T111800Z-t1014-x-partial.lean"
+     }
+    ],
+    "defect_claims": [],
+    "deps": [
+     "erdos-1094--h2--h2--h2--h1",
+     "erdos-1094--h2--h2--h2--h2",
+     "erdos-1094--h2--h2--h2--h3",
+     "erdos-1094--h2--h2--h2--h4"
+    ],
+    "label": "van Doorn\u2013Tang's theorem, unless BHP fails",
+    "label_source": "gloss",
+    "lemmas": [],
+    "literature": null,
+    "literature_proposed": {
+     "contributor": "t1014-x",
+     "record": "literature/20261014T112447Z-t1014-x.yaml",
+     "status": "known"
+    },
+    "node_id": "erdos-1094--h2--h2--h2",
+    "origin": "skeleton-hole",
+    "outline": {
+     "annex": "9fe3bccd5b4ff1910617d3e44edf386ecfedd3cbfc8d00ce61f3bd45ae1dcce3",
+     "partial": "attempts/20261014T111800Z-t1014-x-partial.lean",
+     "steps": [
+      {
+       "node": "erdos-1094--h2--h2--h2--h1",
+       "status": "proved",
+       "step": "h_small",
+       "summary": "vdT case_small: 2k < n <= k^(2-\u03b8)/2, as \u00acBHP \u2228 case"
+      },
+      {
+       "node": "erdos-1094--h2--h2--h2--h2",
+       "status": "proved",
+       "step": "h_medium",
+       "summary": "vdT case_medium: k^(2-\u03b8)/2 < n <= k\u00b2/log\u00b2k, as \u00acBHP \u2228 case"
+      },
+      {
+       "node": "erdos-1094--h2--h2--h2--h3",
+       "status": "proved",
+       "step": "h_mediumlarge",
+       "summary": "vdT case_mediumlarge: k\u00b2/log\u00b2k < n <= k^(2+\u03b8)/2, as \u00acBHP \u2228 case"
+      },
+      {
+       "node": "erdos-1094--h2--h2--h2--h4",
+       "status": "proved",
+       "step": "h_large",
+       "summary": "vdT case_large (Konyagin step): k^(2+\u03b8)/2 < n <= exp(log\u00b2k/(20 log log k)), as \u00acBHP \u2228 case"
+      }
+     ]
+    },
+    "proof_commit": "3f0a195a9823757438c1f57dc4a7ddd77813f974",
+    "proofs": [
+     {
+      "artifact_hash": "5396c49d51abe4b5056438a40c2391458fe2195f7ce90a642f15acdb32c9420c",
+      "attestation": "000572.json",
+      "kind": "proof",
+      "merge_commit": "3f0a195a9823757438c1f57dc4a7ddd77813f974",
+      "path": "Proof.lean",
+      "submitter": "t1015c-a26",
+      "used": [
+       "erdos-1094--h2--h2--h2--h1",
+       "erdos-1094--h2--h2--h2--h2",
+       "erdos-1094--h2--h2--h2--h3",
+       "erdos-1094--h2--h2--h2--h4"
+      ]
+     }
+    ],
+    "proposed_for": null,
+    "relation": null,
+    "relevance": null,
+    "statement_hash": "e4a81d04e131c941a49be870794d4b5c03a7fb5e734bca2b15bc882bf0a1644b",
+    "status": "proved",
+    "trust_base": "kernel",
+    "tutorial": false,
+    "uses": []
+   },
+   {
+    "cause": null,
+    "claim": "\\neg\\,\\text{BHP}\\ \\ \\lor\\ \\ \\exists k_0\\in\\mathbb{N}\\ \\forall k\\ge k_0\\ \\forall n\\in\\mathbb{Z}:\\ \\ 2k<n\\le\\tfrac12\\,k^{2-21/40}\\ \\Longrightarrow\\ \\exists p\\text{ prime},\\ k<p<k+3k^{21/40},\\ \\ p\\mid\\prod_{i=1}^{k}(n-i)",
+    "closure": null,
+    "decompositions": [],
+    "defect_claims": [],
+    "deps": [],
+    "label": "small range 2k < n \u2264 k^(2\u221221/40)/2",
+    "label_source": "gloss",
+    "lemmas": [],
+    "literature": null,
+    "literature_proposed": null,
+    "node_id": "erdos-1094--h2--h2--h2--h1",
+    "origin": "skeleton-hole",
+    "outline": null,
+    "proof_commit": "cd7163d4891ec30a09a5b3b03b06105a2de6df4c",
+    "proofs": [
+     {
+      "artifact_hash": "f7ffdc425c03476ea76c5da939be3c8a57bb360e734ed9bfeb9f65839d04285f",
+      "attestation": "000524.json",
+      "kind": "proof",
+      "merge_commit": "cd7163d4891ec30a09a5b3b03b06105a2de6df4c",
+      "path": "Proof.lean",
+      "submitter": "t1014-p",
+      "used": []
+     }
+    ],
+    "proposed_for": null,
+    "relation": null,
+    "relevance": null,
+    "statement_hash": "0936a1117fc23fc5d62443259ce1f77e8d118d874da9e3b54b24d745037abdf8",
+    "status": "proved",
+    "trust_base": "kernel",
+    "tutorial": false,
+    "uses": []
+   },
+   {
+    "cause": null,
+    "claim": "\\neg\\,\\text{BHP}\\ \\ \\lor\\ \\ \\exists k_0\\in\\mathbb{N}\\ \\forall k\\ge k_0\\ \\forall n\\in\\mathbb{Z}:\\ \\ \\tfrac12\\,k^{2-21/40}<n\\le\\frac{k^2}{(\\log k)^2}\\ \\Longrightarrow\\ \\exists p\\text{ prime},\\ k<p<k+3k^{21/40},\\ \\ p\\mid\\prod_{i=1}^{k}(n-i)",
+    "closure": null,
+    "decompositions": [
+     {
+      "annex": null,
+      "approach": "Konyagin's count on the medium range: few m in (k, k + k^\u03b8) have n/m near an integer, so BHP's primes leave one that divides (n\u2212k)\u22ef(n\u22121).",
+      "holes": [
+       {
+        "name": "h_count",
+        "node": "erdos-1094--h2--h2--h2--h2--h1"
+       }
+      ],
+      "partial": "attempts/20261014T181000Z-t1014-r-partial.lean"
+     }
+    ],
+    "defect_claims": [],
+    "deps": [
+     "erdos-1094--h2--h2--h2--h2--h1"
+    ],
+    "label": "medium range k^(2\u221221/40)/2 < n \u2264 k\u00b2/log\u00b2k",
+    "label_source": "gloss",
+    "lemmas": [],
+    "literature": null,
+    "literature_proposed": null,
+    "node_id": "erdos-1094--h2--h2--h2--h2",
+    "origin": "skeleton-hole",
+    "outline": null,
+    "proof_commit": "e2362ca106266df2b5d28b7415504d1c76c1aef3",
+    "proofs": [
+     {
+      "artifact_hash": "3d61e4edce580470e7bb609b5c3d93d30305a326216bf652374c2c671d82bcc6",
+      "attestation": "000553.json",
+      "kind": "proof",
+      "merge_commit": "e2362ca106266df2b5d28b7415504d1c76c1aef3",
+      "path": "Proof.lean",
+      "submitter": "t1015c-a13",
+      "used": [
+       "erdos-1094--h2--h2--h2--h2--h1"
+      ]
+     }
+    ],
+    "proposed_for": null,
+    "relation": null,
+    "relevance": null,
+    "statement_hash": "14e550ff714d631757f039ee2f53f24ee19fd4c97b3d924853b92d6b4192d051",
+    "status": "proved",
+    "trust_base": "kernel",
+    "tutorial": false,
+    "uses": []
+   },
+   {
+    "cause": null,
+    "claim": "\\exists k_0\\in\\mathbb{N}\\ \\forall k\\ge k_0\\ \\forall n\\in\\mathbb{Z}:\\ \\ \\tfrac12\\,k^{2-21/40}<n\\le\\frac{k^2}{(\\log k)^2}\\ \\Longrightarrow\\ \\#\\Bigl\\{m\\in\\mathbb{Z}:\\ k<m<k+k^{21/40},\\ \\Bigl|\\frac{n}{m}-\\operatorname{round}\\!\\Bigl(\\frac{n}{m}\\Bigr)\\Bigr|<\\frac{1}{k^{1-21/40}}\\Bigr\\}<3+56\\,k^{2\\cdot 21/40-1}+\\frac{k^{21/40}}{(\\log k)^{2}}",
+    "closure": null,
+    "decompositions": [],
+    "defect_claims": [],
+    "deps": [],
+    "label": "medium range: few m with n/m near an integer",
+    "label_source": "gloss",
+    "lemmas": [],
+    "literature": null,
+    "literature_proposed": null,
+    "node_id": "erdos-1094--h2--h2--h2--h2--h1",
+    "origin": "compiler-derived",
+    "outline": null,
+    "proof_commit": "14c4ddbade6fee4b7db7c366bba742084781c2d1",
+    "proofs": [
+     {
+      "artifact_hash": "14be2b09d461638be49e1245d407dec826480aa05310ce3162240e4875b3addb",
+      "attestation": "000527.json",
+      "kind": "proof",
+      "merge_commit": "14c4ddbade6fee4b7db7c366bba742084781c2d1",
+      "path": "Proof.lean",
+      "submitter": "t1015-p",
+      "used": []
+     }
+    ],
+    "proposed_for": null,
+    "relation": null,
+    "relevance": null,
+    "statement_hash": "c0c07f309a6547a7660a011c671f481d42acc346e9df9db1625361289edab820",
+    "status": "proved",
+    "trust_base": "kernel",
+    "tutorial": false,
+    "uses": []
+   },
+   {
+    "cause": null,
+    "claim": "\\neg\\,\\text{BHP}\\ \\ \\lor\\ \\ \\exists k_0\\in\\mathbb{N}\\ \\forall k\\ge k_0\\ \\forall n\\in\\mathbb{Z}:\\ \\ \\frac{k^2}{(\\log k)^2}<n\\le\\tfrac12\\,k^{2+21/40}\\ \\Longrightarrow\\ \\exists p\\text{ prime},\\ k<p<k+3k^{21/40},\\ \\ p\\mid\\prod_{i=1}^{k}(n-i)",
+    "closure": null,
+    "decompositions": [
+     {
+      "annex": null,
+      "approach": "Medium-large range via Konyagin's theorem at r = 2 and scale \u03bb = \u221a(k^(2+\u03b8)/2n)\u00b7log k: the bad m are o(k^\u03b8/log k), so BHP leaves a prime dividing the window.",
+      "holes": [
+       {
+        "name": "h_kon",
+        "node": "erdos-1094--h2--h2--h2--h3--h1"
+       }
+      ],
+      "partial": "attempts/20261015T021346Z-t1015-r-partial.lean"
+     }
+    ],
+    "defect_claims": [],
+    "deps": [
+     "erdos-1094--h2--h2--h2--h3--h1"
+    ],
+    "label": "medium-large range k\u00b2/log\u00b2k < n \u2264 k^(2+21/40)/2",
+    "label_source": "gloss",
+    "lemmas": [],
+    "literature": null,
+    "literature_proposed": null,
+    "node_id": "erdos-1094--h2--h2--h2--h3",
+    "origin": "skeleton-hole",
+    "outline": null,
+    "proof_commit": "ab65977d259a95e83b1bdafd1041759ba227ca43",
+    "proofs": [
+     {
+      "artifact_hash": "024c27556b192ce1586ff423548e0d76bd14da61b6c65eaa75bba3dfb8c72d32",
+      "attestation": "000570.json",
+      "kind": "proof",
+      "merge_commit": "ab65977d259a95e83b1bdafd1041759ba227ca43",
+      "path": "Proof.lean",
+      "submitter": "t1015c-a08",
+      "used": [
+       "erdos-1094--h2--h2--h2--h3--h1"
+      ]
+     }
+    ],
+    "proposed_for": null,
+    "relation": null,
+    "relevance": null,
+    "statement_hash": "aa1d8846a942bf64236808bee080184644e83aeae9507d2437e4fa74bd06259c",
+    "status": "proved",
+    "trust_base": "kernel",
+    "tutorial": false,
+    "uses": []
+   },
+   {
+    "cause": null,
+    "claim": "\\#\\Bigl\\{m\\in\\mathbb{Z}:\\ k<m<k+k^{21/40},\\ \\Bigl|\\frac{n}{m}-\\operatorname{round}\\!\\Bigl(\\frac{n}{m}\\Bigr)\\Bigr|<\\frac{1}{k^{1-21/40}}\\Bigr\\}<65536\\,k^{21/40}\\Bigl[\\Bigl(\\frac{n\\,r!\\,\\lambda^r}{k^{r+1}}\\Bigr)^{\\frac{1}{2r-1}}+\\Bigl(\\frac{k^{r+21/40}}{n\\,r!\\,\\lambda^r}\\Bigr)^{\\frac{1}{r-1}}+\\Bigl(\\frac{(r+1)\\lambda}{k}\\Bigr)^{\\frac{1}{2r}}\\Bigr]+2r\\lambda",
+    "closure": null,
+    "decompositions": [
+     {
+      "annex": null,
+      "approach": "Reduce the count of m with n/m near an integer to Konyagin's theorem on the good points of a smooth f, applied to f(x) = (\u22121)^r n/(k + x) on [0, k^\u03b8] with W = 1.",
+      "holes": [
+       {
+        "name": "h_thm",
+        "node": "erdos-1094--h2--h2--h2--h3--h1--h1"
+       }
+      ],
+      "partial": "attempts/20261015T023339Z-t1015-r-partial.lean"
+     }
+    ],
+    "defect_claims": [],
+    "deps": [
+     "erdos-1094--h2--h2--h2--h3--h1--h1"
+    ],
+    "label": "Konyagin's bound on m with n/m near an integer",
+    "label_source": "gloss",
+    "lemmas": [],
+    "literature": null,
+    "literature_proposed": null,
+    "node_id": "erdos-1094--h2--h2--h2--h3--h1",
+    "origin": "compiler-derived",
+    "outline": null,
+    "proof_commit": "8e25be453ccf671e3afbf739ccb55a2133dd3fb0",
+    "proofs": [
+     {
+      "artifact_hash": "3e58edd1a7c098a4d229a9057bc0a8b5e3497ef1e91f0fceba88404ffb17f59c",
+      "attestation": "000569.json",
+      "kind": "proof",
+      "merge_commit": "8e25be453ccf671e3afbf739ccb55a2133dd3fb0",
+      "path": "Proof.lean",
+      "submitter": "t1015c-a01",
+      "used": [
+       "erdos-1094--h2--h2--h2--h3--h1--h1"
+      ]
+     }
+    ],
+    "proposed_for": null,
+    "relation": null,
+    "relevance": null,
+    "statement_hash": "f06573494aeca7bb1f1446595687f66093a18143b66b8ecae7c84d58dd387878",
+    "status": "proved",
+    "trust_base": "kernel",
+    "tutorial": false,
+    "uses": []
+   },
+   {
+    "cause": null,
+    "claim": "|S|<65536\\,N\\Bigl[(D_r\\lambda^rW^2)^{\\frac{1}{2r-1}}+\\Bigl(\\frac{\\delta W^2}{D_r\\lambda^r}\\Bigr)^{\\frac{1}{r-1}}+\\Bigl(\\frac{D_{r+1}\\lambda W^2}{D_r}\\Bigr)^{\\frac{1}{2r}}\\Bigr]+2r\\lambda",
+    "closure": null,
+    "decompositions": [
+     {
+      "annex": null,
+      "approach": "Prove Konyagin's theorem by two reductions: the bound is trivial when 65536X \u2265 1, and a general scale \u03bb reduces to \u03bb/\u230a\u03bb\u230b in [1, 2) by splitting S into residue classes mod \u230a\u03bb\u230b.",
+      "holes": [
+       {
+        "name": "core",
+        "node": "erdos-1094--h2--h2--h2--h3--h1--h1--h1"
+       }
+      ],
+      "partial": "attempts/20261015T063320Z-opn-prove-aristotle-1015-partial.lean"
+     }
+    ],
+    "defect_claims": [],
+    "deps": [
+     "erdos-1094--h2--h2--h2--h3--h1--h1--h1"
+    ],
+    "label": "Konyagin's theorem: points where f is near a rational",
+    "label_source": "gloss",
+    "lemmas": [],
+    "literature": null,
+    "literature_proposed": null,
+    "node_id": "erdos-1094--h2--h2--h2--h3--h1--h1",
+    "origin": "compiler-derived",
+    "outline": null,
+    "proof_commit": "3e4a866f1f300ef43357a12381e7de0ab3b0ab58",
+    "proofs": [
+     {
+      "artifact_hash": "9b838fd9509713767934d38fd9d3c9a4f5cac1037e14d555ea9bc522a16c6244",
+      "attestation": "000568.json",
+      "kind": "proof",
+      "merge_commit": "3e4a866f1f300ef43357a12381e7de0ab3b0ab58",
+      "path": "Proof.lean",
+      "submitter": "t1015c-a07",
+      "used": [
+       "erdos-1094--h2--h2--h2--h3--h1--h1--h1"
+      ]
+     }
+    ],
+    "proposed_for": null,
+    "relation": null,
+    "relevance": null,
+    "statement_hash": "d204fab277af14bd4b0e46f5f8b52ff08650af62b3ef74ca553b2b21b9a6a329",
+    "status": "proved",
+    "trust_base": "kernel",
+    "tutorial": false,
+    "uses": []
+   },
+   {
+    "cause": null,
+    "claim": "65536\\,X'<1\\ \\Longrightarrow\\ |S'|<65536\\,N'X'+2r\\lambda',\\qquad X'=(D'\\lambda'^{\\,r}W^2)^{\\frac{1}{2r-1}}+\\Bigl(\\frac{\\delta W^2}{D'\\lambda'^{\\,r}}\\Bigr)^{\\frac{1}{r-1}}+\\Bigl(\\frac{D_1'\\lambda' W^2}{D'}\\Bigr)^{\\frac{1}{2r}}",
+    "closure": null,
+    "decompositions": [
+     {
+      "annex": null,
+      "approach": "Prove Konyagin's theorem at scale [1, 2) from one lemma: a small integer linear relation killing the first r moments of 2r weighted points, with coefficients at most (256M/r)^(r\u22121)\u00b7W.",
+      "holes": [
+       {
+        "name": "hsilr",
+        "node": "erdos-1094--h2--h2--h2--h3--h1--h1--h1--h1"
+       }
+      ],
+      "partial": "attempts/20261015T130229Z-t1015b-s-partial.lean"
+     }
+    ],
+    "defect_claims": [],
+    "deps": [
+     "erdos-1094--h2--h2--h2--h3--h1--h1--h1--h1"
+    ],
+    "label": "Konyagin's theorem at scale in [1, 2) when 65536X < 1",
+    "label_source": "gloss",
+    "lemmas": [],
+    "literature": null,
+    "literature_proposed": null,
+    "node_id": "erdos-1094--h2--h2--h2--h3--h1--h1--h1",
+    "origin": "compiler-derived",
+    "outline": null,
+    "proof_commit": "49bbfabd0d6054250c9e0aa9cc3a25a111bb7f04",
+    "proofs": [
+     {
+      "artifact_hash": "f28a92bf98a330a56453a622db272d97002fc40d288385cab6fe394bed534336",
+      "attestation": "000560.json",
+      "kind": "proof",
+      "merge_commit": "49bbfabd0d6054250c9e0aa9cc3a25a111bb7f04",
+      "path": "Proof.lean",
+      "submitter": "t1015c-a04",
+      "used": [
+       "erdos-1094--h2--h2--h2--h3--h1--h1--h1--h1"
+      ]
+     }
+    ],
+    "proposed_for": null,
+    "relation": null,
+    "relevance": null,
+    "statement_hash": "23092aee1ffa5146a088e17e9f3142080211ba60fa37f52ca4d72b6bafa2fb55",
+    "status": "proved",
+    "trust_base": "kernel",
+    "tutorial": false,
+    "uses": []
+   },
+   {
+    "cause": null,
+    "claim": "\\exists a:\\{0,\\dots,2r-1\\}\\to\\mathbb{Z}:\\quad \\sum_{i}a_i w_i u_i^{\\,j}=0\\ (j<r),\\qquad \\sum_{i}a_i w_i u_i^{\\,r}\\ne 0,\\qquad |a_i|\\le\\Bigl(\\frac{256\\,M}{r}\\Bigr)^{r-1}W",
+    "closure": null,
+    "decompositions": [],
+    "defect_claims": [],
+    "deps": [],
+    "label": "a small integer linear relation on 2r points",
+    "label_source": "gloss",
+    "lemmas": [],
+    "literature": null,
+    "literature_proposed": null,
+    "node_id": "erdos-1094--h2--h2--h2--h3--h1--h1--h1--h1",
+    "origin": "compiler-derived",
+    "outline": null,
+    "proof_commit": "06ac98c605f55f4014097866577862e8f7fa1af1",
+    "proofs": [
+     {
+      "artifact_hash": "b8b45cb797c54bb0599f62009a46f64b4333bee4957d6eb1aedd99427087a3ef",
+      "attestation": "000550.json",
+      "kind": "proof",
+      "merge_commit": "06ac98c605f55f4014097866577862e8f7fa1af1",
+      "path": "Proof.lean",
+      "submitter": "t1015b-t",
+      "used": []
+     }
+    ],
+    "proposed_for": null,
+    "relation": null,
+    "relevance": null,
+    "statement_hash": "5d2f6054a36b13faa366f12e75530ef3a017f28fb0c1e4571fe15b71cb4a7eea",
+    "status": "proved",
+    "trust_base": "kernel",
+    "tutorial": false,
+    "uses": []
+   },
+   {
+    "cause": null,
+    "claim": "\\neg\\,\\text{BHP}\\ \\ \\lor\\ \\ \\exists k_0\\in\\mathbb{N}\\ \\forall k\\ge k_0\\ \\forall n\\in\\mathbb{Z}:\\ \\ \\tfrac12\\,k^{2+21/40}<n\\le\\exp\\!\\Bigl(\\frac{(\\log k)^2}{20\\log\\log k}\\Bigr)\\ \\Longrightarrow\\ \\exists p\\text{ prime},\\ k<p<k+3k^{21/40},\\ \\ p\\mid\\prod_{i=1}^{k}(n-i)",
+    "closure": null,
+    "decompositions": [
+     {
+      "annex": null,
+      "approach": "Large range via Konyagin's theorem with r the least exponent with n\u00b7r! \u2264 k^(r+\u03b8) and \u03bb balanced: the bad m are o(k^\u03b8/log k), so BHP leaves a prime dividing the window.",
+      "holes": [
+       {
+        "name": "h_kon",
+        "node": "erdos-1094--h2--h2--h2--h3--h1"
+       }
+      ],
+      "partial": "attempts/20261015T023100Z-t1015-q-partial.lean"
+     }
+    ],
+    "defect_claims": [],
+    "deps": [],
+    "label": "large range up to exp(log\u00b2k/(20 log log k))",
+    "label_source": "gloss",
+    "lemmas": [
+     {
+      "hole": "h_kon",
+      "node": "erdos-1094--h2--h2--h2--h3--h1"
+     }
+    ],
+    "literature": null,
+    "literature_proposed": null,
+    "node_id": "erdos-1094--h2--h2--h2--h4",
+    "origin": "skeleton-hole",
+    "outline": null,
+    "proof_commit": "aedbb20a9fa62cdd198bb3483227d601ab077953",
+    "proofs": [
+     {
+      "artifact_hash": "d210d0acac62cb21015b7296e1dd1e91c1ccf0b327f9e41cb3d085536dcc24ac",
+      "attestation": "000571.json",
+      "kind": "proof",
+      "merge_commit": "aedbb20a9fa62cdd198bb3483227d601ab077953",
+      "path": "Proof.lean",
+      "submitter": "t1015c-a12",
+      "used": [
+       "erdos-1094--h2--h2--h2--h3--h1"
+      ]
+     }
+    ],
+    "proposed_for": null,
+    "relation": null,
+    "relevance": null,
+    "statement_hash": "f6a9b1036ebe2a590145d785db3aa8b6c6368f10176e2a387f9c0ec179ef275e",
+    "status": "proved",
+    "trust_base": "kernel",
+    "tutorial": false,
+    "uses": []
+   },
+   {
+    "cause": null,
+    "claim": "\\exists K\\in\\mathbb N\\ \\forall n,k\\in\\mathbb N:\\ 0<k,\\ k^3\\le n,\\ \\exp\\!\\Bigl(\\frac{(\\log k)^2}{20\\,\\log\\log k}\\Bigr)<n+1,\\ k\\lfloor n/k\\rfloor \\mid k!,\\ \\operatorname{minFac}\\binom nk>\\lfloor n/k\\rfloor\\ \\Longrightarrow\\ k\\le K.",
+    "closure": null,
+    "decompositions": [
+     {
+      "annex": null,
+      "approach": "Proved here (assembly): under k*k \u2264 n and minFac C(n,k) > n/k, the number n / gcd(n,k) is prime. Reason: n/gcd(n,k) divides C(n,k) (from k*C(n,k) = n*C(n-1,k-1) and coprimality), so all its prime factors exceed n/k \u2265 k; a composite would be \u2265 (n/k+1)^2 > n.",
+      "holes": [
+       {
+        "name": "h_gp",
+        "node": "erdos-1094--h2--h2--h3--h1"
+       }
+      ],
+      "partial": "attempts/20261014T111449Z-t1014-y-partial.lean"
+     }
+    ],
+    "defect_claims": [],
+    "deps": [
+     "erdos-1094--h2--h2--h3--h1"
+    ],
+    "label": "beyond van Doorn\u2013Tang's range, n \u2265 k\u00b3",
+    "label_source": "gloss",
+    "lemmas": [],
+    "literature": null,
+    "literature_proposed": null,
+    "node_id": "erdos-1094--h2--h2--h3",
+    "origin": "skeleton-hole",
+    "outline": null,
+    "proof_commit": null,
+    "proofs": [],
+    "proposed_for": null,
+    "relation": null,
+    "relevance": null,
+    "statement_hash": "c2bbfeb8142945c37fea4b5903af64ab8511c8da4c8536ba21970d0db1797f57",
+    "status": "ready",
+    "trust_base": null,
+    "tutorial": false,
+    "uses": []
+   },
+   {
+    "cause": null,
+    "claim": "\\exists K\\in\\mathbb{N}\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ k^3\\le n,\\ \\ \\exp\\!\\Bigl(\\frac{(\\log k)^2}{20\\log\\log k}\\Bigr)<n+1,\\ \\ k\\lfloor n/k\\rfloor\\mid k!,\\ \\ \\operatorname{minFac}\\tbinom{n}{k}>\\lfloor n/k\\rfloor,\\ \\ \\frac{n}{\\gcd(n,k)}\\text{ prime}\\ \\Longrightarrow\\ k\\le K",
+    "closure": null,
+    "decompositions": [
+     {
+      "annex": null,
+      "approach": "Proved here: if k \u2223 n then gcd(n,k) = k, so p := n/k is prime with p \u2223 k! (as p \u2223 k*(n/k)), hence p \u2264 k; but p = n/k \u2265 k*k > k for k \u2265 2. So only k \u2224 n remains open.",
+      "holes": [
+       {
+        "name": "h_ndvd",
+        "node": "erdos-1094--h2--h2--h3--h1--h1"
+       }
+      ],
+      "partial": "attempts/20261015T144930Z-t1015c-a08-partial.lean"
+     }
+    ],
+    "defect_claims": [],
+    "deps": [
+     "erdos-1094--h2--h2--h3--h1--h1"
+    ],
+    "label": "beyond van Doorn\u2013Tang with n/gcd(n,k) prime",
+    "label_source": "gloss",
+    "lemmas": [],
+    "literature": null,
+    "literature_proposed": null,
+    "node_id": "erdos-1094--h2--h2--h3--h1",
+    "origin": "compiler-derived",
+    "outline": null,
+    "proof_commit": null,
+    "proofs": [],
+    "proposed_for": null,
+    "relation": null,
+    "relevance": null,
+    "statement_hash": "4242ce524ed11238824d21c96ade96245d7776524a96ea0184c54f9fd178b991",
+    "status": "ready",
+    "trust_base": null,
+    "tutorial": false,
+    "uses": []
+   },
+   {
+    "cause": null,
+    "claim": "\\exists K\\in\\mathbb{N}\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ k^3\\le n,\\ \\ \\exp\\!\\Bigl(\\frac{(\\log k)^2}{20\\log\\log k}\\Bigr)<n+1,\\ \\ k\\lfloor n/k\\rfloor\\mid k!,\\ \\ \\operatorname{minFac}\\tbinom{n}{k}>\\lfloor n/k\\rfloor,\\ \\ \\frac{n}{\\gcd(n,k)}\\text{ prime},\\ \\ k\\nmid n\\ \\Longrightarrow\\ k\\le K",
+    "closure": null,
+    "decompositions": [],
+    "defect_claims": [],
+    "deps": [],
+    "label": "beyond van Doorn\u2013Tang, n/gcd(n,k) prime, k \u2224 n",
+    "label_source": "gloss",
+    "lemmas": [],
+    "literature": null,
+    "literature_proposed": null,
+    "node_id": "erdos-1094--h2--h2--h3--h1--h1",
+    "origin": "compiler-derived",
+    "outline": null,
+    "proof_commit": null,
+    "proofs": [],
+    "proposed_for": null,
+    "relation": null,
+    "relevance": null,
+    "statement_hash": "7cf0749d22184710b3dc90717991ee28bb1525f6bbb08d8c27eef10264b5e6b5",
+    "status": "ready",
+    "trust_base": null,
+    "tutorial": false,
+    "uses": []
+   },
+   {
+    "cause": null,
+    "claim": "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ 2k\\le n<k^2,\\ \\ \\operatorname{lpf}\\tbinom{n}{k} > k \\implies k\\le K",
+    "closure": null,
+    "decompositions": [
+     {
+      "annex": null,
+      "approach": "Small range through a last-digit carry: for large k some prime p \u2264 k has n mod p < k mod p, so p divides C(n,k) by Lucas' theorem.",
+      "holes": [
+       {
+        "name": "h_sieve",
+        "node": "erdos-1094--h3--h1"
+       }
+      ],
+      "partial": "attempts/20261008T133001Z-t1008-a-partial.lean"
+     },
+     {
+      "annex": null,
+      "approach": "Konyagin's theorem, g(k) > k^3 for all large k, in the network's \"bounded k\" shape: a binomial coefficient C(n, k) with 2k \u2264 n < k^3 whose prime factors all exceed k occurs only for bounded k. The same hole closes erdos-1094--h2--h1.",
+      "holes": [
+       {
+        "name": "h_good_below_cube",
+        "node": "erdos-1094--h2--h1--h1"
+       }
+      ],
+      "partial": "attempts/20261009T143300Z-t1009-c-partial.lean"
+     },
+     {
+      "annex": "1df9e2016f247088c7a0bdc58643dc56fc5169dfeb1a094e1c9ce30cb42abcc2",
+      "approach": "Skeleton of Granville\u2013Ramar\u00e9, Mathematika 43 (1996) 73\u2013107, Theorem 8 (preprint p. 5), proof in \u00a75e (preprint pp. 24\u201325). Their n is our n \u2212 k (they write C(n+k, k)). h_els: the input GR cite and do not prove (\u00a75e, p. 24: \"That n \u226b k\u00b2/log k has been proved in [ELS], so we may assume this\"): Erd\u0151s\u2013L\u2026",
+      "holes": [
+       {
+        "name": "h_els",
+        "node": "erdos-1094--h3--h2"
+       },
+       {
+        "name": "h_gr",
+        "node": "erdos-1094--h3--h3"
+       }
+      ],
+      "partial": "attempts/20261015T125200Z-t1015b-g-partial.lean"
+     }
+    ],
+    "defect_claims": [],
+    "deps": [
+     "erdos-1094--h3--h1",
+     "erdos-1094--h3--h2",
+     "erdos-1094--h3--h3"
+    ],
+    "label": "Small range 2k \u2264 n < k\u00b2: k is bounded",
+    "label_source": "gloss",
+    "lemmas": [
+     {
+      "hole": "h_good_below_cube",
+      "node": "erdos-1094--h2--h1--h1"
+     }
+    ],
+    "literature": null,
+    "literature_proposed": {
+     "contributor": "t1009-a",
+     "record": "literature/20261009T125700Z-t1009-a.yaml",
+     "status": "known"
+    },
+    "node_id": "erdos-1094--h3",
+    "origin": "compiler-derived",
+    "outline": {
+     "annex": "1df9e2016f247088c7a0bdc58643dc56fc5169dfeb1a094e1c9ce30cb42abcc2",
+     "partial": "attempts/20261015T125200Z-t1015b-g-partial.lean",
+     "steps": [
+      {
+       "node": "erdos-1094--h3--h2",
+       "status": "ready",
+       "step": "h_els",
+       "summary": "[ELS] 1993, cited by GR \u00a75e p.24: minFac C(n,k) > k, 2k <= n, k large imply k^2 <= C * n * log2 k."
+      },
+      {
+       "node": "erdos-1094--h3--h3",
+       "status": "ready",
+       "step": "h_gr",
+       "summary": "GR \u00a75e pp.24-25 via (5.1) (Sander): for every C, for k large, k^2 <= C n log2 k, n < k^2, some prime p in (k/2, 11k/20) has n mod p < k mod p."
+      }
+     ]
+    },
+    "proof_commit": null,
+    "proofs": [],
+    "proposed_for": null,
+    "relation": null,
+    "relevance": null,
+    "statement_hash": "ea8c2bd908e4a56d2b703223b839ff4664882ab9c1fbd85e71ed4eb05e2da99b",
+    "status": "ready",
+    "trust_base": null,
+    "tutorial": false,
+    "uses": []
+   },
+   {
+    "cause": null,
+    "claim": "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad K<k,\\ \\ 2k\\le n<k^2 \\implies \\exists\\,p\\le k \\text{ prime with } n \\bmod p < k \\bmod p",
+    "closure": null,
+    "decompositions": [
+     {
+      "annex": "094494042f14ef24ecf8b5aa0d9b122ec0e066058d1cc7b4cef3be7b5e912a3c",
+      "approach": "Residue form split by parity: k even, or k and n both odd (k odd with n even carries at p = 2 and is closed in the assembly).",
+      "holes": [
+       {
+        "name": "h_keven",
+        "node": "erdos-1094--h3--h1--h1"
+       },
+       {
+        "name": "h_odd",
+        "node": "erdos-1094--h3--h1--h2"
+       }
+      ],
+      "partial": "attempts/20261009T125000Z-t1009-a-partial.lean"
+     }
+    ],
+    "defect_claims": [],
+    "deps": [
+     "erdos-1094--h3--h1--h1",
+     "erdos-1094--h3--h1--h2"
+    ],
+    "label": "Residue form: a prime p \u2264 k with n mod p < k mod p",
+    "label_source": "gloss",
+    "lemmas": [],
+    "literature": null,
+    "literature_proposed": null,
+    "node_id": "erdos-1094--h3--h1",
+    "origin": "compiler-derived",
+    "outline": {
+     "annex": "094494042f14ef24ecf8b5aa0d9b122ec0e066058d1cc7b4cef3be7b5e912a3c",
+     "partial": "attempts/20261009T125000Z-t1009-a-partial.lean",
+     "steps": [
+      {
+       "node": "erdos-1094--h3--h1--h1",
+       "status": "ready",
+       "step": "h_keven",
+       "summary": "For all large even k and every 2k <= n < k^2, some prime p <= k has n mod p < k mod p."
+      },
+      {
+       "node": "erdos-1094--h3--h1--h2",
+       "status": "ready",
+       "step": "h_odd",
+       "summary": "For all large odd k and every odd n with 2k <= n < k^2, some prime p <= k has n mod p < k mod p."
+      }
+     ]
+    },
+    "proof_commit": null,
+    "proofs": [],
+    "proposed_for": null,
+    "relation": null,
+    "relevance": null,
+    "statement_hash": "ed95258f3758b5ddc3ebf24feaf8dd9989b6284c3bc4cd6e772367a819d16399",
+    "status": "ready",
+    "trust_base": null,
+    "tutorial": false,
+    "uses": []
+   },
+   {
+    "cause": null,
+    "claim": "\\exists K_1\\ \\forall n,k\\in\\mathbb{N}:\\quad K_1<k,\\ \\ 2k\\le n<k^2,\\ \\ k \\text{ even} \\implies \\exists\\,p\\le k \\text{ prime with } n \\bmod p < k \\bmod p",
+    "closure": null,
+    "decompositions": [
+     {
+      "annex": null,
+      "approach": "Residue form with k even, split at the prime 3: either 3 | k, or 3 \u2224 k and no carry at 3 (a carry at 3 is closed by p = 3).",
+      "holes": [
+       {
+        "name": "h_k6",
+        "node": "erdos-1094--h3--h1--h1--h1"
+       },
+       {
+        "name": "h_k3rest",
+        "node": "erdos-1094--h3--h1--h1--h2"
+       }
+      ],
+      "partial": "attempts/20261014T112100Z-t1014-z-partial.lean"
+     },
+     {
+      "annex": null,
+      "approach": "Residue form with k even, split by whether some prime q \u2264 k divides n but not k: such a q carries at once, so the hole is the case where every prime \u2264 k dividing n divides k.",
+      "holes": [
+       {
+        "name": "h_smooth",
+        "node": "erdos-1094--h3--h1--h1--h3"
+       }
+      ],
+      "partial": "attempts/20261015T145000Z-t1015c-a16-partial.lean"
+     }
+    ],
+    "defect_claims": [],
+    "deps": [
+     "erdos-1094--h3--h1--h1--h1",
+     "erdos-1094--h3--h1--h1--h2",
+     "erdos-1094--h3--h1--h1--h3"
+    ],
+    "label": "Residue form, k even",
+    "label_source": "gloss",
+    "lemmas": [],
+    "literature": null,
+    "literature_proposed": null,
+    "node_id": "erdos-1094--h3--h1--h1",
+    "origin": "skeleton-hole",
+    "outline": null,
+    "proof_commit": null,
+    "proofs": [],
+    "proposed_for": null,
+    "relation": null,
+    "relevance": null,
+    "statement_hash": "a2855351dc766d6505d56107bb3d9c3b57ed69d786d21346f6b6dc409e2be96f",
+    "status": "ready",
+    "trust_base": null,
+    "tutorial": false,
+    "uses": []
+   },
+   {
+    "cause": null,
+    "claim": "\\exists K_1\\ \\forall n,k\\in\\mathbb{N}:\\quad K_1<k,\\ \\ 2k\\le n<k^2,\\ \\ 2\\mid k,\\ \\ 3\\mid k \\implies \\exists\\,p\\le k \\text{ prime with } n \\bmod p < k \\bmod p",
+    "closure": null,
+    "decompositions": [
+     {
+      "annex": null,
+      "approach": "Residue form with 6 | k, split at the prime 5: either 5 | k too, or 5 \u2224 k and no carry at 5 (a carry at 5 is closed by p = 5).",
+      "holes": [
+       {
+        "name": "h_k30",
+        "node": "erdos-1094--h3--h1--h1--h1--h1"
+       },
+       {
+        "name": "h_k6rest",
+        "node": "erdos-1094--h3--h1--h1--h1--h2"
+       }
+      ],
+      "partial": "attempts/20261015T145000Z-t1015c-a12-partial.lean"
+     }
+    ],
+    "defect_claims": [],
+    "deps": [
+     "erdos-1094--h3--h1--h1--h1--h1",
+     "erdos-1094--h3--h1--h1--h1--h2"
+    ],
+    "label": "Residue form, k even, 3 | k",
+    "label_source": "gloss",
+    "lemmas": [],
+    "literature": null,
+    "literature_proposed": null,
+    "node_id": "erdos-1094--h3--h1--h1--h1",
+    "origin": "compiler-derived",
+    "outline": null,
+    "proof_commit": null,
+    "proofs": [],
+    "proposed_for": null,
+    "relation": null,
+    "relevance": null,
+    "statement_hash": "01cf8cc0e289904af3e49be8c30c6396d8d180e9fbff689fae475426d88292ea",
+    "status": "ready",
+    "trust_base": null,
+    "tutorial": false,
+    "uses": []
+   },
+   {
+    "cause": null,
+    "claim": "\\exists K_1\\ \\forall n,k\\in\\mathbb{N}:\\quad K_1<k,\\ \\ 2k\\le n<k^2,\\ \\ 2\\mid k,\\ \\ 3\\mid k,\\ \\ 5\\mid k \\implies \\exists\\,p\\le k \\text{ prime with } n \\bmod p < k \\bmod p",
+    "closure": null,
+    "decompositions": [],
+    "defect_claims": [],
+    "deps": [],
+    "label": "Residue form, k even, 15 | k",
+    "label_source": "gloss",
+    "lemmas": [],
+    "literature": null,
+    "literature_proposed": null,
+    "node_id": "erdos-1094--h3--h1--h1--h1--h1",
+    "origin": "compiler-derived",
+    "outline": null,
+    "proof_commit": null,
+    "proofs": [],
+    "proposed_for": null,
+    "relation": null,
+    "relevance": null,
+    "statement_hash": "a772da9b7cc2f75b0343648d7f5e226441dd7c0e7390fbb4d3ceec2a0f81d66f",
+    "status": "ready",
+    "trust_base": null,
+    "tutorial": false,
+    "uses": []
+   },
+   {
+    "cause": null,
+    "claim": "\\exists K_2\\ \\forall n,k\\in\\mathbb{N}:\\quad K_2<k,\\ \\ 2k\\le n<k^2,\\ \\ 2\\mid k,\\ \\ 3\\mid k,\\ \\ 5\\nmid k,\\ \\ k \\bmod 5 \\le n \\bmod 5 \\implies \\exists\\,p\\le k \\text{ prime with } n \\bmod p < k \\bmod p",
+    "closure": null,
+    "decompositions": [],
+    "defect_claims": [],
+    "deps": [],
+    "label": "Residue form, 6 | k, 5 \u2224 k, no carry at 5",
+    "label_source": "gloss",
+    "lemmas": [],
+    "literature": null,
+    "literature_proposed": null,
+    "node_id": "erdos-1094--h3--h1--h1--h1--h2",
+    "origin": "compiler-derived",
+    "outline": null,
+    "proof_commit": null,
+    "proofs": [],
+    "proposed_for": null,
+    "relation": null,
+    "relevance": null,
+    "statement_hash": "3eed3917e2d4616512988e34f3519054d3c41e40d5a57cfdcdb9a1ab2d75f591",
+    "status": "ready",
+    "trust_base": null,
+    "tutorial": false,
+    "uses": []
+   },
+   {
+    "cause": null,
+    "claim": "\\exists K_2\\ \\forall n,k\\in\\mathbb{N}:\\quad K_2<k,\\ \\ 2k\\le n<k^2,\\ \\ 2\\mid k,\\ \\ 3\\nmid k,\\ \\ k \\bmod 3 \\le n \\bmod 3 \\implies \\exists\\,p\\le k \\text{ prime with } n \\bmod p < k \\bmod p",
+    "closure": null,
+    "decompositions": [
+     {
+      "annex": null,
+      "approach": "Residue form with k even, 3 \u2224 k and no carry at 3: try the primes 5, 7, 11, 13 in turn, and leave as the hole the case where none of them carries.",
+      "holes": [
+       {
+        "name": "h_p5to13",
+        "node": "erdos-1094--h3--h1--h1--h2--h1"
+       }
+      ],
+      "partial": "attempts/20261014T175700Z-t1014-q-partial.lean"
+     }
+    ],
+    "defect_claims": [],
+    "deps": [
+     "erdos-1094--h3--h1--h1--h2--h1"
+    ],
+    "label": "Residue form, k even, 3 \u2224 k, no carry at 3",
+    "label_source": "gloss",
+    "lemmas": [],
+    "literature": null,
+    "literature_proposed": null,
+    "node_id": "erdos-1094--h3--h1--h1--h2",
+    "origin": "compiler-derived",
+    "outline": null,
+    "proof_commit": null,
+    "proofs": [],
+    "proposed_for": null,
+    "relation": null,
+    "relevance": null,
+    "statement_hash": "d24c2dceee5c94ec8c2d3e453ad61f6ffa2a38047faae6148d7dc2c077887211",
+    "status": "ready",
+    "trust_base": null,
+    "tutorial": false,
+    "uses": []
+   },
+   {
+    "cause": null,
+    "claim": "\\exists K_3\\ \\forall n,k\\in\\mathbb{N}:\\quad K_3<k,\\ \\ 2k\\le n<k^2,\\ \\ 2\\mid k,\\ \\ 3\\nmid k,\\ \\ k \\bmod q \\le n \\bmod q\\ (q=3,5,7,11,13) \\implies \\exists\\,p\\le k \\text{ prime with } n \\bmod p < k \\bmod p",
+    "closure": null,
+    "decompositions": [
+     {
+      "annex": null,
+      "approach": "Residue form with k even, 3 \u2224 k and no carry at 3, 5, 7, 11, 13, split by k mod 3: k \u2261 1 (then n mod 3 \u2265 1), or k \u2261 n \u2261 2.",
+      "holes": [
+       {
+        "name": "h_k3one",
+        "node": "erdos-1094--h3--h1--h1--h2--h1--h1"
+       },
+       {
+        "name": "h_k3two",
+        "node": "erdos-1094--h3--h1--h1--h2--h1--h2"
+       }
+      ],
+      "partial": "attempts/20261015T145026Z-t1015c-a09-partial.lean"
+     }
+    ],
+    "defect_claims": [],
+    "deps": [
+     "erdos-1094--h3--h1--h1--h2--h1--h1",
+     "erdos-1094--h3--h1--h1--h2--h1--h2"
+    ],
+    "label": "Residue form, k even, 3 \u2224 k, no carry at 3 to 13",
+    "label_source": "gloss",
+    "lemmas": [],
+    "literature": null,
+    "literature_proposed": null,
+    "node_id": "erdos-1094--h3--h1--h1--h2--h1",
+    "origin": "compiler-derived",
+    "outline": null,
+    "proof_commit": null,
+    "proofs": [],
+    "proposed_for": null,
+    "relation": null,
+    "relevance": null,
+    "statement_hash": "44a3c2214f65315db837bfbe80cd89ba6f2e5853f82150f78d245fe89bdd72af",
+    "status": "ready",
+    "trust_base": null,
+    "tutorial": false,
+    "uses": []
+   },
+   {
+    "cause": null,
+    "claim": "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad K<k,\\ \\ 2k\\le n<k^2,\\ \\ 2\\mid k,\\ \\ k\\equiv 1 \\pmod 3,\\ \\ 1\\le n \\bmod 3,\\ \\ k \\bmod q \\le n \\bmod q\\ (q=5,7,11,13) \\implies \\exists\\,p\\le k \\text{ prime with } n \\bmod p < k \\bmod p",
+    "closure": null,
+    "decompositions": [],
+    "defect_claims": [],
+    "deps": [],
+    "label": "Residue form, k even, k \u2261 1 (mod 3), no carry at 3 to 13",
+    "label_source": "gloss",
+    "lemmas": [],
+    "literature": null,
+    "literature_proposed": null,
+    "node_id": "erdos-1094--h3--h1--h1--h2--h1--h1",
+    "origin": "compiler-derived",
+    "outline": null,
+    "proof_commit": null,
+    "proofs": [],
+    "proposed_for": null,
+    "relation": null,
+    "relevance": null,
+    "statement_hash": "72a78468e9251cac10e95f771017774ba05caf32ba610c9d633b13492a2e44f5",
+    "status": "ready",
+    "trust_base": null,
+    "tutorial": false,
+    "uses": []
+   },
+   {
+    "cause": null,
+    "claim": "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad K<k,\\ \\ 2k\\le n<k^2,\\ \\ 2\\mid k,\\ \\ k\\equiv 2 \\pmod 3,\\ \\ n\\equiv 2 \\pmod 3,\\ \\ k \\bmod q \\le n \\bmod q\\ (q=5,7,11,13) \\implies \\exists\\,p\\le k \\text{ prime with } n \\bmod p < k \\bmod p",
+    "closure": null,
+    "decompositions": [],
+    "defect_claims": [],
+    "deps": [],
+    "label": "Residue form, k even, k \u2261 n \u2261 2 (mod 3), no carry 5 to 13",
+    "label_source": "gloss",
+    "lemmas": [],
+    "literature": null,
+    "literature_proposed": null,
+    "node_id": "erdos-1094--h3--h1--h1--h2--h1--h2",
+    "origin": "compiler-derived",
+    "outline": null,
+    "proof_commit": null,
+    "proofs": [],
+    "proposed_for": null,
+    "relation": null,
+    "relevance": null,
+    "statement_hash": "668f5c5abbec25060e0d4383da1eb5d21db78e713eb3999e3287ce214335de7f",
+    "status": "ready",
+    "trust_base": null,
+    "tutorial": false,
+    "uses": []
+   },
+   {
+    "cause": null,
+    "claim": "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad K<k,\\ \\ 2k\\le n<k^2,\\ \\ 2\\mid k,\\ \\ \\bigl(\\forall q\\le k \\text{ prime},\\ q\\mid n \\Rightarrow q\\mid k\\bigr) \\implies \\exists\\,p\\le k \\text{ prime with } n \\bmod p < k \\bmod p",
+    "closure": null,
+    "decompositions": [],
+    "defect_claims": [],
+    "deps": [],
+    "label": "Residue form, k even, every prime \u2264 k dividing n divides k",
+    "label_source": "gloss",
+    "lemmas": [],
+    "literature": null,
+    "literature_proposed": null,
+    "node_id": "erdos-1094--h3--h1--h1--h3",
+    "origin": "compiler-derived",
+    "outline": null,
+    "proof_commit": null,
+    "proofs": [],
+    "proposed_for": null,
+    "relation": null,
+    "relevance": null,
+    "statement_hash": "3bf439440dcf0077eedce7a129b0dd4e8e6733871ec0caebe288973c1df23d38",
+    "status": "ready",
+    "trust_base": null,
+    "tutorial": false,
+    "uses": []
+   },
+   {
+    "cause": null,
+    "claim": "\\exists K_2\\ \\forall n,k\\in\\mathbb{N}:\\quad K_2<k,\\ \\ 2k\\le n<k^2,\\ \\ k \\text{ odd},\\ \\ n \\text{ odd} \\implies \\exists\\,p\\le k \\text{ prime with } n \\bmod p < k \\bmod p",
+    "closure": null,
+    "decompositions": [
+     {
+      "annex": null,
+      "approach": "Residue form with k and n odd, split at the prime 3: either 3 | k, or 3 \u2224 k and no carry at 3 (a carry at 3 is closed by p = 3).",
+      "holes": [
+       {
+        "name": "h_odd_k3",
+        "node": "erdos-1094--h3--h1--h2--h1"
+       },
+       {
+        "name": "h_odd_rest",
+        "node": "erdos-1094--h3--h1--h2--h2"
+       }
+      ],
+      "partial": "attempts/20261014T112100Z-t1014-z-partial.lean"
+     }
+    ],
+    "defect_claims": [],
+    "deps": [
+     "erdos-1094--h3--h1--h2--h1",
+     "erdos-1094--h3--h1--h2--h2"
+    ],
+    "label": "Residue form, k and n odd",
+    "label_source": "gloss",
+    "lemmas": [],
+    "literature": null,
+    "literature_proposed": null,
+    "node_id": "erdos-1094--h3--h1--h2",
+    "origin": "skeleton-hole",
+    "outline": null,
+    "proof_commit": null,
+    "proofs": [],
+    "proposed_for": null,
+    "relation": null,
+    "relevance": null,
+    "statement_hash": "bb23909deea3639943cb14a4293d3f819003c1b14d723d0e5c2c19976abbee33",
+    "status": "ready",
+    "trust_base": null,
+    "tutorial": false,
+    "uses": []
+   },
+   {
+    "cause": null,
+    "claim": "\\exists K_1\\ \\forall n,k\\in\\mathbb{N}:\\quad K_1<k,\\ \\ 2k\\le n<k^2,\\ \\ k \\text{ odd},\\ \\ n \\text{ odd},\\ \\ 3\\mid k \\implies \\exists\\,p\\le k \\text{ prime with } n \\bmod p < k \\bmod p",
+    "closure": null,
+    "decompositions": [
+     {
+      "annex": null,
+      "approach": "Residue form with k, n odd and 3 | k, split at the prime 5: either 5 | k too, or 5 \u2224 k and no carry at 5 (a carry at 5 is closed by p = 5).",
+      "holes": [
+       {
+        "name": "h_k15",
+        "node": "erdos-1094--h3--h1--h2--h1--h1"
+       },
+       {
+        "name": "h_k3_rest5",
+        "node": "erdos-1094--h3--h1--h2--h1--h2"
+       }
+      ],
+      "partial": "attempts/20261015T145000Z-t1015c-a10-partial.lean"
+     }
+    ],
+    "defect_claims": [],
+    "deps": [
+     "erdos-1094--h3--h1--h2--h1--h1",
+     "erdos-1094--h3--h1--h2--h1--h2"
+    ],
+    "label": "Residue form, k and n odd, 3 | k",
+    "label_source": "gloss",
+    "lemmas": [],
+    "literature": null,
+    "literature_proposed": null,
+    "node_id": "erdos-1094--h3--h1--h2--h1",
+    "origin": "compiler-derived",
+    "outline": null,
+    "proof_commit": null,
+    "proofs": [],
+    "proposed_for": null,
+    "relation": null,
+    "relevance": null,
+    "statement_hash": "8d20eaa6af6e1444021a3ebedfc6845c0c40c0f33aa27fb3bc91f5c954dfef49",
+    "status": "ready",
+    "trust_base": null,
+    "tutorial": false,
+    "uses": []
+   },
+   {
+    "cause": null,
+    "claim": "\\exists K_1\\ \\forall n,k\\in\\mathbb{N}:\\quad K_1<k,\\ \\ 2k\\le n<k^2,\\ \\ k \\text{ odd},\\ \\ n \\text{ odd},\\ \\ 3\\mid k,\\ \\ 5\\mid k \\implies \\exists\\,p\\le k \\text{ prime with } n \\bmod p < k \\bmod p",
+    "closure": null,
+    "decompositions": [],
+    "defect_claims": [],
+    "deps": [],
+    "label": "Residue form, k and n odd, 15 | k",
+    "label_source": "gloss",
+    "lemmas": [],
+    "literature": null,
+    "literature_proposed": null,
+    "node_id": "erdos-1094--h3--h1--h2--h1--h1",
+    "origin": "compiler-derived",
+    "outline": null,
+    "proof_commit": null,
+    "proofs": [],
+    "proposed_for": null,
+    "relation": null,
+    "relevance": null,
+    "statement_hash": "8087d3b5ff1ba823f6f981824f526014da1e9f2e3df6569c75bd039dfa075be1",
+    "status": "ready",
+    "trust_base": null,
+    "tutorial": false,
+    "uses": []
+   },
+   {
+    "cause": null,
+    "claim": "\\exists K_2\\ \\forall n,k\\in\\mathbb{N}:\\quad K_2<k,\\ \\ 2k\\le n<k^2,\\ \\ k \\text{ odd},\\ \\ n \\text{ odd},\\ \\ 3\\mid k,\\ \\ 5\\nmid k,\\ \\ k \\bmod 5 \\le n \\bmod 5 \\implies \\exists\\,p\\le k \\text{ prime with } n \\bmod p < k \\bmod p",
+    "closure": null,
+    "decompositions": [],
+    "defect_claims": [],
+    "deps": [],
+    "label": "Residue form, k and n odd, 3 | k, 5 \u2224 k, no carry at 5",
+    "label_source": "gloss",
+    "lemmas": [],
+    "literature": null,
+    "literature_proposed": null,
+    "node_id": "erdos-1094--h3--h1--h2--h1--h2",
+    "origin": "compiler-derived",
+    "outline": null,
+    "proof_commit": null,
+    "proofs": [],
+    "proposed_for": null,
+    "relation": null,
+    "relevance": null,
+    "statement_hash": "82000acd1313e3861ca7163bee8b51e12b0a134007c8445c762d369afe69aff8",
+    "status": "ready",
+    "trust_base": null,
+    "tutorial": false,
+    "uses": []
+   },
+   {
+    "cause": null,
+    "claim": "\\exists K_2\\ \\forall n,k\\in\\mathbb{N}:\\quad K_2<k,\\ \\ 2k\\le n<k^2,\\ \\ k \\text{ odd},\\ \\ n \\text{ odd},\\ \\ 3\\nmid k,\\ \\ k \\bmod 3 \\le n \\bmod 3 \\implies \\exists\\,p\\le k \\text{ prime with } n \\bmod p < k \\bmod p",
+    "closure": null,
+    "decompositions": [
+     {
+      "annex": null,
+      "approach": "Residue form with k, n odd, 3 \u2224 k and no carry at 3, split by k mod 3: k \u2261 1, or k \u2261 n \u2261 2 (mod 3).",
+      "holes": [
+       {
+        "name": "h_k3_one",
+        "node": "erdos-1094--h3--h1--h2--h2--h1"
+       },
+       {
+        "name": "h_k3_two",
+        "node": "erdos-1094--h3--h1--h2--h2--h2"
+       }
+      ],
+      "partial": "attempts/20261015T145200Z-t1015c-a11-partial.lean"
+     }
+    ],
+    "defect_claims": [],
+    "deps": [
+     "erdos-1094--h3--h1--h2--h2--h1",
+     "erdos-1094--h3--h1--h2--h2--h2"
+    ],
+    "label": "Residue form, k and n odd, 3 \u2224 k, no carry at 3",
+    "label_source": "gloss",
+    "lemmas": [],
+    "literature": null,
+    "literature_proposed": null,
+    "node_id": "erdos-1094--h3--h1--h2--h2",
+    "origin": "compiler-derived",
+    "outline": null,
+    "proof_commit": null,
+    "proofs": [],
+    "proposed_for": null,
+    "relation": null,
+    "relevance": null,
+    "statement_hash": "052047044fad57f415de5cebb111ad8a4955316f1903e6d9479241ebeb59df35",
+    "status": "ready",
+    "trust_base": null,
+    "tutorial": false,
+    "uses": []
+   },
+   {
+    "cause": null,
+    "claim": "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad K<k,\\ \\ 2k\\le n<k^2,\\ \\ k \\text{ odd},\\ \\ n \\text{ odd},\\ \\ k\\equiv 1 \\pmod 3 \\implies \\exists\\,p\\le k \\text{ prime with } n \\bmod p < k \\bmod p",
+    "closure": null,
+    "decompositions": [],
+    "defect_claims": [],
+    "deps": [],
+    "label": "Residue form, k and n odd, k \u2261 1 (mod 3)",
+    "label_source": "gloss",
+    "lemmas": [],
+    "literature": null,
+    "literature_proposed": null,
+    "node_id": "erdos-1094--h3--h1--h2--h2--h1",
+    "origin": "compiler-derived",
+    "outline": null,
+    "proof_commit": null,
+    "proofs": [],
+    "proposed_for": null,
+    "relation": null,
+    "relevance": null,
+    "statement_hash": "902c30278c325b9ef25f73069f45a3549e5405fb4278eb730acf07eb79aea61d",
+    "status": "ready",
+    "trust_base": null,
+    "tutorial": false,
+    "uses": []
+   },
+   {
+    "cause": null,
+    "claim": "\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad K<k,\\ \\ 2k\\le n<k^2,\\ \\ k \\text{ odd},\\ \\ n \\text{ odd},\\ \\ k\\equiv 2 \\pmod 3,\\ \\ n\\equiv 2 \\pmod 3 \\implies \\exists\\,p\\le k \\text{ prime with } n \\bmod p < k \\bmod p",
+    "closure": null,
+    "decompositions": [
+     {
+      "annex": null,
+      "approach": "sieve by the prime 5: if n mod 5 < k mod 5 the prime 5 works, else two residue cases remain",
+      "holes": [
+       {
+        "name": "h_k5_zero",
+        "node": "erdos-1094--h3--h1--h2--h2--h2--h1"
+       },
+       {
+        "name": "h_k5_le",
+        "node": "erdos-1094--h3--h1--h2--h2--h2--h2"
+       }
+      ],
+      "partial": "attempts/20261018T192600Z-t1018-d-partial.lean"
+     }
+    ],
+    "defect_claims": [],
+    "deps": [
+     "erdos-1094--h3--h1--h2--h2--h2--h1",
+     "erdos-1094--h3--h1--h2--h2--h2--h2"
+    ],
+    "label": "Residue form, k and n odd, k \u2261 n \u2261 2 (mod 3)",
+    "label_source": "gloss",
+    "lemmas": [],
+    "literature": null,
+    "literature_proposed": null,
+    "node_id": "erdos-1094--h3--h1--h2--h2--h2",
+    "origin": "compiler-derived",
+    "outline": null,
+    "proof_commit": null,
+    "proofs": [],
+    "proposed_for": null,
+    "relation": null,
+    "relevance": null,
+    "statement_hash": "1e303ea7f974dc73a6666184b5701df07912961eb8554b430594e9dddb794f83",
+    "status": "ready",
+    "trust_base": null,
+    "tutorial": false,
+    "uses": []
+   },
+   {
+    "cause": null,
+    "claim": "5 \\mid k \\Rightarrow \\exists\\, p \\le k \\text{ prime},\\ n \\bmod p < k \\bmod p",
+    "closure": null,
+    "decompositions": [],
+    "defect_claims": [],
+    "deps": [],
+    "label": "k divisible by 5",
+    "label_source": "gloss",
+    "lemmas": [],
+    "literature": null,
+    "literature_proposed": null,
+    "node_id": "erdos-1094--h3--h1--h2--h2--h2--h1",
+    "origin": "compiler-derived",
+    "outline": null,
+    "proof_commit": null,
+    "proofs": [],
+    "proposed_for": null,
+    "relation": null,
+    "relevance": null,
+    "statement_hash": "468051a35176b06e816ce97c248ed468fd7da1112a58965a5d9ac1346e220b50",
+    "status": "ready",
+    "trust_base": null,
+    "tutorial": false,
+    "uses": []
+   },
+   {
+    "cause": null,
+    "claim": "0 < k \\bmod 5 \\le n \\bmod 5 \\Rightarrow \\exists\\, p \\le k \\text{ prime},\\ n \\bmod p < k \\bmod p",
+    "closure": null,
+    "decompositions": [],
+    "defect_claims": [],
+    "deps": [],
+    "label": "5 gives no carry",
+    "label_source": "gloss",
+    "lemmas": [],
+    "literature": null,
+    "literature_proposed": null,
+    "node_id": "erdos-1094--h3--h1--h2--h2--h2--h2",
+    "origin": "compiler-derived",
+    "outline": null,
+    "proof_commit": null,
+    "proofs": [],
+    "proposed_for": null,
+    "relation": null,
+    "relevance": null,
+    "statement_hash": "1587ab05c81f78028c3dd0175d6d5dcc82709925c1d96818e40cbbb34cd707ba",
+    "status": "ready",
+    "trust_base": null,
+    "tutorial": false,
+    "uses": []
+   },
+   {
+    "cause": null,
+    "claim": "\\exists C, K_1\\in\\mathbb{N}\\ \\forall n,k\\in\\mathbb{N}:\\quad K_1<k,\\ \\ 2k\\le n,\\ \\ \\operatorname{minFac}\\tbinom{n}{k}>k \\implies k^2 \\le C\\cdot n\\cdot\\lfloor\\log_2 k\\rfloor",
+    "closure": null,
+    "decompositions": [
+     {
+      "annex": null,
+      "approach": "Partial proof along Erd\u0151s\u2013Lacampagne\u2013Selfridge, \"Estimates of the least prime factor of a binomial coefficient\", Math. Comp. 61 (1993) 215\u2013224, Theorem 1 (p. 216) and its proof (pp. 216\u2013218). ELS write N = n + k for the top; our n is their N. Three ranges: h_ees: N \u2264 k^{1+c}. ELS p. 216: \"It was sh\u2026",
+      "holes": [
+       {
+        "name": "h_ees",
+        "node": "erdos-1094--h3--h2--h1"
+       },
+       {
+        "name": "h_caseB",
+        "node": "erdos-1094--h3--h2--h2"
+       },
+       {
+        "name": "h_caseA",
+        "node": "erdos-1094--h3--h2--h3"
+       }
+      ],
+      "partial": "attempts/20261015T132800Z-t1015b-h-partial.lean"
+     }
+    ],
+    "defect_claims": [],
+    "deps": [
+     "erdos-1094--h3--h2--h1",
+     "erdos-1094--h3--h2--h2",
+     "erdos-1094--h3--h2--h3"
+    ],
+    "label": "ELS lower bound: k\u00b2 \u2264 C\u00b7n\u00b7log\u2082k when lpf C(n,k) > k",
+    "label_source": "gloss",
+    "lemmas": [],
+    "literature": null,
+    "literature_proposed": null,
+    "node_id": "erdos-1094--h3--h2",
+    "origin": "skeleton-hole",
+    "outline": null,
+    "proof_commit": null,
+    "proofs": [],
+    "proposed_for": null,
+    "relation": null,
+    "relevance": null,
+    "statement_hash": "b2cf277043bdccab7cf2197439da6f5a768d72b9a6349041eaf331c3ac18f4dd",
+    "status": "ready",
+    "trust_base": null,
+    "tutorial": false,
+    "uses": []
+   },
+   {
+    "cause": null,
+    "claim": "\\exists c\\in\\mathbb{R},\\ c>0,\\ \\exists K_2\\in\\mathbb{N}\\ \\forall n,k\\in\\mathbb{N}:\\quad K_2<k,\\ \\ 2k\\le n,\\ \\ \\operatorname{minFac}\\tbinom{n}{k}>k \\implies k^{1+c} < n",
+    "closure": null,
+    "decompositions": [
+     {
+      "annex": null,
+      "approach": "n \u2265 k\u00b2 is immediate with c \u2264 1/2; only the range n < k\u00b2 needs EES",
+      "holes": [
+       {
+        "name": "h_lt",
+        "node": "erdos-1094--h3--h2--h1--h1"
+       }
+      ],
+      "partial": "attempts/20261018T193200Z-t1018-c-partial.lean"
+     }
+    ],
+    "defect_claims": [],
+    "deps": [
+     "erdos-1094--h3--h2--h1--h1"
+    ],
+    "label": "Ecklund\u2013Erd\u0151s\u2013Selfridge: n > k^(1+c) when lpf C(n,k) > k",
+    "label_source": "gloss",
+    "lemmas": [],
+    "literature": null,
+    "literature_proposed": {
+     "contributor": "t1016-lit",
+     "record": "literature/20261016T121434Z-t1016-lit.yaml",
+     "status": "known"
+    },
+    "node_id": "erdos-1094--h3--h2--h1",
+    "origin": "compiler-derived",
+    "outline": null,
+    "proof_commit": null,
+    "proofs": [],
+    "proposed_for": null,
+    "relation": null,
+    "relevance": null,
+    "statement_hash": "4e7c5ffb6e5ea75572612c41180c96d57550b146143c9898c6bb0ae6d5cef72a",
+    "status": "ready",
+    "trust_base": null,
+    "tutorial": false,
+    "uses": []
+   },
+   {
+    "cause": "witness-missing",
+    "claim": "\\exists c>0\\,\\exists K\\,\\forall n,k:\\ K<k,\\ 2k\\le n<k^2,\\ \\mathrm{lpf}\\binom{n}{k}>k \\Rightarrow k^{1+c}<n",
+    "closure": null,
+    "decompositions": [],
+    "defect_claims": [],
+    "deps": [],
+    "label": "EES bound below k squared",
+    "label_source": "gloss",
+    "lemmas": [],
+    "literature": null,
+    "literature_proposed": null,
+    "node_id": "erdos-1094--h3--h2--h1--h1",
+    "origin": "compiler-derived",
+    "outline": null,
+    "proof_commit": null,
+    "proofs": [],
+    "proposed_for": null,
+    "relation": null,
+    "relevance": null,
+    "statement_hash": "a59cec8d03a9fa98bacc874281cb63835f41965ffb74224124cece4578002b35",
+    "status": "blocked",
+    "trust_base": null,
+    "tutorial": false,
+    "uses": []
+   },
+   {
+    "cause": null,
+    "claim": "\\forall c>0\\ \\exists K_3\\in\\mathbb{N}\\ \\forall n,k\\in\\mathbb{N}:\\quad K_3<k,\\ \\ k^{1+c}<n<k^{7/4} \\implies \\exists\\,p \\text{ prime},\\ \\tfrac{k}{2}<p<k,\\ \\ p\\mid\\tbinom{n}{k}",
+    "closure": null,
+    "decompositions": [],
+    "defect_claims": [],
+    "deps": [],
+    "label": "ELS case B: k^(1+c) < n < k^(7/4), a prime in (k/2, k)",
+    "label_source": "gloss",
+    "lemmas": [],
+    "literature": null,
+    "literature_proposed": {
+     "contributor": "t1016-lit",
+     "record": "literature/20261016T121438Z-t1016-lit.yaml",
+     "status": "known"
+    },
+    "node_id": "erdos-1094--h3--h2--h2",
+    "origin": "compiler-derived",
+    "outline": null,
+    "proof_commit": null,
+    "proofs": [],
+    "proposed_for": null,
+    "relation": null,
+    "relevance": null,
+    "statement_hash": "dea3c705e0a06112d181978fde2dec47aed43e7e2417226ea21340820e2ff5b1",
+    "status": "ready",
+    "trust_base": null,
+    "tutorial": false,
+    "uses": []
+   },
+   {
+    "cause": null,
+    "claim": "\\exists C, K_4\\in\\mathbb{N}\\ \\forall n,k\\in\\mathbb{N}:\\quad K_4<k,\\ \\ k^{7/4}\\le n,\\ \\ C\\cdot n\\cdot\\lfloor\\log_2 k\\rfloor < k^2 \\implies \\exists\\,p \\text{ prime},\\ \\tfrac{k}{2}<p<k,\\ \\ p\\mid\\tbinom{n}{k}",
+    "closure": null,
+    "decompositions": [],
+    "defect_claims": [],
+    "deps": [],
+    "label": "ELS case A: k^(7/4) \u2264 n \u226a k\u00b2/log k, a prime in (k/2, k)",
+    "label_source": "gloss",
+    "lemmas": [],
+    "literature": null,
+    "literature_proposed": {
+     "contributor": "t1016-lit",
+     "record": "literature/20261016T121503Z-t1016-lit.yaml",
+     "status": "known"
+    },
+    "node_id": "erdos-1094--h3--h2--h3",
+    "origin": "compiler-derived",
+    "outline": null,
+    "proof_commit": null,
+    "proofs": [],
+    "proposed_for": null,
+    "relation": null,
+    "relevance": null,
+    "statement_hash": "9e3a1f24a3fc98f4ea18541f399316d6780d2e9504f5cf1f62e126285517d903",
+    "status": "ready",
+    "trust_base": null,
+    "tutorial": false,
+    "uses": []
+   },
+   {
+    "cause": null,
+    "claim": "\\forall C\\in\\mathbb{N}\\ \\exists K_2\\ \\forall n,k\\in\\mathbb{N}:\\quad K_2<k,\\ \\ k^2\\le C\\cdot n\\cdot\\lfloor\\log_2 k\\rfloor,\\ \\ n<k^2 \\implies \\exists\\,p \\text{ prime},\\ \\tfrac{k}{2}<p<\\tfrac{11k}{20},\\ \\ n \\bmod p < k \\bmod p",
+    "closure": null,
+    "decompositions": [
+     {
+      "annex": "88f9e9a7ddffdc9d2a479880cf6eaa066f94ea7f17936fe431b479452d6c05bd",
+      "approach": "Second level of Granville\u2013Ramar\u00e9, Mathematika 43 (1996) 73\u2013107, Theorem 8, \u00a75e (preprint pp. 24\u201325), the analytic step. Suppose no prime p in (k/2, 11k/20) has a last-digit carry; then {n/p} \u2265 k/p \u2212 1 > 9/11 for each such p (GR read the same no-carry condition as {m/p} < 1/5 with m = n \u2212 k), so \u03a3 (\u2026",
+      "holes": [
+       {
+        "name": "h_cheb",
+        "node": "erdos-1094--h3--h3--h1"
+       },
+       {
+        "name": "h_sander",
+        "node": "erdos-1094--h3--h3--h2"
+       }
+      ],
+      "partial": "attempts/20261015T132200Z-t1015b-g-partial.lean"
+     }
+    ],
+    "defect_claims": [],
+    "deps": [
+     "erdos-1094--h3--h3--h1",
+     "erdos-1094--h3--h3--h2"
+    ],
+    "label": "Granville\u2013Ramar\u00e9: a carry at some prime p in (k/2, 11k/20)",
+    "label_source": "gloss",
+    "lemmas": [],
+    "literature": null,
+    "literature_proposed": null,
+    "node_id": "erdos-1094--h3--h3",
+    "origin": "skeleton-hole",
+    "outline": {
+     "annex": "88f9e9a7ddffdc9d2a479880cf6eaa066f94ea7f17936fe431b479452d6c05bd",
+     "partial": "attempts/20261015T132200Z-t1015b-g-partial.lean",
+     "steps": [
+      {
+       "node": "erdos-1094--h3--h3--h1",
+       "status": "ready",
+       "step": "h_cheb",
+       "summary": "Used by GR p.25 (\"\u226b k\"): for large k, the sum of log p over primes k/2 < p < 11k/20 is at least k/100 (PNT on (x, 1.1x))."
+      },
+      {
+       "node": "erdos-1094--h3--h3--h2",
+       "status": "ready",
+       "step": "h_sander",
+       "summary": "GR (5.1), p.18, from Sander [Sa2] via Lemma 5.1: for every C, eps > 0 and large k with k^2 <= C n log2 k, n < k^2: |sum over those p of ({n/p} - 1/2) log p| <= eps k."
+      }
+     ]
+    },
+    "proof_commit": null,
+    "proofs": [],
+    "proposed_for": null,
+    "relation": null,
+    "relevance": null,
+    "statement_hash": "e26d55df4fee05d3b3358d5d47f73e19232f45e7a44ed2730d550a1768eb20e1",
+    "status": "ready",
+    "trust_base": null,
+    "tutorial": false,
+    "uses": []
+   },
+   {
+    "cause": null,
+    "claim": "\\exists K_3\\in\\mathbb{N}\\ \\forall k\\in\\mathbb{N}:\\quad K_3<k \\implies \\frac{k}{100} \\le \\sum_{\\substack{p \\text{ prime}\\\\ k/2<p<11k/20}} \\log p",
+    "closure": null,
+    "decompositions": [
+     {
+      "annex": null,
+      "approach": "Chebyshev's sum over (k/2, 11k/20) from the prime number theorem: \u03b8(x) = x + o(x) at x = 11k/20 and x = k/2 gives \u03a3 log p \u2265 k/100 for large k.",
+      "holes": [
+       {
+        "name": "h_pnt",
+        "node": "erdos-1094--h3--h3--h1--h1"
+       }
+      ],
+      "partial": "attempts/20261015T145500Z-t1015c-a03-partial.lean"
+     }
+    ],
+    "defect_claims": [],
+    "deps": [
+     "erdos-1094--h3--h3--h1--h1"
+    ],
+    "label": "Chebyshev sum of log p over (k/2, 11k/20) is at least k/100",
+    "label_source": "gloss",
+    "lemmas": [],
+    "literature": null,
+    "literature_proposed": null,
+    "node_id": "erdos-1094--h3--h3--h1",
+    "origin": "skeleton-hole",
+    "outline": null,
+    "proof_commit": null,
+    "proofs": [],
+    "proposed_for": null,
+    "relation": null,
+    "relevance": null,
+    "statement_hash": "eb2d28cd33766cb6681723740bf3194ce2d3f990e77c766b7c8ceed619b928aa",
+    "status": "ready",
+    "trust_base": null,
+    "tutorial": false,
+    "uses": []
+   },
+   {
+    "cause": null,
+    "claim": "\\forall \\varepsilon>0\\ \\exists X\\in\\mathbb{R}\\ \\forall x\\in\\mathbb{R}:\\quad X\\le x \\implies |\\theta(x)-x| \\le \\varepsilon x",
+    "closure": null,
+    "decompositions": [
+     {
+      "annex": null,
+      "approach": "the prime number theorem for \u03c8 (Hadamard, de la Vall\u00e9e Poussin 1896) transferred to \u03b8 by Mathlib's bound |\u03c8 x - \u03b8 x| \u2264 2\u221ax log x",
+      "holes": [
+       {
+        "name": "h_psi",
+        "node": "erdos-1094--h3--h3--h1--h1--h1"
+       }
+      ],
+      "partial": "attempts/20261018T192634Z-t1018-e-partial.lean"
+     }
+    ],
+    "defect_claims": [],
+    "deps": [
+     "erdos-1094--h3--h3--h1--h1--h1"
+    ],
+    "label": "Prime number theorem: \u03b8(x) ~ x",
+    "label_source": "gloss",
+    "lemmas": [],
+    "literature": null,
+    "literature_proposed": {
+     "contributor": "t1016-lit",
+     "record": "literature/20261016T121425Z-t1016-lit.yaml",
+     "status": "known"
+    },
+    "node_id": "erdos-1094--h3--h3--h1--h1",
+    "origin": "compiler-derived",
+    "outline": null,
+    "proof_commit": null,
+    "proofs": [],
+    "proposed_for": null,
+    "relation": null,
+    "relevance": null,
+    "statement_hash": "7cc22d4e8709d1f4c07f02cb74aeb659f7ebae2ba0787456594d1bd99485071a",
+    "status": "ready",
+    "trust_base": null,
+    "tutorial": false,
+    "uses": []
+   },
+   {
+    "cause": null,
+    "claim": "\\psi(x) = x + o(x)$, i.e. $\\forall \\varepsilon>0\\ \\exists X\\ \\forall x\\ge X,\\ |\\psi(x)-x|\\le\\varepsilon x",
+    "closure": null,
+    "decompositions": [
+     {
+      "annex": null,
+      "approach": "Wiener\u2013Ikehara Tauberian theorem applied to the von Mangoldt L-series -\u03b6'/\u03b6 (Ingham 1932; Korevaar 2004, Newman 1980)",
+      "holes": [
+       {
+        "name": "h_wi",
+        "node": "erdos-1094--h3--h3--h1--h1--h1--h1"
+       },
+       {
+        "name": "h_ext",
+        "node": "erdos-1094--h3--h3--h1--h1--h1--h2"
+       }
+      ],
+      "partial": "attempts/20261018T200210Z-t1018-e-partial.lean"
+     }
+    ],
+    "defect_claims": [],
+    "deps": [
+     "erdos-1094--h3--h3--h1--h1--h1--h1",
+     "erdos-1094--h3--h3--h1--h1--h1--h2"
+    ],
+    "label": "Prime number theorem for psi",
+    "label_source": "gloss",
+    "lemmas": [],
+    "literature": null,
+    "literature_proposed": null,
+    "node_id": "erdos-1094--h3--h3--h1--h1--h1",
+    "origin": "compiler-derived",
+    "outline": null,
+    "proof_commit": null,
+    "proofs": [],
+    "proposed_for": null,
+    "relation": null,
+    "relevance": null,
+    "statement_hash": "e424e4e5dec0126bc19e9caa4e9850147842054f66935eb0a31985aa75ec4a0a",
+    "status": "ready",
+    "trust_base": null,
+    "tutorial": false,
+    "uses": []
+   },
+   {
+    "cause": null,
+    "claim": "f\\ge0$, $\\sum f(n)n^{-s}$ converges for $\\Re s>1$ and $F(s)-A/(s-1)$ extends continuously to $\\Re s\\ge1$ $\\Rightarrow$ $\\frac1N\\sum_{n<N}f(n)\\to A",
+    "closure": null,
+    "decompositions": [],
+    "defect_claims": [],
+    "deps": [],
+    "label": "Wiener\u2013Ikehara Tauberian theorem",
+    "label_source": "gloss",
+    "lemmas": [],
+    "literature": null,
+    "literature_proposed": null,
+    "node_id": "erdos-1094--h3--h3--h1--h1--h1--h1",
+    "origin": "compiler-derived",
+    "outline": null,
+    "proof_commit": null,
+    "proofs": [],
+    "proposed_for": null,
+    "relation": null,
+    "relevance": null,
+    "statement_hash": "547213b75f62806c55f33471eb9a672734c8b13d1066ad0842e1402ebd34648a",
+    "status": "ready",
+    "trust_base": null,
+    "tutorial": false,
+    "uses": []
+   },
+   {
+    "cause": null,
+    "claim": "\\sum_n \\Lambda(n) n^{-s} - \\frac{1}{s-1}$ extends continuously to $\\Re s\\ge 1",
+    "closure": null,
+    "decompositions": [],
+    "defect_claims": [],
+    "deps": [],
+    "label": "-\u03b6'/\u03b6 minus the pole extends to Re s \u2265 1",
+    "label_source": "gloss",
+    "lemmas": [],
+    "literature": null,
+    "literature_proposed": null,
+    "node_id": "erdos-1094--h3--h3--h1--h1--h1--h2",
+    "origin": "compiler-derived",
+    "outline": null,
+    "proof_commit": null,
+    "proofs": [],
+    "proposed_for": null,
+    "relation": null,
+    "relevance": null,
+    "statement_hash": "f7840dfb9cac157bda69d779fe23d6910f466f0a5a3576dbafb750b5307b9a9b",
+    "status": "ready",
+    "trust_base": null,
+    "tutorial": false,
+    "uses": []
+   },
+   {
+    "cause": null,
+    "claim": "\\forall C\\in\\mathbb{N},\\ \\varepsilon>0\\ \\exists K_4\\ \\forall n,k\\in\\mathbb{N}:\\quad K_4<k,\\ \\ k^2\\le C\\cdot n\\cdot\\lfloor\\log_2 k\\rfloor,\\ \\ n<k^2 \\implies \\Bigl|\\sum_{\\substack{p \\text{ prime}\\\\ k/2<p<11k/20}} \\Bigl(\\Bigl\\{\\frac{n}{p}\\Bigr\\}-\\frac12\\Bigr)\\log p\\Bigr| \\le \\varepsilon k",
+    "closure": null,
+    "decompositions": [
+     {
+      "annex": null,
+      "approach": "Sander's equidistribution from GR's Lemma 5.1: the log-weight of primes p with {n/p} < \u03c3 is \u03c3 \u03a3 log p + o(k), so averaging over \u03c3 = j/M gives \u03a3({n/p} \u2212 1/2) log p = o(k).",
+      "holes": [
+       {
+        "name": "h_l51",
+        "node": "erdos-1094--h3--h3--h2--h1"
+       }
+      ],
+      "partial": "attempts/20261015T145123Z-t1015c-a02-partial.lean"
+     }
+    ],
+    "defect_claims": [],
+    "deps": [
+     "erdos-1094--h3--h3--h2--h1"
+    ],
+    "label": "Sander equidistribution: \u03a3({n/p} \u2212 1/2) log p = o(k)",
+    "label_source": "gloss",
+    "lemmas": [],
+    "literature": null,
+    "literature_proposed": null,
+    "node_id": "erdos-1094--h3--h3--h2",
+    "origin": "skeleton-hole",
+    "outline": null,
+    "proof_commit": null,
+    "proofs": [],
+    "proposed_for": null,
+    "relation": null,
+    "relevance": null,
+    "statement_hash": "28c0347c4f3c6c3ba59e73302d705ffcedb23dd1cf4dcf2eb85ca8a728d40a2e",
+    "status": "ready",
+    "trust_base": null,
+    "tutorial": false,
+    "uses": []
+   },
+   {
+    "cause": null,
+    "claim": "\\forall C\\in\\mathbb{N},\\ \\delta>0\\ \\exists K_5\\ \\forall n,k\\in\\mathbb{N},\\ K_5<k,\\ k^2\\le C n\\lfloor\\log_2 k\\rfloor,\\ n<k^2,\\ \\forall \\sigma\\in[0,1]:\\quad \\Bigl|\\sum_{\\substack{p \\text{ prime}\\\\ k/2<p<11k/20}}\\ [\\{n/p\\}<\\sigma]\\,\\log p \\;-\\; \\sigma \\sum_{\\substack{p \\text{ prime}\\\\ k/2<p<11k/20}} \\log p\\Bigr| \\le \\delta k",
+    "closure": null,
+    "decompositions": [],
+    "defect_claims": [],
+    "deps": [],
+    "label": "GR Lemma 5.1: {n/p} below \u03c3 carries weight \u03c3 \u03a3 log p + o(k)",
+    "label_source": "gloss",
+    "lemmas": [],
+    "literature": null,
+    "literature_proposed": {
+     "contributor": "t1016-lit",
+     "record": "literature/20261016T121430Z-t1016-lit.yaml",
+     "status": "known"
+    },
+    "node_id": "erdos-1094--h3--h3--h2--h1",
+    "origin": "compiler-derived",
+    "outline": null,
+    "proof_commit": null,
+    "proofs": [],
+    "proposed_for": null,
+    "relation": null,
+    "relevance": null,
+    "statement_hash": "88d5ad0d14eb001c17513312f65673997c8416c14301ceb25abab875336c9c67",
+    "status": "ready",
+    "trust_base": null,
+    "tutorial": false,
+    "uses": []
+   }
+  ],
+  "open_pairs": [],
+  "registrations": [],
+  "rendered_from": "eca785964c3e4538df101ae034cbc89f0fb77e54",
+  "review": {
+   "candidates": 1,
+   "clusters": 1,
+   "grade_cap": "screened-and-signed",
+   "open_pairs": 0,
+   "questions_waiting": 8,
+   "signers": {
+    "independent": null,
+    "intent": null
+   },
+   "state": "needs-intent-signer",
+   "surviving": 1,
+   "tracking": null
+  },
+  "root": "erdos-1094",
+  "schema": "graph/v12",
+  "target_id": "erdos-1094",
+  "target_proofs": []
+ },
+ "graph_commit": "00f4bc884917ca439772c6b72186ba5438c3f715"
+}

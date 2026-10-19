@@ -89,6 +89,43 @@ def test_unknown_target_and_bad_cut_are_refused(harness: Harness) -> None:
     bad = client.failed("list_sufficient_sets", {"target_id": TARGET, "cut": "widest"})
     assert bad["error"] == "arguments-invalid"
     assert results.violations("list_sufficient_sets", bad) == []
+    worse = client.failed("list_sufficient_sets", {"target_id": TARGET, "at_proved": "through"})
+    assert worse["error"] == "arguments-invalid"
+    assert results.violations("list_sufficient_sets", worse) == []
+
+
+def test_at_proved_follow_lists_what_each_proved_statement_rests_on(harness: Harness) -> None:
+    """F27-T9 (R13, AC13): erdos-1094 as published on 2026-10-19, whose ``h2--h2--h2`` is proved
+    by closure. ``at_proved: follow`` answers the library's own follow reading: the same sets
+    (ids, open statements, selector) with the proved structure beneath each proved statement
+    listed, and ``proof_routes`` naming the assemblies the proofs went through; the default
+    stops, as before, and both validate against ``v3``."""
+    graph: dict[str, Any] = json.loads((LIVE / f"{TARGET}-20261019.json").read_text("utf-8"))[
+        "graph"
+    ]
+    harness.githost.files[f"targets/{TARGET}/graph.json"] = json.dumps(graph).encode()
+    harness.context.files.clear()
+    client = McpClient(harness)
+    stop = client.ok("list_sufficient_sets", {"target_id": TARGET})
+    follow = client.ok("list_sufficient_sets", {"target_id": TARGET, "at_proved": "follow"})
+    assert results.version_of("list_sufficient_sets") == "v3"
+    for got in (stop, follow):
+        assert results.violations("list_sufficient_sets", got) == []
+    assert (stop["at_proved"], follow["at_proved"]) == ("stop", "follow")
+    entries = served_entries(client)
+    expected = routes.read(graph, entries, at_proved="follow").as_dict()
+    assert {k: v for k, v in follow.items() if k not in {"read_at", "closable", "selector"}} == (
+        expected
+    )
+    assert [s["id"] for s in stop["sets"]] == [s["id"] for s in follow["sets"]]
+    assert [s["open"] for s in stop["sets"]] == [s["open"] for s in follow["sets"]]
+    assert stop["selector"] == follow["selector"]
+    deep = "erdos-1094--h2--h2--h2--h3--h1--h1--h1"
+    for a, b in zip(stop["sets"], follow["sets"], strict=True):
+        assert a["proof_routes"] == []
+        assert "erdos-1094--h2--h2--h2@1" in b["proof_routes"]
+        assert deep in b["proved"] and deep not in a["proved"]
+        assert b["closed"] > a["closed"] and b["remaining"] == a["remaining"]
 
 
 def test_a_target_with_no_routes_is_its_own_set(harness: Harness) -> None:
