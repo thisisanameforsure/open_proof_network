@@ -342,11 +342,15 @@ def test_the_script_confirms_through_the_service_with_the_proposals_fields() -> 
     """The control calls ``POST /literature/confirm`` with ``{node_id, record, status,
     references, summary}`` copied from the row, for a steward's targets and, for a curator,
     every target's list (``data-role``-free: the role comes from the session, the lists from the
-    page)."""
-    js = (Path(render.__file__).resolve().parent / "static" / "me.js").read_text(encoding="utf-8")
+    page). F04-T63 restated this test to the rule: the control itself lives in
+    ``literature.js`` (one function for ``/me/`` and the node's page); ``me.js`` reaches it
+    through ``OPN.literature.confirmButton`` and still chooses the lists by role."""
+    static = Path(render.__file__).resolve().parent / "static"
+    js = (static / "literature.js").read_text(encoding="utf-8")
+    me = (static / "me.js").read_text(encoding="utf-8")
     assert '"/literature/confirm"' in js
     for key in ("node_id", "record", "status", "references", "summary"):
         assert re.search(rf"\b{key}\s*:", js), key
-    assert ".literature-waiting" in js and "lit-row" in js
-    assert "s.curator" in js, "a curator sees every target's list"
-    assert "Confirm" in js
+    assert ".literature-waiting" in me and "lit-row" in me
+    assert "s.curator" in me, "a curator sees every target's list"
+    assert "Confirm" in js and "O.literature.confirmButton" in me

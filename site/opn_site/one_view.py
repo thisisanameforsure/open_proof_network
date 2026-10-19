@@ -422,6 +422,7 @@ def _pill_markup(  # noqa: PLR0913 — one pill, every mark it may carry
     closable: bool,
     or_mark: bool,
     outline: int,
+    literature: dag.LitMark | None = None,
 ) -> str:
     cls = f"node status-{escape(status)}"
     if proved:
@@ -451,6 +452,7 @@ def _pill_markup(  # noqa: PLR0913 — one pill, every mark it may carry
         f'<text x="28" y="{dag.NODE_H // 2 + 5}">{escape(label)}</text> '
         f'<circle class="halo" cx="{p.w - 14}" cy="{dag.NODE_H // 2}" r="3"/>'
         + dag.outline_mark(outline, p.w)
+        + dag.literature_mark(literature, p.w)
         + f"{diamond}</g></a>"
     )
 
@@ -467,6 +469,7 @@ def _dag_svg(  # noqa: PLR0913 — the whole drawing, every element once
     titles: Mapping[str, str],
     outlines: Mapping[str, int],
     closable: Mapping[str, Any],
+    literature: dag.Literature = None,
 ) -> str:
     opening = lays[ROUTES]
     shown_nodes = set(vs[ROUTES].nodes)
@@ -528,6 +531,7 @@ def _dag_svg(  # noqa: PLR0913 — the whole drawing, every element once
                 closable=nid in closable,
                 or_mark=d.alternatives.get(nid, 0) >= 2,
                 outline=outlines.get(nid, 0),
+                literature=(literature or {}).get(nid),
             )
         )
     parts.append("</svg>")
@@ -699,10 +703,13 @@ def drawing(  # noqa: PLR0913 — the page's inputs
     proof_labels: Sequence[str] = (),
     outlines: Mapping[str, int] | None = None,
     titles: Mapping[str, str] | None = None,
+    literature: dag.Literature = None,
 ) -> Drawing:
     """The page's drawing. ``nodes`` (the page's view of the rows, a status renamed for the
     key) stands in for ``graph["nodes"]`` in the drawing and the layouts; the routes and sets
-    are read from ``graph`` as the MCP tool reads them (F27-Q1)."""
+    are read from ``graph`` as the MCP tool reads them (F27-Q1). ``literature`` (F04-T63) marks
+    the named pills with their literature status and feeds nothing else: the views, layouts,
+    selector and table are the same with or without it."""
     result = routes.read(graph, list(frontier_entries))
     drawn_graph: dict[str, Any] = dict(graph)
     if nodes is not None:
@@ -733,6 +740,7 @@ def drawing(  # noqa: PLR0913 — the page's inputs
         titles=full_titles,
         outlines=outlines or {},
         closable=ready,
+        literature=literature,
     )
     # A target with no route has no sets worth choosing (its one "set" is the root taken
     # directly): no selector and no table, unless it has proofs to list.

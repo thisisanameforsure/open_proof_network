@@ -25,6 +25,11 @@
   --warn: #d9a441;
   --bad: #e07a7a;
   --select: #f2b544; /* F30-T10: a selected node or edge in the sufficient-sets tree */
+  /* F04-T63 (D-25 v3.45): the literature mark's three statuses — none a proof-status colour,
+     each reading on this dark ground and on a white one. */
+  --lit-open: #4fa3e3;
+  --lit-known: #e8913a;
+  --lit-elementary: #4dbd7a;
   --proved: var(--accent);
   --ready: var(--accent-300);
   --blocked: var(--n600);
@@ -587,6 +592,13 @@ main > h2 { padding-top: var(--s4); border-top: 1px solid var(--divider); }
 .literature .prose-block { margin: var(--s3) 0 var(--s2); }
 .literature-waiting { padding-left: 1.2em; }
 .literature-waiting .lit-row { margin-bottom: var(--s2); overflow-wrap: anywhere; }
+/* F04-T63 (D-25 v3.45): the dispute sentence, and the node page's confirm/dispute slot. */
+.literature-dispute { margin: var(--s2) 0; overflow-wrap: anywhere; }
+.lit-act { margin: var(--s4) 0; font-size: 14px; color: var(--n300); }
+.lit-act .cue { margin: 0 0 var(--s2); font-size: 13px; }
+.lit-act .literature-waiting { margin: 0; }
+.lit-dispute { margin-top: var(--s3); max-width: 60ch; }
+.lit-dispute textarea { min-height: 5em; }
 .defect-claims { border-left: 2px dashed var(--bad); padding-left: var(--s4); color: var(--n300); font-size: 14px; }
 .defect-claims a.file { overflow-wrap: anywhere; }
 .revision-note .why { display: block; margin-top: var(--s2); color: var(--n500); font-size: 12.5px; overflow-wrap: anywhere; }
@@ -1065,6 +1077,21 @@ th[aria-sort="descending"] .routes-sort::after { content: " ↓"; }
 .dot-route-or { border: 1.5px solid var(--text); border-radius: 1px; transform: rotate(45deg); width: 8px; height: 8px; }
 .dot-route-dead { border: 1.5px dashed var(--bad); }
 .dot-closable { border: 0; background: var(--accent-300); border-radius: 1px; width: 8px; height: 8px; }
+/* F04-T63 (D-25 v3.45): the literature mark — a small square inside a pill's top-right corner and
+   the same square inline as a badge (the key, the listing row, the node page's head). The colour
+   is the status (--lit); hollow and dashed while only proposed, filled once confirmed. It never
+   touches the pill's own status: no rule here keys on .node.lit-*, nothing is muted. */
+.lit-open { --lit: var(--lit-open); }
+.lit-known { --lit: var(--lit-known); }
+.lit-elementary { --lit: var(--lit-elementary); }
+.dag .lit-mark rect { fill: none; stroke: var(--lit); stroke-width: 1.5; }
+.dag .lit-mark.proposed rect { stroke-dasharray: 2 1.5; }
+.dag .lit-mark.confirmed rect { fill: var(--lit); }
+.lit-badge { display: inline-block; width: 8px; height: 8px; border-radius: 1.5px; border: 1.5px solid var(--lit); vertical-align: 0; margin-left: var(--s2); flex: none; }
+.lit-badge.proposed { border-style: dashed; }
+.lit-badge.confirmed { background: var(--lit); }
+.dag-legend .lit-term .lit-badge { margin: 0 var(--s2) 0 0; }
+.node-status .lit-badge { margin-left: var(--s3); }
 .view-toggle { font: inherit; font-size: 12px; color: var(--n300); background: var(--bg); border: 1px solid var(--divider); border-radius: 999px; padding: 2px 10px; cursor: pointer; }
 .view-toggle:hover, .view-toggle:focus-visible { border-color: var(--accent); }
 .view-toggle[aria-pressed="true"] { border-color: var(--accent); color: var(--text); }

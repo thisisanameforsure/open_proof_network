@@ -1,0 +1,126 @@
+{
+ "problem@1440": {
+  "scrollWidth": 1440,
+  "innerWidth": 1440,
+  "key_items": [
+   {
+    "word": "open, proposed",
+    "card": "Literature: Open problem: no proof is known — proposed by a contributor, awaiting a steward or curator. A fact about the literature, never about difficulty: it earns nothing, changes no status, blocks nothing and ranks nothing (D-25 v3.45).",
+    "inside": true
+   },
+   {
+    "word": "known, proposed",
+    "card": "Literature: Known: a proof is published and not formalised — proposed by a contributor, awaiting a steward or curator. A fact about the literature, never about difficulty: it earns nothing, changes no status, blocks nothing and ranks nothing (D-25 v3.45).",
+    "inside": true
+   }
+  ],
+  "key_overflow": [],
+  "marks": 12,
+  "mark_states": [
+   "lit-mark lit-known proposed",
+   "lit-mark lit-open proposed"
+  ],
+  "mark_titles": [
+   "Literature: known (proposed by t1009-a, awaits confirmation)",
+   "Literature: known (proposed by t1009-b, awaits confirmation)",
+   "Literature: known (proposed by t1009-c, awaits confirmation)",
+   "Literature: known (proposed by t1014-x, awaits confirmation)",
+   "Literature: known (proposed by t1014-z, awaits confirmation)",
+   "Literature: known (proposed by t1016-lit, awaits confirmation)",
+   "Literature: open (proposed by t1009-b, awaits confirmation)"
+  ],
+  "marks_outside_pill": [],
+  "marks_on_label": [],
+  "marks_on_outline_tab": [],
+  "marks_hidden_off_view": 0
+ },
+ "node-known@1440": {
+  "scrollWidth": 1440,
+  "innerWidth": 1440,
+  "badge": [
+   [
+    "lit-badge lit-known proposed",
+    "Literature: known (proposed by t1009-c, awaits confirmation)"
+   ]
+  ],
+  "block": true,
+  "act": {
+   "hidden": true,
+   "buttons": 0
+  },
+  "buttons_in_main": 0,
+  "head": "Problems / erdos-1094 / erdos-1094--h2--h1--h1 C(n,k) with no prime factor ≤ k, 2k ≤ n < k³ erdos-1094--h2--h1--h1 openHole h_good_below_cube of erdos-1094--h2--h1 (split by 20261009T143300Z-t1009-c-partial.lean).Restated as hole h_good_below_cube of erdos-1094--h3 (split by 20261009T143300Z-t1009-c",
+  "block_text": "Literature statusProposed by t1009-c, awaiting a steward or curator: Known: a proof is published and not formalised (record, 2026-10-09T14:48:17Z).S. V. Konyagin, Estimates of the least prime factor of a binomial coefficient, Mathematika 46 (1999) 41-55 — g(k) >= exp(c (log k)^2) for all large k, wi"
+ },
+ "node-bare@1440": {
+  "scrollWidth": 1440,
+  "innerWidth": 1440,
+  "badge": [],
+  "block": false,
+  "act": null,
+  "buttons_in_main": 0,
+  "head": "Problems / erdos-1094 / erdos-1094--h2--h2--h3--h1--h1 beyond van Doorn–Tang, n/gcd(n,k) prime, k ∤ n erdos-1094--h2--h2--h3--h1--h1 openHole h_ndvd of erdos-1094--h2--h2--h3--h1 (split by 20261015T144930Z-t1015c-a08-partial.lean). ∃K∈N ∀n,k∈N:0<k, k3≤n, exp⁡ ⁣((log⁡k)220log⁡log⁡k)<n+1, k⌊n/k⌋∣k!, m"
+ },
+ "problem@390": {
+  "scrollWidth": 390,
+  "innerWidth": 390,
+  "key_items": [
+   {
+    "word": "open, proposed",
+    "card": "Literature: Open problem: no proof is known — proposed by a contributor, awaiting a steward or curator. A fact about the literature, never about difficulty: it earns nothing, changes no status, blocks nothing and ranks nothing (D-25 v3.45).",
+    "inside": true
+   },
+   {
+    "word": "known, proposed",
+    "card": "Literature: Known: a proof is published and not formalised — proposed by a contributor, awaiting a steward or curator. A fact about the literature, never about difficulty: it earns nothing, changes no status, blocks nothing and ranks nothing (D-25 v3.45).",
+    "inside": true
+   }
+  ],
+  "key_overflow": [],
+  "marks": 12,
+  "mark_states": [
+   "lit-mark lit-known proposed",
+   "lit-mark lit-open proposed"
+  ],
+  "mark_titles": [
+   "Literature: known (proposed by t1009-a, awaits confirmation)",
+   "Literature: known (proposed by t1009-b, awaits confirmation)",
+   "Literature: known (proposed by t1009-c, awaits confirmation)",
+   "Literature: known (proposed by t1014-x, awaits confirmation)",
+   "Literature: known (proposed by t1014-z, awaits confirmation)",
+   "Literature: known (proposed by t1016-lit, awaits confirmation)",
+   "Literature: open (proposed by t1009-b, awaits confirmation)"
+  ],
+  "marks_outside_pill": [],
+  "marks_on_label": [],
+  "marks_on_outline_tab": [],
+  "marks_hidden_off_view": 0
+ },
+ "node-known@390": {
+  "scrollWidth": 390,
+  "innerWidth": 390,
+  "badge": [
+   [
+    "lit-badge lit-known proposed",
+    "Literature: known (proposed by t1009-c, awaits confirmation)"
+   ]
+  ],
+  "block": true,
+  "act": {
+   "hidden": true,
+   "buttons": 0
+  },
+  "buttons_in_main": 0,
+  "head": "Problems / erdos-1094 / erdos-1094--h2--h1--h1 C(n,k) with no prime factor ≤ k, 2k ≤ n < k³ erdos-1094--h2--h1--h1 openHole h_good_below_cube of erdos-1094--h2--h1 (split by 20261009T143300Z-t1009-c-partial.lean).Restated as hole h_good_below_cube of erdos-1094--h3 (split by 20261009T143300Z-t1009-c",
+  "block_text": "Literature statusProposed by t1009-c, awaiting a steward or curator: Known: a proof is published and not formalised (record, 2026-10-09T14:48:17Z).S. V. Konyagin, Estimates of the least prime factor of a binomial coefficient, Mathematika 46 (1999) 41-55 — g(k) >= exp(c (log k)^2) for all large k, wi"
+ },
+ "node-bare@390": {
+  "scrollWidth": 390,
+  "innerWidth": 390,
+  "badge": [],
+  "block": false,
+  "act": null,
+  "buttons_in_main": 0,
+  "head": "Problems / erdos-1094 / erdos-1094--h2--h2--h3--h1--h1 beyond van Doorn–Tang, n/gcd(n,k) prime, k ∤ n erdos-1094--h2--h2--h3--h1--h1 openHole h_ndvd of erdos-1094--h2--h2--h3--h1 (split by 20261015T144930Z-t1015c-a08-partial.lean). ∃K∈N ∀n,k∈N:0<k, k3≤n, exp⁡ ⁣((log⁡k)220log⁡log⁡k)<n+1, k⌊n/k⌋∣k!, m"
+ }
+}
