@@ -131,8 +131,8 @@ def marks(html: str) -> list[str]:
 
 def test_the_site_accepts_the_versions_the_gate_writes() -> None:
     accepted = model.PRODUCT_SCHEMAS
-    assert products.GRAPH_SCHEMA == "graph/v12"  # F29-T1 (v3.44): labels
-    assert products.FRONTIER_SCHEMA == "frontier/v6"
+    assert products.GRAPH_SCHEMA == "graph/v13"  # F08-T54 (v3.45): literature.disputes
+    assert products.FRONTIER_SCHEMA == "frontier/v7"
     assert products.GRAPH_SCHEMA in accepted["graph.json"]
     assert products.FRONTIER_SCHEMA in accepted["frontier.json"]
     # D-34: every older snapshot still renders.

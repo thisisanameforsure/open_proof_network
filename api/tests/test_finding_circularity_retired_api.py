@@ -154,7 +154,7 @@ def serve(harness: Harness, doc: dict[str, Any]) -> None:
 
 def test_the_golden_frontier_is_v6() -> None:
     doc = json.loads((FIXTURES / "frontier-listed.json").read_bytes())
-    assert doc["schema"] == "frontier/v6"
+    assert doc["schema"] == "frontier/v7"
     assert all("circular" not in e for e in doc["entries"])
 
 

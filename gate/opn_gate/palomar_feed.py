@@ -318,6 +318,7 @@ def propose(
         "summary": summary[:SUMMARY_CAP],
         "model_and_tooling": "opn-gate palomar-feed (F25-R14)",
         "confirms": None,
+        "disputes": None,
         "via": None,
         "key": None,
         "signature": None,

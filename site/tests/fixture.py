@@ -626,19 +626,21 @@ def publish_v335(
 
     graph_path = root / "targets" / target / "graph.json"
     graph = json.loads(graph_path.read_text(encoding="utf-8"))
-    graph["schema"] = "graph/v12"
+    graph["schema"] = products.GRAPH_SCHEMA
     for row in graph["nodes"]:
         extend(row)
         row.setdefault("lemmas", [])
-    graph_path.write_text(json.dumps(schemas.validate(graph, "graph/v12"), indent=1) + "\n")
+    graph_path.write_text(json.dumps(schemas.validate(graph, graph["schema"]), indent=1) + "\n")
 
     frontier_path = root / "frontier.json"
     frontier = json.loads(frontier_path.read_text(encoding="utf-8"))
-    frontier["schema"] = "frontier/v6"
+    frontier["schema"] = products.FRONTIER_SCHEMA
     for entry in frontier["entries"]:
         if entry["target_id"] == target:
             extend(entry)
-    frontier_path.write_text(json.dumps(schemas.validate(frontier, "frontier/v6"), indent=1) + "\n")
+    frontier_path.write_text(
+        json.dumps(schemas.validate(frontier, frontier["schema"]), indent=1) + "\n"
+    )
 
 
 def publish_circular_snapshot(
@@ -692,10 +694,10 @@ def publish_v336(
     lemmas = lemmas or {}
     graph_path = root / "targets" / target / "graph.json"
     graph = json.loads(graph_path.read_text(encoding="utf-8"))
-    graph["schema"] = "graph/v12"
+    graph["schema"] = products.GRAPH_SCHEMA
     for row in graph["nodes"]:
         row["lemmas"] = list(lemmas.get(str(row["node_id"]), row.get("lemmas") or []))
-    graph_path.write_text(json.dumps(schemas.validate(graph, "graph/v12"), indent=1) + "\n")
+    graph_path.write_text(json.dumps(schemas.validate(graph, graph["schema"]), indent=1) + "\n")
 
 
 # --- F29-T5 (R3, R9): labels on the rendered rows, as a gloss/v3 would give them ------------------
@@ -724,7 +726,7 @@ def publish_labels(
             row["claim"] = claims[nid]
         for k, text in enumerate((approaches or {}).get(nid, [])):
             row["decompositions"][k]["approach"] = text
-    graph_path.write_text(json.dumps(schemas.validate(graph, "graph/v12"), indent=1) + "\n")
+    graph_path.write_text(json.dumps(schemas.validate(graph, graph["schema"]), indent=1) + "\n")
 
 
 # --- F26-T12 (R16, R17; D-9 v3.39): a formalization review written by hand ---------------------
@@ -999,7 +1001,7 @@ def publish_review_state(root: Path, state: dict[str, Any], *, target: str = TAR
     graph_path = root / "targets" / target / "graph.json"
     graph = json.loads(graph_path.read_text(encoding="utf-8"))
     graph["review"] = {**graph["review"], **state}
-    graph_path.write_text(json.dumps(schemas.validate(graph, "graph/v12"), indent=1) + "\n")
+    graph_path.write_text(json.dumps(schemas.validate(graph, graph["schema"]), indent=1) + "\n")
 
 
 def publish_v8(root: Path, *, target: str = TARGET) -> None:

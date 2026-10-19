@@ -104,6 +104,7 @@ def built(tmp_path_factory: pytest.TempPathFactory) -> tuple[model.Site, dict[st
                 "contributor": "t1008-c",
                 "confirmed_by": "mike",
                 "confirmation": confirmation,
+                "disputes": None,  # graph/v13 (F08-T54)
             },
         },
         literature_proposed={

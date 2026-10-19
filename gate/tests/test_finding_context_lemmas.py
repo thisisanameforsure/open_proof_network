@@ -40,8 +40,8 @@ def generated(root: Path) -> tuple[dict[str, Any], dict[str, Any]]:
 def test_the_bundle_is_v6_and_carries_the_lemma_with_its_signature(tmp_path: Path) -> None:
     root = with_lemma(tmp_path)
     gdoc, doc = generated(root)
-    assert doc["schema"] == "context/v8" == context.SCHEMA  # v6 when written; v8: F08-T42
-    assert schemas.violations(doc, "context/v8") == []
+    assert doc["schema"] == "context/v9" == context.SCHEMA  # v6 when written; v9: F10-T50
+    assert schemas.violations(doc, "context/v9") == []
     [lemma] = doc["lemmas"]
     statement = (nodes_dir(root) / LEMMA / "Statement.lean").read_bytes()
     [row] = [n for n in gdoc["nodes"] if n["node_id"] == LEMMA]
@@ -59,7 +59,7 @@ def test_the_bundle_is_v6_and_carries_the_lemma_with_its_signature(tmp_path: Pat
 
 def test_a_node_without_lemmas_carries_an_empty_list(tmp_path: Path) -> None:
     _, doc = generated(copy_graph(tmp_path, publish=True))
-    assert doc["lemmas"] == [] and doc["schema"] == "context/v8"
+    assert doc["lemmas"] == [] and doc["schema"] == "context/v9"
     assert "context/v6" in context.ACCEPTED and "context/v5" in context.ACCEPTED
 
 

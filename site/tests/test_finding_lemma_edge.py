@@ -23,7 +23,7 @@ import pytest
 from node_parts import record_part
 from test_finding_dag_layout import SHAPES, behind_pills, crossings, drawn
 
-from opn_gate import schemas
+from opn_gate import products, schemas
 from opn_site import dag, model, render
 
 REPO = "https://github.com/example/graph"
@@ -64,7 +64,7 @@ def test_a_node_reads_its_lemmas_and_an_older_row_reads_none(tmp_path: Path) -> 
     root = fixture.build(tmp_path)
     site = model.load_site(root, fixture.COMMIT)
     tv = site.targets[TARGET]
-    assert tv.graph["schema"] == "graph/v12"  # v8 when written; F28-T8 v10; F08-T42 v11; F29-T1 v12
+    assert tv.graph["schema"] == products.GRAPH_SCHEMA  # v8 when written; v13 since F08-T54
     assert tv.nodes[PARENT].lemmas == [model.LemmaRef(hole=HOLE, node=LEMMA)]
     assert tv.nodes[ROOT].lemmas == []
     older = dataclasses.replace(
@@ -77,9 +77,7 @@ def test_a_node_reads_its_lemmas_and_an_older_row_reads_none(tmp_path: Path) -> 
 def test_the_fixture_graph_validates_as_graph_v7(tmp_path: Path) -> None:
     root = fixture.build(tmp_path)
     graph = json.loads((root / "targets" / TARGET / "graph.json").read_text(encoding="utf-8"))
-    schemas.validate(
-        graph, "graph/v12"
-    )  # v8 when written; F26-T1 review; F28-T8 v10; F08-T42 v11; F29-T1 v12
+    schemas.validate(graph, products.GRAPH_SCHEMA)  # v8 when written; v13 since F08-T54
     row = next(n for n in graph["nodes"] if n["node_id"] == PARENT)
     assert row["lemmas"] == [{"hole": HOLE, "node": LEMMA}]
     assert LEMMA not in row["deps"], "a lemma is not a declared dependency (D-3)"

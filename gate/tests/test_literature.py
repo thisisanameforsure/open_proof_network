@@ -212,7 +212,10 @@ def test_a_proposal_is_published_as_proposed_and_confirms_nothing(graph: Graph) 
     assert row["literature"] is None
     assert row["literature_proposed"] == expected
     assert graph.entry(prod)["literature_proposed"] == expected
-    assert graph.bundle(prod)["literature_proposed"] == expected
+    # F10-T50 (D-25 v3.45): the bundle inlines the record's summary and references beside the fact.
+    inlined = graph.bundle(prod)["literature_proposed"]
+    assert {k: v for k, v in inlined.items() if k not in ("summary", "references")} == expected
+    assert inlined["summary"] and inlined["references"]
     assert graph.entry(prod)["literature"] is None and graph.bundle(prod)["literature"] is None
     assert schemas.violations(graph.bundle(prod), context.SCHEMA) == []
 
@@ -252,10 +255,13 @@ def test_a_steward_may_state_the_status_herself(graph: Graph) -> None:
         "contributor": ALICE,
         "confirmed_by": ALICE,
         "confirmation": own,
+        "disputes": None,
     }
     assert graph.row(prod)["literature"] == expected
     assert graph.entry(prod)["literature"] == expected
-    assert graph.bundle(prod)["literature"] == expected
+    inlined = graph.bundle(prod)["literature"]
+    assert {k: v for k, v in inlined.items() if k not in ("summary", "references")} == expected
+    assert inlined["summary"] and inlined["references"]  # F10-T50
     assert graph.row(prod)["literature_proposed"] is None
     assert schemas.violations(json.loads(prod.files[Path("frontier.json")])) == []
 
@@ -272,6 +278,7 @@ def test_a_steward_confirms_a_proposal_and_the_proposal_is_what_is_published(gra
         "contributor": BOB,
         "confirmed_by": ALICE,
         "confirmation": f"literature/20261008T110000Z-{ALICE}.yaml",
+        "disputes": None,
     }
     assert graph.row(prod)["literature_proposed"] is None, "the confirmed proposal is covered"
 

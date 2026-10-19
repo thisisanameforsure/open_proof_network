@@ -20,7 +20,7 @@ import pytest
 import samples
 import yaml
 
-from opn_gate import cli, intake, palomar_feed, registrations, schemas
+from opn_gate import cli, intake, literature, palomar_feed, registrations, schemas
 from opn_gate.palomar_host import FakePalomarHost, PalomarError
 
 FIXTURE = Path(__file__).resolve().parent / "fixtures" / "palomar" / "recent-2026-10-10.json"
@@ -291,7 +291,7 @@ def test_propose_writes_a_literature_proposal_that_validates_with_the_id_and_url
     assert path.relative_to(out).as_posix() == (
         "targets/erdos-257/nodes/erdos-257/literature/20261011T090000Z-opn-feed.yaml"
     )
-    doc = schemas.load_yaml(path, "literature/v1")
+    doc = schemas.load_yaml(path, literature.SCHEMA)
     assert doc["node"] == "erdos-257"
     assert doc["status"] == "known"
     assert doc["contributor"] == "opn-feed"

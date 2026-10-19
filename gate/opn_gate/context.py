@@ -22,7 +22,7 @@ from typing import Any, Protocol
 
 import yaml
 
-from opn_gate import demarcate, layout, paths, schemas
+from opn_gate import demarcate, layout, literature, paths, schemas
 from opn_gate import graph as graphmod
 from opn_gate import records as recordsmod
 from opn_gate.diagnostic import Diagnostic
@@ -40,7 +40,9 @@ log = logging.getLogger(__name__)
 #: F10-T49 (D-12 v3.38): ``context/v6`` carries ``lemmas`` beside ``deps`` — each with the hole
 #: name, the signature the proof may use once the node is proved, its status and cause.
 #: F08-T42 (D-12 v3.43): ``context/v8`` drops ``circular`` and ``circular_below``.
-SCHEMA = "context/v8"  # v8 (F08-T42): no circularity; v7 (F26-R17): the review for the root
+#: F10-T50 (D-25 v3.45): ``context/v9`` inlines each literature record's summary and references
+#: and carries ``disputes``; v8 (F08-T42): no circularity; v7 (F26-R17): the review for the root.
+SCHEMA = "context/v9"
 ACCEPTED: tuple[str, ...] = (
     "context/v1",
     "context/v2",
@@ -50,6 +52,7 @@ ACCEPTED: tuple[str, ...] = (
     "context/v6",
     "context/v7",
     "context/v8",
+    "context/v9",
 )
 FILE = layout.CONTEXT_FILE
 CLAIMS_FILE = "claims.json"
@@ -578,6 +581,40 @@ def _current_id(
 # --- the document --------------------------------------------------------------------------------
 
 
+def _literature_inline(
+    reader: Reader, node_dir: str, lit: Mapping[str, Any] | None
+) -> dict[str, Any] | None:
+    """F10-T50 (D-25 v3.45): the graph's literature fact with the record's ``summary`` and
+    ``references`` inlined, read from ``record`` through the reader so the gate's builder and the
+    service's agree byte for byte (F10-Q7). A record that cannot be read or does not validate
+    leaves the fact as the graph published it with a one-line summary saying so, never an error:
+    the products already decided the status."""
+    if lit is None:
+        return None
+    out = dict(lit)
+    path = f"{node_dir}/{lit.get('record')}"
+    raw = reader.read(path)
+    doc: Mapping[str, Any] | None = None
+    if raw is not None:
+        try:
+            parsed = yaml.safe_load(raw.decode("utf-8"))
+        except (yaml.YAMLError, UnicodeDecodeError):
+            parsed = None
+        if isinstance(parsed, dict) and parsed.get("schema") in literature.SCHEMAS:
+            doc = parsed
+    if doc is None or not isinstance(doc.get("references"), list) or not doc.get("summary"):
+        out["summary"] = "(the literature record could not be read)"
+        out["references"] = [{"title": "(unreadable record)", "url": None, "note": None}]
+        return out
+    out["summary"] = str(doc["summary"])[:2000]
+    out["references"] = [
+        {"title": str(r.get("title"))[:300], "url": r.get("url"), "note": r.get("note")}
+        for r in doc["references"][:20]
+        if isinstance(r, dict)
+    ]
+    return out
+
+
 def build(
     reader: Reader,
     target_id: str,
@@ -626,8 +663,10 @@ def build(
         "untrusted_note": demarcate.UNTRUSTED_NOTE,
         "defect_claims": defect_claims(reader, target_id, node_id, status=state.status),
         # F10-T19 (D-25 v3.35): graph/v6's literature status, repeated.
-        "literature": state.literature,
-        "literature_proposed": state.literature_proposed,
+        # F10-T50 (D-25 v3.45): with the record's summary and references inlined, read through
+        # the same reader on both builders (F10-Q7).
+        "literature": _literature_inline(reader, node_dir, state.literature),
+        "literature_proposed": _literature_inline(reader, node_dir, state.literature_proposed),
         # F10-T49 (D-12 v3.38): graph/v8's lemmas, each with the signature a proof may use.
         "lemmas": _lemmas(reader, target_id, meta, states, state.lemmas),
         # F26-R17 (D-9 v3.39): the target's review for its root — the state, the words, the
