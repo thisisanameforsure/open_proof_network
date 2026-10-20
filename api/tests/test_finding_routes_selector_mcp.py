@@ -160,7 +160,8 @@ def test_get_node_carries_label_source_and_claim_from_graph_json(harness: Harnes
     assert got["label"] == "associativity"
     assert got["label_source"] == "gloss"
     assert got["claim"] == "(a \\land b) \\land c"
-    assert results.schema_id("get_node") == "mcp/get_node/v2"
+    # the labels came at v2; F22-T9 moved the answer to v3 with proposed_for and in_closure
+    assert results.schema_id("get_node") == "mcp/get_node/v3"
 
 
 def test_get_node_falls_back_on_an_older_row(harness: Harness) -> None:

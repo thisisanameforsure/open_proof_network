@@ -1,0 +1,25 @@
+F22-T9 green, 2026-10-20T09:36:34Z, branch f22-t9-get-node off origin/main 2cccb058
+
+F22-T9 red, 2026-10-20T09:29:19Z, branch f22-t9-get-node off origin/main 2cccb058
+$ uv run --frozen pytest api/tests/test_finding_get_node_proposed_for_closure.py -q
+E       KeyError: 'proposed_for'
+E       KeyError: 'proposed_for'
+E       KeyError: 'proposed_for'
+E       AssertionError: assert 'mcp/get_node/v2' == 'mcp/get_node/v3'
+E         
+E         - mcp/get_node/v3
+E         ?               ^
+E         + mcp/get_node/v2
+E         ?               ^
+FAILED api/tests/test_finding_get_node_proposed_for_closure.py::test_get_node_carries_proposed_for_and_the_proofs_whose_closure_holds_it
+FAILED api/tests/test_finding_get_node_proposed_for_closure.py::test_a_node_no_proof_rests_on_answers_an_empty_list
+FAILED api/tests/test_finding_get_node_proposed_for_closure.py::test_an_older_product_answers_null_and_empty
+FAILED api/tests/test_finding_get_node_proposed_for_closure.py::test_the_answer_moved_to_v3_and_v2_is_still_served
+4 failed, 2 warnings in 0.77s
+
+$ uv run --frozen pytest api/tests/test_finding_get_node_proposed_for_closure.py api/tests/test_finding_routes_selector_mcp.py api/tests/test_finding_mcp_context_budget.py api/tests/test_mcp_surface.py -q
+34 passed, 2 warnings in 37.48s
+
+tools/list, compact JSON, measured with the test's own fake harness: get_node declared at v2 111879, at v3 112369 (+490).
+The api fast tier before the budget restatement: 3 failed (the ALWAYS set and the pin), 2166 passed.
+make lint: exit 0. make types: exit 0.
