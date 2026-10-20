@@ -1,0 +1,13 @@
+{
+ "status": 409,
+ "body": {
+  "error": "products-pending",
+  "message": "erdos-1094--h3--h3--h1 is the hole `h_cheb` of pull request #542, merged, which the post-merge job writes as a node; a node merged in the last few minutes appears once the post-merge job has rendered the products, usually three to six minutes after the merge. Retry shortly.",
+  "details": {
+   "pr_number": 542,
+   "pr_url": "https://github.com/thisisanameforsure/open_proof_network_graph/pull/542",
+   "hole": "h_cheb"
+  }
+ },
+ "retry_after": "240"
+}

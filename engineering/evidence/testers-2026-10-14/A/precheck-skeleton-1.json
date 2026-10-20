@@ -1,0 +1,310 @@
+{
+ "id": "01M4X1QT5GHARKZWJE0NS5HN3D",
+ "node_id": "erdos-1094--h2--h2--h2",
+ "target_id": "erdos-1094",
+ "state": "done",
+ "created": "2026-10-14T11:11:10Z",
+ "graph_commit": "6f958ee861ed4240b918d0b0ea4f54fbaa8cd3fa",
+ "bundle_digest": "17c3836637324f277c78afb6f8a633a27428f82b49c694a9d606a3f5b95e7d7c",
+ "authenticated": true,
+ "automation": null,
+ "result": {
+  "attestation": {
+   "artifact_hash": null,
+   "automation": null,
+   "diagnostic": null,
+   "first_failing_step": null,
+   "footprint": {
+    "nodes": []
+   },
+   "gate_spec_hash": "c5a010a7a88d6e2bec805e5f88b59964f3839cce7dfd7715af04f9d7de0c66dc",
+   "graph_commit": "6f958ee861ed4240b918d0b0ea4f54fbaa8cd3fa",
+   "graph_id": "erdos-1094",
+   "lean_toolchain": "leanprover/lean4:v4.33.1",
+   "mathlib_sha": "0df444a360eaa60ab8c11dca51a86af692955474",
+   "merge_commit": null,
+   "model_and_tooling": "undeclared",
+   "network_commit": "f97b6921b55b47a4841be94f7b6e7facf74ff2ed",
+   "node_id": "erdos-1094--h2--h2--h2",
+   "precheck_attestation": {
+    "hash": null,
+    "signature_kind": null
+   },
+   "review": null,
+   "runner": "hosted",
+   "schema": "attestation/v7",
+   "signature": {
+    "key_id": "SHA256:bJR39nO37EkRaxo4CPqdhcHk+WL+sEnAJ9ujpkF7LXo",
+    "kind": "service",
+    "timestamp": "2026-10-14T11:14:39Z",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAg4NVeR5WlT1J5vaHpDOmXNTurS+\nKqTYJTovSCpPj5G/IAAAAPb3BuLWF0dGVzdGF0aW9uAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQI+uB75AjdWsUwKroxsa91BaNyEgB0yFTjmagmBfT1QBBplfD3\nhqn7uyRo0RTOIp99jMJG/7hqTyQoIzZC8gUg8=\n-----END SSH SIGNATURE-----\n"
+   },
+   "statement_hash": "e4a81d04e131c941a49be870794d4b5c03a7fb5e734bca2b15bc882bf0a1644b",
+   "steps": [
+    {
+     "diagnostic": {
+      "code": "mathlib-pinned",
+      "details": {
+       "mathlib_sha": "0df444a360eaa60ab8c11dca51a86af692955474",
+       "packages": 8
+      },
+      "message": "Mathlib 0df444a360ea resolved from the pinned checkout"
+     },
+     "name": "toolchain",
+     "result": "pass",
+     "step": 1
+    },
+    {
+     "diagnostic": {
+      "code": "partial-submission",
+      "details": {
+       "path": "attempts/20261014T111000Z-t1014-x-partial.lean"
+      },
+      "message": "a partial proof: attempts/20261014T111000Z-t1014-x-partial.lean (D-12 #5)"
+     },
+     "name": "paths",
+     "result": "pass",
+     "step": 2
+    },
+    {
+     "diagnostic": {
+      "code": "artifact-partial",
+      "details": {
+       "holes": [
+        "h_small",
+        "h_medium",
+        "h_mediumlarge",
+        "h_large"
+       ],
+       "kind": "partial"
+      },
+      "message": "partial: erdos_1094__h2__h2__h2 declares (¬∃ C,\n      0 < C ∧\n        ∃ k₀,\n          ∀ (k : ℕ),\n            k₀ ≤ k →\n              C * ↑k ^ (21 / 40) / Real.log ↑k ≤\n                ↑{p ∈ Finset.Ioo ⌊↑k⌋ ⌈↑k + ↑k ^ (21 / 40)⌉ |\n                      0 < p ∧ Nat.Prime p.natAbs ∧ ↑k < ↑p ∧ ↑p < ↑k + ↑k ^ (21 / 40)}.card) ∨\n  ∃ k₀,\n    ∀ (k : ℕ),\n      k₀ ≤ k →\n        ∀ (n : ℤ),\n          2 * ↑k < n →\n            ↑n ≤ Real.exp (Real.log ↑k ^ 2 / (20 * Real.log (Real.log ↑k))) →\n              ∃ p, Nat.Prime p ∧ ↑k < ↑p ∧ ↑p < ↑k + 3 * ↑k ^ (21 / 40) ∧ ↑p ∣ ∏ i ∈ Finset.Icc 1 k, (n - ↑i); 4 hole(s)"
+     },
+     "name": "kernel-replay",
+     "result": "pass",
+     "step": 4
+    },
+    {
+     "diagnostic": null,
+     "name": "axioms",
+     "result": "pass",
+     "step": 5
+    },
+    {
+     "diagnostic": {
+      "code": "hazards-derived-statement",
+      "details": {
+       "acknowledged": [],
+       "checkers": [
+        "div-zero",
+        "int-trunc",
+        "junk-value",
+        "nat-sub",
+        "off-by-one-range",
+        "unused-binder"
+       ],
+       "findings": [
+        {
+         "checker": "div-zero",
+         "location": "C * ↑k ^ (21 / 40) / Real.log ↑k",
+         "message": "division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"
+        },
+        {
+         "checker": "div-zero",
+         "location": "Real.log ↑k ^ 2 / (20 * Real.log (Real.log ↑k))",
+         "message": "division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"
+        },
+        {
+         "checker": "junk-value",
+         "location": "Real.log (Real.log ↑k)",
+         "message": "Real.log of a possibly-negative argument is a junk value (0)"
+        },
+        {
+         "checker": "off-by-one-range",
+         "location": "Finset.Icc 1 k",
+         "message": "Finset.Icc with a literal-adjusted bound: check whether the endpoint is included"
+        }
+       ],
+       "origin": "skeleton-hole"
+      },
+      "message": "4 hazard finding(s) on a statement the gate derived from a merged assembly, recorded and not refused; first: div-zero at C * ↑k ^ (21 / 40) / Real.log ↑k: division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"
+     },
+     "name": "hazards",
+     "result": "pass",
+     "step": 6
+    },
+    {
+     "diagnostic": null,
+     "name": "witness",
+     "result": "pass",
+     "step": 7
+    },
+    {
+     "diagnostic": null,
+     "name": "deps",
+     "result": "pass",
+     "step": 8
+    }
+   ],
+   "submitter": null,
+   "toolchain_hash": "f54d0bc916bf76a7fae460ce9d078ccd1f74aeb4fd12c4b6546bca28b6aa1c63",
+   "tooling": {
+    "harness": null,
+    "model": null
+   },
+   "trust_base": "kernel",
+   "verdict": "pass"
+  },
+  "automation": null,
+  "bundle_digest": "17c3836637324f277c78afb6f8a633a27428f82b49c694a9d606a3f5b95e7d7c",
+  "first_failing_step": null,
+  "holes": [
+   {
+    "closed_type": "(¬∃ (C : ℝ),\n      (0 : ℝ) < C ∧\n        ∃ (k₀ : ℕ),\n          ∀ (k : ℕ),\n            k₀ ≤ k →\n              C * (↑k : ℝ) ^ (21 / 40 : ℝ) / Real.log (↑k : ℝ) ≤\n                (↑{p ∈ Finset.Ioo ⌊(↑k : ℝ)⌋ ⌈(↑k : ℝ) + (↑k : ℝ) ^ (21 / 40 : ℝ)⌉ |\n                        (0 : ℤ) < p ∧\n                          Nat.Prime p.natAbs ∧\n                            (↑k : ℝ) < (↑p : ℝ) ∧ (↑p : ℝ) < (↑k : ℝ) + (↑k : ℝ) ^ (21 / 40 : ℝ)}.card :\n                  ℝ)) ∨\n  ∃ (k₀ : ℕ),\n    ∀ (k : ℕ),\n      k₀ ≤ k →\n        ∀ (n : ℤ),\n          (2 : ℤ) * (↑k : ℤ) < n →\n            (↑n : ℝ) ≤ (1 / 2 : ℝ) * (↑k : ℝ) ^ ((2 : ℝ) - (21 / 40 : ℝ)) →\n              ∃ (p : ℕ),\n                Nat.Prime p ∧\n                  (↑k : ℝ) < (↑p : ℝ) ∧\n                    (↑p : ℝ) < (↑k : ℝ) + (3 : ℝ) * (↑k : ℝ) ^ (21 / 40 : ℝ) ∧\n                      (↑p : ℤ) ∣ ∏ i ∈ Finset.Icc (1 : ℕ) k, (n - (↑i : ℤ))",
+    "expected_new": true,
+    "expected_node_id": "erdos-1094--h2--h2--h2--h1",
+    "expected_witness": "True",
+    "name": "h_small",
+    "proved_binders": [],
+    "restates": null
+   },
+   {
+    "closed_type": "(¬∃ (C : ℝ),\n      (0 : ℝ) < C ∧\n        ∃ (k₀ : ℕ),\n          ∀ (k : ℕ),\n            k₀ ≤ k →\n              C * (↑k : ℝ) ^ (21 / 40 : ℝ) / Real.log (↑k : ℝ) ≤\n                (↑{p ∈ Finset.Ioo ⌊(↑k : ℝ)⌋ ⌈(↑k : ℝ) + (↑k : ℝ) ^ (21 / 40 : ℝ)⌉ |\n                        (0 : ℤ) < p ∧\n                          Nat.Prime p.natAbs ∧\n                            (↑k : ℝ) < (↑p : ℝ) ∧ (↑p : ℝ) < (↑k : ℝ) + (↑k : ℝ) ^ (21 / 40 : ℝ)}.card :\n                  ℝ)) ∨\n  ∃ (k₀ : ℕ),\n    ∀ (k : ℕ),\n      k₀ ≤ k →\n        ∀ (n : ℤ),\n          (1 / 2 : ℝ) * (↑k : ℝ) ^ ((2 : ℝ) - (21 / 40 : ℝ)) < (↑n : ℝ) →\n            (↑n : ℝ) ≤ (↑k : ℝ) ^ (2 : ℕ) / Real.log (↑k : ℝ) ^ (2 : ℕ) →\n              ∃ (p : ℕ),\n                Nat.Prime p ∧\n                  (↑k : ℝ) < (↑p : ℝ) ∧\n                    (↑p : ℝ) < (↑k : ℝ) + (3 : ℝ) * (↑k : ℝ) ^ (21 / 40 : ℝ) ∧\n                      (↑p : ℤ) ∣ ∏ i ∈ Finset.Icc (1 : ℕ) k, (n - (↑i : ℤ))",
+    "expected_new": true,
+    "expected_node_id": "erdos-1094--h2--h2--h2--h2",
+    "expected_witness": "True",
+    "name": "h_medium",
+    "proved_binders": [],
+    "restates": null
+   },
+   {
+    "closed_type": "(¬∃ (C : ℝ),\n      (0 : ℝ) < C ∧\n        ∃ (k₀ : ℕ),\n          ∀ (k : ℕ),\n            k₀ ≤ k →\n              C * (↑k : ℝ) ^ (21 / 40 : ℝ) / Real.log (↑k : ℝ) ≤\n                (↑{p ∈ Finset.Ioo ⌊(↑k : ℝ)⌋ ⌈(↑k : ℝ) + (↑k : ℝ) ^ (21 / 40 : ℝ)⌉ |\n                        (0 : ℤ) < p ∧\n                          Nat.Prime p.natAbs ∧\n                            (↑k : ℝ) < (↑p : ℝ) ∧ (↑p : ℝ) < (↑k : ℝ) + (↑k : ℝ) ^ (21 / 40 : ℝ)}.card :\n                  ℝ)) ∨\n  ∃ (k₀ : ℕ),\n    ∀ (k : ℕ),\n      k₀ ≤ k →\n        ∀ (n : ℤ),\n          (↑k : ℝ) ^ (2 : ℕ) / Real.log (↑k : ℝ) ^ (2 : ℕ) < (↑n : ℝ) →\n            (↑n : ℝ) ≤ (1 / 2 : ℝ) * (↑k : ℝ) ^ ((2 : ℝ) + (21 / 40 : ℝ)) →\n              ∃ (p : ℕ),\n                Nat.Prime p ∧\n                  (↑k : ℝ) < (↑p : ℝ) ∧\n                    (↑p : ℝ) < (↑k : ℝ) + (3 : ℝ) * (↑k : ℝ) ^ (21 / 40 : ℝ) ∧\n                      (↑p : ℤ) ∣ ∏ i ∈ Finset.Icc (1 : ℕ) k, (n - (↑i : ℤ))",
+    "expected_new": true,
+    "expected_node_id": "erdos-1094--h2--h2--h2--h3",
+    "expected_witness": "True",
+    "name": "h_mediumlarge",
+    "proved_binders": [],
+    "restates": null
+   },
+   {
+    "closed_type": "(¬∃ (C : ℝ),\n      (0 : ℝ) < C ∧\n        ∃ (k₀ : ℕ),\n          ∀ (k : ℕ),\n            k₀ ≤ k →\n              C * (↑k : ℝ) ^ (21 / 40 : ℝ) / Real.log (↑k : ℝ) ≤\n                (↑{p ∈ Finset.Ioo ⌊(↑k : ℝ)⌋ ⌈(↑k : ℝ) + (↑k : ℝ) ^ (21 / 40 : ℝ)⌉ |\n                        (0 : ℤ) < p ∧\n                          Nat.Prime p.natAbs ∧\n                            (↑k : ℝ) < (↑p : ℝ) ∧ (↑p : ℝ) < (↑k : ℝ) + (↑k : ℝ) ^ (21 / 40 : ℝ)}.card :\n                  ℝ)) ∨\n  ∃ (k₀ : ℕ),\n    ∀ (k : ℕ),\n      k₀ ≤ k →\n        ∀ (n : ℤ),\n          (1 / 2 : ℝ) * (↑k : ℝ) ^ ((2 : ℝ) + (21 / 40 : ℝ)) < (↑n : ℝ) →\n            (↑n : ℝ) ≤ Real.exp (Real.log (↑k : ℝ) ^ (2 : ℕ) / ((20 : ℝ) * Real.log (Real.log (↑k : ℝ)))) →\n              ∃ (p : ℕ),\n                Nat.Prime p ∧\n                  (↑k : ℝ) < (↑p : ℝ) ∧\n                    (↑p : ℝ) < (↑k : ℝ) + (3 : ℝ) * (↑k : ℝ) ^ (21 / 40 : ℝ) ∧\n                      (↑p : ℤ) ∣ ∏ i ∈ Finset.Icc (1 : ℕ) k, (n - (↑i : ℤ))",
+    "expected_new": true,
+    "expected_node_id": "erdos-1094--h2--h2--h2--h4",
+    "expected_witness": "True",
+    "name": "h_large",
+    "proved_binders": [],
+    "restates": null
+   }
+  ],
+  "job_id": "01M4X1QT5GHARKZWJE0NS5HN3D",
+  "node_id": "erdos-1094--h2--h2--h2",
+  "steps": [
+   {
+    "diagnostic": {
+     "code": "mathlib-pinned",
+     "details": {
+      "mathlib_sha": "0df444a360eaa60ab8c11dca51a86af692955474",
+      "packages": 8
+     },
+     "message": "Mathlib 0df444a360ea resolved from the pinned checkout"
+    },
+    "name": "toolchain",
+    "result": "pass",
+    "step": 1
+   },
+   {
+    "diagnostic": {
+     "code": "partial-submission",
+     "details": {
+      "path": "attempts/20261014T111000Z-t1014-x-partial.lean"
+     },
+     "message": "a partial proof: attempts/20261014T111000Z-t1014-x-partial.lean (D-12 #5)"
+    },
+    "name": "paths",
+    "result": "pass",
+    "step": 2
+   },
+   {
+    "diagnostic": {
+     "code": "artifact-partial",
+     "details": {
+      "holes": [
+       "h_small",
+       "h_medium",
+       "h_mediumlarge",
+       "h_large"
+      ],
+      "kind": "partial"
+     },
+     "message": "partial: erdos_1094__h2__h2__h2 declares (¬∃ C,\n      0 < C ∧\n        ∃ k₀,\n          ∀ (k : ℕ),\n            k₀ ≤ k →\n              C * ↑k ^ (21 / 40) / Real.log ↑k ≤\n                ↑{p ∈ Finset.Ioo ⌊↑k⌋ ⌈↑k + ↑k ^ (21 / 40)⌉ |\n                      0 < p ∧ Nat.Prime p.natAbs ∧ ↑k < ↑p ∧ ↑p < ↑k + ↑k ^ (21 / 40)}.card) ∨\n  ∃ k₀,\n    ∀ (k : ℕ),\n      k₀ ≤ k →\n        ∀ (n : ℤ),\n          2 * ↑k < n →\n            ↑n ≤ Real.exp (Real.log ↑k ^ 2 / (20 * Real.log (Real.log ↑k))) →\n              ∃ p, Nat.Prime p ∧ ↑k < ↑p ∧ ↑p < ↑k + 3 * ↑k ^ (21 / 40) ∧ ↑p ∣ ∏ i ∈ Finset.Icc 1 k, (n - ↑i); 4 hole(s)"
+    },
+    "name": "kernel-replay",
+    "result": "pass",
+    "step": 4
+   },
+   {
+    "diagnostic": null,
+    "name": "axioms",
+    "result": "pass",
+    "step": 5
+   },
+   {
+    "diagnostic": {
+     "code": "hazards-derived-statement",
+     "details": {
+      "acknowledged": [],
+      "checkers": [
+       "div-zero",
+       "int-trunc",
+       "junk-value",
+       "nat-sub",
+       "off-by-one-range",
+       "unused-binder"
+      ],
+      "findings": [
+       {
+        "checker": "div-zero",
+        "location": "C * ↑k ^ (21 / 40) / Real.log ↑k",
+        "message": "division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"
+       },
+       {
+        "checker": "div-zero",
+        "location": "Real.log ↑k ^ 2 / (20 * Real.log (Real.log ↑k))",
+        "message": "division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"
+       },
+       {
+        "checker": "junk-value",
+        "location": "Real.log (Real.log ↑k)",
+        "message": "Real.log of a possibly-negative argument is a junk value (0)"
+       },
+       {
+        "checker": "off-by-one-range",
+        "location": "Finset.Icc 1 k",
+        "message": "Finset.Icc with a literal-adjusted bound: check whether the endpoint is included"
+       }
+      ],
+      "origin": "skeleton-hole"
+     },
+     "message": "4 hazard finding(s) on a statement the gate derived from a merged assembly, recorded and not refused; first: div-zero at C * ↑k ^ (21 / 40) / Real.log ↑k: division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"
+    },
+    "name": "hazards",
+    "result": "pass",
+    "step": 6
+   },
+   {
+    "diagnostic": null,
+    "name": "witness",
+    "result": "pass",
+    "step": 7
+   },
+   {
+    "diagnostic": null,
+    "name": "deps",
+    "result": "pass",
+    "step": 8
+   }
+  ],
+  "verdict": "pass"
+ },
+ "public": true
+}

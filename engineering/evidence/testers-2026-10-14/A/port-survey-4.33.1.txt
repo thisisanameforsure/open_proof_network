@@ -1,0 +1,58 @@
+chunk 0 (src lines 40-250): errors
+   dvd_from_far: -:103:102-103:109: error: `ring_nf` made no progress on the goal
+   hadamard_inequality: -:155:4-156:27: error: unsolved goals (+1 more)
+   gramDet_le_prod_sq_norms: -:199:2-200:33: error: unsolved goals
+chunk 1 (src lines 251-511): errors
+   bezout_generalized: -:146:51-146:98: error: invalid `▸` notation, expected result type of cast is 
+chunk 2 (src lines 512-842): status 504
+chunk 3 (src lines 843-1056): errors
+   gramDet_orthogonal_factorization: -:264:18-264:36: error: `simp` made no progress (+2 more)
+chunk 4 (src lines 1057-1259): status 504
+chunk 5 (src lines 1260-1463): errors
+   norm_sq_defining_vector_bound: -:494:75-494:79: error: `ring_nf` made no progress on the goal
+chunk 6 (src lines 1464-1685): errors
+   integer_kernel_has_r_independent_vectors: -:374:255-375:52: error: unsolved goals
+   successive_minima_in_kernel: -:497:25-497:56: error: Type mismatch: After simplification, term
+   succ_min_product_le_basis_product: -:560:6-560:33: error: Type mismatch (+1 more)
+chunk 7 (src lines 1686-1904): ok
+chunk 8 (src lines 1905-2142): errors
+   kernel_high_excess_count: -:558:4-558:15: error: unsolved goals (+2 more)
+   binomial_multiply_moment: -:608:96-609:133: error: unsolved goals
+   comparison_with_vanishing: -:718:14-718:15: error: Tactic `introN` failed: There are no additional binders or `let` bindings in the goal to introduce (+3 more)
+chunk 9 (src lines 2143-2349): errors
+   multiply_comparison_bounds: -:608:9-608:18: error: Tactic `rewrite` failed: Did not find an occurrence of the pattern (+4 more)
+   excess_zero_with_comparison_bound: -:684:9-684:24: error: Tactic `rewrite` failed: Did not find an occurrence of the pattern
+   factorial_product_lower_bound: -:746:171-746:178: error: `ring_nf` made no progress on the goal
+chunk 10 (src lines 2350-2553): errors
+   moment_product_upper_bound: -:632:7-632:30: error: Tactic `rewrite` failed: Did not find an occurrence of the pattern
+   lattice_bound_implies_coord_bound: -:648:130-648:137: error: `ring_nf` made no progress on the goal (+3 more)
+chunk 11 (src lines 2554-2762): errors
+   good_point_transfer: -:732:31-732:37: error: Tactic `rewrite` failed: Did not find an occurrence of the pattern
+   constant_ineq_i: -:848:9-848:16: error: Tactic `rewrite` failed: Did not find an occurrence of the pattern
+   constant_ineq_ii: -:869:174-869:182: error: `ring_nf` made no progress on the goal
+   constant_ineq_iii: -:899:9-899:16: error: Tactic `rewrite` failed: Did not find an occurrence of the pattern
+   factorial_inv_le: -:925:84-925:91: error: `ring_nf` made no progress on the goal
+chunk 12 (src lines 2763-3051): errors
+   taylor_degree_r_remainder: -:802:23-802:74: error: Type mismatch (+1 more)
+   short_interval: -:980:228-980:232: error: `ring_nf` made no progress on the goal (+9 more)
+chunk 13 (src lines 3052-3299): errors
+   term2_comparison: -:972:98-972:102: error: `ring_nf` made no progress on the goal (+1 more)
+   residue_class_sum_bound: -:1075:56-1075:63: error: `ring_nf` made no progress on the goal (+3 more)
+chunk 14 (src lines 3300-3507): errors
+   iteratedDeriv_fK: -:1107:69-1107:77: error: linarith failed to find a contradiction
+chunk 15 (src lines 3508-3709): errors
+   poly_log_lt_eq: -:1188:117-1188:121: error: `ring_nf` made no progress on the goal
+chunk 16 (src lines 3710-3913): ok
+chunk 17 (src lines 3914-4113): errors
+   lamML_le_lamUB: -:1131:133-1131:137: error: `ring_nf` made no progress on the goal
+   ml_card_bound: -:1158:302-1165:82: error: unsolved goals
+   ml_rhs_le: -:1218:133-1218:140: error: `ring_nf` made no progress on the goal
+chunk 18 (src lines 4114-4323): errors
+   med_rhs_le: -:1286:329-1286:333: error: `ring_nf` made no progress on the goal
+chunk 19 (src lines 4324-4534): errors
+   large_card_raw: -:1223:169-1223:173: error: `ring_nf` made no progress on the goal
+   large_term3_le: -:1253:101-1253:136: error: Tactic `rewrite` failed: Did not find an occurrence of the pattern
+   large_asym: -:1292:285-1292:289: error: `ring_nf` made no progress on the goal
+   large_r0_bounds: -:1381:9-1381:66: error: Tactic `rewrite` failed: Did not find an occurrence of the pattern
+chunk 20 (src lines 4535-4694): errors
+   large_r_data: -:1287:34-1287:46: error: Tactic `rewrite` failed: Did not find an occurrence of the pattern

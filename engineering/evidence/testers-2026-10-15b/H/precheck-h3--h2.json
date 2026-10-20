@@ -1,0 +1,34 @@
+{
+ "id": "01M4ZW2YRRNDWGD0NM2XCEGK0C",
+ "state": "done",
+ "verdict": "pass",
+ "holes": [
+  {
+   "closed_type": "∃ (c : ℝ),\n  (0 : ℝ) < c ∧\n    ∃ (K₂ : ℕ), ∀ (n k : ℕ), K₂ < k → (2 : ℕ) * k ≤ n → (n.choose k).minFac > k → (↑k : ℝ) ^ ((1 : ℝ) + c) < (↑n : ℝ)",
+   "expected_new": true,
+   "expected_node_id": "erdos-1094--h3--h2--h1",
+   "expected_witness": "True",
+   "name": "h_ees",
+   "proved_binders": [],
+   "restates": null
+  },
+  {
+   "closed_type": "∀ (c : ℝ),\n  (0 : ℝ) < c →\n    ∃ (K₃ : ℕ),\n      ∀ (n k : ℕ),\n        K₃ < k →\n          (↑k : ℝ) ^ ((1 : ℝ) + c) < (↑n : ℝ) →\n            (↑n : ℝ) < (↑k : ℝ) ^ (7 / 4 : ℝ) → ∃ (p : ℕ), Nat.Prime p ∧ k < (2 : ℕ) * p ∧ p < k ∧ p ∣ n.choose k",
+   "expected_new": true,
+   "expected_node_id": "erdos-1094--h3--h2--h2",
+   "expected_witness": "∃ (c : ℝ), (0 : ℝ) < c",
+   "name": "h_caseB",
+   "proved_binders": [],
+   "restates": null
+  },
+  {
+   "closed_type": "∃ (C : ℕ) (K₄ : ℕ),\n  ∀ (n k : ℕ),\n    K₄ < k →\n      (↑k : ℝ) ^ (7 / 4 : ℝ) ≤ (↑n : ℝ) →\n        C * (n * Nat.log (2 : ℕ) k) < k * k → ∃ (p : ℕ), Nat.Prime p ∧ k < (2 : ℕ) * p ∧ p < k ∧ p ∣ n.choose k",
+   "expected_new": true,
+   "expected_node_id": "erdos-1094--h3--h2--h3",
+   "expected_witness": "True",
+   "name": "h_caseA",
+   "proved_binders": [],
+   "restates": null
+  }
+ ]
+}

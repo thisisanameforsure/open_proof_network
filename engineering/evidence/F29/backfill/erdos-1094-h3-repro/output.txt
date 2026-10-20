@@ -1,0 +1,20 @@
+Downloading sympy (6.0MiB)
+Downloading numpy (5.2MiB)
+ Downloaded numpy
+ Downloaded sympy
+Installed 3 packages in 28ms
+== A: node claim, k <= 300
+13 pairs: [(7, 3), (13, 4), (14, 4), (23, 5), (44, 8), (46, 10), (47, 10), (74, 10), (94, 10), (95, 10), (47, 11), (241, 16), (284, 28)]
+== B: h_gr shape, k <= 700
+C=1: last k with a failure = 652, total failing (n,k) = 653945
+C=2: last k with a failure = 652, total failing (n,k) = 709036
+C=4: last k with a failure = 652, total failing (n,k) = 736161
+C=8: last k with a failure = 652, total failing (n,k) = 748567
+C=16: last k with a failure = 652, total failing (n,k) = 753635
+unrestricted small n (2k..2k+50): last k with a failure = 593
+== C: h_cheb up to k = 2000000
+last k with S(k) < k/100: 230 ; min S/k over k>last: 0.01321446452710141
+RS tail bound gives S(k) >= k/100 for k >= ~ 954200  (checked monotone below); numeric range covers it: True
+tail_ok on doubling grid from k0: True
+== D: lemma n%p<k%p => p | C(n,k), k<=40, n<=400
+violations: []

@@ -1,0 +1,51 @@
+import Mathlib
+
+open scoped Nat
+
+theorem gr_test : ∀ (C : ℕ), ∃ (K₂ : ℕ), ∀ (n k : ℕ), K₂ < k → k * k ≤ C * (n * Nat.log 2 k) → n < k * k → ∃ (p : ℕ), Nat.Prime p ∧ k < 2 * p ∧ 20 * p < 11 * k ∧ n % p < k % p := by
+  have h_cheb : ∃ K₃ : ℕ, ∀ k : ℕ, K₃ < k →
+      (k : ℝ) / 100 ≤ ∑ p ∈ (Finset.range k).filter (fun p => p.Prime ∧ k < 2 * p ∧ 20 * p < 11 * k),
+        Real.log p := by
+    sorry
+  have h_sander : ∀ (C : ℕ) (ε : ℝ), 0 < ε → ∃ K₄ : ℕ, ∀ n k : ℕ, K₄ < k →
+      k * k ≤ C * (n * Nat.log 2 k) → n < k * k →
+      |∑ p ∈ (Finset.range k).filter (fun p => p.Prime ∧ k < 2 * p ∧ 20 * p < 11 * k),
+        (Int.fract ((n : ℝ) / p) - 1 / 2) * Real.log p| ≤ ε * k := by
+    sorry
+  intro C
+  obtain ⟨K₃, hc⟩ := h_cheb
+  obtain ⟨K₄, hs⟩ := h_sander C (1 / 1000) (by norm_num)
+  refine ⟨max K₃ K₄, fun n k hk hlow hup => ?_⟩
+  have hk3 : K₃ < k := lt_of_le_of_lt (le_max_left _ _) hk
+  have hk4 : K₄ < k := lt_of_le_of_lt (le_max_right _ _) hk
+  by_contra hno
+  push_neg at hno
+  set S := (Finset.range k).filter (fun p => p.Prime ∧ k < 2 * p ∧ 20 * p < 11 * k) with hS
+  have hterm : ∀ p ∈ S, (7 / 22 : ℝ) * Real.log p ≤ (Int.fract ((n : ℝ) / p) - 1 / 2) * Real.log p := by
+    intro p hp
+    rw [hS, Finset.mem_filter] at hp
+    obtain ⟨-, hpr, h2p, h20⟩ := hp
+    have hmod := hno p hpr h2p h20
+    have hpk : p ≤ k := by omega
+    have hkp : k % p = k - p := by
+      rw [Nat.mod_eq_sub_mod hpk, Nat.mod_eq_of_lt (by omega)]
+    have hp0 : (0 : ℝ) < p := by exact_mod_cast hpr.pos
+    have hfr : Int.fract ((n : ℝ) / p) = ((n % p : ℕ) : ℝ) / p := Int.fract_div_natCast_eq_div_natCast_mod
+    have hge : ((k - p : ℕ) : ℝ) ≤ ((n % p : ℕ) : ℝ) := by exact_mod_cast (hkp ▸ hmod)
+    have hsub : ((k - p : ℕ) : ℝ) = (k : ℝ) - p := by
+      rw [Nat.cast_sub hpk]
+    have h20r : (20 : ℝ) * p < 11 * k := by exact_mod_cast h20
+    have hfrac : (9 / 11 : ℝ) ≤ Int.fract ((n : ℝ) / p) := by
+      rw [hfr, le_div_iff₀ hp0]
+      linarith
+    have hlog : 0 ≤ Real.log p := Real.log_natCast_nonneg p
+    nlinarith
+  have hsum : (7 / 22 : ℝ) * ∑ p ∈ S, Real.log p ≤
+      ∑ p ∈ S, (Int.fract ((n : ℝ) / p) - 1 / 2) * Real.log p := by
+    rw [Finset.mul_sum]
+    exact Finset.sum_le_sum hterm
+  have hc' := hc k hk3
+  have hs' := hs n k hk4 hlow hup
+  have habs := le_abs_self (∑ p ∈ S, (Int.fract ((n : ℝ) / p) - 1 / 2) * Real.log p)
+  have hkpos : (0 : ℝ) < k := by exact_mod_cast (show 0 < k by omega)
+  linarith

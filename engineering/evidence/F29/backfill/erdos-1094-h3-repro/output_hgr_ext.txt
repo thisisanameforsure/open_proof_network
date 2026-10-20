@@ -1,0 +1,4 @@
+k 650 primes in interval 5 failures 3 e.g. [186681, 186682, 186683]
+k 651 primes in interval 5 failures 2 e.g. [186682, 186683]
+k 652 primes in interval 5 failures 1 e.g. [186683]
+last failing k sampled: 652

@@ -1,0 +1,270 @@
+{
+ "id": "01M4ZT5HXRX3TWXRR581B395GR",
+ "node_id": "erdos-1094--h3",
+ "target_id": "erdos-1094",
+ "state": "done",
+ "created": "2026-10-15T12:56:35Z",
+ "graph_commit": "cdadf84ada5343685b5bcda1360ce11377569fb5",
+ "bundle_digest": "f087bd812f8716a70def9b732f635eca681fcbca2b8267c332011ea3f2258902",
+ "authenticated": true,
+ "automation": {
+  "framework": "Claude Code (subagent)",
+  "method": "agent",
+  "models": [
+   "claude-opus-5-5"
+  ]
+ },
+ "result": {
+  "attestation": {
+   "artifact_hash": null,
+   "automation": null,
+   "diagnostic": null,
+   "first_failing_step": null,
+   "footprint": {
+    "nodes": []
+   },
+   "gate_spec_hash": "cfe31e69729e1e93a0015e913cff65ff9e09862e625c4ab5ac1c94a27c811246",
+   "graph_commit": "cdadf84ada5343685b5bcda1360ce11377569fb5",
+   "graph_id": "erdos-1094",
+   "lean_toolchain": "leanprover/lean4:v4.33.1",
+   "mathlib_sha": "0df444a360eaa60ab8c11dca51a86af692955474",
+   "merge_commit": null,
+   "model_and_tooling": "undeclared",
+   "network_commit": "fa0a13ba270d7b399ed9c075cb531bdaeb2776fe",
+   "node_id": "erdos-1094--h3",
+   "precheck_attestation": {
+    "hash": null,
+    "signature_kind": null
+   },
+   "review": null,
+   "runner": "hosted",
+   "schema": "attestation/v7",
+   "signature": {
+    "key_id": "SHA256:bJR39nO37EkRaxo4CPqdhcHk+WL+sEnAJ9ujpkF7LXo",
+    "kind": "service",
+    "timestamp": "2026-10-15T13:00:18Z",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAg4NVeR5WlT1J5vaHpDOmXNTurS+\nKqTYJTovSCpPj5G/IAAAAPb3BuLWF0dGVzdGF0aW9uAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQKyVH9cZUeuYS+0HR2bpCMbo0OZdJG2Z0JQknMKbwxulpDmZLs\nLPYFqKYmwz3lomGmzp8AHsBosqRw6oyasQTw8=\n-----END SSH SIGNATURE-----\n"
+   },
+   "statement_hash": "ea8c2bd908e4a56d2b703223b839ff4664882ab9c1fbd85e71ed4eb05e2da99b",
+   "steps": [
+    {
+     "diagnostic": {
+      "code": "mathlib-pinned",
+      "details": {
+       "mathlib_sha": "0df444a360eaa60ab8c11dca51a86af692955474",
+       "packages": 8
+      },
+      "message": "Mathlib 0df444a360ea resolved from the pinned checkout"
+     },
+     "name": "toolchain",
+     "result": "pass",
+     "step": 1
+    },
+    {
+     "diagnostic": {
+      "code": "partial-submission",
+      "details": {
+       "path": "attempts/20261015T125200Z-t1015b-g-partial.lean"
+      },
+      "message": "a partial proof: attempts/20261015T125200Z-t1015b-g-partial.lean (D-12 #5)"
+     },
+     "name": "paths",
+     "result": "pass",
+     "step": 2
+    },
+    {
+     "diagnostic": {
+      "code": "artifact-partial",
+      "details": {
+       "holes": [
+        "h_els",
+        "h_gr"
+       ],
+       "kind": "partial"
+      },
+      "message": "partial: erdos_1094__h3 declares ∃ K, ∀ (n k : ℕ), 0 < k → 2 * k ≤ n → n < k * k → (n.choose k).minFac > k → k ≤ K; 2 hole(s)"
+     },
+     "name": "kernel-replay",
+     "result": "pass",
+     "step": 4
+    },
+    {
+     "diagnostic": null,
+     "name": "axioms",
+     "result": "pass",
+     "step": 5
+    },
+    {
+     "diagnostic": null,
+     "name": "hazards",
+     "result": "pass",
+     "step": 6
+    },
+    {
+     "diagnostic": {
+      "code": "hole-witnesses",
+      "details": {
+       "witnesses": [
+        {
+         "hole": "h_els",
+         "path": "attempts/20261015T125200Z-t1015b-g-partial.1.witness",
+         "sha256": "876f26f33766940c695aa1023e314f92282db09e8ae59dd60da90b83ef730a86"
+        },
+        {
+         "hole": "h_gr",
+         "path": "attempts/20261015T125200Z-t1015b-g-partial.2.witness",
+         "sha256": "054f7cdcf4cec0f4eb67c27b37e46f0aa4943316e474c1680b3e27f39901f0e6"
+        }
+       ]
+      },
+      "message": "2 of 2 hole(s) carry a witness, each checked as step 7 checks a node's (F07-R23)"
+     },
+     "name": "witness",
+     "result": "pass",
+     "step": 7
+    },
+    {
+     "diagnostic": null,
+     "name": "deps",
+     "result": "pass",
+     "step": 8
+    }
+   ],
+   "submitter": null,
+   "toolchain_hash": "f54d0bc916bf76a7fae460ce9d078ccd1f74aeb4fd12c4b6546bca28b6aa1c63",
+   "tooling": {
+    "harness": null,
+    "model": null
+   },
+   "trust_base": "kernel",
+   "verdict": "pass"
+  },
+  "automation": {
+   "framework": "Claude Code (subagent)",
+   "method": "agent",
+   "models": [
+    "claude-opus-5-5"
+   ]
+  },
+  "bundle_digest": "f087bd812f8716a70def9b732f635eca681fcbca2b8267c332011ea3f2258902",
+  "first_failing_step": null,
+  "holes": [
+   {
+    "closed_type": "∃ (C : ℕ) (K₁ : ℕ),\n  ∀ (n k : ℕ), K₁ < k → (2 : ℕ) * k ≤ n → (n.choose k).minFac > k → k * k ≤ C * (n * Nat.log (2 : ℕ) k)",
+    "expected_new": true,
+    "expected_node_id": "erdos-1094--h3--h2",
+    "expected_witness": "True",
+    "name": "h_els",
+    "proved_binders": [],
+    "restates": null,
+    "witness": {
+     "checked": true,
+     "path": "attempts/20261015T125200Z-t1015b-g-partial.1.witness",
+     "sha256": "876f26f33766940c695aa1023e314f92282db09e8ae59dd60da90b83ef730a86"
+    }
+   },
+   {
+    "closed_type": "∀ (C : ℕ),\n  ∃ (K₂ : ℕ),\n    ∀ (n k : ℕ),\n      K₂ < k →\n        k * k ≤ C * (n * Nat.log (2 : ℕ) k) →\n          n < k * k → ∃ (p : ℕ), Nat.Prime p ∧ k < (2 : ℕ) * p ∧ (20 : ℕ) * p < (11 : ℕ) * k ∧ n % p < k % p",
+    "expected_new": true,
+    "expected_node_id": "erdos-1094--h3--h3",
+    "expected_witness": "∃ (C : ℕ), True",
+    "name": "h_gr",
+    "proved_binders": [],
+    "restates": null,
+    "witness": {
+     "checked": true,
+     "path": "attempts/20261015T125200Z-t1015b-g-partial.2.witness",
+     "sha256": "054f7cdcf4cec0f4eb67c27b37e46f0aa4943316e474c1680b3e27f39901f0e6"
+    }
+   }
+  ],
+  "job_id": "01M4ZT5HXRX3TWXRR581B395GR",
+  "node_id": "erdos-1094--h3",
+  "steps": [
+   {
+    "diagnostic": {
+     "code": "mathlib-pinned",
+     "details": {
+      "mathlib_sha": "0df444a360eaa60ab8c11dca51a86af692955474",
+      "packages": 8
+     },
+     "message": "Mathlib 0df444a360ea resolved from the pinned checkout"
+    },
+    "name": "toolchain",
+    "result": "pass",
+    "step": 1
+   },
+   {
+    "diagnostic": {
+     "code": "partial-submission",
+     "details": {
+      "path": "attempts/20261015T125200Z-t1015b-g-partial.lean"
+     },
+     "message": "a partial proof: attempts/20261015T125200Z-t1015b-g-partial.lean (D-12 #5)"
+    },
+    "name": "paths",
+    "result": "pass",
+    "step": 2
+   },
+   {
+    "diagnostic": {
+     "code": "artifact-partial",
+     "details": {
+      "holes": [
+       "h_els",
+       "h_gr"
+      ],
+      "kind": "partial"
+     },
+     "message": "partial: erdos_1094__h3 declares ∃ K, ∀ (n k : ℕ), 0 < k → 2 * k ≤ n → n < k * k → (n.choose k).minFac > k → k ≤ K; 2 hole(s)"
+    },
+    "name": "kernel-replay",
+    "result": "pass",
+    "step": 4
+   },
+   {
+    "diagnostic": null,
+    "name": "axioms",
+    "result": "pass",
+    "step": 5
+   },
+   {
+    "diagnostic": null,
+    "name": "hazards",
+    "result": "pass",
+    "step": 6
+   },
+   {
+    "diagnostic": {
+     "code": "hole-witnesses",
+     "details": {
+      "witnesses": [
+       {
+        "hole": "h_els",
+        "path": "attempts/20261015T125200Z-t1015b-g-partial.1.witness",
+        "sha256": "876f26f33766940c695aa1023e314f92282db09e8ae59dd60da90b83ef730a86"
+       },
+       {
+        "hole": "h_gr",
+        "path": "attempts/20261015T125200Z-t1015b-g-partial.2.witness",
+        "sha256": "054f7cdcf4cec0f4eb67c27b37e46f0aa4943316e474c1680b3e27f39901f0e6"
+       }
+      ]
+     },
+     "message": "2 of 2 hole(s) carry a witness, each checked as step 7 checks a node's (F07-R23)"
+    },
+    "name": "witness",
+    "result": "pass",
+    "step": 7
+   },
+   {
+    "diagnostic": null,
+    "name": "deps",
+    "result": "pass",
+    "step": 8
+   }
+  ],
+  "verdict": "pass"
+ },
+ "public": true
+}

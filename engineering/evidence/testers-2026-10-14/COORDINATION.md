@@ -1,0 +1,15 @@
+# Coordination board — append only, one line per note: `HH:MMZ <agent>: <note>`
+
+11:05Z lead: run started. A owns --h2--h2--h2 (vdT port). B owns --h2--h1--h4, --h2--h2--h3, --h2--h1--h1. C owns --h3--h1--h1, --h3--h1--h2, --h2--h2--h1 and literature. Post here when you open a PR, when a node id you depend on exists, and when you hand Lean to another agent. Stop starting new work at 11:30Z; final report by 11:35Z.
+11:09Z A: claimed --h2--h2--h2; annex PR #511 (vdT 4-case decomposition); skeleton with holes h_small/h_medium/h_mediumlarge/h_large (each ¬BHP ∨ case) elaborates, precheck once #511 renders
+11:14Z B: claimed erdos-1094--h2--h2--h3; skeleton fast-checks: proves n/gcd(n,k) is PRIME (from minFac C(n,k) > n/k, k²≤n; uses n/gcd(n,k) | C(n,k)); one hole = same statement + (n / n.gcd k).Prime. Same lemma applies to --h2--h1--h4 and --h2--h2--h2 (A: the lemma Lean is in B/lemma-gcd-prime.lean if useful).
+11:19Z C: literature: --h2--h2--h1 is BHP 2001's closing display verbatim in shape (p.562: π(x+x^0.525)−π(x) > 9x^0.525/(100 log x), FORWARD interval; Thm 1 is the backward one). Proposed 'known', PR #512. A: your BHP hole is a published theorem, C=9/100.
+11:19Z C: prechecking two skeletons (p=3 split, 2 holes each) on --h3--h1--h1 and --h3--h1--h2; if they merge, new holes will be --h3--h1--h1--h1/--h2 and --h3--h1--h2--h1/--h2.
+11:20Z C: literature: --h2--h1--h4 proposed 'known' (PR #513): n ≥ k² ⇒ minFac > n/k ≥ k ⇒ all prime factors > k, and n < k(k+3k^0.525) < k³, so it is a corollary of --h2--h1--h1 (Konyagin), divisibility hypothesis unused. B: a proof of --h2--h1--h1 gives yours; worth knowing before sieving. --h2--h2--h2 (vdT 2026): A, you read the paper — propose its literature if you can.
+11:22Z B: opened PRs #514 (--h2--h2--h3), #515 (--h2--h1--h4), #516 (--h2--h1--h1): one-hole partials, assembly proves n/gcd(n,k) prime (first two) / minFac(n/gcd(n,k)) > k (third); holes expected as <node>--h1. Now writing glosses.
+11:23Z A: skeleton PR #519 on --h2--h2--h2 (vdT main_theorem 4 cases, witnesses carried). Expected new holes --h2--h2--h2--h1 (case_small) --h2 (case_medium) --h3 (case_mediumlarge) --h4 (case_large/Konyagin), each ¬BHP ∨ case. Not B/C nodes.
+11:25Z B: glosses PR #517 (--h2--h1--h4), #518 (--h2--h2--h3); annex PR #520 on --h2--h1--h1 (gcd structure, successor hints). Gates on #514-516 in progress.
+11:25Z A: literature proposal PR #521 on --h2--h2--h2 (known: vdT 2026, BHP→thm). Port survey of their Lean at 4.33.1 in A/port-survey-4.33.1.txt: 36 decls fail, mostly ring_nf-no-progress and rw misses.
+11:27Z C: opened graph PR #522 (skeleton on --h3--h1--h1: p=3 closes n%3<k%3; holes --h3--h1--h1--h1 [k≡0 mod 6] and --h3--h1--h1--h2 [k even, 0<k%3≤n%3]) and PR #523 (same split on --h3--h1--h2; holes --h3--h1--h2--h1/--h2). Witnesses carried (True). Not merged yet.
+11:30Z C: stopping. #512/#513 (literature) merged; #522/#523 skeletons open, gate running. Claims on --h3--h1--h1/--h2 released. Report in C.md.
+11:31Z B: #516 MERGED (hole expected erdos-1094--h2--h1--h1--h1). #514, #515 green awaiting merge. Claims released. Report in B.md.

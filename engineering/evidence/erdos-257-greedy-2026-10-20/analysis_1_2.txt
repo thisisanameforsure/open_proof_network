@@ -1,0 +1,180 @@
+flags: []
+
+== walk_1_2.npz: |A|=501014 through 999999, density 0.50101
+first 60 elements: [2, 3, 6, 7, 14, 20, 21, 26, 27, 32, 33, 34, 35, 38, 39, 42, 44, 45, 46, 47, 48, 49, 50, 51, 53, 55, 56, 57, 58, 59, 60, 63, 65, 66, 70, 74, 75, 82, 86, 87, 89, 91, 93, 96, 98, 99, 100, 102, 103, 104, 107, 108, 113, 122, 123, 125, 126, 130, 133, 135]
+first 60 gaps:     [1, 3, 1, 7, 6, 1, 5, 1, 5, 1, 1, 1, 3, 1, 3, 2, 1, 1, 1, 1, 1, 1, 1, 2, 2, 1, 1, 1, 1, 1, 3, 2, 1, 4, 4, 1, 7, 4, 1, 2, 2, 2, 3, 2, 1, 1, 2, 1, 1, 3, 1, 5, 9, 1, 2, 1, 4, 3, 2, 2]
+gap  count   observed  geometric(1/2)  ratio
+  1  251101    0.50119    0.50000    1.002
+  2  125236    0.24997    0.25000    1.000
+  3   62446    0.12464    0.12500    0.997
+  4   31140    0.06215    0.06250    0.994
+  5   15501    0.03094    0.03125    0.990
+  6    7913    0.01579    0.01562    1.011
+  7    3749    0.00748    0.00781    0.958
+  8    1981    0.00395    0.00391    1.012
+  9     967    0.00193    0.00195    0.988
+ 10     510    0.00102    0.00098    1.042
+ 11     228    0.00046    0.00049    0.932
+ 12     124    0.00025    0.00024    1.014
+ 13      57    0.00011    0.00012    0.932
+ 14      29    0.00006    0.00006    0.948
+ 15      16    0.00003    0.00003    1.046
+ 18       5    0.00001    0.00000    2.616
+max gap: 23 at a = 299951 ; log2(N) = 19.931567126628412
+mean gap: 1.9959502048849032 (geometric: 2)
+run lengths (consecutive elements):  {1: 124919, 2: 62100, 3: 31286, 4: 15738, 5: 7937, 6: 3982, 7: 2019, 8: 941, 9: 520, 10: 224, 11: 140, 12: 60} max 20
+discrepancy  sum(1_A - 1/2) up to n: max |S_n| = 1215.0  at n = 986636 ; S_N = 1014.0 ; sqrt(N)/2 = 500.0
+S_n at powers of ten: [(10, -1), (100, -3), (1000, -10), (10000, 5), (100000, 214), (1000000, 1014)]
+autocorrelation lags 1..24 (noise level ~ 0.00100):
+[ 3.4288e-04  1.3139e-03 -3.2111e-04 -1.8361e-03 -2.1431e-03  9.3990e-04  1.0889e-04 -3.6011e-04  1.5009e-03
+ -1.7011e-04 -1.8571e-03 -4.2811e-04 -4.3712e-04 -6.1612e-04 -9.3112e-04  1.3988e-04  1.3969e-03 -1.4301e-03
+  1.1088e-04 -2.6412e-04 -3.1210e-06 -1.3613e-04 -6.1713e-04  1.3259e-03]
+ lags beyond 4 sigma: []
+A modulo q (fraction of A in each class; a uniform random set gives 1/q each):
+  q=2: [0.4991 0.5009]
+  q=3: [0.3334 0.3329 0.3338]
+  q=4: [0.2491 0.2511 0.25   0.2497]
+  q=5: [0.1999 0.2004 0.2002 0.1998 0.1997]
+  q=6: [0.1663 0.1664 0.1663 0.167  0.1665 0.1675]
+  q=7: [0.1427 0.1424 0.1431 0.1431 0.1431 0.1424 0.1431]
+  q=8: [0.1241 0.1256 0.1251 0.1249 0.125  0.1255 0.1249 0.1249]
+
+selection vs D_<(m+1) (number of earlier elements dividing m+1):
+  d   n        P(m+1 in A)
+   0   133044   0.5015
+   1   136564   0.5002
+   2   129883   0.5034
+   3    95913   0.4986
+   4    87638   0.5055
+   5    68377   0.4953
+   6    52044   0.5077
+   7    43192   0.4911
+   8    36910   0.5076
+   9    30469   0.4940
+  10    24962   0.5118
+  11    20568   0.4936
+  12    17505   0.5065
+  13    14845   0.4992
+  14    12672   0.5069
+  15    11230   0.4902
+  parity of D_<:  even 0.5048  odd 0.4965
+
+selection vs carry c_m (carry into position m from the right is c_m - 1):
+  c_m= 1 n=     395  P=0.0051   even-D 0.0052  odd-D 0.0000
+  c_m= 2 n=   27628  P=0.2053   even-D 0.2515  odd-D 0.0933
+  c_m= 3 n=  118534  P=0.4033   even-D 0.4221  odd-D 0.3770
+  c_m= 4 n=  179481  P=0.4808   even-D 0.4877  odd-D 0.4725
+  c_m= 5 n=  176836  P=0.5211   even-D 0.5269  odd-D 0.5144
+  c_m= 6 n=  139888  P=0.5359   even-D 0.5397  odd-D 0.5319
+  c_m= 7 n=  102058  P=0.5440   even-D 0.5498  odd-D 0.5377
+  c_m= 8 n=   71806  P=0.5472   even-D 0.5511  odd-D 0.5431
+  c_m= 9 n=   49628  P=0.5478   even-D 0.5496  odd-D 0.5458
+  c_m=10 n=   34796  P=0.5453   even-D 0.5520  odd-D 0.5383
+  c_m=11 n=   24443  P=0.5491   even-D 0.5506  odd-D 0.5475
+  c_m=12 n=   17166  P=0.5442   even-D 0.5493  odd-D 0.5387
+  c_m=13 n=   12768  P=0.5316   even-D 0.5374  odd-D 0.5252
+  c_m=14 n=    9573  P=0.5212   even-D 0.5281  odd-D 0.5138
+  c_m=15 n=    7129  P=0.5396   even-D 0.5511  odd-D 0.5276
+  c_m=16 n=    5515  P=0.5325   even-D 0.5364  odd-D 0.5285
+  c_m=17 n=    4258  P=0.5294   even-D 0.5348  odd-D 0.5235
+  c_m=18 n=    3389  P=0.5285   even-D 0.5251  odd-D 0.5319
+  c_m=19 n=    2930  P=0.5253   even-D 0.5288  odd-D 0.5217
+  c_m=20 n=    2309  P=0.5349   even-D 0.5169  odd-D 0.5528
+  c_m=21 n=    1647  P=0.5282   even-D 0.5464  odd-D 0.5093
+  c_m=22 n=    1242  P=0.5395   even-D 0.5370  odd-D 0.5419
+  c_m=23 n=     995  P=0.5216   even-D 0.4960  odd-D 0.5481
+  c_m=24 n=     839  P=0.5161   even-D 0.5196  odd-D 0.5123
+  c_m=25 n=     843  P=0.5030   even-D 0.4919  odd-D 0.5146
+  c_m=26 n=     743  P=0.5384   even-D 0.5234  odd-D 0.5543
+  c_m=27 n=     576  P=0.5139   even-D 0.5272  odd-D 0.5000
+  c_m=28 n=     420  P=0.5262   even-D 0.5381  odd-D 0.5127
+  c_m=29 n=     326  P=0.5429   even-D 0.5724  odd-D 0.5172
+
+primes: 0.5029 of 78498 primes are in A (D_< = 0 for all)
+powers of two in A: [2, 32, 512, 2048, 4096, 65536, 131072, 262144]  not: [4, 8, 16, 64, 128, 256, 1024, 8192, 16384, 32768, 524288]
+first 40 non-elements: [ 1  4  5  8  9 10 11 12 13 15 16 17 18 19 22 23 24 25 28 29 30 31 36 37
+ 40 41 43 52 54 61 62 64 67 68 69 71 72 73 76 77]
+P(m in A) by tau(m):
+  tau=  2  n=  78498  P=0.5029
+  tau=  3  n=    168  P=0.4702
+  tau=  4  n= 209892  P=0.5013
+  tau=  6  n=  43870  P=0.5001
+  tau=  8  n= 224427  P=0.5016
+  tau= 12  n=  91554  P=0.5007
+  tau= 16  n= 127275  P=0.5003
+  tau= 24  n=  69142  P=0.5020
+  tau= 32  n=  40592  P=0.4987
+  tau= 48  n=  23663  P=0.5023
+  tau= 64  n=   6746  P=0.5046
+  tau= 96  n=   3304  P=0.5015
+  P(k*a in A | a in A), k= 2: 0.5000  n=250288   P(k*b in A | b not in A): 0.5003
+  P(k*a in A | a in A), k= 3: 0.5000  n=166939   P(k*b in A | b not in A): 0.5021
+  P(k*a in A | a in A), k= 4: 0.5005  n=125337   P(k*b in A | b not in A): 0.4979
+  P(k*a in A | a in A), k= 5: 0.5001  n=100306   P(k*b in A | b not in A): 0.5015
+  P(k*a in A | a in A), k= 6: 0.5015  n=83650   P(k*b in A | b not in A): 0.4986
+  P(k*a in A | a in A), k= 8: 0.4965  n=62651   P(k*b in A | b not in A): 0.4982
+  P(k*a in A | a in A), k=12: 0.4988  n=41710   P(k*b in A | b not in A): 0.5007
+
+k-bit block chi-square (p-value under the fair-coin model):
+  k= 1  blocks=1000000  chi2=      4.1  df=    1  p=0.043
+  k= 2  blocks= 500000  chi2=      8.7  df=    3  p=0.034
+  k= 3  blocks= 333333  chi2=      7.4  df=    7  p=0.387
+  k= 4  blocks= 250000  chi2=     29.7  df=   15  p=0.013
+  k= 5  blocks= 200000  chi2=     35.3  df=   31  p=0.272
+  k= 6  blocks= 166666  chi2=     64.4  df=   63  p=0.426
+  k= 7  blocks= 142857  chi2=    160.1  df=  127  p=0.025
+  k= 8  blocks= 125000  chi2=    293.8  df=  255  p=0.048
+  k= 9  blocks= 111111  chi2=    478.8  df=  511  p=0.844
+  k=10  blocks= 100000  chi2=   1061.1  df= 1023  p=0.199
+  k=11  blocks=  90909  chi2=   1980.9  df= 2047  p=0.850
+  k=12  blocks=  83333  chi2=   4105.8  df= 4095  p=0.450
+  k=13  blocks=  76923  chi2=   8334.9  df= 8191  p=0.131
+  k=14  blocks=  71428  chi2=  16185.2  df=16383  p=0.863
+  k=15  blocks=  66666  chi2=  32943.5  df=32767  p=0.245
+  k=16  blocks=  62500  chi2=  65449.3  df=65535  p=0.593
+
+close calls.  Non-selected steps: distance below the threshold, scaled: (1/2 - u_m) 2^m  (stall needs this < 0)
+   non-selected with u_m > 1/2: 0
+   m=      0  u_m=0.500000  (1/2-u)2^m = 0.0000
+   m=      4  u_m=0.380952  (1/2-u)2^m = 1.9048
+   m=      3  u_m=0.190476  (1/2-u)2^m = 2.4762
+   m=      7  u_m=0.007999  (1/2-u)2^m = 62.9761
+   m=      8  u_m=0.015998  (1/2-u)2^m = 123.9045
+   m=      9  u_m=0.031996  (1/2-u)2^m = 239.6180
+   m=     10  u_m=0.063992  (1/2-u)2^m = 446.4722
+   m=     11  u_m=0.127984  (1/2-u)2^m = 761.8888
+  selected steps closest above the threshold 1/2 + 2^-m-2: (u - 1/2) 2^m  (must be >= 1/4)
+   m=      6  u_m=0.507937  (u-1/2)2^m = 0.5079
+   m=      2  u_m=0.666667  (u-1/2)2^m = 0.6667
+   m=      1  u_m=1.000000  (u-1/2)2^m = 1.0000
+   m=      5  u_m=0.761905  (u-1/2)2^m = 8.3810
+   m=     13  u_m=0.511936  (u-1/2)2^m = 97.7798
+   m=     20  u_m=0.523902  (u-1/2)2^m = 25062.6250
+   #non-selected with (1/2-u)2^m <  1: 1   (coin model expects about 1)
+   #non-selected with (1/2-u)2^m <  2: 2   (coin model expects about 2)
+   #non-selected with (1/2-u)2^m <  4: 3   (coin model expects about 4)
+   #non-selected with (1/2-u)2^m <  8: 3   (coin model expects about 8)
+   #non-selected with (1/2-u)2^m < 16: 3   (coin model expects about 16)
+Traceback (most recent call last):
+  File "/private/tmp/claude-501/-Users-mikehiggins-Desktop-repos-open-proof-network/48df3112-fdc8-4746-9048-b49ffe1feafa/scratchpad/analyze2.py", line 196, in <module>
+    plots(A, dev, sel, N, path.replace(".npz", ".png"))
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/private/tmp/claude-501/-Users-mikehiggins-Desktop-repos-open-proof-network/48df3112-fdc8-4746-9048-b49ffe1feafa/scratchpad/analyze2.py", line 139, in plots
+    ax.plot(A[:300][1:], gaps[:300], ".-", lw=0.6, ms=4)
+    ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/private/tmp/claude-501/-Users-mikehiggins-Desktop-repos-open-proof-network/48df3112-fdc8-4746-9048-b49ffe1feafa/scratchpad/.venv/lib/python3.13/site-packages/matplotlib/axes/_axes.py", line 1792, in plot
+    lines = [*self._get_lines(self, *args, data=data, **kwargs)]
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/private/tmp/claude-501/-Users-mikehiggins-Desktop-repos-open-proof-network/48df3112-fdc8-4746-9048-b49ffe1feafa/scratchpad/.venv/lib/python3.13/site-packages/matplotlib/axes/_base.py", line 331, in __call__
+    yield from self._plot_args(
+               ~~~~~~~~~~~~~~~^
+        axes, this, kwargs, ambiguous_fmt_datakey=ambiguous_fmt_datakey,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        return_kwargs=return_kwargs
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/private/tmp/claude-501/-Users-mikehiggins-Desktop-repos-open-proof-network/48df3112-fdc8-4746-9048-b49ffe1feafa/scratchpad/.venv/lib/python3.13/site-packages/matplotlib/axes/_base.py", line 509, in _plot_args
+    raise ValueError(f"x and y must have same first dimension, but "
+                     f"have shapes {x.shape} and {y.shape}")
+ValueError: x and y must have same first dimension, but have shapes (299,) and (300,)

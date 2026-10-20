@@ -1,0 +1,10 @@
+graph.json at origin/main b52f785dd schema graph/v9 top keys ['nodes', 'open_pairs', 'registrations', 'rendered_from', 'review', 'root', 'schema', 'target_id', 'target_proofs']
+graph.json hits: 3  of 30
+   ('erdos-1094--h2--h1--h1--h1', 'blocked', 'witness-missing', None)
+   ('erdos-1094--h2--h1--h4--h1', 'blocked', 'witness-missing', None)
+   ('erdos-1094--h2--h2--h3--h1', 'blocked', 'witness-missing', None)
+frontier rendered_from b52f785ddfbae899913826a58a23ccab6a134f6b entries 65
+frontier hits: 3
+   ('erdos-1094--h2--h1--h1--h1', 'blocked', 'witness-missing', 'witness')
+   ('erdos-1094--h2--h1--h4--h1', 'blocked', 'witness-missing', 'witness')
+   ('erdos-1094--h2--h2--h3--h1', 'blocked', 'witness-missing', 'witness')
