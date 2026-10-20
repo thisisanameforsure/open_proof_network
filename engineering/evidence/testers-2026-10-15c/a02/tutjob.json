@@ -1,0 +1,18 @@
+{
+ "status": 202,
+ "body": {
+  "id": "01M500G2CRH4JJ9RX5V57J57XX",
+  "node_id": "tutorial-and-swap",
+  "target_id": "tutorial",
+  "state": "queued",
+  "created": "2026-10-15T14:47:11Z",
+  "graph_commit": "ce10304b0c25662291339639e5336290ed6cc62d",
+  "bundle_digest": "649bb5805accfb7f71eb2b7e4a9c15656184aa2731639a929414dae36a4e292e",
+  "authenticated": false,
+  "automation": null,
+  "nonce": "<redacted>",
+  "public": true
+ },
+ "job_id": "01M500G2CRH4JJ9RX5V57J57XX",
+ "poll": "poll get_precheck with job_id until state is done or error; a precheck takes minutes"
+}

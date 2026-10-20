@@ -1,0 +1,135 @@
+{
+ "submission": {
+  "id": "01M5013KCREFAKA4VS9BJHANT8",
+  "kind": "proof",
+  "node_id": "erdos-1094--h2--h2--h2--h3--h1--h1--h1--h1",
+  "target_id": "erdos-1094",
+  "pr_number": 550,
+  "pr_url": "https://github.com/thisisanameforsure/open_proof_network_graph/pull/550",
+  "pseudonym": "t1015b-t",
+  "precheck_job_id": "01M5002XG0FHFEKGH7H4618RD4",
+  "created": "2026-10-15T14:57:55Z",
+  "closed": null,
+  "automation": {
+   "framework": "Claude Code",
+   "method": "agent",
+   "models": [
+    "claude-opus-5-5"
+   ]
+  },
+  "artifact_type": "proof"
+ },
+ "state": "open",
+ "queue": {
+  "position": 7,
+  "of": 8,
+  "ahead": [
+   {
+    "pr_number": 544,
+    "id": "01M500Y0P02TGEJK3KDNJ0D86K",
+    "kind": "partial",
+    "node_id": "erdos-1094--h3--h1--h1--h2--h1",
+    "target_id": "erdos-1094",
+    "waiting_on": null,
+    "waiting_on_read_at": null
+   },
+   {
+    "pr_number": 545,
+    "id": "01M500YGA0XRER7PZBY6J7RBFY",
+    "kind": "partial",
+    "node_id": "erdos-1094--h2--h2--h3--h1",
+    "target_id": "erdos-1094",
+    "waiting_on": null,
+    "waiting_on_read_at": null
+   },
+   {
+    "pr_number": 546,
+    "id": "01M500Z1WGMF2VK4BHMWJHFWKE",
+    "kind": "partial",
+    "node_id": "erdos-1094--h3--h1--h1",
+    "target_id": "erdos-1094",
+    "waiting_on": null,
+    "waiting_on_read_at": null
+   },
+   {
+    "pr_number": 547,
+    "id": "01M500Z4T8045WXJBN8Q5N55X5",
+    "kind": "partial",
+    "node_id": "erdos-1094--h3--h1--h2--h1",
+    "target_id": "erdos-1094",
+    "waiting_on": null,
+    "waiting_on_read_at": null
+   },
+   {
+    "pr_number": 548,
+    "id": "01M5011G0G9H5FJTQZHC3V0XV8",
+    "kind": "partial",
+    "node_id": "erdos-1094--h3--h1--h2--h2",
+    "target_id": "erdos-1094",
+    "waiting_on": null,
+    "waiting_on_read_at": null
+   },
+   {
+    "pr_number": 549,
+    "id": "01M5012Q2G2GDEANA4WWHZNB9K",
+    "kind": "partial",
+    "node_id": "erdos-1094--h2--h1--h4--h1",
+    "target_id": "erdos-1094",
+    "waiting_on": null,
+    "waiting_on_read_at": null
+   }
+  ],
+  "order": "pull-request number, oldest first, over the open pull requests the merge actor takes (non-draft, on a branch the service opened, against main), counted in the pull request's own lane: the merge actor runs one lane per target in parallel (F07-T56), so only the pull requests on the same target, and any whose target the service does not know (the actor holds every lane for one it cannot place), are ahead of it. Within a lane the actor merges the first one whose gate is green and passes over a red, conflicting or behind-and-still-running one, so a position is an upper bound on the merges ahead, not a count of them; consecutive green appends may merge as one batch",
+  "read_at": "2026-10-15T14:58:15Z",
+  "stale": false
+ },
+ "pull_request": {
+  "waiting_on": "gate",
+  "number": 550,
+  "url": "https://github.com/thisisanameforsure/open_proof_network_graph/pull/550",
+  "state": "open",
+  "merged": false,
+  "mergeable_state": "unknown",
+  "head_sha": "9e5be40b61a9653d1a9758a3d486c2a4de7c29f2",
+  "merge_commit_sha": "99c9cbb7d9abe44b8a4a8d35977440e2b7b4c940",
+  "runs": [
+   {
+    "name": "gate",
+    "status": "in_progress",
+    "conclusion": null,
+    "url": "https://github.com/thisisanameforsure/open_proof_network_graph/actions/runs/38756109769",
+    "jobs": [
+     {
+      "name": "gate (steps 1, 2 and 4-8 in the sandbox)",
+      "status": "in_progress",
+      "conclusion": null
+     },
+     {
+      "name": "postmerge (step 9 record, gate signature, attestation commit)",
+      "status": "completed",
+      "conclusion": "skipped"
+     },
+     {
+      "name": "olean cache for a merge that built (F10-R7), after its record is pushed",
+      "status": "completed",
+      "conclusion": "skipped"
+     },
+     {
+      "name": "proof outlines for a merge that built (F19-R6), after its record is pushed",
+      "status": "completed",
+      "conclusion": "skipped"
+     }
+    ]
+   }
+  ],
+  "reviews": [],
+  "read_at": "2026-10-15T14:58:41Z",
+  "stale": false
+ },
+ "pull_request_error": null,
+ "gate_verdict": null,
+ "gate_report": null,
+ "attestation_path": null,
+ "attestation": null,
+ "attestation_note": "not-merged"
+}

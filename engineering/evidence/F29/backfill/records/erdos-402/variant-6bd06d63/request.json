@@ -1,0 +1,13 @@
+{
+ "subject": {
+  "kind": "statement",
+  "node": "variant-6bd06d63",
+  "module": null,
+  "lean_hash": "7f9424ae80b898219722652e05e5341f4e259565c397cb427a3f8c493f81a24f"
+ },
+ "text": "$$\\forall A \\subset \\mathbb{N}\\ \\text{finite}:\\ 0 \\notin A,\\ |A| = 3 \\Rightarrow \\exists\\, a, b \\in A:\\ \\gcd(a,b) \\le \\frac{a}{|A|}$$\n\nEvery set A of exactly three positive integers has a, b ∈ A (possibly equal) with gcd(a, b) ≤ a/|A|. The division is in ℚ.\n",
+ "supersedes": null,
+ "licence": "CC-BY-4.0",
+ "drafted_with": "Claude Fable 5.1 (claude-fable-5-1)",
+ "label": "Graham's bound for |A| = 3"
+}

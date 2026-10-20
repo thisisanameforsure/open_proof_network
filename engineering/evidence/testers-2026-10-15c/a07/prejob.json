@@ -1,0 +1,17 @@
+{
+ "status": 202,
+ "body": {
+  "id": "01M500QVDGPF755Y884KT4HTEB",
+  "node_id": "erdos-1094--h2--h2--h2--h3--h1--h1",
+  "target_id": "erdos-1094",
+  "state": "queued",
+  "created": "2026-10-15T14:51:26Z",
+  "graph_commit": "ce10304b0c25662291339639e5336290ed6cc62d",
+  "bundle_digest": "a6656a4d36c8e50b544cedd731668c56e676434a4d88cb37b2e9c834453afa36",
+  "authenticated": true,
+  "automation": null,
+  "public": true
+ },
+ "job_id": "01M500QVDGPF755Y884KT4HTEB",
+ "poll": "poll get_precheck with job_id until state is done or error; a precheck takes minutes"
+}

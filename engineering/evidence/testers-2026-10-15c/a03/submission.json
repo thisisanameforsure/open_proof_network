@@ -1,0 +1,19 @@
+{
+ "status": 201,
+ "body": {
+  "submission_id": "01M5018Y9G2MVCSJ7R0HAJT17P",
+  "pr_url": "https://github.com/thisisanameforsure/open_proof_network_graph/pull/554",
+  "pr_number": 554,
+  "node_id": "erdos-1094--h3--h3--h1",
+  "target_id": "erdos-1094",
+  "artifact_type": "partial",
+  "holes": [
+   {
+    "name": "h_pnt",
+    "expected_node_id": "erdos-1094--h3--h3--h1--h1",
+    "expected_new": true
+   }
+  ],
+  "holes_note": "expected as planned at graph commit ce10304b0c25662291339639e5336290ed6cc62d: a hole restating an existing node is that node (expected_new false), the rest are new nodes numbered after the node's earlier holes; another decomposition of this node merging first renumbers them. A hole that restates a node under another branch of the target (expected_new false and the node not a hole child of this one) makes that node a lemma of this node, listed in its META.yaml and CONTEXT.json: its theorem is in this node's Context.lean, the assembly or a direct proof may use it once it is proved, and this node never waits on it; one proof of the lemma serves every branch that restated it"
+ }
+}

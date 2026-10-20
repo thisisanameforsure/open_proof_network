@@ -1,0 +1,13 @@
+{
+ "subject": {
+  "kind": "statement",
+  "node": "spec-2e765953",
+  "module": null,
+  "lean_hash": "5cfe5afd4a94fd9dd63e31cded2ddefd931a6eee062f4a29038b2849aa3c669c"
+ },
+ "text": "$$\\sum_{p\\ \\text{prime}}\\frac{1}{2^{p}-1} < \\infty$$\n\nThe family p ↦ 1/(2^p − 1), indexed by the primes and valued in ℝ, is summable in Mathlib's sense (unconditionally; for a nonnegative real family this is ordinary convergence).\n",
+ "supersedes": null,
+ "licence": "CC-BY-4.0",
+ "drafted_with": "Claude Fable 5.1 (claude-fable-5-1)",
+ "label": "Summability of the prime sum 1/(2^p - 1)"
+}

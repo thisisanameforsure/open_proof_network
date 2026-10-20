@@ -1,0 +1,13 @@
+{
+ "subject": {
+  "kind": "statement",
+  "node": "variant-bc28297c",
+  "module": null,
+  "lean_hash": "381db374de6485fa2c934faa88a52ee1397c2e5e31b6c42b671197d5273ac911"
+ },
+ "text": "$$\\forall A \\subset \\mathbb{N}\\ \\text{finite}:\\ 0 \\notin A,\\ |A| = 5 \\Rightarrow \\exists\\, a, b \\in A:\\ \\gcd(a,b) \\le \\frac{a}{|A|}$$\n\nEvery set A of exactly five positive integers has a, b ∈ A (possibly equal) with gcd(a, b) ≤ a/|A|. The division is in ℚ.\n",
+ "supersedes": null,
+ "licence": "CC-BY-4.0",
+ "drafted_with": "Claude Fable 5.1 (claude-fable-5-1)",
+ "label": "Graham's bound for |A| = 5"
+}

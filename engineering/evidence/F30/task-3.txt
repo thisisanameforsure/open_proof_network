@@ -1,0 +1,91 @@
+F30-T3 — graph.js (R3, R7, R8; AC5–AC8). Running log, written as the work went.
+
+== 2026-10-18 setup
+branch f30-t3-script from f30-one-graph @ 0f7ad8f6 (T2 not yet landed: tip is the contract note)
+$ uv run --frozen --with playwright python -c "...chromium.launch()..."
+playwright ok
+chromium 156.0.8078.4
+
+== fixture probe (scratchpad/views_probe.py): the view keys the test fixtures produce
+two_routes root and-swap-reassoc nodes ['and-reassoc', 'and-swap-reassoc', 'and-swap-reassoc--h1', 'and-swap-reassoc--h2', 'and-swap-reassoc--h3', 'tutorial-and-swap']
+  keys ['all', 'routes', 'sel', 'sel/and-swap-reassoc@1', 'edge/sel/and-swap-reassoc@1', 'sel/and-swap-reassoc@2', 'edge/sel/and-swap-reassoc@2']
+  all-routes set()            <- no off-route statement: no view-toggle on this fixture, so the
+                                 toggle test adds a `related` variant (off every route)
+  sets ['s-8b51b4cea6', 's-96ab721065']
+proved root and-swap-reassoc nodes ['and-reassoc', 'and-swap-reassoc', 'tutorial-and-swap']
+  keys ['all', 'routes', 'sel']   <- proof/0 appears only when the page passes F18's marks (T2)
+
+== red run (tests written first, before graph.js existed; T2 markup not yet on f30-one-graph)
+$ uv run --frozen --with playwright pytest site/tests/test_one_view.py -k "complete_without or proof_is_a_leaf or selecting_a_leaf or hover_previews or pill_click or toggle_shows" -x -q
+>       assert '<script src="/graph.js"></script>' in page
+E       assert '<script src="/graph.js"></script>' in '<!DOCTYPE html>... <script src="/problem.js"></script><script src="/routes.js"></script>\n</body>\n</html>\n'
+FAILED site/tests/test_one_view.py::test_complete_without_the_script - assert...
+1 failed, 13 deselected in 9.69s
+(red on the behaviour — the page still loads problem.js — not on a fixture or an import)
+
+== graph.js driven on a contract-shaped mock page while T2 is pending
+(scratchpad/mock_page.py builds the contract's markup from the two_routes fixture's real one_view
+layouts; scratchpad/drive.py runs the AC5/AC6 sequence with the test module's own SNAPSHOT and
+assert_at_layout; node --check graph.js ok)
+$ python drive.py site            (prefers-reduced-motion: reduce)
+loaded view routes hash '' panel ['and-reassoc']
+loaded at routes layout: ok
+hover leaf: picking True lit True boxes same True
+leaf view sel/and-swap-reassoc@1 hash #node=and-reassoc&view=sel%2Fand-swap-reassoc%401 pressed ['sel/and-swap-reassoc@1'] rows ['sel/and-swap-reassoc@1'] showing 'showing 1 of 2'
+leaf at layout: ok; shown ['and-swap-reassoc', 'and-swap-reassoc--h1', 'and-swap-reassoc--h2', 'and-swap-reassoc@1']
+edge view edge/sel/and-swap-reassoc@2 pressed ['edge/sel/and-swap-reassoc@2']
+edge at layout: ok
+cleared view routes hash '#node=and-reassoc' pressed [] rows 2
+cleared at layout: ok
+pill click: panel ['and-swap-reassoc'] hash #node=and-swap-reassoc view routes boxes same True
+fewest: view sel/and-swap-reassoc@2 rows ['sel/and-swap-reassoc@2']
+escape: view routes fewest pressed false
+page errors: []
+$ python drive.py site --animate  (the three phases, requestAnimationFrame)
+mid view routes                    <- right after the click the svg has not taken the view
+leaf view sel/and-swap-reassoc@1 ... leaf at layout: ok ... edge at layout: ok ... cleared at layout: ok
+page errors: []
+Defect found and fixed by the first drive: the initial settle() wrote #node=<root> on load; the
+load now keeps the hash (settle(to, keepHash)), as problem.js did.
+
+== T2 merged (f30-one-graph 6f387334, then 3e7446e5); the real page in the browser
+First run: 3 failures, all in the tests, none in the script —
+  test_the_toggle_shows_every_statement: the related variant made two sinks (root ambiguous,
+    F08-Q19); the fixture now declares the root in a target-status/v2 record.
+  test_hover_previews_without_moving: "a node moved" — every box shifted by the same 860 px,
+    because hovering a table row scrolls the page; boxes are measured relative to the svg now.
+  test_a_proof_is_a_leaf_of_the_selector: dropped with test_complete_without_the_script — both
+    already exist in site/tests/test_one_view_markup.py (the lead's, T2).
+$ uv run --frozen ruff check site/tests/test_one_view.py site/opn_site/static
+All checks passed!
+$ uv run --frozen --with playwright pytest site/tests/test_one_view.py -q --tb=short
+.................                                                        [100%]
+17 passed in 11.52s
+(13 of T1; test_selecting_a_leaf_an_edge_and_clearing_moves_the_drawing — reduced motion and the
+animated three phases; test_hover_previews_without_moving; test_a_pill_click_opens_the_panel_and_moves_nothing;
+test_the_toggle_shows_every_statement)
+
+== site fast tier with Playwright present
+$ uv run --frozen --with playwright pytest site/tests -m "not lean and not docker" -q -x
+FAILED site/tests/test_finding_lemma_edge.py::test_measured_in_a_browser
+1 failed, 266 passed in 59.62s
+The one failure is engineering/evidence/F04/task-39-shoot.py line 115, shot(page, ".lemmas", ...)
+on the statement's *record* page (Locator.screenshot: element is not visible): not the problem
+page, not graph.js; it runs only when Playwright is installed, which make verify does not do.
+Reported to the lead, not fixed here.
+
+== the group divider
+one_view draws line.dag-divider and text.dag-group only when the opening (routes) layout has a
+loose group, so on a target whose variants are all off-route the `all` view has a group_y and no
+element to move. graph.js moves them when present (placeGroup); the toggle test holds it to that
+and records the gap for T2.
+
+== final run (the task's verification command, plus the lead's markup tests on the same page)
+$ uv run --frozen ruff format --check site/tests/test_one_view.py
+1 file already formatted
+$ uv run --frozen --with playwright pytest site/tests/test_one_view.py site/tests/test_one_view_markup.py -q --tb=short
+............................                                             [100%]
+28 passed in 13.51s
+(test_one_view.py: 17 — T1's 13 and the four browser tests, none skipped, Chromium 156;
+ test_one_view_markup.py: 11, the lead's, including test_complete_without_the_script and
+ test_a_proof_is_a_leaf_of_the_selector)

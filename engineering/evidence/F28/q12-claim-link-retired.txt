@@ -1,0 +1,8 @@
+F28-Q12 red: test_a_circularity_claim_is_no_link (from F08-T42's branch) on this branch's closing.py before the fix
+gate/tests/test_closing.py:246: AssertionError
+=========================== short test summary info ============================
+FAILED gate/tests/test_closing.py::test_a_circularity_claim_is_no_link - Asse...
+1 failed, 9 passed in 0.11s
+
+green after the fix:
+124 passed in 31.12s

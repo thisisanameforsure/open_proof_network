@@ -1,0 +1,9 @@
+---
+label: "Upper-half Mersenne product clears the denominators"
+supersedes: 4e513a6eb7be7d5654395f34935fe27f12b8219811ced4aee368e028802692fe
+drafted_with: Claude Fable 5.1 (claude-fable-5-1)
+licence: CC-BY-4.0
+---
+$$\forall n,k\in\mathbb{N},\ k\le n,\ \ \forall c:\mathbb{N}\to\mathbb{Z}\ \ \exists z\in\mathbb{Z}:\qquad z=\Bigl(\prod_{\lfloor n/2\rfloor<m\le n}(2^m-1)\Bigr)\cdot\sum_{j=0}^{k}\frac{c_j}{2^{\,k-j}-1}$$
+
+For natural numbers $k\le n$ and any sequence of integers $c_0,c_1,\dots$, the product of $M_n=\prod_{\lfloor n/2\rfloor<m\le n}(2^m-1)$ with the sum is an integer, the arithmetic being in $\mathbb{Q}$ (the integer $z$ is compared with it after coercion). Here $\lfloor n/2\rfloor$ is natural-number division (Lean's `n / 2`, the product running over `Finset.Ioc (n / 2) n`), $k-j$ is an ordinary difference since $j\le k$, and the term $j=k$ divides by $2^0-1=0$, which is $0$ in Lean, so in effect the sum runs over $0\le j<k$ with denominators $2^{k-j}-1$, $1\le k-j\le n$.

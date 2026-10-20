@@ -7,12 +7,12 @@ Anyone may file one, not only the assigned reviewer (D-15); there is no stake.
 
 ## The shape
 
-The record is `defect-claim/v1` (`v3` for a circularity claim, which adds `ancestor`; see below):
+The record is `defect-claim/v1`:
 
 ```
 schema: defect-claim/v1
 stmt_ref: erdos-1196-lemma-14        # a node id, or defs/<file>.lean under the target
-class: junk-value                    # one of D-16's nine classes
+class: junk-value                    # one of D-16's eight classes
 line: 7                              # an existing line of the referenced file
 exhibit: |                           # a Lean file that elaborates
   import Nodes.«erdos-1196-lemma-14».Context
@@ -27,8 +27,7 @@ date: 2026-09-11
 The claim bounces, in the service and again in the gate (D-35), unless all three hold:
 
 - `class` is one of `missing-hypothesis`, `junk-value`, `vacuity`, `quantifier-scope`,
-  `wrong-domain`, `definition-mismatch`, `strength-drift`, `circular-decomposition`,
-  `other-with-exhibit`;
+  `wrong-domain`, `definition-mismatch`, `strength-drift`, `other-with-exhibit`;
 - `line` is an existing line of the referenced `Statement.lean` or `defs/` file;
 - `exhibit` is a Lean file, and it elaborates inside the gate's sandbox (F08-R7).
 
@@ -85,22 +84,13 @@ elaborates the exhibit in the sandbox; the pull request fails naming the file if
    `defs/` is reported to the source registry as well (D-12, D-10), because a wrong open problem
    is a result about the problem.
 
-## A circularity claim (D-12, D-16 v3.21)
+## No circularity claim (D-12, D-16 v3.43)
 
-A hole that is no easier than a statement it was meant to reduce makes the graph wait on itself.
-When that is only true up to a proof (a reindexing, a real argument), definitional equality cannot
-see it, and the claim is how it is shown. Use class `circular-decomposition`, set `ancestor` to a
-node that depends on the hole (directly or through revisions), and make the exhibit exactly one
-theorem whose type is `<ancestor's statement> → <hole's statement>`. The gate checks that type in
-the sandbox and refuses the reverse direction, any other theorem and a proof resting on `sorry`.
-Once the claim merges, the hole leaves the frontier and reads `circular`; nothing else changes.
-
-```
-{
-  "stmt_ref": "erdos-1050--h1-v2--h1",
-  "class": "circular-decomposition",
-  "ancestor": "erdos-1050",
-  "line": 7,
-  "exhibit": "import Mathlib\n\ntheorem erdos_1050_circular : <root> → <hole> := by …\n"
-}
-```
+The class `circular-decomposition` is retired, and a claim of it, or any claim naming an
+`ancestor`, is refused (`defect-class-retired`). Every hole implies the statement it was cut
+from, given its sibling holes, because the merged assembly is that proof, so the claim recorded
+nothing a hole does not already say. A hole definitionally equal to an ancestor is refused where
+it is made (`offload-restates-ancestor`); one equivalent to an ancestor only by a proof stays an
+ordinary hole, and a proof of it is welcome, because it proves the ancestor. Prove the hole, or
+the ancestor directly, or propose a different decomposition. Claims of the class filed before
+v3.43 stay on the record as history, listed with the statement's other defect claims.

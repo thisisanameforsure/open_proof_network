@@ -137,4 +137,6 @@ def test_get_schema_both_namespaces(harness: Harness) -> None:
         "postmortem/v1"
     )
     for tool in TOOLS:
-        assert client.ok("get_schema", {"name": f"mcp/{tool.name}/v1"}) == results.load(tool.name)
+        assert client.ok("get_schema", {"name": results.schema_id(tool.name)}) == results.load(
+            tool.name
+        )

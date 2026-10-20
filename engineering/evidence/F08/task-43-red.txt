@@ -1,0 +1,77 @@
+...FFFFF..                                                               [100%]
+=================================== FAILURES ===================================
+___________________ test_an_unsigned_record_may_not_dispute ____________________
+
+graph = <gate.tests.test_literature.Graph object at 0x107d96190>
+
+    def test_an_unsigned_record_may_not_dispute(graph: Graph) -> None:
+        graph.proposal()
+        change = graph.proposal(stamp="20261008T103000Z", status="open", disputes=PROPOSAL)
+>       assert graph.codes(change, opened_by=BOB) == ["literature-signature"]
+E       AssertionError: assert [] == ['literature-signature']
+E         
+E         Right contains one more item: 'literature-signature'
+E         Use -v to get more diff
+
+gate/tests/test_literature.py:443: AssertionError
+________________ test_a_record_may_not_both_confirm_and_dispute ________________
+
+graph = <gate.tests.test_literature.Graph object at 0x107d94510>
+
+    def test_a_record_may_not_both_confirm_and_dispute(graph: Graph) -> None:
+        graph.proposal()
+        change = graph.signed_by(ALICE, confirms=PROPOSAL, disputes=PROPOSAL)
+>       assert graph.codes(change) == ["literature-record-conflict"]
+E       AssertionError: assert [] == ['literature-record-conflict']
+E         
+E         Right contains one more item: 'literature-record-conflict'
+E         Use -v to get more diff
+
+gate/tests/test_literature.py:450: AssertionError
+_______________ test_a_dispute_must_name_a_proposal_on_the_node ________________
+
+graph = <gate.tests.test_literature.Graph object at 0x107e4b1d0>
+
+    def test_a_dispute_must_name_a_proposal_on_the_node(graph: Graph) -> None:
+        change = graph.signed_by(ALICE, status="open", disputes="literature/20261001T000000Z-x.yaml")
+>       assert graph.codes(change) == ["literature-record-unknown"]
+E       AssertionError: assert [] == ['literature-record-unknown']
+E         
+E         Right contains one more item: 'literature-record-unknown'
+E         Use -v to get more diff
+
+gate/tests/test_literature.py:455: AssertionError
+_____________________ test_a_record_may_not_dispute_itself _____________________
+
+graph = <gate.tests.test_literature.Graph object at 0x107da2f10>
+
+    def test_a_record_may_not_dispute_itself(graph: Graph) -> None:
+        change = graph.signed_by(ALICE, status="open", disputes=DISPUTE)
+>       assert graph.codes(change) == ["literature-record-unknown"]
+E       AssertionError: assert [] == ['literature-record-unknown']
+E         
+E         Right contains one more item: 'literature-record-unknown'
+E         Use -v to get more diff
+
+gate/tests/test_literature.py:461: AssertionError
+________________ test_a_record_may_not_dispute_a_signed_record _________________
+
+graph = <gate.tests.test_literature.Graph object at 0x107da3350>
+
+    def test_a_record_may_not_dispute_a_signed_record(graph: Graph) -> None:
+        graph.signed_by(ALICE, status="known", stamp="20261008T110000Z")
+        change = graph.signed_by(ALICE, status="open", stamp="20261008T130000Z", disputes=DISPUTE)
+>       assert graph.codes(change) == ["literature-record-unknown"]
+E       AssertionError: assert [] == ['literature-record-unknown']
+E         
+E         Right contains one more item: 'literature-record-unknown'
+E         Use -v to get more diff
+
+gate/tests/test_literature.py:467: AssertionError
+=========================== short test summary info ============================
+FAILED gate/tests/test_literature.py::test_an_unsigned_record_may_not_dispute
+FAILED gate/tests/test_literature.py::test_a_record_may_not_both_confirm_and_dispute
+FAILED gate/tests/test_literature.py::test_a_dispute_must_name_a_proposal_on_the_node
+FAILED gate/tests/test_literature.py::test_a_record_may_not_dispute_itself - ...
+FAILED gate/tests/test_literature.py::test_a_record_may_not_dispute_a_signed_record
+5 failed, 5 passed, 22 deselected in 43.22s

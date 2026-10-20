@@ -1,8 +1,8 @@
-"""The literature routes (D-3, D-25, D-32 v3.35; F05-T29, F23-T12).
+"""The literature routes (D-3, D-25, D-32 v3.35, v3.45; F05-T29, F23-T12, F23-T13).
 
 ``POST /literature`` lets any contributor say what the literature says of a statement — ``open``,
 ``known`` or ``elementary``, with the references that support it and a summary — as an unsigned
-``literature/v1`` record attributed to the token's identity (D-23) and opened on the node's
+``literature/v2`` record attributed to the token's identity (D-23) and opened on the node's
 ``literature/<ts>-<contributor>.yaml`` through the append machinery (one target per pull request,
 the same-second rule, the duplicate rule). It is a proposal: the pull request names the target's
 active stewards as the people whose confirmation it awaits, and says a curator may confirm too.
@@ -12,9 +12,12 @@ person it waits for sees it next time they sign in.
 ``POST /literature/confirm`` is the signed half (F23-T12): an active steward of the node's target
 or a listed curator — signed in on the site, or a bearer whose identity is a GitHub login —
 confirms a proposal by naming it in ``confirms``, or states the status themselves (``confirms``
-null). The service writes the record as that login and signs it with the network's approval key
-over the canonical body the gate verifies, exactly as ``POST /stewards`` and ``POST /approvals``
-do; whether the signer's role holds is the gate's to check at the merge.
+null), or — F23-T13 (D-25 v3.45) — *disputes* a proposal by naming it in ``disputes``, the
+record's own ``status`` being the signer's reading. ``record`` and ``disputes`` are exclusive, and
+only an unsigned proposal can be disputed. The service writes the record as that login and signs
+it with the network's approval key over the canonical body the gate verifies, exactly as
+``POST /stewards`` and ``POST /approvals`` do; whether the signer's role holds is the gate's to
+check at the merge.
 
 A literature status is a fact about the literature, never about difficulty (D-25): it earns
 nothing, changes no status, blocks nothing and ranks nothing. Nothing here interpolates the
@@ -39,11 +42,13 @@ if TYPE_CHECKING:
     from opn_api.app import Context
     from opn_api.store import Identity
 
-SCHEMA = "literature/v1"
+SCHEMA = "literature/v2"  # F23-T13 (D-25 v3.45): `disputes`
+#: What a record on the node may declare: v1 proposals on the graph stay confirmable (D-34).
+SCHEMAS: tuple[str, ...] = ("literature/v1", "literature/v2")
 DIR = "literature"
 STATUSES: tuple[str, ...] = ("open", "known", "elementary")
 REFERENCE_FIELDS: frozenset[str] = frozenset({"title", "url", "note"})
-MAX_REFERENCES = 20  # literature/v1's cap, named here so the refusal can say it
+MAX_REFERENCES = 20  # literature/v2's cap, named here so the refusal can say it
 #: F05-T8: what ``POST /literature`` reads; any other top-level key is refused.
 FIELDS: tuple[str, ...] = ("node_id", "status", "references", "summary", "model_and_tooling")
 #: A record named relative to the node, as ``confirms`` and the products name one.
@@ -161,6 +166,7 @@ async def post_literature(ctx: Context, request: Request) -> Response:
         "via": None,
         "key": None,
         "signature": None,
+        "disputes": None,
     }
     appends.validated(doc, SCHEMA)
     path = record_path(target_id, node_id, appends.stamp(ctx), identity.pseudonym)
@@ -186,7 +192,14 @@ async def post_literature(ctx: Context, request: Request) -> Response:
 
 
 #: F05-T8: what ``POST /literature/confirm`` reads; any other top-level key is refused.
-CONFIRM_FIELDS: tuple[str, ...] = ("node_id", "record", "status", "references", "summary")
+CONFIRM_FIELDS: tuple[str, ...] = (
+    "node_id",
+    "record",
+    "disputes",
+    "status",
+    "references",
+    "summary",
+)
 KIND_CONFIRMATION = "literature-confirmation"
 
 
@@ -203,17 +216,23 @@ def may_confirm(ctx: Context, target_id: str, login: str) -> None:
     )
 
 
-def checked_record(ctx: Context, target_id: str, node_id: str, raw: Any) -> str | None:
-    """``record`` as ``confirms`` will carry it: null, or ``literature/<file>`` that is on the
-    node at the commit the service reads (404 ``not-found`` naming the path otherwise) and is a
-    literature record (400 otherwise)."""
+def checked_record(
+    ctx: Context, target_id: str, node_id: str, raw: Any, *, field: str = "record"
+) -> str | None:
+    """``record`` as ``confirms`` will carry it — or, F23-T13, ``disputes`` as ``disputes`` will:
+    null, or ``literature/<file>`` that is on the node at the commit the service reads (404
+    ``not-found`` naming the path otherwise) and is a literature record of any version (400
+    otherwise). A dispute may name only an unsigned proposal (D-25 v3.45): a signed record is a
+    steward's or curator's reading, superseded by a later signed record and never rejected by
+    name, so naming one is 400 too."""
+    verb = "dispute" if field == "disputes" else "confirm"
     if raw is None:
         return None
     if not isinstance(raw, str) or not RECORD_RE.match(raw) or ".." in raw:
         raise bad(
-            "record is null (you state the status yourself) or the proposal you confirm, "
-            "relative to the node: literature/<timestamp>-<contributor>.yaml",
-            "record",
+            f"{field} is null or the proposal you {verb}, relative to the node: "
+            "literature/<timestamp>-<contributor>.yaml",
+            field,
         )
     path = appends.node_dir(target_id, node_id) + raw
     found = pending.optional_committed(ctx, path)
@@ -221,17 +240,41 @@ def checked_record(ctx: Context, target_id: str, node_id: str, raw: Any) -> str 
         raise ApiError(
             404,
             "not-found",
-            f"{node_id} has no merged literature record {raw}; a confirmation names a proposal "
-            "that is on the graph, or null to state the status yourself",
+            f"{node_id} has no merged literature record {raw}; a {verb} names a proposal "
+            "that is on the graph"
+            + (", or null to state the status yourself" if verb == "confirm" else ""),
             details={"path": path},
         )
     try:
         doc = yaml.safe_load(found)
     except yaml.YAMLError:
         doc = None
-    if not isinstance(doc, dict) or doc.get("schema") != SCHEMA:
-        raise bad(f"{raw} is not a {SCHEMA} record; a confirmation names a proposal", "record")
+    if not isinstance(doc, dict) or doc.get("schema") not in SCHEMAS:
+        raise bad(f"{raw} is not a literature record; a {verb} names a proposal", field)
+    if field == "disputes" and doc.get("via") is not None:
+        raise bad(
+            f"{raw} is a signed record, not a proposal; only an unsigned proposal can be "
+            "disputed (D-25 v3.45) — a signed reading is superseded by your own signed record "
+            "with disputes null",
+            field,
+        )
     return raw
+
+
+def checked_named(
+    ctx: Context, target_id: str, node_id: str, fields: dict[str, Any]
+) -> tuple[str | None, str | None]:
+    """``(confirms, disputes)`` from the body: at most one of ``record`` and ``disputes`` is
+    given (400 naming both otherwise), each checked by :func:`checked_record`."""
+    if fields.get("record") is not None and fields.get("disputes") is not None:
+        raise bad(
+            "record and disputes are exclusive: a signed record confirms the proposal in "
+            "record, or disputes the one in disputes, never both (D-25 v3.45)",
+            "disputes",
+        )
+    confirms = checked_record(ctx, target_id, node_id, fields.get("record"))
+    disputes = checked_record(ctx, target_id, node_id, fields.get("disputes"), field="disputes")
+    return confirms, disputes
 
 
 async def post_confirm(ctx: Context, request: Request) -> Response:
@@ -253,7 +296,7 @@ async def post_confirm(ctx: Context, request: Request) -> Response:
         seconds=ratelimit.HOUR_S,
     )
     may_confirm(ctx, target_id, login)
-    confirms = checked_record(ctx, target_id, node_id, fields.get("record"))
+    confirms, disputes = checked_named(ctx, target_id, node_id, fields)
     doc = stewards.sign_record(
         {
             "schema": SCHEMA,
@@ -264,22 +307,30 @@ async def post_confirm(ctx: Context, request: Request) -> Response:
             "model_and_tooling": None,
             "confirms": confirms,
             "via": stewards.VIA,
+            "disputes": disputes,
         },
         private,
         public,
     )
     appends.validated(doc, SCHEMA)
     path = record_path(target_id, node_id, appends.stamp(ctx), login)
+    act = "disputed" if disputes is not None else "confirmed"
     body = appends.append_pr(
         ctx,
         held,
         path=path,
         content=render(doc),
-        subject=f"literature: {node_id} confirmed by {login}",
-        what="literature confirmation",
+        subject=f"literature: {node_id} {act} by {login}",
+        what="literature dispute" if disputes is not None else "literature confirmation",
         kind=KIND_CONFIRMATION,
         target_id=target_id,
         node_id=node_id,
-        written=f"{node_id} {confirms} {chosen['status']} {login}",
+        written=f"{node_id} {confirms} {disputes} {chosen['status']} {login}",
+        extra_body=(
+            f"\nThis record disputes `{disputes}`: the signer read the proposal and rejects "
+            f"it, and the status above is their own reading (D-25 v3.45).\n"
+            if disputes is not None
+            else ""
+        ),
     )
     return JSONResponse(stewards.receipt(body, submissions.APPEND_BRANCH_PREFIX), status_code=201)

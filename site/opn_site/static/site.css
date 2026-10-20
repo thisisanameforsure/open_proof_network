@@ -24,6 +24,12 @@
   --section-glow: #353b80;
   --warn: #d9a441;
   --bad: #e07a7a;
+  --select: #f2b544; /* F30-T10: a selected node or edge in the sufficient-sets tree */
+  /* F04-T54 (D-25 v3.45): the literature mark's three statuses — none a proof-status colour,
+     each reading on this dark ground and on a white one. */
+  --lit-open: #4fa3e3;
+  --lit-known: #e8913a;
+  --lit-elementary: #4dbd7a;
   --proved: var(--accent);
   --ready: var(--accent-300);
   --blocked: var(--n600);
@@ -103,10 +109,6 @@ main > .crumbs, main > h1:first-child { margin-top: calc(var(--s8) * 1.6); }
 /* F04-T14: the other statuses wear the node pages' colours — amber waits on a repair, red is off the route */
 .dot-stale, .dot-disputed { border-color: var(--warn); }
 .dot-superseded, .dot-abandoned, .dot-refuted, .dot-defective { border-color: var(--bad); }
-/* F04-T37 (D-12 v3.35): the circularity label's mark — a small tab carrying the implication, the
-   same mark the pill wears; a fact about the route, so a neutral colour, never a state's ring. */
-.dot-circular { width: 15px; height: 14px; border-radius: 3px; border: 1px solid var(--n500); background: var(--bg); vertical-align: -3px; position: relative; }
-.dot-circular::after { content: "⇒"; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 10px; line-height: 1; color: var(--n300); }
 /* F18-T2: the proof drawing's key swatches: a filled square for on the proof, a faint ring for
    not needed, a dashed bar for a used lemma's line, a dotted ring for a reading not measured. */
 .dot-on-proof { background: var(--accent); border-color: var(--accent); border-radius: 2px; }
@@ -258,8 +260,6 @@ main > .crumbs, main > h1:first-child { margin-top: calc(var(--s8) * 1.6); }
 .dag .status-needs-witness circle { stroke: var(--accent); stroke-dasharray: 2 2; }
 .dag .status-stale circle, .dag .status-disputed circle { stroke: var(--warn); }
 .dag .status-superseded circle, .dag .status-abandoned circle, .dag .status-refuted circle, .dag .status-defective circle { stroke: var(--bad); }
-.dag .circular-mark rect { fill: var(--bg); stroke: var(--n500); stroke-width: 1; }
-.dag .circular-mark text { fill: var(--n300); font-family: var(--sans, inherit); font-size: 10px; text-anchor: middle; }
 .dag .status-superseded rect, .dag .status-abandoned rect { stroke-dasharray: 4 3; }
 .dag .status-superseded text, .dag .status-abandoned text { fill: var(--n500); }
 .dag a:hover rect, .dag a:focus-visible rect { stroke: var(--accent); }
@@ -321,6 +321,14 @@ main > .crumbs, main > h1:first-child { margin-top: calc(var(--s8) * 1.6); }
 .panels { display: flex; flex-direction: column; }
 .panel { gap: var(--s4); align-items: flex-start; }
 .panel-id { font-family: var(--mono); font-size: 18px; overflow-wrap: anywhere; }
+/* F29-T5 (R9): the panel is headed by the statement's label (its id when that is all the record
+   has, in mono as before); the id and the link to the gloss's controls sit beneath. */
+.panel-title { font-size: 19px; font-weight: 600; line-height: 1.25; overflow-wrap: anywhere; }
+.panel-title.mono { font-family: var(--mono); font-weight: 400; font-size: 18px; }
+.panel-sub { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--s2) var(--s4); margin: calc(-1 * var(--s2)) 0 0; font-size: 13px; }
+.panel-sub .panel-id { font-size: 13px; color: var(--n400); }
+.panel-rename { font-size: 12.5px; color: var(--accent-300); white-space: nowrap; }
+.node-head h1 + .panel-id { font-size: 15px; color: var(--n400); margin: 0 0 var(--s3); }
 .panel-facts { display: grid; grid-template-columns: auto 1fr; gap: var(--s2) var(--s6); font-size: 13px; width: 100%; margin: 0; }
 .panel-facts dt { color: var(--n500); }
 .panel-facts dd { margin: 0; }
@@ -574,14 +582,6 @@ main > h2 { padding-top: var(--s4); border-top: 1px solid var(--divider); }
 .revision-note { border-left: 2px solid var(--bad); padding-left: var(--s4); color: var(--n300); font-size: 14px; }
 .closing-note { border-left: 2px solid var(--n600); padding-left: var(--s4); color: var(--n300); font-size: 14px; }
 .closing-note code { overflow-wrap: anywhere; }
-/* F08-T20: an ancestor a circularity claim circles back to: open, one route proves it too. */
-.circular-note { border-left: 2px dotted var(--n500); padding-left: var(--s4); color: var(--n300); font-size: 14px; }
-.circular-note a.file { overflow-wrap: anywhere; }
-/* F04-T37 (D-12 v3.35): the label on a node — a fact, in the closing note's neutral rule. */
-.circular-label { border-left: 2px solid var(--n600); padding-left: var(--s4); color: var(--n300); font-size: 14px; }
-.circular-label a.file { overflow-wrap: anywhere; }
-.stmt .proves { display: inline-flex; align-items: center; gap: var(--s1); margin-left: var(--s2); color: var(--n400); white-space: nowrap; }
-.stmt .proves code { font-size: 12px; }
 /* F04-T38 (D-25 v3.35): a literature status — a fact in the neutral rule; no colour by status. */
 .literature { border-left: 2px solid var(--n600); padding-left: var(--s4); margin: var(--s4) 0; color: var(--n300); font-size: 14px; width: 100%; }
 .literature .kicker { color: var(--n500); }
@@ -592,6 +592,13 @@ main > h2 { padding-top: var(--s4); border-top: 1px solid var(--divider); }
 .literature .prose-block { margin: var(--s3) 0 var(--s2); }
 .literature-waiting { padding-left: 1.2em; }
 .literature-waiting .lit-row { margin-bottom: var(--s2); overflow-wrap: anywhere; }
+/* F04-T54 (D-25 v3.45): the dispute sentence, and the node page's confirm/dispute slot. */
+.literature-dispute { margin: var(--s2) 0; overflow-wrap: anywhere; }
+.lit-act { margin: var(--s4) 0; font-size: 14px; color: var(--n300); }
+.lit-act .cue { margin: 0 0 var(--s2); font-size: 13px; }
+.lit-act .literature-waiting { margin: 0; }
+.lit-dispute { margin-top: var(--s3); max-width: 60ch; }
+.lit-dispute textarea { min-height: 5em; }
 .defect-claims { border-left: 2px dashed var(--bad); padding-left: var(--s4); color: var(--n300); font-size: 14px; }
 .defect-claims a.file { overflow-wrap: anywhere; }
 .revision-note .why { display: block; margin-top: var(--s2); color: var(--n500); font-size: 12.5px; overflow-wrap: anywhere; }
@@ -892,7 +899,7 @@ aside.judgement p { margin: var(--s2) 0 0; font-size: 14px; color: var(--n300); 
 .node-head > .crumbs { margin-top: calc(var(--s8) * 1.6); }
 .node-head h1 { font-size: 36px; margin: 0; overflow-wrap: anywhere; }
 .node-status { margin: 0; font-size: 15px; }
-.node-head .hole-of, .node-head .panel-note, .node-head .revision-note, .node-head .circular-label { margin: 0; font-size: 14px; color: var(--n400); max-width: 70ch; }
+.node-head .hole-of, .node-head .panel-note, .node-head .revision-note { margin: 0; font-size: 14px; color: var(--n400); max-width: 70ch; }
 .node-claim { display: flex; flex-direction: column; gap: var(--s3); max-width: 80ch; }
 .node-claim .claim-math, .node-claim .claim-math p { margin: 0; font-size: 19px; line-height: 1.5; color: var(--text); overflow-x: auto; }
 .node-claim .claim-notes { font-size: 14px; color: var(--n300); }
@@ -1017,7 +1024,6 @@ th[aria-sort="descending"] .routes-sort::after { content: " ↓"; }
 .set-which summary { cursor: pointer; color: var(--accent-300); }
 .set-which p { margin: var(--s2) 0 0; color: var(--n500); }
 .set-which ul { margin: 0; padding-left: 1.1em; }
-.circular-note { color: var(--warn); }
 .routes-hint { font-size: 12.5px; color: var(--n400); margin-top: var(--s3); }
 @media (max-width: 1100px) {
   .routes-grid { grid-template-columns: minmax(0, 1fr); }
@@ -1029,16 +1035,114 @@ th[aria-sort="descending"] .routes-sort::after { content: " ↓"; }
   .routes-wrap { padding: var(--s4); }
   .routes-table-wrap { overflow-x: auto; }
 }
-/* F27-T7: the set labels inside the routes drawing, one per set down its left edge. */
-.routes-svg .set-label { cursor: pointer; }
-.routes-svg .set-label rect { fill: var(--bg); stroke: var(--divider); stroke-width: 1; }
-.routes-svg .set-label text { font-family: var(--sans, inherit); font-size: 13px; }
-.routes-svg .set-label:hover rect, .routes-svg .set-label:focus-visible rect { stroke: var(--accent); }
-.routes-svg .set-label:focus { outline: none; }
-.routes-svg .set-label.selected rect { stroke: var(--accent); stroke-width: 2; fill: var(--n800, var(--bg)); }
-.routes-svg .set-label.selected text { font-weight: 600; }
+/* F27-T7, F29-T6: the "Sufficient sets" box inside the routes drawing, down its left edge: the
+   selector tree, one row per branch or set. A pressed row is outlined; a row whose sets are all
+   lit (a hover, or a leaf under a pressed branch) is tinted. */
+.routes-svg .selector-box { fill: var(--bg); stroke: var(--divider); stroke-width: 1; }
+.routes-svg .selector-head { font-family: var(--sans, inherit); font-size: 11.5px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; fill: var(--n400); }
+.routes-svg .sel-row { cursor: pointer; }
+.routes-svg .sel-row rect { fill: var(--bg); stroke: var(--divider); stroke-width: 1; transition: fill .12s, stroke .12s; }
+.routes-svg .sel-row text { font-family: var(--sans, inherit); font-size: 13px; }
+.routes-svg .sel-row.branch text { fill: var(--n300); }
+.routes-svg .sel-row .sel-words { font-size: 11.5px; fill: var(--n400); }
+.routes-svg .sel-row:hover rect, .routes-svg .sel-row:focus-visible rect { stroke: var(--accent); }
+.routes-svg .sel-row:focus { outline: none; }
+.routes-svg .sel-row.previewed rect { fill: rgba(145, 132, 217, .10); }
+.routes-svg .sel-row.selected rect { stroke: var(--accent); stroke-width: 2; fill: var(--n800, var(--bg)); }
+.routes-svg .sel-row.selected text { font-weight: 600; fill: var(--text); }
+.routes-svg .sel-row.selected .sel-words { font-weight: 400; }
 .routes-svg .swatch.set-1 { fill: var(--set-1); } .routes-svg .swatch.set-2 { fill: var(--set-2); }
 .routes-svg .swatch.set-3 { fill: var(--set-3); } .routes-svg .swatch.set-4 { fill: var(--set-4); }
 .routes-svg .swatch.set-5 { fill: var(--set-5); } .routes-svg .swatch.set-6 { fill: var(--set-6); }
 .routes-svg .swatch.set-7 { fill: var(--set-7); } .routes-svg .swatch.set-8 { fill: var(--set-8); }
 .routes-svg .swatch.set-more { fill: var(--set-more); }
+
+/* F30-T2: one statement graph. Proved is a filled pill (R2); the route junctions and the OR
+   diamond come from the routes drawing; what the opening layout does not show is off-view; the
+   selector is drawn as pills and lines below the drawing beside the sets table (R5, R9). */
+.dag .node.proved rect.pill { fill: var(--accent); fill-opacity: .22; stroke: var(--accent); stroke-width: 1.5; }
+.dag .node.proved text { fill: var(--text); }
+.dag .node.proved circle:not(.halo) { fill: var(--accent); stroke: var(--accent); }
+.dag .off-view { display: none; }
+.dag .junction .stem { stroke: var(--n600); stroke-width: 1.5; }
+.dag .junction.dead .stem { stroke-dasharray: 4 3; stroke: var(--n700); }
+.dag .and-mark { fill: var(--text); stroke: var(--bg); stroke-width: 1.5; }
+.dag .or-mark { fill: var(--bg); stroke: var(--text); stroke-width: 1.5; }
+.dag .dead-mark { fill: var(--bg); stroke: var(--bad); stroke-width: 1.5; stroke-dasharray: 2 2; }
+.dag .dead-cross { stroke: var(--bad); stroke-width: 1.5; fill: none; }
+.dag .node.closable rect.pill { stroke: var(--accent-300); }
+.dag .node .asm { fill: var(--accent-300); stroke: none; }
+.dag .node.closable circle:not(.halo):not(.asm) { display: none; }
+.dot-route-and { border: 0; background: var(--text); width: 9px; height: 9px; border-radius: 50%; }
+.dot-route-or { border: 1.5px solid var(--text); border-radius: 1px; transform: rotate(45deg); width: 8px; height: 8px; }
+.dot-route-dead { border: 1.5px dashed var(--bad); }
+.dot-closable { border: 0; background: var(--accent-300); border-radius: 1px; width: 8px; height: 8px; }
+/* F04-T54 (D-25 v3.45): the literature mark — a small square inside a pill's top-right corner and
+   the same square inline as a badge (the key, the listing row, the node page's head). The colour
+   is the status (--lit); hollow and dashed while only proposed, filled once confirmed. It never
+   touches the pill's own status: no rule here keys on .node.lit-*, nothing is muted. */
+.lit-open { --lit: var(--lit-open); }
+.lit-known { --lit: var(--lit-known); }
+.lit-elementary { --lit: var(--lit-elementary); }
+.dag .lit-mark rect { fill: none; stroke: var(--lit); stroke-width: 1.5; }
+.dag .lit-mark.proposed rect { stroke-dasharray: 2 1.5; }
+.dag .lit-mark.confirmed rect { fill: var(--lit); }
+.lit-badge { display: inline-block; width: 8px; height: 8px; border-radius: 1.5px; border: 1.5px solid var(--lit); vertical-align: 0; margin-left: var(--s2); flex: none; }
+.lit-badge.proposed { border-style: dashed; }
+.lit-badge.confirmed { background: var(--lit); }
+.dag-legend .lit-term .lit-badge { margin: 0 var(--s2) 0 0; }
+.node-status .lit-badge { margin-left: var(--s3); }
+.view-toggle { font: inherit; font-size: 12px; color: var(--n300); background: var(--bg); border: 1px solid var(--divider); border-radius: 999px; padding: 2px 10px; cursor: pointer; }
+.view-toggle:hover, .view-toggle:focus-visible { border-color: var(--accent); }
+.view-toggle[aria-pressed="true"] { border-color: var(--accent); color: var(--text); }
+.sets-grid { margin-top: var(--s6); }
+/* T7: the selector is a small tree pinned at the top of the drawing's card, so it is in view
+   while the drawing scrolls past; words on hover only (the tooltip), a dot per node. */
+.selector-wrap { position: sticky; top: 0; z-index: 3; display: flex; align-items: flex-start; gap: var(--s4); margin: var(--s4) 0 0; padding: var(--s3) var(--s4); background: var(--surface); border: 1px solid var(--divider); border-radius: var(--radius-sm); width: max-content; max-width: 100%; overflow-x: auto; }
+.selector-wrap .sel-head { max-width: 220px; }
+.selector-wrap .kicker { margin: 2px 0 0; white-space: nowrap; }
+.selector-wrap .kicker .term { color: inherit; border-bottom-color: var(--accent-300); }
+.selector-wrap .sel-cue { margin: var(--s2) 0 0; font-size: 12px; line-height: 1.45; color: var(--n400); }
+/* F27-R13: the "Stop at proved statements" toggle, in the panel that holds the tree; unticked, the
+   sets table shows its followed reading (.v-follow in place of .v-stop) and each set view is its
+   follow/ twin. */
+.selector-wrap .sel-follow { display: block; margin: var(--s2) 0 0; font-size: 12px; line-height: 1.45; color: var(--n300); cursor: pointer; white-space: nowrap; }
+.selector-wrap .sel-follow input { margin: 0 var(--s2) 0 0; vertical-align: -1px; accent-color: var(--accent); }
+.sets-grid .v-follow { display: none; }
+.sets-grid.follow-proved .v-follow { display: inline; }
+.sets-grid.follow-proved ul.v-follow { display: block; }
+.sets-grid.follow-proved .v-stop { display: none; }
+.selector { display: block; flex: none; }
+.selector .dot { fill: var(--bg); stroke: var(--n500); stroke-width: 1.5; }
+.selector text { fill: var(--text); font-family: var(--sans, inherit); font-size: 9.5px; font-weight: 600; text-anchor: middle; pointer-events: none; }
+.selector .sel-node { cursor: pointer; }
+.selector .kind-node .dot { fill: var(--bg); stroke: var(--n400); }  /* T9, T10: a hollow square, neither proved nor a statement */
+.selector .kind-root .dot { stroke-dasharray: 2 2; }
+.selector .kind-leaf .dot { stroke: var(--accent-300); }
+.selector .kind-proof .dot { fill: var(--accent); fill-opacity: .25; stroke: var(--accent); }
+.selector .sel-node:hover .dot, .selector .sel-node:focus-visible .dot, .selector .sel-node.previewed .dot { stroke: var(--accent); stroke-width: 2.5; }
+.selector .sel-node[aria-pressed="true"] .dot { fill: var(--select); stroke: var(--select); }
+.selector .sel-node[aria-pressed="true"] text { fill: var(--bg); }
+.selector .sel-edge { stroke: var(--n600); stroke-width: 1.5; fill: none; cursor: pointer; }
+.selector .sel-edge[data-view]:hover, .selector .sel-edge:focus-visible, .selector .sel-edge.previewed { stroke: var(--accent); stroke-width: 3; }
+.selector .sel-edge[aria-pressed="true"] { stroke: var(--select); stroke-width: 3.5; }
+/* T8: the selector's own hover — the node, its lines and their other ends lit, the rest dimmed */
+.selector .sel-node, .selector .sel-edge { transition: opacity .12s; }
+.selector.hovering .sel-node:not(.lit) { opacity: .3; }
+.selector.hovering .sel-edge:not(.lit) { opacity: .2; }
+.selector .sel-edge.lit { stroke: var(--accent-300); stroke-width: 2.5; }
+.selector .sel-node.lit .dot { stroke: var(--accent-300); }
+.sel-tip { position: absolute; z-index: 4; margin: 0; max-width: 320px; padding: var(--s2) var(--s3); font-size: 12.5px; line-height: 1.45; color: var(--text); background: var(--surface); border: 1px solid var(--divider); border-radius: var(--radius-sm); box-shadow: var(--shadow-md); pointer-events: none; }
+.selector-wrap .proof-note { flex: 1 1 100%; margin: 0; }
+
+/* F30-T3 */
+/* The script's states (R7, R8): a preview lights a view's nodes and lines and dims the rest
+   without moving anything; a transition fades what leaves (200 ms), slides what stays, and
+   fades in what arrives (200 ms); a table row previews and selects like a selector leaf. */
+.dag .node, .dag .edge, .dag .junction { transition: opacity .2s; }
+.dag .fading { opacity: 0 !important; }
+.dag.picking .node:not(.lit), .dag.picking .junction:not(.lit) { opacity: .25; }
+.dag.picking .edge:not(.lit) { opacity: .12; }
+.dag.hovering .junction:not(.lit) { opacity: .35; }
+tr.set-row { cursor: pointer; }
+tr.set-row.previewed td { background: rgba(128, 128, 128, .12); }

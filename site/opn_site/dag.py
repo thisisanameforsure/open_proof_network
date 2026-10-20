@@ -14,7 +14,7 @@ structure is testable and the colours come from the stylesheet, never from the d
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from html import escape
 from itertools import pairwise
@@ -50,10 +50,30 @@ GROUP_HEAD = 44
 Prefix = str | tuple[str, ...] | None
 
 
-def label_of(node_id: str, prefix: Prefix = None) -> str:
+#: F29-T5 (R9): the labels a drawing shows in place of ids, keyed by node id — each row's
+#: ``label`` where ``label_source`` is not ``id`` (``labels_of``). ``None`` or an id not in the
+#: mapping draws the short id as before.
+Labels = Mapping[str, str] | None
+
+
+def labels_of(nodes: Iterable[Mapping[str, Any]]) -> dict[str, str]:
+    """The pill labels of ``graph.json`` rows (``graph/v12``, F29-R3): a row's ``label`` unless
+    its ``label_source`` is ``id`` (or the row predates labels), when the id is drawn as before."""
+    out: dict[str, str] = {}
+    for n in nodes:
+        label = n.get("label")
+        if label and n.get("label_source") not in (None, "id"):
+            out[str(n["node_id"])] = str(label)
+    return out
+
+
+def label_of(node_id: str, prefix: Prefix = None, labels: Labels = None) -> str:
     """F04-T33: a pill's text. On a problem's page a hole starts with the problem's own name or
     its root's, so the longest ``<prefix>--`` that matches is dropped (the whole id stays in the
-    pill's title)."""
+    pill's title). F29-T5: a node with a label in ``labels`` shows that, whole (a label is at
+    most 60 characters, D-3 v3.44)."""
+    if labels and node_id in labels:
+        return labels[node_id]
     names = (prefix,) if isinstance(prefix, str) else (prefix or ())
     for name in sorted(names, key=len, reverse=True):
         if name and node_id.startswith(name + "--") and len(node_id) > len(name) + 2:
@@ -67,10 +87,12 @@ def label_of(node_id: str, prefix: Prefix = None) -> str:
 Widths = Mapping[str, int] | None
 
 
-def node_width(node_id: str, prefix: Prefix = None, widths: Widths = None) -> int:
+def node_width(
+    node_id: str, prefix: Prefix = None, widths: Widths = None, labels: Labels = None
+) -> int:
     if widths is not None and node_id in widths:
         return widths[node_id]
-    return PILL_PAD + round(CHAR_W * len(label_of(node_id, prefix)))
+    return PILL_PAD + round(CHAR_W * len(label_of(node_id, prefix, labels)))
 
 
 @dataclass(frozen=True)
@@ -187,13 +209,15 @@ def lines(nodes: list[dict[str, Any]]) -> list[Line]:
     return out
 
 
-def wrap(ids: list[str], prefix: Prefix = None, widths: Widths = None) -> list[list[str]]:
+def wrap(
+    ids: list[str], prefix: Prefix = None, widths: Widths = None, labels: Labels = None
+) -> list[list[str]]:
     """One layer's nodes, in order, split into rows no wider than ``MAX_ROW_W`` (F04-T24). A
     single pill wider than that still gets a row of its own."""
     rows: list[list[str]] = [[]]
     used = 0
     for node_id in ids:
-        w = node_width(node_id, prefix, widths)
+        w = node_width(node_id, prefix, widths, labels)
         extra = w if not rows[-1] else GAP_X + w
         if rows[-1] and used + extra > MAX_ROW_W:
             rows.append([])
@@ -203,33 +227,37 @@ def wrap(ids: list[str], prefix: Prefix = None, widths: Widths = None) -> list[l
     return rows
 
 
-def balanced_wrap(ids: list[str], prefix: Prefix = None, widths: Widths = None) -> list[list[str]]:
+def balanced_wrap(
+    ids: list[str], prefix: Prefix = None, widths: Widths = None, labels: Labels = None
+) -> list[list[str]]:
     """F04-T33: as many rows as ``wrap`` needs, in the same order, with the widths evened out so
     the last row is not a stub. Each row still fits ``MAX_ROW_W``."""
-    greedy = wrap(ids, prefix, widths)
+    greedy = wrap(ids, prefix, widths, labels)
     k = len(greedy)
     if k <= 1:
         return greedy
-    total = row_width(ids, prefix, widths)
+    total = row_width(ids, prefix, widths, labels)
     for slack in range(0, MAX_ROW_W, 8):
         target = min(MAX_ROW_W, total / k + slack)
         rows: list[list[str]] = [[]]
         used = 0.0
         for node_id in ids:
-            w = node_width(node_id, prefix, widths)
+            w = node_width(node_id, prefix, widths, labels)
             extra = w if not rows[-1] else GAP_X + w
             if rows[-1] and used + extra > target and len(rows) < k:
                 rows.append([])
                 used, extra = 0.0, w
             rows[-1].append(node_id)
             used += extra
-        if all(row_width(r, prefix, widths) <= MAX_ROW_W for r in rows):
+        if all(row_width(r, prefix, widths, labels) <= MAX_ROW_W for r in rows):
             return rows
     return greedy
 
 
-def row_width(ids: list[str], prefix: Prefix = None, widths: Widths = None) -> int:
-    return sum(node_width(n, prefix, widths) for n in ids) + max(len(ids) - 1, 0) * GAP_X
+def row_width(
+    ids: list[str], prefix: Prefix = None, widths: Widths = None, labels: Labels = None
+) -> int:
+    return sum(node_width(n, prefix, widths, labels) for n in ids) + max(len(ids) - 1, 0) * GAP_X
 
 
 @dataclass(frozen=True)
@@ -481,22 +509,29 @@ def _loose(status: dict[str, str], edges: list[Line], root: str | None) -> tuple
     return tuple(sorted(alone, key=lambda v: (status[v] == "superseded", v)))
 
 
-def _rows(
-    layer_of: dict[str, int], edges: list[Line], names: Prefix, widths: Widths = None
+def _rows(  # noqa: PLR0913, PLR0917 — the ordering's inputs (F30-T1 added the seed)
+    layer_of: dict[str, int],
+    edges: list[Line],
+    names: Prefix,
+    widths: Widths = None,
+    labels: Labels = None,
+    order: Mapping[str, float] | None = None,
 ) -> tuple[_Ranks, dict[str, int]]:
     """The ordered rows. Pass one orders one row per layer; each layer is then wrapped in that
     order (T24), what rests on nothing in its upper rows and what has lines down in its lower
     ones, nearest the statements those lines reach; pass two orders the wrapped rows as rows of
-    their own, so a line passes between them."""
+    their own, so a line passes between them. F30-T1 (Q2): ``order`` seeds pass one (each
+    node's x in a reference layout), so a subset keeps the reference's order where the sweeps
+    have no reason to change it."""
     by_layer: dict[int, list[str]] = {}
     for v in sorted(layer_of):
         by_layer.setdefault(layer_of[v], []).append(v)
-    first, _ = _ranks({k: [ids] for k, ids in by_layer.items()}, edges, {})
+    first, _ = _ranks({k: [ids] for k, ids in by_layer.items()}, edges, dict(order or {}))
     first.order()
     seed = {v: float(i) for row in first.rows for i, v in enumerate(row) if not _is_bend(v)}
     rests_on = {dst for _src, dst, _k in edges}
     rows_of_layer = {
-        k: balanced_wrap(sorted(ids, key=lambda v: (v in rests_on, seed[v])), names, widths)
+        k: balanced_wrap(sorted(ids, key=lambda v: (v in rests_on, seed[v])), names, widths, labels)
         for k, ids in by_layer.items()
     }
     ranks, rank_of = _ranks(rows_of_layer, edges, seed)
@@ -556,31 +591,37 @@ def _route(
     return out
 
 
-def layout(
+def layout(  # noqa: PLR0913 — the drawing's inputs (F30-T1 added the seed)
     nodes: list[dict[str, Any]],
     *,
     root: str | None = None,
     prefix: str | None = None,
     widths: Widths = None,
+    labels: Labels = None,
+    order: Mapping[str, float] | None = None,
 ) -> Layout:
     """Coordinates for every statement and every line (F04-T33). With ``prefix`` (the target
-    id) a label also drops the root's own name; ``widths`` (F27-T3) sizes the boxes it names."""
+    id) a label also drops the root's own name; ``widths`` (F27-T3) sizes the boxes it names;
+    ``labels`` (F29-T5) are the names the pills show, which every box is measured from;
+    ``order`` (F30-T1) seeds each row's order from a reference layout's x positions."""
     names: Prefix = (prefix, root) if prefix and root else prefix
     nodes = sorted(nodes, key=lambda n: str(n["node_id"]))
     status = {str(n["node_id"]): str(n["status"]) for n in nodes}
     edges = lines(nodes)
     loose = _loose(status, edges, root)
     layer_of = raised({v: k for v, k in layers(nodes).items() if v not in loose}, edges)
-    ranks, rank_of = _rows(layer_of, edges, names, widths)
-    wid: dict[str, float] = {v: float(node_width(v, names, widths)) for v in status}
+    ranks, rank_of = _rows(layer_of, edges, names, widths, labels, order)
+    wid: dict[str, float] = {v: float(node_width(v, names, widths, labels)) for v in status}
     wid.update({v: 0.0 for row in ranks.rows for v in row if _is_bend(v)})
     left, span = _balance(ranks, wid)
     tops = _tops(ranks, layer_of)
     tree_h = max(tops.values()) + NODE_H if tops else float(PAD)
 
     # The group no line joins, wrapped and centred under the tree.
-    group_rows = wrap(list(loose), names, widths) if loose else []
-    width = max(span, float(max((row_width(r, names, widths) for r in group_rows), default=0)))
+    group_rows = wrap(list(loose), names, widths, labels) if loose else []
+    width = max(
+        span, float(max((row_width(r, names, widths, labels) for r in group_rows), default=0))
+    )
     x0 = (width - span) / 2 + PAD
     placed = [
         Placed(v, status[v], layer_of[v], round(left[v] + x0), round(tops[r]), int(wid[v]))
@@ -594,7 +635,7 @@ def layout(
         gy = tree_h + GROUP_HEAD - NODE_H - WRAP_GAP_Y
         for row in group_rows:
             gy += NODE_H + WRAP_GAP_Y
-            x = PAD + (width - row_width(row, names, widths)) / 2
+            x = PAD + (width - row_width(row, names, widths, labels)) / 2
             for v in row:
                 placed.append(Placed(v, status[v], -1, round(x), round(gy), int(wid[v])))
                 x += wid[v] + GAP_X
@@ -693,15 +734,53 @@ def outline_mark(count: int, width: int) -> str:
     )
 
 
-def circular_mark(labelled: bool) -> str:
-    """F04-T37 (D-12 v3.35): a small tab on a pill's top left corner when the node carries a
-    circularity label — a merged claim proves that a proof of it is a proof of an ancestor. The
-    glyph is the implication's; the key defines it. The pill's status is untouched."""
-    if not labelled:
+@dataclass(frozen=True)
+class LitMark:
+    """F04-T54 (D-25 v3.45): a node's literature status as the drawing marks it — the status
+    word (``open``, ``known``, ``elementary``), whether a steward or curator has confirmed it
+    (else it is a contributor's proposal awaiting one) and who: the confirmer, or the proposer.
+    A fact about the literature, never about difficulty: the mark changes nothing else."""
+
+    status: str
+    confirmed: bool
+    by: str
+
+    @property
+    def phase(self) -> str:
+        return "confirmed" if self.confirmed else "proposed"
+
+    @property
+    def words(self) -> str:
+        """The mark's title: ``Literature: known (proposed by t1009-c, awaits confirmation)``."""
+        if self.confirmed:
+            return f"Literature: {self.status} (confirmed by {self.by})"
+        return f"Literature: {self.status} (proposed by {self.by}, awaits confirmation)"
+
+
+#: The literature mark's geometry: a 7px square inside the pill's top-right corner, clear of
+#: the label (which ends at ``w - 18`` and starts below ``y = 11``), the halo (``y`` 15 to 21
+#: at ``w - 14``) and the outline tab (``x`` from ``w - 8``, ``y`` -7 to 7, outside the pill).
+LIT_MARK = 7
+LIT_MARK_TOP = 4
+LIT_MARK_RIGHT = 9
+#: What the mark may carry as data: the statuses ``graph.json`` can publish (D-25 v3.35).
+Literature = Mapping[str, LitMark] | None
+
+
+def literature_mark(mark: LitMark | None, width: int) -> str:
+    """F04-T54: the small square on a pill that carries a literature status: hollow and dashed
+    while only proposed, filled once confirmed, coloured by status through the stylesheet
+    (``lit-<status>``), with its own title. Nothing for a node with no record. Markup only: the
+    layout never reads it."""
+    if mark is None:
         return ""
+    x = width - LIT_MARK_RIGHT - LIT_MARK
     return (
-        '<g class="circular-mark" transform="translate(4,-7)">'
-        '<rect width="15" height="14" rx="3"/><text x="7.5" y="10.5">⇒</text></g> '
+        f'<g class="lit-mark lit-{escape(mark.status)} {mark.phase}" '
+        f'data-literature="{escape(mark.status)}" data-phase="{mark.phase}" '
+        f'transform="translate({x},{LIT_MARK_TOP})">'
+        f"<title>{escape(mark.words)}</title> "
+        f'<rect width="{LIT_MARK}" height="{LIT_MARK}" rx="1.5"/></g> '
     )
 
 
@@ -718,14 +797,17 @@ def svg(  # noqa: PLR0913 — the target's own names beside what the drawing mar
     root: str | None = None,
     prefix: str | None = None,
     names: dict[str, str] | None = None,
-    labelled: set[str] | None = None,
+    labels: Labels = None,
+    literature: Literature = None,
 ) -> str:
     """The SVG markup; ``href`` maps node ids to page paths (every id must be present). With
     ``proofs`` (F18-T2) every node and edge says which proofs of the target it is on; ``root``
     keeps the root in the tree and ``prefix`` (the target id) is dropped from labels (T33).
-    ``names`` (F22-T18, S) gives a pill's title the theorem name of an id that names nothing;
-    ``labelled`` (F04-T37) are the nodes carrying a circularity label, drawn with its mark."""
-    lay = layout(nodes, root=root, prefix=prefix)
+    ``names`` (F22-T18, S) gives a pill's title the theorem name of an id that names nothing.
+    ``labels`` (F29-T5, R9) are the statements' labels: a pill shows its label and its title
+    keeps the id, with the label beside it. ``literature`` (F04-T54) marks the pills it names
+    with their literature status; the layout is the same with or without it."""
+    lay = layout(nodes, root=root, prefix=prefix, labels=labels)
     status = {p.node_id: p.status for p in lay.placed}
     parts = [
         f'<svg class="dag" viewBox="0 0 {lay.width} {lay.height}" width="{lay.width}" '
@@ -750,11 +832,11 @@ def svg(  # noqa: PLR0913 — the target's own names beside what the drawing mar
     # F04-T12: each node is a pill — a status dot and the monospace label — with a halo dot the
     # page's script shows on the selected one; the colours come from the stylesheet.
     def named(node_id: str) -> str:
-        name = (names or {}).get(node_id)
+        name = (names or {}).get(node_id) or (labels or {}).get(node_id)
         return f" ({escape(name)})" if name else ""
 
     for p in lay.placed:
-        label = label_of(p.node_id, (prefix, root) if prefix and root else prefix)
+        label = label_of(p.node_id, (prefix, root) if prefix and root else prefix, labels)
         cls, data = proof_attrs(proofs, [p.node_id in m.nodes for m in proofs])
         # F04-T41: the title comes first (the pill's accessible name) and a space separates the
         # children, so a reader who strips the tags gets ``h2--h1 erdos-1094--h2--h1: ready``
@@ -768,7 +850,7 @@ def svg(  # noqa: PLR0913 — the target's own names beside what the drawing mar
             f'<text x="28" y="{NODE_H // 2 + 5}">{escape(label)}</text> '
             f'<circle class="halo" cx="{p.w - 14}" cy="{NODE_H // 2}" r="3"/>'
             + outline_mark((outlines or {}).get(p.node_id, 0), p.w)
-            + circular_mark(p.node_id in (labelled or set()))
+            + literature_mark((literature or {}).get(p.node_id), p.w)
             + "</g></a>"
         )
     parts.append("</svg>")

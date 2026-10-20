@@ -1,0 +1,13 @@
+{
+ "subject": {
+  "kind": "statement",
+  "node": "erdos-69--h2",
+  "module": null,
+  "lean_hash": "5fd681fbd6998872caa31ff8fda4f7e34e99407dc158feff6684acd5dc2a0bc1"
+ },
+ "text": "$$\\Bigl(\\sum_{n=0}^{\\infty}\\frac{\\uparrow\\omega(n)}{2^{n}} = \\sum_{p\\ \\text{prime}}\\frac{1}{2^{\\uparrow p}-1}\\Bigr) \\;\\Rightarrow\\; \\sum_{p\\ \\text{prime}}\\frac{1}{2^{p}-1}\\notin\\mathbb{Q}$$\n\nIf the series of ω(n)/2^n equals the sum over primes of 1/(2^p − 1), then that prime sum, taken in ℝ, is irrational. In the hypothesis the cast arrows ↑ carry no target type, so as written it is not the identity over ℝ that the parent's hole states: under Lean's numeral default both of its sides read in ℕ, where division rounds down and 2^p − 1 is truncated subtraction; only the conclusion, being `Irrational`, is over ℝ (∑' is the tsum, 0 when not summable).\n",
+ "supersedes": null,
+ "licence": "CC-BY-4.0",
+ "drafted_with": "Claude Fable 5.1 (claude-fable-5-1)",
+ "label": "Irrationality of the prime sum (untyped casts)"
+}

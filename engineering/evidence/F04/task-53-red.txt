@@ -1,0 +1,774 @@
+FEEEEEF.FFFEEEEEFF.EF.F                                                  [100%]
+==================================== ERRORS ====================================
+_ ERROR at setup of test_no_page_marks_circularity[nodes/propositional/and-swap-reassoc--h1/index.html] _
+
+tmp_path_factory = TempPathFactory(_given_basetemp=None, _trace=<pluggy._tracing.TagTracerSub object at 0x1088ef360>, _basetemp=PosixPath...rs/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-386'), _retention_count=3, _retention_policy='all')
+
+    @pytest.fixture(scope="module")
+    def current(tmp_path_factory: pytest.TempPathFactory) -> dict[str, str]:
+>       return render_tree(claimed_tree(tmp_path_factory.mktemp("retired-current")))
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+site/tests/test_finding_circularity_retired_site.py:89: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+site/tests/test_finding_circularity_retired_site.py:84: in render_tree
+    return render.render_site(model.load_site(root, fixture.COMMIT), repo_url=REPO)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+site/opn_site/model.py:1579: in load_site
+    frontier = _load_product(root, "frontier.json", PRODUCT_SCHEMAS["frontier.json"])
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+root = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-386/retired-current0/graph')
+rel = 'frontier.json'
+accepted = ('frontier/v1', 'frontier/v2', 'frontier/v3', 'frontier/v4', 'frontier/v5')
+
+    def _load_product(root: Path, rel: str, accepted: tuple[str, ...]) -> dict[str, Any]:
+        """Load a product and validate it against the version it declares, if that is one we render."""
+        path = root / rel
+        if not path.is_file():
+            msg = f"product {rel} is missing; run `opn-gate products` first (F03)"
+            raise SiteError(msg)
+        try:
+            declared = schemas.load_json(path)
+        except schemas.SchemaError as exc:
+            msg = f"product {rel} does not validate: {exc}"
+            raise SiteError(msg) from exc
+        schema_id = str(declared.get("schema"))
+        if schema_id not in accepted:
+            msg = (
+                f"product {rel} is {schema_id}, which this generator does not render; "
+                f"it renders {', '.join(accepted)}"
+            )
+>           raise SiteError(msg)
+E           opn_site.model.SiteError: product frontier.json is frontier/v6, which this generator does not render; it renders frontier/v1, frontier/v2, frontier/v3, frontier/v4, frontier/v5
+
+site/opn_site/model.py:737: SiteError
+------------------------------ Captured log setup ------------------------------
+WARNING  opn_gate.records:records.py:82 attempt record /private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-386/retired-current0/graph/targets/propositional/nodes/and-swap-reassoc/attempts/2026-09-02-b.yaml is invalid and counted as such: cannot read YAML /private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-386/retired-current0/graph/targets/propositional/nodes/and-swap-reassoc/attempts/2026-09-02-b.yaml: while parsing a flow sequence
+  in "<unicode string>", line 1, column 8:
+    route: [oops
+           ^
+expected ',' or ']', but got '<stream end>'
+  in "<unicode string>", line 2, column 1:
+    
+    ^
+WARNING  opn_gate.products:products.py:1131 propositional/and-swap-reassoc: attempt 2026-09-02-b.yaml does not validate (counted as invalid)
+WARNING  opn_gate.records:records.py:82 attempt record /private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-386/retired-current0/graph/targets/propositional/nodes/and-swap-reassoc/attempts/2026-09-02-b.yaml is invalid and counted as such: cannot read YAML /private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-386/retired-current0/graph/targets/propositional/nodes/and-swap-reassoc/attempts/2026-09-02-b.yaml: while parsing a flow sequence
+  in "<unicode string>", line 1, column 8:
+    route: [oops
+           ^
+expected ',' or ']', but got '<stream end>'
+  in "<unicode string>", line 2, column 1:
+    
+    ^
+WARNING  opn_gate.products:products.py:1131 propositional/and-swap-reassoc: attempt 2026-09-02-b.yaml does not validate (counted as invalid)
+_ ERROR at setup of test_no_page_marks_circularity[nodes/propositional/and-swap-reassoc/index.html] _
+
+tmp_path_factory = TempPathFactory(_given_basetemp=None, _trace=<pluggy._tracing.TagTracerSub object at 0x1088ef360>, _basetemp=PosixPath...rs/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-386'), _retention_count=3, _retention_policy='all')
+
+    @pytest.fixture(scope="module")
+    def current(tmp_path_factory: pytest.TempPathFactory) -> dict[str, str]:
+>       return render_tree(claimed_tree(tmp_path_factory.mktemp("retired-current")))
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+site/tests/test_finding_circularity_retired_site.py:89: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+site/tests/test_finding_circularity_retired_site.py:84: in render_tree
+    return render.render_site(model.load_site(root, fixture.COMMIT), repo_url=REPO)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+site/opn_site/model.py:1579: in load_site
+    frontier = _load_product(root, "frontier.json", PRODUCT_SCHEMAS["frontier.json"])
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+root = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-386/retired-current0/graph')
+rel = 'frontier.json'
+accepted = ('frontier/v1', 'frontier/v2', 'frontier/v3', 'frontier/v4', 'frontier/v5')
+
+    def _load_product(root: Path, rel: str, accepted: tuple[str, ...]) -> dict[str, Any]:
+        """Load a product and validate it against the version it declares, if that is one we render."""
+        path = root / rel
+        if not path.is_file():
+            msg = f"product {rel} is missing; run `opn-gate products` first (F03)"
+            raise SiteError(msg)
+        try:
+            declared = schemas.load_json(path)
+        except schemas.SchemaError as exc:
+            msg = f"product {rel} does not validate: {exc}"
+            raise SiteError(msg) from exc
+        schema_id = str(declared.get("schema"))
+        if schema_id not in accepted:
+            msg = (
+                f"product {rel} is {schema_id}, which this generator does not render; "
+                f"it renders {', '.join(accepted)}"
+            )
+>           raise SiteError(msg)
+E           opn_site.model.SiteError: product frontier.json is frontier/v6, which this generator does not render; it renders frontier/v1, frontier/v2, frontier/v3, frontier/v4, frontier/v5
+
+site/opn_site/model.py:737: SiteError
+_ ERROR at setup of test_no_page_marks_circularity[problems/propositional/index.html] _
+
+tmp_path_factory = TempPathFactory(_given_basetemp=None, _trace=<pluggy._tracing.TagTracerSub object at 0x1088ef360>, _basetemp=PosixPath...rs/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-386'), _retention_count=3, _retention_policy='all')
+
+    @pytest.fixture(scope="module")
+    def current(tmp_path_factory: pytest.TempPathFactory) -> dict[str, str]:
+>       return render_tree(claimed_tree(tmp_path_factory.mktemp("retired-current")))
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+site/tests/test_finding_circularity_retired_site.py:89: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+site/tests/test_finding_circularity_retired_site.py:84: in render_tree
+    return render.render_site(model.load_site(root, fixture.COMMIT), repo_url=REPO)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+site/opn_site/model.py:1579: in load_site
+    frontier = _load_product(root, "frontier.json", PRODUCT_SCHEMAS["frontier.json"])
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+root = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-386/retired-current0/graph')
+rel = 'frontier.json'
+accepted = ('frontier/v1', 'frontier/v2', 'frontier/v3', 'frontier/v4', 'frontier/v5')
+
+    def _load_product(root: Path, rel: str, accepted: tuple[str, ...]) -> dict[str, Any]:
+        """Load a product and validate it against the version it declares, if that is one we render."""
+        path = root / rel
+        if not path.is_file():
+            msg = f"product {rel} is missing; run `opn-gate products` first (F03)"
+            raise SiteError(msg)
+        try:
+            declared = schemas.load_json(path)
+        except schemas.SchemaError as exc:
+            msg = f"product {rel} does not validate: {exc}"
+            raise SiteError(msg) from exc
+        schema_id = str(declared.get("schema"))
+        if schema_id not in accepted:
+            msg = (
+                f"product {rel} is {schema_id}, which this generator does not render; "
+                f"it renders {', '.join(accepted)}"
+            )
+>           raise SiteError(msg)
+E           opn_site.model.SiteError: product frontier.json is frontier/v6, which this generator does not render; it renders frontier/v1, frontier/v2, frontier/v3, frontier/v4, frontier/v5
+
+site/opn_site/model.py:737: SiteError
+____ ERROR at setup of test_no_page_marks_circularity[problems/index.html] _____
+
+tmp_path_factory = TempPathFactory(_given_basetemp=None, _trace=<pluggy._tracing.TagTracerSub object at 0x1088ef360>, _basetemp=PosixPath...rs/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-386'), _retention_count=3, _retention_policy='all')
+
+    @pytest.fixture(scope="module")
+    def current(tmp_path_factory: pytest.TempPathFactory) -> dict[str, str]:
+>       return render_tree(claimed_tree(tmp_path_factory.mktemp("retired-current")))
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+site/tests/test_finding_circularity_retired_site.py:89: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+site/tests/test_finding_circularity_retired_site.py:84: in render_tree
+    return render.render_site(model.load_site(root, fixture.COMMIT), repo_url=REPO)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+site/opn_site/model.py:1579: in load_site
+    frontier = _load_product(root, "frontier.json", PRODUCT_SCHEMAS["frontier.json"])
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+root = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-386/retired-current0/graph')
+rel = 'frontier.json'
+accepted = ('frontier/v1', 'frontier/v2', 'frontier/v3', 'frontier/v4', 'frontier/v5')
+
+    def _load_product(root: Path, rel: str, accepted: tuple[str, ...]) -> dict[str, Any]:
+        """Load a product and validate it against the version it declares, if that is one we render."""
+        path = root / rel
+        if not path.is_file():
+            msg = f"product {rel} is missing; run `opn-gate products` first (F03)"
+            raise SiteError(msg)
+        try:
+            declared = schemas.load_json(path)
+        except schemas.SchemaError as exc:
+            msg = f"product {rel} does not validate: {exc}"
+            raise SiteError(msg) from exc
+        schema_id = str(declared.get("schema"))
+        if schema_id not in accepted:
+            msg = (
+                f"product {rel} is {schema_id}, which this generator does not render; "
+                f"it renders {', '.join(accepted)}"
+            )
+>           raise SiteError(msg)
+E           opn_site.model.SiteError: product frontier.json is frontier/v6, which this generator does not render; it renders frontier/v1, frontier/v2, frontier/v3, frontier/v4, frontier/v5
+
+site/opn_site/model.py:737: SiteError
+______ ERROR at setup of test_no_page_marks_circularity[docs/index.html] _______
+
+tmp_path_factory = TempPathFactory(_given_basetemp=None, _trace=<pluggy._tracing.TagTracerSub object at 0x1088ef360>, _basetemp=PosixPath...rs/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-386'), _retention_count=3, _retention_policy='all')
+
+    @pytest.fixture(scope="module")
+    def current(tmp_path_factory: pytest.TempPathFactory) -> dict[str, str]:
+>       return render_tree(claimed_tree(tmp_path_factory.mktemp("retired-current")))
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+site/tests/test_finding_circularity_retired_site.py:89: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+site/tests/test_finding_circularity_retired_site.py:84: in render_tree
+    return render.render_site(model.load_site(root, fixture.COMMIT), repo_url=REPO)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+site/opn_site/model.py:1579: in load_site
+    frontier = _load_product(root, "frontier.json", PRODUCT_SCHEMAS["frontier.json"])
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+root = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-386/retired-current0/graph')
+rel = 'frontier.json'
+accepted = ('frontier/v1', 'frontier/v2', 'frontier/v3', 'frontier/v4', 'frontier/v5')
+
+    def _load_product(root: Path, rel: str, accepted: tuple[str, ...]) -> dict[str, Any]:
+        """Load a product and validate it against the version it declares, if that is one we render."""
+        path = root / rel
+        if not path.is_file():
+            msg = f"product {rel} is missing; run `opn-gate products` first (F03)"
+            raise SiteError(msg)
+        try:
+            declared = schemas.load_json(path)
+        except schemas.SchemaError as exc:
+            msg = f"product {rel} does not validate: {exc}"
+            raise SiteError(msg) from exc
+        schema_id = str(declared.get("schema"))
+        if schema_id not in accepted:
+            msg = (
+                f"product {rel} is {schema_id}, which this generator does not render; "
+                f"it renders {', '.join(accepted)}"
+            )
+>           raise SiteError(msg)
+E           opn_site.model.SiteError: product frontier.json is frontier/v6, which this generator does not render; it renders frontier/v1, frontier/v2, frontier/v3, frontier/v4, frontier/v5
+
+site/opn_site/model.py:737: SiteError
+_ ERROR at setup of test_an_older_snapshot_renders_as_the_current_one[nodes/propositional/and-swap-reassoc--h1/index.html] _
+
+tmp_path_factory = TempPathFactory(_given_basetemp=None, _trace=<pluggy._tracing.TagTracerSub object at 0x1088ef360>, _basetemp=PosixPath...rs/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-386'), _retention_count=3, _retention_policy='all')
+
+    @pytest.fixture(scope="module")
+    def current(tmp_path_factory: pytest.TempPathFactory) -> dict[str, str]:
+>       return render_tree(claimed_tree(tmp_path_factory.mktemp("retired-current")))
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+site/tests/test_finding_circularity_retired_site.py:89: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+site/tests/test_finding_circularity_retired_site.py:84: in render_tree
+    return render.render_site(model.load_site(root, fixture.COMMIT), repo_url=REPO)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+site/opn_site/model.py:1579: in load_site
+    frontier = _load_product(root, "frontier.json", PRODUCT_SCHEMAS["frontier.json"])
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+root = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-386/retired-current0/graph')
+rel = 'frontier.json'
+accepted = ('frontier/v1', 'frontier/v2', 'frontier/v3', 'frontier/v4', 'frontier/v5')
+
+    def _load_product(root: Path, rel: str, accepted: tuple[str, ...]) -> dict[str, Any]:
+        """Load a product and validate it against the version it declares, if that is one we render."""
+        path = root / rel
+        if not path.is_file():
+            msg = f"product {rel} is missing; run `opn-gate products` first (F03)"
+            raise SiteError(msg)
+        try:
+            declared = schemas.load_json(path)
+        except schemas.SchemaError as exc:
+            msg = f"product {rel} does not validate: {exc}"
+            raise SiteError(msg) from exc
+        schema_id = str(declared.get("schema"))
+        if schema_id not in accepted:
+            msg = (
+                f"product {rel} is {schema_id}, which this generator does not render; "
+                f"it renders {', '.join(accepted)}"
+            )
+>           raise SiteError(msg)
+E           opn_site.model.SiteError: product frontier.json is frontier/v6, which this generator does not render; it renders frontier/v1, frontier/v2, frontier/v3, frontier/v4, frontier/v5
+
+site/opn_site/model.py:737: SiteError
+_ ERROR at setup of test_an_older_snapshot_renders_as_the_current_one[nodes/propositional/and-swap-reassoc/index.html] _
+
+tmp_path_factory = TempPathFactory(_given_basetemp=None, _trace=<pluggy._tracing.TagTracerSub object at 0x1088ef360>, _basetemp=PosixPath...rs/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-386'), _retention_count=3, _retention_policy='all')
+
+    @pytest.fixture(scope="module")
+    def current(tmp_path_factory: pytest.TempPathFactory) -> dict[str, str]:
+>       return render_tree(claimed_tree(tmp_path_factory.mktemp("retired-current")))
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+site/tests/test_finding_circularity_retired_site.py:89: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+site/tests/test_finding_circularity_retired_site.py:84: in render_tree
+    return render.render_site(model.load_site(root, fixture.COMMIT), repo_url=REPO)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+site/opn_site/model.py:1579: in load_site
+    frontier = _load_product(root, "frontier.json", PRODUCT_SCHEMAS["frontier.json"])
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+root = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-386/retired-current0/graph')
+rel = 'frontier.json'
+accepted = ('frontier/v1', 'frontier/v2', 'frontier/v3', 'frontier/v4', 'frontier/v5')
+
+    def _load_product(root: Path, rel: str, accepted: tuple[str, ...]) -> dict[str, Any]:
+        """Load a product and validate it against the version it declares, if that is one we render."""
+        path = root / rel
+        if not path.is_file():
+            msg = f"product {rel} is missing; run `opn-gate products` first (F03)"
+            raise SiteError(msg)
+        try:
+            declared = schemas.load_json(path)
+        except schemas.SchemaError as exc:
+            msg = f"product {rel} does not validate: {exc}"
+            raise SiteError(msg) from exc
+        schema_id = str(declared.get("schema"))
+        if schema_id not in accepted:
+            msg = (
+                f"product {rel} is {schema_id}, which this generator does not render; "
+                f"it renders {', '.join(accepted)}"
+            )
+>           raise SiteError(msg)
+E           opn_site.model.SiteError: product frontier.json is frontier/v6, which this generator does not render; it renders frontier/v1, frontier/v2, frontier/v3, frontier/v4, frontier/v5
+
+site/opn_site/model.py:737: SiteError
+_ ERROR at setup of test_an_older_snapshot_renders_as_the_current_one[problems/propositional/index.html] _
+
+tmp_path_factory = TempPathFactory(_given_basetemp=None, _trace=<pluggy._tracing.TagTracerSub object at 0x1088ef360>, _basetemp=PosixPath...rs/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-386'), _retention_count=3, _retention_policy='all')
+
+    @pytest.fixture(scope="module")
+    def current(tmp_path_factory: pytest.TempPathFactory) -> dict[str, str]:
+>       return render_tree(claimed_tree(tmp_path_factory.mktemp("retired-current")))
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+site/tests/test_finding_circularity_retired_site.py:89: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+site/tests/test_finding_circularity_retired_site.py:84: in render_tree
+    return render.render_site(model.load_site(root, fixture.COMMIT), repo_url=REPO)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+site/opn_site/model.py:1579: in load_site
+    frontier = _load_product(root, "frontier.json", PRODUCT_SCHEMAS["frontier.json"])
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+root = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-386/retired-current0/graph')
+rel = 'frontier.json'
+accepted = ('frontier/v1', 'frontier/v2', 'frontier/v3', 'frontier/v4', 'frontier/v5')
+
+    def _load_product(root: Path, rel: str, accepted: tuple[str, ...]) -> dict[str, Any]:
+        """Load a product and validate it against the version it declares, if that is one we render."""
+        path = root / rel
+        if not path.is_file():
+            msg = f"product {rel} is missing; run `opn-gate products` first (F03)"
+            raise SiteError(msg)
+        try:
+            declared = schemas.load_json(path)
+        except schemas.SchemaError as exc:
+            msg = f"product {rel} does not validate: {exc}"
+            raise SiteError(msg) from exc
+        schema_id = str(declared.get("schema"))
+        if schema_id not in accepted:
+            msg = (
+                f"product {rel} is {schema_id}, which this generator does not render; "
+                f"it renders {', '.join(accepted)}"
+            )
+>           raise SiteError(msg)
+E           opn_site.model.SiteError: product frontier.json is frontier/v6, which this generator does not render; it renders frontier/v1, frontier/v2, frontier/v3, frontier/v4, frontier/v5
+
+site/opn_site/model.py:737: SiteError
+_ ERROR at setup of test_an_older_snapshot_renders_as_the_current_one[problems/index.html] _
+
+tmp_path_factory = TempPathFactory(_given_basetemp=None, _trace=<pluggy._tracing.TagTracerSub object at 0x1088ef360>, _basetemp=PosixPath...rs/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-386'), _retention_count=3, _retention_policy='all')
+
+    @pytest.fixture(scope="module")
+    def current(tmp_path_factory: pytest.TempPathFactory) -> dict[str, str]:
+>       return render_tree(claimed_tree(tmp_path_factory.mktemp("retired-current")))
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+site/tests/test_finding_circularity_retired_site.py:89: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+site/tests/test_finding_circularity_retired_site.py:84: in render_tree
+    return render.render_site(model.load_site(root, fixture.COMMIT), repo_url=REPO)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+site/opn_site/model.py:1579: in load_site
+    frontier = _load_product(root, "frontier.json", PRODUCT_SCHEMAS["frontier.json"])
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+root = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-386/retired-current0/graph')
+rel = 'frontier.json'
+accepted = ('frontier/v1', 'frontier/v2', 'frontier/v3', 'frontier/v4', 'frontier/v5')
+
+    def _load_product(root: Path, rel: str, accepted: tuple[str, ...]) -> dict[str, Any]:
+        """Load a product and validate it against the version it declares, if that is one we render."""
+        path = root / rel
+        if not path.is_file():
+            msg = f"product {rel} is missing; run `opn-gate products` first (F03)"
+            raise SiteError(msg)
+        try:
+            declared = schemas.load_json(path)
+        except schemas.SchemaError as exc:
+            msg = f"product {rel} does not validate: {exc}"
+            raise SiteError(msg) from exc
+        schema_id = str(declared.get("schema"))
+        if schema_id not in accepted:
+            msg = (
+                f"product {rel} is {schema_id}, which this generator does not render; "
+                f"it renders {', '.join(accepted)}"
+            )
+>           raise SiteError(msg)
+E           opn_site.model.SiteError: product frontier.json is frontier/v6, which this generator does not render; it renders frontier/v1, frontier/v2, frontier/v3, frontier/v4, frontier/v5
+
+site/opn_site/model.py:737: SiteError
+_ ERROR at setup of test_an_older_snapshot_renders_as_the_current_one[docs/index.html] _
+
+tmp_path_factory = TempPathFactory(_given_basetemp=None, _trace=<pluggy._tracing.TagTracerSub object at 0x1088ef360>, _basetemp=PosixPath...rs/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-386'), _retention_count=3, _retention_policy='all')
+
+    @pytest.fixture(scope="module")
+    def current(tmp_path_factory: pytest.TempPathFactory) -> dict[str, str]:
+>       return render_tree(claimed_tree(tmp_path_factory.mktemp("retired-current")))
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+site/tests/test_finding_circularity_retired_site.py:89: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+site/tests/test_finding_circularity_retired_site.py:84: in render_tree
+    return render.render_site(model.load_site(root, fixture.COMMIT), repo_url=REPO)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+site/opn_site/model.py:1579: in load_site
+    frontier = _load_product(root, "frontier.json", PRODUCT_SCHEMAS["frontier.json"])
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+root = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-386/retired-current0/graph')
+rel = 'frontier.json'
+accepted = ('frontier/v1', 'frontier/v2', 'frontier/v3', 'frontier/v4', 'frontier/v5')
+
+    def _load_product(root: Path, rel: str, accepted: tuple[str, ...]) -> dict[str, Any]:
+        """Load a product and validate it against the version it declares, if that is one we render."""
+        path = root / rel
+        if not path.is_file():
+            msg = f"product {rel} is missing; run `opn-gate products` first (F03)"
+            raise SiteError(msg)
+        try:
+            declared = schemas.load_json(path)
+        except schemas.SchemaError as exc:
+            msg = f"product {rel} does not validate: {exc}"
+            raise SiteError(msg) from exc
+        schema_id = str(declared.get("schema"))
+        if schema_id not in accepted:
+            msg = (
+                f"product {rel} is {schema_id}, which this generator does not render; "
+                f"it renders {', '.join(accepted)}"
+            )
+>           raise SiteError(msg)
+E           opn_site.model.SiteError: product frontier.json is frontier/v6, which this generator does not render; it renders frontier/v1, frontier/v2, frontier/v3, frontier/v4, frontier/v5
+
+site/opn_site/model.py:737: SiteError
+___ ERROR at setup of test_the_claim_is_still_listed_among_the_defect_claims ___
+
+tmp_path_factory = TempPathFactory(_given_basetemp=None, _trace=<pluggy._tracing.TagTracerSub object at 0x1088ef360>, _basetemp=PosixPath...rs/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-386'), _retention_count=3, _retention_policy='all')
+
+    @pytest.fixture(scope="module")
+    def current(tmp_path_factory: pytest.TempPathFactory) -> dict[str, str]:
+>       return render_tree(claimed_tree(tmp_path_factory.mktemp("retired-current")))
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+site/tests/test_finding_circularity_retired_site.py:89: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+site/tests/test_finding_circularity_retired_site.py:84: in render_tree
+    return render.render_site(model.load_site(root, fixture.COMMIT), repo_url=REPO)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+site/opn_site/model.py:1579: in load_site
+    frontier = _load_product(root, "frontier.json", PRODUCT_SCHEMAS["frontier.json"])
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+root = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-386/retired-current0/graph')
+rel = 'frontier.json'
+accepted = ('frontier/v1', 'frontier/v2', 'frontier/v3', 'frontier/v4', 'frontier/v5')
+
+    def _load_product(root: Path, rel: str, accepted: tuple[str, ...]) -> dict[str, Any]:
+        """Load a product and validate it against the version it declares, if that is one we render."""
+        path = root / rel
+        if not path.is_file():
+            msg = f"product {rel} is missing; run `opn-gate products` first (F03)"
+            raise SiteError(msg)
+        try:
+            declared = schemas.load_json(path)
+        except schemas.SchemaError as exc:
+            msg = f"product {rel} does not validate: {exc}"
+            raise SiteError(msg) from exc
+        schema_id = str(declared.get("schema"))
+        if schema_id not in accepted:
+            msg = (
+                f"product {rel} is {schema_id}, which this generator does not render; "
+                f"it renders {', '.join(accepted)}"
+            )
+>           raise SiteError(msg)
+E           opn_site.model.SiteError: product frontier.json is frontier/v6, which this generator does not render; it renders frontier/v1, frontier/v2, frontier/v3, frontier/v4, frontier/v5
+
+site/opn_site/model.py:737: SiteError
+=================================== FAILURES ===================================
+______________ test_the_site_accepts_the_versions_the_gate_writes ______________
+
+    def test_the_site_accepts_the_versions_the_gate_writes() -> None:
+        accepted = model.PRODUCT_SCHEMAS
+        assert products.GRAPH_SCHEMA == "graph/v10"
+        assert products.FRONTIER_SCHEMA == "frontier/v6"
+>       assert products.GRAPH_SCHEMA in accepted["graph.json"]
+E       AssertionError: assert 'graph/v10' in ('graph/v1', 'graph/v2', 'graph/v3', 'graph/v4', 'graph/v5', 'graph/v6', ...)
+E        +  where 'graph/v10' = products.GRAPH_SCHEMA
+
+site/tests/test_finding_circularity_retired_site.py:138: AssertionError
+_ test_an_older_snapshots_circular_rows_draw_nothing[nodes/propositional/and-swap-reassoc--h1/index.html] _
+
+older = {'index.html': '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="widt...6666666666666666666666666666666666666/frontier.json">frontier.json ↗</a></span>\n</footer>\n\n</body>\n</html>\n', ...}
+rel = 'nodes/propositional/and-swap-reassoc--h1/index.html'
+
+    @pytest.mark.parametrize("rel", PAGES)
+    def test_an_older_snapshots_circular_rows_draw_nothing(older: dict[str, str], rel: str) -> None:
+        """A ``graph/v9`` row carrying ``circular`` draws nothing of it."""
+>       assert marks(older[rel]) == [], rel
+E       AssertionError: nodes/propositional/and-swap-reassoc--h1/index.html
+E       assert ['circular-la...ord circular'] == []
+E         
+E         Left contains 3 more items, first extra item: 'circular-label'
+E         Use -v to get more diff
+
+site/tests/test_finding_circularity_retired_site.py:156: AssertionError
+------------------------------ Captured log setup ------------------------------
+WARNING  opn_gate.records:records.py:82 attempt record /private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-386/retired-older0/graph/targets/propositional/nodes/and-swap-reassoc/attempts/2026-09-02-b.yaml is invalid and counted as such: cannot read YAML /private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-386/retired-older0/graph/targets/propositional/nodes/and-swap-reassoc/attempts/2026-09-02-b.yaml: while parsing a flow sequence
+  in "<unicode string>", line 1, column 8:
+    route: [oops
+           ^
+expected ',' or ']', but got '<stream end>'
+  in "<unicode string>", line 2, column 1:
+    
+    ^
+WARNING  opn_gate.products:products.py:1131 propositional/and-swap-reassoc: attempt 2026-09-02-b.yaml does not validate (counted as invalid)
+WARNING  opn_gate.records:records.py:82 attempt record /private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-386/retired-older0/graph/targets/propositional/nodes/and-swap-reassoc/attempts/2026-09-02-b.yaml is invalid and counted as such: cannot read YAML /private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-386/retired-older0/graph/targets/propositional/nodes/and-swap-reassoc/attempts/2026-09-02-b.yaml: while parsing a flow sequence
+  in "<unicode string>", line 1, column 8:
+    route: [oops
+           ^
+expected ',' or ']', but got '<stream end>'
+  in "<unicode string>", line 2, column 1:
+    
+    ^
+WARNING  opn_gate.products:products.py:1131 propositional/and-swap-reassoc: attempt 2026-09-02-b.yaml does not validate (counted as invalid)
+WARNING  opn_gate.records:records.py:82 attempt record /private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-386/retired-older0/graph/targets/propositional/nodes/and-swap-reassoc/attempts/2026-09-02-b.yaml is invalid and counted as such: cannot read YAML /private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-386/retired-older0/graph/targets/propositional/nodes/and-swap-reassoc/attempts/2026-09-02-b.yaml: while parsing a flow sequence
+  in "<unicode string>", line 1, column 8:
+    route: [oops
+           ^
+expected ',' or ']', but got '<stream end>'
+  in "<unicode string>", line 2, column 1:
+    
+    ^
+_ test_an_older_snapshots_circular_rows_draw_nothing[problems/propositional/index.html] _
+
+older = {'index.html': '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="widt...6666666666666666666666666666666666666/frontier.json">frontier.json ↗</a></span>\n</footer>\n\n</body>\n</html>\n', ...}
+rel = 'problems/propositional/index.html'
+
+    @pytest.mark.parametrize("rel", PAGES)
+    def test_an_older_snapshots_circular_rows_draw_nothing(older: dict[str, str], rel: str) -> None:
+        """A ``graph/v9`` row carrying ``circular`` draws nothing of it."""
+>       assert marks(older[rel]) == [], rel
+E       AssertionError: problems/propositional/index.html
+E       assert ['proves an a...roof of', ...] == []
+E         
+E         Left contains 8 more items, first extra item: 'proves an ancestor'
+E         Use -v to get more diff
+
+site/tests/test_finding_circularity_retired_site.py:156: AssertionError
+___ test_an_older_snapshots_circular_rows_draw_nothing[problems/index.html] ____
+
+older = {'index.html': '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="widt...6666666666666666666666666666666666666/frontier.json">frontier.json ↗</a></span>\n</footer>\n\n</body>\n</html>\n', ...}
+rel = 'problems/index.html'
+
+    @pytest.mark.parametrize("rel", PAGES)
+    def test_an_older_snapshots_circular_rows_draw_nothing(older: dict[str, str], rel: str) -> None:
+        """A ``graph/v9`` row carrying ``circular`` draws nothing of it."""
+>       assert marks(older[rel]) == [], rel
+E       AssertionError: problems/index.html
+E       assert ['data-circul...ord circular'] == []
+E         
+E         Left contains 5 more items, first extra item: 'data-circular'
+E         Use -v to get more diff
+
+site/tests/test_finding_circularity_retired_site.py:156: AssertionError
+_____ test_an_older_snapshots_circular_rows_draw_nothing[docs/index.html] ______
+
+older = {'index.html': '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="widt...6666666666666666666666666666666666666/frontier.json">frontier.json ↗</a></span>\n</footer>\n\n</body>\n</html>\n', ...}
+rel = 'docs/index.html'
+
+    @pytest.mark.parametrize("rel", PAGES)
+    def test_an_older_snapshots_circular_rows_draw_nothing(older: dict[str, str], rel: str) -> None:
+        """A ``graph/v9`` row carrying ``circular`` draws nothing of it."""
+>       assert marks(older[rel]) == [], rel
+E       AssertionError: docs/index.html
+E       assert ['proves an a...ord circular'] == []
+E         
+E         Left contains 3 more items, first extra item: 'proves an ancestor'
+E         Use -v to get more diff
+
+site/tests/test_finding_circularity_retired_site.py:156: AssertionError
+_______________________ test_the_model_carries_no_label ________________________
+
+tmp_path = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-386/test_the_model_carries_no_labe0')
+
+    def test_the_model_carries_no_label(tmp_path: Path) -> None:
+        root = claimed_tree(tmp_path)
+        fixture.publish_circular_snapshot(root, {HOLE: [{"ancestor": ANCESTOR, "claim": CLAIM_REF}]})
+        nv = model.load_site(root, fixture.COMMIT).targets[TARGET].nodes[HOLE]
+        assert nv.graph_entry["circular"], "guard: the older row does carry the field"
+        fields = {f.name for f in dataclasses.fields(model.NodeView)}
+>       assert not {"circular", "circular_below"} & fields
+E       AssertionError: assert not ({'circular', 'circular_below'} & {'acknowledgments', 'alternates', 'annexes', 'attempts', 'attestation', 'attestation_path', ...})
+
+site/tests/test_finding_circularity_retired_site.py:173: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  opn_gate.records:records.py:82 attempt record /private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-386/test_the_model_carries_no_labe0/graph/targets/propositional/nodes/and-swap-reassoc/attempts/2026-09-02-b.yaml is invalid and counted as such: cannot read YAML /private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-386/test_the_model_carries_no_labe0/graph/targets/propositional/nodes/and-swap-reassoc/attempts/2026-09-02-b.yaml: while parsing a flow sequence
+  in "<unicode string>", line 1, column 8:
+    route: [oops
+           ^
+expected ',' or ']', but got '<stream end>'
+  in "<unicode string>", line 2, column 1:
+    
+    ^
+WARNING  opn_gate.products:products.py:1131 propositional/and-swap-reassoc: attempt 2026-09-02-b.yaml does not validate (counted as invalid)
+WARNING  opn_gate.records:records.py:82 attempt record /private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-386/test_the_model_carries_no_labe0/graph/targets/propositional/nodes/and-swap-reassoc/attempts/2026-09-02-b.yaml is invalid and counted as such: cannot read YAML /private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-386/test_the_model_carries_no_labe0/graph/targets/propositional/nodes/and-swap-reassoc/attempts/2026-09-02-b.yaml: while parsing a flow sequence
+  in "<unicode string>", line 1, column 8:
+    route: [oops
+           ^
+expected ',' or ']', but got '<stream end>'
+  in "<unicode string>", line 2, column 1:
+    
+    ^
+WARNING  opn_gate.products:products.py:1131 propositional/and-swap-reassoc: attempt 2026-09-02-b.yaml does not validate (counted as invalid)
+WARNING  opn_gate.records:records.py:82 attempt record /private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-386/test_the_model_carries_no_labe0/graph/targets/propositional/nodes/and-swap-reassoc/attempts/2026-09-02-b.yaml is invalid and counted as such: cannot read YAML /private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-386/test_the_model_carries_no_labe0/graph/targets/propositional/nodes/and-swap-reassoc/attempts/2026-09-02-b.yaml: while parsing a flow sequence
+  in "<unicode string>", line 1, column 8:
+    route: [oops
+           ^
+expected ',' or ']', but got '<stream end>'
+  in "<unicode string>", line 2, column 1:
+    
+    ^
+_________________ test_the_key_and_the_glossary_name_no_label __________________
+
+    def test_the_key_and_the_glossary_name_no_label() -> None:
+>       assert "circular" not in render.GLOSSARY_BY_KEY
+E       AssertionError: assert 'circular' not in {'problem': ('Problem', 'An open mathematical question listed on the network, with the statements its proof needs.', '...ing work. A statement waiting only for its witness is not blocked in this sense: it needs a witness.', 'blocked'), ...}
+E        +  where {'problem': ('Problem', 'An open mathematical question listed on the network, with the statements its proof needs.', '...ing work. A statement waiting only for its witness is not blocked in this sense: it needs a witness.', 'blocked'), ...} = render.GLOSSARY_BY_KEY
+
+site/tests/test_finding_circularity_retired_site.py:178: AssertionError
+_______________ test_every_state_a_node_can_take_has_a_key_entry _______________
+
+tmp_path = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-386/test_every_state_a_node_can_ta0')
+
+    def test_every_state_a_node_can_take_has_a_key_entry(tmp_path: Path) -> None:
+        """Every word ``node_state`` returns, from any status with any cause the gate derives and
+        the retired cause ``circular`` an older snapshot may carry (``graph/v3``-``v5`` take any
+        cause word; D-34), has a glossary card and a place in the key."""
+        root = fixture.build(tmp_path)
+>       nv = model.load_site(root, fixture.COMMIT).targets[TARGET].nodes[ANCESTOR]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+site/tests/test_finding_circularity_retired_site.py:239: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+site/opn_site/model.py:1579: in load_site
+    frontier = _load_product(root, "frontier.json", PRODUCT_SCHEMAS["frontier.json"])
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+root = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-386/test_every_state_a_node_can_ta0/graph')
+rel = 'frontier.json'
+accepted = ('frontier/v1', 'frontier/v2', 'frontier/v3', 'frontier/v4', 'frontier/v5')
+
+    def _load_product(root: Path, rel: str, accepted: tuple[str, ...]) -> dict[str, Any]:
+        """Load a product and validate it against the version it declares, if that is one we render."""
+        path = root / rel
+        if not path.is_file():
+            msg = f"product {rel} is missing; run `opn-gate products` first (F03)"
+            raise SiteError(msg)
+        try:
+            declared = schemas.load_json(path)
+        except schemas.SchemaError as exc:
+            msg = f"product {rel} does not validate: {exc}"
+            raise SiteError(msg) from exc
+        schema_id = str(declared.get("schema"))
+        if schema_id not in accepted:
+            msg = (
+                f"product {rel} is {schema_id}, which this generator does not render; "
+                f"it renders {', '.join(accepted)}"
+            )
+>           raise SiteError(msg)
+E           opn_site.model.SiteError: product frontier.json is frontier/v6, which this generator does not render; it renders frontier/v1, frontier/v2, frontier/v3, frontier/v4, frontier/v5
+
+site/opn_site/model.py:737: SiteError
+------------------------------ Captured log call -------------------------------
+WARNING  opn_gate.records:records.py:82 attempt record /private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-386/test_every_state_a_node_can_ta0/graph/targets/propositional/nodes/and-swap-reassoc/attempts/2026-09-02-b.yaml is invalid and counted as such: cannot read YAML /private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-386/test_every_state_a_node_can_ta0/graph/targets/propositional/nodes/and-swap-reassoc/attempts/2026-09-02-b.yaml: while parsing a flow sequence
+  in "<unicode string>", line 1, column 8:
+    route: [oops
+           ^
+expected ',' or ']', but got '<stream end>'
+  in "<unicode string>", line 2, column 1:
+    
+    ^
+WARNING  opn_gate.products:products.py:1131 propositional/and-swap-reassoc: attempt 2026-09-02-b.yaml does not validate (counted as invalid)
+___________________ test_every_output_class_has_a_key_entry ____________________
+
+    def test_every_output_class_has_a_key_entry() -> None:
+        """F18-AC5: every mark the proof drawing can put on a pill or a line has a glossary card, a
+        swatch in the stylesheet, and a place in the key."""
+        source = (
+            inspect.getsource(dag.proof_attrs)
+            + inspect.getsource(dag.svg)
+            + inspect.getsource(dag.outline_mark)
+            + inspect.getsource(dag.lines)
+        )
+        drawn = {
+            '"edge"': "depends-on",
+            "on-proof": "on-proof",
+            "off-proof": "not-needed",
+            "edge use": "use",
+            "edge proposed": "proposed-for",
+            "edge lemma": "lemma",
+            "outline-mark": "outline",
+        }
+        for cls, key in drawn.items():
+            assert cls in source, f"dag no longer draws {cls}; update this guard"
+            assert key in render.GLOSSARY_BY_KEY, key
+            assert f".dot-{key}" in CSS, key
+        keys_source = inspect.getsource(render.Renderer.proof_legend) + inspect.getsource(
+            render.Renderer.graph_legend
+        )
+        for key in (*drawn.values(), "unmeasured"):
+            assert f'"{key}"' in keys_source, key
+            assert key in render.GLOSSARY_BY_KEY and f".dot-{key}" in CSS, key
+>       assert '"circular"' not in keys_source
+E       assert '"circular"' not in '    @static...toggle(tv)\n'
+E         
+E         '"circular"' is contained here:
+E            marks = ("circular",) if any(nv.circular for nv in tv.nodes.values()) else ()
+E         ?           ++++++++++
+E                   return "".join(
+E                       self.term(k, dot=True) for k in (*keys, *marks, *self.proof_legend(tv))
+E                   ) + self.superseded_toggle(tv)
+
+site/tests/test_finding_circularity_retired_site.py:287: AssertionError
+=========================== short test summary info ============================
+FAILED site/tests/test_finding_circularity_retired_site.py::test_the_site_accepts_the_versions_the_gate_writes
+FAILED site/tests/test_finding_circularity_retired_site.py::test_an_older_snapshots_circular_rows_draw_nothing[nodes/propositional/and-swap-reassoc--h1/index.html]
+FAILED site/tests/test_finding_circularity_retired_site.py::test_an_older_snapshots_circular_rows_draw_nothing[problems/propositional/index.html]
+FAILED site/tests/test_finding_circularity_retired_site.py::test_an_older_snapshots_circular_rows_draw_nothing[problems/index.html]
+FAILED site/tests/test_finding_circularity_retired_site.py::test_an_older_snapshots_circular_rows_draw_nothing[docs/index.html]
+FAILED site/tests/test_finding_circularity_retired_site.py::test_the_model_carries_no_label
+FAILED site/tests/test_finding_circularity_retired_site.py::test_the_key_and_the_glossary_name_no_label
+FAILED site/tests/test_finding_circularity_retired_site.py::test_every_state_a_node_can_take_has_a_key_entry
+FAILED site/tests/test_finding_circularity_retired_site.py::test_every_output_class_has_a_key_entry
+ERROR site/tests/test_finding_circularity_retired_site.py::test_no_page_marks_circularity[nodes/propositional/and-swap-reassoc--h1/index.html]
+ERROR site/tests/test_finding_circularity_retired_site.py::test_no_page_marks_circularity[nodes/propositional/and-swap-reassoc/index.html]
+ERROR site/tests/test_finding_circularity_retired_site.py::test_no_page_marks_circularity[problems/propositional/index.html]
+ERROR site/tests/test_finding_circularity_retired_site.py::test_no_page_marks_circularity[problems/index.html]
+ERROR site/tests/test_finding_circularity_retired_site.py::test_no_page_marks_circularity[docs/index.html]
+ERROR site/tests/test_finding_circularity_retired_site.py::test_an_older_snapshot_renders_as_the_current_one[nodes/propositional/and-swap-reassoc--h1/index.html]
+ERROR site/tests/test_finding_circularity_retired_site.py::test_an_older_snapshot_renders_as_the_current_one[nodes/propositional/and-swap-reassoc/index.html]
+ERROR site/tests/test_finding_circularity_retired_site.py::test_an_older_snapshot_renders_as_the_current_one[problems/propositional/index.html]
+ERROR site/tests/test_finding_circularity_retired_site.py::test_an_older_snapshot_renders_as_the_current_one[problems/index.html]
+ERROR site/tests/test_finding_circularity_retired_site.py::test_an_older_snapshot_renders_as_the_current_one[docs/index.html]
+ERROR site/tests/test_finding_circularity_retired_site.py::test_the_claim_is_still_listed_among_the_defect_claims
+9 failed, 3 passed, 11 errors in 3.97s

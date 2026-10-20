@@ -1,0 +1,35 @@
+F09-T75 (an agent's report, 2026-10-20): three MCP findings, red first then green.
+Branch mcp-agent-findings off origin/main 2cccb058.
+
+== RED: the new tests against origin/main's adapter (uv run pytest api/tests/test_finding_mcp_agent_2026_10_20.py) ==
+E       assert ["$: {'pseudo...iven schemas"] == []
+E         
+E         Left contains one more item: "$: {'pseudonym': 'alice-p', 'snapshot_at': '2026-09-09T12:00:00Z', 'open': [{'id': '01M230M2G0TYDZDTMWJ8C483JH', 'kin...host': {'read_at': '2026-09-09T12:00:00Z', 'stale': False, 'error': None}} is not valid under any of the given schemas"
+E         Use -v to get more diff
+E       AssertionError: 'submission_id' is a required property
+E       assert '`id`' in "'submission_id' is a required property"
+E           AssertionError: A submission's ULID, or its pull request's number.
+E           assert 'list_submissions' in "A submission's ULID, or its pull request's number."
+E           AssertionError: Record a target-scoped strategy verdict (D-14); `record` validates against approach-record/v1. A second record from you in the same second would share its file name (<timestamp>-<pseudonym>), so it is refused 409 record-name-taken with Retry-After: 1 and nothing opens.
+E           assert '`route` 500' in 'Record a target-scoped strategy verdict (D-14); `record` validates against approach-record/v1. A second record from y...its file name (<timestamp>-<pseudonym>), so it is refused 409 record-name-taken with Retry-After: 1 and nothing opens.'
+FAILED api/tests/test_finding_mcp_agent_2026_10_20.py::test_get_my_submissions_with_a_finished_submission_passes_its_own_schema
+FAILED api/tests/test_finding_mcp_agent_2026_10_20.py::test_get_submission_with_id_is_refused_naming_submission_id
+FAILED api/tests/test_finding_mcp_agent_2026_10_20.py::test_get_submission_says_its_argument_is_the_id_the_listings_and_receipts_name
+FAILED api/tests/test_finding_mcp_agent_2026_10_20.py::test_submit_approach_record_states_the_schemas_caps
+4 failed, 1 passed, 2 warnings in 0.78s
+
+== GREEN: the same tests with the fix ==
+39 passed, 2 warnings in 52.73s
+
+== tools/list size per changed tool, before -> after (characters) ==
+get_my_submissions 3077 -> 3130 (+53)
+get_submission 6141 -> 6187 (+46)
+submit_approach_record 1437 -> 1515 (+78)
+withdraw_submission 1400 -> 1446 (+46)
+whole tools/list: 111,879 -> 112,102; TOOLS_LIST_BUDGET re-pinned 112,000 -> 112,500
+
+== make test-fast (lint and types clean) ==
+FAILED gate/tests/test_walkthrough.py::test_graph_copy_is_identical - Asserti...
+= 1 failed, 6547 passed, 16 skipped, 257 deselected, 2 warnings in 988.13s (0:16:28) =
+The one failure reads the sibling graph checkout's AGENTS.md, which is stale (log 2026-10-02); against a fresh
+graph worktree at origin/main: OPN_GRAPH_CHECKOUT=<worktree> pytest gate/tests/test_walkthrough.py::test_graph_copy_is_identical -> 1 passed

@@ -1,0 +1,25 @@
+F30-T6, T7, T8 (the owner's second reading, 2026-10-18; R12–R14, AC10–AC12, Q12).
+
+T6 — the pill hover reaches through junctions. Red first: the restated
+  test_one_view.py::test_a_pill_click_opens_the_panel_and_moves_nothing failed on the lines beyond
+  the junctions ('and-swap-reassoc--h1>and-swap-reassoc@1' missing from the lit set); green after
+  graph.js walks through g.junction nodes. Live render check (erdos-1094, root hovered): 5 lit
+  nodes and junctions, 1 junction — the root, its route's dot and the holes beyond it
+  (task-6-erdos-1094-root-hover.png).
+
+T7 — the selector as a small tree at the top of the drawing's card. Red first:
+  test_one_view_markup.py::test_the_selector_is_a_small_tree_above_the_drawing (the selector was
+  after the drawing) and ::test_selector_leaves_are_numbered_in_record_order_under_their_parents
+  (no numbered leaves). On the live erdos-1094 the selector renders at 210 × 148 px (was about
+  730 × 650) and is pinned while the drawing scrolls (task-7-erdos-1094-selector-top.png,
+  task-7-erdos-1094-selector-pinned-while-scrolled.png, task-7-erdos-1094-set-3-selected.png).
+
+T8 — the selector's own hover. Red first:
+  test_one_view.py::test_hovering_a_selector_node_lights_its_parent_and_children_in_the_selector
+  (no .lit in the selector, no tooltip). Live: hovering the top split lights it, its two children
+  and the root, with the words beside the tree (task-8-erdos-1094-selector-hover.png).
+
+Runs: uv run --frozen --with playwright pytest site/tests/test_one_view.py
+  site/tests/test_one_view_markup.py site/tests/test_finding_route_gloss_site.py → 33 passed;
+  site suite with the browser → 788 passed, 3 failed (Q10's pre-existing three); make lint and
+  make types clean; make verify on the branch: see the commit message.

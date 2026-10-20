@@ -415,14 +415,16 @@ METAPROGRAM_OUTPUT_CAP = 8192
 #: F02-T11: the tag a metaprogram's verdict line carries, ``@opn-verdict <nonce> <json>``.
 @dataclass(frozen=True)
 class CloseRequest:
-    """Inputs of ``opn-close`` (F28-R4): a node's merged assembly, elaborated as ``module``, the
-    declaration it proves, and ``children``: a JSON file naming the route's hole nodes and their
-    theorems. The assembly is elaborated: the program runs only in the step-3 sandbox (D-4)."""
+    """Inputs of ``opn-close`` (F28-T7, decisions v3.42): a node's merged assembly, elaborated as
+    ``module``, the declaration it proves, ``children`` (a JSON file naming the route's hole nodes
+    and their theorems), and where the joined, kernel-checked ``Proof`` module is written. The
+    assembly is elaborated: the program runs only in the step-3 sandbox (D-4)."""
 
     file: Path
     module: str
     decl: str
     children: Path
+    out_olean: Path
 
     def args(self) -> list[str]:
         return [
@@ -434,6 +436,8 @@ class CloseRequest:
             self.decl,
             "--children",
             str(self.children.resolve()),
+            "--out-olean",
+            str(self.out_olean.resolve()),
         ]
 
 

@@ -53,7 +53,7 @@ from opn_api import identity as identitymod
 from opn_api.app import ApiError
 from opn_api.githost import GitHostError
 from opn_gate import config as gate_config
-from opn_gate import explainers, glosses, modes, products, schemas
+from opn_gate import explainers, glosses, labels, modes, products, schemas
 from opn_gate import sections as sectionsmod
 from opn_gate.diagnostic import Diagnostic
 from opn_gate.paths import Change
@@ -78,23 +78,28 @@ GLOSS_FIELDS: tuple[str, ...] = (
     "drafted_with",
     "dry_run",
     "amends",
+    "label",
 )
 #: F21-R6: the record versions the service writes — v1 plus ``drafted_with`` — always, with the
 #: field null when the request names no model. The gate keeps reading v1 (D-34), and its own
 #: ``glosses.SCHEMA`` and ``explainers.RECORD_SCHEMA`` stay the v1 strings its readers compare
-#: against; these two are what lands.
-GLOSS_SCHEMA = "gloss/v2"
+#: against; these two are what lands. F29-T3b (R1; D-3 v3.44): a gloss is ``gloss/v3``, v2
+#: plus ``label``, the statement's short name, null when the request names none.
+GLOSS_SCHEMA = "gloss/v3"
 EXPLAINER_SCHEMA = "explainer/v2"
 #: D-23's cap on a declared model and tooling, as ``gloss/v2`` and ``explainer/v2`` publish it.
 DRAFTED_WITH_MAX_CHARS = 200
 WITHDRAWAL_FIELDS: tuple[str, ...] = ("record", "reason")
-#: What ``subject`` may hold. ``kind`` is a gloss's (statement, witness, relation, definition)
-#: or ``proof`` for an explainer; ``node_id`` names the node, ``target_id`` and ``module`` a
-#: definition module; ``proof`` the merged artifact an explainer describes; ``lean_hash`` the
-#: text a gloss describes, the file as it stands when omitted.
+#: What ``subject`` may hold. ``kind`` is a gloss's (statement, witness, relation, definition,
+#: partial) or ``proof`` for an explainer; ``node_id`` names the node, ``target_id`` and
+#: ``module`` a definition module — or, for a partial (F29-T9), ``node_id`` and ``module`` the
+#: merged partial's path under the node; ``proof`` the merged artifact an explainer describes;
+#: ``lean_hash`` the text a gloss describes, the file as it stands when omitted.
 SUBJECT_KEYS: tuple[str, ...] = ("kind", "node_id", "target_id", "module", "proof", "lean_hash")
 PROOF_KIND = "proof"
-GLOSS_KINDS: tuple[str, ...] = (*glosses.KIND_FILES, glosses.DEFINITION)
+STATEMENT_KIND = "statement"  # the one gloss kind a label may ride (F29-R1)
+PARTIAL_KIND = glosses.PARTIAL  # a merged partial's route words (F29-T9, R4)
+GLOSS_KINDS: tuple[str, ...] = (*glosses.KIND_FILES, glosses.DEFINITION, PARTIAL_KIND)
 TEXT_MAX_BYTES = appends.ANNEX_MAX_BYTES  # the cap an annex's prose has (F07 §6)
 WITHDRAWAL_SCHEMA = "withdrawal/v2"
 #: The login the scratch classification is opened as, and the login the gate treats as the
@@ -308,13 +313,14 @@ def check_own_name(identity: Identity, root: Path, target_id: str, verifier: Hos
 
 
 def subject_of(raw: Any) -> dict[str, Any]:
-    """The ``subject`` object, its keys within ``SUBJECT_KEYS`` and its kind one of the five."""
+    """The ``subject`` object, its keys within ``SUBJECT_KEYS`` and its kind one of the six."""
     if not isinstance(raw, dict):
         raise ApiError(
             400,
             "subject-invalid",
             "subject is an object: {kind, node_id} for a statement, witness or relation; "
-            "{kind: definition, target_id, module} for a definition module; {kind: proof, "
+            "{kind: definition, target_id, module} for a definition module; {kind: partial, "
+            "node_id, module} for a merged partial (its route's approach words); {kind: proof, "
             "node_id, proof} for an explainer of a merged proof artifact",
         )
     unknown = sorted(k for k in raw if k not in SUBJECT_KEYS)
@@ -362,6 +368,18 @@ def where(ctx: Context, subject: dict[str, Any]) -> tuple[str, str | None]:
                 "digits and _, segments joined by /, ending .lean)",
             )
         return target_id, None
+    if subject["kind"] == PARTIAL_KIND and (
+        glosses.PARTIAL_MODULE_RE.match(str(subject.get("module") or "")) is None
+        or ".." in str(subject.get("module"))
+    ):
+        # F29-T9: checked before anything is read, so a path cannot leave the node.
+        raise ApiError(
+            400,
+            "subject-invalid",
+            "a partial's subject names the merged partial by its path under the node: "
+            "attempts/<stamp>-<pseudonym>-partial.lean (as get_node's attempts list it)",
+            details={"module": subject.get("module")},
+        )
     node_id, target_id = appends.node_target(ctx, {"node_id": subject.get("node_id")})
     named = subject.get("target_id")
     if named is not None and named != target_id:
@@ -386,6 +404,58 @@ def text_of(raw: Any) -> str:
     return raw
 
 
+def check_label(raw: Any, kind: str) -> str | None:
+    """F29-R1 (D-3 v3.44): a statement's short name, as ``gloss/v3`` publishes it — at most
+    ``LABEL_MAX`` characters, one line, plain text with no dollar sign (the claim carries the
+    notation) — or ``None`` when the request names none. Anything else is ``label-invalid``
+    with a one-line reason; so is a label on a gloss of anything but a statement, since a label
+    names a statement and the products read it from the statement gloss alone (F29-R3)."""
+    if raw is None:
+        return None
+    if kind != STATEMENT_KIND:
+        raise ApiError(
+            400,
+            "label-invalid",
+            f"a label names a statement; a gloss of a {kind} carries none (D-3 v3.44): leave "
+            "label out",
+            details={"kind": kind},
+        )
+    if not isinstance(raw, str) or not raw.strip():
+        raise ApiError(
+            400,
+            "label-invalid",
+            f"label is a non-empty string of at most {labels.LABEL_MAX} characters, one line, "
+            "no dollar sign",
+        )
+    if len(raw) > labels.LABEL_MAX:
+        raise ApiError(
+            400,
+            "label-invalid",
+            f"label is {len(raw)} characters; at most {labels.LABEL_MAX}",
+            details={"length": len(raw), "max": labels.LABEL_MAX},
+        )
+    if "\n" in raw or "\r" in raw:
+        raise ApiError(400, "label-invalid", "label is one line")
+    if "$" in raw:
+        raise ApiError(
+            400,
+            "label-invalid",
+            "label is plain text with no dollar sign; the notation goes in the gloss's opening "
+            "display (the claim), not the label",
+        )
+    return raw
+
+
+def module_of(subject: dict[str, Any], node_id: str | None) -> str | None:
+    """The record's ``subject.module``: a definition module's path (no node), or for a partial
+    (F29-T9) the merged partial's path under its node; ``None`` for a node's statement,
+    witness or relation."""
+    if node_id is None or subject["kind"] == PARTIAL_KIND:
+        value = subject.get("module")
+        return str(value) if value is not None else None
+    return None
+
+
 def front_matter(  # noqa: PLR0913 — one argument per fact the record carries
     target_dir: Path,
     subject: dict[str, Any],
@@ -397,10 +467,13 @@ def front_matter(  # noqa: PLR0913 — one argument per fact the record carries
     date: str,
     licence: str,
     drafted_with: str | None = None,
+    label: str | None = None,
 ) -> tuple[dict[str, Any], str]:
-    """``(front matter, schema)`` of the record: ``gloss/v2`` or ``explainer/v2`` (F21-R6). The
-    author is always a person, the token's identity; the service files no draft (F21-R1), so
-    ``drafter`` is always null, and a model that helped is named in ``drafted_with``."""
+    """``(front matter, schema)`` of the record: ``gloss/v3`` or ``explainer/v2`` (F21-R6,
+    F29-T3b). The author is always a person, the token's identity; the service files no draft
+    (F21-R1), so ``drafter`` is always null, and a model that helped is named in
+    ``drafted_with``. ``label`` rides a gloss (null when none was given; ``check_label`` has
+    refused one on anything but a statement)."""
     common = {"supersedes": supersedes, "author": author, "drafter": None}
     if subject["kind"] == PROOF_KIND:
         doc = {
@@ -414,7 +487,7 @@ def front_matter(  # noqa: PLR0913 — one argument per fact the record carries
             "drafted_with": drafted_with,
         }
         return doc, EXPLAINER_SCHEMA
-    module = subject.get("module") if node_id is None else None
+    module = module_of(subject, node_id)
     file = glosses.subject_file(
         target_dir, {"kind": subject["kind"], "node": node_id, "module": module}
     )
@@ -437,6 +510,7 @@ def front_matter(  # noqa: PLR0913 — one argument per fact the record carries
         "date": date,
         "licence": licence,
         "drafted_with": drafted_with,
+        "label": label,
     }
     return doc, GLOSS_SCHEMA
 
@@ -454,7 +528,7 @@ def words_key(target_id: str, node_id: str | None, subject: dict[str, Any]) -> s
     ``defs/<module>``)."""
     if subject["kind"] == PROOF_KIND:
         return duplicates.words_key(target_id, str(subject["proof"]))
-    module = subject.get("module") if node_id is None else None
+    module = module_of(subject, node_id)
     file = glosses.subject_file(
         Path(), {"kind": subject["kind"], "node": node_id, "module": module}
     )
@@ -695,6 +769,7 @@ async def post_glosses(ctx: Context, request: Request) -> Response:
     identity: Identity = request.state.identity
     fields, _ = await identitymod.body_fields(request, GLOSS_FIELDS)
     subject = subject_of(fields.get("subject"))
+    label = check_label(fields.get("label"), str(subject["kind"]))  # F29-R1: before any read
     target_id, node_id = where(ctx, subject)
     text = text_of(fields.get("text"))
     licence = appends.check_licence(
@@ -727,6 +802,7 @@ async def post_glosses(ctx: Context, request: Request) -> Response:
             date=ctx.clock.now().strftime("%Y-%m-%d"),
             licence=licence,
             drafted_with=drafted_with,
+            label=label,
         )
         appends.validated(front, schema)
         content = record_file(front, text)

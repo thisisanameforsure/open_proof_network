@@ -676,46 +676,6 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "Curators: pass one or two --arxiv codes and one to eight --msc codes to intake new, "
         "each once, in the registry's spelling; or pass neither and classify the target later.",
     ),
-    "circular-ancestor": (
-        "both",
-        None,
-        "A circularity defect claim's ancestor field is wrong for its class: missing, not an "
-        "ancestor of the node, or present on a claim that is not circular.",
-        "Name an ancestor of the node, the statement the node was cut from, only on a circular "
-        "claim.",
-    ),
-    "circular-axiom": (
-        "gate",
-        None,
-        "The circularity exhibit rests on axioms outside the allowlist.",
-        "Prove the implication without them.",
-    ),
-    "circular-direction": (
-        "gate",
-        None,
-        "The circularity exhibit proves the implication the wrong way round. It must prove that "
-        "the node implies the ancestor.",
-        "State the exhibit as `<node's statement> → <ancestor's statement>`.",
-    ),
-    "circular-elaboration": (
-        "gate",
-        None,
-        "The circularity exhibit could not be checked against the two statements.",
-        "Fix the Lean error in the message; check the exhibit with POST /check first.",
-    ),
-    "circular-exhibit": (
-        "gate",
-        None,
-        "The circularity exhibit is not the one theorem `<node's statement> → <ancestor's "
-        "statement>`.",
-        "Declare exactly that one theorem.",
-    ),
-    "circular-sorry": (
-        "gate",
-        None,
-        "The circularity exhibit uses sorry, so the implication is claimed, not proved.",
-        "Finish the proof of the implication.",
-    ),
     "claim-unknown": (
         "api",
         None,
@@ -852,8 +812,17 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "both",
         None,
         "The defect claim's class is not one this route or this kind of pull request accepts.",
-        "Use a class the schema lists (get_schema defect-claim/v1); a circularity claim is filed "
-        "with its own schema.",
+        "Use a class the schema lists (get_schema defect-claim/v1).",
+    ),
+    "defect-class-retired": (
+        "both",
+        None,
+        "The defect claim is of the retired class circular-decomposition, or names an `ancestor`, "
+        "which only that class carried (D-12, D-16 v3.42). Every hole implies its parent by its "
+        "merged assembly, so the claim records nothing a hole does not already say; a hole "
+        "definitionally equal to an ancestor is refused where it is made.",
+        "Prove the hole, or the ancestor directly, or propose a different decomposition. A defect "
+        "in the statement itself is a claim of another class, with no `ancestor`.",
     ),
     "defect-line": (
         "both",
@@ -946,6 +915,13 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         8,
         "A declared dependency is not a node of this target.",
         "Declare only node ids that exist in the target (get_target lists them).",
+    ),
+    "closure-join-failed": (
+        "gate",
+        4,
+        "A dependency proved by closure did not join: its assembly and its inputs' proofs no "
+        "longer make the kernel-checked theorem its closure record says they do.",
+        "Report it to a curator: the record or an input changed under it (F28-T8).",
     ),
     "dep-unproved": (
         "gate",
@@ -1107,8 +1083,8 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
     "exhibit-node": (
         "gate",
         None,
-        "A node a circularity claim relates does not load.",
-        "Name two nodes that exist and load; the message says which did not.",
+        "A node the exhibit is about does not load.",
+        "Fix the node named in the message, or name one that loads.",
     ),
     "exhibit-replay": (
         "gate",
@@ -1502,6 +1478,15 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "implemented_by) and remove them; details carries the replay output.",
     ),
     # --- l ------------------------------------------------------------------------------------
+    "label-invalid": (
+        "api",
+        None,
+        "A gloss's label is not a statement's short name as gloss/v3 publishes it: at most 60 "
+        "characters, one line, plain text with no dollar sign; or it was sent on a gloss of a "
+        "witness, relation or definition, which carries none (D-3 v3.44).",
+        "Send a short plain-text name on a statement gloss, or leave label out; the notation "
+        "belongs in the gloss's opening display.",
+    ),
     "layout-extra": (
         "gate",
         2,
@@ -1520,12 +1505,21 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "The literature record names a different node from the directory it sits in.",
         "File it under nodes/<id>/literature/ of the node its `node` field names (D-25 v3.35).",
     ),
+    "literature-record-conflict": (
+        "gate",
+        None,
+        "The signed literature record names a proposal in both `confirms` and `disputes`.",
+        "A signed record confirms a proposal or disputes one, never both (D-25 v3.45): set one "
+        "of the two and leave the other null.",
+    ),
     "literature-record-unknown": (
         "gate",
         None,
-        "The confirmation's `confirms` names no literature record on the node.",
-        "Name an existing literature/<file> of the node, or state the status yourself with "
-        "`confirms: null`.",
+        "The confirmation's `confirms` names no literature record on the node, or its `disputes` "
+        "names something that is not an unsigned proposal on the node (a missing file, the record "
+        "itself, or a signed record).",
+        "Name an existing unsigned literature/<file> of the node, or state the status yourself "
+        "with `confirms: null` and `disputes: null`.",
     ),
     "literature-signature": (
         "gate",
@@ -1762,13 +1756,6 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "prechecked or submitted.",
         "Work on what blocks it (the message says), or pick a claimable node from list_frontier.",
     ),
-    "node-circular": (
-        "api",
-        None,
-        "The node is circular: a merged circularity claim proves an ancestor implies it, so it "
-        "is no easier than what it was meant to reduce.",
-        "Work on a different node; the message says where the circular path is.",
-    ),
     "node-id-invalid": (
         "api",
         None,
@@ -1883,6 +1870,18 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         2,
         "Not an error: the submission was read as a partial proof.",
         "Nothing to do.",
+    ),
+    # F29-T2 emits it at step 4, F29-T3 in the service before any precheck: both, step 4.
+    "partial-unlabelled": (
+        "both",
+        4,
+        "The partial does not name its approach, its licence, or a hole's label and claim in its "
+        "comments (D-12 v3.44); details.missing names each missing or malformed line with its "
+        "hole.",
+        "Add one `-- approach:` line and one `-- licence:` line before the first hole, and a "
+        "`-- label:` line and a `-- claim: $…$` line in the comment block directly above each "
+        "hole's `have` (the guide's Skeletonization section shows the grammar); the extractor's "
+        "hole names are the ones held to the rule, and the service refuses it before any job runs.",
     ),
     "partial-without-holes": (
         "gate",

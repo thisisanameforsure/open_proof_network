@@ -143,11 +143,9 @@ class KernelReplayStep:
             )
             if problem is not None:
                 return StepResult(ok=False, diagnostic=problem)
-            for node_id in staged.order:
-                for stem in (CONTEXT_MODULE, PROOF_MODULE):
-                    failure = self._compile(ctx, tc, staged, node_id, stem)
-                    if failure is not None:
-                        return failure
+            failure = self._build(ctx, tc, staged)
+            if failure is not None:
+                return failure
             # F02-T10: everything that decides the verdict from here is read from a fresh
             # judging directory the compile calls above never had: the definitions built there
             # from the graph, and the compiled graph modules copied there by name.
@@ -199,6 +197,33 @@ class KernelReplayStep:
             return artifact.judge(ctx, tc)
         except subprocess.TimeoutExpired:
             return StepResult.failed("timeout", "the artifact check exceeded the wall-clock cap")
+
+    def _build(
+        self, ctx: RunContext, tc: ResolvedToolchain, staged: staging.Staged
+    ) -> StepResult | None:
+        """Every staged module in order: compiled, or for a dependency proved by closure, joined."""
+        for node_id in staged.order:
+            for stem in (CONTEXT_MODULE, PROOF_MODULE):
+                if stem == PROOF_MODULE and node_id in staged.joined:
+                    failure = self._join(ctx, tc, staged, node_id)
+                else:
+                    failure = self._compile(ctx, tc, staged, node_id, stem)
+                if failure is not None:
+                    return failure
+        return None
+
+    def _join(
+        self, ctx: RunContext, tc: ResolvedToolchain, staged: staging.Staged, node_id: str
+    ) -> StepResult | None:
+        """F28-T8: a dependency proved by closure — its module is the join, not a compile."""
+        joined = staging.join_module(ctx.toolchain, tc, staged, node_id, timeout_s=ctx.wallclock_s)
+        if joined.ok and joined.doc.get("ok"):
+            return None
+        return StepResult.failed(
+            "closure-join-failed",
+            f"the closure of {node_id} did not join: {joined.doc.get('error') or joined.output}",
+            node=node_id,
+        )
 
     def _compile(
         self,

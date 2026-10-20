@@ -1,0 +1,41 @@
+tools/list before T4: 109734
+E       AttributeError: 'Route' object has no attribute 'approach'
+E       AttributeError: 'Route' object has no attribute 'approach'
+E       KeyError: 'selector'
+E       KeyError: 'approach'
+E       AssertionError: assert 'mcp/list_sufficient_sets/v1' == 'mcp/list_sufficient_sets/v2'
+E         
+E        
+E         ?                           ^
+E         + mcp/list_sufficient_sets/v1
+E         ?                           ^
+E       KeyError: 'label'
+E       KeyError: 'label'
+FAILED api/tests/test_finding_routes_selector_mcp.py::test_a_route_carries_its_approach_and_a_hole_its_label
+FAILED api/tests/test_finding_routes_selector_mcp.py::test_an_older_product_answers_none_for_both
+FAILED api/tests/test_finding_routes_selector_mcp.py::test_list_sufficient_sets_carries_the_selector_whose_leaves_are_the_sets
+FAILED api/tests/test_finding_routes_selector_mcp.py::test_list_sufficient_sets_carries_each_routes_approach_and_each_holes_label
+FAILED api/tests/test_finding_routes_selector_mcp.py::test_the_answer_is_versioned_v2
+FAILED api/tests/test_finding_routes_selector_mcp.py::test_get_node_carries_label_source_and_claim_from_graph_json
+FAILED api/tests/test_finding_routes_selector_mcp.py::test_get_node_falls_back_on_an_older_row
+7 failed, 2 warnings in 1.59s
+E       AssertionError: assert None == 'split at the median'
+E        +  where None = Route(id='t@1', node='t', partial='attempts/20261010T000000Z-a-partial.lean', holes=(Hole(name='h1', node='t--h1', sta...n=1, dead=0, unresolved=0, attempts=0, unattempted=0, refuted_route_classes=(), oldest_open_since=None), approach=None).approach
+1 failed, 1 passed, 5 deselected, 2 warnings in 0.66s
+tools/list after T4: 110773
+get_node description 688 output 5744
+list_sufficient_sets description 1025 output 3661
+tools/list final: 110731
+
+=== F29-T3/T4 finishing run (the brief's command) ===
+........................................................................ [ 35%]
+........................................................................ [ 71%]
+......................................................s...               [100%]
+=============================== warnings summary ===============================
+api/tests/api_fakes.py:32
+../../../.venv/lib/python3.13/site-packages/starlette/testclient.py:53
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+SKIPPED [1] site/tests/test_routes_view.py:276: could not import 'playwright.sync_api': No module named 'playwright'
+201 passed, 1 skipped, 2 warnings in 17.75s
+ruff check: All checks passed; ruff format: clean; mypy api: no issues in 259 files; mypy gate: no issues in 425 files

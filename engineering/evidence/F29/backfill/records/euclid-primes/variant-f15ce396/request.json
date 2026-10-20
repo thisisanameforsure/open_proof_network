@@ -1,0 +1,13 @@
+{
+ "subject": {
+  "kind": "statement",
+  "node": "variant-f15ce396",
+  "module": null,
+  "lean_hash": "f15ce39603685fda4db5992cb92c7b0529fe6e2ac12b95c34c6888b5743bea04"
+ },
+ "text": "$$\\{\\,p\\in\\mathbb{N}\\ :\\ p\\ \\text{prime}\\,\\}\\ \\text{is infinite}$$\n\nThe set of natural numbers that are prime is infinite, in Mathlib's sense `Set.Infinite` (not a finite set). Prime is the problem's own `Opn.IsPrime`: $2\\le p$ and every $d$ with $p=d\\cdot c$ for some natural $c$ is $1$ or $p$.\n",
+ "supersedes": null,
+ "licence": "CC-BY-4.0",
+ "drafted_with": "Claude Fable 5.1 (claude-fable-5-1)",
+ "label": "The set of primes is infinite"
+}

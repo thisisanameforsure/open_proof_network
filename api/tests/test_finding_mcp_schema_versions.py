@@ -11,6 +11,8 @@ learns a record the tool does not write.
 The rule: every schema id a tool description names exists under ``gate/schemas``, and
 ``file_defect_claim``'s description names every version ``requests.py`` writes, read from the
 constants rather than written here, so a later bump cannot leave the description behind.
+F08-T42 (D-16 v3.43) retired the circularity class and ``defect-claim/v3`` with it, so that is
+one version, ``defect-claim/v1``.
 
 Red run: ``engineering/evidence/F09/task-13.txt``.
 """
@@ -45,14 +47,17 @@ def test_every_schema_id_named_in_a_tool_description_exists_in_gate_schemas() ->
 
 
 def test_file_defect_claim_names_every_version_requests_writes() -> None:
-    written = {requests.DEFECT_SCHEMA, requests.CIRCULAR_SCHEMA}
+    """F08-T42 (D-16 v3.43): with the circularity class retired, every claim is written at
+    ``requests.DEFECT_SCHEMA``, and the description names that version and no other."""
     described = named_ids(BY_NAME["file_defect_claim"].description)
-    assert written <= described, (sorted(written), sorted(described))
+    assert {requests.DEFECT_SCHEMA} == {s for s in described if s.startswith("defect-claim/")}, (
+        sorted(described)
+    )
 
 
-def test_get_schema_points_a_circularity_claim_at_the_version_it_is_written_at() -> None:
-    """The description's example names the defect-claim record; it must name the circularity
-    version too, since that is the one whose shape differs (``ancestor``)."""
+def test_get_schema_points_a_defect_claim_at_the_version_it_is_written_at() -> None:
+    """The description's example names the defect-claim record at the version the tool writes;
+    since F08-T42 that is the only one, and the retired class is not offered."""
     description = BY_NAME["get_schema"].description
-    assert requests.CIRCULAR_SCHEMA in named_ids(description), description
-    assert requests.CIRCULAR_CLASS in description, description
+    assert requests.DEFECT_SCHEMA in named_ids(description), description
+    assert requests.RETIRED_CLASS not in description, description

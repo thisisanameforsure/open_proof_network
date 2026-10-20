@@ -1,0 +1,23 @@
+=== red: path rule at ("literature/v1",) via -p mutant_paths
+E       AssertionError: assert ['record-invalid'] == []
+E         
+E         Left contains one more item: 'record-invalid'
+E         Use -v to get more diff
+FAILED gate/tests/test_literature.py::test_a_v2_proposal_and_a_v2_dispute_pass_the_path_rule_and_the_check
+1 failed, 32 deselected in 38.55s
+
+=== green: as committed
+84 passed in 10.36s
+$ make lint
+
+Found 2 errors.
+make: *** [lint] Error 1
+exit=0
+$ uv run --frozen mypy --strict gate
+Success: no issues found in 429 source files
+exit=0
+=== after the docstring rewrap
+make lint exit=0
+mypy --strict gate exit=0
+$ uv run --frozen pytest gate/tests/test_literature.py gate/tests/test_palomar_feed.py gate/tests/test_finding_guide_names_exist.py gate/tests/test_walkthrough.py -k "not graph_copy_is_identical" -q
+89 passed, 2 deselected, 2 warnings in 18.15s

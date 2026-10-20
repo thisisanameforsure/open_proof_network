@@ -106,6 +106,7 @@ from opn_gate.paths import Change, Located, Role
 from opn_gate.signer import Signer
 
 if TYPE_CHECKING:
+    from opn_gate.literature import Record as LiteratureRecord
     from opn_gate.steps.review_step import Standing
 
 Mode = Literal[
@@ -502,6 +503,33 @@ def step9_not_asked(graph_root: Path, classification: Classification) -> Stateme
     # ``resolves`` while the root is open is a proof of the root by another road; a node the
     # graph does not carry is treated as if it settled, so the review stays asked (C7).
     return None if settles else NOT_ASKED_INTERMEDIATE
+
+
+def root_vouched(target_dir: Path, *, minimum: int = config.DEFAULT_STEP9_MIN_SCORE) -> str | None:
+    """F28-T8 (D-12 v3.42): what vouches for the root's statement, by step 9's own rules, or
+    ``None``: a calibration target is never asked (``calibration``); a target with a review needs
+    it complete (``certificate``) or catalog evidence (``provenance``); one without needs the
+    root's certificate (``certificate``) or catalog evidence (``provenance``). A root proved by
+    closure reads proved only with one of these, since that is the moment the conjecture would
+    read settled; a person vouches by the same records (a certificate, a completed review)."""
+    from opn_gate import intake  # noqa: PLC0415 — intake imports modes
+    from opn_gate.steps import review_step  # noqa: PLC0415 — the steps package imports modes
+
+    try:
+        if intake.is_calibration(intake.load_doc(target_dir)):
+            return "calibration"
+    except (ValueError, OSError) as exc:
+        log.warning("root vouching: %s does not load: %s", target_dir.name, exc)
+    standing = review_step.standing(target_dir)
+    if standing is not None:
+        if standing.satisfies:
+            return "certificate"
+        return "provenance" if step9_evidence(target_dir, minimum) is not None else None
+    if root_certificate(target_dir) is not None:
+        return "certificate"
+    if step9_evidence(target_dir, minimum) is not None:
+        return "provenance"
+    return None
 
 
 def root_certificate(target_dir: Path) -> str | None:
@@ -2203,6 +2231,16 @@ def check_literature_record(  # noqa: PLR0911 — one return per rule
                     {"path": located.path, "confirms": record.confirms},
                 )
             ]
+        if record.disputes is not None:
+            # F08-T43 (D-25 v3.45): a dispute is a signed act, as a confirmation is.
+            return [
+                Diagnostic(
+                    "literature-signature",
+                    f"{located.path}: an unsigned record is a proposal and disputes nothing; a "
+                    "dispute is signed by a steward of the target or a curator (D-25 v3.45)",
+                    {"path": located.path, "disputes": record.disputes},
+                )
+            ]
         return []
     verifier = signer or signed.default_signer()
     assert located.target_id is not None
@@ -2219,18 +2257,8 @@ def check_literature_record(  # noqa: PLR0911 — one return per rule
         if code == "literature-signer-unlisted":
             return [Diagnostic("literature-signer-unlisted", message, details)]
         return [Diagnostic("literature-signature", message, details)]
-    found: list[Diagnostic] = []
-    named = record.confirms
-    if named is not None:
-        node_dir = graph_root / "targets" / located.target_id / "nodes" / str(located.node_id)
-        if not (node_dir / named).is_file():
-            found.append(
-                Diagnostic(
-                    "literature-record-unknown",
-                    f"{located.path}: confirms {named!r}, which is not a record on the node",
-                    {"path": located.path, "confirms": named},
-                )
-            )
+    node_dir = graph_root / "targets" / located.target_id / "nodes" / str(located.node_id)
+    found = _literature_named_problems(located, record, node_dir)
     if found or _by_approval_key(doc):
         return found  # an approval-key signature is the service's act for the login it names
     return check_signer_opener(
@@ -2241,6 +2269,66 @@ def check_literature_record(  # noqa: PLR0911 — one return per rule
         key=str(doc.get(signed.KEY_FIELD) or ""),
         verifier=verifier,
     )
+
+
+def _literature_named_problems(
+    located: Located, record: LiteratureRecord, node_dir: Path
+) -> list[Diagnostic]:
+    """What a signed record names: ``confirms`` is a record on the node; ``disputes`` (F08-T43,
+    D-25 v3.45) is an unsigned proposal on the node — not a missing file, not the record itself,
+    not a signed record (a later signed record supersedes one by date, with nothing to dispute);
+    and never both, a conflict returned alone."""
+    named = record.confirms
+    rejected = record.disputes
+    if named is not None and rejected is not None:
+        return [
+            Diagnostic(
+                "literature-record-conflict",
+                f"{located.path}: confirms {named!r} and disputes {rejected!r}; a signed record "
+                "names the proposal it confirms or the one it disputes, never both (D-25 v3.45)",
+                {"path": located.path, "confirms": named, "disputes": rejected},
+            )
+        ]
+    found: list[Diagnostic] = []
+    if named is not None and not (node_dir / named).is_file():
+        found.append(
+            Diagnostic(
+                "literature-record-unknown",
+                f"{located.path}: confirms {named!r}, which is not a record on the node",
+                {"path": located.path, "confirms": named},
+            )
+        )
+    if rejected is not None:
+        why = _not_a_proposal(node_dir, rejected, own=record.path)
+        if why is not None:
+            found.append(
+                Diagnostic(
+                    "literature-record-unknown",
+                    f"{located.path}: disputes {rejected!r}, which {why}",
+                    {"path": located.path, "disputes": rejected},
+                )
+            )
+    return found
+
+
+def _not_a_proposal(node_dir: Path, named: str, *, own: str) -> str | None:
+    """F08-T43 (D-25 v3.45): why ``named`` (relative to the node) is not an unsigned proposal a
+    signed record may dispute, or ``None`` when it is one."""
+    from opn_gate import literature  # noqa: PLC0415 — only the literature checks read it
+
+    if named == own:
+        return "is this record itself"
+    path = node_dir / named
+    if not path.is_file():
+        return "is not a record on the node"
+    try:
+        doc = schemas.load_yaml(path)
+    except schemas.SchemaError:
+        return "is not a record that reads"
+    other = literature.Record(path.name, doc)
+    if other.signed or other.half_signed:
+        return "is a signed record, not a proposal"
+    return None
 
 
 #: F26-R1 (D-9 v3.39): the review records a pull request may carry, and the job's own.
@@ -3363,6 +3451,9 @@ def check_defect_claim(  # noqa: PLR0911 — one return per rule
     schema_problems = _check_schema(located, data, code="record-invalid")
     if schema_problems:
         return schema_problems
+    retired = check_retired_class(located, doc)
+    if retired:
+        return retired
     finding_problems = check_screen_finding(graph_root, located, doc, mode=mode)
     if finding_problems:
         return finding_problems
@@ -3397,51 +3488,26 @@ def check_defect_claim(  # noqa: PLR0911 — one return per rule
                 {"path": located.path, "line": line, "lines": len(lines), "file": path},
             )
         ]
-    return check_circular_claim(graph_root, located, doc)
-
-
-def check_circular_claim(
-    graph_root: Path, located: Located, doc: dict[str, Any]
-) -> list[Diagnostic]:
-    """F08-T17 (D-16): a ``circular-decomposition`` claim names an ancestor, and the ancestor is a
-    node that depends on this claim's node transitively, read through revisions — the one fact the
-    implication the sandbox checks is about (``exhibits.check_circular``). An ``ancestor`` on any
-    other class claims something nobody checks, so it is refused rather than carried."""
-    ancestor = doc.get("ancestor")
-    if doc.get("class") != records.CIRCULAR_CLASS:
-        if ancestor is None:
-            return []
-        return [
-            Diagnostic(
-                "circular-ancestor",
-                f"{located.path}: `ancestor` belongs to a {records.CIRCULAR_CLASS} claim; a "
-                f"{doc.get('class')!r} claim names none (F08-T17)",
-                {"path": located.path, "class": doc.get("class"), "ancestor": ancestor},
-            )
-        ]
-    if located.node_id is None or not isinstance(ancestor, str):
-        lacks = "a node's defects/" if located.node_id is None else "an ancestor"
-        return [
-            Diagnostic(
-                "circular-ancestor",
-                f"{located.path}: a {records.CIRCULAR_CLASS} claim sits under a node and names "
-                f"a node above it; this one lacks {lacks} (F08-T17)",
-                {"path": located.path, "ancestor": ancestor},
-            )
-        ]
-    nodes_dir = layout.graph_nodes_dir(graph_root, located.target_id)
-    above = graphmod.ancestors(nodes_dir, located.node_id)
-    if ancestor not in above:
-        return [
-            Diagnostic(
-                "circular-ancestor",
-                f"{located.path}: {ancestor!r} does not depend on {located.node_id}, even through "
-                "revisions, so the claim relates the node to nothing it was meant to reduce; name "
-                f"one of: {', '.join(sorted(above)) or 'none (nothing depends on this node)'}",
-                {"path": located.path, "ancestor": ancestor, "ancestors": sorted(above)},
-            )
-        ]
     return []
+
+
+def check_retired_class(located: Located, doc: dict[str, Any]) -> list[Diagnostic]:
+    """F08-T42 (D-12, D-16 v3.43): the ``circular-decomposition`` class is retired, and with it
+    ``ancestor``, which only that class carried. The implication its exhibit proved holds of every
+    hole by its merged assembly, so the claim separated nothing; a hole definitionally equal to an
+    ancestor is refused where the hole is made (``offload-restates-ancestor``). A merged claim of
+    the class stays in the record as history and nothing reads it."""
+    if doc.get("class") != records.CIRCULAR_CLASS and doc.get("ancestor") is None:
+        return []
+    return [
+        Diagnostic(
+            "defect-class-retired",
+            f"{located.path}: the {records.CIRCULAR_CLASS} class and its `ancestor` field were "
+            "retired in decisions v3.43 (D-12, D-16): every hole implies its parent by its "
+            "assembly, so the claim records nothing a hole does not already say",
+            {"path": located.path, "class": doc.get("class"), "ancestor": doc.get("ancestor")},
+        )
+    ]
 
 
 SCREEN_FINDING = "screen-finding"

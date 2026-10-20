@@ -41,9 +41,11 @@ from opn_gate.signer import Signer
 log = logging.getLogger(__name__)
 
 SCHEMA = "gloss/v1"
+#: F29-R1 (D-3 v3.44): the version that carries ``label``; what the hole writer files (R7).
+SCHEMA_V3 = "gloss/v3"
 #: Every gloss record version the gate reads, each validated against its own ``schema`` (D-34):
-#: v2 adds ``drafted_with`` (F21-R6; D-3 v3.31, D-23).
-SCHEMAS: frozenset[str] = frozenset({"gloss/v1", "gloss/v2"})
+#: v2 adds ``drafted_with`` (F21-R6; D-3 v3.31, D-23); v3 adds ``label``.
+SCHEMAS: frozenset[str] = frozenset({"gloss/v1", "gloss/v2", SCHEMA_V3})
 GLOSS_DIR = "gloss"
 #: The Lean file a node-level gloss of each kind describes (R1).
 KIND_FILES: dict[str, str] = {
@@ -53,6 +55,11 @@ KIND_FILES: dict[str, str] = {
 }
 DEFINITION = "definition"
 DEFS_DIR = "defs"
+#: F29-T9 (R4): a gloss of one merged partial of the node — its route. The subject's ``module``
+#: is the partial's path under the node, which this rule holds to ``attempts/`` and the partial
+#: suffix before anything is read, so a path can never leave the node (``..`` is not a name).
+PARTIAL = "partial"
+PARTIAL_MODULE_RE = re.compile(r"^attempts/[A-Za-z0-9_.-]+-partial\.lean$")
 _FRONT_MATTER_RE = re.compile(r"\A---[ \t]*\r?\n(?P<yaml>.*?)\r?\n---[ \t]*\r?\n?", re.S)
 
 
@@ -111,6 +118,14 @@ def subject_file(target_dir: Path, subject: dict[str, Any]) -> Path | None:
         if node is not None or not isinstance(module, str):
             return None
         return target_dir / DEFS_DIR / module
+    if kind == PARTIAL:
+        well_formed = (
+            isinstance(node, str)
+            and isinstance(module, str)
+            and PARTIAL_MODULE_RE.match(module) is not None
+            and ".." not in module
+        )
+        return target_dir / "nodes" / str(node) / str(module) if well_formed else None
     if kind in KIND_FILES and isinstance(node, str) and module is None:
         return target_dir / "nodes" / node / KIND_FILES[str(kind)]
     return None
@@ -212,7 +227,8 @@ def check_gloss(graph_root: Path, located: Located) -> list[Diagnostic]:  # noqa
             _invalid(
                 located,
                 "a statement, witness or relation names its node and no module; a definition "
-                "names its module and no node",
+                "names its module and no node; a partial names its node and its module, the "
+                "merged partial's path under the node (attempts/<stamp>-<pseudonym>-partial.lean)",
             )
         ]
     if not file.is_file():
@@ -273,6 +289,9 @@ class Version:
     #: F21-R6 (D-23): the model a contributor's agent drafted with, in their words; ``None`` for
     #: a person's own writing and for every v1 record.
     drafted_with: str | None = None
+    #: F29-R1 (D-3 v3.44): a statement gloss's label, the statement's short name; ``None`` on a
+    #: gloss that names none and on every v1 and v2 record.
+    label: str | None = None
 
     @property
     def by_model(self) -> bool:
@@ -367,6 +386,7 @@ def gloss_version(path: Path, doc: dict[str, Any]) -> Version:
         schema=str(doc["schema"]),
         lean_hash=str(subject["lean_hash"]),
         drafted_with=doc.get("drafted_with"),
+        label=doc.get("label"),
     )
 
 
@@ -712,9 +732,18 @@ def coverage(graph_root: Path) -> dict[str, Any]:
             continue
         rows.extend(_target_rows(graph_root, tg))
     covered = sum(1 for r in rows if r["covered"])
+    # F29-R11: how many statements carry a label and how many do not (statements only; a label
+    # is not required for coverage, so ``complete`` does not read them).
+    statements = [r for r in rows if r["kind"] == "statement"]
+    labelled = sum(1 for r in statements if r.get("label"))
     return {
         "complete": not problems and covered == len(rows),
-        "counts": {"subjects": len(rows), "covered": covered},
+        "counts": {
+            "subjects": len(rows),
+            "covered": covered,
+            "labelled": labelled,
+            "unlabelled": len(statements) - labelled,
+        },
         "problems": problems,
         "subjects": rows,
     }
@@ -771,7 +800,13 @@ def _lean_rows(graph_root: Path, tg: Any, node_id: str, words: str | None) -> li
             continue
         r = _row(graph_root, tg.target_id, file, kind, node=node_id)
         same = [v for v in versions if v.subject == (kind, node_id, None)]
-        _cover_by_gloss(r, file, same, withdrawn)
+        found = _cover_by_gloss(r, file, same, withdrawn)
+        if kind == "statement":
+            # F29-R11 (D-3 v3.44): the statement's label is its current gloss's — the first
+            # chain's, as the products read it (``products.node_words``) — or null; a label is
+            # not required for coverage, so ``covered`` is what it was.
+            current = found[0].current if found else None
+            r["label"] = current.label if current is not None else None
         if kind == "statement" and node_id == tg.root and not r["covered"]:
             if words is not None:
                 r.update(covered=True, by={words: "target.yaml"}, reason=None)
@@ -788,6 +823,8 @@ def _artifact_rows(graph_root: Path, target_id: str, node_dir: Path) -> list[dic
 
     withdrawn = withdrawn_versions(node_dir, explainers.EXPLAINER_DIR)
     everything = explainers.versions(node_dir)
+    glossed = load_versions(node_dir)
+    gloss_withdrawn = withdrawn_versions(node_dir, GLOSS_DIR)
     out: list[dict[str, Any]] = []
     for digest, rel in explainers.merged_artifacts(node_dir).items():
         kind = (
@@ -795,7 +832,7 @@ def _artifact_rows(graph_root: Path, target_id: str, node_dir: Path) -> list[dic
             if rel == "Proof.lean"
             else "alternate"
             if rel.endswith(paths.ALTERNATE_SUFFIX)
-            else "partial"
+            else PARTIAL
         )
         r = _row(graph_root, target_id, node_dir / rel, kind, node=node_dir.name)
         found = chains([v for v in everything if v.subject[2] == digest], withdrawn)
@@ -804,6 +841,12 @@ def _artifact_rows(graph_root: Path, target_id: str, node_dir: Path) -> list[dic
             r.update(covered=True, by={"explainer": current[0].hash})
         else:
             r["reason"] = ALL_WITHDRAWN if found else NO_EXPLAINER
+        if kind == PARTIAL:
+            # F29-T9 (R4): whether the route has approach words — a partial gloss with a current
+            # version. Words about the route, not about the proof: ``covered`` is the explainer's
+            # alone, so ``complete`` does not read this.
+            same = [v for v in glossed if v.subject == (PARTIAL, node_dir.name, rel)]
+            r["approach_words"] = any(c.current is not None for c in chains(same, gloss_withdrawn))
         out.append(r)
     return out
 
@@ -826,8 +869,9 @@ def _definition_rows(graph_root: Path, target_id: str, target_dir: Path) -> list
 
 def _cover_by_gloss(
     row: dict[str, Any], file: Path, versions: list[Version], withdrawn: frozenset[str]
-) -> None:
-    """Covered when a chain's current version describes the file as it stands."""
+) -> list[Chain]:
+    """Covered when a chain's current version describes the file as it stands. Returns the
+    chains it read, in record order, for a caller that reads the current version's label."""
     found = chains(versions, withdrawn)
     current = [c.current for c in found if c.current is not None]
     text = schemas.content_hash(file.read_bytes())
@@ -840,6 +884,7 @@ def _cover_by_gloss(
         row["reason"] = ALL_WITHDRAWN
     else:
         row["reason"] = NO_GLOSS
+    return found
 
 
 def _curated_words(target_dir: Path) -> str | None:
@@ -892,6 +937,11 @@ def needed(doc: dict[str, Any], *, root: str | None, curated: str | None) -> lis
     for subject in doc["subjects"]:
         kind, file, lean_hash = subject["kind"], subject["file"], subject["lean_hash"]
         if file is None or lean_hash is None or kind == "absent":
+            continue
+        if subject["record"] == "gloss" and kind == PARTIAL:
+            # F29-T9: a merged partial's gloss subject (its route's approach words) is not a
+            # file needing words here: the artifact is listed once, under its explainer row,
+            # and this list is not widened to route approaches.
             continue
         chains_ = subject["chains"]
         current = [c["current"] for c in chains_ if c["current"] is not None]

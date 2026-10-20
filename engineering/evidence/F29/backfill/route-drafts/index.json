@@ -1,0 +1,380 @@
+[
+ {
+  "target": "erdos-1050",
+  "node": "erdos-1050--h1-v2--h2",
+  "module": "attempts/20260929T194647Z-t0929-1-partial.lean",
+  "needs_words": false,
+  "first_sentence": "E(n) = beta0(n) * z - alpha0(n) by partial fractions in x = 2^m (proved below, via Lagrange interpolation); b(n) = 9^n W"
+ },
+ {
+  "target": "erdos-1050",
+  "node": "erdos-1050--h1-v2",
+  "module": "attempts/20260921T064200Z-tester-1050-2045-partial.lean",
+  "needs_words": false,
+  "first_sentence": "Dirichlet: an irrational real has integer approximants b n * T - a n, nonzero and tending to 0."
+ },
+ {
+  "target": "erdos-1050",
+  "node": "erdos-1050--h1-v2",
+  "module": "attempts/20260924T123700Z-t0924-1050-mcp-partial.lean",
+  "needs_words": true,
+  "first_sentence": "Borwein's integrality route: transfer T to the reduced q-harmonic value z = 3/5 − 3T, then b(n)z − a(n) = 9^n W(n) E(n) with integers a, b and a cleared error that tends to 0."
+ },
+ {
+  "target": "erdos-1050",
+  "node": "erdos-1050--h1-v2",
+  "module": "attempts/20260924T123718Z-h0924-1050-http-partial.lean",
+  "needs_words": false,
+  "first_sentence": "Informal account: annex f593a93a8960 (graph PR #185) on this node. Explicit q-Pade approximants (Borwein's route) for T "
+ },
+ {
+  "target": "erdos-1050",
+  "node": "erdos-1050",
+  "module": "attempts/20260917T141921Z-calib-1050-fable-partial.lean",
+  "needs_words": false,
+  "first_sentence": "Borwein's theorem for the tail T = ∑_{n ≥ 3} 1/(2^n − 3), in Diophantine-approximant form: integer sequences a, b with b"
+ },
+ {
+  "target": "erdos-1094",
+  "node": "erdos-1094--h2--h1--h1--h1",
+  "module": "attempts/20261015T151456Z-t1015c-a06-partial.lean",
+  "needs_words": false,
+  "first_sentence": "Split the range 2k ≤ n < k³ at n = k²: the lower band (n < k², Sylvester–Schur/Ecklund regime) and the upper band (k² ≤ "
+ },
+ {
+  "target": "erdos-1094",
+  "node": "erdos-1094--h2--h1--h1",
+  "module": "attempts/20261014T111741Z-t1014-y-partial.lean",
+  "needs_words": false,
+  "first_sentence": "Proved here (assembly): n / gcd(n,k) divides C(n,k) (from k*C(n,k) = n*C(n-1,k-1) and coprimality of n/g and k/g), and n"
+ },
+ {
+  "target": "erdos-1094",
+  "node": "erdos-1094--h2--h1--h4--h1",
+  "module": "attempts/20261015T145300Z-t1015c-a06-partial.lean",
+  "needs_words": true,
+  "first_sentence": "On the thin strip with n/gcd(n,k) prime, split by gcd(n,k): either n itself is prime and coprime to k, or gcd(n,k) ≥ 2."
+ },
+ {
+  "target": "erdos-1094",
+  "node": "erdos-1094--h2--h1--h4",
+  "module": "attempts/20261014T111658Z-t1014-y-partial.lean",
+  "needs_words": false,
+  "first_sentence": "Proved here (assembly): under k*k ≤ n and minFac C(n,k) > n/k, the number n / gcd(n,k) is prime. Reason: n/gcd(n,k) divi"
+ },
+ {
+  "target": "erdos-1094",
+  "node": "erdos-1094--h2--h1",
+  "module": "attempts/20261009T143300Z-t1009-c-partial.lean",
+  "needs_words": false,
+  "first_sentence": "Konyagin's theorem, g(k) > k^3 for all large k, in the network's \"bounded k\" shape: a binomial coefficient C(n, k) with "
+ },
+ {
+  "target": "erdos-1094",
+  "node": "erdos-1094--h2--h1",
+  "module": "attempts/20261014T075000Z-t1014-a-partial.lean",
+  "needs_words": false,
+  "first_sentence": "Baker, Harman and Pintz (2001): for large k the interval (k, k + k^(21/40)) holds at least C k^(21/40) / log k primes. S"
+ },
+ {
+  "target": "erdos-1094",
+  "node": "erdos-1094--h2--h2--h2--h2",
+  "module": "attempts/20261014T181000Z-t1014-r-partial.lean",
+  "needs_words": true,
+  "first_sentence": "Konyagin's count on the medium range: few m in (k, k + k^θ) have n/m near an integer, so BHP's primes leave one that divides (n−k)⋯(n−1)."
+ },
+ {
+  "target": "erdos-1094",
+  "node": "erdos-1094--h2--h2--h2--h3--h1--h1--h1",
+  "module": "attempts/20261015T130229Z-t1015b-s-partial.lean",
+  "needs_words": true,
+  "first_sentence": "Prove Konyagin's theorem at scale [1, 2) from one lemma: a small integer linear relation killing the first r moments of 2r weighted points, with coefficients at most (256M/r)^(r−1)·W."
+ },
+ {
+  "target": "erdos-1094",
+  "node": "erdos-1094--h2--h2--h2--h3--h1--h1",
+  "module": "attempts/20261015T063320Z-opn-prove-aristotle-1015-partial.lean",
+  "needs_words": true,
+  "first_sentence": "Prove Konyagin's theorem by two reductions: the bound is trivial when 65536X ≥ 1, and a general scale λ reduces to λ/⌊λ⌋ in [1, 2) by splitting S into residue classes mod ⌊λ⌋."
+ },
+ {
+  "target": "erdos-1094",
+  "node": "erdos-1094--h2--h2--h2--h3--h1",
+  "module": "attempts/20261015T023339Z-t1015-r-partial.lean",
+  "needs_words": true,
+  "first_sentence": "Reduce the count of m with n/m near an integer to Konyagin's theorem on the good points of a smooth f, applied to f(x) = (−1)^r n/(k + x) on [0, k^θ] with W = 1."
+ },
+ {
+  "target": "erdos-1094",
+  "node": "erdos-1094--h2--h2--h2--h3",
+  "module": "attempts/20261015T021346Z-t1015-r-partial.lean",
+  "needs_words": true,
+  "first_sentence": "Medium-large range via Konyagin's theorem at r = 2 and scale λ = √(k^(2+θ)/2n)·log k: the bad m are o(k^θ/log k), so BHP leaves a prime dividing the window."
+ },
+ {
+  "target": "erdos-1094",
+  "node": "erdos-1094--h2--h2--h2--h4",
+  "module": "attempts/20261015T023100Z-t1015-q-partial.lean",
+  "needs_words": true,
+  "first_sentence": "Large range via Konyagin's theorem with r the least exponent with n·r! ≤ k^(r+θ) and λ balanced: the bad m are o(k^θ/log k), so BHP leaves a prime dividing the window."
+ },
+ {
+  "target": "erdos-1094",
+  "node": "erdos-1094--h2--h2--h2",
+  "module": "attempts/20261014T111800Z-t1014-x-partial.lean",
+  "needs_words": false,
+  "first_sentence": "Partial port of van Doorn–Tang (arXiv 2606.19863), `main_theorem` of github.com/Woett/ChatGPT-s-note-on-Erdos451: its fo"
+ },
+ {
+  "target": "erdos-1094",
+  "node": "erdos-1094--h2--h2--h3--h1",
+  "module": "attempts/20261015T144930Z-t1015c-a08-partial.lean",
+  "needs_words": false,
+  "first_sentence": "Proved here: if k ∣ n then gcd(n,k) = k, so p := n/k is prime with p ∣ k! (as p ∣ k*(n/k)), hence p ≤ k; but p = n/k ≥ k"
+ },
+ {
+  "target": "erdos-1094",
+  "node": "erdos-1094--h2--h2--h3",
+  "module": "attempts/20261014T111449Z-t1014-y-partial.lean",
+  "needs_words": false,
+  "first_sentence": "Proved here (assembly): under k*k ≤ n and minFac C(n,k) > n/k, the number n / gcd(n,k) is prime. Reason: n/gcd(n,k) divi"
+ },
+ {
+  "target": "erdos-1094",
+  "node": "erdos-1094--h2--h2",
+  "module": "attempts/20261014T073500Z-t1014-a-partial.lean",
+  "needs_words": false,
+  "first_sentence": "Baker, Harman and Pintz (2001): for large k the interval (k, k + k^(21/40)) holds at least C k^(21/40) / log k primes. S"
+ },
+ {
+  "target": "erdos-1094",
+  "node": "erdos-1094--h2",
+  "module": "attempts/20261009T124800Z-t1009-b-partial.lean",
+  "needs_words": true,
+  "first_sentence": "Split n ≥ k² at n = k³: bounded k on k² ≤ n < k³ and bounded k on n ≥ k³, each its own hole."
+ },
+ {
+  "target": "erdos-1094",
+  "node": "erdos-1094--h3--h1--h1--h1",
+  "module": "attempts/20261015T145000Z-t1015c-a12-partial.lean",
+  "needs_words": true,
+  "first_sentence": "Residue form with 6 | k, split at the prime 5: either 5 | k too, or 5 ∤ k and no carry at 5 (a carry at 5 is closed by p = 5)."
+ },
+ {
+  "target": "erdos-1094",
+  "node": "erdos-1094--h3--h1--h1--h2--h1",
+  "module": "attempts/20261015T145026Z-t1015c-a09-partial.lean",
+  "needs_words": true,
+  "first_sentence": "Residue form with k even, 3 ∤ k and no carry at 3, 5, 7, 11, 13, split by k mod 3: k ≡ 1 (then n mod 3 ≥ 1), or k ≡ n ≡ 2."
+ },
+ {
+  "target": "erdos-1094",
+  "node": "erdos-1094--h3--h1--h1--h2",
+  "module": "attempts/20261014T175700Z-t1014-q-partial.lean",
+  "needs_words": true,
+  "first_sentence": "Residue form with k even, 3 ∤ k and no carry at 3: try the primes 5, 7, 11, 13 in turn, and leave as the hole the case where none of them carries."
+ },
+ {
+  "target": "erdos-1094",
+  "node": "erdos-1094--h3--h1--h1",
+  "module": "attempts/20261014T112100Z-t1014-z-partial.lean",
+  "needs_words": true,
+  "first_sentence": "Residue form with k even, split at the prime 3: either 3 | k, or 3 ∤ k and no carry at 3 (a carry at 3 is closed by p = 3)."
+ },
+ {
+  "target": "erdos-1094",
+  "node": "erdos-1094--h3--h1--h1",
+  "module": "attempts/20261015T145000Z-t1015c-a16-partial.lean",
+  "needs_words": true,
+  "first_sentence": "Residue form with k even, split by whether some prime q ≤ k divides n but not k: such a q carries at once, so the hole is the case where every prime ≤ k dividing n divides k."
+ },
+ {
+  "target": "erdos-1094",
+  "node": "erdos-1094--h3--h1--h2--h1",
+  "module": "attempts/20261015T145000Z-t1015c-a10-partial.lean",
+  "needs_words": true,
+  "first_sentence": "Residue form with k, n odd and 3 | k, split at the prime 5: either 5 | k too, or 5 ∤ k and no carry at 5 (a carry at 5 is closed by p = 5)."
+ },
+ {
+  "target": "erdos-1094",
+  "node": "erdos-1094--h3--h1--h2--h2",
+  "module": "attempts/20261015T145200Z-t1015c-a11-partial.lean",
+  "needs_words": true,
+  "first_sentence": "Residue form with k, n odd, 3 ∤ k and no carry at 3, split by k mod 3: k ≡ 1, or k ≡ n ≡ 2 (mod 3)."
+ },
+ {
+  "target": "erdos-1094",
+  "node": "erdos-1094--h3--h1--h2",
+  "module": "attempts/20261014T112100Z-t1014-z-partial.lean",
+  "needs_words": true,
+  "first_sentence": "Residue form with k and n odd, split at the prime 3: either 3 | k, or 3 ∤ k and no carry at 3 (a carry at 3 is closed by p = 3)."
+ },
+ {
+  "target": "erdos-1094",
+  "node": "erdos-1094--h3--h1",
+  "module": "attempts/20261009T125000Z-t1009-a-partial.lean",
+  "needs_words": true,
+  "first_sentence": "Residue form split by parity: k even, or k and n both odd (k odd with n even carries at p = 2 and is closed in the assembly)."
+ },
+ {
+  "target": "erdos-1094",
+  "node": "erdos-1094--h3--h2",
+  "module": "attempts/20261015T132800Z-t1015b-h-partial.lean",
+  "needs_words": false,
+  "first_sentence": "Partial proof along Erdős–Lacampagne–Selfridge, \"Estimates of the least prime factor of a binomial coefficient\", Math. C"
+ },
+ {
+  "target": "erdos-1094",
+  "node": "erdos-1094--h3--h3--h1",
+  "module": "attempts/20261015T145500Z-t1015c-a03-partial.lean",
+  "needs_words": true,
+  "first_sentence": "Chebyshev's sum over (k/2, 11k/20) from the prime number theorem: θ(x) = x + o(x) at x = 11k/20 and x = k/2 gives Σ log p ≥ k/100 for large k."
+ },
+ {
+  "target": "erdos-1094",
+  "node": "erdos-1094--h3--h3--h2",
+  "module": "attempts/20261015T145123Z-t1015c-a02-partial.lean",
+  "needs_words": true,
+  "first_sentence": "Sander's equidistribution from GR's Lemma 5.1: the log-weight of primes p with {n/p} < σ is σ Σ log p + o(k), so averaging over σ = j/M gives Σ({n/p} − 1/2) log p = o(k)."
+ },
+ {
+  "target": "erdos-1094",
+  "node": "erdos-1094--h3--h3",
+  "module": "attempts/20261015T132200Z-t1015b-g-partial.lean",
+  "needs_words": false,
+  "first_sentence": "Second level of Granville–Ramaré, Mathematika 43 (1996) 73–107, Theorem 8, §5e (preprint pp. 24–25), the analytic step. "
+ },
+ {
+  "target": "erdos-1094",
+  "node": "erdos-1094--h3",
+  "module": "attempts/20261008T133001Z-t1008-a-partial.lean",
+  "needs_words": true,
+  "first_sentence": "Small range through a last-digit carry: for large k some prime p ≤ k has n mod p < k mod p, so p divides C(n,k) by Lucas' theorem."
+ },
+ {
+  "target": "erdos-1094",
+  "node": "erdos-1094--h3",
+  "module": "attempts/20261009T143300Z-t1009-c-partial.lean",
+  "needs_words": false,
+  "first_sentence": "Konyagin's theorem, g(k) > k^3 for all large k, in the network's \"bounded k\" shape: a binomial coefficient C(n, k) with "
+ },
+ {
+  "target": "erdos-1094",
+  "node": "erdos-1094--h3",
+  "module": "attempts/20261015T125200Z-t1015b-g-partial.lean",
+  "needs_words": false,
+  "first_sentence": "Skeleton of Granville–Ramaré, Mathematika 43 (1996) 73–107, Theorem 8 (preprint p. 5), proof in §5e (preprint pp. 24–25)"
+ },
+ {
+  "target": "erdos-1094",
+  "node": "erdos-1094",
+  "module": "attempts/20261008T130306Z-t1008-a-partial.lean",
+  "needs_words": true,
+  "first_sentence": "Split the exceptional pairs at n = k²: for n ≥ k² the bound is n/k (finitely many n for each k, and k bounded), for 2k ≤ n < k² the bound is k and k is bounded."
+ },
+ {
+  "target": "erdos-402",
+  "node": "erdos-402--h3-v2--h1--h1--h1--h2",
+  "module": "attempts/20261001T170100Z-t1001-402a-partial.lean",
+  "needs_words": false,
+  "first_sentence": "Split of `hgen` by size n = |B| (agent 402-R6-a; statements prepared with agents 402-R5-b and 402-R6-b). Three holes, ea"
+ },
+ {
+  "target": "erdos-402",
+  "node": "erdos-402--h3-v2--h1--h1--h1",
+  "module": "attempts/20261001T154750Z-t1001-402a-partial.lean",
+  "needs_words": false,
+  "first_sentence": "Informal argument: the annex appended to this node on 2026-10-01 by this pseudonym (agent 402-R5-a), \"window-prime crite"
+ },
+ {
+  "target": "erdos-402",
+  "node": "erdos-402--h3-v2--h1--h1--h1",
+  "module": "attempts/20261001T163302Z-t1001-402a-partial.lean",
+  "needs_words": false,
+  "first_sentence": "Second route on this node (the first is the merged window-criterion partial with hole `hwin`). Agent 402-R6-a; Lean of t"
+ },
+ {
+  "target": "erdos-402",
+  "node": "erdos-402--h3-v2--h1--h1",
+  "module": "attempts/20261001T143056Z-t1001-402a-partial.lean",
+  "needs_words": false,
+  "first_sentence": "Informal argument and the Lean of each lemma: annex eb2314a2c5e64fe114b9093565a401979c6ef009436d2f021627b4d3d63663fd on "
+ },
+ {
+  "target": "erdos-402",
+  "node": "erdos-402--h3-v2--h1",
+  "module": "attempts/20261001T115500Z-t1001-402a-partial.lean",
+  "needs_words": false,
+  "first_sentence": "Informal argument: annex 6a64518f9cd863c9abea3114b518f3172f4c73c6a187eb928b43db35f77c0002 on this node (graph PR #325, i"
+ },
+ {
+  "target": "erdos-402",
+  "node": "erdos-402--h3-v2",
+  "module": "attempts/20260929T200020Z-t0929-6-partial.lean",
+  "needs_words": false,
+  "first_sentence": "Informal argument: annex f5450271cb4865766831f2e6b153cb532934219590cff79ed42bb2ff813b15ac on this node (graph PR #265, s"
+ },
+ {
+  "target": "erdos-402",
+  "node": "erdos-402",
+  "module": "attempts/20260917T141927Z-calib-402-f480-partial.lean",
+  "needs_words": false,
+  "first_sentence": "Skeleton of the Balasubramanian–Soundararajan / Szegedy argument for Graham's conjecture. Hole 1 (Farey structure): if e"
+ },
+ {
+  "target": "erdos-412",
+  "node": "erdos-412",
+  "module": "attempts/20260916T080157Z-agent-sigma-4f1d-partial.lean",
+  "needs_words": false,
+  "first_sentence": "Write x ~ y for \"the forward σ-orbits of x and y meet\", the relation this statement asserts holds for every pair of inte"
+ },
+ {
+  "target": "erdos-69",
+  "node": "erdos-69--h2-v2--h1-v2",
+  "module": "attempts/20260921T064112Z-agent-e69x-d614-partial.lean",
+  "needs_words": true,
+  "first_sentence": "Erdős's tail argument: split the rescaled tail after k terms, bound the remainder by log₂(N+k+1) + 1, and choose N, k so that b times the tail lands strictly between two integers."
+ },
+ {
+  "target": "erdos-69",
+  "node": "erdos-69--h2-v2",
+  "module": "attempts/20260917T180404Z-agent-erdos69-1b25-partial.lean",
+  "needs_words": true,
+  "first_sentence": "Erdős 1948: if the series were the rational q, every rescaled tail times q.den would be an integer, but for every b some rescaled tail times b is not."
+ },
+ {
+  "target": "erdos-69",
+  "node": "erdos-69",
+  "module": "attempts/20260917T141558Z-agent-erdos69-1b25-partial.lean",
+  "needs_words": false,
+  "first_sentence": "Hole 1 (Tao's remark under Erdős 257): the Lambert-series identity. Writing ω(n) as the number of primes dividing n and "
+ },
+ {
+  "target": "euclid-primes",
+  "node": "infinitude-of-primes",
+  "module": "attempts/20260912T110722Z-thisisanameforsure-partial.lean",
+  "needs_words": true,
+  "first_sentence": "Euclid's argument: a prime divisor of n! + 1 exceeds n, because every k ≤ n divides n! and nothing but 1 divides two consecutive numbers."
+ },
+ {
+  "target": "euclid-primes",
+  "node": "infinitude-of-primes",
+  "module": "attempts/20260912T123001Z-thisisanameforsure-partial.lean",
+  "needs_words": true,
+  "first_sentence": "Euclid's argument: a prime divisor of n! + 1 exceeds n, because every k ≤ n divides n! and nothing but 1 divides two consecutive numbers."
+ },
+ {
+  "target": "euclid-primes",
+  "node": "variant-2a7919a9",
+  "module": "attempts/20260919T185907Z-euclid-list-61d1ea-partial.lean",
+  "needs_words": true,
+  "first_sentence": "A prime larger than the sum of the list cannot be a member of it, since every entry is at most the sum."
+ },
+ {
+  "target": "tutorial",
+  "node": "variant-93e79cb5",
+  "module": "attempts/20260913T160600Z-agent-4b1f4d-partial.lean",
+  "needs_words": true,
+  "first_sentence": "Swap the conjunction and project: from p ∧ q obtain q ∧ p, then take its right component."
+ }
+]

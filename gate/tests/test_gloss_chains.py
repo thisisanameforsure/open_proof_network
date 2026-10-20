@@ -196,7 +196,7 @@ def withdraw(root: Path, record: str, author: str, *, n: int, node: str | None =
 
 def chains_of(root: Path, kind: str, node: str = NODE) -> list[dict[str, Any]]:
     doc = loads(generate(root), f"targets/{TARGET}/glosses.json")
-    assert doc["schema"] == "glosses/v2" and schemas.violations(doc) == []
+    assert doc["schema"] == "glosses/v3" and schemas.violations(doc) == []
     [subject] = [s for s in doc["subjects"] if s["kind"] == kind and s["node"] == node]
     return list(subject["chains"])
 
@@ -460,7 +460,7 @@ def test_the_product_lists_every_lean_file(root: Path) -> None:
     """R9: every statement, witness and relation of every node, and every merged proof artifact,
     is a subject, with or without chains, in the target's structural order."""
     doc = loads(generate(root), f"targets/{TARGET}/glosses.json")
-    assert doc["schema"] == "glosses/v2" and doc["target"] == TARGET
+    assert doc["schema"] == "glosses/v3" and doc["target"] == TARGET
     seen = {(s["kind"], s["node"]) for s in doc["subjects"]}
     for node in ("tutorial-and-swap", "and-reassoc", ROOT_NODE):
         assert {("statement", node), ("witness", node), ("proof", node)} <= seen

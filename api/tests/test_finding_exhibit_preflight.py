@@ -15,10 +15,10 @@ Statement, so the exhibits here import the Context; one importing the Statement 
 So the route now sends that text to the checker first and refuses ``422 exhibit-elaboration``
 with Lean's errors when the checker says it does not compile. It never refuses on anything
 weaker: no Lean error, no verdict, no checker, a Mathlib-free pin — all let the append open as
-before, and the receipt's ``exhibit_preflight`` says which. A circularity claim's exhibit, and one
-that imports a node other than the claim's own, are not sent (``skipped``): the first is checked
-by the gate with a relation program the checker is not sent, the second names modules only the
-gate's staging supplies.
+before, and the receipt's ``exhibit_preflight`` says which. An exhibit that imports a node other
+than the claim's own is not sent (``skipped``): it names modules only the gate's staging supplies.
+A circularity claim's exhibit was skipped too, until F08-T42 (D-16 v3.43) retired the class: it is
+now refused ``defect-class-retired`` before any check is spent.
 """
 
 from __future__ import annotations
@@ -26,8 +26,7 @@ from __future__ import annotations
 from typing import Any
 
 from api_fakes import AXLE_OKAY, Harness
-from test_finding_circular_claim import VALID as CIRCULAR
-from test_finding_circular_claim import add_ancestor
+from test_finding_circularity_retired_api import RETIRED, commit_hole
 from test_finding_witness_preflight import DEP, DEP_STATEMENT, harness, token
 
 from opn_api.axle import AxleError
@@ -137,13 +136,14 @@ def test_an_exhibit_naming_another_nodes_module_is_not_sent() -> None:
     assert h.axle.calls == []
 
 
-def test_a_circularity_claims_exhibit_is_the_gates_to_check() -> None:
+def test_a_circularity_claim_spends_no_check() -> None:
+    """F08-T42: the retired class is refused before the pre-flight, so no check is charged."""
     h = harness(fails(UNKNOWN))
-    add_ancestor(h)
-    r = h.client.post("/defect-claims", json=CIRCULAR, headers=h.auth(token(h)))
-    assert r.status_code == 201, r.text
-    assert r.json()["exhibit_preflight"] == "skipped"
+    commit_hole(h)
+    r = h.client.post("/defect-claims", json=RETIRED, headers=h.auth(token(h)))
+    assert (r.status_code, r.json()["error"]) == (400, "defect-class-retired"), r.text
     assert h.axle.calls == []
+    assert h.githost.pulls == []
 
 
 def test_a_revision_requests_exhibit_is_elaborated_too() -> None:

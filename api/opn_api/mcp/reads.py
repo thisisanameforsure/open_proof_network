@@ -48,12 +48,12 @@ NODE_FILES: tuple[tuple[str, bool], ...] = (  # (file, required): the raw files 
 #: The frontier version whose entry fields the filters are drawn from. The newest known
 #: one: its field set is a superset of the older versions', and a filter naming a field
 #: an older document does not carry simply matches nothing (F11-R4).
-FRONTIER_SCHEMA = "frontier/v5"  # F09-T24: `circular`, `literature`, `literature_proposed` too
+FRONTIER_SCHEMA = "frontier/v7"  # F03-T21 (D-25 v3.45): v6's fields plus literature.disputes
 #: The ``CONTEXT.json`` versions get_node serves: the gate module's own set, plus the version the
 #: v3.38 re-pin first renders (F10-T49), so the service accepts it whichever side of that
-#: re-pin it is deployed on (the deploy-window lesson of 2026-09-11).
+#: re-pin it is deployed on (the deploy-window lesson of 2026-09-11). F08-T42: ``context/v8``.
 CONTEXT_SCHEMAS: tuple[str, ...] = tuple(
-    dict.fromkeys((*context.ACCEPTED, "context/v6", "context/v7"))  # ordered, without a repeat
+    dict.fromkeys((*context.ACCEPTED, "context/v6", "context/v7", "context/v8", "context/v9"))
 )
 SCHEMA_NAME_RE = re.compile(r"^[a-z][a-z0-9-]*/v[1-9][0-9]*$")
 FRONT_MATTER_RE = re.compile(r"\A---[ \t]*\r?\n(?P<yaml>.*?)\r?\n---[ \t]*\r?\n", re.S)
@@ -365,10 +365,22 @@ async def list_sufficient_sets(call: Call, args: dict[str, Any]) -> dict[str, An
     cut = args.get("cut", "finest")
     if cut not in routes.CUTS:
         raise error("arguments-invalid", f"cut must be one of {', '.join(routes.CUTS)}", "adapter")
+    # F27-T9 (R13): stop at a proved statement (the default) or follow what its proof rests on
+    at_proved = args.get("at_proved", "stop")
+    if at_proved not in routes.AT_PROVED:
+        raise error(
+            "arguments-invalid",
+            f"at_proved must be one of {', '.join(routes.AT_PROVED)}",
+            "adapter",
+        )
     graph = document(ctx, f"targets/{target_id}/graph.json")
     served = service_answer(await call.endpoint("GET", "/frontier.json"), "/frontier.json")
     found = routes.read(
-        graph, served.get("entries") or [], cut=cut, max_sets=ctx.settings.routes_max_sets
+        graph,
+        served.get("entries") or [],
+        cut=cut,
+        max_sets=ctx.settings.routes_max_sets,
+        at_proved=at_proved,
     )
     # F28-T4 (R12, v3.41): the nodes whose proof exists in parts, read from the same graph; a
     # closable node is still open until its closing proof merges.
@@ -377,6 +389,8 @@ async def list_sufficient_sets(call: Call, args: dict[str, Any]) -> dict[str, An
         "read_at": ctx.head or ctx.settings.graph_branch,
         **found.as_dict(),
         "closable": closable,
+        # F29-R8 (D-25 v3.44): the selector tree over the sets, built from them alone (R6)
+        "selector": routes.selector_tree(found).as_dict(),
     }
 
 
@@ -551,7 +565,10 @@ def closing_route(node_id: str, statement: str | None) -> dict[str, Any]:
 
 #: The ``glosses.json`` versions get_node reads (F21-R6): v1 until a graph's re-pin renders v2,
 #: which adds sections, shown and pending words and ``drafted_with``; the gate writes v2.
-GLOSSES_SCHEMAS: frozenset[str] = frozenset({"glosses/v1", products.GLOSSES_SCHEMA})
+#: Every glosses product version the live graph may carry: the current one and every older one
+#: still committed until each target is re-rendered. Named explicitly, never derived from the
+#: current constant: deriving it dropped v2 the day v3 shipped and broke get_node live (2026-10-18).
+GLOSSES_SCHEMAS: frozenset[str] = frozenset({"glosses/v1", "glosses/v2", "glosses/v3"})
 
 
 def node_chains(ctx: Context, target_id: str, node_id: str) -> tuple[list[dict[str, Any]], str]:
@@ -636,6 +653,65 @@ PROSE_SECTIONS: tuple[str, ...] = (
 CHAIN_SECTIONS = frozenset({"outlines", "gloss_chains", "explainer_chains"})
 
 
+def node_labels(ctx: Context, target_id: str, node_id: str) -> dict[str, Any]:
+    """F29-R8: ``label``, ``label_source`` and ``claim`` from the node's ``graph.json`` row
+    (graph/v12, F29-R3). On an older product, or a row without them: the id, ``id``, null.
+    Read from the product, never from ``CONTEXT.json`` (its two builders must agree, F10-Q7)."""
+    graph = document(ctx, f"targets/{target_id}/graph.json")
+    row = next(
+        (
+            n
+            for n in graph.get("nodes") or []
+            if isinstance(n, dict) and n.get("node_id") == node_id
+        ),
+        {},
+    )
+    label = row.get("label")
+    source = row.get("label_source")
+    claim = row.get("claim")
+    if not isinstance(label, str) or not label or source not in LABEL_SOURCES:
+        label, source = node_id, "id"
+    return {
+        "label": label,
+        "label_source": source,
+        "claim": claim if isinstance(claim, str) and claim else None,
+    }
+
+
+#: graph/v12's ``label_source`` values (D-25 v3.44).
+LABEL_SOURCES: frozenset[str] = frozenset({"gloss", "hole", "target", "id"})
+
+#: The fields of a ``target_proofs`` entry that name the proof in ``in_closure`` (F22-T9).
+PROOF_KEYS: tuple[str, ...] = ("node_id", "kind", "path", "artifact_hash")
+
+
+def node_structure(ctx: Context, target_id: str, node_id: str) -> dict[str, Any]:
+    """F22-T9 (request H, Q3): ``proposed_for``, the node's row's pointer (F18-R8), and
+    ``in_closure``, each of the target's proofs (``target_proofs``, F18-R1) whose closure holds
+    the node, in the record's order. Read from ``graph.json`` like the labels (F10-Q7); a product
+    older than either field answers null and []."""
+    graph = document(ctx, f"targets/{target_id}/graph.json")
+    row = next(
+        (
+            n
+            for n in graph.get("nodes") or []
+            if isinstance(n, dict) and n.get("node_id") == node_id
+        ),
+        {},
+    )
+    pointer = row.get("proposed_for")
+    proofs = graph.get("target_proofs")
+    in_closure = [
+        {key: p[key] for key in PROOF_KEYS}
+        for p in (proofs if isinstance(proofs, list) else [])
+        if isinstance(p, dict) and node_id in (p.get("closure") or [])
+    ]
+    return {
+        "proposed_for": pointer if isinstance(pointer, str) and pointer else None,
+        "in_closure": in_closure,
+    }
+
+
 async def get_node(call: Call, args: dict[str, Any]) -> dict[str, Any]:
     node_id = check_id(args.get("node_id"), "node_id")
     # T19: every prose section unless the caller names the ones it wants (the owner's ruling:
@@ -664,6 +740,12 @@ async def get_node(call: Call, args: dict[str, Any]) -> dict[str, Any]:
     out: dict[str, Any] = {
         "node_id": node_id,
         "target_id": target_id,
+        # F29-R8 (D-3, D-25 v3.44): the node's label, where it came from and its claim, as
+        # graph.json carries them (R3); a product rendered before v3.44 has none, and the
+        # answer falls back as the generator would with nothing on the record: the id.
+        **node_labels(call.ctx, target_id, node_id),
+        # F22-T9: what it was proposed for and which of the target's proofs rest on it.
+        **node_structure(call.ctx, target_id, node_id),
         "context": bundle,
         "context_source": source,
         "closing": closing_route(node_id, files.get("Statement.lean")),
@@ -753,7 +835,7 @@ async def get_schema(call: Call, args: dict[str, Any]) -> dict[str, Any]:
     tool = results.tool_of(name)
     if tool is not None:
         try:
-            return results.load(tool)
+            return results.load(tool, results.version_named(name))
         except KeyError as exc:
             raise error("not-found", f"no adapter schema {name}", "adapter") from exc
     if not SCHEMA_NAME_RE.match(name):
@@ -855,7 +937,7 @@ WORD_KINDS: tuple[str, ...] = (
 
 
 #: The products ``glosses.needed`` reads: the live graph holds v1 until its re-pin (F21-R6).
-GLOSSES_VERSIONS = frozenset({"glosses/v1", "glosses/v2"})
+GLOSSES_VERSIONS = frozenset({"glosses/v1", "glosses/v2", "glosses/v3"})
 
 
 class _UnreadError(Exception):
@@ -1027,18 +1109,24 @@ TOOLS: tuple[Tool, ...] = (
         "The open nodes with D-25's observed facts and live claim status. `filters` is an "
         "object of frontier field to value (dotted for nested, e.g. `tags.library`): equality "
         "on a scalar field, containment on a list field; results keep the file's order and "
-        "carry no ranking.",
+        "carry no ranking. An entry's `literature` is its confirmed status (with `disputes`, "
+        "the proposal the signer rejected, or null) and `literature_proposed` the one "
+        "awaiting a steward.",
         params({"filters": filters_param()}),
         list_frontier,
     ),
     Tool(
         "get_node",
         "A node's context bundle (nodes/<id>/CONTEXT.json: statement, deps' signatures, witness, "
-        "status, gate-spec reference, attempt log, annex hashes) plus the raw Lean files, live "
+        "status, gate-spec reference, attempt log, annex hashes, `literature` and "
+        "`literature_proposed` with each record's summary and references inlined and, on a "
+        "confirmed status, `disputes`) plus the raw Lean files, live "
         "claim status, `lemmas` (results from other branches this node may use once proved), "
+        "its `label` (the statement's short name, with `label_source`: gloss, hole, target or "
+        "id) and `claim` (the statement in notation from its gloss, or null), "
         "annexes, explainers and the submissions open on it. `include` names the prose sections "
         "to answer (all of them when omitted); `include: []` answers the Lean, the context, the "
-        "claims, the lemmas and the open submissions alone.",
+        "claims, the lemmas, the label and the open submissions alone.",
         params(
             {
                 "node_id": ID_PARAM,
@@ -1071,11 +1159,12 @@ TOOLS: tuple[Tool, ...] = (
         "get_submission",
         (
             "A submission or proposal by its ULID or pull-request number (padded or "
-            "not): the record, the pull request's live state and, once merged, the "
-            "attestation it earned or why there is none. `pull_request.waiting_on` names "
-            "the one thing it waits for (gate, step9-review, branch-update, merge, "
-            "products, or gate-failed, when `gate_verdict` carries the gate's own "
-            "diagnostic). `state` is open, merged or closed. While open, `queue` gives "
+            "not): the record, the pull request's live state "
+            "and, once merged, the attestation it earned or why there is none. "
+            "`pull_request.waiting_on` names the one thing it waits for (gate, "
+            "step9-review, branch-update, merge, products, or gate-failed, when "
+            "`gate_verdict` carries the gate's own diagnostic). `state` is open, merged "
+            "or closed. While open, `queue` gives "
             "its `position` (from 1) `of` how many in its target's lane of the merge "
             "actor, and the pull requests `ahead`; a position is an upper bound on the "
             "merges ahead. For a partial, `holes[].became` is the node each hole became once "
@@ -1111,9 +1200,8 @@ TOOLS: tuple[Tool, ...] = (
     Tool(
         "get_schema",
         "A JSON Schema by name: a protocol record's (`postmortem/v1`, `defect-claim/v1`, ...) "
-        "or a tool result's (`mcp/<tool>/v1`). A defect claim of class "
-        f"`{requests.CIRCULAR_CLASS}` is written as `{requests.CIRCULAR_SCHEMA}`, every other "
-        f"class as `{requests.DEFECT_SCHEMA}`.",
+        "or a tool result's (`mcp/<tool>/v1`). A defect claim is written as "
+        f"`{requests.DEFECT_SCHEMA}`.",
         params(
             {
                 "name": {
@@ -1276,15 +1364,17 @@ TOOLS: tuple[Tool, ...] = (
     Tool(  # F27-T2: D-28's read table, v3.40
         "list_sufficient_sets",
         "A target as an AND-OR graph (D-25 v3.40). `routes`: each merged decomposition "
-        "(id `<node>@<k>`), all of whose holes are needed, with each hole's status, attempts and "
-        "refuted route classes and a `summary` (holes, proved, open, dead, attempts, "
-        "unattempted, `oldest_open_since`), so a stalled route shows. `sets`: statements whose "
-        "proofs, with the closing proofs of their `assemblies`, would close the root; each with "
-        "`open`, `proved`, `routes`, `total`, `closed`, `remaining`, `shared`. `cut: finest` "
-        "(default) expands every node with a live route; `cut: any` adds the coarser cuts up to "
-        "a cap (`truncated`). Record order, never ranked. Whether to claim a hole or propose a "
-        "route (propose_variant, propose_speculative_node) is the operator's choice. "
-        "Plain path: targets/<id>/graph.json + GET /frontier.json.",
+        "(id `<node>@<k>`), all of whose holes are needed, with its `approach`, each hole's "
+        "`label`, status, attempts and refuted route classes, and a `summary` (holes, proved, "
+        "open, dead, attempts, unattempted, `oldest_open_since`), so a stalled route shows. "
+        "`sets`: statements whose proofs, with the closing proofs of their `assemblies`, would "
+        "close the root; each with `open`, `proved`, `routes`, `total`, `closed`, `remaining`, "
+        "`shared`. `selector`: the tree of route choices over the sets (a leaf: one set). "
+        "`cut: any` adds the coarser cuts up to a cap (`truncated`). `at_proved: follow` also "
+        "lists what each proved statement's proof rests on (`proof_routes`: the assemblies it "
+        "went through); the sets and ids are the same. Record order, never ranked; "
+        "claiming a hole or proposing a route is the operator's choice. Plain path: "
+        "targets/<id>/graph.json + GET /frontier.json.",
         params(
             {
                 "target_id": ID_PARAM,
@@ -1293,6 +1383,12 @@ TOOLS: tuple[Tool, ...] = (
                     "enum": list(routes.CUTS),
                     "description": "finest (default): every node with a live route expanded; "
                     "any: the coarser cuts too.",
+                },
+                "at_proved": {
+                    "type": "string",
+                    "enum": list(routes.AT_PROVED),
+                    "description": "stop (default): a proved statement ends the set; follow: "
+                    "what its proof rests on is listed beneath it too.",
                 },
             },
             ("target_id",),

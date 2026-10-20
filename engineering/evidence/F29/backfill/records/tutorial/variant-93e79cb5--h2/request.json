@@ -1,0 +1,13 @@
+{
+ "subject": {
+  "kind": "statement",
+  "node": "variant-93e79cb5--h2",
+  "module": null,
+  "lean_hash": "76c56e3cb09e3836fefa96acb31199a0e6c25b7a1bec6fd6d37290acc7deec6d"
+ },
+ "text": "$$\\forall\\, p\\,q:\\operatorname{Prop},\\quad p\\wedge q\\ \\Rightarrow\\ q\\wedge p\\ \\Rightarrow\\ q\\wedge p\\ \\Rightarrow\\ p$$\n\nFor any two propositions $p$ and $q$: if $p\\wedge q$ holds, and $q\\wedge p$ holds (the earlier hole's claim, inherited as a hypothesis), and $q\\wedge p$ holds again, then $p$ holds. The two copies of $q\\wedge p$ are separate hypotheses as written, and $p$ already follows from the first hypothesis alone.\n",
+ "supersedes": null,
+ "licence": "CC-BY-4.0",
+ "drafted_with": "Claude Fable 5.1 (claude-fable-5-1)",
+ "label": "Left projection given the swapped conjunction"
+}
