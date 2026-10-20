@@ -1778,3 +1778,19 @@ The law of the project:
   merges and one direct push touch `nodes/` without products. **Never `source .env`**: an unquoted
   continuation line ran as a command and the shell echoed part of a secret into the session; read only the
   keys a probe needs with `dotenv_values`, and print nothing from them.
+
+- 2026-10-20 — Three agents, one skeleton each on the Erdős 257 planning nodes, two hours: the
+  uniqueness crux proved (#782, #785, #787, #793), every bookkeeping hole of the other two proved,
+  and the open mathematics left as exactly two holes (`spec-a70fcca4--h4`, `erdos-257--h2`), no
+  human in any merge (`engineering/evidence/testers-2026-10-20-e257/`). Three things worth keeping.
+  **"Renders never cost a round" was true of the products and false of the job**: the bot's
+  `gate: #N pass` commit also writes `META.yaml` status and the hole nodes, neither excluded by the
+  actor's `gates_on`, so one proof was gated four times green; read the bot commit's `--stat`, not
+  the rule's comment. **A format check that passes a line the writer then re-wraps is two halves of
+  one bug**: `claim-form` accepts any `$…$`-delimited line and `postmerge.py` wraps it in `$$`, so
+  three of four claims with inner groups reached the record as nested dollars. **A substring test on
+  a class attribute breaks the day the class gains a second token**: `has_math` missed
+  `math math-break` and a hole page shipped without KaTeX; the earlier pages passed only because they
+  carried other math. Also: a superseding gloss without `label` erases a node's name from every
+  drawing, and the v3.38 lemma rule never fires under a parent with binders because the sibling check
+  compares the closed form only.

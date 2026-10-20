@@ -1,0 +1,7 @@
+-- hole: h_greedy
+
+import Mathlib
+
+theorem witness : ∃ (r : ℚ) (A : Set ℕ) (n : ℕ),
+  (0 : ℕ) ∉ A ∧ ∑' (n : (↑A : Type)), (1 : ℝ) / ((2 : ℝ) ^ (↑n : ℕ) - (1 : ℝ)) = (↑r : ℝ) ∧ (1 : ℕ) ≤ n :=
+  ⟨0, ∅, 1, Set.notMem_empty 0, by rw [tsum_empty]; simp, le_refl 1⟩

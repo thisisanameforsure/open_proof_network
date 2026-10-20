@@ -1,0 +1,31 @@
+schema: postmortem/v1
+node: erdos-257--h2
+contributor: replaced-by-the-service
+route: "the open core of Erdős 257 as this skeleton states it: a set of positive integers that is greedy for a rational r and sums to r is finite; checked numerically (exact greedy walk for 1/2 to depth 10^6 here, 10^8 by Hong) rather than attacked formally, because the experts expect it to be false"
+route_class: computational
+outcome: blocked
+terminal_goal_state: |
+  r : ℚ
+  G : Set ℕ
+  hG0 : 0 ∉ G
+  hgreedy : ∀ (n : ℕ), 1 ≤ n → (n ∈ G ↔ 1 / (2 ^ n - 1) ≤ ↑r - ∑' (a : ↑(G ∩ Set.Iio n)), 1 / (2 ^ ↑a - 1))
+  hsum : ∑' (n : ↑G), 1 / (2 ^ ↑n - 1) = ↑r
+  ⊢ G.Finite
+failure_class: statement-suspect
+detail: >
+  No proof was attempted and none is expected to exist: Kovač (erdosproblems.com/257, August 2025)
+  expects the fat Cantor set of subset sums of 1/(2^a - 1) to contain rationals, which would make
+  this hole and the root false. The greedy walk for r = 1/2, the only candidate representation
+  (uniqueness, spec-5e2e0890), was run exactly to depth 2500 (rationals) and with a 256-bit
+  fixed-point carry to 10^6 on 2026-10-20 (engineering/session-notes/2026-10-20-erdos-257-greedy-numerics.md
+  in the network repository), and by Hong to 10^8 (Zenodo 23287959, 2026, unrefereed), without
+  stalling; 501,014 of the first 10^6 integers are taken and the longest run of consecutive
+  elements is 20, where a run of about m consecutive elements near step m would be the signature
+  of a near-stall. The stall probability at step m under a random-bits model is about 2^(-m)/6,
+  so the walk is expected to run forever. What would settle the hole: a proof of spec-a70fcca4
+  (1/2 is the sum over an infinite set) refutes it and the root; a proof that every rational's
+  greedy walk stalls proves it and, with erdos-257--h1, the root. statement-suspect here means
+  "expected false", not "mis-stated": the hole is the open question itself, stated with the
+  hypothesis sum(G) = r that keeps it from being trivially false.
+artifacts:
+  missing_lemmas: []
