@@ -1664,6 +1664,14 @@ The law of the project:
   where they write logs**: six saved their token under `engineering/evidence/` (two as whole token responses that a pattern scan missed; read the field names); move them out before any
   commit, and tell every brief to keep tokens in the scratchpad.
 
+- 2026-10-16 — Two sessions took decisions v3.42 and `graph/v10` again (F28's closure, and the
+  circularity retirement, unpushed), the 2026-10-12 collision paid a second time. The overlap was
+  worse than the number: the later branch carried an owner's ruling (the claim link goes) that the
+  first-to-ship branch still violated, so F28 took the ruling's link half in before release (Q12,
+  red first with the other branch's own test) rather than publish a retired rule. Before merging
+  an amendment, `grep` every other worktree's decisions doc for the version you are about to
+  publish, and read what the other branch rules, not only what it numbers.
+
 - 2026-10-17 — F29 (labels, claims in notation, route approaches, the selector tree; decisions
   v3.44) built in one sitting from the owner's reading of erdos-1094's frontier as illegible:
   lead wrote the contracts, four worktree agents built gate, service, site and the route gloss,
