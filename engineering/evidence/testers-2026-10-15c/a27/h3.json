@@ -1,0 +1,5 @@
+{
+ "error": "arguments-invalid",
+ "message": "$['include'][0]: 'witness' is not one of ['annexes', 'explainers', 'outlines', 'gloss_chains', 'explainer_chains']",
+ "source": "adapter"
+}

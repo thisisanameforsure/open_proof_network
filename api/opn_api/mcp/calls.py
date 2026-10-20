@@ -138,7 +138,8 @@ class Tool:
 PARAM_DOCS: Mapping[str, str] = {
     "node_id": "A node's id, as list_frontier and get_target name it.",
     "target_id": "A target's id, as list_targets names it.",
-    "submission_id": "A submission's ULID, or its pull request's number.",
+    "submission_id": "A submission's ULID (the `id` list_submissions and receipts give), or its "
+    "pull request's number.",
     "job_id": "The precheck job's id, as precheck_submission returned it.",
     "check_id": "The check's id, as check_lean returned it.",
     "claim_id": "The claim's id, from claim_node's receipt or list_my_claims.",

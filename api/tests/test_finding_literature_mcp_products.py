@@ -26,7 +26,7 @@ from mcp_client import NODE, NODE_DIR, McpClient
 from test_literature_route import proposal, seed_stewards
 from test_mcp_equivalence import derived_bundle, seed_graph
 
-from opn_api import routes
+from opn_api import literature, routes
 from opn_api.mcp import bijection, reads, results
 from opn_api.mcp.server import TITLES, TOOLS
 from opn_gate import schemas, steward
@@ -34,6 +34,9 @@ from opn_gate import schemas, steward
 PROPOSE = "propose_literature"
 CONFIRM = "confirm_literature"
 NEW_FIELDS = ("circular", "literature", "literature_proposed")
+#: F08-T42 (D-12 v3.43): ``circular`` left the products at frontier/v6 and context/v8; the other
+#: two are still the newest version's, and so still filterable.
+STANDING_FIELDS = ("literature", "literature_proposed")
 LISTED_NODE = "listed-lemma"
 BY_NAME = {t.name: t for t in TOOLS}
 
@@ -60,7 +63,8 @@ def test_the_two_tools_are_bearer_writes_with_rows_titles_and_schemas() -> None:
         assert bijection.BY_TOOL[name].kind == "write"
         assert name in results.known(), name
         assert name in TITLES, name
-        assert "literature/v1" in tool.description, name
+        # F23-T13 (D-25 v3.45): both tools write literature/v2 now, the version with `disputes`
+        assert "literature/v2" in tool.description, name
         assert tool.input_schema["additionalProperties"] is False
     assert set(BY_NAME[PROPOSE].input_schema["required"]) == {
         "node_id",
@@ -89,7 +93,7 @@ def test_propose_literature_forwards_to_its_route(harness: Harness) -> None:
     assert out["body"]["path"].endswith("/literature/20260909T120000Z-alice.yaml")
     [push] = harness.githost.pushes
     doc = yaml.safe_load(next(iter(push.files.values())))
-    assert schemas.violations(doc, "literature/v1") == []
+    assert schemas.violations(doc, literature.SCHEMA) == []  # literature/v2 since F23-T13
     assert doc["contributor"] == "alice" and doc["signature"] is None
     assert results.violations(PROPOSE, out) == []
 
@@ -125,7 +129,7 @@ def test_confirm_literature_forwards_with_a_stewards_bearer(approval: tuple[str,
         assert out["body"]["path"].endswith("/literature/20260909T120000Z-alice.yaml")
         [push] = h.githost.pushes
         doc = yaml.safe_load(next(iter(push.files.values())))
-        assert schemas.violations(doc, "literature/v1") == []
+        assert schemas.violations(doc, literature.SCHEMA) == []  # literature/v2 since F23-T13
         assert (doc["contributor"], doc["via"], doc["confirms"]) == ("alice", "approval-key", None)
         assert doc["key"].split()[:2] == approval[1].split()[:2]
         assert results.violations(CONFIRM, out) == []
@@ -151,7 +155,14 @@ def frontier_v5() -> dict[str, Any]:
     listed node carrying a proposed status, checked against the committed schema."""
     doc: dict[str, Any] = json.loads((FIXTURES / "frontier-listed.json").read_text())
     # The golden copy is v5 since F08-T39 regenerated it (merged after this test was written);
-    # a v4 copy is lifted by hand so the test holds on either side of that commit.
+    # a v4 copy is lifted by hand so the test holds on either side of that commit. Since F08-T42
+    # it is v6, without `circular`, so it is lowered to v5 by hand.
+    if doc["schema"] == "frontier/v7":  # F03-T21: literature.disputes; the fixture has none
+        doc["schema"] = "frontier/v6"
+    if doc["schema"] == "frontier/v6":
+        doc["schema"] = "frontier/v5"
+        for entry in doc["entries"]:
+            entry["circular"] = []
     if doc["schema"] == "frontier/v4":
         doc["schema"] = "frontier/v5"
         for entry in doc["entries"]:
@@ -192,7 +203,8 @@ def test_a_v5_frontier_is_served(harness: Harness) -> None:
 def test_a_v4_frontier_is_still_served(harness: Harness) -> None:
     """A graph rendered before the v3.35 re-pin still carries frontier/v4 (the deploy window)."""
     doc = json.loads((FIXTURES / "frontier-listed.json").read_text())
-    if doc["schema"] == "frontier/v5":  # the golden copy is v5 since F08-T39: lower it by hand
+    # the golden copy is v5 since F08-T39 and v6 since F08-T42: lower it by hand
+    if doc["schema"] in ("frontier/v5", "frontier/v6", "frontier/v7"):
         doc["schema"] = "frontier/v4"
         for entry in doc["entries"]:
             for field in NEW_FIELDS:
@@ -205,10 +217,12 @@ def test_a_v4_frontier_is_still_served(harness: Harness) -> None:
 
 def test_list_frontier_filters_on_the_new_fields(harness: Harness) -> None:
     """The filter set is drawn from the newest version, so an agent can ask for the nodes whose
-    proposed status awaits a steward, or those under no circularity claim."""
-    for field in NEW_FIELDS:
+    proposed status awaits a steward. F08-T42 (D-12 v3.43): ``circular`` is no longer one of
+    them, since the newest version (frontier/v6) does not carry it."""
+    for field in STANDING_FIELDS:
         assert field in reads._entry_fields(), field
         assert f"`{field}`" in reads.filters_param()["description"], field
+    assert "circular" not in reads._entry_fields()
     serve_frontier(harness, frontier_v5())
     client = McpClient(harness)
     got = client.ok("list_frontier", {"filters": {"literature_proposed.status": "known"}})
@@ -228,6 +242,7 @@ def test_get_node_serves_a_committed_v5_context(harness: Harness, tmp_path: Path
         **{k: v for k, v in derived.items() if k not in ("lemmas", "review")},
         "schema": "context/v5",
         "circular": [],
+        "circular_below": [],  # F08-T42: the derived bundle (context/v8) no longer has it
         "literature": {
             "status": "known",
             "record": "literature/20261008T090000Z-bob.yaml",

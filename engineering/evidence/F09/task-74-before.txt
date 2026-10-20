@@ -1,0 +1,6 @@
+$ uv run --frozen python measure_tools_list.py   # compact JSON of every listed tool, as test_finding_mcp_context_budget measures it; at 8f33c2d0 before any change
+get_node description 688 input 432
+list_frontier description 320 input 584
+confirm_literature description 727 input 1086
+propose_literature description 776 input 1066
+tools/list compact characters: 111005

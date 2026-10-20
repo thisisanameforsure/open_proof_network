@@ -1,0 +1,13 @@
+{
+ "subject": {
+  "kind": "statement",
+  "node": "variant-dea95969",
+  "module": null,
+  "lean_hash": "dea959694c3e0207cc7cf8036d96f81b17542f4f4f224202434fa4e0265389e1"
+ },
+ "text": "$$\\forall n\\in\\mathbb{N}\\ \\ \\exists p\\in\\mathbb{N}:\\quad n<p\\ \\wedge\\ p\\ \\text{prime}\\ \\wedge\\ p \\bmod 4 = 3$$\n\nFor every natural number $n$ there is a prime $p>n$ whose remainder on division by $4$ is $3$ (Lean's `p % 4 = 3`). Prime is the problem's own `Opn.IsPrime`: $2\\le p$ and every $d$ with $p=d\\cdot c$ for some natural $c$ is $1$ or $p$.\n",
+ "supersedes": null,
+ "licence": "CC-BY-4.0",
+ "drafted_with": "Claude Fable 5.1 (claude-fable-5-1)",
+ "label": "Infinitely many primes congruent to 3 mod 4"
+}

@@ -40,6 +40,11 @@ ALWAYS = {
     "claims",
     "submissions",
     "lemmas",  # F09-T72 (D-12 v3.38): what a proof may draw on is never prose
+    "label",  # F29-T4 (D-3 v3.44): the statement's name, its source and its claim ride always
+    "label_source",
+    "claim",
+    "proposed_for",  # F22-T9: what it was proposed for and the proofs resting on it, not prose
+    "in_closure",
     "untrusted_note",
 }
 #: The longest a declared description may be, plain path included (T22).
@@ -289,7 +294,22 @@ def test_pin_a_tool_that_needs_a_token_refuses_inside_the_result(
 # F27-T2 (D-28 v3.40) added list_sufficient_sets and measured 105,255 without it and 109,474 with
 # it (+4,219, 4.0%: its output schema is 2,803 of it, a route's holes and summary and a set's
 # fields declared as structure; its description 858, its input 354). Pinned 110,000.
-TOOLS_LIST_BUDGET = 110_000
+# F29-T4 (D-25, D-28 v3.44) added a route's approach, a hole's label and the selector tree to
+# list_sufficient_sets and label, label_source and claim to get_node, and measured 109,734
+# before them and 110,731 with them (+997, 0.9%: the selector's recursive node declared once
+# under $defs; get_node's output grew 5,598 to 5,744; the two descriptions a sentence each).
+# Pinned 112,000.
+# F23-T13 and F09-T74 (D-25 v3.45) measured 111,005 before and 111,561 after (+556, 0.5%):
+# confirm_literature's `disputes` parameter (+168 of input schema) and one clause each on
+# confirm_literature, get_node and list_frontier. Pin unchanged.
+# F09-T75 (an agent, 2026-10-20) measured 111,879 before and 112,102 after (+223, 0.2%): the
+# `automation` property on get_my_submissions' finished entries (+53, the fix itself), where a
+# submission_id comes from (+46 each on get_submission and withdraw_submission), and the approach
+# record's caps (+78). Pinned 112,500.
+# F22-T9 measured 111,879 before and 112,369 after (+490, 0.4%): get_node's output schema at
+# v3, proposed_for and in_closure, all structure (the declared schema carries no prose). Merged
+# after F09-T75: the two together measure 112,592. Pinned 113,000.
+TOOLS_LIST_BUDGET = 113_000
 
 
 def test_the_whole_tools_list_fits_its_budget(harness: Harness) -> None:

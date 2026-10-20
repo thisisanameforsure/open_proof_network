@@ -197,7 +197,9 @@ def test_a_node_whose_target_has_no_index_row_says_nothing_about_claims(tmp_path
         dataclasses.replace(nv, target_id="no-such-target")
     )
     assert "Not claimable" not in page
-    assert '<h1 class="mono">listed-lemma</h1>' in page
+    # F29-T5: the root is headed by the target's title (its label) with the id beneath.
+    assert "<h1>A listed open problem</h1>" in page
+    assert '<p class="panel-id">listed-lemma</p>' in page
 
 
 def test_a_proved_node_carries_no_claim_reasons(tmp_path: Path) -> None:

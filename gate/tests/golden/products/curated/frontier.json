@@ -5,7 +5,6 @@
       "attempts": 3,
       "bounty": false,
       "cause": null,
-      "circular": [],
       "claimable": true,
       "claims": {
         "active": [],
@@ -38,5 +37,5 @@
     }
   ],
   "rendered_from": "5555555555555555555555555555555555555555",
-  "schema": "frontier/v5"
+  "schema": "frontier/v7"
 }

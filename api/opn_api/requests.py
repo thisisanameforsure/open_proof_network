@@ -24,12 +24,11 @@ import yaml
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 
-from opn_api import appends, checks, claims, duplicates, precheck, proposals
+from opn_api import appends, checks, duplicates, precheck, proposals
 from opn_api import clock as clockmod
 from opn_api import identity as identitymod
 from opn_api.app import ApiError
 from opn_api.githost import GitHostError
-from opn_gate import graph as graphmod
 from opn_gate import records, schemas
 
 if TYPE_CHECKING:
@@ -52,13 +51,29 @@ DEFECT_CLASSES: tuple[str, ...] = (
     "other-with-exhibit",
 )
 DEFS_PREFIX = "defs/"
-#: F08-T17: the class that says a node is no easier than a node above it, filed at v3 with the
-#: ancestor it names; every other class is still filed at v1.
-CIRCULAR_CLASS = records.CIRCULAR_CLASS
-CIRCULAR_SCHEMA = "defect-claim/v3"
-#: A defect claim's classes: D-16's taxonomy and the circularity class. A revision request
-#: (``revision-request/v1``) takes the taxonomy alone.
-DEFECT_CLAIM_CLASSES: tuple[str, ...] = (*DEFECT_CLASSES, CIRCULAR_CLASS)
+#: F08-T42 (D-12, D-16 v3.43): the circularity class, retired with its ``ancestor`` field. Every
+#: hole implies its parent by its merged assembly, so the claim separated nothing; a new one is
+#: refused ``defect-class-retired`` here and by the gate, and merged ones stay as history.
+RETIRED_CLASS = records.CIRCULAR_CLASS
+RETIRED_FIELD = "ancestor"
+#: A defect claim's classes: D-16's taxonomy, as a revision request's are.
+DEFECT_CLAIM_CLASSES: tuple[str, ...] = DEFECT_CLASSES
+
+
+def refuse_retired(fields: dict[str, Any]) -> None:
+    """F08-T42: the retired class, or an ``ancestor`` on any class, is refused before anything
+    else is read, with the gate's own code for the same record (``source: both``)."""
+    if fields.get("class") == RETIRED_CLASS or fields.get(RETIRED_FIELD) is not None:
+        raise ApiError(
+            400,
+            "defect-class-retired",
+            f"the {RETIRED_CLASS} class and its `{RETIRED_FIELD}` field were retired in "
+            "decisions v3.42 (D-12, D-16): every hole implies its parent by its merged "
+            "assembly, so the claim records nothing a hole does not already say, and a hole "
+            "definitionally equal to an ancestor is refused where it is made. A defect in the "
+            f"statement itself is a claim of another class, with no `{RETIRED_FIELD}`.",
+            details={"class": fields.get("class"), RETIRED_FIELD: fields.get(RETIRED_FIELD)},
+        )
 
 
 def check_class(raw: Any, field: str, classes: tuple[str, ...] = DEFECT_CLASSES) -> str:
@@ -172,8 +187,7 @@ async def post_revision_requests(ctx: Context, request: Request) -> Response:
 
 def resolve_ref(ctx: Context, raw: Any) -> tuple[str, str, str, dict[str, Any] | None]:
     """(target_id, stmt_ref as recorded, referenced path, the node's facts): a node id, or
-    ``<target>/defs/<file>``, which has no facts. F08-T18: the facts are kept, since they say
-    whether the node is already circular."""
+    ``<target>/defs/<file>``, which has no facts."""
     if not isinstance(raw, str) or not raw:
         raise ApiError(400, "stmt-ref-missing", "stmt_ref is required")
     target_id, sep, rest = raw.partition("/")
@@ -189,46 +203,14 @@ def resolve_ref(ctx: Context, raw: Any) -> tuple[str, str, str, dict[str, Any] |
     return target_id, raw, f"targets/{target_id}/nodes/{raw}/Statement.lean", facts
 
 
-def merged_claims_of(
-    ctx: Context, target_id: str, node_id: str, defect_class: str
-) -> tuple[str, ...]:
-    """The paths of the node's merged defect claims of ``defect_class`` on ``main``. Only a
-    message reads them, so a host that cannot answer gives none and the message names the
-    directory instead (C7)."""
-    folder = appends.node_dir(target_id, node_id) + "defects"
-    try:
-        names = ctx.githost.list_dir(ctx.settings.graph_repo, ctx.settings.graph_branch, folder)
-        found = []
-        for name in names or ():
-            if not name.endswith(".yaml"):
-                continue
-            body = fetch_optional(ctx, f"{folder}/{name}")
-            doc = yaml.safe_load(body) if body is not None else None
-            if isinstance(doc, dict) and doc.get("class") == defect_class:
-                found.append(f"{folder}/{name}")
-    except Exception as exc:  # any host or parse failure: the refusal stands without the paths
-        log.warning("%s: merged defect claims not listed: %s", node_id, type(exc).__name__)
-        return ()
-    return tuple(found)
-
-
 def known_state(
     ctx: Context, defect_class: str, stmt_ref: str, facts: dict[str, Any] | None
 ) -> list[dict[str, Any]]:
-    """F08-T18 (ruling D2): a defect claim of a class already merged on the node is refused, and
-    one of a class already open is named. The products record one class's merge — a merged
-    circularity claim is the node's ``cause: circular`` (F08-T17) — so that is the refusal; the
-    open ones are the service's own records, each carrying its class. Answers ``also_open``."""
-    if facts is None:  # a definitions file: no node, no cause, no node-scoped records
+    """F08-T18 (ruling D2): a defect claim of a class already open on the node is named; the open
+    ones are the service's own records, each carrying its class. Answers ``also_open``. (Its
+    refusal of a second merged circularity claim went with the class, F08-T42.)"""
+    if facts is None:  # a definitions file: no node-scoped records
         return []
-    if defect_class == CIRCULAR_CLASS and facts.get("cause") == graphmod.CAUSE_CIRCULAR:
-        target_id = str(facts["target_id"])
-        raise claims.circular(
-            stmt_ref,
-            facts,
-            lead=f"{stmt_ref} already has a merged circularity claim, and a second adds nothing",
-            merged=merged_claims_of(ctx, target_id, stmt_ref, defect_class),
-        )
     return [
         {"pr_number": found.pr_number, "pseudonym": found.pseudonym}
         for found in duplicates.open_rivals(ctx, stmt_ref, frozenset({"defect-claim"}))
@@ -251,80 +233,22 @@ def check_line(ctx: Context, raw: Any, path: str) -> int:
     return raw
 
 
-def ancestors_in(graph: list[dict[str, Any]], node_id: str) -> set[str]:
-    """Every node of the target that depends on ``node_id`` transitively, from the committed
-    ``graph.json`` rows, whose ``deps`` are already each dep read through its revisions (F08-T10)
-    — the relation ``graph.ancestors`` reads from the tree, where the gate checks it again."""
-    edges = {str(n["node_id"]): [str(d) for d in n.get("deps") or []] for n in graph}
-    found: set[str] = set()
-    todo = [node_id]
-    while todo:
-        below = todo.pop()
-        for candidate, deps in edges.items():
-            if below in deps and candidate not in found and candidate != node_id:
-                found.add(candidate)
-                todo.append(candidate)
-    return found
-
-
-def check_ancestor(
-    ctx: Context, raw: Any, *, defect_class: str, target_id: str, stmt_ref: str
-) -> str | None:
-    """F08-T17: a ``circular-decomposition`` claim names a node above the one it sits under, and
-    no other claim names one. The exhibit's type is the gate's to check, in the sandbox (C9)."""
-    if defect_class != CIRCULAR_CLASS:
-        if raw is None:
-            return None
-        raise ApiError(
-            400,
-            "circular-ancestor",
-            f"ancestor belongs to a {CIRCULAR_CLASS} claim; a {defect_class} claim names none",
-        )
-    if stmt_ref.startswith(DEFS_PREFIX):
-        raise ApiError(
-            400, "circular-ancestor", f"a {CIRCULAR_CLASS} claim is about a node, not a defs/ file"
-        )
-    if not isinstance(raw, str) or not raw:
-        raise ApiError(
-            400,
-            "circular-ancestor",
-            f"a {CIRCULAR_CLASS} claim names `ancestor`: a node that depends on {stmt_ref}; the "
-            f"exhibit proves `<{stmt_ref}'s statement> → <ancestor's statement>` (F08-T21)",
-        )
-    above = ancestors_in(precheck.graph_doc(ctx).get(target_id, []), stmt_ref)
-    if raw not in above:
-        raise ApiError(
-            400,
-            "circular-ancestor",
-            f"{raw} does not depend on {stmt_ref}, even through revisions; name one of: "
-            f"{', '.join(sorted(above)) or 'none (nothing depends on this node)'}",
-            details={"ancestors": sorted(above)},
-        )
-    return raw
-
-
-#: F05-T8: the fields ``POST /defect-claims`` reads; any other top-level key is refused.
-DEFECT_FIELDS: tuple[str, ...] = ("stmt_ref", "class", "line", "exhibit", "ancestor")
+#: F05-T8: the fields ``POST /defect-claims`` reads; any other top-level key is refused. The
+#: retired ``ancestor`` is read only to be refused by name (F08-T42), not as an unknown key.
+DEFECT_FIELDS: tuple[str, ...] = ("stmt_ref", "class", "line", "exhibit", RETIRED_FIELD)
 
 
 async def post_defect_claims(ctx: Context, request: Request) -> Response:
     """R7: D-16's pre-triage, then an append the gate re-checks the same way."""
     identity: Identity = request.state.identity
     fields, _ = await identitymod.body_fields(request, DEFECT_FIELDS)
+    refuse_retired(fields)
     defect_class = check_class(fields.get("class"), "class", DEFECT_CLAIM_CLASSES)
     target_id, stmt_ref, referenced, facts = resolve_ref(ctx, fields.get("stmt_ref"))
     line = check_line(ctx, fields.get("line"), referenced)
     exhibit = exhibit_text(fields, required=True)
-    ancestor = check_ancestor(
-        ctx,
-        fields.get("ancestor"),
-        defect_class=defect_class,
-        target_id=target_id,
-        stmt_ref=stmt_ref,
-    )
-    schema_id = DEFECT_SCHEMA if ancestor is None else CIRCULAR_SCHEMA
     doc: dict[str, Any] = {
-        "schema": schema_id,
+        "schema": DEFECT_SCHEMA,
         "stmt_ref": stmt_ref,
         "class": defect_class,
         "line": line,
@@ -332,12 +256,10 @@ async def post_defect_claims(ctx: Context, request: Request) -> Response:
         "contributor": identity.pseudonym,
         "date": clockmod.render(ctx.clock.now())[:10],
     }
-    if ancestor is not None:
-        doc["ancestor"] = ancestor
-    appends.validated(doc, schema_id)
+    appends.validated(doc, DEFECT_SCHEMA)
     also_open = known_state(ctx, defect_class, stmt_ref, facts)
     # F13-T22: D-16's pre-triage is mechanical; the exhibit's compile is the checker's, before
-    # anything opens. A circularity claim's exhibit is the gate's alone (a relation, not a compile).
+    # anything opens.
     assert exhibit is not None
     preflight = await checks.preflight_exhibit(
         ctx,
@@ -345,7 +267,6 @@ async def post_defect_claims(ctx: Context, request: Request) -> Response:
         target_id,
         None if stmt_ref.startswith(DEFS_PREFIX) else stmt_ref,
         exhibit,
-        relational=ancestor is not None,
     )
     name = appends.record_name(ctx, identity)
     if stmt_ref.startswith(DEFS_PREFIX):

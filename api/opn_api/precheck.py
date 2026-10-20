@@ -543,7 +543,57 @@ def carries_node(ctx: Context, commit: str, target_id: str, node_id: str) -> boo
     return True if got.status == 200 else None
 
 
-def job_commit(ctx: Context, node_id: str, target_id: str, rendered: str) -> str:
+def products_commit(ctx: Context, target_id: str) -> tuple[str, str] | None:
+    """F06-T18: the commit at ``main`` that wrote the target's products and the newest commit
+    there that touched its nodes, as ``(products, nodes)`` with ``nodes`` replaced by
+    ``products`` when it is an ancestor of it; ``None`` when the host cannot say (C7)."""
+    head = ctx.head
+    if not head:
+        return None
+    repo = ctx.settings.graph_repo
+    try:
+        products = ctx.githost.last_commit(repo, head, f"targets/{target_id}/graph.json")
+        nodes = ctx.githost.last_commit(repo, head, f"targets/{target_id}/nodes")
+        if products is None:
+            return None
+        if nodes is None or nodes == products or ctx.githost.is_ancestor(repo, nodes, products):
+            return products, products
+    except GitHostError as exc:
+        log.warning("%s's products commit at %s: not found: %s", target_id, head[:12], exc)
+        return None
+    return products, nodes
+
+
+def job_commit(
+    ctx: Context, node_id: str, target_id: str, rendered: str, *, makes_holes: bool = False
+) -> str:
+    """F06-T18 (Q23): the commit a job runs at is the one that wrote its target's products,
+    whose tree carries every node they list, the holes of the bot commit included (a skeleton
+    plans its holes against its siblings, so it must see them all). When a later commit has
+    touched the target's nodes, a merge's render is in flight: a bundle that makes holes is
+    refused ``409 products-pending``, since its plan would miss that merge's work; any other
+    bundle reads only immutable statements and runs at the products commit. When the host
+    cannot say, the rule of F06-T14 below stands."""
+    found = products_commit(ctx, target_id)
+    if found is not None:
+        products, nodes = found
+        if nodes != products and makes_holes:
+            raise ApiError(
+                409,
+                "products-pending",
+                f"graph commit {nodes[:12]}… changed {target_id}'s nodes after {products[:12]}…, "
+                "the commit that wrote its products, so the holes this bundle would make cannot "
+                "yet be planned against every node they might restate. It waits for that "
+                "merge's products. Retry shortly.",
+                details={"node_id": node_id, "graph_commit": products, "nodes_commit": nodes},
+                headers={"Retry-After": str(pending.PRODUCTS_RETRY_AFTER_S)},
+            )
+        if carries_node(ctx, products, target_id, node_id) is not False:
+            return products
+    return carried_commit(ctx, node_id, target_id, rendered)
+
+
+def carried_commit(ctx: Context, node_id: str, target_id: str, rendered: str) -> str:
     """F06-T14: the commit a job runs at, which must carry the node.
 
     ``rendered`` (Q10, Q12) when it does, or when the host cannot say (C7). The post-merge job
@@ -688,6 +738,9 @@ async def post_precheck(ctx: Context, request: Request) -> Response:
     if artifact_type is not None:
         # A precheck that the submission would refuse by path is refused before it costs a job.
         submissions.check_artifact_path(claim, bundle.files, artifact_type)
+    # F29-R5: a partial without its declarations is refused before the job exists or anything
+    # further is read from the host.
+    submissions.check_declarations(bundle.files, artifact_type)
     # F07-R23: and so is a carried witness step 2 would refuse, whatever type was declared.
     carried = submissions.check_carried(claim, bundle.files)
     # F08-R21 (T26): and a use line step 2 would refuse, by the gate's code, on a target whose
@@ -700,8 +753,15 @@ async def post_precheck(ctx: Context, request: Request) -> Response:
         graph_commit = proposal.head_sha
     else:
         graph_commit = rendered_from(ctx, claim.target_id if facts["status"] is not None else None)
-        # F06-T14: and only where the node exists; a hole is not in the commit it was rendered at
-        graph_commit = job_commit(ctx, node_id, claim.target_id, graph_commit)
+        # F06-T14: and only where the node exists; a hole is not in the commit it was rendered at.
+        # F06-T18: and where every node the products list exists, which a skeleton's plan needs.
+        graph_commit = job_commit(
+            ctx,
+            node_id,
+            claim.target_id,
+            graph_commit,
+            makes_holes="partial" in submissions.roles_of(bundle.files),
+        )
     check_cited_annex(ctx, claim, bundle, graph_commit)
     now = ctx.clock.now()
     job = Job(

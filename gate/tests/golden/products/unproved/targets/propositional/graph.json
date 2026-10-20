@@ -2,11 +2,13 @@
   "nodes": [
     {
       "cause": null,
-      "circular": [],
+      "claim": null,
       "closure": null,
       "decompositions": [],
       "defect_claims": [],
       "deps": [],
+      "label": "and-reassoc",
+      "label_source": "id",
       "lemmas": [],
       "literature": null,
       "literature_proposed": null,
@@ -26,7 +28,7 @@
     },
     {
       "cause": null,
-      "circular": [],
+      "claim": null,
       "closure": null,
       "decompositions": [],
       "defect_claims": [],
@@ -34,6 +36,8 @@
         "tutorial-and-swap",
         "and-reassoc"
       ],
+      "label": "and-swap-reassoc",
+      "label_source": "id",
       "lemmas": [],
       "literature": null,
       "literature_proposed": null,
@@ -53,11 +57,13 @@
     },
     {
       "cause": null,
-      "circular": [],
+      "claim": null,
       "closure": null,
       "decompositions": [],
       "defect_claims": [],
       "deps": [],
+      "label": "tutorial-and-swap",
+      "label_source": "id",
       "lemmas": [],
       "literature": null,
       "literature_proposed": null,
@@ -94,7 +100,7 @@
     "tracking": null
   },
   "root": "and-swap-reassoc",
-  "schema": "graph/v10",
+  "schema": "graph/v13",
   "target_id": "propositional",
   "target_proofs": []
 }

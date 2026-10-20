@@ -1,0 +1,13 @@
+{
+ "subject": {
+  "kind": "statement",
+  "node": "infinitude-of-primes--h4",
+  "module": null,
+  "lean_hash": "126b4aa45887505b3965f7ebbb86395155fa86a65d5ced946f16f62d34075be1"
+ },
+ "text": "$$\\forall n\\in\\mathbb{N}:\\ \\bigl(\\forall k,\\ 0<k\\le n\\Rightarrow k\\mid n!\\bigr)\\Rightarrow\\bigl(\\forall m\\ge 2,\\ \\exists p,\\ p\\ \\text{prime}\\wedge p\\mid m\\bigr)\\Rightarrow\\bigl(\\forall d,m,\\ d\\mid m\\wedge d\\mid m+1\\Rightarrow d=1\\bigr)\\Rightarrow\\ \\forall k\\in\\mathbb{N},\\ 0<k!$$\n\nFor every natural number $n$, under the three inherited hypotheses (every $k$ with $0<k\\le n$ divides $n!$; every $m\\ge 2$ has a prime divisor; a common divisor of $m$ and $m+1$ is $1$; the earlier holes' claims, which the conclusion does not use), every factorial $k!$ is positive. Divisibility is the problem's own `Opn.Divides`, prime is `Opn.IsPrime`, and the factorial is Mathlib's `Nat.factorial`.\n",
+ "supersedes": null,
+ "licence": "CC-BY-4.0",
+ "drafted_with": "Claude Fable 5.1 (claude-fable-5-1)",
+ "label": "The factorial is positive"
+}

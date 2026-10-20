@@ -1,0 +1,74 @@
+E       AssertionError: {'status': 202, 'body': {'id': '01M230M2G0PR4JE4AS93FT3RZ5', 'node_id': 'tutorial-and-swap', 'target_id': 'propositional', 'state': 'queued', 'created': '2026-09-09T12:00:00Z', 'graph_commit': '5555555555555555555555555555555555555555', 'bundle_digest': 'e417e922efffe1e961efe196cdad75492f51c7f474e2b75b53b5b5fb85be23e5', 'authenticated': True, 'automation': None, 'public': True}, 'job_id': '01M230M2G0PR4JE4AS93FT3RZ5', 'poll': 'poll get_precheck with job_id until state is done or error; a precheck takes minutes'}
+
+api/tests/mcp_client.py:101: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:81 the graph's head could not be read, serving the branch: no head configured
+=============================== warnings summary ===============================
+api/tests/api_fakes.py:32
+  /Users/mikehiggins/Desktop/repos/open_proof_network/.claude/worktrees/agent-a94d655ff07127221/api/tests/api_fakes.py:32: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient
+
+../../../.venv/lib/python3.13/site-packages/starlette/testclient.py:53
+  /Users/mikehiggins/Desktop/repos/open_proof_network/.venv/lib/python3.13/site-packages/starlette/testclient.py:53: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.
+    _PortalFactoryType = Callable[[], AbstractContextManager[anyio.abc.BlockingPortal]]
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED api/tests/test_finding_partial_unlabelled.py::test_precheck_refuses_an_unlabelled_partial_before_any_job
+FAILED api/tests/test_finding_partial_unlabelled.py::test_precheck_names_the_one_missing_line
+FAILED api/tests/test_finding_partial_unlabelled.py::test_precheck_holds_a_partial_by_its_path_when_no_type_is_declared
+FAILED api/tests/test_finding_partial_unlabelled.py::test_submission_refuses_an_unlabelled_partial_and_opens_nothing
+FAILED api/tests/test_finding_partial_unlabelled.py::test_submission_takes_a_labelled_partial_on_to_the_next_check
+FAILED api/tests/test_finding_partial_unlabelled.py::test_the_code_is_catalogued_with_a_remedy
+FAILED api/tests/test_finding_partial_unlabelled.py::test_the_service_reads_the_gates_licence_list
+FAILED api/tests/test_finding_partial_unlabelled.py::test_the_precheck_tool_answers_the_same_code
+8 failed, 2 passed, 2 warnings in 95.97s (0:01:35)
+
+=== F29-T3 green run ===
+........................................................................ [ 36%]
+........................................................................ [ 73%]
+....................................................                     [100%]
+=============================== warnings summary ===============================
+api/tests/api_fakes.py:32
+../../../.venv/lib/python3.13/site-packages/starlette/testclient.py:53
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+196 passed, 2 warnings in 9.07s
+E       AssertionError: assert 'gloss/v2' == 'gloss/v3'
+E         
+E        
+E         ?        ^
+E         + gloss/v2
+E         ?        ^
+E       AssertionError: assert ({'schema': 'gloss/v2', 'target': 'propositional', 'subject': {'kind': 'statement', 'node': 'and-reassoc', 'module': None, 'lean_hash': '22d574bed0997f637bac7a12d70f61acadd44c2f2f65812f8e7d94915a4bf6e7'}, 'supersedes': None, ...} is not None and 'gloss/v2' == 'gloss/v3'
+E         
+E        
+E         ?        ^
+E         + gloss/v2
+E         ?        ^)
+E       AssertionError: {"error":"unknown-field","message":"unknown field label; this route accepts amends, drafted_with, dry_run, licence, subject, supersedes, text","details":{"unknown":["label"],"accepted":["amends","drafted_with","dry_run","licence","subject","supersedes","text"]}}
+E       assert 400 == 201
+E        +  where 400 = <Response [400 Bad Request]>.status_code
+E       AssertionError: assert ({'schema': 'gloss/v2', 'target': 'propositional', 'subject': {'kind': 'statement', 'node': 'and-reassoc', 'module': None, 'lean_hash': '22d574bed0997f637bac7a12d70f61acadd44c2f2f65812f8e7d94915a4bf6e7'}, 'supersedes': None, ...} is not None and 'gloss/v2' == 'gloss/v3'
+E         
+E        
+E         ?        ^
+E         + gloss/v2
+E         ?        ^)
+E       AssertionError: {"error":"unknown-field","message":"unknown field label; this route accepts amends, drafted_with, dry_run, licence, subject, supersedes, text","details":{"unknown":["label"],"accepted":["amends","drafted_with","dry_run","licence","subject","supersedes","text"]}}
+E       assert 'unknown-field' == 'label-invalid'
+E         
+E        
+E         + unknown-field
+E       AssertionError: {"error":"unknown-field","message":"unknown field label; this route accepts amends, drafted_with, dry_run, licence, subject, supersedes, text","details":{"unknown":["label"],"accepted":["amends","drafted_with","dry_run","licence","subject","supersedes","text"]}}
+E       assert 'unknown-field' == 'label-invalid'
+E         
+E        
+
+=== F29-T3b green run (label on POST /glosses and submit_gloss) ===
+........................................................................ [ 76%]
+......................                                                   [100%]
+=============================== warnings summary ===============================
+api/tests/api_fakes.py:32
+../../../.venv/lib/python3.13/site-packages/starlette/testclient.py:53
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+94 passed, 2 warnings in 25.33s

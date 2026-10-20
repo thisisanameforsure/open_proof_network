@@ -43,6 +43,8 @@ PRODUCT_SCHEMAS: dict[str, tuple[str, ...]] = {
         "frontier/v3",
         "frontier/v4",  # F03-T16: status, cause, needs
         "frontier/v5",  # F03-T18 (D-12 v3.35): circular, literature, literature_proposed
+        "frontier/v6",  # F08-T42 (D-12 v3.43): circular retired; the site ignores it on v5
+        "frontier/v7",  # F03-T21 (D-25 v3.45): literature.disputes
     ),
     "info.json": ("info/v1", "info/v2"),  # v2: F05-T25
     "targets/index.json": (
@@ -69,6 +71,9 @@ PRODUCT_SCHEMAS: dict[str, tuple[str, ...]] = {
         "graph/v8",  # F04-T39 (D-12 v3.38): each row's lemmas, restated nodes under other branches
         "graph/v9",  # F26-R17 (D-9 v3.39): the review's state and the open pair directions
         "graph/v10",  # F28-T8 (D-12 v3.42): each node's closure
+        "graph/v11",  # F08-T42 (D-12 v3.43): circular retired; the site ignores it on v6-v10
+        "graph/v12",  # F29-T1 (D-25 v3.44): label, label_source, claim; approach
+        "graph/v13",  # F08-T43 (D-25 v3.45): literature.disputes
     ),
 }
 log = logging.getLogger(__name__)
@@ -310,16 +315,6 @@ class SubjectView:
 
 
 @dataclass(frozen=True)
-class CircularLabel:
-    """F04-T37 (D-12 v3.35): one entry of a row's ``circular``: a merged circularity claim says
-    a proof of this node is a proof of ``ancestor``. A label, never a removal; ``claim`` is the
-    claim file relative to the graph root, so the page links it at the rendered commit."""
-
-    ancestor: str
-    claim: str
-
-
-@dataclass(frozen=True)
 class Reference:
     """One reference a literature record names: a title, a url the site links only through its
     allowlist (F11-Q11; ``None`` when the record gives none) and a one-sentence note."""
@@ -327,6 +322,17 @@ class Reference:
     title: str
     url: str | None = None
     note: str | None = None
+
+
+@dataclass(frozen=True)
+class DisputedProposal:
+    """F04-T54 (D-25 v3.45): the proposal a signed literature record rejected, as the products
+    publish it beside the signer's reading (``graph/v13`` ``literature.disputes``): what it
+    said, its record (relative to the graph root) and who filed it."""
+
+    status: str
+    record: str
+    contributor: str
 
 
 @dataclass(frozen=True)
@@ -348,6 +354,9 @@ class LiteratureView:
     summary: str | None = None
     model: str | None = None
     readable: bool = True
+    #: F04-T54 (v3.45): the proposal this confirmed reading rejected; ``None`` when the signer
+    #: confirmed a proposal or stated the status unprompted, and for every proposal.
+    disputes: DisputedProposal | None = None
 
     @property
     def confirmed(self) -> bool:
@@ -524,19 +533,11 @@ class NodeView:
     superseded_cause: str | None = None
     superseded_record: str | None = None
     supersedes: str | None = None
-    #: F04-T37 (D-12 v3.35): the circularity labels the row carries (``graph/v6`` ``circular``),
-    #: each the claim that says a proof of this node proves its ancestor. On an older graph
-    #: (D-34) they are read from the merged claim files through the gate's own reader, as
-    #: F08-T17 and F08-T20 read them, so the two cannot name different files.
-    circular: tuple[CircularLabel, ...] = ()
     #: F04-T38 (D-25 v3.35): the latest confirmed literature status and the latest proposal no
     #: confirmed record covers (``graph/v6`` ``literature``, ``literature_proposed``); ``None``
     #: on an older graph or when the row carries none.
     literature: LiteratureView | None = None
     literature_proposed: LiteratureView | None = None
-    #: F08-T20 (D-12 v3.22): the merged circularity claims whose ancestor is this node
-    #: (graph-root relative). The node stays open; its page names them.
-    circular_below: tuple[str, ...] = ()
     #: F20-T8 (R13): a variant's ``Relation.lean``, shown with its gloss.
     relation: LeanFile | None = None
 
@@ -577,18 +578,31 @@ class NodeView:
         return None if cause is None else str(cause)
 
     @property
-    def circular_claim(self) -> str | None:
-        """The first label's claim, graph-root relative, for a page that links one."""
-        return self.circular[0].claim if self.circular else None
-
-    @property
     def open_claims(self) -> list[dict[str, Any]]:
         """F08-T36 (D-16 v3.28): the defect claims against the node that stand, oldest first, as
         ``graph/v5`` lists them; none on an older graph, which did not list them."""
+        return [c for c in self._standing_claims() if not _retired(c)]
+
+    @property
+    def retired_claims(self) -> list[dict[str, Any]]:
+        """F04-T53 (D-12 v3.43): the merged claims of the retired circularity class, which say
+        nothing about the statement and are listed as history; one a curator accepted for
+        adjudication stays among the open claims, since the record says it is disputed."""
+        return [c for c in self._standing_claims() if _retired(c)]
+
+    def _standing_claims(self) -> list[dict[str, Any]]:
         raw = self.graph_entry.get("defect_claims")
         if not isinstance(raw, list):
             return []
         return [dict(c) for c in raw if isinstance(c, dict) and c.get("state") == "standing"]
+
+
+#: D-16 v3.43: the class retired with the circularity label (F08-T42).
+RETIRED_CLAIM_CLASS = "circular-decomposition"
+
+
+def _retired(claim: dict[str, Any]) -> bool:
+    return claim.get("class") == RETIRED_CLAIM_CLASS and not claim.get("accepted")
 
 
 @dataclass(frozen=True)
@@ -762,7 +776,7 @@ def _load_record(target_dir: Path) -> dict[str, Any] | None:
 
 #: F21-T7: the ``glosses.json`` versions ``glosses.needed`` reads (the live graph holds v1 until
 #: its re-pin).
-WORDS_GLOSSES_SCHEMAS = frozenset({"glosses/v1", "glosses/v2"})
+WORDS_GLOSSES_SCHEMAS = frozenset({"glosses/v1", "glosses/v2", "glosses/v3"})
 
 
 def _load_words_needed(target_dir: Path, root: str) -> tuple[dict[str, Any], ...] | None:
@@ -1086,7 +1100,6 @@ def load_node(root: Path, target_id: str, entry: dict[str, Any]) -> NodeView:
         superseded_cause=str(why) if why else None,
         superseded_record=replaced.path.relative_to(root).as_posix() if replaced else None,
         supersedes=str(predecessor) if predecessor else None,
-        circular=_circular_labels(root, target_id, node_dir, entry),
         literature=_literature_for(root, node_dir, entry.get("literature")),
         literature_proposed=_literature_for(root, node_dir, entry.get("literature_proposed")),
     )
@@ -1102,12 +1115,20 @@ def _literature_for(root: Path, node_dir: Path, raw: object) -> LiteratureView |
     rel = str(raw.get("record") or "")
     prefix = node_dir.relative_to(root).as_posix()
     confirmation = raw.get("confirmation")
+    rejected = raw.get("disputes")  # graph/v13 (F08-T43); absent or null before
     view = LiteratureView(
         status=str(raw.get("status") or ""),
         record=f"{prefix}/{rel}",
         contributor=str(raw.get("contributor") or ""),
         confirmed_by=str(raw["confirmed_by"]) if raw.get("confirmed_by") else None,
         confirmation=f"{prefix}/{confirmation}" if confirmation else None,
+        disputes=DisputedProposal(
+            status=str(rejected.get("status") or ""),
+            record=f"{prefix}/{rejected.get('record') or ''}",
+            contributor=str(rejected.get("contributor") or ""),
+        )
+        if isinstance(rejected, dict)
+        else None,
     )
     try:
         doc = schemas.load_yaml(node_dir / rel, "literature/v1")
@@ -1130,28 +1151,6 @@ def _literature_for(root: Path, node_dir: Path, raw: object) -> LiteratureView |
         references=references,
         summary=str(doc.get("summary") or ""),
         model=str(model_) if model_ else None,
-    )
-
-
-def _circular_labels(
-    root: Path, target_id: str, node_dir: Path, entry: dict[str, Any]
-) -> tuple[CircularLabel, ...]:
-    """F04-T37 (D-12 v3.35): the row's ``circular`` labels, each claim made graph-root relative.
-    A ``graph/v6`` row carries them; an older row has no such key and the node's own merged
-    claims are read from the tree (``graph.resolved_circular_claims``, the ancestor read through
-    its revision chain), the path labels being added by ``_with_circular_paths``."""
-    nodes_dir = layout.graph_nodes_dir(root, target_id)
-    prefix = nodes_dir.relative_to(root).as_posix()
-    if "circular" in entry:
-        raw = entry.get("circular")
-        return tuple(
-            CircularLabel(ancestor=str(c["ancestor"]), claim=f"{prefix}/{c['claim']}")
-            for c in (raw if isinstance(raw, list) else [])
-            if isinstance(c, dict)
-        )
-    return tuple(
-        CircularLabel(ancestor=ancestor, claim=f"{prefix}/{node_dir.name}/{ref}")
-        for ref, ancestor in graphmod.resolved_circular_claims(nodes_dir, node_dir)
     )
 
 
@@ -1368,7 +1367,7 @@ def _load_outlines(target_dir: Path) -> dict[str, dict[str, Any]]:
 #: F20-R9: the gloss and explainer chains per subject, and the versions this generator renders:
 #: v1 as whole versions (the live graph until its re-pin), v2 section by section (F21-R14).
 GLOSSES_FILE = "glosses.json"
-GLOSSES_SCHEMAS: tuple[str, ...] = ("glosses/v1", "glosses/v2")
+GLOSSES_SCHEMAS: tuple[str, ...] = ("glosses/v1", "glosses/v2", "glosses/v3")
 #: A signer, the signature's date, its file, and the section keys it approves (None: all).
 _Sig = tuple[str, str, str, frozenset[str] | None]
 
@@ -1545,44 +1544,6 @@ def _load_definitions(root: Path, target_dir: Path) -> tuple[LeanFile, ...]:
     return tuple(f for f in found if f is not None)
 
 
-def _with_circular_paths(
-    root: Path, target_id: str, graph: dict[str, Any], nodes: dict[str, NodeView]
-) -> dict[str, NodeView]:
-    """F08-T20 (D-12 v3.22): which claims circle back to each ancestor (``circular_below``) —
-    the gate's own ``graph.circular_marks`` over ``graph.json``'s deps, origins and statuses and
-    the claim files in the tree, so the site cannot reach a different set of nodes than the
-    products did. On a graph older than ``graph/v6`` (D-34) the same marks give each node on a
-    path its label: a path node's claim sits under the hole, not under the node, which is why
-    the node's own ``defects/`` cannot name it. A v6 row carries its labels itself (F04-T37)."""
-    nodes_dir = layout.graph_nodes_dir(root, target_id)
-    rows = {str(e["node_id"]): e for e in graph["nodes"]}
-    deps = {n: [str(d) for d in e["deps"]] for n, e in rows.items()}
-    holes = {
-        n: [d for d in ds if d in rows and graphmod.is_hole_of(n, d, str(rows[d].get("origin")))]
-        for n, ds in deps.items()
-    }
-    claims = {
-        n: found
-        for n in rows
-        if (found := graphmod.resolved_circular_claims(nodes_dir, nodes_dir / n))
-    }
-    statuses = {n: str(e["status"]) for n, e in rows.items()}
-    on_path, below = graphmod.circular_marks(holes, deps, claims, statuses)
-    prefix = nodes_dir.relative_to(root).as_posix()
-    ancestor_of = {ref: ancestor for found in claims.values() for ref, ancestor in found}
-    out = dict(nodes)
-    for node_id, nv in nodes.items():
-        view = nv
-        if "circular" not in rows[node_id] and not view.circular and node_id in on_path:
-            ref = on_path[node_id]
-            label = CircularLabel(ancestor=ancestor_of.get(ref, ""), claim=f"{prefix}/{ref}")
-            view = replace(view, circular=(label,))
-        if node_id in below:
-            view = replace(view, circular_below=tuple(f"{prefix}/{r}" for r in below[node_id]))
-        out[node_id] = view
-    return out
-
-
 def load_site(root: Path, commit: str) -> Site:
     """Load a checkout and its products; raise ``SiteError`` on anything unrenderable."""
     root = root.resolve()
@@ -1599,7 +1560,6 @@ def load_site(root: Path, commit: str) -> Site:
         spec = schemas.load_json(layout.gate_spec_path(root, target_id), "gate-spec/v1")
         _check_graph_rows(target_id, graph)
         nodes = {str(e["node_id"]): load_node(root, target_id, e) for e in graph["nodes"]}
-        nodes = _with_circular_paths(root, target_id, graph, nodes)
         approaches_dir = target_dir / "approaches"
         approaches = (
             tuple(

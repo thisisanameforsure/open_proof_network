@@ -11,7 +11,7 @@ network asks of it, once a week, through the one seam ``palomar_host.PalomarHost
   confidence: ``number`` when the entry names the problem in words (``Erdős 257``, an
   erdosproblems.com url), ``inferred`` when only an identifier carries the number (a namespace,
   a file name, a repository). A candidate is information; with ``--propose`` the tool writes an
-  **unsigned** ``literature/v1`` proposal (status ``known``) into an output directory, never into
+  **unsigned** ``literature/v2`` proposal (status ``known``) into an output directory, never into
   the graph, and it never confirms (Q11): confirmation is a steward's or curator's act.
 - **Does the registry still say what the network's registration records say?** For the latest
   registration record per registry id (``registrations.latest``), the entry at that id and
@@ -44,8 +44,8 @@ Confidence = Literal["number", "inferred"]
 DATE_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 FILE_TIMESTAMP = "%Y%m%dT%H%M%SZ"  # the appends' file-name stamp (api/opn_api/appends.py)
 #: What a feed entry is read for; untrusted text, capped before it reaches a record.
-TITLE_CAP = 300  # literature/v1 reference title
-SUMMARY_CAP = 2000  # literature/v1 summary
+TITLE_CAP = 300  # literature/v2 reference title
+SUMMARY_CAP = 2000  # literature/v2 summary
 EVIDENCE_CAP = 200
 _NUM = r"(?<![0-9]){n}(?![0-9])"
 _ERDOS_URL_RE = re.compile(r"https?://(?:www\.)?erdosproblems\.com/(?P<n>[0-9]+)(?![0-9])")
@@ -289,7 +289,7 @@ def propose(
     out: Path,
     date: str | None = None,
 ) -> Path:
-    """Write an unsigned ``literature/v1`` proposal for ``candidate`` under
+    """Write an unsigned ``literature/v2`` proposal for ``candidate`` under
     ``out/targets/<target>/nodes/<root>/literature/``, the path it would take on the graph; the
     graph itself is never written, and nothing is confirmed (Q11). The record validates before it
     is written."""
@@ -318,6 +318,7 @@ def propose(
         "summary": summary[:SUMMARY_CAP],
         "model_and_tooling": "opn-gate palomar-feed (F25-R14)",
         "confirms": None,
+        "disputes": None,
         "via": None,
         "key": None,
         "signature": None,

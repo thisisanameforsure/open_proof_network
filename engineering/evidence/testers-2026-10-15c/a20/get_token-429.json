@@ -1,0 +1,8 @@
+{
+ "status": 429,
+ "body": {
+  "error": "rate-limited",
+  "message": "start: limit of 10 per 86400s reached"
+ },
+ "retry_after": "32871"
+}

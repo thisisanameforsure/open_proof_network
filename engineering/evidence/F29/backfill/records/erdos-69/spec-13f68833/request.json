@@ -1,0 +1,13 @@
+{
+ "subject": {
+  "kind": "statement",
+  "node": "spec-13f68833",
+  "module": null,
+  "lean_hash": "2ddecddfb2b9db1fe7ec0a6c00a810f53556c5c81113670eec05acc4be07daf2"
+ },
+ "text": "$$\\forall n\\in\\mathbb{N},\\ C\\in\\mathbb{R}:\\quad \\Bigl(\\forall k\\in\\mathbb{N},\\ \\omega(n+1+k) \\le C\\,(k+1)\\Bigr) \\Rightarrow \\sum_{j=0}^{\\infty}\\frac{\\omega(n+1+j)}{2^{j+1}} \\le 2C$$\n\nIf, for a natural n and a real C, ω(n+1+k) ≤ C(k+1) for every natural k, then the tail ∑_{j≥0} ω(n+1+j)/2^{j+1} is at most 2C, with ω(n) the number of distinct prime factors of n. Every series is Mathlib's `tsum` over ℝ, which is 0 when the family is not summable.\n",
+ "supersedes": null,
+ "licence": "CC-BY-4.0",
+ "drafted_with": "Claude Fable 5.1 (claude-fable-5-1)",
+ "label": "Linear bound on omega bounds the tail by 2C"
+}

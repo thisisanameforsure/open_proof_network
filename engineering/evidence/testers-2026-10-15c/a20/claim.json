@@ -1,0 +1,7 @@
+{
+ "status": 401,
+ "body": {
+  "error": "unauthenticated",
+  "message": "this tool needs `Authorization: Bearer <token>`. To mint one without leaving the MCP: run precheck_submission on the tutorial node `tutorial-and-swap` (target `tutorial`) with no token, poll get_precheck until it passes, then call get_token with proof {kind: tutorial, job_id, nonce}"
+ }
+}

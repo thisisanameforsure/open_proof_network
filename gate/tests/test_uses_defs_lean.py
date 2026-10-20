@@ -24,7 +24,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-from harness import TARGET, make_context
+from harness import TARGET, declared, make_context
 
 from opn_gate import layout, pipeline, scaffold, uses
 from opn_gate.paths import Change
@@ -238,7 +238,7 @@ def test_a_hole_over_a_declared_definition_becomes_a_statement_that_elaborates(
     text = submit_partial(
         ctx,
         "Defs.Twice",
-        " by\n  intro n\n  have key : Opn.twice n = n + n := sorry\n  rfl\n",
+        declared(" by\n  intro n\n  have key : Opn.twice n = n + n := sorry\n  rfl\n"),
     )
     verdict = pipeline.run_submission(ctx)
     assert verdict.verdict == "pass", verdict.as_dict()
@@ -295,7 +295,7 @@ def test_a_partial_is_held_to_the_statements_meaning_too(
     submit_partial(
         ctx,
         "Defs.Trap",
-        " by\n  intro n\n  have key : (0 : Nat) = 0 := sorry\n  exact key ▸ rfl\n",
+        declared(" by\n  intro n\n  have key : (0 : Nat) = 0 := sorry\n  exact key ▸ rfl\n"),
     )
     verdict = pipeline.run_submission(ctx)
     assert verdict.verdict == "fail", verdict.as_dict()

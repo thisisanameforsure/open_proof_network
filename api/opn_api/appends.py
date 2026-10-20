@@ -32,7 +32,7 @@ from opn_api import identity as identitymod
 from opn_api import uses as usesmod
 from opn_api.app import ApiError
 from opn_gate import annex as annexmod
-from opn_gate import schemas
+from opn_gate import labels, schemas
 
 if TYPE_CHECKING:
     from opn_api.app import Context
@@ -44,7 +44,8 @@ POSTMORTEM_SCHEMA = "postmortem/v1"
 ANNEX_SCHEMA = "annex/v1"
 APPROACH_SCHEMA = "approach-record/v1"
 ANNEX_MAX_BYTES = 64 * 1024  # F07 §6
-LICENCES: tuple[str, ...] = ("CC-BY-4.0", "CDLA-Permissive-2.0", "Apache-2.0")
+#: F29-Q4: the gate's list is the one home (``opn_gate.labels.LICENCES``); the service reads it.
+LICENCES: tuple[str, ...] = labels.LICENCES
 FILE_TIMESTAMP = "%Y%m%dT%H%M%SZ"  # sorts lexically, and is a legal file name everywhere
 
 
@@ -230,6 +231,12 @@ APPEND_CHECKS: dict[str, str] = {
     "literature confirmation": (
         "its path, its schema, its signature under the graph's approval key, and that its signer "
         "is an active steward of the target or a listed curator (D-25, D-32 v3.35)"
+    ),
+    # F23-T13 (D-25 v3.45): the same signed record, naming the proposal it rejects.
+    "literature dispute": (
+        "its path, its schema, its signature under the graph's approval key, that its signer "
+        "is an active steward of the target or a listed curator, and that the record it "
+        "disputes is an unsigned proposal on the node (D-25, D-32 v3.45)"
     ),
     # F25-R5, R6 (D-3, D-10 v3.37): the two records outside the node.
     "registration record": (

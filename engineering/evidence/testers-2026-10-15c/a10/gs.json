@@ -1,0 +1,123 @@
+{
+ "submission": {
+  "id": "01M500Z4T8045WXJBN8Q5N55X5",
+  "kind": "partial",
+  "node_id": "erdos-1094--h3--h1--h2--h1",
+  "target_id": "erdos-1094",
+  "pr_number": 547,
+  "pr_url": "https://github.com/thisisanameforsure/open_proof_network_graph/pull/547",
+  "pseudonym": "t1015c-a10",
+  "precheck_job_id": "01M500PJD0YE20HXQGBR9EAPXV",
+  "created": "2026-10-15T14:55:30Z",
+  "closed": null,
+  "automation": {
+   "framework": "AGENTS.md walkthrough",
+   "method": "agent",
+   "models": [
+    "claude-opus-5-5"
+   ]
+  },
+  "artifact_type": "partial"
+ },
+ "state": "open",
+ "queue": {
+  "position": 4,
+  "of": 4,
+  "ahead": [
+   {
+    "pr_number": 544,
+    "id": "01M500Y0P02TGEJK3KDNJ0D86K",
+    "kind": "partial",
+    "node_id": "erdos-1094--h3--h1--h1--h2--h1",
+    "target_id": "erdos-1094",
+    "waiting_on": null,
+    "waiting_on_read_at": null
+   },
+   {
+    "pr_number": 545,
+    "id": "01M500YGA0XRER7PZBY6J7RBFY",
+    "kind": "partial",
+    "node_id": "erdos-1094--h2--h2--h3--h1",
+    "target_id": "erdos-1094",
+    "waiting_on": null,
+    "waiting_on_read_at": null
+   },
+   {
+    "pr_number": 546,
+    "id": "01M500Z1WGMF2VK4BHMWJHFWKE",
+    "kind": "partial",
+    "node_id": "erdos-1094--h3--h1--h1",
+    "target_id": "erdos-1094",
+    "waiting_on": null,
+    "waiting_on_read_at": null
+   }
+  ],
+  "order": "pull-request number, oldest first, over the open pull requests the merge actor takes (non-draft, on a branch the service opened, against main), counted in the pull request's own lane: the merge actor runs one lane per target in parallel (F07-T56), so only the pull requests on the same target, and any whose target the service does not know (the actor holds every lane for one it cannot place), are ahead of it. Within a lane the actor merges the first one whose gate is green and passes over a red, conflicting or behind-and-still-running one, so a position is an upper bound on the merges ahead, not a count of them; consecutive green appends may merge as one batch",
+  "read_at": "2026-10-15T14:56:02Z",
+  "stale": false
+ },
+ "pull_request": {
+  "waiting_on": "gate",
+  "number": 547,
+  "url": "https://github.com/thisisanameforsure/open_proof_network_graph/pull/547",
+  "state": "open",
+  "merged": false,
+  "mergeable_state": "blocked",
+  "head_sha": "c249944dc85ca5ac180674049019ac97b6bd64ea",
+  "merge_commit_sha": "60655f822e1ec94987cdd201ccf276f818ab5b33",
+  "runs": [
+   {
+    "name": "gate",
+    "status": "in_progress",
+    "conclusion": null,
+    "url": "https://github.com/thisisanameforsure/open_proof_network_graph/actions/runs/38755753915",
+    "jobs": [
+     {
+      "name": "postmerge (step 9 record, gate signature, attestation commit)",
+      "status": "completed",
+      "conclusion": "skipped"
+     },
+     {
+      "name": "gate (steps 1, 2 and 4-8 in the sandbox)",
+      "status": "in_progress",
+      "conclusion": null
+     },
+     {
+      "name": "proof outlines for a merge that built (F19-R6), after its record is pushed",
+      "status": "completed",
+      "conclusion": "skipped"
+     },
+     {
+      "name": "olean cache for a merge that built (F10-R7), after its record is pushed",
+      "status": "completed",
+      "conclusion": "skipped"
+     }
+    ]
+   }
+  ],
+  "reviews": [],
+  "read_at": "2026-10-15T14:56:05Z",
+  "stale": false
+ },
+ "pull_request_error": null,
+ "gate_verdict": null,
+ "gate_report": null,
+ "attestation_path": null,
+ "attestation": null,
+ "attestation_note": "not-merged",
+ "holes": [
+  {
+   "name": "h_k15",
+   "expected_node_id": "erdos-1094--h3--h1--h2--h1--h1",
+   "expected_new": true,
+   "became": null
+  },
+  {
+   "name": "h_k3_rest5",
+   "expected_node_id": "erdos-1094--h3--h1--h2--h1--h2",
+   "expected_new": true,
+   "became": null
+  }
+ ],
+ "holes_note": "expected as planned at graph commit ce10304b0c25662291339639e5336290ed6cc62d: a hole restating an existing node is that node (expected_new false), the rest are new nodes numbered after the node's earlier holes; another decomposition of this node merging first renumbers them. A hole that restates a node under another branch of the target (expected_new false and the node not a hole child of this one) makes that node a lemma of this node, listed in its META.yaml and CONTEXT.json: its theorem is in this node's Context.lean, the assembly or a direct proof may use it once it is proved, and this node never waits on it; one proof of the lemma serves every branch that restated it"
+}

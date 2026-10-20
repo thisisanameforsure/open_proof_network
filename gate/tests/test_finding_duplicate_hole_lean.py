@@ -15,7 +15,7 @@ from pathlib import Path
 
 import pytest
 import yaml
-from harness import TARGET, TUTORIAL, make_context
+from harness import TARGET, TUTORIAL, declared, make_context
 
 from opn_gate import layout, pipeline
 from opn_gate.paths import Change
@@ -31,7 +31,7 @@ VARIANT_STATEMENT = (
 TUTORIAL_LINE = "theorem OpnProp.and_swap : ∀ p q : Prop, p ∧ q → q ∧ p := by"
 SKELETON = "20260913T000000Z-tester-partial.lean"
 #: h₁ is the tutorial's statement under the variant's binders; h₂ is nobody's.
-SKELETON_BODY = (
+SKELETON_BODY = declared(
     "  intro p q h\n  have h₁ : q ∧ p := sorry\n  have h₂ : p ∧ q := sorry\n  exact h₁.2\n"
 )
 

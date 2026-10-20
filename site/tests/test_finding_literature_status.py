@@ -104,6 +104,7 @@ def built(tmp_path_factory: pytest.TempPathFactory) -> tuple[model.Site, dict[st
                 "contributor": "t1008-c",
                 "confirmed_by": "mike",
                 "confirmation": confirmation,
+                "disputes": None,  # graph/v13 (F08-T43)
             },
         },
         literature_proposed={
@@ -166,8 +167,13 @@ def test_an_older_graph_reads_no_literature(tmp_path: Path) -> None:
             "literature_proposed",
             "lemmas",
             "closure",
-        ):  # lemmas: v7
+            "label",
+            "label_source",
+            "claim",
+        ):  # lemmas: v7; label, label_source, claim: v12 (F29-T1)
             row.pop(field, None)
+        for d in row.get("decompositions") or []:
+            d.pop("approach", None)  # graph/v12
     graph_path.write_text(json.dumps(graph), encoding="utf-8")
     site = model.load_site(root, fixture.COMMIT)
     nv = site.targets[TARGET].nodes[ROOT]
@@ -336,11 +342,15 @@ def test_the_script_confirms_through_the_service_with_the_proposals_fields() -> 
     """The control calls ``POST /literature/confirm`` with ``{node_id, record, status,
     references, summary}`` copied from the row, for a steward's targets and, for a curator,
     every target's list (``data-role``-free: the role comes from the session, the lists from the
-    page)."""
-    js = (Path(render.__file__).resolve().parent / "static" / "me.js").read_text(encoding="utf-8")
+    page). F04-T54 restated this test to the rule: the control itself lives in
+    ``literature.js`` (one function for ``/me/`` and the node's page); ``me.js`` reaches it
+    through ``OPN.literature.confirmButton`` and still chooses the lists by role."""
+    static = Path(render.__file__).resolve().parent / "static"
+    js = (static / "literature.js").read_text(encoding="utf-8")
+    me = (static / "me.js").read_text(encoding="utf-8")
     assert '"/literature/confirm"' in js
     for key in ("node_id", "record", "status", "references", "summary"):
         assert re.search(rf"\b{key}\s*:", js), key
-    assert ".literature-waiting" in js and "lit-row" in js
-    assert "s.curator" in js, "a curator sees every target's list"
-    assert "Confirm" in js
+    assert ".literature-waiting" in me and "lit-row" in me
+    assert "s.curator" in me, "a curator sees every target's list"
+    assert "Confirm" in js and "O.literature.confirmButton" in me

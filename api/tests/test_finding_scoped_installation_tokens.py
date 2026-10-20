@@ -73,6 +73,12 @@ CASES: list[Case] = [
         {"contents": "read"},
     ),
     (
+        "last_commit",
+        lambda s: s.on("GET", f"{API}/commits", json=[]),
+        lambda h: h.last_commit(REPO, BASE_SHA, "targets/t/nodes"),
+        {"contents": "read"},
+    ),
+    (
         "is_ancestor",
         lambda s: s.on("GET", f"{API}/compare/{BASE_SHA}...{COMMIT_SHA}", json={"status": "ahead"}),
         lambda h: h.is_ancestor(REPO, BASE_SHA, COMMIT_SHA),

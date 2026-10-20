@@ -1,0 +1,77 @@
+F06-T18 (Q23): a job runs at the commit that wrote its target's products; a bundle that makes
+holes waits while a render is in flight. Evidence captured 2026-10-15, worktree branch
+f06-t18-products-commit off network origin/main ffa1abf7.
+
+== red, before the fix (the seam last_commit added at today's behaviour first, so each
+   failure is the defect, not a missing name):
+   uv run --frozen pytest api/tests/test_finding_precheck_products_commit.py
+E       AssertionError: planned against a tree without the newest hole
+E       assert 'dddddddddddd...ddddddddddddd' == 'eeeeeeeeeeee...eeeeeeeeeeeee'
+E       AssertionError: assert 'dddddddddddd...ddddddddddddd' == 'aaaaaaaaaaaa...aaaaaaaaaaaaa'
+E       AssertionError: {"id":"01M230M2G01SC87MC1EEM2KX8S","node_id":"and-reassoc","target_id":"propositional","state":"queued","created":"2026-09-09T12:00:00Z","graph_commit":"dddddddddddddddddddddddddddddddddddddddd","bundle_digest":"67045c346c95e64037c367bc838a29b1091d3208f189dc83f5f095fb8cd554bd","authenticated":true,"automation":null,"public":true}
+E       assert (202, None) == (409, 'products-pending')
+E       AssertionError: assert 'dddddddddddd...ddddddddddddd' == 'eeeeeeeeeeee...eeeeeeeeeeeee'
+FAILED api/tests/test_finding_precheck_products_commit.py::test_a_skeleton_runs_where_the_newest_holes_are
+FAILED api/tests/test_finding_precheck_products_commit.py::test_a_products_only_render_is_pinned_too
+FAILED api/tests/test_finding_precheck_products_commit.py::test_a_skeleton_waits_for_a_render_in_flight
+FAILED api/tests/test_finding_precheck_products_commit.py::test_a_proof_in_the_same_window_runs_at_the_products_commit
+4 failed, 3 passed in 0.31s
+
+== green, the task's verification command:
+   uv run --frozen pytest api/tests/test_finding_precheck_products_commit.py \
+     api/tests/test_finding_precheck_hole_commit.py api/tests/test_finding_scoped_installation_tokens.py
+35 passed in 2.90s
+
+== mutants, each patched in memory as a pytest plugin (no file touched); every one turns a test red:
+== mutant refuse-every-bundle
+FAILED api/tests/test_finding_precheck_products_commit.py::test_a_proof_in_the_same_window_runs_at_the_products_commit
+1 failed, 11 passed in 0.86s
+== mutant never-refuse
+FAILED api/tests/test_finding_precheck_products_commit.py::test_a_skeleton_waits_for_a_render_in_flight
+1 failed, 11 passed in 0.75s
+== mutant no-ancestry
+FAILED api/tests/test_finding_precheck_products_commit.py::test_a_products_only_render_is_pinned_too
+FAILED api/tests/test_finding_precheck_products_commit.py::test_an_unanswerable_ancestry_keeps_todays_rule
+2 failed, 10 passed in 0.74s
+== mutant pin-rendered
+FAILED api/tests/test_finding_precheck_products_commit.py::test_a_skeleton_runs_where_the_newest_holes_are
+FAILED api/tests/test_finding_precheck_products_commit.py::test_a_products_only_render_is_pinned_too
+FAILED api/tests/test_finding_precheck_products_commit.py::test_a_skeleton_waits_for_a_render_in_flight
+FAILED api/tests/test_finding_precheck_products_commit.py::test_a_proof_in_the_same_window_runs_at_the_products_commit
+4 failed, 8 passed in 0.82s
+
+== the real host against the live graph (read-only; the App's credentials, nothing printed):
+main b52f785ddfba
+erdos-1094: products e9ff2ed641c8 nodes e9ff2ed641c8 -> settled: pin products
+erdos-1050: products e9ff2ed641c8 nodes e9ff2ed641c8 -> settled: pin products
+euclid-primes: products e9ff2ed641c8 nodes e9ff2ed641c8 -> settled: pin products
+   Every render rewrites each node's CONTEXT.json under nodes/, so in the settled state the
+   newest commit on nodes/ is the products commit, as above.
+
+== the window, seen live 2026-10-15 06:42Z (gh api, list-commits by path on erdos-1094):
+   nodes/ newest 2efe15e69 (partial: erdos-1094--h2--h2--h2--h3--h1--h1, PR #534's commit)
+   graph.json newest 49686f793 (gate: #533 pass); #534 merged as 56c054dd0, its gate run in_progress.
+   A skeleton precheck then would have planned against a tree without #534's work.
+
+== what touches nodes/ without products, over the 400 first-parent commits before e9ff2ed64:
+   189 pull-request merges (each followed by its post-merge render)
+     1 direct curator push (erdos-1094--h3: the lemma edge), the known edge in Q23
+   review and outline bot commits: none
+
+== make verify (lint, types, fast tier):
+FAILED gate/tests/test_walkthrough.py::test_graph_copy_is_identical - Asserti...
+= 1 failed, 6326 passed, 9 skipped, 235 deselected, 2 warnings in 615.44s (0:10:15) =
+   The one failure reads the sibling graph checkout's working tree, which sits at 6c3a33886,
+   behind its origin/main e9ff2ed64; the graph's origin/main AGENTS.md matches this branch's
+   gate/agents/AGENTS.md byte for byte (cmp), and this branch does not touch gate/agents/.
+
+## Rebased 2026-10-20 onto origin/main 2cccb058 (99 commits newer than the task's base)
+The code applied cleanly; the log and the index conflicted (both sides kept). Five tests then failed:
+D-12 v3.44 (F29-R5) had landed meanwhile, so the fixture partial without -- approach, -- licence,
+-- label and -- claim was refused 400 partial-unlabelled before it reached the pin. The fixture
+now carries them (the same lines test_finding_precheck_not_yet.py uses).
+
+$ uv run --frozen pytest api/tests/test_finding_precheck_products_commit.py api/tests/test_finding_precheck_hole_commit.py api/tests/test_finding_scoped_installation_tokens.py -q
+35 passed, 2 warnings in 2.85s
+
+The same file with origin/main's precheck.py: 4 failed, 8 passed (the task's original red was 4).

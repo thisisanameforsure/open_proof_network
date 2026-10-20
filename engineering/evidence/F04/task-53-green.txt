@@ -1,0 +1,31 @@
+........................................................................ [  9%]
+........................................................................ [ 19%]
+........................................................................ [ 29%]
+........................................s...............ss.s............ [ 39%]
+.............................................s.......................... [ 48%]
+........................................................................ [ 58%]
+..........................................s............................. [ 68%]
+........................................................................ [ 78%]
+........................................................................ [ 87%]
+....................................s................................... [ 97%]
+.................                                                        [100%]
+=============================== warnings summary ===============================
+api/tests/api_fakes.py:32
+  /Users/mikehiggins/Desktop/repos/open_proof_network/.claude/worktrees/agent-a7838de13624e8236/api/tests/api_fakes.py:32: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient
+
+.venv/lib/python3.13/site-packages/starlette/testclient.py:53
+  /Users/mikehiggins/Desktop/repos/open_proof_network/.claude/worktrees/agent-a7838de13624e8236/.venv/lib/python3.13/site-packages/starlette/testclient.py:53: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.
+    _PortalFactoryType = Callable[[], AbstractContextManager[anyio.abc.BlockingPortal]]
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+SKIPPED [1] site/tests/test_web_flows.py:44: could not import 'playwright.sync_api': No module named 'playwright'
+SKIPPED [1] site/tests/test_finding_lemma_edge.py:260: could not import 'playwright.sync_api': No module named 'playwright'
+SKIPPED [1] site/tests/test_finding_mobile_scroll.py:117: could not import 'playwright.sync_api': No module named 'playwright'
+SKIPPED [1] site/tests/test_finding_mobile_scroll.py:131: could not import 'playwright.sync_api': No module named 'playwright'
+SKIPPED [1] site/tests/test_finding_mobile_scroll.py:183: could not import 'playwright.sync_api': No module named 'playwright'
+SKIPPED [1] site/tests/test_finding_panel_math_wrap.py:244: could not import 'playwright.sync_api': No module named 'playwright'
+SKIPPED [1] site/tests/test_me_reviews.py:127: could not import 'playwright.sync_api': No module named 'playwright'
+SKIPPED [1] site/tests/test_routes_view.py:273: could not import 'playwright.sync_api': No module named 'playwright'
+730 passed, 8 skipped, 2 warnings in 60.77s (0:01:00)

@@ -1,0 +1,14 @@
+$ uv run --frozen python measure_tools_list.py   # after F23-T13 (the disputes parameter, the confirm/dispute wording) and F09-T74 (the get_node and list_frontier clauses)
+get_node description 817 input 432
+list_frontier description 483 input 584
+confirm_literature description 823 input 1254
+propose_literature description 776 input 1066
+tools/list compact characters: 111561
+
+$ uv run --frozen pytest api/tests/test_finding_literature_mcp_words.py api/tests/test_finding_mcp_context_budget.py api/tests/test_mcp_surface.py -m "not lean and not docker and not network and not harness" -q
+25 passed, 2 warnings in 19.06s
+$ make lint; echo exit $?
+881 files already formatted
+exit 0
+$ uv run --frozen mypy --strict api
+Success: no issues found in 262 source files

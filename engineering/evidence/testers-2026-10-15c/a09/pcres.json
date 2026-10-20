@@ -1,0 +1,268 @@
+{
+ "id": "01M500P3R8WZEV49RFWSJW3WTQ",
+ "node_id": "erdos-1094--h3--h1--h1--h2--h1",
+ "target_id": "erdos-1094",
+ "state": "done",
+ "created": "2026-10-15T14:50:29Z",
+ "graph_commit": "ce10304b0c25662291339639e5336290ed6cc62d",
+ "bundle_digest": "dcc39c583b26b55e6c7c931954e9e7818fbdaec8220972124f7007645b8b574c",
+ "authenticated": true,
+ "automation": null,
+ "result": {
+  "attestation": {
+   "artifact_hash": null,
+   "automation": null,
+   "diagnostic": null,
+   "first_failing_step": null,
+   "footprint": {
+    "nodes": []
+   },
+   "gate_spec_hash": "cfe31e69729e1e93a0015e913cff65ff9e09862e625c4ab5ac1c94a27c811246",
+   "graph_commit": "ce10304b0c25662291339639e5336290ed6cc62d",
+   "graph_id": "erdos-1094",
+   "lean_toolchain": "leanprover/lean4:v4.33.1",
+   "mathlib_sha": "0df444a360eaa60ab8c11dca51a86af692955474",
+   "merge_commit": null,
+   "model_and_tooling": "undeclared",
+   "network_commit": "fa0a13ba270d7b399ed9c075cb531bdaeb2776fe",
+   "node_id": "erdos-1094--h3--h1--h1--h2--h1",
+   "precheck_attestation": {
+    "hash": null,
+    "signature_kind": null
+   },
+   "review": null,
+   "runner": "hosted",
+   "schema": "attestation/v7",
+   "signature": {
+    "key_id": "SHA256:bJR39nO37EkRaxo4CPqdhcHk+WL+sEnAJ9ujpkF7LXo",
+    "kind": "service",
+    "timestamp": "2026-10-15T14:53:30Z",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAg4NVeR5WlT1J5vaHpDOmXNTurS+\nKqTYJTovSCpPj5G/IAAAAPb3BuLWF0dGVzdGF0aW9uAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQEhFoCVIpXNRJRTXFN05hNL+stcjecYyHG+l9AVM+7nUQV8CGy\npRWa7y4L3rIpc8l5PqoD2vkubW6JviUEIodg8=\n-----END SSH SIGNATURE-----\n"
+   },
+   "statement_hash": "44a3c2214f65315db837bfbe80cd89ba6f2e5853f82150f78d245fe89bdd72af",
+   "steps": [
+    {
+     "diagnostic": {
+      "code": "mathlib-pinned",
+      "details": {
+       "mathlib_sha": "0df444a360eaa60ab8c11dca51a86af692955474",
+       "packages": 8
+      },
+      "message": "Mathlib 0df444a360ea resolved from the pinned checkout"
+     },
+     "name": "toolchain",
+     "result": "pass",
+     "step": 1
+    },
+    {
+     "diagnostic": {
+      "code": "partial-submission",
+      "details": {
+       "path": "attempts/20261015T145026Z-t1015c-a09-partial.lean"
+      },
+      "message": "a partial proof: attempts/20261015T145026Z-t1015c-a09-partial.lean (D-12 #5)"
+     },
+     "name": "paths",
+     "result": "pass",
+     "step": 2
+    },
+    {
+     "diagnostic": {
+      "code": "artifact-partial",
+      "details": {
+       "holes": [
+        "h_k3one",
+        "h_k3two"
+       ],
+       "kind": "partial"
+      },
+      "message": "partial: erdos_1094__h3__h1__h1__h2__h1 declares ∃ K₃,\n  ∀ (n k : ℕ),\n    K₃ < k →\n      2 * k ≤ n →\n        n < k * k →\n          k % 2 = 0 →\n            0 < k % 3 →\n              k % 3 ≤ n % 3 →\n                k % 5 ≤ n % 5 →\n                  k % 7 ≤ n % 7 → k % 11 ≤ n % 11 → k % 13 ≤ n % 13 → ∃ p, Nat.Prime p ∧ p ≤ k ∧ n % p < k % p; 2 hole(s)"
+     },
+     "name": "kernel-replay",
+     "result": "pass",
+     "step": 4
+    },
+    {
+     "diagnostic": null,
+     "name": "axioms",
+     "result": "pass",
+     "step": 5
+    },
+    {
+     "diagnostic": {
+      "code": "hazards-derived-statement",
+      "details": {
+       "acknowledged": [],
+       "checkers": [
+        "div-zero",
+        "int-trunc",
+        "junk-value",
+        "nat-sub",
+        "off-by-one-range",
+        "unused-binder"
+       ],
+       "findings": [
+        {
+         "checker": "div-zero",
+         "location": "k % p",
+         "message": "modulo by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"
+        },
+        {
+         "checker": "div-zero",
+         "location": "n % p",
+         "message": "modulo by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"
+        }
+       ],
+       "origin": "compiler-derived"
+      },
+      "message": "2 hazard finding(s) on a statement the gate derived from a merged assembly, recorded and not refused; first: div-zero at k % p: modulo by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"
+     },
+     "name": "hazards",
+     "result": "pass",
+     "step": 6
+    },
+    {
+     "diagnostic": null,
+     "name": "witness",
+     "result": "pass",
+     "step": 7
+    },
+    {
+     "diagnostic": null,
+     "name": "deps",
+     "result": "pass",
+     "step": 8
+    }
+   ],
+   "submitter": null,
+   "toolchain_hash": "f54d0bc916bf76a7fae460ce9d078ccd1f74aeb4fd12c4b6546bca28b6aa1c63",
+   "tooling": {
+    "harness": null,
+    "model": null
+   },
+   "trust_base": "kernel",
+   "verdict": "pass"
+  },
+  "automation": null,
+  "bundle_digest": "dcc39c583b26b55e6c7c931954e9e7818fbdaec8220972124f7007645b8b574c",
+  "first_failing_step": null,
+  "holes": [
+   {
+    "closed_type": "∃ (K : ℕ),\n  ∀ (n k : ℕ),\n    K < k →\n      (2 : ℕ) * k ≤ n →\n        n < k * k →\n          k % (2 : ℕ) = (0 : ℕ) →\n            k % (3 : ℕ) = (1 : ℕ) →\n              (1 : ℕ) ≤ n % (3 : ℕ) →\n                k % (5 : ℕ) ≤ n % (5 : ℕ) →\n                  k % (7 : ℕ) ≤ n % (7 : ℕ) →\n                    k % (11 : ℕ) ≤ n % (11 : ℕ) →\n                      k % (13 : ℕ) ≤ n % (13 : ℕ) → ∃ (p : ℕ), Nat.Prime p ∧ p ≤ k ∧ n % p < k % p",
+    "expected_new": true,
+    "expected_node_id": "erdos-1094--h3--h1--h1--h2--h1--h1",
+    "expected_witness": "True",
+    "name": "h_k3one",
+    "proved_binders": [],
+    "restates": null
+   },
+   {
+    "closed_type": "∃ (K : ℕ),\n  ∀ (n k : ℕ),\n    K < k →\n      (2 : ℕ) * k ≤ n →\n        n < k * k →\n          k % (2 : ℕ) = (0 : ℕ) →\n            k % (3 : ℕ) = (2 : ℕ) →\n              n % (3 : ℕ) = (2 : ℕ) →\n                k % (5 : ℕ) ≤ n % (5 : ℕ) →\n                  k % (7 : ℕ) ≤ n % (7 : ℕ) →\n                    k % (11 : ℕ) ≤ n % (11 : ℕ) →\n                      k % (13 : ℕ) ≤ n % (13 : ℕ) → ∃ (p : ℕ), Nat.Prime p ∧ p ≤ k ∧ n % p < k % p",
+    "expected_new": true,
+    "expected_node_id": "erdos-1094--h3--h1--h1--h2--h1--h2",
+    "expected_witness": "True",
+    "name": "h_k3two",
+    "proved_binders": [],
+    "restates": null
+   }
+  ],
+  "job_id": "01M500P3R8WZEV49RFWSJW3WTQ",
+  "node_id": "erdos-1094--h3--h1--h1--h2--h1",
+  "steps": [
+   {
+    "diagnostic": {
+     "code": "mathlib-pinned",
+     "details": {
+      "mathlib_sha": "0df444a360eaa60ab8c11dca51a86af692955474",
+      "packages": 8
+     },
+     "message": "Mathlib 0df444a360ea resolved from the pinned checkout"
+    },
+    "name": "toolchain",
+    "result": "pass",
+    "step": 1
+   },
+   {
+    "diagnostic": {
+     "code": "partial-submission",
+     "details": {
+      "path": "attempts/20261015T145026Z-t1015c-a09-partial.lean"
+     },
+     "message": "a partial proof: attempts/20261015T145026Z-t1015c-a09-partial.lean (D-12 #5)"
+    },
+    "name": "paths",
+    "result": "pass",
+    "step": 2
+   },
+   {
+    "diagnostic": {
+     "code": "artifact-partial",
+     "details": {
+      "holes": [
+       "h_k3one",
+       "h_k3two"
+      ],
+      "kind": "partial"
+     },
+     "message": "partial: erdos_1094__h3__h1__h1__h2__h1 declares ∃ K₃,\n  ∀ (n k : ℕ),\n    K₃ < k →\n      2 * k ≤ n →\n        n < k * k →\n          k % 2 = 0 →\n            0 < k % 3 →\n              k % 3 ≤ n % 3 →\n                k % 5 ≤ n % 5 →\n                  k % 7 ≤ n % 7 → k % 11 ≤ n % 11 → k % 13 ≤ n % 13 → ∃ p, Nat.Prime p ∧ p ≤ k ∧ n % p < k % p; 2 hole(s)"
+    },
+    "name": "kernel-replay",
+    "result": "pass",
+    "step": 4
+   },
+   {
+    "diagnostic": null,
+    "name": "axioms",
+    "result": "pass",
+    "step": 5
+   },
+   {
+    "diagnostic": {
+     "code": "hazards-derived-statement",
+     "details": {
+      "acknowledged": [],
+      "checkers": [
+       "div-zero",
+       "int-trunc",
+       "junk-value",
+       "nat-sub",
+       "off-by-one-range",
+       "unused-binder"
+      ],
+      "findings": [
+       {
+        "checker": "div-zero",
+        "location": "k % p",
+        "message": "modulo by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"
+       },
+       {
+        "checker": "div-zero",
+        "location": "n % p",
+        "message": "modulo by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"
+       }
+      ],
+      "origin": "compiler-derived"
+     },
+     "message": "2 hazard finding(s) on a statement the gate derived from a merged assembly, recorded and not refused; first: div-zero at k % p: modulo by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"
+    },
+    "name": "hazards",
+    "result": "pass",
+    "step": 6
+   },
+   {
+    "diagnostic": null,
+    "name": "witness",
+    "result": "pass",
+    "step": 7
+   },
+   {
+    "diagnostic": null,
+    "name": "deps",
+    "result": "pass",
+    "step": 8
+   }
+  ],
+  "verdict": "pass"
+ },
+ "public": true
+}

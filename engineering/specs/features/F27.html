@@ -105,7 +105,7 @@ with an example filter; decisions v3.40.</p>
     a read tool whose plain path is <code>targets/&lt;id&gt;/graph.json</code> plus
     <code>GET /frontier.json</code> (D-28 bijection), answering the routes and the sets for one
     target and <code>not-found</code> for a target the graph does not hold.</td></tr>
-  <tr><td>F27-R10</td><td>The problem page shall carry a Routes section for a target whose graph
+  <tr><td>F27-R10</td><td><em>Superseded 2026-10-18 by F30-R5 to R9 (F30-Q1): the layout moves on selection and the pies are gone.</em> The problem page shall carry a Routes section for a target whose graph
     has at least one route: a drawing whose layout depends only on the graph, never on what is
     selected, in which a route's join (AND) and a node's choice between routes (OR) have different
     marks, each statement is a pie with one wedge per set it belongs to, coloured by set, and proved
@@ -118,6 +118,17 @@ with an example filter; decisions v3.40.</p>
   <tr><td>F27-R12</td><td>The guide shall show an operator's filter that uses route facts to send a
     share of agents to propose a route instead of claiming a hole on a stalled one, and say that the
     share is the operator's (D-25).</td></tr>
+  <tr><td>F27-R13</td><td>When asked for <code>at_proved: follow</code>, the system shall expand each
+    proved statement of a set along what its first proof's term rests on (F18-R2, the products'
+    <code>proofs[].used</code>; an unmeasured proof along its deps, uses and lemmas), transitively, so
+    the set also lists the proved structure it stands on, and shall name per set the routes those
+    proofs went through (<code>proof_routes</code>: a route of a followed statement every hole of
+    which its proof used). The sets shall be the same as under the default <code>stop</code> (R5): the
+    same ids, open statements, assemblies, routes, order and selector tree. The tool shall take
+    <code>at_proved?</code> and say which it did; the problem page's selector panel shall carry a
+    toggle, "Stop at proved statements", on by default, that switches every set view, the table's
+    counts and the lists of proved statements to the followed reading without moving the selector or
+    the drawing's layout at rest.</td></tr>
 </table>
 
 <h2>5. Acceptance criteria</h2>
@@ -160,6 +171,27 @@ with an example filter; decisions v3.40.</p>
     then that set's statements and lines are lit and the rest dimmed, the node positions do not
     move, and clearing restores every wedge.</td>
     <td><code>site/tests/test_routes_view.py::test_selection_lights_one_set_and_layout_is_fixed</code>
+    (Playwright; screenshots in <code>engineering/evidence/F27/</code>)</td></tr>
+  <tr><td>F27-AC12</td><td>Given a proved statement whose proof used one hole of its route and another
+    whose proof used every hole, when the sets are read with <code>at_proved: follow</code>, then the
+    first's set gains that hole alone with no route followed and the second's gains both holes with
+    its route in <code>proof_routes</code>; the ids, open statements, assemblies, routes and selector
+    tree equal the default's; an unmeasured proof follows its deps, uses and lemmas.</td>
+    <td><code>gate/tests/test_target_routes.py::test_follow_adds_what_each_proved_member_rests_on_and_changes_no_set</code>,
+    <code>::test_an_unmeasured_proof_follows_its_declared_dependencies_uses_and_lemmas</code>,
+    <code>::test_follow_on_live_erdos_1094_changes_no_set_and_adds_only_proved_statements</code></td></tr>
+  <tr><td>F27-AC13</td><td>Given the tool, when called with <code>at_proved: follow</code> on erdos-1094 of
+    2026-10-19, then the answer is the library's follow reading, validates against <code>v3</code>, and
+    an unknown value is refused.</td>
+    <td><code>api/tests/test_routes_mcp.py::test_at_proved_follow_lists_what_each_proved_statement_rests_on</code></td></tr>
+  <tr><td>F27-AC14</td><td>Given the rendered page, when read, then the toggle sits in the selector panel,
+    hidden without the script, every set view has a followed twin whose nodes include the closure
+    beneath its proved statements and the direct lines the proofs took, and the table carries both
+    counts; in a browser, unticking the toggle moves a selected set to its followed twin, the
+    table's counts change, the selector does not move, and ticking it returns.</td>
+    <td><code>site/tests/test_one_view.py::test_follow_views_add_what_proved_members_rest_on</code>,
+    <code>site/tests/test_one_view_markup.py::test_the_follow_toggle_sits_in_the_selector_panel_with_both_counts</code>,
+    <code>site/tests/test_one_view.py::test_unticking_stop_at_proved_shows_the_followed_set</code>
     (Playwright; screenshots in <code>engineering/evidence/F27/</code>)</td></tr>
 </table>
 
@@ -240,10 +272,25 @@ with an example filter; decisions v3.40.</p>
     route adds a junction row; shortening junction-only rows is a larger change to
     <code>dag.py</code>, left for review. <code>dag.layout</code> takes an optional
     <code>widths</code> map; existing callers are unchanged.</td></tr>
+  <tr><td>F27-Q10</td><td><strong>Following a proof is a reading of the same sets, not a different cut
+    (R13).</strong> The owner (2026-10-19) wants stewards to follow the proof and see progress; a set that
+    stops at a proved statement hides what that statement already rests on. The toggle does not move the
+    cut: a proved statement still ends the set, and <code>follow</code> adds beneath it the closure F18
+    already publishes for a proof (the kernel term's uses, D-25 v3.26), one expansion per proved
+    statement, so the sets, their ids, their open statements and the selector tree are identical under
+    both readings and no palette, table row or tree node changes. Expanding along a proved statement's
+    <em>routes</em> instead would have drawn decompositions the proof never took and multiplied the sets
+    again (Q2). A route is reported as followed only when every hole of it is among what the proof
+    used: a proof that used one hole of a route as a lemma went past the route and is drawn as the
+    direct line it is. D-25 v3.40's "a proved node ends the cut" stands as written; nothing is
+    recorded, no product changes, no re-pin (Q1). The site embeds one layout per set view under each
+    reading (<code>follow/</code> keys): on erdos-1094 of 2026-10-19, 26 twins beside 28 views, and the
+    layouts JSON grows from 186&nbsp;KB to 485&nbsp;KB, within F30 §6's "a few hundred kilobytes"
+    (<code>engineering/evidence/F27/task-10.txt</code>).</td></tr>
 </table>
 
 <h2>10. Status</h2>
-<div class="rule"><strong>status:</strong> live 2026-10-15 · <strong>Tasks:</strong> T0&ndash;T8 done; network PR #54 deployed, T6 by its own pull request, the guide copy pushed to the graph, the site deployed; no re-pin needed (Q1). Q1&ndash;Q9 stand for the owner's review.
+<div class="rule"><strong>status:</strong> live 2026-10-15 · <strong>Tasks:</strong> T0&ndash;T8 done; network PR #54 deployed, T6 by its own pull request, the guide copy pushed to the graph, the site deployed; no re-pin needed (Q1). T9&ndash;T10 (R13, the owner's toggle of 2026-10-19) live the same day: network PR #75 merged as 192ddd62, api-deploy and site-deploy green, the guide copy merged as graph PR #771 (d75db0fa); the live tool answers both readings and the live erdos-1094 page carries the toggle. Q1&ndash;Q10 stand for the owner's review.
 todo</div>
 
 <h2>Tasks</h2>
@@ -301,6 +348,25 @@ todo</div>
     <td><code>gate/opn_gate/routes.py</code>, <code>gate/tests/test_target_routes.py</code>,
     <code>gate/tests/fixtures/routes/erdos-1094-20261015.json</code></td><td>T1</td>
     <td><code>uv run pytest gate/tests/test_target_routes.py</code></td></tr>
+  <tr><td>F27-T9</td><td>R13 in the library and the tool: <code>routes.read(at_proved=)</code>,
+    <code>routes.followed</code> (the walk the page shares), a set's <code>proof_routes</code>, the
+    answer's <code>at_proved</code>, result schema <code>v3</code>, the guide's sentence and its graph copy,
+    a live fixture of erdos-1094 (graph 00f4bc884).</td>
+    <td><code>gate/opn_gate/routes.py</code>, <code>gate/tests/test_target_routes.py</code>,
+    <code>gate/tests/fixtures/routes/erdos-1094-20261019.json</code>, <code>api/opn_api/mcp/reads.py</code>,
+    <code>api/opn_api/mcp/results.py</code>, <code>api/opn_api/mcp/schemas/list_sufficient_sets/v3.json</code>,
+    <code>api/tests/test_routes_mcp.py</code>, <code>api/tests/test_finding_routes_selector_mcp.py</code>,
+    <code>gate/agents/AGENTS.md</code>, <code>../open_proof_network_graph/AGENTS.md</code> (the D-35 copy)</td><td>T7</td>
+    <td><code>OPN_GRAPH_CHECKOUT=../opn-f27-graph-follow uv run --frozen pytest gate/tests/test_target_routes.py api/tests/test_routes_mcp.py api/tests/test_finding_routes_selector_mcp.py api/tests/test_finding_mcp_context_budget.py gate/tests/test_walkthrough.py</code></td></tr>
+  <tr><td>F27-T10</td><td>R13 on the page: the "Stop at proved statements" toggle in the selector panel,
+    a followed twin of every set view (<code>follow/</code> keys) with the closure's nodes and the proofs'
+    own lines, the table's counts and proved lists under both readings, the script's switch; captures on
+    a full render of the live graph.</td>
+    <td><code>site/opn_site/one_view.py</code>, <code>site/opn_site/routes_view.py</code>,
+    <code>site/opn_site/render.py</code>, <code>site/opn_site/static/graph.js</code>,
+    <code>site/opn_site/static/site.css</code>, <code>site/tests/test_one_view.py</code>,
+    <code>site/tests/test_one_view_markup.py</code>, <code>engineering/evidence/F27/</code></td><td>T9</td>
+    <td><code>uv run --frozen --with playwright pytest site/tests/test_one_view.py site/tests/test_one_view_markup.py site/tests/test_routes_view.py</code></td></tr>
 </table>
 
 <footer>Open Proof Network · F27 spec v1 · 2026-10-15 · drafted and built unattended from the

@@ -29,7 +29,13 @@ def node(
     relation: str | None = None,
     decompositions: list[list[str | None]] | None = None,
     circular: list[dict[str, str]] | None = None,
+    proofs: list[list[str] | None] | None = None,
+    uses: list[str] | None = None,
+    lemmas: list[str] | None = None,
 ) -> dict[str, Any]:
+    """``proofs`` (F27-T9): one entry per merged proof, each the nodes its term ``used`` as
+    graph/v4 publishes them, or ``None`` where nothing measured it (an older merge); ``uses``
+    (F08-R19) and ``lemmas`` (D-12 v3.38) as the row carries them."""
     return {
         "node_id": node_id,
         "status": status,
@@ -45,6 +51,20 @@ def node(
             for k, holes in enumerate(decompositions or [])
         ],
         "circular": circular or [],
+        "proofs": [
+            {
+                "kind": "proof" if k == 0 else "alternate",
+                "path": "Proof.lean" if k == 0 else f"alternates/{k}.lean",
+                "artifact_hash": f"{k:064x}",
+                "attestation": f"{k + 1:06d}.json",
+                "merge_commit": f"{k:040x}",
+                "submitter": None,
+                "used": used,
+            }
+            for k, used in enumerate(proofs or [])
+        ],
+        "uses": uses or [],
+        "lemmas": [{"hole": f"l{i + 1}", "node": n} for i, n in enumerate(lemmas or [])],
     }
 
 
@@ -361,14 +381,16 @@ def test_entries_of_another_target_are_ignored() -> None:
     assert routes.read(g, entries).routes[0].summary.attempts == 0
 
 
-def test_circular_member_is_marked_not_removed() -> None:
-    """Q6: a set holding a statement labelled circular keeps it and says so."""
+def test_an_older_graphs_circular_field_marks_nothing() -> None:
+    """Q6 restated for D-12 v3.43 (F08-T42): a graph rendered before graph/v11 may carry a row's
+    ``circular`` label; a set keeps the statement and says nothing of it."""
     g = doc(
         node("t", deps=["t--h1"], decompositions=[["t--h1"]]),
         hole("t--h1", circular=[{"ancestor": "t", "claim": "t--h1/defects/x.yaml"}]),
     )
     (s,) = routes.read(g).sets
-    assert s.circular == ("t--h1",)
+    assert s.open == ("t--h1",)
+    assert "circular" not in s.as_dict()
 
 
 # --- R8: the coarser cuts ------------------------------------------------------------------
@@ -403,7 +425,7 @@ def test_as_dict_round_trips_through_json() -> None:
     g = doc(node("t", deps=["t--h1"], decompositions=[["t--h1"]]), hole("t--h1"))
     out = routes.read(g).as_dict()
     assert json.loads(json.dumps(out)) == out
-    assert set(out) == {"target_id", "root", "cut", "truncated", "routes", "sets"}
+    assert set(out) == {"target_id", "root", "cut", "at_proved", "truncated", "routes", "sets"}
     assert set(out["sets"][0]) >= {
         "id",
         "statements",
@@ -411,13 +433,160 @@ def test_as_dict_round_trips_through_json() -> None:
         "proved",
         "assemblies",
         "routes",
+        "proof_routes",
         "variant",
         "total",
         "closed",
         "remaining",
         "shared",
-        "circular",
     }
+    assert "circular" not in out["sets"][0]  # F08-T42 (D-12 v3.43)
+
+
+# --- F27-T9 (R13): following a proved statement's proof --------------------------------------
+
+
+def followed_doc() -> dict[str, Any]:
+    """Root ``t`` with two routes, ``[a, p]`` and ``[q]``. ``p`` is proved and decomposed into
+    ``[p--h1, p--h2]``, both proved, but its proof's term used ``p--h1`` alone: the proof went
+    past the route. ``q`` is proved and its term used both holes of its one route: the proof
+    is the route's assembly."""
+    return doc(
+        node("t", decompositions=[["t--a", "t--p"], ["t--q"]]),
+        node("t--a"),
+        node(
+            "t--p",
+            "proved",
+            deps=["t--p--h1", "t--p--h2"],
+            decompositions=[["t--p--h1", "t--p--h2"]],
+            proofs=[["t--p--h1"]],
+        ),
+        hole("t--p--h1", "proved", proofs=[[]]),
+        hole("t--p--h2", "proved", proofs=[[]]),
+        node(
+            "t--q",
+            "proved",
+            deps=["t--q--h1", "t--q--h2"],
+            decompositions=[["t--q--h1", "t--q--h2"]],
+            proofs=[["t--q--h1", "t--q--h2"]],
+        ),
+        hole("t--q--h1", "proved", proofs=[[]]),
+        hole("t--q--h2", "proved", proofs=[[]]),
+    )
+
+
+def test_follow_adds_what_each_proved_member_rests_on_and_changes_no_set() -> None:
+    """R13: with ``at_proved: follow`` every proved statement of a set is expanded along its
+    first proof's term (F18, ``used``), so the set shows the proved structure it rests on; the
+    sets themselves — their ids, open statements, assemblies, routes and order — are those of
+    the default, which stops at a proved statement (R5)."""
+    g = followed_doc()
+    stop = routes.read(g, [])
+    follow = routes.read(g, [], at_proved="follow")
+    assert (stop.at_proved, follow.at_proved) == ("stop", "follow")
+    assert [s.id for s in stop.sets] == [s.id for s in follow.sets]
+    assert open_sets(stop) == open_sets(follow) == [["t--a"], []]
+    assert [(s.assemblies, s.routes) for s in stop.sets] == [
+        (s.assemblies, s.routes) for s in follow.sets
+    ]
+    assert routes.selector_tree(stop).as_dict() == routes.selector_tree(follow).as_dict()
+    assert [s.statements for s in stop.sets] == [("t--a", "t--p"), ("t--q",)]
+    # p's proof used p--h1 alone: p--h1 joins, p--h2 does not, and no route is followed
+    assert follow.sets[0].statements == ("t--a", "t--p", "t--p--h1")
+    assert follow.sets[0].proved == ("t--p", "t--p--h1")
+    assert follow.sets[0].proof_routes == ()
+    # q's proof used both holes of its route: the route is the proof's own structure
+    assert follow.sets[1].statements == ("t--q", "t--q--h1", "t--q--h2")
+    assert follow.sets[1].proof_routes == ("t--q@1",)
+    assert (follow.sets[1].closed, follow.sets[1].remaining) == (3, 0)
+    assert all(s.proof_routes == () for s in stop.sets)
+    for s in follow.sets:
+        assert closes_root(g, set(s.statements)), s.id
+
+
+def test_followed_names_the_routes_a_proof_went_through_and_its_direct_uses() -> None:
+    """The structure the page draws beneath a proved statement: the nodes its proof rests on
+    (transitively), the routes it went through (every hole of the route among what its node's
+    proof used) and the direct lines, from a used node to its user, that no followed route
+    carries."""
+    g = followed_doc()
+    result = routes.read(g, [])
+    p = routes.followed(result, g, "t--p")
+    assert (p.nodes, p.routes, p.lines) == (("t--p--h1",), (), (("t--p--h1", "t--p"),))
+    q = routes.followed(result, g, "t--q")
+    assert (q.nodes, q.routes, q.lines) == (("t--q--h1", "t--q--h2"), ("t--q@1",), ())
+
+
+def test_an_unmeasured_proof_follows_its_declared_dependencies_uses_and_lemmas() -> None:
+    """A proof merged before the gate measured its term (``used: null``, F18-R2) is followed
+    along everything it could rest on — its deps, its uses and its lemmas — as the products'
+    closure is (``NodeFacts.rests_on``)."""
+    g = doc(
+        node("t", decompositions=[["t--p"]]),
+        hole(
+            "t--p",
+            "proved",
+            deps=["t--d"],
+            uses=["t--u"],
+            lemmas=["t--l"],
+            proofs=[None],
+        ),
+        node("t--d", "proved", proofs=[[]]),
+        node("t--u", "proved", proofs=[["t--w"]]),
+        node("t--w", "proved", proofs=[[]]),
+        node("t--l", "proved", proofs=[[]]),
+    )
+    follow = routes.read(g, [], at_proved="follow")
+    (s,) = follow.sets
+    assert s.statements == ("t--d", "t--l", "t--p", "t--u", "t--w")
+    f = routes.followed(routes.read(g, []), g, "t--p")
+    assert f.nodes == ("t--d", "t--l", "t--u", "t--w")
+    assert f.lines == (("t--d", "t--p"), ("t--l", "t--p"), ("t--u", "t--p"), ("t--w", "t--u"))
+
+
+def test_following_a_malformed_record_terminates() -> None:
+    """Two proofs that cite each other cannot come from the gate (a used node was proved before
+    its user merged), but a hand-made product could say so; the walk sees each node once."""
+    g = doc(
+        node("t", decompositions=[["t--p"]]),
+        hole("t--p", "proved", proofs=[["t--q", "nowhere"]]),
+        node("t--q", "proved", proofs=[["t--p"]]),
+    )
+    follow = routes.read(g, [], at_proved="follow")
+    assert follow.sets[0].statements == ("t--p", "t--q")
+
+
+def test_unknown_at_proved_is_refused() -> None:
+    with pytest.raises(ValueError, match="at_proved"):
+        routes.read(doc(node("t")), at_proved="through")
+
+
+def test_follow_on_live_erdos_1094_changes_no_set_and_adds_only_proved_statements() -> None:
+    """erdos-1094 as published on 2026-10-19 (graph 00f4bc884): seven of its proved statements
+    rest on others, five of them proved by closure (F28). Following them adds proved statements
+    beneath every set that holds one, keeps every id, open set, assembly, route and the selector
+    tree, and each set still closes the root."""
+    graph, entries = live("erdos-1094-20261019")
+    stop = routes.read(graph, entries)
+    follow = routes.read(graph, entries, at_proved="follow")
+    assert [s.id for s in stop.sets] == [s.id for s in follow.sets]
+    assert open_sets(stop) == open_sets(follow)
+    assert [(s.assemblies, s.routes, s.variant) for s in stop.sets] == [
+        (s.assemblies, s.routes, s.variant) for s in follow.sets
+    ]
+    assert routes.selector_tree(stop).as_dict() == routes.selector_tree(follow).as_dict()
+    rows = {str(n["node_id"]): n for n in graph["nodes"]}
+    grew = 0
+    for a, b in zip(stop.sets, follow.sets, strict=True):
+        added = set(b.statements) - set(a.statements)
+        assert all(rows[m]["status"] == "proved" for m in added), (b.id, added)
+        assert set(a.statements) <= set(b.statements)
+        grew += len(added)
+        assert closes_root(graph, set(b.statements)), b.id
+    assert grew > 0
+    deep = "erdos-1094--h2--h2--h2--h3--h1--h1--h1"  # proved, three closures above it
+    assert any(deep in s.statements for s in follow.sets)
+    assert not any(deep in s.statements for s in stop.sets)
 
 
 # --- AC8: the live shapes -------------------------------------------------------------------

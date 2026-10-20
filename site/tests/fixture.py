@@ -606,50 +606,75 @@ def write_literature(
 def publish_v335(
     root: Path,
     *,
-    circular: dict[str, list[dict[str, str]]] | None = None,
     literature: dict[str, dict[str, Any]] | None = None,
     literature_proposed: dict[str, dict[str, Any]] | None = None,
     target: str = TARGET,
 ) -> None:
-    """Rewrite the rendered products as the v3.35 gate writes them: ``graph/v6`` and
-    ``frontier/v5``, every row carrying ``circular`` (``[{ancestor, claim}]``, the claim relative
-    to the target's ``nodes/``), ``literature`` and ``literature_proposed``. A circularity claim
-    is a label and removes nothing (D-12 v3.35), so the products are generated *before* any
-    claim is filed and only the three fields are added here; the retired cause ``circular`` is
-    cleared should a row carry it. The documents are validated against the new schemas, so a
-    test feeds the site exactly the shape the gate's contract names."""
-    circular = circular or {}
+    """Rewrite the rendered products with the literature fields v3.35 added (``graph/v6``
+    ``literature`` / ``literature_proposed``, carried by every later version) on the named rows,
+    at the current contract (``graph/v12``, ``frontier/v6``; F29-T1 added labels, F08-T42 retired
+    v6's ``circular``).
+    The documents are validated against the schemas, so a test feeds the site exactly the shape
+    the gate's contract names."""
     literature = literature or {}
     literature_proposed = literature_proposed or {}
 
     def extend(row: dict[str, Any]) -> None:
         nid = str(row["node_id"])
-        row["circular"] = list(circular.get(nid, []))
         row["literature"] = literature.get(nid)
         row["literature_proposed"] = literature_proposed.get(nid)
-        if row.get("cause") == "circular":
-            row["cause"] = None
 
     graph_path = root / "targets" / target / "graph.json"
     graph = json.loads(graph_path.read_text(encoding="utf-8"))
-    # F26-T1: the current contract is graph/v9 (the review over v8's lemmas and v7's registrations),
-    # which also wants each row's ``lemmas``; a row the fixture already gave some keeps them.
-    graph["schema"] = "graph/v10"
+    graph["schema"] = products.GRAPH_SCHEMA
     for row in graph["nodes"]:
         extend(row)
         row.setdefault("lemmas", [])
-    graph_path.write_text(json.dumps(schemas.validate(graph, "graph/v10"), indent=1) + "\n")
+    graph_path.write_text(json.dumps(schemas.validate(graph, graph["schema"]), indent=1) + "\n")
+
+    frontier_path = root / "frontier.json"
+    frontier = json.loads(frontier_path.read_text(encoding="utf-8"))
+    frontier["schema"] = products.FRONTIER_SCHEMA
+    for entry in frontier["entries"]:
+        if entry["target_id"] == target:
+            extend(entry)
+    frontier_path.write_text(
+        json.dumps(schemas.validate(frontier, frontier["schema"]), indent=1) + "\n"
+    )
+
+
+def publish_circular_snapshot(
+    root: Path,
+    circular: dict[str, list[dict[str, str]]],
+    *,
+    target: str = TARGET,
+) -> None:
+    """An older snapshot (D-34): the rendered products lowered to ``graph/v9`` and
+    ``frontier/v5``, the last versions whose rows carry ``circular`` (``[{ancestor, claim}]``,
+    the claim relative to the target's ``nodes/``) — the given labels on the named rows, none
+    elsewhere. F04-T53 (D-12 v3.43): the site ignores the field, so such a snapshot renders as
+    the current one does. Validated against the older schemas."""
+
+    def lower(row: dict[str, Any]) -> None:
+        row["circular"] = list(circular.get(str(row["node_id"]), []))
+
+    graph_path = root / "targets" / target / "graph.json"
+    graph = json.loads(graph_path.read_text(encoding="utf-8"))
+    graph["schema"] = "graph/v9"
+    for row in graph["nodes"]:
+        lower(row)
+        row.pop("closure", None)  # graph/v10 (F28-T8) added it
+        for field in ("label", "label_source", "claim"):  # graph/v12 (F29-T1)
+            row.pop(field, None)
+        for d in row.get("decompositions") or []:
+            d.pop("approach", None)
+    graph_path.write_text(json.dumps(schemas.validate(graph, "graph/v9"), indent=1) + "\n")
 
     frontier_path = root / "frontier.json"
     frontier = json.loads(frontier_path.read_text(encoding="utf-8"))
     frontier["schema"] = "frontier/v5"
     for entry in frontier["entries"]:
-        if entry["target_id"] == target:
-            extend(entry)
-        else:
-            entry.setdefault("circular", [])
-            entry.setdefault("literature", None)
-            entry.setdefault("literature_proposed", None)
+        lower(entry)
     frontier_path.write_text(json.dumps(schemas.validate(frontier, "frontier/v5"), indent=1) + "\n")
 
 
@@ -669,10 +694,39 @@ def publish_v336(
     lemmas = lemmas or {}
     graph_path = root / "targets" / target / "graph.json"
     graph = json.loads(graph_path.read_text(encoding="utf-8"))
-    graph["schema"] = "graph/v10"
+    graph["schema"] = products.GRAPH_SCHEMA
     for row in graph["nodes"]:
         row["lemmas"] = list(lemmas.get(str(row["node_id"]), row.get("lemmas") or []))
-    graph_path.write_text(json.dumps(schemas.validate(graph, "graph/v10"), indent=1) + "\n")
+    graph_path.write_text(json.dumps(schemas.validate(graph, graph["schema"]), indent=1) + "\n")
+
+
+# --- F29-T5 (R3, R9): labels on the rendered rows, as a gloss/v3 would give them ------------------
+
+
+def publish_labels(
+    root: Path,
+    labels: dict[str, tuple[str, str]],
+    *,
+    claims: dict[str, str | None] | None = None,
+    approaches: dict[str, list[str | None]] | None = None,
+    target: str = TARGET,
+) -> None:
+    """Rewrite the rendered ``graph.json``'s ``label`` / ``label_source`` on the named rows
+    (``{node: (label, source)}``), ``claim`` on ``claims``' rows and each named node's
+    ``decompositions[k].approach`` from ``approaches``, validated against ``graph/v12``
+    (F29-T1), so a test feeds the site exactly the contract's shape. Every other row keeps what
+    the gate derived (a hole's own name, the target's title, the id)."""
+    graph_path = root / "targets" / target / "graph.json"
+    graph = json.loads(graph_path.read_text(encoding="utf-8"))
+    for row in graph["nodes"]:
+        nid = str(row["node_id"])
+        if nid in labels:
+            row["label"], row["label_source"] = labels[nid]
+        if claims and nid in claims:
+            row["claim"] = claims[nid]
+        for k, text in enumerate((approaches or {}).get(nid, [])):
+            row["decompositions"][k]["approach"] = text
+    graph_path.write_text(json.dumps(schemas.validate(graph, graph["schema"]), indent=1) + "\n")
 
 
 # --- F26-T12 (R16, R17; D-9 v3.39): a formalization review written by hand ---------------------
@@ -932,7 +986,7 @@ def write_review(root: Path, *, target: str = TARGET) -> Path:
 
 def build_with_review(tmp_path: Path) -> Path:
     """The curated fixture with the review above on its target, products rendered by the gate
-    (``graph/v9`` carries the review's derived state and the open pair directions)."""
+    (``graph/v9`` and later carry the review's derived state and the open pair directions)."""
     root = curated(tmp_path)
     write_review(root)
     prod = products.generate(root, rendered_from=COMMIT, commit_time=NOW)
@@ -943,11 +997,11 @@ def build_with_review(tmp_path: Path) -> Path:
 
 def publish_review_state(root: Path, state: dict[str, Any], *, target: str = TARGET) -> None:
     """Rewrite the target's ``graph.json`` ``review`` object as the gate would publish it at a
-    later stage (T2's derivation), validated against ``graph/v9``; the records are untouched."""
+    later stage (T2's derivation), validated against ``graph/v12``; the records are untouched."""
     graph_path = root / "targets" / target / "graph.json"
     graph = json.loads(graph_path.read_text(encoding="utf-8"))
     graph["review"] = {**graph["review"], **state}
-    graph_path.write_text(json.dumps(schemas.validate(graph, "graph/v10"), indent=1) + "\n")
+    graph_path.write_text(json.dumps(schemas.validate(graph, graph["schema"]), indent=1) + "\n")
 
 
 def publish_v8(root: Path, *, target: str = TARGET) -> None:
@@ -957,6 +1011,11 @@ def publish_v8(root: Path, *, target: str = TARGET) -> None:
     graph["schema"] = "graph/v8"
     graph.pop("review", None)
     graph.pop("open_pairs", None)
-    for row in graph["nodes"]:
+    for row in graph["nodes"]:  # v6-v10 rows carry ``circular``, which F08-T42 dropped in v11
+        row.setdefault("circular", [])
         row.pop("closure", None)  # graph/v10 (F28-T8)
+        for field in ("label", "label_source", "claim"):  # graph/v12 (F29-T1)
+            row.pop(field, None)
+        for d in row.get("decompositions") or []:
+            d.pop("approach", None)
     graph_path.write_text(json.dumps(schemas.validate(graph, "graph/v8"), indent=1) + "\n")

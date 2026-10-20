@@ -314,6 +314,8 @@ def test_a_steward_supersedes_a_signed_version_through_the_service(
 # --- drafted_with (F21-R6, AC5) ------------------------------------------------------------------
 
 MODEL = "anthropic/claude-opus-5.5 via Claude Code"
+#: The record versions the service writes: F29-T3b (D-3 v3.44) made a gloss ``gloss/v3``.
+WRITTEN = {"gloss": "gloss/v3", "explainer": "explainer/v2"}
 
 
 @pytest.mark.parametrize("record", ["gloss", "explainer"])
@@ -326,7 +328,7 @@ def test_drafted_with_is_written_as_v2(h: Harness, tree: Path, record: str, tmp_
     assert r.status_code == 201, r.text
     doc, _ = glosses.split_front_matter(next(iter(h.githost.pushes[-1].files.values())))
     assert doc is not None
-    assert doc["schema"] == f"{record}/v2"
+    assert doc["schema"] == WRITTEN[record]  # F29-T3b: a gloss lands as v3 (label), an explainer v2
     assert doc["drafted_with"] == MODEL and doc["author"] == "bob" and doc["drafter"] is None
     assert landed(h, tree, tmp_path) == []
 
@@ -337,7 +339,7 @@ def test_absent_drafted_with_is_null(h: Harness, tree: Path, record: str) -> Non
     r = post(h, h.token_for("code_bob", "bob"), body)
     assert r.status_code == 201, r.text
     doc, _ = glosses.split_front_matter(next(iter(h.githost.pushes[-1].files.values())))
-    assert doc is not None and doc["schema"] == f"{record}/v2" and doc["drafted_with"] is None
+    assert doc is not None and doc["schema"] == WRITTEN[record] and doc["drafted_with"] is None
 
 
 @pytest.mark.parametrize("bad", ["x" * 201, 123, ["a model"]])
@@ -553,3 +555,76 @@ def test_superseding_an_unmerged_version_says_it_is_not_merged(
     message = r.json()["message"]
     assert "not a version of the same subject" not in message, message
     assert "no merged version" in message, message
+
+
+# --- F29-T3b (R1; D-3 v3.44): a gloss carries the statement's label ---------------------------
+
+LABEL = "the two-prime lemma"
+
+
+def test_a_label_lands_in_a_v3_gloss(h: Harness, tree: Path, tmp_path: Path) -> None:
+    """A statement gloss with ``label`` is written as ``gloss/v3`` with the label in its front
+    matter, validates, and the shape that lands passes the gate's own checks."""
+    token = h.token_for("code_bob", "bob")
+    r = post(h, token, statement_gloss() | {"label": LABEL})
+    assert r.status_code == 201, r.text
+    doc, _ = glosses.split_front_matter(next(iter(h.githost.pushes[-1].files.values())))
+    assert doc is not None and doc["schema"] == "gloss/v3" and doc["label"] == LABEL
+    assert schemas.violations(doc, "gloss/v3") == []
+    assert landed(h, tree, tmp_path) == []
+
+
+def test_a_gloss_without_a_label_is_v3_with_label_null(h: Harness) -> None:
+    r = post(h, h.token_for("code_bob", "bob"), statement_gloss())
+    assert r.status_code == 201, r.text
+    doc, _ = glosses.split_front_matter(next(iter(h.githost.pushes[-1].files.values())))
+    assert doc is not None and doc["schema"] == "gloss/v3" and doc["label"] is None
+    assert schemas.violations(doc, "gloss/v3") == []
+
+
+@pytest.mark.parametrize(
+    "bad",
+    ["x" * 61, "two\nlines", "the $n$-th prime", "", "   ", 7, ["a label"]],
+    ids=["long", "newline", "dollar", "empty", "blank", "number", "list"],
+)
+def test_a_bad_label_is_refused_label_invalid(h: Harness, bad: Any) -> None:
+    """At most 60 characters, one line, plain text with no dollar sign (F29-R1): anything else
+    is 400 label-invalid with a one-line reason, and nothing opens."""
+    r = post(h, h.token_for("code_bob", "bob"), statement_gloss() | {"label": bad})
+    assert r.status_code == 400, r.text
+    assert r.json()["error"] == "label-invalid", r.text
+    assert "\n" not in r.json()["message"]
+    nothing_opened(h)
+
+
+@pytest.mark.parametrize("kind", ["witness", "relation"])
+def test_a_label_on_a_gloss_of_anything_but_a_statement_is_refused(h: Harness, kind: str) -> None:
+    """A label names a statement (D-3 v3.44): on a witness, relation or definition gloss it is
+    label-invalid, refused before the subject's file is read."""
+    body = statement_gloss() | {"label": LABEL}
+    body["subject"] = {"kind": kind, "node_id": NODE}
+    r = post(h, h.token_for("code_bob", "bob"), body)
+    assert r.status_code == 400 and r.json()["error"] == "label-invalid", r.text
+    nothing_opened(h)
+
+
+def test_a_label_on_a_definition_gloss_is_refused(h: Harness) -> None:
+    body = {
+        "subject": {"kind": "definition", "target_id": TARGET, "module": "Prime.lean"},
+        "text": "A prime.",
+        "licence": "CC-BY-4.0",
+        "label": LABEL,
+    }
+    r = post(h, h.token_for("code_bob", "bob"), body)
+    assert r.status_code == 400 and r.json()["error"] == "label-invalid", r.text
+    nothing_opened(h)
+
+
+def test_a_dry_run_takes_the_label_and_opens_nothing(h: Harness) -> None:
+    token = h.token_for("code_bob", "bob")
+    r = post(h, token, statement_gloss() | {"label": LABEL, "dry_run": True})
+    assert r.status_code == 200, r.text
+    assert r.json()["ok"] is True and r.json()["dry_run"] is True
+    nothing_opened(h)
+    bad = post(h, token, statement_gloss() | {"label": "$x$", "dry_run": True})
+    assert bad.status_code == 400 and bad.json()["error"] == "label-invalid"

@@ -1,0 +1,36 @@
+=== OPN_MUTANT=A (plugin: /private/tmp/claude-501/-Users-mikehiggins-Desktop-repos-open-proof-network/0c742291-d642-48cf-84b5-411473d91911/scratchpad/mut/mutant_lit.py)
+FAILED gate/tests/test_finding_context_literature_inline.py::test_a_missing_record_yields_the_fallback_and_the_bundle_validates
+FAILED gate/tests/test_finding_context_literature_inline.py::test_an_unreadable_record_yields_the_fallback[not-utf8]
+FAILED gate/tests/test_finding_context_literature_inline.py::test_an_unreadable_record_yields_the_fallback[not-yaml]
+FAILED gate/tests/test_finding_context_literature_inline.py::test_an_unreadable_record_yields_the_fallback[not-a-literature-record]
+FAILED gate/tests/test_finding_context_literature_inline.py::test_an_unreadable_record_yields_the_fallback[no-summary]
+FAILED gate/tests/test_finding_context_literature_inline.py::test_an_oversize_record_is_cut_to_the_schema_caps
+6 failed, 5 passed in 3.37s
+=== OPN_MUTANT=B (plugin: /private/tmp/claude-501/-Users-mikehiggins-Desktop-repos-open-proof-network/0c742291-d642-48cf-84b5-411473d91911/scratchpad/mut/mutant_lit.py)
+FAILED gate/tests/test_finding_context_literature_inline.py::test_the_bundle_is_byte_identical_through_disk_and_a_reader_serving_the_same_bytes
+FAILED gate/tests/test_finding_context_literature_inline.py::test_an_oversize_record_is_cut_to_the_schema_caps
+2 failed, 9 passed in 3.82s
+=== mutant source
+"""Mutants for F10-T50's tests (pytest -p mutant_lit; OPN_MUTANT=A|B). Nothing on disk changes."""
+import os
+import yaml
+from opn_gate import context
+
+WHICH = os.environ["OPN_MUTANT"]
+real = context._literature_inline
+
+def uncapped(reader, node_dir, lit):  # A: no caps, no fallback
+    if lit is None:
+        return None
+    out = dict(lit)
+    doc = yaml.safe_load(reader.read(f"{node_dir}/{lit['record']}").decode("utf-8"))
+    out["summary"] = doc["summary"]
+    out["references"] = doc["references"]
+    return out
+
+def disk_only(reader, node_dir, lit):  # B: the gate inlines, a host reader does not
+    if isinstance(reader, context.DiskReader):
+        return real(reader, node_dir, lit)
+    return None if lit is None else dict(lit)
+
+context._literature_inline = uncapped if WHICH == "A" else disk_only

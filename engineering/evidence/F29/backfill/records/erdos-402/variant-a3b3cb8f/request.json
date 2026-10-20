@@ -1,0 +1,13 @@
+{
+ "subject": {
+  "kind": "statement",
+  "node": "variant-a3b3cb8f",
+  "module": null,
+  "lean_hash": "c7bf2ff5e5b6765d900161346d70a1d3a3384f0aacbc1e1171d1b6d95ecbaa27"
+ },
+ "text": "$$\\forall A \\subset \\mathbb{N}\\ \\text{finite}:\\ 0 \\notin A,\\ |A| = 7 \\Rightarrow \\exists\\, a, b \\in A:\\ \\gcd(a,b) \\le \\frac{a}{|A|}$$\n\nEvery set A of exactly seven positive integers has a, b ∈ A (possibly equal) with gcd(a, b) ≤ a/|A|. The division is in ℚ.\n",
+ "supersedes": null,
+ "licence": "CC-BY-4.0",
+ "drafted_with": "Claude Fable 5.1 (claude-fable-5-1)",
+ "label": "Graham's bound for |A| = 7"
+}

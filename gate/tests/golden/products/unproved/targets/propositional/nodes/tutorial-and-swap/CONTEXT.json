@@ -9,8 +9,6 @@
     "truncated": false
   },
   "cause": null,
-  "circular": [],
-  "circular_below": [],
   "claims": {
     "active": [],
     "history_count": 0
@@ -50,7 +48,7 @@
   },
   "rendered_from": "5555555555555555555555555555555555555555",
   "review": null,
-  "schema": "context/v7",
+  "schema": "context/v9",
   "statement": {
     "decl": "OpnProp.and_swap",
     "hash": "749fdf4930d9a6c812065b01c54741fc473083a1dd036656dce09ee34426f14e",
