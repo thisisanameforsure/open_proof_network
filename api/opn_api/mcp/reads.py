@@ -681,6 +681,36 @@ def node_labels(ctx: Context, target_id: str, node_id: str) -> dict[str, Any]:
 #: graph/v12's ``label_source`` values (D-25 v3.44).
 LABEL_SOURCES: frozenset[str] = frozenset({"gloss", "hole", "target", "id"})
 
+#: The fields of a ``target_proofs`` entry that name the proof in ``in_closure`` (F22-T9).
+PROOF_KEYS: tuple[str, ...] = ("node_id", "kind", "path", "artifact_hash")
+
+
+def node_structure(ctx: Context, target_id: str, node_id: str) -> dict[str, Any]:
+    """F22-T9 (request H, Q3): ``proposed_for``, the node's row's pointer (F18-R8), and
+    ``in_closure``, each of the target's proofs (``target_proofs``, F18-R1) whose closure holds
+    the node, in the record's order. Read from ``graph.json`` like the labels (F10-Q7); a product
+    older than either field answers null and []."""
+    graph = document(ctx, f"targets/{target_id}/graph.json")
+    row = next(
+        (
+            n
+            for n in graph.get("nodes") or []
+            if isinstance(n, dict) and n.get("node_id") == node_id
+        ),
+        {},
+    )
+    pointer = row.get("proposed_for")
+    proofs = graph.get("target_proofs")
+    in_closure = [
+        {key: p[key] for key in PROOF_KEYS}
+        for p in (proofs if isinstance(proofs, list) else [])
+        if isinstance(p, dict) and node_id in (p.get("closure") or [])
+    ]
+    return {
+        "proposed_for": pointer if isinstance(pointer, str) and pointer else None,
+        "in_closure": in_closure,
+    }
+
 
 async def get_node(call: Call, args: dict[str, Any]) -> dict[str, Any]:
     node_id = check_id(args.get("node_id"), "node_id")
@@ -714,6 +744,8 @@ async def get_node(call: Call, args: dict[str, Any]) -> dict[str, Any]:
         # graph.json carries them (R3); a product rendered before v3.44 has none, and the
         # answer falls back as the generator would with nothing on the record: the id.
         **node_labels(call.ctx, target_id, node_id),
+        # F22-T9: what it was proposed for and which of the target's proofs rest on it.
+        **node_structure(call.ctx, target_id, node_id),
         "context": bundle,
         "context_source": source,
         "closing": closing_route(node_id, files.get("Statement.lean")),

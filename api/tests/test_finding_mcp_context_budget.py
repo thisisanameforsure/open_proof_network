@@ -43,6 +43,8 @@ ALWAYS = {
     "label",  # F29-T4 (D-3 v3.44): the statement's name, its source and its claim ride always
     "label_source",
     "claim",
+    "proposed_for",  # F22-T9: what it was proposed for and the proofs resting on it, not prose
+    "in_closure",
     "untrusted_note",
 }
 #: The longest a declared description may be, plain path included (T22).
@@ -300,7 +302,10 @@ def test_pin_a_tool_that_needs_a_token_refuses_inside_the_result(
 # F23-T13 and F09-T74 (D-25 v3.45) measured 111,005 before and 111,561 after (+556, 0.5%):
 # confirm_literature's `disputes` parameter (+168 of input schema) and one clause each on
 # confirm_literature, get_node and list_frontier. Pin unchanged.
-TOOLS_LIST_BUDGET = 112_000
+# F22-T9 measured 111,879 before and 112,369 after (+490, 0.4%): get_node's output schema at
+# v3, proposed_for and in_closure, all structure (the declared schema carries no prose). With
+# F09-T75's +223 beside it the list is about 112,600. Pinned 113,000.
+TOOLS_LIST_BUDGET = 113_000
 
 
 def test_the_whole_tools_list_fits_its_budget(harness: Harness) -> None:
