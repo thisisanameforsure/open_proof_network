@@ -1,0 +1,11 @@
+{
+ "status": 201,
+ "body": {
+  "submission_id": "01M506YPPGF3E89FKG8X3QC76R",
+  "pr_url": "https://github.com/thisisanameforsure/open_proof_network_graph/pull/560",
+  "pr_number": 560,
+  "node_id": "erdos-1094--h2--h2--h2--h3--h1--h1--h1",
+  "target_id": "erdos-1094",
+  "artifact_type": "proof"
+ }
+}

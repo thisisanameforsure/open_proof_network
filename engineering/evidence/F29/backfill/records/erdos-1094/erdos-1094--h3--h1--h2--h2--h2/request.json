@@ -1,0 +1,13 @@
+{
+ "subject": {
+  "kind": "statement",
+  "node": "erdos-1094--h3--h1--h2--h2--h2",
+  "module": null,
+  "lean_hash": "1e303ea7f974dc73a6666184b5701df07912961eb8554b430594e9dddb794f83"
+ },
+ "text": "$$\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad K<k,\\ \\ 2k\\le n<k^2,\\ \\ k \\text{ odd},\\ \\ n \\text{ odd},\\ \\ k\\equiv 2 \\pmod 3,\\ \\ n\\equiv 2 \\pmod 3 \\implies \\exists\\,p\\le k \\text{ prime with } n \\bmod p < k \\bmod p$$\n\nFor all large odd $k$ with $k\\equiv 2 \\pmod 3$, every odd $n\\equiv 2 \\pmod 3$ with $2k\\le n<k^2$ has a prime $p\\le k$ whose residue of $n$ is smaller than its residue of $k$. Lean writes oddness as `k % 2 = 1` and `n % 2 = 1`, the congruences as `k % 3 = 2` and `n % 3 = 2`, and $k^2$ as `k * k`. `n % p` is the least non-negative residue, so the condition reads $n \\bmod p < k \\bmod p$, a carry at the last base-$p$ digit when $k$ is subtracted from $n$ (hence $p \\mid \\binom{n}{k}$ by Kummer's theorem, though the statement names no binomial coefficient).\n",
+ "supersedes": null,
+ "licence": "CC-BY-4.0",
+ "drafted_with": "Claude Fable 5.1 (claude-fable-5-1)",
+ "label": "Residue form, k and n odd, k ≡ n ≡ 2 (mod 3)"
+}

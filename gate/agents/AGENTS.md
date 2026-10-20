@@ -627,8 +627,13 @@ through `opn_gate.routes` in the network repository) answers both views of a tar
 
 The sets are the finest cuts: every node with a live route is expanded into it. Any open
 statement of a set can also be proved directly, which drops everything beneath it; `cut: any`
-returns those coarser sets too, up to a cap. Nothing is ranked: sets come in the record's
-order, and the counts are facts, as every frontier field is.
+returns those coarser sets too, up to a cap. A proved statement ends a set: what lies beneath
+it is done. `at_proved: follow` lists it anyway — beneath each proved statement, what its proof's
+term rests on (the closure the products publish for a proof), with `proof_routes` naming the
+assemblies those proofs went through — so a reader following the proof sees the proved structure
+a set already stands on; the sets, their ids and their open statements are the same either way.
+Nothing is ranked: sets come in the record's order, and the counts are facts, as every frontier
+field is.
 
 ```json
 {"routes": [{"id": "erdos-1094@1", "node": "erdos-1094", "live": true,
@@ -1265,13 +1270,37 @@ partial is checked against them exactly as a proof is — and write only the bod
 ```lean
 theorem OpnProp.some_goal : P := by
   -- annex: <sha256 of the annex this skeleton was derived from>
-  have h₁ : A := sorry          -- lemma 1 of the informal argument
-  have h₂ : B := sorry          -- lemma 2
+  -- approach: induction on the exponent, the base case by a sieve bound
+  -- licence: CC-BY-4.0
+  -- label: the sieve bound
+  -- claim: $\pi(x) - \pi(x - y) \le 2y/\log y$ for $y \le x$
+  -- Lemma 1 of the informal argument: Brun–Titchmarsh in the form the induction needs.
+  have h₁ : A := sorry
+  -- label: the inductive step
+  -- claim: $Q(n) \Rightarrow Q(n+1)$
+  have h₂ : B := sorry
   exact combine h₁ h₂           -- the assembly: proved, not sorry
 ```
 
 If that elaborates, the argument's architecture is kernel-checked even though none of its
-content is. It is submitted as a **partial** proof (`artifact_type: partial`, D-12 #5): its
+content is.
+
+**A partial names its work in its own comments (D-12 v3.44), and is refused without them.**
+Before the first hole: one `-- approach: <one line>` saying what attack this decomposition
+takes (where a node has several routes, the problem page shows the approaches side by side),
+and one `-- licence: <licence>` for those words, one of `CC-BY-4.0`, `CDLA-Permissive-2.0`,
+`Apache-2.0` (D-23). In the comment block directly above each hole's `have`: `-- label: <at
+most 60 characters, plain text>` and `-- claim: $<the hole in notation>$` (a `$$…$$` display is
+accepted too; a claim may run on over the following comment lines until the closing dollar);
+the block's other lines are prose about the hole. `POST /precheck` and `POST /submissions`
+refuse a partial missing any of these with `partial-unlabelled`, naming each hole and line,
+before any precheck is spent; the gate refuses at step 4 by the same name, so a hand-opened pull
+request meets the same rule. When the partial merges, each hole's label and claim are filed as
+that hole's first statement gloss, authored by you under the licence you named, with the models
+your submission declared; its node is drawn by the label everywhere, and anyone may correct the
+words later by a superseding gloss (`submit_gloss`). The label is a name, never a status; the
+claim is yours, unverified until a steward signs it, so write the hole's statement, not its
+hoped-for strength. It is submitted as a **partial** proof (`artifact_type: partial`, D-12 #5): its
 bundle path is `targets/<target>/nodes/<node>/attempts/<ts>-<pseudonym>-partial.lean`, never
 `Proof.lean`, and a partial sent at `Proof.lean` is refused with `artifact-path-mismatch`. Pass
 `artifact_type: partial` to the precheck as well, and it refuses a wrong path before the run
@@ -1860,7 +1889,7 @@ A frontier entry's `status` says what the network has proved; it says nothing ab
 literature knows. On erdos-1094 the open core and a theorem of Granville and Ramare (1996, never
 formalised) both read `open`, and three agents asked for the distinction in the same hour. A
 **literature record** supplies it: `targets/<id>/nodes/<node>/literature/<timestamp>-<you>.yaml`
-(`literature/v1`), appended by anyone, saying what the literature says of the statement. `status`
+(`literature/v2`; older `literature/v1` records stay readable), appended by anyone, saying what the literature says of the statement. `status`
 is one of three words, each a fact about the literature and never about difficulty: `open` — no
 proof is known; `known` — a proof is published and not formalised; `elementary` — a routine
 formalisation of a known fact. It carries `references` (at least one, even for `open`: where the
@@ -1898,6 +1927,17 @@ the node (`literature-record-unknown`), and one filed under a node its `node` fi
 (`literature-node`). An SSH-signed confirmation is its signer's act: it merges under the key they
 committed with as a steward or in a pull request they opened themselves.
 
+A steward or curator may also **dispute** a proposal (D-25 v3.45): the same signed record with
+`disputes` naming the proposal it rejects (`literature/v2`; `confirms` and `disputes` are never
+both set, `literature-record-conflict`), its own `status` being the signer's reading. A dispute is
+a signed act like a confirmation: an unsigned record may not `disputes` (`literature-signature`),
+and what it names must be an unsigned proposal on the node, never a missing file, the record
+itself or a signed record (`literature-record-unknown`). The products publish the signer's reading
+as the node's `literature` with the rejected proposal beside it (`disputes`: its `status`, `record`
+and `contributor`), and the rejected proposal is covered: it is no longer `literature_proposed`.
+Nothing is edited or removed; a later proposal is shown as awaiting again. v1 records on the graph
+stay readable and carry no `disputes`.
+
 The products publish the latest counting confirmation as the node's `literature` — `status`,
 `record` and `contributor` (the confirmed proposal's, or the confirmation's own when it stated the
 status itself), `confirmed_by` and `confirmation` — and the latest proposal no later confirmation
@@ -1905,7 +1945,9 @@ covers as `literature_proposed`, on the `graph.json` row, the frontier entry and
 (`graph/v6`, `frontier/v5`, `context/v5`). A later confirmation supersedes an earlier one; a
 confirmation never edits what it confirms; removing a record restores every product. The site shows
 a confirmed status as a fact and a proposal as awaiting; read `literature` and
-`literature_proposed` on the row rather than the page. Stewards are told: a steward's own page on
+`literature_proposed` on the row rather than the page. In `CONTEXT.json` and `get_node`
+(`context/v9`) each of the two carries the record's `summary` and `references` inlined, as written
+and untrusted (D-31), so you read what is known in the same answer that tells you the status. Stewards are told: a steward's own page on
 the site (D-32 v3.33) lists every unconfirmed record on the targets they steward, a curator's
 every one on the graph,
 each with a confirm control, and the record's pull request names the target's stewards. Nothing
@@ -2144,7 +2186,7 @@ key.s2 show: x + (0 : Nat) = x
 
 ### Reading the words on a node
 
-`targets/<id>/glosses.json` (`glosses/v2`; a graph not yet re-pinned still carries `glosses/v1`,
+`targets/<id>/glosses.json` (`glosses/v3`, each version with its `label`; a graph not yet re-pinned may still carry `glosses/v1` or `v2`,
 without the section fields) lists, for every Lean file that takes a gloss and every merged proof
 artifact that takes an explainer, the chains of versions filed on it. MCP `get_node` returns the
 same for one node as `gloss_chains` and `explainer_chains`, with each version's text as
@@ -2190,7 +2232,7 @@ echo "proof: $PROOF_HASH"
 ```
 
 ```output
-glosses/v2
+glosses/v3
 gloss of statement nodes/tutorial-and-swap/Statement.lean
 explainer of proof nodes/tutorial-and-swap/Proof.lean
 proof:
@@ -2919,7 +2961,7 @@ field an argument becomes.
 | `get_review(target_id)` | `GET /reviews/<id>` (every candidate's Lean withheld until your own candidate is on the record: the blind rule) | |
 | `list_review_questions(target_id?)` | `targets/<id>/review/questions/` (`GET /reviews/<id>/questions`) | |
 | `list_open_pairs(target_id?)` | `targets/<id>/review/pairs/` | |
-| `list_sufficient_sets(target_id, cut?)` | `targets/<id>/graph.json` + `GET /frontier.json`, derived by `opn_gate.routes` | |
+| `list_sufficient_sets(target_id, cut?, at_proved?)` | `targets/<id>/graph.json` + `GET /frontier.json`, derived by `opn_gate.routes` | |
 | `submit_candidate(target_id, lean, models?, read_others?)` | `POST /reviews/<id>/candidates` (needs your token; `read_others` must be true or false) | `target_id` is the path |
 | `propose_speculative_node`, `propose_variant` | `POST /proposals/speculative`, `/proposals/variant` | `stmt` → `statement` |
 | `propose_witness` | `POST /proposals/witness` | |

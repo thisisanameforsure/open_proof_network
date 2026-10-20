@@ -120,7 +120,7 @@ def test_the_product_carries_drafted_with(root: Path, record: str) -> None:
     second_doc["supersedes"] = first
     second, _ = file_record(root, record, second_doc, "## The idea\nTwo.\n")
     doc = loads(generate(root), f"targets/{TARGET}/glosses.json")
-    assert doc["schema"] == "glosses/v2"
+    assert doc["schema"] == "glosses/v3"
     assert schemas.violations(doc) == []
     kind = "statement" if record == "gloss" else "proof"
     [subject] = [s for s in doc["subjects"] if s["kind"] == kind and s["node"] == NODE]

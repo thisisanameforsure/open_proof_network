@@ -38,7 +38,7 @@ from test_glosses_route import (
 from test_mcp_demarcation import bare_hits, wrapped_hits
 
 from opn_api import routes
-from opn_api.mcp import bijection, demarcate, results
+from opn_api.mcp import bijection, demarcate, reads, results
 from opn_gate import glosses, products, schemas
 from opn_gate import graph as graphmod
 
@@ -97,7 +97,26 @@ def test_submit_gloss_carries_drafted_with(h: Harness) -> None:
     out = McpClient(h).ok("submit_gloss", args, token=h.token_for("code_bob", "bob"))
     assert out["status"] == 201, out
     doc, _ = glosses.split_front_matter(next(iter(h.githost.pushes[-1].files.values())))
-    assert doc is not None and doc["schema"] == "gloss/v2" and doc["drafted_with"] == model
+    assert doc is not None and doc["schema"] == "gloss/v3" and doc["drafted_with"] == model
+
+
+def test_submit_gloss_forwards_the_label(h: Harness) -> None:
+    """F29-T3b (R1): ``label`` is a parameter of the tool, described, forwarded unchanged to the
+    route, which writes it into the v3 record; a bad one is the route's label-invalid."""
+    client = McpClient(h)
+    (tool,) = [t for t in client.list_tools() if t.name == "submit_gloss"]
+    label = tool.inputSchema["properties"]["label"]
+    assert label["type"] == "string" and label["description"]
+    token = h.token_for("code_bob", "bob")
+    out = client.ok(
+        "submit_gloss", statement_gloss() | {"label": "the two-prime lemma"}, token=token
+    )
+    assert out["status"] == 201, out
+    doc, _ = glosses.split_front_matter(next(iter(h.githost.pushes[-1].files.values())))
+    assert doc is not None and doc["schema"] == "gloss/v3" and doc["label"] == "the two-prime lemma"
+    refused = client.failed("submit_gloss", statement_gloss() | {"label": "$x$"}, token=token)
+    assert refused["status"] == 400 and refused["body"]["error"] == "label-invalid"
+    assert len(h.githost.pushes) == 1
 
 
 def test_withdraw_gloss_is_the_route(h: Harness, tree: Path) -> None:
@@ -205,10 +224,19 @@ def as_v1(doc: dict[str, Any]) -> dict[str, Any]:
             chain.pop("shown"), chain.pop("pending")
             for version in chain["versions"]:
                 version.pop("sections"), version.pop("drafted_with")
+                version.pop("label")  # glosses/v3 (F29-T1)
                 for sig in version["signatures"]:
                     sig.pop("sections")
     assert schemas.violations(old, "glosses/v1") == []
     return old
+
+
+def test_every_glosses_version_the_graph_may_carry_is_accepted() -> None:
+    """2026-10-18: ``GLOSSES_SCHEMAS`` was derived from the current constant, so bumping it to v3
+    dropped v2 and every live get_node answered glosses-invalid until the re-pin. The set names
+    every version explicitly and holds the current one."""
+    assert {"glosses/v1", "glosses/v2", "glosses/v3"} == reads.GLOSSES_SCHEMAS
+    assert products.GLOSSES_SCHEMA in reads.GLOSSES_SCHEMAS
 
 
 def test_a_committed_v1_product_is_still_served(

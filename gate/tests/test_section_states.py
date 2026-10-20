@@ -594,7 +594,7 @@ def test_digestion_counts_a_node_while_every_shown_section_is_verified(
 
 def chains_of_v2(root: Path, kind: str) -> list[dict[str, Any]]:
     doc = loads(generate(root), f"targets/{TARGET}/glosses.json")
-    assert doc["schema"] == "glosses/v2"
+    assert doc["schema"] == "glosses/v3"
     assert schemas.violations(doc) == []
     return chains_of(root, kind)
 

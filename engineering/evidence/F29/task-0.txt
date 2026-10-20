@@ -1,0 +1,6 @@
+# F29-T0 — decisions v3.44, PROTOCOL_VERSION 3.44 (2026-10-17, branch f29-labels)
+$ grep -c v3.44 docs/architecture_decisions.html
+9
+$ uv run --frozen pytest gate/tests/test_products.py -k protocol -q
+
+49 deselected in 0.19s

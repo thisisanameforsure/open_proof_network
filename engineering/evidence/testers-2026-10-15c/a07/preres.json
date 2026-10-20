@@ -1,0 +1,211 @@
+{
+ "id": "01M500QVDGPF755Y884KT4HTEB",
+ "node_id": "erdos-1094--h2--h2--h2--h3--h1--h1",
+ "target_id": "erdos-1094",
+ "state": "done",
+ "created": "2026-10-15T14:51:26Z",
+ "graph_commit": "ce10304b0c25662291339639e5336290ed6cc62d",
+ "bundle_digest": "a6656a4d36c8e50b544cedd731668c56e676434a4d88cb37b2e9c834453afa36",
+ "authenticated": true,
+ "automation": null,
+ "result": {
+  "attestation": {
+   "artifact_hash": "9b838fd9509713767934d38fd9d3c9a4f5cac1037e14d555ea9bc522a16c6244",
+   "automation": null,
+   "diagnostic": {
+    "code": "elaboration-failed",
+    "details": {
+     "messages": [
+      {
+       "column": 12,
+       "file": "Nodes/erdos-1094--h2--h2--h2--h3--h1--h1/Proof.lean",
+       "line": 81,
+       "severity": "error",
+       "text": "Unknown identifier `erdos_1094__h2__h2__h2__h3__h1__h1__h1`"
+      }
+     ],
+     "module": "Nodes.«erdos-1094--h2--h2--h2--h3--h1--h1».Proof",
+     "node": "erdos-1094--h2--h2--h2--h3--h1--h1",
+     "stderr": ""
+    },
+    "message": "Nodes.«erdos-1094--h2--h2--h2--h3--h1--h1».Proof does not elaborate"
+   },
+   "first_failing_step": 4,
+   "footprint": null,
+   "gate_spec_hash": "cfe31e69729e1e93a0015e913cff65ff9e09862e625c4ab5ac1c94a27c811246",
+   "graph_commit": "ce10304b0c25662291339639e5336290ed6cc62d",
+   "graph_id": "erdos-1094",
+   "lean_toolchain": "leanprover/lean4:v4.33.1",
+   "mathlib_sha": "0df444a360eaa60ab8c11dca51a86af692955474",
+   "merge_commit": null,
+   "model_and_tooling": "undeclared",
+   "network_commit": "fa0a13ba270d7b399ed9c075cb531bdaeb2776fe",
+   "node_id": "erdos-1094--h2--h2--h2--h3--h1--h1",
+   "precheck_attestation": {
+    "hash": null,
+    "signature_kind": null
+   },
+   "review": null,
+   "runner": "hosted",
+   "schema": "attestation/v7",
+   "signature": {
+    "key_id": "SHA256:bJR39nO37EkRaxo4CPqdhcHk+WL+sEnAJ9ujpkF7LXo",
+    "kind": "service",
+    "timestamp": "2026-10-15T14:54:15Z",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAg4NVeR5WlT1J5vaHpDOmXNTurS+\nKqTYJTovSCpPj5G/IAAAAPb3BuLWF0dGVzdGF0aW9uAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQKuC+0aDhY7HM2PnyhsTEXm3PqvvOaoLpDi+0W/yRsD5ca9I6j\nTVT2hmmuHniWdmTuwc4WT/cE68kgrY98kxbwc=\n-----END SSH SIGNATURE-----\n"
+   },
+   "statement_hash": "d204fab277af14bd4b0e46f5f8b52ff08650af62b3ef74ca553b2b21b9a6a329",
+   "steps": [
+    {
+     "diagnostic": {
+      "code": "mathlib-pinned",
+      "details": {
+       "mathlib_sha": "0df444a360eaa60ab8c11dca51a86af692955474",
+       "packages": 8
+      },
+      "message": "Mathlib 0df444a360ea resolved from the pinned checkout"
+     },
+     "name": "toolchain",
+     "result": "pass",
+     "step": 1
+    },
+    {
+     "diagnostic": null,
+     "name": "paths",
+     "result": "pass",
+     "step": 2
+    },
+    {
+     "diagnostic": {
+      "code": "elaboration-failed",
+      "details": {
+       "messages": [
+        {
+         "column": 12,
+         "file": "Nodes/erdos-1094--h2--h2--h2--h3--h1--h1/Proof.lean",
+         "line": 81,
+         "severity": "error",
+         "text": "Unknown identifier `erdos_1094__h2__h2__h2__h3__h1__h1__h1`"
+        }
+       ],
+       "module": "Nodes.«erdos-1094--h2--h2--h2--h3--h1--h1».Proof",
+       "node": "erdos-1094--h2--h2--h2--h3--h1--h1",
+       "stderr": ""
+      },
+      "message": "Nodes.«erdos-1094--h2--h2--h2--h3--h1--h1».Proof does not elaborate"
+     },
+     "name": "kernel-replay",
+     "result": "fail",
+     "step": 4
+    },
+    {
+     "diagnostic": null,
+     "name": "axioms",
+     "result": "skipped",
+     "step": 5
+    },
+    {
+     "diagnostic": null,
+     "name": "hazards",
+     "result": "skipped",
+     "step": 6
+    },
+    {
+     "diagnostic": null,
+     "name": "witness",
+     "result": "skipped",
+     "step": 7
+    },
+    {
+     "diagnostic": null,
+     "name": "deps",
+     "result": "skipped",
+     "step": 8
+    }
+   ],
+   "submitter": null,
+   "toolchain_hash": "f54d0bc916bf76a7fae460ce9d078ccd1f74aeb4fd12c4b6546bca28b6aa1c63",
+   "tooling": {
+    "harness": null,
+    "model": null
+   },
+   "trust_base": "kernel",
+   "verdict": "fail"
+  },
+  "automation": null,
+  "bundle_digest": "a6656a4d36c8e50b544cedd731668c56e676434a4d88cb37b2e9c834453afa36",
+  "first_failing_step": 4,
+  "job_id": "01M500QVDGPF755Y884KT4HTEB",
+  "node_id": "erdos-1094--h2--h2--h2--h3--h1--h1",
+  "steps": [
+   {
+    "diagnostic": {
+     "code": "mathlib-pinned",
+     "details": {
+      "mathlib_sha": "0df444a360eaa60ab8c11dca51a86af692955474",
+      "packages": 8
+     },
+     "message": "Mathlib 0df444a360ea resolved from the pinned checkout"
+    },
+    "name": "toolchain",
+    "result": "pass",
+    "step": 1
+   },
+   {
+    "diagnostic": null,
+    "name": "paths",
+    "result": "pass",
+    "step": 2
+   },
+   {
+    "diagnostic": {
+     "code": "elaboration-failed",
+     "details": {
+      "messages": [
+       {
+        "column": 12,
+        "file": "Nodes/erdos-1094--h2--h2--h2--h3--h1--h1/Proof.lean",
+        "line": 81,
+        "severity": "error",
+        "text": "Unknown identifier `erdos_1094__h2__h2__h2__h3__h1__h1__h1`"
+       }
+      ],
+      "module": "Nodes.«erdos-1094--h2--h2--h2--h3--h1--h1».Proof",
+      "node": "erdos-1094--h2--h2--h2--h3--h1--h1",
+      "stderr": ""
+     },
+     "message": "Nodes.«erdos-1094--h2--h2--h2--h3--h1--h1».Proof does not elaborate"
+    },
+    "name": "kernel-replay",
+    "result": "fail",
+    "step": 4
+   },
+   {
+    "diagnostic": null,
+    "name": "axioms",
+    "result": "skipped",
+    "step": 5
+   },
+   {
+    "diagnostic": null,
+    "name": "hazards",
+    "result": "skipped",
+    "step": 6
+   },
+   {
+    "diagnostic": null,
+    "name": "witness",
+    "result": "skipped",
+    "step": 7
+   },
+   {
+    "diagnostic": null,
+    "name": "deps",
+    "result": "skipped",
+    "step": 8
+   }
+  ],
+  "verdict": "fail"
+ },
+ "public": true
+}

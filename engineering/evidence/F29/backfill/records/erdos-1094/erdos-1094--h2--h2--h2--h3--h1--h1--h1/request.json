@@ -1,0 +1,13 @@
+{
+ "subject": {
+  "kind": "statement",
+  "node": "erdos-1094--h2--h2--h2--h3--h1--h1--h1",
+  "module": null,
+  "lean_hash": "23092aee1ffa5146a088e17e9f3142080211ba60fa37f52ca4d72b6bafa2fb55"
+ },
+ "text": "$$65536\\,X'<1\\ \\Longrightarrow\\ |S'|<65536\\,N'X'+2r\\lambda',\\qquad X'=(D'\\lambda'^{\\,r}W^2)^{\\frac{1}{2r-1}}+\\Bigl(\\frac{\\delta W^2}{D'\\lambda'^{\\,r}}\\Bigr)^{\\frac{1}{r-1}}+\\Bigl(\\frac{D_1'\\lambda' W^2}{D'}\\Bigr)^{\\frac{1}{2r}}$$\n\nFix $r\\ge 2$, $W\\ge 1$, $\\delta>0$ and the data of the enclosing statement ($N>0$, $\\lambda\\ge 1$, $D_r,D_{r+1}>0$, $f:\\mathbb{R}\\to\\mathbb{R}$ of class $C^{r+1}$ with $D_r/2\\le|f^{(r)}(x)|\\le D_r$ and $|f^{(r+1)}(x)|\\le D_{r+1}$ for all $x\\in[0,N]$, every finite set $S$ of integers in $[0,\\lfloor N\\rfloor]$ each of whose points $u$ has $|f(u)-v/w|<\\delta$ for some integer $v$ and natural $w$ with $0<w\\le W$), and assume moreover $\\neg(1\\le 65536\\,X)$ for $X$ the same three-term expression in $D_r,\\lambda,D_{r+1}$. Then for every $N'>0$, every $\\lambda'$ with $1\\le\\lambda'<2$, every $D'>0$ and $D_1'>0$, every $g:\\mathbb{R}\\to\\mathbb{R}$ of class $C^{r+1}$ with $D'/2\\le|g^{(r)}|\\le D'$ and $|g^{(r+1)}|\\le D_1'$ on $[0,N']$, and every finite set $S'$ of integers in $[0,\\lfloor N'\\rfloor]$ each of whose points $u$ has $|g(u)-v/w|<\\delta$ for some integer $v$ and natural $0<w\\le W$, the displayed bound holds. The hypotheses on $N$, $\\lambda$, $D_r$, $D_{r+1}$, $f$ and $S$ are carried from the enclosing statement and play no part in the conclusion; the Lean names $\\lambda'$ `lam'` and $D_1'$ `D1'`, $W^2$ is a natural power and the fractional exponents are real powers.\n",
+ "supersedes": null,
+ "licence": "CC-BY-4.0",
+ "drafted_with": "Claude Fable 5.1 (claude-fable-5-1)",
+ "label": "Konyagin's theorem at scale in [1, 2) when 65536X < 1"
+}

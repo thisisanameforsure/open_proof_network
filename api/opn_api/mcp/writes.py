@@ -30,6 +30,7 @@ from typing import TYPE_CHECKING, Any
 from opn_api import literature, requests, submissions
 from opn_api.mcp import auth
 from opn_api.mcp.calls import ID_PARAM, RECORD_PARAM, Answer, Call, Tool, ToolError, error, params
+from opn_gate import schemas
 
 if TYPE_CHECKING:
     from opn_api.app import Context
@@ -44,6 +45,15 @@ POLL = "poll get_precheck with job_id until state is done or error; a precheck t
 
 #: D-16's taxonomy as the class parameters describe it (F09-T21), from the list the routes check.
 DEFECT_CLASS_TEXT = ", ".join(requests.DEFECT_CLASSES[:-1]) + " or " + requests.DEFECT_CLASSES[-1]
+
+#: F09-T75 (an agent, 2026-10-20): the free-text caps of approach-record/v1, as the schema sets
+#: them, so the tool says them before a record is refused for one.
+_APPROACH = schemas.load_schema("approach-record/v1")["properties"]
+APPROACH_CAPS_TEXT = (
+    f"at most `route` {_APPROACH['route']['maxLength']}, "
+    f"`blocked_on` {_APPROACH['blocked_on']['maxLength']} and "
+    f"`model_and_tooling` {_APPROACH['model_and_tooling']['oneOf'][1]['maxLength']} characters"
+)
 
 
 def unauthorized(ctx: Context) -> ToolError:
@@ -234,6 +244,7 @@ async def submit_gloss(call: Call, args: dict[str, Any]) -> dict[str, Any]:
         "drafted_with",
         "dry_run",
         "amends",
+        "label",
     )
     return await forward(call, "POST", "/glosses", body)
 
@@ -267,7 +278,14 @@ async def confirm_literature(call: Call, args: dict[str, Any]) -> dict[str, Any]
     """F09-T24 (D-25, D-32 v3.35): ``POST /literature/confirm``, body for body; the route signs
     as the bearer's GitHub login, so the identity must be one proved with GitHub."""
     body = present(
-        "confirm_literature", args, "node_id", "record", "status", "references", "summary"
+        "confirm_literature",
+        args,
+        "node_id",
+        "record",
+        "disputes",
+        "status",
+        "references",
+        "summary",
     )
     return await forward(call, "POST", "/literature/confirm", body)
 
@@ -713,12 +731,23 @@ TOOLS: tuple[Tool, ...] = (
                     "type": "object",
                     "description": "what the words describe: {kind, node_id} for a statement, "
                     "witness or relation (optional lean_hash); {kind: definition, target_id, "
-                    "module}; {kind: proof, node_id, proof} for an explainer, where proof is "
+                    "module}; {kind: partial, node_id, module} for a merged partial, where "
+                    "module is its path under the node (attempts/<stamp>-<pseudonym>-"
+                    "partial.lean): the words' first sentence is the route's approach on the "
+                    "problem page when the partial declared none (F29-R4); {kind: proof, "
+                    "node_id, proof} for an explainer, where proof is "
                     "the artifact's hash: the row's lean_hash in list_words_needed, or "
                     "attempts.assemblies[].hash in get_node",
                     "properties": {
                         "kind": {
-                            "enum": ["statement", "witness", "relation", "definition", "proof"]
+                            "enum": [
+                                "statement",
+                                "witness",
+                                "relation",
+                                "definition",
+                                "partial",
+                                "proof",
+                            ]
                         },
                         "node_id": ID_PARAM,
                         "target_id": ID_PARAM,
@@ -758,6 +787,14 @@ TOOLS: tuple[Tool, ...] = (
                     "description": "true: check only; the answer is {ok, warnings, sections "
                     "[{key, steps, resolved}], preview_html} and nothing opens",
                 },
+                "label": {
+                    "type": "string",
+                    "description": "a statement gloss only: the statement's short name, "
+                    "shown on the problem page's drawings and panels (D-3 v3.44); at most 60 "
+                    "characters, one line, plain text with no $ (the claim, the gloss's "
+                    "opening display, carries the notation); anything else, or a label on a "
+                    "witness, relation or definition gloss, is label-invalid",
+                },
             },
             ("subject", "text", "licence"),
         ),
@@ -793,7 +830,7 @@ TOOLS: tuple[Tool, ...] = (
     Tool(
         "submit_approach_record",
         "Record a target-scoped strategy verdict (D-14); `record` validates against "
-        "approach-record/v1. "
+        f"approach-record/v1: {APPROACH_CAPS_TEXT}. "
         "A second record from you in the same second would share its file name "
         "(<timestamp>-<pseudonym>), so it is refused 409 record-name-taken with "
         "Retry-After: 1 and nothing opens.",
@@ -976,7 +1013,7 @@ TOOLS: tuple[Tool, ...] = (
     Tool(
         "propose_literature",
         "Propose what the literature says of a node's statement (D-25 v3.35), written as "
-        "literature/v1: `status` is open (no proof is known), known (a proof is published and "
+        "literature/v2: `status` is open (no proof is known), known (a proof is published and "
         "not formalised) or elementary (a routine formalisation of a known fact), a fact about "
         "the literature, never about difficulty; `references` support it (at least one, even "
         "for open); `summary` is what is known, in your words. Unsigned and attributed to you; "
@@ -1002,14 +1039,16 @@ TOOLS: tuple[Tool, ...] = (
     ),
     Tool(
         "confirm_literature",
-        "Confirm a node's proposed literature status, or state it yourself, as an active "
-        "steward of its target or a listed curator (D-25, D-32 v3.35): the service writes a "
-        "literature/v1 record as your GitHub login, signed with the network's approval key. "
-        "`record` names the proposal you confirm (literature/<timestamp>-<contributor>.yaml, "
-        "from get_node's literature_proposed), or null to state the status directly; the "
-        "status you give may correct the proposal's. Your token must be one proved with GitHub "
-        "(403 github-login-required otherwise); anyone else is 403 not-steward-or-curator; a "
-        "proposal not on the node is 404 not-found; nothing opens on a refusal.",
+        "Confirm or dispute a node's proposed literature status, or state it yourself, as an "
+        "active steward of its target or a listed curator (D-25, D-32 v3.35, v3.45): the "
+        "service writes a literature/v2 record as your GitHub login, signed with the network's "
+        "approval key. `record` names the proposal you confirm "
+        "(literature/<timestamp>-<contributor>.yaml, from get_node's literature_proposed), "
+        "`disputes` the one you reject (never both; a signed record cannot be disputed), or "
+        "both null to state the status directly; the status you give is your own reading. Your "
+        "token must be one proved with GitHub (403 github-login-required otherwise); anyone "
+        "else is 403 not-steward-or-curator; a proposal not on the node is 404 not-found; "
+        "nothing opens on a refusal.",
         params(
             {
                 "node_id": ID_PARAM,
@@ -1018,11 +1057,17 @@ TOOLS: tuple[Tool, ...] = (
                     "pattern": "^literature/[^/]+\\.ya?ml$",
                     "description": "The proposal confirmed, relative to the node, or null.",
                 },
+                "disputes": {
+                    "type": ["string", "null"],
+                    "pattern": "^literature/[^/]+\\.ya?ml$",
+                    "description": "The proposal rejected, relative to the node, or null; "
+                    "never with `record`.",
+                },
                 "status": LITERATURE_STATUS,
                 "references": LITERATURE_REFERENCES,
                 "summary": LITERATURE_SUMMARY,
             },
-            ("node_id", "record", "status", "references", "summary"),
+            ("node_id", "record", "status", "references", "summary"),  # disputes optional
         ),
         confirm_literature,
         write=True,

@@ -1,0 +1,55 @@
+# F29-T6 — the selector tree in the drawing, coarse-to-fine selection, the table filtered — 2026-10-17T11:53Z — branch f29-t5-site at c6714ade
+
+## red (before the change; the browser tests skip without playwright, so the structure tests are the red tail)
+E       assert (None is not None)
+E       assert (0 == 1)
+E        +  where 0 = len([])
+E       assert ('<b>' not in '<section cl...v></section>'
+E         
+E         '<b>' is contained here:
+E           ></section> and '&lt;b&gt;&quot;bold&quot;&lt;/b&gt; &amp; more' in '<section class="routes-section" id="routes"><div class="section-head"><div><h2>Routes</h2><p class="cue">A route is a...e lines up to the problem&rsquo;s own statement; select it again, or press Escape, to clear.</p></div></div></section>')
+FAILED site/tests/test_routes_view.py::test_the_selector_tree_is_boxed_in_the_drawing_where_the_set_labels_stood
+FAILED site/tests/test_routes_view.py::test_one_set_is_one_leaf_and_no_box_row_is_a_branch
+FAILED site/tests/test_routes_view.py::test_the_box_is_complete_without_the_script_and_escapes_its_words
+3 failed, 8 passed, 2 skipped in 10.39s
+
+## verification: uv run --frozen --with playwright pytest site/tests/test_routes_view.py (no skips: both browser tests ran)
+site/tests/test_routes_view.py::test_routes_section_structure PASSED     [  7%]
+site/tests/test_routes_view.py::test_ids_are_escaped PASSED              [ 15%]
+site/tests/test_routes_view.py::test_more_than_eight_sets_are_grey_and_the_section_says_so PASSED [ 23%]
+site/tests/test_routes_view.py::test_a_target_with_no_route_has_no_section PASSED [ 30%]
+site/tests/test_routes_view.py::test_the_problem_page_carries_the_section_after_the_statement_graph PASSED [ 38%]
+site/tests/test_routes_view.py::test_a_problem_page_without_routes_has_no_section PASSED [ 46%]
+site/tests/test_routes_view.py::test_selection_lights_one_set_and_layout_is_fixed PASSED [ 53%]
+site/tests/test_routes_view.py::test_the_selector_tree_is_boxed_in_the_drawing_where_the_set_labels_stood PASSED [ 61%]
+site/tests/test_routes_view.py::test_one_set_is_one_leaf_and_no_box_row_is_a_branch PASSED [ 69%]
+site/tests/test_routes_view.py::test_the_box_is_complete_without_the_script_and_escapes_its_words PASSED [ 76%]
+site/tests/test_routes_view.py::test_a_closable_statement_is_marked_never_as_proved PASSED [ 84%]
+site/tests/test_routes_view.py::test_nothing_closable_means_no_mark_and_no_line PASSED [ 92%]
+site/tests/test_routes_view.py::test_selecting_a_branch_lights_every_set_beneath_and_filters_the_table PASSED [100%]
+============================== 13 passed in 5.32s ==============================
+
+## whole site fast tier: pytest site/tests -m 'not lean and not docker'
+SKIPPED [1] site/tests/test_routes_view.py:321: could not import 'playwright.sync_api': No module named 'playwright'
+SKIPPED [1] site/tests/test_routes_view.py:621: could not import 'playwright.sync_api': No module named 'playwright'
+741 passed, 9 skipped in 82.54s (0:01:22)
+
+## ruff check site / ruff format --check site / mypy site
+All checks passed!
+107 files already formatted
+Success: no issues found in 107 source files
+
+## screenshots (Playwright, chromium 156; reduced motion): fixture = nested_tree + a gloss label; live = this branch's generator over a copy of the live graph at d6100d937e270d3c38908454baa53318a0d74edc (the lead's scratchpad worktree)
+engineering/evidence/F29/task-6-fixture-1440-branch.png
+engineering/evidence/F29/task-6-fixture-1440-leaf.png
+engineering/evidence/F29/task-6-fixture-1440-panel.png
+engineering/evidence/F29/task-6-fixture-390-branch.png
+engineering/evidence/F29/task-6-fixture-390-leaf.png
+engineering/evidence/F29/task-6-fixture-390-panel.png
+engineering/evidence/F29/task-6-live-1440-branch.png
+engineering/evidence/F29/task-6-live-1440-leaf.png
+engineering/evidence/F29/task-6-live-1440-panel.png
+engineering/evidence/F29/task-6-live-390-branch.png
+engineering/evidence/F29/task-6-live-390-leaf.png
+engineering/evidence/F29/task-6-live-390-panel.png
+live erdos-1094: 4 branches, 8 leaves (the 8 published sets); box 381 of 1149 svg units wide; scrollWidth == clientWidth at 390 and 1440 (no sideways scroll)

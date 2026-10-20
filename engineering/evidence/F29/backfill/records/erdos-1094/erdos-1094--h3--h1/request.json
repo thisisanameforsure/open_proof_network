@@ -1,0 +1,13 @@
+{
+ "subject": {
+  "kind": "statement",
+  "node": "erdos-1094--h3--h1",
+  "module": null,
+  "lean_hash": "ed95258f3758b5ddc3ebf24feaf8dd9989b6284c3bc4cd6e772367a819d16399"
+ },
+ "text": "$$\\exists K\\ \\forall n,k\\in\\mathbb{N}:\\quad K<k,\\ \\ 2k\\le n<k^2 \\implies \\exists\\,p\\le k \\text{ prime with } n \\bmod p < k \\bmod p$$\n\n- Lean writes $k^2$ as `k * k`.\n- `n % p` is the least non-negative residue, so the condition reads $n \\bmod p < k \\bmod p$.\n- The guard is $K<k$, not $0<k$. The range $2k\\le n<k^2$ is empty for $k\\le 2$.\n\nBy Kummer's theorem such a $p$ divides $\\binom{n}{k}$, since subtracting $k$ from $n$ in base $p$ borrows at the last digit. The statement itself mentions no binomial coefficient.\n",
+ "supersedes": "0967dbfd21c70ebea8da462691cc362515788d659ff4f30b9dce9390d55a57ba",
+ "licence": "CC-BY-4.0",
+ "drafted_with": "Claude Fable 5.1 (claude-fable-5-1)",
+ "label": "Residue form: a prime p ≤ k with n mod p < k mod p"
+}

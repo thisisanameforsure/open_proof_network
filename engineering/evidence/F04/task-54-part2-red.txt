@@ -1,0 +1,27 @@
+E       AttributeError: 'LiteratureView' object has no attribute 'disputes'
+E       AttributeError: 'LiteratureView' object has no attribute 'disputes'
+E       AssertionError: <div class="literature" data-block="literature"><span class="kicker">Literature status</span><p class="literature-fact"><strong>Known: a proof is published and not formalised</strong> &middot; confirmed by <code>mike</code> (<a class="file" href="https://github.com/example/graph/blob/6666666666666666666666666666666666666666/targets/propositional/nodes/and-swap-reassoc/literature/20261019T090000Z-mike.yaml">record</a>, 2026-10-19T09:00:00Z).</p><ul class="literature-refs"><li>Where the problem is listed</li></ul><div class="prose-block untrusted" data-block="literature-summary"><p class="block-label" data-provenance="untrusted"><strong>Untrusted contributor text</strong> — a literature summary (D-25 v3.35): the contributor&rsquo;s reading, not a verdict.</p><p class="label">Untrusted: summary by mike. Rendered from <a class="file" href="https://github.com/example/graph/blob/6666666666666666666666666666666666666666/targets/propositional/nodes/and-swap-reassoc/literature/20261019T090000Z-mike.yaml">targets/propositional/nodes/and-swap-reassoc/literature/20261019T090000Z-mike.yaml</a>.</p><div class="prose"><p>Konyagin proved it in 1999.</p></div></div></div>
+E       assert None is not None
+E       assert ('<b>x</b>' not in '<div class=...</div></div>'
+E         
+E         '<b>x</b>' is contained here:
+E           /div></div> and '&lt;b&gt;x&lt;/b&gt;' in '<div class="literature" data-block="literature"><span class="kicker">Literature status</span><p class="literature-fac...ke.yaml</a>.</p><div class="prose"><p>What the literature says, in the contributor&#x27;s words.</p></div></div></div>')
+E       assert '<code>mike</code> disputed <code>t1009-b</code>' in '>\n<span class="kicker">Selected statement</span>\n<span class="panel-title mono">and-swap-reassoc</span>\n<p class="...">How to read a proof page →</a></p><p><a href="/docs/#reading">How to read this →</a></p></div>\n</details>\n</div>\n'
+E        +  where '>\n<span class="kicker">Selected statement</span>\n<span class="panel-title mono">and-swap-reassoc</span>\n<p class="...">How to read a proof page →</a></p><p><a href="/docs/#reading">How to read this →</a></p></div>\n</details>\n</div>\n' = <built-in method group of re.Match object at 0x107e20c10>(1)
+E        +    where <built-in method group of re.Match object at 0x107e20c10> = <re.Match object; span=(7946, 12798), match='<div class="card panel" data-node="and-swap-reass>.group
+E       AssertionError: no slot for the awaiting proposal
+E       assert None is not None
+E       assert (<re.Match object; span=(1302, 1622), match='<li class="lit-row" data-node="and-reassoc" data-> is not None and None is not None)
+E       AssertionError: static/literature.js is missing
+E       assert ''
+SKIPPED [1] site/tests/test_finding_literature_dispute.py:338: could not import 'playwright.sync_api': No module named 'playwright'
+SKIPPED [1] site/tests/test_finding_literature_dispute.py:404: could not import 'playwright.sync_api': No module named 'playwright'
+FAILED site/tests/test_finding_literature_dispute.py::test_the_model_reads_the_disputed_proposal
+FAILED site/tests/test_finding_literature_dispute.py::test_a_confirmation_without_a_dispute_reads_none
+FAILED site/tests/test_finding_literature_dispute.py::test_the_block_says_who_disputed_whose_proposal_and_links_the_rejected_record
+FAILED site/tests/test_finding_literature_dispute.py::test_the_dispute_escapes_the_contributors_name
+FAILED site/tests/test_finding_literature_dispute.py::test_the_panel_on_the_problem_page_carries_the_same_sentence
+FAILED site/tests/test_finding_literature_dispute.py::test_the_node_page_carries_the_awaiting_proposal_as_a_hidden_row_with_its_data
+FAILED site/tests/test_finding_literature_dispute.py::test_the_me_page_rows_and_the_node_pages_row_are_one_function
+FAILED site/tests/test_finding_literature_dispute.py::test_the_script_gates_on_the_session_and_posts_the_two_shapes
+8 failed, 2 passed, 2 skipped in 12.97s

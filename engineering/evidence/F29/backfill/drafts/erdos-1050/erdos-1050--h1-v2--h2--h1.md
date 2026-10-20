@@ -1,0 +1,9 @@
+---
+label: "Numerator integrality (Borwein Lemma 3)"
+supersedes: 6013312970f34c979de2414fa9f2b77ea5718c31d38817068cd6ba4cb57ead65
+drafted_with: Claude Fable 5.1 (claude-fable-5-1)
+licence: CC-BY-4.0
+---
+$$\exists\, a:\mathbb{N}\to\mathbb{Z}\ \ \forall n\ge 1:\qquad a(n)\;=\;9^n\,W(n)\,\bigl(S_1(n)-S_2(n)\bigr)$$
+
+There is a sequence of integers $a(n)$ such that for every $n\ge 1$ the identity holds in $\mathbb{R}$, that is, $9^n W(n)(S_1(n)-S_2(n))$ is an integer, where, with $c=8/3$, $W(n)=(n-2)!\;\prod_{k=1}^{n}\bigl(1-c\,2^{k}\bigr)\prod_{k=\lfloor (n+1)/2\rfloor}^{n}\bigl(1-2^{k}\bigr)$, $A_k=\dfrac{-\prod_{t=1}^{n-1}\bigl(1-c\,2^{\,t+k}\bigr)}{\prod_{1\le l\le n,\ l\ne k}\bigl(1-2^{\,l-k}\bigr)}$ for $1\le k\le n$, $S_1(n)=\sum_{k=1}^{n} A_k\sum_{i=1}^{k}\bigl(1-c\,2^{i}\bigr)^{-1}$ and $S_2(n)=\sum_{i=1}^{n-1}\dfrac{\sum_{k=1}^{n} A_k\,\bigl(c\,2^{k}\bigr)^{-i}}{2^{i}-1}$, all sums finite. Here $n-2$ is natural-number subtraction (so $(n-2)!=1$ at $n=1$), $\lfloor (n+1)/2\rfloor$ is natural-number division, the exponent $l-k$ is an integer (so $2^{l-k}$ may be $1/2$ and so on), at $n=1$ the product over $t$ is empty and $S_2(1)=0$, and nothing is required of $a(0)$.

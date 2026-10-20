@@ -28,7 +28,7 @@ from typing import Any
 import pytest
 import yaml
 from fakes import FakeToolchain, artifact_result, witness_result
-from harness import TARGET, copy_graph, node_dir
+from harness import TARGET, copy_graph, declared, node_dir
 from test_cli_sandboxed import NODES, Seam, git_repo, run
 from test_partial import ROOT, assembly_for, partial_context
 from test_postmerge import ASSEMBLY, HOLES, PARENT, PSEUDONYM, STAMP, hole, snapshot
@@ -321,6 +321,13 @@ def test_a_witness_for_a_hole_that_does_not_exist_is_refused(tmp_path: Path) -> 
 def test_a_name_two_holes_share_is_refused(tmp_path: Path) -> None:
     report = artifact_result(holes=[("h", CLOSED["right"], False), ("h", CLOSED["left"], False)])
     ctx, _ = carrying(tmp_path, {f"{STEM}.1.witness": witness_text("h")}, report=report)
+    # F29-R5: the assembly on disk binds ``h`` twice, as the fake reports, and declares it, so
+    # step 4's declaration rule passes and step 7's ambiguity is what the run meets.
+    path = node_dir(ctx) / "attempts" / STAMP_FILE
+    shared = declared(
+        "  intro p q r h\n  have h : r := sorry\n  have h : q ∧ p := sorry\n  exact ⟨h, h⟩\n"
+    )
+    path.write_text(path.read_text(encoding="utf-8").replace(BODY, shared), encoding="utf-8")
     verdict = pipeline.run_steps(ctx)
     assert verdict.first_failing_step == 7
     assert verdict.diagnostic is not None and verdict.diagnostic.code == "hole-witness-ambiguous"
@@ -533,11 +540,11 @@ def merged_with_witnesses(tmp_path: Path, files: dict[str, str]) -> Path:
     return root
 
 
-BODY = """  intro p q r h
+BODY = declared("""  intro p q r h
   have right : r := sorry
   have left : q ∧ p := sorry
   exact ⟨right, left⟩
-"""
+""")
 
 
 def postmerge_argv(root: Path, out: Path) -> list[str]:

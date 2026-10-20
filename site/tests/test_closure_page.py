@@ -45,7 +45,7 @@ def closed(tmp_path: Path, *, input_proved: bool = True) -> Path:
 
 def row(root: Path, node_id: str) -> dict[str, object]:
     doc = json.loads((root / "targets" / TARGET / "graph.json").read_text("utf-8"))
-    assert doc["schema"] == "graph/v11"  # F28-T8 wrote v10; F08-T42 v11
+    assert doc["schema"] == "graph/v13"  # F28-T8 wrote v10; F08-T42 v11; F29-T1 v12; F08-T43 v13
     return next(n for n in doc["nodes"] if n["node_id"] == node_id)
 
 

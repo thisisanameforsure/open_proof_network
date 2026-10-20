@@ -1,30 +1,25 @@
-"""The problem page's Routes section (F27-T3; R10, R11; D-25 v3.40, D-36).
+"""The routes' facts for the problem page (F27-T3; R11; D-25 v3.40, D-36), read by ``one_view``.
 
 A target read as an AND-OR graph, drawn from ``opn_gate.routes`` over the same two products the
 MCP tool reads (``graph.json`` and the target's ``frontier.json`` entries), so the page and the
 tool cannot disagree (F27-Q1).
 
-The drawing reuses the statement graph's layout (``dag.layout``) over a graph of its own: each
-statement on a way to close the root, and each route (a merged decomposition) as a small junction
-box between its node and its holes. A route's junction is a filled dot (AND: every hole is
-needed); a statement that two or more routes, or at the root a ``resolves`` variant, could close
-carries a hollow diamond on its lower edge (OR: any one). Each statement is a pie with one wedge
-per sufficient set holding it, coloured by set; proved statements are drawn solid, open ones pale
-with a dashed ring. The layout depends on the graph alone: what a reader selects only changes
-classes, never a coordinate (R10).
+F30 (2026-10-18) folded the routes drawing and its selector box into the page's one statement
+graph (``opn_site.one_view``); what stays here is what that drawing reads: ``drawn`` (every
+statement on a way to close the root and the junction of each route), the sets table, a route's
+approach words and the closable words.
 
-Every node is a ``<g>`` with ``data-node`` (a junction's with ``data-route``), every line a
-``<path>`` with ``data-from`` and ``data-to``, every wedge carries ``data-set``, and every node
-and line lists in ``data-sets`` the sets it belongs to, so ``routes.js`` lights a set without
-knowing the graph, and the tests can read the structure. Without the script the drawing and the
-table are complete.
+F29-T6 (R10; D-25 v3.44): the selector tree (``routes.selector_tree``, built from the sets) is
+boxed as "Sufficient sets" down the drawing's left edge, where F27-T7's set labels stood: one row
+per node of the tree in depth-first order, indented by depth, a branch naming the statement its
+route is a route of and the route's approach, a leaf one set with its swatch. Every row carries
+in ``data-sets`` the sets beneath it, so the script lights a branch as it lights a set.
 """
 
 from __future__ import annotations
 
-import math
-from collections.abc import Iterable, Mapping
-from dataclasses import dataclass, field, replace
+from collections.abc import Mapping, Sequence
+from dataclasses import dataclass, field
 from html import escape
 from typing import Any
 
@@ -37,36 +32,20 @@ HUES = 8
 #: A junction is a dot in a box this wide (``dag.layout``'s ``widths``).
 JUNCTION_W = 16
 #: A statement is a pie and its label; the pie's centre and radius in the box.
-PIE_X = 18
-PIE_R = 10
 #: The ring (solid when proved, dashed when open) sits just outside the pie, so a dashed ring
 #: never cuts into a set's colour.
-RING_R = 13
 #: An open statement's pie is hollow to this radius.
-CORE_R = 4
-LABEL_X = 36
 #: Room for the label after its text (the box is ``LABEL_X`` + the text + this).
-LABEL_END = 12
 DIAMOND = 6
-#: F27-T7: the column down the drawing's left edge that holds one clickable label per set; the
-#: statements and lines are drawn to its right, so no label covers one.
-LABEL_COLUMN = 96
+#: F27-T7: the column down the drawing's left edge that holds the selector (F29-T6, where one
+#: label per set stood); the statements and lines are drawn to its right, so no row covers one.
+#: This is its least width; the box grows to its longest row (``selector_width``).
 SET_LABEL_W = 80
-SET_LABEL_H = 28
-SET_LABEL_GAP = 8
-
+#: F29-T6: the selector's rows — indented this much per depth, the words in the sans face at
+#: about this width a character, cut at this many characters (the whole text stays in the
+#: row's ``<title>``), under a heading this tall, inside a box with this much padding.
+SEL_TEXT_MAX = 40
 DEAD = routes.DEAD_STATUSES
-
-INTRO = (
-    "A route is a merged decomposition of a statement: a partial proof whose holes are all "
-    "needed. A statement with several routes can be closed by any one of them, or proved "
-    "directly. A sufficient set is a set of statements whose proofs would close the problem's "
-    "own statement, with the assemblies on the way still to submit: the closing proofs of the "
-    "decomposed statements the set's routes pass through. The sets are listed in the record's "
-    "order and nothing is ranked. Each open statement in a set could also be proved directly, "
-    "which drops what is beneath it; those coarser sets are not listed here "
-    "(<code>list_sufficient_sets</code> returns them with <code>cut: any</code>)."
-)
 
 
 @dataclass
@@ -155,45 +134,6 @@ def drawn(graph: Mapping[str, Any], result: routes.Routes) -> Drawn:
     return out
 
 
-def lit_sets(
-    d: Drawn, result: routes.Routes
-) -> tuple[dict[str, list[str]], dict[tuple[str, str], list[str]]]:
-    """Per element (a statement or a junction) and per line ``(lower, upper)``, the ids of the
-    sets it belongs to: the root, the set's statements, its assemblies and its variant; the
-    junctions of its routes, their lines to their node and to their holes; a statement's line
-    to a declared dependency when both are in the set; and the root's line to the variant."""
-    nodes: dict[str, list[str]] = {}
-    lines: dict[tuple[str, str], list[str]] = {}
-
-    def add(key: str, sid: str) -> None:
-        nodes.setdefault(key, []).append(sid)
-
-    def line(lower: str, upper: str, sid: str) -> None:
-        if lower in d.below.get(upper, []):
-            lines.setdefault((lower, upper), []).append(sid)
-
-    for s in result.sets:
-        members = set(s.statements)
-        on = {result.root, *members, *s.assemblies, *([s.variant] if s.variant else [])}
-        for v in on:
-            add(v, s.id)
-        for rid in s.routes:
-            r = d.junctions.get(rid)
-            if r is None:
-                continue
-            add(rid, s.id)
-            line(rid, r.node, s.id)
-            for h in d.below.get(rid, []):
-                line(h, rid, s.id)
-        for m in members:
-            for dep in d.below.get(m, []):
-                if dep in members:
-                    line(dep, m, s.id)
-        if s.variant:
-            line(s.variant, result.root, s.id)
-    return nodes, lines
-
-
 def hue(k: int) -> str:
     """The class of the ``k``-th set (from 1): its own hue up to ``HUES``, grey beyond."""
     return f"set-{k}" if k <= HUES else "set-more"
@@ -203,229 +143,20 @@ def _num(v: float) -> str:
     return f"{v:.2f}".rstrip("0").rstrip(".")
 
 
-def pie(set_ids: list[str], index: Mapping[str, int]) -> str:
-    """One wedge per set, clockwise from the top, each carrying ``data-set``."""
-    if not set_ids:
-        return ""
-    if len(set_ids) == 1:
-        sid = set_ids[0]
-        return (
-            f'<circle class="wedge {hue(index[sid])}" data-set="{escape(sid)}" '
-            f'cx="{PIE_X}" cy="{dag.NODE_H // 2}" r="{PIE_R}"/>'
-        )
-    cy = dag.NODE_H / 2
-    step = 2 * math.pi / len(set_ids)
-    out = []
-    for k, sid in enumerate(set_ids):
-        a0, a1 = -math.pi / 2 + k * step, -math.pi / 2 + (k + 1) * step
-        x0, y0 = PIE_X + PIE_R * math.cos(a0), cy + PIE_R * math.sin(a0)
-        x1, y1 = PIE_X + PIE_R * math.cos(a1), cy + PIE_R * math.sin(a1)
-        large = 1 if step > math.pi else 0
-        out.append(
-            f'<path class="wedge {hue(index[sid])}" data-set="{escape(sid)}" '
-            f'd="M{PIE_X} {_num(cy)}L{_num(x0)} {_num(y0)}'
-            f'A{PIE_R} {PIE_R} 0 {large} 1 {_num(x1)} {_num(y1)}Z"/>'
-        )
-    return "".join(out)
+def approach_of(rid: str, rows: Mapping[str, Mapping[str, Any]], label: str) -> str:
+    """A route's approach (``graph/v12``, F29-R4): the declared line of its decomposition, else
+    "route k of <label>"."""
+    node_id, _, k = rid.rpartition("@")
+    row = rows.get(node_id) or {}
+    try:
+        found = (row.get("decompositions") or [])[int(k) - 1].get("approach")
+    except (IndexError, ValueError, AttributeError):
+        found = None
+    return str(found) if found else f"route {k} of {label}"
 
 
-def state_of(status: str) -> str:
-    if status == routes.PROVED:
-        return "proved"
-    if status in DEAD:
-        return "dead"
-    return "open"
-
-
-@dataclass(frozen=True)
-class Section:
-    """What the page needs: the markup, and whether there is any."""
-
-    html: str
-    sets: int
-
-
-def section(
-    graph: Mapping[str, Any],
-    frontier_entries: Iterable[Mapping[str, Any]],
-    *,
-    href: Mapping[str, str],
-    prefix: str | None = None,
-) -> Section:
-    """The Routes section, or ``Section("", 0)`` when nothing is drawn: a target whose graph has
-    no route reachable from its root."""
-    result = routes.read(graph, list(frontier_entries))
-    d = drawn(graph, result)
-    if not d.junctions:
-        return Section("", 0)
-    ready = {c.node: c for c in closing.closable(graph)}
-    return Section(
-        '<section class="routes-section" id="routes">'
-        '<div class="section-head"><div><h2>Routes</h2>'
-        f'<p class="cue">{INTRO}</p></div></div>'
-        '<div class="routes-grid">'
-        f'<div class="routes-wrap card">{legend(result)}'
-        '<div class="routes-scroll">'
-        f"{svg(d, result, href=href, prefix=prefix, closable=ready)}</div>"
-        f"{closable_line(ready, href, prefix, result.root)}</div>"
-        f"{table(result, prefix)}"
-        "</div></section>",
-        len(result.sets),
-    )
-
-
-def svg(
-    d: Drawn,
-    result: routes.Routes,
-    *,
-    href: Mapping[str, str],
-    prefix: str | None = None,
-    closable: Mapping[str, closing.Closable] | None = None,
-) -> str:
-    """The drawing: statements as pies, routes as junctions, laid out by ``dag.layout``. A
-    closable statement (F28, v3.41) keeps its open look and gains the filled assembly mark."""
-    closable = closable or {}
-    names: dag.Prefix = (prefix, result.root) if prefix else None
-    widths: dict[str, int] = {j: JUNCTION_W for j in d.junctions}
-    for v in d.statements:
-        widths[v] = LABEL_X + round(dag.CHAR_W * len(dag.label_of(v, names))) + LABEL_END
-    nodes = [
-        {"node_id": v, "status": str(d.rows[v].get("status")), "deps": d.below.get(v, [])}
-        for v in d.statements
-    ] + [{"node_id": j, "status": "route", "deps": d.below.get(j, [])} for j in d.junctions]
-    lay = dag.layout(nodes, root=result.root, prefix=prefix, widths=widths)
-    index = {s.id: k for k, s in enumerate(result.sets, start=1)}
-    on_node, on_line = lit_sets(d, result)
-    # F27-T8 (the owner): a statement's wedges are the sets whose plan uses it, as a leaf or as an
-    # interior node the plan passes through; no separate mark says which, since the drawing does.
-    members: dict[str, list[str]] = {}
-    for s in result.sets:
-        for m in dict.fromkeys((*s.statements, *s.assemblies)):
-            members.setdefault(m, []).append(s.id)
-    top = min((p.y for p in lay.placed), default=dag.PAD)
-    column_h = top + len(result.sets) * (SET_LABEL_H + SET_LABEL_GAP)
-    width, height = lay.width + LABEL_COLUMN, max(lay.height, round(column_h + dag.PAD))
-    parts = [
-        f'<svg class="routes-svg" viewBox="0 0 {width} {height}" width="{width}" '
-        f'height="{height}" role="img" aria-label="routes and sufficient sets">',
-        set_labels(result, top),
-    ]
-    # The tree sits right of the label column (F27-T7): every point moves by its width.
-    lay = dag.Layout(
-        [replace(p, x=p.x + LABEL_COLUMN) for p in lay.placed],
-        [replace(e, points=tuple((x + LABEL_COLUMN, y) for x, y in e.points)) for e in lay.edges],
-        width,
-        height,
-        lay.loose,
-        lay.group_y,
-    )
-    for e in sorted(lay.edges, key=lambda e: (e.dst, e.src)):
-        dead = any(x in d.junctions and not d.junctions[x].live for x in (e.src, e.dst))
-        sets = " ".join(on_line.get((e.src, e.dst), []))
-        parts.append(
-            f'<path class="rline{" dead" if dead else ""}" data-from="{escape(e.src)}" '
-            f'data-to="{escape(e.dst)}" data-sets="{escape(sets)}" d="{dag.path_d(e)}"/>'
-        )
-    for p in lay.placed:
-        sets = escape(" ".join(on_node.get(p.node_id, [])))
-        if p.node_id in d.junctions:
-            parts.append(junction(d.junctions[p.node_id], p, sets))
-            continue
-        status = str(d.rows[p.node_id].get("status"))
-        mine = members.get(p.node_id, [])
-        role = "member" if mine else "none"
-        said = ", ".join(f"set {index[s]}" for s in mine) if mine else "in no set"
-        or_mark = (
-            f'<path class="or-mark" d="M{p.w / 2:g} {dag.NODE_H - DIAMOND}'
-            f'l{DIAMOND} {DIAMOND}l-{DIAMOND} {DIAMOND}l-{DIAMOND} -{DIAMOND}Z"/>'
-            if d.alternatives.get(p.node_id, 0) >= 2
-            else ""
-        )
-        label = dag.label_of(p.node_id, names)
-        # Open is a second channel, never a hue: the wedges keep their colour and the pie is
-        # hollow in the middle (proved is a full pie).
-        core = (
-            f'<circle class="core" cx="{PIE_X}" cy="{dag.NODE_H // 2}" r="{CORE_R}"/>'
-            if mine and state_of(status) != "proved"
-            else ""
-        )
-        root = " root" if p.node_id == result.root else ""
-        # F28 (v3.41): a closable statement keeps its open look and gains the accent square; no
-        # other statement carries a square (F27-T8: an interior node has no mark of its own).
-        asm = ""
-        joins = closable.get(p.node_id)
-        if joins is not None:
-            root += " closable"
-            said += "; " + closable_words(joins, closable)
-            asm = (
-                f'<rect class="asm" x="{PIE_X - 3}" y="{dag.NODE_H // 2 - 3}" '
-                'width="6" height="6"/>'
-            )
-        parts.append(
-            f'<a href="{escape(href.get(p.node_id, "#"))}">'
-            f'<g class="rnode st-{state_of(status)} {role}{root}" '
-            f'data-node="{escape(p.node_id)}" '
-            f'data-sets="{sets}" transform="translate({p.x},{p.y})">'
-            f"<title>{escape(p.node_id)}: {escape(status)}; {escape(said)}</title> "
-            f'<rect class="pill" width="{p.w}" height="{dag.NODE_H}" rx="8"/>'
-            f"{pie(mine, index)}{core}"
-            f'<circle class="ring" cx="{PIE_X}" cy="{dag.NODE_H // 2}" r="{RING_R}"/>{asm}'
-            f'<text x="{LABEL_X}" y="{dag.NODE_H // 2 + 5}">{escape(label)}</text> '
-            f"{or_mark}</g></a>"
-        )
-    parts.append("</svg>")
-    return "\n".join(parts)
-
-
-def set_labels(result: routes.Routes, top: float) -> str:
-    """F27-T7: one label per set, stacked down the left edge in the table's order, each a button
-    (``routes.js`` makes it select the set) with the set's hue as its swatch."""
-    out = ['<g class="set-labels">']
-    for k, s in enumerate(result.sets, start=1):
-        y = round(top + (k - 1) * (SET_LABEL_H + SET_LABEL_GAP))
-        noun = "statement" if s.remaining == 1 else "statements"
-        out.append(
-            f'<g class="set-label" data-set="{escape(s.id)}" role="button" tabindex="0" '
-            f'aria-pressed="false" transform="translate(8,{y})">'
-            f"<title>Set {k}: {s.remaining} open {noun} of {s.total}</title>"
-            f'<rect width="{SET_LABEL_W}" height="{SET_LABEL_H}" rx="6"/>'
-            f'<circle class="swatch {hue(k)}" cx="14" cy="{SET_LABEL_H // 2}" r="6"/>'
-            f'<text x="26" y="{SET_LABEL_H // 2 + 5}">Set {k}</text></g>'
-        )
-    out.append("</g>")
-    return "".join(out)
-
-
-def junction(r: routes.Route, p: dag.Placed, sets: str) -> str:
-    """A route's junction: a stem through its box and a filled dot (AND); a route that closes
-    nothing is a dashed ring with a cross."""
-    holes = r.summary.holes
-    words = (
-        f"route {r.id}: {holes} hole{'' if holes == 1 else 's'}, all needed"
-        if r.live
-        else f"route {r.id}: closes nothing (a hole is refuted, defective, abandoned, "
-        "superseded or not traced)"
-    )
-    cx, cy = JUNCTION_W // 2, dag.NODE_H // 2
-    mark = (
-        f'<circle class="and-mark" cx="{cx}" cy="{cy}" r="5"/>'
-        if r.live
-        else f'<circle class="dead-mark" cx="{cx}" cy="{cy}" r="5"/>'
-        f'<path class="dead-cross" d="M{cx - 3} {cy - 3}l6 6m0 -6l-6 6"/>'
-    )
-    return (
-        f'<g class="junction {"live" if r.live else "dead"}" data-route="{escape(r.id)}" '
-        f'data-node="{escape(r.id)}" data-sets="{sets}" transform="translate({p.x},{p.y})">'
-        f"<title>{escape(words)}; from {escape(r.partial)}</title> "
-        f'<path class="stem" d="M{cx} 0V{dag.NODE_H}"/>{mark}</g>'
-    )
-
-
-def _swatch(inner: str, w: int = 26) -> str:
-    return (
-        f'<svg class="routes-key-mark" width="{w}" height="22" viewBox="0 0 {w} 22" '
-        f'aria-hidden="true">{inner}</svg>'
-    )
+def cut(text: str, width: int = SEL_TEXT_MAX) -> str:
+    return text if len(text) <= width else text[: width - 1].rstrip() + "…"
 
 
 def closable_words(c: closing.Closable, found: Mapping[str, closing.Closable]) -> str:
@@ -437,130 +168,76 @@ def closable_words(c: closing.Closable, found: Mapping[str, closing.Closable]) -
     return "closable once the closing proof of " + ", ".join(waiting) + " merges"
 
 
-def closable_line(
-    found: Mapping[str, closing.Closable],
-    href: Mapping[str, str],
+def _ids(members: Sequence[str], names: dag.Prefix) -> str:
+    return "".join(f"<li><code>{escape(dag.label_of(m, names))}</code></li>" for m in members)
+
+
+def _count(stop: int, follow: int | None) -> str:
+    """A count cell: its number in ``data-sort``; with a followed reading (F27-R13) that number
+    too, in ``data-sort-follow`` and a second span the stylesheet shows in its place."""
+    if follow is None:
+        return f'<td class="num" data-sort="{stop}">{stop}</td>'
+    return (
+        f'<td class="num" data-sort="{stop}" data-sort-follow="{follow}">'
+        f'<span class="v-stop">{stop}</span><span class="v-follow">{follow}</span></td>'
+    )
+
+
+def table(
+    result: routes.Routes,
     prefix: str | None,
-    root: str,
+    views: Mapping[str, str] | None = None,
+    follow: routes.Routes | None = None,
 ) -> str:
-    """The closable statements named under the drawing, or nothing when there are none."""
-    if not found:
-        return ""
-    names: dag.Prefix = (prefix, root) if prefix else None
-    items = ", ".join(
-        f'<a href="{escape(href.get(n, "#"))}">{escape(dag.label_of(n, names))}</a>' for n in found
-    )
-    return (
-        f'<p class="routes-closable">Closable: {items}. Each one&rsquo;s proof exists in parts, '
-        "its merged decomposition and the proofs of what it needs; nothing is proved until the "
-        "closing proof that joins them passes the gate.</p>"
-    )
-
-
-def legend(result: routes.Routes) -> str:
-    """The key, inside the drawing's card: every mark and every state the drawing can show."""
-    c = 'cx="11" cy="11" r="7"'
-    ring = 'cx="11" cy="11" r="9.5"'
-    items = [
-        (
-            _swatch(
-                '<path class="stem" d="M11 0V22"/><circle class="and-mark" cx="11" cy="11" r="5"/>'
-            ),
-            "route: all of its holes are needed (AND)",
-        ),
-        (
-            _swatch('<path class="or-mark" d="M11 5l6 6l-6 6l-6 -6Z"/>'),
-            "any one of the routes beneath closes it (OR)",
-        ),
-        (
-            _swatch(
-                '<path class="stem dead" d="M11 0V22"/><circle class="dead-mark" '
-                'cx="11" cy="11" r="5"/><path class="dead-cross" d="M8 8l6 6m0 -6l-6 6"/>'
-            ),
-            "a route that closes nothing",
-        ),
-        (
-            _swatch(f'<circle class="wedge set-1" {c}/><circle class="ring" {ring}/>'),
-            "proved: full, solid ring",
-        ),
-        (
-            _swatch(
-                f'<g class="st-open"><circle class="wedge set-1" {c}/>'
-                '<circle class="core" cx="11" cy="11" r="3"/>'
-                f'<circle class="ring" {ring}/></g>'
-            ),
-            "open: hollow, dashed ring",
-        ),
-        (
-            _swatch(f'<g class="st-dead"><circle class="ring" {ring}/></g>'),
-            "refuted, defective, abandoned or superseded",
-        ),
-        (
-            _swatch(
-                f'<g class="st-open closable"><circle class="ring" {ring}/>'
-                '<rect class="asm" x="8" y="8" width="6" height="6"/></g>'
-            ),
-            "closable: its proof exists in parts, the closing proof is pending",
-        ),
-        (
-            _swatch(f'<g class="st-open"><circle class="ring" {ring}/></g>'),
-            "in no set",
-        ),
-    ]
-    more = (
-        f" Sets beyond the {HUES}th are drawn grey; the table lists every one."
-        if len(result.sets) > HUES
-        else ""
-    )
-    body = "".join(f'<span class="routes-key-item">{mark}{words}</span>' for mark, words in items)
-    return (
-        f'<div class="routes-legend">{body}'
-        f'<p class="routes-key-note">A statement&rsquo;s wedges are the sets whose plan uses '
-        f"it, as a leaf or on the way to one, one colour per set as in the table.{more}</p></div>"
-    )
-
-
-def table(result: routes.Routes, prefix: str | None) -> str:
     """One row per set in the record's order (R11). Each count cell carries its number in
-    ``data-sort``; the script adds the sorting and the toggle, which are rendered hidden."""
+    ``data-sort``; the script adds the sorting and the toggle, which are rendered hidden.
+    ``follow`` (F27-R13), the same sets read past their proved statements, gives each row its
+    second reading: the statement, proved and shared counts and the list of proved statements
+    under ``v-follow``, shown when the page's toggle is unticked."""
     names: dag.Prefix = (prefix, result.root) if prefix else None
     rows = []
     any_notes = any(s.variant for s in result.sets)
+    twin = {s.id: s for s in follow.sets} if follow is not None else {}
     for k, s in enumerate(result.sets, start=1):
+        f = twin.get(s.id)
         notes = []
         if s.variant:
             notes.append(
                 f"goes through the variant <code>{escape(dag.label_of(s.variant, names))}</code>"
             )
-        open_ids = "".join(
-            f"<li><code>{escape(dag.label_of(m, names))}</code></li>" for m in s.open
-        )
-        proved_ids = "".join(
-            f"<li><code>{escape(dag.label_of(m, names))}</code></li>" for m in s.proved
-        )
-        asm_ids = "".join(
-            f"<li><code>{escape(dag.label_of(m, names))}</code></li>" for m in s.assemblies
-        )
+        open_ids = _ids(s.open, names)
+        proved_ids = _ids(s.proved, names)
+        asm_ids = _ids(s.assemblies, names)
+        if f is None:
+            proved_list = f"<p>Proved</p><ul>{proved_ids}</ul>" if proved_ids else ""
+        else:
+            proved_list = (
+                f'<p>Proved</p><ul class="v-stop">{proved_ids}</ul>' if proved_ids else ""
+            ) + f'<ul class="v-follow">{_ids(f.proved, names)}</ul>'
         listing = (
             '<details class="set-which"><summary>which</summary>'
             + (f"<p>Open</p><ul>{open_ids}</ul>" if open_ids else "")
-            + (f"<p>Proved</p><ul>{proved_ids}</ul>" if proved_ids else "")
+            + proved_list
             + (f"<p>Assemblies</p><ul>{asm_ids}</ul>" if asm_ids else "")
             + "</details>"
         )
         cells = [
             f'<td data-sort="{k}"><span class="set-swatch {hue(k)}"></span>Set {k}{listing}</td>',
-            f'<td class="num" data-sort="{s.total}">{s.total}</td>',
-            f'<td class="num" data-sort="{s.closed}">{s.closed}</td>',
+            _count(s.total, f.total if f else None),
+            _count(s.closed, f.closed if f else None),
             f'<td class="num" data-sort="{s.remaining}">{s.remaining}</td>',
-            f'<td class="num" data-sort="{s.shared}">{s.shared}</td>',
+            _count(s.shared, f.shared if f else None),
             f'<td class="num" data-sort="{len(s.assemblies)}">{len(s.assemblies)}</td>',
         ]
         if any_notes:
             cells.append(f"<td>{'; '.join(notes)}</td>")
         rows.append(
             f'<tr class="set-row" data-set="{escape(s.id)}" data-index="{k}" '
-            f'data-remaining="{s.remaining}">' + "".join(cells) + "</tr>"
+            f'data-remaining="{s.remaining}"'
+            + (f' data-view="{escape(views[s.id])}"' if views and s.id in views else "")
+            + ">"
+            + "".join(cells)
+            + "</tr>"
         )
     heads = [
         ("Set", "the sets in the record's order"),
@@ -585,12 +262,14 @@ def table(result: routes.Routes, prefix: str | None) -> str:
         '<div class="routes-table-wrap">'
         f'<p class="routes-count">{count} sufficient set{"" if count == 1 else "s"}, in the '
         "record&rsquo;s order. "
+        '<span class="routes-showing" hidden></span>'
         '<button type="button" class="routes-fewest" aria-pressed="false" hidden>'
         "Fewest open first</button></p>"
         f'<table class="routes-table"><thead><tr>{th}</tr></thead>'
         f"<tbody>{''.join(rows)}</tbody></table>{truncated}"
-        '<p class="routes-hint" hidden>The first set comes selected. Select a set&rsquo;s label '
-        "in the drawing, or its row, to light its statements and the lines up to the "
-        "problem&rsquo;s own statement; select it again, or press Escape, to clear.</p>"
+        '<p class="routes-hint" hidden>Hover a set, a branch or an edge of the tree, or a row, to '
+        "light what it holds on the drawing; select it and the drawing becomes that tree. A "
+        "branch is every set beneath it, an edge the part a route choice commits to. The table "
+        "shows the selected sets; select again, or press Escape, to come back.</p>"
         "</div>"
     )

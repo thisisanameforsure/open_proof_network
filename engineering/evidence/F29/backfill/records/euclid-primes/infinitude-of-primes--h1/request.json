@@ -1,0 +1,13 @@
+{
+ "subject": {
+  "kind": "statement",
+  "node": "infinitude-of-primes--h1",
+  "module": null,
+  "lean_hash": "59b477af35e9a41b8a6e2f565d97a02b188bb3203e8c7371426eab866f595c14"
+ },
+ "text": "$$\\forall n,k\\in\\mathbb{N}:\\quad 0<k\\le n\\ \\Rightarrow\\ k\\mid n!$$\n\nFor all natural numbers $n$ and $k$ with $0<k$ and $k\\le n$, $k$ divides $n!$ (Mathlib's `Nat.factorial`). Divisibility is the problem's own `Opn.Divides`: $k\\mid m$ means $m=k\\cdot c$ for some natural number $c$.\n",
+ "supersedes": "df65addf582c5fd4ae8595d218337ee5776840712b913e385c367013d23457a2",
+ "licence": "CC-BY-4.0",
+ "drafted_with": "Claude Fable 5.1 (claude-fable-5-1)",
+ "label": "Every k with 1 <= k <= n divides n!"
+}

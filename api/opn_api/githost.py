@@ -282,6 +282,13 @@ class GitHost(Protocol):
         never guessed)."""
         ...
 
+    def last_commit(self, repo: str, ref: str, path: str) -> str | None:
+        """The newest commit reachable from ``ref`` that touched ``path``, a file or a
+        directory (F06-T18: which commit wrote a target's products, and which last changed its
+        nodes); ``None`` when no commit touched it; a ``GitHostError`` when it cannot be asked.
+        Read-only."""
+        ...
+
     def is_ancestor(self, repo: str, ancestor: str, commit: str) -> bool:
         """Whether ``commit`` is ``ancestor`` or descends from it in ``repo`` (F08-T26: does a
         target's pinned gate understand use lines). ``False`` when the host knows neither
@@ -522,6 +529,32 @@ class HttpxGitHost:
         return sorted(
             str(e["name"]) for e in entries if isinstance(e, dict) and e.get("type") == "file"
         )
+
+    def last_commit(self, repo: str, ref: str, path: str) -> str | None:
+        """The list-commits API filtered by path, newest first, one entry (F06-T18), as the App
+        for the installation token's rate budget. An empty list is "nothing touched it"."""
+        with self._api(repo, CONTENTS_READ) as http:
+            resp = _send(
+                http,
+                "GET",
+                f"{GITHUB_API}/repos/{repo}/commits",
+                params={"sha": ref, "path": path, "per_page": 1},
+            )
+        try:
+            commits = resp.json()
+        except ValueError as exc:
+            msg = f"GitHub returned a non-JSON body for the commits touching {path}"
+            raise GitHostError(msg) from exc
+        if not isinstance(commits, list):
+            msg = f"GitHub returned no commit list for {path}"
+            raise GitHostError(msg)
+        if not commits:
+            return None
+        sha = commits[0].get("sha") if isinstance(commits[0], dict) else None
+        if not isinstance(sha, str) or not sha:
+            msg = f"GitHub returned a commit without a sha for {path}"
+            raise GitHostError(msg)
+        return sha
 
     def is_ancestor(self, repo: str, ancestor: str, commit: str) -> bool:
         """The compare API (``GET /repos/{repo}/compare/{ancestor}...{commit}``): ``identical``

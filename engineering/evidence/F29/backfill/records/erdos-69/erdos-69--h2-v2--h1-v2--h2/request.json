@@ -1,0 +1,13 @@
+{
+ "subject": {
+  "kind": "statement",
+  "node": "erdos-69--h2-v2--h1-v2--h2",
+  "module": null,
+  "lean_hash": "a724366a7b71b8a7d02af74937d68f4834b9eeddc3f75057a6f121bb46526378"
+ },
+ "text": "$$\\forall M\\in\\mathbb{N}:\\quad 0 < \\sum_{j=0}^{\\infty}\\frac{\\omega(M+1+j)}{2^{j+1}}$$\n\nUnder the hypotheses that the Lambert identity ∑_{n≥0} ω(n)/2^n = ∑_p 1/(2^p − 1) holds and that every rescaled tail splits as T(N) = ∑_{j<k} ω(N+1+j)/2^{j+1} + T(N+k)/2^k, the tail T(M) is strictly positive for every natural M. Here T(M) denotes the rescaled tail ∑_{j≥0} ω(M+1+j)/2^{j+1}, a tsum over ℝ (0 if not summable), and ω(n) is the number of distinct prime factors of n.\n",
+ "supersedes": null,
+ "licence": "CC-BY-4.0",
+ "drafted_with": "Claude Fable 5.1 (claude-fable-5-1)",
+ "label": "Positivity of the rescaled tail"
+}

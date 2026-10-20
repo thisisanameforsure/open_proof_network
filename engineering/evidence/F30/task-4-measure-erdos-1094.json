@@ -1,0 +1,62 @@
+{
+ "set1-to-set2-erdos-1094-1440-dark": {
+  "shared": 37,
+  "still": 10,
+  "median": 45,
+  "max": 291
+ },
+ "routes-to-set1-erdos-1094-1440-dark": {
+  "shared": 48,
+  "still": 4,
+  "median": 834,
+  "max": 1201
+ },
+ "restored-equals-opening-erdos-1094-1440-dark": true,
+ "scrollWidth-dark": [
+  390,
+  390
+ ],
+ "set1-to-set2-erdos-1094-390-dark": {
+  "shared": 37,
+  "still": 10,
+  "median": 45,
+  "max": 291
+ },
+ "routes-to-set1-erdos-1094-390-dark": {
+  "shared": 48,
+  "still": 4,
+  "median": 834,
+  "max": 1201
+ },
+ "restored-equals-opening-erdos-1094-390-dark": true,
+ "set1-to-set2-erdos-1094-1440-light": {
+  "shared": 37,
+  "still": 10,
+  "median": 45,
+  "max": 291
+ },
+ "routes-to-set1-erdos-1094-1440-light": {
+  "shared": 48,
+  "still": 4,
+  "median": 834,
+  "max": 1201
+ },
+ "restored-equals-opening-erdos-1094-1440-light": true,
+ "scrollWidth-light": [
+  390,
+  390
+ ],
+ "set1-to-set2-erdos-1094-390-light": {
+  "shared": 37,
+  "still": 10,
+  "median": 45,
+  "max": 291
+ },
+ "routes-to-set1-erdos-1094-390-light": {
+  "shared": 48,
+  "still": 4,
+  "median": 834,
+  "max": 1201
+ },
+ "restored-equals-opening-erdos-1094-390-light": true
+}

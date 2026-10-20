@@ -1650,3 +1650,123 @@ The law of the project:
   leaves out. Also: a copied schema keeps its old `"schema": {"const": "<name>/vN"}`, so a v10 that
   still demands v9 refuses every document (251 failures from one line); rewrite `$id`, `title` and
   the const together.
+
+- 2026-10-15 — Thirty agents for eighteen minutes on erdos-1094 (`engineering/evidence/testers-2026-10-15c/`),
+  then the lead finished their unfinished business. Three things worth keeping. **A gate refusal that says
+  "graph defect" is a claim about the graph, and here it was the gate's own regex**: step 8 read a Context
+  signature up to the first `:=`, so the one statement on the graph with `let X :=` in its type made its
+  parent's byte-identical Context read as `context-signature-mismatch`, and five written closing proofs sat
+  behind it. Running the check over the live tree with the old and new code (`check_context` on the real
+  node) was both the diagnosis and the evidence; F01-T7, re-pin to f878b4d, and the chain then landed as
+  graph #568–#572. **Throughput limits outrank agent count**: the session caps 20 concurrent subagents,
+  and token starts are 10 a day per machine, so half the agents could not write at all; the cure was
+  reusing tokens the early agents held, crediting the author in `automation`. **Agents write secrets
+  where they write logs**: six saved their token under `engineering/evidence/` (two as whole token responses that a pattern scan missed; read the field names); move them out before any
+  commit, and tell every brief to keep tokens in the scratchpad.
+
+- 2026-10-17 — F29 (labels, claims in notation, route approaches, the selector tree; decisions
+  v3.44) built in one sitting from the owner's reading of erdos-1094's frontier as illegible:
+  lead wrote the contracts, four worktree agents built gate, service, site and the route gloss,
+  five drafted the 140 statement glosses and one the 28 route glosses. Four things worth keeping.
+  **The record already had the object the request asked for**: a one-line description of an
+  open node *is* the statement gloss (F20), and every hole already carried its author's name in
+  the partial, so the label became one gloss field and the claim the gloss's opening display,
+  and "generate at creation" became "the author writes it in the partial's comments, refused
+  before any precheck without it". **The unrolled OR tree over-counts on a shared hole**, and a
+  live target showed it (a lemma under `h3@2` restating `h2--h1`'s hole); under F27-T7's ruling
+  the finest sets are one per route choice, so the sets and the tree agree on today's targets,
+  and the selector is built from the sets so that stays true when they do not (F29-Q1). **An
+  immutable file needs a correction path the day it gets a derived field**: 21 of 34 live routes
+  had no approach text and a merged partial cannot be edited, so a gloss may describe a partial
+  (T9), the same shape as a label. **A product schema's enum is a consumer too**: `glosses/v2`
+  named gloss/v1 and v2 only, so the products refused any tree holding a v3 record; the site
+  agent found it, not the schema's author. Also: a verify run that overlaps your own edits
+  reports your edits as failures (three "failures" were goldens changing under the run); and a
+  root's title on the live record is a sentence with TeX, so a root's label is the head before
+  its colon or its id, not the title.
+- 2026-10-18 — F29 carried to the record on the owner's word ("backfill merge repin deploy please"):
+  merge, hotfix, images, 27 pins, render, 167 glosses through the service. Three things worth keeping.
+  **A version set derived from the current constant is a time bomb**: `GLOSSES_SCHEMAS = {v1,
+  current}` dropped v2 the day v3 shipped, and every live `get_node` answered glosses-invalid until
+  the hotfix; api-deploy's own MCP smoke caught it in minutes, which is what the smoke is for. Name
+  every version the live graph may still carry, and hold the current constant inside the set by test.
+  **A dry run spends the same write budget as the real run**: 136 dry-run calls ate the hour's cap
+  of 120 writes, and the first real run then burned 18 records on 429s because it moved on instead of
+  waiting; a submitter waits out a rate limit on the same record. **The tutorial proof is the
+  statement byte for byte**, doc comment included: a proof built from memory of the guide failed
+  step 2 twice before being built from the live `Statement.lean`. Also: this laptop's path to the
+  service drops reads mid-poll, so any client here retries; and a merged partial's words can be
+  written after the fact only because a gloss may now describe a partial (F29-Q9), which is where
+  21 wordless routes got their approach.
+
+- 2026-10-18 — F30 (one statement graph) built in one sitting from the owner's request: the statement graph and
+  the routes drawing merged, proved as a filled pill, the OR-tree selector drawn as nodes and edges, a selection
+  that fades and compacts into a tree, and a selector *edge* as a zoom into the committed segment. Four things
+  worth keeping. **Order preservation and crossing-free layouts conflict, and the measurement said where**: seeding
+  every view's row order from the full layout took the disagreeing shared pairs on erdos-1094 from 191 to 1, and
+  the one left swaps two pills to avoid a crossing; R10 was tightened to "except to avoid a crossing" and the
+  test proves the crossing by pinning the order with the sweeps off, rather than inventing a pixel budget.
+  **An edge label is a node label in disguise**: sibling edges out of a fork share a midpoint, so their approach
+  texts were written over each other on the live render; every child has one incoming edge, so the words moved
+  into the child's pill and the pill's width is measured from them. **Measure displacement in layout units**:
+  the first displacement table read viewport boxes and reported 2860 px of "movement" that was the page scrolling
+  and the svg rescaling between views; each node's translate is the number. **A hidden-by-default class needs
+  its elements rendered**: the loose group's divider existed only when the opening layout had one, so the
+  toggle's own case (every variant off-route) had nothing to move; the script builder found it, not a test.
+  Also: three Playwright tests fail on origin/main as on the branch (gloss controls, the lemma record page);
+  checked in a detached worktree before believing they were ours.
+- 2026-10-18 (later) — The owner's first look at the live F30 page sent three things back (F30-Q12): the hover
+  stopped at the junction dots, and the selector should be a much smaller typical tree at the top that stays
+  in view. Two things worth keeping. **A test can pin the defect it should have caught**: the pill-hover test
+  asserted exactly the lines touching the hovered statement, which is the junction bug written as an
+  expectation; the restated test walks through junctions, and failed first on my own expected set, which had
+  forgotten the root's plain dependencies. **A layered layout is the wrong tool for a selector**: the
+  general layout wrapped the leaves into stacked rows and bent lines around them, which no reader sees as a
+  tree; a thirty-line tidy tree (leaves spaced depth-first, parents centred, a row per depth) with dots
+  instead of pills and words only on hover was a quarter the size and read at a glance. Also: "pushed and
+  deployed" was not "merged" — the deploy rebuilt old main for hours because my hand-off listed the merge
+  in prose and the owner ran the two commands; run the merge and the deploy yourself and check the live page.
+
+- 2026-10-19 — The stop-at-proved toggle (F27-T9, T10; R13, Q10) from the owner's wish that stewards
+  can follow the proof: unticked, each proved statement of a set shows what its proof's term rests
+  on. Three things worth keeping. **Expand a proved node along its proof, never its routes**: a
+  proof that used one hole as a lemma went past its decomposition, and drawing the route would
+  have shown an assembly the proof never made; F18's `proofs[].used` gives exactly one expansion
+  per proved node, so the sets, their ids and the selector tree are the same under both readings,
+  which is what let one page carry both. **The checkout was 80 commits behind origin**: the routes
+  section I first read had been replaced by F30's one drawing, so "the box that holds the graph"
+  meant the selector panel; `git fetch` before reading any file a plan rests on. **A view key that
+  carries its mode is a bookmark and a toggle at once**: `follow/` twins of every set view, the
+  selector and table keeping the plain keys, so the hash records the reading and the tree never
+  moves (measured: selector positions equal under both). Cost: erdos-1094's layouts JSON 186 KB to
+  485 KB. The mutant run that disabled the script's mode switch is what proved the browser test bites.
+- 2026-10-19 — Mike asked whether erdos-1094 reduces to known results; the answer, measured by walking every
+  decomposition with proved and literature-`known` nodes counted as closed, is no: one chain to
+  `--h2--h2--h3--h1--h1` (Ecklund's conjecture for n beyond van Doorn–Tang's range) has no known result, and
+  the two known inputs (Konyagin 1999, BHP 2001) are not in Lean. Then on his word, decisions v3.45: a steward
+  or curator may **dispute** a proposed literature status (a signed `literature/v2` record naming the
+  proposal it rejects, the signer's reading published with the rejection beside it), the context bundle
+  inlines each record's summary and references, and the site draws the status as a mark on the pill with
+  Confirm and Dispute on the node page. Built on branch `lit-marks` (contract first, three worktree agents).
+  Four things worth keeping. **Take task ids from the spec's own ledger, not from a grep of `T\d+`**: my
+  first count read other features' task mentions (F07-T62 in F04's spec) as F04's own, so three agents were
+  briefed with ids five to twenty-eight too high and every file and commit message had to be renumbered at
+  merge. **A per-directory schema rule is a second place a version lives**: `paths.SCHEMAS_FOR_ROLE` listed
+  `literature/v1` alone, so every v2 record would have been `record-invalid` before the new check ever ran;
+  the service agent found it by reading, the gate agent by its first red. **Inline through the reader, not
+  the disk**: the bundle has two builders (F10-Q7), so the record's words are read through the `Reader`
+  both share, and the parity test lives on each side. **The sibling graph checkout is stale and fails the
+  guide-copy test on its own**: run the suite with `OPN_GRAPH_CHECKOUT` at a detached worktree of graph
+  `origin/main` and say so in the commit, rather than skipping the hook silently.
+
+- 2026-10-15 — F06-T18 (Q23): a skeleton's precheck planned its holes against `rendered_from`, which never
+  carries the holes the latest bot commit wrote, so a restating hole read `expected_new: true`. Q19 had fixed
+  only the case where the job's *own* node was missing; the fix is to pin the commit that **wrote** the
+  products, found by list-commits on `targets/<t>/graph.json`, and to refuse a hole-making bundle while a
+  later commit has touched `targets/<t>/nodes/` (its render is in flight). Two things worth keeping.
+  **"Main is ahead of rendered_from" is the steady state, not a signal**: the bot commit always follows the
+  commit it was rendered from, so the first-draft rule ("products-pending when main is ahead") would have
+  refused forever. Count what a rule keys on in the record before adopting it: 400 commits showed only PR
+  merges and one direct push touch `nodes/` without products. **Never `source .env`**: an unquoted
+  continuation line ran as a command and the shell echoed part of a secret into the session; read only the
+  keys a probe needs with `dotenv_values`, and print nothing from them.

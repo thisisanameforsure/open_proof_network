@@ -1478,6 +1478,15 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "implemented_by) and remove them; details carries the replay output.",
     ),
     # --- l ------------------------------------------------------------------------------------
+    "label-invalid": (
+        "api",
+        None,
+        "A gloss's label is not a statement's short name as gloss/v3 publishes it: at most 60 "
+        "characters, one line, plain text with no dollar sign; or it was sent on a gloss of a "
+        "witness, relation or definition, which carries none (D-3 v3.44).",
+        "Send a short plain-text name on a statement gloss, or leave label out; the notation "
+        "belongs in the gloss's opening display.",
+    ),
     "layout-extra": (
         "gate",
         2,
@@ -1496,12 +1505,21 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "The literature record names a different node from the directory it sits in.",
         "File it under nodes/<id>/literature/ of the node its `node` field names (D-25 v3.35).",
     ),
+    "literature-record-conflict": (
+        "gate",
+        None,
+        "The signed literature record names a proposal in both `confirms` and `disputes`.",
+        "A signed record confirms a proposal or disputes one, never both (D-25 v3.45): set one "
+        "of the two and leave the other null.",
+    ),
     "literature-record-unknown": (
         "gate",
         None,
-        "The confirmation's `confirms` names no literature record on the node.",
-        "Name an existing literature/<file> of the node, or state the status yourself with "
-        "`confirms: null`.",
+        "The confirmation's `confirms` names no literature record on the node, or its `disputes` "
+        "names something that is not an unsigned proposal on the node (a missing file, the record "
+        "itself, or a signed record).",
+        "Name an existing unsigned literature/<file> of the node, or state the status yourself "
+        "with `confirms: null` and `disputes: null`.",
     ),
     "literature-signature": (
         "gate",
@@ -1852,6 +1870,18 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         2,
         "Not an error: the submission was read as a partial proof.",
         "Nothing to do.",
+    ),
+    # F29-T2 emits it at step 4, F29-T3 in the service before any precheck: both, step 4.
+    "partial-unlabelled": (
+        "both",
+        4,
+        "The partial does not name its approach, its licence, or a hole's label and claim in its "
+        "comments (D-12 v3.44); details.missing names each missing or malformed line with its "
+        "hole.",
+        "Add one `-- approach:` line and one `-- licence:` line before the first hole, and a "
+        "`-- label:` line and a `-- claim: $…$` line in the comment block directly above each "
+        "hole's `have` (the guide's Skeletonization section shows the grammar); the extractor's "
+        "hole names are the ones held to the rule, and the service refuses it before any job runs.",
     ),
     "partial-without-holes": (
         "gate",

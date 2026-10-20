@@ -1,0 +1,9 @@
+---
+label: "the thin strip with n/gcd(n,k) prime"
+supersedes: null
+drafted_with: Claude Fable 5.1 (claude-fable-5-1)
+licence: CC-BY-4.0
+---
+$$\exists K\in\mathbb{N}\ \forall n,k\in\mathbb{N}:\quad 0<k,\ \ k^2\le n,\ \ n<k\bigl(k+3k^{21/40}\bigr),\ \ k\lfloor n/k\rfloor\mid k!,\ \ \operatorname{minFac}\tbinom{n}{k}>\lfloor n/k\rfloor,\ \ \frac{n}{\gcd(n,k)}\text{ prime}\ \Longrightarrow\ k\le K$$
+
+Only finitely many $k$ admit an $n$ in the strip $k^2\le n<k(k+3k^{21/40})$ (the upper bound taken over the reals, with $21/40$ a real exponent) such that $k\lfloor n/k\rfloor$ divides $k!$, the least prime factor of $\binom{n}{k}$ exceeds $\lfloor n/k\rfloor$, and $n/\gcd(n,k)$ is prime. Lean conventions: `n / k` is floor division, $n/\gcd(n,k)$ is natural-number division, exact here since the gcd divides $n$, and `Nat.minFac` is the least prime factor (1 at 1, 2 at 0).

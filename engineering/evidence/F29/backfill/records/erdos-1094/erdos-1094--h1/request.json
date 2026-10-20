@@ -1,0 +1,13 @@
+{
+ "subject": {
+  "kind": "statement",
+  "node": "erdos-1094--h1",
+  "module": null,
+  "lean_hash": "78721bacb7e3c7576d8be6e52ef14f23d619d52d67e51c5e07acec7dc3f1782e"
+ },
+ "text": "$$\\forall k\\ge 1:\\quad \\Bigl\\{n\\in\\mathbb{N} \\;:\\; k^2\\le n,\\ \\ \\operatorname{lpf}\\tbinom{n}{k} > \\lfloor n/k\\rfloor\\Bigr\\}\\ \\text{ is finite}$$\n\n- Lean writes $k^2$ as `k * k`.\n- $\\operatorname{lpf}$ is Mathlib's `Nat.minFac`. It is the least prime factor of any $m\\ge 2$; `Nat.minFac 1 = 1` and `Nat.minFac 0 = 2`. Here $\\binom{n}{k}\\ge 2$ except at $n=k=1$, where $\\binom{1}{1}=1$ and `Nat.minFac 1 = 1` is not $> 1$; so the edge values never satisfy the condition.\n- `n / k` is floor division, so the statement has $\\lfloor n/k\\rfloor$. Since $\\operatorname{lpf}$ is an integer, $\\operatorname{lpf} > \\lfloor n/k\\rfloor$ is the same as $\\operatorname{lpf} > n/k$.\n\nThe finite set may depend on $k$. No bound uniform in $k$ is stated.\n",
+ "supersedes": "d23a995c76a55f94cfe3e21534766dfe071dcae76e2a2d28b8f36b0fe14155ac",
+ "licence": "CC-BY-4.0",
+ "drafted_with": "Claude Fable 5.1 (claude-fable-5-1)",
+ "label": "Fixed k: finitely many n at or above k²"
+}

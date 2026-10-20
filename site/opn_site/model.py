@@ -44,6 +44,7 @@ PRODUCT_SCHEMAS: dict[str, tuple[str, ...]] = {
         "frontier/v4",  # F03-T16: status, cause, needs
         "frontier/v5",  # F03-T18 (D-12 v3.35): circular, literature, literature_proposed
         "frontier/v6",  # F08-T42 (D-12 v3.43): circular retired; the site ignores it on v5
+        "frontier/v7",  # F03-T21 (D-25 v3.45): literature.disputes
     ),
     "info.json": ("info/v1", "info/v2"),  # v2: F05-T25
     "targets/index.json": (
@@ -71,6 +72,8 @@ PRODUCT_SCHEMAS: dict[str, tuple[str, ...]] = {
         "graph/v9",  # F26-R17 (D-9 v3.39): the review's state and the open pair directions
         "graph/v10",  # F28-T8 (D-12 v3.42): each node's closure
         "graph/v11",  # F08-T42 (D-12 v3.43): circular retired; the site ignores it on v6-v10
+        "graph/v12",  # F29-T1 (D-25 v3.44): label, label_source, claim; approach
+        "graph/v13",  # F08-T43 (D-25 v3.45): literature.disputes
     ),
 }
 log = logging.getLogger(__name__)
@@ -322,6 +325,17 @@ class Reference:
 
 
 @dataclass(frozen=True)
+class DisputedProposal:
+    """F04-T54 (D-25 v3.45): the proposal a signed literature record rejected, as the products
+    publish it beside the signer's reading (``graph/v13`` ``literature.disputes``): what it
+    said, its record (relative to the graph root) and who filed it."""
+
+    status: str
+    record: str
+    contributor: str
+
+
+@dataclass(frozen=True)
 class LiteratureView:
     """F04-T38 (D-25, D-32 v3.35): what the literature says of a statement, as the products
     publish it (status, record, contributor; the confirming steward or curator and their record
@@ -340,6 +354,9 @@ class LiteratureView:
     summary: str | None = None
     model: str | None = None
     readable: bool = True
+    #: F04-T54 (v3.45): the proposal this confirmed reading rejected; ``None`` when the signer
+    #: confirmed a proposal or stated the status unprompted, and for every proposal.
+    disputes: DisputedProposal | None = None
 
     @property
     def confirmed(self) -> bool:
@@ -759,7 +776,7 @@ def _load_record(target_dir: Path) -> dict[str, Any] | None:
 
 #: F21-T7: the ``glosses.json`` versions ``glosses.needed`` reads (the live graph holds v1 until
 #: its re-pin).
-WORDS_GLOSSES_SCHEMAS = frozenset({"glosses/v1", "glosses/v2"})
+WORDS_GLOSSES_SCHEMAS = frozenset({"glosses/v1", "glosses/v2", "glosses/v3"})
 
 
 def _load_words_needed(target_dir: Path, root: str) -> tuple[dict[str, Any], ...] | None:
@@ -1098,12 +1115,20 @@ def _literature_for(root: Path, node_dir: Path, raw: object) -> LiteratureView |
     rel = str(raw.get("record") or "")
     prefix = node_dir.relative_to(root).as_posix()
     confirmation = raw.get("confirmation")
+    rejected = raw.get("disputes")  # graph/v13 (F08-T43); absent or null before
     view = LiteratureView(
         status=str(raw.get("status") or ""),
         record=f"{prefix}/{rel}",
         contributor=str(raw.get("contributor") or ""),
         confirmed_by=str(raw["confirmed_by"]) if raw.get("confirmed_by") else None,
         confirmation=f"{prefix}/{confirmation}" if confirmation else None,
+        disputes=DisputedProposal(
+            status=str(rejected.get("status") or ""),
+            record=f"{prefix}/{rejected.get('record') or ''}",
+            contributor=str(rejected.get("contributor") or ""),
+        )
+        if isinstance(rejected, dict)
+        else None,
     )
     try:
         doc = schemas.load_yaml(node_dir / rel, "literature/v1")
@@ -1342,7 +1367,7 @@ def _load_outlines(target_dir: Path) -> dict[str, dict[str, Any]]:
 #: F20-R9: the gloss and explainer chains per subject, and the versions this generator renders:
 #: v1 as whole versions (the live graph until its re-pin), v2 section by section (F21-R14).
 GLOSSES_FILE = "glosses.json"
-GLOSSES_SCHEMAS: tuple[str, ...] = ("glosses/v1", "glosses/v2")
+GLOSSES_SCHEMAS: tuple[str, ...] = ("glosses/v1", "glosses/v2", "glosses/v3")
 #: A signer, the signature's date, its file, and the section keys it approves (None: all).
 _Sig = tuple[str, str, str, frozenset[str] | None]
 

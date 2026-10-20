@@ -1,0 +1,31 @@
+- erdos-1050/erdos-1050--h1 — Borwein approximants to T (untyped binders) — done
+- erdos-1050/erdos-1050--h1-v2 — Borwein approximants to T — done
+- erdos-1050/erdos-1050--h1-v2--h1 — Irrationality of the tail sum T — done
+- erdos-1050/erdos-1050--h1-v2--h2 — Integrality: b(n)z - a(n) = 9^n W(n) E(n) — done
+- erdos-1050/erdos-1050--h1-v2--h2--h1 — Numerator integrality (Borwein Lemma 3) — done
+- erdos-1050/erdos-1050--h1-v2--h3 — Borwein's denominator bound: d^2 <= 2^(3n^2) — done
+- erdos-1050/erdos-1050--h1-v2--h4 — Borwein's remainder bound (with the denominator hypothesis) — done
+- erdos-1050/spec-180d8b72 — Padé remainder bound without the denominator hypothesis — done
+- erdos-1050/spec-1a5ab7c3 — Upper-half Mersenne product clears the denominators — done
+- erdos-1050/spec-440db0f9 — Gaussian binomial at q = 2 is an integer — done
+- erdos-1050/spec-eb1219eb — Denominator bound at n = 5 and n = 7 — done
+- erdos-1050/spec-f2b55478 — Padé remainder coefficient identity — done
+- erdos-1050/spec-ffd3137a — Padé numerator coefficient closed form — done
+- erdos-412/erdos-412--h1 — Descent step for sigma orbits (gate-written form) — done
+- erdos-412/erdos-412--h1-v2 — Descent step for sigma orbits — done
+- euclid-primes/infinitude-of-primes--h1 — Every k with 1 <= k <= n divides n! — done
+- euclid-primes/infinitude-of-primes--h2 — Every m >= 2 has a prime divisor — done
+- euclid-primes/infinitude-of-primes--h3 — Only 1 divides two consecutive numbers — done
+- euclid-primes/infinitude-of-primes--h4 — The factorial is positive — done
+- euclid-primes/variant-2a7919a9 — No finite list contains all the primes — done
+- euclid-primes/variant-2a7919a9--h1 — Each entry of a list is at most its sum — done
+- euclid-primes/variant-2a7919a9--h2 — A prime beyond the sum of a list — done
+- euclid-primes/variant-4cb87a03 — Euclid's explicit bound: a prime in (n, n! + 1] — done
+- euclid-primes/variant-6e71b160 — Primes at least 100, the bound written as p = 100 + k — done
+- euclid-primes/variant-aceabdc4 — Infinitely many primes at least 100 — done
+- euclid-primes/variant-dea95969 — Infinitely many primes congruent to 3 mod 4 — done
+- euclid-primes/variant-f15ce396 — The set of primes is infinite — done
+- tutorial/variant-93e79cb5 — Left projection from a conjunction — done
+- tutorial/variant-93e79cb5--h1 — Swapping a conjunction — done
+- tutorial/variant-93e79cb5--h2 — Left projection given the swapped conjunction — done
+- validate.py: erdos-1050 13 OK, erdos-412 2 OK, euclid-primes 12 OK, tutorial 3 OK — 0 problem(s) in each

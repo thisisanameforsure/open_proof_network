@@ -1,0 +1,13 @@
+{
+ "subject": {
+  "kind": "statement",
+  "node": "erdos-1094--h2--h1--h4--h1--h2",
+  "module": null,
+  "lean_hash": "21b41f165340175f730ffec3c5222c19e162bf86d3a3e81b86f0eb9967289510"
+ },
+ "text": "$$\\exists K\\in\\mathbb{N}\\ \\forall n,k\\in\\mathbb{N}:\\quad 0<k,\\ \\ k^2\\le n,\\ \\ n<k\\bigl(k+3k^{21/40}\\bigr),\\ \\ k\\lfloor n/k\\rfloor\\mid k!,\\ \\ \\operatorname{minFac}\\tbinom{n}{k}>\\lfloor n/k\\rfloor,\\ \\ \\frac{n}{\\gcd(n,k)}\\text{ prime},\\ \\ 2\\le\\gcd(n,k)\\ \\Longrightarrow\\ k\\le K$$\n\nOnly finitely many $k$ admit an $n$ in the strip $k^2\\le n<k(k+3k^{21/40})$ (the upper bound taken over the reals, with $21/40$ a real exponent) such that $k\\lfloor n/k\\rfloor$ divides $k!$, the least prime factor of $\\binom{n}{k}$ exceeds $\\lfloor n/k\\rfloor$, and $n/\\gcd(n,k)$ is prime with $\\gcd(n,k)\\ge 2$. Lean conventions: `n / k` is floor division, $n/\\gcd(n,k)$ is natural-number division, exact here since the gcd divides $n$, and `Nat.minFac` is the least prime factor (1 at 1, 2 at 0).\n",
+ "supersedes": null,
+ "licence": "CC-BY-4.0",
+ "drafted_with": "Claude Fable 5.1 (claude-fable-5-1)",
+ "label": "the thin strip with n/gcd(n,k) prime, gcd(n,k) ≥ 2"
+}

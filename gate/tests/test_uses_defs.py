@@ -27,6 +27,7 @@ from types import SimpleNamespace
 import pytest
 from fakes import FakeToolchain, meaning_result, metaprogram_garbage
 from harness import GRAPH, TARGET, make_context, node_dir
+from harness import declared as labelled
 
 from opn_gate import judging, layout, paths, pipeline, postmerge, schemas, uses
 from opn_gate.diagnostic import Diagnostic
@@ -377,7 +378,7 @@ def partial_context(tmp_path: Path, fake: FakeToolchain) -> tuple[RunContext, st
     text = (
         f"{USE}\n"
         + st.prefix
-        + (" by\n  intro p q r h\n  have h : p ∧ q ∧ r := sorry\n  exact h\n")
+        + labelled(" by\n  intro p q r h\n  have h : p ∧ q ∧ r := sorry\n  exact h\n")
     )
     (here / rel).write_text(text, encoding="utf-8")
     ctx.changes = [Change("A", f"targets/{TARGET}/nodes/and-reassoc/{rel}")]

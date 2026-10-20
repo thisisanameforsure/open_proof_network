@@ -4,7 +4,7 @@ Over the fixture feed (``fixtures/palomar/recent-2026-10-10.json``, trimmed from
 ``recent.json`` of 2026-10-10) and a fixture graph carrying the network's live target ids:
 E257 is an *inferred* candidate for erdos-257 and nothing else in the feed matches it; every
 other target has no candidate; a bare ``257`` inside ``1257`` or ``2570`` is never a match;
-``propose`` writes a ``literature/v1`` proposal into the output directory and nothing without the
+``propose`` writes a ``literature/v2`` proposal into the output directory and nothing without the
 flag; ``drift`` reports a changed hash and a changed status and nothing for an identical record;
 an unreachable host writes nothing and the command exits 1.
 """
@@ -20,7 +20,7 @@ import pytest
 import samples
 import yaml
 
-from opn_gate import cli, intake, palomar_feed, registrations, schemas
+from opn_gate import cli, intake, literature, palomar_feed, registrations, schemas
 from opn_gate.palomar_host import FakePalomarHost, PalomarError
 
 FIXTURE = Path(__file__).resolve().parent / "fixtures" / "palomar" / "recent-2026-10-10.json"
@@ -291,7 +291,7 @@ def test_propose_writes_a_literature_proposal_that_validates_with_the_id_and_url
     assert path.relative_to(out).as_posix() == (
         "targets/erdos-257/nodes/erdos-257/literature/20261011T090000Z-opn-feed.yaml"
     )
-    doc = schemas.load_yaml(path, "literature/v1")
+    doc = schemas.load_yaml(path, literature.SCHEMA)
     assert doc["node"] == "erdos-257"
     assert doc["status"] == "known"
     assert doc["contributor"] == "opn-feed"
