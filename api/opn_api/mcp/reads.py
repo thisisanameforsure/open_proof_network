@@ -1159,11 +1159,12 @@ TOOLS: tuple[Tool, ...] = (
         "get_submission",
         (
             "A submission or proposal by its ULID or pull-request number (padded or "
-            "not): the record, the pull request's live state and, once merged, the "
-            "attestation it earned or why there is none. `pull_request.waiting_on` names "
-            "the one thing it waits for (gate, step9-review, branch-update, merge, "
-            "products, or gate-failed, when `gate_verdict` carries the gate's own "
-            "diagnostic). `state` is open, merged or closed. While open, `queue` gives "
+            "not): the record, the pull request's live state "
+            "and, once merged, the attestation it earned or why there is none. "
+            "`pull_request.waiting_on` names the one thing it waits for (gate, "
+            "step9-review, branch-update, merge, products, or gate-failed, when "
+            "`gate_verdict` carries the gate's own diagnostic). `state` is open, merged "
+            "or closed. While open, `queue` gives "
             "its `position` (from 1) `of` how many in its target's lane of the merge "
             "actor, and the pull requests `ahead`; a position is an upper bound on the "
             "merges ahead. For a partial, `holes[].became` is the node each hole became once "
