@@ -30,6 +30,7 @@ from typing import TYPE_CHECKING, Any
 from opn_api import literature, requests, submissions
 from opn_api.mcp import auth
 from opn_api.mcp.calls import ID_PARAM, RECORD_PARAM, Answer, Call, Tool, ToolError, error, params
+from opn_gate import schemas
 
 if TYPE_CHECKING:
     from opn_api.app import Context
@@ -44,6 +45,15 @@ POLL = "poll get_precheck with job_id until state is done or error; a precheck t
 
 #: D-16's taxonomy as the class parameters describe it (F09-T21), from the list the routes check.
 DEFECT_CLASS_TEXT = ", ".join(requests.DEFECT_CLASSES[:-1]) + " or " + requests.DEFECT_CLASSES[-1]
+
+#: F09-T75 (an agent, 2026-10-20): the free-text caps of approach-record/v1, as the schema sets
+#: them, so the tool says them before a record is refused for one.
+_APPROACH = schemas.load_schema("approach-record/v1")["properties"]
+APPROACH_CAPS_TEXT = (
+    f"at most `route` {_APPROACH['route']['maxLength']}, "
+    f"`blocked_on` {_APPROACH['blocked_on']['maxLength']} and "
+    f"`model_and_tooling` {_APPROACH['model_and_tooling']['oneOf'][1]['maxLength']} characters"
+)
 
 
 def unauthorized(ctx: Context) -> ToolError:
@@ -820,7 +830,7 @@ TOOLS: tuple[Tool, ...] = (
     Tool(
         "submit_approach_record",
         "Record a target-scoped strategy verdict (D-14); `record` validates against "
-        "approach-record/v1. "
+        f"approach-record/v1: {APPROACH_CAPS_TEXT}. "
         "A second record from you in the same second would share its file name "
         "(<timestamp>-<pseudonym>), so it is refused 409 record-name-taken with "
         "Retry-After: 1 and nothing opens.",
