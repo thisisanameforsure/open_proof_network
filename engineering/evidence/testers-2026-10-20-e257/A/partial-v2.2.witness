@@ -1,0 +1,16 @@
+-- hole: h3
+
+import Mathlib
+
+theorem witness : ∃ (A : Set ℕ) (B : Set ℕ) (g : ℕ → ℝ) (S : Set ℕ) (T : Set ℕ) (n : ℕ),
+  (0 : ℕ) ∉ A ∧
+    (0 : ℕ) ∉ B ∧
+      ∑' (n : (↑A : Type)), (1 : ℝ) / ((2 : ℝ) ^ (↑n : ℕ) - (1 : ℝ)) =
+          ∑' (n : (↑B : Type)), (1 : ℝ) / ((2 : ℝ) ^ (↑n : ℕ) - (1 : ℝ)) ∧
+        Summable g ∧
+          (∀ (m : ℕ), (0 : ℝ) ≤ g m) ∧ n ∈ S ∧ n ∉ T ∧ (∀ m < n, m ∈ S ↔ m ∈ T) ∧ ∑' (k : ℕ), g (n + (1 : ℕ) + k) < g n := by
+  refine ⟨∅, ∅, fun m => if m = 0 then 1 else 0, {0}, ∅, 0, by simp, by simp, rfl, ?_, ?_, by simp, by simp, ?_, ?_⟩
+  · exact summable_of_ne_finset_zero (s := {0}) (fun m hm => by simp_all)
+  · intro m; dsimp only; split_ifs <;> norm_num
+  · intro m hm; omega
+  · simp

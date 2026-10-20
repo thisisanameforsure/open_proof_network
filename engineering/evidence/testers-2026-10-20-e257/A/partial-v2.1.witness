@@ -1,0 +1,10 @@
+-- hole: h1
+
+import Mathlib
+
+theorem witness : ∃ (A : Set ℕ) (B : Set ℕ),
+  (0 : ℕ) ∉ A ∧
+    (0 : ℕ) ∉ B ∧
+      ∑' (n : (↑A : Type)), (1 : ℝ) / ((2 : ℝ) ^ (↑n : ℕ) - (1 : ℝ)) =
+        ∑' (n : (↑B : Type)), (1 : ℝ) / ((2 : ℝ) ^ (↑n : ℕ) - (1 : ℝ)) :=
+  ⟨∅, ∅, by simp, by simp, rfl⟩

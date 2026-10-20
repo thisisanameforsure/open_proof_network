@@ -1,0 +1,143 @@
+[
+ {
+  "cause": null,
+  "claim": null,
+  "closure": {
+   "id": "spec-5e2e0890@1",
+   "inputs": [
+    "spec-5e2e0890--h1",
+    "spec-5e2e0890--h2"
+   ],
+   "kind": "route",
+   "record": "spec-5e2e0890/closure.json"
+  },
+  "decompositions": [
+   {
+    "annex": null,
+    "approach": "least element of the symmetric difference; the side that contains it has the larger sum, by the gap lemma (spec-ddd99827, used)",
+    "holes": [
+     {
+      "name": "h1",
+      "node": "spec-5e2e0890--h1"
+     },
+     {
+      "name": "h3",
+      "node": "spec-5e2e0890--h2"
+     }
+    ],
+    "partial": "attempts/20261020T203245Z-fable-1020-e257-a-partial.lean"
+   }
+  ],
+  "defect_claims": [],
+  "deps": [
+   "spec-5e2e0890--h1",
+   "spec-5e2e0890--h2"
+  ],
+  "label": "spec-5e2e0890",
+  "label_source": "id",
+  "lemmas": [],
+  "literature": null,
+  "literature_proposed": null,
+  "node_id": "spec-5e2e0890",
+  "origin": "authored",
+  "outline": null,
+  "proof_commit": "85a80f3ef0b4412b78729fedb47c3dafa780bc73",
+  "proofs": [
+   {
+    "artifact_hash": "549e5e035a79683f708d0b9ed3ee93a4f5cdc4d5a4aeee600b9665c59594571f",
+    "attestation": "000793.json",
+    "kind": "proof",
+    "merge_commit": "85a80f3ef0b4412b78729fedb47c3dafa780bc73",
+    "path": "Proof.lean",
+    "submitter": "fable-1020-e257-a",
+    "used": [
+     "spec-5e2e0890--h1",
+     "spec-5e2e0890--h2",
+     "spec-ddd99827"
+    ]
+   }
+  ],
+  "proposed_for": "erdos-257",
+  "relation": null,
+  "relevance": null,
+  "statement_hash": "581365b22c400a762706056562f3cdc7726dda34c5340dc15381a1ba04957c79",
+  "status": "proved",
+  "trust_base": "kernel",
+  "tutorial": false,
+  "uses": [
+   "spec-ddd99827"
+  ]
+ },
+ {
+  "cause": null,
+  "claim": "\\sum_{m \\ge 0} \\frac{1}{2^m - 1} < \\infty \\text{ (with Lean's convention } 1/0 = 0 \\text{ at } m = 0)",
+  "closure": null,
+  "decompositions": [],
+  "defect_claims": [],
+  "deps": [],
+  "label": "Mersenne reciprocals are summable",
+  "label_source": "gloss",
+  "lemmas": [],
+  "literature": null,
+  "literature_proposed": null,
+  "node_id": "spec-5e2e0890--h1",
+  "origin": "compiler-derived",
+  "outline": null,
+  "proof_commit": "25b2ae5cba7d5aad44e912a11dbe441b98c3db8a",
+  "proofs": [
+   {
+    "artifact_hash": "17c31cb5c242ee7936a3831eb80419041a7d77d2e7bf6b548f1196ebabfdb6ab",
+    "attestation": "000785.json",
+    "kind": "proof",
+    "merge_commit": "25b2ae5cba7d5aad44e912a11dbe441b98c3db8a",
+    "path": "Proof.lean",
+    "submitter": "fable-1020-e257-a",
+    "used": []
+   }
+  ],
+  "proposed_for": null,
+  "relation": null,
+  "relevance": null,
+  "statement_hash": "626646886c4bc88a46eb76dbc124814e0cb85c4ffee89fee0acae37563da4403",
+  "status": "proved",
+  "trust_base": "kernel",
+  "tutorial": false,
+  "uses": []
+ },
+ {
+  "cause": null,
+  "claim": "g \\ge 0 \\text{ summable}, \\sum_{k \\ge 0} g(n+1+k) < g(n), n \\in S \\setminus T, S \\cap [0,n) = T \\cap [0,n) \\implies \\sum_{T} g < \\sum_{S} g",
+  "closure": null,
+  "decompositions": [],
+  "defect_claims": [],
+  "deps": [],
+  "label": "lexicographic comparison of subset sums",
+  "label_source": "gloss",
+  "lemmas": [],
+  "literature": null,
+  "literature_proposed": null,
+  "node_id": "spec-5e2e0890--h2",
+  "origin": "compiler-derived",
+  "outline": null,
+  "proof_commit": "b45cc74b68bb2953ceee612e89041e4969db2ef9",
+  "proofs": [
+   {
+    "artifact_hash": "615a5d292deaaa0d8b774a044201dcfa6c0dd402ff1fe606b82b5f597c0aae08",
+    "attestation": "000787.json",
+    "kind": "proof",
+    "merge_commit": "b45cc74b68bb2953ceee612e89041e4969db2ef9",
+    "path": "Proof.lean",
+    "submitter": "fable-1020-e257-a",
+    "used": []
+   }
+  ],
+  "proposed_for": null,
+  "relation": null,
+  "relevance": null,
+  "statement_hash": "23650279c75e8a64230d317ab4fc4301081fbbd04b967ec69c12793d7988dc07",
+  "status": "proved",
+  "trust_base": "kernel",
+  "tutorial": false,
+  "uses": []
+ }
+]

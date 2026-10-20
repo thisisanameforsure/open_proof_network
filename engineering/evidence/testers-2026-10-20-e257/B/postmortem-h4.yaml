@@ -1,0 +1,26 @@
+schema: postmortem/v1
+node: spec-a70fcca4--h4
+contributor: replaced-by-the-service
+route: "carry recursion: with c_m the integer carry into bit m of the partial sum, c_{m+1} = 2 c_m - d_A(m); the walk stalls iff the carry ever reaches 0; sought an invariant keeping c_m >= 1"
+route_class: direct-estimate
+outcome: abandoned-early
+terminal_goal_state: |
+  r : ℕ → ℝ
+  hr0 : r 0 = 1 / 2
+  hrs : ∀ (m : ℕ), r (m + 1) = if 1 / (2 ^ m - 1) ≤ r m then r m - 1 / (2 ^ m - 1) else r m
+  m : ℕ
+  ⊢ r m ≤ ∑' (k : ℕ), 1 / (2 ^ (k + m) - 1)
+failure_class: budget-exhausted
+detail: >
+  This hole is the whole open content of spec-a70fcca4: the three sibling holes are
+  bookkeeping and the assembly shows this bound is equivalent to the theorem. Nothing was
+  attempted in Lean beyond stating it. What is known: the walk has been run to depth 10^8
+  (Hong 2026) and to 10^6 with exact carries (network session note 2026-10-20) without
+  stalling; the only provable invariants found are that r m has 2-adic valuation exactly -1
+  and that the carry equals the ceiling of sum_j D(m+j) 2^{-j} while alive; the chosen set
+  passes every randomness test tried, so no algebraic description of A is expected. A proof
+  needs a reason the scaled remainder never lands in a window of width about 2^{-m}/6 above
+  1/2 at an unchosen step: a shrinking-target statement for one orbit. Recorded so that the
+  frontier says what this hole is, not to mark a route as tried.
+artifacts:
+  missing_lemmas: []

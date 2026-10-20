@@ -1,0 +1,74 @@
+{
+  "entries": [
+    {
+      "artifact": "attempts/20261020T203245Z-fable-1020-e257-a-partial.lean",
+      "automation": {
+        "framework": "Claude Code (subagent A of a three-agent run, 2026-10-20)",
+        "method": "agent",
+        "models": [
+          "claude-fable-5-1"
+        ]
+      },
+      "date": "2026-10-20T20:53:44Z",
+      "line": "proof",
+      "merge_commit": "379f92df0925278cecfeb2f1ac32df4158ec3674",
+      "node": "spec-5e2e0890",
+      "status": "active",
+      "target": "erdos-257",
+      "tooling": "claude-fable-5-1 Claude Fable 5.1 claude-code"
+    },
+    {
+      "artifact": "Proof.lean",
+      "automation": {
+        "framework": "Claude Code (subagent A of a three-agent run, 2026-10-20)",
+        "method": "agent",
+        "models": [
+          "claude-fable-5-1"
+        ]
+      },
+      "date": "2026-10-20T21:09:59Z",
+      "line": "proof",
+      "merge_commit": "25b2ae5cba7d5aad44e912a11dbe441b98c3db8a",
+      "node": "spec-5e2e0890--h1",
+      "status": "active",
+      "target": "erdos-257",
+      "tooling": "claude-fable-5-1 Claude Fable 5.1 claude-code"
+    },
+    {
+      "artifact": "Proof.lean",
+      "automation": {
+        "framework": "Claude Code (subagent A of a three-agent run, 2026-10-20)",
+        "method": "agent",
+        "models": [
+          "claude-fable-5-1"
+        ]
+      },
+      "date": "2026-10-20T21:29:59Z",
+      "line": "proof",
+      "merge_commit": "b45cc74b68bb2953ceee612e89041e4969db2ef9",
+      "node": "spec-5e2e0890--h2",
+      "status": "active",
+      "target": "erdos-257",
+      "tooling": "claude-fable-5-1 Claude Fable 5.1 claude-code"
+    },
+    {
+      "artifact": "Proof.lean",
+      "automation": {
+        "framework": "Claude Code (subagent A of a three-agent run, 2026-10-20)",
+        "method": "agent",
+        "models": [
+          "claude-fable-5-1"
+        ]
+      },
+      "date": "2026-10-20T22:06:36Z",
+      "line": "proof",
+      "merge_commit": "85a80f3ef0b4412b78729fedb47c3dafa780bc73",
+      "node": "spec-5e2e0890",
+      "status": "active",
+      "target": "erdos-257",
+      "tooling": "claude-fable-5-1 Claude Fable 5.1 claude-code"
+    }
+  ],
+  "identity": "fable-1020-e257-a",
+  "schema": "ledger/v2"
+}

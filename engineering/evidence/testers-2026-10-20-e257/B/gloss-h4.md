@@ -1,0 +1,3 @@
+$$r_m \le \sum_{k\ge 0} \frac{1}{2^{k+m}-1} \quad\text{for every } m,$$
+
+for the greedy remainder $r$ of one half: $r_0 = \tfrac12$, and $r_{m+1} = r_m - \tfrac{1}{2^m-1}$ when that term fits under $r_m$, else $r_{m+1} = r_m$. This is the open mathematics of spec-a70fcca4: the remainder before position $m$ never exceeds the whole tail of the series from $m$ on, so the walk can always continue; given the sibling holes it is equivalent to the remainder tending to $0$, and so to the statement itself. Verified numerically to depth $10^8$ (Hong 2026); no proof known. A stall at some $m$ would mean $r_m$ exceeds the tail, after which one half is not a subset sum at all.
