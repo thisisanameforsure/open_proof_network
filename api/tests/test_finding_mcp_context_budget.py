@@ -300,7 +300,11 @@ def test_pin_a_tool_that_needs_a_token_refuses_inside_the_result(
 # F23-T13 and F09-T74 (D-25 v3.45) measured 111,005 before and 111,561 after (+556, 0.5%):
 # confirm_literature's `disputes` parameter (+168 of input schema) and one clause each on
 # confirm_literature, get_node and list_frontier. Pin unchanged.
-TOOLS_LIST_BUDGET = 112_000
+# F09-T75 (an agent, 2026-10-20) measured 111,879 before and 112,102 after (+223, 0.2%): the
+# `automation` property on get_my_submissions' finished entries (+53, the fix itself), where a
+# submission_id comes from (+46 each on get_submission and withdraw_submission), and the approach
+# record's caps (+78). Pinned 112,500.
+TOOLS_LIST_BUDGET = 112_500
 
 
 def test_the_whole_tools_list_fits_its_budget(harness: Harness) -> None:

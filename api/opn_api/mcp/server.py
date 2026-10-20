@@ -219,6 +219,21 @@ def declare(tool: Tool) -> types.Tool:
     )
 
 
+def argument_hint(tool: Tool, arguments: dict[str, Any]) -> str:
+    """F09-T75 (an agent, 2026-10-20): a refusal of the arguments as a whole also names what
+    each missing argument is and which given ones the tool does not take, so an agent that
+    passed a listing's ``id`` to ``get_submission`` learns ``submission_id`` is that value."""
+    props: dict[str, Any] = tool.input_schema.get("properties", {})
+    missing = [n for n in tool.input_schema.get("required", []) if n not in arguments]
+    hint = "".join(
+        f"; {n}: {props[n]['description']}" for n in missing if "description" in props.get(n, {})
+    )
+    unknown = sorted(k for k in arguments if k not in props)
+    if unknown:
+        hint += f"; not an argument of {tool.name}: {', '.join(unknown)}"
+    return hint
+
+
 def error_result(tool: str, doc: dict[str, Any]) -> types.CallToolResult:
     """An ``isError`` result whose structured content still satisfies the tool's schema (R9)."""
     problems = results.violations(tool, doc)
@@ -269,6 +284,8 @@ def build_server(ctx: Context, host: Callable[[], ASGIApp]) -> Server[Any, Any]:
             # envelope is closed, so the path rides in the message.
             where = "$" + "".join(f"[{p!r}]" for p in exc.absolute_path)
             message = exc.message if where == "$" else f"{where}: {exc.message}"
+            if where == "$":
+                message += argument_hint(tool, arguments)
             return error_result(name, error("arguments-invalid", message, "adapter").doc)
         token = auth.bearer() if tool.forwards_bearer else None
         if tool.needs_bearer and not token:  # R2: refused here, the endpoint never reached
