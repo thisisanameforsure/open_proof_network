@@ -1,0 +1,26 @@
+F08-T42 / F04-T53 live — 2026-10-16
+
+Network PR #68 merged as 0d9068a1 after CI (fast, harness, lean tiers all pass; the lean tier ran
+1h55m, the same as main's since F28 added its tests). api-deploy success.
+Tag gate-0d9068a published the images (image-publish run 38896435267):
+  plain   ghcr.io/thisisanameforsure/opn-gate@sha256:c38f3f5959200d382fcbfb3788351f75f45303efa58f006a4b06d97ddc47dd73
+  Mathlib ghcr.io/thisisanameforsure/opn-gate@sha256:520daa81be7bafa7a37619c44e7811ef9babd940115a243cd08a5020f006445d (0df444a)
+Graph: 7a707a36f publishes graph/v11, frontier/v6, context/v8 and the guide copy; f114b3798 re-pins
+27 targets + the devcontainer (pin_image.py with --network-commit, --cache-url and --api-url;
+--check passed for each; the diff is exactly 27 devcontainer_ref and 27 network_commit lines and
+the devcontainer image, OPN_API kept). Pushed to graph main with no gate run in flight.
+Gate run on the push: success. Render dispatched by it: success (e3cd1005e). site-deploy: success.
+
+Read back from the record (graph origin/main e3cd1005e):
+  erdos-69   graph/v11, rows carrying `circular`: 0, retired-class claims listed in defect_claims: 5
+  erdos-1094 graph/v11, rows carrying `circular`: 0, retired-class claims listed: 1
+  frontier.json frontier/v6, 81 entries, 0 carrying `circular`; info.json protocol 3.43
+  frontier before (7fe5a13eb) vs after: 81 = 81, none left, none joined, no entry's claimable,
+  needs or status changed; the 5 entries labelled before carry no label now.
+Live site (openproofnetwork.org, rendered from e3cd1005e): circularity marks (circular-mark,
+circular-label, circular-note, data-circular, "proves an ancestor", the chip) counted 0 on
+problems/erdos-69/, problems/, docs/ and nodes/erdos-69/erdos-69--h2-v2--h1-v2--h4/; that node page
+carries the "kept as history" line for its two merged claims.
+Service (api.openproofnetwork.org): /frontier.json serves frontier/v6, 81 entries, 0 with `circular`;
+info protocol 3.43. POST /defect-claims answers 401 without a token, so the refusal was not probed
+live; it is covered by api/tests/test_finding_circularity_retired_api.py.
