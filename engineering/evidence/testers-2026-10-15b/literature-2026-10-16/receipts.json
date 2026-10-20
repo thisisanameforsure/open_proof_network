@@ -1,0 +1,32 @@
+[
+ {
+  "id": "01M52A536GPBEZ1QX2V7ASWBFG",
+  "path": "targets/erdos-1094/nodes/erdos-1094--h3--h3--h1--h1/literature/20261016T121425Z-t1016-lit.yaml",
+  "pr_url": "https://github.com/thisisanameforsure/open_proof_network_graph/pull/584",
+  "pr_number": 584
+ },
+ {
+  "id": "01M52A573GXA3EQ23E1AXB22S7",
+  "path": "targets/erdos-1094/nodes/erdos-1094--h3--h3--h2--h1/literature/20261016T121430Z-t1016-lit.yaml",
+  "pr_url": "https://github.com/thisisanameforsure/open_proof_network_graph/pull/585",
+  "pr_number": 585
+ },
+ {
+  "id": "01M52A5B0GC18VNNZEKZ9XJNGK",
+  "path": "targets/erdos-1094/nodes/erdos-1094--h3--h2--h1/literature/20261016T121434Z-t1016-lit.yaml",
+  "pr_url": "https://github.com/thisisanameforsure/open_proof_network_graph/pull/586",
+  "pr_number": 586
+ },
+ {
+  "id": "01M52A5EXGV82FXSYT2H76V7AG",
+  "path": "targets/erdos-1094/nodes/erdos-1094--h3--h2--h2/literature/20261016T121438Z-t1016-lit.yaml",
+  "pr_url": "https://github.com/thisisanameforsure/open_proof_network_graph/pull/587",
+  "pr_number": 587
+ },
+ {
+  "id": "01M52A67ARHARHZSXK7YEMGTT7",
+  "path": "targets/erdos-1094/nodes/erdos-1094--h3--h2--h3/literature/20261016T121503Z-t1016-lit.yaml",
+  "pr_url": "https://github.com/thisisanameforsure/open_proof_network_graph/pull/588",
+  "pr_number": 588
+ }
+]

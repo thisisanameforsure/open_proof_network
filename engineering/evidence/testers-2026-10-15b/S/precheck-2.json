@@ -1,0 +1,418 @@
+{
+ "id": "01M4ZTWM6R2G764VC46K1P1T0K",
+ "node_id": "erdos-1094--h2--h2--h2--h3--h1--h1--h1",
+ "target_id": "erdos-1094",
+ "state": "done",
+ "created": "2026-10-15T13:09:11Z",
+ "graph_commit": "cdadf84ada5343685b5bcda1360ce11377569fb5",
+ "bundle_digest": "abfbbd2a3ab7fe7cff7434adaf199081b40acfd54f319e3668ba48ba53bc7b05",
+ "authenticated": true,
+ "automation": {
+  "framework": "Claude Code (subagent)",
+  "method": "agent",
+  "models": [
+   "claude-opus-5-5"
+  ]
+ },
+ "result": {
+  "attestation": {
+   "artifact_hash": null,
+   "automation": null,
+   "diagnostic": null,
+   "first_failing_step": null,
+   "footprint": {
+    "nodes": []
+   },
+   "gate_spec_hash": "cfe31e69729e1e93a0015e913cff65ff9e09862e625c4ab5ac1c94a27c811246",
+   "graph_commit": "cdadf84ada5343685b5bcda1360ce11377569fb5",
+   "graph_id": "erdos-1094",
+   "lean_toolchain": "leanprover/lean4:v4.33.1",
+   "mathlib_sha": "0df444a360eaa60ab8c11dca51a86af692955474",
+   "merge_commit": null,
+   "model_and_tooling": "undeclared",
+   "network_commit": "fa0a13ba270d7b399ed9c075cb531bdaeb2776fe",
+   "node_id": "erdos-1094--h2--h2--h2--h3--h1--h1--h1",
+   "precheck_attestation": {
+    "hash": null,
+    "signature_kind": null
+   },
+   "review": null,
+   "runner": "hosted",
+   "schema": "attestation/v7",
+   "signature": {
+    "key_id": "SHA256:bJR39nO37EkRaxo4CPqdhcHk+WL+sEnAJ9ujpkF7LXo",
+    "kind": "service",
+    "timestamp": "2026-10-15T13:13:36Z",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAg4NVeR5WlT1J5vaHpDOmXNTurS+\nKqTYJTovSCpPj5G/IAAAAPb3BuLWF0dGVzdGF0aW9uAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQB7Xbp58nWRulyPgcuzNzO2OAGAm+O56JaNNXNRS9ImNnSYebl\nW8H3MW1chByP4OvTLhBREEEzwCf3VGccdwmQQ=\n-----END SSH SIGNATURE-----\n"
+   },
+   "statement_hash": "23092aee1ffa5146a088e17e9f3142080211ba60fa37f52ca4d72b6bafa2fb55",
+   "steps": [
+    {
+     "diagnostic": {
+      "code": "mathlib-pinned",
+      "details": {
+       "mathlib_sha": "0df444a360eaa60ab8c11dca51a86af692955474",
+       "packages": 8
+      },
+      "message": "Mathlib 0df444a360ea resolved from the pinned checkout"
+     },
+     "name": "toolchain",
+     "result": "pass",
+     "step": 1
+    },
+    {
+     "diagnostic": {
+      "code": "partial-submission",
+      "details": {
+       "path": "attempts/20261015T130229Z-t1015b-s-partial.lean"
+      },
+      "message": "a partial proof: attempts/20261015T130229Z-t1015b-s-partial.lean (D-12 #5)"
+     },
+     "name": "paths",
+     "result": "pass",
+     "step": 2
+    },
+    {
+     "diagnostic": {
+      "code": "artifact-reduction",
+      "details": {
+       "holes": [
+        "hsilr"
+       ],
+       "kind": "partial"
+      },
+      "message": "partial: erdos_1094__h2__h2__h2__h3__h1__h1__h1 declares ∀ (r : ℕ),\n  2 ≤ r →\n    ∀ (N : ℝ),\n      0 < N →\n        ∀ (W : ℝ),\n          1 ≤ W →\n            ∀ (δ : ℝ),\n              0 < δ →\n                ∀ (lam : ℝ),\n                  1 ≤ lam →\n                    ∀ (D_r : ℝ),\n                      0 < D_r →\n                        ∀ (D_r1 : ℝ),\n                          0 < D_r1 →\n                            ∀ (f : ℝ → ℝ),\n                              ContDiff ℝ (↑↑(r + 1)) f →\n                                (∀ x ∈ Set.Icc 0 N, D_r / 2 ≤ |iteratedDeriv r f x|) →\n                                  (∀ x ∈ Set.Icc 0 N, |iteratedDeriv r f x| ≤ D_r) →\n                                    (∀ x ∈ Set.Icc 0 N, |iteratedDeriv (r + 1) f x| ≤ D_r1) →\n                                      ∀ (S : Finset ℤ),\n                                        (∀ u ∈ S, 0 ≤ u ∧ u ≤ ⌊N⌋) →\n                                          (∀ u ∈ S, ∃ v w, 0 < w ∧ ↑w ≤ W ∧ |f ↑u - ↑v / ↑w| < δ) →\n                                            have X :=\n                                              (D_r * lam ^ r * W ^ 2) ^ (2 * ↑r - 1)⁻¹ +\n                                                  (δ * W ^ 2 / (D_r * lam ^ r)) ^ (↑r - 1)⁻¹ +\n                                                (D_r1 * lam * W ^ 2 / D_r) ^ (2 * ↑r)⁻¹;\n                                            ¬1 ≤ 65536 * X →\n                                              ∀ (N' : ℝ),\n                                                0 < N' →\n                                                  ∀ (lam' : ℝ),\n                                                    1 ≤ lam' →\n                                                      lam' < 2 →\n                                                        ∀ (D' : ℝ),\n                                                          0 < D' →\n                                                            ∀ (D1' : ℝ),\n                                                              0 < D1' →\n                                                                ∀ (g : ℝ → ℝ),\n                                                                  ContDiff ℝ (↑↑(r + 1)) g →\n                                                                    (∀ x ∈ Set.Icc 0 N',\n                                                                        D' / 2 ≤ |iteratedDeriv r g x|) →\n                                                                      (∀ x ∈ Set.Icc 0 N', |iteratedDeriv r g x| ≤ D') →\n                                                                        (∀ x ∈ Set.Icc 0 N',\n                                                                            |iteratedDeriv (r + 1) g x| ≤ D1') →\n                                                                          ∀ (S' : Finset ℤ),\n                                                                            (∀ u ∈ S', 0 ≤ u ∧ u ≤ ⌊N'⌋) →\n                                                                              (∀ u ∈ S',\n                                                                                  ∃ v w,\n                                                                                    0 < w ∧\n                                                                                      ↑w ≤ W ∧ |g ↑u - ↑v / ↑w| < δ) →\n                                                                                65536 *\n                                                                                      ((D' * lam' ^ r * W ^ 2) ^\n                                                                                            (2 * ↑r - 1)⁻¹ +\n                                                                                          (δ * W ^ 2 /\n                                                                                              (D' * lam' ^ r)) ^\n                                                                                            (↑r - 1)⁻¹ +\n                                                                                        (D1' * lam' * W ^ 2 / D') ^\n                                                                                          (2 * ↑r)⁻¹) <\n                                                                                    1 →\n                                                                                  ↑S'.card <\n                                                                                    65536 * N' *\n                                                                                        ((D' * lam' ^ r * W ^ 2) ^\n                                                                                              (2 * ↑r - 1)⁻¹ +\n                                                                                            (δ * W ^ 2 /\n                                                                                                (D' * lam' ^ r)) ^\n                                                                                              (↑r - 1)⁻¹ +\n                                                                                          (D1' * lam' * W ^ 2 / D') ^\n                                                                                            (2 * ↑r)⁻¹) +\n                                                                                      2 * ↑r * lam'; 1 hole(s)"
+     },
+     "name": "kernel-replay",
+     "result": "pass",
+     "step": 4
+    },
+    {
+     "diagnostic": null,
+     "name": "axioms",
+     "result": "pass",
+     "step": 5
+    },
+    {
+     "diagnostic": {
+      "code": "hazards-derived-statement",
+      "details": {
+       "acknowledged": [],
+       "checkers": [
+        "div-zero",
+        "int-trunc",
+        "junk-value",
+        "nat-sub",
+        "off-by-one-range",
+        "unused-binder"
+       ],
+       "findings": [
+        {
+         "checker": "div-zero",
+         "location": "D1' * lam' * W ^ 2 / D'",
+         "message": "division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"
+        },
+        {
+         "checker": "div-zero",
+         "location": "D_r1 * lam * W ^ 2 / D_r",
+         "message": "division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"
+        },
+        {
+         "checker": "div-zero",
+         "location": "δ * W ^ 2 / (D' * lam' ^ r)",
+         "message": "division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"
+        },
+        {
+         "checker": "div-zero",
+         "location": "δ * W ^ 2 / (D_r * lam ^ r)",
+         "message": "division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"
+        },
+        {
+         "checker": "div-zero",
+         "location": "↑v / ↑w",
+         "message": "division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"
+        },
+        {
+         "checker": "off-by-one-range",
+         "location": "1 ≤ 65536 * X",
+         "message": "comparison against an explicit literal: check whether the boundary is inclusive or exclusive"
+        },
+        {
+         "checker": "off-by-one-range",
+         "location": "1 ≤ W",
+         "message": "comparison against an explicit literal: check whether the boundary is inclusive or exclusive"
+        },
+        {
+         "checker": "off-by-one-range",
+         "location": "1 ≤ lam",
+         "message": "comparison against an explicit literal: check whether the boundary is inclusive or exclusive"
+        },
+        {
+         "checker": "off-by-one-range",
+         "location": "1 ≤ lam'",
+         "message": "comparison against an explicit literal: check whether the boundary is inclusive or exclusive"
+        },
+        {
+         "checker": "off-by-one-range",
+         "location": "2 ≤ r",
+         "message": "comparison against an explicit literal: check whether the boundary is inclusive or exclusive"
+        },
+        {
+         "checker": "off-by-one-range",
+         "location": "65536 *\n    ((D' * lam' ^ r * W ^ 2) ^ (2 * ↑r - 1)⁻¹ + (δ * W ^ 2 / (D' * lam' ^ r)) ^ (↑r - 1)⁻¹ +\n      (D1' * lam' * W ^ 2 / D') ^ (2 * ↑r)⁻¹) <\n  1",
+         "message": "comparison against an explicit literal: check whether the boundary is inclusive or exclusive"
+        },
+        {
+         "checker": "off-by-one-range",
+         "location": "Set.Icc 0 N",
+         "message": "Set.Icc with a literal-adjusted bound: check whether the endpoint is included"
+        },
+        {
+         "checker": "off-by-one-range",
+         "location": "Set.Icc 0 N'",
+         "message": "Set.Icc with a literal-adjusted bound: check whether the endpoint is included"
+        },
+        {
+         "checker": "off-by-one-range",
+         "location": "lam' < 2",
+         "message": "comparison against an explicit literal: check whether the boundary is inclusive or exclusive"
+        }
+       ],
+       "origin": "compiler-derived"
+      },
+      "message": "14 hazard finding(s) on a statement the gate derived from a merged assembly, recorded and not refused; first: div-zero at D1' * lam' * W ^ 2 / D': division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"
+     },
+     "name": "hazards",
+     "result": "pass",
+     "step": 6
+    },
+    {
+     "diagnostic": {
+      "code": "hole-witnesses",
+      "details": {
+       "witnesses": [
+        {
+         "hole": "hsilr",
+         "path": "attempts/20261015T130229Z-t1015b-s-partial.1.witness",
+         "sha256": "7a7fdccc3534a6abe27e9c77721887ac91f53146df46d27a6995f96dcc7c5d45"
+        }
+       ]
+      },
+      "message": "1 of 1 hole(s) carry a witness, each checked as step 7 checks a node's (F07-R23)"
+     },
+     "name": "witness",
+     "result": "pass",
+     "step": 7
+    },
+    {
+     "diagnostic": null,
+     "name": "deps",
+     "result": "pass",
+     "step": 8
+    }
+   ],
+   "submitter": null,
+   "toolchain_hash": "f54d0bc916bf76a7fae460ce9d078ccd1f74aeb4fd12c4b6546bca28b6aa1c63",
+   "tooling": {
+    "harness": null,
+    "model": null
+   },
+   "trust_base": "kernel",
+   "verdict": "pass"
+  },
+  "automation": {
+   "framework": "Claude Code (subagent)",
+   "method": "agent",
+   "models": [
+    "claude-opus-5-5"
+   ]
+  },
+  "bundle_digest": "abfbbd2a3ab7fe7cff7434adaf199081b40acfd54f319e3668ba48ba53bc7b05",
+  "first_failing_step": null,
+  "holes": [
+   {
+    "closed_type": "∀ (r : ℕ),\n  (1 : ℕ) ≤ r →\n    ∀ (s : ℕ),\n      s = (2 : ℕ) * r →\n        ∀ (M : ℝ),\n          (↑s : ℝ) - (1 : ℝ) ≤ M →\n            ∀ (W : ℝ),\n              (1 : ℝ) ≤ W →\n                ∀ (u : Fin s → ℤ) (w : Fin s → ℕ),\n                  (∀ (i : Fin s), (0 : ℤ) ≤ u i ∧ (↑(u i) : ℝ) ≤ M) →\n                    StrictMono u →\n                      (∀ (i : Fin s), (0 : ℕ) < w i) →\n                        (∀ (i : Fin s), (↑(w i) : ℝ) ≤ W) →\n                          ∃ (a : Fin s → ℤ),\n                            (∀ j < r, ∑ i : Fin s, (↑(a i) : ℝ) * (↑(w i) : ℝ) * (↑(u i) : ℝ) ^ j = (0 : ℝ)) ∧\n                              ∑ i : Fin s, (↑(a i) : ℝ) * (↑(w i) : ℝ) * (↑(u i) : ℝ) ^ r ≠ (0 : ℝ) ∧\n                                ∀ (i : Fin s), |(↑(a i) : ℝ)| ≤ ((256 : ℝ) * M / (↑r : ℝ)) ^ (r - (1 : ℕ)) * W",
+    "expected_new": true,
+    "expected_node_id": "erdos-1094--h2--h2--h2--h3--h1--h1--h1--h1",
+    "expected_witness": "∃ (r : ℕ) (s : ℕ) (M : ℝ) (W : ℝ) (u : Fin s → ℤ) (w : Fin s → ℕ),\n  (1 : ℕ) ≤ r ∧\n    s = (2 : ℕ) * r ∧\n      (↑s : ℝ) - (1 : ℝ) ≤ M ∧\n        (1 : ℝ) ≤ W ∧\n          (∀ (i : Fin s), (0 : ℤ) ≤ u i ∧ (↑(u i) : ℝ) ≤ M) ∧\n            StrictMono u ∧ (∀ (i : Fin s), (0 : ℕ) < w i) ∧ ∀ (i : Fin s), (↑(w i) : ℝ) ≤ W",
+    "name": "hsilr",
+    "proved_binders": [],
+    "restates": null,
+    "witness": {
+     "checked": true,
+     "path": "attempts/20261015T130229Z-t1015b-s-partial.1.witness",
+     "sha256": "7a7fdccc3534a6abe27e9c77721887ac91f53146df46d27a6995f96dcc7c5d45"
+    }
+   }
+  ],
+  "job_id": "01M4ZTWM6R2G764VC46K1P1T0K",
+  "node_id": "erdos-1094--h2--h2--h2--h3--h1--h1--h1",
+  "steps": [
+   {
+    "diagnostic": {
+     "code": "mathlib-pinned",
+     "details": {
+      "mathlib_sha": "0df444a360eaa60ab8c11dca51a86af692955474",
+      "packages": 8
+     },
+     "message": "Mathlib 0df444a360ea resolved from the pinned checkout"
+    },
+    "name": "toolchain",
+    "result": "pass",
+    "step": 1
+   },
+   {
+    "diagnostic": {
+     "code": "partial-submission",
+     "details": {
+      "path": "attempts/20261015T130229Z-t1015b-s-partial.lean"
+     },
+     "message": "a partial proof: attempts/20261015T130229Z-t1015b-s-partial.lean (D-12 #5)"
+    },
+    "name": "paths",
+    "result": "pass",
+    "step": 2
+   },
+   {
+    "diagnostic": {
+     "code": "artifact-reduction",
+     "details": {
+      "holes": [
+       "hsilr"
+      ],
+      "kind": "partial"
+     },
+     "message": "partial: erdos_1094__h2__h2__h2__h3__h1__h1__h1 declares ∀ (r : ℕ),\n  2 ≤ r →\n    ∀ (N : ℝ),\n      0 < N →\n        ∀ (W : ℝ),\n          1 ≤ W →\n            ∀ (δ : ℝ),\n              0 < δ →\n                ∀ (lam : ℝ),\n                  1 ≤ lam →\n                    ∀ (D_r : ℝ),\n                      0 < D_r →\n                        ∀ (D_r1 : ℝ),\n                          0 < D_r1 →\n                            ∀ (f : ℝ → ℝ),\n                              ContDiff ℝ (↑↑(r + 1)) f →\n                                (∀ x ∈ Set.Icc 0 N, D_r / 2 ≤ |iteratedDeriv r f x|) →\n                                  (∀ x ∈ Set.Icc 0 N, |iteratedDeriv r f x| ≤ D_r) →\n                                    (∀ x ∈ Set.Icc 0 N, |iteratedDeriv (r + 1) f x| ≤ D_r1) →\n                                      ∀ (S : Finset ℤ),\n                                        (∀ u ∈ S, 0 ≤ u ∧ u ≤ ⌊N⌋) →\n                                          (∀ u ∈ S, ∃ v w, 0 < w ∧ ↑w ≤ W ∧ |f ↑u - ↑v / ↑w| < δ) →\n                                            have X :=\n                                              (D_r * lam ^ r * W ^ 2) ^ (2 * ↑r - 1)⁻¹ +\n                                                  (δ * W ^ 2 / (D_r * lam ^ r)) ^ (↑r - 1)⁻¹ +\n                                                (D_r1 * lam * W ^ 2 / D_r) ^ (2 * ↑r)⁻¹;\n                                            ¬1 ≤ 65536 * X →\n                                              ∀ (N' : ℝ),\n                                                0 < N' →\n                                                  ∀ (lam' : ℝ),\n                                                    1 ≤ lam' →\n                                                      lam' < 2 →\n                                                        ∀ (D' : ℝ),\n                                                          0 < D' →\n                                                            ∀ (D1' : ℝ),\n                                                              0 < D1' →\n                                                                ∀ (g : ℝ → ℝ),\n                                                                  ContDiff ℝ (↑↑(r + 1)) g →\n                                                                    (∀ x ∈ Set.Icc 0 N',\n                                                                        D' / 2 ≤ |iteratedDeriv r g x|) →\n                                                                      (∀ x ∈ Set.Icc 0 N', |iteratedDeriv r g x| ≤ D') →\n                                                                        (∀ x ∈ Set.Icc 0 N',\n                                                                            |iteratedDeriv (r + 1) g x| ≤ D1') →\n                                                                          ∀ (S' : Finset ℤ),\n                                                                            (∀ u ∈ S', 0 ≤ u ∧ u ≤ ⌊N'⌋) →\n                                                                              (∀ u ∈ S',\n                                                                                  ∃ v w,\n                                                                                    0 < w ∧\n                                                                                      ↑w ≤ W ∧ |g ↑u - ↑v / ↑w| < δ) →\n                                                                                65536 *\n                                                                                      ((D' * lam' ^ r * W ^ 2) ^\n                                                                                            (2 * ↑r - 1)⁻¹ +\n                                                                                          (δ * W ^ 2 /\n                                                                                              (D' * lam' ^ r)) ^\n                                                                                            (↑r - 1)⁻¹ +\n                                                                                        (D1' * lam' * W ^ 2 / D') ^\n                                                                                          (2 * ↑r)⁻¹) <\n                                                                                    1 →\n                                                                                  ↑S'.card <\n                                                                                    65536 * N' *\n                                                                                        ((D' * lam' ^ r * W ^ 2) ^\n                                                                                              (2 * ↑r - 1)⁻¹ +\n                                                                                            (δ * W ^ 2 /\n                                                                                                (D' * lam' ^ r)) ^\n                                                                                              (↑r - 1)⁻¹ +\n                                                                                          (D1' * lam' * W ^ 2 / D') ^\n                                                                                            (2 * ↑r)⁻¹) +\n                                                                                      2 * ↑r * lam'; 1 hole(s)"
+    },
+    "name": "kernel-replay",
+    "result": "pass",
+    "step": 4
+   },
+   {
+    "diagnostic": null,
+    "name": "axioms",
+    "result": "pass",
+    "step": 5
+   },
+   {
+    "diagnostic": {
+     "code": "hazards-derived-statement",
+     "details": {
+      "acknowledged": [],
+      "checkers": [
+       "div-zero",
+       "int-trunc",
+       "junk-value",
+       "nat-sub",
+       "off-by-one-range",
+       "unused-binder"
+      ],
+      "findings": [
+       {
+        "checker": "div-zero",
+        "location": "D1' * lam' * W ^ 2 / D'",
+        "message": "division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"
+       },
+       {
+        "checker": "div-zero",
+        "location": "D_r1 * lam * W ^ 2 / D_r",
+        "message": "division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"
+       },
+       {
+        "checker": "div-zero",
+        "location": "δ * W ^ 2 / (D' * lam' ^ r)",
+        "message": "division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"
+       },
+       {
+        "checker": "div-zero",
+        "location": "δ * W ^ 2 / (D_r * lam ^ r)",
+        "message": "division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"
+       },
+       {
+        "checker": "div-zero",
+        "location": "↑v / ↑w",
+        "message": "division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"
+       },
+       {
+        "checker": "off-by-one-range",
+        "location": "1 ≤ 65536 * X",
+        "message": "comparison against an explicit literal: check whether the boundary is inclusive or exclusive"
+       },
+       {
+        "checker": "off-by-one-range",
+        "location": "1 ≤ W",
+        "message": "comparison against an explicit literal: check whether the boundary is inclusive or exclusive"
+       },
+       {
+        "checker": "off-by-one-range",
+        "location": "1 ≤ lam",
+        "message": "comparison against an explicit literal: check whether the boundary is inclusive or exclusive"
+       },
+       {
+        "checker": "off-by-one-range",
+        "location": "1 ≤ lam'",
+        "message": "comparison against an explicit literal: check whether the boundary is inclusive or exclusive"
+       },
+       {
+        "checker": "off-by-one-range",
+        "location": "2 ≤ r",
+        "message": "comparison against an explicit literal: check whether the boundary is inclusive or exclusive"
+       },
+       {
+        "checker": "off-by-one-range",
+        "location": "65536 *\n    ((D' * lam' ^ r * W ^ 2) ^ (2 * ↑r - 1)⁻¹ + (δ * W ^ 2 / (D' * lam' ^ r)) ^ (↑r - 1)⁻¹ +\n      (D1' * lam' * W ^ 2 / D') ^ (2 * ↑r)⁻¹) <\n  1",
+        "message": "comparison against an explicit literal: check whether the boundary is inclusive or exclusive"
+       },
+       {
+        "checker": "off-by-one-range",
+        "location": "Set.Icc 0 N",
+        "message": "Set.Icc with a literal-adjusted bound: check whether the endpoint is included"
+       },
+       {
+        "checker": "off-by-one-range",
+        "location": "Set.Icc 0 N'",
+        "message": "Set.Icc with a literal-adjusted bound: check whether the endpoint is included"
+       },
+       {
+        "checker": "off-by-one-range",
+        "location": "lam' < 2",
+        "message": "comparison against an explicit literal: check whether the boundary is inclusive or exclusive"
+       }
+      ],
+      "origin": "compiler-derived"
+     },
+     "message": "14 hazard finding(s) on a statement the gate derived from a merged assembly, recorded and not refused; first: div-zero at D1' * lam' * W ^ 2 / D': division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"
+    },
+    "name": "hazards",
+    "result": "pass",
+    "step": 6
+   },
+   {
+    "diagnostic": {
+     "code": "hole-witnesses",
+     "details": {
+      "witnesses": [
+       {
+        "hole": "hsilr",
+        "path": "attempts/20261015T130229Z-t1015b-s-partial.1.witness",
+        "sha256": "7a7fdccc3534a6abe27e9c77721887ac91f53146df46d27a6995f96dcc7c5d45"
+       }
+      ]
+     },
+     "message": "1 of 1 hole(s) carry a witness, each checked as step 7 checks a node's (F07-R23)"
+    },
+    "name": "witness",
+    "result": "pass",
+    "step": 7
+   },
+   {
+    "diagnostic": null,
+    "name": "deps",
+    "result": "pass",
+    "step": 8
+   }
+  ],
+  "verdict": "pass"
+ },
+ "public": true
+}

@@ -1,0 +1,248 @@
+{
+ "id": "01M4ZWKH1GCCF1SWAMPNMQ3C5V",
+ "node_id": "erdos-1094--h2--h2--h2--h3--h1--h1--h1--h1",
+ "target_id": "erdos-1094",
+ "state": "done",
+ "created": "2026-10-15T13:39:10Z",
+ "graph_commit": "d969b9507859bbe8b249eb8da9ee0a88f7b03113",
+ "bundle_digest": "b337ff23c3bf7e5a038f20760fefe1a9f6d7836604e089328a0a670dda96a4d4",
+ "authenticated": true,
+ "automation": {
+  "framework": "Claude Code (subagent)",
+  "method": "agent",
+  "models": [
+   "claude-opus-5-5"
+  ]
+ },
+ "result": {
+  "attestation": {
+   "artifact_hash": "b8b45cb797c54bb0599f62009a46f64b4333bee4957d6eb1aedd99427087a3ef",
+   "automation": null,
+   "diagnostic": null,
+   "first_failing_step": null,
+   "footprint": {
+    "nodes": []
+   },
+   "gate_spec_hash": "cfe31e69729e1e93a0015e913cff65ff9e09862e625c4ab5ac1c94a27c811246",
+   "graph_commit": "d969b9507859bbe8b249eb8da9ee0a88f7b03113",
+   "graph_id": "erdos-1094",
+   "lean_toolchain": "leanprover/lean4:v4.33.1",
+   "mathlib_sha": "0df444a360eaa60ab8c11dca51a86af692955474",
+   "merge_commit": null,
+   "model_and_tooling": "undeclared",
+   "network_commit": "fa0a13ba270d7b399ed9c075cb531bdaeb2776fe",
+   "node_id": "erdos-1094--h2--h2--h2--h3--h1--h1--h1--h1",
+   "precheck_attestation": {
+    "hash": null,
+    "signature_kind": null
+   },
+   "review": null,
+   "runner": "hosted",
+   "schema": "attestation/v7",
+   "signature": {
+    "key_id": "SHA256:bJR39nO37EkRaxo4CPqdhcHk+WL+sEnAJ9ujpkF7LXo",
+    "kind": "service",
+    "timestamp": "2026-10-15T13:45:43Z",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAg4NVeR5WlT1J5vaHpDOmXNTurS+\nKqTYJTovSCpPj5G/IAAAAPb3BuLWF0dGVzdGF0aW9uAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQCRcQiMfi6/HLppBoipPkFr8dANU+JjPdy0RIWMxInQ3/qCyHE\nQM0vqzgEqzcOwE0DolOxzsUmExBNpWNEl/Qwc=\n-----END SSH SIGNATURE-----\n"
+   },
+   "statement_hash": "5d2f6054a36b13faa366f12e75530ef3a017f28fb0c1e4571fe15b71cb4a7eea",
+   "steps": [
+    {
+     "diagnostic": {
+      "code": "mathlib-pinned",
+      "details": {
+       "mathlib_sha": "0df444a360eaa60ab8c11dca51a86af692955474",
+       "packages": 8
+      },
+      "message": "Mathlib 0df444a360ea resolved from the pinned checkout"
+     },
+     "name": "toolchain",
+     "result": "pass",
+     "step": 1
+    },
+    {
+     "diagnostic": null,
+     "name": "paths",
+     "result": "pass",
+     "step": 2
+    },
+    {
+     "diagnostic": null,
+     "name": "kernel-replay",
+     "result": "pass",
+     "step": 4
+    },
+    {
+     "diagnostic": null,
+     "name": "axioms",
+     "result": "pass",
+     "step": 5
+    },
+    {
+     "diagnostic": {
+      "code": "hazards-derived-statement",
+      "details": {
+       "acknowledged": [],
+       "checkers": [
+        "div-zero",
+        "int-trunc",
+        "junk-value",
+        "nat-sub",
+        "off-by-one-range",
+        "unused-binder"
+       ],
+       "findings": [
+        {
+         "checker": "div-zero",
+         "location": "256 * M / ↑r",
+         "message": "division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"
+        },
+        {
+         "checker": "nat-sub",
+         "location": "r - 1",
+         "message": "subtraction on ℕ truncates at 0: a - b is 0 whenever b ≥ a"
+        },
+        {
+         "checker": "off-by-one-range",
+         "location": "1 ≤ W",
+         "message": "comparison against an explicit literal: check whether the boundary is inclusive or exclusive"
+        },
+        {
+         "checker": "off-by-one-range",
+         "location": "1 ≤ r",
+         "message": "comparison against an explicit literal: check whether the boundary is inclusive or exclusive"
+        }
+       ],
+       "origin": "compiler-derived"
+      },
+      "message": "4 hazard finding(s) on a statement the gate derived from a merged assembly, recorded and not refused; first: div-zero at 256 * M / ↑r: division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"
+     },
+     "name": "hazards",
+     "result": "pass",
+     "step": 6
+    },
+    {
+     "diagnostic": null,
+     "name": "witness",
+     "result": "pass",
+     "step": 7
+    },
+    {
+     "diagnostic": null,
+     "name": "deps",
+     "result": "pass",
+     "step": 8
+    }
+   ],
+   "submitter": null,
+   "toolchain_hash": "f54d0bc916bf76a7fae460ce9d078ccd1f74aeb4fd12c4b6546bca28b6aa1c63",
+   "tooling": {
+    "harness": null,
+    "model": null
+   },
+   "trust_base": "kernel",
+   "verdict": "pass"
+  },
+  "automation": {
+   "framework": "Claude Code (subagent)",
+   "method": "agent",
+   "models": [
+    "claude-opus-5-5"
+   ]
+  },
+  "bundle_digest": "b337ff23c3bf7e5a038f20760fefe1a9f6d7836604e089328a0a670dda96a4d4",
+  "first_failing_step": null,
+  "job_id": "01M4ZWKH1GCCF1SWAMPNMQ3C5V",
+  "node_id": "erdos-1094--h2--h2--h2--h3--h1--h1--h1--h1",
+  "steps": [
+   {
+    "diagnostic": {
+     "code": "mathlib-pinned",
+     "details": {
+      "mathlib_sha": "0df444a360eaa60ab8c11dca51a86af692955474",
+      "packages": 8
+     },
+     "message": "Mathlib 0df444a360ea resolved from the pinned checkout"
+    },
+    "name": "toolchain",
+    "result": "pass",
+    "step": 1
+   },
+   {
+    "diagnostic": null,
+    "name": "paths",
+    "result": "pass",
+    "step": 2
+   },
+   {
+    "diagnostic": null,
+    "name": "kernel-replay",
+    "result": "pass",
+    "step": 4
+   },
+   {
+    "diagnostic": null,
+    "name": "axioms",
+    "result": "pass",
+    "step": 5
+   },
+   {
+    "diagnostic": {
+     "code": "hazards-derived-statement",
+     "details": {
+      "acknowledged": [],
+      "checkers": [
+       "div-zero",
+       "int-trunc",
+       "junk-value",
+       "nat-sub",
+       "off-by-one-range",
+       "unused-binder"
+      ],
+      "findings": [
+       {
+        "checker": "div-zero",
+        "location": "256 * M / ↑r",
+        "message": "division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"
+       },
+       {
+        "checker": "nat-sub",
+        "location": "r - 1",
+        "message": "subtraction on ℕ truncates at 0: a - b is 0 whenever b ≥ a"
+       },
+       {
+        "checker": "off-by-one-range",
+        "location": "1 ≤ W",
+        "message": "comparison against an explicit literal: check whether the boundary is inclusive or exclusive"
+       },
+       {
+        "checker": "off-by-one-range",
+        "location": "1 ≤ r",
+        "message": "comparison against an explicit literal: check whether the boundary is inclusive or exclusive"
+       }
+      ],
+      "origin": "compiler-derived"
+     },
+     "message": "4 hazard finding(s) on a statement the gate derived from a merged assembly, recorded and not refused; first: div-zero at 256 * M / ↑r: division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"
+    },
+    "name": "hazards",
+    "result": "pass",
+    "step": 6
+   },
+   {
+    "diagnostic": null,
+    "name": "witness",
+    "result": "pass",
+    "step": 7
+   },
+   {
+    "diagnostic": null,
+    "name": "deps",
+    "result": "pass",
+    "step": 8
+   }
+  ],
+  "verdict": "pass"
+ },
+ "public": true
+}

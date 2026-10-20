@@ -1,0 +1,223 @@
+{
+ "id": "01M4ZWN0WR0Q9N6P50B12ZEY1A",
+ "node_id": "erdos-1094--h2--h2--h2--h3--h1--h1--h1--h1",
+ "target_id": "erdos-1094",
+ "state": "done",
+ "created": "2026-10-15T13:39:59Z",
+ "graph_commit": "0f3cc63560584fd850f5e925f4ae5e17975abcb4",
+ "bundle_digest": "614f6a8440f40b773b4abcc3d4dbfec9903c57d60ec3b4764c4997b8a44b05e9",
+ "authenticated": true,
+ "automation": {
+  "framework": "Claude Code",
+  "method": "agent",
+  "models": [
+   "claude-opus-5-5"
+  ]
+ },
+ "result": {
+  "attestation": {
+   "artifact_hash": "4d669358ebad17a053cc0bd07af81c401443d09681486ea8452ba90589578d4f",
+   "automation": null,
+   "diagnostic": {
+    "code": "elaboration-failed",
+    "details": {
+     "messages": [
+      {
+       "column": 11,
+       "file": "Nodes/erdos-1094--h2--h2--h2--h3--h1--h1--h1--h1/Proof.lean",
+       "line": 59,
+       "severity": "error",
+       "text": "failed to synthesize instance of type class\n  LE (Matrix (Fin m) (Fin m) \u211d)\n\nHint: Type class instance resolution failures can be inspected with the `set_option trace.Meta.synthInstance true` command."
+      }
+     ],
+     "module": "Nodes.\u00aberdos-1094--h2--h2--h2--h3--h1--h1--h1--h1\u00bb.Proof",
+     "node": "erdos-1094--h2--h2--h2--h3--h1--h1--h1--h1",
+     "stderr": ""
+    },
+    "message": "Nodes.\u00aberdos-1094--h2--h2--h2--h3--h1--h1--h1--h1\u00bb.Proof does not elaborate"
+   },
+   "first_failing_step": 4,
+   "footprint": null,
+   "gate_spec_hash": "cfe31e69729e1e93a0015e913cff65ff9e09862e625c4ab5ac1c94a27c811246",
+   "graph_commit": "0f3cc63560584fd850f5e925f4ae5e17975abcb4",
+   "graph_id": "erdos-1094",
+   "lean_toolchain": "leanprover/lean4:v4.33.1",
+   "mathlib_sha": "0df444a360eaa60ab8c11dca51a86af692955474",
+   "merge_commit": null,
+   "model_and_tooling": "undeclared",
+   "network_commit": "fa0a13ba270d7b399ed9c075cb531bdaeb2776fe",
+   "node_id": "erdos-1094--h2--h2--h2--h3--h1--h1--h1--h1",
+   "precheck_attestation": {
+    "hash": null,
+    "signature_kind": null
+   },
+   "review": null,
+   "runner": "hosted",
+   "schema": "attestation/v7",
+   "signature": {
+    "key_id": "SHA256:bJR39nO37EkRaxo4CPqdhcHk+WL+sEnAJ9ujpkF7LXo",
+    "kind": "service",
+    "timestamp": "2026-10-15T13:46:39Z",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAg4NVeR5WlT1J5vaHpDOmXNTurS+\nKqTYJTovSCpPj5G/IAAAAPb3BuLWF0dGVzdGF0aW9uAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQJZdKYAjDByp6lKvDk4D7D5izAbTF8XOSK6+XJ69DdyoJfz4kl\n1YsxyKT+L/SoJEoWCbIXXGHL+6Xb+n4hshLgs=\n-----END SSH SIGNATURE-----\n"
+   },
+   "statement_hash": "5d2f6054a36b13faa366f12e75530ef3a017f28fb0c1e4571fe15b71cb4a7eea",
+   "steps": [
+    {
+     "diagnostic": {
+      "code": "mathlib-pinned",
+      "details": {
+       "mathlib_sha": "0df444a360eaa60ab8c11dca51a86af692955474",
+       "packages": 8
+      },
+      "message": "Mathlib 0df444a360ea resolved from the pinned checkout"
+     },
+     "name": "toolchain",
+     "result": "pass",
+     "step": 1
+    },
+    {
+     "diagnostic": null,
+     "name": "paths",
+     "result": "pass",
+     "step": 2
+    },
+    {
+     "diagnostic": {
+      "code": "elaboration-failed",
+      "details": {
+       "messages": [
+        {
+         "column": 11,
+         "file": "Nodes/erdos-1094--h2--h2--h2--h3--h1--h1--h1--h1/Proof.lean",
+         "line": 59,
+         "severity": "error",
+         "text": "failed to synthesize instance of type class\n  LE (Matrix (Fin m) (Fin m) \u211d)\n\nHint: Type class instance resolution failures can be inspected with the `set_option trace.Meta.synthInstance true` command."
+        }
+       ],
+       "module": "Nodes.\u00aberdos-1094--h2--h2--h2--h3--h1--h1--h1--h1\u00bb.Proof",
+       "node": "erdos-1094--h2--h2--h2--h3--h1--h1--h1--h1",
+       "stderr": ""
+      },
+      "message": "Nodes.\u00aberdos-1094--h2--h2--h2--h3--h1--h1--h1--h1\u00bb.Proof does not elaborate"
+     },
+     "name": "kernel-replay",
+     "result": "fail",
+     "step": 4
+    },
+    {
+     "diagnostic": null,
+     "name": "axioms",
+     "result": "skipped",
+     "step": 5
+    },
+    {
+     "diagnostic": null,
+     "name": "hazards",
+     "result": "skipped",
+     "step": 6
+    },
+    {
+     "diagnostic": null,
+     "name": "witness",
+     "result": "skipped",
+     "step": 7
+    },
+    {
+     "diagnostic": null,
+     "name": "deps",
+     "result": "skipped",
+     "step": 8
+    }
+   ],
+   "submitter": null,
+   "toolchain_hash": "f54d0bc916bf76a7fae460ce9d078ccd1f74aeb4fd12c4b6546bca28b6aa1c63",
+   "tooling": {
+    "harness": null,
+    "model": null
+   },
+   "trust_base": "kernel",
+   "verdict": "fail"
+  },
+  "automation": {
+   "framework": "Claude Code",
+   "method": "agent",
+   "models": [
+    "claude-opus-5-5"
+   ]
+  },
+  "bundle_digest": "614f6a8440f40b773b4abcc3d4dbfec9903c57d60ec3b4764c4997b8a44b05e9",
+  "first_failing_step": 4,
+  "job_id": "01M4ZWN0WR0Q9N6P50B12ZEY1A",
+  "node_id": "erdos-1094--h2--h2--h2--h3--h1--h1--h1--h1",
+  "steps": [
+   {
+    "diagnostic": {
+     "code": "mathlib-pinned",
+     "details": {
+      "mathlib_sha": "0df444a360eaa60ab8c11dca51a86af692955474",
+      "packages": 8
+     },
+     "message": "Mathlib 0df444a360ea resolved from the pinned checkout"
+    },
+    "name": "toolchain",
+    "result": "pass",
+    "step": 1
+   },
+   {
+    "diagnostic": null,
+    "name": "paths",
+    "result": "pass",
+    "step": 2
+   },
+   {
+    "diagnostic": {
+     "code": "elaboration-failed",
+     "details": {
+      "messages": [
+       {
+        "column": 11,
+        "file": "Nodes/erdos-1094--h2--h2--h2--h3--h1--h1--h1--h1/Proof.lean",
+        "line": 59,
+        "severity": "error",
+        "text": "failed to synthesize instance of type class\n  LE (Matrix (Fin m) (Fin m) \u211d)\n\nHint: Type class instance resolution failures can be inspected with the `set_option trace.Meta.synthInstance true` command."
+       }
+      ],
+      "module": "Nodes.\u00aberdos-1094--h2--h2--h2--h3--h1--h1--h1--h1\u00bb.Proof",
+      "node": "erdos-1094--h2--h2--h2--h3--h1--h1--h1--h1",
+      "stderr": ""
+     },
+     "message": "Nodes.\u00aberdos-1094--h2--h2--h2--h3--h1--h1--h1--h1\u00bb.Proof does not elaborate"
+    },
+    "name": "kernel-replay",
+    "result": "fail",
+    "step": 4
+   },
+   {
+    "diagnostic": null,
+    "name": "axioms",
+    "result": "skipped",
+    "step": 5
+   },
+   {
+    "diagnostic": null,
+    "name": "hazards",
+    "result": "skipped",
+    "step": 6
+   },
+   {
+    "diagnostic": null,
+    "name": "witness",
+    "result": "skipped",
+    "step": 7
+   },
+   {
+    "diagnostic": null,
+    "name": "deps",
+    "result": "skipped",
+    "step": 8
+   }
+  ],
+  "verdict": "fail"
+ },
+ "public": true
+}

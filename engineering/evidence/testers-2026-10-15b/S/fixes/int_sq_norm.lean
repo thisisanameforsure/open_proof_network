@@ -1,0 +1,1 @@
+def int_sq_norm (s : ℕ) (x : Fin s → ℤ) : ℕ := ∑ i : Fin s, (x i).natAbs ^ 2
