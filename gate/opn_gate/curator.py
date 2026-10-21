@@ -293,6 +293,16 @@ def revise(  # noqa: PLR0913 — one argument per fact of the revision
         )
     else:
         origin = "variant"  # D-8 v3.46: the revision is a labeled variant from here on
+    extra_meta: dict[str, Any] = {"supersedes": node_id}
+    # F08-T47: an acknowledgement names a location in the statement, so a revision that states
+    # the same proposition (its own Context import aside) carries the same reading; a changed
+    # statement is read anew and acknowledged by whoever proposes it.
+    acks = old.meta.get("acknowledged_hazards")
+    old_text = (old.path / "Statement.lean").read_text(encoding="utf-8")
+    if acks and graphmod.statement_identity(old_text, node_id) == graphmod.statement_identity(
+        statement, new_id
+    ):
+        extra_meta["acknowledged_hazards"] = acks
     proposal = scaffold.Proposal(
         node_id=new_id,
         target_id=target_id,
@@ -308,7 +318,7 @@ def revise(  # noqa: PLR0913 — one argument per fact of the revision
         relation=relation,
         relation_proof=relation_proof,
         date=date,
-        extra_meta={"supersedes": node_id},
+        extra_meta=extra_meta,
     )
     scaffold.validate(proposal)  # every refusal the scaffold has, before a byte is written
     written: list[str] = []

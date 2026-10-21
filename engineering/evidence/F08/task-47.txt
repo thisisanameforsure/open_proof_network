@@ -1,0 +1,20 @@
+F08-T47 — a same-statement revision carries the superseded node's acknowledged hazards, 2026-10-21
+
+Found live: graph PR #801 (opn-gate revise spec-a70fcca4 --relation refutes, the curator
+revision on request #800) failed admission at hazards:
+  "first_failing_check": "hazards", "code": "hazard-unacknowledged",
+  div-zero at 1 / (2 ^ ↑n - 1)   ("acknowledged": [])
+spec-a70fcca4's META acknowledged exactly that finding; revise copied deps, origin, relation and
+witness but not acknowledged_hazards. Every earlier admission check had passed (toolchain,
+layout, declaration, statement, witness). The live PR was cured by the curator adding the
+acknowledgement to the revision's META (graph c0a2d62dd); this task makes revise do it.
+
+Rule: a revision whose statement is the superseded node's by graph.statement_identity (own
+Context import aside, D-8 v3.46) carries its acknowledged_hazards; a changed statement carries
+none (an acknowledgement names a location in a statement, so it is read anew).
+
+Red (gate/tests/test_revise_relation.py -k acknowledg; a first run failed on the fixture's
+meta/v1, which predates the field, and was not red: the helper lifts it to meta/v2):
+  E   AssertionError: assert None == [{'checker': 'div-zero', ...}]
+  1 failed, 1 passed (the changed-statement case already held)
+Green: test_revise_relation.py + test_curator.py 32 passed; ruff, format, mypy gate clean.

@@ -315,6 +315,9 @@ D-13, D-14, D-16, D-18, D-19, D-21, D-28, D-29, D-30, D-33, D-35.</p>
   <tr><td>F08-T46</td><td><strong>A revision may carry a relation and keeps its routes (D-8 v3.46).</strong> <code>opn-gate revise --relation --relation-proof</code> scaffolds the revision as a variant; a revision whose statement hash is unchanged reads the superseded node's merged partials and holes as its own, derived through <code>supersedes</code>, so <code>spec-a70fcca4-v2</code> keeps its three proved holes and its one open one; rehearsed on a clone of the live target.</td>
     <td><code>gate/opn_gate/curator.py</code>, <code>gate/opn_gate/cli.py</code>, <code>gate/opn_gate/graph.py</code>, <code>gate/opn_gate/products.py</code></td><td>T45</td>
     <td><code>uv run --frozen pytest gate/tests/test_curator.py gate/tests/test_graph.py gate/tests/test_products.py</code></td></tr>
+  <tr><td>F08-T47</td><td><strong>A same-statement revision carries the acknowledged hazards (D-8 v3.46).</strong> Found live on graph PR #801: the revision of <code>spec-a70fcca4</code> failed admission <code>hazard-unacknowledged</code> for the division the superseded node had acknowledged, because <code>revise</code> did not copy <code>acknowledged_hazards</code>. A revision whose statement identity equals the old node&rsquo;s carries them; a changed statement carries none.</td>
+    <td><code>gate/opn_gate/curator.py</code>, <code>gate/tests/test_revise_relation.py</code></td><td>T46</td>
+    <td><code>uv run --frozen pytest gate/tests/test_revise_relation.py -k acknowledg</code></td></tr>
 </table>
 
 <footer>Open Proof Network · F08 spec v1 · 2026-09-07</footer>
