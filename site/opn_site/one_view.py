@@ -680,6 +680,10 @@ def _dag_svg(  # noqa: PLR0913 — the whole drawing, every element once
     return "\n".join(parts)
 
 
+#: F30-T13: the space between two rows of the column of proposed statements.
+BAND_ROW_GAP = 10
+
+
 def _band_svg(  # noqa: PLR0913 — the band, every element once
     vs: Mapping[str, View],
     lays: Mapping[str, dag.Layout],
@@ -695,34 +699,30 @@ def _band_svg(  # noqa: PLR0913 — the band, every element once
     literature: dag.Literature = None,
     links: Sequence[dag.Line] = (),
 ) -> str:
-    """F30-T11 (D-14 v3.26 as amended by v3.46): the band of proposed statements — its heading
-    and one line of help, its own drawing (the cruxes, their holes and junctions, the lines
-    among them, every pill as the main drawing draws one) and, over the card, the measured
-    lines between the band and the rest (``links``): each a ``path.band-link`` with its ends
-    and kind and no ``d``, which the script draws from the pills' boxes while it is lit."""
+    """F30-T11, F30-T13 (D-14 v3.26 as amended by v3.46; the owner, 2026-10-21): the proposed
+    statements as one column at the top right of the drawing's card — its heading and one line of
+    help, then every band statement (a crux and its own holes, ``dag.band_column``'s order) as a
+    plain pill, right-aligned, one per row, with no line and no junction at rest; and, over the
+    card, every measured line from a band statement (``links``, the band's own lines among
+    them): each a ``path.band-link`` with its ends and kind and no ``d``, which the script draws
+    from the pills' boxes while it is lit."""
     if BAND not in vs:
         return ""
-    lay = lays[BAND]
+    order = dag.band_column(list(rows.values()))
+    widths = {pl.node_id: pl.w for pl in lays[BAND].placed}
+    col = max((widths.get(nid, 0) for nid in order), default=0)
+    row = dag.NODE_H + BAND_ROW_GAP
+    height = max(len(order) * row - BAND_ROW_GAP, 0)
     parts = [
         '<div class="band-wrap"><div class="band-head">'
         f'<span class="kicker">{escape(dag.BAND_LABEL)}</span>'
         f'<p class="band-cue">{escape(dag.BAND_HELP)}</p></div><div class="band-scroll">'
-        f'<svg class="dag band" viewBox="0 0 {lay.width} {lay.height}" width="{lay.width}" '
-        f'height="{lay.height}" role="img" aria-label="proposed statements">'
+        f'<svg class="dag band" viewBox="0 0 {col} {height}" width="{col}" '
+        f'height="{height}" role="img" aria-label="proposed statements">'
     ]
-    for e in sorted(lay.edges, key=lambda e: (e.dst, e.src)):
-        cls = e.kind
-        if "superseded" in (_status_of(rows, e.src), _status_of(rows, e.dst)):
-            cls += " touches-superseded"
-        parts.append(
-            f'<path class="{cls}" data-from="{escape(e.src)}" data-to="{escape(e.dst)}" '
-            f'data-key="{escape(_line_key(e.src, e.dst))}" d="{dag.path_d(e)}"/>'
-        )
-    for p in lay.placed:
-        nid = p.node_id
-        if nid in d.junctions:
-            parts.append(_junction_markup(d.junctions[nid], p.x, p.y, False))
-            continue
+    for i, nid in enumerate(order):
+        w = widths.get(nid, col)
+        p = dag.Placed(nid, _status_of(rows, nid), 0, col - w, i * row, w)
         status = _status_of(rows, nid)
         parts.append(
             _pill_markup(
@@ -1033,6 +1033,15 @@ def drawing(  # noqa: PLR0913 — the page's inputs
     doc = json.dumps(layouts_document(lays), separators=(",", ":")).replace("</", "<\\/")
     merged_rows = list(merged_nodes(rows.values(), d, root).values())
     crossing = [ln for ln in dag.lines(merged_rows) if (ln[0] in set(band)) != (ln[1] in set(band))]
+    # F30-T13: the band's own lines are links too, drawn only while lit (a crux to its holes
+    # directly: the column draws no junction).
+    column = set(dag.band_of(list(rows.values())))
+    crossing += [
+        ln
+        for ln in dag.lines([dict(rows[i]) for i in sorted(column)])
+        if ln[0] in column and ln[1] in column
+    ]
+    crossing = [ln for ln in crossing if ln[0] in column or ln[1] in column]
     band_svg = _band_svg(
         vs,
         lays,

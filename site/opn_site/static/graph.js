@@ -58,7 +58,6 @@
   var bandSvg = document.querySelector("svg.band");
   var bandMarks = bandSvg ? slice(bandSvg.querySelectorAll("[data-node]")) : [];
   var bandPills = bandSvg ? slice(bandSvg.querySelectorAll("g.node")) : [];
-  var bandEdges = bandSvg ? slice(bandSvg.querySelectorAll("path.edge")) : [];
   var links = slice(document.querySelectorAll("path.band-link"));
   var wrap = svg.closest ? svg.closest(".dag-wrap") : null;
   var state = {
@@ -279,46 +278,37 @@
   function pillOf(root, id) {
     return root ? root.querySelector('[data-node="' + id.replace(/"/g, '\\"') + '"]') : null;
   }
+  // F30-T13: the band is a column at the card's right. A line from a band pill leaves its left
+  // side; it meets a tree pill at the side facing the column (its top or bottom where the column
+  // sits above or below the tree, on a phone), and another band pill by a curve out to the left.
   function linkD(link) {
     if (!wrap) { return ""; }
     var from = link.getAttribute("data-from"), to = link.getAttribute("data-to");
-    var inBand = pillOf(bandSvg, from) ? from : to, inTree = inBand === from ? to : from;
-    var a = pillOf(bandSvg, inBand), b = pillOf(svg, inTree) || pillOf(bandSvg, inTree);
+    var inBand = pillOf(bandSvg, from) ? from : to, other = inBand === from ? to : from;
+    var a = pillOf(bandSvg, inBand), b = pillOf(svg, other) || pillOf(bandSvg, other);
     if (!a || !b || getComputedStyle(b).display === "none") { return ""; }
     // In the overlay's own pixels: the overlay (svg.band-links) is the path's coordinate origin.
     var host = link.ownerSVGElement || wrap;
     var w = host.getBoundingClientRect(), ra = a.getBoundingClientRect(), rb = b.getBoundingClientRect();
-    var x1 = ra.left + ra.width / 2 - w.left, y1 = ra.top - w.top;
-    var x2 = rb.left + rb.width / 2 - w.left, y2 = rb.bottom - w.top;
+    var ya = ra.top + ra.height / 2 - w.top, yb = rb.top + rb.height / 2 - w.top;
+    var x1, y1, x2, y2;
+    if (bandSvg.contains(b)) {
+      x1 = ra.left - w.left; x2 = rb.left - w.left;
+      // out to the left of the column, never past the card's own left edge
+      var floor = wrap.getBoundingClientRect().left - w.left + 6;
+      var bulge = Math.max(floor, Math.min(x1, x2) - Math.max(18, Math.abs(yb - ya) / 3));
+      return "M" + num(x1) + " " + num(ya) + "C" + [bulge, ya, bulge, yb, x2, yb].map(num).join(" ");
+    }
+    if (rb.right <= ra.left) {
+      x1 = ra.left - w.left; y1 = ya; x2 = rb.right - w.left; y2 = yb;
+      var mx = (x1 + x2) / 2;
+      return "M" + num(x1) + " " + num(y1) + "C" + [mx, y1, mx, y2, x2, y2].map(num).join(" ");
+    }
+    x1 = ra.left + ra.width / 2 - w.left; x2 = rb.left + rb.width / 2 - w.left;
+    if (rb.bottom <= ra.top) { y1 = ra.top - w.top; y2 = rb.bottom - w.top; }
+    else { y1 = ra.bottom - w.top; y2 = rb.top - w.top; }
     var mid = (y1 + y2) / 2;
     return "M" + num(x1) + " " + num(y1) + "C" + [x1, mid, x2, mid, x2, y2].map(num).join(" ");
-  }
-  function junctionsIn(list) {
-    var out = {};
-    list.forEach(function (g) { if (g.hasAttribute("data-route")) { out[idOf(g)] = true; } });
-    return out;
-  }
-  var bandJunction = junctionsIn(bandMarks);
-  // The lines and nodes a hover reaches from id, through its junctions (F30-T6), over a set of
-  // edges: {near: {id: true}, on: {key: true}}.
-  function reach(id, edgeList, junctionIn) {
-    var near = {}, on = {}, seen = {}, queue = [id];
-    near[id] = true;
-    while (queue.length) {
-      var v = queue.shift();
-      if (seen[v]) { continue; }
-      seen[v] = true;
-      edgeList.forEach(function (e) {
-        if (e.classList.contains("off-view")) { return; }
-        var from = e.getAttribute("data-from"), to = e.getAttribute("data-to");
-        if (from !== v && to !== v) { return; }
-        on[keyOf(e)] = true;
-        var other = from === v ? to : from;
-        near[other] = true;
-        if (junctionIn[other] && !seen[other]) { queue.push(other); }
-      });
-    }
-    return { near: near, on: on };
   }
   // Paint the band's state: the hovered pill, else the pinned one, else nothing.
   function applyBand() {
@@ -338,15 +328,15 @@
       }
     });
     if (bandSvg) {
-      var r = id ? reach(id, bandEdges, bandJunction) : { near: {}, on: {} };
-      bandEdges.forEach(function (e) { e.classList.toggle("lit", !!r.on[keyOf(e)]); });
-      bandMarks.forEach(function (g) { g.classList.toggle("lit", !!r.near[idOf(g)]); });
+      // F30-T13: the column draws no line, so its lit pills are the hovered one and the far ends
+      // of its lit links.
+      bandMarks.forEach(function (g) { g.classList.toggle("lit", !!id && (idOf(g) === id || !!treeLit[idOf(g)])); });
       bandSvg.classList.toggle("hovering", !!id);
       bandPills.forEach(function (g) { g.classList.toggle("pinned", idOf(g) === state.band); });
     }
     // The tree: only the lines' far ends lit and the rest dimmed (band-lit), unless a tree pill's
     // own hover is on; when the band goes dark the tree's own state is painted again.
-    var any = Object.keys(treeLit).length > 0;
+    var any = Object.keys(treeLit).some(function (k) { return !pillOf(bandSvg, k); });
     var ownHover = svg.classList.contains("hovering") && !svg.classList.contains("band-lit");
     if (any && !ownHover) {
       marks.forEach(function (g) { g.classList.toggle("lit", !!treeLit[idOf(g)]); });

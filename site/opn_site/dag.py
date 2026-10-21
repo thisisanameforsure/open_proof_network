@@ -167,6 +167,46 @@ def band_of(nodes: Iterable[Mapping[str, Any]]) -> tuple[str, ...]:
     return tuple(sorted(band))
 
 
+def band_column(nodes: Iterable[Mapping[str, Any]]) -> tuple[str, ...]:
+    """F30-T13 (the owner, 2026-10-21): the band's statements in the column's order, one per
+    row. Each crux is followed by its own holes; then the cruxes are walked depth first, in id
+    order, over every line among band statements (a dep, a use, a lemma, from a crux or one of
+    its holes), so related statements sit above or below each other and unrelated ones follow.
+    Nothing here is a layout of their relations: the column is a list."""
+    rows = {str(n["node_id"]): n for n in nodes}
+    band = band_of(rows.values())
+    cruxes = [b for b in band if b in set(proposed(rows.values()))]
+    group: dict[str, list[str]] = {c: [c] for c in cruxes}
+    owner: dict[str, str] = {c: c for c in cruxes}
+    for nid in band:  # band_of is sorted, so a hole follows the cruxes that may own it
+        if nid in group:
+            continue
+        crux = max((c for c in cruxes if nid.startswith(c + HOLE_SEPARATOR)), key=len, default=None)
+        if crux is not None:
+            group[crux].append(nid)
+            owner[nid] = crux
+    near: dict[str, set[str]] = {c: set() for c in cruxes}
+    for src, dst, _kind in lines([dict(rows[b]) for b in band]):
+        a, b = owner.get(src), owner.get(dst)
+        if a is not None and b is not None and a != b:
+            near[a].add(b)
+            near[b].add(a)
+    out: list[str] = []
+    seen: set[str] = set()
+
+    def visit(c: str) -> None:
+        if c in seen:
+            return
+        seen.add(c)
+        out.extend(group[c])
+        for other in sorted(near[c]):
+            visit(other)
+
+    for c in cruxes:
+        visit(c)
+    return tuple(out)
+
+
 #: The line kinds between a variant and the root (F04-T55, D-30 v3.46): ``edge relation
 #: <label>`` for each label a row's ``relations`` names.
 RELATION_KIND = "edge relation"
