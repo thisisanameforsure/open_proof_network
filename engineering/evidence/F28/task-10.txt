@@ -1,0 +1,70 @@
+F28-T10 — closure through a refutes variant: verdict refuted; step 9 (decisions v3.46, D-12, D-30)
+Branch f28-t10 from refutes-v3.46 (3fca1967, the F08-T44 contract). Agent B, 2026-10-21.
+
+Tests (new):
+  gate/tests/test_refutes_closure.py        fast: links, composition text, join_link, sweep,
+                                             derive_statuses, products, step 9
+  gate/tests/test_refutes_closure_lean.py   lean: the composed refutation elaborates on core Lean
+                                             (and the wrong direction does not)
+
+Commands:
+  uv run --frozen pytest gate/tests/test_refutes_closure.py -q
+  uv run --frozen pytest gate/tests/test_refutes_closure_lean.py -m lean -q
+
+== 1. RED (tests written against the contract commit, before any production change) ==
+
+Seams added first, at today's behaviour, so every red below fails on the defect and not on a
+missing name: closing.Link.verdict (default "proved", in as_dict) and a `verdict` keyword on
+close.link_text that was ignored. (The laptop shut down mid-run and the scratchpad files holding
+the raw red output were lost; what follows is the red run's failure lines as seen in the session
+before the shutdown, copied from it. The first run also ran the step-9 case: 11 failed, 6 passed
+in 132.97s; the rerun below deselected the slow step-9 case.)
+
+$ uv run --frozen pytest gate/tests/test_refutes_closure.py -q --deselect ...step9...
+E   AssertionError: assert {} == {'t': ('variant', 'v', ('v',), True)}      # no link for a refutes variant
+E   AssertionError: assert 'theorem a_thm_refuted : ¬ (∃ K : Nat, K + 0 = K) := (opn_closing_link @_root_.v_thm)' in
+      '...theorem a_thm : ∃ K : Nat, K + 0 = K := (opn_closing_link @_root_.v_thm)\n'   # composed as a PROOF of the root
+E   - theorem t_refuted : ¬ (∀ (n : Nat) (h : 0 < n), n < 3) := (opn_closing_link @_root_.v)
+    + theorem t (n : Nat) (h : 0 < n) : n < 3 := (opn_closing_link @_root_.v)
+E   AssertionError: assert 'proved' == 'refuted'                              # join_link's record verdict
+E   AssertionError: assert [] == [('and-swap-reassoc', True)]                # the sweep found nothing to close
+E   Differing items: {'d': 'ready'} != {'d': 'blocked'}  {'r': 'proved'} != {'r': 'refuted'}   # derive_statuses
+E   AssertionError: assert 'proved' == 'refuted'                              # tg.statuses[root] via load_target
+E   ValueError: not enough values to unpack (expected 1, got 0)              # target_proofs lists no refutation
+E   assert (False, 'intermediate', None) == (True, 'pr-approval', None)     # step 9 not asked of a refutes proof
+10 failed, 5 passed, 2 deselected in 7.48s
+(Two further failures in that run were the test's own wrong expectations, not the defect, and
+were restated: the fixture root has unproved deps, so unvouched or with its variant reopened it
+reads `blocked`, not `ready`; a dependent of an *open* root is blocked with no cause.)
+
+Lean tier, red: the composition before the fix is the proving text, which is exactly what
+test_the_kernel_refuses_the_same_relation_as_a_proof_of_the_root compiles — Lean refuses it
+with a type mismatch (see the green run below); the refuting text did not exist to compile.
+
+== 2. The fix ==
+closing.links      a `refutes` variant at the root is a `variant` link with verdict "refuted"
+close.link_text    verdict refuted → close.refuting_declaration: `theorem <name>_refuted :
+                   ¬ (<type>) :=`, binders before the colon bound as `∀ <binders>, <type>`
+close.join_link    composes with the link's verdict; the record carries it (closure.build verdict=)
+graph.derive_statuses  a closure that settles the node yields closure.verdict_of(record):
+                   proved, or refuted (v1 record → proved); same guards as before
+products           SETTLING_RELATIONS = (resolves, refutes): closing_node names a proved
+                   refuting variant; target_proofs lists it with relation "refutes"; target
+                   status resolved and the root off the frontier already followed from
+                   RESOLVED_STATUSES and in_frontier (asserted)
+modes.py step 9    settles for relation refutes while the root is open
+post-merge         close.sweep dispatches kind "variant" to join_link, so the record it writes
+                   carries the verdict (test_the_sweep_closes_the_root_as_refuted)
+graph/v14's closure object is closed and has no `verdict`; the verdict lives in the record only
+(and in the row's `status`). Told the lead.
+
+== 3. GREEN ==
+$ uv run --frozen pytest gate/tests/test_refutes_closure.py -q
+17 passed in 2.99s
+$ uv run --frozen pytest gate/tests/test_refutes_closure.py gate/tests/test_closing.py gate/tests/test_close.py \
+    gate/tests/test_closure_status.py gate/tests/test_target_proofs.py \
+    gate/tests/test_finding_step9_root_only.py gate/tests/test_finding_closed_root.py -q
+78 passed in 10.28s
+$ uv run --frozen mypy gate          → Success: no issues found in 431 source files
+$ uv run --frozen ruff check .       → All checks passed!  (exit 0)
+$ uv run --frozen ruff format --check . → 890 files already formatted (exit 0)

@@ -6,7 +6,8 @@ circularity claim (F08-T42), each kernel-checked already:
 
 * a **route** (F27): a merged decomposition of the node, every hole of which is needed (D-12 #5);
 * at the root, a **resolves variant** (D-30), whose ``Relation.lean`` takes a proof of the variant
-  to a proof of the root.
+  to a proof of the root — or (v3.46) a **refutes variant**, whose relation takes it to a proof
+  of the root's negation, so the link's ``verdict`` is ``refuted`` (F28-T10).
 
 The closable set is the least fixed point of "not proved, not dead, and some link has every input
 proved or closable", so a cycle never supports itself (F28-R3). Each closable node names the link
@@ -27,7 +28,8 @@ from typing import Any, Literal
 # F27's reading of the record: rows by id, and each node's routes with their holes followed through
 # revisions and unnamed holes assigned where that is unambiguous. Reused so the two features cannot
 # disagree about what a route is.
-from opn_gate.routes import DEAD_STATUSES, PROVED, RESOLVES, _hole_nodes, _rows
+from opn_gate import closure
+from opn_gate.routes import DEAD_STATUSES, PROVED, REFUTES, RESOLVES, _hole_nodes, _rows
 
 LinkKind = Literal["route", "variant"]
 
@@ -43,9 +45,17 @@ class Link:
     kind: LinkKind
     id: str
     inputs: tuple[str, ...]
+    #: F28-T10 (D-12 v3.46): what joining this link yields — the node's theorem (``proved``), or
+    #: through a ``refutes`` variant its negation (``refuted``).
+    verdict: str = closure.VERDICT_PROVED
 
     def as_dict(self) -> dict[str, Any]:
-        return {"kind": self.kind, "id": self.id, "inputs": list(self.inputs)}
+        return {
+            "kind": self.kind,
+            "id": self.id,
+            "inputs": list(self.inputs),
+            "verdict": self.verdict,
+        }
 
 
 @dataclass(frozen=True)
@@ -83,8 +93,16 @@ def links(graph: Mapping[str, Any]) -> dict[str, list[Link]]:
             out[node_id].append(Link("route", f"{node_id}@{k}", inputs))
     if root in out:
         for node_id, row in rows.items():
-            if node_id != root and row.get("relation") == RESOLVES:
+            if node_id == root:
+                continue
+            # D-30: a ``resolves`` variant implies the root; a ``refutes`` one (v3.46) implies its
+            # negation, and joining it yields the root *refuted* (F28-T10).
+            if row.get("relation") == RESOLVES:
                 out[root].append(Link("variant", node_id, (node_id,)))
+            elif row.get("relation") == REFUTES:
+                out[root].append(
+                    Link("variant", node_id, (node_id,), verdict=closure.VERDICT_REFUTED)
+                )
     return out
 
 

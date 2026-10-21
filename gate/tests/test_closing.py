@@ -296,7 +296,7 @@ def test_output_is_in_record_order_and_round_trips() -> None:
     assert [c.node for c in got] == ["t", "t--h1", "t--h2"]
     assert json.loads(json.dumps([c.as_dict() for c in got]))[0] == {
         "node": "t",
-        "link": {"kind": "route", "id": "t@1", "inputs": ["t--h1", "t--h2"]},
+        "link": {"kind": "route", "id": "t@1", "inputs": ["t--h1", "t--h2"], "verdict": "proved"},
         "ready": False,
     }
 
