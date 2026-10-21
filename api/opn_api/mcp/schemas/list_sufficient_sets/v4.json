@@ -1,0 +1,462 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openproof.network/schemas/mcp/list_sufficient_sets/v4.json",
+  "title": "mcp/list_sufficient_sets/v4",
+  "description": "v4 (2026-10-21, F09-T76; D-25, D-28 v3.46): a route settles either way. Each set carries `settles` — `proves` (the root's own routes, its direct proof, a resolves variant: the sets of v3.40) or `refutes` (a set closing a refutes variant, D-30 v3.46, enumerated from that variant's routes exactly as the root's are from its own; `variant` names it). A set's id is unchanged (its statements and assemblies), so every proving id stays. Order: the proving sets first in the record's order, then the refuting ones; a refuting set is never dropped as dominated by a proving one or the other way round, and the cap counts both sides. A proved root has no refuting sets; a refuted root no sets. Each selector node carries `side`: when sets of both sides exist the tree opens on a fork — the top node splits on no statement (route, node and set null) and has exactly two children, the proving family (`side: proves`) then the refuting one (`side: refutes`), each the selector of its own sets alone; `side` is null on every other node, and everywhere when one side only (then the tree is v3's). A false member of a set never refutes the root: it kills its route, no more. v3 (2026-10-19, F27-T9, R13): the result carries `at_proved`, what the enumeration did at a proved statement — `stop` (the default, F27-R5: a closed member, nothing beneath it listed) or `follow` (the statement expanded along what its first proof's term rests on, F18-R2, transitively, so the set also lists the proved structure it already stands on) — and each set `proof_routes`, the routes those proofs went through (every hole of the route among what its node's proof used), empty under `stop`. The sets are the same under both: the same ids, open statements, assemblies, routes and order, because the cut is still made at the proved statement; `follow` only adds what lies beneath. v2 (2026-10-17, F29-T4, R8; D-25, D-28 v3.44): each route carries `approach`, the one-line attack its partial declares (graph.json's decompositions[].approach, F29-R4), each hole its node's `label` (graph.json's label, F29-R3), and the result carries `selector`, the tree of route choices over the sets (opn_gate.routes.selector_tree, F29-R6): split, in record order, on the first statement on which the sets choose different routes, one child per route, recursively; every leaf is one set and every set one leaf; an interior node names the statement split on and counts the sets beneath it. Built from the sets alone, never from the graph (F29-Q1). `approach` and `label` are contributor text: untrusted. The result of the list_sufficient_sets tool (F27-T2, R9; D-25, D-28 v3.40): a target's routes, each merged decomposition with its holes' facts aggregated, and its sufficient sets, each a set of statements whose proofs with the closing proofs of its assemblies would close the root; derived by opn_gate.routes.read from targets/<id>/graph.json at main and the served frontier.json, in the record's order: nothing is ranked (D-25). Every value is an id, a count, an enum or a frontier timestamp, so nothing is demarcated. Or an error result naming the source that did not answer, or the arguments refused (R10).",
+  "oneOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "read_at",
+        "target_id",
+        "root",
+        "cut",
+        "at_proved",
+        "truncated",
+        "routes",
+        "sets",
+        "closable",
+        "selector"
+      ],
+      "properties": {
+        "read_at": {
+          "description": "The commit of main the graph was read at, or the branch name when the service could not learn its head (F05-T13).",
+          "type": "string"
+        },
+        "target_id": {
+          "type": "string"
+        },
+        "root": {
+          "type": "string"
+        },
+        "cut": {
+          "enum": [
+            "finest",
+            "any"
+          ]
+        },
+        "at_proved": {
+          "enum": [
+            "stop",
+            "follow"
+          ],
+          "description": "What was done at a proved statement: stop (a closed member) or follow (what its proof rests on listed beneath it)."
+        },
+        "truncated": {
+          "description": "The enumeration reached the service's cap (OPN_API_ROUTES_MAX_SETS).",
+          "type": "boolean"
+        },
+        "routes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "node",
+              "partial",
+              "approach",
+              "resolved",
+              "live",
+              "holes",
+              "summary"
+            ],
+            "properties": {
+              "id": {
+                "description": "<node>@<k>: the node's k-th merged decomposition in the record's order.",
+                "type": "string"
+              },
+              "node": {
+                "type": "string"
+              },
+              "partial": {
+                "type": "string"
+              },
+              "approach": {
+                "description": "The route's one-line approach: the partial's `-- approach:` line; for a partial merged before v3.44, what was read from its leading comment or its annex; null when none (F29-R4). Contributor text, untrusted.",
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "maxLength": 300
+              },
+              "resolved": {
+                "description": "Every hole names its node.",
+                "type": "boolean"
+              },
+              "live": {
+                "description": "Resolved, and no hole refuted, defective, abandoned or superseded.",
+                "type": "boolean"
+              },
+              "holes": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "name",
+                    "label",
+                    "node",
+                    "status",
+                    "attempts",
+                    "refuted_route_classes",
+                    "ready_since",
+                    "routes"
+                  ],
+                  "properties": {
+                    "name": {
+                      "description": "The hole's name in the partial.",
+                      "type": "string"
+                    },
+                    "label": {
+                      "description": "The label graph.json gives the hole's node (its gloss's, else the hole's name, else the target's title, else the id; F29-R3); null when the hole names no node or the product predates v3.44. Contributor text, untrusted.",
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "maxLength": 200
+                    },
+                    "node": {
+                      "description": "The node the hole became, read through revisions; null when the record does not say and F27-R2 could not assign one.",
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "status": {
+                      "description": "The node's derived status as graph.json carries it; null when the hole names no node.",
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "attempts": {
+                      "description": "The frontier entry's attempt count; null when the node is not on the frontier.",
+                      "type": [
+                        "integer",
+                        "null"
+                      ],
+                      "minimum": 0
+                    },
+                    "refuted_route_classes": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "ready_since": {
+                      "description": "The frontier entry's ready_since, repeated.",
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "routes": {
+                      "description": "How many routes of its own the hole's node has.",
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  }
+                }
+              },
+              "summary": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "holes",
+                  "proved",
+                  "open",
+                  "dead",
+                  "unresolved",
+                  "attempts",
+                  "unattempted",
+                  "refuted_route_classes",
+                  "oldest_open_since"
+                ],
+                "properties": {
+                  "holes": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "proved": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "open": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "dead": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "unresolved": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "attempts": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "Attempts recorded on the route's open holes the frontier lists."
+                  },
+                  "unattempted": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "Open holes the frontier lists with no attempt."
+                  },
+                  "refuted_route_classes": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "oldest_open_since": {
+                    "description": "The earliest ready_since among the route's open holes; null when none is ready.",
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "sets": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "statements",
+              "proved",
+              "open",
+              "assemblies",
+              "routes",
+              "proof_routes",
+              "variant",
+              "total",
+              "closed",
+              "remaining",
+              "shared",
+              "settles"
+            ],
+            "properties": {
+              "id": {
+                "description": "s- and ten hex digits of the sha256 of the set's statements and assemblies.",
+                "type": "string"
+              },
+              "statements": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "proved": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "open": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "assemblies": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Interior nodes the set's routes pass through, each still needing its closing proof (D-12 v3.19)."
+              },
+              "routes": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "The routes the set uses, the root's first."
+              },
+              "proof_routes": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Under at_proved: follow, the routes the proofs of its proved statements went through; empty under stop."
+              },
+              "variant": {
+                "description": "The resolves or refutes variant the set goes through, or null.",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "total": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "closed": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "remaining": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "shared": {
+                "description": "How many of its statements another set also holds.",
+                "type": "integer",
+                "minimum": 0
+              },
+              "settles": {
+                "description": "Which way the set settles the root: proves (the root's own routes, its direct proof or a resolves variant) or refutes (a set closing a refutes variant, D-30 v3.46).",
+                "enum": [
+                  "proves",
+                  "refutes"
+                ]
+              }
+            }
+          }
+        },
+        "closable": {
+          "type": "array",
+          "description": "F28 (draft decisions v3.41): the nodes whose proof exists in parts, in the record's order: each with the link that would close it (a route or, at the root, a resolves variant), that link's inputs, and whether every input is proved (ready) or one is itself closable. A closable node is still open until its closing proof merges.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "node",
+              "link",
+              "ready"
+            ],
+            "properties": {
+              "node": {
+                "type": "string"
+              },
+              "ready": {
+                "type": "boolean"
+              },
+              "link": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "kind",
+                  "id",
+                  "inputs"
+                ],
+                "properties": {
+                  "kind": {
+                    "enum": [
+                      "route",
+                      "variant"
+                    ]
+                  },
+                  "id": {
+                    "type": "string"
+                  },
+                  "inputs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "selector": {
+          "$ref": "#/$defs/selector",
+          "description": "The selector tree over `sets` (F29-R6): the top node has route null and counts every set; a leaf (set non-null) is one of `sets` by id, in their order; an interior node names in `node` the statement its children choose a route on and in each child's `route` the route chosen (null for a child that passes through no route of that statement: it is proved or taken directly on that set's path). Select an interior node to take every set beneath it, a leaf for one. D-25 v3.46: with sets of both sides the top node is a fork whose two children carry `side` (proves, then refutes); select one to take every set of that side."
+        }
+      }
+    },
+    {
+      "type": "object",
+      "description": "The plain path did not answer, or the arguments were refused (F09-R10)",
+      "required": [
+        "error",
+        "message",
+        "source"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "error": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "source": {
+          "enum": [
+            "graph",
+            "service",
+            "adapter"
+          ]
+        },
+        "status": {
+          "type": "integer"
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "selector": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "route",
+        "node",
+        "set",
+        "sets",
+        "children",
+        "side"
+      ],
+      "properties": {
+        "route": {
+          "description": "The route this branch chose (<node>@<k>), null at the top and for a branch that passes through no route of the statement split on.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "node": {
+          "description": "The statement the children choose a route on; null at a leaf, at a family whose members differ in no route choice, and at the fork on the side (D-25 v3.46).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "set": {
+          "description": "At a leaf, the id of the one set it is; null elsewhere.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "sets": {
+          "description": "How many sets this node covers: 1 at a leaf.",
+          "type": "integer",
+          "minimum": 0
+        },
+        "children": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/selector"
+          }
+        },
+        "side": {
+          "description": "On the two children of the fork the tree opens on when sets of both sides exist: proves (first) or refutes (second); null on every other node, and everywhere when one side only.",
+          "enum": [
+            "proves",
+            "refutes",
+            null
+          ]
+        }
+      }
+    }
+  }
+}

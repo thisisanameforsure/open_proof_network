@@ -69,6 +69,7 @@ class Result:
             "target": self.target,
             "node": self.node,
             "link": self.link.as_dict() if self.link else None,
+            "verdict": self.link.verdict if self.link else None,  # F28-T10
             "ok": self.ok,
             "reason": self.reason,
             "detail": self.detail,
@@ -165,17 +166,71 @@ def as_helper(source: str, kind: str, statement_prefix: str) -> str:
     return body + "\n\n"
 
 
-def link_text(st: layout.Statement, helper: str, input_decl: str, use: str | None) -> str:
+def link_text(
+    st: layout.Statement,
+    helper: str,
+    input_decl: str,
+    use: str | None,
+    *,
+    verdict: str = closure.VERDICT_PROVED,
+) -> str:
     """The node's statement with ``helper`` as its helper block, ``use`` (a module) as its one
     use line, and its ``sorry`` replaced by the helper applied to the input's theorem. With the
     use line and the helper block taken out it is the statement with its ``sorry`` replaced, which
-    is what step 2 compares (``layout.split_uses``, ``paths._without_helpers``)."""
+    is what step 2 compares (``layout.split_uses``, ``paths._without_helpers``).
+
+    With ``verdict`` refuted (F28-T10, D-12 v3.46) the declaration is the statement's *negation*
+    under its own name (``refuting_declaration``): the helper is ``variant → ¬root``, so what the
+    kernel accepts is a theorem of type ``¬root``, never one of the root's own type."""
     prefix = st.prefix
     at = layout._imports_end(prefix)
     start = layout.declaration_start(prefix)
     line = f"import {use}\n" if use else ""
     body = f" ({LINK_HELPER} @_root_.{input_decl})"
-    return prefix[:at] + line + prefix[at:start] + helper + prefix[start:] + body + st.suffix
+    declaration = prefix[start:]
+    if verdict == closure.VERDICT_REFUTED:
+        declaration = refuting_declaration(declaration)
+    return prefix[:at] + line + prefix[at:start] + helper + declaration + body + st.suffix
+
+
+REFUTED_SUFFIX = "_refuted"
+_OPENERS = "([{⟨⦃"
+_CLOSERS = ")]}⟩⦄"
+
+
+def refuting_declaration(declaration: str) -> str:
+    """``declaration`` — the statement from its declaration start to its ``:=`` (a doc comment,
+    then ``theorem <name> <binders> : <type> :=``) — restated as its negation:
+    ``theorem <name>_refuted : ¬ (<prop>) :=``, where ``<prop>`` is the type, or with binders
+    before the colon ``∀ <binders>, <type>``, since the proposition a theorem states is the whole
+    and its negation is of the whole (never ``∀ x, ¬ …``). The name is the statement's own with
+    ``_refuted``, so nothing it is compiled beside can mistake it for the root's theorem. The
+    text is only ever a *claim*: the kernel checks it against the relation's type (``variant →
+    ¬root``, itself checked at the variant's merge), so a mis-read header fails the join and
+    never records a verdict."""
+    m = layout._THEOREM_RE.search(declaration)
+    if m is None:
+        msg = "the statement declares no theorem"
+        raise LinkError(msg)
+    depth = 0
+    colon: int | None = None
+    for i in range(m.end(), len(declaration)):
+        ch = declaration[i]
+        if ch in _OPENERS:
+            depth += 1
+        elif ch in _CLOSERS:
+            depth -= 1
+        elif ch == ":" and depth == 0 and not declaration.startswith(":=", i):
+            colon = i
+            break
+    assign = declaration.rstrip().rfind(":=")
+    if colon is None or assign < colon:
+        msg = "the statement's declaration has no `: <type> :=`"
+        raise LinkError(msg)
+    binders = " ".join(declaration[m.end() : colon].split())
+    typ = " ".join(declaration[colon + 1 : assign].split())
+    prop = f"∀ {binders}, {typ}" if binders else typ
+    return f"{declaration[: m.start('name')]}{m.group('name')}{REFUTED_SUFFIX} : ¬ ({prop}) :="
 
 
 def _record(
@@ -197,6 +252,7 @@ def _record(
         lean_toolchain=facts.lean_toolchain,
         mathlib_sha=facts.mathlib_sha,
         timestamp=facts.timestamp,
+        verdict=link.verdict,
     )
 
 
@@ -212,7 +268,9 @@ def join_link(  # noqa: PLR0913, PLR0917 — the run's seam, the record, the lin
     timeout_s: float,
 ) -> Result:
     """F28-R5: the closure through a ``resolves`` variant, staged and compiled as a proof whose text
-    the record keeps. ``tree`` is a scratch export: the composed file is written into it."""
+    the record keeps; through a ``refutes`` variant (F28-T10, D-12 v3.46) the same, composed as the
+    root's negation, and the record says ``verdict: refuted``. ``tree`` is a scratch export: the
+    composed file is written into it."""
     link = found.link
     node_id = found.node
     nodes_dir = layout.graph_nodes_dir(tree, target_id)
@@ -233,7 +291,7 @@ def join_link(  # noqa: PLR0913, PLR0917 — the run's seam, the record, the lin
         return Result(target_id, node_id, link, reason=LINK_REFUSED, detail=str(exc)[:_DETAIL_CAP])
     deps = graphmod.effective_deps(nodes_dir, loaded.meta.get("deps"))
     use = None if source_node in deps else layout.node_module(source_node, "Proof")
-    text = link_text(st, helper, child["decl"], use)
+    text = link_text(st, helper, child["decl"], use, verdict=link.verdict)
     (node_dir / LINK_FILE).write_text(text, encoding="utf-8")
     try:
         job = outline_graph.build(

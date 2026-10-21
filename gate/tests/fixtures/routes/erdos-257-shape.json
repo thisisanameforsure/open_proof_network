@@ -1,0 +1,239 @@
+{
+ "frontier_entries": [
+  {
+   "attempts": 2,
+   "claimable": true,
+   "needs": [],
+   "node_id": "erdos-257--h1",
+   "ready_since": "2026-10-19T10:00:00Z",
+   "refuted_route_classes": [],
+   "status": "ready",
+   "target_id": "erdos-257"
+  },
+  {
+   "attempts": 0,
+   "claimable": true,
+   "needs": [],
+   "node_id": "spec-a70fcca4--h4",
+   "ready_since": "2026-10-20T09:00:00Z",
+   "refuted_route_classes": [],
+   "status": "ready",
+   "target_id": "erdos-257"
+  }
+ ],
+ "graph": {
+  "nodes": [
+   {
+    "circular": [],
+    "claim": null,
+    "decompositions": [
+     {
+      "annex": null,
+      "approach": null,
+      "holes": [
+       {
+        "name": "h1",
+        "node": "erdos-257--h1"
+       }
+      ],
+      "partial": "attempts/20261010T000000Z-a-partial.lean"
+     }
+    ],
+    "deps": [
+     "erdos-257--h1"
+    ],
+    "label": "erdos-257",
+    "label_source": "id",
+    "lemmas": [],
+    "node_id": "erdos-257",
+    "origin": "authored",
+    "proofs": [],
+    "relation": null,
+    "status": "ready",
+    "uses": []
+   },
+   {
+    "circular": [],
+    "claim": null,
+    "decompositions": [],
+    "deps": [],
+    "label": "erdos-257--h1",
+    "label_source": "id",
+    "lemmas": [],
+    "node_id": "erdos-257--h1",
+    "origin": "skeleton-hole",
+    "proofs": [],
+    "relation": null,
+    "status": "ready",
+    "uses": []
+   },
+   {
+    "circular": [],
+    "claim": null,
+    "decompositions": [
+     {
+      "annex": null,
+      "approach": null,
+      "holes": [
+       {
+        "name": "h1",
+        "node": "spec-a70fcca4--h1"
+       },
+       {
+        "name": "h2",
+        "node": "spec-a70fcca4--h2"
+       },
+       {
+        "name": "h3",
+        "node": "spec-a70fcca4--h3"
+       },
+       {
+        "name": "h4",
+        "node": "spec-a70fcca4--h4"
+       }
+      ],
+      "partial": "attempts/20261010T000000Z-a-partial.lean"
+     }
+    ],
+    "deps": [
+     "spec-a70fcca4--h1",
+     "spec-a70fcca4--h2",
+     "spec-a70fcca4--h3",
+     "spec-a70fcca4--h4"
+    ],
+    "label": "spec-a70fcca4",
+    "label_source": "id",
+    "lemmas": [],
+    "node_id": "spec-a70fcca4",
+    "origin": "variant",
+    "proofs": [],
+    "relation": "refutes",
+    "status": "ready",
+    "uses": []
+   },
+   {
+    "circular": [],
+    "claim": null,
+    "decompositions": [],
+    "deps": [],
+    "label": "spec-a70fcca4--h1",
+    "label_source": "id",
+    "lemmas": [],
+    "node_id": "spec-a70fcca4--h1",
+    "origin": "skeleton-hole",
+    "proofs": [
+     {
+      "artifact_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+      "attestation": "000001.json",
+      "kind": "proof",
+      "merge_commit": "0000000000000000000000000000000000000000",
+      "path": "Proof.lean",
+      "submitter": null,
+      "used": []
+     }
+    ],
+    "relation": null,
+    "status": "proved",
+    "uses": []
+   },
+   {
+    "circular": [],
+    "claim": null,
+    "decompositions": [],
+    "deps": [],
+    "label": "spec-a70fcca4--h2",
+    "label_source": "id",
+    "lemmas": [],
+    "node_id": "spec-a70fcca4--h2",
+    "origin": "skeleton-hole",
+    "proofs": [
+     {
+      "artifact_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+      "attestation": "000001.json",
+      "kind": "proof",
+      "merge_commit": "0000000000000000000000000000000000000000",
+      "path": "Proof.lean",
+      "submitter": null,
+      "used": []
+     }
+    ],
+    "relation": null,
+    "status": "proved",
+    "uses": []
+   },
+   {
+    "circular": [],
+    "claim": null,
+    "decompositions": [],
+    "deps": [],
+    "label": "spec-a70fcca4--h3",
+    "label_source": "id",
+    "lemmas": [],
+    "node_id": "spec-a70fcca4--h3",
+    "origin": "skeleton-hole",
+    "proofs": [
+     {
+      "artifact_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+      "attestation": "000001.json",
+      "kind": "proof",
+      "merge_commit": "0000000000000000000000000000000000000000",
+      "path": "Proof.lean",
+      "submitter": null,
+      "used": [
+       "spec-ddd99827"
+      ]
+     }
+    ],
+    "relation": null,
+    "status": "proved",
+    "uses": [
+     "spec-ddd99827"
+    ]
+   },
+   {
+    "circular": [],
+    "claim": null,
+    "decompositions": [],
+    "deps": [],
+    "label": "spec-a70fcca4--h4",
+    "label_source": "id",
+    "lemmas": [],
+    "node_id": "spec-a70fcca4--h4",
+    "origin": "skeleton-hole",
+    "proofs": [],
+    "relation": null,
+    "status": "ready",
+    "uses": []
+   },
+   {
+    "circular": [],
+    "claim": null,
+    "decompositions": [],
+    "deps": [],
+    "label": "spec-ddd99827",
+    "label_source": "id",
+    "lemmas": [],
+    "node_id": "spec-ddd99827",
+    "origin": "variant",
+    "proofs": [
+     {
+      "artifact_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+      "attestation": "000001.json",
+      "kind": "proof",
+      "merge_commit": "0000000000000000000000000000000000000000",
+      "path": "Proof.lean",
+      "submitter": null,
+      "used": []
+     }
+    ],
+    "relation": "related",
+    "status": "proved",
+    "uses": []
+   }
+  ],
+  "root": "erdos-257",
+  "schema": "graph/v14",
+  "target_id": "erdos-257"
+ },
+ "graph_commit": "synthetic-2026-10-21 (the erdos-257 shape; F27-T11)"
+}
