@@ -126,8 +126,9 @@ def test_as_dict_carries_route_node_set_and_count_at_every_level() -> None:
         hole("t--h2"),
     )
     d = routes.selector_tree(routes.read(g, ())).as_dict()
-    assert set(d) == {"route", "node", "set", "sets", "children"}
+    assert set(d) == {"route", "node", "set", "sets", "side", "children"}  # side: F27-T11
     assert d["route"] is None and d["node"] == "t" and d["set"] is None and d["sets"] == 2
+    assert d["side"] is None
     assert d["children"][0]["route"] == "t@1" and d["children"][0]["set"] is not None
     assert d["children"][0]["children"] == []
 
@@ -151,3 +152,85 @@ def test_live_erdos_1094_every_leaf_is_a_set_and_the_first_split_is_the_records(
             walk(c)
 
     walk(t)
+
+
+# --- D-25 v3.46 (F27-T11): the fork on the side -----------------------------------------------
+
+
+def refuting(*holes: str) -> dict[str, Any]:
+    return node(
+        "v", origin="variant", relation="refutes", deps=list(holes), decompositions=[list(holes)]
+    )
+
+
+def test_both_sides_fork_at_the_top_proving_first() -> None:
+    """With sets of both sides the tree opens on a fork: a top node that splits on nothing
+    (route, node and set all None), two children in this order — the proving family then the
+    refuting one — each carrying ``side`` and being what the split of its own sets gives; the
+    leaves are still the sets, in their order."""
+    g = doc(
+        node("t", decompositions=[["t--h1"], ["t--h2"]], deps=["t--h1", "t--h2"]),
+        hole("t--h1"),
+        hole("t--h2"),
+        refuting("v--h1"),
+        hole("v--h1"),
+    )
+    result = routes.read(g, ())
+    t = routes.selector_tree(result)
+    assert (t.route, t.node, t.set, t.side, t.sets) == (None, None, None, None, 3)
+    proving, refuting_side = t.children
+    assert (proving.side, refuting_side.side) == ("proves", "refutes")
+    # the proving family is today's split of the proving sets alone
+    assert (proving.route, proving.node, proving.sets) == (None, "t", 2)
+    assert [c.route for c in proving.children] == ["t@1", "t@2"]
+    assert all(c.side is None for c in proving.children)
+    # one refuting set: its family is a leaf, carrying the side
+    assert (refuting_side.set, refuting_side.sets, refuting_side.children) == (
+        result.sets[2].id,
+        1,
+        (),
+    )
+    assert leaves(t) == [s.id for s in result.sets]
+    proving_only = routes.selector_tree(routes.read(doc(*g["nodes"][:3]), ()))
+    assert proving_only.side is None and proving_only.node == "t"
+
+
+def test_one_side_only_has_no_fork_and_no_side() -> None:
+    """One side only forks on nothing: as today, ``side`` None at every level; and a proved
+    root has nothing to refute, so a refutes variant beside it gives no second side."""
+    g = doc(
+        node("t", decompositions=[["t--h1"], ["t--h2"]], deps=["t--h1", "t--h2"]),
+        hole("t--h1"),
+        hole("t--h2"),
+    )
+    t = tree(g)
+    assert t.side is None and all(c.side is None for c in t.children)
+    assert t.node == "t"
+    settled = routes.read(doc(node("t", "proved"), refuting("v--h1"), hole("v--h1")), ())
+    assert [s.settles for s in settled.sets] == ["proves"]
+    assert routes.selector_tree(settled).side is None
+
+
+def test_as_dict_carries_side_at_every_level() -> None:
+    g = doc(
+        node("t", decompositions=[["t--h1"]], deps=["t--h1"]),
+        hole("t--h1"),
+        refuting("v--h1"),
+        hole("v--h1"),
+    )
+    d = routes.selector_tree(routes.read(g, ())).as_dict()
+    assert set(d) == {"route", "node", "set", "sets", "side", "children"}
+    assert d["side"] is None and d["node"] is None and d["sets"] == 2
+    assert [c["side"] for c in d["children"]] == ["proves", "refutes"]
+    assert all(c["set"] is not None for c in d["children"])
+
+
+def test_the_erdos_257_shape_forks_into_two_leaves() -> None:
+    graph, frontier = live("erdos-257-shape")
+    result = routes.read(graph, frontier)
+    t = routes.selector_tree(result)
+    assert t.node is None and t.sets == 2
+    assert [(c.side, c.set) for c in t.children] == [
+        ("proves", result.sets[0].id),
+        ("refutes", result.sets[1].id),
+    ]

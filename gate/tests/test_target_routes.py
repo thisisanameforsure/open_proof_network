@@ -9,6 +9,7 @@ commit 6c3a33886 (2026-10-14): ``graph.json`` with each node's ``node_id``, ``st
 
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 from typing import Any
@@ -86,6 +87,24 @@ def closes_root(graph: dict[str, Any], members: set[str]) -> bool:
     dependencies, and resolves variants, and ask whether the root closes. Assemblies are assumed
     submitted, which is what a set's ``assemblies`` names."""
     rows = {str(n["node_id"]): n for n in graph["nodes"]}
+    closed = _closure(rows, members)
+    root = str(graph["root"])
+    if root in closed:
+        return True
+    return any(
+        n.get("relation") == "resolves" and k in closed for k, n in rows.items() if k != root
+    )
+
+
+def refutes_root(graph: dict[str, Any], members: set[str]) -> bool:
+    """D-25 v3.46: the same chain, asking whether a refutes variant closes — a proof of the
+    root's negation by another road (D-30 v3.46). The root's own closure is not a refutation."""
+    rows = {str(n["node_id"]): n for n in graph["nodes"]}
+    closed = _closure(rows, members)
+    return any(n.get("relation") == "refutes" and k in closed for k, n in rows.items())
+
+
+def _closure(rows: dict[str, dict[str, Any]], members: set[str]) -> set[str]:
     closed = {k for k, n in rows.items() if n["status"] == "proved"} | set(members)
     changed = True
     while changed:
@@ -99,12 +118,7 @@ def closes_root(graph: dict[str, Any], members: set[str]) -> bool:
                     closed.add(k)
                     changed = True
                     break
-    root = str(graph["root"])
-    if root in closed:
-        return True
-    return any(
-        n.get("relation") == "resolves" and k in closed for k, n in rows.items() if k != root
-    )
+    return closed
 
 
 # --- R5: the AND-OR enumeration ------------------------------------------------------------
@@ -653,3 +667,197 @@ def test_finest_sets_reach_the_leaves() -> None:
     for s in result.sets:
         assert not set(s.open) & expandable, s.id
         assert closes_root(graph, set(s.statements)), s.id
+
+
+# --- R14: both sides (D-25 v3.46; F27-T11) ---------------------------------------------------
+
+
+def refuting(*holes: str, **kw: Any) -> dict[str, Any]:
+    """A refutes variant ``v`` with one route over ``holes`` (D-30 v3.46)."""
+    return node(
+        "v",
+        origin="variant",
+        relation="refutes",
+        deps=list(holes),
+        decompositions=[list(holes)],
+        **kw,
+    )
+
+
+def test_a_set_says_which_way_it_settles() -> None:
+    """Every set of today's shape proves the root, and says so in the object and its dict."""
+    result = routes.read(doc(node("t", deps=["t--h1"], decompositions=[["t--h1"]]), hole("t--h1")))
+    (s,) = result.sets
+    assert s.settles == routes.PROVES == "proves"
+    assert s.as_dict()["settles"] == "proves"
+    assert routes.SIDES == ("proves", "refutes")
+
+
+def test_a_refutes_variant_is_closed_as_the_other_side() -> None:
+    """A refutes variant's routes are enumerated exactly as a resolves variant's are, and its
+    sets say ``refutes``; they come after every proving set, tagged with the variant."""
+    g = doc(
+        node("t", deps=["t--h1"], decompositions=[["t--h1"]]),
+        hole("t--h1"),
+        refuting("v--h1", "v--h2"),
+        hole("v--h1", "proved"),
+        hole("v--h2"),
+    )
+    result = routes.read(g)
+    assert [(s.settles, s.variant, list(s.open)) for s in result.sets] == [
+        ("proves", None, ["t--h1"]),
+        ("refutes", "v", ["v--h2"]),
+    ]
+    proving, refuting_set = result.sets
+    assert refuting_set.proved == ("v--h1",) and refuting_set.assemblies == ("v",)
+    assert refuting_set.routes == ("v@1",)
+    assert closes_root(g, set(proving.statements))
+    assert not refutes_root(g, set(proving.statements))
+    assert refutes_root(g, set(refuting_set.statements))
+    assert not closes_root(g, set(refuting_set.statements))
+
+
+def test_a_proving_sets_id_does_not_move() -> None:
+    """The id is still the hash of members and assemblies alone (F27-R7), so the ids on the
+    live record stay where they are; the two sides may not share an id."""
+    g = doc(
+        node("t", deps=["t--h1"], decompositions=[["t--h1"]]),
+        hole("t--h1"),
+        refuting("v--h1"),
+        hole("v--h1"),
+    )
+    body = json.dumps([["t--h1"], ["t"]], separators=(",", ":"))
+    expected = "s-" + hashlib.sha256(body.encode("utf-8")).hexdigest()[:10]
+    proving, refuting_set = routes.read(g).sets
+    assert proving.id == expected
+    assert refuting_set.id != proving.id
+
+
+def test_a_proved_root_has_nothing_to_refute() -> None:
+    g = doc(node("t", "proved"), refuting("v--h1"), hole("v--h1"))
+    (s,) = routes.read(g).sets
+    assert (s.settles, s.statements) == ("proves", ("t",))
+
+
+def test_a_refuted_root_has_no_proving_sets() -> None:
+    """A root refuted (D-12 #2) is settled: neither its resolves variants nor its refutes
+    variants are enumerated (the brief's rule: refuting sets exist only while the root is
+    neither proved nor dead)."""
+    g = doc(
+        node("t", "refuted"),
+        node("r", origin="variant", relation="resolves"),
+        refuting("v--h1"),
+        hole("v--h1"),
+    )
+    assert routes.read(g).sets == ()
+
+
+def test_a_dead_refutes_variant_contributes_no_set() -> None:
+    g = doc(
+        node("t"),
+        node("v", "superseded", origin="variant", relation="refutes"),
+        node("w", "abandoned", origin="variant", relation="refutes"),
+    )
+    assert [(s.settles, list(s.open)) for s in routes.read(g).sets] == [("proves", ["t"])]
+
+
+def test_a_proved_refutes_variant_is_one_closed_refuting_set() -> None:
+    """Before the post-merge job derives the root refuted, the variant's proof is a closed set
+    of the other side (D-25 v3.46: a refuting variant is a one-member set for the negation)."""
+    g = doc(node("t"), node("v", "proved", origin="variant", relation="refutes"))
+    _proving, refuting_set = routes.read(g).sets
+    assert (refuting_set.settles, refuting_set.statements, refuting_set.remaining) == (
+        "refutes",
+        ("v",),
+        0,
+    )
+
+
+def test_domination_is_within_a_side() -> None:
+    """``cut: any``: a refuting set whose open statements contain a proving set's is not
+    dominated by it (the gap lemma of erdos-257 is used on both sides, D-25 v3.46), and the
+    other way round; ``shared`` still counts a statement held across the sides."""
+    g = doc(
+        node("t", deps=["g"], decompositions=[["g"]]),
+        node("g"),
+        refuting("g", "v--h2"),
+        hole("v--h2"),
+    )
+    result = routes.read(g, cut="any")
+    assert [(s.settles, list(s.open)) for s in result.sets] == [
+        ("proves", ["g"]),
+        ("proves", ["t"]),
+        ("refutes", ["g", "v--h2"]),
+        ("refutes", ["v"]),
+    ]
+    by_open = {tuple(s.open): s for s in result.sets}
+    assert by_open[("g",)].shared == 1 and by_open[("g", "v--h2")].shared == 1
+
+
+def test_the_cap_is_overall_proving_sets_first() -> None:
+    """``max_sets`` counts both sides together; the proving sets come first, so a cap that
+    the proving side fills leaves the refuting side out and says the answer was cut."""
+    g = doc(
+        node("t", deps=["t--h1", "t--h2"], decompositions=[["t--h1"], ["t--h2"]]),
+        hole("t--h1"),
+        hole("t--h2"),
+        refuting("v--h1"),
+        hole("v--h1"),
+    )
+    full = routes.read(g)
+    assert [s.settles for s in full.sets] == ["proves", "proves", "refutes"]
+    assert full.truncated is False
+    capped = routes.read(g, max_sets=2)
+    assert [s.settles for s in capped.sets] == ["proves", "proves"]
+    assert capped.truncated is True
+    three = routes.read(g, max_sets=3)
+    assert [s.id for s in three.sets] == [s.id for s in full.sets] and three.truncated is False
+
+
+def test_follow_reaches_beneath_a_refuting_variants_proved_members() -> None:
+    """R13 on the other side: a refuting set's proved member is followed along its proof as a
+    proving set's is; the set's id, open statements and order do not change."""
+    g = doc(
+        node("t", deps=["t--h1"], decompositions=[["t--h1"]]),
+        hole("t--h1"),
+        refuting("v--h1", "v--h2"),
+        hole("v--h1", "proved", proofs=[["lemma"]]),
+        hole("v--h2"),
+        node("lemma", "proved", proofs=[[]]),
+    )
+    stop = routes.read(g)
+    follow = routes.read(g, at_proved="follow")
+    assert [s.id for s in stop.sets] == [s.id for s in follow.sets]
+    assert [s.settles for s in follow.sets] == ["proves", "refutes"]
+    _, refuting_set = follow.sets
+    assert refuting_set.proved == ("lemma", "v--h1") and refuting_set.open == ("v--h2",)
+    assert routes.followed(follow, g, "v--h1").nodes == ("lemma",)
+
+
+def test_the_erdos_257_shape_has_one_set_per_side() -> None:
+    """The live shape (synthetic, D-25 v3.46): the root's one route with one open hole, a
+    refutes variant with three proved holes and one open, and the gap lemma a proved related
+    variant in no set."""
+    graph, entries = live("erdos-257-shape")
+    result = routes.read(graph, entries)
+    assert [r.id for r in result.routes] == ["erdos-257@1", "spec-a70fcca4@1"]
+    proving, refuting_set = result.sets
+    assert (proving.settles, proving.open, proving.variant) == ("proves", ("erdos-257--h1",), None)
+    assert (refuting_set.settles, refuting_set.variant) == ("refutes", "spec-a70fcca4")
+    assert refuting_set.open == ("spec-a70fcca4--h4",)
+    assert refuting_set.proved == ("spec-a70fcca4--h1", "spec-a70fcca4--h2", "spec-a70fcca4--h3")
+    assert refuting_set.assemblies == ("spec-a70fcca4",) and refuting_set.closed == 3
+    assert proving.id != refuting_set.id
+    assert all("spec-ddd99827" not in s.statements for s in result.sets)
+    assert closes_root(graph, set(proving.statements))
+    assert refutes_root(graph, set(refuting_set.statements))
+    # the frontier's facts reach the refuting route's summary as they do the root's
+    by_id = {r.id: r for r in result.routes}
+    summary = by_id["spec-a70fcca4@1"].summary
+    assert (summary.proved, summary.open, summary.unattempted) == (3, 1, 1)
+    assert by_id["erdos-257@1"].summary.attempts == 2
+    # as_dict round-trips with the side on every set
+    assert [s["settles"] for s in json.loads(json.dumps(result.as_dict()))["sets"]] == [
+        "proves",
+        "refutes",
+    ]
