@@ -556,7 +556,10 @@ def decompositions_of(tg: TargetGraph, node_id: str) -> list[dict[str, Any]]:
     taken: set[str] = set()
     out: list[dict[str, Any]] = []
     for partial in node.partials:
-        file = node.path / partial.path
+        # F08-T46 (D-8 v3.46): a partial a revision inherits stays in the superseded node's
+        # directory, with its annex and its glosses; the record's holder says which.
+        holder = tg.nodes.get(partial.holder, node)
+        file = holder.path / partial.path
         try:
             annex = (
                 postmerge.annex_citation(file.read_text(encoding="utf-8"))
@@ -570,12 +573,12 @@ def decompositions_of(tg: TargetGraph, node_id: str) -> list[dict[str, Any]]:
         # contributor can still write), else what an older partial's leading comment or its
         # annex says.
         annex_text: str | None = None
-        if annex is not None and (node.path / "annex" / f"{annex}.md").is_file():
-            annex_text = (node.path / "annex" / f"{annex}.md").read_text(encoding="utf-8")
+        if annex is not None and (holder.path / "annex" / f"{annex}.md").is_file():
+            annex_text = (holder.path / "annex" / f"{annex}.md").read_text(encoding="utf-8")
         approach = (
             labels.approach_of(
                 file.read_text(encoding="utf-8"),
-                gloss=partial_gloss_words(node.path, node_id, partial.path),
+                gloss=partial_gloss_words(holder.path, holder.node_id, partial.path),
                 annex=annex_text,
             )
             if file.is_file()

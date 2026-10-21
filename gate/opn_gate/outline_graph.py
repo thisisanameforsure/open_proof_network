@@ -153,6 +153,8 @@ def merged_artifacts(tree: Path, target_id: str) -> list[Found]:
             for d in products.decompositions_of(tg, node_id)
         }
         for partial in facts.partials:
+            if partial.holder and partial.holder != node_id:
+                continue  # F08-T46: a revision's inherited partial is found under its holder
             file = facts.path / partial.path
             digest = schemas.content_hash(file.read_bytes()) if file.is_file() else ""
             out.append(

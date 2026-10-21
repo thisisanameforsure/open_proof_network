@@ -210,6 +210,8 @@ def revise(  # noqa: PLR0913 — one argument per fact of the revision
     author: str,
     date: str,
     witness: str | None = None,
+    relation: str | None = None,
+    relation_proof: str | None = None,
 ) -> Revision:
     """R9: scaffold ``<node>-v<n>`` from the new statement, carrying the old witness (or the one
     given, R14), deps and relation for the curator to adjust; mark the old node superseded and
@@ -219,8 +221,27 @@ def revise(  # noqa: PLR0913 — one argument per fact of the revision
     credit stay where they are (D-19), and the products derive the rest. Every record is built
     and its path checked free before the directory is scaffolded, so a refusal at any of them
     leaves nothing on disk (C7; F08-Q18).
+
+    D-8 v3.46 (F08-T46): with ``relation`` the revision is scaffolded a variant (D-30) carrying
+    that label — a proposed crux (D-14 v3.26) becoming a ``refutes`` variant with its statement
+    unchanged — and ``relation_proof`` is its ``Relation.lean``, which a label above ``related``
+    must have. Without ``relation``, the origin and the relation are the old node's, as before.
+    A revision whose statement is unchanged reads the old node's merged partials and holes as
+    its own by derivation (``graph.load_nodes``); nothing here copies them.
     """
     nodes_dir = layout.graph_nodes_dir(graph_root, target_id)
+    if relation is not None and relation not in scaffold.RELATION_LABELS:
+        msg = f"--relation must be one of {', '.join(scaffold.RELATION_LABELS)} (D-30)"
+        raise CuratorError(msg)
+    if relation in scaffold.LABELS_NEEDING_PROOF and not (relation_proof or "").strip():
+        msg = (
+            f"a revision labeled {relation!r} claims an implication, so it needs a relation proof "
+            "(--relation-proof; D-30)"
+        )
+        raise CuratorError(msg)
+    if relation_proof is not None and relation is None:
+        msg = "--relation-proof needs --relation: the proof is the label's (D-30)"
+        raise CuratorError(msg)
     old = load_node(nodes_dir, target_id, node_id)
     request_doc = load_revision_request(request)
     if str(request_doc["node"]) != node_id:
@@ -265,7 +286,13 @@ def revise(  # noqa: PLR0913 — one argument per fact of the revision
     raw_deps = old.meta.get("deps")
     deps = tuple(str(d) for d in raw_deps) if isinstance(raw_deps, list) else ()
     relation_path = old.path / scaffold.RELATION_FILE
-    relation = graphmod.relation_of(old.path, origin) if origin == "variant" else None
+    if relation is None:
+        relation = graphmod.relation_of(old.path, origin) if origin == "variant" else None
+        relation_proof = (
+            relation_path.read_text(encoding="utf-8") if relation_path.is_file() else None
+        )
+    else:
+        origin = "variant"  # D-8 v3.46: the revision is a labeled variant from here on
     proposal = scaffold.Proposal(
         node_id=new_id,
         target_id=target_id,
@@ -279,9 +306,7 @@ def revise(  # noqa: PLR0913 — one argument per fact of the revision
         deps=deps,
         origin=origin,  # type: ignore[arg-type]
         relation=relation,
-        relation_proof=relation_path.read_text(encoding="utf-8")
-        if relation_path.is_file()
-        else None,
+        relation_proof=relation_proof,
         date=date,
         extra_meta={"supersedes": node_id},
     )

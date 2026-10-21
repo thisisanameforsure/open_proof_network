@@ -102,9 +102,12 @@ class PartialRecord:
     """F18-T4: a merged partial of the node, as its attestation names it: the file step 2 took
     (``partial-submission``) and the holes step 4 found (``artifact-partial``)."""
 
-    path: str  # relative to the node directory
+    path: str  # relative to the holder's node directory
     holes: tuple[str, ...]
     attestation: str
+    #: F08-T46 (D-8 v3.46): the node whose directory holds the file. The node's own id, except
+    #: for a partial a revision reads from the node it supersedes, whose directory keeps it.
+    holder: str = ""
 
 
 @dataclass(frozen=True)
@@ -363,8 +366,17 @@ def partials_of(
             if details.get("kind") == "partial" and isinstance(details.get("holes"), list):
                 holes = tuple(str(h) for h in details["holes"])
         if path is not None:
-            out.append(PartialRecord(path=path, holes=holes, attestation=name))
+            out.append(PartialRecord(path=path, holes=holes, attestation=name, holder=node_id))
     return tuple(out)
+
+
+def statement_identity(text: str, node_id: str) -> str:
+    """D-8 v3.46: what "the same statement" means across a revision — the statement's text with
+    the one line that names the node, its own ``Context`` import (F08-T13), made id-free, and
+    hashed. ``statement_hash`` cannot serve: a revision's Statement.lean names ``<node>-v<n>``'s
+    Context, so its bytes always differ from the node's it supersedes."""
+    own = f"import {layout.node_module(node_id, 'Context')}"
+    return schemas.content_hash(text.replace(own, "import Nodes.«».Context").encode("utf-8"))
 
 
 def recorded_hashes(node_dir: Path) -> tuple[str | None, frozenset[str]]:
@@ -436,6 +448,7 @@ def load_nodes(
     nodes_dir = layout.graph_nodes_dir(graph_root, target_id)
     footprints = load_footprint_cache(nodes_dir.parent)
     facts: dict[str, NodeFacts] = {}
+    identities: dict[str, str] = {}  # D-8 v3.46: the statement's text, id-free (see below)
     for node_dir in sorted(p for p in nodes_dir.iterdir() if p.is_dir()):
         loaded = layout.load_node(node_dir, target_id)
         if isinstance(loaded, list):
@@ -455,6 +468,7 @@ def load_nodes(
             alternate_hashes=hashes[1],
         )
         artifact = artifact_of(node_dir, loaded.statement.decl_name)
+        identities[loaded.node_id] = statement_identity(loaded.statement.text, loaded.node_id)
         facts[loaded.node_id] = NodeFacts(
             node_id=loaded.node_id,
             target_id=target_id,
@@ -504,6 +518,43 @@ def load_nodes(
         )
         if holes:
             facts[node_id] = replace(node, holes=holes)
+    # D-8 v3.46 (F08-T46): a revision whose statement is unchanged reads the merged partials and
+    # the hole children of the node it supersedes as its own — routes and children it keeps by
+    # derivation, with nothing copied or rewritten — through the whole chain while each step's
+    # statement is the same. Its own come after what it inherits (the record's order).
+    own = {n: (node.partials, node.holes) for n, node in facts.items()}  # before any fold
+    inherited: dict[str, tuple[tuple[PartialRecord, ...], tuple[str, ...]]] = {}
+
+    def from_chain(
+        node_id: str, seen: frozenset[str]
+    ) -> tuple[tuple[PartialRecord, ...], tuple[str, ...]]:
+        if node_id in inherited:
+            return inherited[node_id]
+        prev = facts[node_id].supersedes
+        if (
+            prev is None
+            or prev not in facts
+            or prev in seen
+            or identities[prev] != identities[node_id]
+        ):
+            inherited[node_id] = ((), ())
+        else:
+            older = from_chain(prev, seen | {node_id})
+            inherited[node_id] = (
+                (*older[0], *own[prev][0]),
+                tuple(dict.fromkeys((*older[1], *own[prev][1]))),
+            )
+        return inherited[node_id]
+
+    for node_id in list(facts):
+        partials, holes = from_chain(node_id, frozenset())
+        if partials or holes:
+            node = facts[node_id]
+            facts[node_id] = replace(
+                node,
+                partials=(*partials, *node.partials),
+                holes=tuple(dict.fromkeys((*node.holes, *holes))),
+            )
     return facts
 
 
@@ -536,8 +587,13 @@ def has_proof(nodes_dir: Path, node_id: str) -> bool:
 def is_hole_child(nodes_dir: Path, parent: str, node_id: str) -> bool:
     """``is_hole_of`` read from the tree: the candidate's ``META.yaml`` names its origin. A
     directory that is not a node, or a META that does not read, is no hole (C7: the gate then
-    treats it as an ordinary dep and says what is wrong with it)."""
-    if not node_id.startswith(parent + HOLE_SEPARATOR):
+    treats it as an ordinary dep and says what is wrong with it). D-8 v3.46 (F08-T46): a hole
+    of a node the parent supersedes with its statement unchanged is the parent's hole too, as
+    ``load_nodes`` derives it — read here through the same chain, from the tree."""
+    if not any(
+        node_id.startswith(ancestor + HOLE_SEPARATOR)
+        for ancestor in same_statement_chain(nodes_dir, parent)
+    ):
         return False
     meta = nodes_dir / node_id / "META.yaml"
     if not meta.is_file():
@@ -547,6 +603,32 @@ def is_hole_child(nodes_dir: Path, parent: str, node_id: str) -> bool:
     except schemas.SchemaError:
         return False
     return isinstance(doc, dict) and str(doc.get("origin")) in HOLE_ORIGINS
+
+
+def same_statement_chain(nodes_dir: Path, node_id: str) -> list[str]:
+    """``node_id`` and then each node it supersedes, in order, while the statement is the same
+    (``statement_identity``); read from ``META.yaml`` and ``Statement.lean``, stopping at the
+    first node that is not one, or that loops."""
+    chain = [node_id]
+    identity = _identity_of(nodes_dir, node_id)
+    current = node_id
+    while identity is not None:
+        prev = _supersedes_of(nodes_dir / current)
+        if prev is None or prev in chain or _identity_of(nodes_dir, prev) != identity:
+            break
+        chain.append(prev)
+        current = prev
+    return chain
+
+
+def _identity_of(nodes_dir: Path, node_id: str) -> str | None:
+    statement = nodes_dir / node_id / "Statement.lean"
+    if not statement.is_file():
+        return None
+    try:
+        return statement_identity(statement.read_text(encoding="utf-8"), node_id)
+    except OSError:
+        return None
 
 
 # --- derivation --------------------------------------------------------------------------------

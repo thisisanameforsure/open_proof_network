@@ -79,9 +79,10 @@ class Report:
 
 
 def candidates(graph_root: Path, target_id: str) -> list[tuple[str, graph.PartialRecord]]:
-    """Every merged partial of every node of the target, in the graph's order."""
+    """Every merged partial of every node of the target, in the graph's order — each under the
+    node whose directory holds it (F08-T46: a revision's inherited partial is its holder's)."""
     tg = graph.load_target(graph_root, target_id)
-    return [(n, p) for n in tg.order for p in tg.nodes[n].partials]
+    return [(n, p) for n in tg.order for p in tg.nodes[n].partials if p.holder in ("", n)]
 
 
 def recorded_lemma_nodes(node_dir: Path) -> set[str]:
