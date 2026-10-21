@@ -317,10 +317,11 @@ class RelationCheck:
         ctx.data["relation_label"] = label
         if label not in LABELS_NEEDING_PROOF:
             if relation_path.is_file():
+                lines = " or ".join(f"`-- relation: {x}`" for x in LABELS_NEEDING_PROOF)
                 return StepResult.failed(
                     "relation-unlabelled",
-                    f"{RELATION_FILE} is present but claims nothing: add a `-- relation: partial` "
-                    "or `-- relation: resolves` line, or drop the file (D-30)",
+                    f"{RELATION_FILE} is present but claims nothing: add a {lines} line, "
+                    "or drop the file (D-30)",
                     label=label,
                 )
             return StepResult.passed()

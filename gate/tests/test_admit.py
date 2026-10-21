@@ -252,6 +252,60 @@ def test_a_sorry_in_the_relation_proof_is_refused(tmp_path: Path) -> None:
     assert result.diagnostic is not None and result.diagnostic.code == "relation-sorry"
 
 
+# --- D-30 v3.46 (F08-T45): ``refutes`` is a claim of the root's negation --------------------------
+
+REFUTES_EXPECTED = "V → ¬R"
+
+
+def test_a_refuting_variant_is_asked_for_the_roots_negation(tmp_path: Path) -> None:
+    """F08-T45: a ``-- relation: refutes`` Relation.lean is checked by ``opn-relation-type``
+    under the label ``refutes`` (the Lean side expects ``variant → ¬root``), and a proof of
+    that implication is admitted with the label on the record."""
+    right = variant_toolchain(relation=relation_result(label="refutes", expected=REFUTES_EXPECTED))
+    ok = admit.run(context_for(tmp_path, "variant-refutes", toolchain=right))
+    assert ok.admitted, ok.as_dict()
+    assert ok.data["relation_label"] == "refutes"
+    assert ok.data["relation"]["label"] == "refutes"
+    assert ok.data["relation"]["expected"] == REFUTES_EXPECTED
+    assert "relation_type:refutes:OpnProp.and_swap_reassoc_refuted" in right.calls
+
+
+def test_a_refuting_variant_that_proves_the_root_is_the_wrong_direction(tmp_path: Path) -> None:
+    """F08-T45: ``refutes`` with a proof of ``variant → root`` is ``relation-direction``,
+    naming both types, exactly as a backwards ``partial`` is."""
+    backwards = variant_toolchain(
+        relation=relation_result(label="refutes", expected=REFUTES_EXPECTED, declared="V → R")
+    )
+    result = admit.run(context_for(tmp_path, "variant-refutes", toolchain=backwards))
+    assert failure(result) == ("relation", "relation-direction")
+    assert result.diagnostic is not None
+    assert result.diagnostic.details["label"] == "refutes"
+    assert result.diagnostic.details["expected"] == REFUTES_EXPECTED
+    assert result.diagnostic.details["declared"] == "V → R"
+
+
+def test_a_sorry_in_a_refuting_relation_proof_is_refused(tmp_path: Path) -> None:
+    """F08-T45: a refutation claimed on a sorry is no refutation (D-30)."""
+    toolchain = variant_toolchain(
+        relation=relation_result(label="refutes", expected=REFUTES_EXPECTED, axioms=("sorryAx",))
+    )
+    result = admit.run(context_for(tmp_path, "variant-refutes", toolchain=toolchain))
+    assert failure(result) == ("relation", "relation-sorry")
+
+
+def test_the_unlabelled_refusal_names_every_label_that_claims_something(tmp_path: Path) -> None:
+    """F08-T45: the ``relation-unlabelled`` message lists the labels a Relation.lean may carry,
+    ``refutes`` among them, rather than a list frozen before v3.46."""
+    ctx = context_for(tmp_path, "variant-related", toolchain=variant_toolchain())
+    node_dir = ctx.graph_root / "targets" / TARGET / "nodes" / "variant-related"
+    (node_dir / "Relation.lean").write_text("theorem relation : True := trivial\n")
+    result = admit.run(ctx)
+    assert failure(result) == ("relation", "relation-unlabelled")
+    assert result.diagnostic is not None
+    for label in scaffold.LABELS_NEEDING_PROOF:
+        assert f"-- relation: {label}" in result.diagnostic.message, result.diagnostic.message
+
+
 # --- a check that raises is that check's failure, never a crash ----------------------------------
 
 

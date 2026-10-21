@@ -525,6 +525,16 @@ VARIANT_FIELDS: tuple[str, ...] = (
 )
 
 
+#: D-30's implication per label, as the refusal for a missing proof words it; the gate derives
+#: the type itself (``expectedRelationType``), these are the words. v3.46: ``refutes``.
+RELATION_IMPLICATIONS: dict[str, str] = {
+    "resolves": "variant → root",
+    "partial": "root → variant",
+    "refutes": "variant → ¬root",
+}
+assert set(RELATION_IMPLICATIONS) == set(scaffold.LABELS_NEEDING_PROOF)
+
+
 def check_relation_shape(proof: str) -> None:
     """F13-T23: what admission's relation check refuses without Lean (``admit.RelationCheck``):
     one theorem, named ``relation`` (``relation-decl``), and no ``sorry`` in its code, which the
@@ -565,9 +575,7 @@ async def post_variant(ctx: Context, request: Request) -> Response:
             400,
             "relation-proof-required",
             f"a variant labeled {relation!r} claims an implication, so it needs a relation_proof "
-            "— a Lean proof of "
-            + ("variant → root" if relation == "resolves" else "root → variant")
-            + " (D-30)",
+            f"— a Lean proof of {RELATION_IMPLICATIONS[str(relation)]} (D-30)",
         )
     if proof is not None:
         check_relation_shape(proof)

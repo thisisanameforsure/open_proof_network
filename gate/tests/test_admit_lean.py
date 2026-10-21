@@ -34,6 +34,7 @@ CASES: dict[str, tuple[Path, str | None, str | None]] = {
     "variant-resolves": (GRAPH, None, None),
     "variant-backwards": (GRAPH, "relation", "relation-direction"),
     "variant-related": (GRAPH, None, None),
+    "variant-refutes": (GRAPH, None, None),  # D-30 v3.46 (F08-T45): variant → ¬root
 }
 
 
@@ -137,3 +138,63 @@ def test_the_relation_direction_is_the_claim(
     assert details["expected"] != details["declared"]
     # The two fixtures carry the same implication; only the label differs.
     assert details["declared"] == passing.data["relation"]["declared"]
+
+
+def test_a_refutation_is_the_roots_negation_to_the_elaborator(
+    tmp_path: Path, real_toolchain: LocalToolchain, pinned: ResolvedToolchain, lean_pkg: Path
+) -> None:
+    """D-30 v3.46 (F08-T45) against the real ``opn-relation-type``: a ``refutes`` proof of
+    ``variant → ¬root`` matches the type the label expects (``¬root`` is ``root → False``, and
+    ``mkNot`` must agree with the file's ``¬``); the same file labelled ``resolves`` is
+    ``relation-direction``, because ``variant → root`` is not what it proves."""
+    passing = admit_fixture(tmp_path, "variant-refutes", GRAPH, real_toolchain)
+    assert passing.admitted, passing.as_dict()
+    relation = passing.data["relation"]
+    assert relation["label"] == "refutes"
+    assert relation["expected"] == relation["declared"]
+    # The printed type is the file's `V → ¬R`, the root negated by `¬` (as `ppExpr` shows
+    # `mkNot`), not an unfolded `→ False`.
+    assert "→ ¬∀" in relation["expected"], relation
+    assert relation["axioms"] == []
+
+    relabelled = "variant-refutes-as-resolves"
+    src = PROPOSALS / "variant-refutes"
+    staged = tmp_path / "staged" / relabelled
+    shutil.copytree(src, staged)
+    for name in ("Statement.lean", "Relation.lean", "META.yaml"):
+        text = (staged / name).read_text(encoding="utf-8").replace("variant-refutes", relabelled)
+        if name == "Relation.lean":
+            text = text.replace("-- relation: refutes", "-- relation: resolves")
+        (staged / name).write_text(text, encoding="utf-8")
+    statement = (staged / "Statement.lean").read_bytes()
+    meta = staged / "META.yaml"
+    meta.write_text(
+        meta.read_text(encoding="utf-8").replace(
+            "0fe5d3e9247a0929e51a8baf6ac625b8853b35c032ecbb201575ecdbcd648765",
+            schemas.content_hash(statement),
+        ),
+        encoding="utf-8",
+    )
+    root = copy_graph(tmp_path / relabelled, GRAPH)
+    shutil.copytree(staged, layout.graph_nodes_dir(root, TARGET) / relabelled)
+    spec_path = layout.gate_spec_path(root, TARGET)
+    spec = schemas.load_json(spec_path, "gate-spec/v1")
+    ctx = RunContext(
+        graph_root=root,
+        claim=Claim(TARGET, relabelled),
+        spec=spec,
+        gate_spec_hash=schemas.content_hash(spec_path.read_bytes()),
+        changes=None,
+        workdir=tmp_path / relabelled / "work",
+        toolchain=real_toolchain,
+        settings=config.load({}),
+    )
+    failing = admit.run(ctx)
+    assert not failing.admitted, failing.as_dict()
+    assert failing.first_failing_check == "relation", failing.as_dict()
+    assert failing.diagnostic is not None
+    assert failing.diagnostic.code == "relation-direction", failing.as_dict()
+    details = failing.diagnostic.details
+    assert details["label"] == "resolves"
+    assert details["declared"] == relation["declared"]
+    assert details["expected"] != details["declared"]
