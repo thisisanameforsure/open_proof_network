@@ -41,6 +41,8 @@ from opn_site import dag, routes_view
 JUNCTION_W = routes_view.JUNCTION_W
 ALL = "all"
 ROUTES = "routes"
+#: F30-T11: the band's own view (never in the layouts JSON: the script does not move it).
+BAND = "band"
 TOP = "sel"
 EDGE = "edge/"
 PROOF = "proof/"
@@ -66,15 +68,19 @@ class View:
     split: str | None = None
     index: int = 0
     parent: str | None = None
+    #: F04-T55 (D-25 v3.46): the side of the top fork this view lies under (``proves`` or
+    #: ``refutes``), ``None`` above the fork or when the target has one side only.
+    side: str | None = None
 
 
 def merged_nodes(
-    graph_nodes: Iterable[Mapping[str, Any]], d: routes_view.Drawn
+    graph_nodes: Iterable[Mapping[str, Any]], d: routes_view.Drawn, root: str | None = None
 ) -> dict[str, dict[str, Any]]:
     """The layout's node dicts keyed by id: each statement with the hole dependencies of its
     drawn routes rerouted through those routes' junctions (its ``deps`` and ``uses`` lose the
     holes and its ``deps`` gain the junction ids), and one dict per junction whose ``deps`` are
-    its holes. Everything else a row carries (``lemmas``, ``proposed_for``, the status) stays."""
+    its holes; with ``root``, the root's ``relations`` (its drawn variants, F04-T55). Everything
+    else a row carries (``lemmas``, ``proposed_for``, the status) stays."""
     out: dict[str, dict[str, Any]] = {}
     by_node: dict[str, list[str]] = {}
     for rid, r in d.junctions.items():
@@ -90,7 +96,27 @@ def merged_nodes(
         out[nid] = row
     for rid in d.junctions:
         out[rid] = {"node_id": rid, "status": "route", "deps": list(d.below.get(rid, []))}
+    # F04-T55 (D-30 v3.46): the variants ``drawn`` put below the root are its relation trunks,
+    # each with its label, which ``dag.lines`` draws as ``edge relation <label>``.
+    if root is not None and root in out:
+        trunks = {
+            v: str(out[v]["relation"])
+            for v in d.below.get(root, [])
+            if v in out
+            and v not in d.junctions
+            and out[v].get("relation") in routes_view.TRUNK_LABELS
+            and v not in [str(x) for x in out[root]["deps"]]
+        }
+        if trunks:
+            out[root]["relations"] = trunks
     return out
+
+
+def band_ids(rows: Sequence[Mapping[str, Any]], d: routes_view.Drawn) -> tuple[str, ...]:
+    """F30-T11: the band's nodes — ``dag.band_of`` plus the junctions of their routes."""
+    band = dag.band_of(rows)
+    held = set(band)
+    return (*band, *(rid for rid, r in d.junctions.items() if r.node in held))
 
 
 def _subset(merged: Mapping[str, Mapping[str, Any]], ids: Iterable[str]) -> list[dict[str, Any]]:
@@ -181,14 +207,35 @@ def views(
     twin of every set view."""
     d = routes_view.drawn(graph, result)
     rows = [n for n in graph.get("nodes") or [] if isinstance(n, Mapping)]
-    merged = merged_nodes(rows, d)
     root = result.root
+    merged = merged_nodes(rows, d, root)
+    # F30-T11: the band's statements and the junctions of their routes are in no view but
+    # the band's own; the toggle counts them in nothing (R4).
+    band = band_ids(rows, d)
     out: dict[str, View] = {}
-    out[ALL] = _view(ALL, ALL, merged, merged)
-    out[ROUTES] = _view(ROUTES, ROUTES, merged, [*d.statements, *d.junctions] or [root])
+    out[ALL] = _view(ALL, ALL, merged, [i for i in merged if i not in band])
+    out[ROUTES] = _view(
+        ROUTES,
+        ROUTES,
+        merged,
+        [i for i in (*d.statements, *d.junctions) if i not in band] or [root],
+    )
+    if band:
+        out[BAND] = _view(BAND, BAND, merged, band)
     out.update(_set_views(graph, result, d, merged, prefix=""))
     if follow is not None:
         out.update(_set_views(graph, follow, d, merged, prefix=FOLLOW))
+    if band:
+        # A followed proof may rest on a band crux (F27-R13): the crux stays in the band and
+        # the use is the band's lit line, so no view draws it twice.
+        held = set(band)
+        for key, v in list(out.items()):
+            if key != BAND and held & set(v.nodes):
+                out[key] = replace(
+                    v,
+                    nodes=tuple(n for n in v.nodes if n not in held),
+                    lines=tuple(ln for ln in v.lines if ln[0] not in held and ln[1] not in held),
+                )
     for k, m in enumerate(proofs):
         ids = sorted(m.nodes)
         by_dst: dict[str, list[str]] = {}
@@ -250,7 +297,16 @@ def _set_views(
             shared &= on[sid]
         return shared
 
-    def visit(sel: routes.Selector, key: str, parent: str | None, split_on: str | None) -> None:
+    def visit(
+        sel: routes.Selector,
+        key: str,
+        parent: str | None,
+        split_on: str | None,
+        side: str | None = None,
+    ) -> None:
+        # F04-T55 (D-25 v3.46): a child of the top fork may carry a side; every view beneath it
+        # (and the edge into it) wears that side.
+        side = routes_view.side_of(sel) or side
         beneath = _leaves(sel)
         if sel.set is not None:
             out[prefix + key] = _view(
@@ -264,6 +320,7 @@ def _set_views(
                 split=split_on,
                 index=index[sel.set],
                 parent=prefix + parent if parent is not None else None,
+                side=side,
             )
         else:
             out[prefix + key] = _view(
@@ -276,6 +333,7 @@ def _set_views(
                 route=sel.route,
                 split=sel.node,
                 parent=prefix + parent if parent is not None else None,
+                side=side,
             )
         if split_on is not None:
             # The edge into this node: from the statement its parent split on, through the
@@ -291,15 +349,18 @@ def _set_views(
                 route=sel.route,
                 split=split_on,
                 parent=prefix + key,
+                side=side,
             )
         for c in sel.children:
-            if c.route is not None:
+            if routes_view.side_of(c) is not None:
+                part = str(routes_view.side_of(c))
+            elif c.route is not None:
                 part = c.route
             elif c.set is not None and sel.node is None:
                 part = f"set:{c.set}"
             else:
                 part = DIRECT
-            visit(c, f"{key}/{part}", key, sel.node)
+            visit(c, f"{key}/{part}", key, sel.node, side)
 
     tree = routes.selector_tree(result)
     if tree.sets:
@@ -333,8 +394,8 @@ def _rows_for(view: View, status: Mapping[str, str]) -> list[dict[str, Any]]:
             rows[dst]["uses"].append(src)
         elif kind == "edge lemma":
             rows[dst]["lemmas"].append({"node": src})
-        elif kind == "edge proposed":
-            rows[src]["proposed_for"] = dst
+        elif kind.startswith(dag.RELATION_KIND + " "):  # F04-T55: a variant's trunk
+            rows[dst].setdefault("relations", {})[src] = kind[len(dag.RELATION_KIND) + 1 :]
         else:
             rows[dst]["deps"].append(src)
     return list(rows.values())
@@ -354,6 +415,7 @@ def layout_view(  # noqa: PLR0913 — the layout's inputs, one view at a time
     widths: dag.Widths,
     labels: dag.Labels,
     order: Mapping[str, float] | None,
+    apart: bool = True,
 ) -> dag.Layout:
     return dag.layout(
         _rows_for(view, status),
@@ -362,6 +424,7 @@ def layout_view(  # noqa: PLR0913 — the layout's inputs, one view at a time
         widths=widths,
         labels=labels,
         order=order,
+        apart=apart,
     )
 
 
@@ -374,14 +437,24 @@ def layouts(
     labels: dag.Labels = None,
 ) -> dict[str, dag.Layout]:
     """One ``dag.Layout`` per view; ``all`` first and unseeded, every other seeded with the
-    centre of each node in ``all`` (Q2). A junction (an id no row has) is a dot-wide box."""
+    centre of each node in ``all`` (Q2). A junction (an id no row has) is a dot-wide box. The
+    band (F30-T11) is laid out with nothing set aside: a lone crux is a row, not a group."""
     status = statuses(graph_nodes)
     widths = junction_widths(vs[ALL], status)
+    if BAND in vs:
+        widths.update(junction_widths(vs[BAND], status))
     out: dict[str, dag.Layout] = {}
     seed: dict[str, float] | None = None
     for key, v in vs.items():
         lay = layout_view(
-            v, status, root=root, prefix=prefix, widths=widths, labels=labels, order=seed
+            v,
+            status,
+            root=root,
+            prefix=prefix,
+            widths=widths,
+            labels=labels,
+            order=seed,
+            apart=key != BAND,
         )
         out[key] = lay
         if key == ALL:
@@ -399,7 +472,8 @@ def junction_widths(all_view: View, status: Mapping[str, str]) -> dict[str, int]
 
 def layouts_document(lays: Mapping[str, dag.Layout]) -> dict[str, Any]:
     """R6: the JSON the page embeds — per view the drawing's size, each node's ``[x, y, w]`` and
-    each line's bend points; ids and numbers only."""
+    each line's bend points; ids and numbers only. The band (F30-T11) is not a view the script
+    moves to, so it is not here."""
     return {
         key: {
             "w": lay.width,
@@ -412,6 +486,7 @@ def layouts_document(lays: Mapping[str, dag.Layout]) -> dict[str, Any]:
             ],
         }
         for key, lay in lays.items()
+        if key != BAND
     }
 
 
@@ -439,6 +514,9 @@ class Drawing:
     #: F27-R13: the "Stop at proved statements" toggle for the selector panel (``""`` without
     #: a selector); rendered hidden, since only the script can act on it.
     follow_toggle: str = ""
+    #: F30-T11: the band of proposed statements (D-14 v3.26 as amended), its own drawing under
+    #: the main one, with the overlay that carries its lines into the tree; ``""`` without one.
+    band: str = ""
 
 
 def _line_key(src: str, dst: str) -> str:
@@ -542,7 +620,7 @@ def _dag_svg(  # noqa: PLR0913 — the whole drawing, every element once
     at: dict[str, dag.Placed] = {p.node_id: p for p in opening.placed}
     edge_at: dict[tuple[str, str], dag.Edge] = {(e.src, e.dst): e for e in opening.edges}
     for key, lay in lays.items():
-        if key == ROUTES:
+        if key in (ROUTES, BAND):
             continue
         for p in lay.placed:
             at.setdefault(p.node_id, p)
@@ -599,6 +677,76 @@ def _dag_svg(  # noqa: PLR0913 — the whole drawing, every element once
             )
         )
     parts.append("</svg>")
+    return "\n".join(parts)
+
+
+def _band_svg(  # noqa: PLR0913 — the band, every element once
+    vs: Mapping[str, View],
+    lays: Mapping[str, dag.Layout],
+    d: routes_view.Drawn,
+    rows: Mapping[str, Mapping[str, Any]],
+    *,
+    href: Mapping[str, str],
+    names: dag.Prefix,
+    labels: dag.Labels,
+    titles: Mapping[str, str],
+    outlines: Mapping[str, int],
+    closable: Mapping[str, Any],
+    literature: dag.Literature = None,
+    links: Sequence[dag.Line] = (),
+) -> str:
+    """F30-T11 (D-14 v3.26 as amended by v3.46): the band of proposed statements — its heading
+    and one line of help, its own drawing (the cruxes, their holes and junctions, the lines
+    among them, every pill as the main drawing draws one) and, over the card, the measured
+    lines between the band and the rest (``links``): each a ``path.band-link`` with its ends
+    and kind and no ``d``, which the script draws from the pills' boxes while it is lit."""
+    if BAND not in vs:
+        return ""
+    lay = lays[BAND]
+    parts = [
+        '<div class="band-wrap"><div class="band-head">'
+        f'<span class="kicker">{escape(dag.BAND_LABEL)}</span>'
+        f'<p class="band-cue">{escape(dag.BAND_HELP)}</p></div><div class="band-scroll">'
+        f'<svg class="dag band" viewBox="0 0 {lay.width} {lay.height}" width="{lay.width}" '
+        f'height="{lay.height}" role="img" aria-label="proposed statements">'
+    ]
+    for e in sorted(lay.edges, key=lambda e: (e.dst, e.src)):
+        cls = e.kind
+        if "superseded" in (_status_of(rows, e.src), _status_of(rows, e.dst)):
+            cls += " touches-superseded"
+        parts.append(
+            f'<path class="{cls}" data-from="{escape(e.src)}" data-to="{escape(e.dst)}" '
+            f'data-key="{escape(_line_key(e.src, e.dst))}" d="{dag.path_d(e)}"/>'
+        )
+    for p in lay.placed:
+        nid = p.node_id
+        if nid in d.junctions:
+            parts.append(_junction_markup(d.junctions[nid], p.x, p.y, False))
+            continue
+        status = _status_of(rows, nid)
+        parts.append(
+            _pill_markup(
+                nid,
+                p,
+                status=status,
+                label=dag.label_of(nid, names, labels),
+                title=titles.get(nid, f"{nid}: {status}"),
+                href=href.get(nid, "#"),
+                hidden=False,
+                proved=status == routes.PROVED,
+                closable=nid in closable,
+                or_mark=d.alternatives.get(nid, 0) >= 2,
+                outline=outlines.get(nid, 0),
+                literature=(literature or {}).get(nid),
+            )
+        )
+    parts.append('</svg></div><svg class="band-links" aria-hidden="true">')
+    parts.extend(
+        f'<path class="band-link {escape(kind)}" data-from="{escape(src)}" data-to="{escape(dst)}" '
+        f'data-key="{escape(_line_key(src, dst))}"/>'
+        for src, dst, kind in sorted(links, key=lambda ln: (ln[1], ln[0]))
+    )
+    parts.append("</svg></div>")
     return "\n".join(parts)
 
 
@@ -669,19 +817,41 @@ def _selector_svg(  # noqa: PLR0913, PLR0912, PLR0915 — the selector, nodes an
     kinds: dict[str, str] = {}
     words: dict[str, str] = {}
     glyph: dict[str, str] = {}
+    forked = {
+        v.parent
+        for v in sel.values()
+        if v.side is not None and v.parent in sel and sel[v.parent].side is None
+    }
     for key, v in sel.items():
+        n = len(v.sets)
+        # F04-T55 (D-25 v3.46): a set says which way it settles the problem; the top fork,
+        # when it is by side, says so; a side's own node says its side.
         if v.kind == "leaf":
             kinds[key] = "kind-leaf"
             s = result.sets[v.index - 1]
             noun = "statement" if s.remaining == 1 else "statements"
-            words[key] = f"Set {v.index}: {s.remaining} open {noun} of {s.total}"
+            way = routes_view.settles(s)
+            words[key] = f"Set {v.index} ({way}): {s.remaining} open {noun} of {s.total}"
             glyph[key] = str(v.index)
         else:
             split = v.split or root
             label = dag.label_of(split, names, labels)
             kinds[key] = "kind-node"
-            n = len(v.sets)
-            words[key] = f"{label}: {n} set{'' if n == 1 else 's'} choose a route here"
+            if key in forked:
+                words[key] = (
+                    f"{label}: {n} set{'' if n == 1 else 's'} settle it, proving or refuting"
+                )
+            else:
+                words[key] = f"{label}: {n} set{'' if n == 1 else 's'} choose a route here"
+        own_side = v.side if v.parent in forked else None
+        if own_side is not None:
+            side_words = routes_view.SIDE_WORDS.get(own_side, own_side)
+            words[key] = (
+                f"{words[key]} — {side_words}"
+                if v.kind == "leaf"
+                else f"{side_words}: {n} set{'' if n == 1 else 's'} choose a route at "
+                f"{dag.label_of(v.split or root, names, labels)}"
+            )
         if v.parent is not None and v.split is not None:
             at_label = dag.label_of(v.split, names, labels)
             how = (
@@ -715,18 +885,23 @@ def _selector_svg(  # noqa: PLR0913, PLR0912, PLR0915 — the selector, nodes an
                     'role="button" tabindex="0" aria-pressed="false"'
                 )
                 inner = f"<title>{escape(words[child])}</title>"
+            # F04-T55: the edge into a node under a side wears the side, like the node.
+            cv = vs.get(child)
+            side_cls = f" side-{escape(cv.side)}" if cv is not None and cv.side else ""
             parts.append(
-                f'<path class="sel-edge" data-from="{escape(parent)}" data-to="{escape(child)}"'
-                f'{attrs} d="M{x0:g} {y0:g}L{x1:g} {y1:g}">{inner}</path>'
+                f'<path class="sel-edge{side_cls}" data-from="{escape(parent)}" '
+                f'data-to="{escape(child)}"{attrs} d="M{x0:g} {y0:g}L{x1:g} {y1:g}">{inner}</path>'
             )
     for key, (x, y) in pos.items():
         nv = vs.get(key)
         own = ""
+        side_cls = ""
         if nv is not None:
             own = (
                 f' data-view="{escape(key)}" data-sets="{escape(" ".join(nv.sets))}" '
                 'role="button" tabindex="0" aria-pressed="false"'
             )
+            side_cls = f" side-{escape(nv.side)}" if nv.side else ""
         # T10 (the owner): a set is a numbered circle; a fork is a small square and the root a
         # dashed one, so no mark here is the circle the drawing uses for a statement.
         if key in glyph:
@@ -736,7 +911,7 @@ def _selector_svg(  # noqa: PLR0913, PLR0912, PLR0915 — the selector, nodes an
         else:
             mark = '<rect class="dot" x="-5" y="-5" width="10" height="10" rx="1.5"/>'
         parts.append(
-            f'<a href="#"><g class="sel-node {kinds[key]}"{own} data-key="{escape(key)}" '
+            f'<a href="#"><g class="sel-node {kinds[key]}{side_cls}"{own} data-key="{escape(key)}" '
             f'data-words="{escape(words[key])}" '
             f'transform="translate({x:g},{y:g})"><title>{escape(words[key])}</title> '
             f"{mark}</g></a>"
@@ -806,13 +981,19 @@ def drawing(  # noqa: PLR0913 — the page's inputs
     names: dag.Prefix = (prefix, root) if prefix else None
     lays = layouts(rows.values(), vs, root=root, prefix=prefix, labels=labels)
     ready = {c.node: c for c in closing.closable(graph)}
+    band = vs[BAND].nodes if BAND in vs else ()
     full_titles = {
         nid: f"{nid}{' (' + labels[nid] + ')' if nid in labels else ''}: {_status_of(rows, nid)}"
         + (f"; {routes_view.closable_words(ready[nid], ready)}" if nid in ready else "")
-        for nid in vs[ALL].nodes
+        for nid in (*vs[ALL].nodes, *band)
         if nid not in d.junctions
     }
     full_titles.update(titles or {})
+    # F30-T11: a stated pointer is words on the pill, never a line.
+    for nid in band:
+        target = rows.get(nid, {}).get("proposed_for")
+        if target and nid in full_titles:
+            full_titles[nid] += f"; proposed for: {dag.label_of(str(target), names, labels)}"
     svg = _dag_svg(
         vs,
         lays,
@@ -844,8 +1025,28 @@ def drawing(  # noqa: PLR0913 — the page's inputs
         marks.add("route-or")
     if ready:
         marks.add("closable")
+    # F04-T55 (D-30 v3.46): the relation trunks the drawing has, each keyed.
+    for label in (rows[v].get("relation") for v in d.below.get(root, []) if v in rows):
+        if label in routes_view.TRUNK_LABELS:
+            marks.add(f"relation-{label}")
     hidden = len(vs[ALL].nodes) - len(vs[ROUTES].nodes)
     doc = json.dumps(layouts_document(lays), separators=(",", ":")).replace("</", "<\\/")
+    merged_rows = list(merged_nodes(rows.values(), d, root).values())
+    crossing = [ln for ln in dag.lines(merged_rows) if (ln[0] in set(band)) != (ln[1] in set(band))]
+    band_svg = _band_svg(
+        vs,
+        lays,
+        d,
+        rows,
+        href=href,
+        names=names,
+        labels=labels,
+        titles=full_titles,
+        outlines=outlines or {},
+        closable=ready,
+        literature=literature,
+        links=crossing,
+    )
     return Drawing(
         svg=svg,
         selector=_selector_svg(
@@ -860,4 +1061,5 @@ def drawing(  # noqa: PLR0913 — the page's inputs
         sets=len(result.sets),
         hidden=hidden,
         follow_toggle=_follow_toggle() if result.sets else "",
+        band=band_svg,
     )

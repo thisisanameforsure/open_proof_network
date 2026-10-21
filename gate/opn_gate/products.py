@@ -65,7 +65,7 @@ from opn_gate.toolchain import ResolvedToolchain, Toolchain, UsedConstantsReques
 log = logging.getLogger(__name__)
 
 #: docs/architecture_decisions.html (v3.43: circularity retired; v3.42: proved by closure)
-PROTOCOL_VERSION = "3.45"
+PROTOCOL_VERSION = "3.46"
 #: F08-T42 (D-12 v3.43): graph/v11 drops ``circular``, the retired circularity label.
 #: F03-T20 (D-12 v3.38): graph/v8 carries ``lemmas``, the nodes under other branches a merged
 #: partial restated as holes, and a decomposition's hole may resolve to one. v7 (F25-R7, D-10
@@ -75,11 +75,11 @@ PROTOCOL_VERSION = "3.45"
 #: v11 (F08-T42, D-12 v3.43): no circular; v10 (F28-T8, D-12 v3.42): closure; v9 (F26-R17):
 #: review state and open pairs; v8: lemmas
 #: v12 (F29-T1, D-25 v3.44): label, label_source, claim; approach
-GRAPH_SCHEMA = "graph/v13"  # F08-T43 (D-25 v3.45): literature.disputes
+GRAPH_SCHEMA = "graph/v14"  # F08-T44 (D-30 v3.46): relation refutes; target_proofs refutations
 #: F03-T18 (D-12 v3.35): frontier/v5 repeats graph/v6's three fields on every entry, and a node
 #: under a circularity claim is an entry on its status alone; v4 (T16): status, cause, needs;
 #: v3 (T7): partials; v2: D-33 dormancy. F08-T42 (D-12 v3.43): frontier/v6 drops ``circular``.
-FRONTIER_SCHEMA = "frontier/v7"  # F03-T21 (D-25 v3.45): literature.disputes
+FRONTIER_SCHEMA = "frontier/v8"  # F08-T44 (D-30 v3.46): relation refutes
 #: F11-R12 renames D-9's second rung and F11-R3/R4 add the derived fields. v2 was already spent
 #: on F07-R8's node counts and D-34 forbids editing it, so the rename lands at v3 (F11-Q9).
 #: F12-R14 adds the QA pass state per subject, the counted attempts and the drift flag: v4.
@@ -294,16 +294,22 @@ def render_day(
     return max(days, default=EPOCH_DAY)
 
 
+#: D-30: the variant labels whose proof settles the root — ``resolves`` proves it, ``refutes``
+#: (v3.46, F28-T10) refutes it. ``partial`` and ``related`` settle nothing.
+SETTLING_RELATIONS: tuple[str, ...] = ("resolves", "refutes")
+
+
 def closing_node(tg: TargetGraph) -> str | None:
     """F15-Q11: the node whose proof closed the target — the root, or the ``resolves`` variant
-    where the target resolved by variant (D-30); ``None`` while nothing has. A ``partial``
-    variant closes nothing and starts no digestion state. F03-T17: a root settled by any
-    root-level D-12 artifact (proof, counterexample, vacuity certificate) is the closing node."""
+    where the target resolved by variant (D-30), or (v3.46) the ``refutes`` variant whose proof
+    refutes it; ``None`` while nothing has. A ``partial`` variant closes nothing and starts no
+    digestion state. F03-T17: a root settled by any root-level D-12 artifact (proof,
+    counterexample, vacuity certificate) is the closing node."""
     if tg.statuses[tg.root] in graphmod.RESOLVED_STATUSES:
         return tg.root
     for node_id in tg.order:
         n = tg.nodes[node_id]
-        if n.relation == "resolves" and tg.statuses[node_id] == "proved":
+        if n.relation in SETTLING_RELATIONS and tg.statuses[node_id] == "proved":
             return node_id
     return None
 
@@ -550,7 +556,10 @@ def decompositions_of(tg: TargetGraph, node_id: str) -> list[dict[str, Any]]:
     taken: set[str] = set()
     out: list[dict[str, Any]] = []
     for partial in node.partials:
-        file = node.path / partial.path
+        # F08-T46 (D-8 v3.46): a partial a revision inherits stays in the superseded node's
+        # directory, with its annex and its glosses; the record's holder says which.
+        holder = tg.nodes.get(partial.holder, node)
+        file = holder.path / partial.path
         try:
             annex = (
                 postmerge.annex_citation(file.read_text(encoding="utf-8"))
@@ -564,12 +573,12 @@ def decompositions_of(tg: TargetGraph, node_id: str) -> list[dict[str, Any]]:
         # contributor can still write), else what an older partial's leading comment or its
         # annex says.
         annex_text: str | None = None
-        if annex is not None and (node.path / "annex" / f"{annex}.md").is_file():
-            annex_text = (node.path / "annex" / f"{annex}.md").read_text(encoding="utf-8")
+        if annex is not None and (holder.path / "annex" / f"{annex}.md").is_file():
+            annex_text = (holder.path / "annex" / f"{annex}.md").read_text(encoding="utf-8")
         approach = (
             labels.approach_of(
                 file.read_text(encoding="utf-8"),
-                gloss=partial_gloss_words(node.path, node_id, partial.path),
+                gloss=partial_gloss_words(holder.path, holder.node_id, partial.path),
                 annex=annex_text,
             )
             if file.is_file()
@@ -693,6 +702,8 @@ def target_proofs(tg: TargetGraph) -> list[dict[str, Any]]:
     The root's merged proofs come first (``Proof.lean``, then its alternates), then each proved
     ``resolves`` variant's, the variants in the order their proofs were attested — the record's
     order, which ranks nothing (D-25). A ``partial`` or ``related`` variant proves no target.
+    v3.46 (D-30, F28-T10): every way the target is *settled* — a proved ``refutes`` variant is
+    listed the same way, with ``relation: refutes``, since its proof refutes the root.
     """
     sources: list[tuple[str, str | None]] = []
     if tg.statuses[tg.root] == "proved":
@@ -700,10 +711,12 @@ def target_proofs(tg: TargetGraph) -> list[dict[str, Any]]:
     variants = [
         n
         for n in tg.order
-        if tg.nodes[n].relation == "resolves" and tg.statuses[n] == "proved" and tg.nodes[n].proofs
+        if tg.nodes[n].relation in SETTLING_RELATIONS
+        and tg.statuses[n] == "proved"
+        and tg.nodes[n].proofs
     ]
     variants.sort(key=lambda n: (tg.nodes[n].proofs[0].attestation, n))
-    sources.extend((v, "resolves") for v in variants)
+    sources.extend((v, tg.nodes[v].relation) for v in variants)
     out: list[dict[str, Any]] = []
     for node_id, relation in sources:
         for proof in tg.nodes[node_id].proofs:

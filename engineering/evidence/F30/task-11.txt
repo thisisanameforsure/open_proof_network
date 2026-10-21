@@ -1,0 +1,192 @@
+F30-T11 — proposed cruxes leave the tree for a band; hover/click lights measured lines
+(decisions v3.46: D-14 v3.26 as amended, D-25 v3.46). Agent D, branch f30-t11, built on the
+contract commit 3fca1967 (F08-T44).
+
+Written as the work went (the common brief's rule).
+
+== 0. The facts read before designing ==
+
+- Today no line is drawn from a `resolves` variant to the root: `routes_view.drawn` lists the
+  variant below the root (the OR diamond counts it) but `one_view._lines` reads only deps, uses
+  and lemmas. Checked by rendering test_routes_view.doc(): no `data-from="v"` path. So the
+  refuting trunk the brief asks for needs a resolving twin, and both are new line kinds
+  (`edge relation resolves`, `edge relation refutes`), each keyed.
+- The live shapes fixture (site/tests/dag_live_shapes.json): erdos-69 has 8 proposed cruxes,
+  erdos-1050 6, erdos-402 2 — and one of erdos-402's (`spec-fa8046e4`) is a declared *dependency*
+  of a tree statement. Rule taken: a crux some row declares as a dep stays in the tree (its solid
+  line is structural); a crux only *used* goes to the band (the owner: "keep the specs on the
+  band"). Recorded for the lead as a Q entry.
+- Live erdos-257 at graph origin/main 8fcb13861 (read through a detached worktree under the
+  scratchpad, removed after): root route [h1 proved, h2 open]; three cruxes proposed for the root:
+  spec-ddd99827 (proved, used by erdos-257--h1 and by spec-5e2e0890), spec-5e2e0890 (proved,
+  route [2 proved], uses spec-ddd99827), spec-a70fcca4 (speculative, route [3 proved, 1 open]).
+  No `refutes` relation on the record yet (the revision is W4, the owner's).
+- Baseline of the tests to be restated, before any change: 66 passed
+  (test_proposed_for_site, test_one_view_markup, test_routes_view, test_graph_legend,
+  test_finding_circularity_retired_site).
+
+== 1. Design ==
+
+- `dag.proposed(nodes)`: the band's cruxes (proposed_for names a row, no relation, not a dep of
+  any row). `dag.band_of(nodes)`: those plus their hole children (hole origin, id under
+  `<crux>--h`), transitively. `pointers` and `edge proposed` go.
+- The band is its own `<svg class="dag band">` under the main drawing (heading "Proposed
+  statements" + one line of help), laid out by `dag.layout(..., apart=False)` seeded like every
+  view, so a lone crux is a row, never a "no line joins" group. Not in the layouts JSON; the
+  script never moves it.
+- Cross-region lines (`use`, `lemma`, a dep) are `path.band-link` in an overlay svg with no `d`
+  at rest; the script draws each from the pills' boxes while lit (hover previews, click pins,
+  hash `band=<id>`), and lights the band's own lines through junctions as F30-T6 does.
+- `routes_view.drawn` visits the band's cruxes too (sink `band`), so their routes have junctions;
+  `merged_nodes` puts the drawn variants on the root row as `relations`, which `dag.lines` draws
+  as `edge relation <label>` and the main svg colours.
+
+== 2. Red run (seams at today's behaviour added first: dag.proposed/band_of, Layout.band/band_y/links, View.side, Drawing.band, Drawn.band, Renderer.resolution_record/artifact) ==
+uv run --frozen pytest site/tests/test_crux_band.py site/tests/test_refutes_site.py -m "not lean and not docker and not network and not harness" (the two browser tests deselected for this run)
+______________ test_a_proposed_crux_leaves_the_tree_for_the_band _______________
+E       AssertionError: assert () == ('c',)
+E         
+E         Right contains one more item: 'c'
+E         Use -v to get more diff
+______ test_a_used_crux_stays_in_the_band_and_the_use_is_a_lit_only_link _______
+E       AssertionError: assert () == ('c',)
+E         
+E         Right contains one more item: 'c'
+E         Use -v to get more diff
+__________ test_the_band_holds_a_crux_its_holes_and_the_crux_it_uses ___________
+E       AssertionError: assert () == ('spec-gap', ...c-unique--h2')
+E         
+E         Right contains 4 more items, first extra item: 'spec-gap'
+E         Use -v to get more diff
+E       AssertionError: assert set() >= {'spec-180d8b...pec-ffd3137a'}
+E         
+E         Extra items in the right set:
+E         'spec-eb1219eb'
+E         'spec-1a5ab7c3'
+E         'spec-440db0f9'
+E         'spec-ffd3137a'
+E         'spec-180d8b72'
+E         'spec-f2b55478'
+E       AssertionError: assert set() >= {'spec-48bd0126'}
+E         
+E         Extra items in the right set:
+E         'spec-48bd0126'
+E       AssertionError: assert set() >= {'spec-13f688...f8cb4ea', ...}
+E         
+E         Extra items in the right set:
+E         'spec-2e765953'
+E         'spec-84446025'
+E         'spec-c390279b'
+E         'spec-9f8cb4ea'
+E         'spec-13f68833'...
+E         
+E         ...Full output truncated (3 lines hidden), use '-vv' to show
+____ test_the_views_exclude_the_band_and_the_band_view_has_its_own_junction ____
+E           AssertionError: all
+E           assert not True
+______ test_the_drawing_puts_the_band_under_the_tree_with_lit_only_links _______
+E       assert '<svg class="dag band"' in ''
+_________ test_the_toggle_counts_off_route_statements_but_not_the_band _________
+E       assert (11 == 1)
+____________________ test_the_layouts_json_has_no_crux_ids _____________________
+E           AssertionError: all
+E           assert not True
+__________________ test_the_refuting_colour_is_its_own_token ___________________
+E       AssertionError: --refute
+E       assert None is not None
+____ test_the_refuting_trunk_is_drawn_from_the_variant_into_the_root_today _____
+E       assert (None is not None)
+_______________ test_the_resolving_trunk_is_drawn_and_keyed_too ________________
+E       assert None
+__________ test_the_key_names_the_sides_and_the_band_only_when_drawn ___________
+E       assert ('refutes the problem' in '<span class="term" tabindex="0"><span class="dot dot-proved"></span>proved<span class="term-card" role="tooltip"> A p...ll" aria-pressed="false" data-shown-label="Hide the 10 statements on no route" hidden>Show 10 more statements</button>')
+_______ test_the_selector_forks_by_side_and_colours_the_refuting_branch ________
+E       KeyError: 'sel/proves'
+________________ test_the_table_says_which_way_each_set_settles ________________
+E       assert ('class="set-row side-proves"' in '<tr class="set-row" data-set="s-4d2ec0264e" data-index="1" data-remaining="1" data-view="sel/set:s-4d2ec0264e"><td da...0"><span class="v-stop">0</span><span class="v-follow">0</span></td><td class="num" data-sort="1">1</td><td></td></tr>')
+______ test_the_page_says_ways_to_settle_and_that_a_set_proves_or_refutes ______
+E       assert ('Ways to settle the problem' in '<div class="selector-wrap"><div class="sel-head"><span class="kicker"><span class="term" tabindex="0">Sufficient sets...ts are the same." hidden><input type="checkbox" class="follow-proved" checked> Stop at proved statements</label></div>')
+E       AssertionError: assert 'a counterexa...on the record' == 'a refuting v...on the record'
+E         
+__________ test_the_relation_roles_and_the_reading_page_name_refutes ___________
+E       KeyError: 'refutes'
+________________ test_the_states_page_names_a_refuting_variant _________________
+E       assert ('refutes-variant' in '<h2 id="states">How a statement and a problem change state</h2>\n<div class="states">\n<p class="lead">Two things car...record naming the paper or note</td><td>resolved: explained → written up</td></tr>\n</tbody>\n</table></div>\n</div>\n' or 'refutes variant' in '<h2 id="states">How a statement and a problem change state</h2>\n<div class="states">\n<p class="lead">Two things car...record naming the paper or note</td><td>resolved: explained → written up</td></tr>\n</tbody>\n</table></div>\n</div>\n')
+20 failed, 6 passed, 2 deselected in 1.76s
+
+== 3. Finished by the lead's second agent (the first stopped on its spend limit after merging) ==
+
+Read the whole diff against D-14 v3.26 as amended and D-25 v3.46. Changes made:
+
+- routes_view.settles / side_of read `routes.SufficientSet.settles` and `routes.Selector.side`
+  directly (they had read them with getattr and a default, from before F27-T11 landed); PROVES is
+  `routes.PROVES`. The selector and the table now carry exactly what routes publishes.
+- Defect found by looking at the first hover screenshot: the lit band link was computed in
+  .dag-wrap's pixels but drawn in svg.band-links, which sits inside .band-wrap (position:
+  relative), so every lit line was offset by the band's own offset and fell off the drawing.
+  The getBBox checks passed (a path with a box), the picture did not. New test, red first on
+  the old graph.js:
+    test_crux_band.py::test_a_lit_band_link_meets_the_two_pills_it_joins
+    E       AssertionError: [[545.6834684668636, 545.6423881304994]]   (px off, both ends)
+  Fix: linkD measures against the overlay's own rect (link.ownerSVGElement). Green: both ends
+  within 0.04 px of the pills, at 1440 and at 390 (live erdos-257 probe as well).
+- At 390 the card's absolute caption (three lines there) sat over the band's last row. Under
+  700px the caption now flows under the drawing (site.css, F30-T11 comment).
+- The shoot script measures every shown pill's label against its box (getBBox) and uses a
+  2400px-tall viewport: an element capture taller than the viewport is stitched by resizing it,
+  which dropped the lit line from the 390 shot although the line was there (checked with a
+  viewport capture and elementFromPoint).
+
+== 4. Green ==
+
+uv run --frozen --with playwright python -m pytest site/tests -q -m "not lean and not docker and not network and not harness"
+3 failed, 850 passed in 345.55s — 0 skipped (the browser tests ran; playwright comes from
+`--with playwright`, it is not in the lock). The three failures are
+test_finding_lemma_edge.py::test_measured_in_a_browser and
+test_web_flows.py::{test_a_stranger_sees_edit_and_no_approve, test_a_curator_sees_withdraw}, and
+they fail identically on ae327a59 without this work (run in a detached worktree of HEAD:
+"3 failed, 32 deselected"), as the F30 log of 2026-10-18 recorded for origin/main.
+The two skips the first agent saw were these browser tests run without playwright on the path.
+New files alone: test_crux_band.py + test_refutes_site.py → 30 passed.
+
+uv run --frozen ruff check .          → All checks passed! (exit 0)
+uv run --frozen ruff format --check . → 893 files already formatted (exit 0)
+uv run --frozen mypy site             → Success: no issues found in 116 source files (exit 0)
+
+The golden docs/index.html change is regenerated, not hand-edited: test_render.write_goldens()
+(PYTHONPATH=gate:gate/tests:site:site/tests:api uv run --frozen python -c "import test_render;
+test_render.write_goldens()"). It rewrites every golden and only docs/index.html moved: the
+states.html lines naming a refutes-variant (v3.46) and the two status definitions F04-T55
+broadened ("disproved", "refuted").
+
+== 5. Screenshots (task-11-shoot.py; measured with getBBox, then looked at) ==
+
+Fixture: test_crux_band.band_tree rendered with render.write (a proved crux proposed for the
+root, used by the third hole's merged proof). Live: graph origin/main 8fcb13861 through a
+detached worktree under the scratchpad (removed after), rendered with opn_site.cli; MOCKED:
+spec-a70fcca4 given `relation: refutes` and the document's schema set to graph/v14 in that copy,
+since the revision that gives it the relation does not exist yet. (The render also warned that
+erdos-257's literature record carries `disputes`, which this branch's literature/v1 reader does
+not know: lit-marks is not merged here. Unrelated to the band.)
+
+            rest: no link visible   lit on hover                        tree end lit      labels over box  page scroll  band still
+fixture 1440  True (1 link, no d, box 0x0)  spec-crux1>and-swap-reassoc--h3  and-swap-reassoc--h3  0 of 7   1440/1440  True
+fixture 390   True                          same                             same                  0 of 7   390/390    True
+live 1440     True (1 link)                 spec-ddd99827>erdos-257--h1      erdos-257--h1         0 of 12  1440/1440  True
+live 390      True                          same                             same                  0 of 12  390/390    True
+Pinned hash: #node=<crux>&band=<crux>. Measurements: task-11-fixture-measure.json,
+task-11-erdos-257-measure.json.
+
+- task-11-erdos-257-1440-opening.png: the tree (root, its route, the refuting trunk in teal to
+  spec-a70fcca4 and its four holes) and under a dashed rule the band "Proposed statements"
+  holding spec-5e2e0890 with its two holes and spec-ddd99827; no line crosses the gap.
+- task-11-erdos-257-1440-band-hover.png: spec-ddd99827 hovered: one dashed use line runs from its
+  top to the bottom of "a representation of a rational is greedy" (erdos-257--h1), which is lit
+  and everything else in the tree dimmed; in the band the use from spec-5e2e0890 lights too.
+  The lit line crosses other pills on its way (it is drawn only while lit).
+- task-11-erdos-257-390-band-hover.png: the same at 390, line meeting both pills.
+- task-11-erdos-257-{1440,390}-band-pinned*.png: clicked (pinned) with the pointer away; then a
+  selector leaf selected: the tree changes, the band does not move.
+- task-11-erdos-257-{1440,390}-selector.png: the selector, the refuting branch in teal.
+- task-11-fixture-*.png: the same states on the fixture (one crux, one use line into hthree).
+- task-11-*-390-opening.png: the caption now flows under the band.

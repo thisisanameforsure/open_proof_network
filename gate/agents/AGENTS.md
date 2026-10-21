@@ -1723,11 +1723,13 @@ about the root, and what is proposed beneath it is open work (D-33 v3.20).
   `proposed-for-superseded` (naming the node that replaced it) before anything opens. Later
   records, one per pull request touching nothing else, may come only from the crux's proposer
   or a listed curator; the latest one is shown.
-- **A variant** (`POST /proposals/variant`): a weaker or related form of the root, labelled
-  `resolves`, `partial` or `related`. A label above `related` needs the implication proof,
-  `relation_proof`: a Lean file declaring exactly `theorem relation`, whose type is
-  `<variant's type> → <root's type>` for `resolves` and `<root's type> → <variant's type>` for
-  `partial`, written out in full, under whatever imports it needs. The gate kernel-checks it
+- **A variant** (`POST /proposals/variant`): a weaker, related or refuting form of the root,
+  labelled `resolves`, `partial`, `refutes` or `related`. A label above `related` needs the
+  implication proof, `relation_proof`: a Lean file declaring exactly `theorem relation`, whose
+  type is `<variant's type> → <root's type>` for `resolves`, `<root's type> → <variant's type>`
+  for `partial`, and `<variant's type> → ¬<root's type>` for `refutes` (D-30 v3.46: a proved
+  `refutes` variant is a counterexample to the root by another road, so the root reads refuted
+  by derivation), written out in full, under whatever imports it needs. The gate kernel-checks it
   against the two statements; the service writes the `-- relation: <label>` line itself.
   Before anything opens, the service sends your statement, the root's statement and the proof
   to the hosted fast checker with admission's own relation program: a proof that does not

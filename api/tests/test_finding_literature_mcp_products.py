@@ -157,6 +157,8 @@ def frontier_v5() -> dict[str, Any]:
     # The golden copy is v5 since F08-T39 regenerated it (merged after this test was written);
     # a v4 copy is lifted by hand so the test holds on either side of that commit. Since F08-T42
     # it is v6, without `circular`, so it is lowered to v5 by hand.
+    if doc["schema"] == "frontier/v8":  # F08-T44: relation may be refutes; the fixture has none
+        doc["schema"] = "frontier/v7"
     if doc["schema"] == "frontier/v7":  # F03-T21: literature.disputes; the fixture has none
         doc["schema"] = "frontier/v6"
     if doc["schema"] == "frontier/v6":
@@ -204,7 +206,7 @@ def test_a_v4_frontier_is_still_served(harness: Harness) -> None:
     """A graph rendered before the v3.35 re-pin still carries frontier/v4 (the deploy window)."""
     doc = json.loads((FIXTURES / "frontier-listed.json").read_text())
     # the golden copy is v5 since F08-T39 and v6 since F08-T42: lower it by hand
-    if doc["schema"] in ("frontier/v5", "frontier/v6", "frontier/v7"):
+    if doc["schema"] in ("frontier/v5", "frontier/v6", "frontier/v7", "frontier/v8"):
         doc["schema"] = "frontier/v4"
         for entry in doc["entries"]:
             for field in NEW_FIELDS:

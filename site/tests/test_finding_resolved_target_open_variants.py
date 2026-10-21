@@ -31,6 +31,7 @@ def renderer(open_count: int, tv: Any = None) -> Any:
         open_beneath=render.Renderer.open_beneath,
         is_tutorial=render.Renderer.is_tutorial,
         resolution=render.Renderer.resolution,  # F04-T31: the word follows the root
+        resolution_record=render.Renderer.resolution_record,  # F04-T55: and the record's words
         why_not_claimable=lambda _tv, detail=True: "<p>Not claimable, because:</p>",
         site=SimpleNamespace(targets={"t": tv}),
     )

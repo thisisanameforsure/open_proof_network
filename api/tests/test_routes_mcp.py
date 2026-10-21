@@ -108,7 +108,7 @@ def test_at_proved_follow_lists_what_each_proved_statement_rests_on(harness: Har
     client = McpClient(harness)
     stop = client.ok("list_sufficient_sets", {"target_id": TARGET})
     follow = client.ok("list_sufficient_sets", {"target_id": TARGET, "at_proved": "follow"})
-    assert results.version_of("list_sufficient_sets") == "v3"
+    assert results.version_of("list_sufficient_sets") == "v4"  # F09-T76: settles, side
     for got in (stop, follow):
         assert results.violations("list_sufficient_sets", got) == []
     assert (stop["at_proved"], follow["at_proved"]) == ("stop", "follow")
@@ -146,6 +146,43 @@ def test_a_target_with_no_routes_is_its_own_set(harness: Harness) -> None:
     assert got["routes"] == []
     assert [s["open"] for s in got["sets"]] == [["lemma", "plain"]]
     assert results.violations("list_sufficient_sets", got) == []
+
+
+def test_both_sides_reach_the_tool_with_the_fork(harness: Harness) -> None:
+    """F09-T76 (D-25, D-28 v3.46): the erdos-257 shape — a root with one route and a refutes
+    variant with its own — answers one set per side, each saying which way it settles, the
+    selector forking on the side with the proving family first, and validates against v4."""
+    graph: dict[str, Any] = json.loads((LIVE / "erdos-257-shape.json").read_text("utf-8"))["graph"]
+    harness.githost.files["targets/erdos-257/graph.json"] = json.dumps(graph).encode()
+    harness.context.files.clear()
+    client = McpClient(harness)
+    got = client.ok("list_sufficient_sets", {"target_id": "erdos-257"})
+    assert results.violations("list_sufficient_sets", got) == [], results.violations(
+        "list_sufficient_sets", got
+    )
+    assert [(s["settles"], s["variant"]) for s in got["sets"]] == [
+        ("proves", None),
+        ("refutes", "spec-a70fcca4"),
+    ]
+    expected = routes.read(graph, served_entries(client))
+    assert {k: v for k, v in got.items() if k not in {"read_at", "closable", "selector"}} == (
+        expected.as_dict()
+    )
+    selector = got["selector"]
+    assert selector == routes.selector_tree(expected).as_dict()
+    assert (selector["node"], selector["side"], selector["sets"]) == (None, None, 2)
+    assert [(c["side"], c["set"]) for c in selector["children"]] == [
+        ("proves", got["sets"][0]["id"]),
+        ("refutes", got["sets"][1]["id"]),
+    ]
+    (tool,) = [t for t in client.list_tools() if t.name == "list_sufficient_sets"]
+    assert "refutes" in (tool.description or "")
+    # the erdos-1094 shape has one side: no fork, side null everywhere, still v4-valid
+    seed(harness)
+    one = client.ok("list_sufficient_sets", {"target_id": TARGET})
+    assert results.violations("list_sufficient_sets", one) == []
+    assert one["selector"]["side"] is None and one["selector"]["node"] is not None
+    assert {s["settles"] for s in one["sets"]} == {"proves"}
 
 
 def test_closable_nodes_ride_with_the_routes(harness: Harness) -> None:

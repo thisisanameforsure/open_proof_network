@@ -1,0 +1,197 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openproof.network/schemas/closure/v2.json",
+  "title": "closure/v2",
+  "description": "D-12 v3.42 (F28-T8): the gate's record that a node is proved by closure — its merged decomposition (a route) or (at the root) a resolves variant joined with the proofs of its inputs, and the result accepted by the kernel. Written by the post-merge job and signed with the gate key, beside the node as targets/<id>/nodes/<node>/closure.json. A node with a closure record is proved while every input is proved (derived each render, so reverting an input re-opens it); the root also needs the statement vouching step 9 accepts. v2 (v3.46): verdict says whether the join proved the node or refuted it.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "target_id",
+    "node_id",
+    "statement_hash",
+    "link",
+    "source",
+    "axioms",
+    "graph_commit",
+    "network_commit",
+    "lean_toolchain",
+    "mathlib_sha",
+    "signature",
+    "verdict"
+  ],
+  "properties": {
+    "schema": {
+      "const": "closure/v2"
+    },
+    "target_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]*$"
+    },
+    "node_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]*$"
+    },
+    "statement_hash": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "link": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "id",
+        "inputs"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "route",
+            "variant"
+          ],
+          "description": "route, a merged decomposition; variant, a resolves or refutes variant at the root (D-30)."
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 300
+        },
+        "inputs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]*$"
+          }
+        }
+      }
+    },
+    "source": {
+      "description": "What was joined: for a route, the merged assembly (its path under the node and content hash); for a variant, the composed proof text (the implication as a private helper applied to the input's theorem), kept here because no file in the tree holds it.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "hash",
+        "text"
+      ],
+      "properties": {
+        "path": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 300
+            }
+          ]
+        },
+        "hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "text": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "minLength": 1
+            }
+          ]
+        }
+      }
+    },
+    "axioms": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "graph_commit": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "network_commit": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        }
+      ]
+    },
+    "lean_toolchain": {
+      "type": "string",
+      "minLength": 1
+    },
+    "mathlib_sha": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        }
+      ]
+    },
+    "signature": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "key_id",
+        "value",
+        "timestamp"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "gate",
+            "none"
+          ]
+        },
+        "key_id": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "minLength": 1
+            }
+          ]
+        },
+        "value": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "minLength": 1
+            }
+          ]
+        },
+        "timestamp": {
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+        }
+      }
+    },
+    "verdict": {
+      "description": "D-12 v3.42 / v3.46: what the join accepted — proved, the node's own theorem; refuted, its negation, through a refutes variant (D-30 v3.46). A node with a closure record reads the verdict while every input is proved.",
+      "enum": [
+        "proved",
+        "refuted"
+      ]
+    }
+  }
+}

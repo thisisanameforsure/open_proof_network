@@ -42,7 +42,7 @@ log = logging.getLogger(__name__)
 #: F08-T42 (D-12 v3.43): ``context/v8`` drops ``circular`` and ``circular_below``.
 #: F10-T50 (D-25 v3.45): ``context/v9`` inlines each literature record's summary and references
 #: and carries ``disputes``; v8 (F08-T42): no circularity; v7 (F26-R17): the review for the root.
-SCHEMA = "context/v9"
+SCHEMA = "context/v10"  # F08-T44 (D-30 v3.46): relation refutes
 ACCEPTED: tuple[str, ...] = (
     "context/v1",
     "context/v2",
@@ -53,6 +53,7 @@ ACCEPTED: tuple[str, ...] = (
     "context/v7",
     "context/v8",
     "context/v9",
+    "context/v10",
 )
 FILE = layout.CONTEXT_FILE
 CLAIMS_FILE = "claims.json"

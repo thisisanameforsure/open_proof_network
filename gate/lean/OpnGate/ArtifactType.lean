@@ -61,19 +61,21 @@ checks it rather than reading the label.
 -/
 
 inductive RelationLabel where
-  | resolves | partial_ | related
+  | resolves | partial_ | related | refutes
 deriving Repr, BEq
 
 def RelationLabel.ofString? : String → Option RelationLabel
   | "resolves" => some .resolves
   | "partial" => some .partial_
   | "related" => some .related
+  | "refutes" => some .refutes
   | _ => none
 
 def RelationLabel.toString : RelationLabel → String
   | .resolves => "resolves"
   | .partial_ => "partial"
   | .related => "related"
+  | .refutes => "refutes"
 
 /-- The implication `Relation.lean` must declare, or `none` for `related`, which claims none. -/
 def expectedRelationType (label : RelationLabel) (variant root : Expr) : MetaM (Option Expr) := do
@@ -81,5 +83,7 @@ def expectedRelationType (label : RelationLabel) (variant root : Expr) : MetaM (
   | .resolves => return some (← mkArrow variant root)
   | .partial_ => return some (← mkArrow root variant)
   | .related => return none
+  -- D-30 v3.46: a refuting variant proves the root's negation.
+  | .refutes => return some (← mkArrow variant (mkNot root))
 
 end OpnGate

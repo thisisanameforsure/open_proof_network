@@ -1,0 +1,59 @@
+F09-T76 — list_sufficient_sets result v4: a set's `settles`, a selector node's `side` (D-25, D-28 v3.46)
+Branch f27-t11 (after F27-T11, a9b69e58). Agent C, 2026-10-21.
+(The brief named this task F09-T75; T75 was already on the record — an agent's three MCP
+findings, 2026-10-20 — so the next free id, T76, is used; the lead renames the spec rows.)
+
+What changed:
+- api/opn_api/mcp/schemas/list_sufficient_sets/v4.json: copied from v3 by script (D-34: v3 is not
+  edited; v3, v2, v1 stay served by name), with `settles` (enum proves|refutes, required) on each
+  set, `side` (enum proves|refutes|null, required) on every selector node, the `variant` and
+  selector `node` descriptions widened, and the v4 paragraph at the head of the description.
+- api/opn_api/mcp/results.py: VERSIONS["list_sufficient_sets"] = "v4".
+- api/opn_api/mcp/reads.py: the tool's description names both sides and the fork; the parameters
+  are unchanged; the bijection row is unchanged (same plain path), so bijection.py is untouched.
+- api/tools/smoke_mcp.py reads no set or selector field (grep for sets/selector/settles: none).
+
+RED — `uv run --frozen pytest api/tests/test_routes_mcp.py api/tests/test_finding_routes_selector_mcp.py
+-q -m "not lean and not docker and not network and not harness"` with F27-T11's library and the
+v3 schema still declared (before the v4 schema, the version row and the new tests):
+  E AssertionError: [TextContent(type='text', text="Output validation error: Additional
+    properties are not allowed ('side' was unexpected)", ...)]   (x7)
+  E AssertionError: [TextContent(type='text', text="Output validation error: Additional
+    properties are not allowed ('settles' was unexpected)", ...)]
+  FAILED api/tests/test_routes_mcp.py::test_list_sufficient_sets_round_trip
+  FAILED api/tests/test_routes_mcp.py::test_cut_any_adds_the_coarser_sets_up_to_the_cap
+  FAILED api/tests/test_routes_mcp.py::test_at_proved_follow_lists_what_each_proved_statement_rests_on
+  FAILED api/tests/test_routes_mcp.py::test_a_target_with_no_routes_is_its_own_set
+  FAILED api/tests/test_routes_mcp.py::test_closable_nodes_ride_with_the_routes
+  FAILED api/tests/test_finding_routes_selector_mcp.py::test_list_sufficient_sets_carries_the_selector_whose_leaves_are_the_sets
+  FAILED api/tests/test_finding_routes_selector_mcp.py::test_list_sufficient_sets_carries_each_routes_approach_and_each_holes_label
+  FAILED api/tests/test_finding_routes_selector_mcp.py::test_the_answer_is_versioned
+  8 failed, 5 passed, 2 warnings in 16.28s
+The served v3 schema refuses the two new fields: the defect, not a missing name.
+
+Then the tests: test_routes_mcp.py gained test_both_sides_reach_the_tool_with_the_fork (the
+erdos-257 shape seeded through the harness: one set per side, `settles`, the fork with `side`
+proves-then-refutes, the description naming refutes, validation against v4; and the one-sided
+erdos-1094 shape still v4-valid with side null); the version assertions moved to v4 with v3
+added to the older versions served by name; the selector key set gained `side`.
+
+Description budget (test_every_description_fits_the_budget, DESCRIPTION_BUDGET = 1000): the
+first wording measured 1212, then 1055, 1024, 1012 — four trims, each measured by the test, not
+counted by hand — and the shipped one measures 995. What went: the summary's field list (the
+output schema declares it) and two clauses the schema also carries.
+
+GREEN — `uv run --frozen pytest api/tests/test_routes_mcp.py api/tests/test_finding_routes_selector_mcp.py
+api/tests/test_mcp_surface.py api/tests/test_mcp_bijection.py api/tests/test_finding_mcp_context_budget.py
+-q -m "not lean and not docker and not network and not harness"`:
+  40 passed, 2 warnings in 8.65s   (re-run after the laptop shutdown: the same five files, 40 passed)
+
+Context budget (measured with the harness's tools/list, compact JSON, the budget test's own
+method): 112,701 characters against TOOLS_LIST_BUDGET 113,000; the last measurement recorded in
+the budget file's comment (F22-T9 + the 2026-10-20 F09-T75 together) was 112,592, so this task
+adds about 109 (the two enum properties on the output schema; the description is 995, shorter
+than before). list_sufficient_sets' output schema is 3,884 compact. The pin is unchanged. The
+lead may wish to add the line to the comment block in test_finding_mcp_context_budget.py (not
+this agent's file).
+
+Checks: ruff check api gate → All checks passed; ruff format --check api gate → 717 files already
+formatted; mypy api → Success: no issues found in 265 source files; mypy gate → 429 files clean.

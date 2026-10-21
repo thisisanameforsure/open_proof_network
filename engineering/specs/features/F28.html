@@ -253,6 +253,9 @@ v3.23, D-30.</p>
     <code>test_a_circularity_claim_is_no_link</code> (from F08-T42's branch) failed on this branch's
     <code>closing.py</code> with the claim link. The claim and its label are retired by F08-T42,
     which lands after this as decisions v3.43 with the next graph schema.</td></tr>
+    <tr><td>F28-Q13</td><td><strong>The verdict lives in the record, not in the row&rsquo;s closure object (T10, 2026-10-21; D-12 v3.46).</strong> A refuting closure is the same record as a proving one with <code>verdict: refuted</code> (<code>closure/v2</code>); <code>graph.json</code>&rsquo;s per-node <code>closure</code> object (graph/v14, closed) and the MCP&rsquo;s closable link keep their three-key shape, because the fact a reader needs is the row&rsquo;s <code>status</code>, derived from the verdict with the proving closure&rsquo;s own guards (statement hash, every input proved, the root vouched); reverting the variant&rsquo;s proof re-opens the root (D-18). A v1 record carries no verdict and reads proved, so nothing already on the graph moves. The target reads <code>resolved</code> either way, as D-12 #2 already had it for a direct counterexample, and the site&rsquo;s word for it was already &ldquo;disproved&rdquo;.</td></tr>
+  <tr><td>F28-Q14</td><td><strong>The negation is composed under its own name (T10).</strong> The join writes <code>theorem &lt;decl&gt;_refuted : ¬ (&lt;type&gt;) := relation (variant)</code> beneath the statement&rsquo;s header, with binders before the colon bound as <code>∀ &hellip;, &lt;type&gt;</code> so the negation is of the whole proposition. The text is a claim the kernel checks against the relation&rsquo;s type (<code>variant → ¬root</code>, checked at the variant&rsquo;s merge): a mis-read header fails the join and records nothing, and the same relation composed in the proving direction is refused with a type mismatch (lean tier).</td></tr>
+  <tr><td>F28-Q15</td><td><strong>What a refutes proof settles (T10).</strong> A proved <code>refutes</code> variant is listed in <code>target_proofs</code> with <code>relation: refutes</code> and is the closing node while the root is open, symmetric with <code>resolves</code> and not only once the root reads refuted; step 9 is asked of its proof while the root is open and of nothing once the root is closed.</td></tr>
 </table>
 
 <h2>10. Status</h2>
@@ -260,7 +263,7 @@ v3.23, D-30.</p>
 done; T5 and T6 (the closer's pull requests) superseded by T7&ndash;T9 on the owner's ruling (Q11) after one live run of the closer on 2026-10-15 (network 067497e, graph re-pin 4c6f83c14: it composed, prechecked and opened graph #559 unattended, and closed it by ruling 2 when a contributor&rsquo;s equivalent proof, #553, merged first; <code>engineering/evidence/F28/task-6-live.txt</code>): T7
 the term-level join (<code>opn-close</code>, 30 lean-tier cases incl. a three-level chain), T8 closure
 records, status, staging and products (<code>closure/v1</code>, <code>graph/v10</code>), T9 the
-post-merge step. <strong>Live 2026-10-16</strong>: network 4d59d35 (PR #63), graph re-pinned at 9af5e470c and rendered at 7fe5a13eb (<code>graph/v10</code>, protocol 3.42, no status changed); Q12 carried the claim link's retirement before release. Nothing on the live record is closable yet (every open node has an open leaf), so the first closure is evidence still to come (<code>engineering/evidence/F28/live-2026-10-16.txt</code>).</div>
+post-merge step. <strong>Live 2026-10-16</strong>: network 4d59d35 (PR #63), graph re-pinned at 9af5e470c and rendered at 7fe5a13eb (<code>graph/v10</code>, protocol 3.42, no status changed); Q12 carried the claim link's retirement before release. Nothing on the live record is closable yet (every open node has an open leaf), so the first closure is evidence still to come (<code>engineering/evidence/F28/live-2026-10-16.txt</code>). · T10 built 2026-10-21 on branch <code>refutes-v3.46</code>: a proved <code>refutes</code> variant refutes the root by closure, <code>verdict: refuted</code> (17 fast tests, 2 lean; <code>engineering/evidence/F28/task-10.txt</code>); not yet pushed or pinned (Q13&ndash;Q15)</div>
 
 <h2>Tasks</h2>
 <table>
@@ -333,6 +336,9 @@ post-merge step. <strong>Live 2026-10-16</strong>: network 4d59d35 (PR #63), gra
     <code>gate/tests/test_close.py</code>, <code>gate/tests/test_close_cli.py</code>,
     <code>gate/tests/test_finding_closure_step.py</code></td>
     <td>T8</td><td><code>uv run pytest gate/tests/test_close.py gate/tests/test_close_cli.py gate/tests/test_finding_closure_step.py</code></td></tr>
+  <tr><td>F28-T10</td><td><strong>A proved <code>refutes</code> variant refutes the root by derivation (Q13; D-12 v3.46; with F08-T44).</strong> <code>closing.links</code> makes a variant link for a refuting variant at the root; <code>close.join_link</code> composes <code>relation (variant proof)</code> to a kernel-accepted <code>¬root</code> and writes <code>closure/v2</code> with <code>verdict: refuted</code>; <code>derive_statuses</code> reads <code>refuted</code> under the v3.42 guards (hash, inputs proved, root vouched), a v1 record as proved; <code>target_proofs</code> lists the refutation; step 9 asks a human for a proof that settles the root either way.</td>
+    <td><code>gate/opn_gate/closing.py</code>, <code>gate/opn_gate/close.py</code>, <code>gate/opn_gate/graph.py</code>, <code>gate/opn_gate/products.py</code>, <code>gate/opn_gate/modes.py</code></td><td>T9, F08-T44</td>
+    <td><code>uv run --frozen pytest gate/tests/test_closing.py gate/tests/test_close.py gate/tests/test_graph.py gate/tests/test_modes.py</code></td></tr>
 </table>
 </body>
 </html>

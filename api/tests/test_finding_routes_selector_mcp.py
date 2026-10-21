@@ -96,7 +96,7 @@ def test_list_sufficient_sets_carries_the_selector_whose_leaves_are_the_sets(
     assert len(got["sets"]) == 3, [s["routes"] for s in got["sets"]]
     selector = got["selector"]
     assert selector == routes.selector_tree(routes.read(graph, ())).as_dict()
-    assert set(selector) == {"route", "node", "set", "sets", "children"}
+    assert set(selector) == {"route", "node", "set", "sets", "side", "children"}  # side: T75
     assert selector["node"] == "t" and selector["sets"] == 3
     assert leaves(selector) == [s["id"] for s in got["sets"]]
     assert [c["route"] for c in selector["children"]] == ["t@1", "t@2"]
@@ -120,14 +120,15 @@ def test_list_sufficient_sets_carries_each_routes_approach_and_each_holes_label(
 
 
 def test_the_answer_is_versioned(harness: Harness) -> None:
-    """The result schema moved to v2 for the three fields and to v3 for ``at_proved`` and
-    ``proof_routes`` (F27-T9); v2 and v1 are still served by name."""
-    assert results.schema_id("list_sufficient_sets") == "mcp/list_sufficient_sets/v3"
+    """The result schema moved to v2 for the three fields, to v3 for ``at_proved`` and
+    ``proof_routes`` (F27-T9) and to v4 for a set's ``settles`` and a selector node's ``side``
+    (F09-T76, D-25 v3.46); v3, v2 and v1 are still served by name."""
+    assert results.schema_id("list_sufficient_sets") == "mcp/list_sufficient_sets/v4"
     client = McpClient(harness)
-    assert client.ok("get_schema", {"name": "mcp/list_sufficient_sets/v3"}) == results.load(
+    assert client.ok("get_schema", {"name": "mcp/list_sufficient_sets/v4"}) == results.load(
         "list_sufficient_sets"
     )
-    for older in ("v2", "v1"):
+    for older in ("v3", "v2", "v1"):
         assert client.ok("get_schema", {"name": f"mcp/list_sufficient_sets/{older}"}) == (
             results.load("list_sufficient_sets", older)
         )

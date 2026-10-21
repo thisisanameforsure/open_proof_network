@@ -241,7 +241,7 @@ class RelationRequest:
     root: Path
     root_module: str
     root_decl: str
-    label: str  # resolves | partial | related
+    label: str  # resolves | partial | related | refutes (v3.46)
     relation: Path | None = None
     relation_module: str | None = None
     relation_decl: str = "relation"

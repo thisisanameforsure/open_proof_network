@@ -1,0 +1,158 @@
+F08-T46 — revise with a relation; routes inherited by derivation (D-8 v3.46)
+===========================================================================
+
+Branch f08-t45 (after F08-T45 83296f87 and the merge of refutes-v3.46 at ae327a59, B's F28-T10
+and C's F27-T11, cfbde0ac: no conflicts; T45's tests 69 passed on the merged tree, mypy gate and
+api clean). Tests: gate/tests/test_revise_relation.py.
+
+Fixture for the derivation half: the propositional graph's root `and-swap-reassoc` with its two
+deps attested proved, its fixture Proof.lean removed (the live crux has none; with it in place
+the partial's passing attestation reads as the root's proof, F03-Q7), and test_decompositions'
+add_hole x2 + merged_partial: a ready root with one decomposition and two hole children, the
+shape of spec-a70fcca4 on erdos-257. The revision is `revise` with the same Statement.lean text,
+only the own-Context import renamed to the new id.
+
+--- red, derivation (the seam-free half; nothing added yet) ---------------------------------------
+
+$ uv run --frozen pytest gate/tests/test_revise_relation.py -q -p no:cacheprovider \
+    -k "same_statement_revision or routes_list or changed_statement or chain"
+  FAILED test_a_same_statement_revision_reads_the_old_nodes_partials_and_holes
+    E  assert () == ('and-swap-reassoc--h1', 'and-swap-reassoc--h2')     (node.holes)
+  FAILED test_the_routes_list_one_route_for_the_revision
+    E  AssertionError: ['and-swap-reassoc@1']  /  assert 0 == 1    (no route for the revision)
+  FAILED test_inheritance_follows_the_supersedes_chain
+    E  assert () == ('and-swap-reassoc--h1', 'and-swap-reassoc--h2')
+  PASSED test_a_changed_statement_inherits_nothing   (today's behaviour, kept)
+  3 failed, 1 passed
+
+--- red, the relation half ------------------------------------------------------------------------
+
+First run: mypy gate said `Unexpected keyword argument "relation" for "revise"` (6 errors in the
+test file) — a missing name, not red. The seam went in at today's behaviour (`revise` accepts
+`relation` and `relation_proof` and does nothing with them), then:
+
+$ uv run --frozen pytest gate/tests/test_revise_relation.py -q -p no:cacheprovider \
+    -k "carry_a_relation or claims_something or related_needs or command_takes"
+  FAILED test_a_revision_may_carry_a_relation_and_its_proof     E  assert 'authored' == 'variant'
+  FAILED test_a_label_that_claims_something_needs_its_proof     E  Failed: DID NOT RAISE CuratorError
+  FAILED test_related_needs_no_proof_and_no_relation_is_as_today E  assert 'authored' == 'variant'
+  FAILED test_the_command_takes_the_relation_flags              E  SystemExit: 2  (argparse: no flag)
+  4 failed
+
+--- the fix ----------------------------------------------------------------------------------------
+
+curator.revise(relation=, relation_proof=): a label not in RELATION_LABELS, a label needing proof
+without one, or a proof without a label are CuratorError before any record is built (nothing on
+disk, tested); with a label the proposal is origin "variant" with that label and proof (the
+scaffold writes the `-- relation:` line, F08-Q6); without one, the old node's origin, relation
+and Relation.lean, as before. cli: `--relation {related,partial,resolves,refutes}` and
+`--relation-proof <file>` on `revise`, read before any work (_read_flag_file).
+
+graph: PartialRecord.holder (the node whose directory holds the file; its own id except for an
+inherited partial); statement_identity(text, node_id) — the statement's text with its own
+Context import made id-free, hashed, because statement_hash can never agree across a revision
+(the import names `<node>-v<n>`); load_nodes folds, for every node whose `supersedes` chain
+keeps the same identity, the superseded nodes' own partials (before its own) and holes (after
+its own), reading a snapshot of each node's *own* records so the fold is order-independent
+(the first draft read the folded value and a revision of a revision got the partial twice —
+caught by test_inheritance_follows_the_supersedes_chain); is_hole_child reads the same chain
+from the tree (same_statement_chain), so staging (F07-R22), the post-merge reuse rule and the
+lemma backfill see an inherited hole as the revision's. products.decompositions_of resolves
+a partial's file, annex and gloss against its holder; outline_graph lists a partial under its
+holder only; lemma_backfill.candidates takes a node's own partials only. blocked_because
+needed no change: it already sets `node.holes` aside, and the revision's holes now include
+the inherited ones.
+
+Two test slips of mine on the way, both fixture facts: the fixture root carries a Proof.lean,
+so the partial's passing attestation read as its proof (F03-Q7 reads both together) — the
+decomposed fixture unlinks it, which is the live crux's shape; and a second `revise` in one
+test at the same DATE collided with the root's stale record (append-only: the refusal was
+right). The CLI refusal's key is `refused`, not `error` (read from cli._refused).
+
+--- green ------------------------------------------------------------------------------------------
+
+$ uv run --frozen pytest gate/tests/test_revise_relation.py gate/tests/test_target_routes.py -q
+  50 passed in 0.85s           (8 new tests + C's routes tests on the inherited rows)
+$ uv run --frozen pytest gate/tests/test_curator.py gate/tests/test_decompositions.py \
+    gate/tests/test_products.py gate/tests/test_lemma_backfill.py \
+    gate/tests/test_finding_revised_hole_parent.py -q
+  103 passed in 60.64s
+ruff check gate: All checks passed! (exit 0); ruff format --check gate: 454 files already
+formatted; mypy gate: Success: no issues found in 433 source files.
+
+--- the live recipe, rehearsed (scratchpad/rehearse.py, rehearse2.py; this branch's gate) --------
+
+Tree: `git -C ../open_proof_network_graph worktree add --detach <scratch>/graph-main origin/main`
+(8fcb13861, "gate: #799 pass"), copied without .git to <scratch>/graph-rehearsal; the sibling
+checkout was never edited; the worktree removed afterwards. The live crux: spec-a70fcca4,
+origin authored, status record `speculative`, proposed-for erdos-257, deps its four holes
+(h1–h3 proved, h4 ready), one merged partial (attestation 000783), no Proof.lean.
+
+1. Revision request (merged first as its own pull request, F08-R6), as written here:
+   targets/erdos-257/nodes/spec-a70fcca4/revisions/20261021T000000Z-thisisanameforsure.yaml
+     schema: revision-request/v1 · node: spec-a70fcca4 · contributor: thisisanameforsure
+     defect_class: other-with-exhibit   (no enum value names "relation"; see the Q entry)
+     evidence.text: D-8 v3.46 — statement unchanged; the crux becomes a refutes variant …
+2. The statement: spec-a70fcca4's Statement.lean with only its own Context import renamed,
+   `import Nodes.«spec-a70fcca4».Context` -> `import Nodes.«spec-a70fcca4-v2».Context`
+   (statement_identity equal: True).
+3. $ opn-gate revise --graph <graph> --target erdos-257 --author thisisanameforsure \
+       --date 2026-10-21T00:00:00Z spec-a70fcca4 --statement <that file> \
+       --request targets/erdos-257/nodes/spec-a70fcca4/revisions/20261021T000000Z-thisisanameforsure.yaml \
+       --relation refutes --relation-proof engineering/evidence/F08/task-44-relation.lean
+   exit 0; written: spec-a70fcca4-v2/{Context,META,Relation,Statement,Witness}.lean +
+   .gitkeeps, and spec-a70fcca4/status/20261021T000000Z-thisisanameforsure.yaml (superseded);
+   dependents stale: none. Relation.lean's first line: `-- relation: refutes`. META.yaml:
+   meta/v4, origin variant, deps the four holes, supersedes spec-a70fcca4.
+4. classify (in process, modes.classify over the written paths, author the curator):
+     mode "curator", node "spec-a70fcca4-v2", needs_admission true, needs_review false,
+     problems []   — the same as a plain revision of the same set (compared); admission then
+     runs the relation check on the real gate (Relation.lean imports Mathlib, under the pin).
+   (With the revision request in the same change set: `mode-mixed` — it is its own pull
+   request, as F08-R6 says.)
+5. products (graph.load_target + products.graph_doc, graph/v14), the revision's row:
+     node_id spec-a70fcca4-v2 · status ready · cause null · origin variant · relation refutes
+     deps [--h1, --h2, --h3, --h4] · holes (all four) · partials [(holder spec-a70fcca4,
+     attempts/20261020T203100Z-fable-1020-e257-b-partial.lean, (h1,h2,h3,h4))]
+     blocked_because (False, None)
+     decompositions: [{partial: attempts/20261020T203100Z-fable-1020-e257-b-partial.lean,
+       annex: null, holes: h1->--h1, h2->--h2, h3->--h3, h4->--h4,
+       approach: "the greedy walk for 1/2 … the open mathematics is one hole, that the walk
+       never stalls"}]
+     proposed_for: null   (the old node's pointer is not carried; see the Q entry)
+   statuses: spec-a70fcca4 superseded; --h1 --h2 --h3 proved; --h4 ready; -v2 ready.
+   old row unchanged: superseded, relation null, 1 decomposition (nothing rewritten).
+6. routes.read over that graph.json: one route for the revision, spec-a70fcca4-v2@1, holes
+   h1/h2/h3 proved, h4 ready; sets: s-f49b49e59c (the root's, erdos-257--h1/--h2) and
+   s-55f1f7418b with variant spec-a70fcca4-v2, statements the four holes, open [--h4],
+   routes [spec-a70fcca4-v2@1] — agent C's refutes side enumerated from the inherited route.
+
+Not run: products.generate end to end on the Mathlib target (needs the pinned image for a
+scan of the new node's tags; the row above is graph_doc's, which is what generate publishes).
+The pinned gate (the graph's current network pin) has neither `--relation` nor the
+derivation, so the live act needs the re-pin first: on the old pin the revision would read
+blocked on four deps with no route, which is the defect this task removes.
+
+--- final green, taken over after the building session stopped (2026-10-21) ------------------------
+
+Red evidence above was captured by the building session before it stopped; not re-run.
+Marker for every run: -m "not lean and not docker and not network and not harness".
+
+$ uv run --frozen pytest gate/tests/test_revise_relation.py gate/tests/test_curator.py \
+    gate/tests/test_products.py -q          (there is no gate/tests/test_graph.py)
+  79 passed in 9.58s                                                       exit 0
+$ uv run --frozen pytest gate/tests -q
+  3362 passed, 271 skipped, 261 deselected, 2 warnings in 437.21s          exit 0
+  (the skips are the sibling-graph tests: a worktree has no ../open_proof_network_graph)
+$ uv run --frozen pytest api/tests -q -k "revis or curator"
+  25 passed, 2168 deselected, 2 warnings in 28.13s                         exit 0
+$ uv run --frozen ruff check .            All checks passed!               exit 0
+$ uv run --frozen ruff format --check .   893 files already formatted      exit 0
+$ uv run --frozen mypy gate               Success: no issues found in 433 source files  exit 0
+
+Why lemma_backfill.py and outline_graph.py changed: load_nodes now folds an inherited partial
+into the revision's `partials`, so without a holder filter the same file would be listed twice:
+once under the superseded node that holds it, and once under the revision. The backfill would
+then propose a lemma edge for each, and the outline graph would draw each. Both now take a
+partial only under its holder (`holder in ("", n)`; an empty holder is a record built before
+the field existed).

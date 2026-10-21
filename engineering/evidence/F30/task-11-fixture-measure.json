@@ -1,0 +1,900 @@
+{
+ "1440": {
+  "rest": {
+   "links": [
+    {
+     "key": "spec-crux1>and-swap-reassoc--h3",
+     "kind": "band-link edge use",
+     "shown": false,
+     "lit": false,
+     "hasD": false,
+     "box": [
+      0,
+      0
+     ]
+    }
+   ],
+   "band": [
+    [
+     "spec-crux1",
+     "translate(16,16)",
+     false
+    ]
+   ],
+   "bandLines": 0,
+   "mainLit": [],
+   "mainHovering": false,
+   "trunks": [],
+   "selector": [
+    [
+     "sel/and-swap-reassoc@1",
+     "sel-node kind-leaf",
+     "Set 1 (proves): 2 open statements of 2 \u2014 via route 1 of and-swap-reassoc",
+     "rgb(210, 206, 253)"
+    ],
+    [
+     "sel/and-swap-reassoc@2",
+     "sel-node kind-leaf",
+     "Set 2 (proves): 0 open statements of 1 \u2014 via route 2 of and-swap-reassoc",
+     "rgb(210, 206, 253)"
+    ],
+    [
+     "sel",
+     "sel-node kind-node",
+     "and-swap-reassoc: 2 sets choose a route here",
+     "rgb(178, 182, 202)"
+    ]
+   ],
+   "selEdges": [
+    [
+     "sel/and-swap-reassoc@1",
+     "sel-edge",
+     "rgb(117, 121, 140)"
+    ],
+    [
+     "sel/and-swap-reassoc@2",
+     "sel-edge",
+     "rgb(117, 121, 140)"
+    ]
+   ],
+   "rows": [
+    [
+     "set-row side-proves",
+     "Set 1"
+    ],
+    [
+     "set-row side-proves",
+     "Set 2"
+    ]
+   ],
+   "kicker": "Ways to settle the problem A way to settle the problem: a sufficient set is a set of statements whose proofs would settle the problem's own statement, either proving it or refuting it through a variant whose relation the gate checked, with the closing proofs of the decomposed statements on the way still to submit: one choice of route at every fork. Each set says which way it settles the problem. The tree under this heading is the navigation device: select a set, a family of sets or one route choice and the drawing shows just that part. protocol: sufficient sets (D-25 v3.40, v3.46; F27)",
+   "cue": "Each set proves the problem or refutes it. Select a node or an edge to filter the drawing to that part of the proof; select it again to come back.",
+   "count": "2 ways to settle the problem, in the record\u2019s order. Fewest open first",
+   "key": [
+    "proved",
+    "open",
+    "blocked",
+    "route: all of its holes",
+    "any one route closes it",
+    "closable",
+    "depends on",
+    "used lemma",
+    "proposed statement"
+   ],
+   "overflow": [],
+   "pills": 7,
+   "hash": "",
+   "scrollWidth": 1440,
+   "innerWidth": 1440,
+   "view": "routes"
+  },
+  "hovered": {
+   "links": [
+    {
+     "key": "spec-crux1>and-swap-reassoc--h3",
+     "kind": "band-link edge use lit",
+     "shown": true,
+     "lit": true,
+     "hasD": true,
+     "box": [
+      72.00003051757812,
+      117.4000015258789
+     ]
+    }
+   ],
+   "band": [
+    [
+     "spec-crux1",
+     "translate(16,16)",
+     true
+    ]
+   ],
+   "bandLines": 0,
+   "mainLit": [
+    "and-swap-reassoc--h3"
+   ],
+   "mainHovering": true,
+   "trunks": [],
+   "selector": [
+    [
+     "sel/and-swap-reassoc@1",
+     "sel-node kind-leaf",
+     "Set 1 (proves): 2 open statements of 2 \u2014 via route 1 of and-swap-reassoc",
+     "rgb(210, 206, 253)"
+    ],
+    [
+     "sel/and-swap-reassoc@2",
+     "sel-node kind-leaf",
+     "Set 2 (proves): 0 open statements of 1 \u2014 via route 2 of and-swap-reassoc",
+     "rgb(210, 206, 253)"
+    ],
+    [
+     "sel",
+     "sel-node kind-node",
+     "and-swap-reassoc: 2 sets choose a route here",
+     "rgb(178, 182, 202)"
+    ]
+   ],
+   "selEdges": [
+    [
+     "sel/and-swap-reassoc@1",
+     "sel-edge",
+     "rgb(117, 121, 140)"
+    ],
+    [
+     "sel/and-swap-reassoc@2",
+     "sel-edge",
+     "rgb(117, 121, 140)"
+    ]
+   ],
+   "rows": [
+    [
+     "set-row side-proves",
+     "Set 1"
+    ],
+    [
+     "set-row side-proves",
+     "Set 2"
+    ]
+   ],
+   "kicker": "Ways to settle the problem A way to settle the problem: a sufficient set is a set of statements whose proofs would settle the problem's own statement, either proving it or refuting it through a variant whose relation the gate checked, with the closing proofs of the decomposed statements on the way still to submit: one choice of route at every fork. Each set says which way it settles the problem. The tree under this heading is the navigation device: select a set, a family of sets or one route choice and the drawing shows just that part. protocol: sufficient sets (D-25 v3.40, v3.46; F27)",
+   "cue": "Each set proves the problem or refutes it. Select a node or an edge to filter the drawing to that part of the proof; select it again to come back.",
+   "count": "2 ways to settle the problem, in the record\u2019s order. Fewest open first",
+   "key": [
+    "proved",
+    "open",
+    "blocked",
+    "route: all of its holes",
+    "any one route closes it",
+    "closable",
+    "depends on",
+    "used lemma",
+    "proposed statement"
+   ],
+   "overflow": [],
+   "pills": 7,
+   "hash": "",
+   "scrollWidth": 1440,
+   "innerWidth": 1440,
+   "view": "routes"
+  },
+  "hovered_pill": "spec-crux1",
+  "pinned": {
+   "links": [
+    {
+     "key": "spec-crux1>and-swap-reassoc--h3",
+     "kind": "band-link edge use lit",
+     "shown": true,
+     "lit": true,
+     "hasD": true,
+     "box": [
+      72.00003051757812,
+      117.4000015258789
+     ]
+    }
+   ],
+   "band": [
+    [
+     "spec-crux1",
+     "translate(16,16)",
+     true
+    ]
+   ],
+   "bandLines": 0,
+   "mainLit": [
+    "and-swap-reassoc--h3"
+   ],
+   "mainHovering": true,
+   "trunks": [],
+   "selector": [
+    [
+     "sel/and-swap-reassoc@1",
+     "sel-node kind-leaf",
+     "Set 1 (proves): 2 open statements of 2 \u2014 via route 1 of and-swap-reassoc",
+     "rgb(210, 206, 253)"
+    ],
+    [
+     "sel/and-swap-reassoc@2",
+     "sel-node kind-leaf",
+     "Set 2 (proves): 0 open statements of 1 \u2014 via route 2 of and-swap-reassoc",
+     "rgb(210, 206, 253)"
+    ],
+    [
+     "sel",
+     "sel-node kind-node",
+     "and-swap-reassoc: 2 sets choose a route here",
+     "rgb(178, 182, 202)"
+    ]
+   ],
+   "selEdges": [
+    [
+     "sel/and-swap-reassoc@1",
+     "sel-edge",
+     "rgb(117, 121, 140)"
+    ],
+    [
+     "sel/and-swap-reassoc@2",
+     "sel-edge",
+     "rgb(117, 121, 140)"
+    ]
+   ],
+   "rows": [
+    [
+     "set-row side-proves",
+     "Set 1"
+    ],
+    [
+     "set-row side-proves",
+     "Set 2"
+    ]
+   ],
+   "kicker": "Ways to settle the problem A way to settle the problem: a sufficient set is a set of statements whose proofs would settle the problem's own statement, either proving it or refuting it through a variant whose relation the gate checked, with the closing proofs of the decomposed statements on the way still to submit: one choice of route at every fork. Each set says which way it settles the problem. The tree under this heading is the navigation device: select a set, a family of sets or one route choice and the drawing shows just that part. protocol: sufficient sets (D-25 v3.40, v3.46; F27)",
+   "cue": "Each set proves the problem or refutes it. Select a node or an edge to filter the drawing to that part of the proof; select it again to come back.",
+   "count": "2 ways to settle the problem, in the record\u2019s order. Fewest open first",
+   "key": [
+    "proved",
+    "open",
+    "blocked",
+    "route: all of its holes",
+    "any one route closes it",
+    "closable",
+    "depends on",
+    "used lemma",
+    "proposed statement"
+   ],
+   "overflow": [],
+   "pills": 7,
+   "hash": "#node=spec-crux1&band=spec-crux1",
+   "scrollWidth": 1440,
+   "innerWidth": 1440,
+   "view": "routes"
+  },
+  "on_leaf": {
+   "links": [
+    {
+     "key": "spec-crux1>and-swap-reassoc--h3",
+     "kind": "band-link edge use",
+     "shown": false,
+     "lit": false,
+     "hasD": false,
+     "box": [
+      0,
+      0
+     ]
+    }
+   ],
+   "band": [
+    [
+     "spec-crux1",
+     "translate(16,16)",
+     true
+    ]
+   ],
+   "bandLines": 0,
+   "mainLit": [],
+   "mainHovering": false,
+   "trunks": [],
+   "selector": [
+    [
+     "sel/and-swap-reassoc@1",
+     "sel-node kind-leaf selected",
+     "Set 1 (proves): 2 open statements of 2 \u2014 via route 1 of and-swap-reassoc",
+     "rgb(242, 181, 68)"
+    ],
+    [
+     "sel/and-swap-reassoc@2",
+     "sel-node kind-leaf",
+     "Set 2 (proves): 0 open statements of 1 \u2014 via route 2 of and-swap-reassoc",
+     "rgb(210, 206, 253)"
+    ],
+    [
+     "sel",
+     "sel-node kind-node",
+     "and-swap-reassoc: 2 sets choose a route here",
+     "rgb(178, 182, 202)"
+    ]
+   ],
+   "selEdges": [
+    [
+     "sel/and-swap-reassoc@1",
+     "sel-edge",
+     "rgb(117, 121, 140)"
+    ],
+    [
+     "sel/and-swap-reassoc@2",
+     "sel-edge",
+     "rgb(117, 121, 140)"
+    ]
+   ],
+   "rows": [
+    [
+     "set-row side-proves",
+     "Set 1"
+    ],
+    [
+     "set-row side-proves",
+     "Set 2whichProvedh3h3spec-crux1Assembliesand-swap-reassoc"
+    ]
+   ],
+   "kicker": "Ways to settle the problem A way to settle the problem: a sufficient set is a set of statements whose proofs would settle the problem's own statement, either proving it or refuting it through a variant whose relation the gate checked, with the closing proofs of the decomposed statements on the way still to submit: one choice of route at every fork. Each set says which way it settles the problem. The tree under this heading is the navigation device: select a set, a family of sets or one route choice and the drawing shows just that part. protocol: sufficient sets (D-25 v3.40, v3.46; F27)",
+   "cue": "Each set proves the problem or refutes it. Select a node or an edge to filter the drawing to that part of the proof; select it again to come back.",
+   "count": "2 ways to settle the problem, in the record\u2019s order. showing 1 of 2Fewest open first",
+   "key": [
+    "proved",
+    "open",
+    "blocked",
+    "route: all of its holes",
+    "any one route closes it",
+    "closable",
+    "depends on",
+    "used lemma",
+    "proposed statement"
+   ],
+   "overflow": [],
+   "pills": 7,
+   "hash": "#node=spec-crux1&view=sel%2Fand-swap-reassoc%401&band=spec-crux1",
+   "scrollWidth": 1440,
+   "innerWidth": 1440,
+   "view": "sel/and-swap-reassoc@1"
+  },
+  "band_still": true,
+  "unpinned": {
+   "links": [
+    {
+     "key": "spec-crux1>and-swap-reassoc--h3",
+     "kind": "band-link edge use",
+     "shown": false,
+     "lit": false,
+     "hasD": false,
+     "box": [
+      0,
+      0
+     ]
+    }
+   ],
+   "band": [
+    [
+     "spec-crux1",
+     "translate(16,16)",
+     false
+    ]
+   ],
+   "bandLines": 0,
+   "mainLit": [],
+   "mainHovering": false,
+   "trunks": [],
+   "selector": [
+    [
+     "sel/and-swap-reassoc@1",
+     "sel-node kind-leaf",
+     "Set 1 (proves): 2 open statements of 2 \u2014 via route 1 of and-swap-reassoc",
+     "rgb(210, 206, 253)"
+    ],
+    [
+     "sel/and-swap-reassoc@2",
+     "sel-node kind-leaf",
+     "Set 2 (proves): 0 open statements of 1 \u2014 via route 2 of and-swap-reassoc",
+     "rgb(210, 206, 253)"
+    ],
+    [
+     "sel",
+     "sel-node kind-node",
+     "and-swap-reassoc: 2 sets choose a route here",
+     "rgb(178, 182, 202)"
+    ]
+   ],
+   "selEdges": [
+    [
+     "sel/and-swap-reassoc@1",
+     "sel-edge",
+     "rgb(117, 121, 140)"
+    ],
+    [
+     "sel/and-swap-reassoc@2",
+     "sel-edge",
+     "rgb(117, 121, 140)"
+    ]
+   ],
+   "rows": [
+    [
+     "set-row side-proves",
+     "Set 1"
+    ],
+    [
+     "set-row side-proves",
+     "Set 2"
+    ]
+   ],
+   "kicker": "Ways to settle the problem A way to settle the problem: a sufficient set is a set of statements whose proofs would settle the problem's own statement, either proving it or refuting it through a variant whose relation the gate checked, with the closing proofs of the decomposed statements on the way still to submit: one choice of route at every fork. Each set says which way it settles the problem. The tree under this heading is the navigation device: select a set, a family of sets or one route choice and the drawing shows just that part. protocol: sufficient sets (D-25 v3.40, v3.46; F27)",
+   "cue": "Each set proves the problem or refutes it. Select a node or an edge to filter the drawing to that part of the proof; select it again to come back.",
+   "count": "2 ways to settle the problem, in the record\u2019s order. Fewest open first",
+   "key": [
+    "proved",
+    "open",
+    "blocked",
+    "route: all of its holes",
+    "any one route closes it",
+    "closable",
+    "depends on",
+    "used lemma",
+    "proposed statement"
+   ],
+   "overflow": [],
+   "pills": 7,
+   "hash": "#node=spec-crux1",
+   "scrollWidth": 1440,
+   "innerWidth": 1440,
+   "view": "routes"
+  },
+  "at_rest_no_link_visible": true
+ },
+ "390": {
+  "rest": {
+   "links": [
+    {
+     "key": "spec-crux1>and-swap-reassoc--h3",
+     "kind": "band-link edge use",
+     "shown": false,
+     "lit": false,
+     "hasD": false,
+     "box": [
+      0,
+      0
+     ]
+    }
+   ],
+   "band": [
+    [
+     "spec-crux1",
+     "translate(16,16)",
+     false
+    ]
+   ],
+   "bandLines": 0,
+   "mainLit": [],
+   "mainHovering": false,
+   "trunks": [],
+   "selector": [
+    [
+     "sel/and-swap-reassoc@1",
+     "sel-node kind-leaf",
+     "Set 1 (proves): 2 open statements of 2 \u2014 via route 1 of and-swap-reassoc",
+     "rgb(210, 206, 253)"
+    ],
+    [
+     "sel/and-swap-reassoc@2",
+     "sel-node kind-leaf",
+     "Set 2 (proves): 0 open statements of 1 \u2014 via route 2 of and-swap-reassoc",
+     "rgb(210, 206, 253)"
+    ],
+    [
+     "sel",
+     "sel-node kind-node",
+     "and-swap-reassoc: 2 sets choose a route here",
+     "rgb(178, 182, 202)"
+    ]
+   ],
+   "selEdges": [
+    [
+     "sel/and-swap-reassoc@1",
+     "sel-edge",
+     "rgb(117, 121, 140)"
+    ],
+    [
+     "sel/and-swap-reassoc@2",
+     "sel-edge",
+     "rgb(117, 121, 140)"
+    ]
+   ],
+   "rows": [
+    [
+     "set-row side-proves",
+     "Set 1"
+    ],
+    [
+     "set-row side-proves",
+     "Set 2"
+    ]
+   ],
+   "kicker": "Ways to settle the problem A way to settle the problem: a sufficient set is a set of statements whose proofs would settle the problem's own statement, either proving it or refuting it through a variant whose relation the gate checked, with the closing proofs of the decomposed statements on the way still to submit: one choice of route at every fork. Each set says which way it settles the problem. The tree under this heading is the navigation device: select a set, a family of sets or one route choice and the drawing shows just that part. protocol: sufficient sets (D-25 v3.40, v3.46; F27)",
+   "cue": "Each set proves the problem or refutes it. Select a node or an edge to filter the drawing to that part of the proof; select it again to come back.",
+   "count": "2 ways to settle the problem, in the record\u2019s order. Fewest open first",
+   "key": [
+    "proved",
+    "open",
+    "blocked",
+    "route: all of its holes",
+    "any one route closes it",
+    "closable",
+    "depends on",
+    "used lemma",
+    "proposed statement"
+   ],
+   "overflow": [],
+   "pills": 7,
+   "hash": "",
+   "scrollWidth": 390,
+   "innerWidth": 390,
+   "view": "routes"
+  },
+  "hovered": {
+   "links": [
+    {
+     "key": "spec-crux1>and-swap-reassoc--h3",
+     "kind": "band-link edge use lit",
+     "shown": true,
+     "lit": true,
+     "hasD": true,
+     "box": [
+      158.10000610351562,
+      161.6000213623047
+     ]
+    }
+   ],
+   "band": [
+    [
+     "spec-crux1",
+     "translate(16,16)",
+     true
+    ]
+   ],
+   "bandLines": 0,
+   "mainLit": [
+    "and-swap-reassoc--h3"
+   ],
+   "mainHovering": true,
+   "trunks": [],
+   "selector": [
+    [
+     "sel/and-swap-reassoc@1",
+     "sel-node kind-leaf",
+     "Set 1 (proves): 2 open statements of 2 \u2014 via route 1 of and-swap-reassoc",
+     "rgb(210, 206, 253)"
+    ],
+    [
+     "sel/and-swap-reassoc@2",
+     "sel-node kind-leaf",
+     "Set 2 (proves): 0 open statements of 1 \u2014 via route 2 of and-swap-reassoc",
+     "rgb(210, 206, 253)"
+    ],
+    [
+     "sel",
+     "sel-node kind-node",
+     "and-swap-reassoc: 2 sets choose a route here",
+     "rgb(178, 182, 202)"
+    ]
+   ],
+   "selEdges": [
+    [
+     "sel/and-swap-reassoc@1",
+     "sel-edge",
+     "rgb(117, 121, 140)"
+    ],
+    [
+     "sel/and-swap-reassoc@2",
+     "sel-edge",
+     "rgb(117, 121, 140)"
+    ]
+   ],
+   "rows": [
+    [
+     "set-row side-proves",
+     "Set 1"
+    ],
+    [
+     "set-row side-proves",
+     "Set 2"
+    ]
+   ],
+   "kicker": "Ways to settle the problem A way to settle the problem: a sufficient set is a set of statements whose proofs would settle the problem's own statement, either proving it or refuting it through a variant whose relation the gate checked, with the closing proofs of the decomposed statements on the way still to submit: one choice of route at every fork. Each set says which way it settles the problem. The tree under this heading is the navigation device: select a set, a family of sets or one route choice and the drawing shows just that part. protocol: sufficient sets (D-25 v3.40, v3.46; F27)",
+   "cue": "Each set proves the problem or refutes it. Select a node or an edge to filter the drawing to that part of the proof; select it again to come back.",
+   "count": "2 ways to settle the problem, in the record\u2019s order. Fewest open first",
+   "key": [
+    "proved",
+    "open",
+    "blocked",
+    "route: all of its holes",
+    "any one route closes it",
+    "closable",
+    "depends on",
+    "used lemma",
+    "proposed statement"
+   ],
+   "overflow": [],
+   "pills": 7,
+   "hash": "",
+   "scrollWidth": 390,
+   "innerWidth": 390,
+   "view": "routes"
+  },
+  "hovered_pill": "spec-crux1",
+  "pinned": {
+   "links": [
+    {
+     "key": "spec-crux1>and-swap-reassoc--h3",
+     "kind": "band-link edge use lit",
+     "shown": true,
+     "lit": true,
+     "hasD": true,
+     "box": [
+      158.10000610351562,
+      161.6000213623047
+     ]
+    }
+   ],
+   "band": [
+    [
+     "spec-crux1",
+     "translate(16,16)",
+     true
+    ]
+   ],
+   "bandLines": 0,
+   "mainLit": [
+    "and-swap-reassoc--h3"
+   ],
+   "mainHovering": true,
+   "trunks": [],
+   "selector": [
+    [
+     "sel/and-swap-reassoc@1",
+     "sel-node kind-leaf",
+     "Set 1 (proves): 2 open statements of 2 \u2014 via route 1 of and-swap-reassoc",
+     "rgb(210, 206, 253)"
+    ],
+    [
+     "sel/and-swap-reassoc@2",
+     "sel-node kind-leaf",
+     "Set 2 (proves): 0 open statements of 1 \u2014 via route 2 of and-swap-reassoc",
+     "rgb(210, 206, 253)"
+    ],
+    [
+     "sel",
+     "sel-node kind-node",
+     "and-swap-reassoc: 2 sets choose a route here",
+     "rgb(178, 182, 202)"
+    ]
+   ],
+   "selEdges": [
+    [
+     "sel/and-swap-reassoc@1",
+     "sel-edge",
+     "rgb(117, 121, 140)"
+    ],
+    [
+     "sel/and-swap-reassoc@2",
+     "sel-edge",
+     "rgb(117, 121, 140)"
+    ]
+   ],
+   "rows": [
+    [
+     "set-row side-proves",
+     "Set 1"
+    ],
+    [
+     "set-row side-proves",
+     "Set 2"
+    ]
+   ],
+   "kicker": "Ways to settle the problem A way to settle the problem: a sufficient set is a set of statements whose proofs would settle the problem's own statement, either proving it or refuting it through a variant whose relation the gate checked, with the closing proofs of the decomposed statements on the way still to submit: one choice of route at every fork. Each set says which way it settles the problem. The tree under this heading is the navigation device: select a set, a family of sets or one route choice and the drawing shows just that part. protocol: sufficient sets (D-25 v3.40, v3.46; F27)",
+   "cue": "Each set proves the problem or refutes it. Select a node or an edge to filter the drawing to that part of the proof; select it again to come back.",
+   "count": "2 ways to settle the problem, in the record\u2019s order. Fewest open first",
+   "key": [
+    "proved",
+    "open",
+    "blocked",
+    "route: all of its holes",
+    "any one route closes it",
+    "closable",
+    "depends on",
+    "used lemma",
+    "proposed statement"
+   ],
+   "overflow": [],
+   "pills": 7,
+   "hash": "#node=spec-crux1&band=spec-crux1",
+   "scrollWidth": 390,
+   "innerWidth": 390,
+   "view": "routes"
+  },
+  "on_leaf": {
+   "links": [
+    {
+     "key": "spec-crux1>and-swap-reassoc--h3",
+     "kind": "band-link edge use",
+     "shown": false,
+     "lit": false,
+     "hasD": false,
+     "box": [
+      0,
+      0
+     ]
+    }
+   ],
+   "band": [
+    [
+     "spec-crux1",
+     "translate(16,16)",
+     true
+    ]
+   ],
+   "bandLines": 0,
+   "mainLit": [],
+   "mainHovering": false,
+   "trunks": [],
+   "selector": [
+    [
+     "sel/and-swap-reassoc@1",
+     "sel-node kind-leaf selected",
+     "Set 1 (proves): 2 open statements of 2 \u2014 via route 1 of and-swap-reassoc",
+     "rgb(242, 181, 68)"
+    ],
+    [
+     "sel/and-swap-reassoc@2",
+     "sel-node kind-leaf",
+     "Set 2 (proves): 0 open statements of 1 \u2014 via route 2 of and-swap-reassoc",
+     "rgb(210, 206, 253)"
+    ],
+    [
+     "sel",
+     "sel-node kind-node",
+     "and-swap-reassoc: 2 sets choose a route here",
+     "rgb(178, 182, 202)"
+    ]
+   ],
+   "selEdges": [
+    [
+     "sel/and-swap-reassoc@1",
+     "sel-edge",
+     "rgb(117, 121, 140)"
+    ],
+    [
+     "sel/and-swap-reassoc@2",
+     "sel-edge",
+     "rgb(117, 121, 140)"
+    ]
+   ],
+   "rows": [
+    [
+     "set-row side-proves",
+     "Set 1"
+    ],
+    [
+     "set-row side-proves",
+     "Set 2whichProvedh3h3spec-crux1Assembliesand-swap-reassoc"
+    ]
+   ],
+   "kicker": "Ways to settle the problem A way to settle the problem: a sufficient set is a set of statements whose proofs would settle the problem's own statement, either proving it or refuting it through a variant whose relation the gate checked, with the closing proofs of the decomposed statements on the way still to submit: one choice of route at every fork. Each set says which way it settles the problem. The tree under this heading is the navigation device: select a set, a family of sets or one route choice and the drawing shows just that part. protocol: sufficient sets (D-25 v3.40, v3.46; F27)",
+   "cue": "Each set proves the problem or refutes it. Select a node or an edge to filter the drawing to that part of the proof; select it again to come back.",
+   "count": "2 ways to settle the problem, in the record\u2019s order. showing 1 of 2Fewest open first",
+   "key": [
+    "proved",
+    "open",
+    "blocked",
+    "route: all of its holes",
+    "any one route closes it",
+    "closable",
+    "depends on",
+    "used lemma",
+    "proposed statement"
+   ],
+   "overflow": [],
+   "pills": 7,
+   "hash": "#node=spec-crux1&view=sel%2Fand-swap-reassoc%401&band=spec-crux1",
+   "scrollWidth": 390,
+   "innerWidth": 390,
+   "view": "sel/and-swap-reassoc@1"
+  },
+  "band_still": true,
+  "unpinned": {
+   "links": [
+    {
+     "key": "spec-crux1>and-swap-reassoc--h3",
+     "kind": "band-link edge use",
+     "shown": false,
+     "lit": false,
+     "hasD": false,
+     "box": [
+      0,
+      0
+     ]
+    }
+   ],
+   "band": [
+    [
+     "spec-crux1",
+     "translate(16,16)",
+     false
+    ]
+   ],
+   "bandLines": 0,
+   "mainLit": [],
+   "mainHovering": false,
+   "trunks": [],
+   "selector": [
+    [
+     "sel/and-swap-reassoc@1",
+     "sel-node kind-leaf",
+     "Set 1 (proves): 2 open statements of 2 \u2014 via route 1 of and-swap-reassoc",
+     "rgb(210, 206, 253)"
+    ],
+    [
+     "sel/and-swap-reassoc@2",
+     "sel-node kind-leaf",
+     "Set 2 (proves): 0 open statements of 1 \u2014 via route 2 of and-swap-reassoc",
+     "rgb(210, 206, 253)"
+    ],
+    [
+     "sel",
+     "sel-node kind-node",
+     "and-swap-reassoc: 2 sets choose a route here",
+     "rgb(178, 182, 202)"
+    ]
+   ],
+   "selEdges": [
+    [
+     "sel/and-swap-reassoc@1",
+     "sel-edge",
+     "rgb(117, 121, 140)"
+    ],
+    [
+     "sel/and-swap-reassoc@2",
+     "sel-edge",
+     "rgb(117, 121, 140)"
+    ]
+   ],
+   "rows": [
+    [
+     "set-row side-proves",
+     "Set 1"
+    ],
+    [
+     "set-row side-proves",
+     "Set 2"
+    ]
+   ],
+   "kicker": "Ways to settle the problem A way to settle the problem: a sufficient set is a set of statements whose proofs would settle the problem's own statement, either proving it or refuting it through a variant whose relation the gate checked, with the closing proofs of the decomposed statements on the way still to submit: one choice of route at every fork. Each set says which way it settles the problem. The tree under this heading is the navigation device: select a set, a family of sets or one route choice and the drawing shows just that part. protocol: sufficient sets (D-25 v3.40, v3.46; F27)",
+   "cue": "Each set proves the problem or refutes it. Select a node or an edge to filter the drawing to that part of the proof; select it again to come back.",
+   "count": "2 ways to settle the problem, in the record\u2019s order. Fewest open first",
+   "key": [
+    "proved",
+    "open",
+    "blocked",
+    "route: all of its holes",
+    "any one route closes it",
+    "closable",
+    "depends on",
+    "used lemma",
+    "proposed statement"
+   ],
+   "overflow": [],
+   "pills": 7,
+   "hash": "#node=spec-crux1",
+   "scrollWidth": 390,
+   "innerWidth": 390,
+   "view": "routes"
+  },
+  "at_rest_no_link_visible": true
+ }
+}

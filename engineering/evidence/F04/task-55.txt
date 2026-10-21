@@ -1,0 +1,57 @@
+F04-T55 — the refuting side on the problem page: a second colour for the refutes trunk and the
+selector branch beneath it, the key naming it, "ways to settle the problem", each set saying which
+way, and a root refuted through a variant reading "disproved" with "a refuting variant is proved
+on the record" (decisions v3.46: D-25, D-30, D-12). Built with F30-T11 on branch f30-t11; the two
+share render.py, one_view.py, dag.py, site.css and graph.js, so they are one commit.
+
+== 1. Red ==
+
+The 20-test red run of test_crux_band.py + test_refutes_site.py is in
+engineering/evidence/F30/task-11.txt §2 (the F04-T55 half: the --refute token, both trunks, the
+key, the selector's side fork, the table's side, the words, RELATION_ROLES, states.html,
+resolution_record).
+
+Added by the second agent after a live render of erdos-257 with the root mocked refuted showed
+the page's own words still saying "counterexample" in two places the methods' tests did not
+reach (the root's panel line and the key's "refuted" card), red first:
+  test_refutes_site.py::test_the_page_itself_says_disproved_by_a_refuting_variant
+  E       AssertionError: <p class="how-line">Refuted by a counterexample.</p>
+  1 failed, 1 passed
+Fix: how_block names the variant's proof for the root refuted through one ("Refuted: a refuting
+variant is proved on the record."); PROBLEM_STATUS_DEFS["disproved"] and the "refuted" glossary
+card name both ways (D-12 v3.46's table: "at the root, also by a proved refutes variant").
+
+== 2. Green ==
+
+uv run --frozen --with playwright python -m pytest site/tests -q -m "not lean and not docker and not network and not harness"
+3 failed, 850 passed — the same three pre-existing browser failures as on ae327a59 (see F30
+task-11.txt §4). test_refutes_site.py alone: 13 passed.
+ruff check, ruff format --check, mypy site: exit 0 each.
+Golden docs/index.html regenerated with test_render.write_goldens (only that golden moved).
+
+== 3. Screenshots (task-55-shoot.py, live erdos-257 at graph 8fcb13861, MOCKED) ==
+
+Mock 1 (task-55-erdos-257-*): spec-a70fcca4 given relation: refutes, schema graph/v14.
+Mock 2 (task-55-erdos-257-refuted-*): additionally spec-a70fcca4 and its open hole proved, the
+root refuted, and targets/index.json's entry resolved and not claimable.
+
+Measured (task-55-erdos-257-measure.json, both widths):
+  refuting leaf selected → view sel/refutes, shown: erdos-257, spec-a70fcca4, its four holes
+  trunk "edge relation refutes" shown, stroke rgb(59,191,178) = --refute #3bbfb2
+  selector edges: sel/proves rgb(117,121,140) (the ordinary grey), sel/refutes rgb(59,191,178)
+  table rows: "set-row side-proves" Set 1; "set-row side-refutes" Set 2 refutes
+  page scroll 1440/1440 and 390/390
+Measured (task-55-erdos-257-refuted-measure.json, both widths):
+  head: "Disproved: a refuting variant is proved on the record, so its statement no longer
+         accepts work."
+  root panel: "Refuted: a refuting variant is proved on the record."
+
+- task-55-erdos-257-1440-refuting-set.png: Set 2 selected in the selector (amber): the root, the
+  teal trunk down to spec-a70fcca4, its route's four holes (three proved, the open core); the band
+  stays below unchanged.
+- task-55-erdos-257-{1440,390}-selector.png: the top fork by side, the refuting edge teal.
+- task-55-erdos-257-{1440,390}-table.png: "2 ways to settle the problem", Set 2 with a teal
+  "refutes" pill (shown after the selection filtered the table to one row).
+- task-55-erdos-257-refuted-{1440,390}-head.png: the problem head: "disproved" tag, the
+  DISPROVED stage, the sentence naming the refuting variant; the root's panel shows "refuted";
+  statements keep their status colours, only the trunk is teal.

@@ -25,6 +25,11 @@
   --warn: #d9a441;
   --bad: #e07a7a;
   --select: #f2b544; /* F30-T10: a selected node or edge in the sufficient-sets tree */
+  /* F04-T55 (D-25 v3.46): the refuting side — the trunk from a refutes variant into the root and
+     the selector branch beneath it. A teal apart from the accent, the amber selection, the
+     literature marks and the bad/warn reds, readable on this dark ground and on a white one.
+     Statements never wear it: a statement is not refuting by itself. */
+  --refute: #3bbfb2;
   /* F04-T54 (D-25 v3.45): the literature mark's three statuses — none a proof-status colour,
      each reading on this dark ground and on a white one. */
   --lit-open: #4fa3e3;
@@ -115,7 +120,6 @@ main > .crumbs, main > h1:first-child { margin-top: calc(var(--s8) * 1.6); }
 .dot-not-needed { border-color: var(--n600); opacity: .4; }
 .dot-use { width: 16px; height: 0; border: 0; border-top: 2px dashed var(--n500); border-radius: 0; vertical-align: 3px; }
 .dot-unmeasured { border-color: var(--n500); border-style: dotted; }
-.dot-proposed-for { width: 16px; height: 0; border: 0; border-top: 2px dotted var(--accent-300); border-radius: 0; vertical-align: 3px; }
 /* F04-T39: the dash-dot of a lemma's line, drawn as a gradient since a border cannot be one */
 .dot-lemma { width: 16px; height: 2px; border: 0; border-radius: 0; vertical-align: 3px; background: repeating-linear-gradient(to right, var(--n400) 0 7px, transparent 7px 11px, var(--n400) 11px 12.5px, transparent 12.5px 16px); }
 .stages { display: inline-flex; gap: var(--s3); flex-wrap: wrap; font-size: 12.5px; }
@@ -299,7 +303,22 @@ main > .crumbs, main > h1:first-child { margin-top: calc(var(--s8) * 1.6); }
 .split-lean .split-link { margin: var(--s2) 0 0; font-size: 12px; }
 .hole-of { width: 100%; font-size: 13px; color: var(--n300); margin: 0; border-left: 2px solid var(--accent-300); padding-left: var(--s4); overflow-wrap: anywhere; }
 .dot-outline { border-radius: 3px; border-color: var(--accent-300); }
-.dag .edge.proposed { stroke: var(--accent-300); stroke-dasharray: 1.5 4; stroke-linecap: round; }
+/* F30-T11 (D-14 v3.26 as amended by v3.46): the band of proposed statements under the drawing, a
+   drawing of its own that no selection moves; the key's swatch is a small outlined pill. Its lines
+   into the tree (.band-link, in an overlay over the card) exist only while lit: no d at rest. */
+.dot-proposed-for { width: 16px; height: 9px; border: 1px solid var(--n500); border-radius: 5px; }
+.band-wrap { position: relative; margin-top: var(--s6); padding-top: var(--s4); border-top: 1px dashed var(--divider); }
+.band-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--s2) var(--s4); }
+.band-head .kicker { color: var(--n400); }
+.band-head .band-cue { margin: 0; font-size: 12.5px; color: var(--n400); }
+.band-scroll { overflow-x: auto; padding: var(--s4) 0 0; }
+.dag.band { margin: 0 auto; }
+.band-links { position: absolute; left: 0; top: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+.band-link { display: none; fill: none; stroke: var(--accent-300); stroke-width: 2; }
+.band-link.lit { display: block; }
+.band-link.use { stroke-dasharray: 7 4; }
+.band-link.lemma { stroke-dasharray: 7 4 1.5 4; stroke-linecap: round; }
+.dag.band .node.pinned rect.pill { stroke: var(--accent); stroke-width: 1.5; }
 /* F04-T39 (D-12 v3.38): a lemma's line is dash-dot — a dash, a gap, a dot, a gap — which neither the
    dashed use (7 4) nor the dotted pointer (1.5 4) draws, in either theme; the key's swatch repeats it. */
 .dag .edge.lemma { stroke: var(--n500); stroke-dasharray: 7 4 1.5 4; stroke-linecap: round; }
@@ -318,6 +337,12 @@ main > .crumbs, main > h1:first-child { margin-top: calc(var(--s8) * 1.6); }
 .dag-toggle:hover, .dag-toggle:focus-visible { border-color: var(--accent); }
 .dag-toggle[aria-pressed="true"] { border-color: var(--accent); color: var(--text); }
 .dag-caption { position: absolute; left: var(--s6); bottom: var(--s4); font-size: 11.5px; color: var(--n400); }
+/* F30-T11: on a phone the caption wraps to three lines, taller than the card's bottom padding, and
+   sat over the band's last row; there it flows under the drawing instead. */
+@media (max-width: 700px) {
+  .dag-wrap { padding-bottom: var(--s6); }
+  .dag-caption { position: static; display: block; margin-top: var(--s4); }
+}
 .panels { display: flex; flex-direction: column; }
 .panel { gap: var(--s4); align-items: flex-start; }
 .panel-id { font-family: var(--mono); font-size: 18px; overflow-wrap: anywhere; }
@@ -1077,6 +1102,17 @@ th[aria-sort="descending"] .routes-sort::after { content: " ↓"; }
 .dot-route-or { border: 1.5px solid var(--text); border-radius: 1px; transform: rotate(45deg); width: 8px; height: 8px; }
 .dot-route-dead { border: 1.5px dashed var(--bad); }
 .dot-closable { border: 0; background: var(--accent-300); border-radius: 1px; width: 8px; height: 8px; }
+/* F04-T55 (D-30 v3.46): the relation trunks from a variant into the root — solid and a little
+   heavier than a dependency; the refuting one in --refute, with the selector branch beneath it. */
+.dag .edge.relation.resolves { stroke: var(--n500); stroke-width: 2; }
+.dag .edge.relation.refutes { stroke: var(--refute); stroke-width: 2; }
+.dag .edge.relation.refutes.lit { stroke: var(--refute); }
+.dot-relation-resolves { width: 16px; height: 0; border: 0; border-top: 2px solid var(--n500); border-radius: 0; vertical-align: 3px; }
+.dot-relation-refutes { width: 16px; height: 0; border: 0; border-top: 2px solid var(--refute); border-radius: 0; vertical-align: 3px; }
+.selector .side-refutes .dot { stroke: var(--refute); }
+.selector .sel-edge.side-refutes { stroke: var(--refute); }
+.selector .sel-node.side-refutes.lit .dot, .selector .sel-edge.side-refutes.lit { stroke: var(--refute); }
+.set-side { display: inline-block; margin-left: var(--s2); padding: 0 6px; font-size: 11px; line-height: 16px; border-radius: 999px; color: var(--refute); border: 1px solid var(--refute); vertical-align: 1px; }
 /* F04-T54 (D-25 v3.45): the literature mark — a small square inside a pill's top-right corner and
    the same square inline as a badge (the key, the listing row, the node page's head). The colour
    is the status (--lit); hollow and dashed while only proposed, filled once confirmed. It never

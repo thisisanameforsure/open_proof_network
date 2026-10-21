@@ -67,8 +67,8 @@ def test_one_drawing_with_junctions_and_no_routes_section(tmp_path: Path) -> Non
     # T7: the selector sits in the drawing's card above the drawing; the table below the grid.
     assert page.index('<div class="graph-grid">') < page.index('<div class="sets-grid">')
     assert page.index('<svg class="selector"') < page.index('<svg class="dag"')
-    assert page.count('<tr class="set-row"') == 2
-    for row in re.findall(r'<tr class="set-row"[^>]*>', page):
+    assert page.count('<tr class="set-row') == 2
+    for row in re.findall(r'<tr class="set-row[^>]*>', page):
         assert 'data-view="sel' in row, row
     lays = layouts_in(page)
     assert {"all", "routes", "sel"} <= set(lays)
@@ -190,7 +190,7 @@ def test_the_follow_toggle_sits_in_the_selector_panel_with_both_counts(tmp_path:
         r'<span class="v-stop">\1</span><span class="v-follow">\2</span></td>',
         page,
     )
-    assert len(both) == 3 * page.count('<tr class="set-row"')  # Statements, Proved, Shared
+    assert len(both) == 3 * page.count('<tr class="set-row')  # Statements, Proved, Shared
     # On a document whose proofs rest on something, the second reading differs.
     d = one_view.drawing(followed_doc(), [], href={})
     assert d.follow_toggle.startswith('<label class="sel-follow"')

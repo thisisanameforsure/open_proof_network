@@ -137,13 +137,15 @@ def test_the_lemma_crossing_branches_still_draws_with_no_crossing() -> None:
 
 
 def test_the_stylesheet_gives_the_lemma_line_a_stroke_of_its_own() -> None:
-    """Distinguishable from the solid dep, the dashed use and the dotted pointer, in both themes:
-    the rule sets a dasharray that neither of those uses, and the key's swatch matches it."""
+    """Distinguishable from the solid dep, the dashed use and (F30-T11) the band's lit use line,
+    in both themes: the rule sets a dasharray that neither of those uses, and the key's swatch
+    matches it. (The dotted pointer went with F30-T11: a proposed crux draws no line.)"""
     rule = re.search(r"^\.dag \.edge\.lemma \{([^}]*)\}", CSS, re.M)
     assert rule is not None
     dashes = re.search(r"stroke-dasharray:\s*([^;]+);", rule.group(1))
     assert dashes is not None
-    for other in (r"\.dag \.edge\.use", r"\.dag \.edge\.proposed"):
+    assert not re.search(r"^\.dag \.edge\.proposed \{", CSS, re.M)
+    for other in (r"\.dag \.edge\.use", r"\.band-link\.use"):
         o = re.search(rf"^{other} \{{([^}}]*)\}}", CSS, re.M)
         assert o is not None
         od = re.search(r"stroke-dasharray:\s*([^;]+);", o.group(1))

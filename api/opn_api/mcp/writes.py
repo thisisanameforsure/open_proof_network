@@ -30,7 +30,7 @@ from typing import TYPE_CHECKING, Any
 from opn_api import literature, requests, submissions
 from opn_api.mcp import auth
 from opn_api.mcp.calls import ID_PARAM, RECORD_PARAM, Answer, Call, Tool, ToolError, error, params
-from opn_gate import schemas
+from opn_gate import scaffold, schemas
 
 if TYPE_CHECKING:
     from opn_api.app import Context
@@ -944,8 +944,8 @@ TOOLS: tuple[Tool, ...] = (
     Tool(
         "propose_variant",
         (
-            "Enter a labeled variant of the root (D-30): `relation` is resolves, partial "
-            "or related (default); above related needs `relation_proof`, a file "
+            "Enter a labeled variant of the root (D-30): `relation` is resolves, partial, "
+            "refutes or related (default); above related needs `relation_proof`, a file "
             "declaring `theorem relation` alone (else 400 relation-decl). Pre-flights "
             "run first, and each refusal opens nothing: 422 relation-elaboration, 422 "
             "relation-sorry, 422 relation-axiom, 422 relation-direction; 422 "
@@ -963,9 +963,11 @@ TOOLS: tuple[Tool, ...] = (
                 "stmt": LEAN,
                 "witness": LEAN,
                 "relation": {
-                    "enum": ["resolves", "partial", "related"],
+                    "enum": list(scaffold.RELATION_LABELS),
                     "description": "How the variant relates to the root (D-30); related when "
-                    "omitted.",
+                    "omitted. The proof's type: resolves `variant → root`, partial "
+                    "`root → variant`, refutes `variant → ¬root` (a proved one refutes the "
+                    "root, v3.46).",
                 },
                 "relation_proof": LEAN,
                 "deps": DEPS,

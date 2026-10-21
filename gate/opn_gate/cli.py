@@ -442,6 +442,17 @@ def _add_curator_parsers(sub: argparse._SubParsersAction[argparse.ArgumentParser
         type=Path,
         help="a Witness.lean for the revision, replacing the copied one (F08-R14)",
     )
+    rev.add_argument(
+        "--relation",
+        choices=scaffold.RELATION_LABELS,
+        help="scaffold the revision as a variant with this D-30 label (D-8 v3.46); without it "
+        "the origin and relation are the old node's",
+    )
+    rev.add_argument(
+        "--relation-proof",
+        type=Path,
+        help="the revision's Relation.lean, required by a label above related (D-30)",
+    )
 
     con = sub.add_parser("consolidate", help="mark a duplicate node superseded (F08-R10; D-29)")
     common(con)
@@ -2401,6 +2412,11 @@ def run_revise(args: argparse.Namespace, settings: config.Settings) -> int:
     graph, target_id, date = _curator_common(args)
     statement = _read_flag_file(args.statement, "--statement")
     witness = _read_flag_file(args.witness, "--witness") if args.witness is not None else None
+    relation_proof = (
+        _read_flag_file(args.relation_proof, "--relation-proof")
+        if args.relation_proof is not None
+        else None
+    )
     if not args.request.is_file():
         msg = f"--request {args.request} is not a file"
         raise CliError(msg)
@@ -2413,6 +2429,8 @@ def run_revise(args: argparse.Namespace, settings: config.Settings) -> int:
         author=args.author,
         date=date,
         witness=witness,
+        relation=args.relation,
+        relation_proof=relation_proof,
     )
     doc = {"ok": True, **revision.as_dict()}
     return _emit_curator(doc, graph, args.branch, f"revise: {args.node_id} -> {revision.new_id}")

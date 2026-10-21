@@ -23,6 +23,7 @@ from opn_gate import (
     glosses,
     intake,
     layout,
+    literature,
     paths,
     records,
     schemas,
@@ -45,6 +46,7 @@ PRODUCT_SCHEMAS: dict[str, tuple[str, ...]] = {
         "frontier/v5",  # F03-T18 (D-12 v3.35): circular, literature, literature_proposed
         "frontier/v6",  # F08-T42 (D-12 v3.43): circular retired; the site ignores it on v5
         "frontier/v7",  # F03-T21 (D-25 v3.45): literature.disputes
+        "frontier/v8",  # F08-T44 (D-30 v3.46): relation refutes
     ),
     "info.json": ("info/v1", "info/v2"),  # v2: F05-T25
     "targets/index.json": (
@@ -74,6 +76,7 @@ PRODUCT_SCHEMAS: dict[str, tuple[str, ...]] = {
         "graph/v11",  # F08-T42 (D-12 v3.43): circular retired; the site ignores it on v6-v10
         "graph/v12",  # F29-T1 (D-25 v3.44): label, label_source, claim; approach
         "graph/v13",  # F08-T43 (D-25 v3.45): literature.disputes
+        "graph/v14",  # F08-T44 (D-30 v3.46): relation refutes; target_proofs refutations
     ),
 }
 log = logging.getLogger(__name__)
@@ -1107,9 +1110,10 @@ def load_node(root: Path, target_id: str, entry: dict[str, Any]) -> NodeView:
 
 def _literature_for(root: Path, node_dir: Path, raw: object) -> LiteratureView | None:
     """F04-T38: one of the row's literature fields as a view: the products' facts, then the
-    record file read by its own schema (``literature/v1``) for the date, references, summary
-    and model. A record that is missing or does not validate is logged and carried unreadable,
-    never raised on: one node's defect must not decide whether the graph has a site."""
+    record file read by the schema it declares (``literature/v1`` or ``v2``) for the date,
+    references, summary and model. A record that is missing or does not validate is logged and
+    carried unreadable, never raised on: one node's defect must not decide whether the graph has
+    a site."""
     if not isinstance(raw, dict):
         return None
     rel = str(raw.get("record") or "")
@@ -1131,7 +1135,14 @@ def _literature_for(root: Path, node_dir: Path, raw: object) -> LiteratureView |
         else None,
     )
     try:
-        doc = schemas.load_yaml(node_dir / rel, "literature/v1")
+        # F04-T56: by the schema the record declares, among those the gate accepts (v2 since
+        # F08-T43); validating every record as v1 carried each v2 record as unreadable.
+        doc = schemas.load_yaml(node_dir / rel)
+        declared = doc.get("schema") if isinstance(doc, dict) else None
+        if declared not in literature.SCHEMAS:
+            msg = f"schema {declared!r} is not a literature record this site reads"
+            raise schemas.SchemaError(msg)
+        doc = schemas.validate(doc, str(declared))
     except schemas.SchemaError as exc:
         log.warning("%s: literature record %s could not be read: %s", node_dir.name, rel, exc)
         return replace(view, readable=False)

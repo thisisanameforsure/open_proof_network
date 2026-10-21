@@ -22,6 +22,12 @@ coarser cuts only minimal sets are kept, since a set containing another says not
 one does not. Sets are listed in the order the record
 gives them — the root's routes in their merge order, then a direct proof, then the variants — and
 never ranked (D-25).
+
+A route settles either way (D-25 v3.46, F27-T11): each set says whether it ``proves`` the root
+(the sets above) or ``refutes`` it — a set closing a ``refutes`` variant (D-30 v3.46), enumerated
+from that variant's routes exactly as the root's are from its own. The proving sets come first,
+then the refuting ones, each side in the record's order; minimality is judged within a side and
+the cap counts both. A false member of a set refutes nothing: it kills its route, no more.
 """
 
 from __future__ import annotations
@@ -30,7 +36,7 @@ import hashlib
 import json
 import re
 from collections.abc import Iterable, Iterator, Mapping, Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from itertools import product
 from typing import Any, Literal
 
@@ -60,6 +66,11 @@ PROVED = "proved"
 #: other way (D-12), a curator abandoned it (D-14), or a revision replaced it (D-8).
 DEAD_STATUSES: frozenset[str] = frozenset({"refuted", "defective", "abandoned", "superseded"})
 RESOLVES = "resolves"
+#: D-30 v3.46: a variant whose proof refutes the root; its sets are the other side's (F27-T11).
+REFUTES = "refutes"
+#: The two sides a sufficient set may settle (D-25 v3.46): ``SufficientSet.settles``.
+PROVES = "proves"
+SIDES: tuple[str, ...] = (PROVES, REFUTES)
 
 _REVISION_RE = re.compile(r"-v\d+$")
 
@@ -176,6 +187,10 @@ class SufficientSet:
     #: (``at_proved: follow``); empty when the enumeration stopped at them. Never a choice the
     #: set makes, so never read by the selector tree.
     proof_routes: tuple[str, ...] = ()
+    #: D-25 v3.46 (F27-T11): which way the set settles the root — ``proves`` (the root's own
+    #: routes, its direct proof, a resolves variant) or ``refutes`` (a set closing a refutes
+    #: variant, D-30 v3.46).
+    settles: str = PROVES
 
     @property
     def total(self) -> int:
@@ -199,6 +214,7 @@ class SufficientSet:
             "routes": list(self.routes),
             "proof_routes": list(self.proof_routes),
             "variant": self.variant,
+            "settles": self.settles,
             "total": self.total,
             "closed": self.closed,
             "remaining": self.remaining,
@@ -525,15 +541,18 @@ class _Enumerator:
         f = self.follows[node_id]
         return _Option(frozenset([node_id]), beneath=frozenset(f.nodes), proof_routes=f.routes)
 
-    def bounded(self, options: Iterable[_Option]) -> list[_Option]:
+    def bounded(self, options: Iterable[_Option], cap: int | None = None) -> list[_Option]:
         """The minimal options, deduplicated, and no more than the cap; past it the enumeration
         says it was cut. F27-T6: dominated options are dropped here, at every node, before the
         cap is applied: an option whose open statements strictly contain another's stays
         dominated under any union with the same other parts, so dropping it early loses no
         minimal set, and the cap then counts minimal sets rather than the combinations met on the
-        way (live erdos-1094, 2026-10-15: 293 minimal coarser sets, cut to 58 before this)."""
+        way (live erdos-1094, 2026-10-15: 293 minimal coarser sets, cut to 58 before this).
+        ``cap`` (F27-T11): a smaller cap than the enumeration's, the room left for the second
+        side once the first has been counted."""
+        cap = self.max_sets if cap is None else cap
         out: dict[tuple[frozenset[str], frozenset[str]], _Option] = {}
-        ceiling = self.max_sets * RAW_FACTOR
+        ceiling = cap * RAW_FACTOR
         for o in options:
             if len(out) >= ceiling:
                 self.truncated = True
@@ -543,9 +562,9 @@ class _Enumerator:
         # choice of routes, even one that needs strictly more than another; only the coarser cuts,
         # which number in the hundreds, keep the minimal ones alone.
         kept = _minimal(list(out.values()), self.rows) if self.cut == "any" else list(out.values())
-        if len(kept) > self.max_sets:
+        if len(kept) > cap:
             self.truncated = True
-            kept = kept[: self.max_sets]
+            kept = kept[:cap]
         return kept
 
     def close(self, node_id: str, path: frozenset[str]) -> tuple[list[_Option], bool]:
@@ -663,31 +682,32 @@ def read(
     # The record's order: the products list nodes sorted, and each node's routes in merge order.
     all_routes = tuple(r for node_id in rows for r in by_node.get(node_id, ()))
     walker = _Enumerator(rows, by_node, cut, max(1, max_sets), at_proved)
-    options: list[_Option] = []
+    proving: list[_Option] = []
+    refuting: list[_Option] = []
     if root in rows:
-        options, _ = walker.close(root, frozenset())
-        if walker.status(root) != PROVED:
-            for vid, row in rows.items():
-                if vid == root or row.get("relation") != RESOLVES:
-                    continue
-                via, _ = walker.close(vid, frozenset())
-                options.extend(
-                    _Option(
-                        o.members,
-                        o.assemblies,
-                        o.routes,
-                        o.variant or vid,
-                        o.beneath,
-                        o.proof_routes,
-                    )
-                    for o in via
-                )
-    minimal = walker.bounded(options)
+        status = walker.status(root)
+        proving, _ = walker.close(root, frozenset())
+        # A refuted root (D-12 #2) is settled: its resolves variants close nothing now, as a
+        # proved root's close nothing more.
+        if status not in (PROVED, "refuted"):
+            proving.extend(_via(walker, rows, root, RESOLVES))
+        # D-25 v3.46: the other side — each refutes variant (D-30 v3.46) closed exactly as a
+        # resolves one is — while the root is neither proved (nothing to refute) nor dead.
+        if status != PROVED and status not in DEAD_STATUSES:
+            refuting = _via(walker, rows, root, REFUTES)
+    # Domination (cut: any) is judged within a side: a refuting set is never dropped for a
+    # proving set it contains, or the other way round. The cap is overall, the proving sets
+    # first: the refuting side gets the room the proving side left.
+    kept_proving = walker.bounded(proving)
+    kept_refuting = (
+        walker.bounded(refuting, cap=walker.max_sets - len(kept_proving)) if refuting else []
+    )
+    minimal = [(o, PROVES) for o in kept_proving] + [(o, REFUTES) for o in kept_refuting]
     # R13: a set's statements are its members and, when followed, what their proofs rest on;
     # its id is its members' alone, so a set has one id whichever way it was read.
-    listed = {id(o): o.members | o.beneath for o in minimal}
-    held: dict[str, int] = {}
-    for o in minimal:
+    listed = {id(o): o.members | o.beneath for o, _ in minimal}
+    held: dict[str, int] = {}  # across both sides: a statement may serve either (D-25 v3.46)
+    for o, _ in minimal:
         for m in listed[id(o)]:
             held[m] = held.get(m, 0) + 1
     sets = tuple(
@@ -701,10 +721,26 @@ def read(
             variant=o.variant,
             shared=sum(1 for m in listed[id(o)] if held[m] > 1),
             proof_routes=o.proof_routes,
+            settles=settles,
         )
-        for o in minimal
+        for o, settles in minimal
     )
     return Routes(target_id, root, cut, walker.truncated, all_routes, sets, at_proved)
+
+
+def _via(
+    walker: _Enumerator, rows: Mapping[str, Mapping[str, Any]], root: str, relation: str
+) -> list[_Option]:
+    """Every way to close each variant of the root carrying ``relation``, in the rows' order,
+    each option tagged with the variant it goes through (D-30: a dead or superseded variant
+    closes nothing, which ``close`` already answers)."""
+    out: list[_Option] = []
+    for vid, row in rows.items():
+        if vid == root or row.get("relation") != relation:
+            continue
+        via, _ = walker.close(vid, frozenset())
+        out.extend(replace(o, variant=o.variant or vid) for o in via)
+    return out
 
 
 # --- the selector tree (F29-R6; D-25 v3.44) ----------------------------------------------------
@@ -724,6 +760,10 @@ class Selector:
     set: str | None  # the one set a leaf is
     sets: int
     children: tuple[Selector, ...] = ()
+    #: D-25 v3.46 (F27-T11): the side this family settles, on the two children of the fork the
+    #: tree opens on when sets of both sides exist (``proves`` first, then ``refutes``); None
+    #: everywhere else, and everywhere when one side only.
+    side: str | None = None
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -731,6 +771,7 @@ class Selector:
             "node": self.node,
             "set": self.set,
             "sets": self.sets,
+            "side": self.side,
             "children": [c.as_dict() for c in self.children],
         }
 
@@ -764,7 +805,14 @@ def _split(members: Sequence[SufficientSet], route: str | None) -> Selector:
 
 def selector_tree(result: Routes) -> Selector:
     """The selector tree of ``result``'s sets (F29-R6). Every leaf is one set and every set one
-    leaf, in the record's order; ``sets`` on the top node is the number of sets."""
+    leaf, in the record's order; ``sets`` on the top node is the number of sets. D-25 v3.46:
+    when sets of both sides exist the tree opens on a fork — a top node that splits on no
+    statement, with two children, the proving family then the refuting one, each carrying its
+    ``side`` and being the split of its own sets alone; with one side only there is no fork."""
     if not result.sets:
         return Selector(None, None, None, 0)
+    by_side = {side: [s for s in result.sets if s.settles == side] for side in SIDES}
+    if all(by_side.values()):
+        children = tuple(replace(_split(by_side[side], None), side=side) for side in SIDES)
+        return Selector(None, None, None, len(result.sets), children)
     return _split(list(result.sets), None)

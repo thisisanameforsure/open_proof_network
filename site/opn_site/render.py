@@ -397,9 +397,11 @@ GLOSSARY: tuple[tuple[str, str, str, str], ...] = (
     (
         "refuted",
         "refuted",
-        "A counterexample to this statement passed the checks and was merged. The statement is "
-        "false as written.",
-        "refuted (D-12)",
+        # F04-T55 (D-12, D-30 v3.46): the root may also be refuted through a refuting variant.
+        "A counterexample to this statement passed the checks and was merged, or, for the "
+        "problem's own statement, a variant whose checked relation refutes it was proved. The "
+        "statement is false as written.",
+        "refuted (D-12, D-30 v3.46)",
     ),
     (
         "defective",
@@ -417,14 +419,18 @@ GLOSSARY: tuple[tuple[str, str, str, str], ...] = (
         "deps (META.yaml)",
     ),
     # F30-T9: the selector's heading word.
+    # F04-T55 (D-25 v3.46): a set settles the problem either way.
     (
         "sufficient-set",
         "sufficient set",
-        "A set of statements whose proofs would close the problem's own statement, with the "
-        "closing proofs of the decomposed statements on the way still to submit: one choice of "
-        "route at every fork. The tree under this heading is the navigation device: select a "
-        "set, a family of sets or one route choice and the drawing shows just that part.",
-        "sufficient sets (D-25 v3.40, F27)",
+        "A way to settle the problem: a sufficient set is a set of statements whose proofs "
+        "would settle the problem's own statement, either proving it or refuting it through a "
+        "variant whose relation the gate checked, with the closing proofs of the decomposed "
+        "statements on the way still to submit: one choice of route at every fork. Each set "
+        "says which way it settles the problem. The tree under this heading is the navigation "
+        "device: select a set, a family of sets or one route choice and the drawing shows just "
+        "that part.",
+        "sufficient sets (D-25 v3.40, v3.46; F27)",
     ),
     # F30-T2 (R2): the route marks the merged drawing shows (F27's AND and OR), the dead route,
     # and the closable statement (F28), each keyed when the drawing has one.
@@ -448,6 +454,24 @@ GLOSSARY: tuple[tuple[str, str, str, str], ...] = (
         "A crossed ring: a merged decomposition one of whose holes is refuted, defective, "
         "abandoned, superseded or not traced, so no proof can come through it.",
         "routes[].live false (D-25 v3.40)",
+    ),
+    # F04-T55 (D-30 v3.46): the trunk from a variant into the root, one per relation label.
+    (
+        "relation-resolves",
+        "resolves the problem",
+        "A line from a variant up into the problem's own statement: the variant's Relation.lean, "
+        "checked by the gate at admission, proves that the variant implies the problem, so a "
+        "proof of the variant proves the problem.",
+        "relation: resolves (D-30)",
+    ),
+    (
+        "relation-refutes",
+        "refutes the problem",
+        "A line, in its own colour, from a variant up into the problem's own statement: the "
+        "variant's Relation.lean, checked by the gate at admission, proves that the variant "
+        "implies the problem is false, so a proof of the variant refutes the problem. The "
+        "statements on that side keep their status colours: a statement is not refuting by itself.",
+        "relation: refutes (D-30 v3.46)",
     ),
     (
         "closable",
@@ -482,13 +506,15 @@ GLOSSARY: tuple[tuple[str, str, str, str], ...] = (
         "under Notes and not counted. An outline is the contributor's own text, unverified.",
         "annex/v2 steps (D-31 v3.26)",
     ),
+    # F30-T11 (D-14 v3.26 as amended by v3.46): the band under the drawing.
     (
         "proposed-for",
-        "proposed for",
-        "A dotted line from a crux statement to the statement its proposer wrote it for. A "
-        "pointer only: it changes no status, and once a proof uses the crux the solid line of "
-        "the use is drawn instead.",
-        "proposed-for record (D-14 v3.26)",
+        "proposed statement",
+        "A statement proposed for this problem, drawn with its own holes in the band under the "
+        "tree. Its pointer is words on the pill, never a line: hover or select it to light the "
+        "lines the record has measured from it (a proof that uses it, a lemma, a dependency). "
+        "A proposed statement with a checked relation is a variant and is drawn in the tree.",
+        "proposed-for record (D-14 v3.26, v3.46)",
     ),
     (
         "unmeasured",
@@ -602,7 +628,14 @@ LEGEND_BASE = ("proved", "open", "blocked")
 DOTTED_KEYS = (*LEGEND_BASE, NEEDS_WITNESS)
 LEGEND_EXTRA = ("stale", "disputed", "superseded", "abandoned", "refuted", "defective")
 #: F30-T2 (R2): the drawing's route marks, in key order, each shown when the drawing has one.
-ROUTE_MARK_KEYS = ("route-and", "route-or", "route-dead", "closable")
+ROUTE_MARK_KEYS = (
+    "route-and",
+    "route-or",
+    "route-dead",
+    "closable",
+    "relation-resolves",  # F04-T55 (D-30 v3.46): the trunks, each when the drawing has one
+    "relation-refutes",
+)
 #: F04-T21 (Q23): the Docs state map's keys. Every status ``graph.json`` can publish, as the
 #: site's word (F03-Q8: ``speculative`` reads open, so nine words for ten statuses), and the seven
 #: words a problem's status tag can wear; each key item is the hover card those pages use.
@@ -648,8 +681,10 @@ STATE_MAP_PROBLEM_KEYS = (
 PROBLEM_STATUS_DEFS: dict[str, str] = {
     "open": "Listed, and its statements accept work.",
     "proved": "Its root statement has a merged proof. Not yet explained or written up.",
+    # F04-T55 (D-30 v3.46): or a proved variant whose checked relation refutes the root.
     "disproved": (
-        "A merged counterexample refutes its root statement: the conjecture is false as stated."
+        "A merged counterexample, or a proved variant whose checked relation refutes it, "
+        "refutes its root statement: the conjecture is false as stated."
     ),
     "shown ill-posed": (
         "A merged vacuity certificate shows its root statement holds for an empty reason, so as "
@@ -678,9 +713,15 @@ ORIGIN_ROLES: dict[str, str] = {
 }
 RELATION_ROLES: dict[str, str] = {
     "resolves": "a variant that resolves the problem",
+    "refutes": "a variant that refutes the problem",  # D-30 v3.46 (F04-T55)
     "partial": "a partial route to the problem",
     "related": "a related variant",
 }
+#: F04-T55 (D-30 v3.46): a root refuted through a proved ``refutes`` variant (D-12 v3.42's
+#: closure, the other way) reads "disproved" like one with its own counterexample, but what is on
+#: the record is the variant's proof, never a counterexample file.
+REFUTED_BY_VARIANT_RECORD = "a refuting variant is proved on the record"
+REFUTED_BY_VARIANT_ARTIFACT = "refuting variant's proof"
 #: F04-T27 (testers 2026-09-29, item 9): the pages said a problem without a steward "refuses
 #: work" while the index carried ``policy.steward_rule.enforced: false`` and every such problem
 #: was claimable. The sentences that state the rule are chosen by that switch: in force, or
@@ -1312,6 +1353,9 @@ class Renderer:
         keys = (*LEGEND_BASE, *(k for k in (NEEDS_WITNESS, *LEGEND_EXTRA) if k in present))
         # F30-T2 (R2): the route marks the merged drawing shows, each only when it has one.
         marks = tuple(k for k in ROUTE_MARK_KEYS if k in (drawn.marks if drawn else ()))
+        # F30-T11: the band's key entry follows the drawing that has a band.
+        if drawn is not None and drawn.band and "proposed-for" not in self.proof_legend(tv):
+            marks = (*marks, "proposed-for")
         return (
             "".join(self.term(k, dot=True) for k in (*keys, *marks, *self.proof_legend(tv)))
             + self.literature_key(self.literature_marks(tv).values())
@@ -1390,7 +1434,7 @@ class Renderer:
             line_keys = (*line_keys, "use")
         if "edge lemma" in drawn:  # F04-T39 (D-12 v3.38)
             line_keys = (*line_keys, "lemma")
-        pointed = ("proposed-for",) if dag.pointers(tv.graph["nodes"]) else ()
+        pointed = ("proposed-for",) if dag.proposed(tv.graph["nodes"]) else ()  # F30-T11: the band
         if any(a.stepped for nv in tv.nodes.values() for a in nv.annexes):  # T45 (Q44)
             pointed = ("outline", *pointed)
         # F30 (Q4): a proof is a leaf of the selector, so the drawing no longer marks "on this
@@ -1613,6 +1657,36 @@ class Renderer:
         root = tv.nodes.get(str(tv.index_entry.get("root") or ""))
         status = root.status if root is not None else "proved"
         return RESOLUTION_WORDS.get(status, "proved")
+
+    @staticmethod
+    def refuted_through_variant(tv: TargetView) -> bool:
+        """F04-T55 (D-30 v3.46): the root reads refuted and the record's way of settling it is
+        a proved ``refutes`` variant (``target_proofs[].relation``, or such a variant proved),
+        not a counterexample of its own."""
+        root = tv.nodes.get(str(tv.index_entry.get("root") or tv.root))
+        if root is None or root.status != "refuted":
+            return False
+        if any(p.get("relation") == "refutes" for p in target_proofs(tv)):
+            return True
+        return any(
+            n.get("relation") == "refutes" and n.get("status") == "proved"
+            for n in tv.graph.get("nodes") or []
+        )
+
+    @classmethod
+    def resolution_record(cls, tv: TargetView) -> str:
+        """What a resolved problem's page says is on the record, by its word; a root refuted
+        through a variant names the variant's proof (F04-T55)."""
+        if cls.refuted_through_variant(tv):
+            return REFUTED_BY_VARIANT_RECORD
+        return RESOLUTION_RECORD[cls.resolution(tv)]
+
+    @classmethod
+    def resolution_artifact(cls, tv: TargetView) -> str:
+        """The closing artifact the digestion counts name, by its word (F04-T55 as above)."""
+        if cls.refuted_through_variant(tv):
+            return REFUTED_BY_VARIANT_ARTIFACT
+        return RESOLUTION_ARTIFACT[cls.resolution(tv)]
 
     @staticmethod
     def problem_status(tv: TargetView) -> str:
@@ -2306,7 +2380,7 @@ class Renderer:
             # it is open work, and the page says how much rather than closing the door on it.
             # F04-T31: and how it was resolved, since a counterexample resolves it too.
             word = self.resolution(tv)
-            head = f"{word.capitalize()}: {RESOLUTION_RECORD[word]}"
+            head = f"{word.capitalize()}: {self.resolution_record(tv)}"
             beneath = self.open_count(tv) if self.open_beneath(tv) else 0
             if beneath:
                 guide = f'<a href="{GUIDE_HREF}">How to contribute →</a>'
@@ -2398,9 +2472,12 @@ class Renderer:
         # keeps its place beneath the drawing.
         selector_block = (
             '<div class="selector-wrap"><div class="sel-head">'
-            f'<span class="kicker">{self.term("sufficient-set", label="Sufficient sets")}</span>'
-            '<p class="sel-cue">Select a node or an edge to filter the drawing to that part of '
-            "the proof; select it again to come back.</p>"
+            # F04-T55 (D-25 v3.46): a set settles the problem either way.
+            '<span class="kicker">'
+            f"{self.term('sufficient-set', label='Ways to settle the problem')}</span>"
+            '<p class="sel-cue">Each set proves the problem or refutes it. Select a node or an '
+            "edge to filter the drawing to that part of the proof; select it again to come "
+            "back.</p>"
             # F27-R13: the owner's toggle lives in the box that holds the sufficient-set tree
             f"{picture.follow_toggle}</div>"
             f"{picture.selector}{self.proof_notes(tv)}"
@@ -2452,6 +2529,7 @@ class Renderer:
             count_words=esc(f"{n} statement{'' if n == 1 else 's'}"),
             legend=self.graph_legend(tv, picture),
             dag=svg,
+            band=picture.band,  # F30-T11: the proposed statements, under the drawing
             selector=selector_block,
             panels=panels,
             sets=sets_block,
@@ -3488,6 +3566,9 @@ class Renderer:
             line += "."
         elif state == "open":
             line = esc(self.open_line(has_holes=bool(self.holes_of(tv, nv))))
+        elif nv.node_id == tv.root and self.refuted_through_variant(tv):
+            # F04-T55 (D-30 v3.46): the root is refuted by derivation, not by a counterexample.
+            line = esc(f"Refuted: {REFUTED_BY_VARIANT_RECORD}.")
         else:
             line = esc(sentence(status_words(nv.status, nv.cause).capitalize()))
         closing = self.closing_note(tv, nv)
@@ -4212,7 +4293,7 @@ class Renderer:
             f"<em>{esc(DIGESTION_WORDS[state])}</em> (D-10 v3.17).</p>",
             f"<p>{esc(str(digestion['closure_explained']))} of "
             f"{esc(str(digestion['closure']))} {settled} nodes in the closing "
-            f"{RESOLUTION_ARTIFACT[word]}'s dependency closure carry a signed explainer.</p>",
+            f"{self.resolution_artifact(tv)}'s dependency closure carry a signed explainer.</p>",
         ]
         if tv.writeups:
             items = "".join(
@@ -5874,9 +5955,10 @@ class Renderer:
         root = tv.nodes[tv.root]
         order = self.reading_order(tv, entry)
         head = str(entry["node_id"])
+        # F04-T55: the head's relation names its role (resolves, or refutes, D-30 v3.46).
+        role = RELATION_ROLES.get(str(entry.get("relation")), "a variant")
         variant = (
-            f" This proof proves {self.node_link(tv.target_id, head)}, a variant that resolves "
-            "the problem (D-30)."
+            f" This proof proves {self.node_link(tv.target_id, head)}, {role} (D-30)."
             if head != tv.root
             else ""
         )

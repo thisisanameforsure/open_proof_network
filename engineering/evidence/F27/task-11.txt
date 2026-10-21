@@ -1,0 +1,82 @@
+F27-T11 — sufficient sets of both sides (D-25 v3.46): settles, refuting variants, the selector fork
+Branch f27-t11 on contract commit 3fca1967 (F08-T44). Agent C, 2026-10-21.
+
+Design (stated for agent D and the lead):
+- SufficientSet.settles: "proves" | "refutes" (routes.PROVES / routes.REFUTES), in as_dict.
+  A set's id is unchanged: _set_id over members + assemblies, so every proving id on the live
+  record stays where it is.
+- Order of Routes.sets (record order, never ranked): the proving sets first — the root's routes
+  in merge order, then its direct proof, then each resolves variant in the rows' (sorted) order —
+  then the refuting sets, one group per refutes variant in the rows' order, each variant's routes
+  in merge order then its direct proof.
+- Domination (_minimal, cut="any") and the cap are applied per side: bounded() is called once per
+  side. The cap max_sets is OVERALL: the proving side is bounded at max_sets, the refuting side at
+  what is left; a refuting set past the cap sets truncated.
+- `shared` counts a statement held by any other set of EITHER side (the gap lemma of erdos-257 is
+  used on both sides, D-25 v3.46).
+- Root proved: no refuting sets (nothing to refute). Root refuted: no proving sets (the resolves
+  variants are not closed either); refuting sets are enumerated only while the root is neither
+  proved nor in DEAD_STATUSES (the brief's rule), so a refuted root lists no set at all.
+- selector_tree: with sets of both sides the top node is a FORK: route None, node None, set
+  None, side None, sets = all; exactly two children, in this order: the proving family
+  (side="proves") then the refuting family (side="refutes"); each child is what _split gives that
+  side's sets alone (a leaf when one set, else the split), with `side` set on the child only —
+  never on its descendants. With one side only the tree is as before and `side` is None on every
+  node. Selector.as_dict carries "side".
+
+Fixture: gate/tests/fixtures/routes/erdos-257-shape.json (synthetic, generated from the test
+module's node()/hole() helpers; the live record carries no `refutes` relation until v3.46 is
+pinned): root erdos-257 with one route of one open hole; spec-a70fcca4 a `refutes` variant with
+one route of three proved holes and one open; spec-ddd99827 (the gap lemma) a proved `related`
+variant, used by one of the refuting route's holes.
+
+Seam first (a missing name is not red): `SufficientSet.settles` defaulting to "proves" and
+`Selector.side` defaulting to None, both in as_dict, with no enumeration change. Then the tests.
+
+RED — `uv run --frozen pytest gate/tests/test_target_routes.py gate/tests/test_selector_tree.py
+-q -m "not lean and not docker and not network and not harness"` with the seams only:
+  E AssertionError: assert [('proves', None, ['t--h1'])] == [('proves', N...', ['v--h2'])]
+    test_target_routes.py:707 (test_a_refutes_variant_is_closed_as_the_other_side)
+  E ValueError: not enough values to unpack (expected 2, got 1)  test_target_routes.py:731
+    (test_a_proving_sets_id_does_not_move: no refuting set at all)
+  E AssertionError: assert (SufficientSe...es='proves'),) == ()  test_target_routes.py:752
+    (test_a_refuted_root_has_no_proving_sets: today a refuted root still lists its resolves
+    variant's set)
+  E ValueError: not enough values to unpack (expected 2, got 1)  test_target_routes.py:768
+    (test_a_proved_refutes_variant_is_one_closed_refuting_set)
+  E AssertionError: assert [('proves', [...oves', ['t'])] == [('proves', [...utes', ['v'])]
+    test_target_routes.py:787 (test_domination_is_within_a_side)
+  E AssertionError: assert ['proves', 'proves'] == ['proves', 'p...s', 'refutes']
+    test_target_routes.py:808 (test_the_cap_is_overall_proving_sets_first)
+  E AssertionError: assert ['proves'] == ['proves', 'refutes']  test_target_routes.py:831
+    (test_follow_reaches_beneath_a_refuting_variants_proved_members)
+  E ValueError: not enough values to unpack (expected 2, got 1)  test_target_routes.py:844
+    (test_the_erdos_257_shape_has_one_set_per_side)
+  E AssertionError: assert {'children', ...sets', 'side'} == {'children', ...'set', 'sets'}
+    test_selector_tree.py:129 (the pre-existing as_dict key test: restated to include `side`)
+  E AssertionError: assert (None, 't', None, None, 2) == (None, None, None, None, 3)
+    test_selector_tree.py:179 (test_both_sides_fork_at_the_top_proving_first)
+  test_selector_tree.py:222 AssertionError (test_as_dict_carries_side_at_every_level)
+  E AssertionError: assert (None is None and 1 == 2)  test_selector_tree.py:231
+    (test_the_erdos_257_shape_forks_into_two_leaves)
+  12 failed, 42 passed in 0.52s
+Every failure is on the defect (no refuting sets enumerated; no fork), none on a missing name.
+
+FIX (gate/opn_gate/routes.py): `_Enumerator.bounded(options, cap=None)`; `read` closes the
+root, then `_via(walker, rows, root, RESOLVES)` unless the root is proved or refuted, then
+`_via(..., REFUTES)` while the root is neither proved nor dead; bounds each side on its own
+(the refuting side at `max_sets - len(kept_proving)`); tags each set's `settles`; `held`
+counts across both sides. `selector_tree` forks when both sides have sets. Module docstring
+says so.
+
+GREEN — the same command:
+  54 passed in 0.35s  (39 before the task: 15 tests added — 11 in test_target_routes.py, 4 in
+  test_selector_tree.py — plus one restated)
+Re-run after the laptop shutdown mid-session (the coordinator's resume): 54 passed in 0.18s.
+
+Checks: `uv run --frozen ruff check api gate` → All checks passed (exit 0);
+`uv run --frozen ruff format --check api gate` → 717 files already formatted (exit 0);
+`uv run --frozen mypy gate` → Success: no issues found in 429 source files (exit 0).
+(The first ruff run found one RUF059 unused unpack in a new test; renamed `_proving`.)
+
+Not run: the docker tier (none on this laptop); nothing in this task touches Lean.
