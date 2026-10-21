@@ -1,0 +1,42 @@
+F08-T44..T47, F28-T10, F27-T11, F09-T76, F30-T11..T13, F04-T55..T56 — decisions v3.46 live, 2026-10-21
+(the owner: "Yes, all of it")
+
+1. Network PR #83 (refutes-v3.46): fast, harness and Lean tiers green (Lean ~2h); merged as main
+   1bd7ca70. api-deploy 39643542697 success; GET /health ok.
+2. Tag gate-1bd7ca70; image-publish 39643615929 success:
+     plain    ghcr.io/thisisanameforsure/opn-gate@sha256:e9d52c160d5556dffcb656cb2d65d7e6605db5e9db5311532a8aa6c6f03fe867
+     mathlib  ghcr.io/thisisanameforsure/opn-gate@sha256:f08d8625a738f5c1c5c7fd2875402bdb20d5efe6bb9257cc55373f50e3502686
+   (which is which read from the pushed tags: gate-1bd7ca70 vs gate-1bd7ca70-mathlib-0df444a360ea).
+3. Graph PR #800, the revision request for spec-a70fcca4 (other-with-exhibit, F08-Q56; the exhibit
+   the refutes Relation.lean): gate append mode, exhibits elaborated in the sandbox under the
+   Mathlib image ("elaborates as Nodes.«spec-a70fcca4».Exhibit0", ok true); merged 9cbba9da6,
+   bot 4ef27e613.
+4. Re-pin, graph 700d27437: schemas closure/v2, context/v10, frontier/v8, graph/v14 published;
+   the D-35 guide copy; pin_image.py over 27 targets (26 Mathlib, the tutorial plain, the
+   devcontainer last with --api-url): 27/27 name 1bd7ca70; --check 26 (the tutorial's
+   devcontainer runs the Mathlib image, as at every re-pin). Gate run success; it dispatched the
+   render, 9197d841e "gate: render 1bd7ca70c9ee": info protocol 3.46, frontier/v8 (95 entries),
+   graph/v14, context/v10.
+5. Graph PR #801, opn-gate revise spec-a70fcca4 --relation refutes --relation-proof
+   engineering/evidence/F08/task-44-relation.lean, run from network main = the pin. Rehearsed in
+   process first: spec-a70fcca4-v2 ready, relation refutes, the old partial's route with its four
+   holes; sets: proves s-f49b49e59c (open erdos-257--h2), refutes s-55f1f7418b (open
+   spec-a70fcca4--h4). First gate run failed admission at hazards (hazard-unacknowledged,
+   div-zero at 1 / (2 ^ ↑n - 1)): revise had not carried the acknowledgement; added by hand to
+   the revision's META (c0a2d62dd), fixed in revise as F08-T47 (network PR #84). Second run:
+   admission pass, checks toolchain, layout, declaration, statement, witness, hazards
+   (hazards-acknowledged) and relation all pass. Merged 88aca922e, bot 31d3a38ae: graph.json
+   spec-a70fcca4 superseded, spec-a70fcca4-v2 ready / refutes / 1 decomposition.
+6. site-deploy 39647691350: the live page carried both sides (task-46-live-*.png) but drew the
+   superseded crux and its holes in the band — fixed as F30-T12 (network PR #85), then the band
+   rebuilt as a column on the owner's reading (F30-T13, same PR).
+7. Network PRs #84 and #85 green on all tiers; merged as f7a2f122 and 837d44c3. site-deploy
+   dispatched by hand (a network push does not deploy the site): success at 837d44c3. Live
+   https://openproofnetwork.org/problems/erdos-257/ measured in Chromium:
+     1440: selector [39, 648, 349], column [574, 648, 936] (same top, flush right); column
+           nodes spec-5e2e0890, --h1, --h2, spec-ddd99827; 0 paths in the column, 0 links shown
+           at rest; hover spec-ddd99827 lights spec-ddd99827>erdos-257--h1 and
+           spec-ddd99827>spec-5e2e0890; scrollWidth 1440.
+     390:  column below the drawing [34, 1155, 356], same nodes, 0 at rest, same 2 lit; scrollWidth 390.
+   Captures: engineering/evidence/F30/task-13-live-{1440,390}{,-hover}.png.
+F08-T47 binds the graph at the next re-pin (the live revision was cured by hand).
