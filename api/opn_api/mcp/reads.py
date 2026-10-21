@@ -360,8 +360,9 @@ async def list_sufficient_sets(call: Call, args: dict[str, Any]) -> dict[str, An
     ``graph.json`` at main and the frontier the service serves by ``opn_gate.routes.read``, the
     function the site renders from (F27-Q1). The finest cuts by default; ``cut: any`` adds the
     coarser ones up to the service's cap (``routes_max_sets``). In the record's order, ranked by
-    nothing (D-25). Every value is an id, a count, an enum or a frontier timestamp, so nothing is
-    demarcated."""
+    nothing (D-25). F09-T76 (D-25 v3.46): each set says which way it ``settles`` the root and
+    the selector forks on the ``side`` when both exist (result schema v4). Every value is an
+    id, a count, an enum or a frontier timestamp, so nothing is demarcated."""
     ctx = call.ctx
     target_id = check_id(args.get("target_id"), "target_id")
     cut = args.get("cut", "finest")
@@ -1367,16 +1368,16 @@ TOOLS: tuple[Tool, ...] = (
         "list_sufficient_sets",
         "A target as an AND-OR graph (D-25 v3.40). `routes`: each merged decomposition "
         "(id `<node>@<k>`), all of whose holes are needed, with its `approach`, each hole's "
-        "`label`, status, attempts and refuted route classes, and a `summary` (holes, proved, "
-        "open, dead, attempts, unattempted, `oldest_open_since`), so a stalled route shows. "
+        "`label`, status, attempts and refuted route classes, and a `summary` of them "
+        "(counts and `oldest_open_since`), so a stall shows. "
         "`sets`: statements whose proofs, with the closing proofs of their `assemblies`, would "
-        "close the root; each with `open`, `proved`, `routes`, `total`, `closed`, `remaining`, "
-        "`shared`. `selector`: the tree of route choices over the sets (a leaf: one set). "
-        "`cut: any` adds the coarser cuts up to a cap (`truncated`). `at_proved: follow` also "
-        "lists what each proved statement's proof rests on (`proof_routes`: the assemblies it "
-        "went through); the sets and ids are the same. Record order, never ranked; "
-        "claiming a hole or proposing a route is the operator's choice. Plain path: "
-        "targets/<id>/graph.json + GET /frontier.json.",
+        "settle the root, each with its counts and `settles`: `proves` or `refutes` (a set "
+        "closing a refutes variant, D-30 v3.46); proving sets first. `selector`: the tree of "
+        "route choices over the sets (a leaf: one set); both sides fork first on `side`. "
+        "`cut: any` adds the coarser cuts up to a cap (`truncated`). `at_proved: "
+        "follow` also lists what each proved statement's proof rests on (`proof_routes`); the "
+        "sets and ids are the same. Record order, never ranked; what to claim or propose is "
+        "the operator's choice. Plain path: targets/<id>/graph.json + GET /frontier.json.",
         params(
             {
                 "target_id": ID_PARAM,
