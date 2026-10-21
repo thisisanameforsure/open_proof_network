@@ -1,0 +1,21 @@
+F04-T56 — the site reads a literature record by the schema it declares (D-25 v3.45), 2026-10-21
+
+Found rendering the live erdos-257 for F30-T11's evidence (graph origin/main 8fcb13861):
+  erdos-257: literature record literature/20261019T205105Z-fable-1019-e257.yaml could not be read:
+  document does not satisfy 'literature/v1': $: Additional properties are not allowed ('disputes'
+  was unexpected); $['schema']: 'literature/v1' was expected
+Since F08-T43 the gate writes literature/v2; site/opn_site/model.py::_literature_for validated
+every record against literature/v1, so the live problem page said "Its record could not be read
+at this commit" for every v2 record. A defect on origin/main, not introduced by v3.46.
+
+Red (site/tests/test_finding_literature_v2_record_site.py, fixture the live record's shape; a
+first fixture was invalid for both schemas, caught by test_the_fixtures_are_valid_records):
+  E       AssertionError: a literature/v2 record was carried as unreadable
+  1 failed, 3 passed
+Fix: load the YAML, validate by the declared schema when it is in literature.SCHEMAS (v1, v2),
+else unreadable as before.
+Green: the four tests, 4 passed; with the literature site tests
+(test_finding_literature_status.py, _dispute.py, _marks.py): 41 passed, 2 skipped.
+Live render of graph 8fcb13861 with this site: 0 literature warnings; the erdos-257 page lists
+"T. F. Bloom, Erdős Problem #257, erdosproblems.com" and no "could not be read".
+ruff check . / ruff format --check . / mypy site: clean.
