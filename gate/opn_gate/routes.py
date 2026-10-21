@@ -60,6 +60,8 @@ PROVED = "proved"
 #: other way (D-12), a curator abandoned it (D-14), or a revision replaced it (D-8).
 DEAD_STATUSES: frozenset[str] = frozenset({"refuted", "defective", "abandoned", "superseded"})
 RESOLVES = "resolves"
+#: D-30 v3.46: a variant whose proof refutes the root; its sets are the other side's (F27-T11).
+REFUTES = "refutes"
 
 _REVISION_RE = re.compile(r"-v\d+$")
 

@@ -29,7 +29,9 @@ def test_known_schemas_are_the_published_set() -> None:
         "candidate/v1",
         "claims/v1",
         "closure/v1",  # F28-T8 (D-12 v3.42): proved by closure
+        "closure/v2",  # F08-T44 (D-12 v3.46): verdict, proved or refuted
         "context/v1",
+        "context/v10",  # F08-T44 (D-30 v3.46): relation refutes
         "context/v2",
         "context/v3",
         "context/v4",  # F22-T13 (a cause on each dep)
@@ -60,6 +62,7 @@ def test_known_schemas_are_the_published_set() -> None:
         "frontier/v5",
         "frontier/v6",  # F08-T42 (D-12 v3.43): no circular
         "frontier/v7",  # F03-T21 (D-25 v3.45): literature.disputes
+        "frontier/v8",  # F08-T44 (D-30 v3.46): relation refutes
         "gate-spec/v1",
         "gloss-signature/v1",
         "gloss-signature/v2",
@@ -75,6 +78,7 @@ def test_known_schemas_are_the_published_set() -> None:
         "graph/v11",  # F08-T42 (D-12 v3.43): no circular
         "graph/v12",  # F29-T1 (D-25 v3.44): label, label_source, claim; approach
         "graph/v13",  # F08-T43 (D-25 v3.45): literature.disputes
+        "graph/v14",  # F08-T44 (D-30 v3.46): relation refutes; target_proofs refutations
         "graph/v2",
         "graph/v3",
         "graph/v4",

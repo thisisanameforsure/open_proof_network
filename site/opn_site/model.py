@@ -45,6 +45,7 @@ PRODUCT_SCHEMAS: dict[str, tuple[str, ...]] = {
         "frontier/v5",  # F03-T18 (D-12 v3.35): circular, literature, literature_proposed
         "frontier/v6",  # F08-T42 (D-12 v3.43): circular retired; the site ignores it on v5
         "frontier/v7",  # F03-T21 (D-25 v3.45): literature.disputes
+        "frontier/v8",  # F08-T44 (D-30 v3.46): relation refutes
     ),
     "info.json": ("info/v1", "info/v2"),  # v2: F05-T25
     "targets/index.json": (
@@ -74,6 +75,7 @@ PRODUCT_SCHEMAS: dict[str, tuple[str, ...]] = {
         "graph/v11",  # F08-T42 (D-12 v3.43): circular retired; the site ignores it on v6-v10
         "graph/v12",  # F29-T1 (D-25 v3.44): label, label_source, claim; approach
         "graph/v13",  # F08-T43 (D-25 v3.45): literature.disputes
+        "graph/v14",  # F08-T44 (D-30 v3.46): relation refutes; target_proofs refutations
     ),
 }
 log = logging.getLogger(__name__)

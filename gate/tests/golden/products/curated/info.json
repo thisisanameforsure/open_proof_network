@@ -1,7 +1,7 @@
 {
   "errors_url": null,
   "guide_url": null,
-  "protocol_version": "3.45",
+  "protocol_version": "3.46",
   "rate_limit_policy": null,
   "rendered_from": "5555555555555555555555555555555555555555",
   "schema": "info/v2",
@@ -32,7 +32,8 @@
       1
     ],
     "closure": [
-      1
+      1,
+      2
     ],
     "context": [
       1,
@@ -43,7 +44,8 @@
       6,
       7,
       8,
-      9
+      9,
+      10
     ],
     "credit-correction": [
       1
@@ -85,7 +87,8 @@
       4,
       5,
       6,
-      7
+      7,
+      8
     ],
     "gate-spec": [
       1
@@ -118,7 +121,8 @@
       10,
       11,
       12,
-      13
+      13,
+      14
     ],
     "info": [
       1,

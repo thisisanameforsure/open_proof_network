@@ -44,7 +44,9 @@ HOLE_ORIGINS: tuple[str, ...] = ("compiler-derived", "skeleton-hole")
 #: how the derivation tells a hole the parent may draw on from a dependency it waits on.
 HOLE_SEPARATOR = "--h"
 TRUST_KERNEL = "kernel"
-_RELATION_RE = re.compile(r"^\s*--\s*relation:\s*(?P<label>resolves|partial|related)\s*$", re.M)
+_RELATION_RE = re.compile(
+    r"^\s*--\s*relation:\s*(?P<label>resolves|partial|related|refutes)\s*$", re.M
+)
 _META_STATUS_RE = re.compile(r"^status:[ \t]*[^\n]*$", re.M)
 
 

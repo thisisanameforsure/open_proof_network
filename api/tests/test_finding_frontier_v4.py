@@ -46,7 +46,7 @@ def test_the_current_frontier_is_served_with_what_each_node_needs(harness: Harne
     r = harness.client.get("/frontier.json")
     assert r.status_code == 200, r.text
     doc = r.json()
-    assert doc["schema"] == "frontier/v7"
+    assert doc["schema"] == "frontier/v8"
     assert schemas.violations(doc) == []
     entry = next(e for e in doc["entries"] if e["node_id"] == LISTED_NODE)
     assert (entry["status"], entry["cause"], entry["needs"], entry["claimable"]) == (

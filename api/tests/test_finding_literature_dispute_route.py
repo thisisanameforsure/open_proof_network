@@ -366,7 +366,7 @@ def test_the_derived_context_inlines_a_proposals_summary_and_references(
     harness.context.listings.clear()
     served = McpClient(harness).ok("get_node", {"node_id": MCP_NODE, "include": []})
     assert served["context_source"] == "derived"
-    assert served["context"]["schema"] == "context/v9"
+    assert served["context"]["schema"] == "context/v10"
     proposed = served["context"]["literature_proposed"]
     assert proposed["summary"] == proposal_file["summary"]
     assert proposed["references"] == proposal_file["references"]

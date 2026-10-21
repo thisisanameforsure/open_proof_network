@@ -2345,7 +2345,8 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "both",
         9,
         "A variant's relation proof proves the implication the wrong way round for its label.",
-        "A `resolves` variant proves variant → root; a `partial` one proves root → variant. "
+        "A `resolves` variant proves variant → root; a `partial` one proves root → variant; "
+        "a `refutes` one proves variant → ¬root (v3.46). "
         "Prove the one the message names.",
     ),
     "relation-elaboration": (
@@ -2409,7 +2410,8 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "gate",
         9,
         "Relation.lean is present but claims nothing.",
-        "Add a `-- relation: partial` or `-- relation: resolves` line, or drop the file.",
+        "Add a `-- relation: partial`, `-- relation: resolves` or `-- relation: refutes` line, "
+        "or drop the file.",
     ),
     "relation_proof-invalid": (
         "api",

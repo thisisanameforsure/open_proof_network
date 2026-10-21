@@ -40,9 +40,10 @@ META_SCHEMA_LEMMAS = "meta/v6"
 NODE_STATUS_SCHEMA = "node-status/v1"
 RELATION_FILE = "Relation.lean"
 RELATION_DECL = "relation"
-#: D-30's labels. Above ``related`` the label is a claim, and needs ``Relation.lean``.
-RELATION_LABELS: tuple[str, ...] = ("related", "partial", "resolves")
-LABELS_NEEDING_PROOF: tuple[str, ...] = ("partial", "resolves")
+#: D-30's labels. Above ``related`` the label is a claim, and needs ``Relation.lean``. v3.46:
+#: ``refutes``, whose proof is ``variant → ¬root`` (F08-T44).
+RELATION_LABELS: tuple[str, ...] = ("related", "partial", "resolves", "refutes")
+LABELS_NEEDING_PROOF: tuple[str, ...] = ("partial", "resolves", "refutes")
 Origin = Literal["authored", "compiler-derived", "variant", "skeleton-hole"]
 
 #: What a fresh node's META says before the products regenerate it (F03 owns ``status``).

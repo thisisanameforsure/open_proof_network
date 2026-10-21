@@ -23,7 +23,12 @@ from typing import Any
 
 from opn_gate import schemas
 
-SCHEMA = "closure/v1"
+SCHEMA = "closure/v2"  # F08-T44 (D-12 v3.46): ``verdict``, proved or refuted
+#: Every version a record on the graph may carry; v1 records (before v3.46) are read as proved.
+ACCEPTED: tuple[str, ...] = ("closure/v1", "closure/v2")
+#: D-12 v3.42 / v3.46: what the join accepted.
+VERDICT_PROVED = "proved"
+VERDICT_REFUTED = "refuted"
 FILE = "closure.json"
 
 
@@ -47,7 +52,17 @@ def load(node_dir: Path) -> dict[str, Any] | None:
     path = path_for(node_dir)
     if not path.is_file():
         return None
-    return schemas.load_json(path, SCHEMA)
+    doc = schemas.load_json(path)
+    declared = doc.get("schema") if isinstance(doc, dict) else None
+    if declared not in ACCEPTED:
+        msg = f"{path}: schema {declared!r} is not a closure record this gate reads"
+        raise schemas.SchemaError(msg)
+    return schemas.validate(doc, str(declared))
+
+
+def verdict_of(record: Mapping[str, Any]) -> str:
+    """What the record says the join accepted: its ``verdict``, or proved for a v1 record."""
+    return str(record.get("verdict") or VERDICT_PROVED)
 
 
 def link_of(record: Mapping[str, Any]) -> Link:
@@ -70,13 +85,17 @@ def build(  # noqa: PLR0913 — one argument per fact the record carries
     lean_toolchain: str,
     mathlib_sha: str | None,
     timestamp: str,
+    verdict: str = VERDICT_PROVED,
 ) -> dict[str, Any]:
-    """An unsigned record (signature kind ``none``), validated; the post-merge job signs it."""
+    """An unsigned record (signature kind ``none``), validated; the post-merge job signs it.
+    ``verdict`` is what the join accepted: the node's theorem, or (v3.46) its negation through a
+    refutes variant."""
     doc: dict[str, Any] = {
         "schema": SCHEMA,
         "target_id": target_id,
         "node_id": node_id,
         "statement_hash": statement_hash,
+        "verdict": verdict,
         "link": {"kind": link.kind, "id": link.id, "inputs": list(link.inputs)},
         "source": {"path": source_path, "hash": source_hash, "text": source_text},
         "axioms": sorted(axioms),

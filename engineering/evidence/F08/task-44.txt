@@ -1,0 +1,29 @@
+F08-T44 — contract for decisions v3.46 (refutes; the crux band), 2026-10-21
+
+Decisions doc: D-30 gains the `refutes` row and a v3.46 paragraph; D-12 v3.42's closure line
+and the #2 artifact row; D-8 (a revision may give a crux its relation, routes inherited by
+derivation when the statement is unchanged); D-14 v3.26 (the pointer is never a line of the
+tree; the band); D-25 v3.46 (a route settles either way); D-28 rows for list_sufficient_sets and
+propose_variant; the meta line (v3.46, 2026-10-21) and the version history entry.
+
+Schemas (D-34: new versions, never edits): graph/v14, frontier/v8, context/v10 (relation enum +
+refutes; graph target_proofs[].relation enum resolves|refutes), closure/v2 (verdict:
+proved|refuted). HASHES regenerated: 134 schemas, 4 lines added, 4 moved by sort order.
+
+Code: RELATION_LABELS/LABELS_NEEDING_PROOF (+refutes), graph._RELATION_RE, routes.REFUTES,
+toolchain comment, codes text for relation-direction/relation-unlabelled; Lean
+RelationLabel.refutes with expectedRelationType = variant → ¬root (lake build: 62 jobs, ok);
+closure.py SCHEMA closure/v2, ACCEPTED (v1, v2), build(verdict=...), verdict_of;
+PROTOCOL_VERSION 3.46; GRAPH_SCHEMA/FRONTIER_SCHEMA/context.SCHEMA pins; api frontier and
+reads accepted sets; get_node v1–v3 context enum; site model.py sets; api-deploy package check.
+Goldens regenerated (write_goldens). Version pins in tests and api fixtures restated to v3.46.
+
+The refutes Relation.lean for spec-a70fcca4 was checked on the hosted checker before any code:
+POST /check target erdos-257, environment lean-4.33.1, exact: true, okay: true, lint [],
+log_id 01M5EN6Z7R7WZ0GDX86VNCP9Y6 (text in engineering/evidence/F08/task-44-relation.lean).
+
+Runs (fast tier, -m "not lean and not docker and not network and not harness"):
+  gate/tests  3585 passed, 1 skipped (one failure, the published-set sort order, fixed; test_schemas 103 passed after)
+  api/tests   2182 passed (5 failures before the pin restatements; the five files re-run: 52 passed with the site's two)
+  site/tests  789 passed, 15 skipped (3 failures before the pin restatements, re-run green)
+  make lint: All checks passed (4 E501 wrapped); make types: gate 429, api 265, site 113 files clean.

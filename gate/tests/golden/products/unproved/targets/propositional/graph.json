@@ -100,7 +100,7 @@
     "tracking": null
   },
   "root": "and-swap-reassoc",
-  "schema": "graph/v13",
+  "schema": "graph/v14",
   "target_id": "propositional",
   "target_proofs": []
 }

@@ -48,12 +48,14 @@ NODE_FILES: tuple[tuple[str, bool], ...] = (  # (file, required): the raw files 
 #: The frontier version whose entry fields the filters are drawn from. The newest known
 #: one: its field set is a superset of the older versions', and a filter naming a field
 #: an older document does not carry simply matches nothing (F11-R4).
-FRONTIER_SCHEMA = "frontier/v7"  # F03-T21 (D-25 v3.45): v6's fields plus literature.disputes
+FRONTIER_SCHEMA = "frontier/v8"  # F08-T44 (D-30 v3.46): v7's fields, relation may be refutes
 #: The ``CONTEXT.json`` versions get_node serves: the gate module's own set, plus the version the
 #: v3.38 re-pin first renders (F10-T49), so the service accepts it whichever side of that
 #: re-pin it is deployed on (the deploy-window lesson of 2026-09-11). F08-T42: ``context/v8``.
 CONTEXT_SCHEMAS: tuple[str, ...] = tuple(
-    dict.fromkeys((*context.ACCEPTED, "context/v6", "context/v7", "context/v8", "context/v9"))
+    dict.fromkeys(
+        (*context.ACCEPTED, "context/v6", "context/v7", "context/v8", "context/v9", "context/v10")
+    )
 )
 SCHEMA_NAME_RE = re.compile(r"^[a-z][a-z0-9-]*/v[1-9][0-9]*$")
 FRONT_MATTER_RE = re.compile(r"\A---[ \t]*\r?\n(?P<yaml>.*?)\r?\n---[ \t]*\r?\n", re.S)
