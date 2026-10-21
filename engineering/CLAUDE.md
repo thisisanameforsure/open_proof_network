@@ -1778,3 +1778,19 @@ The law of the project:
   merges and one direct push touch `nodes/` without products. **Never `source .env`**: an unquoted
   continuation line ran as a command and the shell echoed part of a secret into the session; read only the
   keys a probe needs with `dotenv_values`, and print nothing from them.
+
+- 2026-10-21 — Decisions v3.46 (a route settles either way: `refutes` variants, two-sided sets, the
+  proposed statements apart from the tree) from the owner's reading of erdos-257, built by four agents
+  and carried live the same day. Four things worth keeping. **An agent cannot change model mid-run**:
+  the laptop died and then the Fable spend limit stopped two agents; the uncommitted worktrees were
+  intact, and switching to Opus meant stopping each agent and starting a fresh one in the same
+  worktree with its predecessor's evidence file as the hand-off — which is why "write the evidence as
+  you go" is a rule for agents. **The first live use of a command finds what its rehearsal could
+  not**: `opn-gate revise --relation` was rehearsed on a clone of the live target and still failed
+  admission live, because `revise` never carried `acknowledged_hazards` and the rehearsal ran the
+  classifier and the products, not admission's hazard step; rehearse a curator act through the
+  admission it will meet. **A rule over "proposed" forgets "superseded" again** (2026-09-17's lesson):
+  the band kept a revised crux and, by id prefix, the holes its revision now held. **Read a record by
+  the schema it declares**: the site validated every literature record as v1 for two days after v2
+  shipped, and the page said "could not be read"; a reader of a versioned record keeps a set, never a
+  constant. And: a network push deploys the api but never the site — dispatch `site-deploy.yml`.
