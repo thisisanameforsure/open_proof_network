@@ -294,16 +294,22 @@ def render_day(
     return max(days, default=EPOCH_DAY)
 
 
+#: D-30: the variant labels whose proof settles the root — ``resolves`` proves it, ``refutes``
+#: (v3.46, F28-T10) refutes it. ``partial`` and ``related`` settle nothing.
+SETTLING_RELATIONS: tuple[str, ...] = ("resolves", "refutes")
+
+
 def closing_node(tg: TargetGraph) -> str | None:
     """F15-Q11: the node whose proof closed the target — the root, or the ``resolves`` variant
-    where the target resolved by variant (D-30); ``None`` while nothing has. A ``partial``
-    variant closes nothing and starts no digestion state. F03-T17: a root settled by any
-    root-level D-12 artifact (proof, counterexample, vacuity certificate) is the closing node."""
+    where the target resolved by variant (D-30), or (v3.46) the ``refutes`` variant whose proof
+    refutes it; ``None`` while nothing has. A ``partial`` variant closes nothing and starts no
+    digestion state. F03-T17: a root settled by any root-level D-12 artifact (proof,
+    counterexample, vacuity certificate) is the closing node."""
     if tg.statuses[tg.root] in graphmod.RESOLVED_STATUSES:
         return tg.root
     for node_id in tg.order:
         n = tg.nodes[node_id]
-        if n.relation == "resolves" and tg.statuses[node_id] == "proved":
+        if n.relation in SETTLING_RELATIONS and tg.statuses[node_id] == "proved":
             return node_id
     return None
 
@@ -693,6 +699,8 @@ def target_proofs(tg: TargetGraph) -> list[dict[str, Any]]:
     The root's merged proofs come first (``Proof.lean``, then its alternates), then each proved
     ``resolves`` variant's, the variants in the order their proofs were attested — the record's
     order, which ranks nothing (D-25). A ``partial`` or ``related`` variant proves no target.
+    v3.46 (D-30, F28-T10): every way the target is *settled* — a proved ``refutes`` variant is
+    listed the same way, with ``relation: refutes``, since its proof refutes the root.
     """
     sources: list[tuple[str, str | None]] = []
     if tg.statuses[tg.root] == "proved":
@@ -700,10 +708,12 @@ def target_proofs(tg: TargetGraph) -> list[dict[str, Any]]:
     variants = [
         n
         for n in tg.order
-        if tg.nodes[n].relation == "resolves" and tg.statuses[n] == "proved" and tg.nodes[n].proofs
+        if tg.nodes[n].relation in SETTLING_RELATIONS
+        and tg.statuses[n] == "proved"
+        and tg.nodes[n].proofs
     ]
     variants.sort(key=lambda n: (tg.nodes[n].proofs[0].attestation, n))
-    sources.extend((v, "resolves") for v in variants)
+    sources.extend((v, tg.nodes[v].relation) for v in variants)
     out: list[dict[str, Any]] = []
     for node_id, relation in sources:
         for proof in tg.nodes[node_id].proofs:

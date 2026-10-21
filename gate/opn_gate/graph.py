@@ -646,9 +646,11 @@ def derive_statuses(
             result = STATUS_FOR_ARTIFACT[node.artifact]
         elif closure_proves(node, nodes, status_of, root=root, root_vouched=root_vouched):
             # F28-T8 (D-12 v3.42): proved by closure — the gate joined the node's decomposition
-            # (or claim, or variant) with its inputs' proofs and the kernel accepted the theorem;
-            # it stays proved exactly while every input is.
-            result = "proved"
+            # (or variant) with its inputs' proofs and the kernel accepted the theorem; it stays
+            # proved exactly while every input is. F28-T10 (D-12 v3.46): the record's verdict
+            # says which theorem that was — the node's own, or through a ``refutes`` variant
+            # its negation, which refutes the node; a v1 record is proved (``verdict_of``).
+            result = closure.verdict_of(node.closure or {})
         else:
             blocked, _ = blocked_because(node, status_of)
             result = "blocked" if blocked else "ready"
@@ -668,9 +670,10 @@ def closure_proves(
     root: str | None,
     root_vouched: bool,
 ) -> bool:
-    """F28-T8 (D-12 v3.42): whether the node's closure record proves it now: the record is for
-    the statement as it stands, every input of its link is a node of the target that derives
-    proved, and, for the root, its statement is vouched as step 9 would have it."""
+    """F28-T8 (D-12 v3.42): whether the node's closure record settles it now (proved, or refuted
+    by its verdict, F28-T10): the record is for the statement as it stands, every input of its
+    link is a node of the target that derives proved, and, for the root, its statement is vouched
+    as step 9 would have it."""
     record = node.closure
     if record is None or record.get("statement_hash") != node.statement_hash:
         return False

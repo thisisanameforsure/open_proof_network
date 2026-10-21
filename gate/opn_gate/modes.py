@@ -499,9 +499,14 @@ def step9_not_asked(graph_root: Path, classification: Classification) -> Stateme
         return None
     node = tg.nodes.get(classification.node_id or "")
     root_open = tg.statuses.get(tg.root) not in graphmod.RESOLVED_STATUSES
-    settles = node is None or node.node_id == tg.root or (node.relation == "resolves" and root_open)
-    # ``resolves`` while the root is open is a proof of the root by another road; a node the
-    # graph does not carry is treated as if it settled, so the review stays asked (C7).
+    settles = (
+        node is None
+        or node.node_id == tg.root
+        or (node.relation in ("resolves", "refutes") and root_open)
+    )
+    # ``resolves`` while the root is open is a proof of the root by another road, and ``refutes``
+    # (D-30 v3.46, F28-T10) a refutation of it by one; a node the graph does not carry is treated
+    # as if it settled, so the review stays asked (C7).
     return None if settles else NOT_ASKED_INTERMEDIATE
 
 
