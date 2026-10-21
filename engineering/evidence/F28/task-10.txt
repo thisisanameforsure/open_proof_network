@@ -68,3 +68,27 @@ $ uv run --frozen pytest gate/tests/test_refutes_closure.py gate/tests/test_clos
 $ uv run --frozen mypy gate          → Success: no issues found in 431 source files
 $ uv run --frozen ruff check .       → All checks passed!  (exit 0)
 $ uv run --frozen ruff format --check . → 890 files already formatted (exit 0)
+
+== 4. Lean tier (elan lean-4.33.1, core only; the bench of test_close_compose) ==
+$ uv run --frozen pytest gate/tests/test_refutes_closure_lean.py -m lean -q
+first run: 1 failed, 1 passed in 653.66s (0:10:53)   # the package build; the refutation
+  elaborated (test_the_composed_refutation_elaborates passed); the second test failed on its
+  own string — Lean's message is not spelled "type mismatch" in this version. What Lean said of
+  the SAME relation composed as a proof of the root (the pre-fix composition, i.e. the red):
+    opn_closing_link big
+    has type
+      ¬∀ (n : Nat), n < 3
+    but is expected to have type
+      ∀ (n : Nat), n < 3
+  The assertion now holds to "mismatch" and that negated type.
+second run: 2 passed in 13.93s  (exit 0)
+
+== 5. Full fast tier of the gate package ==
+$ uv run --frozen pytest gate -q -m "not lean and not docker and not network and not harness"
+3333 passed, 271 skipped, 259 deselected, 2 warnings in 692.77s (0:11:32)   exit 0
+(Started before commit 8c5ea15f, which returned closing.Link.as_dict to its published three-key
+shape and put the verdict on close.Result.as_dict instead; that delta was then run as
+test_refutes_closure, test_closing, test_close, test_close_cli and api/tests/test_routes_mcp:
+46 passed, and ruff/format/mypy clean, exit 0 each.)
+
+Commits on f28-t10 (main..HEAD): 1cda8ec6, 8c5ea15f, and the evidence/lean-assert commit.

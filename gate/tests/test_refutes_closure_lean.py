@@ -78,4 +78,5 @@ def test_the_kernel_refuses_the_same_relation_as_a_proof_of_the_root(
     path.write_text(composed(closure.VERDICT_PROVED), encoding="utf-8")
     proc = run_lean(bench, path)
     assert proc.returncode != 0
-    assert "type mismatch" in proc.stdout + proc.stderr
+    out = proc.stdout + proc.stderr
+    assert "mismatch" in out and "¬∀ (n : Nat), n < 3" in out, out
