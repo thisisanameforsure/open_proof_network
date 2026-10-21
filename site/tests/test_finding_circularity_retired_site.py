@@ -31,7 +31,7 @@ from harness import TARGET
 
 from opn_gate import graph as gate_graph
 from opn_gate import products
-from opn_site import dag, model, one_view, render
+from opn_site import dag, model, one_view, render, routes_view
 
 REPO = "https://github.com/example/graph"
 HOLE = fixture.HOLE
@@ -276,20 +276,27 @@ def test_every_output_class_has_a_key_entry() -> None:
         inspect.getsource(one_view._pill_markup)
         + inspect.getsource(one_view._junction_markup)
         + inspect.getsource(one_view._dag_svg)
+        + inspect.getsource(one_view._band_svg)
         + inspect.getsource(dag.outline_mark)
         + inspect.getsource(dag.lines)
+        + inspect.getsource(routes_view.drawn)
     )
+    # F30-T11: the pointer is no line; the band ("dag band") is what the key names. F04-T55:
+    # the relation trunks, one per label ``drawn`` lists.
     drawn = {
         '"edge"': "depends-on",
         "edge use": "use",
-        "edge proposed": "proposed-for",
+        "dag band": "proposed-for",
         "edge lemma": "lemma",
+        "RELATION_KIND": "relation-resolves",
+        "TRUNK_LABELS": "relation-refutes",
         "outline_mark": "outline",
         "and-mark": "route-and",
         "or-mark": "route-or",
         "dead-cross": "route-dead",
         '"asm"': "closable",
     }
+    assert set(routes_view.TRUNK_LABELS) == {"resolves", "refutes"}, "a new label needs a key"
     for cls, key in drawn.items():
         assert cls in source, f"the drawing no longer draws {cls}; update this guard"
         assert key in render.GLOSSARY_BY_KEY, key

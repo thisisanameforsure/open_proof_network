@@ -171,7 +171,7 @@ own evidence (D-8 v3.18).</p>
 <div class="card smap-wrap">
 <div class="smap-key"><span class="kicker">Key</span>$problem_key</div>
 <div class="smap-scroll">
-<svg class="smap" viewBox="0 0 1200 400" role="img" aria-label="State diagram of a problem: listed to active by a curator; active to dormant by an evidence-gated curator declaration; dormant back to active on the next merged progress artifact; any state to resolved when the root is settled by a proof, a counterexample or a vacuity certificate, or a resolves-variant is proved, read on the site as proved, disproved or shown ill-posed; listed to known-result by a curator relabel; a resolved problem carries a digestion state from undigested to explained to written-up.">
+<svg class="smap" viewBox="0 0 1200 400" role="img" aria-label="State diagram of a problem: listed to active by a curator; active to dormant by an evidence-gated curator declaration; dormant back to active on the next merged progress artifact; any state to resolved when the root is settled by a proof, a counterexample or a vacuity certificate, or a resolves-variant or a refutes-variant is proved (v3.46), read on the site as proved, disproved or shown ill-posed; listed to known-result by a curator relabel; a resolved problem carries a digestion state from undigested to explained to written-up.">
   <defs>
     <marker id="pm-mech" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path class="m-mech" d="M0,0 L10,5 L0,10 z"/></marker>
     <marker id="pm-cur" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path class="m-cur" d="M0,0 L10,5 L0,10 z"/></marker>
@@ -199,7 +199,7 @@ own evidence (D-8 v3.18).</p>
 
   <line class="mech" x1="642" y1="93" x2="808" y2="93" marker-end="url(#pm-mech)"/>
   <text class="lbl mech" x="725" y="82" text-anchor="middle">the root is settled,</text>
-  <text class="lbl mech" x="725" y="110" text-anchor="middle">or a resolves-variant proved</text>
+  <text class="lbl mech" x="725" y="110" text-anchor="middle">or a resolves- or refutes-variant proved</text>
 
   <rect class="box st-stale" x="430" y="280" width="210" height="66" rx="6"/>
   <text class="name" x="442" y="302">dormant</text>
@@ -264,7 +264,7 @@ merge is the only thing that changes truth (D-35).</p>
 <tr><td>Intake a problem</td><td class="who">curator</td><td><code>intake</code> pull request: the record, the pins, definitions, fidelity certificates, a status record and the root</td><td>problem → listed; root born open</td></tr>
 <tr><td>Propose a statement</td><td class="who">anyone</td><td><code>proposal</code> pull request, one new statement directory (<code>POST /proposals</code>)</td><td>statement born open; speculative if the proposal says so</td></tr>
 <tr><td>Fill a witness</td><td class="who">anyone</td><td><code>proposal</code> pull request changing <code>Witness.lean</code> alone on a hole (<code>POST /proposals/witness</code>)</td><td>hole: needs a witness → open</td></tr>
-<tr><td>Prove it</td><td class="who">anyone</td><td><code>proof</code> pull request, <code>Proof.lean</code> under the statement's own name, after a precheck</td><td>open → proved; problem → resolved when it is the root or a resolves-variant; dependents may unblock</td></tr>
+<tr><td>Prove it</td><td class="who">anyone</td><td><code>proof</code> pull request, <code>Proof.lean</code> under the statement's own name, after a precheck</td><td>open → proved; problem → resolved when it is the root, a resolves-variant or (v3.46) a refutes-variant, the latter read as disproved; dependents may unblock</td></tr>
 <tr><td>Refute it</td><td class="who">anyone</td><td><code>proof</code> pull request declaring <code>…_refuted : ¬S</code></td><td>open → refuted; its parents blocked with cause dep-refuted; at the root, problem → resolved, read as disproved</td></tr>
 <tr><td>Show it vacuous</td><td class="who">anyone</td><td><code>proof</code> pull request declaring <code>…_vacuous : ¬W</code></td><td>open → defective; forces a revision; at the root, problem → resolved, read as shown ill-posed</td></tr>
 <tr><td>Partial proof, skeleton or reduction</td><td class="who">anyone</td><td><code>partial</code> pull request: an assembly under <code>attempts/</code>; a skeleton names its annex by hash; a reduction is a partial with one hole</td><td>the statement stays open; each hole born needing a witness, listed, and recorded as a child it may draw on once proved; a later route numbers its holes after the earlier ones (D-12 v3.19)</td></tr>

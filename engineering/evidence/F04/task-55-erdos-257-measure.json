@@ -1,0 +1,186 @@
+{
+ "1440": {
+  "rest": {
+   "view": "routes",
+   "shown": [
+    "erdos-257",
+    "erdos-257--h1",
+    "erdos-257--h2",
+    "spec-a70fcca4",
+    "spec-a70fcca4--h1",
+    "spec-a70fcca4--h2",
+    "spec-a70fcca4--h3",
+    "spec-a70fcca4--h4"
+   ],
+   "trunk": [
+    [
+     "edge relation refutes",
+     true,
+     "rgb(59, 191, 178)"
+    ]
+   ],
+   "selEdges": [
+    [
+     "sel/proves",
+     "rgb(117, 121, 140)"
+    ],
+    [
+     "sel/refutes",
+     "rgb(59, 191, 178)"
+    ]
+   ],
+   "rows": [
+    [
+     "set-row side-proves",
+     "Set 1"
+    ],
+    [
+     "set-row side-refutes",
+     "Set 2 refutes"
+    ]
+   ],
+   "head": "This problem is open for work. How to contribute →",
+   "how": "Open. A direct proof, or proofs of its holes, close it.",
+   "scroll": [
+    1440,
+    1440
+   ]
+  },
+  "refuting": {
+   "view": "sel/refutes",
+   "shown": [
+    "erdos-257",
+    "spec-a70fcca4",
+    "spec-a70fcca4--h1",
+    "spec-a70fcca4--h2",
+    "spec-a70fcca4--h3",
+    "spec-a70fcca4--h4"
+   ],
+   "trunk": [
+    [
+     "edge relation refutes",
+     true,
+     "rgb(59, 191, 178)"
+    ]
+   ],
+   "selEdges": [
+    [
+     "sel/proves",
+     "rgb(117, 121, 140)"
+    ],
+    [
+     "sel/refutes",
+     "rgb(59, 191, 178)"
+    ]
+   ],
+   "rows": [
+    [
+     "set-row side-proves",
+     "Set 1whichOpenh2Provedh1h1spec-ddd99827Assemblieserdos-257"
+    ],
+    [
+     "set-row side-refutes",
+     "Set 2 refutes"
+    ]
+   ],
+   "head": "This problem is open for work. How to contribute →",
+   "how": "Open. A direct proof, or proofs of its holes, close it.",
+   "scroll": [
+    1440,
+    1440
+   ]
+  }
+ },
+ "390": {
+  "rest": {
+   "view": "routes",
+   "shown": [
+    "erdos-257",
+    "erdos-257--h1",
+    "erdos-257--h2",
+    "spec-a70fcca4",
+    "spec-a70fcca4--h1",
+    "spec-a70fcca4--h2",
+    "spec-a70fcca4--h3",
+    "spec-a70fcca4--h4"
+   ],
+   "trunk": [
+    [
+     "edge relation refutes",
+     true,
+     "rgb(59, 191, 178)"
+    ]
+   ],
+   "selEdges": [
+    [
+     "sel/proves",
+     "rgb(117, 121, 140)"
+    ],
+    [
+     "sel/refutes",
+     "rgb(59, 191, 178)"
+    ]
+   ],
+   "rows": [
+    [
+     "set-row side-proves",
+     "Set 1"
+    ],
+    [
+     "set-row side-refutes",
+     "Set 2 refutes"
+    ]
+   ],
+   "head": "This problem is open for work. How to contribute →",
+   "how": "Open. A direct proof, or proofs of its holes, close it.",
+   "scroll": [
+    390,
+    390
+   ]
+  },
+  "refuting": {
+   "view": "sel/refutes",
+   "shown": [
+    "erdos-257",
+    "spec-a70fcca4",
+    "spec-a70fcca4--h1",
+    "spec-a70fcca4--h2",
+    "spec-a70fcca4--h3",
+    "spec-a70fcca4--h4"
+   ],
+   "trunk": [
+    [
+     "edge relation refutes",
+     true,
+     "rgb(59, 191, 178)"
+    ]
+   ],
+   "selEdges": [
+    [
+     "sel/proves",
+     "rgb(117, 121, 140)"
+    ],
+    [
+     "sel/refutes",
+     "rgb(59, 191, 178)"
+    ]
+   ],
+   "rows": [
+    [
+     "set-row side-proves",
+     "Set 1whichOpenh2Provedh1h1spec-ddd99827Assemblieserdos-257"
+    ],
+    [
+     "set-row side-refutes",
+     "Set 2 refutes"
+    ]
+   ],
+   "head": "This problem is open for work. How to contribute →",
+   "how": "Open. A direct proof, or proofs of its holes, close it.",
+   "scroll": [
+    390,
+    390
+   ]
+  }
+ }
+}

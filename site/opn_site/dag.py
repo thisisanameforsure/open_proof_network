@@ -21,6 +21,8 @@ from itertools import pairwise
 from statistics import median
 from typing import Any
 
+from opn_gate.graph import HOLE_ORIGINS, HOLE_SEPARATOR
+
 NODE_H = 36
 GAP_X = 24
 GAP_Y = 56
@@ -130,28 +132,50 @@ class ProofMarks:
     edges: frozenset[tuple[str, str]]
 
 
-def pointers(nodes: list[dict[str, Any]]) -> dict[str, list[str]]:
-    """F18-R9: the cruxes proposed for each node that no merged proof of it uses yet — the dashed
-    lines the drawing makes, keyed by the node they point at. A crux the node already rests on
-    (a dep, or a use, F08-R19) needs no pointer: the solid line says more."""
+def proposed(nodes: Iterable[Mapping[str, Any]]) -> list[str]:
+    """F30-T11 (D-14 v3.26 as amended by v3.46): the proposed cruxes — statements whose
+    ``proposed_for`` names a statement of the graph and that carry no checked relation (one with
+    a relation is a variant, D-30). A crux some statement declares as a *dependency* is not one:
+    its solid line is structural and it stays in the tree (erdos-402's ``spec-fa8046e4``); a crux
+    a merged proof only *uses* is one (the owner: "keep the specs on the band")."""
     rows = {str(n["node_id"]): n for n in nodes}
-    out: dict[str, list[str]] = {}
-    for n in sorted(nodes, key=lambda n: str(n["node_id"])):
-        target = n.get("proposed_for")
-        if not target or str(target) not in rows:
+    declared = {str(d) for n in rows.values() for d in n.get("deps") or []}
+    return sorted(
+        nid
+        for nid, n in rows.items()
+        if n.get("proposed_for")
+        and str(n["proposed_for"]) in rows
+        and not n.get("relation")
+        and nid not in declared
+    )
+
+
+def band_of(nodes: Iterable[Mapping[str, Any]]) -> tuple[str, ...]:
+    """The statements drawn in the band of proposed statements: the proposed cruxes and their
+    hole children (a hole origin, an id under ``<crux>--h``), transitively, sorted."""
+    rows = {str(n["node_id"]): n for n in nodes}
+    band = set(proposed(rows.values()))
+    for nid in sorted(rows, key=len):
+        if nid in band or str(rows[nid].get("origin")) not in HOLE_ORIGINS:
             continue
-        crux, row = str(n["node_id"]), rows[str(target)]
-        if crux in below(row):
-            continue
-        out.setdefault(str(target), []).append(crux)
-    return out
+        parent = nid.rsplit(HOLE_SEPARATOR, 1)[0]
+        if parent != nid and parent in band:
+            band.add(nid)
+    return tuple(sorted(band))
+
+
+#: The line kinds between a variant and the root (F04-T55, D-30 v3.46): ``edge relation
+#: <label>`` for each label a row's ``relations`` names.
+RELATION_KIND = "edge relation"
 
 
 def layers(nodes: list[dict[str, Any]]) -> dict[str, int]:
-    """Longest path from a source: a node is one above its deepest dep (or used node, or a crux
-    proposed for it, F18-R9, so the crux sits beneath the node it serves)."""
-    pointed = pointers(nodes)
-    deps = {str(n["node_id"]): [*below(n), *pointed.get(str(n["node_id"]), [])] for n in nodes}
+    """Longest path from a source: a node is one above its deepest dep (or used node, or the
+    variant whose relation it draws, F04-T55). A proposed crux is layered by nothing: it is drawn
+    apart, in the band (F30-T11)."""
+    deps = {
+        str(n["node_id"]): [*below(n), *(str(v) for v in (n.get("relations") or {}))] for n in nodes
+    }
     memo: dict[str, int] = {}
 
     def depth(node_id: str, seen: tuple[str, ...]) -> int:
@@ -171,8 +195,8 @@ def layers(nodes: list[dict[str, Any]]) -> dict[str, int]:
 
 def raised(layer_of: dict[str, int], edges: list[Line]) -> dict[str, int]:
     """F04-T33: each statement drawn just below the lowest statement that rests on it, not at
-    the bottom: a hole sits under its parent and a crux under the statement it was proposed for,
-    so their lines are short. A statement nothing rests on keeps its ``layers`` row."""
+    the bottom: a hole sits under its parent, so their lines are short. A statement nothing
+    rests on keeps its ``layers`` row."""
     above: dict[str, list[str]] = {}
     for src, dst, _kind in edges:
         above.setdefault(src, []).append(dst)
@@ -190,10 +214,10 @@ Line = tuple[str, str, str]
 def lines(nodes: list[dict[str, Any]]) -> list[Line]:
     """Every line the drawing makes, as ``(lower, upper, kind)``, in a fixed order: the deps,
     the uses a dep does not already draw (F18-T2), the lemmas neither draws (F04-T39, D-12
-    v3.38: ``edge lemma``, from the restated node up to the parent), and the cruxes' pointers
-    (F18-R9)."""
+    v3.38: ``edge lemma``, from the restated node up to the parent), and (F04-T55, D-30 v3.46)
+    the relation trunks a row's ``relations`` names (``{variant: label}``), from the variant up
+    to the row. A proposed crux's pointer draws no line (F30-T11, D-14 v3.26 as amended)."""
     ids = {str(n["node_id"]) for n in nodes}
-    pointed = pointers(nodes)
     out: list[Line] = []
     for n in sorted(nodes, key=lambda n: str(n["node_id"])):
         nid = str(n["node_id"])
@@ -203,8 +227,8 @@ def lines(nodes: list[dict[str, Any]]) -> list[Line]:
             kinds.setdefault(str(u), "edge use")
         for lemma in lemmas_of(n):
             kinds.setdefault(lemma, "edge lemma")
-        for c in pointed.get(nid, []):
-            kinds.setdefault(c, "edge proposed")
+        for v, label in (n.get("relations") or {}).items():
+            kinds.setdefault(str(v), f"{RELATION_KIND} {label}")
         out.extend((src, nid, kind) for src, kind in sorted(kinds.items()) if src in ids)
     return out
 
@@ -282,6 +306,12 @@ class Layout:
     loose: tuple[str, ...] = ()
     #: Where that group's label sits (its baseline), when there is a group.
     group_y: int = 0
+    #: F30-T11: the band of proposed statements, drawn apart below everything else, and where
+    #: its label sits; ``links`` are the measured lines between the band and the rest, which
+    #: ``svg`` draws hidden until lit.
+    band: tuple[str, ...] = ()
+    band_y: int = 0
+    links: tuple[Edge, ...] = ()
 
 
 # -- ordering ---------------------------------------------------------------------------------
@@ -591,7 +621,7 @@ def _route(
     return out
 
 
-def layout(  # noqa: PLR0913 — the drawing's inputs (F30-T1 added the seed)
+def layout(  # noqa: PLR0913, PLR0915 — the drawing's inputs (F30-T1 the seed, T11 the band)
     nodes: list[dict[str, Any]],
     *,
     root: str | None = None,
@@ -599,17 +629,29 @@ def layout(  # noqa: PLR0913 — the drawing's inputs (F30-T1 added the seed)
     widths: Widths = None,
     labels: Labels = None,
     order: Mapping[str, float] | None = None,
+    apart: bool = True,
 ) -> Layout:
     """Coordinates for every statement and every line (F04-T33). With ``prefix`` (the target
     id) a label also drops the root's own name; ``widths`` (F27-T3) sizes the boxes it names;
     ``labels`` (F29-T5) are the names the pills show, which every box is measured from;
-    ``order`` (F30-T1) seeds each row's order from a reference layout's x positions."""
+    ``order`` (F30-T1) seeds each row's order from a reference layout's x positions. F30-T11:
+    the band's statements (``band_of``) are laid out as a tree of their own under everything
+    else, and the measured lines between the band and the rest come back as ``links``; with
+    ``apart`` false nothing is set aside — no "no line joins" group, no band — which is how the
+    band itself is laid out."""
     names: Prefix = (prefix, root) if prefix and root else prefix
     nodes = sorted(nodes, key=lambda n: str(n["node_id"]))
-    status = {str(n["node_id"]): str(n["status"]) for n in nodes}
-    edges = lines(nodes)
-    loose = _loose(status, edges, root)
-    layer_of = raised({v: k for v, k in layers(nodes).items() if v not in loose}, edges)
+    band = band_of(nodes) if apart else ()
+    all_lines = lines(nodes)
+    if band:
+        tree_nodes = [n for n in nodes if str(n["node_id"]) not in band]
+        crossing = [ln for ln in all_lines if (ln[0] in band) != (ln[1] in band)]
+    else:
+        tree_nodes, crossing = nodes, []
+    status = {str(n["node_id"]): str(n["status"]) for n in tree_nodes}
+    edges = lines(tree_nodes)
+    loose = _loose(status, edges, root) if apart else ()
+    layer_of = raised({v: k for v, k in layers(tree_nodes).items() if v not in loose}, edges)
     ranks, rank_of = _rows(layer_of, edges, names, widths, labels, order)
     wid: dict[str, float] = {v: float(node_width(v, names, widths, labels)) for v in status}
     wid.update({v: 0.0 for row in ranks.rows for v in row if _is_bend(v)})
@@ -643,7 +685,65 @@ def layout(  # noqa: PLR0913 — the drawing's inputs (F30-T1 added the seed)
     bend_x = {v: left[v] + x0 for row in ranks.rows for v in row if _is_bend(v)}
     drawn = _route(edges, rank_of, bend_x, tops, {p.node_id: p for p in placed})
     placed.sort(key=lambda p: (p.layer < 0, p.layer, p.y, p.x))
-    return Layout(placed, drawn, round(width + 2 * PAD), round(height), loose, group_y)
+    if not band:
+        return Layout(placed, drawn, round(width + 2 * PAD), round(height), loose, group_y)
+
+    # F30-T11: the band under everything, a tree of its own (its cruxes' pointers dropped, so
+    # nothing in it is set aside again), centred; its lines offset into place.
+    inner = layout(
+        [{**n, "proposed_for": None} for n in nodes if str(n["node_id"]) in band],
+        prefix=prefix,
+        widths=widths,
+        labels=labels,
+        order=order,
+        apart=False,
+    )
+    tree_w = width + 2 * PAD
+    full_w = max(tree_w, inner.width)
+    if tree_w < full_w:  # a wider band: the tree is centred over it
+        shift = (full_w - tree_w) / 2
+        placed = [
+            Placed(p.node_id, p.status, p.layer, round(p.x + shift), p.y, p.w) for p in placed
+        ]
+        drawn = [
+            Edge(e.src, e.dst, e.kind, tuple((x + shift, y) for x, y in e.points)) for e in drawn
+        ]
+    dx = (full_w - inner.width) / 2
+    band_y = round(height + GROUP_HEAD - 14)
+    dy = band_y + 14 + WRAP_GAP_Y - PAD
+    placed.extend(
+        Placed(p.node_id, p.status, p.layer, round(p.x + dx), round(p.y + dy), p.w)
+        for p in inner.placed
+    )
+    drawn.extend(
+        Edge(e.src, e.dst, e.kind, tuple((x + dx, y + dy) for x, y in e.points))
+        for e in inner.edges
+    )
+    at = {p.node_id: p for p in placed}
+    links = tuple(
+        Edge(
+            src,
+            dst,
+            kind,
+            (
+                (at[src].x + at[src].w / 2, float(at[src].y)),
+                (at[dst].x + at[dst].w / 2, float(at[dst].y + NODE_H)),
+            ),
+        )
+        for src, dst, kind in crossing
+        if src in at and dst in at
+    )
+    return Layout(
+        placed,
+        drawn,
+        round(full_w),
+        round(dy + inner.height),
+        loose,
+        group_y,
+        band,
+        band_y,
+        links,
+    )
 
 
 def place(nodes: list[dict[str, Any]]) -> tuple[list[Placed], int, int]:
@@ -786,6 +886,12 @@ def literature_mark(mark: LitMark | None, width: int) -> str:
 
 #: F04-T33: the label over the statements no line joins.
 GROUP_LABEL = "Statements no line joins to the rest"
+#: F30-T11: the band's heading and its one line of help (D-14 v3.26 as amended by v3.46).
+BAND_LABEL = "Proposed statements"
+BAND_HELP = (
+    "statements proposed for this problem; a line to the tree is drawn only where the record "
+    "measured one"
+)
 
 
 def svg(  # noqa: PLR0913 — the target's own names beside what the drawing marks
@@ -827,6 +933,19 @@ def svg(  # noqa: PLR0913 — the target's own names beside what the drawing mar
             f'x2="{lay.width - PAD}" y2="{lay.group_y - 22}"/>'
             f'<text class="dag-group" x="{lay.width // 2}" y="{lay.group_y}">'
             f"{escape(GROUP_LABEL)}</text>"
+        )
+    if lay.band:
+        # F30-T11: the band's heading, and its measured lines into the tree, hidden until lit.
+        parts.append(
+            f'<line class="dag-divider" x1="{PAD}" y1="{lay.band_y - 22}" '
+            f'x2="{lay.width - PAD}" y2="{lay.band_y - 22}"/>'
+            f'<text class="dag-group" x="{lay.width // 2}" y="{lay.band_y}">'
+            f"{escape(BAND_LABEL)}</text>"
+        )
+        parts.extend(
+            f'<path class="{e.kind} band-link" data-from="{escape(e.src)}" '
+            f'data-to="{escape(e.dst)}" d="{path_d(e)}"/>'
+            for e in sorted(lay.links, key=lambda e: (e.dst, e.src))
         )
 
     # F04-T12: each node is a pill — a status dot and the monospace label — with a halo dot the

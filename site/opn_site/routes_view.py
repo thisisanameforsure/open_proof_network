@@ -58,6 +58,9 @@ class Drawn:
     junctions: dict[str, routes.Route] = field(default_factory=dict)
     below: dict[str, list[str]] = field(default_factory=dict)
     alternatives: dict[str, int] = field(default_factory=dict)
+    #: F30-T11: the band's statements (proposed cruxes and their holes), visited as the root is,
+    #: so their routes have junctions too; never on a way to close the root.
+    band: list[str] = field(default_factory=list)
 
 
 def _hole_dep(node_id: str, dep: str, rows: Mapping[str, Mapping[str, Any]]) -> bool:
@@ -80,11 +83,18 @@ def plain_deps(node_id: str, rows: Mapping[str, Mapping[str, Any]], held: set[st
     return out
 
 
+#: The relation labels drawn as a trunk from the variant into the root (D-30 v3.46): a proved
+#: one settles the root, each its own way.
+TRUNK_LABELS = (routes.RESOLVES, routes.REFUTES)
+
+
 def drawn(graph: Mapping[str, Any], result: routes.Routes) -> Drawn:
     """Every statement on a way to close the root: through routes' holes (live or dead, so a
     dead route is seen), through declared non-hole dependencies, and at the root through each
-    ``resolves`` variant. A line that would return to a statement on its own path is not drawn
-    (the enumeration drops such a route too, F27-R5)."""
+    ``resolves`` or (v3.46) ``refutes`` variant. A line that would return to a statement on its
+    own path is not drawn (the enumeration drops such a route too, F27-R5). F30-T11: the band's
+    cruxes (``dag.proposed``) are visited the same way into ``band``, so their routes have
+    junctions, after the root's walk; a band statement the root's walk reached is the tree's."""
     rows = {str(n["node_id"]): n for n in graph.get("nodes") or [] if isinstance(n, Mapping)}
     out = Drawn(rows)
     if result.root not in rows:
@@ -93,15 +103,15 @@ def drawn(graph: Mapping[str, Any], result: routes.Routes) -> Drawn:
     for r in result.routes:
         by_node.setdefault(r.node, []).append(r)
     variants = [
-        k for k, row in rows.items() if k != result.root and row.get("relation") == routes.RESOLVES
+        k for k, row in rows.items() if k != result.root and row.get("relation") in TRUNK_LABELS
     ]
     seen: set[str] = set()
 
-    def visit(node_id: str, path: tuple[str, ...]) -> None:
+    def visit(node_id: str, path: tuple[str, ...], sink: list[str]) -> None:
         if node_id in seen:
             return
         seen.add(node_id)
-        out.statements.append(node_id)
+        sink.append(node_id)
         here = (*path, node_id)
         mine = by_node.get(node_id, [])
         held = {str(h.node) for r in mine for h in r.holes if h.node}
@@ -115,23 +125,41 @@ def drawn(graph: Mapping[str, Any], result: routes.Routes) -> Drawn:
             for h in r.holes:
                 if h.node in rows and h.node not in here:
                     out.below[r.id].append(str(h.node))
-                    visit(str(h.node), here)
+                    visit(str(h.node), here, sink)
         for dep in plain_deps(node_id, rows, held):
             if dep not in here:
                 below.append(dep)
-                visit(dep, here)
+                visit(dep, here, sink)
         alts = len([j for j in below if j in out.junctions])
         if node_id == result.root:
             for v in variants:
                 if v not in here:
                     below.append(v)
                     alts += 1
-                    visit(v, here)
+                    visit(v, here, sink)
         out.below[node_id] = below
         out.alternatives[node_id] = alts
 
-    visit(result.root, ())
+    visit(result.root, (), out.statements)
+    for crux in dag.proposed(rows.values()):
+        visit(crux, (), out.band)
     return out
+
+
+#: D-25 v3.46: which way a set settles the root, as ``routes`` publishes it (F27-T11).
+PROVES = routes.PROVES
+SIDE_WORDS = {PROVES: "proves the problem", routes.REFUTES: "refutes the problem"}
+
+
+def settles(s: routes.SufficientSet) -> str:
+    """The side the set settles: ``routes.SufficientSet.settles``."""
+    return s.settles
+
+
+def side_of(sel: routes.Selector) -> str | None:
+    """The side a selector node carries (v3.46: set on the two children of a top fork whose
+    ``node`` is ``None``), or ``None``: ``routes.Selector.side``."""
+    return sel.side
 
 
 def hue(k: int) -> str:
@@ -200,6 +228,7 @@ def table(
     twin = {s.id: s for s in follow.sets} if follow is not None else {}
     for k, s in enumerate(result.sets, start=1):
         f = twin.get(s.id)
+        side = settles(s)
         notes = []
         if s.variant:
             notes.append(
@@ -221,8 +250,11 @@ def table(
             + (f"<p>Assemblies</p><ul>{asm_ids}</ul>" if asm_ids else "")
             + "</details>"
         )
+        # F04-T55 (D-25 v3.46): a refuting set says so beside its number.
+        word = f' <span class="set-side">{escape(side)}</span>' if side != PROVES else ""
         cells = [
-            f'<td data-sort="{k}"><span class="set-swatch {hue(k)}"></span>Set {k}{listing}</td>',
+            f'<td data-sort="{k}"><span class="set-swatch {hue(k)}"></span>Set {k}{word}'
+            f"{listing}</td>",
             _count(s.total, f.total if f else None),
             _count(s.closed, f.closed if f else None),
             f'<td class="num" data-sort="{s.remaining}">{s.remaining}</td>',
@@ -232,7 +264,7 @@ def table(
         if any_notes:
             cells.append(f"<td>{'; '.join(notes)}</td>")
         rows.append(
-            f'<tr class="set-row" data-set="{escape(s.id)}" data-index="{k}" '
+            f'<tr class="set-row side-{escape(side)}" data-set="{escape(s.id)}" data-index="{k}" '
             f'data-remaining="{s.remaining}"'
             + (f' data-view="{escape(views[s.id])}"' if views and s.id in views else "")
             + ">"
@@ -260,8 +292,8 @@ def table(
     count = len(result.sets)
     return (
         '<div class="routes-table-wrap">'
-        f'<p class="routes-count">{count} sufficient set{"" if count == 1 else "s"}, in the '
-        "record&rsquo;s order. "
+        f'<p class="routes-count">{count} way{"" if count == 1 else "s"} to settle the '
+        "problem, in the record&rsquo;s order. "
         '<span class="routes-showing" hidden></span>'
         '<button type="button" class="routes-fewest" aria-pressed="false" hidden>'
         "Fewest open first</button></p>"
