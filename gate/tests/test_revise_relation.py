@@ -324,3 +324,60 @@ def test_inheritance_follows_the_supersedes_chain(tmp_path: Path) -> None:
     assert [p.path for p in tg.nodes[v3.new_id].partials] == [PARTIAL]
     assert tg.statuses[v3.new_id] == "ready"
     assert graphmod.is_hole_child(nodes_dir(root), v3.new_id, HOLE_IDS[1])
+
+
+# --- acknowledged hazards (F08-T47) --------------------------------------------------------------
+
+ACK = {
+    "checker": "div-zero",
+    "location": "1 / (2 ^ ↑n - 1)",
+    "justification": "Real division; the junk value at n = 0 does not change the statement.",
+}
+
+
+def _acknowledge(root: Path, node_id: str) -> None:
+    meta_path = nodes_dir(root) / node_id / "META.yaml"
+    meta = yaml.safe_load(meta_path.read_text(encoding="utf-8"))
+    meta["acknowledged_hazards"] = [ACK]
+    if meta.get("schema") == "meta/v1":  # the fixture predates the field (meta/v2, F02-R6)
+        meta["schema"] = "meta/v2"
+    meta_path.write_text(yaml.safe_dump(meta, allow_unicode=True, sort_keys=False), "utf-8")
+
+
+def test_a_same_statement_revision_carries_the_acknowledged_hazards(tmp_path: Path) -> None:
+    """F08-T47 (found live, graph PR #801): the revision of spec-a70fcca4 restated the same
+    proposition and admission refused it ``hazard-unacknowledged`` for the very division the
+    superseded node had acknowledged, because ``revise`` copied deps, origin, relation and
+    witness but not the acknowledgements. The same statement carries the same reading."""
+    root = copy_graph(tmp_path)
+    _acknowledge(root, INTERIOR)
+    revision = curator.revise(
+        root,
+        TARGET,
+        INTERIOR,
+        same_statement(root, INTERIOR, f"{INTERIOR}-v2"),
+        write_request(root, INTERIOR),
+        author=AUTHOR,
+        date=DATE,
+        relation="refutes",
+        relation_proof=REFUTES_PROOF,
+    )
+    new_dir = nodes_dir(root) / revision.new_id
+    meta = yaml.safe_load((new_dir / "META.yaml").read_text(encoding="utf-8"))
+    assert meta.get("acknowledged_hazards") == [ACK]
+    assert layout.validate_node(new_dir) == []
+
+
+def test_a_changed_statement_carries_no_acknowledgement(tmp_path: Path) -> None:
+    """An acknowledgement names a location in a statement; a changed statement is read anew,
+    so its hazards are acknowledged by whoever proposes it, never inherited."""
+    root = decomposed_root(tmp_path)
+    _acknowledge(root, ROOT)
+    changed = same_statement(root, ROOT, f"{ROOT}-v2").replace("r ∧ (q ∧ p)", "(q ∧ p) ∧ r")
+    revision = curator.revise(
+        root, TARGET, ROOT, changed, write_request(root, ROOT), author=AUTHOR, date=DATE
+    )
+    meta = yaml.safe_load(
+        (nodes_dir(root) / revision.new_id / "META.yaml").read_text(encoding="utf-8")
+    )
+    assert "acknowledged_hazards" not in meta
