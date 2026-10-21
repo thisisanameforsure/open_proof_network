@@ -1,0 +1,18 @@
+F30-T12 — a superseded crux leaves the band; its holes follow the revision's route, 2026-10-21
+
+Found live on https://openproofnetwork.org/problems/erdos-257/ after graph #801 revised
+spec-a70fcca4 as spec-a70fcca4-v2 (refutes): the band still held the superseded crux and, by id
+prefix, its four holes, while -v2's route junction in the tree hung with nothing beneath it
+(engineering/evidence/F08/task-46-live-1440.png). dag.proposed kept a crux whose status is
+superseded, because it still carries its proposed-for pointer and no relation.
+
+Red (site/tests/test_crux_band.py -k superseded_crux, the live shape by hand):
+  E   AssertionError: assert ('spec-x', 's... 'spec-x--h2') == ()
+Fix: dag.proposed skips a row whose status is superseded.
+Green: test_crux_band.py + test_proposed_for_site.py + test_refutes_site.py 33 passed, 3 skipped.
+Render of graph origin/main 31d3a38ae with this site (0 warnings), task-12-erdos-257-1440.png:
+the root forks into the proving route (h1 proved, h2 open) and the teal refutes trunk to
+spec-a70fcca4-v2, whose route holds --h1..--h3 proved and --h4 "the greedy walk for one half
+never stalls" open; the band holds spec-5e2e0890 with its two holes and spec-ddd99827 only
+(band nodes: spec-5e2e0890--h1, --h2, spec-5e2e0890@1, spec-ddd99827, spec-5e2e0890); the
+superseded crux is behind "Show 1 more statement".

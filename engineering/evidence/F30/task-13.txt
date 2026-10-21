@@ -1,0 +1,46 @@
+F30-T13 — the proposed statements are a column at the card's top right, lit only on hover or click
+(the owner, 2026-10-21, on the live erdos-257 after F30-T11)
+
+"The specs should live on the right hand side on the top, to the right of the 'ways to settle the
+problem' section, hugging the right hand side of the container for the main visualization. They
+should be positioned vertically regardless of the specs' relationship between each other. You can
+order them so that ones related to each other are more likely to be positioned above/below each
+other. The curves between the spec node and the nodes they relate to should not be drawn unless
+the spec is hovered or clicked."
+
+Readings taken (said to the owner before building): a spec's own holes are in the column, each
+right under its spec; "no curve at rest" covers every line from a band statement, the lines among
+band statements included.
+
+Built: dag.band_column (each crux, then its holes, cruxes walked depth first in id order over every
+line among band statements, so related ones are adjacent); one_view._band_svg draws the column as
+right-aligned pills one per row, no line, no junction; every line touching a band statement is a
+path.band-link drawn only while lit; the page's card body is graph-main (selector + drawing, the
+selector still sticky) beside band-wrap (flush right, from the selector's top), stacked below the
+drawing under 700px; graph.js draws a link from the band pill's left side to the tree pill's
+nearest side, a spec-to-spec link as a curve out to the left kept inside the card, and lights band
+pills from the links; the column's svg scales to its box.
+
+Red (site/tests/test_crux_column.py, the order seam at today's sorted order first):
+  test_the_column_puts_a_crux_its_holes_and_its_relations_together
+    E  At index 2 diff: 'spec-b' != 'spec-c'
+  test_the_column_is_a_stack_of_pills_flush_right_with_no_line_at_rest
+    E  AssertionError: the column draws no line at rest   (<path class="edge use" ... in the band)
+  test_the_column_sits_beside_the_selector
+    E  ValueError: substring not found   (no class="graph-body" in the page)
+Green: 3 passed. Restated (they pinned the old band): test_crux_band.py
+test_the_drawing_puts_the_band_beside_the_tree_with_lit_only_links (no line at rest; the band's
+own lines are links) and test_a_lit_band_link_meets_the_two_pills_it_joins (left side to right
+side); test_crux_band.py 19 passed.
+Site suite with the browser: 857 passed; 4 failed = the three pre-existing browser failures
+(test_finding_lemma_edge::test_measured_in_a_browser, test_web_flows x2, red on main too) and
+test_golden_pages, regenerated with test_render.write_goldens(): only the two wrapper divs moved.
+ruff, format, mypy site clean.
+
+Render of graph origin/main 31d3a38ae with this site, measured in Chromium:
+  1440: band-scroll [586, 936] = card inner right 936; no page scroll; hover spec-5e2e0890 lights
+        spec-5e2e0890--h1>spec-5e2e0890, --h2>, spec-ddd99827>spec-5e2e0890; links inside the card.
+  390:  column below the drawing, svg scaled into [34, 356]; links [30..221] inside the card [17, 373].
+Captures: task-13-1440.png (rest: column top right, no line), task-13-1440-hover-gap.png (gap lemma:
+its use into "a representation of a rational is greedy" and the curve up to uniqueness),
+task-13-1440-hover-uniq.png, task-13-390.png, task-13-390-hover-uniq.png.

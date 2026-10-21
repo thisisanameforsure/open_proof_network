@@ -96,6 +96,37 @@ def test_a_crux_with_a_checked_relation_is_a_variant_not_a_band_statement() -> N
     assert dag.band_of(hand(relation="refutes")) == ()
 
 
+def test_a_superseded_crux_leaves_the_band_and_its_holes_follow_its_revision() -> None:
+    """F30-T12 (found live on erdos-257, 2026-10-21): ``spec-a70fcca4`` was revised as a
+    ``refutes`` variant (graph #801) whose route is the old node's, read through ``supersedes``.
+    The old crux kept its proposed-for pointer and no relation, so the band still took it and,
+    by id prefix, its four holes, while the revision's junction in the tree hung with nothing
+    beneath it. A superseded crux leaves the band as every superseded statement does, and the
+    holes go with the live route that holds them."""
+    rows: list[dict[str, Any]] = [
+        {"node_id": "root", "status": "ready", "deps": [], "proposed_for": None},
+        {
+            "node_id": "spec-x",
+            "status": "superseded",
+            "deps": ["spec-x--h1", "spec-x--h2"],
+            "proposed_for": "root",
+            "relation": None,
+            "origin": "authored",
+        },
+        {
+            "node_id": "spec-x-v2",
+            "status": "ready",
+            "deps": ["spec-x--h1", "spec-x--h2"],
+            "proposed_for": None,
+            "relation": "refutes",
+            "origin": "variant",
+        },
+        {"node_id": "spec-x--h1", "status": "proved", "deps": [], "origin": "compiler-derived"},
+        {"node_id": "spec-x--h2", "status": "ready", "deps": [], "origin": "compiler-derived"},
+    ]
+    assert dag.band_of(rows) == ()
+
+
 def test_the_band_holds_a_crux_its_holes_and_the_crux_it_uses() -> None:
     rows = rf.doc()["nodes"]
     assert dag.proposed(rows) == [rf.GAP, rf.UNIQUE]
@@ -142,7 +173,7 @@ def test_the_views_exclude_the_band_and_the_band_view_has_its_own_junction() -> 
     assert (f"{rf.UNIQUE}@1", rf.UNIQUE, "edge") in vs[one_view.BAND].lines
 
 
-def test_the_drawing_puts_the_band_under_the_tree_with_lit_only_links() -> None:
+def test_the_drawing_puts_the_band_beside_the_tree_with_lit_only_links() -> None:
     g = rf.doc()
     d = one_view.drawing(g, [], href=hrefs(g), prefix=rf.ROOT)
     assert '<svg class="dag band"' in d.band
@@ -153,14 +184,19 @@ def test_the_drawing_puts_the_band_under_the_tree_with_lit_only_links() -> None:
         assert f'data-node="{nid}"' in band_svg and f'data-node="{nid}"' not in d.svg, nid
         pill = re.search(rf'<g class="[^"]*" data-node="{nid}"', band_svg)
         assert pill is not None and "off-view" not in pill.group(0)
-    assert f'data-route="{rf.UNIQUE}@1"' in band_svg
-    # The band's own use line is drawn at rest; the use into the tree is a link with no d.
-    assert re.search(
-        rf'<path class="edge use" data-from="{rf.GAP}" data-to="{rf.UNIQUE}"', band_svg
-    )
+    # F30-T13 (the owner, 2026-10-21): the column draws no line and no junction at rest; every
+    # line from a band statement, the band's own use line and its holes' lines included, is a
+    # link with no d, drawn only while lit.
+    assert "<path" not in band_svg and "data-route=" not in band_svg
     links = re.findall(r'<path class="band-link[^"]*"[^>]*>', d.band)
-    assert len(links) == 1 and f'data-from="{rf.GAP}" data-to="{rf.ROOT}--h1"' in links[0]
-    assert " d=" not in links[0]
+    ends = {tuple(re.findall(r'data-(?:from|to)="([^"]+)"', ln)) for ln in links}
+    assert ends == {
+        (rf.GAP, f"{rf.ROOT}--h1"),
+        (rf.GAP, rf.UNIQUE),
+        (f"{rf.UNIQUE}--h1", rf.UNIQUE),
+        (f"{rf.UNIQUE}--h2", rf.UNIQUE),
+    }
+    assert all(" d=" not in ln for ln in links)
     assert "edge proposed" not in d.svg and "edge proposed" not in d.band
     # The pill's words say what the pointer says, since no line does.
     assert f"proposed for: {rf.ROOT_LABEL}" in band_svg
@@ -266,8 +302,9 @@ BAND_STATE = """() => {
 }"""
 
 
-#: Each lit band link's two ends on screen against the pills it joins: the band pill's top centre
-#: and the tree pill's bottom centre, as distances in CSS pixels.
+#: Each lit band link's two ends on screen against the pills it joins: the band pill's left
+#: middle and the tree pill's right middle (F30-T13: the column is at the card's right, so a
+#: line leaves the column sideways), as distances in CSS pixels.
 LINK_ENDS = """() => [...document.querySelectorAll('path.band-link.lit')].map(p => {
   const m = p.getScreenCTM(), n = p.getTotalLength();
   const at = l => { const q = p.getPointAtLength(l); return [q.x * m.a + m.e, q.y * m.d + m.f]; };
@@ -275,15 +312,15 @@ LINK_ENDS = """() => [...document.querySelectorAll('path.band-link.lit')].map(p 
     `svg.band [data-node="${id}"], svg.dag:not(.band) [data-node="${id}"]`).getBoundingClientRect();
   const a = box(p.getAttribute('data-from')), b = box(p.getAttribute('data-to'));
   const [s, e] = [at(0), at(n)];
-  return [Math.hypot(s[0] - (a.left + a.width / 2), s[1] - a.top),
-          Math.hypot(e[0] - (b.left + b.width / 2), e[1] - b.bottom)];
+  return [Math.hypot(s[0] - a.left, s[1] - (a.top + a.height / 2)),
+          Math.hypot(e[0] - b.right, e[1] - (b.top + b.height / 2))];
 })"""
 
 
 def test_a_lit_band_link_meets_the_two_pills_it_joins(tmp_path: Path) -> None:
-    """The lit line is drawn where its pills are: it starts at the band pill's top and ends at
-    the tree pill's bottom, within a pixel, on screen (the overlay's own coordinates, not the
-    card's — an offset the d-attribute alone cannot show)."""
+    """The lit line is drawn where its pills are: it starts at the band pill's left side and
+    ends at the tree pill's right side (F30-T13), within a pixel, on screen (the overlay's own
+    coordinates, not the card's — an offset the d-attribute alone cannot show)."""
     with browser(band_tree(tmp_path / "g"), tmp_path / "site") as pg:
         pg.locator(f'svg.band g.node[data-node="{CRUX}"]').hover()
         ends = pg.evaluate(LINK_ENDS)

@@ -307,11 +307,24 @@ main > .crumbs, main > h1:first-child { margin-top: calc(var(--s8) * 1.6); }
    drawing of its own that no selection moves; the key's swatch is a small outlined pill. Its lines
    into the tree (.band-link, in an overlay over the card) exist only while lit: no d at rest. */
 .dot-proposed-for { width: 16px; height: 9px; border: 1px solid var(--n500); border-radius: 5px; }
-.band-wrap { position: relative; margin-top: var(--s6); padding-top: var(--s4); border-top: 1px dashed var(--divider); }
-.band-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--s2) var(--s4); }
+/* F30-T13 (the owner, 2026-10-21): the card's body is the selector and the drawing on the left
+   and the column of proposed statements on the right, from the selector's top and flush with the
+   card's right side. The selector stays sticky inside graph-main, which is as tall as the drawing. */
+.graph-body { display: flex; align-items: flex-start; gap: var(--s5); }
+.graph-main { flex: 1 1 auto; min-width: 0; }
+.band-wrap { position: relative; flex: 0 0 auto; margin: var(--s4) 0 0 auto; padding: var(--s3) 0 0 var(--s4); border-left: 1px dashed var(--divider); max-width: 45%; }
+.band-head { display: flex; flex-direction: column; align-items: flex-end; gap: var(--s1); text-align: right; }
 .band-head .kicker { color: var(--n400); }
-.band-head .band-cue { margin: 0; font-size: 12.5px; color: var(--n400); }
-.band-scroll { overflow-x: auto; padding: var(--s4) 0 0; }
+.band-head .band-cue { margin: 0; max-width: 240px; font-size: 12px; line-height: 1.45; color: var(--n400); }
+.band-scroll { padding: var(--s3) 0 0; text-align: right; }
+.band-scroll svg.band { max-width: 100%; height: auto; }
+@media (max-width: 700px) {
+  .graph-body { flex-direction: column; }
+  .graph-main { width: 100%; }
+  .band-wrap { margin: var(--s5) 0 0; padding: var(--s4) 0 0; border-left: 0; border-top: 1px dashed var(--divider); max-width: 100%; width: 100%; }
+  .band-head { align-items: flex-start; text-align: left; }
+  .band-scroll { text-align: left; }
+}
 .dag.band { margin: 0 auto; }
 .band-links { position: absolute; left: 0; top: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
 .band-link { display: none; fill: none; stroke: var(--accent-300); stroke-width: 2; }
