@@ -46,16 +46,13 @@ class Link:
     id: str
     inputs: tuple[str, ...]
     #: F28-T10 (D-12 v3.46): what joining this link yields — the node's theorem (``proved``), or
-    #: through a ``refutes`` variant its negation (``refuted``).
+    #: through a ``refutes`` variant its negation (``refuted``). Not in ``as_dict``: that shape is
+    #: published (the MCP's ``list_sufficient_sets`` result, closed) and the verdict is the
+    #: record's (``closure.json``) and the row's status; the closing report carries it.
     verdict: str = closure.VERDICT_PROVED
 
     def as_dict(self) -> dict[str, Any]:
-        return {
-            "kind": self.kind,
-            "id": self.id,
-            "inputs": list(self.inputs),
-            "verdict": self.verdict,
-        }
+        return {"kind": self.kind, "id": self.id, "inputs": list(self.inputs)}
 
 
 @dataclass(frozen=True)

@@ -41,12 +41,8 @@ def test_a_refutes_variant_at_the_root_is_a_variant_link_with_verdict_refuted() 
     assert found(g) == {"t": ("variant", "v", ("v",), True)}
     [c] = closing.closable(g)
     assert c.link.verdict == REFUTED
-    assert c.as_dict()["link"] == {
-        "kind": "variant",
-        "id": "v",
-        "inputs": ["v"],
-        "verdict": "refuted",
-    }
+    # the published shape (the MCP's closable list, a closed schema) is unchanged
+    assert c.as_dict()["link"] == {"kind": "variant", "id": "v", "inputs": ["v"]}
 
 
 def test_a_resolves_link_yields_proved_and_a_weaker_variant_no_link() -> None:

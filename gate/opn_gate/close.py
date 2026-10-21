@@ -69,6 +69,7 @@ class Result:
             "target": self.target,
             "node": self.node,
             "link": self.link.as_dict() if self.link else None,
+            "verdict": self.link.verdict if self.link else None,  # F28-T10
             "ok": self.ok,
             "reason": self.reason,
             "detail": self.detail,
