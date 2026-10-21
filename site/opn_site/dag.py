@@ -137,7 +137,9 @@ def proposed(nodes: Iterable[Mapping[str, Any]]) -> list[str]:
     ``proposed_for`` names a statement of the graph and that carry no checked relation (one with
     a relation is a variant, D-30). A crux some statement declares as a *dependency* is not one:
     its solid line is structural and it stays in the tree (erdos-402's ``spec-fa8046e4``); a crux
-    a merged proof only *uses* is one (the owner: "keep the specs on the band")."""
+    a merged proof only *uses* is one (the owner: "keep the specs on the band"). A superseded
+    crux is not one (F30-T12): it is drawn as every superseded statement is, and the revision
+    that replaced it holds its route and so its holes (erdos-257's ``spec-a70fcca4``)."""
     rows = {str(n["node_id"]): n for n in nodes}
     declared = {str(d) for n in rows.values() for d in n.get("deps") or []}
     return sorted(
@@ -146,6 +148,7 @@ def proposed(nodes: Iterable[Mapping[str, Any]]) -> list[str]:
         if n.get("proposed_for")
         and str(n["proposed_for"]) in rows
         and not n.get("relation")
+        and str(n.get("status")) != "superseded"
         and nid not in declared
     )
 

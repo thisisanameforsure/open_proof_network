@@ -96,6 +96,37 @@ def test_a_crux_with_a_checked_relation_is_a_variant_not_a_band_statement() -> N
     assert dag.band_of(hand(relation="refutes")) == ()
 
 
+def test_a_superseded_crux_leaves_the_band_and_its_holes_follow_its_revision() -> None:
+    """F30-T12 (found live on erdos-257, 2026-10-21): ``spec-a70fcca4`` was revised as a
+    ``refutes`` variant (graph #801) whose route is the old node's, read through ``supersedes``.
+    The old crux kept its proposed-for pointer and no relation, so the band still took it and,
+    by id prefix, its four holes, while the revision's junction in the tree hung with nothing
+    beneath it. A superseded crux leaves the band as every superseded statement does, and the
+    holes go with the live route that holds them."""
+    rows: list[dict[str, Any]] = [
+        {"node_id": "root", "status": "ready", "deps": [], "proposed_for": None},
+        {
+            "node_id": "spec-x",
+            "status": "superseded",
+            "deps": ["spec-x--h1", "spec-x--h2"],
+            "proposed_for": "root",
+            "relation": None,
+            "origin": "authored",
+        },
+        {
+            "node_id": "spec-x-v2",
+            "status": "ready",
+            "deps": ["spec-x--h1", "spec-x--h2"],
+            "proposed_for": None,
+            "relation": "refutes",
+            "origin": "variant",
+        },
+        {"node_id": "spec-x--h1", "status": "proved", "deps": [], "origin": "compiler-derived"},
+        {"node_id": "spec-x--h2", "status": "ready", "deps": [], "origin": "compiler-derived"},
+    ]
+    assert dag.band_of(rows) == ()
+
+
 def test_the_band_holds_a_crux_its_holes_and_the_crux_it_uses() -> None:
     rows = rf.doc()["nodes"]
     assert dag.proposed(rows) == [rf.GAP, rf.UNIQUE]
