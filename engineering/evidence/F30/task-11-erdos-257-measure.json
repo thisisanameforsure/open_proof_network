@@ -1,0 +1,1204 @@
+{
+ "1440": {
+  "rest": {
+   "links": [
+    {
+     "key": "spec-ddd99827>erdos-257--h1",
+     "kind": "band-link edge use",
+     "shown": false,
+     "lit": false,
+     "hasD": false,
+     "box": [
+      0,
+      0
+     ]
+    }
+   ],
+   "band": [
+    [
+     "spec-5e2e0890--h1",
+     "translate(16,200)",
+     false
+    ],
+    [
+     "spec-5e2e0890--h2",
+     "translate(343,200)",
+     false
+    ],
+    [
+     "spec-5e2e0890@1",
+     "translate(335,108)",
+     false
+    ],
+    [
+     "spec-ddd99827",
+     "translate(375,108)",
+     false
+    ],
+    [
+     "spec-5e2e0890",
+     "translate(322,16)",
+     false
+    ]
+   ],
+   "bandLines": 4,
+   "mainLit": [],
+   "mainHovering": false,
+   "trunks": [
+    [
+     "edge relation refutes",
+     "spec-a70fcca4",
+     "erdos-257",
+     true,
+     "rgb(59, 191, 178)"
+    ]
+   ],
+   "selector": [
+    [
+     "sel/proves",
+     "sel-node kind-leaf side-proves",
+     "Set 1 (proves): 1 open statement of 2 \u2014 proves the problem",
+     "rgb(210, 206, 253)"
+    ],
+    [
+     "sel/refutes",
+     "sel-node kind-leaf side-refutes",
+     "Set 2 (refutes): 1 open statement of 4 \u2014 refutes the problem",
+     "rgb(210, 206, 253)"
+    ],
+    [
+     "sel",
+     "sel-node kind-node",
+     "Erd\u0151s problem 257: 2 sets settle it, proving or refuting",
+     "rgb(178, 182, 202)"
+    ]
+   ],
+   "selEdges": [
+    [
+     "sel/proves",
+     "sel-edge side-proves",
+     "rgb(117, 121, 140)"
+    ],
+    [
+     "sel/refutes",
+     "sel-edge side-refutes",
+     "rgb(59, 191, 178)"
+    ]
+   ],
+   "rows": [
+    [
+     "set-row side-proves",
+     "Set 1"
+    ],
+    [
+     "set-row side-refutes",
+     "Set 2 refutes"
+    ]
+   ],
+   "kicker": "Ways to settle the problem A way to settle the problem: a sufficient set is a set of statements whose proofs would settle the problem's own statement, either proving it or refuting it through a variant whose relation the gate checked, with the closing proofs of the decomposed statements on the way still to submit: one choice of route at every fork. Each set says which way it settles the problem. The tree under this heading is the navigation device: select a set, a family of sets or one route choice and the drawing shows just that part. protocol: sufficient sets (D-25 v3.40, v3.46; F27)",
+   "cue": "Each set proves the problem or refutes it. Select a node or an edge to filter the drawing to that part of the proof; select it again to come back.",
+   "count": "2 ways to settle the problem, in the record\u2019s order. Fewest open first",
+   "key": [
+    "proved",
+    "open",
+    "blocked",
+    "route: all of its holes",
+    "any one route closes it",
+    "refutes the problem",
+    "depends on",
+    "used lemma",
+    "has an outline",
+    "proposed statement",
+    "open, proposed"
+   ],
+   "overflow": [],
+   "pills": 12,
+   "hash": "",
+   "scrollWidth": 1440,
+   "innerWidth": 1440,
+   "view": "routes"
+  },
+  "hovered": {
+   "links": [
+    {
+     "key": "spec-ddd99827>erdos-257--h1",
+     "kind": "band-link edge use lit",
+     "shown": true,
+     "lit": true,
+     "hasD": true,
+     "box": [
+      275.0000305175781,
+      433.3999938964844
+     ]
+    }
+   ],
+   "band": [
+    [
+     "spec-5e2e0890--h1",
+     "translate(16,200)",
+     false
+    ],
+    [
+     "spec-5e2e0890--h2",
+     "translate(343,200)",
+     false
+    ],
+    [
+     "spec-5e2e0890@1",
+     "translate(335,108)",
+     false
+    ],
+    [
+     "spec-ddd99827",
+     "translate(375,108)",
+     true
+    ],
+    [
+     "spec-5e2e0890",
+     "translate(322,16)",
+     true
+    ]
+   ],
+   "bandLines": 4,
+   "mainLit": [
+    "erdos-257--h1"
+   ],
+   "mainHovering": true,
+   "trunks": [
+    [
+     "edge relation refutes",
+     "spec-a70fcca4",
+     "erdos-257",
+     true,
+     "rgb(59, 191, 178)"
+    ]
+   ],
+   "selector": [
+    [
+     "sel/proves",
+     "sel-node kind-leaf side-proves",
+     "Set 1 (proves): 1 open statement of 2 \u2014 proves the problem",
+     "rgb(210, 206, 253)"
+    ],
+    [
+     "sel/refutes",
+     "sel-node kind-leaf side-refutes",
+     "Set 2 (refutes): 1 open statement of 4 \u2014 refutes the problem",
+     "rgb(210, 206, 253)"
+    ],
+    [
+     "sel",
+     "sel-node kind-node",
+     "Erd\u0151s problem 257: 2 sets settle it, proving or refuting",
+     "rgb(178, 182, 202)"
+    ]
+   ],
+   "selEdges": [
+    [
+     "sel/proves",
+     "sel-edge side-proves",
+     "rgb(117, 121, 140)"
+    ],
+    [
+     "sel/refutes",
+     "sel-edge side-refutes",
+     "rgb(59, 191, 178)"
+    ]
+   ],
+   "rows": [
+    [
+     "set-row side-proves",
+     "Set 1"
+    ],
+    [
+     "set-row side-refutes",
+     "Set 2 refutes"
+    ]
+   ],
+   "kicker": "Ways to settle the problem A way to settle the problem: a sufficient set is a set of statements whose proofs would settle the problem's own statement, either proving it or refuting it through a variant whose relation the gate checked, with the closing proofs of the decomposed statements on the way still to submit: one choice of route at every fork. Each set says which way it settles the problem. The tree under this heading is the navigation device: select a set, a family of sets or one route choice and the drawing shows just that part. protocol: sufficient sets (D-25 v3.40, v3.46; F27)",
+   "cue": "Each set proves the problem or refutes it. Select a node or an edge to filter the drawing to that part of the proof; select it again to come back.",
+   "count": "2 ways to settle the problem, in the record\u2019s order. Fewest open first",
+   "key": [
+    "proved",
+    "open",
+    "blocked",
+    "route: all of its holes",
+    "any one route closes it",
+    "refutes the problem",
+    "depends on",
+    "used lemma",
+    "has an outline",
+    "proposed statement",
+    "open, proposed"
+   ],
+   "overflow": [],
+   "pills": 12,
+   "hash": "",
+   "scrollWidth": 1440,
+   "innerWidth": 1440,
+   "view": "routes"
+  },
+  "hovered_pill": "spec-ddd99827",
+  "pinned": {
+   "links": [
+    {
+     "key": "spec-ddd99827>erdos-257--h1",
+     "kind": "band-link edge use lit",
+     "shown": true,
+     "lit": true,
+     "hasD": true,
+     "box": [
+      275.0000305175781,
+      433.3999938964844
+     ]
+    }
+   ],
+   "band": [
+    [
+     "spec-5e2e0890--h1",
+     "translate(16,200)",
+     false
+    ],
+    [
+     "spec-5e2e0890--h2",
+     "translate(343,200)",
+     false
+    ],
+    [
+     "spec-5e2e0890@1",
+     "translate(335,108)",
+     false
+    ],
+    [
+     "spec-ddd99827",
+     "translate(375,108)",
+     true
+    ],
+    [
+     "spec-5e2e0890",
+     "translate(322,16)",
+     true
+    ]
+   ],
+   "bandLines": 4,
+   "mainLit": [
+    "erdos-257--h1"
+   ],
+   "mainHovering": true,
+   "trunks": [
+    [
+     "edge relation refutes",
+     "spec-a70fcca4",
+     "erdos-257",
+     true,
+     "rgb(59, 191, 178)"
+    ]
+   ],
+   "selector": [
+    [
+     "sel/proves",
+     "sel-node kind-leaf side-proves",
+     "Set 1 (proves): 1 open statement of 2 \u2014 proves the problem",
+     "rgb(210, 206, 253)"
+    ],
+    [
+     "sel/refutes",
+     "sel-node kind-leaf side-refutes",
+     "Set 2 (refutes): 1 open statement of 4 \u2014 refutes the problem",
+     "rgb(210, 206, 253)"
+    ],
+    [
+     "sel",
+     "sel-node kind-node",
+     "Erd\u0151s problem 257: 2 sets settle it, proving or refuting",
+     "rgb(178, 182, 202)"
+    ]
+   ],
+   "selEdges": [
+    [
+     "sel/proves",
+     "sel-edge side-proves",
+     "rgb(117, 121, 140)"
+    ],
+    [
+     "sel/refutes",
+     "sel-edge side-refutes",
+     "rgb(59, 191, 178)"
+    ]
+   ],
+   "rows": [
+    [
+     "set-row side-proves",
+     "Set 1"
+    ],
+    [
+     "set-row side-refutes",
+     "Set 2 refutes"
+    ]
+   ],
+   "kicker": "Ways to settle the problem A way to settle the problem: a sufficient set is a set of statements whose proofs would settle the problem's own statement, either proving it or refuting it through a variant whose relation the gate checked, with the closing proofs of the decomposed statements on the way still to submit: one choice of route at every fork. Each set says which way it settles the problem. The tree under this heading is the navigation device: select a set, a family of sets or one route choice and the drawing shows just that part. protocol: sufficient sets (D-25 v3.40, v3.46; F27)",
+   "cue": "Each set proves the problem or refutes it. Select a node or an edge to filter the drawing to that part of the proof; select it again to come back.",
+   "count": "2 ways to settle the problem, in the record\u2019s order. Fewest open first",
+   "key": [
+    "proved",
+    "open",
+    "blocked",
+    "route: all of its holes",
+    "any one route closes it",
+    "refutes the problem",
+    "depends on",
+    "used lemma",
+    "has an outline",
+    "proposed statement",
+    "open, proposed"
+   ],
+   "overflow": [],
+   "pills": 12,
+   "hash": "#node=spec-ddd99827&band=spec-ddd99827",
+   "scrollWidth": 1440,
+   "innerWidth": 1440,
+   "view": "routes"
+  },
+  "on_leaf": {
+   "links": [
+    {
+     "key": "spec-ddd99827>erdos-257--h1",
+     "kind": "band-link edge use lit",
+     "shown": true,
+     "lit": true,
+     "hasD": true,
+     "box": [
+      208.00003051757812,
+      275.3999938964844
+     ]
+    }
+   ],
+   "band": [
+    [
+     "spec-5e2e0890--h1",
+     "translate(16,200)",
+     false
+    ],
+    [
+     "spec-5e2e0890--h2",
+     "translate(343,200)",
+     false
+    ],
+    [
+     "spec-5e2e0890@1",
+     "translate(335,108)",
+     false
+    ],
+    [
+     "spec-ddd99827",
+     "translate(375,108)",
+     true
+    ],
+    [
+     "spec-5e2e0890",
+     "translate(322,16)",
+     true
+    ]
+   ],
+   "bandLines": 4,
+   "mainLit": [
+    "erdos-257--h1"
+   ],
+   "mainHovering": true,
+   "trunks": [
+    [
+     "edge relation refutes off-view",
+     "spec-a70fcca4",
+     "erdos-257",
+     false,
+     "rgb(59, 191, 178)"
+    ]
+   ],
+   "selector": [
+    [
+     "sel/proves",
+     "sel-node kind-leaf side-proves selected",
+     "Set 1 (proves): 1 open statement of 2 \u2014 proves the problem",
+     "rgb(242, 181, 68)"
+    ],
+    [
+     "sel/refutes",
+     "sel-node kind-leaf side-refutes",
+     "Set 2 (refutes): 1 open statement of 4 \u2014 refutes the problem",
+     "rgb(210, 206, 253)"
+    ],
+    [
+     "sel",
+     "sel-node kind-node",
+     "Erd\u0151s problem 257: 2 sets settle it, proving or refuting",
+     "rgb(178, 182, 202)"
+    ]
+   ],
+   "selEdges": [
+    [
+     "sel/proves",
+     "sel-edge side-proves",
+     "rgb(117, 121, 140)"
+    ],
+    [
+     "sel/refutes",
+     "sel-edge side-refutes",
+     "rgb(59, 191, 178)"
+    ]
+   ],
+   "rows": [
+    [
+     "set-row side-proves",
+     "Set 1"
+    ],
+    [
+     "set-row side-refutes",
+     "Set 2 refuteswhichOpenspec-a70fcca4--h4Provedspec-a70fcca4--h1spec-a70fcca4--h2spec-a70fcca4--h3spec-a70fcca4--h1spec-a70fcca4--h2spec-a70fcca4--h3Assembliesspec-a70fcca4"
+    ]
+   ],
+   "kicker": "Ways to settle the problem A way to settle the problem: a sufficient set is a set of statements whose proofs would settle the problem's own statement, either proving it or refuting it through a variant whose relation the gate checked, with the closing proofs of the decomposed statements on the way still to submit: one choice of route at every fork. Each set says which way it settles the problem. The tree under this heading is the navigation device: select a set, a family of sets or one route choice and the drawing shows just that part. protocol: sufficient sets (D-25 v3.40, v3.46; F27)",
+   "cue": "Each set proves the problem or refutes it. Select a node or an edge to filter the drawing to that part of the proof; select it again to come back.",
+   "count": "2 ways to settle the problem, in the record\u2019s order. showing 1 of 2Fewest open first",
+   "key": [
+    "proved",
+    "open",
+    "blocked",
+    "route: all of its holes",
+    "any one route closes it",
+    "refutes the problem",
+    "depends on",
+    "used lemma",
+    "has an outline",
+    "proposed statement",
+    "open, proposed"
+   ],
+   "overflow": [],
+   "pills": 12,
+   "hash": "#node=spec-ddd99827&view=sel%2Fproves&band=spec-ddd99827",
+   "scrollWidth": 1440,
+   "innerWidth": 1440,
+   "view": "sel/proves"
+  },
+  "band_still": true,
+  "unpinned": {
+   "links": [
+    {
+     "key": "spec-ddd99827>erdos-257--h1",
+     "kind": "band-link edge use",
+     "shown": false,
+     "lit": false,
+     "hasD": false,
+     "box": [
+      0,
+      0
+     ]
+    }
+   ],
+   "band": [
+    [
+     "spec-5e2e0890--h1",
+     "translate(16,200)",
+     false
+    ],
+    [
+     "spec-5e2e0890--h2",
+     "translate(343,200)",
+     false
+    ],
+    [
+     "spec-5e2e0890@1",
+     "translate(335,108)",
+     false
+    ],
+    [
+     "spec-ddd99827",
+     "translate(375,108)",
+     false
+    ],
+    [
+     "spec-5e2e0890",
+     "translate(322,16)",
+     false
+    ]
+   ],
+   "bandLines": 4,
+   "mainLit": [],
+   "mainHovering": false,
+   "trunks": [
+    [
+     "edge relation refutes",
+     "spec-a70fcca4",
+     "erdos-257",
+     true,
+     "rgb(59, 191, 178)"
+    ]
+   ],
+   "selector": [
+    [
+     "sel/proves",
+     "sel-node kind-leaf side-proves",
+     "Set 1 (proves): 1 open statement of 2 \u2014 proves the problem",
+     "rgb(210, 206, 253)"
+    ],
+    [
+     "sel/refutes",
+     "sel-node kind-leaf side-refutes",
+     "Set 2 (refutes): 1 open statement of 4 \u2014 refutes the problem",
+     "rgb(210, 206, 253)"
+    ],
+    [
+     "sel",
+     "sel-node kind-node",
+     "Erd\u0151s problem 257: 2 sets settle it, proving or refuting",
+     "rgb(178, 182, 202)"
+    ]
+   ],
+   "selEdges": [
+    [
+     "sel/proves",
+     "sel-edge side-proves",
+     "rgb(117, 121, 140)"
+    ],
+    [
+     "sel/refutes",
+     "sel-edge side-refutes",
+     "rgb(59, 191, 178)"
+    ]
+   ],
+   "rows": [
+    [
+     "set-row side-proves",
+     "Set 1"
+    ],
+    [
+     "set-row side-refutes",
+     "Set 2 refutes"
+    ]
+   ],
+   "kicker": "Ways to settle the problem A way to settle the problem: a sufficient set is a set of statements whose proofs would settle the problem's own statement, either proving it or refuting it through a variant whose relation the gate checked, with the closing proofs of the decomposed statements on the way still to submit: one choice of route at every fork. Each set says which way it settles the problem. The tree under this heading is the navigation device: select a set, a family of sets or one route choice and the drawing shows just that part. protocol: sufficient sets (D-25 v3.40, v3.46; F27)",
+   "cue": "Each set proves the problem or refutes it. Select a node or an edge to filter the drawing to that part of the proof; select it again to come back.",
+   "count": "2 ways to settle the problem, in the record\u2019s order. Fewest open first",
+   "key": [
+    "proved",
+    "open",
+    "blocked",
+    "route: all of its holes",
+    "any one route closes it",
+    "refutes the problem",
+    "depends on",
+    "used lemma",
+    "has an outline",
+    "proposed statement",
+    "open, proposed"
+   ],
+   "overflow": [],
+   "pills": 12,
+   "hash": "#node=spec-ddd99827",
+   "scrollWidth": 1440,
+   "innerWidth": 1440,
+   "view": "routes"
+  },
+  "at_rest_no_link_visible": true
+ },
+ "390": {
+  "rest": {
+   "links": [
+    {
+     "key": "spec-ddd99827>erdos-257--h1",
+     "kind": "band-link edge use",
+     "shown": false,
+     "lit": false,
+     "hasD": false,
+     "box": [
+      0,
+      0
+     ]
+    }
+   ],
+   "band": [
+    [
+     "spec-5e2e0890--h1",
+     "translate(16,200)",
+     false
+    ],
+    [
+     "spec-5e2e0890--h2",
+     "translate(343,200)",
+     false
+    ],
+    [
+     "spec-5e2e0890@1",
+     "translate(335,108)",
+     false
+    ],
+    [
+     "spec-ddd99827",
+     "translate(375,108)",
+     false
+    ],
+    [
+     "spec-5e2e0890",
+     "translate(322,16)",
+     false
+    ]
+   ],
+   "bandLines": 4,
+   "mainLit": [],
+   "mainHovering": false,
+   "trunks": [
+    [
+     "edge relation refutes",
+     "spec-a70fcca4",
+     "erdos-257",
+     true,
+     "rgb(59, 191, 178)"
+    ]
+   ],
+   "selector": [
+    [
+     "sel/proves",
+     "sel-node kind-leaf side-proves",
+     "Set 1 (proves): 1 open statement of 2 \u2014 proves the problem",
+     "rgb(210, 206, 253)"
+    ],
+    [
+     "sel/refutes",
+     "sel-node kind-leaf side-refutes",
+     "Set 2 (refutes): 1 open statement of 4 \u2014 refutes the problem",
+     "rgb(210, 206, 253)"
+    ],
+    [
+     "sel",
+     "sel-node kind-node",
+     "Erd\u0151s problem 257: 2 sets settle it, proving or refuting",
+     "rgb(178, 182, 202)"
+    ]
+   ],
+   "selEdges": [
+    [
+     "sel/proves",
+     "sel-edge side-proves",
+     "rgb(117, 121, 140)"
+    ],
+    [
+     "sel/refutes",
+     "sel-edge side-refutes",
+     "rgb(59, 191, 178)"
+    ]
+   ],
+   "rows": [
+    [
+     "set-row side-proves",
+     "Set 1"
+    ],
+    [
+     "set-row side-refutes",
+     "Set 2 refutes"
+    ]
+   ],
+   "kicker": "Ways to settle the problem A way to settle the problem: a sufficient set is a set of statements whose proofs would settle the problem's own statement, either proving it or refuting it through a variant whose relation the gate checked, with the closing proofs of the decomposed statements on the way still to submit: one choice of route at every fork. Each set says which way it settles the problem. The tree under this heading is the navigation device: select a set, a family of sets or one route choice and the drawing shows just that part. protocol: sufficient sets (D-25 v3.40, v3.46; F27)",
+   "cue": "Each set proves the problem or refutes it. Select a node or an edge to filter the drawing to that part of the proof; select it again to come back.",
+   "count": "2 ways to settle the problem, in the record\u2019s order. Fewest open first",
+   "key": [
+    "proved",
+    "open",
+    "blocked",
+    "route: all of its holes",
+    "any one route closes it",
+    "refutes the problem",
+    "depends on",
+    "used lemma",
+    "has an outline",
+    "proposed statement",
+    "open, proposed"
+   ],
+   "overflow": [],
+   "pills": 12,
+   "hash": "",
+   "scrollWidth": 390,
+   "innerWidth": 390,
+   "view": "routes"
+  },
+  "hovered": {
+   "links": [
+    {
+     "key": "spec-ddd99827>erdos-257--h1",
+     "kind": "band-link edge use lit",
+     "shown": true,
+     "lit": true,
+     "hasD": true,
+     "box": [
+      33.5,
+      477.6000061035156
+     ]
+    }
+   ],
+   "band": [
+    [
+     "spec-5e2e0890--h1",
+     "translate(16,200)",
+     false
+    ],
+    [
+     "spec-5e2e0890--h2",
+     "translate(343,200)",
+     false
+    ],
+    [
+     "spec-5e2e0890@1",
+     "translate(335,108)",
+     false
+    ],
+    [
+     "spec-ddd99827",
+     "translate(375,108)",
+     true
+    ],
+    [
+     "spec-5e2e0890",
+     "translate(322,16)",
+     true
+    ]
+   ],
+   "bandLines": 4,
+   "mainLit": [
+    "erdos-257--h1"
+   ],
+   "mainHovering": true,
+   "trunks": [
+    [
+     "edge relation refutes",
+     "spec-a70fcca4",
+     "erdos-257",
+     true,
+     "rgb(59, 191, 178)"
+    ]
+   ],
+   "selector": [
+    [
+     "sel/proves",
+     "sel-node kind-leaf side-proves",
+     "Set 1 (proves): 1 open statement of 2 \u2014 proves the problem",
+     "rgb(210, 206, 253)"
+    ],
+    [
+     "sel/refutes",
+     "sel-node kind-leaf side-refutes",
+     "Set 2 (refutes): 1 open statement of 4 \u2014 refutes the problem",
+     "rgb(210, 206, 253)"
+    ],
+    [
+     "sel",
+     "sel-node kind-node",
+     "Erd\u0151s problem 257: 2 sets settle it, proving or refuting",
+     "rgb(178, 182, 202)"
+    ]
+   ],
+   "selEdges": [
+    [
+     "sel/proves",
+     "sel-edge side-proves",
+     "rgb(117, 121, 140)"
+    ],
+    [
+     "sel/refutes",
+     "sel-edge side-refutes",
+     "rgb(59, 191, 178)"
+    ]
+   ],
+   "rows": [
+    [
+     "set-row side-proves",
+     "Set 1"
+    ],
+    [
+     "set-row side-refutes",
+     "Set 2 refutes"
+    ]
+   ],
+   "kicker": "Ways to settle the problem A way to settle the problem: a sufficient set is a set of statements whose proofs would settle the problem's own statement, either proving it or refuting it through a variant whose relation the gate checked, with the closing proofs of the decomposed statements on the way still to submit: one choice of route at every fork. Each set says which way it settles the problem. The tree under this heading is the navigation device: select a set, a family of sets or one route choice and the drawing shows just that part. protocol: sufficient sets (D-25 v3.40, v3.46; F27)",
+   "cue": "Each set proves the problem or refutes it. Select a node or an edge to filter the drawing to that part of the proof; select it again to come back.",
+   "count": "2 ways to settle the problem, in the record\u2019s order. Fewest open first",
+   "key": [
+    "proved",
+    "open",
+    "blocked",
+    "route: all of its holes",
+    "any one route closes it",
+    "refutes the problem",
+    "depends on",
+    "used lemma",
+    "has an outline",
+    "proposed statement",
+    "open, proposed"
+   ],
+   "overflow": [],
+   "pills": 12,
+   "hash": "",
+   "scrollWidth": 390,
+   "innerWidth": 390,
+   "view": "routes"
+  },
+  "hovered_pill": "spec-ddd99827",
+  "pinned": {
+   "links": [
+    {
+     "key": "spec-ddd99827>erdos-257--h1",
+     "kind": "band-link edge use lit",
+     "shown": true,
+     "lit": true,
+     "hasD": true,
+     "box": [
+      33.5,
+      477.6000061035156
+     ]
+    }
+   ],
+   "band": [
+    [
+     "spec-5e2e0890--h1",
+     "translate(16,200)",
+     false
+    ],
+    [
+     "spec-5e2e0890--h2",
+     "translate(343,200)",
+     false
+    ],
+    [
+     "spec-5e2e0890@1",
+     "translate(335,108)",
+     false
+    ],
+    [
+     "spec-ddd99827",
+     "translate(375,108)",
+     true
+    ],
+    [
+     "spec-5e2e0890",
+     "translate(322,16)",
+     true
+    ]
+   ],
+   "bandLines": 4,
+   "mainLit": [
+    "erdos-257--h1"
+   ],
+   "mainHovering": true,
+   "trunks": [
+    [
+     "edge relation refutes",
+     "spec-a70fcca4",
+     "erdos-257",
+     true,
+     "rgb(59, 191, 178)"
+    ]
+   ],
+   "selector": [
+    [
+     "sel/proves",
+     "sel-node kind-leaf side-proves",
+     "Set 1 (proves): 1 open statement of 2 \u2014 proves the problem",
+     "rgb(210, 206, 253)"
+    ],
+    [
+     "sel/refutes",
+     "sel-node kind-leaf side-refutes",
+     "Set 2 (refutes): 1 open statement of 4 \u2014 refutes the problem",
+     "rgb(210, 206, 253)"
+    ],
+    [
+     "sel",
+     "sel-node kind-node",
+     "Erd\u0151s problem 257: 2 sets settle it, proving or refuting",
+     "rgb(178, 182, 202)"
+    ]
+   ],
+   "selEdges": [
+    [
+     "sel/proves",
+     "sel-edge side-proves",
+     "rgb(117, 121, 140)"
+    ],
+    [
+     "sel/refutes",
+     "sel-edge side-refutes",
+     "rgb(59, 191, 178)"
+    ]
+   ],
+   "rows": [
+    [
+     "set-row side-proves",
+     "Set 1"
+    ],
+    [
+     "set-row side-refutes",
+     "Set 2 refutes"
+    ]
+   ],
+   "kicker": "Ways to settle the problem A way to settle the problem: a sufficient set is a set of statements whose proofs would settle the problem's own statement, either proving it or refuting it through a variant whose relation the gate checked, with the closing proofs of the decomposed statements on the way still to submit: one choice of route at every fork. Each set says which way it settles the problem. The tree under this heading is the navigation device: select a set, a family of sets or one route choice and the drawing shows just that part. protocol: sufficient sets (D-25 v3.40, v3.46; F27)",
+   "cue": "Each set proves the problem or refutes it. Select a node or an edge to filter the drawing to that part of the proof; select it again to come back.",
+   "count": "2 ways to settle the problem, in the record\u2019s order. Fewest open first",
+   "key": [
+    "proved",
+    "open",
+    "blocked",
+    "route: all of its holes",
+    "any one route closes it",
+    "refutes the problem",
+    "depends on",
+    "used lemma",
+    "has an outline",
+    "proposed statement",
+    "open, proposed"
+   ],
+   "overflow": [],
+   "pills": 12,
+   "hash": "#node=spec-ddd99827&band=spec-ddd99827",
+   "scrollWidth": 390,
+   "innerWidth": 390,
+   "view": "routes"
+  },
+  "on_leaf": {
+   "links": [
+    {
+     "key": "spec-ddd99827>erdos-257--h1",
+     "kind": "band-link edge use lit",
+     "shown": true,
+     "lit": true,
+     "hasD": true,
+     "box": [
+      33.5,
+      319.6000061035156
+     ]
+    }
+   ],
+   "band": [
+    [
+     "spec-5e2e0890--h1",
+     "translate(16,200)",
+     false
+    ],
+    [
+     "spec-5e2e0890--h2",
+     "translate(343,200)",
+     false
+    ],
+    [
+     "spec-5e2e0890@1",
+     "translate(335,108)",
+     false
+    ],
+    [
+     "spec-ddd99827",
+     "translate(375,108)",
+     true
+    ],
+    [
+     "spec-5e2e0890",
+     "translate(322,16)",
+     true
+    ]
+   ],
+   "bandLines": 4,
+   "mainLit": [
+    "erdos-257--h1"
+   ],
+   "mainHovering": true,
+   "trunks": [
+    [
+     "edge relation refutes off-view",
+     "spec-a70fcca4",
+     "erdos-257",
+     false,
+     "rgb(59, 191, 178)"
+    ]
+   ],
+   "selector": [
+    [
+     "sel/proves",
+     "sel-node kind-leaf side-proves selected",
+     "Set 1 (proves): 1 open statement of 2 \u2014 proves the problem",
+     "rgb(242, 181, 68)"
+    ],
+    [
+     "sel/refutes",
+     "sel-node kind-leaf side-refutes",
+     "Set 2 (refutes): 1 open statement of 4 \u2014 refutes the problem",
+     "rgb(210, 206, 253)"
+    ],
+    [
+     "sel",
+     "sel-node kind-node",
+     "Erd\u0151s problem 257: 2 sets settle it, proving or refuting",
+     "rgb(178, 182, 202)"
+    ]
+   ],
+   "selEdges": [
+    [
+     "sel/proves",
+     "sel-edge side-proves",
+     "rgb(117, 121, 140)"
+    ],
+    [
+     "sel/refutes",
+     "sel-edge side-refutes",
+     "rgb(59, 191, 178)"
+    ]
+   ],
+   "rows": [
+    [
+     "set-row side-proves",
+     "Set 1"
+    ],
+    [
+     "set-row side-refutes",
+     "Set 2 refuteswhichOpenspec-a70fcca4--h4Provedspec-a70fcca4--h1spec-a70fcca4--h2spec-a70fcca4--h3spec-a70fcca4--h1spec-a70fcca4--h2spec-a70fcca4--h3Assembliesspec-a70fcca4"
+    ]
+   ],
+   "kicker": "Ways to settle the problem A way to settle the problem: a sufficient set is a set of statements whose proofs would settle the problem's own statement, either proving it or refuting it through a variant whose relation the gate checked, with the closing proofs of the decomposed statements on the way still to submit: one choice of route at every fork. Each set says which way it settles the problem. The tree under this heading is the navigation device: select a set, a family of sets or one route choice and the drawing shows just that part. protocol: sufficient sets (D-25 v3.40, v3.46; F27)",
+   "cue": "Each set proves the problem or refutes it. Select a node or an edge to filter the drawing to that part of the proof; select it again to come back.",
+   "count": "2 ways to settle the problem, in the record\u2019s order. showing 1 of 2Fewest open first",
+   "key": [
+    "proved",
+    "open",
+    "blocked",
+    "route: all of its holes",
+    "any one route closes it",
+    "refutes the problem",
+    "depends on",
+    "used lemma",
+    "has an outline",
+    "proposed statement",
+    "open, proposed"
+   ],
+   "overflow": [],
+   "pills": 12,
+   "hash": "#node=spec-ddd99827&view=sel%2Fproves&band=spec-ddd99827",
+   "scrollWidth": 390,
+   "innerWidth": 390,
+   "view": "sel/proves"
+  },
+  "band_still": true,
+  "unpinned": {
+   "links": [
+    {
+     "key": "spec-ddd99827>erdos-257--h1",
+     "kind": "band-link edge use",
+     "shown": false,
+     "lit": false,
+     "hasD": false,
+     "box": [
+      0,
+      0
+     ]
+    }
+   ],
+   "band": [
+    [
+     "spec-5e2e0890--h1",
+     "translate(16,200)",
+     false
+    ],
+    [
+     "spec-5e2e0890--h2",
+     "translate(343,200)",
+     false
+    ],
+    [
+     "spec-5e2e0890@1",
+     "translate(335,108)",
+     false
+    ],
+    [
+     "spec-ddd99827",
+     "translate(375,108)",
+     false
+    ],
+    [
+     "spec-5e2e0890",
+     "translate(322,16)",
+     false
+    ]
+   ],
+   "bandLines": 4,
+   "mainLit": [],
+   "mainHovering": false,
+   "trunks": [
+    [
+     "edge relation refutes",
+     "spec-a70fcca4",
+     "erdos-257",
+     true,
+     "rgb(59, 191, 178)"
+    ]
+   ],
+   "selector": [
+    [
+     "sel/proves",
+     "sel-node kind-leaf side-proves",
+     "Set 1 (proves): 1 open statement of 2 \u2014 proves the problem",
+     "rgb(210, 206, 253)"
+    ],
+    [
+     "sel/refutes",
+     "sel-node kind-leaf side-refutes",
+     "Set 2 (refutes): 1 open statement of 4 \u2014 refutes the problem",
+     "rgb(210, 206, 253)"
+    ],
+    [
+     "sel",
+     "sel-node kind-node",
+     "Erd\u0151s problem 257: 2 sets settle it, proving or refuting",
+     "rgb(178, 182, 202)"
+    ]
+   ],
+   "selEdges": [
+    [
+     "sel/proves",
+     "sel-edge side-proves",
+     "rgb(117, 121, 140)"
+    ],
+    [
+     "sel/refutes",
+     "sel-edge side-refutes",
+     "rgb(59, 191, 178)"
+    ]
+   ],
+   "rows": [
+    [
+     "set-row side-proves",
+     "Set 1"
+    ],
+    [
+     "set-row side-refutes",
+     "Set 2 refutes"
+    ]
+   ],
+   "kicker": "Ways to settle the problem A way to settle the problem: a sufficient set is a set of statements whose proofs would settle the problem's own statement, either proving it or refuting it through a variant whose relation the gate checked, with the closing proofs of the decomposed statements on the way still to submit: one choice of route at every fork. Each set says which way it settles the problem. The tree under this heading is the navigation device: select a set, a family of sets or one route choice and the drawing shows just that part. protocol: sufficient sets (D-25 v3.40, v3.46; F27)",
+   "cue": "Each set proves the problem or refutes it. Select a node or an edge to filter the drawing to that part of the proof; select it again to come back.",
+   "count": "2 ways to settle the problem, in the record\u2019s order. Fewest open first",
+   "key": [
+    "proved",
+    "open",
+    "blocked",
+    "route: all of its holes",
+    "any one route closes it",
+    "refutes the problem",
+    "depends on",
+    "used lemma",
+    "has an outline",
+    "proposed statement",
+    "open, proposed"
+   ],
+   "overflow": [],
+   "pills": 12,
+   "hash": "#node=spec-ddd99827",
+   "scrollWidth": 390,
+   "innerWidth": 390,
+   "view": "routes"
+  },
+  "at_rest_no_link_visible": true
+ }
+}

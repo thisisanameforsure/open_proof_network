@@ -99,19 +99,19 @@ def test_no_line_runs_behind_a_statement_it_does_not_join(target: str) -> None:
 
 @pytest.mark.parametrize("target", LIVE)
 def test_every_dependency_is_still_drawn_once(target: str) -> None:
-    """The routing changes the lines' shape, never which lines exist."""
+    """The routing changes the lines' shape, never which lines exist. F30-T11: a line between
+    the band and the rest is a link (lit only), still drawn once; a pointer is no line."""
     nodes = SHAPES[target]["nodes"]
     ids = {n["node_id"] for n in nodes}
-    pointed = dag.pointers(nodes)
     want = set()
     for n in nodes:
         for d in dag.below(n):
             if d in ids:
                 want.add((d, n["node_id"]))
-        for c in pointed.get(n["node_id"], []):
-            want.add((c, n["node_id"]))
-    got = [(e.src, e.dst) for e in drawn(target).edges]
+    lay = drawn(target)
+    got = [(e.src, e.dst) for e in (*lay.edges, *lay.links)]
     assert sorted(got) == sorted(want)
+    assert not any(e.kind == "edge proposed" for e in lay.edges)
 
 
 @pytest.mark.parametrize("target", LIVE)
@@ -180,8 +180,9 @@ def test_the_layout_does_not_depend_on_input_order(target: str) -> None:
 def test_statements_joined_to_nothing_are_drawn_apart_below_the_tree() -> None:
     lay = drawn("erdos-402")
     joined = {x for e in lay.edges for x in (e.src, e.dst)}
-    alone = {p.node_id for p in lay.placed if p.node_id not in joined}
-    assert alone and set(lay.loose) == alone
+    # F30-T11: a proposed crux no line joins is in the band, not in this group.
+    alone = {p.node_id for p in lay.placed if p.node_id not in joined and p.node_id not in lay.band}
+    assert alone and set(lay.loose) == alone and lay.band
     tree_bottom = max(p.y for p in lay.placed if p.node_id in joined)
     assert all(p.y > tree_bottom + dag.NODE_H for p in lay.placed if p.node_id in lay.loose)
 

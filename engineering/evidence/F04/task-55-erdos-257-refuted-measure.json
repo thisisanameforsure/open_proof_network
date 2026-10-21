@@ -1,0 +1,62 @@
+{
+ "1440": {
+  "rest": {
+   "view": "routes",
+   "shown": [
+    "erdos-257",
+    "erdos-257--h1",
+    "erdos-257--h2",
+    "spec-a70fcca4",
+    "spec-a70fcca4--h1",
+    "spec-a70fcca4--h2",
+    "spec-a70fcca4--h3",
+    "spec-a70fcca4--h4"
+   ],
+   "trunk": [
+    [
+     "edge relation refutes",
+     true,
+     "rgb(59, 191, 178)"
+    ]
+   ],
+   "selEdges": [],
+   "rows": [],
+   "head": "Disproved: a refuting variant is proved on the record, so its statement no longer accepts work.",
+   "how": "Refuted: a refuting variant is proved on the record.",
+   "scroll": [
+    1440,
+    1440
+   ]
+  }
+ },
+ "390": {
+  "rest": {
+   "view": "routes",
+   "shown": [
+    "erdos-257",
+    "erdos-257--h1",
+    "erdos-257--h2",
+    "spec-a70fcca4",
+    "spec-a70fcca4--h1",
+    "spec-a70fcca4--h2",
+    "spec-a70fcca4--h3",
+    "spec-a70fcca4--h4"
+   ],
+   "trunk": [
+    [
+     "edge relation refutes",
+     true,
+     "rgb(59, 191, 178)"
+    ]
+   ],
+   "selEdges": [],
+   "rows": [],
+   "head": "Disproved: a refuting variant is proved on the record, so its statement no longer accepts work.",
+   "how": "Refuted: a refuting variant is proved on the record.",
+   "scroll": [
+    390,
+    390
+   ]
+  }
+ }
+}

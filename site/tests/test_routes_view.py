@@ -157,7 +157,7 @@ def test_routes_marks_and_table_structure() -> None:
         assert 'data-from="' in m.group(1) and 'data-to="' in m.group(1), m.group(0)
         assert 'data-key="' in m.group(1)
     # The table: one row per set, in the record's order, with its counts and its leaf view.
-    rows = re.findall(r'<tr class="set-row".*?</tr>', table, re.S)
+    rows = re.findall(r'<tr class="set-row[^"]*"[^>]*>.*?</tr>', table, re.S)
     assert len(rows) == 3
 
     def counts(row: str) -> list[int]:
@@ -171,7 +171,8 @@ def test_routes_marks_and_table_structure() -> None:
     assert "circular" not in rows[1]  # F04-T53 (D-12 v3.43): no label, no note
     assert "goes through the variant" in rows[2]
     # The key terms the drawing asks for (F30-R2).
-    assert picture.marks == frozenset({"route-and", "route-or", "route-dead"})
+    # F04-T55: the resolves variant's trunk is drawn and keyed too.
+    assert picture.marks == frozenset({"route-and", "route-or", "route-dead", "relation-resolves"})
     # The controls that need the script are rendered hidden.
     assert re.search(r'<button[^>]*class="routes-fewest"[^>]*hidden', table)
     assert "Fewest open first" in table
@@ -202,7 +203,7 @@ def test_more_than_eight_sets_are_listed_in_the_table() -> None:
         ],
     }
     picture = drawn(d)
-    assert picture.table.count('<tr class="set-row"') == 10
+    assert picture.table.count('<tr class="set-row') == 10
     assert 'class="set-swatch set-8"' in picture.table
     assert 'class="set-swatch set-more"' in picture.table
     assert picture.selector.count('class="sel-node kind-leaf"') == 10
@@ -214,7 +215,8 @@ def test_a_target_with_no_route_has_no_selector_and_no_table() -> None:
         n["decompositions"] = []
     picture = drawn(d)
     assert picture.selector == "" and picture.table == "" and picture.sets == 0
-    assert picture.marks == frozenset()
+    # No route to key; the resolves variant's trunk is still drawn and keyed (F04-T55).
+    assert picture.marks == frozenset({"relation-resolves"})
     assert 'class="junction' not in picture.svg
 
 
