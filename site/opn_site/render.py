@@ -473,6 +473,16 @@ GLOSSARY: tuple[tuple[str, str, str, str], ...] = (
         "statements on that side keep their status colours: a statement is not refuting by itself.",
         "relation: refutes (D-30 v3.46)",
     ),
+    # F30-T16 (the owner, 2026-10-22): a partial variant is connected to the problem by its line.
+    (
+        "relation-partial",
+        "a weaker version of the problem",
+        "A dashed line from a variant up into the problem's own statement: the variant's "
+        "Relation.lean, checked by the gate at admission, proves that the problem implies the "
+        "variant, so the variant is a weaker version of it and a proof of it is partial progress, "
+        "never a proof of the problem.",
+        "relation: partial (D-30)",
+    ),
     (
         "closable",
         "closable",
@@ -509,11 +519,13 @@ GLOSSARY: tuple[tuple[str, str, str, str], ...] = (
     # F30-T11 (D-14 v3.26 as amended by v3.46): the band under the drawing.
     (
         "proposed-for",
-        "proposed statement",
-        "A statement proposed for this problem, drawn with its own holes in the band under the "
-        "tree. Its pointer is words on the pill, never a line: hover or select it to light the "
-        "lines the record has measured from it (a proof that uses it, a lemma, a dependency). "
-        "A proposed statement with a checked relation is a variant and is drawn in the tree.",
+        "speculative statement",
+        "A statement not connected to the problem: a speculative statement proposed for it (or "
+        "its revision), or a related variant, with its own holes, in the column at the right of "
+        "the drawing. No line joins it to the tree at rest: hover or select it to light the "
+        "lines the record has measured from it (a proof that uses it, a lemma, a relation). "
+        "Everything connected to the problem, variants with a checked relation included, is in "
+        "the tree; a statement lives in one place, never both.",
         "proposed-for record (D-14 v3.26, v3.46)",
     ),
     (
@@ -635,6 +647,7 @@ ROUTE_MARK_KEYS = (
     "closable",
     "relation-resolves",  # F04-T55 (D-30 v3.46): the trunks, each when the drawing has one
     "relation-refutes",
+    "relation-partial",  # F30-T16
 )
 #: F04-T21 (Q23): the Docs state map's keys. Every status ``graph.json`` can publish, as the
 #: site's word (F03-Q8: ``speculative`` reads open, so nine words for ten statuses), and the seven
@@ -1349,7 +1362,8 @@ class Renderer:
     def graph_legend(self, tv: TargetView, drawn: one_view.Drawing | None = None) -> str:
         """The statement graph's key (F04-T14, Q16): the three base states, then every other
         status a statement in this graph has, each a glossary hover card with its dot."""
-        present = {self.node_state(nv) for nv in tv.nodes.values()}
+        # F30-T16: a superseded statement is never drawn, so the key does not name it.
+        present = {self.node_state(nv) for nv in tv.nodes.values() if nv.status != "superseded"}
         keys = (*LEGEND_BASE, *(k for k in (NEEDS_WITNESS, *LEGEND_EXTRA) if k in present))
         # F30-T2 (R2): the route marks the merged drawing shows, each only when it has one.
         marks = tuple(k for k in ROUTE_MARK_KEYS if k in (drawn.marks if drawn else ()))
@@ -1359,7 +1373,6 @@ class Renderer:
         return (
             "".join(self.term(k, dot=True) for k in (*keys, *marks, *self.proof_legend(tv)))
             + self.literature_key(self.literature_marks(tv).values())
-            + self.superseded_toggle(tv)
             + (drawn.toggle if drawn else "")
         )
 
@@ -1409,19 +1422,6 @@ class Renderer:
                     cls.hover(badge + esc(f"{status}, {mark.phase}"), body, classes="lit-term")
                 )
         return "".join(items)
-
-    @staticmethod
-    def superseded_toggle(tv: TargetView) -> str:
-        """F04-T33: a button that hides the superseded statements and their lines. It needs the
-        page's script, so it is rendered hidden and the script shows it."""
-        n = sum(1 for nv in tv.nodes.values() if nv.status == "superseded")
-        if not n:
-            return ""
-        return (
-            '<button type="button" class="chip dag-toggle" data-hide="superseded" '
-            f'aria-pressed="false" data-shown-label="Show superseded ({n})" hidden>'
-            f"Hide superseded ({n})</button>"
-        )
 
     @staticmethod
     def proof_legend(tv: TargetView) -> tuple[str, ...]:

@@ -303,19 +303,19 @@ def page(tmp_path: Path, statuses: dict[str, str] | None = None, **graph: Any) -
     return r.target(dataclasses.replace(tv, nodes=nodes, graph=g))
 
 
-def test_the_page_offers_to_hide_superseded_statements_when_it_has_any(tmp_path: Path) -> None:
+def test_a_superseded_statement_is_not_drawn_and_no_toggle_is_offered(tmp_path: Path) -> None:
+    """F30-T16 (the owner, 2026-10-22): "Nodes that have been superseded do not need to be
+    visible in the UI." It was faded, behind a "Hide superseded" toggle (F04-T33)."""
     html = page(tmp_path / "a", {"and-reassoc": "superseded"})
-    assert re.search(r'<button type="button" class="chip dag-toggle" data-hide="superseded"', html)
-    assert 'data-hide="superseded"' not in page(tmp_path / "b")
+    assert 'data-hide="superseded"' not in html
+    drawing = html[html.index('<svg class="dag"') :]
+    drawing = drawing[: drawing.index("</svg>")]
+    assert 'data-node="and-reassoc"' not in drawing
 
 
-def test_superseded_statements_are_faded_and_the_toggle_hides_them() -> None:
-    css = (STATIC / "site.css").read_text(encoding="utf-8")
-    assert re.search(r"\.dag \.node\.status-superseded \{[^}]*opacity", css)
-    assert re.search(r"\.dag\.hide-superseded \.status-superseded[^{]*\{[^}]*display: none", css)
-    assert re.search(r"\.dag\.hide-superseded \.touches-superseded[^{]*\{[^}]*display: none", css)
-    js = (STATIC / "graph.js").read_text(encoding="utf-8")
-    assert "hide-superseded" in js and "data-hide" in js
+def test_no_superseded_toggle_is_rendered() -> None:
+    """F30-T16: the toggle is gone with the statements it hid."""
+    assert "superseded_toggle" not in dir(render.Renderer)
 
 
 # --- 6. hover ------------------------------------------------------------------------------------

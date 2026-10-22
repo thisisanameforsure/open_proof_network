@@ -181,16 +181,38 @@ def spec_revisions(nodes: Iterable[Mapping[str, Any]]) -> list[str]:
     )
 
 
-def band_of(nodes: Iterable[Mapping[str, Any]]) -> tuple[str, ...]:
-    """The statements drawn in the band of proposed statements: the proposed cruxes, the specs
-    revised into variants (``spec_revisions``) and their hole children (a hole origin, an id
-    under ``<crux>--h``, the old id's for a revision, whose holes it reads, D-8 v3.46),
-    transitively, sorted."""
+def related_variants(nodes: Iterable[Mapping[str, Any]]) -> list[str]:
+    """F30-T16 (the owner, 2026-10-22): the live variants labelled ``related`` (D-30: no proved
+    relation, only a signed sentence), which belong with the speculative statements."""
+    return sorted(
+        str(n["node_id"])
+        for n in nodes
+        if n.get("relation") == "related" and str(n.get("status")) != "superseded"
+    )
+
+
+def band_of(nodes: Iterable[Mapping[str, Any]], connected: Iterable[str] = ()) -> tuple[str, ...]:
+    """The statements drawn in the column of speculative statements (F30-T16, the owner,
+    2026-10-22: "only things connected to the root on the left; one place or the other, not
+    both; superseded nowhere"): every statement not ``connected`` to the root that is
+    speculative (a proposed crux, ``proposed``, or a revision of one, ``spec_revisions``) or a
+    related variant, and their hole children (a hole origin, an id under ``<head>--h``, the old
+    id's for a revision, whose holes it reads, D-8 v3.46), transitively, sorted. Nothing
+    superseded is in it."""
     rows = {str(n["node_id"]): n for n in nodes}
-    band = set(proposed(rows.values())) | set(spec_revisions(rows.values()))
+    tied = set(connected)
+    heads = (
+        set(proposed(rows.values()))
+        | set(spec_revisions(rows.values()))
+        | set(related_variants(rows.values()))
+    )
+    band = {h for h in heads if h not in tied}
     bases = {base_id(b) for b in band}
     for nid in sorted(rows, key=len):
-        if nid in band or str(rows[nid].get("origin")) not in HOLE_ORIGINS:
+        row = rows[nid]
+        if nid in band or nid in tied or str(row.get("origin")) not in HOLE_ORIGINS:
+            continue
+        if str(row.get("status")) == "superseded":
             continue
         parent = nid.rsplit(HOLE_SEPARATOR, 1)[0]
         if parent != nid and (parent in band or parent in bases):
@@ -198,15 +220,21 @@ def band_of(nodes: Iterable[Mapping[str, Any]]) -> tuple[str, ...]:
     return tuple(sorted(band))
 
 
-def band_column(nodes: Iterable[Mapping[str, Any]]) -> tuple[str, ...]:
+def band_column(
+    nodes: Iterable[Mapping[str, Any]], members: Iterable[str] | None = None
+) -> tuple[str, ...]:
     """F30-T13 (the owner, 2026-10-21): the band's statements in the column's order, one per
     row. Each crux is followed by its own holes; then the cruxes are walked depth first, in id
     order, over every line among band statements (a dep, a use, a lemma, from a crux or one of
     its holes), so related statements sit above or below each other and unrelated ones follow.
     Nothing here is a layout of their relations: the column is a list."""
     rows = {str(n["node_id"]): n for n in nodes}
-    band = band_of(rows.values())
-    heads = set(proposed(rows.values())) | set(spec_revisions(rows.values()))
+    band = tuple(sorted(members)) if members is not None else band_of(rows.values())
+    heads = (
+        set(proposed(rows.values()))
+        | set(spec_revisions(rows.values()))
+        | set(related_variants(rows.values()))
+    )
     cruxes = [b for b in band if b in heads]
     group: dict[str, list[str]] = {c: [c] for c in cruxes}
     owner: dict[str, str] = {c: c for c in cruxes}
@@ -967,10 +995,11 @@ def literature_mark(mark: LitMark | None, width: int) -> str:
 #: F04-T33: the label over the statements no line joins.
 GROUP_LABEL = "Statements no line joins to the rest"
 #: F30-T11: the band's heading and its one line of help (D-14 v3.26 as amended by v3.46).
-BAND_LABEL = "Proposed statements"
+BAND_LABEL = "Speculative statements"
 BAND_HELP = (
-    "statements proposed for this problem. Hover one for the lines the record measured; click "
-    "to keep them; click it again, click empty space or press Esc to clear."
+    "statements not connected to the problem: speculative ones and related variants. Hover one "
+    "for the lines the record measured; click to keep them; click it again, click empty space or "
+    "press Esc to clear."
 )
 
 

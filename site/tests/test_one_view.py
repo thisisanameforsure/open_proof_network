@@ -172,7 +172,8 @@ def test_layout_membership_per_view() -> None:
         "t@3",
         "t--c@1",
     }
-    # ``u`` is a related variant on no way to close the root; the dead route t@3 is drawn.
+    # ``u`` is a statement nothing joins, on no way to close the root (F30-T16: neither connected
+    # nor speculative, so it is the one thing the toggle adds); the dead route t@3 is drawn.
     assert set(vs["routes"].nodes) == set(vs["all"].nodes) - {"u"}
     assert vs["all"].kind == "all" and vs["routes"].kind == "routes"
     for v in vs.values():
@@ -383,8 +384,10 @@ VARIANT = "variant-related"
 
 
 def off_route(tmp_path: Path) -> Path:
-    """``two_routes`` plus a ``related`` variant: on no way to close the root, so it is in ``all``
-    and not in ``routes`` and the view-toggle is rendered (R4)."""
+    """``two_routes`` plus a statement nothing joins (F30-T16: a related variant now lives in the
+    column of speculative statements, so the off-route one is authored, with no pointer): on no
+    way to close the root, so it is in ``all`` and not in ``routes`` and the view-toggle is
+    rendered (R4)."""
     root = two_routes(tmp_path)
     proposal = scaffold.Proposal(
         node_id=VARIANT,
@@ -392,8 +395,7 @@ def off_route(tmp_path: Path) -> Path:
         statement="theorem OpnProp.variant_related : ∀ p : Prop, p → p := by\n  sorry\n",
         witness="theorem witness : True := trivial\n",
         author="proposer",
-        origin="variant",
-        relation="related",
+        origin="authored",
         date="2026-10-01T00:00:00Z",
     )
     scaffold.validate(proposal)

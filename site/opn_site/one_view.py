@@ -36,7 +36,6 @@ from html import escape
 from typing import Any
 
 from opn_gate import closing, routes
-from opn_gate.graph import HOLE_SEPARATOR
 from opn_site import dag, routes_view
 
 #: A junction is a dot in a box this wide (as the routes drawing drew it, F27-T3).
@@ -116,7 +115,7 @@ def merged_nodes(
 
 def band_ids(rows: Sequence[Mapping[str, Any]], d: routes_view.Drawn) -> tuple[str, ...]:
     """F30-T11: the band's nodes — ``dag.band_of`` plus the junctions of their routes."""
-    band = dag.band_of(rows)
+    band = dag.band_of(rows, d.statements)  # F30-T16: what the root's walk reached is the tree's
     held = set(band)
     return (*band, *(rid for rid, r in d.junctions.items() if r.node in held))
 
@@ -215,7 +214,9 @@ def views(
     # the band's own; the toggle counts them in nothing (R4).
     band = band_ids(rows, d)
     out: dict[str, View] = {}
-    out[ALL] = _view(ALL, ALL, merged, [i for i in merged if i not in band])
+    # F30-T16: a superseded statement is in no view (the owner: "do not need to be visible").
+    gone = {i for i, r in merged.items() if str(r.get("status")) == "superseded"}
+    out[ALL] = _view(ALL, ALL, merged, [i for i in merged if i not in band and i not in gone])
     out[ROUTES] = _view(
         ROUTES,
         ROUTES,
@@ -228,29 +229,25 @@ def views(
     if follow is not None:
         out.update(_set_views(graph, follow, d, merged, prefix=FOLLOW))
     if band:
-        # A followed proof may rest on a band crux (F27-R13): the crux stays in the band and
-        # the use is the band's lit line, so no view draws it twice. F30-T15: a set that goes
-        # through a spec revised into a variant is that spec's own tree, so its view keeps the
-        # revision, its route and its holes; at rest (routes, all) the column holds them.
+        # A followed proof may rest on a band statement (F27-R13): it stays in the column and
+        # the use is its lit line, so no view draws it twice (F30-T16: one place, not two).
         held = set(band)
-        revised = set(dag.spec_revisions(rows))
         for key, v in list(out.items()):
-            if key in (BAND, ALL, ROUTES) or not held & set(v.nodes):
-                continue
-            through = revised & set(v.nodes)
-            keep = {
-                n
-                for n in v.nodes
-                if n in through
-                or any(n.startswith(dag.base_id(r) + HOLE_SEPARATOR) for r in through)
-                or (n in d.junctions and d.junctions[n].node in through)
-            }
-            drop = held - keep
-            out[key] = replace(
-                v,
-                nodes=tuple(n for n in v.nodes if n not in drop),
-                lines=tuple(ln for ln in v.lines if ln[0] not in drop and ln[1] not in drop),
-            )
+            if key != BAND and held & set(v.nodes):
+                out[key] = replace(
+                    v,
+                    nodes=tuple(n for n in v.nodes if n not in held),
+                    lines=tuple(ln for ln in v.lines if ln[0] not in held and ln[1] not in held),
+                )
+    if gone:
+        # F30-T16: and no other view draws one either.
+        for key, v in list(out.items()):
+            if gone & set(v.nodes):
+                out[key] = replace(
+                    v,
+                    nodes=tuple(n for n in v.nodes if n not in gone),
+                    lines=tuple(ln for ln in v.lines if ln[0] not in gone and ln[1] not in gone),
+                )
     for k, m in enumerate(proofs):
         ids = sorted(m.nodes)
         by_dst: dict[str, list[str]] = {}
@@ -749,7 +746,9 @@ def _band_svg(  # noqa: PLR0913 — the band, every element once
     from the pills' boxes while it is lit."""
     if BAND not in vs:
         return ""
-    order = dag.band_column(list(rows.values()))
+    order = dag.band_column(
+        list(rows.values()), [b for b in vs[BAND].nodes if b not in d.junctions]
+    )
     widths = {pl.node_id: pl.w for pl in lays[BAND].placed}
     col = max(BAND_MIN_W, max((widths.get(nid, 0) for nid in order), default=0) // 2)
     per_line = max(8, int((col - dag.PILL_PAD) / dag.CHAR_W))
@@ -769,7 +768,7 @@ def _band_svg(  # noqa: PLR0913 — the band, every element once
         f'<span class="kicker">{escape(dag.BAND_LABEL)}</span>'
         f'<p class="band-cue">{escape(dag.BAND_HELP)}</p></div><div class="band-scroll">'
         f'<svg class="dag band" viewBox="0 0 {col} {height}" width="{col}" '
-        f'height="{height}" role="img" aria-label="proposed statements">'
+        f'height="{height}" role="img" aria-label="speculative statements">'
     ]
     for i, nid in enumerate(order):
         p = dag.Placed(nid, _status_of(rows, nid), 0, 0, tops[i], col)
@@ -1086,7 +1085,7 @@ def drawing(  # noqa: PLR0913 — the page's inputs
     crossing = [ln for ln in dag.lines(merged_rows) if (ln[0] in set(band)) != (ln[1] in set(band))]
     # F30-T13: the band's own lines are links too, drawn only while lit (a crux to its holes
     # directly: the column draws no junction).
-    column = set(dag.band_of(list(rows.values())))
+    column = {b for b in band if b not in d.junctions}
     crossing += [
         ln
         for ln in dag.lines([dict(rows[i]) for i in sorted(column)])

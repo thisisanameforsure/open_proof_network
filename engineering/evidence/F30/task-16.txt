@@ -1,0 +1,44 @@
+F30-T16 — every statement in one place, superseded in none, "speculative" for spec
+(the owner, 2026-10-22)
+
+"Only things that are connected to the root node should be held on the LHS. They should live in one
+place or the other, not both. Nodes that have been superseded do not need to be visible in the UI."
+"Specs need names and don't use the word spec, use speculative." Asked where partial and related
+variants go (neither had a line to the root): "Partial on the left, related in the column".
+
+Connected = reached from the root by a line the tree draws at rest (a route to its holes, a declared
+dependency, a variant's relation line: resolves, refutes, and now partial). A use is not a connection.
+Built: routes_view.TRUNK_LABELS + partial (a dashed relation line, keyed "a weaker version of the
+problem"); dag.band_of(rows, connected) = speculative heads (proposed, spec_revisions) and related
+variants not connected, with their holes, never superseded; one_view.band_ids passes the root's walk;
+every view drops superseded statements; the superseded toggle, its script and styles are gone and the
+key no longer names superseded; the column is "Speculative statements"; the key entry
+"speculative statement".
+
+Red (site/tests/test_column_rules.py):
+  test_connected_statements_are_left_and_the_rest_in_the_column
+    E a refuting and a partial variant are connected: {'spec-x--h4','variant-part','spec-x-v2'} not left
+  test_every_statement_lives_in_exactly_one_place_and_superseded_in_none
+    E {'variant-part','variant-rel','variant-rel--h1','variant-rel--h2'} in neither place
+  test_a_partial_variant_draws_its_relation_line_into_the_root
+    E ('variant-part','t','edge relation partial') not in the routes view's lines
+  test_the_set_through_the_refuting_variant_stays_on_the_left
+    E the refuting set's statements are in the column too
+Green: 5 passed. Restated (they pinned the earlier rules): the off-route fixture statement in
+test_routes_view, test_one_view (layout membership; the browser toggle fixture) and test_crux_band
+is now an authored statement nothing joins (a related variant belongs in the column); the band
+heading and key wording; F30-T15's two tests (the revised spec is connected, so left); the superseded
+toggle tests (now: not drawn, no toggle, no key entry); the trunk-label guard gains partial with its
+key and dot. Golden docs page regenerated (the key entry's words).
+Site suite with the browser: 866 passed (the three pre-existing browser failures deselected).
+ruff, format, mypy site clean.
+
+Render of graph origin/main with this site (0 warnings), every problem:
+  erdos-257   left 8  column 4   in both: none   superseded drawn: 0   toggles: none
+  erdos-402   left 33 column 1   in both: none   superseded drawn: 0   toggles: none
+  erdos-69    left 8  column 12  in both: none   superseded drawn: 0   toggles: none
+  euclid-primes left 8 column 5  in both: none   superseded drawn: 0   toggles: none
+  tutorial    left 1  column 3   in both: none   superseded drawn: 0   toggles: none
+  erdos-257, refuting set selected: erdos-257, spec-a70fcca4-v2 and its four holes, on the left only.
+Known cost, for the owner: erdos-402's 20 partial variants now each draw a dashed line into the root,
+a dense bundle at the top of its drawing (task-16-erdos-402.png).

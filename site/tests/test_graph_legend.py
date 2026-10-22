@@ -75,7 +75,9 @@ def test_the_key_always_names_the_three_base_states(tmp_path: Path) -> None:
 
 def test_the_key_names_the_other_statuses_the_graph_shows(tmp_path: Path) -> None:
     html = page(tmp_path, {ROOT: "stale", DEP: "superseded"})
-    assert legend_words(legend(html)) == ["proved", "open", "blocked", "stale", "superseded"]
+    # F30-T16 (the owner, 2026-10-22): a superseded statement is never drawn, so the key does not
+    # name it.
+    assert legend_words(legend(html)) == ["proved", "open", "blocked", "stale"]
 
 
 def test_a_speculative_node_reads_open_in_the_key(tmp_path: Path) -> None:
@@ -84,7 +86,7 @@ def test_a_speculative_node_reads_open_in_the_key(tmp_path: Path) -> None:
     assert legend_words(legend(html)) == ["proved", "open", "blocked"]
 
 
-@pytest.mark.parametrize("status", sorted(render.LEGEND_EXTRA))
+@pytest.mark.parametrize("status", sorted(set(render.LEGEND_EXTRA) - {"superseded"}))
 def test_each_key_item_defines_itself_on_hover(tmp_path: Path, status: str) -> None:
     html = legend(page(tmp_path, {ROOT: status}))
     _word, meaning, proto = render.GLOSSARY_BY_KEY[status]

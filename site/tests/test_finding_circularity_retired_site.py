@@ -296,7 +296,11 @@ def test_every_output_class_has_a_key_entry() -> None:
         "dead-cross": "route-dead",
         '"asm"': "closable",
     }
-    assert set(routes_view.TRUNK_LABELS) == {"resolves", "refutes"}, "a new label needs a key"
+    assert set(routes_view.TRUNK_LABELS) == {"resolves", "refutes", "partial"}, (
+        "a new label needs a key"
+    )
+    for label in routes_view.TRUNK_LABELS:  # F30-T16: each relation line has its key and dot
+        assert f"relation-{label}" in render.GLOSSARY_BY_KEY and f".dot-relation-{label}" in CSS
     for cls, key in drawn.items():
         assert cls in source, f"the drawing no longer draws {cls}; update this guard"
         assert key in render.GLOSSARY_BY_KEY, key

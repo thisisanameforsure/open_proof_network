@@ -65,7 +65,7 @@ def test_the_pointer_is_published_and_the_crux_is_drawn_in_the_band(tmp_path: Pa
     assert "edge proposed" not in page
     assert re.search(rf'<path class="band-link edge use" data-from="{CRUX}" data-to="', page)
     key = re.search(r'<div class="dag-legend">(.*?)</div>', page, re.S)
-    assert key is not None and "proposed statement" in key.group(1)
+    assert key is not None and "speculative statement" in key.group(1)
     assert f"proposed for: {ROOT_NODE}" in band or "proposed for: " in band
 
 
@@ -73,7 +73,7 @@ def test_no_pointer_no_band_and_no_key_entry(tmp_path: Path) -> None:
     _rows, page = rendered(copy_graph(tmp_path, publish=True))
     assert "edge proposed" not in page and 'class="dag band"' not in page
     key = re.search(r'<div class="dag-legend">(.*?)</div>', page, re.S)
-    assert key is not None and "proposed statement" not in key.group(1)
+    assert key is not None and "speculative statement" not in key.group(1)
 
 
 def test_a_crux_declared_as_a_dependency_stays_in_the_tree(tmp_path: Path) -> None:

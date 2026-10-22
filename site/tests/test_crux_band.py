@@ -179,7 +179,7 @@ def test_the_drawing_puts_the_band_beside_the_tree_with_lit_only_links() -> None
     g = rf.doc()
     d = one_view.drawing(g, [], href=hrefs(g), prefix=rf.ROOT)
     assert '<svg class="dag band"' in d.band
-    assert "Proposed statements" in d.band and "measured" in d.band
+    assert "Speculative statements" in d.band and "measured" in d.band
     band_svg = d.band[d.band.index('<svg class="dag band"') :]
     band_svg = band_svg[: band_svg.index("</svg>")]
     for nid in (rf.GAP, rf.UNIQUE, f"{rf.UNIQUE}--h1", f"{rf.UNIQUE}--h2"):
@@ -209,7 +209,8 @@ def test_the_drawing_puts_the_band_beside_the_tree_with_lit_only_links() -> None
 def test_the_toggle_counts_off_route_statements_but_not_the_band() -> None:
     g = rf.doc()
     g["nodes"].append(
-        {**node("u", origin="variant", relation="related"), "uses": [], "proposed_for": None}
+        # F30-T16: an authored statement nothing joins (a related variant is in the column)
+        {**node("u", origin="authored"), "uses": [], "proposed_for": None}
     )
     d = one_view.drawing(g, [], href=hrefs(g), prefix=rf.ROOT)
     assert d.hidden == 1 and "Show 1 more statement" in d.toggle
