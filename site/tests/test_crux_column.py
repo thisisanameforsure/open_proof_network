@@ -16,6 +16,7 @@ drawn only while lit.
 from __future__ import annotations
 
 import re
+from itertools import pairwise
 from pathlib import Path
 from typing import Any
 
@@ -117,3 +118,149 @@ def test_the_column_sits_beside_the_selector(tmp_path: Path) -> None:
     assert not any(ln["shown"] for ln in rest["links"])
     lit = [ln["key"] for ln in hovered["links"] if ln["lit"] and ln["shown"]]
     assert lit == [f"{CRUX}>{THIRD}"], lit
+
+
+# -- F30-T14 (the owner, 2026-10-22): half the width, labels wrapped, a clear way to deselect -----
+
+
+def _column(band: str) -> str:
+    svg = band[band.index('<svg class="dag band"') :]
+    return svg[: svg.index("</svg>")]
+
+
+def test_the_column_is_half_its_natural_width_and_its_labels_wrap() -> None:
+    """ "The RHS takes up too much space. Make it take up half the width by default and have
+    word wrap in the nodes": the column is half the width its widest one-line pill would need
+    (never below a floor), every pill is that wide, a label too long for it breaks into lines,
+    and the pill grows to hold them, so no two rows overlap."""
+    g = rf.doc()
+    # the live erdos-257 labels of uniqueness's two holes (graph/v12 `label`, from their glosses)
+    for n in g["nodes"]:
+        if n["node_id"] == f"{rf.UNIQUE}--h1":
+            n["label"], n["label_source"] = "Mersenne reciprocals are summable", "gloss"
+        if n["node_id"] == f"{rf.UNIQUE}--h2":
+            n["label"], n["label_source"] = "lexicographic comparison of subset sums", "gloss"
+    d = one_view.drawing(g, [], href=hrefs(g), prefix=rf.ROOT)
+    col = _column(d.band)
+    labels = dag.labels_of(g["nodes"])
+    natural = max(dag.node_width(n, rf.ROOT, None, labels) for n in dag.band_column(g["nodes"]))
+    found = re.search(r'<svg class="dag band" viewBox="0 0 (\d+) ', col)
+    assert found is not None
+    width = int(found.group(1))
+    assert width == max(one_view.BAND_MIN_W, natural // 2), (width, natural)
+    pills = re.findall(
+        r'transform="translate\((-?\d+),(-?\d+)\)">.*?<rect class="pill" width="(\d+)" '
+        r'height="(\d+)".*?<text[^>]*>(.*?)</text>',
+        col,
+        re.S,
+    )
+    assert pills and all(int(w) == width for _x, _y, w, _h, _t in pills)
+    tall = [(int(h), t) for _x, _y, _w, h, t in pills if t.count("<tspan") >= 2]
+    assert tall, "a long label wraps onto lines of its own"
+    assert all(h > dag.NODE_H for h, _t in tall)
+    rows = sorted((int(y), int(h)) for _x, y, _w, h, _t in pills)
+    assert all(a[0] + a[1] < b[0] for a, b in pairwise(rows)), rows
+
+
+PINNED = """() => ({
+  pinned: [...document.querySelectorAll('svg.band g.node.pinned')].map(g => g.dataset.node),
+  shown: [...document.querySelectorAll('path.band-link')]
+    .filter(p => getComputedStyle(p).display !== 'none' && p.getAttribute('d')).length,
+  hash: location.hash,
+  stroke: (g => g ? getComputedStyle(g.querySelector('rect.pill')).stroke : null)(
+    document.querySelector('svg.band g.node.pinned')),
+  select: getComputedStyle(document.documentElement).getPropertyValue('--select').trim(),
+})"""
+
+
+def test_a_pinned_spec_is_marked_and_clears_on_a_click_elsewhere_or_escape(tmp_path: Path) -> None:
+    """ "I don't see how to deselect a node being selected": a click pins a spec, which is drawn
+    in the selection's amber; clicking it again, clicking on empty space, or pressing Escape
+    clears it, and its lines go. (A click on a selector node keeps it, so its lines follow the
+    tree: test_crux_band.test_the_band_never_moves_on_a_selection.)"""
+    with browser(band_tree(tmp_path / "g"), tmp_path / "site") as pg:
+        pill = pg.locator(f'svg.band g.node[data-node="{CRUX}"]')
+        pill.click()
+        pg.mouse.move(2, 2)
+        pinned = pg.evaluate(PINNED)
+        pg.mouse.click(4, 4)
+        after_click = pg.evaluate(PINNED)
+        pill.click()
+        pg.mouse.move(2, 2)
+        pg.keyboard.press("Escape")
+        after_escape = pg.evaluate(PINNED)
+    assert pinned["pinned"] == [CRUX] and pinned["shown"] == 1 and "band=" in pinned["hash"]
+    assert pinned["stroke"] is not None and pinned["select"], pinned
+    assert pinned["stroke"].replace(" ", "") == _rgb(pinned["select"]), pinned
+    assert after_click["pinned"] == [] and after_click["shown"] == 0
+    assert "band=" not in after_click["hash"]
+    assert after_escape["pinned"] == [] and after_escape["shown"] == 0
+
+
+def _rgb(hex_colour: str) -> str:
+    h = hex_colour.lstrip("#")
+    r, g, b = (int(h[i : i + 2], 16) for i in (0, 2, 4))
+    return f"rgb({r},{g},{b})"
+
+
+# -- F30-T15 (the owner, 2026-10-22): a spec revised into a variant stays a spec -------------------
+
+OLD, REV = "spec-x", "spec-x-v2"
+
+
+def revised_spec_doc() -> dict[str, Any]:
+    """``refutes_fixture`` with its refuting variant in the live erdos-257 shape: ``spec-x`` was a
+    crux proposed for the root and is superseded by ``spec-x-v2`` (D-8 v3.46), which carries the
+    relation and reads ``spec-x``'s holes — named after the old id — as its own."""
+    import json  # noqa: PLC0415
+
+    text = json.dumps(rf.doc())
+    for i in range(1, 6):
+        text = text.replace(f'"{rf.VARIANT}--h{i}"', f'"{OLD}--h{i}"')
+    text = text.replace(f'"{rf.VARIANT}"', f'"{REV}"')
+    g = json.loads(text)
+    old = {
+        "node_id": OLD,
+        "status": "superseded",
+        "deps": [f"{OLD}--h{i}" for i in range(1, 6)],
+        "origin": "authored",
+        "relation": None,
+        "decompositions": [],
+        "proposed_for": rf.ROOT,
+        "uses": [],
+        "label": OLD,
+        "label_source": "id",
+    }
+    g["nodes"].append(old)
+    out: dict[str, Any] = g
+    return out
+
+
+def test_a_spec_revised_into_a_variant_lives_in_the_column_with_its_holes() -> None:
+    """ "spec-a70... still appears in the main view. It should appear on the RHS" — and the
+    owner's rule: everything that is a spec, cruxes and any spec revised into a variant, while a
+    statement proposed as a variant stays in the tree (refutes_fixture's own ``v``)."""
+    g = revised_spec_doc()
+    band = set(dag.band_of(g["nodes"]))
+    assert REV in band and OLD not in band
+    assert {f"{OLD}--h{i}" for i in range(1, 6)} <= band
+    assert rf.VARIANT not in set(dag.band_of(rf.doc()["nodes"])), "a variant proposed as one"
+
+
+def test_the_column_spec_leaves_the_resting_views_but_its_set_still_draws_it() -> None:
+    """At rest the tree holds the problem's own routes only; selecting the refuting set draws
+    that set (the revised spec, its route and its holes) in the main view as before."""
+    from opn_gate import routes  # noqa: PLC0415
+
+    g = revised_spec_doc()
+    res = routes.read(g, [])
+    vs = one_view.views(g, res)
+    for key in (one_view.ROUTES, one_view.ALL):
+        assert REV not in vs[key].nodes, key
+    assert any(s.settles == routes.REFUTES for s in res.sets)
+    view = vs[f"sel/refutes/{REV}@1"]  # the refuting set through the revision's first route
+    assert REV in view.nodes and f"{OLD}--h4" in view.nodes
+    assert f"{REV}@1" in view.nodes, "with its route's junction"
+    assert vs["sel/proves"].nodes and REV not in vs["sel/proves"].nodes
+    d = one_view.drawing(g, [], href=hrefs(g), prefix=rf.ROOT)
+    assert f'data-node="{REV}"' in _column(d.band)
