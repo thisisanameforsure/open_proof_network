@@ -87,7 +87,8 @@ def test_a_used_crux_stays_in_the_band_and_the_use_is_a_lit_only_link() -> None:
 
 def test_a_crux_declared_as_a_dependency_stays_in_the_tree() -> None:
     nodes = hand(dep=True)
-    assert dag.band_of(nodes) == () and dag.proposed(nodes) == []
+    # F30-T16: it is the tree's because the root reaches it by that dependency
+    assert dag.band_of(nodes, dag.connected_to(nodes, "n")) == () and dag.proposed(nodes) == []
     lay = dag.layout(nodes, root="n")
     assert lay.band == () and [(e.src, e.dst, e.kind) for e in lay.edges] == [("c", "n", "edge")]
 
@@ -141,11 +142,12 @@ def test_every_pointer_crux_of_the_live_shapes_is_in_the_band_or_a_dependency(
 ) -> None:
     shape = SHAPES[target]
     rows = shape["nodes"]
-    deps = {str(d) for n in rows for d in n["deps"]}
+    # F30-T16: a crux is the tree's when the root reaches it, else the column's
+    reached = dag.connected_to(rows, shape["root"])
     cruxes = {n["node_id"] for n in rows if n.get("proposed_for") and not n.get("relation")}
-    band = set(dag.band_of(rows))
-    assert band >= cruxes - deps
-    assert not band & deps
+    band = set(dag.band_of(rows, reached))
+    assert band >= cruxes - reached
+    assert not band & reached
     lay = dag.layout(rows, root=shape["root"], prefix=target)
     assert set(lay.band) == band
     assert not set(lay.loose) & cruxes, "no crux is in the group no line joins"

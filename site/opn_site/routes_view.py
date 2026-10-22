@@ -144,7 +144,7 @@ def drawn(graph: Mapping[str, Any], result: routes.Routes) -> Drawn:
 
     visit(result.root, (), out.statements)
     # the column's heads (F30-T16): their routes need junctions too; one the root reached is skipped
-    for crux in [*dag.proposed(rows.values()), *dag.related_variants(rows.values())]:
+    for crux in [*dag.speculative(rows.values()), *dag.related_variants(rows.values())]:
         visit(crux, (), out.band)
     return out
 

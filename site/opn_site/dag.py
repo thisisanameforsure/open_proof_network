@@ -181,6 +181,52 @@ def spec_revisions(nodes: Iterable[Mapping[str, Any]]) -> list[str]:
     )
 
 
+def speculative(nodes: Iterable[Mapping[str, Any]]) -> list[str]:
+    """F30-T16: the live speculative statements — a ``proposed_for`` pointer to a statement of the
+    graph, no checked relation, not superseded — whoever declares them as a dependency. Whether
+    one is the tree's is decided by connection to the root (``band_of``'s ``connected``): a
+    dependency connects it only when the statement declaring it is connected itself."""
+    rows = {str(n["node_id"]): n for n in nodes}
+    return sorted(
+        nid
+        for nid, n in rows.items()
+        if n.get("proposed_for")
+        and str(n["proposed_for"]) in rows
+        and not n.get("relation")
+        and str(n.get("status")) != "superseded"
+    )
+
+
+#: F30-T16: the relation labels whose line connects a variant to the root (routes_view's trunks).
+CONNECTING_RELATIONS = ("resolves", "refutes", "partial")
+
+
+def connected_to(nodes: Iterable[Mapping[str, Any]], root: str | None) -> set[str]:
+    """F30-T16: what ``root`` reaches by the lines the tree draws at rest — declared dependencies
+    (a route's holes are among them) and, at the root, each variant with a connecting relation.
+    A use is not a connection. With no root, every declared dependency counts as reached (a
+    drawing with no root to start from)."""
+    rows = {str(n["node_id"]): n for n in nodes}
+    if root is None or root not in rows:
+        return {str(d) for n in rows.values() for d in n.get("deps") or []}
+    seen = {root}
+    stack = [root]
+    stack.extend(
+        k
+        for k, n in rows.items()
+        if k != root
+        and n.get("relation") in CONNECTING_RELATIONS
+        and str(n.get("status")) != "superseded"
+    )
+    seen.update(stack)
+    while stack:
+        for d in rows.get(stack.pop(), {}).get("deps") or []:
+            if str(d) in rows and str(d) not in seen:
+                seen.add(str(d))
+                stack.append(str(d))
+    return seen
+
+
 def related_variants(nodes: Iterable[Mapping[str, Any]]) -> list[str]:
     """F30-T16 (the owner, 2026-10-22): the live variants labelled ``related`` (D-30: no proved
     relation, only a signed sentence), which belong with the speculative statements."""
@@ -202,7 +248,7 @@ def band_of(nodes: Iterable[Mapping[str, Any]], connected: Iterable[str] = ()) -
     rows = {str(n["node_id"]): n for n in nodes}
     tied = set(connected)
     heads = (
-        set(proposed(rows.values()))
+        set(speculative(rows.values()))
         | set(spec_revisions(rows.values()))
         | set(related_variants(rows.values()))
     )
@@ -231,7 +277,7 @@ def band_column(
     rows = {str(n["node_id"]): n for n in nodes}
     band = tuple(sorted(members)) if members is not None else band_of(rows.values())
     heads = (
-        set(proposed(rows.values()))
+        set(speculative(rows.values()))
         | set(spec_revisions(rows.values()))
         | set(related_variants(rows.values()))
     )
@@ -749,7 +795,7 @@ def layout(  # noqa: PLR0913, PLR0915 — the drawing's inputs (F30-T1 the seed,
     band itself is laid out."""
     names: Prefix = (prefix, root) if prefix and root else prefix
     nodes = sorted(nodes, key=lambda n: str(n["node_id"]))
-    band = band_of(nodes) if apart else ()
+    band = band_of(nodes, connected_to(nodes, root)) if apart else ()
     all_lines = lines(nodes)
     if band:
         tree_nodes = [n for n in nodes if str(n["node_id"]) not in band]

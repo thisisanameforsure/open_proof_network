@@ -106,3 +106,18 @@ def test_the_page_says_speculative_never_spec_or_proposed_statement() -> None:
     assert "Speculative statements" in d.band
     assert "Proposed statements" not in d.band
     assert not re.search(r"\bspecs?\b", re.sub(r"spec-[0-9a-z-]+", "", words), re.I)
+
+
+def test_a_speculative_statement_a_related_variant_depends_on_stays_in_the_column() -> None:
+    """Found on the live erdos-257 (2026-10-22): a related variant that declares uniqueness as a
+    dependency took uniqueness out of the column (the old rule kept any declared crux in the tree),
+    and since a related variant connects nothing to the root, uniqueness was in neither place. A
+    dependency is a connection only when the statement that declares it is connected itself."""
+    g = every_kind()
+    for n in g["nodes"]:
+        if n["node_id"] == REL:
+            n["deps"] = [*n["deps"], rf.UNIQUE]
+    left, column, _d = placed(g)
+    assert rf.UNIQUE in column and rf.UNIQUE not in left
+    live = {n["node_id"] for n in g["nodes"] if n["status"] != "superseded"}
+    assert left | column == live and not left & column

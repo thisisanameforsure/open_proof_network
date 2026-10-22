@@ -42,3 +42,19 @@ Render of graph origin/main with this site (0 warnings), every problem:
   erdos-257, refuting set selected: erdos-257, spec-a70fcca4-v2 and its four holes, on the left only.
 Known cost, for the owner: erdos-402's 20 partial variants now each draw a dashed line into the root,
 a dense bundle at the top of its drawing (task-16-erdos-402.png).
+
+Follow-up, same day: the live erdos-257 gained a related variant (variant-5c939e77, another
+session's) that declares uniqueness as a dependency. The column still excluded any speculative
+statement something declares (the F30-T11 rule for a crux the tree depends on), and a related
+variant connects nothing to the root, so uniqueness was in neither place. A dependency connects only
+when its declarer is connected: dag.speculative takes every live pointer row, dag.connected_to(rows,
+root) is the root's reach by drawn lines (deps, and the connecting relations at the root), and
+dag.layout uses it for raw rows.
+  Red: test_a_speculative_statement_a_related_variant_depends_on_stays_in_the_column
+       E 'spec-unique' in {'spec-gap', 'variant-rel', 'variant-rel--h1', 'variant-rel--h2'}
+  Restated: test_crux_band's declared-dependency and live-shapes tests pass the root's reach.
+  Green: the column, band, layout and dag tests 97 passed.
+Render of graph origin/main cb89f5897 (with the other session's six new variants), every problem:
+nothing in both places, nothing nowhere, no toggles. erdos-257: column = uniqueness and its two
+holes, the gap lemma, variant-5c939e77 and variant-f9c7b81b (related); left = the root's route, the
+refuting variant with its holes, and five partial variants (task-16-erdos-257-latest.png).
