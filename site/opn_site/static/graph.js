@@ -590,6 +590,7 @@
     var id = idOf(g);
     g.addEventListener("click", function (ev) {
       ev.preventDefault();
+      ev.stopPropagation();  // F30-T14: the document's click below clears a pin; this one sets it
       select(id);
       state.band = state.band === id ? null : id;
       writeHash();
@@ -600,6 +601,24 @@
     link.addEventListener("focusin", function () { bandHover(id); });
     link.addEventListener("focusout", function () { bandHover(null); });
   });
+  // F30-T14 (the owner, 2026-10-22: "I don't see how to deselect"): a pinned spec clears on a
+  // click on empty space and on Escape, as well as on a second click on itself. A click on
+  // anything that does something (a pill, a selector node, a link, a control) keeps the pin,
+  // so a spec's lines can follow the tree through a selection (F30-T11).
+  function unpin() {
+    if (!state.band) { return; }
+    state.band = null;
+    writeHash();
+    applyBand();
+  }
+  if (bandPills.length) {
+    document.addEventListener("click", function (ev) {
+      var t = ev.target;
+      if (t && t.closest && t.closest("a, button, input, label, select, [data-node], [data-view], [data-key]")) { return; }
+      unpin();
+    });
+    document.addEventListener("keydown", function (ev) { if (ev.key === "Escape") { unpin(); } });
+  }
   if (links.length) {
     window.addEventListener("resize", redrawLinks);
     var scroller = svg.parentNode;

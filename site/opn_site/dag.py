@@ -14,6 +14,7 @@ structure is testable and the colours come from the stylesheet, never from the d
 
 from __future__ import annotations
 
+import re
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from html import escape
@@ -153,16 +154,46 @@ def proposed(nodes: Iterable[Mapping[str, Any]]) -> list[str]:
     )
 
 
-def band_of(nodes: Iterable[Mapping[str, Any]]) -> tuple[str, ...]:
-    """The statements drawn in the band of proposed statements: the proposed cruxes and their
-    hole children (a hole origin, an id under ``<crux>--h``), transitively, sorted."""
+_REVISION_RE = re.compile(r"-v\d+$")
+
+
+def base_id(node_id: str) -> str:
+    """A revision's id with every ``-v<n>`` taken off (D-8, ``<id>-v<n>``, F08-Q16)."""
+    while _REVISION_RE.search(node_id):
+        node_id = _REVISION_RE.sub("", node_id)
+    return node_id
+
+
+def spec_revisions(nodes: Iterable[Mapping[str, Any]]) -> list[str]:
+    """F30-T15 (the owner, 2026-10-22: "everything that is a spec"): the live revisions of a
+    statement proposed for the problem — a crux revised into a variant, like erdos-257's
+    ``spec-a70fcca4-v2`` (D-8 v3.46). The superseded crux keeps its pointer on the record, so a
+    revision whose base id names a row with one is a spec too, whatever relation it now carries.
+    A statement proposed as a variant never had a pointer and stays in the tree."""
     rows = {str(n["node_id"]): n for n in nodes}
-    band = set(proposed(rows.values()))
+    return sorted(
+        nid
+        for nid, n in rows.items()
+        if base_id(nid) != nid
+        and str(n.get("status")) != "superseded"
+        and (base := rows.get(base_id(nid))) is not None
+        and base.get("proposed_for")
+    )
+
+
+def band_of(nodes: Iterable[Mapping[str, Any]]) -> tuple[str, ...]:
+    """The statements drawn in the band of proposed statements: the proposed cruxes, the specs
+    revised into variants (``spec_revisions``) and their hole children (a hole origin, an id
+    under ``<crux>--h``, the old id's for a revision, whose holes it reads, D-8 v3.46),
+    transitively, sorted."""
+    rows = {str(n["node_id"]): n for n in nodes}
+    band = set(proposed(rows.values())) | set(spec_revisions(rows.values()))
+    bases = {base_id(b) for b in band}
     for nid in sorted(rows, key=len):
         if nid in band or str(rows[nid].get("origin")) not in HOLE_ORIGINS:
             continue
         parent = nid.rsplit(HOLE_SEPARATOR, 1)[0]
-        if parent != nid and parent in band:
+        if parent != nid and (parent in band or parent in bases):
             band.add(nid)
     return tuple(sorted(band))
 
@@ -175,13 +206,19 @@ def band_column(nodes: Iterable[Mapping[str, Any]]) -> tuple[str, ...]:
     Nothing here is a layout of their relations: the column is a list."""
     rows = {str(n["node_id"]): n for n in nodes}
     band = band_of(rows.values())
-    cruxes = [b for b in band if b in set(proposed(rows.values()))]
+    heads = set(proposed(rows.values())) | set(spec_revisions(rows.values()))
+    cruxes = [b for b in band if b in heads]
     group: dict[str, list[str]] = {c: [c] for c in cruxes}
     owner: dict[str, str] = {c: c for c in cruxes}
     for nid in band:  # band_of is sorted, so a hole follows the cruxes that may own it
         if nid in group:
             continue
-        crux = max((c for c in cruxes if nid.startswith(c + HOLE_SEPARATOR)), key=len, default=None)
+        # a revision reads the holes named after its old id (D-8 v3.46)
+        crux = max(
+            (c for c in cruxes if nid.startswith(base_id(c) + HOLE_SEPARATOR)),
+            key=lambda c: len(base_id(c)),
+            default=None,
+        )
         if crux is not None:
             group[crux].append(nid)
             owner[nid] = crux
@@ -932,8 +969,8 @@ GROUP_LABEL = "Statements no line joins to the rest"
 #: F30-T11: the band's heading and its one line of help (D-14 v3.26 as amended by v3.46).
 BAND_LABEL = "Proposed statements"
 BAND_HELP = (
-    "statements proposed for this problem; a line to the tree is drawn only where the record "
-    "measured one"
+    "statements proposed for this problem. Hover one for the lines the record measured; click "
+    "to keep them; click it again, click empty space or press Esc to clear."
 )
 
 

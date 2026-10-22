@@ -1,0 +1,46 @@
+F30-T14, F30-T15 — the column half as wide with wrapped labels, a clear deselect, and every spec in it
+(the owner, 2026-10-22, on the live erdos-257 after F30-T13)
+
+"spec-a70... still appears in the main view. It should appear on the RHS. Also the RHS takes up too
+much space. Make it take up half the width by default and have wordwrap in the nodes. The behaviour
+of the highlighting of nodes on the RHS is weird. I don't see how to deselect a node being selected."
+Asked which statements the column holds; the owner chose "everything that is a spec": proposed
+cruxes and any spec revised into a variant; variants proposed as variants stay in the tree.
+
+T14. The column is half the width its widest one-line pill would need (floor 160), every pill that
+wide, a label wrapped into lines of BAND_LINE_H with the pill grown to hold them. Deselect: a second
+click, a click on empty space, or Escape clears a pin; a click on a pill, selector node, link or
+control keeps it (so a pinned spec's lines still follow a selection, F30-T11). The pinned pill wears
+the selection's amber (--select, F30-Q14), not the accent every proved pill wears. The help line says
+how to clear.
+  Red: test_the_column_is_half_its_natural_width_and_its_labels_wrap  E (350, 350): 350 == 175
+       test_a_pinned_spec_is_marked_and_clears_on_a_click_elsewhere_or_escape
+         E 'rgb(145,132,217)' == 'rgb(242,181,68)'   (pinned drawn in the accent)
+  (a first width red ran on id-only labels, where nothing wraps; the test now gives two holes the
+  live erdos-257 labels.)
+
+T15. dag.spec_revisions: a live revision whose base id (every -v<n> off) names a row with a
+proposed-for pointer — the superseded crux keeps its pointer on the record. band_of takes them and
+the holes named after the old id; band_column groups those holes under the revision. The views
+strip the column's statements from rest (routes, all) but a set view through a revised spec keeps
+it, its route junction and its holes, and the main drawing now draws pills for statements only a
+set view holds (off-view at rest). A lit band-link of kind relation refutes keeps --refute.
+  Red: test_a_spec_revised_into_a_variant_lives_in_the_column_with_its_holes
+         E 'spec-x-v2' in {'spec-gap', 'spec-unique', ...}
+       test_the_column_spec_leaves_the_resting_views_but_its_set_still_draws_it
+         E 'spec-x-v2' not in View(key='routes', ...)
+  Restated: test_crux_band test_a_superseded_crux_leaves_the_band_and_its_holes_follow_its_revision
+  (F30-T12 asserted the revision's holes leave the column; the owner's rule puts them in it).
+
+Green: test_crux_column.py + test_crux_band.py + test_refutes_site.py + test_render.py 66 passed;
+site suite with the browser 862 passed, the three pre-existing browser failures aside
+(test_finding_lemma_edge::test_measured_in_a_browser, test_web_flows x2); ruff, format, mypy site clean.
+
+Render of graph origin/main with this site (0 warnings), Chromium:
+  rest (1440 and 390): tree erdos-257, --h1, --h2 only; column spec-5e2e0890, --h1, --h2,
+    spec-ddd99827, spec-a70fcca4-v2, spec-a70fcca4--h1..--h4 (task-15-1440.png, task-15-390.png).
+  hover spec-a70fcca4-v2: lit spec-a70fcca4-v2>erdos-257 (edge relation refutes, teal) and its four
+    hole links (task-15-1440-hover.png).
+  selector "refutes" (sel/refutes): the main view draws erdos-257, spec-a70fcca4-v2 and its four
+    holes on the teal trunk (task-15-1440-refuting-set.png).
+  pinned spec-ddd99827 in amber, lines kept (task-14-1440-pinned.png).

@@ -331,7 +331,10 @@ main > .crumbs, main > h1:first-child { margin-top: calc(var(--s8) * 1.6); }
 .band-link.lit { display: block; }
 .band-link.use { stroke-dasharray: 7 4; }
 .band-link.lemma { stroke-dasharray: 7 4 1.5 4; stroke-linecap: round; }
-.dag.band .node.pinned rect.pill { stroke: var(--accent); stroke-width: 1.5; }
+/* F30-T15: a spec revised into a refuting variant keeps its trunk's colour when its line is lit. */
+.band-link.relation.refutes { stroke: var(--refute); }
+/* F30-T14: a pinned spec wears the selection's amber (F30-Q14), not the accent every proved pill wears. */
+.dag.band .node.pinned rect.pill { stroke: var(--select); stroke-width: 2.5; }
 /* F04-T39 (D-12 v3.38): a lemma's line is dash-dot — a dash, a gap, a dot, a gap — which neither the
    dashed use (7 4) nor the dotted pointer (1.5 4) draws, in either theme; the key's swatch repeats it. */
 .dag .edge.lemma { stroke: var(--n500); stroke-dasharray: 7 4 1.5 4; stroke-linecap: round; }

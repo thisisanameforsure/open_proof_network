@@ -29,12 +29,14 @@ plain keys alone; the page's toggle swaps a view for its twin.
 from __future__ import annotations
 
 import json
+import textwrap
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, replace
 from html import escape
 from typing import Any
 
 from opn_gate import closing, routes
+from opn_gate.graph import HOLE_SEPARATOR
 from opn_site import dag, routes_view
 
 #: A junction is a dot in a box this wide (as the routes drawing drew it, F27-T3).
@@ -227,15 +229,28 @@ def views(
         out.update(_set_views(graph, follow, d, merged, prefix=FOLLOW))
     if band:
         # A followed proof may rest on a band crux (F27-R13): the crux stays in the band and
-        # the use is the band's lit line, so no view draws it twice.
+        # the use is the band's lit line, so no view draws it twice. F30-T15: a set that goes
+        # through a spec revised into a variant is that spec's own tree, so its view keeps the
+        # revision, its route and its holes; at rest (routes, all) the column holds them.
         held = set(band)
+        revised = set(dag.spec_revisions(rows))
         for key, v in list(out.items()):
-            if key != BAND and held & set(v.nodes):
-                out[key] = replace(
-                    v,
-                    nodes=tuple(n for n in v.nodes if n not in held),
-                    lines=tuple(ln for ln in v.lines if ln[0] not in held and ln[1] not in held),
-                )
+            if key in (BAND, ALL, ROUTES) or not held & set(v.nodes):
+                continue
+            through = revised & set(v.nodes)
+            keep = {
+                n
+                for n in v.nodes
+                if n in through
+                or any(n.startswith(dag.base_id(r) + HOLE_SEPARATOR) for r in through)
+                or (n in d.junctions and d.junctions[n].node in through)
+            }
+            drop = held - keep
+            out[key] = replace(
+                v,
+                nodes=tuple(n for n in v.nodes if n not in drop),
+                lines=tuple(ln for ln in v.lines if ln[0] not in drop and ln[1] not in drop),
+            )
     for k, m in enumerate(proofs):
         ids = sorted(m.nodes)
         by_dst: dict[str, list[str]] = {}
@@ -565,7 +580,23 @@ def _pill_markup(  # noqa: PLR0913 — one pill, every mark it may carry
     or_mark: bool,
     outline: int,
     literature: dag.LitMark | None = None,
+    lines: Sequence[str] | None = None,
 ) -> str:
+    """One pill. ``lines`` (F30-T14, the column of proposed statements) is the label broken to
+    fit the pill's width: one line per row, the pill as tall as its lines, every mark still on
+    the first line."""
+    height = dag.NODE_H + (len(lines) - 1) * BAND_LINE_H if lines else dag.NODE_H
+    if lines and len(lines) > 1:
+        text = (
+            f'<text x="28" y="{dag.NODE_H // 2 + 5}">'
+            + "".join(
+                f'<tspan x="28" dy="{0 if i == 0 else BAND_LINE_H}">{escape(ln)}</tspan>'
+                for i, ln in enumerate(lines)
+            )
+            + "</text> "
+        )
+    else:
+        text = f'<text x="28" y="{dag.NODE_H // 2 + 5}">{escape(label)}</text> '
     cls = f"node status-{escape(status)}"
     if proved:
         cls += " proved"
@@ -589,9 +620,9 @@ def _pill_markup(  # noqa: PLR0913 — one pill, every mark it may carry
         f'<a href="{escape(href)}"><g class="{cls}" data-node="{escape(nid)}" '
         f'data-w="{p.w}" transform="translate({p.x},{p.y})">'
         f"<title>{escape(title)}</title> "
-        f'<rect class="pill" width="{p.w}" height="{dag.NODE_H}" rx="8"/>'
+        f'<rect class="pill" width="{p.w}" height="{height}" rx="8"/>'
         f'<circle cx="16" cy="{dag.NODE_H // 2}" r="4"/>{asm}'
-        f'<text x="28" y="{dag.NODE_H // 2 + 5}">{escape(label)}</text> '
+        f"{text}"
         f'<circle class="halo" cx="{p.w - 14}" cy="{dag.NODE_H // 2}" r="3"/>'
         + dag.outline_mark(outline, p.w)
         + dag.literature_mark(literature, p.w)
@@ -652,7 +683,13 @@ def _dag_svg(  # noqa: PLR0913 — the whole drawing, every element once
             f'<text class="dag-group{off}" x="{grouped.width // 2}" y="{grouped.group_y}">'
             f"{escape(dag.GROUP_LABEL)}</text>"
         )
-    for nid in vs[ALL].nodes:
+    # F30-T15: a set view through a spec revised into a variant draws that spec and its holes,
+    # which no resting view holds (the column does), so their pills are drawn too, off-view.
+    resting = set(vs[ALL].nodes)
+    extra = sorted(
+        {n for k, v in vs.items() if k != BAND for n in v.nodes if n not in resting and n in at}
+    )
+    for nid in (*vs[ALL].nodes, *extra):
         p = at[nid]
         hidden = nid not in shown_nodes
         if nid in d.junctions:
@@ -682,6 +719,10 @@ def _dag_svg(  # noqa: PLR0913 — the whole drawing, every element once
 
 #: F30-T13: the space between two rows of the column of proposed statements.
 BAND_ROW_GAP = 10
+#: F30-T14 (the owner, 2026-10-22): the column is half the width its widest one-line pill would
+#: need, never narrower than this, and a label too long for it wraps, one line every BAND_LINE_H.
+BAND_MIN_W = 160
+BAND_LINE_H = 16
 
 
 def _band_svg(  # noqa: PLR0913 — the band, every element once
@@ -710,9 +751,19 @@ def _band_svg(  # noqa: PLR0913 — the band, every element once
         return ""
     order = dag.band_column(list(rows.values()))
     widths = {pl.node_id: pl.w for pl in lays[BAND].placed}
-    col = max((widths.get(nid, 0) for nid in order), default=0)
-    row = dag.NODE_H + BAND_ROW_GAP
-    height = max(len(order) * row - BAND_ROW_GAP, 0)
+    col = max(BAND_MIN_W, max((widths.get(nid, 0) for nid in order), default=0) // 2)
+    per_line = max(8, int((col - dag.PILL_PAD) / dag.CHAR_W))
+    wrapped = {
+        nid: textwrap.wrap(dag.label_of(nid, names, labels), per_line, break_on_hyphens=False)
+        or [dag.label_of(nid, names, labels)]
+        for nid in order
+    }
+    tops: list[int] = []
+    y = 0
+    for nid in order:
+        tops.append(y)
+        y += dag.NODE_H + (len(wrapped[nid]) - 1) * BAND_LINE_H + BAND_ROW_GAP
+    height = max(y - BAND_ROW_GAP, 0)
     parts = [
         '<div class="band-wrap"><div class="band-head">'
         f'<span class="kicker">{escape(dag.BAND_LABEL)}</span>'
@@ -721,8 +772,7 @@ def _band_svg(  # noqa: PLR0913 — the band, every element once
         f'height="{height}" role="img" aria-label="proposed statements">'
     ]
     for i, nid in enumerate(order):
-        w = widths.get(nid, col)
-        p = dag.Placed(nid, _status_of(rows, nid), 0, col - w, i * row, w)
+        p = dag.Placed(nid, _status_of(rows, nid), 0, 0, tops[i], col)
         status = _status_of(rows, nid)
         parts.append(
             _pill_markup(
@@ -738,6 +788,7 @@ def _band_svg(  # noqa: PLR0913 — the band, every element once
                 or_mark=d.alternatives.get(nid, 0) >= 2,
                 outline=outlines.get(nid, 0),
                 literature=(literature or {}).get(nid),
+                lines=wrapped[nid],
             )
         )
     parts.append('</svg></div><svg class="band-links" aria-hidden="true">')

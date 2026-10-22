@@ -102,7 +102,9 @@ def test_a_superseded_crux_leaves_the_band_and_its_holes_follow_its_revision() -
     The old crux kept its proposed-for pointer and no relation, so the band still took it and,
     by id prefix, its four holes, while the revision's junction in the tree hung with nothing
     beneath it. A superseded crux leaves the band as every superseded statement does, and the
-    holes go with the live route that holds them."""
+    holes go with the live route that holds them. F30-T15 (the owner, 2026-10-22: "everything that
+    is a spec"): that route is the revision's, and a spec revised into a variant is in the
+    column, so the holes are there with it."""
     rows: list[dict[str, Any]] = [
         {"node_id": "root", "status": "ready", "deps": [], "proposed_for": None},
         {
@@ -124,7 +126,7 @@ def test_a_superseded_crux_leaves_the_band_and_its_holes_follow_its_revision() -
         {"node_id": "spec-x--h1", "status": "proved", "deps": [], "origin": "compiler-derived"},
         {"node_id": "spec-x--h2", "status": "ready", "deps": [], "origin": "compiler-derived"},
     ]
-    assert dag.band_of(rows) == ()
+    assert dag.band_of(rows) == ("spec-x--h1", "spec-x--h2", "spec-x-v2")
 
 
 def test_the_band_holds_a_crux_its_holes_and_the_crux_it_uses() -> None:
