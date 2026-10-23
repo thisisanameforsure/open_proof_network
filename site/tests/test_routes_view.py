@@ -82,7 +82,9 @@ def doc() -> dict[str, Any]:
             node("t--c--h1", circular=True),
             node("t--d", "refuted"),
             node("v", origin="authored", relation="resolves"),
-            node("u", origin="authored", relation="related"),
+            # F30-T16: an authored statement nothing joins (a related variant now lives in the
+            # column of speculative statements); it is on no route and in no column.
+            node("u", origin="authored"),
         ],
     }
 
@@ -142,7 +144,7 @@ def test_routes_marks_and_table_structure() -> None:
     assert drawing.count('class="or-mark"') == 1
     assert 'class="or-mark"' in g_of(drawing, "t")
     # Drawn and shown: every statement on a way to the root, live or dead, and the resolves
-    # variant; the related variant is in the markup but off the opening view (F30-R4).
+    # variant; the statement nothing joins is in the markup but off the opening view (F30-R4).
     for v in ("t", "t--a", "t--b", "t--c", "t--c--h1", "t--d", "v"):
         assert f'data-node="{v}"' in drawing and "off-view" not in g_of(drawing, v), v
     assert "off-view" in g_of(drawing, "u")

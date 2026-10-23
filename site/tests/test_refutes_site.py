@@ -115,14 +115,14 @@ def test_the_key_names_the_sides_and_the_band_only_when_drawn(tmp_path: Path) ->
     plain = r.graph_legend(tv, drawn(rf.doc()))
     assert "refutes the problem" in plain and "resolves the problem" not in plain
     # The key's label is the band's word; the old "proposed for" label is gone.
-    assert '</span>proposed statement<span class="term-card"' in plain
+    assert '</span>speculative statement<span class="term-card"' in plain
     assert '</span>proposed for<span class="term-card"' not in plain
     bare = r.graph_legend(tv, drawn(resolves_doc()))
     assert "resolves the problem" in bare and "refutes the problem" not in bare
-    assert "proposed statement" not in bare
+    assert "speculative statement" not in bare
     for key in ("relation-refutes", "relation-resolves"):
         assert key in render.GLOSSARY_BY_KEY and key in render.ROUTE_MARK_KEYS, key
-    assert render.GLOSSARY_BY_KEY["proposed-for"][0] == "proposed statement"
+    assert render.GLOSSARY_BY_KEY["proposed-for"][0] == "speculative statement"
 
 
 # -- 3. the selector, the sets table and the words ----------------------------------------------

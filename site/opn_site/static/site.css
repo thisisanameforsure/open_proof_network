@@ -342,7 +342,6 @@ main > .crumbs, main > h1:first-child { margin-top: calc(var(--s8) * 1.6); }
    lights its lines and dims the rest; the group no line joins has a label and a rule. */
 .dag .node { transition: opacity .12s; }
 .dag .node.status-superseded { opacity: .5; }
-.dag.hide-superseded .status-superseded, .dag.hide-superseded .touches-superseded { display: none; }
 .dag.hovering .edge:not(.lit) { opacity: .12; }
 .dag.hovering .node:not(.lit) { opacity: .35; }
 .dag .edge.lit { stroke: var(--accent-300); stroke-width: 2; }
@@ -1125,6 +1124,9 @@ th[aria-sort="descending"] .routes-sort::after { content: " ↓"; }
 .dag .edge.relation.refutes.lit { stroke: var(--refute); }
 .dot-relation-resolves { width: 16px; height: 0; border: 0; border-top: 2px solid var(--n500); border-radius: 0; vertical-align: 3px; }
 .dot-relation-refutes { width: 16px; height: 0; border: 0; border-top: 2px solid var(--refute); border-radius: 0; vertical-align: 3px; }
+/* F30-T16: a partial variant's line into the problem: dashed, since it proves only a weaker version. */
+.dag .edge.relation.partial { stroke: var(--n500); stroke-width: 1.5; stroke-dasharray: 5 4; }
+.dot-relation-partial { width: 16px; height: 0; border: 0; border-top: 2px dashed var(--n500); border-radius: 0; vertical-align: 3px; }
 .selector .side-refutes .dot { stroke: var(--refute); }
 .selector .sel-edge.side-refutes { stroke: var(--refute); }
 .selector .sel-node.side-refutes.lit .dot, .selector .sel-edge.side-refutes.lit { stroke: var(--refute); }

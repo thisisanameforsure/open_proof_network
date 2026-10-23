@@ -11,8 +11,8 @@
 //     (view=<key>); under prefers-reduced-motion the drawing changes in one step (R7);
 //   - hovering or focusing a selector node, edge or table row previews it: the view's nodes
 //     and lines lit, the rest dimmed, no coordinate changed (R8);
-//   - the view-toggle shows the statements on no route (the all layout) and the superseded
-//     toggle hides superseded statements; the table sorts, filters to the shown view's sets
+//   - the view-toggle shows the statements on no route (the all layout); superseded statements
+//     are not drawn (F30-T16); the table sorts, filters to the shown view's sets
 //     ("showing n of m") and "Fewest open first" selects the first row's view (R4, R9);
 //   - F27-R13: "Stop at proved statements" (in the selector's panel, ticked by default) unticked
 //     swaps every set view for its follow/ twin, which also holds what each proved statement's
@@ -725,20 +725,6 @@
     viewToggle.hidden = false;
     viewToggle.addEventListener("click", function () {
       transition(state.view === ALL ? ROUTES : ALL);
-    });
-  }
-
-  // F04-T33: superseded statements are faded; the toggle (rendered hidden, shown here because it
-  // needs this script) hides them and their lines.
-  var hideToggle = document.querySelector("button.dag-toggle[data-hide]");
-  if (hideToggle) {
-    var hideWords = hideToggle.textContent;
-    var hiddenWords = hideToggle.getAttribute("data-shown-label");
-    hideToggle.hidden = false;
-    hideToggle.addEventListener("click", function () {
-      var on = svg.classList.toggle("hide-superseded");
-      hideToggle.setAttribute("aria-pressed", on ? "true" : "false");
-      hideToggle.textContent = on ? hiddenWords : hideWords;
     });
   }
 

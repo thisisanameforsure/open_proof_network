@@ -87,7 +87,8 @@ def test_a_used_crux_stays_in_the_band_and_the_use_is_a_lit_only_link() -> None:
 
 def test_a_crux_declared_as_a_dependency_stays_in_the_tree() -> None:
     nodes = hand(dep=True)
-    assert dag.band_of(nodes) == () and dag.proposed(nodes) == []
+    # F30-T16: it is the tree's because the root reaches it by that dependency
+    assert dag.band_of(nodes, dag.connected_to(nodes, "n")) == () and dag.proposed(nodes) == []
     lay = dag.layout(nodes, root="n")
     assert lay.band == () and [(e.src, e.dst, e.kind) for e in lay.edges] == [("c", "n", "edge")]
 
@@ -141,11 +142,12 @@ def test_every_pointer_crux_of_the_live_shapes_is_in_the_band_or_a_dependency(
 ) -> None:
     shape = SHAPES[target]
     rows = shape["nodes"]
-    deps = {str(d) for n in rows for d in n["deps"]}
+    # F30-T16: a crux is the tree's when the root reaches it, else the column's
+    reached = dag.connected_to(rows, shape["root"])
     cruxes = {n["node_id"] for n in rows if n.get("proposed_for") and not n.get("relation")}
-    band = set(dag.band_of(rows))
-    assert band >= cruxes - deps
-    assert not band & deps
+    band = set(dag.band_of(rows, reached))
+    assert band >= cruxes - reached
+    assert not band & reached
     lay = dag.layout(rows, root=shape["root"], prefix=target)
     assert set(lay.band) == band
     assert not set(lay.loose) & cruxes, "no crux is in the group no line joins"
@@ -179,7 +181,7 @@ def test_the_drawing_puts_the_band_beside_the_tree_with_lit_only_links() -> None
     g = rf.doc()
     d = one_view.drawing(g, [], href=hrefs(g), prefix=rf.ROOT)
     assert '<svg class="dag band"' in d.band
-    assert "Proposed statements" in d.band and "measured" in d.band
+    assert "Speculative statements" in d.band and "measured" in d.band
     band_svg = d.band[d.band.index('<svg class="dag band"') :]
     band_svg = band_svg[: band_svg.index("</svg>")]
     for nid in (rf.GAP, rf.UNIQUE, f"{rf.UNIQUE}--h1", f"{rf.UNIQUE}--h2"):
@@ -209,7 +211,8 @@ def test_the_drawing_puts_the_band_beside_the_tree_with_lit_only_links() -> None
 def test_the_toggle_counts_off_route_statements_but_not_the_band() -> None:
     g = rf.doc()
     g["nodes"].append(
-        {**node("u", origin="variant", relation="related"), "uses": [], "proposed_for": None}
+        # F30-T16: an authored statement nothing joins (a related variant is in the column)
+        {**node("u", origin="authored"), "uses": [], "proposed_for": None}
     )
     d = one_view.drawing(g, [], href=hrefs(g), prefix=rf.ROOT)
     assert d.hidden == 1 and "Show 1 more statement" in d.toggle

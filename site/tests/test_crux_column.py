@@ -236,31 +236,29 @@ def revised_spec_doc() -> dict[str, Any]:
     return out
 
 
-def test_a_spec_revised_into_a_variant_lives_in_the_column_with_its_holes() -> None:
-    """ "spec-a70... still appears in the main view. It should appear on the RHS" — and the
-    owner's rule: everything that is a spec, cruxes and any spec revised into a variant, while a
-    statement proposed as a variant stays in the tree (refutes_fixture's own ``v``)."""
+def test_a_spec_revised_into_a_variant_is_speculative_until_it_is_connected() -> None:
+    """F30-T15's rule, kept: a revision of a speculative statement is speculative too, and its
+    holes (named after the old id) go with it; the superseded original is in no column. F30-T16:
+    the column takes it only while nothing connects it to the root."""
     g = revised_spec_doc()
-    band = set(dag.band_of(g["nodes"]))
+    band = set(dag.band_of(g["nodes"]))  # nothing connected
     assert REV in band and OLD not in band
     assert {f"{OLD}--h{i}" for i in range(1, 6)} <= band
-    assert rf.VARIANT not in set(dag.band_of(rf.doc()["nodes"])), "a variant proposed as one"
+    assert REV not in set(
+        dag.band_of(g["nodes"], [rf.ROOT, REV, *(f"{OLD}--h{i}" for i in range(1, 6))])
+    )
 
 
-def test_the_column_spec_leaves_the_resting_views_but_its_set_still_draws_it() -> None:
-    """At rest the tree holds the problem's own routes only; selecting the refuting set draws
-    that set (the revised spec, its route and its holes) in the main view as before."""
+def test_the_revised_spec_is_connected_so_it_lives_on_the_left() -> None:
+    """F30-T16 (the owner, 2026-10-22: "only things connected to the root on the left; one
+    place or the other, not both"): the revised spec is joined to the root by its refutes line,
+    so it and its route are the tree's at rest, and the column holds none of it. (F30-T15 had
+    put it in the column, so choosing the refuting set drew it twice.)"""
     from opn_gate import routes  # noqa: PLC0415
 
     g = revised_spec_doc()
-    res = routes.read(g, [])
-    vs = one_view.views(g, res)
-    for key in (one_view.ROUTES, one_view.ALL):
-        assert REV not in vs[key].nodes, key
-    assert any(s.settles == routes.REFUTES for s in res.sets)
-    view = vs[f"sel/refutes/{REV}@1"]  # the refuting set through the revision's first route
-    assert REV in view.nodes and f"{OLD}--h4" in view.nodes
-    assert f"{REV}@1" in view.nodes, "with its route's junction"
-    assert vs["sel/proves"].nodes and REV not in vs["sel/proves"].nodes
+    vs = one_view.views(g, routes.read(g, []))
+    assert REV in vs[one_view.ROUTES].nodes and f"{OLD}--h4" in vs[one_view.ROUTES].nodes
     d = one_view.drawing(g, [], href=hrefs(g), prefix=rf.ROOT)
-    assert f'data-node="{REV}"' in _column(d.band)
+    assert f'data-node="{REV}"' not in _column(d.band)
+    assert f'data-node="{OLD}--h4"' not in _column(d.band)

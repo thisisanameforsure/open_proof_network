@@ -85,7 +85,9 @@ def plain_deps(node_id: str, rows: Mapping[str, Mapping[str, Any]], held: set[st
 
 #: The relation labels drawn as a trunk from the variant into the root (D-30 v3.46): a proved
 #: one settles the root, each its own way.
-TRUNK_LABELS = (routes.RESOLVES, routes.REFUTES)
+#: F30-T16 (the owner, 2026-10-22): a partial variant has a kernel-checked relation too, so it
+#: is connected to the root by its own line; a related variant has none and lives in the column.
+TRUNK_LABELS = (routes.RESOLVES, routes.REFUTES, "partial")
 
 
 def drawn(graph: Mapping[str, Any], result: routes.Routes) -> Drawn:
@@ -141,7 +143,8 @@ def drawn(graph: Mapping[str, Any], result: routes.Routes) -> Drawn:
         out.alternatives[node_id] = alts
 
     visit(result.root, (), out.statements)
-    for crux in dag.proposed(rows.values()):
+    # the column's heads (F30-T16): their routes need junctions too; one the root reached is skipped
+    for crux in [*dag.speculative(rows.values()), *dag.related_variants(rows.values())]:
         visit(crux, (), out.band)
     return out
 
