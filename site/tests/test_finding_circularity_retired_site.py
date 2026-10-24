@@ -131,7 +131,7 @@ def marks(html: str) -> list[str]:
 
 def test_the_site_accepts_the_versions_the_gate_writes() -> None:
     accepted = model.PRODUCT_SCHEMAS
-    assert products.GRAPH_SCHEMA == "graph/v14"  # F08-T44 (v3.46): relation refutes
+    assert products.GRAPH_SCHEMA == "graph/v15"  # F31-T1 (v3.47): shelved
     assert products.FRONTIER_SCHEMA == "frontier/v8"
     assert products.GRAPH_SCHEMA in accepted["graph.json"]
     assert products.FRONTIER_SCHEMA in accepted["frontier.json"]

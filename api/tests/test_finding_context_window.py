@@ -32,13 +32,13 @@ def test_a_committed_v1_bundle_is_served_through_the_window(
     # and D-25 v3.35), since F10-T49 context/v6 (lemmas; D-12 v3.38), since F26-T1 context/v7
     # (review), and since F08-T42 context/v8 (no circular, no circular_below; D-12 v3.43); v1
     # is still served from a file.
-    assert derived["schema"] == "context/v10"
+    assert derived["schema"] == "context/v11"
     assert "circular" not in derived and "circular_below" not in derived
     assert derived["defect_claims"] == []
     assert derived["literature"] is None and derived["literature_proposed"] is None
     assert derived["lemmas"] == []
     assert all("cause" in d for d in derived["deps"])
-    assert context.SCHEMA == "context/v10" and "context/v1" in context.ACCEPTED
+    assert context.SCHEMA == "context/v11" and "context/v1" in context.ACCEPTED
     assert {"context/v2", "context/v3", "context/v4", "context/v5"} <= set(context.ACCEPTED)
     later = (
         "defect_claims",
@@ -46,9 +46,11 @@ def test_a_committed_v1_bundle_is_served_through_the_window(
         "literature_proposed",
         "lemmas",
         "review",  # F26-T1 (context/v7)
+        "shelved",  # F31-T1 (context/v11)
     )
     v1 = {k: v for k, v in derived.items() if k not in later}
-    v1["deps"] = [{k: v for k, v in d.items() if k != "cause"} for d in derived["deps"]]
+    dropped = ("cause", "shelved")  # F22-T13 (context/v4), F31-T1 (context/v11)
+    v1["deps"] = [{k: v for k, v in d.items() if k not in dropped} for d in derived["deps"]]
     v1["schema"] = "context/v1"
     assert schemas.violations(v1, "context/v1") == []
     harness.githost.files[NODE_DIR + "CONTEXT.json"] = schemas.canonical_json(v1)
@@ -58,7 +60,7 @@ def test_a_committed_v1_bundle_is_served_through_the_window(
     assert {**v1, "claims": served["context"]["claims"]} == served["context"]
     # A version the module does not accept is still a named error, not a partial answer.
     harness.githost.files[NODE_DIR + "CONTEXT.json"] = json.dumps(
-        {**v1, "schema": "context/v10"}
+        {**v1, "schema": "context/v11"}
     ).encode()
     harness.context.files.clear()
     failed = client.failed("get_node", {"node_id": NODE})

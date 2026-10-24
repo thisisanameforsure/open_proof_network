@@ -167,6 +167,7 @@ def test_an_older_graph_reads_no_literature(tmp_path: Path) -> None:
             "literature_proposed",
             "lemmas",
             "closure",
+            "shelved",  # graph/v15 (F31-T1)
             "label",
             "label_source",
             "claim",

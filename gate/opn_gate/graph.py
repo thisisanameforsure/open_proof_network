@@ -158,6 +158,11 @@ class NodeFacts:
     #: one once it is proved (its signature is in ``Context.lean``) and never waits on one, so
     #: they are set aside with ``holes`` when the status is derived (``blocked_because``).
     lemmas: tuple[Lemma, ...] = ()
+    #: F31-T1 (D-14 v3.47): the shelving the products publish for the node — a steward's or
+    #: curator's judgment, derived from its own latest ``shelving/`` record or inherited (F31-T3,
+    #: ``shelving.derive``) — as ``graph/v15``'s row object, or None. Not a status: ``status`` is
+    #: derived without it. Seeded at today's behaviour: always None until T3 fills it.
+    shelved: dict[str, Any] | None = None
     #: F08-R19: the nodes this node's merged ``Proof.lean`` uses beyond its deps — its use lines,
     #: which step 8 held to the kernel term when the proof merged. Read from the tree; no record
     #: is written for a use. No status is derived from them (a used node was proved before its

@@ -42,7 +42,7 @@ log = logging.getLogger(__name__)
 #: F08-T42 (D-12 v3.43): ``context/v8`` drops ``circular`` and ``circular_below``.
 #: F10-T50 (D-25 v3.45): ``context/v9`` inlines each literature record's summary and references
 #: and carries ``disputes``; v8 (F08-T42): no circularity; v7 (F26-R17): the review for the root.
-SCHEMA = "context/v10"  # F08-T44 (D-30 v3.46): relation refutes
+SCHEMA = "context/v11"  # F31-T1 (D-14 v3.47): shelved, on the node and each dep
 ACCEPTED: tuple[str, ...] = (
     "context/v1",
     "context/v2",
@@ -54,6 +54,7 @@ ACCEPTED: tuple[str, ...] = (
     "context/v8",
     "context/v9",
     "context/v10",
+    "context/v11",
 )
 FILE = layout.CONTEXT_FILE
 CLAIMS_FILE = "claims.json"
@@ -132,6 +133,10 @@ class NodeState:
     #: ``(hole, node)`` with the node read through revisions; ``None`` when the document predates
     #: v7, in which case the builder reads ``META.yaml``'s record through ``_current_id``.
     lemmas: tuple[tuple[str, str], ...] | None = None
+    #: F31-T1 (D-14 v3.47): the shelving ``graph/v15`` publishes for the node, repeated, never
+    #: re-derived here (F10-Q7); ``None`` when the statement is not shelved or the document
+    #: predates v15.
+    shelved: dict[str, Any] | None = None
 
 
 def _lemma_pairs(value: Any) -> tuple[tuple[str, str], ...] | None:
@@ -157,6 +162,7 @@ def graph_states(doc: Mapping[str, Any]) -> dict[str, NodeState]:
             literature=_mapping(n.get("literature")),
             literature_proposed=_mapping(n.get("literature_proposed")),
             lemmas=_lemma_pairs(n.get("lemmas")),
+            shelved=_mapping(n.get("shelved")),
         )
         for n in doc.get("nodes", [])
         if isinstance(n, dict)
@@ -270,6 +276,8 @@ def _deps(
                 "cause": states[dep].cause,
                 "statement_hash": schemas.content_hash(raw),
                 "signature": _text(raw, path),
+                # F31-R3 (D-14 v3.47): whether the dependency is shelved, as its row says.
+                "shelved": states[dep].shelved,
             }
         )
     return out
@@ -683,6 +691,8 @@ def build(
         # F26-R17 (D-9 v3.39): the target's review for its root — the state, the words, the
         # questions waiting — and null on any other node.
         "review": _review(reader, target_id, node_id, states),
+        # F31-R3 (D-14 v3.47): the shelving reaching the node, as graph/v15's row says.
+        "shelved": state.shelved,
     }
     fit(doc)
     return schemas.validate(doc, SCHEMA)

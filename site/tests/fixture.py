@@ -664,6 +664,7 @@ def publish_circular_snapshot(
     for row in graph["nodes"]:
         lower(row)
         row.pop("closure", None)  # graph/v10 (F28-T8) added it
+        row.pop("shelved", None)  # graph/v15 (F31-T1) added it
         for field in ("label", "label_source", "claim"):  # graph/v12 (F29-T1)
             row.pop(field, None)
         for d in row.get("decompositions") or []:
@@ -1014,6 +1015,7 @@ def publish_v8(root: Path, *, target: str = TARGET) -> None:
     for row in graph["nodes"]:  # v6-v10 rows carry ``circular``, which F08-T42 dropped in v11
         row.setdefault("circular", [])
         row.pop("closure", None)  # graph/v10 (F28-T8)
+        row.pop("shelved", None)  # graph/v15 (F31-T1)
         for field in ("label", "label_source", "claim"):  # graph/v12 (F29-T1)
             row.pop(field, None)
         for d in row.get("decompositions") or []:
