@@ -3192,6 +3192,18 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "Report it to the operator (OPN_API_SITE_ORIGIN).",
     ),
     # --- F31-R5, R6 (D-14 v3.47): shelving — the service's refusals before anything opens ---
+    "node-shelved": (
+        "api",
+        None,
+        "A steward of the target or a curator has shelved this statement (or the decomposition "
+        "it is a hole of): it does not serve the root (D-14 v3.47). The refusal's details.shelved "
+        "carries the cause, who signed it, when, the record and the node whose record reaches "
+        "it; the row's `shelved` and the bundle say the same. Not a status. On POST /check it is "
+        "a warning, since checking a statement is how a defect in it is shown.",
+        "Work elsewhere: list_frontier omits shelved statements. If you believe the judgment is "
+        "wrong, ask a steward of the problem or a curator to lift it (POST /shelvings, action "
+        "unshelved, from the site).",
+    ),
     "node-root": (
         "api",
         None,
