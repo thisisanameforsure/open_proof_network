@@ -28,6 +28,7 @@ import yaml
 from opn_gate import defs, intake, layout, records, scaffold, schemas
 from opn_gate import graph as graphmod
 from opn_gate.paths import SCHEMAS_FOR_ROLE, VERSION_RE
+from opn_gate.signer import Signer
 from opn_gate.steps.base import RunContext
 from opn_gate.steps.toolchain_step import ToolchainStep
 from opn_gate.toolchain import ResolvedToolchain
@@ -560,6 +561,74 @@ def declare_status(  # noqa: PLR0913 — the declaration's facts, each named
     doc.update({"cause": full_cause, "author": author, "date": scaffold.day(date)})
     schemas.validate(doc, TARGET_STATUS_SCHEMA)
     return write_record(graph_root / "targets" / target_id, doc, author=author, date=date)
+
+
+def shelve(  # noqa: PLR0913 — the record's facts, each named
+    graph_root: Path,
+    target_id: str,
+    node_id: str,
+    *,
+    action: str,
+    route: str | None,
+    cause: str,
+    author: str,
+    date: str,
+    key_path: Path,
+    signer: Signer,
+) -> Path:
+    """F31-R9 (D-14, D-32 v3.47): the hand path — one ``shelving/v1`` record under the node's
+    ``shelving/``, signed with the signer's own key (``via: ssh``). Refused before anything is
+    written, by the gate's own rules and in its words: a blank cause, a node that is not one,
+    the root (``node-root``), a statement a merged proof uses (``node-used``), a route that is
+    not one of the node's merged partials (``shelving-route-unknown``). Whether the author is a
+    steward of the target or a curator is the gate's question at merge
+    (``modes.check_shelving_record``), as it is for a status record's author."""
+    from opn_gate import shelving, signed  # noqa: PLC0415 — only this command writes one
+
+    if not cause.strip():
+        msg = "a shelving record publishes its reasoning: --cause is required (D-14 v3.47)"
+        raise CuratorError(msg)
+    if action not in shelving.ACTIONS:
+        msg = f"a shelving record is one of {', '.join(shelving.ACTIONS)}; {action!r} is neither"
+        raise CuratorError(msg)
+    nodes_dir = layout.graph_nodes_dir(graph_root, target_id)
+    node = load_node(nodes_dir, target_id, node_id)
+    try:
+        tg = graphmod.load_target(graph_root, target_id)
+    except graphmod.GraphError as exc:
+        msg = f"targets/{target_id} does not load, so {node_id} cannot be judged: {exc}"
+        raise CuratorError(msg) from exc
+    if node_id == tg.root:
+        msg = f"node-root: {node_id} is the root of {target_id}; the root is never shelved"
+        raise CuratorError(msg)
+    if node_id in shelving.used_nodes(tg.nodes):
+        msg = f"node-used: a merged proof uses {node_id}; a statement a proof rests on stays"
+        raise CuratorError(msg)
+    if route is not None:
+        known = [p.path for p in tg.nodes[node_id].partials]
+        if route not in known:
+            listed = f"; its partials: {', '.join(known)}" if known else "; it has none"
+            msg = f"shelving-route-unknown: {route!r} is not a merged partial of {node_id}{listed}"
+            raise CuratorError(msg)
+    doc: dict[str, Any] = {
+        "schema": shelving.SCHEMA,
+        "node": node_id,
+        "action": action,
+        "scope": shelving.SCOPE_ROUTE if route is not None else shelving.SCOPE_NODE,
+        "route": route,
+        "cause": cause,
+        "contributor": author,
+        "date": date,
+        "via": signed.VIA_SSH,
+        "key": None,
+        "signature": None,
+    }
+    record = schemas.validate(signed.sign(doc, key_path, signer), shelving.SCHEMA)
+    path = node.path / shelving.DIR / f"{stamp(date)}-{author}.yaml"
+    if path.exists():
+        msg = f"{path} already exists; shelving records are append-only"
+        raise CuratorError(msg)
+    return _write_yaml(path, record)
 
 
 def accepted_claim(node_dir: Path, target_id: str, node_id: str, reference: str | None) -> str:

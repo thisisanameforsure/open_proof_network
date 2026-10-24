@@ -26,6 +26,7 @@ def node(
     relation: str | None = None,
     decompositions: list[list[str | None]] | None = None,
     circular: list[dict[str, str]] | None = None,
+    shelved: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     return {
         "node_id": node_id,
@@ -42,11 +43,24 @@ def node(
             for k, holes in enumerate(decompositions or [])
         ],
         "circular": circular or [],
+        "shelved": shelved,  # F31-R3 (graph/v15); None on an older product
     }
 
 
 def hole(node_id: str, status: str = "ready", **kw: Any) -> dict[str, Any]:
     return node(node_id, status, origin="skeleton-hole", **kw)
+
+
+def shelved(via: str, scope: str = "node") -> dict[str, Any]:
+    """F31-R3: the ``shelved`` object graph/v15 publishes on a row the record reached."""
+    return {
+        "cause": "does not serve the root",
+        "by": "alice-steward",
+        "date": "2026-10-24",
+        "record": "shelving/20261024T100000Z-alice-steward.yaml",
+        "scope": scope,
+        "via": via,
+    }
 
 
 def doc(*nodes: dict[str, Any], root: str = "t") -> dict[str, Any]:
@@ -217,6 +231,32 @@ def test_nothing_closes_that_should_not() -> None:
     assert found(a18) == {}
     dead = doc(node("t", "abandoned", decompositions=[["t--h1"]]), hole("t--h1", "proved"))
     assert found(dead) == {}
+
+
+def test_a_retired_route_is_not_a_link_and_a_shelved_node_is_not_closable() -> None:
+    """F31-R4: a retired decomposition whose holes happen to be proved would otherwise publish
+    ``closable: ready`` and ``opn-gate close`` would join a route a steward retired; and a
+    shelved node is never closable, whatever its links."""
+    retired = doc(
+        node("t", decompositions=[["t--h1", "t--h2"]]),
+        hole("t--h1", "proved", shelved=shelved("t", "route")),
+        hole("t--h2", "proved", shelved=shelved("t", "route")),
+    )
+    assert closing.links(retired)["t"] == []
+    assert found(retired) == {}
+    beside_live = doc(
+        node("t", decompositions=[["t--h1"], ["t--h2"]]),
+        hole("t--h1", "proved", shelved=shelved("t", "route")),
+        hole("t--h2", "proved"),
+    )
+    assert [lk.id for lk in closing.links(beside_live)["t"]] == ["t@2"]
+    assert found(beside_live) == {"t": ("route", "t@2", ("t--h2",), True)}
+    node_shelved = doc(
+        node("t", decompositions=[["t--h1"]], shelved=shelved("t")),
+        hole("t--h1", "proved", shelved=shelved("t")),
+    )
+    assert [lk.id for lk in closing.links(node_shelved)["t"]] == ["t@1"], "the link exists"
+    assert found(node_shelved) == {}, "but a shelved node is not closable"
 
 
 def test_lemma_hole_counts_the_node_it_names() -> None:

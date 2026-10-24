@@ -1,0 +1,106 @@
+# F31-T3 — the shelving derivation; the row, the bundle, the frontier (R2, R3; AC2, AC3)
+
+Branch f31-gate. Gate agent, 2026-10-24.
+
+## What was built
+
+- `gate/opn_gate/shelving.py`: `arrivals(nodes, routes)` — ``(P, route)`` for every hole of a
+  merged decomposition of ``P`` as `products.route_holes` matches them (the same matching
+  `graph.json`'s `decompositions` publishes; never the `--h` prefix), plus ``(P, None)`` for a
+  hole child no decomposition names; a superseded parent's arrivals are left out (its revision
+  carries them, by `graph.load_nodes`'s fold). `own_standing(nodes, n, exclude=)` — the node's
+  own records latest per key, and along `graph.same_statement_chain` where it has none of its
+  own (F31-Q8). `derive(nodes, *, root, used, exclude=, routes=)` — one memoised top-down pass:
+  own `scope: node` record decides (shelved void on the root and on a used node; unshelved
+  exempts); else shelved iff not root, not used, ≥1 arrival and every arrival cut (parent
+  shelved, or that route retired by the parent's latest record naming it); the object carried
+  is the one that reached the node, `via` the node whose directory holds the record (a
+  same-statement revision inherits the predecessor's record *and* names the predecessor as
+  `via`, since `record` is relative to that directory). A cycle through a lemma arrival reads as
+  not cut (a node is never shelved by its own reflection).
+- `gate/opn_gate/products.py`: `route_holes(nodes, node_id)` extracted from
+  `decompositions_of` (which now calls it) so the derivation and the published decompositions
+  share one matching; `in_frontier` returns False for a shelved node (after the superseded
+  check, before anything else).
+- `gate/opn_gate/graph.py`: `load_target` fills `NodeFacts.shelved` from `shelving.derive`
+  after the statuses are derived (statuses never read it). `context.build` already repeats the
+  row on the node and each dep (T1), so both bundle builders agree with no further change.
+- `gate/tests/shelving_support.py`: `Tree.revise` (a same-statement D-8 revision).
+- `gate/tests/test_shelving.py` (new): 18 tests — the fixture is ``A`` decomposed into ``A--h1``
+  and ``A--h2`` (route 1), ``A--h2`` into ``A--h2--h1``; a second route of ``A`` (``A--h3`` plus
+  ``A--h2`` restated as a lemma) and a route of ``T`` using ``A--h1`` as a lemma (the
+  erdos-1094 shape) are added per test.
+
+## Red (derivation absent; `NodeFacts.shelved` always None after T1)
+
+    python -m pytest -q -p no:cacheprovider -m "not lean and not docker and not network and not harness" gate/tests/test_shelving.py
+    15 failed, 3 passed in 4.45s
+    reasons, counted over the failures:
+      AssertionError: assert set() == {'and-reassoc', 'and-reassoc--h1', 'and-reassoc--h2', 'and-reassoc--h2--h1'}  (x4)
+      AssertionError: assert set() == {'and-reassoc--h1'}                                                        (x2)
+      assert (None is not None); TypeError: 'NoneType' object is not subscriptable                           (row/bundle)
+      AttributeError: module 'opn_gate.shelving' has no attribute 'derive'                                   (x1, the exclude test)
+    the three passes: nothing shelved without a record; the void-on-used test's first half; one
+    frontier precondition. Red on the defect (empty sets), bar the one test that calls `derive` by
+    name.
+
+## Green
+
+    python -m pytest -q -p no:cacheprovider -m "not lean and not docker and not network and not harness" \
+      gate/tests/test_shelving.py gate/tests/test_shelving_mode.py gate/tests/test_products.py \
+      gate/tests/test_context.py gate/tests/test_decompositions.py gate/tests/test_finding_graph_lemmas.py \
+      gate/tests/test_target_proofs.py
+    109 passed in 25.65s
+    (test_shelving.py alone: 18 passed in 31.38s)
+
+    uv run --frozen ruff check / format --check   All checks passed! / already formatted
+    uv run --frozen mypy gate                      Success: no issues found in 437 source files
+
+The full gate fast tier is run again at T4 (see task-4.txt).
+
+## The ruled set, as the tests pin it (AC2)
+
+| case | records | shelved |
+|---|---|---|
+| (a) node scope | shelved A | A, A--h1, A--h2, A--h2--h1; not root, not T |
+| (a) used | T's proof uses A--h1; shelved A | A, A--h2, A--h2--h1 (A--h1 stays) |
+| own record on a used node | shelved A--h1, then T's proof uses it | nothing (void, nothing rewritten) |
+| root record slipped in | shelved root | nothing |
+| (b) route 1 retired, route 2 live sharing A--h2 | route record on A | A--h1 only |
+| (b) both routes retired | two route records on A | A--h1, A--h2, A--h3, A--h2--h1; not A |
+| (c) T's route uses A--h1 as a lemma; shelved A | | A, A--h2, A--h2--h1 (A--h1 stays) |
+| (c) and T shelved too | | A, T, A--h1, A--h2, A--h2--h1 |
+| (d) own unshelved on A--h2 under shelved A | | A, A--h1 (A--h2 and A--h2--h1 stay) |
+| (e) shelved 10:00, unshelved 11:00, shelved 12:00, unshelved 12:00 by the curator | | set() / {A..} / set(): (date, name) |
+| (f) excluded record | | absent |
+| revision of a shelved A--h2 | | A--h2-v2 shelved via A--h2 |
+| proved A--h1 shelved | | status proved, shelved set |
+
+AC3: a shelved ready node (and A's whole cascade) leaves `frontier.json`; each row carries the
+object; `status` unchanged (`ready`); the node's bundle and the parent's `deps[]` entry carry
+it; `context.build` over the published rows equals the rendered bundle for A, A--h1, A--h2--h1
+and the root; two renders are byte-identical.
+
+## Decisions / proposed Q entries
+
+- proposed Q: **two retirements are two keys.** A route record's key is its route; the node's
+  own `scope: node` record is another key. Retiring route 2 does not lift route 1's retirement,
+  and `unshelved` lifts the key it names (`scope: route` with the route, or `scope: node`). The
+  brief's "the node's own latest record" read literally would un-retire route 1 when route 2 is
+  retired; `test_retiring_every_route_shelves_every_hole_and_what_is_beneath_them` pins the
+  reading. The service's "an act that changes nothing" check should use the same key.
+- proposed Q: **`via` is the record's home.** For an inherited shelving `via` is the node
+  whose `shelving/` directory holds the record, which is what makes `record` resolvable; a
+  same-statement revision that inherits its predecessor's record names the predecessor.
+- proposed Q: **a withdrawal cannot yet name a shelving record.** `withdrawal/v2`'s
+  `withdraws` pattern admits `status/`, `defects/`, `gloss/` and `explainer/` only, so no valid
+  withdrawal names `shelving/<file>` today; `shelving.load` honours
+  `records.withdrawn_names(node_dir, "shelving")` already, so a `withdrawal/v3` adding the
+  prefix (a lead/contract change under D-34) makes F31-Q9's rule live with no code change
+  here. The test covers the loader's exclusion path (`exclude=`), which the gate's T5 refusal
+  also uses for a pull request's own records.
+- A superseded parent's arrivals are skipped (otherwise shelving a revision could never cut the
+  holes the fold carried over, since the old node's own `holes` still name them).
+- `route_holes` is an extraction from `decompositions_of`, byte-for-byte the same matching
+  (test_decompositions, test_finding_graph_lemmas and the goldens all pass unchanged); noted
+  because the brief limited products edits to `in_frontier` and the `shelved` fill.

@@ -54,7 +54,7 @@ REQUIRED_DIRS: tuple[str, ...] = ("attempts", "annex", "explainer")
 #: proposed-for/: F18-R8's pointer records (D-3 v3.26); withdrawals/: F08-T31's (D-18 v3.27);
 #: gloss/: prose about the node's Lean files, on a node of any status (F20-R1, D-3 v3.30);
 #: literature/: what the literature says of the statement, and its confirmation (D-3 v3.35,
-#: F08-T40).
+#: F08-T40); shelving/: a steward's or curator's shelving records (D-14 v3.47, F31-R1).
 OPTIONAL_DIRS: tuple[str, ...] = (
     "waivers",
     "status",
@@ -64,6 +64,7 @@ OPTIONAL_DIRS: tuple[str, ...] = (
     "withdrawals",
     "gloss",
     "literature",
+    "shelving",
 )
 KEEP_FILE = ".gitkeep"
 #: v2 added acknowledged_hazards (F02-R6); v3 added the skeleton-hole origin (D-3 v3.12); v4

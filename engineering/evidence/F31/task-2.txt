@@ -1,0 +1,95 @@
+# F31-T2 — the shelving record at the gate (R1, AC1)
+
+Branch f31-gate (from f31-shelving at d91680aa). Gate agent, 2026-10-24.
+
+## What was built
+
+- `gate/opn_gate/paths.py`: role `shelving` (Role list, `APPEND_ROLES`,
+  `SCHEMAS_FOR_ROLE["shelving"] = ("shelving/v1",)`, `RECORD_DIRS["shelving/"]`).
+- `gate/opn_gate/layout.py`: `shelving` in `OPTIONAL_DIRS`, so a node carrying the directory
+  passes the layout check (the literature precedent; not in the brief's file list, needed).
+- `gate/opn_gate/shelving.py` (new): `Record` (sort key `(date, name)`, `published(via=)` as the
+  graph/v15 object), `load(node_dir, exclude=)` honouring `records.withdrawn_names(node_dir,
+  "shelving")`, `Standing`/`standing()` (latest record per key: the node, and each retired
+  route), `signature_problem` mirroring `literature.signature_problem` with the codes
+  `shelving-signature` / `shelving-signer-unlisted`, `used_nodes(nodes)` (every `proofs[].used`
+  plus every closure link's inputs).
+- `gate/opn_gate/modes.py`: `check_shelving_record` dispatched from `check()` before the generic
+  append branch; the record's author rides the classification as literature's does
+  (`who = author if ... literature or shelving`). Rules in order: schema (`record-invalid`),
+  node matches the directory (`shelving-node`), signature + signer (`shelving-signature`,
+  `shelving-signer-unlisted`), then the tree, read with `graph.load_target` (never
+  `graph.json`): `node-root`, `node-used`, `shelving-route-unknown` (scope route whose `route`
+  is not among `NodeFacts.partials[].path`, holder-agnostic), then `check_signer_opener` for an
+  SSH signature (an approval-key signature is the service's act for the login it names).
+- `gate/opn_gate/codes.py`: `node-root`, `node-used`, `shelving-node`, `shelving-route-unknown`,
+  `shelving-signature`, `shelving-signer-unlisted` (all `gate` today; `node-root`/`node-used`
+  become `both` when the service emits them — the service agent's edit, since
+  `test_source_matches_where_the_code_is_emitted` holds the source to the emitters).
+  `node-shelved` is registered with T5, which is the commit that first emits it.
+- `gate/tests/shelving_support.py` (new, unique name): the fixture tree every F31 gate test
+  shares — the propositional fixture curated, Alice an active steward under her own key, the
+  owner a curator, the approval key published; helpers write holes as the post-merge job does,
+  partials as a merge leaves them (file + attestation naming the path and the holes), proofs
+  with a measured footprint, and signed records.
+- `gate/tests/test_shelving_mode.py` (new): 17 tests.
+
+## Red (before the role existed)
+
+    python -m pytest -q -p no:cacheprovider -m "not lean and not docker and not network and not harness" gate/tests/test_shelving_mode.py
+    16 failed, 1 passed in 2.75s
+    every failure: AssertionError: {'mode': None, ... 'problems': [{'code': 'path-forbidden',
+      'message': 'targets/propositional/nodes/and-reassoc/shelving/20261024T100000Z-alice-steward.yaml
+      is not a path any submission may touch' ...
+
+(the one pass was `test_the_target_id_is_the_records`, which reads the path alone). Red on the
+defect, not on a missing name: the record is a path no submission may touch until the role exists.
+
+## Green
+
+    python -m pytest -q -p no:cacheprovider -m "not lean and not docker and not network and not harness" \
+      gate/tests/test_shelving_mode.py gate/tests/test_error_codes.py gate/tests/test_literature.py \
+      gate/tests/test_paths.py gate/tests/test_layout.py
+    114 passed in 13.22s
+    (test_shelving_mode.py alone: 17 passed)
+
+    uv run --frozen ruff check <files>      All checks passed!
+    uv run --frozen ruff format <files>     (applied)
+    uv run --frozen mypy gate               Success: no issues found in 436 source files
+
+Full gate fast tier after T2: see the end of this file.
+
+## Decisions / proposed Q entries
+
+- proposed Q: **an unsigned record is `record-invalid`, not `shelving-signature`.** The
+  contract makes `key` and `signature` required strings, so a record with neither fails the
+  schema before any signature rule runs (one `record-invalid` per missing field). The brief
+  asked for `shelving-signature` here; the schema is the contract and the code says what is
+  true. `shelving-signature` is what a tampered record, or an approval-key record under another
+  key, gets.
+- proposed Q: **`shelving-node`**, a code the brief did not list, mirrors `literature-node`: a
+  record whose `node` is not the directory it sits in, or names a node the target does not
+  hold. Both are refusals the literature check already has and nothing else in the code list
+  covered.
+- proposed Q: **a tree that does not load is `graph-unreadable`** (the existing `both`/step-8
+  code), since the root and the used set are facts about the whole target.
+- **Rule 4 read as "latest per key"** (`shelving.Standing`): the node's standing is its latest
+  `scope: node` record; each route's retirement is the latest record naming that route. A
+  second route's retirement does not lift the first, and an `unshelved` record lifts the key it
+  names (`scope: node`, or `scope: route` with the route). The brief's "own latest record"
+  would otherwise make retiring route 2 after route 1 un-retire route 1. Noted here for the
+  lead; the derivation (T3) is built on it.
+- No idempotence rule in the gate (append-only; the service refuses an act that changes
+  nothing): `test_a_second_shelved_record_on_a_shelved_node_is_an_append`.
+
+## Full gate fast tier after T2
+
+    python -m pytest -q -p no:cacheprovider -x -m "not lean and not docker and not network and not harness" gate/tests
+    3381 passed, 271 skipped, 261 deselected, 2 warnings in 351.77s (0:05:51)
+
+(the skips are the lean/docker tiers and the sibling graph checkout, which is not beside this
+worktree; nothing F31 touches needs either.)
+
+Note on the commit: `gate/opn_gate/shelving.py` lands whole in this commit, derivation
+included, because T3's red test was written against it before T2 was committed; T3's commit
+wires the derivation into `graph.load_target` and `products.in_frontier`.

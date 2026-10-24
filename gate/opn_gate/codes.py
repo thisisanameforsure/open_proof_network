@@ -1530,6 +1530,36 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "the steward's or curator's own key (via: ssh) or made through the site (via: "
         "approval-key).",
     ),
+    "shelving-node": (
+        "gate",
+        None,
+        "The shelving record names a different node from the directory it sits in, or a node "
+        "the target does not hold.",
+        "File it under nodes/<id>/shelving/ of the node its `node` field names (D-14 v3.47).",
+    ),
+    "shelving-route-unknown": (
+        "gate",
+        None,
+        "The shelving record retires a route (`scope: route`) whose `route` is not one of the "
+        "node's merged partials.",
+        "Name the partial's file as graph.json's `decompositions[].partial` gives it "
+        "(attempts/<file>.lean), or shelve the statement with `scope: node`.",
+    ),
+    "shelving-signature": (
+        "gate",
+        None,
+        "The shelving record's signature does not verify under its key, or claims the approval "
+        "key and carries another.",
+        "Sign it with the steward's or curator's own key (via: ssh, `opn-gate shelve`) or make "
+        "it through the site (via: approval-key).",
+    ),
+    "shelving-signer-unlisted": (
+        "gate",
+        None,
+        "The shelving record's contributor is neither an active steward of the target nor a "
+        "listed curator.",
+        "Only a steward of the target or a curator shelves (D-32 v3.47); ask one.",
+    ),
     "literature-signer-unlisted": (
         "gate",
         None,
@@ -1794,6 +1824,20 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "The node is still a proposal in an open pull request.",
         "Wait for that pull request to merge and the products to render, then try again.",
     ),
+    "node-root": (
+        "gate",
+        None,
+        "The shelving record is on the target's root, which is never shelved (D-14 v3.47).",
+        "Shelve the statements beneath it, or retire one of its decompositions by its route.",
+    ),
+    "node-shelved": (
+        "gate",
+        None,
+        "The statement is shelved: a steward of the target or a curator judged that it, or the "
+        "decomposition it came from, does not serve the root (D-14 v3.47); work on it is refused.",
+        "Read the cause in the node's `shelved` field (graph.json, the bundle) and work on a "
+        "statement the frontier lists; a steward or curator can lift it with an unshelved record.",
+    ),
     "node-superseded": (
         "api",
         None,
@@ -1805,6 +1849,13 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         None,
         "node_id belongs to a different target from target_id.",
         "Send the node's own target_id, or leave target_id out and it is derived from the node.",
+    ),
+    "node-used": (
+        "gate",
+        None,
+        "The shelving record is on a statement a merged proof uses (named in a proof's footprint "
+        "or a closure link's inputs); a kernel-checked proof rests on it (D-14 v3.47).",
+        "A used statement cannot be shelved. Shelve the statements no proof rests on instead.",
     ),
     "node-unknown": (
         "api",
