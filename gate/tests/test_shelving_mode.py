@@ -148,3 +148,115 @@ def test_a_second_shelved_record_on_a_shelved_node_is_an_append(tree: Tree) -> N
 def test_the_target_id_is_the_records(tree: Tree) -> None:
     change = tree.shelve(ALICE, A)
     assert change.path.startswith(f"targets/{TARGET}/nodes/{A}/shelving/")
+
+
+# --- F31-T5 (R5, AC5): work on a shelved statement is refused before any sandbox ---------------
+
+H1 = f"{A}--h1"
+H2 = f"{A}--h2"
+ROUTE1 = "attempts/20261020T000000Z-alice-partial.lean"
+
+
+@pytest.fixture
+def decomposed(tree: Tree) -> Tree:
+    """``A`` decomposed into ``A--h1`` and ``A--h2``, then shelved: both holes inherit it."""
+    tree.hole(H1, "h1", parent=A)
+    tree.hole(H2, "h2", parent=A)
+    tree.partial(A, ["h1", "h2"], path=ROUTE1)
+    tree.shelve(ALICE, A)
+    return tree
+
+
+def rel(tree: Tree, node_id: str, name: str) -> str:
+    return (tree.node_dir(node_id) / name).relative_to(tree.root).as_posix()
+
+
+def test_a_witness_for_an_inherited_shelved_hole_is_refused(decomposed: Tree) -> None:
+    """The hole's own slot is still a stub at the base; the completion would pass, and the
+    shelving the hole inherits from ``A`` refuses it with the cause."""
+    tree = decomposed
+    path = rel(tree, H1, "Witness.lean")
+
+    def base(rel_path: str) -> bytes | None:
+        if rel_path == path:
+            return b"theorem witness : True := sorry\n"
+        return tree.base(rel_path)
+
+    mode, codes = tree.check([paths.Change("M", path)], base=base)
+    assert mode == "proposal"
+    assert codes == ["node-shelved"]
+
+
+def test_a_proof_a_partial_and_an_alternate_on_a_shelved_node_are_refused(
+    decomposed: Tree,
+) -> None:
+    tree = decomposed
+    (tree.node_dir(H1) / "Proof.lean").write_text("theorem x : True := trivial\n")
+    assert tree.check([paths.Change("A", rel(tree, H1, "Proof.lean"))]) == (
+        "proof",
+        ["node-shelved"],
+    )
+    partial = rel(tree, H2, "attempts/20261024T000000Z-bob-partial.lean")
+    (tree.root / partial).write_text("theorem x : True := by\n  sorry\n")
+    assert tree.check([paths.Change("A", partial)]) == ("partial", ["node-shelved"])
+    tree.prove(H2)  # an alternate needs a proved node; the shelving still refuses it
+    alternate = rel(tree, H2, "attempts/20261024T000000Z-bob-alternate.lean")
+    (tree.root / alternate).write_text("theorem x : True := ⟨⟩\n")
+    mode, codes = tree.check([paths.Change("A", alternate)])
+    assert mode == "alternate" and "node-shelved" in codes
+
+
+def test_the_refusal_carries_the_cause_and_the_record(decomposed: Tree) -> None:
+    tree = decomposed
+    (tree.node_dir(H1) / "Proof.lean").write_text("theorem x : True := trivial\n")
+    classification = modes.classify(
+        [paths.Change("A", rel(tree, H1, "Proof.lean"))], author=SERVICE, graph_root=tree.root
+    )
+    (found,) = modes.check(tree.root, classification, base=tree.base)
+    assert found.code == "node-shelved"
+    assert found.details["shelved"]["via"] == A
+    assert found.details["shelved"]["cause"] == "This branch does not serve the root."
+    assert "This branch does not serve the root." in found.message
+
+
+def test_a_proof_on_an_unshelved_sibling_passes(tree: Tree) -> None:
+    """``A--h2`` carries its own ``unshelved`` record under a shelved ``A``."""
+    tree.hole(H1, "h1", parent=A)
+    tree.hole(H2, "h2", parent=A)
+    tree.partial(A, ["h1", "h2"], path=ROUTE1)
+    tree.shelve(ALICE, A)
+    tree.shelve(ALICE, H2, action="unshelved")
+    (tree.node_dir(H2) / "Proof.lean").write_text("theorem x : True := trivial\n")
+    assert tree.check([paths.Change("A", rel(tree, H2, "Proof.lean"))]) == ("proof", [])
+    (tree.node_dir(H1) / "Proof.lean").write_text("theorem x : True := trivial\n")
+    assert tree.check([paths.Change("A", rel(tree, H1, "Proof.lean"))]) == (
+        "proof",
+        ["node-shelved"],
+    )
+
+
+def test_a_pull_requests_own_unshelve_does_not_lift_the_refusal(decomposed: Tree) -> None:
+    """The refusal is judged on the parent tree: an ``unshelved`` record arriving beside the
+    proof is not yet on the record (F31-Q8), so the proof is still refused."""
+    tree = decomposed
+    unshelve = tree.shelve(ALICE, H1, action="unshelved")
+    (tree.node_dir(H1) / "Proof.lean").write_text("theorem x : True := trivial\n")
+    mode, codes = tree.check([paths.Change("A", rel(tree, H1, "Proof.lean")), unshelve])
+    assert mode == "proof" and codes == ["node-shelved"]
+
+
+def test_a_proposed_for_pointer_at_a_shelved_node_is_refused(decomposed: Tree) -> None:
+    """A proposal that attaches to a shelved statement (its ``proposed-for`` record names it)."""
+    tree = decomposed
+    pointer = tree.node_dir(T) / "proposed-for" / "20261024T120000Z-thisisanameforsure.yaml"
+    pointer.parent.mkdir(parents=True, exist_ok=True)
+    pointer.write_text(
+        yaml.safe_dump(
+            {"schema": "proposed-for/v1", "for": H1, "author": CURATOR, "date": "2026-10-24"},
+            sort_keys=False,
+        ),
+        encoding="utf-8",
+    )
+    change = paths.Change("A", pointer.relative_to(tree.root).as_posix())
+    mode, codes = tree.check([change], opened_by=CURATOR)
+    assert mode == "proposed-for" and codes == ["node-shelved"]

@@ -1,0 +1,68 @@
+# F31-T5 — the pre-merge refusal, node-shelved (R5; AC5, gate half)
+
+Branch f31-gate. Gate agent, 2026-10-24.
+
+## What was built
+
+- `gate/opn_gate/modes.py`: `shelved_refusal(graph_root, target_id, node_id, *, added=)` — a
+  `node-shelved` Diagnostic carrying the row object (`details["shelved"]`: cause, by, date,
+  record, scope, via) and the cause in its message, derived from the tree with
+  `graph.load_target` (which fills `NodeFacts.shelved`, T3) and never from `graph.json`; when
+  the pull request itself adds shelving records (`added`), the derivation is run again with
+  them excluded, so a pull request's own `unshelved` lifts nothing (F31-Q8: the parent tree
+  decides). `check_shelved(graph_root, classification)` picks the statement the pull request
+  works on — a proof, partial or alternate's node; a witness completion's hole
+  (`classification.admit`); the node a `proposed-for` record names, in a whole-node proposal or
+  a pointer pull request — and runs at the end of `check()`, after the mode checks.
+- `gate/opn_gate/codes.py`: `node-shelved` (`gate` today; `both` once the service emits it).
+- `gate/tests/shelving_support.py`: `Tree.check(changes, opened_by=, base=)` for any mode.
+- `gate/tests/test_shelving_mode.py`: 6 tests under "F31-T5".
+
+## Red
+
+    python -m pytest -q -p no:cacheprovider -m "..." gate/tests/test_shelving_mode.py -k "refus or sibling or cause"
+    6 failed:
+      assert [] == ['node-shelved']                       (witness for an inherited-shelved hole)
+      assert ('proof', []) == ('proof', ['node-shelved'])  (proof on a shelved node; x2)
+      ValueError: not enough values to unpack (expected 1, got 0)   (no diagnostic to carry the cause)
+      ('proposed-for' ... [] == ['node-shelved'])          (pointer at a shelved node)
+    red on the defect: every mode passed the shelved statement through.
+
+One defect found by the red-first order: the first implementation re-derived without the pull
+request's own records only when the tree already said *shelved*; a pull request adding an
+`unshelved` record beside its proof made the tree say None and skipped the re-derivation, so
+the proof passed. `test_a_pull_requests_own_unshelve_does_not_lift_the_refusal` caught it;
+the re-derivation now runs whenever the pull request adds a shelving record.
+
+## Green
+
+    python -m pytest -q -p no:cacheprovider -m "..." gate/tests/test_shelving_mode.py gate/tests/test_error_codes.py gate/tests/test_modes.py gate/tests/test_shelving.py
+    145 passed in 10.77s   (test_shelving_mode.py alone: 23 passed)
+    uv run --frozen ruff check / format --check   All checks passed! / already formatted
+    uv run --frozen mypy gate                      Success: no issues found in 437 source files
+
+## What is refused, as the tests pin it
+
+| pull request | mode | codes |
+|---|---|---|
+| `Witness.lean` for `A--h1` (slot a stub at the base), `A` shelved | proposal | `["node-shelved"]` |
+| `Proof.lean` on `A--h1` | proof | `["node-shelved"]` |
+| `attempts/<stamp>-bob-partial.lean` on `A--h2` | partial | `["node-shelved"]` |
+| an alternate on a proved, shelved `A--h2` | alternate | contains `node-shelved` |
+| `Proof.lean` on `A--h2` carrying its own `unshelved` under a shelved `A` | proof | `[]` |
+| `Proof.lean` on `A--h1` plus an `unshelved` record for `A--h1` in the same pull request | proof | `["node-shelved"]` |
+| a `proposed-for` record on `T` naming `A--h1`, opened by a curator | proposed-for | `["node-shelved"]` |
+
+## Decisions / proposed Q entries
+
+- proposed Q: **which proposals "attach" to a shelved statement.** A whole-node proposal is
+  refused only through its `proposed-for` record naming a shelved node. A variant attaches to
+  the root (never shelved); a dependency on a shelved *proved* statement is use, which Q6 says a
+  shelving never forbids, and refusing a dependency on a shelved *open* statement would be a
+  rule about deps nothing else has. If the owner wants deps covered, it is one branch in
+  `check_shelved`.
+- The refusal reads the whole target (`load_target`) once per pull request, as the step-9
+  settlement and the literature check already do; a tree that does not load refuses nothing
+  here, since the check that reads it names the defect.
+- `details["shelved"]` is the row object verbatim, so the service's 409 (T8) can carry the same
+  shape.

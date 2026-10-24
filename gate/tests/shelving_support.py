@@ -270,6 +270,21 @@ class Tree:
         assert classification.mode == "append", classification.as_dict()
         return [d.code for d in modes.check(self.root, classification, base=self.base)]
 
+    def check(
+        self,
+        changes: list[Change],
+        *,
+        opened_by: str = SERVICE,
+        base: Any = None,
+    ) -> tuple[str | None, list[str]]:
+        """The mode and the codes of a pull request of any mode, with ``base`` (default: this
+        tree's) as the merge's parent."""
+        classification = modes.classify(changes, author=opened_by, graph_root=self.root)
+        if not classification.ok:
+            return None, [d.code for d in classification.problems]
+        found = modes.check(self.root, classification, base=base or self.base)
+        return classification.mode, [d.code for d in found]
+
     def load(self) -> graph.TargetGraph:
         return graph.load_target(self.root, TARGET)
 

@@ -1830,6 +1830,14 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "The shelving record is on the target's root, which is never shelved (D-14 v3.47).",
         "Shelve the statements beneath it, or retire one of its decompositions by its route.",
     ),
+    "node-shelved": (
+        "gate",
+        None,
+        "The statement is shelved: a steward of the target or a curator judged that it, or the "
+        "decomposition it came from, does not serve the root (D-14 v3.47); work on it is refused.",
+        "Read the cause in the node's `shelved` field (graph.json, the bundle) and work on a "
+        "statement the frontier lists; a steward or curator can lift it with an unshelved record.",
+    ),
     "node-superseded": (
         "api",
         None,

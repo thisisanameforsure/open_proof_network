@@ -1366,7 +1366,71 @@ def check(  # noqa: PLR0912, PLR0915 — one branch per role with a check of its
     if classification.mode == "alternate":
         problems.extend(check_alternate(graph_root, classification))
     problems.extend(check_replaced_proof(graph_root, classification))
+    # F31-R5 (D-14 v3.47): work against a shelved statement, refused from the parent tree.
+    problems.extend(check_shelved(graph_root, classification))
     return problems
+
+
+def shelved_refusal(
+    graph_root: Path, target_id: str, node_id: str, *, added: frozenset[str] = frozenset()
+) -> Diagnostic | None:
+    """F31-R5 (D-14 v3.47): ``node-shelved`` with the cause when ``node_id`` is shelved — derived
+    from the tree (``graph.load_target`` + ``shelving.derive``), never from ``graph.json``, which
+    lags the record until the post-merge render; ``added`` names the records this pull request
+    itself brings, which are not yet on the record and decide nothing (F31-Q8). A tree that does
+    not load refuses nothing here: the checks that read it say what is wrong with it."""
+    from opn_gate import shelving  # noqa: PLC0415 — only this check and the products read them
+
+    try:
+        tg = graphmod.load_target(graph_root, target_id)
+    except (ValueError, OSError):  # SchemaError, GraphError: another check names the defect
+        return None
+    if node_id not in tg.nodes:
+        return None
+    found = tg.nodes[node_id].shelved
+    if added:  # the tree holds this pull request's own records; judge it without them
+        found = shelving.derive(
+            tg.nodes, root=tg.root, used=shelving.used_nodes(tg.nodes), exclude=added
+        )[node_id]
+    if found is None:
+        return None
+    where = "it" if found["via"] == node_id else f"{found['via']}, which it is a hole beneath,"
+    return Diagnostic(
+        "node-shelved",
+        f"{node_id} is shelved: {found['by']} shelved {where} on {found['date']} "
+        f"({found['via']}/{found['record']}, scope {found['scope']}) — {found['cause']!s}; work "
+        "on a shelved statement is refused until a steward or curator lifts it (D-14 v3.47)",
+        {"node": node_id, "shelved": dict(found)},
+    )
+
+
+def check_shelved(graph_root: Path, classification: Classification) -> list[Diagnostic]:
+    """F31-R5: the statement a pull request works on — a proof, partial or alternate's node, a
+    witness completion's hole, the node a ``proposed-for`` record names — is not shelved. A
+    proposal of a whole new node attaches to a shelved statement only through such a record
+    (a variant is the root's, and the root is never shelved); a dependency on a shelved *proved*
+    statement is use, which a shelving never forbids (Q6)."""
+    if classification.target_id is None:
+        return []
+    node_id: str | None = None
+    if classification.mode in ("proof", "partial", "alternate"):
+        node_id = classification.node_id
+    elif classification.mode == "proposal" and classification.located:
+        roles = {loc.role for loc in classification.located}
+        if roles == {"witness"}:
+            node_id = classification.admit
+    if node_id is None:
+        pointers = [loc for loc in classification.located if loc.role == "proposed-for"]
+        if classification.mode in ("proposal", "proposed-for") and pointers:
+            data = _read(graph_root, pointers[0])
+            doc = None if isinstance(data, Diagnostic) else _document(pointers[0], data)
+            if isinstance(doc, dict) and doc.get("for"):
+                node_id = str(doc["for"])
+    if node_id is None:
+        return []
+    added = frozenset(loc.path for loc in classification.located if loc.role == "shelving")
+    refusal = shelved_refusal(graph_root, classification.target_id, node_id, added=added)
+    return [] if refusal is None else [refusal]
 
 
 def warnings(graph_root: Path, classification: Classification) -> list[Diagnostic]:
