@@ -1021,3 +1021,51 @@ def publish_v8(root: Path, *, target: str = TARGET) -> None:
         for d in row.get("decompositions") or []:
             d.pop("approach", None)
     graph_path.write_text(json.dumps(schemas.validate(graph, "graph/v8"), indent=1) + "\n")
+
+
+# --- F31-T10 (R7): shelving on the rendered rows, as the v3.47 gate derives it (graph/v15) --------
+
+SHELVED_BY = "alice"
+SHELVED_DATE = "2026-10-24"
+SHELVED_CAUSE = "Does not serve the root"
+
+
+def shelved_fact(
+    cause: str = SHELVED_CAUSE,
+    *,
+    via: str,
+    by: str = SHELVED_BY,
+    date: str = SHELVED_DATE,
+    scope: str = "node",
+    record: str = "shelving/2026-10-24T120000Z-alice.yaml",
+) -> dict[str, Any]:
+    """A row's ``shelved`` object (``graph/v15``, F31-T1): the signer's words, who, when, the
+    record on ``via`` and what it shelved."""
+    return {"cause": cause, "by": by, "date": date, "record": record, "scope": scope, "via": via}
+
+
+def publish_shelved(
+    root: Path, shelved: dict[str, dict[str, Any]], *, target: str = TARGET
+) -> None:
+    """Rewrite the rendered products as the v3.47 gate would leave them for the named nodes:
+    ``shelved`` on each named ``graph.json`` row (null elsewhere), and those nodes absent from
+    ``frontier.json`` (F31-R4: the frontier omits a shelved statement). ``status`` is left as
+    the gate derived it (F31-Q7: shelving is not a status). Both documents are validated, so a
+    test feeds the site exactly the contract's shape."""
+    graph_path = root / "targets" / target / "graph.json"
+    graph = json.loads(graph_path.read_text(encoding="utf-8"))
+    graph["schema"] = products.GRAPH_SCHEMA
+    for row in graph["nodes"]:
+        row["shelved"] = shelved.get(str(row["node_id"]))
+        row.setdefault("lemmas", [])
+    graph_path.write_text(json.dumps(schemas.validate(graph, graph["schema"]), indent=1) + "\n")
+    frontier_path = root / "frontier.json"
+    frontier = json.loads(frontier_path.read_text(encoding="utf-8"))
+    frontier["entries"] = [
+        e
+        for e in frontier["entries"]
+        if not (e["target_id"] == target and str(e["node_id"]) in shelved)
+    ]
+    frontier_path.write_text(
+        json.dumps(schemas.validate(frontier, frontier["schema"]), indent=1) + "\n"
+    )

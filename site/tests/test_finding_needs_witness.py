@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import json
 import re
+from pathlib import Path
 
 import fixture
 import pytest
@@ -122,6 +123,31 @@ def test_the_footnote_claims_only_what_is_true(built: tuple[model.Site, dict[str
     _site, pages = built
     assert "lists exactly the open statements" not in pages["problems/index.html"]
     assert "lists every open statement shown here" in pages["problems/index.html"]
+
+
+def test_a_shelved_statement_is_not_work(tmp_path: Path) -> None:
+    """F31-T10 (R4, R7): a shelved statement is off the frontier, so the site's workable set
+    must lose it too, or the two readers disagree; its row reads shelved, offers no work, and
+    its status is unchanged underneath (F31-Q7)."""
+    root = fixture.build_with_revised_hole(tmp_path)
+    fixture.publish_shelved(root, {fixture.HOLE: fixture.shelved_fact(via=fixture.HOLE)})
+    site = model.load_site(root, fixture.COMMIT)
+    frontier = json.loads((site.root / "frontier.json").read_text(encoding="utf-8"))
+    claimable = {
+        e["node_id"] for e in frontier["entries"] if e["claimable"] or e["needs"] == "witness"
+    }
+    assert fixture.HOLE not in claimable and fixture.REVISION in claimable, "guard: the fixture"
+    r = render.Renderer(site, repo_url=REPO)
+    tv = site.targets[TARGET]
+    workable = {nid for nid, nv in tv.nodes.items() if r.node_state(nv) in render.WORKABLE_STATES}
+    assert workable == claimable
+    assert r.open_count(tv) == len(claimable)
+    hole = tv.nodes[fixture.HOLE]
+    assert hole.status == "blocked" and hole.shelved is not None
+    assert hole.shelved["by"] == fixture.SHELVED_BY
+    stmt = row(render.render_site(site, repo_url=REPO)["problems/index.html"], fixture.HOLE)
+    assert 'data-state="shelved"' in stmt and 'data-workable="0"' in stmt
+    assert "Supply a witness" not in stmt and "Shelved" in stmt
 
 
 def test_the_graph_key_names_the_state_when_a_statement_has_it(

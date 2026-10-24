@@ -582,6 +582,15 @@ class NodeView:
         return None if cause is None else str(cause)
 
     @property
+    def shelved(self) -> dict[str, Any] | None:
+        """F31-T10 (D-14 v3.47, ``graph/v15``): a steward's or curator's judgment that the
+        statement does not serve the root — ``cause``, ``by``, ``date``, ``record``, ``scope``
+        and ``via`` (the node whose record reaches it) — or ``None``. Not a status: ``status``
+        is unchanged by it (F31-Q7). An older row has no such key and reads as ``None`` (D-34)."""
+        raw = self.graph_entry.get("shelved")
+        return dict(raw) if isinstance(raw, dict) else None
+
+    @property
     def open_claims(self) -> list[dict[str, Any]]:
         """F08-T36 (D-16 v3.28): the defect claims against the node that stand, oldest first, as
         ``graph/v5`` lists them; none on an older graph, which did not list them."""

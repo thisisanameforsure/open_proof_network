@@ -295,6 +295,7 @@ def test_every_output_class_has_a_key_entry() -> None:
         "or-mark": "route-or",
         "dead-cross": "route-dead",
         '"asm"': "closable",
+        '" shelved"': "shelved",  # F31-T10 (R7): the mark on a shelved statement's pill
     }
     assert set(routes_view.TRUNK_LABELS) == {"resolves", "refutes", "partial"}, (
         "a new label needs a key"

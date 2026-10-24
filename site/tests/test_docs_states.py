@@ -137,3 +137,28 @@ def test_the_derivation_order_is_the_gates(docs: str) -> None:
     first_rule = html.split("</li>", 1)[0]
     for status in graph.RECORD_STATUSES:
         assert f"<code>{status}</code>" in first_rule, status
+
+
+def test_the_actions_table_names_shelving_and_the_boxes_are_unchanged(docs: str) -> None:
+    """F31-T12 (R9; D-14 v3.47): the act is in the table — who may do it, the two ways, what
+    it moves — and outside the status boxes, because shelving is not a status (F31-Q7): the
+    statement drawing's boxes are exactly ``graph.ALL_STATUSES`` as before, and the glossary
+    defines the word."""
+    html = section(docs)
+    table = html.split('<table class="actions">', 1)[1].split("</table>", 1)[0]
+    row = next((r for r in re.findall(r"<tr>.*?</tr>", table, re.S) if "Shelve" in r), None)
+    assert row is not None, "no shelving row in the actions table"
+    assert "retire a route" in row.lower()
+    assert "steward" in row and "curator" in row
+    assert "<code>POST /shelvings</code>" in row and "<code>opn-gate shelve</code>" in row
+    for words in ("routes view", "off the frontier", "work", "refused", "unshelve"):
+        assert words in row, words
+    statement, _problem = drawings(html)
+    assert "shelved" not in names(statement), "shelved is a mark, not a status box"
+    assert names(statement) == {
+        "open" if s in render.CLAIMABLE_STATUSES else s for s in graph.ALL_STATUSES
+    } | {render.STATE_LABELS[render.NEEDS_WITNESS]}
+    assert "shelved" not in render.LEGEND_EXTRA and "shelved" not in render.STATE_MAP_STATEMENT_KEYS
+    glossary = docs[docs.index('<h2 id="glossary">') :]
+    assert "<td>shelved</td>" in glossary
+    assert render.esc(render.GLOSSARY_BY_KEY["shelved"][1]) in glossary
