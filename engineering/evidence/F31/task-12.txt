@@ -1,0 +1,32 @@
+F31-T12 — Docs state page row and glossary entry (R9). Site agent, branch f31-site, on top of
+F31-T11 (9270224e). 2026-10-24.
+
+RED (site/tests/test_docs_states.py::test_the_actions_table_names_shelving_and_the_boxes_are_unchanged):
+  1 failed, 6 deselected in 0.84s
+    AssertionError: no shelving row in the actions table
+
+Changes (site only):
+  site/opn_site/templates/states.html   one row in the actions table, after "Abandon a dead
+    branch": "Shelve a statement, or retire a route" · "a steward of the problem, or a curator" ·
+    "a signed shelving record with a cause: POST /shelvings from the statement's page or the
+    problem's routes list, or opn-gate shelve by hand (D-14 v3.47); scope node reaches the
+    statement and every hole beneath it, scope route one merged decomposition and its holes" ·
+    "nothing in the status: the statement is hidden from the routes view, off the frontier, and
+    work on it is refused with node-shelved; a proved statement stays proved; lifted by an
+    unshelve record of the same kind". Outside the status boxes: test_docs_states equates the
+    statement drawing's boxes with graph.ALL_STATUSES, and shelved is not a status (F31-Q7).
+  The glossary entry ("shelved" — "shelving record (D-14 v3.47)") landed with T10 in
+    render.GLOSSARY, so the Docs glossary already defines the word; the test holds it there and
+    holds "shelved" out of LEGEND_EXTRA and STATE_MAP_STATEMENT_KEYS.
+  site/tests/golden/docs/index.html   one inserted line: the row.
+
+GREEN:
+  site/tests/test_docs_states.py: 7 passed in 0.46s
+  full site suite, fast tier: 848 passed, 21 skipped in 68.46s
+  ruff check: All checks passed!  ruff format: clean.  mypy site: no issues in 120 files.
+
+No capture: a table row on the Docs page; the string assertions read the row itself.
+
+Verification command (spec F31-T12):
+  uv run --frozen pytest site/tests/test_docs_states.py
+  7 passed in 6.02s
