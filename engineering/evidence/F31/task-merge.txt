@@ -1,0 +1,7 @@
+# F31 merge of f31-gate, f31-service, f31-site onto f31-shelving — make verify, 2026-10-24T18:49:26Z, HEAD 81fbf84b plus the codes.py dedup; OPN_GRAPH_CHECKOUT at graph origin/main  (test_graph_copy_is_identical is expected red until the re-pin recopies the guide) — note: the scratchpad graph worktree had been removed by then, so the two guide-copy tests skipped (292 skipped, one more than before)
+All checks passed!
+Success: no issues found in 437 source files
+Success: no issues found in 269 source files
+Success: no issues found in 120 source files
+== 6498 passed, 292 skipped, 261 deselected, 2 warnings in 560.30s (0:09:20) ===
+exit=

@@ -1538,10 +1538,10 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "File it under nodes/<id>/shelving/ of the node its `node` field names (D-14 v3.47).",
     ),
     "shelving-route-unknown": (
-        "gate",
+        "both",
         None,
-        "The shelving record retires a route (`scope: route`) whose `route` is not one of the "
-        "node's merged partials.",
+        "The shelving retires a route (`scope: route`) whose `route` is not one of the node's "
+        "merged partials; the service's details list the routes the row carries.",
         "Name the partial's file as graph.json's `decompositions[].partial` gives it "
         "(attempts/<file>.lean), or shelve the statement with `scope: node`.",
     ),
@@ -1825,18 +1825,25 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "Wait for that pull request to merge and the products to render, then try again.",
     ),
     "node-root": (
-        "gate",
+        "both",
         None,
-        "The shelving record is on the target's root, which is never shelved (D-14 v3.47).",
-        "Shelve the statements beneath it, or retire one of its decompositions by its route.",
+        "The shelving names the target's root, which is never shelved (D-14 v3.47): refused by the "
+        "service before anything opens and by the gate at the merge.",
+        "Shelve the statements beneath it, or retire one of its decompositions by its route; a "
+        "problem is retired by its target's status, not by a shelving.",
     ),
     "node-shelved": (
-        "gate",
+        "both",
         None,
         "The statement is shelved: a steward of the target or a curator judged that it, or the "
-        "decomposition it came from, does not serve the root (D-14 v3.47); work on it is refused.",
-        "Read the cause in the node's `shelved` field (graph.json, the bundle) and work on a "
-        "statement the frontier lists; a steward or curator can lift it with an unshelved record.",
+        "decomposition it is a hole of, does not serve the root (D-14 v3.47), so work on it is "
+        "refused — by the gate at the merge and by the service before anything opens (a claim, a "
+        "precheck, a submission, a witness, a proposal pointer). The refusal's details.shelved, "
+        "the row's `shelved` and the bundle carry the cause, who signed it, when, the record and "
+        "the node whose record reaches it. Not a status. On POST /check it is a warning.",
+        "Work elsewhere: list_frontier omits shelved statements. If the judgment is wrong, ask a "
+        "steward of the problem or a curator to lift it (an unshelved record: POST /shelvings from "
+        "the site, or opn-gate shelve --unshelve).",
     ),
     "node-superseded": (
         "api",
@@ -1851,11 +1858,12 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "Send the node's own target_id, or leave target_id out and it is derived from the node.",
     ),
     "node-used": (
-        "gate",
+        "both",
         None,
-        "The shelving record is on a statement a merged proof uses (named in a proof's footprint "
-        "or a closure link's inputs); a kernel-checked proof rests on it (D-14 v3.47).",
-        "A used statement cannot be shelved. Shelve the statements no proof rests on instead.",
+        "The shelving names a statement a merged proof uses (a proof's footprint, or an input of a "
+        "closure link): a kernel-checked proof rests on it, so it cannot be shelved (D-14 v3.47). "
+        "The service's details name the nodes whose proofs use it.",
+        "Nothing to do on this node; shelve a statement no merged proof uses.",
     ),
     "node-unknown": (
         "api",
@@ -3242,42 +3250,8 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         ),
         "Report it to the operator (OPN_API_SITE_ORIGIN).",
     ),
-    # --- F31-R5, R6 (D-14 v3.47): shelving — the service's refusals before anything opens ---
-    "node-shelved": (
-        "api",
-        None,
-        "A steward of the target or a curator has shelved this statement (or the decomposition "
-        "it is a hole of): it does not serve the root (D-14 v3.47). The refusal's details.shelved "
-        "carries the cause, who signed it, when, the record and the node whose record reaches "
-        "it; the row's `shelved` and the bundle say the same. Not a status. On POST /check it is "
-        "a warning, since checking a statement is how a defect in it is shown.",
-        "Work elsewhere: list_frontier omits shelved statements. If you believe the judgment is "
-        "wrong, ask a steward of the problem or a curator to lift it (POST /shelvings, action "
-        "unshelved, from the site).",
-    ),
-    "node-root": (
-        "api",
-        None,
-        "The node is the target's root; the root is never shelved (D-14 v3.47).",
-        "Shelve the statement or route that does not serve the root instead; a problem is "
-        "retired by its target's status, not by a shelving.",
-    ),
-    "node-used": (
-        "api",
-        None,
-        "A merged proof uses this statement (proofs[].used, or an input of a closure link), so "
-        "it is a fact a kernel-checked proof rests on and cannot be shelved (D-14 v3.47). The "
-        "details name the nodes whose proofs use it.",
-        "Nothing to do on this node; shelve a statement no merged proof uses.",
-    ),
-    "shelving-route-unknown": (
-        "api",
-        None,
-        "scope is route but the file named is not one of the node's merged decompositions; the "
-        "details list the routes the row carries.",
-        "Name the partial's file as the row's decompositions list it (attempts/<file>.lean), or "
-        "use scope node to shelve the statement itself.",
-    ),
+    # --- F31-R5, R6 (D-14 v3.47): shelving — the service's own refusals; node-shelved, node-root,
+    # node-used and shelving-route-unknown are emitted by the gate and the api alike (source both)
     "already-shelved": (
         "api",
         None,

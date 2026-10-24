@@ -191,9 +191,59 @@ service reads the row and accepts the render window, as literature does.</p>
 <code>status/</code>, <code>defects/</code>, <code>gloss/</code> and <code>explainer/</code>; an unshelve carries its own
 cause and date. A curator withdrawal of a shelving record is still honoured, so "absent" has one rule.</p>
 
+<p><strong>F31-Q10 &mdash; Rule 4 is latest per key (gate, service).</strong> A node's standing is its latest
+<code>scope: node</code> record; each route's retirement is the latest record naming that route. Retiring route 2
+does not lift route 1, and an <code>unshelved</code> record lifts the key it names (<code>scope: route</code> with the
+route, or the node). The service's "changes nothing" check uses the same key: <code>already-shelved</code> when the
+row says the node is shelved by its own record, or every hole of the named route is retired through this node;
+<code>not-shelved</code> only when the row carries no shelving at all, so an unshelve on a node shelved by
+inheritance is allowed (it is how a child is exempted, Q3). <code>node-used</code> is refused for
+<code>action: shelved</code> only.</p>
+<p><strong>F31-Q11 &mdash; <code>via</code> is the record's home.</strong> For an inherited shelving, <code>via</code>
+is the node whose <code>shelving/</code> directory holds the record, which is what makes <code>record</code>
+resolvable; a same-statement revision that inherits its predecessor's record names the predecessor.</p>
+<p><strong>F31-Q12 &mdash; A retirement is read off the holes.</strong> <code>graph/v15</code> publishes
+<code>shelved</code> on rows, not on <code>decompositions[]</code> (a closed object), so the routes, the closing
+links and the site read a route as retired when its holes carry a route-scope shelving with <code>via</code> the
+route's node. Exact except for a retired route all of whose holes another live route still needs, which reads live
+and closes nothing new. A <code>retired</code> field on <code>decompositions[]</code> in the next graph version would
+make it exact; left for a later contract. <code>Route.retired</code> and <code>Hole.shelved</code> are not in the
+MCP's <code>list_sufficient_sets</code> answer (its v4 schema is closed), so the "abandoned or superseded" wording
+and the new fields wait for a v5 of that result schema; <code>live</code> carries the effect today.</p>
+<p><strong>F31-Q13 &mdash; Refusal placement.</strong> Gate: <code>shelved_refusal</code> for proof, partial, alternate,
+witness completion and a <code>proposed-for</code> pointer, from the parent tree with the pull request's own
+shelving records excluded. Service: <code>precheck.check_open</code> (precheck and submissions, ahead of blocked
+and superseded), <code>claims.off_frontier</code>, <code>hole_awaiting_witness</code>, <code>proposed_for_node</code>;
+<code>POST /check</code> warns with the whole <code>shelved</code> object. A proposal whose <code>deps</code> name a
+shelved statement is not refused: a shelved proved statement is still a fact (Q6). A dependency on a shelved
+<em>unproved</em> statement is left unrefused too, for the owner to rule on.</p>
+<p><strong>F31-Q14 &mdash; Codes.</strong> No <code>bad-field</code>: the service's body checks answer
+<code>arguments-invalid</code> naming the field, as every F23/F05 route does. An unsigned record is
+<code>record-invalid</code> (the schema requires key and signature), so <code>shelving-signature</code> means a
+tampered record or an approval-key record under another key; <code>shelving-node</code> mirrors
+<code>literature-node</code>. <code>node-shelved</code>, <code>node-root</code>, <code>node-used</code> and
+<code>shelving-route-unknown</code> are emitted by the gate and the service alike (source <code>both</code>).
+The duplicate rule's <code>written</code> key is <code>node action scope route</code>, cause excluded.</p>
+<p><strong>F31-Q15 &mdash; The products do not re-verify a shelving record's signature at render.</strong>
+<code>shelving.load</code> validates the schema only, where <code>literature.derive</code> re-verifies. The gate is the
+guard; if a record that reached the tree by another route should count for nothing, it is one
+<code>signature_problem</code> call in <code>load</code> with a signer and the approval key passed through
+<code>load_target</code>. The owner's call.</p>
+<p><strong>F31-Q16 &mdash; Q9 is live only with a <code>withdrawal/v3</code>.</strong> <code>withdrawal/v2</code>'s
+<code>withdraws</code> pattern admits <code>status/</code>, <code>defects/</code>, <code>gloss/</code> and
+<code>explainer/</code> only; <code>shelving.load</code> already honours <code>records.withdrawn_names(node_dir,
+"shelving")</code>, so a v3 adding the prefix (D-34: a new version) makes a curator withdrawal of a shelving record
+read as absent with no code change.</p>
+<p><strong>F31-Q17 &mdash; The site's words.</strong> A shelved unproved statement reads "shelved" (<code>render.SHELVED</code>,
+returned by <code>node_state</code> in place of open / needs-witness / blocked, so the Problems page's workable set
+still equals the frontier's claimable set); a shelved proved statement keeps "proved"; the node head reads "open ·
+shelved". "shelved" is a route-mark key, not a status, so it is in neither <code>LEGEND_EXTRA</code> nor the Docs
+state map. Retire is offered on every drawn route not already cut; the root's page carries no shelve slot; the
+routes list is a new sibling after the sets table (<code>.routes-list-wrap</code>), an addition to the F30 contract
+note, which graph.js never reads.</p>
+
 <h2>10. Status</h2>
-<div class="rule"><strong>status:</strong> building 2026-10-24 (decisions v3.47 applied; branch
-<code>f31-shelving</code>) · <strong>Tasks:</strong> T0&ndash;T1 done · T2&ndash;T14 todo</div>
+<div class="rule"><strong>status:</strong> built 2026-10-24 on branch <code>f31-shelving</code> (decisions v3.47; three worktree agents, gate / service / site, merged by the lead) · <strong>Tasks:</strong> T0&ndash;T1 done (contract; <code>engineering/evidence/F31/task-0.txt</code>, <code>task-1.txt</code>: full verify 6662 passed) · T2&ndash;T6 done (gate: 17 + 18 + 5 + 6 + 3 new tests, <code>task-2.txt</code>&ndash;<code>task-6.txt</code>) · T7&ndash;T9 done (service: 31 + 13 + 9, <code>task-7.txt</code>&ndash;<code>task-9.txt</code>) · T10&ndash;T12 done (site: 5 + 7 + 1, six captures, <code>task-10.txt</code>&ndash;<code>task-12.txt</code>) · merged tree: see <code>task-merge.txt</code> · T13&ndash;T14 todo (live: merge, deploy, re-pin, render, site deploy; then the owner retires route 2 of erdos-257)</div>
 
 <h2>Tasks</h2>
 <table>
