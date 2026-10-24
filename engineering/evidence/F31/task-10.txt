@@ -2,8 +2,13 @@ F31-T10 — Drawing (R7): the views, the pill class and title, the junction word
 count, the key. Site agent, branch f31-site (from f31-shelving at d91680aa). 2026-10-24.
 
 Environment: the worktree has no .venv; the main checkout's .venv (Python 3.13.5) is on PATH.
-Playwright is not importable here, so the browser tests of test_one_view.py skip; no capture
-on this machine.
+Playwright is not importable from the venv, so the browser tests of test_one_view.py skip in
+the runs below. Correction, written at T11: the laptop has Chromium builds cached under
+~/Library/Caches/ms-playwright, and `uv run --frozen --with playwright pytest
+site/tests/test_one_view.py site/tests/test_one_view_markup.py` ran the whole tier here:
+39 passed in 22.01s (the browser tests included; the toggle test reads the new label). Captures
+task-10-routes-view-1280.png and task-10-all-view-shelved-dim-1280.png are in this directory
+(described in task-11.txt).
 
 Baseline (before any change), the four target files plus test_one_view_markup.py:
   59 passed, 6 skipped in 39.37s

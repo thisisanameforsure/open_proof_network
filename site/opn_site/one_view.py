@@ -571,6 +571,22 @@ SEL_PREFIX = "sel"
 
 
 @dataclass(frozen=True)
+class RouteRow:
+    """F31-T11 (R8): one drawn route as the problem page lists it beside the sets table —
+    its id (``<node>@<k>``), the statement it decomposes, the partial's file (what a retirement
+    names, ``shelving/v1`` ``route``), its approach, and what shelving did to it (``None`` when
+    nothing; see ``shelving_words``)."""
+
+    id: str
+    node: str
+    partial: str
+    approach: str | None
+    shelving: str | None
+    #: Every hole of it is shelved (retired, or shelved one by one): nothing is left to retire.
+    cut: bool = False
+
+
+@dataclass(frozen=True)
 class Drawing:
     """What the page embeds (the contract is the session note of 2026-10-18): the merged
     drawing, the selector with the proof notes, the sets table, the layouts as a
@@ -592,6 +608,8 @@ class Drawing:
     band: str = ""
     #: F31-T10 (R7): how many of ``hidden`` are shelved statements (the rest are on no route).
     shelved: int = 0
+    #: F31-T11 (R8): the drawn routes (the tree's, not the band's), in the drawing's order.
+    routes: tuple[RouteRow, ...] = ()
 
 
 def _line_key(src: str, dst: str) -> str:
@@ -1231,4 +1249,17 @@ def drawing(  # noqa: PLR0913 — the page's inputs
         follow_toggle=_follow_toggle() if result.sets else "",
         band=band_svg,
         shelved=shelved_hidden,
+        routes=tuple(
+            RouteRow(
+                r.id,
+                r.node,
+                r.partial,
+                r.approach,
+                shelving_words(r, rows, d.below.get(rid, [])),
+                cut=bool(d.below.get(rid))
+                and all(rows.get(h, {}).get("shelved") for h in d.below.get(rid, [])),
+            )
+            for rid, r in d.junctions.items()
+            if r.node not in set(band)
+        ),
     )
