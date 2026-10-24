@@ -43,6 +43,7 @@ def test_routes_match_d35() -> None:
     owned |= routes.D35_OWNED_BY_F24  # F24-T5: D-35 v3.34's panel row
     owned |= routes.D35_OWNED_BY_F25  # F25-T4: D-35 v3.37's names-and-registrations row
     owned |= routes.D35_OWNED_BY_F26  # F26-T10: D-35 v3.39's reviews row
+    owned |= routes.D35_OWNED_BY_F31  # F31-T7: D-35 v3.47's shelving row
     assert rows >= owned, rows
     # The append row names no endpoint: D-35's plain path for the three append tools is the
     # pull request itself, quoted here verbatim so a reworded decision fails this test.
@@ -59,6 +60,7 @@ def test_routes_match_d35() -> None:
         | routes.D35_OWNED_BY_F24
         | routes.D35_OWNED_BY_F25
         | routes.D35_OWNED_BY_F26
+        | routes.D35_OWNED_BY_F31
     )
     assert routes.D35_PROPOSAL_PR in d35_text()  # F08's rows, verbatim like the append row
     assert routes.D35_CLAIM_PR in d35_text()
@@ -76,6 +78,7 @@ def test_routes_match_d35() -> None:
             "F24",
             "F25",
             "F26",
+            "F31",
         ), r
 
 

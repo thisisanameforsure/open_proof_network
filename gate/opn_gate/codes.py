@@ -3169,8 +3169,8 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "api",
         None,
         "Only an active steward of the target or a listed curator may do this: approve words "
-        "(D-3 v3.33), confirm a literature status (D-25 v3.35) or record a registration "
-        "(D-10 v3.37).",
+        "(D-3 v3.33), confirm a literature status (D-25 v3.35), record a registration "
+        "(D-10 v3.37) or shelve a statement (D-14 v3.47).",
         (
             "Become the problem's steward at /steward/<target>/, or ask one of its stewards or a "
             "curator to do it."
@@ -3190,6 +3190,45 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
             "site after sign-in."
         ),
         "Report it to the operator (OPN_API_SITE_ORIGIN).",
+    ),
+    # --- F31-R5, R6 (D-14 v3.47): shelving — the service's refusals before anything opens ---
+    "node-root": (
+        "api",
+        None,
+        "The node is the target's root; the root is never shelved (D-14 v3.47).",
+        "Shelve the statement or route that does not serve the root instead; a problem is "
+        "retired by its target's status, not by a shelving.",
+    ),
+    "node-used": (
+        "api",
+        None,
+        "A merged proof uses this statement (proofs[].used, or an input of a closure link), so "
+        "it is a fact a kernel-checked proof rests on and cannot be shelved (D-14 v3.47). The "
+        "details name the nodes whose proofs use it.",
+        "Nothing to do on this node; shelve a statement no merged proof uses.",
+    ),
+    "shelving-route-unknown": (
+        "api",
+        None,
+        "scope is route but the file named is not one of the node's merged decompositions; the "
+        "details list the routes the row carries.",
+        "Name the partial's file as the row's decompositions list it (attempts/<file>.lean), or "
+        "use scope node to shelve the statement itself.",
+    ),
+    "already-shelved": (
+        "api",
+        None,
+        "The row already says what this record would: the node is shelved by its own record, or "
+        "every hole of the named route is already retired through it.",
+        "Nothing to do; to change the cause, lift the shelving (action unshelved) and shelve "
+        "again.",
+    ),
+    "not-shelved": (
+        "api",
+        None,
+        "An unshelved record was sent for a node whose row carries no shelving at all (its own "
+        "or inherited), so there is nothing to lift.",
+        "Nothing to do; read `shelved` on the node's graph.json row before lifting one.",
     ),
     # --- F24-R8: the panel's routes refuse by name what the gate would refuse at the merge ---
     "already-signed": (

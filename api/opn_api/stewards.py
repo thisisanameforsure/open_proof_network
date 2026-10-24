@@ -89,6 +89,20 @@ def approval_key(ctx: Context) -> tuple[str, str]:
         ) from exc
 
 
+def may_act(ctx: Context, target_id: str, login: str, act: str) -> None:
+    """The one role rule a steward's or curator's signed act shares (D-25, D-32 v3.35; D-14
+    v3.47): an active steward of the target or a listed curator; anyone else is 403
+    ``not-steward-or-curator`` naming the act, and nothing opens."""
+    if session.is_curator(ctx, login) or session.is_steward(ctx, target_id, login):
+        return
+    raise ApiError(
+        403,
+        "not-steward-or-curator",
+        f"{login} is neither an active steward of {target_id} nor a listed curator; only they "
+        f"may {act}",
+    )
+
+
 def sign_record(doc: dict[str, Any], private: str, public: str) -> dict[str, Any]:
     """``doc`` with ``key`` (the approval key's public half) and ``signature`` over the canonical
     body, the bytes ``opn_gate.signed.verifies`` checks (``via: approval-key``)."""

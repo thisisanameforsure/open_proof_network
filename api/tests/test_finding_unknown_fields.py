@@ -255,6 +255,18 @@ def literature_confirm(h: Harness, key: PrecheckKey) -> Prepared:
     return body, h.auth(h.token_for("code_alice", "alice"))
 
 
+def shelvings_(h: Harness, key: PrecheckKey) -> Prepared:
+    """F31-T7: a shelving, refused before the approval key or the graph is read."""
+    body = {
+        "node_id": TUTORIAL_NODE,
+        "action": "shelved",
+        "scope": "node",
+        "route": None,
+        "cause": "Does not serve the root.",
+    }
+    return body, h.auth(h.token_for("code_alice", "alice"))
+
+
 def motions(h: Harness, key: PrecheckKey) -> Prepared:
     """F24-T5: a motion, refused before the approval key or the graph is read."""
     body = {"target": TARGET, "kind": "invite", "subject": {"login": "carol"}}
@@ -340,6 +352,7 @@ WRITE_ROUTES: dict[str, Prepare] = {
     "/approvals": approvals,  # F23-T6
     "/literature": literature,  # F05-T29
     "/literature/confirm": literature_confirm,  # F23-T12
+    "/shelvings": shelvings_,  # F31-T7
     "/motions": motions,  # F24-T5
     "/votes": votes,  # F24-T5
     "/writeups": writeups,  # F24-T5
