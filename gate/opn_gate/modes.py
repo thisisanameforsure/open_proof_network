@@ -107,6 +107,7 @@ from opn_gate.signer import Signer
 
 if TYPE_CHECKING:
     from opn_gate.literature import Record as LiteratureRecord
+    from opn_gate.shelving import Record as ShelvingRecord
     from opn_gate.steps.review_step import Standing
 
 Mode = Literal[
@@ -734,7 +735,8 @@ def classify(  # noqa: PLR0911, PLR0912 — one return and one branch per reject
     # is the steward-or-curator half of superseding a signed version and of a withdrawal.
     # F08-T40: and the opener of an SSH-signed literature confirmation (D-32 v3.35), which is
     # the signer's act as a gloss signature is (``check_literature_record``).
-    literature = any(loc.role == "literature" for loc in located)
+    # F31-R1 (D-14 v3.47): and of an SSH-signed shelving record (``check_shelving_record``).
+    literature = any(loc.role in ("literature", "shelving") for loc in located)
     who = author if pointers or literature or mode == "explainer" else None
     return Classification(
         mode,
@@ -1279,6 +1281,11 @@ def check(  # noqa: PLR0912, PLR0915 — one branch per role with a check of its
                 check_literature_record(
                     graph_root, located, classification, signer=signer, base=base
                 )
+            )
+        elif located.role == "shelving":
+            # F31-R1 (D-14 v3.47): an append that is always a steward's or curator's act.
+            problems.extend(
+                check_shelving_record(graph_root, located, classification, signer=signer, base=base)
             )
         elif located.role in paths.APPEND_ROLES:
             problems.extend(check_append_file(graph_root, located, mode=classification.mode))
@@ -2274,6 +2281,133 @@ def check_literature_record(  # noqa: PLR0911 — one return per rule
         key=str(doc.get(signed.KEY_FIELD) or ""),
         verifier=verifier,
     )
+
+
+def check_shelving_record(  # noqa: PLR0911 — one return per rule
+    graph_root: Path,
+    located: Located,
+    classification: Classification,
+    *,
+    signer: Signer | None = None,
+    base: BaseReader | None = None,
+) -> list[Diagnostic]:
+    """F31-R1 (D-14, D-32 v3.47): a shelving record validates, names the node it sits under and
+    is signed by an active steward of the target or a listed curator — under the approval key of
+    the merge's parent tree through the service, or under the signer's own key, which is then
+    their steward key or they opened the pull request (``check_signer_opener``). Then the tree's
+    own rules, read from the parent tree and never from ``graph.json``: the root is never shelved
+    (``node-root``); a statement a merged proof uses may not be (``node-used``, rule 3); a
+    retirement names one of the node's merged partials (``shelving-route-unknown``). Nothing is
+    asked about standing records: the directory is append-only and the latest record wins."""
+    from opn_gate import shelving  # noqa: PLC0415 — only this check and the products read them
+
+    data = _read(graph_root, located)
+    if isinstance(data, Diagnostic):
+        return [data]
+    problems = _check_schema(located, data, code="record-invalid")
+    if problems:
+        return problems
+    doc = _document(located, data)
+    if isinstance(doc, Diagnostic):
+        return [doc]
+    if doc.get("node") != located.node_id:
+        return [
+            Diagnostic(
+                "shelving-node",
+                f"{located.path} is a record for node {doc.get('node')!r}, and it sits under "
+                f"nodes/{located.node_id}/ (D-14 v3.47)",
+                {"path": located.path, "node": doc.get("node")},
+            )
+        ]
+    record = shelving.Record(PurePosixPath(located.path).name, doc)
+    verifier = signer or signed.default_signer()
+    assert located.target_id is not None
+    problem = shelving.signature_problem(
+        record,
+        signers=real_identities(graph_root, located.target_id, signer=verifier),
+        approval_key=approval_key(graph_root, base),
+        verifier=verifier,
+    )
+    if problem is not None:
+        code, reason = problem
+        details = {"path": located.path, "signer": record.contributor}
+        message = f"{located.path}: {reason}"
+        if code == "shelving-signer-unlisted":
+            return [Diagnostic("shelving-signer-unlisted", message, details)]
+        return [Diagnostic("shelving-signature", message, details)]
+    found = _shelving_tree_problems(graph_root, located, record)
+    if found or _by_approval_key(doc):
+        return found  # an approval-key signature is the service's act for the login it names
+    return check_signer_opener(
+        graph_root,
+        located,
+        classification,
+        signer_name=record.contributor,
+        key=str(doc.get(signed.KEY_FIELD) or ""),
+        verifier=verifier,
+    )
+
+
+def _shelving_tree_problems(
+    graph_root: Path, located: Located, record: ShelvingRecord
+) -> list[Diagnostic]:
+    """F31-R1's rules about the tree (rule 3): the root, a used statement, an unknown route —
+    each read from the target as it loads, which is the parent tree plus this record."""
+    from opn_gate import shelving  # noqa: PLC0415 — see check_shelving_record
+
+    assert located.target_id is not None and located.node_id is not None
+    details: dict[str, Any] = {"path": located.path, "node": located.node_id}
+    try:
+        tg = graphmod.load_target(graph_root, located.target_id)
+    except (ValueError, OSError) as exc:  # SchemaError, GraphError: a graph defect
+        return [
+            Diagnostic(
+                "graph-unreadable",
+                f"{located.path}: targets/{located.target_id} does not load, so the record's "
+                f"node cannot be judged: {exc}",
+                details,
+            )
+        ]
+    node = tg.nodes.get(located.node_id)
+    if node is None:
+        return [
+            Diagnostic(
+                "shelving-node",
+                f"{located.path}: {located.node_id} is not a node of {located.target_id}",
+                details,
+            )
+        ]
+    if located.node_id == tg.root:
+        return [
+            Diagnostic(
+                "node-root",
+                f"{located.path}: {located.node_id} is the root of {located.target_id}; the root "
+                "is never shelved (D-14 v3.47)",
+                details,
+            )
+        ]
+    if located.node_id in shelving.used_nodes(tg.nodes):
+        return [
+            Diagnostic(
+                "node-used",
+                f"{located.path}: a merged proof uses {located.node_id}; a statement a proof "
+                "rests on is not shelved (D-14 v3.47)",
+                details,
+            )
+        ]
+    if record.scope == shelving.SCOPE_ROUTE:
+        known = [p.path for p in node.partials]
+        if record.route not in known:
+            listed = f" (its partials: {', '.join(known)})" if known else ""
+            return [
+                Diagnostic(
+                    "shelving-route-unknown",
+                    f"{located.path}: {record.route!r} is not a merged partial of "
+                    f"{located.node_id}{listed}",
+                    {**details, "route": record.route, "partials": known},
+                )
+            ]
+    return []
 
 
 def _literature_named_problems(
