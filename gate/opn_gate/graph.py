@@ -1146,6 +1146,12 @@ def load_target(graph_root: Path, target_id: str) -> TargetGraph:
 
         vouched = modes.root_vouched(target_dir) is not None
     statuses = derive_statuses(nodes, root=root, root_vouched=vouched)
+    # F31-R2 (D-14 v3.47): what is shelved, derived once from the records and the routes, after
+    # the statuses (which never read it) and before anything publishes the node.
+    from opn_gate import shelving  # noqa: PLC0415 — shelving reads this module's facts
+
+    derived = shelving.derive(nodes, root=root, used=shelving.used_nodes(nodes))
+    nodes = {n: replace(node, shelved=derived[n]) for n, node in nodes.items()}
     return TargetGraph(
         target_id=target_id,
         path=target_dir,
