@@ -1,0 +1,78 @@
+F31-T9 — MCP and the guide (R3, R9) — service agent, branch f31-service
+
+Environment: the api tests' fake host; nothing live was touched. Base: 271662d4 (F31-T8).
+
+## The MCP (R3)
+
+No adapter code changed: `get_node` builds the bundle from the graph.json row through
+`context.build` (both builders, F31-T1), so a shelved row's `shelved` object is in the answer's
+`context.shelved` already; `list_frontier` passes the served frontier through, and a shelved node
+is absent from it. The three MCP smokes were written in T8's test file with "mcp" in their names
+(the task's verification command selects them with -k mcp):
+
+  test_mcp_get_node_carries_the_shelving_through_the_bundle   context/v11, context.shelved == the row's object
+  test_mcp_list_frontier_omits_a_shelved_node                 the node gone, its sibling listed
+  test_mcp_claim_on_a_shelved_node_is_the_routes_refusal      {"status": 409, "body": {"error": "node-shelved", ...}}
+
+They were green at T8's red run (the bundle carried the row's object before any T8 code), which
+is the evidence that T1's seam is enough on the api side.
+
+    python -m pytest -q -p no:cacheprovider -m "not lean and not docker and not network and not harness" \
+      api/tests/test_mcp_surface.py api/tests/test_finding_shelved_refusals.py -k mcp
+    9 passed, 10 deselected, 2 warnings in 2.17s
+
+`api/opn_api/mcp/schemas/list_sufficient_sets/v4.json:89` ("live: Resolved, and no hole refuted,
+defective, abandoned or superseded"): every version of that schema has exactly one commit
+(`git log -- api/opn_api/mcp/schemas/list_sufficient_sets/`: v3 by F27-T9, v4 by F09-T76), so the
+files are versioned, never edited in place — LEFT UNCHANGED, as the brief says to. The sentence is
+now incomplete (the gate's T4 makes a route dead when retired or when a hole is shelved and
+unproved); the honest fix is a v5 with that one description changed, which touches the result
+loader and the bijection pin, so it is the lead's call (proposed Q below).
+
+## The guide (R9) — gate/agents/AGENTS.md, +28 lines, no fenced block added
+
+- "Claiming a node": one paragraph after the literature fields — a shelved statement is not on
+  the frontier whatever its status; read `shelved` on the row or in `get_node`; expect
+  `409 node-shelved`.
+- "Permitted paths" table: a row for `shelving/<timestamp>-<login>.yaml` (who, the fields, the
+  two paths — `POST /shelvings` signed by the approval key, or `opn-gate shelve` by hand — the
+  root and a used statement excluded, not a status).
+- "Literature records": a **Shelving** paragraph: what it means (D-14 v3.47, a steward's or
+  curator's judgment), not a status, the object on the row (`graph/v15`) and in the bundle
+  (`context/v11`, node and deps) with its six fields, the reach rules in one sentence, what is
+  refused (`node-shelved`; `POST /check` warns), `unshelved` and own-record-first, only a person
+  shelves (no MCP tool; `POST /shelvings` from the site; `node-root`, `node-used`,
+  `shelving-route-unknown`), nothing deleted.
+
+Guide tests (every backticked route, tool and code held to the code):
+
+    gate/tests/test_finding_guide_names_exist.py gate/tests/test_finding_guide_curator_records.py
+    gate/tests/test_finding_guide_tester_1008.py gate/tests/test_finding_guide_words_entry.py
+    gate/tests/test_finding_guide_f25_fields.py api/tests/test_finding_route_index.py
+    api/tests/test_finding_guide_token_body.py api/tests/test_finding_info_urls.py api/tests/test_mcp_surface.py
+    70 passed, 2 warnings in 4.65s
+
+The walkthrough, with the graph copy read from a detached worktree of ../open_proof_network_graph
+at origin/main (76df65077; made in the scratchpad with `git worktree add --detach`, removed after):
+
+    OPN_GRAPH_CHECKOUT=<scratchpad>/graph-main python -m pytest ... gate/tests/test_walkthrough.py
+    1 failed, 5 passed, 1 deselected
+    FAILED test_graph_copy_is_identical — "the graph's AGENTS.md drifted; recopy it"
+
+EXPECTED RED: the graph's copy is updated at the re-pin (D-35), not by this branch. Checked that
+the drift is only this task's: the graph copy at origin/main is byte-identical to the base
+commit's guide (`git show d91680aa:gate/agents/AGENTS.md | cmp - graph-main/AGENTS.md`: equal).
+Every executing block passed (5 passed), so the added prose broke no command.
+
+Note for the lead: `opn-gate shelve` in the table row names the gate agent's T6 command; if T6
+lands under another name, change the row (the names test does not hold a two-word span).
+
+## Decisions (proposed Q entries)
+
+- proposed Q: `list_sufficient_sets/v4.json`'s `live` description predates F31-T4's rule; the
+  MCP result schemas are versioned and never edited in place, so the words wait for a v5 (one
+  description change, the loader's version and the bijection pin) rather than an in-place edit.
+- proposed Q: the guide gets no new `##` section for shelving (the walkthrough holds R1's
+  headings in order and the names test reads the appendix by heading); it is a paragraph under
+  "Literature records", the frontier sentence under "Claiming a node", and a permitted-paths row,
+  which is where an agent meets each of the three facts.
