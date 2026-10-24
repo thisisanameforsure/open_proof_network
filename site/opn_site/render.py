@@ -148,6 +148,10 @@ CLAIMABLE_STATUSES = ("ready", "speculative")
 #: kept the older two-status rule, so it called seven claimable statements "Not accepting work".
 WITNESS_CAUSE = "witness-missing"
 NEEDS_WITNESS = "needs-witness"
+#: F31-T10 (D-14 v3.47): the site's word for a shelved statement that is not proved. Not a
+#: status (F31-Q7): the row's ``status`` stands underneath; the word says the site offers no
+#: work on it, as the frontier offers none (R4).
+SHELVED = "shelved"
 #: The states the site invites work on; the set a test holds to the frontier's claimable entries.
 WORKABLE_STATES = ("open", NEEDS_WITNESS)
 #: A state's word where it differs from its key.
@@ -610,6 +614,15 @@ GLOSSARY: tuple[tuple[str, str, str, str], ...] = (
         "claim (D-25)",
     ),
     (
+        "shelved",
+        "shelved",
+        "A steward of the problem or a curator judged that the statement does not serve the "
+        "root, and said why. It is hidden from the routes view, off the frontier, and work on "
+        "it is refused, until an unshelve record lifts it. Its status is unchanged: a proved "
+        "statement stays proved, and a route may still rest on it.",
+        "shelving record (D-14 v3.47)",
+    ),
+    (
         "attempt",
         "Attempt",
         "Any proof submitted, pass or fail. Failures are kept on the record and count as "
@@ -648,6 +661,7 @@ ROUTE_MARK_KEYS = (
     "relation-resolves",  # F04-T55 (D-30 v3.46): the trunks, each when the drawing has one
     "relation-refutes",
     "relation-partial",  # F30-T16
+    SHELVED,  # F31-T10 (R7): a mark on a statement's pill, not a status (F31-Q7)
 )
 #: F04-T21 (Q23): the Docs state map's keys. Every status ``graph.json`` can publish, as the
 #: site's word (F03-Q8: ``speculative`` reads open, so nine words for ten statuses), and the seven
@@ -1341,9 +1355,13 @@ class Renderer:
 
     @staticmethod
     def node_state(nv: NodeView) -> str:
-        """The row's word: proved, open (a claim could take it, F03-Q8) or the status itself."""
+        """The row's word: proved, open (a claim could take it, F03-Q8) or the status itself.
+        F31-T10: a shelved statement that is not proved reads ``shelved`` — it is off the
+        frontier (R4), so the site must not call it work; a shelved proved one stays proved."""
         if nv.status == "proved":
             return "proved"
+        if nv.shelved is not None:
+            return SHELVED
         if nv.status in CLAIMABLE_STATUSES:
             return "open"
         if nv.status == "blocked" and nv.cause == WITNESS_CAUSE:
@@ -1357,7 +1375,7 @@ class Renderer:
     @staticmethod
     def dot_state(state: str) -> str:
         """The dot a state wears: its own when the key has one (T14), the neutral ring else."""
-        return state if state in (*DOTTED_KEYS, *LEGEND_EXTRA) else "blocked"
+        return state if state in (*DOTTED_KEYS, *LEGEND_EXTRA, SHELVED) else "blocked"
 
     def graph_legend(self, tv: TargetView, drawn: one_view.Drawing | None = None) -> str:
         """The statement graph's key (F04-T14, Q16): the three base states, then every other
@@ -1822,7 +1840,7 @@ class Renderer:
     def state_hover(self, nv: NodeView) -> str:
         """The row's status dot with the state's definition, and a blocked node's cause."""
         state = self.node_state(nv)
-        if state in ("proved", *WORKABLE_STATES) or state in LEGEND_EXTRA:
+        if state in ("proved", *WORKABLE_STATES, SHELVED) or state in LEGEND_EXTRA:
             _word, meaning, proto = self.words["by_key"][state]
             body = f'{esc(meaning)}<span class="proto"> protocol: {esc(proto)}</span>'
         else:
@@ -1845,6 +1863,8 @@ class Renderer:
             return f'<a class="act act-open" href="{href}">Supply a witness →</a>'
         if state == "proved":
             return f'<a class="act act-proved" href="{href}">View proof →</a>'
+        if state == SHELVED:  # F31-T10: off the frontier by a person's judgment, not a wait
+            return f'<a class="act act-blocked" href="{href}">Shelved</a>'
         return f'<a class="act act-blocked" href="{href}">Blocked</a>'
 
     def home(self) -> str:

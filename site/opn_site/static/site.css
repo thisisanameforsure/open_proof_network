@@ -1117,6 +1117,11 @@ th[aria-sort="descending"] .routes-sort::after { content: " ↓"; }
 .dot-route-or { border: 1.5px solid var(--text); border-radius: 1px; transform: rotate(45deg); width: 8px; height: 8px; }
 .dot-route-dead { border: 1.5px dashed var(--bad); }
 .dot-closable { border: 0; background: var(--accent-300); border-radius: 1px; width: 8px; height: 8px; }
+/* F31-T10 (D-14 v3.47): a shelved statement is a mark, not a status — the pill keeps its status
+   colour and is dimmed, its outline dotted; the key's swatch is the same dotted ring. */
+.dag .node.shelved { opacity: .45; }
+.dag .node.shelved rect.pill { stroke-dasharray: 2 3; }
+.dot-shelved { border-style: dotted; border-color: var(--n500); opacity: .7; }
 /* F04-T55 (D-30 v3.46): the relation trunks from a variant into the root — solid and a little
    heavier than a dependency; the refuting one in --refute, with the selector branch beneath it. */
 .dag .edge.relation.resolves { stroke: var(--n500); stroke-width: 2; }
