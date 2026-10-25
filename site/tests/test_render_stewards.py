@@ -113,12 +113,13 @@ def test_the_signed_explainer_is_vouched_for_above_the_label(pages: dict[str, st
 
 
 def test_the_home_counts_lead_with_coverage(pages: dict[str, str]) -> None:
-    """R10, Q10: the counts card leads with explained / proved (F04-T12's big number), and the
-    steward count is of distinct stewards."""
+    """R10, Q10, restated by F04-T57 (D-36 v3.48): explanation leads the home page as people
+    vouching, not as a ratio — the signed explainer is a row naming its signer, and no count
+    card stands beside it."""
     home = pages["index.html"]
-    assert '<span class="big">1 / 3</span>' in home
-    assert "proved statements explained" in home
-    assert '<span class="n">1</span><span class="l">stewards</span>' in home
+    assert "proved statements explained" not in home
+    vouched = home[home.index('data-kind="vouched"') :]
+    assert SIGNER_LOGIN in vouched[: vouched.index("</li>")]
 
 
 def test_every_new_link_is_on_the_allowlist(pages: dict[str, str]) -> None:

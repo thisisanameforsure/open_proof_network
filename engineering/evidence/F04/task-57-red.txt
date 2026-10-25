@@ -1,0 +1,30 @@
+
+ledgered = (Site(root=PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-181/home-l...666666666666666666666666666666666666/frontier.json">frontier.json ↗</a></span>\n</footer>\n\n</body>\n</html>\n', ...})
+
+    def test_three_doors(ledgered: tuple[model.Site, dict[str, str]]) -> None:
+        _site, pages = ledgered
+        home = pages["index.html"]
+        doors = re.findall(r'<span class="kicker">([^<]+)</span><h3>', home)
+>       assert doors == ["Mathematicians", "Readers of Lean", "Bringing an agent"], doors
+E       AssertionError: []
+E       assert [] == ['Mathematici...ing an agent']
+E         
+E         Right contains 3 more items, first extra item: 'Mathematicians'
+E         Use -v to get more diff
+
+site/tests/test_finding_home_page.py:270: AssertionError
+=========================== short test summary info ============================
+FAILED site/tests/test_finding_home_page.py::test_the_home_page_carries_no_network_counts
+FAILED site/tests/test_finding_home_page.py::test_the_hero_leads_with_understanding
+FAILED site/tests/test_finding_home_page.py::test_the_six_lines_are_pairs_each_crossing_out_one_thing
+FAILED site/tests/test_finding_home_page.py::test_the_steward_line_claims_the_rule_only_when_the_record_enforces_it
+FAILED site/tests/test_finding_home_page.py::test_no_line_claims_what_the_fixture_record_does_not_show
+FAILED site/tests/test_finding_home_page.py::test_the_record_list_is_newest_first_and_skips_revoked_credit
+FAILED site/tests/test_finding_home_page.py::test_one_day_of_one_kind_on_one_problem_is_one_row
+FAILED site/tests/test_finding_home_page.py::test_each_row_links_where_it_happened
+FAILED site/tests/test_finding_home_page.py::test_words_and_their_signatures_reach_the_list
+FAILED site/tests/test_finding_home_page.py::test_the_list_says_so_when_the_record_is_empty
+FAILED site/tests/test_finding_home_page.py::test_the_list_holds_at_most_eight_rows
+FAILED site/tests/test_finding_home_page.py::test_the_featured_problem_is_drawn_and_linked
+FAILED site/tests/test_finding_home_page.py::test_three_doors - AssertionErro...
+13 failed, 2 passed in 9.57s

@@ -355,7 +355,8 @@ def test_refusal_writes_nothing_even_when_out_exists(
 
 
 def test_empty_graph_renders_every_fixed_page(tmp_path: Path) -> None:
-    """A graph with no targets is a valid site: zero counts, no rows, an explicit empty frontier."""
+    """A graph with no targets is a valid site: no rows, an explicit empty frontier, and a home
+    page that says the record is empty (F04-T57: it carries no counts to be zero)."""
     root = fixture.build(tmp_path)
     index = _read(root, "targets/index.json")
     index["targets"] = []
@@ -367,9 +368,9 @@ def test_empty_graph_renders_every_fixed_page(tmp_path: Path) -> None:
     assert {"index.html", "problems/index.html", "about/index.html"} <= set(files)
     assert {"targets/index.html", "frontier/index.html"} <= set(files)  # the redirects
     assert not any(rel.startswith("nodes/") for rel in files)
-    assert '<span class="n">0</span><span class="l">problems</span>' in files["index.html"]
     assert "No problems are listed yet." in files["problems/index.html"]
-    assert "No problems are listed yet." in files["index.html"]
+    assert "Nothing is on the record yet." in files["index.html"]
+    assert 'id="worked"' not in files["index.html"]  # no problem to draw
     assert '<article class="card problem"' not in files["problems/index.html"]
 
 

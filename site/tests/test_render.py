@@ -120,14 +120,11 @@ def test_target_page_has_dag_and_nodes(rendered: dict[str, str]) -> None:
 
 
 def test_home_counts(rendered: dict[str, str]) -> None:
-    """F04-T12: the counts card leads with explained / proved (D-36 v3.17), then problems,
-    open statements and stewards."""
+    """F04-T12, restated by F04-T57 (D-36 v3.48): the home page carries no counts card; it
+    still links the Problems and About pages."""
     home = rendered["index.html"]
-    assert '<span class="big">0 / 2</span>' in home
-    assert '<span class="n">1</span><span class="l">problems</span>' in home
-    assert '<span class="n">1</span><span class="l">open statements</span>' in home
-    assert '<span class="n">0</span><span class="l">stewards</span>' in home
-    assert 'href="/problems/"' in home and 'href="/about/"' in home
+    assert 'class="counts-card"' not in home and "proved statements explained" not in home
+    assert 'href="/problems/' in home and 'href="/about/' in home
 
 
 class _Balance(HTMLParser):
