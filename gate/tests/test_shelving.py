@@ -48,6 +48,10 @@ def tree(tmp_path: Path, keys: dict[str, Path]) -> Tree:
     return t
 
 
+ROOT_HOLE = f"{ROOT}--h9"
+ROOT_ROUTE = "attempts/20261025T000000Z-root-partial.lean"
+
+
 def second_route(tree: Tree) -> None:
     """Route 2 of ``A``: a new hole ``A--h3`` and ``A--h2`` again, restated as a lemma."""
     tree.hole(H3, "h3", parent=A)
@@ -119,6 +123,15 @@ def test_an_own_record_on_a_used_statement_is_void(tree: Tree) -> None:
 def test_a_record_on_the_root_that_slipped_in_is_ignored(tree: Tree) -> None:
     tree.shelve(ALICE, ROOT)
     assert shelved_ids(tree) == set()
+
+
+def test_retiring_a_route_of_the_root_shelves_its_holes_and_not_the_root(tree: Tree) -> None:
+    """F31-Q18: the root is never shelved, but its own decompositions are retired like any
+    other's — the retirement cuts the arrival into each hole and the root stays."""
+    tree.hole(ROOT_HOLE, "hr", parent=ROOT)
+    tree.partial(ROOT, ["hr"], path=ROOT_ROUTE)
+    tree.shelve(ALICE, ROOT, scope="route", route=ROOT_ROUTE)
+    assert shelved_ids(tree) == {ROOT_HOLE}
 
 
 def test_a_route_retirement_reaches_its_holes_and_theirs_but_not_the_node_or_a_shared_hole(

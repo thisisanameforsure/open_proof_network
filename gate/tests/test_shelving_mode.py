@@ -120,8 +120,23 @@ def test_a_record_filed_under_another_node_is_refused(tree: Tree) -> None:
     assert tree.codes(change) == ["shelving-node"]
 
 
+ROOT_HOLE = f"{ROOT}--h9"
+ROOT_ROUTE = "attempts/20261025T000000Z-root-partial.lean"
+
+
 def test_a_record_on_the_root_is_refused(tree: Tree) -> None:
+    """``scope: node`` on the root; a retirement of one of the root's routes is another matter
+    (``test_a_route_record_on_the_root_passes``)."""
     assert tree.codes(tree.shelve(ALICE, ROOT)) == ["node-root"]
+
+
+def test_a_route_record_on_the_root_passes(tree: Tree) -> None:
+    """F31-Q18 (the owner's first live act, 2026-10-25, refused ``node-root``): a retirement
+    names a decomposition of the node it sits on and never shelves that node, so the root's
+    routes are retired like any other's."""
+    tree.hole(ROOT_HOLE, "hr", parent=ROOT)
+    tree.partial(ROOT, ["hr"], path=ROOT_ROUTE)
+    assert tree.codes(tree.shelve(ALICE, ROOT, scope="route", route=ROOT_ROUTE)) == []
 
 
 def test_a_record_on_a_statement_a_merged_proof_uses_is_refused(tree: Tree) -> None:

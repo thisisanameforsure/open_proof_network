@@ -164,7 +164,9 @@ def check_act(  # noqa: PLR0913 — one act, every rule
     if row is None:
         # Listed on the frontier but on no row (F05-T9's case): nothing to judge against.
         return
-    if node_id == root:
+    # F31-Q18: a retirement sits on the node whose decomposition it names and never shelves
+    # that node, so the root's own routes are retired like any other's; the rule is scope node.
+    if node_id == root and scope == "node":
         raise ApiError(
             409,
             "node-root",

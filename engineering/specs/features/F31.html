@@ -242,8 +242,20 @@ state map. Retire is offered on every drawn route not already cut; the root's pa
 routes list is a new sibling after the sets table (<code>.routes-list-wrap</code>), an addition to the F30 contract
 note, which graph.js never reads.</p>
 
+<p><strong>F31-Q18 &mdash; The root's routes are retired like any other's, from the sets table (the owner,
+2026-10-25).</strong> The first live act was refused <code>node-root</code>: a retirement sits on the node whose
+decomposition it names, and route 2 of erdos-257 is the root's. Both the service's write-time rule and the
+gate's pre-merge rule were keyed on the node alone; they are keyed on <code>scope: node</code> now, since a
+retirement never shelves the node it sits on (R2) and the root's own decompositions are what a steward most
+wants to retire. The derivation needed no change: a route-scope record on the root cuts the arrival into each
+of its holes and the root stays. The gate half binds the graph only at the next re-pin. And the owner read the
+separate routes list as confusing: the retire control lives in the sufficient-sets table now, a Routes column
+naming each set's routes (<code>span.set-route[data-route]</code>, approach as the title) with the hidden
+<code>.retire-act</code> beside each, so a route a set goes through is retired on the row that shows why it
+matters; a route no live set rests on is in no row, and its holes are shelved from their own pages.</p>
+
 <h2>10. Status</h2>
-<div class="rule"><strong>status:</strong> built 2026-10-24 on branch <code>f31-shelving</code> (decisions v3.47; three worktree agents, gate / service / site, merged by the lead) · <strong>Tasks:</strong> T0&ndash;T1 done (contract; <code>engineering/evidence/F31/task-0.txt</code>, <code>task-1.txt</code>: full verify 6662 passed) · T2&ndash;T6 done (gate: 17 + 18 + 5 + 6 + 3 new tests, <code>task-2.txt</code>&ndash;<code>task-6.txt</code>) · T7&ndash;T9 done (service: 31 + 13 + 9, <code>task-7.txt</code>&ndash;<code>task-9.txt</code>) · T10&ndash;T12 done (site: 5 + 7 + 1, six captures, <code>task-10.txt</code>&ndash;<code>task-12.txt</code>) · merged tree: see <code>task-merge.txt</code> · T13 built 2026-10-25 (network PR #89 merged as 512df592, api-deploy and image-publish green, the service serves <code>POST /shelvings</code>; the graph re-pin b9d668eeb is committed on a detached worktree and its push is the owner's, refused to the session as a production deploy; <code>task-13.txt</code>; live 2026-10-25 on the owner's word: b9d668eeb pushed to graph <code>main</code> at 09:22Z, gate run 40180361665 green, render.yml dispatched by the gate itself and committed products 4282b486c (<code>graph/v15</code>, <code>shelved</code> on every row, frontier unchanged at 104), site-deploy 40180487696 serving that commit; the graph's <code>AGENTS.md</code> copy now equals the network's, so <code>test_graph_copy_is_identical</code> passes again) · T14 todo (the owner retires route 2 of erdos-257 from the site)</div>
+<div class="rule"><strong>status:</strong> built 2026-10-24 on branch <code>f31-shelving</code> (decisions v3.47; three worktree agents, gate / service / site, merged by the lead) · <strong>Tasks:</strong> T0&ndash;T1 done (contract; <code>engineering/evidence/F31/task-0.txt</code>, <code>task-1.txt</code>: full verify 6662 passed) · T2&ndash;T6 done (gate: 17 + 18 + 5 + 6 + 3 new tests, <code>task-2.txt</code>&ndash;<code>task-6.txt</code>) · T7&ndash;T9 done (service: 31 + 13 + 9, <code>task-7.txt</code>&ndash;<code>task-9.txt</code>) · T10&ndash;T12 done (site: 5 + 7 + 1, six captures, <code>task-10.txt</code>&ndash;<code>task-12.txt</code>) · merged tree: see <code>task-merge.txt</code> · T13 built 2026-10-25 (network PR #89 merged as 512df592, api-deploy and image-publish green, the service serves <code>POST /shelvings</code>; the graph re-pin b9d668eeb is committed on a detached worktree and its push is the owner's, refused to the session as a production deploy; <code>task-13.txt</code>; live 2026-10-25 on the owner's word: b9d668eeb pushed to graph <code>main</code> at 09:22Z, gate run 40180361665 green, render.yml dispatched by the gate itself and committed products 4282b486c (<code>graph/v15</code>, <code>shelved</code> on every row, frontier unchanged at 104), site-deploy 40180487696 serving that commit; the graph's <code>AGENTS.md</code> copy now equals the network's, so <code>test_graph_copy_is_identical</code> passes again) · T14 blocked on T15's re-pin (the owner's first try was refused <code>node-root</code>, Q18) · T15 built 2026-10-25 (Q18: route-scope records on the root pass the service and the gate; Retire moved into the sets table; <code>task-15.txt</code>) — its gate half binds the graph only at a re-pin, the owner's push</div>
 
 <h2>Tasks</h2>
 <table>
@@ -297,6 +309,11 @@ note, which graph.js never reads.</p>
     shelved node end to end.</td><td>&mdash;</td><td>T2&ndash;T12</td><td>live evidence in <code>engineering/evidence/F31/</code></td></tr>
   <tr><td>F31-T14</td><td>erdos-257 (owner): retire route 2 from the site, shelve <code>variant-6b364d2b</code>
     separately; frontier and drawing before and after.</td><td>graph record</td><td>T13</td><td>captures</td></tr>
+  <tr><td>F31-T15</td><td>Q18: a route retirement on the root is accepted by the service and the gate (the root
+    rule is <code>scope: node</code>); the retire control moves into the sets table's Routes column and the routes
+    list goes.</td><td><code>api/opn_api/shelvings.py</code>, <code>gate/opn_gate/modes.py</code>,
+    <code>site/opn_site/{routes_view,one_view,render}.py</code></td><td>T13</td>
+    <td><code>uv run --frozen pytest api/tests/test_shelvings_route.py gate/tests/test_shelving_mode.py gate/tests/test_shelving.py site/tests/test_shelving_controls.py -k "root or sets_table"</code></td></tr>
 </table>
 
 <footer>Open Proof Network · F31 · specs are authored in HTML</footer>

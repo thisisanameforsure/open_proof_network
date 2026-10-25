@@ -214,17 +214,69 @@ def _count(stop: int, follow: int | None) -> str:
     )
 
 
-def table(
+@dataclass(frozen=True)
+class RouteRow:
+    """F31-T11 (R8): one drawn route as the sets table names it — its id (``<node>@<k>``), the
+    statement it decomposes, the partial's file (what a retirement names, ``shelving/v1``
+    ``route``), its approach, and what shelving did to it (``None`` when nothing; see
+    ``one_view.shelving_words``)."""
+
+    id: str
+    node: str
+    partial: str
+    approach: str | None
+    shelving: str | None
+    #: Every hole of it is shelved (retired, or shelved one by one): nothing is left to retire.
+    cut: bool = False
+
+
+def route_cell(
+    s: routes.SufficientSet, route_rows: Mapping[str, RouteRow], target_id: str, *, controls: bool
+) -> str:
+    """F31-Q18 (the owner, 2026-10-25): the routes a set goes through, each named in the row
+    with its approach as the title and, with a service, its hidden ``.retire-act`` control
+    (``shelve.js`` shows Retire to a steward or curator) unless the route is already cut, in
+    which case what shelving did to it is said instead."""
+    parts = []
+    for rid in s.routes:
+        r = route_rows.get(rid)
+        if r is None:
+            parts.append(
+                f'<span class="set-route" data-route="{escape(rid)}">'
+                f"<code>{escape(rid)}</code></span>"
+            )
+            continue
+        if r.cut or not controls:
+            tail = f' <span class="route-state">{escape(r.shelving)}</span>' if r.shelving else ""
+        else:
+            tail = (
+                f'<span class="retire-act" data-target="{escape(target_id)}" '
+                f'data-node="{escape(r.node)}" data-partial="{escape(r.partial)}" hidden></span>'
+            )
+        title = f' title="{escape(r.approach)}"' if r.approach else ""
+        parts.append(
+            f'<span class="set-route" data-route="{escape(rid)}"{title}><code>{escape(rid)}</code>'
+            f"{tail}</span>"
+        )
+    return f'<td class="set-routes" data-sort="{len(s.routes)}">{"".join(parts)}</td>'
+
+
+def table(  # noqa: PLR0913 — the table's inputs
     result: routes.Routes,
     prefix: str | None,
     views: Mapping[str, str] | None = None,
     follow: routes.Routes | None = None,
+    *,
+    route_rows: Mapping[str, RouteRow] | None = None,
+    controls: bool = False,
 ) -> str:
     """One row per set in the record's order (R11). Each count cell carries its number in
     ``data-sort``; the script adds the sorting and the toggle, which are rendered hidden.
     ``follow`` (F27-R13), the same sets read past their proved statements, gives each row its
     second reading: the statement, proved and shared counts and the list of proved statements
-    under ``v-follow``, shown when the page's toggle is unticked."""
+    under ``v-follow``, shown when the page's toggle is unticked. ``route_rows`` (F31-Q18) adds
+    a Routes column naming the routes each set goes through, with the retire control when
+    ``controls`` (a build with a service address)."""
     names: dag.Prefix = (prefix, result.root) if prefix else None
     rows = []
     any_notes = any(s.variant for s in result.sets)
@@ -264,6 +316,8 @@ def table(
             _count(s.shared, f.shared if f else None),
             f'<td class="num" data-sort="{len(s.assemblies)}">{len(s.assemblies)}</td>',
         ]
+        if route_rows is not None:
+            cells.append(route_cell(s, route_rows, result.target_id, controls=controls))
         if any_notes:
             cells.append(f"<td>{'; '.join(notes)}</td>")
         rows.append(
@@ -281,6 +335,17 @@ def table(
         ("Open", "statements of the set still to prove"),
         ("Shared", "statements of the set that another set also holds"),
         ("Assemblies", "closing proofs of decomposed statements still to submit"),
+        *(
+            [
+                (
+                    "Routes",
+                    "the merged decompositions the set goes through; a steward or curator "
+                    "may retire one",
+                )
+            ]
+            if route_rows is not None
+            else []
+        ),
         *([("Notes", "")] if any_notes else []),
     ]
     th = "".join(
