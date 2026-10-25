@@ -1794,3 +1794,23 @@ The law of the project:
   the schema it declares**: the site validated every literature record as v1 for two days after v2
   shipped, and the page said "could not be read"; a reader of a versioned record keeps a set, never a
   constant. And: a network push deploys the api but never the site — dispatch `site-deploy.yml`.
+- 2026-10-24 — F31 (shelving, decisions v3.47) from the owner's reading of erdos-257's route 2 as
+  clutter that does not help the root, with no act on the site to remove it: lead wrote the contract
+  (`shelving/v1`, `graph/v15`, `context/v11`, `PROTOCOL_VERSION` 3.47), three worktree agents built gate,
+  service and site in parallel, all merged in one sitting (network PR #89). Four things worth keeping.
+  **A removal mechanism is not a status**: `abandoned` is a verdict and only `superseded` is drawn
+  nowhere; a judgment that proved theorems do not help the root needs its own record kind beside the
+  status, derived into every consumer and lifted by one record — and a service-opened `node-status` is
+  refused as a curator act anyway, which an exploration found before a line was written. **Define
+  inheritance over arrivals in dependency order, never as a fixed point**: "shelved iff no live route
+  reaches it, live iff no hole shelved" has two solutions on a one-hole route; and never key a cascade
+  on the `--h` id prefix, since a revision folds the old node's holes onto `-v2`. The live case that
+  made the owner's "every hole beneath it" too wide was a lemma (`erdos-1094--h3@2` uses
+  `erdos-1094--h2--h1--h1`), so a shared hole stays. **Git merges a dict literal without a conflict**:
+  both agents added the same four codes to `codes.py` under different sources, Python took the second
+  silently, and only the catalog's source test would have said so; grep the merged module for duplicate
+  keys before believing a clean merge. **A retirement is read off the holes** because `graph/v15`
+  publishes `shelved` on rows and `decompositions[]` is closed; exact except for a route whose every
+  hole another live route needs (F31-Q12). Also: `uv` and `gh` live in `~/.local/bin` and
+  `/opt/homebrew/bin`, and the shell's `python3` is 3.9 — the post-merge tests that shell out to
+  `python3` fail with "zip() takes no keyword arguments" until the venv is first on PATH.

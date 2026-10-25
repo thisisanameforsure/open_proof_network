@@ -1,0 +1,31 @@
+# F31-T13 — live carry (2026-10-24/25)
+
+1. Network PR #89 (f31-shelving -> main): ci run 40123225429 success on all three tiers (fast, harness,
+   Lean). Merged as main 512df592 ("Merge pull request #89"), 2026-10-25.
+2. api-deploy 40165114019 success (its MCP smoke included). Live, read 2026-10-25T05:27Z:
+     GET /health   ok, store dynamodb
+     GET /         lists POST /shelvings (bearer; "Shelve a statement (it and its hole children), retire one
+                   merged decomposition of it, or lift a shelving, as a steward of its problem or a curator,
+                   with a cause ... never the root or a statement a merged proof uses")
+     GET /errors.json  already-shelved, node-root, node-shelved, node-used, not-shelved, shelving-node,
+                   shelving-route-unknown, shelving-signature, shelving-signer-unlisted
+     POST /shelvings with no credential -> 401 unauthenticated
+3. Tag gate-512df592; image-publish 40165117902 success:
+     gate-512df592                        sha256:5a34912489e195e2367e9dc90a6e360ed833cfead2b48508a59c4539256967fb
+     gate-512df592-mathlib-0df444a360ea   sha256:8b88707d85c28b5afc07a18b15b09b4c80c392966ccfe1c8a4a878f55a7e25b1
+4. Graph re-pin, on a detached worktree at origin/main 76df65077: schemas.unpublished was
+   [context/v11, graph/v15, shelving/v1], [] after publish; AGENTS.md recopied; pin_image.py over 27
+   targets (tutorial plain, 26 Mathlib, Mathlib ones last with --api-url); 27/27 name
+   512df5926ec63bdd313c4ac6489f79273e6570d9; the devcontainer runs the Mathlib image and carries OPN_API.
+   Committed on the worktree as b9d668eeb (33 files). No local pregate: this laptop's Docker cannot pull
+   zstd images (F10-T17); the hosted gate is the check.
+5. PUSH PENDING — the session's permission classifier refused the graph push as a production deploy, so it
+   is the owner's. No gate run was in flight at 05:30Z. The command (from the network checkout):
+     git -C /private/tmp/claude-501/-Users-mikehiggins-Desktop-repos-open-proof-network/26368afd-a3f1-49a0-b0e0-a273c949d3c5/scratchpad/graph-repin push origin HEAD:main
+   or, if that worktree is gone: `git -C ../open_proof_network_graph fetch origin && git -C ../open_proof_network_graph cherry-pick b9d668eeb` is NOT possible (unpushed); re-run the
+   re-pin recipe above instead (schemas.publish, cp gate/agents/AGENTS.md, pin_image.py x27 with
+   --network-commit 512df592... and the two digests).
+   After the push: the push's gate run dispatches render.yml itself (F07-T60; do not dispatch a second);
+   expect graph.json graph/v15 with `shelved: null` on every row, CONTEXT.json context/v11, the frontier
+   unchanged in count; site-deploy follows the render. Then T14: retire route 2 of erdos-257 from the
+   site's routes list (Retire this route on erdos-257@2) and shelve variant-6b364d2b from its node page.
