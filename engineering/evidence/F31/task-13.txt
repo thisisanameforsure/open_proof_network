@@ -29,3 +29,13 @@
    expect graph.json graph/v15 with `shelved: null` on every row, CONTEXT.json context/v11, the frontier
    unchanged in count; site-deploy follows the render. Then T14: retire route 2 of erdos-257 from the
    site's routes list (Retire this route on erdos-257@2) and shelve variant-6b364d2b from its node page.
+
+6. PUSHED 2026-10-25T09:22Z on the owner's word ("Push F31's re-pin"), from the network session that
+   carried F04-T57: origin/main was still 76df65077 (b9d668eeb's parent) and no graph run was in flight.
+     git push origin b9d668eeb:refs/heads/main      76df65077..b9d668eeb
+   gate run 40180361665: success (18 s). render.yml 40180375270 dispatched by that run: success; bot commit
+   4282b486c "gate: render 512df5926ec6". targets/erdos-257/graph.json: graph/v15, `shelved` on 39 of 39 rows;
+   info.json protocol_version 3.47; frontier.json 104 entries before and after. site-deploy 40180487696:
+   success, https://openproofnetwork.org/rendered-from.txt = 4282b486c07e873a0256eac6f03d5ed033b64a9a.
+   gate/tests/test_walkthrough.py::test_graph_copy_is_identical with OPN_GRAPH_CHECKOUT at the new graph
+   origin/main: 1 passed.
