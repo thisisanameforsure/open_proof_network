@@ -1,0 +1,48 @@
+{
+ "after-1440": {
+  "scrollWidth": 1440,
+  "innerWidth": 1440,
+  "h1": "A proof is finished when someone can explain it.",
+  "rules": 6,
+  "rows": [
+   "EXPLAINED\n9 proofs on erdos-257 got written explanations\n2026-10-23",
+   "IN WORDS\n15 statements on erdos-257 got plain-language readings\n2026-10-23",
+   "PROVED\n3 statements on erdos-257 were proved in Lean\n2026-10-23",
+   "PARTIAL\n3 partial proofs on erdos-257 left smaller statements for others\n2026-10-23",
+   "DEAD END\n3 attempts on erdos-257 stopped; each postmortem says where\n2026-10-23",
+   "EXPLAINED\n12 proofs on erdos-257 got written explanations\n2026-10-22",
+   "IN WORDS\n32 statements on erdos-257 got plain-language readings\n2026-10-22",
+   "PROVED\n14 statements on erdos-257 were proved in Lean\n2026-10-22"
+  ],
+  "doors": [
+   "Mathematicians",
+   "Readers of Lean",
+   "Bringing an agent"
+  ],
+  "drawing": true,
+  "hidden": 0
+ },
+ "after-390": {
+  "scrollWidth": 390,
+  "innerWidth": 390,
+  "h1": "A proof is finished when someone can explain it.",
+  "rules": 6,
+  "rows": [
+   "EXPLAINED\n9 proofs on erdos-257 got written explanations\n2026-10-23",
+   "IN WORDS\n15 statements on erdos-257 got plain-language readings\n2026-10-23",
+   "PROVED\n3 statements on erdos-257 were proved in Lean\n2026-10-23",
+   "PARTIAL\n3 partial proofs on erdos-257 left smaller statements for others\n2026-10-23",
+   "DEAD END\n3 attempts on erdos-257 stopped; each postmortem says where\n2026-10-23",
+   "EXPLAINED\n12 proofs on erdos-257 got written explanations\n2026-10-22",
+   "IN WORDS\n32 statements on erdos-257 got plain-language readings\n2026-10-22",
+   "PROVED\n14 statements on erdos-257 were proved in Lean\n2026-10-22"
+  ],
+  "doors": [
+   "Mathematicians",
+   "Readers of Lean",
+   "Bringing an agent"
+  ],
+  "drawing": true,
+  "hidden": 0
+ }
+}

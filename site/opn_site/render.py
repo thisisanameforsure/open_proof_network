@@ -25,7 +25,7 @@ from opn_gate import clients, explainers, hosted, intake, layout, policy, produc
 from opn_gate import glosses as glossesmod
 from opn_gate import graph as graphmod
 from opn_gate import ledger as ledgermod
-from opn_site import dag, links, one_view, prose
+from opn_site import activity, dag, links, one_view, prose
 from opn_site.model import (
     ADMITTED_BY_CURATOR,
     ChainView,
@@ -210,6 +210,17 @@ SCRIPTS: tuple[str, ...] = (
     "/literature.js",
 )
 MATH_HEAD = '<link rel="stylesheet" href="/vendor/katex/katex.min.css">'
+#: F04-T57: the word each row of the home page's record list leads with, by ``activity`` kind.
+RECORD_KIND_WORDS: dict[str, str] = {
+    "vouched": "Vouched for",
+    "explained": "Explained",
+    "in-words": "In words",
+    "proved": "Proved",
+    "partial": "Partial",
+    "written-up": "Written up",
+    "proposed": "Proposed",
+    "dead-end": "Dead end",
+}
 #: F04-T50: opens the fold a link lands in on a statement's page.
 NODE_SCRIPT = '<script src="/node.js"></script>'
 #: F04-T54: draws Confirm and Dispute on an awaiting literature proposal, on ``/me/`` and on a
@@ -1175,11 +1186,14 @@ class Renderer:
         repo_url: str,
         decisions_doc: Path | None = DECISIONS_DOC,
         api_url: str | None = None,
+        featured_target: str | None = None,
     ) -> None:
         self.site = site
         self.repo_url = repo_url.rstrip("/")
         self.decisions_doc = decisions_doc
         self.api_url = api_url.rstrip("/") if api_url else None
+        #: F04-T57: the problem the home page draws (config ``OPN_SITE_FEATURED_TARGET``).
+        self.featured_target = featured_target
         self.base = _template("base.html")
         #: T19: the urls record prose may link, which are the ones the link checker admits.
         self.cited = cited_urls(site)
@@ -1848,55 +1862,149 @@ class Renderer:
         return f'<a class="act act-blocked" href="{href}">Blocked</a>'
 
     def home(self) -> str:
+        """F04-T57 (R15; D-36 v3.48): what the network is for, then the record moving — the
+        hero, six lines on how it differs, what happened lately, the three ways in, and one
+        problem drawn. No count of the network's own: the counts were the D-25 series, and a
+        series belongs where it can be read over time, not on the front door."""
         site = self.site
-        targets = [tv for _tid, tv in sorted(site.targets.items())]
-        # F15-R10 (D-36 v3.17): explanation coverage leads — proved nodes carrying a valid
-        # signed explainer, of all proved nodes, summed over every target's digestion counts.
-        proved = sum(int((tv.digestion or {}).get("proved", 0)) for tv in targets)
-        explained = sum(int((tv.digestion or {}).get("proved_explained", 0)) for tv in targets)
-        open_statements = sum(self.open_count(tv) for tv in targets)
-        stewards = len({str(s["login"]) for tv in targets for s in tv.stewards})
-        unproved = [tv for tv in targets if str(tv.index_entry["status"]) != "resolved"]
-        unexplained = [
-            tv
-            for tv in targets
-            if str(tv.index_entry["status"]) == "resolved"
-            and str((tv.digestion or {}).get("state") or "") not in ("explained", "written-up")
-        ]
-        rows = "".join(self.open_now_row(tv) for tv in (*unproved, *unexplained)[:5])
-        if not rows:
-            rows = '<p class="cue">No problems are listed yet.</p>'
+        worked = self.worked_section()
         body = _template("home.html").substitute(
-            explained=explained,
-            proved=proved,
-            problems=len(targets),
-            open_statements=open_statements,
-            stewards=stewards,
-            open_now=rows,
-            all_problems=len(targets),
-            statement_term=self.term("statement", label="statement"),
             steward_term=self.term("steward", label="steward"),
             proposal_url=esc(self.proposal_url),
+            worked_button=(
+                '<a class="btn btn-secondary" href="#worked">See how a problem is worked</a>'
+                if worked
+                else ""
+            ),
+            rule_pairs="\n".join(
+                f'<li class="rule-pair"><s>{esc(was)}</s><span>{esc(here)}</span></li>'
+                for was, here in self.rule_pairs()
+            ),
+            record_list=self.record_list(
+                activity.events_of(
+                    site.targets,
+                    (e for entries in ledgermod.contributions(site.root).values() for e in entries),
+                )
+            ),
             needs_steward=self.needs_steward_link(classes="btn btn-secondary"),
+            worked=worked,
         )
         return self.page(
             SITE_NAME,
             body,
-            renders=["targets/index.json", "frontier.json"],
+            renders=["targets/index.json", "frontier.json", "ledger/"],
             path="/",
             head=MATH_HEAD,
             script=MATH_SCRIPTS,
         )
 
-    def open_now_row(self, tv: TargetView) -> str:
-        n = self.open_count(tv)
-        open_words = f"{n} open statement{'' if n == 1 else 's'}" if n else "no open statements"
+    def rule_pairs(self) -> list[tuple[str, str]]:
+        """F04-T57, Q55: what is crossed out and what the network does instead. Each line is
+        true of the record it is rendered from: the steward line claims the rule only while
+        ``policy.json`` enforces it (F04-T27's switch)."""
+        steward = (
+            "Each problem has a named mathematician who answers for it."
+            if self.site.steward_rule_enforced
+            else (
+                "Each problem has a named mathematician who answers for it, or says plainly "
+                "that it does not have one yet."
+            )
+        )
+        return [
+            ("Announced, then checked", "Nothing is announced. The record is the announcement."),
+            ("Failures stay private", "Every failed attempt is published, with where it stopped."),
+            ("Nobody to ask", steward),
+            ("Done when it compiles", "Done when a person has explained it."),
+            (
+                "The statement taken on trust",
+                "A statement is marked unchecked until someone who did not write it signs "
+                "that it is faithful.",
+            ),
+            (
+                "Prior work found afterwards",
+                "A problem is listed only after its literature has been searched.",
+            ),
+        ]
+
+    def record_list(self, events: list[activity.Event]) -> str:
+        """F04-T57: the newest rows of the record, each linked to where it happened."""
+        shown = events[: activity.SHOWN]
+        if not shown:
+            return '<p class="cue">Nothing is on the record yet.</p>'
+        rows = "".join(
+            f'<li class="pulse-row" data-kind="{esc(ev.kind)}" data-date="{esc(ev.date)}">'
+            f'<span class="pulse-kind">{esc(RECORD_KIND_WORDS[ev.kind])}</span>'
+            f'<span class="pulse-text">{self.record_words(ev)}</span>'
+            f'<time datetime="{esc(ev.date)}">{esc(ev.date)}</time></li>'
+            for ev in shown
+        )
+        return f'<ul class="pulse">{rows}</ul>'
+
+    def record_words(self, ev: activity.Event) -> str:
+        """One row's sentence: the one statement by its label when the row is one event, the
+        problem when it groups several."""
+        tv = self.site.targets[ev.target_id]
+        problem = (
+            f'<a class="mono" href="{esc(self.target_path(tv.target_id))}">{esc(tv.target_id)}</a>'
+        )
+        nv = tv.nodes.get(ev.node_id or "")
+        if nv is None:
+            node = problem
+        else:
+            label = self.node_label(nv)
+            shown = math(label) if label else f'<span class="mono">{esc(nv.node_id)}</span>'
+            node = f'<a href="{esc(self.node_path(tv.target_id, nv.node_id))}">{shown}</a>'
+        n = ev.count
+        signer = esc(ev.signer or "")
+        one, many = {
+            "vouched": (
+                f"<strong>{signer}</strong> vouched for the words on {node}",
+                f"<strong>{signer}</strong> vouched for {n} pieces of writing on {problem}",
+            ),
+            "explained": (
+                f"The proof of {node} got a written explanation",
+                f"{n} proofs on {problem} got written explanations",
+            ),
+            "in-words": (
+                f"{node} got a plain-language reading",
+                f"{n} statements on {problem} got plain-language readings",
+            ),
+            "proved": (
+                f"{node} was proved in Lean",
+                f"{n} statements on {problem} were proved in Lean",
+            ),
+            "partial": (
+                f"A partial proof of {node} left smaller statements for others",
+                f"{n} partial proofs on {problem} left smaller statements for others",
+            ),
+            "written-up": (f"{problem} got a write-up", f"{problem} got {n} write-ups"),
+            "proposed": (
+                f"{node} was proposed as a statement",
+                f"{n} statements were proposed on {problem}",
+            ),
+            "dead-end": (
+                f"An attempt on {node} stopped; its postmortem says where",
+                f"{n} attempts on {problem} stopped; each postmortem says where",
+            ),
+        }[ev.kind]
+        return one if n == 1 else many
+
+    def worked_section(self) -> str:
+        """F04-T57: the featured problem (``OPN_SITE_FEATURED_TARGET``) drawn as its own page
+        draws it; nothing when it is unset or the graph does not list it (C7)."""
+        tv = self.site.targets.get(self.featured_target or "")
+        if tv is None:
+            return ""
+        href = esc(self.target_path(tv.target_id))
         return (
-            '<div class="open-row">'
-            f'<a class="id" href="{esc(self.target_path(tv.target_id))}">{esc(tv.target_id)}</a>'
-            f'<span class="informal">{self.informal_words(tv)}</span>'
-            f'<span class="open-count">{esc(open_words)}</span>'
-            f"{self.steward_words(tv)}</div>"
+            '<section class="home-band home-worked" id="worked">'
+            '<div class="worked-copy"><span class="kicker">One problem, worked</span>'
+            f'<h2><a class="mono" href="{href}">{esc(tv.target_id)}</a></h2>'
+            f'<p class="informal">{self.informal_words(tv)}</p>'
+            "<p>Each pill is one Lean statement. A problem is taken apart into pieces that "
+            "people and agents can work on one at a time; a filled pill is proved.</p>"
+            f'<a class="btn btn-ghost" href="{href}">Open the problem →</a></div>'
+            f'<div class="worked-drawing">{self.problem_drawing(tv).svg}</div></section>'
         )
 
     # -- the Problems page: Targets and Frontier merged (F04-T12, Q14) -------------------------
@@ -2426,9 +2534,9 @@ class Renderer:
             return '<p class="qa">No statement-QA pass is recorded yet (D-9 v3.12).</p>'
         return f'<p class="qa">Statement QA (D-9 v3.12): {esc(str(summary))}</p>'
 
-    def target(self, tv: TargetView) -> str:
-        """The problem page (F04-T12): header, steward card, the statement graph with one panel
-        per statement, then the record's detail sections as before."""
+    def problem_drawing(self, tv: TargetView) -> one_view.Drawing:
+        """The problem's one drawing (F30-T2), as the problem page draws it; the home page's
+        featured problem is the same picture (F04-T57)."""
         tid = tv.target_id
         href = {nid: self.node_path(tid, nid) for nid in tv.nodes}
         # T17: the pill wears the state the key and the rows name, not the bare graph status.
@@ -2452,7 +2560,7 @@ class Renderer:
             for nid, nv in tv.nodes.items()
             if nid.startswith("spec-") and (name := theorem_name(nv.statement))
         }
-        picture = one_view.drawing(
+        return one_view.drawing(
             tv.graph,
             [e for e in self.site.frontier.get("entries") or [] if e.get("target_id") == tid],
             href=href,
@@ -2466,6 +2574,12 @@ class Renderer:
             },
             literature=self.literature_marks(tv),  # F04-T54 (D-25 v3.45)
         )
+
+    def target(self, tv: TargetView) -> str:
+        """The problem page (F04-T12): header, steward card, the statement graph with one panel
+        per statement, then the record's detail sections as before."""
+        tid = tv.target_id
+        picture = self.problem_drawing(tv)
         svg = picture.svg
         panels = "".join(self.statement_panel(tv, nv) for nv in self.ordered_nodes(tv))
         # T7: the selector sits at the top of the drawing's card and stays in view; the table
@@ -7037,9 +7151,16 @@ def render_site(
     repo_url: str,
     decisions_doc: Path | None = DECISIONS_DOC,
     api_url: str | None = None,
+    featured_target: str | None = None,
 ) -> dict[str, str]:
     """Every output file (path relative to the site root -> content)."""
-    r = Renderer(site, repo_url=repo_url, decisions_doc=decisions_doc, api_url=api_url)
+    r = Renderer(
+        site,
+        repo_url=repo_url,
+        decisions_doc=decisions_doc,
+        api_url=api_url,
+        featured_target=featured_target,
+    )
     docs_page, extra = r.docs()
     files: dict[str, str] = {
         "index.html": r.home(),

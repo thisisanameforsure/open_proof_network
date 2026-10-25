@@ -8,6 +8,10 @@
     The network service's origin, so the Frontier page can link its live ``/claims.json``
     (F04-T9). Unset or blank: no default, because nothing here knows a hostname; the page still
     says its claims are the products' snapshot and draws no link (C7).
+
+``OPN_SITE_FEATURED_TARGET``
+    The problem the home page draws under "One problem, worked" (F04-T57). Default:
+    ``erdos-1094``. Blank, or a target the graph does not list: the section is left out (C7).
 """
 
 from __future__ import annotations
@@ -16,18 +20,22 @@ import os
 from dataclasses import dataclass
 
 DEFAULT_GRAPH_REPO_URL = "https://github.com/thisisanameforsure/open_proof_network_graph"
+DEFAULT_FEATURED_TARGET = "erdos-1094"
 
 
 @dataclass(frozen=True)
 class Settings:
     graph_repo_url: str = DEFAULT_GRAPH_REPO_URL
     api_url: str | None = None
+    featured_target: str | None = DEFAULT_FEATURED_TARGET
 
 
 def load(environ: dict[str, str] | None = None) -> Settings:
     env = os.environ if environ is None else environ
     api_url = env.get("OPN_SITE_API_URL", "").strip() or None
+    featured = env.get("OPN_SITE_FEATURED_TARGET", DEFAULT_FEATURED_TARGET).strip() or None
     return Settings(
         graph_repo_url=env.get("OPN_SITE_GRAPH_REPO_URL", DEFAULT_GRAPH_REPO_URL),
         api_url=api_url,
+        featured_target=featured,
     )

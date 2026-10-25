@@ -84,7 +84,7 @@ def test_the_counts_include_witness_work(built: tuple[model.Site, dict[str, str]
     assert '<span class="n">3</span>' in pages["problems/index.html"]  # root, hole, revision
     card = re.search(r'<article class="card problem"[^>]*>', pages["problems/index.html"])
     assert card and 'data-open="3"' in card.group(0)
-    assert "3 open statements" in pages["index.html"]
+    # F04-T57 (D-36 v3.48): the home page carries no counts; the Problems page is where they live.
 
 
 def test_the_filter_keeps_every_workable_row() -> None:

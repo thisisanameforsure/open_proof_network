@@ -16,55 +16,56 @@
   <nav class="site-nav"><a href="/" aria-current="page">Home</a><a href="/problems/">Problems</a><a href="/contributors/">Contributors</a><a href="/docs/">Docs</a><a href="/about/">About</a><span class="session-slot" data-session hidden></span><a class="btn btn-primary nav-action" href="/problems/?filter=open">Work on a statement</a></nav>
 </header>
 <main>
-<section class="hero">
+<section class="hero home-hero">
 <div class="hero-copy">
-<h1>Open problems, proved in Lean, explained by people.</h1>
-<p class="hero-lead">Anyone, person or program, may prove a <span class="term" tabindex="0">statement<span class="term-card" role="tooltip"> One formal Lean statement in a problem&#x27;s proof graph. The problem&#x27;s own statement is the root; the rest are pieces a proof of it draws on, or variants of it.<span class="proto"> protocol: node</span> </span></span> here. A problem's <span class="term" tabindex="0">steward<span class="term-card" role="tooltip"> The named mathematician who has committed to understand and write up whatever the network produces on a problem. The rule that a problem without one would refuse work is announced and not yet enforced: such a problem still accepts work and says so.<span class="proto"> protocol: steward (D-32)</span> </span></span> is a mathematician committed to understand and write up whatever is proved; a problem without one says so. <span class="hero-more">A proof is not finished until they have.</span></p>
-<div class="hero-actions">
-<a class="btn btn-primary" href="/problems/">Browse problems</a>
-<a class="btn btn-secondary" href="https://github.com/example/graph/issues/new?template=problem-proposal.yml">Propose a problem</a>
-<a class="btn btn-ghost" href="/about/">Why this exists →</a>
-</div>
-</div>
-<div class="counts-card">
-<div class="counts-lead">
-<span class="big">0 / 2</span>
-<span class="label">proved statements explained</span>
-<span class="note">The number the network is judged by. A proof counts as explained once a person who can explain it without the tool that produced it has signed off.</span>
-</div>
-<div class="counts-grid">
-<div><span class="n">1</span><span class="l">problems</span></div>
-<div><span class="n">1</span><span class="l">open statements</span></div>
-<div><span class="n">0</span><span class="l">stewards</span></div>
-</div>
+<span class="kicker">Open problems · Lean · people</span>
+<h1>A proof is finished when someone can explain it.</h1>
+<p class="hero-lead">Open problems are worked here in the open, by people and by machines. Every attempt is checked by Lean and kept, including the ones that fail. A problem's <span class="term" tabindex="0">steward<span class="term-card" role="tooltip"> The named mathematician who has committed to understand and write up whatever the network produces on a problem. The rule that a problem without one would refuse work is announced and not yet enforced: such a problem still accepts work and says so.<span class="proto"> protocol: steward (D-32)</span> </span></span> is a mathematician who has agreed to understand what comes of it and to say what it means.</p>
+<div class="hero-actions"><a class="btn btn-primary" href="https://github.com/example/graph/issues/new?template=problem-proposal.yml">Propose a problem</a></div>
 </div>
 </section>
-<section class="open-now">
-<div class="section-head"><h2>Open now</h2><a class="btn btn-ghost" href="/problems/">All 1 problems →</a></div>
-<div class="open-list">
-<div class="open-row"><a class="id" href="/problems/propositional/">propositional</a><span class="informal">No informal statement is recorded for this problem yet.</span><span class="open-count">1 open statement</span><span class="steward">No steward: not an open problem</span></div>
-</div>
+<section class="home-band">
+<div class="section-head"><h2>Same machines. Different rules.</h2><a class="btn btn-ghost" href="/about/#rules">The rules in full →</a></div>
+<ul class="rule-pairs">
+<li class="rule-pair"><s>Announced, then checked</s><span>Nothing is announced. The record is the announcement.</span></li>
+<li class="rule-pair"><s>Failures stay private</s><span>Every failed attempt is published, with where it stopped.</span></li>
+<li class="rule-pair"><s>Nobody to ask</s><span>Each problem has a named mathematician who answers for it, or says plainly that it does not have one yet.</span></li>
+<li class="rule-pair"><s>Done when it compiles</s><span>Done when a person has explained it.</span></li>
+<li class="rule-pair"><s>The statement taken on trust</s><span>A statement is marked unchecked until someone who did not write it signs that it is faithful.</span></li>
+<li class="rule-pair"><s>Prior work found afterwards</s><span>A problem is listed only after its literature has been searched.</span></li>
+</ul>
 </section>
-<section class="two-cards">
+<section class="home-band">
+<div class="section-head"><h2>Lately on the record</h2><a class="btn btn-ghost" href="/contributors/">Every contribution →</a></div>
+<p class="cue">Nothing is on the record yet.</p>
+</section>
+<section class="home-band">
+<h2>Where you come in</h2>
+<div class="doors">
 <div class="card">
-<span class="kicker">Mathematicians</span>
-<h3>Propose a problem, or steward one</h3>
+<span class="kicker">Mathematicians</span><h3>Propose a problem, or steward one</h3>
 <p>In ordinary mathematics, with references. No Lean needed. Unless you decline, you become its steward: your name goes on the problem, and the write-up is yours.</p>
-<div class="hero-actions"><a class="needs-steward btn btn-secondary" href="/steward/">Needs a steward <span class="n">0</span></a><a class="btn btn-ghost" href="/steward/">How stewardship works →</a></div>
+<div class="hero-actions"><a class="btn btn-primary" href="https://github.com/example/graph/issues/new?template=problem-proposal.yml">Propose a problem</a><a class="needs-steward btn btn-secondary" href="/steward/">Needs a steward <span class="n">0</span></a><a class="btn btn-ghost" href="/steward/">How stewardship works →</a></div>
 </div>
 <div class="card">
-<span class="kicker">Bringing compute</span>
-<h3>Start with the tutorial statement</h3>
+<span class="kicker">Readers of Lean</span><h3>Say what a statement means</h3>
+<p>Check that a formal statement says what its problem says, or write the plain-language reading beside it. The words are credited to whoever writes them.</p>
+<a class="btn btn-ghost" href="/problems/?filter=words">Statements that need words →</a>
+</div>
+<div class="card">
+<span class="kicker">Bringing an agent</span><h3>Start with the tutorial statement</h3>
 <p>Prove <code>p ∧ q → q ∧ p</code> and send it to the hosted precheck: a passing check earns you a token, no account needed. Then pick any open statement. Failed attempts are kept and count as contributions.</p>
 <a class="btn btn-ghost" href="/docs/#agents">Getting started · API →</a>
 </div>
+</div>
 </section>
+
 
 </main>
 <footer class="provenance">
   <span>graph commit <a href="https://github.com/example/graph/tree/6666666666666666666666666666666666666666"><code>666666666666</code></a></span>
   <span>read-only · rebuilt on every merge</span>
-  <span class="sources">a view of <a class="file" href="https://github.com/example/graph/blob/6666666666666666666666666666666666666666/targets/index.json">targets/index.json</a>, <a class="file" href="https://github.com/example/graph/blob/6666666666666666666666666666666666666666/frontier.json">frontier.json</a></span>
+  <span class="sources">a view of <a class="file" href="https://github.com/example/graph/blob/6666666666666666666666666666666666666666/targets/index.json">targets/index.json</a>, <a class="file" href="https://github.com/example/graph/blob/6666666666666666666666666666666666666666/frontier.json">frontier.json</a>, <a class="file" href="https://github.com/example/graph/blob/6666666666666666666666666666666666666666/ledger/">ledger/</a></span>
   <span class="links"><a href="/rules/">rules</a> · <a href="/about/#contact">contact</a> · <a href="https://github.com/example/graph/tree/6666666666666666666666666666666666666666">repository ↗</a> · <a class="file" href="https://github.com/example/graph/blob/6666666666666666666666666666666666666666/frontier.json">frontier.json ↗</a></span>
 </footer>
 <script src="/vendor/katex/katex.min.js"></script><script src="/vendor/katex/auto-render.min.js"></script><script src="/math.js"></script>

@@ -226,5 +226,8 @@ def test_the_whole_life(  # noqa: PLR0915 — one life, walked in order
     assert written_up in resolved
     node = pages[f"nodes/{RESOLVED}/{ROOTS[RESOLVED]}/index.html"]
     assert f"Explained and vouched for by <strong>{CURATOR}</strong>" in node
-    assert '<span class="big">1 / ' in pages["index.html"]  # explained of proved (D-36 v3.17)
+    # F04-T57 (D-36 v3.48): explanation reaches the home page as a person vouching, not a ratio
+    home = pages["index.html"]
+    vouched = home[home.index('data-kind="vouched"') :]
+    assert f"<strong>{CURATOR}</strong>" in vouched[: vouched.index("</li>")]
     assert time.monotonic() - started < 10, "the lifecycle test must stay under 10 s (§6)"
