@@ -700,11 +700,18 @@
     r.addEventListener("mouseleave", function () { preview(null); });
     r.addEventListener("focusin", function () { preview(view); });
     r.addEventListener("focusout", function () { preview(null); });
+    // F31-Q19: a row holds controls of its own (the "which" details, links, and the retire
+    // control's button and cause box, F31-T15); a click or a key inside one is theirs, not a
+    // selection of the set.
+    function inControl(ev) {
+      return ev.target.closest && ev.target.closest("details, a, button, input, textarea, .retire-act");
+    }
     r.addEventListener("click", function (ev) {
-      if (ev.target.closest && ev.target.closest("details, a")) { return; }
+      if (inControl(ev)) { return; }
       choose(view);
     });
     r.addEventListener("keydown", function (ev) {
+      if (inControl(ev)) { return; }
       if (ev.key === "Enter" || ev.key === " ") {
         ev.preventDefault();
         choose(view);

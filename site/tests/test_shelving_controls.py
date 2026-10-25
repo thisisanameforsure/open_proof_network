@@ -307,8 +307,15 @@ def test_a_steward_shelves_unshelves_and_retires_from_the_site(served: str) -> N
         page.wait_for_selector(".retire-act button")
         first = page.locator(".retire-act").nth(0)
         partial = first.get_attribute("data-partial")
+        view_before = page.locator("svg.dag").get_attribute("data-view")
         first.locator("button").click()
-        first.locator("textarea").fill("A distraction.")
+        # F31-Q19 (the owner, 2026-10-25): the cause box sits inside a set row, whose Enter/Space
+        # and click handlers select the set; typing a space in the box must neither move the
+        # drawing nor lose the character, and clicking into the box must not select the row.
+        first.locator("textarea").click()
+        first.locator("textarea").press_sequentially("A distraction.")
+        assert first.locator("textarea").input_value() == "A distraction."
+        assert page.locator("svg.dag").get_attribute("data-view") == view_before
         first.locator("button.send").click()
         page.wait_for_selector(".retire-act .receipt a")
         assert POSTED[-1]["body"] == {

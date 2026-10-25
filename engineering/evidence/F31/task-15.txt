@@ -20,3 +20,16 @@ copy matches network main since the 2026-10-25 re-pin.)
 - browser half with Playwright (uv run --frozen --with playwright): site/tests/test_shelving_controls.py 8 passed,
   the Shelve / Unshelve / Retire flow against the fake service driven from the sets table
 - capture: task-15-sets-table-routes-1280.png (the Routes column: route id, Retire this route; no routes list)
+
+## Live (2026-10-25)
+- network PR #93 merged as be99b4fb; api-deploy 40199478248 and image-publish 40199481547 green; site-deploy
+  40199537838 green: the live erdos-257 page carries the Routes column with eleven retire controls and no
+  routes list.
+- graph re-pin ee817d047 (every target to be99b4fb; the owner's push), gate run 40218898704 green, render
+  40218915739 -> 70fa0c7fb (erdos-257 graph.json graph/v15), site-deploy 40219034768 green.
+- live page with a stubbed curator session (Playwright): 11 retire-act controls, all visible, buttons drawn;
+  capture task-15-live-erdos-257-sets-table-signed-in-1440.png.
+## Q19 (the owner typing a cause: Space selected the set)
+- red: test_a_steward_shelves_unshelves_and_retires_from_the_site, "assert 'Adistraction.' == 'A distraction.'"
+- fix: graph.js set-row click/keydown ignore targets inside details, a, button, input, textarea, .retire-act
+- green: site/tests/test_shelving_controls.py + test_one_view.py with Playwright: 31 passed
