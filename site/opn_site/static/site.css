@@ -643,10 +643,10 @@ main > h2 { padding-top: var(--s4); border-top: 1px solid var(--divider); }
 .shelve-act .shelve-form, .retire-act .shelve-form { margin-top: var(--s2); }
 .retire-act .shelve-form { display: flex; }
 .shelved-note { margin: var(--s4) 0; }
-.routes-list-wrap { margin-top: var(--s5); font-size: 14px; color: var(--n300); }
-.routes-list { margin: 0; padding-left: 1.2em; }
-.routes-list .route-row { margin-bottom: var(--s2); overflow-wrap: anywhere; }
-.routes-list .route-state { color: var(--n500); font-style: italic; }
+.routes-table .set-routes { font-size: 13px; }
+.routes-table .set-route { display: block; margin-bottom: var(--s1); overflow-wrap: anywhere; }
+.routes-table .set-route .retire-act { margin-left: var(--s2); }
+.routes-table .route-state { color: var(--n500); font-style: italic; }
 .lit-act { margin: var(--s4) 0; font-size: 14px; color: var(--n300); }
 .lit-act .cue { margin: 0 0 var(--s2); font-size: 13px; }
 .lit-act .literature-waiting { margin: 0; }

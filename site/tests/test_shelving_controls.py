@@ -131,17 +131,23 @@ def test_the_cause_reaches_the_page_as_text(
 # --- the problem page -------------------------------------------------------------------------
 
 
-def test_one_retire_control_per_drawn_route(site: model.Site, pages: dict[str, str]) -> None:
+def test_the_sets_table_offers_retire_per_route(site: model.Site, pages: dict[str, str]) -> None:
+    """F31-Q18 (the owner, 2026-10-25: "incorporated into the sufficient sets table"): each set
+    row names the routes it goes through, each with its retire control; no separate list. The
+    fixture's route 1 has a shelved unproved hole, so no set rests on it (F31-R4) and it is in
+    no row: a retire control belongs to a route a set still goes through."""
     page = pages[PROBLEM]
-    rows = re.findall(r'<li class="route-row"[^>]*>.*?</li>', page, re.S)
-    assert len(rows) == 2, rows
-    ids = [re.search(r'data-route="([^"]*)"', r).group(1) for r in rows]  # type: ignore[union-attr]
-    assert ids == [f"{ROOT_NODE}@1", f"{ROOT_NODE}@2"]
-    controls = [attrs(m) for m in RETIRE.findall(page)]
-    assert len(controls) == 2
-    assert {c["data-partial"] for c in controls} == partials_of(site)
-    for c in controls:
-        assert c["data-target"] == TARGET and c["data-node"] == ROOT_NODE
+    assert "routes-list" not in page and "route-row" not in page
+    table = re.search(r'<table class="routes-table">.*?</table>', page, re.S)
+    assert table is not None
+    cells = re.findall(r'<span class="set-route" data-route="([^"]*)"', table.group(0))
+    assert sorted(set(cells)) == [f"{ROOT_NODE}@2"], cells
+    controls = [attrs(m) for m in RETIRE.findall(table.group(0))]
+    assert len(controls) == 1
+    assert controls[0]["data-partial"] in partials_of(site)
+    assert controls[0]["data-target"] == TARGET and controls[0]["data-node"] == ROOT_NODE
+    head = re.search(r"<thead>.*?</thead>", table.group(0), re.S)
+    assert head is not None and "Routes" in head.group(0)
 
 
 # --- the script ---------------------------------------------------------------------------------

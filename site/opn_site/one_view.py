@@ -570,20 +570,8 @@ APPROACH_MAX = 40
 SEL_PREFIX = "sel"
 
 
-@dataclass(frozen=True)
-class RouteRow:
-    """F31-T11 (R8): one drawn route as the problem page lists it beside the sets table —
-    its id (``<node>@<k>``), the statement it decomposes, the partial's file (what a retirement
-    names, ``shelving/v1`` ``route``), its approach, and what shelving did to it (``None`` when
-    nothing; see ``shelving_words``)."""
-
-    id: str
-    node: str
-    partial: str
-    approach: str | None
-    shelving: str | None
-    #: Every hole of it is shelved (retired, or shelved one by one): nothing is left to retire.
-    cut: bool = False
+#: F31-T11: the drawn routes as the sets table names them (moved to ``routes_view`` for Q18).
+RouteRow = routes_view.RouteRow
 
 
 @dataclass(frozen=True)
@@ -1134,6 +1122,7 @@ def drawing(  # noqa: PLR0913 — the page's inputs
     outlines: Mapping[str, int] | None = None,
     titles: Mapping[str, str] | None = None,
     literature: dag.Literature = None,
+    controls: bool = False,
 ) -> Drawing:
     """The page's drawing. ``nodes`` (the page's view of the rows, a status renamed for the
     key) stands in for ``graph["nodes"]`` in the drawing and the layouts; the routes and sets
@@ -1233,12 +1222,34 @@ def drawing(  # noqa: PLR0913 — the page's inputs
         literature=literature,
         links=crossing,
     )
+    # F31-T11 (R8), Q18: the drawn routes (the tree's, not the band's), named in the sets
+    # table with the retire control when the build has a service address (``controls``).
+    route_rows = tuple(
+        RouteRow(
+            r.id,
+            r.node,
+            r.partial,
+            r.approach,
+            shelving_words(r, rows, d.below.get(rid, [])),
+            cut=bool(d.below.get(rid))
+            and all(rows.get(h, {}).get("shelved") for h in d.below.get(rid, [])),
+        )
+        for rid, r in d.junctions.items()
+        if r.node not in set(band)
+    )
     return Drawing(
         svg=svg,
         selector=_selector_svg(
             vs, result, rows, names=names, labels=labels, proof_labels=proof_labels
         ),
-        table=routes_view.table(result, prefix, views=leaf_of, follow=follow)
+        table=routes_view.table(
+            result,
+            prefix,
+            views=leaf_of,
+            follow=follow,
+            route_rows={r.id: r for r in route_rows},
+            controls=controls,
+        )
         if result.sets
         else "",
         layouts_json=f'<script type="application/json" id="graph-layouts">{doc}</script>',
@@ -1249,17 +1260,5 @@ def drawing(  # noqa: PLR0913 — the page's inputs
         follow_toggle=_follow_toggle() if result.sets else "",
         band=band_svg,
         shelved=shelved_hidden,
-        routes=tuple(
-            RouteRow(
-                r.id,
-                r.node,
-                r.partial,
-                r.approach,
-                shelving_words(r, rows, d.below.get(rid, [])),
-                cut=bool(d.below.get(rid))
-                and all(rows.get(h, {}).get("shelved") for h in d.below.get(rid, [])),
-            )
-            for rid, r in d.junctions.items()
-            if r.node not in set(band)
-        ),
+        routes=route_rows,
     )

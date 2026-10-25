@@ -1,0 +1,22 @@
+# F31-T15 (Q18) — make verify on main + the fix, 2026-10-25T11:04:17Z, base bba38e9a (sibling graph checkout stale: the guide-copy test may fail on its own)
+All checks passed!
+Success: no issues found in 437 source files
+Success: no issues found in 269 source files
+Success: no issues found in 122 source files
+FAILED gate/tests/test_walkthrough.py::test_graph_copy_is_identical - Asserti...
+= 1 failed, 6785 passed, 22 skipped, 261 deselected, 2 warnings in 587.29s (0:09:47) =
+exit=
+
+(test_graph_copy_is_identical fails against the stale sibling graph checkout at 334cdadce; the graph's main
+copy matches network main since the 2026-10-25 re-pin.)
+
+## Red first (the owner's live refusal, 2026-10-25)
+- api/tests/test_shelvings_route.py::test_retiring_a_route_of_the_root_is_accepted — 409 node-root
+- gate/tests/test_shelving_mode.py::test_a_route_record_on_the_root_passes — ['node-root'] != []
+- site/tests/test_shelving_controls.py::test_the_sets_table_offers_retire_per_route — 'routes-list' in page
+## Green
+- the three above plus gate/tests/test_shelving.py::test_retiring_a_route_of_the_root_shelves_its_holes_and_not_the_root
+  (the derivation needed no change): 148 passed across the shelving, drawing and table files
+- browser half with Playwright (uv run --frozen --with playwright): site/tests/test_shelving_controls.py 8 passed,
+  the Shelve / Unshelve / Retire flow against the fake service driven from the sets table
+- capture: task-15-sets-table-routes-1280.png (the Routes column: route id, Retire this route; no routes list)

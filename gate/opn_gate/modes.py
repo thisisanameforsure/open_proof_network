@@ -2441,7 +2441,9 @@ def _shelving_tree_problems(
                 details,
             )
         ]
-    if located.node_id == tg.root:
+    # F31-Q18: a route record on the root retires one of the root's decompositions and never
+    # shelves the root; only a node-scope record on the root is refused.
+    if located.node_id == tg.root and record.scope != shelving.SCOPE_ROUTE:
         return [
             Diagnostic(
                 "node-root",

@@ -286,10 +286,24 @@ def test_no_session_and_no_bearer_is_401(h: Harness) -> None:
 
 
 def test_the_root_is_409_node_root(h: Harness) -> None:
+    """``scope: node`` on the root: the root is never shelved (D-14 v3.47)."""
     set_row(h, ROOT)
     r = post(h, sign_in(h, "code_alice"), body(node_id=ROOT))
     assert r.status_code == 409 and r.json()["error"] == "node-root", r.text
     assert h.githost.pushes == []
+
+
+def test_retiring_a_route_of_the_root_is_accepted(
+    h: Harness, tree: Path, approval: tuple[str, str]
+) -> None:
+    """F31-Q18 (the owner's first live act, 2026-10-25): a retirement sits on the node whose
+    decomposition it names and never shelves that node, so the root's own routes are retired
+    like any other's; ``node-root`` is a rule about ``scope: node`` only."""
+    set_row(h, ROOT, decompositions=[decomposition(PARTIAL, HOLE)])
+    r = post(h, sign_in(h, "code_alice"), body(node_id=ROOT, scope="route", route=PARTIAL))
+    doc = landed(h, tree, r)
+    assert (doc["node"], doc["scope"], doc["route"]) == (ROOT, "route", PARTIAL)
+    verifies(doc, approval[1])
 
 
 def test_a_statement_a_merged_proof_uses_is_409_node_used(h: Harness) -> None:

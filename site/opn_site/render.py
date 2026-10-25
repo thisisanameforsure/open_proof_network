@@ -25,7 +25,7 @@ from opn_gate import clients, explainers, hosted, intake, layout, policy, produc
 from opn_gate import glosses as glossesmod
 from opn_gate import graph as graphmod
 from opn_gate import ledger as ledgermod
-from opn_site import activity, dag, links, one_view, prose, routes_view
+from opn_site import activity, dag, links, one_view, prose
 from opn_site.model import (
     ADMITTED_BY_CURATOR,
     ChainView,
@@ -2461,41 +2461,6 @@ class Renderer:
             return ""
         return SHELVE_SCRIPT.replace("$repo", esc(self.repo_url))
 
-    def routes_list(self, tv: TargetView, picture: one_view.Drawing) -> str:
-        """The problem page's list of drawn routes, beside the sets table (which lists sets,
-        not routes): one row per route with its id, its approach, the partial it came from and
-        what shelving did to it; with a service address, a hidden ``.retire-act`` control per
-        route not already cut, which ``shelve.js`` shows to a steward or curator. Nothing
-        without a drawn route."""
-        if not picture.routes:
-            return ""
-        rows = {str(n["node_id"]): n for n in tv.graph["nodes"]}
-        items = []
-        for r in picture.routes:
-            approach = routes_view.approach_of(r.id, rows, r.node)
-            state = f' <span class="route-state">{esc(r.shelving)}</span>' if r.shelving else ""
-            control = (
-                f'<span class="retire-act" data-target="{esc(tv.target_id)}" '
-                f'data-node="{esc(r.node)}" data-partial="{esc(r.partial)}" hidden></span>'
-                if self.api_url and not r.cut
-                else ""
-            )
-            file = self.file_link(
-                f"targets/{tv.target_id}/nodes/{r.node}/{r.partial}", label=r.partial
-            )
-            items.append(
-                f'<li class="route-row" data-route="{esc(r.id)}"><code>{esc(r.id)}</code> &middot; '
-                f'<span class="route-approach">{esc(approach)}</span> &middot; from '
-                f"{file}{state}{control}</li>"
-            )
-        return (
-            '<div class="routes-list-wrap"><h3 class="kicker">Routes</h3>'
-            '<p class="cue">Each merged decomposition the drawing shows. A steward of this '
-            "problem or a curator may retire one that does not serve the root (D-14 v3.47); its "
-            "holes leave the frontier and the drawing until an unshelve record lifts them.</p>"
-            f'<ul class="routes-list">{"".join(items)}</ul></div>'
-        )
-
     def me(self) -> str:
         """R13: a static shell. Every problem's waiting sections are in it, hidden; me.js shows
         the signed-in login's roles, the waiting sections of the problems they steward, their
@@ -2696,6 +2661,7 @@ class Renderer:
                 nid: f"{nid} ({name}): {tv.nodes[nid].status}" for nid, name in spec_names.items()
             },
             literature=self.literature_marks(tv),  # F04-T54 (D-25 v3.45)
+            controls=bool(self.api_url),  # F31-Q18: the Routes column's retire controls
         )
 
     def target(self, tv: TargetView) -> str:
@@ -2723,11 +2689,9 @@ class Renderer:
             else ""
         )
         # F31-T11 (R8): the drawn routes, each with its Retire control, beside the sets table.
-        routes_block = self.routes_list(tv, picture)
+        # F31-Q18: the retire control is in the sets table's Routes column; no routes list.
         sets_block = (
-            f'<div class="sets-grid">{picture.table}{routes_block}</div>'
-            if picture.table or routes_block
-            else ""
+            f'<div class="sets-grid">{picture.table}</div>' if picture.table else ""
         ) + picture.layouts_json
         n = len(tv.nodes)
         if tv.approaches:
@@ -2810,7 +2774,7 @@ class Renderer:
             + ('<script src="/panel.js"></script>' if self.api_url else "")
             + (
                 SHELVE_SCRIPT.replace("$repo", esc(self.repo_url))
-                if self.api_url and 'class="retire-act"' in routes_block
+                if self.api_url and 'class="retire-act"' in picture.table
                 else ""
             ),
         )
