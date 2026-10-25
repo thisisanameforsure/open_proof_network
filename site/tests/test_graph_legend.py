@@ -141,3 +141,26 @@ def test_the_docs_glossary_carries_the_new_words(tmp_path: Path) -> None:
     docs, _files = render.Renderer(site, repo_url=REPO, decisions_doc=None).docs()
     for status in render.LEGEND_EXTRA:
         assert render.esc(render.GLOSSARY_BY_KEY[status][1]) in docs, status
+
+
+def test_the_key_names_shelved_when_a_statement_is(tmp_path: Path) -> None:
+    """F31-T10 (R7): shelved is a mark, not a status (F31-Q7): the key shows it, with its own
+    swatch and card, when a drawn statement carries it, and not otherwise; the statement's
+    status dot is unchanged."""
+    root = fixture.build(tmp_path)
+    before = render.Renderer(model.load_site(root, fixture.COMMIT), repo_url=REPO).target(
+        model.load_site(root, fixture.COMMIT).targets[TARGET]
+    )
+    assert "dot-shelved" not in legend(before)
+    fixture.publish_shelved(root, {DEP: fixture.shelved_fact(via=DEP)})
+    site = model.load_site(root, fixture.COMMIT)
+    html = render.Renderer(site, repo_url=REPO, decisions_doc=None).target(site.targets[TARGET])
+    key = legend(html)
+    assert 'class="dot dot-shelved"' in key and "shelved" in key
+    assert legend_words(key) == ["proved", "open", "blocked"], "shelved is not a status"
+    assert "shelved" in render.GLOSSARY_BY_KEY and "shelved" in render.ROUTE_MARK_KEYS
+    css = (STATIC / "site.css").read_text(encoding="utf-8")
+    assert ".dot-shelved" in css and ".dag .node.shelved" in css
+    assert ".dag .status-shelved" not in css, "the status colour is unchanged by shelving"
+    # the dependency's pill still wears its status class, with the mark beside it
+    assert re.search(rf'<g class="node status-proved[^"]* shelved[^"]*" data-node="{DEP}"', html)

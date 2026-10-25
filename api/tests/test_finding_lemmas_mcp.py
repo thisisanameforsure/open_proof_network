@@ -82,6 +82,7 @@ def context_v6(harness: Harness, tree: Path, lemmas: list[dict[str, Any]]) -> di
     derived = derived_bundle(harness, tree)
     v6 = {**derived, "schema": "context/v6", "lemmas": lemmas}
     v6.pop("review", None)  # F26-T1: context/v7 added it; a v6 snapshot has none
+    v6.pop("shelved", None)  # F31-T1: context/v11 added it
     for field, value in SNAPSHOT_FIELDS:
         v6.setdefault(field, value)
     assert schemas.violations(v6, "context/v6") == [], "the hand-written v6 is not v6"
@@ -114,6 +115,7 @@ def test_get_node_on_an_older_context_answers_no_lemmas(harness: Harness, tmp_pa
     v5 = {**derived_bundle(harness, tmp_path / "tree"), "schema": "context/v5"}
     v5.pop("lemmas", None)
     v5.pop("review", None)  # F26-T1: context/v7 added it
+    v5.pop("shelved", None)  # F31-T1: context/v11 added it
     for field, value in SNAPSHOT_FIELDS:
         v5.setdefault(field, value)
     assert schemas.violations(v5, "context/v5") == [], "the hand-written v5 is not v5"

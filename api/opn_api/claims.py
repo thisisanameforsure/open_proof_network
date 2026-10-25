@@ -188,6 +188,10 @@ def off_frontier(ctx: Context, node_id: str, target_id: str | None) -> ApiError:
     if len(rows) > 1:
         return ambiguous(node_id)
     facts = precheck.facts_of(*rows[0])
+    if facts.get("shelved"):
+        # F31-R5 (D-14 v3.47): off the frontier because a steward or curator shelved it; the
+        # refusal says so with the cause, before the generic "not open" that says only status.
+        return precheck.shelved_error(node_id, facts)
     if facts["status"] == "blocked":
         if precheck.witness_awaits_render(ctx, node_id, facts):  # F06-T8: one state, one answer
             return precheck.awaits_render(node_id, f"{node_id}'s witness has merged")

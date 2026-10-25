@@ -209,6 +209,9 @@ def facts_of(target_id: str, node: dict[str, Any]) -> dict[str, Any]:
         "cause": str(cause) if cause is not None else None,
         "deps": [str(d) for d in node.get("deps") or []],
         "proof_commit": node.get("proof_commit"),
+        # F31-R3, R5 (D-14 v3.47): the shelving the products derived onto the row, or None; a
+        # row rendered before graph/v15 has no key and reads as unshelved.
+        "shelved": dict(node["shelved"]) if isinstance(node.get("shelved"), dict) else None,
     }
 
 
@@ -237,6 +240,7 @@ def node_facts(ctx: Context, node_id: str) -> dict[str, Any]:
                 "cause": None,
                 "deps": [],
                 "proof_commit": None,
+                "shelved": None,
             }
     raise pending.unknown_node(ctx, node_id)
 
@@ -486,13 +490,39 @@ def awaits_render(node_id: str, what: str, details: dict[str, Any] | None = None
     )
 
 
+def shelved_error(node_id: str, facts: dict[str, Any]) -> ApiError:
+    """F31-R5 (D-14 v3.47): the shared ``409 node-shelved`` for work on a statement a steward of
+    the target or a curator has shelved, as the row says: the cause, who signed it, when, the
+    record and the node whose record reaches it, in ``details.shelved`` exactly as the row and
+    the bundle carry them (R3), so an agent reads one shape everywhere."""
+    shelved = dict(facts.get("shelved") or {})
+    where = (
+        f" through {shelved.get('via')}'s record"
+        if shelved.get("via") not in (None, node_id)
+        else ""
+    )
+    return ApiError(
+        409,
+        "node-shelved",
+        f"{node_id} is shelved{where} by {shelved.get('by')} on {shelved.get('date')}: "
+        f"{shelved.get('cause')} — a steward's or curator's judgment that the statement does "
+        "not serve the root (D-14 v3.47); nothing is accepted against it until a later record "
+        "lifts the shelving. Its status is unchanged; work elsewhere",
+        details={"node_id": node_id, "shelved": shelved},
+    )
+
+
 def check_open(ctx: Context, node_id: str, facts: dict[str, Any]) -> None:
     """F06-T6 (R1 amended): refuse a ``blocked`` node with the shared ``409 node-blocked``, and
-    (F05-T11) a ``superseded`` one with ``409 node-superseded`` naming its replacement.
+    (F05-T11) a ``superseded`` one with ``409 node-superseded`` naming its replacement; F31-R5,
+    a shelved one with ``409 node-shelved`` and the cause, before either, since a shelving is a
+    person's judgment over whatever the derived status says.
 
     Nothing else is refused. A proved node stays precheckable — the tutorial node is normally
     proved, and its anonymous precheck is how D-19 mints every identity — and a node the graph
     carries no status for has nothing to refuse it on."""
+    if facts.get("shelved"):
+        raise shelved_error(node_id, facts)
     if facts.get("status") == "blocked":
         if witness_awaits_render(ctx, node_id, facts):
             raise awaits_render(node_id, f"{node_id}'s witness has merged")

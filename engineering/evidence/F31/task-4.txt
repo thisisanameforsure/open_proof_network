@@ -1,0 +1,58 @@
+# F31-T4 — routes and closing (R4, Q6; AC4)
+
+Branch f31-gate. Gate agent, 2026-10-24.
+
+## What was built
+
+- `gate/opn_gate/routes.py`: `Hole.shelved: bool` (the hole's row carries a `shelved` object);
+  `Route.retired: bool`; `Route.live` is False when retired or when any hole is shelved and not
+  proved (a shelved *proved* hole keeps its route, Q6); `_Enumerator.close` keeps the `PROVED`
+  return first and then answers nothing for a shelved row, beside the dead statuses; `_shelved(row)`
+  reads the field (None on a product that predates graph/v15, which shelves nothing);
+  `_retired(node, holes, rows)` infers a retirement from the holes (below).
+- `gate/opn_gate/closing.py`: `links` skips a retired route; `closable` excludes shelved nodes.
+- `gate/tests/test_target_routes.py`, `gate/tests/test_closing.py`: the row builders take
+  `shelved=`, a `shelved(via, scope)` helper builds graph/v15's object; 4 + 1 new tests.
+
+## Red
+
+First run (the seam missing): 5 failed — three on the defect, two on
+`AttributeError: 'Route' object has no attribute 'retired'`. The two fields went in at today's
+behaviour (`shelved: bool = False`, `retired: bool = False`), then:
+
+    python -m pytest -q -p no:cacheprovider -m "..." gate/tests/test_target_routes.py gate/tests/test_closing.py -k "shelv or retired or older_product"
+    4 failed, 1 passed, 52 deselected in 0.12s
+      assert [['t--h1', 't--h2'], ['t--h3']] == [['t--h3']]          (a retired route still yielded a set)
+      assert (False, True) == (False, False)                           (a shelved open hole left its route live)
+      assert (SufficientSet(... open=('lemma', 't') ...),) == ()      (a shelved lemma was still in a set)
+      assert [Link(kind='route', id='t@1', ...)] == []                 (a retired route was a closing link)
+    the pass: an older product without the field shelves nothing (true before and after).
+
+## Green
+
+    python -m pytest -q -p no:cacheprovider -m "..." gate/tests/test_target_routes.py gate/tests/test_closing.py gate/tests/test_shelving.py
+    75 passed in 2.98s
+    python -m pytest -q ... site/tests/test_one_view.py api/tests/test_routes_mcp.py api/tests/test_finding_routes_selector_mcp.py
+    28 passed, 6 skipped (playwright not installed here)
+    uv run --frozen ruff check / format      All checks passed!
+    uv run --frozen mypy gate                 Success: no issues found in 437 source files
+
+## Decisions / proposed Q entries / notes for the lead
+
+- proposed Q: **a retirement is read off the holes.** `graph/v15` publishes `shelved` on the
+  rows a record reached, not on `decompositions[]` (closed, `additionalProperties: false`), so
+  `routes.read` and `closing.links` know a route is retired when one of its holes carries a
+  route-scope shelving whose `via` is the route's node. Exact for every case the derivation
+  produces except one: a retired route *all* of whose holes another live route still needs
+  leaves no mark on any row and reads as live (it still closes nothing new, since the live route
+  covers the same holes). A `retired: bool` (or the record) on `decompositions[]` in the next
+  graph version would make it exact; that is a contract change and the lead's.
+- **`Route.retired` and `Hole.shelved` are not in `as_dict`.** `list_sufficient_sets/v4.json`
+  is closed over routes and holes (nine `additionalProperties: false`), and the api validates
+  the result against it, so publishing the two fields is a v5 of that schema — the service
+  agent's file (the brief already routes its wording change there). `live` carries the effect
+  today, and the site reads the dataclass (`r.live`), not the dict.
+- `Summary` is unchanged for the same reason (its dict is published under the same schema); the
+  counts the brief mentioned would be a v5 field too.
+- A shelved open statement taken *directly* (a lemma a node depends on) also closes nothing, so
+  a node whose only path rests on a shelved lemma has no set at all; the test pins it.

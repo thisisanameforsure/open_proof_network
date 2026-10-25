@@ -206,14 +206,7 @@ KIND_CONFIRMATION = "literature-confirmation"
 def may_confirm(ctx: Context, target_id: str, login: str) -> None:
     """D-25, D-32 v3.35: an active steward of the target or a listed curator; anyone else is
     403, and nothing opens."""
-    if session.is_curator(ctx, login) or session.is_steward(ctx, target_id, login):
-        return
-    raise ApiError(
-        403,
-        "not-steward-or-curator",
-        f"{login} is neither an active steward of {target_id} nor a listed curator; only they "
-        "may confirm a literature status (D-25, D-32 v3.35)",
-    )
+    stewards.may_act(ctx, target_id, login, "confirm a literature status (D-25, D-32 v3.35)")
 
 
 def checked_record(

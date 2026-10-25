@@ -1,0 +1,32 @@
+=========================== short test summary info ============================
+FAILED api/tests/test_shelvings_route.py::test_a_steward_session_shelves_a_statement
+FAILED api/tests/test_shelvings_route.py::test_a_curator_retires_a_route - As...
+FAILED api/tests/test_shelvings_route.py::test_a_bearer_with_a_github_login_shelves_too
+FAILED api/tests/test_shelvings_route.py::test_an_unshelve_lifts_a_shelved_node
+FAILED api/tests/test_shelvings_route.py::test_an_unshelve_on_an_inherited_shelving_is_how_a_child_is_exempted
+FAILED api/tests/test_shelvings_route.py::test_a_node_shelved_by_inheritance_may_still_carry_its_own_record
+FAILED api/tests/test_shelvings_route.py::test_the_submission_is_watchable_under_its_own_kind
+FAILED api/tests/test_shelvings_route.py::test_a_login_that_is_neither_steward_nor_curator_is_403
+FAILED api/tests/test_shelvings_route.py::test_a_tutorial_identity_has_no_login_to_shelve_with
+FAILED api/tests/test_shelvings_route.py::test_no_session_and_no_bearer_is_401
+FAILED api/tests/test_shelvings_route.py::test_the_root_is_409_node_root - As...
+FAILED api/tests/test_shelvings_route.py::test_a_statement_a_merged_proof_uses_is_409_node_used
+FAILED api/tests/test_shelvings_route.py::test_an_input_of_a_closure_link_is_409_node_used
+FAILED api/tests/test_shelvings_route.py::test_a_route_that_is_not_the_nodes_is_404
+FAILED api/tests/test_shelvings_route.py::test_an_already_shelved_node_is_409
+FAILED api/tests/test_shelvings_route.py::test_a_route_whose_holes_are_all_retired_is_409
+FAILED api/tests/test_shelvings_route.py::test_an_unshelve_on_a_node_that_is_not_shelved_is_409
+FAILED api/tests/test_shelvings_route.py::test_an_unknown_node_is_404 - Asser...
+FAILED api/tests/test_shelvings_route.py::test_bad_arguments_are_400_naming_the_field[over0]
+FAILED api/tests/test_shelvings_route.py::test_bad_arguments_are_400_naming_the_field[over1]
+FAILED api/tests/test_shelvings_route.py::test_bad_arguments_are_400_naming_the_field[over2]
+FAILED api/tests/test_shelvings_route.py::test_bad_arguments_are_400_naming_the_field[over3]
+FAILED api/tests/test_shelvings_route.py::test_bad_arguments_are_400_naming_the_field[over4]
+FAILED api/tests/test_shelvings_route.py::test_bad_arguments_are_400_naming_the_field[over5]
+FAILED api/tests/test_shelvings_route.py::test_bad_arguments_are_400_naming_the_field[over6]
+FAILED api/tests/test_shelvings_route.py::test_bad_arguments_are_400_naming_the_field[over7]
+FAILED api/tests/test_shelvings_route.py::test_bad_arguments_are_400_naming_the_field[over8]
+FAILED api/tests/test_shelvings_route.py::test_bad_arguments_are_400_naming_the_field[over9]
+FAILED api/tests/test_shelvings_route.py::test_without_the_approval_key_the_route_is_503
+FAILED api/tests/test_shelvings_route.py::test_the_hourly_limit_is_the_approvals_limit
+30 failed, 2 warnings in 1.87s

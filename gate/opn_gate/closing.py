@@ -29,7 +29,16 @@ from typing import Any, Literal
 # revisions and unnamed holes assigned where that is unambiguous. Reused so the two features cannot
 # disagree about what a route is.
 from opn_gate import closure
-from opn_gate.routes import DEAD_STATUSES, PROVED, REFUTES, RESOLVES, _hole_nodes, _rows
+from opn_gate.routes import (
+    DEAD_STATUSES,
+    PROVED,
+    REFUTES,
+    RESOLVES,
+    _hole_nodes,
+    _retired,
+    _rows,
+    _shelved,
+)
 
 LinkKind = Literal["route", "variant"]
 
@@ -85,7 +94,11 @@ def links(graph: Mapping[str, Any]) -> dict[str, list[Link]]:
             if not nodes or any(n is None or n not in rows for n in nodes):
                 continue
             # A route through a dead hole stays listed: a dead node is never proved or closable,
-            # so the fixed point can never satisfy it, and no separate filter is needed.
+            # so the fixed point can never satisfy it, and no separate filter is needed. A
+            # retired route is not a link (F31-R4, D-14 v3.47): its holes may all be proved, and
+            # a closing proof would join a decomposition a steward or curator retired.
+            if _retired(node_id, nodes, rows):
+                continue
             inputs = tuple(dict.fromkeys(str(n) for n in nodes))
             out[node_id].append(Link("route", f"{node_id}@{k}", inputs))
     if root in out:
@@ -108,7 +121,12 @@ def closable(graph: Mapping[str, Any]) -> tuple[Closable, ...]:
     rows = _rows(graph)
     by_node = links(graph)
     proved = {k for k in rows if _status(rows, k) == PROVED}
-    candidates = [k for k in rows if k not in proved and _status(rows, k) not in DEAD_STATUSES]
+    # F31-R4: a shelved node is never closable, whatever its links.
+    candidates = [
+        k
+        for k in rows
+        if k not in proved and _status(rows, k) not in DEAD_STATUSES and _shelved(rows[k]) is None
+    ]
     found: set[str] = set()
     changed = True
     while changed:

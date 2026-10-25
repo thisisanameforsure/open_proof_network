@@ -33,6 +33,7 @@ def node(
     proofs: list[list[str] | None] | None = None,
     uses: list[str] | None = None,
     lemmas: list[str] | None = None,
+    shelved: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """``proofs`` (F27-T9): one entry per merged proof, each the nodes its term ``used`` as
     graph/v4 publishes them, or ``None`` where nothing measured it (an older merge); ``uses``
@@ -66,11 +67,24 @@ def node(
         ],
         "uses": uses or [],
         "lemmas": [{"hole": f"l{i + 1}", "node": n} for i, n in enumerate(lemmas or [])],
+        "shelved": shelved,  # F31-R3 (graph/v15); None on an older product
     }
 
 
 def hole(node_id: str, status: str = "ready", **kw: Any) -> dict[str, Any]:
     return node(node_id, status, origin="skeleton-hole", **kw)
+
+
+def shelved(via: str, scope: str = "node") -> dict[str, Any]:
+    """F31-R3: the ``shelved`` object graph/v15 publishes on a row the record reached."""
+    return {
+        "cause": "does not serve the root",
+        "by": "alice-steward",
+        "date": "2026-10-24",
+        "record": "shelving/20261024T100000Z-alice-steward.yaml",
+        "scope": scope,
+        "via": via,
+    }
 
 
 def doc(*nodes: dict[str, Any], root: str = "t") -> dict[str, Any]:
@@ -408,6 +422,70 @@ def test_an_older_graphs_circular_field_marks_nothing() -> None:
 
 
 # --- R8: the coarser cuts ------------------------------------------------------------------
+
+
+# --- F31-T4 (R4, AC4): shelving and retirement -------------------------------------------------
+
+
+def test_a_retired_route_yields_no_set_while_a_sibling_live_route_still_does() -> None:
+    """A retired decomposition's holes carry ``scope: route`` via the node; the route is retired
+    and dead, the sibling stands, and the retired route's holes are in no set."""
+    g = doc(
+        node(
+            "t",
+            deps=["t--h1", "t--h2", "t--h3"],
+            decompositions=[["t--h1", "t--h2"], ["t--h3"]],
+        ),
+        hole("t--h1", shelved=shelved("t", "route")),
+        hole("t--h2", shelved=shelved("t", "route")),
+        hole("t--h3"),
+    )
+    result = routes.read(g)
+    assert open_sets(result) == [["t--h3"]]
+    first, second = result.routes
+    assert (first.retired, first.live) == (True, False)
+    assert (second.retired, second.live) == (False, True)
+    assert [h.shelved for h in first.holes] == [True, True]
+    assert [h.shelved for h in second.holes] == [False]
+
+
+def test_a_shelved_unproved_hole_kills_its_route_a_shelved_proved_one_keeps_it() -> None:
+    """F31-Q6: a kernel-checked proof is a fact. Route 1's hole is shelved and open, so the route
+    is dead; route 2's hole is shelved and proved, so the route stands and the set is closed."""
+    g = doc(
+        node("t", deps=["t--h1", "t--h2"], decompositions=[["t--h1"], ["t--h2"]]),
+        hole("t--h1", shelved=shelved("t--h1")),
+        hole("t--h2", "proved", shelved=shelved("t--h2")),
+    )
+    result = routes.read(g)
+    first, second = result.routes
+    assert (first.retired, first.live) == (False, False)
+    assert (second.retired, second.live) == (False, True)
+    (s,) = result.sets
+    assert s.proved == ("t--h2",) and s.open == () and s.assemblies == ("t",)
+
+
+def test_a_shelved_open_statement_closes_nothing_and_is_in_no_set() -> None:
+    """``_Enumerator.close`` answers nothing for a shelved statement that is not proved: taken
+    directly it is work the frontier refuses, so a lemma that is shelved leaves its user with no
+    set at all, and a shelved node with a live route still contributes nothing."""
+    direct = doc(node("t", deps=["lemma"]), node("lemma", shelved=shelved("lemma")))
+    assert routes.read(direct).sets == ()
+    via_route = doc(
+        node("t", deps=["t--h1"], decompositions=[["t--h1"]], shelved=shelved("t")),
+        hole("t--h1", shelved=shelved("t")),
+    )
+    assert routes.read(via_route).sets == ()
+
+
+def test_an_older_product_without_the_field_shelves_nothing() -> None:
+    g = doc(node("t", deps=["t--h1"], decompositions=[["t--h1"]]), hole("t--h1"))
+    for row in g["nodes"]:
+        del row["shelved"]
+    result = routes.read(g)
+    (route,) = result.routes
+    assert (route.retired, route.live, route.holes[0].shelved) == (False, True, False)
+    assert open_sets(result) == [["t--h1"]]
 
 
 def test_any_cut_adds_coarser_sets_up_to_cap() -> None:

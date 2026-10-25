@@ -1,0 +1,26 @@
+# F31-T0 — decisions v3.47 applied, spec and index row written, PROTOCOL_VERSION 3.47 (2026-10-24T17:55:00Z)
+
+## v3.47 mentions in docs/architecture_decisions.html
+148:v3.47
+148:v3.47 let a steward of the target or a curator 
+484:v3.47:
+484:v3.47)
+757:v3.47)
+757:v3.47): the action (
+757:v3.47), or, without the service, an SSH-signed record by pull request. The service re
+1198:v3.47 &mdash; shelving.
+1357:v3.47, shelve a statement of the target, retire one of its merged decompositions, or 
+1357:v3.47).
+1411:v3.47 &mdash; a shelving is a judgment, not a ranking.
+1411:v3.47), is that a statement or a merged decomposition does not serve the root; the fr
+
+## PROTOCOL_VERSION
+68:PROTOCOL_VERSION = "3.47"
+
+## new schemas pinned
+52c2d7e9e375cf20b2629fcb0f4775ad906fcae58d9de43c4acdbb723fb82128  shelving/v1.json
+647078b79ab0b947ac2392222fbfe0508e81cd83a0244d5bacd9b442438e720e  graph/v15.json
+f929677a1eaca871685fc64467a13ae58ed523b9aadaf00176788a118706d065  context/v11.json
+
+## verification
+104 passed in 1.86s

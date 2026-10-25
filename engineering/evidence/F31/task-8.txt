@@ -1,0 +1,62 @@
+F31-T8 — service refusals on a shelved statement (R5, AC5) — service agent, branch f31-service
+
+Environment: the api tests' fake host; nothing live was touched. Base: ee303b50 (F31-T7).
+
+## Red (test first)
+
+api/tests/test_finding_shelved_refusals.py, modelled on test_finding_superseded_refusals.py:
+`shelve()` fabricates graph/v15's `shelved` object on the node's graph.json row and takes the
+node off frontier.json, as the products would; nothing derives a shelving here. First run
+(task-8-red.txt), every failure on the defect itself, no missing name:
+
+    claim        -> 409 node-not-open ("is ready and not on the frontier"), no cause
+    precheck     -> 202 queued (a job for a shelved node)
+    submission   -> 400 bundle-invalid (past check_open, into the bundle)
+    witness      -> 201, a pull request for a shelved hole
+    proposal for -> 201, a crux proposed for a shelved node
+    POST /check  -> no warning at all
+    6 failed; the MCP get_node / list_frontier / unaffected-sibling tests passed before the fix
+    (the bundle already carries the row's shelved through context.build, F31-T1; the frontier
+    simply omits the node), and the MCP claim test first failed on my own guess at the refused
+    write's shape ({"status", "body"} — read from calls.Answer.envelope, test corrected).
+
+## Built
+
+- api/opn_api/precheck.py: `facts_of` carries `shelved` (a dict or None; a pre-v15 row reads as
+  unshelved), the frontier-only fallback says None; `shelved_error(node_id, facts)` — the shared
+  409 node-shelved with details {node_id, shelved: {cause, by, date, record, scope, via}} exactly
+  as the row carries them; `check_open` raises it before blocked/superseded (used by POST
+  /precheck and POST /submissions).
+- api/opn_api/claims.py: `off_frontier` answers node-shelved before the generic node-not-open.
+- api/opn_api/proposals.py: `hole_awaiting_witness` refuses a shelved hole before the slot
+  check; `proposed_for_node` refuses a `for` naming a shelved node.
+- api/opn_api/checks.py: `shelved_warning` beside `superseded_warning`, added to POST /check's
+  lint warnings with code node-shelved and the `shelved` object.
+- gate/opn_gate/codes.py: the node-shelved row (source api; the gate agent's pre-merge refusal
+  emits the same code from modes.py, so the row becomes source "both" at the merge).
+
+## Green
+
+    python -m pytest -q -p no:cacheprovider -m "not lean and not docker and not network and not harness" \
+      api/tests/test_finding_shelved_refusals.py
+    13 passed, 2 warnings in 0.53s
+    (with gate/tests/test_error_codes.py, test_finding_superseded_refusals.py,
+     test_finding_check_superseded.py, test_proposals.py, test_proposals_for.py, test_claims.py:
+     61 passed)
+
+ruff check: All checks passed. ruff format: unchanged. mypy api: no issues (269 files).
+Whole api fast tier + test_error_codes: see the line appended below.
+
+## Decisions (proposed Q entries)
+
+- proposed Q: the refusal is placed where each route already judges the node (check_open for
+  precheck and submission, off_frontier for a claim, hole_awaiting_witness for a witness,
+  proposed_for_node for a proposal), and a shelving outranks blocked/superseded in the order of
+  checks, because it is a person's judgment over whatever the derived status says. Variant
+  proposals attach to the root, which is never shelved, so they need no check; a proposal whose
+  `deps` name a shelved node is not refused (a shelved proved statement is still a fact a proof
+  may rest on, Q6), and the lead may want a rule for a shelved *unproved* dep — left as is.
+- proposed Q: POST /check's warning carries the whole `shelved` object (not only the cause),
+  one shape with the refusal's details and the row.
+
+Whole api fast tier + gate/tests/test_error_codes.py after T8: 2244 passed, 2 warnings in 103.40s

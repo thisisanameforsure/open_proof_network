@@ -120,6 +120,34 @@ def band_ids(rows: Sequence[Mapping[str, Any]], d: routes_view.Drawn) -> tuple[s
     return (*band, *(rid for rid, r in d.junctions.items() if r.node in held))
 
 
+def shelved_ids(merged: Mapping[str, Mapping[str, Any]], d: routes_view.Drawn) -> set[str]:
+    """F31-T10: the statements whose row carries ``shelved`` (``graph/v15``); never a junction."""
+    return {i for i, r in merged.items() if i not in d.junctions and r.get("shelved")}
+
+
+def shelving_words(
+    r: routes.Route, rows: Mapping[str, Mapping[str, Any]], holes: Sequence[str]
+) -> str | None:
+    """F31-T10 (R7): what shelving does to a route, for its junction's title — ``None`` when
+    nothing is shelved, or when only proved holes are (Q6: the route stays live). Every hole
+    shelved through the route's own record is a retirement; every hole shelved otherwise is
+    said so; one shelved unproved hole kills the route (F31-R4)."""
+    facts = {h: rows[h].get("shelved") for h in holes if h in rows}
+    shelved = {h: f for h, f in facts.items() if isinstance(f, Mapping) and f}
+    if not shelved:
+        return None
+    if len(shelved) == len(facts):
+        retired = all(
+            f.get("scope") == "route" and f.get("via") == r.node for f in shelved.values()
+        )
+        first = next(iter(shelved.values()))
+        head = "retired" if retired else "every hole shelved"
+        return f"{head} by {first.get('by')} on {first.get('date')}: {first.get('cause')}"
+    if any(str(rows[h].get("status")) != routes.PROVED for h in shelved):
+        return "closes nothing (a hole is shelved and unproved)"
+    return None
+
+
 def _subset(merged: Mapping[str, Mapping[str, Any]], ids: Iterable[str]) -> list[dict[str, Any]]:
     keep = [i for i in dict.fromkeys(ids) if i in merged]
     return [dict(merged[i]) for i in keep]
@@ -216,12 +244,28 @@ def views(
     out: dict[str, View] = {}
     # F30-T16: a superseded statement is in no view (the owner: "do not need to be visible").
     gone = {i for i, r in merged.items() if str(r.get("status")) == "superseded"}
+    # F31-T10 (R7, Q2): a shelved statement, proved or not, leaves ``routes`` and stays in
+    # ``all`` (the order seed, F30-Q2); a route every hole of which is shelved (retired, or
+    # shelved one by one) draws no junction there either. A set keeps a shelved member only
+    # when it is proved (Q6: a kernel-checked proof is a fact), drawn dim; a route with a
+    # shelved unproved hole is dead, so its junction leaves the set views too.
+    shelved = shelved_ids(merged, d)
+    cut = {
+        rid for rid in d.junctions if d.below.get(rid) and all(h in shelved for h in d.below[rid])
+    }
+    dim = {i for i in shelved if str(merged[i].get("status")) != routes.PROVED}
+    dead = {rid for rid in d.junctions if any(h in dim for h in d.below.get(rid, []))}
     out[ALL] = _view(ALL, ALL, merged, [i for i in merged if i not in band and i not in gone])
     out[ROUTES] = _view(
         ROUTES,
         ROUTES,
         merged,
-        [i for i in (*d.statements, *d.junctions) if i not in band] or [root],
+        [
+            i
+            for i in (*d.statements, *d.junctions)
+            if i not in band and i not in shelved and i not in cut
+        ]
+        or [root],
     )
     if band:
         out[BAND] = _view(BAND, BAND, merged, band)
@@ -248,6 +292,9 @@ def views(
                     nodes=tuple(n for n in v.nodes if n not in gone),
                     lines=tuple(ln for ln in v.lines if ln[0] not in gone and ln[1] not in gone),
                 )
+    # F31-T10 (Q6): the set views lose the shelved unproved statements and the routes they
+    # kill; ``all`` and the band keep them, and ``routes`` keeps a dead junction, drawn dead.
+    _drop_from(out, dim | dead, keep=(ALL, ROUTES, BAND))
     for k, m in enumerate(proofs):
         ids = sorted(m.nodes)
         by_dst: dict[str, list[str]] = {}
@@ -265,6 +312,20 @@ def views(
             f"{PROOF}{k}", "proof", tuple(ids), tuple(dag.lines(prows)), index=k
         )
     return out
+
+
+def _drop_from(out: dict[str, View], drop: set[str], *, keep: Sequence[str]) -> None:
+    """Take ``drop``'s nodes, and every line touching one, out of every view but ``keep``."""
+    if not drop:
+        return
+    for key, v in list(out.items()):
+        if key in keep or not drop & set(v.nodes):
+            continue
+        out[key] = replace(
+            v,
+            nodes=tuple(n for n in v.nodes if n not in drop),
+            lines=tuple(ln for ln in v.lines if ln[0] not in drop and ln[1] not in drop),
+        )
 
 
 def _set_views(
@@ -510,6 +571,22 @@ SEL_PREFIX = "sel"
 
 
 @dataclass(frozen=True)
+class RouteRow:
+    """F31-T11 (R8): one drawn route as the problem page lists it beside the sets table —
+    its id (``<node>@<k>``), the statement it decomposes, the partial's file (what a retirement
+    names, ``shelving/v1`` ``route``), its approach, and what shelving did to it (``None`` when
+    nothing; see ``shelving_words``)."""
+
+    id: str
+    node: str
+    partial: str
+    approach: str | None
+    shelving: str | None
+    #: Every hole of it is shelved (retired, or shelved one by one): nothing is left to retire.
+    cut: bool = False
+
+
+@dataclass(frozen=True)
 class Drawing:
     """What the page embeds (the contract is the session note of 2026-10-18): the merged
     drawing, the selector with the proof notes, the sets table, the layouts as a
@@ -529,6 +606,10 @@ class Drawing:
     #: F30-T11: the band of proposed statements (D-14 v3.26 as amended), its own drawing under
     #: the main one, with the overlay that carries its lines into the tree; ``""`` without one.
     band: str = ""
+    #: F31-T10 (R7): how many of ``hidden`` are shelved statements (the rest are on no route).
+    shelved: int = 0
+    #: F31-T11 (R8): the drawn routes (the tree's, not the band's), in the drawing's order.
+    routes: tuple[RouteRow, ...] = ()
 
 
 def _line_key(src: str, dst: str) -> str:
@@ -539,24 +620,32 @@ def _status_of(rows: Mapping[str, Mapping[str, Any]], nid: str) -> str:
     return str(rows[nid].get("status")) if nid in rows else "route"
 
 
-def _junction_markup(r: routes.Route, x: int, y: int, hidden: bool) -> str:
+def _junction_markup(
+    r: routes.Route, x: int, y: int, hidden: bool, shelving: str | None = None
+) -> str:
+    """One junction. ``shelving`` (F31-T10) is what shelving did to the route, when anything:
+    a retired or shelved-through route is drawn dead and says so in its title."""
     holes = r.summary.holes
-    words = (
-        f"route {r.id}: {holes} hole{'' if holes == 1 else 's'}, all needed"
-        if r.live
-        else f"route {r.id}: closes nothing (a hole is refuted, defective, abandoned, "
-        "superseded or not traced)"
-    )
+    live = r.live and shelving is None
+    if shelving is not None:
+        words = f"route {r.id}: {shelving}"
+    elif r.live:
+        words = f"route {r.id}: {holes} hole{'' if holes == 1 else 's'}, all needed"
+    else:
+        words = (
+            f"route {r.id}: closes nothing (a hole is refuted, defective, abandoned, "
+            "superseded or not traced)"
+        )
     cx, cy = JUNCTION_W // 2, dag.NODE_H // 2
     mark = (
         f'<circle class="and-mark" cx="{cx}" cy="{cy}" r="5"/>'
-        if r.live
+        if live
         else f'<circle class="dead-mark" cx="{cx}" cy="{cy}" r="5"/>'
         f'<path class="dead-cross" d="M{cx - 3} {cy - 3}l6 6m0 -6l-6 6"/>'
     )
     off = " off-view" if hidden else ""
     return (
-        f'<g class="junction {"live" if r.live else "dead"}{off}" data-route="{escape(r.id)}" '
+        f'<g class="junction {"live" if live else "dead"}{off}" data-route="{escape(r.id)}" '
         f'data-node="{escape(r.id)}" data-w="{JUNCTION_W}" transform="translate({x},{y})">'
         f"<title>{escape(words)}; from {escape(r.partial)}</title> "
         f'<path class="stem" d="M{cx} 0V{dag.NODE_H}"/>{mark}</g>'
@@ -578,10 +667,12 @@ def _pill_markup(  # noqa: PLR0913 — one pill, every mark it may carry
     outline: int,
     literature: dag.LitMark | None = None,
     lines: Sequence[str] | None = None,
+    shelved: bool = False,
 ) -> str:
     """One pill. ``lines`` (F30-T14, the column of proposed statements) is the label broken to
     fit the pill's width: one line per row, the pill as tall as its lines, every mark still on
-    the first line."""
+    the first line. ``shelved`` (F31-T10) adds the class the stylesheet dims; the status class
+    is unchanged (shelving is a mark, not a status)."""
     height = dag.NODE_H + (len(lines) - 1) * BAND_LINE_H if lines else dag.NODE_H
     if lines and len(lines) > 1:
         text = (
@@ -599,6 +690,8 @@ def _pill_markup(  # noqa: PLR0913 — one pill, every mark it may carry
         cls += " proved"
     if closable:
         cls += " closable"
+    if shelved:
+        cls += " shelved"
     if hidden:
         cls += " off-view"
     diamond = (
@@ -690,7 +783,9 @@ def _dag_svg(  # noqa: PLR0913 — the whole drawing, every element once
         p = at[nid]
         hidden = nid not in shown_nodes
         if nid in d.junctions:
-            parts.append(_junction_markup(d.junctions[nid], p.x, p.y, hidden))
+            r = d.junctions[nid]
+            words = shelving_words(r, rows, d.below.get(nid, []))  # F31-T10
+            parts.append(_junction_markup(r, p.x, p.y, hidden, words))
             continue
         status = _status_of(rows, nid)
         label = dag.label_of(nid, names, labels)
@@ -708,6 +803,7 @@ def _dag_svg(  # noqa: PLR0913 — the whole drawing, every element once
                 or_mark=d.alternatives.get(nid, 0) >= 2,
                 outline=outlines.get(nid, 0),
                 literature=(literature or {}).get(nid),
+                shelved=bool(rows.get(nid, {}).get("shelved")),  # F31-T10
             )
         )
     parts.append("</svg>")
@@ -987,15 +1083,43 @@ def _follow_toggle() -> str:
     )
 
 
-def _toggle(hidden: int) -> str:
+def _toggle(hidden: int, shelved: int = 0) -> str:
+    """The view-toggle's words: how many statements ``all`` adds to ``routes``, and (F31-T10)
+    how many of those are shelved rather than on no route."""
     if not hidden:
         return ""
     noun = "statement" if hidden == 1 else "statements"
+    if not shelved:
+        detail, why = "", " on no route"
+    elif shelved == hidden:
+        detail = why = f" ({shelved} shelved)"
+    else:
+        detail = why = f" ({hidden - shelved} on no route, {shelved} shelved)"
     return (
         f'<button type="button" class="chip view-toggle" data-view="{ALL}" aria-pressed="false" '
-        f'data-shown-label="Hide the {hidden} {noun} on no route" hidden>'
-        f"Show {hidden} more {noun}</button>"
+        f'data-shown-label="Hide the {hidden} {noun}{why}" hidden>'
+        f"Show {hidden} more {noun}{detail}</button>"
     )
+
+
+def _shelved_titles(
+    rows: Mapping[str, Mapping[str, Any]], titles: dict[str, str]
+) -> dict[str, Mapping[str, Any]]:
+    """F31-T10 (R7): the cause on hover, in the signer's words (escaped by the markup), added
+    to each drawn shelved statement's title; returns those statements' ``shelved`` facts."""
+    found = {nid: rows[nid]["shelved"] for nid in titles if rows.get(nid, {}).get("shelved")}
+    for nid, fact in found.items():
+        titles[nid] += f"; shelved by {fact.get('by')} on {fact.get('date')}: {fact.get('cause')}"
+    return found
+
+
+def _hidden_counts(
+    vs: Mapping[str, View], d: routes_view.Drawn, shelved_rows: Mapping[str, Any]
+) -> tuple[int, int]:
+    """R4, F31-T10: what the toggle counts — statements ``all`` adds to ``routes``, never
+    junctions (a cut route's junction is off ``routes`` too), and how many are shelved."""
+    off_route = [n for n in vs[ALL].nodes if n not in d.junctions and n not in vs[ROUTES].nodes]
+    return len(off_route), sum(1 for n in off_route if n in shelved_rows)
 
 
 def drawing(  # noqa: PLR0913 — the page's inputs
@@ -1044,6 +1168,7 @@ def drawing(  # noqa: PLR0913 — the page's inputs
         target = rows.get(nid, {}).get("proposed_for")
         if target and nid in full_titles:
             full_titles[nid] += f"; proposed for: {dag.label_of(str(target), names, labels)}"
+    shelved_rows = _shelved_titles(rows, full_titles)  # F31-T10 (R7)
     svg = _dag_svg(
         vs,
         lays,
@@ -1079,7 +1204,9 @@ def drawing(  # noqa: PLR0913 — the page's inputs
     for label in (rows[v].get("relation") for v in d.below.get(root, []) if v in rows):
         if label in routes_view.TRUNK_LABELS:
             marks.add(f"relation-{label}")
-    hidden = len(vs[ALL].nodes) - len(vs[ROUTES].nodes)
+    if any(n in shelved_rows for n in vs[ALL].nodes):
+        marks.add("shelved")  # F31-T10
+    hidden, shelved_hidden = _hidden_counts(vs, d, shelved_rows)
     doc = json.dumps(layouts_document(lays), separators=(",", ":")).replace("</", "<\\/")
     merged_rows = list(merged_nodes(rows.values(), d, root).values())
     crossing = [ln for ln in dag.lines(merged_rows) if (ln[0] in set(band)) != (ln[1] in set(band))]
@@ -1115,10 +1242,24 @@ def drawing(  # noqa: PLR0913 — the page's inputs
         if result.sets
         else "",
         layouts_json=f'<script type="application/json" id="graph-layouts">{doc}</script>',
-        toggle=_toggle(hidden),
+        toggle=_toggle(hidden, shelved_hidden),
         marks=frozenset(marks),
         sets=len(result.sets),
         hidden=hidden,
         follow_toggle=_follow_toggle() if result.sets else "",
         band=band_svg,
+        shelved=shelved_hidden,
+        routes=tuple(
+            RouteRow(
+                r.id,
+                r.node,
+                r.partial,
+                r.approach,
+                shelving_words(r, rows, d.below.get(rid, [])),
+                cut=bool(d.below.get(rid))
+                and all(rows.get(h, {}).get("shelved") for h in d.below.get(rid, [])),
+            )
+            for rid, r in d.junctions.items()
+            if r.node not in set(band)
+        ),
     )

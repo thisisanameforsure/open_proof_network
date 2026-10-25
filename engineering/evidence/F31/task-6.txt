@@ -1,0 +1,66 @@
+# F31-T6 — `opn-gate shelve`, the SSH-signed hand path (R9)
+
+Branch f31-gate. Gate agent, 2026-10-24.
+
+## What was built
+
+- `gate/opn_gate/curator.py`: `shelve(graph_root, target_id, node_id, *, action, route, cause,
+  author, date, key_path, signer)` — one `shelving/v1` record (`via: ssh`, signed with the
+  signer's own key through `signed.sign`, validated against the schema before it is written)
+  at `nodes/<node>/shelving/<stamp>-<author>.yaml`, append-only. Refused before anything is
+  written, in the gate's own words: a blank cause, a node that is not one, `node-root`,
+  `node-used` (`shelving.used_nodes` over `graph.load_target`), `shelving-route-unknown`
+  (`--route` not among the node's merged partials). Who may sign is the gate's question at
+  merge (`check_shelving_record`), as for a status record's author.
+- `gate/opn_gate/cli.py`: the `shelve` subcommand — `common(sh)` (`--graph`, `--target`,
+  `--author`, `--date`, `--branch`), `node_id`, `--cause`, `--route`, `--unshelve`, `--key`;
+  `run_shelve` through `_curator_common` and `_emit_curator` (the same `--branch` plumbing
+  `status` uses: branch, one commit, the push printed as `next`); `shelve` in
+  `CURATOR_COMMANDS` so a `GraphError` on the way is a refusal, not a usage error.
+- `gate/tests/test_cli_curator.py`: 3 tests under "F31-T6", on the F31 fixture tree
+  (`shelving_support.Tree`: Alice an active steward under her own key; `and-reassoc`
+  decomposed into two holes).
+
+## Red
+
+    python -m pytest -q -p no:cacheprovider -m "..." gate/tests/test_cli_curator.py -k shelv
+    3 failed: argparse.ArgumentError: argument command: invalid choice: 'shelve' (... SystemExit: 2)
+
+The command did not exist; red on the defect (there was no hand path).
+
+## Green
+
+    python -m pytest -q -p no:cacheprovider -m "..." gate/tests/test_cli_curator.py gate/tests/test_curator.py
+    43 passed in 4.53s   (test_cli_curator.py alone: 21 passed; -k shelv: 3)
+    uv run --frozen ruff check / format     All checks passed!
+    uv run --frozen mypy gate                Success: no issues found in 437 source files
+
+What the tests pin:
+- `shelve and-reassoc --cause … --author alice-steward --key <alice>` writes
+  `targets/propositional/nodes/and-reassoc/shelving/20261024T100000Z-alice-steward.yaml`;
+  the record validates, `via: ssh`, verifies under its key; `load_target` derives the node and
+  its hole children shelved; the record passes `check_shelving_record` as a pull request Alice
+  opens (her steward key); `--unshelve` at a later date lifts it.
+- `--route attempts/…-partial.lean --branch steward/retire` writes a `scope: route` record,
+  the branch holds exactly that file; the node itself is not shelved and its hole is, `scope:
+  route`.
+- the root → `node-root`; a node the root's proof uses → `node-used`; an unknown route →
+  `shelving-route-unknown`; a blank cause; an unknown node: each exit 1 with `{"ok": false,
+  "refused": "<code>: …"}` and nothing written; a proved, unused statement may be shelved.
+
+## Notes
+
+- `--date` is the record's `date` (second precision, `Z`) and its stamp, as `status` does;
+  the gate's own rule for the record's order is `(date, file name)`.
+- The hand path signs with the signer's own key, so the merge's `check_signer_opener` wants
+  the record opened by the signer, or signed with their steward commit key — the live shape
+  for a curator (no key on record) is: open the pull request yourself.
+
+## Full fast tier after T6 (gate, api, site)
+
+    python -m pytest -q -p no:cacheprovider -m "not lean and not docker and not network and not harness" gate/tests api/tests site/tests
+    6441 passed, 291 skipped, 261 deselected, 2 warnings in 482.43s (0:08:02)
+
+(skips: the lean/docker tiers, playwright not installed in this worktree, the sibling graph
+checkout absent beside it; `uv run --frozen ruff check gate api site`: All checks passed;
+`ruff format --check`: 845 files already formatted; `mypy gate`: no issues.)

@@ -30,11 +30,11 @@ from test_decompositions import HOLE_IDS
 from test_finding_dag_layout import crossings
 from test_products import ROOT_NODE, nodes_dir
 from test_products import attest as gate_attest
-from test_routes_view import THIRD, doc, nested_doc, node, render_tree, two_routes
+from test_routes_view import REPO, THIRD, doc, nested_doc, node, render_tree, two_routes
 from test_target_routes import live
 
-from opn_gate import routes, scaffold
-from opn_site import dag, one_view, render
+from opn_gate import products, routes, scaffold
+from opn_site import dag, model, one_view, render
 
 T1 = "t@1"
 T2 = "t@2"
@@ -844,3 +844,140 @@ def test_hovering_a_selector_node_lights_its_parent_and_children_in_the_selector
     assert state["picking"], "the preview on the drawing still runs"
     assert state["tip"] and "set" in state["tip"].lower()
     assert after == [0, False, True]
+
+
+# -- F31-T10 (R7; AC7): shelved statements leave the routes view and stay under the toggle -------
+
+PAGE = f"problems/{TARGET}/index.html"
+ROUTE_ONE = f"{ROOT_NODE}@1"
+ROUTE_TWO = f"{ROOT_NODE}@2"
+
+
+def svg_of(page: str) -> str:
+    start = page.index('<svg class="dag"')
+    return page[start : page.index("</svg>", start)]
+
+
+def element(svg: str, node_id: str) -> str:
+    """A statement's or a junction's ``g`` (a junction's ``data-route`` precedes its
+    ``data-node``)."""
+    pattern = rf'<g class="[^"]*"[^>]* data-node="{re.escape(node_id)}"[^>]*>.*?</g>'
+    m = re.search(pattern, svg, re.S)
+    assert m is not None, node_id
+    return m.group(0)
+
+
+def classes(svg: str, node_id: str) -> set[str]:
+    m = re.search(rf'<g class="([^"]*)"[^>]* data-node="{re.escape(node_id)}"', svg)
+    assert m is not None, node_id
+    return set(m.group(1).split())
+
+
+def page_layouts(page: str) -> dict[str, Any]:
+    m = re.search(r'<script type="application/json" id="graph-layouts">(.*?)</script>', page, re.S)
+    assert m is not None
+    parsed: dict[str, Any] = json.loads(m.group(1))
+    return parsed
+
+
+def toggle_of(page: str) -> str:
+    m = re.search(r'<button type="button" class="chip view-toggle"[^>]*>[^<]*</button>', page)
+    assert m is not None, "no view-toggle"
+    return m.group(0)
+
+
+def render_shelved(root: Path, shelved: dict[str, dict[str, Any]]) -> dict[str, str]:
+    """The tree's products as the gate renders them, then shelved as the v3.47 gate would
+    leave them (the derivation is not on this branch), then the site."""
+    products.generate(root, rendered_from=fixture.COMMIT, commit_time=fixture.NOW).write(root)
+    fixture.publish_shelved(root, shelved)
+    return render.render_site(model.load_site(root, fixture.COMMIT), repo_url=REPO)
+
+
+def test_a_shelved_hole_is_under_the_toggle_not_on_the_routes_view(tmp_path: Path) -> None:
+    """R7, Q2: a shelved statement is in ``all`` and not in ``routes``; its pill carries
+    ``shelved`` and the cause on hover; the toggle counts it apart from the off-route ones; the
+    route it sits on keeps its junction while a sibling hole is live. The Problems row reads
+    shelved and offers no work."""
+    root = two_routes(tmp_path)
+    pages = render_shelved(
+        root,
+        {HOLE_IDS[0]: fixture.shelved_fact("Too <b>weak</b> to help the root", via=HOLE_IDS[0])},
+    )
+    page = pages[PAGE]
+    lays = page_layouts(page)
+    assert HOLE_IDS[0] in lays["all"]["nodes"] and HOLE_IDS[0] not in lays["routes"]["nodes"]
+    assert HOLE_IDS[1] in lays["routes"]["nodes"] and ROUTE_ONE in lays["routes"]["nodes"]
+    svg = svg_of(page)
+    cls = classes(svg, HOLE_IDS[0])
+    assert {"shelved", "off-view"} <= cls, cls
+    assert "shelved" not in classes(svg, HOLE_IDS[1])
+    title = re.search(r"<title>(.*?)</title>", element(svg, HOLE_IDS[0])).group(1)  # type: ignore[union-attr]
+    assert "shelved by alice on 2026-10-24: Too &lt;b&gt;weak&lt;/b&gt; to help the root" in title
+    assert "<b>" not in title
+    toggle = toggle_of(page)
+    assert "Show 1 more statement" in toggle and "1 shelved" in toggle, toggle
+    rows_ = re.findall(r'<div class="stmt".*?</div>', pages["problems/index.html"], re.S)
+    stmt = next(r for r in rows_ if f"/{HOLE_IDS[0]}/" in r)
+    assert 'data-state="shelved"' in stmt and 'data-workable="0"' in stmt
+    assert "Supply a witness" not in stmt and "Work on this" not in stmt
+
+
+def test_a_route_whose_holes_are_all_shelved_loses_its_junction(tmp_path: Path) -> None:
+    """R7: a retired route (every hole shelved through the parent's route record) draws no
+    junction in ``routes``; the junction stays in ``all``, dead, and says why; the toggle counts
+    the two statements and not the junction; the sibling route is untouched."""
+    root = two_routes(tmp_path)
+    retired = {
+        h: fixture.shelved_fact("Route 1 is a distraction", via=ROOT_NODE, scope="route")
+        for h in HOLE_IDS
+    }
+    page = render_shelved(root, retired)[PAGE]
+    lays = page_layouts(page)
+    assert ROUTE_ONE not in lays["routes"]["nodes"] and ROUTE_ONE in lays["all"]["nodes"]
+    assert ROUTE_TWO in lays["routes"]["nodes"] and THIRD in lays["routes"]["nodes"]
+    svg = svg_of(page)
+    junction = element(svg, ROUTE_ONE)
+    assert {"junction", "dead", "off-view"} <= classes(svg, ROUTE_ONE)
+    assert "retired" in junction and "Route 1 is a distraction" in junction
+    assert "Show 2 more statements" in toggle_of(page) and "2 shelved" in toggle_of(page)
+
+
+def shelved_doc() -> dict[str, Any]:
+    """Root ``t`` with two routes, ``[a, b]`` (``b`` proved and shelved) and ``[c]`` (``c``
+    open and shelved)."""
+    rows = [
+        node("t", origin="authored", routes=[["t--a", "t--b"], ["t--c"]]),
+        node("t--a"),
+        node("t--b", "proved"),
+        node("t--c"),
+    ]
+    for row in rows:
+        row["shelved"] = (
+            fixture.shelved_fact(via=str(row["node_id"]))
+            if row["node_id"] in ("t--b", "t--c")
+            else None
+        )
+    return {"schema": "graph/v15", "target_id": "t", "root": "t", "nodes": rows}
+
+
+def test_a_shelved_member_stays_in_a_set_view_only_when_proved() -> None:
+    """Q6: a shelved proved statement keeps its place in a set (drawn dim); a shelved open one
+    leaves every set view; neither is in ``routes``; both are in ``all`` (Q2: the order seed)."""
+    g = shelved_doc()
+    vs = one_view.views(g, routes.read(g, []))
+    assert {"t--b", "t--c"} <= set(vs[one_view.ALL].nodes)
+    assert not {"t--b", "t--c"} & set(vs[one_view.ROUTES].nodes)
+    set_views = [v for k, v in vs.items() if k == one_view.TOP or k.startswith(("sel/", "edge/"))]
+    assert set_views
+    assert any("t--b" in v.nodes for v in set_views)
+    assert all("t--c" not in v.nodes for v in set_views)
+    assert all("t--c" not in (ln[0], ln[1]) for v in set_views for ln in v.lines), (
+        "a line to a dropped statement"
+    )
+    d = one_view.drawing(g, [], href={})
+    svg = d.svg
+    assert {"shelved", "proved"} <= classes(svg, "t--b")
+    assert "shelved" in classes(svg, "t--c") and "shelved" not in classes(svg, "t--a")
+    assert "shelved" in d.marks
+    assert d.shelved == 2 and d.hidden == 2

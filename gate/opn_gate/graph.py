@@ -158,6 +158,11 @@ class NodeFacts:
     #: one once it is proved (its signature is in ``Context.lean``) and never waits on one, so
     #: they are set aside with ``holes`` when the status is derived (``blocked_because``).
     lemmas: tuple[Lemma, ...] = ()
+    #: F31-T1 (D-14 v3.47): the shelving the products publish for the node — a steward's or
+    #: curator's judgment, derived from its own latest ``shelving/`` record or inherited (F31-T3,
+    #: ``shelving.derive``) — as ``graph/v15``'s row object, or None. Not a status: ``status`` is
+    #: derived without it. Seeded at today's behaviour: always None until T3 fills it.
+    shelved: dict[str, Any] | None = None
     #: F08-R19: the nodes this node's merged ``Proof.lean`` uses beyond its deps — its use lines,
     #: which step 8 held to the kernel term when the proof merged. Read from the tree; no record
     #: is written for a use. No status is derived from them (a used node was proved before its
@@ -1141,6 +1146,12 @@ def load_target(graph_root: Path, target_id: str) -> TargetGraph:
 
         vouched = modes.root_vouched(target_dir) is not None
     statuses = derive_statuses(nodes, root=root, root_vouched=vouched)
+    # F31-R2 (D-14 v3.47): what is shelved, derived once from the records and the routes, after
+    # the statuses (which never read it) and before anything publishes the node.
+    from opn_gate import shelving  # noqa: PLC0415 — shelving reads this module's facts
+
+    derived = shelving.derive(nodes, root=root, used=shelving.used_nodes(nodes))
+    nodes = {n: replace(node, shelved=derived[n]) for n, node in nodes.items()}
     return TargetGraph(
         target_id=target_id,
         path=target_dir,

@@ -238,6 +238,13 @@ APPEND_CHECKS: dict[str, str] = {
         "is an active steward of the target or a listed curator, and that the record it "
         "disputes is an unsigned proposal on the node (D-25, D-32 v3.45)"
     ),
+    # F31-R1 (D-14, D-32 v3.47): a steward's or curator's judgment, signed; never a status.
+    "shelving": (
+        "its path, its schema, its signature under the graph's approval key, that its signer is "
+        "an active steward of the target or a listed curator, that the node is not the root and "
+        "is used by no merged proof, and that a named route is one of the node's merged "
+        "decompositions (D-14 v3.47)"
+    ),
     # F25-R5, R6 (D-3, D-10 v3.37): the two records outside the node.
     "registration record": (
         "its path, its schema, that its submitter is a listed curator or an active steward of the "

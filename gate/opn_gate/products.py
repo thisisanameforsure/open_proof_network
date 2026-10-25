@@ -65,7 +65,7 @@ from opn_gate.toolchain import ResolvedToolchain, Toolchain, UsedConstantsReques
 log = logging.getLogger(__name__)
 
 #: docs/architecture_decisions.html (v3.43: circularity retired; v3.42: proved by closure)
-PROTOCOL_VERSION = "3.46"
+PROTOCOL_VERSION = "3.47"
 #: F08-T42 (D-12 v3.43): graph/v11 drops ``circular``, the retired circularity label.
 #: F03-T20 (D-12 v3.38): graph/v8 carries ``lemmas``, the nodes under other branches a merged
 #: partial restated as holes, and a decomposition's hole may resolve to one. v7 (F25-R7, D-10
@@ -75,7 +75,7 @@ PROTOCOL_VERSION = "3.46"
 #: v11 (F08-T42, D-12 v3.43): no circular; v10 (F28-T8, D-12 v3.42): closure; v9 (F26-R17):
 #: review state and open pairs; v8: lemmas
 #: v12 (F29-T1, D-25 v3.44): label, label_source, claim; approach
-GRAPH_SCHEMA = "graph/v14"  # F08-T44 (D-30 v3.46): relation refutes; target_proofs refutations
+GRAPH_SCHEMA = "graph/v15"  # F31-T1 (D-14 v3.47): each row's shelved
 #: F03-T18 (D-12 v3.35): frontier/v5 repeats graph/v6's three fields on every entry, and a node
 #: under a circularity claim is an entry on its status alone; v4 (T16): status, cause, needs;
 #: v3 (T7): partials; v2: D-33 dormancy. F08-T42 (D-12 v3.43): frontier/v6 drops ``circular``.
@@ -538,27 +538,49 @@ def target_facts(
     )
 
 
+def route_holes(
+    nodes: Mapping[str, graphmod.NodeFacts], node_id: str
+) -> list[tuple[graphmod.PartialRecord, list[tuple[str, str | None]]]]:
+    """F18-R4's assignment of a node's partials' holes to its nodes, on its own so the shelving
+    derivation (F31-T3, ``shelving.derive``) reads the same routes ``decompositions_of``
+    publishes: each merged partial with ``(hole name, node or None)`` per hole. A hole is matched
+    to the first of the node's hole children (its holes, read through revisions, in the order the
+    post-merge job recorded them) that carries its name and no earlier hole took; failing that, to
+    the node a lemma of the same hole name restated (D-12 v3.38, ``NodeFacts.lemmas``, read
+    through revisions too); one the tree does not hold is named with no node (C7)."""
+    node = nodes[node_id]
+    names: dict[str, str | None] = {}
+    for child in node.holes:
+        text = (nodes[child].path / "Statement.lean").read_text(encoding="utf-8")
+        names[child] = postmerge.hole_name(text)
+    taken: set[str] = set()
+    out: list[tuple[graphmod.PartialRecord, list[tuple[str, str | None]]]] = []
+    for partial in node.partials:
+        holes: list[tuple[str, str | None]] = []
+        for hole in partial.holes:
+            found = next((c for c in node.holes if names.get(c) == hole and c not in taken), None)
+            if found is not None:
+                taken.add(found)
+            else:
+                # A lemma is the same node whichever partial restated it, so it is never taken.
+                found = next((x.node for x in node.lemmas if x.hole == hole), None)
+            holes.append((hole, found))
+        out.append((partial, holes))
+    return out
+
+
 def decompositions_of(tg: TargetGraph, node_id: str) -> list[dict[str, Any]]:
     """F18-R4: each merged partial of the node, the annex it cites and the holes it made.
 
     Three records, kept apart until now: the attestation names the file and the holes (step 2,
     step 4), the file names its annex (D-31 v3.12, ``postmerge.annex_citation``), and each hole
-    child's header names its hole (``postmerge.hole_name``). A hole is matched to the first of
-    the node's hole children (its holes, read through revisions, in the order the post-merge job
-    recorded them) that carries its name and no earlier hole took; failing that, to the node a
-    lemma of the same hole name restated (D-12 v3.38, ``NodeFacts.lemmas``, read through
-    revisions too); one the tree does not hold is named with no node (C7)."""
-    node = tg.nodes[node_id]
-    names: dict[str, str | None] = {}
-    for child in node.holes:
-        text = (tg.nodes[child].path / "Statement.lean").read_text(encoding="utf-8")
-        names[child] = postmerge.hole_name(text)
-    taken: set[str] = set()
+    child's header names its hole (``postmerge.hole_name``); ``route_holes`` matches the holes
+    to the tree's nodes."""
     out: list[dict[str, Any]] = []
-    for partial in node.partials:
+    for partial, matched in route_holes(tg.nodes, node_id):
         # F08-T46 (D-8 v3.46): a partial a revision inherits stays in the superseded node's
         # directory, with its annex and its glosses; the record's holder says which.
-        holder = tg.nodes.get(partial.holder, node)
+        holder = tg.nodes.get(partial.holder, tg.nodes[node_id])
         file = holder.path / partial.path
         try:
             annex = (
@@ -584,15 +606,7 @@ def decompositions_of(tg: TargetGraph, node_id: str) -> list[dict[str, Any]]:
             if file.is_file()
             else None
         )
-        holes: list[dict[str, str | None]] = []
-        for hole in partial.holes:
-            found = next((c for c in node.holes if names.get(c) == hole and c not in taken), None)
-            if found is not None:
-                taken.add(found)
-            else:
-                # A lemma is the same node whichever partial restated it, so it is never taken.
-                found = next((x.node for x in node.lemmas if x.hole == hole), None)
-            holes.append({"name": hole, "node": found})
+        holes = [{"name": hole, "node": found} for hole, found in matched]
         out.append({"partial": partial.path, "annex": annex, "holes": holes, "approach": approach})
     return out
 
@@ -1113,6 +1127,8 @@ def graph_doc(
                 "lemmas": [{"hole": x.hole, "node": x.node} for x in n.lemmas],
                 # F28-T8 (D-12 v3.42): the closure the gate joined and signed, or null.
                 "closure": closure_entry(n),
+                # F31-R3 (D-14 v3.47): the shelving reaching the node, or null; never a status.
+                "shelved": n.shelved,
                 # F29-R3 (D-3, D-25 v3.44): the statement's short name, where it came from, and
                 # its claim in notation; the root alone takes the target's title.
                 **node_words(n, node_id, title=title if node_id == tg.root else None),
@@ -1208,6 +1224,11 @@ def in_frontier(status: str, node: NodeFacts, status_of: Callable[[str], str]) -
     """
     if graphmod.is_superseded(node):
         return False  # R13: its successor carries the question, variant or not
+    if node.shelved is not None:
+        # F31-R4 (D-14, D-25 v3.47): a shelved statement is a steward's or curator's judgment
+        # that it does not serve the root; off the frontier whatever its status, with the cause
+        # on its row. Not a ranking: it is absent, never ordered.
+        return False
     if workable(status, node, status_of):
         return True
     # F03-T13: a curator's ``abandoned`` closes a variant as it closes any node (AC4, Q16); and

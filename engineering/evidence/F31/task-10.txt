@@ -1,0 +1,103 @@
+F31-T10 — Drawing (R7): the views, the pill class and title, the junction words, the toggle
+count, the key. Site agent, branch f31-site (from f31-shelving at d91680aa). 2026-10-24.
+
+Environment: the worktree has no .venv; the main checkout's .venv (Python 3.13.5) is on PATH.
+Playwright is not importable from the venv, so the browser tests of test_one_view.py skip in
+the runs below. Correction, written at T11: the laptop has Chromium builds cached under
+~/Library/Caches/ms-playwright, and `uv run --frozen --with playwright pytest
+site/tests/test_one_view.py site/tests/test_one_view_markup.py` ran the whole tier here:
+39 passed in 22.01s (the browser tests included; the toggle test reads the new label). Captures
+task-10-routes-view-1280.png and task-10-all-view-shelved-dim-1280.png are in this directory
+(described in task-11.txt).
+
+Baseline (before any change), the four target files plus test_one_view_markup.py:
+  59 passed, 6 skipped in 39.37s
+
+Fixture: site/tests/fixture.py gains shelved_fact(...) and publish_shelved(root, {node: fact})
+— sets `shelved` on the named graph/v15 rows (validated against products.GRAPH_SCHEMA) and
+drops those nodes from frontier.json (F31-R4), because the gate's derivation is built in
+parallel and is not on this branch.
+
+RED, first run (-k "shelv or output_class" over test_one_view, test_graph_legend,
+test_finding_needs_witness, test_finding_circularity_retired_site):
+  6 failed, 66 deselected in 2.47s
+  Two of the six were fixture errors, not defects: two_routes() writes no products until
+  render_tree() generates them, so publish_shelved found no graph.json
+    FileNotFoundError: .../targets/propositional/graph.json
+  The other four failed on the defect:
+    test_a_shelved_member_stays_in_a_set_view_only_when_proved
+      AssertionError: assert not ({'t--b', 't--c'} & {'t', 't--a', 't--b', 't--c', 't@1', 't@2'})
+    test_the_key_names_shelved_when_a_statement_is
+      assert 'class="dot dot-shelved"' in '<span class="term" ...>proved...'
+    test_a_shelved_statement_is_not_work
+      AssertionError: assert {...} == {...}; Extra items in the left set: 'and-swap-reassoc--h1'
+      (the site called the shelved hole workable while the frontier had dropped it)
+    test_every_output_class_has_a_key_entry
+      AssertionError: the drawing no longer draws " shelved"; update this guard
+
+RED, second run (the two fixture-tree tests, now generating products before shelving):
+  2 failed, 21 deselected in 0.82s
+    test_a_shelved_hole_is_under_the_toggle_not_on_the_routes_view
+      assert ('and-swap-reassoc--h1' in all.nodes and 'and-swap-reassoc--h1' not in routes.nodes)
+      -> the shelved hole was still in the routes layout
+    test_a_route_whose_holes_are_all_shelved_loses_its_junction
+      assert ('and-swap-reassoc@1' not in routes.nodes) -> the retired route's junction was drawn
+
+Changes (site only):
+  site/opn_site/model.py      NodeView.shelved (dict | None, from the graph/v15 row; None on an
+                              older row, D-34).
+  site/opn_site/one_view.py   views(): a shelved statement (proved or not, Q2) leaves ROUTES
+                              and stays in ALL (the order seed, F30-Q2); a junction every hole of
+                              which is shelved ("cut": retired, or shelved one by one) leaves
+                              ROUTES; set views lose shelved UNPROVED members and the junctions
+                              of routes they kill (Q6: a shelved proved member stays, drawn dim);
+                              ROUTES keeps a dead-by-shelving junction, drawn dead. New helpers
+                              shelved_ids, shelving_words, _drop_from, _shelved_titles,
+                              _hidden_counts. _pill_markup(shelved=) adds class `shelved`;
+                              _junction_markup(shelving=) draws dead and says "retired by X on
+                              D: cause" / "every hole shelved ..." / "closes nothing (a hole is
+                              shelved and unproved)"; the pill title gains "; shelved by <by>
+                              on <date>: <cause>"; Drawing.shelved (count); marks gains
+                              "shelved"; hidden counts statements only; _toggle(hidden, shelved)
+                              reads "Show 2 more statements (1 on no route, 1 shelved)" / "(2
+                              shelved)". static/graph.js unchanged (it flips ROUTES<->ALL and
+                              reads the label text and data-shown-label as before).
+  site/opn_site/render.py     SHELVED = "shelved"; GLOSSARY entry ("shelving record (D-14
+                              v3.47)"); ROUTE_MARK_KEYS += "shelved" so graph_legend keys it
+                              from drawn.marks; node_state returns "shelved" for a shelved node
+                              that is not proved (proved stays proved); dot_state / state_hover
+                              know the word; node_action reads "Shelved".
+  site/opn_site/static/site.css  .dag .node.shelved (opacity .45, dotted pill outline — the
+                              status colour unchanged); .dot-shelved swatch.
+  site/tests/golden/docs/index.html  one line: the glossary's new row.
+
+Two mistakes on the way, both mine: the set-view drop loop skipped only ALL and BAND, so it
+took the dead junction out of ROUTES too (it should stay, drawn dead); and my test helpers
+matched `<g class="…" data-node=` while a junction's data-route precedes its data-node, so
+element() never found a junction. Both fixed; the second run of the targets then went green.
+
+GREEN:
+  nine site files (test_one_view, test_graph_legend, test_docs_states, test_finding_needs_witness,
+  test_one_view_markup, test_finding_circularity_retired_site, test_routes_view, test_crux_band,
+  test_column_rules): 117 passed, 9 skipped in 9.34s
+  full site suite, fast tier: 840 passed, 20 skipped in 78.86s
+  ruff check: All checks passed!  ruff format: clean.  mypy site: no issues in 119 files.
+
+Judgment calls (proposed Q entries for the lead to number):
+  proposed Q: the site's word for a shelved statement that is not proved is "shelved"
+    (render.SHELVED), returned by node_state in place of open / needs-witness / blocked, so the
+    Problems page's workable set equals the frontier's claimable set (R4; the guard in
+    test_finding_needs_witness holds). A shelved PROVED statement keeps the word "proved" (rule 2,
+    Q6). "shelved" is not in LEGEND_EXTRA or the Docs state map (F31-Q7: not a status); it is a
+    route-mark key, shown in the graph key when a drawn pill carries it.
+  proposed Q: on this branch a junction is "cut" when every hole of it is shelved; the title
+    says "retired" only when every hole's record is scope=route with via = the route's node,
+    else "every hole shelved". Once the gate's Route.retired / Route.live land, one_view can read
+    those instead; the words and the membership rule are the same.
+  proposed Q: a route with a shelved unproved hole beside live holes stays in ROUTES, drawn dead
+    (dead-mark, "closes nothing (a hole is shelved and unproved)"), and leaves every set view —
+    the same as the gate's rule 5 once Route.live is false for it.
+
+Verification command (spec F31-T10):
+  uv run --frozen pytest site/tests/test_one_view.py site/tests/test_graph_legend.py -k shelv
+  4 passed, 34 deselected in 9.54s

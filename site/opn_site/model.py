@@ -77,6 +77,7 @@ PRODUCT_SCHEMAS: dict[str, tuple[str, ...]] = {
         "graph/v12",  # F29-T1 (D-25 v3.44): label, label_source, claim; approach
         "graph/v13",  # F08-T43 (D-25 v3.45): literature.disputes
         "graph/v14",  # F08-T44 (D-30 v3.46): relation refutes; target_proofs refutations
+        "graph/v15",  # F31-T1 (D-14 v3.47): each row's shelved
     ),
 }
 log = logging.getLogger(__name__)
@@ -579,6 +580,15 @@ class NodeView:
         """Why a blocked node is blocked (``graph/v2`` on; absent before, read as ``None``)."""
         cause = self.graph_entry.get("cause")
         return None if cause is None else str(cause)
+
+    @property
+    def shelved(self) -> dict[str, Any] | None:
+        """F31-T10 (D-14 v3.47, ``graph/v15``): a steward's or curator's judgment that the
+        statement does not serve the root — ``cause``, ``by``, ``date``, ``record``, ``scope``
+        and ``via`` (the node whose record reaches it) — or ``None``. Not a status: ``status``
+        is unchanged by it (F31-Q7). An older row has no such key and reads as ``None`` (D-34)."""
+        raw = self.graph_entry.get("shelved")
+        return dict(raw) if isinstance(raw, dict) else None
 
     @property
     def open_claims(self) -> list[dict[str, Any]]:
