@@ -1,0 +1,104 @@
+F31-T11 — Controls (R8): the node page slot, the routes list with Retire, static/shelve.js.
+Site agent, branch f31-site, on top of F31-T10 (78662603). 2026-10-24.
+
+Playwright is not in the venv, but the laptop has Chromium builds cached under
+~/Library/Caches/ms-playwright, so `uv run --frozen --with playwright pytest …` runs the browser
+tier here (see below). The markup contract is what the fast tier proves; the browser test proves
+the script against a fake service.
+
+RED (site/tests/test_shelving_controls.py, new; first run):
+  6 failed, 1 passed, 1 skipped in 1.75s
+    test_a_shelved_statement_page_carries_the_slot_with_its_data   AssertionError: [] (no slot)
+    test_an_unshelved_statement_page_carries_an_empty_slot         AssertionError: [] (no slot)
+    test_the_cause_reaches_the_page_as_text   assert esc(CAUSE) in page  (no note on the page)
+    test_one_retire_control_per_drawn_route   assert 0 == 2 (no routes list, no control)
+    test_the_script_is_present_with_a_service_and_absent_without   count('<script src="/shelve.js" …') == 0
+    test_the_script_gates_on_the_session_and_posts_the_three_shapes   static/shelve.js is missing
+    test_the_root_has_no_slot passed trivially (nothing rendered yet) and is the guard for R6.
+    test_a_steward_shelves_unshelves_and_retires_from_the_site skipped (no playwright in the venv).
+
+Changes (site only):
+  site/opn_site/one_view.py   RouteRow(id, node, partial, approach, shelving, cut) and
+                              Drawing.routes: the drawn routes (the tree's, not the band's).
+  site/opn_site/render.py     "/shelve.js" in SCRIPTS; SHELVE_SCRIPT. On a statement's page:
+                              shelve_act (hidden .shelve-act[data-target][data-node]
+                              [data-shelved="0|1"][data-cause][data-by][data-date], never on the
+                              root, nothing without a service address); shelved_note (the
+                              shelving as the page states it regardless of sign-in: "Shelved by
+                              <by> on <date>[ (reached through <via>'s record)]. Rendered from
+                              <record link>." and the cause in a prose-block untrusted
+                              data-block="shelving", demarcated as the literature summary is);
+                              shelved_badge (the key's "shelved" term beside the status mark, so
+                              the head says it in text); the record path added to the page's
+                              renders; the script tag after literature's. On the problem page:
+                              routes_list (one li.route-row[data-route] per drawn route — id,
+                              approach from routes_view.approach_of, the partial's file link,
+                              what shelving did to it, and a hidden .retire-act[data-target]
+                              [data-node][data-partial] unless the route is already cut) in the
+                              sets-grid beside the sets table; the script tag when a control is
+                              rendered.
+  site/opn_site/static/shelve.js   copied from literature.js's shape: gates on
+                              s.signed_in && (s.curator || s.stewards.indexOf(target) >= 0) after
+                              O.session; Shelve / Unshelve on the slot, "Retire this route" on
+                              each control; each opens a cause textarea (1–1000 characters
+                              checked client-side) and posts {node_id, action, scope, route,
+                              cause} to POST /shelvings; 201 shows "… filed:" with the pull
+                              request link under data-repo; a refusal's text is shown (C7).
+  site/opn_site/static/site.css    .shelve-act / .retire-act / .shelved-note / .routes-list.
+
+One miss on the way: the first green run withheld the Retire control from any route shelving had
+touched (route 1 has one shelved hole of two, so it was "dead" but not retired); the control is
+withheld only from a route already cut (every hole shelved), hence RouteRow.cut. And render.py
+had no routes_view import (NameError at the first run; mypy named the same line).
+
+GREEN:
+  fast tier: site/tests/test_shelving_controls.py  7 passed, 1 skipped in 2.04s
+  full site suite, fast tier: 847 passed, 21 skipped in 65.85s
+  ruff check: All checks passed!  ruff format: clean.  mypy site: no issues in 120 files.
+  browser tier: uv run --frozen --with playwright pytest site/tests/test_shelving_controls.py
+    site/tests/test_one_view.py -k "steward or toggle_shows_every or shelv"
+    12 passed, 19 deselected in 18.20s
+    (test_a_steward_shelves_unshelves_and_retires_from_the_site: Shelve posted
+     {node_id, action: "shelved", scope: "node", route: null, cause}; Unshelve posted
+     action "unshelved"; Retire posted scope "route" with the partial's path; each showed
+     "#7"; signed out, nothing was drawn.)
+  the whole one_view tier under Playwright (T10's drawing with the script):
+    uv run --frozen --with playwright pytest site/tests/test_one_view.py site/tests/test_one_view_markup.py
+    39 passed in 22.01s
+
+Captures (engineering/evidence/F31/, 1280 px, the shelved two_routes fixture, signed in as a
+steward of the target against the test's fake service; script in the session scratchpad):
+  task-10-routes-view-1280.png        routes view: hden (shelved) absent; route 1 drawn dead
+                                      (one hole shelved and unproved) with hrem beneath; the key
+                                      names "shelved" with its dotted ring; the toggle reads
+                                      "Show 1 more statement (1 shelved)".
+  task-10-all-view-shelved-dim-1280.png   toggle pressed: hden drawn dim with a dotted outline,
+                                      its status colour unchanged; "Hide the 1 statement (1 shelved)".
+  task-11-routes-list-retire-1280.png  the routes list: both routes with "Retire this route";
+                                      route 1 says "closes nothing (a hole is shelved and unproved)".
+  task-11-retire-form-1280.png         the form open on route 1.
+  task-11-node-head-shelved-1280.png   the shelved hole's head: "open" (its status) beside the
+                                      "shelved" term.
+  task-11-node-note-unshelve-1280.png  "What is known": the demarcated note, the cause's
+                                      <script> shown as text, Unshelve drawn.
+  Signed out (printed by the capture script): controls drawn = 0, note shown = 1.
+
+Judgment calls (proposed Q entries for the lead to number):
+  proposed Q: the root's page carries no shelve slot: R1/R6 refuse a record on the root
+    (node-root), so the site offers no control there rather than a refusal.
+  proposed Q: the Retire control is rendered for every drawn route that is not already cut
+    (every hole shelved); a route one of whose holes is shelved still offers Retire, since a
+    retirement reaches the rest of its holes. A cut route shows its words instead.
+  proposed Q: the shelving note sits first under "What is known" on the node page and the
+    "shelved" term beside the status in its head; the status mark itself is unchanged (F31-Q7),
+    so a shelved open hole's head reads "open · shelved". If the owner would rather the head
+    say shelved alone, that is one line in shelved_badge / status_mark.
+  proposed Q: the routes list is a sibling of the sets table inside .sets-grid
+    (.routes-list-wrap after .routes-table-wrap). This is an addition to the F30 page contract
+    (engineering/session-notes/2026-10-18-f30-contract.md), not a change to any element it
+    names; graph.js reads nothing from it. The lead may want one line added to the note.
+
+Verification command (spec F31-T11):
+  uv run --frozen pytest site/tests/test_shelving_controls.py
+  7 passed, 1 skipped in 1.62s   (the skip is the browser test without --with playwright;
+  with it, above, it passes)

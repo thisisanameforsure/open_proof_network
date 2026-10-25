@@ -299,6 +299,7 @@ Role = Literal[
     "withdrawal",  # nodes/<id>/withdrawals/<ts>-<curator>.yaml: a record withdrawn (F08-T31)
     "credit-correction",  # targets/<id>/credit-corrections/<ts>-<curator>.yaml (F07-T66)
     "literature",  # nodes/<id>/literature/<ts>-<contributor>.yaml: a literature status (D-25 v3.35)
+    "shelving",  # nodes/<id>/shelving/<ts>-<login>.yaml: a shelving (D-14 v3.47, F31-R1)
     "registration",  # targets/<id>/registrations/<date>-<n>.yaml: a registry record (D-10 v3.37)
     "display-name",  # names/<pseudonym>.yaml at the graph root: an opt-in display name (D-3 v3.37)
     # F26-R1 (D-9 v3.39): the formalization review's records under targets/<id>/review/.
@@ -323,6 +324,9 @@ APPEND_ROLES: tuple[Role, ...] = (
     # F08-T40 (D-25 v3.35): unsigned, anyone's proposal; signed, a steward's or curator's
     # confirmation, checked as a steward record is (``modes.check_literature_record``).
     "literature",
+    # F31-R1 (D-14 v3.47): always signed, a steward's or curator's judgment; checked as a
+    # literature confirmation is (``modes.check_shelving_record``).
+    "shelving",
 )
 
 #: Appends that may carry a Lean exhibit, which the gate elaborates in the sandbox (F08-R6, R7).
@@ -411,6 +415,7 @@ SCHEMAS_FOR_ROLE: dict[Role, tuple[str, ...]] = {
     "credit-correction": ("credit-correction/v1",),
     # F08-T40 (D-25 v3.35); v2: disputes (F08-T43, D-25 v3.45).
     "literature": ("literature/v1", "literature/v2"),
+    "shelving": ("shelving/v1",),  # F31-R1 (D-14 v3.47)
     "registration": ("registration/v1",),  # F25-R5 (D-10 v3.37)
     # F26-R1 (D-9 v3.39): the review's records.
     "review": ("review/v1",),
@@ -459,6 +464,9 @@ RECORD_DIRS: dict[str, Role] = {
     # F08-T40 (D-3, D-25 v3.35): what the literature says of the statement, a proposal until a
     # steward of the target or a curator confirms it by a signed record of their own.
     "literature/": "literature",
+    # F31-R1 (D-14 v3.47): a steward's or curator's shelving of the statement or retirement of
+    # one of its decompositions, and the record that lifts one; derived, never a status.
+    "shelving/": "shelving",
 }
 
 _NODE_PATH_RE = re.compile(r"^targets/(?P<target>[^/]+)/nodes/(?P<node>[^/]+)/(?P<rest>.+)$")

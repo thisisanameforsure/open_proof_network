@@ -101,6 +101,7 @@ CURATOR_COMMANDS: frozenset[str] = frozenset(
         "revise",
         "consolidate",
         "status",
+        "shelve",
         "missing-library",
         "intake",
         "fidelity",
@@ -483,6 +484,26 @@ def _add_curator_parsers(sub: argparse._SubParsersAction[argparse.ArgumentParser
         "--k", type=positive_int, default=curator.DEFAULT_K, help="D-33's K in force (at least 1)"
     )
     st.add_argument("--n", type=int, default=curator.DEFAULT_N_DAYS, help="D-33's N (days)")
+
+    sh = sub.add_parser(
+        "shelve",
+        help="shelve a statement or retire one of its decompositions, or lift one, by an "
+        "SSH-signed record (F31-R9; D-14 v3.47)",
+    )
+    common(sh)
+    sh.add_argument("node_id", help="the node the record sits on")
+    sh.add_argument("--cause", required=True, help="the published reasoning (D-14 v3.47)")
+    sh.add_argument(
+        "--route",
+        help="retire one merged decomposition instead of the statement: the partial's file as "
+        "graph.json's decompositions[].partial gives it (attempts/<file>.lean)",
+    )
+    sh.add_argument(
+        "--unshelve", action="store_true", help="lift the shelving (or the retirement) instead"
+    )
+    sh.add_argument(
+        "--key", required=True, type=Path, help="the signer's own SSH private key (ed25519)"
+    )
 
     ml = sub.add_parser("missing-library", help="the D-13 aggregate for the curator (F08-R12)")
     ml.add_argument("--graph", required=True, type=Path, help="path to the graph checkout")
@@ -975,6 +996,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         "revise": run_revise,
         "consolidate": run_consolidate,
         "status": run_status,
+        "shelve": run_shelve,
         "missing-library": run_missing_library,
         "ledger": run_ledger,
         "stewards": run_stewards,
@@ -2510,6 +2532,35 @@ def run_status(args: argparse.Namespace, settings: config.Settings) -> int:
     written = [record.resolve().relative_to(graph).as_posix()]
     doc = {"ok": True, "ref": args.ref, "status": args.status, "written": written}
     return _emit_curator(doc, graph, args.branch, f"status: {args.ref} {args.status}")
+
+
+def run_shelve(args: argparse.Namespace, settings: config.Settings) -> int:
+    """F31-R9: ``shelve <node> --cause … [--route F] [--unshelve] --key K`` writes one
+    SSH-signed ``shelving/v1`` record; the refusals are ``curator.shelve``'s."""
+    graph, target_id, date = _curator_common(args)
+    action = "unshelved" if args.unshelve else "shelved"
+    record = curator.shelve(
+        graph,
+        target_id,
+        args.node_id,
+        action=action,
+        route=args.route,
+        cause=args.cause,
+        author=args.author,
+        date=date,
+        key_path=args.key.resolve(),
+        signer=signed.default_signer(),
+    )
+    written = [record.resolve().relative_to(graph.resolve()).as_posix()]
+    doc = {
+        "ok": True,
+        "node": args.node_id,
+        "action": action,
+        "scope": "route" if args.route else "node",
+        "route": args.route,
+        "written": written,
+    }
+    return _emit_curator(doc, graph, args.branch, f"shelve: {args.node_id} {action}")
 
 
 # --- intake and fidelity (F11-R2, R3, R5) ----------------------------------------------------

@@ -25,7 +25,7 @@ from opn_gate import clients, explainers, hosted, intake, layout, policy, produc
 from opn_gate import glosses as glossesmod
 from opn_gate import graph as graphmod
 from opn_gate import ledger as ledgermod
-from opn_site import activity, dag, links, one_view, prose
+from opn_site import activity, dag, links, one_view, prose, routes_view
 from opn_site.model import (
     ADMITTED_BY_CURATOR,
     ChainView,
@@ -148,6 +148,10 @@ CLAIMABLE_STATUSES = ("ready", "speculative")
 #: kept the older two-status rule, so it called seven claimable statements "Not accepting work".
 WITNESS_CAUSE = "witness-missing"
 NEEDS_WITNESS = "needs-witness"
+#: F31-T10 (D-14 v3.47): the site's word for a shelved statement that is not proved. Not a
+#: status (F31-Q7): the row's ``status`` stands underneath; the word says the site offers no
+#: work on it, as the frontier offers none (R4).
+SHELVED = "shelved"
 #: The states the site invites work on; the set a test holds to the frontier's claimable entries.
 WORKABLE_STATES = ("open", NEEDS_WITNESS)
 #: A state's word where it differs from its key.
@@ -208,6 +212,7 @@ SCRIPTS: tuple[str, ...] = (
     "/panel.js",
     "/node.js",
     "/literature.js",
+    "/shelve.js",
 )
 MATH_HEAD = '<link rel="stylesheet" href="/vendor/katex/katex.min.css">'
 #: F04-T57: the word each row of the home page's record list leads with, by ``activity`` kind.
@@ -227,6 +232,9 @@ NODE_SCRIPT = '<script src="/node.js"></script>'
 #: node's page, after ``session.js`` has answered; ``$repo`` is the graph repository, so a pull
 #: request is linked only when it is on it.
 LITERATURE_SCRIPT = '<script src="/literature.js" data-repo="$repo"></script>'
+#: F31-T11 (R8): draws Shelve, Unshelve and Retire for a signed-in steward of the target or a
+#: curator, on a statement's page and the problem page, after ``session.js`` has answered.
+SHELVE_SCRIPT = '<script src="/shelve.js" data-repo="$repo"></script>'
 MATH_SCRIPTS = (
     '<script src="/vendor/katex/katex.min.js"></script>'
     '<script src="/vendor/katex/auto-render.min.js"></script>'
@@ -621,6 +629,15 @@ GLOSSARY: tuple[tuple[str, str, str, str], ...] = (
         "claim (D-25)",
     ),
     (
+        "shelved",
+        "shelved",
+        "A steward of the problem or a curator judged that the statement does not serve the "
+        "root, and said why. It is hidden from the routes view, off the frontier, and work on "
+        "it is refused, until an unshelve record lifts it. Its status is unchanged: a proved "
+        "statement stays proved, and a route may still rest on it.",
+        "shelving record (D-14 v3.47)",
+    ),
+    (
         "attempt",
         "Attempt",
         "Any proof submitted, pass or fail. Failures are kept on the record and count as "
@@ -659,6 +676,7 @@ ROUTE_MARK_KEYS = (
     "relation-resolves",  # F04-T55 (D-30 v3.46): the trunks, each when the drawing has one
     "relation-refutes",
     "relation-partial",  # F30-T16
+    SHELVED,  # F31-T10 (R7): a mark on a statement's pill, not a status (F31-Q7)
 )
 #: F04-T21 (Q23): the Docs state map's keys. Every status ``graph.json`` can publish, as the
 #: site's word (F03-Q8: ``speculative`` reads open, so nine words for ten statuses), and the seven
@@ -1355,9 +1373,13 @@ class Renderer:
 
     @staticmethod
     def node_state(nv: NodeView) -> str:
-        """The row's word: proved, open (a claim could take it, F03-Q8) or the status itself."""
+        """The row's word: proved, open (a claim could take it, F03-Q8) or the status itself.
+        F31-T10: a shelved statement that is not proved reads ``shelved`` — it is off the
+        frontier (R4), so the site must not call it work; a shelved proved one stays proved."""
         if nv.status == "proved":
             return "proved"
+        if nv.shelved is not None:
+            return SHELVED
         if nv.status in CLAIMABLE_STATUSES:
             return "open"
         if nv.status == "blocked" and nv.cause == WITNESS_CAUSE:
@@ -1371,7 +1393,7 @@ class Renderer:
     @staticmethod
     def dot_state(state: str) -> str:
         """The dot a state wears: its own when the key has one (T14), the neutral ring else."""
-        return state if state in (*DOTTED_KEYS, *LEGEND_EXTRA) else "blocked"
+        return state if state in (*DOTTED_KEYS, *LEGEND_EXTRA, SHELVED) else "blocked"
 
     def graph_legend(self, tv: TargetView, drawn: one_view.Drawing | None = None) -> str:
         """The statement graph's key (F04-T14, Q16): the three base states, then every other
@@ -1836,7 +1858,7 @@ class Renderer:
     def state_hover(self, nv: NodeView) -> str:
         """The row's status dot with the state's definition, and a blocked node's cause."""
         state = self.node_state(nv)
-        if state in ("proved", *WORKABLE_STATES) or state in LEGEND_EXTRA:
+        if state in ("proved", *WORKABLE_STATES, SHELVED) or state in LEGEND_EXTRA:
             _word, meaning, proto = self.words["by_key"][state]
             body = f'{esc(meaning)}<span class="proto"> protocol: {esc(proto)}</span>'
         else:
@@ -1859,6 +1881,8 @@ class Renderer:
             return f'<a class="act act-open" href="{href}">Supply a witness →</a>'
         if state == "proved":
             return f'<a class="act act-proved" href="{href}">View proof →</a>'
+        if state == SHELVED:  # F31-T10: off the frontier by a person's judgment, not a wait
+            return f'<a class="act act-blocked" href="{href}">Shelved</a>'
         return f'<a class="act act-blocked" href="{href}">Blocked</a>'
 
     def home(self) -> str:
@@ -2373,6 +2397,105 @@ class Renderer:
             return ""
         return LITERATURE_SCRIPT.replace("$repo", esc(self.repo_url))
 
+    # -- F31-T11 (R8; D-14 v3.47): the shelving controls ---------------------------------------
+
+    def shelve_act(self, tv: TargetView, nv: NodeView) -> str:
+        """On a statement's page, one hidden slot carrying what a shelving record needs as
+        data: the target, the node, whether it is shelved and by whom, when, with what cause.
+        ``shelve.js`` shows Shelve (or, on a shelved node, Unshelve) to a signed-in steward of
+        the target or a curator once ``GET /session`` answers, and to nobody else. Nothing
+        without a service address, and nothing on the root, which is never shelved (R1, R6:
+        ``node-root``). Every value is an escaped attribute (C9)."""
+        if not self.api_url or nv.node_id == tv.root:
+            return ""
+        fact = nv.shelved or {}
+        return (
+            f'<div class="shelve-act" data-target="{esc(tv.target_id)}" '
+            f'data-node="{esc(nv.node_id)}" data-shelved="{1 if nv.shelved else 0}" '
+            f'data-cause="{esc(str(fact.get("cause") or ""))}" '
+            f'data-by="{esc(str(fact.get("by") or ""))}" '
+            f'data-date="{esc(str(fact.get("date") or ""))}" hidden></div>'
+        )
+
+    def shelved_note(self, tv: TargetView, nv: NodeView) -> str:
+        """The shelving as the page states it, regardless of sign-in: who, when, through which
+        record, and the cause — a person's words, demarcated as the literature summary is
+        (D-31). Nothing on a statement that is not shelved."""
+        fact = nv.shelved
+        if fact is None:
+            return ""
+        via = str(fact.get("via") or nv.node_id)
+        through = (
+            f" (reached through <code>{esc(via)}</code>&rsquo;s record)"
+            if via != nv.node_id
+            else ""
+        )
+        return (
+            '<div class="shelved-note prose-block untrusted" data-block="shelving">'
+            + self.provenance(
+                "untrusted",
+                "a shelving record (D-14 v3.47): a steward&rsquo;s or curator&rsquo;s judgment "
+                "that the statement does not serve the root, not a verdict on it.",
+            )
+            + f'<p class="label">Shelved by <code>{esc(str(fact.get("by") or ""))}</code> on '
+            f"{esc(str(fact.get('date') or ''))}{through}. Rendered from "
+            f"{self.file_link(self.shelving_record_path(tv, nv))}.</p>"
+            f'<div class="prose"><p>{esc(str(fact.get("cause") or ""))}</p></div></div>'
+        )
+
+    @staticmethod
+    def shelving_record_path(tv: TargetView, nv: NodeView) -> str:
+        """The record that shelved the node, relative to the graph: ``record`` is relative to
+        ``via``, the node whose record reaches this one (``graph/v15``)."""
+        fact = nv.shelved or {}
+        via = str(fact.get("via") or nv.node_id)
+        return f"targets/{tv.target_id}/nodes/{via}/{fact.get('record') or ''}"
+
+    def shelved_badge(self, nv: NodeView) -> str:
+        """The word beside the status in a statement's head: the key's own term, so the page
+        says shelved in text and not by colour alone; the status mark stands unchanged."""
+        return f" {self.term(SHELVED, dot=True)}" if nv.shelved is not None else ""
+
+    def shelve_script(self, tv: TargetView, nv: NodeView) -> str:
+        if not self.shelve_act(tv, nv):
+            return ""
+        return SHELVE_SCRIPT.replace("$repo", esc(self.repo_url))
+
+    def routes_list(self, tv: TargetView, picture: one_view.Drawing) -> str:
+        """The problem page's list of drawn routes, beside the sets table (which lists sets,
+        not routes): one row per route with its id, its approach, the partial it came from and
+        what shelving did to it; with a service address, a hidden ``.retire-act`` control per
+        route not already cut, which ``shelve.js`` shows to a steward or curator. Nothing
+        without a drawn route."""
+        if not picture.routes:
+            return ""
+        rows = {str(n["node_id"]): n for n in tv.graph["nodes"]}
+        items = []
+        for r in picture.routes:
+            approach = routes_view.approach_of(r.id, rows, r.node)
+            state = f' <span class="route-state">{esc(r.shelving)}</span>' if r.shelving else ""
+            control = (
+                f'<span class="retire-act" data-target="{esc(tv.target_id)}" '
+                f'data-node="{esc(r.node)}" data-partial="{esc(r.partial)}" hidden></span>'
+                if self.api_url and not r.cut
+                else ""
+            )
+            file = self.file_link(
+                f"targets/{tv.target_id}/nodes/{r.node}/{r.partial}", label=r.partial
+            )
+            items.append(
+                f'<li class="route-row" data-route="{esc(r.id)}"><code>{esc(r.id)}</code> &middot; '
+                f'<span class="route-approach">{esc(approach)}</span> &middot; from '
+                f"{file}{state}{control}</li>"
+            )
+        return (
+            '<div class="routes-list-wrap"><h3 class="kicker">Routes</h3>'
+            '<p class="cue">Each merged decomposition the drawing shows. A steward of this '
+            "problem or a curator may retire one that does not serve the root (D-14 v3.47); its "
+            "holes leave the frontier and the drawing until an unshelve record lifts them.</p>"
+            f'<ul class="routes-list">{"".join(items)}</ul></div>'
+        )
+
     def me(self) -> str:
         """R13: a static shell. Every problem's waiting sections are in it, hidden; me.js shows
         the signed-in login's roles, the waiting sections of the problems they steward, their
@@ -2599,8 +2722,12 @@ class Renderer:
             if picture.selector
             else ""
         )
+        # F31-T11 (R8): the drawn routes, each with its Retire control, beside the sets table.
+        routes_block = self.routes_list(tv, picture)
         sets_block = (
-            f'<div class="sets-grid">{picture.table}</div>' if picture.table else ""
+            f'<div class="sets-grid">{picture.table}{routes_block}</div>'
+            if picture.table or routes_block
+            else ""
         ) + picture.layouts_json
         n = len(tv.nodes)
         if tv.approaches:
@@ -2680,7 +2807,12 @@ class Renderer:
             head=MATH_HEAD,
             script=MATH_SCRIPTS
             + '<script src="/graph.js"></script>'
-            + ('<script src="/panel.js"></script>' if self.api_url else ""),
+            + ('<script src="/panel.js"></script>' if self.api_url else "")
+            + (
+                SHELVE_SCRIPT.replace("$repo", esc(self.repo_url))
+                if self.api_url and 'class="retire-act"' in routes_block
+                else ""
+            ),
         )
 
     # -- F26-T12 (R16, R17; D-9 v3.39): the review's state line and its page ---------------
@@ -4701,6 +4833,8 @@ class Renderer:
         renders.extend(f.path for f in (nv.witness, nv.relation) if f is not None)
         if nv.superseded_record is not None:
             renders.append(nv.superseded_record)
+        if nv.shelved is not None:  # F31-T11: the shelving record the note links
+            renders.append(self.shelving_record_path(tv, nv))
         renders.extend(self.literature_renders(nv))  # F04-T38
         # F08-T36: the open claims the page links.
         renders.extend(
@@ -4732,6 +4866,8 @@ class Renderer:
             )
         )
         known = [
+            self.shelved_note(tv, nv),  # F31-T11: the shelving first, since it closes the work
+            self.shelve_act(tv, nv),
             *self.known_parts(tv, nv),
             self.literature_act(tv, nv),  # F04-T54
             self.defect_claims_note(nv),
@@ -4747,7 +4883,9 @@ class Renderer:
             target_id=esc(tid),
             target_href=esc(self.target_path(tid)),
             heading=self.node_heading(tv, nv),
-            status=self.status_mark(nv.status, nv.cause) + self.lit_badge(nv),  # F04-T54
+            status=self.status_mark(nv.status, nv.cause)
+            + self.lit_badge(nv)  # F04-T54
+            + self.shelved_badge(nv),  # F31-T11
             role=self.panel_role(tv, nv, page=True),
             revision=self.revision_note(tid, nv, in_page=False),
             tutorial=(
@@ -4772,7 +4910,8 @@ class Renderer:
             script=(MATH_SCRIPTS if has_math else "")
             + NODE_SCRIPT
             + self.in_review_script(tid, nid)
-            + self.literature_script(tv, nv),
+            + self.literature_script(tv, nv)
+            + self.shelve_script(tv, nv),  # F31-T11
         )
 
     # --- F04-T50 (Q49): the parts of a statement's page ----------------------------------------

@@ -410,6 +410,9 @@ def proposed_for_node(ctx: Context, target_id: str, node_id: str, raw: Any) -> s
             "(F18-R8)",
             details={**details, "successor": successor},
         )
+    if rows[raw].get("shelved"):
+        # F31-R5 (D-14 v3.47): a statement proposed for a shelved node is work on it.
+        raise precheck.shelved_error(raw, precheck.facts_of(target_id, rows[raw]))
     return raw
 
 
@@ -618,6 +621,10 @@ def hole_awaiting_witness(ctx: Context, node_id: Any) -> str:
         for node in nodes:
             if node.get("node_id") != node_id:
                 continue
+            if node.get("shelved"):
+                # F31-R5 (D-14 v3.47): a hole under a retired route or a shelved parent takes
+                # no witness; the refusal names the record that reaches it, before the slot.
+                raise precheck.shelved_error(node_id, precheck.facts_of(str(target_id), node))
             if node.get("cause") != graphmod.CAUSE_WITNESS_MISSING:
                 raise ApiError(
                     400,

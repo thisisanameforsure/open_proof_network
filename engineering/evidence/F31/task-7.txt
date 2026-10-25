@@ -1,0 +1,71 @@
+F31-T7 — POST /shelvings (R6, AC6) — service agent, branch f31-service, 2026-10-24
+
+Environment: the api tests' fake host (api/tests/api_fakes.py); nothing live was touched.
+Base: d91680aa (F31-T0, F31-T1: the contract).
+
+## Red (test first)
+
+api/tests/test_shelvings_route.py written from api/tests/test_literature_confirm_route.py.
+First run: collection error (no module opn_api.shelvings) — a missing name is not red, so the
+module went in with SCHEMA/KIND alone and the run was repeated:
+
+    30 failed, 2 warnings in 1.87s
+    E  AssertionError: assert {'error', 'message'} == {'branch', 'path', 'pr_number', 'pr_url'}
+
+Every test failed on the route answering 404 not-found (no POST /shelvings). Full list in
+task-7-red.txt.
+
+## Built
+
+- api/opn_api/shelvings.py (new): body checks (action, scope, route, cause → 400
+  arguments-invalid naming the field), `check_act` reading the target's committed graph.json
+  (root → 409 node-root; proofs[].used or closure.inputs on any row → 409 node-used; scope=route
+  with a file not in decompositions[].partial → 404 shelving-route-unknown listing the routes;
+  already-shelved / not-shelved idempotence), the signed record exactly as a literature
+  confirmation (`stewards.sign_record` over `opn_gate.signed.body`), `appends.validated(doc,
+  "shelving/v1")`, path targets/<t>/nodes/<n>/shelving/<stamp>-<login>.yaml, one append/ pull
+  request (kind "shelving"), 201 `stewards.receipt`.
+- api/opn_api/routes.py: D35_POST_SHELVINGS, D35_OWNED_BY_F31, the RouteSpec (authenticated,
+  web, feature F31), PURPOSES entry.
+- api/opn_api/appends.py: APPEND_CHECKS["shelving"] (the pull-request body's sentence).
+- api/opn_api/stewards.py: `may_act(ctx, target_id, login, act)` — the shared role rule;
+  literature.may_confirm now delegates to it with its own act phrase (message unchanged).
+- gate/opn_gate/codes.py: rows node-root, node-used, shelving-route-unknown, already-shelved,
+  not-shelved (the catalog is held to the source by gate/tests/test_error_codes.py, so a code
+  cannot be emitted without a row; node-shelved lands with T8, where it is first emitted);
+  not-steward-or-curator's meaning names shelving.
+- api/tests/test_routes.py: D35_OWNED_BY_F31 in both unions, "F31" in the feature list.
+- api/tests/test_finding_unknown_fields.py: body builder for /shelvings.
+
+## Green
+
+    python -m pytest -q -p no:cacheprovider -m "not lean and not docker and not network and not harness" \
+      api/tests/test_shelvings_route.py api/tests/test_routes.py api/tests/test_finding_unknown_fields.py \
+      api/tests/test_finding_route_index.py api/tests/test_finding_error_catalog.py \
+      gate/tests/test_error_codes.py api/tests/test_literature_confirm_route.py
+    114 passed, 2 warnings in 7.17s          (test_shelvings_route.py alone: 31 passed)
+
+Whole api fast tier after the change: 2224 passed, 2 warnings in 96.46s.
+ruff check: All checks passed. ruff format: 1 file reformatted. mypy api: no issues (268 files).
+
+## Decisions (proposed Q entries for the lead to number)
+
+- proposed Q: the brief's `400 bad-field` for a bad action/scope/route is emitted as the
+  existing `arguments-invalid` with `details.field`, as every F23/F05 body check does, so no new
+  code was added for a shape the catalog already names.
+- proposed Q: `already-shelved` is judged against the node's OWN record only (`shelved.via ==
+  node_id and scope == node`): a node shelved by inheritance may still carry its own shelving,
+  because its own latest record decides for it before any inherited one (rule 4) and so changes
+  what a later unshelving of the ancestor does. For scope=route it is judged as "every hole node
+  of that decomposition is shelved with scope route via this node"; a route with no hole node on
+  the record is never already retired. `not-shelved` is judged only when the row's `shelved` is
+  null (and, for scope=route, no hole is retired through it), as the brief says.
+- proposed Q: `node-used` is refused only for action=shelved; an unshelve on a used node is
+  `not-shelved` (it cannot be shelved), which is the truer answer.
+- proposed Q: the duplicate rule's `written` is `node action scope route` (not the cause), so a
+  second identical act while one is open is refused as a duplicate whatever its wording, as the
+  literature confirmation's is.
+- Merge note for the lead: the gate agent registers its own shelving codes in
+  gate/opn_gate/codes.py (shelving-signature, shelving-signer-unlisted, and possibly node-root /
+  node-used / shelving-route-unknown with source "gate"); where both branches add the same key
+  the row should become source "both" at the merge.

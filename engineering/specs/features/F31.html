@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>F31 — Shelving</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="crumbs"><a href="../index.html">specs</a> / F31</nav>
+<h1>F31 — Shelving</h1>
+<p class="subtitle">A steward of the target or a listed curator takes a statement, or one merged
+decomposition, off the root's path from the website: a signed <code>shelving</code> record with a cause,
+derived (never written) into every consumer &mdash; off the frontier, work refused, drawn only on request
+&mdash; and lifted by one later record (decisions v3.47, the owner's reading of erdos-257's route 2 on
+2026-10-24).</p>
+
+<h2>1. Summary</h2>
+<p>On 2026-10-24 the owner read erdos-257's problem page and found route 2 (the <code>t1023-f1</code>
+partial of 2026-10-23: fourteen proved special-case variants, the open hole <code>erdos-257--h18</code>
+and the Tao&ndash;Ter&auml;v&auml;inen leaf) a distraction that does not help the root, with no act on the site
+to remove it and nothing to keep agents off its open holes. The record had three mechanisms and none fit:
+D-14 <code>abandoned</code> is a verdict that a branch is dead, curator-only, written by command line and
+pull request, and an abandoned statement is still drawn; a merged partial cannot be withdrawn; and
+stewards have no removal act at all.</p>
+<p>This feature adds one record kind and one route. A <code>shelving/v1</code> record under a node, signed
+by the approval key for a signed-in steward of the target or a curator (or SSH-signed by hand), says
+<code>shelved</code> or <code>unshelved</code>, with scope <code>node</code> (the statement and every hole
+child beneath it) or <code>route</code> (one merged decomposition, named by its file, and its holes) and a
+cause. Shelving is not a status: a proved statement stays proved. The products derive <code>shelved</code>
+on each <code>graph.json</code> row and in the bundle; the frontier omits shelved statements; the gate and
+the service refuse work on one with <code>node-shelved</code>; the sufficient sets drop every set resting
+on a shelved unproved statement; and the site hides shelved statements from the routes view, keeps them
+under the existing toggle, and gives stewards and curators the Shelve, Unshelve and Retire-route controls.</p>
+<p>The owner's rulings, taken in the planning conversation (Q1&ndash;Q6): one signer, no second review;
+proved variants hide too, behind the toggle; reach stops at the root, a hole another live route still
+needs, and a statement a merged proof uses, and never climbs; the name is <code>shelved</code>, lifted by
+<code>unshelved</code>; a shared hole stays available under a node-scope cascade as under a retirement;
+a shelved proved statement keeps its routes live.</p>
+
+<h2>2. User stories</h2>
+<ul>
+  <li>As a steward reading my problem's page, I want to take a decomposition that does not serve the
+    root off the drawing and off the frontier in one act from the site, with my reasoning published,
+    so that the page shows the proof and agents stop spending work there.</li>
+  <li>As a curator, I want the same act on any target, and a way to reverse it by one record.</li>
+  <li>As an agent, I want a shelved statement to be refused before I spend a precheck on it, with the
+    cause in the refusal and in the bundle, and never to see it on the frontier.</li>
+  <li>As a reader, I want to be able to see what was shelved and why, on request, with nothing deleted.</li>
+</ul>
+
+<h2>3. Scope</h2>
+<p><strong>In:</strong> <code>gate/schemas/shelving/v1.json</code>, the next <code>graph/</code> and
+<code>context/</code> versions; <code>gate/opn_gate/shelving.py</code> (record, signature, derivation),
+the role in <code>paths</code> and <code>modes</code>, the pre-merge refusal, <code>routes</code> and
+<code>closing</code>, <code>products</code> and <code>context</code>, the curator CLI; the service route
+<code>POST /shelvings</code> and the refusals in precheck, submissions, claims, proposals and the fast
+check; the MCP <code>get_node</code> surface through the bundle; the site's drawing, node page, routes
+list, key and Docs page; the guide. <strong>Out (non-goals):</strong> an MCP write tool (a person's act,
+as the panel's); any change to <code>status</code> or its enums; any ranking of the frontier (D-25);
+shelving a target; un-merging a partial.</p>
+
+<h2>4. Requirements</h2>
+<table>
+  <tr><th>ID</th><th>Requirement (EARS)</th></tr>
+  <tr><td>F31-R1</td><td>The gate shall accept, under <code>targets/&lt;t&gt;/nodes/&lt;n&gt;/shelving/</code>, a
+    <code>shelving/v1</code> record (<code>node</code>, <code>action</code> shelved|unshelved,
+    <code>scope</code> node|route, <code>route</code> the partial's file when scope is route, <code>cause</code>,
+    <code>contributor</code>, <code>date</code>, <code>via</code>, <code>key</code>, <code>signature</code>), classified
+    as an append, whose signature verifies under the approval key of the merge's parent tree for a
+    contributor who is an active steward of the target or a listed curator, or under the signer's own key
+    for such a login; any other signer, an unsigned record, a record on the root (<code>node-root</code>), on
+    a statement a merged proof uses (<code>node-used</code>), or naming a route that is not the node's
+    (<code>shelving-route-unknown</code>) shall be refused by its own code (D-14 v3.47).</td></tr>
+  <tr><td>F31-R2</td><td>The products shall derive, for every node, whether it is shelved: its own latest
+    record by date then file name (withdrawals honoured) decides for it; without one it inherits when it is
+    not the root, not used by a merged proof, has at least one arrival (a hole of a parent's decomposition,
+    or a hole child of a parent) and every arrival is cut (the decomposition retired, or the parent
+    shelved), computed once in dependency order; a route-scope record never shelves the node it sits on.</td></tr>
+  <tr><td>F31-R3</td><td>Each <code>graph.json</code> row and each bundle (and each dependency in it) shall
+    carry <code>shelved</code>: null, or the cause, signer, date, record, scope and the node whose record
+    reaches it; <code>status</code> shall not change. Both bundle builders shall read it from the row.</td></tr>
+  <tr><td>F31-R4</td><td>The frontier shall omit a shelved statement; a sufficient set shall not rest on a
+    shelved unproved statement, a retired decomposition shall close nothing and shall not be a closing
+    link, and <code>closable</code> shall exclude shelved nodes; a shelved proved statement shall keep the
+    routes that rest on it (Q6).</td></tr>
+  <tr><td>F31-R5</td><td>The gate shall refuse, pre-merge and from the parent tree, a proof, partial,
+    alternate, witness or proposal against a shelved statement with <code>node-shelved</code>; the service
+    shall refuse the same at precheck, submission, claim, witness and proposal with <code>node-shelved</code>
+    and the cause, and shall warn on <code>POST /check</code>.</td></tr>
+  <tr><td>F31-R6</td><td>The service shall serve <code>POST /shelvings</code> (web session or bearer with a
+    GitHub login; body <code>node_id</code>, <code>action</code>, <code>scope</code>, <code>route</code>,
+    <code>cause</code>) that refuses a login neither steward of the target nor curator
+    (<code>not-steward-or-curator</code>), the root, a used node, an unknown route, and an act that changes
+    nothing, signs the record with the approval key and opens one pull request on an <code>append/</code>
+    branch; no MCP tool.</td></tr>
+  <tr><td>F31-R7</td><td>The problem page shall draw no shelved statement and no retired or all-shelved
+    junction in the routes view or any set view, shall keep them in the toggle's view with a
+    <code>shelved</code> class and the cause on hover, shall count them in the toggle's label, and shall
+    key the class.</td></tr>
+  <tr><td>F31-R8</td><td>The node page shall show a signed-in steward of the target or curator a Shelve
+    control with a cause, or on a shelved node the shelving (signer, date, cause) with an Unshelve control;
+    the problem page shall list each drawn route with a Retire control for the same roles; every control
+    posts to <code>POST /shelvings</code> and shows the pull request as a receipt.</td></tr>
+  <tr><td>F31-R9</td><td>The Docs state page shall name the act, the guide shall say what shelved means
+    and that work on it is refused, and <code>opn-gate shelve</code> shall write an SSH-signed record for
+    the hand path.</td></tr>
+</table>
+
+<h2>5. Acceptance criteria</h2>
+<table>
+  <tr><th>ID</th><th>Given / When / Then</th><th>Test case</th></tr>
+  <tr><td>F31-AC1</td><td>Given a steward's approval-key record opened by the service, when classified, then
+    it is an append and passes; given a signer who is neither steward nor curator, a record on the root, or
+    on a used node, then each is refused by its code.</td>
+    <td><code>gate/tests/test_shelving_mode.py</code></td></tr>
+  <tr><td>F31-AC2</td><td>Given a shelved parent with hole children, a retired route, a hole shared with a
+    live route of another parent, a used node, the root, and a child with its own unshelved record, when
+    derived, then exactly the ruled set is shelved.</td>
+    <td><code>gate/tests/test_shelving.py</code></td></tr>
+  <tr><td>F31-AC3</td><td>Given a shelved ready node, when the products render, then it is absent from
+    <code>frontier.json</code> and its row and bundle carry the cause; both builders agree byte for byte.</td>
+    <td><code>gate/tests/test_products.py</code>, <code>gate/tests/test_shelving.py</code></td></tr>
+  <tr><td>F31-AC4</td><td>Given a retired route beside a live sibling route, when the sets are enumerated,
+    then the retired route yields none and the sibling still does; a retired route is not a closing link.</td>
+    <td><code>gate/tests/test_target_routes.py</code>, <code>gate/tests/test_closing.py</code></td></tr>
+  <tr><td>F31-AC5</td><td>Given a shelved hole, when a witness, proof or proposal against it is classified,
+    then <code>node-shelved</code>; when a claim, precheck or submission names it through the service, then
+    409 <code>node-shelved</code> with the cause.</td>
+    <td><code>gate/tests/test_shelving_mode.py</code>, <code>api/tests/test_finding_shelved_refusals.py</code></td></tr>
+  <tr><td>F31-AC6</td><td>Given a steward's web session, when <code>POST /shelvings</code> is called, then one
+    <code>append/</code> pull request carries a validating signed record; a non-steward is 403; a used node
+    409 <code>node-used</code>.</td>
+    <td><code>api/tests/test_shelvings_route.py</code>, <code>api/tests/test_routes.py::test_routes_match_d35</code></td></tr>
+  <tr><td>F31-AC7</td><td>Given a shelved hole, when the problem page renders, then it is in the toggle's
+    view and not the routes view, carries the class, and the toggle counts it; the key names the class.</td>
+    <td><code>site/tests/test_one_view.py</code>, <code>site/tests/test_graph_legend.py</code></td></tr>
+  <tr><td>F31-AC8</td><td>Given a node page and a problem page, when rendered with an api url, then the
+    shelve slot and one retire control per drawn route are present, hidden, with the node's and route's
+    data, and the cause is escaped.</td>
+    <td><code>site/tests/test_shelving_controls.py</code></td></tr>
+  <tr><td>F31-AC9</td><td>Given the live service after deploy, when a steward retires route 2 of erdos-257
+    from the site, then the pull request merges unattended, the products publish <code>shelved</code> on
+    its holes, the frontier loses them, and the page draws them only under the toggle.</td>
+    <td>T13/T14 evidence</td></tr>
+</table>
+
+<h2>6. Budgets / limits</h2>
+<p>A cause is 1&ndash;1000 characters. Rate limit: the approvals bucket per login per hour. No lean or docker
+tier is touched: the derivation, the refusals and the route are fast-tier work.</p>
+
+<h2>7. Security &amp; privacy notes</h2>
+<p>Every record is signed; the service signs with the approval key only for a login the session proves and
+the roles the record names (C8). A cause is a person's words and is demarcated where shown (D-31). Nothing
+is deleted; one commit's revert restores everything.</p>
+
+<h2>8. Dependencies</h2>
+<p>F18 (uses), F23 (web session, approval key, literature confirm as the pattern), F27/F30 (routes, sets,
+the one drawing), F28 (closing links).</p>
+
+<h2>9. Open questions / judgment calls</h2>
+<p><strong>F31-Q1 &mdash; One signer (owner, 2026-10-24).</strong> An active steward of the target or a
+listed curator, with no second review, as the literature confirmation works.</p>
+<p><strong>F31-Q2 &mdash; Proved variants hide too (owner, 2026-10-24).</strong> The page is for following
+the proof; shelved proved statements leave the routes view and stay under the toggle.</p>
+<p><strong>F31-Q3 &mdash; Reach (owner, 2026-10-24).</strong> A node-scope shelving reaches the node and its
+hole children; a retirement reaches the decomposition's holes and theirs; neither reaches the root, a
+hole another live route of an unshelved parent still needs, or a statement a merged proof uses; a
+retirement never climbs, and a statement joined to the root by its own relation is shelved separately.</p>
+<p><strong>F31-Q4 &mdash; Name (owner, 2026-10-24).</strong> <code>shelved</code>, lifted by <code>unshelved</code>:
+a judgment, not a verdict.</p>
+<p><strong>F31-Q5 &mdash; A shared hole stays (owner, 2026-10-24, on the design review's finding).</strong>
+Live case: <code>erdos-1094--h3@2</code> uses <code>erdos-1094--h2--h1--h1</code> as a lemma; shelving
+<code>erdos-1094--h2</code> must not take it off the frontier. The exception applies to both scopes.</p>
+<p><strong>F31-Q6 &mdash; A shelved proved statement keeps its routes (owner, 2026-10-24).</strong> A
+kernel-checked proof is a fact; <code>Route.live</code> is false only when retired or when a hole is shelved
+and unproved; such a member is drawn dim in a set. Route 2 of erdos-257 dies regardless.</p>
+<p><strong>F31-Q7 &mdash; Not a status, and its own record kind.</strong> A service-opened <code>node-status</code>
+record is refused as a curator act, <code>node-status/v1</code> has no signature fields, and latest-wins
+over that directory would let an <code>unshelved</code> record hide a <code>superseded</code> or <code>stale</code>
+one. So shelving has its own directory and schema, and <code>graph.json</code> gains a field beside
+<code>status</code> rather than a value in it (the lesson of <code>speculative</code>, 2026-09-19: a label is
+not a verdict). Frontier and targets-index schemas are unchanged because shelved nodes are simply absent.</p>
+<p><strong>F31-Q8 &mdash; Arrivals, not prefixes.</strong> Inheritance is computed top-down over arrivals in
+dependency order, never as a fixed point, and never from the <code>--h</code> id prefix (a revision folds
+the old node's holes onto <code>-v2</code>); a same-statement revision inherits the parent's shelving along
+the chain, and a route record's partial is matched by path, holder-agnostic. A record on a used node is
+void at derivation if a later proof uses it. Two sources: the gate derives from the parent tree, the
+service reads the row and accepts the render window, as literature does.</p>
+<p><strong>F31-Q9 &mdash; Unshelve is an action.</strong> A withdrawal is a curator role and names only
+<code>status/</code>, <code>defects/</code>, <code>gloss/</code> and <code>explainer/</code>; an unshelve carries its own
+cause and date. A curator withdrawal of a shelving record is still honoured, so "absent" has one rule.</p>
+
+<p><strong>F31-Q10 &mdash; Rule 4 is latest per key (gate, service).</strong> A node's standing is its latest
+<code>scope: node</code> record; each route's retirement is the latest record naming that route. Retiring route 2
+does not lift route 1, and an <code>unshelved</code> record lifts the key it names (<code>scope: route</code> with the
+route, or the node). The service's "changes nothing" check uses the same key: <code>already-shelved</code> when the
+row says the node is shelved by its own record, or every hole of the named route is retired through this node;
+<code>not-shelved</code> only when the row carries no shelving at all, so an unshelve on a node shelved by
+inheritance is allowed (it is how a child is exempted, Q3). <code>node-used</code> is refused for
+<code>action: shelved</code> only.</p>
+<p><strong>F31-Q11 &mdash; <code>via</code> is the record's home.</strong> For an inherited shelving, <code>via</code>
+is the node whose <code>shelving/</code> directory holds the record, which is what makes <code>record</code>
+resolvable; a same-statement revision that inherits its predecessor's record names the predecessor.</p>
+<p><strong>F31-Q12 &mdash; A retirement is read off the holes.</strong> <code>graph/v15</code> publishes
+<code>shelved</code> on rows, not on <code>decompositions[]</code> (a closed object), so the routes, the closing
+links and the site read a route as retired when its holes carry a route-scope shelving with <code>via</code> the
+route's node. Exact except for a retired route all of whose holes another live route still needs, which reads live
+and closes nothing new. A <code>retired</code> field on <code>decompositions[]</code> in the next graph version would
+make it exact; left for a later contract. <code>Route.retired</code> and <code>Hole.shelved</code> are not in the
+MCP's <code>list_sufficient_sets</code> answer (its v4 schema is closed), so the "abandoned or superseded" wording
+and the new fields wait for a v5 of that result schema; <code>live</code> carries the effect today.</p>
+<p><strong>F31-Q13 &mdash; Refusal placement.</strong> Gate: <code>shelved_refusal</code> for proof, partial, alternate,
+witness completion and a <code>proposed-for</code> pointer, from the parent tree with the pull request's own
+shelving records excluded. Service: <code>precheck.check_open</code> (precheck and submissions, ahead of blocked
+and superseded), <code>claims.off_frontier</code>, <code>hole_awaiting_witness</code>, <code>proposed_for_node</code>;
+<code>POST /check</code> warns with the whole <code>shelved</code> object. A proposal whose <code>deps</code> name a
+shelved statement is not refused: a shelved proved statement is still a fact (Q6). A dependency on a shelved
+<em>unproved</em> statement is left unrefused too, for the owner to rule on.</p>
+<p><strong>F31-Q14 &mdash; Codes.</strong> No <code>bad-field</code>: the service's body checks answer
+<code>arguments-invalid</code> naming the field, as every F23/F05 route does. An unsigned record is
+<code>record-invalid</code> (the schema requires key and signature), so <code>shelving-signature</code> means a
+tampered record or an approval-key record under another key; <code>shelving-node</code> mirrors
+<code>literature-node</code>. <code>node-shelved</code>, <code>node-root</code>, <code>node-used</code> and
+<code>shelving-route-unknown</code> are emitted by the gate and the service alike (source <code>both</code>).
+The duplicate rule's <code>written</code> key is <code>node action scope route</code>, cause excluded.</p>
+<p><strong>F31-Q15 &mdash; The products do not re-verify a shelving record's signature at render.</strong>
+<code>shelving.load</code> validates the schema only, where <code>literature.derive</code> re-verifies. The gate is the
+guard; if a record that reached the tree by another route should count for nothing, it is one
+<code>signature_problem</code> call in <code>load</code> with a signer and the approval key passed through
+<code>load_target</code>. The owner's call.</p>
+<p><strong>F31-Q16 &mdash; Q9 is live only with a <code>withdrawal/v3</code>.</strong> <code>withdrawal/v2</code>'s
+<code>withdraws</code> pattern admits <code>status/</code>, <code>defects/</code>, <code>gloss/</code> and
+<code>explainer/</code> only; <code>shelving.load</code> already honours <code>records.withdrawn_names(node_dir,
+"shelving")</code>, so a v3 adding the prefix (D-34: a new version) makes a curator withdrawal of a shelving record
+read as absent with no code change.</p>
+<p><strong>F31-Q17 &mdash; The site's words.</strong> A shelved unproved statement reads "shelved" (<code>render.SHELVED</code>,
+returned by <code>node_state</code> in place of open / needs-witness / blocked, so the Problems page's workable set
+still equals the frontier's claimable set); a shelved proved statement keeps "proved"; the node head reads "open ·
+shelved". "shelved" is a route-mark key, not a status, so it is in neither <code>LEGEND_EXTRA</code> nor the Docs
+state map. Retire is offered on every drawn route not already cut; the root's page carries no shelve slot; the
+routes list is a new sibling after the sets table (<code>.routes-list-wrap</code>), an addition to the F30 contract
+note, which graph.js never reads.</p>
+
+<h2>10. Status</h2>
+<div class="rule"><strong>status:</strong> built 2026-10-24 on branch <code>f31-shelving</code> (decisions v3.47; three worktree agents, gate / service / site, merged by the lead) · <strong>Tasks:</strong> T0&ndash;T1 done (contract; <code>engineering/evidence/F31/task-0.txt</code>, <code>task-1.txt</code>: full verify 6662 passed) · T2&ndash;T6 done (gate: 17 + 18 + 5 + 6 + 3 new tests, <code>task-2.txt</code>&ndash;<code>task-6.txt</code>) · T7&ndash;T9 done (service: 31 + 13 + 9, <code>task-7.txt</code>&ndash;<code>task-9.txt</code>) · T10&ndash;T12 done (site: 5 + 7 + 1, six captures, <code>task-10.txt</code>&ndash;<code>task-12.txt</code>) · merged tree: see <code>task-merge.txt</code> · T13 built 2026-10-25 (network PR #89 merged as 512df592, api-deploy and image-publish green, the service serves <code>POST /shelvings</code>; the graph re-pin b9d668eeb is committed on a detached worktree and its push is the owner's, refused to the session as a production deploy; <code>task-13.txt</code>) · T14 todo (the owner retires route 2 of erdos-257 from the site)</div>
+
+<h2>Tasks</h2>
+<table>
+  <tr><th>ID</th><th>Task</th><th>Files</th><th>Deps</th><th>Verification</th></tr>
+  <tr><td>F31-T0</td><td>This spec, its index row, decisions v3.47 applied, <code>PROTOCOL_VERSION</code> 3.47
+    with its pins and goldens.</td><td><code>engineering/specs/</code>, <code>docs/architecture_decisions.html</code>,
+    <code>gate/opn_gate/products.py</code></td><td>&mdash;</td>
+    <td><code>uv run --frozen pytest gate/tests/test_finding_protocol_version.py</code></td></tr>
+  <tr><td>F31-T1</td><td>Contracts: <code>shelving/v1</code>, <code>graph/v15</code>, <code>context/v11</code>, HASHES,
+    the accepted-version lists, <code>NodeFacts.shelved</code>, the row and bundle emitting it as null, goldens.</td>
+    <td><code>gate/schemas/</code>, <code>gate/opn_gate/{graph,products,context}.py</code>, <code>gate/tests/golden/</code></td>
+    <td>T0</td><td><code>uv run --frozen pytest gate/tests/test_schemas.py gate/tests/test_products.py gate/tests/test_context.py</code></td></tr>
+  <tr><td>F31-T2</td><td>The record (R1): role in <code>paths</code>, append classification, <code>check_shelving_record</code>
+    (schema, node, route, signature by approval key or SSH for a steward or curator, root, used), codes.</td>
+    <td><code>gate/opn_gate/{shelving,paths,modes,codes}.py</code></td><td>T1</td>
+    <td><code>uv run --frozen pytest gate/tests/test_shelving_mode.py</code></td></tr>
+  <tr><td>F31-T3</td><td>Derivation (R2, R3): <code>shelving.derive</code> over arrivals; the row, the bundle,
+    <code>in_frontier</code>.</td>
+    <td><code>gate/opn_gate/{shelving,graph,products,context}.py</code></td><td>T1</td>
+    <td><code>uv run --frozen pytest gate/tests/test_shelving.py gate/tests/test_products.py</code></td></tr>
+  <tr><td>F31-T4</td><td>Routes and closing (R4): <code>Hole.shelved</code>, <code>Route.retired</code>, <code>Route.live</code>,
+    <code>_Enumerator.close</code> after the proved return, <code>closing.links</code> and <code>closable</code>.</td>
+    <td><code>gate/opn_gate/{routes,closing}.py</code></td><td>T3</td>
+    <td><code>uv run --frozen pytest gate/tests/test_target_routes.py gate/tests/test_closing.py -k shelv</code></td></tr>
+  <tr><td>F31-T5</td><td>Pre-merge refusal (R5): <code>node-shelved</code> for proof, partial, alternate, witness and
+    proposals, from the parent tree.</td><td><code>gate/opn_gate/modes.py</code></td><td>T3</td>
+    <td><code>uv run --frozen pytest gate/tests/test_shelving_mode.py -k refus</code></td></tr>
+  <tr><td>F31-T6</td><td><code>opn-gate shelve</code> (R9): the SSH-signed hand path.</td>
+    <td><code>gate/opn_gate/{cli,curator}.py</code></td><td>T2</td>
+    <td><code>uv run --frozen pytest gate/tests/test_cli_curator.py -k shelv</code></td></tr>
+  <tr><td>F31-T7</td><td><code>POST /shelvings</code> (R6): route, registration, D-35 sets, unknown-fields table,
+    <code>APPEND_CHECKS</code>.</td><td><code>api/opn_api/{shelvings,routes,appends}.py</code></td><td>T1</td>
+    <td><code>uv run --frozen pytest api/tests/test_shelvings_route.py api/tests/test_routes.py</code></td></tr>
+  <tr><td>F31-T8</td><td>Service refusals (R5): precheck, submissions, claims, proposals, the fast check's warning,
+    <code>errors.json</code>.</td><td><code>api/opn_api/{precheck,claims,proposals,checks}.py</code></td><td>T7</td>
+    <td><code>uv run --frozen pytest api/tests/test_finding_shelved_refusals.py</code></td></tr>
+  <tr><td>F31-T9</td><td>MCP and guide (R3, R9): <code>get_node</code> carries <code>shelved</code>; the
+    <code>list_sufficient_sets</code> words; the guide paragraph and its graph copy.</td>
+    <td><code>api/opn_api/mcp/</code>, <code>AGENTS.md</code></td><td>T7</td>
+    <td><code>uv run --frozen pytest api/tests/test_mcp_surface.py api/tests/test_finding_shelved_refusals.py -k mcp</code></td></tr>
+  <tr><td>F31-T10</td><td>Drawing (R7): the views, the pill class and title, the junction words, the toggle count, the key.</td>
+    <td><code>site/opn_site/{model,one_view,render}.py</code>, <code>static/site.css</code></td><td>T1</td>
+    <td><code>uv run --frozen pytest site/tests/test_one_view.py site/tests/test_graph_legend.py -k shelv</code></td></tr>
+  <tr><td>F31-T11</td><td>Controls (R8): the node page slot, the routes list with Retire, <code>static/shelve.js</code>.</td>
+    <td><code>site/opn_site/{render,one_view,routes_view}.py</code>, <code>site/opn_site/static/shelve.js</code></td><td>T10</td>
+    <td><code>uv run --frozen pytest site/tests/test_shelving_controls.py</code></td></tr>
+  <tr><td>F31-T12</td><td>Docs state page row and glossary entry (R9).</td>
+    <td><code>site/opn_site/templates/states.html</code>, <code>site/opn_site/render.py</code></td><td>T10</td>
+    <td><code>uv run --frozen pytest site/tests/test_docs_states.py</code></td></tr>
+  <tr><td>F31-T13</td><td>Live: merge, api deploy, graph re-pin and render, site deploy; the route index and a
+    shelved node end to end.</td><td>&mdash;</td><td>T2&ndash;T12</td><td>live evidence in <code>engineering/evidence/F31/</code></td></tr>
+  <tr><td>F31-T14</td><td>erdos-257 (owner): retire route 2 from the site, shelve <code>variant-6b364d2b</code>
+    separately; frontier and drawing before and after.</td><td>graph record</td><td>T13</td><td>captures</td></tr>
+</table>
+
+<footer>Open Proof Network · F31 · specs are authored in HTML</footer>
+</body>
+</html>

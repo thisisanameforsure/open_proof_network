@@ -16,9 +16,12 @@ import samples
 import yaml
 from fakes import FakeToolchain
 from harness import TARGET, copy_graph
+from shelving_support import ALICE, Tree
+from shelving_support import make_keys as make_shelving_keys
 
-from opn_gate import cli, curator, layout, schemas, toolchain
+from opn_gate import cli, curator, layout, schemas, shelving, signed, toolchain
 from opn_gate import graph as graphmod
+from opn_gate.paths import Change
 
 ROOT = "and-swap-reassoc"
 INTERIOR = "and-reassoc"
@@ -493,3 +496,140 @@ def test_branch_acts_on_the_graph_even_under_a_git_hook(
     assert scratch_git("rev-parse", "HEAD") == scratch_commit
     assert scratch_git("status", "--porcelain") == ""
     assert not scratch_git("branch", "--list", "curator/active")
+
+
+# --- F31-T6 (R9): `opn-gate shelve`, the SSH-signed hand path -----------------------------------
+
+
+@pytest.fixture(scope="module")
+def shelving_keys(tmp_path_factory: pytest.TempPathFactory) -> dict[str, Path]:
+    return make_shelving_keys(tmp_path_factory.mktemp("shelve-cli-keys"))
+
+
+@pytest.fixture
+def shelving_tree(tmp_path: Path, shelving_keys: dict[str, Path]) -> Tree:
+    """The F31 fixture tree: Alice an active steward under ``keys[ALICE]``; ``and-reassoc``
+    decomposed into two holes by one merged partial."""
+    tree = Tree(tmp_path, shelving_keys)
+    tree.hole(f"{INTERIOR}--h1", "h1", parent=INTERIOR)
+    tree.hole(f"{INTERIOR}--h2", "h2", parent=INTERIOR)
+    tree.partial(INTERIOR, ["h1", "h2"], path=SHELVE_ROUTE)
+    return tree
+
+
+SHELVE_ROUTE = "attempts/20261020T000000Z-alice-partial.lean"
+SHELVE_DATE = "2026-10-24T10:00:00Z"
+SHELVE_STAMP = "20261024T100000Z"
+
+
+def shelve_args(tree: Tree, *rest: str, date: str = SHELVE_DATE) -> list[str]:
+    return [
+        "shelve",
+        "--graph",
+        str(tree.root),
+        "--author",
+        ALICE,
+        "--date",
+        date,
+        "--key",
+        str(tree.keys[ALICE]),
+        *rest,
+    ]
+
+
+def test_shelve_command_writes_a_signed_record_the_derivation_follows(
+    shelving_tree: Tree, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """R9: one ``shelving/v1`` record, SSH-signed with the steward's own key, under the node's
+    ``shelving/``; the products derive it; ``--unshelve`` lifts it by a second record."""
+    tree = shelving_tree
+    code, out, err = run(capsys, *shelve_args(tree, INTERIOR, "--cause", "does not serve the root"))
+    assert code == cli.EXIT_PASS and err == ""
+    written = f"targets/{TARGET}/nodes/{INTERIOR}/shelving/{SHELVE_STAMP}-{ALICE}.yaml"
+    assert out == {
+        "ok": True,
+        "node": INTERIOR,
+        "action": "shelved",
+        "scope": "node",
+        "route": None,
+        "written": [written],
+    }
+    doc = yaml.safe_load((tree.root / written).read_text())
+    assert schemas.violations(doc, shelving.SCHEMA) == []
+    assert (doc["via"], doc["contributor"], doc["date"]) == ("ssh", ALICE, SHELVE_DATE)
+    assert doc["cause"] == "does not serve the root"
+    assert signed.verifies(doc, signed.default_signer())
+    tg = graphmod.load_target(tree.root, TARGET)
+    derived = tg.nodes[INTERIOR].shelved
+    assert derived is not None
+    assert derived["record"] == f"shelving/{SHELVE_STAMP}-{ALICE}.yaml"
+    assert tg.nodes[f"{INTERIOR}--h1"].shelved is not None, "the hole children inherit it"
+    # the record passes the gate's own check as a steward's SSH-signed act she opens herself
+    assert tree.codes(Change("A", written), opened_by=ALICE) == []
+    code, out, _ = run(
+        capsys,
+        *shelve_args(
+            tree, INTERIOR, "--unshelve", "--cause", "back on", date="2026-10-24T11:00:00Z"
+        ),
+    )
+    assert code == cli.EXIT_PASS and out["action"] == "unshelved"
+    assert graphmod.load_target(tree.root, TARGET).nodes[INTERIOR].shelved is None
+
+
+def test_shelve_command_retires_a_route_and_branches_it(
+    shelving_tree: Tree, tmp_path: Path, capsys: pytest.CaptureFixture[str], git_identity: None
+) -> None:
+    tree = shelving_tree
+    git = git_init(tree.root, tmp_path)
+    code, out, _ = run(
+        capsys,
+        *shelve_args(
+            tree,
+            "--branch",
+            "steward/retire",
+            INTERIOR,
+            "--route",
+            SHELVE_ROUTE,
+            "--cause",
+            "route 1 does not help the root",
+        ),
+    )
+    assert code == cli.EXIT_PASS, out
+    written = f"targets/{TARGET}/nodes/{INTERIOR}/shelving/{SHELVE_STAMP}-{ALICE}.yaml"
+    assert (out["scope"], out["route"], out["written"]) == ("route", SHELVE_ROUTE, [written])
+    assert out["branch"] == "steward/retire"
+    assert git("rev-parse", "--abbrev-ref", "HEAD") == "steward/retire"
+    assert git("show", "--name-only", "--format=", "HEAD").split() == [written]
+    tg = graphmod.load_target(tree.root, TARGET)
+    assert tg.nodes[INTERIOR].shelved is None, "a retirement never shelves the node it sits on"
+    hole = tg.nodes[f"{INTERIOR}--h1"].shelved
+    assert hole is not None and hole["scope"] == "route"
+
+
+def test_shelve_command_refuses_the_root_a_used_node_an_unknown_route_and_a_blank_cause(
+    shelving_tree: Tree, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Each refusal is exit 1 with ``{"ok": false, "refused": ...}`` naming the gate's code, and
+    nothing is written."""
+    tree = shelving_tree
+    tree.prove(INTERIOR)
+    tree.prove("tutorial-and-swap")
+    tree.prove(ROOT, used=[INTERIOR])
+    cases = [
+        (shelve_args(tree, ROOT, "--cause", "x"), "node-root"),
+        (shelve_args(tree, INTERIOR, "--cause", "x"), "node-used"),
+        (
+            shelve_args(tree, "tutorial-and-swap", "--route", "attempts/none.lean", "--cause", "x"),
+            "shelving-route-unknown",
+        ),
+        (shelve_args(tree, "tutorial-and-swap", "--cause", "  "), "cause"),
+        (shelve_args(tree, "no-such-node", "--cause", "x"), "no-such-node"),
+    ]
+    for argv, word in cases:
+        code, out, err = run(capsys, *argv)
+        assert code == cli.EXIT_FAIL, (argv, out, err)
+        assert out["ok"] is False and word in out["refused"], (argv, out)
+    assert not list(tree.nodes_dir.glob("*/shelving/*")), "a refusal writes nothing"
+    # the same proved-but-unused statement may be shelved (rule 2)
+    code, out, _ = run(capsys, *shelve_args(tree, "tutorial-and-swap", "--cause", "shelved"))
+    assert code == cli.EXIT_PASS and out["ok"] is True

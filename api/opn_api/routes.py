@@ -111,6 +111,11 @@ D35_OWNED_BY_F26: frozenset[str] = frozenset(
         D35_POST_REVIEW_SIGNATURES,
     }
 )
+# F31's row (D-35 v3.47): shelving. A steward of the target or a curator shelves a statement or
+# retires one of its merged decompositions, or lifts a shelving, by a signed ``shelving/v1``
+# append under the node (D-14 v3.47). No MCP tool: only a person shelves.
+D35_POST_SHELVINGS = "POST /shelvings"
+D35_OWNED_BY_F31: frozenset[str] = frozenset({D35_POST_SHELVINGS})
 
 ROUTES: tuple[RouteSpec, ...] = (
     # F05-T13, Q13: the index of this table, served at the root. Open, no D-35 row.
@@ -417,6 +422,18 @@ ROUTES: tuple[RouteSpec, ...] = (
         feature="F26",
         web=True,
     ),
+    # F31-R6 (D-14, D-32, D-35 v3.47): a steward of the target or a curator shelves a statement,
+    # retires one of its merged decompositions, or lifts a shelving, signed by the approval key;
+    # a web session or a bearer with a GitHub login, as POST /literature/confirm takes.
+    RouteSpec(
+        "POST",
+        "/shelvings",
+        "shelvings:post_shelvings",
+        D35_POST_SHELVINGS,
+        authenticated=True,
+        feature="F31",
+        web=True,
+    ),
     # F13-R8, Q2: open like the tutorial precheck; a presented token is authenticated and charged
     # per identity, and an anonymous caller is charged per address, by the handler.
     RouteSpec("POST", "/check", "checks:post_check", D35_POST_CHECK, feature="F13"),
@@ -526,6 +543,10 @@ PURPOSES: dict[str, str] = {
     "POST /check": "Check Lean text within 20 s on a hosted checker, or preview a witness's "
     "expected type for a node or a statement's text (mode witness); never authoritative.",
     "GET /checks/{check_id}": "The record of one of your own fast-check calls.",
+    "POST /shelvings": "Shelve a statement (it and its hole children), retire one merged "
+    "decomposition of it, or lift a shelving, as a steward of its problem or a curator, with a "
+    "cause: signed with the network's approval key, by pull request; not a status, and never "
+    "the root or a statement a merged proof uses.",
     "GET /hosted-checkers.json": "Which hosted checker environment serves each pin and target.",
     # --- F05-T23, F05-T24 ---
     "GET /errors.json": "Every error code the gate and the service emit, what it means and what "

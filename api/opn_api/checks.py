@@ -861,6 +861,31 @@ def superseded_warning(ctx: Context, node_id: str | None) -> list[dict[str, Any]
     ]
 
 
+def shelved_warning(ctx: Context, node_id: str | None) -> list[dict[str, Any]]:
+    """F31-R5 (D-14 v3.47): a check against a shelved statement says so, with the cause, as a
+    claim on it is refused. A warning, not a refusal, as for a superseded node: checking a
+    statement is how a defect in it is shown. A graph that cannot say is no reason to fail (C7)."""
+    from opn_api.app import ApiError  # noqa: PLC0415 — app imports the routes that import this
+
+    if node_id is None:
+        return []
+    try:
+        shelved = precheck.node_facts(ctx, node_id).get("shelved")
+    except ApiError:
+        return []
+    if not shelved:
+        return []
+    return [
+        {
+            "code": "node-shelved",
+            "message": f"{node_id} is shelved by {shelved.get('by')} on {shelved.get('date')}: "
+            f"{shelved.get('cause')} (D-14 v3.47). A precheck, a submission, a claim or a "
+            "witness against it is refused node-shelved until a later record lifts it",
+            "shelved": dict(shelved),
+        }
+    ]
+
+
 # --- the witness preview (F13-T14) ---------------------------------------------------------------
 
 
@@ -2765,6 +2790,7 @@ async def post_check(ctx: Context, request: Request) -> Response:
             else lint(req.content, statement, req.node_id, unknown_nodes=unknown, reading=reading)
         )
         warnings += superseded_warning(ctx, req.node_id)
+        warnings += shelved_warning(ctx, req.node_id)  # F31-R5
         if req.mode == "verify" and req.node_id is not None:
             own = layout.node_module(req.node_id, "Context")
             # T15: only a Context that declares something restates anything. Every statement

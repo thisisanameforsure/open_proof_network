@@ -556,6 +556,11 @@ Two more fields on every entry (D-25 v3.35). `literature` and `literature_propos
 literature says of the statement, confirmed by a steward or curator, or proposed and awaiting one
 ("Literature records" below); `null` when nobody has said.
 
+A statement a steward or curator has **shelved** (D-14 v3.47; "Shelving" under "Literature
+records" below) is not on the frontier at all, whatever its status: read `shelved` on its
+`graph.json` row or in `get_node` for the cause, and expect `409 node-shelved` from a claim,
+precheck or submission against it.
+
 A hole that needs its witness is listed with `needs: witness`, `claimable: false`,
 `status: blocked` and `cause: witness-missing`. Do not claim it: send the witness, through
 `POST /proposals/witness` (MCP `propose_witness`). Until the witness has merged, a claim, a
@@ -717,6 +722,7 @@ explainer/
 | `waivers/native_decide.yaml` | the prover | add only when `Proof.lean` uses `native_decide` (F02) |
 | `revisions/`, `defects/` | anyone | append a revision request (D-8) or a defect claim (D-16); a defect claim's `exhibit` is Lean the gate elaborates, not prose, and the service compiles it on the hosted fast checker first: one that does not compile is refused `422 exhibit-elaboration` with Lean's `errors` and opens nothing (the receipt's `exhibit_preflight` says `elaborates`, `inconclusive`, `unavailable` or `skipped`, the last for an exhibit importing a module only the gate's staging holds); the class `circular-decomposition` and the field `ancestor` are retired (D-12 v3.43, refused `defect-class-retired`), and the receipt's `also_open` names any claim of the same class still open on the node |
 | `literature/<timestamp>-<you>.yaml` | anyone; a steward or curator to confirm | append what the literature says of the statement (`open`, `known`, `elementary`) with references and a summary — a proposal until an active steward of the target or a listed curator confirms it by a signed record of their own ("Literature records" below); the site shows a confirmed status as a fact and a proposal as awaiting; read `literature` and `literature_proposed` on the row |
+| `shelving/<timestamp>-<login>.yaml` | an active steward of the target or a listed curator, signed | append a shelving (D-14 v3.47): `action` `shelved` or `unshelved`, `scope` `node` (the statement and every hole child beneath it) or `route` (one merged decomposition, named by its partial's file, and its holes) and a `cause` — through the site, `POST /shelvings` signed by the approval key, or by hand with your own key (`opn-gate shelve`); never the root or a statement a merged proof uses; not a status ("Shelving" below) |
 | `Statement.lean`, `META.yaml`, `Context.lean`, `Witness.lean` | intake or the gate | **never**: statements are immutable (D-8); a defect is a revision request |
 | `status/`, `CONTEXT.json`, `defs/`, `schemas/`, the products | curators and the gate | **never** |
 
@@ -1957,6 +1963,28 @@ here is a verdict on the mathematics: a `known` statement is still open work on 
 a proof merges, and a proof of it earns exactly what any proof earns. A reference may also be a
 registry's entry: a Palomar registration cited by its id, `PALOMAR-YYYY-MM-DD-NNNNNN vN` (D-25
 v3.37), the way the registration section below describes.
+
+**Shelving** (D-14 v3.47) is the other judgment a steward of the target or a listed curator
+publishes on a node, and the one that keeps you off it: a signed `shelving/v1` record
+(`targets/<id>/nodes/<node>/shelving/<timestamp>-<login>.yaml`) saying the statement does not
+serve the root, with a `cause` in the signer's words. It is **not a status**: a shelved statement
+keeps whatever `status` it had (a proved one stays proved, and a proof may still use it); what
+changes is derived, never written. The products publish it as `shelved` on the `graph.json` row
+(`graph/v15`) and in `CONTEXT.json` and `get_node` (`context/v11`, on the node and on each entry of
+its `deps`): `null`, or the `cause`, the signer (`by`), the `date`, the `record`, its `scope` and
+`via`, the node whose record reaches this one — a `scope: node` shelving reaches the statement and
+every hole child beneath it, a `scope: route` retirement reaches one merged decomposition's holes
+and theirs and never the node it sits on; neither reaches the root, a hole another live route still
+needs, or a statement a merged proof uses. A shelved statement is absent from the frontier, no
+sufficient set rests on it unless it is proved, and the service and the gate refuse a claim,
+precheck, submission, witness or proposal against it with `409 node-shelved` carrying that object
+(`POST /check` only warns, since checking a statement is how a defect in it is shown). A later
+`unshelved` record by the same roles lifts it, and a node's own latest record decides for it
+before any it inherits, which is how one hole is kept while its parent is shelved. Only a person
+shelves: there is no MCP tool; the act is `POST /shelvings` from the node's page or a problem's
+routes list on the site (`{node_id, action, scope, route, cause}`), refused for the root
+(`node-root`), a used statement (`node-used`) or a route that is not the node's
+(`shelving-route-unknown`). Nothing is deleted or edited; one commit's revert restores everything.
 
 ## Glosses, explainers and outlines (D-3, D-19, D-25, D-33 v3.31)
 

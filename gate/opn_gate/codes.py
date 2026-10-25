@@ -1530,6 +1530,36 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "the steward's or curator's own key (via: ssh) or made through the site (via: "
         "approval-key).",
     ),
+    "shelving-node": (
+        "gate",
+        None,
+        "The shelving record names a different node from the directory it sits in, or a node "
+        "the target does not hold.",
+        "File it under nodes/<id>/shelving/ of the node its `node` field names (D-14 v3.47).",
+    ),
+    "shelving-route-unknown": (
+        "both",
+        None,
+        "The shelving retires a route (`scope: route`) whose `route` is not one of the node's "
+        "merged partials; the service's details list the routes the row carries.",
+        "Name the partial's file as graph.json's `decompositions[].partial` gives it "
+        "(attempts/<file>.lean), or shelve the statement with `scope: node`.",
+    ),
+    "shelving-signature": (
+        "gate",
+        None,
+        "The shelving record's signature does not verify under its key, or claims the approval "
+        "key and carries another.",
+        "Sign it with the steward's or curator's own key (via: ssh, `opn-gate shelve`) or make "
+        "it through the site (via: approval-key).",
+    ),
+    "shelving-signer-unlisted": (
+        "gate",
+        None,
+        "The shelving record's contributor is neither an active steward of the target nor a "
+        "listed curator.",
+        "Only a steward of the target or a curator shelves (D-32 v3.47); ask one.",
+    ),
     "literature-signer-unlisted": (
         "gate",
         None,
@@ -1794,6 +1824,27 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "The node is still a proposal in an open pull request.",
         "Wait for that pull request to merge and the products to render, then try again.",
     ),
+    "node-root": (
+        "both",
+        None,
+        "The shelving names the target's root, which is never shelved (D-14 v3.47): refused by the "
+        "service before anything opens and by the gate at the merge.",
+        "Shelve the statements beneath it, or retire one of its decompositions by its route; a "
+        "problem is retired by its target's status, not by a shelving.",
+    ),
+    "node-shelved": (
+        "both",
+        None,
+        "The statement is shelved: a steward of the target or a curator judged that it, or the "
+        "decomposition it is a hole of, does not serve the root (D-14 v3.47), so work on it is "
+        "refused — by the gate at the merge and by the service before anything opens (a claim, a "
+        "precheck, a submission, a witness, a proposal pointer). The refusal's details.shelved, "
+        "the row's `shelved` and the bundle carry the cause, who signed it, when, the record and "
+        "the node whose record reaches it. Not a status. On POST /check it is a warning.",
+        "Work elsewhere: list_frontier omits shelved statements. If the judgment is wrong, ask a "
+        "steward of the problem or a curator to lift it (an unshelved record: POST /shelvings from "
+        "the site, or opn-gate shelve --unshelve).",
+    ),
     "node-superseded": (
         "api",
         None,
@@ -1805,6 +1856,14 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         None,
         "node_id belongs to a different target from target_id.",
         "Send the node's own target_id, or leave target_id out and it is derived from the node.",
+    ),
+    "node-used": (
+        "both",
+        None,
+        "The shelving names a statement a merged proof uses (a proof's footprint, or an input of a "
+        "closure link): a kernel-checked proof rests on it, so it cannot be shelved (D-14 v3.47). "
+        "The service's details name the nodes whose proofs use it.",
+        "Nothing to do on this node; shelve a statement no merged proof uses.",
     ),
     "node-unknown": (
         "api",
@@ -3169,8 +3228,8 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "api",
         None,
         "Only an active steward of the target or a listed curator may do this: approve words "
-        "(D-3 v3.33), confirm a literature status (D-25 v3.35) or record a registration "
-        "(D-10 v3.37).",
+        "(D-3 v3.33), confirm a literature status (D-25 v3.35), record a registration "
+        "(D-10 v3.37) or shelve a statement (D-14 v3.47).",
         (
             "Become the problem's steward at /steward/<target>/, or ask one of its stewards or a "
             "curator to do it."
@@ -3190,6 +3249,23 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
             "site after sign-in."
         ),
         "Report it to the operator (OPN_API_SITE_ORIGIN).",
+    ),
+    # --- F31-R5, R6 (D-14 v3.47): shelving — the service's own refusals; node-shelved, node-root,
+    # node-used and shelving-route-unknown are emitted by the gate and the api alike (source both)
+    "already-shelved": (
+        "api",
+        None,
+        "The row already says what this record would: the node is shelved by its own record, or "
+        "every hole of the named route is already retired through it.",
+        "Nothing to do; to change the cause, lift the shelving (action unshelved) and shelve "
+        "again.",
+    ),
+    "not-shelved": (
+        "api",
+        None,
+        "An unshelved record was sent for a node whose row carries no shelving at all (its own "
+        "or inherited), so there is nothing to lift.",
+        "Nothing to do; read `shelved` on the node's graph.json row before lifting one.",
     ),
     # --- F24-R8: the panel's routes refuse by name what the gate would refuse at the merge ---
     "already-signed": (

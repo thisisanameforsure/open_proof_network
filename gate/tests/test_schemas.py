@@ -32,6 +32,7 @@ def test_known_schemas_are_the_published_set() -> None:
         "closure/v2",  # F08-T44 (D-12 v3.46): verdict, proved or refuted
         "context/v1",
         "context/v10",  # F08-T44 (D-30 v3.46): relation refutes
+        "context/v11",  # F31-T1 (D-14 v3.47): shelved
         "context/v2",
         "context/v3",
         "context/v4",  # F22-T13 (a cause on each dep)
@@ -79,6 +80,7 @@ def test_known_schemas_are_the_published_set() -> None:
         "graph/v12",  # F29-T1 (D-25 v3.44): label, label_source, claim; approach
         "graph/v13",  # F08-T43 (D-25 v3.45): literature.disputes
         "graph/v14",  # F08-T44 (D-30 v3.46): relation refutes; target_proofs refutations
+        "graph/v15",  # F31-T1 (D-14 v3.47): shelved
         "graph/v2",
         "graph/v3",
         "graph/v4",
@@ -121,6 +123,7 @@ def test_known_schemas_are_the_published_set() -> None:
         "review/v1",  # F26-T1 (D-9 v3.39): the review's records
         "revision-request/v1",
         "revision-request/v2",
+        "shelving/v1",  # F31-T1 (D-14 v3.47): a steward's or curator's shelving
         "statement-evidence/v1",
         "steward/v1",
         "steward/v2",

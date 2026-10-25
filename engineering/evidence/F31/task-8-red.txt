@@ -1,0 +1,40 @@
+E       AssertionError: {'error': 'node-not-open', 'message': 'and-reassoc is ready and not on the frontier at main; only an open node on the frontier can be claimed (D-25).', 'details': {'status': 'ready', 'replacement': None}}
+E       assert (409, 'node-not-open') == (409, 'node-shelved')
+E         
+E         At index 1 diff: 'node-not-open' != 'node-shelved'
+E         Use -v to get more diff
+E       AssertionError: {'id': '01M230M2G0QED8EJM0VVXHPPHY', 'node_id': 'and-reassoc', 'target_id': 'propositional', 'state': 'queued', ...}
+E       assert (202, None) == (409, 'node-shelved')
+E         
+E         At index 0 diff: 202 != 409
+E         Use -v to get more diff
+E       AssertionError: {'error': 'bundle-invalid', 'message': 'bundle must be a non-empty object of path to file content'}
+E       assert (400, 'bundle-invalid') == (409, 'node-shelved')
+E         
+E         At index 0 diff: 400 != 409
+E         Use -v to get more diff
+E       AssertionError: {'proposal_id': '01M230M2G0WVYZT0Z7QNQQG14S', 'node_id': 'and-reassoc--h1', 'target_id': 'propositional', 'pr_url': 'https://github.com/thisisanameforsure/open_proof_network_graph/pull/1', ...}
+E       assert (201, None) == (409, 'node-shelved')
+E         
+E         At index 0 diff: 201 != 409
+E         Use -v to get more diff
+E       AssertionError: {'proposal_id': '01M230M2G0VQDPQPCSGT8NS79H', 'node_id': 'spec-4d055448', 'target_id': 'propositional', 'pr_url': 'https://github.com/thisisanameforsure/open_proof_network_graph/pull/1', ...}
+E       assert (201, None) == (409, 'node-shelved')
+E         
+E         At index 0 diff: 201 != 409
+E         Use -v to get more diff
+E       ValueError: not enough values to unpack (expected 1, got 0)
+E       AssertionError: {"error":"path-forbidden","message":"targets/propositional/nodes/tutorial-and-swap/Proof.lean is outside the claimed node targets/propositional/nodes/and-reassoc/"}
+E       assert 'path-forbidden' == 'node-shelved'
+E         
+E         - node-shelved
+E         + path-forbidden
+        failed = client.failed(
+>       assert failed["error"] == "node-shelved", failed
+E       KeyError: 'error'
+FAILED api/tests/test_finding_shelved_refusals.py::test_a_claim_on_a_shelved_node_is_refused_with_the_cause
+FAILED api/tests/test_finding_shelved_refusals.py::test_precheck_refuses_a_shelved_node_before_any_job
+FAILED api/tests/test_finding_shelved_refusals.py::test_a_submission_against_a_shelved_node_is_refused_the_same_way
+FAILED api/tests/test_finding_shelved_refusals.py::test_a_witness_for_a_shelved_hole_is_refused
+FAILED api/tests/test_finding_shelved_refusals.py::test_a_proposal_for_a_shelved_node_is_refused
+FAILED api/tests/test_finding_shelved_refusals.py::test_a_check_against_a_shelved_node_warns_with_the_cause

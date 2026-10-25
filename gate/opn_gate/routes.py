@@ -91,6 +91,7 @@ class Hole:
     ready_since: str | None
     routes: int  # how many routes of its own the hole's node has
     label: str | None = None  # F29-R8: the node's label as graph.json carries it (v12)
+    shelved: bool = False  # F31-R4 (D-14 v3.47): the node's row carries a shelving (graph/v15)
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -145,6 +146,7 @@ class Route:
     holes: tuple[Hole, ...]
     summary: Summary
     approach: str | None = None  # F29-R8: the decomposition's approach (graph/v12, R4)
+    retired: bool = False  # F31-R4 (D-14 v3.47): a steward or curator retired the decomposition
 
     @property
     def resolved(self) -> bool:
@@ -152,8 +154,16 @@ class Route:
 
     @property
     def live(self) -> bool:
-        """Resolved, and no hole is dead: the enumeration may expand it."""
-        return self.resolved and not any(h.status in DEAD_STATUSES for h in self.holes)
+        """Resolved, not retired, and no hole is dead or shelved-and-unproved: the enumeration
+        may expand it. F31-R4, Q6 (D-14 v3.47): a shelved *proved* hole keeps its route — a
+        kernel-checked proof is a fact — while a retirement, or a shelved open hole, kills it."""
+        return (
+            self.resolved
+            and not self.retired
+            and not any(
+                h.status in DEAD_STATUSES or (h.shelved and h.status != PROVED) for h in self.holes
+            )
+        )
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -303,6 +313,29 @@ def _text_or_none(raw: Any) -> str | None:
     return str(raw) if isinstance(raw, str) and raw else None
 
 
+def _shelved(row: Mapping[str, Any] | None) -> Mapping[str, Any] | None:
+    """F31-R3: the row's ``shelved`` object (graph/v15), or ``None`` — on a product that predates
+    the field too, so an older graph shelves nothing."""
+    found = row.get("shelved") if row is not None else None
+    return found if isinstance(found, Mapping) else None
+
+
+def _retired(
+    node_id: str, holes: Sequence[str | None], rows: Mapping[str, Mapping[str, Any]]
+) -> bool:
+    """F31-R4: whether a route of ``node_id`` was retired (a ``scope: route`` record on the
+    node). ``graph/v15`` publishes the shelving on the rows the record reached, not on the
+    decomposition, so a retirement is read off its holes: one carrying a route-scope shelving
+    whose ``via`` is this node. A retired route every hole of which another live route still
+    needs leaves no mark and reads as live (F31, gate agent's note: a ``retired`` field on
+    ``decompositions[]`` in the next graph version would make this exact)."""
+    for hole in holes:
+        found = _shelved(rows.get(hole) if hole else None)
+        if found is not None and found.get("scope") == "route" and found.get("via") == node_id:
+            return True
+    return False
+
+
 def _approaches(node_id: str, rows: Mapping[str, Mapping[str, Any]]) -> list[str | None]:
     """F29-R8: each decomposition's ``approach`` as graph/v12 carries it (R4), in the record's
     order, ``None`` on a product rendered before it; one per route ``_hole_nodes`` answers."""
@@ -371,6 +404,7 @@ def _route_of(  # noqa: PLR0913 — the route's place, its holes and the facts i
                 else (),
                 ready_since=entry.get("ready_since") if entry is not None else None,
                 routes=len(row.get("decompositions") or []) if row is not None else 0,
+                shelved=_shelved(row) is not None,
             )
         )
     proved = sum(1 for h in made if h.status == PROVED)
@@ -394,7 +428,15 @@ def _route_of(  # noqa: PLR0913 — the route's place, its holes and the facts i
         refuted_route_classes=tuple(sorted({c for h in made for c in h.refuted_route_classes})),
         oldest_open_since=since[0] if since else None,
     )
-    return Route(f"{node_id}@{k}", node_id, partial, tuple(made), summary, approach)
+    return Route(
+        f"{node_id}@{k}",
+        node_id,
+        partial,
+        tuple(made),
+        summary,
+        approach,
+        retired=_retired(node_id, [nid for _, nid in holes], rows),
+    )
 
 
 # --- following a proof (F27-R13) ---------------------------------------------------------------
@@ -575,7 +617,9 @@ class _Enumerator:
         status = self.status(node_id)
         if status == PROVED:
             return [self.proved(node_id)], False
-        if status in DEAD_STATUSES:
+        # F31-R4 (D-14, D-25 v3.47): a shelved open statement is work the frontier refuses, so no
+        # set rests on it, as none rests on a dead one; a shelved *proved* one returned above (Q6).
+        if status in DEAD_STATUSES or _shelved(self.rows[node_id]) is not None:
             return [], False
         if node_id in path:
             return [], True
