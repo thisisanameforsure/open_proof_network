@@ -1,0 +1,3 @@
+$$\forall\, A \subseteq \mathbb{N}:\qquad \sum_{a\in A}\frac{1}{2^a-1} \;=\; \sum_{m\ge 1}\frac{f_A(m)}{2^m},\qquad f_A(m) = \#\{a \in A : a \mid m\}.$$
+
+Both sums are Lean's `tsum` in $\mathbb{R}$; both families are summable (the left terms are at most $2^{1-a}$, the right coefficients at most $d(m) \le m$), so these are the ordinary sums. On the right the $m$-th coefficient is `Set.ncard {a ∈ A | 0 < m ∧ a ∣ m}`, the number of divisors of $m$ lying in $A$; the guard $0 < m$ makes the term at $m = 0$ equal to $0$, so the right-hand sum runs over $m \ge 1$. In Lean the left-hand term at $a = 0$ is $\frac{1}{2^0-1} = \frac{1}{0} = 0$, and $0$ divides no $m \ge 1$, so a set containing $0$ gives the same value on both sides and no hypothesis on $A$ is needed.

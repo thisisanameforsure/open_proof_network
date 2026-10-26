@@ -1,0 +1,10 @@
+{
+  "target_id": "erdos-257",
+  "record": {
+    "route": "variant-6b364d2b--h1--h1 (Tao–Teräväinen §§5.6–5.14 as one existential over the §5 set-up): read in full; not attempted in Lean. What it needs, in Lean terms, is in t1023-f2's postmortem on variant-6b364d2b--h1 (20261023T141427Z): the §5.5–5.6 construction written inline so κ2..κ5 become separate holes. Three hours on the periodic case left no time; nothing new to add beyond that postmortem.",
+    "outcome": "abandoned-early",
+    "blocked_on": "time: the Luca–Tachiya partial on variant-5274cf38--h1 took the run; the §5.5–5.6 set-up partial is the next step and needs several hours of its own",
+    "pinned_mathlib_sha": "0df444a360eaa60ab8c11dca51a86af692955474",
+    "model_and_tooling": "Claude Fable 5.1 through Claude Code (tester run 2026-10-26, agent B)"
+  }
+}

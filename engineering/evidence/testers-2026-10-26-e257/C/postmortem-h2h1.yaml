@@ -1,0 +1,33 @@
+schema: postmortem/v1
+node: erdos-257--h2--h1
+contributor: replaced-by-the-service
+route: "the digit method (Lambert expansion S(G) = sum f_G(m)/2^m, tail integrality) applied to the greedy set G of a rational r, looking for a position j whose tail T_j is too small for q*T_j to be a positive integer"
+route_class: direct-estimate
+outcome: refuted-route
+terminal_goal_state: |
+  r : ℚ
+  G : Set ℕ
+  h0 : 0 ∉ G
+  hG : ∀ (n : ℕ), 1 ≤ n → (n ∈ G ↔ 1 / (2 ^ n - 1) ≤ ↑r - ∑' (a : ↑(G ∩ Set.Iio n)), 1 / (2 ^ ↑a - 1))
+  hinf : G.Infinite
+  hco : Gᶜ.Infinite
+  ⊢ False
+failure_class: route-dead-ends
+detail: >
+  What was built (all fast-checked and proposed as cruxes for erdos-257--h18, the first two
+  proved during the run): the Lambert identity for an arbitrary set (spec-137537c8), tail
+  integrality q*T_j = p*2^j - q*sum_{m<=j} f(m) 2^(j-m) when the sum is p/q (spec-23b0fff0),
+  and the divisible-block step 2^k | f(y+1..y+k) implies 2^k | q*T_{y+k} (spec-689ac1ac).
+  Why none of it touches this node: the smallness half of the method is never pointwise.
+  For any nonempty set, some multiple of its least element a_1 lies in (j, j + a_1], so every
+  tail satisfies T_j >= 2^(-a_1); a criterion "the tails come arbitrarily close to 0" is
+  vacuous (a Lean proof of it was written and discarded for this reason), and the published
+  proofs beat the bound q*T_{y+k} >= 2^k only on average over y in an arithmetic progression
+  chosen by the Chinese remainder theorem from the arithmetic of A. A greedy set G of a
+  rational has no arithmetic to choose from: its membership is decided by the remainder of the
+  walk, its density is about one half on every computed example, and the only structure the
+  record has for it is the walk itself (annex 2cd06801 on the parent: finite-or-co-finite is
+  equivalent to the parent, and a stall forces every later element in). Nothing on the digit
+  side was attempted beyond this reduction; no Lean was written against this node's goal.
+artifacts:
+  missing_lemmas: []

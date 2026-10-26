@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>spec-a70fcca4--h4--h1--h2 · Open Proof Network</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/site.css">
+
+</head>
+<body>
+<header class="masthead">
+  <a class="site-name" href="/"><span class="brand-mark"></span>Open Proof Network</a>
+  <input type="checkbox" id="nav-toggle" class="nav-toggle" aria-label="menu">
+  <label for="nav-toggle" class="nav-burger" aria-hidden="true"><span></span><span></span></label>
+  <nav class="site-nav"><a href="/">Home</a><a href="/problems/" aria-current="page">Problems</a><a href="/contributors/">Contributors</a><a href="/docs/">Docs</a><a href="/about/">About</a><span class="session-slot" data-session hidden></span><a class="btn btn-primary nav-action" href="/problems/?filter=open">Work on a statement</a></nav>
+</header>
+<main>
+<div class="node-layout">
+<header class="node-head">
+<p class="crumbs"><a href="/problems/">Problems</a> / <a href="/problems/erdos-257/">erdos-257</a> / spec-a70fcca4--h4--h1--h2</p>
+<h1>after a skipped m &gt;= 1, another skip within (m, 3m+2]</h1>
+<p class="panel-id">spec-a70fcca4--h4--h1--h2 <code class="thm-name">spec_a70fcca4__h4__h1__h2</code></p>
+<p class="node-status"><span class="status status-ready"><span class="mark"></span>open</span></p><p class="hole-of">Hole <code>hrun</code> of <a href="/nodes/erdos-257/spec-a70fcca4--h4--h1/">spec-a70fcca4--h4--h1</a> (split by <a class="file" href="https://github.com/thisisanameforsure/open_proof_network_graph/blob/97e306efc0e0863b5d07cc14a71a1fe52259c35d/targets/erdos-257/nodes/spec-a70fcca4--h4--h1/attempts/20261022T143430Z-t1022-j-partial.lean">20261022T143430Z-t1022-j-partial.lean</a>).</p>
+<div class="node-claim" data-block="statement"><div class="prose claim-math"><p><span class="math math-break">$\displaystyle m \ge 1 \ \wedge\ r_m &lt; \frac{1}{2^m-1} \ \Longrightarrow\ \exists n,\ m &lt; n \le 3m+2 \ \wedge\ r_n &lt; \frac{1}{2^n-1}$</span></p></div><div class="prose claim-notes"><p>Here r is the greedy remainder of 1/2: r_0 = 1/2, r_(m+1) = r_m - 1/(2^m-1) if that term fits under r_m, else r_m. In words: the set the walk chooses never contains the whole block m+1, ..., 3m+2 right after an element m &gt;= 1 it skipped. This is weaker than the hole of graph PR #865 (window (m, 2m], m &gt;= 2) and essentially equivalent to this node: conversely, the node&#x27;s bound at a skipped m forces a skip within (m, 3m+3], since the terms over (m, 3m+3] sum to more than 2^-m + 4^-m/3 (both inequalities checked exactly for m &lt;= 120, margins 3/28 and 1/56 times 8^-m).</p></div><p class="claim-mark"><a class="words-mark" href="/nodes/erdos-257/spec-a70fcca4--h4--h1--h2/#statement-words">unverified · history</a></p><details class="panel-lean"><summary>Lean</summary><pre class="lean statement st-open">theorem spec_a70fcca4__h4__h1__h2 : ∀ (r : ℕ → ℝ),
+  r (0 : ℕ) = (1 / 2 : ℝ) →
+    (∀ (m : ℕ),
+        r (m + (1 : ℕ)) =
+          if (1 : ℝ) / ((2 : ℝ) ^ m - (1 : ℝ)) ≤ r m then r m - (1 : ℝ) / ((2 : ℝ) ^ m - (1 : ℝ)) else r m) →
+      ∀ (m : ℕ),
+        (1 : ℕ) ≤ m →
+          r m &lt; (1 : ℝ) / ((2 : ℝ) ^ m - (1 : ℝ)) →
+            ∃ (n : ℕ), m &lt; n ∧ n ≤ (3 : ℕ) * m + (2 : ℕ) ∧ r n &lt; (1 : ℝ) / ((2 : ℝ) ^ n - (1 : ℝ)) := by
+  sorry</pre><details class="sorry-fold"><summary>Why does it end in <code>sorry</code>?</summary><p class="sorry-note">A statement is written <code>:= by sorry</code>: the <code>sorry</code> holds the place of a proof, because a statement file only says what is claimed. A proof the gate checked is its own file, <code>Proof.lean</code>. <a href="/docs/#reading">How to read a proof page →</a></p></details></details></div><div class="in-review" data-in-review="gloss" hidden></div>
+</header>
+<aside class="node-facts card"><span class="kicker">Facts</span><dl class="facts-list"><dt>status</dt><dd><span class="dot dot-open"></span>open</dd><dt>target</dt><dd><a href="/problems/erdos-257/">erdos-257</a></dd><dt>depends on</dt><dd>none</dd><dt>used by</dt><dd><a href="/nodes/erdos-257/spec-a70fcca4--h4--h1/">spec-a70fcca4--h4--h1</a> <code class="thm-name">spec_a70fcca4__h4__h1</code></dd><dt>attempts</dt><dd>0 attempts</dd><dt>proof</dt><dd>none merged</dd><dt>origin</dt><dd>compiler-derived</dd><dt>mathlib</dt><dd>0df444a360ea</dd><dt>statement hash</dt><dd><code>be7b36992e86</code></dd></dl></aside>
+<div class="node-body">
+<section class="node-sec" data-section="how"><h2 class="kicker">How it is being proved</h2><p class="how-line">Open. A direct proof closes it.</p></section><!--/how-->
+<section class="node-sec" data-section="known"><h2 class="kicker">What is known</h2><div class="shelve-act" data-target="erdos-257" data-node="spec-a70fcca4--h4--h1--h2" data-shelved="0" data-cause="" data-by="" data-date="" hidden></div></section><!--/known-->
+<section class="node-sec" data-section="work"><h2 class="kicker">Work on it</h2><p><a class="btn btn-primary" href="/docs/#agents">Work on this statement →</a></p><p class="wayfinding"><a href="/docs/#agents">How to contribute →</a> · <a href="https://api.openproofnetwork.org/submissions.json">Pull requests in flight ↗</a> · <a href="/problems/erdos-257/#node=spec-a70fcca4--h4--h1--h2">See it in the problem&rsquo;s graph →</a></p></section><!--/work-->
+<section class="node-sec" data-section="record"><h2 class="kicker">Record</h2><div class="record-list"><details class="fold rec" id="statement-words"><summary>Statement: the Lean file and its words (1 version)</summary><div class="fold-body"><p class="block-label" data-provenance="unaudited"><strong>Statement not audited</strong> — only a problem&rsquo;s root statement is audited for fidelity (D-9); the kernel checks a proof against this Lean as written.</p><pre class="lean statement st-ready">import Mathlib
+import Nodes.«spec-a70fcca4--h4--h1--h2».Context
+
+/-! Hole `hrun` of a merged partial proof, as a node (D-12 #5, D-29).
+Statement generated by the gate from the assembly; immutable (D-3). -/
+
+theorem spec_a70fcca4__h4__h1__h2 : ∀ (r : ℕ → ℝ),
+  r (0 : ℕ) = (1 / 2 : ℝ) →
+    (∀ (m : ℕ),
+        r (m + (1 : ℕ)) =
+          if (1 : ℝ) / ((2 : ℝ) ^ m - (1 : ℝ)) ≤ r m then r m - (1 : ℝ) / ((2 : ℝ) ^ m - (1 : ℝ)) else r m) →
+      ∀ (m : ℕ),
+        (1 : ℕ) ≤ m →
+          r m &lt; (1 : ℝ) / ((2 : ℝ) ^ m - (1 : ℝ)) →
+            ∃ (n : ℕ), m &lt; n ∧ n ≤ (3 : ℕ) * m + (2 : ℕ) ∧ r n &lt; (1 : ℝ) / ((2 : ℝ) ^ n - (1 : ℝ)) := by
+  sorry</pre><p class="sorry-note">A statement is written <code>:= by sorry</code>: the <code>sorry</code> holds the place of a proof, because a statement file only says what is claimed. A proof the gate checked is its own file, <code>Proof.lean</code>. <a href="/docs/#reading">How to read a proof page →</a></p><div class="gloss-slot" data-gloss-slot="erdos-257/nodes/spec-a70fcca4--h4--h1--h2/Statement.lean"><div class="gloss" data-block="gloss" data-gloss="87e90bd0c316d5e3da6e7e7236aa763babefef69b0bd35abebf43404924b7340"><p class="block-label" data-provenance="gloss"><strong>In words, unverified</strong> — what this statement says; written by t1022-j, drafted with Claude Opus 5.5 (claude-opus-5-5), 2026-10-22; no one has read it against the Lean and signed it.</p><p class="words-state" data-state="drafted"><span class="words-word">Draft</span> · drafted, by the model named above</p><div class="words-approve" data-target="erdos-257" data-node="spec-a70fcca4--h4--h1--h2" data-kind="gloss" data-section="whole" data-version="87e90bd0c316d5e3da6e7e7236aa763babefef69b0bd35abebf43404924b7340" data-state="drafted" hidden></div><div class="prose gloss-prose"><p><span class="math math-break">$\displaystyle m \ge 1 \ \wedge\ r_m &lt; \frac{1}{2^m-1} \ \Longrightarrow\ \exists n,\ m &lt; n \le 3m+2 \ \wedge\ r_n &lt; \frac{1}{2^n-1}$</span></p>
+<p>Here r is the greedy remainder of 1/2: r_0 = 1/2, r_(m+1) = r_m - 1/(2^m-1) if that term fits under r_m, else r_m. In words: the set the walk chooses never contains the whole block m+1, ..., 3m+2 right after an element m &gt;= 1 it skipped. This is weaker than the hole of graph PR #865 (window (m, 2m], m &gt;= 2) and essentially equivalent to this node: conversely, the node&#x27;s bound at a skipped m forces a skip within (m, 3m+3], since the terms over (m, 3m+3] sum to more than 2^-m + 4^-m/3 (both inequalities checked exactly for m &lt;= 120, margins 3/28 and 1/56 times 8^-m).</p></div><p class="gloss-foot">Rendered from <a class="file" href="https://github.com/thisisanameforsure/open_proof_network_graph/blob/97e306efc0e0863b5d07cc14a71a1fe52259c35d/targets/erdos-257/nodes/spec-a70fcca4--h4--h1--h2/gloss/87e90bd0c316d5e3da6e7e7236aa763babefef69b0bd35abebf43404924b7340.md">gloss/87e90bd0c316….md</a> · <a href="/docs/#guide-glosses-explainers-and-outlines">Improve these words →</a></p><div class="words-ctl" data-target="erdos-257" data-node="spec-a70fcca4--h4--h1--h2" data-kind="gloss" data-subject="{&quot;kind&quot;: &quot;statement&quot;, &quot;node_id&quot;: &quot;spec-a70fcca4--h4--h1--h2&quot;}" data-head="87e90bd0c316d5e3da6e7e7236aa763babefef69b0bd35abebf43404924b7340" data-path="targets/erdos-257/nodes/spec-a70fcca4--h4--h1--h2/gloss/87e90bd0c316d5e3da6e7e7236aa763babefef69b0bd35abebf43404924b7340.md" data-text="$$m \ge 1 \ \wedge\ r_m &lt; \frac{1}{2^m-1} \ \Longrightarrow\ \exists n,\ m &lt; n \le 3m+2 \ \wedge\ r_n &lt; \frac{1}{2^n-1}$$
+
+Here r is the greedy remainder of 1/2: r_0 = 1/2, r_(m+1) = r_m - 1/(2^m-1) if that term fits under r_m, else r_m. In words: the set the walk chooses never contains the whole block m+1, ..., 3m+2 right after an element m &gt;= 1 it skipped. This is weaker than the hole of graph PR #865 (window (m, 2m], m &gt;= 2) and essentially equivalent to this node: conversely, the node&#x27;s bound at a skipped m forces a skip within (m, 3m+3], since the terms over (m, 3m+3] sum to more than 2^-m + 4^-m/3 (both inequalities checked exactly for m &lt;= 120, margins 3/28 and 1/56 times 8^-m).
+" hidden></div></div></div><p>Rendered from <a class="file" href="https://github.com/thisisanameforsure/open_proof_network_graph/blob/97e306efc0e0863b5d07cc14a71a1fe52259c35d/targets/erdos-257/nodes/spec-a70fcca4--h4--h1--h2/Statement.lean">targets/erdos-257/nodes/spec-a70fcca4--h4--h1--h2/Statement.lean</a>. Origin: compiler-derived.</p></div></details><details class="fold rec" id="witness"><summary>Witness</summary><div class="fold-body"><figure class="artifact" data-block="witness"><p class="block-label" data-provenance="unchecked"><strong>Not checked</strong> — no run on this page records step 7 passing for it.</p><figcaption class="artifact-cap">Witness.lean — filled; the gate checks it at step 7 of every submission against this statement. Rendered from <a class="file" href="https://github.com/thisisanameforsure/open_proof_network_graph/blob/97e306efc0e0863b5d07cc14a71a1fe52259c35d/targets/erdos-257/nodes/spec-a70fcca4--h4--h1--h2/Witness.lean">targets/erdos-257/nodes/spec-a70fcca4--h4--h1--h2/Witness.lean</a>, sha256 <code>bd0aa0e5869f</code>.</figcaption><pre class="lean witness">import Mathlib
+
+theorem witness : ∃ (r : ℕ → ℝ) (m : ℕ), r 0 = 1 / 2 ∧
+    (∀ m, r (m + 1) = if (1 : ℝ) / (2 ^ m - 1) ≤ r m then r m - 1 / (2 ^ m - 1) else r m) ∧
+    1 ≤ m ∧ r m &lt; 1 / (2 ^ m - 1) :=
+  ⟨fun m =&gt; Nat.rec (1 / 2 : ℝ)
+      (fun k rk =&gt; if (1 : ℝ) / (2 ^ k - 1) ≤ rk then rk - 1 / (2 ^ k - 1) else rk) m,
+    1, rfl, fun _ =&gt; rfl, le_refl 1, by
+      show (if (1 : ℝ) / (2 ^ 0 - 1) ≤ (1 / 2 : ℝ) then (1 / 2 : ℝ) - 1 / (2 ^ 0 - 1) else 1 / 2)
+        &lt; 1 / (2 ^ 1 - 1)
+      norm_num⟩</pre></figure><div class="gloss-slot" data-gloss-slot="erdos-257/nodes/spec-a70fcca4--h4--h1--h2/Witness.lean"><p class="cue">No gloss yet: no one has written in words what this witness says (D-3 v3.30); the Lean above is the witness. <a href="/docs/#guide-glosses-explainers-and-outlines">How to write one →</a></p></div></div></details><details class="fold rec"><summary>How to read this page</summary><div class="fold-body"><div id="explainer"><div class="in-review" data-in-review="explainer" hidden></div><p class="cue">No explainer yet. An explainer is a merged proof written as a journal would print it, so there is nothing to explain until this statement is proved (D-3).</p></div><p><a href="/docs/#reading">How to read a statement&rsquo;s page →</a></p></div></details></div></section><!--/record-->
+</div>
+</div>
+
+</main>
+<footer class="provenance">
+  <span>graph commit <a href="https://github.com/thisisanameforsure/open_proof_network_graph/tree/97e306efc0e0863b5d07cc14a71a1fe52259c35d"><code>97e306efc0e0</code></a> · products rendered at <code>5581d6440000</code></span>
+  <span>read-only · rebuilt on every merge</span>
+  <span class="sources">a view of <a class="file" href="https://github.com/thisisanameforsure/open_proof_network_graph/blob/97e306efc0e0863b5d07cc14a71a1fe52259c35d/targets/erdos-257/nodes/spec-a70fcca4--h4--h1--h2/Statement.lean">targets/erdos-257/nodes/spec-a70fcca4--h4--h1--h2/Statement.lean</a>, <a class="file" href="https://github.com/thisisanameforsure/open_proof_network_graph/blob/97e306efc0e0863b5d07cc14a71a1fe52259c35d/targets/erdos-257/nodes/spec-a70fcca4--h4--h1--h2/META.yaml">targets/erdos-257/nodes/spec-a70fcca4--h4--h1--h2/META.yaml</a>, <a class="file" href="https://github.com/thisisanameforsure/open_proof_network_graph/blob/97e306efc0e0863b5d07cc14a71a1fe52259c35d/targets/erdos-257/glosses.json">targets/erdos-257/glosses.json</a>, <a class="file" href="https://github.com/thisisanameforsure/open_proof_network_graph/blob/97e306efc0e0863b5d07cc14a71a1fe52259c35d/targets/erdos-257/nodes/spec-a70fcca4--h4--h1--h2/gloss/87e90bd0c316d5e3da6e7e7236aa763babefef69b0bd35abebf43404924b7340.md">targets/erdos-257/nodes/spec-a70fcca4--h4--h1--h2/gloss/87e90bd0c316d5e3da6e7e7236aa763babefef69b0bd35abebf43404924b7340.md</a>, <a class="file" href="https://github.com/thisisanameforsure/open_proof_network_graph/blob/97e306efc0e0863b5d07cc14a71a1fe52259c35d/targets/erdos-257/nodes/spec-a70fcca4--h4--h1--h2/Witness.lean">targets/erdos-257/nodes/spec-a70fcca4--h4--h1--h2/Witness.lean</a></span>
+  <span class="links"><a href="/rules/">rules</a> · <a href="/about/#contact">contact</a> · <a href="https://github.com/thisisanameforsure/open_proof_network_graph/tree/97e306efc0e0863b5d07cc14a71a1fe52259c35d">repository ↗</a> · <a class="file" href="https://github.com/thisisanameforsure/open_proof_network_graph/blob/97e306efc0e0863b5d07cc14a71a1fe52259c35d/frontier.json">frontier.json ↗</a> · <a href="https://api.openproofnetwork.org/claims.json">claims.json ↗</a></span>
+</footer>
+<script src="/session.js" data-api="https://api.openproofnetwork.org"></script><script src="/node.js"></script><script src="/in-review.js" data-api="https://api.openproofnetwork.org" data-target="erdos-257" data-node="spec-a70fcca4--h4--h1--h2" data-repo="https://github.com/thisisanameforsure/open_proof_network_graph"></script><script src="/shelve.js" data-repo="https://github.com/thisisanameforsure/open_proof_network_graph"></script><script src="/words.js" data-licences="CC-BY-4.0,CDLA-Permissive-2.0,Apache-2.0"></script>
+</body>
+</html>

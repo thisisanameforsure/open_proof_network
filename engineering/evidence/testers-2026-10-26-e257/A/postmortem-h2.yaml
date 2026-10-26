@@ -1,0 +1,42 @@
+schema: postmortem/v1
+node: spec-a70fcca4--h4--h1--h2
+contributor: t1026-a
+route: >-
+  exact computation of the greedy walk of 1/2 in the kernel (one norm_num per step, the values
+  r_1..r_101 as one conjunction, interval_cases over 1 <= m <= 100), which decides the window
+  statement for every skipped m <= 100 and leaves the same statement for m > 100 as the hole;
+  then a search for any structural reason the tail holds
+route_class: computational
+outcome: exhausted
+terminal_goal_state: |
+  r : ℕ → ℝ
+  h0 : r 0 = 1 / 2
+  hrs : ∀ (m : ℕ), r (m + 1) = if 1 / (2 ^ m - 1) ≤ r m then r m - 1 / (2 ^ m - 1) else r m
+  m : ℕ
+  hm : 100 < m
+  hlt : r m < 1 / (2 ^ m - 1)
+  ⊢ ∃ n, m < n ∧ n ≤ 3 * m + 2 ∧ r n < 1 / (2 ^ n - 1)
+failure_class: route-dead-ends
+detail: >-
+  What was proved (partial #987 on this node): for every skipped m with 1 <= m <= 100
+  the walk skips again within (m, 3m+2]; the next skip is in fact within (m, m+9] (the widest
+  gap below 100 is 43 -> 52; to depth 1000 the widest is 12, at m = 606, and the worst ratio (next skip - m)/m for m >= 2 is 3/5 at m = 5). The computation is cheap in the kernel: the 101 values cost 20k
+  heartbeats, each block of 25 cases under 5k, so the same method reaches any depth the
+  600 s gate budget allows (denominators have 1763 bits at step 101 and grow like 2^(c m^2)).
+  It is a base case and nothing more: the hole for m > 100 is the whole difficulty.
+  What did not close: the tail. I re-derived the four postmortems' dead ends rather than
+  re-running them. A violation at m means the finite set (greedy set below m) + m has sum
+  within about (2/3)4^-m above 1/2 at denominators of size 2^(c m^2), so Liouville-type bounds
+  miss by 2^(Theta(m^2)) (t1022-p); any property of general alive rationals fails for a
+  positive proportion of them (t1022-j: W(3m+2) fails at m = 1..6 for 595, 148, 34, 10, 4, 2 of
+  19008 alive p/q with q <= 250), so a proof must use 1/2's arithmetic, and that arithmetic is
+  gone after step 20 (lcm bound). Two reformulations I checked and did not file, because an
+  equivalent hole is not a smaller one: the digit form (t1022-i: at a skipped m the scaled
+  remainder is fract(F_m) and a run over (m, 2m] means m-1 leading ones), and W(infinity)
+  (infinitely many skips), which is --h4 itself given the irrationality of the tails
+  (variant-2f5236aa). The S - x symmetry of the subsum set, the integer defect Q_N of Cook's
+  note, and the fact that c(p) = [p in A] at primes give no handle either: each restates the
+  walk. Nothing on the record is a mechanism for a one-orbit shrinking target of width 4^-m,
+  and I found none.
+artifacts:
+  missing_lemmas: []

@@ -1,0 +1,7 @@
+{"node_id": "variant-5274cf38--h1", "status": "known",
+ "references": [
+  {"title": "F. Luca and Y. Tachiya, Irrationality of Lambert series associated with a periodic sequence, Int. J. Number Theory 10 (2014), 623–636, Theorem 1.1", "url": "https://doi.org/10.1142/S1793042114500031", "note": "∑ a(n)/(q^n − 1) is irrational for every purely periodic integer sequence a not identically zero and every integer |q| > 1; this node is the case a = 1_B, q = 2"},
+  {"title": "P. Erdős, On arithmetical properties of Lambert series, J. Indian Math. Soc. (N.S.) 12 (1948), 63–66", "url": null, "note": "the method: f_B(m) = #{d | m : d ∈ B} in place of d(m), primes ≡ 1 (mod the period) chosen by the Chinese remainder theorem; the partial filed on this node (graph PR #981) carries that argument in Lean with the supply of primes as its one hole"}
+ ],
+ "summary": "Known: Luca–Tachiya 2014, Theorem 1.1, for the 0/1 sequence 1_B at q = 2. Not formalised. The Erdős-style proof is in Lean on this node up to one input, a quantitative form of Dirichlet's theorem (m² primes ≡ 1 mod P in (2^m, 2^(m+m²)] for large m), which the pinned Mathlib does not have.",
+ "model_and_tooling": "Claude Fable 5.1 through Claude Code (tester run 2026-10-26, agent B)"}
