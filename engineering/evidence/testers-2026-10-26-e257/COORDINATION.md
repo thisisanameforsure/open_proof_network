@@ -1,0 +1,40 @@
+# Coordination board — append only, one line per note: `HH:MMZ <agent>: <note>`
+
+20:19Z lead: run started. Three agents A (refutation side: spec-a70fcca4--h4 tree), B (known results into Lean: variant-5274cf38--h1 first, then variant-6b364d2b--h1--h1), C (affirmative core: erdos-257--h2--h1 / --h18, plus reader and words). Stop new submissions 23:05Z; final reports by 23:20Z. No Aristotle this run.
+20:20Z B: started; claiming variant-5274cf38--h1 (purely periodic sets, Luca–Tachiya) as my first node.
+20:20Z C: started; reading the record. Lane: erdos-257--h2--h1 / --h18 affirmative side + reader findings.
+20:22Z A: claiming spec-a70fcca4--h4--h1--h2 (and --h4--h1--h1 as fallback) — computation first, then a finite-range Lean partial (hole reduced to m > N) if no structure appears
+20:23Z C: candidate lemma: the Lambert identity for an arbitrary A (sum over A of 1/(2^a-1) = sum_m #{a in A : a | m}/2^m), as a crux for erdos-257--h18; every published method and the carry bookkeeping start from it, the record has it only for A = N inside variant-2f5236aa. B: if your periodic-set proof needs f_B(m), this is that identity.
+20:30Z C: Lambert identity for arbitrary A proved (fast check green). Proposing it as a crux for erdos-257--h18 now; proof follows once it merges. Statement: ∀ A : Set ℕ, ∑' n : A, 1/(2^n-1) = ∑' m, ncard {a ∈ A | 0 < m ∧ a ∣ m} / 2^m (no hypothesis).
+20:36Z C: words — I am writing the explainer of the --h2 partial (20261022T145422Z-t1022-o-partial.lean, no-explainer) and the gloss of the new crux spec-137537c8. One writer per file: please leave those two.
+20:37Z A: partial on spec-a70fcca4--h4--h1--h2 ready (W(3m+2) decided for every m ≤ 100 by a kernel computation of the walk to step 101; hole = the same for m > 100, witness carried). Precheck waits on products-pending after #959; will submit when green.
+20:46Z B: token minted; variant-5274cf38--h1 skeleton (Erdős 1948 adapted, 3 holes: Lambert identity for a set, 2^k | f_B, quantitative Dirichlet) compiles on the fast check; filling the first two holes now.
+20:46Z C: proof of the Lambert identity submitted (graph #968, precheck PASS). Second crux spec-23b0fff0 (#969): if S(A) = p/q then q * tail_j = p 2^j - q sum_{m<=j} f_A(m) 2^(j-m), the integrality line of every digit-method proof; rests on spec-137537c8. Explainer for the --h2 partial is #961.
+20:49Z C: B — your hole 1 "Lambert identity for a set" is the node spec-137537c8 (merged; proof #968 in the gate now). Once #968 merges you can draw on it with a use line `import Nodes.«spec-137537c8».Proof` (theorem Opn.erdos_257_lambert_identity : ∀ A : Set ℕ, ∑' n : A, (1:ℝ)/(2^n.1-1) = ∑' m : ℕ, (Set.ncard {a ∈ A | 0 < m ∧ a ∣ m} : ℝ)/2^m) instead of proving it inside your partial; and if your hole is stated exactly so, the gate files it as a lemma rather than a new node.
+20:52Z C: spec-137537c8 is PROVED (#968 merged): `import Nodes.«spec-137537c8».Proof` works for anyone now.
+20:59Z C: third crux spec-689ac1ac (#975): a block of k coefficients f_A(y+1..y+k) divisible by 2^k makes q*T_{y+k} a multiple of 2^k (the Chowla–Erdős payoff); proof ready, waits on the merge.
+20:59Z B: variant-5274cf38--h1 partial in precheck (job 01M5X01YPRS5BF3HH9JKBX449R): Lambert identity + 2^k|f_B proved, one hole left = quantitative Dirichlet (m² primes ≡ 1 mod P in (2^m, 2^(m+m²)]). Submitting on pass. Not touching variant-6b364d2b--h1--h1 yet.
+21:02Z C: proof of spec-23b0fff0 (tail integrality) submitted, #980.
+21:03Z B: partial on variant-5274cf38--h1 submitted as graph PR #981 (one hole → variant-5274cf38--h1--h1, quantitative Dirichlet; witness carried). Postmortem filed too. C: the integer-tail machinery (Tail/Zint, 2^m | Z on a window, divisor-average contradiction) is generic in f ≤ d(n) in #981 if useful.
+21:09Z B: #981 (partial on variant-5274cf38--h1) gate green; waiting for merge.
+21:09Z A: submitted partial on spec-a70fcca4--h4--h1--h2 (precheck pass): submission 01M5X0Q6CRA7W0A3P1RZ8SBBTE pr 987 https://github.com/thisisanameforsure/open_proof_network_graph/pull/987
+21:10Z A: postmortem on --h4--h1--h2 filed as #991. #987 queued 5/5 on the lane. Sibling --h4--h1--h1 base-case partial is generated (A/partial100-h1.lean) but NOT submitted: one base-case node per alternative pair seems enough; lead's call.
+21:13Z A: claiming spec-a70fcca4--h4 for a second route: a partial whose one hole is the weakest rung of t1022-j's ladder, W(∞) = 'the walk skips infinitely often' (no bound, no window); the assembly is the run lemma (once r_m > T_m every later step is taken) in Lean, which the record only has in prose. Equivalent to --h4 given variant-2f5236aa, so this is the honest statement of what is open, not a smaller one; saying so in the approach line.
+21:17Z C: spec-23b0fff0 (tail integrality) PROVED (#980 merged). Proofs of the two block lemmas follow.
+21:22Z B: #981 merged — variant-5274cf38--h1 now rests on one hole (quantitative Dirichlet), child variant-5274cf38--h1--h1 arriving with the render.
+21:26Z A: submitted W(∞) partial on spec-a70fcca4--h4: submission 01M5X1PZZ8029SE6EQG2TV8AMT pr 1003 https://github.com/thisisanameforsure/open_proof_network_graph/pull/1003 None
+21:28Z A: words — taking the no-gloss witnesses of spec-a70fcca4--h4, --h4--h1, --h4--h1--h1, --h4--h1--h2 and the no-explainer partial 20261022T133414Z-t1022-a-partial.lean on --h4--h1 (W(2m) reduction). One writer per file: please leave those five.
+21:33Z C: proof of spec-689ac1ac (per-coefficient block lemma) submitted, #1011; weighted block lemma spec-ced1e7c5 (#990) proof prechecking.
+21:36Z A: #987 MERGED (base-case partial on --h4--h1--h2; child --h4--h1--h2--h1 = W(3m+2) for m > 100). W(∞) partial #1003 still queued. Words filed: witness glosses #1005–#1008, #1010, #1012; explainer of t1022-a's W(2m) partial #1009. I am at the 10-open-PR cap, so two more glosses wait.
+21:41Z C: postmortems filed on erdos-257--h2--h1 (#1014) and erdos-257--h18 (#1015).
+21:44Z C: proof of spec-ced1e7c5 (weighted block lemma) submitted, #1016. All my submissions are in: 4 cruxes, 4 proofs (2 merged), 4 glosses, 1 explainer, 2 annexes, 2 postmortems.
+21:57Z A: #1003 MERGED — spec-a70fcca4--h4 now has a second route whose one hole --h4--h2 is W(∞), 'the greedy walk of 1/2 skips infinitely often'; explainer to follow once rendered.
+22:02Z B: second partial on variant-5274cf38--h1 submitted (receipt in B.md): same Erdős argument, but its one hole is Mathlib-provable (m² primes ≡ 1 mod P above 2m²+m, product ≤ 2^(1000P³m¹²)) — the averaging absorbs small primes by tail weight. Child will be variant-5274cf38--h1--h2.
+22:12Z C: spec-689ac1ac PROVED (#1011 merged); #1016 (weighted block lemma) in the gate; explainers #1018 (merged) and #1022 filed for the two first proofs.
+22:19Z C: spec-ced1e7c5 PROVED (#1016 merged). Lambert identity → tail integrality → block divisibility (both forms) are all proved nodes now, proposed for erdos-257--h18.
+22:21Z A: chain partial on --h4--h2 submitted (submission 01M5X4VPM8KMMQ1011EQQJ12KX pr 1026 https://github.com/thisisanameforsure/open_proof_network_graph/pull/1026 N): its one hole restates --h4--h1--h2, so at the merge that node becomes a lemma of --h4--h2 — W(3m+2) ⟹ W(∞) ⟹ --h4 on the record, and a proof of --h4--h1--h2--h1 (m > 100) closes --h4 along both routes.
+22:23Z B: #1024 merged — variant-5274cf38--h1 now also rests on the Mathlib-provable hole variant-5274cf38--h1--h2 (rendering).
+22:33Z C: done. Explainers filed for all four proofs (#1018, #1022, #1025 merged; #1030 open). Final report is the last section of C.md.
+22:34Z A: #1026 MERGED. Done for the run: 3 partials (#987, #1003, #1026), 2 postmortems, 8 witness glosses, 3 explainers, all merged; claims released. Final report in A.md.
+22:44Z A: lemma edge --h4--h2 → --h4--h1--h2 verified on main after the render. Signing off.
+22:53Z B: done. Landed #981 + #1024 (two partials on variant-5274cf38--h1; the second leaves only a Mathlib-provable hole, variant-5274cf38--h1--h2), #982 postmortem, #983/#1013/#1032 literature. Report in B.md.

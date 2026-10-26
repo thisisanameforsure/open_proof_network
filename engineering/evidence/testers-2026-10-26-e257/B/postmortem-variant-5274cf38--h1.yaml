@@ -1,0 +1,36 @@
+schema: postmortem/v1
+node: variant-5274cf38--h1
+contributor: replaced-by-the-service
+route: "Erdős 1948 (the A = ℕ proof on variant-2f5236aa) with f_B(m) = #{d | m : d ∈ B} in place of d(m): Lambert identity for a set, CRT placement of primes ≡ 1 (mod the period) so 2^m | f_B on windows, divisor-average contradiction"
+route_class: reduction-to-known
+outcome: blocked
+terminal_goal_state: |
+  ⊢ ∀ (P : ℕ), 0 < P → ∃ m₀, ∀ (m : ℕ), m₀ ≤ m → ∃ S : Finset ℕ, S.card = m * m ∧
+      ∀ p ∈ S, Nat.Prime p ∧ p % P = 1 ∧ 2 ^ m < p ∧ p ≤ 2 ^ (m + m * m)
+failure_class: missing-library
+detail: >
+  Everything in the Erdős argument is proved in the partial filed on this node: the Lambert
+  identity Σ_{n∈B} 1/(2^n−1) = Σ_m f_B(m)/2^m (mimicking Mathlib's
+  tsum_pow_div_one_sub_eq_tsum_sigma with an indicator weight), the doubling lemma
+  f_B(p·r) = 2 f_B(r) for a prime p ≡ 1 (mod P) with p ∤ r (the divisors of p·r are the d and
+  the p·d, and p·d ≡ d mod P), its iteration 2^|S| | f_B(n), the integer tail b·Σ f_B(j+i)/2^i,
+  the CRT construction, the coprimality of the window with the modulus, and the averaging
+  contradiction, all generic in f ≤ d. The one hole is the supply of primes: for the template's
+  Bertrand step one needs m² distinct primes ≡ 1 (mod P) in (2^m, 2^(m+m²)], a quantitative
+  Dirichlet theorem (the prime number theorem in arithmetic progressions gives far more).
+  The pinned Mathlib has Dirichlet's theorem only qualitatively (Nat.setOf_prime_and_eq_mod_infinite)
+  and the cyclotomic bound (a prime ≡ 1 mod n below (n+1)^n, Nat.exists_prime_gt_modEq_one's
+  argument); the latter cannot feed the assembly as written because the averaging needs the primes
+  clustered (the window must be coprime to the modulus, so the smallest prime must exceed
+  ~ 6 m² log₂(largest prime)), and chaining cyclotomic primes for distinctness gives tower growth.
+  A Mathlib-only route does exist and is written in my run log: with b_s = 1 + n·B₀!·s for a
+  modulus n = 6 P m² that is not a prime power, every prime factor of Φ_n(b_s) is ≡ 1 (mod n) and
+  exceeds B₀ (Φ_n(b_s) ≡ Φ_n(1) = 1 mod every prime ≤ B₀), the roots of X^n − 1 in ZMod p give at
+  most n values of s ≤ B₀ per prime, so B₀ = n m² values of s yield m² distinct primes with
+  log₂ Q polynomial in m; the averaging step must then absorb the primes ≤ m + L with the weight
+  2^(−i) of the tail position i (d(gcd) ≤ 3^(m²) ≤ 2^(p_min − m)). That is ~300 more lines
+  (cyclotomic evaluation mod p, the pigeonhole, a rewritten averaging lemma) and was not attempted
+  in the three-hour window.
+artifacts:
+  missing_lemmas:
+    - "quantitative Dirichlet for the class 1 mod P: m² primes ≡ 1 (mod P) in (2^m, 2^(m+m²)] for all large m"

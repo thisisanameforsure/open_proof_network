@@ -1,0 +1,26 @@
+schema: postmortem/v1
+node: erdos-257--h18
+contributor: replaced-by-the-service
+route: "the Chowla–Erdős digit method as reusable nodes (Lambert identity spec-137537c8, tail integrality spec-23b0fff0, block divisibility spec-689ac1ac / spec-ced1e7c5), then a new class of sets A supplying a position y and length k with the block sum divisible by 2^k and q*T_{y+k} < 2^k"
+route_class: reduction-to-known
+outcome: exhausted
+terminal_goal_state: |
+  A : Set ℕ
+  hA : A.Infinite
+  ⊢ A = Set.univ ∨ (∃ a d, 0 < d ∧ A = {m | ∃ n, m = a + d * n}) ∨ … ∨ Irrational (∑' (n : ↑A), 1 / (2 ^ ↑n - 1))
+failure_class: budget-exhausted
+detail: >
+  The engine is on the record (the first two nodes proved, the block lemma in the gate at the
+  time of writing) and the annex on this node says how Erdős 1948 and 1968 instantiate it.
+  No new class of A was attempted in the three hours. The first candidate is Erdős's own
+  remark that coprimality can be dropped from the 1968 theorem: the proof on
+  variant-c91009b9 completes the weighted block sum to a multiple of 2^k by adding r < 2^k
+  elements of A that all divide y+k, which pairwise coprimality turns into one
+  Chinese-remainder condition; without it, those r congruences need not be compatible, and
+  that is the whole obstacle. A weaker hypothesis (pairwise coprimality among the elements
+  above every bound, or r elements with pairwise coprime moduli chosen from a sparse tail)
+  looks provable with the same averaging and is where a next session should start. The
+  conjunction-of-fifteen-classes shape of this hole means any such result arrives as a
+  sixteenth lemma of the root and a revision of this hole, not as a proof of it.
+artifacts:
+  missing_lemmas: []

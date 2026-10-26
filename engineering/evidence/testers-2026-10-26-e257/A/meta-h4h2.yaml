@@ -1,0 +1,15 @@
+schema: meta/v6
+id: spec-a70fcca4--h4--h2
+status: ready
+deps: []
+statement-hash: 2c0d2f4f4200debc85decf9c6e18d922b9acaa2c3e549c7e00cf01e44d72833c
+origin: compiler-derived
+provenance:
+  author: t1026-a
+  model: Claude Fable 5.1 (claude-fable-5-1)
+  source: null
+  date: '2026-10-26'
+tutorial: false
+lemmas:
+- hole: hwin
+  node: spec-a70fcca4--h4--h1--h2

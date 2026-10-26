@@ -1,0 +1,2 @@
+{"id":"01M5X313M8CS64AW0NRGAXE3YM","path":"targets/erdos-257/nodes/spec-a70fcca4--h3/gloss/ba8b2bdb35cf83aaa5a97776ca7d7b697b373e413cf1fceaed5730d02da586a1.md","pr_url":"https://github.com/thisisanameforsure/open_proof_network_graph/pull/1020","pr_number":1020,"hash":"ba8b2bdb35cf83aaa5a97776ca7d7b697b373e413cf1fceaed5730d02da586a1","record":"gloss","warnings":[],"lean_hash":"b84e7037ab4cc70ebcdf39fc2ec1c4780f74b4144f1cfb8f7f0e7de82956ff1a"}
+HTTP 201 connect=0.149347 total=9.500794

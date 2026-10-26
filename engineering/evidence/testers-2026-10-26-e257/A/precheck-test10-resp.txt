@@ -1,0 +1,2 @@
+{"id":"01M5WYM6V0SM8B2ZT4MJQ7RMSV","node_id":"spec-a70fcca4--h4--h1--h2","target_id":"erdos-257","state":"queued","created":"2026-10-26T20:32:28Z","graph_commit":"70fa0c7fbec30859b8cda15d1001225c935466d3","bundle_digest":"210f83a95c7482cad770f1d1d10a8bc9a8036daa1c9e336c007a184ad4b620d9","authenticated":true,"automation":{"method":"agent","models":["claude-fable-5-1"],"framework":"Claude Code"},"public":true}
+HTTP 202 connect=0.170118 total=6.246834

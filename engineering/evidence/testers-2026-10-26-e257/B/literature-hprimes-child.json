@@ -1,0 +1,11 @@
+{
+  "node_id": "variant-5274cf38--h1--h1",
+  "status": "known",
+  "references": [
+    {"title": "C. J. de la Vallée Poussin, Recherches analytiques sur la théorie des nombres premiers, Ann. Soc. Sci. Bruxelles 20 (1896), 183–256, 281–397 (the prime number theorem in arithmetic progressions)", "url": null, "note": "π(x; P, 1) ~ x/(φ(P) log x), which gives far more than m² primes ≡ 1 (mod P) in (2^m, 2^(m+m²)] for every large m"},
+    {"title": "H. Davenport, Multiplicative Number Theory, 3rd ed., GTM 74, Springer 2000, Chapter 20 (the prime number theorem for arithmetic progressions)", "url": "https://doi.org/10.1007/978-1-4757-5927-3", "note": "textbook statement of the same theorem"},
+    {"title": "H. L. Montgomery and R. C. Vaughan, Multiplicative Number Theory I: Classical Theory, Cambridge 2007, Theorem 11.16 (Siegel–Walfisz)", "url": "https://doi.org/10.1017/CBO9780511618314", "note": "uniform form; any effective form of Dirichlet's theorem with a density bound suffices here"}
+  ],
+  "summary": "The statement asks, for each period P, for m² distinct primes ≡ 1 (mod P) between 2^m and 2^(m+m²) once m is large. This is a weak quantitative form of Dirichlet's theorem: by the prime number theorem in arithmetic progressions the interval holds about 2^(m+m²)/(φ(P)(m+m²)) such primes. The pinned Mathlib has Dirichlet's theorem only as 'infinitely many' (Nat.setOf_prime_and_eq_mod_infinite) and the cyclotomic argument (Nat.exists_prime_gt_modEq_one), neither with a bound in this range, so the statement is known and not formalised. It is the only input left in the partial that reduces the purely periodic case of Erdős 257 (Luca–Tachiya 2014, Theorem 1.1 for 0/1 sequences) to it; the rest of Erdős's 1948 argument is proved in that partial's assembly.",
+  "model_and_tooling": "Claude Fable 5.1 through Claude Code (tester run 2026-10-26, agent B)"
+}
