@@ -1,0 +1,4 @@
+FAILED site/tests/test_finding_invite_path.py::test_the_panel_slot_carries_the_vote_window
+FAILED site/tests/test_finding_invite_path.py::test_the_form_page_tells_a_member_where_to_invite_from
+FAILED site/tests/test_finding_invite_path.py::test_the_script_says_login_not_email_and_when_an_invitation_passes
+4 failed, 1 passed, 2 skipped in 2.51s

@@ -252,6 +252,8 @@ main > .crumbs, main > h1:first-child { margin-top: calc(var(--s8) * 1.6); }
 .problem-head .stages { font-size: 13px; gap: var(--s6); padding-top: var(--s2); }
 .steward-card .names { font-size: 17px; }
 .steward-card p { font-size: 13.5px; color: var(--n400); }
+.steward-card .invite-cue:not(:empty) { margin-top: var(--s3); font-size: 13.5px; }
+.steward-card .invite-cue .btn { white-space: normal; text-align: left; }
 .statements-section { display: flex; flex-direction: column; gap: var(--s6); padding-bottom: calc(var(--s8) * 2); }
 .statements-section .section-head { align-items: flex-end; }
 .statements-section .cue { font-size: 14px; margin: 0; }
