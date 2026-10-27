@@ -237,3 +237,63 @@ Q-e (a refutation's question, T18). A contributed refutation raises its disagree
   for: an instance n < 4 already has an agreement test from both survivors (AGREEMENT_N), so it
   raises none. That is the job's rule for its own refutations too; a contributed refutation at
   such an n contradicts an agreement test, which the job does not reconcile today.
+
+== Piece 4 (on the lead's word, after T17 finished): the shared verdict, and the job's judgments ==
+
+6d1e03f0 merges f26-t17-gate (09265b8a the verdict, e6a02902 the gate's pre-merge check) into
+f26-t18-job; no conflict.
+
+(a) The re-check now calls pair_proof_check.verdict. review_pairs.recheck computes the template
+  from the job's own candidates and calls verdict(runner.toolchain, runner.resolved, lean, tmpl,
+  first=, kind=, workdir=<runner.workdir>/pair-proofs/<sha256(lean)[:20]>, graph_build=
+  runner.graph_build, timeout_s=runner.budget_s); a refusal's why is "<code>: <reason>". It does
+  not go through Runner.check: the verdict compiles in its own confined areas and then replays,
+  compares the meaning and reads the axioms, none of which the Runner does. The template is still
+  the job's own (not the gate's), so the job trusts nothing it was handed. Import inside the
+  function: pair_proof_check imports review_pairs.GUARD_TOOL.
+  RED first (fast tier, ReviewFake's inherited FakeToolchain seams):
+   - test_an_axiom_outside_the_standard_three_is_refused (axioms {propext, Lean.ofReduceBool}):
+       AssertionError: {'state': 'proved', 'exhibit': 'e-20007064', 'attempt': None}
+   - test_a_file_whose_theorem_means_something_else_is_refused (meaning mismatch): same
+  Existing tests restated to the verdict's codes (pair-proof-elaboration, -sorry, -degenerate,
+  -template-mismatch); the lean test's "does not elaborate" became pair-proof-elaboration, and
+  it now asks the lean_pkg fixture (the metaprograms).
+
+(b) G's question: which records the job accepted. The job now writes an exhibit for every record
+  it judges — accepted (proved/refuted, the record's Lean, as before) or refused (result `open`,
+  lean_file null, detail "refused by the review job's re-check: <code>: <reason> (pair-proof
+  <stem>)"), key contributed:<stem>. A refused record is not re-checked on a later run (its
+  exhibit is found and its reason read back). One function reads the judgments:
+
+    opn_gate.review.judgments_of(exhibits: Iterable[dict[str, Any]]) -> dict[str, dict[str, Any]]
+    opn_gate.review.pair_proof_judgments(base: Path) -> dict[str, dict[str, Any]]
+        stem (the record's file name without .yaml) -> {"accepted": bool, "exhibit": id,
+        "result": "proved" | "refuted" | "open", "reason": str ("" when accepted)}.
+        A stem absent from the answer has not been judged yet (merged, job not yet run). An
+        acceptance wins over a refusal for one stem (a moved pin re-judges under new ids).
+        judgments_of is pure (the service reads exhibits through the host); pair_proof_judgments
+        reads <base>/exhibits/*.json.
+  So "settled" for the gate and the service can be: a record whose judgment is accepted, or a
+  merged record with no judgment yet (the job has not run). A refused one settles nothing.
+  pair_proof_check._settled_by (G's) is not changed here: it is G's and S's to switch to this.
+  RED first: test_the_job_records_which_records_it_accepted_and_refused
+   (AssertionError: set() == {..t-bad, ..t-good}, with the function seamed at today's "{}"),
+   test_judgments_of_reads_exhibits_handed_to_it, test_a_refused_record_is_not_rechecked_on_a_
+   second_run (the record's Lean elaborated again on the second run).
+
+(c) Found by the lean tier, not the fast tier: the second real run wrote a third pair record
+  (--2026-10-12-3.yaml). Lean's error runs over several lines; the exhibit keeps the reason
+  normalised to one line, the first run's attempt had the raw text, so the read-back differed.
+  The reason is now one line before either is written. Fast test
+  test_a_refusal_whose_error_runs_over_lines_reads_back_the_same (ReviewFake's "-- fake: refused
+  on two lines" gives a multi-line error); with the normalisation removed by hand it fails
+  (AssertionError: 'has type' in '... type mismatch\n  h\nhas  type\n  P'), restored after.
+
+Runs:
+  fast: test_review_pair_proof_job 29 passed; with supersession, ledger, G's pair_proof_check and
+    pair_proof_gate, the review suites and the contract: 251 passed. mypy gate: clean. lint clean.
+  lean: test_review_pair_proof_job_lean.py, 1 passed twice in a row (101 s, 119 s).
+    One earlier run (the first after the merge, 7 min 27 s, which also built the Lake package)
+    found the good proof's direction open; that run's notes were not captured and two runs since
+    passed. Most likely a verdict call over the 120 s budget on a loaded laptop (it would read
+    pair-proof-unchecked); said here rather than hidden. If CI sees it, the budget is the knob.

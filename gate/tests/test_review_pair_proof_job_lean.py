@@ -94,8 +94,9 @@ def put_record(  # noqa: PLR0917 — one argument per field the test varies
 
 
 def test_a_merged_contributed_proof_under_the_real_toolchain(
-    real_toolchain: LocalToolchain, pinned: ResolvedToolchain, tmp_path: Path
+    real_toolchain: LocalToolchain, pinned: ResolvedToolchain, lean_pkg: Path, tmp_path: Path
 ) -> None:
+    del lean_pkg  # built: the metaprograms the shared verdict asks (replay, meaning, axioms)
     graph, ids = make_graph(
         tmp_path,
         candidates={
@@ -147,7 +148,7 @@ def test_a_merged_contributed_proof_under_the_real_toolchain(
     assert summary["candidates"] == {f: review.SURVIVING, w: review.SURVIVING}, summary
     (p,) = review.latest_pairs(base)
     settled, refused = p[true_way], p[false_way]
-    assert settled["state"] == "proved" and settled["attempt"] is None, p
+    assert settled["state"] == "proved" and settled["attempt"] is None, (p, summary["notes"])
     exhibit = json.loads((base / "exhibits" / f"{settled['exhibit']}.json").read_text())
     assert (exhibit["kind"], exhibit["candidate"], exhibit["test"], exhibit["result"]) == (
         "pair",
@@ -162,7 +163,7 @@ def test_a_merged_contributed_proof_under_the_real_toolchain(
     # the false direction's record does not elaborate: open, the record named, no exhibit
     assert refused["state"] == "open" and refused["exhibit"] is None, p
     assert refused["attempt"]["who"] == AUTHOR and bad in refused["attempt"]["tool"], refused
-    assert "does not elaborate" in refused["attempt"]["tool"]
+    assert "pair-proof-elaboration" in refused["attempt"]["tool"]
     assert any(bad in n for n in summary["notes"]), summary["notes"]
     # the exhibit's Lean elaborates alone, in a fresh directory, and its guarded copy does not
     runner = review_lean.Runner(real_toolchain, pinned, tmp_path / "again", budget_s=BUDGET)

@@ -43,13 +43,15 @@ supersedes (``review.in_order``: by date, then the generation in the name, F26-T
 
 from __future__ import annotations
 
+import hashlib
 from typing import Any
 
-from opn_gate import pair_proofs, review_lean, schemas
-from opn_gate.diagnostic import Diagnostic
+from opn_gate import pair_proofs, review, review_lean, schemas
 from opn_gate.review_job import Job, _yaml_bytes, add_exhibit, find_exhibit, survey
 from opn_gate.review_lean import Cand, Case, document, module, ns
 
+#: The key prefix of the exhibit the job writes for a merged pair-proof record it judged.
+CONTRIBUTED = "contributed:"
 #: What a recorded open attempt names as its tool.
 TOOL = "gate: two-layer matching (simp only, exact, grind) under the degenerate guard"
 GUARD_TOOL = (
@@ -299,8 +301,27 @@ def contributed(
                 "(it was checked against another text); ignored"
             )
             continue
-        why = recheck(job, rec, first, second)
+        key = f"{CONTRIBUTED}{stem}"
+        judged = find_exhibit(job, "pair", first.id, second.id, key)
+        why: str | None
+        if judged is not None and judged.get("result") == "open":
+            why = review.refusal_reason(str(judged.get("detail")))
+        else:
+            raw = recheck(job, rec, first, second)
+            # one line, as the exhibit keeps it, so a later run reads back the same reason
+            why = None if raw is None else " ".join(raw.split())[:1500]
         if why is not None:
+            if judged is None:
+                add_exhibit(
+                    job,
+                    "pair",
+                    first.id,
+                    second.id,
+                    key,
+                    "open",
+                    f"{review.REFUSED} {why} (pair-proof {stem})",
+                    None,
+                )
             job.notes.append(f"pair-proof {stem}: the re-check failed: {why}")
             failures.append((stem, rec, why))
             continue
@@ -319,10 +340,15 @@ def contributed(
 
 
 def recheck(job: Job, rec: dict[str, Any], first: Cand, second: Cand) -> str | None:
-    """Why the record's Lean does not settle the direction ``first → second``, or ``None``: the
-    direction's template (``pair_proofs.template`` at the record's kind and case), the two
-    regions' rules, the job's own elaboration, and for a proof the degenerate guard (the
-    guarded copy must fail). Trusts nothing the gate said before the merge."""
+    """Why the record's Lean does not settle the direction ``first → second``, or ``None``.
+    Trusts nothing the gate said before the merge: the direction's template is computed here from
+    the job's own candidates (``pair_proofs.template`` at the record's kind and case), and the file
+    is judged by the verdict the service and the gate use (``pair_proof_check.verdict``, F26-T17:
+    the byte check and the regions, the compile, the kernel replay, the meaning comparison, the
+    axioms against the standard three, and for a proof the degenerate guard) with the job's own
+    toolchain, in a directory of its own under the runner's work directory."""
+    from opn_gate import pair_proof_check  # noqa: PLC0415 — it imports this module's GUARD_TOOL
+
     a, b = (first, second) if rec["direction"] == "forward" else (second, first)
     case = rec.get("case")
     n = case.get("n") if isinstance(case, dict) else None
@@ -331,29 +357,20 @@ def recheck(job: Job, rec: dict[str, Any], first: Cand, second: Cand) -> str | N
     except ValueError as exc:
         return f"the direction takes no such {rec['kind']}: {exc}"
     lean = str(rec["lean"])
-    filled = pair_proofs.split(lean, tmpl)
-    if isinstance(filled, Diagnostic):
-        return f"off its template: {filled.message}"
-    bad = pair_proofs.problems(filled)
-    if bad:
-        return bad[0].message
-    why = verdict(job, lean)
-    if why is not None:
-        return why
-    if rec["kind"] == "proof" and job.runner.check(pair_proofs.guarded(lean, first)).ok:
-        return (
-            "the degenerate guard: it still proves with the hypothesis cleared, so it never used it"
-        )
-    return None
-
-
-def verdict(job: Job, lean: str) -> str | None:
-    """Why a filled template fails the job's own check, or ``None`` when it passes: it
-    elaborates with no error and no ``sorry`` (``Runner.check``)."""
-    checked = job.runner.check(lean)
-    if checked.ok:
-        return None
-    return f"does not elaborate: {checked.first_error[:120]}"
+    digest = hashlib.sha256(lean.encode("utf-8")).hexdigest()[:20]
+    runner = job.runner
+    v = pair_proof_check.verdict(
+        runner.toolchain,
+        runner.resolved,
+        lean,
+        tmpl,
+        first=first,
+        kind=rec["kind"],
+        workdir=runner.workdir / "pair-proofs" / digest,
+        graph_build=runner.graph_build,
+        timeout_s=runner.budget_s,
+    )
+    return None if v.ok else f"{v.code}: {v.reason}"
 
 
 def _settled(job: Job, stem: str, rec: dict[str, Any], first: Cand, second: Cand) -> dict[str, Any]:
@@ -369,7 +386,7 @@ def _settled(job: Job, stem: str, rec: dict[str, Any], first: Cand, second: Cand
         how = "re-checked by the review job"
     detail = f"contributed by {author} ({rec['direction']}): {what}; {how} (pair-proof {stem})"
     doc = add_exhibit(
-        job, "pair", first.id, second.id, f"contributed:{stem}", result, detail, str(rec["lean"])
+        job, "pair", first.id, second.id, f"{CONTRIBUTED}{stem}", result, detail, str(rec["lean"])
     )
     return {"state": result, "exhibit": doc["id"], "attempt": None}
 

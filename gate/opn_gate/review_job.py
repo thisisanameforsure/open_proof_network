@@ -51,7 +51,10 @@ this run, and is exactly the text that elaborated (the 2026-09-17 lesson).
 - ``intent-test``: ``pass`` with the kernel's proof of the expected value, ``fail`` with its proof
   of the opposite, ``error`` when the kernel decides neither (decides nothing).
 - ``pair``: ``proved``, ``refuted`` (an instance) or ``open`` (the degenerate guard's proof, which
-  shows the conclusion holds without the hypothesis); ``test`` names the other candidate.
+  shows the conclusion holds without the hypothesis); ``test`` names the other candidate. For a
+  merged pair-proof record (F26-T18) the key is ``contributed:<record stem>`` and the detail ends
+  ``(pair-proof <stem>)``: ``proved`` or ``refuted`` with the record's Lean when the job accepted
+  it, ``open`` with no Lean when its re-check refused it (``review.judgments_of`` reads them).
 - ``mutant`` (F26-R8; the meaning is this module's, since ``exhibit/v1`` is pinned): ``candidate``
   is the representative the mutant was made from and ``detail`` names the mutation. ``fail`` means
   **the tests caught it** — an intent test on record fails on the mutant, and the Lean is the

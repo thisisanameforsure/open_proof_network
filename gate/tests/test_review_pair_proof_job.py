@@ -20,11 +20,12 @@ from pathlib import Path
 from typing import Any
 
 import yaml
-from fakes import FAKE_RESOLVED
+from fakes import FAKE_RESOLVED, meaning_result
 from review_support import DATE, Model, ReviewFake, legendre, make_graph, prototype_lean, tree
 
 from opn_gate import pair_proofs, postmerge, review, review_job, review_lean, review_pairs
 from opn_gate.paths import Change
+from opn_gate.toolchain import AxiomResult
 
 TARGET = "legendre"
 AUTHOR = "t1027-j"
@@ -282,14 +283,13 @@ def failed(graph: Path, a: str, b: str, direction: str = "forward") -> dict[str,
     return attempt
 
 
-def no_contributed_exhibit(graph: Path) -> None:
+def refused_only(graph: Path, stem: str) -> None:
+    """The one exhibit naming the record is its refusal: result open, no Lean."""
     folder = base(graph) / "exhibits"
     found = [
-        e
-        for e in (json.loads(p.read_text()) for p in folder.glob("*.json"))
-        if AUTHOR in e["detail"]
+        e for e in (json.loads(p.read_text()) for p in folder.glob("*.json")) if stem in e["detail"]
     ]
-    assert found == []
+    assert [(e["result"], e["lean_file"]) for e in found] == [("open", None)], found
 
 
 def test_a_proof_the_kernel_refuses_leaves_the_direction_open(tmp_path: Path) -> None:
@@ -299,9 +299,9 @@ def test_a_proof_the_kernel_refuses_leaves_the_direction_open(tmp_path: Path) ->
     run(graph, fake, tmp_path / "w1")
     att = failed(graph, a, b)
     assert att["who"] == AUTHOR
-    assert stem in att["tool"] and "does not elaborate" in att["tool"]
+    assert stem in att["tool"] and "pair-proof-elaboration" in att["tool"]
     assert att["budget_s"] == 5
-    no_contributed_exhibit(graph)
+    refused_only(graph, stem)
     # and the failure is stable: a second run writes nothing
     before = tree(graph)
     assert run(graph, fake, tmp_path / "w2")["written"] == []
@@ -312,7 +312,7 @@ def test_a_proof_with_a_sorry_warning_is_refused(tmp_path: Path) -> None:
     graph, a, b = setup(tmp_path)
     put_record(graph, a, b, proof="  -- fake: sorry\n  exact h\n")
     run(graph, fake_for(a, b), tmp_path / "work")
-    assert "does not elaborate" in failed(graph, a, b)["tool"]
+    assert "pair-proof-sorry" in failed(graph, a, b)["tool"]
 
 
 def test_a_degenerate_proof_is_refused_by_the_guard(tmp_path: Path) -> None:
@@ -320,8 +320,8 @@ def test_a_degenerate_proof_is_refused_by_the_guard(tmp_path: Path) -> None:
     stem = put_record(graph, a, b, proof="  -- fake: degenerate\n  exact h\n")
     run(graph, fake_for(a, b), tmp_path / "work")
     att = failed(graph, a, b)
-    assert stem in att["tool"] and "degenerate guard" in att["tool"]
-    no_contributed_exhibit(graph)
+    assert stem in att["tool"] and "pair-proof-degenerate" in att["tool"]
+    refused_only(graph, stem)
 
 
 def test_a_file_off_its_template_is_refused_before_any_lean(tmp_path: Path) -> None:
@@ -333,7 +333,7 @@ def test_a_file_off_its_template_is_refused_before_any_lean(tmp_path: Path) -> N
     fake = fake_for(a, b)
     run(graph, fake, tmp_path / "work")
     att = failed(graph, a, b)
-    assert stem in att["tool"] and "template" in att["tool"]
+    assert stem in att["tool"] and "pair-proof-template-mismatch" in att["tool"]
     assert bad not in fake.texts
 
 
@@ -403,7 +403,7 @@ def test_a_failing_first_record_does_not_block_a_passing_later_one(tmp_path: Pat
     summary = run(graph, fake_for(a, b), tmp_path / "work")
     e = exhibit(graph, in_force(graph, a, b)["forward"]["exhibit"])
     assert good in e["detail"]
-    assert any(bad in n and "does not elaborate" in n for n in summary["notes"])
+    assert any(bad in n and "pair-proof-elaboration" in n for n in summary["notes"])
 
 
 def test_a_record_for_a_settled_direction_is_not_rechecked(tmp_path: Path) -> None:
@@ -470,3 +470,87 @@ def test_contributed_answers_none_when_no_record_speaks(tmp_path: Path) -> None:
     job = review_job.open_job(graph, TARGET, runner, spec, review_job.Settings(date=DATE))
     assert isinstance(job, review_job.Job)
     assert review_pairs.contributed(job, cand(graph, a), cand(graph, b), "forward", 5) is None
+
+
+# --- the shared verdict (F26-T17) judges the re-check -------------------------------------------
+
+
+def test_an_axiom_outside_the_standard_three_is_refused(tmp_path: Path) -> None:
+    """The step-4 judgment the job's own Runner never made: the theorem's axioms (here
+    native_decide's) must be among propext, Classical.choice and Quot.sound."""
+    graph, a, b = setup(tmp_path)
+    stem = put_record(graph, a, b)
+    fake = fake_for(a, b)
+    fake.axiom_result = AxiomResult(ok=True, axioms=frozenset({"propext", "Lean.ofReduceBool"}))
+    run(graph, fake, tmp_path / "work")
+    att = failed(graph, a, b)
+    assert stem in att["tool"] and "pair-proof-axiom" in att["tool"], att
+
+
+def test_a_file_whose_theorem_means_something_else_is_refused(tmp_path: Path) -> None:
+    graph, a, b = setup(tmp_path)
+    put_record(graph, a, b)
+    fake = fake_for(a, b)
+    fake.meaning = meaning_result(expected="x", declared="y")
+    run(graph, fake, tmp_path / "work")
+    assert "pair-proof-meaning" in failed(graph, a, b)["tool"]
+
+
+# --- the job's judgment of each record, for the gate and the service ------------------------
+
+
+def test_the_job_records_which_records_it_accepted_and_refused(tmp_path: Path) -> None:
+    """``review.pair_proof_judgments``: every record the job judged, accepted or refused, read
+    from the exhibits it wrote; a record not yet judged is absent. A refused record has an
+    exhibit of its own (result ``open``, no Lean: nothing it holds is shown as checked)."""
+    graph, a, b = setup(tmp_path)
+    bad = put_record(graph, a, b, author="t-bad", proof="  -- fake: refused\n  exact h\n")
+    good = put_record(graph, a, b, "backward", author="t-good")
+    run(graph, fake_for(a, b), tmp_path / "work")
+    later = put_record(graph, a, b, author="t-later", date="2026-10-28T00:00:00Z")
+    got = review.pair_proof_judgments(base(graph))
+    assert set(got) == {bad, good}, got
+    assert got[good]["accepted"] is True
+    assert got[good]["exhibit"] == in_force(graph, a, b)["backward"]["exhibit"]
+    assert got[bad]["accepted"] is False
+    assert got[bad]["reason"].startswith("pair-proof-elaboration"), got[bad]
+    refused = exhibit(graph, got[bad]["exhibit"])
+    assert (refused["kind"], refused["result"], refused["lean_file"]) == ("pair", "open", None)
+    assert later not in got
+
+
+def test_judgments_of_reads_exhibits_handed_to_it() -> None:
+    """The pure half, for the service, which reads the exhibits through the host."""
+    exhibits = [
+        {"kind": "pair", "id": "e-00000001", "result": "proved", "detail": "x (pair-proof s-1)"},
+        {"kind": "pair", "id": "e-00000002", "result": "open", "detail": "why (pair-proof s-2)"},
+        {"kind": "pair", "id": "e-00000003", "result": "proved", "detail": "the job's own"},
+        {"kind": "compile", "id": "e-00000004", "result": "pass", "detail": "(pair-proof s-3)"},
+    ]
+    got = review.judgments_of(exhibits)
+    assert {k: v["accepted"] for k, v in got.items()} == {"s-1": True, "s-2": False}
+
+
+def test_a_refused_record_is_not_rechecked_on_a_second_run(tmp_path: Path) -> None:
+    graph, a, b = setup(tmp_path)
+    put_record(graph, a, b, proof="  -- fake: refused\n  exact h\n")
+    fake = fake_for(a, b)
+    run(graph, fake, tmp_path / "w1")
+    before, n = tree(graph), len(fake.texts)
+    assert run(graph, fake, tmp_path / "w2")["written"] == []
+    assert tree(graph) == before
+    assert pair_proof_texts(fake, n) == []
+
+
+def test_a_refusal_whose_error_runs_over_lines_reads_back_the_same(tmp_path: Path) -> None:
+    """Lean's errors run over several lines; the exhibit keeps the reason as one line, so the
+    attempt is built from that one line on every run, or a second run would write a new pair
+    record (found by the lean tier: a ``--2026-10-12-3.yaml`` on the second run)."""
+    graph, a, b = setup(tmp_path)
+    put_record(graph, a, b, proof="  -- fake: refused on two lines\n  exact h\n")
+    fake = fake_for(a, b)
+    run(graph, fake, tmp_path / "w1")
+    assert "has type" in failed(graph, a, b)["tool"]
+    before = tree(graph)
+    assert run(graph, fake, tmp_path / "w2")["written"] == []
+    assert tree(graph) == before

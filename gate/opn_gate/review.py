@@ -314,6 +314,55 @@ def latest_pairs(base: Path) -> list[Record]:
     return latest_of(_named_records(base / "pairs"))
 
 
+#: How the review job opens the detail of the exhibit it writes for a pair-proof record its
+#: re-check refused; every such detail ends ``(pair-proof <record stem>)``.
+REFUSED = "refused by the review job's re-check:"
+_JUDGED_RE = re.compile(r"\(pair-proof ([^\s()]+)\)$")
+
+
+def refusal_reason(detail: str) -> str:
+    """The reason a refusal exhibit's detail gives, without its opening and its record."""
+    text = detail.removeprefix(REFUSED).strip()
+    return _JUDGED_RE.sub("", text).strip()
+
+
+def judgments_of(exhibits: Iterable[Record]) -> dict[str, Record]:
+    """The review job's judgment of each merged pair-proof record (F26-T18), by record stem
+    (the record's file name without ``.yaml``), from the exhibits it wrote: ``{"accepted": bool,
+    "exhibit": id, "result": proved | refuted | open, "reason": str}``. The job writes one
+    ``pair`` exhibit per record it judged, its detail ending ``(pair-proof <stem>)``: ``proved``
+    or ``refuted`` when it accepted the record (the pair record in force then points at it),
+    ``open`` with no Lean when its re-check refused it. A record not in the answer has not been
+    judged yet. Should one record carry two judgments (a moved pin re-judges under a new exhibit
+    id), an acceptance wins. Pure, so the service can call it on exhibits it read through the
+    host; ``pair_proof_judgments`` reads them from disk."""
+    out: dict[str, Record] = {}
+    for e in exhibits:
+        if e.get("kind") != "pair":
+            continue
+        m = _JUDGED_RE.search(str(e.get("detail") or ""))
+        result = str(e.get("result"))
+        if m is None or result not in ("proved", "refuted", "open"):
+            continue
+        accepted = result != "open"
+        held = out.get(m.group(1))
+        if held is not None and (held["accepted"] or not accepted):
+            continue
+        detail = str(e.get("detail"))
+        out[m.group(1)] = {
+            "accepted": accepted,
+            "exhibit": str(e.get("id")),
+            "result": result,
+            "reason": "" if accepted else refusal_reason(detail),
+        }
+    return out
+
+
+def pair_proof_judgments(base: Path) -> dict[str, Record]:
+    """``judgments_of`` over the exhibits under ``base`` (a target's ``review/``)."""
+    return judgments_of(_json_records(base / "exhibits"))
+
+
 def _pairs(base: Path) -> list[Record]:
     """The pair records, one per pair: a later record for the same pair supersedes."""
     return latest_pairs(base)

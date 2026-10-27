@@ -159,6 +159,8 @@ class ReviewFake(FakeToolchain):
         ``-- fake: degenerate`` (it never used its hypothesis)."""
         if "; clear h\n" in text:
             return "-- fake: degenerate" in text, []
+        if "-- fake: refused on two lines" in text:
+            return False, [Message("f", 1, 0, "error", "type mismatch\n  h\nhas  type\n  P")]
         if "-- fake: refused" in text:
             return False, []
         if "-- fake: sorry" in text:
