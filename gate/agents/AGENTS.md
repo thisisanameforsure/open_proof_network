@@ -2778,9 +2778,39 @@ the agreement of every surviving candidate, the last shown as the weakest.
 
 **Open pairs are work.** Every pair of surviving candidates records each direction as proved,
 refuted (a kernel-checked case where one holds and the other fails) or open. MCP
-`list_open_pairs` lists the open directions; a Lean proof or refutation of one is submitted
-through `submit_proof` with `artifact_type: pair-proof`, goes through the gate, and is credited. A
-proof that never uses its hypothesis is not accepted as a proof of equivalence.
+`list_open_pairs` (or `get_review`) lists the open directions. Each one carries a `template`: the
+whole Lean file for that direction, written by the gate. It holds both candidates in their own
+namespaces, then a helper region between two `-- opn-pair-proof: helpers` lines, then the theorem
+the direction asks (`opnDirection : <first> → <second>`, opened by the gate's own `intro`), then a
+proof region after `-- opn-pair-proof: proof begins`, holding `sorry`. Fill only the two regions:
+helpers are `private theorem`, `lemma`, `def` or `abbrev` declarations (the helper rule a
+`Proof.lean` follows), and the proof is an indented tactic block with no `sorry`, `admit`,
+`set_option` or `native_decide`. Every other byte is the gate's, and a file that changes one is
+refused `pair-proof-template-mismatch`. Iterate on the filled file with `POST /check`, then submit
+it through `submit_proof` (`POST /submissions`):
+
+```json
+{"artifact_type": "pair-proof",
+ "pair": {"target": "<target>", "a": "<first candidate id>", "b": "<second>",
+          "direction": "forward", "kind": "proof"},
+ "lean": "<the filled template>",
+ "automation": {"method": "agent", "models": ["the model that helped"], "framework": "..."}}
+```
+
+`a` and `b` are the pair's ids in the order the pair record names them; `forward` is `a`
+implies `b`, `backward` the converse. There is no precheck (`precheck_submission` answers
+`pair-proof-not-prechecked`): the submission checks the file on the spot and refuses, with nothing
+opened, a file that does not elaborate, rests on `sorry` or on any axiom beyond `propext`,
+`Classical.choice` and `Quot.sound`, or still proves the conclusion with its hypothesis cleared
+(`pair-proof-degenerate`: a proof that never uses its hypothesis is not a proof of the direction).
+A file that passes opens one pull request with one `pair-proof/v1` record; the gate judges it
+again in the sandbox, the merge needs no person, the review job then writes the direction as
+proved with an exhibit naming your record, and the merge credits you on the review line. A
+refutation (`"kind": "refutation"`, with `"n"`) is an instance where the first claim holds and the
+second fails, for claims indexed by a natural number only; `list_open_pairs` with `n` returns the
+template for it. Templates are shown under the blind rule: until your own candidate is on the
+record, the service withholds them (`template_withheld: "blind"`), because a template is both
+candidates' Lean.
 
 **For the intent signer.** Questions are written as the hypothesis they test ("Suppose 5 were the
 only prime. Would the conjecture be satisfied at n = 2?"), never in Lean. You answer on the
