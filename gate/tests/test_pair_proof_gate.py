@@ -564,7 +564,8 @@ def test_every_refusal_this_mode_names_is_in_the_catalog() -> None:
         "pair-proof-settled",
         "pair-proof-kind",
     ):
-        assert codes.CATALOG[code].source == "gate", code
+        # the service raises the same refusal before a pull request opens (F26-T19): "both"
+        assert codes.CATALOG[code].source in ("gate", "both"), code
 
 
 # --- the workflow's switch and the sandboxed command ---------------------------------------------

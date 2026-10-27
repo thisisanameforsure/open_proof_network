@@ -130,7 +130,25 @@ async def check_lean(call: Call, args: dict[str, Any]) -> dict[str, Any]:
 PRECHECK_REFS = ("attestation", "precheck_job_id")
 
 
+#: F26-T19 (R8): every argument, sent as given; the route refuses a node field by name.
+PAIR_PROOF_ARGS = (
+    "artifact_type",
+    "pair",
+    "lean",
+    "automation",
+    "node_id",
+    "bundle",
+    "tooling",
+    *PRECHECK_REFS,
+)
+
+
 async def submit_proof(call: Call, args: dict[str, Any]) -> dict[str, Any]:
+    if args.get("artifact_type") == "pair-proof":
+        # F26-T19 (R8): no precheck to name; the route refuses any node field by name
+        return await forward(
+            call, "POST", "/submissions", present("submit_proof", args, *PAIR_PROOF_ARGS)
+        )
     given = [n for n in PRECHECK_REFS if n in args]
     if len(given) != 1:
         raise error(
@@ -151,6 +169,8 @@ async def submit_proof(call: Call, args: dict[str, Any]) -> dict[str, Any]:
         "bundle",
         "tooling",
         "automation",
+        "pair",
+        "lean",
         *PRECHECK_REFS,
     )
     return await forward(call, "POST", "/submissions", body)
@@ -348,6 +368,21 @@ TOOLING = {
 #: F25-R1 (D-23 v3.37): the structured disclosure, as submission-meta/v2's block defines it. Every
 #: property described (F09-T21); the trio required, since POST /submissions requires it (F25-R2).
 _SHORT = {"type": "string", "minLength": 1, "maxLength": 200}
+#: F26-T19 (R8): the open direction a pair proof settles, as list_open_pairs names it.
+PAIR = {
+    "type": "object",
+    "description": "pair-proof only: the direction as list_open_pairs names it; n for a refutation",
+    "additionalProperties": False,
+    "required": ["target", "a", "b", "direction", "kind"],
+    "properties": {
+        "target": ID_PARAM,
+        "a": ID_PARAM,
+        "b": ID_PARAM,
+        "direction": {"enum": ["forward", "backward"]},
+        "kind": {"enum": ["proof", "refutation"]},
+        "n": {"type": "integer", "minimum": 0},
+    },
+}
 AUTOMATION = {
     "type": "object",
     "description": "how the artifact was made (D-23): method, models and framework are required "
@@ -517,7 +552,14 @@ TOOLS: tuple[Tool, ...] = (
                 "node_id": ID_PARAM,
                 "bundle": BUNDLE,
                 "artifact_type": {
-                    "enum": ["proof", "counterexample", "vacuity", "reduction", "partial"],
+                    "enum": [
+                        "proof",
+                        "counterexample",
+                        "vacuity",
+                        "reduction",
+                        "partial",
+                        "pair-proof",
+                    ],
                     "description": "optional: the type this bundle will be submitted as; a "
                     "bundle at the wrong path for it is refused before any job starts",
                 },
@@ -624,16 +666,29 @@ TOOLS: tuple[Tool, ...] = (
             "attempts/<timestamp>-<pseudonym>-alternate.lean (D-25). A partial's bundle "
             "may carry its holes' witnesses as attempts/<assembly name without "
             ".lean>.<n>.witness, each with a line `-- hole: <name>`; one the precheck "
-            "did not check is refused 400 hole-witness-unchecked, and a hole that is no "
-            "step of a cited stepped annex 400 annex-step-missing. Follow it with "
-            "get_submission." + USES_NOTE
+            "did not check is refused 400 hole-witness-unchecked, a hole no step of a "
+            "cited stepped annex 400 annex-step-missing. Then get_submission. "
+            "`pair-proof` settles a review pair: `pair` and the filled `lean`, no node, "
+            "bundle or precheck." + USES_NOTE
         ),
         params(
             {
                 "node_id": ID_PARAM,
                 "artifact_type": {
-                    "enum": ["proof", "counterexample", "vacuity", "reduction", "partial"],
+                    "enum": [
+                        "proof",
+                        "counterexample",
+                        "vacuity",
+                        "reduction",
+                        "partial",
+                        "pair-proof",
+                    ],
                     "description": "What the bundle is (D-12); it must be what was prechecked.",
+                },
+                "pair": PAIR,
+                "lean": {
+                    **LEAN,
+                    "description": "pair-proof only: the template, its two regions filled.",
                 },
                 "bundle": BUNDLE,
                 "attestation": {
@@ -649,7 +704,7 @@ TOOLS: tuple[Tool, ...] = (
                 "tooling": TOOLING,
                 "automation": AUTOMATION,
             },
-            ("node_id", "artifact_type", "bundle", "automation"),
+            ("artifact_type", "automation"),
         ),
         submit_proof,
         write=True,

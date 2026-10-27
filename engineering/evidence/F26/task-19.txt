@@ -1,0 +1,156 @@
+F26-T19 — the service and the MCP tools take a pair proof (agent S, branch f26-t19-api)
+=====================================================================================
+
+1. The axiom question, measured before any code (2026-10-27)
+------------------------------------------------------------
+The lead measured the live POST /check (check mode) on four erdos-849 pair-proof files: the
+answer carries no axiom list (scratchpad e849pp/*.resp.json; result keys content,
+failed_declarations, lean_messages{errors,infos,warnings}, okay, timings, tool_messages, info).
+The guarded copies came back okay:false, failed_declarations ["opnDirection"], "Unknown
+identifier `h`".
+
+So the pre-flight reads axioms the way witness mode does since F13-T23 (live since then): it
+appends a program to the text it sends,
+
+    open Lean in
+    run_meta do
+      let ax ← collectAxioms `opnDirection        -- `opnInstance for a refutation
+      logInfo m!"OPN-PAIR-PROOF-<nonce> {Json.compress (toJson (ax.map toString))}"
+
+with `import Lean` added after the header line when the file lacks it, and reads the one info line
+carrying the per-call nonce (32 hex, secrets.token_hex(16)), so a contributor's own logInfo of the
+tag (a tactic can log) cannot vouch for the file (F08-T28's lesson). Probed locally on Lean
+4.33.1 over the core-Lean Legendre pair (human-ref -> alt-closed, the contract's HELPER/PROOF):
+  ok.lean     : OPN-PAIR-abc []                       (no axioms; elaborates)
+  guard.lean  : error Unknown identifier `h` ... ; OPN-PAIR-abc ["sorryAx"]
+  sorry.lean  : warning: declaration uses `sorry`; OPN-PAIR-abc ["sorryAx"]
+(scratchpad t19/{ok,guard,sorry}.lean). The program runs after the proof region, at column 0,
+so it ends the tactic block; the template's own bytes are unchanged in the sent text.
+
+2. Red first (seams at today's behaviour)
+------------------------------------------
+Seams put in first: pairproofs.submit (today: artifact-type-invalid), reviews.in_force (today:
+every pair record), FakeAxle accepts a callable reply (reads the nonce from the request).
+api/tests/test_pair_proof_submissions.py, first run: 51 failed, 2 passed. First failures:
+api/tests/test_pair_proof_submissions.py:243: AssertionError: {"error":"artifact-type-invalid","message":"artifact_type must be one of proof, counterexample, vacuity, reduction, partial"}
+api/tests/test_pair_proof_submissions.py:230: AssertionError: {'error': 'artifact-type-invalid', 'message': 'artifact_type must be one of proof, counterexample, vacuity, reduction, partial'}
+api/tests/test_pair_proof_submissions.py:300: AssertionError: {"error":"artifact-type-invalid","message":"artifact_type must be one of proof, counterexample, vacuity, reduction, partial"}
+api/tests/test_pair_proof_submissions.py:316: AssertionError: {"error":"artifact-type-invalid","message":"artifact_type must be one of proof, counterexample, vacuity, reduction, partial"}
+api/tests/test_pair_proof_submissions.py:331: AssertionError: {"error":"artifact-type-invalid","message":"artifact_type must be one of proof, counterexample, vacuity, reduction, partial"}
+api/tests/test_pair_proof_submissions.py:331: AssertionError: {"error":"artifact-type-invalid","message":"artifact_type must be one of proof, counterexample, vacuity, reduction, partial"}
+api/tests/test_pair_proof_submissions.py:338: assert (400 == 201)
+api/tests/test_pair_proof_submissions.py:350: assert (400 == 201)
+api/tests/test_pair_proof_submissions.py:228: AssertionError: {"error":"artifact-type-invalid","message":"artifact_type must be one of proof, counterexample, vacuity, reduction, partial"}
+api/tests/test_pair_proof_submissions.py:228: AssertionError: {"error":"artifact-type-invalid","message":"artifact_type must be one of proof, counterexample, vacuity, reduction, partial"}
+api/tests/test_pair_proof_submissions.py:228: AssertionError: {"error":"artifact-type-invalid","message":"artifact_type must be one of proof, counterexample, vacuity, reduction, partial"}
+api/tests/test_pair_proof_submissions.py:228: AssertionError: {"error":"artifact-type-invalid","message":"artifact_type must be one of proof, counterexample, vacuity, reduction, partial"}
+api/tests/test_pair_proof_submissions.py:228: AssertionError: {"error":"artifact-type-invalid","message":"artifact_type must be one of proof, counterexample, vacuity, reduction, partial"}
+api/tests/test_pair_proof_submissions.py:228: AssertionError: {"error":"artifact-type-invalid","message":"artifact_type must be one of proof, counterexample, vacuity, reduction, partial"}
+api/tests/test_pair_proof_submissions.py:228: AssertionError: {"error":"artifact-type-invalid","message":"artifact_type must be one of proof, counterexample, vacuity, reduction, partial"}
+api/tests/test_pair_proof_submissions.py:228: AssertionError: {"error":"artifact-type-invalid","message":"artifact_type must be one of proof, counterexample, vacuity, reduction, partial"}
+api/tests/test_pair_proof_submissions.py:228: AssertionError: {"error":"artifact-type-invalid","message":"artifact_type must be one of proof, counterexample, vacuity, reduction, partial"}
+api/tests/test_pair_proof_submissions.py:228: AssertionError: {"error":"artifact-type-invalid","message":"artifact_type must be one of proof, counterexample, vacuity, reduction, partial"}
+api/tests/test_pair_proof_submissions.py:428: AssertionError: the newer record holds the direction open
+api/tests/test_pair_proof_submissions.py:228: AssertionError: {"error":"artifact-type-invalid","message":"artifact_type must be one of proof, counterexample, vacuity, reduction, partial"}
+api/tests/test_pair_proof_submissions.py:460: assert 400 == 201
+api/tests/test_pair_proof_submissions.py:228: AssertionError: {"error":"artifact-type-invalid","message":"artifact_type must be one of proof, counterexample, vacuity, reduction, partial"}
+api/tests/test_pair_proof_submissions.py:228: AssertionError: {"error":"artifact-type-invalid","message":"artifact_type must be one of proof, counterexample, vacuity, reduction, partial"}
+api/tests/test_pair_proof_submissions.py:228: AssertionError: {"error":"artifact-type-invalid","message":"artifact_type must be one of proof, counterexample, vacuity, reduction, partial"}
+api/tests/test_pair_proof_submissions.py:228: AssertionError: {"error":"artifact-type-invalid","message":"artifact_type must be one of proof, counterexample, vacuity, reduction, partial"}
+api/tests/test_pair_proof_submissions.py:228: AssertionError: {"error":"artifact-type-invalid","message":"artifact_type must be one of proof, counterexample, vacuity, reduction, partial"}
+api/tests/test_pair_proof_submissions.py:499: AssertionError: assert 'artifact-type-invalid' == 'pair-proof-fails'
+api/tests/test_pair_proof_submissions.py:230: AssertionError: {'error': 'artifact-type-invalid', 'message': 'artifact_type must be one of proof, counterexample, vacuity, reduction, partial'}
+api/tests/test_pair_proof_submissions.py:230: AssertionError: {'error': 'artifact-type-invalid', 'message': 'artifact_type must be one of proof, counterexample, vacuity, reduction, partial'}
+api/tests/test_pair_proof_submissions.py:230: AssertionError: {'error': 'artifact-type-invalid', 'message': 'artifact_type must be one of proof, counterexample, vacuity, reduction, partial'}
+api/tests/test_pair_proof_submissions.py:230: AssertionError: {'error': 'artifact-type-invalid', 'message': 'artifact_type must be one of proof, counterexample, vacuity, reduction, partial'}
+api/tests/test_pair_proof_submissions.py:230: AssertionError: {'error': 'artifact-type-invalid', 'message': 'artifact_type must be one of proof, counterexample, vacuity, reduction, partial'}
+api/tests/test_pair_proof_submissions.py:230: AssertionError: {'error': 'artifact-type-invalid', 'message': 'artifact_type must be one of proof, counterexample, vacuity, reduction, partial'}
+api/tests/test_pair_proof_submissions.py:230: AssertionError: {'error': 'artifact-type-invalid', 'message': 'artifact_type must be one of proof, counterexample, vacuity, reduction, partial'}
+api/tests/test_pair_proof_submissions.py:230: AssertionError: {'error': 'artifact-type-invalid', 'message': 'artifact_type must be one of proof, counterexample, vacuity, reduction, partial'}
+api/tests/test_pair_proof_submissions.py:230: AssertionError: {'error': 'artifact-type-invalid', 'message': 'artifact_type must be one of proof, counterexample, vacuity, reduction, partial'}
+api/tests/test_pair_proof_submissions.py:230: AssertionError: {'error': 'artifact-type-invalid', 'message': 'artifact_type must be one of proof, counterexample, vacuity, reduction, partial'}
+api/tests/test_pair_proof_submissions.py:230: AssertionError: {'error': 'artifact-type-invalid', 'message': 'artifact_type must be one of proof, counterexample, vacuity, reduction, partial'}
+api/tests/test_pair_proof_submissions.py:230: AssertionError: {'error': 'artifact-type-invalid', 'message': 'artifact_type must be one of proof, counterexample, vacuity, reduction, partial'}
+api/tests/test_pair_proof_submissions.py:230: AssertionError: {'error': 'artifact-type-invalid', 'message': 'artifact_type must be one of proof, counterexample, vacuity, reduction, partial'}
+api/tests/test_pair_proof_submissions.py:230: AssertionError: {'error': 'bundle-invalid', 'message': 'bundle must be a non-empty object of path to file content'}
+api/tests/test_pair_proof_submissions.py:230: AssertionError: {'error': 'artifact-type-invalid', 'message': 'artifact_type must be one of proof, counterexample, vacuity, reduction, partial'}
+api/tests/test_pair_proof_submissions.py:572: KeyError: 'status'
+api/tests/mcp_client.py:92: AssertionError: [TextContent(type='text', text='{"error":"arguments-invalid","message":"\'node_id\' is a required property; node_id: A node\'s id, as list_frontier and get_target name it.;
+api/tests/test_pair_proof_submissions.py:591: KeyError: 'status'
+api/tests/test_pair_proof_submissions.py:619: AssertionError: assert [('c-2e270312..., 'backward')] == [('c-2e270312..., 'backward')]
+api/tests/test_pair_proof_submissions.py:625: AssertionError: assert (2 == 1)
+api/tests/test_pair_proof_submissions.py:637: KeyError: 'template'
+api/tests/mcp_client.py:92: AssertionError: [TextContent(type='text', text='{"error":"arguments-invalid","message":"Additional properties are not allowed (\'n\' was unexpected); not an argument of list_open_pairs: n"
+api/tests/test_pair_proof_submissions.py:663: KeyError: 'template'
+api/tests/test_pair_proof_submissions.py:670: AssertionError: assert 200 == 400
+
+3. The axiom probe on the live service (2026-10-27)
+---------------------------------------------------
+pairproofs.axiom_text over the lead's filled erdos-849 forward file (scratchpad e849pp/forward.lean),
+nonce 5e1f0c0ffee5e1f0c0ffee5e1f0c0ffe, sent once to the live POST /check
+(https://api.openproofnetwork.org/check, {"content", "target_id": "erdos-849"}, mode check):
+  HTTP 200 in 7.3 s; okay true; environment lean-4.33.1; errors []; failed_declarations []
+  result.lean_messages.infos:
+    -:132:0-132:8: info: OPN-PAIR-PROOF-5e1f0c0ffee5e1f0c0ffee5e1f0c0ffe ["propext","Classical.choice","Quot.sound"]
+So the program elaborates against Mathlib on the hosted checker and the line is where
+`axioms_read` looks (lean_messages.infos; the service's own /check nests AXLE's body under
+`result`, the internal seam returns it bare, which is the shape the pre-flight reads).
+The lead's guarded e849 copies came back okay:false, "Unknown identifier `h`" (e849pp/*.guarded.resp.json).
+
+4. Decisions
+------------
+- Order of refusals: fields (node fields refused by name; automation; pair; lean) -> target ->
+  review-unknown -> candidate-unknown / pair-candidate-not-surviving -> pair-unknown /
+  pair-direction-settled (record in force; then a merged pair-proof record for the direction whose
+  day is >= the pair record's date, i.e. one the job has not answered) -> pair-proof-pending ->
+  pair-proof-no-template -> pair-proof-template-mismatch / pair-proof-forbidden -> rate limit ->
+  pre-flight (pair-proof-fails, -sorry, -axiom, -degenerate). Cheap refusals cost no rate slot; a
+  pre-flighted attempt does.
+- Rate limit: 10 per pseudonym per target per day (candidates: 3). A candidate is a new reading
+  every later pair compares; a settlement closes work and is the intended activity, but costs up to
+  two hosted checks (also charged to the hourly check budget, reserved together, F13-T28), and
+  iteration belongs on POST /check.
+- Disclosure: the route's own `automation` (required, check_automation, one vocabulary with
+  submit_proof); the record's `models` is automation.models verbatim; the submission is recorded
+  with its automation so last_method sees it.
+- Axioms: the standard three (propext, Classical.choice, Quot.sound), not the target's
+  axiom_allowlist, as the brief says; refused sorryAx first (pair-proof-sorry), then any other
+  (pair-proof-axiom). No axiom line (an older checker, a file that stops early) is `inconclusive`,
+  unless the checker's own warning says sorry.
+- Words in the receipt (`pair_proof_preflight`): passed | inconclusive | unavailable | skipped (the
+  file imports a non-library module only the gate's staging supplies, the exhibit precedent).
+- Blind rule (F26-R3, "the service, the MCP and the site all hold to it"): a template is both
+  candidates' Lean, so `template` and the refutation template are shown only to a caller whose
+  pseudonym authored a candidate on the record (the same rule GET /reviews applies to `lean`);
+  otherwise template_withheld: blind. Proposed as a Q (a prover who wrote no candidate cannot get a
+  template from the service).
+- Refutation templates: `n` on list_open_pairs and get_review (and ?n= on GET /reviews/<id>).
+- MCP: submit_proof's required arguments are now artifact_type and automation (node_id and bundle
+  are refused by the route when missing, node-id-missing / bundle-invalid, as before); a
+  pair-proof call forwards every argument and the route refuses node fields by name.
+  list_open_pairs and get_review result schemas at v2 (results.VERSIONS), v1 kept.
+- tools/list budget re-pinned 113,000 -> 115,000 on a measurement: 112,871 at the contract commit
+  ebd36797 (detached worktree), 114,654 after (+1,783, 1.6%).
+- Codes: ten new, source api. pair-proof-template-mismatch and pair-proof-forbidden stay source
+  gate: the service relays the gate's own Diagnostic (a RELAYS row in test_error_codes.py, the
+  checks.py/glosses.py precedent); making them `both` failed test_source_matches_... because the
+  walk sees only the gate constructing them.
+
+5. Green
+--------
+- api/tests/test_pair_proof_submissions.py: 53 passed (all refusal codes; happy path one PR, one
+  file, validates pair-proof/v1, passes pair_proofs.split against the rebuilt template; author
+  from the token; pre-flight passed/inconclusive x3/unavailable; forged tag not read; guard
+  refusal; supersession in both listings and in the submission check; the pending race; the
+  blind rule on templates; n and the refutation template; precheck refusal; submit_proof both ways).
+- Restated, not deleted: test_reviews_blind's open_pairs equality (rows now carry templates; the
+  restated assertion checks the (a, b, direction) rows and the blind withholding).
+- Lean tier, gate/tests/test_pair_proof_preflight_lean.py, local Lean 4.33.1: first run 2 passed,
+  1 failed on a fact: native_decide in 4.33.1 is an auxiliary axiom
+  `opnInstance._native.native_decide.ax_1_1`, not Lean.ofReduceBool (my assumption). Still outside
+  the three, so still pair-proof-axiom; assertion and the code's remedy text corrected. Second run:
+  3 passed in 220.93s.
+- make test-fast (OPN_GRAPH_CHECKOUT=scratchpad/graph-main): 6881 passed, 2 failed
+  (test_error_codes: the d.code relay and the `both` source, fixed as above), 22 skipped.
+- make types: clean (gate, api, site). make lint: clean.
+- Docker tier: none written (nothing here runs in the sandbox).

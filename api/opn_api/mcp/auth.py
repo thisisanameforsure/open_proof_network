@@ -111,3 +111,14 @@ def bearer() -> str | None:
     """The verified bearer of the current MCP request, or ``None`` for an anonymous caller."""
     access = get_access_token()
     return access.token if access is not None else None
+
+
+def caller_pseudonym(ctx: Context) -> str | None:
+    """F26-T19: the pseudonym behind the verified bearer of the current MCP request, or ``None``
+    for an anonymous caller (or a lapsed token, which carries no scope), so a read tool can apply
+    the blind rule (F26-R3) the way ``GET /reviews/<id>`` does."""
+    access = get_access_token()
+    if access is None or access.client_id == EXPIRED:
+        return None
+    identity = ctx.store.get_identity(str(access.subject or access.client_id))
+    return None if identity is None else identity.pseudonym

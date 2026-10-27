@@ -2385,7 +2385,7 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "Copy both hashes from the candidates' records (list_open_pairs carries them).",
     ),
     "pair-candidate-not-surviving": (
-        "gate",
+        "both",
         None,
         "A pair-proof record names a candidate that is discarded, returned or not yet compiled "
         "by the review job; only a pair of surviving candidates has directions to settle "
@@ -2393,7 +2393,7 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "Choose an open pair between surviving candidates (list_open_pairs).",
     ),
     "pair-not-open": (
-        "gate",
+        "both",
         None,
         "A pair-proof record settles a direction that is not open on the pair record in force: "
         "the job has not compared the pair, or the direction is already proved or refuted "
@@ -2401,7 +2401,7 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "Only an open direction takes a pair proof; read list_open_pairs again.",
     ),
     "pair-proof-settled": (
-        "gate",
+        "both",
         None,
         "An earlier merged pair-proof record already settles the same direction at the same "
         "statement hashes; the review job writes the pair from it (F26-R8, F26-T17).",
@@ -2417,7 +2417,7 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "claims.",
     ),
     "pair-proof-elaboration": (
-        "gate",
+        "both",
         None,
         "A pair proof's filled template does not elaborate: Lean reported an error, or left no "
         "compiled module (F26-R8, F26-T17).",
@@ -2425,14 +2425,14 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "proof region; the rest of the file is the gate's and elaborates as written.",
     ),
     "pair-proof-sorry": (
-        "gate",
+        "both",
         None,
         "A pair proof elaborates only with sorry, reported by Lean or found among its theorem's "
         "axioms (sorryAx), for example through a helper (F26-R8, F26-T17).",
         "Prove every helper and the direction outright; a settled direction is a whole proof.",
     ),
     "pair-proof-axiom": (
-        "gate",
+        "both",
         None,
         "A pair proof's theorem depends on an axiom other than propext, Classical.choice and "
         "Quot.sound, native_decide's Lean.ofReduceBool among them (F26-R8, F26-T17).",
@@ -2440,7 +2440,7 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "named axiom; the details list each one.",
     ),
     "pair-proof-degenerate": (
-        "gate",
+        "both",
         None,
         "A pair proof still proves with its hypothesis cleared right after the gate's intro, so "
         "it never uses the first claim, and the degenerate guard refuses it as a proof of the "
@@ -2473,6 +2473,37 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "was decided, and the gate does not accept what it could not check (F26-R8, F26-T17).",
         "Try again later; a proof that needs more than the budget can be split into helpers. "
         "If the template itself does not build, tell the review's curator.",
+    ),
+    # F26-T19 (R8): a pair proof submitted through the service, refused before anything opens
+    "pair-unknown": (
+        "api",
+        None,
+        "No pair record names the two candidates: the review job has not compared them yet "
+        "(F26-R13).",
+        "Wait for the review job's next run, or take a direction list_open_pairs lists.",
+    ),
+    "pair-proof-pending": (
+        "api",
+        None,
+        "A pull request of the service's already settles this direction and may still merge.",
+        "Watch it with get_submission; if it closes unmerged, submit again.",
+    ),
+    "pair-proof-no-template": (
+        "api",
+        None,
+        "The direction cannot take the kind asked: a proof needs two claims of the same shape the "
+        "review compares, a refutation two indexed claims (an instance n); or a candidate's Lean "
+        "cannot be read as the job reads it (F26-T16).",
+        "Read the direction's template_note and refutation in list_open_pairs and submit the kind "
+        "it can take.",
+    ),
+    "pair-proof-not-prechecked": (
+        "api",
+        None,
+        "A precheck was asked for artifact_type pair-proof; a pair proof is not a node artifact "
+        "and has no precheck.",
+        "Submit it directly with submit_proof (POST /submissions), artifact_type pair-proof, a "
+        "pair and the filled lean: it is checked on submission. Iterate with check_lean.",
     ),
     "review-not-intent-signer": (
         "api",

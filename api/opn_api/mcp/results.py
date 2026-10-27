@@ -29,6 +29,9 @@ VERSIONS: dict[str, str] = {
     # v4: settles, side (D-25 v3.46, F09-T76); v3 at_proved, proof_routes; v2 the selector
     "list_sufficient_sets": "v4",
     "get_node": "v3",  # proposed_for, in_closure (F22-T9); v2 added the labels (F29-R8)
+    # v2: each open direction's templates, the pair record in force (F26-T19)
+    "list_open_pairs": "v2",
+    "get_review": "v2",
 }
 NAME_RE = re.compile(r"^mcp/(?P<tool>[a-z][a-z_]*)/(?P<version>v[1-9][0-9]*)$")
 
