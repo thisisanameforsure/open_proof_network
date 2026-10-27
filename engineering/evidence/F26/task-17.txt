@@ -1,0 +1,97 @@
+F26-T17 — the gate before the merge: a pull request adding a pair-proof record (agent G)
+Worktree /Users/mikehiggins/Desktop/repos/opn-pp-gate, branch f26-t17-gate, off f26-pair-proof at ebd36797.
+Written as the work went; every red run below is the first run of its test against a seam left at
+today's behaviour (nothing judges a pair proof), so each failed on the defect, not on a missing name.
+
+== 1. The verdict (opn_gate/pair_proof_check.py) ==
+
+Red 1 (2026-10-27), gate/tests/test_pair_proof_check.py, seam `verdict(...) -> Verdict(ok=True)`:
+  first run: 25 failed, 2 passed — but one failure was `AttributeError: 'Verdict' object has no
+  attribute 'diagnostic'`, a missing name, not the defect. Added `diagnostic` and `as_dict` to the
+  seam at today's behaviour (None / ok) and re-ran:
+  second run: 25 failed, 2 passed, every failure an assertion on the defect, e.g.
+    AssertionError: assert (True, None) == (False, 'pair-proof-axiom')
+    AssertionError: assert (True, None) == (False, 'pair...f-degenerate')
+    AssertionError: every compile is confined
+    AssertionError: assert [] == [(('OpnPairProof',), False)]
+  (the two that passed are the guard-timeout and guard-through-sorry cases, whose answer is "ok"
+  and which the seam's "everything passes" gives for the wrong reason; they hold once the verdict
+  runs the guard.)
+
+Green 1: `uv run pytest -m "not lean and not docker" gate/tests/test_pair_proof_check.py
+  gate/tests/test_error_codes.py gate/tests/test_pair_proof_contract.py` -> 78 passed.
+  test_error_codes needed one RELAYS row: `Verdict.diagnostic` builds `Diagnostic(self.code, ...)`
+  from a refusal whose own `Diagnostic(...)` the walk already collects.
+  Seven codes registered in codes.py (source gate): pair-proof-elaboration, pair-proof-sorry,
+  pair-proof-axiom, pair-proof-degenerate, pair-proof-replay, pair-proof-meaning,
+  pair-proof-unchecked.
+
+Lean tier (real Lean 4.33.1, core-Lean Legendre fixtures), gate/tests/test_pair_proof_check_lean.py:
+  Red: run against today's behaviour as a pytest plugin (`-p seam_today`, monkeypatching
+  `pair_proof_check.verdict` to `Verdict(ok=True)` in memory; no file touched):
+    7 failed, 2 passed in 13.98s — each `assert (True, None) == (False, '<code>')`; the two that
+    passed are the two passes (the correct proof, the refutation at n = 0).
+  Green: 9 passed (first run 4 passed then one failure of my own assertion: the native_decide
+  axiom at 4.33.1 is a per-use auxiliary axiom whose name carries `native_decide`, not
+  `Lean.ofReduceBool`; the assertion now uses `toolchain.is_native_decide_axiom`, the gate's own
+  rule. The verdict itself refused it correctly as pair-proof-axiom on the first run).
+  What each shows at 4.33.1:
+    - the correct proof (human-ref -> alt-closed, the contract's helper and proof) passes, its
+      axioms within the three;
+    - a proof that ignores its hypothesis (into a claim `n = n`, `exact rfl`) -> pair-proof-degenerate;
+    - `private theorem cheat (p : Prop) : p := sorryAx p false` passes the regions' word scan
+      (`static` is None: `sorryAx` is not the word `sorry`) and is refused pair-proof-sorry by Lean;
+    - the word `sorry` in a helper is refused pair-proof-forbidden before any judging dir exists;
+    - a helper `by native_decide` (allowed by F00-T11's helper rule) and `decide +native` in the
+      proof region (not one of the region's forbidden words) are both refused pair-proof-axiom;
+    - a proof that does not close -> pair-proof-elaboration with Lean's messages;
+    - a refutation of human-ref -> bad-zero at n = 0 by `decide` passes; at n = 1 it does not
+      elaborate (bad-zero holds there) -> pair-proof-elaboration.
+
+Decisions:
+  - The verdict takes the template as well as the text and runs `static` (split + problems) first,
+    so a layer that calls it cannot forget the byte check; each rule is also a public function
+    (`static`, `elaboration_problem`, `axiom_problem`, `degenerate`, `clean`) for a layer whose
+    toolchain is not a `Toolchain` (the service's hosted checker) to apply the same rule to what
+    it holds.
+  - Beyond the brief: the kernel replay (step 4's, fresh on core, against imports on Mathlib) and
+    the meaning comparison (F08-T28's `opn-statement-meaning`, reference = the gate's own unfilled
+    template compiled in an area of its own). The byte check fixes the text; these fix what it
+    compiled to, against a region that rewrites the environment (a tactic block may run
+    `run_tac`). Probed first: Lean itself refuses a private helper that shadows a candidate
+    (`a non-private declaration C_b.claim has already been declared`), so the comparison is
+    defence in depth, not the only guard.
+  - One module name for every compile (`OpnPairProof`), so a candidate's private declarations are
+    the same constants in the reference and the filled module.
+  - A guard compile that times out is the guard failing (the proof stands), as the job reads its
+    own guard through `Runner.check`.
+
+THE SIGNATURE T18 AND T19 CALL (opn_gate/pair_proof_check.py):
+
+  def verdict(
+      toolchain: Toolchain,
+      resolved: ResolvedToolchain,
+      text: str,              # the record's `lean`, the whole filled file
+      tmpl: str,              # pair_proofs.template(a, b, direction, kind, n) from the base tree
+      *,
+      first: Cand,            # the direction's first candidate: pair_proofs.ordered(a, b, d)[0]
+      kind: Kind,             # "proof" | "refutation"
+      workdir: Path,          # a directory the call may fill; it also writes <workdir>.judge/
+      graph_build: Path | None = None,  # the graph modules the candidates import, built (Q21)
+      timeout_s: float | None = None,
+  ) -> Verdict
+
+  @dataclass(frozen=True)
+  class Verdict:
+      ok: bool
+      code: str | None        # None on a pass
+      reason: str
+      details: dict[str, Any]
+      axioms: tuple[str, ...] # sorted, when read
+      diagnostic -> Diagnostic | None   (property)
+      as_dict() -> {"ok", "code", "reason", "details", "axioms"}
+
+  Rules usable without a Toolchain: static(text, tmpl) -> Diagnostic | None;
+  elaboration_problem(ElabResult) -> Diagnostic | None; axiom_problem(axioms, decl) ->
+  Diagnostic | None; clean(ElabResult) -> bool (for the guard); degenerate(first) -> Diagnostic;
+  ALLOWED_AXIOMS, DECLS {"proof": "opnDirection", "refutation": "opnInstance"}, MODULE.
