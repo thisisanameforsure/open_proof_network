@@ -413,6 +413,44 @@ def registration_entry(  # noqa: PLR0913 — one argument per fact the entry rec
     )
 
 
+def review_entry(  # noqa: PLR0913 — one argument per fact the entry records
+    *,
+    target: str,
+    node: str,
+    artifact: str,
+    merge_commit: str,
+    date: str,
+    models: list[str],
+) -> Entry:
+    """F26-T18 (R8, D-19): the review line a merged pair-proof record earns its author — a
+    settled direction of the target's formalization review. ``node`` is the target's root (the
+    review is of its statement), ``artifact`` the record's path under the target
+    (``review/pair-proofs/<name>``, the registration line's precedent), the tooling the models
+    the record names, ``undeclared`` when it names none. No attestation is written for a review
+    record, so there is no automation block to carry."""
+    named = [m for m in models if m.strip()]
+    return Entry(
+        line="review",
+        target=target,
+        node=node,
+        artifact=artifact,
+        merge_commit=merge_commit,
+        date=date,
+        tooling=", ".join(named) if named else UNDECLARED,
+        automation=None,
+    )
+
+
+def holds(doc: dict[str, Any], entry: Entry) -> bool:
+    """Whether the ledger already carries ``entry``'s line (``LINE_KEY`` and its target), active
+    or not: a replay of a merge (F07-T33) credits nothing twice."""
+    mine = entry.as_dict()
+    return any(
+        e.get("target") == mine["target"] and all(e.get(k) == mine[k] for k in LINE_KEY)
+        for e in entries_of(doc)
+    )
+
+
 def statement_tooling(meta: dict[str, Any]) -> str:
     """The tooling a merged proposal's statement line records (D-23, R13; F07-T49): the model
     its proposer declared, which the scaffold wrote into ``META.yaml`` as ``provenance.model``.

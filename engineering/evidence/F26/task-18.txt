@@ -130,3 +130,49 @@ Lean tier (real Lean 4.33.1, local elan):
   guarded copy fails; the false direction open with the author and the record named and "does
   not elaborate"; a second run writes nothing (tree equal). Red under jmut_none:
   AssertionError ... assert ('open' == 'proved').
+  Committed as c5a11293 (pre-commit make verify: 6861 passed, 22 skipped, 262 deselected).
+
+== Piece 3: the credit ==
+
+Seam first: ledger.review_entry (pure: line review, tooling = the record's models joined, or
+`undeclared` when it names none, automation null) and ledger.holds (the ledger already carries
+the entry's line by LINE_KEY and target). run_ledger itself unchanged, so a merged pair-proof
+still fell to "a merged pair-proof pull request earns no ledger line (D-19)".
+
+  uv run pytest -m "not lean and not docker" gate/tests/test_review_pair_proof_ledger.py
+  RED: 6 failed, 7 passed
+   - test_a_merged_pair_proof_earns_its_author_the_review_line:
+       AssertionError: {'earned': False, ..., 'reason': 'a merged pair-proof pull request earns
+       no ledger line (D-19)'}
+   - test_the_record_names_the_identity_not_the_commit: KeyError: 'identity'
+   - test_several_models_are_the_tooling_and_none_is_undeclared: no entry to unpack
+   - test_a_refutation_earns_the_same_line: False is True
+   - test_a_replay_of_the_merge_writes_nothing: ledger/t1027-j.json does not exist
+   - test_an_unreadable_record_earns_nothing_and_says_why: the reason does not name the record
+  The 7 that passed: the six "no other review record earns a line" cases (candidate, answer,
+  signature, review.yaml, a pair, a question: true before and after; they pin that the new branch
+  is keyed on the pair-proof mode alone) and review_entry validating as ledger/v2.
+
+Fix: cli._credit_pair_proofs, called from run_ledger when the mode is `pair-proof`: each added
+  pair-proof record (pair-proof/v1, read from the merged tree) earns its `author` the review line;
+  node = graph.load_target(graph, target).root (declared in target-status, else inferred:
+  graph.find_root); artifact = the record's path under the target, review/pair-proofs/<name>
+  (the registration line's precedent); merge_commit, date = the commit's timestamp; tooling from
+  models. A replay writes nothing (ledger.holds). A record that does not validate, or a target
+  whose root cannot be found, earns nothing and the output says which record and why.
+  GREEN: 13 passed; with test_ledger, test_ledger_merges, test_credit_correction,
+  test_registration, test_finding_ledger_credits_merges: 85 passed. mypy gate: clean.
+Mutants: jmut_noholds (holds -> False): the replay test fails; jmut_tooling (models dropped):
+  the two tooling assertions fail.
+
+Decisions:
+  - The identity is the record's `author`, not proposer_of (the commit's author): the service
+    opens the pull request for the author it writes (F18-Q7), and holding a hand-opened record's
+    author to its opener is the gate's pre-merge check (agent G, T17). Tested: a commit by
+    someone-else credits the record's author and writes no ledger for someone-else.
+  - Credit is at merge, from the record, not after the job's re-check: the same as a proof,
+    which the gate checked in the sandbox before it merged. If the job's re-check ever fails
+    for a merged record the entry stands until a curator's credit correction (F07-T66) moves or
+    revokes it. (Proposed Q below.)
+  - tooling: models joined with ", "; an empty list (a person's work, v3.31) is `undeclared`,
+    statement_tooling's convention, rather than inventing a word for "manual".
