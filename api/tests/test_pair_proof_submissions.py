@@ -35,6 +35,7 @@ from test_web_session import ENV
 
 from opn_api.axle import AxleError
 from opn_gate import pair_proofs, review_lean, schemas
+from opn_gate import review as gate_review
 
 FIX = Path(__file__).resolve().parents[2] / "gate" / "tests" / "fixtures" / "review" / "legendre"
 REVIEW_DIR = f"targets/{TARGET}/review"
@@ -460,6 +461,86 @@ def test_a_merged_record_waiting_for_the_job_settles_the_direction(h: Harness, t
     serve_tree(h, tree)
     doc = refused(submit(h), 409, "pair-proof-settled", h)
     assert name in json.dumps(doc["details"])
+
+
+def merged_record(tree: Path, when: str = "20260908T100000Z") -> str:
+    """A merged pair-proof record for the provable direction; its file name."""
+    stamp = f"{when[:4]}-{when[4:6]}-{when[6:8]}T{when[9:11]}:{when[11:13]}:{when[13:15]}Z"
+    rec: dict[str, Any] = {
+        "schema": "pair-proof/v1",
+        "target": TARGET,
+        "a": A,
+        "b": B,
+        "direction": PROVABLE,
+        "kind": "proof",
+        "case": None,
+        "statement_hashes": {"a": "0" * 64, "b": "1" * 64},
+        "lean": FILLED,
+        "author": "bob",
+        "models": [],
+        "date": stamp,
+    }
+    name = pair_proofs.record_name(A, B, PROVABLE, when, "bob")
+    put(tree, f"{pair_proofs.DIR}/{name}", rec)
+    return name
+
+
+def judgment(name: str, result: str) -> dict[str, Any]:
+    """The review job's judgment of a merged record (F26-T18): a ``pair`` exhibit whose detail
+    ends ``(pair-proof <stem>)``, ``open`` with the refusal when its re-check refused it."""
+    stem = name.removesuffix(".yaml")
+    detail = (
+        f"{gate_review.REFUSED} pair-proof-degenerate (pair-proof {stem})"
+        if result == "open"
+        else f"{A} implies {B} (pair-proof {stem})"
+    )
+    return {
+        "schema": "exhibit/v1",
+        "id": "e-0000beef",
+        "kind": "pair",
+        "result": result,
+        "detail": detail,
+        "candidate": A,
+        "test": B,
+    }
+
+
+def test_a_merged_record_the_job_refused_settles_nothing(
+    h: Harness, tree: Path, axle: FakeAxle
+) -> None:
+    """F26-T21: a record the job's re-check refused left its direction open, so it must not
+    block a new submission (otherwise the direction is locked for ever)."""
+    name = merged_record(tree)
+    reseed(h, tree, exhibits=[judgment(name, "open")])
+    merged_record(tree)
+    serve_tree(h, tree)
+    axle.replies = [answered([]), GUARD_FAILS]
+    r = submit(h)
+    assert r.status_code == 201, r.text
+
+
+def test_a_merged_record_the_job_accepted_settles_the_direction(h: Harness, tree: Path) -> None:
+    name = merged_record(tree)
+    reseed(h, tree, exhibits=[judgment(name, "proved")])
+    merged_record(tree)
+    serve_tree(h, tree)
+    refused(submit(h), 409, "pair-proof-settled", h)
+
+
+def test_a_same_day_later_pair_record_is_the_one_in_force(
+    h: Harness, tree: Path, axle: FakeAxle
+) -> None:
+    """The job writes a later record for the same pair on the same day as
+    ``<a>--<b>--<date>-<k>.yaml``, which sorts before ``<a>--<b>.yaml``: the gate's rule
+    (``review.latest_of``, T18) ranks by date, then the generation in the name, so the later
+    record, which reopens the direction here, is in force."""
+    proved = {"state": "proved", "exhibit": "e-x", "attempt": None}
+    first = pair(**{PROVABLE: proved}, date="2026-09-05")
+    later = pair(date="2026-09-05")
+    reseed(h, tree, pairs=[(f"{A}--{B}.yaml", first), (f"{A}--{B}--2026-09-05-2.yaml", later)])
+    axle.replies = [answered([]), GUARD_FAILS]
+    r = submit(h)
+    assert r.status_code == 201, r.text
 
 
 def test_a_second_submission_while_one_is_pending_is_refused(h: Harness, axle: FakeAxle) -> None:

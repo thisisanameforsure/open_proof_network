@@ -939,7 +939,7 @@ def review_document(
                 {**q, "waiting": str(q.get("id")) in waiting} for q in _docs(base / "questions")
             ],
             "answers": _docs(base / "answers"),
-            "pairs": in_force(_docs(base / "pairs")),
+            "pairs": in_force(_named(base / "pairs")),
             "open_pairs": [
                 {
                     **row,
@@ -999,18 +999,25 @@ def waiting_questions(ctx: Context, target_id: str) -> list[dict[str, Any]]:
     ]
 
 
-def in_force(pairs: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """F26-T19: the pair records in force, one per pair: a later record for the same pair
-    supersedes, by the gate's own rule (``opn_gate.review._pairs``: the latest ``date``, a tie to
-    the later record read), in the pairs' order. Every listing and the submission route read
-    pairs through here, so none of them answers from a superseded record."""
-    latest: dict[tuple[str, str], dict[str, Any]] = {}
-    for p in pairs:
-        key = (str(p.get("a")), str(p.get("b")))
-        held = latest.get(key)
-        if held is None or str(p.get("date")) >= str(held.get("date")):
-            latest[key] = p
-    return [latest[k] for k in sorted(latest)]
+def in_force(named: list[tuple[str, dict[str, Any]]]) -> list[dict[str, Any]]:
+    """F26-T19: the pair records in force, one per pair, from ``(file name, record)``: the gate's
+    own rule (``opn_gate.review.latest_of``, T18), so a later record written the same day as
+    ``<a>--<b>--<date>-<k>.yaml`` supersedes ``<a>--<b>.yaml`` here exactly as it does in the
+    gate's derivation. Every listing and the submission route read pairs through here."""
+    return reviewmod.latest_of(named)
+
+
+def _named(folder: Path) -> list[tuple[str, dict[str, Any]]]:
+    """``(file name, document)`` of every readable record in ``folder``, in name order."""
+    out: list[tuple[str, dict[str, Any]]] = []
+    if not folder.is_dir():
+        return out
+    for path in sorted(folder.iterdir()):
+        if path.suffix in RECORD_SUFFIXES:
+            doc = _yaml(path.read_bytes())
+            if doc is not None:
+                out.append((path.name, doc))
+    return out
 
 
 #: What a caller is told of the refutation template, which takes an instance.
@@ -1105,7 +1112,7 @@ def open_directions(
         return cache[cid]
 
     out: list[dict[str, Any]] = []
-    for p in in_force([doc for _, doc in records(ctx, target_id, "pairs")]):
+    for p in in_force(records(ctx, target_id, "pairs")):
         for direction in ("forward", "backward"):
             d = p.get(direction)
             if isinstance(d, dict) and d.get("state") == "open":

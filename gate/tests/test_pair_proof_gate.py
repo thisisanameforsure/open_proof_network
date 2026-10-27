@@ -21,7 +21,7 @@ import yaml
 from review_support import make_graph, prototype_lean
 from test_pair_proof_check import STANDARD, PairFake
 
-from opn_gate import cli, codes, config, modes, pair_proofs, review_lean, toolchain
+from opn_gate import cli, codes, config, modes, pair_proofs, review, review_lean, toolchain
 from opn_gate.diagnostic import Diagnostic
 from opn_gate.paths import Change
 
@@ -459,6 +459,44 @@ def test_a_direction_an_earlier_merged_record_settled_is_refused(world: World) -
     _cls, found = world.gate(rel)
     assert codes_of(found) == ["pair-proof-settled"]
     assert found[0].details["earlier"].endswith("20261026T090000Z-t1027-g.yaml")
+
+
+def judged(world: World, rel: str, result: str) -> None:
+    """The review job's judgment of a merged record, as T18 writes it: one ``pair`` exhibit whose
+    detail ends ``(pair-proof <stem>)``; ``open`` (with the refusal) when its re-check refused."""
+    stem = Path(rel).stem
+    detail = (
+        f"{review.REFUSED} pair-proof-degenerate (pair-proof {stem})"
+        if result == "open"
+        else f"{world.a} implies {world.b} (pair-proof {stem})"
+    )
+    doc = {
+        "schema": "exhibit/v1",
+        "id": "e-0000beef",
+        "kind": "pair",
+        "result": result,
+        "detail": detail,
+    }
+    dest = world.graph / Path(rel).parent.parent / "exhibits" / "e-0000beef.json"
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    dest.write_text(json.dumps(doc), encoding="utf-8")
+
+
+def test_a_record_the_job_refused_settles_nothing(world: World) -> None:
+    """F26-T21 (T17's Q2, T18's judgments): an earlier merged record the job's re-check refused
+    leaves its direction open, so it must not block a new record for it, or the direction is
+    locked for ever."""
+    earlier = world.put(world.record(date="2026-10-26T09:00:00Z"))
+    judged(world, earlier, "open")
+    _cls, found = world.gate(world.put(world.record()))
+    assert found == [], [d.as_dict() for d in found]
+
+
+def test_a_record_the_job_accepted_still_settles(world: World) -> None:
+    earlier = world.put(world.record(date="2026-10-26T09:00:00Z"))
+    judged(world, earlier, "proved")
+    _cls, found = world.gate(world.put(world.record()))
+    assert codes_of(found) == ["pair-proof-settled"]
 
 
 def test_an_earlier_record_of_the_other_direction_settles_nothing_here(world: World) -> None:

@@ -171,7 +171,7 @@ def read_pair(ctx: Context, req: Pair, head: dict[str, Any]) -> Reading:
         held = next(
             (
                 p
-                for p in reviews.in_force(reviews._docs(base / "pairs"))
+                for p in reviews.in_force(reviews._named(base / "pairs"))
                 if (str(p.get("a")), str(p.get("b"))) == (req.a, req.b)
             ),
             None,
@@ -186,12 +186,17 @@ def read_pair(ctx: Context, req: Pair, head: dict[str, Any]) -> Reading:
         state = (held.get(req.direction) or {}).get("state")
         if state != "open":
             raise settled(req, f"is {state} on the pair record in force", {"state": state})
-        for name, doc in merged_settlements(base, req):
-            if str(doc.get("date", ""))[:10] >= str(held.get("date", "")):
+        # F26-T21: a merged record settles the direction until the review job judges it, and
+        # after that only if the job accepted it (``review.pair_proof_judgments``, T18); one the
+        # job refused left the direction open, and counting it would lock it for ever.
+        judged = reviewmod.pair_proof_judgments(base)
+        for name, _doc in merged_settlements(base, req):
+            verdict_on = judged.get(name.removesuffix(".yaml"))
+            if verdict_on is None or verdict_on["accepted"]:
+                judgement = "accepted" if verdict_on else "not yet judged"
                 raise settled(
                     req,
-                    f"is settled by the merged record {name}, which the review job has not yet "
-                    "answered",
+                    f"is settled by the merged record {name} (the review job: {judgement})",
                     {"record": f"{reviews.review_dir(req.target)}/{pair_proofs.DIR}/{name}"},
                     by_record=True,
                 )

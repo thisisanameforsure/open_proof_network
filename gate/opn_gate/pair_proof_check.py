@@ -441,12 +441,19 @@ def _latest_pair(base: Path, a: str, b: str) -> dict[str, Any] | None:
 
 def _settled_by(base: Path, doc: Mapping[str, Any], own: str | None) -> str | None:
     """An earlier pair-proof record on the tree for the same direction at the same statement
-    hashes, by file name; ``own`` (the record under check, when it is on the tree) is not one."""
+    hashes, by file name; ``own`` (the record under check, when it is on the tree) is not one,
+    and nor is a record the review job's re-check refused (``review.pair_proof_judgments``): it
+    settled nothing, and counting it would lock the direction for ever. A record the job has not
+    judged yet still counts, since the job may yet accept it."""
     folder = base / pair_proofs.DIR
     if not folder.is_dir():
         return None
+    judged = review.pair_proof_judgments(base)
     for path in sorted(folder.iterdir()):
         if path.name == own or path.suffix not in (".yaml", ".yml"):
+            continue
+        verdict_on = judged.get(path.stem)
+        if verdict_on is not None and not verdict_on["accepted"]:
             continue
         try:
             other = yaml.safe_load(path.read_text(encoding="utf-8"))
