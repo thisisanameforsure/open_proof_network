@@ -3738,7 +3738,8 @@ def run_ledger(  # noqa: PLR0911 — one return per kind of merge
     the tutorial node (D-27), a curator's proof on their own target (D-21) or any other mode, and
     every refusal says which decision refused it. A merged gloss or explainer signature credits
     the signed version's author with the write-up line (F21-R3, D-19 v3.31); the version itself
-    earns nothing (R4).
+    earns nothing (R4). A merged pair-proof record credits its author with the review line under
+    the target's root (F26-T18); no other review record earns one at merge.
     """
     graph, commit = _checkout_and_commit(args.graph, args.commit)
     changes = commit_changes(graph, commit)
@@ -3753,6 +3754,9 @@ def run_ledger(  # noqa: PLR0911 — one return per kind of merge
     nothing: dict[str, Any] = {"earned": False, "commit": commit}
     if mode in ("proof", "partial", "append", "registration"):
         return _write_merge_entries(graph, commit, classification, nothing)
+    if mode == "pair-proof":
+        added = {c.path for c in changes if c.status == "A"}
+        return _credit_pair_proofs(graph, commit, classification, added)
     if mode == "alternate":
         nothing["reason"] = "an alternate proof is credited at write-up, not when it merges (D-25)"
         return _say(nothing)
@@ -3794,6 +3798,75 @@ def run_ledger(  # noqa: PLR0911 — one return per kind of merge
     }
     sys.stdout.write(json.dumps(doc, indent=2) + "\n")
     return EXIT_PASS
+
+
+def _credit_pair_proofs(
+    graph: Path, commit: str, classification: modes.Classification, added: set[str]
+) -> int:
+    """F26-T18 (R8, D-19): each pair-proof record the merge added earns its ``author`` the
+    review line, under the target's root, its ``artifact`` the record's path under the target.
+    The identity is the record's, not ``proposer_of``: the service opens the pull request for the
+    author it writes into the record (F18-Q7's precedent), and the gate held a hand-opened one to
+    its opener before the merge. A replay of the merge (F07-T33) credits nothing twice. The job's
+    re-check after the merge does not gate the credit: the gate checked the record in the
+    sandbox before it merged (F26-T17), as it does every merged proof."""
+    date = graphmod.commit_timestamp(graph, commit)
+    credited: list[dict[str, Any]] = []
+    skipped: list[str] = []
+    written: set[str] = set()
+    for loc in classification.located:
+        if loc.role != "pair-proof" or loc.path not in added:
+            continue
+        try:
+            record = schemas.load_yaml(graph / loc.path, "pair-proof/v1")
+            root = graphmod.load_target(graph, loc.target_id).root
+        except (schemas.SchemaError, graphmod.GraphError) as exc:
+            skipped.append(f"{loc.path} earns nothing: {exc}")
+            continue
+        identity = str(record["author"])
+        entry = ledger.review_entry(
+            target=loc.target_id,
+            node=root,
+            artifact=loc.path.split(f"targets/{loc.target_id}/", 1)[1],
+            merge_commit=commit,
+            date=date,
+            models=[str(m) for m in record["models"]],
+        )
+        try:
+            doc = ledger.load(graph, identity)
+            if ledger.holds(doc, entry):
+                skipped.append(f"{loc.path} is already credited to {identity} (F07-T33)")
+                continue
+            path = ledger.write(graph, ledger.append(doc, entry))
+        except schemas.SchemaError as exc:
+            skipped.append(f"identity {identity!r} cannot hold a ledger: {exc}")
+            continue
+        written.add(path.resolve().relative_to(graph.resolve()).as_posix())
+        credited.append(
+            {"identity": identity, "line": entry.line, "node": root, "artifact": entry.artifact}
+        )
+    if not credited:
+        return _say(
+            {
+                "earned": False,
+                "commit": commit,
+                "reason": skipped[0] if skipped else "the merge added no pair-proof record",
+                "skipped": skipped,
+            }
+        )
+    first = credited[0]
+    return _say(
+        {
+            "earned": True,
+            "commit": commit,
+            "identity": first["identity"],
+            "node": first["node"],
+            "line": "review",
+            "entries": credited,
+            "skipped": skipped,
+            "written": sorted(written),
+        }
+    )
 
 
 def _credit_corrections(changes: list[Change]) -> list[paths.Located]:

@@ -26,21 +26,32 @@ direction is refused as a proof of equivalence: it stays **open**, the attempt n
 and the cleared proof is kept as a ``pair`` exhibit with result ``open`` (it shows what the guard
 saw).
 
-A direction already ``proved`` or ``refuted`` on record (by this job or by a merged pair-proof
-artifact) is never re-attempted, and an ``open`` one whose recorded attempt is this job's own at
-the same budget is not re-attempted either, so a second run writes nothing. A pair record is
-written only when a direction changed; a later record for the same pair supersedes
-(``review._pairs`` reads the latest date).
+**A contributor's settlement** (R8, F26-T18). An open direction between two survivors is
+claimable work, settled by a merged ``pair-proof/v1`` record under ``review/pair-proofs/``. The
+job is still the only writer of pairs and exhibits: before attempting a direction itself it
+re-checks such a record with its own runner (``contributed``, ``recheck``: the direction's
+template, the region rules, the file elaborates, and for a proof the guarded copy does not), and
+on a pass writes the ``pair`` exhibit (key ``contributed:<record>``) and the settled state. A
+failed re-check leaves the direction open, the attempt naming the record and why.
+
+A direction already ``proved`` or ``refuted`` on record (by this job's own attempt or from a
+merged pair-proof record) is never re-attempted, and an ``open`` one whose recorded attempt is
+this job's own at the same budget is not re-attempted either, so a second run writes nothing.
+A pair record is written only when a direction changed; a later record for the same pair
+supersedes (``review.in_order``: by date, then the generation in the name, F26-T18).
 """
 
 from __future__ import annotations
 
+import hashlib
 from typing import Any
 
-from opn_gate import review_lean, schemas
+from opn_gate import pair_proofs, review, review_lean, schemas
 from opn_gate.review_job import Job, _yaml_bytes, add_exhibit, find_exhibit, survey
 from opn_gate.review_lean import Cand, Case, document, module, ns
 
+#: The key prefix of the exhibit the job writes for a merged pair-proof record it judged.
+CONTRIBUTED = "contributed:"
 #: What a recorded open attempt names as its tool.
 TOOL = "gate: two-layer matching (simp only, exact, grind) under the degenerate guard"
 GUARD_TOOL = (
@@ -253,6 +264,162 @@ def _keep(old: dict[str, Any] | None, budget: int) -> bool:
     )
 
 
+def contributed(
+    job: Job, a: Cand, b: Cand, direction: pair_proofs.Direction, budget: int
+) -> dict[str, Any] | None:
+    """The direction of the pair ``(a, b)`` (``pair/v1``'s order) as a merged pair-proof record
+    settles it, or ``None`` when no record speaks to it (F26-T18).
+
+    The records for the direction whose ``statement_hashes`` are the candidates' current ones
+    are taken by record date, then by name; one with other hashes was checked against another
+    text and is ignored with a note. The first whose re-check passes settles the direction: an
+    exhibit (kind ``pair``, the direction's first candidate, the other as its test, the key
+    naming the record, the record's Lean) and the state, ``exhibit`` set and ``attempt: null``;
+    every later one is noted as not needed. When none passes the direction stays open, the
+    attempt naming the first record and why; every failure is noted."""
+    first, second = pair_proofs.ordered(a, b, direction)
+    mine = sorted(
+        (
+            (stem, rec)
+            for stem, rec in job.pair_proofs
+            if (rec["a"], rec["b"], rec["direction"]) == (a.id, b.id, direction)
+        ),
+        key=lambda t: (str(t[1]["date"]), t[0]),
+    )
+    if not mine:
+        return None
+    job.pair_proofs_read.update(stem for stem, _ in mine)
+    want = {
+        "a": str(job.records.get(a.id, {}).get("statement_hash")),
+        "b": str(job.records.get(b.id, {}).get("statement_hash")),
+    }
+    failures: list[tuple[str, dict[str, Any], str]] = []
+    for i, (stem, rec) in enumerate(mine):
+        if rec["statement_hashes"] != want:
+            job.notes.append(
+                f"pair-proof {stem}: its statement hashes are not the candidates' current ones "
+                "(it was checked against another text); ignored"
+            )
+            continue
+        key = f"{CONTRIBUTED}{stem}"
+        judged = find_exhibit(job, "pair", first.id, second.id, key)
+        why: str | None
+        if judged is not None and judged.get("result") == "open":
+            why = review.refusal_reason(str(judged.get("detail")))
+        else:
+            raw = recheck(job, rec, first, second)
+            # one line, as the exhibit keeps it, so a later run reads back the same reason
+            why = None if raw is None else " ".join(raw.split())[:1500]
+        if why is not None:
+            if judged is None:
+                add_exhibit(
+                    job,
+                    "pair",
+                    first.id,
+                    second.id,
+                    key,
+                    "open",
+                    f"{review.REFUSED} {why} (pair-proof {stem})",
+                    None,
+                )
+            job.notes.append(f"pair-proof {stem}: the re-check failed: {why}")
+            failures.append((stem, rec, why))
+            continue
+        for later, _ in mine[i + 1 :]:
+            job.notes.append(f"pair-proof {later}: not needed, the direction is already settled")
+        return _settled(job, stem, rec, first, second)
+    if not failures:
+        return None
+    stem, rec, why = failures[0]
+    tool = f"pair-proof {stem}: re-check failed: {why}"
+    return {
+        "state": "open",
+        "exhibit": None,
+        "attempt": {"who": str(rec["author"]), "tool": tool[:200], "budget_s": budget},
+    }
+
+
+def recheck(job: Job, rec: dict[str, Any], first: Cand, second: Cand) -> str | None:
+    """Why the record's Lean does not settle the direction ``first → second``, or ``None``.
+    Trusts nothing the gate said before the merge: the direction's template is computed here from
+    the job's own candidates (``pair_proofs.template`` at the record's kind and case), and the file
+    is judged by the verdict the service and the gate use (``pair_proof_check.verdict``, F26-T17:
+    the byte check and the regions, the compile, the kernel replay, the meaning comparison, the
+    axioms against the standard three, and for a proof the degenerate guard) with the job's own
+    toolchain, in a directory of its own under the runner's work directory."""
+    from opn_gate import pair_proof_check  # noqa: PLC0415 — it imports this module's GUARD_TOOL
+
+    a, b = (first, second) if rec["direction"] == "forward" else (second, first)
+    case = rec.get("case")
+    n = case.get("n") if isinstance(case, dict) else None
+    try:
+        tmpl = pair_proofs.template(a, b, rec["direction"], rec["kind"], n)
+    except ValueError as exc:
+        return f"the direction takes no such {rec['kind']}: {exc}"
+    lean = str(rec["lean"])
+    digest = hashlib.sha256(lean.encode("utf-8")).hexdigest()[:20]
+    runner = job.runner
+    v = pair_proof_check.verdict(
+        runner.toolchain,
+        runner.resolved,
+        lean,
+        tmpl,
+        first=first,
+        kind=rec["kind"],
+        workdir=runner.workdir / "pair-proofs" / digest,
+        graph_build=runner.graph_build,
+        timeout_s=runner.budget_s,
+    )
+    return None if v.ok else f"{v.code}: {v.reason}"
+
+
+def _settled(job: Job, stem: str, rec: dict[str, Any], first: Cand, second: Cand) -> dict[str, Any]:
+    author, kind = str(rec["author"]), str(rec["kind"])
+    if kind == "proof":
+        result = "proved"
+        what = f"{first.id} implies {second.id}" + (" for every n" if first.indexed else "")
+        how = "re-checked by the review job; the degenerate guard passed"
+    else:
+        result = "refuted"
+        n = rec["case"]["n"]
+        what = f"refuted at n = {n}: {first.id} holds and {second.id} fails there"
+        how = "re-checked by the review job"
+    detail = f"contributed by {author} ({rec['direction']}): {what}; {how} (pair-proof {stem})"
+    doc = add_exhibit(
+        job, "pair", first.id, second.id, f"{CONTRIBUTED}{stem}", result, detail, str(rec["lean"])
+    )
+    return {"state": result, "exhibit": doc["id"], "attempt": None}
+
+
+def resolve(  # noqa: PLR0913 — one argument per fact the direction depends on
+    job: Job,
+    old: dict[str, Any] | None,
+    a: Cand,
+    b: Cand,
+    *,
+    direction: pair_proofs.Direction,
+    budget: int,
+) -> dict[str, Any]:
+    """One direction of the pair ``(a, b)`` (``pair/v1``'s order) after this run: settled on
+    record stands; else a merged pair-proof record for it; else this job's own open attempt at
+    the same budget stands; else the job attempts it."""
+    prev = old.get(direction) if old else None
+    if isinstance(prev, dict) and prev.get("state") in ("proved", "refuted"):
+        for stem, rec in job.pair_proofs:
+            if (rec["a"], rec["b"], rec["direction"]) == (a.id, b.id, direction):
+                job.pair_proofs_read.add(stem)
+                job.notes.append(f"pair-proof {stem}: not needed, the direction is already settled")
+        return prev
+    got = contributed(job, a, b, direction, budget)
+    if got is not None:
+        return got
+    if _keep(prev, budget):
+        assert isinstance(prev, dict)
+        return prev
+    first, second = pair_proofs.ordered(a, b, direction)
+    return attempt(job, first, second)
+
+
 def run_pairs(job: Job, survivors: list[str]) -> list[dict[str, Any]]:
     """Every pair of survivors, each direction; returns the pair documents now in force (the
     record's latest, or this run's) and queues a record for each pair that changed."""
@@ -263,12 +430,8 @@ def run_pairs(job: Job, survivors: list[str]) -> list[dict[str, Any]]:
         for b in ids[i + 1 :]:
             old = latest(job, a, b)
             ca, cb = job.cands[a], job.cands[b]
-            forward = old["forward"] if old and _keep(old.get("forward"), budget) else None
-            backward = old["backward"] if old and _keep(old.get("backward"), budget) else None
-            if forward is None:
-                forward = attempt(job, ca, cb)
-            if backward is None:
-                backward = attempt(job, cb, ca)
+            forward = resolve(job, old, ca, cb, direction="forward", budget=budget)
+            backward = resolve(job, old, ca, cb, direction="backward", budget=budget)
             doc = {
                 "schema": "pair/v1",
                 "target": job.target,
@@ -295,6 +458,11 @@ def run_pairs(job: Job, survivors: list[str]) -> list[dict[str, Any]]:
             job.out[f"pairs/{name}"] = _yaml_bytes(doc)
             job.pairs.append(doc)
             docs.append(doc)
+    for stem, _ in job.pair_proofs:
+        if stem not in job.pair_proofs_read:
+            job.notes.append(
+                f"pair-proof {stem}: not a direction between two surviving candidates; not read"
+            )
     return docs
 
 
