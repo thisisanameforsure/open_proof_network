@@ -2339,6 +2339,82 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "Keep helpers private and free of options and new axioms; write the proof as an indented "
         "tactic block that closes the goal.",
     ),
+    # F26-T19 (R8): a pair proof submitted through the service, refused before anything opens
+    "pair-candidate-not-surviving": (
+        "api",
+        None,
+        "A pair proof names a candidate the review has discarded, returned or not yet compiled; "
+        "only a direction between two surviving candidates is work (F26-R8).",
+        "Pick an open direction list_open_pairs lists now; its candidates are surviving.",
+    ),
+    "pair-unknown": (
+        "api",
+        None,
+        "No pair record names the two candidates: the review job has not compared them yet "
+        "(F26-R13).",
+        "Wait for the review job's next run, or take a direction list_open_pairs lists.",
+    ),
+    "pair-direction-settled": (
+        "api",
+        None,
+        "The direction is proved or refuted on the pair record in force, or a merged pair proof "
+        "for it waits for the review job (F26-R8); only an open direction takes a settlement.",
+        "Take another open direction from list_open_pairs; a settled one needs nothing more.",
+    ),
+    "pair-proof-pending": (
+        "api",
+        None,
+        "A pull request of the service's already settles this direction and may still merge.",
+        "Watch it with get_submission; if it closes unmerged, submit again.",
+    ),
+    "pair-proof-no-template": (
+        "api",
+        None,
+        "The direction cannot take the kind asked: a proof needs two claims of the same shape the "
+        "review compares, a refutation two indexed claims (an instance n); or a candidate's Lean "
+        "cannot be read as the job reads it (F26-T16).",
+        "Read the direction's template_note and refutation in list_open_pairs and submit the kind "
+        "it can take.",
+    ),
+    "pair-proof-fails": (
+        "api",
+        None,
+        "The hosted fast checker reported Lean errors in the filled pair-proof file, so nothing "
+        "was opened; the gate's sandbox would refuse it too.",
+        "Fix the errors it names (details.errors), iterating with check_lean, and submit again.",
+    ),
+    "pair-proof-sorry": (
+        "api",
+        None,
+        "The filled pair-proof file elaborates but its theorem depends on sorryAx, so nothing was "
+        "opened.",
+        "Close every goal; a pair proof rests on no sorry, in the proof or in a helper.",
+    ),
+    "pair-proof-axiom": (
+        "api",
+        None,
+        "The pair proof's theorem depends on an axiom other than propext, Classical.choice and "
+        "Quot.sound, so nothing was opened.",
+        "Prove it from the standard axioms only; native_decide adds an axiom of its own, so "
+        "use decide.",
+    ),
+    "pair-proof-degenerate": (
+        "api",
+        None,
+        "The proof still elaborates with its hypothesis cleared right after the template's intro "
+        "(the degenerate guard), so it never used the hypothesis and is not a proof of the "
+        "direction; nothing was opened.",
+        "A proof of first implies second must use the first claim; if the second holds outright, "
+        "that is a fact about the candidate for the review, not a pair proof.",
+    ),
+    "pair-proof-not-prechecked": (
+        "api",
+        None,
+        "A precheck was asked for artifact_type pair-proof; a pair proof is not a node artifact "
+        "and has no precheck.",
+        "Submit it directly with submit_proof (POST /submissions), artifact_type pair-proof, a "
+        "pair and the filled lean: it is checked on submission. Iterate with check_lean.",
+    ),
     "review-not-intent-signer": (
         "api",
         None,

@@ -133,7 +133,7 @@ TABLE: tuple[Row, ...] = (
     Row(
         "list_open_pairs",
         "read",
-        ("targets/<id>/review/pairs/",),
+        ("targets/<id>/review/pairs/", "GET /reviews/{target_id}"),  # F26-T19: the templates
         "the pair directions a review leaves open, each with the two candidates and the attempts "
         "recorded; a proof or refutation of one is submitted as a pair-proof artifact through "
         "submit_proof",

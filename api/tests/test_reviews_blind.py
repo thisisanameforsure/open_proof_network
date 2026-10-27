@@ -195,9 +195,10 @@ def test_the_review_includes_pairs_answers_and_signatures_as_the_record_holds_th
     )
     serve_tree(h, tree)
     doc = h.client.get(ROUTE).json()
-    assert doc["pairs"][0]["a"] == a and doc["open_pairs"] == [
-        {"a": a, "b": b, "direction": "backward"}
-    ]
+    assert doc["pairs"][0]["a"] == a
+    # F26-T19: each open direction carries its templates too; to this anonymous caller, withheld
+    assert [(r["a"], r["b"], r["direction"]) for r in doc["open_pairs"]] == [(a, b, "backward")]
+    assert doc["open_pairs"][0]["template_withheld"] == "blind"
     assert doc["signatures"][0]["login"] == PROPOSER
     assert doc["state"]["signers"] == {"intent": PROPOSER, "independent": None}
     assert doc["state"]["open_pairs"] == 1 and doc["answers"] == []

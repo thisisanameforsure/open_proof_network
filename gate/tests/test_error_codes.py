@@ -75,6 +75,7 @@ RELAYS: dict[tuple[str, str], str] = {
     ("api/opn_api/mcp/reads.py", "exc.code"): "an ApiError a read tool reused",
     ("api/opn_api/mcp/reads.py", "body.get('error')"): "the service route's own error body",
     ("api/opn_api/mcp/server.py", "body['error']"): "auth.unauthorized's body",
+    ("api/opn_api/pairproofs.py", "d.code"): "a gate Diagnostic (pair_proofs.split, problems)",
     ("api/opn_api/precheck.py", "rejection.code"): "a bundles.Rejection",
     ("api/opn_api/submissions.py", "problem.code"): "a gate Diagnostic (carried, annex)",
     ("api/opn_api/submissions.py", "refusal.code"): "a gate Diagnostic (carried.read)",

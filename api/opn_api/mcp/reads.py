@@ -277,6 +277,13 @@ async def list_registrations(call: Call, args: dict[str, Any]) -> dict[str, Any]
 
 # --- F26-T10 (D-9, D-28 v3.39): the formalization review ---------------------------------------
 
+#: F26-T19: the instance a refutation template is asked at.
+REFUTE_N = {
+    "type": "integer",
+    "minimum": 0,
+    "description": "An instance: refutation templates at n.",
+}
+
 
 async def get_review(call: Call, args: dict[str, Any]) -> dict[str, Any]:
     """``GET /reviews/<id>``, body for body, with the caller's bearer forwarded when the
@@ -287,11 +294,21 @@ async def get_review(call: Call, args: dict[str, Any]) -> dict[str, Any]:
     one (a read tool is never ``endpoint``, ``calls.Tool``). The words, cases, questions and
     answers are contributor text, so the answer carries the untrusted note."""
     target_id = check_id(args.get("target_id"), "target_id")
+    n = refutation_n(args)
     with_bearer = Call(call.ctx, call.http, token=mcpauth.bearer(), calls=call.calls)
+    query = "" if n is None else f"?n={n}"
     doc = service_answer(
-        await with_bearer.endpoint("GET", f"/reviews/{target_id}"), "/reviews/<id>"
+        await with_bearer.endpoint("GET", f"/reviews/{target_id}{query}"), "/reviews/<id>"
     )
     return {**doc, "untrusted_note": demarcate.UNTRUSTED_NOTE}
+
+
+def refutation_n(args: dict[str, Any]) -> int | None:
+    """F26-T19: the instance a refutation template is asked at, or ``None``."""
+    n = args.get("n")
+    if n is not None and (isinstance(n, bool) or not isinstance(n, int) or n < 0):
+        raise error("arguments-invalid", "n is a natural number", "adapter")
+    return n
 
 
 def _review_targets(ctx: Context, target_id: str | None) -> list[str]:
@@ -341,10 +358,12 @@ async def list_open_pairs(call: Call, args: dict[str, Any]) -> dict[str, Any]:
     target_id = args.get("target_id")
     if target_id is not None:
         target_id = check_id(target_id, "target_id")
+    n = refutation_n(args)
+    caller = mcpauth.caller_pseudonym(ctx)
     found: list[dict[str, Any]] = []
     try:
         for target in _review_targets(ctx, target_id):
-            found.extend(reviews.open_directions(ctx, target))
+            found.extend(reviews.open_directions(ctx, target, caller, n))
     except ApiError as exc:
         raise from_api_error(exc) from exc
     return {
@@ -1336,8 +1355,9 @@ TOOLS: tuple[Tool, ...] = (
         "exhibits, signatures, and the derived `state`. The blind rule (D-9 v3.39): with no "
         "token, or one whose identity authored no candidate on the record, every candidate's "
         "`lean` is null with `lean_withheld: blind`; once your candidate is merged, every Lean "
-        "is shown. 404 review-unknown for a target with no review. Read at main's head.",
-        params({"target_id": ID_PARAM}, ("target_id",)),
+        "is shown, and each open pair's `template`. 404 review-unknown if none. Read at "
+        "main's head.",
+        params({"target_id": ID_PARAM, "n": REFUTE_N}, ("target_id",)),
         get_review,
     ),
     Tool(
@@ -1358,10 +1378,16 @@ TOOLS: tuple[Tool, ...] = (
         "the `direction` (forward: a implies b; backward: b implies a), the last `attempt` "
         "recorded (who, tool, budget_s) or null, its target_id, and `submit_as: pair-proof` — "
         "a proof or refutation of one goes through submit_proof with artifact_type pair-proof "
-        "and is credited (F26-R8). In the records' order, ranked by nothing; not a frontier "
-        "entry. `target_id` keeps one target. Read from targets/<id>/review/pairs/ at main's "
-        "head. Plain path: targets/<id>/review/pairs/.",
-        params({"target_id": {**ID_PARAM, "description": "Only this target's open pairs."}}),
+        "and is credited (F26-R8), with its `template` to fill (helper and proof regions "
+        "only) under the blind rule (`template_withheld: blind` until you author a candidate "
+        "there); `n` adds the `refutation` template. Latest record per pair, in record order, "
+        "ranked by nothing; not a frontier entry. Plain path: targets/<id>/review/pairs/.",
+        params(
+            {
+                "target_id": {**ID_PARAM, "description": "Only this target's open pairs."},
+                "n": REFUTE_N,
+            }
+        ),
         list_open_pairs,
     ),
     Tool(  # F27-T2: D-28's read table, v3.40

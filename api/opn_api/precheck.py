@@ -732,6 +732,16 @@ async def post_precheck(ctx: Context, request: Request) -> Response:
     from opn_api import uses as usesmod  # noqa: PLC0415 — uses reads this module's products
 
     fields, _ = await identitymod.body_fields(request, PRECHECK_FIELDS)
+    if fields.get("artifact_type") == "pair-proof":
+        # F26-T19 (R8): a settlement of a review pair is not a node artifact and has no precheck
+        raise ApiError(
+            400,
+            "pair-proof-not-prechecked",
+            "a pair proof is not prechecked: submit it directly (POST /submissions, MCP "
+            "submit_proof, with artifact_type pair-proof, a pair and the filled lean), and it is "
+            "checked on submission; check_lean (POST /check) is where to iterate on it",
+            details={"field": "artifact_type"},
+        )
     node_id = fields.get("node_id")
     if not isinstance(node_id, str) or not node_id:
         raise ApiError(400, "node-id-missing", "node_id is required")
