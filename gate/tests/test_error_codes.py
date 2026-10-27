@@ -62,6 +62,8 @@ FORWARDERS = frozenset(
 #: (file, expression) -> what is relayed. Each object's own construction is collected.
 RELAYS: dict[tuple[str, str], str] = {
     ("gate/opn_gate/palomar_export.py", "definitions.code"): "a defs.order Diagnostic",
+    ("gate/opn_gate/modes.py", "found.code"): "a pair-proof rule's Diagnostic, with its path",
+    ("gate/opn_gate/pair_proof_check.py", "self.code"): "a Verdict's refusal, a Diagnostic first",
     ("gate/opn_gate/qa.py", "problem.code"): "a Diagnostic from check_exhibit",
     ("gate/opn_gate/qa.py", "shape.code"): "a Diagnostic from signature_of",
     ("gate/opn_gate/qa.py", "state.refused[0].code"): "a refused row's Diagnostic",

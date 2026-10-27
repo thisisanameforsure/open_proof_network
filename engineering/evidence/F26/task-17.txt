@@ -1,0 +1,217 @@
+F26-T17 — the gate before the merge: a pull request adding a pair-proof record (agent G)
+Worktree /Users/mikehiggins/Desktop/repos/opn-pp-gate, branch f26-t17-gate, off f26-pair-proof at ebd36797.
+Written as the work went; every red run below is the first run of its test against a seam left at
+today's behaviour (nothing judges a pair proof), so each failed on the defect, not on a missing name.
+
+== 1. The verdict (opn_gate/pair_proof_check.py) ==
+
+Red 1 (2026-10-27), gate/tests/test_pair_proof_check.py, seam `verdict(...) -> Verdict(ok=True)`:
+  first run: 25 failed, 2 passed — but one failure was `AttributeError: 'Verdict' object has no
+  attribute 'diagnostic'`, a missing name, not the defect. Added `diagnostic` and `as_dict` to the
+  seam at today's behaviour (None / ok) and re-ran:
+  second run: 25 failed, 2 passed, every failure an assertion on the defect, e.g.
+    AssertionError: assert (True, None) == (False, 'pair-proof-axiom')
+    AssertionError: assert (True, None) == (False, 'pair...f-degenerate')
+    AssertionError: every compile is confined
+    AssertionError: assert [] == [(('OpnPairProof',), False)]
+  (the two that passed are the guard-timeout and guard-through-sorry cases, whose answer is "ok"
+  and which the seam's "everything passes" gives for the wrong reason; they hold once the verdict
+  runs the guard.)
+
+Green 1: `uv run pytest -m "not lean and not docker" gate/tests/test_pair_proof_check.py
+  gate/tests/test_error_codes.py gate/tests/test_pair_proof_contract.py` -> 78 passed.
+  test_error_codes needed one RELAYS row: `Verdict.diagnostic` builds `Diagnostic(self.code, ...)`
+  from a refusal whose own `Diagnostic(...)` the walk already collects.
+  Seven codes registered in codes.py (source gate): pair-proof-elaboration, pair-proof-sorry,
+  pair-proof-axiom, pair-proof-degenerate, pair-proof-replay, pair-proof-meaning,
+  pair-proof-unchecked.
+
+Lean tier (real Lean 4.33.1, core-Lean Legendre fixtures), gate/tests/test_pair_proof_check_lean.py:
+  Red: run against today's behaviour as a pytest plugin (`-p seam_today`, monkeypatching
+  `pair_proof_check.verdict` to `Verdict(ok=True)` in memory; no file touched):
+    7 failed, 2 passed in 13.98s — each `assert (True, None) == (False, '<code>')`; the two that
+    passed are the two passes (the correct proof, the refutation at n = 0).
+  Green: 9 passed (first run 4 passed then one failure of my own assertion: the native_decide
+  axiom at 4.33.1 is a per-use auxiliary axiom whose name carries `native_decide`, not
+  `Lean.ofReduceBool`; the assertion now uses `toolchain.is_native_decide_axiom`, the gate's own
+  rule. The verdict itself refused it correctly as pair-proof-axiom on the first run).
+  What each shows at 4.33.1:
+    - the correct proof (human-ref -> alt-closed, the contract's helper and proof) passes, its
+      axioms within the three;
+    - a proof that ignores its hypothesis (into a claim `n = n`, `exact rfl`) -> pair-proof-degenerate;
+    - `private theorem cheat (p : Prop) : p := sorryAx p false` passes the regions' word scan
+      (`static` is None: `sorryAx` is not the word `sorry`) and is refused pair-proof-sorry by Lean;
+    - the word `sorry` in a helper is refused pair-proof-forbidden before any judging dir exists;
+    - a helper `by native_decide` (allowed by F00-T11's helper rule) and `decide +native` in the
+      proof region (not one of the region's forbidden words) are both refused pair-proof-axiom;
+    - a proof that does not close -> pair-proof-elaboration with Lean's messages;
+    - a refutation of human-ref -> bad-zero at n = 0 by `decide` passes; at n = 1 it does not
+      elaborate (bad-zero holds there) -> pair-proof-elaboration.
+
+Decisions:
+  - The verdict takes the template as well as the text and runs `static` (split + problems) first,
+    so a layer that calls it cannot forget the byte check; each rule is also a public function
+    (`static`, `elaboration_problem`, `axiom_problem`, `degenerate`, `clean`) for a layer whose
+    toolchain is not a `Toolchain` (the service's hosted checker) to apply the same rule to what
+    it holds.
+  - Beyond the brief: the kernel replay (step 4's, fresh on core, against imports on Mathlib) and
+    the meaning comparison (F08-T28's `opn-statement-meaning`, reference = the gate's own unfilled
+    template compiled in an area of its own). The byte check fixes the text; these fix what it
+    compiled to, against a region that rewrites the environment (a tactic block may run
+    `run_tac`). Probed first: Lean itself refuses a private helper that shadows a candidate
+    (`a non-private declaration C_b.claim has already been declared`), so the comparison is
+    defence in depth, not the only guard.
+  - One module name for every compile (`OpnPairProof`), so a candidate's private declarations are
+    the same constants in the reference and the filled module.
+  - A guard compile that times out is the guard failing (the proof stands), as the job reads its
+    own guard through `Runner.check`.
+
+THE SIGNATURE T18 AND T19 CALL (opn_gate/pair_proof_check.py):
+
+  def verdict(
+      toolchain: Toolchain,
+      resolved: ResolvedToolchain,
+      text: str,              # the record's `lean`, the whole filled file
+      tmpl: str,              # pair_proofs.template(a, b, direction, kind, n) from the base tree
+      *,
+      first: Cand,            # the direction's first candidate: pair_proofs.ordered(a, b, d)[0]
+      kind: Kind,             # "proof" | "refutation"
+      workdir: Path,          # a directory the call may fill; it also writes <workdir>.judge/
+      graph_build: Path | None = None,  # the graph modules the candidates import, built (Q21)
+      timeout_s: float | None = None,
+  ) -> Verdict
+
+  @dataclass(frozen=True)
+  class Verdict:
+      ok: bool
+      code: str | None        # None on a pass
+      reason: str
+      details: dict[str, Any]
+      axioms: tuple[str, ...] # sorted, when read
+      diagnostic -> Diagnostic | None   (property)
+      as_dict() -> {"ok", "code", "reason", "details", "axioms"}
+
+  Rules usable without a Toolchain: static(text, tmpl) -> Diagnostic | None;
+  elaboration_problem(ElabResult) -> Diagnostic | None; axiom_problem(axioms, decl) ->
+  Diagnostic | None; clean(ElabResult) -> bool (for the guard); degenerate(first) -> Diagnostic;
+  ALLOWED_AXIOMS, DECLS {"proof": "opnDirection", "refutation": "opnInstance"}, MODULE.
+
+== 2. Classification and the checks before any sandbox (modes.py, pair_proof_check.admissible) ==
+
+Red 2, gate/tests/test_pair_proof_gate.py against the code as it stood (the contract routes the
+record to `check_review_record`, which validated the schema and the target and nothing else):
+  25 failed, 11 passed. Every failure an assertion on the defect, e.g.
+    AssertionError: assert [] == ['pair-proof-name']          (x6)
+    AssertionError: assert [] == ['pair-not-open']            (x4)
+    AssertionError: assert [] == ['pair-proof-kind']          (x3)
+    AssertionError: assert [] == ['pair-proof-not-author'], ['pair-proof-settled'],
+      ['pair-candidate-mismatch'], ['pair-candidate-unknown'], ['pair-proof-no-review'],
+      ['pair-proof-multiple'], ['pair-proof-template-mismatch'] (x2), ['pair-proof-forbidden'],
+      ['pair-candidate-not-surviving'] (x2)
+  and the catalog test on `KeyError: 'pair-proof-multiple'`.
+  The 11 that passed are what today's gate already did right and what the new rules must not
+  break: the happy paths (service-opened, hand-opened by the author, a refutation), append-only
+  (M and D are `path-forbidden` by `_locate_change`: the role is not in MODIFIABLE_ROLES), a
+  pair proof with a candidate is `mode-mixed`, schema and target refusals, a curator's login
+  acting for its pseudonym, an earlier record of the other direction, a later open pair record.
+Green 2: 36 passed (with test_error_codes: one more RELAYS row, modes.py `found.code`, the
+  `_at` helper that puts the record's path on a rule's Diagnostic).
+  Ten codes registered: pair-proof-multiple, pair-proof-name, pair-proof-not-author,
+  pair-proof-no-review, pair-candidate-unknown, pair-candidate-mismatch,
+  pair-candidate-not-surviving, pair-not-open, pair-proof-settled, pair-proof-kind.
+
+Decisions:
+  - "Against the base tree": the classify step reads the checkout at the merge commit. The
+    mode carries exactly one file and it sits under review/pair-proofs/, which nothing the rules
+    read derives from (review.derive reads candidates, exhibits, pairs, signatures), so the tree
+    read is the base's plus this record; the record itself is passed over by name when earlier
+    pair-proof records are read. Reading through the BaseReader instead would need a directory
+    listing it does not offer (it reads one path).
+  - The record rules other than authorship live in `pair_proof_check.admissible(target_dir, doc,
+    *, own=None) -> Inputs | Diagnostic` and `name_problem(doc, name)`, so the service's
+    pre-flight (T19) and the job (T18) can apply the same rules to the tree they hold; the
+    authorship rule needs the classification (`acting_names`) and stays in modes.
+  - Who it acts for: `acting_names(graph_root, classification, author)`, F18-Q7's rule as
+    registrations and review openings use it; `by_service` is already set by `_classify_record`.
+  - Order of rules (first refusal answers): name, author, review, candidates known, hashes,
+    surviving, open on the pair record in force, not settled by an earlier record, kind fits
+    (template raises), the Lean the template's (static).
+  - "No earlier merged pair-proof record settles the same direction at the same hashes": any
+    earlier record with the same a, b, direction and statement_hashes, whatever its kind; a
+    record of the other direction settles nothing here.
+
+== 3. The workflow's switch and `opn-gate pair-proofs` (cli.py) ==
+
+Red 3: the five CLI tests first failed on missing names (`KeyError: 'needs_pair_proof'`,
+  argparse `invalid choice: 'pair-proofs'`), so the seam went in at today's behaviour
+  (`needs_pair_proof: False`, `pair_proofs: []`; a `pair-proofs` command that judged nothing and
+  printed ok) and the second red run failed on the defect:
+    test_classify_asks_the_workflow_for_the_sandbox: assert (False is True)
+    test_the_command_runs_the_verdict...: KeyError: 'record'   (no record judged)
+    test_the_command_fails_naming_the_verdicts_refusal: assert 0 == 1
+    test_the_command_re_reads_the_tree...: assert 0 == 1
+    test_the_command_belongs_to_the_pair_proof_mode_alone: assert 0 == 2
+  (one test of mine was wrong the first time: it put the job's discard exhibit in the same
+  commit as the record, so the diff was a mixture and the command answered a usage error; the
+  tree's state now goes in the base commit, as 2026-09-12's log entry says.)
+Green 3: 43 passed fast; the graph-modules test (a candidate importing `Defs.Extra`) shown to
+  bite by a mutant plugin that drops `graph_build` (1 failed: the judging calls read
+  `no-graph-modules`, not `graph/build`). Lean tier: `test_the_command_with_the_real_toolchain`
+  (classify, then `pair-proofs` without the sandbox at 4.33.1) 1 passed in 128 s.
+  Docker tier: `test_the_command_in_the_step_3_sandbox` is marked docker; it cannot run on this
+  laptop (Docker's disk and image format) and is CI's to run.
+
+WHAT THE LEAD WIRES INTO THE GRAPH'S .github/workflows/gate.yml (job `gate`):
+
+  1. In the classify step's output loop, add `("needs_pair_proof", False)` to the tuple of
+     (key, default) pairs, so a pin that predates the field reads false and skips the step:
+         for key, default in (("mode", None), ("node", None), ("needs_gate", False),
+                              ("needs_review", False), ("needs_admission", False), ("admit", None),
+                              ("needs_exhibits", False), ("needs_qa_rerun", False),
+                              ("needs_pair_proof", False), ("reviewers", None)):
+  2. A step after "Re-run the screens a QA record claims inside the step-3 sandbox":
+
+      # F26-T17 (R8): a pair-proof record carries contributor Lean, the direction's template with
+      # its two regions filled. The pinned gate re-reads the record against the tree and judges
+      # the Lean inside the step-3 sandbox (template, regions, no sorry, the standard axioms read
+      # with initializers off, the degenerate guard), and fails the pull request naming the
+      # refusal. No secret, no write permission. Inert on a pin that predates the command:
+      # `needs_pair_proof` then reads false and the step is skipped (F08-Q8's shape).
+      - name: Judge the pair proof inside the step-3 sandbox
+        if: steps.classify.outputs.needs_pair_proof == 'true'
+        env:
+          BASE: ${{ steps.pin.outputs.base }}
+          PYTHONPATH: network/gate
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/gate-out"
+          uv run --frozen --project network python -m opn_gate.cli pair-proofs \
+            --graph . --base "$BASE" --head HEAD --sandbox --out "$RUNNER_TEMP/gate-out/pair-proofs" \
+            | tee "$RUNNER_TEMP/pair-proofs.txt"
+
+  3. In "Keep the verdict and attestation", add `|| steps.classify.outputs.needs_pair_proof ==
+     'true'` to its `if:` and `${{ runner.temp }}/gate-out/pair-proofs/pair-proofs.json` to its
+     `path:` list.
+
+  ORDER MATTERS: the workflow step must be on the graph before (or in the same push as) the
+  re-pin to a network commit carrying this mode. On the old pin the field reads false and the
+  step is inert, so landing it first is safe; a pin that classifies `pair-proof` as ok under a
+  workflow that never runs `pair-proofs` would merge the record with its Lean unjudged (the job
+  re-checks after the merge and writes nothing for a bad one, but the merge earns the review
+  line).
+
+The first attempt to commit piece 2 was refused by the pre-commit hook: 1 failed, 6900 passed —
+gate/tests/test_modes.py::test_classify_command pins classify's whole summary, and the summary now
+carries two more keys ({'needs_pair_proof': False, 'pair_proofs': []}). That test was restated with
+the two keys; it describes the summary, and the new keys are part of it.
+
+== 4. One allowlist (the lead's message, from agent S's T19 lean test) ==
+
+`pair_proofs.STANDARD_AXIOMS = ("Classical.choice", "Quot.sound", "propext")` is now the one
+definition; `pair_proof_check.ALLOWED_AXIOMS` is the same object, and `axiom_problem` reads
+`pair_proofs.STANDARD_AXIOMS`. The judge was an allowlist from the start (anything outside the
+three is pair-proof-axiom; the lean tier above saw native_decide arrive as its per-use auxiliary
+axiom and refused it), so no behaviour changed; the parametrised fast test now also names
+`opnDirection._native.native_decide.ax_1_1` and an arbitrary name, and a new test holds the three
+to one definition. Those cases passed on their first run: they pin a rule already in force, not a
+defect.

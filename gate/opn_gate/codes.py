@@ -2339,6 +2339,141 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "Keep helpers private and free of options and new axioms; write the proof as an indented "
         "tactic block that closes the goal.",
     ),
+    "pair-proof-multiple": (
+        "gate",
+        None,
+        "A pull request adds more than one pair-proof record; each settles one direction and is "
+        "a pull request of its own (F26-R8, F26-T17).",
+        "Open one pull request per direction.",
+    ),
+    "pair-proof-name": (
+        "gate",
+        None,
+        "A pair-proof record's file name is not <a>--<b>--<direction>--<stamp>-<author>.yaml for "
+        "its own a, b, direction, date and author, or its a is not the lexically smaller id "
+        "(F26-R8, F26-T17).",
+        "Name the pair as pair/v1 does (smaller id first, direction saying which way) and the "
+        "file from the record's own fields; the service does both for you.",
+    ),
+    "pair-proof-not-author": (
+        "gate",
+        None,
+        "A pair-proof record names an author who is not the one the pull request acts for: its "
+        "opener, or the signed-in identity when the service opened it (F26-R8, F18-Q7).",
+        "File it through the service, which writes the author from your token, or open it "
+        "under your own identity.",
+    ),
+    "pair-proof-no-review": (
+        "gate",
+        None,
+        "A pair-proof record is filed under a target with no formalization review, so there is "
+        "no pair to settle (F26-R8).",
+        "Read the target's open pairs (list_open_pairs) and file against one of those.",
+    ),
+    "pair-candidate-unknown": (
+        "gate",
+        None,
+        "A pair-proof record names a candidate the target's review does not hold, or whose Lean "
+        "file is missing (F26-R8, F26-T17).",
+        "Copy a and b from list_open_pairs.",
+    ),
+    "pair-candidate-mismatch": (
+        "gate",
+        None,
+        "A pair-proof record's statement_hashes are not the candidates' statement_hash on "
+        "record, so it is not bound to the texts it says it settles (F26-R8, F26-T17).",
+        "Copy both hashes from the candidates' records (list_open_pairs carries them).",
+    ),
+    "pair-candidate-not-surviving": (
+        "gate",
+        None,
+        "A pair-proof record names a candidate that is discarded, returned or not yet compiled "
+        "by the review job; only a pair of surviving candidates has directions to settle "
+        "(F26-R8).",
+        "Choose an open pair between surviving candidates (list_open_pairs).",
+    ),
+    "pair-not-open": (
+        "gate",
+        None,
+        "A pair-proof record settles a direction that is not open on the pair record in force: "
+        "the job has not compared the pair, or the direction is already proved or refuted "
+        "(F26-R8).",
+        "Only an open direction takes a pair proof; read list_open_pairs again.",
+    ),
+    "pair-proof-settled": (
+        "gate",
+        None,
+        "An earlier merged pair-proof record already settles the same direction at the same "
+        "statement hashes; the review job writes the pair from it (F26-R8, F26-T17).",
+        "Choose another open direction.",
+    ),
+    "pair-proof-kind": (
+        "gate",
+        None,
+        "A pair-proof record's kind and case do not fit its direction: a proof names no instance, "
+        "a refutation names a natural number n, a closed direction cannot be refuted, and the "
+        "claims' shapes must be ones the review compares (F26-R8, F26-T16).",
+        "For a proof set case to null; for a refutation give case.n, and only between indexed "
+        "claims.",
+    ),
+    "pair-proof-elaboration": (
+        "gate",
+        None,
+        "A pair proof's filled template does not elaborate: Lean reported an error, or left no "
+        "compiled module (F26-R8, F26-T17).",
+        "Run the file through POST /check (or lean) and fix the first error in the helper or "
+        "proof region; the rest of the file is the gate's and elaborates as written.",
+    ),
+    "pair-proof-sorry": (
+        "gate",
+        None,
+        "A pair proof elaborates only with sorry, reported by Lean or found among its theorem's "
+        "axioms (sorryAx), for example through a helper (F26-R8, F26-T17).",
+        "Prove every helper and the direction outright; a settled direction is a whole proof.",
+    ),
+    "pair-proof-axiom": (
+        "gate",
+        None,
+        "A pair proof's theorem depends on an axiom other than propext, Classical.choice and "
+        "Quot.sound, native_decide's Lean.ofReduceBool among them (F26-R8, F26-T17).",
+        "Replace native_decide with decide or a kernel proof, and drop whatever introduced the "
+        "named axiom; the details list each one.",
+    ),
+    "pair-proof-degenerate": (
+        "gate",
+        None,
+        "A pair proof still proves with its hypothesis cleared right after the gate's intro, so "
+        "it never uses the first claim, and the degenerate guard refuses it as a proof of the "
+        "direction (F26-R7, R8, F26-T17).",
+        "A proof of the direction must use the first claim. If the second claim holds outright, "
+        "say so to the review's curator or steward rather than filing it as a pair proof.",
+    ),
+    "pair-proof-replay": (
+        "gate",
+        None,
+        "The kernel replay rejected a pair proof's compiled module: something in it was added "
+        "to the environment without passing the kernel (F26-R8, F26-T17).",
+        "Remove the metaprogramming that adds declarations by hand; write ordinary helpers and "
+        "tactics.",
+    ),
+    "pair-proof-meaning": (
+        "gate",
+        None,
+        "A pair proof's theorem, or a candidate declaration its type reaches, compiled to "
+        "something other than the gate's own unfilled template: code in a region changed what "
+        "the gate-written text means (F26-R8, F26-T17).",
+        "Keep the regions to helpers and tactics that do not change the environment the "
+        "template's declarations were compiled in.",
+    ),
+    "pair-proof-unchecked": (
+        "gate",
+        None,
+        "A pair proof could not be checked: a call timed out or was killed, the toolchain or a "
+        "metaprogram gave no verdict, or the direction's own template did not build. Nothing "
+        "was decided, and the gate does not accept what it could not check (F26-R8, F26-T17).",
+        "Try again later; a proof that needs more than the budget can be split into helpers. "
+        "If the template itself does not build, tell the review's curator.",
+    ),
     "review-not-intent-signer": (
         "api",
         None,
