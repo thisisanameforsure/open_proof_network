@@ -1,0 +1,5 @@
+  unfold C_c_ae9bea28_p.opnClaim at h
+  unfold C_c_fb339e85_p.opnClaim
+  intro t ht
+  obtain ⟨a, ha⟩ := h t ht
+  exact ⟨a, by rw [key a, ha]⟩
