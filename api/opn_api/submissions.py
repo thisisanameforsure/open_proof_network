@@ -584,6 +584,9 @@ SUBMISSION_FIELDS: tuple[str, ...] = (
     "tooling",
     "precheck_job_id",
     "automation",
+    # F26-T19 (R8): a pair proof's two fields; it takes no node, bundle, tooling or precheck
+    "pair",
+    "lean",
 )
 
 
@@ -591,7 +594,21 @@ async def post_submissions(ctx: Context, request: Request) -> Response:
     """R1, R2: bind to a passing precheck, then open the pull request on the graph."""
     identity: Identity = request.state.identity
     fields, _ = await identitymod.body_fields(request, SUBMISSION_FIELDS)
+    if fields.get("artifact_type") == "pair-proof":
+        # F26-T19 (R8): not a node artifact; checked on submission, with no precheck
+        from opn_api import pairproofs  # noqa: PLC0415 — pairproofs opens its PR through here
+
+        return await pairproofs.submit(ctx, identity, fields)
     artifact_type = check_artifact_type(fields.get("artifact_type"))
+    for name in ("pair", "lean"):
+        if name in fields:
+            raise ApiError(
+                400,
+                "arguments-invalid",
+                f"{name} belongs to a pair proof (artifact_type pair-proof); a node artifact "
+                "sends its files in bundle",
+                details={"field": name},
+            )
     tooling = check_tooling(fields.get("tooling"))
     # F25-R2: every artifact on this route declares how it was made, before anything else is
     # read — so a missing block costs no job, no push and no pull request (F13-T21's rule).

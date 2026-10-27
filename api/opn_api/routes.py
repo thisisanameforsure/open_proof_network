@@ -478,7 +478,8 @@ PURPOSES: dict[str, str] = {
     "GET /claims/mine": "Your own active claims with their ids, and who else holds each node.",
     "POST /precheck": "Run the gate on a bundle in the hosted sandbox before submitting it.",
     "GET /precheck/{job_id}": "A precheck job's state, and its signed attestation when done.",
-    "POST /submissions": "Open the pull request for a prechecked proof or partial proof.",
+    "POST /submissions": "Open the pull request for a prechecked proof or partial proof, or for "
+    "a pair proof settling an open review pair direction (checked on submission, no precheck).",
     "GET /submissions.json": "Every pull request the service opened that is still open, in "
     "merge-queue order, each with its position.",
     "GET /submissions/mine": "Your own submissions: the open ones with their place in the "
@@ -528,7 +529,8 @@ PURPOSES: dict[str, str] = {
     "words, the cases and the concepts, by pull request on a review/ branch.",
     "GET /reviews/{target_id}": "A target's review as the records hold it: the words, cases, "
     "candidates, questions, answers, pairs, signatures and derived state; every candidate's "
-    "Lean is withheld until a candidate of your own is on the record (the blind rule).",
+    "Lean, and each open pair's pair-proof template (?n=<n> adds the refutation template), is "
+    "withheld until a candidate of your own is on the record (the blind rule).",
     "GET /reviews/{target_id}/questions": "The questions waiting on a target's review, in "
     "words, each with what raised it; no Lean.",
     "POST /reviews/{target_id}/candidates": "Submit a candidate formalization of the review's "

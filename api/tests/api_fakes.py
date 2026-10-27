@@ -695,12 +695,14 @@ class FakeAxle:
     """The F13 seam's fake: answers from ``replies`` in order, then ``AXLE_OKAY``."""
 
     calls: list[AxleCall] = field(default_factory=list)
-    replies: list[dict[str, Any] | AxleError] = field(default_factory=list)
+    replies: list[Any] = field(default_factory=list)  # a body, an AxleError, or a callable
     hosted: list[str] = field(default_factory=lambda: ["lean-4.33.0"])
 
     def _answer(self, call: AxleCall) -> AxleAnswer:
         self.calls.append(call)
         reply = self.replies.pop(0) if self.replies else AXLE_OKAY
+        if callable(reply):  # F26-T19: a reply that reads the request (a nonce in the text)
+            reply = reply(call)
         if isinstance(reply, AxleError):
             raise reply
         info = reply.get("info")

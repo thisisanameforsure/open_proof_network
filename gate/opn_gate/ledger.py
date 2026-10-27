@@ -73,6 +73,9 @@ MERGE_LINES: dict[str, Line | None] = {
     "review-answer": None,
     "review-signature": None,
     "review-job": None,
+    # F26-T16 (R8, Q22): a settled pair direction is review work, credited on D-19's review
+    # line under the target's root; the gate checked it before the merge.
+    "pair-proof": "review",
 }
 #: D-21, F11 §7: the curator of a target earns no proof credit on it. They chose the statement,
 #: its decomposition and its difficulty, so a proof of one of its nodes is not a result they
@@ -407,6 +410,44 @@ def registration_entry(  # noqa: PLR0913 — one argument per fact the entry rec
         date=date,
         tooling=UNDECLARED,
         automation=None,
+    )
+
+
+def review_entry(  # noqa: PLR0913 — one argument per fact the entry records
+    *,
+    target: str,
+    node: str,
+    artifact: str,
+    merge_commit: str,
+    date: str,
+    models: list[str],
+) -> Entry:
+    """F26-T18 (R8, D-19): the review line a merged pair-proof record earns its author — a
+    settled direction of the target's formalization review. ``node`` is the target's root (the
+    review is of its statement), ``artifact`` the record's path under the target
+    (``review/pair-proofs/<name>``, the registration line's precedent), the tooling the models
+    the record names, ``undeclared`` when it names none. No attestation is written for a review
+    record, so there is no automation block to carry."""
+    named = [m for m in models if m.strip()]
+    return Entry(
+        line="review",
+        target=target,
+        node=node,
+        artifact=artifact,
+        merge_commit=merge_commit,
+        date=date,
+        tooling=", ".join(named) if named else UNDECLARED,
+        automation=None,
+    )
+
+
+def holds(doc: dict[str, Any], entry: Entry) -> bool:
+    """Whether the ledger already carries ``entry``'s line (``LINE_KEY`` and its target), active
+    or not: a replay of a merge (F07-T33) credits nothing twice."""
+    mine = entry.as_dict()
+    return any(
+        e.get("target") == mine["target"] and all(e.get(k) == mine[k] for k in LINE_KEY)
+        for e in entries_of(doc)
     )
 
 

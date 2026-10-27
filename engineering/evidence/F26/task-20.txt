@@ -1,0 +1,39 @@
+# F26-T20 — guide, Docs, the graph's gate.yml step (lead, 2026-10-27)
+
+Guide: gate/agents/AGENTS.md "Open pairs are work" rewritten: the template, its two regions, the
+submit_proof body, no precheck, the four refusals before anything opens, the merge and the credit,
+refutation by n, the blind rule on templates. Guide tests (test_finding_guide_*, walkthrough):
+183 passed; the copy test passed with OPN_GRAPH_CHECKOUT at the graph branch.
+
+Graph branch f26-t20-pair-proof-step (worktree in the session scratchpad, off graph origin/main):
+  186c771da2 gate.yml: classify output gains ("needs_pair_proof", False); step "Judge the pair
+             proof inside the step-3 sandbox" runs `opn_gate.cli pair-proofs --sandbox`; the
+             verdict is kept with the run's artifacts. Inert on an older pin (field reads false,
+             and an older pin refuses review/pair-proofs/ paths as path-forbidden anyway).
+  1d2c09a3b9 AGENTS.md copy.
+Not pushed. Order: this lands with or before the re-pin (T17's note).
+
+Merges into f26-pair-proof: 49c5142b (T17 + T19: one code per fact, seven codes source both,
+api reads opn_gate.pair_proofs.STANDARD_AXIOMS), deb6e88a (T18, then the settled rule fix, below).
+
+The merge's own defect: T17 and T19 each refused a record for a direction any earlier merged
+record named, so a record T18's re-check refused would lock its direction for ever; and T19's
+supersession compared dates alone, putting a same-day later record (`a--b--<date>-k.yaml`,
+which sorts before `a--b.yaml`) behind the original. Red first, failing on the defect:
+  gate/tests/test_pair_proof_gate.py::test_a_record_the_job_refused_settles_nothing
+      -> found [pair-proof-settled]
+  api/tests/test_pair_proof_submissions.py::test_a_merged_record_the_job_refused_settles_nothing
+      -> 409
+  api/tests/test_pair_proof_submissions.py::test_a_same_day_later_pair_record_is_the_one_in_force
+      -> 409
+  (and the accepted cases, green before and after)
+Fix: both read review.pair_proof_judgments (T18); reviews.in_force calls review.latest_of.
+Full fast tier at deb6e88a: 7012 passed, 22 skipped.
+
+erdos-849 content prepared (pair-proof-e849/): C's equivalence proof as helpers + proof regions
+of both directions' templates; live POST /check (lean-4.33.1, Mathlib): forward okay true,
+backward okay true, both guarded copies okay false with "Unknown identifier `h`".
+
+Lean tier on deb6e88a (real Lean 4.33.1, laptop): test_pair_proof_check_lean.py 9, test_pair_proof_preflight_lean.py 3,
+test_review_pair_proof_job_lean.py 1, test_pair_proof_gate.py (lean) 1: 14 passed. Docker tier (the sandbox
+command test) not runnable here; CI's.

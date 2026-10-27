@@ -130,6 +130,7 @@ Mode = Literal[
     "review-answer",
     "review-signature",
     "review-job",
+    "pair-proof",  # F26-T16 (R8): a contributor's settled pair direction
 ]
 
 #: F25-R5, R6 (D-3, D-10 v3.37): the two records outside the node, each a mode of its own and
@@ -151,6 +152,9 @@ RECORD_MODES: dict[Role, Mode] = {
     "review-question": "review-job",
     "pair": "review-job",
     "review-exhibit": "review-job",
+    # F26-T16 (R8): a contributor's proof or refutation of one open pair direction, its Lean
+    # inline; checked in the sandbox before the merge, re-checked by the job after it.
+    "pair-proof": "pair-proof",
 }
 
 #: F15-R2, R6; F24-R2, R3: a steward's signed acts on a target, which merge as the steward mode
@@ -764,6 +768,24 @@ def _classify_record(
     if len(roles) > 1:
         return Classification(None, target_id, None, tuple(located), (_mixed(roles),))
     (role,) = roles
+    if role == "pair-proof" and len(located) > 1:
+        # F26-T17 (R8): one direction per pull request, so the queue, the job's re-check and the
+        # review line stay one to one with the work.
+        listed = sorted(loc.path for loc in located)
+        return Classification(
+            None,
+            target_id,
+            None,
+            tuple(located),
+            (
+                Diagnostic(
+                    "pair-proof-multiple",
+                    f"a pull request adds one pair-proof record, one direction (F26-R8); this one "
+                    f"adds {len(listed)}: " + ", ".join(listed),
+                    {"paths": listed},
+                ),
+            ),
+        )
     return Classification(
         RECORD_MODES[role],
         target_id,
@@ -2546,6 +2568,7 @@ REVIEW_RECORD_ROLES: tuple[Role, ...] = (
     "review-question",
     "pair",
     "review-exhibit",
+    "pair-proof",
 )
 REVIEW_JOB_ROLES: tuple[Role, ...] = ("intent-test", "review-question", "pair", "review-exhibit")
 
@@ -2600,7 +2623,55 @@ def check_review_record(
         problems.extend(
             check_review_opening(graph_root, located, classification, doc, signer=signer, base=base)
         )
+    elif doc is not None and located.role == "pair-proof":
+        problems.extend(check_pair_proof_record(graph_root, located, classification, doc))
     return problems
+
+
+def check_pair_proof_record(
+    graph_root: Path, located: Located, classification: Classification, doc: dict[str, Any]
+) -> list[Diagnostic]:
+    """F26-T17 (R8; D-9 v3.39): a contributor's settlement of one open pair direction, before any
+    sandbox. The record is named for itself (``pair_proof_check.name_problem``); it is the work
+    of whoever the pull request acts for, the opener or, when the service opened it, the record's
+    own author (``acting_names``, F18-Q7's precedent as for candidates and answers); and the tree
+    takes it (``pair_proof_check.admissible``): the review, both candidates surviving at the
+    hashes it carries, the direction open, not settled already, the kind fitting, the Lean the
+    template's.
+
+    The tree read is the checkout at the merge commit. The pull request adds this one file and
+    nothing else (the mode carries one record, ``pair-proof-multiple``), and it sits under
+    ``pair-proofs/``, which nothing the rules read derives from, so the candidates, exhibits and
+    pairs read here are the merge's parent's; the record itself is passed over by name when the
+    earlier records are read. The Lean is judged in the sandbox next (``needs_pair_proof``)."""
+    from opn_gate import pair_proof_check  # noqa: PLC0415 — the verdict imports the review's
+
+    name = PurePosixPath(located.path).name
+    found = pair_proof_check.name_problem(doc, name)
+    if found is not None:
+        return [_at(found, located)]
+    author = str(doc.get("author"))
+    names = acting_names(graph_root, classification, author)
+    if author not in names:
+        return [
+            Diagnostic(
+                "pair-proof-not-author",
+                f"{located.path}: author {author!r} is not who this pull request acts for; a pair "
+                "proof is credited to the one who files it, and the service writes the author "
+                "from the sign-in (F26-R8, F18-Q7)",
+                {"path": located.path, "author": author, "opened_by": sorted(names)},
+            )
+        ]
+    target_dir = graph_root / "targets" / located.target_id
+    got = pair_proof_check.admissible(target_dir, doc, own=name)
+    return [_at(got, located)] if isinstance(got, Diagnostic) else []
+
+
+def _at(found: Diagnostic, located: Located) -> Diagnostic:
+    """``found`` with the record's path at the front of its message and in its details."""
+    return Diagnostic(
+        found.code, f"{located.path}: {found.message}", {"path": located.path, **found.details}
+    )
 
 
 def check_review_opening(  # noqa: PLR0911, PLR0913 — one return per rule; the record and its tree

@@ -2322,6 +2322,189 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "Remove it; a pull request may add a candidate, an answer or a signature, and the job "
         "writes the rest from them.",
     ),
+    "pair-proof-template-mismatch": (
+        "gate",
+        None,
+        "A pair proof's file differs from its direction's template outside the two regions the "
+        "contributor fills, the helper region and the proof region (F26-R8, F26-T16).",
+        "Start again from the template list_open_pairs gives for the direction, and change only "
+        "the lines between the two helper markers and the lines after the proof marker.",
+    ),
+    "pair-proof-forbidden": (
+        "gate",
+        None,
+        "A pair proof's helper region holds something other than private theorem, lemma, def or "
+        "abbrev declarations, or its proof region is empty, holds sorry, admit, set_option or "
+        "native_decide, or has a line at column 0 (F26-R8, F26-T16).",
+        "Keep helpers private and free of options and new axioms; write the proof as an indented "
+        "tactic block that closes the goal.",
+    ),
+    "pair-proof-multiple": (
+        "gate",
+        None,
+        "A pull request adds more than one pair-proof record; each settles one direction and is "
+        "a pull request of its own (F26-R8, F26-T17).",
+        "Open one pull request per direction.",
+    ),
+    "pair-proof-name": (
+        "gate",
+        None,
+        "A pair-proof record's file name is not <a>--<b>--<direction>--<stamp>-<author>.yaml for "
+        "its own a, b, direction, date and author, or its a is not the lexically smaller id "
+        "(F26-R8, F26-T17).",
+        "Name the pair as pair/v1 does (smaller id first, direction saying which way) and the "
+        "file from the record's own fields; the service does both for you.",
+    ),
+    "pair-proof-not-author": (
+        "gate",
+        None,
+        "A pair-proof record names an author who is not the one the pull request acts for: its "
+        "opener, or the signed-in identity when the service opened it (F26-R8, F18-Q7).",
+        "File it through the service, which writes the author from your token, or open it "
+        "under your own identity.",
+    ),
+    "pair-proof-no-review": (
+        "gate",
+        None,
+        "A pair-proof record is filed under a target with no formalization review, so there is "
+        "no pair to settle (F26-R8).",
+        "Read the target's open pairs (list_open_pairs) and file against one of those.",
+    ),
+    "pair-candidate-unknown": (
+        "gate",
+        None,
+        "A pair-proof record names a candidate the target's review does not hold, or whose Lean "
+        "file is missing (F26-R8, F26-T17).",
+        "Copy a and b from list_open_pairs.",
+    ),
+    "pair-candidate-mismatch": (
+        "gate",
+        None,
+        "A pair-proof record's statement_hashes are not the candidates' statement_hash on "
+        "record, so it is not bound to the texts it says it settles (F26-R8, F26-T17).",
+        "Copy both hashes from the candidates' records (list_open_pairs carries them).",
+    ),
+    "pair-candidate-not-surviving": (
+        "both",
+        None,
+        "A pair-proof record names a candidate that is discarded, returned or not yet compiled "
+        "by the review job; only a pair of surviving candidates has directions to settle "
+        "(F26-R8).",
+        "Choose an open pair between surviving candidates (list_open_pairs).",
+    ),
+    "pair-not-open": (
+        "both",
+        None,
+        "A pair-proof record settles a direction that is not open on the pair record in force: "
+        "the job has not compared the pair, or the direction is already proved or refuted "
+        "(F26-R8).",
+        "Only an open direction takes a pair proof; read list_open_pairs again.",
+    ),
+    "pair-proof-settled": (
+        "both",
+        None,
+        "An earlier merged pair-proof record already settles the same direction at the same "
+        "statement hashes; the review job writes the pair from it (F26-R8, F26-T17).",
+        "Choose another open direction.",
+    ),
+    "pair-proof-kind": (
+        "gate",
+        None,
+        "A pair-proof record's kind and case do not fit its direction: a proof names no instance, "
+        "a refutation names a natural number n, a closed direction cannot be refuted, and the "
+        "claims' shapes must be ones the review compares (F26-R8, F26-T16).",
+        "For a proof set case to null; for a refutation give case.n, and only between indexed "
+        "claims.",
+    ),
+    "pair-proof-elaboration": (
+        "both",
+        None,
+        "A pair proof's filled template does not elaborate: Lean reported an error, or left no "
+        "compiled module (F26-R8, F26-T17).",
+        "Run the file through POST /check (or lean) and fix the first error in the helper or "
+        "proof region; the rest of the file is the gate's and elaborates as written.",
+    ),
+    "pair-proof-sorry": (
+        "both",
+        None,
+        "A pair proof elaborates only with sorry, reported by Lean or found among its theorem's "
+        "axioms (sorryAx), for example through a helper (F26-R8, F26-T17).",
+        "Prove every helper and the direction outright; a settled direction is a whole proof.",
+    ),
+    "pair-proof-axiom": (
+        "both",
+        None,
+        "A pair proof's theorem depends on an axiom other than propext, Classical.choice and "
+        "Quot.sound, native_decide's Lean.ofReduceBool among them (F26-R8, F26-T17).",
+        "Replace native_decide with decide or a kernel proof, and drop whatever introduced the "
+        "named axiom; the details list each one.",
+    ),
+    "pair-proof-degenerate": (
+        "both",
+        None,
+        "A pair proof still proves with its hypothesis cleared right after the gate's intro, so "
+        "it never uses the first claim, and the degenerate guard refuses it as a proof of the "
+        "direction (F26-R7, R8, F26-T17).",
+        "A proof of the direction must use the first claim. If the second claim holds outright, "
+        "say so to the review's curator or steward rather than filing it as a pair proof.",
+    ),
+    "pair-proof-replay": (
+        "gate",
+        None,
+        "The kernel replay rejected a pair proof's compiled module: something in it was added "
+        "to the environment without passing the kernel (F26-R8, F26-T17).",
+        "Remove the metaprogramming that adds declarations by hand; write ordinary helpers and "
+        "tactics.",
+    ),
+    "pair-proof-meaning": (
+        "gate",
+        None,
+        "A pair proof's theorem, or a candidate declaration its type reaches, compiled to "
+        "something other than the gate's own unfilled template: code in a region changed what "
+        "the gate-written text means (F26-R8, F26-T17).",
+        "Keep the regions to helpers and tactics that do not change the environment the "
+        "template's declarations were compiled in.",
+    ),
+    "pair-proof-unchecked": (
+        "gate",
+        None,
+        "A pair proof could not be checked: a call timed out or was killed, the toolchain or a "
+        "metaprogram gave no verdict, or the direction's own template did not build. Nothing "
+        "was decided, and the gate does not accept what it could not check (F26-R8, F26-T17).",
+        "Try again later; a proof that needs more than the budget can be split into helpers. "
+        "If the template itself does not build, tell the review's curator.",
+    ),
+    # F26-T19 (R8): a pair proof submitted through the service, refused before anything opens
+    "pair-unknown": (
+        "api",
+        None,
+        "No pair record names the two candidates: the review job has not compared them yet "
+        "(F26-R13).",
+        "Wait for the review job's next run, or take a direction list_open_pairs lists.",
+    ),
+    "pair-proof-pending": (
+        "api",
+        None,
+        "A pull request of the service's already settles this direction and may still merge.",
+        "Watch it with get_submission; if it closes unmerged, submit again.",
+    ),
+    "pair-proof-no-template": (
+        "api",
+        None,
+        "The direction cannot take the kind asked: a proof needs two claims of the same shape the "
+        "review compares, a refutation two indexed claims (an instance n); or a candidate's Lean "
+        "cannot be read as the job reads it (F26-T16).",
+        "Read the direction's template_note and refutation in list_open_pairs and submit the kind "
+        "it can take.",
+    ),
+    "pair-proof-not-prechecked": (
+        "api",
+        None,
+        "A precheck was asked for artifact_type pair-proof; a pair proof is not a node artifact "
+        "and has no precheck.",
+        "Submit it directly with submit_proof (POST /submissions), artifact_type pair-proof, a "
+        "pair and the filled lean: it is checked on submission. Iterate with check_lean.",
+    ),
     "review-not-intent-signer": (
         "api",
         None,

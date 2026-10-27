@@ -310,6 +310,7 @@ Role = Literal[
     "review-answer",  # review/answers/<id>.yaml: the intent signer's signed answer
     "pair",  # review/pairs/<a>--<b>.yaml: two directions, each proved, refuted or open
     "review-exhibit",  # review/exhibits/<id>.json beside <id>.lean: a kernel-checked result
+    "pair-proof",  # review/pair-proofs/<a>--<b>--<direction>--<stamp>-<author>.yaml (F26-T16)
     "review-signature",  # review/signatures/<role>-<date>-<n>.yaml: a signer's decision
 ]
 
@@ -425,6 +426,7 @@ SCHEMAS_FOR_ROLE: dict[Role, tuple[str, ...]] = {
     "review-answer": ("review-answer/v1",),
     "pair": ("pair/v1",),
     "review-exhibit": ("exhibit/v1",),
+    "pair-proof": ("pair-proof/v1",),  # F26-T16 (R8): a contributor's settled direction
     "review-signature": ("review-signature/v1",),
     "display-name": ("display-name/v1",),  # F25-R6 (D-3 v3.37)
 }
@@ -516,6 +518,7 @@ REVIEW_ROLES_BY_DIR: dict[str, Role] = {
     "answers": "review-answer",
     "pairs": "pair",
     "exhibits": "review-exhibit",
+    "pair-proofs": "pair-proof",
     "signatures": "review-signature",
 }
 #: The review records that carry a Lean file beside the YAML (or JSON), named for the record.

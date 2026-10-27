@@ -138,7 +138,10 @@ class ReviewFake(FakeToolchain):
                 olean.parent.mkdir(parents=True, exist_ok=True)
                 olean.write_bytes(b"fake")
                 return ElabResult(ok=True)
-        ok, messages = self._decide(head)
+        if head.get("op") == "pair-proof":
+            ok, messages = self._pair_proof(text)
+        else:
+            ok, messages = self._decide(head)
         if ok:
             self.accepted.add(text)
             olean = out_dir / f"{module}.olean"
@@ -147,6 +150,22 @@ class ReviewFake(FakeToolchain):
             return ElabResult(ok=True, messages=tuple(messages))
         err = Message(str(source), 1, 0, "error", "fake: the kernel says no")
         return ElabResult(ok=False, messages=(*messages, err))
+
+    @staticmethod
+    def _pair_proof(text: str) -> tuple[bool, list[Message]]:
+        """A contributor's filled pair-proof template (F26-T18): it elaborates unless its proof
+        region says ``-- fake: refused``; ``-- fake: sorry`` makes it elaborate with a sorry
+        warning; its guarded copy (``; clear h``) elaborates only when the proof says
+        ``-- fake: degenerate`` (it never used its hypothesis)."""
+        if "; clear h\n" in text:
+            return "-- fake: degenerate" in text, []
+        if "-- fake: refused on two lines" in text:
+            return False, [Message("f", 1, 0, "error", "type mismatch\n  h\nhas  type\n  P")]
+        if "-- fake: refused" in text:
+            return False, []
+        if "-- fake: sorry" in text:
+            return True, [Message("f", 1, 0, "warning", "declaration uses 'sorry'")]
+        return True, []
 
     def _decide(self, head: dict[str, Any]) -> tuple[bool, list[Message]]:  # noqa: PLR0911, PLR0912
         op = head.get("op")

@@ -309,7 +309,11 @@ def test_pin_a_tool_that_needs_a_token_refuses_inside_the_result(
 # F22-T9 measured 111,879 before and 112,369 after (+490, 0.4%): get_node's output schema at
 # v3, proposed_for and in_closure, all structure (the declared schema carries no prose). Merged
 # after F09-T75: the two together measure 112,592. Pinned 113,000.
-TOOLS_LIST_BUDGET = 113_000
+# F26-T19 (R8) measured 112,871 before and 114,654 after (+1,783, 1.6%): submit_proof's `pair` and
+# `lean` (+581 of input schema), list_open_pairs and get_review at v2, each open direction's
+# templates and refutation declared (+397 of output schema each, structure only), their `n`
+# parameter, and a clause each on submit_proof, get_review and list_open_pairs. Pinned 115,000.
+TOOLS_LIST_BUDGET = 115_000
 
 
 def test_the_whole_tools_list_fits_its_budget(harness: Harness) -> None:

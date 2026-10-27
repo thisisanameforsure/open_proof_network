@@ -20,7 +20,7 @@ import tempfile
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any
 
 import yaml
@@ -52,6 +52,7 @@ from opn_gate import (
     objectstore,
     outline,
     outline_graph,
+    pair_proof_check,
     paths,
     pipeline,
     postmerge,
@@ -365,6 +366,19 @@ def _add_graph_tool_parsers(sub: argparse._SubParsersAction[argparse.ArgumentPar
     exh.add_argument("--sandbox", action="store_true", help="elaborate inside the step-3 image")
     exh.add_argument("--image", help="sandbox image tag (default: built from gate/Dockerfile)")
     exh.add_argument("--no-build", action="store_true", help="fail if the image is not present")
+
+    pp = sub.add_parser(
+        "pair-proofs",
+        help="judge the pair-proof record a pull request adds, in the step-3 sandbox (F26-T17)",
+    )
+    pp.add_argument("--graph", required=True, type=Path, help="checkout at the PR merge commit")
+    pp.add_argument("--base", required=True, help="the pull request's base sha")
+    pp.add_argument("--head", default="HEAD", help="the commit to check (default HEAD)")
+    pp.add_argument("--out", type=Path, help="work directory (default: a fresh temp dir)")
+    pp.add_argument("--install", action="store_true", help="let elan install the pinned toolchain")
+    pp.add_argument("--sandbox", action="store_true", help="elaborate inside the step-3 image")
+    pp.add_argument("--image", help="sandbox image tag (default: built from gate/Dockerfile)")
+    pp.add_argument("--no-build", action="store_true", help="fail if the image is not present")
 
     feed = sub.add_parser(
         "palomar-feed",
@@ -992,6 +1006,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         "gate": run_gate,
         "classify": run_classify,
         "exhibits": run_exhibits,
+        "pair-proofs": run_pair_proofs,
         "qa-rerun": run_qa_rerun,
         "revise": run_revise,
         "consolidate": run_consolidate,
@@ -1759,6 +1774,17 @@ def run_classify(args: argparse.Namespace, settings: config.Settings) -> int:
     records = qa_rerun.records_in(classification.located) if classification.ok else []
     summary["qa_records"] = records
     summary["needs_qa_rerun"] = bool(records)
+    # F26-T17 (R8): a pair-proof record's Lean is contributor Lean, judged in the step-3 sandbox
+    # by ``pair-proofs`` once every check here has passed. The workflow reads the flag with a
+    # default, so a pin that predates it skips the step; a pin that knows it and a workflow
+    # that does not would merge the record unjudged, so the workflow's step lands first.
+    pair_records = (
+        sorted(loc.path for loc in classification.located if loc.role == "pair-proof")
+        if summary["ok"] and classification.mode == "pair-proof"
+        else []
+    )
+    summary["pair_proofs"] = pair_records
+    summary["needs_pair_proof"] = bool(pair_records)
     sys.stdout.write(json.dumps(summary, indent=2, ensure_ascii=False) + "\n")
     if not summary["ok"]:
         for d in problems:
@@ -1833,6 +1859,144 @@ def run_exhibits(args: argparse.Namespace, settings: config.Settings) -> int:
     for d in problems:
         sys.stderr.write(f"opn-gate: {d.code}: {d.message}\n")
     return EXIT_PASS if not problems else EXIT_FAIL
+
+
+def run_pair_proofs(args: argparse.Namespace, settings: config.Settings) -> int:
+    """F26-T17 (R8): judge the one pair-proof record the pull request adds
+    (``pair_proof_check.verdict``), in the step-3 sandbox on the authoritative gate (C9).
+
+    The record is re-read from the checkout at the merge commit and held to the tree again
+    (``pair_proof_check.admissible``), so the Lean judged is the Lean of a record the tree takes
+    whatever the classify step printed. The graph modules the candidates import are built from
+    the graph first (F26-Q21). Writes ``pair-proofs.json`` under ``--out`` and prints it; exit 0
+    when the verdict passes, 1 when it refuses, naming the code. A diff that is not a pair-proof
+    pull request is a usage error: this command is that mode's build and nothing else's."""
+    graph, head = _checkout_and_commit(args.graph, args.head)
+    base = _git(graph, "rev-parse", "--verify", f"{args.base}^{{commit}}").stdout.strip()
+    if not base:
+        msg = f"unknown base {args.base!r}"
+        raise CliError(msg)
+    diff = _git(graph, "diff", "--name-status", "--no-renames", base, head)
+    classification = modes.classify(paths.changes_from_name_status(diff.stdout))
+    records = [loc for loc in classification.located if loc.role == "pair-proof"]
+    if classification.mode != "pair-proof" or len(records) != 1:
+        msg = (
+            "pair-proofs belongs to a pull request adding one pair-proof record; this diff is "
+            f"{classification.mode!r}"
+        )
+        raise CliError(msg)
+    (located,) = records
+    target_dir = graph / "targets" / located.target_id
+    out_dir = _out_dir(args.out, "opn-pair-proofs-")
+    workdir = out_dir / "work"
+    summary: dict[str, Any] = {
+        "ok": False,
+        "record": located.path,
+        "sandboxed": bool(args.sandbox),
+        "verdict": None,
+        "problems": [],
+    }
+    problem = _pair_proof_problem(graph, located)
+    inputs = None
+    if problem is None:
+        doc = yaml.safe_load((graph / located.path).read_text(encoding="utf-8"))
+        got = pair_proof_check.admissible(target_dir, doc, own=PurePosixPath(located.path).name)
+        problem, inputs = (got, None) if isinstance(got, Diagnostic) else (None, got)
+    if inputs is not None:
+        spec_path = layout.gate_spec_path(graph, located.target_id)
+        try:
+            spec = schemas.load_json(spec_path, "gate-spec/v1")
+        except schemas.SchemaError as exc:
+            msg = f"cannot load {spec_path}: {exc}"
+            raise CliError(msg) from exc
+        tc = _pair_proof_toolchain(args, settings, spec, workdir)
+        ctx = RunContext(
+            graph_root=graph,
+            claim=Claim(located.target_id, ""),
+            spec=spec,
+            gate_spec_hash=schemas.content_hash(spec_path.read_bytes()),
+            changes=None,
+            workdir=workdir,
+            toolchain=tc,
+            settings=settings,
+            install_toolchain=bool(args.install) and not args.sandbox,
+        )
+        resolved = ToolchainStep().run(ctx)
+        if not resolved.ok:
+            assert resolved.diagnostic is not None
+            problem = resolved.diagnostic
+        else:
+            verdict, problem = _pair_proof_verdict(ctx, target_dir, inputs)
+            summary["verdict"] = None if verdict is None else verdict.as_dict()
+    if problem is not None:
+        summary["problems"] = [problem.as_dict(settings.diagnostic_max_bytes)]
+    summary["ok"] = problem is None
+    (out_dir / "pair-proofs.json").write_bytes(schemas.canonical_json(summary))
+    sys.stdout.write(json.dumps(summary, indent=2, ensure_ascii=False) + "\n")
+    if problem is not None:
+        sys.stderr.write(f"opn-gate: {problem.code}: {problem.message}\n")
+    return EXIT_PASS if problem is None else EXIT_FAIL
+
+
+def _pair_proof_problem(graph: Path, located: paths.Located) -> Diagnostic | None:
+    """The record's own rules the classify step applied: it validates and is named for itself."""
+    data = (graph / located.path).read_bytes()
+    found = modes._check_schema(located, data, code="record-invalid")
+    if found:
+        return found[0]
+    doc = modes._document(located, data)
+    if isinstance(doc, Diagnostic):
+        return doc
+    return pair_proof_check.name_problem(doc, PurePosixPath(located.path).name)
+
+
+def _pair_proof_toolchain(
+    args: argparse.Namespace, settings: config.Settings, spec: dict[str, Any], workdir: Path
+) -> toolchain.Toolchain:
+    """The step-3 sandbox with the work directory read-write (each verdict call narrows it,
+    ``judging.confined``), or the local toolchain without ``--sandbox``."""
+    if args.sandbox:
+        tag = args.image or ensure_image(spec, build=not args.no_build)
+        workdir.mkdir(parents=True, exist_ok=True)
+        return sandbox.SandboxToolchain(tag, sandbox.Caps.from_spec(spec), read_write=[workdir])
+    try:
+        return toolchain.LocalToolchain.from_settings(settings)
+    except toolchain.ToolchainMissingError as exc:
+        raise CliError(str(exc)) from exc
+
+
+def _pair_proof_verdict(
+    ctx: RunContext, target_dir: Path, inputs: pair_proof_check.Inputs
+) -> tuple[pair_proof_check.Verdict | None, Diagnostic | None]:
+    """The graph modules the candidates import, built once (F26-Q21), then the verdict."""
+    resolved: toolchain.ResolvedToolchain = ctx.data["toolchain"]
+    sources = review_lean.graph_sources(target_dir, list(inputs.imports))
+    if isinstance(sources, str):
+        return None, Diagnostic(
+            "pair-proof-unchecked",
+            f"the pair proof could not be checked, so it is not accepted: {sources}",
+            {},
+        )
+    runner = review_lean.Runner(ctx.toolchain, resolved, ctx.workdir, budget_s=ctx.wallclock_s)
+    built = runner.build_graph_modules(sources)
+    if built is not None:
+        return None, Diagnostic(
+            "pair-proof-unchecked",
+            f"the pair proof could not be checked, so it is not accepted: {built}",
+            {},
+        )
+    verdict = pair_proof_check.verdict(
+        ctx.toolchain,
+        resolved,
+        inputs.text,
+        inputs.tmpl,
+        first=inputs.first,
+        kind=inputs.kind,
+        workdir=ctx.workdir / "pair-proof",
+        graph_build=runner.graph_build,
+        timeout_s=ctx.wallclock_s,
+    )
+    return verdict, verdict.diagnostic
 
 
 def _elaborate_definitions(ctx: RunContext, target_dir: Path) -> list[Diagnostic]:
@@ -3574,7 +3738,8 @@ def run_ledger(  # noqa: PLR0911 — one return per kind of merge
     the tutorial node (D-27), a curator's proof on their own target (D-21) or any other mode, and
     every refusal says which decision refused it. A merged gloss or explainer signature credits
     the signed version's author with the write-up line (F21-R3, D-19 v3.31); the version itself
-    earns nothing (R4).
+    earns nothing (R4). A merged pair-proof record credits its author with the review line under
+    the target's root (F26-T18); no other review record earns one at merge.
     """
     graph, commit = _checkout_and_commit(args.graph, args.commit)
     changes = commit_changes(graph, commit)
@@ -3589,6 +3754,9 @@ def run_ledger(  # noqa: PLR0911 — one return per kind of merge
     nothing: dict[str, Any] = {"earned": False, "commit": commit}
     if mode in ("proof", "partial", "append", "registration"):
         return _write_merge_entries(graph, commit, classification, nothing)
+    if mode == "pair-proof":
+        added = {c.path for c in changes if c.status == "A"}
+        return _credit_pair_proofs(graph, commit, classification, added)
     if mode == "alternate":
         nothing["reason"] = "an alternate proof is credited at write-up, not when it merges (D-25)"
         return _say(nothing)
@@ -3630,6 +3798,75 @@ def run_ledger(  # noqa: PLR0911 — one return per kind of merge
     }
     sys.stdout.write(json.dumps(doc, indent=2) + "\n")
     return EXIT_PASS
+
+
+def _credit_pair_proofs(
+    graph: Path, commit: str, classification: modes.Classification, added: set[str]
+) -> int:
+    """F26-T18 (R8, D-19): each pair-proof record the merge added earns its ``author`` the
+    review line, under the target's root, its ``artifact`` the record's path under the target.
+    The identity is the record's, not ``proposer_of``: the service opens the pull request for the
+    author it writes into the record (F18-Q7's precedent), and the gate held a hand-opened one to
+    its opener before the merge. A replay of the merge (F07-T33) credits nothing twice. The job's
+    re-check after the merge does not gate the credit: the gate checked the record in the
+    sandbox before it merged (F26-T17), as it does every merged proof."""
+    date = graphmod.commit_timestamp(graph, commit)
+    credited: list[dict[str, Any]] = []
+    skipped: list[str] = []
+    written: set[str] = set()
+    for loc in classification.located:
+        if loc.role != "pair-proof" or loc.path not in added:
+            continue
+        try:
+            record = schemas.load_yaml(graph / loc.path, "pair-proof/v1")
+            root = graphmod.load_target(graph, loc.target_id).root
+        except (schemas.SchemaError, graphmod.GraphError) as exc:
+            skipped.append(f"{loc.path} earns nothing: {exc}")
+            continue
+        identity = str(record["author"])
+        entry = ledger.review_entry(
+            target=loc.target_id,
+            node=root,
+            artifact=loc.path.split(f"targets/{loc.target_id}/", 1)[1],
+            merge_commit=commit,
+            date=date,
+            models=[str(m) for m in record["models"]],
+        )
+        try:
+            doc = ledger.load(graph, identity)
+            if ledger.holds(doc, entry):
+                skipped.append(f"{loc.path} is already credited to {identity} (F07-T33)")
+                continue
+            path = ledger.write(graph, ledger.append(doc, entry))
+        except schemas.SchemaError as exc:
+            skipped.append(f"identity {identity!r} cannot hold a ledger: {exc}")
+            continue
+        written.add(path.resolve().relative_to(graph.resolve()).as_posix())
+        credited.append(
+            {"identity": identity, "line": entry.line, "node": root, "artifact": entry.artifact}
+        )
+    if not credited:
+        return _say(
+            {
+                "earned": False,
+                "commit": commit,
+                "reason": skipped[0] if skipped else "the merge added no pair-proof record",
+                "skipped": skipped,
+            }
+        )
+    first = credited[0]
+    return _say(
+        {
+            "earned": True,
+            "commit": commit,
+            "identity": first["identity"],
+            "node": first["node"],
+            "line": "review",
+            "entries": credited,
+            "skipped": skipped,
+            "written": sorted(written),
+        }
+    )
 
 
 def _credit_corrections(changes: list[Change]) -> list[paths.Located]:

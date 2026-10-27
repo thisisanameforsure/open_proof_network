@@ -1,0 +1,23 @@
+# F26-T16 — the pair-proof contract (lead, 2026-10-27)
+
+Why: a tester on erdos-849 (2026-10-26, engineering/evidence/testers-2026-10-26-e849/C.md F-C4)
+proved both directions of the review's only pair (c-ae9bea28, c-fb339e85) and could not submit
+either: the service refused artifact_type pair-proof (submissions.ARTIFACT_TYPES), the gate
+refused every pair file as review-job-record (modes.check_review_record), the ledger had no line.
+
+Built: gate/schemas/pair-proof/v1.json (HASHES pinned), role pair-proof under review/pair-proofs/,
+mode pair-proof in RECORD_MODES and REVIEW_RECORD_ROLES (a merge re-runs the job), MERGE_LINES
+"pair-proof": "review", codes pair-proof-template-mismatch and pair-proof-forbidden,
+gate/opn_gate/pair_proofs.py (template, split, problems, guarded, record_name), the Docs page's
+actions-table row.
+
+Probe at Lean 4.33.1 (core, the Legendre fixture human-ref -> alt-closed, forward):
+  Template.lean         exit 0, "declaration uses `sorry`" (the placeholder)
+  Filled.lean           exit 0, no output
+  Guarded.lean          exit 1, "Unknown identifier `h`" (the proof uses its hypothesis)
+First contract run caught a defect in split: a statement edited by hand was reported at the
+helper line; fixed by comparing from the helpers-end marker.
+
+Tests: gate/tests/test_pair_proof_contract.py, 44 passed. Commit ebd36797; full fast tier 6830
+passed (after lint, types, test_schemas, test_ledger, test_docs_states and the Docs golden page
+each failed once and were fixed: the guard tests doing their job).

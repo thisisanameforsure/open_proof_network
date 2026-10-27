@@ -105,6 +105,7 @@ def test_known_schemas_are_the_published_set() -> None:
         "motion/v1",
         "node-status/v1",
         "outline/v1",
+        "pair-proof/v1",
         "pair/v1",
         "policy/v1",
         "policy/v2",

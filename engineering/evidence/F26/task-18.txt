@@ -1,0 +1,299 @@
+F26-T18 — the review job consumes merged pair-proof records, pair supersession, and the credit
+Agent J, worktree opn-pp-job, branch f26-t18-job (off f26-pair-proof at ebd36797).
+Written as the work goes; every red run below was seen before the fix it names.
+
+== For agent S (T19): the supersession function ==
+
+  opn_gate.review.latest_of(named: Iterable[tuple[str, dict[str, Any]]]) -> list[dict[str, Any]]
+      The pair records in force, one per (a, b), sorted by (a, b), from (file name, record) pairs
+      in any order. Pure: no disk, so the service can call it on what it read through the host.
+  opn_gate.review.latest_pairs(base: Path) -> list[dict[str, Any]]
+      The same over a target's review/ directory on disk (reads base / "pairs").
+  opn_gate.review.in_order(named) -> list[dict]       every record, oldest first
+  opn_gate.review.generation(name: str) -> int        k from <a>--<b>--<date>-<k>.yaml, else 1
+
+The rule (in_order): a record's place is (date, generation read from the file name, file name);
+the last of a pair in that order is in force. Nothing is renamed and every published name keeps a
+place (D-34): <a>--<b>.yaml is generation 1, the job's later records are --<date>-<k>.yaml with
+k >= 2, so on one day the first record is oldest and -10 is newer than -2. review._pairs (derive,
+open_pairs, split_variants) and the job's _load (review_pairs.latest) both go through it.
+
+== Piece 1: supersession ==
+
+Seam first at today's behaviour (review.latest_pairs / latest_of / in_order: name order, then
+"date >=" over it — exactly the old _pairs), then the red run:
+
+  uv run pytest -m "not lean and not docker" gate/tests/test_review_pair_supersession.py
+  RED: 6 failed, 2 passed
+   - test_a_second_record_on_the_same_day_supersedes_the_first_in_derive:
+       AssertionError: assert 'open' == 'proved'   (the older <a>--<b>.yaml won)
+   - test_generation_ten_supersedes_generation_two:
+       AssertionError: assert ('open', 'open') == ('proved', 'refuted')   (-10 < -2 < .yaml)
+   - test_the_job_reloads_the_newer_record: review_pairs.latest gave forward 'open'
+   - test_latest_of_takes_names_in_any_order: 'open' == 'proved'
+   - test_a_name_the_rule_cannot_read_counts_as_a_first_record: 'open' == 'proved'
+   - test_the_job_writes_a_second_record_the_rule_reads_as_newer:
+       assert review.equivalent(p) -> False (the job wrote --2026-10-26-2.yaml, proved both
+       ways, and every reader still read the open first record)
+  (the two that passed pin edges the old rule also met: a later date wins; pairs kept apart)
+
+Fix: review.generation + in_order sorting by (date, generation, name); latest_of keeps the last.
+  GREEN: test_review_pair_supersession + test_review_pairs + test_review_state + test_review_job
+         + test_review_questions: 85 passed
+  Committed as a3876885 (pre-commit make verify: 6838 passed, 22 skipped, 261 deselected).
+
+== Piece 2: the job consumes merged pair-proof records ==
+
+Seam first, at today's behaviour: review_job.Job.pair_proofs (and _load_pair_proofs reading
+review/pair-proofs/*.yaml, each validated as pair-proof/v1, a record filed under another target
+noted), review_pairs.resolve (one direction: settled on record stands; else contributed(); else
+the job's own same-budget open attempt stands; else attempt) and review_pairs.contributed
+returning None. review_support.ReviewFake learned the "pair-proof" header: a filled template
+elaborates unless its proof says `-- fake: refused`, `-- fake: sorry` adds a sorry warning, and
+the guarded copy (`; clear h`) elaborates only with `-- fake: degenerate`.
+
+  uv run pytest -m "not lean and not docker" gate/tests/test_review_pair_proof_job.py
+  RED: 18 failed, 5 passed — every failure the job ignoring the record, e.g.
+   - test_a_merged_proof_becomes_a_proved_direction_and_its_exhibit:
+       AssertionError: {'state': 'open', 'exhibit': None, 'attempt': {'who': 'gate', 'tool':
+       'gate: two-layer matching (simp only, exact, grind) under the degenerate guard', ...}}
+   - test_an_open_direction_on_record_takes_the_record:
+       assert 'targets/legendre/review/pairs/<a>--<b>--2026-10-12-2.yaml' in []
+   - test_a_merged_refutation_is_refuted_and_raises_its_question: 'open' == 'refuted'
+   - test_a_proof_the_kernel_refuses_leaves_the_direction_open: assert 'gate' == 't1027-j'
+   - test_a_degenerate_proof_is_refused_by_the_guard / _off_its_template / _forbidden_region /
+     _kind_its_case_does_not_fit / _for_another_direction: the record's stem not in the gate's tool
+   - test_a_record_whose_hashes_no_longer_match_is_ignored_with_a_note: no note
+   - test_of_several_passing_records... / test_a_failing_first_record...: exhibits/None.json
+   - test_a_record_off_the_surviving_pairs_is_not_read: no note
+  The 5 that passed: a second run writing nothing (vacuous before the fix, real after), the
+  malformed-record note (the loader went in with the seam, so this one was never seen red:
+  said honestly), nothing written under pair-proofs/, postmerge.review_targets naming the target
+  of a merged pair-proof (the contract's REVIEW_RECORD_ROLES entry already made it true: this test
+  proves the job re-runs on such a merge, as the brief asked), contributed() answering None.
+
+  One test then failed for a reason worth keeping: the refutation at n = 3 raised no question,
+  because the agreement stage had written an intent test for holds at n = 3 and a case a test is
+  on record for is never asked (the job's own refutations behave the same). The test now refutes
+  at n = 7, past AGREEMENT_N, and says why in its docstring.
+
+Fix (review_pairs):
+  contributed(job, a, b, direction, budget) — the records for the direction whose
+    statement_hashes equal the candidate records' statement_hash, by record date then file
+    name; the first whose re-check passes settles it (_settled: add_exhibit kind pair, candidate
+    = the direction's first claim, test = its second — the job's own convention, so for
+    `backward` the exhibit's candidate is b — key `contributed:<record stem>`, result proved or
+    refuted, the record's Lean as the exhibit's Lean, detail naming the author, the direction
+    and the record), state with exhibit set and attempt null. Later records are noted "not
+    needed". When none passes: open, attempt {who: the record's author, tool: "pair-proof
+    <stem>: re-check failed: <why>" (cut to pair/v1's 200), budget_s}, every failure noted.
+  recheck(job, rec, first, second) — template at the record's kind and case (ValueError is a
+    refusal), split, problems, verdict(), and for a proof the guarded copy must NOT elaborate.
+  verdict(job, lean) — THE SEAM for agent G's shared verdict: today Runner.check (no error, no
+    sorry). Axioms are not judged yet; wire G's function here when the lead says it landed.
+  resolve(...) notes a record for a direction already settled ("not needed") without
+    re-checking it; run_pairs notes every record no surviving pair looked at ("not a direction
+    between two surviving candidates; not read").
+
+Decisions:
+  - "Several records: take the first by record date then name." Read as: the first whose
+    re-check passes. Taking the first outright would let one failed record block a good later
+    one forever (the failed attempt is stable across runs). Tested both ways
+    (test_of_several_passing_records..., test_a_failing_first_record_does_not_block...).
+  - The job re-checks against the template it computes itself from the candidates, not only by
+    elaborating: without that a file could prove some other theorem and pass.
+  - A failed re-check is re-done on every run (the runner's cache is per run); the result is the
+    same document, so nothing is written (tested). It costs two elaborations per run per failed
+    record until a passing record or the job's own proof settles the direction.
+  - Hash source: the candidate record's statement_hash field, as pair-proof/v1's description
+    says; the job does not recompute it from the Lean.
+
+GREEN: test_review_pair_proof_job 23 passed; with the review suites and the contract: 130 passed
+  (including the lean test below).
+
+Mutants (pytest plugins under the scratchpad, PYTHONDONTWRITEBYTECODE=1, no file touched):
+  jmut_none (contributed -> None):         17 of 23 fast tests fail; the lean test fails
+  jmut_noguard (re-check skips the guard): 4 fail (the guard and kind tests, and the two
+                                           happy-path tests that assert the guarded copy ran)
+  jmut_nohash (hashes not compared):       1 fails (the hash test)
+  jmut_notemplate (split always matches):  3 fail (template, forbidden region, wrong direction)
+  The lean test passes under jmut_noguard: its good proof uses its hypothesis, so the guard is
+  not what it measures; it asserts separately that the guarded copy fails under real Lean.
+
+Lean tier (real Lean 4.33.1, local elan):
+  uv run pytest -m lean gate/tests/test_review_pair_proof_job_lean.py
+  test_a_merged_contributed_proof_under_the_real_toolchain: 1 passed in 35 s.
+  Legendre faithful (human-ref) and closed interval (alt-closed); a pair record on disk with both
+  directions open at the job's budget; the contract's helper + proof filed for faithful ->
+  closed, and `exact h` filed for the false direction. Result: the true direction proved with a
+  contributed exhibit whose Lean is the record's byte for byte and re-elaborates alone, its
+  guarded copy fails; the false direction open with the author and the record named and "does
+  not elaborate"; a second run writes nothing (tree equal). Red under jmut_none:
+  AssertionError ... assert ('open' == 'proved').
+  Committed as c5a11293 (pre-commit make verify: 6861 passed, 22 skipped, 262 deselected).
+
+== Piece 3: the credit ==
+
+Seam first: ledger.review_entry (pure: line review, tooling = the record's models joined, or
+`undeclared` when it names none, automation null) and ledger.holds (the ledger already carries
+the entry's line by LINE_KEY and target). run_ledger itself unchanged, so a merged pair-proof
+still fell to "a merged pair-proof pull request earns no ledger line (D-19)".
+
+  uv run pytest -m "not lean and not docker" gate/tests/test_review_pair_proof_ledger.py
+  RED: 6 failed, 7 passed
+   - test_a_merged_pair_proof_earns_its_author_the_review_line:
+       AssertionError: {'earned': False, ..., 'reason': 'a merged pair-proof pull request earns
+       no ledger line (D-19)'}
+   - test_the_record_names_the_identity_not_the_commit: KeyError: 'identity'
+   - test_several_models_are_the_tooling_and_none_is_undeclared: no entry to unpack
+   - test_a_refutation_earns_the_same_line: False is True
+   - test_a_replay_of_the_merge_writes_nothing: ledger/t1027-j.json does not exist
+   - test_an_unreadable_record_earns_nothing_and_says_why: the reason does not name the record
+  The 7 that passed: the six "no other review record earns a line" cases (candidate, answer,
+  signature, review.yaml, a pair, a question: true before and after; they pin that the new branch
+  is keyed on the pair-proof mode alone) and review_entry validating as ledger/v2.
+
+Fix: cli._credit_pair_proofs, called from run_ledger when the mode is `pair-proof`: each added
+  pair-proof record (pair-proof/v1, read from the merged tree) earns its `author` the review line;
+  node = graph.load_target(graph, target).root (declared in target-status, else inferred:
+  graph.find_root); artifact = the record's path under the target, review/pair-proofs/<name>
+  (the registration line's precedent); merge_commit, date = the commit's timestamp; tooling from
+  models. A replay writes nothing (ledger.holds). A record that does not validate, or a target
+  whose root cannot be found, earns nothing and the output says which record and why.
+  GREEN: 13 passed; with test_ledger, test_ledger_merges, test_credit_correction,
+  test_registration, test_finding_ledger_credits_merges: 85 passed. mypy gate: clean.
+Mutants: jmut_noholds (holds -> False): the replay test fails; jmut_tooling (models dropped):
+  the two tooling assertions fail.
+
+Decisions:
+  - The identity is the record's `author`, not proposer_of (the commit's author): the service
+    opens the pull request for the author it writes (F18-Q7), and holding a hand-opened record's
+    author to its opener is the gate's pre-merge check (agent G, T17). Tested: a commit by
+    someone-else credits the record's author and writes no ledger for someone-else.
+  - Credit is at merge, from the record, not after the job's re-check: the same as a proof,
+    which the gate checked in the sandbox before it merged. If the job's re-check ever fails
+    for a merged record the entry stands until a curator's credit correction (F07-T66) moves or
+    revokes it. (Proposed Q below.)
+  - tooling: models joined with ", "; an empty list (a person's work, v3.31) is `undeclared`,
+    statement_tooling's convention, rather than inventing a word for "manual".
+  Committed as 7f56a226 (pre-commit make verify: 6874 passed, 22 skipped, 262 deselected).
+
+== After the merge of f26-pair-proof (8be3c00c, the spec) ==
+
+b119408c merges f26-pair-proof into f26-t18-job (spec HTML only, no conflict).
+  make types: gate 443, api 269, site 122 source files, no issues.
+  make test-fast: 6874 passed, 22 skipped, 262 deselected.
+  Lean tier for this task: test_review_pair_proof_job_lean.py, 1 passed (35 s). No docker-tier
+  test was added: the job's sandbox path is the same Runner seam the lean test drives.
+
+== Left: wiring agent G's verdict (F26-T17) ==
+
+G's commit 09265b8a (branch f26-t17-gate, not yet in f26-pair-proof) adds
+opn_gate.pair_proof_check.verdict(toolchain, resolved, text, tmpl, *, first, kind, workdir,
+graph_build, timeout_s) -> Verdict. Not wired here: the brief says to wire it when the lead says
+it landed. When it does, review_pairs.recheck should call it in place of its own steps (template
+-> split/problems -> verdict() -> guard): verdict(job.runner.toolchain, job.runner.resolved,
+lean, tmpl, first=first, kind=rec["kind"], workdir=<job.runner.workdir>/pair-proofs/<stem>,
+graph_build=job.runner.graph_build, timeout_s=job.runner.budget_s), the refusal's reason
+becoming the attempt's "why". Two things to know: pair_proof_check imports review_pairs
+(GUARD_TOOL), so review_pairs must import it inside the function; and ReviewFake inherits
+FakeToolchain's kernel_replay / statement_meaning / axioms, whose defaults the fast tests will
+need to answer "pass" for a good record (or the tests set them).
+
+== Proposed Q entries (for the lead; spec HTML not edited) ==
+
+Q-a (supersession, T18). A pair's later records are named <a>--<b>--<date>-<k>.yaml and sort
+  before <a>--<b>.yaml by name, -10 before -2; a same-date tie went by file order, so the older
+  record won on reload and in review.derive. The rule is now (date, generation k read from the
+  name, 1 for the first record, then the name), in review.in_order / latest_of / latest_pairs,
+  called by derive, open_pairs, split_variants and the job's own reload; the service's listings
+  are to call latest_of (T19). No record was renamed (D-34) and the writer's names are unchanged,
+  so the rule is the only change; a writer naming its records by (date, zero-padded k) would make
+  file order agree too, but every existing reader would still need the rule for the names
+  already published.
+
+Q-b (several records for one direction, T18). The brief's "take the first by record date then
+  name" is built as "the first, by record date then name, whose re-check passes": taking the
+  first outright lets one failing record block every later good one, because a failed re-check
+  is stable from run to run. Every record not used is named in the run's notes.
+
+Q-c (the ledger's artifact, T18). ledger/v2's `artifact` says "relative to the node directory".
+  A pair-proof record lives under the target, not a node, so the entry's artifact is the
+  record's path relative to the target directory (review/pair-proofs/<name>), the registration
+  line's precedent (F25-T4), and its `node` is the target's root. Read as: relative to the
+  directory the line's record lives in; the schema's description could say so at its next bump,
+  with no change to any entry.
+
+Q-d (credit at merge, T18). The review line is written when the record merges, from the record,
+  like every other merged artifact; the job's post-merge re-check does not gate it. A record the
+  gate admitted and the job then refuses (it should not happen: the same verdict, F26-T17) keeps
+  its line until a curator's credit correction (F07-T66). The identity is the record's author,
+  not proposer_of (the service acts for the author it writes, F18-Q7); holding a hand-opened
+  record's author to its opener is the gate's pre-merge check (T17). An empty `models` (a
+  person's work, v3.31) is tooling `undeclared`, statement_tooling's convention.
+
+Q-e (a refutation's question, T18). A contributed refutation raises its disagreement question
+  like the job's own, through the exhibit's header, but only for a case no test is on record
+  for: an instance n < 4 already has an agreement test from both survivors (AGREEMENT_N), so it
+  raises none. That is the job's rule for its own refutations too; a contributed refutation at
+  such an n contradicts an agreement test, which the job does not reconcile today.
+
+== Piece 4 (on the lead's word, after T17 finished): the shared verdict, and the job's judgments ==
+
+6d1e03f0 merges f26-t17-gate (09265b8a the verdict, e6a02902 the gate's pre-merge check) into
+f26-t18-job; no conflict.
+
+(a) The re-check now calls pair_proof_check.verdict. review_pairs.recheck computes the template
+  from the job's own candidates and calls verdict(runner.toolchain, runner.resolved, lean, tmpl,
+  first=, kind=, workdir=<runner.workdir>/pair-proofs/<sha256(lean)[:20]>, graph_build=
+  runner.graph_build, timeout_s=runner.budget_s); a refusal's why is "<code>: <reason>". It does
+  not go through Runner.check: the verdict compiles in its own confined areas and then replays,
+  compares the meaning and reads the axioms, none of which the Runner does. The template is still
+  the job's own (not the gate's), so the job trusts nothing it was handed. Import inside the
+  function: pair_proof_check imports review_pairs.GUARD_TOOL.
+  RED first (fast tier, ReviewFake's inherited FakeToolchain seams):
+   - test_an_axiom_outside_the_standard_three_is_refused (axioms {propext, Lean.ofReduceBool}):
+       AssertionError: {'state': 'proved', 'exhibit': 'e-20007064', 'attempt': None}
+   - test_a_file_whose_theorem_means_something_else_is_refused (meaning mismatch): same
+  Existing tests restated to the verdict's codes (pair-proof-elaboration, -sorry, -degenerate,
+  -template-mismatch); the lean test's "does not elaborate" became pair-proof-elaboration, and
+  it now asks the lean_pkg fixture (the metaprograms).
+
+(b) G's question: which records the job accepted. The job now writes an exhibit for every record
+  it judges — accepted (proved/refuted, the record's Lean, as before) or refused (result `open`,
+  lean_file null, detail "refused by the review job's re-check: <code>: <reason> (pair-proof
+  <stem>)"), key contributed:<stem>. A refused record is not re-checked on a later run (its
+  exhibit is found and its reason read back). One function reads the judgments:
+
+    opn_gate.review.judgments_of(exhibits: Iterable[dict[str, Any]]) -> dict[str, dict[str, Any]]
+    opn_gate.review.pair_proof_judgments(base: Path) -> dict[str, dict[str, Any]]
+        stem (the record's file name without .yaml) -> {"accepted": bool, "exhibit": id,
+        "result": "proved" | "refuted" | "open", "reason": str ("" when accepted)}.
+        A stem absent from the answer has not been judged yet (merged, job not yet run). An
+        acceptance wins over a refusal for one stem (a moved pin re-judges under new ids).
+        judgments_of is pure (the service reads exhibits through the host); pair_proof_judgments
+        reads <base>/exhibits/*.json.
+  So "settled" for the gate and the service can be: a record whose judgment is accepted, or a
+  merged record with no judgment yet (the job has not run). A refused one settles nothing.
+  pair_proof_check._settled_by (G's) is not changed here: it is G's and S's to switch to this.
+  RED first: test_the_job_records_which_records_it_accepted_and_refused
+   (AssertionError: set() == {..t-bad, ..t-good}, with the function seamed at today's "{}"),
+   test_judgments_of_reads_exhibits_handed_to_it, test_a_refused_record_is_not_rechecked_on_a_
+   second_run (the record's Lean elaborated again on the second run).
+
+(c) Found by the lean tier, not the fast tier: the second real run wrote a third pair record
+  (--2026-10-12-3.yaml). Lean's error runs over several lines; the exhibit keeps the reason
+  normalised to one line, the first run's attempt had the raw text, so the read-back differed.
+  The reason is now one line before either is written. Fast test
+  test_a_refusal_whose_error_runs_over_lines_reads_back_the_same (ReviewFake's "-- fake: refused
+  on two lines" gives a multi-line error); with the normalisation removed by hand it fails
+  (AssertionError: 'has type' in '... type mismatch\n  h\nhas  type\n  P'), restored after.
+
+Runs:
+  fast: test_review_pair_proof_job 29 passed; with supersession, ledger, G's pair_proof_check and
+    pair_proof_gate, the review suites and the contract: 251 passed. mypy gate: clean. lint clean.
+  lean: test_review_pair_proof_job_lean.py, 1 passed twice in a row (101 s, 119 s).
+    One earlier run (the first after the merge, 7 min 27 s, which also built the Lake package)
+    found the good proof's direction open; that run's notes were not captured and two runs since
+    passed. Most likely a verdict call over the 120 s budget on a loaded laptop (it would read
+    pair-proof-unchecked); said here rather than hidden. If CI sees it, the budget is the knob.

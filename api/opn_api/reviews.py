@@ -49,6 +49,7 @@ from starlette.responses import JSONResponse, Response
 from opn_api import appends, auth, duplicates, pending, ratelimit, session, stewards, submissions
 from opn_api import identity as identitymod
 from opn_api.app import ApiError
+from opn_gate import pair_proofs, review_lean
 from opn_gate import paths as gatepaths
 from opn_gate import policy as policymod
 from opn_gate import review as reviewmod
@@ -350,6 +351,7 @@ def open_record_pr(  # noqa: PLR0913 — one pull request, described
     written: str,
     branch_prefix: str,
     body: str,
+    automation: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """One record (and the Lean beside it, for a candidate), one branch, one pull request,
     recorded as ``kind`` so it can be watched through ``GET /submissions/{id}``; a request
@@ -376,6 +378,7 @@ def open_record_pr(  # noqa: PLR0913 — one pull request, described
         node_id=None,
         pr=pr,
         fingerprints=prints,
+        automation=automation,
     )
     path = next(iter(files))
     return {"id": record_id, "path": path, "pr_url": pr.url, "pr_number": pr.number}
@@ -886,7 +889,9 @@ def read_at(ctx: Context) -> str:
     return str(ctx.head or ctx.settings.graph_branch)
 
 
-def review_document(ctx: Context, target_id: str, caller: Identity | None) -> dict[str, Any]:
+def review_document(
+    ctx: Context, target_id: str, caller: Identity | None, n: int | None = None
+) -> dict[str, Any]:
     """The review as the records hold it, the state derived by the gate's own module, and every
     candidate's Lean under the blind rule."""
     with tempfile.TemporaryDirectory(prefix="opn-review-") as tmp:
@@ -907,10 +912,13 @@ def review_document(ctx: Context, target_id: str, caller: Identity | None) -> di
         mine = caller is not None and any(
             str(c.get("author", "")).casefold() == caller.pseudonym.casefold() for c in cands
         )
+        concepts = [str(x) for x in head.get("concepts") or []]
+        sources: dict[str, str | None] = {}
         shown: list[dict[str, Any]] = []
         for c in cands:
             lean_path = base / "candidates" / str(c.get("lean_file", ""))
             lean = lean_path.read_text(encoding="utf-8") if lean_path.is_file() else None
+            sources[str(c.get("id"))] = lean
             shown.append(
                 {
                     **c,
@@ -931,8 +939,20 @@ def review_document(ctx: Context, target_id: str, caller: Identity | None) -> di
                 {**q, "waiting": str(q.get("id")) in waiting} for q in _docs(base / "questions")
             ],
             "answers": _docs(base / "answers"),
-            "pairs": _docs(base / "pairs"),
-            "open_pairs": open_pairs,
+            "pairs": in_force(_named(base / "pairs")),
+            "open_pairs": [
+                {
+                    **row,
+                    **direction_templates(
+                        prepared(sources.get(row["a"]), row["a"], concepts),
+                        prepared(sources.get(row["b"]), row["b"], concepts),
+                        row["direction"],
+                        shown=mine,
+                        n=n,
+                    ),
+                }
+                for row in open_pairs
+            ],
             "exhibits": _json_docs(base / "exhibits"),
             "signatures": _docs(base / "signatures"),
         }
@@ -979,23 +999,133 @@ def waiting_questions(ctx: Context, target_id: str) -> list[dict[str, Any]]:
     ]
 
 
-def open_directions(ctx: Context, target_id: str) -> list[dict[str, Any]]:
-    """Each open pair direction with its last attempt (F26-R8), in the records' order."""
-    if opening(ctx, target_id) is None:
+def in_force(named: list[tuple[str, dict[str, Any]]]) -> list[dict[str, Any]]:
+    """F26-T19: the pair records in force, one per pair, from ``(file name, record)``: the gate's
+    own rule (``opn_gate.review.latest_of``, T18), so a later record written the same day as
+    ``<a>--<b>--<date>-<k>.yaml`` supersedes ``<a>--<b>.yaml`` here exactly as it does in the
+    gate's derivation. Every listing and the submission route read pairs through here."""
+    return reviewmod.latest_of(named)
+
+
+def _named(folder: Path) -> list[tuple[str, dict[str, Any]]]:
+    """``(file name, document)`` of every readable record in ``folder``, in name order."""
+    out: list[tuple[str, dict[str, Any]]] = []
+    if not folder.is_dir():
+        return out
+    for path in sorted(folder.iterdir()):
+        if path.suffix in RECORD_SUFFIXES:
+            doc = _yaml(path.read_bytes())
+            if doc is not None:
+                out.append((path.name, doc))
+    return out
+
+
+#: What a caller is told of the refutation template, which takes an instance.
+REFUTATION_NOTE = (
+    "A refutation is an instance: a natural number `n` at which the direction's first claim holds "
+    "and its second fails. Ask for its template with `n` (list_open_pairs with n, or GET "
+    "/reviews/<id>?n=<n>), fill it, and submit it with pair.kind refutation and pair.n."
+)
+
+
+def prepared(source: str | None, cid: str, concepts: list[str]) -> review_lean.Cand | str:
+    if source is None:
+        return f"candidate {cid}'s Lean is not on the record"
+    return review_lean.prepare(cid, source, concepts)
+
+
+def direction_templates(
+    a: review_lean.Cand | str,
+    b: review_lean.Cand | str,
+    direction: str,
+    *,
+    shown: bool,
+    n: int | None,
+) -> dict[str, Any]:
+    """F26-T19: the fields an open direction gains — its proof template, ready to fill, and how
+    to get the refutation template — under the blind rule (F26-R3): a template is both
+    candidates' Lean, so a caller with no candidate on the record is shown none of it."""
+    if isinstance(a, str) or isinstance(b, str):
+        why = a if isinstance(a, str) else str(b)
+        return {
+            "template": None,
+            "template_withheld": None,
+            "template_note": why,
+            "refutation": {"available": False, "note": why, "template": None},
+        }
+    first, second = pair_proofs.ordered(a, b, direction)  # type: ignore[arg-type]
+    why_not = pair_proofs.provable(first, second)
+    no_refute = pair_proofs.refutable(first, second)
+    refute_at = None
+    if shown and no_refute is None and n is not None:
+        refute_at = pair_proofs.template(a, b, direction, "refutation", n)  # type: ignore[arg-type]
+    return {
+        "template": (
+            pair_proofs.template(a, b, direction) if shown and why_not is None else None  # type: ignore[arg-type]
+        ),
+        "template_withheld": None if shown else BLIND,
+        "template_note": why_not,
+        "refutation": {
+            "available": no_refute is None,
+            "note": REFUTATION_NOTE if no_refute is None else no_refute,
+            "template": refute_at,
+        },
+    }
+
+
+def checked_n(raw: Any) -> int | None:
+    """The refutation instance a read asks templates for: a natural number, or absent."""
+    if raw is None:
+        return None
+    if isinstance(raw, str) and raw.isdigit():
+        return int(raw)
+    if isinstance(raw, bool) or not isinstance(raw, int) or raw < 0:
+        raise bad("n is a natural number: the instance a refutation template is asked at", "n")
+    return raw
+
+
+def open_directions(
+    ctx: Context, target_id: str, caller: str | None = None, n: int | None = None
+) -> list[dict[str, Any]]:
+    """Each open pair direction of the pair records in force, with its last attempt (F26-R8),
+    in the records' order; F26-T19: and its templates, shown to ``caller`` (a pseudonym) only
+    when it authored a candidate on the record (the blind rule)."""
+    head = opening(ctx, target_id)
+    if head is None:
         return []
+    concepts = [str(x) for x in head.get("concepts") or []]
+    cands = {str(c.get("id")): c for c in candidates(ctx, target_id)}
+    shown = caller is not None and any(
+        str(c.get("author", "")).casefold() == caller.casefold() for c in cands.values()
+    )
+    cache: dict[str, review_lean.Cand | str] = {}
+
+    def cand(cid: str) -> review_lean.Cand | str:
+        if cid not in cache:
+            doc = cands.get(cid)
+            source = None
+            if doc is not None:
+                path = f"{review_dir(target_id)}/candidates/{doc.get('lean_file')}"
+                raw = pending.optional_committed(ctx, path)
+                source = None if raw is None else raw.decode("utf-8")
+            cache[cid] = prepared(source, cid, concepts)
+        return cache[cid]
+
     out: list[dict[str, Any]] = []
-    for _, p in records(ctx, target_id, "pairs"):
+    for p in in_force(records(ctx, target_id, "pairs")):
         for direction in ("forward", "backward"):
             d = p.get(direction)
             if isinstance(d, dict) and d.get("state") == "open":
+                a, b = str(p.get("a")), str(p.get("b"))
                 out.append(
                     {
                         "target_id": target_id,
-                        "a": str(p.get("a")),
-                        "b": str(p.get("b")),
+                        "a": a,
+                        "b": b,
                         "direction": direction,
                         "attempt": d.get("attempt"),
                         "submit_as": "pair-proof",
+                        **direction_templates(cand(a), cand(b), direction, shown=shown, n=n),
                     }
                 )
     return out
@@ -1004,7 +1134,8 @@ def open_directions(ctx: Context, target_id: str) -> list[dict[str, Any]]:
 async def get_review(ctx: Context, request: Request) -> Response:
     target_id = appends.known_target(ctx, request.path_params.get("target_id"))
     caller = caller_of(ctx, request)
-    return JSONResponse(review_document(ctx, target_id, caller))
+    n = checked_n(request.query_params.get("n"))
+    return JSONResponse(review_document(ctx, target_id, caller, n))
 
 
 async def get_questions(ctx: Context, request: Request) -> Response:
