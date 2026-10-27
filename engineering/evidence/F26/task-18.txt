@@ -176,3 +176,64 @@ Decisions:
     revokes it. (Proposed Q below.)
   - tooling: models joined with ", "; an empty list (a person's work, v3.31) is `undeclared`,
     statement_tooling's convention, rather than inventing a word for "manual".
+  Committed as 7f56a226 (pre-commit make verify: 6874 passed, 22 skipped, 262 deselected).
+
+== After the merge of f26-pair-proof (8be3c00c, the spec) ==
+
+b119408c merges f26-pair-proof into f26-t18-job (spec HTML only, no conflict).
+  make types: gate 443, api 269, site 122 source files, no issues.
+  make test-fast: 6874 passed, 22 skipped, 262 deselected.
+  Lean tier for this task: test_review_pair_proof_job_lean.py, 1 passed (35 s). No docker-tier
+  test was added: the job's sandbox path is the same Runner seam the lean test drives.
+
+== Left: wiring agent G's verdict (F26-T17) ==
+
+G's commit 09265b8a (branch f26-t17-gate, not yet in f26-pair-proof) adds
+opn_gate.pair_proof_check.verdict(toolchain, resolved, text, tmpl, *, first, kind, workdir,
+graph_build, timeout_s) -> Verdict. Not wired here: the brief says to wire it when the lead says
+it landed. When it does, review_pairs.recheck should call it in place of its own steps (template
+-> split/problems -> verdict() -> guard): verdict(job.runner.toolchain, job.runner.resolved,
+lean, tmpl, first=first, kind=rec["kind"], workdir=<job.runner.workdir>/pair-proofs/<stem>,
+graph_build=job.runner.graph_build, timeout_s=job.runner.budget_s), the refusal's reason
+becoming the attempt's "why". Two things to know: pair_proof_check imports review_pairs
+(GUARD_TOOL), so review_pairs must import it inside the function; and ReviewFake inherits
+FakeToolchain's kernel_replay / statement_meaning / axioms, whose defaults the fast tests will
+need to answer "pass" for a good record (or the tests set them).
+
+== Proposed Q entries (for the lead; spec HTML not edited) ==
+
+Q-a (supersession, T18). A pair's later records are named <a>--<b>--<date>-<k>.yaml and sort
+  before <a>--<b>.yaml by name, -10 before -2; a same-date tie went by file order, so the older
+  record won on reload and in review.derive. The rule is now (date, generation k read from the
+  name, 1 for the first record, then the name), in review.in_order / latest_of / latest_pairs,
+  called by derive, open_pairs, split_variants and the job's own reload; the service's listings
+  are to call latest_of (T19). No record was renamed (D-34) and the writer's names are unchanged,
+  so the rule is the only change; a writer naming its records by (date, zero-padded k) would make
+  file order agree too, but every existing reader would still need the rule for the names
+  already published.
+
+Q-b (several records for one direction, T18). The brief's "take the first by record date then
+  name" is built as "the first, by record date then name, whose re-check passes": taking the
+  first outright lets one failing record block every later good one, because a failed re-check
+  is stable from run to run. Every record not used is named in the run's notes.
+
+Q-c (the ledger's artifact, T18). ledger/v2's `artifact` says "relative to the node directory".
+  A pair-proof record lives under the target, not a node, so the entry's artifact is the
+  record's path relative to the target directory (review/pair-proofs/<name>), the registration
+  line's precedent (F25-T4), and its `node` is the target's root. Read as: relative to the
+  directory the line's record lives in; the schema's description could say so at its next bump,
+  with no change to any entry.
+
+Q-d (credit at merge, T18). The review line is written when the record merges, from the record,
+  like every other merged artifact; the job's post-merge re-check does not gate it. A record the
+  gate admitted and the job then refuses (it should not happen: the same verdict, F26-T17) keeps
+  its line until a curator's credit correction (F07-T66). The identity is the record's author,
+  not proposer_of (the service acts for the author it writes, F18-Q7); holding a hand-opened
+  record's author to its opener is the gate's pre-merge check (T17). An empty `models` (a
+  person's work, v3.31) is tooling `undeclared`, statement_tooling's convention.
+
+Q-e (a refutation's question, T18). A contributed refutation raises its disagreement question
+  like the job's own, through the exhibit's header, but only for a case no test is on record
+  for: an instance n < 4 already has an agreement test from both survivors (AGREEMENT_N), so it
+  raises none. That is the job's rule for its own refutations too; a contributed refutation at
+  such an n contradicts an agreement test, which the job does not reconcile today.
