@@ -32,6 +32,8 @@ load-bearing:
 from __future__ import annotations
 
 import json
+import re
+from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
 
@@ -258,15 +260,63 @@ def surviving_authors(full: Record) -> set[str]:
 # --- the derivation -----------------------------------------------------------------------
 
 
+def _named_records(folder: Path) -> list[tuple[str, Record]]:
+    """``_records`` with each record's file name."""
+    out: list[tuple[str, Record]] = []
+    if not folder.is_dir():
+        return out
+    for path in sorted(folder.iterdir()):
+        if path.suffix not in (".yaml", ".yml"):
+            continue
+        try:
+            doc = yaml.safe_load(path.read_text(encoding="utf-8"))
+        except (OSError, yaml.YAMLError):
+            continue
+        if isinstance(doc, dict):
+            out.append((path.name, doc))
+    return out
+
+
+#: The name the job gives a pair's later records: ``<a>--<b>--<date>-<k>.yaml``, ``k`` from 2.
+_GENERATION_RE = re.compile(r"--\d{4}-\d{2}-\d{2}-(\d+)\.ya?ml$")
+
+
+def generation(name: str) -> int:
+    """A pair record's generation from its file name: ``k`` for ``<a>--<b>--<date>-<k>.yaml``,
+    1 for the first record ``<a>--<b>.yaml`` (and for any name the rule cannot read)."""
+    m = _GENERATION_RE.search(name)
+    return int(m.group(1)) if m else 1
+
+
+def in_order(named: Iterable[tuple[str, Record]]) -> list[Record]:
+    """Every pair record, oldest first, from ``(file name, record)`` pairs in any order: by
+    ``date``, then ``generation`` (numerically), then the name (F26-T18).
+
+    File order alone put a later record first: ``--<date>-2.yaml`` sorts before ``.yaml`` and
+    ``-10`` before ``-2``. Every published name keeps its place under this rule (D-34)."""
+    ranked = sorted(named, key=lambda t: (str(t[1].get("date")), generation(t[0]), t[0]))
+    return [p for _name, p in ranked]
+
+
+def latest_of(named: Iterable[tuple[str, Record]]) -> list[Record]:
+    """The pair records in force, one per pair, sorted by ``(a, b)``, from ``(file name, record)``
+    pairs in any order: the last of each pair in ``in_order`` supersedes every earlier one. The
+    service's listings and the gate's derivation call this one rule."""
+    latest: dict[tuple[str, str], Record] = {}
+    for p in in_order(named):
+        latest[(str(p.get("a")), str(p.get("b")))] = p
+    return [latest[k] for k in sorted(latest)]
+
+
+def latest_pairs(base: Path) -> list[Record]:
+    """The pair records in force under ``base`` (a target's ``review/`` directory), one per pair:
+    ``latest_of`` over ``pairs/``."""
+    return latest_of(_named_records(base / "pairs"))
+
+
 def _pairs(base: Path) -> list[Record]:
     """The pair records, one per pair: a later record for the same pair supersedes."""
-    latest: dict[tuple[str, str], Record] = {}
-    for p in _records(base / "pairs"):
-        key = (str(p.get("a")), str(p.get("b")))
-        held = latest.get(key)
-        if held is None or str(p.get("date")) >= str(held.get("date")):
-            latest[key] = p
-    return [latest[k] for k in sorted(latest)]
+    return latest_pairs(base)
 
 
 def derive(target_dir: Path) -> Record:

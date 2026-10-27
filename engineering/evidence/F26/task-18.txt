@@ -1,0 +1,42 @@
+F26-T18 — the review job consumes merged pair-proof records, pair supersession, and the credit
+Agent J, worktree opn-pp-job, branch f26-t18-job (off f26-pair-proof at ebd36797).
+Written as the work goes; every red run below was seen before the fix it names.
+
+== For agent S (T19): the supersession function ==
+
+  opn_gate.review.latest_of(named: Iterable[tuple[str, dict[str, Any]]]) -> list[dict[str, Any]]
+      The pair records in force, one per (a, b), sorted by (a, b), from (file name, record) pairs
+      in any order. Pure: no disk, so the service can call it on what it read through the host.
+  opn_gate.review.latest_pairs(base: Path) -> list[dict[str, Any]]
+      The same over a target's review/ directory on disk (reads base / "pairs").
+  opn_gate.review.in_order(named) -> list[dict]       every record, oldest first
+  opn_gate.review.generation(name: str) -> int        k from <a>--<b>--<date>-<k>.yaml, else 1
+
+The rule (in_order): a record's place is (date, generation read from the file name, file name);
+the last of a pair in that order is in force. Nothing is renamed and every published name keeps a
+place (D-34): <a>--<b>.yaml is generation 1, the job's later records are --<date>-<k>.yaml with
+k >= 2, so on one day the first record is oldest and -10 is newer than -2. review._pairs (derive,
+open_pairs, split_variants) and the job's _load (review_pairs.latest) both go through it.
+
+== Piece 1: supersession ==
+
+Seam first at today's behaviour (review.latest_pairs / latest_of / in_order: name order, then
+"date >=" over it — exactly the old _pairs), then the red run:
+
+  uv run pytest -m "not lean and not docker" gate/tests/test_review_pair_supersession.py
+  RED: 6 failed, 2 passed
+   - test_a_second_record_on_the_same_day_supersedes_the_first_in_derive:
+       AssertionError: assert 'open' == 'proved'   (the older <a>--<b>.yaml won)
+   - test_generation_ten_supersedes_generation_two:
+       AssertionError: assert ('open', 'open') == ('proved', 'refuted')   (-10 < -2 < .yaml)
+   - test_the_job_reloads_the_newer_record: review_pairs.latest gave forward 'open'
+   - test_latest_of_takes_names_in_any_order: 'open' == 'proved'
+   - test_a_name_the_rule_cannot_read_counts_as_a_first_record: 'open' == 'proved'
+   - test_the_job_writes_a_second_record_the_rule_reads_as_newer:
+       assert review.equivalent(p) -> False (the job wrote --2026-10-26-2.yaml, proved both
+       ways, and every reader still read the open first record)
+  (the two that passed pin edges the old rule also met: a later date wins; pairs kept apart)
+
+Fix: review.generation + in_order sorting by (date, generation, name); latest_of keeps the last.
+  GREEN: test_review_pair_supersession + test_review_pairs + test_review_state + test_review_job
+         + test_review_questions: 85 passed

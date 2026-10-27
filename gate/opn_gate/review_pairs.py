@@ -30,7 +30,7 @@ A direction already ``proved`` or ``refuted`` on record (by this job or by a mer
 artifact) is never re-attempted, and an ``open`` one whose recorded attempt is this job's own at
 the same budget is not re-attempted either, so a second run writes nothing. A pair record is
 written only when a direction changed; a later record for the same pair supersedes
-(``review._pairs`` reads the latest date).
+(``review.in_order``: by date, then the generation in the name, F26-T18).
 """
 
 from __future__ import annotations

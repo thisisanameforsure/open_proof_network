@@ -178,7 +178,8 @@ def _load(job: Job) -> None:
         job.tests[tid] = TestRec(tid, doc, case, expected)
     job.questions = [doc for _, doc in _yaml_docs(base / "questions")]
     job.answers = [doc for _, doc in _yaml_docs(base / "answers")]
-    job.pairs = [doc for _, doc in _yaml_docs(base / "pairs")]
+    # oldest first, so ``review_pairs.latest`` (the last of the latest date) is the record in force
+    job.pairs = review.in_order((p.name, doc) for p, doc in _yaml_docs(base / "pairs"))
     folder = base / "exhibits"
     if folder.is_dir():
         for path in sorted(folder.glob("*.json")):
