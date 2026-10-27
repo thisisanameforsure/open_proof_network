@@ -65,6 +65,11 @@ HELPERS_END = "-- opn-pair-proof: helpers end"
 PROOF_BEGINS = "-- opn-pair-proof: proof begins (an indented tactic block, to the end of the file)"
 #: What the template's proof region holds before it is filled: it elaborates, with a warning.
 PLACEHOLDER = "  sorry\n"
+#: The axioms a settled direction may rest on, and nothing else: Lean's standard three (D-4 step
+#: 5's allowlist). An allowlist, never a blocklist: at Lean 4.33.1 ``native_decide`` adds an
+#: auxiliary axiom of its own per use (``<decl>._native.native_decide.ax_1_1``), not
+#: ``Lean.ofReduceBool``. One definition for the service, the gate and the job (F26-T17, T19).
+STANDARD_AXIOMS: tuple[str, ...] = ("Classical.choice", "Quot.sound", "propext")
 #: Words the proof region may not hold (comments and strings masked first).
 PROOF_FORBIDDEN = ("sorry", "admit", "set_option", "native_decide")
 

@@ -46,13 +46,17 @@ path and is copied, never written.
 from __future__ import annotations
 
 import subprocess
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
-from opn_gate import judging, pair_proofs
+import yaml
+
+from opn_gate import judging, pair_proofs, review, review_lean
 from opn_gate.diagnostic import Diagnostic
-from opn_gate.pair_proofs import Kind
+from opn_gate.pair_proofs import Direction, Kind
+from opn_gate.paths import REVIEW_DIR
 from opn_gate.review_lean import Cand
 from opn_gate.review_pairs import GUARD_TOOL
 from opn_gate.toolchain import (
@@ -63,8 +67,9 @@ from opn_gate.toolchain import (
     is_native_decide_axiom,
 )
 
-#: The axioms a settled direction may rest on: Lean's standard three (D-4 step 5's allowlist).
-ALLOWED_AXIOMS: tuple[str, ...] = ("Classical.choice", "Quot.sound", "propext")
+#: The axioms a settled direction may rest on (``pair_proofs.STANDARD_AXIOMS``); kept under this
+#: name too for the verdict's callers.
+ALLOWED_AXIOMS: tuple[str, ...] = pair_proofs.STANDARD_AXIOMS
 SORRY_AXIOM = "sorryAx"
 #: The module every text is compiled as: one name for the reference and the filled file, so a
 #: private declaration of a candidate is the same constant on both sides of the comparison.
@@ -159,7 +164,7 @@ def axiom_problem(axioms: frozenset[str] | set[str], decl: str) -> Diagnostic | 
             f"{decl} depends on sorryAx; a settled direction is a whole proof",
             {"axioms": sorted(axioms)},
         )
-    outside = sorted(a for a in axioms if a not in ALLOWED_AXIOMS)
+    outside = sorted(a for a in axioms if a not in pair_proofs.STANDARD_AXIOMS)
     if outside:
         native = any(is_native_decide_axiom(a) for a in outside)
         return Diagnostic(
@@ -167,7 +172,7 @@ def axiom_problem(axioms: frozenset[str] | set[str], decl: str) -> Diagnostic | 
             f"{decl} depends on axioms outside propext, Classical.choice and Quot.sound: "
             + ", ".join(outside)
             + (" (native_decide trusts the compiler, not the kernel)" if native else ""),
-            {"axioms": outside, "allowlist": sorted(ALLOWED_AXIOMS)},
+            {"axioms": outside, "allowlist": sorted(pair_proofs.STANDARD_AXIOMS)},
         )
     return None
 
@@ -347,3 +352,232 @@ def _judge(  # noqa: PLR0911, PLR0913, PLR0917 — one return per step; the verd
         if clean(g_elab):
             return _refused(degenerate(first), axioms)
     return Verdict(True, axioms=axioms)
+
+
+# --- the record against the tree it is checked on (F26-T17) --------------------------------------
+
+
+@dataclass(frozen=True)
+class Inputs:
+    """What a pair-proof record is judged against, read from the tree: the pair's candidates as
+    the job prepares them, the direction's first claim, the kind, the template and the text."""
+
+    a: Cand
+    b: Cand
+    direction: Direction
+    kind: Kind
+    n: int | None
+    tmpl: str
+    text: str
+    #: the modules the candidates import, for the caller that builds the graph's own (Q21)
+    imports: tuple[str, ...]
+
+    @property
+    def first(self) -> Cand:
+        return pair_proofs.ordered(self.a, self.b, self.direction)[0]
+
+
+def stamp(date: str) -> str:
+    """``YYYY-MM-DDTHH:MM:SSZ`` as the record's file name carries it: ``YYYYMMDDTHHMMSSZ``."""
+    return date.replace("-", "").replace(":", "")
+
+
+def expected_name(doc: Mapping[str, Any]) -> str:
+    """The file name the record must have (``pair_proofs.record_name``)."""
+    return pair_proofs.record_name(
+        str(doc.get("a")),
+        str(doc.get("b")),
+        doc.get("direction"),  # type: ignore[arg-type]  # validated by the schema first
+        stamp(str(doc.get("date"))),
+        str(doc.get("author")),
+    )
+
+
+def name_problem(doc: Mapping[str, Any], name: str) -> Diagnostic | None:
+    """The record's file name is its own, and its pair is in ``pair/v1``'s order."""
+    a, b = str(doc.get("a")), str(doc.get("b"))
+    if not a < b:
+        return Diagnostic(
+            "pair-proof-name",
+            f"a names {a!r} and b names {b!r}; a pair names its candidates with the lexically "
+            "smaller id first, as pair/v1 does, and `direction` says which way",
+            {"a": a, "b": b},
+        )
+    want = expected_name(doc)
+    if name != want:
+        return Diagnostic(
+            "pair-proof-name",
+            f"the record is named {name!r}; a pair-proof record is named for its pair, its "
+            f"direction, its date and its author: {want!r}",
+            {"name": name, "expected": want},
+        )
+    return None
+
+
+def _candidate_records(base: Path) -> dict[str, tuple[Path, dict[str, Any]]]:
+    out: dict[str, tuple[Path, dict[str, Any]]] = {}
+    folder = base / "candidates"
+    if not folder.is_dir():
+        return out
+    for path in sorted(folder.iterdir()):
+        if path.suffix not in (".yaml", ".yml"):
+            continue
+        try:
+            doc = yaml.safe_load(path.read_text(encoding="utf-8"))
+        except (OSError, UnicodeDecodeError, yaml.YAMLError):
+            continue
+        if isinstance(doc, dict) and isinstance(doc.get("id"), str):
+            out[doc["id"]] = (path, doc)
+    return out
+
+
+def _latest_pair(base: Path, a: str, b: str) -> dict[str, Any] | None:
+    """The pair record in force for ``(a, b)``: the latest, as ``review._pairs`` reads it."""
+    return next(
+        (p for p in review._pairs(base) if (str(p.get("a")), str(p.get("b"))) == (a, b)),
+        None,
+    )
+
+
+def _settled_by(base: Path, doc: Mapping[str, Any], own: str | None) -> str | None:
+    """An earlier pair-proof record on the tree for the same direction at the same statement
+    hashes, by file name; ``own`` (the record under check, when it is on the tree) is not one."""
+    folder = base / pair_proofs.DIR
+    if not folder.is_dir():
+        return None
+    for path in sorted(folder.iterdir()):
+        if path.name == own or path.suffix not in (".yaml", ".yml"):
+            continue
+        try:
+            other = yaml.safe_load(path.read_text(encoding="utf-8"))
+        except (OSError, UnicodeDecodeError, yaml.YAMLError):
+            continue
+        if isinstance(other, dict) and all(
+            other.get(k) == doc.get(k) for k in ("a", "b", "direction", "statement_hashes")
+        ):
+            return path.name
+    return None
+
+
+def admissible(  # noqa: PLR0911 — one return per rule
+    target_dir: Path, doc: Mapping[str, Any], *, own: str | None = None
+) -> Inputs | Diagnostic:
+    """F26-T17: whether the tree takes this record, and what it is judged against.
+
+    The review exists; both candidates are on it, their ``candidate/v1`` ``statement_hash`` is
+    the record's, and both survive (``review.derive``); the direction is open on the pair record
+    in force (``review._pairs``: a later record supersedes); no earlier pair-proof record settles
+    the same direction at the same hashes; the kind fits the direction (``pair_proofs.template``,
+    which raises when it does not); and the record's Lean is the template with its two regions
+    filled (``static``). ``doc`` has validated against ``pair-proof/v1``. The record's own name
+    and who it acts for are the caller's (``name_problem``, the gate's ``acting_names``)."""
+    head = review.opening(target_dir)
+    if head is None:
+        return Diagnostic(
+            "pair-proof-no-review",
+            f"{target_dir.name} has no formalization review (review/review.yaml), so it has no "
+            "pair to settle",
+            {"target": target_dir.name},
+        )
+    base = target_dir / REVIEW_DIR
+    a_id, b_id = str(doc.get("a")), str(doc.get("b"))
+    hashes = doc.get("statement_hashes")
+    hashes = hashes if isinstance(hashes, Mapping) else {}
+    records = _candidate_records(base)
+    sources: dict[str, str] = {}
+    for side, cid in (("a", a_id), ("b", b_id)):
+        found = records.get(cid)
+        lean = (
+            found[0].with_name(str(found[1].get("lean_file") or f"{cid}.lean"))
+            if found is not None
+            else None
+        )
+        if found is None or lean is None or not lean.is_file():
+            return Diagnostic(
+                "pair-candidate-unknown",
+                f"{side} names {cid!r}, which is not a candidate of {target_dir.name}'s review",
+                {"candidate": cid},
+            )
+        if found[1].get("statement_hash") != hashes.get(side):
+            return Diagnostic(
+                "pair-candidate-mismatch",
+                f"statement_hashes.{side} is not {cid}'s statement_hash: the record must be bound "
+                "to the candidate texts on record (read them from list_open_pairs)",
+                {
+                    "candidate": cid,
+                    "expected": found[1].get("statement_hash"),
+                    "got": hashes.get(side),
+                },
+            )
+        sources[cid] = lean.read_text(encoding="utf-8")
+    fates = {c["id"]: c["status"] for c in review.derive(target_dir)["candidates"]}
+    for cid in (a_id, b_id):
+        if fates.get(cid) != review.SURVIVING:
+            return Diagnostic(
+                "pair-candidate-not-surviving",
+                f"{cid} is {fates.get(cid, 'unknown')}, and only a pair of surviving candidates "
+                "has directions to settle",
+                {"candidate": cid, "status": fates.get(cid)},
+            )
+    direction = doc.get("direction")
+    pair = _latest_pair(base, a_id, b_id)
+    way = pair.get(str(direction)) if pair is not None else None
+    state = way.get("state") if isinstance(way, Mapping) else None
+    if state != "open":
+        return Diagnostic(
+            "pair-not-open",
+            (
+                f"the review job has not compared {a_id} and {b_id} yet"
+                if pair is None
+                else f"the {direction} direction of {a_id} and {b_id} is {state}, not open"
+            )
+            + "; only an open direction takes a pair proof (F26-R8)",
+            {"a": a_id, "b": b_id, "direction": direction, "state": state},
+        )
+    earlier = _settled_by(base, doc, own)
+    if earlier is not None:
+        return Diagnostic(
+            "pair-proof-settled",
+            f"{earlier} already settles the {direction} direction of {a_id} and {b_id} at these "
+            "statement hashes; the review job writes the pair from it",
+            {"earlier": f"{REVIEW_DIR}/{pair_proofs.DIR}/{earlier}"},
+        )
+    concepts = [str(x) for x in head.get("concepts") or []]
+    cands: dict[str, Cand] = {}
+    for cid in (a_id, b_id):
+        got = review_lean.prepare(cid, sources[cid], concepts)
+        if isinstance(got, str):
+            return Diagnostic(
+                "pair-proof-kind",
+                f"{cid} has no claim the review compares ({got}), so no direction of it can be "
+                "settled here",
+                {"candidate": cid},
+            )
+        cands[cid] = got
+    kind = doc.get("kind")
+    case = doc.get("case")
+    n = case.get("n") if isinstance(case, Mapping) else None
+    try:
+        tmpl = pair_proofs.template(cands[a_id], cands[b_id], direction, kind, n)  # type: ignore[arg-type]
+    except ValueError as exc:
+        return Diagnostic(
+            "pair-proof-kind",
+            f"the {direction} direction cannot take a {kind} here: {exc}",
+            {"direction": direction, "kind": kind, "case": case},
+        )
+    text = str(doc.get("lean"))
+    problem = static(text, tmpl)
+    if problem is not None:
+        return problem
+    imports = tuple(sorted({*cands[a_id].imports, *cands[b_id].imports}))
+    # ``template`` accepted both, so each is one of its literals
+    return Inputs(
+        cands[a_id],
+        cands[b_id],
+        cast(Direction, direction),
+        cast(Kind, kind),
+        n,
+        tmpl,
+        text,
+        imports,
+    )

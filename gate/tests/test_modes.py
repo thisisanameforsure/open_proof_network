@@ -470,6 +470,8 @@ def test_classify_command(tmp_path: Path, capsys: pytest.CaptureFixture[str]) ->
         "qa_records": [],
         "definitions": [],
         "needs_qa_rerun": False,
+        "pair_proofs": [],  # F26-T17
+        "needs_pair_proof": False,
     }
 
     (root / N / "attempts" / "2026-09-10-bob.yaml").write_text(

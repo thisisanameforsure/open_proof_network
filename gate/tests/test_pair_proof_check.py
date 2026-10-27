@@ -321,7 +321,16 @@ def test_sorry_ax_among_the_axioms_is_a_sorry_even_without_the_warning(
 
 
 @pytest.mark.parametrize(
-    "axiom", ["Lean.ofReduceBool", "Lean.trustCompiler", "C_c_aaaaaaaa_p.cheat", "Classical.em"]
+    "axiom",
+    [
+        "Lean.ofReduceBool",
+        "Lean.trustCompiler",
+        "C_c_aaaaaaaa_p.cheat",
+        "Classical.em",
+        # 4.33.1: native_decide's own auxiliary axiom, which no blocklist would name
+        "opnDirection._native.native_decide.ax_1_1",
+        "anything.at.all",
+    ],
 )
 def test_an_axiom_outside_the_standard_three_is_refused(
     pair: Pair, tmp_path: Path, axiom: str
@@ -452,3 +461,10 @@ def test_a_refusal_is_a_diagnostic_and_a_pass_is_none(pair: Pair, tmp_path: Path
     doc = bad.as_dict()
     assert (doc["ok"], doc["code"]) == (False, "pair-proof-degenerate")
     assert good.as_dict()["axioms"] == sorted(STANDARD.axioms)
+
+
+def test_the_standard_three_are_defined_once_in_the_contract() -> None:
+    """The service, the gate and the job read one allowlist (``pair_proofs.STANDARD_AXIOMS``)."""
+    assert set(pair_proofs.STANDARD_AXIOMS) == {"propext", "Classical.choice", "Quot.sound"}
+    assert pair_proof_check.ALLOWED_AXIOMS is pair_proofs.STANDARD_AXIOMS
+    assert pair_proof_check.axiom_problem(frozenset(pair_proofs.STANDARD_AXIOMS), "x") is None
