@@ -1,0 +1,38 @@
+{
+ "node_id": "variant-3969f1f7--h2--h1--h1",
+ "model_and_tooling": "Claude Fable 5.1 (Claude Code subagent) through the MCP; citations checked against ar5iv on 2026-10-27",
+ "status": "known",
+ "references": [
+  {
+   "title": "A. Blokhuis, A. E. Brouwer, B. M. M. de Weger, Binomial collisions and near collisions, Integers 17 (2017) #A64",
+   "url": "https://arxiv.org/abs/1707.06893",
+   "note": "Theorem 2.2: no unknown collisions for (k,l) = (2,3),(2,4),(2,5),(2,6),(2,8),(3,4),(3,6),(4,6),(4,8); the proof lists the papers below."
+  },
+  {
+   "title": "È. T. Avanesov, Acta Arith. 12 (1966) 409–420",
+   "url": null,
+   "note": "(k,l) = (2,3): C(n,2) = C(m,3)."
+  },
+  {
+   "title": "Á. Pintér, Publ. Math. Debrecen 47 (1995) 411–415; B. M. M. de Weger, Quart. J. Math. Oxford (2) 47 (1996) 221–231",
+   "url": null,
+   "note": "(k,l) = (2,4)."
+  },
+  {
+   "title": "Y. Bugeaud, M. Mignotte, S. Siksek, M. Stoll, S. Tengely, Algebra & Number Theory 2 (2008) 859–885",
+   "url": null,
+   "note": "(k,l) = (2,5)."
+  },
+  {
+   "title": "R. J. Stroeker, B. M. M. de Weger, Math. Comp. 68 (1999) 1257–1281",
+   "url": null,
+   "note": "(k,l) = (2,6), (2,8), (3,6), (4,6), (4,8)."
+  },
+  {
+   "title": "L. J. Mordell, Pacific J. Math. 13 (1963) 1347–1351",
+   "url": null,
+   "note": "(k,l) = (3,4), as an equivalent equation (so attributed by BBdW)."
+  }
+ ],
+ "summary": "Known. For each of the nine pairs (k,l) the collision equation C(n,k) = C(m,l) is a curve of positive genus whose integral points were determined completely (elliptic-curve and Baker-method computations): the only collisions are the eight sporadic quadruples (values 120, 210, 1540, 7140, 11628, 24310 and 3003 twice), and none at all for (3,4), (3,6), (4,6), (4,8). Collected as the first case of Theorem 2.2 of Blokhuis–Brouwer–de Weger. Each paper is a separate computation; nothing is formalised, and a formalisation would need integral points on curves of genus ≥ 1."
+}

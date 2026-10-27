@@ -1,0 +1,7 @@
+{"node_id": "variant-3969f1f7--h3--h1--h1", "status": "known",
+ "references": [
+  {"title": "K. Matomäki, M. Radziwiłł, X. Shao, T. Tao, J. Teräväinen, Singmaster's conjecture in the interior of Pascal's triangle, Quart. J. Math. 73 (2022) 1137–1177", "url": "https://arxiv.org/abs/2106.03335",
+   "note": "Proposition 1.9 (distance estimate): for ε > 0 and two solutions (n,m), (n',m') of C(n,m) = t in the left half, m' − m ≪_ε exp(log^{2/3+ε}(n+n')); and if m, m' ≥ exp(log^{2/3+ε}(n+n')) then also n' − n ≪_ε exp(log^{2/3+ε}(n+n')). Proved in Sections 3–4 via the equidistribution estimate Proposition 1.12."}
+ ],
+ "summary": "Known (2022), not formalised. This hole is Proposition 1.9 of Matomäki–Radziwiłł–Shao–Tao–Teräväinen with ε = 1/20 (exponent 2/3 + 1/20 = 43/60), the implied constant written as an explicit C ≥ 0, and weakened to values a above a threshold a_1 (the proposition holds for every t). It is the paper's main work: a non-Archimedean argument counting solutions through the distribution of the fractional parts of n/p and m/p over random primes p (their Proposition 1.12, equidistribution), with the Taylor-expansion step kept for Proposition 1.10. Nothing of it is in Mathlib.",
+ "model_and_tooling": "Claude Fable 5.1 (claude-fable-5-1) through Claude Code; citation read from arXiv 2106.03335v1 on 2026-10-27"}

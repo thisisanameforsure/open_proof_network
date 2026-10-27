@@ -1,0 +1,28 @@
+{
+ "node_id": "variant-3969f1f7--h2--h1",
+ "status": "open",
+ "references": [
+  {
+   "title": "B. M. M. de Weger, Equal binomial coefficients: some elementary considerations, J. Number Theory 63 (1997) 373–386",
+   "url": null,
+   "note": "The conjecture: the known collisions C(n,k) = C(m,l) are all of them."
+  },
+  {
+   "title": "A. Blokhuis, A. E. Brouwer, B. M. M. de Weger, Binomial collisions and near collisions, Integers 17 (2017) #A64",
+   "url": "https://arxiv.org/abs/1707.06893",
+   "note": "Conjecture 2.1 states this node exactly (collision = (n,k,m,l), 2 ≤ k ≤ n/2, 2 ≤ l ≤ m/2, k < l): the six sporadic values, 3003 three times, and Lind's Fibonacci family. Theorem 2.2: verified for the pairs (k,l) ∈ {(2,3),(2,4),(2,5),(2,6),(2,8),(3,4),(3,6),(4,6),(4,8)}, the shapes (m,l) = (n−1,k+1), (n−1,k+2), (n−2,k+1), all n ≤ 10^6 and all C(n,k) ≤ 10^60."
+  },
+  {
+   "title": "K. Matomäki, M. Radziwiłł, X. Shao, T. Tao, J. Teräväinen, Singmaster's conjecture in the interior of Pascal's triangle, Quart. J. Math. 73 (2022) 1137–1177",
+   "url": "https://arxiv.org/abs/2106.03335",
+   "note": "Remark 1.5: the conjecture implies at most one solution of C(n,m) = t with 2 ≤ m ≤ exp(log^{2/3+ε} n) for t large, i.e. this node's parent; the Siegel-theorem route (Beukers–Shorey–Tijdeman) gives per-pair finiteness only, ineffectively."
+  },
+  {
+   "title": "D. A. Lind, Fibonacci Quart. 6 (1968) 86–93",
+   "url": null,
+   "note": "The infinite family C(F_{2i+2}F_{2i+3}, F_{2i}F_{2i+3}) = C(F_{2i+2}F_{2i+3}−1, F_{2i}F_{2i+3}+1); rediscovered by Singmaster (1975) and Tovey (1985)."
+  }
+ ],
+ "summary": "Open. This is de Weger's 1997 conjecture on binomial collisions, in the exact form of Conjecture 2.1 of Blokhuis–Brouwer–de Weger (2017): every collision C(n,k) = C(m,l) with 2 ≤ k ≤ n/2, 2 ≤ l ≤ m/2, k < l is one of the eight sporadic quadruples (values 120, 210, 1540, 7140, 11628, 24310 and 3003 = C(78,2) = C(15,5) = C(14,6)) or lies in Lind's Fibonacci family. What is proved (BBdW Thm 2.2 and the papers it collects: Avanesov 1966 for (2,3); Pintér 1995 and de Weger 1996 for (2,4); Bugeaud–Mignotte–Siksek–Stoll–Tengely 2008 for (2,5); Stroeker–de Weger 1999 for (2,6), (2,8), (3,6), (4,6), (4,8); Mordell 1963 for (3,4); Tovey 1985 for the adjacent shape (n−1,k+1); Stroeker–de Weger 1999 for (n−1,k+2) and (n−2,k+1)) covers finitely many pairs (k,l), three adjacent shapes, n ≤ 10^6 and C(n,k) ≤ 10^60; nothing is uniform in (k,l), which is what the statement needs. Siegel's theorem gives finiteness for each fixed pair, ineffectively. The conjecture implies its parent --h2 (MRSTT 2022, Remark 1.5) and in fact Singmaster's conjecture itself with the bound 4 rows per value. Nothing is formalised.",
+ "model_and_tooling": "Claude Fable 5.1 (Claude Code subagent) through the MCP; citations checked against ar5iv on 2026-10-27"
+}

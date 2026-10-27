@@ -1,0 +1,5 @@
+$$\exists a_2 \in \mathbb{N}\ \ \forall a \ge a_2\ \ \forall n, k \in \mathbb{N}:\quad \Bigl(1 \le k,\ e^{(\log n)^{5/6}} \le k,\ 2k \le n,\ \tbinom{n}{k} = a\Bigr) \to \#\Bigl\{\, n' \in \mathbb{N} \;:\; \exists k',\ 1 \le k',\ k' < k,\ n < n',\ 2k' \le n',\ \tbinom{n'}{k'} = a,\ |n - n'| + |k - k'| \le e^{(\log \log a)^{9/10}} \Bigr\} \le 1$$
+
+Here $a_2$, $a$, $n$, $k$, $n'$, $k'$ are natural numbers; $\log$ is the natural logarithm of the number cast to $\mathbb{R}$, the threshold $e^{(\log n)^{5/6}} \le k$ and the distance $|n - n'| + |k - k'|$ are in $\mathbb{R}$ after casting. The set collects **rows** $n'$, each counted once; its size is `Set.ncard`, which is $0$ for an infinite set as well as an empty one (the set lies in $[0, a]$).
+
+In words: for all sufficiently large $a$ and any solution $(n, k)$ of $\binom{n}{k} = a$ in the interior region $e^{(\log n)^{5/6}} \le k \le n/2$, at most one later row $n' > n$ holds $a$ at a smaller column $k' < k$ of the half triangle within distance $e^{(\log \log a)^{9/10}}$ of $(n, k)$.

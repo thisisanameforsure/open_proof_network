@@ -1,0 +1,5 @@
+$$\forall n, k, m, l \in \mathbb{N}:\quad 2 \le k \to 2k \le n \to 2 \le l \to 2l \le m \to k < l \to \tbinom{n}{k} = \tbinom{m}{l} \to \tbinom{n}{k} \le 10^{60} \to (n, k, m, l) \in S\ \vee\ \exists i \ge 1:\ n = F_{2i+2}F_{2i+3}\ \wedge\ k = F_{2i}F_{2i+3}\ \wedge\ m + 1 = n\ \wedge\ l = k + 1$$
+
+where $S$ is the list of eight quadruples $(78, 2, 15, 5)$, $(78, 2, 14, 6)$, $(16, 2, 10, 3)$, $(21, 2, 10, 4)$, $(56, 2, 22, 3)$, $(120, 2, 36, 3)$, $(153, 2, 19, 5)$, $(221, 2, 17, 8)$, written in the Lean as a disjunction of conjunctions of equalities, and $F_j$ is `Nat.fib`. Here $n$, $k$, $m$, $l$, $i$ are natural numbers; the bound $10^{60}$ is on the common value of the two binomial coefficients, written on $\binom{n}{k}$.
+
+In words: every collision $\binom{n}{k} = \binom{m}{l}$ in the half triangle with $k < l$ and value at most $10^{60}$ is one of the eight sporadic ones or lies in Lind's adjacent-row family (whose members with value at most $10^{60}$ are $i = 1$, the value $3003$, and $i = 2$, the value $\binom{104}{39}$).

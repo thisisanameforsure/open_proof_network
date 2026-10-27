@@ -1,0 +1,13 @@
+{
+ "node_id": "variant-3969f1f7--h2--h1--h3",
+ "model_and_tooling": "Claude Fable 5.1 (Claude Code subagent) through the MCP; citations checked against ar5iv on 2026-10-27",
+ "status": "known",
+ "references": [
+  {
+   "title": "A. Blokhuis, A. E. Brouwer, B. M. M. de Weger, Binomial collisions and near collisions, Integers 17 (2017) #A64",
+   "url": "https://arxiv.org/abs/1707.06893",
+   "note": "Theorem 2.2, case n ≤ 10^6, by the exhaustive search of §2.1 (every row up to a million, 56 CPU hours in 2017); earlier searches n ≤ 10^3 by de Weger 1997."
+  }
+ ],
+ "summary": "Known by computation: Blokhuis, Brouwer and de Weger searched every row n ≤ 10^6 of the half triangle and found no collision beyond the eight sporadic quadruples and Lind's family (Theorem 2.2). A finite but large verification; a formalisation would be a certified computation, not a proof from the literature's argument."
+}

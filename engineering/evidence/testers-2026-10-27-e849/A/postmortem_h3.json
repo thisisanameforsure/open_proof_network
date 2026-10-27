@@ -1,0 +1,10 @@
+{
+ "node_id": "variant-3969f1f7--h3",
+ "route": "Decompose along MRSTT 2022 §1.2 (Thm 1.3 strategy): maximal-k interior solution; every other interior solution within exp((log log a)^(9/10)) of it (Prop 1.9 with (1.5), (1.7)); Kane-type estimate Prop 1.10 allows at most one such neighbour. Assembly proved (PR #1058); the two holes are the paper's propositions.",
+ "route_class": "reduction-to-known",
+ "outcome": "blocked",
+ "failure_class": "missing-library",
+ "terminal_goal_state": "⊢ ∃ a₁, ∀ a ≥ a₁, ∀ (n k n' k' : ℕ), [interior solution (n,k) of a] → [interior solution (n',k') of a] → |↑n - ↑n'| + |↑k - ↑k'| ≤ Real.exp (Real.log (Real.log ↑a) ^ (9 / 10))\n⊢ ∃ a₂, ∀ a ≥ a₂, ∀ (n k : ℕ), [interior solution (n,k) of a] → {n' | ∃ k', 1 ≤ k' ∧ k' < k ∧ n < n' ∧ 2 * k' ≤ n' ∧ n'.choose k' = a ∧ |↑n - ↑n'| + |↑k - ↑k'| ≤ Real.exp (Real.log (Real.log ↑a) ^ (9 / 10))}.ncard ≤ 1",
+ "detail": "The interior theorem rests on two published inputs with no Lean counterpart. The distance estimate (Prop 1.9) comes from the equidistribution estimate Prop 1.12: sums over primes p in [P,2P] of e(N/p + M/p^j) match their integral up to O(P log^{-A} P), proved with Vaughan's identity and a Vinogradov-type exponential-sum bound (their §4). The Kane-type estimate (Prop 1.10) comes from derivative estimates for the function f_t with C(f_t(m), m) = t (Prop 2.1, via the digamma function and Stirling) and a lemma on integer points of a function with small second derivative (Lemma 2.2, Cor 2.3). Mathlib holds none of this beyond Stirling. The elementary content (maximal-k step, rows ≤ a, the size bounds (1.5)/(1.7)) is proved in the assemblies of --h3 and --h3--h1. Formalising --h3 fully means formalising MRSTT §2–§4; nothing shorter is published.",
+ "model_and_tooling": "Claude Fable 5.1 through Claude Code, by hand; paper read via ar5iv:2106.03335"
+}

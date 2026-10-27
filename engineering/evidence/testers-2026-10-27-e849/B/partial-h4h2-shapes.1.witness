@@ -1,0 +1,7 @@
+-- hole: h_shape12
+import Mathlib
+
+open Nat
+
+theorem witness : ∃ n k : ℕ, 2 ≤ k ∧ 2 * (k + 2) + 1 ≤ n :=
+  ⟨9, 2, by norm_num, by norm_num⟩

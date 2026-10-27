@@ -1,0 +1,18 @@
+{
+ "node_id": "variant-3969f1f7--h2--h1--h4--h2--h2",
+ "model_and_tooling": "Claude Fable 5.1 (Claude Code subagent) through the MCP; BBdW read on ar5iv on 2026-10-27",
+ "status": "known",
+ "references": [
+  {
+   "title": "A. Blokhuis, A. E. Brouwer, B. M. M. de Weger, Binomial collisions and near collisions, Integers 17 (2017) #A64",
+   "url": "https://arxiv.org/abs/1707.06893",
+   "note": "Theorem 2.2: no unknown collisions of the shape (m,l) = (n−2, k+1); none is known of this shape, so there are none."
+  },
+  {
+   "title": "R. J. Stroeker, B. M. M. de Weger, Elliptic binomial Diophantine equations, Acta Arith. 87 (1999) 339–365",
+   "url": null,
+   "note": "Cited through the proof of BBdW Theorem 2.2 for the shapes (m,l) = (n−1,k+2) and (n−2,k+1); the paper itself was not opened today."
+  }
+ ],
+ "summary": "Known: the equation C(n,k) = C(n−2,k+1) has no solutions in the half-triangle ranges (Stroeker and de Weger 1999, by elliptic-curve methods; collected as a case of Theorem 2.2 of Blokhuis, Brouwer and de Weger 2017). Not formalised."
+}

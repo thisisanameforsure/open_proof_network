@@ -1,0 +1,8 @@
+{"node_id": "variant-3969f1f7--h2--h1--h1",
+ "route": "Split the nine solved pairs (k,l) of Theorem 2.2 (Blokhuis–Brouwer–de Weger 2017) into one hole each, the pair's published complete solution of C(n,k) = C(m,l) restricted to the half triangle; assembly = case split (PR #1099).",
+ "route_class": "reduction-to-known",
+ "outcome": "blocked",
+ "failure_class": "missing-library",
+ "terminal_goal_state": "⊢ ∀ n m : ℕ, 4 ≤ n → 6 ≤ m → n.choose 2 = m.choose 3 → n = 16 ∧ m = 10 ∨ n = 56 ∧ m = 22 ∨ n = 120 ∧ m = 36   (and eight more of the same shape, one per pair)",
+ "detail": "Each hole is a Diophantine equation solved in the literature by finding all integral points on a curve of genus 1 or 2: (2,3) Avanesov 1966; (2,4) Pintér 1995 / de Weger 1996; (2,5) Bugeaud–Mignotte–Siksek–Stoll–Tengely 2008 (Theorem 2, hyperelliptic genus 2, Mordell–Weil sieve); (2,6), (2,8), (3,6), (4,6), (4,8) Stroeker–de Weger 1999 (elliptic logarithms); (3,4) Mordell 1963 via y(y+1) = x(x+1)(x+2). None is formalised: Mathlib has no effective integral-point machinery (Baker bounds, elliptic logarithms, Mordell–Weil sieve), so every hole is known and unformalisable today. The one-per-pair shape leaves each as its own named theorem on the record so that a future formalisation of, say, Mordell's equation closes exactly one node.",
+ "model_and_tooling": "Claude Fable 5.1 through Claude Code, by hand"}
