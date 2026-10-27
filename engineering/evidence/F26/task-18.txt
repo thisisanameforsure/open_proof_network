@@ -40,3 +40,93 @@ Seam first at today's behaviour (review.latest_pairs / latest_of / in_order: nam
 Fix: review.generation + in_order sorting by (date, generation, name); latest_of keeps the last.
   GREEN: test_review_pair_supersession + test_review_pairs + test_review_state + test_review_job
          + test_review_questions: 85 passed
+  Committed as a3876885 (pre-commit make verify: 6838 passed, 22 skipped, 261 deselected).
+
+== Piece 2: the job consumes merged pair-proof records ==
+
+Seam first, at today's behaviour: review_job.Job.pair_proofs (and _load_pair_proofs reading
+review/pair-proofs/*.yaml, each validated as pair-proof/v1, a record filed under another target
+noted), review_pairs.resolve (one direction: settled on record stands; else contributed(); else
+the job's own same-budget open attempt stands; else attempt) and review_pairs.contributed
+returning None. review_support.ReviewFake learned the "pair-proof" header: a filled template
+elaborates unless its proof says `-- fake: refused`, `-- fake: sorry` adds a sorry warning, and
+the guarded copy (`; clear h`) elaborates only with `-- fake: degenerate`.
+
+  uv run pytest -m "not lean and not docker" gate/tests/test_review_pair_proof_job.py
+  RED: 18 failed, 5 passed — every failure the job ignoring the record, e.g.
+   - test_a_merged_proof_becomes_a_proved_direction_and_its_exhibit:
+       AssertionError: {'state': 'open', 'exhibit': None, 'attempt': {'who': 'gate', 'tool':
+       'gate: two-layer matching (simp only, exact, grind) under the degenerate guard', ...}}
+   - test_an_open_direction_on_record_takes_the_record:
+       assert 'targets/legendre/review/pairs/<a>--<b>--2026-10-12-2.yaml' in []
+   - test_a_merged_refutation_is_refuted_and_raises_its_question: 'open' == 'refuted'
+   - test_a_proof_the_kernel_refuses_leaves_the_direction_open: assert 'gate' == 't1027-j'
+   - test_a_degenerate_proof_is_refused_by_the_guard / _off_its_template / _forbidden_region /
+     _kind_its_case_does_not_fit / _for_another_direction: the record's stem not in the gate's tool
+   - test_a_record_whose_hashes_no_longer_match_is_ignored_with_a_note: no note
+   - test_of_several_passing_records... / test_a_failing_first_record...: exhibits/None.json
+   - test_a_record_off_the_surviving_pairs_is_not_read: no note
+  The 5 that passed: a second run writing nothing (vacuous before the fix, real after), the
+  malformed-record note (the loader went in with the seam, so this one was never seen red:
+  said honestly), nothing written under pair-proofs/, postmerge.review_targets naming the target
+  of a merged pair-proof (the contract's REVIEW_RECORD_ROLES entry already made it true: this test
+  proves the job re-runs on such a merge, as the brief asked), contributed() answering None.
+
+  One test then failed for a reason worth keeping: the refutation at n = 3 raised no question,
+  because the agreement stage had written an intent test for holds at n = 3 and a case a test is
+  on record for is never asked (the job's own refutations behave the same). The test now refutes
+  at n = 7, past AGREEMENT_N, and says why in its docstring.
+
+Fix (review_pairs):
+  contributed(job, a, b, direction, budget) — the records for the direction whose
+    statement_hashes equal the candidate records' statement_hash, by record date then file
+    name; the first whose re-check passes settles it (_settled: add_exhibit kind pair, candidate
+    = the direction's first claim, test = its second — the job's own convention, so for
+    `backward` the exhibit's candidate is b — key `contributed:<record stem>`, result proved or
+    refuted, the record's Lean as the exhibit's Lean, detail naming the author, the direction
+    and the record), state with exhibit set and attempt null. Later records are noted "not
+    needed". When none passes: open, attempt {who: the record's author, tool: "pair-proof
+    <stem>: re-check failed: <why>" (cut to pair/v1's 200), budget_s}, every failure noted.
+  recheck(job, rec, first, second) — template at the record's kind and case (ValueError is a
+    refusal), split, problems, verdict(), and for a proof the guarded copy must NOT elaborate.
+  verdict(job, lean) — THE SEAM for agent G's shared verdict: today Runner.check (no error, no
+    sorry). Axioms are not judged yet; wire G's function here when the lead says it landed.
+  resolve(...) notes a record for a direction already settled ("not needed") without
+    re-checking it; run_pairs notes every record no surviving pair looked at ("not a direction
+    between two surviving candidates; not read").
+
+Decisions:
+  - "Several records: take the first by record date then name." Read as: the first whose
+    re-check passes. Taking the first outright would let one failed record block a good later
+    one forever (the failed attempt is stable across runs). Tested both ways
+    (test_of_several_passing_records..., test_a_failing_first_record_does_not_block...).
+  - The job re-checks against the template it computes itself from the candidates, not only by
+    elaborating: without that a file could prove some other theorem and pass.
+  - A failed re-check is re-done on every run (the runner's cache is per run); the result is the
+    same document, so nothing is written (tested). It costs two elaborations per run per failed
+    record until a passing record or the job's own proof settles the direction.
+  - Hash source: the candidate record's statement_hash field, as pair-proof/v1's description
+    says; the job does not recompute it from the Lean.
+
+GREEN: test_review_pair_proof_job 23 passed; with the review suites and the contract: 130 passed
+  (including the lean test below).
+
+Mutants (pytest plugins under the scratchpad, PYTHONDONTWRITEBYTECODE=1, no file touched):
+  jmut_none (contributed -> None):         17 of 23 fast tests fail; the lean test fails
+  jmut_noguard (re-check skips the guard): 4 fail (the guard and kind tests, and the two
+                                           happy-path tests that assert the guarded copy ran)
+  jmut_nohash (hashes not compared):       1 fails (the hash test)
+  jmut_notemplate (split always matches):  3 fail (template, forbidden region, wrong direction)
+  The lean test passes under jmut_noguard: its good proof uses its hypothesis, so the guard is
+  not what it measures; it asserts separately that the guarded copy fails under real Lean.
+
+Lean tier (real Lean 4.33.1, local elan):
+  uv run pytest -m lean gate/tests/test_review_pair_proof_job_lean.py
+  test_a_merged_contributed_proof_under_the_real_toolchain: 1 passed in 35 s.
+  Legendre faithful (human-ref) and closed interval (alt-closed); a pair record on disk with both
+  directions open at the job's budget; the contract's helper + proof filed for faithful ->
+  closed, and `exact h` filed for the false direction. Result: the true direction proved with a
+  contributed exhibit whose Lean is the record's byte for byte and re-elaborates alone, its
+  guarded copy fails; the false direction open with the author and the record named and "does
+  not elaborate"; a second run writes nothing (tree equal). Red under jmut_none:
+  AssertionError ... assert ('open' == 'proved').

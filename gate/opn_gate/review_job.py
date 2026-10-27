@@ -72,7 +72,7 @@ from typing import Any
 
 import yaml
 
-from opn_gate import layout, review, review_format, review_lean, schemas
+from opn_gate import layout, pair_proofs, review, review_format, review_lean, schemas
 from opn_gate.paths import REVIEW_DIR
 from opn_gate.review_lean import Cand, Case, Checked, Runner
 
@@ -127,6 +127,10 @@ class Job:
     raised: list[str] = field(default_factory=list)
     tests_written: list[str] = field(default_factory=list)
     mutants: dict[str, Any] = field(default_factory=dict)
+    #: merged pair-proof records (F26-R8, T18): (file stem, record), each valid pair-proof/v1
+    pair_proofs: list[tuple[str, dict[str, Any]]] = field(default_factory=list)
+    #: the stems of the records some surviving pair's direction looked at in this run
+    pair_proofs_read: set[str] = field(default_factory=set)
     #: the screens stage 3 runs, in order (F26-Q20: ``statement`` only on an open conjecture)
     screens: tuple[str, ...] = ("statement", "negation", "false")
 
@@ -180,6 +184,7 @@ def _load(job: Job) -> None:
     job.answers = [doc for _, doc in _yaml_docs(base / "answers")]
     # oldest first, so ``review_pairs.latest`` (the last of the latest date) is the record in force
     job.pairs = review.in_order((p.name, doc) for p, doc in _yaml_docs(base / "pairs"))
+    _load_pair_proofs(job)
     folder = base / "exhibits"
     if folder.is_dir():
         for path in sorted(folder.glob("*.json")):
@@ -192,6 +197,23 @@ def _load(job: Job) -> None:
                 lean = path.with_suffix(".lean")
                 if lean.is_file():
                     job.exhibit_lean[doc["id"]] = lean.read_text(encoding="utf-8")
+
+
+def _load_pair_proofs(job: Job) -> None:
+    """The merged pair-proof records under ``review/pair-proofs/`` (F26-T18), each validated; one
+    that does not validate, or is filed under another target, is noted and not read."""
+    for path, doc in _yaml_docs(job.base / pair_proofs.DIR):
+        try:
+            schemas.validate(doc, "pair-proof/v1")
+        except schemas.SchemaError as exc:
+            job.notes.append(
+                f"pair-proof {path.stem}: not a pair-proof/v1 record ({exc}); not read"
+            )
+            continue
+        if doc["target"] != job.target:
+            job.notes.append(f"pair-proof {path.stem}: filed under {doc['target']}; not read")
+            continue
+        job.pair_proofs.append((path.stem, doc))
 
 
 # --- exhibits and tests as records -------------------------------------------------------------
