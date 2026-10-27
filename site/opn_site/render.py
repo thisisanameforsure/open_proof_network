@@ -2248,6 +2248,11 @@ class Renderer:
                 "a curator adds you directly (D-32). Co-stewards are welcome: to ask, write to a "
                 f'steward or <a href="{esc(self.repo_url)}/issues">open an issue</a>. '
                 f'<a href="{RULES_PATH}">The panel&rsquo;s rules →</a></p>'
+                # F04-T58: the member reading this page is the one who invites.
+                '<p class="cue member-invites">Already a steward here? Invite someone from '
+                f'<a href="{panel_href}">the Panel section of the problem&rsquo;s page</a>: '
+                "sign in with GitHub, and the Invite form is there. It takes their GitHub "
+                "login, not an email address.</p>"
             )
         if self.takes_steward(tv):
             flag = ' data-invitation="required"' if invited else ""  # the card stays hidden
@@ -4120,11 +4125,14 @@ class Renderer:
     def co_steward_cue(self, tv: TargetView) -> str:
         """F04-T44 (D-32 v3.34): on a problem with a steward, a co-steward is welcome and joins by
         the panel's invitation or a curator, which the steward form page explains."""
+        # F04-T58: a slot panel.js fills once the service answers (F23-R15) — a member or a
+        # curator gets a button to the Invite form, a signed-out visitor the sign-in link.
+        slot = '<div class="invite-cue"></div>' if self.api_url else ""
         return (
             '<p class="co-steward">Co-stewards are welcome. The problem&rsquo;s panel invites a '
             "new steward, who accepts, or a curator adds one. "
             f'<a href="{esc(self.steward_path(tv.target_id))}">How to join →</a> · '
-            f'<a href="{RULES_PATH}">the panel&rsquo;s rules</a></p>'
+            f'<a href="{RULES_PATH}">the panel&rsquo;s rules</a></p>{slot}'
         )
 
     @staticmethod
@@ -4187,6 +4195,11 @@ class Renderer:
         settings = self.site.panel_settings or {}
         lapse = settings.get("steward_lapse_days")
         return int(lapse["value"]) if isinstance(lapse, dict) else None
+
+    def vote_window_days(self) -> int | None:
+        settings = self.site.panel_settings or {}
+        window = settings.get("vote_window_days")
+        return int(window["value"]) if isinstance(window, dict) else None
 
     @staticmethod
     def writeup_items(tv: TargetView) -> list[dict[str, Any]]:
@@ -4313,9 +4326,13 @@ class Renderer:
                 },
                 ensure_ascii=False,
             )
+            # F04-T58: the vote window, so the Invite form can say when a motion passes.
+            window = self.vote_window_days()
+            window_attr = f' data-window-days="{window}"' if window is not None else ""
             parts.append(
                 f'<div class="panel-ctl" data-target="{esc(tv.target_id)}" '
-                f'data-panel="{esc(data)}" data-commitment="{esc(steward.COMMITMENT)}"></div>'
+                f'data-panel="{esc(data)}" data-commitment="{esc(steward.COMMITMENT)}"'
+                f"{window_attr}></div>"
             )
         return "".join(parts)
 
