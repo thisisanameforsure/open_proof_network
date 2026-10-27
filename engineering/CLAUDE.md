@@ -1814,3 +1814,10 @@ The law of the project:
   hole another live route needs (F31-Q12). Also: `uv` and `gh` live in `~/.local/bin` and
   `/opt/homebrew/bin`, and the shell's `python3` is 3.9 — the post-merge tests that shell out to
   `python3` fail with "zip() takes no keyword arguments" until the venv is first on PATH.
+
+- 2026-10-27 — The owner could not find how to invite a co-steward: the only control sat in the
+  Panel section at the foot of the page after sign-in, and the card's "How to join" spoke to the
+  invitee (F04-T58, Q56). Two small things. A click handler that focuses a field and then lets the
+  link's `#hash` navigate loses the focus to the heading; focus in a `setTimeout(0)` after the jump,
+  and assert `activeElement` in the browser test, which is what caught it. And `git commit -o --
+  <paths> -m msg` reads `-m` as a pathspec: `-F msgfile` first, paths last.
