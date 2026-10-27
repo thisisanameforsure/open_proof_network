@@ -1,6 +1,7 @@
 // The panel and write-up controls (F24-T6; R8, R9; D-32 v3.34, D-36). The problem page is static:
-// it carries two empty slots, .panel-ctl (the members and the open motions, as data) and
-// .writeup-ctl (each write-up's number, title, stage, authors and signers, as data). Only once
+// it carries three empty slots, .panel-ctl (the members and the open motions, as data),
+// .writeup-ctl (each write-up's number, title, stage, authors and signers, as data) and the
+// steward card's .invite-cue (F04-T58: the way to the Invite form, for those who may use it). Only once
 // session.js has the service's answer does this draw anything, and only what the signed-in login
 // may do: a member or curator invites and votes; an invited login accepts; anyone signed in
 // records a write-up; a listed author signs it, adds its arXiv id, records a submission, an
@@ -85,6 +86,14 @@
   function inviteForm() {
     var box = el("div", { "class": "ctl-box invite-ctl" });
     box.appendChild(el("h3", {}, "Invite someone"));
+    // F04-T58: what an invitation takes and when it passes (opn_gate.panel: at once for a sole
+    // counted member or a curator, otherwise by the panel's vote inside its window).
+    var windowDays = panelSlot.dataset.windowDays;
+    box.appendChild(el("p", { "class": "cue" },
+      "Invitations go to a GitHub login, not an email address. If you are the panel's only " +
+      "member, or a curator, the invitation passes at once; otherwise the panel votes on it" +
+      (windowDays ? " within " + String(windowDays) + " days" : "") +
+      ". The invited person then signs in and accepts here."));
     var login = field("invite-login", "Their GitHub login", { maxlength: "39" });
     var note = field("invite-note", "What part of the work you ask them for (optional)", { maxlength: "300" });
     var b = el("button", { type: "button", "class": "btn btn-primary" }, "Invite");
@@ -130,6 +139,29 @@
     panelSlot.appendChild(box);
   }
 
+  // F04-T58: the steward card's slot. A member or a curator gets a button that goes to the Panel
+  // section and puts the cursor in the login field; signed out, the sign-in link; anyone else,
+  // nothing (the card's sentence already says how a co-steward joins).
+  var inviteCue = document.querySelector(".steward-card .invite-cue");
+
+  function cueButton() {
+    if (!inviteCue) { return; }
+    var a = el("a", { "class": "btn btn-secondary", href: "#panel" }, "Invite a co-steward");
+    a.addEventListener("click", function () {
+      // After the jump: a hash navigation moves focus to its heading, so focusing now is undone.
+      window.setTimeout(function () {
+        var login = document.getElementById("invite-login");
+        if (login) { login.focus(); }
+      }, 0);
+    });
+    inviteCue.appendChild(a);
+  }
+
+  function cueSignIn() {
+    if (!inviteCue) { return; }
+    inviteCue.appendChild(el("a", { href: O.signInHref() }, "Sign in with GitHub to invite a co-steward"));
+  }
+
   function drawPanel(s) {
     var awaiting = s.awaiting || {};
     var member = (panel.members || []).indexOf(s.login) >= 0;
@@ -139,7 +171,7 @@
     (panel.open || []).forEach(function (m) {
       if (member || votes.indexOf(m.n) >= 0) { voteButtons(m.n); }
     });
-    if (member || s.curator) { inviteForm(); }
+    if (member || s.curator) { inviteForm(); cueButton(); }
     (Array.isArray(awaiting.invitations) ? awaiting.invitations : []).forEach(function (inv) {
       if (inv && inv.target === target) { acceptForm(s, inv); }
     });
@@ -243,6 +275,7 @@
 
   O.session.then(function (s) {
     if (!s.signed_in) {
+      if (panelSlot) { cueSignIn(); }
       if (writeSlot) {
         writeSlot.appendChild(el("a", { "class": "btn btn-secondary", href: O.signInHref() },
           "Sign in with GitHub to record a write-up or take part"));

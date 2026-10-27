@@ -1,0 +1,64 @@
+F04-T58 — a steward can find how to invite a co-steward (Q56), 2026-10-27
+
+The owner, sole steward of erdos-257, asked how to invite a second steward (2026-10-26). The
+live page (openproofnetwork.org/problems/erdos-257/) was read: the steward card said "Co-stewards
+are welcome ... How to join →", whose link goes to the steward form page written for the invitee
+("a member of its panel invites you"); the Invite form (F24-T6) was drawn by panel.js only in the
+Panel section at the foot of the page, after sign-in; and nothing said an invitation names a
+GitHub login rather than an email address.
+
+Change (site only; no schema, no protocol surface, nothing in the graph):
+  site/opn_site/render.py    co_steward_cue: a .invite-cue slot on the steward card when the site
+                             has a service; the steward form page's invitation-only cue gains a
+                             line for a current member ("Already a steward here? Invite someone
+                             from the Panel section ..."); the panel-ctl slot carries
+                             data-window-days from the panel settings (vote_window_days).
+  site/opn_site/static/panel.js
+                             fills the slot after GET /session: a member or a curator gets an
+                             "Invite a co-steward" button to #panel that focuses #invite-login
+                             (after the hash jump, which moves focus to the heading); signed out,
+                             "Sign in with GitHub to invite a co-steward"; anyone else, nothing.
+                             The Invite form opens with: "Invitations go to a GitHub login, not an
+                             email address. If you are the panel's only member, or a curator, the
+                             invitation passes at once; otherwise the panel votes on it within
+                             14 days. The invited person then signs in and accepts here."
+  site/opn_site/static/site.css
+                             the slot's spacing.
+
+Red first (site/tests/test_finding_invite_path.py, before any edit; task-58-red.txt):
+  FAILED test_the_steward_card_carries_the_invite_slot_for_the_script
+  FAILED test_the_panel_slot_carries_the_vote_window
+  FAILED test_the_form_page_tells_a_member_where_to_invite_from
+  FAILED test_the_script_says_login_not_email_and_when_an_invitation_passes
+  4 failed, 1 passed (the no-service guard, green by construction), 2 skipped (browser tests;
+  the venv has no playwright, run them with --with playwright)
+Then, with the edits in and the browser tests run, one honest red: focusing the login field in
+the click handler was undone by the hash navigation (activeElement '' after the click); the
+focus moved to a setTimeout(0) after the jump.
+
+Green (task-58-green.txt):
+  uv run --frozen --with playwright pytest site/tests/test_finding_invite_path.py \
+      site/tests/test_finding_co_stewards.py site/tests/test_panel_pages.py \
+      site/tests/test_render_stewards.py
+  36 passed
+Site tier: uv run --frozen --with playwright pytest site/tests
+  903 passed, 3 failed: test_finding_lemma_edge.py::test_measured_in_a_browser,
+  test_web_flows.py::test_a_stranger_sees_edit_and_no_approve, ::test_a_curator_sees_withdraw —
+  the gloss Edit control hidden in its fold and the lemma record page, the same three the log
+  records failing on origin/main since 2026-10-18 (element not visible, Playwright timeout); not
+  touched by this change, which adds nothing to those pages' selectors.
+make lint: 910 files formatted, ruff clean.
+
+Screenshots (written by the tests against the fixture and a fake service):
+  task-58-card-member.png   the steward card at 1440, signed in as the panel's member: the
+                            "Invite a co-steward" button under the F04-T44 sentence
+  task-58-invite-form.png   the Invite form after the button: the note, the login field focused
+  task-58-card-out-390.png  the card at 390 signed out: the sign-in link; scrollWidth 390
+A curator who is not a member gets the same button; a signed-in bystander gets no control and
+keeps the sentence (asserted in the browser).
+
+For erdos-257 today: sign in as thisisanameforsure, press Invite a co-steward on the card, give
+Carl's GitHub login (an email address is not an identity the record can name); as the only
+counted member the motion passes at once; Carl signs in, and the Accept box is in the Panel
+section. On the site at the next deploy (a network push deploys the api, never the site:
+gh workflow run site-deploy.yml --ref main).
