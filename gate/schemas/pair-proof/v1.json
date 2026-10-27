@@ -1,0 +1,146 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openproof.network/schemas/pair-proof/v1.json",
+  "title": "pair-proof/v1",
+  "description": "targets/<id>/review/pair-proofs/<a>--<b>--<direction>--<stamp>-<author>.yaml (F26-R8, F26-T16; D-9 v3.39): a contributor's kernel-checked settlement of one open direction of a review pair. A proof shows the direction's first candidate implies the second; a refutation is an instance, a natural number at which the first candidate's claim holds and the second's fails, never a proof that the two statements differ. `lean` is the whole file: the gate's template for the direction (`opn_gate.pair_proofs.template`) with the contributor's helper declarations and proof written into its two marked regions, every other byte the template's. The gate checks it before the merge and the review job re-checks it and writes the pair record and its exhibit after; this record never changes a pair by itself. Append-only; versioned, never edited (D-34).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "target",
+    "a",
+    "b",
+    "direction",
+    "kind",
+    "case",
+    "statement_hashes",
+    "lean",
+    "author",
+    "models",
+    "date"
+  ],
+  "properties": {
+    "schema": {
+      "const": "pair-proof/v1"
+    },
+    "target": {
+      "$ref": "#/$defs/identifier",
+      "description": "the target the record is filed under"
+    },
+    "a": {
+      "$ref": "#/$defs/id",
+      "description": "the pair's first candidate, the lexically smaller id, as pair/v1 names it"
+    },
+    "b": {
+      "$ref": "#/$defs/id",
+      "description": "the pair's second candidate"
+    },
+    "direction": {
+      "enum": [
+        "forward",
+        "backward"
+      ],
+      "description": "`forward` settles a implies b, `backward` b implies a, as pair/v1 names them"
+    },
+    "kind": {
+      "enum": [
+        "proof",
+        "refutation"
+      ],
+      "description": "`proof`, the implication proved; `refutation`, an instance where the direction's first claim holds and its second fails"
+    },
+    "case": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "probe",
+            "n",
+            "set",
+            "concept"
+          ],
+          "properties": {
+            "probe": {
+              "const": "holds"
+            },
+            "n": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "set": {
+              "type": "null"
+            },
+            "concept": {
+              "type": "null"
+            }
+          }
+        }
+      ],
+      "description": "null for a proof; for a refutation the instance, in the review's own case form (`review_lean.Case.key`), with the claims read at n and no probe"
+    },
+    "statement_hashes": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "a",
+        "b"
+      ],
+      "properties": {
+        "a": {
+          "$ref": "#/$defs/sha256"
+        },
+        "b": {
+          "$ref": "#/$defs/sha256"
+        }
+      },
+      "description": "each candidate's statement_hash as its candidate/v1 record carries it, so the settlement is bound to the texts it was checked against"
+    },
+    "lean": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 65536,
+      "description": "the whole file, the template with its two regions filled"
+    },
+    "author": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "description": "the ledger identity (pseudonym) credited, the token's own"
+    },
+    "models": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 200
+      },
+      "description": "the models that helped, each named (v3.31); empty for a person's work"
+    },
+    "date": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$",
+      "description": "UTC, second precision, Z suffix"
+    }
+  },
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]*$",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]{2,63}$",
+      "description": "a candidate's id, as candidate/v1 and pair/v1 name it"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    }
+  }
+}

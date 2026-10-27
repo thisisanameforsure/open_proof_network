@@ -2322,6 +2322,23 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "Remove it; a pull request may add a candidate, an answer or a signature, and the job "
         "writes the rest from them.",
     ),
+    "pair-proof-template-mismatch": (
+        "gate",
+        None,
+        "A pair proof's file differs from its direction's template outside the two regions the "
+        "contributor fills, the helper region and the proof region (F26-R8, F26-T16).",
+        "Start again from the template list_open_pairs gives for the direction, and change only "
+        "the lines between the two helper markers and the lines after the proof marker.",
+    ),
+    "pair-proof-forbidden": (
+        "gate",
+        None,
+        "A pair proof's helper region holds something other than private theorem, lemma, def or "
+        "abbrev declarations, or its proof region is empty, holds sorry, admit, set_option or "
+        "native_decide, or has a line at column 0 (F26-R8, F26-T16).",
+        "Keep helpers private and free of options and new axioms; write the proof as an indented "
+        "tactic block that closes the goal.",
+    ),
     "review-not-intent-signer": (
         "api",
         None,

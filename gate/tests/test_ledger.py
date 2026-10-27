@@ -360,6 +360,7 @@ def test_merge_line_table() -> None:
         "review-answer": None,
         "review-signature": None,
         "review-job": None,
+        "pair-proof": "review",  # F26-T16 (R8, Q22): a settled pair direction is review work
     }
     assert set(expected) == set(typing.get_args(modes.Mode))
     assert getattr(ledger, "MERGE_LINES", None) == expected

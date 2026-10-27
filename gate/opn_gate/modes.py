@@ -130,6 +130,7 @@ Mode = Literal[
     "review-answer",
     "review-signature",
     "review-job",
+    "pair-proof",  # F26-T16 (R8): a contributor's settled pair direction
 ]
 
 #: F25-R5, R6 (D-3, D-10 v3.37): the two records outside the node, each a mode of its own and
@@ -151,6 +152,9 @@ RECORD_MODES: dict[Role, Mode] = {
     "review-question": "review-job",
     "pair": "review-job",
     "review-exhibit": "review-job",
+    # F26-T16 (R8): a contributor's proof or refutation of one open pair direction, its Lean
+    # inline; checked in the sandbox before the merge, re-checked by the job after it.
+    "pair-proof": "pair-proof",
 }
 
 #: F15-R2, R6; F24-R2, R3: a steward's signed acts on a target, which merge as the steward mode
@@ -2546,6 +2550,7 @@ REVIEW_RECORD_ROLES: tuple[Role, ...] = (
     "review-question",
     "pair",
     "review-exhibit",
+    "pair-proof",
 )
 REVIEW_JOB_ROLES: tuple[Role, ...] = ("intent-test", "review-question", "pair", "review-exhibit")
 

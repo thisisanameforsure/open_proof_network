@@ -73,6 +73,9 @@ MERGE_LINES: dict[str, Line | None] = {
     "review-answer": None,
     "review-signature": None,
     "review-job": None,
+    # F26-T16 (R8, Q22): a settled pair direction is review work, credited on D-19's review
+    # line under the target's root; the gate checked it before the merge.
+    "pair-proof": "review",
 }
 #: D-21, F11 §7: the curator of a target earns no proof credit on it. They chose the statement,
 #: its decomposition and its difficulty, so a proof of one of its nodes is not a result they
