@@ -1,0 +1,156 @@
+F.....................................................FF..........       [100%]
+=================================== FAILURES ===================================
+_______________ test_session_js_reads_a_401_as_an_ended_sign_in ________________
+
+    def test_session_js_reads_a_401_as_an_ended_sign_in() -> None:
+        body = SESSION_JS[SESSION_JS.index("function errorText") :]
+        body = body[: body.index("function here")]
+>       assert "401" in body and "Your sign-in has ended" in body, body
+E       AssertionError: function errorText(result) {
+E             if (result && result.status === 401) { return ENDED + " Reload the page and sign in again."; }
+E             var d = result && result.data;
+E             if (d && typeof d.message === "string" && d.message) { return d.message; }
+E             if (result && result.status) { return "The service answered " + String(result.status) + "."; }
+E             return "The service did not answer. Nothing was sent.";
+E           }
+E         
+E           
+E       assert ('401' in 'function errorText(result) {\n    if (result && result.status === 401) { return ENDED + " Reload the page and sign in...ce answered " + String(result.status) + "."; }\n    return "The service did not answer. Nothing was sent.";\n  }\n\n  ' and 'Your sign-in has ended' in 'function errorText(result) {\n    if (result && result.status === 401) { return ENDED + " Reload the page and sign in...ce answered " + String(result.status) + "."; }\n    return "The service did not answer. Nothing was sent.";\n  }\n\n  ')
+
+site/tests/test_finding_invite_errors.py:61: AssertionError
+___________________ test_a_stranger_sees_edit_and_no_approve ___________________
+
+bench = Bench(fake=Fake(origins={'http://127.0.0.1:52544', 'http://127.0.0.1:52543', 'http://127.0.0.1:52542'}, next_login='st...0000gn/T/pytest-of-mikehiggins/pytest-321/shots0'), api_server=<http.server.ThreadingHTTPServer object at 0x10beeb360>)
+browser = <Browser type=<BrowserType name=chromium executable_path=/Users/mikehiggins/Library/Caches/ms-playwright/chromium-1248/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing> version=156.0.8078.4>
+
+    def test_a_stranger_sees_edit_and_no_approve(bench: Bench, browser: Any) -> None:
+        page = words_page(bench, browser, "stranger")
+        assert labels(page, "Edit") == 2
+        assert labels(page, "Approve") == 0
+        assert labels(page, "Withdraw") == 0
+        gloss_ctl = page.locator('.words-ctl[data-kind="gloss"]')
+>       gloss_ctl.locator("button", has_text="Edit").click()
+
+site/tests/test_web_flows.py:480: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+../../../.cache/uv/archive-v0/ESEvM4_tkhs1qOWo/lib/python3.13/site-packages/playwright/sync_api/_generated.py:11021: in click
+    self._sync(
+../../../.cache/uv/archive-v0/ESEvM4_tkhs1qOWo/lib/python3.13/site-packages/playwright/_impl/_locator.py:174: in click
+    return await self._frame._click(self._selector, strict=True, **params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.cache/uv/archive-v0/ESEvM4_tkhs1qOWo/lib/python3.13/site-packages/playwright/_impl/_frame.py:598: in _click
+    await self._channel.send("click", self._timeout, locals_to_params(locals()))
+../../../.cache/uv/archive-v0/ESEvM4_tkhs1qOWo/lib/python3.13/site-packages/playwright/_impl/_connection.py:78: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <playwright._impl._connection.Connection object at 0x10c152d50>
+cb = <function Channel.send.<locals>.<lambda> at 0x10c486a20>
+is_internal = False, title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -> Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        parsed_st = _attach_api_call_information(
+            getattr(task, "__pw_stack__", None) or _capture_stack_trace(),
+            is_internal,
+            title,
+        )
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+>           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E           playwright._impl._errors.TimeoutError: Locator.click: Timeout 30000ms exceeded.
+E           Call log:
+E             - waiting for locator(".words-ctl[data-kind=\"gloss\"]").locator("button").filter(has_text="Edit")
+E               - locator resolved to <button type="button" class="btn btn-ghost words-btn">Edit</button>
+E             - attempting click action
+E               2 × waiting for element to be visible, enabled and stable
+E                 - element is not visible
+E               - retrying click action
+E               - waiting 20ms
+E               2 × waiting for element to be visible, enabled and stable
+E                 - element is not visible
+E               - retrying click action
+E                 - waiting 100ms
+E               58 × waiting for element to be visible, enabled and stable
+E                  - element is not visible
+E                - retrying click action
+E                  - waiting 500ms
+
+../../../.cache/uv/archive-v0/ESEvM4_tkhs1qOWo/lib/python3.13/site-packages/playwright/_impl/_connection.py:636: TimeoutError
+_________________________ test_a_curator_sees_withdraw _________________________
+
+bench = Bench(fake=Fake(origins={'http://127.0.0.1:52544', 'http://127.0.0.1:52543', 'http://127.0.0.1:52542'}, next_login='cu...0000gn/T/pytest-of-mikehiggins/pytest-321/shots0'), api_server=<http.server.ThreadingHTTPServer object at 0x10beeb360>)
+browser = <Browser type=<BrowserType name=chromium executable_path=/Users/mikehiggins/Library/Caches/ms-playwright/chromium-1248/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing> version=156.0.8078.4>
+
+    def test_a_curator_sees_withdraw(bench: Bench, browser: Any) -> None:
+        bench.fake.curators.add("cura")
+        page = words_page(bench, browser, "cura")
+        assert labels(page, "Withdraw") == 2 and labels(page, "Approve") == 4
+        gloss_ctl = page.locator('.words-ctl[data-kind="gloss"]')
+>       gloss_ctl.locator("button", has_text="Withdraw").click()
+
+site/tests/test_web_flows.py:506: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+../../../.cache/uv/archive-v0/ESEvM4_tkhs1qOWo/lib/python3.13/site-packages/playwright/sync_api/_generated.py:11021: in click
+    self._sync(
+../../../.cache/uv/archive-v0/ESEvM4_tkhs1qOWo/lib/python3.13/site-packages/playwright/_impl/_locator.py:174: in click
+    return await self._frame._click(self._selector, strict=True, **params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.cache/uv/archive-v0/ESEvM4_tkhs1qOWo/lib/python3.13/site-packages/playwright/_impl/_frame.py:598: in _click
+    await self._channel.send("click", self._timeout, locals_to_params(locals()))
+../../../.cache/uv/archive-v0/ESEvM4_tkhs1qOWo/lib/python3.13/site-packages/playwright/_impl/_connection.py:78: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <playwright._impl._connection.Connection object at 0x10c152d50>
+cb = <function Channel.send.<locals>.<lambda> at 0x10c4d9300>
+is_internal = False, title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -> Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        parsed_st = _attach_api_call_information(
+            getattr(task, "__pw_stack__", None) or _capture_stack_trace(),
+            is_internal,
+            title,
+        )
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+>           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E           playwright._impl._errors.TimeoutError: Locator.click: Timeout 30000ms exceeded.
+E           Call log:
+E             - waiting for locator(".words-ctl[data-kind=\"gloss\"]").locator("button").filter(has_text="Withdraw")
+E               - locator resolved to <button type="button" class="btn btn-ghost words-btn">Withdraw</button>
+E             - attempting click action
+E               2 × waiting for element to be visible, enabled and stable
+E                 - element is not visible
+E               - retrying click action
+E               - waiting 20ms
+E               2 × waiting for element to be visible, enabled and stable
+E                 - element is not visible
+E               - retrying click action
+E                 - waiting 100ms
+E               58 × waiting for element to be visible, enabled and stable
+E                  - element is not visible
+E                - retrying click action
+E                  - waiting 500ms
+
+../../../.cache/uv/archive-v0/ESEvM4_tkhs1qOWo/lib/python3.13/site-packages/playwright/_impl/_connection.py:636: TimeoutError
+=========================== short test summary info ============================
+FAILED site/tests/test_finding_invite_errors.py::test_session_js_reads_a_401_as_an_ended_sign_in
+FAILED site/tests/test_web_flows.py::test_a_stranger_sees_edit_and_no_approve
+FAILED site/tests/test_web_flows.py::test_a_curator_sees_withdraw - playwrigh...
+3 failed, 63 passed in 125.75s (0:02:05)
+..............                                                           [100%]
+14 passed in 13.47s

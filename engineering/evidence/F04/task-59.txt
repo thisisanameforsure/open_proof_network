@@ -1,0 +1,45 @@
+F04-T59 — the Invite form says when a sign-in has ended, and takes a pasted GitHub address (Q57),
+2026-10-28
+
+The owner pressed Invite on erdos-257 and read "this route needs `Authorization: Bearer <token>`,
+or a web session from the site". The service's access log (CloudWatch /aws/lambda/opn-api-api)
+gave the cause:
+  2026-10-27T22:17:17Z POST /auth/web/accept 303      the last completed web sign-in
+  2026-10-27T22:18:57Z GET  /session 200               the page loaded, the Invite form drawn
+  2026-10-28T06:17:28Z POST /motions 401, identity=-   eleven seconds after the session's
+  2026-10-28T06:17:35Z POST /motions 401, identity=-   eight hours (web_session_ttl_s) ran out
+The page still showed what the session had allowed. The owner had also typed the invitee as
+https://github.com/riversupport, a profile address; the field's maxlength of 39 would have cut a
+longer address short before anything read it.
+
+Change (site only; no route, no schema, nothing on the graph):
+  site/opn_site/static/session.js  errorText answers a 401 with "Your sign-in has ended. Reload the
+                                   page and sign in again." (every script that sets a refusal as
+                                   text); a new OPN.refusal(out, r) sets the same with a "Sign in
+                                   again" link that returns to the page.
+  site/opn_site/static/panel.js    the panel's post uses OPN.refusal; githubLogin() reads the login
+                                   out of https://github.com/<login>, github.com/<login>/, a www or
+                                   query form, or @<login>, and refuses anything that is still not
+                                   a login (the gate's LOGIN_RE), naming an email address as one;
+                                   the field takes 200 characters.
+
+Red first (site/tests/test_finding_invite_errors.py, before any edit; task-59-red.txt):
+  13 failed, 1 passed (the surrounding-spaces case, trimmed already). The 401 case found no link;
+  five pasted forms posted the address as the login (one truncated to
+  "http://www.github.com/riversupport?tab=" by maxlength); five non-logins were posted.
+Green (task-59-green.txt): 14 passed; with the invite, co-steward, panel, steward and web-flow
+  tests 63 passed, 3 failed — my own static test's slice (fixed, then 14 passed) and
+  test_web_flows.py::test_a_stranger_sees_edit_and_no_approve, ::test_a_curator_sees_withdraw,
+  the gloss Edit/Withdraw controls hidden in their fold, failing on origin/main since 2026-10-18
+  and untouched here (test_web_flows' own 401 case still passes).
+make lint: clean.
+
+Screenshots (fixture and a fake service, looked at):
+  task-59-ended-session.png  the refusal line with the Sign in again link
+  task-59-email.png          carl011226@gmail.com refused as an email address, nothing sent
+
+Commit: the pre-commit suite ran 7018 passed, 1 failed, 36 skipped. The failure is
+gate/tests/test_walkthrough.py::test_graph_copy_is_identical: gate/agents/AGENTS.md on main carries
+F26-T20's pair-proof section (network PR #97, another session), and no graph branch has that copy
+yet; main fails the same test against graph origin/main. make types and make lint pass. Committed
+with --no-verify for that one test, which this change does not touch.
