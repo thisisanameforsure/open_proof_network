@@ -123,3 +123,12 @@ def test_hole_statement_text_is_escaped(tmp_path: Path) -> None:
     gf.gloss(root, "$x$ <script>alert(1)</script>", kind="statement", node=HOLE_IDS[1])
     block = split_block(panel(page_of(root), ROOT_NODE))
     assert "<script>alert(1)</script>" not in block
+
+
+def test_the_split_says_reduced_to_not_proved_from(tmp_path: Path) -> None:
+    """2026-10-28 erdos-68 run (A's F-A6, a repeat of the erdos-849 run's F6): an open root's
+    panel read "Proved from these holes by …", which a reader takes for a proof of the root. The
+    partial reduces the statement to its holes; whether it is proved is the state shown beside it."""
+    block = split_block(panel(page_of(split_tree(tmp_path)), ROOT_NODE))
+    assert "Proved from" not in block
+    assert '<p class="split-by">Reduced to these holes by ' in block

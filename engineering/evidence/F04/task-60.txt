@@ -1,0 +1,14 @@
+F04-T60 — a split says 'Reduced to these holes', not 'Proved from' (Q58)
+2026-10-28 erdos-68 run, A's F-A6 (a repeat of the erdos-849 run's F6).
+
+RED: site/tests/test_finding_split_into.py::test_the_split_says_reduced_to_not_proved_from
+  assert 'Proved from' not in '<section cl...s></section>'
+
+GREEN: site fast tier
+8 passed in 45.75s
+Full site tier: 871 passed, 35 skipped (Playwright absent from the venv).
+
+Rendered (fixture, root panel):
+<p class="split-by">Reduced to these holes by <a class="file" href="https://github.com/example/graph/blob/6666666666666666666666666666666666666666/targets/propositional/nodes/and-swap-reassoc/attempts/20260920T000000Z-alice-partial.lean">20260920T000000Z-alice-partial.lean</a> (merged in <code>44444
+
+No screenshot: a one-sentence text change in an existing element; the rendered HTML above is the evidence.
