@@ -269,12 +269,13 @@ their title's head as label (e.g. "Erdős problem 1094"), since live titles are 
 <p><strong>F29-Q14 — The drawing's width.</strong> The selector box grows to its longest row (approach text
 cut at 40 characters, the full text in the row's title), so on erdos-1094 the drawing is about a quarter
 narrower at 1440px than with F27-T7's fixed 96px column. Accepted for now.</p>
+<p><strong>F29-Q15 — The block's prose is the hole's gloss (T10, 2026-10-28).</strong> R7 files a hole's first statement gloss as its label, its claim and then the block's other lines, but the guide said only that the label and claim are filed and that the other lines are "prose about the hole". On erdos-68 (graph #1134) the author wrote "Elementary." and "The open core" there, and the network filed three glosses that broke the gloss rule the guide states (a gloss never says whether a statement is true, hard or important). The guide now says the prose is filed too and follows the gloss rule; R7 is unchanged.</p>
 <p><strong>F29-Q8 — <code>label_source</code> has no <code>proposal</code> value.</strong> The
 amendment's first draft named a variant's "proposal name"; no proposal carries one, and an enum
 value nothing emits is a live bug (2026-09-10). A variant falls back to its id.</p>
 
 <h2>10. Status</h2>
-<div class="rule"><strong>status:</strong> live 2026-10-18 · <strong>Tasks:</strong> T0&ndash;T9 done; network PR #70 merged (main 32961c76, hotfix e34cc561 for get_node&rsquo;s glosses version set), graph re-pinned c831a1962 and rendered, backfill of 167 glosses merged (graph PRs #619&ndash;#756), coverage: every non-root statement labelled (<code>engineering/evidence/F29/task-8.txt</code>). Q1&ndash;Q14 stand for the owner&rsquo;s review.</div>
+<div class="rule"><strong>status:</strong> live 2026-10-18 · <strong>Tasks:</strong> T0&ndash;T9 done; network PR #70 merged (main 32961c76, hotfix e34cc561 for get_node&rsquo;s glosses version set), graph re-pinned c831a1962 and rendered, backfill of 167 glosses merged (graph PRs #619&ndash;#756), coverage: every non-root statement labelled (<code>engineering/evidence/F29/task-8.txt</code>). Q1&ndash;Q14 stand for the owner&rsquo;s review. · T10 &#10003; 2026-10-28 (Q15; guide only; the graph copy at the next re-pin)</div>
 
 <h2>Tasks</h2>
 <table>
@@ -347,6 +348,9 @@ value nothing emits is a live bug (2026-09-10). A variant falls back to its id.<
     agents through the service (R12); coverage at the final commit.</td>
     <td><code>engineering/evidence/F29/</code>, the graph's pins</td><td>T2–T7</td>
     <td><code>opn-gate gloss coverage --graph ../open_proof_network_graph</code>; live pages</td></tr>
+  <tr><td>F29-T10</td><td>The guide says a hole block&rsquo;s prose is filed in its gloss (Q15).</td>
+    <td><code>gate/agents/AGENTS.md</code></td><td>&mdash;</td>
+    <td><code>uv run --frozen pytest gate/tests/test_walkthrough.py</code> (the graph copy rides the re-pin)</td></tr>
 </table>
 </body>
 </html>
