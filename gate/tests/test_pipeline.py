@@ -42,6 +42,19 @@ def test_fixture_tutorial_passes_all_four_steps(tmp_path: Path) -> None:
     assert verdict.data["toolchain"].name == "leanprover/lean4:v4.33.1"
 
 
+def test_each_step_logs_its_time(tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
+    """A post-merge re-derivation took 724 s with one log line, "pulling the pinned image", in
+    front of it (graph run 40702171240, 2026-10-28), so nothing said whether the pull or a step
+    was slow. Each step logs its time; the verdict carries none (D-5: runs agree byte for byte)."""
+    ctx = make_context(tmp_path)
+    with caplog.at_level("INFO", logger="opn_gate.pipeline"):
+        verdict = pipeline.run_steps(ctx)
+    assert verdict.verdict == "pass"
+    timed = [r.getMessage() for r in caplog.records if " in " in r.getMessage()]
+    assert [m.split(" (")[0] for m in timed] == [f"step {n}" for n in (1, 2, 4, 5, 6, 7, 8)]
+    assert all(m.endswith(" s") and "passed" in m for m in timed)
+
+
 def test_submitted_manifest_ignored(tmp_path: Path) -> None:
     """AC10: a shipped lake-manifest.json / lean-toolchain never reaches step 1."""
     fake = FakeToolchain()

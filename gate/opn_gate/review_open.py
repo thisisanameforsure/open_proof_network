@@ -34,8 +34,9 @@ NETWORK = "network"
 #: root: the curator who seeded the statement (D-21 bars them from proof credit, not from this).
 CURATOR_AUTHOR = "curator"
 #: The first doc comment of a Lean file (``/-! … -/`` or ``/-- … -/``), the root's words when the
-#: target record holds no informal statement.
-_DOC_COMMENT_RE = re.compile(r"\A\s*/-[!-]?\s*(?P<text>.*?)\s*-/", re.S)
+#: target record holds no informal statement. A plain ``/- … -/`` is not one: a registry import
+#: opens with its licence header, which was taken for the words (2026-10-28, F-A4).
+_DOC_COMMENT_RE = re.compile(r"\A\s*/-[!-]\s*(?P<text>.*?)\s*-/", re.S)
 
 
 def target_ids(graph_root: Path) -> list[str]:

@@ -9,6 +9,7 @@ only the authoritative one passes a precheck policy, which may bounce before any
 from __future__ import annotations
 
 import logging
+import time
 import traceback
 from collections.abc import Sequence
 from dataclasses import dataclass, field
@@ -93,7 +94,16 @@ def run_steps(ctx: RunContext, steps: Sequence[Step] | None = None) -> Verdict:
         if failed_at is not None:
             records.append(StepRecord(step.number, step.name, "skipped"))
             continue
+        started = time.monotonic()
         result = _guarded(step, ctx)
+        # The job's log, never the verdict (D-5): which step a slow run spent its time in.
+        log.info(
+            "step %d (%s) %s in %.1f s",
+            step.number,
+            step.name,
+            "passed" if result.ok else "failed",
+            time.monotonic() - started,
+        )
         if result.ok:  # a pass may carry a record (F02-R5)
             records.append(StepRecord(step.number, step.name, "pass", result.diagnostic))
         else:

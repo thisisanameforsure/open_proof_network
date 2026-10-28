@@ -1,0 +1,10 @@
+F00-T12 — each step logs its time; the image pull logs its time (2026-10-28 erdos-68 run, F-C4/F-B1)
+
+Measured: re-derive step on 15 recent merges (graph gate.yml push runs) 158-321 s, except #1139 726 s and #1140 504 s (concurrent, 14:03/14:07Z 2026-10-28). Run 40702171240's log has one line, 'pulling the pinned image', then 724 s of silence before the verdict JSON: pull and replay could not be told apart.
+
+RED: gate/tests/test_pipeline.py::test_each_step_logs_its_time FAILED  assert [] == ['step 1', ...]
+
+GREEN:
+41 passed in 1.02s
+
+Full fast tier on this branch: 7020 passed, 1 failed (test_graph_copy_is_identical: the graph's AGENTS.md copy lags the network guide since F26-T20; fails identically against a detached worktree of graph origin/main b97da520a8; rides the next re-pin), 36 skipped.
