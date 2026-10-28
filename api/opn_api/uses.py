@@ -39,6 +39,7 @@ from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any
 
 from opn_api import frontier, pending, precheck
+from opn_api.app import ApiError
 from opn_api.githost import GitHostError
 from opn_gate import layout
 from opn_gate import uses as gate_uses
@@ -100,6 +101,35 @@ def pinned_from(ctx: Context, target_id: str, since: str, *, what: str) -> bool:
             log.warning("%s: whether %s understands %s is unknown: %s", target_id, pin, what, exc)
             return False
     return ctx.ancestry[key]
+
+
+def pinned_has(ctx: Context, target_id: str, path: str) -> bool:
+    """Whether ``target_id``'s pinned network commit carries ``path`` (a schema file its gate
+    validates by, for a record version the service would write). Asked of the pin itself on the
+    raw host, which serves a commit's files without a token and never stale (F05-T13), and kept
+    for the process's life, since a commit's files never change. ``False`` when the pin is
+    unreadable or the host cannot say, uncached so the next call asks again (C7: the answer that
+    opens nothing the pinned gate might refuse)."""
+    try:
+        spec = json.loads(frontier.committed(ctx, f"targets/{target_id}/gate-spec.json"))
+    except (ApiError, ValueError) as exc:  # no readable pin: the answer that opens nothing
+        log.warning("%s: no readable gate-spec.json: %s", target_id, exc)
+        return False
+    pin = spec.get("network_commit") if isinstance(spec, dict) else None
+    if not isinstance(pin, str) or not pin:
+        return False
+    key = (pin.lower(), path)
+    if key not in ctx.pinned_files:
+        try:
+            fetched = ctx.githost.fetch_raw(ctx.settings.network_repo, pin, path, etag=None)
+        except GitHostError as exc:
+            log.warning("%s: whether %s carries %s is unknown: %s", target_id, pin, path, exc)
+            return False
+        if fetched.status not in (200, 404):
+            log.warning("%s: %s at %s answered %s", target_id, path, pin, fetched.status)
+            return False
+        ctx.pinned_files[key] = fetched.status == 200
+    return ctx.pinned_files[key]
 
 
 def has_use_line(text: str) -> bool:

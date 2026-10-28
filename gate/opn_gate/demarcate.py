@@ -25,7 +25,7 @@ UNTRUSTED_NOTE = (
 #: Record schema family (the part before ``/v``) -> the paths of its free-text fields. A path
 #: is dotted; ``[]`` steps into every element of a list.
 FREE_TEXT: dict[str, tuple[str, ...]] = {
-    "postmortem": ("route", "detail", "terminal_goal_state"),
+    "postmortem": ("route", "detail", "terminal_goal_state", "model_and_tooling"),
     "approach-record": ("route", "blocked_on", "model_and_tooling"),
     "annex": ("model_and_tooling",),
     "meta": ("acknowledged_hazards[].justification",),

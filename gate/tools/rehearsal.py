@@ -229,12 +229,13 @@ class HttpPath:
 
     def postmortem(self, node: str) -> str:
         doc = {
-            "schema": "postmortem/v1",
+            "schema": "postmortem/v2",
             "node": node,
             "route": "rehearsal: the invited-run readiness run's attempt record",
             "route_class": "direct-estimate",
             "outcome": "abandoned-early",
             "detail": "Written by gate/tools/rehearsal.py (F11-T6) on the HTTP path.",
+            "model_and_tooling": None,  # D-23: a script, no model
         }
         status, body = call(
             f"{self.base}/postmortems",
@@ -324,12 +325,13 @@ class McpPath:
 
     def postmortem(self, node: str) -> str:
         doc = {
-            "schema": "postmortem/v1",
+            "schema": "postmortem/v2",
             "node": node,
             "route": "rehearsal: the invited-run readiness run's attempt record (MCP path)",
             "route_class": "direct-estimate",
             "outcome": "abandoned-early",
             "detail": "Written by gate/tools/rehearsal.py (F11-T6) through submit_postmortem.",
+            "model_and_tooling": None,  # D-23: a script, no model
         }
         body = self._ok("submit_postmortem", {"node_id": node, "yaml": doc})
         return f"PR {body.get('pr_url') or body.get('pr_number')}"

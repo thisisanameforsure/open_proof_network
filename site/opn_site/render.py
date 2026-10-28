@@ -6330,6 +6330,8 @@ class Renderer:
         for p in nv.partials:
             who = p.submitter or p.contributor
             facts = [f"by {esc(who)}" if who else "author not recorded"]
+            if p.model:  # postmortem/v2: as the operator declared it (D-23), never verified
+                facts[0] += f", drafted with {esc(p.model)}"
             if p.submitter and p.contributor and p.contributor != p.submitter:
                 facts.append(f"the postmortem names {esc(p.contributor)}")
             if p.outcome:

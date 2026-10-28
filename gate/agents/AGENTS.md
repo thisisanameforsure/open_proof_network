@@ -1169,11 +1169,16 @@ mandatory: *refuted this route* and *ran out of budget* are different facts. The
 `terminal_goal_state` is a serialized Lean goal, the one field nobody can exaggerate. The first
 postmortem per route class per node earns an attempts line on the ledger, the same line whatever
 its `outcome`: the network sets no weights in advance (D-19), and what a contribution was worth
-is said at write-up (D-32). Choose the `outcome` that is true.
+is said at write-up (D-32). Choose the `outcome` that is true. `model_and_tooling` names the
+model and tooling that drafted the record, as you declare it (D-23; nothing verifies it), or
+`null` when nothing did. A target whose pinned gate predates `postmortem/v2` takes
+`postmortem/v1` only, which has no such field: the service then writes v1, refusing a declared
+model and dropping a `null`, and a file you push yourself there says `schema: postmortem/v1`
+without the field.
 
 ```sh
 cat > "$WORK/postmortem.yaml" <<'YAML'
-schema: postmortem/v1
+schema: postmortem/v2
 node: tutorial-and-swap
 contributor: replaced-by-the-service
 route: "case split on p, then on q, closing each branch by simp"
@@ -1189,11 +1194,12 @@ detail: >
   Recorded so the route class is marked as tried.
 artifacts:
   missing_lemmas: []
+model_and_tooling: null
 YAML
 PYTHONPATH="$NETWORK/gate" uv run --frozen --project "$NETWORK" python - "$WORK/postmortem.yaml" <<'PY'
 import pathlib, sys
 from opn_gate import schemas
-doc = schemas.load_yaml(pathlib.Path(sys.argv[1]), "postmortem/v1")
+doc = schemas.load_yaml(pathlib.Path(sys.argv[1]), "postmortem/v2")
 print("valid postmortem:", doc["route_class"], doc["outcome"], doc.get("failure_class"))
 PY
 ```
@@ -1206,8 +1212,8 @@ The enums: `route_class` is one of `induction`, `generating-function`, `probabil
 `direct-estimate`, `case-split`, `reduction-to-known`, `computational`; `outcome` one of
 `refuted-route`, `exhausted`, `abandoned-early`, `blocked`; `failure_class` one of
 `missing-library`, `statement-suspect`, `timeout-blowup`, `needs-new-definition`,
-`route-dead-ends`, `budget-exhausted`, `informal-gap`. `get_schema("postmortem/v1")` or
-`schemas/postmortem/v1.json` has the whole shape.
+`route-dead-ends`, `budget-exhausted`, `informal-gap`. `get_schema("postmortem/v2")` or
+`schemas/postmortem/v2.json` has the whole shape.
 
 What the `outcome` values mean: `refuted-route` — you showed this route cannot work, and the
 `detail` or `terminal_goal_state` shows why; `exhausted` — the route is still open and you ran

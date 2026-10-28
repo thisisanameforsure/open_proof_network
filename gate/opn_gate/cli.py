@@ -4161,7 +4161,7 @@ def _merge_entries(  # noqa: PLR0912, PLR0913 — one argument per fact every en
             continue
         entry: ledger.Entry | None
         if loc.role == "postmortem":
-            record = schemas.load_yaml(graph / loc.path, recordsmod.POSTMORTEM_SCHEMA)
+            record = recordsmod.load_postmortem(graph / loc.path)
             route_class = str(record["route_class"])
             entry = ledger.postmortem_entry(
                 doc, identity=identity, target=target_id, node=node_id, route_class=route_class,

@@ -168,6 +168,9 @@ class Context:
     # F08-T26: whether a network commit descends from ``uses_from``, by ``(uses_from, pin)``. A
     # commit's ancestry never changes, so an answer the host gave is kept for the process's life.
     ancestry: dict[tuple[str, str], bool] = field(default_factory=dict)
+    # Whether a pinned network commit carries a file, by ``(pin, path)`` (``uses.pinned_has``):
+    # a commit's files never change, so an answer the host gave is kept for the process's life.
+    pinned_files: dict[tuple[str, str], bool] = field(default_factory=dict)
     # F07-T68: when each running precheck job last asked the host about its run (monotonic), so
     # polls of one job reach the host at most once per ``precheck_poll_min_s``.
     precheck_polls: dict[str, float] = field(default_factory=dict)

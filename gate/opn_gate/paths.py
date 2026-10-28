@@ -380,7 +380,7 @@ MODIFIABLE_ROLES: tuple[Role, ...] = (
 #: A role carries a *set* because D-34 versions rather than edits: `target-status` gained v2
 #: when D-9 v3.12 renamed the second rung (F11-R12), and v1 records stay valid forever.
 SCHEMAS_FOR_ROLE: dict[Role, tuple[str, ...]] = {
-    "postmortem": ("postmortem/v1",),
+    "postmortem": ("postmortem/v1", "postmortem/v2"),  # v2: model_and_tooling (D-23)
     "precheck-record": ("precheck-record/v1",),
     "annex": ("annex/v1", "annex/v2"),  # v2: a stepped outline (F18-R6, D-31 v3.26)
     "approach-record": ("approach-record/v1",),

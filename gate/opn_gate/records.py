@@ -2,8 +2,8 @@
 
 Three kinds of file, all schema-checked at the boundary (conventions §4):
 
-- ``nodes/<id>/attempts/*.yaml`` — D-13 postmortems (``postmortem/v1``). A file that does not
-  validate is never dropped silently: it is counted as ``invalid`` and named (F03-R7).
+- ``nodes/<id>/attempts/*.yaml`` — D-13 postmortems (``postmortem/v1`` or ``v2``). A file that
+  does not validate is never dropped silently: it is counted as ``invalid`` and named (F03-R7).
 - ``nodes/<id>/status/*.yaml`` — curator or adjudication overrides (``node-status/v1``).
 - ``targets/<id>/status/*.yaml`` — the target's declaration (``target-status/v1`` or ``v2``).
 
@@ -21,11 +21,17 @@ from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath
 from typing import Any
 
+import yaml
+
 from opn_gate import paths, schemas
 
 log = logging.getLogger(__name__)
 
-POSTMORTEM_SCHEMA = "postmortem/v1"
+#: What a writer writes (D-13; D-23's disclosure needs ``model_and_tooling``).
+POSTMORTEM_SCHEMA = "postmortem/v2"
+#: Every version a postmortem may declare: D-34 versions, never edits, so records already on the
+#: graph keep validating against the version they name. The set is the append path's own.
+POSTMORTEM_SCHEMAS: tuple[str, ...] = paths.SCHEMAS_FOR_ROLE["postmortem"]
 NODE_STATUS_SCHEMAS: tuple[str, ...] = ("node-status/v1",)
 #: F11-R12: v2 renamed D-9's second rung, and D-34 forbids editing v1 — so both are live,
 #: and a record is validated against the version it declares.
@@ -59,6 +65,29 @@ def count_attempts(records: int, lean_names: Iterable[str], named: Iterable[str]
     return records + len(partials - {PurePosixPath(n).name for n in named})
 
 
+def postmortem_doc(doc: object, where: object = "a postmortem") -> dict[str, Any]:
+    """``doc`` validated against the version it declares, which must be one of
+    ``POSTMORTEM_SCHEMAS``; anything else raises ``SchemaError`` (a record declaring another
+    schema is not a postmortem, however well it validates against that schema)."""
+    declared = doc.get("schema") if isinstance(doc, dict) else None
+    if declared not in POSTMORTEM_SCHEMAS:
+        msg = (
+            f"{where} declares {declared!r}; a postmortem is one of {', '.join(POSTMORTEM_SCHEMAS)}"
+        )
+        raise schemas.SchemaError(msg)
+    return schemas.validate(doc, str(declared))
+
+
+def load_postmortem(path: Path) -> dict[str, Any]:
+    """A postmortem file, read and held to :func:`postmortem_doc`."""
+    try:
+        doc: object = yaml.safe_load(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, yaml.YAMLError) as exc:
+        msg = f"cannot read YAML {path}: {exc}"
+        raise schemas.SchemaError(msg) from exc
+    return postmortem_doc(doc, path)
+
+
 def load_attempts(node_dir: Path) -> AttemptSummary:
     """Aggregate ``attempts/*.yaml``; invalid files count under ``invalid`` and are named.
 
@@ -77,7 +106,7 @@ def load_attempts(node_dir: Path) -> AttemptSummary:
     invalid: list[str] = []
     for path in files:
         try:
-            doc = schemas.load_yaml(path, POSTMORTEM_SCHEMA)
+            doc = load_postmortem(path)
         except schemas.SchemaError as exc:
             log.warning("attempt record %s is invalid and counted as such: %s", path, exc)
             invalid.append(path.name)
