@@ -1,0 +1,115 @@
+F05 — a claim on a proved node is released (owner, 2026-10-28: "it should be released after proven")
+=====================================================================================================
+
+Finding: erdos-68, 2026-10-28 — agent B's claims on erdos-68--h1/--h2 were still listed active
+1h20 after both proofs merged. A claim lived until its TTL whatever happened to its node: it
+counted against the cap, appeared in GET /claims/mine, named its holder in others' receipts
+(`others`), and reached the public registry (claims.json, /frontier.json overlay).
+
+Rule built: lazy, like expiry. frontier.live(ctx, claims) = unreleased, not past expires, and
+not on a node its target's committed graph.json calls `proved`. Used by active_for (the cap and
+/claims/mine), claims.others, and frontier.registry (/claims.json and the /frontier.json
+overlay). Nothing is written; a proof-released claim stops being listed exactly as an expired
+one does, its `released` stays null, and history_count still counts it. Only `proved` releases
+(blocked, abandoned, superseded and shelved are pinned unchanged by test). The graph is read
+through the committed-file cache once per target that has a candidate claim, and its proved-id
+set is parsed once per body (functools.lru_cache keyed on the cached bytes); a graph that cannot
+be read releases nothing (C7).
+
+Test: api/tests/test_finding_claims_released_on_proof.py (both stores: memory and DynamoDB moto)
+
+RED (before the change; 9 failed on the requirement, 12 guards green)
+--------------------------------------------------------------------
+E       AssertionError: assert ['tutorial-an...'and-reassoc'] == ['tutorial-and-swap']
+E         
+E         Left contains one more item: 'and-reassoc'
+E         Use -v to get more diff
+E       AssertionError: assert ['and-reassoc...ial-and-swap'] == ['tutorial-and-swap']
+E         
+E         At index 0 diff: 'and-reassoc' != 'tutorial-and-swap'
+E         Left contains one more item: 'tutorial-and-swap'
+E         Use -v to get more diff
+E       AssertionError: assert {'active': [{...ory_count': 2} == {'active': []...ory_count': 2}
+E         
+E         Omitting 1 identical items, use -vv to show
+E         Differing items:
+E         {'active': [{'pseudonym': 'alice-p', 'expires': '2026-09-10T12:00:00Z'}, {'pseudonym': 'bob-p', 'expires': '2026-09-10T12:00:00Z'}]} != {'active': []}
+E         Use -v to get more diff
+E       AssertionError: assert {'active': [{...ory_count': 2} == {'active': []...ory_count': 2}
+E         
+E         Omitting 1 identical items, use -vv to show
+E         Differing items:
+E         {'active': [{'pseudonym': 'alice-p', 'expires': '2026-09-10T12:00:00Z'}, {'pseudonym': 'bob-p', 'expires': '2026-09-10T12:00:00Z'}]} != {'active': []}
+E         Use -v to get more diff
+E       AssertionError: {"error":"active-claims-cap","message":"1 active claims already; release one or wait"}
+E       assert 429 == 201
+E        +  where 429 = <Response [429 Too Many Requests]>.status_code
+E       AssertionError: assert [{'pseudonym'...0T12:00:00Z'}] == []
+E         
+E         Left contains one more item: {'pseudonym': 'bob-p', 'expires': '2026-09-10T12:00:00Z'}
+E         Use -v to get more diff
+E       AssertionError: assert [{'pseudonym'...0T12:00:00Z'}] == []
+E         
+E         Left contains one more item: {'pseudonym': 'bob-p', 'expires': '2026-09-10T12:00:00Z'}
+E         Use -v to get more diff
+E       AssertionError: assert 0 == 1
+E        +  where 0 = <built-in method count of list object at 0x10c04da00>('targets/propositional/graph.json')
+E        +    where <built-in method count of list object at 0x10c04da00> = [].count
+E       AssertionError: assert 0 == 1
+E        +  where 0 = <built-in method count of list object at 0x10c1d4040>('targets/propositional/graph.json')
+E        +    where <built-in method count of list object at 0x10c1d4040> = [].count
+FAILED api/tests/test_finding_claims_released_on_proof.py::test_mine_leaves_out_a_claim_whose_node_is_proved[memory]
+FAILED api/tests/test_finding_claims_released_on_proof.py::test_mine_leaves_out_a_claim_whose_node_is_proved[dynamodb]
+FAILED api/tests/test_finding_claims_released_on_proof.py::test_the_registry_drops_a_proved_nodes_claims_and_keeps_their_history[memory]
+FAILED api/tests/test_finding_claims_released_on_proof.py::test_the_registry_drops_a_proved_nodes_claims_and_keeps_their_history[dynamodb]
+FAILED api/tests/test_finding_claims_released_on_proof.py::test_a_proved_claim_no_longer_counts_against_the_cap
+FAILED api/tests/test_finding_claims_released_on_proof.py::test_others_never_names_the_holder_of_a_claim_on_a_proved_node[memory]
+FAILED api/tests/test_finding_claims_released_on_proof.py::test_others_never_names_the_holder_of_a_claim_on_a_proved_node[dynamodb]
+FAILED api/tests/test_finding_claims_released_on_proof.py::test_the_graph_is_read_once_per_target_not_once_per_claim[memory]
+FAILED api/tests/test_finding_claims_released_on_proof.py::test_the_graph_is_read_once_per_target_not_once_per_claim[dynamodb]
+9 failed, 12 passed, 2 warnings in 1.60s
+
+GREEN
+-----
+21 passed, 2 warnings in 0.52s
+
+make lint: exit 0 (ruff check, ruff format --check: 926 files)
+make types: exit 0 (mypy gate 449, api 272, site 124 source files)
+
+FAST TIER (OPN_GRAPH_CHECKOUT=<scratchpad>/graph-main make test-fast)
+---------------------------------------------------------------------
+FAILED gate/tests/test_walkthrough.py::test_graph_copy_is_identical - Asserti...
+= 1 failed, 7051 passed, 36 skipped, 276 deselected, 2 warnings in 835.15s (0:13:55) =
+The one failure is the pre-existing guide-copy check (the graph's AGENTS.md copy differs; this
+task's guide sentence adds to that difference until the D-35 copy rides the next re-pin).
+
+FILES CHANGED
+-------------
+api/opn_api/frontier.py   PROVED, proved_in, proved_nodes, live; registry uses live
+api/opn_api/claims.py     active_for and others use frontier.live; module docstring
+gate/agents/AGENTS.md     one sentence: a claim counts as released once its node is proved or
+                          its TTL runs out
+api/tests/test_finding_claims_released_on_proof.py  (new, 21 tests)
+engineering/evidence/F05/task-claims-proved.txt     (this file)
+
+Not changed: the site glossary's "Work on" card still says a claim "expires on its own"
+(site/opn_site/render.py, goldens); left for the lead, since it needs golden regeneration.
+
+PROPOSED SPEC ENTRY (F05 §Q)
+----------------------------
+F05-Qnn — A claim on a proved node is released (the owner, 2026-10-28: "it should be released
+after proven"; erdos-68's claims stayed active 1h20 after their proofs merged). R8's lazy rule
+gains a second clause: a claim whose node its target's committed graph.json calls `proved`
+counts as released wherever it is read (the cap, /claims/mine, `others`, the registry), with no
+write; like an expired claim it stops being listed, `released` stays null and history_count
+counts it. Only `proved` releases; blocked, shelved, abandoned and superseded keep their claims
+until expiry. Cost: one graph.json per claimed target per window through the committed-file
+cache, never per claim; an unreadable graph releases nothing (C7). Reversal: frontier.live.
+
+PROPOSED TASK ROW
+-----------------
+F05-Tnn | A claim on a proved node is released (R8, Qnn). frontier.live filters unreleased,
+unexpired claims by the proved set of each claimed target's graph.json; active_for, others and
+the registry read through it. | api/opn_api/frontier.py, api/opn_api/claims.py,
+gate/agents/AGENTS.md, api/tests/test_finding_claims_released_on_proof.py |
+uv run --frozen pytest api/tests/test_finding_claims_released_on_proof.py

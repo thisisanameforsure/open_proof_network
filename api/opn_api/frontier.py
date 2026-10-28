@@ -5,15 +5,18 @@ for ``frontier_max_stale_s`` seconds and revalidating by ETag after that; a fetc
 serves the last good copy with a warning, or 503 when there is none (C7). All entries share
 one freshness generation keyed on ``info.json``'s ETag (``generation``). ``registry`` turns
 the claims table into the per-node ``{active, history_count}`` shape, treating a claim past
-its expiry as released on every read (R8: no background job).
+its expiry, or on a node its target's ``graph.json`` calls proved, as released on every read
+(R8: no background job, no write).
 """
 
 from __future__ import annotations
 
 import contextlib
+import functools
 import json
 import logging
 import time
+from collections.abc import Iterable
 from typing import TYPE_CHECKING, Any
 
 from starlette.requests import Request
@@ -138,8 +141,54 @@ def committed(ctx: Context, path: str) -> bytes:
 
 
 def is_active(claim: Claim, now: str) -> bool:
-    """Unreleased and not past ``expires`` (string comparison is safe: one fixed format)."""
+    """Unreleased and not past ``expires`` (string comparison is safe: one fixed format). The
+    store's view alone; ``live`` also releases a claim whose node is proved."""
     return claim.released is None and claim.expires > now
+
+
+#: The one status that releases a claim (owner, 2026-10-28: "released after proven"). Blocked,
+#: shelved, abandoned and superseded nodes keep their claims until they expire.
+PROVED = "proved"
+
+
+@functools.lru_cache(maxsize=64)
+def proved_in(body: bytes) -> frozenset[str]:
+    """The ids of the rows ``graph.json`` calls proved, parsed once per body: the cache hands
+    back the same bytes object until the graph moves, and a bytes object keeps its hash."""
+    doc = json.loads(body)
+    rows = doc.get("nodes", []) if isinstance(doc, dict) else []
+    return frozenset(
+        str(n["node_id"]) for n in rows if isinstance(n, dict) and n.get("status") == PROVED
+    )
+
+
+def proved_nodes(ctx: Context, target_ids: Iterable[str]) -> frozenset[tuple[str, str]]:
+    """``(target_id, node_id)`` for every proved node of the given targets, read from each
+    target's committed ``graph.json`` through the committed-file cache: one read per target per
+    window, whatever the number of claims. A graph that cannot be read proves nothing, so its
+    claims stay as the store has them (C7)."""
+    out: set[tuple[str, str]] = set()
+    for target_id in sorted(set(target_ids)):
+        path = f"targets/{target_id}/graph.json"
+        try:
+            ids = proved_in(committed(ctx, path))
+        except (ApiError, ValueError) as exc:
+            log.warning("claims on %s read without its graph: %s", target_id, exc)
+            continue
+        out.update((target_id, node_id) for node_id in ids)
+    return frozenset(out)
+
+
+def live(ctx: Context, claims: Iterable[Claim]) -> list[Claim]:
+    """The claims that count as held now (F05-R8): unreleased, not past ``expires``, and on a
+    node that is not proved. Both releases are lazy: nothing is written, and a claim released
+    either way stops being listed with its ``released`` left null (owner, 2026-10-28)."""
+    now = clockmod.render(ctx.clock.now())
+    held = [c for c in claims if is_active(c, now)]
+    if not held:
+        return held
+    proved = proved_nodes(ctx, {c.target_id for c in held})
+    return [c for c in held if (c.target_id, c.node_id) not in proved]
 
 
 def claims_scan(ctx: Context) -> CachedClaims:
@@ -158,15 +207,16 @@ def claims_scan(ctx: Context) -> CachedClaims:
 
 def registry(ctx: Context) -> dict[str, dict[str, Any]]:
     """Per node: ``active`` [{pseudonym, expires}] and ``history_count`` (R9). Which claims are
-    active is decided here, against the clock, on every read, over the kept scan (F05-T20)."""
-    now = clockmod.render(ctx.clock.now())
+    active is decided here, against the clock and the graph, on every read, over the kept scan
+    (F05-T20); a claim on a proved node counts in ``history_count`` and is listed nowhere."""
     scan = claims_scan(ctx)
+    active = {id(c) for c in live(ctx, scan.claims)}
     names = scan.pseudonyms  # an identity's pseudonym never changes, so it is kept with the scan
     out: dict[str, dict[str, Any]] = {}
     for claim in scan.claims:
         entry = out.setdefault(claim.node_id, {"active": [], "history_count": 0})
         entry["history_count"] += 1
-        if not is_active(claim, now):
+        if id(claim) not in active:
             continue
         if claim.identity_id not in names:
             identity = ctx.store.get_identity(claim.identity_id)
