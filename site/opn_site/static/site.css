@@ -928,7 +928,13 @@ table.review-candidates, table.review-tests, table.review-screens, table.review-
 .flag-inline { color: var(--warn); font-weight: 600; }
 .waiting { color: var(--warn); }
 .review-answer-ctl { display: flex; flex-direction: column; gap: var(--s3); margin: var(--s4) 0; }
-.review-answer-ctl textarea.input { width: 100%; max-width: 100%; min-height: 96px; resize: vertical; }
+.review-answer textarea.input { width: 100%; max-width: 100%; min-height: 96px; resize: vertical; }
+li.question .review-answer { margin-top: var(--s3); }
+.mutant-variant { margin: var(--s2) 0; }
+.mutant-variant pre.lean { margin: var(--s1) 0 var(--s2); }
+.review-sign-ctl { margin: var(--s4) 0; }
+.review-sign .choice { border: 0; padding: 0; margin: 0 0 var(--s3); }
+.review-sign .choice label { display: block; padding: var(--s1) 0; }
 table.review-matrix td.cell { text-align: center; }
 table.review-matrix td.pass { color: var(--accent-300); }
 table.review-matrix td.fail { color: var(--bad); }

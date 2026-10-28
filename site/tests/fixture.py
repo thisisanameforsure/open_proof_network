@@ -927,9 +927,29 @@ def review_records() -> dict[str, dict[str, Any]]:
             "the concept And is written inline; name it as a predicate (F26-R5)",
             lean=None,
         ),
-        _exhibit("e-0000ffff", "mutant", ids["person"], "pass", "mutant: or for and in the goal"),
-        _exhibit("e-0000ff01", "mutant", ids["person"], "fail", "mutant: dropped hypothesis"),
-        _exhibit("e-0000ff02", "mutant", ids["person"], "fail", "mutant: q and q for q and p"),
+        # the details in the shape the gate writes them, label and class first (F26-Q24)
+        _exhibit(
+            "e-0000ffff",
+            "mutant",
+            ids["person"],
+            "pass",
+            "∧ → ∨ at 10 (connective): every test passes and no case checked tells it from the "  # noqa: RUF001
+            "representative",
+        ),
+        _exhibit(
+            "e-0000ff01",
+            "mutant",
+            ids["person"],
+            "fail",
+            "`p ∧ q →` dropped at 0 (hypothesis): caught by test t-0000aaaa at p = True, q = True",
+        ),
+        _exhibit(
+            "e-0000ff02",
+            "mutant",
+            ids["person"],
+            "fail",
+            "∧ → ∨ at 2 (connective): caught by test t-0000aaaa at p = True, q = True",  # noqa: RUF001
+        ),
         _exhibit("e-0000ab01", "screen", ids["person"], "pass", "negation not proved"),
         _exhibit("e-0000ab02", "screen", ids["model"], "pass", "negation not proved"),
         _exhibit("e-0000ab03", "compile", ids["person"], "pass", "elaborates at the pin"),
