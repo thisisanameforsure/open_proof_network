@@ -21,7 +21,18 @@ from string import Template
 from typing import TYPE_CHECKING, Any
 from urllib.parse import quote
 
-from opn_gate import clients, explainers, hosted, intake, layout, policy, products, schemas, steward
+from opn_gate import (
+    clients,
+    explainers,
+    hosted,
+    intake,
+    layout,
+    policy,
+    products,
+    review_mutants,
+    schemas,
+    steward,
+)
 from opn_gate import glosses as glossesmod
 from opn_gate import graph as graphmod
 from opn_gate import ledger as ledgermod
@@ -1073,6 +1084,12 @@ def more_statements_words(n: int, n_open: int) -> str:
 def esc(value: object) -> str:
     """The one escaping function: everything from the graph goes through it (R3)."""
     return escape(str(value), quote=True)
+
+
+def esc_code(value: object) -> str:
+    """``esc``, then each backticked span as code: a review question names Lean that way
+    (F26-Q24). The backticks are matched after escaping, so nothing but ``<code>`` is added."""
+    return re.sub(r"`([^`]+)`", r"<code>\1</code>", esc(value))
 
 
 #: F04-T36: the longest outline title shown before it is cut (its first line; the whole text is
@@ -2976,10 +2993,12 @@ class Renderer:
             qid = str(q["id"])
             raised = q.get("raised_by") or {}
             head = (
-                f'<p class="question-text"><code>{esc(qid)}</code> {esc(str(q["question"]))}</p>'
+                f'<p class="question-text"><code>{esc(qid)}</code> {esc_code(q["question"])}</p>'
                 f'<p class="cue">raised by a {esc(str(raised.get("kind")))} '
                 f"(<code>{esc(str(raised.get('ref')))}</code>), {esc(str(q['date']))}</p>"
             )
+            if raised.get("kind") == "mutant":
+                head += self.review_mutant_variant(rv, str(raised.get("ref")))
             a = rv.answer_to(qid)
             if a is None:
                 body = (
@@ -3007,6 +3026,32 @@ class Renderer:
                 )
             items.append(f'<li class="question" data-question="{esc(qid)}">{head}{body}</li>')
         return '<ol class="review-questions">' + "".join(items) + "</ol>"
+
+    def review_mutant_variant(self, rv: ReviewView, ref: str) -> str:
+        """F26-T22 (Q24): the change a mutant question is about, with the statement and the
+        variant, rebuilt from the candidate's Lean by the gate's own ``mutants`` from the label
+        the exhibit's detail carries; nothing when the exhibit, its label or the Lean is
+        missing, so the question still reads as it was written."""
+        ex = rv.exhibit(ref)
+        parsed = review_mutants.label_of(str(ex.get("detail") or "")) if ex else None
+        lean = rv.lean.get(str(ex["candidate"])) if ex else None
+        if ex is None or parsed is None or lean is None:
+            return ""
+        label, cls = parsed
+        concepts = [str(c) for c in rv.opening.get("concepts") or []]
+        changed = review_mutants.variant(lean.text, concepts, label)
+        if changed is None:
+            return ""
+        statement = review_mutants.claim_line(lean.text, concepts)
+        change = re.sub(r" at \d+$", "", label)
+        return (
+            '<div class="mutant-variant">'
+            f'<p class="cue">The change: {esc_code(change)} (a {esc(cls)} change) to the claim of '
+            f"<code>{esc(str(ex['candidate']))}</code>.</p>"
+            f'<p class="kicker">The statement</p><pre class="lean">{esc(statement)}</pre>'
+            f'<p class="kicker">The variant</p><pre class="lean">{esc(changed)}</pre>'
+            "</div>"
+        )
 
     def review_answer_ctl(self, tv: TargetView, rv: ReviewView) -> str:
         """F26-R16: the answer form's placeholder, filled by session.js only once a session is
@@ -3142,6 +3187,32 @@ class Renderer:
             slots.append(f'<div class="signature-slot {cls}"><p>{body}</p></div>')
         return '<div class="signature-slots">' + "".join(slots) + "</div>"
 
+    def review_sign_ctl(self, tv: TargetView, rv: ReviewView) -> str:
+        """F26-T23 (R9, R14; Q24): the sign form's placeholder, filled by session.js once a
+        session is signed in, as the answer form's is; nothing in the static page posts. It
+        carries the clusters (each named by its first member, the candidate a signature names),
+        the logins that hold the intent role (so the script can choose the role; the service
+        decides), every question a send-back may name, and how many still wait."""
+        if not self.api_url or not rv.candidates:
+            return ""
+        opened = rv.opening.get("opened_by") or {}
+        intent = (
+            [str(opened.get("identity"))]
+            if opened.get("role") == "proposer"
+            else [str(s["login"]) for s in tv.stewards]
+        )
+        waiting = sum(1 for q in rv.questions if rv.answer_to(str(q["id"])) is None)
+
+        def attr(value: object) -> str:
+            return esc(json.dumps(value, ensure_ascii=False))
+
+        return (
+            f'<div class="review-sign-ctl" data-review-sign data-target="{esc(tv.target_id)}" '
+            f'data-clusters="{attr(rv.clusters())}" data-intent="{attr(intent)}" '
+            f'data-questions="{attr([str(q["id"]) for q in rv.questions])}" '
+            f'data-waiting="{attr(waiting)}" hidden></div>'
+        )
+
     def review_page(self, tv: TargetView) -> str:
         """F26-R16: one page per target with a review, from the record only."""
         rv = tv.review_records
@@ -3207,6 +3278,7 @@ class Renderer:
             tests=self.review_tests(rv),
             screens=self.review_screens(rv),
             signatures=self.review_signatures(tv, rv),
+            sign_ctl=self.review_sign_ctl(tv, rv),
         )
         renders = [f"targets/{tid}/review/review.yaml", f"targets/{tid}/graph.json"]
         return self.page(f"{tid} · review", body, renders=renders, path=PROBLEMS_PATH)

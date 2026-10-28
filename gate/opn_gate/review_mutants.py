@@ -336,8 +336,7 @@ def mutate(job: Job, rep: Cand, *, cap: int = CAP) -> dict[str, Any]:  # noqa: P
             text = (
                 asked.question()
                 if asked is not None
-                else "A variant of the statement agrees with it on every small case checked. "
-                "Is there a case on which the conjecture and this variant should differ?"
+                else case_free_question(mu.label, mu.cls, closed=rep.shape == "closed")
             )
             review_questions.add_question(job, text, "mutant", str(doc["id"]), asked)
         claim = _claim_line(mu.source, job.concepts)
@@ -364,6 +363,60 @@ def mutate(job: Job, rep: Cand, *, cap: int = CAP) -> dict[str, Any]:  # noqa: P
         "cap": cap,
         "results": results,
     }
+
+
+def case_free_question(label: str, cls: str, *, closed: bool) -> str:
+    """The question a surviving mutant raises when no case tells it from the representative
+    (F26-Q24): it names the change and its class, never the offset (the page shows the variant
+    itself), and says why no case could tell them apart. A yes/no question by construction."""
+    change = _AT_RE.sub("", label)
+    why = (
+        "no small case can tell the two apart, since the claim is a closed proposition"
+        if closed
+        else "it agrees with the statement on every small case checked"
+    )
+    return (
+        f"The statement with one change, {change} (a {cls} change), is a variant the tests "
+        f"cannot catch: {why}. Does the change alter what the conjecture says?"
+    )
+
+
+#: Every class ``mutants`` writes, the order of the module docstring.
+CLASSES = (
+    "relation",
+    "connective",
+    "quantifier",
+    "offset",
+    "exponent",
+    "product",
+    "constant",
+    "hypothesis",
+)
+_AT_RE = re.compile(r" at \d+$")
+_DETAIL_RE = re.compile(rf"^(?P<label>.+ at \d+) \((?P<cls>{'|'.join(CLASSES)})\)(?::|$)")
+
+
+def label_of(detail: str) -> tuple[str, str] | None:
+    """A mutant exhibit's label and class, read back from its ``detail`` (every result writes
+    ``<label> (<class>)`` first), or ``None`` for a detail that carries none."""
+    m = _DETAIL_RE.match(detail)
+    return None if m is None else (m.group("label"), m.group("cls"))
+
+
+def variant(source: str, concepts: list[str], label: str) -> str | None:
+    """The claim of the mutant of ``source`` that ``label`` names, rebuilt by ``mutants`` (so
+    the page shows exactly what the job checked), or ``None`` when no mutant carries it."""
+    c = review_lean.prepare("c-variant", source, concepts)
+    if not isinstance(c, Cand):
+        return None
+    found, _ = mutants(c, concepts)
+    m = next((m for m in found if m.label == label), None)
+    return None if m is None else _claim_line(m.source, concepts)
+
+
+def claim_line(source: str, concepts: list[str]) -> str:
+    """The claim's proposition on one line, as ``variant`` gives a mutant's (the site's)."""
+    return _claim_line(source, concepts)
 
 
 def _claim_line(source: str, concepts: list[str]) -> str:
