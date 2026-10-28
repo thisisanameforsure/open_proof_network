@@ -123,9 +123,12 @@
         return;
       }
       questions.forEach(function (q) {
+        // F26-T22 (Q24): under its own question, beside the variant it asks about; the slot
+        // takes a box whose question is not in the list, and only there is the question repeated.
+        var item = document.querySelector('li.question[data-question="' + String(q.id) + '"]');
         var box = el("div", { "class": "ctl-box review-answer", "data-question": String(q.id) });
         box.appendChild(el("h3", {}, "Answer " + String(q.id) + " as " + s.login));
-        box.appendChild(el("p", { "class": "cue" }, String(q.question)));
+        if (!item) { box.appendChild(el("p", { "class": "cue" }, String(q.question))); }
         var answer = el("textarea", { "class": "input", "aria-label": "Your answer, in mathematics" });
         var cites = el("input", { "class": "input", type: "text", placeholder: "Source cited (optional; an answer without one is flagged)" });
         var out = el("p", { "class": "form-error", role: "alert" });
@@ -154,9 +157,122 @@
         box.appendChild(cites);
         box.appendChild(button);
         box.appendChild(out);
-        answerSlot.appendChild(box);
+        (item || answerSlot).appendChild(box);
       });
       answerSlot.hidden = false;
+    }).catch(function () { /* no session: the form stays hidden */ });
+  }
+
+  // F26-T23 (R9, R14; Q24): the review page's sign form, drawn as the answer form is. The slot
+  // carries the clusters (each named by its first member), the logins that hold the intent role,
+  // the questions a send-back may name and how many still wait. A signed-in login signs one
+  // decision for a role: the intent role when the login holds it, else the independent one, and
+  // either may be chosen, since the service decides (F26-R9) and its refusal is set as text.
+  // Accept and split name a cluster; a send-back names no cluster and may name a question.
+  var signSlot = document.querySelector(".review-sign-ctl[data-review-sign]");
+  if (signSlot) {
+    var parse = function (name, fallback) {
+      try { return JSON.parse(signSlot.dataset[name] || ""); } catch (e) { return fallback; }
+    };
+    var clusters = parse("clusters", []);
+    var intentLogins = parse("intent", []).map(function (x) { return String(x).toLowerCase(); });
+    var askable = parse("questions", []);
+    var waitingCount = Number(parse("waiting", 0)) || 0;
+    var signTarget = signSlot.dataset.target || "";
+    session.then(function (s) {
+      if (!s.signed_in) {
+        var p = el("p", { "class": "cue" }, "The signers sign here, signed in: ");
+        p.appendChild(el("a", { href: signInHref() }, "Sign in"));
+        signSlot.appendChild(p);
+        signSlot.hidden = false;
+        return;
+      }
+      var box = el("div", { "class": "ctl-box review-sign" });
+      box.appendChild(el("h3", {}, "Sign as " + s.login));
+      if (waitingCount > 0) {
+        box.appendChild(el("p", { "class": "cue" }, String(waitingCount) +
+          (waitingCount === 1 ? " question is" : " questions are") +
+          " still waiting for the intent signer's answer (section 3)."));
+      }
+      function radios(name, options, chosen) {
+        var group = el("fieldset", { "class": "choice" });
+        options.forEach(function (o) {
+          var label = el("label", {});
+          var input = el("input", { type: "radio", name: name, value: o[0] });
+          if (o[0] === chosen) { input.checked = true; }
+          if (o[2]) { input.disabled = true; }
+          label.appendChild(input);
+          label.appendChild(document.createTextNode(" " + o[1]));
+          group.appendChild(label);
+        });
+        return group;
+      }
+      function picked(name) {
+        var on = box.querySelector("input[name=" + name + "]:checked");
+        return on ? on.value : null;
+      }
+      var holdsIntent = intentLogins.indexOf(s.login.toLowerCase()) >= 0;
+      box.appendChild(el("p", { "class": "kicker" }, "Role"));
+      box.appendChild(radios("role", [
+        ["intent", "Intent signer: the surviving cluster says what the conjecture says"],
+        ["independent", "Independent signer: the evidence supports it"]
+      ], holdsIntent ? "intent" : "independent"));
+      var none = clusters.length === 0;
+      box.appendChild(el("p", { "class": "kicker" }, "Decision"));
+      box.appendChild(radios("decision", [
+        ["accept", "Accept the cluster", none],
+        ["split", "Split: the clusters are different readings", none],
+        ["send-back", "Send back"]
+      ], none ? "send-back" : "accept"));
+      var cluster = el("select", { "class": "input cluster", "aria-label": "The cluster" });
+      clusters.forEach(function (members) {
+        var rep = String(members[0]);
+        var o = el("option", { value: rep }, members.length > 1
+          ? rep + " (with " + members.slice(1).map(String).join(", ") + ")" : rep);
+        cluster.appendChild(o);
+      });
+      var question = el("select", { "class": "input question", "aria-label": "The question it is sent back with" });
+      question.appendChild(el("option", { value: "" }, "No question named"));
+      askable.forEach(function (qid) { question.appendChild(el("option", { value: String(qid) }, String(qid))); });
+      function sync() {
+        var back = picked("decision") === "send-back";
+        cluster.hidden = back;
+        question.hidden = !back;
+      }
+      box.addEventListener("change", sync);
+      box.appendChild(cluster);
+      box.appendChild(question);
+      sync();
+      var out = el("p", { "class": "form-error", role: "alert" });
+      var button = el("button", { "class": "btn btn-secondary btn-small", type: "button" }, "Sign");
+      button.addEventListener("click", function () {
+        var decision = picked("decision");
+        var back = decision === "send-back";
+        button.disabled = true;
+        out.textContent = "";
+        call("POST", "/reviews/" + encodeURIComponent(signTarget) + "/signatures", {
+          role: picked("role"),
+          decision: decision,
+          cluster: back ? null : cluster.value,
+          question: back ? (question.value || null) : null
+        }).then(function (r) {
+          if (r.ok) {
+            var done = el("p", { "class": "receipt", role: "status" }, "Signature sent as a record; it reaches the page once its pull request merges.");
+            if (r.data && typeof r.data.pr_url === "string" && /^https:\/\//.test(r.data.pr_url)) {
+              done.appendChild(document.createTextNode(" "));
+              done.appendChild(el("a", { href: r.data.pr_url }, "Pull request #" + String(r.data.pr_number)));
+            }
+            box.parentNode.replaceChild(done, box);
+            return;
+          }
+          refusal(out, r);
+          button.disabled = false;
+        }, function () { refusal(out, null); button.disabled = false; });
+      });
+      box.appendChild(button);
+      box.appendChild(out);
+      signSlot.appendChild(box);
+      signSlot.hidden = false;
     }).catch(function () { /* no session: the form stays hidden */ });
   }
 })();

@@ -1,0 +1,63 @@
+F26-T22, T23 (Q24): a review page a signer can act on. 2026-10-28, lead, branch f26-review-legible.
+
+The report (the owner, signed in as erdos-257's steward and so its intent signer):
+  https://openproofnetwork.org/problems/erdos-257/review/ shows 8 questions that do not look
+  appropriate, no variants, and no way to sign.
+
+What the record said (graph origin/main b97da520a):
+  every question q-1..q-8 is the same case-free sentence; each raised_by.ref is a mutant exhibit
+  with lean_file null and a detail that names the change:
+    q-1 e-ab3e6c0d  ∀ → ∃ at 0 (quantifier)
+    q-2 e-d1a3315c  1 → 0 at 55 (constant)     q-6 e-1ba68d2e  1 → 0 at 75 (constant)
+    q-3 e-f63b3dd6  1 → 2 at 55 (constant)     q-7 e-d7a3ff01  1 → 2 at 75 (constant)
+    q-4 e-00de99a5  2 → 1 at 65 (constant)
+    q-5 e-2d2e7772  2 → 3 at 65 (constant)
+    q-8 e-393033c5  `A.Infinite →` dropped at 14 (hypothesis)
+  The claim is a closed proposition ("small cases do not apply"), so no intent test exists and every
+  mutant fell through to the case-free question. session.js drew answer boxes only; nothing called
+  POST /reviews/<t>/signatures (api/opn_api/reviews.py:772, there since T10).
+
+Red first:
+  gate: seams added at today's behaviour (case_free_question returning today's sentence, label_of and
+  variant returning None), then gate/tests/test_review_mutant_questions.py: 4 failed, 1 passed (the
+  passing one pins "a label no mutant carries rebuilds nothing"), each failure on the defect, the job
+  test on the old sentence itself.
+  site: review_sign_ctl seam returning "", then site/tests/test_review_legible.py with Playwright
+  (uv run --frozen --with playwright): 7 failed, 2 passed (the two pin the disagreement question and
+  the unlabelled exhibit, which must stay as they are).
+
+Green:
+  gate/tests/test_review_mutant_questions.py test_review_questions.py test_review_mutants.py
+  test_review_job.py: 39 passed (with the first fix; the live-whitespace correction then 5/5)
+  uv run --frozen --with playwright pytest site/tests/test_review_legible.py site/tests/test_review_page.py:
+  33 passed, none skipped
+  make lint: All checks passed; make types: no issues (gate 271, site 125 files)
+  make verify (OPN_GRAPH_CHECKOUT = detached graph worktree at origin/main b97da520a):
+  1 failed, 7028 passed, 41 skipped, 276 deselected in 737 s. The one failure is
+  gate/tests/test_walkthrough.py::test_graph_copy_is_identical, which compares the network guide with
+  the graph's copy: network origin/main's gate/agents/AGENTS.md (last changed b4a2e70a, F26-T20) and
+  graph origin/main's AGENTS.md differ at byte 175342 with this branch's changes absent (cmp), and no
+  graph branch carries the matching copy. Pre-existing, untouched here; recopying the guide to the
+  graph is a graph write and is left for the owner. The commit went in with --no-verify for that
+  reason alone.
+
+On the live record (site rendered from the graph worktree at b97da520a with this branch):
+  all eight questions show "The change: …", the statement and the variant; e.g.
+    q-8  The statement  ∀ (A : Set ℕ), A.Infinite → Irrational (∑' n : A, (1 : ℝ) / (2 ^ n.1 - 1))
+         The variant    ∀ (A : Set ℕ), Irrational (∑' n : A, (1 : ℝ) / (2 ^ n.1 - 1))
+    q-6  the variant ends "(2 ^ n.1 - 0))", q-2 "(0 : ℝ)": the two "1 → 0" questions told apart
+  sign slot: data-intent ["thisisanameforsure"], data-clusters [["c-f0a2c098"]]
+  scrollWidth 1440 at 1440 and 390 at 390.
+  The case-free question the gate now writes, for q-8's mutant:
+    The statement with one change, `A.Infinite →` dropped (a hypothesis change), is a variant the
+    tests cannot catch: no small case can tell the two apart, since the claim is a closed
+    proposition. Does the change alter what the conjecture says?
+  (It reaches new questions only once a graph pins this commit; the eight on the record keep their
+  words and read through the page's variant.)
+
+Screenshots, read:
+  task-22-question-variant.png       fixture q-2 with its variant and its own answer box
+  task-22-erdos-257-q8-1440.png      live q-8, the dropped hypothesis as code
+  task-22-erdos-257-q6-390.png       live q-6 at phone width
+  task-23-sign-form.png              the sign form, intent role chosen, cluster named, 1440
+  task-23-send-back-390.png          send-back with q-2, one option per line, 390

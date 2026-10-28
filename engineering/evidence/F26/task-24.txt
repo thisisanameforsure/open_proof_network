@@ -1,4 +1,4 @@
-F26-T22 — a licence header is not the review's words (2026-10-28 erdos-68 run, F-A4)
+F26-T24 (committed as F26-T22 in 81d0492c; renumbered at the merge with main, where another session had taken T22 and Q24) — a licence header is not the review's words (2026-10-28 erdos-68 run, F-A4)
 
 RED (before the fix, review_open._DOC_COMMENT_RE = r'\A\s*/-[!-]?...'):
   gate/tests/test_review_policy.py::test_a_licence_header_is_not_the_words FAILED
