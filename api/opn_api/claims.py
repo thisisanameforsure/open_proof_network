@@ -7,8 +7,9 @@ and returns the receipt — or, when the caller already holds an active claim on
 claim again with ``200`` (F05-T14); every receipt names the node's other active holders and the
 pull requests already open on it (``open_submissions``).
 ``DELETE /claims/<id>`` releases the holder's own claim, and ``GET /claims/mine`` lists the
-caller's active claims with their ids. Expiry is lazy: a claim past ``expires`` counts as
-released wherever it is read.
+caller's active claims with their ids. Release is lazy: a claim past ``expires``, or on a node
+its target's ``graph.json`` calls proved (owner, 2026-10-28), counts as released wherever it is
+read, with nothing written and its ``released`` left null; it simply stops being listed.
 """
 
 from __future__ import annotations
@@ -58,14 +59,18 @@ def receipt(claim: Claim, pseudonym: str) -> dict[str, Any]:
 def others(ctx: Context, claim: Claim, claims: list[Claim]) -> list[dict[str, str]]:
     """F05-T14: the other active holders of ``claim``'s node, as the overlay shows them
     (``pseudonym``, ``expires``, the registry's order) — never the holder, never a claim that has
-    expired or been released. Racing stays allowed (D-25); this only says who else is there."""
-    now = clockmod.render(ctx.clock.now())
+    expired or been released, or whose node is proved. Racing stays allowed (D-25); this only
+    says who else is there."""
     names: dict[str, str] = {}
     out: list[dict[str, str]] = []
-    for c in claims:
-        same_node = c.node_id == claim.node_id and c.target_id == claim.target_id
-        if not same_node or c.identity_id == claim.identity_id or not frontier.is_active(c, now):
-            continue
+    same_node = [
+        c
+        for c in claims
+        if c.node_id == claim.node_id
+        and c.target_id == claim.target_id
+        and c.identity_id != claim.identity_id
+    ]
+    for c in frontier.live(ctx, same_node):
         if c.identity_id not in names:
             holder = ctx.store.get_identity(c.identity_id)
             names[c.identity_id] = holder.pseudonym if holder else "?"
@@ -230,12 +235,9 @@ def not_claimable(ctx: Context, node_id: str, target_id: str) -> ApiError:
 
 
 def active_for(ctx: Context, identity_id: str) -> list[Claim]:
-    now = clockmod.render(ctx.clock.now())
-    return [
-        c
-        for c in ctx.store.list_claims()
-        if c.identity_id == identity_id and frontier.is_active(c, now)
-    ]
+    """The caller's claims that count as held (R8): what the cap counts and ``/claims/mine``
+    lists — never one past ``expires`` or on a node the graph calls proved."""
+    return frontier.live(ctx, (c for c in ctx.store.list_claims() if c.identity_id == identity_id))
 
 
 def held_on(held: list[Claim], node_id: str, target_id: str) -> Claim | None:

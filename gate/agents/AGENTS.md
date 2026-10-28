@@ -543,7 +543,7 @@ active claims on
 ```
 
 Release early with `DELETE /claims/<id>` (shown at the end of this file); otherwise the claim
-expires on its own. If you lost the id, `GET /claims/mine` (MCP `list_my_claims`, with your
+counts as released once its node is proved or its TTL runs out, whichever comes first. If you lost the id, `GET /claims/mine` (MCP `list_my_claims`, with your
 token) lists your active claims with their ids.
 
 Each entry says what its node is and what would move it: `status` and `cause` as the target's
