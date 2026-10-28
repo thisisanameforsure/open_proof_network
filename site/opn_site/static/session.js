@@ -28,8 +28,13 @@
     });
   }
 
-  // The service's refusal, as text: {"error", "message"} (ApiError), never markup.
+  // The service's refusal, as text: {"error", "message"} (ApiError), never markup. A 401 on a
+  // web call means the session behind the cookie has ended (eight hours, F23-R3) while the page
+  // still shows what the session allowed; the service's own words are written for a bearer
+  // client, so the page says what happened instead (F04-T59).
+  var ENDED = "Your sign-in has ended.";
   function errorText(result) {
+    if (result && result.status === 401) { return ENDED + " Reload the page and sign in again."; }
     var d = result && result.data;
     if (d && typeof d.message === "string" && d.message) { return d.message; }
     if (result && result.status) { return "The service answered " + String(result.status) + "."; }
@@ -49,6 +54,19 @@
     return node;
   }
 
+  // A refusal set into `out`: the text, and for an ended session a link that signs in again and
+  // comes back to this page (F04-T59).
+  function refusal(out, result) {
+    out.textContent = "";
+    if (result && result.status === 401) {
+      out.appendChild(document.createTextNode(ENDED + " "));
+      out.appendChild(el("a", { href: signInHref() }, "Sign in again"));
+      out.appendChild(document.createTextNode(", then send it once more."));
+      return;
+    }
+    out.textContent = errorText(result);
+  }
+
   var session = call("GET", "/session").then(function (r) {
     if (!r.ok || !r.data || typeof r.data.signed_in !== "boolean") { throw new Error("session"); }
     var s = r.data;
@@ -61,7 +79,7 @@
   });
 
   window.OPN = {
-    api: api, call: call, session: session, errorText: errorText,
+    api: api, call: call, session: session, errorText: errorText, refusal: refusal,
     signInHref: signInHref, el: el
   };
 

@@ -1,0 +1,593 @@
+FFFFFFFF.FFFFF                                                           [100%]
+=================================== FAILURES ===================================
+_______________ test_session_js_reads_a_401_as_an_ended_sign_in ________________
+
+    def test_session_js_reads_a_401_as_an_ended_sign_in() -> None:
+        body = SESSION_JS[SESSION_JS.index("function errorText") :]
+        body = body[: body.index("function here")]
+>       assert "401" in body and "Your sign-in has ended" in body, body
+E       AssertionError: function errorText(result) {
+E             var d = result && result.data;
+E             if (d && typeof d.message === "string" && d.message) { return d.message; }
+E             if (result && result.status) { return "The service answered " + String(result.status) + "."; }
+E             return "The service did not answer. Nothing was sent.";
+E           }
+E         
+E           
+E       assert ('401' in 'function errorText(result) {\n    var d = result && result.data;\n    if (d && typeof d.message === "string" && d.mes...ce answered " + String(result.status) + "."; }\n    return "The service did not answer. Nothing was sent.";\n  }\n\n  ')
+
+site/tests/test_finding_invite_errors.py:61: AssertionError
+______________ test_panel_js_normalises_the_login_before_posting _______________
+
+    def test_panel_js_normalises_the_login_before_posting() -> None:
+        form = PANEL_JS[PANEL_JS.index("function inviteForm") :]
+        form = form[: form.index("function acceptForm")]
+>       assert "githubLogin(" in form, form
+E       AssertionError: function inviteForm() {
+E             var box = el("div", { "class": "ctl-box invite-ctl" });
+E             box.appendChild(el("h3", {}, "Invite someone"));
+E             // F04-T58: what an invitation takes and when it passes (opn_gate.panel: at once for a sole
+E             // counted member or a curator, otherwise by the panel's vote inside its window).
+E             var windowDays = panelSlot.dataset.windowDays;
+E             box.appendChild(el("p", { "class": "cue" },
+E               "Invitations go to a GitHub login, not an email address. If you are the panel's only " +
+E               "member, or a curator, the invitation passes at once; otherwise the panel votes on it" +
+E               (windowDays ? " within " + String(windowDays) + " days" : "") +
+E               ". The invited person then signs in and accepts here."));
+E             var login = field("invite-login", "Their GitHub login", { maxlength: "39" });
+E             var note = field("invite-note", "What part of the work you ask them for (optional)", { maxlength: "300" });
+E             var b = el("button", { type: "button", "class": "btn btn-primary" }, "Invite");
+E             var out = errorLine();
+E             b.addEventListener("click", function () {
+E               var who = login.input.value.trim();
+E               if (!who) { out.textContent = "Give the login to invite."; return; }
+E               var subject = { login: who };
+E               if (note.input.value.trim()) { subject.note = note.input.value.trim(); }
+E               post(b, out, "/motions", { target: target, kind: "invite", subject: subject },
+E                 "The invitation of " + who + " is put to the panel.", box);
+E             });
+E             [login.wrap, note.wrap, b, out].forEach(function (n) { box.appendChild(n); });
+E             panelSlot.appendChild(box);
+E           }
+E         
+E           
+E       assert 'githubLogin(' in 'function inviteForm() {\n    var box = el("div", { "class": "ctl-box invite-ctl" });\n    box.appendChild(el("h3", {}...in.wrap, note.wrap, b, out].forEach(function (n) { box.appendChild(n); });\n    panelSlot.appendChild(box);\n  }\n\n  '
+
+site/tests/test_finding_invite_errors.py:67: AssertionError
+____________ test_an_ended_sign_in_says_so_and_offers_sign_in_again ____________
+
+served = 'http://127.0.0.1:52149'
+
+    def test_an_ended_sign_in_says_so_and_offers_sign_in_again(served: str) -> None:
+        sync_api = pytest.importorskip("playwright.sync_api")
+        EVIDENCE.mkdir(parents=True, exist_ok=True)
+        FakeService.session, FakeService.motion_status, FakeService.posted = dict(MEMBER), 401, []
+        with sync_api.sync_playwright() as p:
+            browser, page = open_form(p, served)
+            page.fill("#invite-login", "riversupport")
+            page.locator(".invite-ctl button.btn-primary").click()
+            out = page.locator(".invite-ctl .form-error")
+>           out.locator("a").wait_for()
+
+site/tests/test_finding_invite_errors.py:163: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+../../../.cache/uv/archive-v0/ESEvM4_tkhs1qOWo/lib/python3.13/site-packages/playwright/sync_api/_generated.py:13635: in wait_for
+    self._sync(
+../../../.cache/uv/archive-v0/ESEvM4_tkhs1qOWo/lib/python3.13/site-packages/playwright/_impl/_locator.py:767: in wait_for
+    await self._frame.wait_for_selector(
+../../../.cache/uv/archive-v0/ESEvM4_tkhs1qOWo/lib/python3.13/site-packages/playwright/_impl/_frame.py:395: in wait_for_selector
+    await self._channel.send(
+../../../.cache/uv/archive-v0/ESEvM4_tkhs1qOWo/lib/python3.13/site-packages/playwright/_impl/_connection.py:78: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <playwright._impl._connection.Connection object at 0x10b89e510>
+cb = <function Channel.send.<locals>.<lambda> at 0x10ba66200>
+is_internal = False, title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -> Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        parsed_st = _attach_api_call_information(
+            getattr(task, "__pw_stack__", None) or _capture_stack_trace(),
+            is_internal,
+            title,
+        )
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+>           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E           playwright._impl._errors.TimeoutError: Locator.wait_for: Timeout 30000ms exceeded.
+E           Call log:
+E             - waiting for locator(".invite-ctl .form-error").locator("a") to be visible
+
+../../../.cache/uv/archive-v0/ESEvM4_tkhs1qOWo/lib/python3.13/site-packages/playwright/_impl/_connection.py:636: TimeoutError
+------------------------------ Captured log setup ------------------------------
+WARNING  opn_gate.records:records.py:82 attempt record /private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-320/invite-errors0/graph/targets/propositional/nodes/and-swap-reassoc/attempts/2026-09-02-b.yaml is invalid and counted as such: cannot read YAML /private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-320/invite-errors0/graph/targets/propositional/nodes/and-swap-reassoc/attempts/2026-09-02-b.yaml: while parsing a flow sequence
+  in "<unicode string>", line 1, column 8:
+    route: [oops
+           ^
+expected ',' or ']', but got '<stream end>'
+  in "<unicode string>", line 2, column 1:
+    
+    ^
+WARNING  opn_gate.products:products.py:1279 propositional/and-swap-reassoc: attempt 2026-09-02-b.yaml does not validate (counted as invalid)
+WARNING  opn_gate.records:records.py:82 attempt record /private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-320/invite-errors0/graph/targets/propositional/nodes/and-swap-reassoc/attempts/2026-09-02-b.yaml is invalid and counted as such: cannot read YAML /private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-320/invite-errors0/graph/targets/propositional/nodes/and-swap-reassoc/attempts/2026-09-02-b.yaml: while parsing a flow sequence
+  in "<unicode string>", line 1, column 8:
+    route: [oops
+           ^
+expected ',' or ']', but got '<stream end>'
+  in "<unicode string>", line 2, column 1:
+    
+    ^
+WARNING  opn_gate.products:products.py:1279 propositional/and-swap-reassoc: attempt 2026-09-02-b.yaml does not validate (counted as invalid)
+WARNING  opn_gate.records:records.py:82 attempt record /private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-320/invite-errors0/graph/targets/propositional/nodes/and-swap-reassoc/attempts/2026-09-02-b.yaml is invalid and counted as such: cannot read YAML /private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-320/invite-errors0/graph/targets/propositional/nodes/and-swap-reassoc/attempts/2026-09-02-b.yaml: while parsing a flow sequence
+  in "<unicode string>", line 1, column 8:
+    route: [oops
+           ^
+expected ',' or ']', but got '<stream end>'
+  in "<unicode string>", line 2, column 1:
+    
+    ^
+WARNING  opn_site.model:model.py:1071 resolved-lemma: Proof.lean is not the file attestation attestations/000009.json covers (attested dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd, found b378cb7cadba8366b22489d6e3b9b02875b08a5f4accb077e9466c5f74d90b66); its text is withheld from the page
+_ test_a_pasted_github_address_sends_the_login[https://github.com/riversupport] _
+
+served = 'http://127.0.0.1:52149', typed = 'https://github.com/riversupport'
+
+    @pytest.mark.parametrize(
+        "typed",
+        [
+            "https://github.com/riversupport",
+            "https://github.com/riversupport/",
+            "http://www.github.com/riversupport?tab=repositories",
+            "github.com/riversupport",
+            "@riversupport",
+            "  riversupport  ",
+        ],
+    )
+    def test_a_pasted_github_address_sends_the_login(served: str, typed: str) -> None:
+        sync_api = pytest.importorskip("playwright.sync_api")
+        FakeService.session, FakeService.motion_status, FakeService.posted = dict(MEMBER), 201, []
+        with sync_api.sync_playwright() as p:
+            browser, page = open_form(p, served)
+            page.fill("#invite-login", typed)
+            page.locator(".invite-ctl button.btn-primary").click()
+            page.wait_for_selector(".receipt")
+            motions = [x for x in FakeService.posted if x["path"] == "/motions"]
+            assert len(motions) == 1, FakeService.posted
+>           assert motions[0]["body"]["subject"]["login"] == "riversupport", motions[0]
+E           AssertionError: {'path': '/motions', 'body': {'target': 'stewarded-target', 'kind': 'invite', 'subject': {'login': 'https://github.com/riversupport'}}}
+E           assert 'https://gith.../riversupport' == 'riversupport'
+E             
+E             - riversupport
+E             + https://github.com/riversupport
+
+site/tests/test_finding_invite_errors.py:197: AssertionError
+_ test_a_pasted_github_address_sends_the_login[https://github.com/riversupport/] _
+
+served = 'http://127.0.0.1:52149', typed = 'https://github.com/riversupport/'
+
+    @pytest.mark.parametrize(
+        "typed",
+        [
+            "https://github.com/riversupport",
+            "https://github.com/riversupport/",
+            "http://www.github.com/riversupport?tab=repositories",
+            "github.com/riversupport",
+            "@riversupport",
+            "  riversupport  ",
+        ],
+    )
+    def test_a_pasted_github_address_sends_the_login(served: str, typed: str) -> None:
+        sync_api = pytest.importorskip("playwright.sync_api")
+        FakeService.session, FakeService.motion_status, FakeService.posted = dict(MEMBER), 201, []
+        with sync_api.sync_playwright() as p:
+            browser, page = open_form(p, served)
+            page.fill("#invite-login", typed)
+            page.locator(".invite-ctl button.btn-primary").click()
+            page.wait_for_selector(".receipt")
+            motions = [x for x in FakeService.posted if x["path"] == "/motions"]
+            assert len(motions) == 1, FakeService.posted
+>           assert motions[0]["body"]["subject"]["login"] == "riversupport", motions[0]
+E           AssertionError: {'path': '/motions', 'body': {'target': 'stewarded-target', 'kind': 'invite', 'subject': {'login': 'https://github.com/riversupport/'}}}
+E           assert 'https://gith...riversupport/' == 'riversupport'
+E             
+E             - riversupport
+E             + https://github.com/riversupport/
+
+site/tests/test_finding_invite_errors.py:197: AssertionError
+_ test_a_pasted_github_address_sends_the_login[http://www.github.com/riversupport?tab=repositories] _
+
+served = 'http://127.0.0.1:52149'
+typed = 'http://www.github.com/riversupport?tab=repositories'
+
+    @pytest.mark.parametrize(
+        "typed",
+        [
+            "https://github.com/riversupport",
+            "https://github.com/riversupport/",
+            "http://www.github.com/riversupport?tab=repositories",
+            "github.com/riversupport",
+            "@riversupport",
+            "  riversupport  ",
+        ],
+    )
+    def test_a_pasted_github_address_sends_the_login(served: str, typed: str) -> None:
+        sync_api = pytest.importorskip("playwright.sync_api")
+        FakeService.session, FakeService.motion_status, FakeService.posted = dict(MEMBER), 201, []
+        with sync_api.sync_playwright() as p:
+            browser, page = open_form(p, served)
+            page.fill("#invite-login", typed)
+            page.locator(".invite-ctl button.btn-primary").click()
+            page.wait_for_selector(".receipt")
+            motions = [x for x in FakeService.posted if x["path"] == "/motions"]
+            assert len(motions) == 1, FakeService.posted
+>           assert motions[0]["body"]["subject"]["login"] == "riversupport", motions[0]
+E           AssertionError: {'path': '/motions', 'body': {'target': 'stewarded-target', 'kind': 'invite', 'subject': {'login': 'http://www.github.com/riversupport?tab='}}}
+E           assert 'http://www.g...rsupport?tab=' == 'riversupport'
+E             
+E             - riversupport
+E             + http://www.github.com/riversupport?tab=
+
+site/tests/test_finding_invite_errors.py:197: AssertionError
+____ test_a_pasted_github_address_sends_the_login[github.com/riversupport] _____
+
+served = 'http://127.0.0.1:52149', typed = 'github.com/riversupport'
+
+    @pytest.mark.parametrize(
+        "typed",
+        [
+            "https://github.com/riversupport",
+            "https://github.com/riversupport/",
+            "http://www.github.com/riversupport?tab=repositories",
+            "github.com/riversupport",
+            "@riversupport",
+            "  riversupport  ",
+        ],
+    )
+    def test_a_pasted_github_address_sends_the_login(served: str, typed: str) -> None:
+        sync_api = pytest.importorskip("playwright.sync_api")
+        FakeService.session, FakeService.motion_status, FakeService.posted = dict(MEMBER), 201, []
+        with sync_api.sync_playwright() as p:
+            browser, page = open_form(p, served)
+            page.fill("#invite-login", typed)
+            page.locator(".invite-ctl button.btn-primary").click()
+            page.wait_for_selector(".receipt")
+            motions = [x for x in FakeService.posted if x["path"] == "/motions"]
+            assert len(motions) == 1, FakeService.posted
+>           assert motions[0]["body"]["subject"]["login"] == "riversupport", motions[0]
+E           AssertionError: {'path': '/motions', 'body': {'target': 'stewarded-target', 'kind': 'invite', 'subject': {'login': 'github.com/riversupport'}}}
+E           assert 'github.com/riversupport' == 'riversupport'
+E             
+E             - riversupport
+E             + github.com/riversupport
+
+site/tests/test_finding_invite_errors.py:197: AssertionError
+_________ test_a_pasted_github_address_sends_the_login[@riversupport] __________
+
+served = 'http://127.0.0.1:52149', typed = '@riversupport'
+
+    @pytest.mark.parametrize(
+        "typed",
+        [
+            "https://github.com/riversupport",
+            "https://github.com/riversupport/",
+            "http://www.github.com/riversupport?tab=repositories",
+            "github.com/riversupport",
+            "@riversupport",
+            "  riversupport  ",
+        ],
+    )
+    def test_a_pasted_github_address_sends_the_login(served: str, typed: str) -> None:
+        sync_api = pytest.importorskip("playwright.sync_api")
+        FakeService.session, FakeService.motion_status, FakeService.posted = dict(MEMBER), 201, []
+        with sync_api.sync_playwright() as p:
+            browser, page = open_form(p, served)
+            page.fill("#invite-login", typed)
+            page.locator(".invite-ctl button.btn-primary").click()
+            page.wait_for_selector(".receipt")
+            motions = [x for x in FakeService.posted if x["path"] == "/motions"]
+            assert len(motions) == 1, FakeService.posted
+>           assert motions[0]["body"]["subject"]["login"] == "riversupport", motions[0]
+E           AssertionError: {'path': '/motions', 'body': {'target': 'stewarded-target', 'kind': 'invite', 'subject': {'login': '@riversupport'}}}
+E           assert '@riversupport' == 'riversupport'
+E             
+E             - riversupport
+E             + @riversupport
+E             ? +
+
+site/tests/test_finding_invite_errors.py:197: AssertionError
+_ test_what_is_not_a_login_is_refused_before_anything_is_sent[carl011226@gmail.com] _
+
+served = 'http://127.0.0.1:52149', typed = 'carl011226@gmail.com'
+
+    @pytest.mark.parametrize(
+        "typed", ["carl011226@gmail.com", "https://github.com/", "not a login", "-bad", "a--b"]
+    )
+    def test_what_is_not_a_login_is_refused_before_anything_is_sent(served: str, typed: str) -> None:
+        sync_api = pytest.importorskip("playwright.sync_api")
+        FakeService.session, FakeService.motion_status, FakeService.posted = dict(MEMBER), 201, []
+        with sync_api.sync_playwright() as p:
+            browser, page = open_form(p, served)
+            page.fill("#invite-login", typed)
+            page.locator(".invite-ctl button.btn-primary").click()
+            page.wait_for_timeout(300)
+>           words = page.locator(".invite-ctl .form-error").inner_text()
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+site/tests/test_finding_invite_errors.py:213: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+../../../.cache/uv/archive-v0/ESEvM4_tkhs1qOWo/lib/python3.13/site-packages/playwright/sync_api/_generated.py:12419: in inner_text
+    self._sync(self._impl_obj.inner_text(timeout=to_milliseconds(timeout)))
+../../../.cache/uv/archive-v0/ESEvM4_tkhs1qOWo/lib/python3.13/site-packages/playwright/_impl/_locator.py:514: in inner_text
+    return await self._frame.inner_text(
+../../../.cache/uv/archive-v0/ESEvM4_tkhs1qOWo/lib/python3.13/site-packages/playwright/_impl/_frame.py:748: in inner_text
+    return await self._channel.send(
+../../../.cache/uv/archive-v0/ESEvM4_tkhs1qOWo/lib/python3.13/site-packages/playwright/_impl/_connection.py:78: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <playwright._impl._connection.Connection object at 0x10bd3ef10>
+cb = <function Channel.send.<locals>.<lambda> at 0x10bd79120>
+is_internal = False, title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -> Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        parsed_st = _attach_api_call_information(
+            getattr(task, "__pw_stack__", None) or _capture_stack_trace(),
+            is_internal,
+            title,
+        )
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+>           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E           playwright._impl._errors.TimeoutError: Locator.inner_text: Timeout 30000ms exceeded.
+E           Call log:
+E             - waiting for locator(".invite-ctl .form-error")
+
+../../../.cache/uv/archive-v0/ESEvM4_tkhs1qOWo/lib/python3.13/site-packages/playwright/_impl/_connection.py:636: TimeoutError
+_ test_what_is_not_a_login_is_refused_before_anything_is_sent[https://github.com/] _
+
+served = 'http://127.0.0.1:52149', typed = 'https://github.com/'
+
+    @pytest.mark.parametrize(
+        "typed", ["carl011226@gmail.com", "https://github.com/", "not a login", "-bad", "a--b"]
+    )
+    def test_what_is_not_a_login_is_refused_before_anything_is_sent(served: str, typed: str) -> None:
+        sync_api = pytest.importorskip("playwright.sync_api")
+        FakeService.session, FakeService.motion_status, FakeService.posted = dict(MEMBER), 201, []
+        with sync_api.sync_playwright() as p:
+            browser, page = open_form(p, served)
+            page.fill("#invite-login", typed)
+            page.locator(".invite-ctl button.btn-primary").click()
+            page.wait_for_timeout(300)
+>           words = page.locator(".invite-ctl .form-error").inner_text()
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+site/tests/test_finding_invite_errors.py:213: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+../../../.cache/uv/archive-v0/ESEvM4_tkhs1qOWo/lib/python3.13/site-packages/playwright/sync_api/_generated.py:12419: in inner_text
+    self._sync(self._impl_obj.inner_text(timeout=to_milliseconds(timeout)))
+../../../.cache/uv/archive-v0/ESEvM4_tkhs1qOWo/lib/python3.13/site-packages/playwright/_impl/_locator.py:514: in inner_text
+    return await self._frame.inner_text(
+../../../.cache/uv/archive-v0/ESEvM4_tkhs1qOWo/lib/python3.13/site-packages/playwright/_impl/_frame.py:748: in inner_text
+    return await self._channel.send(
+../../../.cache/uv/archive-v0/ESEvM4_tkhs1qOWo/lib/python3.13/site-packages/playwright/_impl/_connection.py:78: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <playwright._impl._connection.Connection object at 0x10b65fa50>
+cb = <function Channel.send.<locals>.<lambda> at 0x10bd7a200>
+is_internal = False, title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -> Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        parsed_st = _attach_api_call_information(
+            getattr(task, "__pw_stack__", None) or _capture_stack_trace(),
+            is_internal,
+            title,
+        )
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+>           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E           playwright._impl._errors.TimeoutError: Locator.inner_text: Timeout 30000ms exceeded.
+E           Call log:
+E             - waiting for locator(".invite-ctl .form-error")
+
+../../../.cache/uv/archive-v0/ESEvM4_tkhs1qOWo/lib/python3.13/site-packages/playwright/_impl/_connection.py:636: TimeoutError
+___ test_what_is_not_a_login_is_refused_before_anything_is_sent[not a login] ___
+
+served = 'http://127.0.0.1:52149', typed = 'not a login'
+
+    @pytest.mark.parametrize(
+        "typed", ["carl011226@gmail.com", "https://github.com/", "not a login", "-bad", "a--b"]
+    )
+    def test_what_is_not_a_login_is_refused_before_anything_is_sent(served: str, typed: str) -> None:
+        sync_api = pytest.importorskip("playwright.sync_api")
+        FakeService.session, FakeService.motion_status, FakeService.posted = dict(MEMBER), 201, []
+        with sync_api.sync_playwright() as p:
+            browser, page = open_form(p, served)
+            page.fill("#invite-login", typed)
+            page.locator(".invite-ctl button.btn-primary").click()
+            page.wait_for_timeout(300)
+>           words = page.locator(".invite-ctl .form-error").inner_text()
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+site/tests/test_finding_invite_errors.py:213: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+../../../.cache/uv/archive-v0/ESEvM4_tkhs1qOWo/lib/python3.13/site-packages/playwright/sync_api/_generated.py:12419: in inner_text
+    self._sync(self._impl_obj.inner_text(timeout=to_milliseconds(timeout)))
+../../../.cache/uv/archive-v0/ESEvM4_tkhs1qOWo/lib/python3.13/site-packages/playwright/_impl/_locator.py:514: in inner_text
+    return await self._frame.inner_text(
+../../../.cache/uv/archive-v0/ESEvM4_tkhs1qOWo/lib/python3.13/site-packages/playwright/_impl/_frame.py:748: in inner_text
+    return await self._channel.send(
+../../../.cache/uv/archive-v0/ESEvM4_tkhs1qOWo/lib/python3.13/site-packages/playwright/_impl/_connection.py:78: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <playwright._impl._connection.Connection object at 0x10b65ec50>
+cb = <function Channel.send.<locals>.<lambda> at 0x10bf78900>
+is_internal = False, title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -> Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        parsed_st = _attach_api_call_information(
+            getattr(task, "__pw_stack__", None) or _capture_stack_trace(),
+            is_internal,
+            title,
+        )
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+>           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E           playwright._impl._errors.TimeoutError: Locator.inner_text: Timeout 30000ms exceeded.
+E           Call log:
+E             - waiting for locator(".invite-ctl .form-error")
+
+../../../.cache/uv/archive-v0/ESEvM4_tkhs1qOWo/lib/python3.13/site-packages/playwright/_impl/_connection.py:636: TimeoutError
+______ test_what_is_not_a_login_is_refused_before_anything_is_sent[-bad] _______
+
+served = 'http://127.0.0.1:52149', typed = '-bad'
+
+    @pytest.mark.parametrize(
+        "typed", ["carl011226@gmail.com", "https://github.com/", "not a login", "-bad", "a--b"]
+    )
+    def test_what_is_not_a_login_is_refused_before_anything_is_sent(served: str, typed: str) -> None:
+        sync_api = pytest.importorskip("playwright.sync_api")
+        FakeService.session, FakeService.motion_status, FakeService.posted = dict(MEMBER), 201, []
+        with sync_api.sync_playwright() as p:
+            browser, page = open_form(p, served)
+            page.fill("#invite-login", typed)
+            page.locator(".invite-ctl button.btn-primary").click()
+            page.wait_for_timeout(300)
+>           words = page.locator(".invite-ctl .form-error").inner_text()
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+site/tests/test_finding_invite_errors.py:213: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+../../../.cache/uv/archive-v0/ESEvM4_tkhs1qOWo/lib/python3.13/site-packages/playwright/sync_api/_generated.py:12419: in inner_text
+    self._sync(self._impl_obj.inner_text(timeout=to_milliseconds(timeout)))
+../../../.cache/uv/archive-v0/ESEvM4_tkhs1qOWo/lib/python3.13/site-packages/playwright/_impl/_locator.py:514: in inner_text
+    return await self._frame.inner_text(
+../../../.cache/uv/archive-v0/ESEvM4_tkhs1qOWo/lib/python3.13/site-packages/playwright/_impl/_frame.py:748: in inner_text
+    return await self._channel.send(
+../../../.cache/uv/archive-v0/ESEvM4_tkhs1qOWo/lib/python3.13/site-packages/playwright/_impl/_connection.py:78: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <playwright._impl._connection.Connection object at 0x10bfaf950>
+cb = <function Channel.send.<locals>.<lambda> at 0x10bfe0e00>
+is_internal = False, title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -> Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        parsed_st = _attach_api_call_information(
+            getattr(task, "__pw_stack__", None) or _capture_stack_trace(),
+            is_internal,
+            title,
+        )
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+>           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E           playwright._impl._errors.TimeoutError: Locator.inner_text: Timeout 30000ms exceeded.
+E           Call log:
+E             - waiting for locator(".invite-ctl .form-error")
+
+../../../.cache/uv/archive-v0/ESEvM4_tkhs1qOWo/lib/python3.13/site-packages/playwright/_impl/_connection.py:636: TimeoutError
+______ test_what_is_not_a_login_is_refused_before_anything_is_sent[a--b] _______
+
+served = 'http://127.0.0.1:52149', typed = 'a--b'
+
+    @pytest.mark.parametrize(
+        "typed", ["carl011226@gmail.com", "https://github.com/", "not a login", "-bad", "a--b"]
+    )
+    def test_what_is_not_a_login_is_refused_before_anything_is_sent(served: str, typed: str) -> None:
+        sync_api = pytest.importorskip("playwright.sync_api")
+        FakeService.session, FakeService.motion_status, FakeService.posted = dict(MEMBER), 201, []
+        with sync_api.sync_playwright() as p:
+            browser, page = open_form(p, served)
+            page.fill("#invite-login", typed)
+            page.locator(".invite-ctl button.btn-primary").click()
+            page.wait_for_timeout(300)
+>           words = page.locator(".invite-ctl .form-error").inner_text()
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+site/tests/test_finding_invite_errors.py:213: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+../../../.cache/uv/archive-v0/ESEvM4_tkhs1qOWo/lib/python3.13/site-packages/playwright/sync_api/_generated.py:12419: in inner_text
+    self._sync(self._impl_obj.inner_text(timeout=to_milliseconds(timeout)))
+../../../.cache/uv/archive-v0/ESEvM4_tkhs1qOWo/lib/python3.13/site-packages/playwright/_impl/_locator.py:514: in inner_text
+    return await self._frame.inner_text(
+../../../.cache/uv/archive-v0/ESEvM4_tkhs1qOWo/lib/python3.13/site-packages/playwright/_impl/_frame.py:748: in inner_text
+    return await self._channel.send(
+../../../.cache/uv/archive-v0/ESEvM4_tkhs1qOWo/lib/python3.13/site-packages/playwright/_impl/_connection.py:78: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <playwright._impl._connection.Connection object at 0x10b8ca950>
+cb = <function Channel.send.<locals>.<lambda> at 0x10bf7a980>
+is_internal = False, title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -> Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        parsed_st = _attach_api_call_information(
+            getattr(task, "__pw_stack__", None) or _capture_stack_trace(),
+            is_internal,
+            title,
+        )
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+>           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E           playwright._impl._errors.TimeoutError: Locator.inner_text: Timeout 30000ms exceeded.
+E           Call log:
+E             - waiting for locator(".invite-ctl .form-error")
+
+../../../.cache/uv/archive-v0/ESEvM4_tkhs1qOWo/lib/python3.13/site-packages/playwright/_impl/_connection.py:636: TimeoutError
+=========================== short test summary info ============================
+FAILED site/tests/test_finding_invite_errors.py::test_session_js_reads_a_401_as_an_ended_sign_in
+FAILED site/tests/test_finding_invite_errors.py::test_panel_js_normalises_the_login_before_posting
+FAILED site/tests/test_finding_invite_errors.py::test_an_ended_sign_in_says_so_and_offers_sign_in_again
+FAILED site/tests/test_finding_invite_errors.py::test_a_pasted_github_address_sends_the_login[https://github.com/riversupport]
+FAILED site/tests/test_finding_invite_errors.py::test_a_pasted_github_address_sends_the_login[https://github.com/riversupport/]
+FAILED site/tests/test_finding_invite_errors.py::test_a_pasted_github_address_sends_the_login[http://www.github.com/riversupport?tab=repositories]
+FAILED site/tests/test_finding_invite_errors.py::test_a_pasted_github_address_sends_the_login[github.com/riversupport]
+FAILED site/tests/test_finding_invite_errors.py::test_a_pasted_github_address_sends_the_login[@riversupport]
+FAILED site/tests/test_finding_invite_errors.py::test_what_is_not_a_login_is_refused_before_anything_is_sent[carl011226@gmail.com]
+FAILED site/tests/test_finding_invite_errors.py::test_what_is_not_a_login_is_refused_before_anything_is_sent[https://github.com/]
+FAILED site/tests/test_finding_invite_errors.py::test_what_is_not_a_login_is_refused_before_anything_is_sent[not a login]
+FAILED site/tests/test_finding_invite_errors.py::test_what_is_not_a_login_is_refused_before_anything_is_sent[-bad]
+FAILED site/tests/test_finding_invite_errors.py::test_what_is_not_a_login_is_refused_before_anything_is_sent[a--b]
+13 failed, 1 passed in 197.34s (0:03:17)

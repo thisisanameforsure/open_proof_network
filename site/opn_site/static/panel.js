@@ -47,9 +47,20 @@
         if (box && box.parentNode) { box.parentNode.replaceChild(p, box); } else { out.parentNode.insertBefore(p, out); }
         return;
       }
-      out.textContent = O.errorText(r);
+      O.refusal(out, r);
       button.disabled = false;
     }, function () { out.textContent = O.errorText(null); button.disabled = false; });
+  }
+
+  // F04-T59: what was typed for a GitHub login, as the login: a pasted profile address
+  // (https://github.com/<login>, with or without the scheme, www, a slash or a query) or an
+  // @-mention gives the name; null when what is left is not a GitHub login (the gate's LOGIN_RE).
+  var LOGIN = /^[A-Za-z0-9](?:-?[A-Za-z0-9]){0,38}$/;
+  function githubLogin(text) {
+    var t = String(text || "").trim().replace(/^@/, "");
+    var m = /^(?:https?:\/\/)?(?:www\.)?github\.com\/([^\/?#\s]*)/i.exec(t);
+    if (m) { t = m[1]; }
+    return LOGIN.test(t) ? t : null;
   }
 
   function field(id, label, attrs) {
@@ -94,13 +105,21 @@
       "member, or a curator, the invitation passes at once; otherwise the panel votes on it" +
       (windowDays ? " within " + String(windowDays) + " days" : "") +
       ". The invited person then signs in and accepts here."));
-    var login = field("invite-login", "Their GitHub login", { maxlength: "39" });
+    // Long enough for a pasted profile address; githubLogin keeps the name (F04-T59).
+    var login = field("invite-login", "Their GitHub login", { maxlength: "200" });
     var note = field("invite-note", "What part of the work you ask them for (optional)", { maxlength: "300" });
     var b = el("button", { type: "button", "class": "btn btn-primary" }, "Invite");
     var out = errorLine();
     b.addEventListener("click", function () {
-      var who = login.input.value.trim();
-      if (!who) { out.textContent = "Give the login to invite."; return; }
+      var typed = login.input.value.trim();
+      if (!typed) { out.textContent = "Give the login to invite."; return; }
+      var who = githubLogin(typed);
+      if (!who) {
+        out.textContent = /^[^@\s]+@[^@\s]+$/.test(typed) ?
+          "That is an email address. An invitation needs their GitHub login; ask them for it." :
+          "That is not a GitHub login. A login is letters, digits and single hyphens, as in github.com/<login>.";
+        return;
+      }
       var subject = { login: who };
       if (note.input.value.trim()) { subject.note = note.input.value.trim(); }
       post(b, out, "/motions", { target: target, kind: "invite", subject: subject },
