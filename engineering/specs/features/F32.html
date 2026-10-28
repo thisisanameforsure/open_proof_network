@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>F32 — Carried proofs</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="crumbs"><a href="../index.html">specs</a> / F32</nav>
+<h1>F32 — Carried proofs</h1>
+<p class="subtitle">A partial proof carries the proofs of some of its holes beside their witnesses; the gate
+checks each against the node that hole becomes, before the merge, and a hole whose proof was carried is
+born proved in the same merge, with an attestation of its own (decisions v3.49: D-3, D-5, D-12, D-29,
+D-34; the owner&rsquo;s ruling of 2026-10-28, option A).</p>
+
+<h2>1. Summary</h2>
+<p>On erdos-68 (2026-10-28) two hole proofs were checked against the exact hole types 36 minutes before
+the holes existed and became proved 64 minutes later: the skeleton had to merge, the post-merge job had to
+write the holes, the products had to render, and only then could a proof of each be prechecked, submitted
+and merged in a second round through the queue. F07-R23 (D-29 v3.24) removed the same round for
+witnesses; this feature removes it for proofs.</p>
+<p>A partial submission may add, beside its assembly <code>attempts/&lt;name&gt;.lean</code> and its carried
+witnesses <code>attempts/&lt;name&gt;.&lt;n&gt;.witness</code>, files <code>attempts/&lt;name&gt;.&lt;n&gt;.proof</code>,
+each naming one hole on a <code>-- hole: &lt;name&gt;</code> line and holding the body of that hole&rsquo;s proof
+(and optionally a private helper block, F00-T11). The gate composes the hole&rsquo;s <code>Proof.lean</code> from
+the <code>Statement.lean</code> the post-merge job will write for it, so the author never names the future
+node, and runs the proof steps (D-4 steps 2 and 4&ndash;8) on it against the staged node, before the merge,
+interleaved with the partial&rsquo;s own steps. A failing carried proof refuses the whole partial. After the
+merge the post-merge job re-derives everything, writes the composed <code>Proof.lean</code> into each such
+hole&rsquo;s node, and commits one attestation per node the merge settled: the partial&rsquo;s, keyed to the
+parent, and one per born-proved hole, keyed to the hole&rsquo;s node and statement hash, with a back-pointer
+to the partial (<code>attestation/v8</code>, <code>carried_by</code>). The ledger gets one proof line per
+born-proved hole, credited to the partial&rsquo;s author.</p>
+<p>First version, by the owner&rsquo;s design: a carried proof may use only the library and the definition
+modules its hole&rsquo;s statement imports &mdash; no use lines, no sibling holes, not the parent; a carried proof
+requires the same hole&rsquo;s carried witness; a hole that is an existing node takes none.</p>
+
+<h2>2. User stories</h2>
+<ul>
+  <li>As an agent writing a skeleton whose easy holes I can already prove, I want to submit those proofs
+    with the skeleton, checked in the same precheck, so the holes are proved when the skeleton lands
+    and I do not spend a second queue round on each.</li>
+  <li>As a reader of the record, I want a born-proved hole to look like any proved node &mdash; a
+    <code>Proof.lean</code>, an attestation naming it, a ledger line &mdash; and to be able to reproduce its
+    verdict.</li>
+  <li>As the gate owner, I want nothing to be proved that the gate did not check against the exact node
+    that was written, and every failure to refuse the whole partial before anything merges.</li>
+</ul>
+
+<h2>3. Scope</h2>
+<p><strong>In:</strong> the <code>hole-proof</code> path role and step 2&rsquo;s grammar for
+<code>attempts/&lt;name&gt;.&lt;n&gt;.proof</code>; one composition function shared by the gate&rsquo;s pre-merge
+check and the post-merge writer; the pre-merge check at steps 4&ndash;8; <code>postmerge.apply_partial</code>
+writing <code>Proof.lean</code>; the per-hole attestations (<code>attestation/v8</code>) and their signing in
+the graph&rsquo;s key step; <code>reproduce</code>; the ledger; the products and site reading a born-proved
+hole as proved (including where <code>Proof.lean</code> is linked); the olean-cache and outline jobs; the
+precheck result&rsquo;s <code>holes[].proof</code>; the service&rsquo;s bundle grammar and
+<code>hole-proof-unchecked</code>; the MCP tool descriptions; the guide.
+<strong>Out (non-goals):</strong> a carried proof that uses a sibling hole, the parent, another node or a
+declared use (a later version, Q4); a carried proof for a hole that is an existing node (Q6); a new
+service route, request field or MCP tool (bundle files only); a fast-check (<code>POST /check</code>) mode
+that takes a skeleton with its proofs; closing the parent in the same job (Q11, the owner&rsquo;s call);
+any limit on the number of carried proofs beyond the bundle size (Q9).</p>
+
+<h2>4. Requirements</h2>
+<table>
+  <tr><th>ID</th><th>Requirement (EARS)</th></tr>
+  <tr><td>F32-R1</td><td>When a partial submission adds files <code>attempts/&lt;name&gt;.&lt;n&gt;.proof</code> beside its
+    assembly, the gate shall give them the path role <code>hole-proof</code> and at step 2 read each as: a
+    line <code>-- hole: &lt;name&gt;</code>; optionally a helper block held to F00-T11&rsquo;s rule; a line
+    <code>-- proof:</code>; and the body, the text that follows the statement&rsquo;s <code>:=</code> (Q2). It shall
+    refuse by name a file not attached to the submission&rsquo;s assembly (<code>hole-proof-unattached</code>),
+    naming no hole (<code>hole-proof-unnamed</code>), naming a hole another <code>.proof</code> file names
+    (<code>hole-proof-duplicate</code>), without a <code>-- proof:</code> line or with an empty body
+    (<code>hole-proof-malformed</code>), with <code>sorry</code> or <code>admit</code> as a token
+    (<code>hole-proof-sorry</code>), with an import or a use line (<code>hole-proof-uses</code>), with a helper
+    block F00-T11 would refuse (its own codes, the file named), or naming a hole for which no carried
+    <code>.witness</code> file names the same hole (<code>hole-proof-without-witness</code>); a
+    <code>.proof</code> file in a submission that is not a partial shall be refused
+    (<code>hole-proof-without-partial</code>). The gate shall read the file as bytes (F07-Q58 (3)).</td></tr>
+  <tr><td>F32-R2</td><td>The gate shall compose a carried proof&rsquo;s <code>Proof.lean</code> in one pure function,
+    from the hole node&rsquo;s <code>Statement.lean</code> as <code>postmerge.child_proposal</code> writes it: the
+    statement&rsquo;s text up to and including its <code>:=</code>, then the body, with the helper block inserted at
+    <code>layout.declaration_start</code>; no marker line reaches it, and nothing is added to the header (the
+    hole&rsquo;s statement already imports its own Context, F07-T23). The composed file shall pass step 2&rsquo;s
+    proof-is-statement and helper checks for that node unchanged.</td></tr>
+  <tr><td>F32-R3</td><td>When a partial carries proofs, the gate shall, before the merge and in the sandbox, stage
+    each such hole&rsquo;s node exactly as the post-merge writer will write it (<code>plan_children</code>,
+    <code>child_proposal</code> with the carried witness, <code>scaffold.files</code>, plus the composed
+    <code>Proof.lean</code>) and hold the composed proof to D-4 steps 4&ndash;8 against it, each carried proof&rsquo;s
+    result for step <em>k</em> reported in the partial&rsquo;s step <em>k</em> (no new step number), so that a
+    failure is the partial&rsquo;s at that step with a diagnostic naming the hole and the file. It shall refuse a
+    carried proof naming no hole of the assembly (<code>hole-proof-unknown</code>), a name two holes share
+    (<code>hole-proof-ambiguous</code>), and a hole that <code>plan_children</code> places on an existing node
+    &mdash; a restated hole of the same node or a lemma under another branch (<code>hole-proof-restates</code>,
+    naming the node). Step 6 shall treat the staged node as derived (F07-Q19: findings recorded, not refused);
+    step 8 shall find no declared dependency and no use; step 9 is not asked of a hole (F07-Q32). Step 4&rsquo;s
+    passing diagnostic (<code>hole-proofs</code>) shall record each checked carried proof as hole, path, the
+    file&rsquo;s sha256 and the composed <code>Proof.lean</code>&rsquo;s sha256.</td></tr>
+  <tr><td>F32-R4</td><td>When a partial that carried proofs merges, the post-merge job shall re-derive the verdict
+    on the merge commit (R3 on the merge commit&rsquo;s tree), and only on a pass shall
+    <code>apply_partial</code> write, for each hole whose carried proof its own run checked, the composed
+    <code>Proof.lean</code> that run checked, byte for byte, beside the statement, witness and context it writes
+    today; a hole with no carried proof is created exactly as F07-R6, R21 and R23 say. A partial carrying no
+    proof shall produce the verdict and the tree it produced before this requirement, and an attestation that
+    differs only in <code>schema</code> and <code>carried_by: null</code>.</td></tr>
+  <tr><td>F32-R5</td><td>The post-merge job shall emit, beside the partial&rsquo;s attestation, one
+    <code>attestation/v8</code> per born-proved hole: <code>node_id</code> and <code>statement_hash</code> the
+    hole node&rsquo;s, <code>merge_commit</code> the merge&rsquo;s, <code>artifact_hash</code> the composed
+    <code>Proof.lean</code>&rsquo;s, <code>steps</code> its sub-run&rsquo;s, <code>footprint</code> its step 8&rsquo;s,
+    <code>review</code> the block a proof of that node would carry, <code>submitter</code>,
+    <code>model_and_tooling</code>, <code>automation</code> and <code>precheck_attestation</code> the
+    partial&rsquo;s, and <code>carried_by</code> = {parent <code>node_id</code>, assembly <code>path</code> and
+    <code>artifact_hash</code>, carried file <code>path</code> and <code>sha256</code>}; the partial&rsquo;s own
+    record carries <code>carried_by: null</code>. Each is written to <code>attestations/</code> under a name that
+    begins with the partial&rsquo;s (Q7) and is signed in the graph workflow&rsquo;s one key step. When the
+    re-derivation fails, no attestation of the merge is written (C7: the existing failure, visible).</td></tr>
+  <tr><td>F32-R6</td><td><code>reproduce</code> shall, given a born-proved hole&rsquo;s node and the merge commit,
+    replay the partial at that commit and write the hole&rsquo;s sub-run attestation beside the partial&rsquo;s; with
+    <code>--compare</code> on either, it shall report identical after masking D-5&rsquo;s three fields and nothing
+    else.</td></tr>
+  <tr><td>F32-R7</td><td>The ledger shall write one proof line per born-proved hole (its node, its
+    <code>Proof.lean</code>, the merge commit), credited to the partial&rsquo;s author, beside the partial&rsquo;s
+    line; <code>ledger.merge_tooling</code> and <code>merge_automation</code>, and every other reader that takes
+    &ldquo;the merge&rsquo;s attestation&rdquo; by merge commit, shall read the record whose <code>carried_by</code>
+    is null, whatever the file names sort to.</td></tr>
+  <tr><td>F32-R8</td><td>The products shall read a born-proved hole as <code>proved</code> through its own
+    attestation, keep it off the frontier, and count it among its parent&rsquo;s decomposition&rsquo;s proved
+    inputs; the site shall link its <code>Proof.lean</code> at a commit where the file exists (Q13); the
+    post-merge catch-up record (F07-T55), the olean-cache job and the outline job shall cover it as they cover
+    a proof merged by its own pull request.</td></tr>
+  <tr><td>F32-R9</td><td>The precheck result shall report each checked carried proof on its hole
+    (<code>holes[].proof</code>: <code>path</code>, <code>sha256</code>, <code>checked</code>), the key absent from
+    a hole that carried none. The service shall take <code>.proof</code> files in the bundle its precheck and
+    submission routes already read, refuse before any job what step 2 would refuse (R1), refuse to open a
+    pull request for a bundle whose carried proofs the bound precheck did not check
+    (<code>hole-proof-unchecked</code>: the target&rsquo;s pinned gate predates F32), and say so on a passing
+    served job (<code>carried_proofs</code>, as F07-T53&rsquo;s <code>carried_witnesses</code>). No route, request
+    field or tool is added; the descriptions of <code>precheck_submission</code> and <code>submit_proof</code>
+    shall say how a proof is carried.</td></tr>
+  <tr><td>F32-R10</td><td>The guide&rsquo;s skeleton section shall say how a proof is carried: the file name and
+    grammar, that the body is written against the hole&rsquo;s <code>closed_type</code> as the precheck lists it
+    (binders after the colon, so the body introduces them), that the witness must be carried too, what it may
+    not use, each refusal by code, and what an older pin answers.</td></tr>
+</table>
+
+<h2>5. Acceptance criteria</h2>
+<table>
+  <tr><th>ID</th><th>Given / When / Then</th><th>Test case</th></tr>
+  <tr><td>F32-AC1</td><td>Given a partial with carried proof files, when step 2 reads them, then a well-formed file
+    passes and each malformed one (unattached, unnamed, duplicate, no <code>-- proof:</code>, empty body,
+    <code>sorry</code>, <code>admit</code>, an import, a use line, a refused helper block, no carried witness for its
+    hole) is refused by its code; a <code>.proof</code> file on a proof submission is
+    <code>hole-proof-without-partial</code>; a file with <code>\r\n</code> line ends is read as its bytes.</td>
+    <td><code>gate/tests/test_finding_carried_proof_grammar.py</code></td></tr>
+  <tr><td>F32-AC2</td><td>Given a hole statement written by <code>child_statement</code> and a carried body with and
+    without helpers, when composed, then the result is the statement through <code>:=</code> plus the body,
+    helpers before the declaration, no marker line, and step 2&rsquo;s proof-is-statement check passes it for
+    that node.</td>
+    <td><code>gate/tests/test_finding_carried_proof_grammar.py::test_composed_proof_is_the_statement</code></td></tr>
+  <tr><td>F32-AC3</td><td>Given a fake toolchain, a two-hole partial carrying a witness for both and a proof for one,
+    when the pipeline runs, then every step passes, steps 4&ndash;8 are asked once for the node and once for the
+    staged child, the staged child is the writer&rsquo;s output byte for byte, and step 4&rsquo;s
+    <code>hole-proofs</code> diagnostic names the hole, path and both hashes; given the toolchain failing the
+    child at step 4, 5, 7 or 8 in turn, then the partial fails at that step naming the hole.</td>
+    <td><code>gate/tests/test_finding_partial_carries_proofs.py</code></td></tr>
+  <tr><td>F32-AC4</td><td>Given a carried proof naming an unknown hole, a shared name, a hole that restates an earlier
+    hole of the node, and a hole that restates a node under another branch, when checked, then
+    <code>hole-proof-unknown</code>, <code>hole-proof-ambiguous</code> and <code>hole-proof-restates</code> (twice).</td>
+    <td><code>gate/tests/test_finding_partial_carries_proofs.py::test_refusals</code></td></tr>
+  <tr><td>F32-AC5</td><td>Lean tier. Given a core-only skeleton with two holes and a <code>Defs</code> module, carrying
+    witnesses for both and a proof of one (using a helper), when it runs through the real toolchain, then it
+    passes; given the same proof naming the sibling hole&rsquo;s theorem, the parent&rsquo;s, or a lemma the
+    statement does not import, then it is refused at step 4 with nothing merged.</td>
+    <td><code>gate/tests/test_finding_partial_carries_proofs_lean.py</code></td></tr>
+  <tr><td>F32-AC6</td><td>Given the partial of AC3 merged on a fixture graph, when <code>postmerge --apply-partial</code>
+    runs, then the proved hole&rsquo;s node holds the composed <code>Proof.lean</code> the run checked, the other
+    hole is created as before, two attestations validate as <code>attestation/v8</code> with the fields R5 names,
+    and the graph derives the hole <code>proved</code> and off the frontier; given a partial carrying no proof,
+    then the tree is unchanged and the attestation differs only in <code>schema</code> and
+    <code>carried_by</code>.</td>
+    <td><code>gate/tests/test_finding_carried_proof_postmerge.py</code></td></tr>
+  <tr><td>F32-AC7</td><td>Given the merge of AC6 re-derived on a tree where another partial of the same parent has
+    taken the hole&rsquo;s number, or where the hole now restates an existing node, when the post-merge job runs,
+    then it fails visibly and writes no attestation and no <code>Proof.lean</code>.</td>
+    <td><code>gate/tests/test_finding_carried_proof_postmerge.py::test_renumbered_fails_closed</code></td></tr>
+  <tr><td>F32-AC8</td><td>Given the graph workflow, when read statically, then the key step signs every attestation the
+    re-derivation wrote for the merge and no other step names the key; given the catch-up record step, then its
+    patch includes the hole&rsquo;s <code>Proof.lean</code> and attestation.</td>
+    <td><code>gate/tests/test_finding_carried_proof_workflow.py</code></td></tr>
+  <tr><td>F32-AC9</td><td>Given the merge of AC6, when the ledger runs, then it writes the partial&rsquo;s proof line and
+    one for the hole, both credited to the partial&rsquo;s author; <code>merge_tooling</code> and
+    <code>merge_automation</code> return the partial&rsquo;s record&rsquo;s fields when the hole&rsquo;s record sorts
+    first and when it sorts last.</td>
+    <td><code>gate/tests/test_finding_carried_proof_ledger.py</code></td></tr>
+  <tr><td>F32-AC10</td><td>Docker tier. Given the merge of AC6, when <code>reproduce.sh --node &lt;hole&gt; --compare</code>
+    runs, then the hole&rsquo;s attestation is reproduced identical after masking; with <code>--node &lt;parent&gt;</code>
+    the partial&rsquo;s is.</td>
+    <td><code>gate/tests/test_finding_carried_proof_reproduce_docker.py</code></td></tr>
+  <tr><td>F32-AC11</td><td>Given the merge of AC6 rendered, when the site builds, then the hole&rsquo;s page reads proved and
+    its <code>Proof.lean</code> link names a commit at which the file exists; the outline job and the olean-cache
+    job list the hole&rsquo;s Proof module.</td>
+    <td><code>site/tests/test_finding_born_proved_link.py</code>, <code>gate/tests/test_finding_outline_job.py</code>,
+    <code>gate/tests/test_finding_postmerge_cache_job.py</code></td></tr>
+  <tr><td>F32-AC12</td><td>Given a partial bundle with witness and proof files, when it is prechecked and submitted
+    through the service, then the result lists <code>holes[].proof</code> as checked and the pull request carries
+    every file; given a malformed proof file, then the step-2 code before any job; given a precheck whose gate
+    did not check a carried proof, then the served job carries <code>carried_proofs</code> and the submission is
+    409 <code>hole-proof-unchecked</code>.</td>
+    <td><code>api/tests/test_finding_partial_proofs.py</code>, <code>gate/tests/test_finding_precheck_holes.py</code></td></tr>
+  <tr><td>F32-AC13</td><td>Given the guide, when an agent reads its skeleton section, then it finds the file name and
+    grammar, the source of the type, the witness requirement, what a carried proof may not use, each refusal
+    by code and what an older pin answers; the worked example passes the real gate.</td>
+    <td><code>gate/tests/test_finding_guide_carried_proofs.py</code>, <code>gate/tests/test_walkthrough.py</code></td></tr>
+  <tr><td>F32-AC14</td><td>Given the live service and graph after the re-pin, when a skeleton carrying one hole&rsquo;s
+    witness and proof is submitted, then it merges unattended, the hole is proved in the bot commit of that
+    merge, its attestation is signed and validates, the ledger has its line, and the site shows it.</td>
+    <td>T9 evidence</td></tr>
+</table>
+
+<h2>6. Budgets / limits</h2>
+<p>Each carried proof is one more build and kernel replay of one module importing the statement&rsquo;s
+imports, under the same per-module caps a proof meets (F02-T7, F00-T11&rsquo;s heartbeats), paid three times:
+at precheck, at the pre-merge gate, and at the post-merge re-derivation (the last two are the double replay
+of Q9). No limit on the number carried beyond the bundle&rsquo;s size, as for witnesses (F07-Q58); Q9 asks
+whether there should be one.</p>
+
+<h2>7. Security &amp; privacy notes</h2>
+<p>Contributor Lean runs only in the step-3 sandbox (C9): the carried proof is built and replayed there
+before the merge and again in the re-derivation, as an assembly is. The gate key is read by one step (C8);
+it signs more files, not in more places. A <code>.proof</code> file is a contributor&rsquo;s text under
+<code>attempts/</code>, append-only like every file there.</p>
+
+<h2>8. Dependencies</h2>
+<p>F00 (proof-is-statement, F00-T11 helpers), F01 (step 8), F02 (step 4&rsquo;s per-module replay, the
+attestation), F06 (precheck), F07 (partials, R23 carried witnesses, the post-merge job, the ledger, the
+catch-up), F08 (admission, F08-T13 own-Context import), F10 (the olean cache, <code>reproduce</code>), F19
+(outlines), F28 (closure).</p>
+
+<h2>9. Open questions / judgment calls</h2>
+<p><strong>F32-Q1 &mdash; One attestation per node the merge settles (the owner, 2026-10-28: option A).</strong>
+The owner chose option A: the partial&rsquo;s attestation keyed to the parent, plus one per born-proved child
+keyed to the child&rsquo;s node id and statement hash, the same merge commit, a back-pointer to the partial&rsquo;s
+record, all signed in the post-merge job&rsquo;s one key step. Every reader finds a proof through an
+attestation naming its node (<code>graph.proof_for</code>, <code>proofs_of</code>, the site, F25&rsquo;s
+export), so a separate record per child means no reader learns a second shape; the cost is that D-5&rsquo;s
+&ldquo;every merge commits an attestation&rdquo; becomes &ldquo;an attestation per node it settles&rdquo; and needs
+a stated reproduction route (D-5 v3.49, R6). <em>The owner&rsquo;s own words are to be pasted here from the
+2026-10-28 conversation; this spec was drafted from a brief that gave the choice, not the sentence.</em></p>
+<p><strong>F32-Q2 &mdash; The file and its grammar.</strong> Files beside the assembly, not a block in it, for
+F07-Q57 (1)&rsquo;s reason: the assembly is held to the statement&rsquo;s header and built as the parent&rsquo;s Proof
+module. Suffix <code>.proof</code>, not <code>.lean</code>, for Q57 (2)&rsquo;s: four readers take every
+<code>attempts/*.lean</code> for an assembly. The hole is named, not numbered (Q57 (3)). The body is
+&ldquo;what follows <code>:=</code>&rdquo; rather than a re-indented tactic block, so composition is concatenation
+and the author writes <code>by</code> and its indentation exactly as in any proof file; a
+<code>-- proof:</code> line separates it from an optional helper block, because without one the boundary
+between the last helper and the body is a parse, not a split. <em>For review:</em> the separator line and
+the &ldquo;starts at <code>by</code>&rdquo; reading are this spec&rsquo;s choices; the brief said only &ldquo;the proof
+body (tactic block)&rdquo;.</p>
+<p><strong>F32-Q3 &mdash; A carried proof requires its witness.</strong> A proved node has a real witness:
+step 7 of the child&rsquo;s proof run judges the node&rsquo;s <code>Witness.lean</code>, and without a carried
+witness the child is born with the slot, which step 7 refuses (<code>witness-sorry</code>). R1 refuses the
+case at step 2 by its own name so the author is told before any Lean runs.</p>
+<p><strong>F32-Q4 &mdash; Library and the statement&rsquo;s definition modules only (the owner&rsquo;s first version).</strong>
+At birth the child has no dependencies and an empty Context; step 8 would find nothing declared, and a
+proof may not add an import (F00-R19). So a sibling hole, the parent and any other node are out of reach
+by construction, and a use line is refused by name rather than left to fail at step 4. &ldquo;Defs&rdquo; means
+exactly the <code>Defs.*</code> modules the hole&rsquo;s statement imports (the parent&rsquo;s and those the assembly
+declared, F08-R16), not any definition of the target. A later version letting a carried proof use an
+earlier sibling would have to order the holes&rsquo; births and stage each child&rsquo;s Context with its
+predecessors&rsquo; theorems; not attempted.</p>
+<p><strong>F32-Q5 &mdash; No new step number.</strong> The attestation&rsquo;s step list is D-4&rsquo;s (the 2026-09-12
+log). A carried proof is staged after the partial&rsquo;s own step 4 has built the assembly and extracted the
+holes (the staging needs them), and its results for steps 4&ndash;8 are reported inside the partial&rsquo;s steps
+of the same number, so a kernel failure of a carried proof reads as a step-4 failure, not as a step-7 or
+step-8 one. Step 7 checks the carried witness once, as today; the child&rsquo;s own step 7 for its proof run
+is that same check and is not run twice.</p>
+<p><strong>F32-Q6 &mdash; A hole that is an existing node takes no carried proof.</strong> F07-Q57 (5) checks such a
+hole&rsquo;s carried witness and writes nothing; a carried proof cannot follow it, because writing
+<code>Proof.lean</code> into an existing node is a partial modifying another node (D-3), and that node may be
+under another branch with its own deps. Refused pre-merge (<code>hole-proof-restates</code>); the author
+submits the proof to that node. A pre-merge pass followed by a re-derive that finds the hole has become an
+existing node (another partial merged first) fails closed (Q10).</p>
+<p><strong>F32-Q7 &mdash; The record&rsquo;s shape: <code>attestation/v8</code> and <code>carried_by</code>.</strong>
+<code>gate/schemas/attestation/</code> holds v1&ndash;v7 (checked on every branch and worktree, 2026-10-29; no spec
+names a v8), so the next is v8: v7 plus <code>carried_by</code>, required and nullable as v7&rsquo;s
+<code>automation</code> is, so every record says. The back-pointer is content, not a file name: the
+partial&rsquo;s attestation is named by its pull request number, which is not a fact of the tree, so
+<code>reproduce</code> could not produce it and D-5&rsquo;s comparison would have to mask it. Parent node, assembly
+path and hash, carried file path and hash resolve the partial&rsquo;s record uniquely together with the shared
+<code>merge_commit</code>. File name: <code>attestations/&lt;NNNNNN&gt;.&lt;hole-node-id&gt;.json</code>, so
+<code>attestations/&lt;NNNNNN&gt;.json</code> stays the merge&rsquo;s own record for every reader that builds the
+path from the number (<code>pending.attestation_path</code>, F25&rsquo;s registration check). Whether it sorts
+before or after the partial&rsquo;s record depends on the hole id&rsquo;s first letter against the <code>j</code> of
+<code>.json</code> (<code>erdos-68--h1</code> before, <code>variant-&hellip;</code> after), which is why R7 forbids any
+reader from relying on sort order.</p>
+<p><strong>F32-Q8 &mdash; Reproduction.</strong> The hole&rsquo;s node and files do not exist at the merge commit; the
+bot commit after it writes them. So <code>reproduce --node &lt;hole&gt;</code> reads the hole&rsquo;s
+<code>carried_by</code> from the committed record (or is given the parent), replays the partial at the merge
+commit against its first parent, and writes the partial&rsquo;s record and each sub-run&rsquo;s; the comparison is
+per record. The staged child ids are a function of the merge commit&rsquo;s tree, so the reproduction stages
+the same ids the re-derivation did.</p>
+<p><strong>F32-Q9 &mdash; Cost.</strong> Double replay on Mathlib: each carried proof is built and replayed before
+the merge and again on re-derivation, besides the precheck; on a Mathlib target that is minutes per proof
+per run under the same caps. The witness precedent has no limit on <em>n</em>; whether carried proofs should
+(say, at most as many as the assembly has holes, which is already true, or a smaller number) is left for the
+first live measurements.</p>
+<p><strong>F32-Q10 &mdash; Renumbering fails closed.</strong> The pre-merge check stages children under the ids
+<code>next_child_index</code> gives on the pull request&rsquo;s base; the re-derivation recomputes on the merge
+commit. The strict up-to-date rule and the merge actor&rsquo;s update-then-wait make the two trees the same in
+practice; when they are not (a catch-up on a newer main, a hand merge), the composed statement differs
+(its theorem name and its own-Context import carry the id), the re-derivation checks the new one, and if it
+fails nothing of the merge is attested: the existing failure mode of any merge whose re-derivation fails,
+visible in the job (C7). Nothing is attested against a statement the gate did not check.</p>
+<p><strong>F32-Q11 &mdash; The parent closes on the next sweep, not in the same job (for the owner).</strong> The
+graph workflow runs the closure sweep (F28-T9) before the key step, and the re-derivation writes its records
+to the runner&rsquo;s temp directory, so the sweep in the merge&rsquo;s own job does not see the hole proved; a parent
+whose every input is then proved reads proved after the next merge on any target. Writing the hole&rsquo;s
+unsigned record into <code>attestations/</code> before the sweep and signing it in place, as closure records
+are, would close the parent in the same job; it also means an unsigned record could be read by the sweep and
+then dropped if the pinned gate cannot sign it, taking the closure with it. Not in scope; D-12 v3.49 is
+worded so either is true.</p>
+<p><strong>F32-Q12 &mdash; Which record is &ldquo;the merge&rsquo;s&rdquo;.</strong> <code>ledger.merge_automation</code> and
+<code>merge_tooling</code> take the first attestation by sorted name whose <code>merge_commit</code> matches. The
+hole&rsquo;s record copies the partial&rsquo;s submission fields, so today they would answer the same either way;
+R7 pins it to the record with <code>carried_by: null</code> by test, so a later difference cannot change the
+ledger silently. Every other reader that keys on <code>merge_commit</code> alone is to be grepped at T4 (the
+2026-10-15 log: grep for every consumer at each merge).</p>
+<p><strong>F32-Q13 &mdash; The site&rsquo;s <code>Proof.lean</code> link (found writing this spec).</strong> The site links a
+proved node&rsquo;s file at <code>proof_commit</code>, the attestation&rsquo;s merge commit (<code>render.py</code>,
+<code>file_link(proof_path, commit=proof_commit)</code>). For a born-proved hole that commit predates the file:
+the bot commit after the merge writes it. The link would be dead. R8 asks for a commit where the file exists;
+the products cannot name the bot commit (it is being made), so the likely answer is the page&rsquo;s own
+rendered commit for such a node. To settle at T6.</p>
+<p><strong>F32-Q14 &mdash; Credit.</strong> One proof line per born-proved hole, credited to the partial&rsquo;s author
+(D-12 v3.49, D-19); the ledger key (<code>line</code>, <code>node</code>, <code>artifact</code>,
+<code>merge_commit</code>) differs from the partial&rsquo;s by node, so the two lines do not collide.</p>
+<p><strong>F32-Q15 &mdash; An older pin.</strong> A target pinned before F32 gives <code>.proof</code> no role; its
+precheck ignores or refuses the file, and the service, whose own classifier knows the role after deploy,
+refuses the submission <code>hole-proof-unchecked</code> (R9), as for witnesses (F07-Q57 (7)). Live per
+target at its re-pin.</p>
+<p><strong>F32-Q16 &mdash; D-34 amended too.</strong> The brief named D-3, D-5, D-12 and D-29. D-34&rsquo;s
+&ldquo;One record per gate run&rdquo; contradicts D-5 v3.49 as written, so v3.49 adds one sentence to it.</p>
+<p><strong>F32-Q17 &mdash; Not done.</strong> Carried proofs that use siblings, the parent or uses (Q4); carrying a
+proof for an existing node (Q6); same-job closure (Q11); a fast-check mode for a skeleton with its proofs; a
+proof carried by a later route for an existing open hole.</p>
+
+<h2>10. Status</h2>
+<div class="rule"><strong>status:</strong> approved &mdash; owner 2026-10-28 (option A); decisions v3.49 applied to
+the document 2026-10-29, <code>PROTOCOL_VERSION</code> still 3.48 until T0 (so
+<code>test_finding_protocol_version.py</code> is red until then) · <strong>Tasks:</strong> none started</div>
+
+<h2>Tasks</h2>
+<table>
+  <tr><th>ID</th><th>Task</th><th>Files</th><th>Deps</th><th>Verification</th></tr>
+  <tr><td>F32-T0</td><td>Contracts (R4, R5, R9): <code>attestation/v8</code> (v7 plus <code>carried_by</code>,
+    required, nullable), HASHES, the accepted-version lists, every attestation writer emitting v8 with
+    <code>carried_by: null</code>; the <code>hole-proof</code> path role reserved in <code>paths</code> (classified,
+    refused until T1 reads it); the precheck result&rsquo;s <code>holes[].proof</code> key documented;
+    <code>PROTOCOL_VERSION</code> 3.49 with its pins; goldens (the <code>info.json</code> schema index).</td>
+    <td><code>gate/schemas/attestation/v8.json</code>, <code>gate/schemas/HASHES</code>,
+    <code>gate/opn_gate/{attestation,postmerge,paths,products}.py</code>, <code>gate/tests/golden/</code>,
+    <code>api/</code> and <code>site/</code> version sets</td><td>&mdash;</td>
+    <td><code>uv run --frozen pytest gate/tests/test_schemas.py gate/tests/test_finding_protocol_version.py gate/tests/test_products.py</code></td></tr>
+  <tr><td>F32-T1</td><td>Grammar and composition (R1, R2): the <code>.proof</code> reader beside
+    <code>carried</code>&rsquo;s, step 2&rsquo;s refusals, <code>compose_proof</code>; codes in the catalog.</td>
+    <td><code>gate/opn_gate/{carried,paths,codes}.py</code>, <code>gate/opn_gate/steps/paths_step.py</code>,
+    <code>gate/tests/test_finding_carried_proof_grammar.py</code></td><td>T0</td>
+    <td><code>uv run --frozen pytest gate/tests/test_finding_carried_proof_grammar.py</code></td></tr>
+  <tr><td>F32-T2</td><td>The pre-merge check (R3): stage each child with its composed proof; steps 4&ndash;8 per
+    carried proof inside the partial&rsquo;s steps; <code>hole-proof-unknown</code>, <code>-ambiguous</code>,
+    <code>-restates</code>; the <code>hole-proofs</code> diagnostic; the precheck job&rsquo;s
+    <code>holes[].proof</code>. Lean tier for the real staging.</td>
+    <td><code>gate/opn_gate/steps/{artifact,replay,meaning,axioms,hazards,witness,deps}.py</code>, <code>gate/opn_gate/postmerge.py</code>,
+    <code>gate/precheck/job.py</code>, <code>gate/tests/test_finding_partial_carries_proofs.py</code>,
+    <code>gate/tests/test_finding_partial_carries_proofs_lean.py</code>, <code>gate/tests/test_finding_precheck_holes.py</code></td>
+    <td>T1</td><td><code>uv run --frozen pytest gate/tests/test_finding_partial_carries_proofs.py gate/tests/test_finding_precheck_holes.py</code>;
+    lean tier: <code>uv run --frozen pytest gate/tests/test_finding_partial_carries_proofs_lean.py -m lean</code></td></tr>
+  <tr><td>F32-T3</td><td>Post-merge (R4, R5): <code>apply_partial</code> writes <code>Proof.lean</code>; the
+    per-hole <code>attestation/v8</code> records and their names; fail-closed renumbering.</td>
+    <td><code>gate/opn_gate/{postmerge,cli,attestation}.py</code>, <code>gate/tests/test_finding_carried_proof_postmerge.py</code></td>
+    <td>T2</td><td><code>uv run --frozen pytest gate/tests/test_finding_carried_proof_postmerge.py</code></td></tr>
+  <tr><td>F32-T4</td><td>Ledger and readers (R7): one proof line per born-proved hole; <code>merge_tooling</code>,
+    <code>merge_automation</code> and every reader keyed on <code>merge_commit</code> read the record with
+    <code>carried_by: null</code> (grep at the time).</td>
+    <td><code>gate/opn_gate/ledger.py</code>, <code>gate/opn_gate/cli.py</code>, <code>gate/tests/test_finding_carried_proof_ledger.py</code></td>
+    <td>T3</td><td><code>uv run --frozen pytest gate/tests/test_finding_carried_proof_ledger.py gate/tests/test_ledger.py</code></td></tr>
+  <tr><td>F32-T5</td><td>The graph workflow (R5, R8): the key step signs every attestation the re-derivation wrote;
+    the catch-up record includes them; a static test of the YAML. Commit to the graph with the same
+    <code>F32-T5:</code> message.</td>
+    <td><code>../open_proof_network_graph/.github/workflows/gate.yml</code>, <code>gate/tests/test_finding_carried_proof_workflow.py</code></td>
+    <td>T3</td><td><code>uv run --frozen pytest gate/tests/test_finding_carried_proof_workflow.py</code></td></tr>
+  <tr><td>F32-T6</td><td>Products, site and the post-merge jobs (R8): proved through the hole&rsquo;s own record;
+    the <code>Proof.lean</code> link (Q13); the outline and olean-cache jobs.</td>
+    <td><code>gate/opn_gate/{graph,products,outline,cache}.py</code>, <code>site/opn_site/{model,render}.py</code>,
+    <code>site/tests/test_finding_born_proved_link.py</code></td><td>T3</td>
+    <td><code>uv run --frozen pytest site/tests/test_finding_born_proved_link.py gate/tests/test_finding_outline_job.py gate/tests/test_finding_postmerge_cache_job.py</code></td></tr>
+  <tr><td>F32-T7</td><td><code>reproduce</code> (R6): <code>--node &lt;hole&gt;</code> replays the partial and writes the
+    sub-run; docker tier.</td>
+    <td><code>gate/opn_gate/cli.py</code>, <code>gate/reproduce.sh</code>, <code>gate/tests/test_finding_carried_proof_reproduce_docker.py</code></td>
+    <td>T3</td><td><code>uv run --frozen pytest gate/tests/test_finding_carried_proof_reproduce_docker.py -m docker</code></td></tr>
+  <tr><td>F32-T8</td><td>Service, MCP and guide (R9, R10): bundle grammar and <code>hole-proof-unchecked</code>;
+    the served job&rsquo;s <code>carried_proofs</code>; the two tool descriptions; the guide paragraph and its
+    graph copy.</td>
+    <td><code>api/opn_api/{submissions,precheck,bundles}.py</code>, <code>api/opn_api/mcp/writes.py</code>,
+    <code>gate/agents/AGENTS.md</code>, <code>api/tests/test_finding_partial_proofs.py</code>,
+    <code>gate/tests/test_finding_guide_carried_proofs.py</code></td><td>T1, T2</td>
+    <td><code>uv run --frozen pytest api/tests/test_finding_partial_proofs.py gate/tests/test_finding_guide_carried_proofs.py gate/tests/test_walkthrough.py</code></td></tr>
+  <tr><td>F32-T9</td><td>Live (AC14): merge, api deploy, image, re-pin and render; one skeleton carrying one
+    hole&rsquo;s witness and proof, end to end, with the attestation verified and reproduced.</td>
+    <td>&mdash;</td><td>T0&ndash;T8</td><td>live evidence in <code>engineering/evidence/F32/</code></td></tr>
+</table>
+
+<footer>Open Proof Network · F32 · specs are authored in HTML</footer>
+</body>
+</html>
