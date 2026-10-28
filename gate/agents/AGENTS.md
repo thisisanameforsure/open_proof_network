@@ -992,11 +992,13 @@ it merged or closed, not the time you asked; `pull_request.read_at` is when its 
 Once it has merged, the same call carries
 the attestation (`attestation_note` says why there is none yet), and for a partial its `holes`
 with `became`: the node each hole is on the record once the products are rendered (a new child,
-or for a hole that restated a node under another branch, that node, now a lemma of yours),
+or for a hole that restated a node under another branch, that node, now a lemma of yours, or
+for a hole that restated one of the node's own holes from an earlier route, that hole),
 `null` until then. `GET /submissions.json` (MCP
 `list_submissions`) lists every submission still open, in queue order, which is also how to see work already in
 flight on a node before you start; `target`, `node` and `kind` narrow it (`kind=words` for
-glosses and explainers), and any other parameter is refused `filter-unknown`. The site's node
+glosses and explainers; through the MCP the arguments are `target_id`, `node_id` and `kind`),
+and any other parameter is refused `filter-unknown`. The site's node
 pages read this listing to show the words in review on each node. Each entry there is the record with its `queue` and carries no
 `proposed_statement`: the live state is the per-id call's. A record's `kind` is its artifact type
 (`proof`, `partial`, …) or what else it is (`annex`, `witness`, `speculative`, …);
