@@ -1,0 +1,28 @@
+F07-T78 — a later route's hole that restates an own hole is recorded as that hole (Q83)
+2026-10-28, from the erdos-68 run (A's F-A9, B confirmed).
+
+Live defect (graph origin/main, targets/erdos-68/graph.json): the root's decompositions[1] (route 2,
+partial attempts/20261028T145000Z-t1028-a-partial.lean, graph #1154) has holes
+[{h1: null}, {h2: erdos-68--h5}, {h3: erdos-68--h6}]. The post-merge job's defeq check had named
+erdos-68--h1 for h1 (R22: no node written, edge already in deps) and recorded it nowhere; the
+products match by child header name, one hole per child, so route 1 kept --h1. The attestation's
+step-4 details hold only hole names ({"holes": ["h1","h2","h3"], "kind": "partial"}), and the
+partial's `have h1` text differs from the gate-printed --h1 statement (binders, casts), so the
+match cannot be derived from the record: it has to be written.
+
+RED (gate/tests/test_finding_restated_own_hole.py, before the fix): 6 failed, 2 passed
+  KeyError: 'restated'; no attribute 'add_restated'; meta/v7 unknown; route 2's h1 null.
+  test_lemma_backfill own-hole test restated: missing "restated" in the report.
+  test_lemma_backfill first-partial test: red until the follows_a_partial guard.
+Found by the full tier on the way: a re-run of a node's first route recorded its own children
+(test_the_writer_run_twice_writes_nothing_the_second_time); fixed by follows_a_partial.
+
+GREEN: 104 passed across the writer, backfill, products, layout and lemma files.
+Restated: test_postmerge's applied-twice test (a second route) now expects its restated entries;
+test_layout's unknown-schema example moved from meta/v7 to meta/v999; test_products' meta list.
+Goldens: three info.json schema indexes gain meta 7 (write_goldens, diff read by eye).
+
+To repair erdos-68: after the re-pin, run lemmas-backfill on erdos-68; it reports
+restated [{node: erdos-68, partial: attempts/20261028T145000Z-t1028-a-partial.lean, hole: h1,
+own: erdos-68--h1}]; commit the META.yaml and re-render (curator's act).
+Full fast tier: 7029 passed, 1 failed (test_graph_copy_is_identical, the graph's guide copy lagging F26-T20, fails identically on graph origin/main), 36 skipped.

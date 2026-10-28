@@ -120,6 +120,17 @@ class Lemma:
 
 
 @dataclass(frozen=True)
+class Restated:
+    """F07-T78 (R22): one entry of ``META.yaml``'s ``restated`` — a later merged partial (its
+    path under the node) whose hole ``hole`` restated one of the node's own holes, ``node`` as
+    that hole is *now* (``current_id``). No edge of its own: the hole is already in ``deps``."""
+
+    partial: str
+    hole: str
+    node: str
+
+
+@dataclass(frozen=True)
 class NodeFacts:
     node_id: str
     target_id: str
@@ -158,6 +169,10 @@ class NodeFacts:
     #: one once it is proved (its signature is in ``Context.lean``) and never waits on one, so
     #: they are set aside with ``holes`` when the status is derived (``blocked_because``).
     lemmas: tuple[Lemma, ...] = ()
+    #: F07-T78 (R22): ``META.yaml``'s ``restated`` — which of the node's own holes a later merged
+    #: partial's hole restated, keyed by that partial, each read through its revision chain. It
+    #: only names the hole a route's hole is, for the products (``products.route_holes``).
+    restated: tuple[Restated, ...] = ()
     #: F31-T1 (D-14 v3.47): the shelving the products publish for the node — a steward's or
     #: curator's judgment, derived from its own latest ``shelving/`` record or inherited (F31-T3,
     #: ``shelving.derive``) — as ``graph/v15``'s row object, or None. Not a status: ``status`` is
@@ -499,6 +514,7 @@ def load_nodes(
             closure=closure.load(node_dir),
             supersedes=_optional_str(loaded.meta.get("supersedes")),
             lemmas=effective_lemmas(nodes_dir, loaded.meta.get("lemmas")),
+            restated=effective_restated(nodes_dir, loaded.meta.get("restated")),
             uses=layout.merged_uses(node_dir),
             proposed_for=proposed_for_of(nodes_dir, node_dir),
             partials=partials_of(loaded.node_id, statement_hash, attestations),
@@ -1078,6 +1094,25 @@ def effective_lemmas(nodes_dir: Path, recorded: object) -> tuple[Lemma, ...]:
         current = current_id(nodes_dir, str(entry["node"]))
         if all(known.node != current for known in out):
             out.append(Lemma(hole=str(entry.get("hole") or ""), node=current))
+    return tuple(out)
+
+
+def effective_restated(nodes_dir: Path, recorded: object) -> tuple[Restated, ...]:
+    """F07-T78 (R22): ``META.yaml``'s ``restated`` with each node read through its revision chain,
+    in the record's order. Anything but a list of ``{partial, hole, node}`` is none."""
+    out: list[Restated] = []
+    for entry in recorded if isinstance(recorded, (list, tuple)) else ():
+        if not isinstance(entry, dict) or not all(
+            entry.get(k) for k in ("partial", "hole", "node")
+        ):
+            continue
+        out.append(
+            Restated(
+                partial=str(entry["partial"]),
+                hole=str(entry["hole"]),
+                node=current_id(nodes_dir, str(entry["node"])),
+            )
+        )
     return tuple(out)
 
 

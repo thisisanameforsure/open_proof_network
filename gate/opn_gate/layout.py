@@ -69,7 +69,15 @@ OPTIONAL_DIRS: tuple[str, ...] = (
 KEEP_FILE = ".gitkeep"
 #: v2 added acknowledged_hazards (F02-R6); v3 added the skeleton-hole origin (D-3 v3.12); v4
 #: added supersedes (F08-R9, D-8); v5 added a hole's proved_binders (D-29 v3.22, F07-T44).
-META_SCHEMAS: tuple[str, ...] = ("meta/v1", "meta/v2", "meta/v3", "meta/v4", "meta/v5", "meta/v6")
+META_SCHEMAS: tuple[str, ...] = (
+    "meta/v1",
+    "meta/v2",
+    "meta/v3",
+    "meta/v4",
+    "meta/v5",
+    "meta/v6",
+    "meta/v7",
+)
 
 _THEOREM_RE = re.compile(r"^(?:theorem|lemma)\s+(?P<name>[^\s:({\[]+)", re.M)
 _IMPORT_RE = re.compile(r"^import\s+(?P<module>\S+)", re.M)

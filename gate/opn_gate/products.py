@@ -547,7 +547,9 @@ def route_holes(
     to the first of the node's hole children (its holes, read through revisions, in the order the
     post-merge job recorded them) that carries its name and no earlier hole took; failing that, to
     the node a lemma of the same hole name restated (D-12 v3.38, ``NodeFacts.lemmas``, read
-    through revisions too); one the tree does not hold is named with no node (C7)."""
+    through revisions too); one the tree does not hold is named with no node (C7). Before both,
+    a hole the record says this partial restated from the node's own holes (F07-T78, R22,
+    ``NodeFacts.restated``) is that hole, whichever route's child it is."""
     node = nodes[node_id]
     names: dict[str, str | None] = {}
     for child in node.holes:
@@ -557,7 +559,11 @@ def route_holes(
     out: list[tuple[graphmod.PartialRecord, list[tuple[str, str | None]]]] = []
     for partial in node.partials:
         holes: list[tuple[str, str | None]] = []
+        restated = {r.hole: r.node for r in node.restated if r.partial == partial.path}
         for hole in partial.holes:
+            if hole in restated:  # an own hole again: the earlier route keeps it too
+                holes.append((hole, restated[hole]))
+                continue
             found = next((c for c in node.holes if names.get(c) == hole and c not in taken), None)
             if found is not None:
                 taken.add(found)

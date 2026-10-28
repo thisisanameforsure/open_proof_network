@@ -102,6 +102,7 @@ def test_known_schemas_are_the_published_set() -> None:
         "meta/v4",
         "meta/v5",
         "meta/v6",  # v3.38: lemmas
+        "meta/v7",  # F07-T78: restated
         "motion/v1",
         "node-status/v1",
         "outline/v1",
