@@ -1821,3 +1821,14 @@ The law of the project:
   link's `#hash` navigate loses the focus to the heading; focus in a `setTimeout(0)` after the jump,
   and assert `activeElement` in the browser test, which is what caught it. And `git commit -o --
   <paths> -m msg` reads `-m` as a pathspec: `-F msgfile` first, paths last.
+
+- 2026-10-28 — erdos-257's review page asked eight identical questions about "a variant" it never
+  showed, and had no sign control though the route existed (F26-T22, T23, Q24). Two things worth
+  keeping. **A record that names its object only by a label can be made legible without touching
+  it**: each mutant exhibit's `detail` carried its label, and the gate's own `mutants()` over the
+  candidate rebuilds the variant from it, so the page reads the eight merged questions and no
+  curator act was needed. The label's offsets count whitespace inside the claim, so the fast test
+  holds the live theorem byte for byte. **A closed claim makes every mutant survive**: with no `n`
+  there are no cases and no intent tests, so mutation measures nothing there; the questions are
+  fair only once they say what changed. And `make verify` skips every Playwright test, so a site
+  control's browser tests are run with `uv run --frozen --with playwright` or they prove nothing.
