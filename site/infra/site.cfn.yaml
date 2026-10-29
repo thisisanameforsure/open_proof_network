@@ -299,7 +299,8 @@ Resources:
         CustomErrorResponses:
           - ErrorCode: 403
             ResponseCode: 404
-            ResponsePagePath: /index.html
+            # Testers 2026-10-27 (B-F3): the site's own not-found page, not the home page.
+            ResponsePagePath: /404.html
             ErrorCachingMinTTL: 60
         Logging:
           Bucket: !GetAtt LogBucket.DomainName

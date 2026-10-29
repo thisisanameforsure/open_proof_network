@@ -52,7 +52,12 @@ def row(root: Path, node_id: str) -> dict[str, object]:
 
 def node_page(root: Path, node_id: str) -> str:
     pages = render.render_site(model.load_site(root, fixture.COMMIT), repo_url=REPO)
-    [page] = [p for k, p in pages.items() if k.endswith(f"/{node_id}/index.html")]
+    # The statement's own page under nodes/ (the guessed problems/<t>/<id>/ path redirects).
+    [page] = [
+        p
+        for k, p in pages.items()
+        if k.startswith("nodes/") and k.endswith(f"/{node_id}/index.html")
+    ]
     return page
 
 
