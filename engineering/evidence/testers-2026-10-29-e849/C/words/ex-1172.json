@@ -1,0 +1,10 @@
+{
+ "subject": {
+  "kind": "proof",
+  "node_id": "variant-3969f1f7--h2--h1--h4--h2--h3",
+  "proof": "c674fe6ef9558bbb66390e997f8a1f92895f29a7291af2d44b7b487aa91d1754"
+ },
+ "text": "## Overview\nThe statement is the open core of de Weger's conjecture on this branch: every collision $\\binom{n}{k} = \\binom{m}{l}$ with $2 \\le k \\le n/2$, $2 \\le l \\le m/2$, $k < l$ falls in one of the listed cases (the nine solved pairs $(k,l)$, the shapes $(m,l) = (n-1,k+1), (n-1,k+2), (n-2,k+1)$, $n \\le 10^6$, or $\\binom{n}{k} \\le 10^{60}$). The assembly sets aside one more region, where a theorem of Yamada (arXiv:2002.07043, 2020, Theorem 1.1) rules collisions out, and leaves the rest as the second hole.\n\n## The two holes {steps: h_yamada h_rest}\n`h_yamada`, Yamada's Theorem 1.1 in its case $L \\le N$: for natural numbers with $N \\ge 500000$, $\\delta \\le 1$, $M < K$, $2K < N$, $1000M \\le 735K$ and $\\delta < L \\le N$, $\\binom{2N+\\delta}{N-M} \\ne \\binom{2N+L}{N-K}$. `h_rest`, the core with one more alternative in its conclusion: with $N = \\lfloor m/2 \\rfloor$, either one of the listed cases holds, or $N \\ge 500000$, $N < 2k$, $1000(N - l) \\le 735(N - k)$, $m < n$ and $n \\le 3N$ (subtractions truncated at $0$, as on the naturals; here $l \\le N$ and $k < l$, so they are exact).\n\n## Yamada's window is empty {steps: s3 s4}\nApply `h_rest` to a collision. In the first case its conclusion is the statement's. In the second, put $\\delta = m - 2N \\in \\{0,1\\}$, $M = N - l$, $K = N - k$, $L = n - 2N$: then $M < K$ because $k < l$; $2K < N$ because $N < 2k$; $1000M \\le 735K$ is the window's inequality; $\\delta < L$ because $m < n$; and $L \\le N$ because $n \\le 3N$. Since $2N + \\delta = m$, $N - M = l$, $2N + L = n$ and $N - K = k$, `h_yamada` says $\\binom{m}{l} \\ne \\binom{n}{k}$, contradicting the collision. So the second case cannot occur.\n",
+ "licence": "CC-BY-4.0",
+ "drafted_with": "Claude Opus 5.5 (claude-opus-5-5) through Claude Code"
+}

@@ -1,0 +1,10 @@
+{
+ "subject": {
+  "kind": "proof",
+  "node_id": "variant-3969f1f7--h2--h1--h1--h3",
+  "proof": "7d4035e70593b83d4e7621f87f5c2e30356743441edf432c8e5140f499c2ec5f"
+ },
+ "text": "## Overview\nThe statement is that the only solutions of $\\binom{n}{2} = \\binom{m}{5}$ with $n \\ge 4$ and $m \\ge 10$ are $(n,m) = (78,15)$ and $(153,19)$. The assembly writes the equation as the integral point $(X,Y) = (m,n)$ of the genus-2 curve $60\\,Y(Y-1) = X(X-1)(X-2)(X-3)(X-4)$ and reads it off from the one hole, Theorem 2 of Bugeaud, Mignotte, Siksek, Stoll and Tengely (Algebra Number Theory 2 (2008)), which lists all twenty integral points.\n\n## The hole {steps: h_bmsst2}\n`h_bmsst2`: the integral points of $60Y(Y-1) = X(X-1)(X-2)(X-3)(X-4)$ are $(X,Y)$ with $X \\in \\{0,1,2,3,4\\}$ and $Y \\in \\{0,1\\}$, and $(5,-1), (5,2), (6,-3), (6,4), (7,-6), (7,7), (15,-77), (15,78), (19,-152), (19,153)$.\n\n## From binomials to the curve {steps: s2 s3 e2 e5 s1 s0 t4 t3 t2 t1 t0 key}\nWrite $n = b+4$, $m = a+10$. The falling-factorial identities $n(n-1) = 2!\\binom{n}{2}$ and $m(m-1)(m-2)(m-3)(m-4) = 5!\\binom{m}{5}$ (`e2`, `e5`, Mathlib's `descFactorial_eq_factorial_mul_choose`, unfolded, with the subtractions $n-1$, $m-1$, …, $m-4$ simplified because $n \\ge 4$, $m \\ge 10$) and the assumed equality give, in $\\mathbb{Z}$, $60\\,n(n-1) = 60 \\cdot 2\\binom{n}{2} = 120\\binom{m}{5} = m(m-1)(m-2)(m-3)(m-4)$ (`key`).\n\n## Reading off the solutions {steps: hs close}\nSo $(X,Y) = (m,n)$ is an integral point of the curve (`hs`) and one of the twenty listed. Since $m \\ge 10$, only $X = 15$ and $X = 19$ remain, and since $n \\ge 4$, only $Y = 78$ and $Y = 153$: $(n,m) = (78,15)$ or $(153,19)$.\n",
+ "licence": "CC-BY-4.0",
+ "drafted_with": "Claude Opus 5.5 (claude-opus-5-5) through Claude Code"
+}

@@ -1,0 +1,13 @@
+{
+ "node_id": "variant-3969f1f7--h3--h1--h1--h1",
+ "status": "known",
+ "references": [
+  {
+   "title": "K. Matomäki, M. Radziwiłł, X. Shao, T. Tao, J. Teräväinen, Singmaster's conjecture in the interior of Pascal's triangle, Quart. J. Math. 73 (2022) 1137–1177",
+   "url": "https://arxiv.org/abs/2106.03335",
+   "note": "Lemma 3.1 (selection of scale), §3; DOI 10.1093/qmath/haac006"
+  }
+ ],
+ "summary": "Lemma 3.1 of Matomäki–Radziwiłł–Shao–Tao–Teräväinen with ε = 1/20: under the separation hypotheses (3.1) m−m' ≥ exp(log^{2/3+ε} n') or (3.2) m, m', n'−n ≥ exp(log^{2/3+ε} n') (here 2/3+ε = 43/60, the paper's m, m' are k, k'), a scale P obeys (i) m,m',n,n' ≤ exp(log^{3/2−ε/10} P) (3/2 − 1/200 = 299/200), (ii) the dichotomy |am+a'm'+bn+b'n'| ≤ P^j/log^{1000}P or ≥ P^j log^{1000}P for integer coefficients of size ≤ log^{1/100}P, (iii) m−m' ≥ P log^{100}P or m,m',n'−n ≥ P log^{100}P. The paper's \"P sufficiently large\" is written P ≥ P₂ for t ≥ a₀(P₂); natural numbers j are taken ≥ 1. The proof is elementary: P ranges over powers of two in [exp(log^{2/3+ε/2} n'), exp(2 log^{2/3+ε/2} n')], (i) and (iii) hold for all of them, and a count shows fewer than all fail (ii). Not formalised.",
+ "model_and_tooling": "Claude Opus 5.5 (claude-opus-5-5) through Claude Code; read from the arXiv 2106.03335 TeX source on 2026-10-29"
+}

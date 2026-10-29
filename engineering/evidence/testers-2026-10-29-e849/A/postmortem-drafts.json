@@ -1,0 +1,44 @@
+[
+ {
+  "node_id": "variant-3969f1f7--h2--h1--h4--h2--h3",
+  "yaml": {
+   "schema": "postmortem/v2",
+   "node": "erdos-849/variant-3969f1f7--h2--h1--h4--h2--h3",
+   "contributor": "t1029e-a",
+   "route": "Narrow the core by effective results only: Yamada 2020 Thm 1.1 (PR #1172), then on its remainder an elementary prime-interval separation with the prime-gap theorems of Nagura 1952 and Schoenfeld 1976 as cited holes.",
+   "route_class": "reduction-to-known",
+   "outcome": "exhausted",
+   "failure_class": "route-dead-ends",
+   "detail": "Only an effective result with explicit constants can narrow a statement whose remaining cases are concrete (n > 10^6, value > 10^60). Ineffective results cannot: a hole 'there is T such that collisions of value ≥ T have shape X' leaves a remainder that must hold for every T, which is the core again. That rules out Siegel/Beukers–Shorey–Tijdeman per-pair finiteness, Brindza's superelliptic finiteness and MRSTT 2022 Thm 1.3 ('t sufficiently large') as narrowings here. Effective inputs used on 2026-10-29: (1) Yamada, arXiv:2002.07043, Thm 1.1, for N ≥ 500000 in the window M < K < N/2, M ≤ 0.735K (a preprint); (2) the elementary fact, proved in Lean, that a prime p with max(m, n−k) < p ≤ n divides C(n,k) and not C(m,l); with Nagura (prime in (x, 6x/5), x ≥ 25) and Schoenfeld (prime in (x, x + x/16597), x ≥ 2010759.9) this leaves only collisions with m > 16597n/16598 or k < n/16598 once n > 4021520 (m > 5n/6 or k < n/6 for n > 10^6). Sharper explicit gaps (Dusart 2010 Prop 6.8: (x, x(1 + 1/(25 ln² x))] for x ≥ 396738) would push this to m > n(1 − 1/(25 ln² n)) or k < n/(25 ln² n), with real logarithms in the statement. Nothing found bounds l in terms of k, and nothing effective treats m close to n with k small, which is where the remaining core now lives.",
+   "model_and_tooling": "Claude Opus 5.5 (Claude Code subagent) through the MCP"
+  }
+ },
+ {
+  "node_id": "variant-3969f1f7--h2--h1--h4--h2--h1",
+  "yaml": {
+   "schema": "postmortem/v2",
+   "node": "erdos-849/variant-3969f1f7--h2--h1--h4--h2--h1",
+   "contributor": "t1029e-a",
+   "route": "Clear denominators: C(n,k) = C(n−1,k+2) is exactly the cubic (39) of Stroeker–de Weger 1999 at (u,v) = (k,n); assembly proved (PR #1166), hole = their Theorem 3.",
+   "route_class": "reduction-to-known",
+   "outcome": "blocked",
+   "failure_class": "missing-library",
+   "detail": "The remaining hole --h1 is Stroeker–de Weger 1999 Theorem 3 (all integral points of (39), a rank-1 elliptic curve). Its proof is a linear form in elliptic logarithms (David's bound) plus LLL reduction. Nothing in Mathlib formalises integral points on elliptic curves, and no elementary argument is known to me: (39) has real points along an asymptote of irrational slope (the real root of t³ + t² − 1 = 0 governs k/(n−k)), so congruence or size arguments alone do not close it. Numerically no integral point beyond the eight with |u|,|v| < 2000 (C) and none with n−k−2 < 300000 (A).",
+   "model_and_tooling": "Claude Opus 5.5 (Claude Code subagent) through the MCP"
+  }
+ },
+ {
+  "node_id": "variant-3969f1f7--h2--h1--h4--h2--h2",
+  "yaml": {
+   "schema": "postmortem/v2",
+   "node": "erdos-849/variant-3969f1f7--h2--h1--h4--h2--h2",
+   "contributor": "t1029e-a",
+   "route": "Clear denominators: C(n,k) = C(n−2,k+1) is exactly the cubic (40) of Stroeker–de Weger 1999 at (u,v) = (k,n); assembly proved (PR #1167), hole = their Theorem 4.",
+   "route_class": "reduction-to-known",
+   "outcome": "blocked",
+   "failure_class": "missing-library",
+   "detail": "The remaining hole --h1 is Stroeker–de Weger 1999 Theorem 4 (all integral points of (40), rank 1, torsion of order 2), proved by elliptic logarithms. Not formalisable with Mathlib's current library; no elementary proof known. The point (1,6) is C(6,1) = C(4,2), outside k ≥ 2.",
+   "model_and_tooling": "Claude Opus 5.5 (Claude Code subagent) through the MCP"
+  }
+ }
+]

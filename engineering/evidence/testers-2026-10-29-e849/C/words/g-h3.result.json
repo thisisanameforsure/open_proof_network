@@ -1,0 +1,13 @@
+{
+ "status": 201,
+ "body": {
+  "id": "01M643S26RFWKJH2NK3SC6TP59",
+  "path": "targets/erdos-849/nodes/variant-3969f1f7--h3--h1--h1--h3/gloss/47740c5f587088d6dc1b05f2cc05d9e391ec756ff7c333796473a21ae661b615.md",
+  "pr_url": "https://github.com/thisisanameforsure/open_proof_network_graph/pull/1192",
+  "pr_number": 1192,
+  "hash": "47740c5f587088d6dc1b05f2cc05d9e391ec756ff7c333796473a21ae661b615",
+  "record": "gloss",
+  "warnings": [],
+  "lean_hash": "2717e22fe9a11db4ef7f72659d2cd1a7f48fc9cd291d850ff11d0c76b6a21262"
+ }
+}
