@@ -187,6 +187,10 @@ class FakeGitHost:
     #: before it sees the host unable to say.
     history: dict[tuple[str, str], str | None] = field(default_factory=dict)
     history_calls: list[tuple[str, str]] = field(default_factory=list)
+    #: F06-T18: the paths a diff touched, as ``(base, head) -> paths | None`` (``None``: the
+    #: host's list may be truncated); a pair the map does not hold is a host failure.
+    diffs: dict[tuple[str, str], list[str] | None] = field(default_factory=dict)
+    diff_calls: list[tuple[str, str]] = field(default_factory=list)
     #: F07-T64: every comment posted through the App, with how many closes and pushes the fake
     #: had seen when it arrived, so a test can tell a comment made before an act from one after.
     comments: list[Comment] = field(default_factory=list)
@@ -285,6 +289,16 @@ class FakeGitHost:
             msg = f"GET /repos/{repo}/compare/{ancestor[:12]}...{commit[:12]} failed: ConnectError"
             raise GitHostError(msg)
         return self.ancestry[(ancestor, commit)]
+
+    def changed_paths(self, repo: str, base: str, head: str) -> list[str] | None:
+        """F06-T18: the paths the diff from ``base`` to ``head`` touched, from ``diffs``; a pair
+        the map does not hold is a host failure, as for ``ancestry``."""
+        self.diff_calls.append((base, head))
+        if self.unreachable or (base, head) not in self.diffs:
+            msg = f"GET /repos/{repo}/compare/{base[:12]}...{head[:12]} failed: ConnectError"
+            raise GitHostError(msg)
+        found = self.diffs[(base, head)]
+        return None if found is None else list(found)
 
     def _app_call(self) -> None:
         if self.app_failure:

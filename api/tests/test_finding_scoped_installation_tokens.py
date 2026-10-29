@@ -85,6 +85,12 @@ CASES: list[Case] = [
         {"contents": "read"},
     ),
     (
+        "changed_paths",
+        lambda s: s.on("GET", f"{API}/compare/{BASE_SHA}...{COMMIT_SHA}", json={"files": []}),
+        lambda h: h.changed_paths(REPO, BASE_SHA, COMMIT_SHA),
+        {"contents": "read"},
+    ),
+    (
         "push_branch",
         lambda s: (
             s.on("GET", f"{API}/git/ref/heads/main", json={"object": {"sha": BASE_SHA}})
