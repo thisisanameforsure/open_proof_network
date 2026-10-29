@@ -26,3 +26,8 @@ Choices (for Q entries):
 - With proofs carried, step 4's passing diagnostic code is hole-proofs (not artifact-partial), keeping artifact-partial's details (kind, holes — what graph.partials_of reads) and adding proofs=[{hole, path, sha256, proof_sha256, node}]. The only readers of the step-4 record key on details.kind, not the code (grepped).
 - Two extra codes beyond R3's: hole-proof-unplaced (plan_children raised) and hole-proof-unwritable (child_proposal/scaffold/compose raised) — internal failures named rather than swallowed.
 - R3's order: unknown and ambiguous are judged for every carried proof before any plan; restates for every one before any staging; then each is staged and run in file-number order, the first failure refusing the partial.
+
+== fast tier on a snapshot of 34f1d13c (OPN_GRAPH_CHECKOUT = detached graph origin/main ce03c910dc), recorded after the commit ==
+FAILED gate/tests/test_walkthrough.py::test_graph_copy_is_identical - Asserti...
+= 1 failed, 7207 passed, 41 skipped, 280 deselected, 2 warnings in 604.07s (0:10:04) =
+The one failure is pre-existing and not this branch's: network origin/main's gate/agents/AGENTS.md (PR #103's guide edits) differs from the graph's committed copy at ce03c910dc (lines 209-212, 1311-1314 and on); this branch does not touch gate/agents/. It turns green at the next re-pin's guide copy.

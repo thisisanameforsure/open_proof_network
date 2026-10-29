@@ -8,3 +8,4 @@
 - 2026-10-29T21:09:11Z — T2 lean tier: 3 refusal tests pass; the pass test failed at step 7 on the TEST's witness for 'second' (⟨0, rfl⟩ for expected ∃ (n : Nat), True, probed with the real toolchain). Test fixed; rerunning.
 - 2026-10-29T21:15:03Z — T2 committed 34f1d13c (amended WIP); fast tier for it running on snapshot snap-t2. T3: seam at today's behaviour applied (CheckedProof, hole_attestation_path, proofs= ignored); red run next.
 - 2026-10-29T21:17:46Z — T3 green (9 passed, 141 neighbours), lint/types exit 0; waiting on T2 fast tier before committing T3.
+- 2026-10-29T21:36:43Z — T3 committed 59d5ddfa; fast tier on snap-t2 and snap-t3: 1 failed (pre-existing test_graph_copy_is_identical: main's AGENTS.md ahead of the graph copy), 7207/7216 passed. T1–T3 done; T4 next (not this session).

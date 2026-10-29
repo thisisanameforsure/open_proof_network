@@ -22,3 +22,8 @@ Choices (for Q entries):
 - The carried .proof file stays under the parent's attempts/ as submitted (append-only record of what was carried).
 
 == fast tier: see the line below (snapshot of this commit) ==
+FAILED gate/tests/test_walkthrough.py::test_graph_copy_is_identical - Asserti...
+= 1 failed, 7216 passed, 41 skipped, 280 deselected, 2 warnings in 656.52s (0:10:56) =
+(snapshot of 59d5ddfa; OPN_GRAPH_CHECKOUT = detached graph origin/main ce03c910dc). The one failure is the pre-existing graph AGENTS.md copy drift recorded in task-2.txt; nothing of this branch.
+
+Not run here: the docker tier (the carried-proof staging under SandboxToolchain) — pending CI.
