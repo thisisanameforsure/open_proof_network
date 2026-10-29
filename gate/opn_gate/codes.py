@@ -1343,6 +1343,12 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "Ascribe types where a bound variable or a numeral is used, or restate the hole over one "
         "type; details shows the text as printed.",
     ),
+    "hole-proof-ambiguous": (
+        "gate",
+        4,
+        "A carried proof names a hole that several holes of the assembly share.",
+        "Give each hole a name of its own.",
+    ),
     "hole-proof-duplicate": (
         "gate",
         2,
@@ -1356,6 +1362,14 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "Write the file as `-- hole: <name>`, any private helpers, a line `-- proof:`, then the "
         "body: what follows the hole statement's `:=` (often `by` and its tactics).",
     ),
+    "hole-proof-restates": (
+        "gate",
+        4,
+        "A carried proof's hole restates a node that already exists (an earlier hole of the node "
+        "or a node under another branch), so no node is created for it to be born proved.",
+        "Leave the proof out of the partial and submit it to the node the message names, as that "
+        "node's Proof.lean.",
+    ),
     "hole-proof-sorry": (
         "gate",
         2,
@@ -1368,12 +1382,32 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "A carried proof is not named after the assembly it belongs to.",
         "Name it as the message shows: the assembly's name with a running number and `.proof`.",
     ),
+    "hole-proof-unknown": (
+        "gate",
+        4,
+        "A carried proof names a hole the assembly does not have.",
+        "Use one of the hole names the message lists, as the precheck printed them.",
+    ),
     "hole-proof-unnamed": (
         "gate",
         2,
         "A carried proof does not say which hole it is for.",
         "Add a line `-- hole: <name>` above the `-- proof:` line, with the hole's name as the "
         "precheck lists it.",
+    ),
+    "hole-proof-unplaced": (
+        "gate",
+        4,
+        "The gate could not work out where a hole's child node would be written, so its carried "
+        "proof could not be staged.",
+        "Report the verdict; the message says what failed.",
+    ),
+    "hole-proof-unwritable": (
+        "gate",
+        4,
+        "A hole's node, or the Proof.lean composed from its carried proof, could not be written "
+        "for checking.",
+        "Report the verdict; the message says what failed.",
     ),
     "hole-proof-uses": (
         "gate",
@@ -1395,6 +1429,14 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "A carried proof's hole has no carried witness; a proved node has a real witness.",
         "Carry the hole's witness too (`attempts/<assembly>.<n>.witness` naming the same hole), "
         "or leave the proof out.",
+    ),
+    "hole-proofs": (
+        "gate",
+        4,
+        "Not an error: the partial carries proofs of some of its holes, each built, replayed and "
+        "checked through step 8 as the node its hole becomes; the details name each with its "
+        "file's hash and the composed Proof.lean's.",
+        "Nothing to do.",
     ),
     "hole-unnamed": (
         "gate",

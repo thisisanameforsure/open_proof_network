@@ -202,7 +202,13 @@ class HazardsStep:
     number = 6
     name = "hazards"
 
-    def run(self, ctx: RunContext) -> StepResult:  # noqa: PLR0911 — one return per rule
+    def run(self, ctx: RunContext) -> StepResult:
+        """The step for the node, then (F32-R3) for each proof its partial carries."""
+        from opn_gate.steps import hole_proofs  # noqa: PLC0415 — it runs this step on each
+
+        return hole_proofs.follow(ctx, self, self.check(ctx))
+
+    def check(self, ctx: RunContext) -> StepResult:  # noqa: PLR0911 — one return per rule
         node = ctx.node
         tc: ResolvedToolchain | None = ctx.data.get("toolchain")
         if node is None or tc is None:

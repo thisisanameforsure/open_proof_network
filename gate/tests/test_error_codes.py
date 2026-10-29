@@ -73,6 +73,7 @@ RELAYS: dict[tuple[str, str], str] = {
     ("gate/opn_gate/steps/replay.py", "first.code"): "the replay's first Diagnostic",
     ("gate/opn_gate/steps/witness.py", "found.code"): "a carried witness's Diagnostic",
     ("gate/opn_gate/carried.py", "problem.code"): "paths.helper_problem's, with the file named",
+    ("gate/opn_gate/steps/hole_proofs.py", "found.code"): "a carried proof's run's Diagnostic",
     ("api/opn_api/checks.py", "problem.code"): "a gate Diagnostic, refused before a PR opens",
     ("api/opn_api/glosses.py", "first.code"): "a gate Diagnostic, refused before a PR opens",
     ("api/opn_api/mcp/reads.py", "exc.code"): "an ApiError a read tool reused",

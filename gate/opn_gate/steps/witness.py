@@ -45,6 +45,13 @@ class WitnessStep:
     name = "witness"
 
     def run(self, ctx: RunContext) -> StepResult:
+        """The step for the node and its carried witnesses; then (F32-R3) each carried proof's
+        run records this step as the check of its hole's witness just made (Q5)."""
+        from opn_gate.steps import hole_proofs  # noqa: PLC0415 — it runs the steps on each
+
+        return hole_proofs.follow(ctx, self, self.check(ctx))
+
+    def check(self, ctx: RunContext) -> StepResult:
         node = ctx.node
         tc: ResolvedToolchain | None = ctx.data.get("toolchain")
         if node is None or tc is None:

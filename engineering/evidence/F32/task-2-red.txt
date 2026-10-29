@@ -1,0 +1,41 @@
+E       AssertionError: assert ['Nodes.«and-...assoc».Proof'] == ['Nodes.«and-...c--h1».Proof']
+E         
+E         Right contains one more item: 'Nodes.«and-swap-reassoc--h1».Proof'
+E         Use -v to get more diff
+        step 7 the carried witness's check (passed), its own step 8's footprint."""
+E       KeyError: 'hole_proof_runs'
+E       AssertionError: assert ['hazards:Opn...ssoc:nat-sub'] == ['hazards:Opn...__h1:nat-sub']
+E         
+E         Right contains one more item: 'hazards:and_swap_reassoc__h1:nat-sub'
+E         Use -v to get more diff
+_ test_a_carried_proof_that_fails_refuses_the_partial_at_that_step[fake0-4-kernel-replay-failed] _
+step = 4, code = 'kernel-replay-failed'
+            (Child(witness=NODE_WITNESS, fail_replay_of=CHILD), 4, "kernel-replay-failed"),
+E       AssertionError: {'verdict': 'pass', 'first_failing_step': None, 'diagnostic': None, 'steps': [{'step': 1, 'name': 'toolchain', 'result...) carry a witness, each checked as step 7 checks a node
+E       assert None == 4
+E        +  where None = Verdict(verdict='pass', steps=(StepRecord(step=1, name='toolchain', result='pass', diagnostic=None), StepRecord(step=2...-and-swap' contributes no constant to the proof", "dec
+            (Child(witness=NODE_WITNESS, fail_replay_of=CHILD), 4, "kernel-replay-failed"),
+E       AssertionError: {'verdict': 'pass', 'first_failing_step': None, 'diagnostic': None, 'steps': [{'step': 1, 'name': 'toolchain', 'result...) carry a witness, each checked as step 7 checks a node
+E       assert None == 5
+E        +  where None = Verdict(verdict='pass', steps=(StepRecord(step=1, name='toolchain', result='pass', diagnostic=None), StepRecord(step=2...-and-swap' contributes no constant to the proof", "dec
+            (Child(witness=NODE_WITNESS, fail_replay_of=CHILD), 4, "kernel-replay-failed"),
+E       AssertionError: {'verdict': 'pass', 'first_failing_step': None, 'diagnostic': None, 'steps': [{'step': 1, 'name': 'toolchain', 'result...) carry a witness, each checked as step 7 checks a node
+E       assert None == 8
+E        +  where None = Verdict(verdict='pass', steps=(StepRecord(step=1, name='toolchain', result='pass', diagnostic=None), StepRecord(step=2...-and-swap' contributes no constant to the proof", "dec
+E       AssertionError: {'verdict': 'pass', 'first_failing_step': None, 'diagnostic': None, 'steps': [{'step': 1, 'name': 'toolchain', 'result...) carry a witness, each checked as step 7 checks a node
+E       assert None == 4
+E        +  where None = Verdict(verdict='pass', steps=(StepRecord(step=1, name='toolchain', result='pass', diagnostic=None), StepRecord(step=2...-and-swap' contributes no constant to the proof", "dec
+E       AssertionError: {'verdict': 'fail', 'first_failing_step': 7, 'diagnostic': {'code': 'hole-witness-unknown', 'message': 'attempts/20260... {'hole': 'middle', 'path': 'attempts/20260912T120000Z-
+E       assert 7 == 4
+E        +  where 7 = Verdict(verdict='fail', steps=(StepRecord(step=1, name='toolchain', result='pass', diagnostic=None), StepRecord(step=2...'acknowledged': []}, 'witness': {'expected': '∃ p q r, 
+E       KeyError: 'proof'
+FAILED gate/tests/test_finding_partial_carries_proofs.py::test_a_carried_proof_is_held_to_steps_4_to_8_against_its_node
+FAILED gate/tests/test_finding_partial_carries_proofs.py::test_the_sub_run_records_its_own_steps
+FAILED gate/tests/test_finding_partial_carries_proofs.py::test_a_derived_statements_hazards_are_recorded_not_refused
+FAILED gate/tests/test_finding_partial_carries_proofs.py::test_a_carried_proof_that_fails_refuses_the_partial_at_that_step[fake0-4-kernel-replay-failed]
+FAILED gate/tests/test_finding_partial_carries_proofs.py::test_a_carried_proof_that_fails_refuses_the_partial_at_that_step[fake1-5-axiom-not-allowed]
+FAILED gate/tests/test_finding_partial_carries_proofs.py::test_a_carried_proof_that_fails_refuses_the_partial_at_that_step[fake3-8-undeclared-dependency]
+FAILED gate/tests/test_finding_partial_carries_proofs.py::test_a_composed_proof_that_does_not_elaborate_fails_step_4
+FAILED gate/tests/test_finding_partial_carries_proofs.py::test_refusals - Ass...
+FAILED gate/tests/test_finding_precheck_holes.py::test_a_hole_whose_proof_the_bundle_carried_says_so
+9 failed, 14 passed in 50.10s

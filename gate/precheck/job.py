@@ -27,6 +27,7 @@ from typing import Any
 from opn_gate import attestation, carried, config, layout, pipeline, sandbox, schemas, signer
 from opn_gate.cli import ensure_image
 from opn_gate.paths import Change, Claim
+from opn_gate.steps import hole_proofs
 from opn_gate.steps.base import RunContext
 
 RESULT_FILE = "result.json"
@@ -155,6 +156,12 @@ def result_document(
             str(w.get("hole")): {"path": w.get("path"), "sha256": w.get("sha256"), "checked": True}
             for w in ctx.data.get(carried.DATA_KEY) or []
         }
+        # F32-R9 (D-29 v3.49): the proof the bundle carried for a hole, once steps 4 to 8 have
+        # checked it against the node the hole becomes; absent from a hole that carried none.
+        proved = {
+            str(p.get("hole")): {"path": p.get("path"), "sha256": p.get("sha256"), "checked": True}
+            for p in ctx.data.get(hole_proofs.DATA_KEY) or []
+        }
         expected = expected_nodes(ctx, artifact["holes"])
         result["holes"] = [
             {
@@ -166,6 +173,7 @@ def result_document(
                 "proved_binders": list(hole.get("proved_binders") or []),
             }
             | ({"witness": witnessed[hole["name"]]} if hole.get("name") in witnessed else {})
+            | ({"proof": proved[hole["name"]]} if hole.get("name") in proved else {})
             | (
                 {"expected_node_id": expected[i][0], "expected_new": expected[i][1]}
                 if expected is not None

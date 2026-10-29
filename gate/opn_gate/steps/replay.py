@@ -194,9 +194,14 @@ class KernelReplayStep:
         # F07-R4, R5: which of D-12's artifacts this is, and whether it is that thing — step 4's
         # last word, because the type check needs the build that just passed (F11-T4).
         try:
-            return artifact.judge(ctx, tc)
+            judged = artifact.judge(ctx, tc)
         except subprocess.TimeoutExpired:
             return StepResult.failed("timeout", "the artifact check exceeded the wall-clock cap")
+        # F32-R3 (D-29 v3.49): a partial's carried proofs, each staged as the node its hole
+        # becomes and held to this step against it, now that the holes are known.
+        from opn_gate.steps import hole_proofs  # noqa: PLC0415 — it runs this step on each
+
+        return hole_proofs.stage(ctx, tc, judged)
 
     def _build(
         self, ctx: RunContext, tc: ResolvedToolchain, staged: staging.Staged
