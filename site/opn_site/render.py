@@ -767,7 +767,9 @@ ORIGIN_ROLES: dict[str, str] = {
 RELATION_ROLES: dict[str, str] = {
     "resolves": "a variant that resolves the problem",
     "refutes": "a variant that refutes the problem",  # D-30 v3.46 (F04-T55)
-    "partial": "a partial route to the problem",
+    # Testers 2026-10-27 (D-F-D4): a partial variant is the problem made weaker, never a route
+    # (a route is a decomposition); the words are the drawing key's (``relation-partial``).
+    "partial": "a weaker version of the problem: partial progress, never a proof of it",
     "related": "a related variant",
 }
 #: F04-T55 (D-30 v3.46): a root refuted through a proved ``refutes`` variant (D-12 v3.42's
@@ -1352,12 +1354,24 @@ class Renderer:
             return {}
         return {"head": MATH_HEAD, "script": MATH_SCRIPTS}
 
-    def redirect(self, to: str) -> str:
+    def redirect(self, to: str, *, words: str = "This page moved to") -> str:
         """A page at an old path that sends the reader to the new one (Q14): a meta refresh and
         a link, inside the frame so it names the commit like every page (R2)."""
-        body = f'<p class="lead">This page moved to <a href="{esc(to)}">{esc(to)}</a>.</p>'
+        body = f'<p class="lead">{esc(words)} <a href="{esc(to)}">{esc(to)}</a>.</p>'
         head = f'<meta http-equiv="refresh" content="0; url={esc(to)}">'
         return self.page("Moved", body, renders=[], head=head)
+
+    def not_found(self) -> str:
+        """Testers 2026-10-27 (B-F3): the page the distribution serves for a missing path, which
+        had been the home page under a 404. It says so and offers the two ways back in; a
+        statement's panel is on its problem's page, at ``#node=<id>``."""
+        body = (
+            '<h1>Page not found</h1><p class="lead">Nothing on the site lives at this address. '
+            'Start from <a href="/">the home page</a> or <a href="/problems/">the problems</a>; a '
+            "statement is shown on its problem's page, at <code>/problems/&lt;problem&gt;/#node="
+            "&lt;statement id&gt;</code>.</p>"
+        )
+        return self.page("Not found", body, renders=[])
 
     # -- hover cards (the Glossary, F04-T12) ---------------------------------------------------
 
@@ -7370,6 +7384,7 @@ def render_site(
         **extra,
         "llms.txt": llms_txt(r),  # F04-T30
         "robots.txt": ROBOTS_TXT,
+        "404.html": r.not_found(),  # testers 2026-10-27 (B-F3): the distribution's error page
     }
     for old, to in REDIRECTS:  # Q14: the old paths keep resolving, to the merged page
         files[old] = r.redirect(to)
@@ -7385,6 +7400,17 @@ def render_site(
             files[r.reading_path(tid, entry).lstrip("/") + "index.html"] = r.reading_view(
                 tv, k, entry
             )
+    # Testers 2026-10-27 (B-F3): the guide and the MCP name a statement by its id, so a reader
+    # guesses /problems/<problem>/<id>/; that path sends them to the statement's panel. Written
+    # after every page of the problem, so a guessed path never displaces one (review/, proofs/).
+    for tid, tv in site.targets.items():
+        for nid in tv.nodes:
+            guessed = f"problems/{tid}/{nid}/index.html"
+            if guessed not in files:
+                files[guessed] = r.redirect(
+                    f"{r.target_path(tid)}#node={nid}",
+                    words="This statement is shown on its problem's page, at",
+                )
     problems = links.check(
         files,
         repo_url=r.repo_url,

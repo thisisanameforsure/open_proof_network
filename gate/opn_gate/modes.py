@@ -1465,7 +1465,35 @@ def warnings(graph_root: Path, classification: Classification) -> list[Diagnosti
     for located in classification.located:
         if located.role == "explainer" and located.node_id is not None:
             found.extend(explainers.name_warnings(graph_root, located))
+        elif located.role == "gloss":
+            found.extend(_gloss_anchor_warnings(graph_root, located))
     return found
+
+
+#: A level-2 heading ending in an explainer's step anchor (F20-Q2), ``## The bound {steps: s3}``.
+_STEP_HEADING_RE = re.compile(r"^##\s.*\{steps:[^{}]*\}\s*$", re.M)
+
+
+def _gloss_anchor_warnings(graph_root: Path, located: Located) -> list[Diagnostic]:
+    """Testers 2026-10-27 (F-D7): ``gloss-step-anchors`` on a gloss whose text carries step-anchored
+    headings, which only an explainer reads. A warning: the gloss is valid as it stands."""
+    try:
+        text = (graph_root / located.path).read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        return []
+    body = text.split("\n---\n", 1)[1] if text.startswith("---\n") and "\n---\n" in text else text
+    if _STEP_HEADING_RE.search(body) is None:
+        return []
+    return [
+        Diagnostic(
+            "gloss-step-anchors",
+            f"{located.path} is a gloss whose headings name outline steps ({{steps: …}}); only an "
+            "explainer reads those anchors, so if these words walk through a proof or partial, "
+            "file them as its explainer (subject kind proof, with the artifact's hash) and "
+            "withdraw this gloss",
+            {"path": located.path},
+        )
+    ]
 
 
 def check_definitions(graph_root: Path, classification: Classification) -> list[Diagnostic]:

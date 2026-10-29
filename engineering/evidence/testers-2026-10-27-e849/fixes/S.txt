@@ -1,0 +1,63 @@
+Fixer S (F04): B-F3 (a guessed node URL answered 404 with the home page) and D-F-D4 (a partial
+variant's panel called it a route).
+
+Targeted test command:
+  uv run --frozen pytest site/tests/test_finding_not_found_and_partial_role.py \
+    site/tests/test_closure_page.py -p no:cacheprovider --basetemp=<scratchpad dir>
+
+== RED (before any fix): 6 failed, 1 passed ==
+(the passing one is a guard: no guessed path may replace a problem's own review/ or proofs/ pages)
+E       AssertionError: no 404.html in the rendered site
+E       AssertionError: assert '/index.html' == '/404.html'
+E           AssertionError: and-reassoc            # no problems/propositional/and-reassoc/index.html
+E       AssertionError: <p class="panel-note">A partial route to the problem.</p>
+E           AssertionError: partial                # RELATION_ROLES["partial"] says "route"
+FAILED ...::test_the_site_writes_a_not_found_page_that_is_not_the_home_page
+FAILED ...::test_the_distribution_serves_the_not_found_page_for_a_missing_key
+FAILED ...::test_a_statement_at_the_guessed_problem_path_lands_on_its_panel
+FAILED ...::test_a_partial_variant_is_called_a_weaker_version_never_a_route
+FAILED ...::test_no_relation_role_calls_a_variant_a_route
+FAILED ...::test_the_sentence_has_one_home
+
+== GREEN ==
+10 passed (the 7 above plus test_closure_page's 3).
+Full site fast tier (-m "not lean and not docker and not network and not harness") after the fix:
+885 passed, 1 failed: test_closure_page's helper picked "the one page ending /<node>/index.html"
+and now also found the redirect stub; restated to the statement's own page under nodes/, then
+green. make lint and make types clean. The Playwright tests skip in this worktree's .venv (no
+playwright installed); the screenshots ran with `uv run --with playwright`.
+
+== What changed and why ==
+B-F3. The stated cause is right. site/infra/site.cfn.yaml's one CustomErrorResponse maps S3's 403
+(a missing key behind origin access control) to 404 with ResponsePagePath /index.html, so every
+unknown path showed the home page.
+ - The generator writes 404.html (Renderer.not_found): it says "Page not found", links to / and
+   /problems/, and says a statement lives at /problems/<problem>/#node=<id>. No script.
+ - The generator writes problems/<target>/<node-id>/index.html for every node of every target. Each
+   is the existing Q14 meta-refresh redirect page (it now takes a `words` argument: "This
+   statement is shown on its problem's page, at") pointing to /problems/<target>/#node=<node-id>.
+   These are written after the problem's own pages and never replace one (review/, proofs/).
+   This half needs no infrastructure change and ships with the next site-deploy.
+ - The template's ResponsePagePath is now /404.html. This half is a CloudFront change. It is
+   written in site/infra/site.cfn.yaml and NOT deployed. Until the stack is updated (a change set
+   with UsePreviousValue for every parameter, per the 2026-09-11 log), an unknown path still shows
+   the home page under a 404. The guessed node paths work either way. The existing `s3 sync`
+   uploads 404.html.
+
+D-F-D4. RELATION_ROLES["partial"] was "a partial route to the problem". It is now "a weaker
+version of the problem: partial progress, never a proof of it", which opens with the drawing key's
+own label for relation-partial ("a weaker version of the problem"). I checked the other roles
+(resolves, refutes, related) and none says "route". No test pinned the old sentence (grep found
+none). The same role also appears in the statements table's role column.
+
+== Screenshots ==
+Live graph c3996bd447 rendered locally. The server mimics the distribution: a directory serves its
+index.html, and a missing path answers 404 with /404.html. Script: S-shoot.py beside this file. I
+looked at all three images.
+ S-not-found-1440.png          status 404, h1 "Page not found", no "Lately on the record", links
+                               to / and /problems/
+ S-guessed-path-lands-1440.png /problems/erdos-849/variant-3969f1f7--h2--h1/ landed on
+                               problems/erdos-849/#node=variant-3969f1f7--h2--h1 with that panel
+                               selected
+ S-partial-panel.png           variant-0691f5bb (the case t = 2): "A weaker version of the
+                               problem: partial progress, never a proof of it."

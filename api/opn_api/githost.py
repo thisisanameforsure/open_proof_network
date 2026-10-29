@@ -38,6 +38,9 @@ RAW_URL = "https://raw.githubusercontent.com/{repo}/{ref}/{path}"
 API_ACCEPT = "application/vnd.github+json"
 API_VERSION = "2022-11-28"
 TIMEOUT_S = 10.0
+#: The compare API lists at most this many changed files for a whole comparison (its docs);
+#: a list this long may be truncated, so ``changed_paths`` answers ``None`` for it.
+COMPARE_FILES_MAX = 300
 ARTIFACT_TIMEOUT_S = 30.0  # a result artifact is a zip from blob storage, not an API call
 JWT_LIFETIME_S = 540  # GitHub caps an App JWT at ten minutes; stay inside it
 JWT_BACKDATE_S = 60  # tolerate clock skew on GitHub's side
@@ -293,6 +296,13 @@ class GitHost(Protocol):
         """Whether ``commit`` is ``ancestor`` or descends from it in ``repo`` (F08-T26: does a
         target's pinned gate understand use lines). ``False`` when the host knows neither
         commit; a ``GitHostError`` when it cannot be asked. Read-only."""
+        ...
+
+    def changed_paths(self, repo: str, base: str, head: str) -> list[str] | None:
+        """Every path the diff from ``base`` to ``head`` adds, modifies, removes or renames (both
+        names of a rename), so a caller can tell a words-only change from one to a node's
+        statement (F06-T18's window). ``None`` when the list may be incomplete (GitHub shows at
+        most 300 files); a ``GitHostError`` when it cannot be asked. Read-only."""
         ...
 
     def push_branch(  # noqa: PLR0913 — one argument per part of the commit being made
@@ -582,6 +592,31 @@ class HttpxGitHost:
             msg = f"GET {_path(url)} returned {resp.status_code}"
             raise GitHostError(msg)
         return _json(resp, "the commit comparison").get("status") in ("identical", "ahead")
+
+    def changed_paths(self, repo: str, base: str, head: str) -> list[str] | None:
+        """The compare API (``GET /repos/{repo}/compare/{base}...{head}``), as ``is_ancestor``
+        asks it, read for its ``files``: the docs say the list is shown on the first page only
+        and holds at most 300 files for the whole comparison, so 300 or more, or no list at all,
+        is ``None`` (the caller stays conservative, C7). ``per_page=1`` pages the commits only.
+        As the App, for the installation token's rate budget."""
+        url = f"{GITHUB_API}/repos/{repo}/compare/{base}...{head}"
+        with self._api(repo, CONTENTS_READ) as http:
+            resp = _send(http, "GET", url, params={"per_page": 1})
+        doc = _json(resp, "the commit comparison")
+        files = doc.get("files")
+        if not isinstance(files, list) or len(files) >= COMPARE_FILES_MAX:
+            return None
+        paths: list[str] = []
+        for entry in files:
+            name = entry.get("filename") if isinstance(entry, dict) else None
+            if not isinstance(name, str) or not name:
+                msg = f"GitHub returned a changed file without a name comparing {base[:12]}"
+                raise GitHostError(msg)
+            paths.append(name)
+            previous = entry.get("previous_filename")
+            if isinstance(previous, str) and previous:
+                paths.append(previous)
+        return paths
 
     # --- as the GitHub App (F06-R3, R5) ---------------------------------------------------------
 

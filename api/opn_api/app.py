@@ -168,6 +168,9 @@ class Context:
     # F08-T26: whether a network commit descends from ``uses_from``, by ``(uses_from, pin)``. A
     # commit's ancestry never changes, so an answer the host gave is kept for the process's life.
     ancestry: dict[tuple[str, str], bool] = field(default_factory=dict)
+    # F06-T18: whether the commits from a products commit to the newest change of a target's
+    # nodes changed only words, by ``(products, nodes, target)``; commits never change, so kept.
+    words_only: dict[tuple[str, str, str], bool] = field(default_factory=dict)
     # Whether a pinned network commit carries a file, by ``(pin, path)`` (``uses.pinned_has``):
     # a commit's files never change, so an answer the host gave is kept for the process's life.
     pinned_files: dict[tuple[str, str], bool] = field(default_factory=dict)

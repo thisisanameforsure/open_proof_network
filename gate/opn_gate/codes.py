@@ -1126,6 +1126,16 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "Check the section describes the steps it names; cite the name the outline records, or "
         "move the sentence to the section whose steps use it. The pull request may merge as is.",
     ),
+    "gloss-step-anchors": (
+        "gate",
+        None,
+        "A warning, never a refusal: a gloss's text carries level-2 headings anchored to outline "
+        "steps ({steps: …}), which only an explainer reads, so the words were most likely meant "
+        "as the explainer of a proof or partial (testers 2026-10-27).",
+        "If the words walk through a proof, withdraw this gloss and file them as an explainer "
+        "(subject kind proof, with the artifact's hash); if they are a gloss, drop the {steps: …} "
+        "anchors. The pull request may merge as is.",
+    ),
     "explainer-proof-unknown": (
         "gate",
         None,
@@ -2234,10 +2244,11 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
     "record-name-taken": (
         "api",
         None,
-        "A record of yours is already being filed this second under the same timestamped file "
-        "name.",
-        "Send it again after Retry-After; a record's file name is <timestamp>-<pseudonym> to the "
-        "second.",
+        "Another request is opening, or an open pull request (named) already adds, the file "
+        "this record would add.",
+        "For a <timestamp>-<pseudonym> file, send it again after Retry-After: a second later its "
+        "name is its own. For a file named by its content or numbered, wait for the named pull "
+        "request to merge or be withdrawn, or change the text.",
     ),
     "relation-axiom": (
         "both",

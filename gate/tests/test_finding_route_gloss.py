@@ -213,3 +213,34 @@ def test_coverage_says_whether_a_merged_partial_has_approach_words(tmp_path: Pat
     assert row["approach_words"] is True
     assert row["covered"] is False, "approach words do not cover the artifact; an explainer does"
     assert glosses.coverage(root)["complete"] is False
+
+
+# --- testers 2026-10-27 (D's F-D7): an explainer's text filed as a gloss --------------------------
+
+
+def test_step_anchored_text_filed_as_a_gloss_is_warned_not_refused(tmp_path: Path) -> None:
+    """A gloss of kind ``partial`` whose text carries ``{steps: …}`` headings was accepted as a
+    one-section gloss with no warning: the anchors only mean something in an explainer, so the
+    writer had filed an explainer under the wrong record and nothing said so. The gate warns
+    (F20-R5: never a refusal), naming the record an explainer is."""
+    root = copy_graph(tmp_path, publish=True)
+    add_hole(root, HOLE_IDS[0], "hden")
+    bare_partial(root)
+    _, anchored = put_gloss(
+        root, partial_doc(root), "## The bound {steps: s1}\nBound the density first.\n"
+    )
+    classification = modes.classify([Change("A", anchored)], author="carol", graph_root=root)
+    assert classification.ok, classification.as_dict()
+    assert modes.check(root, classification) == []
+    found = modes.warnings(root, classification)
+    assert [w.code for w in found] == ["gloss-step-anchors"]
+    assert "explainer" in found[0].message
+
+
+def test_a_plain_gloss_is_not_warned(tmp_path: Path) -> None:
+    root = copy_graph(tmp_path, publish=True)
+    add_hole(root, HOLE_IDS[0], "hden")
+    bare_partial(root)
+    _, plain = put_gloss(root, partial_doc(root), GLOSS_WORDS + "\n")
+    classification = modes.classify([Change("A", plain)], author="carol", graph_root=root)
+    assert modes.warnings(root, classification) == []

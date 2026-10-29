@@ -206,8 +206,8 @@ def next_number(ctx: Context, target_id: str) -> int:
 async def post_stewards(ctx: Context, request: Request) -> Response:
     """R8: the record, signed with the approval key, in its own pull request."""
     held: Identity = request.state.identity
+    login = github_login(held)  # who is asking comes before what they sent (testers F-D2)
     fields, _ = await identitymod.body_fields(request, FIELDS)
-    login = github_login(held)
     target_id, action, name, link = checked(fields)
     motion = motion_of(fields, action)
     private, public = approval_key(ctx)

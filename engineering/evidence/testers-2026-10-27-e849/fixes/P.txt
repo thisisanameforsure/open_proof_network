@@ -1,0 +1,104 @@
+Fixer P, F06 (finding F-D6: a words-only merge holds every hole-making precheck on its target)
+
+Cause (the lead's reading, confirmed): products_commit takes nodes = last_commit(head,
+"targets/<t>/nodes"); a gloss (nodes/<id>/gloss/<hash>.md) or explainer merge moves it past the
+products commit, so job_commit answers 409 products-pending to every bundle with makes_holes.
+
+What changed
+- githost.GitHost.changed_paths(repo, base, head) -> list[str] | None (protocol; HttpxGitHost via
+  GET /repos/{repo}/compare/{base}...{head}?per_page=1, as the App with contents:read; fake in
+  api_fakes.py from `diffs`). Both names of a rename are listed. None when `files` is absent or
+  holds >= 300 entries (GitHub docs: files only on the first page, at most 300 for the whole
+  comparison), so the caller stays conservative.
+- precheck.words_only(ctx, target, products, nodes): when nodes is not an ancestor of products,
+  ask the diff products...nodes; if every path under targets/<t>/nodes/ is inside a node's
+  gloss/ or explainer/ directory (signatures included), products_commit returns (products,
+  products) and the job runs there. Anything else, a None list, a host error (not cached), or
+  pending.budget_hold (no call made) keeps the refusal. Cached per (products, nodes, target) on
+  Context.words_only for the process's life.
+- Counted as changes (still refused), decided against what the plan reads: Statement.lean,
+  META.yaml, Proof.lean, attempts/ (a partial's holes are coming), annex/ (check_cited_annex and
+  step 2's annex citation), status/, shelving/, literature/, withdrawals/, defects/ (they derive
+  statuses admission may read). Postmortems live under attempts/ and also count; they could be
+  allowed later, but the finding is about words.
+
+Red test: api/tests/test_finding_precheck_words_window.py
+  test_a_gloss_only_merge_does_not_hold_a_skeleton (also test_explainers_and_signatures_are_words_too,
+  test_the_answer_for_a_pair_is_kept), red at today's behaviour with the seam already in place:
+  409 products-pending where 202 at the products commit is wanted.
+Neighbours kept: test_anything_a_plan_may_read_still_holds_it (12 paths incl. a new
+  Statement.lean and META.yaml), truncated list, host failure, budget held; F06-T18's own file
+  unchanged and green.
+
+Command:
+  uv run pytest api/tests/test_finding_precheck_words_window.py api/tests/test_finding_scoped_installation_tokens.py api/tests/test_finding_precheck_products_commit.py api/tests/test_finding_waiting_on_products_appends.py api/tests/test_finding_hole_child_pending.py api/tests/test_finding_node_pending.py api/tests/test_finding_precheck_not_yet.py api/tests/test_finding_precheck_hole_commit.py api/tests/test_precheck.py api/tests/test_githost_seam.py -q
+
+Also: api fast tier (-m "not lean and not docker") 2350 passed; make lint and make types clean.
+
+===== RED =====
+warning: `VIRTUAL_ENV=/Users/mikehiggins/Desktop/repos/open_proof_network/.venv` does not match the project environment path `.venv` and will be ignored; use `--active` to target the active environment instead
+Using CPython 3.13.15
+Creating virtual environment at: .venv
+Installed 49 packages in 119ms
+FF...............F........................                               [100%]
+=================================== FAILURES ===================================
+_______________ test_a_gloss_only_merge_does_not_hold_a_skeleton _______________
+
+harness = Harness(settings=Settings(store='memory', table_identities=None, table_tokens=None, table_claims=None, parameter_prefi...=<starlette.applications.Starlette object at 0x10bccd6a0>, axle=FakeAxle(calls=[], replies=[], hosted=['lean-4.33.0']))
+
+    def test_a_gloss_only_merge_does_not_hold_a_skeleton(harness: Harness) -> None:
+        """The finding: a gloss on another node merged after the products; the skeleton's plan reads
+        nothing it changed, so it runs at the products commit."""
+        token = harness.token_for("code_alice", "alice-p")
+        window(harness, [GLOSS, f"targets/{TARGET}/graph.json"])
+        r = precheck(harness, token, skeleton())
+>       assert r.status_code == 202, r.text
+E       AssertionError: {"error":"products-pending","message":"graph commit ffffffffffff… changed propositional's nodes after eeeeeeeeeeee…, the commit that wrote its products, so the holes this bundle would make cannot yet be planned against every node they might restate. It waits for that merge's products. Retry shortly.","details":{"node_id":"and-reassoc","graph_commit":"eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee","nodes_commit":"ffffffffffffffffffffffffffffffffffffffff"}}
+E       assert 409 == 202
+E        +  where 409 = <Response [409 Conflict]>.status_code
+
+api/tests/test_finding_precheck_words_window.py:75: AssertionError
+_________________ test_explainers_and_signatures_are_words_too _________________
+
+harness = Harness(settings=Settings(store='memory', table_identities=None, table_tokens=None, table_claims=None, parameter_prefi...=<starlette.applications.Starlette object at 0x109dbc2d0>, axle=FakeAxle(calls=[], replies=[], hosted=['lean-4.33.0']))
+
+    def test_explainers_and_signatures_are_words_too(harness: Harness) -> None:
+        token = harness.token_for("code_alice", "alice-p")
+        window(harness, [GLOSS_SIGNED, EXPLAINER, EXPLAINER_SIGNED, "targets/other-target/x.lean"])
+        r = precheck(harness, token, skeleton())
+>       assert r.status_code == 202, r.text
+E       AssertionError: {"error":"products-pending","message":"graph commit ffffffffffff… changed propositional's nodes after eeeeeeeeeeee…, the commit that wrote its products, so the holes this bundle would make cannot yet be planned against every node they might restate. It waits for that merge's products. Retry shortly.","details":{"node_id":"and-reassoc","graph_commit":"eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee","nodes_commit":"ffffffffffffffffffffffffffffffffffffffff"}}
+E       assert 409 == 202
+E        +  where 409 = <Response [409 Conflict]>.status_code
+
+api/tests/test_finding_precheck_words_window.py:83: AssertionError
+______________________ test_the_answer_for_a_pair_is_kept ______________________
+
+harness = Harness(settings=Settings(store='memory', table_identities=None, table_tokens=None, table_claims=None, parameter_prefi...=<starlette.applications.Starlette object at 0x109dadd30>, axle=FakeAxle(calls=[], replies=[], hosted=['lean-4.33.0']))
+
+    def test_the_answer_for_a_pair_is_kept(harness: Harness) -> None:
+        token = harness.token_for("code_alice", "alice-p")
+        window(harness, [GLOSS])
+        for _ in range(2):
+            r = precheck(harness, token, skeleton())
+>           assert r.status_code == 202, r.text
+E           AssertionError: {"error":"products-pending","message":"graph commit ffffffffffff… changed propositional's nodes after eeeeeeeeeeee…, the commit that wrote its products, so the holes this bundle would make cannot yet be planned against every node they might restate. It waits for that merge's products. Retry shortly.","details":{"node_id":"and-reassoc","graph_commit":"eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee","nodes_commit":"ffffffffffffffffffffffffffffffffffffffff"}}
+E           assert 409 == 202
+E            +  where 409 = <Response [409 Conflict]>.status_code
+
+api/tests/test_finding_precheck_words_window.py:143: AssertionError
+=============================== warnings summary ===============================
+api/tests/api_fakes.py:32
+
+.venv/lib/python3.13/site-packages/starlette/testclient.py:53
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED api/tests/test_finding_precheck_words_window.py::test_a_gloss_only_merge_does_not_hold_a_skeleton
+FAILED api/tests/test_finding_precheck_words_window.py::test_explainers_and_signatures_are_words_too
+FAILED api/tests/test_finding_precheck_words_window.py::test_the_answer_for_a_pair_is_kept
+3 failed, 39 passed, 2 warnings in 4.92s
+===== GREEN (targeted) =====
+193 passed, 2 warnings in 14.21s
+===== API FAST TIER =====
+2350 passed, 2 warnings in 107.13s (0:01:47)

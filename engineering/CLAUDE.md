@@ -1832,3 +1832,15 @@ The law of the project:
   there are no cases and no intent tests, so mutation measures nothing there; the questions are
   fair only once they say what changed. And `make verify` skips every Playwright test, so a site
   control's browser tests are run with `uv run --frozen --with playwright` or they prove nothing.
+
+- 2026-10-29 — The 2026-10-27 erdos-849 run's findings, fixed red first (F04-T61, F05-T33, F06-T19,
+  F13-T37, F22-T27, F26-T25, F29-T11) by three worktree agents and the lead, while another session
+  held the two largest (the append hold, F32's carried proofs). Two things worth keeping. **A hold
+  that never ends looks like a hold that works**: the name hold's counter was keyed by path alone and
+  never dropped, and the DynamoDB store counts an item its lazy TTL has not swept, so a "one second"
+  guard held a content-named path for good; compare `duplicates.counter_key`, which windows its key.
+  It was also, by accident, the only thing stopping two open steward records taking one number, so
+  the fix had to rebuild that as a stated guard (an open pull request's `path:` fingerprint). **A
+  path rule over a directory reads every file in it as the same kind**: glosses live under
+  `nodes/`, so T18's "a later commit touched the nodes" took prose for a node change; the compare
+  API's file list says which. Also: two "findings" were the guide's opening paragraph, unread.

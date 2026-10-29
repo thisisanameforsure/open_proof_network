@@ -1,0 +1,142 @@
+Fixer N: testers 2026-10-27 (erdos-849), D's F-D2 (F26, review routes) and F-D9 (F05, the append name hold)
+Base: origin/main adcd9f18. Branch: worktree-agent-acf0e827bea9f257e.
+
+Targeted test command:
+  uv run pytest -q -p no:cacheprovider api/tests/test_finding_name_hold.py api/tests/test_finding_login_before_fields.py
+  -> 32 passed
+Regression (api fast tier, plus the gate guide test that pins holding_name's source):
+  uv run pytest -q -p no:cacheprovider api/tests gate/tests/test_finding_guide_route_preflights.py -m "not lean and not docker"
+  -> 2374 passed in 115.68s
+  uv run pytest -q gate/tests/test_error_codes.py gate/tests/test_finding_guide_names_exist.py -> 21 passed
+make lint -> 0; make types -> 0. Full make verify not run (the lead's job); commits use --no-verify for that reason.
+
+======================================================================================
+F-D2: a GitHub-only route checks the login before the body
+======================================================================================
+Red test: api/tests/test_finding_login_before_fields.py::test_a_tutorial_identity_is_refused_for_who_it_is_not_what_it_sent
+(11 routes x {unknown field, empty body}). Before the fix 13 of 22 failed. All 11 routes answered
+400 unknown-field for an extra field, with the route's accepted grammar in details. On
+/reviews/<t>/answers and /signatures the path's target was also looked up first, so an unknown
+target gave 404 target-unknown.
+
+--- red ---
+E       assert 400 == 403   (x9: /stewards /approvals /motions /votes /writeups /literature/confirm /registrations /shelvings /reviews)
+E       assert 404 == 403   (x4: answers and signatures, both bodies; target-unknown before the login)
+FAILED ...[unknown-field-/stewards]
+FAILED ...[unknown-field-/approvals]
+FAILED ...[unknown-field-/motions]
+FAILED ...[unknown-field-/votes]
+FAILED ...[unknown-field-/writeups]
+FAILED ...[unknown-field-/literature/confirm]
+FAILED ...[unknown-field-/registrations]
+FAILED ...[unknown-field-/shelvings]
+FAILED ...[unknown-field-/reviews]
+FAILED ...[unknown-field-/reviews/erdos-849/answers]
+FAILED ...[unknown-field-/reviews/erdos-849/signatures]
+FAILED ...[empty-/reviews/erdos-849/answers]
+FAILED ...[empty-/reviews/erdos-849/signatures]
+13 failed, 9 passed
+(sample message: {"error":"unknown-field","message":"unknown field not_a_field; this route accepts
+kind, node, sections, target, version", ...})
+
+--- green --- 22 passed.
+
+Fix: stewards.github_login(held) now runs before identitymod.body_fields, and on answers and
+signatures before appends.known_target too. The routes are reviews.post_reviews, post_answers,
+post_signatures, stewards.post_stewards, approvals.post_approvals, literature.post_confirm,
+registrations.post_registrations and shelvings.post_shelvings. panel._signed_in now reads the
+login first and then the body itself (post_motions, post_votes, post_writeups).
+Unchanged on purpose: POST /literature (anyone may propose), /reviews/<t>/candidates (a bearer is
+enough) and /me/name. None of these is GitHub-only.
+
+======================================================================================
+F-D9: a path is held while it is opening and while an open PR adds it, and no longer
+======================================================================================
+The lead's reading of the cause was right. holding_name keyed its counter `name#<path>` with no
+window and never dropped it after a success. The memory store never expires a counter. DynamoDB's
+ADD sets expires_at only if_not_exists and keeps counting an expired item. So on every path that
+can recur, the hold lasted hours after its second.
+
+Red tests (api/tests/test_finding_name_hold.py), on both stores where that applies:
+  test_a_withdrawn_explainer_lets_its_path_go[memory|dynamodb]
+  test_a_filed_record_does_not_hold_the_window_against_itself[memory|dynamodb]
+  test_an_abandoned_hold_lapses_with_its_window[memory|dynamodb]
+  test_two_requests_opening_together_are_one[memory|dynamodb]
+  test_an_open_steward_record_holds_its_number_naming_its_pull_request
+  test_a_withdrawn_steward_record_lets_its_number_go
+Before the first red run I added a seam that kept today's behaviour: appends.name_key returning
+`name#<path>`, and holding_name's identity/kind/owner made optional. That way the unit tests
+failed on the defect and not on a missing name.
+
+--- red: the first draft of the file, seam in place (10 of 10 failed) ---
+E           opn_api.app.ApiError: a record of yours is already being filed at targets/t/nodes/n/annex/abc.md this second: a record's file name is <timestamp>-<pseudonym> to the second (D-13), so a second one now would share it and could never merge. Send it again after Retry-After
+   (a counter planted, then 2*NAME_HOLD_S+1 s later: still refused, on both stores)
+E           AssertionError: assert 'this second' not in 'a record of... Retry-After'
+E       KeyError: 'pr_number'      (the steward refusal names no pull request)
+E       AssertionError: {"error":"record-name-taken","message":"a record of yours is already being filed at targets/propositional/stewards/2.yaml this second: ...","details":{"path":"targets/propositional/stewards/2.yaml"}}
+E       assert 409 == 201          (after carol's record was withdrawn, alice still cannot take number 2)
+10 failed
+
+That draft's first test went through POST /annexes in the same second. It turned out to be
+refused first by the duplicate rule's 2-minute slot, and an annex's path moves every second (its
+front matter carries the date). So the final file drives D's case through appends.append_pr
+directly: a fixed content-named path, and a three-minute gap as D had.
+
+--- red: the final explainer test against the unmodified appends.py (HEAD) ---
+E       KeyError: 'pr_number'      (x2: the refusal does not name the open PR that holds the path)
+FAILED api/tests/test_finding_name_hold.py::test_a_withdrawn_explainer_lets_its_path_go[memory]
+FAILED api/tests/test_finding_name_hold.py::test_a_withdrawn_explainer_lets_its_path_go[dynamodb]
+
+--- D's exact sequence against the unmodified appends.py: a throwaway probe that files, withdraws,
+    waits 180 s and files the identical text again. It gives D's message word for word. ---
+E           opn_api.app.ApiError: a record of yours is already being filed at targets/propositional/nodes/tutorial-and-swap/explainer/844ecfba.md this second: a record's file name is <timestamp>-<pseudonym> to the second (D-13), so a second one now would share it and could never merge. Send it again after Retry-After
+FAILED ...test_probe[memory]   FAILED ...test_probe[dynamodb]
+After the fix: 2 passed. Probe file deleted.
+
+--- green --- test_finding_name_hold.py: 10 passed.
+
+What changed in api/opn_api/appends.py, and why:
+- Standing guard. append_pr now records `path:<path>` among the submission's fingerprints. No
+  schema change was needed: Submission.fingerprints is already a free tuple, and nothing compares
+  a path print with a content print or a words key. holding_name first asks path_holder for an
+  open submission that carries the print and can still merge (duplicates.blocks: a closed,
+  withdrawn, merged, gate-failed or conflicting one holds nothing). If one exists it refuses
+  409 record-name-taken and names it (pr_number, pr_url, submission_id), for as long as that
+  submission stays open.
+- In-flight guard. The counter is keyed `name#<path>#<window>` (NAME_HOLD_S = 60). It also reads
+  the previous window (a bump by 0), so two concurrent requests either side of a window boundary
+  still count as one. A refused request gives its count back (a bump by -1). The counter is
+  dropped as soon as the submission is recorded (release_name, after pending.record), or at once
+  if the PR did not open. If the PR opened and the recording failed, the counter is kept and
+  lapses with its window, after one to two minutes.
+- Messages. A <timestamp>-<pseudonym> path keeps the same-second wording and Retry-After: 1. Any
+  other path (content-named words and annexes, numbered stewards/motions/votes) is told which
+  open PR holds it, that waiting does not free it, and that it is free once that PR merges or is
+  withdrawn. That refusal carries no Retry-After. An in-flight refusal on such a path says another
+  request is opening it at that moment, with Retry-After: 1. The gate catalog entry
+  (gate/opn_gate/codes.py, record-name-taken) is reworded to cover both cases.
+- hold_name=False (names/<pseudonym>.yaml, F25-R6) still skips both guards; append_pr uses a
+  no-op hold there. The path print is still recorded.
+- name_holder, which matched by kind, pseudonym, owner and creation second, is removed. The path
+  print finds the holder exactly, whatever its pseudonym.
+
+Submissions opened before the deploy carry no path print, so the standing guard cannot see them.
+By kind of path:
+- Timestamp-named paths cannot recur, so nothing is lost.
+- Content-named paths are still covered by the duplicate rule (same text, open, same node) and by
+  the words one-writer rule.
+- Numbered paths (stewards/<n>.yaml, panel motions and votes) are the gap. Until such a PR merges
+  or closes, a new record can take its number, and the gate's append-only rule then refuses
+  whichever merges second.
+The old stuck counters sit under the old keys with no window, which nothing reads any more. A
+check of open steward, motion and vote PRs on deploy day (GET /submissions.json) covers the gap.
+
+Left unchanged, worth knowing. The duplicate rule's own slot (duplicates.counter_key, 120 s window)
+is also never dropped after a success. So withdrawing and re-filing the *identical* text inside the
+same two-minute window is refused 409 duplicate-submission, with a correct Retry-After. I tried
+releasing that slot after the record as well, and reverted it. duplicates.open_rivals matches on
+node_id only, so for target-level records (steward records, approach records) that counter is the
+only double-click guard. Releasing it turned two tests red:
+test_stewards_route::test_the_same_form_sent_twice_is_one_submission and
+test_finding_duplicate_submissions::test_the_same_postmortem_or_approach_record_from_two_authors_is_a_copy.
+The open_rivals gap for records with no node is a separate defect, for the lead.

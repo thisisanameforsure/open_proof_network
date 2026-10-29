@@ -133,8 +133,8 @@ def unknown(kind: str, version: str) -> ApiError:
 async def post_approvals(ctx: Context, request: Request) -> Response:
     """R10: one approval, signed with the approval key, in its own pull request."""
     held: Identity = request.state.identity
+    login = stewards.github_login(held)  # who is asking comes before what they sent (F-D2)
     fields, _ = await identitymod.body_fields(request, FIELDS)
-    login = stewards.github_login(held)
     target_id, node_id, kind, version, sections = checked(fields)
     private, public = stewards.approval_key(ctx)
     appends.known_target(ctx, target_id)

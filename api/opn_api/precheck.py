@@ -591,7 +591,48 @@ def products_commit(ctx: Context, target_id: str) -> tuple[str, str] | None:
     except GitHostError as exc:
         log.warning("%s's products commit at %s: not found: %s", target_id, head[:12], exc)
         return None
+    if words_only(ctx, target_id, products, nodes):
+        return products, products
     return products, nodes
+
+
+#: The directories under a node whose files no hole plan reads (F06-T18, F-D6 of 2026-10-27): a
+#: statement gloss and an explainer, with their signatures beneath them. Everything else under a
+#: node counts as a change to it: the statement, ``META.yaml``, ``Proof.lean``, ``attempts/``
+#: (a partial's holes are coming), ``annex/`` (a skeleton's citation, ``check_cited_annex``) and
+#: the records that derive statuses (status, shelving, literature, withdrawals, defects).
+WORDS_DIRS = frozenset({"gloss", "explainer"})
+
+
+def is_words(target_id: str, path: str) -> bool:
+    """Whether ``path`` cannot change a hole plan on ``target_id``: outside its nodes, or a file
+    inside a node's words directory (``nodes/<id>/gloss/...``, ``nodes/<id>/explainer/...``)."""
+    prefix = f"targets/{target_id}/nodes/"
+    if not path.startswith(prefix):
+        return True
+    parts = path[len(prefix) :].split("/")
+    return len(parts) >= 3 and parts[1] in WORDS_DIRS  # node, directory, at least one name
+
+
+def words_only(ctx: Context, target_id: str, products: str, nodes: str) -> bool:
+    """F06-T18: whether the diff from the commit that wrote the products to the newest change
+    of the target's nodes touched only words, so a hole plan at ``products`` sees every node
+    the plan reads. ``False`` when the host's list may be truncated, when it cannot be asked,
+    or while its budget is held at the reserve (C7: the refusal, not a guess). One host read
+    per pair for the life of the process, since commits never change."""
+    key = (products, nodes, target_id)
+    if key in ctx.words_only:
+        return ctx.words_only[key]
+    if pending.budget_hold(ctx) is not None:
+        return False
+    try:
+        paths = ctx.githost.changed_paths(ctx.settings.graph_repo, products, nodes)
+    except GitHostError as exc:  # not cached: the next precheck asks again
+        log.warning("%s's changes %s...%s: unknown: %s", target_id, products[:12], nodes[:12], exc)
+        return False
+    found = paths is not None and all(is_words(target_id, p) for p in paths)
+    ctx.words_only[key] = found
+    return found
 
 
 def job_commit(

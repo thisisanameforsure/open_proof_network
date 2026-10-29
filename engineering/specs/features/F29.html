@@ -270,12 +270,13 @@ their title's head as label (e.g. "Erdős problem 1094"), since live titles are 
 cut at 40 characters, the full text in the row's title), so on erdos-1094 the drawing is about a quarter
 narrower at 1440px than with F27-T7's fixed 96px column. Accepted for now.</p>
 <p><strong>F29-Q15 — The block's prose is the hole's gloss (T10, 2026-10-28).</strong> R7 files a hole's first statement gloss as its label, its claim and then the block's other lines, but the guide said only that the label and claim are filed and that the other lines are "prose about the hole". On erdos-68 (graph #1134) the author wrote "Elementary." and "The open core" there, and the network filed three glosses that broke the gloss rule the guide states (a gloss never says whether a statement is true, hard or important). The guide now says the prose is filed too and follows the gloss rule; R7 is unchanged.</p>
+<p><strong>F29-Q16 — The claim rule is said where it refuses (T11, 2026-10-29).</strong> testers 2026-10-27 (erdos-849): the rule was always a line that opens and closes with a dollar sign, and two testers paid a refusal each without being told so; the <code>claim-form</code> message now says it and where prose goes. Held for the owner, prior F-C5 and D F-D3: a proposal still cannot be born with a label, so a proposed statement is drawn by its hash id until someone files a statement gloss.</p>
 <p><strong>F29-Q8 — <code>label_source</code> has no <code>proposal</code> value.</strong> The
 amendment's first draft named a variant's "proposal name"; no proposal carries one, and an enum
 value nothing emits is a live bug (2026-09-10). A variant falls back to its id.</p>
 
 <h2>10. Status</h2>
-<div class="rule"><strong>status:</strong> live 2026-10-18 · <strong>Tasks:</strong> T0&ndash;T9 done; network PR #70 merged (main 32961c76, hotfix e34cc561 for get_node&rsquo;s glosses version set), graph re-pinned c831a1962 and rendered, backfill of 167 glosses merged (graph PRs #619&ndash;#756), coverage: every non-root statement labelled (<code>engineering/evidence/F29/task-8.txt</code>). Q1&ndash;Q14 stand for the owner&rsquo;s review. · T10 &#10003; 2026-10-28 (Q15; guide only; the graph copy at the next re-pin)</div>
+<div class="rule"><strong>status:</strong> live 2026-10-18 · <strong>Tasks:</strong> T0&ndash;T9 done; network PR #70 merged (main 32961c76, hotfix e34cc561 for get_node&rsquo;s glosses version set), graph re-pinned c831a1962 and rendered, backfill of 167 glosses merged (graph PRs #619&ndash;#756), coverage: every non-root statement labelled (<code>engineering/evidence/F29/task-8.txt</code>). Q1&ndash;Q14 stand for the owner&rsquo;s review. · T10 &#10003; 2026-10-28 (Q15; guide only; the graph copy at the next re-pin) &middot; T11 &#10003; 2026-10-29 (19 passed, two red first; binds at the next re-pin; Q16)</div>
 
 <h2>Tasks</h2>
 <table>
@@ -351,6 +352,9 @@ value nothing emits is a live bug (2026-09-10). A variant falls back to its id.<
   <tr><td>F29-T10</td><td>The guide says a hole block&rsquo;s prose is filed in its gloss (Q15).</td>
     <td><code>gate/agents/AGENTS.md</code></td><td>&mdash;</td>
     <td><code>uv run --frozen pytest gate/tests/test_walkthrough.py</code> (the graph copy rides the re-pin)</td></tr>
+  <tr><td>F29-T11</td><td><strong>A claim-form refusal says the claim begins and ends with a dollar sign, and where the prose goes (Q16).</strong></td>
+    <td><code>gate/opn_gate/labels.py</code>, <code>gate/tests/test_labels.py</code></td>
+    <td><code>uv run --frozen pytest gate/tests/test_labels.py</code></td></tr>
 </table>
 </body>
 </html>
