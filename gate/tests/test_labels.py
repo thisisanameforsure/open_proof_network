@@ -96,6 +96,28 @@ def test_a_malformed_line_is_refused_by_name(line: str, code: str) -> None:
     assert found[0].hole == "h_bhp"
 
 
+@pytest.mark.parametrize(
+    "line",
+    [
+        # testers 2026-10-27 (A's F3): prose before the notation
+        "  -- claim: a left-half solution $(n,k)$ of $\\binom{n}{k}=a$ has $\\log a \\le k$\n",
+        # B's F2: prose after the closing dollar
+        "  -- claim: $A$ holds for every collision\n",
+    ],
+)
+def test_a_claim_with_prose_outside_its_dollars_says_where_the_prose_goes(line: str) -> None:
+    """The rule is that the claim begins and ends with a dollar sign. Two testers read the
+    guide's `$<the hole in notation>$` as "notation somewhere in the line" and paid a refusal
+    each; the refusal must say the rule, and where the prose belongs."""
+    text = PARTIAL.replace(
+        "  -- claim: $\\pi(k + k^{21/40}) - \\pi(k) \\ge C k^{21/40} / \\log k$\n", line
+    )
+    found = labels.problems(text)
+    assert [p.code for p in found] == ["claim-form"], found
+    assert "begin and end with a dollar sign" in found[0].message
+    assert "other comment lines" in found[0].message
+
+
 def test_a_licence_outside_the_accepted_set_is_refused() -> None:
     text = PARTIAL.replace("-- licence: CC-BY-4.0", "-- licence: WTFPL")
     assert [p.code for p in labels.problems(text)] == ["licence-invalid"]

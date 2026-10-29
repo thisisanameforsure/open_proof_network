@@ -285,7 +285,10 @@ def problems(partial_text: str, hole_names: Sequence[str] | None = None) -> list
                         "directly above its `have`"
                         if h is None or not _has_claim_line(partial_text, h)
                         else "its `-- claim:` line is not `$…$` with something inside: the hole "
-                        "in notation between dollar signs (a `$$…$$` display is accepted too)"
+                        "in notation between dollar signs (a `$$…$$` display is accepted too). "
+                        "The claim must begin and end with a dollar sign: write connectives "
+                        "inside the notation (`\\text{ or }`), and put prose on the block's "
+                        "other comment lines"
                     )
                     + " (D-12 v3.44)",
                     hole=name,
