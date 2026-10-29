@@ -24,7 +24,7 @@ the same things in the same words (D-4: one codebase). The check itself is step 
 from __future__ import annotations
 
 import re
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -206,3 +206,227 @@ def without_partial(paths: list[str]) -> Diagnostic:
         + ". The witness of an existing hole goes in as its Witness.lean (F08-R5)",
         {"paths": paths},
     )
+
+
+def proof_without_partial(paths: list[str]) -> Diagnostic:
+    """F32-R1: a proof file in a submission that is not a partial."""
+    return Diagnostic(
+        "hole-proof-without-partial",
+        "a carried proof belongs to a partial's assembly, and this submission has none: "
+        + ", ".join(paths)
+        + ". The proof of an existing node goes in as its Proof.lean",
+        {"paths": paths},
+    )
+
+
+# --- the proofs a partial carries for its holes (F32-R1, R2; D-29 v3.49) -------------------------
+
+#: The key under step 2's partial record: the carried proofs as read, before any Lean.
+PARTIAL_PROOFS_KEY = "proofs"
+
+
+@dataclass(frozen=True)
+class CarriedProof:
+    """One carried proof: the hole it names, where it is under the node, the file's text, and
+    the two pieces composition takes from it — the helper block (or ``None``) and the body."""
+
+    hole: str
+    path: str  # relative to the node directory: ``attempts/<name>.<n>.proof``
+    text: str
+    helpers: str | None
+    body: str
+
+    @property
+    def sha256(self) -> str:
+        return schemas.content_hash(self.text.encode("utf-8"))
+
+
+_PROOF_LINE_RE = re.compile(r"^[ \t]*--[ \t]*proof:[ \t]*\r?$", re.M)
+#: An import line of any form Lean takes at the head of a file (``public``/``meta`` allowed).
+_IMPORT_LINE_RE = re.compile(r"^[ \t]*(?:public[ \t]+)?(?:meta[ \t]+)?import\b", re.M)
+#: Blank lines, then the first line's indentation: what a body starts with and is not.
+_LEADING_BLANK_RE = re.compile(r"\A(?:[ \t]*\r?\n)*[ \t]*")
+#: ``admit`` as a token, as ``layout.mentions_sorry`` reads ``sorry``.
+_ADMIT_TOKEN_RE = re.compile(r"(?<![\w'.!?])admit(?![\w'.!?])")
+
+
+def proof_file_name(assembly_name: str, n: int) -> str:
+    """``<assembly name without .lean>.<n>.proof``: the ``n``-th carried proof's name."""
+    return f"{_stem(assembly_name)}.{n}{PROOF_SUFFIX}"
+
+
+def proof_number_of(assembly_name: str, name: str) -> int | None:
+    """The ``<n>`` of a proof file attached to this assembly, or ``None``."""
+    prefix = _stem(assembly_name) + "."
+    if not (name.startswith(prefix) and name.endswith(PROOF_SUFFIX)):
+        return None
+    middle = name[len(prefix) : -len(PROOF_SUFFIX)]
+    return int(middle) if _NUMBER_RE.match(middle) else None
+
+
+def proofs_attached_to(assembly_rel: str, names: Mapping[str, str]) -> dict[str, str]:
+    """Of ``names`` (path under the node -> text), the carried proofs attached to the assembly
+    at ``assembly_rel`` — what a bare tree takes as the submission's own."""
+    assembly_name = assembly_rel[len(ATTEMPTS) :]
+    return {
+        path: text
+        for path, text in names.items()
+        if path.startswith(ATTEMPTS)
+        and proof_number_of(assembly_name, path[len(ATTEMPTS) :]) is not None
+    }
+
+
+def split_proof(text: str) -> tuple[str | None, str | None, str | None]:
+    """F32-Q2: a carried proof's three parts — the hole it names, its helper block and its body
+    — read from the text alone: the first ``-- proof:`` line divides the file; the hole is the
+    first ``-- hole: <name>`` line above it; the helper block is everything else above it, or
+    ``None`` when that holds no code (blank lines and comments are not a helper); the body is
+    everything below it, with its leading blank lines and the first line's indentation removed
+    and its trailing whitespace dropped (``""`` when nothing is left). Without a ``-- proof:``
+    line the hole is read from the whole file and there is no body (``None``). Line ends are
+    kept as they were sent (F07-Q58 (3))."""
+    found = _PROOF_LINE_RE.search(text)
+    if found is None:
+        return hole_named(text), None, None
+    head, rest = text[: found.start()], text[found.end() :]
+    hole = hole_named(head)
+    helpers: str | None = None
+    if hole is not None:
+        block = "".join(line for line in head.splitlines(keepends=True) if not _marks(line, hole))
+        if layout.strip_comments(block).strip():
+            lines = block.splitlines(keepends=True)
+            while lines and not lines[0].strip():
+                lines.pop(0)
+            while lines and not lines[-1].strip():
+                lines.pop()
+            helpers = "".join(lines)
+            if not helpers.endswith("\n"):
+                helpers += "\n"
+    body = _LEADING_BLANK_RE.sub("", rest, count=1).rstrip()
+    return hole, helpers, body
+
+
+def _marks(line: str, hole: str) -> bool:
+    """Whether ``line`` is the ``-- hole: <hole>`` marker line."""
+    m = _MARKER_LINE_RE.fullmatch(line.rstrip("\r\n"))
+    return m is not None and m.group("name") == hole
+
+
+def read_proofs(  # noqa: PLR0911 — one return per R1 refusal
+    assembly_rel: str, files: Mapping[str, str], witnessed: Sequence[str] = ()
+) -> tuple[list[CarriedProof], Diagnostic | None]:
+    """F32-R1: the carried proofs of the assembly at ``assembly_rel``, in the order of their
+    numbers, or the first reason one of ``files`` (path under the node -> text, read as bytes)
+    is not one. ``witnessed`` names the holes a carried witness names (Q3: a proof is carried
+    only beside its hole's witness).
+
+    Everything here is decided from names and text, before any Lean; whether the hole exists,
+    and whether the proof is one, is step 4's, against the node the hole becomes (R3)."""
+    from opn_gate import paths  # noqa: PLC0415 — paths imports this module
+
+    assembly_name = assembly_rel[len(ATTEMPTS) :]
+    numbered: list[tuple[int, CarriedProof]] = []
+    seen: dict[str, str] = {}
+    for path in sorted(files):
+        text = files[path]
+        n = (
+            proof_number_of(assembly_name, path[len(ATTEMPTS) :])
+            if path.startswith(ATTEMPTS)
+            else None
+        )
+        if n is None:
+            return [], Diagnostic(
+                "hole-proof-unattached",
+                f"{path} is not attached to the assembly {assembly_rel}: a carried proof is "
+                f"named {ATTEMPTS}{proof_file_name(assembly_name, 1)}, "
+                f"{proof_file_name(assembly_name, 2)}, and so on (F32-R1)",
+                {"path": path, "assembly": assembly_rel},
+            )
+        hole, helpers, body = split_proof(text)
+        if hole is None:
+            return [], Diagnostic(
+                "hole-proof-unnamed",
+                f"{path} names no hole: a carried proof says which hole it is for on a line "
+                "`-- hole: <name>` above its `-- proof:` line, the name the precheck lists "
+                "for that hole (F32-R1)",
+                {"path": path},
+            )
+        if hole in seen:
+            return [], Diagnostic(
+                "hole-proof-duplicate",
+                f"{path} and {seen[hole]} both name the hole {hole}; a hole takes one carried "
+                "proof",
+                {"path": path, "other": seen[hole], "hole": hole},
+            )
+        if body is None or not body:
+            return [], Diagnostic(
+                "hole-proof-malformed",
+                f"{path}: "
+                + (
+                    "there is no `-- proof:` line"
+                    if body is None
+                    else "nothing follows the `-- proof:` line"
+                )
+                + ". A carried proof is `-- hole: <name>`, any private helpers, a line "
+                "`-- proof:`, then the body: what follows the hole statement's `:=` (F32-R1)",
+                {"path": path, "hole": hole},
+            )
+        code = layout.strip_comments(text)
+        if layout.mentions_sorry(text) or _ADMIT_TOKEN_RE.search(code):
+            return [], Diagnostic(
+                "hole-proof-sorry",
+                f"{path} uses `sorry` or `admit`: a carried proof is a finished one. Leave the "
+                f"file out and the hole {hole} is created open, as before (F32-R1)",
+                {"path": path, "hole": hole},
+            )
+        if _IMPORT_LINE_RE.search(code):
+            return [], Diagnostic(
+                "hole-proof-uses",
+                f"{path} has an import line: a carried proof takes the imports of its hole's "
+                "statement and nothing else — no use line, no sibling hole, not the parent "
+                "(F32-R1, Q4). Leave the file out and prove the hole once it exists to draw on "
+                "more",
+                {"path": path, "hole": hole},
+            )
+        if helpers is not None:
+            problem = paths.helper_problem(helpers, first_line=1)
+            if problem is not None:
+                return [], Diagnostic(
+                    problem.code,
+                    f"{path}: {problem.message}",
+                    {**problem.details, "path": path, "hole": hole},
+                )
+        if hole not in witnessed:
+            return [], Diagnostic(
+                "hole-proof-without-witness",
+                f"{path} carries a proof of the hole {hole}, and no carried witness names it: "
+                "a proved node has a real witness, so carry the hole's witness beside its "
+                "proof (F32-R1, Q3)",
+                {"path": path, "hole": hole},
+            )
+        seen[hole] = path
+        numbered.append(
+            (n, CarriedProof(hole=hole, path=path, text=text, helpers=helpers, body=body))
+        )
+    return [c for _, c in sorted(numbered, key=lambda pair: pair[0])], None
+
+
+def compose_proof(statement: str, proof: CarriedProof) -> str:
+    """F32-R2 (D-3 v3.49): the ``Proof.lean`` a hole's node is born with — ``statement`` (the
+    hole's ``Statement.lean`` as ``postmerge.child_statement`` writes it) through its ``:=``, a
+    space, the carried body, and the statement's text after its ``sorry``, with the helper block
+    and a blank line inserted at ``layout.declaration_start``, where F00-T11 puts helpers.
+    Nothing is added to the header: the hole's statement already imports its own Context
+    (F07-T23). Pure, and the one composition: step 4's check and the post-merge writer both
+    call it, so the file checked is the file written. Raises ``ValueError`` for a text that is
+    not a statement."""
+    parsed = layout.parse_statement(statement)
+    if not isinstance(parsed, layout.Statement):
+        msg = f"a carried proof is composed with a statement, and this is not one: {parsed.message}"
+        raise ValueError(msg)
+    prefix = parsed.prefix
+    if proof.helpers is not None:
+        at = layout.declaration_start(prefix)
+        prefix = prefix[:at] + proof.helpers + "\n" + prefix[at:]
+    suffix = parsed.suffix if parsed.suffix.strip() else "\n"
+    return prefix + " " + proof.body + suffix

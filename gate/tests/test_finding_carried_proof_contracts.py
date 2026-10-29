@@ -79,9 +79,9 @@ def test_every_reader_accepts_every_version_and_the_writer_emits_v8(tmp_path: Pa
     assert attestation.compare(doc, {**doc, "carried_by": CARRIED_BY}) == ["carried_by"]
 
 
-def test_a_carried_proof_has_a_role_and_no_mode_takes_it_yet() -> None:
-    """Q15: the role is reserved now, so the classifier says what the file is; T1 gives partial
-    mode the reader. Until then a ``.proof`` file beside an assembly fits no mode."""
+def test_a_carried_proof_has_a_role() -> None:
+    """Q15: the role is reserved, so the classifier says what the file is (T0); T1 gave partial
+    mode the reader."""
     where = paths.locate(PREFIX + f"{STEM}.1.proof")
     assert where is not None and where.role == "hole-proof"
     assert where.node_id == "and-swap-reassoc"
@@ -107,6 +107,7 @@ def test_the_precheck_result_documents_holes_proof() -> None:
     assert "``proof``" in doc and "holes[].proof" in doc
 
 
-def test_a_partial_with_a_proof_file_is_not_classified_as_a_partial_yet() -> None:
+def test_a_partial_with_a_proof_file_is_classified_as_a_partial() -> None:
+    """Restated at T1: the reader exists, so partial mode takes the role T0 reserved."""
     both = [Change("A", PREFIX + f"{STEM}.lean"), Change("A", PREFIX + f"{STEM}.1.proof")]
-    assert modes.classify(both).mode is None
+    assert modes.classify(both).mode == "partial"

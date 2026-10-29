@@ -1343,6 +1343,59 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "Ascribe types where a bound variable or a numeral is used, or restate the hole over one "
         "type; details shows the text as printed.",
     ),
+    "hole-proof-duplicate": (
+        "gate",
+        2,
+        "Two carried proofs name the same hole; a hole takes one carried proof.",
+        "Keep one proof file per hole.",
+    ),
+    "hole-proof-malformed": (
+        "gate",
+        2,
+        "A carried proof has no `-- proof:` line, or nothing after it.",
+        "Write the file as `-- hole: <name>`, any private helpers, a line `-- proof:`, then the "
+        "body: what follows the hole statement's `:=` (often `by` and its tactics).",
+    ),
+    "hole-proof-sorry": (
+        "gate",
+        2,
+        "A carried proof uses sorry or admit; a carried proof is a finished one.",
+        "Finish it, or leave the file out and the hole is created open, as before.",
+    ),
+    "hole-proof-unattached": (
+        "gate",
+        2,
+        "A carried proof is not named after the assembly it belongs to.",
+        "Name it as the message shows: the assembly's name with a running number and `.proof`.",
+    ),
+    "hole-proof-unnamed": (
+        "gate",
+        2,
+        "A carried proof does not say which hole it is for.",
+        "Add a line `-- hole: <name>` above the `-- proof:` line, with the hole's name as the "
+        "precheck lists it.",
+    ),
+    "hole-proof-uses": (
+        "gate",
+        2,
+        "A carried proof has an import line; it may draw only on the library and the definition "
+        "modules its hole's statement imports, so it declares no use and cannot reach a sibling "
+        "hole or the parent.",
+        "Remove the import. A proof that needs more is submitted to the hole once it exists.",
+    ),
+    "hole-proof-without-partial": (
+        "gate",
+        2,
+        "A carried proof was submitted without a partial's assembly beside it.",
+        "An existing node's proof goes in as its Proof.lean (POST /submissions).",
+    ),
+    "hole-proof-without-witness": (
+        "gate",
+        2,
+        "A carried proof's hole has no carried witness; a proved node has a real witness.",
+        "Carry the hole's witness too (`attempts/<assembly>.<n>.witness` naming the same hole), "
+        "or leave the proof out.",
+    ),
     "hole-unnamed": (
         "gate",
         4,

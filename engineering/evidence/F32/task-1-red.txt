@@ -1,0 +1,86 @@
+E       KeyError: 'proofs'
+gate/tests/test_finding_carried_proof_grammar.py:60: KeyError
+E       AssertionError: {'verdict': 'pass', 'first_failing_step': None, 'diagnostic': None, 'steps': [{'step': 1, 'name': 'toolchain', 'result...) carry a witness, each checked as step 7 checks a node's (F07-R23)", 'details': {'witnesses': [{...}, {...}]}}}, ...]}
+E       assert None == 2
+E        +  where None = Verdict(verdict='pass', steps=(StepRecord(step=1, name='toolchain', result='pass', diagnostic=None), StepRecord(step=2...-and-swap' contributes no constant to the proof", "declared dep 'and-reassoc' contributes no constant to the proof"]}}).first_failing_step
+gate/tests/test_finding_carried_proof_grammar.py:92: AssertionError
+E       AssertionError: {'verdict': 'pass', 'first_failing_step': None, 'diagnostic': None, 'steps': [{'step': 1, 'name': 'toolchain', 'result...) carry a witness, each checked as step 7 checks a node's (F07-R23)", 'details': {'witnesses': [{...}, {...}]}}}, ...]}
+E       assert None == 2
+E        +  where None = Verdict(verdict='pass', steps=(StepRecord(step=1, name='toolchain', result='pass', diagnostic=None), StepRecord(step=2...-and-swap' contributes no constant to the proof", "declared dep 'and-reassoc' contributes no constant to the proof"]}}).first_failing_step
+gate/tests/test_finding_carried_proof_grammar.py:92: AssertionError
+E       AssertionError: {'verdict': 'pass', 'first_failing_step': None, 'diagnostic': None, 'steps': [{'step': 1, 'name': 'toolchain', 'result...) carry a witness, each checked as step 7 checks a node's (F07-R23)", 'details': {'witnesses': [{...}, {...}]}}}, ...]}
+E       assert None == 2
+E        +  where None = Verdict(verdict='pass', steps=(StepRecord(step=1, name='toolchain', result='pass', diagnostic=None), StepRecord(step=2...-and-swap' contributes no constant to the proof", "declared dep 'and-reassoc' contributes no constant to the proof"]}}).first_failing_step
+gate/tests/test_finding_carried_proof_grammar.py:92: AssertionError
+E       AssertionError: {'verdict': 'pass', 'first_failing_step': None, 'diagnostic': None, 'steps': [{'step': 1, 'name': 'toolchain', 'result...) carry a witness, each checked as step 7 checks a node's (F07-R23)", 'details': {'witnesses': [{...}, {...}]}}}, ...]}
+E       assert None == 2
+E        +  where None = Verdict(verdict='pass', steps=(StepRecord(step=1, name='toolchain', result='pass', diagnostic=None), StepRecord(step=2...-and-swap' contributes no constant to the proof", "declared dep 'and-reassoc' contributes no constant to the proof"]}}).first_failing_step
+gate/tests/test_finding_carried_proof_grammar.py:92: AssertionError
+E       AssertionError: {'verdict': 'pass', 'first_failing_step': None, 'diagnostic': None, 'steps': [{'step': 1, 'name': 'toolchain', 'result...) carry a witness, each checked as step 7 checks a node's (F07-R23)", 'details': {'witnesses': [{...}, {...}]}}}, ...]}
+E       assert None == 2
+E        +  where None = Verdict(verdict='pass', steps=(StepRecord(step=1, name='toolchain', result='pass', diagnostic=None), StepRecord(step=2...-and-swap' contributes no constant to the proof", "declared dep 'and-reassoc' contributes no constant to the proof"]}}).first_failing_step
+gate/tests/test_finding_carried_proof_grammar.py:92: AssertionError
+E       AssertionError: {'verdict': 'pass', 'first_failing_step': None, 'diagnostic': None, 'steps': [{'step': 1, 'name': 'toolchain', 'result...) carry a witness, each checked as step 7 checks a node's (F07-R23)", 'details': {'witnesses': [{...}, {...}]}}}, ...]}
+E       assert None == 2
+E        +  where None = Verdict(verdict='pass', steps=(StepRecord(step=1, name='toolchain', result='pass', diagnostic=None), StepRecord(step=2...-and-swap' contributes no constant to the proof", "declared dep 'and-reassoc' contributes no constant to the proof"]}}).first_failing_step
+gate/tests/test_finding_carried_proof_grammar.py:92: AssertionError
+E       AssertionError: {'verdict': 'pass', 'first_failing_step': None, 'diagnostic': None, 'steps': [{'step': 1, 'name': 'toolchain', 'result...) carry a witness, each checked as step 7 checks a node's (F07-R23)", 'details': {'witnesses': [{...}, {...}]}}}, ...]}
+E       assert None == 2
+E        +  where None = Verdict(verdict='pass', steps=(StepRecord(step=1, name='toolchain', result='pass', diagnostic=None), StepRecord(step=2...-and-swap' contributes no constant to the proof", "declared dep 'and-reassoc' contributes no constant to the proof"]}}).first_failing_step
+gate/tests/test_finding_carried_proof_grammar.py:92: AssertionError
+E       AssertionError: {'verdict': 'pass', 'first_failing_step': None, 'diagnostic': None, 'steps': [{'step': 1, 'name': 'toolchain', 'result...) carry a witness, each checked as step 7 checks a node's (F07-R23)", 'details': {'witnesses': [{...}, {...}]}}}, ...]}
+E       assert None == 2
+E        +  where None = Verdict(verdict='pass', steps=(StepRecord(step=1, name='toolchain', result='pass', diagnostic=None), StepRecord(step=2...-and-swap' contributes no constant to the proof", "declared dep 'and-reassoc' contributes no constant to the proof"]}}).first_failing_step
+gate/tests/test_finding_carried_proof_grammar.py:92: AssertionError
+E       AssertionError: {'verdict': 'pass', 'first_failing_step': None, 'diagnostic': None, 'steps': [{'step': 1, 'name': 'toolchain', 'result...) carry a witness, each checked as step 7 checks a node's (F07-R23)", 'details': {'witnesses': [{...}, {...}]}}}, ...]}
+E       assert None == 2
+E        +  where None = Verdict(verdict='pass', steps=(StepRecord(step=1, name='toolchain', result='pass', diagnostic=None), StepRecord(step=2...-and-swap' contributes no constant to the proof", "declared dep 'and-reassoc' contributes no constant to the proof"]}}).first_failing_step
+gate/tests/test_finding_carried_proof_grammar.py:92: AssertionError
+E       AssertionError: {'verdict': 'pass', 'first_failing_step': None, 'diagnostic': None, 'steps': [{'step': 1, 'name': 'toolchain', 'result...) carry a witness, each checked as step 7 checks a node's (F07-R23)", 'details': {'witnesses': [{...}, {...}]}}}, ...]}
+E       assert None == 2
+E        +  where None = Verdict(verdict='pass', steps=(StepRecord(step=1, name='toolchain', result='pass', diagnostic=None), StepRecord(step=2...-and-swap' contributes no constant to the proof", "declared dep 'and-reassoc' contributes no constant to the proof"]}}).first_failing_step
+gate/tests/test_finding_carried_proof_grammar.py:92: AssertionError
+E       AssertionError: {'verdict': 'pass', 'first_failing_step': None, 'diagnostic': None, 'steps': [{'step': 1, 'name': 'toolchain', 'result...) carry a witness, each checked as step 7 checks a node's (F07-R23)", 'details': {'witnesses': [{...}, {...}]}}}, ...]}
+E       assert None == 2
+E        +  where None = Verdict(verdict='pass', steps=(StepRecord(step=1, name='toolchain', result='pass', diagnostic=None), StepRecord(step=2...-and-swap' contributes no constant to the proof", "declared dep 'and-reassoc' contributes no constant to the proof"]}}).first_failing_step
+gate/tests/test_finding_carried_proof_grammar.py:92: AssertionError
+E       AssertionError: {'verdict': 'pass', 'first_failing_step': None, 'diagnostic': None, 'steps': [{'step': 1, 'name': 'toolchain', 'result...) carry a witness, each checked as step 7 checks a node's (F07-R23)", 'details': {'witnesses': [{...}, {...}]}}}, ...]}
+E       assert None == 2
+E        +  where None = Verdict(verdict='pass', steps=(StepRecord(step=1, name='toolchain', result='pass', diagnostic=None), StepRecord(step=2...-and-swap' contributes no constant to the proof", "declared dep 'and-reassoc' contributes no constant to the proof"]}}).first_failing_step
+gate/tests/test_finding_carried_proof_grammar.py:92: AssertionError
+E       AssertionError: {'verdict': 'pass', 'first_failing_step': None, 'diagnostic': None, 'steps': [{'step': 1, 'name': 'toolchain', 'result...) carry a witness, each checked as step 7 checks a node's (F07-R23)", 'details': {'witnesses': [{...}, {...}]}}}, ...]}
+E       assert None == 2
+E        +  where None = Verdict(verdict='pass', steps=(StepRecord(step=1, name='toolchain', result='pass', diagnostic=None), StepRecord(step=2...-and-swap' contributes no constant to the proof", "declared dep 'and-reassoc' contributes no constant to the proof"]}}).first_failing_step
+gate/tests/test_finding_carried_proof_grammar.py:92: AssertionError
+E       AssertionError: {'verdict': 'pass', 'first_failing_step': None, 'diagnostic': None, 'steps': [{'step': 1, 'name': 'toolchain', 'result...) carry a witness, each checked as step 7 checks a node's (F07-R23)", 'details': {'witnesses': [{...}, {...}]}}}, ...]}
+E       assert None == 2
+E        +  where None = Verdict(verdict='pass', steps=(StepRecord(step=1, name='toolchain', result='pass', diagnostic=None), StepRecord(step=2...-and-swap' contributes no constant to the proof", "declared dep 'and-reassoc' contributes no constant to the proof"]}}).first_failing_step
+gate/tests/test_finding_carried_proof_grammar.py:92: AssertionError
+E       AssertionError: {'verdict': 'pass', 'first_failing_step': None, 'diagnostic': None, 'steps': [{'step': 1, 'name': 'toolchain', 'result...) carry a witness, each checked as step 7 checks a node's (F07-R23)", 'details': {'witnesses': [{...}, {...}]}}}, ...]}
+E       assert None == 2
+FAILED gate/tests/test_finding_carried_proof_grammar.py::test_a_well_formed_carried_proof_is_read_at_step_2
+FAILED gate/tests/test_finding_carried_proof_grammar.py::test_a_malformed_carried_proof_is_refused_at_step_2[files0-hole-proof-unattached]
+FAILED gate/tests/test_finding_carried_proof_grammar.py::test_a_malformed_carried_proof_is_refused_at_step_2[files1-hole-proof-unattached]
+FAILED gate/tests/test_finding_carried_proof_grammar.py::test_a_malformed_carried_proof_is_refused_at_step_2[files2-hole-proof-unattached]
+FAILED gate/tests/test_finding_carried_proof_grammar.py::test_a_malformed_carried_proof_is_refused_at_step_2[files3-hole-proof-unnamed]
+FAILED gate/tests/test_finding_carried_proof_grammar.py::test_a_malformed_carried_proof_is_refused_at_step_2[files4-hole-proof-duplicate]
+FAILED gate/tests/test_finding_carried_proof_grammar.py::test_a_malformed_carried_proof_is_refused_at_step_2[files5-hole-proof-malformed]
+FAILED gate/tests/test_finding_carried_proof_grammar.py::test_a_malformed_carried_proof_is_refused_at_step_2[files6-hole-proof-malformed]
+FAILED gate/tests/test_finding_carried_proof_grammar.py::test_a_malformed_carried_proof_is_refused_at_step_2[files7-hole-proof-malformed]
+FAILED gate/tests/test_finding_carried_proof_grammar.py::test_a_malformed_carried_proof_is_refused_at_step_2[files8-hole-proof-sorry]
+FAILED gate/tests/test_finding_carried_proof_grammar.py::test_a_malformed_carried_proof_is_refused_at_step_2[files9-hole-proof-sorry]
+FAILED gate/tests/test_finding_carried_proof_grammar.py::test_a_malformed_carried_proof_is_refused_at_step_2[files10-hole-proof-uses]
+FAILED gate/tests/test_finding_carried_proof_grammar.py::test_a_malformed_carried_proof_is_refused_at_step_2[files11-hole-proof-uses]
+FAILED gate/tests/test_finding_carried_proof_grammar.py::test_a_malformed_carried_proof_is_refused_at_step_2[files12-hole-proof-uses]
+FAILED gate/tests/test_finding_carried_proof_grammar.py::test_a_malformed_carried_proof_is_refused_at_step_2[files13-helper-forbidden]
+FAILED gate/tests/test_finding_carried_proof_grammar.py::test_a_malformed_carried_proof_is_refused_at_step_2[files14-helper-forbidden]
+FAILED gate/tests/test_finding_carried_proof_grammar.py::test_a_carried_proof_without_its_witness_is_refused
+FAILED gate/tests/test_finding_carried_proof_grammar.py::test_a_proof_file_beside_a_proof_is_refused
+FAILED gate/tests/test_finding_carried_proof_grammar.py::test_a_carried_proof_is_read_as_its_bytes
+FAILED gate/tests/test_finding_carried_proof_grammar.py::test_partial_mode_takes_a_carried_proof
+FAILED gate/tests/test_finding_carried_proof_grammar.py::test_composed_proof_is_the_statement[]
+FAILED gate/tests/test_finding_carried_proof_grammar.py::test_composed_proof_is_the_statement[private theorem and_comm' (p q : Prop) (h : p \u2227 q) : q \u2227
+FAILED gate/tests/test_finding_carried_proof_grammar.py::test_composed_proof_is_the_statement[\nprivate theorem and_comm' (p q : Prop) (h : p \u2227 q) : q \u22
+FAILED gate/tests/test_finding_carried_proof_grammar.py::test_composition_is_a_pure_function_of_its_inputs
+FAILED gate/tests/test_finding_carried_proof_grammar.py::test_a_body_that_is_not_by_is_composed_as_it_is
+25 failed, 2 passed in 2.72s
