@@ -1,0 +1,22 @@
+F04-T62 (Q60): a postmortem's words on its node's page. 2026-10-29T19:18:28Z
+network base origin/main f922b726; graph rendered ce03c910dc
+
+## Red (before the change, run in this worktree at origin/main's renderer)
+6 failed: every block list empty, the fixture's detail on the page 0 times, StopIteration on the
+goal-state and escaping tests, 'substring not found' on the order test.
+
+## Mutant: postmortems_block returns ''
+6 failed in 1.02s
+
+## Green
+6 passed in 1.16s
+
+## Site tier: 891 passed, 1 failed (test_golden_pages, the fixture node page) before regeneration;
+## after write_goldens() only and-swap-reassoc/index.html moved (+3 -1): the postmortem block.
+
+## The live graph rendered locally (747 pages)
+postmortems on the graph: 80; without a block on their page: 0
+
+## Screenshots (task-62-shoot.py): erdos-849 variant-3969f1f7--h2--h1--h4--h2--h3, #attempts
+{"1440": {"postmortem_blocks": 1, "visible": true, "scroll_width": 1440}, "390": {"postmortem_blocks": 1, "visible": true, "scroll_width": 390}}
+Read by eye: label, facts, route and the whole detail paragraph; no sideways scroll at 390.
