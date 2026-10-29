@@ -1,0 +1,15 @@
+Lead's fixes, testers 2026-10-27 (erdos-849)
+
+F29-T11 (A F3, B F2): the claim-form refusal says the claim begins and ends with a dollar sign and where prose goes; guide sentence added.
+Red (before the message change): test_a_claim_with_prose_outside_its_dollars_says_where_the_prose_goes, both cases:
+  AssertionError: assert 'begin and end with a dollar sign' in 'hole h_bhp: its `-- claim:` line is not `$…$` with something inside: ... (D-12 v3.44)'
+
+F22-T27 (D F-D7): gloss-step-anchors warning on a gloss whose headings carry {steps: …}.
+Red: test_step_anchored_text_filed_as_a_gloss_is_warned_not_refused:  AssertionError: assert [] == ['gloss-step-anchors']
+
+F13-T37 (C F-C2): the guide's fast-check section says lemma names are the pinned Mathlib's and points at mathlib_sha. Docs only.
+
+Not defects (already documented): C F-C1 / B F5 (write tools answer {status, body}): AGENTS.md lines 26-28 say so.
+
+Green:
+38 passed in 1.22s

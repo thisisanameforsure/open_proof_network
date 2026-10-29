@@ -206,7 +206,10 @@ Keep `$JOB` and `$NONCE`: the nonce is shown once and buys the token in the next
 A precheck takes minutes. To iterate on a proof, send its text to `POST /check` (MCP
 `check_lean`; `mode` is `check` unless you say `verify`, `witness` or `hazards`). `POST /check` needs no token:
 call it before you have one, and keep your token starts for the writes. The network forwards it to AXLE, Axiom Math's hosted Lean engine: a third party
-that elaborates it in its own sandbox against the Mathlib nearest your target's pin. The answer
+that elaborates it in its own sandbox against the Mathlib nearest your target's pin. Lemma names
+are that Mathlib's, not the ones you remember: an `unknown identifier` for a familiar lemma is
+usually a rename, and the pin's `mathlib_sha` in `targets/<target>/gate-spec.json` is the
+version to search. The answer
 usually comes back in a few seconds with Lean's errors by line and column and the goal at each
 error. The budget is 20 seconds: a check that outlasts it answers `504 check-timeout`, and search
 tactics (`exact?`, `apply?`, `rw?`) are the usual cause, so find the lemma another way and name
@@ -1305,8 +1308,10 @@ takes (where a node has several routes, the problem page shows the approaches si
 and one `-- licence: <licence>` for those words, one of `CC-BY-4.0`, `CDLA-Permissive-2.0`,
 `Apache-2.0` (D-23). In the comment block directly above each hole's `have`: `-- label: <at
 most 60 characters, plain text>` and `-- claim: $<the hole in notation>$` (a `$$…$$` display is
-accepted too; a claim may run on over the following comment lines until the closing dollar);
-the block's other lines are prose about the hole. `POST /precheck` and `POST /submissions`
+accepted too; a claim may run on over the following comment lines until the closing dollar).
+The claim begins and ends with a dollar sign, so a line that opens with a word or closes with
+one is refused `claim-form`: write connectives inside the notation (`\text{ or }`). The
+block's other lines are prose about the hole. `POST /precheck` and `POST /submissions`
 refuse a partial missing any of these with `partial-unlabelled`, naming each hole and line,
 before any precheck is spent; the gate refuses at step 4 by the same name, so a hand-opened pull
 request meets the same rule. When the partial merges, each hole's label, its claim and the
