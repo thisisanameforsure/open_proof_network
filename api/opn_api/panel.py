@@ -191,14 +191,19 @@ class World:
 # --- the shared write -----------------------------------------------------------------------------
 
 
-def _signed_in(ctx: Context, request: Request, fields: dict[str, Any]) -> tuple[str, str]:
-    """(login, target): the login a record is written as, and a target the graph has."""
+async def _signed_in(
+    ctx: Context, request: Request, accepted: tuple[str, ...]
+) -> tuple[str, str, dict[str, Any]]:
+    """(login, target, fields): the login a record is written as, a target the graph has, and
+    the body's fields. The login is read before the body (testers F-D2), so an identity with no
+    GitHub login is refused for who it is, whatever it sent."""
     login = stewards.github_login(request.state.identity)
+    fields, _ = await identitymod.body_fields(request, accepted)
     target = fields.get("target")
     if not isinstance(target, str) or not target:
         raise stewards.bad("target is required: a target id", field="target")
     appends.known_target(ctx, target)
-    return login, target
+    return login, target, fields
 
 
 def _open(  # noqa: PLR0913 — one record, its home and its description
@@ -253,8 +258,7 @@ PLACEHOLDER_SIGNATURE = "-----BEGIN SSH SIGNATURE-----\nAAAA\n-----END SSH SIGNA
 async def post_motions(ctx: Context, request: Request) -> Response:
     """R8: open a motion as a member of the target's panel or a listed curator."""
     held: Identity = request.state.identity
-    fields, _ = await identitymod.body_fields(request, MOTION_FIELDS)
-    login, target_id = _signed_in(ctx, request, fields)
+    login, target_id, fields = await _signed_in(ctx, request, MOTION_FIELDS)
     kind, subject = fields.get("kind"), fields.get("subject")
     if kind not in panelmod.KINDS:
         raise stewards.bad(f"kind is one of {', '.join(panelmod.KINDS)}", field="kind")
@@ -315,8 +319,7 @@ async def post_motions(ctx: Context, request: Request) -> Response:
 async def post_votes(ctx: Context, request: Request) -> Response:
     """R8: vote on an open motion, as a login whose vote the gate would read."""
     held: Identity = request.state.identity
-    fields, _ = await identitymod.body_fields(request, VOTE_FIELDS)
-    login, target_id = _signed_in(ctx, request, fields)
+    login, target_id, fields = await _signed_in(ctx, request, VOTE_FIELDS)
     n, vote = fields.get("motion"), fields.get("vote")
     if not isinstance(n, int) or isinstance(n, bool) or n < 1:
         raise stewards.bad("motion is the motion's number, an integer", field="motion")
@@ -372,8 +375,7 @@ def _record(world: World, n: int) -> writeup.View:
 async def post_writeups(ctx: Context, request: Request) -> Response:
     """R8: record a write-up (anyone signed in), or act on one as a listed author."""
     held: Identity = request.state.identity
-    fields, _ = await identitymod.body_fields(request, WRITEUP_FIELDS)
-    login, target_id = _signed_in(ctx, request, fields)
+    login, target_id, fields = await _signed_in(ctx, request, WRITEUP_FIELDS)
     action = fields.get("action")
     stewards.approval_key(ctx)
     doc: dict[str, Any] = {"schema": writeup.SCHEMA_V2, "target": target_id, "action": action}

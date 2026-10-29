@@ -394,8 +394,8 @@ def pr_body(what: str, pseudonym: str, path: str, checks: str) -> str:
 async def post_reviews(ctx: Context, request: Request) -> Response:
     """R14: open a review, as the sign-in, in its own pull request on a ``review/`` branch."""
     held: Identity = request.state.identity
+    login = stewards.github_login(held)  # who is asking comes before what they sent (F-D2)
     fields, _ = await identitymod.body_fields(request, OPEN_FIELDS)
-    login = stewards.github_login(held)
     target_id = appends.known_target(ctx, fields.get("target_id"))
     words = checked_words(fields.get("words"))
     cases = checked_cases(fields.get("cases"))
@@ -647,9 +647,9 @@ def next_answer_name(ctx: Context, target_id: str) -> str:
 async def post_answers(ctx: Context, request: Request) -> Response:
     """R14: the intent signer's answer to one question, signed with the approval key."""
     held: Identity = request.state.identity
+    login = stewards.github_login(held)  # who is asking comes before what they sent (F-D2)
     target_id = appends.known_target(ctx, request.path_params.get("target_id"))
     fields, _ = await identitymod.body_fields(request, ANSWER_FIELDS)
-    login = stewards.github_login(held)
     question = checked_id(fields.get("question"), "question")
     answer = checked_text(fields.get("answer"), "answer", ANSWER_MAX)
     cites = fields.get("cites")
@@ -772,9 +772,9 @@ def next_signature_name(ctx: Context, target_id: str, role: str, day: str) -> st
 async def post_signatures(ctx: Context, request: Request) -> Response:
     """R14: one signer's decision, by role, signed with the approval key."""
     held: Identity = request.state.identity
+    login = stewards.github_login(held)  # who is asking comes before what they sent (F-D2)
     target_id = appends.known_target(ctx, request.path_params.get("target_id"))
     fields, _ = await identitymod.body_fields(request, SIGNATURE_FIELDS)
-    login = stewards.github_login(held)
     role = fields.get("role")
     if role not in SIGNER_ROLES:
         raise bad(f"role is one of {', '.join(SIGNER_ROLES)}", "role")

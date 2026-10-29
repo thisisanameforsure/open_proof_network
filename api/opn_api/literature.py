@@ -276,8 +276,8 @@ async def post_confirm(ctx: Context, request: Request) -> Response:
     read where ``POST /stewards`` reads it, and the body is signed as every approval-key record
     is (``stewards.sign_record``)."""
     held: Identity = request.state.identity
+    login = stewards.github_login(held)  # who is asking comes before what they sent (F-D2)
     fields, _ = await identitymod.body_fields(request, CONFIRM_FIELDS)
-    login = stewards.github_login(held)
     node_id, target_id = appends.node_target(ctx, fields)
     chosen = record_body(fields)
     private, public = stewards.approval_key(ctx)
