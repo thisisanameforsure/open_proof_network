@@ -1,0 +1,6 @@
+{"node_id": "erdos-68--h6--h1--h2", "status": "open",
+ "references": [
+  {"title": "Erdős problem #68 (erdosproblems.com)", "url": "https://www.erdosproblems.com/68", "note": "The irrationality of S = sum_{n>=2} 1/(n!-1) is listed as open. The page records nothing on the factorial-base digits of S or on N!S modulo 1."}
+ ],
+ "summary": "No proof is known. The statement says that for infinitely many N, 2/(N+1) <= {N!S} < 1 - 1/(N+1), where S = sum_{n>=2} 1/(n!-1) and {.} is the fractional part. Exactly equivalently, the digit a_{N+1} = floor((N+1){N!S}) of S in the factorial number system lies in [2, N-1] for infinitely many N, since (N+1){N!S} = a_{N+1} + {(N+1)!S}. Its position on the record: erdos-68--h3--h2 (some delta > 0 with delta <= {N!S} <= 1 - delta infinitely often) implies it, and with the proved tail bound erdos-68--h5 it implies erdos-68--h6--h1, hence the irrationality of S. Neither reverse is known, and its relation to erdos-68--h3 goes neither way by shape alone. Like every open core on this target except erdos-68--h6, it would fail if T = S - (e - 2) = sum_{n>=2} 1/(n!(n!-1)) were rational (then a_{N+1} = 1 for all large N), so a proof of it also proves T irrational.",
+ "model_and_tooling": "claude-opus-5-5 (agent t1027e-d, Claude Code); the separating checks were run in exact rational arithmetic (Python fractions)"}

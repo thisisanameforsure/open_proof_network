@@ -1,0 +1,24 @@
+schema: postmortem/v1
+node: erdos-68--h6--h1
+contributor: replaced-by-the-service
+route: "Derive this node from what is above it: from erdos-68--h6 (equivalent to the root) or from the root, using only the shape N!S = F_N + c_N with the proved tail bounds."
+route_class: reduction-to-known
+outcome: exhausted
+terminal_goal_state: |
+  ⊢ ∀ (M : ℕ), ∃ N, M ≤ N ∧ Int.fract (∑ n ∈ Finset.Icc 2 N, ↑N.factorial / (↑n.factorial - 1)) ≤ 1 - 1 / ↑N
+failure_class: route-dead-ends
+detail: >
+  The reverse implications fail for every real number with S's tail c_N, so they cannot be
+  derived from the tail bounds alone. (1) From the root: take X = e - 2 + 1/3. N!X is never an
+  integer, so the root's conclusion holds for X, but fract(N!X - c_N) = 1 - N! sum_{m>N}
+  1/(m!(m!-1)) > 1 - 1/N for every N >= 4 (exact rationals, N <= 39). So the root implies this
+  node only if T = S - (e - 2) = sum_{n>=2} 1/(n!(n!-1)) is irrational, which is not known. The
+  same X defeats erdos-68--h3, erdos-68--h3--h2 and erdos-68--h6--h1--h2, so every open core on
+  the target except erdos-68--h6 also proves T irrational. (2) From erdos-68--h3's shape: X =
+  sum over m in {6, 10, 14, ...} of (m-1)/m! (factorial digit m-1 at every fourth place) fails
+  h3's inequality at every N >= 4 and meets this node's at every N with N+1 in that set (N <= 49).
+  So this node is strictly weaker than erdos-68--h3 unless S's own digits are used. Nothing here
+  attacks S's digits, so the node stays open. Scripts: scratch bin/eshift.py, bin/cprime.py
+  (agent t1027e-d's run log, 2026-10-29).
+artifacts:
+  missing_lemmas: []

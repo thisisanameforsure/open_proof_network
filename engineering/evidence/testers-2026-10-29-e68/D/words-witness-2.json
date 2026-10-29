@@ -1,0 +1,9 @@
+[
+ {
+  "subject": {
+   "kind": "witness",
+   "node_id": "erdos-68--h6--h1--h2"
+  },
+  "text": "$$\\exists M \\in \\mathbb{N}:\\ \\mathrm{True}$$\n\nThe statement quantifies over $M$ with no hypothesis, so its witness is any natural number; $M = 0$ is used. It says nothing about the fractional parts or the factorial digits.\n"
+ }
+]

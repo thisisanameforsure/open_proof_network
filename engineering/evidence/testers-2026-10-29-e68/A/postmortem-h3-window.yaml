@@ -1,0 +1,15 @@
+schema: postmortem/v2
+model_and_tooling: "Claude Opus 5.5 (claude-opus-5-5) in Claude Code; Lean checked on the network fast check"
+node: erdos-68--h3
+contributor: t1028-a
+route: "Other cores for this node besides the merged one (#1176): shrink the excluded window with the recurrence, or ask only that the fractional part of F_N not tend to 1."
+route_class: reduction-to-known
+outcome: exhausted
+failure_class: route-dead-ends
+detail: |
+  F_N = sum_{n=2}^N N!/(n!-1), f_N its fractional part, B_N = [1 - 2/N, 1) the window this node asks f_N to leave infinitely often.
+  (1) Window shrinking. F_{N+1} = (N+1) F_N + 1 + 1/((N+1)!-1). If f_N and f_{N+1} both lie in their windows, then 1 - f_N lies within about 3/(N+1)^2 of k/(N+1) for some k in {0, 1, 2}. So this node is equivalent to: f_N avoids three windows of total width O(1/N^2), inside B_N, for infinitely many N. Since sum 1/N^2 converges, a uniform model of f_N would avoid them for all large N, which makes the heuristic much stronger; but the statement is equivalent to the node, so it was not submitted as a hole.
+  (2) "f_N does not tend to 1" (some delta > 0 with f_N <= 1 - delta infinitely often). It implies the node and is not known to follow from it (the node allows f_N -> 1 at rate 3/N), and it is implied by the merged core erdos-68--h3--h2. It is the same inequality with a fixed margin and no new structure, so it was not submitted.
+  What the merged core adds, and what it costs: this node fails only when the factorial digits of S are eventually bounded (in {-1, 0, 1} after the shift by e), the merged core fails whenever they are o(n); and like every core found today (the merged one, erdos-68--h6--h1), it also implies that S - e is irrational, which the root does not.
+artifacts:
+  missing_lemmas: []

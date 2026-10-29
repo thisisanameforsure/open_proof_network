@@ -1,0 +1,10 @@
+[
+ {"subject": {"kind": "witness", "node_id": "erdos-68"},
+  "text": "$$\\mathrm{True}$$\n\nThe statement has no hypotheses, so the non-vacuity witness the gate asks for (step 7) is the trivial proposition, proved by `trivial`. It says nothing about the series.\n"},
+ {"subject": {"kind": "witness", "node_id": "erdos-68--h1"},
+  "text": "$$\\exists x \\in \\mathbb{R}\\ \\forall M \\in \\mathbb{N}\\ \\exists N \\ge M\\ \\forall m \\in \\mathbb{Z}:\\ N!\\,x \\ne m$$\n\nThe hypothesis of the criterion can hold: take $x = \\sqrt{2}$ and $N = M$. Since $\\sqrt 2$ is irrational and $M! \\ne 0$, $M!\\sqrt{2}$ is irrational, hence not an integer.\n"},
+ {"subject": {"kind": "witness", "node_id": "erdos-68--h2"},
+  "text": "$$\\exists N \\in \\mathbb{N}:\\ 2 \\le N$$\n\nThe one hypothesis of the statement, $2 \\le N$, holds at $N = 2$.\n"},
+ {"subject": {"kind": "witness", "node_id": "erdos-68--h3"},
+  "text": "$$\\exists M \\in \\mathbb{N}:\\ \\mathrm{True}$$\n\nThe statement quantifies over $M$ with no hypothesis, so its witness is any natural number; $M = 0$ is used. It says nothing about the fractional parts.\n"}
+]
