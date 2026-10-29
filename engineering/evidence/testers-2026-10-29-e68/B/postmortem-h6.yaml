@@ -1,0 +1,28 @@
+schema: postmortem/v2
+node: erdos-68--h6
+contributor: replaced-by-the-service
+route: "look for an open core between the root and --h3 on route 2: drop the upper disjunct (fract(F_N) >= 1 - 1/(N+1)), then pass from F_N to S's own factorial digits"
+route_class: direct-estimate
+outcome: exhausted
+terminal_goal_state: |
+  ⊢ ∀ (M : ℕ), ∃ N, M ≤ N ∧ 2 / (↑N + 1) ≤ Int.fract (↑N.factorial * ∑' (n : ℕ), 1 / (↑(n + 2).factorial - 1)) ∧ Int.fract (↑N.factorial * ∑' (n : ℕ), 1 / (↑(n + 2).factorial - 1)) < 1 - 1 / (↑N + 1)
+failure_class: route-dead-ends
+detail: >
+  Two levels merged: #1177 (this node keeps only its lower disjunct, child --h6--h1: fract(F_N) <= 1 - 1/N
+  infinitely often) and #1207 (that child from S's digits, with --h5 as a lemma: child --h6--h1--h2,
+  2/(N+1) <= fract(N! S) < 1 - 1/(N+1) infinitely often). Write S = sum_m a_m/m! with 0 <= a_m <= m-1, so
+  fract(N! S) = (a_{N+1} + fract((N+1)! S))/(N+1). The root says the digits a_m are not eventually 0 (nor
+  eventually m-1); this node says the same (it is equivalent to the root). --h6--h1 is implied by
+  "a_m in [2, m-2] infinitely often" and implies "a_m >= 2 infinitely often"; --h6--h1--h2 says
+  "a_{N+1} in [2, N-1] infinitely often". Known order: A1 (--h3--h2) => --h6--h1--h2 => --h6--h1 => root, and
+  --h3 => --h6--h1. No reverse is known: a real whose digits alternate 1 and m-1 satisfies --h6--h1 at
+  every other N and --h6--h1--h2 at none. Every one of these cores (and --h3) also forces S - e to be
+  irrational, i.e. T = sum_{n>=2} 1/(n!(n!-1)) irrational, since S - e rational makes the digits eventually 1;
+  the root alone does not. That is the shared barrier: proving any of them proves more than the problem
+  asks, about a series no better understood. Also tried and dropped: truncating F_N at n ~ N/2 + N/log N
+  (the top terms sum to < 1/N; the core is --h3 with a 1/N slack, the same question), the recurrence
+  x_{N+1} = fract((N+1) x_N + 1/((N+1)!-1)) (equivalent restatements only), and N = p - 1 with Wilson
+  (p divides (p-2)! - 1, which controls denominators, never the size of fract(F_N)).
+artifacts:
+  missing_lemmas: []
+model_and_tooling: "claude-opus-5-5 via Claude Code (agent t1028-b)"

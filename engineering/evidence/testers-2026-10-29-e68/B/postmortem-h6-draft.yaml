@@ -1,0 +1,28 @@
+schema: postmortem/v2
+node: erdos-68--h6
+contributor: replaced-by-the-service
+route: "look for an open core between the root and --h3: keep only the lower disjunct of this node, fract(F_N) <= 1 - 1/N infinitely often"
+route_class: direct-estimate
+outcome: exhausted
+terminal_goal_state: |
+  ⊢ ∀ (M : ℕ), ∃ N, M ≤ N ∧ Int.fract (∑ n ∈ Finset.Icc 2 N, ↑N.factorial / (↑n.factorial - 1)) ≤ 1 - 1 / ↑N
+failure_class: route-dead-ends
+detail: >
+  Write x_N = fract(F_N), F_N = sum_{n=2}^N N!/(n!-1), d_N = 1 - x_N, e_m = 1/(m!-1).
+  The recurrence F_{N+1} = (N+1) F_N + 1 + e_{N+1} gives d_{N+1} = fract((N+1) d_N - e_{N+1}), so with
+  k_N = floor((N+1) d_N - e_{N+1}) in {0..N}, d_N = sum_{m>N} (k_{m-1} + e_m) N!/m!, and
+  N! S = sum_{m>N} (1 - k_{m-1}) N!/m! (mod 1) for every N. In these "digits": the root says k_N != 1
+  infinitely often (S rational is exactly k_N = 1 from some N on); this node says the same; the
+  lower disjunct alone (the child of the one-hole partial) says k_N >= 2 infinitely often; --h3 says
+  k_N >= 3 infinitely often (approximately). So --h3 implies the child, which implies the root, and
+  neither reverse is known: failure of the child allows k_N in {0,1} eventually, which includes
+  S - e rational (k = 0), not excluded by the root; failure of --h3 allows digit 2 as well.
+  In S's own factorial digits a_m (S = sum a_m/m!, 0 <= a_m <= m-1): digits a_n in [2, n-2] infinitely
+  often imply the child, and the child implies digits a_n >= 2 infinitely often; the root says the digits
+  are not eventually 0 (nor eventually n-1).
+  No narrower statement with a mechanism was found: every reformulation through the recurrence, the
+  residues (N!/n!) mod (n!-1), or a subsequence of N (N = p-1, Wilson) is either equivalent to the
+  statement it came from or stronger without a reason to be easier.
+artifacts:
+  missing_lemmas: []
+model_and_tooling: "claude-opus-5-5 via Claude Code (agent t1028-b)"

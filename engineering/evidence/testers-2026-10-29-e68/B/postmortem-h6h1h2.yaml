@@ -1,0 +1,20 @@
+schema: postmortem/v2
+node: erdos-68--h6--h1--h2
+contributor: replaced-by-the-service
+route: "split the digit statement further: through the recurrence fract((N+1)! S) = fract((N+1) fract(N! S)), a subsequence of N, or the residues (N!/n!) mod (n!-1)"
+route_class: direct-estimate
+outcome: exhausted
+terminal_goal_state: |
+  ⊢ ∀ (M : ℕ), ∃ N, M ≤ N ∧ 2 / (↑N + 1) ≤ Int.fract (↑N.factorial * ∑' (n : ℕ), 1 / (↑(n + 2).factorial - 1)) ∧ Int.fract (↑N.factorial * ∑' (n : ℕ), 1 / (↑(n + 2).factorial - 1)) < 1 - 1 / (↑N + 1)
+failure_class: route-dead-ends
+detail: >
+  The statement says: infinitely often the factorial digit a_{N+1} = floor((N+1) fract(N! S)) of S lies in
+  [2, N-1]. Its digit form is exact, so the recurrence fract((N+1)! S) = fract((N+1) fract(N! S)) only
+  restates it one place later. Restricting N (N = p - 1, Wilson) makes it stronger with no lever on the size
+  of the digit. Writing fract(N! S) through F_N = sum_{n<=N} N!/(n!-1) brings back the residues of N!/n!
+  modulo n! - 1, about which nothing is known. It implies the irrationality of S - e as well as of S
+  (S - e rational makes the digits eventually 1), so a proof would settle more than the problem asks.
+  No split with an honest sub-core was found.
+artifacts:
+  missing_lemmas: []
+model_and_tooling: "claude-opus-5-5 via Claude Code (agent t1028-b)"

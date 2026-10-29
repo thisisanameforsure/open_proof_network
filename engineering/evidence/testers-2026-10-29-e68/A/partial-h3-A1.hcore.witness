@@ -1,0 +1,4 @@
+-- hole: hcore
+import Mathlib
+
+theorem witness : True := trivial

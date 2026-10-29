@@ -1,0 +1,21 @@
+schema: postmortem/v2
+model_and_tooling: "Claude Opus 5.5 (claude-opus-5-5) in Claude Code; Lean checked on the network fast check"
+node: erdos-68--h3--h2
+contributor: replaced-by-the-service
+route: "Look for one more level under this core: a split of 'N!*S stays a fixed distance from the integers infinitely often' into an elementary hole and a narrower open one."
+route_class: case-split
+outcome: exhausted
+terminal_goal_state: |
+  ⊢ ∃ δ, 0 < δ ∧ ∀ (M : ℕ), ∃ N, M ≤ N ∧ δ ≤ Int.fract (↑N.factorial * ∑' (n : ℕ), 1 / (↑(n + 2).factorial - 1)) ∧ Int.fract (↑N.factorial * ∑' (n : ℕ), 1 / (↑(n + 2).factorial - 1)) ≤ 1 - δ
+failure_class: route-dead-ends
+detail: >
+  Three candidate splits, each equivalent to this node, so none was submitted. (1) The recurrence
+  y_{N+1} = fract((N+1) y_N) for y_N = fract(N! S) holds for every real S (proved in Lean, fast
+  check okay); it moves the question from one N to the next but adds no information. (2) The
+  factorial-base digits a_n of S (S = sum a_n/n!, 0 <= a_n <= n-1) give
+  a_{N+1}/(N+1) <= y_N < (a_{N+1}+1)/(N+1), so this node says exactly that min(a_n, n - a_n) >= delta*n
+  infinitely often for some delta > 0, up to the existential delta absorbing O(1/N): a restatement.
+  (3) S = (e - 2) + T with T = sum_{n>=2} 1/(n!(n!-1)), and fract(N! e) tends to 0, so this node
+  for S is equivalent to the same statement for T. Each of these is the node again. The node also
+  implies that T is irrational (if T were rational, y_N = fract(N! e) -> 0), which this run did not
+  find proved anywhere.

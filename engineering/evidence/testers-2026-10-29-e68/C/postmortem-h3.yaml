@@ -1,0 +1,27 @@
+schema: postmortem/v2
+model_and_tooling: "Claude Opus 5.5 (claude-opus-5-5) in Claude Code; Lean checked on the network fast check"
+node: erdos-68--h3
+contributor: replaced-by-the-service
+route: "Truncate fract(F_N) to its low terms: rewrite each summand through the remainder of N! modulo n!-1, bound the high terms by a geometric series, and look for a core about the low residues that is narrower than this node."
+route_class: direct-estimate
+outcome: exhausted
+terminal_goal_state: |
+  ⊢ ∀ (M : ℕ), ∃ N, M ≤ N ∧ Int.fract (∑ n ∈ Finset.Icc 2 N, ↑N.factorial / (↑n.factorial - 1)) < 1 - 2 / ↑N
+failure_class: route-dead-ends
+detail: >
+  Two steps are proved in Lean and pass the fast check (no node was made of them, as no skeleton
+  used them). (1) Remainder form: for 2 <= n <= N, N!/(n!-1) is an integer plus r_n/(n!-1), where
+  r_n = (N!/n!) mod (n!-1) = N! mod (n!-1), so fract(F_N) = fract(sum_{n=2}^N r_n/(n!-1)).
+  (2) High terms: for K >= 2, sum_{n=K}^N N!/(n!(n!-1)) <= 2 N!/(K!(K!-1)), because consecutive
+  terms at least halve; so the terms with n above about N/2 + N/log N contribute less than 1/N.
+  What is left is a statement about the residues of N! modulo n!-1 for the low n, and it is the
+  node again with 1/N of slack: the node gives fract(low part) < 1 - 2/N or > 1 - 1/N, never
+  < 1 - 3/N, and the low part decides the node up to that slack. So the truncation removes
+  terms but not difficulty; it is not a narrower statement (agreed by B and D on the board,
+  2026-10-29). The run's chosen skeleton (merged partial #1176) strengthens the node instead, to
+  the distance from N!*S to the nearest integer not tending to 0.
+  A barrier common to this node and every core proposed under it (D on the board, 2026-10-29):
+  each implies that T = sum_{n>=2} 1/(n!(n!-1)) = S - (e - 2) is irrational. If T = p/q, then for
+  N >= q, fract(N! S) = fract(N! e) = u_N = sum_{m>N} N!/m!, while c_N = sum_{m>N} N!/(m!-1) > u_N,
+  so fract(F_N) = 1 - (c_N - u_N) > 1 - 1/N and the node fails at every large N. Any proof of
+  this node therefore contains a proof that T is irrational; this run found no proof of that.

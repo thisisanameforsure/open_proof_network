@@ -1,0 +1,16 @@
+schema: postmortem/v1
+node: erdos-68--h3--h2
+contributor: t1028-a
+route: "Split the core one level further: look for a narrower statement, or a named theorem, that implies that N!·S stays a fixed distance from the integers for infinitely many N (S = sum_{n>=2} 1/(n!-1))."
+route_class: reduction-to-known
+outcome: blocked
+failure_class: route-dead-ends
+detail: |
+  Two splits were examined; both are equivalent to the node, so neither was submitted.
+  (1) S = (e - 2) + T with T = sum_{n>=2} 1/(n!(n!-1)). N!(e - 2) is an integer plus theta_N with 0 < theta_N < 1/N, so the node for S and the same statement for T each give the other (with delta/2). Equivalent.
+  (2) Recurrence: write N!S = m_N + r_N with m_N the nearest integer. Then r_{N+1} = (N+1) r_N - j_N for an integer j_N, and the distance tends to 0 exactly when S is a rational plus sum_N j_N/(N+1)! with j_N/N -> 0. This restates the node in factorial digits (min(a_n, n - a_n) >= delta·n infinitely often); it is the same statement.
+  Where the node sits: it implies erdos-68--h3 (with the proved tail split erdos-68--h2), because if N!S is at least delta from the integers and N > 2/delta then the fractional part of F_N is the fractional part of N!S minus a tail c_N <= 2/N, hence below 1 - 2/N. erdos-68--h3 does not give it back: --h3 fails only when the factorial digits of S are eventually bounded (in {-1, 0, 1} after the shift by e), while the node fails whenever they are o(n). No known result bridges bounded and o(n).
+  The node also implies that S - e (equivalently T) is irrational: if T were rational, N!·S would be an integer plus a number below 1/N for all large N. So any proof of it must prove that too; the root alone does not.
+  No named theorem on N!·x modulo 1 applies to this S or T that we know of; for e itself N!·e does tend to the integers.
+artifacts:
+  missing_lemmas: []

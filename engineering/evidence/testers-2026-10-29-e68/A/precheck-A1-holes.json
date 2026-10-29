@@ -1,0 +1,25 @@
+[
+ {
+  "closed_type": "∀ (N : ℕ),\n  (2 : ℕ) ≤ N →\n    ∃ (c : ℝ),\n      (0 : ℝ) < c ∧\n        c ≤ (2 : ℝ) / (↑N : ℝ) ∧\n          (↑N.factorial : ℝ) * ∑' (n : ℕ), (1 : ℝ) / ((↑(n + (2 : ℕ)).factorial : ℝ) - (1 : ℝ)) =\n            ∑ n ∈ Finset.Icc (2 : ℕ) N, (↑N.factorial : ℝ) / ((↑n.factorial : ℝ) - (1 : ℝ)) + c",
+  "expected_new": false,
+  "expected_node_id": "erdos-68--h2",
+  "expected_witness": "∃ (N : ℕ), (2 : ℕ) ≤ N",
+  "name": "ht",
+  "proved_binders": [],
+  "restates": "erdos-68--h2"
+ },
+ {
+  "closed_type": "∃ (δ : ℝ),\n  (0 : ℝ) < δ ∧\n    ∀ (M : ℕ),\n      ∃ (N : ℕ),\n        M ≤ N ∧\n          δ ≤ Int.fract ((↑N.factorial : ℝ) * ∑' (n : ℕ), (1 : ℝ) / ((↑(n + (2 : ℕ)).factorial : ℝ) - (1 : ℝ))) ∧\n            Int.fract ((↑N.factorial : ℝ) * ∑' (n : ℕ), (1 : ℝ) / ((↑(n + (2 : ℕ)).factorial : ℝ) - (1 : ℝ))) ≤\n              (1 : ℝ) - δ",
+  "expected_new": true,
+  "expected_node_id": "erdos-68--h3--h2",
+  "expected_witness": "True",
+  "name": "hcore",
+  "proved_binders": [],
+  "restates": null,
+  "witness": {
+   "checked": true,
+   "path": "attempts/20261029T145300Z-t1028-a-partial.1.witness",
+   "sha256": "e12e3e6ab16b957645f35a8dfef027fe572272862429c905c756f11bbe9d36d4"
+  }
+ }
+]

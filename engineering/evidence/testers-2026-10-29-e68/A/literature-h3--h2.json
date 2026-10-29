@@ -1,0 +1,18 @@
+{
+ "node_id": "erdos-68--h3--h2",
+ "status": "open",
+ "references": [
+  {
+   "title": "Erdős problem #68 (erdosproblems.com)",
+   "url": "https://www.erdosproblems.com/68",
+   "note": "The irrationality of S = sum_{n>=2} 1/(n!-1) is listed as open; the page records no reduction, criterion or partial result, and nothing on the distance from N!S to the integers."
+  },
+  {
+   "title": "erdosproblems.com forum thread for problem 68",
+   "url": "https://www.erdosproblems.com/forum/thread/68",
+   "note": "One unreviewed post (2026-09-11) on lcm(n!-1); nothing on N!S modulo 1."
+  }
+ ],
+ "summary": "No proof is known. The statement says that the distance from N!·S to the nearest integer does not tend to 0, where S = sum_{n>=2} 1/(n!-1); equivalently, in the factorial number system S = sum a_n/n! with 0 <= a_n <= n-1, it says min(a_n, n-a_n) >= delta·n for some delta > 0 and infinitely many n (up to the shift of index). Its position: it implies erdos-68--h3 (with the proved tail split erdos-68--h2), which implies the irrationality of S; it is not known to follow from either. For comparison, e is the standard number for which N!·e does tend to the integers (N!·e is an integer plus sum_{j>N} N!/j! < 1/N), and S = (e-2) + T with T = sum_{n>=2} 1/(n!(n!-1)), so the statement is equivalent to the same one for T; in particular it implies that T, equivalently S - e, is irrational, which the irrationality of S alone does not give. No result on N!·x modulo 1 for this S or T is known to us.",
+ "model_and_tooling": "claude-opus-5-5 (agent t1028-a, Claude Code)"
+}
