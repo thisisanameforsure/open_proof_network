@@ -17,8 +17,10 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from collections.abc import Iterator
-from contextlib import contextmanager, nullcontext
+from contextlib import contextmanager
+from dataclasses import dataclass
 from datetime import timedelta
 from typing import TYPE_CHECKING, Any
 
@@ -63,69 +65,142 @@ def record_name(ctx: Context, identity: Identity) -> str:
     return f"{stamp(ctx)}-{identity.pseudonym}"
 
 
-#: F13-T23: the refusal of a second record at a path an open one of this second already takes.
+#: F13-T23: the refusal of a record at a path another request is opening, or an open pull
+#: request already adds.
 NAME_ERROR = "record-name-taken"
-#: How long a path is held against a second request. A name carries its second, so a hold only
-#: has to outlast the second it names; a minute also covers a clock the store and the function
-#: disagree on by a little.
+#: The window of the in-flight hold (``name_key``). The hold is dropped once the submission is
+#: recorded, after which the open record holds the path itself (``path_holder``); the window is
+#: only how long a hold left by a process that died mid-opening lasts (one to two windows).
 NAME_HOLD_S = 60
+#: The fingerprint an append records for the file it adds (``path_print``), so an open pull
+#: request can be found by its path; a record made before 2026-10-29 carries none.
+PATH_PRINT = "path:"
+#: D-13's ``<timestamp>-<pseudonym>`` file name, which names its second.
+TIMESTAMP_NAME_RE = re.compile(r"^\d{8}T\d{6}Z-")
 
 
-def name_holder(ctx: Context, identity: Identity, kind: str, owner: str) -> Submission | None:
-    """The open record of this kind, owner and pseudonym made in this second, when the store has
-    it (it is written after its pull request opens, so a request arriving together may not)."""
-    now = clockmod.render(ctx.clock.now())
+def path_print(path: str) -> str:
+    return PATH_PRINT + path
+
+
+def timestamp_named(path: str) -> bool:
+    """Whether the file is named for its second (D-13), so a second later the name is free."""
+    return TIMESTAMP_NAME_RE.match(path.rsplit("/", 1)[-1]) is not None
+
+
+def name_key(ctx: Context, path: str, *, back: int = 0) -> str:
+    """The in-flight hold's counter: the path and a window, as ``duplicates.counter_key`` is, so
+    a hold nobody dropped lapses with its window in either store (the memory store never
+    expires a counter, and DynamoDB counts an expired one until its TTL sweep). ``back`` names
+    an earlier window."""
+    window = int(ctx.clock.now().timestamp()) // NAME_HOLD_S - back
+    return f"name#{path}#{window}"
+
+
+def path_holder(ctx: Context, path: str) -> Submission | None:
+    """The open submission, still able to merge, that adds ``path`` (``duplicates.blocks``: one
+    merged, closed, withdrawn, gate-failed or conflicting holds nothing)."""
+    wanted = path_print(path)
     for found in ctx.store.list_open_submissions():
-        if (
-            found.kind == kind
-            and found.pseudonym == identity.pseudonym
-            and (found.node_id or found.target_id) == owner
-            and found.created == now
-        ):
+        if wanted in found.fingerprints and duplicates.blocks(ctx, found):
             return found
     return None
 
 
-@contextmanager
-def holding_name(
-    ctx: Context, identity: Identity, path: str, *, kind: str, owner: str
-) -> Iterator[None]:
-    """F13-T23: one record per file name. D-13 names a record ``<timestamp>-<pseudonym>`` to the
-    second, so a second different record from one identity in the same second would land at the
-    same path, and the gate's append-only rule refuses whichever merges second — a pull request
-    that could never merge. The path is taken with an atomic counter, as ``duplicates.holding``
-    takes a slot; the second request is refused ``409 record-name-taken`` with ``Retry-After: 1``
-    (a second later its name is its own) and nothing opens. Released if the pull request does not
-    open, so the same request can be sent again at once (C7)."""
-    key = f"name#{path}"
-    expires = ctx.clock.now() + timedelta(seconds=NAME_HOLD_S)
-    if ctx.store.bump_counter(key, expires) > 1:
-        found = name_holder(ctx, identity, kind, owner)
-        details: dict[str, Any] = {"path": path}
-        if found is not None:
-            details |= {
-                "pr_number": found.pr_number,
-                "pr_url": found.pr_url,
-                "submission_id": found.id,
-            }
-        opened = f" (pull request #{found.pr_number})" if found is not None else ""
-        raise ApiError(
-            409,
-            NAME_ERROR,
-            f"a record of yours is already being filed at {path}{opened} this second: a record's "
-            "file name is <timestamp>-<pseudonym> to the second (D-13), so a second one now "
-            "would share it and could never merge. Send it again after Retry-After",
-            details=details,
-            headers={"Retry-After": "1"},
+def name_refusal(path: str, found: Submission | None) -> tuple[str, dict[str, Any]]:
+    """The refusal's message and details: who holds the path, and whether waiting frees it."""
+    details: dict[str, Any] = {"path": path}
+    if found is None:
+        if timestamp_named(path):
+            return (
+                f"a record of yours is being filed at {path} this second: a record's file name "
+                "is <timestamp>-<pseudonym> to the second (D-13), so a second one now would "
+                "share it and could never merge. Send it again after Retry-After",
+                details,
+            )
+        return (
+            f"another request is opening a pull request that adds {path} at this moment; two "
+            "pull requests adding one file could never both merge. Send it again after "
+            "Retry-After: if that one opened, the answer names it",
+            details,
         )
+    details |= {"pr_number": found.pr_number, "pr_url": found.pr_url, "submission_id": found.id}
+    if timestamp_named(path):
+        return (
+            f"a record of yours filed this second is open at {path} as pull request "
+            f"#{found.pr_number}: a record's file name is <timestamp>-<pseudonym> to the second "
+            "(D-13), so a second one now would share it and could never merge. Send it again "
+            "after Retry-After",
+            details,
+        )
+    return (
+        f"pull request #{found.pr_number} is open and already adds {path}; two pull requests "
+        "adding one file could never both merge. This file is named by its content or "
+        "numbered after the last merged record, not by the second, so waiting does not free "
+        f"it: it is free once #{found.pr_number} merges (a numbered record then takes the next "
+        "number) or is withdrawn, and a different text has a different content-named path",
+        details,
+    )
+
+
+@dataclass
+class NameHold:
+    """What ``holding_name`` holds: the counter it took, and whether the pull request opened
+    (``append_pr`` says so), since a hold whose pull request opened is kept on a failure."""
+
+    key: str | None
+    opened: bool = False
+
+
+@contextmanager
+def holding_name(ctx: Context, path: str) -> Iterator[NameHold]:
+    """F13-T23, testers 2026-10-27 F-D9: one pull request per file. Two pull requests adding one
+    path could never both merge (the gate's append-only rule refuses the second as a
+    modification), so a request for a path is refused ``409 record-name-taken``, and nothing
+    opens, in two cases.
+
+    Standing: an open submission still able to merge already adds the path (``path_holder``),
+    named in the refusal. It holds the path until it merges or is withdrawn, however long that
+    is; a ``<timestamp>-<pseudonym>`` file (D-13) frees itself a second later, so only that
+    refusal carries ``Retry-After``.
+
+    In flight: another request is opening a pull request at the path, which the store cannot
+    show yet. The path is taken with an atomic counter keyed by the path and a window
+    (``name_key``); the current window and the one before are both read, so two requests either
+    side of a boundary are still one. Refused ``Retry-After: 1``. Once the pull request has
+    opened (``NameHold.opened``), ``append_pr`` drops the counter as soon as the submission is
+    recorded (``release_name``), so it never outlasts the opening; if the pull request does not
+    open it is dropped as the block ends, so the same request can be sent again at once (C7);
+    if it opened and recording failed, it is kept and lapses with its window."""
+    found = path_holder(ctx, path)
+    if found is not None:
+        message, details = name_refusal(path, found)
+        retry = {"Retry-After": "1"} if timestamp_named(path) else None
+        raise ApiError(409, NAME_ERROR, message, details=details, headers=retry)
+    expires = ctx.clock.now() + timedelta(seconds=2 * NAME_HOLD_S)
+    key = name_key(ctx, path)
+    earlier = ctx.store.bump_counter(name_key(ctx, path, back=1), expires, by=0)
+    if ctx.store.bump_counter(key, expires) > 1 or earlier > 0:
+        ctx.store.bump_counter(key, expires, by=-1)  # give back the count this request took
+        message, details = name_refusal(path, None)
+        raise ApiError(409, NAME_ERROR, message, details=details, headers={"Retry-After": "1"})
+    hold = NameHold(key)
     try:
-        yield
-    except BaseException:
-        try:
-            ctx.store.drop_counter(key)
-        except Exception as exc:  # any store failure: the hold expires on its own
-            log.warning("name %s not released: %s", path, type(exc).__name__)
-        raise
+        yield hold
+    finally:
+        if not hold.opened:  # opened: the caller releases it once the submission is recorded
+            release_name(ctx, hold)
+
+
+def release_name(ctx: Context, hold: NameHold) -> None:
+    """Drop the in-flight counter; a store that fails leaves it to lapse with its window."""
+    if hold.key is None:
+        return
+    try:
+        ctx.store.drop_counter(hold.key)
+    except Exception as exc:  # any store failure: the hold lapses with its window
+        log.warning("name %s not released: %s", hold.key, type(exc).__name__)
+    hold.key = None
 
 
 def string_cap(spec: Any) -> int | None:
@@ -307,18 +382,18 @@ def append_pr(  # noqa: PLR0913 — one pull request, described
     slot arriving together cannot both open (F21-R5). ``extra_body`` follows the body's own lines
     (F22-T4: the gate's warnings to a gloss or explainer). ``branch_prefix`` is ``append/``, which
     the merge actor takes, except for a steward record under reviewed admission (F23-R8:
-    ``curate/``, left to a curator). ``hold_name`` is the same-second rule (``holding_name``),
-    written for files named ``<timestamp>-<pseudonym>``; a route whose file has one fixed path
-    and its own one-writer rule (``names/<pseudonym>.yaml``, F25-R6) turns it off, since a hold
-    on a path that never changes is a hold on every later write."""
+    ``curate/``, left to a curator). ``hold_name`` is the one-pull-request-per-file rule
+    (``holding_name``); a route whose file has one fixed path and its own one-writer rule
+    (``names/<pseudonym>.yaml``, F25-R6) turns it off. Testers 2026-10-27 F-D9: the submission
+    records the file it adds (``path_print``), which is what holds the path while it is open,
+    and the in-flight name hold is given back once it is recorded, so a withdrawn submission
+    lets its path go at once."""
     owner = node_id or target_id
     prints = duplicates.check_append(ctx, kind, owner, written or content)
     append_id = identitymod.new_ulid(ctx.clock.now())
     slots = [duplicates.slot(kind, owner, fp) for fp in prints] + list(subject_slots)
-    name_hold = (
-        holding_name(ctx, identity, path, kind=kind, owner=owner) if hold_name else nullcontext()
-    )
-    with duplicates.holding(ctx, slots, kind), name_hold:
+    name_hold = holding_name(ctx, path) if hold_name else unheld()
+    with duplicates.holding(ctx, slots, kind), name_hold as held_name:
         pr = submissions.open_pr(
             ctx,
             identity,
@@ -328,6 +403,7 @@ def append_pr(  # noqa: PLR0913 — one pull request, described
             title=subject,
             body=pr_body(what, identity.pseudonym, path) + extra_body,
         )
+        held_name.opened = True  # kept until the record below stands in its place
     log.info("%s %s opened %s for %s", what, append_id, pr.url, identity.id)
     pending.record(
         ctx,
@@ -337,10 +413,17 @@ def append_pr(  # noqa: PLR0913 — one pull request, described
         target_id=target_id,
         node_id=node_id,
         pr=pr,
-        fingerprints=[*prints, *subject_prints],
+        fingerprints=[*prints, *subject_prints, path_print(path)],
         defect_class=defect_class,
     )
+    release_name(ctx, held_name)  # the open record holds the path now (``path_holder``)
     return {"id": append_id, "path": path, "pr_url": pr.url, "pr_number": pr.number}
+
+
+@contextmanager
+def unheld() -> Iterator[NameHold]:
+    """``holding_name``'s stand-in for a route that opts out: holds nothing."""
+    yield NameHold(None)
 
 
 # --- POST /postmortems (D-13) ---------------------------------------------------------------------

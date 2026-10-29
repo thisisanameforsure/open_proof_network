@@ -2244,10 +2244,11 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
     "record-name-taken": (
         "api",
         None,
-        "A record of yours is already being filed this second under the same timestamped file "
-        "name.",
-        "Send it again after Retry-After; a record's file name is <timestamp>-<pseudonym> to the "
-        "second.",
+        "Another request is opening, or an open pull request (named) already adds, the file "
+        "this record would add.",
+        "For a <timestamp>-<pseudonym> file, send it again after Retry-After: a second later its "
+        "name is its own. For a file named by its content or numbered, wait for the named pull "
+        "request to merge or be withdrawn, or change the text.",
     ),
     "relation-axiom": (
         "both",
