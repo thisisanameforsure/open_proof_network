@@ -128,7 +128,14 @@ def result_document(
     write it and the witness type step 7 will ask of it, so a contributor reads what a skeleton
     creates before submitting it; and, on a hole whose witness the bundle carried and step 7
     checked, ``witness`` (F07-R23), which is what the service reads before it opens a pull
-    request for such a bundle. Like ``steps`` they sit outside the attestation."""
+    request for such a bundle. Like ``steps`` they sit outside the attestation.
+
+    F32-R9 (D-29 v3.49): on a hole whose proof the bundle carried and the run checked against the
+    node that hole becomes (steps 4 to 8, F32-R3), ``proof`` — ``{path, sha256, checked: true}``,
+    ``path`` the carried file under the node and ``sha256`` its bytes' hash — read as
+    ``holes[].proof``; the key is absent from a hole that carried none, so a gate that predates
+    F32 answers a bundle with proofs without it, and the service refuses to submit that bundle
+    (``hole-proof-unchecked``)."""
     result: dict[str, Any] = {
         "job_id": str(job["id"]),
         "node_id": str(job["node_id"]),

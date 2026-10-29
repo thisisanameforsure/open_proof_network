@@ -26,6 +26,7 @@ def test_known_schemas_are_the_published_set() -> None:
         "attestation/v5",
         "attestation/v6",
         "attestation/v7",  # F25-T1 (automation)
+        "attestation/v8",  # F32-T0 (carried_by)
         "candidate/v1",
         "claims/v1",
         "closure/v1",  # F28-T8 (D-12 v3.42): proved by closure

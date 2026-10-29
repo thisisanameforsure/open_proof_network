@@ -78,13 +78,14 @@ def test_the_required_trio(missing: str) -> None:
 
 
 def test_attestation_v7_carries_automation_or_null() -> None:
-    assert schemas.violations(samples.attestation(), "attestation/v7") == []
-    declared = samples.attestation(automation=samples.automation())
-    assert schemas.violations(declared, "attestation/v7") == []
-    doc = samples.attestation()
+    v7 = "attestation/v7"  # F32-T0: the samples' current version is v8; v7 is held as it was
+    assert schemas.violations(samples.attestation(schema=v7), v7) == []
+    declared = samples.attestation(schema=v7, automation=samples.automation())
+    assert schemas.violations(declared, v7) == []
+    doc = samples.attestation(schema=v7)
     del doc["automation"]
-    assert refused(doc, "attestation/v7")
-    assert refused(samples.attestation(automation={"method": "agent"}), "attestation/v7")
+    assert refused(doc, v7)
+    assert refused(samples.attestation(schema=v7, automation={"method": "agent"}), v7)
 
 
 def ledger_doc(**entry: Any) -> dict[str, Any]:

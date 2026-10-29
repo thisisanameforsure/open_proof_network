@@ -68,6 +68,15 @@ def read_file(path: Path) -> str:
     return path.read_bytes().decode("utf-8")
 
 
+#: F32-R1 (D-29 v3.49): the suffix of a carried proof; the path role is ``hole-proof``.
+PROOF_SUFFIX = ".proof"
+
+
+def is_carried_proof(name: str) -> bool:
+    """Whether a file name under ``attempts/`` is a carried proof, by its suffix alone."""
+    return name.endswith(PROOF_SUFFIX) and name != PROOF_SUFFIX
+
+
 def is_carried(name: str) -> bool:
     """Whether a file name under ``attempts/`` is a carried witness, by its suffix alone."""
     return name.endswith(SUFFIX) and name != SUFFIX

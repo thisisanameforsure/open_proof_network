@@ -109,7 +109,7 @@ def test_a_field_the_block_does_not_know_is_refused() -> None:
 
 def test_the_attestation_copies_the_block_as_declared() -> None:
     doc = samples.attestation(automation=samples.automation())
-    assert attestationmod.SCHEMA == "attestation/v7"
+    assert attestationmod.SCHEMA == "attestation/v8"  # F32-T0: v8 adds carried_by
     assert schemas.violations(doc, attestationmod.SCHEMA) == []
     assert schemas.violations(samples.attestation(automation=None), attestationmod.SCHEMA) == []
     # the block's own rule holds inside the attestation too

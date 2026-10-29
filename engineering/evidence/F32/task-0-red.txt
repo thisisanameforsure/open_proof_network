@@ -1,0 +1,45 @@
+
+gate/tests/test_finding_carried_proof_contracts.py:107: AssertionError
+_______________ test_protocol_version_is_the_decisions_documents _______________
+
+    def test_protocol_version_is_the_decisions_documents() -> None:
+        found = HEADER.search(DECISIONS.read_text(encoding="utf-8"))
+        assert found, "the decisions document's header names no version"
+>       assert found.group(1) == PROTOCOL_VERSION
+E       AssertionError: assert '3.49' == '3.48'
+E         
+E         - 3.48
+E         ?    ^
+E         + 3.49
+E         ?    ^
+
+gate/tests/test_finding_protocol_version.py:26: AssertionError
+=========================== short test summary info ============================
+FAILED gate/tests/test_finding_carried_proof_contracts.py::test_attestation_v8_is_published_and_pinned
+FAILED gate/tests/test_finding_carried_proof_contracts.py::test_carried_by_is_required_and_nullable
+FAILED gate/tests/test_finding_carried_proof_contracts.py::test_every_reader_accepts_every_version_and_the_writer_emits_v8
+FAILED gate/tests/test_finding_carried_proof_contracts.py::test_a_carried_proof_has_a_role_and_no_mode_takes_it_yet
+FAILED gate/tests/test_finding_carried_proof_contracts.py::test_protocol_version_is_3_49
+FAILED gate/tests/test_finding_carried_proof_contracts.py::test_the_precheck_result_documents_holes_proof
+FAILED gate/tests/test_finding_protocol_version.py::test_protocol_version_is_the_decisions_documents
+7 failed, 1 passed in 92.74s (0:01:32)
+E       AssertionError: assert 'attestation/v8' in ('annex/v1', 'annex/v2', 'approach-record/v1', 'attempts/v1', 'attestation/v1', 'attestation/v2', ...)
+E        +  where ('annex/v1', 'annex/v2', 'approach-record/v1', 'attempts/v1', 'attestation/v1', 'attestation/v2', ...) = <function known_schemas at 0x10b0cba60>()
+E        +    where <function known_schemas at 0x10b0cba60> = schemas.known_schemas
+gate/tests/test_finding_carried_proof_contracts.py:40: AssertionError
+E       assert [Violation(pa... writeup/v2")] == []
+E         
+E         Left contains one more item: Violation(path='$.schema', message="unknown schema 'attestation/v8'; known: annex/v1, annex/v2, approach-record/v1, at...ndex/v7, targets-index/v8, targets-index/v9, vote/v1, waiver/v1, withdrawal/v1, withdrawal/v2, writeup/v1, writeup/v2")
+E         Use -v to get more diff
+gate/tests/test_finding_carried_proof_contracts.py:48: AssertionError
+E       AssertionError: assert 'attestation/v7' == 'attestation/v8'
+E         
+E         - attestation/v8
+E         ?              ^
+E         + attestation/v7
+E         ?              ^
+gate/tests/test_finding_carried_proof_contracts.py:69: AssertionError
+E       assert (None is not None)
+gate/tests/test_finding_carried_proof_contracts.py:86: AssertionError
+E       AssertionError: assert '3.48' == '3.49'
+E         

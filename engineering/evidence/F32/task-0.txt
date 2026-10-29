@@ -1,0 +1,92 @@
+F32-T0 — contracts (R4, R5, R9): attestation/v8, HASHES, accepted versions, writers emit v8 with carried_by: null, the hole-proof role reserved, holes[].proof documented, PROTOCOL_VERSION 3.49, goldens.
+
+== RED (before any change; tests written first) ==
+
+gate/tests/test_finding_carried_proof_contracts.py:107: AssertionError
+_______________ test_protocol_version_is_the_decisions_documents _______________
+
+    def test_protocol_version_is_the_decisions_documents() -> None:
+        found = HEADER.search(DECISIONS.read_text(encoding="utf-8"))
+        assert found, "the decisions document's header names no version"
+>       assert found.group(1) == PROTOCOL_VERSION
+E       AssertionError: assert '3.49' == '3.48'
+E         
+E         - 3.48
+E         ?    ^
+E         + 3.49
+E         ?    ^
+
+gate/tests/test_finding_protocol_version.py:26: AssertionError
+=========================== short test summary info ============================
+FAILED gate/tests/test_finding_carried_proof_contracts.py::test_attestation_v8_is_published_and_pinned
+FAILED gate/tests/test_finding_carried_proof_contracts.py::test_carried_by_is_required_and_nullable
+FAILED gate/tests/test_finding_carried_proof_contracts.py::test_every_reader_accepts_every_version_and_the_writer_emits_v8
+FAILED gate/tests/test_finding_carried_proof_contracts.py::test_a_carried_proof_has_a_role_and_no_mode_takes_it_yet
+FAILED gate/tests/test_finding_carried_proof_contracts.py::test_protocol_version_is_3_49
+FAILED gate/tests/test_finding_carried_proof_contracts.py::test_the_precheck_result_documents_holes_proof
+FAILED gate/tests/test_finding_protocol_version.py::test_protocol_version_is_the_decisions_documents
+7 failed, 1 passed in 92.74s (0:01:32)
+E       AssertionError: assert 'attestation/v8' in ('annex/v1', 'annex/v2', 'approach-record/v1', 'attempts/v1', 'attestation/v1', 'attestation/v2', ...)
+E        +  where ('annex/v1', 'annex/v2', 'approach-record/v1', 'attempts/v1', 'attestation/v1', 'attestation/v2', ...) = <function known_schemas at 0x10b0cba60>()
+E        +    where <function known_schemas at 0x10b0cba60> = schemas.known_schemas
+gate/tests/test_finding_carried_proof_contracts.py:40: AssertionError
+E       assert [Violation(pa... writeup/v2")] == []
+E         
+E         Left contains one more item: Violation(path='$.schema', message="unknown schema 'attestation/v8'; known: annex/v1, annex/v2, approach-record/v1, at...ndex/v7, targets-index/v8, targets-index/v9, vote/v1, waiver/v1, withdrawal/v1, withdrawal/v2, writeup/v1, writeup/v2")
+E         Use -v to get more diff
+gate/tests/test_finding_carried_proof_contracts.py:48: AssertionError
+E       AssertionError: assert 'attestation/v7' == 'attestation/v8'
+E         
+E         - attestation/v8
+E         ?              ^
+E         + attestation/v7
+E         ?              ^
+gate/tests/test_finding_carried_proof_contracts.py:69: AssertionError
+E       assert (None is not None)
+gate/tests/test_finding_carried_proof_contracts.py:86: AssertionError
+E       AssertionError: assert '3.48' == '3.49'
+E         
+
+== GREEN: the named verification command ==
+uv run --frozen pytest gate/tests/test_schemas.py gate/tests/test_finding_protocol_version.py gate/tests/test_products.py gate/tests/test_finding_carried_proof_contracts.py
+................                                                         [100%]
+160 passed in 79.36s (0:01:19)
+
+== make lint: exit 0; make types: exit 0 (gate 452, api 273, site 126 files, no issues) ==
+
+== fast tier (make test-fast, OPN_GRAPH_CHECKOUT = detached worktree of graph origin/main c3996bd447), run on a snapshot of exactly this commit's tree ==
+=== 7100 passed, 41 skipped, 276 deselected, 2 warnings in 750.04s (0:12:30) ===
+baseline before T0 (HEAD 0a212e72): = 1 failed, 7092 passed, 41 skipped, 276 deselected, 2 warnings in 717.38s (0:11:57) =  — the one failure is test_finding_protocol_version, which T0 turns green
+
+== goldens ==
+write_goldens(): only info.json changed in the three product goldens — protocol_version 3.48 -> 3.49 and schemas.attestation gains 8. api/tests/fixtures/info.json was already behind (3.38) and is not a golden copy any test compares; left as it was.
+
+== Files ==
+api/tests/test_finding_lemmas_mcp.py
+gate/opn_gate/attestation.py
+gate/opn_gate/bounce.py
+gate/opn_gate/carried.py
+gate/opn_gate/paths.py
+gate/opn_gate/products.py
+gate/precheck/job.py
+gate/schemas/HASHES
+gate/tests/golden/products/curated/info.json
+gate/tests/golden/products/interior-proved/info.json
+gate/tests/golden/products/unproved/info.json
+gate/tests/samples.py
+gate/tests/test_attestation.py
+gate/tests/test_finding_graph_lemmas.py
+gate/tests/test_finding_step9_root_only.py
+gate/tests/test_footprint.py
+gate/tests/test_products.py
+gate/tests/test_schemas.py
+gate/tests/test_schemas_f25.py
+gate/tests/test_submission_meta_v2.py
+gate/schemas/attestation/v8.json
+gate/tests/test_finding_carried_proof_contracts.py
+
+== Choices for a Q entry (the lead writes the spec) ==
+T0-a. carried_by's shape (Q7 names its facts, not its keys): {"node_id": <parent>, "assembly": {"path": "attempts/<name>.lean", "artifact_hash": <sha256 of the assembly file>}, "carried": {"path": "attempts/<name>.<n>.proof", "sha256": <sha256 of the carried file>}}; paths relative to the parent's node directory, as step 2's partial-submission record names them; additionalProperties false, path patterns held to the two suffixes. The assembly's hash is computed from the file because a partial's own attestation has artifact_hash: null (attestation.build hashes only a Proof.lean or an alternate).
+T0-b. The hole-proof role covers any flat attempts/*.proof (as hole-witness covers any *.witness); a name not attached to the assembly is refused at step 2 as hole-proof-unattached (T1), not left roleless.
+T0-c. The holes[].proof key is documented in precheck/job.py result_document's docstring (where holes[].witness is documented); the guide is T8's.
+T0-d. Version sets: bounce.ACCEPTED_SCHEMAS (which attestation.ACCEPTED_SCHEMAS is) gains v8; api/opn_api/precheck.py and gate/precheck/sign.py read that set; site/opn_site/model.py reads any attestation/* prefix. No hard-coded v7 list exists in api/ or site/ code.
