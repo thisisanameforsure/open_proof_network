@@ -327,6 +327,30 @@ def test_the_words_are_the_informal_statement_else_the_root_s_doc_comment(
     assert head2 is not None and head2["words"] == "Conjunction is commutative."
 
 
+def test_a_licence_header_is_not_the_words(tmp_path: Path, keys: dict[str, Path]) -> None:
+    """A registry import opens with a plain ``/- … -/`` licence header, which is not a doc
+    comment; with no informal statement the words are the record's paraphrase. erdos-52, -68,
+    -172, -376 and -406 were opened with the Apache header as their words (2026-10-28 run,
+    F-A4)."""
+    g = Graph(tmp_path, keys, roles=None, informal=None)
+    paraphrase = "Whether reassociating a conjunction and swapping its ends is harmless."
+    intake.write_doc(
+        g.target,
+        samples.target_record(id=TARGET, informal=None, paraphrase=paraphrase, curator=CURATOR),
+    )
+    statement = g.target / "nodes" / ROOT / "Statement.lean"
+    statement.write_text(
+        "/-\nCopyright 2025 The Formal Conjectures Authors.\n\n"
+        'Licensed under the Apache License, Version 2.0 (the "License");\n-/\n\n'
+        + statement.read_text(),
+        encoding="utf-8",
+    )
+    review_open.open_review(g.root, TARGET, day=DAY)
+    head = review.opening(g.target)
+    assert head is not None
+    assert head["words"] == paraphrase
+
+
 def test_the_candidate_is_credited_to_the_ledger_s_statement_line(
     tmp_path: Path, keys: dict[str, Path]
 ) -> None:

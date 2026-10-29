@@ -74,7 +74,7 @@ def test_load_node_reports_meta_and_hash_problems(tmp_path: Path) -> None:
 
     bad_meta = tmp_path / "bad"
     shutil.copytree(NODES / "and-reassoc", bad_meta)
-    (bad_meta / "META.yaml").write_text("schema: meta/v7\nid: bad\n")
+    (bad_meta / "META.yaml").write_text("schema: meta/v999\nid: bad\n")
     result = layout.load_node(bad_meta, "propositional")
     assert isinstance(result, list)
     assert result[0].code == "meta-invalid"

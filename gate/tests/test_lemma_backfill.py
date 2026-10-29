@@ -151,13 +151,42 @@ def test_the_backfill_writes_the_missing_edge_and_is_idempotent(tmp_path: Path) 
     assert (nodes_dir(root) / PARENT / "META.yaml").read_bytes() == before
 
 
-def test_a_hole_that_restated_the_parents_own_hole_writes_nothing(tmp_path: Path) -> None:
-    """An own hole child is an edge already on the record (R22): not a lemma, not reported."""
+def test_a_hole_that_restated_the_parents_own_hole_is_recorded_as_restated(
+    tmp_path: Path,
+) -> None:
+    """An own hole child is an edge already on the record (R22): not a lemma. Since F07-T78 the
+    backfill records which own hole it is (``restated``, ``meta/v7``), keyed by the partial, so
+    a route merged before the rule (erdos-68 #1154) stops reading as no node; run twice, the
+    second run writes nothing. The Context is untouched: no signature is added."""
     root = with_cross_branch_node(tmp_path / "g")
     old_merge(root)
+    context_before = context_of(root)
+    report = lemma_backfill.backfill(root, TARGET, Factory(root, reporting(H1)), tmp_path / "w")
+    assert report.as_dict() == {
+        "written": [],
+        "unchanged": [],
+        "failed": [],
+        "restated": [{"node": PARENT, "partial": OLD_PARTIAL, "hole": "borrowed", "own": H1}],
+    }
+    assert "lemmas" not in meta_of(root)
+    assert meta_of(root)["restated"] == [{"partial": OLD_PARTIAL, "hole": "borrowed", "node": H1}]
+    assert meta_of(root)["schema"] == "meta/v7"
+    assert context_of(root) == context_before
+    again = lemma_backfill.backfill(root, TARGET, Factory(root, reporting(H1)), tmp_path / "w2")
+    assert again.as_dict() == {"written": [], "unchanged": [], "failed": []}
+
+
+def test_the_node_s_first_partial_restates_nothing(tmp_path: Path) -> None:
+    """F07-T78: a hole of the first partial on a node that names one of the node's own holes is
+    that partial's own child, which it wrote; nothing is recorded (``follows_a_partial``)."""
+    root = with_cross_branch_node(tmp_path / "g")
+    for earlier in (nodes_dir(root) / PARENT / "attempts").glob("*-partial.lean"):
+        earlier.unlink()
+    old_merge(root)
+    before = meta_of(root)
     report = lemma_backfill.backfill(root, TARGET, Factory(root, reporting(H1)), tmp_path / "w")
     assert report.as_dict() == {"written": [], "unchanged": [], "failed": []}
-    assert "lemmas" not in meta_of(root)
+    assert meta_of(root) == before
 
 
 def test_a_hole_that_restated_nothing_writes_nothing(tmp_path: Path) -> None:

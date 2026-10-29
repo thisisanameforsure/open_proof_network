@@ -713,7 +713,8 @@ TOOLS: tuple[Tool, ...] = (
         "submit_postmortem",
         "Append a schema-checked postmortem (D-13) under the node; `yaml` is the record as an "
         "object or as its YAML text, as POST /postmortems takes it, validated against "
-        "postmortem/v1. "
+        "postmortem/v2: give `model_and_tooling` in the record, or null (D-23); a target whose "
+        "gate predates v2 is written postmortem/v1, which refuses a declared model. "
         "A second record from you in the same second would share its file name "
         "(<timestamp>-<pseudonym>), so it is refused 409 record-name-taken with "
         "Retry-After: 1 and nothing opens.",

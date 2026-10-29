@@ -32,7 +32,7 @@ from opn_api import identity as identitymod
 from opn_api import uses as usesmod
 from opn_api.app import ApiError
 from opn_gate import annex as annexmod
-from opn_gate import labels, schemas
+from opn_gate import labels, records, schemas
 
 if TYPE_CHECKING:
     from opn_api.app import Context
@@ -40,7 +40,10 @@ if TYPE_CHECKING:
 
 log = logging.getLogger(__name__)
 
-POSTMORTEM_SCHEMA = "postmortem/v1"
+#: postmortem/v2 (D-23): the record states the model and tooling that drafted it, as an approach
+#: record does; written for a target whose pinned gate reads it (``postmortem_schema``).
+POSTMORTEM_SCHEMA = records.POSTMORTEM_SCHEMA
+POSTMORTEM_V1 = "postmortem/v1"
 ANNEX_SCHEMA = "annex/v1"
 APPROACH_SCHEMA = "approach-record/v1"
 ANNEX_MAX_BYTES = 64 * 1024  # F07 §6
@@ -347,6 +350,33 @@ def append_pr(  # noqa: PLR0913 — one pull request, described
 POSTMORTEM_FIELDS: tuple[str, ...] = ("node_id", "yaml")
 
 
+def postmortem_schema(ctx: Context, target_id: str) -> str:
+    """The postmortem version written for ``target_id``: v2 when its pinned gate carries the
+    v2 schema, else v1 as before. An older gate refuses a v2 file at classify, so a pull request
+    opened there could never merge; the answer comes from the pin, as ``annex/v2``'s does."""
+    if usesmod.pinned_has(ctx, target_id, f"gate/schemas/{POSTMORTEM_SCHEMA}.json"):
+        return POSTMORTEM_SCHEMA
+    return POSTMORTEM_V1
+
+
+def postmortem_tooling(doc: dict[str, Any], schema: str, target_id: str) -> None:
+    """The record's own ``model_and_tooling`` (D-23), as declared and never verified: an absent
+    one is ``null`` in v2, which requires the field. v1 has no such field, so on an older pin a
+    null is dropped and a declared model is refused before anything opens, naming why."""
+    if schema != POSTMORTEM_V1:
+        doc.setdefault("model_and_tooling", None)
+        return
+    if doc.get("model_and_tooling") is not None:
+        raise ApiError(
+            400,
+            "record-invalid",
+            f"model_and_tooling: the gate {target_id} pins reads postmortem/v1, which has no "
+            f"model_and_tooling; {POSTMORTEM_SCHEMA} carries it and reaches a target at its "
+            "re-pin. Send the record without it meanwhile",
+        )
+    doc.pop("model_and_tooling", None)
+
+
 async def post_postmortems(ctx: Context, request: Request) -> Response:
     """R11: a typed failed attempt, contributed under the caller's identity (AC15)."""
     identity: Identity = request.state.identity
@@ -354,10 +384,12 @@ async def post_postmortems(ctx: Context, request: Request) -> Response:
     node_id, target_id = node_target(ctx, fields)
     doc = as_mapping(fields.get("yaml"), "yaml")
     written = written_record(doc)
-    doc["schema"] = POSTMORTEM_SCHEMA
+    schema = postmortem_schema(ctx, target_id)
+    postmortem_tooling(doc, schema, target_id)
+    doc["schema"] = schema
     doc["node"] = node_id
     doc["contributor"] = identity.pseudonym  # AC15: the caller, whatever the record said
-    validated(doc, POSTMORTEM_SCHEMA)
+    validated(doc, schema)
     path = node_dir(target_id, node_id) + f"attempts/{record_name(ctx, identity)}.yaml"
     content = yaml.safe_dump(doc, sort_keys=True, allow_unicode=True)
     return JSONResponse(

@@ -59,7 +59,6 @@ ACCEPTED: tuple[str, ...] = (
 FILE = layout.CONTEXT_FILE
 CLAIMS_FILE = "claims.json"
 CLAIMS_SCHEMA = "claims/v1"
-POSTMORTEM_SCHEMA = "postmortem/v1"
 DETAIL_MAX_CHARS = 500  # R3: no detail longer than this reaches a bundle
 DETAIL_FIELD = "detail"
 RECORD_LIMIT = 50  # §6: the newest records
@@ -204,13 +203,16 @@ def _must(reader: Reader, path: str) -> bytes:
     return raw
 
 
-def _yaml(raw: bytes, path: str, schema_id: str | None) -> dict[str, Any]:
+def _parsed(raw: bytes, path: str) -> object:
     try:
-        doc: object = yaml.safe_load(_text(raw, path))
+        return yaml.safe_load(_text(raw, path))
     except yaml.YAMLError as exc:
         msg = f"{path} is not YAML: {exc}"
         raise schemas.SchemaError(msg) from exc
-    return schemas.validate(doc, schema_id)
+
+
+def _yaml(raw: bytes, path: str, schema_id: str | None) -> dict[str, Any]:
+    return schemas.validate(_parsed(raw, path), schema_id)
 
 
 def _statement(reader: Reader, node_dir: str) -> dict[str, Any]:
@@ -403,7 +405,7 @@ def _attempts(reader: Reader, node_dir: str) -> dict[str, Any]:
         raw = _must(reader, path)
         doc: dict[str, Any] | None
         try:
-            doc = _yaml(raw, path, POSTMORTEM_SCHEMA)
+            doc = recordsmod.postmortem_doc(_parsed(raw, path), path)
         except schemas.SchemaError:
             histogram[INVALID] = histogram.get(INVALID, 0) + 1
             parsed.append((path, None))

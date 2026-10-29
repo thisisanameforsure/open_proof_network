@@ -1,0 +1,11 @@
+F26-T24 (committed as F26-T22 in 81d0492c; renumbered at the merge with main, where another session had taken T22 and Q24) — a licence header is not the review's words (2026-10-28 erdos-68 run, F-A4)
+
+RED (before the fix, review_open._DOC_COMMENT_RE = r'\A\s*/-[!-]?...'):
+  gate/tests/test_review_policy.py::test_a_licence_header_is_not_the_words FAILED
+  assert 'Copyright 20...e "License");' == 'Whether reas... is harmless.'
+
+GREEN:
+.................                                                        [100%]
+17 passed in 1.31s
+
+Live record (graph origin/main): targets/erdos-{52,68,172,376,406}/review/review.yaml words begin 'Copyright 202x The Formal Conjectures Authors'; each target.yaml has informal: null and a paraphrase. open_review leaves an existing review alone, so these five need a superseding opening (owner's act).

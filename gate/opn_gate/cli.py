@@ -17,6 +17,7 @@ import re
 import subprocess
 import sys
 import tempfile
+import time
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
@@ -4160,7 +4161,7 @@ def _merge_entries(  # noqa: PLR0912, PLR0913 — one argument per fact every en
             continue
         entry: ledger.Entry | None
         if loc.role == "postmortem":
-            record = schemas.load_yaml(graph / loc.path, recordsmod.POSTMORTEM_SCHEMA)
+            record = recordsmod.load_postmortem(graph / loc.path)
             route_class = str(record["route_class"])
             entry = ledger.postmortem_entry(
                 doc, identity=identity, target=target_id, node=node_id, route_class=route_class,
@@ -4316,10 +4317,13 @@ def ensure_image(spec: dict[str, Any], *, build: bool) -> str:
         if sandbox.image_exists(ref):
             return ref
         log.info("pulling the pinned image %s", ref)
+        started = time.monotonic()
         try:
-            return sandbox.pull_image(ref)
+            pulled = sandbox.pull_image(ref)
         except sandbox.SandboxError as exc:
             raise CliError(str(exc)) from exc
+        log.info("pulled the pinned image in %.1f s", time.monotonic() - started)
+        return pulled
     lean_toolchain = str(spec["lean_toolchain"])
     raw_sha = spec.get("mathlib_sha")
     mathlib_sha = str(raw_sha) if raw_sha else None

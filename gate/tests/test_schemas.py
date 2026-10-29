@@ -102,6 +102,7 @@ def test_known_schemas_are_the_published_set() -> None:
         "meta/v4",
         "meta/v5",
         "meta/v6",  # v3.38: lemmas
+        "meta/v7",  # F07-T78: restated
         "motion/v1",
         "node-status/v1",
         "outline/v1",
@@ -112,6 +113,7 @@ def test_known_schemas_are_the_published_set() -> None:
         "policy/v3",  # F23-T1 (steward_admission)
         "policy/v4",  # F26-T1 (review_openers)
         "postmortem/v1",
+        "postmortem/v2",  # model_and_tooling (D-23)
         "precheck-record/v1",
         "proposed-for/v1",
         "qa/v1",

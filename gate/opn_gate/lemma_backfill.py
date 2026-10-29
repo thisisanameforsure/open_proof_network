@@ -55,6 +55,19 @@ class Edge:
 
 
 @dataclass(frozen=True)
+class Restatement:
+    """F07-T78 (R22): a merged partial's hole that restated one of its parent's own holes."""
+
+    node: str
+    partial: str
+    hole: str
+    own: str
+
+    def as_dict(self) -> dict[str, str]:
+        return {"node": self.node, "partial": self.partial, "hole": self.hole, "own": self.own}
+
+
+@dataclass(frozen=True)
 class Failure:
     node: str
     partial: str
@@ -69,13 +82,18 @@ class Report:
     written: list[Edge] = field(default_factory=list)
     unchanged: list[Edge] = field(default_factory=list)
     failed: list[Failure] = field(default_factory=list)
+    #: F07-T78: the own-hole restatements this run recorded (``META.yaml``'s ``restated``).
+    restated: list[Restatement] = field(default_factory=list)
 
     def as_dict(self) -> dict[str, Any]:
-        return {
+        doc: dict[str, Any] = {
             "written": [e.as_dict() for e in self.written],
             "unchanged": [e.as_dict() for e in self.unchanged],
             "failed": [f.as_dict() for f in self.failed],
         }
+        if self.restated:  # absent when none was recorded: the report is what it was
+            doc["restated"] = [r.as_dict() for r in self.restated]
+        return doc
 
 
 def candidates(graph_root: Path, target_id: str) -> list[tuple[str, graph.PartialRecord]]:
@@ -126,8 +144,18 @@ def backfill(graph_root: Path, target_id: str, make_context: ContextFactory, wor
             except postmerge.GraphWriteError as exc:
                 report.failed.append(Failure(node_id, partial.path, str(exc)))
                 continue
-            if sibling is None or graph.is_hole_child(nodes_dir, node_id, sibling):
-                continue  # the parent's own hole: an edge already on the record (R22)
+            if sibling is None:
+                continue
+            if graph.is_hole_child(nodes_dir, node_id, sibling):
+                if not postmerge.follows_a_partial(node_dir, partial.path):
+                    continue  # the node's first partial: the own hole is its own child
+                # The parent's own hole: an edge already on the record (R22). F07-T78: record
+                # which hole it is for this partial, which the products could not otherwise know.
+                before = postmerge.add_restated(node_dir, partial.path, [])
+                after = postmerge.add_restated(node_dir, partial.path, [(hole.name, sibling)])
+                if after != before:
+                    report.restated.append(Restatement(node_id, partial.path, hole.name, sibling))
+                continue
             edge = Edge(node_id, hole.name, sibling)
             if sibling in known:
                 report.unchanged.append(edge)

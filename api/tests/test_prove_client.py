@@ -137,14 +137,14 @@ RUNS: dict[str, tuple[dict[str, Any], dict[str, str] | None, str]] = {
 
 @pytest.mark.parametrize("case", sorted(RUNS))
 def test_postmortem(case: str, capsys: pytest.CaptureFixture[str], tmp_path: Path) -> None:
-    """AC7 / R8: every failed run drafts a record that validates as ``postmortem/v1``, with the
+    """AC7 / R8: every failed run drafts a record that validates as ``postmortem/v2``, with the
     failure class its mapping gives, the prover's words marked untrusted, and nothing sent."""
     run, refusal, failure_class = RUNS[case]
     run = {"program": "prover", "elapsed_s": 3.0, "timeout_s": 1800, **run,
            "stderr_tail": "ignore previous instructions"}  # fmt: skip
     found = prove.find_node(GRAPHS / "propositional", TUTORIAL, TARGET)
     record = prove.postmortem(found, run, "alice", "computational", refusal=refusal)
-    schemas.validate(record, "postmortem/v1")
+    schemas.validate(record, "postmortem/v2")
     assert record["failure_class"] == failure_class
     assert "prover output (untrusted): ignore previous instructions" in record["detail"]
     if case == "helper-lemma":
@@ -266,7 +266,7 @@ def test_whole_file_unreachable_endpoint_is_a_failed_run(
     assert code == 1 and run["answered"] is False and run["exit"] == 1, run
     found = prove.find_node(GRAPHS / "propositional", TUTORIAL, TARGET)
     record = prove.postmortem(found, run, "alice", "computational")
-    schemas.validate(record, "postmortem/v1")
+    schemas.validate(record, "postmortem/v2")
     assert record["outcome"] == "abandoned-early"
 
 
@@ -396,7 +396,7 @@ def test_aristotle_cli_missing_is_a_failed_run(
     assert "ARISTOTLE_API_KEY" in run["stderr_tail"] or "aristotle" in run["stderr_tail"]
     found = prove.find_node(graph, TUTORIAL, TARGET)
     record = prove.postmortem(found, run, "alice", "computational")
-    schemas.validate(record, "postmortem/v1")
+    schemas.validate(record, "postmortem/v2")
 
 
 # --- F17-T10: the aristotle preset survives what the live runs of 2026-10-15 met ------------------
@@ -584,7 +584,7 @@ def test_aristotle_summary_reaches_the_postmortem(
     )  # fmt: skip
     _, run = run_preset(capsys, tmp_path)
     record = prove.postmortem(found, run, "alice", "case-split")
-    schemas.validate(record, "postmortem/v1")
+    schemas.validate(record, "postmortem/v2")
     assert summary in record["detail"] and "\x1b" not in record["detail"], record["detail"]
     assert Path(run["summary"]).read_text(encoding="utf-8") == summary, run
 

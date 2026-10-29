@@ -821,6 +821,14 @@ FAILURES = {
 DETAIL_MAX = 4000
 
 
+def tooling_of(run: dict[str, Any]) -> str:
+    """``<program> (opn-prove/<backend>)``, or the harness alone when the run names no program;
+    at most the 200 characters ``postmortem/v2`` allows."""
+    harness = f"{HARNESS}/{run.get('backend') or 'command'}"
+    program = run.get("program")
+    return (f"{program} ({harness})" if program else harness)[:200]
+
+
 def postmortem(  # noqa: PLR0913 — one argument per field the record requires
     node: Node,
     run: dict[str, Any],
@@ -830,8 +838,10 @@ def postmortem(  # noqa: PLR0913 — one argument per field the record requires
     refusal: dict[str, Any] | None = None,
     route: str | None = None,
 ) -> dict[str, Any]:
-    """A draft ``postmortem/v1`` for a run that produced no admissible proof. It is a draft: the
-    route and its class are the contributor's to confirm, and nothing is sent without ``--send``."""
+    """A draft ``postmortem/v2`` for a run that produced no admissible proof. It is a draft: the
+    route and its class are the contributor's to confirm, and nothing is sent without ``--send``.
+    ``model_and_tooling`` names what ran (D-23): the run's program and the harness backend that
+    drove it, as this client knows them; the network verifies neither."""
     if run.get("timed_out"):
         key = "timeout"
     elif not run.get("answered"):
@@ -843,13 +853,14 @@ def postmortem(  # noqa: PLR0913 — one argument per field the record requires
     outcome, failure_class = FAILURES[key]
     program = run.get("program") or "a prover"
     record: dict[str, Any] = {
-        "schema": "postmortem/v1",
+        "schema": "postmortem/v2",
         "node": f"{node.target_id}/{node.node_id}",
         "contributor": contributor,
         "route": (route or f"automated proof search by {program} on the exported statement")[:500],
         "route_class": route_class,
         "outcome": outcome,
         "failure_class": failure_class,
+        "model_and_tooling": tooling_of(run),
     }
     elapsed, budget = run.get("elapsed_s"), run.get("timeout_s")
     detail = [f"{HARNESS} run: exit {run.get('exit')}, {elapsed} s of {budget} s"]

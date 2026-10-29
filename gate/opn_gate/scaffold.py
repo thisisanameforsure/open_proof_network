@@ -37,6 +37,8 @@ META_SCHEMA_PROVED = "meta/v5"
 #: D-12 v3.38 (F07-T77): a node whose merged partial restated a node under another branch
 #: records it as a lemma, from v6. Written by the post-merge job only (``postmerge.add_lemmas``).
 META_SCHEMA_LEMMAS = "meta/v6"
+#: F07-T78 (R22): the version that can say which own hole a later route's hole restated.
+META_SCHEMA_RESTATED = "meta/v7"
 NODE_STATUS_SCHEMA = "node-status/v1"
 RELATION_FILE = "Relation.lean"
 RELATION_DECL = "relation"

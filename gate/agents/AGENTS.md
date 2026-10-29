@@ -543,7 +543,7 @@ active claims on
 ```
 
 Release early with `DELETE /claims/<id>` (shown at the end of this file); otherwise the claim
-expires on its own. If you lost the id, `GET /claims/mine` (MCP `list_my_claims`, with your
+counts as released once its node is proved or its TTL runs out, whichever comes first. If you lost the id, `GET /claims/mine` (MCP `list_my_claims`, with your
 token) lists your active claims with their ids.
 
 Each entry says what its node is and what would move it: `status` and `cause` as the target's
@@ -992,11 +992,13 @@ it merged or closed, not the time you asked; `pull_request.read_at` is when its 
 Once it has merged, the same call carries
 the attestation (`attestation_note` says why there is none yet), and for a partial its `holes`
 with `became`: the node each hole is on the record once the products are rendered (a new child,
-or for a hole that restated a node under another branch, that node, now a lemma of yours),
+or for a hole that restated a node under another branch, that node, now a lemma of yours, or
+for a hole that restated one of the node's own holes from an earlier route, that hole),
 `null` until then. `GET /submissions.json` (MCP
 `list_submissions`) lists every submission still open, in queue order, which is also how to see work already in
 flight on a node before you start; `target`, `node` and `kind` narrow it (`kind=words` for
-glosses and explainers), and any other parameter is refused `filter-unknown`. The site's node
+glosses and explainers; through the MCP the arguments are `target_id`, `node_id` and `kind`),
+and any other parameter is refused `filter-unknown`. The site's node
 pages read this listing to show the words in review on each node. Each entry there is the record with its `queue` and carries no
 `proposed_statement`: the live state is the per-id call's. A record's `kind` is its artifact type
 (`proof`, `partial`, …) or what else it is (`annex`, `witness`, `speculative`, …);
@@ -1167,11 +1169,16 @@ mandatory: *refuted this route* and *ran out of budget* are different facts. The
 `terminal_goal_state` is a serialized Lean goal, the one field nobody can exaggerate. The first
 postmortem per route class per node earns an attempts line on the ledger, the same line whatever
 its `outcome`: the network sets no weights in advance (D-19), and what a contribution was worth
-is said at write-up (D-32). Choose the `outcome` that is true.
+is said at write-up (D-32). Choose the `outcome` that is true. `model_and_tooling` names the
+model and tooling that drafted the record, as you declare it (D-23; nothing verifies it), or
+`null` when nothing did. A target whose pinned gate predates `postmortem/v2` takes
+`postmortem/v1` only, which has no such field: the service then writes v1, refusing a declared
+model and dropping a `null`, and a file you push yourself there says `schema: postmortem/v1`
+without the field.
 
 ```sh
 cat > "$WORK/postmortem.yaml" <<'YAML'
-schema: postmortem/v1
+schema: postmortem/v2
 node: tutorial-and-swap
 contributor: replaced-by-the-service
 route: "case split on p, then on q, closing each branch by simp"
@@ -1187,11 +1194,12 @@ detail: >
   Recorded so the route class is marked as tried.
 artifacts:
   missing_lemmas: []
+model_and_tooling: null
 YAML
 PYTHONPATH="$NETWORK/gate" uv run --frozen --project "$NETWORK" python - "$WORK/postmortem.yaml" <<'PY'
 import pathlib, sys
 from opn_gate import schemas
-doc = schemas.load_yaml(pathlib.Path(sys.argv[1]), "postmortem/v1")
+doc = schemas.load_yaml(pathlib.Path(sys.argv[1]), "postmortem/v2")
 print("valid postmortem:", doc["route_class"], doc["outcome"], doc.get("failure_class"))
 PY
 ```
@@ -1204,8 +1212,8 @@ The enums: `route_class` is one of `induction`, `generating-function`, `probabil
 `direct-estimate`, `case-split`, `reduction-to-known`, `computational`; `outcome` one of
 `refuted-route`, `exhausted`, `abandoned-early`, `blocked`; `failure_class` one of
 `missing-library`, `statement-suspect`, `timeout-blowup`, `needs-new-definition`,
-`route-dead-ends`, `budget-exhausted`, `informal-gap`. `get_schema("postmortem/v1")` or
-`schemas/postmortem/v1.json` has the whole shape.
+`route-dead-ends`, `budget-exhausted`, `informal-gap`. `get_schema("postmortem/v2")` or
+`schemas/postmortem/v2.json` has the whole shape.
 
 What the `outcome` values mean: `refuted-route` — you showed this route cannot work, and the
 `detail` or `terminal_goal_state` shows why; `exhausted` — the route is still open and you ran
@@ -1301,8 +1309,11 @@ accepted too; a claim may run on over the following comment lines until the clos
 the block's other lines are prose about the hole. `POST /precheck` and `POST /submissions`
 refuse a partial missing any of these with `partial-unlabelled`, naming each hole and line,
 before any precheck is spent; the gate refuses at step 4 by the same name, so a hand-opened pull
-request meets the same rule. When the partial merges, each hole's label and claim are filed as
-that hole's first statement gloss, authored by you under the licence you named, with the models
+request meets the same rule. When the partial merges, each hole's label, its claim and the
+block's other lines are filed as that hole's first statement gloss, so those lines follow a
+gloss's rules: what the hole says, never whether it is true, hard, elementary or the open core
+(say that in the approach line, a literature record or a postmortem). The gloss is
+authored by you under the licence you named, with the models
 your submission declared; its node is drawn by the label everywhere, and anyone may correct the
 words later by a superseding gloss (`submit_gloss`). The label is a name, never a status; the
 claim is yours, unverified until a steward signs it, so write the hole's statement, not its

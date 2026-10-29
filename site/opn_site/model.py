@@ -159,9 +159,10 @@ class PartialView:
     """One ``attempts/*.lean`` partial assembly (D-3, D-12 #5) and the records naming it.
 
     A partial is contributor text no hash in the record binds, so it renders untrusted (R4).
-    Two records can name it, both optional: a ``postmortem/v1`` file (``record_path``, its
-    ``contributor`` and typed fields), and — for a partial that merged — the passing attestation
-    whose step 2 took the file (``graph.partials_of``; F04-T35). That attestation is a pass
+    Two records can name it, both optional: a postmortem, ``v1`` or ``v2`` (``record_path``,
+    its ``contributor``, typed fields and v2's declared model), and — for a partial that
+    merged — the passing attestation whose step 2 took the file (``graph.partials_of``;
+    F04-T35). That attestation is a pass
     against the parent's statement hash and proves nothing (F03-Q7); what it records is who
     submitted the file and the merge that filed it. The live graph carries partials neither
     names, and ``records.count_attempts`` already counts those as attempts in their own right.
@@ -178,6 +179,8 @@ class PartialView:
     attestation_path: str | None = None
     merge_commit: str | None = None
     submitter: str | None = None
+    #: the postmortem's declared ``model_and_tooling`` (``postmortem/v2``, D-23), when it names one
+    model: str | None = None
 
 
 @dataclass(frozen=True)
@@ -1012,7 +1015,7 @@ def _partials_for(
     named: dict[str, tuple[dict[str, Any], str]] = {}
     for path in sorted(p for p in attempts.iterdir() if p.suffix in records.ATTEMPT_SUFFIXES):
         try:
-            doc = schemas.load_yaml(path, records.POSTMORTEM_SCHEMA)
+            doc = records.load_postmortem(path)
         except schemas.SchemaError:
             continue
         partial = (doc.get("artifacts") or {}).get("partial_proof")
@@ -1042,6 +1045,7 @@ def _partials_for(
                 attestation_path=att_path or None,
                 merge_commit=field("merge_commit", att),
                 submitter=field("submitter", att),
+                model=field("model_and_tooling"),
             )
         )
     return tuple(views)

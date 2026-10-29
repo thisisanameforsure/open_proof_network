@@ -42,7 +42,6 @@ TARGET_STATUS_SCHEMA = "target-status/v2"
 #: Every live version, from the table the append path checks: F12-Q16 added v2 for the watcher's
 #: `upstream-drift`, and a curator acts on that request with `revise` (D-34: versions, not edits).
 REVISION_SCHEMAS: tuple[str, ...] = SCHEMAS_FOR_ROLE["revision-request"]
-POSTMORTEM_SCHEMA = "postmortem/v1"
 MISSING_LIBRARY = "missing-library"
 #: D-33's pilot defaults, tunable per graph: every ready node carries at least K attempts, or no
 #: progress artifact has landed in N days.
@@ -702,7 +701,7 @@ def missing_library_report(
             continue
         for path in sorted(p for p in attempts.iterdir() if p.suffix in records.ATTEMPT_SUFFIXES):
             try:
-                doc = schemas.load_yaml(path, POSTMORTEM_SCHEMA)
+                doc = records.load_postmortem(path)
             except schemas.SchemaError:
                 continue  # F03-R7 already counts it as invalid; it names no lemma
             if doc.get("failure_class") != MISSING_LIBRARY:

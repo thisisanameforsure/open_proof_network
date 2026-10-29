@@ -514,6 +514,8 @@ class PartialMerge:
     witnessed: tuple[str, ...] = ()
     #: F07-T77 (D-12 v3.38): the lemma edges this merge recorded, ``(hole name, node)``.
     lemmas: tuple[tuple[str, str], ...] = ()
+    #: F07-T78 (R22): the parent's own holes this merge's holes restated, ``(hole name, node)``.
+    restated: tuple[tuple[str, str], ...] = ()
     #: F29-R7 (D-12 v3.44): the statement glosses this merge filed beside its created children,
     #: as paths under the target directory (``nodes/<child>/gloss/<hash>.md``); empty when the
     #: partial declared no words (an older pin) or when no child was created.
@@ -531,6 +533,8 @@ class PartialMerge:
             doc["witnessed"] = list(self.witnessed)
         if self.lemmas:  # F07-T77: absent when no hole restated a node under another branch
             doc["lemmas"] = [{"hole": h, "node": n} for h, n in self.lemmas]
+        if self.restated:  # F07-T78: absent when no hole restated one of the parent's own holes
+            doc["restated"] = [{"hole": h, "node": n} for h, n in self.restated]
         if self.glosses:  # F29-R7: absent when the partial declared no words
             doc["glosses"] = list(self.glosses)
         return doc
@@ -712,7 +716,10 @@ def apply_partial(  # noqa: PLR0913 — the merge's facts, each named
         tuple(placed),
         tuple(witnessed),
         tuple(lemmas),
-        tuple(filed_glosses),
+        # F07-T78: and which own hole each restating hole is, for the products, keyed by this
+        # partial — a later route's hole otherwise read as no node at all (erdos-68, #1154).
+        restated=record_restated(node_dir, attempt, placed, edges),
+        glosses=tuple(filed_glosses),
     )
 
 
@@ -977,6 +984,74 @@ def add_lemmas(node_dir: Path, lemmas: Sequence[tuple[str, str]]) -> list[dict[s
         scaffold.META_SCHEMA_LEMMAS
     ):
         meta["schema"] = scaffold.META_SCHEMA_LEMMAS
+    meta_path.write_text(
+        yaml.safe_dump(meta, sort_keys=False, allow_unicode=True), encoding="utf-8"
+    )
+    return recorded
+
+
+def record_restated(
+    node_dir: Path, partial: str, placed: Sequence[Mapping[str, str | None]], edges: Sequence[str]
+) -> tuple[tuple[str, str], ...]:
+    """F07-T78: the holes ``apply_partial`` placed on one of the parent's own holes (a reused node
+    that is an edge, R22), recorded on its ``META.yaml`` under ``partial`` (``add_restated``) —
+    when an earlier partial is on the node (``follows_a_partial``): otherwise every own hole is
+    this partial's own child, which a re-run of the job finds again and must not write about."""
+    if not follows_a_partial(node_dir, partial):
+        return ()
+    restated = tuple(
+        (str(p["name"]), str(p["reused_node"]))
+        for p in placed
+        if p.get("reused_node") and p["reused_node"] in edges
+    )
+    add_restated(node_dir, partial, restated)
+    return restated
+
+
+def follows_a_partial(node_dir: Path, partial: str) -> bool:
+    """F07-T78: whether a merged partial stamped before ``partial`` is under the node's
+    ``attempts/`` (``attempt_name``'s ``<stamp>-<pseudonym>-partial.lean``; stamps sort as
+    times). Nothing records which partial wrote a hole child, so this is how a later route that
+    restates an earlier route's hole is told from a re-run of the route that wrote it."""
+    stamp = Path(partial).name.split("-", 1)[0]
+    attempts = node_dir / "attempts"
+    return attempts.is_dir() and any(
+        f.name.split("-", 1)[0] < stamp for f in attempts.glob(f"*{PARTIAL_SUFFIX}")
+    )
+
+
+def add_restated(
+    node_dir: Path, partial: str, restated: Sequence[tuple[str, str]]
+) -> list[dict[str, str]]:
+    """F07-T78 (R22): record which of the parent's own holes ``partial``'s holes restated, on its
+    ``META.yaml``, and return the list as it stands. Bot-owned and additive like ``add_lemmas``:
+    an entry already recorded is kept, the statement hash is untouched, and the file is rewritten
+    only when something is new; an older META is bumped to ``meta/v7``, the oldest that can say
+    it. The entry adds no edge — the hole is already in ``deps`` — and no standing."""
+    import yaml  # noqa: PLC0415 — only the writing path needs it
+
+    from opn_gate import scaffold  # noqa: PLC0415 — scaffold imports layout, which imports schemas
+
+    meta_path = node_dir / "META.yaml"
+    meta = yaml.safe_load(meta_path.read_text(encoding="utf-8"))
+    recorded: list[dict[str, str]] = [
+        {k: str(entry.get(k) or "") for k in ("partial", "hole", "node")}
+        for entry in (meta.get("restated") or [])
+        if isinstance(entry, dict)
+    ]
+    added = False
+    for hole_name, node_id in restated:
+        entry = {"partial": partial, "hole": hole_name, "node": node_id}
+        if entry not in recorded:
+            recorded.append(entry)
+            added = True
+    if not added:
+        return recorded
+    meta["restated"] = recorded
+    if scaffold.meta_version(meta.get("schema")) < scaffold.meta_version(
+        scaffold.META_SCHEMA_RESTATED
+    ):
+        meta["schema"] = scaffold.META_SCHEMA_RESTATED
     meta_path.write_text(
         yaml.safe_dump(meta, sort_keys=False, allow_unicode=True), encoding="utf-8"
     )

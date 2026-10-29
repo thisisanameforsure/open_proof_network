@@ -1,0 +1,159 @@
+postmortem/v2: model_and_tooling on a postmortem (D-23, D-13; D-34 versioning)
+Owner approval: Mike, 2026-10-28. Branch postmortem-v2 (worktree opn-postmortem-v2), based on e68-fixes.
+
+== Required or optional: REQUIRED (nullable) ==
+The three precedents: annex/v2 (2026-10-03) optional; approach-record/v1 (2026-09-10) required;
+literature/v2 (2026-10-19, the newest) required. Following the newest, postmortem/v2 lists
+model_and_tooling in `required`, with null allowed: a v2 record always states its model, or
+states that none was used, so "not declared" and "nothing drafted it" cannot be confused.
+The property is approach-record/v1's byte for byte (oneOf null | string 1..200, "As declared by
+the operator (D-23); never verified"), asserted by test_v2_field_is_approach_record_v1s_field_exactly.
+v1 is untouched (D-34); v2 = v1 + the field ($id, title, schema const and description rewritten together).
+
+== Design call the brief did not cover: the deploy window ==
+A target's pinned gate validates appends against its own SCHEMAS_FOR_ROLE, so a v2 postmortem
+sent to a target pinned before this commit would be refused at classify: a red pull request that
+can never merge, for every postmortem, until the re-pin. So the service writes v2 only when the
+target's pinned network commit carries gate/schemas/postmortem/v2.json (asked once per pin on the
+raw host at that commit, cached for the process; a host that cannot say, or an unreadable
+gate-spec, answers v1, C7). On an older pin it writes postmortem/v1 exactly as before: a null or
+absent model is dropped, a declared model is refused 400 record-invalid naming why, before
+anything opens. Same shape as annex/v2's steps (F18-T5) but keyed on the pin's own files rather
+than an OPN_API_*_FROM setting, so no stack parameter is needed. Consequence: after the re-pin
+every target writes v2 without any further act.
+
+== Red (before implementation; seams for records.load_postmortem/postmortem_doc and
+appends.postmortem_schema added first at today's behaviour, so each red is on the requirement) ==
+FAILED gate/tests/test_postmortem_v2.py::test_a_v2_record_validates_with_a_model_or_null
+FAILED gate/tests/test_postmortem_v2.py::test_v2_model_and_tooling_is_shaped_as_approach_record_v1s[]
+FAILED gate/tests/test_postmortem_v2.py::test_v2_model_and_tooling_is_shaped_as_approach_record_v1s[xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx]
+FAILED gate/tests/test_postmortem_v2.py::test_v2_model_and_tooling_is_shaped_as_approach_record_v1s[7]
+FAILED gate/tests/test_postmortem_v2.py::test_v2_model_and_tooling_is_shaped_as_approach_record_v1s[bad3]
+FAILED gate/tests/test_postmortem_v2.py::test_v2_field_is_approach_record_v1s_field_exactly
+FAILED gate/tests/test_postmortem_v2.py::test_v2_is_v1_plus_the_one_field - o...
+FAILED gate/tests/test_postmortem_v2.py::test_v2_is_pinned_and_published - As...
+FAILED gate/tests/test_postmortem_v2.py::test_the_graph_publishes_v2 - Assert...
+FAILED gate/tests/test_postmortem_v2.py::test_the_append_path_takes_both_versions
+FAILED gate/tests/test_postmortem_v2.py::test_a_writer_writes_v2 - AssertionE...
+FAILED gate/tests/test_postmortem_v2.py::test_load_attempts_reads_v1_and_v2_alike
+FAILED gate/tests/test_postmortem_v2.py::test_the_context_bundle_carries_a_v2_record_with_its_model_demarcated
+FAILED gate/tests/test_postmortem_v2.py::test_demarcate_wraps_a_postmortems_declared_model
+FAILED gate/tests/test_postmortem_v2.py::test_the_missing_library_report_counts_v2_records
+FAILED api/tests/test_postmortem_v2_service.py::test_the_service_writes_v2_with_the_declared_model
+FAILED api/tests/test_postmortem_v2_service.py::test_an_undeclared_model_is_written_as_null
+FAILED api/tests/test_postmortem_v2_service.py::test_an_overlong_model_is_refused_naming_the_cap
+FAILED api/tests/test_postmortem_v2_service.py::test_a_target_whose_gate_predates_v2_gets_v1_as_before
+FAILED api/tests/test_postmortem_v2_service.py::test_a_declared_model_on_an_older_pin_is_refused_before_anything_opens
+FAILED api/tests/test_postmortem_v2_service.py::test_a_host_that_cannot_say_answers_v1
+FAILED api/tests/test_postmortem_v2_service.py::test_the_answer_for_a_pin_is_asked_once
+FAILED api/tests/test_postmortem_v2_service.py::test_submit_postmortem_writes_v2_with_the_declared_model
+FAILED api/tests/test_postmortem_v2_service.py::test_get_schema_serves_v2_once_the_graph_publishes_it
+FAILED api/tests/test_postmortem_v2_service.py::test_opn_prove_drafts_v2_naming_the_prover_and_the_harness
+FAILED site/tests/test_postmortem_v2_site.py::test_a_v2_postmortem_names_its_declared_model
+FAILED site/tests/test_postmortem_v2_site.py::test_a_v2_postmortem_declaring_no_model_says_nothing_of_one
+27 failed, 4 passed, 2 warnings in 2.81s
+
+Reasons (deduplicated): unknown schema 'postmortem/v2'; FileNotFoundError gate/schemas/postmortem/v2.json;
+SCHEMAS_FOR_ROLE ('postmortem/v1',) != (v1, v2); service wrote 'postmortem/v1' where v2 expected;
+v1 refuses model_and_tooling: null on an old pin (400); site partial 'author not recorded' for a v2 record;
+demarcate FREE_TEXT['postmortem'] lacks model_and_tooling; opn_prove draft schema postmortem/v1.
+
+== Green (new tests) ==
+WARNING  opn_api.uses:uses.py:126 propositional: whether 0123456789abcdef0123456789abcdef01234567 carries gate/schemas/postmortem/v2.json is unknown: fetching the schema failed: ConnectError
+PASSED gate/tests/test_postmortem_v2.py::test_a_v2_record_validates_with_a_model_or_null
+PASSED gate/tests/test_postmortem_v2.py::test_v2_requires_the_field_as_literature_v2_does
+PASSED gate/tests/test_postmortem_v2.py::test_v2_model_and_tooling_is_shaped_as_approach_record_v1s[]
+PASSED gate/tests/test_postmortem_v2.py::test_v2_model_and_tooling_is_shaped_as_approach_record_v1s[xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx]
+PASSED gate/tests/test_postmortem_v2.py::test_v2_model_and_tooling_is_shaped_as_approach_record_v1s[7]
+PASSED gate/tests/test_postmortem_v2.py::test_v2_model_and_tooling_is_shaped_as_approach_record_v1s[bad3]
+PASSED gate/tests/test_postmortem_v2.py::test_v2_field_is_approach_record_v1s_field_exactly
+PASSED gate/tests/test_postmortem_v2.py::test_v2_is_v1_plus_the_one_field
+PASSED gate/tests/test_postmortem_v2.py::test_v1_records_still_validate_and_v1_still_refuses_the_field
+PASSED gate/tests/test_postmortem_v2.py::test_v2_is_pinned_and_published
+PASSED gate/tests/test_postmortem_v2.py::test_the_graph_publishes_v2
+PASSED gate/tests/test_postmortem_v2.py::test_the_append_path_takes_both_versions
+PASSED gate/tests/test_postmortem_v2.py::test_a_writer_writes_v2
+PASSED gate/tests/test_postmortem_v2.py::test_load_attempts_reads_v1_and_v2_alike
+PASSED gate/tests/test_postmortem_v2.py::test_a_record_declaring_another_schema_is_not_a_postmortem
+PASSED gate/tests/test_postmortem_v2.py::test_the_context_bundle_carries_a_v2_record_with_its_model_demarcated
+PASSED gate/tests/test_postmortem_v2.py::test_demarcate_wraps_a_postmortems_declared_model
+PASSED gate/tests/test_postmortem_v2.py::test_the_missing_library_report_counts_v2_records
+PASSED api/tests/test_postmortem_v2_service.py::test_the_service_writes_v2_with_the_declared_model
+PASSED api/tests/test_postmortem_v2_service.py::test_an_undeclared_model_is_written_as_null
+PASSED api/tests/test_postmortem_v2_service.py::test_an_overlong_model_is_refused_naming_the_cap
+PASSED api/tests/test_postmortem_v2_service.py::test_a_target_whose_gate_predates_v2_gets_v1_as_before
+PASSED api/tests/test_postmortem_v2_service.py::test_a_declared_model_on_an_older_pin_is_refused_before_anything_opens
+PASSED api/tests/test_postmortem_v2_service.py::test_a_host_that_cannot_say_answers_v1
+PASSED api/tests/test_postmortem_v2_service.py::test_the_answer_for_a_pin_is_asked_once
+PASSED api/tests/test_postmortem_v2_service.py::test_submit_postmortem_writes_v2_with_the_declared_model
+PASSED api/tests/test_postmortem_v2_service.py::test_get_schema_serves_v2_once_the_graph_publishes_it
+PASSED api/tests/test_postmortem_v2_service.py::test_opn_prove_drafts_v2_naming_the_prover_and_the_harness
+PASSED site/tests/test_postmortem_v2_site.py::test_a_v2_postmortem_names_its_declared_model
+PASSED site/tests/test_postmortem_v2_site.py::test_a_v2_postmortem_declaring_no_model_says_nothing_of_one
+PASSED site/tests/test_postmortem_v2_site.py::test_a_v1_postmortem_reads_as_before
+31 passed, 2 warnings in 1.09s
+
+== make lint: exit 0. make types: exit 0 (gate 450, api 272, site 125 files, no issues). ==
+
+== Fast tier (OPN_GRAPH_CHECKOUT=<scratchpad>/graph-main make test-fast) ==
+FAILED gate/tests/test_walkthrough.py::test_graph_copy_is_identical - Asserti...
+= 1 failed, 7061 passed, 36 skipped, 276 deselected, 2 warnings in 614.57s (0:10:14) =
+The one failure is the known pre-existing test_graph_copy_is_identical (fails on main too).
+A first run (19 failed) found that pinned_has raised graph-unreachable 503 for fixtures with no
+gate-spec.json, and test_schemas' hard-coded list; both fixed before this run.
+
+== Product goldens ==
+Regenerated with test_products.write_goldens(): only info.json in curated, interior-proved and
+unproved changed, each "postmortem": [1] -> [1, 2]. api/tests/fixtures/info.json is already stale
+(protocol 3.38, info/v1) and no test compares it to the golden; left as is.
+
+== Files changed ==
+ M api/opn_api/app.py
+ M api/opn_api/appends.py
+ M api/opn_api/mcp/writes.py
+ M api/opn_api/uses.py
+ M api/tests/test_prove_client.py
+ M gate/agents/AGENTS.md
+ M gate/clients/prove/opn_prove.py
+ M gate/opn_gate/cli.py
+ M gate/opn_gate/context.py
+ M gate/opn_gate/curator.py
+ M gate/opn_gate/demarcate.py
+ M gate/opn_gate/paths.py
+ M gate/opn_gate/records.py
+ M gate/schemas/HASHES
+ M gate/tests/golden/products/curated/info.json
+ M gate/tests/golden/products/interior-proved/info.json
+ M gate/tests/golden/products/unproved/info.json
+ M gate/tests/test_schemas.py
+ M gate/tools/rehearsal.py
+ M site/opn_site/model.py
+ M site/opn_site/render.py
+?? api/tests/test_postmortem_v2_service.py
+?? engineering/evidence/F03/task-postmortem-v2.txt
+?? gate/schemas/postmortem/v2.json
+?? gate/tests/test_postmortem_v2.py
+?? site/tests/test_postmortem_v2_site.py
+
+== Proposed spec Q entry (F03) ==
+Q: postmortem/v2 adds model_and_tooling (D-23), required and nullable as literature/v2 requires
+it, shaped exactly as approach-record/v1's. Readers keep the set (paths.SCHEMAS_FOR_ROLE,
+records.POSTMORTEM_SCHEMAS), so the graph's v1 records read forever. The service writes v2 only
+for a target whose pinned network commit carries the v2 schema (asked of the pin's own files on
+the raw host), and v1 as before elsewhere, refusing a declared model there, because an older gate
+refuses a v2 file at classify and the pull request could never merge.
+
+== Proposed task row ==
+F03-Tn | postmortem/v2: model_and_tooling on a postmortem (D-23) | gate/schemas/postmortem/v2.json,
+gate/schemas/HASHES, gate/opn_gate/{paths,records,context,curator,cli,demarcate}.py,
+api/opn_api/{appends,uses,app}.py, api/opn_api/mcp/writes.py, gate/clients/prove/opn_prove.py,
+gate/tools/rehearsal.py, gate/agents/AGENTS.md, site/opn_site/{model,render}.py, goldens |
+verify: uv run pytest gate/tests/test_postmortem_v2.py api/tests/test_postmortem_v2_service.py
+site/tests/test_postmortem_v2_site.py | evidence: engineering/evidence/F03/task-postmortem-v2.txt
+
+== Owner follow-ups ==
+- The graph's AGENTS.md copy must be recopied at the re-pin (guide example changed; that test was
+  already failing).
+- The graph's schemas/ gains postmortem/v2.json at the re-pin's publish, which is what get_schema serves.
+- The site shows ", drafted with <model>" beside a partial's author when its postmortem declares one;
+  covered by a string test, no screenshot taken (one clause of text in an existing line).

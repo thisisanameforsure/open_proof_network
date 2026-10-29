@@ -413,7 +413,20 @@ def test_a_partial_applied_twice_writes_no_second_set_of_children(tmp_path: Path
     after_second = snapshot(node_dir)
     added = set(after_second) - set(after_first)
     assert added == {f"{PARENT}/{result.attempt_path}"}
-    assert {k: v for k, v in after_second.items() if k not in added} == after_first
+    # F07-T78: the second route's META names the own holes its holes are (``restated``), and
+    # nothing else changed — no child, no edge, no lemma.
+    meta_key = f"{PARENT}/META.yaml"
+    meta = yaml.safe_load(after_second[meta_key])
+    assert meta.pop("restated") == [
+        {"partial": result.attempt_path, "hole": h.name, "node": f"{PARENT}--h{i}"}
+        for i, h in enumerate(HOLES, start=1)
+    ]
+    assert meta.pop("schema") == "meta/v7"
+    first_meta = yaml.safe_load(after_first[meta_key])
+    first_meta.pop("schema")
+    assert meta == first_meta
+    rest = {k: v for k, v in after_second.items() if k not in added and k != meta_key}
+    assert rest == {k: v for k, v in after_first.items() if k != meta_key}
 
 
 def test_a_refusal_at_the_attempt_file_leaves_nothing_behind(tmp_path: Path) -> None:

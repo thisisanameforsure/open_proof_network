@@ -4027,7 +4027,7 @@ class Renderer:
         return (
             f'<section class="split-into" data-partial="{esc(partial)}">'
             '<span class="kicker">Split into</span>'
-            f'<p class="split-by">Proved from {"this" if len(holes) == 1 else "these"} {noun} by '
+            f'<p class="split-by">Reduced to {"this" if len(holes) == 1 else "these"} {noun} by '
             f"{self.file_link(rel, label=name)} ({merged}).</p>"
             f'<ul class="split-holes">{rows}</ul>'
             f"{self.split_lean(pv, rel)}</section>"
@@ -6402,6 +6402,8 @@ class Renderer:
         for p in nv.partials:
             who = p.submitter or p.contributor
             facts = [f"by {esc(who)}" if who else "author not recorded"]
+            if p.model:  # postmortem/v2: as the operator declared it (D-23), never verified
+                facts[0] += f", drafted with {esc(p.model)}"
             if p.submitter and p.contributor and p.contributor != p.submitter:
                 facts.append(f"the postmortem names {esc(p.contributor)}")
             if p.outcome:
