@@ -1,0 +1,24 @@
+F32-T3 — post-merge (R4, R5): apply_partial writes each born-proved hole's Proof.lean; one attestation/v8 per born-proved hole; renumbering fails closed (Q10).
+
+== RED: task-3-red.txt — with the seam at today's behaviour (names present, proofs= ignored), 5 failed / 4 passed: no hole-attestations line or file, no refusal on a renumbered or restating hole (exit 0 where an error is due), the writer did not raise. The 4 that passed pin what must not change (a partial carrying no proof; proofs={} writes the same tree; a re-run; a failing re-derivation writes nothing). ==
+
+== GREEN: uv run --frozen pytest gate/tests/test_finding_carried_proof_postmerge.py ==
+9 passed in 6.93s
+neighbours (test_postmerge, test_cli_sandboxed, carried witnesses, partial, attestation, contracts, T2): 141 passed
+== make lint ==
+lint exit 0
+== make types ==
+types exit 0
+
+Files: gate/opn_gate/postmerge.py (CheckedProof, check_carried_proofs, apply_partial(proofs=), PartialMerge.proved, HOLE_ATTESTATIONS_DIR, hole_attestation_path), gate/opn_gate/attestation.py (for_hole, CARRIED_FROM_PARTIAL), gate/opn_gate/cli.py (run_postmerge: preflight_carried_proofs before emit, write_hole_attestations after; checked_proofs; hole_review), gate/tests/test_finding_carried_proof_postmerge.py.
+
+Choices (for Q entries):
+- Where the records go: postmerge leaves the partial's record at <out>/attestation.json as today and each hole's, unsigned, at <out>/hole-attestations/<hole node id>.json; postmerge.hole_attestation_path names where the key step signs it, attestations/<NNNNNN>.<hole id>.json (Q7). Nothing in the graph workflow is changed here (T5).
+- stdout: after the partial's line, one more line {"hole_attestations": [paths]} when any were written; absent otherwise, so a partial carrying no proof prints what it printed.
+- The hole record = attestation.build over the hole's own run (node id, statement hash of the staged Statement.lean, artifact_hash of the composed Proof.lean, the run's steps 1,2,4-8 with step 7 the partial's carried-witness check, step 8's footprint, the run's trust_base) + the partial's tooling, submitter, model_and_tooling, automation, precheck_attestation and signature timestamp + carried_by {node_id, assembly {path, artifact_hash}, carried {path, sha256}} + record_step9 with the merge commit and review 'intermediate' ('calibration' on a calibration target), which is what modes.statement_basis answers for a partial and for any proof below the root.
+- Q10 fail closed, twice: cli.preflight_carried_proofs runs postmerge.check_carried_proofs on the checkout BEFORE emit, so a renumbered hole or one that now restates an existing node is a CliError ('not attesting this merge: ...') with no attestation.json, no hole record and nothing written; apply_partial runs the same check first as the backstop. The check also re-runs step 2's proof-is-statement over the checked text against the statement the writer will write.
+- A re-run of the job on the same merge: the hole is already the node it was checked as, holding that exact text, so the check answers it as done and nothing is written twice (the tree is byte-identical).
+- The text written is the run's composed Proof.lean (Run.composed), held to the proof_sha256 recorded at step 4; the carried file is read from the checkout and held to its recorded sha256, as checked_witnesses holds a witness.
+- The carried .proof file stays under the parent's attempts/ as submitted (append-only record of what was carried).
+
+== fast tier: see the line below (snapshot of this commit) ==

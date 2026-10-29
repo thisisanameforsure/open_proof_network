@@ -78,6 +78,7 @@ from opn_gate import records as recordsmod
 from opn_gate import submission as submissionmod
 from opn_gate.diagnostic import Diagnostic
 from opn_gate.paths import Change, Claim
+from opn_gate.steps import hole_proofs
 from opn_gate.steps.base import RunContext
 from opn_gate.steps.hazards import HazardsStep, StatementStep
 from opn_gate.steps.toolchain_step import ToolchainStep
@@ -2197,15 +2198,99 @@ def run_postmerge(args: argparse.Namespace, settings: config.Settings) -> int:
         sys.stdout.write(json.dumps({"verdict": "refused", "diagnostic": refusal.as_dict()}) + "\n")
         sys.stderr.write(f"opn-gate: {refusal.message}\n")
         return EXIT_FAIL
+    if verdict.ok and args.apply_partial and verdict.data.get(hole_proofs.DATA_KEY):
+        # F32-Q10: a carried proof is attested only against the node the writer will write, so
+        # the writer's plan on the checkout is checked before anything is emitted.
+        preflight_carried_proofs(ctx, verdict, graph)
     code = emit(verdict, doc, out_dir, settings)
     if code != EXIT_PASS:
         sys.stderr.write("opn-gate: the merged commit does not pass the gate; not attesting\n")
         return code
     if args.apply_partial:
+        written = write_hole_attestations(ctx, verdict, doc, out_dir, commit)
         applied = apply_merged_partial(ctx, verdict, graph, commit, args)
         if applied is not None:
             sys.stdout.write(json.dumps({"partial": applied.as_dict()}) + "\n")
+        if written:
+            sys.stdout.write(json.dumps({"hole_attestations": written}) + "\n")
     return code
+
+
+def hole_review(tree: Path, target_id: str) -> dict[str, Any]:
+    """F32-R5: the step-9 block a proof of a hole's node would carry. Step 9 is asked only of an
+    artifact that settles the root (D-4 v3.20), and a hole never does: ``calibration`` on a
+    calibration target, ``intermediate`` everywhere else (as ``modes.statement_basis`` answers
+    for any node below the root)."""
+    from opn_gate import intake  # noqa: PLC0415 — intake imports modes
+
+    target_dir = layout.gate_spec_path(tree, target_id).parent
+    try:
+        calibration = intake.is_calibration(intake.load_doc(target_dir))
+    except (ValueError, OSError) as exc:  # a graph defect: a hole is never the root either way
+        sys.stderr.write(f"opn-gate: {target_dir.name}: target record does not load: {exc}\n")
+        calibration = False
+    return postmerge.review_block("calibration" if calibration else "intermediate")
+
+
+def write_hole_attestations(
+    ctx: RunContext,
+    verdict: pipeline.Verdict,
+    partial_doc: dict[str, Any],
+    out_dir: Path,
+    commit: str,
+) -> list[str]:
+    """F32-R5 (D-5 v3.49): one unsigned record per hole the merge makes proved, each from its
+    own run, written to ``<out>/hole-attestations/<node id>.json`` for the key step to sign as
+    ``attestations/<NNNNNN>.<node id>.json`` (``postmerge.hole_attestation_path``). Answers the
+    paths written; none when the partial carried no proof."""
+    runs: list[hole_proofs.Run] = list(verdict.data.get(hole_proofs.RUNS_KEY) or [])
+    partial = verdict.data.get("partial")
+    if not runs or not isinstance(partial, dict):
+        return []
+    review = hole_review(ctx.graph_root, ctx.claim.target_id)
+    assembly_hash = schemas.content_hash(Path(str(partial["file"])).read_bytes())
+    where = out_dir / postmerge.HOLE_ATTESTATIONS_DIR
+    where.mkdir(parents=True, exist_ok=True)
+    written: list[str] = []
+    for run in runs:
+        carried_by = {
+            "node_id": ctx.claim.node_id,
+            "assembly": {"path": str(partial["path"]), "artifact_hash": assembly_hash},
+            "carried": {"path": run.path, "sha256": run.sha256},
+        }
+        doc = attestation.for_hole(
+            run.ctx, run.verdict(), partial_doc, carried_by=carried_by, graph_commit=commit
+        )
+        doc = postmerge.record_step9(doc, merge_commit=commit, review=review)
+        path = where / f"{run.node_id}.json"
+        path.write_bytes(schemas.canonical_json(doc))
+        written.append(str(path))
+    return written
+
+
+def preflight_carried_proofs(ctx: RunContext, verdict: pipeline.Verdict, graph: Path) -> None:
+    """F32-Q10: ``postmerge.check_carried_proofs`` over the checkout the writer will write into,
+    before anything is emitted; a refusal is the job's failure, visible, with nothing attested."""
+    from opn_gate.steps import artifact as artifactmod  # noqa: PLC0415 — steps.base would cycle
+
+    partial = verdict.data.get("partial")
+    if not isinstance(partial, dict):
+        return
+    node_dir = layout.graph_nodes_dir(graph, ctx.claim.target_id) / ctx.claim.node_id
+    holes = [
+        artifactmod.Hole.of(h) for h in (verdict.data.get("artifact") or {}).get("holes") or []
+    ]
+    try:
+        postmerge.check_carried_proofs(
+            node_dir,
+            holes,
+            checked_proofs(verdict, node_dir),
+            partial_text=(node_dir / str(partial["path"])).read_text(encoding="utf-8"),
+            witnesses=checked_witnesses(verdict, node_dir),
+        )
+    except postmerge.GraphWriteError as exc:
+        msg = f"not attesting this merge: {exc}"
+        raise CliError(msg) from exc
 
 
 def apply_merged_partial(
@@ -2255,6 +2340,7 @@ def apply_merged_partial(
             assembly_path=str(partial["path"]),
             model=submissionmod.tooling(block)["model"],  # R13: the block's declared model
             witnesses=checked_witnesses(verdict, node_dir),
+            proofs=checked_proofs(verdict, node_dir),
         )
     except postmerge.GraphWriteError as exc:
         raise CliError(str(exc)) from exc
@@ -2276,6 +2362,30 @@ def checked_witnesses(verdict: pipeline.Verdict, node_dir: Path) -> dict[str, st
             msg = f"{path} is not the carried witness step 7 checked ({entry['sha256'][:12]}…)"
             raise CliError(msg)
         out[str(entry["hole"])] = text
+    return out
+
+
+def checked_proofs(verdict: pipeline.Verdict, node_dir: Path) -> dict[str, postmerge.CheckedProof]:
+    """F32-R4 (D-29 v3.49): hole name -> the proof this run checked for it, exactly the carried
+    proofs whose every step passed and nothing else: the carried file read from the checkout and
+    held to the hash the run recorded, and the composed ``Proof.lean`` the run built and checked,
+    held to its recorded hash, so what is written into a child is what was checked, byte for
+    byte (as ``checked_witnesses`` holds a witness)."""
+    runs = {r.hole: r for r in verdict.data.get(hole_proofs.RUNS_KEY) or []}
+    out: dict[str, postmerge.CheckedProof] = {}
+    for entry in verdict.data.get(hole_proofs.DATA_KEY) or []:
+        path = node_dir / str(entry["path"])
+        if not path.is_file():
+            msg = f"the carried proof {path} is not in the checkout"
+            raise CliError(msg)
+        if schemas.content_hash(carried.read_file(path).encode("utf-8")) != entry["sha256"]:
+            msg = f"{path} is not the carried proof the run checked ({entry['sha256'][:12]}…)"
+            raise CliError(msg)
+        run = runs.get(str(entry["hole"]))
+        if run is None or run.proof_sha256 != entry["proof_sha256"]:
+            msg = f"the run kept no checked Proof.lean for the hole {entry['hole']}"
+            raise CliError(msg)
+        out[str(entry["hole"])] = postmerge.CheckedProof(str(entry["node"]), run.composed)
     return out
 
 
