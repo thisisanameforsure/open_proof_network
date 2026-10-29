@@ -1,0 +1,100 @@
+[
+ {
+  "node_id": "variant-3969f1f7--h2--h1--h4--h2--h1--h1",
+  "status": "known",
+  "references": [
+   {
+    "title": "R. J. Stroeker, B. M. M. de Weger, Solving elliptic Diophantine equations: the general cubic case, Acta Arith. 87 (1999) 339–365",
+    "url": "https://matwbn.icm.edu.pl/ksiazki/aa/aa87/aa8743.pdf",
+    "note": "§7.1, Theorem 3: the only integral solutions of (39) u³−2u²v+3uv²−v³+3u²−3uv+3v²+2u = 0 are the eight points listed in this node. (39) comes from C(n,k) = C(n−1,k+2) with u = k, v = n. The curve has rank 1 and trivial torsion; the proof is by linear forms in elliptic logarithms."
+   },
+   {
+    "title": "A. Blokhuis, A. E. Brouwer, B. M. M. de Weger, Binomial collisions and near collisions, Integers 17 (2017) #A64",
+    "url": "https://arxiv.org/abs/1707.06893",
+    "note": "Theorem 2.2 cites this result for the shape (m,l) = (n−1,k+2)."
+   }
+  ],
+  "summary": "Known: Stroeker and de Weger (1999, Theorem 3) list every integral point of the plane cubic (39) and show there are no others, by linear forms in elliptic logarithms and LLL reduction. The proof is not elementary and has not been formalised. This node is that theorem stated over ℤ, word for word.",
+  "model_and_tooling": "Claude Opus 5.5 (Claude Code subagent) through the MCP; papers read as PDF on 2026-10-29"
+ },
+ {
+  "node_id": "variant-3969f1f7--h2--h1--h4--h2--h2--h1",
+  "status": "known",
+  "references": [
+   {
+    "title": "R. J. Stroeker, B. M. M. de Weger, Solving elliptic Diophantine equations: the general cubic case, Acta Arith. 87 (1999) 339–365",
+    "url": "https://matwbn.icm.edu.pl/ksiazki/aa/aa87/aa8743.pdf",
+    "note": "§7.1, Theorem 4: the only integral solutions of (40) u³−3u²v+4uv²−v³+3u²−7uv+4v²+2u−3v = 0 are the nine points listed in this node. (40) comes from C(n,k) = C(n−2,k+1) with u = k, v = n, and (1,6) is C(6,1) = C(4,2). The curve has rank 1 and torsion of order 2; the proof is by elliptic logarithms."
+   },
+   {
+    "title": "A. Blokhuis, A. E. Brouwer, B. M. M. de Weger, Binomial collisions and near collisions, Integers 17 (2017) #A64",
+    "url": "https://arxiv.org/abs/1707.06893",
+    "note": "Theorem 2.2 cites this result for the shape (m,l) = (n−2,k+1)."
+   }
+  ],
+  "summary": "Known: Stroeker and de Weger (1999, Theorem 4) list every integral point of the plane cubic (40) and show there are no others, by linear forms in elliptic logarithms. The proof is not elementary and has not been formalised. This node is that theorem stated over ℤ, word for word.",
+  "model_and_tooling": "Claude Opus 5.5 (Claude Code subagent) through the MCP; papers read as PDF on 2026-10-29"
+ },
+ {
+  "node_id": "variant-3969f1f7--h2--h1--h4--h2--h3--h1",
+  "status": "known",
+  "references": [
+   {
+    "title": "T. Yamada, Necessary conditions for binomial collisions, arXiv:2002.07043 (2020)",
+    "url": "https://arxiv.org/abs/2002.07043",
+    "note": "Theorem 1.1: if C(2N+δ, N−M) = C(2N+L, N−K) with δ ∈ {0,1}, 0 ≤ M < K < N/2 and M ≤ 0.735K, then L > N(1.3132 log²(2N) − 2.00271). The proof uses N ≥ 500000, taken from BBdW 2017. A preprint; no journal version was found on 2026-10-29."
+   },
+   {
+    "title": "A. Blokhuis, A. E. Brouwer, B. M. M. de Weger, Binomial collisions and near collisions, Integers 17 (2017) #A64",
+    "url": "https://arxiv.org/abs/1707.06893",
+    "note": "The search over n ≤ 10^6 that gives N ≥ 500000 for any unknown collision."
+   }
+  ],
+  "summary": "Known, from a preprint: this node is the case L ≤ N of Yamada's Theorem 1.1. For N ≥ 500000 the bound N(1.3132 log²(2N) − 2.00271) is far above N, so the theorem rules out every collision in the node's range. The proof uses explicit prime-gap results, estimates for the largest prime factor of a product of consecutive integers, and an explicit Stirling formula. It has not been formalised, and the preprint has not been refereed as far as is known.",
+  "model_and_tooling": "Claude Opus 5.5 (Claude Code subagent) through the MCP; papers read as PDF on 2026-10-29"
+ },
+ {
+  "node_id": "variant-3969f1f7--h2--h1--h1--h3--h1",
+  "status": "known",
+  "references": [
+   {
+    "title": "Y. Bugeaud, M. Mignotte, S. Siksek, M. Stoll, Sz. Tengely, Integral points on hyperelliptic curves, Algebra & Number Theory 2 (2008) 859–885",
+    "url": "https://arxiv.org/abs/0801.4459",
+    "note": "Theorem 2: the integral solutions of C(Y,2) = C(X,5) are the twenty points listed in this node. The curve has genus 2 and its Jacobian has rank 6; the proof combines Baker's method with a Mordell–Weil sieve (§13, details omitted, MAGMA programs published)."
+   }
+  ],
+  "summary": "Known: Bugeaud, Mignotte, Siksek, Stoll and Tengely (2008, Theorem 2) find every integral solution of Y(Y−1)/2 = X(X−1)(X−2)(X−3)(X−4)/120. This node is that theorem multiplied by 120. The proof uses linear forms in logarithms and a Mordell–Weil sieve, and has not been formalised.",
+  "model_and_tooling": "Claude Opus 5.5 (Claude Code subagent) through the MCP; papers read as PDF on 2026-10-29"
+ },
+ {
+  "node_id": "variant-3969f1f7--h2--h1--h1--h7--h1",
+  "status": "known",
+  "references": [
+   {
+    "title": "R. J. Stroeker, B. M. M. de Weger, Solving elliptic Diophantine equations: the general cubic case, Acta Arith. 87 (1999) 339–365",
+    "url": "https://matwbn.icm.edu.pl/ksiazki/aa/aa87/aa8743.pdf",
+    "note": "§7.1, first example: 15u³ − 15u = v³ − 4v² + 3v comes from C(n,3) = C(m,6); all integral solutions lie in {−1,0,1} × {0,1,3} or {(2,6),(8,21)}."
+   },
+   {
+    "title": "R. J. Stroeker, B. M. M. de Weger, Elliptic binomial Diophantine equations, Math. Comp. 68 (1999) 1257–1281",
+    "url": null,
+    "note": "Theorem B36, where the equation is solved by elliptic logarithms (cited by the Acta paper; not opened on 2026-10-29)."
+   }
+  ],
+  "summary": "Known: Stroeker and de Weger solved 15u³ − 15u = v³ − 4v² + 3v completely (Math. Comp. 1999, Theorem B36, restated in Acta Arith. 1999 §7.1). The eleven listed points are all its integral solutions. The proof uses linear forms in elliptic logarithms and has not been formalised.",
+  "model_and_tooling": "Claude Opus 5.5 (Claude Code subagent) through the MCP; papers read as PDF on 2026-10-29"
+ },
+ {
+  "node_id": "variant-3969f1f7--h2--h1--h4--h2--h3--h2--h1",
+  "status": "known",
+  "references": [
+   {
+    "title": "J. Nagura, On the interval containing at least one prime number, Proc. Japan Acad. 28 (1952) 177–181",
+    "url": "https://doi.org/10.3792/pja/1195570997",
+    "note": "For every x ≥ 25 there is a prime p with x < p < 6x/5."
+   }
+  ],
+  "summary": "Known: Nagura (1952) proved that for every x ≥ 25 the interval (x, 6x/5) contains a prime. The proof is an explicit Chebyshev-type estimate of the prime-counting function; Mathlib has Bertrand's postulate (the interval (x, 2x]) but not this refinement.",
+  "model_and_tooling": "Claude Opus 5.5 (Claude Code subagent) through the MCP; papers read as PDF on 2026-10-29"
+ }
+]

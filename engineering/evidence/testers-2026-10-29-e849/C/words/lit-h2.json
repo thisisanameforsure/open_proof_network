@@ -1,0 +1,13 @@
+{
+ "node_id": "variant-3969f1f7--h3--h1--h1--h2",
+ "status": "known",
+ "references": [
+  {
+   "title": "K. Matomäki, M. Radziwiłł, X. Shao, T. Tao, J. Teräväinen, Singmaster's conjecture in the interior of Pascal's triangle, Quart. J. Math. 73 (2022) 1137–1177",
+   "url": "https://arxiv.org/abs/2106.03335",
+   "note": "Proposition 3.2 (covariance estimates), proved in §3 assuming Proposition 1.12 (equidistribution estimate, §4); DOI 10.1093/qmath/haac006"
+  }
+ ],
+ "summary": "Proposition 3.2 of MRSTT with ε = 1/20, for P large and a configuration obeying Lemma 3.1 (i), (ii): with p uniform over the primes in [P, P+P log^{-100}P] and c_j(N,M) the covariance of {N/p} and {M/p^j}, for N,M ∈ {m,n,n−m,m',n',n'−m'} and 1 ≤ j ≤ log^{1/2}P: (i) |c_j| ≪ log^{-10}P for j ≥ 2; (ii) |c_1| ≪ log^{-1000}P if N ≈ 0 or M ≈ 0; (iii) c_1 = 1/(12ab) + O(log^{-1/1000}P) if aN ≈ bM for coprime 1 ≤ a,b ≤ log^{1/100}P; (iv) |c_1| ≪ log^{-1/1000}P otherwise; x ≈ y means |x−y| ≤ P/log^{1000}P. The interval is written ⌈P⌉ ≤ p ≤ ⌊P+P/log^{100}P⌋ and the expectation as an average over that finite set; ≪ is one constant C. This is the only place the analytic number theory (Prop 1.12) enters the proof of Prop 1.9. The paper's own set lists \"m−n\" and \"m'−n'\"; these are n−m and n'−m' (the binomial's complementary index), as written here. The proof of (iv) applies Lemma 3.1(ii) to aN−bM, whose coefficients can reach a+b ≤ 2 log^{1/100}P; the paper's exponents absorb this. Not formalised.",
+ "model_and_tooling": "Claude Opus 5.5 (claude-opus-5-5) through Claude Code; read from the arXiv 2106.03335 TeX source on 2026-10-29"
+}

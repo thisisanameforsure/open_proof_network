@@ -1,0 +1,9 @@
+{
+ "status": 201,
+ "body": {
+  "id": "01M643R5WGYGF9YZAD3AZWQ8QE",
+  "path": "targets/erdos-849/nodes/variant-3969f1f7--h3--h1--h1--h3/literature/20261029T151642Z-t1029e-c.yaml",
+  "pr_url": "https://github.com/thisisanameforsure/open_proof_network_graph/pull/1190",
+  "pr_number": 1190
+ }
+}

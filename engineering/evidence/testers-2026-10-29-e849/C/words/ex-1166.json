@@ -1,0 +1,10 @@
+{
+ "subject": {
+  "kind": "proof",
+  "node_id": "variant-3969f1f7--h2--h1--h4--h2--h1",
+  "proof": "350db9246476396421851f271e7e0e0e2c598356e7b18affb2e363a8cdd1d9be"
+ },
+ "text": "## Overview\nThe statement is that $\\binom{n}{k} \\ne \\binom{n-1}{k+2}$ whenever $k \\ge 2$ and $n \\ge 2(k+2)+1$. The assembly clears denominators, which turns a collision into an integral point $(u,v) = (k,n)$ of the cubic\n$$u^3 - 2u^2v + 3uv^2 - v^3 + 3u^2 - 3uv + 3v^2 + 2u = 0,$$\nequation (39) of Stroeker and de Weger (Acta Arith. 87 (1999), §7.1), and then reads off from their Theorem 3, the one hole, that no integral point has $u \\ge 2$.\n\n## The hole {steps: h_sdw3}\n`h_sdw3` is Stroeker–de Weger's Theorem 3: the integral points of (39) are exactly $(-2,-2), (-2,-1), (-2,0), (-1,-1), (-1,0), (-1,1), (0,0), (0,3)$.\n\n## Clearing denominators {steps: s2 hN h1 h2 h3 e1 e2 e3 e4 e5 hc key hpoly hz}\nSuppose $\\binom{n}{k} = \\binom{n-1}{k+2}$. Write $n = y + k + 2$ (possible since $n \\ge 2k+5$), so $n - 1 = y + k + 1$. Three instances of the absorption identities for binomial coefficients, with $N = y+k+1$: $\\binom{N}{k}(N+1) = \\binom{N+1}{k}(N+1-k)$, which with the assumed equality reads $\\binom{N}{k}(y+k+2) = \\binom{N}{k+2}(y+2)$ (`h1`); $\\binom{N}{k+1}(k+1) = \\binom{N}{k}(y+1)$ (`h2`); and $\\binom{N}{k+2}(k+2) = \\binom{N}{k+1}\\,y$ (`h3`). A linear combination of the three, computed in $\\mathbb{Z}$, gives $\\binom{N}{k}(y+k+2)(k+1)(k+2) = \\binom{N}{k}(y+2)(y+1)y$ (`key`), and since $\\binom{N}{k} > 0$ (`hc`) it cancels: $(y+k+2)(k+1)(k+2) = (y+2)(y+1)y$ (`hpoly`, and in $\\mathbb{Z}$ `hz`). In terms of $n$ this is $n(k+1)(k+2) = (n-k)(n-k-1)(n-k-2)$.\n\n## Reading off the integral points {steps: hs close}\nThat cubic relation is exactly (39) at $(u,v) = (k, n)$, so `h_sdw3` applies (`hs`): $(k,n)$ is one of the eight listed points. Each has $u \\le 0$, while $k \\ge 2$, so every case is impossible, and the collision cannot occur.\n",
+ "licence": "CC-BY-4.0",
+ "drafted_with": "Claude Opus 5.5 (claude-opus-5-5) through Claude Code"
+}

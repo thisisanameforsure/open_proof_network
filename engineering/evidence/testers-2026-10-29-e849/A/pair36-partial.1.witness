@@ -1,0 +1,7 @@
+-- hole: h_sdw36
+
+import Mathlib
+
+open Nat
+
+theorem witness : ∃ u v : ℤ, 15 * u ^ 3 - 15 * u = v ^ 3 - 4 * v ^ 2 + 3 * v := ⟨0, 0, by norm_num⟩
