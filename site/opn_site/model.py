@@ -184,6 +184,28 @@ class PartialView:
 
 
 @dataclass(frozen=True)
+class PostmortemView:
+    """F04-T62 (Q60): one valid ``attempts/*.yaml`` postmortem (D-3, D-12 #5) as its node's
+    page shows it — every field the contributor wrote, untrusted (R4). ``detail`` is where a
+    postmortem says what was ruled out and what to try next; before T62 the page counted the
+    record and showed none of it. ``date`` is read from the file name's stamp, the only date
+    the record carries; ``None`` when the name has none."""
+
+    path: str  # relative to the graph root
+    contributor: str
+    route: str
+    route_class: str
+    outcome: str
+    failure_class: str | None = None
+    detail: str | None = None
+    terminal_goal_state: str | None = None
+    missing_lemmas: tuple[str, ...] = ()
+    partial: str | None = None
+    model: str | None = None
+    date: str | None = None
+
+
+@dataclass(frozen=True)
 class AlternateView:
     """One alternate proof (D-25 v3.13): its file, and what its attestation records."""
 
@@ -532,6 +554,8 @@ class NodeView:
     witness: LeanFile | None = None
     witness_open: bool = False
     partials: tuple[PartialView, ...] = ()
+    #: F04-T62 (Q60): every valid postmortem on the node, newest first.
+    postmortems: tuple[PostmortemView, ...] = ()
     #: F04-T18 (Q20): both ends of a D-8 revision, read from where the curator's command wrote
     #: them — the old node's ``superseded`` status record (``reference`` names the successor,
     #: ``cause`` is the curator's sentence naming the request and its defect class) and the
@@ -993,6 +1017,58 @@ def _merged_partials(
     return out
 
 
+#: A postmortem's file-name stamp: ``20261029T160207Z-…`` (the service's) or ``2026-09-01-…``.
+_STAMP = re.compile(r"^(\d{4})-?(\d{2})-?(\d{2})(?:T(\d{2})(\d{2})\d{2}Z)?")
+
+
+def _stamp_date(name: str) -> str | None:
+    m = _STAMP.match(name)
+    if m is None:
+        return None
+    day = f"{m[1]}-{m[2]}-{m[3]}"
+    return f"{day} {m[4]}:{m[5]}Z" if m[4] else day
+
+
+def _postmortems_for(root: Path, node_dir: Path) -> tuple[PostmortemView, ...]:
+    """F04-T62 (Q60): every valid postmortem under ``attempts/``, newest first by file name. A
+    record that does not validate is skipped, as ``_partials_for`` skips it: Attempts already
+    counts it as invalid, and one malformed yaml must not take down a page."""
+    attempts = node_dir / "attempts"
+    if not attempts.is_dir():
+        return ()
+    views: list[PostmortemView] = []
+    for path in sorted(
+        (p for p in attempts.iterdir() if p.suffix in records.ATTEMPT_SUFFIXES), reverse=True
+    ):
+        try:
+            doc = records.load_postmortem(path)
+        except schemas.SchemaError:
+            continue
+        art = doc.get("artifacts") or {}
+
+        def text(key: str, doc: dict[str, Any] = doc) -> str | None:
+            value = doc.get(key)
+            return str(value) if value else None
+
+        views.append(
+            PostmortemView(
+                path=path.relative_to(root).as_posix(),
+                contributor=str(doc["contributor"]),
+                route=str(doc["route"]),
+                route_class=str(doc["route_class"]),
+                outcome=str(doc["outcome"]),
+                failure_class=text("failure_class"),
+                detail=text("detail"),
+                terminal_goal_state=text("terminal_goal_state"),
+                missing_lemmas=tuple(str(x) for x in art.get("missing_lemmas") or ()),
+                partial=str(art["partial_proof"]) if art.get("partial_proof") else None,
+                model=text("model_and_tooling"),
+                date=_stamp_date(path.name),
+            )
+        )
+    return tuple(views)
+
+
 def _partials_for(
     root: Path, node_dir: Path, node_id: str, statement_hash: str
 ) -> tuple[PartialView, ...]:
@@ -1113,6 +1189,7 @@ def load_node(root: Path, target_id: str, entry: dict[str, Any]) -> NodeView:
         witness_open=graphmod.witness_is_stub(node_dir),
         relation=_lean_file(root, node_dir / paths.RELATION_FILE),
         partials=_partials_for(root, node_dir, node_id, loaded.statement.statement_hash),
+        postmortems=_postmortems_for(root, node_dir),
         superseded_by=str(successor) if successor else None,
         superseded_cause=str(why) if why else None,
         superseded_record=replaced.path.relative_to(root).as_posix() if replaced else None,

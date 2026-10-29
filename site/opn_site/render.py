@@ -16,7 +16,7 @@ import json
 import re
 from dataclasses import replace
 from html import escape
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from string import Template
 from typing import TYPE_CHECKING, Any
 from urllib.parse import quote
@@ -5183,7 +5183,8 @@ class Renderer:
                 self.fold(
                     f"Attempts ({attempts.count})",
                     f"<p>{attempts.count} recorded. Routes refuted: {esc(refuted or 'none')}. "
-                    f"Failure classes: {esc(hist or 'none')}.</p>{self.partials_block(nv)}",
+                    f"Failure classes: {esc(hist or 'none')}.</p>"
+                    f"{self.postmortems_block(nv)}{self.partials_block(nv)}",
                     element_id="attempts",
                     cls="fold rec",
                 )
@@ -6399,6 +6400,55 @@ class Renderer:
     def witness_slot(self, nv: NodeView) -> str:
         tv = self.site.targets.get(nv.target_id)
         return self.gloss_slot(tv, "witness", f"nodes/{nv.node_id}/Witness.lean", node=nv.node_id)
+
+    def postmortems_block(self, nv: NodeView) -> str:
+        """F04-T62 (Q60): each valid postmortem on the node, newest first, as untrusted prose
+        (R4) — who filed it and when, its typed fields, the route in the contributor's words,
+        ``detail`` (what was ruled out, what to try next), the terminal goal state as Lean and
+        the missing lemmas. Every value is escaped or goes through the prose renderer (C9)."""
+        blocks = []
+        for pm in nv.postmortems:
+            by = [f"by {esc(pm.contributor)}"]
+            if pm.model:  # postmortem/v2: as the operator declared it (D-23), never verified
+                by.append(f"drafted with {esc(pm.model)}")
+            if pm.date:
+                by.append(esc(pm.date))
+            facts = [
+                f"outcome <strong>{esc(pm.outcome)}</strong>",
+                f"route class {esc(pm.route_class)}",
+            ]
+            if pm.failure_class:
+                facts.append(f"failure class {esc(pm.failure_class)}")
+            if pm.partial:
+                facts.append(
+                    f"names the partial <code>{esc(PurePosixPath(pm.partial).name)}</code>"
+                )
+            body = [
+                f'<p class="pm-facts">{" · ".join(facts)}.</p>',
+                f'<p class="pm-route"><strong>Route.</strong> {esc(pm.route)}</p>',
+            ]
+            if pm.detail:
+                body.append(prose.render(pm.detail, math=True))
+            if pm.terminal_goal_state:
+                body.append(
+                    '<p class="pm-goal">Where it stopped (the terminal goal state):</p>'
+                    f'<pre class="lean">{esc(pm.terminal_goal_state)}</pre>'
+                )
+            if pm.missing_lemmas:
+                items = "".join(f"<li>{esc(x)}</li>" for x in pm.missing_lemmas)
+                body.append(f'<p class="pm-lemmas">Missing lemmas:</p><ul>{items}</ul>')
+            blocks.append(
+                '<div class="prose-block untrusted" data-block="postmortem">'
+                + self.provenance(
+                    "untrusted",
+                    "a postmortem (D-3): a contributor&rsquo;s account of an attempt that "
+                    "stopped, unverified.",
+                )
+                + f'<p class="label">Untrusted: postmortem, {", ".join(by)}. '
+                f"Rendered from {self.file_link(pm.path)}.</p>"
+                f'<div class="prose">{"".join(body)}</div></div>'
+            )
+        return "".join(blocks)
 
     def partials_block(self, nv: NodeView) -> str:
         """Each partial assembly filed under ``attempts/`` (D-3, D-12 #5), as text.
