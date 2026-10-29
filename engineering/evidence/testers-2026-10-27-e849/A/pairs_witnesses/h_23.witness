@@ -1,0 +1,10 @@
+-- hole: h_23
+
+import Mathlib
+
+open Nat
+
+theorem witness : ∃ (n : ℕ) (m : ℕ), (4 : ℕ) ≤ n ∧ (6 : ℕ) ≤ m ∧ n.choose 2 = m.choose 3 :=
+  ⟨16, 10, by norm_num, by norm_num, by
+    rw [Nat.choose_eq_factorial_div_factorial (by norm_num), Nat.choose_eq_factorial_div_factorial (by norm_num)]
+    norm_num [Nat.factorial]⟩

@@ -1,0 +1,35 @@
+schema: postmortem/v1
+node: variant-3969f1f7--h2
+contributor: replaced-by-the-service
+route: "reduce the middle region to de Weger's collision conjecture (MRSTT 2022, Remark 1.5), then split the conjecture into its proved cases (BBdW 2017, Theorem 2.2) and the remainder; look for a published bound uniform in the pair (k, l) to close the remainder"
+route_class: reduction-to-known
+outcome: blocked
+terminal_goal_state: |
+  n k m l : ℕ
+  hk : 2 ≤ k
+  hn : 2 * k ≤ n
+  hl : 2 ≤ l
+  hm : 2 * l ≤ m
+  hkl : k < l
+  hc : n.choose k = m.choose l
+  ⊢ (k = 2 ∧ l = 3 ∨ k = 2 ∧ l = 4 ∨ k = 2 ∧ l = 5 ∨ k = 2 ∧ l = 6 ∨ k = 2 ∧ l = 8 ∨
+      k = 3 ∧ l = 4 ∨ k = 3 ∧ l = 6 ∨ k = 4 ∧ l = 6 ∨ k = 4 ∧ l = 8) ∨
+    m + 1 = n ∧ l = k + 1 ∨ n ≤ 1000000 ∨ n.choose k ≤ 10 ^ 60
+failure_class: route-dead-ends
+detail: >
+  The reduction is on the record (partials #1059 on this node, K = 1, B = 17, and #1072 on --h2--h1),
+  kernel-checked, with every known piece a hole citing its theorem. What stops the route is the last
+  hole: no collision C(n,k) = C(m,l) outside the nine solved pairs, the adjacent shape and the two
+  computed ranges. Everything published for it is pair by pair: Siegel's theorem (Beukers, Shorey,
+  Tijdeman 1999) gives finitely many collisions for each fixed (k,l), ineffectively, and the solved
+  pairs are nine separate curve computations. A bound on the number of columns holding one value
+  needs uniformity in (k,l), which nothing in the literature supplies; and the hypothesis the route
+  rests on (de Weger's conjecture) is stronger than this node, implying Singmaster's conjecture itself
+  with four rows per value. So the route moves the open core into a named conjecture and no further.
+  Brainstormed and rejected (B.md, 2026-10-27): finite k-ranges (absorbed by the existential K);
+  uniform per-pair finiteness (r rows give C(r,2) collisions on distinct pairs, so a per-pair bound
+  never bounds r); narrowing the region by MRSTT with smaller epsilon (a regress); Kane / Abbott-Erdos-Hanson
+  / Cramer-conditional counts (all unbounded in t).
+artifacts:
+  missing_lemmas:
+    - "a bound, uniform in (k, l), on the number of solutions of C(n,k) = C(m,l) with 2 ≤ k < l"

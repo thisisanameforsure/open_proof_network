@@ -1,0 +1,18 @@
+{
+ "node_id": "variant-3969f1f7--h2--h1--h4--h1",
+ "model_and_tooling": "Claude Fable 5.1 (Claude Code subagent) through the MCP; citations checked against ar5iv on 2026-10-27",
+ "status": "known",
+ "references": [
+  {
+   "title": "A. Blokhuis, A. E. Brouwer, B. M. M. de Weger, Binomial collisions and near collisions, Integers 17 (2017) #A64",
+   "url": "https://arxiv.org/abs/1707.06893",
+   "note": "Theorem 2.2, case C(n,k) ≤ 10^60, by the sieve of §2.2 (all primes below 500, about 375 CPU hours); the earlier bound C(n,k) ≤ 10^30 is de Weger, J. Number Theory 63 (1997) 373–386."
+  },
+  {
+   "title": "B. M. M. de Weger, Equal binomial coefficients: some elementary considerations, J. Number Theory 63 (1997) 373–386",
+   "url": null,
+   "note": "The search to 10^30 and the conjecture."
+  }
+ ],
+ "summary": "Known by computation: Blokhuis, Brouwer and de Weger sieved every binomial coefficient up to 10^60 (reducing modulo the primes below 500) and found no collision beyond the eight sporadic quadruples and Lind's family (Theorem 2.2, §2.2). A large finite verification; a formalisation would be a certified computation."
+}

@@ -1,0 +1,8 @@
+{"node_id": "variant-3969f1f7--h3--h1--h1",
+ "route": "Decompose Prop 1.9 (distance estimate) along MRSTT §3: the equidistribution estimate Prop 1.12 (sums over primes p of e(N/p + M/p^j) against their integral, §4: Vaughan's identity and a Vinogradov-type bound) and the §3 argument that turns it into the bound on m' − m and n' − n.",
+ "route_class": "reduction-to-known",
+ "outcome": "abandoned-early",
+ "failure_class": "missing-library",
+ "terminal_goal_state": "⊢ ∃ C, 0 ≤ C ∧ ∃ a₁, ∀ a ≥ a₁, ∀ (n k n' k' : ℕ), [left-half solution (n,k) of a] → [left-half solution (n',k') of a] → |↑k - ↑k'| ≤ C * Real.exp (Real.log (↑n + ↑n') ^ (43 / 60)) ∧ (… ≤ ↑k → … ≤ ↑k' → |↑n - ↑n'| ≤ C * Real.exp (Real.log (↑n + ↑n') ^ (43 / 60)))",
+ "detail": "Not decomposed, by choice. Prop 1.12 is a named statement and could be a hole, but the §3 argument from it to Prop 1.9 is the body of that section (exponential sums over primes of a phase built from the two solutions, with the parameter P between exp(log^{2/3+ε/2} n') and twice that) and has no stated intermediate results of its own, so any hole for it would be invented rather than cited. Mathlib has no exponential sums over primes, no Vaughan identity and no Vinogradov bound; the nearest formalised material is the prime number theorem. The node stays as Prop 1.9 itself, with its elementary companions --h3--h1--h2 and --h3--h1--h3 proved separately.",
+ "model_and_tooling": "Claude Fable 5.1 through Claude Code, by hand; paper read via ar5iv:2106.03335"}

@@ -1,0 +1,5 @@
+$$\forall n, k, m, l \in \mathbb{N}:\quad 2 \le k \to 2k \le n \to 2 \le l \to 2l \le m \to k < l \to \tbinom{n}{k} = \tbinom{m}{l} \to (k, l) \in P \to (n, k, m, l) \in S$$
+
+where $P = \{(2,3), (2,4), (2,5), (2,6), (2,8), (3,4), (3,6), (4,6), (4,8)\}$ and $S$ is the list of eight quadruples $(78, 2, 15, 5)$, $(78, 2, 14, 6)$, $(16, 2, 10, 3)$, $(21, 2, 10, 4)$, $(56, 2, 22, 3)$, $(120, 2, 36, 3)$, $(153, 2, 19, 5)$, $(221, 2, 17, 8)$; both are written in the Lean as disjunctions of conjunctions of equalities. Here $n$, $k$, $m$, $l$ are natural numbers.
+
+In words: a collision $\binom{n}{k} = \binom{m}{l}$ in the half triangle ($2 \le k \le n/2$, $2 \le l \le m/2$) with $k < l$ and columns $(k, l)$ among the nine listed pairs is one of the eight sporadic collisions (the values $3003$, $3003$, $120$, $210$, $1540$, $7140$, $11628$, $24310$). For the pairs $(3,4)$, $(3,6)$, $(4,6)$, $(4,8)$ the statement asserts that there is no such collision at all, since no quadruple of $S$ has those columns.

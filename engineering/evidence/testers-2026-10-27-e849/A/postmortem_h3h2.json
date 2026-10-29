@@ -1,0 +1,8 @@
+{"node_id": "variant-3969f1f7--h3--h2",
+ "route": "Decompose Prop 1.10 (Kane-type estimate) along its proof in MRSTT §2: derivative estimates for f_t (Prop 2.1), Lemma 2.2 on integer values of a function with small second derivative, Corollary 2.3 (at most one other solution with m' ∈ [m - m^{ε/10}, m] when m ≥ n^{1/2+ε}), and the step that turns the nearby-solution hypothesis into m ≥ n^{9/10}.",
+ "route_class": "reduction-to-known",
+ "outcome": "abandoned-early",
+ "failure_class": "needs-new-definition",
+ "terminal_goal_state": "⊢ ∃ a₂, ∀ a ≥ a₂, ∀ (n k : ℕ), [interior solution (n,k) of a] → {n' | ∃ k', 1 ≤ k' ∧ k' < k ∧ n < n' ∧ 2 * k' ≤ n' ∧ n'.choose k' = a ∧ |↑n - ↑n'| + |↑k - ↑k'| ≤ Real.exp (Real.log (Real.log ↑a) ^ (9 / 10))}.ncard ≤ 1",
+ "detail": "Not decomposed, by choice. Cor 2.3 is a named statement and could be a hole, but the only named inputs beyond it are about f_t, the real function with C(f_t(m), m) = t (the binomial coefficient continued to real n through the Gamma function): Prop 2.1 bounds f_t, f_t' and f_t''. Stating those faithfully needs that definition on the record first, and the step from the nearby-solution hypothesis to m ≥ n^{9/10} is a lemma extracted from the proof of Prop 1.10, not a stated result, so a hole for it would be invented rather than cited. The node therefore stays as Prop 1.10 itself; its sibling --h3--h1 is decomposed one level further because its inputs (Prop 1.9, (1.5), (1.7)) are stated results and elementary facts.",
+ "model_and_tooling": "Claude Fable 5.1 through Claude Code, by hand; paper read via ar5iv:2106.03335"}

@@ -1,0 +1,18 @@
+{
+ "node_id": "variant-3969f1f7--h2--h1--h4--h2--h3",
+ "model_and_tooling": "Claude Fable 5.1 (Claude Code subagent) through the MCP; BBdW read on ar5iv on 2026-10-27",
+ "status": "open",
+ "references": [
+  {
+   "title": "A. Blokhuis, A. E. Brouwer, B. M. M. de Weger, Binomial collisions and near collisions, Integers 17 (2017) #A64",
+   "url": "https://arxiv.org/abs/1707.06893",
+   "note": "Conjecture 2.1 (de Weger 1997) with every case of Theorem 2.2 removed from its scope: this hole, in positive form."
+  },
+  {
+   "title": "K. Matomäki, M. Radziwiłł, X. Shao, T. Tao, J. Teräväinen, Singmaster's conjecture in the interior of Pascal's triangle, Quart. J. Math. 73 (2022) 1137–1177",
+   "url": "https://arxiv.org/abs/2106.03335",
+   "note": "Remark 1.5: Siegel's theorem (Beukers–Shorey–Tijdeman) gives per-pair finiteness only, ineffectively; nothing published is uniform in (k,l)."
+  }
+ ],
+ "summary": "Open. The residue of de Weger's conjecture after everything proved: no collision C(n,k) = C(m,l) (2 ≤ k ≤ n/2, 2 ≤ l ≤ m/2, k < l) with (k,l) outside the nine solved pairs, not of the shapes (n−1,k+1), (n−1,k+2), (n−2,k+1), with n > 10^6 and C(n,k) > 10^60. Nothing published is left to peel; what is missing is a bound uniform in (k,l). A proof closes the whole --h2 branch and, with MRSTT Theorem 1.3, Singmaster's conjecture."
+}

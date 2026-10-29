@@ -1,0 +1,7 @@
+$$\forall n, k, m, l \in \mathbb{N}:\quad 2 \le k \to 2k \le n \to 2 \le l \to 2l \le m \to k < l \to \tbinom{n}{k} = \tbinom{m}{l} \to \Bigl((n,k,m,l) \in S\Bigr) \vee \Bigl(\exists i \ge 1:\ n = F_{2i+2}F_{2i+3},\ k = F_{2i}F_{2i+3},\ m + 1 = n,\ l = k + 1\Bigr)$$
+
+where $S$ is the explicit list of eight quadruples $(78, 2, 15, 5)$, $(78, 2, 14, 6)$, $(16, 2, 10, 3)$, $(21, 2, 10, 4)$, $(56, 2, 22, 3)$, $(120, 2, 36, 3)$, $(153, 2, 19, 5)$, $(221, 2, 17, 8)$, written in the Lean as a disjunction of conjunctions of equalities, and $F_j$ is `Nat.fib` ($F_0 = 0$, $F_1 = 1$).
+
+Here $n$, $k$, $m$, $l$, $i$ are natural numbers. The statement speaks of **collisions**: two positions of the half triangle ($2 \le k \le n/2$, $2 \le l \le m/2$), in different columns $k < l$, holding the same value. The trivial column $k = 1$ is excluded by $2 \le k$, and the pair $(15, 5, 14, 6)$ (the value $3003$) is the $i = 1$ member of the Fibonacci family, not a separate entry of $S$.
+
+In words: every coincidence $\binom{n}{k} = \binom{m}{l}$ in the half triangle with $2 \le k < l$ is one of the eight sporadic ones (the values $3003$, $3003$, $120$, $210$, $1540$, $7140$, $11628$, $24310$) or lies in Lind's adjacent-row family $\binom{F_{2i+2}F_{2i+3}}{F_{2i}F_{2i+3}} = \binom{F_{2i+2}F_{2i+3} - 1}{F_{2i}F_{2i+3} + 1}$. This is de Weger's conjecture (Blokhuis–Brouwer–de Weger, Conjecture 2.1), stated as a hypothesis.

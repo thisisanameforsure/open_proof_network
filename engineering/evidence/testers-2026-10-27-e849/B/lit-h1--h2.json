@@ -1,0 +1,23 @@
+{
+ "node_id": "variant-3969f1f7--h2--h1--h2",
+ "model_and_tooling": "Claude Fable 5.1 (Claude Code subagent) through the MCP; citations checked against ar5iv on 2026-10-27",
+ "status": "known",
+ "references": [
+  {
+   "title": "C. A. Tovey, Multiple occurrences of binomial coefficients, Fibonacci Quart. 23 (1985) 356–358",
+   "url": "https://www.fq.math.ca/Scanned/23-4/tovey.pdf",
+   "note": "The complete solution of C(n,k) = C(n−1,k+1); credited for the case (m,l) = (n−1,k+1) of BBdW Theorem 2.2."
+  },
+  {
+   "title": "A. Blokhuis, A. E. Brouwer, B. M. M. de Weger, Binomial collisions and near collisions, Integers 17 (2017) #A64",
+   "url": "https://arxiv.org/abs/1707.06893",
+   "note": "Theorem 2.2: no unknown collisions of the shape (m,l) = (n−1,k+1); the known ones are Lind's family."
+  },
+  {
+   "title": "D. A. Lind, Fibonacci Quart. 6 (1968) 86–93; D. Singmaster, Fibonacci Quart. 13 (1975) 295–298",
+   "url": null,
+   "note": "The family C(F_{2i+2}F_{2i+3}, F_{2i}F_{2i+3}) = C(F_{2i+2}F_{2i+3}−1, F_{2i}F_{2i+3}+1)."
+  }
+ ],
+ "summary": "Known. C(n,k) = C(n−1,k+1) is equivalent to n(k+1) = (n−k)(n−k−1), i.e. to (5k+4)² − 5y² = −4, whose solutions are the odd-index Lucas numbers; those congruent to 4 mod 5 give k = (L_{4i+3} − 4)/5 = F_{2i}F_{2i+3} and n = F_{2i+2}F_{2i+3}, i ≥ 1 (i = 0 is k = 0). So every adjacent collision is in Lind's family, as Tovey proved. Elementary Pell-equation mathematics, not formalised; a formalisation needs the classification of x² − 5y² = −4."
+}

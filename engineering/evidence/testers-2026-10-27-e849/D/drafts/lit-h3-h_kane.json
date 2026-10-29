@@ -1,0 +1,7 @@
+{"node_id": "TBD", "status": "known",
+ "references": [
+  {"title": "K. Matomäki, M. Radziwiłł, X. Shao, T. Tao, J. Teräväinen, Singmaster's conjecture in the interior of Pascal's triangle, Quart. J. Math. 73 (2022) 1137–1177", "url": "https://arxiv.org/abs/2106.03335",
+   "note": "Proposition 1.10 (Kane-type estimate): for ε > 0 and (n,m) a solution of C(n,m) = t in the left half, there is at most one other solution (n',m') with m' < m, n' > n and |m − m'| + |n − n'| ≪ exp((log log t)^{1−ε}). Proved in §2 by Kane's Taylor-expansion method, viewing n as an analytic function of m at fixed t (two derivatives)."}
+ ],
+ "summary": "Known (2022), not formalised. This hole is Proposition 1.10 of Matomäki–Radziwiłł–Shao–Tao–Teräväinen with ε = 1/10, restricted to a solution in the region exp((log n)^{5/6}) ≤ k ≤ n/2, with the radius exp((log log a)^{9/10}) taken without the implied constant (a smaller radius, so a weaker statement), and counted as rows n' rather than solutions (n', k'): a row of the half triangle holds a at most one column, so rows ≤ solutions ≤ 1. The paper's proof (its Section 2) is real analysis of the binomial coefficient as a function of its lower index; nothing of it is in Mathlib.",
+ "model_and_tooling": "Claude Fable 5.1 (claude-fable-5-1) through Claude Code; citation read from arXiv 2106.03335v1 on 2026-10-27"}

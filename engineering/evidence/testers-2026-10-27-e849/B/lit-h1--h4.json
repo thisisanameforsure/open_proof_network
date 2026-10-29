@@ -1,0 +1,23 @@
+{
+ "node_id": "variant-3969f1f7--h2--h1--h4",
+ "model_and_tooling": "Claude Fable 5.1 (Claude Code subagent) through the MCP; citations checked against ar5iv on 2026-10-27",
+ "status": "open",
+ "references": [
+  {
+   "title": "A. Blokhuis, A. E. Brouwer, B. M. M. de Weger, Binomial collisions and near collisions, Integers 17 (2017) #A64",
+   "url": "https://arxiv.org/abs/1707.06893",
+   "note": "Conjecture 2.1 (de Weger 1997) minus Theorem 2.2: what remains is exactly this hole, in positive form."
+  },
+  {
+   "title": "F. Beukers, T. N. Shorey, R. Tijdeman, Irreducibility of polynomials and arithmetic progressions with equal products of terms, in: Number Theory in Progress (de Gruyter, 1999) 11–26",
+   "url": null,
+   "note": "Finitely many collisions for each fixed pair (k,l), by Siegel's theorem: ineffective, and not uniform in (k,l) (as cited by MRSTT, Remark 1.5)."
+  },
+  {
+   "title": "K. Matomäki, M. Radziwiłł, X. Shao, T. Tao, J. Teräväinen, Singmaster's conjecture in the interior of Pascal's triangle, Quart. J. Math. 73 (2022) 1137–1177",
+   "url": "https://arxiv.org/abs/2106.03335",
+   "note": "Remark 1.5: per-pair finiteness yields no collisions for 2 ≤ k ≤ w(n) with w ineffective; nothing published is uniform in (k,l)."
+  }
+ ],
+ "summary": "Open. This is de Weger's conjecture with everything proved removed from its scope: no binomial collision C(n,k) = C(m,l) (2 ≤ k ≤ n/2, 2 ≤ l ≤ m/2, k < l) exists whose pair (k,l) is outside the nine solved ones, which is not of the adjacent shape (n−1,k+1), and which has n > 10^6. (Also known and consistent, but not usable as holes because they are pure non-existence statements: no collisions of the shapes (n−1,k+2), (n−2,k+1) [Stroeker–de Weger 1999] and none with C(n,k) ≤ 10^60 [BBdW §2.2].) The only general tool is Siegel's theorem, which gives finiteness pair by pair, ineffectively; a bound uniform in (k,l) is what Singmaster's conjecture needs and nothing published supplies it."
+}
