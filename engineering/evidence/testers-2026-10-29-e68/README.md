@@ -68,7 +68,7 @@ How the cores relate (D, separating examples checked in exact arithmetic):
 
 ## For the steward and the owner
 
-- **Wording on two merged postmortems.** #1205 (A) and #1209 (B) say the root "does not" imply T ∉ ℚ. It should be "is not known to". Both are merged, so the correction needs a later record.
+- **Wording on two merged postmortems.** #1205 (A) and #1209 (B) said the root "does not" imply T ∉ ℚ; it should be "is not known to". Corrected on the owner's word by follow-up postmortems from the same identities, #1230 on `--h3` and #1231 on `--h6`, both merged 16:16Z.
 - **Waiting for confirmation:** literature proposals #1196, #1208 and #1212 (all status open) wait for a steward or curator.
 - **Ready drafts:**
   - `A/closing-h3-draft.lean` is the closing proof of `--h3` through #1176. It passes the fast check and waits on `--h3--h2`.
