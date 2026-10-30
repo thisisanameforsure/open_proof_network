@@ -22,6 +22,13 @@ Everything below runs the workflow's own step scripts — the record step, the l
 steps, the commit step — against a bare remote, with a ``uv`` that stands in for the pinned gate's
 three commands and renders products as a deterministic function of the tree. It was seen red
 against the job as it stood (``engineering/evidence/F07/task-55-red.txt``).
+
+Restated 2026-10-30 (the owner's ruling; ``test_finding_postmerge_record_first.py``): the catch-up
+no longer renders. A render took 76 s and main moved during every one of them on graph run
+40902300897, six times, so the catch-up lays only the merge's own record (and its ledger lines) on
+main as it is and pushes that; render.yml, dispatched once the record lands, renders the products.
+Where these tests said "the products on main are a render of main", they now say it after that
+render (``products_follow``), which is the property they were about. The first push is unchanged.
 """
 
 from __future__ import annotations
@@ -343,6 +350,18 @@ def fresh_render_agrees(origin: Origin) -> None:
     assert git(check, "status", "--porcelain") == "", git(check, "diff")
 
 
+def products_follow(origin: Origin, job: Job) -> None:
+    """A record-only catch-up dispatched render.yml, and that render, run as the workflow writes
+    it, leaves main's products a render of main."""
+    from test_finding_render_without_merge import render_follows  # noqa: PLC0415 (a cycle)
+
+    log = job.temp / "gh.log"
+    calls = log.read_text(encoding="utf-8").splitlines() if log.exists() else []
+    assert "workflow run render.yml --repo owner/graph --ref main" in calls, calls
+    render_follows(origin)
+    fresh_render_agrees(origin)
+
+
 def ledger_merges(origin: Origin) -> list[str]:
     return [entry["merge"] for entry in json.loads(origin.show("ledger/p.json"))["entries"]]
 
@@ -370,7 +389,7 @@ def test_a_push_refused_by_a_merge_on_another_target_is_caught_up(
     assert json.loads(origin.show("attestations/000002.json"))["merge"] == two
     assert job.dispatched() == [], said
     assert ledger_merges(origin) == [three, two]  # each merge once, in the order credited
-    fresh_render_agrees(origin)
+    products_follow(origin, job)
 
 
 def test_a_push_refused_by_a_merge_on_the_same_target_is_caught_up(
@@ -387,7 +406,7 @@ def test_a_push_refused_by_a_merge_on_the_same_target_is_caught_up(
     assert "caught up on" in said, said
     assert origin.subjects(1) == ["gate: #2 pass"]
     assert job.dispatched() == []
-    fresh_render_agrees(origin)
+    products_follow(origin, job)
 
 
 def test_a_partials_hole_children_ride_the_catch_up(
@@ -410,8 +429,8 @@ def test_a_partials_hole_children_ride_the_catch_up(
     assert "caught up on" in said, said
     assert origin.show("targets/t1/nodes/n--h1/Statement.lean") == "theorem h1 : True := trivial"
     assert origin.show("targets/t1/nodes/n/Context.lean").endswith("import Nodes.n__h1")
+    products_follow(origin, job)
     assert "n--h1" in json.loads(origin.show("targets/t1/graph.json"))["nodes"]
-    fresh_render_agrees(origin)
 
 
 def test_a_record_that_conflicts_with_main_is_replayed(
@@ -483,7 +502,7 @@ def test_a_batch_drops_what_another_run_credited_and_credits_the_rest(
     assert "caught up on" in said, said
     assert origin.subjects(2) == ["gate: #3 pass", "gate: #2 pass"]
     assert ledger_merges(origin) == [two, three]
-    fresh_render_agrees(origin)
+    products_follow(origin, job)
 
 
 def test_the_tag_cache_of_both_renders_is_kept_and_nothing_is_scanned_twice(
@@ -510,7 +529,8 @@ def test_the_tag_cache_of_both_renders_is_kept_and_nothing_is_scanned_twice(
     cache = json.loads(origin.show("targets/t1/.tags-cache.json"))
     assert ["tag-v"] in cache.values()
     assert ["tag-w"] in json.loads(origin.show("targets/t2/.tags-cache.json")).values()
-    fresh_render_agrees(origin)
+    products_follow(origin, job)
+    assert log.read_text(encoding="utf-8").count("scanned t1/v") == scans_before, "nor by render"
 
 
 def test_a_push_refused_every_time_gives_up_loudly_and_replays(
@@ -551,10 +571,10 @@ def test_two_runs_racing_on_two_targets_both_land_once(
     subjects = origin.subjects(2)
     assert sorted(subjects) == ["gate: #2 pass", "gate: #3 pass"], subjects
     assert sorted(ledger_merges(origin)) == sorted([two, three])
+    products_follow(origin, first)
     assert {"000002.json", "000003.json"} <= set(
         json.loads(origin.show("frontier.json"))["attested"]
     )
-    fresh_render_agrees(origin)
 
 
 def test_the_first_push_lands_as_before_when_main_has_not_moved(
@@ -587,17 +607,19 @@ def test_the_record_is_taken_after_signing_and_before_any_product(gate_doc: dict
 
 
 def test_the_catch_up_renders_with_the_gate_main_pins(gate_doc: dict[Any, Any]) -> None:
-    """F07-T33's split stands: the products and the ledger are rendered by network-render."""
+    """F07-T33's split stands: the ledger is written by network-render (and so are the products,
+    by render.yml, since 2026-10-30)."""
     (step,) = [
         s for s in gate_doc["jobs"]["postmerge"]["steps"]
         if str(s.get("name", "")).startswith(COMMIT_STEP)
     ]  # fmt: skip
     env = step["env"]
-    for key in ("LEDGER_CMD", "PRODUCTS_CMD"):
-        assert "--project network-render" in env[key], key
-        assert "--project network " not in env[key], key
+    assert "--project network-render" in env["LEDGER_CMD"]
+    assert "--project network " not in env["LEDGER_CMD"]
     assert "cli ledger" in env["LEDGER_CMD"] and '"$MERGE"' in env["LEDGER_CMD"]
-    assert "cli products" in env["PRODUCTS_CMD"] and '"$COMMIT"' in env["PRODUCTS_CMD"]
+    # 2026-10-30: the catch-up lays the record and renders nothing; render.yml renders, with its
+    # own PRODUCTS_CMD on network-render (test_finding_render_without_merge.py)
+    assert "PRODUCTS_CMD" not in env
     assert "git rebase" not in str(step["run"]), "a rebase over moved inputs is what this replaces"
 
 

@@ -702,17 +702,22 @@ def test_a_run_whose_main_moved_by_a_later_merge_catches_up_and_records_its_own(
 ) -> None:
     """Restated by F07-T55. T45 left this run's merges to the later merge's run, which recorded
     them only if its own plan had not already run; now the run catches up and records #2 itself,
-    and whichever run pushes second drops what the first credited. A replay does the same."""
+    and whichever run pushes second drops what the first credited. A replay does the same.
+
+    Restated 2026-10-30: the catch-up lays the record without the products and asks render.yml
+    for them (``test_finding_postmerge_record_first.py``), so that dispatch is the one host call;
+    still no replay."""
+    render = "workflow run render.yml --repo owner/graph --ref main"
     graph = Graph(tmp_path / "g")
     two = graph.append(2)
     graph.append(3)
     code, said, calls, bare = rehearse_commit(gate_doc, graph, tmp_path / "push", two, "2")
-    assert code == 0 and calls == [], (said, calls)
+    assert code == 0 and calls == [render], (said, calls)
     assert "caught up on" in said and main_subject(bare) == "gate: #2 pass", said
     code, said, calls, bare = rehearse_commit(
         gate_doc, graph, tmp_path / "replay", two, "2", event="workflow_dispatch"
     )
-    assert code == 0 and calls == [], (said, calls)
+    assert code == 0 and calls == [render], (said, calls)
     assert main_subject(bare) == "gate: #2 pass (replayed)", said
 
 
