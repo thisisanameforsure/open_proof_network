@@ -10,3 +10,5 @@
 - 2026-10-29T21:17:46Z — T3 green (9 passed, 141 neighbours), lint/types exit 0; waiting on T2 fast tier before committing T3.
 - 2026-10-29T21:36:43Z — T3 committed 59d5ddfa; fast tier on snap-t2 and snap-t3: 1 failed (pre-existing test_graph_copy_is_identical: main's AGENTS.md ahead of the graph copy), 7207/7216 passed. T1–T3 done; T4 next (not this session).
 - 2026-10-30T06:24Z — T5 (other agent): graph f32-t5-gate 76e5e2172e signs hole records in the key step; network test_finding_carried_proof_workflow.py red 2/6 then green 6/6; fast tier 7223 passed.
+- 2026-10-30T06:10:58Z — T6 (new agent): red found graph/v15's proofs[].attestation pattern refusing Q7's hole file name (every product down on the first born-proved merge); graph/v16 added; Q13 seam then fix (rendered commit for carried_by records); cache needs gate.yml (T5), outline does not. lint/types exit 0; fast tier next.
+- 2026-10-30T06:32:03Z — T6 fast tier: 7226 passed, 1 xfailed (T5 mark), exit 0. Committing.

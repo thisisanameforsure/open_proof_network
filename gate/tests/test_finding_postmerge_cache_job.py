@@ -17,10 +17,16 @@ verdict is already re-derived only for the modes that build (F07-R9); that is pi
 
 from __future__ import annotations
 
+import json
+from pathlib import Path
 from typing import Any
 
 import pytest
+from fakes import FakeToolchain
+from harness import TARGET
 from test_finding_merge_actor_wakes import load_gate_doc
+
+from opn_gate import cli, toolchain
 
 POSTMERGE, CACHE = "postmerge", "cache"
 
@@ -108,3 +114,56 @@ def test_the_verdict_is_re_derived_only_for_a_merge_that_builds(gate_doc: dict[A
     )
     assert sign["env"]["NEEDS_GATE"] == "${{ steps.classify.outputs.needs_gate }}"
     assert 'if [ "$NEEDS_GATE" = "true" ]; then' in sign["run"]
+
+
+# --- F32-T6 (R8; AC11): a born-proved hole's oleans ---------------------------------------------
+
+
+def _publish(capsys: pytest.CaptureFixture[str], root: Path, commit: str, out: Path) -> list[str]:
+    code = cli.main(
+        ["cache", "publish", "--graph", str(root), "--commit", commit, "--target", TARGET,
+         "--out", str(out)]
+    )  # fmt: skip
+    doc = json.loads(capsys.readouterr().out)
+    assert code == cli.EXIT_PASS and doc["ok"], doc
+    modules: list[str] = doc["modules"]
+    return modules
+
+
+def test_the_cache_holds_a_born_proved_hole_built_from_the_commit_its_record_landed_in(
+    tmp_path: Path, seam: Any, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """``cache publish`` builds every proved node of the tree at ``--commit`` (``proved_order``),
+    so a born-proved hole is covered exactly when the commit holds its ``Proof.lean`` and its
+    record: the bot commit, not the merge commit, which predates both. The command is right as
+    it stands; the job must hand it the commit the post-merge job pushed (the xfail below)."""
+    from test_finding_carried_proof_postmerge import H1, recorded  # noqa: PLC0415
+
+    root, merge, bot = recorded(tmp_path, seam, capsys)
+    monkeypatch.setattr(
+        toolchain.LocalToolchain, "from_settings", classmethod(lambda _c, _s: FakeToolchain())
+    )
+    hole_proof = f"Nodes.«{H1}».Proof"
+    assert hole_proof in _publish(capsys, root, bot, tmp_path / "at-bot")
+    assert f"Nodes.«{H1}».Context" in _publish(capsys, root, bot, tmp_path / "at-bot-2")
+    assert hole_proof not in _publish(capsys, root, merge, tmp_path / "at-merge")
+
+
+@pytest.mark.xfail(
+    strict=True,
+    reason="F32-T5 owns gate.yml: the cache job checks out and publishes needs.postmerge.outputs"
+    ".merge, where a born-proved hole's Proof.lean does not exist yet; it must build the commit "
+    "the post-merge job pushed (a new postmerge output `recorded`). Take this mark off, and "
+    "restate test_the_cache_job_builds_exactly_the_merge_commit_with_the_rendering_gate, with "
+    "the graph push (engineering/evidence/F32/task-6.txt).",
+)
+def test_the_cache_job_builds_the_commit_the_record_landed_in(gate_doc: dict[Any, Any]) -> None:
+    assert "recorded" in gate_doc["jobs"][POSTMERGE]["outputs"]
+    (checkout,) = [
+        s
+        for s in steps(gate_doc, CACHE)
+        if s.get("uses", "").startswith("actions/checkout") and "path" not in (s.get("with") or {})
+    ]
+    assert "needs.postmerge.outputs.recorded" in checkout["with"]["ref"]
+    publish = named(gate_doc, CACHE, "Publish the olean cache")
+    assert "needs.postmerge.outputs.recorded" in str(publish["env"])
