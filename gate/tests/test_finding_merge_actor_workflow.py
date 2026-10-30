@@ -42,8 +42,6 @@ PATH = ".github/workflows/merge.yml"
 #: ``f07-record-first`` (a refused push re-lays the merge's own record; the products follow by
 #: render.yml) is built on ``f32-t5-gate`` and goes first while it is a graph branch.
 REFS = (
-    "f07-record-first",
-    "f32-t5-gate",
     "audit-b-workflows",
     "origin/main",
     "f07-t25-merge-actor",

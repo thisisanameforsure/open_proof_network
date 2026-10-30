@@ -1844,3 +1844,15 @@ The law of the project:
   path rule over a directory reads every file in it as the same kind**: glosses live under
   `nodes/`, so T18's "a later commit touched the nodes" took prose for a node change; the compare
   API's file list says which. Also: two "findings" were the guide's opening paragraph, unread.
+- 2026-10-30 — The erdos-68 run's findings, then F32 (a skeleton carries its holes' proofs, decisions v3.49) and
+  the record-first catch-up, built by eleven agents over two days. Four things worth keeping. **Measure the cost
+  of the thing that loses before designing around the loser**: a per-target append hold fixed erdos-849's exact
+  starvation (1300 → 450 s) and made a busy target worse and a two-target lane no better, because main is global;
+  the starved run's log said why in one grep — every publish retry re-rendered all products, 76 s, and was refused
+  0.7 s after it finished. Laying only the merge's own record took it to 2.7 s (F07-T79, Q84, Q85). **A comparison
+  that never sees a field never fails on it**: `reproduce --compare` had not copied `automation` since the field
+  shipped, so none of the 128 live records carrying it could reproduce identical, and nothing was red because every
+  reproduce test used a record without one (F32-Q27). **A dead agent's log is its hand-off**: the T0–T3 agent died
+  on a DNS error mid-T2; its timestamped log and red files let a fresh agent separate T1 from T2 and finish both.
+  **Task ids collided again** (F26-T22/Q24, taken on main the same day): renumber yours at the merge, leave theirs.
+
