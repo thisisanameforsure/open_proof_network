@@ -1,0 +1,354 @@
+warning: `VIRTUAL_ENV=/Users/mikehiggins/Desktop/repos/open_proof_network/.venv` does not match the project environment path `.venv` and will be ignored; use `--active` to target the active environment instead
+Using CPython 3.13.15
+Creating virtual environment at: .venv
+Installed 49 packages in 244ms
+FF.FFF.FFFFF                                                             [100%]
+=================================== FAILURES ===================================
+___ test_reproduce_a_born_proved_hole_writes_its_record_beside_the_partials ____
+
+tmp_path = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-438/test_reproduce_a_born_proved_h0')
+seam = Seam(docker_dir=PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-438/t...lders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-438/test_reproduce_a_born_proved_h0/r/work')]}])
+capsys = <_pytest.capture.CaptureFixture object at 0x10cf07e00>
+
+    def test_reproduce_a_born_proved_hole_writes_its_record_beside_the_partials(
+        tmp_path: Path, seam: Seam, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        """R6: given the hole and the merge commit, the partial is replayed at that commit; its
+        record is ``attestation.json`` as ever, and the hole's own run's record is written beside it
+        with every fact of the tree the post-merge job recorded."""
+        root, merge, _partial, committed = merge_attested(tmp_path, seam, capsys)
+        out = tmp_path / "r"
+        code, docs, err = reproduce(capsys, seam, root, merge, H1, out)
+>       assert code == cli.EXIT_PASS, err
+E       AssertionError: 
+E       assert 1 == 0
+E        +  where 0 = cli.EXIT_PASS
+
+gate/tests/test_finding_carried_proof_reproduce.py:89: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  opn_gate.steps.deps:deps.py:223 step 8: declared dep 'tutorial-and-swap' contributes no constant to the proof
+WARNING  opn_gate.steps.deps:deps.py:223 step 8: declared dep 'and-reassoc' contributes no constant to the proof
+_______________ test_reproduce_compare_on_the_hole_is_identical ________________
+
+tmp_path = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-438/test_reproduce_compare_on_the_0')
+seam = Seam(docker_dir=PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-438/t...lders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-438/test_reproduce_compare_on_the_0/r/work')]}])
+capsys = <_pytest.capture.CaptureFixture object at 0x10cf6d6d0>
+
+    def test_reproduce_compare_on_the_hole_is_identical(
+        tmp_path: Path, seam: Seam, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        """R6, AC10's fast half: ``--compare`` against the committed hole record reports identical,
+        exit 0, as the existing comparison reports it for any record."""
+        root, merge, _partial, hole = merge_attested(tmp_path, seam, capsys)
+        path = committed_file(tmp_path, f"000009.{H1}.json", hole)
+        code, docs, err = reproduce(capsys, seam, root, merge, H1, tmp_path / "r", "--compare", str(path))
+>       assert code == cli.EXIT_PASS, err
+E       AssertionError: 
+E       assert 1 == 0
+E        +  where 0 = cli.EXIT_PASS
+
+gate/tests/test_finding_carried_proof_reproduce.py:109: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  opn_gate.steps.deps:deps.py:223 step 8: declared dep 'tutorial-and-swap' contributes no constant to the proof
+WARNING  opn_gate.steps.deps:deps.py:223 step 8: declared dep 'and-reassoc' contributes no constant to the proof
+____ test_a_hole_record_that_differs_is_not_reproduced[carried_by-carried] _____
+
+tmp_path = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-438/test_a_hole_record_that_differ0')
+seam = Seam(docker_dir=PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-438/t...lders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-438/test_a_hole_record_that_differ0/r/work')]}])
+capsys = <_pytest.capture.CaptureFixture object at 0x10ca2a3f0>
+field = 'carried_by', value = 'carried'
+
+    @pytest.mark.parametrize(
+        ("field", "value"),
+        [
+            ("carried_by", "carried"),  # the back-pointer is facts of the tree: compared, not masked
+            ("artifact_hash", "0" * 64),
+            ("statement_hash", "1" * 64),
+        ],
+    )
+    def test_a_hole_record_that_differs_is_not_reproduced(
+        tmp_path: Path, seam: Seam, capsys: pytest.CaptureFixture[str], field: str, value: str
+    ) -> None:
+        """D-5 v3.49: nothing new is masked. A committed hole record whose back-pointer, artifact
+        or statement hash the tree does not give is named, exit 1."""
+        root, merge, _partial, hole = merge_attested(tmp_path, seam, capsys)
+        tampered = dict(hole)
+        if field == "carried_by":
+            tampered["carried_by"] = {
+                **hole["carried_by"],
+                "carried": {**hole["carried_by"]["carried"], "sha256": "2" * 64},
+            }
+        else:
+            tampered[field] = value
+        path = committed_file(tmp_path, f"000009.{H1}.json", tampered)
+        code, docs, _err = reproduce(
+            capsys, seam, root, merge, H1, tmp_path / "r", "--compare", str(path)
+        )
+        assert code == cli.EXIT_FAIL
+>       assert docs[-1] == {"identical": False, "differing_fields": [field]}
+E       AssertionError: assert {'identical':...t_hash', ...]} == {'identical':...'carried_by']}
+E         
+E         Omitting 1 identical items, use -vv to show
+E         Differing items:
+E         {'differing_fields': ['artifact_hash', 'carried_by', 'diagnostic', 'first_failing_step', 'footprint', 'statement_hash', ...]} != {'differing_fields': ['carried_by']}
+E         Use -v to get more diff
+
+gate/tests/test_finding_carried_proof_reproduce.py:154: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  opn_gate.steps.deps:deps.py:223 step 8: declared dep 'tutorial-and-swap' contributes no constant to the proof
+WARNING  opn_gate.steps.deps:deps.py:223 step 8: declared dep 'and-reassoc' contributes no constant to the proof
+_ test_a_hole_record_that_differs_is_not_reproduced[artifact_hash-0000000000000000000000000000000000000000000000000000000000000000] _
+
+tmp_path = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-438/test_a_hole_record_that_differ1')
+seam = Seam(docker_dir=PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-438/t...lders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-438/test_a_hole_record_that_differ1/r/work')]}])
+capsys = <_pytest.capture.CaptureFixture object at 0x10ca28d60>
+field = 'artifact_hash'
+value = '0000000000000000000000000000000000000000000000000000000000000000'
+
+    @pytest.mark.parametrize(
+        ("field", "value"),
+        [
+            ("carried_by", "carried"),  # the back-pointer is facts of the tree: compared, not masked
+            ("artifact_hash", "0" * 64),
+            ("statement_hash", "1" * 64),
+        ],
+    )
+    def test_a_hole_record_that_differs_is_not_reproduced(
+        tmp_path: Path, seam: Seam, capsys: pytest.CaptureFixture[str], field: str, value: str
+    ) -> None:
+        """D-5 v3.49: nothing new is masked. A committed hole record whose back-pointer, artifact
+        or statement hash the tree does not give is named, exit 1."""
+        root, merge, _partial, hole = merge_attested(tmp_path, seam, capsys)
+        tampered = dict(hole)
+        if field == "carried_by":
+            tampered["carried_by"] = {
+                **hole["carried_by"],
+                "carried": {**hole["carried_by"]["carried"], "sha256": "2" * 64},
+            }
+        else:
+            tampered[field] = value
+        path = committed_file(tmp_path, f"000009.{H1}.json", tampered)
+        code, docs, _err = reproduce(
+            capsys, seam, root, merge, H1, tmp_path / "r", "--compare", str(path)
+        )
+        assert code == cli.EXIT_FAIL
+>       assert docs[-1] == {"identical": False, "differing_fields": [field]}
+E       AssertionError: assert {'identical':...t_hash', ...]} == {'identical':...tifact_hash']}
+E         
+E         Omitting 1 identical items, use -vv to show
+E         Differing items:
+E         {'differing_fields': ['artifact_hash', 'carried_by', 'diagnostic', 'first_failing_step', 'footprint', 'statement_hash', ...]} != {'differing_fields': ['artifact_hash']}
+E         Use -v to get more diff
+
+gate/tests/test_finding_carried_proof_reproduce.py:154: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  opn_gate.steps.deps:deps.py:223 step 8: declared dep 'tutorial-and-swap' contributes no constant to the proof
+WARNING  opn_gate.steps.deps:deps.py:223 step 8: declared dep 'and-reassoc' contributes no constant to the proof
+_ test_a_hole_record_that_differs_is_not_reproduced[statement_hash-1111111111111111111111111111111111111111111111111111111111111111] _
+
+tmp_path = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-438/test_a_hole_record_that_differ2')
+seam = Seam(docker_dir=PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-438/t...lders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-438/test_a_hole_record_that_differ2/r/work')]}])
+capsys = <_pytest.capture.CaptureFixture object at 0x10cf58a70>
+field = 'statement_hash'
+value = '1111111111111111111111111111111111111111111111111111111111111111'
+
+    @pytest.mark.parametrize(
+        ("field", "value"),
+        [
+            ("carried_by", "carried"),  # the back-pointer is facts of the tree: compared, not masked
+            ("artifact_hash", "0" * 64),
+            ("statement_hash", "1" * 64),
+        ],
+    )
+    def test_a_hole_record_that_differs_is_not_reproduced(
+        tmp_path: Path, seam: Seam, capsys: pytest.CaptureFixture[str], field: str, value: str
+    ) -> None:
+        """D-5 v3.49: nothing new is masked. A committed hole record whose back-pointer, artifact
+        or statement hash the tree does not give is named, exit 1."""
+        root, merge, _partial, hole = merge_attested(tmp_path, seam, capsys)
+        tampered = dict(hole)
+        if field == "carried_by":
+            tampered["carried_by"] = {
+                **hole["carried_by"],
+                "carried": {**hole["carried_by"]["carried"], "sha256": "2" * 64},
+            }
+        else:
+            tampered[field] = value
+        path = committed_file(tmp_path, f"000009.{H1}.json", tampered)
+        code, docs, _err = reproduce(
+            capsys, seam, root, merge, H1, tmp_path / "r", "--compare", str(path)
+        )
+        assert code == cli.EXIT_FAIL
+>       assert docs[-1] == {"identical": False, "differing_fields": [field]}
+E       AssertionError: assert {'identical':...t_hash', ...]} == {'identical':...tement_hash']}
+E         
+E         Omitting 1 identical items, use -vv to show
+E         Differing items:
+E         {'differing_fields': ['artifact_hash', 'carried_by', 'diagnostic', 'first_failing_step', 'footprint', 'statement_hash', ...]} != {'differing_fields': ['statement_hash']}
+E         Use -v to get more diff
+
+gate/tests/test_finding_carried_proof_reproduce.py:154: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  opn_gate.steps.deps:deps.py:223 step 8: declared dep 'tutorial-and-swap' contributes no constant to the proof
+WARNING  opn_gate.steps.deps:deps.py:223 step 8: declared dep 'and-reassoc' contributes no constant to the proof
+_ test_a_declared_automation_block_is_copied_like_every_declared_field[and-swap-reassoc] _
+
+tmp_path = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-438/test_a_declared_automation_blo0')
+seam = Seam(docker_dir=PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-438/t...lders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-438/test_a_declared_automation_blo0/r/work')]}])
+capsys = <_pytest.capture.CaptureFixture object at 0x10ccd3130>
+node = 'and-swap-reassoc'
+
+    @pytest.mark.parametrize("node", [ROOT, H1])
+    def test_a_declared_automation_block_is_copied_like_every_declared_field(
+        tmp_path: Path, seam: Seam, capsys: pytest.CaptureFixture[str], node: str
+    ) -> None:
+        """D-5, F07-T14: what a submission declares is not a function of the tree, so a
+        reproduction copies it from the committed record. ``automation`` (D-23 v3.37) is declared
+        like ``submitter`` and ``model_and_tooling``, and a hole's record carries the partial's
+        (F32-R5), so a partial that declared one must still reproduce on either record."""
+        root, merge, partial, hole = merge_attested(tmp_path, seam, capsys)
+        doc = dict(partial if node == ROOT else hole, automation=AUTOMATION)
+        assert schemas.violations(doc, "attestation/v8") == []
+        path = committed_file(tmp_path, "declared.json", doc)
+        code, docs, _err = reproduce(
+            capsys, seam, root, merge, node, tmp_path / "r", "--compare", str(path)
+        )
+>       assert docs[-1] == {"identical": True, "differing_fields": []}
+E       AssertionError: assert {'identical':...'automation']} == {'identical':...g_fields': []}
+E         
+E         Differing items:
+E         {'differing_fields': ['automation']} != {'differing_fields': []}
+E         {'identical': False} != {'identical': True}
+E         Use -v to get more diff
+
+gate/tests/test_finding_carried_proof_reproduce.py:177: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  opn_gate.steps.deps:deps.py:223 step 8: declared dep 'tutorial-and-swap' contributes no constant to the proof
+WARNING  opn_gate.steps.deps:deps.py:223 step 8: declared dep 'and-reassoc' contributes no constant to the proof
+WARNING  opn_gate.steps.deps:deps.py:223 step 8: declared dep 'tutorial-and-swap' contributes no constant to the proof
+WARNING  opn_gate.steps.deps:deps.py:223 step 8: declared dep 'and-reassoc' contributes no constant to the proof
+_ test_a_declared_automation_block_is_copied_like_every_declared_field[and-swap-reassoc--h1] _
+
+tmp_path = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-438/test_a_declared_automation_blo1')
+seam = Seam(docker_dir=PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-438/t...lders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-438/test_a_declared_automation_blo1/r/work')]}])
+capsys = <_pytest.capture.CaptureFixture object at 0x10cd07790>
+node = 'and-swap-reassoc--h1'
+
+    @pytest.mark.parametrize("node", [ROOT, H1])
+    def test_a_declared_automation_block_is_copied_like_every_declared_field(
+        tmp_path: Path, seam: Seam, capsys: pytest.CaptureFixture[str], node: str
+    ) -> None:
+        """D-5, F07-T14: what a submission declares is not a function of the tree, so a
+        reproduction copies it from the committed record. ``automation`` (D-23 v3.37) is declared
+        like ``submitter`` and ``model_and_tooling``, and a hole's record carries the partial's
+        (F32-R5), so a partial that declared one must still reproduce on either record."""
+        root, merge, partial, hole = merge_attested(tmp_path, seam, capsys)
+        doc = dict(partial if node == ROOT else hole, automation=AUTOMATION)
+        assert schemas.violations(doc, "attestation/v8") == []
+        path = committed_file(tmp_path, "declared.json", doc)
+        code, docs, _err = reproduce(
+            capsys, seam, root, merge, node, tmp_path / "r", "--compare", str(path)
+        )
+>       assert docs[-1] == {"identical": True, "differing_fields": []}
+E       AssertionError: assert {'identical':...tprint', ...]} == {'identical':...g_fields': []}
+E         
+E         Differing items:
+E         {'differing_fields': ['artifact_hash', 'automation', 'carried_by', 'diagnostic', 'first_failing_step', 'footprint', ...]} != {'differing_fields': []}
+E         {'identical': False} != {'identical': True}
+E         Use -v to get more diff
+
+gate/tests/test_finding_carried_proof_reproduce.py:177: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  opn_gate.steps.deps:deps.py:223 step 8: declared dep 'tutorial-and-swap' contributes no constant to the proof
+WARNING  opn_gate.steps.deps:deps.py:223 step 8: declared dep 'and-reassoc' contributes no constant to the proof
+____________ test_a_hole_the_merge_carried_no_proof_for_is_refused _____________
+
+tmp_path = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-438/test_a_hole_the_merge_carried_0')
+seam = Seam(docker_dir=PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-438/t...lders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-438/test_a_hole_the_merge_carried_0/r/work')]}])
+capsys = <_pytest.capture.CaptureFixture object at 0x10d006150>
+
+    def test_a_hole_the_merge_carried_no_proof_for_is_refused(
+        tmp_path: Path, seam: Seam, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        """``--node`` naming a hole the merge made but carried no proof for (its record is the
+        partial's alone) is an error that names the node, exit 2, with no hole record written."""
+        root, merge, _partial, _hole = merge_attested(tmp_path, seam, capsys)
+        out = tmp_path / "r"
+        code, _docs, err = reproduce(capsys, seam, root, merge, H2, out)
+>       assert code == cli.EXIT_ERROR
+E       assert 1 == 2
+E        +  where 2 = cli.EXIT_ERROR
+
+gate/tests/test_finding_carried_proof_reproduce.py:189: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  opn_gate.steps.deps:deps.py:223 step 8: declared dep 'tutorial-and-swap' contributes no constant to the proof
+WARNING  opn_gate.steps.deps:deps.py:223 step 8: declared dep 'and-reassoc' contributes no constant to the proof
+___ test_check_reproduce_compares_the_record_it_was_given[and-swap-reassoc] ____
+
+tmp_path = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-438/test_check_reproduce_compares_0')
+seam = Seam(docker_dir=PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-438/t...lders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-438/test_check_reproduce_compares_0/r/work')]}])
+capsys = <_pytest.capture.CaptureFixture object at 0x10d005a50>
+node = 'and-swap-reassoc'
+
+    @pytest.mark.parametrize("node", [ROOT, H1])
+    def test_check_reproduce_compares_the_record_it_was_given(
+        tmp_path: Path, seam: Seam, capsys: pytest.CaptureFixture[str], node: str
+    ) -> None:
+        """``check_reproduce.py <NNNNNN>.<hole>`` passes the record's node to ``reproduce.sh`` and
+        must read back the hole's reproduction, not the partial's ``attestation.json``; on either
+        record its verdict is the CLI's (declared fields and step 9 copied, D-5's mask)."""
+        root, merge, partial, hole = merge_attested(tmp_path, seam, capsys)
+        out = tmp_path / "r"
+        code, _docs, err = reproduce(capsys, seam, root, merge, node, out)
+        assert code == cli.EXIT_PASS, err
+        committed = partial if node == ROOT else hole
+>       assert load_tool().differing_fields(committed, out) == []
+E       AssertionError: assert ['submitter'] == []
+E         
+E         Left contains one more item: 'submitter'
+E         Use -v to get more diff
+
+gate/tests/test_finding_carried_proof_reproduce.py:218: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  opn_gate.steps.deps:deps.py:223 step 8: declared dep 'tutorial-and-swap' contributes no constant to the proof
+WARNING  opn_gate.steps.deps:deps.py:223 step 8: declared dep 'and-reassoc' contributes no constant to the proof
+WARNING  opn_gate.steps.deps:deps.py:223 step 8: declared dep 'tutorial-and-swap' contributes no constant to the proof
+WARNING  opn_gate.steps.deps:deps.py:223 step 8: declared dep 'and-reassoc' contributes no constant to the proof
+_ test_check_reproduce_compares_the_record_it_was_given[and-swap-reassoc--h1] __
+
+tmp_path = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-438/test_check_reproduce_compares_1')
+seam = Seam(docker_dir=PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-438/t...lders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-438/test_check_reproduce_compares_1/r/work')]}])
+capsys = <_pytest.capture.CaptureFixture object at 0x10ca51e50>
+node = 'and-swap-reassoc--h1'
+
+    @pytest.mark.parametrize("node", [ROOT, H1])
+    def test_check_reproduce_compares_the_record_it_was_given(
+        tmp_path: Path, seam: Seam, capsys: pytest.CaptureFixture[str], node: str
+    ) -> None:
+        """``check_reproduce.py <NNNNNN>.<hole>`` passes the record's node to ``reproduce.sh`` and
+        must read back the hole's reproduction, not the partial's ``attestation.json``; on either
+        record its verdict is the CLI's (declared fields and step 9 copied, D-5's mask)."""
+        root, merge, partial, hole = merge_attested(tmp_path, seam, capsys)
+        out = tmp_path / "r"
+        code, _docs, err = reproduce(capsys, seam, root, merge, node, out)
+>       assert code == cli.EXIT_PASS, err
+E       AssertionError: 
+E       assert 1 == 0
+E        +  where 0 = cli.EXIT_PASS
+
+gate/tests/test_finding_carried_proof_reproduce.py:216: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  opn_gate.steps.deps:deps.py:223 step 8: declared dep 'tutorial-and-swap' contributes no constant to the proof
+WARNING  opn_gate.steps.deps:deps.py:223 step 8: declared dep 'and-reassoc' contributes no constant to the proof
+=========================== short test summary info ============================
+FAILED gate/tests/test_finding_carried_proof_reproduce.py::test_reproduce_a_born_proved_hole_writes_its_record_beside_the_partials
+FAILED gate/tests/test_finding_carried_proof_reproduce.py::test_reproduce_compare_on_the_hole_is_identical
+FAILED gate/tests/test_finding_carried_proof_reproduce.py::test_a_hole_record_that_differs_is_not_reproduced[carried_by-carried]
+FAILED gate/tests/test_finding_carried_proof_reproduce.py::test_a_hole_record_that_differs_is_not_reproduced[artifact_hash-0000000000000000000000000000000000000000000000000000000000000000]
+FAILED gate/tests/test_finding_carried_proof_reproduce.py::test_a_hole_record_that_differs_is_not_reproduced[statement_hash-1111111111111111111111111111111111111111111111111111111111111111]
+FAILED gate/tests/test_finding_carried_proof_reproduce.py::test_a_declared_automation_block_is_copied_like_every_declared_field[and-swap-reassoc]
+FAILED gate/tests/test_finding_carried_proof_reproduce.py::test_a_declared_automation_block_is_copied_like_every_declared_field[and-swap-reassoc--h1]
+FAILED gate/tests/test_finding_carried_proof_reproduce.py::test_a_hole_the_merge_carried_no_proof_for_is_refused
+FAILED gate/tests/test_finding_carried_proof_reproduce.py::test_check_reproduce_compares_the_record_it_was_given[and-swap-reassoc]
+FAILED gate/tests/test_finding_carried_proof_reproduce.py::test_check_reproduce_compares_the_record_it_was_given[and-swap-reassoc--h1]
+10 failed, 2 passed in 13.29s

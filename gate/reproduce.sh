@@ -11,6 +11,11 @@
 # attestation.json. With --compare it masks runner, merge_commit and signature and reports whether
 # the reproduction is identical to the committed attestation (exit 0) or not (exit 1).
 #
+# A hole born proved (F32-R6, D-5 v3.49) has no directory at its merge commit: with --node <hole>
+# the partial the commit merged is replayed, its record written as attestation.json and the hole's
+# own run's record as hole-attestations/<hole>.json; --compare attestations/<NNNNNN>.<hole>.json
+# holds the hole's record to the committed one with the same three fields masked.
+#
 # Run it from a checkout of this repository at the graph's pinned network_commit, with gate/
 # unedited: a record speaks for the pinned gate only (D-5), so any other checkout is refused with
 # `network-mismatch` before anything is exported or built (exit 2; F07-T65). To replay with
