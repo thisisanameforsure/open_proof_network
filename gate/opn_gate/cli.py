@@ -4303,7 +4303,44 @@ def _merge_entries(  # noqa: PLR0912, PLR0913 — one argument per fact every en
                 continue
         doc = ledger.append(doc, entry)
         earned.append(entry)
+        if loc.role == "partial":
+            # F32-R7, Q14 (D-12 v3.49): one proof line per hole the partial proved by carrying
+            # its proof, credited to the partial's author, beside the partial's own line.
+            doc = _append_born_proved(
+                graph, doc, earned, target_id=target_id, parent=node_id, identity=identity,
+                commit=commit, date=date, tooling=tooling, curator=curator, automation=automation,
+            )  # fmt: skip
     return earned, skipped, doc
+
+
+def _append_born_proved(  # noqa: PLR0913 — one argument per fact every entry records
+    graph: Path,
+    doc: dict[str, Any],
+    earned: list[ledger.Entry],
+    *,
+    target_id: str,
+    parent: str,
+    identity: str,
+    commit: str,
+    date: str,
+    tooling: str,
+    curator: str | None,
+    automation: dict[str, Any] | None,
+) -> dict[str, Any]:
+    """F32-R7: ``doc`` with the proof line of each hole of ``parent`` born proved in the merge
+    appended (and each added to ``earned``), by hole id. The line is the partial's in every
+    field but its node and artifact: the same author, merge, date, tooling and automation, read
+    from the merge's own record (``ledger.merge_record``), and the same D-21 bar."""
+    for hole_id, _record in ledger.born_proved(graph, commit, parent):
+        entry = ledger.proof_entry(
+            identity=identity, target=target_id, node=hole_id, artifact_type="proof",
+            artifact="Proof.lean", merge_commit=commit, date=date, tooling=tooling,
+            curator=curator, automation=automation,
+        )  # fmt: skip
+        if entry is not None:
+            doc = ledger.append(doc, entry)
+            earned.append(entry)
+    return doc
 
 
 def proposer_of(graph: Path, commit: str) -> str:
