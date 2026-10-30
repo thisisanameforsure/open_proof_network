@@ -226,6 +226,9 @@ SCRIPTS: tuple[str, ...] = (
     "/shelve.js",
 )
 MATH_HEAD = '<link rel="stylesheet" href="/vendor/katex/katex.min.css">'
+#: F04-T62 (Q60): an element math.js renders: ``math`` among its classes, beside any others
+#: (F04-T51's ``math math-break``), never a class that merely starts with the word.
+_MATH_CLASS_RE = re.compile(r'class="(?:[^"]*\s)?math(?:\s[^"]*)?"')
 #: F04-T57: the word each row of the home page's record list leads with, by ``activity`` kind.
 RECORD_KIND_WORDS: dict[str, str] = {
     "vouched": "Vouched for",
@@ -1350,7 +1353,7 @@ class Renderer:
     def math_frame(body: str) -> dict[str, str]:
         """F22-T15: the page frame's KaTeX, only for a body that carries math (F19-T6's rule), so
         a page with none stays script-free."""
-        if 'class="math"' not in body:
+        if not _MATH_CLASS_RE.search(body):
             return {}
         return {"head": MATH_HEAD, "script": MATH_SCRIPTS}
 
@@ -4967,7 +4970,7 @@ class Renderer:
         )
         # F19-T6: KaTeX is loaded only by a page that carries math, so a record page whose prose
         # has none stays script-free (F04-T13's rule for the statement record page).
-        has_math = 'class="math"' in body
+        has_math = _MATH_CLASS_RE.search(body) is not None
         return self.page(
             nid,
             body,
