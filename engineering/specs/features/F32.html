@@ -454,20 +454,20 @@ code; AC12 now says 400. The two MCP descriptions sit at their 1000-character bu
 <code>tools/list</code> at about 114,981 of its 115,000 pin, so the next growth needs a re-pin of that budget.</p>
 
 <h2>10. Status</h2>
-<div class="rule"><strong>status:</strong> building &mdash; approved by the owner 2026-10-28 (option A); decisions v3.49
+<div class="rule"><strong>status:</strong> done &mdash; approved by the owner 2026-10-28 (option A); decisions v3.49
 applied to the document 2026-10-29 and <code>PROTOCOL_VERSION</code> 3.49 at T0; T0&ndash;T8 built on branch
-<code>f32-carried-proofs</code> (worktree agents, merged by the lead with F07-T79), graph branch
-<code>f32-t5-gate</code>, nothing pushed · <strong>Tasks:</strong> <strong>T0 &#10003; 2026-10-29</strong> (R4, R5, R9,
+<code>f32-carried-proofs</code> (worktree agents, merged by the lead with F07-T79), merged as network PR #107
+(cc2e782e) and live 2026-10-30 at the graph re-pin d0d6c2d7cc · <strong>Tasks:</strong> <strong>T0 &#10003; 2026-10-29</strong> (R4, R5, R9,
 Q18; red 7 failed with 1 guard green; green 160 on the named command; only <code>info.json</code> moved in the
 three product goldens; fast tier 7100 passed; <code>engineering/evidence/F32/task-0.txt</code>) &middot;
 <strong>T1 &#10003; 2026-10-29</strong> (R1, R2, Q19; red 25 failed with 2 green; green 27, and 41 with the contracts
 and the error catalog; fast tier 7127 passed; <code>task-1.txt</code>, <code>task-1-red.txt</code>) &middot;
 <strong>T2 &#10003; 2026-10-29</strong> (R3, Q20; red 9 failed with 14 pins green; green 100 with the neighbours; lean
-tier 4 of 4 on the local 4.33.1 toolchain, after one fix to the test&rsquo;s own witness; docker tier pending CI;
+tier 4 of 4 on the local 4.33.1 toolchain, after one fix to the test&rsquo;s own witness; docker tier passed in CI run 41038558325;
 fast tier 7207 passed with the one known graph-copy failure; <code>task-2.txt</code>, <code>task-2-red.txt</code>)
 &middot; <strong>T3 &#10003; 2026-10-29</strong> (R4, R5, AC6, AC7, Q21; seam at today&rsquo;s behaviour first, red 5
 failed with 4 pins green; green 9, neighbours 141; fast tier 7216 passed with the graph-copy failure; docker tier
-pending CI; <code>task-3.txt</code>, <code>task-3-red.txt</code>) &middot; <strong>T4 &#10003; 2026-10-30</strong> (R7,
+passed in CI run 41038558325; <code>task-3.txt</code>, <code>task-3-red.txt</code>) &middot; <strong>T4 &#10003; 2026-10-30</strong> (R7,
 AC9, Q22; seam first, red 5 failed with 4 pins green; green 41, neighbours 95; the reader grep is in the evidence;
 fast tier 7225 passed, the one failure the lifecycle test&rsquo;s 10 s budget under load, green alone;
 <code>task-4.txt</code>, <code>task-4-red.txt</code>) &middot; <strong>T5 &#10003; 2026-10-30</strong> (R5, R8, AC8, Q23;
@@ -478,12 +478,17 @@ link; green 28 with the cache job&rsquo;s commit as a strict xfail, dropped when
 killed; <code>graph/v16</code> and six goldens; fast tier 7226 passed; two captures;
 <code>task-6.txt</code>, <code>task-6-red.txt</code>, <code>task-6-hole-1440.png</code>, <code>task-6-hole-390.png</code>)
 &middot; <strong>T7 &#10003; 2026-10-30</strong> (R6, Q26, Q27; red 10 failed with 2 pins green; green 12 fast, 107
-neighbours; fast tier 7229 passed; the named docker command (AC10) is collected and not run here, pending CI;
+neighbours; fast tier 7229 passed; the named docker command (AC10) is collected and not run here, passed in CI run 41038558325;
 <code>task-7.txt</code>, <code>task-7-red.txt</code>) &middot; <strong>T8 &#10003; 2026-10-30</strong> (R9, R10, AC12,
 AC13, Q28; red 23 failed with 4 pins green in the service file and 23 with 1 in the guide file; green 56 on the
 named command with the one known graph-copy failure, which T9&rsquo;s guide copy turns green; lean tier 1 of 1, the
 guide&rsquo;s worked example through the real gate; fast tier 7267 passed; <code>task-8.txt</code>,
-<code>task-8-red.txt</code>) &middot; T9 open (live: merge, api deploy, image, re-pin, render, AC14)</div>
+<code>task-8-red.txt</code>) &middot; <strong>T9 &#10003; 2026-10-30</strong> (AC14; graph #1239, a skeleton of the tutorial variant carrying
+one hole&rsquo;s witness and proof, merged unattended; the hole <code>variant-93e79cb5--h3</code> born
+<code>proved</code> in the bot commit eebd79f10e with its own attestation, gate signature verified, reproduced
+identical in the sandbox, ledger line credited to the partial&rsquo;s author, shown on the site; the capture
+found F04-T62 (Q60), the claim drawn as raw TeX; <code>task-9.txt</code>, <code>task-9-live-1440.png</code>,
+<code>task-9-live-390.png</code>)</div>
 
 <h2>Tasks</h2>
 <table>
