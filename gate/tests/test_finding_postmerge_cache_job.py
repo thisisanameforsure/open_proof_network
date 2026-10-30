@@ -86,8 +86,8 @@ def test_the_cache_job_builds_exactly_the_merge_commit_with_the_rendering_gate(
 
     Restated 2026-10-30 (F32-T6's finding, carried by the record-first catch-up): a born-proved
     hole's files exist only in the commit the record landed in, so that commit is built, and the
-    merge only when no record landed (``test_finding_postmerge_record_first.py``). F32-T6's branch
-    holds a strict xfail for the same property; the two are reconciled at merge."""
+    merge only when no record landed (``test_finding_postmerge_record_first.py``). F32-T6's
+    strict xfail for the same property was dropped at the merge for that file's passing test."""
     (checkout,) = [
         s
         for s in steps(gate_doc, CACHE)
@@ -153,23 +153,3 @@ def test_the_cache_holds_a_born_proved_hole_built_from_the_commit_its_record_lan
     assert hole_proof in _publish(capsys, root, bot, tmp_path / "at-bot")
     assert f"Nodes.«{H1}».Context" in _publish(capsys, root, bot, tmp_path / "at-bot-2")
     assert hole_proof not in _publish(capsys, root, merge, tmp_path / "at-merge")
-
-
-@pytest.mark.xfail(
-    strict=True,
-    reason="F32-T5 owns gate.yml: the cache job checks out and publishes needs.postmerge.outputs"
-    ".merge, where a born-proved hole's Proof.lean does not exist yet; it must build the commit "
-    "the post-merge job pushed (a new postmerge output `recorded`). Take this mark off, and "
-    "restate test_the_cache_job_builds_exactly_the_merge_commit_with_the_rendering_gate, with "
-    "the graph push (engineering/evidence/F32/task-6.txt).",
-)
-def test_the_cache_job_builds_the_commit_the_record_landed_in(gate_doc: dict[Any, Any]) -> None:
-    assert "recorded" in gate_doc["jobs"][POSTMERGE]["outputs"]
-    (checkout,) = [
-        s
-        for s in steps(gate_doc, CACHE)
-        if s.get("uses", "").startswith("actions/checkout") and "path" not in (s.get("with") or {})
-    ]
-    assert "needs.postmerge.outputs.recorded" in checkout["with"]["ref"]
-    publish = named(gate_doc, CACHE, "Publish the olean cache")
-    assert "needs.postmerge.outputs.recorded" in str(publish["env"])
