@@ -1,0 +1,44 @@
+warning: `VIRTUAL_ENV=/Users/mikehiggins/Desktop/repos/open_proof_network/.venv` does not match the project environment path `.venv` and will be ignored; use `--active` to target the active environment instead
+Using CPython 3.13.15
+Creating virtual environment at: .venv
+Installed 49 packages in 344ms
+F...F.                                                                   [100%]
+=================================== FAILURES ===================================
+____________ test_the_key_step_signs_each_hole_record_into_its_path ____________
+
+gate_doc = {'name': 'gate', 'run-name': "${{ github.event_name == 'workflow_dispatch' && format('gate: replay of #{0}', inputs.re...he merged pull request whose post-merge job to replay', 'required': True, 'type': 'string'}}}}, 'permissions': {}, ...}
+
+    def test_the_key_step_signs_each_hole_record_into_its_path(gate_doc: dict[Any, Any]) -> None:
+        run = str(steps(gate_doc)[index(gate_doc, SIGN)]["run"])
+>       assert "postmerge-out/hole-attestations/" in run, "the key step does not read the hole records"
+E       AssertionError: the key step does not read the hole records
+E       assert 'postmerge-out/hole-attestations/' in 'set -euo pipefail\nif [ "$NEEDS_GATE" = "true" ]; then\n  PYTHONPATH=network/gate uv run --frozen --project network p...close: $record was not signed by the pinned gate; dropped until the next run"\n      rm -f "$record"\n    fi\n  done\n'
+
+gate/tests/test_finding_carried_proof_workflow.py:59: AssertionError
+________________ test_the_step_signs_the_partial_and_every_hole ________________
+
+gate_doc = {'name': 'gate', 'run-name': "${{ github.event_name == 'workflow_dispatch' && format('gate: replay of #{0}', inputs.re...he merged pull request whose post-merge job to replay', 'required': True, 'type': 'string'}}}}, 'permissions': {}, ...}
+tmp_path = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-430/test_the_step_signs_the_partia0')
+
+    def test_the_step_signs_the_partial_and_every_hole(
+        gate_doc: dict[Any, Any], tmp_path: Path
+    ) -> None:
+        holes = ["erdos-68--h1", "erdos-1094--h3@2"]
+        work, calls = run_sign_step(gate_doc, tmp_path, holes)
+        signed = sorted(p.relative_to(work).as_posix() for p in (work / "attestations").iterdir())
+        expected = [
+            postmerge.attestation_path(Path(), NUMBER).as_posix(),
+            *(postmerge.hole_attestation_path(Path(), NUMBER, h).as_posix() for h in holes),
+        ]
+>       assert signed == sorted(expected)
+E       AssertionError: assert ['attestations/001234.json'] == ['attestation.../001234.json']
+E         
+E         At index 0 diff: 'attestations/001234.json' != 'attestations/001234.erdos-1094--h3@2.json'
+E         Right contains 2 more items, first extra item: 'attestations/001234.erdos-68--h1.json'
+E         Use -v to get more diff
+
+gate/tests/test_finding_carried_proof_workflow.py:154: AssertionError
+=========================== short test summary info ============================
+FAILED gate/tests/test_finding_carried_proof_workflow.py::test_the_key_step_signs_each_hole_record_into_its_path
+FAILED gate/tests/test_finding_carried_proof_workflow.py::test_the_step_signs_the_partial_and_every_hole
+2 failed, 4 passed in 1.95s
