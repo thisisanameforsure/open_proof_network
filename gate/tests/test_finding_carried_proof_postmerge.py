@@ -257,8 +257,7 @@ def later_child(root: Path, name: str, closed: str) -> None:
         pseudonym="carol",
         stamp="20260913T000000Z",
     )
-    for args in (("add", "-A"), ("commit", "-q", "-m", "another partial of the root")):
-        subprocess.run(["git", "-C", str(root), *args], check=True, capture_output=True)
+    _commit(root, "another partial of the root")
 
 
 @pytest.mark.parametrize(
