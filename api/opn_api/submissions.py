@@ -534,6 +534,87 @@ def check_witnesses_checked(job: precheck.Job, witnesses: list[carried.Carried])
         )
 
 
+#: F32-R9 (Q15; D-29 v3.49): the file whose presence at a target's pinned network commit means
+#: its gate checks a carried proof against the node its hole becomes (F32-T2). A pin without it
+#: gives ``.proof`` no role: its step 2 passes the file unread and its classifier refuses the
+#: pull request. Asked of the pin itself, as ``postmortem/v2``'s schema file is (``appends``).
+HOLE_PROOFS_FROM = "gate/opn_gate/steps/hole_proofs.py"
+
+#: what an older pin, or a precheck that did not check a carried proof, is told to do instead
+PROOF_REMEDY = (
+    "(F32 reaches a target at its re-pin). Precheck and submit the partial without its .proof "
+    "files, and prove each hole once it exists, as that node's Proof.lean"
+)
+
+
+def check_carried_proofs(
+    ctx: Context, claim: Claim, files: Mapping[str, str], witnesses: list[carried.Carried]
+) -> list[carried.CarriedProof]:
+    """F32-R1, R9 (D-29 v3.49): the proofs a partial's bundle carries for its holes, as the
+    gate's own grammar reads them (``opn_gate.carried.read_proofs``, which step 2 applies),
+    refused here with the gate's code before a precheck job is spent or anything is pushed: a
+    file attached to no assembly, naming no hole, naming a hole twice, with no ``-- proof:`` line
+    or nothing after it, a ``sorry`` or ``admit``, an import or use line, a helper block F00-T11
+    refuses, a hole with no carried witness, or no partial beside it. ``witnesses`` are the
+    carried witnesses ``check_carried`` read (Q3: a proof needs its hole's witness). A bundle
+    with several assemblies is left to the gate (``partial-multiple``), as for witnesses.
+
+    Then the pin (Q15): a target whose pinned gate predates F32 would pass the files unread and
+    refuse the pull request, so the bundle is refused ``hole-proof-unchecked`` here; a pin the
+    host cannot answer for opens nothing either (C7)."""
+    roles = roles_of(files)
+    found = roles.get("hole-proof") or []
+    if not found:
+        return []
+    assemblies = roles.get("partial") or []
+    prefix = claim.node_prefix
+    if not assemblies:
+        problem = carried.proof_without_partial([p[len(prefix) :] for p in found])
+        raise ApiError(400, problem.code, problem.message, details=dict(problem.details))
+    if len(assemblies) > 1:
+        return []
+    proofs, refusal = carried.read_proofs(
+        assemblies[0][len(prefix) :],
+        {p[len(prefix) :]: files[p] for p in found},
+        [w.hole for w in witnesses],
+    )
+    if refusal is not None:
+        raise ApiError(400, refusal.code, refusal.message, details=dict(refusal.details))
+    if not usesmod.pinned_has(ctx, claim.target_id, HOLE_PROOFS_FROM):
+        paths = [p.path for p in proofs]
+        raise ApiError(
+            400,
+            "hole-proof-unchecked",
+            "the gate this target pins does not check a partial's carried proofs, so it would "
+            "pass " + ", ".join(paths) + " unread and refuse the pull request " + PROOF_REMEDY,
+            details={"unchecked": paths},
+        )
+    return proofs
+
+
+def check_proofs_checked(job: precheck.Job, proofs: list[carried.CarriedProof]) -> None:
+    """F32-R9: a bundle that carries proofs binds only to a precheck that checked each one, byte
+    for byte, against the node its hole becomes: the result names it on its hole
+    (``holes[].proof`` with ``checked: true``), which F32-T2's gate writes only once steps 4 to 8
+    passed on it. Anything else (a job run before the re-pin, a gate that ignored the file, a
+    file changed since) is refused here, by name, before anything is pushed."""
+    if not proofs:
+        return
+    unchecked = precheck.unchecked_proofs(
+        job.result, [{"path": p.path, "sha256": p.sha256} for p in proofs]
+    )
+    if unchecked:
+        raise ApiError(
+            400,
+            "hole-proof-unchecked",
+            f"precheck {job.id} did not check the carried proof "
+            + ", ".join(unchecked)
+            + ": the gate this target pins does not check a partial's carried proofs yet "
+            + PROOF_REMEDY,
+            details={"unchecked": unchecked},
+        )
+
+
 def check_annex_steps(
     ctx: Context, claim: Claim, files: Mapping[str, str], job: precheck.Job
 ) -> None:
@@ -638,6 +719,7 @@ async def post_submissions(ctx: Context, request: Request) -> Response:
     )
     check_declarations(bundle.files, artifact_type)  # F29-R5: a partial's words, before any host
     witnesses = check_carried(claim, bundle.files)  # F07-R23: step 2's refusals, first
+    proofs = check_carried_proofs(ctx, claim, bundle.files, witnesses)  # F32-R9: and the pin
     # F08-R21 (T26): a use line step 2 would refuse, by the gate's code, before anything opens.
     # Asked again here: a job prechecked before the target's re-pin ran no such pre-flight.
     usesmod.check_bundle(ctx, claim, bundle.files)
@@ -654,6 +736,7 @@ async def post_submissions(ctx: Context, request: Request) -> Response:
     job = bound_job(ctx, identity, fields, bundle.digest)
     check_proposal_statement(job, facts)
     check_witnesses_checked(job, witnesses)  # F07-R23: nothing opens the pinned gate did not check
+    check_proofs_checked(job, proofs)  # F32-R9: nor a carried proof
     check_annex_steps(ctx, claim, bundle.files, job)  # F18-R6: the holes the run named
     neighbours = on_the_node(
         ctx, node_id, artifact_type, proved=proved, tutorial=bool(facts["tutorial"])

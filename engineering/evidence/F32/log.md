@@ -14,3 +14,4 @@
 - 2026-10-30T06:32:03Z — T6 fast tier: 7226 passed, 1 xfailed (T5 mark), exit 0. Committing.
 - 2026-10-30T06:03Z — T7 started (new agent, worktree opn-f32-t7); red: 10 failed / 2 passed (task-7-red.txt)
 - 2026-10-30T06:28Z — T7 green: 12 new fast tests, fast tier 7229 passed / 0 failed; docker test written, pending CI
+- 2026-10-30T06:36:27Z — T8 green: api 27 + guide 24 fast tests, guide example through the real gate (lean tier, 15 min), fast tier 1 failed (pre-existing graph copy) / 7267 passed; lint, types exit 0. Committed as F32-T8.
