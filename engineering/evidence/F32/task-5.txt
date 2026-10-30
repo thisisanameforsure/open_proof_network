@@ -1,0 +1,37 @@
+F32-T5 — the graph workflow (R5, R8, AC8): the post-merge key step signs every attestation the re-derivation wrote; the F07-T55 catch-up record carries each born-proved hole's record and Proof.lean.
+
+== RED: task-5-red.txt — gate/tests/test_finding_carried_proof_workflow.py against today's gate.yml (graph f32-t5-gate = origin/main bdac51f6e7): 2 failed / 4 passed ==
+FAILED test_the_key_step_signs_each_hole_record_into_its_path (the key step does not read the hole records)
+FAILED test_the_step_signs_the_partial_and_every_hole (the step's script, run, signed attestations/001234.json only; the two hole records were left unsigned)
+The 4 that passed pin what must not change: no step before the key step is granted a secret and only the key step names OPN_GATE_SIGNING_KEY; re-derive < join (closure sweep) < sign < keep (Q11); the catch-up record adds `attestations` and `targets` whole, --binary; and the step is inert where no hole-attestations directory exists (a pin before F32, a partial carrying no proof).
+
+== GREEN: OPN_GRAPH_CHECKOUT=/Users/mikehiggins/Desktop/repos/opn-graph-f32-t5 uv run --frozen pytest gate/tests/test_finding_carried_proof_workflow.py -v (graph f32-t5-gate at 76e5e2172e) ==
+gate/tests/test_finding_carried_proof_workflow.py::test_the_key_step_signs_each_hole_record_into_its_path PASSED [ 16%]
+gate/tests/test_finding_carried_proof_workflow.py::test_no_step_before_the_key_step_is_granted_a_secret PASSED [ 33%]
+gate/tests/test_finding_carried_proof_workflow.py::test_the_sweep_stays_before_signing_and_the_record_after PASSED [ 50%]
+gate/tests/test_finding_carried_proof_workflow.py::test_the_catch_up_record_covers_the_hole_proof_and_record PASSED [ 66%]
+gate/tests/test_finding_carried_proof_workflow.py::test_the_step_signs_the_partial_and_every_hole PASSED [ 83%]
+gate/tests/test_finding_carried_proof_workflow.py::test_the_step_is_inert_where_no_hole_record_was_written PASSED [100%]
+============================== 6 passed in 3.68s ===============================
+neighbours (every test file that reads gate.yml, fast markers): 475 passed, 1 deselected
+== make lint == lint exit 0
+== make types == types exit 0
+== fast tier (make test-fast, OPN_GRAPH_CHECKOUT = the graph worktree at 76e5e2172e) ==
+= 7223 passed, 41 skipped, 280 deselected, 2 warnings in 1107.56s (0:18:27) = (exit 0; snapshot of this commit's tree, including test_walkthrough.py::test_graph_copy_is_identical, green against the graph worktree)
+
+Files:
+- graph (../open_proof_network_graph, branch f32-t5-gate, commit 76e5e2172e): .github/workflows/gate.yml — the key step ("Sign with the gate key (the only step that sees it)") now, under NEEDS_GATE, signs the partial's record into attestations/$number.json as before and then each $RUNNER_TEMP/postmerge-out/hole-attestations/*.json into attestations/$number.<hole id>.json (`[ -e ] || continue` guards the unmatched glob); the key step's and the keep step's comments say so. No step, secret or env line added.
+- network (branch f32-t5): gate/tests/test_finding_carried_proof_workflow.py (new, 6 tests: 4 static, 2 that run the key step's own script with `uv` stood in by a logger in a scratch git checkout); gate/tests/test_finding_merge_actor_workflow.py (REFS: `f32-t5-gate` first while it is a graph branch, so every gate.yml static test reads the change); engineering/evidence/F32/task-5.txt, task-5-red.txt.
+
+Choices (for a Q entry; spec HTML not edited here):
+- The catch-up needed no code: "Keep this merge's own record" already runs after the key step and does `git add -A -- attestations targets`, and `publish` applies record.patch whole (`git apply --3way --index`). The hole's Proof.lean is written into the checkout's targets/ by apply_partial during the re-derive step, and its signed record lands in attestations/ in the key step, so both are in the patch. The test pins the order and the paths rather than adding a step.
+- The file name is built in shell from the record's own file name (`basename .json`), the same two parts postmerge.hole_attestation_path uses; the run-the-script test asserts the names equal that function's output for two ids, one with `@`.
+- A hole record the pinned gate wrote but cannot sign fails the step (set -e), unlike a closure record (dropped with a warning): the Proof.lean is already in the tree, and a hole proved in the tree with no signed record is exactly what must not be committed quietly (C7). Only a pin that writes hole records ever reaches the loop, and that same pin signs them.
+- Q11 unchanged: the sweep runs before the key step and reads attestations/ in the tree; the hole records are only in $RUNNER_TEMP then, so a parent they complete closes on the next sweep.
+
+Proposed Q-entry text (F32-Q18, for the lead to place):
+F32-Q18 — The catch-up was already wide enough. F07-T55's record step adds attestations and targets whole after the key step, so a born-proved hole's signed record and its Proof.lean ride in record.patch with no change; T5 changed only the key step (one loop over hole-attestations/, inert when the directory is absent) and pins the step order and the record's paths by test. A hole record the pinned gate cannot sign fails the job rather than being dropped as a closure record is: the hole's Proof.lean is already in the tree, and committing it without its record would publish a proved node with no attestation (C7).
+
+Risks:
+- REFS now reads graph branch f32-t5-gate first; if it lingers after main's gate.yml moves, it shadows origin/main for every gate.yml static test (the repin-readable precedent). Take it out once the branch is on main.
+- Nothing here runs the workflow on GitHub; the first live partial carrying a proof, after the re-pin to a network commit with T3, is the end-to-end test.
