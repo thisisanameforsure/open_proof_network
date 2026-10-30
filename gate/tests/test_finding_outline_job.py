@@ -445,3 +445,35 @@ def test_describes_checks_the_artifact_bytes_and_the_name(helper: Path) -> None:
     escaping = json.loads(outline_doc())
     escaping["artifact"]["path"] = "../../t2/nodes/n/Proof.lean"
     assert not m.describes(outline_path(), json.dumps(escaping).encode(), exists=absent, blob=blob)
+
+
+# --- F32-T6 (R8; AC11): a born-proved hole is outlined like any proof -----------------------------
+
+
+def test_a_born_proved_hole_is_an_artifact_the_job_outlines(
+    tmp_path: Path, seam: Any, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """The job reads main after the record is pushed (``test_main_as_it_is_...``), so the tree
+    it outlines holds the bot commit: there the hole's ``Proof.lean`` is a merged proof artifact
+    found through the hole's own record, beside the parent's partial whose hole it was. At the
+    merge commit the hole does not exist yet, which is why the job must never read the merge
+    alone. No change to gate.yml is needed for this job."""
+    from test_finding_carried_proof_postmerge import H1, H2, recorded  # noqa: PLC0415
+    from test_partial import ROOT  # noqa: PLC0415
+
+    from opn_gate import cli, outline_graph, schemas  # noqa: PLC0415
+
+    root, merge, bot = recorded(tmp_path, seam, capsys)
+    target = "propositional"
+    at_bot = outline_graph.merged_artifacts(cli.export_tree(root, bot, tmp_path / "bot"), target)
+    proof = root / "targets" / target / "nodes" / H1 / "Proof.lean"
+    found = {(f.node, f.artifact.path, f.artifact.kind): f for f in at_bot}
+    hole = found[(H1, "Proof.lean", "proof")]
+    assert hole.artifact.hash == schemas.content_hash(proof.read_bytes())
+    (partial,) = [f for f in at_bot if f.node == ROOT and f.artifact.kind == "partial"]
+    assert partial.holes == {"right": H1, "left": H2}
+    assert [f for f in at_bot if f.node == H2] == []
+    at_merge = outline_graph.merged_artifacts(
+        cli.export_tree(root, merge, tmp_path / "merge"), target
+    )
+    assert [f for f in at_merge if f.node == H1] == []

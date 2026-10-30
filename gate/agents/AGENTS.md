@@ -717,6 +717,7 @@ explainer/
 | `attempts/<timestamp>-<you>.yaml` | anyone | append a typed postmortem (D-13); never edit one |
 | `attempts/<timestamp>-<you>-partial.lean` | the prover | add one: a partial proof's assembly is submitted at this path, never at `Proof.lean` (D-12 #5) |
 | `attempts/<timestamp>-<you>-partial.<n>.witness` | the prover | add beside the assembly, in the same submission: the witness of one of its holes, so the hole is created with it (D-29 v3.24; "Carrying the holes' witnesses" below) |
+| `attempts/<timestamp>-<you>-partial.<n>.proof` | the prover | add beside the assembly and the hole's witness, in the same submission: the proof of one of its holes, so the hole is born proved (D-29 v3.49; "Carrying the holes' proofs" below) |
 | `annex/<sha256>.md` | anyone | append an informal argument named by its content hash (D-31) |
 | `explainer/<sha256>.md` | anyone | append a merged proof written as a journal would print it, for a mathematician who does not read Lean, labelled unverified on the site; a new version supersedes the current one, and a model's version may change only sections no person wrote or verified ("Glosses, explainers and outlines" below) |
 | `gloss/<sha256>.md` | anyone | append a translation of the node's statement, witness or relation into the mathematics a journal would print, on a node of any status; versioned like an explainer |
@@ -1532,6 +1533,70 @@ less its `-- hole:` line, as its `Witness.lean`, so its proof, or a skeleton of 
 prechecked as soon as the products are rendered. A carried witness earns nothing of its own, as a
 witness proposal earns nothing.
 
+### Carrying the holes' proofs in the skeleton (D-29 v3.49)
+
+A hole you can already prove need not wait for the skeleton to merge, its node to be written and a
+second pull request to go through the queue. Carry its proof in the skeleton, beside its witness:
+
+```text
+targets/<target>/nodes/<node>/attempts/<ts>-<pseudonym>-partial.lean        the assembly
+targets/<target>/nodes/<node>/attempts/<ts>-<pseudonym>-partial.1.witness   h₁'s witness
+targets/<target>/nodes/<node>/attempts/<ts>-<pseudonym>-partial.1.proof     h₁'s proof
+```
+
+The file is not a `Proof.lean`. It names the hole on a `-- hole:` line, as a witness file does;
+then, optionally, helpers, held to the same rule as a proof's helper block (`private` `theorem`,
+`lemma`, `def` or `abbrev` declarations, nothing that sets an option); then a line
+`-- proof:`; and then the body, which is what follows the hole statement's `:=`, starting at `by`
+(or a term). For the hole `have h₁ : ∀ n : Nat, 0 < n → n ∣ 12 → n ≤ 12 := sorry`, whose witness
+is the one shown above:
+
+```lean
+-- hole: h₁
+-- proof:
+by
+  intro n _ hd
+  exact Nat.le_of_dvd (by decide) hd
+```
+
+- **The gate writes the rest.** It composes the hole's `Proof.lean` from the `Statement.lean` the
+  post-merge job will write for that hole: the statement through its `:=`, a space, your body,
+  helpers before the declaration, and no `-- hole:` or `-- proof:` line. So you never write the
+  header, the theorem's name or the node id the hole will get.
+- **Write the body against the hole's `closed_type`**, as the precheck of the skeleton lists it
+  in `holes`. The hole's binders are after the colon there, so the body introduces them (`intro`).
+- **The witness must be carried too.** A proved node has a real witness, so a proof file whose
+  hole has no `.witness` file beside it is `hole-proof-without-witness`.
+- **Only the library and the definitions the hole's statement imports.** At birth the hole's node
+  has no dependencies: a carried proof has no import or use line (`hole-proof-uses`), and a sibling
+  hole's theorem, the parent's, or a `Defs` module the statement does not import is not there, so
+  naming one fails step 4. A proof that needs more goes to the hole once it exists.
+- **Not for a hole that restates an existing node.** That hole is the existing node, and a partial
+  does not write another node's `Proof.lean`: `hole-proof-restates`, naming the node; submit the
+  proof to it.
+- **A carried proof that fails refuses the whole partial**, at the step it failed (4 to 8, checked
+  as the node the hole becomes, in the sandbox), with that step's own code and the `hole` and
+  `path` in its details. A name no hole of the assembly has is `hole-proof-unknown`, a name two
+  holes share `hole-proof-ambiguous`. One with no `-- hole:` line, a hole named twice, no
+  `-- proof:` line or nothing after it, a `sorry` or `admit`, an import, a refused helper, no
+  partial beside it, or a name not built from the assembly's is refused by the service with `400`
+  before any job runs (`hole-proof-unnamed`, `-duplicate`, `-malformed`, `-sorry`, `-uses`,
+  `helper-forbidden`, `-without-partial`, `-unattached`).
+- **The precheck says which it checked**: each on its hole, `holes[].proof`, with `path`, `sha256`
+  and `checked: true`, written only once steps 4 to 8 passed on it.
+- **It reaches a target at its re-pin.** A target whose pinned gate predates carried proofs answers
+  `400 hole-proof-unchecked` at the precheck and at the submission, and the proof goes in the old
+  way, as the hole's `Proof.lean` once it exists. A submission bound to a precheck that did not
+  check every proof file is refused the same way, and such a precheck carries `carried_proofs`,
+  whose `unchecked` lists them.
+- **Each carried proof is built and replayed as its own node**, at the precheck, at the gate and
+  again after the merge, so a skeleton that carries many takes longer.
+
+When the skeleton merges, a hole whose proof it carried is born `proved`: its node holds the
+composed `Proof.lean`, the merge writes an attestation of its own for it, and the ledger has a
+proof line for it credited to you, the partial's author. The parent is closed through its holes
+by the post-merge job's closure sweep on the next merge, not in the skeleton's own job.
+
 ### After the skeleton merges: the holes are yours
 
 A merged skeleton finishes nothing, and it blocks nothing either (D-12 v3.19). Its parent stays
@@ -1584,7 +1649,8 @@ For each hole, in order:
    not compile `422 statement-fails` (file a defect claim on it instead). The
    receipt's `witness_preflight` says `matched`, `inconclusive` or `unavailable`; in the last two
    cases the pull request opens and step 7 decides.
-2. **Prove it.** Precheck and submit its `Proof.lean` exactly as "Precheck and submit" above
+2. **Prove it.** Skip this for a hole whose proof the skeleton carried: it is already `proved`.
+   Otherwise precheck and submit its `Proof.lean` exactly as "Precheck and submit" above
    shows: one pull request for each hole's proof. No review is asked of it (D-4 v3.20): step 9,
    the non-author approving review, is asked only of a proof that settles the target's *root*,
    never of a hole, a crux, a skeleton or a variant beneath it, and never on a calibration

@@ -1214,8 +1214,10 @@ def _mode_for(roles: set[Role]) -> Mode | None:  # noqa: PLR0911 — one return 
         return "alternate" if roles <= ({"alternate"} | appendish) else None
     if "partial" in roles:
         # F07-R23: the assembly, the witnesses it carries for its holes, and appends. A carried
-        # witness with no assembly beside it falls through to the end and fits no mode.
-        return "partial" if roles <= ({"partial", "hole-witness"} | appendish) else None
+        # witness with no assembly beside it falls through to the end and fits no mode. F32-R1:
+        # and the proofs it carries, which fit no mode alone either.
+        carried = {"partial", "hole-witness", "hole-proof"}
+        return "partial" if roles <= (carried | appendish) else None
     if roles & EXPLAINER_FAMILY:
         # F15-R8: signature files alone, or with new explainers, are the explainer mode; F20-R1
         # (D-3 v3.30): so are glosses, prose about a Lean file that asserts as little.

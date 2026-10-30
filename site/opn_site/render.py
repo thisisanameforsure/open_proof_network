@@ -5051,7 +5051,7 @@ class Renderer:
                 f"<code>{esc(nv.proof.content_hash[:12])}</code> and the attestation names "
                 f"<code>{esc(str(nv.proof.attested_hash)[:12])}</code>. Its text is "
                 f"withheld here; the file itself is "
-                f"{self.file_link(proof_path, commit=str(e['proof_commit']))}.</p>"
+                f"{self.file_link(proof_path, commit=self.proof_file_commit(nv))}.</p>"
             )
         elif nv.proof is not None:
             outline, source = self.proof_parts(tv, nv, nv.proof)
@@ -5251,8 +5251,7 @@ class Renderer:
         rows += [("used by", links(used_by)), ("attempts", esc(self.attempts_words(nv)))]
         doc = nv.attestation
         if nv.status == "proved" and e["proof_commit"] and nv.proof_path:
-            commit = str(e["proof_commit"])
-            rows.append(("proof", self.file_link(nv.proof_path, commit=commit, label=commit[:12])))
+            rows.append(("proof", self.proof_fact(nv, nv.proof_path)))
         elif doc is None and not any(p.attestation_path for p in nv.partials):
             rows.append(("proof", "none merged"))
         if nv.status == "proved" and doc is None:  # contradictory but valid (R5): say so
@@ -5306,7 +5305,7 @@ class Renderer:
     def proof_parts(self, tv: TargetView | None, nv: NodeView, lean: LeanFile) -> tuple[str, str]:
         """``proof_text``'s two parts, the outline ("" without one) and the source, so a page can
         fold each on its own (F04-T50)."""
-        commit = str(nv.graph_entry.get("proof_commit") or "") or None
+        commit = self.proof_file_commit(nv)
         doc = self.outline_of(tv, nv.node_id, lean) if tv is not None and lean.verified else None
         outline = (
             self.outline_section(
@@ -5815,6 +5814,33 @@ class Renderer:
         return (
             f'<p class="block-label" data-provenance="{esc(kind)}">'
             f"<strong>{esc(PROVENANCE[kind])}</strong>{rest}</p>"
+        )
+
+    def proof_file_commit(self, nv: NodeView) -> str | None:
+        """The commit a link to the node's ``Proof.lean`` names (F32-Q13): its proof's merge
+        commit, which brought the file — except for a hole born proved (its record's
+        ``carried_by`` is set, F32-R5), whose merge commit holds only the parent's assembly and
+        the carried ``.proof`` file; the bot commit after it writes the hole's ``Proof.lean``,
+        and the products cannot name that commit, being rendered into it. Such a link names the
+        page's own rendered commit: the products read the hole proved from that tree, so the
+        file is there (F03-Q7), with the bytes it was born with, since no submission may modify
+        a ``Proof.lean``. ``None`` (the rendered commit too) when the record names no merge."""
+        if nv.carried_from is not None:
+            return self.site.commit
+        return str(nv.graph_entry.get("proof_commit") or "") or None
+
+    def proof_fact(self, nv: NodeView, proof_path: str) -> str:
+        """The facts column's ``proof`` row: ``Proof.lean`` at the commit that merged it,
+        labelled by that commit; for a hole born proved, the file at the rendered commit and the
+        merge that proved it beside the parent whose partial carried the proof (F32-Q13)."""
+        commit = str(nv.graph_entry["proof_commit"])
+        link_at = self.proof_file_commit(nv)
+        if nv.carried_from is None:
+            return self.file_link(proof_path, commit=link_at, label=commit[:12])
+        return (
+            f"{self.file_link(proof_path, commit=link_at, label='Proof.lean')}, carried by a "
+            f"partial of {self.node_link(nv.target_id, nv.carried_from)} merged in "
+            f"<code>{esc(commit[:12])}</code>"
         )
 
     def kernel_label(self, nv: NodeView, *, what: str) -> str:

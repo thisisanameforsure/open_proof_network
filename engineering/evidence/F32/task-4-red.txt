@@ -1,0 +1,139 @@
+warning: `VIRTUAL_ENV=/Users/mikehiggins/Desktop/repos/open_proof_network/.venv` does not match the project environment path `.venv` and will be ignored; use `--active` to target the active environment instead
+F..FF.FF.                                                                [100%]
+=================================== FAILURES ===================================
+________ test_the_merges_record_is_the_one_with_carried_by_null[first] _________
+
+tmp_path = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-436/test_the_merges_record_is_the_0')
+hole_name = '000009.and-swap-reassoc--h1.json'
+
+    @NAMES
+    def test_the_merges_record_is_the_one_with_carried_by_null(tmp_path: Path, hole_name: str) -> None:
+        records(tmp_path, hole_name=hole_name)
+        names = sorted(p.name for p in (tmp_path / "attestations").iterdir())
+        assert (names.index(hole_name) == 0) is (hole_name.startswith(f"000009.{H1}"))
+        doc = ledger.merge_record(tmp_path, MERGE)
+>       assert doc is not None and doc["node_id"] == ROOT and doc["carried_by"] is None
+E       AssertionError: assert ({'artifact_hash': 'dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd', 'automation': {'framework': 'f',...fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff'}, 'node_id': 'and-swap-reassoc'}, 'diagnostic': None, ...} is not None and 'and-swap-reassoc--h1' == 'and-swap-reassoc'
+E         
+E         - and-swap-reassoc
+E         + and-swap-reassoc--h1
+E         ?                 ++++)
+
+gate/tests/test_finding_carried_proof_ledger.py:85: AssertionError
+________ test_a_merge_with_only_a_holes_record_has_no_record_of_its_own ________
+
+tmp_path = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-436/test_a_merge_with_only_a_holes0')
+
+    def test_a_merge_with_only_a_holes_record_has_no_record_of_its_own(tmp_path: Path) -> None:
+        """A hole's record is never taken for the merge's, even when it is the only one there."""
+        write(
+            tmp_path,
+            f"000009.{H1}.json",
+            samples.attestation(
+                node_id=H1, merge_commit=MERGE, model_and_tooling=HOLE_TOOLING,
+                carried_by=carried_by(),
+            ),
+        )  # fmt: skip
+>       assert ledger.merge_record(tmp_path, MERGE) is None
+E       AssertionError: assert {'artifact_hash': 'dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd', 'automation': None, 'carried_by'...fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff'}, 'node_id': 'and-swap-reassoc'}, 'diagnostic': None, ...} is None
+E        +  where {'artifact_hash': 'dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd', 'automation': None, 'carried_by'...fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff'}, 'node_id': 'and-swap-reassoc'}, 'diagnostic': None, ...} = <function merge_record at 0x10b753e20>(PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-436/test_a_merge_with_only_a_holes0'), 'cccccccccccccccccccccccccccccccccccccccc')
+E        +    where <function merge_record at 0x10b753e20> = ledger.merge_record
+
+gate/tests/test_finding_carried_proof_ledger.py:110: AssertionError
+________ test_born_proved_names_the_holes_of_this_parent_in_this_merge _________
+
+tmp_path = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-436/test_born_proved_names_the_hol0')
+
+    def test_born_proved_names_the_holes_of_this_parent_in_this_merge(tmp_path: Path) -> None:
+        records(tmp_path, hole_name=f"000009.{H1}.json")
+        # Not this merge's, not this parent's, not a pass, and the partial's own: none are holes here.
+        write(
+            tmp_path, f"000010.{H2}.json",
+            samples.attestation(node_id=H2, merge_commit="d" * 40, carried_by=carried_by()),
+        )  # fmt: skip
+        write(
+            tmp_path, "000009.other--h1.json",
+            samples.attestation(node_id="other--h1", merge_commit=MERGE, carried_by=carried_by("other")),
+        )  # fmt: skip
+        write(
+            tmp_path, f"000009.{H2}.json",
+            samples.attestation(
+                node_id=H2, merge_commit=MERGE, carried_by=carried_by(), verdict="fail",
+                first_failing_step=4,
+            ),
+        )  # fmt: skip
+        found = ledger.born_proved(tmp_path, MERGE, ROOT)
+>       assert [hole for hole, _doc in found] == [H1]
+E       AssertionError: assert [] == ['and-swap-reassoc--h1']
+E         
+E         Right contains one more item: 'and-swap-reassoc--h1'
+E         Use -v to get more diff
+
+gate/tests/test_finding_carried_proof_ledger.py:137: AssertionError
+_____ test_the_ledger_credits_the_partial_and_its_born_proved_hole[first] ______
+
+tmp_path = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-436/test_the_ledger_credits_the_pa0')
+seam = Seam(docker_dir=PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-436/t...lders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-436/test_the_ledger_credits_the_pa0/o/work')]}])
+capsys = <_pytest.capture.CaptureFixture object at 0x10bae8ec0>
+hole_name = '000009.and-swap-reassoc--h1.json'
+
+    @NAMES
+    def test_the_ledger_credits_the_partial_and_its_born_proved_hole(
+        tmp_path: Path, seam: Seam, capsys: pytest.CaptureFixture[str], hole_name: str
+    ) -> None:
+        """AC9: the partial's proof line and one for the hole, both the partial's author's, both at
+        the merge commit, both with the partial's record's tooling whichever record sorts first."""
+        root, commit = merged_and_attested(tmp_path, seam, capsys, hole_name=hole_name)
+        code, out, err = run(capsys, "ledger", "--graph", str(root), "--commit", commit)
+        assert code == cli.EXIT_PASS, err
+        assert out["earned"] is True and out["identity"] == "t" and out["node"] == ROOT
+>       assert out["entries"] == [
+            {"line": "proof", "node": ROOT, "artifact": f"attempts/{STAMP_FILE}"},
+            {"line": "proof", "node": H1, "artifact": "Proof.lean"},
+        ]
+E       AssertionError: assert [{'line': 'pr...artial.lean'}] == [{'line': 'pr...'Proof.lean'}]
+E         
+E         Right contains one more item: {'line': 'proof', 'node': 'and-swap-reassoc--h1', 'artifact': 'Proof.lean'}
+E         Use -v to get more diff
+
+gate/tests/test_finding_carried_proof_ledger.py:184: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  opn_gate.steps.deps:deps.py:223 step 8: declared dep 'tutorial-and-swap' contributes no constant to the proof
+WARNING  opn_gate.steps.deps:deps.py:223 step 8: declared dep 'and-reassoc' contributes no constant to the proof
+______ test_the_ledger_credits_the_partial_and_its_born_proved_hole[last] ______
+
+tmp_path = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-436/test_the_ledger_credits_the_pa1')
+seam = Seam(docker_dir=PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-436/t...lders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-436/test_the_ledger_credits_the_pa1/o/work')]}])
+capsys = <_pytest.capture.CaptureFixture object at 0x10ba6ee90>
+hole_name = '000009.variant-zz--h1.json'
+
+    @NAMES
+    def test_the_ledger_credits_the_partial_and_its_born_proved_hole(
+        tmp_path: Path, seam: Seam, capsys: pytest.CaptureFixture[str], hole_name: str
+    ) -> None:
+        """AC9: the partial's proof line and one for the hole, both the partial's author's, both at
+        the merge commit, both with the partial's record's tooling whichever record sorts first."""
+        root, commit = merged_and_attested(tmp_path, seam, capsys, hole_name=hole_name)
+        code, out, err = run(capsys, "ledger", "--graph", str(root), "--commit", commit)
+        assert code == cli.EXIT_PASS, err
+        assert out["earned"] is True and out["identity"] == "t" and out["node"] == ROOT
+>       assert out["entries"] == [
+            {"line": "proof", "node": ROOT, "artifact": f"attempts/{STAMP_FILE}"},
+            {"line": "proof", "node": H1, "artifact": "Proof.lean"},
+        ]
+E       AssertionError: assert [{'line': 'pr...artial.lean'}] == [{'line': 'pr...'Proof.lean'}]
+E         
+E         Right contains one more item: {'line': 'proof', 'node': 'and-swap-reassoc--h1', 'artifact': 'Proof.lean'}
+E         Use -v to get more diff
+
+gate/tests/test_finding_carried_proof_ledger.py:184: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  opn_gate.steps.deps:deps.py:223 step 8: declared dep 'tutorial-and-swap' contributes no constant to the proof
+WARNING  opn_gate.steps.deps:deps.py:223 step 8: declared dep 'and-reassoc' contributes no constant to the proof
+=========================== short test summary info ============================
+FAILED gate/tests/test_finding_carried_proof_ledger.py::test_the_merges_record_is_the_one_with_carried_by_null[first]
+FAILED gate/tests/test_finding_carried_proof_ledger.py::test_a_merge_with_only_a_holes_record_has_no_record_of_its_own
+FAILED gate/tests/test_finding_carried_proof_ledger.py::test_born_proved_names_the_holes_of_this_parent_in_this_merge
+FAILED gate/tests/test_finding_carried_proof_ledger.py::test_the_ledger_credits_the_partial_and_its_born_proved_hole[first]
+FAILED gate/tests/test_finding_carried_proof_ledger.py::test_the_ledger_credits_the_partial_and_its_born_proved_hole[last]
+5 failed, 4 passed in 5.76s

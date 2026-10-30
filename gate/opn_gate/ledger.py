@@ -461,40 +461,75 @@ def statement_tooling(meta: dict[str, Any]) -> str:
     return str(model) if isinstance(model, str) and model.strip() else UNDECLARED
 
 
-def merge_automation(graph_root: Path, merge_commit: str) -> dict[str, Any] | None:
-    """F25-R3: the ``automation`` block the post-merge job attested for ``merge_commit``
-    (attestation/v7), or ``None`` for an older or undeclared one; read as ``merge_tooling`` is."""
+def _merge_records(graph_root: Path, merge_commit: str) -> list[tuple[str, dict[str, Any]]]:
+    """Every committed attestation of ``merge_commit``, by file name. A record that does not
+    parse is skipped: it cannot be this merge's."""
     directory = graph_root / "attestations"
     if not directory.is_dir():
-        return None
+        return []
+    out: list[tuple[str, dict[str, Any]]] = []
     for path in sorted(directory.glob("*.json")):
         try:
             doc = schemas.load_json(path)
         except schemas.SchemaError:
             continue
         if isinstance(doc, dict) and doc.get("merge_commit") == merge_commit:
-            declared = doc.get("automation")
-            return dict(declared) if isinstance(declared, dict) else None
+            out.append((path.name, doc))
+    return out
+
+
+def merge_record(graph_root: Path, merge_commit: str) -> dict[str, Any] | None:
+    """The attestation the post-merge job wrote for ``merge_commit`` itself, or ``None``.
+
+    F32-R7, Q12: one merge can leave several records — the partial's and one per hole whose
+    proof it carried (``attestations/<NNNNNN>.<hole id>.json``) — and whether a hole's sorts
+    before or after ``<NNNNNN>.json`` depends on its id's first letter (Q7). So the merge's
+    record is the one whose ``carried_by`` is null (absent on attestation/v1 to v7, which every
+    record before F32 is), never the first by name. A merge whose only records are holes' has
+    no record of its own here."""
+    for _name, doc in _merge_records(graph_root, merge_commit):
+        if doc.get("carried_by") is None:
+            return doc
     return None
+
+
+def born_proved(
+    graph_root: Path, merge_commit: str, parent: str
+) -> list[tuple[str, dict[str, Any]]]:
+    """F32-R7 (D-12 v3.49): ``(hole node id, record)`` for each hole of ``parent`` the merge
+    proved by carrying its proof — a passing record of ``merge_commit`` whose ``carried_by``
+    names ``parent`` — by hole id. Read from the committed records, as ``merge_tooling`` is:
+    a hole the post-merge job did not attest (its re-derivation failed, Q10) earns nothing."""
+    found: dict[str, dict[str, Any]] = {}
+    for _name, doc in _merge_records(graph_root, merge_commit):
+        by = doc.get("carried_by")
+        node = doc.get("node_id")
+        if (
+            isinstance(by, dict)
+            and by.get("node_id") == parent
+            and doc.get("verdict") == "pass"
+            and isinstance(node, str)
+            and node not in found
+        ):
+            found[node] = doc
+    return sorted(found.items())
+
+
+def merge_automation(graph_root: Path, merge_commit: str) -> dict[str, Any] | None:
+    """F25-R3: the ``automation`` block the post-merge job attested for ``merge_commit``
+    (attestation/v7), or ``None`` for an older or undeclared one; read as ``merge_tooling`` is."""
+    doc = merge_record(graph_root, merge_commit)
+    declared = doc.get("automation") if doc is not None else None
+    return dict(declared) if isinstance(declared, dict) else None
 
 
 def merge_tooling(graph_root: Path, merge_commit: str) -> str:
     """The ``model_and_tooling`` the post-merge job attested for ``merge_commit`` (R13, T14), or
     ``undeclared``. Read from the committed attestations rather than passed as a flag, because the
-    ledger is derived from the graph (D-35) and a pinned gate cannot learn a new flag (T15, Q22).
-    A record that does not parse is skipped: it cannot be this merge's."""
-    directory = graph_root / "attestations"
-    if not directory.is_dir():
-        return UNDECLARED
-    for path in sorted(directory.glob("*.json")):
-        try:
-            doc = schemas.load_json(path)
-        except schemas.SchemaError:
-            continue
-        if isinstance(doc, dict) and doc.get("merge_commit") == merge_commit:
-            declared = doc.get("model_and_tooling")
-            return str(declared) if isinstance(declared, str) and declared else UNDECLARED
-    return UNDECLARED
+    ledger is derived from the graph (D-35) and a pinned gate cannot learn a new flag (T15, Q22)."""
+    doc = merge_record(graph_root, merge_commit)
+    declared = doc.get("model_and_tooling") if doc is not None else None
+    return str(declared) if isinstance(declared, str) and declared else UNDECLARED
 
 
 def record(graph_root: Path, identity: str, entry: Entry | None) -> Path | None:

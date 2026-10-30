@@ -262,6 +262,7 @@ Role = Literal[
     "partial",  # a .lean assembly under attempts/ (D-12 #5): the node stays open
     "alternate",  # attempts/<ts>-<pseudonym>-alternate.lean: a later proof of a proved node (D-25)
     "hole-witness",  # attempts/<assembly>.<n>.witness: a witness a partial carries (F07-R23)
+    "hole-proof",  # attempts/<assembly>.<n>.proof: a proof a partial carries (F32-R1)
     "postmortem",  # attempts/<ts>-<contributor>.yaml (D-13)
     "precheck-record",  # attempts/precheck/<name>.json (D-34)
     "annex",  # annex/<hash>.md (D-31)
@@ -656,6 +657,10 @@ def _node_role(rest: str) -> Role | None:  # noqa: PLR0911, PLR0912 — one bran
         # so nothing that reads attempts/*.lean for assemblies takes it for one.
         if _is_flat(name, (carried.SUFFIX,)) and carried.is_carried(name):
             return "hole-witness"
+        # F32-R1 (D-29 v3.49): a proof a partial carries for one of its holes; not `.lean`, for
+        # the same reason (F32-Q2).
+        if _is_flat(name, (carried.PROOF_SUFFIX,)) and carried.is_carried_proof(name):
+            return "hole-proof"
         if _is_flat(name, (".lean",)):
             return "alternate" if name.endswith(ALTERNATE_SUFFIX) else "partial"
         return "postmortem" if _is_flat(name, YAML_SUFFIXES) else None

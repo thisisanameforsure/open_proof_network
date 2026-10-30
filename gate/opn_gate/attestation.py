@@ -19,7 +19,9 @@ from opn_gate.pipeline import Verdict
 from opn_gate.steps.base import RunContext
 from opn_gate.toolchain import ResolvedToolchain
 
-SCHEMA = "attestation/v7"  # v7 (F25-R3, D-23 v3.37): automation; v6 (F08-T27): the footprint
+#: v8 (F32-R5, D-5 v3.49): carried_by; v7 (F25-R3, D-23 v3.37): automation; v6 (F08-T27): the
+#: footprint
+SCHEMA = "attestation/v8"
 #: One list, defined in ``bounce`` because this module imports that one (F07-T5).
 ACCEPTED_SCHEMAS: tuple[str, ...] = bounce.ACCEPTED_SCHEMAS
 MASKED_FIELDS: tuple[str, ...] = ("runner", "merge_commit", "signature")
@@ -98,6 +100,9 @@ def build(  # noqa: PLR0913 — one argument per fact the record carries
         # which a closure by use follows. Only a passing step 8 measures it; anything else is
         # "not measured" (None), never an empty set.
         "footprint": footprint_of(verdict),
+        # F32-R5 (D-5 v3.49): a hole born proved points back to the partial that carried its
+        # proof (F32-T3); every other record, this one included, says so with null.
+        "carried_by": None,
         "signature": {
             "kind": "none",
             "key_id": None,
@@ -105,6 +110,38 @@ def build(  # noqa: PLR0913 — one argument per fact the record carries
             "timestamp": clock().astimezone(UTC).strftime(TIMESTAMP_FORMAT),
         },
     }
+    return schemas.validate(doc, SCHEMA)
+
+
+#: F32-R5: the fields a born-proved hole's record takes from its partial's: what the
+#: submission declared and what consumed its precheck, which no run of the hole's own computes.
+CARRIED_FROM_PARTIAL: tuple[str, ...] = (
+    "tooling",
+    "submitter",
+    "model_and_tooling",
+    "automation",
+    "precheck_attestation",
+)
+
+
+def for_hole(
+    ctx: RunContext,
+    verdict: Verdict,
+    partial: dict[str, Any],
+    *,
+    carried_by: dict[str, Any],
+    graph_commit: str | None,
+) -> dict[str, Any]:
+    """F32-R5 (D-5 v3.49): the record of a hole born proved — built from its own run (``ctx``
+    and ``verdict``: the hole's node id and statement hash, the composed Proof.lean's hash, the
+    run's steps and step 8's footprint), with the partial's declared fields and seal time, and
+    ``carried_by`` pointing back to the partial by facts of the tree. The caller records step 9
+    and signs it as it does the partial's."""
+    doc = build(ctx, verdict, graph_commit=graph_commit)
+    for key in CARRIED_FROM_PARTIAL:
+        doc[key] = partial[key]
+    doc["signature"] = {**doc["signature"], "timestamp": partial["signature"]["timestamp"]}
+    doc["carried_by"] = carried_by
     return schemas.validate(doc, SCHEMA)
 
 

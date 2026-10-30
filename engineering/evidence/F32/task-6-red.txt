@@ -1,0 +1,32 @@
+== part 1: gate/tests/test_finding_born_proved_products.py (before graph/v16) ==
+E           opn_gate.schemas.SchemaError: document does not satisfy 'graph/v15': $['nodes'][2]['proofs'][0]['attestation']: '000009.and-swap-reassoc--h1.json' does not match '^[0-9]{6}\\.json$'
+E           opn_gate.schemas.SchemaError: document does not satisfy 'graph/v15': $['nodes'][2]['proofs'][0]['attestation']: '000009.and-swap-reassoc--h1.json' does not match '^[0-9]{6}\\.json$'
+E           opn_gate.schemas.SchemaError: document does not satisfy 'graph/v15': $['nodes'][2]['proofs'][0]['attestation']: '000009.and-swap-reassoc--h1.json' does not match '^[0-9]{6}\\.json$'
+E           opn_gate.schemas.SchemaError: document does not satisfy 'graph/v15': $['nodes'][2]['proofs'][0]['attestation']: '000009.and-swap-reassoc--h1.json' does not match '^[0-9]{6}\\.json$'
+E           opn_gate.schemas.SchemaError: document does not satisfy 'graph/v15': $['nodes'][2]['proofs'][0]['attestation']: '000009.and-swap-reassoc--h1.json' does not match '^[0-9]{6}\\.json$'
+FAILED gate/tests/test_finding_born_proved_products.py::test_the_hole_reads_proved_through_its_own_record
+FAILED gate/tests/test_finding_born_proved_products.py::test_the_hole_is_off_the_frontier_and_a_proved_input_of_its_route
+FAILED gate/tests/test_finding_born_proved_products.py::test_a_hole_record_without_its_proof_file_proves_nothing
+FAILED gate/tests/test_finding_born_proved_products.py::test_the_partials_record_is_never_the_holes_proof
+FAILED gate/tests/test_finding_born_proved_products.py::test_the_holes_record_does_not_stand_for_the_partial
+5 failed in 5.53s
+
+== part 2: site/tests/test_finding_born_proved_link.py (seam at today's behaviour) ==
+>           assert _exists(root, commit, proof), commit
+E           AssertionError: 27b303dbd3b2166b31c1883dd0e840e61bd3d8cf
+E           assert False
+E            +  where False = _exists(PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-463/test_the_holes_proof_link_name0/graph'), '27b303dbd3b2166b31c1883dd0e840e61bd3d8cf', 'targets/propositional/nodes/and-swap-reassoc--h1/Proof.lean')
+site/tests/test_finding_born_proved_link.py:61: AssertionError
+>       assert renderer.proof_file_commit(nv) == bot
+E       AssertionError: assert '688e412919d8...30f6a5356eae5' == '415b1bde57f5...3d6182db8b7aa'
+E         
+E         - 415b1bde57f5395a76f51c38b3d3d6182db8b7aa
+E         + 688e412919d8ae200467bb3a12b30f6a5356eae5
+site/tests/test_finding_born_proved_link.py:80: AssertionError
+FAILED site/tests/test_finding_born_proved_link.py::test_the_holes_proof_link_names_a_commit_where_the_file_exists
+FAILED site/tests/test_finding_born_proved_link.py::test_an_ordinary_proof_still_links_at_its_merge_commit
+2 failed in 5.16s
+
+== mutants after the fix ==
+mut_artifact (artifact_of always 'proof'): 2 failed, 3 passed
+mut_proof_for (any passing merged record for a hole id): 1 failed, 4 passed

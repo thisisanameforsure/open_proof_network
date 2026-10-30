@@ -1,0 +1,260 @@
+F07 (task id to assign; proposed T79): a refused post-merge push re-lays the merge's own record,
+and the products follow (the owner's approval, 2026-10-30). Built 2026-10-30, test first. Not pushed.
+
+Branches
+  network  /Users/mikehiggins/Desktop/repos/opn-push-fix         branch push-fix (from f32-t5)
+  graph    /Users/mikehiggins/Desktop/repos/opn-graph-push-fix   branch f07-record-first (from f32-t5-gate)
+
+== The problem, from the live record ==
+
+Graph run 40902300897 (2026-10-29, #1179, a proof on erdos-849), read with `gh run view --log`:
+  15:30:39  #1179 merged (77c3129e08)
+  15:39:02  ledger step: one `opn-gate ledger` took 0.76 s (15:39:02.01 -> 15:39:02.77)
+  15:39:04  first push refused (main had moved: 13 first-parent commits since the merge)
+  15:40:21  "caught up (attempt 1)" -> push refused at 15:40:21.8 (147b557685 gate: #1178 at 15:40:09)
+  15:41:37  attempt 2 -> refused (eight append merges 15:41:05-15:41:30)
+  15:42:54  attempt 3 -> refused (d36b055d66 at 15:42:39)
+  15:44:11  attempt 4 -> refused (14e8681041 outline at 15:43:53)
+  15:45:29  attempt 5 -> refused (four commits 15:44:14-15:45:23)
+  15:46:46  attempt 6 caught up, no attempts left -> "publish gave-up", replay of #1179 dispatched,
+            step red (exit 1)
+  16:01:33  be061a88c2 "gate: #1179 pass (replayed)"
+  Each catch-up cost ~76 s of rendering; every refused push came < 1 s after the render ended.
+  Merge -> attestation on main: 30m54s (22m29s after the first push). Refusals 6. Replays 1.
+  main's first-parent schedule read from the graph's origin/main (`git log --first-parent`).
+
+== Red (against today's gate.yml: f07-record-first == f32-t5-gate, before the change) ==
+
+uv run --frozen pytest gate/tests/test_finding_postmerge_record_first.py -s
+  record-first replay of run 40902300897: {"exit": 1, "landed_s_after_first_push": null,
+    "merge_to_record_s": null, "pushes": 6, "refused": 6, "render_dispatches": 0,
+    "renders_in_publish": 6, "replays": ["2"]}
+  -> the live run's shape exactly: six refusals, six renders, gave-up, a replay, exit 1.
+  FAILED test_the_live_run_lands_its_record_without_a_replay       (exit 1: gave-up)
+  FAILED test_a_partials_record_lands_whole_without_the_products   (AssertionError: no render; 3 == 2)
+  FAILED test_the_first_push_still_carries_the_products_and_dispatches_no_render (no `recorded` output)
+  FAILED test_a_record_already_credited_by_another_run_names_that_commit (no `recorded` output)
+  FAILED test_a_failed_render_dispatch_is_a_warning_not_a_lost_record (the catch-up rendered and landed; no render dispatch, so no warning)
+  FAILED test_the_cache_job_builds_the_commit_the_record_landed_in (no `recorded` job output)
+  FAILED test_the_clock_harness_moves_main_by_itself  -- NOT a gate failure: my clock `git`
+         wrapper read `git -C <dir> fetch` as the verb `<dir>`. Fixed in the harness (skips -C/-c
+         pairs); the live-run test was unaffected (the step calls `git fetch`/`git push` without -C).
+  PASSED test_a_record_that_lands_nowhere_names_no_commit (today's job also writes no `recorded`)
+  7 failed, 1 passed in 76.01s
+
+How the replay works: the workflow's own commit step runs against a bare remote. `git` and `uv` on
+the step's PATH are clocked wrappers: before each push or fetch, main takes every live first-parent
+commit (LIVE_MAIN, 34 commits 15:31:57-15:49:48) whose offset from the first push (15:39:04) has
+come; costs are the live log's (render 75 s, ledger 0.76 s, fetch 0.5 s, push 0.7 s). Nothing in
+the harness knows what the gate does on a refusal; it only charges what the step runs.
+
+== The change (graph gate.yml, postmerge_batch.py helper and the post-merge job) ==
+
+  publish(..., render=False, follow=...): the first push is unchanged (record + products, `pushed`).
+    On a refusal: fetch, drop what main already credits (`owed`), replay on a re-pin (`pin_moved`)
+    or a record that does not apply — all as before — else rebuild(new, pairs, products=render):
+    for a merge, check out main as it is, `git apply --3way --index record.patch`, merge the tag
+    caches, write the ledger lines again, commit `gate: #N <verdict>` — no PRODUCTS_CMD. A push
+    that then lands answers `recorded` and calls follow(): `gh workflow run render.yml` with the
+    job's own github.token (actions: write, already granted; no new secret, C8). A failed dispatch
+    is a ::warning:: and the step stays green (C7). render.yml's own loop (render=True) still
+    renders on every attempt (it has nothing but products).
+  PRODUCTS_CMD removed from the commit step's env (the catch-up never renders); render.yml keeps its own.
+  The commit step has `id: record` and writes recorded=<sha>: HEAD after `pushed`/`recorded`, the
+    newest first-parent commit crediting the run's merges after `credited` (credited_at), nothing
+    after `replayed`/`gave-up`. Job output `recorded`.
+  Cache job (F32-T6's finding, the coordinator's message): checkout ref and COMMIT env are
+    `${{ needs.postmerge.outputs.recorded || needs.postmerge.outputs.merge }}`, publish uses
+    --commit "$COMMIT". Choice: `recorded` is the commit the RECORD landed in (the first push's
+    record+products commit, or the record-only catch-up commit), never the later render commit;
+    the record commit is the first commit on main holding a born-proved hole's files, and any
+    fetch takes the newest cache at or before its commit.
+
+Why render.yml rather than a second commit in the post-merge job: a second render-commit inside the
+job would meet the same race the record just escaped (a 76 s render, refused when main moves) and
+would keep the post-merge job, and its red/green, hostage to it. render.yml is decoupled: its
+concurrency group `render` (cancel-in-progress: false) holds one running and one pending run, so a
+burst of record-only catch-ups costs at most one render after the one in flight, and a render
+always starts after the record that dispatched it, so it renders a tree that holds it. Its own
+retry loop is the same 76 s race (see the estimate below): under a sustained burst a render can give
+up (red), and the pending render queued by later catch-ups lands at the next quiet window. Every
+merge whose first push lands also carries complete products. So the products converge once main is
+quiet for one render; the record no longer waits for that.
+
+== Green ==
+
+uv run --frozen pytest gate/tests/test_finding_postmerge_record_first.py
+  gate/tests/test_finding_postmerge_catch_up.py gate/tests/test_finding_render_without_merge.py
+  gate/tests/test_finding_postmerge_cache_job.py gate/tests/test_finding_postmerge_push_race.py -s
+  record-first replay of run 40902300897: {"exit": 0, "landed_s_after_first_push": 2.66,
+    "merge_to_record_s": 507.66, "pushes": 2, "refused": 1, "render_dispatches": 1,
+    "renders_in_publish": 0, "replays": []}
+  42 passed in 120.50s
+
+Before / after on run 40902300897's own main:
+                               before (live)      after (replayed)
+  merge -> attestation on main  30m54s             8m28s (505 s before the first push, unchanged; +2.66 s)
+  first push -> attestation     22m29s             2.66 s
+  pushes / refused              6 / 6              2 / 1
+  renders during publish        6 (~76 s each)     0
+  replays                       1 (#1179)          0
+  step                          red (gave-up)      green
+  products for #1179 on main    16:01:33           est. 15:51:19 (render.yml, below)
+
+Products-follow estimate (scratchpad sim, not a test): the committed helper's publish(render=True)
+driven on main's live first-parent schedule, render 76 s, dispatch-to-render 20 s (render run
+41006807176):
+  render 1 (dispatched by #1179's record at 15:39:06): gave-up 15:48:25; pushes 15:40:43,
+    15:42:00, 15:43:17, 15:44:34, 15:45:52, 15:47:09 all refused
+  render 2 (pending, queued by later catch-ups' dispatches) from 15:48:25: refused 15:50:02,
+    landed 15:51:19
+  So the products are ~10 min earlier than today, and render 1 goes red under the burst (a
+  visible, harmless failure: it credits nothing; see Risks). The schedule is the old world's main,
+  so this is an estimate.
+
+Restated existing tests (the property each was about, after the render that now carries it):
+  test_finding_postmerge_catch_up.py: six catch-up tests end in products_follow(origin, job)
+    (render.yml dispatched; RenderJob run as render.yml writes it; fresh_render_agrees) instead of
+    fresh_render_agrees right after the catch-up; the partial's graph.json and the racing runs'
+    frontier assertions moved after it; test_the_catch_up_renders_with_the_gate_main_pins asserts
+    PRODUCTS_CMD is gone from the commit step. The first-push test is unchanged.
+  test_finding_render_without_merge.py: new helper render_follows(origin).
+  test_finding_postmerge_cache_job.py::test_the_cache_job_builds_exactly_the_merge_commit_with_the_rendering_gate
+    now asserts `recorded || merge` and COMMIT. RECONCILE AT MERGE: F32-T6's branch (f32-t6) holds a
+    strict xfail test_the_cache_job_builds_the_commit_the_record_landed_in for the same property,
+    and still the old merge-commit assertion; this branch has its own
+    test_finding_postmerge_record_first.py::test_the_cache_job_builds_the_commit_the_record_landed_in.
+    At merge: drop T6's xfail mark (or the test, keeping one), keep this restated old test.
+  test_finding_postmerge_batch.py::test_a_run_whose_main_moved_by_a_later_merge_catches_up_and_records_its_own:
+    the one host call is now the render.yml dispatch (still no replay).
+  test_finding_merge_actor_workflow.py: REFS puts f07-record-first first (take it out once the
+    graph branch is on main).
+
+Suite (fast tier, OPN_GRAPH_CHECKOUT=/Users/mikehiggins/Desktop/repos/opn-graph-push-fix):
+  make test-fast: 1 failed, 7230 passed, 41 skipped, 280 deselected in 712.91s. The one failure was
+  test_finding_postmerge_batch.py::test_a_run_whose_main_moved_by_a_later_merge_catches_up_and_records_its_own,
+  which asserted the host was asked nothing; the catch-up now asks for render.yml. Restated to
+  calls == [the render.yml dispatch] (still no replay); that file plus test_finding_postmerge_replay.py
+  then: 40 passed in 31.46s. (The full tier was not re-run after this one test-only edit.)
+  Disk: 14 GiB free before the suite.
+
+Restated tests seen red against today's gate.yml (REFS' first entry renamed for the run, so they
+fell back to f32-t5-gate, then restored): 9 failed, 42 passed — the six catch-up tests that now
+wait for render.yml, test_the_catch_up_renders_with_the_gate_main_pins (PRODUCTS_CMD still in the
+step env), the batch test above and the restated cache-commit test.
+make lint: exit 0 (All checks passed; 943 files already formatted), also after the batch-test edit
+make types: exit 0 (Success: no issues found)
+
+== Files ==
+
+graph (commit on f07-record-first): .github/workflows/gate.yml
+network (commit on push-fix):
+  gate/tests/test_finding_postmerge_record_first.py (new)
+  gate/tests/test_finding_postmerge_catch_up.py
+  gate/tests/test_finding_render_without_merge.py
+  gate/tests/test_finding_postmerge_cache_job.py
+  gate/tests/test_finding_postmerge_batch.py
+  gate/tests/test_finding_merge_actor_workflow.py
+  engineering/evidence/F07/task-record-first.txt (this file)
+
+== Proposed spec text (not applied: spec HTML is the lead's) ==
+
+F07 task row (proposed T79):
+  T79 | A refused post-merge push re-lays only the merge's own record and pushes it without
+  rendering; render.yml, dispatched once the record lands, renders the products. The commit step
+  outputs `recorded`, and the cache job builds that commit (F32-T6). | ../open_proof_network_graph/
+  .github/workflows/gate.yml; gate/tests/test_finding_postmerge_record_first.py,
+  test_finding_postmerge_catch_up.py, test_finding_render_without_merge.py,
+  test_finding_postmerge_cache_job.py, test_finding_merge_actor_workflow.py | uv run --frozen pytest
+  gate/tests/test_finding_postmerge_record_first.py gate/tests/test_finding_postmerge_catch_up.py
+  gate/tests/test_finding_render_without_merge.py gate/tests/test_finding_postmerge_cache_job.py;
+  live: the first refused push after the graph push says "laid this merge's record" and
+  "publish recorded", and a `gate: render` commit follows
+
+F07 Q text (proposed Q84):
+  Q84 A refused push re-lays the merge's own record, and the products follow (T79, 2026-10-30, the
+  owner's approval; narrows Q60). Q60's catch-up laid the record on main as it was and rendered every
+  product again before pushing. On graph run 40902300897 (#1179) each render took 76 s and main moved
+  during every one of them (append merges, other runs' gate commits, outlines), so six pushes were
+  refused within a second of their render, the run gave up and replayed, and the attestation reached
+  main 31 minutes after the merge; the same on erdos-849 on 2026-10-27 (run 40500099998). The products
+  are derived (F03-R11) and anyone can make them again; the record is the run's alone. So the first
+  push still carries record and products together, and a catch-up lays only the record — record.patch
+  (the attestations, F32's born-proved hole records, a partial's hole children and the parent's
+  Context and META, the attempts file) and the ledger lines written again on main's ledger — and
+  pushes it without rendering, which takes seconds. Once it lands the job dispatches render.yml
+  (T60), whose concurrency group keeps one running and one pending render, so the products of main
+  follow; any later merge whose first push lands carries them too. What did not change: `owed` drops
+  what main already credits, so nothing is credited twice; a re-pin under the run, or a record that
+  does not apply, is replayed; a push refused every time gives up, replays and fails the step. Replayed
+  on the live run's own main: one refusal, the record on main 2.7 s after the first push (8m28s after
+  the merge), no replay; products estimated ten minutes earlier than the replayed record's were.
+  Consequence: between the record commit and the render commit, main holds an attestation its
+  products do not yet show, and the service's products-pending rule (F06-T18) refuses a hole-making
+  precheck on that target until the render lands, which is the truth. render.yml's own loop is still
+  a 76 s race and can give up red under a sustained burst; the pending render lands at the next
+  quiet minute. Reversal: restore the PRODUCTS_CMD call in `rebuild` and drop `follow`.
+
+F03-R12 proposed amendment:
+  R12 When the post-merge job runs on a merge, it shall regenerate all products and commit them
+  together with the attestation in one commit whose message is gate: <pr> <verdict>, except when
+  that commit's push is refused because main moved (F07-T55): the catch-up shall then commit the
+  merge's own record (its attestations and the files the job wrote into the tree) and ledger lines
+  on main as it is, under the same message and without the products, and shall dispatch the render
+  workflow (F07-T60), whose commit, crediting no merge, carries the products of that tree (F07-T79,
+  2026-10-30). When it runs on a non-merged gate run it shall commit the attestation only.
+
+== Risks ==
+
+  1. A window, after a catch-up, where main's products do not show a landed attestation (seconds
+     to minutes; under a sustained burst until main is quiet for one ~80 s render). Consumers that
+     read products (site, frontier, the service) show the merge late in that window; the record is
+     not late. The service's F06-T18 rule treats the record commit as a render in flight for
+     hole-making prechecks on that target, as intended.
+  2. render.yml under a burst: its loop re-renders per refusal and can give up red after six
+     (the sim's render 1). Harmless to the record (it credits nothing), but a red run nobody needs
+     to act on. If the only things moving main were outline commits (which dispatch no render), a
+     render that gave up would leave the products stale until the next merge or render; not seen on
+     the live schedule. Not built (unrequested): letting a render give up quietly when a newer
+     render is pending.
+  3. The record-only commit keeps the subject `gate: #N <verdict>`; anything reading that subject
+     as "the products of #N are in this commit" is wrong after this change. Searched: the helper's
+     credits/owed, postmerge.py's bot-message regex, merge.yml's lane rule (record-only commits touch
+     nodes/ exactly as today's gate commits do; render commits touch products only) — none assumes it.
+  4. Not run: the lean and docker tiers (no Lean or sandbox path changed), and nothing live.
+
+== Appendix: the products-follow estimate script (scratchpad, run once) ==
+
+"""Estimate: when render.yml's own loop (the helper's publish, render=True, as committed on the
+graph branch) lands the products after the record, against main's live first-parent schedule."""
+import subprocess, sys, textwrap, yaml
+from datetime import datetime, timezone
+G="/Users/mikehiggins/Desktop/repos/opn-graph-push-fix"
+doc=yaml.safe_load(subprocess.run(["git","-C",G,"show","f07-record-first:.github/workflows/gate.yml"],capture_output=True,text=True,check=True).stdout)
+run=[s for s in doc["jobs"]["postmerge"]["steps"] if s.get("id")=="pr"][0]["run"]
+src=textwrap.dedent(run.split("cat > \"$helper\" <<'PY'\n",1)[1].split("\nPY\n",1)[0])
+ns={"__name__":"sim"}; exec(compile(src,"h","exec"),ns)
+log=subprocess.run(["git","-C",G,"log","--first-parent","origin/main","--format=%ct","--since=2026-10-29T15:30:40Z","--until=2026-10-29T16:30:00Z"],capture_output=True,text=True,check=True).stdout.split()
+T0=datetime(2026,10,29,15,39,4,tzinfo=timezone.utc).timestamp()
+moves=sorted(int(t)-T0 for t in log)
+def at(s): return datetime.fromtimestamp(T0+s,timezone.utc).strftime("%H:%M:%S")
+RENDER, PUSH, FETCH, STARTUP = 76.0, 0.7, 0.5, 20.0  # live: 76 s render (post-merge log); dispatch to render step 20 s (render run 41006807176)
+def render_run(start):
+    clock={"now":start}; base={"n":sum(1 for m in moves if m<=start+10)}  # checkout ~10 s in
+    clock["now"]+=STARTUP-10+RENDER+10
+    pushes=[]
+    def head(): return sum(1 for m in moves if m<=clock["now"])
+    def push():
+        ok=head()==base["n"]; clock["now"]+=PUSH; pushes.append((at(clock["now"]),ok)); return ok
+    def fetch(): clock["now"]+=FETCH; return f"{head():040d}"
+    def rebuild(new,pairs,*,products):
+        assert products; base["n"]=int(new); clock["now"]+=RENDER; return True
+    out=ns["publish"]([],attempts=6,push=push,fetch=fetch,subjects_of=lambda r:[],pin_moved=lambda r:False,
+        rebuild=rebuild,replay=lambda p:None,render=True)
+    return out,clock["now"],pushes
+landed=2.66
+out,end,p=render_run(landed)
+print("render 1 (dispatched by #1179's record at",at(landed)+"):",out,"ends",at(end),"pushes",p)
+if out!="pushed":
+    out2,end2,p2=render_run(end)
+    print("render 2 (pending, from later catch-ups' dispatches) starts",at(end)+":",out2,"ends",at(end2),"pushes",p2)

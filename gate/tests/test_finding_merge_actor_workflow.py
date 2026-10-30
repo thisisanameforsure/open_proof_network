@@ -37,7 +37,10 @@ PATH = ".github/workflows/merge.yml"
 #: ``f22-workflows``) merged 2026-10-06 as graph #438; ``repin-readable`` came out then too, a
 #: merged branch 155 commits behind that shadowed ``origin/main`` once main's workflows moved.
 #: ``f28-closure`` (F28-T9: the join step, close.yml removed) reached main 2026-10-16 with the
-#: re-pin to network 4d59d35, and came out then.
+#: re-pin to network 4d59d35, and came out then. ``f32-t5-gate`` (F32-T5: the key step signs each
+#: born-proved hole's record) is first while it is a graph branch; take it out once it is on main.
+#: ``f07-record-first`` (a refused push re-lays the merge's own record; the products follow by
+#: render.yml) is built on ``f32-t5-gate`` and goes first while it is a graph branch.
 REFS = (
     "audit-b-workflows",
     "origin/main",

@@ -543,9 +543,11 @@ TOOLS: tuple[Tool, ...] = (
             "needed, and the passing job's {id, nonce} is the proof get_token takes. A "
             "node that exists only in an open proposal whose gate is green can be "
             "prechecked at the proposal's head (`proposal`). A partial's bundle may "
-            "carry a hole's witness as attempts/<assembly name without "
-            ".lean>.<n>.witness, with a line `-- hole: <name>`; the result names it on "
-            "its hole (`holes[].witness`)." + USES_NOTE
+            "carry a hole's witness and proof as attempts/<assembly name without "
+            ".lean>.<n>.witness and .proof, each with a line `-- hole: <name>` (a proof: "
+            "any private helpers, `-- proof:`, then the body after the hole's `:=`); the "
+            "result names each on its hole (`holes[].witness`, "
+            "`holes[].proof`)." + USES_NOTE
         ),
         params(
             {
@@ -663,11 +665,12 @@ TOOLS: tuple[Tool, ...] = (
             "service as committer. Name the passing precheck of this bundle with exactly "
             "one of `attestation` (the get_precheck result) or `precheck_job_id`. A "
             "later proof of a proved node is an alternate at "
-            "attempts/<timestamp>-<pseudonym>-alternate.lean (D-25). A partial's bundle "
-            "may carry its holes' witnesses as attempts/<assembly name without "
-            ".lean>.<n>.witness, each with a line `-- hole: <name>`; one the precheck "
-            "did not check is refused 400 hole-witness-unchecked, a hole no step of a "
-            "cited stepped annex 400 annex-step-missing. Then get_submission. "
+            "attempts/<timestamp>-<pseudonym>-alternate.lean (D-25). A partial may carry "
+            "hole witnesses, proofs: attempts/<assembly stem>.<n>.witness or .proof "
+            "with `-- hole: <name>` (a proof's body after `-- proof:`); 400 "
+            "hole-witness-unchecked or hole-proof-unchecked if not prechecked, "
+            "400 annex-step-missing for a hole a cited stepped annex omits. "
+            "Then get_submission. "
             "`pair-proof` settles a review pair: `pair` and the filled `lean`, no node, "
             "bundle or precheck." + USES_NOTE
         ),

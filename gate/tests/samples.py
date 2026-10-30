@@ -47,7 +47,7 @@ def meta(**overrides: Any) -> dict[str, Any]:
 
 def attestation(**overrides: Any) -> dict[str, Any]:
     doc: dict[str, Any] = {
-        "schema": "attestation/v7",
+        "schema": "attestation/v8",
         "graph_id": "propositional",
         "node_id": "tutorial-and-swap",
         "statement_hash": SHA256,
@@ -77,6 +77,7 @@ def attestation(**overrides: Any) -> dict[str, Any]:
         "automation": None,
         "trust_base": "kernel",
         "footprint": None,
+        "carried_by": None,
         "signature": {
             "kind": "none",
             "key_id": None,
@@ -89,6 +90,9 @@ def attestation(**overrides: Any) -> dict[str, Any]:
     schema = str(doc["schema"])
     if schema.startswith("attestation/v") and int(schema.rsplit("v", 1)[1]) < 7:
         doc.pop("automation", None)
+    # F32-T0: and `carried_by` with v8.
+    if schema.startswith("attestation/v") and int(schema.rsplit("v", 1)[1]) < 8:
+        doc.pop("carried_by", None)
     return doc
 
 

@@ -1,0 +1,33 @@
+F32-T2 — the pre-merge check (R3): each carried proof's hole staged as the node the writer will write, held to D-4 steps 4-8 inside the partial's steps; hole-proof-unknown, -ambiguous, -restates; step 4's hole-proofs record; the precheck result's holes[].proof.
+
+== RED: task-2-red.txt (written before gate/opn_gate/steps/hole_proofs.py existed in working form; failures are assertion failures on the behaviour: verdicts passing where step 4/5/8 must refuse, missing hole_proof_runs data, holes[].proof absent) ==
+
+== GREEN: the named verification command (rebased on origin/main f922b726) ==
+uv run --frozen pytest gate/tests/test_finding_partial_carries_proofs.py gate/tests/test_finding_precheck_holes.py (+ grammar, error codes, carried witnesses, partial: regression neighbours)
+100 passed in 6.17s
+
+== lean tier: uv run --frozen pytest -m lean gate/tests/test_finding_partial_carries_proofs_lean.py ==
+first run (t2-lean-2): 1 failed, 3 passed — the pass case failed at step 7 on the TEST's own witness for 'second' (⟨0, rfl⟩ against the printed ∃ (n : Nat), True). Probed with the real toolchain: both holes' expected witness is ∃ (n : Nat), True (a have := sorry reaches a later hole as a let the closed type drops). The test now asserts the printed type and supplies ⟨0, trivial⟩; the gate code did not change.
+======================== 4 passed in 282.32s (0:04:42) =========================
+The lean tier runs LocalToolchain; the sandboxed (docker) path of the staging is the same RunContext wrapped by judging.confined and is not run here: docker tier pending CI.
+
+== make lint ==
+lint exit 0
+== make types ==
+types exit 0
+
+== fast tier: run on a snapshot of this commit while T3 was built; result recorded in task-3.txt ==
+
+Files: gate/opn_gate/steps/hole_proofs.py (new), steps/{replay,axioms,hazards,witness,deps}.py (each step's run = check + hole_proofs.follow), gate/opn_gate/codes.py (step-4 codes), gate/precheck/job.py (holes[].proof), gate/tests/test_finding_partial_carries_proofs.py, gate/tests/test_finding_partial_carries_proofs_lean.py, gate/tests/test_finding_precheck_holes.py, gate/tests/test_error_codes.py (relay).
+
+Choices (for Q entries):
+- Each carried proof runs in a one-node graph of its own (<work>.hole-proofs/<child>/graph: the target's gate-spec.json, defs/, the child's files), so Q4's reach (library + the Defs its statement imports) is enforced by construction; the lean tier shows the sibling's theorem, the parent's and an unimported Defs lemma each fail to elaborate there.
+- Staging happens at the end of the partial's step 4 (after artifact.judge, which extracts the holes); each run's steps 2 and 4 run then; the partial's steps 5, 6, 8 then run the same step on each run (follow). A run's step 7 is recorded as the partial's carried-witness check (Q5), not repeated. Step 1 is the partial's (recorded pass).
+- With proofs carried, step 4's passing diagnostic code is hole-proofs (not artifact-partial), keeping artifact-partial's details (kind, holes — what graph.partials_of reads) and adding proofs=[{hole, path, sha256, proof_sha256, node}]. The only readers of the step-4 record key on details.kind, not the code (grepped).
+- Two extra codes beyond R3's: hole-proof-unplaced (plan_children raised) and hole-proof-unwritable (child_proposal/scaffold/compose raised) — internal failures named rather than swallowed.
+- R3's order: unknown and ambiguous are judged for every carried proof before any plan; restates for every one before any staging; then each is staged and run in file-number order, the first failure refusing the partial.
+
+== fast tier on a snapshot of 34f1d13c (OPN_GRAPH_CHECKOUT = detached graph origin/main ce03c910dc), recorded after the commit ==
+FAILED gate/tests/test_walkthrough.py::test_graph_copy_is_identical - Asserti...
+= 1 failed, 7207 passed, 41 skipped, 280 deselected, 2 warnings in 604.07s (0:10:04) =
+The one failure is pre-existing and not this branch's: network origin/main's gate/agents/AGENTS.md (PR #103's guide edits) differs from the graph's committed copy at ce03c910dc (lines 209-212, 1311-1314 and on); this branch does not touch gate/agents/. It turns green at the next re-pin's guide copy.

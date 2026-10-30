@@ -1343,6 +1343,109 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "Ascribe types where a bound variable or a numeral is used, or restate the hole over one "
         "type; details shows the text as printed.",
     ),
+    "hole-proof-ambiguous": (
+        "gate",
+        4,
+        "A carried proof names a hole that several holes of the assembly share.",
+        "Give each hole a name of its own.",
+    ),
+    "hole-proof-duplicate": (
+        "gate",
+        2,
+        "Two carried proofs name the same hole; a hole takes one carried proof.",
+        "Keep one proof file per hole.",
+    ),
+    "hole-proof-malformed": (
+        "gate",
+        2,
+        "A carried proof has no `-- proof:` line, or nothing after it.",
+        "Write the file as `-- hole: <name>`, any private helpers, a line `-- proof:`, then the "
+        "body: what follows the hole statement's `:=` (often `by` and its tactics).",
+    ),
+    "hole-proof-restates": (
+        "gate",
+        4,
+        "A carried proof's hole restates a node that already exists (an earlier hole of the node "
+        "or a node under another branch), so no node is created for it to be born proved.",
+        "Leave the proof out of the partial and submit it to the node the message names, as that "
+        "node's Proof.lean.",
+    ),
+    "hole-proof-sorry": (
+        "gate",
+        2,
+        "A carried proof uses sorry or admit; a carried proof is a finished one.",
+        "Finish it, or leave the file out and the hole is created open, as before.",
+    ),
+    "hole-proof-unattached": (
+        "gate",
+        2,
+        "A carried proof is not named after the assembly it belongs to.",
+        "Name it as the message shows: the assembly's name with a running number and `.proof`.",
+    ),
+    "hole-proof-unchecked": (
+        "api",
+        None,
+        "A partial carries proofs that the gate this target pins does not check (it predates "
+        "carried proofs), or that the bound precheck did not name as checked on their holes.",
+        "Precheck and submit the partial without its .proof files, and prove each hole once it "
+        "exists, as that node's Proof.lean; carried proofs work once the target is re-pinned.",
+    ),
+    "hole-proof-unknown": (
+        "gate",
+        4,
+        "A carried proof names a hole the assembly does not have.",
+        "Use one of the hole names the message lists, as the precheck printed them.",
+    ),
+    "hole-proof-unnamed": (
+        "gate",
+        2,
+        "A carried proof does not say which hole it is for.",
+        "Add a line `-- hole: <name>` above the `-- proof:` line, with the hole's name as the "
+        "precheck lists it.",
+    ),
+    "hole-proof-unplaced": (
+        "gate",
+        4,
+        "The gate could not work out where a hole's child node would be written, so its carried "
+        "proof could not be staged.",
+        "Report the verdict; the message says what failed.",
+    ),
+    "hole-proof-unwritable": (
+        "gate",
+        4,
+        "A hole's node, or the Proof.lean composed from its carried proof, could not be written "
+        "for checking.",
+        "Report the verdict; the message says what failed.",
+    ),
+    "hole-proof-uses": (
+        "gate",
+        2,
+        "A carried proof has an import line; it may draw only on the library and the definition "
+        "modules its hole's statement imports, so it declares no use and cannot reach a sibling "
+        "hole or the parent.",
+        "Remove the import. A proof that needs more is submitted to the hole once it exists.",
+    ),
+    "hole-proof-without-partial": (
+        "gate",
+        2,
+        "A carried proof was submitted without a partial's assembly beside it.",
+        "An existing node's proof goes in as its Proof.lean (POST /submissions).",
+    ),
+    "hole-proof-without-witness": (
+        "gate",
+        2,
+        "A carried proof's hole has no carried witness; a proved node has a real witness.",
+        "Carry the hole's witness too (`attempts/<assembly>.<n>.witness` naming the same hole), "
+        "or leave the proof out.",
+    ),
+    "hole-proofs": (
+        "gate",
+        4,
+        "Not an error: the partial carries proofs of some of its holes, each built, replayed and "
+        "checked through step 8 as the node its hole becomes; the details name each with its "
+        "file's hash and the composed Proof.lean's.",
+        "Nothing to do.",
+    ),
     "hole-unnamed": (
         "gate",
         4,

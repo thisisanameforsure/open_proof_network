@@ -183,3 +183,30 @@ def test_without_the_node_no_hole_names_one() -> None:
     """A result built where step 2 never found the node says nothing rather than guess."""
     out = result_of(partial(HOLE), verdict())
     assert "expected_node_id" not in out["holes"][0]
+
+
+def test_a_hole_whose_proof_the_bundle_carried_says_so() -> None:
+    """F32-T2 (R9, AC12): the run checked the proof the bundle carried for ``hden`` against the
+    node that hole becomes (steps 4 to 8); the result names its path and hash on that hole as
+    ``holes[].proof``, which is what the service reads before it opens a pull request. A hole
+    that carried none has no such key, and a result with no carried proof is what it was."""
+    ctx = partial(HOLE, {**HOLE, "name": "hden"})
+    plain = result_of(ctx, verdict())
+    ctx.data["hole_proofs"] = [
+        {
+            "hole": "hden",
+            "path": "attempts/20261001T000000Z-a-partial.1.proof",
+            "sha256": "c" * 64,
+            "proof_sha256": "d" * 64,
+            "node": "erdos-1050--h1-v2--h2",
+        }
+    ]
+    out = result_of(ctx, verdict())
+    assert "proof" not in out["holes"][0]
+    assert out["holes"][1]["proof"] == {
+        "path": "attempts/20261001T000000Z-a-partial.1.proof",
+        "sha256": "c" * 64,
+        "checked": True,
+    }
+    assert [{k: v for k, v in h.items() if k != "proof"} for h in out["holes"]] == plain["holes"]
+    assert all("proof" not in h for h in plain["holes"])

@@ -276,7 +276,8 @@ def live_partial_attestation(partial: str) -> dict[str, Any]:
         "details": {"path": partial},
         "message": f"a partial proof: {partial} (D-12 #5)",
     }
-    assert schemas.violations(doc, "attestation/v7") == [], "the live-shaped attestation is not v7"
+    # F32-T0: the samples are v8 now; the live shape is the same with carried_by null.
+    assert schemas.violations(doc, "attestation/v8") == [], "the live-shaped attestation is not v8"
     return doc
 
 

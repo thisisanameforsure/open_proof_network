@@ -83,6 +83,9 @@ class Job:
     #: (path under the node), so the served result can say which of them the pinned gate did
     #: not check; ``None`` for a bundle that carried none, and for a job stored before this.
     carried: list[dict[str, str]] | None = None
+    #: F32-R9: ``[{path, sha256}]`` for each proof the bundle carried for a partial's holes, as
+    #: ``carried`` is for witnesses; ``None`` for a bundle that carried none, and for an older job.
+    carried_proofs: list[dict[str, str]] | None = None
     #: F25-R3 (D-23 v3.37): the ``automation`` block offered with the request, validated, or
     #: ``None`` — not required here (F25-Q14), required of the submission (F25-R2).
     automation: dict[str, Any] | None = None
@@ -120,6 +123,9 @@ class Job:
             note = carried_note(self.result, self.carried)
             if note is not None:
                 out["carried_witnesses"] = note
+            proofs_note = carried_proofs_note(self.result, self.carried_proofs)
+            if proofs_note is not None:
+                out["carried_proofs"] = proofs_note
         if state == "error":
             out["error"] = self.error
             out["run_url"] = self.run_url
@@ -138,11 +144,22 @@ def unchecked_witnesses(result: Any, carried: list[dict[str, str]] | None) -> li
     """F07-R23: of the witnesses a bundle carried (``[{path, sha256}]``), the paths the job's
     result does not name as checked, byte for byte, on a hole (``holes[].witness``). A gate
     pinned before R23 names none: it does not read the files."""
+    return _unchecked_on_holes(result, carried, "witness")
+
+
+def unchecked_proofs(result: Any, carried: list[dict[str, str]] | None) -> list[str]:
+    """F32-R9: of the proofs a bundle carried (``[{path, sha256}]``), the paths the job's result
+    does not name as checked, byte for byte, on a hole (``holes[].proof``, which the gate writes
+    once steps 4 to 8 passed on the proof). A gate pinned before F32 names none."""
+    return _unchecked_on_holes(result, carried, "proof")
+
+
+def _unchecked_on_holes(result: Any, carried: list[dict[str, str]] | None, key: str) -> list[str]:
     holes = result.get("holes") if isinstance(result, dict) else None
     checked = {
         str(found.get("path")): str(found.get("sha256"))
         for found in (
-            hole.get("witness")
+            hole.get(key)
             for hole in (holes if isinstance(holes, list) else [])
             if isinstance(hole, dict)
         )
@@ -172,6 +189,29 @@ def carried_note(result: Any, carried: list[dict[str, str]] | None) -> dict[str,
             "(F07-R23 reaches a target at its re-pin). POST /submissions refuses this bundle "
             "(400 hole-witness-unchecked); submit the partial without the witness files and "
             "send each hole's witness through POST /proposals/witness once the hole exists"
+        ),
+    }
+
+
+def carried_proofs_note(result: Any, carried: list[dict[str, str]] | None) -> dict[str, Any] | None:
+    """F32-R9 (as F07-T53's ``carried_witnesses``): what a passing precheck says of carried proofs
+    its gate did not check, or ``None`` when there is nothing to say (none carried, all checked,
+    or the verdict is not a pass, whose diagnostic is the news)."""
+    if not carried or not isinstance(result, dict) or result.get("verdict") != "pass":
+        return None
+    unchecked = unchecked_proofs(result, carried)
+    if not unchecked:
+        return None
+    return {
+        "unchecked": unchecked,
+        "checked": [p["path"] for p in carried if p["path"] not in unchecked],
+        "message": (
+            "this precheck passed without checking the carried proof "
+            + ", ".join(unchecked)
+            + ": the gate this target pins does not check a partial's carried proofs yet "
+            "(F32 reaches a target at its re-pin). POST /submissions refuses this bundle "
+            "(400 hole-proof-unchecked); submit the partial without the .proof files and prove "
+            "each hole once it exists"
         ),
     }
 
@@ -824,6 +864,9 @@ async def post_precheck(ctx: Context, request: Request) -> Response:
     submissions.check_declarations(bundle.files, artifact_type)
     # F07-R23: and so is a carried witness step 2 would refuse, whatever type was declared.
     carried = submissions.check_carried(claim, bundle.files)
+    # F32-R9: and a carried proof step 2 would refuse, or one the target's pinned gate would
+    # pass unread (Q15), before the job exists.
+    proofs = submissions.check_carried_proofs(ctx, claim, bundle.files, carried)
     # F08-R21 (T26): and a use line step 2 would refuse, by the gate's code, on a target whose
     # pinned gate reads use lines; before the job exists, so nothing is dispatched.
     usesmod.check_bundle(ctx, claim, bundle.files)
@@ -859,6 +902,7 @@ async def post_precheck(ctx: Context, request: Request) -> Response:
         nonce=nonce,
         proposal=proposal.reference() if proposal is not None else None,
         carried=[{"path": w.path, "sha256": w.sha256} for w in carried] or None,
+        carried_proofs=[{"path": p.path, "sha256": p.sha256} for p in proofs] or None,
         automation=automation,
     )
     save(ctx, job)

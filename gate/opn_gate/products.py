@@ -65,7 +65,7 @@ from opn_gate.toolchain import ResolvedToolchain, Toolchain, UsedConstantsReques
 log = logging.getLogger(__name__)
 
 #: docs/architecture_decisions.html (v3.43: circularity retired; v3.42: proved by closure)
-PROTOCOL_VERSION = "3.48"
+PROTOCOL_VERSION = "3.49"
 #: F08-T42 (D-12 v3.43): graph/v11 drops ``circular``, the retired circularity label.
 #: F03-T20 (D-12 v3.38): graph/v8 carries ``lemmas``, the nodes under other branches a merged
 #: partial restated as holes, and a decomposition's hole may resolve to one. v7 (F25-R7, D-10
@@ -75,7 +75,8 @@ PROTOCOL_VERSION = "3.48"
 #: v11 (F08-T42, D-12 v3.43): no circular; v10 (F28-T8, D-12 v3.42): closure; v9 (F26-R17):
 #: review state and open pairs; v8: lemmas
 #: v12 (F29-T1, D-25 v3.44): label, label_source, claim; approach
-GRAPH_SCHEMA = "graph/v15"  # F31-T1 (D-14 v3.47): each row's shelved
+#: v15 (F31-T1, D-14 v3.47): each row's shelved
+GRAPH_SCHEMA = "graph/v16"  # F32-T6 (D-12 v3.49): a born-proved hole's own record names its proof
 #: F03-T18 (D-12 v3.35): frontier/v5 repeats graph/v6's three fields on every entry, and a node
 #: under a circularity claim is an entry on its status alone; v4 (T16): status, cause, needs;
 #: v3 (T7): partials; v2: D-33 dormancy. F08-T42 (D-12 v3.43): frontier/v6 drops ``circular``.

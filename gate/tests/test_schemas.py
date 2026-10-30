@@ -26,6 +26,7 @@ def test_known_schemas_are_the_published_set() -> None:
         "attestation/v5",
         "attestation/v6",
         "attestation/v7",  # F25-T1 (automation)
+        "attestation/v8",  # F32-T0 (carried_by)
         "candidate/v1",
         "claims/v1",
         "closure/v1",  # F28-T8 (D-12 v3.42): proved by closure
@@ -81,6 +82,7 @@ def test_known_schemas_are_the_published_set() -> None:
         "graph/v13",  # F08-T43 (D-25 v3.45): literature.disputes
         "graph/v14",  # F08-T44 (D-30 v3.46): relation refutes; target_proofs refutations
         "graph/v15",  # F31-T1 (D-14 v3.47): shelved
+        "graph/v16",  # F32-T6 (D-12 v3.49): a proof's record may be a born-proved hole's
         "graph/v2",
         "graph/v3",
         "graph/v4",

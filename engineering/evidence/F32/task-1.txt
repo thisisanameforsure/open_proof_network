@@ -1,0 +1,31 @@
+F32-T1 — grammar and composition (R1, R2): the .proof reader beside carried's witness reader, step 2's refusals, compose_proof; codes in the catalog.
+
+== RED: see task-1-red.txt (tests written first; failed on the missing behaviour, e.g. KeyError 'proofs' in step 2's partial record and verdicts passing where step 2 must refuse) ==
+
+== GREEN: the named verification command, on a snapshot worktree holding exactly this commit's tree (scratchpad/f32/snap-t1) ==
+uv run --frozen pytest gate/tests/test_finding_carried_proof_grammar.py
+...........................                                              [100%]
+27 passed in 0.74s
+re-run 2026-10-29 with the contracts and error-code tests: uv run --frozen pytest gate/tests/test_finding_carried_proof_grammar.py gate/tests/test_finding_carried_proof_contracts.py gate/tests/test_error_codes.py -> 41 passed
+
+== make lint (snapshot) ==
+All checks passed!
+uv run --frozen ruff format --check .
+933 files already formatted
+lint exit 0
+== make types (snapshot) ==
+Success: no issues found in 453 source files
+uv run --frozen mypy api
+Success: no issues found in 273 source files
+uv run --frozen mypy site
+Success: no issues found in 126 source files
+types exit 0
+
+== fast tier (snapshot, OPN_GRAPH_CHECKOUT = detached graph origin/main c3996bd447) ==
+== 7127 passed, 41 skipped, 276 deselected, 2 warnings in 1798.74s (0:29:58) ===
+
+Separation from T2 (resumed session): T1 and T2 share gate/opn_gate/codes.py and gate/tests/test_error_codes.py. The catalog test requires catalog keys to equal the emitted codes, so T2's step-4 codes (hole-proof-unknown, -ambiguous, -restates, -unplaced, -unwritable, hole-proofs) and the hole_proofs.py relay cannot ride in T1. This commit takes the snapshot's T1 state of both files; T2's commit adds the rest. Every other T1 file is byte-identical between the snapshot and the working tree (cmp).
+
+Files: gate/opn_gate/{carried,codes,modes}.py, gate/opn_gate/steps/paths_step.py, gate/tests/test_finding_carried_proof_grammar.py, gate/tests/test_finding_carried_proof_contracts.py (two T0 'not yet' tests restated: the role is now read), gate/tests/test_error_codes.py (relay for carried.py's helper diagnostic).
+
+Choices (for a Q entry): the body is everything after the first '-- proof:' line with leading blank lines and the first line's indentation removed, trailing whitespace dropped (Q2). The helper block is everything above '-- proof:' except the '-- hole:' marker, None when it holds no code. Refusal order is R1's: unattached, unnamed, duplicate, malformed, sorry/admit, import (hole-proof-uses), helper (F00-T11's own code, file named), without-witness. A 'use' line is caught as an import line (a use line is an import of Nodes.*). On a bare tree (no diff) the proofs taken are those attached to the assembly by name. compose_proof = statement prefix through ':=' + ' ' + body + the statement's text after its sorry (or a newline); helpers inserted at layout.declaration_start with a blank line after.

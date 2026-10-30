@@ -1,0 +1,46 @@
+F32-T4 — the ledger and its readers (R7; AC9; Q7, Q12, Q14; D-12 v3.49, D-19): one proof line per born-proved hole, credited to the partial's author; every reader that takes "the merge's attestation" by merge commit reads the record whose carried_by is null.
+
+== RED: task-4-red.txt ==
+Seam at today's behaviour first (ledger.merge_record = the first record by sorted name whose merge_commit matches, which is what merge_tooling and merge_automation did inline; ledger.born_proved returning []; cli._append_born_proved wired into _merge_entries for a partial), so every red is a failed assertion on behaviour, none an ImportError or AttributeError.
+One fixture error was found on the first red run and fixed before the run kept as evidence: the test's automation blocks were not attestation/v8 automation objects, so load_json refused both records and merge_record answered None for the wrong reason. With valid blocks:
+5 failed, 4 passed:
+- test_the_merges_record_is_the_one_with_carried_by_null[first]: the hole's record (000009.and-swap-reassoc--h1.json sorts before 000009.json) was taken as the merge's (node_id and-swap-reassoc--h1, the hole's tooling).
+- test_a_merge_with_only_a_holes_record_has_no_record_of_its_own: the hole's record was taken as the merge's.
+- test_born_proved_names_the_holes_of_this_parent_in_this_merge: [] for [and-swap-reassoc--h1].
+- test_the_ledger_credits_the_partial_and_its_born_proved_hole[first], [last]: one entry (the partial's) where AC9 wants two.
+Passing at red, and kept as pins: [last] of the record test (a hole sorting after 000009.json is passed over by luck of name, which is the case Q7 says no reader may rely on); a pre-v8 record with no carried_by is the merge's; born_proved empty without carried records; a partial carrying no proof earns exactly the one line it earned before.
+
+== GREEN: the named verification command ==
+uv run --frozen pytest gate/tests/test_finding_carried_proof_ledger.py gate/tests/test_ledger.py
+41 passed in 3.60s
+neighbours (test_ledger_merges, test_finding_ledger_credits_merges, test_finding_ledger_statement_tooling, test_finding_ledger_update_branch_credit, test_credit_correction, test_writeup_credit, test_review_pair_proof_ledger, test_finding_carried_proof_postmerge, test_cli_sandboxed; -m "not lean and not docker"): 95 passed in 59.36s
+
+== make lint ==
+lint exit 0
+== make types ==
+types exit 0
+
+== fast tier ==
+OPN_GRAPH_CHECKOUT = detached graph worktree at origin/main bdac51f6e7 (make test-fast, this tree before the commit)
+FAILED gate/tests/test_lifecycle_f15.py::test_the_whole_life - AssertionError: the lifecycle test must stay under 10 s (§6); assert (437571.256 - 437561.068) < 10
+= 1 failed, 7225 passed, 41 skipped, 280 deselected, 2 warnings in 1189.49s (0:19:49) =
+The one failure is the lifecycle test's 10 s wall-clock budget (10.19 s), on a laptop with other agents' suites running (the 2026-10-05 log entry). Re-run alone: 1 passed. This branch does not touch the lifecycle. test_walkthrough.py::test_graph_copy_is_identical passed against this graph ref.
+
+Files: gate/opn_gate/ledger.py (_merge_records, merge_record, born_proved; merge_tooling and merge_automation read merge_record), gate/opn_gate/cli.py (_merge_entries calls _append_born_proved for a partial), gate/tests/test_finding_carried_proof_ledger.py (new, 9 tests), engineering/evidence/F32/task-4-red.txt, this file.
+
+The grep (git grep -n "merge_commit" across gate/ api/ site/, and every reader of attestations/ by glob or by name), at f78dc0f2:
+- ledger.merge_tooling, ledger.merge_automation: took the first record by sorted name whose merge_commit matched. FIXED: both read ledger.merge_record (carried_by null or absent).
+- graph.proof_for, graph.proofs_of (alternates), graph.partials_of; site/opn_site/model.py's attestation lookup (node_id + statement_hash + merge_commit) and _alternates_for; products' proofs[] (from graph's ProofRecord); palomar_export (proof.merge_commit): all key on node_id and statement_hash first, so a hole's record (node_id = the hole) is never read as the parent's, nor the partial's as the hole's. Unchanged; how the products read the hole as proved is R8 (T6).
+- api/opn_api/pending.attestation_path, modes (registration's attestations/<number>.json), postmerge.attestation_path, gate/tools/check_products.py, check_reproduce.py: build the path from the pull request number, which stays the merge's own record (Q7). Unchanged.
+- ledger.LINE_KEY, modes' credit-correction check, site render of ledger entries: read ledger entries' merge_commit, not attestations. Unchanged; a hole's line differs from the partial's by node and artifact (Q14).
+- review_job.py's sorted glob is over review job records, not attestations. Unchanged.
+Nothing in api/ or site/ selects an attestation by merge_commit alone.
+
+Choices (for Q entries):
+- Which holes were born proved is read from the committed records, not from the classification or the tree: a passing record of the merge commit whose carried_by.node_id is the partial's node (ledger.born_proved). The ledger step runs after the key step (gate.yml), so the records are there when it runs; a hole whose re-derivation failed has no record and earns nothing (Q10, C7). The line credits what was attested, the precedent being merge_tooling's read of the record rather than a flag (D-35, T15).
+- "The merge's record" is the record of the merge commit whose carried_by is null, or absent (attestation/v1 to v7, every record before F32). A merge whose only records are holes' (no such merge can exist; a hand-written tree could) has none: merge_tooling answers undeclared and merge_automation None, rather than taking a hole's.
+- The hole's line is the partial's in every field but node and artifact (Proof.lean): the same identity (proposer_of, the partial's author, Q14), merge commit, date, tooling and automation, both read from the merge's own record, not the hole's, though the two agree today (R5 copies the fields). The same D-21 curator bar: a curator's partial on their own target earns neither line. Lines are appended after the partial's, by hole id.
+- A born-proved hole of the tutorial earns nothing only because the partial of the tutorial node is already skipped (D-27); a hole of another node has no tutorial flag of its own to read.
+- No dedupe of the hole lines on a replay: the partial's line has none either, and the workflow never replays a merge that has its gate commit (gate.yml: "the ledger appends, so a merge that has its commit is never replayed").
+
+Not changed here: the graph workflow's key step, which signs the hole records into attestations/ (T5); until T5 is live no hole record is committed and the ledger writes the partial's line alone, as before.

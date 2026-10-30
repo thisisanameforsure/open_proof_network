@@ -162,6 +162,19 @@ def attestation_path(graph_root: Path, pr_number: int) -> Path:
     return graph_root / "attestations" / f"{attestation_id(pr_number)}.json"
 
 
+#: F32-R5: where ``postmerge`` leaves each born-proved hole's record in its out directory, as
+#: ``<node id>.json``, for the graph workflow's key step to sign into ``hole_attestation_path``.
+HOLE_ATTESTATIONS_DIR = "hole-attestations"
+
+
+def hole_attestation_path(graph_root: Path, pr_number: int, node_id: str) -> Path:
+    """F32-Q7: a born-proved hole's record, ``attestations/<NNNNNN>.<hole node id>.json`` —
+    beginning with the partial's own ``<NNNNNN>``, so ``attestation_path`` stays the merge's
+    own record for every reader that builds the path from the number. Whether it sorts before
+    or after that record depends on the id's first letter; no reader may rely on either."""
+    return graph_root / "attestations" / f"{attestation_id(pr_number)}.{node_id}.json"
+
+
 def pr_number_from_message(message: str) -> int | None:
     """The PR number a merge commit's message names (merge commits and squash merges)."""
     first = message.splitlines()[0] if message else ""
@@ -516,6 +529,9 @@ class PartialMerge:
     lemmas: tuple[tuple[str, str], ...] = ()
     #: F07-T78 (R22): the parent's own holes this merge's holes restated, ``(hole name, node)``.
     restated: tuple[tuple[str, str], ...] = ()
+    #: F32-R4 (D-12 v3.49): the children born proved, each with the Proof.lean composed from the
+    #: proof the partial carried for its hole and the run checked.
+    proved: tuple[str, ...] = ()
     #: F29-R7 (D-12 v3.44): the statement glosses this merge filed beside its created children,
     #: as paths under the target directory (``nodes/<child>/gloss/<hash>.md``); empty when the
     #: partial declared no words (an older pin) or when no child was created.
@@ -537,6 +553,8 @@ class PartialMerge:
             doc["restated"] = [{"hole": h, "node": n} for h, n in self.restated]
         if self.glosses:  # F29-R7: absent when the partial declared no words
             doc["glosses"] = list(self.glosses)
+        if self.proved:  # F32-R4: absent when nothing was carried: the document is what it was
+            doc["proved"] = list(self.proved)
         return doc
 
 
@@ -566,7 +584,91 @@ class GraphWriteError(RuntimeError):
     """The post-merge job cannot write what it was asked to; nothing is left half-written."""
 
 
-def apply_partial(  # noqa: PLR0913 — the merge's facts, each named
+@dataclass(frozen=True)
+class CheckedProof:
+    """F32-R4: a proof the partial carried for a hole, as the post-merge job's own run checked
+    it: the node id it was checked as, and the composed ``Proof.lean``, byte for byte."""
+
+    node_id: str
+    text: str
+
+
+def check_carried_proofs(
+    node_dir: Path,
+    holes: Sequence[Any],
+    proofs: Mapping[str, CheckedProof],
+    *,
+    partial_text: str,
+    witnesses: Mapping[str, str],
+) -> list[str]:
+    """F32-Q10 (D-29 v3.49): fail closed. On this tree, every hole whose carried proof the run
+    checked must be the node the run checked it as — a new child under the id it was staged
+    with, carrying its witness, whose statement the checked text is a proof of — or that child
+    already written with that very text by an earlier run of the job (answered, so a re-run
+    writes nothing). Anything else is a ``GraphWriteError`` before anything is written: a
+    renumbering (another decomposition of the node merged first, or the job caught up on a newer
+    main) or a hole that now restates an existing node would otherwise attest a statement the
+    gate did not check. Answers the holes already written."""
+    from opn_gate import layout, paths  # noqa: PLC0415 — layout imports schemas
+
+    if not proofs:
+        return []
+    nodes_dir = node_dir.parent
+    plan = {
+        hole.name: (hole, child, existing)
+        for hole, child, existing in plan_children(node_dir, holes)
+    }
+    origin = child_origin(partial_text)
+    done: list[str] = []
+    for name, checked in proofs.items():
+        if name not in plan:
+            msg = f"the run checked a carried proof of the hole {name!r}, which this assembly lacks"
+            raise GraphWriteError(msg)
+        hole, child, existing = plan[name]
+        if existing is not None:
+            written = nodes_dir / existing / "Proof.lean"
+            if (
+                existing == checked.node_id
+                and written.is_file()
+                and (written.read_bytes() == checked.text.encode("utf-8"))
+            ):
+                done.append(name)  # an earlier run of this job wrote it: nothing to do
+                continue
+            msg = (
+                f"hole {name}: on this tree it restates the existing node {existing}, and its "
+                f"carried proof was checked as {checked.node_id}; nothing is written or attested "
+                "(F32-Q6, Q10)"
+            )
+            raise GraphWriteError(msg)
+        if child != checked.node_id:
+            msg = (
+                f"hole {name}: on this tree it becomes {child}, and its carried proof was checked "
+                f"as {checked.node_id}; the statement written would not be the one checked, so "
+                "nothing is written or attested (F32-Q10)"
+            )
+            raise GraphWriteError(msg)
+        if name not in witnesses:
+            msg = f"hole {name}: a carried proof is written only beside its carried witness (Q3)"
+            raise GraphWriteError(msg)
+        statement = child_proposal(
+            node_dir, child, hole, author="gate", origin=origin, partial_text=partial_text
+        ).statement
+        parsed = layout.parse_statement(statement)
+        problem = (
+            paths.check_proof_is_statement(parsed, checked.text, node_id=child)
+            if isinstance(parsed, layout.Statement)
+            else parsed
+        )
+        if problem is not None:
+            msg = (
+                f"hole {name}: the proof the run checked is not a proof of the statement "
+                f"written for {child} ({problem.message}); nothing is written (F32-Q10)"
+            )
+            raise GraphWriteError(msg)
+    return done
+
+
+def apply_partial(  # noqa: PLR0912, PLR0913, PLR0915 — the merge's facts, each written in one place
     node_dir: Path,
     holes: Sequence[Any],
     *,
@@ -577,6 +679,7 @@ def apply_partial(  # noqa: PLR0913 — the merge's facts, each named
     assembly_path: str | None = None,
     model: str | None = None,
     witnesses: Mapping[str, str] | None = None,
+    proofs: Mapping[str, CheckedProof] | None = None,
 ) -> PartialMerge:
     """R6: turn a merged partial into child nodes, with the assembly on record under ``attempts/``.
 
@@ -598,6 +701,12 @@ def apply_partial(  # noqa: PLR0913 — the merge's facts, each named
     born with that text as its ``Witness.lean`` instead of the slot, and so is not blocked. A
     hole with none is created as before; a hole that is an existing node is never touched,
     whatever is carried for it (its witness is a proposal's, F08-R5).
+
+    ``proofs`` maps a hole's name to the proof the partial carried for it, as the caller's own
+    run checked it (F32-R4, D-29 v3.49): the child created for that hole is also born with that
+    text as its ``Proof.lean``, so it is proved once its attestation is committed. Checked first
+    (``check_carried_proofs``): a hole the run checked under another id, or that is now an
+    existing node, refuses the whole write before anything is written (F32-Q10).
 
     ``assembly_path`` is the merged assembly's own path under the node when the submission was
     the ``attempts/*.lean`` file partial mode takes (F11-T4): that file *is* the attempt record,
@@ -635,6 +744,13 @@ def apply_partial(  # noqa: PLR0913 — the merge's facts, each named
                 "and read back, so a child node would state a different proposition (F07-R19)"
             )
             raise GraphWriteError(msg)
+
+    # F32-Q10: fail closed before anything is written.
+    carried_proofs = dict(proofs or {})
+    check_carried_proofs(
+        node_dir, holes, carried_proofs, partial_text=partial_text, witnesses=dict(witnesses or {})
+    )
+    born_proved: list[str] = []
 
     origin = child_origin(partial_text)
     annex = annex_citation(partial_text)
@@ -684,6 +800,12 @@ def apply_partial(  # noqa: PLR0913 — the merge's facts, each named
             partial_text=partial_text,
         )
         scaffold.write(nodes_dir, proposal)
+        if hole.name in carried_proofs:
+            # F32-R4 (D-3 v3.49): the composed Proof.lean the run checked, byte for byte.
+            (nodes_dir / child / "Proof.lean").write_bytes(
+                carried_proofs[hole.name].text.encode("utf-8")
+            )
+            born_proved.append(child)
         gloss_path = write_hole_gloss(
             nodes_dir,
             child,
@@ -720,6 +842,7 @@ def apply_partial(  # noqa: PLR0913 — the merge's facts, each named
         # partial — a later route's hole otherwise read as no node at all (erdos-68, #1154).
         restated=record_restated(node_dir, attempt, placed, edges),
         glosses=tuple(filed_glosses),
+        proved=tuple(born_proved),
     )
 
 

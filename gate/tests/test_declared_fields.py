@@ -104,7 +104,8 @@ def test_tooling_keeps_one_field_when_only_one_is_declared() -> None:
 # --- cli.with_declared and cli.declare_submitter -----------------------------------------------
 
 
-def test_with_declared_copies_exactly_the_four_declared_fields() -> None:
+def test_with_declared_copies_exactly_the_declared_fields() -> None:
+    """The four of F07-T14 and ``automation`` (D-23 v3.37), declared like them (F32-T7)."""
     reproduction = samples.attestation()
     committed = dict(reproduction)
     committed.update(
@@ -112,6 +113,7 @@ def test_with_declared_copies_exactly_the_four_declared_fields() -> None:
         model_and_tooling="m v h",
         tooling={"model": "m", "harness": "h"},
         precheck_attestation={"hash": "a" * 64, "signature_kind": "service"},
+        automation={"method": "agent", "models": ["m"], "framework": "h"},
         verdict="fail",  # not declared: a real difference must survive the copy
     )
     out = cli.with_declared(reproduction, committed)

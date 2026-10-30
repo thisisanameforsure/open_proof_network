@@ -95,7 +95,8 @@ def test_a_refused_footprint_is_not_recorded_as_the_proofs(tmp_path: Path) -> No
 
 
 def test_the_record_is_the_next_attestation_version_and_the_gate_still_reads_the_old() -> None:
-    assert attestation.SCHEMA == "attestation/v7"  # v7: F25-T1 (automation); v6 was this task's
+    assert attestation.SCHEMA == "attestation/v8"  # v8: F32-T0; v7: F25-T1; v6 was this task's
     assert "attestation/v5" in attestation.ACCEPTED_SCHEMAS
     assert "attestation/v6" in attestation.ACCEPTED_SCHEMAS
     assert "attestation/v7" in attestation.ACCEPTED_SCHEMAS
+    assert "attestation/v8" in attestation.ACCEPTED_SCHEMAS

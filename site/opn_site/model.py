@@ -78,6 +78,7 @@ PRODUCT_SCHEMAS: dict[str, tuple[str, ...]] = {
         "graph/v13",  # F08-T43 (D-25 v3.45): literature.disputes
         "graph/v14",  # F08-T44 (D-30 v3.46): relation refutes; target_proofs refutations
         "graph/v15",  # F31-T1 (D-14 v3.47): each row's shelved
+        "graph/v16",  # F32-T6 (D-12 v3.49): a proof's record may be a born-proved hole's
     ),
 }
 log = logging.getLogger(__name__)
@@ -555,6 +556,17 @@ class NodeView:
     @property
     def deps(self) -> list[str]:
         return [str(d) for d in self.graph_entry["deps"]]
+
+    @property
+    def carried_from(self) -> str | None:
+        """F32-R5: the parent whose merged partial carried this node's proof — its proving
+        record's ``carried_by.node_id`` (``attestation/v8``) — or ``None`` for a proof merged by
+        its own pull request and for any record older than v8, which has no such field."""
+        doc = self.attestation or {}
+        carried = doc.get("carried_by")
+        if isinstance(carried, dict) and carried.get("node_id"):
+            return str(carried["node_id"])
+        return None
 
     @property
     def closure(self) -> dict[str, Any] | None:

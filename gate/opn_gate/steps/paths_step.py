@@ -50,7 +50,11 @@ class PathsStep:
         if isinstance(alternate, StepResult):
             return alternate
         if alternate is not None:
-            return stray_witnesses(ctx) or take_alternate(ctx, loaded, node_dir, alternate)
+            return (
+                stray_witnesses(ctx)
+                or stray_proofs(ctx)
+                or take_alternate(ctx, loaded, node_dir, alternate)
+            )
         if not loaded.proof_path.is_file():
             # F07-R3, R5 (F11-T4): with no Proof.lean the submission may be a partial — one new
             # assembly under attempts/. Its header and signature are the statement's, like a
@@ -59,8 +63,10 @@ class PathsStep:
             if isinstance(assembly, StepResult):
                 return assembly
             if assembly is None:
-                return stray_witnesses(ctx) or StepResult.failed(
-                    "proof-missing", "the claimed node has no Proof.lean"
+                return (
+                    stray_witnesses(ctx)
+                    or stray_proofs(ctx)
+                    or StepResult.failed("proof-missing", "the claimed node has no Proof.lean")
                 )
             text = assembly.read_text(encoding="utf-8")
             refusal = partial_refusal(loaded.statement, node_dir, text)
@@ -83,12 +89,21 @@ class PathsStep:
                     {"hole": w.hole, "path": w.path, "file": str(node_dir / w.path)}
                     for w in witnesses
                 ]
+            # F32-R1 (D-29 v3.49): the proofs it carries for its holes, read and held to the
+            # grammar here; step 4 holds each to steps 4 to 8 against the node its hole becomes.
+            proofs, problem = carried_proofs(ctx, node_dir, assembly, [w.hole for w in witnesses])
+            if problem is not None:
+                return StepResult(ok=False, diagnostic=problem)
+            if proofs:  # absent when nothing is carried, as for witnesses
+                ctx.data[PARTIAL_KEY][carried.PARTIAL_PROOFS_KEY] = [
+                    {"hole": p.hole, "path": p.path, "file": str(node_dir / p.path)} for p in proofs
+                ]
             return StepResult.passed_with(
                 "partial-submission",
                 f"a partial proof: {assembly.relative_to(node_dir).as_posix()} (D-12 #5)",
                 path=assembly.relative_to(node_dir).as_posix(),
             )
-        stray = stray_witnesses(ctx)
+        stray = stray_witnesses(ctx) or stray_proofs(ctx)
         if stray is not None:
             return stray
         proof_text = loaded.proof_path.read_text(encoding="utf-8")
@@ -133,6 +148,49 @@ def stray_witnesses(ctx: RunContext) -> StepResult | None:
     says it too."""
     added = added_witnesses(ctx)
     return StepResult(ok=False, diagnostic=carried.without_partial(added)) if added else None
+
+
+def added_proofs(ctx: RunContext) -> list[str]:
+    """F32-R1: the carried-proof files the diff adds under this node's ``attempts/``, as paths
+    under the node; nothing on a bare tree."""
+    if ctx.changes is None:
+        return []
+    prefix = ctx.claim.node_prefix + carried.ATTEMPTS
+    return sorted(
+        c.path[len(ctx.claim.node_prefix) :]
+        for c in ctx.changes
+        if c.status == "A"
+        and c.path.startswith(prefix)
+        and "/" not in c.path[len(prefix) :]
+        and carried.is_carried_proof(c.path[len(prefix) :])
+    )
+
+
+def stray_proofs(ctx: RunContext) -> StepResult | None:
+    """F32-R1: a carried proof in a submission that is not a partial is refused by name."""
+    added = added_proofs(ctx)
+    return StepResult(ok=False, diagnostic=carried.proof_without_partial(added)) if added else None
+
+
+def carried_proofs(
+    ctx: RunContext, node_dir: Path, assembly: Path, witnessed: list[str]
+) -> tuple[list[carried.CarriedProof], Diagnostic | None]:
+    """F32-R1: the proofs this partial carries, or why one of its files is not one: with a diff,
+    every proof file it adds; on a bare tree, the files attached to the assembly taken. Read as
+    bytes (F07-Q58 (3))."""
+    assembly_rel = assembly.relative_to(node_dir).as_posix()
+    if ctx.changes is not None:
+        names = added_proofs(ctx)
+    else:
+        attempts = node_dir / "attempts"
+        on_disk = {
+            f"{carried.ATTEMPTS}{p.name}": ""
+            for p in attempts.iterdir()
+            if p.is_file() and carried.is_carried_proof(p.name)
+        }
+        names = sorted(carried.proofs_attached_to(assembly_rel, on_disk))
+    files = {rel: carried.read_file(node_dir / rel) for rel in names}
+    return carried.read_proofs(assembly_rel, files, witnessed)
 
 
 def carried_witnesses(

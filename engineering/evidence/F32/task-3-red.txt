@@ -1,0 +1,179 @@
+F32-T3 red: the seam at today's behaviour (postmerge.CheckedProof, HOLE_ATTESTATIONS_DIR, hole_attestation_path, apply_partial(proofs=) accepted and ignored), then the test:
+uv run --frozen pytest gate/tests/test_finding_carried_proof_postmerge.py
+warning: `VIRTUAL_ENV=/Users/mikehiggins/Desktop/repos/open_proof_network/.venv` does not match the project environment path `.venv` and will be ignored; use `--active` to target the active environment instead
+FF...FFF.                                                                [100%]
+=================================== FAILURES ===================================
+_____________ test_the_hole_is_born_with_the_proof_its_run_checked _____________
+
+tmp_path = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-424/test_the_hole_is_born_with_the0')
+seam = Seam(docker_dir=PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-424/t...lders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-424/test_the_hole_is_born_with_the0/o/work')]}])
+capsys = <_pytest.capture.CaptureFixture object at 0x109a102f0>
+
+    def test_the_hole_is_born_with_the_proof_its_run_checked(
+        tmp_path: Path, seam: Seam, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        """AC6: the proved hole's node holds the composed Proof.lean the run checked; the other hole
+        is created as before; two attestations validate as attestation/v8 with R5's fields."""
+        root = merged(tmp_path)
+        code, out, err, out_dir = postmerge_run(tmp_path, seam, capsys, root)
+        assert code == cli.EXIT_PASS, err
+>       assert out == {"hole_attestations": [str(out_dir / "hole-attestations" / f"{H1}.json")]}
+E       AssertionError: assert {'partial': {...': None, ...}} == {'hole_attest...oc--h1.json']}
+E         
+E         Left contains 1 more item:
+E         {'partial': {'annex': None,
+E                      'attempt': 'attempts/20260912T120000Z-someone-partial.lean',
+E                      'children': ['and-swap-reassoc--h1', 'and-swap-reassoc--h2'],
+E                      'glosses': ['nodes/and-swap-reassoc--h1/gloss/e3d500ae19b6e44b6686b0954d4594b33986d08a80b374a07d7a02c8a8b3aee0.md',
+E                                  'nodes/and-swap-reassoc--h2/gloss/52f671c4c6158a683214b8c44f34a6f9b8885dc4ddaa8b1bfeab376c3cddaa4d.md'],...
+E         
+E         ...Full output truncated (11 lines hidden), use '-vv' to show
+
+gate/tests/test_finding_carried_proof_postmerge.py:78: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  opn_gate.steps.deps:deps.py:223 step 8: declared dep 'tutorial-and-swap' contributes no constant to the proof
+WARNING  opn_gate.steps.deps:deps.py:223 step 8: declared dep 'and-reassoc' contributes no constant to the proof
+_________ test_the_graph_derives_the_hole_proved_and_off_the_frontier __________
+
+tmp_path = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-424/test_the_graph_derives_the_hol0')
+seam = Seam(docker_dir=PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-424/t...lders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-424/test_the_graph_derives_the_hol0/o/work')]}])
+capsys = <_pytest.capture.CaptureFixture object at 0x109a19810>
+
+    def test_the_graph_derives_the_hole_proved_and_off_the_frontier(
+        tmp_path: Path, seam: Seam, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        """AC6: with the two records committed as the key step names them, the hole is proved
+        through its own attestation, off the frontier; its sibling is ready."""
+        root = merged(tmp_path)
+        code, _out, err, out_dir = postmerge_run(tmp_path, seam, capsys, root)
+        assert code == cli.EXIT_PASS, err
+        partial = postmerge.attestation_path(root, 9)
+        partial.parent.mkdir(exist_ok=True)
+        partial.write_bytes((out_dir / "attestation.json").read_bytes())
+        hole = postmerge.hole_attestation_path(root, 9, H1)
+        assert hole.name == f"000009.{H1}.json"
+>       hole.write_bytes((out_dir / "hole-attestations" / f"{H1}.json").read_bytes())
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+gate/tests/test_finding_carried_proof_postmerge.py:150: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+../../../.local/share/uv/python/cpython-3.13.15-macos-aarch64-none/lib/python3.13/pathlib/_abc.py:625: in read_bytes
+    with self.open(mode='rb') as f:
+         ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-424/test_the_graph_derives_the_hol0/o/hole-attestations/and-swap-reassoc--h1.json')
+mode = 'rb', buffering = -1, encoding = None, errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed to by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: '/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-424/test_the_graph_derives_the_hol0/o/hole-attestations/and-swap-reassoc--h1.json'
+
+../../../.local/share/uv/python/cpython-3.13.15-macos-aarch64-none/lib/python3.13/pathlib/_local.py:537: FileNotFoundError
+------------------------------ Captured log call -------------------------------
+WARNING  opn_gate.steps.deps:deps.py:223 step 8: declared dep 'tutorial-and-swap' contributes no constant to the proof
+WARNING  opn_gate.steps.deps:deps.py:223 step 8: declared dep 'and-reassoc' contributes no constant to the proof
+_ test_renumbered_fails_closed[\u2200 (p q r : Prop), (p \u2227 q) \u2227 r \u2192 p-becomes] _
+
+tmp_path = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-424/test_renumbered_fails_closed__0')
+seam = Seam(docker_dir=PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-424/t...lders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-424/test_renumbered_fails_closed__0/o/work')]}])
+capsys = <_pytest.capture.CaptureFixture object at 0x109a422c0>
+closed = '∀ (p q r : Prop), (p ∧ q) ∧ r → p', says = 'becomes'
+
+    @pytest.mark.parametrize(
+        ("closed", "says"),
+        [
+            ("∀ (p q r : Prop), (p ∧ q) ∧ r → p", "becomes"),  # a new hole: --h1 is taken
+            ("∀ (p q r : Prop), (p ∧ q) ∧ r → r", "restates"),  # ``right`` itself, now on record
+        ],
+    )
+    def test_renumbered_fails_closed(
+        tmp_path: Path, seam: Seam, capsys: pytest.CaptureFixture[str], closed: str, says: str
+    ) -> None:
+        """AC7: the merge re-derived on its own commit (and passing), written into a main that has
+        moved: the hole would be another node than the one its proof was checked as. The job fails
+        visibly and writes no attestation, no Proof.lean and no child."""
+        root = merged(tmp_path)
+        merge = subprocess.run(
+            ["git", "-C", str(root), "rev-parse", "HEAD"], check=True, capture_output=True, text=True
+        ).stdout.strip()
+        later_child(root, "other", closed)
+        before = snapshot(root / NODES / ROOT)
+        code, _out, err, out_dir = postmerge_run(tmp_path, seam, capsys, root, commit=merge)
+>       assert code not in (cli.EXIT_PASS, cli.EXIT_FAIL), err  # an error, not a verdict
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: 
+E       assert 0 not in (0, 1)
+
+gate/tests/test_finding_carried_proof_postmerge.py:241: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  opn_gate.steps.deps:deps.py:223 step 8: declared dep 'tutorial-and-swap' contributes no constant to the proof
+WARNING  opn_gate.steps.deps:deps.py:223 step 8: declared dep 'and-reassoc' contributes no constant to the proof
+_ test_renumbered_fails_closed[\u2200 (p q r : Prop), (p \u2227 q) \u2227 r \u2192 r-restates] _
+
+tmp_path = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-424/test_renumbered_fails_closed__1')
+seam = Seam(docker_dir=PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-424/t...lders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-424/test_renumbered_fails_closed__1/o/work')]}])
+capsys = <_pytest.capture.CaptureFixture object at 0x109a2db50>
+closed = '∀ (p q r : Prop), (p ∧ q) ∧ r → r', says = 'restates'
+
+    @pytest.mark.parametrize(
+        ("closed", "says"),
+        [
+            ("∀ (p q r : Prop), (p ∧ q) ∧ r → p", "becomes"),  # a new hole: --h1 is taken
+            ("∀ (p q r : Prop), (p ∧ q) ∧ r → r", "restates"),  # ``right`` itself, now on record
+        ],
+    )
+    def test_renumbered_fails_closed(
+        tmp_path: Path, seam: Seam, capsys: pytest.CaptureFixture[str], closed: str, says: str
+    ) -> None:
+        """AC7: the merge re-derived on its own commit (and passing), written into a main that has
+        moved: the hole would be another node than the one its proof was checked as. The job fails
+        visibly and writes no attestation, no Proof.lean and no child."""
+        root = merged(tmp_path)
+        merge = subprocess.run(
+            ["git", "-C", str(root), "rev-parse", "HEAD"], check=True, capture_output=True, text=True
+        ).stdout.strip()
+        later_child(root, "other", closed)
+        before = snapshot(root / NODES / ROOT)
+        code, _out, err, out_dir = postmerge_run(tmp_path, seam, capsys, root, commit=merge)
+>       assert code not in (cli.EXIT_PASS, cli.EXIT_FAIL), err  # an error, not a verdict
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: 
+E       assert 0 not in (0, 1)
+
+gate/tests/test_finding_carried_proof_postmerge.py:241: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  opn_gate.steps.deps:deps.py:223 step 8: declared dep 'tutorial-and-swap' contributes no constant to the proof
+WARNING  opn_gate.steps.deps:deps.py:223 step 8: declared dep 'and-reassoc' contributes no constant to the proof
+__________ test_the_writer_refuses_a_renumbered_proof_before_writing ___________
+
+tmp_path = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-424/test_the_writer_refuses_a_renu0')
+
+    def test_the_writer_refuses_a_renumbered_proof_before_writing(tmp_path: Path) -> None:
+        """Q10 at the writer itself (the backstop the command's preflight runs): handed a proof
+        checked as ``--h1`` on a tree where the hole becomes ``--h2``, it raises and writes nothing."""
+        from test_postmerge import ASSEMBLY, HOLES, PARENT  # noqa: PLC0415
+    
+        parent = copy_graph(tmp_path) / "targets" / TARGET / "nodes" / PARENT
+        (parent.parent / f"{PARENT}--h1").mkdir()  # an earlier decomposition's hole, by its id
+        before = snapshot(parent)
+>       with pytest.raises(postmerge.GraphWriteError, match="was checked as"):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE GraphWriteError
+
+gate/tests/test_finding_carried_proof_postmerge.py:256: Failed
+=========================== short test summary info ============================
+FAILED gate/tests/test_finding_carried_proof_postmerge.py::test_the_hole_is_born_with_the_proof_its_run_checked
+FAILED gate/tests/test_finding_carried_proof_postmerge.py::test_the_graph_derives_the_hole_proved_and_off_the_frontier
+FAILED gate/tests/test_finding_carried_proof_postmerge.py::test_renumbered_fails_closed[\u2200 (p q r : Prop), (p \u2227 q) \u2227 r \u2192 p-becomes]
+FAILED gate/tests/test_finding_carried_proof_postmerge.py::test_renumbered_fails_closed[\u2200 (p q r : Prop), (p \u2227 q) \u2227 r \u2192 r-restates]
+FAILED gate/tests/test_finding_carried_proof_postmerge.py::test_the_writer_refuses_a_renumbered_proof_before_writing
+5 failed, 4 passed in 7.09s
