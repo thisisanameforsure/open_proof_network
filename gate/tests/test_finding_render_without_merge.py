@@ -177,6 +177,21 @@ def origin_with_workflow(tmp_path: Path) -> Origin:
     return origin
 
 
+def render_follows(origin: Origin) -> None:
+    """What the render.yml a record-only catch-up dispatched does next: renders main with the gate
+    main pins and pushes the products, crediting nothing. The host's main must carry the gate
+    workflow for the job to read its loop from, so it is pushed first if it is not there."""
+    doc: dict[Any, Any] = yaml.safe_load(graph_text(RENDER))
+    if git(origin.bare, "ls-tree", "main", "--", GATE) == "":
+        origin.owner({GATE: graph_text(GATE)}, "the gate workflow")
+    count = len(list(origin.tmp.glob("render-follow-*")))
+    job = RenderJob(doc, origin, f"follow-{count}")
+    job.prepare()
+    code, said = job.push()
+    assert code == 0, said
+    assert origin.subjects(1)[0].startswith("gate: render "), said
+
+
 def rendered_from(origin: Origin) -> str:
     return str(json.loads(origin.show("frontier.json"))["rendered_from"])
 

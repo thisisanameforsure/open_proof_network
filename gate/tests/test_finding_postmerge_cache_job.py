@@ -76,23 +76,29 @@ def test_the_cache_job_builds_exactly_the_merge_commit_with_the_rendering_gate(
     gate_doc: dict[Any, Any],
 ) -> None:
     """F07-T33's split: the cache describes main, so main's pin builds it; the commit is the
-    merge's, never the event's (a replay's event commit is main's head)."""
+    merge's, never the event's (a replay's event commit is main's head).
+
+    Restated 2026-10-30 (F32-T6's finding, carried by the record-first catch-up): a born-proved
+    hole's files exist only in the commit the record landed in, so that commit is built, and the
+    merge only when no record landed (``test_finding_postmerge_record_first.py``). F32-T6's branch
+    holds a strict xfail for the same property; the two are reconciled at merge."""
     (checkout,) = [
         s
         for s in steps(gate_doc, CACHE)
         if s.get("uses", "").startswith("actions/checkout") and "path" not in (s.get("with") or {})
     ]
-    assert checkout["with"]["ref"] == "${{ needs.postmerge.outputs.merge }}"
+    want = "${{ needs.postmerge.outputs.recorded || needs.postmerge.outputs.merge }}"
+    assert checkout["with"]["ref"] == want
     (render,) = [s for s in steps(gate_doc, CACHE) if (s.get("with") or {}).get("path")]
     assert render["with"]["path"] == "network-render"
     assert render["with"]["ref"] == "${{ needs.postmerge.outputs.render_pin }}"
     publish = named(gate_doc, CACHE, "Publish the olean cache")
     run = str(publish["run"])
-    assert "--project network-render" in run and '--commit "$MERGE"' in run
+    assert "--project network-render" in run and '--commit "$COMMIT"' in run
     assert "GITHUB_SHA" not in run
-    assert publish["env"]["MERGE"] == "${{ needs.postmerge.outputs.merge }}"
+    assert publish["env"]["COMMIT"] == want
     assert "::warning::" in run, "a failed upload is a warning: the next run builds (C7)"
-    for key in ("merge", "targets", "render_pin"):
+    for key in ("merge", "recorded", "targets", "render_pin"):
         assert key in gate_doc["jobs"][POSTMERGE]["outputs"], key
 
 
