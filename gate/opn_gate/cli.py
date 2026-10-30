@@ -177,7 +177,11 @@ def build_parser() -> argparse.ArgumentParser:  # noqa: PLR0915 — one statemen
     rep = sub.add_parser("reproduce", help="replay a merged commit inside the step-3 image (D-5)")
     rep.add_argument("--graph", required=True, type=Path, help="path to the graph checkout")
     rep.add_argument("--commit", required=True, help="the commit to reproduce")
-    rep.add_argument("--node", required=True, help="the node the commit proved")
+    rep.add_argument(
+        "--node",
+        required=True,
+        help="the node the commit proved, or a hole its partial made proved (F32-R6)",
+    )
     rep.add_argument("--target", help="target id (inferred when the graph has exactly one)")
     rep.add_argument("--compare", type=Path, help="committed attestation to compare against")
     rep.add_argument(
@@ -1167,6 +1171,9 @@ DECLARED_FIELDS: tuple[str, ...] = (
     "model_and_tooling",
     "tooling",
     "precheck_attestation",
+    # D-23 v3.37 (F25-R3): the structured disclosure, declared like the string beside it; a
+    # hole's record carries the partial's (F32-R5), so either record needs it copied (F32-T7).
+    "automation",
 )
 
 
@@ -1310,12 +1317,14 @@ def run_reproduce(args: argparse.Namespace, settings: config.Settings) -> int:
             msg = f"cannot load --compare {args.compare}: {exc}"
             raise CliError(msg) from exc
     out_dir = _out_dir(args.out, "opn-reproduce-")
+    # F32-R6: a hole born proved is reproduced by replaying the partial that carried its proof.
+    parent = born_proved_parent(graph, commit, args.target, args.node)
     ctx = _sandboxed_context(
         graph,
         commit,
         out_dir,
         target=args.target,
-        node=args.node,
+        node=parent or args.node,
         settings=settings,
         image=args.image,
         no_build=args.no_build,
@@ -1323,18 +1332,90 @@ def run_reproduce(args: argparse.Namespace, settings: config.Settings) -> int:
     verdict = pipeline.run_submission(ctx)
     doc = attestation.build(ctx, verdict, graph_commit=commit)
     code = emit(verdict, doc, out_dir, settings)
+    if parent is not None:
+        path = reproduce_hole(ctx, verdict, doc, hole=args.node, out_dir=out_dir, commit=commit)
+        sys.stdout.write(json.dumps({"hole_attestation": str(path)}) + "\n")
+        doc = schemas.load_json(path)
+        code = code if code != EXIT_PASS or doc["verdict"] == "pass" else EXIT_FAIL
     if committed is not None:
-        reproduction = with_declared(attestation.with_step9(doc, committed), committed)
-        differing = attestation.compare(committed, reproduction)
-        result: dict[str, Any] = {
-            "identical": not differing and mismatch is None,
-            "differing_fields": differing,
-        }
-        if mismatch is not None:  # F07-T65: another gate's run is never the pinned gate's
-            result["network_mismatch"] = mismatch.as_dict()
-        sys.stdout.write(json.dumps(result) + "\n")
-        return EXIT_PASS if result["identical"] else EXIT_FAIL
+        return report_comparison(committed, doc, mismatch)
     return code
+
+
+def reproduction_of(doc: dict[str, Any], committed: dict[str, Any]) -> dict[str, Any]:
+    """D-5: a reproduction as it is compared, step 9 and the declared fields copied from the
+    committed record (neither is a function of the checked tree). ``check_reproduce.py`` uses
+    the same function, so the laptop tool and the command cannot disagree."""
+    return with_declared(attestation.with_step9(doc, committed), committed)
+
+
+def report_comparison(
+    committed: dict[str, Any], doc: dict[str, Any], mismatch: Diagnostic | None
+) -> int:
+    """Print D-5's comparison of ``doc`` with ``committed`` and answer its exit code."""
+    differing = attestation.compare(committed, reproduction_of(doc, committed))
+    result: dict[str, Any] = {
+        "identical": not differing and mismatch is None,
+        "differing_fields": differing,
+    }
+    if mismatch is not None:  # F07-T65: another gate's run is never the pinned gate's
+        result["network_mismatch"] = mismatch.as_dict()
+    sys.stdout.write(json.dumps(result) + "\n")
+    return EXIT_PASS if result["identical"] else EXIT_FAIL
+
+
+def born_proved_parent(graph: Path, commit: str, target: str | None, node: str) -> str | None:
+    """F32-R6 (D-5 v3.49): the node whose partial ``commit`` merged, when ``node`` is a hole
+    that partial may have made proved; ``None`` for every other ``--node``, which reproduces as
+    it always has. A hole born proved has no directory at its merge commit (the post-merge job
+    writes it afterwards), and the merge touches one node only, the parent (F07-R3), so both are
+    read from the commit itself: the record under test never chooses its own reproduction, and
+    its ``carried_by`` is compared rather than followed."""
+    touched = {
+        (located.target_id, located.node_id)
+        for change in commit_changes(graph, commit)
+        for located in [paths.locate(change.path)]
+        if located is not None and located.node_id is not None
+    }
+    if len(touched) != 1:
+        return None
+    ((target_id, parent),) = touched
+    if parent == node or (target is not None and target != target_id):
+        return None
+    where = f"{commit}:targets/{target_id}/nodes/{node}"
+    if _git(graph, "cat-file", "-e", where).returncode == 0:
+        return None  # a node of the tree at the commit: not born in this merge
+    return parent
+
+
+def reproduce_hole(  # noqa: PLR0913 — the run's facts, each named
+    ctx: RunContext,
+    verdict: pipeline.Verdict,
+    partial_doc: dict[str, Any],
+    *,
+    hole: str,
+    out_dir: Path,
+    commit: str,
+) -> Path:
+    """F32-R6: the hole's record from its own run in the partial's replay, built exactly as the
+    post-merge job builds it (``hole_record``), written to ``<out>/hole-attestations/<hole>.json``
+    beside the partial's ``attestation.json``. Step 9 is the post-merge job's, not a replay's
+    (D-5), so it is left for ``--compare`` to copy, as for any record."""
+    runs: list[hole_proofs.Run] = list(verdict.data.get(hole_proofs.RUNS_KEY) or [])
+    run = next((r for r in runs if r.node_id == hole), None)
+    partial = verdict.data.get("partial")
+    if run is None or not isinstance(partial, dict):
+        msg = (
+            f"{hole}: the partial merged at {commit} carried no checked proof for this node, so "
+            f"it has no record of its own; reproduce {ctx.claim.node_id} instead"
+        )
+        raise CliError(msg)
+    doc = hole_record(ctx, run, partial, partial_doc, commit)
+    where = out_dir / postmerge.HOLE_ATTESTATIONS_DIR
+    where.mkdir(parents=True, exist_ok=True)
+    path = where / f"{hole}.json"
+    path.write_bytes(schemas.canonical_json(doc))
+    return path
 
 
 def run_export_palomar(args: argparse.Namespace, settings: config.Settings) -> int:
@@ -2248,24 +2329,39 @@ def write_hole_attestations(
     if not runs or not isinstance(partial, dict):
         return []
     review = hole_review(ctx.graph_root, ctx.claim.target_id)
-    assembly_hash = schemas.content_hash(Path(str(partial["file"])).read_bytes())
     where = out_dir / postmerge.HOLE_ATTESTATIONS_DIR
     where.mkdir(parents=True, exist_ok=True)
     written: list[str] = []
     for run in runs:
-        carried_by = {
-            "node_id": ctx.claim.node_id,
-            "assembly": {"path": str(partial["path"]), "artifact_hash": assembly_hash},
-            "carried": {"path": run.path, "sha256": run.sha256},
-        }
-        doc = attestation.for_hole(
-            run.ctx, run.verdict(), partial_doc, carried_by=carried_by, graph_commit=commit
-        )
+        doc = hole_record(ctx, run, partial, partial_doc, commit)
         doc = postmerge.record_step9(doc, merge_commit=commit, review=review)
         path = where / f"{run.node_id}.json"
         path.write_bytes(schemas.canonical_json(doc))
         written.append(str(path))
     return written
+
+
+def hole_record(
+    ctx: RunContext,
+    run: hole_proofs.Run,
+    partial: dict[str, Any],
+    partial_doc: dict[str, Any],
+    commit: str,
+) -> dict[str, Any]:
+    """F32-R5 (D-5 v3.49): one hole's record before step 9, from its own run, its declared
+    fields the partial's record's and ``carried_by`` the back-pointer by facts of the tree. The
+    post-merge job and ``reproduce --node <hole>`` (R6) both build it here, so the two agree."""
+    carried_by = {
+        "node_id": ctx.claim.node_id,
+        "assembly": {
+            "path": str(partial["path"]),
+            "artifact_hash": schemas.content_hash(Path(str(partial["file"])).read_bytes()),
+        },
+        "carried": {"path": run.path, "sha256": run.sha256},
+    }
+    return attestation.for_hole(
+        run.ctx, run.verdict(), partial_doc, carried_by=carried_by, graph_commit=commit
+    )
 
 
 def preflight_carried_proofs(ctx: RunContext, verdict: pipeline.Verdict, graph: Path) -> None:

@@ -9,3 +9,5 @@
 - 2026-10-29T21:15:03Z — T2 committed 34f1d13c (amended WIP); fast tier for it running on snapshot snap-t2. T3: seam at today's behaviour applied (CheckedProof, hole_attestation_path, proofs= ignored); red run next.
 - 2026-10-29T21:17:46Z — T3 green (9 passed, 141 neighbours), lint/types exit 0; waiting on T2 fast tier before committing T3.
 - 2026-10-29T21:36:43Z — T3 committed 59d5ddfa; fast tier on snap-t2 and snap-t3: 1 failed (pre-existing test_graph_copy_is_identical: main's AGENTS.md ahead of the graph copy), 7207/7216 passed. T1–T3 done; T4 next (not this session).
+- 2026-10-30T06:03Z — T7 started (new agent, worktree opn-f32-t7); red: 10 failed / 2 passed (task-7-red.txt)
+- 2026-10-30T06:28Z — T7 green: 12 new fast tests, fast tier 7229 passed / 0 failed; docker test written, pending CI
