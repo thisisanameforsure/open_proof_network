@@ -1382,6 +1382,14 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "A carried proof is not named after the assembly it belongs to.",
         "Name it as the message shows: the assembly's name with a running number and `.proof`.",
     ),
+    "hole-proof-unchecked": (
+        "api",
+        None,
+        "A partial carries proofs that the gate this target pins does not check (it predates "
+        "carried proofs), or that the bound precheck did not name as checked on their holes.",
+        "Precheck and submit the partial without its .proof files, and prove each hole once it "
+        "exists, as that node's Proof.lean; carried proofs work once the target is re-pinned.",
+    ),
     "hole-proof-unknown": (
         "gate",
         4,

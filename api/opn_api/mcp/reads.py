@@ -1241,7 +1241,8 @@ TOOLS: tuple[Tool, ...] = (
         "A precheck job's state, diagnostics and signed attestation; poll after "
         "precheck_submission until the state is done or error. A pass that carries "
         "`carried_witnesses` did not check the witness files its `unchecked` lists (the "
-        "target's pinned gate predates carried witnesses): it is a pass of the skeleton alone.",
+        "target's pinned gate predates carried witnesses): it is a pass of the skeleton alone; "
+        "`carried_proofs` says the same of proof files.",
         params({"job_id": {"type": "string"}}, ("job_id",)),
         get_precheck,
     ),

@@ -1,0 +1,140 @@
+E       AssertionError: a job was spent on it: 202 {"id":"01M230M2G0RMFGRNE244V4EVS6","node_id":"tutorial-and-swap","target_id":"propositional","state":"queued","created":"2026-09-09T12:00:00Z","graph_commit":"5555555555
+E       assert 202 == 400
+E       AssertionError: {"id":"01M230M2G0K5RQ0AF4W2QGFQFH","node_id":"tutorial-and-swap","target_id":"propositional","state":"queued","created":"2026-09-09T12:00:00Z","graph_commit":"5555555555555555555555555555555555555
+E       assert (202 == 400)
+E       AssertionError: a pass with an unchecked carried proof and no word about it
+E       assert None is not None
+E       AssertionError: a pass with an unchecked carried proof and no word about it
+E       assert None is not None
+E       AssertionError: a pass with an unchecked carried proof and no word about it
+E       assert None is not None
+E       AssertionError: a pass with an unchecked carried proof and no word about it
+E       assert None is not None
+E       AssertionError: a job was spent on it: 202 {"id":"01M230M2G05KH1QKPYFHS8PMWQ","node_id":"tutorial-and-swap","target_id":"propositional","state":"queued","created":"2026-09-09T12:00:00Z","graph_commit":"5555555555
+E       assert 202 == 400
+E       AssertionError: a job was spent on it: 202 {"id":"01M230M2G02J2XB76NHVQQTVPR","node_id":"tutorial-and-swap","target_id":"propositional","state":"queued","created":"2026-09-09T12:00:00Z","graph_commit":"5555555555
+E       assert 202 == 400
+E       AssertionError: a job was spent on it: 202 {"id":"01M230M2G0ADFMNKMCR10M4T87","node_id":"tutorial-and-swap","target_id":"propositional","state":"queued","created":"2026-09-09T12:00:00Z","graph_commit":"5555555555
+E       assert 202 == 400
+E       AssertionError: a job was spent on it: 202 {"id":"01M230M2G0JBTCZTZWS7YMKHE2","node_id":"tutorial-and-swap","target_id":"propositional","state":"queued","created":"2026-09-09T12:00:00Z","graph_commit":"5555555555
+E       assert 202 == 400
+E       AssertionError: a job was spent on it: 202 {"id":"01M230M2G0TSY519CADF5DTJWZ","node_id":"tutorial-and-swap","target_id":"propositional","state":"queued","created":"2026-09-09T12:00:00Z","graph_commit":"5555555555
+E       assert 202 == 400
+E       AssertionError: a job was spent on it: 202 {"id":"01M230M2G0AFDY731NSPFE77EE","node_id":"tutorial-and-swap","target_id":"propositional","state":"queued","created":"2026-09-09T12:00:00Z","graph_commit":"5555555555
+E       assert 202 == 400
+E       AssertionError: a job was spent on it: 202 {"id":"01M230M2G0YVZKEZA3RSBPYJ5Z","node_id":"tutorial-and-swap","target_id":"propositional","state":"queued","created":"2026-09-09T12:00:00Z","graph_commit":"5555555555
+E       assert 202 == 400
+E       AssertionError: a job was spent on it: 202 {"id":"01M230M2G0EVMA4N1Z0H9HJJZP","node_id":"tutorial-and-swap","target_id":"propositional","state":"queued","created":"2026-09-09T12:00:00Z","graph_commit":"5555555555
+E       assert 202 == 400
+E       AssertionError: a job was spent on it: 202 {"id":"01M230M2G0PC2RMAV366SKNJ5H","node_id":"tutorial-and-swap","target_id":"propositional","state":"queued","created":"2026-09-09T12:00:00Z","graph_commit":"5555555555
+E       assert 202 == 400
+E       AssertionError: a job was spent on it: 202 {"id":"01M230M2G0Z9EM37PWDX7CSJZM","node_id":"tutorial-and-swap","target_id":"propositional","state":"queued","created":"2026-09-09T12:00:00Z","graph_commit":"5555555555
+E       assert 202 == 400
+E       AssertionError: a job was spent on it: 202 {"id":"01M230M2G0XBB1JCR37KVZTKJA","node_id":"tutorial-and-swap","target_id":"propositional","state":"queued","created":"2026-09-09T12:00:00Z","graph_commit":"5555555555
+E       assert 202 == 400
+E       AssertionError: {"id":"01M230M2G0HS314HWD9MDPZ8EK","node_id":"tutorial-and-swap","target_id":"propositional","state":"queued","created":"2026-09-09T12:00:00Z","graph_commit":"5555555555555555555555555555555555555
+E       assert (202 == 400)
+E       AssertionError: {"id":"01M230M2G0KVRCF21WABD8EE0T","node_id":"tutorial-and-swap","target_id":"propositional","state":"queued","created":"2026-09-09T12:00:00Z","graph_commit":"5555555555555555555555555555555555555
+E       assert (202 == 400)
+E       AssertionError: {"id":"01M230M2G0H875HC8Y84TFC949","node_id":"tutorial-and-swap","target_id":"propositional","state":"queued","created":"2026-09-09T12:00:00Z","graph_commit":"5555555555555555555555555555555555555
+E       assert (202 == 400)
+E       AssertionError: {"error":"precheck-unknown","message":"no precheck job 01JXYZABCDEFGHJKMNPQRSTVWX"}
+E       assert (400 == 400 and 'precheck-unknown' == 'hole-proof-malformed'
+E           AssertionError: precheck_submission
+E           assert ('.proof' in 'Run the gate\'s steps 1-2 and 4-8 on a bundle server-side, as pregate.sh does, and get a job id to poll with get_prec...use the gate would refuse is refused by its use-* code before anyth
+E       assert 'carried_proofs' in "A precheck job's state, diagnostics and signed attestation; poll after precheck_submission until the state is done or...files its `unchecked` lists (the target's pinned gate predates c
+FAILED api/tests/test_finding_partial_proofs.py::test_an_older_pin_refuses_a_carried_proof_before_any_job
+FAILED api/tests/test_finding_partial_proofs.py::test_an_unreadable_pin_opens_nothing
+FAILED api/tests/test_finding_partial_proofs.py::test_a_carried_proof_the_precheck_did_not_check_opens_nothing[None]
+FAILED api/tests/test_finding_partial_proofs.py::test_a_carried_proof_the_precheck_did_not_check_opens_nothing[holes1]
+FAILED api/tests/test_finding_partial_proofs.py::test_a_carried_proof_the_precheck_did_not_check_opens_nothing[holes2]
+FAILED api/tests/test_finding_partial_proofs.py::test_a_carried_proof_the_precheck_did_not_check_opens_nothing[holes3]
+FAILED api/tests/test_finding_partial_proofs.py::test_a_malformed_carried_proof_costs_no_precheck_job[extra0-partial-hole-proof-unnamed]
+FAILED api/tests/test_finding_partial_proofs.py::test_a_malformed_carried_proof_costs_no_precheck_job[extra1-partial-hole-proof-duplicate]
+FAILED api/tests/test_finding_partial_proofs.py::test_a_malformed_carried_proof_costs_no_precheck_job[extra2-partial-hole-proof-malformed]
+FAILED api/tests/test_finding_partial_proofs.py::test_a_malformed_carried_proof_costs_no_precheck_job[extra3-partial-hole-proof-malformed]
+FAILED api/tests/test_finding_partial_proofs.py::test_a_malformed_carried_proof_costs_no_precheck_job[extra4-partial-hole-proof-sorry]
+FAILED api/tests/test_finding_partial_proofs.py::test_a_malformed_carried_proof_costs_no_precheck_job[extra5-partial-hole-proof-sorry]
+FAILED api/tests/test_finding_partial_proofs.py::test_a_malformed_carried_proof_costs_no_precheck_job[extra6-partial-hole-proof-uses]
+FAILED api/tests/test_finding_partial_proofs.py::test_a_malformed_carried_proof_costs_no_precheck_job[extra7-partial-hole-proof-uses]
+FAILED api/tests/test_finding_partial_proofs.py::test_a_malformed_carried_proof_costs_no_precheck_job[extra8-partial-helper-forbidden]
+FAILED api/tests/test_finding_partial_proofs.py::test_a_malformed_carried_proof_costs_no_precheck_job[extra9-partial-hole-proof-without-witness]
+FAILED api/tests/test_finding_partial_proofs.py::test_a_malformed_carried_proof_costs_no_precheck_job[extra10-partial-hole-proof-unattached]
+FAILED api/tests/test_finding_partial_proofs.py::test_a_proof_file_without_a_partial_is_refused[bundle0-proof]
+FAILED api/tests/test_finding_partial_proofs.py::test_a_proof_file_without_a_partial_is_refused[bundle1-None]
+FAILED api/tests/test_finding_partial_proofs.py::test_a_proof_file_without_a_partial_is_refused[bundle2-None]
+FAILED api/tests/test_finding_partial_proofs.py::test_a_malformed_carried_proof_is_refused_at_submission_too
+FAILED api/tests/test_finding_partial_proofs.py::test_the_two_tools_say_how_a_bundle_carries_a_proof
+FAILED api/tests/test_finding_partial_proofs.py::test_the_precheck_tool_says_what_the_proof_note_means
+23 failed, 4 passed, 2 warnings in 0.76s
+
+== guide test red (run in a detached worktree at HEAD f78dc0f2 with only the new test file copied in; the guide had no proofs section) ==
+E       AssertionError: the guide does not say: a failure refuses the whole partial
+E       assert 'A carried proof that fails refuses the whole partial' in "# AGENTS.md — how to contribute to this graph This file is the interface (D-27). Every command in it runs as written;...harnes
+E       AssertionError: the guide does not say: a hole that is an existing node
+E       assert '`hole-proof-restates`' in "# AGENTS.md — how to contribute to this graph This file is the interface (D-27). Every command in it runs as written;...harness's id in `tooling.harness` whe
+E       AssertionError: the guide does not say: credit
+E       assert "credited to you, the partial's author" in "# AGENTS.md — how to contribute to this graph This file is the interface (D-27). Every command in it runs as written;...harness's id in `tool
+E       AssertionError: the guide does not say: no import or use line
+E       assert 'no import or use line (`hole-proof-uses`)' in "# AGENTS.md — how to contribute to this graph This file is the interface (D-27). Every command in it runs as written;...harness's id in `
+E       AssertionError: the guide does not say: the after-merge list knows
+E       assert 'Skip this for a hole whose proof the skeleton carried' in "# AGENTS.md — how to contribute to this graph This file is the interface (D-27). Every command in it runs as written;...harne
+E       AssertionError: the guide does not say: the body introduces the binders
+E       assert 'the body introduces them (`intro`)' in "# AGENTS.md — how to contribute to this graph This file is the interface (D-27). Every command in it runs as written;...harness's id in `tooling
+E       AssertionError: the guide does not say: the file name, built from the assembly's
+E       assert '-partial.1.proof' in "# AGENTS.md — how to contribute to this graph This file is the interface (D-27). Every command in it runs as written;...harness's id in `tooling.harness` when you
+E       AssertionError: the guide does not say: the hole is born proved
+E       assert 'is born `proved`' in "# AGENTS.md — how to contribute to this graph This file is the interface (D-27). Every command in it runs as written;...harness's id in `tooling.harness` when you
+E       AssertionError: the guide does not say: the old pin
+E       assert '`400 hole-proof-unchecked`' in "# AGENTS.md — how to contribute to this graph This file is the interface (D-27). Every command in it runs as written;...harness's id in `tooling.harness
+E       AssertionError: the guide does not say: the parent closes later
+E       assert 'closure sweep on the next merge' in "# AGENTS.md — how to contribute to this graph This file is the interface (D-27). Every command in it runs as written;...harness's id in `tooling.ha
+E       AssertionError: the guide does not say: the permitted-paths row
+E       assert '`attempts/<timestamp>-<you>-partial.<n>.proof`' in "# AGENTS.md — how to contribute to this graph This file is the interface (D-27). Every command in it runs as written;...harness's id
+E       AssertionError: the guide does not say: the separator line
+E       assert '`-- proof:`' in "# AGENTS.md — how to contribute to this graph This file is the interface (D-27). Every command in it runs as written;...harness's id in `tooling.harness` when you subm
+E       AssertionError: the guide does not say: the shared-name code
+E       assert '`hole-proof-ambiguous`' in "# AGENTS.md — how to contribute to this graph This file is the interface (D-27). Every command in it runs as written;...harness's id in `tooling.harness` wh
+E       AssertionError: the guide does not say: the unknown-hole code
+E       assert '`hole-proof-unknown`' in "# AGENTS.md — how to contribute to this graph This file is the interface (D-27). Every command in it runs as written;...harness's id in `tooling.harness` when
+E       AssertionError: the guide does not say: the witness requirement
+E       assert '`hole-proof-without-witness`' in "# AGENTS.md — how to contribute to this graph This file is the interface (D-27). Every command in it runs as written;...harness's id in `tooling.harne
+E       AssertionError: the guide does not say: what it may not use
+E       assert "a sibling hole's theorem, the parent's, or a `Defs` module" in "# AGENTS.md — how to contribute to this graph This file is the interface (D-27). Every command in it runs as written;...
+E       AssertionError: the guide does not say: what the body is
+E       assert "what follows the hole statement's `:=`, starting at `by`" in "# AGENTS.md — how to contribute to this graph This file is the interface (D-27). Every command in it runs as written;...ha
+E       AssertionError: the guide does not say: what the old pin's precheck says
+E       assert 'carries `carried_proofs`, whose `unchecked` lists them' in "# AGENTS.md — how to contribute to this graph This file is the interface (D-27). Every command in it runs as written;...harn
+E       AssertionError: the guide does not say: what the precheck says
+E       assert '`holes[].proof`' in "# AGENTS.md — how to contribute to this graph This file is the interface (D-27). Every command in it runs as written;...harness's id in `tooling.harness` when you 
+E       AssertionError: the guide does not say: where the type comes from
+E       assert '`closed_type`' in "# AGENTS.md — how to contribute to this graph This file is the interface (D-27). Every command in it runs as written;...harness's id in `tooling.harness` when you su
+E       assert ('# AGENTS.md — how to contribute to this graph\n\nThis file is the interface (D-27). Every command in it runs as writt...on as the products are rendered. A carried witness earns nothin
+E       AssertionError: ['hole-proof--fresh', 'hole-proof--out']
+E       assert {'helper-forb...f-unattached'} <= {'acknowledge...-signed', ...}
+E       AssertionError: the section names no hole for its example
+E       assert None is not None
+FAILED gate/tests/test_finding_guide_carried_proofs.py::test_the_guide_says[a failure refuses the whole partial]
+FAILED gate/tests/test_finding_guide_carried_proofs.py::test_the_guide_says[a hole that is an existing node]
+FAILED gate/tests/test_finding_guide_carried_proofs.py::test_the_guide_says[credit]
+FAILED gate/tests/test_finding_guide_carried_proofs.py::test_the_guide_says[no import or use line]
+FAILED gate/tests/test_finding_guide_carried_proofs.py::test_the_guide_says[the after-merge list knows]
+FAILED gate/tests/test_finding_guide_carried_proofs.py::test_the_guide_says[the body introduces the binders]
+FAILED gate/tests/test_finding_guide_carried_proofs.py::test_the_guide_says[the file name, built from the assembly's]
+FAILED gate/tests/test_finding_guide_carried_proofs.py::test_the_guide_says[the hole is born proved]
+FAILED gate/tests/test_finding_guide_carried_proofs.py::test_the_guide_says[the old pin]
+FAILED gate/tests/test_finding_guide_carried_proofs.py::test_the_guide_says[the parent closes later]
+FAILED gate/tests/test_finding_guide_carried_proofs.py::test_the_guide_says[the permitted-paths row]
+FAILED gate/tests/test_finding_guide_carried_proofs.py::test_the_guide_says[the separator line]
+FAILED gate/tests/test_finding_guide_carried_proofs.py::test_the_guide_says[the shared-name code]
+FAILED gate/tests/test_finding_guide_carried_proofs.py::test_the_guide_says[the unknown-hole code]
+FAILED gate/tests/test_finding_guide_carried_proofs.py::test_the_guide_says[the witness requirement]
+FAILED gate/tests/test_finding_guide_carried_proofs.py::test_the_guide_says[what it may not use]
+FAILED gate/tests/test_finding_guide_carried_proofs.py::test_the_guide_says[what the body is]
+FAILED gate/tests/test_finding_guide_carried_proofs.py::test_the_guide_says[what the old pin's precheck says]
+FAILED gate/tests/test_finding_guide_carried_proofs.py::test_the_guide_says[what the precheck says]
+FAILED gate/tests/test_finding_guide_carried_proofs.py::test_the_guide_says[where the type comes from]
+FAILED gate/tests/test_finding_guide_carried_proofs.py::test_the_section_sits_beside_the_witnesses_one
+FAILED gate/tests/test_finding_guide_carried_proofs.py::test_every_refusal_the_guide_names_is_one_the_gate_gives
+FAILED gate/tests/test_finding_guide_carried_proofs.py::test_the_example_proof_is_one_the_grammar_reads
+23 failed, 1 passed, 1 deselected in 0.43s
