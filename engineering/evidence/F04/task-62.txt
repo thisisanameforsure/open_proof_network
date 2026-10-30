@@ -7,3 +7,8 @@ site/tests/test_finding_math_break_loads_katex.py::test_a_class_that_merely_star
 
 site suite (fast markers): 891 passed, 40 skipped; no golden changed
 red: task-62-red.txt (2 failed on the missing KaTeX script, the fixture guards green)
+
+Live, 2026-10-30, after PR #108 merged (9fccd13e) and site-deploy 41068092639:
+  variant-93e79cb5--h3: katex 2 of 2 .math elements rendered, no raw $\displaystyle in main, no console errors
+  erdos-68--h1 (control): katex 83 of 83
+  task-62-live-1440.png, task-62-live-390.png (the T9 captures before the fix stay in F32/)
