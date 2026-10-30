@@ -133,5 +133,5 @@ def test_the_graph_product_is_the_next_version() -> None:
     (registrations, D-10 v3.37) the one after that; F03-T20 (D-12 v3.38, lemmas) the one after
     that."""
     assert (
-        products.GRAPH_SCHEMA == "graph/v15"
-    )  # F08-T43: literature.disputes; F29-T1 (v12): labels
+        products.GRAPH_SCHEMA == "graph/v16"
+    )  # F32-T6: a born-proved hole's record; F08-T43: literature.disputes; F29-T1 (v12): labels

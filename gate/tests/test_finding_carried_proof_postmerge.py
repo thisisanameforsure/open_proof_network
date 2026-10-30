@@ -63,6 +63,52 @@ def postmerge_run(
     return code, doc, err, out
 
 
+#: When the fixture's bot commit renders its products (F32-T6).
+RECORDED_AT = "2026-09-10T12:20:00Z"
+
+
+def _commit(root: Path, message: str) -> str:
+    env = {
+        "GIT_AUTHOR_NAME": "opn-gate",
+        "GIT_AUTHOR_EMAIL": "gate@x",
+        "GIT_COMMITTER_NAME": "opn-gate",
+        "GIT_COMMITTER_EMAIL": "gate@x",
+        "PATH": "/usr/bin:/bin",
+        "HOME": str(root.parent),
+    }
+    for args in (("add", "-A"), ("commit", "-q", "-m", message)):
+        subprocess.run(["git", "-C", str(root), *args], check=True, env=env, capture_output=True)
+    return rev(root, "HEAD")
+
+
+def rev(root: Path, ref: str) -> str:
+    return subprocess.run(
+        ["git", "-C", str(root), "rev-parse", ref], check=True, capture_output=True, text=True
+    ).stdout.strip()
+
+
+def recorded(
+    tmp_path: Path, seam: Seam, capsys: pytest.CaptureFixture[str]
+) -> tuple[Path, str, str]:
+    """F32-T6: AC6's merge as the record holds it once the graph workflow is done — the merge
+    commit (the assembly and the carried files, no hole yet), then the bot commit: the job's
+    tree (both holes, ``--h1`` with its ``Proof.lean``), both records under the names the key
+    step gives them, and the products rendered from the merge. Returns (root, merge, bot)."""
+    root = merged(tmp_path)
+    merge = rev(root, "HEAD")
+    code, _out, err, out_dir = postmerge_run(tmp_path, seam, capsys, root)
+    assert code == cli.EXIT_PASS, err
+    partial = postmerge.attestation_path(root, 9)
+    partial.parent.mkdir(exist_ok=True)
+    partial.write_bytes((out_dir / "attestation.json").read_bytes())
+    postmerge.hole_attestation_path(root, 9, H1).write_bytes(
+        (out_dir / "hole-attestations" / f"{H1}.json").read_bytes()
+    )
+    schemas.publish(root)  # the fixture serves no schemas/; a live graph does (F03-T8)
+    products.generate(root, rendered_from=merge, commit_time=RECORDED_AT).write(root)
+    return root, merge, _commit(root, "gate: #9 pass")
+
+
 # --- AC6 ------------------------------------------------------------------------------------------
 
 

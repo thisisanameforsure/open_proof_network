@@ -1,0 +1,68 @@
+F32-T6 — products, site and the post-merge jobs (R8): a born-proved hole is proved through its own record; its Proof.lean link names a commit where the file exists (Q13); the outline and olean-cache jobs cover it.
+
+== The fixture: gate/tests/test_finding_carried_proof_postmerge.py::recorded ==
+AC6's merge as the record holds it after the graph workflow: the merge commit (assembly + carried .witness/.proof files, no hole), then a bot commit with the job's tree (--h1 with its composed Proof.lean, --h2), both records under the key step's names (attestations/000009.json, attestations/000009.and-swap-reassoc--h1.json) and the products rendered from the merge. Every T6 test builds on it, through the real post-merge command over the scripted-docker seam.
+
+== RED 1 (products): task-6-red.txt, part 1 ==
+uv run --frozen pytest gate/tests/test_finding_born_proved_products.py
+5 failed: every product generation refused the tree —
+  SchemaError: document does not satisfy 'graph/v15': $['nodes'][2]['proofs'][0]['attestation']: '000009.and-swap-reassoc--h1.json' does not match '^[0-9]{6}\.json$'
+A defect, not a missing name: graph/v15 pins proofs[].attestation to <NNNNNN>.json, so the first born-proved merge on any target would stop that graph's products (the post-merge job's render fails; the frontier and site freeze). T0 bumped attestation to v8 and did not see that graph.json names the file. The derivation itself (graph.proof_for, artifact_of, derive_statuses) was already right, as T3's own test showed.
+
+== GREEN 1 ==
+graph/v16 = graph/v15 with one change: proofs[].attestation pattern ^[0-9]{6}(\.[a-z0-9][a-z0-9-]*)?\.json$ (the node-id grammar after the number), $id/title/const rewritten, description prefixed. HASHES pinned (e014df3c…). products.GRAPH_SCHEMA = graph/v16; the site's accepted set gains graph/v16. Goldens regenerated: 6 files, exactly the schema field (graph/v15 -> graph/v16) in three graph.json and the info.json schema index (15 -> 15, 16) in three; nothing else moved. Six tests that pin the current constant restated to v16 (test_node_proofs, test_schemas, test_finding_circularity_retired x2, test_finding_graph_lemmas, site test_closure_page, site test_finding_circularity_retired_site); test_finding_circularity_retired now checks v15 and v16 both publish no circularity field.
+5 passed.
+Mutants (pytest plugins, in memory, PYTHONDONTWRITEBYTECODE=1), to show the derivation tests bite once the schema no longer stops them:
+  artifact_of always "proof" (proved by the record alone): 2 failed (a v8 record without Proof.lean; the partial's record read as a proof).
+  proof_for matching any passing merged record for a hole id: 1 failed (the partial's record is never the hole's proof).
+
+== RED 2 (site, Q13): task-6-red.txt, part 2 ==
+Seam first, at today's behaviour: Renderer.proof_file_commit(nv) returning proof_commit, and proof_fact(nv, path) for the facts row, wired into the three places that link Proof.lean at a commit (facts row, the mismatch flag, the outline's step sources). Then
+uv run --frozen pytest site/tests/test_finding_born_proved_link.py
+2 failed on the defect:
+  the hole's page links Proof.lean at 27b303db… (the merge commit): git cat-file -e <merge>:targets/propositional/nodes/and-swap-reassoc--h1/Proof.lean fails.
+  proof_file_commit(hole) answered the merge commit, not the rendered commit.
+
+== GREEN 2 ==
+NodeView.carried_from (the proving record's carried_by.node_id; None for an ordinary proof and for any record older than v8). proof_file_commit answers the page's rendered commit (site.commit) for such a node, proof_commit otherwise. The facts row for a born-proved hole reads "Proof.lean, carried by a partial of <parent> merged in <merge[:12]>"; an ordinary proof's row is unchanged (its merge commit as the label and the link).
+2 passed. Every Proof.lean link on the hole's page names the bot commit, where the file exists; an ordinary proof still links at its merge commit (test 2 restates the same record with carried_by null).
+
+== Outline job (AC11) ==
+gate/tests/test_finding_outline_job.py::test_a_born_proved_hole_is_an_artifact_the_job_outlines — green on arrival (a pinning test). The job checks out main after the post-merge push and outlines --commit HEAD (test_main_as_it_is_and_the_gate_main_pins_for_the_target already pins that), and outline_graph.merged_artifacts finds proofs through graph.proofs_of, i.e. through the hole's own record: at the bot commit the hole's Proof.lean is a kind "proof" artifact with its own hash, beside the parent's partial with holes {right: --h1, left: --h2}; at the merge commit the hole is absent. No gate.yml change is needed for this job.
+
+== olean-cache job (AC11) ==
+gate/tests/test_finding_postmerge_cache_job.py::test_the_cache_holds_a_born_proved_hole_built_from_the_commit_its_record_landed_in — green on arrival: `cache publish` builds every proved node of the tree at --commit (cache.proved_order), so Nodes.«…--h1».Context and .Proof are in the cache built at the bot commit and absent from the cache built at the merge commit. The network command is right as it stands.
+The job is not: gate.yml's cache job checks out needs.postmerge.outputs.merge and runs `cache publish --commit "$MERGE"`, where the hole does not exist yet. So the hole's oleans would reach a cache only with the next merge that builds on that target. Pinned as a strict xfail for T5:
+  gate/tests/test_finding_postmerge_cache_job.py::test_the_cache_job_builds_the_commit_the_record_landed_in (XFAIL; reads the graph's gate.yml, skipped where no graph is checked out).
+
+== FOR T5: exactly what gate.yml must change (../open_proof_network_graph/.github/workflows/gate.yml) ==
+1. postmerge job, step "Commit the attestation and the products (pushed with the write deploy key, …)": give it `id: record`, and after `git checkout -q -f --detach FETCH_HEAD`, before `replay_owed`, add
+     [ "$status" -eq 0 ] && echo "recorded=$(git rev-parse FETCH_HEAD)" >> "$GITHUB_OUTPUT"
+   (main as the host has it after this run's push: it holds this merge's record, the hole's Proof.lean and its attestation). The two early `exit 0` paths (nothing to record / no product changed) write no `recorded`.
+2. postmerge job outputs: add
+     recorded: ${{ steps.record.outputs.recorded }}
+3. cache job: the graph checkout's `ref:` becomes
+     ${{ needs.postmerge.outputs.recorded || needs.postmerge.outputs.merge }}
+   and the publish step's env gains
+     COMMIT: ${{ needs.postmerge.outputs.recorded || needs.postmerge.outputs.merge }}
+   with `--commit "$COMMIT"` in place of `--commit "$MERGE"` (keep MERGE for the warning text if wanted). The cache is then keyed by that commit; `cache fetch` takes the newest cache at or before a commit by ancestry (F10-R7, cache.choose), and every later commit of main descends from it, so nothing that fetches loses. Built from main's tree, the cache also holds whatever later merges the catch-up laid in, which only adds verified modules (take() checks each module's source hash).
+4. Tests T5 must touch with the push: take the strict xfail mark off test_the_cache_job_builds_the_commit_the_record_landed_in, and restate test_the_cache_job_builds_exactly_the_merge_commit_with_the_rendering_gate (it asserts ref == outputs.merge and '--commit "$MERGE"'), to the recorded-or-merge expressions. "Never the event's commit" still holds: GITHUB_SHA appears nowhere.
+The outline job needs nothing. AC8's catch-up patch (the hole's Proof.lean and attestation in record.patch) is T5's own.
+
+== Q-entry text (for the lead; spec HTML not edited) ==
+F32-Q13 — settled at T6. The site names the page's own rendered commit for a born-proved hole's Proof.lean, and the merge commit for every other proof. A born-proved hole is one whose proving record (the attestation the products chose, which the site reads) carries a non-null carried_by (attestation/v8). The rendered commit is the one commit the renderer can name that is certain to hold the file: the products read the hole proved from that tree, and proved requires the Proof.lean in the tree (F03-Q7); its bytes are the ones the hole was born with, because no submission may modify a Proof.lean, and the page checks them against the record's artifact_hash anyway (F04-R14, Q17). Not chosen: the bot commit (the products are rendered into it and cannot name it; a later field would be a schema bump for a fact the tree already gives); the first commit that added the file (needs git history at render time, which the site build and check_products' bare trees do not have). The facts row says what happened in words: "Proof.lean, carried by a partial of <parent> merged in <merge>", so the merge that proved it is still on the page, beside the link. Tests: site/tests/test_finding_born_proved_link.py.
+F32-Q18 — graph/v16 (found at T6). graph/v15's proofs[].attestation was pinned to <NNNNNN>.json, so Q7's hole record name would have stopped every product of a target on the first born-proved merge. D-34 forbids editing v15; v16 is v15 with that one pattern widened to <NNNNNN>[.<node id>].json. No reader changes: the site accepts both, the api reads graph.json by key and its get_target result pattern accepts any graph/vN. Recorded for the owner because it is a product schema bump made inside a task, not at T0. (Q-number for the lead to assign.)
+F32-Q19 — the olean cache is built at the commit the record landed in, not the merge (T6 finding, T5 builds it). The network's cache publish was already right for any tree; the job handed it a tree without the hole. See "FOR T5" above.
+
+== Visual (Playwright, engineering/evidence/F32/task-6-shoot.py) ==
+task-6-hole-1440.png, task-6-hole-390.png: the hole's page reads proved; the facts row "proof: Proof.lean, carried by a partial of and-swap-reassoc merged in <merge>"; scrollWidth 1440 and 390 (no sideways scroll); all four Proof.lean links on the page name the bot commit. (The "$\displaystyle right$" text in the shot is the fixture gloss under a static server without KaTeX run; not this task's.)
+
+== Checks ==
+make lint: exit 0. make types: exit 0 (gate 458, api 276, site 128 files).
+Verification command: uv run --frozen pytest site/tests/test_finding_born_proved_link.py gate/tests/test_finding_outline_job.py gate/tests/test_finding_postmerge_cache_job.py (+ gate/tests/test_finding_born_proved_products.py), OPN_GRAPH_CHECKOUT at a detached graph origin/main (bdac51f6e7): 28 passed, 1 xfailed.
+Neighbours (test_products, test_schemas, test_versions_accepted, test_node_proofs, circularity_retired, graph_lemmas, carried_proof_postmerge, test_cache, site closure_page, circularity_retired_site): 225 passed.
+Fast tier (make test-fast, OPN_GRAPH_CHECKOUT = detached graph origin/main bdac51f6e7): = 7226 passed, 41 skipped, 280 deselected, 1 xfailed, 2 warnings in 1131.40s (0:18:51) = (exit 0; the one xfail is the T5 mark above; test_graph_copy_is_identical passed against this graph ref).
+
+== Files ==
+gate/schemas/graph/v16.json (new), gate/schemas/HASHES, gate/opn_gate/products.py (GRAPH_SCHEMA), site/opn_site/model.py (accepted graph/v16; NodeView.carried_from), site/opn_site/render.py (proof_file_commit, proof_fact; three links), gate/tests/golden/products/{curated,interior-proved,unproved}/{info.json,targets/propositional/graph.json}, gate/tests/test_finding_carried_proof_postmerge.py (recorded, rev), gate/tests/test_finding_born_proved_products.py (new), gate/tests/test_finding_outline_job.py, gate/tests/test_finding_postmerge_cache_job.py, site/tests/test_finding_born_proved_link.py (new), six version-pin tests restated, engineering/evidence/F32/{task-6.txt,task-6-red.txt,task-6-shoot.py,task-6-hole-1440.png,task-6-hole-390.png,log.md}.
+No change to graph.py, cache.py or outline*.py: each already read a born-proved hole correctly given a tree that holds it.

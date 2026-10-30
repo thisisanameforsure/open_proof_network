@@ -9,3 +9,5 @@
 - 2026-10-29T21:15:03Z — T2 committed 34f1d13c (amended WIP); fast tier for it running on snapshot snap-t2. T3: seam at today's behaviour applied (CheckedProof, hole_attestation_path, proofs= ignored); red run next.
 - 2026-10-29T21:17:46Z — T3 green (9 passed, 141 neighbours), lint/types exit 0; waiting on T2 fast tier before committing T3.
 - 2026-10-29T21:36:43Z — T3 committed 59d5ddfa; fast tier on snap-t2 and snap-t3: 1 failed (pre-existing test_graph_copy_is_identical: main's AGENTS.md ahead of the graph copy), 7207/7216 passed. T1–T3 done; T4 next (not this session).
+- 2026-10-30T06:10:58Z — T6 (new agent): red found graph/v15's proofs[].attestation pattern refusing Q7's hole file name (every product down on the first born-proved merge); graph/v16 added; Q13 seam then fix (rendered commit for carried_by records); cache needs gate.yml (T5), outline does not. lint/types exit 0; fast tier next.
+- 2026-10-30T06:32:03Z — T6 fast tier: 7226 passed, 1 xfailed (T5 mark), exit 0. Committing.
