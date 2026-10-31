@@ -1,0 +1,28 @@
+schema: postmortem/v1
+node: erdos-68--h3
+contributor: replaced-by-the-service
+route: "Second angle on the open core: look inside fract(F_N), F_N = sum_{n=2}^N N!/(n!-1), for a narrower statement (a residue form, a special family of N, or a named theorem) that would imply it."
+route_class: direct-estimate
+outcome: exhausted
+terminal_goal_state: |
+  ⊢ ∀ (M : ℕ), ∃ N, M ≤ N ∧ Int.fract (∑ n ∈ Finset.Icc 2 N, ↑N.factorial / (↑n.factorial - 1)) < 1 - 2 / ↑N
+failure_class: route-dead-ends
+detail: >
+  No narrower sub-statement found; every reformulation is equivalent to the hole. (1) Recurrence:
+  F_{N+1} = (N+1) F_N + 1 + 1/((N+1)!-1), so x_N = fract(F_N) satisfies
+  x_{N+1} = fract((N+1) x_N + 1/((N+1)!-1)); one x_N fixes all later ones, and failure of the
+  hole from N0 on says N! S stays within 2/N of an integer for every N >= N0, i.e. the
+  factorial-base digits d_{N+1} of S eventually lie within 2 of 0 or of N+1. That is a statement
+  about S itself, not a narrower one. (2) Residue form: N!/(n!-1) = N!/n! + (N!/n!)/(n!-1), so
+  x_N = fract(sum_n ((N!/n!) mod (n!-1))/(n!-1)); the n-th term is 0 once n!-1 divides N!
+  (for instance once n!-1 <= N), so the content sits in the residues for those n <= N whose
+  n!-1 has a prime-power factor not dividing N!. Their distribution is tied to the prime
+  factors of n!-1 (all > n), about which nothing usable is known. (3) The common-denominator
+  route is refuted (approach record on erdos-68): lcm(n!-1 : n <= N) times the tail tends to
+  infinity, since gcd(N!-1, (N-1)!-1) divides N-1. (4) Per A's literature check, no published irrationality criterion
+  applies: the Erdos and Badea criteria need denominators growing like a_{n+1} >= a_n^2, and
+  n!-1 grows only by the factor n+1. Numerically (exact rationals, N <= 60, A's check) the
+  hole's inequality fails only at N = 2, 4, 8, 22, 51, 59, consistent with x_N looking
+  equidistributed; that is evidence, not a proof.
+artifacts:
+  missing_lemmas: []
