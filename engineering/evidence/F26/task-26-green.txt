@@ -1,0 +1,14 @@
+warning: `VIRTUAL_ENV=/Users/mikehiggins/Desktop/repos/open_proof_network/.venv` does not match the project environment path `.venv` and will be ignored; use `--active` to target the active environment instead
+........................................................................ [ 50%]
+.......................................................................  [100%]
+=============================== warnings summary ===============================
+api/tests/api_fakes.py:32
+  /private/tmp/claude-501/-Users-mikehiggins-Desktop-repos-open-proof-network/67cc1fa5-a28b-45f1-9c6e-ab550eba8fb5/scratchpad/net-t26/api/tests/api_fakes.py:32: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient
+
+.venv/lib/python3.13/site-packages/starlette/testclient.py:53
+  /private/tmp/claude-501/-Users-mikehiggins-Desktop-repos-open-proof-network/67cc1fa5-a28b-45f1-9c6e-ab550eba8fb5/scratchpad/net-t26/.venv/lib/python3.13/site-packages/starlette/testclient.py:53: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.
+    _PortalFactoryType = Callable[[], AbstractContextManager[anyio.abc.BlockingPortal]]
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+143 passed, 1 deselected, 2 warnings in 20.61s

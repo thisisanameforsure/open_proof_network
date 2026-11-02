@@ -1,0 +1,33 @@
+warning: `VIRTUAL_ENV=/Users/mikehiggins/Desktop/repos/open_proof_network/.venv` does not match the project environment path `.venv` and will be ignored; use `--active` to target the active environment instead
+FFF                                                                      [100%]
+=================================== FAILURES ===================================
+_____________ test_the_classify_step_reads_the_flag_with_a_default _____________
+
+    def test_the_classify_step_reads_the_flag_with_a_default() -> None:
+>       assert '("needs_pair_proof", False)' in _classify_step()["run"]
+E       assert '("needs_pair_proof", False)' in 'set -euo pipefail\nuv sync --frozen --project network --quiet\nuv run --frozen --project network python -m opn_gate.c...n.outputs.target }}/nodes/$node/META.yaml"; then\n  tutorial=true\nfi\necho "tutorial=$tutorial" >> "$GITHUB_OUTPUT"\n'
+
+gate/tests/test_finding_pair_proof_workflow_step.py:66: AssertionError
+____________ test_a_sandboxed_step_judges_the_pair_proof_when_asked ____________
+
+    def test_a_sandboxed_step_judges_the_pair_proof_when_asked() -> None:
+        judged = [s for s in _steps() if s.get("if", "").strip() == f"{FLAG} == 'true'"]
+>       assert len(judged) == 1, "no step of the gate job runs on needs_pair_proof"
+E       AssertionError: no step of the gate job runs on needs_pair_proof
+E       assert 0 == 1
+E        +  where 0 = len([])
+
+gate/tests/test_finding_pair_proof_workflow_step.py:71: AssertionError
+____________ test_the_verdict_is_kept_when_a_pair_proof_was_judged _____________
+
+    def test_the_verdict_is_kept_when_a_pair_proof_was_judged() -> None:
+        (keep,) = [s for s in _steps() if s.get("name") == "Keep the verdict and attestation"]
+>       assert FLAG in keep["if"]
+E       assert 'steps.classify.outputs.needs_pair_proof' in "always() && (steps.classify.outputs.needs_gate == 'true' || steps.classify.outputs.needs_admission == 'true' || steps.classify.outputs.needs_exhibits == 'true' || steps.classify.outputs.needs_qa_rerun == 'true')"
+
+gate/tests/test_finding_pair_proof_workflow_step.py:81: AssertionError
+=========================== short test summary info ============================
+FAILED gate/tests/test_finding_pair_proof_workflow_step.py::test_the_classify_step_reads_the_flag_with_a_default
+FAILED gate/tests/test_finding_pair_proof_workflow_step.py::test_a_sandboxed_step_judges_the_pair_proof_when_asked
+FAILED gate/tests/test_finding_pair_proof_workflow_step.py::test_the_verdict_is_kept_when_a_pair_proof_was_judged
+3 failed in 0.30s

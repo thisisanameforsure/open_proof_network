@@ -1,0 +1,31 @@
+F26-T26 (Q27): the graph's gate job judges a pair-proof record inside the step-3 sandbox
+2026-11-01, lead session.
+
+Found while clearing worktrees: graph branch f26-t20-pair-proof-step (1d2c09a3b9, 2026-10-27)
+carried F26-T20's gate.yml step and was never pushed. Its AGENTS.md half reached graph main through
+a later re-pin's copy; the step did not. Every target pins network cc2e782e, whose classify emits
+needs_pair_proof (gate/opn_gate/cli.py:1870 at the pin), and graph main's gate job did not read the
+flag, which is the hazard the pin's own comment names. No pair-proof record had been submitted:
+`git log origin/main --since=2026-10-27 --diff-filter=A` on the graph adds none (only
+schemas/pair-proof/v1.json and the review job's own pairs file).
+
+The pinned command's flags were read at cc2e782e (pp.add_argument: --graph, --base, --head, --out,
+--install, --sandbox, --image, --no-build); the step passes --graph . --base "$BASE" --head HEAD
+--sandbox --out, the shape of its neighbours (exhibits, qa-rerun).
+
+Red: gate/tests/test_finding_pair_proof_workflow_step.py against the sibling graph's origin/main
+(27b2d1b250): 3 failed, each on its assertion (task-26-red.txt). A first draft collected the
+classify step across every job and failed with ValueError (the post-merge job classifies under the
+same id); restated to the gate job's steps and run red again before any change.
+
+Change: graph commit 7f993438e4 on branch f26-t26-pair-proof-step, one file, +22/-2: the default,
+the step, the artifact condition and path. YAML parses.
+
+Green: every network test that reads GRAPH_CHECKOUT (12 files, fast tier), with OPN_GRAPH_CHECKOUT
+at a local clone whose origin/main is 7f993438e4 and whose tree is checked out there: 143 passed
+(task-26-green.txt). The same set against the live sibling checkout: the 3 new tests fail, and
+test_walkthrough::test_graph_copy_is_identical fails because that checkout's working tree sits at
+334cdadce9 behind origin/main, not because of this change.
+
+Left: the push of 7f993438e4 to graph main (the owner's act), then one live pair-proof pull request
+to see the step run.
