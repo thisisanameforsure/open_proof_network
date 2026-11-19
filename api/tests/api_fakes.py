@@ -332,6 +332,7 @@ class FakeGitHost:
                         base_ref=s.get("base_ref") or "main",
                         draft=bool(s.get("draft")),
                         same_repo=s.get("same_repo", True),
+                        updated_at=s.get("updated_at"),  # F07-T80
                     )
                 )
         return out
@@ -473,6 +474,7 @@ class FakeGitHost:
         closed_at: str | None = None,
         head_ref: str | None = None,
         draft: bool = False,
+        updated_at: str | None = None,
     ) -> None:
         """What the host will say about pull request ``number`` from now on. Runs keep
         ``{name, status, conclusion, url, jobs}`` (``jobs`` ``[]`` unless given) and reviews
@@ -496,6 +498,7 @@ class FakeGitHost:
             "closed_at": closed_at or merged_at,
             "head_ref": head_ref,
             "draft": draft,
+            "updated_at": updated_at,  # F07-T80: what the open listing says of its last update
         }
 
     def start_run(self, branch: str, run_id: int = 4242) -> WorkflowRun:
