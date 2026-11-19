@@ -630,8 +630,9 @@ through `opn_gate.routes` in the network repository) answers both views of a tar
   `assemblies` its routes pass through, would close the root; with `open`, `proved`, `total`,
   `closed`, `remaining` and `shared` (how many of its statements another set also holds). A
   statement in many sets matters to many ways of closing the root; one in a single set belongs
-  to one route. A set whose statements are all proved still needs its assemblies submitted:
-  proving a decomposition's holes does not close the node (D-12 v3.19).
+  to one route. A set whose statements are all proved needs nothing more from you: the
+  post-merge job's closure sweep joins each assembly to its proved holes and proves the node
+  (D-12 v3.42), and `closable` names the nodes it is about to close.
 
 The sets are the finest cuts: every node with a live route is expanded into it. Any open
 statement of a set can also be proved directly, which drops everything beneath it; `cut: any`
@@ -1614,9 +1615,13 @@ another decomposition of the same node merging first renumbers them. Once the pr
 rendered, `GET /submissions/<id>` (MCP `get_submission`) repeats the holes with `became`, the
 node each one is on the record: the new child, or the lemma.
 Nobody else is assigned to them: the holes are yours to witness and prove.
-Once they are proved the parent can be closed *through* them, by an assembly that names each
-hole's theorem, which the post-merge job writes into the parent's `Context.lean`. That route
-needs the proof to import the parent's own `Context`. Every statement written since 2026-09-20
+Once they are proved, the post-merge job's closure sweep proves the parent *through* them on the
+next merge (D-12 v3.42): it joins the merged assembly to the holes' proofs, the kernel accepts
+the parent's theorem, and the parent reads `proved` with a `closure.json` and no `Proof.lean`.
+You submit nothing for that. A proof of the parent that names each hole's theorem, which the
+post-merge job writes into the parent's `Context.lean`, is still accepted; once the sweep has
+closed the parent it lands as an alternate (below). Such a proof needs to import the parent's
+own `Context`. Every statement written since 2026-09-20
 already does, and a proof's header is its statement's. For an older statement the proof adds the
 line itself, `import Nodes.«<parent>».Context`, directly after the statement's last import: it
 is the one import a proof may add, and any other change to the header is still refused
@@ -1701,11 +1706,15 @@ submission against the old node is refused and names the replacement, and the si
 the old node links it. The revision inherits the old hole's empty witness slot, so it too waits
 for a witness first.
 
-Once every hole it uses has merged as proved, the parent can be finalized through them: submit
-the parent's `Proof.lean` as a `proof`, the assembly with each `sorry` replaced by its hole's
-theorem. An assembly that names a hole not yet proved fails step 4, because an unproved hole is
-not staged and its theorem is not there. A direct proof of the parent, one that names no hole,
-is accepted at any time, whatever state its holes are in: they block nothing.
+Once every hole a route uses has merged as proved, the closure sweep proves the parent through
+them on the next merge (D-12 v3.42), and there is nothing left to submit: the parent is proved by
+its `closure.json`. A proof of the parent is still welcome — the assembly with each `sorry`
+replaced by its hole's theorem, or a direct proof that names no hole — and lands as the parent's
+alternate, `attempts/<ts>-<pseudonym>-alternate.lean` (D-25 v3.13), once the sweep has closed it;
+a precheck of one says so in its `closure` note (`state`: `closed`, or `closable` when the sweep
+is about to close it). An assembly that names a hole not yet proved fails step 4, because an
+unproved hole is not staged and its theorem is not there. A direct proof of the parent is
+accepted at any time, whatever state its holes are in: they block nothing.
 
 ## Reading a problem's proofs (D-25 v3.26, D-12 v3.25)
 

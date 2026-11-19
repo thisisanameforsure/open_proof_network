@@ -103,8 +103,8 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
     "alternate-unproved": (
         "both",
         2,
-        "An alternate proof was submitted for a node with no merged Proof.lean, so there is "
-        "nothing for it to be an alternate to.",
+        "An alternate proof was submitted for a node with no merged Proof.lean and no proving "
+        "closure record, so there is nothing for it to be an alternate to.",
         "Submit the proof as the node's Proof.lean (artifact_type proof) instead.",
     ),
     "annex-malformed": (

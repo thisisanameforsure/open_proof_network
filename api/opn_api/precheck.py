@@ -21,6 +21,7 @@ import logging
 import secrets
 import time
 import zipfile
+from collections.abc import Mapping
 from dataclasses import dataclass, replace
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any, Literal
@@ -34,9 +35,9 @@ from opn_api import clock as clockmod
 from opn_api import identity as identitymod
 from opn_api.app import ApiError, host_budget_refusal
 from opn_api.githost import GitHostError, RateLimitError, WorkflowRun
-from opn_gate import attestation, context, layout, postmerge, schemas, signer
+from opn_gate import attestation, closing, context, layout, postmerge, schemas, signer
 from opn_gate import graph as graphmod
-from opn_gate.paths import Claim
+from opn_gate.paths import ALTERNATE_SUFFIX, Claim
 
 if TYPE_CHECKING:
     from opn_api.app import Context
@@ -745,6 +746,66 @@ def existing_paths(ctx: Context, node_id: str, target_id: str) -> frozenset[str]
     return frozenset()
 
 
+def closure_note(ctx: Context, claim: Claim, files: Mapping[str, str]) -> dict[str, Any] | None:
+    """F28-T11 (D-12 v3.42, D-25 v3.13): when the bundle offers a proof of the node (its
+    ``Proof.lean`` or an alternate) and the closure sweep has proved the node, or will on the next
+    merge (``closing.closable``, as ``list_sufficient_sets`` reads it), say so: the proof then
+    lands as an alternate. A note beside the job, never a refusal; ``None`` otherwise."""
+    prefix = claim.node_prefix
+    attempts = prefix + "attempts/"
+    if not any(
+        p == prefix + bundles.PROOF_FILE
+        or (p.startswith(attempts) and p.endswith(ALTERNATE_SUFFIX))
+        for p in files
+    ):
+        return None
+    graph = json.loads(frontier.committed(ctx, f"targets/{claim.target_id}/graph.json"))
+    if not isinstance(graph, dict):
+        return None
+    row = next((n for n in graph.get("nodes") or [] if n.get("node_id") == claim.node_id), None)
+    alternate = f"{attempts}<ts>-<pseudonym>{ALTERNATE_SUFFIX}"
+    closed = row.get("closure") if row is not None else None
+    if (
+        row is not None
+        and row.get("status") == "proved"
+        and isinstance(closed, dict)
+        and not any(p.get("kind") == "proof" for p in row.get("proofs") or [])
+    ):
+        link = {k: closed.get(k) for k in ("kind", "id", "inputs")}
+        return {
+            "node_id": claim.node_id,
+            "state": "closed",
+            "link": link,
+            "message": (
+                f"{claim.node_id} is already proved: the closure sweep joined {link['id']} "
+                f"(nodes/{closed.get('record')}, D-12 v3.42), so it has no Proof.lean to "
+                f"take. A proof of it lands as an alternate, at {alternate} (D-25 v3.13): "
+                "submit it there"
+            ),
+        }
+    for found in closing.closable(graph):
+        if found.node != claim.node_id:
+            continue
+        when = (
+            "every input is proved, so the sweep proves it after the next merge on the target"
+            if found.ready
+            else "it closes once the rest of its inputs are proved"
+        )
+        return {
+            "node_id": claim.node_id,
+            "state": "closable",
+            "ready": found.ready,
+            "link": found.link.as_dict(),
+            "message": (
+                f"the closure sweep will prove {claim.node_id} by joining {found.link.id} "
+                f"({', '.join(found.link.inputs)}; D-12 v3.42): {when}. Nothing more is needed "
+                f"to close it; a Proof.lean that merges after the sweep has closed the node "
+                f"lands as an alternate, at {alternate} (D-25 v3.13)"
+            ),
+        }
+    return None
+
+
 def check_cited_annex(
     ctx: Context, claim: Claim, bundle: bundles.Bundle, graph_commit: str
 ) -> None:
@@ -907,7 +968,12 @@ async def post_precheck(ctx: Context, request: Request) -> Response:
     )
     save(ctx, job)
     dispatch(ctx, job, bundle)
-    return JSONResponse(job.as_dict(now, include_nonce=nonce is not None), status_code=202)
+    body = job.as_dict(now, include_nonce=nonce is not None)
+    # F28-T11: a note beside the job, not stored on it: what the sweep has done or will do.
+    note = closure_note(ctx, claim, bundle.files)
+    if note is not None:
+        body["closure"] = note
+    return JSONResponse(body, status_code=202)
 
 
 # --- handing the job to the scratch repository (R3, R10) -----------------------------------------
