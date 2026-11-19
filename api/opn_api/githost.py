@@ -160,6 +160,9 @@ class OpenPullRequest:
     base_ref: str = "main"
     draft: bool = False
     same_repo: bool = True
+    #: F07-T80: the host's ``updated_at`` for the pull request (any push, comment or label moves
+    #: it), from the same listing; ``None`` when the host did not say.
+    updated_at: str | None = None
 
 
 @dataclass(frozen=True)
@@ -1064,6 +1067,7 @@ def open_pull_request_of(pr: dict[str, Any]) -> OpenPullRequest:
         base_ref=str(base.get("ref") or ""),
         draft=bool(pr.get("draft")),
         same_repo=head_repo is not None and head_repo == base_repo,
+        updated_at=str(pr["updated_at"]) if pr.get("updated_at") else None,
     )
 
 

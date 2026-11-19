@@ -1,0 +1,72 @@
+F07-T80 (bug B7, agent run 2026-11-19): queue.ahead names pull requests nobody waits on
+=====================================================================================
+
+Defect. Witness PR #1489 (variant-cce9b284--h6, opened and gate-failed 2026-11-13, idle since) was
+first in queue.ahead for every erdos-257 submission, though merged #1504 had filled that slot.
+queue_block took every lower-numbered PR of the lane from queue_order(listed); gate state, age and
+the slot played no part. The merge actor already passes over a red PR (merge.yml decide), so no
+merge was delayed: a display defect. Owner's ruling: drop such PRs from ahead only; close nothing.
+
+Fix (api/opn_api/pending.py):
+* slot_filled: a service record of kind witness whose node's Witness.lean on main (read through
+  optional_committed, the committed-file cache at main's head, no API call) has no sorry token
+  (graph.witness_is_stub's reading, via layout.mentions_sorry).
+* idle_red: the open listing's updated_at (new OpenPullRequest field, parsed from the same listing
+  call; the fake host carries it) older than settings.queue_idle_red_days, and the PR's state at
+  the listed head says waiting_on gate-failed. Only PRs idle past the window cost a state read
+  (live_state, cached as before); a red head is remembered per process in
+  Context.idle_red_heads (bounded by MAX_REMEMBERED), so an abandoned PR costs one state read per
+  process, not one per window. A state the host cannot give, or a moved head, keeps the PR in (C7).
+* passed_over feeds both queue_block (ahead, position, of) and the snapshot's entry_queue, so
+  GET /submissions/<id> and GET /submissions.json agree. A PR's own entry is never dropped from
+  its own lane. queue_order is unchanged, so queue.order is still the actor's list and
+  gate/tests/test_finding_queue_order_is_the_actors.py needed no change (4 passed, run against
+  the graph checkout read-only through OPN_GRAPH_CHECKOUT; it skips without it).
+* QUEUE_ORDER text and gate/agents/AGENTS.md's queue paragraph name the two exclusions.
+Config: OPN_API_QUEUE_IDLE_RED_DAYS, default 3 (config.DEFAULT_QUEUE_IDLE_RED_DAYS), documented in
+the config module's docstring beside the other windows.
+Not done: a PR the service has no record of is never judged under (a), because the service has no
+PR-files listing and adding one would be a per-PR host call. #1489 was opened by the service, so
+it has a witness record.
+
+--- red (the seam went in at today's behaviour first: updated_at on the listing, the config field) ---
+$ uv run --frozen pytest api/tests/test_finding_queue_ahead_stale.py -q -p no:cacheprovider
+E       assert ([1, 2], 3, 3) == ([2], 2, 2)        (a witness for a filled slot)
+E       assert ([1, 2], 3, 3) == ([2], 2, 2)        (red, idle four days)
+E       assert ([1, 2], 3, 3) == ([2], 2, 2)        (window set to one day)
+E       assert [3] == [1, 3]                        (no state read for the idle PR)
+E       assert (2, 3) == (1, 2)                     (the listing's positions)
+E       AssertionError: assert ('idle' in 'pull-request number, oldest first, ...')
+FAILED api/tests/test_finding_queue_ahead_stale.py::test_a_witness_for_a_slot_main_has_filled_is_not_ahead
+FAILED api/tests/test_finding_queue_ahead_stale.py::test_a_red_pull_request_idle_past_the_window_is_not_ahead
+FAILED api/tests/test_finding_queue_ahead_stale.py::test_the_window_is_configuration
+FAILED api/tests/test_finding_queue_ahead_stale.py::test_only_idle_pull_requests_cost_a_state_read
+FAILED api/tests/test_finding_queue_ahead_stale.py::test_the_listing_counts_positions_without_them
+FAILED api/tests/test_finding_queue_ahead_stale.py::test_the_text_says_so - A...
+6 failed, 8 passed, 2 warnings in 0.61s
+
+The red runs fail on the defect, not on a missing name. The guards (stub slot, missing slot, red
+idle inside the window, old green, old still running, unreadable host, a dropped PR's own position,
+the environment variable) pass before and after. Added after the fix:
+test_a_red_idle_head_is_read_once_per_process; mutant (the idle_red_heads lookup disabled) turns
+it red: "1 failed, 14 passed".
+
+--- green ---
+$ OPN_GRAPH_CHECKOUT=<graph checkout> uv run --frozen pytest api/tests/test_finding_queue_*.py \
+    api/tests/test_finding_submission_waiting_on.py api/tests/test_finding_stale_open_submissions.py \
+    gate/tests/test_finding_queue_order_is_the_actors.py api/tests/test_finding_queue_ahead_stale.py \
+    -q -p no:cacheprovider
+59 passed, 2 warnings in 1.05s
+
+$ uv run --frozen ruff check . && uv run --frozen ruff format --check . && uv run --frozen mypy api
+All checks passed!
+954 files already formatted
+Success: no issues found in 278 source files
+
+$ uv run --frozen pytest gate/tests -q -p no:cacheprovider -m "not lean and not docker" -k "guide or agents_md or docs"
+201 passed, 1 skipped, 4099 deselected, 2 warnings
+
+$ uv run --frozen pytest api/tests/test_finding_host_budget.py api/tests/test_pending_submissions.py -q -p no:cacheprovider
+44 passed, 2 warnings
+
+No full suite, docker or lean tier run (disk); the commit is --no-verify.

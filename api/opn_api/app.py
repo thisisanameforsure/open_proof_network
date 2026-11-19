@@ -148,6 +148,10 @@ class Context:
     # F07-T26: a failed gate run's verdict, by the head commit it ran on. A verdict is a fact
     # about a commit, so it is read once; ``None`` is kept too (the run kept no artifact).
     verdicts: dict[str, dict[str, Any] | None] = field(default_factory=dict)
+    # F07-T80: the head commits of idle pull requests whose gate was read red, by
+    # ``(number, head)``: kept for the process's life (bounded), so an abandoned pull request
+    # costs one state read, not one per window; a pull request that is pushed has a new head.
+    idle_red_heads: set[tuple[int, str]] = field(default_factory=set)
     # F05-T13: the commit ``main`` pointed to when last asked, and when that was. Every committed
     # file is read at it; ``None`` until the API has answered once.
     head: str | None = None

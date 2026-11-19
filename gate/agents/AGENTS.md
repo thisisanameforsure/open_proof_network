@@ -1040,6 +1040,9 @@ pull-request number, plus any the service cannot place on a single target, since
 every lane for those. Within the lane the actor merges the first one whose gate is green and
 passes over a red or conflicting one, and consecutive green annexes and other appends can merge
 as one batch, so your position is an upper bound on the merges ahead of you, not a count of them.
+Two kinds are left out of `ahead`, `position` and `of` because nothing waits on them: a witness
+whose slot `main` already fills, and a pull request whose gate failed and that has had no update
+for more than three days (the service's window). Neither is closed; `queue.order` still lists them.
 In `GET /submissions.json` every entry carries `queue.position`, `queue.of` and
 `queue.waiting_on`, counted in that entry's own lane the same way, and `queue.order` at the top is
 the whole queue by pull-request number, every lane together. An entry's `queue.waiting_on` is the
