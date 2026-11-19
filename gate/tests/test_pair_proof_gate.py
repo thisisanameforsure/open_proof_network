@@ -499,6 +499,61 @@ def test_a_record_the_job_accepted_still_settles(world: World) -> None:
     assert codes_of(found) == ["pair-proof-settled"]
 
 
+def accepted_both(world: World) -> dict[str, str]:
+    """F26-T27 (B4): the tree a replay of a merged pair-proof record reads, after the review
+    job has already judged it. Both directions were filed as records and merged; the job's run
+    for the first accepted every merged record of the pair at once, writing one ``pair`` exhibit
+    per record (detail ending ``(pair-proof <stem>)``) and a later pair record proving both
+    directions from those exhibits. Answers each direction's record path."""
+    rels: dict[str, str] = {}
+    ways: dict[str, dict[str, Any]] = {}
+    for i, (d, stamp) in enumerate(
+        (("forward", "2026-10-27T01:00:00Z"), ("backward", "2026-10-27T02:00:00Z"))
+    ):
+        rel = world.put(world.record(direction=d, date=stamp))
+        eid = f"e-0000cad{i}"
+        doc = {
+            "schema": "exhibit/v1",
+            "id": eid,
+            "kind": "pair",
+            "result": "proved",
+            "detail": f"{world.a} and {world.b}, {d} (pair-proof {Path(rel).stem})",
+        }
+        dest = world.base / "exhibits" / f"{eid}.json"
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        dest.write_text(json.dumps(doc), encoding="utf-8")
+        rels[d] = rel
+        ways[d] = {"state": "proved", "exhibit": eid, "attempt": None}
+    write_pair(
+        world.graph,
+        world.a,
+        world.b,
+        ways["forward"],
+        ways["backward"],
+        date="2026-10-28",
+        name=f"{world.a}--{world.b}--2026-10-28-2.yaml",
+    )
+    return rels
+
+
+@pytest.mark.parametrize("direction", ["forward", "backward"])
+def test_a_replay_of_a_record_the_job_already_accepted_passes(world: World, direction: str) -> None:
+    """F26-T27 (B4, graph run 44548191976 on #1549): a replay of a merged record whose direction
+    the pair record in force proves *from this record's own judgment* is that record, already
+    judged; it is credited, not refused as ``pair-not-open`` or ``pair-proof-settled``."""
+    rels = accepted_both(world)
+    _cls, found = world.gate(rels[direction])
+    assert found == [], [d.as_dict() for d in found]
+
+
+def test_a_direction_proved_from_another_records_judgment_is_still_not_open(world: World) -> None:
+    """F26-T27: the exemption is this record's own acceptance only. A new record for a direction
+    another record settled is refused as today."""
+    accepted_both(world)
+    _cls, found = world.gate(world.put(world.record(date="2026-10-29T01:00:00Z")))
+    assert codes_of(found) == ["pair-not-open"]
+
+
 def test_an_earlier_record_of_the_other_direction_settles_nothing_here(world: World) -> None:
     other = "backward" if world.direction == "forward" else "forward"
     world.put(world.record(direction=other, date="2026-10-26T09:00:00Z"))

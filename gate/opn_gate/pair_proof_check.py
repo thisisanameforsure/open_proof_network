@@ -530,7 +530,19 @@ def admissible(  # noqa: PLR0911 — one return per rule
     pair = _latest_pair(base, a_id, b_id)
     way = pair.get(str(direction)) if pair is not None else None
     state = way.get("state") if isinstance(way, Mapping) else None
-    if state != "open":
+    # F26-T27: a replay of a merged record the review job has already accepted reads a tree in
+    # which this record settled its own direction (the pair in force names the exhibit that
+    # judged this record's stem); that is the record already judged, not a direction closed
+    # against it, so the open and settled rules do not apply. Any other closer refuses as before.
+    mine = review.pair_proof_judgments(base).get(Path(own).stem) if own else None
+    already_judged = (
+        mine is not None
+        and mine["accepted"]
+        and isinstance(way, Mapping)
+        and way.get("exhibit") == mine["exhibit"]
+        and state == mine["result"]
+    )
+    if state != "open" and not already_judged:
         return Diagnostic(
             "pair-not-open",
             (
@@ -541,7 +553,7 @@ def admissible(  # noqa: PLR0911 — one return per rule
             + "; only an open direction takes a pair proof (F26-R8)",
             {"a": a_id, "b": b_id, "direction": direction, "state": state},
         )
-    earlier = _settled_by(base, doc, own)
+    earlier = None if already_judged else _settled_by(base, doc, own)
     if earlier is not None:
         return Diagnostic(
             "pair-proof-settled",
