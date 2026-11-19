@@ -121,3 +121,14 @@ must be recopied at the re-pin (D-35), carrying this edit with the earlier drift
   for a closure node it was the sweep. Not changed.
 - Live only after the network is merged and the graph re-pinned (gate halves), and api-deploy (the
   note).
+
+--- lead follow-up (2026-11-19): the two service sentences on a closure-proved node ---
+red (api/tests/test_finding_closure_wording.py, before the fix):
+E       AssertionError: assert 'already has...d Proof.lean' not in 'and-reassoc...proof (D-25)'
+E         
+E         'already has a merged Proof.lean' is contained here:
+E           and-reassoc already has a merged Proof.lean, which is never modified (D-3); submit this proof as targets/propositional/nodes/and-reassoc/attempts/<ts>-<pseudonym>-alternate.lean with artifact_type proof (D-25)
+E         ?             +++++++++++++++++++++++++++++++
+E       assert 'merged from...equest first' not in "This node's...cccccccccc`."
+green: test_finding_closure_wording.py + test_finding_racer_alternate.py + test_submissions_alternate.py: 14 passed
+fix: submissions.check_placement (proof-replaces-merged) and racers.comment name both ways a node is proved: a merged Proof.lean or the closure sweep (D-12 v3.42).
