@@ -65,6 +65,17 @@ def verdict_of(record: Mapping[str, Any]) -> str:
     return str(record.get("verdict") or VERDICT_PROVED)
 
 
+def proves(node_dir: Path) -> bool:
+    """F28-T11 (D-25 v3.13): the node has a closure record whose join proved it — what a later
+    direct proof of it may stand beside as an alternate. A refuting record, or one that does not
+    read, is no proof to stand beside (C7: refuse)."""
+    try:
+        record = load(node_dir)
+    except schemas.SchemaError:
+        return False
+    return record is not None and verdict_of(record) == VERDICT_PROVED
+
+
 def link_of(record: Mapping[str, Any]) -> Link:
     raw = record["link"]
     return Link(str(raw["kind"]), str(raw["id"]), tuple(str(i) for i in raw["inputs"]))
