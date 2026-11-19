@@ -4369,9 +4369,12 @@ def _merge_entries(  # noqa: PLR0912, PLR0913 — one argument per fact every en
         if loc.role == "postmortem":
             record = recordsmod.load_postmortem(graph / loc.path)
             route_class = str(record["route_class"])
+            # F03-T23: an append has no attestation, so the record's own declaration (v2) is
+            # what the line can carry; the merge's tooling stays the fallback.
             entry = ledger.postmortem_entry(
                 doc, identity=identity, target=target_id, node=node_id, route_class=route_class,
-                artifact=artifact, merge_commit=commit, date=date, tooling=tooling,
+                artifact=artifact, merge_commit=commit, date=date,
+                tooling=ledger.postmortem_tooling(record, fallback=tooling),
                 automation=automation,
             )  # fmt: skip
             if entry is None:

@@ -1,0 +1,74 @@
+F03-T23 — a postmortem's attempts line carries the record's own model_and_tooling (B6, 2026-11-19 agent run)
+Date: 2026-11-19. Branch f03-t23-postmortem-tooling, from origin/main 867c11b7.
+
+CAUSE
+gate/opn_gate/cli.py `_write_merge_entries` computes the merge's tooling once, from the merge's
+attestation (`ledger.merge_tooling`, gate/opn_gate/ledger.py), and passes it to every entry.
+An append (postmortem) merge has no attestation, so that is always "undeclared". The postmortem
+branch of `_merge_entries` already loaded the record (`recordsmod.load_postmortem`) for its
+route_class but never read the record's own top-level `model_and_tooling` (postmortem/v2,
+required, null or a 1-200 char string; v1 has no such field). So every attempts line said
+"undeclared" whatever the record declared.
+
+FIX
+- gate/opn_gate/ledger.py: `postmortem_tooling(record, *, fallback=UNDECLARED)` beside
+  `statement_tooling`: the record's declared string, else `fallback` (null, blank, or a v1 record).
+- gate/opn_gate/cli.py `_merge_entries`, postmortem branch: `tooling=ledger.postmortem_tooling(
+  record, fallback=tooling)`. The merge's tooling stays the fallback, so nothing changes for a
+  null or v1 record. `automation` unchanged (postmortem has no automation field).
+
+TESTS (gate/tests/test_finding_ledger_credits_merges.py; `commit_postmortems` takes **fields)
+- test_a_v2_postmortem_merge_records_its_declared_tooling: end to end through `opn-gate ledger`.
+- test_each_postmortem_of_one_merge_carries_its_own_declaration: two records in one merge, one
+  declared, one null; each line carries its own.
+- test_a_null_or_v1_postmortem_merge_stays_undeclared[v2-null, v1].
+- test_postmortem_tooling_reads_the_records_declaration[v2-declared, v2-null, v1-no-field, blank].
+
+RED (seam `postmortem_tooling` in place at today's behaviour, returning the fallback; trimmed)
+$ uv run --frozen pytest gate/tests/test_finding_ledger_credits_merges.py -q -p no:cacheprovider --basetemp=<scratchpad>
+>       assert entry["tooling"] == DECLARED
+E       AssertionError: assert 'undeclared' == 'claude-opus-...9 claude-code'
+E         - claude-opus-5 2026-09 claude-code
+E         + undeclared
+E       AssertionError: assert [('induction'...'undeclared')] == [('induction'...'undeclared')]
+E       AssertionError: assert 'undeclared' == 'claude-opus-...9 claude-code'
+FAILED gate/tests/test_finding_ledger_credits_merges.py::test_a_v2_postmortem_merge_records_its_declared_tooling
+FAILED gate/tests/test_finding_ledger_credits_merges.py::test_each_postmortem_of_one_merge_carries_its_own_declaration
+FAILED gate/tests/test_finding_ledger_credits_merges.py::test_postmortem_tooling_reads_the_records_declaration[v2-declared]
+3 failed, 12 passed in 5.84s
+(Fails on the value "undeclared", not on a missing name.)
+
+GREEN
+$ uv run --frozen pytest gate/tests/test_finding_ledger_credits_merges.py gate/tests/test_ledger_merges.py \
+    gate/tests/test_finding_ledger_statement_tooling.py gate/tests/test_finding_carried_proof_ledger.py \
+    gate/tests/test_finding_ledger_update_branch_credit.py gate/tests/test_ledger.py \
+    gate/tests/test_review_pair_proof_ledger.py gate/tests/test_postmortem_v2.py gate/tests/test_lifecycle_f15.py \
+    -q -p no:cacheprovider --basetemp=<scratchpad>
+106 passed, 2 warnings in 26.43s   (warnings: starlette/httpx deprecations, unrelated)
+
+$ uv run --frozen ruff check . && uv run --frozen ruff format --check . && uv run --frozen mypy gate
+All checks passed!
+953 files already formatted
+Success: no issues found in 465 source files
+
+GOLDENS
+`grep -rl '"undeclared"' gate/tests` hits only .py files (samples.py and three tests); no golden
+or fixture JSON carries an attempts line, so nothing to regenerate.
+
+RE-RENDER ANSWER: lines are written once per merge and kept; a re-render does not rebuild them.
+- gate/opn_gate/ledger.py:178-182 `append`: "Append-only: nothing existing is touched."
+- gate/opn_gate/cli.py:4271 `ledger.load` (the existing file) then `_merge_entries` appends, and
+  4292 `ledger.write` writes it back: one merge's lines added to the existing ledger.
+- gate/opn_gate/products.py never reads or writes ledger/ (no match for "ledger").
+- graph .github/workflows/render.yml (sibling checkout, read only): `LEDGER_CMD: "false"` — the
+  re-render runs products only and only stages ledger/ if something else changed it.
+- graph .github/workflows/gate.yml ~1250-1261: `opn-gate ledger --commit $merge` per merge, in the
+  post-merge job only; ~794: "Idempotent: the ledger appends, so a merge that has its commit is
+  never replayed."
+So the 89 existing lines will not be corrected by a re-pin or re-render. Whether any need
+correcting: the sibling graph checkout (not fetched; may be stale) has 0 postmortem/v2 records
+(`grep -l "schema: postmortem/v2" targets/*/nodes/*/attempts/*.yaml` → 0). v1 records have no
+model_and_tooling, so under the new code their lines would still be "undeclared": if that holds
+on graph origin/main, the old lines are already correct and need no owner act. Any v2 record merged
+before the re-pin keeps its "undeclared" line; the only route to change it would be a credit
+correction (F07-T66, cli.py:4219), which is the curator's/owner's act.
