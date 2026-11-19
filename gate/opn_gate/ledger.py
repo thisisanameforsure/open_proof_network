@@ -461,6 +461,16 @@ def statement_tooling(meta: dict[str, Any]) -> str:
     return str(model) if isinstance(model, str) and model.strip() else UNDECLARED
 
 
+def postmortem_tooling(record: dict[str, Any], *, fallback: str = UNDECLARED) -> str:
+    """The tooling a merged postmortem's attempts line records (D-23, R13; F03-T23): the
+    record's own ``model_and_tooling`` (postmortem/v2). An append has no attestation, so
+    ``merge_tooling`` cannot read it; the record is the postmortem, as the META is a proposal's
+    (``statement_tooling``). ``fallback`` (the merge's tooling, ``undeclared`` for an append)
+    for a null declaration or a v1 record, which has no such field."""
+    declared = record.get("model_and_tooling")
+    return str(declared) if isinstance(declared, str) and declared.strip() else fallback
+
+
 def _merge_records(graph_root: Path, merge_commit: str) -> list[tuple[str, dict[str, Any]]]:
     """Every committed attestation of ``merge_commit``, by file name. A record that does not
     parse is skipped: it cannot be this merge's."""
