@@ -31,6 +31,7 @@ import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import asdict, dataclass
+from datetime import timedelta
 from typing import TYPE_CHECKING, Any
 
 from starlette.requests import Request
@@ -49,7 +50,7 @@ from opn_api.githost import (
     RateLimitError,
 )
 from opn_api.store import Submission
-from opn_gate import schemas
+from opn_gate import layout, schemas
 
 if TYPE_CHECKING:
     from opn_api.app import Context
@@ -501,7 +502,10 @@ QUEUE_ORDER = (
     "actor holds every lane for one it cannot place), are ahead of it. Within a lane the actor "
     "merges the first one whose gate is green and passes over a red, conflicting or "
     "behind-and-still-running one, so a position is an upper bound on the merges ahead, not a "
-    "count of them; consecutive green appends may merge as one batch"
+    "count of them; consecutive green appends may merge as one batch. Left out of ahead, "
+    "position and of (F07-T80), though the actor still lists them: a witness whose slot main "
+    "already fills, and one whose gate failed and that has been idle longer than the service's "
+    "window (OPN_API_QUEUE_IDLE_RED_DAYS)"
 )
 QUEUE_NOTE = (
     "each entry's queue.waiting_on is what the service last read for that pull request, with "
@@ -553,15 +557,75 @@ def lane_queue(order: list[int], lanes: dict[int, str], number: int) -> list[int
     return [n for n in order if lanes.get(n, EVERY_LANE) in (lane, EVERY_LANE)]
 
 
+#: F07-T80: the ``waiting_on`` of a pull request whose own submission the gate refused.
+GATE_FAILED = "gate-failed"
+
+
+def slot_filled(ctx: Context, record: Submission | None) -> bool:
+    """F07-T80 (a): ``record`` is a witness the service opened for a node whose slot ``main``
+    already fills (``graph.witness_is_stub``'s reading: a file with no ``sorry`` token), so the
+    pull request has nothing left to add. Read through the committed-file cache at main's head
+    (``optional_committed``), no API call; a file that cannot be read changes nothing (C7)."""
+    if record is None or record.kind != "witness" or record.node_id is None:
+        return False
+    path = f"targets/{record.target_id}/nodes/{record.node_id}/Witness.lean"
+    try:
+        raw = optional_committed(ctx, path)
+    except ApiError:
+        return False
+    return raw is not None and not layout.mentions_sorry(raw.decode("utf-8", "replace"))
+
+
+def idle_red(ctx: Context, entry: OpenPullRequest | None) -> bool:
+    """F07-T80 (b): the listing says the pull request has not been updated for longer than
+    ``queue_idle_red_days`` and its gate failed at the head the listing names. The age is the
+    listing's, free; the gate's word costs one state read for such a pull request only, cached
+    as every state is (``live_state``), and a red head is remembered (``idle_red_heads``), so an
+    abandoned pull request costs one read per process, not one per window. A state the host
+    cannot give, or a head that moved, keeps it in the queue: the position stays an upper
+    bound (C7)."""
+    if entry is None or not entry.updated_at:
+        return False
+    try:
+        updated = clockmod.parse(entry.updated_at)
+    except ValueError:
+        return False
+    if ctx.clock.now() - updated <= timedelta(days=ctx.settings.queue_idle_red_days):
+        return False
+    key = (entry.number, entry.head_sha)
+    if key in ctx.idle_red_heads:
+        return True
+    state, _ = live_state(ctx, entry.number)
+    red = state is not None and state.head_sha == entry.head_sha and state.waiting_on == GATE_FAILED
+    if red:
+        if len(ctx.idle_red_heads) >= MAX_REMEMBERED:
+            ctx.idle_red_heads.clear()
+        ctx.idle_red_heads.add(key)
+    return red
+
+
+def passed_over(
+    ctx: Context, listed: Listing, records: dict[int, Submission], order: list[int]
+) -> set[int]:
+    """F07-T80: the pull requests of ``order`` no answer names as ahead of another (the
+    owner, 2026-11-19: drop them from ``ahead`` only, close nothing). The merge actor passes over
+    both anyway; ``queue_order`` stays the actor's own list."""
+    return {n for n in order if slot_filled(ctx, records.get(n)) or idle_red(ctx, listed.get(n))}
+
+
 def entry_queue(
-    ctx: Context, number: int, order: list[int] | None, lanes: dict[int, str]
+    ctx: Context,
+    number: int,
+    order: list[int] | None,
+    lanes: dict[int, str],
+    aside: set[int] | frozenset[int] = frozenset(),
 ) -> dict[str, Any]:
     """One open submission's place: ``position`` from 1 in its own lane, ``of`` how many share
     that lane (F07-T69), and what it was last read to be waiting on.
     ``position`` is null for a pull request the actor does not take, and both are null when the
     host has never been listed."""
     waiting, read_at = last_read(ctx, number)
-    queued = lane_queue(order or [], lanes, number)
+    queued = [n for n in lane_queue(order or [], lanes, number) if n == number or n not in aside]
     position = queued.index(number) + 1 if order is not None and number in queued else None
     return {
         "position": position,
@@ -596,6 +660,8 @@ def queue_block(
     number = found.pr_number
     lanes[number] = found.target_id  # its own record, whatever the open index says
     order = lane_queue(queue_order(listed), lanes, number)
+    aside = passed_over(ctx, listed, records, [n for n in order if n != number])
+    order = [n for n in order if n not in aside]
     position = order.index(number) + 1 if number in order else None
     before = order[: position - 1] if position is not None else []
     ahead = []
@@ -1264,8 +1330,11 @@ def snapshot(ctx: Context) -> dict[str, Any]:
     rank = {number: index for index, number in enumerate(order or [])}
     still_open.sort(key=lambda s: (rank.get(s.pr_number, len(rank)), s.pr_number))
     lanes = {s.pr_number: s.target_id for s in still_open}
+    by_number = {s.pr_number: s for s in still_open}
+    aside = passed_over(ctx, listed, by_number, order) if listed is not None and order else set()
     open_now = [
-        {**document(s), "queue": entry_queue(ctx, s.pr_number, order, lanes)} for s in still_open
+        {**document(s), "queue": entry_queue(ctx, s.pr_number, order, lanes, aside)}
+        for s in still_open
     ]
     return {
         "snapshot_at": clockmod.render(ctx.clock.now()),

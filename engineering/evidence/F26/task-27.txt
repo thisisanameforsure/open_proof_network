@@ -1,0 +1,35 @@
+F26-T27 (B4, 2026-11-19 agent run): a replay of a merged pair-proof record the review job
+already accepted is refused `pair-not-open`.
+
+Live symptom: graph run 44548191976, post-merge of #1549, `opn_gate.cli classify --base m^ --head m`:
+  opn-gate: pair-not-open: targets/erdos-849/review/pair-proofs/c-ae9bea28--c-fb339e85--backward--20261119T142357Z-claude-agent-1.yaml:
+  the backward direction of c-ae9bea28 and c-fb339e85 is proved, not open; only an open direction takes a pair proof (F26-R8)
+  ##[error]Process completed with exit code 1.
+
+== RED (before the fix, on 867c11b7) ==
+$ uv run --frozen pytest gate/tests/test_pair_proof_gate.py -q -p no:cacheprovider -k "replay_of_a_record or proved_from_another"
+E         Left contains one more item: Diagnostic(code='pair-not-open', message='targets/legendre/review/pair-proofs/c-2e270312--c-f7f3f4aa--forward--2026102...ward--20261027T010000Z-t1027-g.yaml', 'a': 'c-2e270312', 'b': 'c-f7f3f4aa', 'direction': 'forward',
+E         Left contains one more item: Diagnostic(code='pair-not-open', message='targets/legendre/review/pair-proofs/c-2e270312--c-f7f3f4aa--backward--202610...ard--20261027T020000Z-t1027-g.yaml', 'a': 'c-2e270312', 'b': 'c-f7f3f4aa', 'direction': 'backward',
+FAILED gate/tests/test_pair_proof_gate.py::test_a_replay_of_a_record_the_job_already_accepted_passes[forward]
+FAILED gate/tests/test_pair_proof_gate.py::test_a_replay_of_a_record_the_job_already_accepted_passes[backward]
+2 failed, 1 passed, 48 deselected in 0.31s
+(The pass is the guard test_a_direction_proved_from_another_records_judgment_is_still_not_open.)
+
+== GREEN (after the fix) ==
+$ uv run --frozen pytest gate/tests/test_pair_proof_gate.py -q -p no:cacheprovider -k "replay_of_a_record or proved_from_another"
+3 passed, 48 deselected in 0.16s
+$ uv run --frozen pytest gate/tests/test_pair_proof_gate.py gate/tests/test_pair_proof_check.py gate/tests/test_pair_proof_contract.py gate/tests/test_review_pair_proof_job.py gate/tests/test_review_pair_proof_ledger.py gate/tests/test_review_pair_supersession.py gate/tests/test_review_pairs.py gate/tests/test_finding_pair_proof_workflow_step.py -q -p no:cacheprovider -m "not lean and not docker"
+179 passed, 3 skipped, 2 deselected in 13.85s
+(the 3 skips: test_finding_pair_proof_workflow_step.py needs the graph checkout beside the repo)
+$ uv run --frozen ruff check . && uv run --frozen ruff format --check . && uv run --frozen mypy gate
+All checks passed! / 953 files already formatted / Success: no issues found in 465 source files
+
+== Cause and fix ==
+Cause: pair_proof_check.admissible (called by modes' pair-proof check from `classify`, which the
+post-merge job and every replay run on the merge) refused any direction whose pair record in force
+is not `open`. A replay reads main as it is, where the review job had already accepted this very
+record and written the pair as proved from it, so the record was refused as closed against itself.
+Fix: when the review job's judgment of this record's own stem (review.pair_proof_judgments) is an
+acceptance, and the pair in force names that judgment's exhibit with its result, the record is
+already judged: the open and `pair-proof-settled` rules are skipped; the template checks still run.
+A direction closed by any other record or exhibit is refused `pair-not-open` exactly as before.

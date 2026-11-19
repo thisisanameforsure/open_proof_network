@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from opn_gate import carried, layout, paths, uses
+from opn_gate import carried, closure, layout, paths, uses
 from opn_gate.diagnostic import Diagnostic
 from opn_gate.steps import artifact
 from opn_gate.steps.artifact import ALTERNATE_KEY, PARTIAL_KEY
@@ -302,11 +302,13 @@ def take_alternate(
     (F00-R19) — and recorded for step 4, which stages it as the node's Proof module. A file
     declaring a counterexample or vacuity certificate of a proved statement is not an alternate."""
     rel = alternate.relative_to(node_dir).as_posix()
-    if not loaded.proof_path.is_file():  # precheck never classifies, so step 2 says it too
+    # precheck never classifies, so step 2 says it too; F28-T11: a node the sweep proved by
+    # closure has a proof to stand beside, though no Proof.lean
+    if not loaded.proof_path.is_file() and not closure.proves(node_dir):
         return StepResult.failed(
             "alternate-unproved",
-            f"{ctx.claim.node_id} has no merged Proof.lean, so {rel} has nothing to be an "
-            "alternate to: submit it as the node's Proof.lean (D-25)",
+            f"{ctx.claim.node_id} has no merged Proof.lean and no proving closure, so {rel} has "
+            "nothing to be an alternate to: submit it as the node's Proof.lean (D-25)",
             path=rel,
         )
     text = alternate.read_text(encoding="utf-8")

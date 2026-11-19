@@ -467,7 +467,8 @@ def check_placement(
         raise ApiError(
             400,
             "proof-replaces-merged",
-            f"{claim.node_id} already has a merged Proof.lean, which is never modified (D-3); "
+            f"{claim.node_id} is already proved, by a merged Proof.lean, which is never modified "
+            "(D-3), or by the closure sweep through its holes (D-12 v3.42); "
             f"submit this proof as {claim.node_prefix}attempts/<ts>-<pseudonym>{ALTERNATE_SUFFIX} "
             "with artifact_type proof (D-25)",
         )

@@ -199,8 +199,15 @@ class NodeFacts:
     def rests_on(self) -> tuple[str, ...]:
         """F08-T27: what a closure follows from this node — its first proof's term where the
         record measured it, else everything it could rest on (its deps and its uses)."""
-        if self.proofs and self.proofs[0].used is not None:
-            return self.proofs[0].used
+        first = self.proofs[0] if self.proofs else None
+        # F28-T11: a closure's alternate is a proof beside the closure, not what the closure
+        # rests on; the closure keeps following the node's deps and uses
+        if (
+            first is not None
+            and first.used is not None
+            and not (self.closure is not None and first.kind == "alternate")
+        ):
+            return first.used
         return (*self.deps, *self.uses)
 
 
@@ -488,6 +495,7 @@ def load_nodes(
             alternate_hashes=hashes[1],
         )
         artifact = artifact_of(node_dir, loaded.statement.decl_name)
+        closed = closure.load(node_dir)
         identities[loaded.node_id] = statement_identity(loaded.statement.text, loaded.node_id)
         facts[loaded.node_id] = NodeFacts(
             node_id=loaded.node_id,
@@ -511,7 +519,7 @@ def load_nodes(
             override=override,
             artifact=artifact,
             witness_stub=witness_is_stub(node_dir),
-            closure=closure.load(node_dir),
+            closure=closed,
             supersedes=_optional_str(loaded.meta.get("supersedes")),
             lemmas=effective_lemmas(nodes_dir, loaded.meta.get("lemmas")),
             restated=effective_restated(nodes_dir, loaded.meta.get("restated")),
@@ -527,7 +535,14 @@ def load_nodes(
                     attestations=attestations,
                     cache=footprints,
                 )
+                # F28-T11: a node proved by closure has no Proof.lean, and its alternates are
+                # its merged proofs all the same (D-25 v3.13)
                 if artifact == "proof"
+                or (
+                    artifact is None
+                    and closed is not None
+                    and closure.verdict_of(closed) == closure.VERDICT_PROVED
+                )
                 else ()
             ),
         )

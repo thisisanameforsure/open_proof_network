@@ -1856,3 +1856,14 @@ The law of the project:
   on a DNS error mid-T2; its timestamped log and red files let a fresh agent separate T1 from T2 and finish both.
   **Task ids collided again** (F26-T22/Q24, taken on main the same day): renumber yours at the merge, leave theirs.
 
+
+- 2026-11-19 — The nine-agent run's correctness findings (B4–B7) became F26-T27, F03-T23, F28-T11 and F07-T80
+  in one sitting, four read-only investigators first and then four worktree builders, red first, on branch
+  `testers-1119-correctness`, unpushed. Two things worth keeping. **A reproduced symptom can be a lag sitting on a
+  different defect**: B4's "backward never records" was reproduced live and was twenty minutes of gate congestion,
+  the derivation right all along; what the investigator found under it was a replay that refused its own
+  already-accepted pair-proof ten times running, which was part of the congestion. Read the run logs behind a
+  stale product before fixing the product. **An agent's "it was already red before my change" is a claim**: the
+  guide-copy test was said to fail on `origin/main` too; `cmp` of the two committed blobs said identical, and the
+  failure was this branch's own guide edits. Also: the ledger appends once per merge, so a fix to what a line
+  says never reaches the lines already written (31 postmortem/v2 lines read `undeclared`).

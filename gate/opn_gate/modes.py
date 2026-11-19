@@ -82,6 +82,7 @@ import yaml
 from opn_gate import annex as annexmod
 from opn_gate import (
     clock,
+    closure,
     config,
     defs,
     evidence,
@@ -4404,11 +4405,12 @@ def check_gloss_signature(
 
 
 def _has_proof(graph_root: Path, located: Located) -> bool:
-    """A node has a merged proof exactly when ``Proof.lean`` is in the tree: it is the one file a
-    submission may create and it only ever arrives by a merge (D-3)."""
+    """A node has a merged proof when ``Proof.lean`` is in the tree — the one file a submission
+    may create, and it only ever arrives by a merge (D-3) — or when the post-merge sweep proved
+    it by closure (F28-T11; D-12 v3.42): a proving ``closure.json`` is the node's proof too."""
     assert located.node_id is not None
-    proof = graph_root / "targets" / located.target_id / "nodes" / located.node_id / "Proof.lean"
-    return proof.is_file()
+    node_dir = graph_root / "targets" / located.target_id / "nodes" / located.node_id
+    return (node_dir / "Proof.lean").is_file() or closure.proves(node_dir)
 
 
 def check_replaced_proof(graph_root: Path, classification: Classification) -> list[Diagnostic]:
@@ -4448,8 +4450,9 @@ def check_alternate(graph_root: Path, classification: Classification) -> list[Di
             problems.append(
                 Diagnostic(
                     "alternate-unproved",
-                    f"{located.node_id} has no merged Proof.lean, so there is nothing for this to "
-                    "be an alternate to: submit it as the node's Proof.lean (D-25)",
+                    f"{located.node_id} has no merged Proof.lean and no proving closure, so there "
+                    "is nothing for this to be an alternate to: submit it as the node's "
+                    "Proof.lean (D-25)",
                     {"path": located.path, "node": located.node_id},
                 )
             )
@@ -4465,7 +4468,8 @@ def check_alternate(graph_root: Path, classification: Classification) -> list[Di
             for p in (node_dir / "attempts").glob(f"*{paths.ALTERNATE_SUFFIX}")
             if p.is_file() and p != itself
         )
-        for other in (node_dir / "Proof.lean", *recorded):
+        proof = node_dir / "Proof.lean"  # absent on a node proved by closure (F28-T11)
+        for other in (*([proof] if proof.is_file() else []), *recorded):
             if other.read_bytes() == data:
                 same = other.relative_to(graph_root).as_posix()
                 problems.append(

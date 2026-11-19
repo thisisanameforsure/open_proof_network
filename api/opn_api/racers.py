@@ -64,7 +64,8 @@ def comment(ctx: Context, found: Submission, state: PullRequestState) -> None:
     the pull request which commit it was and where its proof is going. A failed comment is logged
     and never blocks the conversion (C7)."""
     body = (
-        f"This node's proof merged from another pull request first, so this proof is being kept "
+        f"This node was proved first, by another pull request's proof or by the closure sweep "
+        f"through its holes (D-12 v3.42), so this proof is being kept "
         f"as an alternate (D-25, F07-T36): the service is replacing this branch with one commit "
         f"from `{ctx.settings.graph_branch}` that adds it, unchanged, at "
         f"`{alternate_path(found)}`. The branch's head before the move was `{state.head_sha}`."

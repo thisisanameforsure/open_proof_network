@@ -1,0 +1,134 @@
+F28-T11 (bug B5, the 2026-11-19 agent run): a node proved by closure takes alternates
+Branch f28-t11-closure-alternate, from testers-1119-correctness (= origin/main 867c11b7).
+
+THE BUG
+Graph #1508 proved the parent's last hole; the agent then submitted the parent's assembly as its
+Proof.lean (#1519), as gate/agents/AGENTS.md told it to. The post-merge closure sweep proved the
+parent by nodes/<id>/closure.json (no Proof.lean); the service's racer conversion
+(api/opn_api/racers.py convert, keyed on the row's proof_commit, which a closure row carries from
+the partial's attestation) moved the file to attempts/<ts>-<pseudonym>-alternate.lean; the gate
+refused it `alternate-unproved`, because modes._has_proof and paths_step.take_alternate both asked
+only whether Proof.lean exists.
+
+OWNER'S RULING
+A node proved by closure counts as proved; an assembly or direct Proof.lean submitted against it
+merges as the node's alternate; precheck says the sweep has closed (or will close) the node; the
+guide drops the instruction to submit assemblies after the holes are proved.
+
+== RED (each failing on the defect, not on a missing name) ==
+
+1+2. gate: mode check, step 2, products  (at 867c11b7, before any fix)
+$ uv run --frozen pytest gate/tests/test_finding_closure_alternate.py -q -p no:cacheprovider
+E       AssertionError: assert ['alternate-unproved'] == []
+E       AssertionError: assert ['alternate-unproved'] == ['alternate-duplicate']
+E       assert (Diagnostic(code='alternate-unproved', message="and-reassoc has no merged Proof.lean, so attempts/20261119T120000Z-bob-...rnate to: submit it as the node's Proof.lean (D-25)", ...) ... 'alternate-unproved' == 'alternate-submission'
+E       AssertionError: assert [] == [('alternate'...000011.json')]   (proofs[] empty on the closure node)
+FAILED ...::test_an_alternate_on_a_node_proved_by_closure_is_accepted
+FAILED ...::test_a_copy_of_an_alternate_already_on_a_closure_node_is_a_duplicate
+FAILED ...::test_step_2_takes_an_alternate_on_a_node_proved_by_closure
+FAILED ...::test_a_merged_alternate_on_a_closure_node_is_listed_in_its_proofs
+4 failed, 1 passed    (the passing one is the guard: a refuting closure, or none, is still refused)
+
+3. api: precheck note
+$ uv run --frozen pytest api/tests/test_finding_precheck_closure_alternate.py -q -p no:cacheprovider
+E       AssertionError: no closure note on a node the sweep proved
+E       AssertionError: no closure note on a node closing.closable names
+FAILED ...::test_a_proof_for_a_node_the_sweep_closed_is_told_it_lands_as_an_alternate
+FAILED ...::test_a_proof_for_a_node_the_sweep_will_close_is_told_so
+2 failed, 1 passed    (the passing one is the guard: no note where no closure is in reach)
+Note: the closed-node precheck of a Proof.lean was already accepted (202) before the fix; only the
+note was missing, as the test's first assertion (status 202) shows.
+
+4. guide
+The guide was edited before its test was written (my order slip); the red run below restored the
+committed text (`git show HEAD:gate/agents/AGENTS.md > gate/agents/AGENTS.md`), ran the test, and
+put the edit back:
+E           AssertionError: the guide still says: still needs its assemblies submitted
+E       AssertionError: the guide does not say the closure sweep proves the parent once its holes are proved
+FAILED ...::test_the_guide_no_longer_asks_for_the_assembly_after_the_holes
+FAILED ...::test_the_guide_says_the_sweep_closes_the_parent_and_an_assembly_is_an_alternate
+2 failed
+
+Mutant check on the rests_on guard (graph.NodeFacts.rests_on): with the guard removed,
+test_a_merged_alternate_on_a_closure_node_is_listed_in_its_proofs fails
+(`assert ('tutorial-and-swap',) == ()`); restored, it passes. The alternate's attestation carries a
+measured footprint so the assertion bites.
+
+== FIX ==
+
+1. gate/opn_gate/closure.py: `proves(node_dir)` — a closure record whose verdict is proved (v1
+   reads proved); a refuting record, or one that does not validate, is False (C7).
+   gate/opn_gate/modes.py `_has_proof`: Proof.lean OR closure.proves. check_alternate's duplicate
+   loop compares against Proof.lean only when it exists (it would have raised FileNotFoundError
+   on a closure node). gate/opn_gate/steps/paths_step.py take_alternate: the same test as
+   `_has_proof`. Both `alternate-unproved` messages, and the code catalog line, now say "no merged
+   Proof.lean and no proving closure".
+2. gate/opn_gate/graph.py load_nodes: `proofs` is built for artifact "proof" as before, and also
+   for a node with no Proof.lean whose closure record proves it, so a merged alternate appears in
+   proofs[] (graph.json's `proofs`, kind "alternate", already in the schema: no schema change).
+   proof_for already set the node's `proof` to the partial's attestation, and still does (the
+   alternate's hash is excluded), so status, proof_commit and trust_base are unchanged.
+   NodeFacts.rests_on: an alternate first in a closure node's proofs is not what the closure
+   rests on; the closure keeps following deps and uses, as before the alternate arrived.
+3. api/opn_api/precheck.py `closure_note`: when the bundle adds the node's Proof.lean or an
+   alternate, and the committed graph.json row is proved with a `closure` object and no kind
+   "proof" among its proofs -> {node_id, state: "closed", link, message}; else when
+   closing.closable(graph) names the node -> {node_id, state: "closable", ready, link, message}.
+   The message names attempts/<ts>-<pseudonym>-alternate.lean. Returned as a top-level `closure`
+   key of POST /precheck's 202 body, beside the job (not stored on the job, so GET /precheck/<id>
+   does not repeat it). Precedent: `carried_witnesses` / `carried_proofs` / `proposal.message`,
+   per-topic advisory keys; there is no generic notes field and the HTTP body has no schema
+   (MCP precheck_submission passes `body` through as an open object).
+4. gate/agents/AGENTS.md: the sufficient-sets paragraph (a set all proved needs nothing more; the
+   sweep proves the node, `closable` names those about to close); "After the skeleton merges"
+   (the sweep proves the parent through its holes, you submit nothing; a proof naming the holes is
+   still accepted and lands as an alternate once the sweep has closed it); "When a hole has been
+   revised" closing paragraph (no more "finalized ... submit the parent's Proof.lean"; an alternate
+   at attempts/<ts>-<pseudonym>-alternate.lean, and the precheck's `closure` note). Line ~1598
+   ("The parent is closed through its holes by the post-merge job's closure sweep on the next
+   merge") was already right and is unchanged.
+
+== GREEN ==
+$ uv run --frozen pytest <new tests> gate/tests/test_alternate.py api/tests/test_submissions_alternate.py api/tests/test_finding_racer_alternate.py -v -p no:cacheprovider -m "not lean and not docker"
+34 passed
+$ uv run --frozen pytest <new gate tests> gate/tests/test_alternate.py + 24 files (paths*, pipeline*, shelving*, outline*, routes*, export_palomar, products, footprint*, modes, closing, close*, closure_status, finding_closed_root, stage_closure, refutes_closure, finding_born_proved_products) -q -m "not lean and not docker"
+515 passed, 30 deselected
+$ uv run --frozen pytest <api new test> api/tests/test_precheck.py api/tests/test_finding_precheck_*.py api/tests/test_submissions_alternate.py api/tests/test_finding_racer_alternate.py api/tests/test_rejections_precheck.py api/tests/test_mcp*.py -q -m "not lean and not docker"
+210 passed
+$ every gate/api/site test file that reads AGENTS.md (41 files, .py only) -q -m "not lean and not docker"
+380 passed, 74 skipped (graph checkout / gate.yml not beside this worktree)
+$ uv run --frozen pytest gate/tests/test_error_codes.py api/tests/*code* -q
+7 passed
+$ uv run --frozen ruff check .            -> All checks passed!
+$ uv run --frozen ruff format --check .   -> 956 files already formatted
+$ uv run --frozen mypy gate               -> Success: no issues found in 467 source files
+$ uv run --frozen mypy api                -> Success: no issues found in 278 source files
+No product golden changed (test_products.py and the golden-reading tests pass untouched).
+
+== GRAPH COPY ==
+OPN_GRAPH_CHECKOUT=<sibling graph checkout> gate/tests/test_walkthrough.py::test_graph_copy_is_identical
+fails, but it already failed at HEAD: the sibling checkout's AGENTS.md differs from the HEAD guide
+at byte 8828 (line 209), before any of this task's edits (~byte 29000 on). The graph's AGENTS.md
+must be recopied at the re-pin (D-35), carrying this edit with the earlier drift.
+
+== NOT DONE / LEFT ==
+- POST /submissions of a Proof.lean on a node already closed is refused `proof-replaces-merged`
+  ("already has a merged Proof.lean ... submit this proof as .../attempts/...-alternate.lean"),
+  because existing_paths reads the row's proof_commit (set from the partial's attestation). The
+  direction is right (the file lands as an alternate when resubmitted there, and the gate now takes
+  it); the wording "merged Proof.lean" is inaccurate for a closure node. Not changed.
+- The racer conversion comment says "This node's proof merged from another pull request first";
+  for a closure node it was the sweep. Not changed.
+- Live only after the network is merged and the graph re-pinned (gate halves), and api-deploy (the
+  note).
+
+--- lead follow-up (2026-11-19): the two service sentences on a closure-proved node ---
+red (api/tests/test_finding_closure_wording.py, before the fix):
+E       AssertionError: assert 'already has...d Proof.lean' not in 'and-reassoc...proof (D-25)'
+E         
+E         'already has a merged Proof.lean' is contained here:
+E           and-reassoc already has a merged Proof.lean, which is never modified (D-3); submit this proof as targets/propositional/nodes/and-reassoc/attempts/<ts>-<pseudonym>-alternate.lean with artifact_type proof (D-25)
+E         ?             +++++++++++++++++++++++++++++++
+E       assert 'merged from...equest first' not in "This node's...cccccccccc`."
+green: test_finding_closure_wording.py + test_finding_racer_alternate.py + test_submissions_alternate.py: 14 passed
+fix: submissions.check_placement (proof-replaces-merged) and racers.comment name both ways a node is proved: a merged Proof.lean or the closure sweep (D-12 v3.42).

@@ -97,6 +97,10 @@ Variables (prefix ``OPN_API_``):
     The App's remaining hourly calls at or below which the service stops spending the host on
     unauthenticated reads and serves their cached state as stale (F07-T47), so pollers cannot
     starve the writes that open and close pull requests. Default ``200``; ``0`` keeps no reserve.
+``OPN_API_QUEUE_IDLE_RED_DAYS``
+    How many days a pull request whose gate failed may go without an update before the queue
+    block stops naming it as ahead of anyone (F07-T80). Default ``3``. The merge actor passes
+    over a red pull request anyway; this only keeps a long-abandoned one off every agent's list.
 ``OPN_API_RECONCILE_CONCURRENCY``
     Pull-request lookups ``GET /submissions.json`` makes at once while it reconciles the open
     records against the host (F07-T39, Q47). Default ``8``; each lookup is three or four GitHub API
@@ -211,6 +215,7 @@ DEFAULT_RECONCILE_CONCURRENCY = 8  # F07-T39, Q47
 DEFAULT_PULL_MAX_STALE_S = 180  # F07-T47
 DEFAULT_PULL_LISTING_MAX_STALE_S = 60  # F07-T47
 DEFAULT_HOST_BUDGET_RESERVE = 200  # F07-T47
+DEFAULT_QUEUE_IDLE_RED_DAYS = 3  # F07-T80
 
 # --- audit 2026-10-04: reads that spend the host or the store (F07-T68, F05-T20) ---------------
 #: OPN_API_PRECHECK_POLL_MIN_S: the least time between two host reads made by polls of one
@@ -303,6 +308,7 @@ class Settings:
     pull_max_stale_s: int = DEFAULT_PULL_MAX_STALE_S
     pull_listing_max_stale_s: int = DEFAULT_PULL_LISTING_MAX_STALE_S
     host_budget_reserve: int = DEFAULT_HOST_BUDGET_RESERVE
+    queue_idle_red_days: int = DEFAULT_QUEUE_IDLE_RED_DAYS
     github_app_id: str | None = None
     github_client_id: str | None = None
     github_client_secret: str | None = field(default=None, repr=False)
@@ -503,6 +509,7 @@ def load(environ: Mapping[str, str] | None = None) -> Settings:
             env, "OPN_API_PULL_LISTING_MAX_STALE_S", DEFAULT_PULL_LISTING_MAX_STALE_S
         ),
         host_budget_reserve=_count(env, "OPN_API_HOST_BUDGET_RESERVE", DEFAULT_HOST_BUDGET_RESERVE),
+        queue_idle_red_days=_int(env, "OPN_API_QUEUE_IDLE_RED_DAYS", DEFAULT_QUEUE_IDLE_RED_DAYS),
         github_app_id=env.get("OPN_API_GITHUB_APP_ID") or None,
         github_client_id=env.get("OPN_API_GITHUB_CLIENT_ID") or None,
         github_client_secret=env.get("OPN_API_GITHUB_CLIENT_SECRET") or None,

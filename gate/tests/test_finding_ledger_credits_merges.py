@@ -54,14 +54,22 @@ def commit_proof(root: Path, git: Git, node: str, *, author: str) -> str:
 
 
 def commit_postmortems(
-    root: Path, git: Git, node: str, route_classes: list[str], *, author: str, second: int = 0
+    root: Path,
+    git: Git,
+    node: str,
+    route_classes: list[str],
+    *,
+    author: str,
+    second: int = 0,
+    **fields: Any,
 ) -> str:
-    """One merged append carrying a postmortem per route class, by ``author``."""
+    """One merged append carrying a postmortem per route class, by ``author``; ``fields`` are
+    set on every record (``schema="postmortem/v2", model_and_tooling=...`` for F03-T23)."""
     paths = []
     for i, route_class in enumerate(route_classes):
         name = f"20260913T12{second:02d}{i:02d}Z-{author}.yaml"
         rel = f"{NODES}/{node}/attempts/{name}"
-        doc = samples.postmortem(node=node, contributor=author, route_class=route_class)
+        doc = samples.postmortem(node=node, contributor=author, route_class=route_class, **fields)
         (root / rel).write_text(yaml.safe_dump(doc, sort_keys=False), encoding="utf-8")
         paths.append(rel)
     git("add", "--", *paths)
@@ -153,6 +161,97 @@ def test_postmortems_earn_attempts_first_per_route_class(
     assert out["earned"] is False
     assert "D-13" in out["reason"], out["reason"]
     assert (root / "ledger" / "alice.json").read_bytes() == before
+
+
+# --- F03-T23: a postmortem's attempts line carries the record's own declaration -------------------
+
+
+def test_a_v2_postmortem_merge_records_its_declared_tooling(
+    tmp_path: Path, seam: Seam, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """An append has no attestation, so ``merge_tooling`` is undeclared for it; the record's own
+    ``model_and_tooling`` (postmortem/v2, D-23) is what the attempts line carries (B6)."""
+    root, git, _base = git_repo(tmp_path)
+    head = commit_postmortems(
+        root, git, PROVED, ["induction"], author="alice",
+        schema="postmortem/v2", model_and_tooling=DECLARED,
+    )  # fmt: skip
+    assert ledger.merge_tooling(root, head) == ledger.UNDECLARED  # no attestation for an append
+    out = ledger_run(capsys, root, head)
+    assert out["earned"] is True, out
+    (entry,) = entries(root, "alice")
+    assert entry["line"] == "attempts" and entry["route_class"] == "induction"
+    assert entry["tooling"] == DECLARED
+    assert entry["automation"] is None  # postmortem/v2 has no automation field: as before
+
+
+def test_each_postmortem_of_one_merge_carries_its_own_declaration(
+    tmp_path: Path, seam: Seam, capsys: pytest.CaptureFixture[str]
+) -> None:
+    root, git, _base = git_repo(tmp_path)
+    rels = []
+    for i, (route_class, model) in enumerate([("induction", DECLARED), ("case-split", None)]):
+        rel = f"{NODES}/{PROVED}/attempts/20260913T1200{i:02d}Z-alice.yaml"
+        doc = samples.postmortem(
+            node=PROVED, contributor="alice", route_class=route_class,
+            schema="postmortem/v2", model_and_tooling=model,
+        )  # fmt: skip
+        (root / rel).write_text(yaml.safe_dump(doc, sort_keys=False), encoding="utf-8")
+        rels.append(rel)
+    git("add", "--", *rels)
+    git("commit", "-q", "--author", "alice <alice@x>", "-m", "two postmortems")
+    out = ledger_run(capsys, root, git("rev-parse", "HEAD"))
+    assert out["earned"] is True, out
+    assert [(e["route_class"], e["tooling"]) for e in entries(root, "alice")] == [
+        ("induction", DECLARED),
+        ("case-split", ledger.UNDECLARED),
+    ]
+
+
+@pytest.mark.parametrize(
+    "fields",
+    [
+        pytest.param({"schema": "postmortem/v2", "model_and_tooling": None}, id="v2-null"),
+        pytest.param({}, id="v1"),
+    ],
+)
+def test_a_null_or_v1_postmortem_merge_stays_undeclared(
+    tmp_path: Path, seam: Seam, capsys: pytest.CaptureFixture[str], fields: dict[str, Any]
+) -> None:
+    root, git, _base = git_repo(tmp_path)
+    head = commit_postmortems(root, git, PROVED, ["induction"], author="alice", **fields)
+    out = ledger_run(capsys, root, head)
+    assert out["earned"] is True, out
+    (entry,) = entries(root, "alice")
+    assert entry["tooling"] == ledger.UNDECLARED
+
+
+@pytest.mark.parametrize(
+    ("record", "expected"),
+    [
+        pytest.param(
+            samples.postmortem(schema="postmortem/v2", model_and_tooling=DECLARED),
+            DECLARED,
+            id="v2-declared",
+        ),
+        pytest.param(
+            samples.postmortem(schema="postmortem/v2", model_and_tooling=None),
+            ledger.UNDECLARED,
+            id="v2-null",
+        ),
+        pytest.param(samples.postmortem(), ledger.UNDECLARED, id="v1-no-field"),
+        pytest.param(
+            samples.postmortem(schema="postmortem/v2", model_and_tooling="   "),
+            ledger.UNDECLARED,
+            id="blank",
+        ),
+    ],
+)
+def test_postmortem_tooling_reads_the_records_declaration(
+    record: dict[str, Any], expected: str
+) -> None:
+    """Beside ``statement_tooling``: the declared string, else ``undeclared``."""
+    assert ledger.postmortem_tooling(record) == expected
 
 
 def test_the_curator_earns_no_proof_line_but_does_earn_attempts(
