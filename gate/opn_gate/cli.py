@@ -18,7 +18,8 @@ import subprocess
 import sys
 import tempfile
 import time
-from collections.abc import Sequence
+from collections.abc import Iterator, Sequence
+from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
 from pathlib import Path, PurePosixPath
@@ -1701,7 +1702,20 @@ def run_close(args: argparse.Namespace, settings: config.Settings) -> int:
     del settings
     graph, commit = _checkout_and_commit(args.graph, args.commit)
     out_dir = _out_dir(args.out, "opn-close-")
-    tree = export_tree(graph, commit, out_dir / "tree")
+    # F28-T12: a checkout of the commit, not ``git archive``: a parent whose hole was revised
+    # reads `stale` until F08-T10's lifting by commit ancestry says otherwise, and without the
+    # history the sweep saw erdos-1050's proved root as closable and joined it on every merge.
+    with history_tree(graph, commit, out_dir / "tree") as tree:
+        report, failed = _close_targets(args, graph, commit, tree, out_dir)
+    sys.stdout.write(json.dumps({"commit": commit, "results": report}, ensure_ascii=False) + "\n")
+    return EXIT_FAIL if failed else EXIT_PASS
+
+
+def _close_targets(
+    args: argparse.Namespace, graph: Path, commit: str, tree: Path, out_dir: Path
+) -> tuple[list[dict[str, Any]], bool]:
+    """``run_close``'s sweep over ``tree`` (a checkout of ``commit``): the report, and whether any
+    join failed."""
     targets = [args.target] if args.target is not None else outline_graph.target_ids(tree)
     report: list[dict[str, Any]] = []
     failed = False
@@ -1748,8 +1762,7 @@ def run_close(args: argparse.Namespace, settings: config.Settings) -> int:
             else:
                 failed = True
             report.append(entry)
-    sys.stdout.write(json.dumps({"commit": commit, "results": report}, ensure_ascii=False) + "\n")
-    return EXIT_FAIL if failed else EXIT_PASS
+    return report, failed
 
 
 def run_gate(args: argparse.Namespace, settings: config.Settings) -> int:
@@ -4538,6 +4551,40 @@ def export_tree(graph: Path, commit: str, dest: Path) -> Path:
     )
     subprocess.run(["tar", "-x", "-C", str(dest)], input=archive.stdout, check=True)
     return dest
+
+
+@contextmanager
+def history_tree(graph: Path, commit: str, dest: Path) -> Iterator[Path]:
+    """The graph at ``commit`` as a detached worktree, with the history ``export_tree`` drops:
+    what a status derivation that asks commit ancestry (F08-T10) needs to agree with the
+    products. Files written into it are scratch; the worktree is removed, and its registration
+    in ``graph`` pruned, on the way out (F28-T12)."""
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    added = subprocess.run(
+        ["git", "-C", str(graph), "worktree", "add", "-q", "--detach", str(dest), commit],
+        check=False,
+        capture_output=True,
+        text=True,
+        env=git_environment(),
+    )
+    if added.returncode != 0:
+        msg = f"could not check out {commit[:12]} at {dest}: {added.stderr.strip()}"
+        raise CliError(msg)
+    try:
+        yield dest
+    finally:
+        subprocess.run(
+            ["git", "-C", str(graph), "worktree", "remove", "--force", str(dest)],
+            check=False,
+            capture_output=True,
+            env=git_environment(),
+        )
+        subprocess.run(
+            ["git", "-C", str(graph), "worktree", "prune"],
+            check=False,
+            capture_output=True,
+            env=git_environment(),
+        )
 
 
 def commit_changes(graph: Path, commit: str) -> list[Change]:

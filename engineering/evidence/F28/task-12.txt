@@ -1,0 +1,105 @@
+F28-T12 — the closure sweep's two dead joins (B2 of the 2026-11-19 run)
+=========================================================================
+
+FINDING (measured in engineering/evidence/F07/task-87.txt, the 1119-gate branch): every
+post-merge run of `opn-gate close --all --no-build` tried, and failed, the same two joins:
+  erdos-1050  erdos-1050@1        join-failed "hole borwein: no child closes it:
+              erdos-1050--h1-v2: erdos_1050__h1 is not declared"
+  tutorial    variant-93e79cb5@2  join-failed "hole h₁: no child closes it:
+              variant-93e79cb5--h3: variant_93e79cb5__h3 is not declared"
+costing ~3 min of a building merge's job and ~5.5 min of an append batch head's, including a
+118 s Mathlib image pull for erdos-1050 alone.
+
+They are two different defects behind one message.
+
+1. erdos-1050: the sweep should never have tried. FIXED here.
+----------------------------------------------------------------
+`erdos-1050` is proved: graph origin/main ee5c6d100d's graph.json says `proved`, and it has a
+merged Proof.lean. But it carries status/20260917T220741Z-calib-lead-83dd.yaml (`stale`, the
+2026-09-17 D-8 revision of its hole --h1 to --h1-v2), and F08-T10 lifts a stale record only by
+commit ancestry (graph.stale_lifted: the attestation's graph_commit must descend from the commit
+that added the record). `run_close` worked on `export_tree` = `git archive`, a tree with no
+history, so `stale_lifted` had nothing to ask and the record stood: the sweep saw the proved
+calibration root as `stale`, `closing.closable` offered `erdos-1050@1` as ready, and the job
+pulled the Mathlib image and composed a join on every merge. (That join then failed for the
+reason in 2: the root's Statement.lean predates the own-Context import.)
+
+Measured over every live target at ee5c6d100d (statuses from `git archive` vs a detached
+worktree): exactly one node differs, `erdos-1050  export: stale  checkout: proved`; closable
+nodes: export [erdos-1050@1, variant-93e79cb5@2], checkout [variant-93e79cb5@2].
+
+Red (before the fix):
+  $ uv run --frozen pytest -m "not lean and not docker" \
+      tests/test_finding_close_sweep_history.py -q
+  E       AssertionError: the sweep must derive what graph.json publishes
+  E       assert ['stale'] == ['proved']
+  1 failed in 1.43s
+(The fixture is the live shape: a proved root, its dep revised by `curator.revise` so the root
+is marked stale, the revision proved, the root re-attested at the commit carrying the mark; in
+the checkout `graph.load_target(...).statuses[ROOT] == "proved"`.)
+
+Fix (gate/opn_gate/cli.py): `run_close` now works on `history_tree(graph, commit, out/tree)`, a
+context manager that `git worktree add --detach`es the commit and removes it (and prunes its
+registration) on the way out — the Palomar export's precedent (F25, run_export_palomar). The
+sweep body moved unchanged into `_close_targets`. A tree directory that is already occupied is a
+named CliError ("could not check out …"), never a traceback, and nothing of the caller's is
+removed. `export_tree` itself is unchanged (five other commands use it).
+
+Green:
+  $ uv run --frozen pytest -m "not lean and not docker" tests/test_finding_close_sweep_history.py \
+      tests/test_close_cli.py tests/test_close.py tests/test_refutes_closure.py \
+      tests/test_close_compose.py tests/test_finding_born_proved_products.py \
+      tests/test_finding_carried_proof_workflow.py tests/test_finding_revised_hole_parent.py \
+      tests/test_outline_cli.py -q
+  68 passed, 30 deselected in 31.70s
+  make lint: All checks passed! / 959 files already formatted   (exit 0)
+  make types: Success: no issues found (gate 280 files, site 129)  (exit 0)
+
+On the live graph (shared checkout, origin/main ee5c6d100d, read-only; the worktree is added and
+removed by the command):
+  $ python -m opn_gate.cli close --graph ../open_proof_network_graph --commit ee5c6d10… \
+      --target erdos-1050 --no-build --out <scratch>
+  {"commit": "ee5c6d100daf3427dade94f2d0ea56291dc60eec", "results": []}      exit 0
+  No sandbox, no image, no join; `git worktree list` afterwards shows no registration left.
+
+2. tutorial variant-93e79cb5@2: the join is right to refuse as F28 is written. NOT FIXED.
+---------------------------------------------------------------------------------------
+The node's Statement.lean (merged 2026-09-11 by the F08 smoke) has no import at all — it
+predates F08-T13 (2026-09-20), which made every statement the network writes import its own
+Context. The join elaborates the merged assembly as the node's Proof module "so its imports are
+the statement's" (Close.lean; F28's spec: "A route's children need no use line: they are the
+node's declared dependencies, their signatures in its own Context.lean, and step 4 imports their
+proofs in place"). The staged Context does import Nodes.«variant-93e79cb5--h3».Proof, but
+neither the statement nor the assembly (attempts/20261030T130000Z-lead-f32-e364-partial.lean)
+imports that Context, so `variant_93e79cb5__h3` is not in the environment and fillHole reports
+"is not declared".
+
+Reproduced locally with the real toolchain (LocalToolchain, core Lean, `close.sweep` over a
+`git archive` copy of graph ee5c6d100d):
+  [{"node": "variant-93e79cb5", "link": {"id": "variant-93e79cb5@2", "inputs":
+    ["variant-93e79cb5--h3"]}, "ok": false, "reason": "join-failed",
+    "detail": "hole h₁: no child closes it: variant-93e79cb5--h3: variant_93e79cb5__h3 is not declared"}]
+Probe (scratch only, nothing kept): the same staged work dir, `opn-close` run by hand on the
+assembly with one line `import Nodes.«variant-93e79cb5».Context` prepended:
+  {"axioms":[],"decl":"OpnProp.and_left_of_and_swap","holes":[{"child":"variant-93e79cb5--h3",
+   "hole":"h₁"}],"ok":true,…}
+and without the line, on the same build: the "is not declared" refusal. So the mathematics is
+sound (the child states the hole exactly; the kernel accepts the joined theorem, no axioms) and
+the only obstacle is the import, which the 2026-09-20 rule says such nodes cannot gain ("nodes
+already merged without the line close only by a direct proof or a D-8 revision"). Whether the
+join may add the node's own Context import itself is a change to what F28 says the join
+elaborates, so it is left for the owner (options in the report). After this task the sweep
+still tries this join on every merge, on the core image (~43 s pull + seconds).
+
+Live closures after the fix: none. erdos-1050 (a calibration root) is no longer attempted at all
+— it is proved, and no closure record will be written for it. variant-93e79cb5 still fails as
+before. No closure would be wrong: none is made.
+
+3. Should the sweep remember a failed join? (asked; not built)
+--------------------------------------------------------------
+Answered in the report: possible and safe if keyed on everything the join reads (the staged
+source tree's bytes, the image digest and network commit), but after fix 1 it would save only the
+tutorial's ~45 s, and fixing or retiring that one link is the better lever.
+
+Left undone: the tutorial link (owner's call); no lean-tier test was added (the defect fixed is
+pure Python and the fast tier covers it; the tutorial behaviour is unchanged).
