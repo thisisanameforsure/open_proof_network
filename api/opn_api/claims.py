@@ -199,7 +199,7 @@ def off_frontier(ctx: Context, node_id: str, target_id: str | None) -> ApiError:
         return precheck.shelved_error(node_id, facts)
     if facts["status"] == "blocked":
         if precheck.witness_awaits_render(ctx, node_id, facts):  # F06-T8: one state, one answer
-            return precheck.awaits_render(node_id, f"{node_id}'s witness has merged")
+            return precheck.awaits_render(ctx, node_id, f"{node_id}'s witness has merged")
         return blocked(ctx, node_id, facts, graph)
     details = precheck.standing(ctx, node_id, facts)
     successor = f" {details['replacement']} replaced it." if details["replacement"] else ""

@@ -156,6 +156,25 @@ NOT_RENDERED = (
 WAITING_ON_PRODUCTS = "products"
 
 
+def products_pending(ctx: Context, message: str, details: dict[str, Any] | None = None) -> ApiError:
+    """F06-T20 (bug B8): every ``409 products-pending``, built in one place. ``Retry-After`` was a
+    header only, and an agent reading the JSON body polled blindly, so the body carries the same
+    number as ``details.retry_after_s``, and ``details.graph_commit``: the commit the service's
+    products were read at (``ctx.head``; ``null`` before the first read), unless the refusal
+    names the commit it was judged against itself (F06-T14, F06-T18)."""
+    return ApiError(
+        409,
+        "products-pending",
+        message,
+        details={
+            "graph_commit": ctx.head,
+            **(details or {}),
+            "retry_after_s": PRODUCTS_RETRY_AFTER_S,
+        },
+        headers={"Retry-After": str(PRODUCTS_RETRY_AFTER_S)},
+    )
+
+
 def unknown_node(ctx: Context, node_id: str, where: str = "") -> ApiError:
     """What to answer for a node the products do not carry. The service recorded every proposal
     it opened (T16), so it can tell three cases apart instead of saying "not a node" to all of
@@ -192,13 +211,7 @@ def unknown_node(ctx: Context, node_id: str, where: str = "") -> ApiError:
             if hole is not None
             else f"{node_id} merged as pull request #{found.pr_number}"
         )
-        return ApiError(
-            409,
-            "products-pending",
-            f"{became}; {NOT_RENDERED}. Retry shortly.",
-            details=details,
-            headers={"Retry-After": str(PRODUCTS_RETRY_AFTER_S)},
-        )
+        return products_pending(ctx, f"{became}; {NOT_RENDERED}. Retry shortly.", details)
     if found.closed is not None or (state is not None and state.finished):
         return unknown  # closed unmerged: the node never entered the graph
     waiting = state.waiting_on if state is not None else None
@@ -1036,8 +1049,10 @@ def waiting_on_products(
     post-merge job, and says so, instead of reading as finished while every call on the node
     answers ``products-pending``. F05-T15: so is a merged annex the products' commit lacks, and a
     merged witness whose node still reads ``witness-missing``, the two other things precheck
-    answers ``products-pending`` for. A merged postmortem or approach record waits on nothing.
-    A graph that cannot be read changes nothing (C7)."""
+    answers ``products-pending`` for. F06-T20 (bug B8): so is a merged partial while a node its
+    record expects (``Submission.expected_nodes``, the holes it makes) is not in the products,
+    since every call on that hole answers ``products-pending`` until it is. A merged postmortem
+    or approach record waits on nothing. A graph that cannot be read changes nothing (C7)."""
     from opn_api.store import proposes  # noqa: PLC0415
 
     if pull is None or not pull.get("merged"):
@@ -1048,6 +1063,8 @@ def waiting_on_products(
         waits = _annex_unrendered
     elif found.kind == "witness" and found.node_id is not None:
         waits = _witness_unrendered
+    elif found.expected_nodes:
+        waits = _holes_unrendered
     else:
         return pull
     try:
@@ -1066,6 +1083,14 @@ def _node_unrendered(ctx: Context, found: Submission, pull: dict[str, Any]) -> b
         for nodes in precheck.graph_doc(ctx).values()
         for node in nodes
     )
+
+
+def _holes_unrendered(ctx: Context, found: Submission, pull: dict[str, Any]) -> bool:
+    """F06-T20: a node the partial's holes are expected to become is not in the products yet."""
+    from opn_api import precheck  # noqa: PLC0415 — precheck imports this module
+
+    rendered = {node.get("node_id") for nodes in precheck.graph_doc(ctx).values() for node in nodes}
+    return any(node_id not in rendered for node_id in found.expected_nodes)
 
 
 def _annex_unrendered(ctx: Context, found: Submission, pull: dict[str, Any]) -> bool:

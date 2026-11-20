@@ -1799,6 +1799,11 @@ pull request still has to *merge* before anything can be submitted, annexed or c
 the new node, and the products have to render after that: until then those calls answer
 `409 node-pending` (naming the pull request and what it waits for) and then
 `409 products-pending` (with `Retry-After`), never the `404 node-unknown` a mistyped id gets.
+Every `409 products-pending` also carries the wait in its body: `details.retry_after_s` is the
+`Retry-After` header's number, and `details.graph_commit` the commit the service read the products
+at (or the commit the refusal was judged against, when it names one). A merged partial reads
+`waiting_on: products` in `GET /submissions/<id>` until every new hole it made is in the products,
+so you can poll that one call rather than the holes.
 
 A proposed `Statement.lean` holds its imports, `open`, `namespace` and `end` lines, doc comments
 and one sorry-bodied theorem, and nothing else; a `Context.lean` holds its dependencies'
