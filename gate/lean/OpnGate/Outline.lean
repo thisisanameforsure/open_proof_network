@@ -32,10 +32,11 @@ leads with a name on the configured list (F19-Q5; passed as `--automation`, C6),
 term, `hole` for `sorry`, and `steps` otherwise.
 
 **Constants** are the identifiers written in the source (original syntax only) that elaborated to
-a constant, each given to the innermost step whose source contains it. Each is reported with its
-module; for a module under one of the `--doc-modules` prefixes, with its docstring
-(`findDocString?`) and any Stacks or Kerodon tag Mathlib's cross-reference attribute records. The
-tags are read by evaluating `Lean.Environment.getSortedCrossRefs` (Mathlib's
+a constant, and the field names written through dot notation, as the constant each resolved to
+(`h.symm` is `Eq.symm`, F19-T11), each given to the innermost step whose source contains it.
+Each is reported with its module; for a module under one of the `--doc-modules` prefixes, with its
+docstring (`findDocString?`) and any Stacks or Kerodon tag Mathlib's cross-reference attribute
+records. The tags are read by evaluating `Lean.Environment.getSortedCrossRefs` (Mathlib's
 `Mathlib.Tactic.CrossRefAttribute`) when the environment has it; Lean core has no such attribute
 and then every constant's tags are empty. Which constants are graph nodes, definitions or
 library is decided on the Python side from the module (`layout.module_origin`), the gate's one
@@ -455,12 +456,19 @@ partial def assignUses (steps : Array StepOut) (consts : Array (String.Pos.Raw �
     let uses := own.foldl (fun acc n => if acc.contains n then acc else acc.push n) #[]
     { s with children, uses }
 
-/-- Every identifier written inside `r` that elaborated to a constant, in source order. -/
+/-- Whether `stx` is a written name: an identifier, or a field name written through dot
+notation (`h.symm`, `n.succ_ne_zero`), which the elaborator records under its own node kind
+(`Lean.Parser.Term.identProjKind`, wrapping the field's syntax) with the constant the field
+resolved to (F19-T11). A numbered field (`p.1`) names nothing, so it is not one. -/
+def writtenName (stx : Syntax) : Bool :=
+  stx.isIdent || (stx.isOfKind Parser.Term.identProjKind && stx[0].isIdent)
+
+/-- Every name written inside `r` that elaborated to a constant, in source order. -/
 def writtenConstants (infos : Array (ContextInfo × Info)) (r : Syntax.Range) :
     Array (String.Pos.Raw × Name) :=
   let found := infos.filterMap fun (_, info) => match info with
     | .ofTermInfo ti =>
-      if ti.isBinder || !ti.stx.isIdent then none
+      if ti.isBinder || !writtenName ti.stx then none
       else match ti.expr.consumeMData, rangeOf ti.stx with
         | .const n _, some sr => if within sr r then some (sr.start, n) else none
         | _, _ => none

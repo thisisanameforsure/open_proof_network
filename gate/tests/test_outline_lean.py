@@ -287,3 +287,15 @@ def test_a_published_outline_keeps_every_id(
     again = doc(seam, pinned, j)
     assert outline.lost_ids(published, again) == []
     assert [s["id"] for s in again["steps"]][-1] == "close"  # both end in an unenclosed `exact`
+
+
+def test_dot_notation_is_a_use_of_the_constant_it_resolves_to(
+    seam: LocalToolchain, pinned: ResolvedToolchain
+) -> None:
+    """F19-T11 (2026-11-19 run, B15): ``h.symm`` uses ``Eq.symm`` and ``n.succ_ne_zero`` uses
+    ``Nat.succ_ne_zero``, as written in full they would; before, the elaborator's record of a
+    field resolved through the dot was not an identifier's, and the step used nothing."""
+    d = doc(seam, pinned, job("Dots", "OpnOutline.dots"))
+    hs, hn, _close = d["steps"]
+    assert [c["name"] for c in hs["uses"]["mathlib"]] == ["Eq.symm"]
+    assert [c["name"] for c in hn["uses"]["mathlib"]] == ["Nat.succ", "Nat.succ_ne_zero"]

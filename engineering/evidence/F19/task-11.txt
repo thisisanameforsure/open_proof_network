@@ -1,0 +1,81 @@
+F19-T11 — an outline's uses include constants written through dot notation; an explainer citing
+one is not warned about (2026-11-19 run, finding B15, dot-notation half)
+
+Finding
+-------
+An outline's `uses` missed constants called through dot notation (`hp.dvd_choose_add` did not
+appear as `Nat.Prime.dvd_choose_add`), so accurate explainers drew `explainer-name-unanchored`
+warnings. Also reported: nothing inside private helper lemmas is in the outline (the t1–t4
+outlines on erdos-849 hold only a `close` step).
+
+Diagnosis
+---------
+Uses come from the elaborated info trees, not from source text (gate/lean/OpnGate/Outline.lean,
+`writtenConstants`): every TermInfo inside the proof's range whose syntax is an identifier and
+whose expression is a constant. The elaborator does record the resolved constant of a dot-notation
+field (Lean 4.33.1, Lean/Elab/App.lean `elabAppLValsAux`, `LValResolution.const` and `.projFn`),
+but through `addProjTermInfo`, which wraps the field's syntax in a node of kind
+`Lean.Parser.Term.identProjKind`. That node is not `isIdent`, so the filter dropped it.
+
+Red runs (before the fix)
+-------------------------
+Lean tier, one test (fixture gate/tests/fixtures/outline/Dots.lean: `have hs : b = a := h.symm`,
+`have hn : Nat.succ n ≠ 0 := n.succ_ne_zero`):
+uv run --frozen pytest gate/tests/test_outline_lean.py -m lean -k dot_notation -q
+E       AssertionError: assert [] == ['Eq.symm']
+1 failed
+
+Fast tier (the anchoring check over an outline extracted before the fix):
+uv run --frozen pytest gate/tests/test_explainer_schema.py -m "not lean and not docker" -k dot_notation -q
+E       At index 0 diff: 'Nat.Prime.dvd_choose_add' != 'Nat.Prime.two_le'
+1 failed   (the accurate citation warned)
+
+Fix
+---
+1. gate/lean/OpnGate/Outline.lean: `writtenName` accepts an identifier, or an `identProjKind` node
+   whose field is an identifier, so `h.symm` is a use of `Eq.symm` and `n.succ_ne_zero` of
+   `Nat.succ_ne_zero`, given to the innermost step as any written constant is, and entered in the
+   constants table with module, docstring and tags. A numbered field (`p.1`) is not a written name
+   and stays out: the first version took every identProj and made the Steps fixture's `key` step
+   use `Prod.fst` (test_have_tree_with_kinds_spans_and_closing went red); excluding numbered
+   fields kept that test as it was, so no existing test was restated.
+2. gate/opn_gate/explainers.py (`name_warnings`, `_called_through_a_dot`): outlines are extracted
+   once per artifact (`opn-gate outline` skips an artifact that has one), so every outline already
+   on the graph keeps the old uses. For those, a cited dotted name whose last component the anchored
+   steps' own source lines call through a dot (`[\w')\]⟩]\.<last>` not followed by a name
+   character) is not warned about. A name called only outside the section's steps' lines, or
+   nowhere, still warns. This answers the brief's question "could the anchoring check accept a
+   name that resolves through dot notation without an outline change": yes, by reading the
+   artifact's lines the steps span, and it is needed, since no published outline will be redone.
+   It is a source-text test, so it says the steps call *a* field of that name, not which constant;
+   it can only silence a warning, never refuse.
+
+Green runs
+----------
+uv run --frozen pytest gate/tests/test_outline_lean.py -m lean -q
+14 passed   (Dots included; run again after the final docstring rewrap: 14 passed)
+uv run --frozen pytest gate/tests/test_outline_cli.py -m lean -k outline_cli_real -q
+1 passed
+uv run --frozen pytest gate/tests/test_outline.py gate/tests/test_outline_cli.py \
+  gate/tests/test_finding_outline_job.py gate/tests/test_explainer_schema.py -m "not lean and not docker" -q
+62 passed
+uv run --frozen pytest api/tests/test_finding_gloss_warnings.py api/tests/test_finding_gloss_dry_run.py \
+  api/tests/test_finding_submission_gate_report.py gate/tests/test_explainer_schema.py -m "not lean and not docker" -q
+25 passed
+make lint: exit 0. make types: exit 0.
+(The lean tier ran locally from elan's 4.33.1 with the worktree's own `lake build`; the docker
+tier was not run.)
+
+Not done
+--------
+- Private helper lemmas as outline steps (feature F9): not done. The extractor outlines one
+  declaration's proof (`declTree` finds the command that declares `decl`, `proofOf` takes its
+  `:=`), so a helper's body is another command's info tree and source range. Making helpers steps
+  needs a new step kind, an id rule that keeps every published id stable (helpers precede the
+  theorem in the file, so they cannot take `s<n>` positions), and a schema decision on where they
+  sit in `steps`. That is a design question (outline/v1 is closed), not a cheap fall-out.
+- A helper's *name* used in the main proof is already a use: but its module is the artifact's own,
+  and `outline._uses` drops the artifact's own constants by design ("not a use of anything"), so
+  citing a helper by name in an explainer still warns unless the citation is a step id or local.
+- Outlines already published keep their old `uses`; only the fallback in (2) covers them. A
+  re-extraction would need the backfill to replace outlines, which it deliberately never does.
