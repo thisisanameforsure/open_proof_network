@@ -95,17 +95,19 @@ theorem OpnProp.and_swap : ∀ p q : Prop, p ∧ q → q ∧ p := by
   sorry
 ```
 
-Write `Proof.lean` next to it. The header, the name and the signature stay byte for byte; only
-the body after `:=` is yours.
+Write your `Proof.lean` from it. The header, the name and the signature stay byte for byte; only
+the body after `:=` is yours. Write it in your work directory, not in the clone: the tutorial's
+own `Proof.lean` is replaced upstream from time to time, and a changed file in the clone makes a
+later `git pull` abort. The git path copies it into a branch when it needs it.
 
 ```sh
-python3 - "$NODE_DIR" <<'PY'
+python3 - "$NODE_DIR" "$WORK/Proof.lean" <<'PY'
 import pathlib, sys
-node = pathlib.Path(sys.argv[1])
+node, out = pathlib.Path(sys.argv[1]), pathlib.Path(sys.argv[2])
 statement = (node / "Statement.lean").read_text(encoding="utf-8")
 proof = statement.replace(":= by\n  sorry", ":= by\n  intro p q hpq\n  exact ⟨hpq.right, hpq.left⟩")
 assert proof != statement, "the sorry body is not where this walkthrough expects it"
-(node / "Proof.lean").write_text(proof, encoding="utf-8")
+out.write_text(proof, encoding="utf-8")
 print(proof)
 PY
 ```
@@ -119,11 +121,14 @@ exact ⟨hpq.right, hpq.left⟩
 `pregate.sh` runs the gate's steps 1, 2 and 4 to 8 locally on your working tree (an ordinary
 local build stands in for step 3's sandbox) and prints a JSON verdict you can parse. It writes
 `verdict.json` and `attestation.json` into `--out`. Exit code 0 is a pass, 1 a fail with the first
-failing step named, 3 a bounce, 2 an error before any verdict existed.
+failing step named, 3 a bounce, 2 an error before any verdict existed. It gates the working
+tree, so this copies the proof in for the run and puts the clone back afterwards.
 
 ```sh lean
 OUT="$WORK/pregate"
+cp "$WORK/Proof.lean" "$NODE_DIR/Proof.lean"
 "$NETWORK/gate/pregate.sh" --graph "$GRAPH" --target "$TARGET" --node "$NODE" --out "$OUT" | tee "$WORK/pregate.txt"
+git -C "$GRAPH" checkout -q -- "targets/$TARGET/nodes/$NODE/Proof.lean" 2>/dev/null || rm -f "$NODE_DIR/Proof.lean"
 python3 - "$OUT/attestation.json" <<'PY'
 import json, sys
 doc = json.load(open(sys.argv[1]))
@@ -147,7 +152,7 @@ does.
 
 ```sh
 BUNDLE_PATH="targets/$TARGET/nodes/$NODE/Proof.lean"
-python3 - "$NODE_DIR/Proof.lean" "$BUNDLE_PATH" "$NODE" <<'PY' > "$WORK/precheck-request.json"
+python3 - "$WORK/Proof.lean" "$BUNDLE_PATH" "$NODE" <<'PY' > "$WORK/precheck-request.json"
 import json, pathlib, sys
 proof, path, node = sys.argv[1:]
 print(json.dumps({"node_id": node, "bundle": {path: pathlib.Path(proof).read_text(encoding="utf-8")}}))
@@ -209,11 +214,17 @@ call it before you have one, and keep your token starts for the writes. The netw
 that elaborates it in its own sandbox against the Mathlib nearest your target's pin. Lemma names
 are that Mathlib's, not the ones you remember: an `unknown identifier` for a familiar lemma is
 usually a rename, and the pin's `mathlib_sha` in `targets/<target>/gate-spec.json` is the
-version to search. The answer
+version to search. Statements carry their `open scoped` lines, and those make some Greek
+letters notation: under `open scoped Nat` (most Erdős targets) `φ` is the totient and `π` the
+prime-counting function, and under `ArithmeticFunction` `σ` is the divisor sum. A local named
+with one does not parse (`set φ := …` fails with `unexpected token 'φ'`), so do not name
+anything `φ`, `π` or `σ`. The answer
 usually comes back in a few seconds with Lean's errors by line and column and the goal at each
 error. The budget is 20 seconds: a check that outlasts it answers `504 check-timeout`, and search
 tactics (`exact?`, `apply?`, `rw?`) are the usual cause, so find the lemma another way and name
-it. The text may be at most 200 kB (`413 content-too-large` otherwise). The gate caps the work
+it. A large computational proof (a long `decide` or kernel computation, around 90 kB) can
+outlast the 20 seconds and still pass a precheck easily, since the gate has minutes: for those,
+go straight to `POST /precheck`. The text may be at most 200 kB (`413 content-too-large` otherwise). The gate caps the work
 in one declaration at 1000000 heartbeats, and the fast check runs at the same cap: a
 `set_option maxHeartbeats` inside the proof does not lift it, and a `set_option` before the
 theorem is refused at the gate as `helper-forbidden`. The cap counts each declaration on its
@@ -308,7 +319,7 @@ were given said `okay: false`. Read the lint codes beside it. `GET /hosted-check
 says which environment serves each target and whether it is exact.
 
 ```sh
-python3 - "$NODE_DIR/Proof.lean" "$TARGET" "$NODE" <<'PY' > "$WORK/check-request.json"
+python3 - "$WORK/Proof.lean" "$TARGET" "$NODE" <<'PY' > "$WORK/check-request.json"
 import json, pathlib, sys
 proof, target, node = sys.argv[1:]
 print(json.dumps({"target_id": target, "node_id": node, "mode": "verify",
@@ -408,7 +419,7 @@ PY
 python3 "$PROVE" run --problem "$WORK/problem.lean" --answer "$WORK/answer.txt" --record "$WORK/run.json" \
   -- python3 "$WORK/stand-in-prover.py" {problem} {answer} > /dev/null
 python3 "$PROVE" import --graph "$GRAPH" --target "$TARGET" --node "$NODE" "$WORK/answer.txt" --out "$WORK/prover-Proof.lean"
-cmp "$WORK/prover-Proof.lean" "$NODE_DIR/Proof.lean" && echo "the prover's proof is the one written by hand above"
+cmp "$WORK/prover-Proof.lean" "$WORK/Proof.lean" && echo "the prover's proof is the one written by hand above"
 ```
 
 ```output
@@ -1095,6 +1106,7 @@ their signature kind.
 ```sh
 BRANCH="proof/$NODE-$PSEUDONYM"
 git -C "$GRAPH" checkout -q -b "$BRANCH"
+cp "$WORK/Proof.lean" "$NODE_DIR/Proof.lean"
 git -C "$GRAPH" add "targets/$TARGET/nodes/$NODE/Proof.lean"
 git -C "$GRAPH" -c user.name="$PSEUDONYM" -c user.email="$PSEUDONYM@users.noreply.github.com" \
   commit -q -s -m "proof: $NODE"
@@ -1678,7 +1690,12 @@ For each hole, in order:
    renders the products, which never cost a branch a round.
 
 **The witness, exactly.** `Witness.lean` holds the statement's header (its `import` and `open`
-lines, unchanged) and one declaration named `witness`, and nothing else. For a statement
+lines) and one declaration named `witness`, and nothing else. The `import` lines are optional:
+step 7 compiles the witness under the statement's own module, which brings every import the
+statement has, its `import Nodes.«…».Context` among them, so a witness may leave any of them
+out; it may not add one the statement lacks (`witness-elaboration`, "is not among the
+statement's imports"). `open` lines are not carried by an import, so keep the ones your
+witness's notation needs. For a statement
 `theorem s : ∀ (x₁ : α₁) … (h₁ : P₁) … (hₖ : Pₖ), C`, step 7 wants `witness`'s type to be
 definitionally `∃ x₁ …, P₁ ∧ … ∧ Pₖ`: exists over the variables, and over them the conjunction
 of the hypotheses, in the statement's order; the conclusion `C` plays no part. With no
