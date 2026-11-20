@@ -41,7 +41,10 @@ PATH = ".github/workflows/merge.yml"
 #: born-proved hole's record) is first while it is a graph branch; take it out once it is on main.
 #: ``f07-record-first`` (a refused push re-lays the merge's own record; the products follow by
 #: render.yml) is built on ``f32-t5-gate`` and goes first while it is a graph branch.
+#: ``t1119-actor`` (F07-T81, T82: words and reports inert to a building lane, and an append
+#: sub-lane per target) is first while it is a graph branch; take it out once it is on main.
 REFS = (
+    "t1119-actor",
     "audit-b-workflows",
     "origin/main",
     "f07-t25-merge-actor",
