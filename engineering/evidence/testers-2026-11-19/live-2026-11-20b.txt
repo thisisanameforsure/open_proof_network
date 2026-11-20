@@ -1,0 +1,31 @@
+# 2026-11-19 agent run, throughput and cheap wins (F07-T81–T88, F06-T20, F22-T28–T30, F19-T11,
+# F28-T12, F29-T12): carried live 2026-11-20
+
+1. Network PR #113 (testers-1119-throughput -> main): ci run 44709474239 success on all three tiers
+   (Lean 1h51m28s, harness 1m44s). Merged 2026-11-20T11:10:23Z as main
+   9080756273460bfbcb31dff88e0ced95eebba1eb.
+2. api-deploy 44725394036 success (its MCP smoke included). GET /health -> {"ok":true,"store":"dynamodb",
+   "host_budget":null}. GET /submissions.json `queue.description` names the two halves of each target's
+   lane (F07-T81, T83).
+3. Tag gate-90807562; image-publish 44725426992 success. Digests read from the registry (manifest HEAD):
+     gate-90807562                        sha256:74158c4cfbb3fd0efa5d1ede17c1a7747074ee29a5315fffe9cd5045e4c34986
+     gate-90807562-mathlib-0df444a360ea   sha256:45db166436383168a62b0cf37dea3fd7b0cee44d3bc2b09dbe0256ebe0a8fbbe
+4. Graph re-pin on branch t1119-graph (worktree at graph origin/main ee5c6d100d, which had not moved):
+   F07-T81 300edd5756 and F07-T82 37079a2af0 (merge.yml), 67b07f7c69 (AGENTS.md copied from
+   gate/agents/AGENTS.md, byte-identical), then pin_image.py over 27 targets (tutorial plain, 26 Mathlib
+   with --api-url): 27/27 name 90807562; olean_cache_url kept; the devcontainer runs the Mathlib image and
+   keeps OPN_API. No schema changed between 829fc8ac and 90807562 (git diff --stat -- gate/schemas empty).
+   No graph run in flight before the push.
+     git push origin 70070d2288:refs/heads/main      ee5c6d100d..70070d2288
+   gate run 44727319033 success; render 44727362203 (dispatched by that run, F07-T60) success; bot commit
+   96168c762e "gate: render 908075627346". The new merge actor ran on the push (44727370280): success,
+   "merge actor: nothing to do" (no open service pull requests). info.json protocol_version 3.49
+   (unchanged); frontier.json 183 entries, 180 claimable, before and after.
+5. site-deploy 44727366400 and 44727648424 success; https://openproofnetwork.org/rendered-from.txt =
+   96168c762eea25b961a494434e172e0642439100.
+6. gate/tests/test_finding_merge_actor_workflow.py now reads merge.yml from graph origin/main
+   (t1119-actor out of REFS): with OPN_GRAPH_CHECKOUT at the re-pinned graph, the three merge actor
+   test files 169 passed.
+Left (the owner's): #1549's credit correction (F26-Q28); the tutorial variant's closure join (F28-Q17,
+option A or B); memoising failed joins; whether annexes are inert to a building lane (F07-Q88).
+#1489 was already closed.
